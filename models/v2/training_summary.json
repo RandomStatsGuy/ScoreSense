@@ -1,0 +1,97 @@
+{
+  "qb": {
+    "position": "qb",
+    "train_rows": 3147,
+    "val_rows": 556,
+    "val_mae": 4.530459673754197,
+    "val_rmse": 5.968409602420728,
+    "feature_cols": [
+      "passing_yards_avg",
+      "pass_tds_avg",
+      "ints_avg",
+      "completions_avg",
+      "pass_attmpt_avg",
+      "rush_attmpt_avg",
+      "rushing_yards_avg",
+      "rush_tds_avg",
+      "fumbles_avg",
+      "passing_epa_avg",
+      "rushing_epa_avg",
+      "target_share_avg",
+      "wopr_avg",
+      "opponent_pass_epa_allowed",
+      "days_rest",
+      "is_home"
+    ],
+    "train_seasons": [
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023
+    ]
+  },
+  "rb": {
+    "position": "rb",
+    "train_rows": 7302,
+    "val_rows": 1289,
+    "val_mae": 5.0462484486575,
+    "val_rmse": 6.8219032591222355,
+    "feature_cols": [
+      "receiving_yards_avg",
+      "receiving_tds_avg",
+      "receptions_avg",
+      "targets_avg",
+      "rush_attmpt_avg",
+      "rushing_yards_avg",
+      "rush_tds_avg",
+      "fumbles_avg",
+      "rushing_epa_avg",
+      "receiving_epa_avg",
+      "target_share_avg",
+      "carry_share_avg",
+      "opponent_rush_epa_allowed",
+      "days_rest",
+      "is_home"
+    ],
+    "train_seasons": [
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023
+    ]
+  },
+  "wr": {
+    "position": "wr",
+    "train_rows": 15079,
+    "val_rows": 2661,
+    "val_mae": 4.777905012448992,
+    "val_rmse": 6.379504343331231,
+    "feature_cols": [
+      "receiving_yards_avg",
+      "receiving_tds_avg",
+      "receptions_avg",
+      "targets_avg",
+      "fumbles_avg",
+      "receiving_epa_avg",
+      "air_yards_avg",
+      "target_share_avg",
+      "air_yards_share_avg",
+      "wopr_avg",
+      "opponent_pass_epa_allowed",
+      "days_rest",
+      "is_home"
+    ],
+    "train_seasons": [
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023
+    ]
+  }
+}

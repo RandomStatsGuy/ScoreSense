@@ -1,0 +1,33 @@
+{
+  "position": "qb",
+  "train_rows": 3147,
+  "val_rows": 556,
+  "val_mae": 4.530459673754197,
+  "val_rmse": 5.968409602420728,
+  "feature_cols": [
+    "passing_yards_avg",
+    "pass_tds_avg",
+    "ints_avg",
+    "completions_avg",
+    "pass_attmpt_avg",
+    "rush_attmpt_avg",
+    "rushing_yards_avg",
+    "rush_tds_avg",
+    "fumbles_avg",
+    "passing_epa_avg",
+    "rushing_epa_avg",
+    "target_share_avg",
+    "wopr_avg",
+    "opponent_pass_epa_allowed",
+    "days_rest",
+    "is_home"
+  ],
+  "train_seasons": [
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023
+  ]
+}
