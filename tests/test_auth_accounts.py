@@ -233,3 +233,19 @@ def test_api_forgot_password_rate_limit(api_client, mock_send, monkeypatch):
     register_native_user("rate@example.com", "password12", "Rate", accept_terms=True)
     res = api_client.post("/api/auth/forgot-password", json={"email": "rate@example.com"})
     assert res.status_code == 429
+
+
+def test_api_resend_already_verified(api_client, mock_send):
+    res = api_client.post(
+        "/api/auth/register",
+        json={"email": "verified@example.com", "password": "password12", "accept_terms": True},
+    )
+    token = res.json()["token"]
+    row = user_store.get_user_by_email("verified@example.com")
+    user_store.mark_email_verified(row["id"])
+    headers = {"Authorization": f"Bearer {token}"}
+    resend = api_client.post("/api/auth/resend-verification", headers=headers, json={})
+    assert resend.status_code == 200
+    body = resend.json()
+    assert body["sent"] is False
+    assert body.get("already_verified") is True

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { fetchMe, resendVerificationEmail } from "./auth";
+import { fetchMe, notifyAuthChanged, resendVerificationEmail } from "./auth";
 
 export default function VerifyEmailBanner({ user, onVerified }) {
   const [busy, setBusy] = useState(false);
@@ -17,7 +17,24 @@ export default function VerifyEmailBanner({ user, onVerified }) {
     setErr("");
     try {
       const data = await resendVerificationEmail();
-      setMsg(data.sent ? "Verification email sent — check your inbox." : "Could not send email.");
+      if (data.already_verified) {
+        if (onVerified) await onVerified();
+        notifyAuthChanged();
+        const me = await fetchMe();
+        if (me.user?.email_verified) {
+          setMsg("Your email is already verified — refreshing…");
+          return;
+        }
+      }
+      if (data.sent) {
+        setMsg("Verification email sent — check your inbox (and spam).");
+        return;
+      }
+      if (data.reason === "smtp_failed") {
+        setErr("Email could not be sent right now. Try again later or contact fourthdownlabs@gmail.com.");
+        return;
+      }
+      setErr("Could not send email. Try “I verified — refresh” if you already clicked the link.");
     } catch (e) {
       setErr(e.message || "Could not resend");
     } finally {
@@ -31,6 +48,7 @@ export default function VerifyEmailBanner({ user, onVerified }) {
     setErr("");
     try {
       if (onVerified) await onVerified();
+      notifyAuthChanged();
       const me = await fetchMe();
       if (me.user?.email_verified === false) {
         setMsg("Still unverified — open the link in your email again or resend.");

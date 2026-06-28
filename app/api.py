@@ -225,14 +225,53 @@ class DeleteAccountRequest(BaseModel):
     password: str
 
 
-def _rate_limit_auth(request: Request, email: str | None, scope: str) -> None:
+def _rate_limit_forgot_password(request: Request, email: str | None) -> None:
     ip = request.client.host if request.client else "unknown"
-    if not check_rate_limit(f"{scope}:ip:{ip}"):
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+    if not check_rate_limit(f"forgot-password:ip:{ip}", max_calls=10, window_seconds=3600):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many password reset requests. Try again in about an hour.",
+        )
     if email:
         norm = str(email).strip().lower()
-        if norm and not check_rate_limit(f"{scope}:email:{norm}"):
-            raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+        if norm and not check_rate_limit(f"forgot-password:email:{norm}", max_calls=5, window_seconds=3600):
+            raise HTTPException(
+                status_code=429,
+                detail="Too many password reset requests. Try again in about an hour.",
+            )
+
+
+def _rate_limit_resend_verification(
+    request: Request,
+    *,
+    user_id: str | None,
+    email: str | None,
+) -> None:
+    """Authenticated resend: one bucket per account. Anonymous: IP + email."""
+    if user_id:
+        if not check_rate_limit(
+            f"resend-verification:user:{user_id}",
+            max_calls=8,
+            window_seconds=3600,
+        ):
+            raise HTTPException(
+                status_code=429,
+                detail="Too many verification emails. Wait an hour or open the link from your last email.",
+            )
+        return
+    ip = request.client.host if request.client else "unknown"
+    if not check_rate_limit(f"resend-verification:ip:{ip}", max_calls=10, window_seconds=3600):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many verification emails. Try again in about an hour.",
+        )
+    if email:
+        norm = str(email).strip().lower()
+        if norm and not check_rate_limit(f"resend-verification:email:{norm}", max_calls=5, window_seconds=3600):
+            raise HTTPException(
+                status_code=429,
+                detail="Too many verification emails. Try again in about an hour.",
+            )
 
 
 def _require_native_user(request: Request) -> tuple[dict, str]:
@@ -342,7 +381,6 @@ def auth_verify_email(token: str) -> RedirectResponse:
 
 @app.post("/api/auth/resend-verification")
 def auth_resend_verification(body: ResendVerificationRequest, request: Request) -> dict:
-    _rate_limit_auth(request, body.email, "resend-verification")
     user_id = None
     jwt_user = optional_user(request)
     if jwt_user and jwt_user.get("auth_type") == "native":
@@ -351,14 +389,22 @@ def auth_resend_verification(body: ResendVerificationRequest, request: Request) 
         row = user_store.get_user_by_email(body.email)
         user_id = row["id"] if row else None
     if not user_id:
-        return {"sent": False}
+        return {"sent": False, "reason": "not_found"}
+
+    row = user_store.get_user_by_id(user_id)
+    if row and user_store.is_email_verified(row):
+        return {"sent": False, "already_verified": True}
+
+    _rate_limit_resend_verification(request, user_id=user_id, email=body.email or (row or {}).get("email"))
     sent = resend_verification_email(user_id)
-    return {"sent": sent}
+    if not sent:
+        return {"sent": False, "reason": "smtp_failed"}
+    return {"sent": True}
 
 
 @app.post("/api/auth/forgot-password")
 def auth_forgot_password(body: ForgotPasswordRequest, request: Request) -> dict:
-    _rate_limit_auth(request, body.email, "forgot-password")
+    _rate_limit_forgot_password(request, body.email)
     request_password_reset(body.email)
     return {"status": "ok", "message": "If an account exists, a reset link was sent."}
 
