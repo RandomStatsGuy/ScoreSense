@@ -1,6 +1,10 @@
 from src.draft_hub import storage
 from src.draft_hub.k_def_pool_cache import analytics_positions
-from src.draft_hub.league_history import build_player_ownership_history
+from src.draft_hub.league_history import (
+    apply_sleeper_ownership_history,
+    build_player_ownership_history,
+    build_sleeper_season_ownership_by_player,
+)
 from src.draft_hub.presets import load_preset
 from src.draft_hub.schemas import LeagueRules
 
@@ -107,6 +111,152 @@ def test_ownership_history_from_win_event():
     player = next(p for p in out["players"] if p["player_id"] == "p1")
     assert player["current_owners"][0]["salary"] == 25
     assert player["timeline"][0]["amount"] == 22
+
+
+def test_ownership_history_sleeper_season_chain():
+    overview = {
+        "teams": [
+            {
+                "team": {"id": "t1", "name": "Hub Alpha", "sleeper_roster_id": "1"},
+                "roster": [
+                    {
+                        "player_id": "p1",
+                        "player_name": "Star WR",
+                        "position": "WR",
+                        "salary": 40,
+                        "source": "sleeper",
+                    }
+                ],
+            }
+        ]
+    }
+
+    class FakeStorage:
+        @staticmethod
+        def list_draft_events(league_id, limit=500):
+            return []
+
+    import src.draft_hub.league_history as lh
+
+    old = lh.storage
+    lh.storage = FakeStorage
+    try:
+        base = build_player_ownership_history("lg1", overview)
+        out = apply_sleeper_ownership_history(
+            base,
+            {
+                "by_player": {
+                    "p1": [
+                        {
+                            "event_type": "season_roster",
+                            "season": "2024",
+                            "team_name": "Chevy Chase",
+                            "player_name": "Star WR",
+                            "position": "WR",
+                        },
+                        {
+                            "event_type": "season_roster",
+                            "season": "2025",
+                            "team_name": "Hub Alpha",
+                            "player_name": "Star WR",
+                            "position": "WR",
+                        },
+                    ]
+                },
+                "available_seasons": ["2025", "2024"],
+            },
+        )
+    finally:
+        lh.storage = old
+
+    assert out["has_sleeper_history"] is True
+    assert out["available_seasons"] == ["2025", "2024"]
+    player = out["players"][0]
+    assert len(player["timeline"]) == 2
+    assert player["timeline"][0]["season"] == "2024"
+    assert player["timeline"][0]["team_name"] == "Chevy Chase"
+    assert player["timeline"][1]["season"] == "2025"
+    assert player["timeline"][1]["team_name"] == "Hub Alpha"
+
+
+def test_ownership_history_never_empty_for_current_roster():
+    overview = {
+        "teams": [
+            {
+                "team": {"id": "t1", "name": "Alpha"},
+                "roster": [
+                    {
+                        "player_id": "p9",
+                        "player_name": "Current Guy",
+                        "position": "RB",
+                        "salary": 8,
+                        "source": "sheet",
+                    }
+                ],
+            }
+        ]
+    }
+
+    class FakeStorage:
+        @staticmethod
+        def list_draft_events(league_id, limit=500):
+            return []
+
+    import src.draft_hub.league_history as lh
+
+    old = lh.storage
+    lh.storage = FakeStorage
+    try:
+        out = build_player_ownership_history("lg1", overview)
+    finally:
+        lh.storage = old
+
+    player = out["players"][0]
+    assert player["timeline"]
+    assert player["timeline"][0]["event_type"] == "roster"
+    assert player["timeline"][0]["team_name"] == "Alpha"
+
+
+def test_sleeper_season_ownership_uses_historical_team_names(monkeypatch):
+    import src.draft_hub.league_history as lh
+
+    def fake_chain(sleeper_league_id, *, max_hops=8):
+        return [{"season": "2023", "league_id": "sl2023", "name": "League", "status": "complete"}]
+
+    def fake_rosters(league_id):
+        return [{"roster_id": "7", "owner_id": "u1", "players": ["sp1"]}]
+
+    def fake_users(league_id):
+        return [
+            {
+                "user_id": "u1",
+                "display_name": "Owner",
+                "metadata": {"team_name": "Daddio of the Pandio"},
+            }
+        ]
+
+    def fake_resolve(sleeper_player_id, raw_players, *, aliases=None):
+        return {
+            "player_id": "00-0031234",
+            "player_name": "CeeDee Lamb",
+            "position": "WR",
+            "sleeper_player_id": str(sleeper_player_id),
+        }
+
+    monkeypatch.setattr(lh, "sleeper_league_season_chain", fake_chain)
+    monkeypatch.setattr("src.integrations.sleeper_league.fetch_league_rosters", fake_rosters)
+    monkeypatch.setattr("src.integrations.sleeper_league.fetch_league_users", fake_users)
+    monkeypatch.setattr(
+        "src.integrations.sleeper_league.resolve_ownership_roster_player",
+        fake_resolve,
+    )
+    monkeypatch.setattr("src.integrations.sleeper.load_sleeper_players", lambda: {})
+
+    out = build_sleeper_season_ownership_by_player("sl2023")
+    events = out["00-0031234"]
+    assert len(events) == 1
+    assert events[0]["season"] == "2023"
+    assert events[0]["team_name"] == "Daddio of the Pandio"
 
 
 def test_resolve_sleeper_league_id_from_member_workspace(tmp_path, monkeypatch):

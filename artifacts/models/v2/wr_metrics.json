@@ -1,0 +1,46 @@
+{
+  "position": "wr",
+  "train_rows": 15079,
+  "val_rows": 2662,
+  "val_mae": 4.657172232373419,
+  "val_rmse": 6.549759794594829,
+  "val_interval_coverage_p10_p90": 0.7746055597295267,
+  "feature_cols": [
+    "receiving_yards_avg",
+    "receiving_tds_avg",
+    "receptions_avg",
+    "targets_avg",
+    "fumbles_avg",
+    "receiving_epa_avg",
+    "air_yards_avg",
+    "target_share_avg",
+    "air_yards_share_avg",
+    "wopr_avg",
+    "opponent_pass_epa_allowed",
+    "days_rest",
+    "is_home",
+    "target_quality_avg",
+    "separation_at_throw_avg",
+    "defender_closing_speed_avg",
+    "explosive_plays_avg",
+    "rz_targets_avg",
+    "routes_avg",
+    "total_line_avg",
+    "implied_team_total_avg",
+    "offense_pct_avg",
+    "injury_opportunity_boost_hist_avg"
+  ],
+  "train_seasons": [
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023
+  ],
+  "quantiles": [
+    0.1,
+    0.5,
+    0.9
+  ]
+}

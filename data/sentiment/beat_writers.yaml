@@ -1,0 +1,233 @@
+# Primary beat reporters per team (attribution / future X ingest).
+schema_version: 1
+writers:
+  - team: BAL
+    primary:
+      name: Jeff Zrebiec
+      outlet: The Athletic
+      network: athletic
+      tier: reporting
+      twitter_handle: null
+      espn_team_slug: null
+  - team: BUF
+    primary:
+      name: Joe Buscaglia
+      outlet: The Athletic
+      network: athletic
+      tier: reporting
+    also:
+      - { name: Alaina Getzenberg, outlet: ESPN, network: espn, tier: reporting }
+  - team: CIN
+    primary:
+      name: Paul Dehner Jr.
+      outlet: The Athletic
+      network: athletic
+      tier: reporting
+    also:
+      - { name: Ben Baby, outlet: ESPN, network: espn, tier: reporting }
+  - team: CLE
+    primary:
+      name: Mary Kay Cabot
+      outlet: Cleveland.com
+      network: local
+      tier: reporting
+  - team: DEN
+    primary:
+      name: Nick Kosmider
+      outlet: The Athletic
+      network: athletic
+      tier: reporting
+  - team: HOU
+    primary:
+      name: Brooks Kubena
+      outlet: The Athletic
+      network: athletic
+      tier: reporting
+    also:
+      - { name: DJ Bien-Aime, outlet: ESPN, network: espn, tier: reporting }
+  - team: IND
+    primary:
+      name: Stephen Holder
+      outlet: ESPN
+      network: espn
+      tier: reporting
+    also:
+      - { name: James Boyd, outlet: The Athletic, network: athletic, tier: reporting }
+  - team: JAX
+    primary:
+      name: Michael DiRocco
+      outlet: ESPN
+      network: espn
+      tier: reporting
+  - team: KC
+    primary:
+      name: Nate Taylor
+      outlet: Arrowhead Pride
+      network: sb_nation
+      tier: reporting
+    also:
+      - { name: Pete Sweeney, outlet: Arrowhead Pride, network: sb_nation, tier: reporting }
+  - team: LV
+    primary:
+      name: Tashan Reed
+      outlet: The Athletic
+      network: athletic
+      tier: reporting
+    also:
+      - { name: Vic Tafur, outlet: The Athletic, network: athletic, tier: reporting }
+  - team: LAC
+    primary:
+      name: Daniel Popper
+      outlet: The Athletic
+      network: athletic
+      tier: reporting
+  - team: MIA
+    primary:
+      name: Marcel Louis-Jacques
+      outlet: ESPN
+      network: espn
+      tier: reporting
+  - team: NE
+    primary:
+      name: Mike Reiss
+      outlet: ESPN
+      network: espn
+      tier: reporting
+  - team: NYJ
+    primary:
+      name: Connor Hughes
+      outlet: SNY
+      network: local
+      tier: reporting
+    also:
+      - { name: Zack Rosenblatt, outlet: The Athletic, network: athletic, tier: reporting }
+  - team: PIT
+    primary:
+      name: Brooke Pryor
+      outlet: ESPN
+      network: espn
+      tier: reporting
+    also:
+      - { name: Mark Kaboly, outlet: The Athletic, network: athletic, tier: reporting }
+  - team: TEN
+    primary:
+      name: Turron Davenport
+      outlet: ESPN
+      network: espn
+      tier: reporting
+  - team: ARI
+    primary:
+      name: Bo Brack
+      outlet: PHNX Sports
+      network: local
+      tier: reporting
+    also:
+      - { name: Josh Weinfuss, outlet: ESPN, network: espn, tier: reporting }
+  - team: ATL
+    primary:
+      name: D. Orlando Ledbetter
+      outlet: AJC
+      network: local
+      tier: reporting
+    also:
+      - { name: Marc Raimondi, outlet: ESPN, network: espn, tier: reporting }
+  - team: CAR
+    primary:
+      name: Joe Person
+      outlet: The Athletic
+      network: athletic
+      tier: reporting
+  - team: CHI
+    primary:
+      name: Courtney Cronin
+      outlet: ESPN
+      network: espn
+      tier: reporting
+    also:
+      - { name: Kevin Fishbain, outlet: The Athletic, network: athletic, tier: reporting }
+  - team: DAL
+    primary:
+      name: Todd Archer
+      outlet: ESPN
+      network: espn
+      tier: reporting
+    also:
+      - { name: Jon Machota, outlet: The Athletic, network: athletic, tier: reporting }
+  - team: DET
+    primary:
+      name: Justin Rogers
+      outlet: Detroit Football Network
+      network: local
+      tier: reporting
+  - team: GB
+    primary:
+      name: Matt Schneidman
+      outlet: The Athletic
+      network: athletic
+      tier: reporting
+    also:
+      - { name: Rob Demovsky, outlet: ESPN, network: espn, tier: reporting }
+  - team: LAR
+    primary:
+      name: Jourdan Rodrigue
+      outlet: The Athletic
+      network: athletic
+      tier: reporting
+  - team: MIN
+    primary:
+      name: Alec Lewis
+      outlet: The Athletic
+      network: athletic
+      tier: reporting
+    also:
+      - { name: Kevin Seifert, outlet: ESPN, network: espn, tier: reporting }
+  - team: "NO"
+    primary:
+      name: Nick Underhill
+      outlet: NewOrleans.Football
+      network: local
+      tier: reporting
+  - team: NYG
+    primary:
+      name: Dan Duggan
+      outlet: The Athletic
+      network: athletic
+      tier: reporting
+    also:
+      - { name: Jordan Raanan, outlet: ESPN, network: espn, tier: reporting }
+  - team: PHI
+    primary:
+      name: Zach Berman
+      outlet: PhillyVoice
+      network: local
+      tier: reporting
+    also:
+      - { name: Jimmy Kempski, outlet: PhillyVoice, network: local, tier: reporting }
+  - team: SF
+    primary:
+      name: Matt Barrows
+      outlet: The Athletic
+      network: athletic
+      tier: reporting
+    also:
+      - { name: Matt Maiocco, outlet: NBCS, network: local, tier: reporting }
+  - team: SEA
+    primary:
+      name: Michael-Shawn Dugar
+      outlet: The Athletic
+      network: athletic
+      tier: reporting
+  - team: TB
+    primary:
+      name: Rick Stroud
+      outlet: Tampa Bay Times
+      network: local
+      tier: reporting
+    also:
+      - { name: Jenna Laine, outlet: ESPN, network: espn, tier: reporting }
+  - team: WAS
+    primary:
+      name: John Keim
+      outlet: ESPN
+      network: espn
+      tier: reporting

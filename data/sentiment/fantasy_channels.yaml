@@ -1,0 +1,103 @@
+schema_version: 1
+channels:
+- channel_id: UC-DCCRcJiB1Lx0CpITBMRxA
+  network: draft_sharks
+  label: Draft Sharks
+  search_query: Draft Sharks fantasy football Kevin English
+  tier: analysis
+  weight: 1.0
+  hosts: Kevin English, Jared Smola
+  active: true
+  promote_to_features: false
+- channel_id: UC-No2ITxJsNt50oJQ3fLmUA
+  network: fantasy_footballers
+  label: The Fantasy Footballers
+  search_query: The Fantasy Footballers Andy Holloway
+  tier: analysis
+  weight: 0.95
+  hosts: Andy Holloway, Jason Moore, Mike Wright
+  active: true
+  promote_to_features: true
+  screen_note: RB sentiment correlation p=0.005
+- channel_id: UCZYaxEBdyKDsZfq_JGZwIeQ
+  network: fantasypros_yt
+  label: FantasyPros
+  search_query: FantasyPros NFL fantasy football
+  tier: analysis
+  weight: 0.95
+  hosts: FantasyPros ECR
+  active: true
+  promote_to_features: true
+  screen_note: highest coverage volume; WR correlation p=0.057
+- channel_id: UCthzZOV9hsJnCyC_3KsIhRw
+  network: playerprofiler
+  label: PlayerProfiler
+  search_query: PlayerProfiler Matt Kelley fantasy football
+  tier: analysis
+  weight: 0.9
+  hosts: Matt Kelley
+  active: true
+  promote_to_features: false
+- channel_id: UCK5szBUaJMnuCViD6alvuXg
+  network: late_round
+  label: Late-Round Fantasy Football
+  search_query: Late Round Fantasy Football JJ Zachariason
+  tier: analysis
+  weight: 0.9
+  hosts: JJ Zachariason
+  active: true
+  promote_to_features: true
+  screen_note: WR sentiment correlation p=0.0005
+- channel_id: UCvIyBYSykqTU4oqB1gSTM5w
+  network: establish_the_run
+  label: Establish The Run
+  search_query: Establish The Run Evan Silva fantasy football
+  tier: analysis
+  weight: 0.9
+  hosts: Evan Silva, Adam Levitan
+  active: true
+  promote_to_features: false
+  screen_note: deep backfill 803 videos; QB n=20 still thin
+- channel_id: UCaCshQX7-gQ0Bs5BnddUwZg
+  network: fantasy_points
+  label: Fantasy Points
+  search_query: Fantasy Points Scott Barrett fantasy football
+  tier: analysis
+  weight: 0.9
+  hosts: Scott Barrett, Theo Gremminger
+  active: true
+  promote_to_features: true
+  screen_note: QB borderline p=0.081 after deep backfill (n=187); RB p=0.068
+- channel_id: UCuAtv3AGUlp-zo3Wmgo60Gg
+  network: qb_list
+  label: QB List
+  search_query: QB List fantasy football Ryan Heath
+  tier: analysis
+  weight: 0.95
+  hosts: Ryan Heath
+  active: true
+  promote_to_features: false
+  screen_note: channel has only 55 videos; insufficient QB mentions (n=5)
+  custom_url: '@theqblist'
+- channel_id: UC7fnz7139CGSdtHWaPMCpIw
+  network: underdog_fantasy
+  label: Underdog Fantasy Football
+  search_query: Underdog Fantasy Josh Hayden NFL
+  tier: analysis
+  weight: 0.9
+  hosts: Josh Horowitz, Hayden Winks
+  active: true
+  promote_to_features: false
+  screen_note: high volume (1137 videos) but no sig QB/RB/WR correlation yet
+  custom_url: '@joshandhayden'
+- channel_id: UCvqWpJ9iMAfu4aOGvAn85lw
+  network: reception_perception
+  label: Reception Perception
+  search_query: Matt Harmon Reception Perception fantasy football
+  tier: analysis
+  weight: 0.9
+  hosts: Matt Harmon
+  active: true
+  promote_to_features: true
+  screen_note: WR correlation p=0.0495 (rho=0.28) after deep backfill
+  custom_url: '@MattHarmonRP'

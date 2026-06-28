@@ -1,0 +1,23 @@
+# cloudflared tunnel config — lives on the Vultr VPS, e.g. /etc/cloudflared/config.yml
+#
+# Replace TUNNEL_UUID with your tunnel ID from Cloudflare Zero Trust dashboard.
+# credentials-file path comes from: cloudflared tunnel create fourthdownlabs
+#
+# After editing:
+#   sudo cloudflared --config /etc/cloudflared/config.yml tunnel ingress validate
+#   sudo systemctl restart cloudflared
+
+tunnel: TUNNEL_UUID
+credentials-file: /root/.cloudflared/TUNNEL_UUID.json
+
+ingress:
+  # ScoreSense (Fourth Down Labs product)
+  - hostname: app.fourthdownlabs.com
+    service: http://127.0.0.1:8000
+
+  # Optional: company landing page later (different port or static host)
+  # - hostname: fourthdownlabs.com
+  #   service: http://127.0.0.1:8080
+
+  # Required catch-all (must be last)
+  - service: http_status:404

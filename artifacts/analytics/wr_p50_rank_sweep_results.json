@@ -1,0 +1,241 @@
+{
+  "seasons": [
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024
+  ],
+  "holdout_season": 2024,
+  "mae_guardrail": 0.05,
+  "spearman_target": 0.58,
+  "baseline_2024_mae": 4.476,
+  "results": {
+    "default": {
+      "training_config": "default",
+      "2024_holdout": {
+        "spearman": 0.5356,
+        "mae": 4.476,
+        "n": 3220
+      },
+      "pooled_6_season": {
+        "spearman": 0.5326,
+        "mae": 4.5071,
+        "n": 19211
+      },
+      "by_season": {
+        "2019": {
+          "spearman": 0.5126,
+          "mae": 4.6577,
+          "n": 3057
+        },
+        "2020": {
+          "spearman": 0.5319,
+          "mae": 4.7017,
+          "n": 3163
+        },
+        "2021": {
+          "spearman": 0.535,
+          "mae": 4.5408,
+          "n": 3264
+        },
+        "2022": {
+          "spearman": 0.5231,
+          "mae": 4.3859,
+          "n": 3221
+        },
+        "2023": {
+          "spearman": 0.5555,
+          "mae": 4.2957,
+          "n": 3286
+        },
+        "2024": {
+          "spearman": 0.5356,
+          "mae": 4.476,
+          "n": 3220
+        }
+      }
+    },
+    "wr_p50_depth_3": {
+      "training_config": "wr_p50_depth_3",
+      "2024_holdout": {
+        "spearman": 0.5367,
+        "mae": 4.4766,
+        "n": 3220
+      },
+      "pooled_6_season": {
+        "spearman": 0.534,
+        "mae": 4.5052,
+        "n": 19211
+      },
+      "by_season": {
+        "2019": {
+          "spearman": 0.5175,
+          "mae": 4.6536,
+          "n": 3057
+        },
+        "2020": {
+          "spearman": 0.5347,
+          "mae": 4.6792,
+          "n": 3163
+        },
+        "2021": {
+          "spearman": 0.5366,
+          "mae": 4.5441,
+          "n": 3264
+        },
+        "2022": {
+          "spearman": 0.5241,
+          "mae": 4.3908,
+          "n": 3221
+        },
+        "2023": {
+          "spearman": 0.5537,
+          "mae": 4.3014,
+          "n": 3286
+        },
+        "2024": {
+          "spearman": 0.5367,
+          "mae": 4.4766,
+          "n": 3220
+        }
+      }
+    },
+    "wr_p50_min_leaf_20": {
+      "training_config": "wr_p50_min_leaf_20",
+      "2024_holdout": {
+        "spearman": 0.5363,
+        "mae": 4.4785,
+        "n": 3220
+      },
+      "pooled_6_season": {
+        "spearman": 0.5321,
+        "mae": 4.5123,
+        "n": 19211
+      },
+      "by_season": {
+        "2019": {
+          "spearman": 0.5139,
+          "mae": 4.663,
+          "n": 3057
+        },
+        "2020": {
+          "spearman": 0.5286,
+          "mae": 4.7054,
+          "n": 3163
+        },
+        "2021": {
+          "spearman": 0.5338,
+          "mae": 4.5494,
+          "n": 3264
+        },
+        "2022": {
+          "spearman": 0.5236,
+          "mae": 4.3878,
+          "n": 3221
+        },
+        "2023": {
+          "spearman": 0.5549,
+          "mae": 4.3044,
+          "n": 3286
+        },
+        "2024": {
+          "spearman": 0.5363,
+          "mae": 4.4785,
+          "n": 3220
+        }
+      }
+    },
+    "wr_p50_lr_03": {
+      "training_config": "wr_p50_lr_03",
+      "2024_holdout": {
+        "spearman": 0.537,
+        "mae": 4.4702,
+        "n": 3220
+      },
+      "pooled_6_season": {
+        "spearman": 0.5324,
+        "mae": 4.5075,
+        "n": 19211
+      },
+      "by_season": {
+        "2019": {
+          "spearman": 0.5168,
+          "mae": 4.661,
+          "n": 3057
+        },
+        "2020": {
+          "spearman": 0.531,
+          "mae": 4.6956,
+          "n": 3163
+        },
+        "2021": {
+          "spearman": 0.5347,
+          "mae": 4.534,
+          "n": 3264
+        },
+        "2022": {
+          "spearman": 0.5213,
+          "mae": 4.3918,
+          "n": 3221
+        },
+        "2023": {
+          "spearman": 0.5535,
+          "mae": 4.3072,
+          "n": 3286
+        },
+        "2024": {
+          "spearman": 0.537,
+          "mae": 4.4702,
+          "n": 3220
+        }
+      }
+    },
+    "wr_p50_regularized_combo": {
+      "training_config": "wr_p50_regularized_combo",
+      "2024_holdout": {
+        "spearman": 0.5369,
+        "mae": 4.4734,
+        "n": 3220
+      },
+      "pooled_6_season": {
+        "spearman": 0.5343,
+        "mae": 4.5037,
+        "n": 19211
+      },
+      "by_season": {
+        "2019": {
+          "spearman": 0.517,
+          "mae": 4.6543,
+          "n": 3057
+        },
+        "2020": {
+          "spearman": 0.5352,
+          "mae": 4.6781,
+          "n": 3163
+        },
+        "2021": {
+          "spearman": 0.5362,
+          "mae": 4.5442,
+          "n": 3264
+        },
+        "2022": {
+          "spearman": 0.5254,
+          "mae": 4.3869,
+          "n": 3221
+        },
+        "2023": {
+          "spearman": 0.5542,
+          "mae": 4.2999,
+          "n": 3286
+        },
+        "2024": {
+          "spearman": 0.5369,
+          "mae": 4.4734,
+          "n": 3220
+        }
+      }
+    }
+  }
+}

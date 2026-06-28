@@ -1,0 +1,183 @@
+{
+  "test_seasons": [
+    2024,
+    2025
+  ],
+  "team_filter": "LV",
+  "sentiment_path": "C:\\Users\\Caelp\\Desktop\\AllStuff\\ScoreSense\\artifacts\\analytics\\sentiment_features_locked_on_baseline.parquet",
+  "positions": {
+    "qb": {
+      "position": "qb",
+      "team_filter": "LV",
+      "test_seasons": [
+        2024,
+        2025
+      ],
+      "sentiment_columns": [
+        "yt_mention_count",
+        "yt_mention_delta",
+        "yt_sentiment_score",
+        "yt_injury_flag",
+        "yt_role_hype_flag",
+        "yt_channel_count",
+        "yt_data_coverage",
+        "yt_locked_on_mentions",
+        "yt_sb_nation_mentions",
+        "narrative_source_count"
+      ],
+      "mention_coverage": 0.2826,
+      "seasons_improved": 0,
+      "seasons_tested": 2,
+      "recommendation": "inconclusive",
+      "season_detail": [
+        {
+          "season": 2024,
+          "baseline_mae": 3.2689610713146102,
+          "sentiment_mae": 3.7645239873801164,
+          "mae_delta": 0.4956,
+          "baseline_boom_recall": NaN,
+          "sentiment_boom_recall": NaN,
+          "boom_recall_delta": NaN,
+          "baseline_composite": NaN,
+          "sentiment_composite": NaN,
+          "composite_delta": NaN,
+          "sentiment_helped": false
+        },
+        {
+          "season": 2025,
+          "baseline_mae": 3.6754171699283673,
+          "sentiment_mae": 3.7503804820467534,
+          "mae_delta": 0.075,
+          "baseline_boom_recall": 1.0,
+          "sentiment_boom_recall": 1.0,
+          "boom_recall_delta": 0.0,
+          "baseline_composite": 0.3675417169928367,
+          "sentiment_composite": 0.37503804820467534,
+          "composite_delta": 0.0075,
+          "sentiment_helped": false
+        }
+      ]
+    },
+    "rb": {
+      "position": "rb",
+      "team_filter": "LV",
+      "test_seasons": [
+        2024,
+        2025
+      ],
+      "sentiment_columns": [
+        "yt_mention_count",
+        "yt_mention_delta",
+        "yt_sentiment_score",
+        "yt_injury_flag",
+        "yt_role_hype_flag",
+        "yt_channel_count",
+        "yt_data_coverage",
+        "yt_locked_on_mentions",
+        "yt_sb_nation_mentions",
+        "narrative_source_count"
+      ],
+      "mention_coverage": 0.117,
+      "seasons_improved": 1,
+      "seasons_tested": 2,
+      "recommendation": "inconclusive",
+      "season_detail": [
+        {
+          "season": 2024,
+          "baseline_mae": 4.908120498233578,
+          "sentiment_mae": 4.8644115396466026,
+          "mae_delta": -0.0437,
+          "baseline_boom_recall": NaN,
+          "sentiment_boom_recall": NaN,
+          "boom_recall_delta": NaN,
+          "baseline_composite": NaN,
+          "sentiment_composite": NaN,
+          "composite_delta": NaN,
+          "sentiment_helped": false
+        },
+        {
+          "season": 2025,
+          "baseline_mae": 5.4268989281838795,
+          "sentiment_mae": 5.1009292543994045,
+          "mae_delta": -0.326,
+          "baseline_boom_recall": 0.0,
+          "sentiment_boom_recall": 0.3333333333333333,
+          "boom_recall_delta": 0.3333,
+          "baseline_composite": 0.9426898928183879,
+          "sentiment_composite": 0.7767595921066072,
+          "composite_delta": -0.1659,
+          "sentiment_helped": true
+        }
+      ]
+    },
+    "wr": {
+      "position": "wr",
+      "team_filter": "LV",
+      "test_seasons": [
+        2024,
+        2025
+      ],
+      "sentiment_columns": [
+        "yt_mention_count",
+        "yt_mention_delta",
+        "yt_sentiment_score",
+        "yt_injury_flag",
+        "yt_role_hype_flag",
+        "yt_channel_count",
+        "yt_data_coverage",
+        "yt_locked_on_mentions",
+        "yt_sb_nation_mentions",
+        "narrative_source_count"
+      ],
+      "mention_coverage": 0.0739,
+      "seasons_improved": 1,
+      "seasons_tested": 2,
+      "recommendation": "inconclusive",
+      "season_detail": [
+        {
+          "season": 2024,
+          "baseline_mae": 5.061392027293817,
+          "sentiment_mae": 5.230258412796843,
+          "mae_delta": 0.1689,
+          "baseline_boom_recall": 0.7777777777777778,
+          "sentiment_boom_recall": 0.7777777777777778,
+          "boom_recall_delta": 0.0,
+          "baseline_composite": 0.5950280916182705,
+          "sentiment_composite": 0.6119147301685732,
+          "composite_delta": 0.0169,
+          "sentiment_helped": false
+        },
+        {
+          "season": 2025,
+          "baseline_mae": 3.7431376140965855,
+          "sentiment_mae": 3.67315271615946,
+          "mae_delta": -0.07,
+          "baseline_boom_recall": 0.6666666666666666,
+          "sentiment_boom_recall": 0.6666666666666666,
+          "boom_recall_delta": 0.0,
+          "baseline_composite": 0.5076470947429919,
+          "sentiment_composite": 0.5006486049492793,
+          "composite_delta": -0.007,
+          "sentiment_helped": true
+        }
+      ]
+    }
+  },
+  "summary": {
+    "qb": {
+      "recommendation": "inconclusive",
+      "mention_coverage": 0.2826,
+      "seasons_improved": 0
+    },
+    "rb": {
+      "recommendation": "inconclusive",
+      "mention_coverage": 0.117,
+      "seasons_improved": 1
+    },
+    "wr": {
+      "recommendation": "inconclusive",
+      "mention_coverage": 0.0739,
+      "seasons_improved": 1
+    }
+  }
+}

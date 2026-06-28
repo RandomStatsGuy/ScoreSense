@@ -1,0 +1,104 @@
+# Heuristic injury return windows — not official team timelines.
+# Used by src/integrations/injury_timeline.py
+
+defaults:
+  Out:
+    label: Out this week
+    weeks_min: 1
+    weeks_max: 1
+    confidence: medium
+    rationale: Out designation
+  IR:
+    label: 4+ weeks
+    weeks_min: 4
+    weeks_max: 8
+    confidence: medium
+    rationale: Injured reserve
+  PUP:
+    label: 6+ weeks
+    weeks_min: 6
+    weeks_max: 12
+    confidence: medium
+    rationale: Physically unable to perform list
+  Doubtful:
+    label: 1-2 weeks
+    weeks_min: 1
+    weeks_max: 2
+    confidence: low
+    rationale: Doubtful designation
+  Questionable:
+    label: 0-1 weeks
+    weeks_min: 0
+    weeks_max: 1
+    confidence: low
+    rationale: Questionable designation
+
+body_part_patterns:
+  - match: acl
+    label: Season / multi-month
+    weeks_min: 8
+    weeks_max: 17
+    confidence: medium
+    rationale: ACL injury pattern
+  - match: achilles
+    label: Season / multi-month
+    weeks_min: 8
+    weeks_max: 17
+    confidence: medium
+    rationale: Achilles injury pattern
+  - match: hamstring
+    label: 1-3 weeks
+    weeks_min: 1
+    weeks_max: 3
+    confidence: low
+    rationale: Hamstring injury pattern
+  - match: ankle
+    label: 1-3 weeks
+    weeks_min: 1
+    weeks_max: 3
+    confidence: low
+    rationale: Ankle injury pattern
+  - match: foot
+    label: 2-4 weeks
+    weeks_min: 2
+    weeks_max: 4
+    confidence: low
+    rationale: Foot injury pattern
+  - match: knee
+    label: 2-6 weeks
+    weeks_min: 2
+    weeks_max: 6
+    confidence: low
+    rationale: Knee injury pattern
+  - match: shoulder
+    label: 2-4 weeks
+    weeks_min: 2
+    weeks_max: 4
+    confidence: low
+    rationale: Shoulder injury pattern
+
+note_patterns:
+  - match: surgery
+    label: 4+ weeks
+    weeks_min: 4
+    weeks_max: 8
+    confidence: medium
+    rationale: Surgery noted
+  - match: fracture
+    label: 4-8 weeks
+    weeks_min: 4
+    weeks_max: 8
+    confidence: medium
+    rationale: Fracture noted
+  - match: sprain
+    label: 1-2 weeks
+    weeks_min: 1
+    weeks_max: 2
+    confidence: low
+    rationale: Sprain noted
+  - match: soreness
+    label: Game-time decision
+    weeks_min: 0
+    weeks_max: 1
+    confidence: low
+    rationale: Soreness / minor issue

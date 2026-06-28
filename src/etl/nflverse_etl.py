@@ -8,14 +8,27 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from src.config import DEFAULT_TRAIN_SEASONS, PROCESSED_DATA_DIR
-from src.features import (
+from src.config import DEFAULT_ETL_SEASONS, DEFAULT_TRAIN_SEASONS, PROCESSED_DATA_DIR, write_parquet
+from src.core.memory_utils import release_memory
+from src.core.features import (
     FEATURE_REGISTRY,
     add_rolling_averages,
     calc_fantasy_points_ppr,
     get_position_features,
     safe_div,
 )
+
+try:
+    from src.analytics.candidate_etl import build_candidate_features
+    from src.analytics.historical_injury import add_historical_injury_features
+except ImportError:
+    build_candidate_features = None
+    add_historical_injury_features = None
+
+try:
+    from bdb_companion.target_quality import merge_target_quality_into_wr_features
+except ImportError:
+    merge_target_quality_into_wr_features = None
 
 
 def _import_nfl_data_py():
@@ -28,9 +41,37 @@ def _import_nfl_data_py():
     return nfl
 
 
-def load_weekly_player_stats(seasons: list[int]) -> pd.DataFrame:
+def _normalize_weekly_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Align nflverse weekly schemas across player_stats and stats_player_week releases."""
+    out = df.copy()
+    if "recent_team" in out.columns:
+        if "team" not in out.columns:
+            out["team"] = out["recent_team"]
+        out = out.drop(columns=["recent_team"])
+    if "passing_interceptions" in out.columns and "interceptions" not in out.columns:
+        out["interceptions"] = out["passing_interceptions"]
+    if "opponent_team" in out.columns:
+        if "opponent" not in out.columns:
+            out["opponent"] = out["opponent_team"]
+        out = out.drop(columns=["opponent_team"])
+    return out.loc[:, ~out.columns.duplicated()]
+
+
+def _load_weekly_season(season: int) -> pd.DataFrame:
     nfl = _import_nfl_data_py()
-    weekly = nfl.import_weekly_data(years=seasons, downcast=True)
+    try:
+        return _normalize_weekly_columns(nfl.import_weekly_data(years=[season], downcast=True))
+    except Exception:
+        alt_url = (
+            "https://github.com/nflverse/nflverse-data/releases/download/"
+            f"stats_player/stats_player_week_{season}.parquet"
+        )
+        return _normalize_weekly_columns(pd.read_parquet(alt_url))
+
+
+def load_weekly_player_stats(seasons: list[int]) -> pd.DataFrame:
+    frames = [_load_weekly_season(season) for season in seasons]
+    weekly = pd.concat(frames, ignore_index=True)
     if "week" not in weekly.columns:
         raise ValueError("Weekly data missing 'week' column")
     return weekly
@@ -110,12 +151,12 @@ def build_position_dataset(
     if df.empty:
         return df
 
-    df = df.rename(
-        columns={
-            "recent_team": "team",
-            "opponent_team": "opponent",
-        }
-    )
+    df = df.rename(columns={"opponent_team": "opponent"})
+    if "team" not in df.columns and "recent_team" in df.columns:
+        df = df.rename(columns={"recent_team": "team"})
+    if "opponent" in df.columns and "opponent_team" in df.columns:
+        df = df.drop(columns=["opponent_team"])
+    df = df.loc[:, ~df.columns.duplicated()]
     df["Fpts"] = calc_fantasy_points_ppr(df)
 
     numeric_defaults = {
@@ -222,10 +263,16 @@ def build_position_dataset(
 def build_all_datasets(
     seasons: list[int] | None = None,
     output_dir: Path | None = None,
+    enrich_analytics: bool = True,
 ) -> dict[str, Path]:
-    seasons = seasons or DEFAULT_TRAIN_SEASONS + [2024]
+    seasons = seasons or DEFAULT_ETL_SEASONS
     output_dir = output_dir or PROCESSED_DATA_DIR
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    if enrich_analytics and build_candidate_features is not None:
+        print("Building analytics candidate features...")
+        for position in FEATURE_REGISTRY:
+            build_candidate_features(position, seasons)
 
     weekly = load_weekly_player_stats(seasons)
     schedules = load_schedules(seasons)
@@ -234,12 +281,26 @@ def build_all_datasets(
     paths: dict[str, Path] = {}
     for position in FEATURE_REGISTRY:
         dataset = build_position_dataset(weekly, schedules, team_epa, position)
+        if enrich_analytics and build_candidate_features is not None:
+            from src.analytics.candidate_etl import merge_candidates_into_mlready
+            from src.config import CANDIDATE_DATA_DIR
+
+            try:
+                path = output_dir / f"{position}_mlready.parquet"
+                write_parquet(dataset, path)
+                dataset = merge_candidates_into_mlready(position, output_dir, CANDIDATE_DATA_DIR)
+            except FileNotFoundError:
+                pass
+        if enrich_analytics and add_historical_injury_features is not None:
+            dataset = add_historical_injury_features(dataset)
+        if position == "wr" and merge_target_quality_into_wr_features is not None:
+            dataset = merge_target_quality_into_wr_features(dataset)
         path = output_dir / f"{position}_mlready.parquet"
-        dataset.to_parquet(path, index=False)
-        csv_path = output_dir / f"{position}_mlready.csv"
-        dataset.to_csv(csv_path, index=False)
+        write_parquet(dataset, path)
         paths[position] = path
         print(f"Wrote {position}: {len(dataset):,} rows -> {path}")
+        del dataset
+        release_memory()
 
     return paths
 
@@ -250,7 +311,7 @@ def main() -> None:
         "--seasons",
         type=int,
         nargs="+",
-        default=DEFAULT_TRAIN_SEASONS + [2024],
+        default=DEFAULT_ETL_SEASONS,
         help="Seasons to include",
     )
     parser.add_argument(

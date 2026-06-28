@@ -1,0 +1,80 @@
+{
+  "steps": [],
+  "screen": {
+    "approved_networks": [
+      "fantasy_points"
+    ],
+    "results": [
+      {
+        "label": "Draft Sharks",
+        "recommend": false,
+        "mention_rows": 264,
+        "sig_positions": 0,
+        "helpful_positions": 0
+      },
+      {
+        "label": "The Fantasy Footballers",
+        "recommend": false,
+        "mention_rows": 122,
+        "sig_positions": 1,
+        "helpful_positions": 0
+      },
+      {
+        "label": "FantasyPros",
+        "recommend": false,
+        "mention_rows": 440,
+        "sig_positions": 1,
+        "helpful_positions": 0
+      },
+      {
+        "label": "PlayerProfiler",
+        "recommend": false,
+        "mention_rows": 213,
+        "sig_positions": 0,
+        "helpful_positions": 0
+      },
+      {
+        "label": "Late-Round Fantasy Football",
+        "recommend": false,
+        "mention_rows": 249,
+        "sig_positions": 1,
+        "helpful_positions": 0
+      },
+      {
+        "label": "Establish The Run",
+        "recommend": false,
+        "mention_rows": 119,
+        "sig_positions": 0,
+        "helpful_positions": 0
+      },
+      {
+        "label": "Fantasy Points",
+        "recommend": true,
+        "mention_rows": 1018,
+        "sig_positions": 2,
+        "helpful_positions": 0
+      },
+      {
+        "label": "QB List",
+        "recommend": false,
+        "mention_rows": 28,
+        "sig_positions": 0,
+        "helpful_positions": 0
+      },
+      {
+        "label": "Underdog Fantasy Football",
+        "recommend": false,
+        "mention_rows": 866,
+        "sig_positions": 0,
+        "helpful_positions": 0
+      },
+      {
+        "label": "Reception Perception",
+        "recommend": false,
+        "mention_rows": 55,
+        "sig_positions": 1,
+        "helpful_positions": 0
+      }
+    ]
+  }
+}

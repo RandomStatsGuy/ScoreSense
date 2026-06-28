@@ -1,0 +1,37 @@
+name: Weekly Refresh
+
+on:
+  schedule:
+    # Tuesday 10:00 UTC — post MNF stats
+    - cron: "0 10 * * 2"
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run weekly refresh
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: PYTHONPATH=. python -m src.jobs.weekly_refresh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: scoresense-outputs
+          path: |
+            artifacts/predictions/
+            artifacts/models/v2/
+            data/cache/last_refresh.json

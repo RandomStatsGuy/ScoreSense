@@ -1,0 +1,522 @@
+schema_version: 2
+channels:
+- channel_id: UCTs-LEcYtnOQRXxJ3tGt8pg
+  team: ARI
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Cardinals
+  search_query: Locked On Cardinals
+  active: true
+- channel_id: UC_PLACEHOLDER_ARI_SBN
+  team: ARI
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Revenge of the Birds
+  search_query: Revenge of the Birds YouTube
+  active: true
+- channel_id: UCf0YzYctxDlpPgYXxTwn8hw
+  team: ATL
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Falcons
+  search_query: Locked On Falcons
+  active: true
+- channel_id: UCk7WQX1If9UKFh7hxPAQpGA
+  team: ATL
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: The Falcoholic
+  search_query: The Falcoholic YouTube
+  active: true
+- channel_id: UCkUKvLTxP2wuyGs_ALuIaIg
+  team: BAL
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Ravens
+  search_query: Locked On Ravens
+  active: true
+- channel_id: UCAsvm4paJ0q4v5qO2B5OgQA
+  team: BAL
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Baltimore Beatdown
+  search_query: Baltimore Beatdown YouTube
+  active: true
+- channel_id: UCB53sJjGaYU8RmLV9F9wPvQ
+  team: BUF
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Bills
+  search_query: Locked On Bills
+  active: true
+- channel_id: UC_PLACEHOLDER_BUF_SBN
+  team: BUF
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Buffalo Rumblings
+  search_query: Buffalo Rumblings YouTube
+  active: true
+- channel_id: UCj5UVZOMb6G7Rx0K2jiBr4w
+  team: CAR
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Panthers
+  search_query: Locked On Panthers
+  active: true
+- channel_id: UCsykDJNCQSOxZkzWJRCMdTA
+  team: CAR
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Cat Scratch Reader
+  search_query: Cat Scratch Reader YouTube
+  active: true
+- channel_id: UCXCnRo-iwMsS4iC1SobeGHA
+  team: CHI
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Bears
+  search_query: Locked On Bears
+  active: true
+- channel_id: UC_PLACEHOLDER_CHI_SBN
+  team: CHI
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Windy City Gridiron
+  search_query: Windy City Gridiron YouTube
+  active: true
+- channel_id: UCc2xlqI7QW8QHvMJ8NR2Ltg
+  team: CIN
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Bengals
+  search_query: Locked On Bengals
+  active: true
+- channel_id: UC_PLACEHOLDER_CIN_SBN
+  team: CIN
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Cincy Jungle
+  search_query: Cincy Jungle YouTube
+  active: true
+- channel_id: UC3iTW4tsgRrkU1sKw9AQNrg
+  team: CLE
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Browns
+  search_query: Locked On Browns
+  active: true
+- channel_id: UC_PLACEHOLDER_CLE_SBN
+  team: CLE
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Dawgs By Nature
+  search_query: Dawgs By Nature YouTube
+  active: true
+- channel_id: UCnAXfqh9nujPUFYW6r3gJEQ
+  team: DAL
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Cowboys
+  search_query: Locked On Cowboys
+  active: true
+- channel_id: UCtDEtpPY2dOFGNcDqKIoawQ
+  team: DAL
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Blogging The Boys
+  search_query: Blogging The Boys YouTube
+  active: true
+- channel_id: UC8KxsM2xSTTHKJOH6JDT7fw
+  team: DEN
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Broncos
+  search_query: Locked On Broncos
+  active: true
+- channel_id: UCz1gczIptfQinmJcVZuF1wg
+  team: DEN
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Mile High Report
+  search_query: Mile High Report YouTube
+  active: true
+- channel_id: UCV2XEkdzy4f0YQP6EjRbEsQ
+  team: DET
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Lions
+  search_query: Locked On Lions
+  active: true
+- channel_id: UCbS05nAgr1jno5W1rRoITDg
+  team: DET
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Pride of Detroit
+  search_query: Pride of Detroit YouTube
+  active: true
+- channel_id: UCufUP6i_pdfTjqVEswITOmw
+  team: GB
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Packers
+  search_query: Locked On Packers
+  active: true
+- channel_id: UC8BVizPhgbrE3_9VgcyFpMg
+  team: GB
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Acme Packing Company
+  search_query: Acme Packing Company YouTube
+  active: true
+- channel_id: UCiFQGjNHUQPVrg-aQL5FtgA
+  team: HOU
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Texans
+  search_query: Locked On Texans
+  active: true
+- channel_id: UC_PLACEHOLDER_HOU_SBN
+  team: HOU
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Battle Red Blog
+  search_query: Battle Red Blog YouTube
+  active: true
+- channel_id: UCLdpxJspi1hMh5HL7ExpWOQ
+  team: IND
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Colts
+  search_query: Locked On Colts
+  active: true
+- channel_id: UC-Yzei6V1-C6RtSTA0fyRIw
+  team: IND
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Stampede Blue
+  search_query: Stampede Blue YouTube
+  active: true
+- channel_id: UCFmdmMtDxkm4akuk83rWxuQ
+  team: JAX
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Jaguars
+  search_query: Locked On Jaguars
+  active: true
+- channel_id: UCI1C_mbtc_tb2XHay1bXa1g
+  team: JAX
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Big Cat Country
+  search_query: Big Cat Country YouTube
+  active: true
+- channel_id: UCYjOu3YQnL9F24XEFnaMrNg
+  team: KC
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Chiefs
+  search_query: Locked On Chiefs
+  active: true
+- channel_id: UCCz0kQ4q2EfPg0jRWJGcWEw
+  team: KC
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Arrowhead Pride
+  search_query: Arrowhead Pride YouTube
+  active: true
+- channel_id: UC3q-ntwngTE3tGfWVgHirFQ
+  team: LAC
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Chargers
+  search_query: Locked On Chargers
+  active: true
+- channel_id: UC-lseqlanpVeOWYjmskH1-A
+  team: LAC
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Bolts From The Blue
+  search_query: Bolts From The Blue YouTube
+  active: true
+- channel_id: UCUhG_loQ0D9YF2Gdn-IfUOw
+  team: LAR
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Rams
+  search_query: Locked On Rams
+  active: true
+- channel_id: UCR7JJqC4FibiLcakgPpN-uQ
+  team: LAR
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Turf Show Times
+  search_query: Turf Show Times YouTube
+  active: true
+- channel_id: UCVgPs0As0pzp6zsYJLB7zNA
+  team: LV
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Raiders
+  search_query: Locked On Raiders
+  active: true
+- channel_id: UC2zTXqHLEz56OG0EvS9SiFA
+  team: LV
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  label: Raiders Report by Chat Sports
+  search_query: Raiders Report by Chat Sports Mitchell Renz
+  active: true
+- channel_id: UC_PLACEHOLDER_LV_SBN
+  team: LV
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Silver And Black Pride
+  search_query: Silver And Black Pride YouTube
+  active: true
+- channel_id: UCVqSIFp40ZjJtX2iB6NoYsg
+  team: MIA
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Dolphins
+  search_query: Locked On Dolphins
+  active: true
+- channel_id: UC_PLACEHOLDER_MIA_SBN
+  team: MIA
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: The Phinsider
+  search_query: The Phinsider YouTube
+  active: true
+- channel_id: UCU9qwCJcClgWI0JNTezBLqQ
+  team: MIN
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Vikings
+  search_query: Locked On Vikings
+  active: true
+- channel_id: UC6QsluC_k9oGXoWnO3SjDUQ
+  team: MIN
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Daily Norseman
+  search_query: Daily Norseman YouTube
+  active: true
+- channel_id: UCcsHJ8Mz11n5uPl5_XE9o-w
+  team: NE
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Patriots
+  search_query: Locked On Patriots
+  active: true
+- channel_id: UCrtkZ2wKBSnFReC6ZySlXBg
+  team: NE
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Pats Pulpit
+  search_query: Pats Pulpit YouTube
+  active: true
+- channel_id: UCvovqdIpy0yua8lfYQqvOOQ
+  team: 'NO'
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Saints
+  search_query: Locked On Saints
+  active: true
+- channel_id: UClV44WJcyUS5RJsOy9_Zfhg
+  team: 'NO'
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Canal Street Chronicles
+  search_query: Canal Street Chronicles YouTube
+  active: true
+- channel_id: UCVmzf-nD8oaTBShrW_zTeXA
+  team: NYG
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Giants
+  search_query: Locked On Giants
+  active: true
+- channel_id: UC4XGArSg0rCTBUkn0MPyQtQ
+  team: NYG
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Big Blue View
+  search_query: Big Blue View YouTube
+  active: true
+- channel_id: UC2jbY5DP6mNHiNGMQQtxJ0Q
+  team: NYJ
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Jets
+  search_query: Locked On Jets
+  active: true
+- channel_id: UCYeo7qrnUIRjuUFFgpRB03g
+  team: NYJ
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Gang Green Nation
+  search_query: Gang Green Nation YouTube
+  active: true
+- channel_id: UCB8fAQQoG8J5yHeHoIAJc2w
+  team: PHI
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Eagles
+  search_query: Locked On Eagles
+  active: true
+- channel_id: UCKlvah7eD6mWoUbcWCesxew
+  team: PHI
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Bleeding Green Nation
+  search_query: Bleeding Green Nation YouTube
+  active: true
+- channel_id: UC7JorgD8nGLtvvMy1ogFetg
+  team: PIT
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Steelers
+  search_query: Locked On Steelers
+  active: true
+- channel_id: UCNaq07ZyNe7lqppipnf_mmg
+  team: PIT
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Behind the Steel Curtain
+  search_query: Behind the Steel Curtain YouTube
+  active: true
+- channel_id: UCgmJDvoBn-0yMpw_DsPd56A
+  team: SEA
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Seahawks
+  search_query: Locked On Seahawks
+  active: true
+- channel_id: UCuR57e7UV9dDWT7GRtvNNQw
+  team: SEA
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Field Gulls
+  search_query: Field Gulls YouTube
+  active: true
+- channel_id: UCnGbIUIQqodxdMm_Jg93JjA
+  team: SF
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On 49ers
+  search_query: Locked On 49ers
+  active: true
+- channel_id: UCHdrba-RVr6ORgXx3uIQFdQ
+  team: SF
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Niners Nation
+  search_query: Niners Nation YouTube
+  active: true
+- channel_id: UC3BqKbRUIwBNZ1WKFLw-0nw
+  team: TB
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Buccaneers
+  search_query: Locked On Buccaneers
+  active: true
+- channel_id: UCIjqnK96lbF5hv0bMMaPSDw
+  team: TB
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Bucs Nation
+  search_query: Bucs Nation YouTube
+  active: true
+- channel_id: UCP3332GMOh4y5PX3q9NFybw
+  team: TEN
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Titans
+  search_query: Locked On Titans
+  active: true
+- channel_id: UC_PLACEHOLDER_TEN_SBN
+  team: TEN
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Music City Miracles
+  search_query: Music City Miracles YouTube
+  active: true
+- channel_id: UCd2DqmOXnb1gLKf13eg5uzw
+  team: WAS
+  network: locked_on
+  tier: reporting
+  weight: 1.0
+  label: Locked On Commanders
+  search_query: Locked On Commanders
+  active: true
+- channel_id: UCUxMvaJo1j5rMRern8DSnZQ
+  team: WAS
+  network: sb_nation
+  tier: fan_analysis
+  weight: 0.55
+  label: Hogs Haven
+  search_query: Hogs Haven YouTube
+  active: true

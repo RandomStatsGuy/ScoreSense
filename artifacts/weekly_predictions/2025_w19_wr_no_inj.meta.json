@@ -1,0 +1,21 @@
+{
+  "position": "wr",
+  "season": 2025,
+  "week": 19,
+  "apply_injury_adjustments": false,
+  "fingerprint": "267284bd8c81ed16",
+  "rows": 378,
+  "built_at": "2026-06-25T02:27:35.857554+00:00",
+  "attrs": {
+    "inference_meta": {
+      "preseason_mode": false,
+      "feature_season": 2025,
+      "roster_overlay": {
+        "applied": false
+      },
+      "depth_mode": "starter"
+    },
+    "projection_note": "",
+    "preseason_mode": false
+  }
+}

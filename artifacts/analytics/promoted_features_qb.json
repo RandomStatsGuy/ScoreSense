@@ -1,0 +1,9 @@
+{
+  "position": "qb",
+  "features": [
+    "carry_share_avg",
+    "rz_carries_avg",
+    "explosive_plays_avg",
+    "team_pass_rate_avg"
+  ]
+}

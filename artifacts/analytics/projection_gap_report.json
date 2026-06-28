@@ -1,0 +1,329 @@
+{
+  "seasons": [
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024
+  ],
+  "positions": {
+    "qb": {
+      "position": "qb",
+      "n": 3875,
+      "gap_threshold_pts": 2.0,
+      "overall_composite_beats_ss_rate": 0.233,
+      "overall_espn_beats_ss_rate": 0.112,
+      "slices": [
+        {
+          "feature": "carry_share_avg",
+          "bucket": "low_carry_share_avg",
+          "n": 230,
+          "avg_ss_abs_err": 5.246,
+          "avg_composite_abs_err": 7.397,
+          "composite_beats_ss_rate": 0.278,
+          "espn_beats_ss_rate": 0.2,
+          "ss_mean_bias": -0.136
+        },
+        {
+          "feature": "carry_share_avg",
+          "bucket": "mid_carry_share_avg",
+          "n": 318,
+          "avg_ss_abs_err": 5.342,
+          "avg_composite_abs_err": 6.283,
+          "composite_beats_ss_rate": 0.277,
+          "espn_beats_ss_rate": 0.113,
+          "ss_mean_bias": -0.282
+        },
+        {
+          "feature": "implied_team_total_avg",
+          "bucket": "low_implied_team_total_avg",
+          "n": 637,
+          "avg_ss_abs_err": 5.25,
+          "avg_composite_abs_err": 7.234,
+          "composite_beats_ss_rate": 0.254,
+          "espn_beats_ss_rate": 0.133,
+          "ss_mean_bias": 0.44
+        },
+        {
+          "feature": "implied_team_total_avg",
+          "bucket": "high_implied_team_total_avg",
+          "n": 882,
+          "avg_ss_abs_err": 5.358,
+          "avg_composite_abs_err": 7.103,
+          "composite_beats_ss_rate": 0.246,
+          "espn_beats_ss_rate": 0.128,
+          "ss_mean_bias": 0.677
+        },
+        {
+          "feature": "offense_snaps_avg",
+          "bucket": "low_offense_snaps_avg",
+          "n": 3875,
+          "avg_ss_abs_err": 5.05,
+          "avg_composite_abs_err": 6.887,
+          "composite_beats_ss_rate": 0.233,
+          "espn_beats_ss_rate": 0.112,
+          "ss_mean_bias": 0.33
+        },
+        {
+          "feature": "target_share_avg",
+          "bucket": "low_target_share_avg",
+          "n": 3811,
+          "avg_ss_abs_err": 5.038,
+          "avg_composite_abs_err": 6.888,
+          "composite_beats_ss_rate": 0.232,
+          "espn_beats_ss_rate": 0.108,
+          "ss_mean_bias": 0.325
+        },
+        {
+          "feature": "carry_share_avg",
+          "bucket": "high_carry_share_avg",
+          "n": 3327,
+          "avg_ss_abs_err": 5.008,
+          "avg_composite_abs_err": 6.91,
+          "composite_beats_ss_rate": 0.226,
+          "espn_beats_ss_rate": 0.106,
+          "ss_mean_bias": 0.421
+        },
+        {
+          "feature": "implied_team_total_avg",
+          "bucket": "mid_implied_team_total_avg",
+          "n": 2356,
+          "avg_ss_abs_err": 4.88,
+          "avg_composite_abs_err": 6.713,
+          "composite_beats_ss_rate": 0.222,
+          "espn_beats_ss_rate": 0.1,
+          "ss_mean_bias": 0.171
+        },
+        {
+          "feature": "target_share_avg",
+          "bucket": "high_target_share_avg",
+          "n": 42,
+          "avg_ss_abs_err": 6.112,
+          "avg_composite_abs_err": 7.614,
+          "composite_beats_ss_rate": 0.214,
+          "espn_beats_ss_rate": 0.31,
+          "ss_mean_bias": -0.801
+        }
+      ]
+    },
+    "rb": {
+      "position": "rb",
+      "n": 8661,
+      "gap_threshold_pts": 2.0,
+      "overall_composite_beats_ss_rate": 0.21,
+      "overall_espn_beats_ss_rate": 0.0,
+      "slices": [
+        {
+          "feature": "carry_share_avg",
+          "bucket": "mid_carry_share_avg",
+          "n": 1910,
+          "avg_ss_abs_err": 5.313,
+          "avg_composite_abs_err": 5.701,
+          "composite_beats_ss_rate": 0.275,
+          "espn_beats_ss_rate": 0.0,
+          "ss_mean_bias": -1.518
+        },
+        {
+          "feature": "carry_share_avg",
+          "bucket": "high_carry_share_avg",
+          "n": 2324,
+          "avg_ss_abs_err": 5.865,
+          "avg_composite_abs_err": 6.824,
+          "composite_beats_ss_rate": 0.256,
+          "espn_beats_ss_rate": 0.0,
+          "ss_mean_bias": -0.554
+        },
+        {
+          "feature": "target_share_avg",
+          "bucket": "high_target_share_avg",
+          "n": 6199,
+          "avg_ss_abs_err": 5.061,
+          "avg_composite_abs_err": 5.709,
+          "composite_beats_ss_rate": 0.237,
+          "espn_beats_ss_rate": 0.0,
+          "ss_mean_bias": -1.039
+        },
+        {
+          "feature": "implied_team_total_avg",
+          "bucket": "mid_implied_team_total_avg",
+          "n": 5383,
+          "avg_ss_abs_err": 4.83,
+          "avg_composite_abs_err": 5.524,
+          "composite_beats_ss_rate": 0.214,
+          "espn_beats_ss_rate": 0.0,
+          "ss_mean_bias": -1.155
+        },
+        {
+          "feature": "implied_team_total_avg",
+          "bucket": "high_implied_team_total_avg",
+          "n": 1682,
+          "avg_ss_abs_err": 4.544,
+          "avg_composite_abs_err": 5.112,
+          "composite_beats_ss_rate": 0.212,
+          "espn_beats_ss_rate": 0.0,
+          "ss_mean_bias": -0.701
+        },
+        {
+          "feature": "offense_snaps_avg",
+          "bucket": "low_offense_snaps_avg",
+          "n": 8661,
+          "avg_ss_abs_err": 4.621,
+          "avg_composite_abs_err": 5.334,
+          "composite_beats_ss_rate": 0.21,
+          "espn_beats_ss_rate": 0.0,
+          "ss_mean_bias": -1.047
+        },
+        {
+          "feature": "implied_team_total_avg",
+          "bucket": "low_implied_team_total_avg",
+          "n": 1596,
+          "avg_ss_abs_err": 3.995,
+          "avg_composite_abs_err": 4.927,
+          "composite_beats_ss_rate": 0.192,
+          "espn_beats_ss_rate": 0.0,
+          "ss_mean_bias": -1.045
+        },
+        {
+          "feature": "carry_share_avg",
+          "bucket": "low_carry_share_avg",
+          "n": 4427,
+          "avg_ss_abs_err": 3.669,
+          "avg_composite_abs_err": 4.394,
+          "composite_beats_ss_rate": 0.157,
+          "espn_beats_ss_rate": 0.0,
+          "ss_mean_bias": -1.102
+        },
+        {
+          "feature": "target_share_avg",
+          "bucket": "low_target_share_avg",
+          "n": 1476,
+          "avg_ss_abs_err": 3.43,
+          "avg_composite_abs_err": 4.413,
+          "composite_beats_ss_rate": 0.142,
+          "espn_beats_ss_rate": 0.0,
+          "ss_mean_bias": -1.078
+        },
+        {
+          "feature": "target_share_avg",
+          "bucket": "mid_target_share_avg",
+          "n": 986,
+          "avg_ss_abs_err": 3.632,
+          "avg_composite_abs_err": 4.359,
+          "composite_beats_ss_rate": 0.138,
+          "espn_beats_ss_rate": 0.0,
+          "ss_mean_bias": -1.045
+        }
+      ]
+    },
+    "wr": {
+      "position": "wr",
+      "n": 19211,
+      "gap_threshold_pts": 2.0,
+      "overall_composite_beats_ss_rate": 0.201,
+      "overall_espn_beats_ss_rate": 0.001,
+      "slices": [
+        {
+          "feature": "target_share_avg",
+          "bucket": "high_target_share_avg",
+          "n": 5335,
+          "avg_ss_abs_err": 6.237,
+          "avg_composite_abs_err": 7.16,
+          "composite_beats_ss_rate": 0.262,
+          "espn_beats_ss_rate": 0.002,
+          "ss_mean_bias": -1.295
+        },
+        {
+          "feature": "carry_share_avg",
+          "bucket": "mid_carry_share_avg",
+          "n": 1069,
+          "avg_ss_abs_err": 5.288,
+          "avg_composite_abs_err": 6.088,
+          "composite_beats_ss_rate": 0.235,
+          "espn_beats_ss_rate": 0.0,
+          "ss_mean_bias": -1.771
+        },
+        {
+          "feature": "target_share_avg",
+          "bucket": "mid_target_share_avg",
+          "n": 4447,
+          "avg_ss_abs_err": 4.863,
+          "avg_composite_abs_err": 5.366,
+          "composite_beats_ss_rate": 0.23,
+          "espn_beats_ss_rate": 0.0,
+          "ss_mean_bias": -1.178
+        },
+        {
+          "feature": "implied_team_total_avg",
+          "bucket": "mid_implied_team_total_avg",
+          "n": 11546,
+          "avg_ss_abs_err": 4.584,
+          "avg_composite_abs_err": 5.234,
+          "composite_beats_ss_rate": 0.205,
+          "espn_beats_ss_rate": 0.001,
+          "ss_mean_bias": -1.228
+        },
+        {
+          "feature": "offense_snaps_avg",
+          "bucket": "low_offense_snaps_avg",
+          "n": 19211,
+          "avg_ss_abs_err": 4.507,
+          "avg_composite_abs_err": 5.216,
+          "composite_beats_ss_rate": 0.201,
+          "espn_beats_ss_rate": 0.001,
+          "ss_mean_bias": -1.218
+        },
+        {
+          "feature": "carry_share_avg",
+          "bucket": "low_carry_share_avg",
+          "n": 17745,
+          "avg_ss_abs_err": 4.449,
+          "avg_composite_abs_err": 5.155,
+          "composite_beats_ss_rate": 0.199,
+          "espn_beats_ss_rate": 0.001,
+          "ss_mean_bias": -1.159
+        },
+        {
+          "feature": "implied_team_total_avg",
+          "bucket": "low_implied_team_total_avg",
+          "n": 2926,
+          "avg_ss_abs_err": 4.204,
+          "avg_composite_abs_err": 5.154,
+          "composite_beats_ss_rate": 0.195,
+          "espn_beats_ss_rate": 0.001,
+          "ss_mean_bias": -1.327
+        },
+        {
+          "feature": "implied_team_total_avg",
+          "bucket": "high_implied_team_total_avg",
+          "n": 4739,
+          "avg_ss_abs_err": 4.506,
+          "avg_composite_abs_err": 5.209,
+          "composite_beats_ss_rate": 0.194,
+          "espn_beats_ss_rate": 0.0,
+          "ss_mean_bias": -1.126
+        },
+        {
+          "feature": "carry_share_avg",
+          "bucket": "high_carry_share_avg",
+          "n": 397,
+          "avg_ss_abs_err": 5.018,
+          "avg_composite_abs_err": 5.585,
+          "composite_beats_ss_rate": 0.184,
+          "espn_beats_ss_rate": 0.013,
+          "ss_mean_bias": -2.354
+        },
+        {
+          "feature": "target_share_avg",
+          "bucket": "low_target_share_avg",
+          "n": 9429,
+          "avg_ss_abs_err": 3.361,
+          "avg_composite_abs_err": 4.045,
+          "composite_beats_ss_rate": 0.152,
+          "espn_beats_ss_rate": 0.001,
+          "ss_mean_bias": -1.193
+        }
+      ]
+    }
+  }
+}

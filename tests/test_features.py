@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from src.features import (
+from src.core.features import (
     calc_fantasy_points_ppr,
     get_position_features,
     prepare_feature_matrix,

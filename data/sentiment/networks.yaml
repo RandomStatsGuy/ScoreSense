@@ -1,0 +1,63 @@
+# Network taxonomy for beat narrative sources.
+networks:
+  locked_on:
+    label: "Locked On"
+    default_tier: reporting
+    weight_multiplier: 1.0
+    youtube_search_suffix: "Locked On"
+  sb_nation:
+    label: "SB Nation"
+    default_tier: fan_analysis
+    weight_multiplier: 0.55
+  espn:
+    label: "ESPN NFL Nation"
+    default_tier: reporting
+    weight_multiplier: 1.0
+  athletic:
+    label: "The Athletic"
+    default_tier: analysis
+    weight_multiplier: 0.85
+  chat_sports:
+    label: "Chat Sports"
+    default_tier: reporting
+    weight_multiplier: 0.9
+  draft_sharks:
+    label: "Draft Sharks"
+    default_tier: analysis
+    weight_multiplier: 1.0
+  fantasy_footballers:
+    label: "The Fantasy Footballers"
+    default_tier: analysis
+    weight_multiplier: 0.95
+  fantasypros_yt:
+    label: "FantasyPros YouTube"
+    default_tier: analysis
+    weight_multiplier: 0.95
+  playerprofiler:
+    label: "PlayerProfiler"
+    default_tier: analysis
+    weight_multiplier: 0.9
+  late_round:
+    label: "Late-Round Fantasy Football"
+    default_tier: analysis
+    weight_multiplier: 0.9
+  establish_the_run:
+    label: "Establish The Run"
+    default_tier: analysis
+    weight_multiplier: 0.9
+  fantasy_points:
+    label: "Fantasy Points"
+    default_tier: analysis
+    weight_multiplier: 0.9
+  qb_list:
+    label: "QB List"
+    default_tier: analysis
+    weight_multiplier: 0.95
+  underdog_fantasy:
+    label: "Underdog Fantasy"
+    default_tier: analysis
+    weight_multiplier: 0.9
+  reception_perception:
+    label: "Reception Perception"
+    default_tier: analysis
+    weight_multiplier: 0.9

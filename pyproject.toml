@@ -18,9 +18,13 @@ dependencies = [
     "seaborn>=0.12.0",
     "streamlit>=1.28.0",
     "fastapi>=0.104.0",
+    "python-multipart>=0.0.6",
     "uvicorn>=0.24.0",
     "requests>=2.31.0",
     "pyarrow>=14.0.0",
+    "PyYAML>=6.0.0",
+    "youtube-transcript-api>=0.6.0",
+    "vaderSentiment>=3.3.2",
 ]
 
 [project.optional-dependencies]
@@ -29,7 +33,7 @@ dev = ["pytest>=7.4.0"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src*", "app*", "bdb_companion*"]
+include = ["src*", "app*", "bdb_companion*", "legacy*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -9,39 +9,32 @@ Fantasy football managers need reliable weekly player projections. Most public p
 ```mermaid
 flowchart LR
   nflverse[nflverse data] --> etl[ETL pipeline]
+  sleeper[Sleeper API] --> predict[Weekly projections]
+  ngs[NGS tracking optional] --> wrFeatures[WR model features]
   etl --> features[Feature engineering]
-  features --> train[Gradient boosting]
-  train --> predict[Weekly projections]
+  features --> train[Quantile GBM]
+  train --> predict
   features --> backtest[Walk-forward backtest]
   backtest --> metrics[MAE vs baselines]
-  predict --> streamlit[Streamlit demo]
-  pbp[Play-by-play] --> bdb[Target quality metrics]
-  bdb --> wrFeatures[WR model features]
+  predict --> react[React dashboard]
+  pbp[Play-by-play fallback] --> bdb[Target quality]
+  bdb --> wrFeatures
+  wrFeatures --> features
 ```
-
-### Data sources (free)
-
-| Source | Use |
-|--------|-----|
-| nflverse weekly stats | Player box scores, EPA, air yards |
-| nflverse play-by-play | Opponent defensive EPA, target quality |
-| nflverse schedules | Home/away, rest days |
-
-### Feature engineering
-
-For each player-game, we compute **pre-game rolling averages** of:
-
-- Volume stats (yards, TDs, attempts, targets)
-- Efficiency (passing/rushing/receiving EPA)
-- Usage share (target share, carry share, WOPR)
-- Matchup context (opponent pass/rush EPA allowed)
-- Schedule (days rest, home/away)
-
-The model predicts same-week fantasy points (`Fpts`) from information available before kickoff.
 
 ### Model
 
-Position-specific **Gradient Boosting Regressors** (scikit-learn) with unified feature columns defined in `src/features.py`. Training uses 2018–2023; evaluation uses walk-forward holdout on 2024.
+Position-specific **quantile gradient boosting** (P10 / P50 / P90) with unified features in `src/features.py`. The P50 estimate is the headline projection; P10–P90 form an 80% prediction interval.
+
+### v3 capabilities
+
+| Feature | Implementation |
+|---------|----------------|
+| Prediction intervals | `src/ml/quantile.py` — sklearn quantile GBM |
+| Injury adjustments | `src/integrations/sleeper.py` + `src/opportunity.py` |
+| NGS tracking | `bdb_companion/ngs_tracking.py` — reads `data/raw/ngs/` |
+| React dashboard | `frontend/` + `app/api.py` |
+| Weekly cron | `src/jobs/weekly_refresh.py` + GitHub Actions |
 
 ### Evaluation
 
@@ -61,7 +54,7 @@ Results (2024 holdout):
 | RB | 4.77 | 5.02 | 5.0% |
 | WR/TE | 4.70 | 4.76 | 1.3% |
 
-See `outputs/backtest/backtest_summary.json` and [docs/EVALUATION.md](EVALUATION.md) for full metrics.
+See `artifacts/backtest/backtest_summary.json` and [docs/EVALUATION.md](EVALUATION.md) for full metrics.
 
 ## Differentiators
 
@@ -73,16 +66,29 @@ See `outputs/backtest/backtest_summary.json` and [docs/EVALUATION.md](EVALUATION
 ## Demo
 
 ```bash
-streamlit run app/streamlit_app.py
+# API + React dashboard (dev)
+.venv\Scripts\uvicorn app.api:app --reload --port 8000
+cd frontend && npm install && npm run dev
+
+# Production build (API serves React from frontend/dist)
+cd frontend && npm run build
+.venv\Scripts\uvicorn app.api:app --host 0.0.0.0 --port 8000
+
+# Weekly cron refresh
+.venv\Scripts\python -m src.jobs.weekly_refresh
+
+# Docker
+docker compose up api
+docker compose --profile cron run refresh
 ```
 
 ## What I’d do next
 
-- Add prediction intervals (quantile regression)
-- Integrate Sleeper API for injury-driven opportunity adjustments
-- Replace target quality proxies with BDB 2026 NGS tracking features
-- Deploy FastAPI + React dashboard with weekly cron refresh
+- Deploy to Render/Railway with managed cron (workflow in `.github/workflows/weekly-refresh.yml`)
+- Add ESPN/FantasyPros projection baselines to backtest
+- Build BDB broadcast visualization for in-air player movement
+- Conformal prediction for better-calibrated intervals
 
 ## Tech stack
 
-Python, pandas, scikit-learn, nfl_data_py, Streamlit, FastAPI, matplotlib
+Python, pandas, scikit-learn, nfl_data_py, FastAPI, React, Vite, Sleeper API, Docker

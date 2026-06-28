@@ -1,0 +1,1973 @@
+{
+  "test_seasons": [
+    2024,
+    2025
+  ],
+  "channels_screened": 32,
+  "ingest": {
+    "videos_added": 6925,
+    "cache_rows": 31483,
+    "transcripts_fetched": 4800,
+    "per_team": {
+      "ARI": 141,
+      "ATL": 250,
+      "BAL": 250,
+      "BUF": 250,
+      "CAR": 146,
+      "CHI": 250,
+      "CIN": 250,
+      "CLE": 250,
+      "DAL": 250,
+      "DEN": 250,
+      "DET": 250,
+      "GB": 250,
+      "HOU": 250,
+      "IND": 129,
+      "JAX": 169,
+      "KC": 250,
+      "LAC": 213,
+      "LAR": 250,
+      "LV": 250,
+      "MIA": 250,
+      "MIN": 250,
+      "NE": 250,
+      "NO": 250,
+      "NYG": 0,
+      "NYJ": 250,
+      "PHI": 250,
+      "PIT": 250,
+      "SEA": 250,
+      "SF": 250,
+      "TB": 126,
+      "TEN": 250,
+      "WAS": 1
+    }
+  },
+  "ranked_niches": [
+    {
+      "team": "LV",
+      "channel_label": "Raiders Report by Chat Sports",
+      "channel_id": "UC2zTXqHLEz56OG0EvS9SiFA",
+      "confidence": "high",
+      "position": "rb",
+      "scope_team": "LV",
+      "correlation": {
+        "n": 46,
+        "spearman_rho": -0.4135,
+        "role_hype_rho": -0.227,
+        "injury_rho": 0.2029,
+        "p_value": 0.0026
+      },
+      "projection": {
+        "seasons_tested": 1,
+        "seasons_improved": 1,
+        "avg_composite_delta": -0.3101,
+        "mention_coverage": 0.4894
+      },
+      "tier": "strong"
+    },
+    {
+      "team": "LV",
+      "channel_label": "Raiders Report by Chat Sports",
+      "channel_id": "UC2zTXqHLEz56OG0EvS9SiFA",
+      "confidence": "high",
+      "position": "wr",
+      "scope_team": "LV",
+      "correlation": {
+        "n": 118,
+        "spearman_rho": -0.2422,
+        "role_hype_rho": -0.0713,
+        "injury_rho": 0.0995,
+        "p_value": 0.0072
+      },
+      "projection": {
+        "seasons_tested": 2,
+        "seasons_improved": 0,
+        "avg_composite_delta": 0.0145,
+        "mention_coverage": 0.5813
+      },
+      "tier": "correlation"
+    }
+  ],
+  "team_results": [
+    {
+      "team": "ARI",
+      "channel_id": "UC4PI1gJJ5ICYy_1YtHNEAnw",
+      "channel_label": "Arizona Cardinals Today by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "ARI",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "ARI",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "ARI",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "ATL",
+      "channel_id": "UCcYYkPxACmD3Wjy2XpqijLw",
+      "channel_label": "Falcons Today by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "ATL",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "ATL",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "ATL",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "BAL",
+      "channel_id": "UCQ-gm4PWPuboxqXvAGbvMug",
+      "channel_label": "Ravens Rundown by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "BAL",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "BAL",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "BAL",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "BUF",
+      "channel_id": "UCEF8WsK8-ZaSWDdI9aT4DDw",
+      "channel_label": "Buffalo Bills Breakdown by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "BUF",
+          "correlation": {
+            "n": 3,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "BUF",
+          "correlation": {
+            "n": 5,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "BUF",
+          "correlation": {
+            "n": 13,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none",
+      "best_position": "qb"
+    },
+    {
+      "team": "CAR",
+      "channel_id": "UC2XiQJjeVfjLntnZ0HYAcxg",
+      "channel_label": "Carolina Panthers Today by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "CAR",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "CAR",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "CAR",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "CHI",
+      "channel_id": "UCaN9720mbtCGefgjo5Qkr0A",
+      "channel_label": "Bears Now by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "CHI",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "CHI",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "CHI",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "CIN",
+      "channel_id": "UCqPFa-aO2P1qabiWhJYfMGg",
+      "channel_label": "Bengals Breakdown by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "CIN",
+          "correlation": {
+            "n": 9,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "CIN",
+          "correlation": {
+            "n": 15,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "CIN",
+          "correlation": {
+            "n": 32,
+            "spearman_rho": 0.1233,
+            "role_hype_rho": NaN,
+            "injury_rho": -0.0292,
+            "p_value": 0.4961
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none",
+      "best_position": "qb"
+    },
+    {
+      "team": "CLE",
+      "channel_id": "UCeADv4IDX1SbUdZHpB35ooA",
+      "channel_label": "Browns Report by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "CLE",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "CLE",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "CLE",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "DAL",
+      "channel_id": "UC21x83LT7sNeo-mbYbnqTFQ",
+      "channel_label": "Cowboys Report by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "DAL",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "DAL",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "DAL",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "DEN",
+      "channel_id": "UCOGJVQ-rhTcjBVH7IrwKaFA",
+      "channel_label": "Broncos Breakdown by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "DEN",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "DEN",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "DEN",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "DET",
+      "channel_id": "UC9KX642L4_biZQ5rjlGoPow",
+      "channel_label": "Lions Talk by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "DET",
+          "correlation": {
+            "n": 8,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "DET",
+          "correlation": {
+            "n": 20,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "DET",
+          "correlation": {
+            "n": 20,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none",
+      "best_position": "qb"
+    },
+    {
+      "team": "GB",
+      "channel_id": "UC6ntLD1SxKdIYTc1upweUJQ",
+      "channel_label": "Packers Report by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "GB",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "GB",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "GB",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "HOU",
+      "channel_id": "UCngONOlsXTr1tE08Qmvc2Kg",
+      "channel_label": "Texans Today by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "HOU",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "HOU",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "HOU",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "IND",
+      "channel_id": "UCAQq-RHft4iegz6sUCZT_Dg",
+      "channel_label": "Indianapolis Colts Talk by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "IND",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "IND",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "IND",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "JAX",
+      "channel_id": "UCRMr_VzCwMR1zj3cvkD38qw",
+      "channel_label": "Jacksonville Jaguars Now by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "JAX",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "JAX",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "JAX",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "KC",
+      "channel_id": "UCm7aNg87CtuXIcqaVnajQcA",
+      "channel_label": "Chiefs Report by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "KC",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "KC",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "KC",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "LAC",
+      "channel_id": "UClC-6aea5xRbqu0qAR127Sg",
+      "channel_label": "LA Chargers Now by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "LAC",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "LAC",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "LAC",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "LAR",
+      "channel_id": "UCUsas7hs697v9lwNGp-JPJw",
+      "channel_label": "LA Rams Report by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "LAR",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "LAR",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "LAR",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "LV",
+      "channel_id": "UC2zTXqHLEz56OG0EvS9SiFA",
+      "channel_label": "Raiders Report by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "LV",
+          "correlation": {
+            "n": 36,
+            "spearman_rho": 0.068,
+            "role_hype_rho": 0.1508,
+            "injury_rho": 0.468,
+            "p_value": 0.6913
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "LV",
+          "correlation": {
+            "n": 46,
+            "spearman_rho": -0.4135,
+            "role_hype_rho": -0.227,
+            "injury_rho": 0.2029,
+            "p_value": 0.0026
+          },
+          "projection": {
+            "seasons_tested": 1,
+            "seasons_improved": 1,
+            "avg_composite_delta": -0.3101,
+            "mention_coverage": 0.4894
+          },
+          "tier": "strong"
+        },
+        {
+          "position": "wr",
+          "scope_team": "LV",
+          "correlation": {
+            "n": 118,
+            "spearman_rho": -0.2422,
+            "role_hype_rho": -0.0713,
+            "injury_rho": 0.0995,
+            "p_value": 0.0072
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 0,
+            "avg_composite_delta": 0.0145,
+            "mention_coverage": 0.5813
+          },
+          "tier": "correlation"
+        }
+      ],
+      "best_tier": "strong",
+      "best_position": "rb"
+    },
+    {
+      "team": "MIA",
+      "channel_id": "UCKhrVpHn0ghqn4WUANk5RvQ",
+      "channel_label": "Dolphins Today by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "MIA",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "MIA",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "MIA",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "MIN",
+      "channel_id": "UCwU_qLZqe2HLtBg0br_G4Hw",
+      "channel_label": "Vikings Now by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "MIN",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "MIN",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "MIN",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "NE",
+      "channel_id": "UCJPWM3J9Wnhwer3aj9YRJKw",
+      "channel_label": "Patriots Today by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "NE",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "NE",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "NE",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "NO",
+      "channel_id": "UCp1q6ivk5e11ezHD6ObroqA",
+      "channel_label": "Saints Now by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "NO",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "NO",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "NO",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "NYG",
+      "channel_id": "UCTAaJ4bNO0ERvMveyJsgPew",
+      "channel_label": "The Giants Report",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "NYG",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "NYG",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "NYG",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "NYJ",
+      "channel_id": "UCFzdRZNU8EHG2OGtYvLHvjQ",
+      "channel_label": "Jets Report by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "NYJ",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "NYJ",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "NYJ",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "PHI",
+      "channel_id": "UCGpQR-SQHKzuRAeairNrcQQ",
+      "channel_label": "Eagles Now by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "PHI",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "PHI",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "PHI",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "PIT",
+      "channel_id": "UCeGDyX4Uomem1uLJWVQKZhQ",
+      "channel_label": "Steelers Talk by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "PIT",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "PIT",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "PIT",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "SEA",
+      "channel_id": "UCJW9EhwdL5WU-2slOTvaBNg",
+      "channel_label": "Seahawks Today by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "SEA",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "SEA",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "SEA",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "SF",
+      "channel_id": "UCnDY7XxQmmKMJYUU6m2KYew",
+      "channel_label": "49ers Report by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "SF",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "SF",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "SF",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "TB",
+      "channel_id": "UCa3EvBODKUvheEkVwAhf7XQ",
+      "channel_label": "Tampa Bay Buccaneers Breakdown by Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "TB",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "TB",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "TB",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    },
+    {
+      "team": "TEN",
+      "channel_id": "UCSlO0m9Ez2Y1s9gJ9cu4ptw",
+      "channel_label": "Titans Today By Chat Sports",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "TEN",
+          "correlation": {
+            "n": 16,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "TEN",
+          "correlation": {
+            "n": 11,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "TEN",
+          "correlation": {
+            "n": 33,
+            "spearman_rho": 0.0658,
+            "role_hype_rho": 0.2785,
+            "injury_rho": 0.2493,
+            "p_value": 0.7137
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none",
+      "best_position": "qb"
+    },
+    {
+      "team": "WAS",
+      "channel_id": "UCz_wqPtJFVIwStpYMOc2P_g",
+      "channel_label": "Washington Commanders Report",
+      "confidence": "high",
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "WAS",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "WAS",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "WAS",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ],
+      "best_tier": "none"
+    }
+  ],
+  "heatmap": {
+    "ARI": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "ATL": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "BAL": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "BUF": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "CAR": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "CHI": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "CIN": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": 0.4961
+      }
+    },
+    "CLE": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "DAL": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "DEN": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "DET": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "GB": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "HOU": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "IND": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "JAX": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "KC": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "LAC": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "LAR": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "LV": {
+      "qb": {
+        "tier": "none",
+        "p_value": 0.6913
+      },
+      "rb": {
+        "tier": "strong",
+        "p_value": 0.0026
+      },
+      "wr": {
+        "tier": "correlation",
+        "p_value": 0.0072
+      }
+    },
+    "MIA": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "MIN": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "NE": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "NO": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "NYG": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "NYJ": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "PHI": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "PIT": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "SEA": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "SF": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "TB": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    },
+    "TEN": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": 0.7137
+      }
+    },
+    "WAS": {
+      "qb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "rb": {
+        "tier": "none",
+        "p_value": null
+      },
+      "wr": {
+        "tier": "none",
+        "p_value": null
+      }
+    }
+  },
+  "phase_b_candidates": [
+    {
+      "team": "LV",
+      "channel_label": "Raiders Report by Chat Sports",
+      "best_tier": "strong",
+      "best_position": "rb"
+    }
+  ]
+}

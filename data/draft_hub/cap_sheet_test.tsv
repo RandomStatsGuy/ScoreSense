@@ -1,0 +1,149 @@
+manager	position	player	salary	contract	year2	year3	year4	notes
+Aaron D	QB	CJ Stroud	2	1/2	7	12
+Aaron D	QB	T. Tagovailoa		NA 2026	10
+Aaron D	RB	B. Hall	27	2/2	32
+Aaron D	RB	T. Etienne	10	3/3	15
+Aaron D	WR	T. Hill	39	NA 2026	39
+Aaron D	WR	J. Waddle	15	3/3	20
+Aaron D	WR	N. Collins	3	1/3	8	13	18
+Aaron D	WR	R. Odunze	13	NA 2026	13
+Aaron D	WR	B. Thomas	6	NA 2026	6
+Aaron D	TE	TJ Hockenson	1	NA 2026	1
+Aaron D	K	C. McLaughlin	1	CUT
+Aaron D	DST	Dolphins	1	NA 2026	1
+Aaron D	CUT	J. Wright			1
+Andrew M	QB	L. Jackson	18	1/1	23
+Andrew M	QB	K. Murray	11	NA 2026	11
+Andrew M	RB	Bijan Robinson	32	1/2	37	42
+Andrew M	RB	K. Walker	16	2/2	21
+Andrew M	RB	T. Pollard	10	3/3	15
+Andrew M	RB	D. Achane	5	1/3	10	15	20
+Andrew M	RB	T. Spears	5	CUT
+Andrew M	RB	A. Estime	1	CUT
+Andrew M	WR	D. Adams	34	CUT
+Andrew M	WR	C. Olave
+Andrew M	WR	G. Wilson	10	2/3	15	20
+Andrew M	K	E. McPherson	1	NA 2026	1
+Andrew M	DST	Bills	1	CUT
+Andrew M	CUT	C. Olave			12
+Andrew M	CUT	M. Andrews			8
+Andrew M	CUT	K. Walker			11
+Andrew M	CUT	A. Estime			1
+Dawson O	RB	R. Stevenson	10	3/3	15
+Dawson O	RB	Z. Charbonnet	10	CUT
+Dawson O	RB	K. Williams	35	NA 2026	35
+Dawson O	RB	R. Mostert	10	NA 2026	10
+Dawson O	RB	J. Jacobs	33	NA 2026	33
+Dawson O	WR	D. Hopkins	13	CUT
+Dawson O	WR	K. Coleman	6	NA 2026	6
+Dawson O	WR	J. Chase	14	3/3	19
+Dawson O	WR	J. Meyers		1/2/2025 ON CALEB TEAM
+Dawson O	TE	S. LaPorta	3	1/2	8	13
+Dawson O	TE	G. Kittle	14	NA 2026	14
+Dawson O	K	J. Tucker	2	CUT NO PENALTY
+Dawson O	DST	Jets	2	NA 2026	2
+Colby L	QB	G. Smith	3	CUT
+Colby L	RB	I. Pacheco	14	1/1	19
+Colby L	RB	J. Mixon	13	NA 2026	13
+Colby L	RB	J. Ford	6	NA 2026	6
+Colby L	WR	P. Nacua	29	NA 2026	29
+Colby L	WR	C. Godwin	14	CUT
+Colby L	WR	A. Cooper	14	CUT
+Colby L	WR	T. McLaurin	7	NA 2026	7
+Colby L	WR	L. McConkey	4	NA 2026	4
+Colby L	WR	M. Brown	5	CUT
+Colby L	TE	C. Kmet	3	CUT
+Colby L	K	B. Aubrey	1	NA 2026	1
+Colby L	DST	Eagles	3	CUT
+Caleb K	QB	J. Daniels	11	NA 2026	11
+Caleb K	QB	A. Richardson	8	CUT
+Caleb K	RB	JK Dobbins	11	2/2	16
+Caleb K	RB	A. Jones	22	CUT
+Caleb K	RB	B. Corum	7	NA 2026	7
+Caleb K	RB	Ros. Johnson	2	CUT
+Caleb K	RB	J. Taylor	35	NA 2026	35
+Caleb K	WR	DK Metcalf	17	NA 2026	17
+Caleb K	WR	B. Aiyuk	19	CUT
+Caleb K	WR	Jame. Williams	12	2/3	17	22
+Caleb K	WR	J. Meyers	3	1/1	8
+Caleb K	WR	M. Nabers	12	NA 2026	12
+Caleb K	WR	J. Reed	2	1/1	7
+Caleb K	TE	K. Pitts	15	CUT
+Caleb K	K	D. Carlsen	3	CUT
+Caleb K	DST	Raiders	1	CUT
+Caleb K	CUT	Z. White			10
+Nick F	QB	J. Hurts	12	3/3	17
+Nick F	RB	D. Montgomery	7	1/1	12
+Nick F	RB	J. Warren	4	CUT
+Nick F	RB	C. Brown	8	NA 2026	8
+Nick F	WR	AJ Brown	36	1/1	35
+Nick F	WR	D'tae. Johnson	13	CUT
+Nick F	WR	D. London	16	3/3	21
+Nick F	WR	R. Shaheed	2	CUT
+Nick F	WR	M. Harrison Jr	27	NA 2026	27
+Nick F	TE	L. Musgraves	3	CUT
+Nick F	TE	G. Everett	3	CUT
+Nick F	TE	D. Njoku	8	NA 2026	8
+Nick F	K	J. Sanders	1	CUT
+Nick F	DST	Broncos	1	CUT
+Chris G	QB	J. Love	11	NA 2026	11
+Chris G	QB	C. Williams	3	NA 2026	3
+Chris G	QB	W. Levis	1	CUT
+Chris G	RB	Rac. White	8	CUT
+Chris G	RB	K. Miller	1	CUT
+Chris G	RB	J. Brooks	15	CUT
+Chris G	RB	T. Allgeier	2	NA 2026	2
+Chris G	WR	C. Lamb	25	3/3	30
+Chris G	WR	J. Addison	18	CUT
+Chris G	WR	G. Pickens	15	3/3	20
+Chris G	WR	K. Shakir	3	NA 2026	3
+Chris G	TE	T. McBride	12	NA 2026	12
+Chris G	TE	J. Ferguson	1	CUT
+Chris G	K	J. Myers	1	CUT
+Chris G	DST	Cowboys	1	CUT
+Chris G		J. Brooks			8
+Chris G		R. White			7
+Justin P	QB	T. Lawrence	7	CUT
+Justin P	QB	A. Rodgers	3	CUT
+Justin P	QB	J. Goff	3	NA 2026	3
+Justin P	RB	Jav. Williams	25	CUT
+Justin P	RB	N. Harris	25	CUT
+Justin P	RB	A. Kamara	16	1/1	21
+Justin P	RB	D. Singletary	4	NA 2026	4
+Justin P	WR	J. Smith-Njigba	17	CUT
+Justin P	WR	DJ Moore	15	1/1	20
+Justin P	WR	X. Worthy	15	NA 2026	15
+Justin P	WR	Ras. Rice	6	CUT
+Justin P	WR	S. Diggs	12	NA 2026	12
+Justin P	TE	B. Bowers	12	NA 2026	12
+Justin P	TE	E. Engram	6	1/1	11
+Justin P	TE	D. Goedert	2	NA 2026	2
+Justin P	K	H. Butker	2	CUT
+Justin P	K	T. Bass	2	CUT
+Justin P	DST	Ravens	2	CUT
+Justin P	DST	Commanders	2	CUT
+Stephen P	QB	J. Fields	14	CUT
+Stephen P	QB	J. Allen	23	NA 2026	23
+Stephen P	RB	J. Gibbs	30	1/3	35	40	45
+Stephen P	RB	C. Brooks	2	CUT
+Stephen P	RB	S. Tucker	1	CUT
+Stephen P	WR	T. Higgins	19	3/3	24
+Stephen P	WR	AR. St Brown	15	2/3	20	25
+Stephen P	WR	D. Mooney	3	CUT
+Stephen P	TE	T. Kelce	16	NA 2026	16
+Stephen P	K	C. Dicker	1	CUT
+Stephen P	DST	49ers	1	NA 2026	1
+Josh C	QB	J. Herbert	18	3/3	23
+Josh C	QB	J. Burrow	10	3/3	15
+Josh C	RB	D. Swift	26	CUT
+Josh C	RB	D. Cook	14	CUT
+Josh C	RB	D. Henry	21	NA 2026	21
+Josh C	RB	T. Benson	5	NA 2026	5
+Josh C	WR	J. Jefferson	32	3/3	37
+Josh C	WR	Z. Flowers	18	CUT
+Josh C	WR	M. Evans	16	1/1	21
+Josh C	WR	T. Lockett	11	CUT
+Josh C	WR	T. Dell	20	CUT
+Josh C	WR	J. Palmer	6	NA 2026	6
+Josh C	TE	D. Kincaid	3	CUT
+Josh C	CUT	T. Dell			10

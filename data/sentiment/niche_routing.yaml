@@ -1,0 +1,182 @@
+# Discovered sentiment niches and recommended channel assignments.
+# Updated after Chat Sports 32-team discovery + Phase A screen (2024-2025).
+schema_version: 1
+test_seasons: [2024, 2025]
+
+chat_sports_registry:
+  source: data/sentiment/chat_sports_channels.yaml
+  discovery_report: artifacts/analytics/chat_sports_discovery.json
+  screen_report: artifacts/analytics/chat_sports_screen.json
+  teams_resolved: 31
+  teams_active: 31
+  gaps:
+    - team: NYG
+      reason: Resolved handle @thegiantsreport has zero uploads; no alternate Chat Sports Giants channel found.
+    - team: WAS
+      reason: Commanders Report channel has minimal history (1 video in shallow ingest); needs deeper backfill or alternate handle.
+
+# Tier: strong | correlation | watch
+active_niches:
+  - id: lv_rb_chat_sports
+    channel_label: Raiders Report by Chat Sports
+    network: chat_sports
+    team: LV
+    position: rb
+    tier: strong
+    spearman_rho: -0.41
+    p_value: 0.0026
+    avg_composite_delta: -0.31
+    notes: Only niche with meaningful projection lift so far.
+
+  - id: league_wr_late_round
+    channel_label: Late-Round Fantasy Football
+    network: late_round
+    team: NFL
+    position: wr
+    tier: correlation
+    spearman_rho: 0.30
+    p_value: 0.0005
+    notes: JJ Zachariason WR sentiment correlates with outcomes; projection lift not yet proven.
+
+  - id: league_rb_footballers
+    channel_label: The Fantasy Footballers
+    network: fantasy_footballers
+    team: NFL
+    position: rb
+    tier: correlation
+    spearman_rho: -0.41
+    p_value: 0.0046
+    avg_composite_delta: -0.008
+    notes: Negative rho — lower hype sentiment aligns with higher RB scoring.
+
+  - id: lv_wr_chat_sports
+    channel_label: Raiders Report by Chat Sports
+    network: chat_sports
+    team: LV
+    position: wr
+    tier: correlation
+    p_value: 0.0072
+    notes: Correlation only; projection hurt when blended.
+
+  - id: league_wr_reception_perception
+    channel_label: Reception Perception
+    network: reception_perception
+    team: NFL
+    position: wr
+    tier: correlation
+    spearman_rho: 0.281
+    p_value: 0.0495
+    notes: Matt Harmon WR-centric channel; promoted after deep backfill (394 videos).
+
+  - id: league_wr_fantasypros
+    channel_label: FantasyPros
+    network: fantasypros_yt
+    team: NFL
+    position: wr
+    tier: watch
+    p_value: 0.057
+    notes: Volume leader; borderline WR correlation.
+
+near_misses:
+  - channel_label: Locked On Patriots
+    network: locked_on
+    team: NE
+    position: wr
+    p_value: 0.11
+    notes: Needs more transcript depth to confirm.
+  - channel_label: Locked On Chargers
+    network: locked_on
+    team: LAC
+    position: wr
+    p_value: 0.14
+    notes: Needs more transcript depth to confirm.
+
+gaps:
+  league_qb:
+    status: watch
+    best_candidate:
+      label: Fantasy Points
+      network: fantasy_points
+      p_value: 0.0808
+      n: 187
+      notes: >
+        Closest to significant QB correlation after deep backfill (1003 videos).
+        Underdog has volume (218 QB mentions) but no signal. QB List @theqblist
+        has only 55 videos — likely wrong/incomplete channel; needs alternate handle.
+    recommended_channels:
+      - label: Fantasy Points
+        rationale: Scott Barrett QB model content; borderline p=0.08 after deep backfill.
+      - label: Underdog Fantasy Football
+        rationale: 218 QB mention-rows; no correlation yet — keep ingesting.
+      - label: QB List
+        rationale: Registered but @theqblist too small; find primary QB List YouTube/podcast feed.
+      - label: Establish The Run
+        rationale: Evan Silva QB matchups; QB n=20 after 803-video backfill — still thin.
+  league_te:
+    status: uncovered
+    recommended_channels:
+      - label: Late-Round Fantasy Football
+        rationale: Test TE-specific mentions from existing JJ channel before adding new source.
+      - label: Fantasy Points
+        rationale: TE target-share / route-tree analysis.
+  team_specific:
+    status: partial
+    covered_teams: [LV]
+    chat_sports_phase_a:
+      channels_screened: 32
+      niches_above_none: 2
+      verdict: >
+        Shallow ingest (5 pages, 150 transcripts/channel) surfaced signal only for LV.
+        Other teams need Phase B deep backfill before ruling out team×position niches.
+      phase_b_queued:
+        - team: MIN
+          channel: Vikings Now by Chat Sports
+          rationale: User-requested validation; 2464 videos, 250 shallow ingest rows.
+        - team: LV
+          channel: Raiders Report by Chat Sports
+          rationale: Confirmed strong LV RB niche; already promoted.
+      phase_b_completed:
+        - team: MIN
+          channel: Vikings Now by Chat Sports
+          report: artifacts/analytics/chat_sports_experiment_min.json
+          verdict: no_promotion
+          notes: >
+            Deep backfill (1776 videos, full transcripts) improved mention coverage
+            (QB 59%, RB 44%, WR 37%) but hurt projections — WR 2025 composite Δ +0.17 vs baseline.
+            MIN QB showed no lift (open question answered: not all teams mirror LV).
+        - team: LV
+          channel: Raiders Report by Chat Sports
+          verdict: promote_rb
+          notes: LV RB strong niche confirmed in Phase A and prior deep experiment.
+    recommended_pattern: chat_sports_team_channels
+    notes: >
+      All 32 NFL Chat Sports team channels registered via handle-first discovery
+      (channels.list forHandle). Naming variants include Report, Now, Today, Talk, Breakdown.
+      Do not league-wide blend Chat Sports; promote per team×position only after Phase B.
+
+routing_strategy:
+  description: >
+    Use position-specific channel weights, not league-wide sentiment blend.
+  rules:
+    - position: qb
+      scope: league
+      primary_network: fantasy_points
+      mode: watch
+      notes: Borderline correlation p=0.081; not yet proven projection lift.
+    - position: rb
+      scope: league
+      primary_network: fantasy_footballers
+    - position: wr
+      scope: league
+      primary_network: late_round
+      secondary_network: fantasypros_yt
+      tertiary_network: reception_perception
+    - position: rb
+      scope: team
+      team: LV
+      primary_network: chat_sports
+    - position: wr
+      scope: team
+      team: LV
+      primary_network: chat_sports
+      mode: correlation_only

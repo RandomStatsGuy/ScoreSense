@@ -1,0 +1,579 @@
+schema_version: 1
+channels:
+- team: ARI
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Cardinals Report Chat Sports
+  - Cardinals Now Chat Sports
+  - Cardinals Chat Sports NFL
+  naming_variant: unknown
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UC4PI1gJJ5ICYy_1YtHNEAnw
+  label: Arizona Cardinals Today by Chat Sports
+  custom_url: '@cardinalstv'
+  subscriber_count: 2990
+  video_count: 141
+  resolution_method: handle
+- team: ATL
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Falcons Report Chat Sports
+  - Falcons Now Chat Sports
+  - Falcons Chat Sports NFL
+  naming_variant: unknown
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCcYYkPxACmD3Wjy2XpqijLw
+  label: Falcons Today by Chat Sports
+  custom_url: '@falconstv'
+  subscriber_count: 54400
+  video_count: 2032
+  resolution_method: handle
+- team: BAL
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Ravens Report Chat Sports
+  - Ravens Now Chat Sports
+  - Ravens Chat Sports NFL
+  naming_variant: unknown
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCQ-gm4PWPuboxqXvAGbvMug
+  label: Ravens Rundown by Chat Sports
+  custom_url: '@ravenstv'
+  subscriber_count: 49200
+  video_count: 2597
+  resolution_method: handle
+- team: BUF
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Bills Report Chat Sports
+  - Bills Now Chat Sports
+  - Bills Chat Sports NFL
+  naming_variant: unknown
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCEF8WsK8-ZaSWDdI9aT4DDw
+  label: Buffalo Bills Breakdown by Chat Sports
+  custom_url: '@billsnews'
+  subscriber_count: 16700
+  video_count: 613
+- team: CAR
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Panthers Report Chat Sports
+  - Panthers Now Chat Sports
+  - Panthers Chat Sports NFL
+  naming_variant: unknown
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UC2XiQJjeVfjLntnZ0HYAcxg
+  label: Carolina Panthers Today by Chat Sports
+  custom_url: '@pantherstoday'
+  subscriber_count: 5720
+  video_count: 146
+  resolution_method: handle
+- team: CHI
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Bears Report Chat Sports
+  - Bears Now Chat Sports
+  - Bears Chat Sports NFL
+  naming_variant: now
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCaN9720mbtCGefgjo5Qkr0A
+  label: Bears Now by Chat Sports
+  custom_url: '@bearsnow'
+  subscriber_count: 164000
+  video_count: 4617
+  resolution_method: handle
+- team: CIN
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Bengals Report Chat Sports
+  - Bengals Now Chat Sports
+  - Bengals Chat Sports NFL
+  naming_variant: unknown
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCqPFa-aO2P1qabiWhJYfMGg
+  label: Bengals Breakdown by Chat Sports
+  custom_url: '@bengalstv'
+  subscriber_count: 25000
+  video_count: 1294
+  resolution_method: handle
+- team: CLE
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Browns Report Chat Sports
+  - Browns Now Chat Sports
+  - Browns Chat Sports NFL
+  naming_variant: report
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCeADv4IDX1SbUdZHpB35ooA
+  label: Browns Report by Chat Sports
+  custom_url: '@brownsreport'
+  subscriber_count: 77500
+  video_count: 2814
+  resolution_method: handle
+- team: DAL
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Cowboys Report Chat Sports
+  - Cowboys Now Chat Sports
+  - Cowboys Chat Sports NFL
+  naming_variant: report
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UC21x83LT7sNeo-mbYbnqTFQ
+  label: Cowboys Report by Chat Sports
+  custom_url: '@cowboystv'
+  subscriber_count: 249000
+  video_count: 5394
+  resolution_method: handle
+- team: DEN
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Broncos Report Chat Sports
+  - Broncos Now Chat Sports
+  - Broncos Chat Sports NFL
+  naming_variant: unknown
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCOGJVQ-rhTcjBVH7IrwKaFA
+  label: Broncos Breakdown by Chat Sports
+  custom_url: '@broncostv'
+  subscriber_count: 60300
+  video_count: 2392
+  resolution_method: handle
+- team: DET
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Lions Report Chat Sports
+  - Lions Now Chat Sports
+  - Lions Chat Sports NFL
+  naming_variant: unknown
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UC9KX642L4_biZQ5rjlGoPow
+  label: Lions Talk by Chat Sports
+  custom_url: '@lionstoday'
+  subscriber_count: 100000
+  video_count: 2437
+  resolution_method: handle
+- team: GB
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Packers Report Chat Sports
+  - Packers Now Chat Sports
+  - Packers Chat Sports NFL
+  naming_variant: report
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UC6ntLD1SxKdIYTc1upweUJQ
+  label: Packers Report by Chat Sports
+  custom_url: '@packerstv'
+  subscriber_count: 32300
+  video_count: 1042
+  resolution_method: handle
+- team: HOU
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Texans Report Chat Sports
+  - Texans Now Chat Sports
+  - Texans Chat Sports NFL
+  naming_variant: unknown
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCngONOlsXTr1tE08Qmvc2Kg
+  label: Texans Today by Chat Sports
+  custom_url: '@texanstv'
+  subscriber_count: 51000
+  video_count: 1754
+  resolution_method: handle
+- team: IND
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Colts Report Chat Sports
+  - Colts Now Chat Sports
+  - Colts Chat Sports NFL
+  naming_variant: unknown
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCAQq-RHft4iegz6sUCZT_Dg
+  label: Indianapolis Colts Talk by Chat Sports
+  custom_url: '@coltstalk'
+  subscriber_count: 2950
+  video_count: 128
+  resolution_method: handle
+- team: JAX
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Jaguars Report Chat Sports
+  - Jaguars Now Chat Sports
+  - Jaguars Chat Sports NFL
+  naming_variant: now
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCRMr_VzCwMR1zj3cvkD38qw
+  label: Jacksonville Jaguars Now by Chat Sports
+  custom_url: '@jagsnews'
+  subscriber_count: 3020
+  video_count: 169
+  resolution_method: handle
+- team: KC
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Chiefs Report Chat Sports
+  - Chiefs Now Chat Sports
+  - Chiefs Chat Sports NFL
+  naming_variant: report
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCm7aNg87CtuXIcqaVnajQcA
+  label: Chiefs Report by Chat Sports
+  custom_url: '@chiefstv'
+  subscriber_count: 77000
+  video_count: 2967
+  resolution_method: handle
+- team: LAC
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Chargers Report Chat Sports
+  - Chargers Now Chat Sports
+  - Chargers Chat Sports NFL
+  naming_variant: now
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UClC-6aea5xRbqu0qAR127Sg
+  label: LA Chargers Now by Chat Sports
+  custom_url: '@chargerstv'
+  subscriber_count: 4340
+  video_count: 213
+  resolution_method: handle
+- team: LAR
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Rams Report Chat Sports
+  - Rams Now Chat Sports
+  - Rams Chat Sports NFL
+  naming_variant: report
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCUsas7hs697v9lwNGp-JPJw
+  label: LA Rams Report by Chat Sports
+  custom_url: '@ramsreport'
+  subscriber_count: 9240
+  video_count: 386
+  resolution_method: handle
+- channel_id: UC2zTXqHLEz56OG0EvS9SiFA
+  team: LV
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  label: Raiders Report by Chat Sports
+  search_queries:
+  - Raiders Report Chat Sports
+  - Raiders Now Chat Sports
+  - Raiders Chat Sports NFL
+  naming_variant: report
+  confidence: high
+  active: true
+  promote_to_features: true
+- team: MIA
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Dolphins Report Chat Sports
+  - Dolphins Now Chat Sports
+  - Dolphins Chat Sports NFL
+  naming_variant: unknown
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCKhrVpHn0ghqn4WUANk5RvQ
+  label: Dolphins Today by Chat Sports
+  custom_url: '@dolphinsnews'
+  subscriber_count: 83400
+  video_count: 3329
+  resolution_method: handle
+- team: MIN
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Vikings Report Chat Sports
+  - Vikings Now Chat Sports
+  - Vikings Chat Sports NFL
+  naming_variant: now
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCwU_qLZqe2HLtBg0br_G4Hw
+  label: Vikings Now by Chat Sports
+  custom_url: '@vikingstoday'
+  subscriber_count: 72000
+  video_count: 2464
+  resolution_method: handle
+- team: NE
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Patriots Report Chat Sports
+  - Patriots Now Chat Sports
+  - Patriots Chat Sports NFL
+  naming_variant: unknown
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCJPWM3J9Wnhwer3aj9YRJKw
+  label: Patriots Today by Chat Sports
+  custom_url: '@patriotstoday'
+  subscriber_count: 49200
+  video_count: 1905
+  resolution_method: handle
+- team: 'NO'
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Saints Report Chat Sports
+  - Saints Now Chat Sports
+  - Saints Chat Sports NFL
+  naming_variant: now
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCp1q6ivk5e11ezHD6ObroqA
+  label: Saints Now by Chat Sports
+  custom_url: '@saintstoday'
+  subscriber_count: 59500
+  video_count: 2824
+  resolution_method: handle
+- team: NYG
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Giants Report Chat Sports
+  - Giants Now Chat Sports
+  - Giants Chat Sports NFL
+  naming_variant: report
+  confidence: medium
+  active: false
+  promote_to_features: false
+  channel_id: UCTAaJ4bNO0ERvMveyJsgPew
+  label: The Giants Report
+  custom_url: '@thegiantsreport'
+  subscriber_count: 0
+  video_count: 0
+  discovery_note: Empty channel; no Chat Sports Giants uploads found via handle probe.
+    Alternate handles to probe — Giants Today (@giantsreport), NYG Now Chat Sports.
+  backfill_priority: high
+  resolution_method: handle
+- team: NYJ
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Jets Report Chat Sports
+  - Jets Now Chat Sports
+  - Jets Chat Sports NFL
+  naming_variant: report
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCFzdRZNU8EHG2OGtYvLHvjQ
+  label: Jets Report by Chat Sports
+  custom_url: '@jetstv'
+  subscriber_count: 13600
+  video_count: 769
+  resolution_method: handle
+- team: PHI
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Eagles Report Chat Sports
+  - Eagles Now Chat Sports
+  - Eagles Chat Sports NFL
+  naming_variant: now
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCGpQR-SQHKzuRAeairNrcQQ
+  label: Eagles Now by Chat Sports
+  custom_url: '@eaglesnow'
+  subscriber_count: 149000
+  video_count: 3730
+  resolution_method: handle
+- team: PIT
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Steelers Report Chat Sports
+  - Steelers Now Chat Sports
+  - Steelers Chat Sports NFL
+  naming_variant: unknown
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCeGDyX4Uomem1uLJWVQKZhQ
+  label: Steelers Talk by Chat Sports
+  custom_url: '@steelerstv'
+  subscriber_count: 119000
+  video_count: 3072
+  resolution_method: handle
+- team: SEA
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Seahawks Report Chat Sports
+  - Seahawks Now Chat Sports
+  - Seahawks Chat Sports NFL
+  naming_variant: unknown
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCJW9EhwdL5WU-2slOTvaBNg
+  label: Seahawks Today by Chat Sports
+  custom_url: '@seahawkstv'
+  subscriber_count: 87400
+  video_count: 3637
+  resolution_method: handle
+- team: SF
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - 49ers Report Chat Sports
+  - 49ers Now Chat Sports
+  - 49ers Chat Sports NFL
+  naming_variant: report
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCnDY7XxQmmKMJYUU6m2KYew
+  label: 49ers Report by Chat Sports
+  custom_url: '@49erstv'
+  subscriber_count: 196000
+  video_count: 4573
+  resolution_method: handle
+- team: TB
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Buccaneers Report Chat Sports
+  - Buccaneers Now Chat Sports
+  - Buccaneers Chat Sports NFL
+  naming_variant: unknown
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCa3EvBODKUvheEkVwAhf7XQ
+  label: Tampa Bay Buccaneers Breakdown by Chat Sports
+  custom_url: '@bucsnow'
+  subscriber_count: 2590
+  video_count: 126
+  resolution_method: handle
+- team: TEN
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Titans Report Chat Sports
+  - Titans Now Chat Sports
+  - Titans Chat Sports NFL
+  naming_variant: unknown
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCSlO0m9Ez2Y1s9gJ9cu4ptw
+  label: Titans Today By Chat Sports
+  custom_url: '@titanstoday'
+  subscriber_count: 12500
+  video_count: 1071
+  resolution_method: handle
+- team: WAS
+  network: chat_sports
+  tier: reporting
+  weight: 1.0
+  search_queries:
+  - Commanders Report Chat Sports
+  - Commanders Now Chat Sports
+  - Commanders Chat Sports NFL
+  naming_variant: report
+  confidence: high
+  active: true
+  promote_to_features: false
+  channel_id: UCz_wqPtJFVIwStpYMOc2P_g
+  label: Washington Commanders Report
+  custom_url: '@commandersreport'
+  subscriber_count: 123
+  video_count: 75
+  resolution_method: handle
+  backfill_priority: high
+  backfill_lookback_days: 90
+  discovery_note: Minimal upload volume; use extended lookback on sentiment refresh.

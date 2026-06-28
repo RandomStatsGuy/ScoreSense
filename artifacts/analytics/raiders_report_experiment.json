@@ -1,0 +1,116 @@
+{
+  "channel": {
+    "label": "Raiders Report by Chat Sports",
+    "channel_id": "UC2zTXqHLEz56OG0EvS9SiFA",
+    "host": "Mitchell Renz"
+  },
+  "seasons": [
+    2024,
+    2025
+  ],
+  "ingest": {
+    "cs_videos": 2978,
+    "transcripts_fetched": 2978
+  },
+  "lv_mention_stats": {
+    "lv_rows": 277,
+    "lv_rows_with_mentions": 277,
+    "avg_mention_weight": 14.16678700361011
+  },
+  "before": {
+    "qb": {
+      "recommendation": "inconclusive",
+      "mention_coverage": 0.2826,
+      "seasons_improved": 0
+    },
+    "rb": {
+      "recommendation": "inconclusive",
+      "mention_coverage": 0.117,
+      "seasons_improved": 1
+    },
+    "wr": {
+      "recommendation": "inconclusive",
+      "mention_coverage": 0.0739,
+      "seasons_improved": 1
+    }
+  },
+  "after": {
+    "qb": {
+      "recommendation": "inconclusive",
+      "mention_coverage": 0.8043,
+      "seasons_improved": 0
+    },
+    "rb": {
+      "recommendation": "inconclusive",
+      "mention_coverage": 0.4894,
+      "seasons_improved": 1
+    },
+    "wr": {
+      "recommendation": "inconclusive",
+      "mention_coverage": 0.5862,
+      "seasons_improved": 0
+    }
+  },
+  "delta_vs_before": {
+    "qb": [
+      {
+        "season": 2024,
+        "composite_delta_vs_before": NaN,
+        "mae_delta_vs_before": 0.0,
+        "before_composite_delta": NaN,
+        "after_composite_delta": NaN,
+        "before_mention_cov": 0.2826,
+        "after_mention_cov": 0.8043
+      },
+      {
+        "season": 2025,
+        "composite_delta_vs_before": 0.0308,
+        "mae_delta_vs_before": 0.3078,
+        "before_composite_delta": 0.0075,
+        "after_composite_delta": 0.0383,
+        "before_mention_cov": 0.2826,
+        "after_mention_cov": 0.8043
+      }
+    ],
+    "rb": [
+      {
+        "season": 2024,
+        "composite_delta_vs_before": NaN,
+        "mae_delta_vs_before": 0.0,
+        "before_composite_delta": NaN,
+        "after_composite_delta": NaN,
+        "before_mention_cov": 0.117,
+        "after_mention_cov": 0.4894
+      },
+      {
+        "season": 2025,
+        "composite_delta_vs_before": -0.1626,
+        "mae_delta_vs_before": -0.2924,
+        "before_composite_delta": -0.1659,
+        "after_composite_delta": -0.3285,
+        "before_mention_cov": 0.117,
+        "after_mention_cov": 0.4894
+      }
+    ],
+    "wr": [
+      {
+        "season": 2024,
+        "composite_delta_vs_before": 0.0,
+        "mae_delta_vs_before": 0.0,
+        "before_composite_delta": 0.0169,
+        "after_composite_delta": 0.0169,
+        "before_mention_cov": 0.0739,
+        "after_mention_cov": 0.5862
+      },
+      {
+        "season": 2025,
+        "composite_delta_vs_before": 0.0132,
+        "mae_delta_vs_before": 0.1319,
+        "before_composite_delta": -0.007,
+        "after_composite_delta": 0.0062,
+        "before_mention_cov": 0.0739,
+        "after_mention_cov": 0.5862
+      }
+    ]
+  }
+}

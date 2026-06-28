@@ -17,6 +17,12 @@ build/
 data/raw/
 data/cache/
 .DS_Store
-Thumbs.db
+node_modules/
+frontend/dist/
 *.log
 .streamlit/secrets.toml
+data/auth/*.db
+ssh
+.pytest_collect.txt
+.pytest_full_result.txt
+.cursor/

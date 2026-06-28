@@ -1,0 +1,113 @@
+{
+  "team": "MIN",
+  "channel": {
+    "label": "Vikings Now by Chat Sports",
+    "channel_id": "UCwU_qLZqe2HLtBg0br_G4Hw",
+    "network": "chat_sports",
+    "confidence": "high"
+  },
+  "seasons": [
+    2024,
+    2025
+  ],
+  "ingest": {
+    "team": "MIN",
+    "channel_id": "UCwU_qLZqe2HLtBg0br_G4Hw",
+    "channel_label": "Vikings Now by Chat Sports",
+    "videos_added": 1776,
+    "cache_rows": 33009
+  },
+  "transcripts": {
+    "candidates": 1776,
+    "fetched": 1776
+  },
+  "mention_stats": {
+    "team_rows": 193,
+    "rows_with_mentions": 193,
+    "avg_mention_weight": 11.777927461139898
+  },
+  "before": {
+    "qb": {
+      "recommendation": "inconclusive",
+      "mention_coverage": 0.2045,
+      "seasons_improved": 0
+    },
+    "rb": {
+      "recommendation": "inconclusive",
+      "mention_coverage": 0.0606,
+      "seasons_improved": 1
+    },
+    "wr": {
+      "recommendation": "promising",
+      "mention_coverage": 0.0933,
+      "seasons_improved": 2
+    }
+  },
+  "after": {
+    "qb": {
+      "recommendation": "inconclusive",
+      "mention_coverage": 0.5909,
+      "seasons_improved": 0
+    },
+    "rb": {
+      "recommendation": "inconclusive",
+      "mention_coverage": 0.4444,
+      "seasons_improved": 1
+    },
+    "wr": {
+      "recommendation": "inconclusive",
+      "mention_coverage": 0.3733,
+      "seasons_improved": 1
+    }
+  },
+  "delta_vs_before": {
+    "qb": [
+      {
+        "season": 2024,
+        "composite_delta_vs_before": 0.0,
+        "mae_delta_vs_before": 0.0,
+        "before_composite_delta": 0.0091,
+        "after_composite_delta": 0.0091
+      },
+      {
+        "season": 2025,
+        "composite_delta_vs_before": NaN,
+        "mae_delta_vs_before": -0.1854,
+        "before_composite_delta": NaN,
+        "after_composite_delta": NaN
+      }
+    ],
+    "rb": [
+      {
+        "season": 2024,
+        "composite_delta_vs_before": 0.0,
+        "mae_delta_vs_before": 0.0,
+        "before_composite_delta": -0.0227,
+        "after_composite_delta": -0.0227
+      },
+      {
+        "season": 2025,
+        "composite_delta_vs_before": 0.0109,
+        "mae_delta_vs_before": 0.1098,
+        "before_composite_delta": 0.0003,
+        "after_composite_delta": 0.0112
+      }
+    ],
+    "wr": [
+      {
+        "season": 2024,
+        "composite_delta_vs_before": 0.0,
+        "mae_delta_vs_before": 0.0,
+        "before_composite_delta": -0.0024,
+        "after_composite_delta": -0.0024
+      },
+      {
+        "season": 2025,
+        "composite_delta_vs_before": 0.1711,
+        "mae_delta_vs_before": 0.378,
+        "before_composite_delta": -0.0073,
+        "after_composite_delta": 0.1638
+      }
+    ]
+  }
+}

@@ -1,0 +1,552 @@
+{
+  "test_seasons": [
+    2024,
+    2025
+  ],
+  "channels_tested": 10,
+  "channels_recommended": 1,
+  "results": [
+    {
+      "channel_id": "UC-DCCRcJiB1Lx0CpITBMRxA",
+      "network": "draft_sharks",
+      "label": "Draft Sharks",
+      "positions": {
+        "qb": {
+          "correlation": {
+            "n": 57,
+            "spearman_rho": -0.1838,
+            "role_hype_rho": 0.0406,
+            "injury_rho": -0.0045,
+            "p_value": 0.1656
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": -0.0009,
+            "mention_coverage": 0.041
+          }
+        },
+        "rb": {
+          "correlation": {
+            "n": 112,
+            "spearman_rho": -0.0575,
+            "role_hype_rho": -0.19,
+            "injury_rho": -0.0408,
+            "p_value": 0.5455
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 2,
+            "avg_composite_delta": -0.0065,
+            "mention_coverage": 0.035
+          }
+        },
+        "wr": {
+          "correlation": {
+            "n": 95,
+            "spearman_rho": -0.1472,
+            "role_hype_rho": 0.0009,
+            "injury_rho": -0.1731,
+            "p_value": 0.1512
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": 0.001,
+            "mention_coverage": 0.0129
+          }
+        }
+      },
+      "sig_positions": 0,
+      "helpful_positions": 0,
+      "total_mention_rows": 264,
+      "recommend_incorporate": false
+    },
+    {
+      "channel_id": "UC-No2ITxJsNt50oJQ3fLmUA",
+      "network": "fantasy_footballers",
+      "label": "The Fantasy Footballers",
+      "positions": {
+        "qb": {
+          "correlation": {
+            "n": 24,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": 0.0001,
+            "mention_coverage": 0.0173
+          }
+        },
+        "rb": {
+          "correlation": {
+            "n": 41,
+            "spearman_rho": -0.4131,
+            "role_hype_rho": 0.2771,
+            "injury_rho": 0.1008,
+            "p_value": 0.0046
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 2,
+            "avg_composite_delta": -0.0021,
+            "mention_coverage": 0.0128
+          }
+        },
+        "wr": {
+          "correlation": {
+            "n": 57,
+            "spearman_rho": -0.0118,
+            "role_hype_rho": -0.0325,
+            "injury_rho": -0.061,
+            "p_value": 0.9304
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": 0.0001,
+            "mention_coverage": 0.0077
+          }
+        }
+      },
+      "sig_positions": 1,
+      "helpful_positions": 0,
+      "total_mention_rows": 122,
+      "recommend_incorporate": false
+    },
+    {
+      "channel_id": "UCZYaxEBdyKDsZfq_JGZwIeQ",
+      "network": "fantasypros_yt",
+      "label": "FantasyPros",
+      "positions": {
+        "qb": {
+          "correlation": {
+            "n": 84,
+            "spearman_rho": -0.0904,
+            "role_hype_rho": 0.0069,
+            "injury_rho": -0.0967,
+            "p_value": 0.4113
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": 0.0001,
+            "mention_coverage": 0.0605
+          }
+        },
+        "rb": {
+          "correlation": {
+            "n": 149,
+            "spearman_rho": 0.0853,
+            "role_hype_rho": -0.0161,
+            "injury_rho": -0.0504,
+            "p_value": 0.2992
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 2,
+            "avg_composite_delta": -0.0021,
+            "mention_coverage": 0.0466
+          }
+        },
+        "wr": {
+          "correlation": {
+            "n": 207,
+            "spearman_rho": -0.1316,
+            "role_hype_rho": -0.0054,
+            "injury_rho": -0.0953,
+            "p_value": 0.0573
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": 0.0001,
+            "mention_coverage": 0.0281
+          }
+        }
+      },
+      "sig_positions": 1,
+      "helpful_positions": 0,
+      "total_mention_rows": 440,
+      "recommend_incorporate": false
+    },
+    {
+      "channel_id": "UCthzZOV9hsJnCyC_3KsIhRw",
+      "network": "playerprofiler",
+      "label": "PlayerProfiler",
+      "positions": {
+        "qb": {
+          "correlation": {
+            "n": 26,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": 0.0001,
+            "mention_coverage": 0.0187
+          }
+        },
+        "rb": {
+          "correlation": {
+            "n": 78,
+            "spearman_rho": -0.1445,
+            "role_hype_rho": 0.0598,
+            "injury_rho": 0.2048,
+            "p_value": 0.2031
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 2,
+            "avg_composite_delta": -0.0021,
+            "mention_coverage": 0.0244
+          }
+        },
+        "wr": {
+          "correlation": {
+            "n": 109,
+            "spearman_rho": -0.0278,
+            "role_hype_rho": -0.0491,
+            "injury_rho": 0.0353,
+            "p_value": 0.7736
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": 0.0001,
+            "mention_coverage": 0.0148
+          }
+        }
+      },
+      "sig_positions": 0,
+      "helpful_positions": 0,
+      "total_mention_rows": 213,
+      "recommend_incorporate": false
+    },
+    {
+      "channel_id": "UCK5szBUaJMnuCViD6alvuXg",
+      "network": "late_round",
+      "label": "Late-Round Fantasy Football",
+      "positions": {
+        "qb": {
+          "correlation": {
+            "n": 32,
+            "spearman_rho": 0.0486,
+            "role_hype_rho": NaN,
+            "injury_rho": 0.1023,
+            "p_value": 0.7898
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 0,
+            "avg_composite_delta": 0.0041,
+            "mention_coverage": 0.023
+          }
+        },
+        "rb": {
+          "correlation": {
+            "n": 95,
+            "spearman_rho": 0.1237,
+            "role_hype_rho": -0.0659,
+            "injury_rho": 0.2687,
+            "p_value": 0.2295
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": -0.0003,
+            "mention_coverage": 0.0297
+          }
+        },
+        "wr": {
+          "correlation": {
+            "n": 122,
+            "spearman_rho": 0.3044,
+            "role_hype_rho": -0.151,
+            "injury_rho": 0.1243,
+            "p_value": 0.0005
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": -0.001,
+            "mention_coverage": 0.0166
+          }
+        }
+      },
+      "sig_positions": 1,
+      "helpful_positions": 0,
+      "total_mention_rows": 249,
+      "recommend_incorporate": false
+    },
+    {
+      "channel_id": "UCvIyBYSykqTU4oqB1gSTM5w",
+      "network": "establish_the_run",
+      "label": "Establish The Run",
+      "positions": {
+        "qb": {
+          "correlation": {
+            "n": 20,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": 0.0011,
+            "mention_coverage": 0.0144
+          }
+        },
+        "rb": {
+          "correlation": {
+            "n": 47,
+            "spearman_rho": 0.1156,
+            "role_hype_rho": -0.1304,
+            "injury_rho": 0.0129,
+            "p_value": 0.4351
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 2,
+            "avg_composite_delta": -0.0024,
+            "mention_coverage": 0.0147
+          }
+        },
+        "wr": {
+          "correlation": {
+            "n": 52,
+            "spearman_rho": -0.0681,
+            "role_hype_rho": -0.1866,
+            "injury_rho": -0.2305,
+            "p_value": 0.6294
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": -0.0011,
+            "mention_coverage": 0.0071
+          }
+        }
+      },
+      "sig_positions": 0,
+      "helpful_positions": 0,
+      "total_mention_rows": 119,
+      "recommend_incorporate": false
+    },
+    {
+      "channel_id": "UCaCshQX7-gQ0Bs5BnddUwZg",
+      "network": "fantasy_points",
+      "label": "Fantasy Points",
+      "positions": {
+        "qb": {
+          "correlation": {
+            "n": 187,
+            "spearman_rho": 0.1273,
+            "role_hype_rho": 0.0376,
+            "injury_rho": -0.0842,
+            "p_value": 0.0808
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": 0.001,
+            "mention_coverage": 0.1346
+          }
+        },
+        "rb": {
+          "correlation": {
+            "n": 303,
+            "spearman_rho": -0.1047,
+            "role_hype_rho": 0.1648,
+            "injury_rho": -0.0291,
+            "p_value": 0.0677
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 2,
+            "avg_composite_delta": -0.0098,
+            "mention_coverage": 0.0948
+          }
+        },
+        "wr": {
+          "correlation": {
+            "n": 528,
+            "spearman_rho": 0.041,
+            "role_hype_rho": 0.126,
+            "injury_rho": -0.0624,
+            "p_value": 0.3463
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 0,
+            "avg_composite_delta": 0.0032,
+            "mention_coverage": 0.0718
+          }
+        }
+      },
+      "sig_positions": 2,
+      "helpful_positions": 0,
+      "total_mention_rows": 1018,
+      "recommend_incorporate": true
+    },
+    {
+      "channel_id": "UCuAtv3AGUlp-zo3Wmgo60Gg",
+      "network": "qb_list",
+      "label": "QB List",
+      "positions": {
+        "qb": {
+          "correlation": {
+            "n": 5,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": 0.0001,
+            "mention_coverage": 0.0036
+          }
+        },
+        "rb": {
+          "correlation": {
+            "n": 10,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 2,
+            "avg_composite_delta": -0.0021,
+            "mention_coverage": 0.0031
+          }
+        },
+        "wr": {
+          "correlation": {
+            "n": 13,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": 0.0001,
+            "mention_coverage": 0.0018
+          }
+        }
+      },
+      "sig_positions": 0,
+      "helpful_positions": 0,
+      "total_mention_rows": 28,
+      "recommend_incorporate": false
+    },
+    {
+      "channel_id": "UC7fnz7139CGSdtHWaPMCpIw",
+      "network": "underdog_fantasy",
+      "label": "Underdog Fantasy Football",
+      "positions": {
+        "qb": {
+          "correlation": {
+            "n": 218,
+            "spearman_rho": -0.0145,
+            "role_hype_rho": NaN,
+            "injury_rho": 0.0231,
+            "p_value": 0.8315
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": 0.0001,
+            "mention_coverage": 0.1569
+          }
+        },
+        "rb": {
+          "correlation": {
+            "n": 275,
+            "spearman_rho": -0.0781,
+            "role_hype_rho": 0.07,
+            "injury_rho": -0.0008,
+            "p_value": 0.1954
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 2,
+            "avg_composite_delta": -0.0021,
+            "mention_coverage": 0.086
+          }
+        },
+        "wr": {
+          "correlation": {
+            "n": 373,
+            "spearman_rho": 0.0337,
+            "role_hype_rho": -0.0959,
+            "injury_rho": -0.1447,
+            "p_value": 0.5158
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": 0.0001,
+            "mention_coverage": 0.0507
+          }
+        }
+      },
+      "sig_positions": 0,
+      "helpful_positions": 0,
+      "total_mention_rows": 866,
+      "recommend_incorporate": false
+    },
+    {
+      "channel_id": "UCvqWpJ9iMAfu4aOGvAn85lw",
+      "network": "reception_perception",
+      "label": "Reception Perception",
+      "positions": {
+        "qb": {
+          "correlation": {
+            "n": 8,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": -0.0018,
+            "mention_coverage": 0.0058
+          }
+        },
+        "rb": {
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          }
+        },
+        "wr": {
+          "correlation": {
+            "n": 47,
+            "spearman_rho": 0.281,
+            "role_hype_rho": -0.045,
+            "injury_rho": 0.1593,
+            "p_value": 0.0495
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 0,
+            "avg_composite_delta": 0.0039,
+            "mention_coverage": 0.0064
+          }
+        }
+      },
+      "sig_positions": 1,
+      "helpful_positions": 0,
+      "total_mention_rows": 55,
+      "recommend_incorporate": false
+    }
+  ],
+  "approved_networks": [
+    "fantasy_points"
+  ]
+}

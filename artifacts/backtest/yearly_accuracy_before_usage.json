@@ -1,0 +1,278 @@
+{
+  "qb": {
+    "position": "qb",
+    "seasons": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "series": {
+      "scoresense": [
+        4.974,
+        5.356,
+        5.146,
+        5.025,
+        5.028,
+        4.951
+      ],
+      "season_avg": [
+        7.08,
+        6.958,
+        6.803,
+        6.235,
+        6.326,
+        6.61
+      ],
+      "last_game": [
+        8.225,
+        8.241,
+        8.101,
+        7.173,
+        7.394,
+        7.683
+      ],
+      "ffopportunity": [
+        4.788,
+        4.236,
+        4.582,
+        4.515,
+        4.095,
+        4.243
+      ],
+      "espn": [
+        16.617,
+        14.702,
+        15.624,
+        17.713,
+        18.393,
+        17.098
+      ],
+      "site_composite": [
+        7.293,
+        7.265,
+        7.094,
+        6.402,
+        6.53,
+        6.784
+      ],
+      "model_blended": [
+        4.938,
+        5.315,
+        5.106,
+        4.919,
+        4.943,
+        4.896
+      ]
+    },
+    "blend_alpha": 0.85,
+    "summary": {
+      "scoresense_avg_mae": 5.08,
+      "site_composite_avg_mae": 6.895,
+      "model_blended_avg_mae": 5.019,
+      "espn_avg_mae": 16.691,
+      "ffopportunity_avg_mae": 4.41,
+      "season_avg_mae": 6.669,
+      "scoresense_beats_composite_seasons": 6,
+      "total_seasons": 6,
+      "blend_beats_scoresense": true,
+      "recommended_use": "blend_with_composite"
+    },
+    "labels": {
+      "scoresense": "ScoreSense",
+      "season_avg": "Season Average",
+      "last_game": "Last Game",
+      "ffopportunity": "Usage EP (post-hoc, ffverse)",
+      "espn": "ESPN (season-level)",
+      "site_composite": "Simple Composite (avg + last game)",
+      "model_blended": "Blended (85% model)"
+    },
+    "notes": "Site composite averages season-to-date and last-game baselines as a simple forecast proxy. ffverse Usage EP reflects expected points given actual weekly opportunity (not a pre-game projection). ESPN API values appear season-level and are shown separately when available."
+  },
+  "rb": {
+    "position": "rb",
+    "seasons": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "series": {
+      "scoresense": [
+        4.73,
+        4.776,
+        4.89,
+        4.534,
+        4.486,
+        4.545
+      ],
+      "season_avg": [
+        5.352,
+        5.255,
+        5.427,
+        5.196,
+        4.86,
+        5.036
+      ],
+      "last_game": [
+        6.292,
+        6.159,
+        6.332,
+        5.977,
+        5.614,
+        5.768
+      ],
+      "ffopportunity": [
+        2.968,
+        2.846,
+        2.788,
+        2.813,
+        2.776,
+        2.763
+      ],
+      "espn": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "site_composite": [
+        5.537,
+        5.457,
+        5.598,
+        5.305,
+        4.969,
+        5.131
+      ],
+      "model_blended": [
+        4.648,
+        4.692,
+        4.804,
+        4.482,
+        4.345,
+        4.443
+      ]
+    },
+    "blend_alpha": 0.75,
+    "summary": {
+      "scoresense_avg_mae": 4.66,
+      "site_composite_avg_mae": 5.333,
+      "model_blended_avg_mae": 4.569,
+      "espn_avg_mae": null,
+      "ffopportunity_avg_mae": 2.826,
+      "season_avg_mae": 5.188,
+      "scoresense_beats_composite_seasons": 6,
+      "total_seasons": 6,
+      "blend_beats_scoresense": true,
+      "recommended_use": "blend_with_composite"
+    },
+    "labels": {
+      "scoresense": "ScoreSense",
+      "season_avg": "Season Average",
+      "last_game": "Last Game",
+      "ffopportunity": "Usage EP (post-hoc, ffverse)",
+      "espn": "ESPN (season-level)",
+      "site_composite": "Simple Composite (avg + last game)",
+      "model_blended": "Blended (75% model)"
+    },
+    "notes": "Site composite averages season-to-date and last-game baselines as a simple forecast proxy. ffverse Usage EP reflects expected points given actual weekly opportunity (not a pre-game projection). ESPN API values appear season-level and are shown separately when available."
+  },
+  "wr": {
+    "position": "wr",
+    "seasons": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "series": {
+      "scoresense": [
+        4.685,
+        4.672,
+        4.536,
+        4.388,
+        4.313,
+        4.487
+      ],
+      "season_avg": [
+        5.237,
+        5.266,
+        5.026,
+        4.903,
+        4.711,
+        4.767
+      ],
+      "last_game": [
+        6.147,
+        6.359,
+        6.006,
+        5.862,
+        5.585,
+        5.793
+      ],
+      "ffopportunity": [
+        3.134,
+        3.051,
+        3.127,
+        2.955,
+        2.928,
+        2.971
+      ],
+      "espn": [
+        6.162,
+        7.583,
+        11.234,
+        12.459,
+        8.899,
+        11.879
+      ],
+      "site_composite": [
+        5.411,
+        5.559,
+        5.277,
+        5.143,
+        4.904,
+        5.023
+      ],
+      "model_blended": [
+        4.635,
+        4.677,
+        4.51,
+        4.377,
+        4.265,
+        4.398
+      ]
+    },
+    "blend_alpha": 0.75,
+    "summary": {
+      "scoresense_avg_mae": 4.513,
+      "site_composite_avg_mae": 5.219,
+      "model_blended_avg_mae": 4.477,
+      "espn_avg_mae": 9.703,
+      "ffopportunity_avg_mae": 3.028,
+      "season_avg_mae": 4.985,
+      "scoresense_beats_composite_seasons": 6,
+      "total_seasons": 6,
+      "blend_beats_scoresense": true,
+      "recommended_use": "blend_with_composite"
+    },
+    "labels": {
+      "scoresense": "ScoreSense",
+      "season_avg": "Season Average",
+      "last_game": "Last Game",
+      "ffopportunity": "Usage EP (post-hoc, ffverse)",
+      "espn": "ESPN (season-level)",
+      "site_composite": "Simple Composite (avg + last game)",
+      "model_blended": "Blended (75% model)"
+    },
+    "notes": "Site composite averages season-to-date and last-game baselines as a simple forecast proxy. ffverse Usage EP reflects expected points given actual weekly opportunity (not a pre-game projection). ESPN API values appear season-level and are shown separately when available."
+  }
+}

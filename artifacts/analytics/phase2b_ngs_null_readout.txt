@@ -1,0 +1,88 @@
+Phase 2 WR Feature Engineering — Comprehensive Null Readout
+Generated: 2026-06-15
+Window: 2022–2024 fast LOO (leave-one-out) unless noted
+
+================================================================================
+EXECUTIVE SUMMARY
+================================================================================
+Three independent data dimensions were pressure-tested against the WR core
+skeleton + usage bundle. All hit an identical LOO ceiling of +0.002 to +0.003
+composite delta — well below the +0.02 promotion gate.
+
+Conclusion: baseline saturation on rolling-window seasonal metrics. The model
+does not need more opportunity/volume/efficiency columns from nflverse PBP or
+NGS weekly exports at this granularity.
+
+Actions taken:
+  - No changes to promoted_features_wr.json (remains empty gate / DEFAULT fallback)
+  - No full 6-season feature screen run
+  - Pruned collinear features: deep_matchup_quality, deep_targets_avg (from export)
+  - Retained in candidate parquet only (not production mlready):
+      deep_target_share_avg
+      def_deep_pass_rate_allowed_avg
+      ngs_avg_separation_avg
+      ngs_yac_above_expectation_avg
+
+================================================================================
+DIMENSION 1: VOLUME / DEPTH BINS
+================================================================================
+Feature                          LOO delta   Seasons improved   Gate (+0.02)?
+deep_target_share_avg (initial)  +0.0026     3/3                FAIL
+deep_targets_avg (initial)       +0.0021     2/3                FAIL
+deep_target_share_avg (clean)    +0.0002     2/3                FAIL
+deep_targets_avg (clean/pruned)  (pruned from candidate export)
+
+Notes: aDOT mean collapsed ceiling variance; depth share best depth metric.
+Clean suite (collinear cols removed) showed near-zero independent lift.
+
+================================================================================
+DIMENSION 2: DEFENSIVE FRICTION
+================================================================================
+Feature                              LOO delta   Seasons improved   Gate?
+def_deep_pass_rate_allowed_avg       +0.0020     3/3 (crowded)      FAIL
+def_deep_pass_rate_allowed_avg       -0.0001     2/3 (clean suite)  FAIL
+deep_matchup_quality (interaction)   -0.0017     1/3                PRUNED
+
+Notes: Positive LOO in crowded suite was split-importance artifact with depth
+cols. Explicit multiplicative interaction hurt (GBM learns splits natively).
+def_deep computed via defteam PBP groupby, shift(1) 4-game rolling.
+
+================================================================================
+DIMENSION 3: NGS QUALITY (nflverse import_ngs_data receiving)
+================================================================================
+Coverage on WR spine (2018–2024 candidate build):
+  Raw NGS match:     40.6% (9,388 / 23,122 rows)
+  Forward-fill:      27.8% inherited within player-season
+  Zero-fill unseen:    31.6% (no prior qualifying week in season)
+
+NaN strategy: season-bounded ffill per (player_id, season), then fillna(0).
+No positional baseline imputation.
+
+Feature                              LOO delta   Seasons improved   Gate?
+ngs_avg_separation_avg                 +0.0024     3/3                FAIL
+ngs_yac_above_expectation_avg          +0.0030     2/3                FAIL
+
+Per-season (NGS fast slice):
+  ngs_avg_separation_avg:     2022 +0.0043 | 2023 +0.0000 | 2024 +0.0029
+  ngs_yac_above_expectation:  2022 +0.0026 | 2023 +0.0100 | 2024 -0.0035
+
+Notes: Best stability = ngs_avg_separation_avg (positive all 3 seasons).
+YAC above expectation spiked 2023 but negative 2024.
+
+================================================================================
+SCREENING ARCHITECTURE (Phase 1 fix, retained)
+================================================================================
+  - LOO ablation: Full candidate suite minus one feature vs full reference
+  - Skeleton baseline: get_core_position_features() — no USAGE_BUNDLE contamination
+  - Promotion gate: LOO avg_composite_delta > +0.02, seasons_improved >= 2
+  - Fast validation script: scripts/fast_depth_bin_loo.py
+
+================================================================================
+2024 HOLDOUT CONTEXT (production model, not LOO)
+================================================================================
+  WR MAE: 4.50 | Spearman: 0.53 (weakest rank ordering vs QB 0.70, RB 0.64)
+  Next pipeline priority: WR upside/P90 calibration, not feature columns.
+
+================================================================================
+END OF READOUT
+================================================================================

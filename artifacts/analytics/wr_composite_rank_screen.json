@@ -1,0 +1,118 @@
+{
+  "training_config": "wr_p90_boom_3",
+  "seasons": [
+    2024
+  ],
+  "by_season": {
+    "2024": {
+      "baseline_p50": 0.5356,
+      "mean_composite": 0.5258,
+      "mean_composite_delta": -0.0099,
+      "ceiling_adjusted_best_w": 0.05,
+      "ceiling_adjusted_best_spearman": 0.5359,
+      "ceiling_adjusted_delta": 0.0003,
+      "w_sweep": [
+        {
+          "w": 0.0,
+          "spearman": 0.5356
+        },
+        {
+          "w": 0.05,
+          "spearman": 0.5359
+        },
+        {
+          "w": 0.1,
+          "spearman": 0.5355
+        },
+        {
+          "w": 0.15,
+          "spearman": 0.5347
+        },
+        {
+          "w": 0.2,
+          "spearman": 0.5337
+        },
+        {
+          "w": 0.25,
+          "spearman": 0.5326
+        },
+        {
+          "w": 0.3,
+          "spearman": 0.5313
+        },
+        {
+          "w": 0.35,
+          "spearman": 0.5299
+        },
+        {
+          "w": 0.4,
+          "spearman": 0.5286
+        },
+        {
+          "w": 0.45,
+          "spearman": 0.5272
+        },
+        {
+          "w": 0.5,
+          "spearman": 0.5258
+        }
+      ],
+      "n_rows": 3220
+    }
+  },
+  "pooled": {
+    "baseline_p50": 0.5356,
+    "mean_composite": 0.5258,
+    "mean_composite_delta": -0.0099,
+    "ceiling_adjusted_best_w": 0.05,
+    "ceiling_adjusted_best_spearman": 0.5359,
+    "ceiling_adjusted_delta": 0.0003,
+    "w_sweep": [
+      {
+        "w": 0.0,
+        "spearman": 0.5356
+      },
+      {
+        "w": 0.05,
+        "spearman": 0.5359
+      },
+      {
+        "w": 0.1,
+        "spearman": 0.5355
+      },
+      {
+        "w": 0.15,
+        "spearman": 0.5347
+      },
+      {
+        "w": 0.2,
+        "spearman": 0.5337
+      },
+      {
+        "w": 0.25,
+        "spearman": 0.5326
+      },
+      {
+        "w": 0.3,
+        "spearman": 0.5313
+      },
+      {
+        "w": 0.35,
+        "spearman": 0.5299
+      },
+      {
+        "w": 0.4,
+        "spearman": 0.5286
+      },
+      {
+        "w": 0.45,
+        "spearman": 0.5272
+      },
+      {
+        "w": 0.5,
+        "spearman": 0.5258
+      }
+    ],
+    "n_rows": 3220
+  }
+}

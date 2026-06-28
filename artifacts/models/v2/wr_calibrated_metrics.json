@@ -1,0 +1,50 @@
+{
+  "position": "wr",
+  "training_config": "wr_p90_boom_3",
+  "train_rows": 17657,
+  "val_rows": 3117,
+  "val_mae": 4.493605214243472,
+  "val_rmse": 6.3128920724247815,
+  "val_interval_coverage_p10_p90": 0.8264356753288419,
+  "feature_cols": [
+    "receiving_yards_avg",
+    "receiving_tds_avg",
+    "receptions_avg",
+    "targets_avg",
+    "fumbles_avg",
+    "receiving_epa_avg",
+    "air_yards_avg",
+    "target_share_avg",
+    "air_yards_share_avg",
+    "wopr_avg",
+    "opponent_pass_epa_allowed",
+    "days_rest",
+    "is_home",
+    "target_quality_avg",
+    "separation_at_throw_avg",
+    "defender_closing_speed_avg",
+    "fp_consensus_ppr",
+    "fp_ecr",
+    "explosive_plays_avg",
+    "target_share_avg_volatility",
+    "implied_team_total_avg",
+    "offense_pct_avg",
+    "routes_avg",
+    "rz_targets_avg",
+    "injury_opportunity_boost_hist_avg"
+  ],
+  "train_seasons": [
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024
+  ],
+  "quantiles": [
+    0.1,
+    0.5,
+    0.9
+  ]
+}

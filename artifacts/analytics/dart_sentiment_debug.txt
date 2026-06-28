@@ -1,0 +1,19 @@
+Dart player_ids: {'00-0040691'}
+rows: 17
+max season/week in all features: 2025 w18
+2026 w1 rows with mentions: 0
+2025 w4 team=NYG mentions=8.0 inj=1.0 score=0.19 | Starting JAXSON DART Is a MASSIVE Gamble for the Giants 😳 #jaxsondart #newyorkgiants #nfl #giants Starting JAXSON DART Is a MASSIVE Gamble for the Giants 😳 #jaxsondart #newyorkgiants #nfl #giants http
+2025 w5 team=NYG mentions=8.0 inj=1.0 score=0.35 | Action Jaxson: Dart Leads Giants to First Win of 2025 The New York Giants get their first win of 2025 as rookie Jaxson Dart has a strong debut.
+2025 w6 team=NYG mentions=1.0 inj=0.0 score=-0.78 | GIANTS SQUAD SHOW: WEEK 5 VS SAINTS - Killer mistakes sink Big Blue Jaxson Dart made his 1st start on the road.
+2025 w7 team=NYG mentions=5.0 inj=1.0 score=0.02 | NY Giants Offense TRANSFORMED by Dart and Skattebo In this Friday episode, we break down the subtle but impactful adjustments to the Giants’ passing attack with Jaxson Dart at quarterback and how defe
+2025 w8 team=NYG mentions=1.0 inj=0.0 score=0.42 | We look at the heroics of Jaxson Dart and the offense, and how the defense thwarted the efforts when it mattered the most.
+2025 w9 team=NYG mentions=0.81 inj=1.0 score=0.67 | 📲 Follow us on Twitter, TikTok, and Instagram: @FantasyPts #FantasyFootball #NFLFantasy #FantasyPoints #DrakeMaye #JaxsonDart #RasheeRice #CeeDeeLamb #JaMarrChase #ChristianMcCaffrey #JonathanTaylor #
+2025 w10 team=NYG mentions=4.0 inj=1.0 score=0.21 | Does NY Giants QB Jaxson Dart Need Brian Daboll to Succeed?
+2025 w11 team=NYG mentions=3.0 inj=1.0 score=-0.28 | New York Giants Nightmare Season Continues in Loss to Bears Another fourth quarter collapse, another road loss and Jaxson Dart suffers a concussion.
+2025 w12 team=NYG mentions=5.0 inj=1.0 score=0.35 | Meanwhile the Giants, who are expected to have quarterback Jaxson Dart back this weekend are still searching for their first road win of the season and their first road win since early October of last
+2025 w13 team=NYG mentions=2.0 inj=1.0 score=0.27 | How the New York Giants Must PROTECT Jaxson Dart https://www.youtube.com/@LockedOnGiantsNFL ==== Follow & Subscribe on all Podcast platforms… 🎧 https://link.chtbl.com/LONYGiants?sid=YouTube Locked On 
+2025 w14 team=NYG mentions=0.81 inj=0.0 score=0.00 | Jaxson Dart RETURNS
+2025 w15 team=NYG mentions=4.0 inj=1.0 score=0.03 | New York Giants Rebuild Starts with Establishing NEW Identity https://www.youtube.com/@LockedOnGiantsNFL TODAY'S EVERYDAYER ALL-ACCESS EXCLUSIVE How does Jaxson Dart compare to quarterbacks drafted in
+2025 w16 team=NYG mentions=2.0 inj=1.0 score=0.08 | UNLOCKED POTENTIAL: New York Giants' Jaxson Dart MUST Elevate This for NFL Success New York Giants rookie quarterback Jaxson Dart flashes potential, but can he master playing under center and become a
+2025 w17 team=NYG mentions=5.0 inj=1.0 score=-0.19 | NY Giants Offense COLLAPSES against Vikings New York Giants fall flat in 16-13 loss to Minnesota Vikings as Jaxson Dart has his worst game as a pro.
+2025 w18 team=NYG mentions=2.0 inj=1.0 score=0.59 | Can Dak Prescott extend his dominance over the Giants, or will Jaxson Dart and the G-men notch their second win in a row for the first time since 2023?

@@ -1,73 +1,85 @@
 # ScoreSense
 
-NFL fantasy performance prediction with reproducible nflverse data pipelines, walk-forward backtesting, and a portfolio-ready web demo.
+NFL fantasy performance prediction with reproducible nflverse data pipelines, walk-forward backtesting, quantile intervals, and a React dashboard.
 
 ## Highlights
 
 - **Free data stack** — nflverse weekly stats + play-by-play EPA (no paid PFF required)
-- **Unified features** — same feature definitions for training and inference
-- **Walk-forward backtest** — compares model vs season-average and last-game baselines
-- **Web demo** — Streamlit app with weekly projections
-- **BDB companion** — target quality metrics scaffold for Big Data Bowl-style analytics
+- **Prediction intervals** — P10 / P50 / P90 via quantile regression
+- **Sleeper integration** — injury-driven opportunity boosts on live projections
+- **NGS / BDB tracking** — drop BDB 2026 files in `data/raw/ngs/` for real separation features
+- **React dashboard** — FastAPI backend + Vite frontend + weekly cron refresh
 
 ## Quick start
 
 ```bash
-# From project root — use project venv (recommended)
 python -m venv .venv
-.venv\Scripts\activate        # Windows
+.venv\Scripts\activate
 .venv\Scripts\pip install -r requirements.txt
-
-# Full pipeline: ETL -> train -> backtest
 set PYTHONPATH=.
+
+# Full pipeline
 .venv\Scripts\python run_pipeline.py
 
-# Streamlit demo
-.venv\Scripts\streamlit run app/streamlit_app.py
+# API (dev)
+.venv\Scripts\uvicorn app.api:app --reload --port 8000
 
-# Legacy PyQt desktop app (PFF CSV upload)
-.venv\Scripts\python fantasy.py
+# React dashboard (dev — proxies /api to port 8000)
+cd frontend && npm install && npm run dev
 
-# FastAPI
-.venv\Scripts\uvicorn app.api:app --reload
+# Production: build React, then API serves frontend/dist
+cd frontend && npm run build
+.venv\Scripts\uvicorn app.api:app --host 0.0.0.0 --port 8000
+
+# Weekly refresh (cron / manual)
+.venv\Scripts\python -m src.jobs.weekly_refresh
+
+# Docker
+docker compose up api
 ```
 
 ## Project structure
 
 ```
 ScoreSense/
-├── app/                  # Streamlit + FastAPI demos
-├── bdb_companion/          # Big Data Bowl companion (target quality)
-├── data/processed/       # nflverse ML-ready datasets (generated)
-├── docs/                 # Case study and evaluation docs
-├── models/v2/            # Trained joblib models (generated)
-├── outputs/              # Predictions and backtest artifacts
-├── src/                  # Core pipeline modules
-│   ├── etl/              # nflverse ETL
-│   ├── train.py          # Model training
-│   ├── predict.py        # Inference
-│   ├── backtest.py       # Walk-forward evaluation
-│   └── features.py       # Unified feature definitions
-├── fantasy.py            # Legacy PyQt UI
-└── run_pipeline.py       # One-command pipeline runner
+├── app/                    # FastAPI HTTP layer
+├── frontend/               # React dashboard (Vite)
+├── src/
+│   ├── core/               # Shared features, context, schedule utils
+│   ├── etl/                # nflverse data build
+│   ├── integrations/       # Sleeper, FantasyPros, Odds API, DFS slates
+│   ├── ml/                 # Quantile / ranking model code
+│   ├── pipeline/           # train.py, backtest.py
+│   ├── projections/        # predict, draft, ROS
+│   ├── products/           # DFS, props, best ball, accuracy
+│   ├── analytics/          # Eval & feature research
+│   └── jobs/               # Weekly refresh cron jobs
+├── bdb_companion/          # NGS tracking + target quality
+├── artifacts/              # Generated models, predictions, backtest, reports
+├── data/                   # Raw + processed inputs, cache
+├── legacy/                 # PyQt5 desktop + Streamlit (frozen)
+├── scripts/                # dev/, ops/, analysis/ CLIs
+├── deploy/                 # Dockerfile
+├── tests/
+└── run_pipeline.py
 ```
 
-## Pipeline commands
+## API endpoints
 
-```bash
-python -m src.etl.nflverse_etl --seasons 2018 2019 2020 2021 2022 2023 2024
-python -m src.train --position all
-python -m src.backtest --position all
-python -m bdb_companion.target_quality
-```
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/predict/{position}` | Weekly projections with P10–P90 intervals |
+| `GET /api/ros/{position}` | Season + rest-of-season projections |
+| `GET /api/injuries` | Sleeper injury report |
+| `POST /api/refresh` | Run weekly ETL + predict |
+| `GET /api/refresh/status` | Last refresh metadata |
+| `GET /api/auth/patreon/login` | Patreon OAuth (when `AUTH_REQUIRED=true`) |
 
-## Scoring
-
-Standard PPR fantasy scoring via nflverse `fantasy_points_ppr` when available, otherwise computed from weekly stat columns.
+See [docs/DEPLOY.md](docs/DEPLOY.md) for Patreon hosting.
 
 ## Portfolio
 
-See [docs/CASE_STUDY.md](docs/CASE_STUDY.md) for architecture, methodology, and backtest results.
+See [docs/CASE_STUDY.md](docs/CASE_STUDY.md), [docs/EVALUATION.md](docs/EVALUATION.md), and [docs/MODEL_FEATURES.md](docs/MODEL_FEATURES.md) for production feature definitions by position.
 
 ## License
 

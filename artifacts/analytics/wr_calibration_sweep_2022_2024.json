@@ -1,0 +1,56 @@
+[
+  {
+    "config": "default",
+    "avg_mae": 4.386,
+    "avg_boom_recall": 0.684,
+    "avg_boom_p90_coverage": 0.351,
+    "avg_composite": 0.565,
+    "avg_spearman": 0.5381,
+    "spearman_delta_vs_default": 0.0
+  },
+  {
+    "config": "wr_p90_boom_2",
+    "avg_mae": 4.386,
+    "avg_boom_recall": 0.796,
+    "avg_boom_p90_coverage": 0.493,
+    "avg_composite": 0.52,
+    "avg_spearman": 0.5381,
+    "spearman_delta_vs_default": 0.0
+  },
+  {
+    "config": "wr_p90_boom_3",
+    "avg_mae": 4.386,
+    "avg_boom_recall": 0.859,
+    "avg_boom_p90_coverage": 0.563,
+    "avg_composite": 0.495,
+    "avg_spearman": 0.5381,
+    "spearman_delta_vs_default": 0.0
+  },
+  {
+    "config": "wr_p90_boom_5",
+    "avg_mae": 4.386,
+    "avg_boom_recall": 0.909,
+    "avg_boom_p90_coverage": 0.648,
+    "avg_composite": 0.475,
+    "avg_spearman": 0.5381,
+    "spearman_delta_vs_default": 0.0
+  },
+  {
+    "config": "wr_p90_depth_5",
+    "avg_mae": 4.386,
+    "avg_boom_recall": 0.672,
+    "avg_boom_p90_coverage": 0.346,
+    "avg_composite": 0.57,
+    "avg_spearman": 0.5381,
+    "spearman_delta_vs_default": 0.0
+  },
+  {
+    "config": "wr_p90_boom_3_depth_5",
+    "avg_mae": 4.386,
+    "avg_boom_recall": 0.875,
+    "avg_boom_p90_coverage": 0.545,
+    "avg_composite": 0.489,
+    "avg_spearman": 0.5381,
+    "spearman_delta_vs_default": 0.0
+  }
+]

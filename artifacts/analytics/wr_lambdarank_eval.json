@@ -1,0 +1,127 @@
+{
+  "spearman_target": 0.58,
+  "baseline_2024_spearman": 0.5356,
+  "baseline_2024_top12_hit_rate": 0.338,
+  "lambdarank_2024_spearman": 0.5262,
+  "lambdarank_2024_top12_hit_rate": 0.3148,
+  "spearman_delta": -0.0094,
+  "top12_delta": -0.0232,
+  "gate_passed": false,
+  "note": "Lambdarank MAE is not meaningful \u2014 scores are relevance ranks, not Fpts.",
+  "configs": [
+    {
+      "config": "default",
+      "2024_holdout": {
+        "spearman": 0.5356,
+        "top12_hit_rate": 0.338,
+        "mae": 4.476
+      },
+      "pooled": {
+        "spearman": 0.5326,
+        "top12_hit_rate": 0.3434,
+        "mae": 4.5071
+      },
+      "by_season": {
+        "2019": {
+          "mae": 4.6577,
+          "rmse": 6.5599,
+          "spearman": 0.5126,
+          "n": 3057,
+          "top12_hit_rate": 0.3611
+        },
+        "2020": {
+          "mae": 4.7017,
+          "rmse": 6.5816,
+          "spearman": 0.5319,
+          "n": 3163,
+          "top12_hit_rate": 0.3102
+        },
+        "2021": {
+          "mae": 4.5408,
+          "rmse": 6.2252,
+          "spearman": 0.535,
+          "n": 3264,
+          "top12_hit_rate": 0.287
+        },
+        "2022": {
+          "mae": 4.3859,
+          "rmse": 6.0738,
+          "spearman": 0.5231,
+          "n": 3221,
+          "top12_hit_rate": 0.3796
+        },
+        "2023": {
+          "mae": 4.2957,
+          "rmse": 6.0247,
+          "spearman": 0.5555,
+          "n": 3286,
+          "top12_hit_rate": 0.3843
+        },
+        "2024": {
+          "mae": 4.476,
+          "rmse": 6.301,
+          "spearman": 0.5356,
+          "n": 3220,
+          "top12_hit_rate": 0.338
+        }
+      }
+    },
+    {
+      "config": "wr_p50_lambdarank",
+      "2024_holdout": {
+        "spearman": 0.5262,
+        "top12_hit_rate": 0.3148,
+        "mae": 9.7013
+      },
+      "pooled": {
+        "spearman": 0.5053,
+        "top12_hit_rate": 0.3264,
+        "mae": 9.8727
+      },
+      "by_season": {
+        "2019": {
+          "mae": 10.2744,
+          "rmse": 12.388,
+          "spearman": 0.4641,
+          "n": 3057,
+          "top12_hit_rate": 0.3472
+        },
+        "2020": {
+          "mae": 10.2914,
+          "rmse": 12.4209,
+          "spearman": 0.5076,
+          "n": 3163,
+          "top12_hit_rate": 0.3194
+        },
+        "2021": {
+          "mae": 9.832,
+          "rmse": 11.9028,
+          "spearman": 0.5068,
+          "n": 3264,
+          "top12_hit_rate": 0.2824
+        },
+        "2022": {
+          "mae": 9.6122,
+          "rmse": 11.6567,
+          "spearman": 0.4998,
+          "n": 3221,
+          "top12_hit_rate": 0.3426
+        },
+        "2023": {
+          "mae": 9.5598,
+          "rmse": 11.6197,
+          "spearman": 0.537,
+          "n": 3286,
+          "top12_hit_rate": 0.3519
+        },
+        "2024": {
+          "mae": 9.7013,
+          "rmse": 11.7884,
+          "spearman": 0.5262,
+          "n": 3220,
+          "top12_hit_rate": 0.3148
+        }
+      }
+    }
+  ]
+}

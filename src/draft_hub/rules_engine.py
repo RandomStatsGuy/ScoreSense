@@ -1,0 +1,202 @@
+"""Cap math, roster validation, and contract rules."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from src.draft_hub.schemas import LeagueRules
+from src.draft_hub.contracts import cap_hit, multi_year_cap_plan as contract_cap_plan
+
+
+def normalize_position(pos: str) -> str:
+    p = str(pos or "").upper().strip()
+    if p in ("DST", "D/ST", "D"):
+        return "DEF"
+    if p in ("WR", "TE", "K", "DEF", "QB", "RB"):
+        return p
+    if p == "REC":
+        return "WR"
+    return p
+
+
+def roster_limits(rules: LeagueRules) -> dict[str, dict[str, int]]:
+    out: dict[str, dict[str, int]] = {}
+    for key, val in (rules.roster or {}).items():
+        if key == "flex" or not isinstance(val, dict):
+            continue
+        out[key.lower()] = {
+            "min": int(val.get("min") or 0),
+            "max": int(val.get("max") or 99),
+            "starter": int(val.get("starter") or 0),
+        }
+    return out
+
+
+def cap_relevant_roster(rules: LeagueRules, roster: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Limit cap math to positions governed by league roster rules (QB/RB/WR/TE)."""
+    allowed = {k.upper() for k in roster_limits(rules)}
+    if not allowed:
+        return roster
+    return [r for r in roster if normalize_position(r.get("position")) in allowed]
+
+
+def cap_summary(rules: LeagueRules, roster: list[dict[str, Any]]) -> dict[str, Any]:
+    roster = cap_relevant_roster(rules, roster)
+    cap = float(rules.salary_cap)
+    spent = sum(cap_hit(r, 0) for r in roster)
+    remaining = cap - spent
+    by_pos: dict[str, float] = {}
+    counts: dict[str, int] = {}
+    contract_years: dict[str, list[int]] = {}
+    for row in roster:
+        pos = normalize_position(row.get("position"))
+        sal = cap_hit(row, 0)
+        by_pos[pos] = by_pos.get(pos, 0.0) + sal
+        counts[pos] = counts.get(pos, 0) + 1
+        yrs = int(row.get("contract_years") or 1)
+        contract_years.setdefault(str(yrs), []).append(row.get("player_name") or row.get("player_id"))
+
+    return {
+        "salary_cap": cap,
+        "spent": round(spent, 2),
+        "remaining": round(remaining, 2),
+        "by_position_spend": {k: round(v, 2) for k, v in sorted(by_pos.items())},
+        "by_position_count": counts,
+        "contract_summary": {k: len(v) for k, v in sorted(contract_years.items())},
+        "roster_size": len(roster),
+    }
+
+
+def validate_roster(rules: LeagueRules, roster: list[dict[str, Any]]) -> list[str]:
+    errors: list[str] = []
+    roster = cap_relevant_roster(rules, roster)
+    summary = cap_summary(rules, roster)
+    if summary["remaining"] < 0:
+        errors.append(f"Over cap by ${abs(summary['remaining']):.0f}")
+
+    limits = roster_limits(rules)
+    counts = summary["by_position_count"]
+    for pos, lim in limits.items():
+        pos_key = pos.upper()
+        count = counts.get(pos_key, 0)
+        if count < lim["min"]:
+            errors.append(f"Need {lim['min'] - count} more {pos_key} (min {lim['min']})")
+        if count > lim["max"]:
+            errors.append(f"{count - lim['max']} too many {pos_key} (max {lim['max']})")
+
+    max_years = int(rules.contracts.max_years)
+    for row in roster:
+        yrs = int(row.get("contract_years") or 1)
+        if yrs < 1 or yrs > max_years:
+            name = row.get("player_name") or row.get("player_id")
+            errors.append(f"{name}: contract years must be 1–{max_years}")
+
+    return errors
+
+
+def cut_refund(rules: LeagueRules, salary: float) -> float:
+    pct = float(rules.contracts.cut_refund_pct)
+    return round(float(salary) * pct, 2)
+
+
+def can_afford_bid(rules: LeagueRules, budget_remaining: float, bid: float) -> bool:
+    return bid >= float(rules.auction.min_bid) and bid <= budget_remaining
+
+
+def count_at_position(rules: LeagueRules, roster: list[dict[str, Any]], position: str) -> int:
+    pos = normalize_position(position)
+    return sum(
+        1
+        for row in cap_relevant_roster(rules, roster)
+        if normalize_position(row.get("position")) == pos
+    )
+
+
+def position_at_max(rules: LeagueRules, roster: list[dict[str, Any]], position: str) -> bool:
+    pos_key = normalize_position(position).lower()
+    limits = roster_limits(rules)
+    lim = limits.get(pos_key)
+    if not lim:
+        return False
+    return count_at_position(rules, roster, position) >= int(lim["max"])
+
+
+def assert_can_acquire(rules: LeagueRules, roster: list[dict[str, Any]], position: str) -> None:
+    pos = normalize_position(position)
+    pos_key = pos.lower()
+    limits = roster_limits(rules)
+    lim = limits.get(pos_key)
+    if not lim:
+        return
+    count = count_at_position(rules, roster, pos)
+    if count >= int(lim["max"]):
+        raise ValueError(f"Roster at {pos} maximum ({lim['max']})")
+
+
+def roster_capacity(rules: LeagueRules, roster: list[dict[str, Any]]) -> dict[str, Any]:
+    limits = roster_limits(rules)
+    roster = cap_relevant_roster(rules, roster)
+    counts: dict[str, int] = {}
+    for row in roster:
+        pos = normalize_position(row.get("position"))
+        counts[pos] = counts.get(pos, 0) + 1
+    by_position: dict[str, dict[str, int | bool]] = {}
+    for key, lim in limits.items():
+        pos = key.upper()
+        count = int(counts.get(pos, 0))
+        max_n = int(lim["max"])
+        by_position[pos] = {
+            "count": count,
+            "min": int(lim["min"]),
+            "max": max_n,
+            "at_max": count >= max_n,
+            "remaining": max(0, max_n - count),
+        }
+    return {"by_position": by_position, "roster_size": len(roster)}
+
+
+def multi_year_cap_plan(
+    rules: LeagueRules,
+    roster: list[dict[str, Any]],
+    seasons_ahead: int = 3,
+    *,
+    draft_completed: bool = False,
+) -> list[dict[str, Any]]:
+    if draft_completed:
+        return contract_cap_plan(rules, roster, seasons_ahead=seasons_ahead)
+
+    from src.draft_hub.pre_draft_cap import (
+        is_active_for_pre_draft,
+        pre_draft_cut_dead_cap_at_offset,
+        roster_status,
+    )
+
+    scoped = cap_relevant_roster(rules, roster)
+    active = [r for r in scoped if is_active_for_pre_draft(r)]
+    plan = contract_cap_plan(rules, active, seasons_ahead=seasons_ahead)
+    cap = float(rules.salary_cap)
+
+    for year in plan:
+        offset = int(year["season_offset"])
+        dead_total = 0.0
+        for row in scoped:
+            if roster_status(row) != "cut_before_draft":
+                continue
+            dead = pre_draft_cut_dead_cap_at_offset(rules, row, offset)
+            if dead <= 0:
+                continue
+            dead_total += dead
+            year["cap_hits"].append(
+                {
+                    "player": f"{row.get('player_name')} (dead cap)",
+                    "salary": dead,
+                    "player_id": row.get("player_id"),
+                    "dead_cap": True,
+                }
+            )
+        if dead_total > 0:
+            year["dead_cap"] = round(dead_total, 2)
+            year["total_committed"] = round(float(year["total_committed"]) + dead_total, 2)
+            year["cap_remaining"] = round(cap - float(year["total_committed"]), 2)
+
+    return plan

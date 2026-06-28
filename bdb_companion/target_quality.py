@@ -1,12 +1,8 @@
 """
-Big Data Bowl 2026 companion: target quality metrics for receivers.
+Target quality metrics for receivers — NGS tracking when available, pbp fallback.
 
-This module scaffolds tracking-derived features that can be merged into
-ScoreSense WR projections once NGS/BDB tracking data is available.
-
-BDB 2026 task: predict player movement after the ball is thrown using
-pre-pass tracking data. We derive "target quality" proxies from available
-nflverse pass play data as a bridge until full tracking is loaded.
+Big Data Bowl 2026 NGS data should be placed in data/raw/ngs/. When present,
+separation at throw and defender closing speed replace nflverse proxies.
 """
 
 from __future__ import annotations
@@ -16,7 +12,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.config import BDB_DIR, DEFAULT_TRAIN_SEASONS
+from bdb_companion.ngs_tracking import build_ngs_features, save_ngs_features
+from src.config import BDB_DIR, DEFAULT_ETL_SEASONS, DEFAULT_TRAIN_SEASONS
+from src.core.features import add_rolling_averages
 
 
 def _import_nfl_data_py():
@@ -24,43 +22,20 @@ def _import_nfl_data_py():
     return nfl
 
 
-def build_pass_target_quality(seasons: list[int] | None = None) -> pd.DataFrame:
-    """
-    Build receiver target quality scores from nflverse play-by-play.
-
-    Proxies for BDB tracking concepts:
-    - air_yards: depth of target (throw difficulty)
-    - cpoe: completion probability over expected (QB accuracy context)
-    - yards_after_catch: YAC opportunity
-    """
-    seasons = seasons or DEFAULT_TRAIN_SEASONS + [2024]
+def build_pbp_target_quality(seasons: list[int] | None = None) -> pd.DataFrame:
+    """Fallback target quality from nflverse play-by-play (pre-NGS)."""
+    seasons = seasons or DEFAULT_ETL_SEASONS
     nfl = _import_nfl_data_py()
 
     pbp = nfl.import_pbp_data(
         years=seasons,
         columns=[
-            "season",
-            "week",
-            "passer_player_id",
-            "passer",
-            "receiver_player_id",
-            "receiver",
-            "receiver_player_name",
-            "air_yards",
-            "yards_after_catch",
-            "complete_pass",
-            "pass_touchdown",
-            "cpoe",
-            "epa",
-            "xyac_epa",
-            "down",
-            "ydstogo",
-            "pass",
+            "season", "week", "receiver_player_id", "receiver",
+            "air_yards", "cpoe", "epa", "xyac_epa", "pass_touchdown", "pass",
         ],
         downcast=True,
     )
     pbp = pbp[pbp["receiver_player_id"].notna() & (pbp["pass"] == 1)].copy()
-
     pbp["target_quality_raw"] = (
         pbp["air_yards"].fillna(0) * 0.05
         + pbp["cpoe"].fillna(0) * 0.1
@@ -69,49 +44,68 @@ def build_pass_target_quality(seasons: list[int] | None = None) -> pd.DataFrame:
     )
 
     agg = (
-        pbp.groupby(
-            ["season", "week", "receiver_player_id", "receiver", "receiver_player_name"],
-            as_index=False,
-        )
+        pbp.groupby(["season", "week", "receiver_player_id", "receiver"], as_index=False)
         .agg(
-            targets=("complete_pass", "count"),
+            targets=("pass", "count"),
             avg_air_yards=("air_yards", "mean"),
             avg_cpoe=("cpoe", "mean"),
-            avg_xyac_epa=("xyac_epa", "mean"),
             target_quality_score=("target_quality_raw", "mean"),
             td_rate=("pass_touchdown", "mean"),
         )
+        .rename(columns={"receiver_player_id": "player_id"})
     )
-    agg["target_quality_score"] = (
-        agg["target_quality_score"] - agg["target_quality_score"].mean()
-    ) / agg["target_quality_score"].std()
-    agg["target_quality_score"] = agg["target_quality_score"].fillna(0).clip(-3, 3)
+    std = agg["target_quality_score"].std()
+    if std and std > 0:
+        agg["target_quality_score"] = (
+            (agg["target_quality_score"] - agg["target_quality_score"].mean()) / std
+        ).clip(-3, 3)
+    agg["data_source"] = "pbp_proxy"
+    return agg
 
-    return agg.sort_values(["season", "week", "target_quality_score"], ascending=False)
+
+def build_target_quality(seasons: list[int] | None = None) -> pd.DataFrame:
+    """Prefer NGS tracking features; fall back to pbp proxies."""
+    ngs = build_ngs_features()
+    if not ngs.empty:
+        ngs = ngs.copy()
+        ngs["data_source"] = "ngs_tracking"
+        if "receiver" not in ngs.columns:
+            ngs["receiver"] = ngs["player_id"]
+        return ngs
+    return build_pbp_target_quality(seasons)
 
 
 def merge_target_quality_into_wr_features(
     wr_df: pd.DataFrame,
-    target_quality: pd.DataFrame,
+    target_quality: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
-    """Merge rolling target quality into WR training/inference rows."""
-    tq = target_quality.rename(
-        columns={
-            "receiver_player_id": "player_id",
-            "target_quality_score": "target_quality_lead",
-        }
-    )
-    merged = wr_df.merge(
-        tq[["player_id", "season", "week", "target_quality_lead", "avg_air_yards"]],
-        on=["player_id", "season", "week"],
-        how="left",
-    )
-    merged["target_quality_lead"] = merged["target_quality_lead"].fillna(0)
-    merged["target_quality_avg"] = (
-        merged.groupby("player_id")["target_quality_lead"]
-        .apply(lambda s: s.shift(1).expanding(min_periods=1).mean())
-        .reset_index(level=0, drop=True)
-    )
+    """Merge rolling target quality / NGS metrics into WR training rows."""
+    tq = target_quality if target_quality is not None else build_target_quality()
+    if tq.empty:
+        return wr_df
+
+    merge_cols = ["player_id", "season", "week"]
+    metric_cols = [
+        c
+        for c in (
+            "target_quality_score",
+            "separation_at_throw",
+            "defender_closing_speed",
+        )
+        if c in tq.columns
+    ]
+    merged = wr_df.merge(tq[merge_cols + metric_cols], on=merge_cols, how="left")
+
+    for col in metric_cols:
+        merged[col] = merged[col].fillna(0)
+        merged = add_rolling_averages(merged, "player_id", [col])
+        if col == "target_quality_score" and "target_quality_score_avg" in merged.columns:
+            merged["target_quality_avg"] = merged["target_quality_score_avg"]
+        if col == "separation_at_throw" and "separation_at_throw_avg" in merged.columns:
+            pass  # already named correctly
+        if col == "defender_closing_speed" and "defender_closing_speed_avg" in merged.columns:
+            pass
+
     return merged.fillna(0)
 
 
@@ -119,53 +113,52 @@ def save_target_quality_report(output_dir: Path | None = None) -> Path:
     output_dir = output_dir or BDB_DIR
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    tq = build_pass_target_quality()
+    ngs_path = save_ngs_features(output_dir)
+    tq = build_target_quality()
     out_path = output_dir / "target_quality_scores.csv"
     tq.to_csv(out_path, index=False)
 
+    name_col = "receiver" if "receiver" in tq.columns else "player_id"
     leaders = (
-        tq.groupby(["receiver", "season"])
-        .agg(avg_tq=("target_quality_score", "mean"), targets=("targets", "sum"))
+        tq.groupby([name_col, "season"])
+        .agg(
+            avg_tq=("target_quality_score", "mean"),
+            plays=("target_quality_score", "count"),
+        )
         .reset_index()
-        .query("targets >= 50")
+        .query("plays >= 20")
         .sort_values("avg_tq", ascending=False)
         .head(25)
     )
-    leaders_path = output_dir / "target_quality_leaders.csv"
-    leaders.to_csv(leaders_path, index=False)
+    leaders.to_csv(output_dir / "target_quality_leaders.csv", index=False)
 
+    source = tq["data_source"].iloc[0] if "data_source" in tq.columns and len(tq) else "unknown"
     readme = output_dir / "README.md"
     readme.write_text(
-        """# BDB Companion: Target Quality
+        f"""# BDB Companion: Target Quality
 
-This folder supports a Big Data Bowl-style analytics project linked to ScoreSense.
-
-## Concept
-**Target Quality Score** combines air yards, CPOE, and expected YAC from nflverse
-play-by-play as a proxy for the separation/throw-quality metrics available in
-full NGS tracking data.
+**Data source:** `{source}`
 
 ## Files
 - `target_quality_scores.csv` — weekly receiver target quality
-- `target_quality_leaders.csv` — season leaders (min 50 targets)
+- `target_quality_leaders.csv` — season leaders
+- `ngs_tracking_features.csv` — NGS-only features (when raw tracking present)
 
-## Next steps with BDB 2026 NGS data
-1. Replace proxy metrics with separation at throw and defender closing speed
-2. Build broadcast visualization of predicted vs actual in-air movement
-3. Feed `target_quality_avg` into the ScoreSense WR model as a feature
-
-## Run
+## NGS setup
+Place BDB 2026 tracking CSVs/parquet in `data/raw/ngs/` then run:
 ```bash
 python -m bdb_companion.target_quality
 ```
 """
     )
-    print(f"Wrote {out_path} ({len(tq):,} rows)")
+    print(f"Wrote {out_path} ({len(tq):,} rows, source={source})")
+    if ngs_path:
+        print(f"NGS features: {ngs_path}")
     return out_path
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build BDB target quality metrics")
+    parser = argparse.ArgumentParser(description="Build target quality / NGS metrics")
     parser.add_argument("--output-dir", type=Path, default=BDB_DIR)
     args = parser.parse_args()
     save_target_quality_report(args.output_dir)

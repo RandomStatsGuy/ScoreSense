@@ -1,0 +1,21 @@
+# Manual rookie role multipliers for camp battles and unclear depth charts.
+# Matched on player name + team (+ optional position). Replaces the Sleeper tier
+# unless sentiment_blend is false. YouTube role-hype still applies when true.
+#
+# role_mult: scales the median backup feature template (same units as Sleeper tiers).
+# Typical range: 0.20 (deep development) to 2.8 (day-one starter).
+
+2026:
+  - player: Fernando Mendoza
+    team: LV
+    position: QB
+    role_mult: 2.75
+    role_label: starter-camp
+    note: Raiders QB1, first-round pick
+
+  - player: Jacob Clark
+    team: LV
+    position: QB
+    role_mult: 0.26
+    role_label: development
+    note: UDFA, third-string path

@@ -1,0 +1,9 @@
+{
+  "position": "rb",
+  "features": [
+    "team_pass_rate_avg",
+    "opponent_pass_rate_allowed_avg",
+    "rz_targets_avg",
+    "carry_share_avg_trend"
+  ]
+}

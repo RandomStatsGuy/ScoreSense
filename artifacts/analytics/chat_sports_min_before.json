@@ -1,0 +1,204 @@
+{
+  "test_seasons": [
+    2024,
+    2025
+  ],
+  "team_filter": "MIN",
+  "sentiment_path": "C:\\Users\\Caelp\\Desktop\\AllStuff\\ScoreSense\\artifacts\\analytics\\sentiment_features_locked_on_baseline.parquet",
+  "positions": {
+    "qb": {
+      "position": "qb",
+      "team_filter": "MIN",
+      "test_seasons": [
+        2024,
+        2025
+      ],
+      "sentiment_columns": [
+        "yt_mention_count",
+        "yt_mention_delta",
+        "yt_sentiment_score",
+        "yt_injury_flag",
+        "yt_role_hype_flag",
+        "yt_channel_count",
+        "yt_data_coverage",
+        "yt_locked_on_mentions",
+        "yt_sb_nation_mentions",
+        "yt_draft_sharks_mentions",
+        "yt_fantasy_footballers_mentions",
+        "yt_fantasypros_mentions",
+        "yt_playerprofiler_mentions",
+        "yt_late_round_mentions",
+        "yt_establish_the_run_mentions",
+        "yt_fantasy_points_mentions",
+        "narrative_source_count"
+      ],
+      "mention_coverage": 0.2045,
+      "seasons_improved": 0,
+      "seasons_tested": 2,
+      "recommendation": "inconclusive",
+      "season_detail": [
+        {
+          "season": 2024,
+          "baseline_mae": 5.267493604904463,
+          "sentiment_mae": 5.358732882545876,
+          "mae_delta": 0.0912,
+          "baseline_boom_recall": 1.0,
+          "sentiment_boom_recall": 1.0,
+          "boom_recall_delta": 0.0,
+          "baseline_composite": 0.5267493604904463,
+          "sentiment_composite": 0.5358732882545876,
+          "composite_delta": 0.0091,
+          "sentiment_helped": false
+        },
+        {
+          "season": 2025,
+          "baseline_mae": 5.824675206610036,
+          "sentiment_mae": 6.0001908767824395,
+          "mae_delta": 0.1755,
+          "baseline_boom_recall": NaN,
+          "sentiment_boom_recall": NaN,
+          "boom_recall_delta": NaN,
+          "baseline_composite": NaN,
+          "sentiment_composite": NaN,
+          "composite_delta": NaN,
+          "sentiment_helped": false
+        }
+      ]
+    },
+    "rb": {
+      "position": "rb",
+      "team_filter": "MIN",
+      "test_seasons": [
+        2024,
+        2025
+      ],
+      "sentiment_columns": [
+        "yt_mention_count",
+        "yt_mention_delta",
+        "yt_sentiment_score",
+        "yt_injury_flag",
+        "yt_role_hype_flag",
+        "yt_channel_count",
+        "yt_data_coverage",
+        "yt_locked_on_mentions",
+        "yt_sb_nation_mentions",
+        "yt_draft_sharks_mentions",
+        "yt_fantasy_footballers_mentions",
+        "yt_fantasypros_mentions",
+        "yt_playerprofiler_mentions",
+        "yt_late_round_mentions",
+        "yt_establish_the_run_mentions",
+        "yt_fantasy_points_mentions",
+        "narrative_source_count"
+      ],
+      "mention_coverage": 0.0606,
+      "seasons_improved": 1,
+      "seasons_tested": 2,
+      "recommendation": "inconclusive",
+      "season_detail": [
+        {
+          "season": 2024,
+          "baseline_mae": 4.483822026075953,
+          "sentiment_mae": 4.256722859086566,
+          "mae_delta": -0.2271,
+          "baseline_boom_recall": 1.0,
+          "sentiment_boom_recall": 1.0,
+          "boom_recall_delta": 0.0,
+          "baseline_composite": 0.44838220260759526,
+          "sentiment_composite": 0.42567228590865663,
+          "composite_delta": -0.0227,
+          "sentiment_helped": true
+        },
+        {
+          "season": 2025,
+          "baseline_mae": 4.297348645186693,
+          "sentiment_mae": 4.299941057433934,
+          "mae_delta": 0.0026,
+          "baseline_boom_recall": 0.0,
+          "sentiment_boom_recall": 0.0,
+          "boom_recall_delta": 0.0,
+          "baseline_composite": 0.8297348645186693,
+          "sentiment_composite": 0.8299941057433933,
+          "composite_delta": 0.0003,
+          "sentiment_helped": false
+        }
+      ]
+    },
+    "wr": {
+      "position": "wr",
+      "team_filter": "MIN",
+      "test_seasons": [
+        2024,
+        2025
+      ],
+      "sentiment_columns": [
+        "yt_mention_count",
+        "yt_mention_delta",
+        "yt_sentiment_score",
+        "yt_injury_flag",
+        "yt_role_hype_flag",
+        "yt_channel_count",
+        "yt_data_coverage",
+        "yt_locked_on_mentions",
+        "yt_sb_nation_mentions",
+        "yt_draft_sharks_mentions",
+        "yt_fantasy_footballers_mentions",
+        "yt_fantasypros_mentions",
+        "yt_playerprofiler_mentions",
+        "yt_late_round_mentions",
+        "yt_establish_the_run_mentions",
+        "yt_fantasy_points_mentions",
+        "narrative_source_count"
+      ],
+      "mention_coverage": 0.0933,
+      "seasons_improved": 2,
+      "seasons_tested": 2,
+      "recommendation": "promising",
+      "season_detail": [
+        {
+          "season": 2024,
+          "baseline_mae": 4.5082581669970425,
+          "sentiment_mae": 4.483760788319901,
+          "mae_delta": -0.0245,
+          "baseline_boom_recall": 1.0,
+          "sentiment_boom_recall": 1.0,
+          "boom_recall_delta": 0.0,
+          "baseline_composite": 0.45082581669970423,
+          "sentiment_composite": 0.4483760788319901,
+          "composite_delta": -0.0024,
+          "sentiment_helped": true
+        },
+        {
+          "season": 2025,
+          "baseline_mae": 3.9482883712847663,
+          "sentiment_mae": 3.875401266553379,
+          "mae_delta": -0.0729,
+          "baseline_boom_recall": 0.6666666666666666,
+          "sentiment_boom_recall": 0.6666666666666666,
+          "boom_recall_delta": 0.0,
+          "baseline_composite": 0.52816217046181,
+          "sentiment_composite": 0.5208734599886713,
+          "composite_delta": -0.0073,
+          "sentiment_helped": true
+        }
+      ]
+    }
+  },
+  "summary": {
+    "qb": {
+      "recommendation": "inconclusive",
+      "mention_coverage": 0.2045,
+      "seasons_improved": 0
+    },
+    "rb": {
+      "recommendation": "inconclusive",
+      "mention_coverage": 0.0606,
+      "seasons_improved": 1
+    },
+    "wr": {
+      "recommendation": "promising",
+      "mention_coverage": 0.0933,
+      "seasons_improved": 2
+    }
+  }
+}

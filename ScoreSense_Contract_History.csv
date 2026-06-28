@@ -1,0 +1,952 @@
+season_year,owner_label,player_name,base_salary,cap_hit,roster_status,contract_phase,acquisition_type,source_kind,confidence,needs_review,position,original_draft_year,hub_team_name,status_note,prior_salary
+2021,Aaron D,T Tagovailoa13 R Tanehill3 P Mahomes32 D Prescott8 M Jones7 J Allen,16.0,16.0,active,initial,draft,import,imported,False,QB,2021.0,Thanks noob noob,,
+2021,Aaron D,C Wentz1 T Lance3 L Jackson17 M Stafford3 K Cousins1 J Fields,1.0,1.0,active,waiver_rental,waiver,import,imported,False,QB,2021.0,Thanks noob noob,,
+2021,Aaron D,T Brady3 M Ryan,1.0,1.0,active,waiver_rental,waiver,import,imported,False,QB,2021.0,Thanks noob noob,,
+2021,Aaron D,D Watson,2.0,2.0,active,initial,draft,import,imported,False,QB,2021.0,Thanks noob noob,,
+2021,Aaron D,J Taylor42 N Harris50 R Mostert9 A Ekeler29 N Chubb44 D Henry,50.0,50.0,active,initial,draft,import,imported,False,RB,2021.0,Thanks noob noob,,
+2021,Aaron D,D Swift12 A Gibson36 T Coleman3 J Jacobs28 C Edwards-H30 A Jones,32.0,32.0,active,initial,draft,import,imported,False,RB,2021.0,Thanks noob noob,,
+2021,Aaron D,M Gaskin10 T Pollard1 D Singletary3 C Carson17 M Sanders22 G Edwards,13.0,13.0,active,initial,draft,import,imported,False,RB,2021.0,Thanks noob noob,,
+2021,Aaron D,C Edmonds7 S Michel1 K Drake2 J Connor2 AJ Dillon5 K Hunt,6.0,6.0,active,initial,draft,import,imported,False,RB,2021.0,Thanks noob noob,,
+2021,Aaron D,JK Dobbins3 B Scott1 C Hubbard2 N Hines1 D Henderson5 K Gainwell,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Thanks noob noob,,
+2021,Aaron D,C Akers3 J Jefferson1 P Lindsay2 J White1 L Fournette4 D Johnson,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Thanks noob noob,,
+2021,Aaron D,Z Moss2 R Stevenson,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Thanks noob noob,,
+2021,Aaron D,M Mack,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Thanks noob noob,,
+2021,Aaron D,T Etienne,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Thanks noob noob,,
+2021,Aaron D,D. Hopkins31 S Diggs45 T Hill37 C Ridley29 T McLaughlin27 AJ Brown,28.0,28.0,active,initial,draft,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,DJ Moore18 B Aiyuk15 R Woods15 K Allen24 D Johnson16 D Samuel,7.0,7.0,active,initial,draft,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,D Smith11 M Thomas7 C Godwin15 C Lamb20 J Jeudy14 J Chase,6.0,6.0,active,initial,draft,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,J Waddle8 D Mooney3 J Landry3 C Davis3 DJ Chark3 R Anderson,3.0,3.0,active,initial,draft,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,J Smith-Sch.6 C Samuel1 M Gallup2 C Beasley1 M Brown1 M Pittman,2.0,2.0,active,initial,draft,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,L Shenault3 AR St. Brown1 A Brown2 S Shepard1 K Toney1 M Williams,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,E Moore3 R Gage1 W Fuller2 R Bateman1 M Jones1 G Davis,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,B Edwards1 D Mims1 P Campbell,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,J Meyers1 D Brown1 N Collins,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,M Valdes-S1 T Atwell1 D Eskridge,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,D Goedert2 D Waller21 K Pitts20 G Kittle24 N Fant 7 T Kelce,22.0,22.0,active,initial,draft,import,imported,False,TE,2021.0,Thanks noob noob,,
+2021,Aaron D,A Hooper1 G Everett1 E Engram1 L Thomas2 J Cook1 J Smith,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2021.0,Thanks noob noob,,
+2021,Aaron D,J Johnson1 A Firkser1 A Trautman1 P Freiermur.,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2021.0,Thanks noob noob,,
+2021,Aaron D,J Myers1 D Carlson1 J Tucker4 T Bass1 G Zuerlein1 R Succop,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,Thanks noob noob,,
+2021,Aaron D,M Gay,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,Thanks noob noob,,
+2021,Aaron D,MIA 1 WAS 3 TB 2 IND 1 LAR 2 SF,1.0,1.0,active,waiver_rental,waiver,import,imported,False,DEF,2021.0,Thanks noob noob,,
+2021,Aaron D,CHI 1 PIT 2 NE,1.0,1.0,active,waiver_rental,waiver,import,imported,False,DEF,2021.0,Thanks noob noob,,
+2021,Aaron D,J Herbert11 A Rodgers5 R Wilson14 K Murray,23.0,23.0,active,initial,draft,import,imported,False,QB,2021.0,Thanks noob noob,,
+2021,Aaron D,J Burrow1 T Lawrence4 J Hurts4 Z Wilson,1.0,1.0,active,waiver_rental,waiver,import,imported,False,QB,2021.0,Thanks noob noob,,
+2021,Aaron D,B Mayfield,2.0,2.0,active,initial,draft,import,imported,False,QB,2021.0,Thanks noob noob,,
+2021,Aaron D,A Kamara49 D Montgom.29 D Cook45 C McCaffrey,53.0,53.0,active,initial,draft,import,imported,False,RB,2021.0,Thanks noob noob,,
+2021,Aaron D,J Mixon22 J Robinson20 S Barkley41 E Elliott,33.0,33.0,active,initial,draft,import,imported,False,RB,2021.0,Thanks noob noob,,
+2021,Aaron D,Jv Williams16 M Davis9 D Harris11 T Sermon,9.0,9.0,active,initial,draft,import,imported,False,RB,2021.0,Thanks noob noob,,
+2021,Aaron D,M Carter4 JD McKissic1 M Gordon5 R Jones,4.0,4.0,active,initial,draft,import,imported,False,RB,2021.0,Thanks noob noob,,
+2021,Aaron D,Jm Williams 3 R Penny1 A Mattison2 J Hawkins,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Thanks noob noob,,
+2021,Aaron D,E Mitchell1 K Hill 1 L Murray2 Dar Williams,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Thanks noob noob,,
+2021,Aaron D,S Ahmed1 D Booker1 J Kelley,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Thanks noob noob,,
+2021,Aaron D,L Rountree,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Thanks noob noob,,
+2021,Aaron D,J Jefferson30 D Adams43 A Thielen16 A Robinson,19.0,19.0,active,initial,draft,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,A Cooper22 DK Metcalf40 C Claypool11 C Kupp,17.0,17.0,active,initial,draft,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,J Jones14 M Evans15 OBJ 11 T Higgins,13.0,13.0,active,initial,draft,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,M Hardman4 T Lockett14 K Golladay6 B Cooks,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,T Boyd1 C Sutton3 H Ruggs3 D Parker,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,N Agholor1 R Moore1 M Callaway2 T Marshall,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,C Kirk 1 A Rodgers1 J Reagor1 J Palmer,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,D Slayton1 V Jefferson1 T Smith1 KJ Hamler,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,J Crowder1 AJ Green,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Thanks noob noob,,
+2021,Aaron D,TJ Hockens.10 T Higbee3 M Gesicki4 M Andrews,15.0,15.0,active,initial,draft,import,imported,False,TE,2021.0,Thanks noob noob,,
+2021,Aaron D,R Tonyan3 H Henry3 I Smith1 Z Ertz,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2021.0,Thanks noob noob,,
+2021,Aaron D,C Kmet1 R Gronkowski,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2021.0,Thanks noob noob,,
+2021,Aaron D,OJ Howard1 B Jarwin,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2021.0,Thanks noob noob,,
+2021,Aaron D,Y Koo 1 H Butker2 R Gould1 J Sanders,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,Thanks noob noob,,
+2021,Aaron D,R Blankeship,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,Thanks noob noob,,
+2021,Aaron D,BAL 1 CLE 1 DEN 1 BUF,1.0,1.0,active,waiver_rental,waiver,import,imported,False,DEF,2021.0,Thanks noob noob,,
+2021,Aaron D,M. Trubisky,5.0,5.0,active,initial,draft,import,imported,False,WC,2021.0,Thanks noob noob,,
+2021,Josh C,T Tagovailoa13 R Tanehill3 P Mahomes32 D Prescott8 M Jones7 J Allen,16.0,16.0,active,initial,draft,import,imported,False,QB,2021.0,Disappointment,,
+2021,Josh C,C Wentz1 T Lance3 L Jackson17 M Stafford3 K Cousins1 J Fields,1.0,1.0,active,waiver_rental,waiver,import,imported,False,QB,2021.0,Disappointment,,
+2021,Josh C,T Brady3 M Ryan,1.0,1.0,active,waiver_rental,waiver,import,imported,False,QB,2021.0,Disappointment,,
+2021,Josh C,D Watson,2.0,2.0,active,initial,draft,import,imported,False,QB,2021.0,Disappointment,,
+2021,Josh C,J Taylor42 N Harris50 R Mostert9 A Ekeler29 N Chubb44 D Henry,50.0,50.0,active,initial,draft,import,imported,False,RB,2021.0,Disappointment,,
+2021,Josh C,D Swift12 A Gibson36 T Coleman3 J Jacobs28 C Edwards-H30 A Jones,32.0,32.0,active,initial,draft,import,imported,False,RB,2021.0,Disappointment,,
+2021,Josh C,M Gaskin10 T Pollard1 D Singletary3 C Carson17 M Sanders22 G Edwards,13.0,13.0,active,initial,draft,import,imported,False,RB,2021.0,Disappointment,,
+2021,Josh C,C Edmonds7 S Michel1 K Drake2 J Connor2 AJ Dillon5 K Hunt,6.0,6.0,active,initial,draft,import,imported,False,RB,2021.0,Disappointment,,
+2021,Josh C,JK Dobbins3 B Scott1 C Hubbard2 N Hines1 D Henderson5 K Gainwell,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Disappointment,,
+2021,Josh C,C Akers3 J Jefferson1 P Lindsay2 J White1 L Fournette4 D Johnson,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Disappointment,,
+2021,Josh C,Z Moss2 R Stevenson,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Disappointment,,
+2021,Josh C,M Mack,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Disappointment,,
+2021,Josh C,T Etienne,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Disappointment,,
+2021,Josh C,D. Hopkins31 S Diggs45 T Hill37 C Ridley29 T McLaughlin27 AJ Brown,28.0,28.0,active,initial,draft,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,DJ Moore18 B Aiyuk15 R Woods15 K Allen24 D Johnson16 D Samuel,7.0,7.0,active,initial,draft,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,D Smith11 M Thomas7 C Godwin15 C Lamb20 J Jeudy14 J Chase,6.0,6.0,active,initial,draft,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,J Waddle8 D Mooney3 J Landry3 C Davis3 DJ Chark3 R Anderson,3.0,3.0,active,initial,draft,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,J Smith-Sch.6 C Samuel1 M Gallup2 C Beasley1 M Brown1 M Pittman,2.0,2.0,active,initial,draft,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,L Shenault3 AR St. Brown1 A Brown2 S Shepard1 K Toney1 M Williams,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,E Moore3 R Gage1 W Fuller2 R Bateman1 M Jones1 G Davis,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,B Edwards1 D Mims1 P Campbell,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,J Meyers1 D Brown1 N Collins,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,M Valdes-S1 T Atwell1 D Eskridge,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,D Goedert2 D Waller21 K Pitts20 G Kittle24 N Fant 7 T Kelce,22.0,22.0,active,initial,draft,import,imported,False,TE,2021.0,Disappointment,,
+2021,Josh C,A Hooper1 G Everett1 E Engram1 L Thomas2 J Cook1 J Smith,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2021.0,Disappointment,,
+2021,Josh C,J Johnson1 A Firkser1 A Trautman1 P Freiermur.,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2021.0,Disappointment,,
+2021,Josh C,J Myers1 D Carlson1 J Tucker4 T Bass1 G Zuerlein1 R Succop,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,Disappointment,,
+2021,Josh C,M Gay,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,Disappointment,,
+2021,Josh C,MIA 1 WAS 3 TB 2 IND 1 LAR 2 SF,1.0,1.0,active,waiver_rental,waiver,import,imported,False,DEF,2021.0,Disappointment,,
+2021,Josh C,CHI 1 PIT 2 NE,1.0,1.0,active,waiver_rental,waiver,import,imported,False,DEF,2021.0,Disappointment,,
+2021,Josh C,J Herbert11 A Rodgers5 R Wilson14 K Murray,23.0,23.0,active,initial,draft,import,imported,False,QB,2021.0,Disappointment,,
+2021,Josh C,J Burrow1 T Lawrence4 J Hurts4 Z Wilson,1.0,1.0,active,waiver_rental,waiver,import,imported,False,QB,2021.0,Disappointment,,
+2021,Josh C,B Mayfield,2.0,2.0,active,initial,draft,import,imported,False,QB,2021.0,Disappointment,,
+2021,Josh C,A Kamara49 D Montgom.29 D Cook45 C McCaffrey,53.0,53.0,active,initial,draft,import,imported,False,RB,2021.0,Disappointment,,
+2021,Josh C,J Mixon22 J Robinson20 S Barkley41 E Elliott,33.0,33.0,active,initial,draft,import,imported,False,RB,2021.0,Disappointment,,
+2021,Josh C,Jv Williams16 M Davis9 D Harris11 T Sermon,9.0,9.0,active,initial,draft,import,imported,False,RB,2021.0,Disappointment,,
+2021,Josh C,M Carter4 JD McKissic1 M Gordon5 R Jones,4.0,4.0,active,initial,draft,import,imported,False,RB,2021.0,Disappointment,,
+2021,Josh C,Jm Williams 3 R Penny1 A Mattison2 J Hawkins,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Disappointment,,
+2021,Josh C,E Mitchell1 K Hill 1 L Murray2 Dar Williams,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Disappointment,,
+2021,Josh C,S Ahmed1 D Booker1 J Kelley,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Disappointment,,
+2021,Josh C,L Rountree,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Disappointment,,
+2021,Josh C,J Jefferson30 D Adams43 A Thielen16 A Robinson,19.0,19.0,active,initial,draft,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,A Cooper22 DK Metcalf40 C Claypool11 C Kupp,17.0,17.0,active,initial,draft,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,J Jones14 M Evans15 OBJ 11 T Higgins,13.0,13.0,active,initial,draft,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,M Hardman4 T Lockett14 K Golladay6 B Cooks,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,T Boyd1 C Sutton3 H Ruggs3 D Parker,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,N Agholor1 R Moore1 M Callaway2 T Marshall,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,C Kirk 1 A Rodgers1 J Reagor1 J Palmer,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,D Slayton1 V Jefferson1 T Smith1 KJ Hamler,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,J Crowder1 AJ Green,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,,
+2021,Josh C,TJ Hockens.10 T Higbee3 M Gesicki4 M Andrews,15.0,15.0,active,initial,draft,import,imported,False,TE,2021.0,Disappointment,,
+2021,Josh C,R Tonyan3 H Henry3 I Smith1 Z Ertz,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2021.0,Disappointment,,
+2021,Josh C,C Kmet1 R Gronkowski,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2021.0,Disappointment,,
+2021,Josh C,OJ Howard1 B Jarwin,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2021.0,Disappointment,,
+2021,Josh C,Y Koo 1 H Butker2 R Gould1 J Sanders,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,Disappointment,,
+2021,Josh C,R Blankeship,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,Disappointment,,
+2021,Josh C,BAL 1 CLE 1 DEN 1 BUF,1.0,1.0,active,waiver_rental,waiver,import,imported,False,DEF,2021.0,Disappointment,,
+2021,Josh C,M. Trubisky,5.0,5.0,active,initial,draft,import,imported,False,WC,2021.0,Disappointment,,
+2022,Aaron D,T. Tagovailoa,13.0,13.0,active,initial,,import,imported,False,QB,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,P. Mahomes,15.0,15.0,active,initial,,import,imported,False,QB,2022.0,Thanks noob noob,1 of 2 Years,
+2022,Aaron D,J. Taylor,42.0,42.0,active,initial,,import,imported,False,RB,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,D. Swift,12.0,12.0,active,initial,,import,imported,False,RB,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,C. Akers,3.0,3.0,active,initial,,import,imported,False,RB,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,C. Edmunds,7.0,7.0,active,initial,,import,imported,False,RB,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,T. Etienne,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,JK Dobbins,3.0,3.0,active,initial,,import,imported,False,RB,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,Kenneth Gainwell,2.0,2.0,active,initial,,import,imported,False,RB,2022.0,Thanks noob noob,1 of 2 years,
+2022,Aaron D,AJ Brown,28.0,28.0,active,initial,,import,imported,False,WR,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,M. Pittman,2.0,2.0,active,initial,,import,imported,False,WR,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,DJ Moore,18.0,18.0,active,initial,,import,imported,False,WR,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,D. Smith,11.0,11.0,active,initial,,import,imported,False,WR,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,Juju,6.0,6.0,active,initial,,import,imported,False,WR,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,E. Moore,3.0,3.0,active,initial,,import,imported,False,WR,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,J Waddle,8.0,8.0,active,initial,,import,imported,False,WR,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,OBJ,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2022.0,Thanks noob noob,1 of 2 years,
+2022,Aaron D,Calvin Ridley,6.0,6.0,active,initial,,import,imported,False,WR,2022.0,Thanks noob noob,1 of 2 years,
+2022,Aaron D,Jameson Williams,9.0,9.0,active,initial,,import,imported,False,WR,2022.0,Thanks noob noob,1 of 2 years,
+2022,Aaron D,D. Goddert,2.0,2.0,active,initial,,import,imported,False,TE,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,Z. Ertz,5.0,5.0,active,initial,,import,imported,False,TE,2022.0,Thanks noob noob,1 of 2 years,
+2022,Aaron D,Miami Dolphins,1.0,1.0,active,waiver_rental,waiver,import,imported,False,D,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,C. Wentz,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,M. Gaskin,5.0,5.0,active,initial,,import,imported,False,NAN,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,L. Shenault,2.0,2.0,active,initial,,import,imported,False,NAN,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,J. Meyers,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,A. Hooper,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,Z. Moss,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,Thanks noob noob,2 of 2 years,
+2022,Aaron D,TOTAL SALARY,209.0,209.0,active,initial,,import,imported,False,NAN,,Thanks noob noob,nan,
+2022,Aaron D,nan,0.0,0.0,active,initial,,import,imported,False,NAN,,Thanks noob noob,nan,
+2022,Aaron D,Salary Available,41.0,41.0,active,initial,,import,imported,False,NAN,,Thanks noob noob,nan,
+2022,Andrew M,R. Tannehill,3.0,3.0,active,initial,,import,imported,False,QB,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,T. Lance,3.0,3.0,active,initial,,import,imported,False,QB,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,N. Harris,50.0,50.0,active,initial,,import,imported,False,RB,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,A. Gibson,36.0,36.0,active,initial,,import,imported,False,RB,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,T. Pollard,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,Kenneth Walker,14.0,14.0,active,initial,,import,imported,False,RB,2022.0,Panda Fraud,1 of 2 years,
+2022,Andrew M,M. Ingram,4.0,4.0,active,initial,,import,imported,False,RB,2021.0,Panda Fraud,1 of 2 years,
+2022,Andrew M,S. Diggs,45.0,45.0,active,initial,,import,imported,False,WR,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,Aiyuk,15.0,15.0,active,initial,,import,imported,False,WR,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,M. Thomas,7.0,7.0,active,initial,,import,imported,False,WR,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,D. Mooney,3.0,3.0,active,initial,,import,imported,False,WR,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,C. Olave,18.0,18.0,active,initial,,import,imported,False,WR,2022.0,Panda Fraud,1 of 2 years,
+2022,Andrew M,B. Edwards,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,J. Meyers,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,Garrett Wilson,6.0,6.0,active,initial,,import,imported,False,WR,2022.0,Panda Fraud,1 of 2 years,
+2022,Andrew M,D. Waller,21.0,21.0,active,initial,,import,imported,False,TE,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,David Nijoku,2.0,2.0,active,initial,,import,imported,False,TE,2022.0,Panda Fraud,1 of 2 years,
+2022,Andrew M,D. Carlson,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,Washington DEF,2.0,2.0,active,initial,,import,imported,False,WC,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,Sony Michel,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WC,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,Boston Scott,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WC,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,Tyson Williams,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WC,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,T. Jones,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WC,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,Russell Gage,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WC,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,MVS,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WC,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,D. Parham,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WC,2021.0,Panda Fraud,2 of 2 years,
+2022,Andrew M,TOTAL SALARY,240.0,240.0,active,initial,,import,imported,False,NAN,,Panda Fraud,nan,
+2022,Andrew M,nan,0.0,0.0,active,initial,,import,imported,False,NAN,,Panda Fraud,nan,
+2022,Andrew M,Salary Available,10.0,10.0,active,initial,,import,imported,False,NAN,,Panda Fraud,nan,
+2022,Caleb K,K. Pickett,5.0,5.0,active,initial,,import,imported,False,QB,2022.0,White Supremacists,1 of 2 years,
+2022,Caleb K,L. Jackson,17.0,17.0,active,initial,,import,imported,False,QB,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,T. Brady,3.0,3.0,active,initial,,import,imported,False,QB,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,D. Watson,2.0,2.0,active,initial,,import,imported,False,QB,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,Breece Hall,28.0,28.0,active,initial,,import,imported,False,RB,2022.0,White Supremacists,1 of 2 years,
+2022,Caleb K,D. Singletary,3.0,3.0,active,initial,,import,imported,False,RB,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,K. Drake,2.0,2.0,active,initial,,import,imported,False,RB,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,D. Pierce,29.0,29.0,active,initial,,import,imported,False,RB,2022.0,White Supremacists,1 of 2 years,
+2022,Caleb K,R. Stevensen,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,T. Hill,37.0,37.0,active,initial,,import,imported,False,WR,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,C. Godwin,15.0,15.0,active,initial,,import,imported,False,WR,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,R. Woods,15.0,15.0,active,initial,,import,imported,False,WR,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,J. Landry,3.0,3.0,active,initial,,import,imported,False,WR,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,K. Toney,20.0,20.0,active,initial,,import,imported,False,WR,2022.0,White Supremacists,1 of 2 years,
+2022,Caleb K,J. Dotson,7.0,7.0,active,initial,,import,imported,False,WR,202.0,White Supremacists,1 of 2 years,
+2022,Caleb K,W. Fuller,2.0,2.0,active,initial,,import,imported,False,WR,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,K. Pitts,20.0,20.0,active,initial,,import,imported,False,TE,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,Tampa Bay,2.0,2.0,active,initial,,import,imported,False,D,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,Pit,2.0,2.0,active,initial,,import,imported,False,D,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,M. Gallup,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,Chubba Hubbard,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,P. Lindsay,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,T. Coleman,2.0,2.0,active,initial,,import,imported,False,NAN,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,D. Harris,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,Pat Mahomes,16.0,16.0,active,initial,,import,imported,False,NAN,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,R. Mostert,5.0,5.0,active,initial,,import,imported,False,NAN,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,C. Herndon,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,J Tucker,2.0,2.0,active,initial,,import,imported,False,NAN,2021.0,White Supremacists,2 of 2 years,
+2022,Caleb K,TOTAL SALARY,243.0,243.0,active,initial,,import,imported,False,NAN,,White Supremacists,nan,
+2022,Caleb K,nan,0.0,0.0,active,initial,,import,imported,False,NAN,,White Supremacists,nan,
+2022,Caleb K,Salary Available,7.0,7.0,active,initial,,import,imported,False,NAN,,White Supremacists,nan,
+2022,Chris G,D. Prescott,8.0,8.0,active,initial,,import,imported,False,QB,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,M. Stafford,3.0,3.0,active,initial,,import,imported,False,QB,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,J. Jacobs,28.0,28.0,active,initial,,import,imported,False,RB,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,A. Eckler,29.0,29.0,active,initial,,import,imported,False,RB,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,I. Spiller,6.0,6.0,active,initial,,import,imported,False,RB,2022.0,516-74-3927,1 of 2 years,
+2022,Chris G,J. Connor,2.0,2.0,active,initial,,import,imported,False,RB,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,N. Hines,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,J. White,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,Rachaad White,4.0,4.0,active,initial,,import,imported,False,RB,2022.0,516-74-3927,1 of 2 years,
+2022,Chris G,C. Lamb,20.0,20.0,active,initial,,import,imported,False,WR,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,K. Allen,24.0,24.0,active,initial,,import,imported,False,WR,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,C. Davis,3.0,3.0,active,initial,,import,imported,False,WR,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,S. Shepard,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,R. Bateman,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,George Pickens,12.0,12.0,active,initial,,import,imported,False,WR,2022.0,516-74-3927,1 of 2 years,
+2022,Chris G,Romeo Doubs,8.0,8.0,active,initial,,import,imported,False,WR,2022.0,516-74-3927,1 of 2 years,
+2022,Chris G,G. Kittle,24.0,24.0,active,initial,,import,imported,False,TE,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,L. Thomas,2.0,2.0,active,initial,,import,imported,False,TE,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,Pat Friermuth,5.0,5.0,active,initial,,import,imported,False,TE,2022.0,516-74-3927,1 of 2 years,
+2022,Chris G,T. Bass,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,M. Gay,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,IND,1.0,1.0,active,waiver_rental,waiver,import,imported,False,D,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,NE,1.0,1.0,active,waiver_rental,waiver,import,imported,False,D,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,C. Ridley,15.0,15.0,active,initial,,import,imported,False,NAN,2021.0,516-74-3927,2 of 2 years,
+2022,Chris G,TOTAL SALARY,201.0,201.0,active,initial,,import,imported,False,NAN,,516-74-3927,nan,
+2022,Chris G,nan,0.0,0.0,active,initial,,import,imported,False,NAN,,516-74-3927,nan,
+2022,Chris G,Salary Available,49.0,49.0,active,initial,,import,imported,False,NAN,,516-74-3927,nan,
+2022,Colby L,M. Jones,7.0,7.0,active,initial,,import,imported,False,QB,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,K. Cousins,1.0,1.0,active,waiver_rental,waiver,import,imported,False,QB,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,N. Chubb,44.0,44.0,active,initial,,import,imported,False,RB,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,CEH,30.0,30.0,active,initial,,import,imported,False,RB,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,M. Sanders,30.0,30.0,active,initial,,import,imported,False,RB,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,D. Henderson,5.0,5.0,active,initial,,import,imported,False,RB,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,AJ Dillon,5.0,5.0,active,initial,,import,imported,False,RB,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,L. Fournette,4.0,4.0,active,initial,,import,imported,False,RB,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,J. Cook,12.0,12.0,active,initial,,import,imported,False,RB,2022.0,Daddio of the Pandio,1 of 2 Years,
+2022,Colby L,Zamir White,4.0,4.0,active,initial,,import,imported,False,RB,2022.0,Daddio of the Pandio,1 of 2 Years,
+2022,Colby L,K. Herbert,3.0,3.0,active,initial,,import,imported,False,RB,2022.0,Daddio of the Pandio,1 of 2 Years,
+2022,Colby L,T. McLaurin,27.0,27.0,active,initial,,import,imported,False,WR,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,D. Johnson,16.0,16.0,active,initial,,import,imported,False,WR,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,J. Jeudy,14.0,14.0,active,initial,,import,imported,False,WR,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,DJ Chark,3.0,3.0,active,initial,,import,imported,False,WR,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,M. Brown,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,C. Watson,7.0,7.0,active,initial,,import,imported,False,WR,2022.0,Daddio of the Pandio,1 of 2 years,
+2022,Colby L,M. Jones,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,D. Brown,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,Skyy Moore,4.0,4.0,active,initial,,import,imported,False,WR,2022.0,Daddio of the Pandio,1 of 2 Years,
+2022,Colby L,David Bell,2.0,2.0,active,initial,,import,imported,False,WR,2022.0,Daddio of the Pandio,1 of 2 Years,
+2022,Colby L,N. Fant,7.0,7.0,active,initial,,import,imported,False,TE,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,D. Know,6.0,6.0,active,initial,,import,imported,False,TE,2022.0,Daddio of the Pandio,1 of 2 Years,
+2022,Colby L,G. Zurlein,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,Evan McPherson,4.0,4.0,active,initial,,import,imported,False,K,2022.0,Daddio of the Pandio,1 of 2 years,
+2022,Colby L,LAR,2.0,2.0,active,initial,,import,imported,False,D,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,D. Mims,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,T Atwell,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,A Trautman,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,K. Toney,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,J. Cook,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,Daddio of the Pandio,2 of 2 years,
+2022,Colby L,TOTAL SALARY,238.0,238.0,active,initial,,import,imported,False,NAN,,Daddio of the Pandio,nan,
+2022,Colby L,nan,0.0,0.0,active,initial,,import,imported,False,NAN,,Daddio of the Pandio,nan,
+2022,Colby L,Salary Available,12.0,12.0,active,initial,,import,imported,False,NAN,,Daddio of the Pandio,nan,
+2022,Dawson O,J. Allen,16.0,16.0,active,initial,,import,imported,False,QB,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,Derek Carr,3.0,3.0,active,initial,,import,imported,False,QB,2022.0,She Bo on my Nix til I TD,1 of 2 years,
+2022,Dawson O,D. Henry,50.0,50.0,active,initial,,import,imported,False,RB,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,A. Jones,32.0,32.0,active,initial,,import,imported,False,RB,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,K. Hunt,6.0,6.0,active,initial,,import,imported,False,RB,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,R. Mostert,9.0,9.0,active,initial,,import,imported,False,RB,2022.0,She Bo on my Nix til I TD,1 of 2 years,
+2022,Dawson O,Tyler Algeier,5.0,5.0,active,initial,,import,imported,False,RB,2022.0,She Bo on my Nix til I TD,1 of 2 years,
+2022,Dawson O,D. Hopkins,31.0,31.0,active,initial,,import,imported,False,WR,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,J. Chase,6.0,6.0,active,initial,,import,imported,False,WR,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,D. Samuel,7.0,7.0,active,initial,,import,imported,False,WR,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,R. Anderson,3.0,3.0,active,initial,,import,imported,False,WR,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,M. Williams,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,Gabe Davis,5.0,5.0,active,initial,,import,imported,False,WR,2022.0,She Bo on my Nix til I TD,1 of 2 years,
+2022,Dawson O,T. Kelce,22.0,22.0,active,initial,,import,imported,False,TE,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,Hunter Henry,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2022.0,She Bo on my Nix til I TD,1 of 2 years,
+2022,Dawson O,J. Tucker,5.0,5.0,active,initial,,import,imported,False,K,2022.0,She Bo on my Nix til I TD,1 of 2 years,
+2022,Dawson O,SF,1.0,1.0,active,waiver_rental,waiver,import,imported,False,D,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,P Campbell,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,J Smith,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,Pat Freiermur,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,T Johnson,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,D Williams,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,K Gainwell,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,J Fields,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,R. Succup,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,She Bo on my Nix til I TD,2 of 2 years,
+2022,Dawson O,TOTAL SALARY,211.0,211.0,active,initial,,import,imported,False,NAN,,She Bo on my Nix til I TD,nan,
+2022,Dawson O,nan,0.0,0.0,active,initial,,import,imported,False,NAN,,She Bo on my Nix til I TD,nan,
+2022,Dawson O,Salary Available,39.0,39.0,active,initial,,import,imported,False,NAN,,She Bo on my Nix til I TD,nan,
+2022,Josh C,J. Herbert,11.0,11.0,active,initial,,import,imported,False,QB,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,J. Burrow,1.0,1.0,active,waiver_rental,waiver,import,imported,False,QB,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,Kamara,49.0,49.0,active,initial,,import,imported,False,RB,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,J. Mixon,22.0,22.0,active,initial,,import,imported,False,RB,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,J. Williams,16.0,16.0,active,initial,,import,imported,False,RB,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,B. Robinson,4.0,4.0,active,initial,,import,imported,False,RB,2022.0,Disappointment,1 of 2 years,
+2022,Josh C,Jm. Williams,3.0,3.0,active,initial,,import,imported,False,RB,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,E. Mitchell,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,S. Ahmed,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,J. Jefferson,30.0,30.0,active,initial,,import,imported,False,WR,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,A. Cooper,22.0,22.0,active,initial,,import,imported,False,WR,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,J. Jones,14.0,14.0,active,initial,,import,imported,False,WR,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,T. Boyd,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,N. Agholor,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,C. Kirk,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,D. Slayton,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,TJ Hock,10.0,10.0,active,initial,,import,imported,False,TE,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,R. Tonyan,3.0,3.0,active,initial,,import,imported,False,TE,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,C. Kmet,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,OJ Howard,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,Y. Koo,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,BAL,1.0,1.0,active,waiver_rental,waiver,import,imported,False,D,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,M. Carter,2.0,2.0,active,initial,,import,imported,False,NAN,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,M. Hardman,2.0,2.0,active,initial,,import,imported,False,NAN,2021.0,Disappointment,2 of 2 years,
+2022,Josh C,TOTAL SALARY,199.0,199.0,active,initial,,import,imported,False,NAN,,Disappointment,nan,
+2022,Josh C,nan,0.0,0.0,active,initial,,import,imported,False,NAN,,Disappointment,nan,
+2022,Josh C,Salary Available,51.0,51.0,active,initial,,import,imported,False,NAN,,Disappointment,nan,
+2022,Justin P,T. Lawrence,4.0,4.0,active,initial,,import,imported,False,QB,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,A. Rodgers,5.0,5.0,active,initial,,import,imported,False,QB,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,D. Montgomery,29.0,29.0,active,initial,,import,imported,False,RB,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,J. Robinson,20.0,20.0,active,initial,,import,imported,False,RB,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,M. Davis,9.0,9.0,active,initial,,import,imported,False,RB,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,JD McKissnic,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,R. Penny,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,K. Hill,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,C. Patterson,12.0,12.0,active,initial,,import,imported,False,RB,2022.0,Dual Ethics,1 of 2 years,
+2022,Justin P,M. Gordon,11.0,11.0,active,initial,,import,imported,False,RB,2022.0,Dual Ethics,1 of 2 years,
+2022,Justin P,DK Metcalf,40.0,40.0,active,initial,,import,imported,False,WR,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,D. Adams,43.0,43.0,active,initial,,import,imported,False,WR,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,M. Evans,15.0,15.0,active,initial,,import,imported,False,WR,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,T. Lockett,14.0,14.0,active,initial,,import,imported,False,WR,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,C. Sutton,3.0,3.0,active,initial,,import,imported,False,NAN,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,R. Moore,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,V. Jefferson,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,T. Higbee,3.0,3.0,active,initial,,import,imported,False,TE,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,D. Shultz,15.0,15.0,active,initial,,import,imported,False,TE,2022.0,Dual Ethics,1 of 2 years,
+2022,Justin P,B. Jarwin,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,H. Butker,2.0,2.0,active,initial,,import,imported,False,K,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,R. Blankenship,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,CLE,1.0,1.0,active,waiver_rental,waiver,import,imported,False,D,2021.0,Dual Ethics,2 of 2 years,
+2022,Justin P,TOTAL SALARY,233.0,233.0,active,initial,,import,imported,False,NAN,,Dual Ethics,nan,
+2022,Justin P,nan,0.0,0.0,active,initial,,import,imported,False,NAN,,Dual Ethics,nan,
+2022,Justin P,Salary Available,17.0,17.0,active,initial,,import,imported,False,NAN,,Dual Ethics,nan,
+2022,Nick F,R. Willson,14.0,14.0,active,initial,,import,imported,False,QB,2021.0,Hurts when I Brown,2 of 2 years,
+2022,Nick F,J. Hurts,4.0,4.0,active,initial,,import,imported,False,QB,2021.0,Hurts when I Brown,2 of 2 years,
+2022,Nick F,B. Mayfield,2.0,2.0,active,initial,,import,imported,False,QB,2021.0,Hurts when I Brown,2 of 2 years,
+2022,Nick F,D. Cook,45.0,45.0,active,initial,,import,imported,False,RB,2021.0,Hurts when I Brown,2 of 2 years,
+2022,Nick F,S. Barkley,41.0,41.0,active,initial,,import,imported,False,RB,2021.0,Hurts when I Brown,2 of 2 years,
+2022,Nick F,D. Harris,11.0,11.0,active,initial,,import,imported,False,RB,2021.0,Hurts when I Brown,2 of 2 years,
+2022,Nick F,A. Mattison,2.0,2.0,active,initial,,import,imported,False,RB,2021.0,Hurts when I Brown,2 of 2 years,
+2022,Nick F,Matt Breida,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2022.0,Hurts when I Brown,1 of 2 years,
+2022,Nick F,Marlon Mack,2.0,2.0,active,initial,,import,imported,False,RB,2022.0,Hurts when I Brown,1 of 2 years,
+2022,Nick F,C. Claypool,11.0,11.0,active,initial,,import,imported,False,WR,2021.0,Hurts when I Brown,2 of 2 years,
+2022,Nick F,A. Thielen,16.0,16.0,active,initial,,import,imported,False,WR,2021.0,Hurts when I Brown,2 of 2 years,
+2022,Nick F,D. London,14.0,14.0,active,initial,,import,imported,False,WR,2022.0,Hurts when I Brown,1 of 2 years,
+2022,Nick F,K. Golladay,6.0,6.0,active,initial,,import,imported,False,WR,2021.0,Hurts when I Brown,2 of 2 years,
+2022,Nick F,A. Lazard,18.0,18.0,active,initial,,import,imported,False,WR,2022.0,Hurts when I Brown,1 of 2 years,
+2022,Nick F,H. Renfrow,18.0,18.0,active,initial,,import,imported,False,WR,2022.0,Hurts when I Brown,1 of 2 years,
+2022,Nick F,D. Duvernay,5.0,5.0,active,initial,,import,imported,False,WR,2022.0,Hurts when I Brown,1 of 2 years,
+2022,Nick F,J. Crowder,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Hurts when I Brown,2 of 2 years,
+2022,Nick F,M. Gesicki,4.0,4.0,active,initial,,import,imported,False,TE,2021.0,Hurts when I Brown,2 of 2 years,
+2022,Nick F,I Smith,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2021.0,Hurts when I Brown,2 of 2 years,
+2022,Nick F,DEN,1.0,1.0,active,waiver_rental,waiver,import,imported,False,D,2021.0,Hurts when I Brown,2 of 2 years,
+2022,Nick F,M. Gordon,3.0,3.0,active,initial,,import,imported,False,NAN,2021.0,Hurts when I Brown,2 of 2 years,
+2022,Nick F,R. Gould,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,Hurts when I Brown,2 of 2 years,
+2022,Nick F,T. Smith,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,,Hurts when I Brown,nan,
+2022,Nick F,J Reagor,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,,Hurts when I Brown,nan,
+2022,Nick F,M. Callaway,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,,Hurts when I Brown,nan,
+2022,Nick F,TOTAL SALARY,224.0,224.0,active,initial,,import,imported,False,NAN,,Hurts when I Brown,nan,
+2022,Nick F,nan,0.0,0.0,active,initial,,import,imported,False,NAN,,Hurts when I Brown,nan,
+2022,Nick F,Salary Available,26.0,26.0,active,initial,,import,imported,False,NAN,,Hurts when I Brown,nan,
+2022,Stephen P,K. Murray,23.0,23.0,active,initial,,import,imported,False,QB,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,C. McCaffery,53.0,53.0,active,initial,,import,imported,False,RB,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,Zeke,33.0,33.0,active,initial,,import,imported,False,RB,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,M. Carter,8.0,8.0,active,initial,,import,imported,False,RB,2022.0,The Deported Panda,1 of 2 years,
+2022,Stephen P,Dar. Williams,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,Amir Abdullah,2.0,2.0,active,initial,,import,imported,False,RB,2022.0,The Deported Panda,1 of 2 years,
+2022,Stephen P,C. Kupp,17.0,17.0,active,initial,,import,imported,False,WR,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,A. Robinson,19.0,19.0,active,initial,,import,imported,False,WR,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,T. Higgins,13.0,13.0,active,initial,,import,imported,False,WR,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,B. Cooks,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,D. Parker,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,T. Marshall,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,T. Burks,11.0,11.0,active,initial,,import,imported,False,WR,2022.0,The Deported Panda,1 of 2 years,
+2022,Stephen P,Amon Ra St. Brown,13.0,13.0,active,initial,,import,imported,False,WR,2022.0,The Deported Panda,1 of 2 years,
+2022,Stephen P,Denzel Mims,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2022.0,The Deported Panda,1 of 2 years,
+2022,Stephen P,M. Andrews,15.0,15.0,active,initial,,import,imported,False,TE,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,Austin Hooper,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2022.0,The Deported Panda,1 of 2 years,
+2022,Stephen P,BUF,1.0,1.0,active,waiver_rental,waiver,import,imported,False,D,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,T Sermon,5.0,5.0,active,initial,,import,imported,False,NAN,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,R. Jones,2.0,2.0,active,initial,,import,imported,False,NAN,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,Z. Wilson,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,J Hawkins,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,J. Kelley,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,KJ Hamler,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,J Sanders,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,Zach Ertz,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,L. Rountree,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,AJ Green,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,2021.0,The Deported Panda,2 of 2 years,
+2022,Stephen P,TOTAL SALARY,229.0,229.0,active,initial,,import,imported,False,NAN,,The Deported Panda,nan,
+2022,Stephen P,nan,0.0,0.0,active,initial,,import,imported,False,NAN,,The Deported Panda,nan,
+2022,Stephen P,Salary Available,21.0,21.0,active,initial,,import,imported,False,NAN,,The Deported Panda,nan,
+2023,Aaron D,T. Tagovailoa,13.0,13.0,active,extended,,import,imported,False,QB,2021.0,Thanks noob noob,1 of 1 years (ext.),
+2023,Aaron D,P. Mahomes,15.0,15.0,active,initial,,import,imported,False,QB,2022.0,Thanks noob noob,2 of 2 Years,
+2023,Aaron D,J. Taylor,42.0,42.0,active,extended,,import,imported,False,RB,2021.0,Thanks noob noob,1 of 1 years (ext.),
+2023,Aaron D,D. Swift,12.0,12.0,active,initial,,import,imported,False,RB,2021.0,Thanks noob noob,2 of 2 years,
+2023,Aaron D,C. Akers,3.0,3.0,active,extended,,import,imported,False,RB,2021.0,Thanks noob noob,1 of 2 years (ext.),
+2023,Aaron D,C. Edmunds,7.0,7.0,active,initial,,import,imported,False,RB,2021.0,Thanks noob noob,2 of 2 years,
+2023,Aaron D,T. Etienne,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Thanks noob noob,1 of 3 years (ext.),
+2023,Aaron D,JK Dobbins,3.0,3.0,active,extended,,import,imported,False,RB,2021.0,Thanks noob noob,1 of 2 years (ext.),
+2023,Aaron D,Kenneth Gainwell,2.0,2.0,active,initial,,import,imported,False,RB,2022.0,Thanks noob noob,2 of 2 Years,
+2023,Aaron D,AJ Brown,28.0,28.0,active,initial,,import,imported,False,WR,2021.0,Thanks noob noob,2 of 2 years,
+2023,Aaron D,M. Pittman,2.0,2.0,active,extended,,import,imported,False,WR,2021.0,Thanks noob noob,1 of 1 years (ext.),
+2023,Aaron D,DJ Moore,18.0,18.0,active,initial,,import,imported,False,WR,2021.0,Thanks noob noob,2 of 2 years,
+2023,Aaron D,D. Smith,11.0,11.0,active,extended,,import,imported,False,WR,2021.0,Thanks noob noob,1 of 2 years (ext.),
+2023,Aaron D,Juju,6.0,6.0,active,initial,,import,imported,False,WR,2021.0,Thanks noob noob,2 of 2 years,
+2023,Aaron D,E. Moore,3.0,3.0,active,extended,,import,imported,False,WR,2021.0,Thanks noob noob,1 of 3 years (ext.),
+2023,Aaron D,J Waddle,8.0,8.0,active,extended,,import,imported,False,WR,2021.0,Thanks noob noob,1 of 3 years (ext.),
+2023,Aaron D,OBJ,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2022.0,Thanks noob noob,2 of 2 Years,
+2023,Aaron D,Calvin Ridley,6.0,6.0,active,initial,,import,imported,False,WR,2022.0,Thanks noob noob,2 of 2 Years,
+2023,Aaron D,Jameson Williams,9.0,9.0,active,initial,,import,imported,False,WR,2022.0,Thanks noob noob,2 of 2 Years,
+2023,Aaron D,D. Goddert,2.0,2.0,active,extended,,import,imported,False,TE,2021.0,Thanks noob noob,1 of 2 years (ext.),
+2023,Aaron D,Z. Ertz,5.0,5.0,active,initial,,import,imported,False,TE,2022.0,Thanks noob noob,2 of 2 Years,
+2023,Aaron D,Miami Dolphins,1.0,1.0,active,waiver_rental,waiver,import,imported,False,D,2021.0,Thanks noob noob,2 of 2 years,
+2023,Aaron D,TOTAL SALARY,198.0,198.0,active,initial,,import,imported,False,NAN,,Thanks noob noob,nan,
+2023,Aaron D,Salary Available,52.0,52.0,active,initial,,import,imported,False,NAN,,Thanks noob noob,nan,
+2023,Andrew M,R. Tannehill,3.0,3.0,active,initial,,import,imported,False,QB,2021.0,Panda Fraud,,
+2023,Andrew M,T. Lance,3.0,3.0,active,initial,,import,imported,False,QB,2021.0,Panda Fraud,,
+2023,Andrew M,N. Harris,50.0,50.0,active,initial,,import,imported,False,RB,2021.0,Panda Fraud,,
+2023,Andrew M,A. Gibson,36.0,36.0,active,initial,,import,imported,False,RB,2021.0,Panda Fraud,,
+2023,Andrew M,T. Pollard,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Panda Fraud,,
+2023,Andrew M,Kenneth Walker,14.0,14.0,active,initial,,import,imported,False,RB,2022.0,Panda Fraud,,
+2023,Andrew M,M. Ingram,4.0,4.0,active,initial,,import,imported,False,RB,2021.0,Panda Fraud,,
+2023,Andrew M,S. Diggs,45.0,45.0,active,initial,,import,imported,False,WR,2021.0,Panda Fraud,,
+2023,Andrew M,Aiyuk,15.0,15.0,active,initial,,import,imported,False,WR,2021.0,Panda Fraud,,
+2023,Andrew M,M. Thomas,7.0,7.0,active,initial,,import,imported,False,WR,2021.0,Panda Fraud,,
+2023,Andrew M,D. Mooney,3.0,3.0,active,initial,,import,imported,False,WR,2021.0,Panda Fraud,,
+2023,Andrew M,C. Olave,18.0,18.0,active,initial,,import,imported,False,WR,2022.0,Panda Fraud,,
+2023,Andrew M,B. Edwards,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Panda Fraud,,
+2023,Andrew M,J. Meyers,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Panda Fraud,,
+2023,Andrew M,Garrett Wilson,6.0,6.0,active,initial,,import,imported,False,WR,2022.0,Panda Fraud,,
+2023,Andrew M,D. Waller,21.0,21.0,active,initial,,import,imported,False,TE,2021.0,Panda Fraud,,
+2023,Andrew M,David Njoku,2.0,2.0,active,initial,,import,imported,False,TE,2022.0,Panda Fraud,,
+2023,Andrew M,D. Carlson,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,Panda Fraud,,
+2023,Andrew M,TOTAL SALARY,231.0,231.0,active,initial,,import,imported,False,NAN,,Panda Fraud,,
+2023,Andrew M,Salary Available,19.0,19.0,active,initial,,import,imported,False,NAN,,Panda Fraud,,
+2023,Caleb K,K. Pickett,5.0,5.0,active,initial,,import,imported,False,QB,2022.0,White Supremacists,,
+2023,Caleb K,L. Jackson,17.0,17.0,active,initial,,import,imported,False,QB,2021.0,White Supremacists,,
+2023,Caleb K,T. Brady,3.0,3.0,active,initial,,import,imported,False,QB,2021.0,White Supremacists,,
+2023,Caleb K,D. Watson,2.0,2.0,active,initial,,import,imported,False,QB,2021.0,White Supremacists,,
+2023,Caleb K,Breece Hall,28.0,28.0,active,initial,,import,imported,False,RB,2022.0,White Supremacists,,
+2023,Caleb K,D. Singletary,3.0,3.0,active,initial,,import,imported,False,RB,2021.0,White Supremacists,,
+2023,Caleb K,K. Drake,2.0,2.0,active,initial,,import,imported,False,RB,2021.0,White Supremacists,,
+2023,Caleb K,D. Pierce,29.0,29.0,active,initial,,import,imported,False,RB,2022.0,White Supremacists,,
+2023,Caleb K,R. Stevensen,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,White Supremacists,,
+2023,Caleb K,T. Hill,37.0,37.0,active,initial,,import,imported,False,WR,2021.0,White Supremacists,,
+2023,Caleb K,C. Godwin,15.0,15.0,active,initial,,import,imported,False,WR,2021.0,White Supremacists,,
+2023,Caleb K,R. Woods,15.0,15.0,active,initial,,import,imported,False,WR,2021.0,White Supremacists,,
+2023,Caleb K,J. Landry,3.0,3.0,active,initial,,import,imported,False,WR,2021.0,White Supremacists,,
+2023,Caleb K,K. Toney,20.0,20.0,active,initial,,import,imported,False,WR,2022.0,White Supremacists,,
+2023,Caleb K,J. Dotson,7.0,7.0,active,initial,,import,imported,False,WR,2022.0,White Supremacists,,
+2023,Caleb K,W. Fuller,2.0,2.0,active,initial,,import,imported,False,WR,2021.0,White Supremacists,,
+2023,Caleb K,K. Pitts,20.0,20.0,active,initial,,import,imported,False,TE,2021.0,White Supremacists,,
+2023,Caleb K,Tampa Bay,2.0,2.0,active,initial,,import,imported,False,D,2021.0,White Supremacists,,
+2023,Caleb K,Pit,2.0,2.0,active,initial,,import,imported,False,D,2021.0,White Supremacists,,
+2023,Caleb K,TOTAL SALARY,213.0,213.0,active,initial,,import,imported,False,NAN,,White Supremacists,,
+2023,Caleb K,Salary Available,37.0,37.0,active,initial,,import,imported,False,NAN,,White Supremacists,,
+2023,Chris G,D. Prescott,8.0,8.0,active,initial,,import,imported,False,QB,2021.0,516-74-3927,,
+2023,Chris G,M. Stafford,3.0,3.0,active,initial,,import,imported,False,QB,2021.0,516-74-3927,,
+2023,Chris G,J. Jacobs,28.0,28.0,active,initial,,import,imported,False,RB,2021.0,516-74-3927,,
+2023,Chris G,A. Ekeler,29.0,29.0,active,initial,,import,imported,False,RB,2021.0,516-74-3927,,
+2023,Chris G,I. Spiller,6.0,6.0,active,initial,,import,imported,False,RB,2022.0,516-74-3927,,
+2023,Chris G,J. Connor,2.0,2.0,active,initial,,import,imported,False,RB,2021.0,516-74-3927,,
+2023,Chris G,N. Hines,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,516-74-3927,,
+2023,Chris G,J. White,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,516-74-3927,,
+2023,Chris G,Rachaad White,4.0,4.0,active,initial,,import,imported,False,RB,2022.0,516-74-3927,,
+2023,Chris G,C. Lamb,20.0,20.0,active,initial,,import,imported,False,WR,2021.0,516-74-3927,,
+2023,Chris G,K. Allen,24.0,24.0,active,initial,,import,imported,False,WR,2021.0,516-74-3927,,
+2023,Chris G,C. Davis,3.0,3.0,active,initial,,import,imported,False,WR,2021.0,516-74-3927,,
+2023,Chris G,S. Shepard,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,516-74-3927,,
+2023,Chris G,R. Bateman,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,516-74-3927,,
+2023,Chris G,George Pickens,12.0,12.0,active,initial,,import,imported,False,WR,2022.0,516-74-3927,,
+2023,Chris G,Romeo Doubs,8.0,8.0,active,initial,,import,imported,False,WR,2022.0,516-74-3927,,
+2023,Chris G,G. Kittle,24.0,24.0,active,initial,,import,imported,False,TE,2021.0,516-74-3927,,
+2023,Chris G,L. Thomas,2.0,2.0,active,initial,,import,imported,False,TE,2021.0,516-74-3927,,
+2023,Chris G,Pat Friermuth,5.0,5.0,active,initial,,import,imported,False,TE,2022.0,516-74-3927,,
+2023,Chris G,T. Bass,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,516-74-3927,,
+2023,Chris G,M. Gay,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,516-74-3927,,
+2023,Chris G,IND,1.0,1.0,active,waiver_rental,waiver,import,imported,False,D,2021.0,516-74-3927,,
+2023,Chris G,NE,1.0,1.0,active,waiver_rental,waiver,import,imported,False,D,2021.0,516-74-3927,,
+2023,Chris G,TOTAL SALARY,186.0,186.0,active,initial,,import,imported,False,NAN,,516-74-3927,,
+2023,Chris G,Salary Available,64.0,64.0,active,initial,,import,imported,False,NAN,,516-74-3927,,
+2023,Colby L,M. Jones,7.0,7.0,active,initial,,import,imported,False,QB,2021.0,Daddio of the Pandio,,
+2023,Colby L,K. Cousins,1.0,1.0,active,waiver_rental,waiver,import,imported,False,QB,2021.0,Daddio of the Pandio,,
+2023,Colby L,N. Chubb,44.0,44.0,active,initial,,import,imported,False,RB,2021.0,Daddio of the Pandio,,
+2023,Colby L,CEH,30.0,30.0,active,initial,,import,imported,False,RB,2021.0,Daddio of the Pandio,,
+2023,Colby L,M. Sanders,30.0,30.0,active,initial,,import,imported,False,RB,2021.0,Daddio of the Pandio,,
+2023,Colby L,D. Henderson,5.0,5.0,active,initial,,import,imported,False,RB,2021.0,Daddio of the Pandio,,
+2023,Colby L,AJ Dillon,5.0,5.0,active,initial,,import,imported,False,RB,2021.0,Daddio of the Pandio,,
+2023,Colby L,L. Fournette,4.0,4.0,active,initial,,import,imported,False,RB,2021.0,Daddio of the Pandio,,
+2023,Colby L,J. Cook,12.0,12.0,active,initial,,import,imported,False,RB,2022.0,Daddio of the Pandio,,
+2023,Colby L,Zamir White,4.0,4.0,active,initial,,import,imported,False,RB,2022.0,Daddio of the Pandio,,
+2023,Colby L,T. McLaurin,27.0,27.0,active,initial,,import,imported,False,WR,2021.0,Daddio of the Pandio,,
+2023,Colby L,D. Johnson,16.0,16.0,active,initial,,import,imported,False,WR,2021.0,Daddio of the Pandio,,
+2023,Colby L,J. Jeudy,14.0,14.0,active,initial,,import,imported,False,WR,2021.0,Daddio of the Pandio,,
+2023,Colby L,M. Brown,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Daddio of the Pandio,,
+2023,Colby L,C. Watson,7.0,7.0,active,initial,,import,imported,False,WR,2022.0,Daddio of the Pandio,,
+2023,Colby L,M. Jones,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Daddio of the Pandio,,
+2023,Colby L,D. Brown,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Daddio of the Pandio,,
+2023,Colby L,Skyy Moore,4.0,4.0,active,initial,,import,imported,False,WR,2022.0,Daddio of the Pandio,,
+2023,Colby L,N. Fant,7.0,7.0,active,initial,,import,imported,False,TE,2021.0,Daddio of the Pandio,,
+2023,Colby L,D. Knox,6.0,6.0,active,initial,,import,imported,False,TE,2022.0,Daddio of the Pandio,,
+2023,Colby L,G. Zurlein,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,Daddio of the Pandio,,
+2023,Colby L,Evan McPherson,4.0,4.0,active,initial,,import,imported,False,K,2022.0,Daddio of the Pandio,,
+2023,Colby L,LAR,2.0,2.0,active,initial,,import,imported,False,D,2021.0,Daddio of the Pandio,,
+2023,Colby L,DJ Chark,3.0,3.0,active,initial,,import,imported,False,WR,2021.0,Daddio of the Pandio,,
+2023,Colby L,K. Herbert,3.0,3.0,active,initial,,import,imported,False,RB,2022.0,Daddio of the Pandio,,
+2023,Colby L,M. Jones,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Daddio of the Pandio,,
+2023,Colby L,D. Brown,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Daddio of the Pandio,,
+2023,Colby L,David Bell,2.0,2.0,active,initial,,import,imported,False,WR,2022.0,Daddio of the Pandio,,
+2023,Colby L,TOTAL SALARY,243.0,243.0,active,initial,,import,imported,False,NAN,,Daddio of the Pandio,,
+2023,Colby L,Salary Available,7.0,7.0,active,initial,,import,imported,False,NAN,,Daddio of the Pandio,,
+2023,Dawson O,J. Allen,16.0,16.0,active,initial,,import,imported,False,QB,2021.0,She Bo on my Nix til I TD,,
+2023,Dawson O,Derek Carr,3.0,3.0,active,initial,,import,imported,False,QB,2022.0,She Bo on my Nix til I TD,,
+2023,Dawson O,D. Henry,50.0,50.0,active,initial,,import,imported,False,RB,2021.0,She Bo on my Nix til I TD,,
+2023,Dawson O,A. Jones,32.0,32.0,active,initial,,import,imported,False,RB,2021.0,She Bo on my Nix til I TD,,
+2023,Dawson O,K. Hunt,6.0,6.0,active,initial,,import,imported,False,RB,2021.0,She Bo on my Nix til I TD,,
+2023,Dawson O,R. Mostert,9.0,9.0,active,initial,,import,imported,False,RB,2022.0,She Bo on my Nix til I TD,,
+2023,Dawson O,Tyler Algeier,5.0,5.0,active,initial,,import,imported,False,RB,2022.0,She Bo on my Nix til I TD,,
+2023,Dawson O,D. Hopkins,31.0,31.0,active,initial,,import,imported,False,WR,2021.0,She Bo on my Nix til I TD,,
+2023,Dawson O,J. Chase,6.0,6.0,active,initial,,import,imported,False,WR,2021.0,She Bo on my Nix til I TD,,
+2023,Dawson O,D. Samuel,7.0,7.0,active,initial,,import,imported,False,WR,2021.0,She Bo on my Nix til I TD,,
+2023,Dawson O,R. Anderson,3.0,3.0,active,initial,,import,imported,False,WR,2021.0,She Bo on my Nix til I TD,,
+2023,Dawson O,M. Williams,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,She Bo on my Nix til I TD,,
+2023,Dawson O,Gabe Davis,5.0,5.0,active,initial,,import,imported,False,WR,2022.0,She Bo on my Nix til I TD,,
+2023,Dawson O,T. Kelce,22.0,22.0,active,initial,,import,imported,False,TE,2021.0,She Bo on my Nix til I TD,,
+2023,Dawson O,Hunter Henry,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2022.0,She Bo on my Nix til I TD,,
+2023,Dawson O,J. Tucker,5.0,5.0,active,initial,,import,imported,False,K,2022.0,She Bo on my Nix til I TD,,
+2023,Dawson O,SF,1.0,1.0,active,waiver_rental,waiver,import,imported,False,D,2021.0,She Bo on my Nix til I TD,,
+2023,Dawson O,TOTAL SALARY,203.0,203.0,active,initial,,import,imported,False,NAN,,She Bo on my Nix til I TD,,
+2023,Dawson O,Salary Available,47.0,47.0,active,initial,,import,imported,False,NAN,,She Bo on my Nix til I TD,,
+2023,Josh C,J. Herbert,11.0,11.0,active,initial,,import,imported,False,QB,2021.0,Disappointment,,
+2023,Josh C,J. Burrow,1.0,1.0,active,waiver_rental,waiver,import,imported,False,QB,2021.0,Disappointment,,
+2023,Josh C,Kamara,49.0,49.0,active,initial,,import,imported,False,RB,2021.0,Disappointment,,
+2023,Josh C,J. Mixon,22.0,22.0,active,initial,,import,imported,False,RB,2021.0,Disappointment,,
+2023,Josh C,J. Williams,16.0,16.0,active,initial,,import,imported,False,RB,2021.0,Disappointment,,
+2023,Josh C,B. Robinson,4.0,4.0,active,initial,,import,imported,False,RB,2022.0,Disappointment,,
+2023,Josh C,Jm. Williams,3.0,3.0,active,initial,,import,imported,False,RB,2021.0,Disappointment,,
+2023,Josh C,E. Mitchell,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Disappointment,,
+2023,Josh C,S. Ahmed,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Disappointment,,
+2023,Josh C,J. Jefferson,30.0,30.0,active,initial,,import,imported,False,WR,2021.0,Disappointment,,
+2023,Josh C,A. Cooper,22.0,22.0,active,initial,,import,imported,False,WR,2021.0,Disappointment,,
+2023,Josh C,J. Jones,14.0,14.0,active,initial,,import,imported,False,WR,2021.0,Disappointment,,
+2023,Josh C,T. Boyd,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,,
+2023,Josh C,N. Agholor,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,,
+2023,Josh C,C. Kirk,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,,
+2023,Josh C,D. Slayton,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Disappointment,,
+2023,Josh C,TJ Hock,10.0,10.0,active,initial,,import,imported,False,TE,2021.0,Disappointment,,
+2023,Josh C,R. Tonyan,3.0,3.0,active,initial,,import,imported,False,TE,2021.0,Disappointment,,
+2023,Josh C,C. Kmet,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2021.0,Disappointment,,
+2023,Josh C,OJ Howard,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2021.0,Disappointment,,
+2023,Josh C,Y. Koo,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,Disappointment,,
+2023,Josh C,BAL,1.0,1.0,active,waiver_rental,waiver,import,imported,False,D,2021.0,Disappointment,,
+2023,Josh C,TOTAL SALARY,195.0,195.0,active,initial,,import,imported,False,NAN,,Disappointment,,
+2023,Josh C,Salary Available,55.0,55.0,active,initial,,import,imported,False,NAN,,Disappointment,,
+2023,Justin P,T. Lawrence,4.0,4.0,active,initial,,import,imported,False,QB,2021.0,Dual Ethics,,
+2023,Justin P,A. Rodgers,5.0,5.0,active,initial,,import,imported,False,QB,2021.0,Dual Ethics,,
+2023,Justin P,D. Montgomery,29.0,29.0,active,initial,,import,imported,False,RB,2021.0,Dual Ethics,,
+2023,Justin P,J. Robinson,20.0,20.0,active,initial,,import,imported,False,RB,2021.0,Dual Ethics,,
+2023,Justin P,M. Davis,9.0,9.0,active,initial,,import,imported,False,RB,2021.0,Dual Ethics,,
+2023,Justin P,JD. McKissnic,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Dual Ethics,,
+2023,Justin P,R. Penny,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Dual Ethics,,
+2023,Justin P,K. Hill,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,Dual Ethics,,
+2023,Justin P,C. Patterson,12.0,12.0,active,initial,,import,imported,False,RB,2022.0,Dual Ethics,,
+2023,Justin P,M. Gordon,11.0,11.0,active,initial,,import,imported,False,RB,2022.0,Dual Ethics,,
+2023,Justin P,DK. Metcalf,40.0,40.0,active,initial,,import,imported,False,WR,2021.0,Dual Ethics,,
+2023,Justin P,D. Adams,43.0,43.0,active,initial,,import,imported,False,WR,2021.0,Dual Ethics,,
+2023,Justin P,M. Evans,15.0,15.0,active,initial,,import,imported,False,WR,2021.0,Dual Ethics,,
+2023,Justin P,T. Lockett,14.0,14.0,active,initial,,import,imported,False,WR,2021.0,Dual Ethics,,
+2023,Justin P,C. Sutton,3.0,3.0,active,initial,,import,imported,False,WR,2021.0,Dual Ethics,,
+2023,Justin P,R. Moore,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Dual Ethics,,
+2023,Justin P,V. Jefferson,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Dual Ethics,,
+2023,Justin P,T. Higbee,3.0,3.0,active,initial,,import,imported,False,TE,2021.0,Dual Ethics,,
+2023,Justin P,D. Shultz,15.0,15.0,active,initial,,import,imported,False,TE,2022.0,Dual Ethics,,
+2023,Justin P,B. Jarwin,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2021.0,Dual Ethics,,
+2023,Justin P,H. Butker,2.0,2.0,active,initial,,import,imported,False,K,2021.0,Dual Ethics,,
+2023,Justin P,R. Blankenship,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,2021.0,Dual Ethics,,
+2023,Justin P,CLE,1.0,1.0,active,waiver_rental,waiver,import,imported,False,D,2021.0,Dual Ethics,,
+2023,Justin P,TOTAL SALARY,233.0,233.0,active,initial,,import,imported,False,NAN,,Dual Ethics,,
+2023,Justin P,Salary Available,17.0,17.0,active,initial,,import,imported,False,NAN,,Dual Ethics,,
+2023,Nick F,R. Willson,14.0,14.0,active,initial,,import,imported,False,QB,2021.0,Hurts when I Brown,,
+2023,Nick F,J. Hurts,4.0,4.0,active,initial,,import,imported,False,QB,2021.0,Hurts when I Brown,,
+2023,Nick F,B. Mayfield,2.0,2.0,active,initial,,import,imported,False,QB,2021.0,Hurts when I Brown,,
+2023,Nick F,D. Cook,45.0,45.0,active,initial,,import,imported,False,RB,2021.0,Hurts when I Brown,,
+2023,Nick F,S. Barkley,41.0,41.0,active,initial,,import,imported,False,RB,2021.0,Hurts when I Brown,,
+2023,Nick F,D. Harris,11.0,11.0,active,initial,,import,imported,False,RB,2021.0,Hurts when I Brown,,
+2023,Nick F,A. Mattison,2.0,2.0,active,initial,,import,imported,False,RB,2021.0,Hurts when I Brown,,
+2023,Nick F,Matt Breida,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2022.0,Hurts when I Brown,,
+2023,Nick F,C. Claypool,11.0,11.0,active,initial,,import,imported,False,WR,2021.0,Hurts when I Brown,,
+2023,Nick F,A. Thielen,16.0,16.0,active,initial,,import,imported,False,WR,2021.0,Hurts when I Brown,,
+2023,Nick F,D. London,14.0,14.0,active,initial,,import,imported,False,WR,2022.0,Hurts when I Brown,,
+2023,Nick F,K. Golladay,6.0,6.0,active,initial,,import,imported,False,WR,2021.0,Hurts when I Brown,,
+2023,Nick F,D. Duvernay,5.0,5.0,active,initial,,import,imported,False,WR,2022.0,Hurts when I Brown,,
+2023,Nick F,J. Crowder,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,Hurts when I Brown,,
+2023,Nick F,M. Gesicki,4.0,4.0,active,initial,,import,imported,False,TE,2021.0,Hurts when I Brown,,
+2023,Nick F,I Smith,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2021.0,Hurts when I Brown,,
+2023,Nick F,DEN,1.0,1.0,active,waiver_rental,waiver,import,imported,False,D,2021.0,Hurts when I Brown,,
+2023,Nick F,A. Lazard,9.0,9.0,active,initial,,import,imported,False,NAN,2023.0,Hurts when I Brown,,
+2023,Nick F,H. Renfrow,9.0,9.0,active,initial,,import,imported,False,NAN,2023.0,Hurts when I Brown,,
+2023,Nick F,Marlon Mack,1.0,1.0,active,waiver_rental,waiver,import,imported,False,NAN,,Hurts when I Brown,,
+2023,Nick F,TOTAL SALARY,198.0,198.0,active,initial,,import,imported,False,NAN,,Hurts when I Brown,,
+2023,Nick F,Salary Available,52.0,52.0,active,initial,,import,imported,False,NAN,,Hurts when I Brown,,
+2023,Stephen P,K. Murray,23.0,23.0,active,initial,,import,imported,False,QB,2021.0,The Deported Panda,,
+2023,Stephen P,C. McCaffery,53.0,53.0,active,initial,,import,imported,False,RB,2021.0,The Deported Panda,,
+2023,Stephen P,Zeke,33.0,33.0,active,initial,,import,imported,False,RB,2021.0,The Deported Panda,,
+2023,Stephen P,M. Carter,8.0,8.0,active,initial,,import,imported,False,RB,2022.0,The Deported Panda,,
+2023,Stephen P,Dar. Williams,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,2021.0,The Deported Panda,,
+2023,Stephen P,Amir Abdullah,2.0,2.0,active,initial,,import,imported,False,RB,2022.0,The Deported Panda,,
+2023,Stephen P,C. Kupp,17.0,17.0,active,initial,,import,imported,False,WR,2021.0,The Deported Panda,,
+2023,Stephen P,A. Robinson,19.0,19.0,active,initial,,import,imported,False,WR,2021.0,The Deported Panda,,
+2023,Stephen P,T. Higgins,13.0,13.0,active,initial,,import,imported,False,WR,2021.0,The Deported Panda,,
+2023,Stephen P,B. Cooks,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,The Deported Panda,,
+2023,Stephen P,D. Parker,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,The Deported Panda,,
+2023,Stephen P,T. Marshall,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2021.0,The Deported Panda,,
+2023,Stephen P,T. Burks,11.0,11.0,active,initial,,import,imported,False,WR,2022.0,The Deported Panda,,
+2023,Stephen P,Amon Ra St. Brown,13.0,13.0,active,initial,,import,imported,False,WR,2022.0,The Deported Panda,,
+2023,Stephen P,Denzel Mims,1.0,1.0,active,waiver_rental,waiver,import,imported,False,WR,2022.0,The Deported Panda,,
+2023,Stephen P,M. Andrews,15.0,15.0,active,initial,,import,imported,False,TE,2021.0,The Deported Panda,,
+2023,Stephen P,Austin Hooper,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,2022.0,The Deported Panda,,
+2023,Stephen P,BUF,1.0,1.0,active,waiver_rental,waiver,import,imported,False,D,2021.0,The Deported Panda,,
+2023,Stephen P,TOTAL SALARY,214.0,214.0,active,initial,,import,imported,False,NAN,,The Deported Panda,,
+2023,Stephen P,Salary Available,36.0,36.0,active,initial,,import,imported,False,NAN,,The Deported Panda,,
+2024,Aaron D,P. Mahomes,17.0,17.0,active,post_2024_base,unknown,import,imported,False,QB,,Thanks noob noob,2024-01-01 00:00:00,12.0
+2024,Aaron D,B. Hall,27.0,27.0,active,post_2024_base,unknown,import,imported,False,RB,,Thanks noob noob,2024-01-02 00:00:00,22.0
+2024,Aaron D,K. Herbert,9.0,9.0,active,post_2024_base,unknown,import,imported,False,RB,,Thanks noob noob,nan,9.0
+2024,Aaron D,T. Etienne,10.0,10.0,active,post_2024_base,unknown,import,imported,False,RB,,Thanks noob noob,2024-02-03 00:00:00,5.0
+2024,Aaron D,B. Robinson,8.0,8.0,active,post_2024_base,unknown,import,imported,False,RB,,Thanks noob noob,2024-01-01 00:00:00,3.0
+2024,Aaron D,Dev. Smith,18.0,18.0,active,post_2024_base,unknown,import,imported,False,WR,,Thanks noob noob,2024-02-02 00:00:00,13.0
+2024,Aaron D,J. Waddle,15.0,15.0,active,post_2024_base,unknown,import,imported,False,WR,,Thanks noob noob,2024-02-03 00:00:00,10.0
+2024,Aaron D,N. Collins,3.0,3.0,active,post_2024_base,unknown,import,imported,False,WR,,Thanks noob noob,NA 2025,3.0
+2024,Aaron D,S. La Porta,3.0,3.0,active,post_2024_base,unknown,import,imported,False,TE,,Thanks noob noob,NA 2025,3.0
+2024,Aaron D,C. McLaughlin,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,,Thanks noob noob,NA 2025,1.0
+2024,Aaron D,nan,111.0,111.0,active,post_2024_base,unknown,import,imported,False,NAN,,Thanks noob noob,Salary:,
+2024,Aaron D,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,Thanks noob noob,Budget:,
+2024,Aaron D,nan,89.0,89.0,active,post_2024_base,unknown,import,imported,False,NAN,,Thanks noob noob,Available:,
+2024,Andrew M,L. Jackson,18.0,18.0,active,post_2024_base,unknown,import,imported,False,QB,,Panda Fraud,NA 2025,18.0
+2024,Andrew M,Bijan Robinson,32.0,32.0,active,post_2024_base,unknown,import,imported,False,RB,,Panda Fraud,NA 2025,32.0
+2024,Andrew M,K. Walker,16.0,16.0,active,post_2024_base,unknown,import,imported,False,RB,,Panda Fraud,2024-01-02 00:00:00,11.0
+2024,Andrew M,T. Pollard,10.0,10.0,active,post_2024_base,unknown,import,imported,False,RB,,Panda Fraud,2024-02-03 00:00:00,5.0
+2024,Andrew M,D. Achane,5.0,5.0,active,post_2024_base,unknown,import,imported,False,RB,,Panda Fraud,NA 2025,5.0
+2024,Andrew M,T. Spears,5.0,5.0,active,post_2024_base,unknown,import,imported,False,RB,,Panda Fraud,NA 2025,5.0
+2024,Andrew M,D. Adams,34.0,34.0,active,post_2024_base,unknown,import,imported,False,WR,,Panda Fraud,NA 2025,34.0
+2024,Andrew M,C. Olave,19.0,19.0,active,post_2024_base,unknown,import,imported,False,WR,,Panda Fraud,2024-01-02 00:00:00,14.0
+2024,Andrew M,G. Wilson,10.0,10.0,active,post_2024_base,unknown,import,imported,False,WR,,Panda Fraud,2024-01-03 00:00:00,5.0
+2024,Andrew M,Bills,1.0,1.0,active,waiver_rental,waiver,import,imported,False,DST,,Panda Fraud,NA 2025,1.0
+2024,Andrew M,nan,150.0,150.0,active,post_2024_base,unknown,import,imported,False,NAN,,Panda Fraud,Salary:,
+2024,Andrew M,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,Panda Fraud,Budget:,
+2024,Andrew M,nan,50.0,50.0,active,post_2024_base,unknown,import,imported,False,NAN,,Panda Fraud,Available:,
+2024,Caleb K,B. Young,6.0,6.0,active,post_2024_base,unknown,import,imported,False,QB,,White Supremacists,NA 2025,6.0
+2024,Caleb K,D. Watson,11.0,11.0,active,post_2024_base,unknown,import,imported,False,QB,,White Supremacists,2024-02-03 00:00:00,6.0
+2024,Caleb K,CJ Stroud,2.0,2.0,active,post_2024_base,unknown,import,imported,False,QB,,White Supremacists,NA 2025,2.0
+2024,Caleb K,JK Dobbins,11.0,11.0,active,post_2024_base,unknown,import,imported,False,RB,,White Supremacists,2024-01-02 00:00:00,6.0
+2024,Caleb K,R. Stevenson,10.0,10.0,active,post_2024_base,unknown,import,imported,False,RB,,White Supremacists,2024-02-03 00:00:00,5.0
+2024,Caleb K,T. Bigsby,5.0,5.0,active,post_2024_base,unknown,import,imported,False,RB,,White Supremacists,NA 2025,5.0
+2024,Caleb K,Ros. Johnson,2.0,2.0,active,post_2024_base,unknown,import,imported,False,RB,,White Supremacists,NA 2025,2.0
+2024,Caleb K,B. Aiyuk,19.0,19.0,active,post_2024_base,unknown,import,imported,False,WR,,White Supremacists,NA 2025,19.0
+2024,Caleb K,Jame. Williams,12.0,12.0,active,post_2024_base,unknown,import,imported,False,WR,,White Supremacists,2024-01-03 00:00:00,7.0
+2024,Caleb K,J. Downs,3.0,3.0,active,post_2024_base,unknown,import,imported,False,WR,,White Supremacists,NA 2025,3.0
+2024,Caleb K,J. Reed,2.0,2.0,active,post_2024_base,unknown,import,imported,False,WR,,White Supremacists,NA 2025,2.0
+2024,Caleb K,K. Pitts,15.0,15.0,active,post_2024_base,unknown,import,imported,False,TE,,White Supremacists,NA 2025,15.0
+2024,Caleb K,D. Carlsen,3.0,3.0,active,post_2024_base,unknown,import,imported,False,K,,White Supremacists,NA 2025,3.0
+2024,Caleb K,Raiders,1.0,1.0,active,waiver_rental,waiver,import,imported,False,DST,,White Supremacists,NA 2025,1.0
+2024,Caleb K,nan,102.0,102.0,active,post_2024_base,unknown,import,imported,False,NAN,,White Supremacists,Salary:,
+2024,Caleb K,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,White Supremacists,Budget:,
+2024,Caleb K,nan,98.0,98.0,active,post_2024_base,unknown,import,imported,False,NAN,,White Supremacists,Available:,
+2024,Chris G,W. Levis,1.0,1.0,active,waiver_rental,waiver,import,imported,False,QB,,516-74-3927,NA 2025,1.0
+2024,Chris G,J. Connor,11.0,11.0,active,post_2024_base,unknown,import,imported,False,RB,,516-74-3927,2024-02-02 00:00:00,6.0
+2024,Chris G,Rac. White,8.0,8.0,active,post_2024_base,unknown,import,imported,False,RB,,516-74-3927,2024-01-02 00:00:00,3.0
+2024,Chris G,K. Miller,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,,516-74-3927,NA 2025,1.0
+2024,Chris G,C. Lamb,25.0,25.0,active,post_2024_base,unknown,import,imported,False,WR,,516-74-3927,2024-02-03 00:00:00,20.0
+2024,Chris G,J. Addison,18.0,18.0,active,post_2024_base,unknown,import,imported,False,WR,,516-74-3927,NA 2025,18.0
+2024,Chris G,G. Pickens,15.0,15.0,active,post_2024_base,unknown,import,imported,False,WR,,516-74-3927,2024-01-02 00:00:00,10.0
+2024,Chris G,R. Bateman,10.0,10.0,active,post_2024_base,unknown,import,imported,False,WR,,516-74-3927,2024-02-02 00:00:00,5.0
+2024,Chris G,J. Ferguson,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,,516-74-3927,NA 2025,1.0
+2024,Chris G,J. Myers,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,,516-74-3927,NA 2025,1.0
+2024,Chris G,Cowboys,1.0,1.0,active,waiver_rental,waiver,import,imported,False,DST,,516-74-3927,NA 2025,1.0
+2024,Chris G,nan,92.0,92.0,active,post_2024_base,unknown,import,imported,False,NAN,,516-74-3927,Salary:,
+2024,Chris G,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,516-74-3927,Budget:,
+2024,Chris G,nan,108.0,108.0,active,post_2024_base,unknown,import,imported,False,NAN,,516-74-3927,Available:,
+2024,Colby L,K. Cousins,10.0,10.0,active,post_2024_base,unknown,import,imported,False,QB,,Daddio of the Pandio,2024-02-02 00:00:00,5.0
+2024,Colby L,G. Smith,3.0,3.0,active,post_2024_base,unknown,import,imported,False,QB,,Daddio of the Pandio,NA 2025,3.0
+2024,Colby L,I. Pacheco,14.0,14.0,active,post_2024_base,unknown,import,imported,False,RB,,Daddio of the Pandio,NA 2025,14.0
+2024,Colby L,J. Cook,15.0,15.0,active,post_2024_base,unknown,import,imported,False,RB,,Daddio of the Pandio,2024-01-01 00:00:00,10.0
+2024,Colby L,C. Godwin,14.0,14.0,active,post_2024_base,unknown,import,imported,False,WR,,Daddio of the Pandio,NA 2025,14.0
+2024,Colby L,A. Cooper,14.0,14.0,active,post_2024_base,unknown,import,imported,False,WR,,Daddio of the Pandio,NA 2025,14.0
+2024,Colby L,M. Brown,5.0,5.0,active,post_2024_base,unknown,import,imported,False,WR,,Daddio of the Pandio,NA 2025,5.0
+2024,Colby L,C. Kmet,3.0,3.0,active,post_2024_base,unknown,import,imported,False,TE,,Daddio of the Pandio,NA 2025,3.0
+2024,Colby L,Eagles,3.0,3.0,active,post_2024_base,unknown,import,imported,False,DST,,Daddio of the Pandio,NA 2025,3.0
+2024,Colby L,nan,81.0,81.0,active,post_2024_base,unknown,import,imported,False,NAN,,Daddio of the Pandio,Salary:,
+2024,Colby L,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,Daddio of the Pandio,Budget:,
+2024,Colby L,nan,119.0,119.0,active,post_2024_base,unknown,import,imported,False,NAN,,Daddio of the Pandio,Available:,
+2024,Dawson O,A. Richardson,8.0,8.0,active,post_2024_base,unknown,import,imported,False,QB,,She Bo on my Nix til I TD,NA 2025,8.0
+2024,Dawson O,A. Jones,22.0,22.0,active,post_2024_base,unknown,import,imported,False,RB,,She Bo on my Nix til I TD,NA 2025,22.0
+2024,Dawson O,Z. Charbonnet,10.0,10.0,active,post_2024_base,unknown,import,imported,False,RB,,She Bo on my Nix til I TD,NA 2025,10.0
+2024,Dawson O,D. Hopkins,13.0,13.0,active,post_2024_base,unknown,import,imported,False,WR,,She Bo on my Nix til I TD,NA 2025,13.0
+2024,Dawson O,D. Samuel,15.0,15.0,active,post_2024_base,unknown,import,imported,False,WR,,She Bo on my Nix til I TD,2024-02-02 00:00:00,10.0
+2024,Dawson O,J. Chase,14.0,14.0,active,post_2024_base,unknown,import,imported,False,WR,,She Bo on my Nix til I TD,2024-02-03 00:00:00,9.0
+2024,Dawson O,J. Meyers,3.0,3.0,active,post_2024_base,unknown,import,imported,False,WR,,She Bo on my Nix til I TD,NA 2025,3.0
+2024,Dawson O,M. Pittman,6.0,6.0,active,post_2024_base,unknown,import,imported,False,WR,,She Bo on my Nix til I TD,nan,6.0
+2024,Dawson O,G. Dulcich,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,,She Bo on my Nix til I TD,NA 2025,1.0
+2024,Dawson O,nan,92.0,92.0,active,post_2024_base,unknown,import,imported,False,NAN,,She Bo on my Nix til I TD,Salary:,
+2024,Dawson O,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,She Bo on my Nix til I TD,Budget:,
+2024,Dawson O,nan,108.0,108.0,active,post_2024_base,unknown,import,imported,False,NAN,,She Bo on my Nix til I TD,Available:,
+2024,Josh C,J. Herbert,18.0,18.0,active,post_2024_base,unknown,import,imported,False,QB,,Disappointment,2024-02-03 00:00:00,13.0
+2024,Josh C,J. Burrow,10.0,10.0,active,post_2024_base,unknown,import,imported,False,QB,,Disappointment,2024-02-03 00:00:00,5.0
+2024,Josh C,D. Swift,26.0,26.0,active,post_2024_base,unknown,import,imported,False,RB,,Disappointment,NA 2025,26.0
+2024,Josh C,D. Cook,14.0,14.0,active,post_2024_base,unknown,import,imported,False,RB,,Disappointment,NA 2025,14.0
+2024,Josh C,J. Jefferson,32.0,32.0,active,post_2024_base,unknown,import,imported,False,WR,,Disappointment,2024-02-03 00:00:00,28.0
+2024,Josh C,Z. Flowers,18.0,18.0,active,post_2024_base,unknown,import,imported,False,WR,,Disappointment,NA 2025,18.0
+2024,Josh C,M. Evans,16.0,16.0,active,post_2024_base,unknown,import,imported,False,WR,,Disappointment,NA 2025,16.0
+2024,Josh C,T. Lockett,11.0,11.0,active,post_2024_base,unknown,import,imported,False,WR,,Disappointment,NA 2025,11.0
+2024,Josh C,D. Kincaid,3.0,3.0,active,post_2024_base,unknown,import,imported,False,TE,,Disappointment,NA 2025,3.0
+2024,Josh C,nan,148.0,148.0,active,post_2024_base,unknown,import,imported,False,NAN,,Disappointment,Salary:,
+2024,Josh C,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,Disappointment,Budget:,
+2024,Josh C,nan,52.0,52.0,active,post_2024_base,unknown,import,imported,False,NAN,,Disappointment,Available:,
+2024,Justin P,T. Lawrence,7.0,7.0,active,post_2024_base,unknown,import,imported,False,QB,,Dual Ethics,NA 2025,7.0
+2024,Justin P,A. Rodgers,3.0,3.0,active,post_2024_base,unknown,import,imported,False,QB,,Dual Ethics,NA 2025,3.0
+2024,Justin P,Jav. Williams,25.0,25.0,active,post_2024_base,unknown,import,imported,False,RB,,Dual Ethics,NA 2025,25.0
+2024,Justin P,N. Harris,25.0,25.0,active,post_2024_base,unknown,import,imported,False,RB,,Dual Ethics,NA 2025,25.0
+2024,Justin P,A. Kamara,16.0,16.0,active,post_2024_base,unknown,import,imported,False,RB,,Dual Ethics,NA 2025,16.0
+2024,Justin P,J. Smith-Njigba,17.0,17.0,active,post_2024_base,unknown,import,imported,False,WR,,Dual Ethics,NA 2025,17.0
+2024,Justin P,DJ Moore,15.0,15.0,active,post_2024_base,unknown,import,imported,False,WR,,Dual Ethics,NA 2025,15.0
+2024,Justin P,Ras. Rice,6.0,6.0,active,post_2024_base,unknown,import,imported,False,WR,,Dual Ethics,NA 2025,6.0
+2024,Justin P,E. Engram,6.0,6.0,active,post_2024_base,unknown,import,imported,False,TE,,Dual Ethics,NA 2025,6.0
+2024,Justin P,H. Butker,2.0,2.0,active,post_2024_base,unknown,import,imported,False,K,,Dual Ethics,NA 2025,2.0
+2024,Justin P,T. Bass,2.0,2.0,active,post_2024_base,unknown,import,imported,False,K,,Dual Ethics,NA 2025,2.0
+2024,Justin P,Ravens,2.0,2.0,active,post_2024_base,unknown,import,imported,False,DST,,Dual Ethics,NA 2025,2.0
+2024,Justin P,Commanders,2.0,2.0,active,post_2024_base,unknown,import,imported,False,DST,,Dual Ethics,NA 2025,2.0
+2024,Justin P,nan,128.0,128.0,active,post_2024_base,unknown,import,imported,False,NAN,,Dual Ethics,Salary:,
+2024,Justin P,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,Dual Ethics,Budget:,
+2024,Justin P,nan,72.0,72.0,active,post_2024_base,unknown,import,imported,False,NAN,,Dual Ethics,Available:,
+2024,Nick F,J. Hurts,12.0,12.0,active,post_2024_base,unknown,import,imported,False,QB,,Hurts when I Brown,2024-02-03 00:00:00,7.0
+2024,Nick F,S. Barkley,42.0,42.0,active,post_2024_base,unknown,import,imported,False,RB,,Hurts when I Brown,2024-02-02 00:00:00,37.0
+2024,Nick F,D. Montgomery,7.0,7.0,active,post_2024_base,unknown,import,imported,False,RB,,Hurts when I Brown,NA 2025,7.0
+2024,Nick F,J. Warren,4.0,4.0,active,post_2024_base,unknown,import,imported,False,RB,,Hurts when I Brown,NA 2025,4.0
+2024,Nick F,AJ Brown,36.0,36.0,active,post_2024_base,unknown,import,imported,False,WR,,Hurts when I Brown,NA 2025,36.0
+2024,Nick F,D'tae. Johnson,13.0,13.0,active,post_2024_base,unknown,import,imported,False,WR,,Hurts when I Brown,NA 2025,13.0
+2024,Nick F,D. London,16.0,16.0,active,post_2024_base,unknown,import,imported,False,WR,,Hurts when I Brown,2024-01-02 00:00:00,11.0
+2024,Nick F,R. Shaheed,2.0,2.0,active,post_2024_base,unknown,import,imported,False,WR,,Hurts when I Brown,NA 2025,2.0
+2024,Nick F,L. Musgraves,3.0,3.0,active,post_2024_base,unknown,import,imported,False,TE,,Hurts when I Brown,NA 2025,3.0
+2024,Nick F,G. Everett,3.0,3.0,active,post_2024_base,unknown,import,imported,False,TE,,Hurts when I Brown,NA 2025,3.0
+2024,Nick F,J. Sanders,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,,Hurts when I Brown,NA 2025,1.0
+2024,Nick F,Broncos,1.0,1.0,active,waiver_rental,waiver,import,imported,False,DST,,Hurts when I Brown,NA 2025,1.0
+2024,Nick F,nan,140.0,140.0,active,post_2024_base,unknown,import,imported,False,NAN,,Hurts when I Brown,Salary:,
+2024,Nick F,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,Hurts when I Brown,Budget:,
+2024,Nick F,nan,60.0,60.0,active,post_2024_base,unknown,import,imported,False,NAN,,Hurts when I Brown,Available:,
+2024,Stephen P,J. Fields,14.0,14.0,active,post_2024_base,unknown,import,imported,False,QB,,The Deported Panda,NA 2025,14.0
+2024,Stephen P,C. McCaffery,51.0,51.0,active,post_2024_base,unknown,import,imported,False,RB,,The Deported Panda,2024-02-02 00:00:00,46.0
+2024,Stephen P,J. Gibbs,30.0,30.0,active,post_2024_base,unknown,import,imported,False,RB,,The Deported Panda,NA 2025,30.0
+2024,Stephen P,C. Brooks,2.0,2.0,active,post_2024_base,unknown,import,imported,False,RB,,The Deported Panda,NA 2025,2.0
+2024,Stephen P,S. Tucker,1.0,1.0,active,waiver_rental,waiver,import,imported,False,RB,,The Deported Panda,NA 2025,1.0
+2024,Stephen P,C. Kupp,23.0,23.0,active,post_2024_base,unknown,import,imported,False,WR,,The Deported Panda,2024-02-02 00:00:00,18.0
+2024,Stephen P,T. Higgins,19.0,19.0,active,post_2024_base,unknown,import,imported,False,WR,,The Deported Panda,2024-02-03 00:00:00,14.0
+2024,Stephen P,AR. St Brown,15.0,15.0,active,post_2024_base,unknown,import,imported,False,WR,,The Deported Panda,2024-01-03 00:00:00,10.0
+2024,Stephen P,D. Mooney,3.0,3.0,active,post_2024_base,unknown,import,imported,False,WR,,The Deported Panda,NA 2025,3.0
+2024,Stephen P,C. Dicker,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,,The Deported Panda,NA 2025,1.0
+2024,Stephen P,nan,159.0,159.0,active,post_2024_base,unknown,import,imported,False,NAN,,The Deported Panda,Salary:,
+2024,Stephen P,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,The Deported Panda,Budget:,
+2024,Stephen P,nan,41.0,41.0,active,post_2024_base,unknown,import,imported,False,NAN,,The Deported Panda,Available:,
+2025,Aaron D,CJ Stroud,7.0,7.0,active,post_2024_base,unknown,import,imported,False,QB,,Thanks noob noob,2025-01-02 00:00:00,2.0
+2025,Aaron D,T. Tagovailoa,10.0,10.0,active,post_2024_base,unknown,import,imported,False,QB,,Thanks noob noob,NA 2026,
+2025,Aaron D,B. Hall,32.0,32.0,active,post_2024_base,unknown,import,imported,False,RB,,Thanks noob noob,2025-02-02 00:00:00,27.0
+2025,Aaron D,T. Etienne,15.0,15.0,active,post_2024_base,unknown,import,imported,False,RB,,Thanks noob noob,2025-03-03 00:00:00,10.0
+2025,Aaron D,T. Hill,39.0,39.0,active,post_2024_base,unknown,import,imported,False,WR,,Thanks noob noob,NA 2026,39.0
+2025,Aaron D,J. Waddle,20.0,20.0,active,post_2024_base,unknown,import,imported,False,WR,,Thanks noob noob,2025-03-03 00:00:00,15.0
+2025,Aaron D,N. Collins,8.0,8.0,active,post_2024_base,unknown,import,imported,False,WR,,Thanks noob noob,2025-01-03 00:00:00,3.0
+2025,Aaron D,R. Odunze,13.0,13.0,active,post_2024_base,unknown,import,imported,False,WR,,Thanks noob noob,NA 2026,13.0
+2025,Aaron D,B. Thomas,6.0,6.0,active,post_2024_base,unknown,import,imported,False,WR,,Thanks noob noob,NA 2026,6.0
+2025,Aaron D,TJ Hockenson,1.0,1.0,active,waiver_rental,waiver,import,imported,False,TE,,Thanks noob noob,NA 2026,1.0
+2025,Aaron D,C. McLaughlin,1.0,1.0,cut,waiver_rental,waiver,import,imported,False,K,,Thanks noob noob,CUT,1.0
+2025,Aaron D,Dolphins,1.0,1.0,active,waiver_rental,waiver,import,imported,False,DST,,Thanks noob noob,NA 2026,1.0
+2025,Aaron D,J. Wright,1.0,1.0,active,waiver_rental,waiver,import,imported,False,CUT,,Thanks noob noob,nan,
+2025,Aaron D,nan,153.0,153.0,active,post_2024_base,unknown,import,imported,False,NAN,,Thanks noob noob,Salary:,
+2025,Aaron D,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,Thanks noob noob,Budget:,
+2025,Aaron D,nan,47.0,47.0,active,post_2024_base,unknown,import,imported,False,NAN,,Thanks noob noob,Available:,
+2025,Andrew M,L. Jackson,23.0,23.0,active,post_2024_base,unknown,import,imported,False,QB,,Panda Fraud,2025-01-01 00:00:00,18.0
+2025,Andrew M,K. Murray,11.0,11.0,active,post_2024_base,unknown,import,imported,False,QB,,Panda Fraud,NA 2026,11.0
+2025,Andrew M,Bijan Robinson,37.0,37.0,active,post_2024_base,unknown,import,imported,False,RB,,Panda Fraud,2025-01-02 00:00:00,32.0
+2025,Andrew M,K. Walker,21.0,21.0,active,post_2024_base,unknown,import,imported,False,RB,,Panda Fraud,2025-02-02 00:00:00,16.0
+2025,Andrew M,T. Pollard,15.0,15.0,active,post_2024_base,unknown,import,imported,False,RB,,Panda Fraud,2025-03-03 00:00:00,10.0
+2025,Andrew M,D. Achane,10.0,10.0,active,post_2024_base,unknown,import,imported,False,RB,,Panda Fraud,2025-01-03 00:00:00,5.0
+2025,Andrew M,T. Spears,5.0,5.0,cut,post_2024_base,unknown,import,imported,False,RB,,Panda Fraud,CUT,5.0
+2025,Andrew M,A. Estime,1.0,1.0,cut,waiver_rental,waiver,import,imported,False,RB,,Panda Fraud,CUT,1.0
+2025,Andrew M,D. Adams,34.0,34.0,cut,post_2024_base,unknown,import,imported,False,WR,,Panda Fraud,CUT,34.0
+2025,Andrew M,G. Wilson,15.0,15.0,active,post_2024_base,unknown,import,imported,False,WR,,Panda Fraud,2025-02-03 00:00:00,10.0
+2025,Andrew M,E. McPherson,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,,Panda Fraud,NA 2026,1.0
+2025,Andrew M,Bills,1.0,1.0,cut,waiver_rental,waiver,import,imported,False,DST,,Panda Fraud,CUT,1.0
+2025,Andrew M,C. Olave,12.0,12.0,active,post_2024_base,unknown,import,imported,False,CUT,,Panda Fraud,nan,
+2025,Andrew M,M. Andrews,8.0,8.0,active,post_2024_base,unknown,import,imported,False,CUT,,Panda Fraud,nan,
+2025,Andrew M,K. Walker,11.0,11.0,active,post_2024_base,unknown,import,imported,False,CUT,,Panda Fraud,nan,
+2025,Andrew M,A. Estime,1.0,1.0,active,waiver_rental,waiver,import,imported,False,CUT,,Panda Fraud,nan,
+2025,Andrew M,nan,165.0,165.0,active,post_2024_base,unknown,import,imported,False,NAN,,Panda Fraud,Salary:,
+2025,Andrew M,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,Panda Fraud,Budget:,
+2025,Andrew M,nan,35.0,35.0,active,post_2024_base,unknown,import,imported,False,NAN,,Panda Fraud,Available:,
+2025,Caleb K,J. Daniels,11.0,11.0,active,post_2024_base,unknown,import,imported,False,QB,,White Supremacists,NA 2026,11.0
+2025,Caleb K,A. Richardson,8.0,8.0,cut,post_2024_base,unknown,import,imported,False,QB,,White Supremacists,CUT,8.0
+2025,Caleb K,JK Dobbins,16.0,16.0,active,post_2024_base,unknown,import,imported,False,RB,,White Supremacists,2025-02-02 00:00:00,11.0
+2025,Caleb K,A. Jones,22.0,22.0,cut,post_2024_base,unknown,import,imported,False,RB,,White Supremacists,CUT,22.0
+2025,Caleb K,B. Corum,7.0,7.0,active,post_2024_base,unknown,import,imported,False,RB,,White Supremacists,NA 2026,7.0
+2025,Caleb K,Ros. Johnson,2.0,2.0,cut,post_2024_base,unknown,import,imported,False,RB,,White Supremacists,CUT,2.0
+2025,Caleb K,J. Taylor,35.0,35.0,active,post_2024_base,unknown,import,imported,False,RB,,White Supremacists,NA 2026,35.0
+2025,Caleb K,DK Metcalf,17.0,17.0,active,post_2024_base,unknown,import,imported,False,WR,,White Supremacists,NA 2026,17.0
+2025,Caleb K,B. Aiyuk,19.0,19.0,cut,post_2024_base,unknown,import,imported,False,WR,,White Supremacists,CUT,19.0
+2025,Caleb K,Jame. Williams,17.0,17.0,active,post_2024_base,unknown,import,imported,False,WR,,White Supremacists,2025-02-03 00:00:00,12.0
+2025,Caleb K,J. Meyers,8.0,8.0,active,post_2024_base,unknown,import,imported,False,WR,,White Supremacists,2025-01-01 00:00:00,3.0
+2025,Caleb K,M. Nabers,12.0,12.0,active,post_2024_base,unknown,import,imported,False,WR,,White Supremacists,NA 2026,12.0
+2025,Caleb K,J. Reed,7.0,7.0,active,post_2024_base,unknown,import,imported,False,WR,,White Supremacists,2025-01-01 00:00:00,2.0
+2025,Caleb K,K. Pitts,15.0,15.0,cut,post_2024_base,unknown,import,imported,False,TE,,White Supremacists,CUT,15.0
+2025,Caleb K,D. Carlsen,3.0,3.0,cut,post_2024_base,unknown,import,imported,False,K,,White Supremacists,CUT,3.0
+2025,Caleb K,Raiders,1.0,1.0,cut,waiver_rental,waiver,import,imported,False,DST,,White Supremacists,CUT,1.0
+2025,Caleb K,Z. White,10.0,10.0,active,post_2024_base,unknown,import,imported,False,CUT,,White Supremacists,nan,
+2025,Caleb K,nan,140.0,140.0,active,post_2024_base,unknown,import,imported,False,NAN,,White Supremacists,Salary:,
+2025,Caleb K,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,White Supremacists,Budget:,
+2025,Caleb K,nan,60.0,60.0,active,post_2024_base,unknown,import,imported,False,NAN,,White Supremacists,Available:,
+2025,Chris G,J. Love,11.0,11.0,active,post_2024_base,unknown,import,imported,False,QB,,516-74-3927,NA 2026,11.0
+2025,Chris G,C. Williams,3.0,3.0,active,post_2024_base,unknown,import,imported,False,QB,,516-74-3927,NA 2026,3.0
+2025,Chris G,W. Levis,1.0,1.0,cut,waiver_rental,waiver,import,imported,False,QB,,516-74-3927,CUT,1.0
+2025,Chris G,Rac. White,8.0,8.0,cut,post_2024_base,unknown,import,imported,False,RB,,516-74-3927,CUT,8.0
+2025,Chris G,K. Miller,1.0,1.0,cut,waiver_rental,waiver,import,imported,False,RB,,516-74-3927,CUT,1.0
+2025,Chris G,J. Brooks,15.0,15.0,cut,post_2024_base,unknown,import,imported,False,RB,,516-74-3927,CUT,15.0
+2025,Chris G,T. Allgeier,2.0,2.0,active,post_2024_base,unknown,import,imported,False,RB,,516-74-3927,NA 2026,2.0
+2025,Chris G,C. Lamb,30.0,30.0,active,post_2024_base,unknown,import,imported,False,WR,,516-74-3927,2025-03-03 00:00:00,25.0
+2025,Chris G,J. Addison,18.0,18.0,cut,post_2024_base,unknown,import,imported,False,WR,,516-74-3927,CUT,18.0
+2025,Chris G,G. Pickens,20.0,20.0,active,post_2024_base,unknown,import,imported,False,WR,,516-74-3927,2025-03-03 00:00:00,15.0
+2025,Chris G,K. Shakir,3.0,3.0,active,post_2024_base,unknown,import,imported,False,WR,,516-74-3927,NA 2026,3.0
+2025,Chris G,T. McBride,12.0,12.0,active,post_2024_base,unknown,import,imported,False,TE,,516-74-3927,NA 2026,12.0
+2025,Chris G,J. Ferguson,1.0,1.0,cut,waiver_rental,waiver,import,imported,False,TE,,516-74-3927,CUT,1.0
+2025,Chris G,J. Myers,1.0,1.0,cut,waiver_rental,waiver,import,imported,False,K,,516-74-3927,CUT,1.0
+2025,Chris G,Cowboys,1.0,1.0,cut,waiver_rental,waiver,import,imported,False,DST,,516-74-3927,CUT,1.0
+2025,Chris G,J. Brooks,8.0,8.0,active,post_2024_base,unknown,import,imported,False,NAN,,516-74-3927,nan,
+2025,Chris G,R. White,7.0,7.0,active,post_2024_base,unknown,import,imported,False,NAN,,516-74-3927,nan,
+2025,Chris G,nan,96.0,96.0,active,post_2024_base,unknown,import,imported,False,NAN,,516-74-3927,Salary:,
+2025,Chris G,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,516-74-3927,Budget:,
+2025,Chris G,nan,104.0,104.0,active,post_2024_base,unknown,import,imported,False,NAN,,516-74-3927,Available:,
+2025,Colby L,G. Smith,3.0,3.0,cut,post_2024_base,unknown,import,imported,False,QB,,Daddio of the Pandio,CUT,3.0
+2025,Colby L,I. Pacheco,19.0,19.0,active,post_2024_base,unknown,import,imported,False,RB,,Daddio of the Pandio,2025-01-01 00:00:00,14.0
+2025,Colby L,J. Mixon,13.0,13.0,active,post_2024_base,unknown,import,imported,False,RB,,Daddio of the Pandio,NA 2026,13.0
+2025,Colby L,J. Ford,6.0,6.0,active,post_2024_base,unknown,import,imported,False,RB,,Daddio of the Pandio,NA 2026,6.0
+2025,Colby L,P. Nacua,29.0,29.0,active,post_2024_base,unknown,import,imported,False,WR,,Daddio of the Pandio,NA 2026,29.0
+2025,Colby L,C. Godwin,14.0,14.0,cut,post_2024_base,unknown,import,imported,False,WR,,Daddio of the Pandio,CUT,14.0
+2025,Colby L,A. Cooper,14.0,14.0,cut,post_2024_base,unknown,import,imported,False,WR,,Daddio of the Pandio,CUT,14.0
+2025,Colby L,T. McLaurin,7.0,7.0,active,post_2024_base,unknown,import,imported,False,WR,,Daddio of the Pandio,NA 2026,7.0
+2025,Colby L,L. McConkey,4.0,4.0,active,post_2024_base,unknown,import,imported,False,WR,,Daddio of the Pandio,NA 2026,4.0
+2025,Colby L,M. Brown,5.0,5.0,cut,post_2024_base,unknown,import,imported,False,WR,,Daddio of the Pandio,CUT,5.0
+2025,Colby L,C. Kmet,3.0,3.0,cut,post_2024_base,unknown,import,imported,False,TE,,Daddio of the Pandio,CUT,3.0
+2025,Colby L,B. Aubrey,1.0,1.0,active,waiver_rental,waiver,import,imported,False,K,,Daddio of the Pandio,NA 2026,1.0
+2025,Colby L,Eagles,3.0,3.0,cut,post_2024_base,unknown,import,imported,False,DST,,Daddio of the Pandio,CUT,3.0
+2025,Colby L,nan,79.0,79.0,active,post_2024_base,unknown,import,imported,False,NAN,,Daddio of the Pandio,Salary:,
+2025,Colby L,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,Daddio of the Pandio,Budget:,
+2025,Colby L,nan,121.0,121.0,active,post_2024_base,unknown,import,imported,False,NAN,,Daddio of the Pandio,Available:,
+2025,Dawson O,R. Stevenson,15.0,15.0,active,post_2024_base,unknown,import,imported,False,RB,,She Bo on my Nix til I TD,2025-03-03 00:00:00,10.0
+2025,Dawson O,Z. Charbonnet,10.0,10.0,cut,post_2024_base,unknown,import,imported,False,RB,,She Bo on my Nix til I TD,CUT,10.0
+2025,Dawson O,K. Williams,35.0,35.0,active,post_2024_base,unknown,import,imported,False,RB,,She Bo on my Nix til I TD,NA 2026,35.0
+2025,Dawson O,R. Mostert,10.0,10.0,active,post_2024_base,unknown,import,imported,False,RB,,She Bo on my Nix til I TD,NA 2026,10.0
+2025,Dawson O,J. Jacobs,33.0,33.0,active,post_2024_base,unknown,import,imported,False,RB,,She Bo on my Nix til I TD,NA 2026,33.0
+2025,Dawson O,D. Hopkins,13.0,13.0,cut,post_2024_base,unknown,import,imported,False,WR,,She Bo on my Nix til I TD,CUT,13.0
+2025,Dawson O,K. Coleman,6.0,6.0,active,post_2024_base,unknown,import,imported,False,WR,,She Bo on my Nix til I TD,NA 2026,6.0
+2025,Dawson O,J. Chase,19.0,19.0,active,post_2024_base,unknown,import,imported,False,WR,,She Bo on my Nix til I TD,2025-03-03 00:00:00,14.0
+2025,Dawson O,S. LaPorta,8.0,8.0,active,post_2024_base,unknown,import,imported,False,TE,,She Bo on my Nix til I TD,2025-01-02 00:00:00,3.0
+2025,Dawson O,G. Kittle,14.0,14.0,active,post_2024_base,unknown,import,imported,False,TE,,She Bo on my Nix til I TD,NA 2026,14.0
+2025,Dawson O,J. Tucker,2.0,2.0,cut,post_2024_base,unknown,import,imported,False,K,,She Bo on my Nix til I TD,CUT NO PENALTY,2.0
+2025,Dawson O,Jets,2.0,2.0,active,post_2024_base,unknown,import,imported,False,DST,,She Bo on my Nix til I TD,NA 2026,2.0
+2025,Dawson O,nan,142.0,142.0,active,post_2024_base,unknown,import,imported,False,NAN,,She Bo on my Nix til I TD,Salary:,
+2025,Dawson O,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,She Bo on my Nix til I TD,Budget:,
+2025,Dawson O,nan,58.0,58.0,active,post_2024_base,unknown,import,imported,False,NAN,,She Bo on my Nix til I TD,Available:,
+2025,Josh C,J. Herbert,23.0,23.0,active,post_2024_base,unknown,import,imported,False,QB,,Disappointment,2025-03-03 00:00:00,18.0
+2025,Josh C,J. Burrow,15.0,15.0,active,post_2024_base,unknown,import,imported,False,QB,,Disappointment,2025-03-03 00:00:00,10.0
+2025,Josh C,D. Swift,26.0,26.0,cut,post_2024_base,unknown,import,imported,False,RB,,Disappointment,CUT,26.0
+2025,Josh C,D. Cook,14.0,14.0,cut,post_2024_base,unknown,import,imported,False,RB,,Disappointment,CUT,14.0
+2025,Josh C,D. Henry,21.0,21.0,active,post_2024_base,unknown,import,imported,False,RB,,Disappointment,NA 2026,21.0
+2025,Josh C,T. Benson,5.0,5.0,active,post_2024_base,unknown,import,imported,False,RB,,Disappointment,NA 2026,5.0
+2025,Josh C,J. Jefferson,37.0,37.0,active,post_2024_base,unknown,import,imported,False,WR,,Disappointment,2025-03-03 00:00:00,32.0
+2025,Josh C,Z. Flowers,18.0,18.0,cut,post_2024_base,unknown,import,imported,False,WR,,Disappointment,CUT,18.0
+2025,Josh C,M. Evans,21.0,21.0,active,post_2024_base,unknown,import,imported,False,WR,,Disappointment,2025-01-01 00:00:00,16.0
+2025,Josh C,T. Lockett,11.0,11.0,cut,post_2024_base,unknown,import,imported,False,WR,,Disappointment,CUT,11.0
+2025,Josh C,T. Dell,20.0,20.0,cut,post_2024_base,unknown,import,imported,False,WR,,Disappointment,CUT,20.0
+2025,Josh C,J. Palmer,6.0,6.0,active,post_2024_base,unknown,import,imported,False,WR,,Disappointment,NA 2026,6.0
+2025,Josh C,D. Kincaid,3.0,3.0,cut,post_2024_base,unknown,import,imported,False,TE,,Disappointment,CUT,3.0
+2025,Josh C,T. Dell,10.0,10.0,active,post_2024_base,unknown,import,imported,False,CUT,,Disappointment,nan,
+2025,Josh C,nan,138.0,138.0,active,post_2024_base,unknown,import,imported,False,NAN,,Disappointment,Salary:,
+2025,Josh C,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,Disappointment,Budget:,
+2025,Josh C,nan,62.0,62.0,active,post_2024_base,unknown,import,imported,False,NAN,,Disappointment,Available:,
+2025,Justin P,T. Lawrence,7.0,7.0,cut,post_2024_base,unknown,import,imported,False,QB,,Dual Ethics,CUT,7.0
+2025,Justin P,A. Rodgers,3.0,3.0,cut,post_2024_base,unknown,import,imported,False,QB,,Dual Ethics,CUT,3.0
+2025,Justin P,J. Goff,3.0,3.0,active,post_2024_base,unknown,import,imported,False,QB,,Dual Ethics,NA 2026,3.0
+2025,Justin P,Jav. Williams,25.0,25.0,cut,post_2024_base,unknown,import,imported,False,RB,,Dual Ethics,CUT,25.0
+2025,Justin P,N. Harris,25.0,25.0,cut,post_2024_base,unknown,import,imported,False,RB,,Dual Ethics,CUT,25.0
+2025,Justin P,A. Kamara,21.0,21.0,active,post_2024_base,unknown,import,imported,False,RB,,Dual Ethics,2025-01-01 00:00:00,16.0
+2025,Justin P,D. Singletary,4.0,4.0,active,post_2024_base,unknown,import,imported,False,RB,,Dual Ethics,NA 2026,4.0
+2025,Justin P,J. Smith-Njigba,17.0,17.0,cut,post_2024_base,unknown,import,imported,False,WR,,Dual Ethics,CUT,17.0
+2025,Justin P,DJ Moore,20.0,20.0,active,post_2024_base,unknown,import,imported,False,WR,,Dual Ethics,2025-01-01 00:00:00,15.0
+2025,Justin P,X. Worthy,15.0,15.0,active,post_2024_base,unknown,import,imported,False,WR,,Dual Ethics,NA 2026,15.0
+2025,Justin P,Ras. Rice,6.0,6.0,cut,post_2024_base,unknown,import,imported,False,WR,,Dual Ethics,CUT,6.0
+2025,Justin P,S. Diggs,12.0,12.0,active,post_2024_base,unknown,import,imported,False,WR,,Dual Ethics,NA 2026,12.0
+2025,Justin P,B. Bowers,12.0,12.0,active,post_2024_base,unknown,import,imported,False,TE,,Dual Ethics,NA 2026,12.0
+2025,Justin P,E. Engram,11.0,11.0,active,post_2024_base,unknown,import,imported,False,TE,,Dual Ethics,2025-01-01 00:00:00,6.0
+2025,Justin P,D. Goedert,2.0,2.0,active,post_2024_base,unknown,import,imported,False,TE,,Dual Ethics,NA 2026,2.0
+2025,Justin P,H. Butker,2.0,2.0,cut,post_2024_base,unknown,import,imported,False,K,,Dual Ethics,CUT,2.0
+2025,Justin P,T. Bass,2.0,2.0,cut,post_2024_base,unknown,import,imported,False,K,,Dual Ethics,CUT,2.0
+2025,Justin P,Ravens,2.0,2.0,cut,post_2024_base,unknown,import,imported,False,DST,,Dual Ethics,CUT,2.0
+2025,Justin P,Commanders,2.0,2.0,cut,post_2024_base,unknown,import,imported,False,DST,,Dual Ethics,CUT,2.0
+2025,Justin P,nan,100.0,100.0,active,post_2024_base,unknown,import,imported,False,NAN,,Dual Ethics,Salary:,
+2025,Justin P,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,Dual Ethics,Budget:,
+2025,Justin P,nan,100.0,100.0,active,post_2024_base,unknown,import,imported,False,NAN,,Dual Ethics,Available:,
+2025,Nick F,J. Hurts,17.0,17.0,active,post_2024_base,unknown,import,imported,False,QB,,Hurts when I Brown,2025-03-03 00:00:00,12.0
+2025,Nick F,D. Montgomery,12.0,12.0,active,post_2024_base,unknown,import,imported,False,RB,,Hurts when I Brown,2025-01-01 00:00:00,7.0
+2025,Nick F,J. Warren,4.0,4.0,cut,post_2024_base,unknown,import,imported,False,RB,,Hurts when I Brown,CUT,4.0
+2025,Nick F,C. Brown,8.0,8.0,active,post_2024_base,unknown,import,imported,False,RB,,Hurts when I Brown,NA 2026,8.0
+2025,Nick F,AJ Brown,35.0,35.0,active,post_2024_base,unknown,import,imported,False,WR,,Hurts when I Brown,2025-01-01 00:00:00,36.0
+2025,Nick F,D'tae. Johnson,13.0,13.0,cut,post_2024_base,unknown,import,imported,False,WR,,Hurts when I Brown,CUT,13.0
+2025,Nick F,D. London,21.0,21.0,active,post_2024_base,unknown,import,imported,False,WR,,Hurts when I Brown,2025-03-03 00:00:00,16.0
+2025,Nick F,R. Shaheed,2.0,2.0,cut,post_2024_base,unknown,import,imported,False,WR,,Hurts when I Brown,CUT,2.0
+2025,Nick F,M. Harrison Jr,27.0,27.0,active,post_2024_base,unknown,import,imported,False,WR,,Hurts when I Brown,NA 2026,27.0
+2025,Nick F,L. Musgraves,3.0,3.0,cut,post_2024_base,unknown,import,imported,False,TE,,Hurts when I Brown,CUT,3.0
+2025,Nick F,G. Everett,3.0,3.0,cut,post_2024_base,unknown,import,imported,False,TE,,Hurts when I Brown,CUT,3.0
+2025,Nick F,D. Njoku,8.0,8.0,active,post_2024_base,unknown,import,imported,False,TE,,Hurts when I Brown,NA 2026,8.0
+2025,Nick F,J. Sanders,1.0,1.0,cut,waiver_rental,waiver,import,imported,False,K,,Hurts when I Brown,CUT,1.0
+2025,Nick F,Broncos,1.0,1.0,cut,waiver_rental,waiver,import,imported,False,DST,,Hurts when I Brown,CUT,1.0
+2025,Nick F,nan,128.0,128.0,active,post_2024_base,unknown,import,imported,False,NAN,,Hurts when I Brown,Salary:,
+2025,Nick F,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,Hurts when I Brown,Budget:,
+2025,Nick F,nan,72.0,72.0,active,post_2024_base,unknown,import,imported,False,NAN,,Hurts when I Brown,Available:,
+2025,Stephen P,J. Fields,14.0,14.0,cut,post_2024_base,unknown,import,imported,False,QB,,The Deported Panda,CUT,14.0
+2025,Stephen P,J. Allen,23.0,23.0,active,post_2024_base,unknown,import,imported,False,QB,,The Deported Panda,NA 2026,23.0
+2025,Stephen P,J. Gibbs,35.0,35.0,active,post_2024_base,unknown,import,imported,False,RB,,The Deported Panda,2025-01-03 00:00:00,30.0
+2025,Stephen P,C. Brooks,2.0,2.0,cut,post_2024_base,unknown,import,imported,False,RB,,The Deported Panda,CUT,2.0
+2025,Stephen P,S. Tucker,1.0,1.0,cut,waiver_rental,waiver,import,imported,False,RB,,The Deported Panda,CUT,1.0
+2025,Stephen P,T. Higgins,24.0,24.0,active,post_2024_base,unknown,import,imported,False,WR,,The Deported Panda,2025-03-03 00:00:00,19.0
+2025,Stephen P,AR. St Brown,20.0,20.0,active,post_2024_base,unknown,import,imported,False,WR,,The Deported Panda,2025-02-03 00:00:00,15.0
+2025,Stephen P,D. Mooney,3.0,3.0,cut,post_2024_base,unknown,import,imported,False,WR,,The Deported Panda,CUT,3.0
+2025,Stephen P,T. Kelce,16.0,16.0,active,post_2024_base,unknown,import,imported,False,TE,,The Deported Panda,NA 2026,16.0
+2025,Stephen P,C. Dicker,1.0,1.0,cut,waiver_rental,waiver,import,imported,False,K,,The Deported Panda,CUT,1.0
+2025,Stephen P,49ers,1.0,1.0,active,waiver_rental,waiver,import,imported,False,DST,,The Deported Panda,NA 2026,1.0
+2025,Stephen P,nan,119.0,119.0,active,post_2024_base,unknown,import,imported,False,NAN,,The Deported Panda,Salary:,
+2025,Stephen P,nan,200.0,200.0,active,post_2024_base,unknown,import,imported,False,NAN,,The Deported Panda,Budget:,
+2025,Stephen P,nan,81.0,81.0,active,post_2024_base,unknown,import,imported,False,NAN,,The Deported Panda,Available:,

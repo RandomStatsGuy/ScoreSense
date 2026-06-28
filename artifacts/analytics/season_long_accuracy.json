@@ -1,0 +1,2732 @@
+{
+  "qb_blend_tuning": {
+    "position": "qb",
+    "chosen_alpha": 0.3,
+    "current_constant_alpha": 0.5,
+    "train_seasons": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "holdout_seasons": [
+      2025
+    ],
+    "train_mae_by_alpha": {
+      "0.0": 88.81,
+      "0.05": 88.05,
+      "0.1": 87.39,
+      "0.15": 86.76,
+      "0.2": 86.35,
+      "0.25": 86.11,
+      "0.3": 86.01,
+      "0.35": 86.02,
+      "0.4": 86.03,
+      "0.45": 86.24,
+      "0.5": 86.6,
+      "0.55": 87.17,
+      "0.6": 87.89,
+      "0.65": 88.73,
+      "0.7": 89.74,
+      "0.75": 90.79,
+      "0.8": 91.99,
+      "0.85": 93.34,
+      "0.9": 94.84,
+      "0.95": 96.43,
+      "1.0": 98.07
+    },
+    "holdout_mae": {
+      "chosen": 72.66,
+      "current_constant": 78.69
+    }
+  },
+  "rb_blend_tuning": {
+    "position": "rb",
+    "chosen_alpha": 0.55,
+    "current_constant_alpha": 1.0,
+    "train_seasons": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "holdout_seasons": [
+      2025
+    ],
+    "train_mae_by_alpha": {
+      "0.0": 66.16,
+      "0.05": 65.59,
+      "0.1": 65.06,
+      "0.15": 64.56,
+      "0.2": 64.13,
+      "0.25": 63.78,
+      "0.3": 63.51,
+      "0.35": 63.32,
+      "0.4": 63.15,
+      "0.45": 63.0,
+      "0.5": 62.89,
+      "0.55": 62.85,
+      "0.6": 62.9,
+      "0.65": 63.03,
+      "0.7": 63.28,
+      "0.75": 63.67,
+      "0.8": 64.18,
+      "0.85": 64.71,
+      "0.9": 65.31,
+      "0.95": 66.04,
+      "1.0": 66.82
+    },
+    "holdout_mae": {
+      "chosen": 56.49,
+      "current_constant": 61.83
+    }
+  },
+  "wr_blend_tuning": {
+    "position": "wr",
+    "chosen_alpha": 0.4,
+    "current_constant_alpha": 1.0,
+    "train_seasons": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "holdout_seasons": [
+      2025
+    ],
+    "train_mae_by_alpha": {
+      "0.0": 53.85,
+      "0.05": 53.39,
+      "0.1": 52.98,
+      "0.15": 52.66,
+      "0.2": 52.43,
+      "0.25": 52.24,
+      "0.3": 52.1,
+      "0.35": 52.01,
+      "0.4": 51.98,
+      "0.45": 52.04,
+      "0.5": 52.2,
+      "0.55": 52.43,
+      "0.6": 52.72,
+      "0.65": 53.06,
+      "0.7": 53.47,
+      "0.75": 53.94,
+      "0.8": 54.45,
+      "0.85": 55.03,
+      "0.9": 55.68,
+      "0.95": 56.4,
+      "1.0": 57.15
+    },
+    "holdout_mae": {
+      "chosen": 44.1,
+      "current_constant": 48.63
+    }
+  },
+  "ros_rolling_weeks_tuning": {
+    "position": "qb",
+    "chosen_weeks": 8,
+    "current_constant_weeks": 4,
+    "train_seasons": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "holdout_seasons": [
+      2025
+    ],
+    "train_mae_by_weeks": {
+      "2": 55.56,
+      "3": 55.23,
+      "4": 55.46,
+      "6": 55.13,
+      "8": 54.88
+    },
+    "holdout_mae": {
+      "chosen": 58.31,
+      "current_constant": 57.31
+    }
+  },
+  "fp_blend_tuning": {
+    "qb": {
+      "chosen_beta": 0.3,
+      "train_mae_by_beta": {
+        "0.0": 71.17,
+        "0.05": 68.94,
+        "0.1": 67.26,
+        "0.15": 66.07,
+        "0.2": 65.18,
+        "0.25": 64.63,
+        "0.3": 64.45,
+        "0.35": 64.83,
+        "0.4": 65.37,
+        "0.45": 65.98,
+        "0.5": 66.87,
+        "0.55": 67.96,
+        "0.6": 69.16,
+        "0.65": 70.66,
+        "0.7": 72.49,
+        "0.75": 74.56,
+        "0.8": 76.77,
+        "0.85": 79.01,
+        "0.9": 81.28,
+        "0.95": 83.69,
+        "1.0": 86.25
+      },
+      "position": "qb",
+      "train_seasons": [
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "holdout_seasons": [
+        2025
+      ],
+      "holdout_mae": {
+        "chosen_beta": 63.89,
+        "scoresense_only": 75.11
+      }
+    },
+    "rb": {
+      "chosen_beta": 0.3,
+      "train_mae_by_beta": {
+        "0.0": 52.69,
+        "0.05": 52.14,
+        "0.1": 51.65,
+        "0.15": 51.19,
+        "0.2": 50.82,
+        "0.25": 50.65,
+        "0.3": 50.63,
+        "0.35": 50.81,
+        "0.4": 51.13,
+        "0.45": 51.56,
+        "0.5": 52.18,
+        "0.55": 52.89,
+        "0.6": 53.69,
+        "0.65": 54.61,
+        "0.7": 55.64,
+        "0.75": 56.77,
+        "0.8": 58.01,
+        "0.85": 59.33,
+        "0.9": 60.7,
+        "0.95": 62.16,
+        "1.0": 63.7
+      },
+      "position": "rb",
+      "train_seasons": [
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "holdout_seasons": [
+        2025
+      ],
+      "holdout_mae": {
+        "chosen_beta": 41.72,
+        "scoresense_only": 54.01
+      }
+    },
+    "wr": {
+      "chosen_beta": 0.35,
+      "train_mae_by_beta": {
+        "0.0": 47.51,
+        "0.05": 46.9,
+        "0.1": 46.37,
+        "0.15": 45.92,
+        "0.2": 45.57,
+        "0.25": 45.33,
+        "0.3": 45.2,
+        "0.35": 45.17,
+        "0.4": 45.23,
+        "0.45": 45.38,
+        "0.5": 45.63,
+        "0.55": 45.97,
+        "0.6": 46.41,
+        "0.65": 46.91,
+        "0.7": 47.49,
+        "0.75": 48.15,
+        "0.8": 48.88,
+        "0.85": 49.69,
+        "0.9": 50.55,
+        "0.95": 51.45,
+        "1.0": 52.46
+      },
+      "position": "wr",
+      "train_seasons": [
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "holdout_seasons": [
+        2025
+      ],
+      "holdout_mae": {
+        "chosen_beta": 39.53,
+        "scoresense_only": 44.1
+      }
+    }
+  },
+  "qb": {
+    "position": "qb",
+    "seasons": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "ros_checkpoint_weeks": [
+      4,
+      8,
+      12
+    ],
+    "ros_rolling_weeks": 4,
+    "preseason_blend_alpha": 0.3,
+    "min_games_played": 8,
+    "baseline_label": "Prior-year PPG \u00d7 17",
+    "fantasypros_label": "FantasyPros Week 1 consensus \u00d7 17",
+    "fantasypros_is_benchmark": true,
+    "preseason_series": {
+      "scoresense_mae": [
+        78.73,
+        77.87,
+        73.98,
+        81.05,
+        96.39,
+        108.05,
+        72.66
+      ],
+      "scoresense_spearman": [
+        0.44,
+        0.664,
+        0.615,
+        0.375,
+        0.339,
+        0.303,
+        0.411
+      ],
+      "baseline_mae": [
+        73.93,
+        74.96,
+        79.58,
+        77.75,
+        78.4,
+        94.25,
+        73.21
+      ],
+      "fantasypros_mae": [
+        70.42,
+        58.45,
+        74.89,
+        79.72,
+        70.39,
+        73.17,
+        75.42
+      ],
+      "fantasypros_coverage": [
+        0.903,
+        0.833,
+        0.939,
+        0.9,
+        0.938,
+        0.906,
+        0.966
+      ],
+      "n": [
+        31,
+        30,
+        33,
+        30,
+        32,
+        32,
+        29
+      ]
+    },
+    "preseason_draft_series": {
+      "scoresense_mae": [
+        70.02,
+        64.61,
+        66.26,
+        81.05,
+        82.42,
+        90.01,
+        72.43
+      ],
+      "baseline_mae": [
+        78.09,
+        68.16,
+        69.42,
+        77.75,
+        81.49,
+        89.54,
+        70.8
+      ],
+      "fantasypros_mae": [
+        68.98,
+        58.3,
+        65.22,
+        79.72,
+        72.75,
+        77.91,
+        71.55
+      ],
+      "n": [
+        27,
+        27,
+        27,
+        30,
+        27,
+        26,
+        26
+      ]
+    },
+    "ros_series": {
+      "4": {
+        "scoresense_mae": [
+          54.63,
+          63.67,
+          57.83,
+          60.31,
+          56.45,
+          72.02,
+          64.35
+        ],
+        "scoresense_spearman": [
+          0.69,
+          0.674,
+          0.756,
+          0.589,
+          0.65,
+          0.582,
+          0.641
+        ],
+        "baseline_mae": [
+          79.81,
+          79.35,
+          81.38,
+          77.59,
+          80.31,
+          94.79,
+          77.82
+        ],
+        "n": [
+          35,
+          35,
+          34,
+          34,
+          34,
+          38,
+          36
+        ]
+      },
+      "8": {
+        "scoresense_mae": [
+          55.98,
+          50.72,
+          53.76,
+          59.58,
+          57.98,
+          64.43,
+          59.56
+        ],
+        "scoresense_spearman": [
+          0.784,
+          0.802,
+          0.853,
+          0.702,
+          0.628,
+          0.732,
+          0.768
+        ],
+        "baseline_mae": [
+          84.34,
+          80.37,
+          81.38,
+          80.82,
+          83.76,
+          95.41,
+          64.67
+        ],
+        "n": [
+          36,
+          36,
+          34,
+          36,
+          35,
+          39,
+          32
+        ]
+      },
+      "12": {
+        "scoresense_mae": [
+          40.14,
+          46.68,
+          41.92,
+          56.87,
+          47.98,
+          57.34,
+          48.02
+        ],
+        "scoresense_spearman": [
+          0.78,
+          0.898,
+          0.832,
+          0.811,
+          0.792,
+          0.791,
+          0.725
+        ],
+        "baseline_mae": [
+          82.45,
+          83.08,
+          78.49,
+          78.96,
+          87.17,
+          95.29,
+          76.3
+        ],
+        "n": [
+          32,
+          36,
+          32,
+          35,
+          34,
+          38,
+          35
+        ]
+      }
+    },
+    "by_season": [
+      {
+        "season": 2019,
+        "n": 31,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 78.73,
+          "spearman": 0.44,
+          "n": 31,
+          "baseline_mae": 73.93,
+          "baseline_spearman": 0.494,
+          "beats_baseline_mae": false,
+          "fantasypros_mae": 70.42,
+          "fantasypros_spearman": 0.729,
+          "fantasypros_coverage": 0.903,
+          "beats_fantasypros_mae": false,
+          "segments": {
+            "rookie": {
+              "mae": 116.17,
+              "n": 3
+            },
+            "returning_starter": {
+              "mae": 64.3,
+              "n": 26
+            },
+            "backup": {
+              "mae": 210.2,
+              "n": 2
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 70.02,
+          "spearman": 0.518,
+          "n": 27,
+          "baseline_mae": 78.09,
+          "baseline_spearman": 0.48,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 68.98,
+          "fantasypros_spearman": 0.735,
+          "fantasypros_coverage": 0.926,
+          "beats_fantasypros_mae": true
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 54.63,
+            "spearman": 0.69,
+            "n": 35,
+            "baseline_mae": 79.81,
+            "baseline_spearman": 0.523,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 55.98,
+            "spearman": 0.784,
+            "n": 36,
+            "baseline_mae": 84.34,
+            "baseline_spearman": 0.502,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 40.14,
+            "spearman": 0.78,
+            "n": 32,
+            "baseline_mae": 82.45,
+            "baseline_spearman": 0.38,
+            "beats_baseline_mae": true
+          }
+        }
+      },
+      {
+        "season": 2020,
+        "n": 30,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 77.87,
+          "spearman": 0.664,
+          "n": 30,
+          "baseline_mae": 74.96,
+          "baseline_spearman": 0.548,
+          "beats_baseline_mae": false,
+          "fantasypros_mae": 58.45,
+          "fantasypros_spearman": 0.652,
+          "fantasypros_coverage": 0.833,
+          "beats_fantasypros_mae": false,
+          "segments": {
+            "returning_starter": {
+              "mae": 65.06,
+              "n": 25
+            },
+            "backup": {
+              "mae": 158.07,
+              "n": 4
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 64.61,
+          "spearman": 0.743,
+          "n": 27,
+          "baseline_mae": 68.16,
+          "baseline_spearman": 0.637,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 58.3,
+          "fantasypros_spearman": 0.63,
+          "fantasypros_coverage": 0.852,
+          "beats_fantasypros_mae": false
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 63.67,
+            "spearman": 0.674,
+            "n": 35,
+            "baseline_mae": 79.35,
+            "baseline_spearman": 0.588,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 50.72,
+            "spearman": 0.802,
+            "n": 36,
+            "baseline_mae": 80.37,
+            "baseline_spearman": 0.545,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 46.68,
+            "spearman": 0.898,
+            "n": 36,
+            "baseline_mae": 83.08,
+            "baseline_spearman": 0.587,
+            "beats_baseline_mae": true
+          }
+        }
+      },
+      {
+        "season": 2021,
+        "n": 33,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 73.98,
+          "spearman": 0.615,
+          "n": 33,
+          "baseline_mae": 79.58,
+          "baseline_spearman": 0.61,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 74.89,
+          "fantasypros_spearman": 0.738,
+          "fantasypros_coverage": 0.939,
+          "beats_fantasypros_mae": true,
+          "segments": {
+            "rookie": {
+              "mae": 92.01,
+              "n": 5
+            },
+            "returning_starter": {
+              "mae": 58.03,
+              "n": 25
+            },
+            "backup": {
+              "mae": 176.91,
+              "n": 3
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 66.26,
+          "spearman": 0.506,
+          "n": 27,
+          "baseline_mae": 69.42,
+          "baseline_spearman": 0.711,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 65.22,
+          "fantasypros_spearman": 0.726,
+          "fantasypros_coverage": 0.963,
+          "beats_fantasypros_mae": false
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 57.83,
+            "spearman": 0.756,
+            "n": 34,
+            "baseline_mae": 81.38,
+            "baseline_spearman": 0.588,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 53.76,
+            "spearman": 0.853,
+            "n": 34,
+            "baseline_mae": 81.38,
+            "baseline_spearman": 0.588,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 41.92,
+            "spearman": 0.832,
+            "n": 32,
+            "baseline_mae": 78.49,
+            "baseline_spearman": 0.618,
+            "beats_baseline_mae": true
+          }
+        }
+      },
+      {
+        "season": 2022,
+        "n": 30,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 81.05,
+          "spearman": 0.375,
+          "n": 30,
+          "baseline_mae": 77.75,
+          "baseline_spearman": 0.455,
+          "beats_baseline_mae": false,
+          "fantasypros_mae": 79.72,
+          "fantasypros_spearman": 0.299,
+          "fantasypros_coverage": 0.9,
+          "beats_fantasypros_mae": false,
+          "segments": {
+            "returning_starter": {
+              "mae": 72.92,
+              "n": 27
+            },
+            "backup": {
+              "mae": 154.26,
+              "n": 3
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 81.05,
+          "spearman": 0.375,
+          "n": 30,
+          "baseline_mae": 77.75,
+          "baseline_spearman": 0.455,
+          "beats_baseline_mae": false,
+          "fantasypros_mae": 79.72,
+          "fantasypros_spearman": 0.299,
+          "fantasypros_coverage": 0.9,
+          "beats_fantasypros_mae": false
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 60.31,
+            "spearman": 0.589,
+            "n": 34,
+            "baseline_mae": 77.59,
+            "baseline_spearman": 0.475,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 59.58,
+            "spearman": 0.702,
+            "n": 36,
+            "baseline_mae": 80.82,
+            "baseline_spearman": 0.445,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 56.87,
+            "spearman": 0.811,
+            "n": 35,
+            "baseline_mae": 78.96,
+            "baseline_spearman": 0.469,
+            "beats_baseline_mae": true
+          }
+        }
+      },
+      {
+        "season": 2023,
+        "n": 32,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 96.39,
+          "spearman": 0.339,
+          "n": 32,
+          "baseline_mae": 78.4,
+          "baseline_spearman": 0.406,
+          "beats_baseline_mae": false,
+          "fantasypros_mae": 70.39,
+          "fantasypros_spearman": 0.55,
+          "fantasypros_coverage": 0.938,
+          "beats_fantasypros_mae": false,
+          "segments": {
+            "rookie": {
+              "mae": 143.78,
+              "n": 3
+            },
+            "returning_starter": {
+              "mae": 66.87,
+              "n": 22
+            },
+            "backup": {
+              "mae": 168.85,
+              "n": 7
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 82.42,
+          "spearman": 0.365,
+          "n": 27,
+          "baseline_mae": 81.49,
+          "baseline_spearman": 0.394,
+          "beats_baseline_mae": false,
+          "fantasypros_mae": 72.75,
+          "fantasypros_spearman": 0.544,
+          "fantasypros_coverage": 0.926,
+          "beats_fantasypros_mae": false
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 56.45,
+            "spearman": 0.65,
+            "n": 34,
+            "baseline_mae": 80.31,
+            "baseline_spearman": 0.443,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 57.98,
+            "spearman": 0.628,
+            "n": 35,
+            "baseline_mae": 83.76,
+            "baseline_spearman": 0.432,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 47.98,
+            "spearman": 0.792,
+            "n": 34,
+            "baseline_mae": 87.17,
+            "baseline_spearman": 0.367,
+            "beats_baseline_mae": true
+          }
+        }
+      },
+      {
+        "season": 2024,
+        "n": 32,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 108.05,
+          "spearman": 0.303,
+          "n": 32,
+          "baseline_mae": 94.25,
+          "baseline_spearman": 0.288,
+          "beats_baseline_mae": false,
+          "fantasypros_mae": 73.17,
+          "fantasypros_spearman": 0.588,
+          "fantasypros_coverage": 0.906,
+          "beats_fantasypros_mae": false,
+          "segments": {
+            "rookie": {
+              "mae": 195.3,
+              "n": 4
+            },
+            "returning_starter": {
+              "mae": 89.61,
+              "n": 24
+            },
+            "backup": {
+              "mae": 131.45,
+              "n": 4
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 90.01,
+          "spearman": 0.398,
+          "n": 26,
+          "baseline_mae": 89.54,
+          "baseline_spearman": 0.327,
+          "beats_baseline_mae": false,
+          "fantasypros_mae": 77.91,
+          "fantasypros_spearman": 0.648,
+          "fantasypros_coverage": 0.885,
+          "beats_fantasypros_mae": false
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 72.02,
+            "spearman": 0.582,
+            "n": 38,
+            "baseline_mae": 94.79,
+            "baseline_spearman": 0.422,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 64.43,
+            "spearman": 0.732,
+            "n": 39,
+            "baseline_mae": 95.41,
+            "baseline_spearman": 0.405,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 57.34,
+            "spearman": 0.791,
+            "n": 38,
+            "baseline_mae": 95.29,
+            "baseline_spearman": 0.385,
+            "beats_baseline_mae": true
+          }
+        }
+      },
+      {
+        "season": 2025,
+        "n": 29,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 72.66,
+          "spearman": 0.411,
+          "n": 29,
+          "baseline_mae": 73.21,
+          "baseline_spearman": 0.232,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 75.42,
+          "fantasypros_spearman": 0.362,
+          "fantasypros_coverage": 0.966,
+          "beats_fantasypros_mae": true,
+          "segments": {
+            "rookie": {
+              "mae": 96.52,
+              "n": 2
+            },
+            "returning_starter": {
+              "mae": 73.31,
+              "n": 24
+            },
+            "backup": {
+              "mae": 51.49,
+              "n": 3
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 72.43,
+          "spearman": 0.237,
+          "n": 26,
+          "baseline_mae": 70.8,
+          "baseline_spearman": 0.162,
+          "beats_baseline_mae": false,
+          "fantasypros_mae": 71.55,
+          "fantasypros_spearman": 0.275,
+          "fantasypros_coverage": 0.962,
+          "beats_fantasypros_mae": false
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 64.35,
+            "spearman": 0.641,
+            "n": 36,
+            "baseline_mae": 77.82,
+            "baseline_spearman": 0.297,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 59.56,
+            "spearman": 0.768,
+            "n": 32,
+            "baseline_mae": 64.67,
+            "baseline_spearman": 0.449,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 48.02,
+            "spearman": 0.725,
+            "n": 35,
+            "baseline_mae": 76.3,
+            "baseline_spearman": 0.285,
+            "beats_baseline_mae": true
+          }
+        }
+      }
+    ],
+    "summary": {
+      "preseason": {
+        "avg_mae": 84.104,
+        "avg_spearman": 0.45,
+        "avg_baseline_mae": 78.869,
+        "avg_fantasypros_mae": 71.78,
+        "avg_fantasypros_coverage": 0.912,
+        "beats_baseline_seasons": 2,
+        "beats_fantasypros_seasons": 2,
+        "total_fp_benchmark_seasons": 7,
+        "total_seasons": 7
+      },
+      "preseason_draft_cohort": {
+        "avg_mae": 75.257,
+        "avg_baseline_mae": 76.464,
+        "avg_fantasypros_mae": 70.633,
+        "total_seasons": 7
+      },
+      "ros": {
+        "4": {
+          "avg_mae": 61.323,
+          "avg_spearman": 0.655,
+          "avg_baseline_mae": 81.579
+        },
+        "8": {
+          "avg_mae": 57.43,
+          "avg_spearman": 0.753,
+          "avg_baseline_mae": 81.536
+        },
+        "12": {
+          "avg_mae": 48.421,
+          "avg_spearman": 0.804,
+          "avg_baseline_mae": 83.106
+        }
+      }
+    },
+    "notes": "Preseason = walk-forward Week 1 median \u00d7 expected games (prior-year games played or 17; rookies capped). QB/RB/WR blend with prior-year PPG when \u03b1<1. Draft cohort = depth-filtered preseason roster (no Sleeper overlay). FantasyPros benchmark = week-1 consensus PPR \u00d7 17 (proxy); requires \u226530% FP coverage per season. ROS = YTD + rolling P50 \u00d7 games remaining (4-week window). Players with fewer than 8 games played are excluded."
+  },
+  "rb": {
+    "position": "rb",
+    "seasons": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "ros_checkpoint_weeks": [
+      4,
+      8,
+      12
+    ],
+    "ros_rolling_weeks": 4,
+    "preseason_blend_alpha": 0.55,
+    "min_games_played": 8,
+    "baseline_label": "Prior-year PPG \u00d7 17",
+    "fantasypros_label": "FantasyPros Week 1 consensus \u00d7 17",
+    "fantasypros_is_benchmark": true,
+    "preseason_series": {
+      "scoresense_mae": [
+        63.76,
+        65.46,
+        66.77,
+        56.09,
+        66.67,
+        58.35,
+        56.49
+      ],
+      "scoresense_spearman": [
+        0.579,
+        0.395,
+        0.519,
+        0.592,
+        0.465,
+        0.624,
+        0.698
+      ],
+      "baseline_mae": [
+        63.96,
+        65.77,
+        66.05,
+        73.95,
+        69.52,
+        58.33,
+        61.71
+      ],
+      "fantasypros_mae": [
+        54.73,
+        58.76,
+        56.47,
+        45.95,
+        53.23,
+        47.02,
+        43.14
+      ],
+      "fantasypros_coverage": [
+        0.829,
+        0.795,
+        0.849,
+        0.849,
+        0.913,
+        0.901,
+        0.926
+      ],
+      "n": [
+        70,
+        78,
+        73,
+        73,
+        69,
+        71,
+        81
+      ]
+    },
+    "preseason_draft_series": {
+      "scoresense_mae": [
+        56.16,
+        56.21,
+        60.07,
+        52.43,
+        56.45,
+        54.15,
+        47.17
+      ],
+      "baseline_mae": [
+        64.14,
+        65.43,
+        67.65,
+        70.74,
+        69.6,
+        55.44,
+        54.69
+      ],
+      "fantasypros_mae": [
+        55.59,
+        59.91,
+        54.74,
+        47.91,
+        54.39,
+        48.19,
+        44.88
+      ],
+      "n": [
+        53,
+        65,
+        56,
+        61,
+        55,
+        63,
+        58
+      ]
+    },
+    "ros_series": {
+      "4": {
+        "scoresense_mae": [
+          41.18,
+          49.75,
+          49.24,
+          43.49,
+          45.15,
+          41.57,
+          41.03
+        ],
+        "scoresense_spearman": [
+          0.827,
+          0.702,
+          0.651,
+          0.766,
+          0.757,
+          0.76,
+          0.841
+        ],
+        "baseline_mae": [
+          62.57,
+          64.55,
+          61.95,
+          69.57,
+          65.28,
+          56.69,
+          58.21
+        ],
+        "n": [
+          85,
+          92,
+          87,
+          87,
+          82,
+          88,
+          93
+        ]
+      },
+      "8": {
+        "scoresense_mae": [
+          33.74,
+          40.42,
+          41.16,
+          37.49,
+          36.21,
+          35.12,
+          33.72
+        ],
+        "scoresense_spearman": [
+          0.856,
+          0.814,
+          0.773,
+          0.836,
+          0.861,
+          0.867,
+          0.889
+        ],
+        "baseline_mae": [
+          63.58,
+          63.23,
+          64.66,
+          68.95,
+          66.8,
+          57.07,
+          56.44
+        ],
+        "n": [
+          89,
+          91,
+          89,
+          90,
+          87,
+          87,
+          100
+        ]
+      },
+      "12": {
+        "scoresense_mae": [
+          28.94,
+          32.12,
+          33.99,
+          26.24,
+          29.21,
+          28.11,
+          23.25
+        ],
+        "scoresense_spearman": [
+          0.91,
+          0.886,
+          0.864,
+          0.922,
+          0.917,
+          0.916,
+          0.945
+        ],
+        "baseline_mae": [
+          67.18,
+          62.84,
+          62.98,
+          69.51,
+          69.49,
+          56.24,
+          57.11
+        ],
+        "n": [
+          86,
+          88,
+          89,
+          89,
+          82,
+          85,
+          97
+        ]
+      }
+    },
+    "by_season": [
+      {
+        "season": 2019,
+        "n": 70,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 63.76,
+          "spearman": 0.579,
+          "n": 70,
+          "baseline_mae": 63.96,
+          "baseline_spearman": 0.65,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 54.73,
+          "fantasypros_spearman": 0.756,
+          "fantasypros_coverage": 0.829,
+          "beats_fantasypros_mae": false,
+          "segments": {
+            "rookie": {
+              "mae": 82.76,
+              "n": 12
+            },
+            "returning_starter": {
+              "mae": 55.96,
+              "n": 51
+            },
+            "backup": {
+              "mae": 88.04,
+              "n": 7
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 56.16,
+          "spearman": 0.688,
+          "n": 53,
+          "baseline_mae": 64.14,
+          "baseline_spearman": 0.731,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 55.59,
+          "fantasypros_spearman": 0.739,
+          "fantasypros_coverage": 0.792,
+          "beats_fantasypros_mae": true
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 41.18,
+            "spearman": 0.827,
+            "n": 85,
+            "baseline_mae": 62.57,
+            "baseline_spearman": 0.688,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 33.74,
+            "spearman": 0.856,
+            "n": 89,
+            "baseline_mae": 63.58,
+            "baseline_spearman": 0.689,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 28.94,
+            "spearman": 0.91,
+            "n": 86,
+            "baseline_mae": 67.18,
+            "baseline_spearman": 0.665,
+            "beats_baseline_mae": true
+          }
+        }
+      },
+      {
+        "season": 2020,
+        "n": 78,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 65.46,
+          "spearman": 0.395,
+          "n": 78,
+          "baseline_mae": 65.77,
+          "baseline_spearman": 0.507,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 58.76,
+          "fantasypros_spearman": 0.66,
+          "fantasypros_coverage": 0.795,
+          "beats_fantasypros_mae": false,
+          "segments": {
+            "rookie": {
+              "mae": 111.72,
+              "n": 13
+            },
+            "returning_starter": {
+              "mae": 58.08,
+              "n": 56
+            },
+            "backup": {
+              "mae": 44.56,
+              "n": 9
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 56.21,
+          "spearman": 0.537,
+          "n": 65,
+          "baseline_mae": 65.43,
+          "baseline_spearman": 0.553,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 59.91,
+          "fantasypros_spearman": 0.667,
+          "fantasypros_coverage": 0.769,
+          "beats_fantasypros_mae": true
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 49.75,
+            "spearman": 0.702,
+            "n": 92,
+            "baseline_mae": 64.55,
+            "baseline_spearman": 0.465,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 40.42,
+            "spearman": 0.814,
+            "n": 91,
+            "baseline_mae": 63.23,
+            "baseline_spearman": 0.448,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 32.12,
+            "spearman": 0.886,
+            "n": 88,
+            "baseline_mae": 62.84,
+            "baseline_spearman": 0.5,
+            "beats_baseline_mae": true
+          }
+        }
+      },
+      {
+        "season": 2021,
+        "n": 73,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 66.77,
+          "spearman": 0.519,
+          "n": 73,
+          "baseline_mae": 66.05,
+          "baseline_spearman": 0.552,
+          "beats_baseline_mae": false,
+          "fantasypros_mae": 56.47,
+          "fantasypros_spearman": 0.698,
+          "fantasypros_coverage": 0.849,
+          "beats_fantasypros_mae": false,
+          "segments": {
+            "rookie": {
+              "mae": 107.58,
+              "n": 11
+            },
+            "returning_starter": {
+              "mae": 58.85,
+              "n": 52
+            },
+            "backup": {
+              "mae": 63.03,
+              "n": 10
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 60.07,
+          "spearman": 0.59,
+          "n": 56,
+          "baseline_mae": 67.65,
+          "baseline_spearman": 0.602,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 54.74,
+          "fantasypros_spearman": 0.73,
+          "fantasypros_coverage": 0.857,
+          "beats_fantasypros_mae": false
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 49.24,
+            "spearman": 0.651,
+            "n": 87,
+            "baseline_mae": 61.95,
+            "baseline_spearman": 0.608,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 41.16,
+            "spearman": 0.773,
+            "n": 89,
+            "baseline_mae": 64.66,
+            "baseline_spearman": 0.575,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 33.99,
+            "spearman": 0.864,
+            "n": 89,
+            "baseline_mae": 62.98,
+            "baseline_spearman": 0.569,
+            "beats_baseline_mae": true
+          }
+        }
+      },
+      {
+        "season": 2022,
+        "n": 73,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 56.09,
+          "spearman": 0.592,
+          "n": 73,
+          "baseline_mae": 73.95,
+          "baseline_spearman": 0.581,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 45.95,
+          "fantasypros_spearman": 0.816,
+          "fantasypros_coverage": 0.849,
+          "beats_fantasypros_mae": false,
+          "segments": {
+            "rookie": {
+              "mae": 71.02,
+              "n": 10
+            },
+            "returning_starter": {
+              "mae": 47.05,
+              "n": 52
+            },
+            "backup": {
+              "mae": 85.22,
+              "n": 11
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 52.43,
+          "spearman": 0.636,
+          "n": 61,
+          "baseline_mae": 70.74,
+          "baseline_spearman": 0.668,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 47.91,
+          "fantasypros_spearman": 0.804,
+          "fantasypros_coverage": 0.885,
+          "beats_fantasypros_mae": false
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 43.49,
+            "spearman": 0.766,
+            "n": 87,
+            "baseline_mae": 69.57,
+            "baseline_spearman": 0.599,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 37.49,
+            "spearman": 0.836,
+            "n": 90,
+            "baseline_mae": 68.95,
+            "baseline_spearman": 0.598,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 26.24,
+            "spearman": 0.922,
+            "n": 89,
+            "baseline_mae": 69.51,
+            "baseline_spearman": 0.596,
+            "beats_baseline_mae": true
+          }
+        }
+      },
+      {
+        "season": 2023,
+        "n": 69,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 66.67,
+          "spearman": 0.465,
+          "n": 69,
+          "baseline_mae": 69.52,
+          "baseline_spearman": 0.482,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 53.23,
+          "fantasypros_spearman": 0.706,
+          "fantasypros_coverage": 0.913,
+          "beats_fantasypros_mae": false,
+          "segments": {
+            "rookie": {
+              "mae": 95.13,
+              "n": 9
+            },
+            "returning_starter": {
+              "mae": 59.64,
+              "n": 51
+            },
+            "backup": {
+              "mae": 78.01,
+              "n": 9
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 56.45,
+          "spearman": 0.56,
+          "n": 55,
+          "baseline_mae": 69.6,
+          "baseline_spearman": 0.54,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 54.39,
+          "fantasypros_spearman": 0.728,
+          "fantasypros_coverage": 0.891,
+          "beats_fantasypros_mae": true
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 45.15,
+            "spearman": 0.757,
+            "n": 82,
+            "baseline_mae": 65.28,
+            "baseline_spearman": 0.549,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 36.21,
+            "spearman": 0.861,
+            "n": 87,
+            "baseline_mae": 66.8,
+            "baseline_spearman": 0.533,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 29.21,
+            "spearman": 0.917,
+            "n": 82,
+            "baseline_mae": 69.49,
+            "baseline_spearman": 0.482,
+            "beats_baseline_mae": true
+          }
+        }
+      },
+      {
+        "season": 2024,
+        "n": 71,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 58.35,
+          "spearman": 0.624,
+          "n": 71,
+          "baseline_mae": 58.33,
+          "baseline_spearman": 0.71,
+          "beats_baseline_mae": false,
+          "fantasypros_mae": 47.02,
+          "fantasypros_spearman": 0.777,
+          "fantasypros_coverage": 0.901,
+          "beats_fantasypros_mae": false,
+          "segments": {
+            "rookie": {
+              "mae": 78.63,
+              "n": 7
+            },
+            "returning_starter": {
+              "mae": 55.16,
+              "n": 58
+            },
+            "backup": {
+              "mae": 65.45,
+              "n": 6
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 54.15,
+          "spearman": 0.692,
+          "n": 63,
+          "baseline_mae": 55.44,
+          "baseline_spearman": 0.738,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 48.19,
+          "fantasypros_spearman": 0.801,
+          "fantasypros_coverage": 0.905,
+          "beats_fantasypros_mae": false
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 41.57,
+            "spearman": 0.76,
+            "n": 88,
+            "baseline_mae": 56.69,
+            "baseline_spearman": 0.665,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 35.12,
+            "spearman": 0.867,
+            "n": 87,
+            "baseline_mae": 57.07,
+            "baseline_spearman": 0.664,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 28.11,
+            "spearman": 0.916,
+            "n": 85,
+            "baseline_mae": 56.24,
+            "baseline_spearman": 0.669,
+            "beats_baseline_mae": true
+          }
+        }
+      },
+      {
+        "season": 2025,
+        "n": 81,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 56.49,
+          "spearman": 0.698,
+          "n": 81,
+          "baseline_mae": 61.71,
+          "baseline_spearman": 0.683,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 43.14,
+          "fantasypros_spearman": 0.829,
+          "fantasypros_coverage": 0.926,
+          "beats_fantasypros_mae": false,
+          "segments": {
+            "rookie": {
+              "mae": 75.48,
+              "n": 19
+            },
+            "returning_starter": {
+              "mae": 51.17,
+              "n": 52
+            },
+            "backup": {
+              "mae": 48.06,
+              "n": 10
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 47.17,
+          "spearman": 0.829,
+          "n": 58,
+          "baseline_mae": 54.69,
+          "baseline_spearman": 0.782,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 44.88,
+          "fantasypros_spearman": 0.829,
+          "fantasypros_coverage": 0.914,
+          "beats_fantasypros_mae": true
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 41.03,
+            "spearman": 0.841,
+            "n": 93,
+            "baseline_mae": 58.21,
+            "baseline_spearman": 0.713,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 33.72,
+            "spearman": 0.889,
+            "n": 100,
+            "baseline_mae": 56.44,
+            "baseline_spearman": 0.72,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 23.25,
+            "spearman": 0.945,
+            "n": 97,
+            "baseline_mae": 57.11,
+            "baseline_spearman": 0.726,
+            "beats_baseline_mae": true
+          }
+        }
+      }
+    ],
+    "summary": {
+      "preseason": {
+        "avg_mae": 61.941,
+        "avg_spearman": 0.553,
+        "avg_baseline_mae": 65.613,
+        "avg_fantasypros_mae": 51.329,
+        "avg_fantasypros_coverage": 0.866,
+        "beats_baseline_seasons": 5,
+        "beats_fantasypros_seasons": 0,
+        "total_fp_benchmark_seasons": 7,
+        "total_seasons": 7
+      },
+      "preseason_draft_cohort": {
+        "avg_mae": 54.663,
+        "avg_baseline_mae": 63.956,
+        "avg_fantasypros_mae": 52.23,
+        "total_seasons": 7
+      },
+      "ros": {
+        "4": {
+          "avg_mae": 44.487,
+          "avg_spearman": 0.758,
+          "avg_baseline_mae": 62.689
+        },
+        "8": {
+          "avg_mae": 36.837,
+          "avg_spearman": 0.842,
+          "avg_baseline_mae": 62.961
+        },
+        "12": {
+          "avg_mae": 28.837,
+          "avg_spearman": 0.909,
+          "avg_baseline_mae": 63.621
+        }
+      }
+    },
+    "notes": "Preseason = walk-forward Week 1 median \u00d7 expected games (prior-year games played or 17; rookies capped). QB/RB/WR blend with prior-year PPG when \u03b1<1. Draft cohort = depth-filtered preseason roster (no Sleeper overlay). FantasyPros benchmark = week-1 consensus PPR \u00d7 17 (proxy); requires \u226530% FP coverage per season. ROS = YTD + rolling P50 \u00d7 games remaining (4-week window). Players with fewer than 8 games played are excluded."
+  },
+  "wr": {
+    "position": "wr",
+    "seasons": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "ros_checkpoint_weeks": [
+      4,
+      8,
+      12
+    ],
+    "ros_rolling_weeks": 4,
+    "preseason_blend_alpha": 0.4,
+    "min_games_played": 8,
+    "baseline_label": "Prior-year PPG \u00d7 17",
+    "fantasypros_label": "FantasyPros Week 1 consensus \u00d7 17",
+    "fantasypros_is_benchmark": true,
+    "preseason_series": {
+      "scoresense_mae": [
+        52.42,
+        50.84,
+        53.09,
+        48.55,
+        49.95,
+        57.01,
+        44.1
+      ],
+      "scoresense_spearman": [
+        0.583,
+        0.646,
+        0.582,
+        0.619,
+        0.555,
+        0.558,
+        0.709
+      ],
+      "baseline_mae": [
+        58.19,
+        56.67,
+        58.53,
+        53.19,
+        53.86,
+        58.81,
+        56.22
+      ],
+      "fantasypros_mae": [
+        46.38,
+        52.79,
+        53.65,
+        42.05,
+        44.2,
+        46.0,
+        42.41
+      ],
+      "fantasypros_coverage": [
+        0.774,
+        0.772,
+        0.849,
+        0.874,
+        0.926,
+        0.939,
+        0.965
+      ],
+      "n": [
+        155,
+        158,
+        159,
+        159,
+        162,
+        163,
+        200
+      ]
+    },
+    "preseason_draft_series": {
+      "scoresense_mae": [
+        50.39,
+        48.62,
+        48.6,
+        43.52,
+        41.93,
+        53.45,
+        45.84
+      ],
+      "baseline_mae": [
+        59.71,
+        54.66,
+        57.1,
+        54.14,
+        49.32,
+        59.39,
+        56.07
+      ],
+      "fantasypros_mae": [
+        50.29,
+        54.07,
+        55.2,
+        45.87,
+        41.74,
+        47.82,
+        48.43
+      ],
+      "n": [
+        112,
+        116,
+        116,
+        116,
+        117,
+        122,
+        131
+      ]
+    },
+    "ros_series": {
+      "4": {
+        "scoresense_mae": [
+          42.41,
+          37.03,
+          41.26,
+          34.81,
+          34.84,
+          38.64,
+          38.07
+        ],
+        "scoresense_spearman": [
+          0.701,
+          0.76,
+          0.722,
+          0.758,
+          0.776,
+          0.76,
+          0.788
+        ],
+        "baseline_mae": [
+          60.11,
+          55.78,
+          57.3,
+          54.27,
+          54.19,
+          57.76,
+          56.77
+        ],
+        "n": [
+          186,
+          197,
+          192,
+          194,
+          209,
+          194,
+          232
+        ]
+      },
+      "8": {
+        "scoresense_mae": [
+          34.71,
+          30.31,
+          33.56,
+          31.6,
+          31.3,
+          34.08,
+          31.93
+        ],
+        "scoresense_spearman": [
+          0.802,
+          0.851,
+          0.801,
+          0.826,
+          0.827,
+          0.813,
+          0.878
+        ],
+        "baseline_mae": [
+          58.49,
+          55.1,
+          57.46,
+          52.37,
+          53.77,
+          57.55,
+          57.66
+        ],
+        "n": [
+          191,
+          195,
+          199,
+          198,
+          212,
+          196,
+          241
+        ]
+      },
+      "12": {
+        "scoresense_mae": [
+          28.64,
+          26.66,
+          27.13,
+          26.7,
+          24.22,
+          27.84,
+          25.02
+        ],
+        "scoresense_spearman": [
+          0.88,
+          0.898,
+          0.873,
+          0.881,
+          0.9,
+          0.888,
+          0.931
+        ],
+        "baseline_mae": [
+          59.63,
+          55.57,
+          56.97,
+          53.43,
+          53.8,
+          57.77,
+          56.63
+        ],
+        "n": [
+          189,
+          201,
+          199,
+          203,
+          212,
+          198,
+          242
+        ]
+      }
+    },
+    "by_season": [
+      {
+        "season": 2019,
+        "n": 155,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 52.42,
+          "spearman": 0.583,
+          "n": 155,
+          "baseline_mae": 58.19,
+          "baseline_spearman": 0.591,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 46.38,
+          "fantasypros_spearman": 0.719,
+          "fantasypros_coverage": 0.774,
+          "beats_fantasypros_mae": false,
+          "segments": {
+            "rookie": {
+              "mae": 76.33,
+              "n": 21
+            },
+            "returning_starter": {
+              "mae": 49.41,
+              "n": 116
+            },
+            "backup": {
+              "mae": 43.92,
+              "n": 18
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 50.39,
+          "spearman": 0.611,
+          "n": 112,
+          "baseline_mae": 59.71,
+          "baseline_spearman": 0.601,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 50.29,
+          "fantasypros_spearman": 0.688,
+          "fantasypros_coverage": 0.804,
+          "beats_fantasypros_mae": true
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 42.41,
+            "spearman": 0.701,
+            "n": 186,
+            "baseline_mae": 60.11,
+            "baseline_spearman": 0.572,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 34.71,
+            "spearman": 0.802,
+            "n": 191,
+            "baseline_mae": 58.49,
+            "baseline_spearman": 0.582,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 28.64,
+            "spearman": 0.88,
+            "n": 189,
+            "baseline_mae": 59.63,
+            "baseline_spearman": 0.577,
+            "beats_baseline_mae": true
+          }
+        }
+      },
+      {
+        "season": 2020,
+        "n": 158,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 50.84,
+          "spearman": 0.646,
+          "n": 158,
+          "baseline_mae": 56.67,
+          "baseline_spearman": 0.601,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 52.79,
+          "fantasypros_spearman": 0.644,
+          "fantasypros_coverage": 0.772,
+          "beats_fantasypros_mae": false,
+          "segments": {
+            "rookie": {
+              "mae": 69.03,
+              "n": 22
+            },
+            "returning_starter": {
+              "mae": 47.14,
+              "n": 117
+            },
+            "backup": {
+              "mae": 52.62,
+              "n": 19
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 48.62,
+          "spearman": 0.652,
+          "n": 116,
+          "baseline_mae": 54.66,
+          "baseline_spearman": 0.626,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 54.07,
+          "fantasypros_spearman": 0.612,
+          "fantasypros_coverage": 0.802,
+          "beats_fantasypros_mae": true
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 37.03,
+            "spearman": 0.76,
+            "n": 197,
+            "baseline_mae": 55.78,
+            "baseline_spearman": 0.577,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 30.31,
+            "spearman": 0.851,
+            "n": 195,
+            "baseline_mae": 55.1,
+            "baseline_spearman": 0.582,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 26.66,
+            "spearman": 0.898,
+            "n": 201,
+            "baseline_mae": 55.57,
+            "baseline_spearman": 0.573,
+            "beats_baseline_mae": true
+          }
+        }
+      },
+      {
+        "season": 2021,
+        "n": 159,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 53.09,
+          "spearman": 0.582,
+          "n": 159,
+          "baseline_mae": 58.53,
+          "baseline_spearman": 0.597,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 53.65,
+          "fantasypros_spearman": 0.696,
+          "fantasypros_coverage": 0.849,
+          "beats_fantasypros_mae": true,
+          "segments": {
+            "rookie": {
+              "mae": 78.53,
+              "n": 21
+            },
+            "returning_starter": {
+              "mae": 47.14,
+              "n": 117
+            },
+            "backup": {
+              "mae": 60.81,
+              "n": 21
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 48.6,
+          "spearman": 0.66,
+          "n": 116,
+          "baseline_mae": 57.1,
+          "baseline_spearman": 0.661,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 55.2,
+          "fantasypros_spearman": 0.708,
+          "fantasypros_coverage": 0.897,
+          "beats_fantasypros_mae": true
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 41.26,
+            "spearman": 0.722,
+            "n": 192,
+            "baseline_mae": 57.3,
+            "baseline_spearman": 0.622,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 33.56,
+            "spearman": 0.801,
+            "n": 199,
+            "baseline_mae": 57.46,
+            "baseline_spearman": 0.617,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 27.13,
+            "spearman": 0.873,
+            "n": 199,
+            "baseline_mae": 56.97,
+            "baseline_spearman": 0.618,
+            "beats_baseline_mae": true
+          }
+        }
+      },
+      {
+        "season": 2022,
+        "n": 159,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 48.55,
+          "spearman": 0.619,
+          "n": 159,
+          "baseline_mae": 53.19,
+          "baseline_spearman": 0.658,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 42.05,
+          "fantasypros_spearman": 0.752,
+          "fantasypros_coverage": 0.874,
+          "beats_fantasypros_mae": false,
+          "segments": {
+            "rookie": {
+              "mae": 85.07,
+              "n": 16
+            },
+            "returning_starter": {
+              "mae": 42.76,
+              "n": 123
+            },
+            "backup": {
+              "mae": 54.93,
+              "n": 20
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 43.52,
+          "spearman": 0.72,
+          "n": 116,
+          "baseline_mae": 54.14,
+          "baseline_spearman": 0.706,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 45.87,
+          "fantasypros_spearman": 0.745,
+          "fantasypros_coverage": 0.888,
+          "beats_fantasypros_mae": true
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 34.81,
+            "spearman": 0.758,
+            "n": 194,
+            "baseline_mae": 54.27,
+            "baseline_spearman": 0.624,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 31.6,
+            "spearman": 0.826,
+            "n": 198,
+            "baseline_mae": 52.37,
+            "baseline_spearman": 0.632,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 26.7,
+            "spearman": 0.881,
+            "n": 203,
+            "baseline_mae": 53.43,
+            "baseline_spearman": 0.616,
+            "beats_baseline_mae": true
+          }
+        }
+      },
+      {
+        "season": 2023,
+        "n": 162,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 49.95,
+          "spearman": 0.555,
+          "n": 162,
+          "baseline_mae": 53.86,
+          "baseline_spearman": 0.641,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 44.2,
+          "fantasypros_spearman": 0.726,
+          "fantasypros_coverage": 0.926,
+          "beats_fantasypros_mae": false,
+          "segments": {
+            "rookie": {
+              "mae": 89.48,
+              "n": 29
+            },
+            "returning_starter": {
+              "mae": 41.75,
+              "n": 122
+            },
+            "backup": {
+              "mae": 36.58,
+              "n": 11
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 41.93,
+          "spearman": 0.739,
+          "n": 117,
+          "baseline_mae": 49.32,
+          "baseline_spearman": 0.738,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 41.74,
+          "fantasypros_spearman": 0.801,
+          "fantasypros_coverage": 0.94,
+          "beats_fantasypros_mae": false
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 34.84,
+            "spearman": 0.776,
+            "n": 209,
+            "baseline_mae": 54.19,
+            "baseline_spearman": 0.61,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 31.3,
+            "spearman": 0.827,
+            "n": 212,
+            "baseline_mae": 53.77,
+            "baseline_spearman": 0.629,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 24.22,
+            "spearman": 0.9,
+            "n": 212,
+            "baseline_mae": 53.8,
+            "baseline_spearman": 0.61,
+            "beats_baseline_mae": true
+          }
+        }
+      },
+      {
+        "season": 2024,
+        "n": 163,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 57.01,
+          "spearman": 0.558,
+          "n": 163,
+          "baseline_mae": 58.81,
+          "baseline_spearman": 0.589,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 46.0,
+          "fantasypros_spearman": 0.745,
+          "fantasypros_coverage": 0.939,
+          "beats_fantasypros_mae": false,
+          "segments": {
+            "rookie": {
+              "mae": 95.45,
+              "n": 20
+            },
+            "returning_starter": {
+              "mae": 51.39,
+              "n": 130
+            },
+            "backup": {
+              "mae": 54.05,
+              "n": 13
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 53.45,
+          "spearman": 0.606,
+          "n": 122,
+          "baseline_mae": 59.39,
+          "baseline_spearman": 0.605,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 47.82,
+          "fantasypros_spearman": 0.71,
+          "fantasypros_coverage": 0.943,
+          "beats_fantasypros_mae": false
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 38.64,
+            "spearman": 0.76,
+            "n": 194,
+            "baseline_mae": 57.76,
+            "baseline_spearman": 0.59,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 34.08,
+            "spearman": 0.813,
+            "n": 196,
+            "baseline_mae": 57.55,
+            "baseline_spearman": 0.582,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 27.84,
+            "spearman": 0.888,
+            "n": 198,
+            "baseline_mae": 57.77,
+            "baseline_spearman": 0.586,
+            "beats_baseline_mae": true
+          }
+        }
+      },
+      {
+        "season": 2025,
+        "n": 200,
+        "preseason": {
+          "label": "Preseason (Week 1 \u00d7 17)",
+          "pred_col": "scoresense_proj",
+          "mae": 44.1,
+          "spearman": 0.709,
+          "n": 200,
+          "baseline_mae": 56.22,
+          "baseline_spearman": 0.69,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 42.41,
+          "fantasypros_spearman": 0.795,
+          "fantasypros_coverage": 0.965,
+          "beats_fantasypros_mae": false,
+          "segments": {
+            "rookie": {
+              "mae": 55.77,
+              "n": 35
+            },
+            "returning_starter": {
+              "mae": 45.11,
+              "n": 136
+            },
+            "backup": {
+              "mae": 25.27,
+              "n": 29
+            }
+          }
+        },
+        "preseason_draft_cohort": {
+          "label": "Preseason draft cohort (depth-filtered)",
+          "pred_col": "scoresense_proj",
+          "mae": 45.84,
+          "spearman": 0.704,
+          "n": 131,
+          "baseline_mae": 56.07,
+          "baseline_spearman": 0.698,
+          "beats_baseline_mae": true,
+          "fantasypros_mae": 48.43,
+          "fantasypros_spearman": 0.756,
+          "fantasypros_coverage": 0.977,
+          "beats_fantasypros_mae": true
+        },
+        "ros": {
+          "4": {
+            "label": "ROS from week 4",
+            "pred_col": "scoresense_proj",
+            "mae": 38.07,
+            "spearman": 0.788,
+            "n": 232,
+            "baseline_mae": 56.77,
+            "baseline_spearman": 0.664,
+            "beats_baseline_mae": true
+          },
+          "8": {
+            "label": "ROS from week 8",
+            "pred_col": "scoresense_proj",
+            "mae": 31.93,
+            "spearman": 0.878,
+            "n": 241,
+            "baseline_mae": 57.66,
+            "baseline_spearman": 0.652,
+            "beats_baseline_mae": true
+          },
+          "12": {
+            "label": "ROS from week 12",
+            "pred_col": "scoresense_proj",
+            "mae": 25.02,
+            "spearman": 0.931,
+            "n": 242,
+            "baseline_mae": 56.63,
+            "baseline_spearman": 0.653,
+            "beats_baseline_mae": true
+          }
+        }
+      }
+    ],
+    "summary": {
+      "preseason": {
+        "avg_mae": 50.851,
+        "avg_spearman": 0.607,
+        "avg_baseline_mae": 56.496,
+        "avg_fantasypros_mae": 46.783,
+        "avg_fantasypros_coverage": 0.871,
+        "beats_baseline_seasons": 7,
+        "beats_fantasypros_seasons": 1,
+        "total_fp_benchmark_seasons": 7,
+        "total_seasons": 7
+      },
+      "preseason_draft_cohort": {
+        "avg_mae": 47.479,
+        "avg_baseline_mae": 55.77,
+        "avg_fantasypros_mae": 49.06,
+        "total_seasons": 7
+      },
+      "ros": {
+        "4": {
+          "avg_mae": 38.151,
+          "avg_spearman": 0.752,
+          "avg_baseline_mae": 56.597
+        },
+        "8": {
+          "avg_mae": 32.499,
+          "avg_spearman": 0.828,
+          "avg_baseline_mae": 56.057
+        },
+        "12": {
+          "avg_mae": 26.601,
+          "avg_spearman": 0.893,
+          "avg_baseline_mae": 56.257
+        }
+      }
+    },
+    "notes": "Preseason = walk-forward Week 1 median \u00d7 expected games (prior-year games played or 17; rookies capped). QB/RB/WR blend with prior-year PPG when \u03b1<1. Draft cohort = depth-filtered preseason roster (no Sleeper overlay). FantasyPros benchmark = week-1 consensus PPR \u00d7 17 (proxy); requires \u226530% FP coverage per season. ROS = YTD + rolling P50 \u00d7 games remaining (4-week window). Players with fewer than 8 games played are excluded."
+  }
+}

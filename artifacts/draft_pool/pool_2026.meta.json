@@ -1,0 +1,52 @@
+{
+  "season": 2026,
+  "fingerprint": "267284bd8c81ed16",
+  "rows": 548,
+  "built_at": "2026-06-25T16:08:33.139849+00:00",
+  "feature_season": 2025,
+  "games_per_season": 17,
+  "roster_overlay": {
+    "applied": true,
+    "teams_updated": 18,
+    "removed_unrostered": 7,
+    "rookies_added": 22,
+    "emerging_added": 18
+  },
+  "depth_chart": {
+    "applied": true,
+    "removed": 30,
+    "removed_players": [
+      "Nick Schuessler",
+      "Will Howard",
+      "Josh Johnson",
+      "Tanner McKee",
+      "Kyle McCord",
+      "Brandon Allen",
+      "Sam Hartman",
+      "Kyler Murray",
+      "Carson Wentz",
+      "Joe Milton",
+      "Kedon Slovis",
+      "Carter Bradley",
+      "Chris Oladokun",
+      "Shane Buechele",
+      "Zach Terrell",
+      "Aaron Bailey",
+      "Garrett Greene",
+      "Connor Bazelak",
+      "Jalen Milroe",
+      "Skyler Howard",
+      "Anthony Richardson",
+      "Jalen Morton",
+      "Michael Penix",
+      "DJ Uiagalelei",
+      "Graham Mertz",
+      "Adrian Martinez",
+      "Kurtis Rourke",
+      "Zach Wilson",
+      "Hunter Dekkers",
+      "Cam Miller"
+    ],
+    "keep_per_team": 2
+  }
+}

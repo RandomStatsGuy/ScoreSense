@@ -1,0 +1,421 @@
+{
+  "season": 2025,
+  "week": 19,
+  "channel_gaps": {
+    "teams_with_gaps": [
+      {
+        "team": "NYG",
+        "missing_networks": [
+          "chat_sports"
+        ],
+        "chat_sports_label": null
+      }
+    ],
+    "teams_full": 31
+  },
+  "raw_videos": {
+    "video_count": 14169,
+    "teams_with_videos": [
+      "ARI",
+      "ATL",
+      "BUF",
+      "CAR",
+      "CHI",
+      "CIN",
+      "CLE",
+      "DAL",
+      "DEN",
+      "DET",
+      "GB",
+      "HOU",
+      "IND",
+      "JAX",
+      "KC",
+      "LAC",
+      "LAR",
+      "LV",
+      "MIA",
+      "MIN",
+      "NE",
+      "NFL",
+      "NO",
+      "NYG",
+      "NYJ",
+      "PHI",
+      "PIT",
+      "SEA",
+      "SF",
+      "TB",
+      "TEN",
+      "WAS"
+    ],
+    "teams_missing": [
+      "BAL"
+    ],
+    "by_network": {
+      "locked_on": 9029,
+      "chat_sports": 2310,
+      "underdog_fantasy": 771,
+      "fantasy_points": 409,
+      "establish_the_run": 383,
+      "fantasy_footballers": 300,
+      "late_round": 269,
+      "playerprofiler": 232,
+      "fantasypros_yt": 170,
+      "reception_perception": 158,
+      "draft_sharks": 112,
+      "qb_list": 26
+    }
+  },
+  "fantasy_channels": 10,
+  "position_groups": {
+    "qb": {
+      "total_players": 13,
+      "with_sentiment": 0,
+      "coverage_pct": 0.0,
+      "teams_with_zero": [
+        "BUF",
+        "CAR",
+        "CHI",
+        "GB",
+        "HOU",
+        "JAX",
+        "LA",
+        "LAC",
+        "NE",
+        "PHI",
+        "PIT",
+        "SF"
+      ],
+      "teams_all_have_some": false,
+      "by_team": [
+        {
+          "team": "BUF",
+          "total": 1,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "CAR",
+          "total": 1,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "CHI",
+          "total": 1,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "GB",
+          "total": 1,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "HOU",
+          "total": 1,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "JAX",
+          "total": 1,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "LA",
+          "total": 1,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "LAC",
+          "total": 1,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "NE",
+          "total": 1,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "PHI",
+          "total": 1,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "PIT",
+          "total": 2,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "SF",
+          "total": 1,
+          "with_sentiment": 0,
+          "pct": 0.0
+        }
+      ],
+      "unmentioned_sample": [
+        "Aaron Rodgers",
+        "Matthew Stafford",
+        "Mason Rudolph",
+        "Josh Allen",
+        "Jordan Love",
+        "Justin Herbert",
+        "Jalen Hurts",
+        "Trevor Lawrence",
+        "Brock Purdy",
+        "Bryce Young",
+        "C.J. Stroud",
+        "Drake Maye",
+        "Caleb Williams"
+      ]
+    },
+    "rb": {
+      "total_players": 34,
+      "with_sentiment": 0,
+      "coverage_pct": 0.0,
+      "teams_with_zero": [
+        "BUF",
+        "CAR",
+        "CHI",
+        "GB",
+        "HOU",
+        "JAX",
+        "LA",
+        "LAC",
+        "NE",
+        "PHI",
+        "PIT",
+        "SF"
+      ],
+      "teams_all_have_some": false,
+      "by_team": [
+        {
+          "team": "BUF",
+          "total": 3,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "CAR",
+          "total": 3,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "CHI",
+          "total": 2,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "GB",
+          "total": 3,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "HOU",
+          "total": 3,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "JAX",
+          "total": 3,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "LA",
+          "total": 4,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "LAC",
+          "total": 4,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "NE",
+          "total": 2,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "PHI",
+          "total": 3,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "PIT",
+          "total": 2,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "SF",
+          "total": 2,
+          "with_sentiment": 0,
+          "pct": 0.0
+        }
+      ],
+      "unmentioned_sample": [
+        "Christian McCaffrey",
+        "Nick Chubb",
+        "Saquon Barkley",
+        "Josh Jacobs",
+        "Rico Dowdle",
+        "D'Andre Swift",
+        "Chuba Hubbard",
+        "Jaret Patterson",
+        "Rhamondre Stevenson",
+        "Kenneth Gainwell",
+        "Travis Etienne",
+        "Jaylen Warren",
+        "James Cook",
+        "Ronnie Rivers",
+        "Hassan Haskins"
+      ]
+    },
+    "wr": {
+      "total_players": 83,
+      "with_sentiment": 0,
+      "coverage_pct": 0.0,
+      "teams_with_zero": [
+        "BUF",
+        "CAR",
+        "CHI",
+        "GB",
+        "HOU",
+        "JAX",
+        "LA",
+        "LAC",
+        "NE",
+        "PHI",
+        "PIT",
+        "SF"
+      ],
+      "teams_all_have_some": false,
+      "by_team": [
+        {
+          "team": "BUF",
+          "total": 8,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "CAR",
+          "total": 8,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "CHI",
+          "total": 8,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "GB",
+          "total": 6,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "HOU",
+          "total": 7,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "JAX",
+          "total": 5,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "LA",
+          "total": 6,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "LAC",
+          "total": 7,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "NE",
+          "total": 8,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "PHI",
+          "total": 6,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "PIT",
+          "total": 7,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "SF",
+          "total": 7,
+          "with_sentiment": 0,
+          "pct": 0.0
+        }
+      ],
+      "unmentioned_sample": [
+        "Adam Thielen",
+        "Keenan Allen",
+        "Brandin Cooks",
+        "Davante Adams",
+        "Stefon Diggs",
+        "Austin Hooper",
+        "Demarcus Robinson",
+        "Hunter Henry",
+        "Tyler Higbee",
+        "George Kittle",
+        "Tim Patrick",
+        "Jonnu Smith",
+        "Marquez Valdes-Scantling",
+        "Dallas Goedert",
+        "Dalton Schultz"
+      ]
+    }
+  },
+  "api_readout": {
+    "qb": {
+      "count": 0,
+      "channels_active": 0,
+      "data_coverage": 0.0
+    },
+    "rb": {
+      "count": 0,
+      "channels_active": 0,
+      "data_coverage": 0.0
+    },
+    "wr": {
+      "count": 0,
+      "channels_active": 0,
+      "data_coverage": 0.0
+    }
+  }
+}

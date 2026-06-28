@@ -1,0 +1,682 @@
+{
+  "season": 2025,
+  "week": 9,
+  "channel_gaps": {
+    "teams_with_gaps": [
+      {
+        "team": "NYG",
+        "missing_networks": [
+          "chat_sports"
+        ],
+        "chat_sports_label": null
+      }
+    ],
+    "teams_full": 31
+  },
+  "raw_videos": {
+    "video_count": 14169,
+    "teams_with_videos": [
+      "ARI",
+      "ATL",
+      "BUF",
+      "CAR",
+      "CHI",
+      "CIN",
+      "CLE",
+      "DAL",
+      "DEN",
+      "DET",
+      "GB",
+      "HOU",
+      "IND",
+      "JAX",
+      "KC",
+      "LAC",
+      "LAR",
+      "LV",
+      "MIA",
+      "MIN",
+      "NE",
+      "NFL",
+      "NO",
+      "NYG",
+      "NYJ",
+      "PHI",
+      "PIT",
+      "SEA",
+      "SF",
+      "TB",
+      "TEN",
+      "WAS"
+    ],
+    "teams_missing": [
+      "BAL"
+    ],
+    "by_network": {
+      "locked_on": 9029,
+      "chat_sports": 2310,
+      "underdog_fantasy": 771,
+      "fantasy_points": 409,
+      "establish_the_run": 383,
+      "fantasy_footballers": 300,
+      "late_round": 269,
+      "playerprofiler": 232,
+      "fantasypros_yt": 170,
+      "reception_perception": 158,
+      "draft_sharks": 112,
+      "qb_list": 26
+    }
+  },
+  "fantasy_channels": 10,
+  "position_groups": {
+    "qb": {
+      "total_players": 31,
+      "with_sentiment": 23,
+      "coverage_pct": 74.2,
+      "teams_with_zero": [
+        "BAL",
+        "DET",
+        "HOU",
+        "IND",
+        "MIN"
+      ],
+      "teams_all_have_some": false,
+      "by_team": [
+        {
+          "team": "BAL",
+          "total": 1,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "IND",
+          "total": 1,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "HOU",
+          "total": 2,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "DET",
+          "total": 1,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "MIN",
+          "total": 1,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "CHI",
+          "total": 2,
+          "with_sentiment": 1,
+          "pct": 50.0
+        },
+        {
+          "team": "SF",
+          "total": 2,
+          "with_sentiment": 1,
+          "pct": 50.0
+        },
+        {
+          "team": "BUF",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "DAL",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "CIN",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "CAR",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "DEN",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "GB",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "JAX",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "ATL",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "ARI",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "LA",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "KC",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "LV",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "LAC",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "NE",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "NO",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "NYG",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "MIA",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "PIT",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "SEA",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "TEN",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        },
+        {
+          "team": "WAS",
+          "total": 1,
+          "with_sentiment": 1,
+          "pct": 100.0
+        }
+      ],
+      "unmentioned_sample": [
+        "Jared Goff",
+        "Lamar Jackson",
+        "Daniel Jones",
+        "Davis Mills",
+        "Tyson Bagent",
+        "Adrian Martinez",
+        "C.J. Stroud",
+        "J.J. McCarthy"
+      ]
+    },
+    "rb": {
+      "total_players": 83,
+      "with_sentiment": 32,
+      "coverage_pct": 38.6,
+      "teams_with_zero": [
+        "BAL",
+        "CHI",
+        "DAL",
+        "LA",
+        "NYG"
+      ],
+      "teams_all_have_some": false,
+      "by_team": [
+        {
+          "team": "BAL",
+          "total": 4,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "CHI",
+          "total": 3,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "DAL",
+          "total": 3,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "LA",
+          "total": 2,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "NYG",
+          "total": 2,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "PIT",
+          "total": 5,
+          "with_sentiment": 1,
+          "pct": 20.0
+        },
+        {
+          "team": "DEN",
+          "total": 4,
+          "with_sentiment": 1,
+          "pct": 25.0
+        },
+        {
+          "team": "HOU",
+          "total": 4,
+          "with_sentiment": 1,
+          "pct": 25.0
+        },
+        {
+          "team": "SEA",
+          "total": 4,
+          "with_sentiment": 1,
+          "pct": 25.0
+        },
+        {
+          "team": "KC",
+          "total": 3,
+          "with_sentiment": 1,
+          "pct": 33.3
+        },
+        {
+          "team": "GB",
+          "total": 3,
+          "with_sentiment": 1,
+          "pct": 33.3
+        },
+        {
+          "team": "MIN",
+          "total": 3,
+          "with_sentiment": 1,
+          "pct": 33.3
+        },
+        {
+          "team": "LV",
+          "total": 3,
+          "with_sentiment": 1,
+          "pct": 33.3
+        },
+        {
+          "team": "IND",
+          "total": 3,
+          "with_sentiment": 1,
+          "pct": 33.3
+        },
+        {
+          "team": "BUF",
+          "total": 3,
+          "with_sentiment": 1,
+          "pct": 33.3
+        },
+        {
+          "team": "ATL",
+          "total": 2,
+          "with_sentiment": 1,
+          "pct": 50.0
+        },
+        {
+          "team": "ARI",
+          "total": 2,
+          "with_sentiment": 1,
+          "pct": 50.0
+        },
+        {
+          "team": "MIA",
+          "total": 2,
+          "with_sentiment": 1,
+          "pct": 50.0
+        },
+        {
+          "team": "NO",
+          "total": 2,
+          "with_sentiment": 1,
+          "pct": 50.0
+        },
+        {
+          "team": "DET",
+          "total": 4,
+          "with_sentiment": 2,
+          "pct": 50.0
+        },
+        {
+          "team": "LAC",
+          "total": 2,
+          "with_sentiment": 1,
+          "pct": 50.0
+        },
+        {
+          "team": "JAX",
+          "total": 3,
+          "with_sentiment": 2,
+          "pct": 66.7
+        },
+        {
+          "team": "CAR",
+          "total": 3,
+          "with_sentiment": 2,
+          "pct": 66.7
+        },
+        {
+          "team": "CIN",
+          "total": 3,
+          "with_sentiment": 2,
+          "pct": 66.7
+        },
+        {
+          "team": "WAS",
+          "total": 3,
+          "with_sentiment": 2,
+          "pct": 66.7
+        },
+        {
+          "team": "SF",
+          "total": 3,
+          "with_sentiment": 2,
+          "pct": 66.7
+        },
+        {
+          "team": "NE",
+          "total": 2,
+          "with_sentiment": 2,
+          "pct": 100.0
+        },
+        {
+          "team": "TEN",
+          "total": 3,
+          "with_sentiment": 3,
+          "pct": 100.0
+        }
+      ],
+      "unmentioned_sample": [
+        "Raheem Mostert",
+        "Ameer Abdullah",
+        "Derrick Henry",
+        "Dare Ogunbowale",
+        "Kareem Hunt",
+        "Nick Chubb",
+        "Justice Hill",
+        "Devin Singletary",
+        "Ty Johnson",
+        "Travis Homer",
+        "David Montgomery",
+        "J.K. Dobbins",
+        "Clyde Edwards-Helaire",
+        "Adam Prentice",
+        "Jaret Patterson"
+      ]
+    },
+    "wr": {
+      "total_players": 200,
+      "with_sentiment": 50,
+      "coverage_pct": 25.0,
+      "teams_with_zero": [
+        "BAL",
+        "IND",
+        "LA",
+        "WAS"
+      ],
+      "teams_all_have_some": false,
+      "by_team": [
+        {
+          "team": "BAL",
+          "total": 8,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "LA",
+          "total": 7,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "IND",
+          "total": 8,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "WAS",
+          "total": 6,
+          "with_sentiment": 0,
+          "pct": 0.0
+        },
+        {
+          "team": "DAL",
+          "total": 8,
+          "with_sentiment": 1,
+          "pct": 12.5
+        },
+        {
+          "team": "CHI",
+          "total": 8,
+          "with_sentiment": 1,
+          "pct": 12.5
+        },
+        {
+          "team": "BUF",
+          "total": 8,
+          "with_sentiment": 1,
+          "pct": 12.5
+        },
+        {
+          "team": "CAR",
+          "total": 7,
+          "with_sentiment": 1,
+          "pct": 14.3
+        },
+        {
+          "team": "SF",
+          "total": 7,
+          "with_sentiment": 1,
+          "pct": 14.3
+        },
+        {
+          "team": "JAX",
+          "total": 7,
+          "with_sentiment": 1,
+          "pct": 14.3
+        },
+        {
+          "team": "NYG",
+          "total": 6,
+          "with_sentiment": 1,
+          "pct": 16.7
+        },
+        {
+          "team": "DET",
+          "total": 5,
+          "with_sentiment": 1,
+          "pct": 20.0
+        },
+        {
+          "team": "NO",
+          "total": 5,
+          "with_sentiment": 1,
+          "pct": 20.0
+        },
+        {
+          "team": "SEA",
+          "total": 5,
+          "with_sentiment": 1,
+          "pct": 20.0
+        },
+        {
+          "team": "PIT",
+          "total": 9,
+          "with_sentiment": 2,
+          "pct": 22.2
+        },
+        {
+          "team": "KC",
+          "total": 8,
+          "with_sentiment": 2,
+          "pct": 25.0
+        },
+        {
+          "team": "MIA",
+          "total": 8,
+          "with_sentiment": 2,
+          "pct": 25.0
+        },
+        {
+          "team": "GB",
+          "total": 7,
+          "with_sentiment": 2,
+          "pct": 28.6
+        },
+        {
+          "team": "TEN",
+          "total": 7,
+          "with_sentiment": 2,
+          "pct": 28.6
+        },
+        {
+          "team": "NE",
+          "total": 9,
+          "with_sentiment": 3,
+          "pct": 33.3
+        },
+        {
+          "team": "HOU",
+          "total": 8,
+          "with_sentiment": 3,
+          "pct": 37.5
+        },
+        {
+          "team": "LAC",
+          "total": 8,
+          "with_sentiment": 3,
+          "pct": 37.5
+        },
+        {
+          "team": "CIN",
+          "total": 7,
+          "with_sentiment": 3,
+          "pct": 42.9
+        },
+        {
+          "team": "ATL",
+          "total": 7,
+          "with_sentiment": 3,
+          "pct": 42.9
+        },
+        {
+          "team": "DEN",
+          "total": 6,
+          "with_sentiment": 3,
+          "pct": 50.0
+        },
+        {
+          "team": "ARI",
+          "total": 6,
+          "with_sentiment": 3,
+          "pct": 50.0
+        },
+        {
+          "team": "MIN",
+          "total": 7,
+          "with_sentiment": 4,
+          "pct": 57.1
+        },
+        {
+          "team": "LV",
+          "total": 8,
+          "with_sentiment": 5,
+          "pct": 62.5
+        }
+      ],
+      "unmentioned_sample": [
+        "Zach Ertz",
+        "Keenan Allen",
+        "Travis Kelce",
+        "DeAndre Hopkins",
+        "Brandin Cooks",
+        "Davante Adams",
+        "Austin Hooper",
+        "Kalif Raymond",
+        "Demarcus Robinson",
+        "Hunter Henry",
+        "Tyler Higbee",
+        "Mo Alie-Cox",
+        "Johnny Mundt",
+        "Curtis Samuel",
+        "Kendrick Bourne"
+      ]
+    }
+  },
+  "api_readout": {
+    "qb": {
+      "count": 35,
+      "channels_active": 25,
+      "data_coverage": 1.0
+    },
+    "rb": {
+      "count": 43,
+      "channels_active": 29,
+      "data_coverage": 1.0
+    },
+    "wr": {
+      "count": 60,
+      "channels_active": 26,
+      "data_coverage": 1.0
+    }
+  }
+}

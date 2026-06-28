@@ -1,0 +1,35 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./artifacts:/app/artifacts
+      - ./app:/app/app
+      - ./src:/app/src
+      - ./bdb_companion:/app/bdb_companion
+      - ./legacy:/app/legacy
+    environment:
+      - PYTHONPATH=/app
+      - AUTH_REQUIRED=${AUTH_REQUIRED:-false}
+    restart: unless-stopped
+
+  refresh:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./artifacts:/app/artifacts
+    environment:
+      - PYTHONPATH=/app
+    command: python -m src.jobs.weekly_refresh --no-retrain
+    profiles:
+      - cron

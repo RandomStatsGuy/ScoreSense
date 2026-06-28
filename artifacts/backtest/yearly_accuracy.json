@@ -1,0 +1,374 @@
+{
+  "qb": {
+    "position": "qb",
+    "seasons": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "series": {
+      "scoresense": [
+        4.616,
+        5.161,
+        4.912,
+        5.054,
+        5.015,
+        4.936
+      ],
+      "season_avg": [
+        7.08,
+        6.958,
+        6.803,
+        6.235,
+        6.326,
+        6.61
+      ],
+      "last_game": [
+        8.225,
+        8.241,
+        8.101,
+        7.173,
+        7.394,
+        7.683
+      ],
+      "ffopportunity": [
+        4.788,
+        4.236,
+        4.582,
+        4.515,
+        4.095,
+        4.243
+      ],
+      "espn": [
+        16.617,
+        14.702,
+        15.624,
+        17.756,
+        18.373,
+        17.098
+      ],
+      "fantasypros": [
+        5.965,
+        5.463,
+        5.586,
+        5.517,
+        null,
+        5.003
+      ],
+      "site_composite": [
+        7.293,
+        7.265,
+        7.094,
+        6.402,
+        6.53,
+        6.784
+      ],
+      "model_blended": [
+        4.616,
+        5.161,
+        4.912,
+        5.054,
+        5.015,
+        4.936
+      ]
+    },
+    "blend_alpha": 1.0,
+    "forecast_keys": [
+      "scoresense",
+      "site_composite",
+      "model_blended",
+      "season_avg",
+      "last_game",
+      "fantasypros"
+    ],
+    "diagnostic_keys": [
+      "ffopportunity",
+      "espn"
+    ],
+    "espn_is_weekly_benchmark": false,
+    "fantasypros_is_benchmark": true,
+    "fantasypros_coverage_rate": 0.306,
+    "summary": {
+      "scoresense_avg_mae": 4.949,
+      "site_composite_avg_mae": 6.895,
+      "model_blended_avg_mae": 4.949,
+      "espn_avg_mae": 16.695,
+      "fantasypros_avg_mae": 5.507,
+      "ffopportunity_avg_mae": 4.41,
+      "season_avg_mae": 6.669,
+      "scoresense_beats_composite_seasons": 6,
+      "scoresense_beats_fantasypros_seasons": 5,
+      "total_seasons": 6,
+      "blend_beats_scoresense": false,
+      "recommended_use": "scoresense_standalone"
+    },
+    "labels": {
+      "scoresense": "ScoreSense",
+      "season_avg": "Season Average",
+      "last_game": "Last Game",
+      "ffopportunity": "Usage EP (post-hoc, ffverse)",
+      "espn": "ESPN (season-level)",
+      "fantasypros": "FantasyPros consensus (PPR)",
+      "site_composite": "Simple guess (avg + last game)",
+      "model_blended": "Blended (100% model)"
+    },
+    "notes": "Simple guess averages season-to-date and last-game baselines. ffverse Usage EP reflects expected points given actual weekly opportunity (not a pre-game projection). ESPN values appear season-level and are shown as diagnostic only. FantasyPros consensus PPR projections are the primary paid benchmark when cached. FANTASYPROS_USE_AS_FEATURE defaults to false so FP is not leaked into the model during backtests."
+  },
+  "rb": {
+    "position": "rb",
+    "seasons": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "series": {
+      "scoresense": [
+        4.584,
+        4.679,
+        4.688,
+        4.458,
+        4.415,
+        4.414,
+        4.179
+      ],
+      "season_avg": [
+        5.352,
+        5.255,
+        5.427,
+        5.196,
+        4.86,
+        5.036,
+        4.487
+      ],
+      "last_game": [
+        6.292,
+        6.159,
+        6.332,
+        5.977,
+        5.614,
+        5.768,
+        5.429
+      ],
+      "ffopportunity": [
+        2.968,
+        2.846,
+        2.788,
+        2.813,
+        2.776,
+        2.763,
+        3.053
+      ],
+      "espn": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "fantasypros": [
+        4.744,
+        4.495,
+        4.605,
+        4.192,
+        null,
+        4.016,
+        null
+      ],
+      "site_composite": [
+        5.537,
+        5.457,
+        5.598,
+        5.305,
+        4.969,
+        5.131,
+        4.728
+      ],
+      "model_blended": [
+        4.56,
+        4.614,
+        4.653,
+        4.422,
+        4.299,
+        4.339,
+        4.138
+      ]
+    },
+    "blend_alpha": 0.8,
+    "forecast_keys": [
+      "scoresense",
+      "site_composite",
+      "model_blended",
+      "season_avg",
+      "last_game"
+    ],
+    "diagnostic_keys": [
+      "ffopportunity",
+      "espn",
+      "fantasypros"
+    ],
+    "espn_is_weekly_benchmark": false,
+    "fantasypros_is_benchmark": false,
+    "fantasypros_coverage_rate": 0.237,
+    "summary": {
+      "scoresense_avg_mae": 4.488,
+      "site_composite_avg_mae": 5.246,
+      "model_blended_avg_mae": 4.432,
+      "espn_avg_mae": null,
+      "fantasypros_avg_mae": 4.41,
+      "ffopportunity_avg_mae": 2.858,
+      "season_avg_mae": 5.088,
+      "scoresense_beats_composite_seasons": 7,
+      "scoresense_beats_fantasypros_seasons": 0,
+      "total_seasons": 7,
+      "blend_beats_scoresense": true,
+      "recommended_use": "blend_with_composite"
+    },
+    "labels": {
+      "scoresense": "ScoreSense",
+      "season_avg": "Season Average",
+      "last_game": "Last Game",
+      "ffopportunity": "Usage EP (post-hoc, ffverse)",
+      "espn": "ESPN (season-level)",
+      "fantasypros": "FantasyPros consensus (PPR)",
+      "site_composite": "Simple guess (avg + last game)",
+      "model_blended": "Blended (80% model)"
+    },
+    "notes": "Simple guess averages season-to-date and last-game baselines. ffverse Usage EP reflects expected points given actual weekly opportunity (not a pre-game projection). ESPN values appear season-level and are shown as diagnostic only. FANTASYPROS_USE_AS_FEATURE defaults to false so FP is not leaked into the model during backtests."
+  },
+  "wr": {
+    "position": "wr",
+    "seasons": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "series": {
+      "scoresense": [
+        4.546,
+        4.721,
+        4.457,
+        4.36,
+        4.289,
+        4.454,
+        4.048
+      ],
+      "season_avg": [
+        5.237,
+        5.266,
+        5.026,
+        4.903,
+        4.711,
+        4.767,
+        4.26
+      ],
+      "last_game": [
+        6.147,
+        6.359,
+        6.006,
+        5.862,
+        5.585,
+        5.793,
+        5.109
+      ],
+      "ffopportunity": [
+        3.134,
+        3.051,
+        3.127,
+        2.955,
+        2.928,
+        2.971,
+        2.862
+      ],
+      "espn": [
+        6.162,
+        7.583,
+        10.348,
+        12.459,
+        8.899,
+        11.879,
+        3.018
+      ],
+      "fantasypros": [
+        4.811,
+        4.736,
+        4.585,
+        4.195,
+        4.469,
+        4.306,
+        null
+      ],
+      "site_composite": [
+        5.411,
+        5.559,
+        5.277,
+        5.143,
+        4.904,
+        5.023,
+        4.47
+      ],
+      "model_blended": [
+        4.563,
+        4.691,
+        4.466,
+        4.348,
+        4.239,
+        4.374,
+        3.969
+      ]
+    },
+    "blend_alpha": 0.75,
+    "forecast_keys": [
+      "scoresense",
+      "site_composite",
+      "model_blended",
+      "season_avg",
+      "last_game",
+      "espn"
+    ],
+    "diagnostic_keys": [
+      "ffopportunity",
+      "fantasypros"
+    ],
+    "espn_is_weekly_benchmark": true,
+    "fantasypros_is_benchmark": false,
+    "fantasypros_coverage_rate": 0.243,
+    "summary": {
+      "scoresense_avg_mae": 4.411,
+      "site_composite_avg_mae": 5.112,
+      "model_blended_avg_mae": 4.378,
+      "espn_avg_mae": 8.621,
+      "fantasypros_avg_mae": 4.517,
+      "ffopportunity_avg_mae": 3.004,
+      "season_avg_mae": 4.881,
+      "scoresense_beats_composite_seasons": 7,
+      "scoresense_beats_fantasypros_seasons": 0,
+      "total_seasons": 7,
+      "blend_beats_scoresense": true,
+      "recommended_use": "blend_with_composite"
+    },
+    "labels": {
+      "scoresense": "ScoreSense",
+      "season_avg": "Season Average",
+      "last_game": "Last Game",
+      "ffopportunity": "Usage EP (post-hoc, ffverse)",
+      "espn": "ESPN weekly",
+      "fantasypros": "FantasyPros consensus (PPR)",
+      "site_composite": "Simple guess (avg + last game)",
+      "model_blended": "Blended (75% model)"
+    },
+    "notes": "Simple guess averages season-to-date and last-game baselines. ffverse Usage EP reflects expected points given actual weekly opportunity (not a pre-game projection). ESPN weekly projections are included as an open external benchmark. FANTASYPROS_USE_AS_FEATURE defaults to false so FP is not leaked into the model during backtests."
+  }
+}

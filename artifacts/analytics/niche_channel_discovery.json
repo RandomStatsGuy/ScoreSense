@@ -1,0 +1,2382 @@
+{
+  "test_seasons": [
+    2024,
+    2025
+  ],
+  "channels_scanned": 40,
+  "niches_found": 5,
+  "ranked_niches": [
+    {
+      "channel_id": "UC2zTXqHLEz56OG0EvS9SiFA",
+      "channel_label": "Raiders Report by Chat Sports",
+      "network": "chat_sports",
+      "team": "LV",
+      "video_count": 2978,
+      "position": "rb",
+      "scope_team": "LV",
+      "correlation": {
+        "n": 46,
+        "spearman_rho": -0.4135,
+        "role_hype_rho": -0.227,
+        "injury_rho": 0.2029,
+        "p_value": 0.0026
+      },
+      "projection": {
+        "seasons_tested": 1,
+        "seasons_improved": 1,
+        "avg_composite_delta": -0.3101,
+        "mention_coverage": 0.4894
+      },
+      "tier": "strong"
+    },
+    {
+      "channel_id": "UCK5szBUaJMnuCViD6alvuXg",
+      "channel_label": "Late-Round Fantasy Football",
+      "network": "late_round",
+      "team": "NFL",
+      "video_count": 400,
+      "position": "wr",
+      "scope_team": "league",
+      "correlation": {
+        "n": 122,
+        "spearman_rho": 0.3044,
+        "role_hype_rho": -0.151,
+        "injury_rho": 0.1243,
+        "p_value": 0.0005
+      },
+      "projection": {
+        "seasons_tested": 2,
+        "seasons_improved": 1,
+        "avg_composite_delta": 0.0005,
+        "mention_coverage": 0.0166
+      },
+      "tier": "correlation"
+    },
+    {
+      "channel_id": "UC-No2ITxJsNt50oJQ3fLmUA",
+      "channel_label": "The Fantasy Footballers",
+      "network": "fantasy_footballers",
+      "team": "NFL",
+      "video_count": 400,
+      "position": "rb",
+      "scope_team": "league",
+      "correlation": {
+        "n": 41,
+        "spearman_rho": -0.4131,
+        "role_hype_rho": 0.2771,
+        "injury_rho": 0.1008,
+        "p_value": 0.0046
+      },
+      "projection": {
+        "seasons_tested": 2,
+        "seasons_improved": 2,
+        "avg_composite_delta": -0.0079,
+        "mention_coverage": 0.0128
+      },
+      "tier": "correlation"
+    },
+    {
+      "channel_id": "UC2zTXqHLEz56OG0EvS9SiFA",
+      "channel_label": "Raiders Report by Chat Sports",
+      "network": "chat_sports",
+      "team": "LV",
+      "video_count": 2978,
+      "position": "wr",
+      "scope_team": "LV",
+      "correlation": {
+        "n": 118,
+        "spearman_rho": -0.2422,
+        "role_hype_rho": -0.0713,
+        "injury_rho": 0.0995,
+        "p_value": 0.0072
+      },
+      "projection": {
+        "seasons_tested": 2,
+        "seasons_improved": 0,
+        "avg_composite_delta": 0.0145,
+        "mention_coverage": 0.5813
+      },
+      "tier": "correlation"
+    },
+    {
+      "channel_id": "UCZYaxEBdyKDsZfq_JGZwIeQ",
+      "channel_label": "FantasyPros",
+      "network": "fantasypros_yt",
+      "team": "NFL",
+      "video_count": 400,
+      "position": "wr",
+      "scope_team": "league",
+      "correlation": {
+        "n": 207,
+        "spearman_rho": -0.1316,
+        "role_hype_rho": -0.0054,
+        "injury_rho": -0.0953,
+        "p_value": 0.0573
+      },
+      "projection": {
+        "seasons_tested": 2,
+        "seasons_improved": 1,
+        "avg_composite_delta": 0.0015,
+        "mention_coverage": 0.0281
+      },
+      "tier": "watch"
+    }
+  ],
+  "coverage_matrix": {
+    "league_wide": {
+      "qb": null,
+      "rb": {
+        "channel_label": "The Fantasy Footballers",
+        "network": "fantasy_footballers",
+        "tier": "correlation",
+        "spearman_rho": -0.4131,
+        "p_value": 0.0046,
+        "avg_composite_delta": -0.0079
+      },
+      "wr": {
+        "channel_label": "Late-Round Fantasy Football",
+        "network": "late_round",
+        "tier": "correlation",
+        "spearman_rho": 0.3044,
+        "p_value": 0.0005,
+        "avg_composite_delta": 0.0005
+      }
+    },
+    "by_team": {
+      "LV": {
+        "qb": null,
+        "rb": {
+          "channel_label": "Raiders Report by Chat Sports",
+          "network": "chat_sports",
+          "tier": "strong",
+          "spearman_rho": -0.4135,
+          "p_value": 0.0026,
+          "avg_composite_delta": -0.3101
+        },
+        "wr": {
+          "channel_label": "Raiders Report by Chat Sports",
+          "network": "chat_sports",
+          "tier": "correlation",
+          "spearman_rho": -0.2422,
+          "p_value": 0.0072,
+          "avg_composite_delta": 0.0145
+        }
+      }
+    },
+    "gaps": {
+      "league_positions_missing_strong": [
+        "qb"
+      ],
+      "teams_without_any_niche": []
+    }
+  },
+  "channel_results": [
+    {
+      "channel_id": "UC2zTXqHLEz56OG0EvS9SiFA",
+      "channel_label": "Raiders Report by Chat Sports",
+      "network": "chat_sports",
+      "team": "LV",
+      "video_count": 2978,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "LV",
+          "correlation": {
+            "n": 36,
+            "spearman_rho": 0.068,
+            "role_hype_rho": 0.1508,
+            "injury_rho": 0.468,
+            "p_value": 0.6913
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "LV",
+          "correlation": {
+            "n": 46,
+            "spearman_rho": -0.4135,
+            "role_hype_rho": -0.227,
+            "injury_rho": 0.2029,
+            "p_value": 0.0026
+          },
+          "projection": {
+            "seasons_tested": 1,
+            "seasons_improved": 1,
+            "avg_composite_delta": -0.3101,
+            "mention_coverage": 0.4894
+          },
+          "tier": "strong"
+        },
+        {
+          "position": "wr",
+          "scope_team": "LV",
+          "correlation": {
+            "n": 118,
+            "spearman_rho": -0.2422,
+            "role_hype_rho": -0.0713,
+            "injury_rho": 0.0995,
+            "p_value": 0.0072
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 0,
+            "avg_composite_delta": 0.0145,
+            "mention_coverage": 0.5813
+          },
+          "tier": "correlation"
+        }
+      ]
+    },
+    {
+      "channel_id": "UC2jbY5DP6mNHiNGMQQtxJ0Q",
+      "channel_label": "Locked On Jets",
+      "network": "locked_on",
+      "team": "NYJ",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "NYJ",
+          "correlation": {
+            "n": 18,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "NYJ",
+          "correlation": {
+            "n": 22,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "NYJ",
+          "correlation": {
+            "n": 25,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UC3iTW4tsgRrkU1sKw9AQNrg",
+      "channel_label": "Locked On Browns",
+      "network": "locked_on",
+      "team": "CLE",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "CLE",
+          "correlation": {
+            "n": 13,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "CLE",
+          "correlation": {
+            "n": 11,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "CLE",
+          "correlation": {
+            "n": 15,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UC3BqKbRUIwBNZ1WKFLw-0nw",
+      "channel_label": "Locked On Buccaneers",
+      "network": "locked_on",
+      "team": "TB",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "TB",
+          "correlation": {
+            "n": 17,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "TB",
+          "correlation": {
+            "n": 22,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "TB",
+          "correlation": {
+            "n": 25,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UC3q-ntwngTE3tGfWVgHirFQ",
+      "channel_label": "Locked On Chargers",
+      "network": "locked_on",
+      "team": "LAC",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "LAC",
+          "correlation": {
+            "n": 17,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "LAC",
+          "correlation": {
+            "n": 18,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "LAC",
+          "correlation": {
+            "n": 52,
+            "spearman_rho": -0.2056,
+            "role_hype_rho": 0.0654,
+            "injury_rho": -0.1187,
+            "p_value": 0.1374
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UC7JorgD8nGLtvvMy1ogFetg",
+      "channel_label": "Locked On Steelers",
+      "network": "locked_on",
+      "team": "PIT",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "PIT",
+          "correlation": {
+            "n": 17,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "PIT",
+          "correlation": {
+            "n": 29,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "PIT",
+          "correlation": {
+            "n": 41,
+            "spearman_rho": -0.1024,
+            "role_hype_rho": 0.1723,
+            "injury_rho": 0.1799,
+            "p_value": 0.5204
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCB53sJjGaYU8RmLV9F9wPvQ",
+      "channel_label": "Locked On Bills",
+      "network": "locked_on",
+      "team": "BUF",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "BUF",
+          "correlation": {
+            "n": 16,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "BUF",
+          "correlation": {
+            "n": 28,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "BUF",
+          "correlation": {
+            "n": 51,
+            "spearman_rho": 0.0555,
+            "role_hype_rho": -0.1992,
+            "injury_rho": 0.2793,
+            "p_value": 0.6973
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UC8KxsM2xSTTHKJOH6JDT7fw",
+      "channel_label": "Locked On Broncos",
+      "network": "locked_on",
+      "team": "DEN",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "DEN",
+          "correlation": {
+            "n": 17,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "DEN",
+          "correlation": {
+            "n": 20,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "DEN",
+          "correlation": {
+            "n": 34,
+            "spearman_rho": -0.2187,
+            "role_hype_rho": 0.1185,
+            "injury_rho": -0.0815,
+            "p_value": 0.2049
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCufUP6i_pdfTjqVEswITOmw",
+      "channel_label": "Locked On Packers",
+      "network": "locked_on",
+      "team": "GB",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "GB",
+          "correlation": {
+            "n": 16,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "GB",
+          "correlation": {
+            "n": 7,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "GB",
+          "correlation": {
+            "n": 17,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCc2xlqI7QW8QHvMJ8NR2Ltg",
+      "channel_label": "Locked On Bengals",
+      "network": "locked_on",
+      "team": "CIN",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "CIN",
+          "correlation": {
+            "n": 17,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "CIN",
+          "correlation": {
+            "n": 10,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "CIN",
+          "correlation": {
+            "n": 31,
+            "spearman_rho": 0.1303,
+            "role_hype_rho": -0.0734,
+            "injury_rho": -0.1316,
+            "p_value": 0.4791
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCB8fAQQoG8J5yHeHoIAJc2w",
+      "channel_label": "Locked On Eagles",
+      "network": "locked_on",
+      "team": "PHI",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "PHI",
+          "correlation": {
+            "n": 6,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "PHI",
+          "correlation": {
+            "n": 5,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "PHI",
+          "correlation": {
+            "n": 4,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCFmdmMtDxkm4akuk83rWxuQ",
+      "channel_label": "Locked On Jaguars",
+      "network": "locked_on",
+      "team": "JAX",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "JAX",
+          "correlation": {
+            "n": 14,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "JAX",
+          "correlation": {
+            "n": 13,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "JAX",
+          "correlation": {
+            "n": 21,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCLdpxJspi1hMh5HL7ExpWOQ",
+      "channel_label": "Locked On Colts",
+      "network": "locked_on",
+      "team": "IND",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "IND",
+          "correlation": {
+            "n": 8,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "IND",
+          "correlation": {
+            "n": 4,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "IND",
+          "correlation": {
+            "n": 9,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCP3332GMOh4y5PX3q9NFybw",
+      "channel_label": "Locked On Titans",
+      "network": "locked_on",
+      "team": "TEN",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "TEN",
+          "correlation": {
+            "n": 14,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "TEN",
+          "correlation": {
+            "n": 6,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "TEN",
+          "correlation": {
+            "n": 24,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCTs-LEcYtnOQRXxJ3tGt8pg",
+      "channel_label": "Locked On Cardinals",
+      "network": "locked_on",
+      "team": "ARI",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "ARI",
+          "correlation": {
+            "n": 16,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "ARI",
+          "correlation": {
+            "n": 8,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "ARI",
+          "correlation": {
+            "n": 43,
+            "spearman_rho": 0.0525,
+            "role_hype_rho": -0.1533,
+            "injury_rho": -0.2753,
+            "p_value": 0.7366
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCU9qwCJcClgWI0JNTezBLqQ",
+      "channel_label": "Locked On Vikings",
+      "network": "locked_on",
+      "team": "MIN",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "MIN",
+          "correlation": {
+            "n": 8,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "MIN",
+          "correlation": {
+            "n": 4,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "MIN",
+          "correlation": {
+            "n": 13,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCVmzf-nD8oaTBShrW_zTeXA",
+      "channel_label": "Locked On Giants",
+      "network": "locked_on",
+      "team": "NYG",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "NYG",
+          "correlation": {
+            "n": 18,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "NYG",
+          "correlation": {
+            "n": 2,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "NYG",
+          "correlation": {
+            "n": 6,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCUhG_loQ0D9YF2Gdn-IfUOw",
+      "channel_label": "Locked On Rams",
+      "network": "locked_on",
+      "team": "LAR",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "LAR",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "LAR",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "LAR",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCV2XEkdzy4f0YQP6EjRbEsQ",
+      "channel_label": "Locked On Lions",
+      "network": "locked_on",
+      "team": "DET",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "DET",
+          "correlation": {
+            "n": 16,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "DET",
+          "correlation": {
+            "n": 26,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "DET",
+          "correlation": {
+            "n": 20,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCVgPs0As0pzp6zsYJLB7zNA",
+      "channel_label": "Locked On Raiders",
+      "network": "locked_on",
+      "team": "LV",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "LV",
+          "correlation": {
+            "n": 13,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "LV",
+          "correlation": {
+            "n": 11,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "LV",
+          "correlation": {
+            "n": 15,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCXCnRo-iwMsS4iC1SobeGHA",
+      "channel_label": "Locked On Bears",
+      "network": "locked_on",
+      "team": "CHI",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "CHI",
+          "correlation": {
+            "n": 17,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "CHI",
+          "correlation": {
+            "n": 13,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "CHI",
+          "correlation": {
+            "n": 18,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCVqSIFp40ZjJtX2iB6NoYsg",
+      "channel_label": "Locked On Dolphins",
+      "network": "locked_on",
+      "team": "MIA",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "MIA",
+          "correlation": {
+            "n": 18,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "MIA",
+          "correlation": {
+            "n": 14,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "MIA",
+          "correlation": {
+            "n": 31,
+            "spearman_rho": -0.0085,
+            "role_hype_rho": -0.0108,
+            "injury_rho": 0.3176,
+            "p_value": 0.9635
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCYjOu3YQnL9F24XEFnaMrNg",
+      "channel_label": "Locked On Chiefs",
+      "network": "locked_on",
+      "team": "KC",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "KC",
+          "correlation": {
+            "n": 17,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "KC",
+          "correlation": {
+            "n": 15,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "KC",
+          "correlation": {
+            "n": 43,
+            "spearman_rho": -0.1998,
+            "role_hype_rho": 0.3387,
+            "injury_rho": -0.2536,
+            "p_value": 0.1917
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCcsHJ8Mz11n5uPl5_XE9o-w",
+      "channel_label": "Locked On Patriots",
+      "network": "locked_on",
+      "team": "NE",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "NE",
+          "correlation": {
+            "n": 25,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "NE",
+          "correlation": {
+            "n": 24,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "NE",
+          "correlation": {
+            "n": 33,
+            "spearman_rho": 0.2763,
+            "role_hype_rho": 0.3202,
+            "injury_rho": 0.0099,
+            "p_value": 0.1095
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCnAXfqh9nujPUFYW6r3gJEQ",
+      "channel_label": "Locked On Cowboys",
+      "network": "locked_on",
+      "team": "DAL",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "DAL",
+          "correlation": {
+            "n": 17,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "DAL",
+          "correlation": {
+            "n": 13,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "DAL",
+          "correlation": {
+            "n": 50,
+            "spearman_rho": -0.0543,
+            "role_hype_rho": 0.3592,
+            "injury_rho": 0.3239,
+            "p_value": 0.7064
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCvovqdIpy0yua8lfYQqvOOQ",
+      "channel_label": "Locked On Saints",
+      "network": "locked_on",
+      "team": "NO",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "NO",
+          "correlation": {
+            "n": 18,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "NO",
+          "correlation": {
+            "n": 24,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "NO",
+          "correlation": {
+            "n": 40,
+            "spearman_rho": 0.0421,
+            "role_hype_rho": -0.1374,
+            "injury_rho": 0.1814,
+            "p_value": 0.7949
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCf0YzYctxDlpPgYXxTwn8hw",
+      "channel_label": "Locked On Falcons",
+      "network": "locked_on",
+      "team": "ATL",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "ATL",
+          "correlation": {
+            "n": 18,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "ATL",
+          "correlation": {
+            "n": 20,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "ATL",
+          "correlation": {
+            "n": 35,
+            "spearman_rho": 0.0792,
+            "role_hype_rho": 0.0637,
+            "injury_rho": 0.2518,
+            "p_value": 0.6482
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCd2DqmOXnb1gLKf13eg5uzw",
+      "channel_label": "Locked On Commanders",
+      "network": "locked_on",
+      "team": "WAS",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "WAS",
+          "correlation": {
+            "n": 18,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "WAS",
+          "correlation": {
+            "n": 21,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "WAS",
+          "correlation": {
+            "n": 21,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCgmJDvoBn-0yMpw_DsPd56A",
+      "channel_label": "Locked On Seahawks",
+      "network": "locked_on",
+      "team": "SEA",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "SEA",
+          "correlation": {
+            "n": 16,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "SEA",
+          "correlation": {
+            "n": 4,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "SEA",
+          "correlation": {
+            "n": 19,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCiFQGjNHUQPVrg-aQL5FtgA",
+      "channel_label": "Locked On Texans",
+      "network": "locked_on",
+      "team": "HOU",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "HOU",
+          "correlation": {
+            "n": 3,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "HOU",
+          "correlation": {
+            "n": 14,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "HOU",
+          "correlation": {
+            "n": 31,
+            "spearman_rho": 0.1033,
+            "role_hype_rho": 0.0343,
+            "injury_rho": -0.0822,
+            "p_value": 0.576
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCkUKvLTxP2wuyGs_ALuIaIg",
+      "channel_label": "Locked On Ravens",
+      "network": "locked_on",
+      "team": "BAL",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "BAL",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "BAL",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "BAL",
+          "correlation": {
+            "n": 0
+          },
+          "projection": {
+            "seasons_tested": 0
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCj5UVZOMb6G7Rx0K2jiBr4w",
+      "channel_label": "Locked On Panthers",
+      "network": "locked_on",
+      "team": "CAR",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "CAR",
+          "correlation": {
+            "n": 17,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "CAR",
+          "correlation": {
+            "n": 27,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "CAR",
+          "correlation": {
+            "n": 26,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCnGbIUIQqodxdMm_Jg93JjA",
+      "channel_label": "Locked On 49ers",
+      "network": "locked_on",
+      "team": "SF",
+      "video_count": 600,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "SF",
+          "correlation": {
+            "n": 17,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "SF",
+          "correlation": {
+            "n": 23,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "SF",
+          "correlation": {
+            "n": 27,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UC-No2ITxJsNt50oJQ3fLmUA",
+      "channel_label": "The Fantasy Footballers",
+      "network": "fantasy_footballers",
+      "team": "NFL",
+      "video_count": 400,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "league",
+          "correlation": {
+            "n": 24,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "league",
+          "correlation": {
+            "n": 41,
+            "spearman_rho": -0.4131,
+            "role_hype_rho": 0.2771,
+            "injury_rho": 0.1008,
+            "p_value": 0.0046
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 2,
+            "avg_composite_delta": -0.0079,
+            "mention_coverage": 0.0128
+          },
+          "tier": "correlation"
+        },
+        {
+          "position": "wr",
+          "scope_team": "league",
+          "correlation": {
+            "n": 57,
+            "spearman_rho": -0.0118,
+            "role_hype_rho": -0.0325,
+            "injury_rho": -0.061,
+            "p_value": 0.9304
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCaCshQX7-gQ0Bs5BnddUwZg",
+      "channel_label": "Fantasy Points",
+      "network": "fantasy_points",
+      "team": "NFL",
+      "video_count": 400,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "league",
+          "correlation": {
+            "n": 105,
+            "spearman_rho": 0.1211,
+            "role_hype_rho": 0.0143,
+            "injury_rho": -0.087,
+            "p_value": 0.2157
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "league",
+          "correlation": {
+            "n": 191,
+            "spearman_rho": -0.0939,
+            "role_hype_rho": 0.2369,
+            "injury_rho": -0.0295,
+            "p_value": 0.1949
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "league",
+          "correlation": {
+            "n": 306,
+            "spearman_rho": 0.0314,
+            "role_hype_rho": 0.1925,
+            "injury_rho": -0.0471,
+            "p_value": 0.5835
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCK5szBUaJMnuCViD6alvuXg",
+      "channel_label": "Late-Round Fantasy Football",
+      "network": "late_round",
+      "team": "NFL",
+      "video_count": 400,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "league",
+          "correlation": {
+            "n": 32,
+            "spearman_rho": 0.0486,
+            "role_hype_rho": NaN,
+            "injury_rho": 0.1023,
+            "p_value": 0.7898
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "league",
+          "correlation": {
+            "n": 95,
+            "spearman_rho": 0.1237,
+            "role_hype_rho": -0.0659,
+            "injury_rho": 0.2687,
+            "p_value": 0.2295
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "league",
+          "correlation": {
+            "n": 122,
+            "spearman_rho": 0.3044,
+            "role_hype_rho": -0.151,
+            "injury_rho": 0.1243,
+            "p_value": 0.0005
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": 0.0005,
+            "mention_coverage": 0.0166
+          },
+          "tier": "correlation"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCthzZOV9hsJnCyC_3KsIhRw",
+      "channel_label": "PlayerProfiler",
+      "network": "playerprofiler",
+      "team": "NFL",
+      "video_count": 400,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "league",
+          "correlation": {
+            "n": 26,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "league",
+          "correlation": {
+            "n": 78,
+            "spearman_rho": -0.1445,
+            "role_hype_rho": 0.0598,
+            "injury_rho": 0.2048,
+            "p_value": 0.2031
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "league",
+          "correlation": {
+            "n": 109,
+            "spearman_rho": -0.0278,
+            "role_hype_rho": -0.0491,
+            "injury_rho": 0.0353,
+            "p_value": 0.7736
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCZYaxEBdyKDsZfq_JGZwIeQ",
+      "channel_label": "FantasyPros",
+      "network": "fantasypros_yt",
+      "team": "NFL",
+      "video_count": 400,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "league",
+          "correlation": {
+            "n": 84,
+            "spearman_rho": -0.0904,
+            "role_hype_rho": 0.0069,
+            "injury_rho": -0.0967,
+            "p_value": 0.4113
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "league",
+          "correlation": {
+            "n": 149,
+            "spearman_rho": 0.0853,
+            "role_hype_rho": -0.0161,
+            "injury_rho": -0.0504,
+            "p_value": 0.2992
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "league",
+          "correlation": {
+            "n": 207,
+            "spearman_rho": -0.1316,
+            "role_hype_rho": -0.0054,
+            "injury_rho": -0.0953,
+            "p_value": 0.0573
+          },
+          "projection": {
+            "seasons_tested": 2,
+            "seasons_improved": 1,
+            "avg_composite_delta": 0.0015,
+            "mention_coverage": 0.0281
+          },
+          "tier": "watch"
+        }
+      ]
+    },
+    {
+      "channel_id": "UCvIyBYSykqTU4oqB1gSTM5w",
+      "channel_label": "Establish The Run",
+      "network": "establish_the_run",
+      "team": "NFL",
+      "video_count": 400,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "league",
+          "correlation": {
+            "n": 12,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "league",
+          "correlation": {
+            "n": 36,
+            "spearman_rho": 0.0611,
+            "role_hype_rho": -0.122,
+            "injury_rho": 0.0027,
+            "p_value": 0.7211
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "league",
+          "correlation": {
+            "n": 24,
+            "spearman_rho": null,
+            "p_value": null
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    },
+    {
+      "channel_id": "UC-DCCRcJiB1Lx0CpITBMRxA",
+      "channel_label": "Draft Sharks",
+      "network": "draft_sharks",
+      "team": "NFL",
+      "video_count": 228,
+      "niches": [
+        {
+          "position": "qb",
+          "scope_team": "league",
+          "correlation": {
+            "n": 57,
+            "spearman_rho": -0.1838,
+            "role_hype_rho": 0.0406,
+            "injury_rho": -0.0045,
+            "p_value": 0.1656
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "rb",
+          "scope_team": "league",
+          "correlation": {
+            "n": 112,
+            "spearman_rho": -0.0575,
+            "role_hype_rho": -0.19,
+            "injury_rho": -0.0408,
+            "p_value": 0.5455
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        },
+        {
+          "position": "wr",
+          "scope_team": "league",
+          "correlation": {
+            "n": 95,
+            "spearman_rho": -0.1472,
+            "role_hype_rho": 0.0009,
+            "injury_rho": -0.1731,
+            "p_value": 0.1512
+          },
+          "projection": {
+            "seasons_tested": 0,
+            "seasons_improved": 0,
+            "avg_composite_delta": null
+          },
+          "tier": "none"
+        }
+      ]
+    }
+  ]
+}

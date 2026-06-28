@@ -1,0 +1,11 @@
+# Caddy reverse proxy (alternative to nginx).
+# Install Caddy on the VPS, then:
+#   sudo cp deploy/Caddyfile.example /etc/caddy/Caddyfile
+#   # edit YOUR_DOMAIN.com
+#   sudo systemctl reload caddy
+#
+# Caddy obtains TLS certificates automatically.
+
+YOUR_DOMAIN.com {
+    reverse_proxy 127.0.0.1:8000
+}

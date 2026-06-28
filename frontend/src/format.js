@@ -1,0 +1,143 @@
+/** Safe numeric display + API field aliases for ROS rows. */
+
+export function fmtNum(value, digits = 1, fallback = "—") {
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toFixed(digits) : fallback;
+}
+
+/** Weighted mention counts — avoid float noise like 12.500000000000002. */
+export function fmtMentions(value, fallback = "0") {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  const rounded = Math.round(n * 10) / 10;
+  if (Math.abs(rounded - Math.round(rounded)) < 0.001) return String(Math.round(rounded));
+  return rounded.toFixed(1);
+}
+
+export function fmtSentiment(value, digits = 2, fallback = "—") {
+  return fmtNum(value, digits, fallback);
+}
+
+export function mentionCountLabel(value) {
+  const n = Number(value);
+  const text = fmtMentions(n);
+  const singular = Number.isFinite(n) && Math.abs(n - 1) < 0.001;
+  return `${text} mention${singular ? "" : "s"}`;
+}
+
+export function pickRow(row, ...keys) {
+  if (!row) return null;
+  for (const key of keys) {
+    const value = row[key];
+    if (value != null && value !== "") return value;
+  }
+  return null;
+}
+
+export function rosRegPts(row) {
+  return pickRow(row, "Reg Season Pts", "Points YTD");
+}
+
+export function rosGamesPlayed(row) {
+  const value = pickRow(row, "Games Played", "G");
+  return value != null && value !== "" ? value : null;
+}
+
+export function rosPPG(row) {
+  const pts = Number(rosRegPts(row));
+  const games = Number(rosGamesPlayed(row));
+  if (!Number.isFinite(pts) || !Number.isFinite(games) || games <= 0) return null;
+  return pts / games;
+}
+
+export function rosNextWeekP50(row) {
+  return pickRow(row, "Next Week P50", "Weekly Proj");
+}
+
+export function rosP50(row) {
+  return pickRow(row, "ROS P50", "ROS Proj");
+}
+
+export function rosSeasonP50(row) {
+  return pickRow(row, "Season P50", "Season Proj");
+}
+
+export function rosSeasonP90(row) {
+  return pickRow(row, "Season P90", "Season High");
+}
+
+export async function parseApiError(res, fallback = "Request failed") {
+  const text = await res.text();
+  if (res.status === 404 && text.includes("Not Found")) {
+    return (
+      "API route not found — the server is probably running old code. " +
+      "Restart with: uvicorn app.api:app --reload --port 8000 " +
+      "(Docker: docker compose build api && docker compose up -d api)"
+    );
+  }
+  if (!text) return fallback;
+  try {
+    const body = JSON.parse(text);
+    if (typeof body.detail === "string") return body.detail;
+    if (Array.isArray(body.detail)) return body.detail.map((d) => d.msg || String(d)).join("; ");
+    return body.message || text;
+  } catch {
+    return text.length > 200 ? fallback : text;
+  }
+}
+
+export function connectionErrorMessage(err, fallback) {
+  const msg = err?.message || "";
+  if (
+    msg.includes("Failed to fetch") ||
+    msg.includes("ECONNRESET") ||
+    msg.includes("NetworkError") ||
+    msg.includes("proxy error")
+  ) {
+    return "Cannot reach the API on port 8000. Start it with: uvicorn app.api:app --reload --port 8000";
+  }
+  return msg || fallback;
+}
+
+/** Sleeper statuses that should suppress projections in the table and CSV. */
+export function isPlayerUnavailable(status) {
+  const s = String(status || "").toLowerCase();
+  return /(out|ir|pup|inactive|suspended)/.test(s);
+}
+
+export function unavailableLabel(status) {
+  const s = String(status || "").toLowerCase();
+  if (s.includes("ir")) return "IR";
+  if (s.includes("pup")) return "PUP";
+  if (s.includes("suspended")) return "SUSP";
+  return "OUT";
+}
+
+/** Relative time from Sleeper news_updated (ms epoch) or ISO string. */
+export function formatRelativeTime(value) {
+  if (value == null || value === "") return null;
+  const ms = typeof value === "number" ? value : Date.parse(value);
+  if (!Number.isFinite(ms)) return null;
+  const diffSec = Math.round((Date.now() - ms) / 1000);
+  if (diffSec < 60) return "Updated just now";
+  const diffMin = Math.round(diffSec / 60);
+  if (diffMin < 60) return `Updated ${diffMin}m ago`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 48) return `Updated ${diffHr}h ago`;
+  const diffDay = Math.round(diffHr / 24);
+  return `Updated ${diffDay}d ago`;
+}
+
+export function injuryDetailLine(player) {
+  const parts = [player?.injury_body_part, player?.injury_notes]
+    .map((s) => String(s || "").trim())
+    .filter(Boolean);
+  return parts.length ? parts.join(" · ") : null;
+}
+
+export function formatReturnEstimate(estimate) {
+  if (!estimate?.label) return null;
+  const label = String(estimate.label);
+  const conf = estimate.confidence ? String(estimate.confidence) : "low";
+  return { text: `Est. return: ${label}`, confidence: conf, isEstimate: estimate.is_estimate !== false };
+}
