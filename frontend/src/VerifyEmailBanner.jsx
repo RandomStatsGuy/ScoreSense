@@ -16,7 +16,7 @@ export default function VerifyEmailBanner({ user, onVerified }) {
     setMsg("");
     setErr("");
     try {
-      const data = await resendVerificationEmail();
+      const data = await resendVerificationEmail({ email: user.email });
       if (data.already_verified) {
         if (onVerified) await onVerified();
         notifyAuthChanged();
@@ -28,6 +28,10 @@ export default function VerifyEmailBanner({ user, onVerified }) {
       }
       if (data.sent) {
         setMsg("Verification email sent — check your inbox (and spam).");
+        return;
+      }
+      if (data.reason === "not_found") {
+        setErr("Session could not find your account. Sign out, sign in again, then resend.");
         return;
       }
       if (data.reason === "smtp_failed") {

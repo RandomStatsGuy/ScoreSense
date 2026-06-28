@@ -37,6 +37,7 @@ from app.auth import (
     require_patron,
     resend_verification_email,
     reset_password_with_token,
+    resolve_native_user_id,
     session_user_public,
     sign_oauth_state,
     update_native_profile,
@@ -280,7 +281,7 @@ def _require_native_user(request: Request) -> tuple[dict, str]:
         raise HTTPException(status_code=401, detail="Login required")
     if user.get("auth_type") != "native":
         raise HTTPException(status_code=400, detail="This action is only available for email accounts")
-    user_id = native_user_id_from_sub(str(user.get("sub") or ""))
+    user_id = resolve_native_user_id(user)
     if not user_id:
         raise HTTPException(status_code=400, detail="Invalid account")
     return user, user_id
@@ -381,11 +382,9 @@ def auth_verify_email(token: str) -> RedirectResponse:
 
 @app.post("/api/auth/resend-verification")
 def auth_resend_verification(body: ResendVerificationRequest, request: Request) -> dict:
-    user_id = None
     jwt_user = optional_user(request)
-    if jwt_user and jwt_user.get("auth_type") == "native":
-        user_id = native_user_id_from_sub(str(jwt_user.get("sub") or ""))
-    elif body.email:
+    user_id = resolve_native_user_id(jwt_user, email_hint=body.email)
+    if not user_id and body.email:
         row = user_store.get_user_by_email(body.email)
         user_id = row["id"] if row else None
     if not user_id:
@@ -395,7 +394,11 @@ def auth_resend_verification(body: ResendVerificationRequest, request: Request) 
     if row and user_store.is_email_verified(row):
         return {"sent": False, "already_verified": True}
 
-    _rate_limit_resend_verification(request, user_id=user_id, email=body.email or (row or {}).get("email"))
+    _rate_limit_resend_verification(
+        request,
+        user_id=user_id,
+        email=body.email or (row or {}).get("email"),
+    )
     sent = resend_verification_email(user_id)
     if not sent:
         return {"sent": False, "reason": "smtp_failed"}
@@ -450,7 +453,7 @@ def auth_accept_terms(request: Request) -> dict:
     if not user:
         raise HTTPException(status_code=401, detail="Login required")
     if user.get("auth_type") == "native":
-        user_id = native_user_id_from_sub(str(user.get("sub") or ""))
+        user_id = resolve_native_user_id(user)
         if not user_id:
             raise HTTPException(status_code=400, detail="Invalid account")
         updated = accept_native_terms(user_id)

@@ -167,7 +167,7 @@ def user_terms_current(user_row: dict[str, Any] | None) -> bool:
 def native_user_terms_current(jwt_user: dict[str, Any]) -> bool:
     if jwt_user.get("auth_type") != "native":
         return True
-    user_id = native_user_id_from_sub(str(jwt_user.get("sub") or ""))
+    user_id = resolve_native_user_id(jwt_user)
     if not user_id:
         return True
     row = user_store.get_user_by_id(user_id)
@@ -220,13 +220,35 @@ def native_user_id_from_sub(sub: str) -> str | None:
     return str(sub)[len(_NATIVE_SUB_PREFIX):]
 
 
+def resolve_native_user_id(
+    jwt_user: dict[str, Any] | None,
+    *,
+    email_hint: str | None = None,
+) -> str | None:
+    """Resolve native account id from JWT sub, falling back to email lookup."""
+    if not jwt_user or jwt_user.get("auth_type") != "native":
+        return None
+    user_id = native_user_id_from_sub(str(jwt_user.get("sub") or ""))
+    if user_id and user_store.get_user_by_id(user_id):
+        return user_id
+    for hint in (email_hint, jwt_user.get("email")):
+        if not hint:
+            continue
+        row = user_store.get_user_by_email(str(hint))
+        if row:
+            return row["id"]
+    return user_id
+
+
 def native_email_verified(jwt_user: dict[str, Any]) -> bool:
     if jwt_user.get("auth_type") != "native":
         return True
-    user_id = native_user_id_from_sub(str(jwt_user.get("sub") or ""))
+    user_id = resolve_native_user_id(jwt_user)
     if not user_id:
         return True
     row = user_store.get_user_by_id(user_id)
+    if not row and jwt_user.get("email"):
+        row = user_store.get_user_by_email(str(jwt_user.get("email")))
     return user_store.is_email_verified(row)
 
 
@@ -453,7 +475,7 @@ def session_user_public(user: dict[str, Any] | None) -> dict[str, Any] | None:
     terms_current = native_user_terms_current(user)
     terms_version = None
     if user.get("auth_type") == "native":
-        user_id = native_user_id_from_sub(str(user.get("sub") or ""))
+        user_id = resolve_native_user_id(user)
         if user_id:
             row = user_store.get_user_by_id(user_id)
             if row:

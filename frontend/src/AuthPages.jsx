@@ -60,6 +60,12 @@ export function AuthVerifyPage() {
     );
   }
 
+  useEffect(() => {
+    if (success) {
+      notifyAuthChanged();
+    }
+  }, [success]);
+
   return (
     <AuthShell title={success ? "Email verified" : "Email verification"}>
       {success && (
