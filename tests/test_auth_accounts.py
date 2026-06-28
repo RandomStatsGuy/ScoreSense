@@ -50,6 +50,22 @@ def test_register_and_password_verify(auth_db, mock_send):
     assert len(mock_send) >= 1
 
 
+def test_verification_email_link_uses_api(auth_db, monkeypatch):
+    captured = {}
+
+    def _capture_send(to_email, *, subject, text_body):
+        captured["body"] = text_body
+        return True
+
+    monkeypatch.setattr("src.auth.email_flow.send_email", _capture_send)
+    monkeypatch.setattr("src.auth.email_flow.FRONTEND_URL", "https://app.fourthdownlabs.com")
+    from src.auth.email_flow import send_verification_email
+
+    send_verification_email("test@example.com", token="abc123", display_name="Test")
+    assert "/api/auth/verify-email?token=abc123" in captured["body"]
+    assert "/auth/verify?token=" not in captured["body"]
+
+
 def test_register_requires_terms(auth_db):
     with pytest.raises(ValueError, match="Terms"):
         register_native_user("no@terms.com", "password12", "X", accept_terms=False)

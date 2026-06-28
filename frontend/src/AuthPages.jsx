@@ -42,6 +42,23 @@ export function AuthVerifyPage() {
   const [params] = useSearchParams();
   const success = params.get("success") === "1";
   const error = params.get("error");
+  const token = params.get("token");
+
+  useEffect(() => {
+    if (token && !success && !error) {
+      window.location.replace(
+        `/api/auth/verify-email?token=${encodeURIComponent(token)}`,
+      );
+    }
+  }, [token, success, error]);
+
+  if (token && !success && !error) {
+    return (
+      <AuthShell title="Email verification">
+        <p className="chart-note">Confirming your email…</p>
+      </AuthShell>
+    );
+  }
 
   return (
     <AuthShell title={success ? "Email verified" : "Email verification"}>

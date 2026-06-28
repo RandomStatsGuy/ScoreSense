@@ -11,7 +11,7 @@ def _frontend_base() -> str:
 
 
 def send_verification_email(to_email: str, *, token: str, display_name: str) -> bool:
-    url = f"{_frontend_base()}/auth/verify?token={token}"
+    url = f"{_frontend_base()}/api/auth/verify-email?token={token}"
     name = display_name or "there"
     body = "\n".join(
         [

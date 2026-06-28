@@ -769,7 +769,10 @@ export default function App() {
             window.dispatchEvent(new Event("scoresense-auth-changed"));
           }}
         />
-        {authenticated && user?.email_verified === false && user?.auth_type === "native" && (
+        {authenticated
+          && user?.email_verified === false
+          && user?.auth_type === "native"
+          && view !== "hub" && (
           <VerifyEmailBanner user={user} onVerified={refreshAuth} />
         )}
         {authenticated && (
