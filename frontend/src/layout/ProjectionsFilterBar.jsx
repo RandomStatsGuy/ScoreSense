@@ -81,6 +81,7 @@ export function ProjectionsFilterControls({
                 <span className="season-mode-tab-label">{mode.shortLabel}</span>
               </button>
             ))}
+          </div>
         </div>
       ) : null}
 

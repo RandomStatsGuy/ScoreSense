@@ -118,6 +118,9 @@ export default function SeasonTable({
   metaLine,
   loading = false,
   showSentiment = false,
+  position,
+  season,
+  week,
 }) {
   const [sort, setSort] = useState({ column: seasonComplete ? "PPG" : "SeasonP50", dir: "desc" });
   const mobileLayout = useMobileLayout();
@@ -211,6 +214,9 @@ export default function SeasonTable({
                     showTeam={false}
                     clickable={Boolean(row.player_id)}
                     narrativeScope="season"
+                    position={position}
+                    season={season}
+                    week={week ?? projectionWeek}
                   />
                 )}
                 meta={meta}
@@ -343,6 +349,9 @@ export default function SeasonTable({
                     showTeam={false}
                     clickable={Boolean(row.player_id)}
                     narrativeScope="season"
+                    position={position}
+                    season={season}
+                    week={week ?? projectionWeek}
                   />
                 </td>
                 <td>{row.Team || "—"}</td>

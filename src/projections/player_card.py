@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from src.config import PROCESSED_DATA_DIR
@@ -19,11 +20,35 @@ POSITIONS = ("qb", "rb", "wr")
 
 
 def _json_safe(value: Any) -> Any:
-    if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+    if value is None:
         return None
-    if value is None or (isinstance(value, float) and pd.isna(value)):
-        return None
+    if isinstance(value, (np.integer,)):
+        return int(value)
+    if isinstance(value, (np.floating,)):
+        num = float(value)
+        if math.isnan(num) or math.isinf(num):
+            return None
+        return num
+    if isinstance(value, float):
+        if math.isnan(value) or math.isinf(value):
+            return None
+        return value
+    if isinstance(value, (np.bool_,)):
+        return bool(value)
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
     return value
+
+
+def _sanitize(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(k): _sanitize(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_sanitize(v) for v in value]
+    return _json_safe(value)
 
 
 def _row_dict(row: pd.Series) -> dict[str, Any]:
@@ -53,20 +78,28 @@ def _find_projection_row(preds: pd.DataFrame, player_id: str) -> dict[str, Any] 
     return None
 
 
+def _pos_from_sleeper_row(row) -> str | None:
+    pos = str(row.get("position") or "").upper()
+    if pos in {"QB"}:
+        return "qb"
+    if pos in {"RB", "FB"}:
+        return "rb"
+    if pos in {"WR", "TE"}:
+        return "wr"
+    return None
+
+
 def _guess_position(player_id: str) -> str | None:
     df = players_dataframe()
     pid = str(player_id)
-    id_col = "player_id" if "player_id" in df.columns else "sleeper_id"
-    if pid.isdigit():
-        hit = df[df[id_col].astype(str) == pid]
+    for col in ("gsis_id", "player_id", "sleeper_id"):
+        if col not in df.columns:
+            continue
+        hit = df[df[col].astype(str) == pid]
         if not hit.empty:
-            pos = str(hit.iloc[0].get("position") or "").upper()
-            if pos in {"QB"}:
-                return "qb"
-            if pos in {"RB", "FB"}:
-                return "rb"
-            if pos in {"WR", "TE"}:
-                return "wr"
+            resolved = _pos_from_sleeper_row(hit.iloc[0])
+            if resolved:
+                return resolved
     return None
 
 
@@ -171,7 +204,7 @@ def build_player_card(
         else season_projection.get("Player") if season_projection else None
     ) or (narrative or {}).get("player") or media.get("name")
 
-    return {
+    return _sanitize({
         "player_id": pid,
         "player_name": name,
         "position": resolved_pos,
@@ -191,4 +224,4 @@ def build_player_card(
             "week": resolved_week,
             "scope": scope_norm,
         },
-    }
+    })

@@ -187,18 +187,23 @@ def player_card_get(
     position: Optional[str] = None,
     _user=Depends(require_patron),
 ) -> dict:
+    from fastapi.encoders import jsonable_encoder
     from src.projections.player_card import build_player_card
 
     try:
-        return build_player_card(
-            player_id,
-            season=season,
-            week=week,
-            scope=scope,
-            position=position.lower() if position else None,
+        return jsonable_encoder(
+            build_player_card(
+                player_id,
+                season=season,
+                week=week,
+                scope=scope,
+                position=position.lower() if position else None,
+            )
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Player card failed: {exc}") from exc
 
 
 @app.get("/api/auth/config")

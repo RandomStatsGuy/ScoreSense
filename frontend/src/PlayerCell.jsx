@@ -124,15 +124,23 @@ export default function PlayerCell({
   );
 
   if (canOpen) {
+    const onKeyDown = (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        handleOpen(event);
+      }
+    };
     return (
-      <button
-        type="button"
+      <span
+        role="button"
+        tabIndex={0}
         className={`player-cell player-cell--${size} player-cell--clickable ${className}`.trim()}
         onClick={handleOpen}
+        onKeyDown={onKeyDown}
         aria-label={`Open ${name} details`}
       >
         {inner}
-      </button>
+      </span>
     );
   }
 

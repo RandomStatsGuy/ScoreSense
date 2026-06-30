@@ -84,7 +84,18 @@ function DownloadIcon() {
   );
 }
 
-export default function WeeklyTable({ rows, search, teamsFilter, searchSlot, metaLine, showSentiment = false, loading = false }) {
+export default function WeeklyTable({
+  rows,
+  search,
+  teamsFilter,
+  searchSlot,
+  metaLine,
+  showSentiment = false,
+  loading = false,
+  position,
+  season,
+  week,
+}) {
   const [sort, setSort] = useState({ column: "P50", dir: "desc" });
   const mobileLayout = useMobileLayout();
 
@@ -226,6 +237,9 @@ export default function WeeklyTable({ rows, search, teamsFilter, searchSlot, met
                     size="sm"
                     showTeam={false}
                     clickable={Boolean(row.player_id)}
+                    position={position}
+                    season={season}
+                    week={week}
                   />
                 )}
                 meta={metaParts.join(" · ")}
@@ -355,6 +369,9 @@ export default function WeeklyTable({ rows, search, teamsFilter, searchSlot, met
                       size="sm"
                       showTeam={false}
                       clickable={Boolean(row.player_id)}
+                      position={position}
+                      season={season}
+                      week={week}
                     />
                     <span className="col-player-mobile-meta">
                       {row.Team || "—"}

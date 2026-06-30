@@ -1171,6 +1171,9 @@ export default function App() {
                 teamsFilter={selectedTeams}
                 loading={projectionsLoading}
                 showSentiment
+                position={position}
+                season={season}
+                week={week}
                 searchSlot={
                   <input
                     type="search"
@@ -1236,6 +1239,8 @@ export default function App() {
                   rows={draftProjections}
                   search={searchQuery}
                   loading={draftLoading}
+                  position={position}
+                  season={draftSeason}
                   searchSlot={
                     <input
                       type="search"
@@ -1298,6 +1303,9 @@ export default function App() {
                   projectionWeek={rosMeta?.projection_week}
                   search={searchQuery}
                   showSentiment
+                  position={position}
+                  season={rosSeason ?? season}
+                  week={rosFromWeek ?? week}
                   searchSlot={
                     <input
                       type="search"

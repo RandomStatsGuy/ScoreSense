@@ -73,3 +73,18 @@ def test_player_card_shape(mock_build, client):
     assert data["narrative"] is None
     assert data["meta"]["scope"] == "weekly"
     mock_build.assert_called_once()
+
+
+def test_player_card_json_serializable():
+    import json
+
+    import numpy as np
+    import pandas as pd
+
+    from src.projections.player_card import _row_dict, _sanitize
+
+    row = pd.Series({"Player": "Test", "Season": np.int64(2026), "Week": np.int64(1), "Projected Points": 12.5})
+    payload = _sanitize({"weekly_projection": _row_dict(row), "meta": {"season": 2026, "week": 1}})
+    json.dumps(payload)
+    assert payload["weekly_projection"]["Season"] == 2026
+    assert isinstance(payload["weekly_projection"]["Season"], int)

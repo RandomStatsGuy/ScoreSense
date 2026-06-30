@@ -65,7 +65,7 @@ function exportCsv(rows) {
   URL.revokeObjectURL(url);
 }
 
-export default function DraftTable({ rows, search, metaLine, searchSlot, loading = false }) {
+export default function DraftTable({ rows, search, metaLine, searchSlot, loading = false, position, season }) {
   const [sort, setSort] = useState({ column: "Proj", dir: "desc" });
   const mobileLayout = useMobileLayout();
 
@@ -160,6 +160,8 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
                     showTeam={false}
                     clickable={Boolean(row.player_id)}
                     narrativeScope="season"
+                    position={position}
+                    season={season}
                   />
                 )}
                 meta={row.Team || "—"}
@@ -258,6 +260,9 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
                       size="sm"
                       showTeam={false}
                       clickable={Boolean(row.player_id)}
+                      narrativeScope="season"
+                      position={position}
+                      season={season}
                     />
                     {row["Rookie Est."] ? (
                       <span

@@ -63,9 +63,9 @@ function PlayerCardBody({ data, loading, error, fallbackName }) {
           </div>
           {weekly["Low (P10)"] != null && weekly["High (P90)"] != null ? (
             <QuantileBar
-              low={Number(weekly["Low (P10)"])}
-              mid={Number(weekly["Projected Points"])}
-              high={Number(weekly["High (P90)"])}
+              p10={Number(weekly["Low (P10)"])}
+              p50={Number(weekly["Projected Points"])}
+              p90={Number(weekly["High (P90)"])}
             />
           ) : null}
         </section>
