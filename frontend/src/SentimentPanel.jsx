@@ -10,9 +10,6 @@ import SentimentMeter from "./SentimentMeter";
 const SentimentCharts = lazy(() => import("./SentimentCharts"));
 
 const NETWORK_CHIP_TONE = {
-  locked_on: "probable",
-  sb_nation: "doubtful",
-  chat_sports: "questionable",
   fantasy_footballers: "probable",
   fantasypros_yt: "probable",
   late_round: "probable",
@@ -23,14 +20,13 @@ const NETWORK_CHIP_TONE = {
   draft_sharks: "doubtful",
   playerprofiler: "doubtful",
   qb_list: "doubtful",
-  espn: "probable",
-  athletic: "doubtful",
 };
 
 function mergeSentimentMeta(data) {
   if (!data) return null;
   return {
     ...(data.meta || {}),
+    scope: data.scope,
     season: data.season,
     week: data.week,
     requested_season: data.requested_season,
@@ -38,6 +34,22 @@ function mergeSentimentMeta(data) {
     context_fallback: data.context_fallback,
     count: data.count,
   };
+}
+
+function digestText(row) {
+  return row.fantasy_digest?.trim() || row.beat_digest?.trim() || "";
+}
+
+function digestSource(row) {
+  return row.fantasy_digest_source || row.beat_digest_source;
+}
+
+function trendLabel(trend) {
+  const n = Number(trend);
+  if (!Number.isFinite(n)) return null;
+  if (n > 0.25) return "↑ warming";
+  if (n < -0.25) return "↓ cooling";
+  return "→ steady";
 }
 
 function SourceChip({ network, label }) {
@@ -49,19 +61,20 @@ function SourceChip({ network, label }) {
   );
 }
 
-function NarrativeRow({ row }) {
+function NarrativeRow({ row, scope = "weekly" }) {
   const snippet = row.snippet?.trim();
-  const narrative = row.beat_digest?.trim() || snippet;
+  const narrative = digestText(row) || snippet;
   const flags = [];
   if (Number(row.injury_flag) > 0) flags.push("injury");
   if (Number(row.role_hype_flag) > 0) flags.push("hype");
-  const sourceLabel = row.beat_digest_source === "llm"
+  const sourceLabel = digestSource(row) === "llm"
     ? "AI summary"
-    : row.beat_digest_source === "cache"
+    : digestSource(row) === "cache"
       ? "Cached summary"
-      : row.beat_digest_source === "extractive"
+      : digestSource(row) === "extractive"
         ? "Extractive"
         : null;
+  const trend = scope === "season" ? trendLabel(row.mention_trend) : null;
 
   return (
     <article className="sentiment-player-card">
@@ -78,9 +91,12 @@ function NarrativeRow({ row }) {
 
       <div className="sentiment-player-meta">
         <span>{fmtMentions(row.mention_count)} mentions</span>
+        {scope === "season" && row.weeks_with_mentions ? (
+          <span>{row.weeks_with_mentions} wks</span>
+        ) : null}
+        {trend ? <span>{trend}</span> : null}
         {sourceLabel ? <span>{sourceLabel}</span> : null}
         {flags.length ? <span>{flags.join(" · ")}</span> : null}
-        {row.beat_writer ? <span className="sentiment-beat-line">{row.beat_writer}</span> : null}
       </div>
 
       {narrative ? (
@@ -98,7 +114,7 @@ function NarrativeRow({ row }) {
           <p className="sentiment-snippet-clamp sentiment-narrative">{narrative}</p>
         </HoverTip>
       ) : (
-        <p className="sentiment-snippet-clamp muted">No narrative available</p>
+        <p className="sentiment-snippet-clamp state-empty-text">No analyst context available</p>
       )}
 
       {row.sources?.length ? (
@@ -120,6 +136,7 @@ export default function SentimentPanel({
   position,
   season,
   week,
+  scope = "weekly",
   players: playersProp,
   meta: metaProp,
   loading: loadingProp,
@@ -134,6 +151,15 @@ export default function SentimentPanel({
   const [view, setView] = useState("list");
   const [filter, setFilter] = useState("");
 
+  const isSeason = scope === "season";
+  const panelTitle = isSeason ? "Season analyst context" : "Analyst context";
+  const panelSubtitle = isSeason
+    ? "YouTube fantasy analysts — season-to-date outlook, not in projections."
+    : "YouTube fantasy analysts — does not change projections or injury boosts.";
+  const apiPath = isSeason
+    ? `/api/fantasy-narrative/${position}/season`
+    : `/api/fantasy-narrative/${position}/weekly`;
+
   const controlled = playersProp !== undefined;
   const players = controlled ? playersProp || [] : playersLocal;
   const meta = controlled ? metaProp : metaLocal;
@@ -146,10 +172,10 @@ export default function SentimentPanel({
     setErrorLocal("");
     try {
       const res = await apiFetch(
-        `/api/sentiment/${position}?season=${season}&week=${week}`,
+        `${apiPath}?season=${season}&week=${week}`,
         { signal },
       );
-      if (!res.ok) throw new Error(await parseApiError(res, "Failed to load beat narrative"));
+      if (!res.ok) throw new Error(await parseApiError(res, `Failed to load ${panelTitle.toLowerCase()}`));
       const data = await res.json();
       if (signal?.aborted) return;
       setPlayersLocal(data.players || []);
@@ -158,11 +184,11 @@ export default function SentimentPanel({
       if (isAbortError(err)) return;
       setPlayersLocal([]);
       setMetaLocal(null);
-      setErrorLocal(connectionErrorMessage(err, "Failed to load beat narrative"));
+      setErrorLocal(connectionErrorMessage(err, `Failed to load ${panelTitle.toLowerCase()}`));
     } finally {
       setLoadingLocal(false);
     }
-  }, [controlled, position, season, week]);
+  }, [controlled, apiPath, panelTitle, position, season, week]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -189,22 +215,16 @@ export default function SentimentPanel({
       parts.push(`${meta.count} players`);
     }
     if (meta.season != null && meta.week != null) {
-      parts.push(`${meta.season} · W${meta.week}`);
+      parts.push(isSeason ? `${meta.season} · through W${meta.week}` : `${meta.season} · W${meta.week}`);
     }
     if (meta.context_fallback && meta.requested_season != null && meta.requested_week != null) {
       parts.push(`fallback from ${meta.requested_season} W${meta.requested_week}`);
-    }
-    if (meta.data_coverage != null && Number.isFinite(Number(meta.data_coverage))) {
-      parts.push(`${Math.round(Number(meta.data_coverage) * 100)}% team coverage`);
     }
     if (meta.last_refresh) {
       parts.push(`Updated ${new Date(meta.last_refresh).toLocaleString()}`);
     }
     return parts.join(" · ");
-  }, [meta]);
-
-  const beatWriters = meta?.beat_writers_by_team || {};
-  const beatWriterTeams = Object.keys(beatWriters).sort();
+  }, [meta, isSeason]);
 
   const fallbackBanner = useMemo(() => {
     if (!meta?.context_fallback) return null;
@@ -214,7 +234,7 @@ export default function SentimentPanel({
     const reqWeek = meta.requested_week ?? week;
     return (
       <div className="sentiment-fallback-banner" role="status">
-        Showing <strong>Wk {shownWeek}</strong> (no data for Wk {reqWeek}).
+        Showing <strong>Wk {shownWeek}</strong> (no fantasy data for Wk {reqWeek}).
       </div>
     );
   }, [meta, season, week]);
@@ -223,11 +243,9 @@ export default function SentimentPanel({
     <section className={`panel wide sentiment-panel projections-mobile-panel ${className}`.trim()}>
       <div className="sentiment-panel-head">
         <div className="sentiment-panel-title-block">
-          <h2>Weekly narrative</h2>
+          <h2>{panelTitle}</h2>
           <p className="sentiment-panel-summary">
-            {open
-              ? "Video context only — not in projections."
-              : summary || (loading ? "Loading…" : "Team & fantasy video mentions")}
+            {open ? panelSubtitle : summary || (loading ? "Loading…" : "League-wide fantasy YouTube mentions")}
           </p>
         </div>
         <div className="sentiment-panel-actions">
@@ -268,25 +286,13 @@ export default function SentimentPanel({
       {open && fallbackBanner}
       {error && open && <div className="error">{error}</div>}
 
-      {open && beatWriterTeams.length > 0 && (
-        <details className="sentiment-panel-details">
-          <summary>Team beat reporters</summary>
-          <ul className="sentiment-beat-list">
-            {beatWriterTeams.map((team) => (
-              <li key={team}>
-                <strong>{team}</strong> — {beatWriters[team]}
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
-
       {open && view === "charts" && !loading && (
         <Suspense fallback={<div className="sentiment-charts-empty">Loading charts…</div>}>
           <SentimentCharts
             players={players}
             season={meta?.season ?? season}
             week={meta?.week ?? week}
+            scope={scope}
           />
         </Suspense>
       )}
@@ -308,22 +314,28 @@ export default function SentimentPanel({
           </div>
 
           {loading && (
-            <div className="sentiment-charts-empty">Loading weekly narrative…</div>
+            <div className="sentiment-charts-empty">Loading {panelTitle.toLowerCase()}…</div>
           )}
 
           {!loading && !hasData && (
-            <div className="sentiment-charts-empty">
-              No channel mentions for this week yet. Run sentiment refresh after channel IDs are configured.
+            <div className="state-empty-callout sentiment-charts-empty">
+              {isSeason
+                ? "No analyst context for this season yet — data appears once in-season YouTube mentions are ingested."
+                : "No analyst context for this week yet — data appears once in-season YouTube mentions are ingested."}
             </div>
           )}
 
           {!loading && hasData && (
             <div className="sentiment-player-list">
               {filteredPlayers.length === 0 && (
-                <div className="sentiment-charts-empty">No players match your search.</div>
+                <div className="state-empty-callout sentiment-charts-empty">No players match your search.</div>
               )}
               {filteredPlayers.map((row) => (
-                <NarrativeRow key={row.player_id || `${row.player}-${row.team}`} row={row} />
+                <NarrativeRow
+                  key={row.player_id || `${row.player}-${row.team}`}
+                  row={row}
+                  scope={scope}
+                />
               ))}
             </div>
           )}

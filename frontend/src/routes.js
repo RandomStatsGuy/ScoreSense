@@ -27,11 +27,15 @@ export const INSIGHT_ID_TO_SLUG = Object.fromEntries(
   Object.entries(INSIGHT_SLUG_TO_ID).map(([slug, id]) => [id, slug]),
 );
 
-export const WEEKLY_PANELS = new Set(["projections", "injuries", "narrative"]);
+export const WEEKLY_PANELS = new Set(["projections", "injuries", "fantasy"]);
+
+export const SEASON_PANELS = new Set(["projections", "narrative"]);
 
 export const SEASON_MODES = new Set(["preseason", "live"]);
 
 export const TOOLS_TABS = new Set(["dfs", "bestball", "props"]);
+
+export const ADMIN_TABS = new Set(["overview", "users", "leagues"]);
 
 export function parseAppPath(pathname) {
   const parts = pathname.split("/").filter(Boolean);
@@ -39,7 +43,8 @@ export function parseAppPath(pathname) {
 
   if (root === "projections") {
     if (parts[1] === "weekly") {
-      const panel = parts[2] || "projections";
+      const panelRaw = parts[2] || "projections";
+      const panel = panelRaw === "narrative" ? "fantasy" : panelRaw;
       return {
         view: "projections",
         projectionsTab: "weekly",
@@ -52,11 +57,13 @@ export function parseAppPath(pathname) {
     }
     if (parts[1] === "season") {
       const mode = SEASON_MODES.has(parts[2]) ? parts[2] : "live";
+      const panel = parts[3] || "projections";
       return {
         view: "projections",
         projectionsTab: "season",
         projectionsMobilePanel: "projections",
         seasonMode: mode,
+        seasonMobilePanel: SEASON_PANELS.has(panel) ? panel : "projections",
         toolsTab: null,
         hubSubView: null,
         insightTab: null,
@@ -119,8 +126,10 @@ export function parseAppPath(pathname) {
   }
 
   if (root === "admin") {
+    const adminTab = ADMIN_TABS.has(parts[1]) ? parts[1] : "overview";
     return {
       view: "admin",
+      adminTab,
       projectionsTab: null,
       projectionsMobilePanel: null,
       seasonMode: null,
@@ -138,9 +147,11 @@ export function buildAppPath({
   projectionsTab = "weekly",
   projectionsMobilePanel = "projections",
   seasonMode = "live",
+  seasonMobilePanel = "projections",
   toolsTab = "dfs",
   hubSubView = "setup",
   insightTab = "cap",
+  adminTab = "overview",
 }) {
   if (view === "projections") {
     if (projectionsTab === "weekly") {
@@ -151,7 +162,11 @@ export function buildAppPath({
       return `/projections/weekly${panel}`;
     }
     const mode = SEASON_MODES.has(seasonMode) ? seasonMode : "live";
-    return `/projections/season/${mode}`;
+    const panelSuffix =
+      seasonMobilePanel && seasonMobilePanel !== "projections"
+        ? `/${seasonMobilePanel}`
+        : "";
+    return `/projections/season/${mode}${panelSuffix}`;
   }
   if (view === "hub") {
     if (hubSubView === "insights") {
@@ -166,7 +181,10 @@ export function buildAppPath({
     return `/tools/${tab}`;
   }
   if (view === "model") return "/model";
-  if (view === "admin") return "/admin";
+  if (view === "admin") {
+    const tab = ADMIN_TABS.has(adminTab) ? adminTab : "overview";
+    return tab === "overview" ? "/admin" : `/admin/${tab}`;
+  }
   return "/projections/weekly";
 }
 

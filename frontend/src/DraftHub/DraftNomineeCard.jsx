@@ -51,7 +51,7 @@ export default function DraftNomineeCard({
   label = "On the block",
   compact = false,
 }) {
-  const digest = beatDigest || sentiment?.beat_digest;
+  const digest = beatDigest || sentiment?.fantasy_digest || sentiment?.beat_digest;
   const hasStory = sentiment && Number(sentiment.mention_count) > 0;
   const labelText = sentiment?.sentiment_label_text || sentiment?.sentiment_label;
 
@@ -103,7 +103,7 @@ export default function DraftNomineeCard({
                 <span className="hub-draft-story-mentions">{mentionCountLabel(sentiment.mention_count)}</span>
               </div>
               {digestLoading ? (
-                <p className="hub-draft-story-text hub-draft-story-loading">Summarizing beat reports…</p>
+                <p className="hub-draft-story-text hub-draft-story-loading">Summarizing fantasy narrative…</p>
               ) : (
                 <p className="hub-draft-story-text">{digest}</p>
               )}
@@ -119,7 +119,7 @@ export default function DraftNomineeCard({
             </div>
           ) : (
             <p className="hub-draft-no-story">
-              No beat narrative this week
+              No fantasy narrative this week
               {sentimentMeta?.week ? ` (Week ${sentimentMeta.week})` : ""}.
             </p>
           )}

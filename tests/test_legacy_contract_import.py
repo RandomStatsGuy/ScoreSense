@@ -9,10 +9,13 @@ import pytest
 from src.draft_hub.legacy_contract_import import (
     TEAM_OWNERS,
     load_owner_team_map,
+    parse_2021_pdf,
     parse_2022_sheet,
     parse_modern_owner_sheet,
     process_league_history,
 )
+from src.draft_hub.legacy_contract_history import _displayable_contract_row
+from src.draft_hub.player_name_match import is_garbage_player_name
 from src.config import OLD_LEAGUE_FILES_DIR
 
 
@@ -26,9 +29,28 @@ def test_process_league_history_parses_excel_files(owner_map):
         pytest.skip("old_league_files not present")
     df = process_league_history(OLD_LEAGUE_FILES_DIR)
     assert not df.empty
-    assert set(df["season_year"].unique()) >= {2022, 2023, 2024, 2025}
+    assert set(df["season_year"].unique()) >= {2021, 2022, 2023, 2024, 2025}
     assert set(df["owner_label"].unique()).issubset(set(TEAM_OWNERS))
     assert df["cap_hit"].notna().any()
+
+
+def test_2021_pdf_parser_splits_grid_cells(owner_map):
+    pdf = OLD_LEAGUE_FILES_DIR / "2021 Fantasy Draft Results.pdf"
+    if not pdf.exists():
+        pytest.skip("2021 PDF missing")
+    rows = parse_2021_pdf(pdf, owner_map)
+    assert len(rows) >= 220
+    garbage = [r for r in rows if is_garbage_player_name(r["player_name"])]
+    assert not garbage, garbage[0]["player_name"]
+    displayable = [r for r in rows if _displayable_contract_row(r)]
+    assert len(displayable) >= 220
+    mahomes = next((r for r in rows if r["player_name"] == "P Mahomes"), None)
+    assert mahomes is not None
+    assert mahomes["cap_hit"] == 32
+    assert mahomes["owner_label"] == "Caleb K"
+    taylor = next((r for r in rows if r["player_name"] == "J Taylor"), None)
+    assert taylor is not None
+    assert taylor["cap_hit"] == 42
 
 
 def test_2022_sheet_parser(owner_map):

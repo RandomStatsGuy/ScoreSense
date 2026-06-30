@@ -24,6 +24,7 @@ export default function HoverTip({
   className = "",
   as = "span",
   variant = "dark",
+  mobileAffordance = true,
   ...rest
 }) {
   const triggerRef = useRef(null);
@@ -92,6 +93,9 @@ export default function HoverTip({
         {...rest}
       >
         {children}
+        {coarse && mobileAffordance && content ? (
+          <span className="hover-tip-affordance" aria-hidden="true">ⓘ</span>
+        ) : null}
       </Tag>
       {tip &&
         createPortal(

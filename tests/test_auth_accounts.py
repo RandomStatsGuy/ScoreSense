@@ -249,3 +249,42 @@ def test_api_resend_already_verified(api_client, mock_send):
     body = resend.json()
     assert body["sent"] is False
     assert body.get("already_verified") is True
+
+
+def test_api_resend_orphaned_native_session(api_client, mock_send):
+    user = register_native_user("orphan@example.com", "password12", "Orphan", accept_terms=True)
+    token = create_access_token(user, auth_type="native")
+    user_store.delete_user(user["id"])
+    headers = {"Authorization": f"Bearer {token}"}
+    resend = api_client.post(
+        "/api/auth/resend-verification",
+        headers=headers,
+        json={"email": "orphan@example.com"},
+    )
+    assert resend.status_code == 200
+    body = resend.json()
+    assert body["sent"] is False
+    assert body.get("reason") == "not_found"
+
+    me = api_client.get("/api/auth/me", headers=headers)
+    assert me.status_code == 200
+    pub = me.json()["user"]
+    assert pub["account_found"] is False
+    assert pub["email_verified"] is False
+
+
+def test_login_rate_limit(api_client, auth_db):
+    from src.auth.rate_limit import reset_rate_limits
+
+    reset_rate_limits()
+    res = None
+    for _ in range(16):
+        res = api_client.post(
+            "/api/auth/login",
+            json={"email": "ratelimit@example.com", "password": "wrong"},
+        )
+        if res.status_code == 429:
+            break
+    assert res is not None
+    assert res.status_code == 429
+    reset_rate_limits()

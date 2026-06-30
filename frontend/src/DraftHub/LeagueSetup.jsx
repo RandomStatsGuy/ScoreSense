@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
+import useMobileLayout from "../useMobileLayout";
 import { effectiveHubContext } from "./hubContext";
 import LeagueSwitcher from "./LeagueSwitcher";
 import { effectiveMemberships, isSoloContext } from "./hubLeagues";
@@ -20,6 +21,7 @@ export default function LeagueSetup({
   hideActiveHero = false,
 }) {
   const ctx = effectiveHubContext(hubContext, workspace);
+  const mobileLayout = useMobileLayout();
   const inLeague = ctx?.mode === "league";
   const isCommissioner = ctx?.is_commissioner;
   const draftCompleted = Boolean(ctx?.draft_completed);
@@ -127,7 +129,7 @@ export default function LeagueSetup({
   };
 
   return (
-    <section className="panel hub-league-setup">
+    <section className={`panel hub-league-setup${mobileLayout ? " hub-league-setup--mobile" : ""}`}>
       <LeagueSwitcher
         memberships={memberships}
         hubContext={ctx}

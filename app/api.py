@@ -35,6 +35,7 @@ from app.auth import (
     register_native_user,
     request_password_reset,
     require_patron,
+    require_admin,
     resend_verification_email,
     reset_password_with_token,
     resolve_native_user_id,
@@ -55,7 +56,7 @@ from src.jobs.accuracy_rebuild import (
     run_full_accuracy_rebuild,
     start_full_accuracy_rebuild,
 )
-from src.config import FRONTEND_DIST
+from src.config import FRONTEND_DIST, TWA_PACKAGE_NAME, TWA_SHA256_FINGERPRINT
 from src.auth import user_store
 from src.integrations.sleeper import get_nfl_state, injured_players
 from src.jobs.weekly_refresh import get_refresh_status, run_weekly_refresh
@@ -71,6 +72,7 @@ from src.products.dfs_salaries import attach_salaries_to_pool, parse_salary_csv
 from src.products.lineup_optimizer import build_lineup_pool, optimize_from_pool_dataframe
 from src.products.prop_scan import build_prop_scan, parse_prop_lines_csv
 from src.sentiment.readout import build_sentiment_response
+from src.sentiment.fantasy_readout import build_fantasy_season_response, build_fantasy_weekly_response
 from src.integrations.dfs_slates import (
     SLATE_CATEGORIES,
     fetch_slate_salaries,
@@ -176,6 +178,29 @@ def players_media(
     return {"media": build_player_media_batch(hints)}
 
 
+@app.get("/api/player/{player_id}/card")
+def player_card_get(
+    player_id: str,
+    season: Optional[int] = None,
+    week: Optional[int] = None,
+    scope: str = Query("weekly", description="weekly or season narrative scope"),
+    position: Optional[str] = None,
+    _user=Depends(require_patron),
+) -> dict:
+    from src.projections.player_card import build_player_card
+
+    try:
+        return build_player_card(
+            player_id,
+            season=season,
+            week=week,
+            scope=scope,
+            position=position.lower() if position else None,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.get("/api/auth/config")
 def auth_config() -> dict:
     return {
@@ -224,6 +249,22 @@ class UpdateProfileRequest(BaseModel):
 
 class DeleteAccountRequest(BaseModel):
     password: str
+
+
+def _rate_limit_auth_credentials(request: Request, email: str | None, *, action: str) -> None:
+    ip = request.client.host if request.client else "unknown"
+    if not check_rate_limit(f"{action}:ip:{ip}", max_calls=30, window_seconds=3600):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many attempts. Try again in about an hour.",
+        )
+    if email:
+        norm = str(email).strip().lower()
+        if norm and not check_rate_limit(f"{action}:email:{norm}", max_calls=15, window_seconds=3600):
+            raise HTTPException(
+                status_code=429,
+                detail="Too many attempts. Try again in about an hour.",
+            )
 
 
 def _rate_limit_forgot_password(request: Request, email: str | None) -> None:
@@ -311,7 +352,8 @@ def _set_auth_cookie(response: Response, token: str) -> None:
 
 
 @app.post("/api/auth/register")
-def auth_register(body: RegisterRequest, response: Response) -> dict:
+def auth_register(body: RegisterRequest, request: Request, response: Response) -> dict:
+    _rate_limit_auth_credentials(request, body.email, action="register")
     try:
         user = register_native_user(
             body.email,
@@ -331,7 +373,8 @@ def auth_register(body: RegisterRequest, response: Response) -> dict:
 
 
 @app.post("/api/auth/login")
-def auth_login(body: LoginRequest, response: Response) -> dict:
+def auth_login(body: LoginRequest, request: Request, response: Response) -> dict:
+    _rate_limit_auth_credentials(request, body.email, action="login")
     user = authenticate_native_user(body.email, body.password)
     row = user_store.get_user_by_id(user["id"])
     token = create_access_token(user, auth_type="native")
@@ -391,7 +434,9 @@ def auth_resend_verification(body: ResendVerificationRequest, request: Request) 
         return {"sent": False, "reason": "not_found"}
 
     row = user_store.get_user_by_id(user_id)
-    if row and user_store.is_email_verified(row):
+    if not row:
+        return {"sent": False, "reason": "not_found"}
+    if user_store.is_email_verified(row):
         return {"sent": False, "already_verified": True}
 
     _rate_limit_resend_verification(
@@ -623,7 +668,7 @@ def accuracy_rebuild_ack(_user=Depends(require_patron)) -> dict:
 @app.post("/api/accuracy/rebuild")
 async def rebuild_accuracy(
     include_espn: bool = True,
-    _user=Depends(require_patron),
+    _user=Depends(require_admin),
 ) -> dict:
     try:
         queued = start_full_accuracy_rebuild(include_espn=include_espn)
@@ -658,7 +703,7 @@ def upside_report(position: Optional[str] = None, _user=Depends(require_patron))
 
 
 @app.post("/api/upside/rebuild")
-async def rebuild_upside(_user=Depends(require_patron)) -> dict:
+async def rebuild_upside(_user=Depends(require_admin)) -> dict:
     """Alias for the combined accuracy rebuild facade."""
     try:
         queued = start_full_accuracy_rebuild(include_espn=True)
@@ -686,7 +731,7 @@ async def refresh(
     retrain: bool = True,
     draft_only: bool = False,
     background_tasks: BackgroundTasks = None,
-    _user=Depends(require_patron),
+    _user=Depends(require_admin),
 ) -> dict:
     try:
         if background_tasks is not None:
@@ -862,6 +907,52 @@ def sentiment_get(
         df = pd.read_parquet(path, columns=["season", "week"])
         resolved_season, resolved_week = resolve_projection_context(df, season, week)
         return build_sentiment_response(position, resolved_season, resolved_week)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+def _resolve_fantasy_narrative_context(
+    season: Optional[int],
+    week: Optional[int],
+) -> tuple[int, int]:
+    from src.config import PROCESSED_DATA_DIR
+    from src.core.projection_context import resolve_projection_context
+
+    path = PROCESSED_DATA_DIR / "qb_mlready.parquet"
+    df = pd.read_parquet(path, columns=["season", "week"])
+    return resolve_projection_context(df, season, week)
+
+
+@app.get("/api/fantasy-narrative/{position}/weekly")
+def fantasy_narrative_weekly_get(
+    position: str,
+    season: Optional[int] = None,
+    week: Optional[int] = None,
+    _user=Depends(require_patron),
+) -> dict:
+    position = position.lower()
+    if position not in ("qb", "rb", "wr"):
+        raise HTTPException(status_code=400, detail="position must be qb, rb, or wr")
+    try:
+        resolved_season, resolved_week = _resolve_fantasy_narrative_context(season, week)
+        return build_fantasy_weekly_response(position, resolved_season, resolved_week)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/fantasy-narrative/{position}/season")
+def fantasy_narrative_season_get(
+    position: str,
+    season: Optional[int] = None,
+    week: Optional[int] = None,
+    _user=Depends(require_patron),
+) -> dict:
+    position = position.lower()
+    if position not in ("qb", "rb", "wr"):
+        raise HTTPException(status_code=400, detail="position must be qb, rb, or wr")
+    try:
+        resolved_season, resolved_week = _resolve_fantasy_narrative_context(season, week)
+        return build_fantasy_season_response(position, resolved_season, resolved_week)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -1243,6 +1334,28 @@ async def props_import_lines(
         "props": _json_safe_records(scan) if not scan.empty else [],
         "note": f"Matched {meta.get('with_market', 0)} market lines.",
     }
+
+
+@app.get("/.well-known/assetlinks.json")
+def serve_android_assetlinks() -> list[dict[str, Any]]:
+    """Digital Asset Links for Android TWA — set TWA_SHA256_FINGERPRINT in server .env."""
+    fingerprints = [
+        fp.strip()
+        for fp in TWA_SHA256_FINGERPRINT.split(",")
+        if fp.strip() and not fp.strip().startswith("REPLACE_WITH")
+    ]
+    if not fingerprints:
+        return []
+    return [
+        {
+            "relation": ["delegate_permission/common.handle_all_urls"],
+            "target": {
+                "namespace": "android_app",
+                "package_name": TWA_PACKAGE_NAME,
+                "sha256_cert_fingerprints": fingerprints,
+            },
+        }
+    ]
 
 
 if FRONTEND_DIST.exists():

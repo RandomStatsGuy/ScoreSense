@@ -13,6 +13,10 @@ def is_testing() -> bool:
     return os.getenv("TESTING", "0") == "1" or os.getenv("SCORESENSE_TESTING", "0") == "1"
 
 
+# Keys from .env always win — avoids stale shell env blocking local HUB_AUTH_REQUIRED=false.
+_DOTENV_OVERRIDE_KEYS = frozenset({"AUTH_REQUIRED", "HUB_AUTH_REQUIRED", "HUB_TIMING"})
+
+
 def _load_dotenv() -> None:
     """Load project .env into os.environ without overriding existing vars."""
     env_path = PROJECT_ROOT / ".env"
@@ -25,7 +29,7 @@ def _load_dotenv() -> None:
         key, _, value = line.partition("=")
         key = key.strip()
         value = value.strip().strip('"').strip("'")
-        if key and key not in os.environ:
+        if key and (key not in os.environ or key in _DOTENV_OVERRIDE_KEYS):
             os.environ[key] = value
 
 
@@ -58,9 +62,13 @@ JWT_SECRET = _resolve_jwt_secret()
 JWT_ALGORITHM = "HS256"
 JWT_DAYS = int(os.getenv("JWT_DAYS", "14"))
 AUTH_REQUIRED = os.getenv("AUTH_REQUIRED", "false").lower() in ("1", "true", "yes")
-HUB_AUTH_REQUIRED = os.getenv("HUB_AUTH_REQUIRED", "true").lower() in ("1", "true", "yes")
+HUB_AUTH_REQUIRED = os.getenv("HUB_AUTH_REQUIRED", "false").lower() in ("1", "true", "yes")
 HUB_TIMING = os.getenv("HUB_TIMING", "false").lower() in ("1", "true", "yes")
 PATREON_MIN_CENTS = int(os.getenv("PATREON_MIN_CENTS", "100"))
+# Android TWA signing cert SHA-256 (colon-separated, from Bubblewrap keystore). Empty = omit from assetlinks.
+TWA_SHA256_FINGERPRINT = os.getenv("TWA_SHA256_FINGERPRINT", "").strip()
+TWA_PACKAGE_NAME = os.getenv("TWA_PACKAGE_NAME", "com.fourthdownlabs.scoresense").strip()
+
 ADMIN_EMAILS = frozenset(
     e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "").split(",") if e.strip()
 )

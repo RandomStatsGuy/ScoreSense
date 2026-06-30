@@ -26,7 +26,7 @@ def test_ws_user_from_token_missing_when_hub_auth(hub_db, monkeypatch):
     assert ws_user_from_token("bad-token") is None
 
 
-def test_verify_league_membership(hub_db):
+def test_verify_league_membership(hub_db, auth_db):
     user = user_store.create_user("ws@example.com", "pbkdf2_sha256$120000$00$00", "WS User")
     from app.auth import native_user_sub
 

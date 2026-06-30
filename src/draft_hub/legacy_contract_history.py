@@ -40,6 +40,7 @@ def build_contract_history_payload(
     season_year: int | None = None,
     owner_label: str | None = None,
 ) -> dict[str, Any]:
+    storage.ensure_owner_season_map_seeded(league_id)
     seasons = storage.list_league_contract_seasons(league_id)
     rows = storage.list_league_contract_rows(
         league_id,
@@ -50,6 +51,7 @@ def build_contract_history_payload(
     movements = storage.list_league_movements(league_id, season_year=season_year)
     owners = sorted({r["owner_label"] for r in rows})
     review_count = sum(1 for r in rows if r.get("needs_review"))
+    owner_map_rows = storage.list_owner_season_map(league_id, season_year=season_year)
     return {
         "available": bool(rows),
         "seasons": seasons,
@@ -59,6 +61,7 @@ def build_contract_history_payload(
         "needs_review_count": review_count,
         "rows": rows,
         "movements": movements,
+        "owner_season_map": owner_map_rows,
     }
 
 
@@ -79,6 +82,10 @@ def import_legacy_files(
     total = 0
     seasons: list[int] = []
     for season, rows in sorted(grouped.items()):
+        for r in rows:
+            mapped = storage.resolve_hub_team_name(league_id, season, r["owner_label"])
+            if mapped:
+                r["hub_team_name"] = mapped
         import_id = storage.record_legacy_import(
             league_id,
             season,
@@ -96,6 +103,10 @@ def import_legacy_files(
         seasons.append(season)
 
     movement_count = infer_all_season_movements(league_id)
+
+    from src.draft_hub.insights_cache import invalidate_cap_cache
+
+    invalidate_cap_cache(league_id)
 
     parquet_path = None
     if export_parquet:

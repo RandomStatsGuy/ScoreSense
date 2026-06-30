@@ -11,13 +11,14 @@ import SeasonTable from "./SeasonTable";
 import SeasonTransitionState from "./SeasonTransitionState";
 import InjurySidebar from "./InjurySidebar";
 import SentimentPanel from "./SentimentPanel";
-import TeamFilter from "./TeamFilter";
 import WeeklyTable from "./WeeklyTable";
 import useAccuracyRebuildPoll from "./useAccuracyRebuildPoll";
 import useAppNavigation from "./useAppNavigation";
 import useMobileLayout from "./useMobileLayout";
+import useProjectionsMeta from "./hooks/useProjectionsMeta";
 import InviteAccept from "./InviteAccept";
 import VerifyEmailBanner from "./VerifyEmailBanner";
+import InstallPrompt from "./InstallPrompt";
 import TermsReacceptBanner from "./TermsReacceptBanner";
 import LegalLinks from "./LegalLinks";
 import { PRODUCT_DISCLAIMER } from "./auth";
@@ -26,6 +27,7 @@ import MobileShell from "./layout/MobileShell";
 import MobileHeader from "./layout/MobileHeader";
 import MobileSubnav from "./layout/MobileSubnav";
 import MobileFilterSheet from "./layout/MobileFilterSheet";
+import ProjectionsFilterBar from "./layout/ProjectionsFilterBar";
 import MobileMenuSheet from "./layout/MobileMenuSheet";
 import {
   APP_SECTIONS,
@@ -44,6 +46,7 @@ import {
 } from "./format";
 import { playerSentimentKey, buildSentimentMap, resolveRowSentiment } from "./sentimentDisplay";
 import { PRODUCT_NAME, STUDIO_NAME } from "./brand";
+import { PlayerCardProvider } from "./PlayerCardContext";
 
 const AccuracyChart = lazy(() => import("./AccuracyChart"));
 
@@ -73,29 +76,29 @@ export default function App() {
     projectionsTab,
     projectionsMobilePanel,
     seasonMode,
+    seasonMobilePanel,
     toolsTab,
     hubSubView,
     insightTab,
+    adminTab,
     filtersFromUrl,
     goToSection,
     setProjectionsTab,
     setProjectionsMobilePanel,
     setSeasonMode,
+    setSeasonMobilePanel,
     setToolsTab,
     setHubSubView,
     updateFilters,
+    setAdminTab,
   } = nav;
   const [hubContext, setHubContext] = useState(null);
   const [position, setPosition] = useState(filtersFromUrl.position || "qb");
   const [projections, setProjections] = useState([]);
   const [rosProjections, setRosProjections] = useState([]);
   const [rosMeta, setRosMeta] = useState(null);
-  const [rosSeason, setRosSeason] = useState(null);
-  const [rosFromWeek, setRosFromWeek] = useState(null);
   const [draftProjections, setDraftProjections] = useState([]);
-  const [draftMeta, setDraftMeta] = useState(null);
   const [draftResponseMeta, setDraftResponseMeta] = useState(null);
-  const [draftSeason, setDraftSeason] = useState(null);
   const [meta, setMeta] = useState(null);
   const [refreshStatus, setRefreshStatus] = useState(null);
   const [accuracyReport, setAccuracyReport] = useState(null);
@@ -109,9 +112,26 @@ export default function App() {
   const [rosLoading, setRosLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [projMeta, setProjMeta] = useState(null);
-  const [season, setSeason] = useState(null);
-  const [week, setWeek] = useState(null);
+  const {
+    projMeta,
+    draftMeta,
+    season,
+    setSeason,
+    week,
+    setWeek,
+    rosSeason,
+    setRosSeason,
+    rosFromWeek,
+    setRosFromWeek,
+    draftSeason,
+    setDraftSeason,
+    projMetaRef,
+    weekOptions,
+    rosWeekOptions,
+    isLiveContext,
+    fetchProjMeta,
+    fetchDraftMeta,
+  } = useProjectionsMeta();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTeams, setSelectedTeams] = useState([]);
   const [allInjuries, setAllInjuries] = useState([]);
@@ -121,11 +141,13 @@ export default function App() {
   const [sentimentMeta, setSentimentMeta] = useState(null);
   const [sentimentLoading, setSentimentLoading] = useState(false);
   const [sentimentError, setSentimentError] = useState("");
+  const [seasonSentimentPlayers, setSeasonSentimentPlayers] = useState([]);
+  const [seasonSentimentMeta, setSeasonSentimentMeta] = useState(null);
+  const [seasonSentimentLoading, setSeasonSentimentLoading] = useState(false);
+  const [seasonSentimentError, setSeasonSentimentError] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [hubMounted, setHubMounted] = useState(false);
-  const projMetaRef = useRef(null);
-  projMetaRef.current = projMeta;
   const rosFetchGen = useRef(0);
   const seasonModeUserPicked = useRef(false);
 
@@ -133,56 +155,6 @@ export default function App() {
   const isSeasonPreseason = view === "projections" && projectionsTab === "season" && seasonMode === "preseason";
   const isSeasonLive = view === "projections" && projectionsTab === "season" && seasonMode === "live";
   const isProjectionsDataView = isWeeklyProjections || isSeasonPreseason || isSeasonLive;
-
-  const weekOptions = useMemo(() => {
-    if (!projMeta || season == null) return [];
-    return projMeta.weeks_by_season?.[String(season)] || [];
-  }, [projMeta, season]);
-
-  const isLiveContext = useMemo(() => {
-    if (season == null || week == null || !projMeta) return false;
-    return season === projMeta.default_season && week === projMeta.default_week;
-  }, [season, week, projMeta]);
-
-  const rosWeekOptions = useMemo(() => {
-    if (!projMeta || rosSeason == null) return [];
-    return projMeta.weeks_by_season?.[String(rosSeason)] || [];
-  }, [projMeta, rosSeason]);
-
-  const fetchProjMeta = useCallback(async (pos, signal) => {
-    try {
-      const res = await apiFetch(`/api/meta/projections/${pos}`, { signal });
-      if (!res.ok) return null;
-      const data = await res.json();
-      if (signal?.aborted) return null;
-      setProjMeta(data);
-      setSeason(data.default_season);
-      setWeek(data.default_week);
-      setRosSeason(data.default_season);
-      setRosFromWeek(data.default_week);
-      return data;
-    } catch (err) {
-      if (!isAbortError(err)) {
-        /* optional during dev */
-      }
-      return null;
-    }
-  }, []);
-
-  const fetchDraftMeta = useCallback(async (pos, signal) => {
-    try {
-      const res = await apiFetch(`/api/meta/draft/${pos}`, { signal });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (signal?.aborted) return;
-      setDraftMeta(data);
-      setDraftSeason(data.default_season);
-    } catch (err) {
-      if (!isAbortError(err)) {
-        /* optional during dev */
-      }
-    }
-  }, []);
 
   const fetchDraft = useCallback(async (signal) => {
     if (draftSeason == null) return;
@@ -242,10 +214,10 @@ export default function App() {
     setSentimentError("");
     try {
       const res = await apiFetch(
-        `/api/sentiment/${position}?season=${targetSeason}&week=${targetWeek}`,
+        `/api/fantasy-narrative/${position}/weekly?season=${targetSeason}&week=${targetWeek}`,
         { signal },
       );
-      if (!res.ok) throw new Error(await parseApiError(res, "Failed to load weekly narrative"));
+      if (!res.ok) throw new Error(await parseApiError(res, "Failed to load fantasy weekly narrative"));
       const data = await res.json();
       if (signal?.aborted) return;
       setSentimentPlayers(data.players || []);
@@ -262,11 +234,46 @@ export default function App() {
       if (isAbortError(err)) return;
       setSentimentPlayers([]);
       setSentimentMeta(null);
-      setSentimentError(connectionErrorMessage(err, "Failed to load weekly narrative"));
+      setSentimentError(connectionErrorMessage(err, "Failed to load fantasy weekly narrative"));
     } finally {
       setSentimentLoading(false);
     }
   }, [position, season, week]);
+
+  const fetchSeasonSentiment = useCallback(async (signal, override = null) => {
+    const targetSeason = override?.season ?? rosSeason ?? season;
+    const targetWeek = override?.week ?? rosFromWeek ?? week;
+    if (targetSeason == null || targetWeek == null) return;
+    setSeasonSentimentLoading(true);
+    setSeasonSentimentError("");
+    try {
+      const res = await apiFetch(
+        `/api/fantasy-narrative/${position}/season?season=${targetSeason}&week=${targetWeek}`,
+        { signal },
+      );
+      if (!res.ok) throw new Error(await parseApiError(res, "Failed to load fantasy season narrative"));
+      const data = await res.json();
+      if (signal?.aborted) return;
+      setSeasonSentimentPlayers(data.players || []);
+      setSeasonSentimentMeta({
+        ...(data.meta || {}),
+        scope: data.scope,
+        season: data.season,
+        week: data.week,
+        requested_season: data.requested_season,
+        requested_week: data.requested_week,
+        context_fallback: data.context_fallback,
+        count: data.count,
+      });
+    } catch (err) {
+      if (isAbortError(err)) return;
+      setSeasonSentimentPlayers([]);
+      setSeasonSentimentMeta(null);
+      setSeasonSentimentError(connectionErrorMessage(err, "Failed to load fantasy season narrative"));
+    } finally {
+      setSeasonSentimentLoading(false);
+    }
+  }, [position, rosSeason, rosFromWeek, season, week]);
 
   const fetchRos = useCallback(async (signal) => {
     if (rosSeason == null || rosFromWeek == null) return;
@@ -457,6 +464,11 @@ export default function App() {
     [sentimentPlayers]
   );
 
+  const seasonSentimentByPlayer = useMemo(
+    () => buildSentimentMap(seasonSentimentPlayers),
+    [seasonSentimentPlayers]
+  );
+
   const tableRows = useMemo(() => {
     if (!isLiveContext) {
       return projections.map((row) => ({
@@ -479,6 +491,14 @@ export default function App() {
       };
     });
   }, [projections, allInjuries, isLiveContext, sentimentByPlayer]);
+
+  const rosTableRows = useMemo(
+    () => rosProjections.map((row) => ({
+      ...row,
+      sentiment: resolveRowSentiment(seasonSentimentByPlayer, row),
+    })),
+    [rosProjections, seasonSentimentByPlayer],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -651,6 +671,13 @@ export default function App() {
   }, [fetchRos, rosSeason, rosFromWeek, position]);
 
   useEffect(() => {
+    if (!isSeasonLive || rosSeason == null || rosFromWeek == null) return undefined;
+    const controller = new AbortController();
+    fetchSeasonSentiment(controller.signal);
+    return () => controller.abort();
+  }, [isSeasonLive, fetchSeasonSentiment, rosSeason, rosFromWeek, position]);
+
+  useEffect(() => {
     if (view === "model") {
       fetchAccuracy();
       syncAccuracyRebuildStatus();
@@ -716,12 +743,14 @@ export default function App() {
   const mobileContextLabel = useMemo(() => {
     if (view === "hub") {
       if (hubNeedsSignIn) return "Sign in";
-      if (mobileLayout && hubContext?.league_name && hubSubView === "setup") {
-        const name = hubContext.league_name;
-        return name.length > 28 ? `${name.slice(0, 26)}…` : name;
-      }
       const tab = HUB_SUBVIEWS.find((v) => v.id === hubSubView);
-      return tab ? `League · ${tab.shortLabel || tab.label}` : "League";
+      const tabLabel = tab ? (tab.shortLabel || tab.label) : "League";
+      if (mobileLayout && hubContext?.league_name) {
+        const name = hubContext.league_name;
+        const leagueShort = name.length > 18 ? `${name.slice(0, 16)}…` : name;
+        return `${leagueShort} · ${tabLabel}`;
+      }
+      return tab ? `League · ${tabLabel}` : "League";
     }
     if (view === "admin") return "Admin";
     if (view === "model") return "Model accuracy";
@@ -746,15 +775,98 @@ export default function App() {
         badge: sidebarInjuries.length > 0 ? sidebarInjuries.length : null,
       },
       {
-        id: "narrative",
-        label: "Narrative",
+        id: "fantasy",
+        label: "Analyst",
         badge: sentimentPlayers.length > 0 ? sentimentPlayers.length : null,
       },
     ],
     [sidebarInjuries.length, sentimentPlayers.length],
   );
 
+  const seasonMobileTabs = useMemo(
+    () => [
+      { id: "projections", label: "Projections" },
+      {
+        id: "narrative",
+        label: "Analyst",
+        badge: seasonSentimentPlayers.length > 0 ? seasonSentimentPlayers.length : null,
+      },
+    ],
+    [seasonSentimentPlayers.length],
+  );
+
+  const projectionsFilterProps = useMemo(
+    () => ({
+      projectionsTab,
+      seasonMode,
+      position,
+      onPositionChange: handlePositionChange,
+      isWeeklyProjections,
+      isSeasonPreseason,
+      isSeasonLive,
+      projMeta,
+      season,
+      week,
+      weekOptions,
+      onSeasonChange: handleSeasonChange,
+      onWeekChange: (w) => {
+        setWeek(w);
+        syncFiltersToUrl({ week: w });
+      },
+      selectedTeams,
+      onTeamsChange: (teams) => {
+        setSelectedTeams(teams);
+        syncFiltersToUrl({ selectedTeams: teams });
+      },
+      draftMeta,
+      draftSeason,
+      onDraftSeasonChange: (v) => {
+        setDraftSeason(v);
+        syncFiltersToUrl({ draftSeason: v });
+      },
+      rosSeason,
+      rosFromWeek,
+      rosWeekOptions,
+      onRosSeasonChange: handleRosSeasonChange,
+      onRosFromWeekChange: (v) => {
+        setRosFromWeek(v);
+        syncFiltersToUrl({ rosFromWeek: v });
+      },
+      seasonModeUserPicked,
+      onSeasonModeChange: (mode) => {
+        seasonModeUserPicked.current = true;
+        setSeasonMode(mode);
+      },
+      searchQuery,
+      onSearchChange: setSearchQuery,
+    }),
+    [
+      projectionsTab,
+      seasonMode,
+      position,
+      handlePositionChange,
+      isWeeklyProjections,
+      isSeasonPreseason,
+      isSeasonLive,
+      projMeta,
+      season,
+      week,
+      weekOptions,
+      handleSeasonChange,
+      selectedTeams,
+      syncFiltersToUrl,
+      draftMeta,
+      draftSeason,
+      rosSeason,
+      rosFromWeek,
+      rosWeekOptions,
+      handleRosSeasonChange,
+      searchQuery,
+    ],
+  );
+
   return (
+    <PlayerCardProvider>
     <MobileShell
       section={view}
       onSectionChange={goToSection}
@@ -783,6 +895,7 @@ export default function App() {
             onAccepted={refreshAuth}
           />
         )}
+        <InstallPrompt />
         <header className={`app-header${view === "hub" ? " app-header--hub" : ""}${view === "hub" && hubNeedsSignIn ? " app-header--hub-guest" : ""}`}>
           <div className={`app-header-shell${view === "hub" ? " app-header-shell--hub" : ""}`}>
             <MobileHeader
@@ -898,120 +1011,6 @@ export default function App() {
                 </nav>
                 )}
 
-                <div className={`app-header-row app-header-row-context app-header-context-filters${mobileLayout ? " app-header-context-filters--mobile-hidden" : ""}`}>
-                  <div className="header-segment" role="group" aria-label="Position">
-                    {POSITIONS.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        className={`tab header-segment-tab ${position === p.id ? "active" : ""}`}
-                        onClick={() => handlePositionChange(p.id)}
-                      >
-                        {p.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div
-                    className={`header-context-controls${
-                      isWeeklyProjections
-                        ? " header-context-controls--triple"
-                        : isSeasonLive
-                          ? " header-context-controls--double"
-                          : " header-context-controls--single"
-                    }`}
-                  >
-                    {isWeeklyProjections && season != null && (
-                      <>
-                        <label className="header-inline-field header-context-field">
-                          <span className="header-field-label">Season</span>
-                          <select
-                            className="header-select header-context-control"
-                            value={season}
-                            onChange={(e) => handleSeasonChange(e.target.value)}
-                          >
-                            {(projMeta?.seasons || []).map((s) => (
-                              <option key={s} value={s}>{s}</option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="header-inline-field header-context-field">
-                          <span className="header-field-label">Week</span>
-                          <select
-                            className="header-select header-context-control"
-                            value={week ?? ""}
-                            onChange={(e) => setWeek(Number(e.target.value))}
-                          >
-                            {weekOptions.map((w) => (
-                              <option key={w} value={w}>{w}</option>
-                            ))}
-                          </select>
-                        </label>
-                      </>
-                    )}
-                    {isWeeklyProjections && (
-                      <TeamFilter
-                        className="header-context-field header-context-field--team"
-                        teams={projMeta?.teams || []}
-                        selected={selectedTeams}
-                        onChange={(teams) => {
-                          setSelectedTeams(teams);
-                          syncFiltersToUrl({ selectedTeams: teams });
-                        }}
-                      />
-                    )}
-                    {isSeasonPreseason && draftMeta?.seasons?.length > 0 && (
-                      <label className="header-inline-field header-context-field">
-                        <span className="header-field-label">Draft</span>
-                        <select
-                          className="header-select header-context-control"
-                          value={draftSeason ?? ""}
-                          onChange={(e) => {
-                            const v = Number(e.target.value);
-                            setDraftSeason(v);
-                            syncFiltersToUrl({ draftSeason: v });
-                          }}
-                        >
-                          {draftMeta.seasons.map((s) => (
-                            <option key={s} value={s}>{s}</option>
-                          ))}
-                        </select>
-                      </label>
-                    )}
-                    {isSeasonLive && rosSeason != null && (
-                      <>
-                        <label className="header-inline-field header-context-field">
-                          <span className="header-field-label">Season</span>
-                          <select
-                            className="header-select header-context-control"
-                            value={rosSeason}
-                            onChange={(e) => handleRosSeasonChange(e.target.value)}
-                          >
-                            {(projMeta?.seasons || []).map((s) => (
-                              <option key={s} value={s}>{s}</option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="header-inline-field header-context-field">
-                          <span className="header-field-label">As of</span>
-                          <select
-                            className="header-select header-context-control"
-                            value={rosFromWeek ?? ""}
-                            onChange={(e) => {
-                              const v = Number(e.target.value);
-                              setRosFromWeek(v);
-                              syncFiltersToUrl({ rosFromWeek: v });
-                            }}
-                          >
-                            {rosWeekOptions.map((w) => (
-                              <option key={w} value={w}>{w}</option>
-                            ))}
-                          </select>
-                        </label>
-                      </>
-                    )}
-                  </div>
-                </div>
               </div>
             )}
 
@@ -1039,7 +1038,7 @@ export default function App() {
               )
             )}
 
-            {view === "hub" && !hubNeedsSignIn && (
+            {view === "hub" && !hubNeedsSignIn && !mobileLayout && (
               <HubSubnav
                 subView={hubSubView}
                 hubContext={hubContext}
@@ -1077,6 +1076,10 @@ export default function App() {
           )}
         </header>
 
+        {view === "projections" && !mobileLayout && (
+          <ProjectionsFilterBar {...projectionsFilterProps} />
+        )}
+
         <MobileMenuSheet
           open={mobileMenuOpen}
           onClose={() => setMobileMenuOpen(false)}
@@ -1102,50 +1105,26 @@ export default function App() {
           open={mobileFilterOpen}
           onClose={() => setMobileFilterOpen(false)}
           view={view}
-          projectionsTab={projectionsTab}
-          seasonMode={seasonMode}
-          position={position}
-          onPositionChange={handlePositionChange}
-          isWeeklyProjections={isWeeklyProjections}
-          isSeasonPreseason={isSeasonPreseason}
-          isSeasonLive={isSeasonLive}
-          projMeta={projMeta}
-          season={season}
-          week={week}
-          weekOptions={weekOptions}
-          onSeasonChange={handleSeasonChange}
-          onWeekChange={(w) => {
-            setWeek(w);
-            syncFiltersToUrl({ week: w });
-          }}
-          selectedTeams={selectedTeams}
-          onTeamsChange={(teams) => {
-            setSelectedTeams(teams);
-            syncFiltersToUrl({ selectedTeams: teams });
-          }}
-          draftMeta={draftMeta}
-          draftSeason={draftSeason}
-          onDraftSeasonChange={(v) => {
-            setDraftSeason(v);
-            syncFiltersToUrl({ draftSeason: v });
-          }}
-          rosSeason={rosSeason}
-          rosFromWeek={rosFromWeek}
-          rosWeekOptions={rosWeekOptions}
-          onRosSeasonChange={handleRosSeasonChange}
-          onRosFromWeekChange={(v) => {
-            setRosFromWeek(v);
-            syncFiltersToUrl({ rosFromWeek: v });
-          }}
-          seasonModeUserPicked={seasonModeUserPicked}
-          onSeasonModeChange={(mode) => {
-            seasonModeUserPicked.current = true;
-            setSeasonMode(mode);
-          }}
+          filterProps={projectionsFilterProps}
         />
 
         {error && isProjectionsDataView && (
           <div className="error">{error}</div>
+        )}
+
+        {view === "projections" && mobileLayout && (
+          <div className="projections-mobile-pos-chips" role="group" aria-label="Position">
+            {POSITIONS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className={`tab header-segment-tab ${position === p.id ? "active" : ""}`}
+                onClick={() => handlePositionChange(p.id)}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         )}
 
         {hubMounted && (
@@ -1217,10 +1196,11 @@ export default function App() {
             />
 
             <SentimentPanel
-              className={`projections-mobile-panel${projectionsMobilePanel === "narrative" ? " is-mobile-active" : ""}`}
+              className={`projections-mobile-panel${projectionsMobilePanel === "fantasy" ? " is-mobile-active" : ""}`}
               position={position}
               season={season}
               week={week}
+              scope="weekly"
               players={sentimentPlayers}
               meta={sentimentMeta}
               loading={sentimentLoading}
@@ -1293,6 +1273,19 @@ export default function App() {
               />
             ) : (
               <>
+                {mobileLayout && (
+                  <MobileSubnav
+                    tabs={seasonMobileTabs}
+                    active={seasonMobilePanel || "projections"}
+                    onChange={setSeasonMobilePanel}
+                    ariaLabel="Season view"
+                    className="projections-mobile-tabs"
+                  />
+                )}
+                <div className="grid projections-grid">
+                <div
+                  className={`projections-mobile-panel${!seasonMobilePanel || seasonMobilePanel === "projections" ? " is-mobile-active" : ""}`}
+                >
                 {seasonRefreshing && (
                   <div className="season-refresh-banner" role="status" aria-live="polite">
                     <span className="season-transition-spinner season-transition-spinner-sm" aria-hidden="true" />
@@ -1300,10 +1293,11 @@ export default function App() {
                   </div>
                 )}
                 <SeasonTable
-                  rows={rosProjections}
+                  rows={rosTableRows}
                   seasonComplete={seasonComplete}
                   projectionWeek={rosMeta?.projection_week}
                   search={searchQuery}
+                  showSentiment
                   searchSlot={
                     <input
                       type="search"
@@ -1325,6 +1319,20 @@ export default function App() {
                   }
                   loading={seasonLoading}
                 />
+                </div>
+
+                <SentimentPanel
+                  className={`projections-mobile-panel${seasonMobilePanel === "narrative" ? " is-mobile-active" : ""}`}
+                  position={position}
+                  season={rosSeason ?? season}
+                  week={rosFromWeek ?? week}
+                  scope="season"
+                  players={seasonSentimentPlayers}
+                  meta={seasonSentimentMeta}
+                  loading={seasonSentimentLoading}
+                  error={seasonSentimentError}
+                />
+                </div>
               </>
             )}
           </section>
@@ -1377,10 +1385,13 @@ export default function App() {
           </Suspense>
         )}
 
-        {view === "admin" && isAdmin && <AdminPortal />}
+        {view === "admin" && isAdmin && (
+          <AdminPortal adminTab={adminTab || "overview"} onAdminTabChange={setAdminTab} />
+        )}
         {!mobileLayout && (
           <LegalLinks termsUrl={termsUrl} privacyUrl={privacyUrl} className="app-legal-footer" compact />
         )}
       </MobileShell>
+    </PlayerCardProvider>
   );
 }

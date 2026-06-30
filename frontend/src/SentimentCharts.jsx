@@ -29,8 +29,8 @@ const RECHARTS_TIP_PROPS = {
 };
 
 const STAT_HELP = {
-  players: "Players with at least one weighted mention from tracked YouTube channels this week.",
-  mentions: "Total weighted clip count across all covered players (network tier weights apply).",
+  players: "Players with at least one weighted mention from tracked fantasy YouTube shows.",
+  mentions: "Total weighted clip count across covered players from fantasy analyst channels.",
   bullish: "Share of covered players tagged bullish or role-hype. Hover subtext shows bearish + injury share.",
   avg: "Mean sentiment score from −1 (bearish) to +1 (bullish). Near zero = mostly neutral talk.",
   injury: "Players with injury-concern language flagged in transcripts this week.",
@@ -120,7 +120,7 @@ function NetworkTooltip({ active, payload, coordinate, chartRef }) {
   );
 }
 
-export default function SentimentCharts({ players, season, week }) {
+export default function SentimentCharts({ players, season, week, scope = "weekly" }) {
   const toneChartRef = useRef(null);
   const buzzChartRef = useRef(null);
   const scatterChartRef = useRef(null);
@@ -130,7 +130,9 @@ export default function SentimentCharts({ players, season, week }) {
 
   if (!stats.playerCount) {
     return (
-      <div className="sentiment-charts-empty">No narrative data to visualize for this week yet.</div>
+      <div className="sentiment-charts-empty">
+        No fantasy narrative data to visualize{scope === "season" ? " for this season" : " for this week"} yet.
+      </div>
     );
   }
 
@@ -170,7 +172,8 @@ export default function SentimentCharts({ players, season, week }) {
         <div className="sentiment-chart-card">
           <h3 className="sentiment-chart-title">Tone mix</h3>
           <p className="sentiment-chart-caption">
-            How players are being talked about this week ({season} W{week})
+            How players are being talked about{scope === "season" ? " this season" : " this week"} ({season}
+            {scope === "season" ? ` through W${week}` : ` W${week}`})
           </p>
           <div ref={toneChartRef} className="chart-wrap sentiment-chart-wrap-sm">
             <ResponsiveContainer width="100%" height={CHART_HEIGHT_SM}>
@@ -207,7 +210,7 @@ export default function SentimentCharts({ players, season, week }) {
         <div className="sentiment-chart-card sentiment-chart-card-wide">
           <h3 className="sentiment-chart-title">Most buzz</h3>
           <p className="sentiment-chart-caption">
-            Players with the most narrative mentions — bar color = tone
+            Players with the most fantasy analyst mentions — bar color = tone
           </p>
           <div ref={buzzChartRef} className="chart-wrap sentiment-chart-wrap-md">
             <ResponsiveContainer width="100%" height={CHART_HEIGHT_MD}>
@@ -280,7 +283,7 @@ export default function SentimentCharts({ players, season, week }) {
         {stats.networkChartData.length > 0 && (
           <div className="sentiment-chart-card">
             <h3 className="sentiment-chart-title">Sources</h3>
-            <p className="sentiment-chart-caption">Which shows/channels drove mentions</p>
+            <p className="sentiment-chart-caption">Which fantasy shows drove mentions</p>
             <div ref={networkChartRef} className="chart-wrap sentiment-chart-wrap-sm">
               <ResponsiveContainer width="100%" height={CHART_HEIGHT_SM}>
                 <BarChart

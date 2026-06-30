@@ -113,14 +113,16 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
     <>
       <div className="table-controls">
         {searchSlot}
-        <button
-          type="button"
-          className="btn-export-csv"
-          onClick={() => exportCsv(sorted)}
-          disabled={!sorted.length}
-        >
-          CSV
-        </button>
+        {!mobileLayout && (
+          <button
+            type="button"
+            className="btn-export-csv"
+            onClick={() => exportCsv(sorted)}
+            disabled={!sorted.length}
+          >
+            CSV
+          </button>
+        )}
       </div>
       <div className="table-toolbar">
         <span className="table-meta">{sorted.length} players</span>
@@ -156,6 +158,8 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
                     media={playerMedia}
                     size="sm"
                     showTeam={false}
+                    clickable={Boolean(row.player_id)}
+                    narrativeScope="season"
                   />
                 )}
                 meta={row.Team || "—"}
@@ -253,6 +257,7 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
                       media={playerMedia}
                       size="sm"
                       showTeam={false}
+                      clickable={Boolean(row.player_id)}
                     />
                     {row["Rookie Est."] ? (
                       <span

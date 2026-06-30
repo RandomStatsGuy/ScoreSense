@@ -1,23 +1,26 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import StandalonePageShell from "../layout/StandalonePageShell";
 import { PRODUCT_NAME, STUDIO_NAME } from "../brand";
 
 function LegalShell({ title, children }) {
   return (
-    <div className="auth-shell auth-shell-page legal-page">
-      <article className="panel auth-panel legal-page-content">
-        <h1>{title}</h1>
-        {children}
-        <p className="hub-toolbar legal-page-back">
-          <Link className="btn-ghost btn-sm" to="/projections/weekly">
-            Back to app
-          </Link>
+    <StandalonePageShell title={title}>
+      <div className="auth-shell auth-shell-page legal-page">
+        <article className="panel auth-panel legal-page-content">
+          <h1 className="auth-panel-title-desktop">{title}</h1>
+          {children}
+          <p className="hub-toolbar legal-page-back auth-panel-back-desktop">
+            <Link className="btn-ghost btn-sm" to="/projections/weekly">
+              Back to app
+            </Link>
+          </p>
+        </article>
+        <p className="app-studio-credit">
+          {PRODUCT_NAME} · {STUDIO_NAME}
         </p>
-      </article>
-      <p className="app-studio-credit">
-        {PRODUCT_NAME} · {STUDIO_NAME}
-      </p>
-    </div>
+      </div>
+    </StandalonePageShell>
   );
 }
 

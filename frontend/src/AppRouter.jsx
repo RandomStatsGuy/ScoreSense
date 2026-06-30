@@ -32,7 +32,7 @@ export default function AppRouter() {
       <Route path="/tools/:tab" element={<App />} />
       <Route path="/tools" element={<Navigate to="/tools/dfs" replace />} />
       <Route path="/model" element={<App />} />
-      <Route path="/admin" element={<App />} />
+      <Route path="/admin/:adminTab?" element={<App />} />
       <Route path="*" element={<Navigate to="/projections/weekly" replace />} />
     </Routes>
   );

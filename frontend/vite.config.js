@@ -1,8 +1,12 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  const apiPort = env.SCORESENSE_API_PORT || process.env.SCORESENSE_API_PORT || "8000";
+
+  return {
   plugins: [
     react(),
     VitePWA({
@@ -54,7 +58,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:8000",
+        target: `http://127.0.0.1:${apiPort}`,
         changeOrigin: true,
       },
     },
@@ -63,4 +67,5 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
   },
+};
 });

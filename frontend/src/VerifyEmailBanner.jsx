@@ -11,6 +11,17 @@ export default function VerifyEmailBanner({ user, onVerified }) {
     return null;
   }
 
+  if (user.account_found === false) {
+    return (
+      <div className="verify-email-banner panel" role="status">
+        <p>
+          Your session is for <strong>{user.email}</strong>, but that account is no longer on the server
+          (often after a deploy reset). Sign out, then sign up or sign in again with the same email.
+        </p>
+      </div>
+    );
+  }
+
   const resend = async () => {
     setBusy(true);
     setMsg("");
@@ -31,7 +42,7 @@ export default function VerifyEmailBanner({ user, onVerified }) {
         return;
       }
       if (data.reason === "not_found") {
-        setErr("Session could not find your account. Sign out, sign in again, then resend.");
+        setErr("Account not found. Sign out, sign up or sign in again, then resend verification.");
         return;
       }
       if (data.reason === "smtp_failed") {

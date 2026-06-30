@@ -54,3 +54,17 @@ def test_build_player_values_from_pool():
     values = build_player_values(pool, rules, team_count=10)
     assert values["w1"]["fair_value"] > values["w2"]["fair_value"]
     assert values["w1"]["min_sal"] <= values["w1"]["fair_value"] <= values["w1"]["max_sal"]
+
+
+def test_fair_value_for_te_falls_back_to_wr_pool():
+    from src.draft_hub.auction_values import fair_value_for_row
+
+    rules = _rules()
+    pool = pd.DataFrame([
+        {"player_id": "00-0036970", "Player": "Kyle Pitts", "Position": "WR", "Season Proj": 180},
+        {"player_id": "w2", "Player": "Alpha WR", "Position": "WR", "Season Proj": 300},
+    ])
+    te_row = {"player_id": "00-0036970", "position": "TE", "salary": 12}
+    fair = fair_value_for_row(te_row, pool, rules, team_count=10)
+    assert fair is not None
+    assert fair > 0

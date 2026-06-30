@@ -22,6 +22,12 @@ import MobilePlayerCard from "../MobilePlayerCard";
 import DraftRecapPanel from "./DraftRecapPanel";
 import LeagueContractHistory from "./LeagueContractHistory";
 import { HubPage, HubSegmentNav, HubFilterChip, HubFilterGroup, HubFilterScroll } from "./HubUILayout";
+import {
+  INSIGHTS_TAB_SECTIONS,
+  mergeInsightsPayload,
+  resolveAnalyticsPositions,
+} from "./insights/useInsightsData";
+import { sortIndicator } from "./valueSheetUtils";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 
 const POS_COLORS = {
@@ -38,6 +44,21 @@ const DEFAULT_POSITIONS = ["QB", "RB", "WR", "TE"];
 const SCORING_LINE_COLORS = [
   "#6366f1", "#22c55e", "#f59e0b", "#ec4899", "#a855f7", "#64748b", "#14b8a6", "#f97316",
   "#0ea5e9", "#84cc16", "#e11d48", "#8b5cf6",
+];
+
+const SCORING_LINE_DASHES = [
+  undefined,
+  "6 4",
+  "2 4",
+  "8 4 2 4",
+  "4 2",
+  "10 5",
+  "2 2",
+  "6 2 2 2",
+  "4 4",
+  "1 3",
+  "5 3",
+  "3 3",
 ];
 
 function fmtSal(v) {
@@ -99,46 +120,20 @@ function InsightsSeasonBar({ value, seasons, historic, onChange, disabled, label
   );
 }
 
-function ScoringSeasonBar({
-  value,
-  seasons,
-  onChange,
-  disabled,
-  syncedAt,
-  onRefresh,
-  refreshing,
-}) {
-  if (!seasons?.length) return null;
+function InsightsProgress({ active }) {
+  if (!active) return null;
+  return <div className="hub-insights-progress hub-insights-progress--active" aria-hidden />;
+}
+
+function InsightsSkeleton() {
   return (
-    <div className="hub-insights-season-bar hub-insights-season-bar--scoring">
-      <span className="hub-filter-label">Scoring season</span>
-      <HubFilterScroll>
-        {seasons.map((s) => (
-          <HubFilterChip
-            key={s}
-            active={String(value) === String(s)}
-            onClick={() => onChange(String(s))}
-            disabled={disabled}
-          >
-            {s}
-          </HubFilterChip>
-        ))}
-      </HubFilterScroll>
-      <div className="hub-insights-scoring-season-meta">
-        {syncedAt && formatRelativeTime(syncedAt) && (
-          <span className="table-meta hub-insights-scoring-synced">{formatRelativeTime(syncedAt)}</span>
-        )}
-        {onRefresh && (
-          <button
-            type="button"
-            className="btn-ghost btn-sm"
-            onClick={onRefresh}
-            disabled={disabled || refreshing}
-          >
-            {refreshing ? "Refreshing…" : "Refresh from Sleeper"}
-          </button>
-        )}
+    <div className="hub-insights-skeleton" aria-busy="true" aria-label="Loading insights">
+      <div className="hub-insights-skeleton-block hub-insights-skeleton-block--head" />
+      <div className="hub-insights-skeleton-row">
+        <div className="hub-insights-skeleton-block hub-insights-skeleton-block--chart" />
+        <div className="hub-insights-skeleton-block hub-insights-skeleton-block--chart" />
       </div>
+      <div className="hub-insights-skeleton-block hub-insights-skeleton-block--table" />
     </div>
   );
 }
@@ -197,6 +192,128 @@ function teamDisplayName(row, ownerMap, yearSpecific) {
   return owner;
 }
 
+function SortTh({ label, col, sortKey, sortDir, onSort, className = "" }) {
+  return (
+    <th
+      className={`sortable-header ${className}`.trim()}
+      onClick={() => onSort(col)}
+    >
+      {label}
+      <span className="sort-indicator"> {sortIndicator(sortKey, sortDir, col)}</span>
+    </th>
+  );
+}
+
+function InsightsTableToolbar({ search, onSearchChange, placeholder, count, total }) {
+  return (
+    <div className="hub-insights-table-toolbar">
+      <input
+        type="search"
+        className="search-input hub-insights-table-search"
+        placeholder={placeholder}
+        value={search}
+        onChange={(e) => onSearchChange(e.target.value)}
+      />
+      <span className="table-meta hub-insights-table-count">
+        {count === total ? `${count} teams` : `${count} of ${total} teams`}
+      </span>
+    </div>
+  );
+}
+
+const AWARD_GROUP_META = {
+  good: { label: "Best of", className: "hub-spend-awards-label--good" },
+  bad: { label: "Worst of", className: "hub-spend-awards-label--bad" },
+  other: { label: "Notable", className: "" },
+};
+
+function InsightsAwardsPanel({
+  awards,
+  scopeLabel,
+  title = "Cap awards",
+  subtitle = "Season highlights",
+  ownerMap,
+  yearSpecific = false,
+  expanded,
+  onToggleExpanded,
+  visibleGroups,
+  onToggleGroup,
+}) {
+  if (!awards?.length) return null;
+  const shame = awards.filter((a) => a.tone === "bad");
+  const fame = awards.filter((a) => a.tone === "good" || a.tone === "gold");
+  const other = awards.filter((a) => !["bad", "good", "gold"].includes(a.tone));
+  const groups = [
+    { key: "good", items: fame },
+    { key: "bad", items: shame },
+    { key: "other", items: other },
+  ].filter((g) => g.items.length > 0);
+
+  const visibleCount = groups.reduce(
+    (n, g) => n + (visibleGroups[g.key] ? g.items.length : 0),
+    0,
+  );
+
+  return (
+    <section className={`hub-spend-awards${expanded ? "" : " hub-spend-awards--collapsed"}`}>
+      <div className="hub-spend-awards-head hub-spend-awards-head--row">
+        <div>
+          <h3 className="hub-panel-subtitle">{title}</h3>
+          <p className="hub-spend-awards-sub">{subtitle} · {scopeLabel}</p>
+        </div>
+        <button
+          type="button"
+          className="btn-ghost btn-sm hub-spend-awards-toggle"
+          onClick={onToggleExpanded}
+          aria-expanded={expanded}
+        >
+          {expanded ? "Hide awards" : `Show awards (${awards.length})`}
+        </button>
+      </div>
+      {expanded && (
+        <>
+          <div className="hub-spend-awards-toggles">
+            <span className="hub-filter-label">Show</span>
+            <HubFilterScroll>
+              {groups.map(({ key, items }) => (
+                <HubFilterChip
+                  key={key}
+                  active={visibleGroups[key]}
+                  onClick={() => onToggleGroup(key)}
+                >
+                  {AWARD_GROUP_META[key].label} ({items.length})
+                </HubFilterChip>
+              ))}
+            </HubFilterScroll>
+            {visibleCount === 0 && (
+              <span className="table-meta">Select at least one group</span>
+            )}
+          </div>
+          {groups.map(({ key, items }) => (
+            visibleGroups[key] ? (
+              <div className="hub-spend-awards-block" key={key}>
+                <span className={`hub-spend-awards-label ${AWARD_GROUP_META[key].className}`.trim()}>
+                  {AWARD_GROUP_META[key].label}
+                </span>
+                <div className="hub-spend-awards-grid">
+                  {items.map((award) => (
+                    <InsightsAwardCard
+                      key={award.id}
+                      award={award}
+                      ownerMap={ownerMap}
+                      yearSpecific={yearSpecific}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null
+          ))}
+        </>
+      )}
+    </section>
+  );
+}
+
 function InsightsAwardCard({ award, ownerMap, yearSpecific }) {
   const emoji = AWARD_EMOJI[award.id] || "🏷️";
   const who = managerLabel(award, ownerMap, yearSpecific);
@@ -222,58 +339,58 @@ function InsightsAwardCard({ award, ownerMap, yearSpecific }) {
   );
 }
 
-function InsightsAwardsGrid({
-  awards,
-  scopeLabel,
-  title = "Cap awards",
-  subtitle = "Season highlights",
+function insightsNextSort(currentKey, currentDir, clickedKey) {
+  const descFirst = new Set([
+    "committed",
+    "unspent",
+    "total_points",
+    "avg_points",
+    "weeks_scored",
+    "points_per_dollar",
+    "efficiency_rank",
+    "vs_league_avg_pct",
+    "top_position_spend",
+  ]);
+  if (String(clickedKey).startsWith("spend_")) descFirst.add(clickedKey);
+  if (currentKey === clickedKey) {
+    return { sortKey: clickedKey, sortDir: currentDir === "asc" ? "desc" : "asc" };
+  }
+  const sortDir = clickedKey === "team" || !descFirst.has(clickedKey) ? "asc" : "desc";
+  return { sortKey: clickedKey, sortDir };
+}
+
+function filterSortTeams(rows, {
+  filter,
+  sortKey,
+  sortDir,
   ownerMap,
-  yearSpecific = false,
+  yearSpecific,
+  getLabel = (t) => teamDisplayName(t, ownerMap, yearSpecific),
+  getters = {},
 }) {
-  if (!awards?.length) return null;
-  const shame = awards.filter((a) => a.tone === "bad");
-  const fame = awards.filter((a) => a.tone === "good" || a.tone === "gold");
-  const other = awards.filter((a) => !["bad", "good", "gold"].includes(a.tone));
-  return (
-    <section className="hub-spend-awards">
-      <div className="hub-spend-awards-head">
-        <div>
-          <h3 className="hub-panel-subtitle">{title}</h3>
-          <p className="hub-spend-awards-sub">{subtitle} · {scopeLabel}</p>
-        </div>
-      </div>
-      {fame.length > 0 && (
-        <div className="hub-spend-awards-block">
-          <span className="hub-spend-awards-label hub-spend-awards-label--good">Best of</span>
-          <div className="hub-spend-awards-grid">
-            {fame.map((award) => (
-              <InsightsAwardCard key={award.id} award={award} ownerMap={ownerMap} yearSpecific={yearSpecific} />
-            ))}
-          </div>
-        </div>
-      )}
-      {shame.length > 0 && (
-        <div className="hub-spend-awards-block">
-          <span className="hub-spend-awards-label hub-spend-awards-label--bad">Worst of</span>
-          <div className="hub-spend-awards-grid">
-            {shame.map((award) => (
-              <InsightsAwardCard key={award.id} award={award} ownerMap={ownerMap} yearSpecific={yearSpecific} />
-            ))}
-          </div>
-        </div>
-      )}
-      {other.length > 0 && (
-        <div className="hub-spend-awards-block">
-          <span className="hub-spend-awards-label">Notable</span>
-          <div className="hub-spend-awards-grid">
-            {other.map((award) => (
-              <InsightsAwardCard key={award.id} award={award} ownerMap={ownerMap} yearSpecific={yearSpecific} />
-            ))}
-          </div>
-        </div>
-      )}
-    </section>
-  );
+  const q = filter.trim().toLowerCase();
+  let list = rows;
+  if (q) {
+    list = list.filter((t) => {
+      const label = getLabel(t).toLowerCase();
+      const raw = String(t.team_name || t.name || "").toLowerCase();
+      return label.includes(q) || raw.includes(q);
+    });
+  }
+  const dir = sortDir === "asc" ? 1 : -1;
+  const defaultGet = (t, key) => {
+    if (getters[key]) return getters[key](t);
+    if (key === "team") return getLabel(t).toLowerCase();
+    return t[key];
+  };
+  return [...list].sort((a, b) => {
+    const av = defaultGet(a, sortKey);
+    const bv = defaultGet(b, sortKey);
+    if (typeof av === "string" && typeof bv === "string") {
+      return av.localeCompare(bv) * dir;
+    }
+    return ((Number(av) || 0) - (Number(bv) || 0)) * dir;
+  });
 }
 
 function InsightsCrimeReportPlaceholder({ title, subtitle, scopeLabel, message }) {
@@ -414,34 +531,14 @@ function pickOwnershipBlock(fresh, insightsPayload) {
   return fromInsights;
 }
 
-function mergeInsightsPayload(prev, next) {
-  if (!prev) return next;
-  if (!next) return prev;
-  return {
-    ...prev,
-    ...next,
-    hub_context: next.hub_context ?? prev.hub_context,
-    analytics: (next.analytics?.teams || []).length ? next.analytics : prev.analytics,
-    historic: next.historic?.available || (next.historic?.awards || []).length
-      ? next.historic
-      : prev.historic,
-    trade: (next.trade?.suggestions || []).length || (next.trade?.partners || []).length
-      ? next.trade
-      : (next.trade?.empty_reason != null ? next.trade : prev.trade),
-    scoring: next.scoring?.available ? next.scoring : (next.scoring?.season ? next.scoring : prev.scoring),
-    efficiency: next.efficiency?.available ? next.efficiency : prev.efficiency,
-    ownership: (next.ownership?.players || []).length ? next.ownership : prev.ownership,
-    draft_recap: next.draft_recap ?? prev.draft_recap,
-  };
+function resolveDefaultTeamPick(teams, hubContext) {
+  if (!teams?.length) return "";
+  const mine = teams.find((t) => t.team_id === hubContext?.team_id);
+  if (mine) return String(mine.team_id);
+  const byName = teams.find((t) => t.team_name === hubContext?.team_name);
+  if (byName) return String(byName.team_id);
+  return String(teams[0].team_id);
 }
-
-const INSIGHTS_TAB_SECTIONS = {
-  cap: "cap",
-  scoring: "scoring",
-  trades: "trades,cap",
-  ownership: null,
-  contracts: null,
-};
 
 const INSIGHTS_TABS = [
   { id: "cap", label: "Spend" },
@@ -462,24 +559,6 @@ function insightsLoadCacheKey(tab, opts, refs) {
   }
   if (tab === "trades") return "trades";
   return tab;
-}
-
-function InsightsProgress({ active }) {
-  if (!active) return null;
-  return <div className="hub-insights-progress hub-insights-progress--active" aria-hidden />;
-}
-
-function InsightsSkeleton() {
-  return (
-    <div className="hub-insights-skeleton" aria-busy="true" aria-label="Loading insights">
-      <div className="hub-insights-skeleton-block hub-insights-skeleton-block--head" />
-      <div className="hub-insights-skeleton-row">
-        <div className="hub-insights-skeleton-block hub-insights-skeleton-block--chart" />
-        <div className="hub-insights-skeleton-block hub-insights-skeleton-block--chart" />
-      </div>
-      <div className="hub-insights-skeleton-block hub-insights-skeleton-block--table" />
-    </div>
-  );
 }
 
 export default function LeagueInsights({
@@ -518,11 +597,33 @@ export default function LeagueInsights({
   const [ownershipLoading, setOwnershipLoading] = useState(false);
   const [ownershipSeasonLoading, setOwnershipSeasonLoading] = useState(false);
   const [ownershipError, setOwnershipError] = useState("");
-  const [scoringSeason, setScoringSeason] = useState("");
+  const [scoringSeason, setScoringSeason] = useState("current");
   const [capSeason, setCapSeason] = useState("current");
   const [historySeason, setHistorySeason] = useState("current");
   const [chartHiddenTeams, setChartHiddenTeams] = useState(() => new Set());
+  const [chartHoveredTeam, setChartHoveredTeam] = useState("");
+  const [capAwardsExpanded, setCapAwardsExpanded] = useState(false);
+  const [scoringAwardsExpanded, setScoringAwardsExpanded] = useState(false);
+  const [awardGroupToggles, setAwardGroupToggles] = useState({
+    good: true,
+    bad: true,
+    other: true,
+  });
+  const [capTeamFilter, setCapTeamFilter] = useState("");
+  const [capSortKey, setCapSortKey] = useState("committed");
+  const [capSortDir, setCapSortDir] = useState("desc");
+  const [capEffSortKey, setCapEffSortKey] = useState("efficiency_rank");
+  const [capEffSortDir, setCapEffSortDir] = useState("asc");
+  const [scoringTeamFilter, setScoringTeamFilter] = useState("");
+  const [scoringSortKey, setScoringSortKey] = useState("total_points");
+  const [scoringSortDir, setScoringSortDir] = useState("desc");
+  const [scoringEffSortKey, setScoringEffSortKey] = useState("efficiency_rank");
+  const [scoringEffSortDir, setScoringEffSortDir] = useState("asc");
   const mobileLayout = useMobileLayout();
+  const chartBottomMargin = mobileLayout ? 48 : 4;
+  const chartXTick = mobileLayout
+    ? { fontSize: 10, angle: -35, textAnchor: "end" }
+    : { fontSize: 11 };
   const prevTabRef = React.useRef("cap");
   const activeTabRef = React.useRef(activeTab);
   const latestScoringSeasonRef = React.useRef("");
@@ -533,15 +634,18 @@ export default function LeagueInsights({
   const capSeasonRef = React.useRef(capSeason);
   const historySeasonRef = React.useRef(historySeason);
   const scoringSeasonRef = React.useRef(scoringSeason);
+  const hubContextRef = React.useRef(hubContext);
   activeTabRef.current = activeTab;
   capSeasonRef.current = capSeason;
   historySeasonRef.current = historySeason;
   scoringSeasonRef.current = scoringSeason;
+  hubContextRef.current = hubContext;
   dataRef.current = data;
 
   const resolveHistorySeason = useCallback((tab, opts = {}) => {
     const active = opts.activeTab ?? tab;
     if (active === "cap") return opts.capSeason ?? capSeasonRef.current;
+    if (active === "scoring") return opts.scoringSeason ?? scoringSeasonRef.current ?? "current";
     if (active === "ownership" || active === "contracts") return opts.historySeason ?? historySeasonRef.current;
     return "current";
   }, []);
@@ -557,7 +661,12 @@ export default function LeagueInsights({
 
     if (!opts.refresh && cacheKey && loadCacheRef.current.has(cacheKey)) {
       const cached = loadCacheRef.current.get(cacheKey);
-      setData((prev) => mergeInsightsPayload(prev || {}, cached));
+      setData((prev) => mergeInsightsPayload(prev || {}, cached, { sections }));
+      if (!sections || sections.includes("cap")) {
+        setVisiblePositions(new Set(resolveAnalyticsPositions(cached.analytics)));
+      }
+      setLoading(false);
+      setTabLoading(false);
       return;
     }
 
@@ -571,10 +680,12 @@ export default function LeagueInsights({
       if (opts.refresh) params.set("refresh", "1");
       const hist = resolveHistorySeason(tab, opts);
       if (hist && hist !== "current") params.set("history_season", String(hist));
-      const season = opts.scoringSeason ?? scoringSeasonRef.current ?? latestScoringSeasonRef.current;
-      if (tab === "scoring" && season) {
+      const season = opts.scoringSeason ?? scoringSeasonRef.current ?? latestScoringSeasonRef.current ?? "current";
+      if (tab === "scoring" && season && season !== "current") {
         params.set("scoring_season", String(season));
-        params.set("cap_efficiency_season", String(season));
+        if (season !== "all" && /^\d+$/.test(String(season))) {
+          params.set("cap_efficiency_season", String(season));
+        }
       }
       if (sections) params.set("sections", sections);
       const q = params.toString() ? `?${params.toString()}` : "";
@@ -583,23 +694,29 @@ export default function LeagueInsights({
       const payload = await res.json();
       if (generation !== loadGenerationRef.current) return;
       if (cacheKey) loadCacheRef.current.set(cacheKey, payload);
-      setData((prev) => (opts.merge ? mergeInsightsPayload(prev, payload) : payload));
-      const positions = payload.analytics?.positions || DEFAULT_POSITIONS;
-      setVisiblePositions(new Set(positions));
+      setData((prev) => (opts.merge ? mergeInsightsPayload(prev, payload, { sections }) : payload));
+      if (!sections || sections.includes("cap")) {
+        setVisiblePositions(new Set(resolveAnalyticsPositions(payload.analytics)));
+      }
       const seasonLabel = payload.scoring?.requested_season || payload.scoring?.season;
-      if (seasonLabel) {
+      if (seasonLabel && seasonLabel !== "all") {
         latestScoringSeasonRef.current = String(seasonLabel);
       }
-      if (seasonLabel && !opts.keepSeason) {
+      if (seasonLabel && !opts.keepSeason && tab !== "cap") {
         setScoringSeason(String(seasonLabel));
       }
       if (!opts.keepChartHidden) {
         setChartHiddenTeams(new Set());
       }
       const teams = payload.analytics?.teams || [];
-      if (!teamPick && teams.length) {
-        const mine = teams.find((t) => t.team_id === hubContext?.team_id);
-        setTeamPick(mine?.team_id || teams[0].team_id);
+      if (teams.length) {
+        setTeamPick((prev) => {
+          const stillValid = teams.some(
+            (t) => String(t.team_id) === String(prev) || String(t.team_name) === String(prev),
+          );
+          if (stillValid && prev) return prev;
+          return resolveDefaultTeamPick(teams, hubContextRef.current);
+        });
       }
     } catch (e) {
       const msg = connectionErrorMessage(e);
@@ -610,7 +727,12 @@ export default function LeagueInsights({
       if (background) setTabLoading(false);
       else setLoading(false);
     }
-  }, [leagueId, hubContext?.team_id, teamPick, resolveHistorySeason]);
+  }, [leagueId, resolveHistorySeason]);
+
+  useEffect(() => {
+    if (!data?.analytics?.teams?.length || visiblePositions.size > 0) return;
+    setVisiblePositions(new Set(resolveAnalyticsPositions(data.analytics)));
+  }, [data?.analytics, visiblePositions.size]);
 
   useEffect(() => {
     if (!leagueId) return;
@@ -630,6 +752,7 @@ export default function LeagueInsights({
       keepSeason: true,
       keepChartHidden: true,
       background: true,
+      activeTab: "scoring",
     });
   }, [leagueId, data?.analytics?.teams?.length, data?.scoring?.available, load]);
 
@@ -700,7 +823,7 @@ export default function LeagueInsights({
       merge: true,
       keepSeason: true,
       keepChartHidden: true,
-      ...(activeTab === "scoring" && season ? { scoringSeason: season } : {}),
+      ...(activeTab === "scoring" ? { scoringSeason: scoringSeasonRef.current } : {}),
       ...(activeTab === "cap" ? { capSeason: capSeasonRef.current } : {}),
     });
   }, [activeTab, load]);
@@ -710,8 +833,36 @@ export default function LeagueInsights({
     loadOwnershipHistory({ keepSelection: true });
   }, [activeTab, leagueId, historySeason, loadOwnershipHistory]);
 
+  const toggleAwardGroup = useCallback((key) => {
+    setAwardGroupToggles((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  const onCapSort = useCallback((col) => {
+    const next = insightsNextSort(capSortKey, capSortDir, col);
+    setCapSortKey(next.sortKey);
+    setCapSortDir(next.sortDir);
+  }, [capSortKey, capSortDir]);
+
+  const onCapEffSort = useCallback((col) => {
+    const next = insightsNextSort(capEffSortKey, capEffSortDir, col);
+    setCapEffSortKey(next.sortKey);
+    setCapEffSortDir(next.sortDir);
+  }, [capEffSortKey, capEffSortDir]);
+
+  const onScoringSort = useCallback((col) => {
+    const next = insightsNextSort(scoringSortKey, scoringSortDir, col);
+    setScoringSortKey(next.sortKey);
+    setScoringSortDir(next.sortDir);
+  }, [scoringSortKey, scoringSortDir]);
+
+  const onScoringEffSort = useCallback((col) => {
+    const next = insightsNextSort(scoringEffSortKey, scoringEffSortDir, col);
+    setScoringEffSortKey(next.sortKey);
+    setScoringEffSortDir(next.sortDir);
+  }, [scoringEffSortKey, scoringEffSortDir]);
+
   const positions = useMemo(
-    () => data?.analytics?.positions || DEFAULT_POSITIONS,
+    () => resolveAnalyticsPositions(data?.analytics),
     [data],
   );
 
@@ -723,17 +874,25 @@ export default function LeagueInsights({
   const barData = useMemo(() => {
     const teams = data?.analytics?.teams || [];
     const mode = spendMetric === "pct" ? "pct" : "dollars";
+    const yearSpecific = capSeason === "all" ? false : capSeason !== "current" && /^\d+$/.test(String(capSeason));
+    const owners = data?.owner_map || {};
     return teams.map((t) => {
-      const row = { name: t.team_name, unspent: mode === "pct" ? t.pct_unspent : t.unspent };
+      const row = {
+        name: t.display_name || teamDisplayName(t, owners, yearSpecific),
+        unspent: mode === "pct" ? t.pct_unspent : t.unspent,
+      };
       for (const p of activePositions) {
         row[p] = metricValue(t, p, mode === "pct" ? "pct" : "dollars");
       }
       return row;
     });
-  }, [data, activePositions, spendMetric]);
+  }, [data, activePositions, spendMetric, capSeason]);
 
   const pieData = useMemo(() => {
-    const team = (data?.analytics?.teams || []).find((t) => t.team_id === teamPick);
+    const teams = data?.analytics?.teams || [];
+    const team = teams.find(
+      (t) => String(t.team_id) === String(teamPick) || String(t.team_name) === String(teamPick),
+    );
     if (!team) return [];
     const mode = spendMetric === "pct" ? "pct" : "dollars";
     const slices = activePositions.map((p) => ({
@@ -741,8 +900,6 @@ export default function LeagueInsights({
       value: metricValue(team, p, mode === "pct" ? "pct" : "dollars"),
       fill: POS_COLORS[p] || "#94a3b8",
     })).filter((s) => s.value > 0);
-    const unspent = mode === "pct" ? team.pct_unspent : team.unspent;
-    if (unspent > 0) slices.push({ name: "Unspent", value: unspent, fill: "#94a3b8" });
     const dead = mode === "pct" ? team.pct_dead_cap : team.dead_cap;
     if (dead > 0) slices.push({ name: "Dead cap", value: dead, fill: "#ef4444" });
     return slices;
@@ -764,6 +921,7 @@ export default function LeagueInsights({
   const allScoringTeams = useMemo(() => {
     const names = new Set();
     (data?.scoring?.weeks || []).forEach((w) => (w.teams || []).forEach((t) => names.add(t.team_name)));
+    (data?.scoring?.standings || []).forEach((t) => t.team_name && names.add(t.team_name));
     return [...names].sort();
   }, [data]);
 
@@ -780,6 +938,14 @@ export default function LeagueInsights({
     return map;
   }, [allScoringTeams]);
 
+  const scoringDashByTeam = useMemo(() => {
+    const map = {};
+    allScoringTeams.forEach((name, i) => {
+      map[name] = SCORING_LINE_DASHES[i % SCORING_LINE_DASHES.length];
+    });
+    return map;
+  }, [allScoringTeams]);
+
   const toggleChartTeam = (teamName) => {
     setChartHiddenTeams((prev) => {
       const next = new Set(prev);
@@ -788,6 +954,11 @@ export default function LeagueInsights({
       return next;
     });
   };
+
+  const handleLegendClick = useCallback((entry) => {
+    const name = entry?.value;
+    if (name) toggleChartTeam(name);
+  }, []);
 
   const tradePlayerIds = useMemo(() => {
     const ids = new Set();
@@ -846,7 +1017,9 @@ export default function LeagueInsights({
     return [...new Set([...fromApi.map(String), ...current, scoringSeason].filter(Boolean))].sort((a, b) => Number(b) - Number(a));
   }, [data, scoringSeason]);
 
-  const activeScoringSeason = scoringSeason || data?.scoring?.requested_season || data?.scoring?.season || "";
+  const activeScoringSeason = scoringSeason === "current"
+    ? (data?.scoring?.requested_season || data?.scoring?.season || "")
+    : scoringSeason;
   const scoringAwards = data?.scoring?.awards || data?.scoring_awards || [];
   const hasScoringPoints = useMemo(() => {
     const sc = data?.scoring;
@@ -854,18 +1027,104 @@ export default function LeagueInsights({
     if ((sc.standings || []).some((t) => Number(t.total_points) > 0)) return true;
     return (sc.weeks || []).some((wk) => (wk.teams || []).some((t) => Number(t.points) > 0));
   }, [data]);
-  const scoringSeasonLabel = activeScoringSeason ? `${activeScoringSeason} season` : "Current season";
-  const ownerMap = data?.owner_map || {};
+  const scoringSeasonLabel = activeScoringSeason === "all"
+    ? "All time"
+    : activeScoringSeason
+      ? `${activeScoringSeason} season`
+      : "Current season";
+  const ownerMap = (activeTab === "scoring" && data?.scoring?.owner_map)
+    ? data.scoring.owner_map
+    : (data?.owner_map || {});
   const planningSeason = String(data?.planning_season || hubContext?.season || "");
   const scoringYearSpecific = Boolean(
-    activeScoringSeason && planningSeason && String(activeScoringSeason) !== String(planningSeason),
+    activeScoringSeason
+    && activeScoringSeason !== "all"
+    && planningSeason
+    && String(activeScoringSeason) !== String(planningSeason),
   );
-
   const historic = data?.historic || {};
   const spendAwards = historic.awards || [];
   const capHistoryMode = capSeason === "all" ? "all" : capSeason === "current" ? "current" : "year";
   const capHistoryYear = capHistoryMode === "year" ? Number(capSeason) : null;
   const capHistoryLabel = historySeasonLabel(capHistoryMode, capHistoryYear);
+  const capYearSpecific = capHistoryMode === "year";
+  const capTeamsRaw = data?.analytics?.teams || [];
+  const capPosGetters = useMemo(() => {
+    const mode = spendMetric === "pct" ? "pct" : "dollars";
+    const getters = {
+      committed: (t) => t.committed,
+      unspent: (t) => t.unspent,
+    };
+    for (const p of activePositions) {
+      getters[`spend_${p}`] = (t) => metricValue(t, p, mode);
+    }
+    return getters;
+  }, [activePositions, spendMetric]);
+  const filteredCapTeams = useMemo(
+    () => filterSortTeams(capTeamsRaw, {
+      filter: capTeamFilter,
+      sortKey: capSortKey,
+      sortDir: capSortDir,
+      ownerMap,
+      yearSpecific: capYearSpecific,
+      getters: capPosGetters,
+    }),
+    [capTeamsRaw, capTeamFilter, capSortKey, capSortDir, ownerMap, capYearSpecific, capPosGetters],
+  );
+  const filteredEfficiencyTeams = useMemo(
+    () => filterSortTeams(efficiency.teams || [], {
+      filter: capTeamFilter,
+      sortKey: capEffSortKey,
+      sortDir: capEffSortDir,
+      ownerMap,
+      yearSpecific: capYearSpecific,
+      getters: {
+        team: (t) => teamDisplayName(t, ownerMap, capYearSpecific).toLowerCase(),
+        efficiency_rank: (t) => t.efficiency_rank,
+        committed: (t) => t.committed,
+        total_points: (t) => t.total_points,
+        points_per_dollar: (t) => Number(t.points_per_dollar) || 0,
+        top_position_spend: (t) => Number(t.top_position_spend) || 0,
+        vs_league_avg_pct: (t) => Number(t.vs_league_avg_pct) || 0,
+      },
+    }),
+    [efficiency.teams, capTeamFilter, capEffSortKey, capEffSortDir, ownerMap, capYearSpecific],
+  );
+  const scoringStandingsRaw = data?.scoring?.standings || [];
+  const filteredScoringStandings = useMemo(
+    () => filterSortTeams(scoringStandingsRaw, {
+      filter: scoringTeamFilter,
+      sortKey: scoringSortKey,
+      sortDir: scoringSortDir,
+      ownerMap,
+      yearSpecific: scoringYearSpecific,
+      getters: {
+        total_points: (t) => t.total_points,
+        avg_points: (t) => t.avg_points,
+        weeks_scored: (t) => t.weeks_scored,
+      },
+    }),
+    [scoringStandingsRaw, scoringTeamFilter, scoringSortKey, scoringSortDir, ownerMap, scoringYearSpecific],
+  );
+  const filteredScoringEfficiencyTeams = useMemo(
+    () => filterSortTeams(efficiency.teams || [], {
+      filter: scoringTeamFilter,
+      sortKey: scoringEffSortKey,
+      sortDir: scoringEffSortDir,
+      ownerMap,
+      yearSpecific: scoringYearSpecific,
+      getters: {
+        team: (t) => teamDisplayName(t, ownerMap, scoringYearSpecific).toLowerCase(),
+        efficiency_rank: (t) => t.efficiency_rank,
+        committed: (t) => t.committed,
+        total_points: (t) => t.total_points,
+        points_per_dollar: (t) => Number(t.points_per_dollar) || 0,
+        top_position_spend: (t) => Number(t.top_position_spend) || 0,
+        vs_league_avg_pct: (t) => Number(t.vs_league_avg_pct) || 0,
+      },
+    }),
+    [efficiency.teams, scoringTeamFilter, scoringEffSortKey, scoringEffSortDir, ownerMap, scoringYearSpecific],
+  );
   const historyMode = historySeason === "all" ? "all" : historySeason === "current" ? "current" : "year";
   const historyYear = historyMode === "year" ? Number(historySeason) : null;
   const historyLabel = historySeasonLabel(historyMode, historyYear);
@@ -873,6 +1132,7 @@ export default function LeagueInsights({
 
   const onCapSeasonChange = (next) => {
     setCapSeason(next);
+    setTeamPick("");
     load({
       activeTab: "cap",
       capSeason: next,
@@ -957,7 +1217,7 @@ export default function LeagueInsights({
       setMsg("Trade applied.");
       await load({
         activeTab: "trades",
-        sections: "trades,cap",
+        sections: "trades",
         merge: true,
         keepSeason: true,
         keepChartHidden: true,
@@ -984,7 +1244,8 @@ export default function LeagueInsights({
   }
 
   const tableMode = spendMetric === "pct" ? "pct" : "dollars";
-  const showCapCharts = activeTab === "cap" && !tabLoading && barData.length > 0;
+  const showCapCharts = activeTab === "cap" && !tabLoading && barData.length > 0 && pieData.length > 0;
+  const showCapBarChart = activeTab === "cap" && !tabLoading && barData.length > 0;
   const showScoringCharts = activeTab === "scoring" && !tabLoading && data?.scoring?.available;
 
   return (
@@ -1064,11 +1325,15 @@ export default function LeagueInsights({
             className="hub-insights-season-bar--spend"
           />
 
-          <InsightsAwardsGrid
+          <InsightsAwardsPanel
             awards={spendAwards}
             scopeLabel={capHistoryLabel}
             ownerMap={ownerMap}
-            yearSpecific={capHistoryMode === "year"}
+            yearSpecific={capYearSpecific}
+            expanded={capAwardsExpanded}
+            onToggleExpanded={() => setCapAwardsExpanded((v) => !v)}
+            visibleGroups={awardGroupToggles}
+            onToggleGroup={toggleAwardGroup}
           />
 
           <div className="hub-insights-pos-filter">
@@ -1091,14 +1356,18 @@ export default function LeagueInsights({
             <InsightsSkeleton />
           )}
 
-          {showCapCharts && (
+          {showCapBarChart && (
           <div className="hub-insights-grid">
             <div className="hub-insights-chart-panel">
               <h3>Stacked spend</h3>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={barData} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
+                <BarChart
+                  key={`${capSeason}-${barData.length}-${activePositions.join(",")}`}
+                  data={barData}
+                  margin={{ top: 8, right: 8, left: 0, bottom: chartBottomMargin }}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="name" tick={chartXTick} interval={mobileLayout ? "preserveStartEnd" : 0} />
                   <YAxis
                     tick={{ fontSize: 11 }}
                     tickFormatter={(v) => (spendMetric === "pct" ? `${v}%` : `$${v}`)}
@@ -1112,6 +1381,7 @@ export default function LeagueInsights({
               </ResponsiveContainer>
             </div>
 
+            {showCapCharts && (
             <div className="hub-insights-chart-panel">
               <h3>Team breakdown</h3>
               <select className="search-input" value={teamPick} onChange={(e) => setTeamPick(e.target.value)}>
@@ -1131,10 +1401,11 @@ export default function LeagueInsights({
                 </PieChart>
               </ResponsiveContainer>
             </div>
+            )}
           </div>
           )}
 
-          {efficiency?.available && (
+          {efficiency?.available && (efficiency.teams || []).length > 0 && (
             <div className="hub-insights-efficiency">
               <h3 className="hub-panel-subtitle">
                 Cap efficiency
@@ -1147,7 +1418,7 @@ export default function LeagueInsights({
               )}
               {mobileLayout ? (
                 <MobileDataList>
-                  {(efficiency.teams || []).map((t) => (
+                  {filteredEfficiencyTeams.map((t) => (
                     <MobilePlayerCard
                       key={t.team_id || t.team_name}
                       name={t.team_name}
@@ -1184,20 +1455,20 @@ export default function LeagueInsights({
                 <table className="data-table hub-table hub-insights-efficiency-table">
                   <thead>
                     <tr>
-                      <th>Rank</th>
-                      <th>Team</th>
-                      <th>Committed</th>
-                      <th>Points</th>
-                      <th>Pts/$</th>
-                      <th>Top spend</th>
-                      <th>vs avg</th>
+                      <SortTh label="Rank" col="efficiency_rank" sortKey={capEffSortKey} sortDir={capEffSortDir} onSort={onCapEffSort} />
+                      <SortTh label="Team" col="team" sortKey={capEffSortKey} sortDir={capEffSortDir} onSort={onCapEffSort} />
+                      <SortTh label="Committed" col="committed" sortKey={capEffSortKey} sortDir={capEffSortDir} onSort={onCapEffSort} />
+                      <SortTh label="Points" col="total_points" sortKey={capEffSortKey} sortDir={capEffSortDir} onSort={onCapEffSort} />
+                      <SortTh label="Pts/$" col="points_per_dollar" sortKey={capEffSortKey} sortDir={capEffSortDir} onSort={onCapEffSort} />
+                      <SortTh label="Top spend" col="top_position_spend" sortKey={capEffSortKey} sortDir={capEffSortDir} onSort={onCapEffSort} />
+                      <SortTh label="vs avg" col="vs_league_avg_pct" sortKey={capEffSortKey} sortDir={capEffSortDir} onSort={onCapEffSort} />
                     </tr>
                   </thead>
                   <tbody>
-                    {(efficiency.teams || []).map((t) => (
+                    {filteredEfficiencyTeams.map((t) => (
                       <tr key={t.team_id || t.team_name}>
                         <td>#{t.efficiency_rank}</td>
-                        <td>{teamDisplayName(t, ownerMap, scoringYearSpecific)}</td>
+                        <td>{teamDisplayName(t, ownerMap, capYearSpecific)}</td>
                         <td>{fmtSal(t.committed)}</td>
                         <td>{t.total_points}</td>
                         <td>{t.points_per_dollar ?? "—"}</td>
@@ -1221,9 +1492,17 @@ export default function LeagueInsights({
           )}
 
           <div className="hub-table-card hub-insights-table-wrap">
+          <h3 className="hub-panel-subtitle hub-insights-table-title">Team breakdown</h3>
+          <InsightsTableToolbar
+            search={capTeamFilter}
+            onSearchChange={setCapTeamFilter}
+            placeholder="Filter teams…"
+            count={filteredCapTeams.length}
+            total={capTeamsRaw.length}
+          />
           {mobileLayout ? (
             <MobileDataList>
-              {(data?.analytics?.teams || []).map((t) => (
+              {filteredCapTeams.map((t) => (
                 <MobilePlayerCard
                   key={t.team_id}
                   name={t.team_name}
@@ -1239,7 +1518,7 @@ export default function LeagueInsights({
                           value={(
                             <>
                               {formatMetric(metricValue(t, p, tableMode), tableMode)}
-                              {spendMetric === "dollars" && t.pct_by_position[p] != null && (
+                              {spendMetric === "dollars" && t.pct_by_position?.[p] != null && (
                                 <span className="table-meta"> ({t.pct_by_position[p]}%)</span>
                               )}
                             </>
@@ -1256,22 +1535,29 @@ export default function LeagueInsights({
             <table className="data-table hub-table">
               <thead>
                 <tr>
-                  <th>Team</th>
+                  <SortTh label="Team" col="team" sortKey={capSortKey} sortDir={capSortDir} onSort={onCapSort} />
                   {activePositions.map((p) => (
-                    <th key={p}>{p} {spendMetric === "pct" ? "%" : "$"}</th>
+                    <SortTh
+                      key={p}
+                      label={`${p} ${spendMetric === "pct" ? "%" : "$"}`}
+                      col={`spend_${p}`}
+                      sortKey={capSortKey}
+                      sortDir={capSortDir}
+                      onSort={onCapSort}
+                    />
                   ))}
-                  <th>Committed</th>
-                  <th>Unspent</th>
+                  <SortTh label="Committed" col="committed" sortKey={capSortKey} sortDir={capSortDir} onSort={onCapSort} />
+                  <SortTh label="Unspent" col="unspent" sortKey={capSortKey} sortDir={capSortDir} onSort={onCapSort} />
                 </tr>
               </thead>
               <tbody>
-                {(data?.analytics?.teams || []).map((t) => (
+                {filteredCapTeams.map((t) => (
                   <tr key={t.team_id}>
-                    <td>{teamDisplayName(t, ownerMap, scoringYearSpecific)}</td>
+                    <td>{teamDisplayName(t, ownerMap, capYearSpecific)}</td>
                     {activePositions.map((p) => (
                       <td key={p}>
                         {formatMetric(metricValue(t, p, tableMode), tableMode)}
-                        {spendMetric === "dollars" && (
+                        {spendMetric === "dollars" && t.pct_by_position?.[p] != null && (
                           <span className="table-meta"> ({t.pct_by_position[p]}%)</span>
                         )}
                       </td>
@@ -1283,6 +1569,9 @@ export default function LeagueInsights({
               </tbody>
             </table>
           </div>
+          )}
+          {filteredCapTeams.length === 0 && (
+            <p className="chart-note">No teams match this filter.</p>
           )}
           </div>
         </HubPage>
@@ -1301,28 +1590,44 @@ export default function LeagueInsights({
             </div>
           </header>
 
-          {data?.scoring?.available && scoringSeasonOptions.length > 0 && (
-            <ScoringSeasonBar
-              value={activeScoringSeason}
-              seasons={scoringSeasonOptions}
-              onChange={onScoringSeasonChange}
-              disabled={loading || tabLoading}
-              syncedAt={data?.scoring?.cached ? data.scoring.synced_at : null}
-              onRefresh={() => {
-                loadCacheRef.current.delete(`scoring:${activeScoringSeason || latestScoringSeasonRef.current || "current"}`);
-                load({
-                  activeTab: "scoring",
-                  sections: "scoring",
-                  refresh: true,
-                  merge: true,
-                  keepSeason: true,
-                  keepChartHidden: true,
-                  background: true,
-                  scoringSeason: activeScoringSeason || latestScoringSeasonRef.current,
-                });
-              }}
-              refreshing={tabLoading}
-            />
+          {data?.scoring?.available && (data?.scoring?.available_seasons || scoringSeasonOptions).length > 0 && (
+            <div className="hub-insights-season-bar hub-insights-season-bar--scoring">
+              <InsightsSeasonBar
+                value={scoringSeason}
+                seasons={(data?.scoring?.available_seasons || scoringSeasonOptions)
+                  .map((s) => Number(s))
+                  .filter((n) => !Number.isNaN(n))}
+                historic={{ available: true }}
+                onChange={onScoringSeasonChange}
+                disabled={loading || tabLoading}
+                label="Scoring season"
+              />
+              <div className="hub-insights-scoring-season-meta">
+                {data?.scoring?.cached && data.scoring.synced_at && formatRelativeTime(data.scoring.synced_at) && (
+                  <span className="table-meta hub-insights-scoring-synced">{formatRelativeTime(data.scoring.synced_at)}</span>
+                )}
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => {
+                    loadCacheRef.current.delete(`scoring:${scoringSeason}`);
+                    load({
+                      activeTab: "scoring",
+                      sections: "scoring",
+                      refresh: true,
+                      merge: true,
+                      keepSeason: true,
+                      keepChartHidden: true,
+                      background: true,
+                      scoringSeason,
+                    });
+                  }}
+                  disabled={loading || tabLoading}
+                >
+                  {tabLoading ? "Refreshing…" : "Refresh from Sleeper"}
+                </button>
+              </div>
+            </div>
           )}
 
           {!data?.scoring?.available && (
@@ -1350,13 +1655,17 @@ export default function LeagueInsights({
           )}
 
           {data?.scoring?.available && !data?.scoring?.preseason && scoringAwards.length > 0 && (
-            <InsightsAwardsGrid
+            <InsightsAwardsPanel
               awards={scoringAwards}
               scopeLabel={scoringSeasonLabel}
               title="Scoring awards"
               subtitle="Season highlights"
               ownerMap={ownerMap}
               yearSpecific={scoringYearSpecific}
+              expanded={scoringAwardsExpanded}
+              onToggleExpanded={() => setScoringAwardsExpanded((v) => !v)}
+              visibleGroups={awardGroupToggles}
+              onToggleGroup={toggleAwardGroup}
             />
           )}
 
@@ -1384,51 +1693,49 @@ export default function LeagueInsights({
 
           {data?.scoring?.available && (
             <>
-              <p className="chart-note hub-insights-scoring-hint hub-insights-scoring-hint--desktop">Tap a team to show or hide it on the chart.</p>
-              <div className="hub-insights-scoring-standings">
-                {(data.scoring.standings || []).map((t, idx) => {
-                  const hidden = chartHiddenTeams.has(t.team_name);
-                  return (
-                    <button
-                      key={t.team_name}
-                      type="button"
-                      className={`hub-insights-standing-card${hidden ? " hub-insights-standing-card--hidden" : ""}`}
-                      onClick={() => toggleChartTeam(t.team_name)}
-                      style={{ borderLeftColor: scoringColorByTeam[t.team_name] || "var(--border)" }}
-                    >
-                      <span className="hub-insights-standing-rank">#{idx + 1}</span>
-                      <strong>{teamDisplayName(t, ownerMap, scoringYearSpecific)}</strong>
-                      <span className="chart-note">{t.total_points} pts · {t.avg_points} avg</span>
-                    </button>
-                  );
-                })}
-              </div>
               {showScoringCharts && scoringLineData.length > 0 && chartVisibleTeams.length > 0 ? (
                 <div className="hub-insights-chart-panel">
                   <h3>Points by week</h3>
                   <ResponsiveContainer width="100%" height={320}>
-                    <LineChart data={scoringLineData} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
+                    <LineChart
+                      data={scoringLineData}
+                      margin={{ top: 8, right: 8, left: 0, bottom: chartBottomMargin }}
+                      onMouseLeave={() => setChartHoveredTeam("")}
+                    >
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                      <XAxis dataKey="week" tick={{ fontSize: 11 }} />
+                      <XAxis dataKey="week" tick={chartXTick} interval={mobileLayout ? "preserveStartEnd" : 0} />
                       <YAxis tick={{ fontSize: 11 }} />
                       <Tooltip />
-                      <Legend />
-                      {chartVisibleTeams.map((name) => (
-                        <Line
-                          key={name}
-                          type="monotone"
-                          dataKey={name}
-                          stroke={scoringColorByTeam[name] || "#94a3b8"}
-                          dot={false}
-                          strokeWidth={2}
-                        />
-                      ))}
+                      <Legend
+                        className="hub-insights-chart-legend"
+                        onClick={handleLegendClick}
+                        wrapperStyle={{ cursor: "pointer" }}
+                      />
+                      {chartVisibleTeams.map((name) => {
+                        const active = !chartHoveredTeam || chartHoveredTeam === name;
+                        const emphasized = chartHoveredTeam === name;
+                        return (
+                          <Line
+                            key={name}
+                            type="monotone"
+                            dataKey={name}
+                            stroke={scoringColorByTeam[name] || "#94a3b8"}
+                            strokeDasharray={scoringDashByTeam[name]}
+                            strokeOpacity={active ? 1 : 0.22}
+                            strokeWidth={emphasized ? 3 : 2}
+                            dot={emphasized ? { r: 3, strokeWidth: 0 } : false}
+                            activeDot={emphasized ? { r: 5 } : false}
+                            onMouseEnter={() => setChartHoveredTeam(name)}
+                            onMouseLeave={() => setChartHoveredTeam("")}
+                          />
+                        );
+                      })}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
               ) : showScoringCharts && scoringLineData.length > 0 ? (
                 <p className="chart-note hub-insights-chart-placeholder">
-                  All teams hidden — click standings cards to show lines again.
+                  All teams hidden — use Chart column in the table to show lines again.
                 </p>
               ) : (
                 <p className="chart-note hub-insights-chart-placeholder">
@@ -1436,7 +1743,86 @@ export default function LeagueInsights({
                 </p>
               )}
 
-              {efficiency?.available && (
+              <div className="hub-table-card hub-insights-table-wrap">
+                <h3 className="hub-panel-subtitle hub-insights-table-title">Standings</h3>
+                <InsightsTableToolbar
+                  search={scoringTeamFilter}
+                  onSearchChange={setScoringTeamFilter}
+                  placeholder="Filter teams…"
+                  count={filteredScoringStandings.length}
+                  total={scoringStandingsRaw.length}
+                />
+                {mobileLayout ? (
+                  <div className="hub-insights-scoring-standings">
+                    {filteredScoringStandings.map((t, idx) => {
+                      const hidden = chartHiddenTeams.has(t.team_name);
+                      return (
+                        <button
+                          key={t.team_name}
+                          type="button"
+                          className={`hub-insights-standing-card${hidden ? " hub-insights-standing-card--hidden" : ""}${chartHoveredTeam === t.team_name ? " hub-insights-standing-card--hover" : ""}`}
+                          onClick={() => toggleChartTeam(t.team_name)}
+                          onMouseEnter={() => setChartHoveredTeam(t.team_name)}
+                          onMouseLeave={() => setChartHoveredTeam("")}
+                          style={{ borderLeftColor: scoringColorByTeam[t.team_name] || "var(--border)" }}
+                        >
+                          <span className="hub-insights-standing-rank">#{idx + 1}</span>
+                          <strong>{teamDisplayName(t, ownerMap, scoringYearSpecific)}</strong>
+                          <span className="chart-note">{t.total_points} pts · {t.avg_points} avg</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="table-wrap">
+                    <table className="data-table hub-table hub-insights-scoring-table">
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <SortTh label="Team" col="team" sortKey={scoringSortKey} sortDir={scoringSortDir} onSort={onScoringSort} />
+                          <SortTh label="Total pts" col="total_points" sortKey={scoringSortKey} sortDir={scoringSortDir} onSort={onScoringSort} />
+                          <SortTh label="Avg" col="avg_points" sortKey={scoringSortKey} sortDir={scoringSortDir} onSort={onScoringSort} />
+                          <SortTh label="Weeks" col="weeks_scored" sortKey={scoringSortKey} sortDir={scoringSortDir} onSort={onScoringSort} />
+                          <th>Chart</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredScoringStandings.map((t, idx) => {
+                          const hidden = chartHiddenTeams.has(t.team_name);
+                          return (
+                            <tr
+                              key={t.team_name}
+                              className={`${hidden ? "hub-insights-row--muted" : ""}${chartHoveredTeam === t.team_name ? " hub-insights-row--hover" : ""}`.trim()}
+                              onMouseEnter={() => setChartHoveredTeam(t.team_name)}
+                              onMouseLeave={() => setChartHoveredTeam("")}
+                            >
+                              <td>#{idx + 1}</td>
+                              <td>{teamDisplayName(t, ownerMap, scoringYearSpecific)}</td>
+                              <td>{t.total_points}</td>
+                              <td>{t.avg_points}</td>
+                              <td>{t.weeks_scored ?? "—"}</td>
+                              <td>
+                                <button
+                                  type="button"
+                                  className="btn-ghost btn-sm"
+                                  onClick={() => toggleChartTeam(t.team_name)}
+                                >
+                                  {hidden ? "Show" : "Hide"}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {filteredScoringStandings.length === 0 && (
+                  <p className="chart-note">No teams match this filter.</p>
+                )}
+              </div>
+
+              {efficiency?.available && (efficiency.teams || []).length > 0 && (
                 <div className="hub-insights-efficiency">
                   <h3 className="hub-panel-subtitle">
                     Cap efficiency
@@ -1449,7 +1835,7 @@ export default function LeagueInsights({
                   )}
                   {mobileLayout ? (
                     <MobileDataList>
-                      {(efficiency.teams || []).map((t) => (
+                      {filteredScoringEfficiencyTeams.map((t) => (
                         <MobilePlayerCard
                           key={t.team_id || t.team_name}
                           name={t.team_name}
@@ -1486,17 +1872,17 @@ export default function LeagueInsights({
                     <table className="data-table hub-table hub-insights-efficiency-table">
                       <thead>
                         <tr>
-                          <th>Rank</th>
-                          <th>Team</th>
-                          <th>Committed</th>
-                          <th>Points</th>
-                          <th>Pts/$</th>
-                          <th>Top spend</th>
-                          <th>vs avg</th>
+                          <SortTh label="Rank" col="efficiency_rank" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
+                          <SortTh label="Team" col="team" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
+                          <SortTh label="Committed" col="committed" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
+                          <SortTh label="Points" col="total_points" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
+                          <SortTh label="Pts/$" col="points_per_dollar" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
+                          <SortTh label="Top spend" col="top_position_spend" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
+                          <SortTh label="vs avg" col="vs_league_avg_pct" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
                         </tr>
                       </thead>
                       <tbody>
-                        {(efficiency.teams || []).map((t) => (
+                        {filteredScoringEfficiencyTeams.map((t) => (
                           <tr key={t.team_id || t.team_name}>
                             <td>#{t.efficiency_rank}</td>
                             <td>{teamDisplayName(t, ownerMap, scoringYearSpecific)}</td>

@@ -64,6 +64,7 @@ def build_cap_efficiency(
     scoring: dict[str, Any],
     *,
     owner_map: dict[str, str] | None = None,
+    sleeper_owner_map: dict[str, str] | None = None,
     year_specific: bool = False,
 ) -> dict[str, Any]:
     """Rank teams by Sleeper fantasy points per committed salary cap dollar."""
@@ -103,6 +104,7 @@ def build_cap_efficiency(
                 {
                     "team_id": t.get("team_id"),
                     "team_name": name,
+                    "owner_id": st.get("owner_id"),
                     "committed": round(committed, 2),
                     "dead_cap": round(dead, 2),
                     "total_points": round(total_pts, 2),
@@ -115,6 +117,7 @@ def build_cap_efficiency(
                 },
                 owner_map,
                 year_specific=year_specific,
+                sleeper_owner_map=sleeper_owner_map,
             )
         )
 
@@ -134,7 +137,7 @@ def build_cap_efficiency(
             )
 
     return {
-        "available": True,
+        "available": bool(teams_out),
         "season": (
             scoring.get("requested_season")
             or scoring.get("season")

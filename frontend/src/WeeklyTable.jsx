@@ -181,16 +181,18 @@ export default function WeeklyTable({ rows, search, teamsFilter, searchSlot, met
     <>
       <div className="table-controls">
         {searchSlot}
-        <button
-          type="button"
-          className="btn-export-csv"
-          onClick={() => exportCsv(sorted)}
-          disabled={!sorted.length}
-          title="Download filtered table as CSV"
-        >
-          <DownloadIcon />
-          CSV
-        </button>
+        {!mobileLayout && (
+          <button
+            type="button"
+            className="btn-export-csv"
+            onClick={() => exportCsv(sorted)}
+            disabled={!sorted.length}
+            title="Download filtered table as CSV"
+          >
+            <DownloadIcon />
+            CSV
+          </button>
+        )}
       </div>
       <div className="table-toolbar">
         <span className="table-meta">{sorted.length} players</span>
@@ -223,6 +225,7 @@ export default function WeeklyTable({ rows, search, teamsFilter, searchSlot, met
                     media={playerMedia}
                     size="sm"
                     showTeam={false}
+                    clickable={Boolean(row.player_id)}
                   />
                 )}
                 meta={metaParts.join(" · ")}
@@ -351,6 +354,7 @@ export default function WeeklyTable({ rows, search, teamsFilter, searchSlot, met
                       media={playerMedia}
                       size="sm"
                       showTeam={false}
+                      clickable={Boolean(row.player_id)}
                     />
                     <span className="col-player-mobile-meta">
                       {row.Team || "—"}

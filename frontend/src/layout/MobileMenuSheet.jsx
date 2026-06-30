@@ -44,8 +44,7 @@ export default function MobileMenuSheet({
           </button>
         ) : null}
         {authReady && authenticated ? (
-          <div className="app-mobile-sheet-user">
-            <span>{user?.name || user?.email || "Signed in"}</span>
+          <>
             <button
               type="button"
               className="app-mobile-sheet-item app-mobile-sheet-item-action"
@@ -56,17 +55,20 @@ export default function MobileMenuSheet({
             >
               Account settings
             </button>
-            <button
-              type="button"
-              className="app-mobile-sheet-item app-mobile-sheet-item-action"
-              onClick={() => {
-                onClose();
-                authLogout();
-              }}
-            >
-              Log out
-            </button>
-          </div>
+            <div className="app-mobile-sheet-user">
+              <span>{user?.name || user?.email || "Signed in"}</span>
+              <button
+                type="button"
+                className="app-mobile-sheet-item app-mobile-sheet-item-action"
+                onClick={() => {
+                  onClose();
+                  authLogout();
+                }}
+              >
+                Log out
+              </button>
+            </div>
+          </>
         ) : null}
         {showDataRefresh ? (
           <button

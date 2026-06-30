@@ -76,6 +76,9 @@ export default function ValueSheetTable({
   const [search, setSearch] = useState("");
   const [addingId, setAddingId] = useState(null);
   const [showAdvancedLocal, setShowAdvancedLocal] = useState(false);
+  const [mobileListLimit, setMobileListLimit] = useState(80);
+
+  const MOBILE_LIST_PAGE = 80;
 
   const showAdvanced = showAdvancedProp ?? (compact ? true : showAdvancedLocal);
 
@@ -89,6 +92,10 @@ export default function ValueSheetTable({
     setPosFilter(defaultPosFilter);
   }, [defaultPosFilter]);
 
+  useEffect(() => {
+    setMobileListLimit(MOBILE_LIST_PAGE);
+  }, [posFilter, statusFilter, tierFilter, search, sortKey, sortDir, rows]);
+
   const sorted = useMemo(() => {
     const list = filterAndSortRows(rows, {
       pool: isAvailableView ? "available" : "all",
@@ -101,6 +108,11 @@ export default function ValueSheetTable({
     });
     return maxRows ? list.slice(0, maxRows) : list;
   }, [rows, isAvailableView, posFilter, statusFilter, tierFilter, search, sortKey, sortDir, maxRows]);
+
+  const mobileRows = useMemo(
+    () => (maxRows ? sorted : sorted.slice(0, mobileListLimit)),
+    [sorted, maxRows, mobileListLimit],
+  );
 
   const sheetPlayerIds = useMemo(
     () => sorted.map((r) => r.player_id).filter(Boolean),
@@ -226,17 +238,42 @@ export default function ValueSheetTable({
           </label>
         )}
       </div>
+      {mobileLayout && (
+        <div className="hub-filter-summary-bar" aria-live="polite">
+          {sorted.length} shown
+          {posFilter !== "ALL" ? ` · ${posFilter}` : ""}
+          {tierFilter !== "ALL" ? ` · ${tierFilter}` : ""}
+          {statusFilter !== "ALL" ? ` · ${statusFilter}` : ""}
+          {search.trim() ? ` · “${search.trim()}”` : ""}
+          {` · sort ${sortKey}`}
+        </div>
+      )}
       <HubTableCard>
       {mobileLayout ? (
+        <>
         <MobileDataList
           loading={showSkeleton}
           emptyMessage={!loading && sorted.length === 0 ? "No players match these filters." : null}
         >
-          {sorted.map((r, idx) => {
+          {mobileRows.map((r, idx) => {
             const inRoster = Boolean(rosterIds?.has(r.player_id));
             const statusLabel = formatStatusLabel(r.status);
             const actions = [];
-            if (showSelect) {
+            if (showSelect && onRowDoubleClick) {
+              actions.push(
+                <button
+                  key="nominate"
+                  type="button"
+                  className="btn-primary btn-sm"
+                  onClick={() => {
+                    onSelectPlayer?.(r);
+                    onRowDoubleClick(r);
+                  }}
+                >
+                  Nominate
+                </button>,
+              );
+            } else if (showSelect) {
               actions.push(
                 <button
                   key="select"
@@ -247,8 +284,7 @@ export default function ValueSheetTable({
                   Select
                 </button>,
               );
-            }
-            if (onRowDoubleClick) {
+            } else if (onRowDoubleClick) {
               actions.push(
                 <button
                   key="nominate"
@@ -311,8 +347,20 @@ export default function ValueSheetTable({
             );
           })}
         </MobileDataList>
+        {!maxRows && sorted.length > mobileListLimit && (
+          <p className="hub-toolbar hub-load-more-row">
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              onClick={() => setMobileListLimit((n) => n + MOBILE_LIST_PAGE)}
+            >
+              Load more ({sorted.length - mobileListLimit} remaining)
+            </button>
+          </p>
+        )}
+        </>
       ) : (
-      <div className="table-wrap">
+      <div className="table-wrap table-sticky">
         <table className="data-table hub-table">
           <thead>
             <tr>

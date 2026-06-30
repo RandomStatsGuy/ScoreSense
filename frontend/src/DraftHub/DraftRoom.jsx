@@ -63,8 +63,19 @@ export default function DraftRoom({
   const [draftRecap, setDraftRecap] = useState(null);
   const [nominationPoolRows, setNominationPoolRows] = useState(null);
   const [poolLoading, setPoolLoading] = useState(false);
-  const [mobilePanel, setMobilePanel] = useState("auction");
   const mobileLayout = useMobileLayout();
+  const [mobilePanel, setMobilePanel] = useState(() => {
+    if (typeof sessionStorage === "undefined") return "auction";
+    return sessionStorage.getItem("scoresense-draft-mobile-panel") || "auction";
+  });
+  const setMobilePanelPersist = useCallback((panel) => {
+    setMobilePanel(panel);
+    try {
+      sessionStorage.setItem("scoresense-draft-mobile-panel", panel);
+    } catch {
+      /* ignore */
+    }
+  }, []);
   const wsRef = useRef(null);
   const bidTouched = useRef(false);
   const bidFocused = useRef(false);
@@ -703,13 +714,22 @@ export default function DraftRoom({
   const statusLabel = DRAFT_STATUS_LABELS[draftStatus] || draftStatus;
   const activePhase = draftPhaseStep(draftStatus);
 
+  useEffect(() => {
+    if (!mobileLayout || !inLiveDraft || session?.status !== "nominating" || !isMyNominationTurn) return;
+    setMobilePanelPersist("pool");
+  }, [mobileLayout, inLiveDraft, session?.status, isMyNominationTurn, setMobilePanelPersist]);
+
+  const nominateHint = mobileLayout
+    ? "Tap a player, then Nominate"
+    : "Double-click a player to nominate";
+
   const liveStatus = useMemo(() => {
     if (!inLiveDraft || !session) return null;
     if (session.status === "nominating") {
       return {
         phase: 1,
         title: isMyNominationTurn
-          ? "Your turn — double-click a player to nominate"
+          ? `Your turn — ${nominateHint.toLowerCase()}`
           : `Waiting for ${nominatorTeam?.name || "next manager"}`,
         detail: availableRows.length > 0 ? `${availableRows.length} available` : null,
       };
@@ -733,13 +753,14 @@ export default function DraftRoom({
     highBidder,
     suggestedBid,
     myTeamId,
+    nominateHint,
   ]);
 
   const bidPanel = session?.status === "bidding" ? (
-    <div className="hub-draft-actions hub-draft-actions-prominent hub-draft-actions-on-block">
+    <div className={`hub-draft-actions hub-draft-actions-prominent hub-draft-actions-on-block${mobileLayout ? " hub-draft-actions--mobile" : ""}`}>
       <div className="hub-action-block">
         <span className="hub-action-title">Place your bid</span>
-        <div className="hub-action-row">
+        <div className={`hub-action-row${mobileLayout ? " hub-action-row--stacked" : ""}`}>
           <input
             type="number"
             className="hub-bid-input"
@@ -849,7 +870,7 @@ export default function DraftRoom({
             { id: "teams", label: "Teams" },
           ]}
           active={mobilePanel}
-          onChange={setMobilePanel}
+          onChange={setMobilePanelPersist}
           ariaLabel="Draft room"
         />
       )}
@@ -1037,7 +1058,7 @@ export default function DraftRoom({
                     <div className="hub-section-head">
                       <span className="chart-note">
                         {session?.status === "nominating" && isMyNominationTurn
-                          ? "Double-click to nominate"
+                          ? nominateHint
                           : session?.status === "bidding"
                             ? "Browse while you wait"
                             : "Waiting to nominate"}

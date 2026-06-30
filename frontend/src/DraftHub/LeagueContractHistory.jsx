@@ -3,10 +3,14 @@ import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
 import MobilePlayerCard from "../MobilePlayerCard";
+import MobileBottomSheet from "../layout/MobileBottomSheet";
+import OwnerSeasonMapPanel from "./OwnerSeasonMapPanel";
 import { HubPage } from "./HubUILayout";
 
 const ROSTER_STATUSES = ["active", "cut", "ir", "taxi"];
 const POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"];
+const CONTRACT_PHASES = ["", "initial", "extension", "extended", "waiver_rental", "post_2024_base"];
+const ACQUISITION_TYPES = ["", "draft", "waiver", "unknown"];
 
 function fmtSal(v) {
   if (v == null || !Number.isFinite(Number(v))) return "—";
@@ -15,34 +19,74 @@ function fmtSal(v) {
 
 function rowFormState(row) {
   return {
+    owner_label: row.owner_label || "",
+    hub_team_name: row.hub_team_name || "",
     player_name: row.player_name || "",
     position: row.position || "",
     cap_hit: row.cap_hit != null ? String(row.cap_hit) : "",
+    prior_salary: row.prior_salary != null ? String(row.prior_salary) : "",
+    original_draft_year: row.original_draft_year != null ? String(row.original_draft_year) : "",
     roster_status: row.roster_status || "active",
+    contract_phase: row.contract_phase || "",
+    acquisition_type: row.acquisition_type || "",
+    status_note: row.status_note || "",
     needs_review: Boolean(row.needs_review),
     review_reason: row.review_reason || "",
   };
 }
 
-function ContractRowEditor({ row, leagueId, onSaved, onDeleted, onCancel }) {
-  const [form, setForm] = useState(() => rowFormState(row));
+function emptyRowFormState(seasonYear) {
+  return rowFormState({
+    season_year: seasonYear,
+    roster_status: "active",
+  });
+}
+
+function ContractRowEditor({ row, leagueId, seasonYear, isNew, onSaved, onDeleted, onCancel, mobileLayout = false }) {
+  const [form, setForm] = useState(() => (isNew ? emptyRowFormState(seasonYear) : rowFormState(row)));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const buildBody = () => {
+    const cap = form.cap_hit.trim() === "" ? null : Number(form.cap_hit);
+    const prior = form.prior_salary.trim() === "" ? null : Number(form.prior_salary);
+    const draftYear = form.original_draft_year.trim() === "" ? null : Number(form.original_draft_year);
+    return {
+      owner_label: form.owner_label.trim(),
+      hub_team_name: form.hub_team_name.trim() || null,
+      player_name: form.player_name.trim(),
+      position: form.position.trim().toUpperCase() || null,
+      cap_hit: Number.isFinite(cap) ? cap : null,
+      base_salary: Number.isFinite(cap) ? cap : null,
+      prior_salary: Number.isFinite(prior) ? prior : null,
+      original_draft_year: Number.isFinite(draftYear) ? draftYear : null,
+      roster_status: form.roster_status,
+      contract_phase: form.contract_phase || null,
+      acquisition_type: form.acquisition_type || null,
+      status_note: form.status_note.trim() || null,
+      needs_review: form.needs_review,
+      review_reason: form.review_reason.trim() || null,
+    };
+  };
 
   const save = async () => {
     setSaving(true);
     setError("");
     try {
-      const cap = form.cap_hit.trim() === "" ? null : Number(form.cap_hit);
-      const body = {
-        player_name: form.player_name.trim(),
-        position: form.position.trim().toUpperCase() || null,
-        cap_hit: Number.isFinite(cap) ? cap : null,
-        base_salary: Number.isFinite(cap) ? cap : null,
-        roster_status: form.roster_status,
-        needs_review: form.needs_review,
-        review_reason: form.review_reason.trim() || null,
-      };
+      const body = buildBody();
+      if (isNew) {
+        if (!seasonYear || !body.owner_label || !body.player_name || body.cap_hit == null) {
+          throw new Error("Season, owner, player, and cap are required");
+        }
+        const res = await apiFetch(`/api/hub/league/${leagueId}/contract-history`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ season_year: Number(seasonYear), ...body }),
+        });
+        if (!res.ok) throw new Error(await parseApiError(res));
+        onSaved(await res.json(), { isNew: true });
+        return;
+      }
       const res = await apiFetch(`/api/hub/league/${leagueId}/contract-history/${row.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -58,6 +102,10 @@ function ContractRowEditor({ row, leagueId, onSaved, onDeleted, onCancel }) {
   };
 
   const remove = async () => {
+    if (isNew) {
+      onCancel();
+      return;
+    }
     if (!window.confirm(`Delete ${row.player_name || "this row"}?`)) return;
     setSaving(true);
     setError("");
@@ -75,8 +123,25 @@ function ContractRowEditor({ row, leagueId, onSaved, onDeleted, onCancel }) {
   };
 
   return (
-    <div className="hub-contract-edit">
+    <div className={`hub-contract-edit${mobileLayout ? " hub-contract-edit--mobile" : ""}`}>
       <div className="hub-contract-edit-grid">
+        <label>
+          <span className="hub-filter-label">Owner</span>
+          <input
+            className="search-input"
+            value={form.owner_label}
+            onChange={(e) => setForm((f) => ({ ...f, owner_label: e.target.value }))}
+          />
+        </label>
+        <label>
+          <span className="hub-filter-label">Team</span>
+          <input
+            className="search-input"
+            value={form.hub_team_name}
+            onChange={(e) => setForm((f) => ({ ...f, hub_team_name: e.target.value }))}
+            placeholder="Hub team name"
+          />
+        </label>
         <label>
           <span className="hub-filter-label">Player</span>
           <input
@@ -108,6 +173,24 @@ function ContractRowEditor({ row, leagueId, onSaved, onDeleted, onCancel }) {
           />
         </label>
         <label>
+          <span className="hub-filter-label">Prior cap</span>
+          <input
+            className="search-input"
+            inputMode="decimal"
+            value={form.prior_salary}
+            onChange={(e) => setForm((f) => ({ ...f, prior_salary: e.target.value }))}
+          />
+        </label>
+        <label>
+          <span className="hub-filter-label">Draft yr</span>
+          <input
+            className="search-input"
+            inputMode="numeric"
+            value={form.original_draft_year}
+            onChange={(e) => setForm((f) => ({ ...f, original_draft_year: e.target.value }))}
+          />
+        </label>
+        <label>
           <span className="hub-filter-label">Status</span>
           <select
             className="search-input"
@@ -116,6 +199,30 @@ function ContractRowEditor({ row, leagueId, onSaved, onDeleted, onCancel }) {
           >
             {ROSTER_STATUSES.map((s) => (
               <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span className="hub-filter-label">Phase</span>
+          <select
+            className="search-input"
+            value={form.contract_phase}
+            onChange={(e) => setForm((f) => ({ ...f, contract_phase: e.target.value }))}
+          >
+            {CONTRACT_PHASES.map((p) => (
+              <option key={p || "none"} value={p}>{p || "—"}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span className="hub-filter-label">Acquired</span>
+          <select
+            className="search-input"
+            value={form.acquisition_type}
+            onChange={(e) => setForm((f) => ({ ...f, acquisition_type: e.target.value }))}
+          >
+            {ACQUISITION_TYPES.map((a) => (
+              <option key={a || "none"} value={a}>{a || "—"}</option>
             ))}
           </select>
         </label>
@@ -128,6 +235,15 @@ function ContractRowEditor({ row, leagueId, onSaved, onDeleted, onCancel }) {
           <span>Needs review</span>
         </label>
       </div>
+      <label className="hub-contract-edit-note">
+        <span className="hub-filter-label">Status note</span>
+        <input
+          className="search-input"
+          value={form.status_note}
+          onChange={(e) => setForm((f) => ({ ...f, status_note: e.target.value }))}
+          placeholder="e.g. 2 of 2 years"
+        />
+      </label>
       {form.needs_review && (
         <label className="hub-contract-edit-note">
           <span className="hub-filter-label">Review note</span>
@@ -142,17 +258,24 @@ function ContractRowEditor({ row, leagueId, onSaved, onDeleted, onCancel }) {
       {error && <p className="error-banner">{error}</p>}
       <div className="hub-contract-edit-actions">
         <button type="button" className="btn-primary btn-sm" onClick={save} disabled={saving}>
-          {saving ? "Saving…" : "Save"}
+          {saving ? "Saving…" : isNew ? "Add row" : "Save"}
         </button>
         <button type="button" className="btn-ghost btn-sm" onClick={onCancel} disabled={saving}>
           Cancel
         </button>
-        <button type="button" className="btn-ghost btn-sm hub-contract-delete" onClick={remove} disabled={saving}>
-          Delete row
-        </button>
+        {!isNew && (
+          <button type="button" className="btn-ghost btn-sm hub-contract-delete" onClick={remove} disabled={saving}>
+            Delete row
+          </button>
+        )}
       </div>
     </div>
   );
+}
+
+function SourceBadge({ sourceKind }) {
+  if (!sourceKind || sourceKind === "import") return null;
+  return <span className="hub-sleeper-badge">{sourceKind}</span>;
 }
 
 export default function LeagueContractHistory({ leagueId, hubContext, seasonFilter = "" }) {
@@ -253,13 +376,17 @@ export default function LeagueContractHistory({ leagueId, hubContext, seasonFilt
     }
   };
 
-  const onRowSaved = (updated) => {
+  const onRowSaved = (updated, opts = {}) => {
     setData((prev) => {
       if (!prev) return prev;
-      const nextRows = prev.rows.map((r) => (r.id === updated.id ? { ...r, ...updated } : r));
+      const nextRows = opts.isNew
+        ? [...prev.rows, updated]
+        : prev.rows.map((r) => (r.id === updated.id ? { ...r, ...updated } : r));
       return {
         ...prev,
         rows: nextRows,
+        row_count: nextRows.length,
+        available: nextRows.length > 0,
         needs_review_count: nextRows.filter((r) => r.needs_review).length,
       };
     });
@@ -281,6 +408,12 @@ export default function LeagueContractHistory({ leagueId, hubContext, seasonFilt
     setEditingId(null);
   };
 
+  const editingRow = useMemo(() => {
+    if (!editingId || editingId === "new") return null;
+    return (data?.rows || []).find((r) => r.id === editingId) || null;
+  }, [data?.rows, editingId]);
+
+  const closeEditor = () => setEditingId(null);
   const movements = data?.movements || [];
 
   return (
@@ -292,7 +425,7 @@ export default function LeagueContractHistory({ leagueId, hubContext, seasonFilt
             Imported cap sheets · matched to Sleeper rosters
           </p>
         </div>
-        <div className="hub-insights-scoring-meta">
+        <div className={`hub-insights-scoring-meta${mobileLayout ? " hub-insights-scoring-meta--desktop" : ""}`}>
           {seasonOptions.length > 0 && (
             <label className="hub-insights-season-picker">
               <span className="hub-filter-label">Season</span>
@@ -320,19 +453,83 @@ export default function LeagueContractHistory({ leagueId, hubContext, seasonFilt
           )}
           {isCommissioner && (
             <>
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                title="Re-import replaces imported rows only; manual edits are kept"
+                onClick={runImport}
+                disabled={!!busy}
+              >
+                {busy === "import" ? "Importing…" : "Import sheets"}
+              </button>
+              <button type="button" className="btn-ghost btn-sm" onClick={runReconcile} disabled={!!busy}>
+                {busy === "reconcile" ? "Matching…" : "Match Sleeper"}
+              </button>
+              {season && (
+                <button type="button" className="btn-primary btn-sm" onClick={() => setEditingId("new")} disabled={!!busy}>
+                  Add row
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </header>
+
+      {mobileLayout && (
+        <div className="hub-contract-mobile-filters hub-filter-bar">
+          {seasonOptions.length > 0 && (
+            <label className="hub-insights-season-picker">
+              <span className="hub-filter-label">Season</span>
+              <select
+                className="search-input"
+                value={season || ""}
+                onChange={(e) => onSeasonChange(e.target.value)}
+                disabled={loading}
+              >
+                {seasonOptions.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </label>
+          )}
+          {data?.needs_review_count > 0 && (
+            <label className="hub-contract-filter">
+              <input
+                type="checkbox"
+                checked={reviewOnly}
+                onChange={(e) => setReviewOnly(e.target.checked)}
+              />
+              <span>Review only</span>
+            </label>
+          )}
+          {isCommissioner && (
+            <div className="hub-contract-mobile-actions">
               <button type="button" className="btn-ghost btn-sm" onClick={runImport} disabled={!!busy}>
                 {busy === "import" ? "Importing…" : "Import sheets"}
               </button>
               <button type="button" className="btn-ghost btn-sm" onClick={runReconcile} disabled={!!busy}>
                 {busy === "reconcile" ? "Matching…" : "Match Sleeper"}
               </button>
-            </>
+              {season && (
+                <button type="button" className="btn-primary btn-sm" onClick={() => setEditingId("new")}>
+                  Add row
+                </button>
+              )}
+            </div>
           )}
         </div>
-      </header>
+      )}
 
       {error && <p className="error-banner">{error}</p>}
       {loading && <p className="chart-note">Loading contract history…</p>}
+
+      <OwnerSeasonMapPanel
+        leagueId={leagueId}
+        season={season}
+        rows={data?.owner_season_map || []}
+        isCommissioner={isCommissioner}
+        onUpdated={() => load(season)}
+      />
 
       {!loading && data && !data.available && !isCommissioner && (
         <p className="chart-note">
@@ -353,6 +550,44 @@ export default function LeagueContractHistory({ leagueId, hubContext, seasonFilt
         </p>
       )}
 
+      {isCommissioner && editingId === "new" && season && !mobileLayout && (
+        <div className="panel hub-contract-edit-panel">
+          <h4 className="hub-live-section-title">New contract row ({season})</h4>
+          <ContractRowEditor
+            row={{}}
+            leagueId={leagueId}
+            seasonYear={season}
+            isNew
+            onSaved={onRowSaved}
+            onDeleted={closeEditor}
+            onCancel={closeEditor}
+          />
+        </div>
+      )}
+
+      {mobileLayout && isCommissioner && editingId && season && (
+        <MobileBottomSheet
+          open
+          onClose={closeEditor}
+          title={editingId === "new" ? `New row (${season})` : `Edit ${editingRow?.player_name || "contract"}`}
+          className="app-mobile-sheet-contract-edit"
+        >
+          <ContractRowEditor
+            row={editingRow || {}}
+            leagueId={leagueId}
+            seasonYear={season}
+            isNew={editingId === "new"}
+            mobileLayout
+            onSaved={(payload, opts) => {
+              onRowSaved(payload, opts);
+              closeEditor();
+            }}
+            onDeleted={onRowDeleted}
+            onCancel={closeEditor}
+          />
+        </MobileBottomSheet>
+      )}
+
       {rows.length > 0 && mobileLayout && (
         <div className="hub-live-starter-grid">
           {rows.map((r) => (
@@ -362,21 +597,18 @@ export default function LeagueContractHistory({ leagueId, hubContext, seasonFilt
                 meta={[r.hub_team_name || r.owner_label, r.position, r.roster_status].filter(Boolean).join(" · ")}
                 heroValue={fmtSal(r.cap_hit)}
                 heroLabel="cap"
-                badge={r.needs_review ? <span className="hub-sleeper-badge">Review</span> : null}
+                badge={
+                  r.needs_review ? (
+                    <span className="hub-sleeper-badge">Review</span>
+                  ) : (
+                    <SourceBadge sourceKind={r.source_kind} />
+                  )
+                }
               />
-              {isCommissioner && editingId !== r.id && (
+              {isCommissioner && (
                 <button type="button" className="btn-ghost btn-sm" onClick={() => setEditingId(r.id)}>
                   Edit
                 </button>
-              )}
-              {isCommissioner && editingId === r.id && (
-                <ContractRowEditor
-                  row={r}
-                  leagueId={leagueId}
-                  onSaved={onRowSaved}
-                  onDeleted={onRowDeleted}
-                  onCancel={() => setEditingId(null)}
-                />
               )}
             </div>
           ))}
@@ -395,7 +627,7 @@ export default function LeagueContractHistory({ leagueId, hubContext, seasonFilt
                 <th className="num">Cap</th>
                 <th>Status</th>
                 <th>Phase</th>
-                <th>Conf.</th>
+                <th>Source</th>
                 {isCommissioner && <th />}
               </tr>
             </thead>
@@ -410,7 +642,7 @@ export default function LeagueContractHistory({ leagueId, hubContext, seasonFilt
                     <td className="num">{fmtSal(r.cap_hit)}</td>
                     <td>{r.roster_status}</td>
                     <td>{r.contract_phase || "—"}</td>
-                    <td>{r.confidence}</td>
+                    <td>{r.source_kind || "import"}</td>
                     {isCommissioner && (
                       <td className="hub-contract-actions">
                         {editingId === r.id ? (
@@ -431,6 +663,7 @@ export default function LeagueContractHistory({ leagueId, hubContext, seasonFilt
                         <ContractRowEditor
                           row={r}
                           leagueId={leagueId}
+                          seasonYear={season}
                           onSaved={onRowSaved}
                           onDeleted={onRowDeleted}
                           onCancel={() => setEditingId(null)}

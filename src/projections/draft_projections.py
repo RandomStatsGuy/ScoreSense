@@ -127,6 +127,8 @@ def predict_draft_season(
                 result["Per-Game Proj"] = (result["Season Proj"] / games_per_season).round(1)
     if "player_id" in weekly.columns:
         result["player_id"] = weekly["player_id"]
+    if "position" in weekly.columns:
+        result["position"] = weekly["position"]
     if "_rookie_estimate" in roster.columns:
         name_col = _rookie_index_col(roster)
         flag_map = {

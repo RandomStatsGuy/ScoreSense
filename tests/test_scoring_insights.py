@@ -103,3 +103,28 @@ def test_build_scoring_awards_skips_tied_weekly_margins():
     ids = {a["id"] for a in awards}
     assert "nail_biter" not in ids
     assert "margin_massacre" not in ids
+
+
+def test_build_scoring_awards_resolves_sleeper_owner_id():
+    """Sleeper team labels (e.g. Sad Panda) map via owner_id, not team name."""
+    scoring = _sample_scoring()
+    scoring["standings"][0] = {
+        **scoring["standings"][0],
+        "team_name": "Sad Panda",
+        "owner_id": "sleeper_uid_1",
+    }
+    for wk in scoring["weeks"]:
+        for row in wk["teams"]:
+            if row["team_name"] == "Alpha":
+                row["team_name"] = "Sad Panda"
+                row["owner_id"] = "sleeper_uid_1"
+
+    awards = build_scoring_awards(
+        scoring,
+        owner_map={},
+        sleeper_owner_map={"sleeper_uid_1": "Aaron D"},
+        planning_season="2024",
+    )
+    king = next(a for a in awards if a["id"] == "points_king")
+    assert king["display_name"] == "Aaron D"
+    assert king["owner_name"] == "Aaron D"

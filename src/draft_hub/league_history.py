@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -17,6 +18,8 @@ _SCORING_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 _CACHE_TTL = 900
 SCORING_DB_MAX_AGE_HOURS = 24
 OWNERSHIP_DB_MAX_AGE_HOURS = 168
+_CHAIN_CACHE: dict[str, tuple[float, list[dict[str, str]]]] = {}
+_CHAIN_CACHE_TTL = 900
 
 
 def _scoring_cache_is_fresh(synced_at: str, max_age_hours: int) -> bool:
@@ -47,6 +50,15 @@ def get_sleeper_scoring_history(
             "hint": "Link your Sleeper league on Setup or All teams to pull weekly fantasy points.",
         }
 
+    if str(scoring_season or "").lower() == "all":
+        return build_scoring_all_time(
+            sleeper_league_id,
+            hub_teams=hub_teams,
+            refresh=refresh,
+            max_age_hours=max_age_hours,
+            max_weeks=max_weeks,
+        )
+
     chain = sleeper_league_season_chain(sleeper_league_id)
     resolved_id = sleeper_league_id
     if scoring_season:
@@ -64,12 +76,26 @@ def get_sleeper_scoring_history(
 
     cache_key = f"{resolved_id}:{scoring_season or 'current'}"
 
+    current_season = str(chain[0].get("season") or "") if chain else ""
+    requested = str(scoring_season or current_season or "")
+    is_current_season = requested == current_season or (not scoring_season and bool(current_season))
+
     if not refresh:
         cached = storage.get_sleeper_scoring_cache(resolved_id)
         if cached and _scoring_cache_is_fresh(cached["synced_at"], max_age_hours):
             payload = dict(cached["payload"])
-            if hub_teams:
-                payload = _attach_hub_team_names(payload, hub_teams)
+            labels = _sleeper_roster_labels(
+                resolved_id,
+                hub_teams,
+                apply_hub_for_current=is_current_season,
+            )
+            meta = _sleeper_roster_meta(
+                resolved_id,
+                hub_teams,
+                apply_hub_for_current=is_current_season,
+            )
+            payload = _apply_roster_labels(payload, labels)
+            payload = _attach_roster_owner_ids(payload, meta)
             payload["cached"] = True
             payload["synced_at"] = cached["synced_at"]
             payload["available_seasons"] = [c["season"] for c in chain]
@@ -82,6 +108,7 @@ def get_sleeper_scoring_history(
         resolved_id,
         hub_teams=hub_teams,
         max_weeks=max_weeks,
+        apply_hub_for_current=is_current_season,
     )
     if payload.get("available"):
         storage.upsert_sleeper_scoring_cache(resolved_id, payload)
@@ -125,11 +152,13 @@ def build_sleeper_scoring_history(
     *,
     hub_teams: list[dict[str, Any]] | None = None,
     max_weeks: int = 18,
+    apply_hub_for_current: bool = True,
 ) -> dict[str, Any]:
     """
     Pull fantasy points by week from Sleeper matchups.
 
-    Maps Sleeper roster_id → hub team when sleeper_roster_id is linked.
+    Team labels come from Sleeper owner metadata for the league season;
+    hub team names override only when apply_hub_for_current is True.
     """
     if not sleeper_league_id:
         return {
@@ -143,9 +172,12 @@ def build_sleeper_scoring_history(
     cached = _SCORING_CACHE.get(cache_key)
     if cached and (now - cached[0]) < _CACHE_TTL:
         payload = cached[1]
-        if hub_teams:
-            payload = _attach_hub_team_names(payload, hub_teams)
-        return payload
+        labels = _sleeper_roster_labels(
+            sleeper_league_id,
+            hub_teams,
+            apply_hub_for_current=apply_hub_for_current,
+        )
+        return _apply_roster_labels(payload, labels)
 
     try:
         league = _fetch_json(f"{SLEEPER_API}/league/{sleeper_league_id}")
@@ -162,21 +194,38 @@ def build_sleeper_scoring_history(
     settings = league.get("settings") or {}
     playoff_week_start = int(settings.get("playoff_week_start") or 15)
 
-    roster_to_label: dict[str, str] = {}
-    if hub_teams:
-        for t in hub_teams:
-            rid = str(t.get("sleeper_roster_id") or "")
-            if rid:
-                roster_to_label[rid] = t.get("name") or t.get("team_name") or "Team"
+    roster_to_label = _sleeper_roster_labels(
+        sleeper_league_id,
+        hub_teams,
+        apply_hub_for_current=False,
+    )
+    roster_meta = _sleeper_roster_meta(
+        sleeper_league_id,
+        hub_teams,
+        apply_hub_for_current=False,
+    )
 
     weekly: list[dict[str, Any]] = []
     team_totals: dict[str, float] = {}
     team_weeks: dict[str, list[float]] = {}
 
-    for week in range(1, max_weeks + 1):
+    def _fetch_week(week: int) -> tuple[int, list[dict[str, Any]] | None]:
         try:
             matchups = _fetch_json(f"{SLEEPER_API}/league/{sleeper_league_id}/matchups/{week}")
+            return week, matchups
         except Exception:
+            return week, None
+
+    week_results: dict[int, list[dict[str, Any]] | None] = {}
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        futures = {executor.submit(_fetch_week, w): w for w in range(1, max_weeks + 1)}
+        for future in as_completed(futures):
+            week, matchups = future.result()
+            week_results[week] = matchups
+
+    for week in range(1, max_weeks + 1):
+        matchups = week_results.get(week)
+        if matchups is None:
             break
         if not matchups:
             break
@@ -188,9 +237,15 @@ def build_sleeper_scoring_history(
             if pts > 0:
                 week_has_points = True
             label = roster_to_label.get(rid) or f"Roster {rid}"
-            week_rows.append({"roster_id": rid, "team_name": label, "points": round(pts, 2)})
-            team_totals[label] = team_totals.get(label, 0.0) + pts
-            team_weeks.setdefault(label, []).append(pts)
+            owner_id = (roster_meta.get(rid) or {}).get("owner_id") or ""
+            week_rows.append({
+                "roster_id": rid,
+                "owner_id": owner_id,
+                "team_name": label,
+                "points": round(pts, 2),
+            })
+            team_totals[rid] = team_totals.get(rid, 0.0) + pts
+            team_weeks.setdefault(rid, []).append(pts)
         weekly.append(
             {
                 "week": week,
@@ -207,11 +262,17 @@ def build_sleeper_scoring_history(
             hub_teams=hub_teams,
             season=season,
             status=status,
+            apply_hub_for_current=apply_hub_for_current,
         )
         if preseason:
             _SCORING_CACHE[cache_key] = (now, preseason)
-            if hub_teams:
-                preseason = _attach_hub_team_names(preseason, hub_teams)
+            if apply_hub_for_current:
+                labels = _sleeper_roster_labels(
+                    sleeper_league_id,
+                    hub_teams,
+                    apply_hub_for_current=True,
+                )
+                return _apply_roster_labels(preseason, labels)
             return preseason
         return {
             "available": False,
@@ -227,11 +288,14 @@ def build_sleeper_scoring_history(
     )
 
     standings = []
-    for name, total in sorted(team_totals.items(), key=lambda x: -x[1]):
-        pts = team_weeks.get(name) or []
+    for rid, total in sorted(team_totals.items(), key=lambda x: -x[1]):
+        label = roster_to_label.get(rid) or f"Roster {rid}"
+        pts = team_weeks.get(rid) or []
         standings.append(
             {
-                "team_name": name,
+                "roster_id": rid,
+                "owner_id": (roster_meta.get(rid) or {}).get("owner_id") or "",
+                "team_name": label,
                 "total_points": round(total, 2),
                 "avg_points": round(total / max(len(pts), 1), 2),
                 "weeks_scored": len(pts),
@@ -253,9 +317,129 @@ def build_sleeper_scoring_history(
         ),
     }
     _SCORING_CACHE[cache_key] = (now, payload)
-    if hub_teams:
-        payload = _attach_hub_team_names(payload, hub_teams)
+    if apply_hub_for_current:
+        labels = _sleeper_roster_labels(
+            sleeper_league_id,
+            hub_teams,
+            apply_hub_for_current=True,
+        )
+        return _apply_roster_labels(payload, labels)
     return payload
+
+
+def build_scoring_all_time(
+    sleeper_league_id: str,
+    *,
+    hub_teams: list[dict[str, Any]] | None = None,
+    refresh: bool = False,
+    max_age_hours: int = SCORING_DB_MAX_AGE_HOURS,
+    max_weeks: int = 18,
+) -> dict[str, Any]:
+    """Aggregate Sleeper fantasy points across all seasons in the league chain."""
+    from src.integrations.sleeper_league import fetch_league_rosters, fetch_league_users
+
+    chain = sleeper_league_season_chain(sleeper_league_id)
+    if not chain:
+        return {
+            "available": False,
+            "reason": "no_chain",
+            "hint": "Could not load Sleeper league history.",
+        }
+
+    agg: dict[str, dict[str, Any]] = {}
+    seasons_included: list[str] = []
+
+    for entry in sorted(chain, key=lambda c: int(c.get("season") or 0)):
+        season = str(entry.get("season") or "")
+        if not season:
+            continue
+        payload = get_sleeper_scoring_history(
+            sleeper_league_id,
+            hub_teams=hub_teams,
+            refresh=refresh,
+            max_age_hours=max_age_hours,
+            max_weeks=max_weeks,
+            scoring_season=season,
+        )
+        if not payload.get("available"):
+            continue
+        seasons_included.append(season)
+
+        lid = str(entry["league_id"])
+        rid_to_owner: dict[str, str] = {}
+        owner_labels: dict[str, str] = {}
+        try:
+            rosters = fetch_league_rosters(lid)
+            users = {u["user_id"]: u for u in fetch_league_users(lid)}
+            from src.integrations.sleeper_league import _team_label
+
+            for roster in rosters:
+                rid = str(roster.get("roster_id") or "")
+                oid = str(roster.get("owner_id") or "")
+                if rid and oid:
+                    rid_to_owner[rid] = oid
+                    owner_labels[oid] = _team_label(users.get(oid, {}))
+        except Exception:
+            pass
+
+        for row in payload.get("standings") or []:
+            rid = str(row.get("roster_id") or "")
+            owner_id = rid_to_owner.get(rid) or row.get("team_name") or rid
+            key = str(owner_id)
+            pts = float(row.get("total_points") or 0)
+            weeks = int(row.get("weeks_scored") or 0)
+            label = owner_labels.get(key) or row.get("team_name") or "Team"
+            bucket = agg.setdefault(
+                key,
+                {
+                    "owner_id": key,
+                    "team_name": label,
+                    "total_points": 0.0,
+                    "weeks_scored": 0,
+                    "seasons_played": 0,
+                },
+            )
+            bucket["total_points"] += pts
+            bucket["weeks_scored"] += weeks
+            bucket["seasons_played"] += 1
+            if label:
+                bucket["team_name"] = label
+
+    if not agg:
+        return {
+            "available": False,
+            "reason": "no_scoring_data",
+            "available_seasons": [c["season"] for c in chain],
+            "hint": "No scored seasons found in Sleeper history.",
+        }
+
+    standings = []
+    for bucket in agg.values():
+        weeks = max(int(bucket.get("weeks_scored") or 0), 1)
+        total = float(bucket.get("total_points") or 0)
+        standings.append(
+            {
+                "team_id": bucket.get("owner_id"),
+                "team_name": bucket.get("team_name"),
+                "total_points": round(total, 2),
+                "avg_points": round(total / weeks, 2),
+                "weeks_scored": int(bucket.get("weeks_scored") or 0),
+                "seasons_played": int(bucket.get("seasons_played") or 0),
+            }
+        )
+    standings.sort(key=lambda r: -float(r.get("total_points") or 0))
+
+    return {
+        "available": True,
+        "mode": "all_time",
+        "season": "all",
+        "requested_season": "all",
+        "available_seasons": [c["season"] for c in chain],
+        "seasons_included": seasons_included,
+        "weeks": [],
+        "standings": standings,
+        "preseason": False,
+    }
 
 
 def _preseason_scoring_from_rosters(
@@ -264,6 +448,7 @@ def _preseason_scoring_from_rosters(
     hub_teams: list[dict[str, Any]] | None,
     season: str,
     status: str,
+    apply_hub_for_current: bool = True,
 ) -> dict[str, Any] | None:
     """When matchups are empty (preseason), show linked teams at 0 pts instead of a blank tab."""
     try:
@@ -276,19 +461,20 @@ def _preseason_scoring_from_rosters(
     if not teams:
         return None
 
-    roster_to_label: dict[str, str] = {}
-    if hub_teams:
-        for t in hub_teams:
-            rid = str(t.get("sleeper_roster_id") or "")
-            if rid:
-                roster_to_label[rid] = t.get("name") or t.get("team_name") or "Team"
+    roster_to_label = _sleeper_roster_labels(
+        sleeper_league_id,
+        hub_teams,
+        apply_hub_for_current=False,
+    )
+    hub_labels = _hub_roster_labels(hub_teams)
 
     standings = []
     for t in teams:
         rid = str(t.get("roster_id") or "")
-        label = roster_to_label.get(rid) or t.get("team_name") or "Team"
+        label = hub_labels.get(rid) or roster_to_label.get(rid) or t.get("team_name") or "Team"
         standings.append(
             {
+                "roster_id": rid,
                 "team_name": label,
                 "total_points": 0.0,
                 "avg_points": 0.0,
@@ -309,12 +495,90 @@ def _preseason_scoring_from_rosters(
     }
 
 
-def _attach_hub_team_names(payload: dict[str, Any], hub_teams: list[dict[str, Any]]) -> dict[str, Any]:
-    roster_to_label = {
-        str(t.get("sleeper_roster_id")): t.get("name") or t.get("team_name")
-        for t in hub_teams
-        if t.get("sleeper_roster_id")
+def _sleeper_roster_labels(
+    sleeper_league_id: str,
+    hub_teams: list[dict[str, Any]] | None,
+    *,
+    apply_hub_for_current: bool,
+) -> dict[str, str]:
+    """Map Sleeper roster_id → display label for one league season."""
+    return {
+        rid: meta["team_name"]
+        for rid, meta in _sleeper_roster_meta(
+            sleeper_league_id,
+            hub_teams,
+            apply_hub_for_current=apply_hub_for_current,
+        ).items()
     }
+
+
+def _sleeper_roster_meta(
+    sleeper_league_id: str,
+    hub_teams: list[dict[str, Any]] | None,
+    *,
+    apply_hub_for_current: bool,
+) -> dict[str, dict[str, str]]:
+    """Map Sleeper roster_id → team label and owner user_id."""
+    from src.integrations.sleeper_league import (
+        _team_label,
+        fetch_league_rosters,
+        fetch_league_users,
+    )
+
+    meta: dict[str, dict[str, str]] = {}
+    try:
+        rosters = fetch_league_rosters(str(sleeper_league_id))
+        users = {u["user_id"]: u for u in fetch_league_users(str(sleeper_league_id))}
+        for roster in rosters:
+            rid = str(roster.get("roster_id") or "")
+            if not rid:
+                continue
+            owner_id = str(roster.get("owner_id") or "")
+            owner = users.get(owner_id, {})
+            meta[rid] = {
+                "roster_id": rid,
+                "owner_id": owner_id,
+                "team_name": _team_label(owner),
+            }
+    except Exception:
+        return meta
+
+    if apply_hub_for_current and hub_teams:
+        for rid, hub_name in _hub_roster_labels(hub_teams).items():
+            if rid in meta:
+                meta[rid]["team_name"] = hub_name
+    return meta
+
+
+def _attach_roster_owner_ids(
+    payload: dict[str, Any],
+    roster_meta: dict[str, dict[str, str]],
+) -> dict[str, Any]:
+    if not roster_meta:
+        return payload
+    out = dict(payload)
+    weeks = []
+    for wk in payload.get("weeks") or []:
+        teams = []
+        for row in wk.get("teams") or []:
+            rid = str(row.get("roster_id") or "")
+            owner_id = row.get("owner_id") or (roster_meta.get(rid) or {}).get("owner_id") or ""
+            teams.append({**row, "owner_id": owner_id})
+        weeks.append({**wk, "teams": teams})
+    out["weeks"] = weeks
+    standings = []
+    for row in payload.get("standings") or []:
+        rid = str(row.get("roster_id") or "")
+        owner_id = row.get("owner_id") or (roster_meta.get(rid) or {}).get("owner_id") or ""
+        standings.append({**row, "owner_id": owner_id})
+    out["standings"] = standings
+    return out
+
+
+def _apply_roster_labels(
+    payload: dict[str, Any],
+    roster_to_label: dict[str, str],
+) -> dict[str, Any]:
     if not roster_to_label:
         return payload
     out = dict(payload)
@@ -326,7 +590,25 @@ def _attach_hub_team_names(payload: dict[str, Any], hub_teams: list[dict[str, An
             teams.append({**row, "team_name": roster_to_label.get(rid) or row.get("team_name")})
         weeks.append({**wk, "teams": teams})
     out["weeks"] = weeks
+    standings = []
+    for row in payload.get("standings") or []:
+        rid = str(row.get("roster_id") or "")
+        if rid and rid in roster_to_label:
+            standings.append({**row, "team_name": roster_to_label[rid]})
+        else:
+            standings.append(dict(row))
+    out["standings"] = standings
     return out
+
+
+def _attach_hub_team_names(payload: dict[str, Any], hub_teams: list[dict[str, Any]]) -> dict[str, Any]:
+    """Deprecated — use _apply_roster_labels with _sleeper_roster_labels."""
+    labels = _sleeper_roster_labels(
+        str(payload.get("sleeper_league_id") or ""),
+        hub_teams,
+        apply_hub_for_current=True,
+    )
+    return _apply_roster_labels(payload, labels)
 
 
 def _hub_roster_labels(hub_teams: list[dict[str, Any]] | None) -> dict[str, str]:
@@ -717,11 +999,18 @@ def _roster_source_label(source: str) -> str:
 
 def sleeper_league_season_chain(sleeper_league_id: str, *, max_hops: int = 8) -> list[dict[str, str]]:
     """Walk previous_league_id to list seasons available for this league lineage."""
+    lid = str(sleeper_league_id or "").strip()
+    if not lid:
+        return []
+    now = time.time()
+    cached = _CHAIN_CACHE.get(lid)
+    if cached and (now - cached[0]) < _CHAIN_CACHE_TTL:
+        return list(cached[1])
+
     from src.integrations.sleeper_league import fetch_league
 
     seen: set[str] = set()
     chain: list[dict[str, str]] = []
-    lid = str(sleeper_league_id or "").strip()
     for _ in range(max_hops):
         if not lid or lid in seen:
             break
@@ -744,4 +1033,5 @@ def sleeper_league_season_chain(sleeper_league_id: str, *, max_hops: int = 8) ->
         if not prev:
             break
         lid = str(prev)
+    _CHAIN_CACHE[str(sleeper_league_id)] = (now, chain)
     return chain

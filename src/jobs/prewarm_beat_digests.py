@@ -6,8 +6,8 @@ from typing import Any
 
 from src.config import BEAT_DIGEST_PREWARM_TOP_N
 from src.draft_hub.value_sheet import _load_draft_pool
-from src.sentiment.beat_digest import beat_digest_for_player
-from src.sentiment.readout import build_sentiment_index
+from src.sentiment.fantasy_digest import fantasy_digest_for_player
+from src.sentiment.fantasy_readout import build_fantasy_index
 
 
 def prewarm_beat_digests(
@@ -23,7 +23,7 @@ def prewarm_beat_digests(
     Safe to run daily — cache keys are scoped to UTC date.
     """
     top_n = int(top_n or BEAT_DIGEST_PREWARM_TOP_N)
-    sentiment = build_sentiment_index(season, week)
+    sentiment = build_fantasy_index(season, week)
     resolved_season = int(sentiment["season"])
     resolved_week = int(sentiment["week"])
 
@@ -49,9 +49,10 @@ def prewarm_beat_digests(
     skipped = 0
     for pid, sent in mention_ranked:
         name = str(sent.get("player") or pid)
-        beat_digest_for_player(
+        fantasy_digest_for_player(
             name,
             sent,
+            scope="weekly",
             player_id=str(pid),
             season=resolved_season,
             week=resolved_week,

@@ -1,0 +1,21 @@
+{
+  "packageId": "com.fourthdownlabs.scoresense",
+  "host": "app.fourthdownlabs.com",
+  "name": "ScoreSense",
+  "launcherName": "ScoreSense",
+  "display": "standalone",
+  "themeColor": "#0b1220",
+  "navigationColor": "#0b1220",
+  "backgroundColor": "#0b1220",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://app.fourthdownlabs.com/pwa-512.png",
+  "maskableIconUrl": "https://app.fourthdownlabs.com/pwa-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "scoresense"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1
+}

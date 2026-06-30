@@ -237,7 +237,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                 ))}
               </MobileDataList>
             ) : (
-            <div className="table-wrap">
+            <div className="table-wrap table-sticky">
               <table className="data-table hub-table">
                 <thead>
                   <tr>
@@ -327,7 +327,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                 ))}
               </MobileDataList>
             ) : (
-            <div className="table-wrap">
+            <div className="table-wrap table-sticky">
               <table className="data-table hub-table">
                 <thead>
                   <tr>

@@ -1,13 +1,17 @@
 import React, { useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
+import useMobileLayout from "../useMobileLayout";
+import MobileBottomSheet from "../layout/MobileBottomSheet";
 
 export default function CapSheetImport({ onImported, embedded = false }) {
+  const mobileLayout = useMobileLayout();
   const fileRef = useRef(null);
   const [importing, setImporting] = useState(false);
   const [syncSleeperFirst, setSyncSleeperFirst] = useState(true);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const [confirmReplaceOpen, setConfirmReplaceOpen] = useState(false);
 
   const importSheet = async (file) => {
     if (!file) return;
@@ -41,8 +45,21 @@ export default function CapSheetImport({ onImported, embedded = false }) {
     }
   };
 
+  const triggerImport = () => {
+    if (mobileLayout && !syncSleeperFirst) {
+      setConfirmReplaceOpen(true);
+      return;
+    }
+    fileRef.current?.click();
+  };
+
+  const confirmReplaceImport = () => {
+    setConfirmReplaceOpen(false);
+    fileRef.current?.click();
+  };
+
   return (
-    <section className={`panel hub-panel${embedded ? " hub-panel-embedded" : ""}`}>
+    <section className={`panel hub-panel${embedded ? " hub-panel-embedded" : ""}${mobileLayout ? " hub-cap-import--mobile" : ""}`}>
       {!embedded && <h2>Cap sheet import</h2>}
       <p className="chart-note">
         Commissioner tab-separated cap sheet: manager, position, player, salary, contract years.
@@ -61,7 +78,7 @@ export default function CapSheetImport({ onImported, embedded = false }) {
           Replace mode wipes all league rosters and imports only what is in the file.
         </p>
       )}
-      <div className="hub-toolbar">
+      <div className={`hub-toolbar${mobileLayout ? " hub-toolbar--stack" : ""}`}>
         <input
           ref={fileRef}
           type="file"
@@ -73,11 +90,29 @@ export default function CapSheetImport({ onImported, embedded = false }) {
           type="button"
           className="btn-primary"
           disabled={importing}
-          onClick={() => fileRef.current?.click()}
+          onClick={triggerImport}
         >
           {importing ? "Importing…" : "Upload cap sheet (TSV)"}
         </button>
       </div>
+      <MobileBottomSheet
+        open={confirmReplaceOpen}
+        onClose={() => setConfirmReplaceOpen(false)}
+        title="Replace all rosters?"
+        className="app-mobile-sheet-confirm"
+      >
+        <p className="chart-note">
+          Replace mode wipes all league rosters and imports only what is in the file. Continue?
+        </p>
+        <div className="hub-toolbar hub-toolbar--stack">
+          <button type="button" className="btn-primary" onClick={confirmReplaceImport}>
+            Yes, replace rosters
+          </button>
+          <button type="button" className="btn-ghost" onClick={() => setConfirmReplaceOpen(false)}>
+            Cancel
+          </button>
+        </div>
+      </MobileBottomSheet>
       {result && (
         <p className="chart-note">
           {result.mode === "sync_and_contracts" ? (

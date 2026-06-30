@@ -1,0 +1,65 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: #0b1220;
+  color: #e8eef7;
+
+  /* Layout breakpoints */
+  --bp-mobile-shell: 768px;
+  --bp-mobile-dense: 768px;
+
+  /* Surfaces */
+  --bg-base: #0b1220;
+  --bg-elevated: rgba(15, 23, 42, 0.92);
+  --bg-subtle: rgba(30, 41, 59, 0.55);
+  --border: rgba(51, 65, 85, 0.65);
+  --border-strong: rgba(71, 85, 105, 0.8);
+
+  /* Typography */
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #7889a0;
+
+  /* Empty / no-data (offseason, missing narrative) — neutral, not warning */
+  --state-empty-text: #7889a0;
+  --state-empty-bg: rgba(51, 65, 85, 0.28);
+  --state-empty-border: rgba(71, 85, 105, 0.45);
+
+  /* Primary accent — projections, links, focus (one cool hue) */
+  --accent: #3b82f6;
+  --accent-soft: rgba(59, 130, 246, 0.14);
+  --accent-muted: #60a5fa;
+  --accent-glow: rgba(96, 165, 250, 0.35);
+
+  /* Semantic — sentiment & injury (muted, not neon) */
+  --tone-positive: #34d399;
+  --tone-positive-soft: rgba(52, 211, 153, 0.18);
+  --tone-positive-border: rgba(52, 211, 153, 0.4);
+  --tone-negative: #f87171;
+  --tone-negative-soft: rgba(248, 113, 113, 0.16);
+  --tone-negative-border: rgba(248, 113, 113, 0.38);
+  --tone-caution: #fbbf24;
+  --tone-caution-soft: rgba(251, 191, 36, 0.14);
+  --tone-caution-text: #fde68a;
+  --tone-mixed: #fb923c;
+  --tone-mixed-soft: rgba(251, 146, 60, 0.14);
+  --tone-neutral: #94a3b8;
+  --tone-neutral-soft: rgba(148, 163, 184, 0.12);
+
+  /* Tooltips — elevated dark cards (match UI, not stark white) */
+  --tooltip-bg: #1e293b;
+  --tooltip-border: rgba(148, 163, 184, 0.28);
+  --tooltip-text: #f8fafc;
+  --tooltip-muted: #94a3b8;
+  --tooltip-accent: #93c5fd;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 8px 32px rgba(0, 0, 0, 0.28);
+  --space-xs: 0.35rem;
+  --space-sm: 0.55rem;
+  --space-md: 0.85rem;
+  --space-lg: 1.25rem;
+}

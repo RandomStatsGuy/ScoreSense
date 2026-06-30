@@ -57,6 +57,7 @@ function ValueSheetPlayerRow({
           media={playerMedia}
           size="sm"
           showTeam={false}
+          clickable={Boolean(row.player_id)}
         />
         {row.is_rookie && <span className="hub-sleeper-badge">Rookie est.</span>}
       </td>

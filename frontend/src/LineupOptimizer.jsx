@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { apiFetch, PRODUCT_DISCLAIMER } from "./auth";
 import { connectionErrorMessage, fmtNum, isPlayerUnavailable, parseApiError } from "./format";
 import useMobileLayout from "./useMobileLayout";
+import MobileSubnav from "./layout/MobileSubnav";
 import MobileDataList, { MobileStat } from "./MobileDataList";
 import MobilePlayerCard from "./MobilePlayerCard";
 
@@ -83,6 +84,8 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
 
   const isDfs = site !== "seasonal";
   const mobileLayout = useMobileLayout();
+  const [mobileStep, setMobileStep] = useState("setup");
+  const resultRef = useRef(null);
   const siteConfig = formats[site] || DEFAULT_FORMATS[site] || DEFAULT_FORMATS.seasonal;
 
   const weekOptions = useMemo(() => {
@@ -390,6 +393,12 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
         setSalaryRemaining(data.salary_remaining);
       }
       setOptimizeNote(data.note || "");
+      if (mobileLayout) {
+        setMobileStep("result");
+        window.setTimeout(() => {
+          resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 120);
+      }
     } catch (err) {
       setLineup([]);
       setLineups([]);
@@ -424,11 +433,32 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
 
   const busy = loading || parentLoading || loadingSlates || loadingSalaries;
   const posTabs = isDfs ? ["ALL", "QB", "RB", "WR", "TE", "DST"] : ["ALL", "QB", "RB", "WR", "TE"];
+  const showSetup = !mobileLayout || mobileStep === "setup";
+  const showPool = !mobileLayout || mobileStep === "pool";
+  const showResult = !mobileLayout || mobileStep === "result";
+
+  const clearLocks = () => {
+    setLocked(new Set());
+    setExcluded(new Set());
+  };
 
   return (
-    <div className="lineup-layout">
+    <div className={`lineup-layout${mobileLayout ? " lineup-layout--mobile" : ""}`}>
       <section className="panel wide lineup-panel">
-        <div className="lineup-header">
+        {mobileLayout && (
+          <MobileSubnav
+            className="lineup-mobile-steps"
+            tabs={[
+              { id: "setup", label: "Setup" },
+              { id: "pool", label: "Pool" },
+              { id: "result", label: "Result" },
+            ]}
+            active={mobileStep}
+            onChange={setMobileStep}
+            ariaLabel="Lineup builder"
+          />
+        )}
+        <div className={`lineup-header${showSetup ? "" : " lineup-mobile-pane-hidden"}`}>
           <div>
             <h2>DFS lineup builder</h2>
             <p className="chart-note">
@@ -619,7 +649,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
             )}
             <button
               type="button"
-              className="btn primary"
+              className={`btn primary lineup-optimize-btn${mobileLayout ? " lineup-optimize-btn--desktop" : ""}`}
               onClick={runOptimize}
               disabled={optimizing || busy || !pool.length}
             >
@@ -662,7 +692,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
           </div>
         )}
 
-        <div className="lineup-grid">
+        <div className={`lineup-grid${showPool ? "" : " lineup-mobile-pane-hidden"}`}>
           <div className="lineup-pool">
             <div className="lineup-pool-toolbar">
               <input
@@ -818,7 +848,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
             )}
           </div>
 
-          <div className="lineup-result">
+          <div className={`lineup-result${showResult ? "" : " lineup-mobile-pane-hidden"}`} ref={resultRef}>
             <h3 className="lineup-result-title">
               {lineups.length > 1 ? `Optimal lineups (${lineups.length})` : "Optimal lineup"}
             </h3>
@@ -933,6 +963,25 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
             {optimizeNote && <p className="chart-note lineup-result-note">{optimizeNote}</p>}
           </div>
         </div>
+
+        {mobileLayout && (mobileStep === "pool" || mobileStep === "setup") && (
+          <div className="lineup-mobile-sticky-bar">
+            <span className="lineup-mobile-sticky-meta">
+              {locked.size} locked · {excluded.size} excluded
+            </span>
+            <button type="button" className="btn-ghost btn-sm" onClick={clearLocks} disabled={!locked.size && !excluded.size}>
+              Clear
+            </button>
+            <button
+              type="button"
+              className="btn primary"
+              onClick={runOptimize}
+              disabled={optimizing || busy || !pool.length}
+            >
+              {optimizing ? "Optimizing…" : "Optimize"}
+            </button>
+          </div>
+        )}
       </section>
     </div>
   );

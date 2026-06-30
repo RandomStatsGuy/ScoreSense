@@ -154,6 +154,9 @@ def fair_value_for_row(
         return None
     sub = pool[pool[pos_col].astype(str).str.upper() == pos.upper()].sort_values(proj_col, ascending=False)
     ids = [str(x) for x in sub.get("player_id", sub.get("Player", []))]
+    if pid not in ids and pos == "TE":
+        wr_sub = pool[pool[pos_col].astype(str).str.upper() == "WR"].sort_values(proj_col, ascending=False)
+        ids = [str(x) for x in wr_sub.get("player_id", wr_sub.get("Player", []))]
     if pid not in ids:
         # fallback from salary if not in projection pool
         return float(row.get("salary") or 0) or None

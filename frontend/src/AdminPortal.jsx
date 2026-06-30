@@ -102,8 +102,8 @@ function MembershipList({ memberships, testHidden = 0 }) {
   );
 }
 
-export default function AdminPortal() {
-  const [tab, setTab] = useState("overview");
+export default function AdminPortal({ adminTab = "overview", onAdminTabChange }) {
+  const tab = adminTab;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [overview, setOverview] = useState(null);
@@ -382,7 +382,7 @@ export default function AdminPortal() {
               key={item.id}
               type="button"
               className={`app-section-subnav-btn${tab === item.id ? " active" : ""}`}
-              onClick={() => setTab(item.id)}
+              onClick={() => onAdminTabChange?.(item.id)}
             >
               {item.label}
             </button>

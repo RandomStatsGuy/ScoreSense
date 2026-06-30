@@ -1,8 +1,11 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
+import useMobileLayout from "../useMobileLayout";
+import MobileDataList from "../MobileDataList";
 
 export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
+  const mobileLayout = useMobileLayout();
   const [email, setEmail] = useState("");
   const [teamName, setTeamName] = useState("");
   const [teams, setTeams] = useState([]);
@@ -124,7 +127,7 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
   if (!hubContext?.can_invite_members) return null;
 
   return (
-    <section className="panel hub-panel hub-panel-embedded">
+    <section className={`panel hub-panel hub-panel-embedded${mobileLayout ? " hub-invites--mobile" : ""}`}>
       <h3>Invite league members</h3>
       <p className="chart-note">
         Sends an email with a join link when SMTP is configured on the server; otherwise copy the link below.
@@ -135,7 +138,7 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
         Lock team claims
       </label>
 
-      <form className="hub-form-row hub-invite-form" onSubmit={sendInvite}>
+      <form className={`hub-form-row hub-invite-form${mobileLayout ? " hub-form-row--stack" : ""}`} onSubmit={sendInvite}>
         <label>
           <span className="hub-field-label">Manager email</span>
           <input
@@ -185,6 +188,25 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
       {teams.length > 0 && (
         <div className="hub-invite-teams">
           <h4>Teams</h4>
+          {mobileLayout ? (
+            <MobileDataList>
+              {teams.filter((t) => !t.is_commissioner).map((t) => (
+                <div key={t.id} className="hub-invite-mobile-card">
+                  <div>
+                    <strong>{t.name}</strong>
+                    <span className="table-meta">
+                      {t.user_sub ? " · linked" : " · unclaimed"}
+                    </span>
+                  </div>
+                  {t.user_sub ? (
+                    <button type="button" className="btn-ghost btn-sm" onClick={() => releaseClaim(t.id)}>
+                      Release claim
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+            </MobileDataList>
+          ) : (
           <ul className="hub-invite-list">
             {teams.filter((t) => !t.is_commissioner).map((t) => (
               <li key={t.id}>
@@ -202,6 +224,7 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
               </li>
             ))}
           </ul>
+          )}
         </div>
       )}
 

@@ -62,9 +62,9 @@ export default function InjurySidebar({
         <div className="injury-sidebar-head">
           <h2>Injuries</h2>
         </div>
-        <p className="sidebar-note">
-          Live week only — switch to Wk {defaultWeek}.
-        </p>
+        <div className="state-empty-callout sidebar-empty-callout" role="status">
+          Injuries appear during the live NFL week — switch to Wk {defaultWeek} to view current designations.
+        </div>
       </section>
     );
   }

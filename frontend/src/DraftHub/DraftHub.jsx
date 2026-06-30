@@ -4,6 +4,8 @@ import { useAuth } from "../AuthContext";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
 import HubSeasonStatus from "./HubSeasonStatus";
+import HubSubnav from "./HubSubnav";
+import useMobileLayout from "../useMobileLayout";
 import { HubPage } from "./HubUILayout";
 import { ValueSheetTableSkeleton } from "../TableSkeleton";
 import AccountAuth from "../AccountAuth";
@@ -49,6 +51,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const [leagueSyncing, setLeagueSyncing] = useState(false);
   const [leagueSyncMessage, setLeagueSyncMessage] = useState("");
   const [leagueSyncError, setLeagueSyncError] = useState("");
+  const mobileLayout = useMobileLayout();
   const [valueSheetLoading, setValueSheetLoading] = useState(false);
   const subViewRef = React.useRef(subView);
   subViewRef.current = subView;
@@ -480,6 +483,14 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
 
   return (
     <div className="draft-hub">
+      {mobileLayout && (
+        <HubSubnav
+          subView={subView}
+          hubContext={effectiveCtx}
+          onNavigate={setSubView}
+          mobileLayout
+        />
+      )}
       {effectiveCtx?.mode === "league" && subView !== "setup" && (
         <HubSeasonStatus
           workspace={workspace}

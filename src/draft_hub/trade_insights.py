@@ -333,6 +333,7 @@ def build_trade_insights(
     draft_completed: bool = False,
     pool: Any | None = None,
     analytics: dict[str, Any] | None = None,
+    fair_map: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     league = overview.get("league") or {}
     rules = LeagueRules.model_validate(league.get("rules") or {})
@@ -356,12 +357,13 @@ def build_trade_insights(
     my_balance = _balance_flags(my_analytics, league_avg, positions, rules)
     roster_map = _team_roster_map(overview)
     my_roster = roster_map.get(my_team_id, [])
-    if pool is None:
-        from src.draft_hub.value_sheet import _load_draft_pool
+    if fair_map is None:
+        if pool is None:
+            from src.draft_hub.value_sheet import _load_draft_pool
 
-        pool = _load_draft_pool(season)
-    all_rosters = [r for rows in roster_map.values() for r in rows]
-    fair_map = _player_fair_values(all_rosters, pool, rules, team_count)
+            pool = _load_draft_pool(season)
+        all_rosters = [r for rows in roster_map.values() for r in rows]
+        fair_map = _player_fair_values(all_rosters, pool, rules, team_count)
 
     partners: list[dict[str, Any]] = []
     all_suggestions: list[dict[str, Any]] = []

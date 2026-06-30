@@ -41,6 +41,9 @@ EXCLUDE_DIRS = {
     "terminals",
     "data/raw",
     "data/cache",
+    "draft_hub",
+    "auth",
+    "league_contract_history",
     "artifacts/analytics",
     "artifacts/backtest",
 }

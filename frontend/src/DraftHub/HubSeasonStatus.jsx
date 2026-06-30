@@ -75,6 +75,21 @@ export default function HubSeasonStatus({
           )}
         </p>
       )}
+      {mobileLayout && !loading && expiring.length > 0 && (
+        <p className="hub-season-status-expiring hub-season-status-expiring--mobile">
+          <span className="hub-season-status-expiring-label">
+            {expiring.length} contract{expiring.length === 1 ? "" : "s"} ending at draft
+          </span>
+          {onNavigate && (
+            <>
+              {" · "}
+              <button type="button" className="btn-link" onClick={() => onNavigate("planner")}>
+                Cap
+              </button>
+            </>
+          )}
+        </p>
+      )}
       {!mobileLayout && !loading && expiring.length === 0 && preDraft && (
         <p className="hub-season-status-note">
           No contracts expire at this draft — all deals run into next season or beyond.

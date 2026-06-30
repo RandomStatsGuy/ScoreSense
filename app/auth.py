@@ -42,11 +42,13 @@ _NATIVE_SUB_PREFIX = "ss:"
 
 
 def auth_enabled() -> bool:
-    return AUTH_REQUIRED
+    from src.config import AUTH_REQUIRED as _auth_required
+    return _auth_required
 
 
 def hub_auth_enabled() -> bool:
-    return HUB_AUTH_REQUIRED
+    from src.config import HUB_AUTH_REQUIRED as _hub_auth_required
+    return _hub_auth_required
 
 
 def patreon_configured() -> bool:
@@ -237,18 +239,30 @@ def resolve_native_user_id(
         row = user_store.get_user_by_email(str(hint))
         if row:
             return row["id"]
-    return user_id
+    return None
+
+
+def native_account_row(jwt_user: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Load the native account row for a JWT user, or None if the session is orphaned."""
+    if not jwt_user or jwt_user.get("auth_type") != "native":
+        return None
+    user_id = resolve_native_user_id(jwt_user)
+    if user_id:
+        row = user_store.get_user_by_id(user_id)
+        if row:
+            return row
+    email = jwt_user.get("email")
+    if email:
+        return user_store.get_user_by_email(str(email))
+    return None
 
 
 def native_email_verified(jwt_user: dict[str, Any]) -> bool:
     if jwt_user.get("auth_type") != "native":
         return True
-    user_id = resolve_native_user_id(jwt_user)
-    if not user_id:
-        return True
-    row = user_store.get_user_by_id(user_id)
-    if not row and jwt_user.get("email"):
-        row = user_store.get_user_by_email(str(jwt_user.get("email")))
+    row = native_account_row(jwt_user)
+    if not row:
+        return False
     return user_store.is_email_verified(row)
 
 
@@ -471,15 +485,12 @@ def require_hub_user(request: Request) -> dict[str, Any]:
 def session_user_public(user: dict[str, Any] | None) -> dict[str, Any] | None:
     if not user:
         return None
-    verified = native_email_verified(user) if user.get("auth_type") == "native" else True
+    native_row = native_account_row(user) if user.get("auth_type") == "native" else None
+    verified = user_store.is_email_verified(native_row) if native_row else True
+    if user.get("auth_type") == "native" and native_row is None:
+        verified = False
     terms_current = native_user_terms_current(user)
-    terms_version = None
-    if user.get("auth_type") == "native":
-        user_id = resolve_native_user_id(user)
-        if user_id:
-            row = user_store.get_user_by_id(user_id)
-            if row:
-                terms_version = row.get("terms_version")
+    terms_version = native_row.get("terms_version") if native_row else None
     return {
         "sub": user.get("sub"),
         "name": user.get("name"),
@@ -487,6 +498,7 @@ def session_user_public(user: dict[str, Any] | None) -> dict[str, Any] | None:
         "auth_type": user.get("auth_type") or "patreon",
         "is_admin": is_admin_user(user),
         "email_verified": verified,
+        "account_found": native_row is not None if user.get("auth_type") == "native" else True,
         "terms_current": terms_current,
         "terms_version": terms_version,
     }

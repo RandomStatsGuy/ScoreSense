@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, WebSocket, WebSocketDisconnect
@@ -135,6 +136,7 @@ def _hub_teams_for_scoring(league_id: str) -> list[dict[str, Any]]:
 
 
 def _refresh_scoring_cache_for_league(league_id: str) -> None:
+    from src.draft_hub.insights_cache import build_and_store_fair_values, invalidate_cap_cache
     from src.draft_hub.league_history import refresh_sleeper_scoring_cache
     from src.draft_hub.league_live_scoring import refresh_sleeper_live_scoring_cache, resolve_current_week
     from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
@@ -148,6 +150,7 @@ def _refresh_scoring_cache_for_league(league_id: str) -> None:
             str(sleeper_lid),
             hub_teams=hub_teams,
         )
+        _warm_scoring_derived_for_league(league_id, str(sleeper_lid), hub_teams)
     except Exception:
         logger.warning("scoring cache refresh failed for league %s", league_id, exc_info=True)
     try:
@@ -159,6 +162,14 @@ def _refresh_scoring_cache_for_league(league_id: str) -> None:
         )
     except Exception:
         logger.warning("live scoring cache refresh failed for league %s", league_id, exc_info=True)
+    try:
+        invalidate_cap_cache(league_id)
+        overview = storage.league_roster_overview(league_id)
+        league = overview.get("league") or {}
+        season = int(league.get("season") or 2025)
+        build_and_store_fair_values(league_id, overview, season)
+    except Exception:
+        logger.warning("fair value warm failed for league %s", league_id, exc_info=True)
 
 
 def _assert_league_access(league_id: str, sub: str) -> None:
@@ -179,6 +190,16 @@ def _assert_league_commissioner(league_id: str, sub: str) -> dict[str, Any]:
     if league.get("commissioner_sub") != sub:
         raise HTTPException(status_code=403, detail="Commissioner only")
     return league
+
+
+def _ctx_for_league(sub: str, league_id: str) -> dict[str, Any]:
+    """Verify membership and auto-switch active league when URL targets a joined league."""
+    _assert_league_access(league_id, sub)
+    ctx = _ctx(sub)
+    if ctx.get("league_id") != league_id:
+        storage.set_hub_focus(sub, league_id=league_id)
+        ctx = _ctx(sub)
+    return ctx
 
 
 def _value_overlay_inputs(
@@ -515,6 +536,7 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
     )
     roster = list_roster_for_context(ctx)
     errors = validate_roster(rules, roster)
+    _invalidate_league_rosters_from_ctx(ctx)
     return {"slot": row, "validation_errors": errors}
 
 
@@ -528,6 +550,7 @@ def hub_remove_roster(body: RosterRemoveRequest, _user=Depends(require_hub_user)
     ok = storage.remove_roster_slot(ws_id, body.player_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Player not on roster")
+    _invalidate_league_rosters_from_ctx(ctx)
     return {"removed": body.player_id}
 
 
@@ -589,6 +612,7 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
     errors = validate_roster(rules, roster)
     plan = multi_year_cap_plan(rules, roster, draft_completed=draft_completed)
     pre_draft = pre_draft_cap_summary(rules, roster, draft_completed=draft_completed)
+    _invalidate_league_rosters_from_ctx(ctx)
     return {"slot": slot, "validation_errors": errors, "multi_year_plan": plan, "pre_draft": pre_draft}
 
 
@@ -707,35 +731,55 @@ def hub_join_league(body: LeagueJoinRequest, _user=Depends(require_hub_user)) ->
 @router.get("/league/{league_id}/members")
 def hub_league_members(league_id: str, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
-    ctx = _ctx(sub)
-    if ctx.get("league_id") != league_id:
-        raise HTTPException(status_code=403, detail="Not a member of this league")
+    ctx = _ctx_for_league(sub, league_id)
     teams = storage.list_league_teams(league_id)
     invites = storage.list_league_invites(league_id) if ctx.get("is_commissioner") else []
     return {"teams": teams, "invites": invites, "hub_context": ctx}
 
 
 @router.get("/league/{league_id}/rosters")
-def hub_league_rosters(league_id: str, _user=Depends(require_hub_user)) -> dict:
+def hub_league_rosters(
+    response: Response,
+    league_id: str,
+    refresh: bool = Query(False, description="Bypass cached league rosters payload"),
+    _user=Depends(require_hub_user),
+) -> dict:
+    from src.draft_hub import storage as hub_storage
+
     sub = _sub(_user)
     _assert_league_commissioner(league_id, sub)
     ctx = _ctx(sub)
-    ws_id = str(ctx.get("workspace_id") or "")
-    league = storage.get_league(league_id) or {}
-    league_ws = str(league.get("workspace_id") or "")
-    if league_ws and storage.list_orphan_roster_slots(league_ws):
-        from src.draft_hub.league_sleeper_sync import reattach_league_roster_slots
+    source_version = hub_storage.roster_source_version(league_id)
+    cache_key = f"{league_id}:{source_version}"
+    if not refresh:
+        cached = _LEAGUE_ROSTERS_CACHE.get(cache_key)
+        if cached and (time.time() - cached[0]) < _LEAGUE_ROSTERS_CACHE_TTL:
+            response.headers["X-Roster-Cache"] = "hit"
+            return cached[1]
 
-        reattach_league_roster_slots(league_id)
-    elif ws_id and storage.list_orphan_roster_slots(ws_id):
-        from src.draft_hub.league_sleeper_sync import reattach_league_roster_slots
+    with HubTimer("league-rosters", response) as timer:
+        with timer.phase("reattach"):
+            ws_id = str(ctx.get("workspace_id") or "")
+            league = storage.get_league(league_id) or {}
+            league_ws = str(league.get("workspace_id") or "")
+            if league_ws and storage.list_orphan_roster_slots(league_ws):
+                from src.draft_hub.league_sleeper_sync import reattach_league_roster_slots
 
-        reattach_league_roster_slots(league_id)
-    try:
-        overview = storage.league_roster_overview(league_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return {**overview, "hub_context": ctx}
+                reattach_league_roster_slots(league_id)
+            elif ws_id and storage.list_orphan_roster_slots(ws_id):
+                from src.draft_hub.league_sleeper_sync import reattach_league_roster_slots
+
+                reattach_league_roster_slots(league_id)
+        with timer.phase("overview"):
+            try:
+                overview = storage.league_roster_overview(league_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    payload = {**overview, "hub_context": ctx, "source_version": source_version}
+    _LEAGUE_ROSTERS_CACHE[cache_key] = (time.time(), payload)
+    response.headers["X-Roster-Cache"] = "miss"
+    return payload
 
 
 def _parse_history_season(value: str | None) -> tuple[str, int | None]:
@@ -761,12 +805,68 @@ def _insights_section(wanted: set[str] | None, name: str) -> bool:
     return wanted is None or name in wanted
 
 
+_INSIGHTS_RESPONSE_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+_INSIGHTS_CACHE_TTL = 900.0
+_INSIGHTS_SCORING_CACHE_TTL = 120.0
+_LEAGUE_ROSTERS_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+_LEAGUE_ROSTERS_CACHE_TTL = 120.0
+
+
+def _clear_league_rosters_cache(league_id: str | None = None) -> None:
+    if not league_id:
+        _LEAGUE_ROSTERS_CACHE.clear()
+        return
+    prefix = f"{league_id}:"
+    for key in list(_LEAGUE_ROSTERS_CACHE):
+        if key.startswith(prefix):
+            del _LEAGUE_ROSTERS_CACHE[key]
+
+
+def _invalidate_league_rosters_from_ctx(ctx: dict[str, Any]) -> None:
+    lid = str(ctx.get("league_id") or "")
+    if lid:
+        _clear_league_rosters_cache(lid)
+
+
+def _insights_cache_key(
+    league_id: str,
+    *,
+    sections: str | None,
+    history_season: str | None,
+    scoring_season: str | None,
+    source_version: str | None = None,
+) -> str:
+    from src.draft_hub import storage
+
+    sec = sections or "all"
+    ver = source_version or storage.insights_source_version(league_id)
+    return f"{league_id}:{sec}:{history_season or 'current'}:{scoring_season or ''}:{ver}"
+
+
+def _enrich_cap_analytics(
+    analytics: dict,
+    league_id: str,
+    *,
+    year_specific: bool,
+    season_year: int | None = None,
+) -> dict:
+    from src.draft_hub.owner_display import enrich_team_row, team_owner_map_for_league
+
+    owner_map = team_owner_map_for_league(league_id, season_year=season_year)
+    teams = [
+        enrich_team_row(t, owner_map, year_specific=year_specific)
+        for t in (analytics.get("teams") or [])
+    ]
+    return {**analytics, "teams": teams}
+
+
 def _historic_insights_block(
     league_id: str,
     overview: dict,
     *,
     mode: str,
     season_year: int | None,
+    analytics: dict | None = None,
 ) -> dict:
     from src.draft_hub.historic_insights import (
         build_contract_analytics,
@@ -780,7 +880,11 @@ def _historic_insights_block(
     cap = float(overview.get("salary_cap") or (league.get("rules") or {}).get("salary_cap") or 200)
 
     if not meta.get("available"):
-        awards = build_current_spend_awards(overview, salary_cap=cap) if mode == "current" else []
+        awards = (
+            build_current_spend_awards(overview, salary_cap=cap, analytics=analytics)
+            if mode == "current"
+            else []
+        )
         return {**meta, "mode": mode, "season": season_year, "awards": awards}
 
     if mode == "year" and season_year is not None:
@@ -790,8 +894,7 @@ def _historic_insights_block(
         analytics = build_contract_analytics(league_id, season_year=None, salary_cap=cap)
         awards = build_contract_awards(league_id, season_year=None, salary_cap=cap)
     else:
-        analytics = None
-        awards = build_current_spend_awards(overview, salary_cap=cap)
+        awards = build_current_spend_awards(overview, salary_cap=cap, analytics=analytics)
 
     return {
         **meta,
@@ -814,8 +917,8 @@ def _build_cap_efficiency_for_insights(
     planning_season: str | None = None,
 ) -> dict:
     from src.draft_hub.historic_insights import build_contract_analytics
-    from src.draft_hub.league_efficiency import align_contract_analytics_to_hub_teams, build_cap_efficiency
-    from src.draft_hub.owner_display import scoring_year_specific, team_owner_map_for_league
+    from src.draft_hub.league_efficiency import build_cap_efficiency
+    from src.draft_hub.owner_display import scoring_owner_maps_for_league, scoring_year_specific
 
     league = overview.get("league") or {}
     cap = float(overview.get("salary_cap") or (league.get("rules") or {}).get("salary_cap") or 200)
@@ -829,14 +932,18 @@ def _build_cap_efficiency_for_insights(
     if eff_cap_year is not None:
         contract_cap = build_contract_analytics(league_id, season_year=eff_cap_year, salary_cap=cap)
         if contract_cap:
-            eff_analytics = align_contract_analytics_to_hub_teams(contract_cap, overview)
+            eff_analytics = contract_cap
 
-    owner_map = team_owner_map_for_league(league_id)
     display_season = str(
         cap_efficiency_season
         or scoring.get("requested_season")
         or scoring.get("season")
         or ""
+    )
+    owner_map, sleeper_owner_map = scoring_owner_maps_for_league(
+        league_id,
+        season_year=eff_cap_year or (int(display_season) if display_season.isdigit() else None),
+        sleeper_league_id=scoring.get("sleeper_league_id"),
     )
     plan = str(planning_season or (overview.get("league") or {}).get("season") or "")
     year_specific = scoring_year_specific(display_season, plan)
@@ -844,7 +951,63 @@ def _build_cap_efficiency_for_insights(
         eff_analytics,
         scoring,
         owner_map=owner_map,
+        sleeper_owner_map=sleeper_owner_map,
         year_specific=year_specific,
+    )
+
+
+def _warm_scoring_derived_for_league(
+    league_id: str,
+    sleeper_lid: str,
+    hub_teams: list[dict[str, Any]],
+) -> None:
+    from src.draft_hub.insights_cache import scoring_season_key, write_scoring_derived
+    from src.draft_hub.league_analytics import build_league_analytics
+    from src.draft_hub.league_history import get_sleeper_scoring_history
+    from src.draft_hub.owner_display import planning_season_for_user, scoring_owner_maps_for_league
+    from src.draft_hub.scoring_insights import build_scoring_awards
+
+    try:
+        overview = storage.league_roster_overview(league_id)
+    except ValueError:
+        return
+    league = overview.get("league") or {}
+    draft_completed = bool(league.get("draft_completed"))
+    analytics = build_league_analytics(overview, draft_completed=draft_completed)
+    scoring = get_sleeper_scoring_history(str(sleeper_lid), hub_teams=hub_teams, refresh=False)
+    if not isinstance(scoring, dict) or not scoring.get("available"):
+        return
+    sub = str(league.get("commissioner_sub") or "")
+    planning_season = planning_season_for_user(sub, league) if sub else None
+    efficiency = _build_cap_efficiency_for_insights(
+        league_id,
+        overview,
+        analytics,
+        scoring,
+        cap_efficiency_season=None,
+        history_mode="current",
+        history_year=None,
+        planning_season=planning_season,
+    )
+    display_season = str(scoring.get("requested_season") or scoring.get("season") or "current")
+    owner_map, sleeper_owner_map = scoring_owner_maps_for_league(
+        league_id,
+        season_year=display_season if display_season.isdigit() else None,
+        sleeper_league_id=scoring.get("sleeper_league_id") or str(sleeper_lid),
+    )
+    awards = build_scoring_awards(
+        scoring,
+        efficiency=efficiency,
+        owner_map=owner_map,
+        sleeper_owner_map=sleeper_owner_map,
+        planning_season=planning_season,
+    )
+    resolved_sleeper = str(scoring.get("sleeper_league_id") or sleeper_lid)
+    write_scoring_derived(
+        resolved_sleeper,
+        scoring_season_key(display_season),
+        awards=awards,
+        efficiency=efficiency,
     )
 
 
@@ -956,12 +1119,26 @@ def hub_league_insights(
 ) -> dict:
     history_mode, history_year = _parse_history_season(history_season)
     wanted_sections = _parse_insights_sections(sections)
+    from src.draft_hub import storage as hub_storage
+
+    source_version = hub_storage.insights_source_version(league_id)
+    cache_key: str | None = None
+    cache_ttl = _INSIGHTS_SCORING_CACHE_TTL if wanted_sections == {"scoring"} else _INSIGHTS_CACHE_TTL
+    if not refresh and not ownership_only:
+        cache_key = _insights_cache_key(
+            league_id,
+            sections=sections,
+            history_season=history_season,
+            scoring_season=scoring_season,
+            source_version=source_version,
+        )
+        cached = _INSIGHTS_RESPONSE_CACHE.get(cache_key)
+        if cached and (time.time() - cached[0]) < cache_ttl:
+            return cached[1]
     with HubTimer("league-insights", response) as timer:
         with timer.phase("ctx"):
             sub = _sub(_user)
-            ctx = _ctx(sub)
-            if ctx.get("league_id") != league_id:
-                raise HTTPException(status_code=403, detail="Not a member of this league")
+            ctx = _ctx_for_league(sub, league_id)
         with timer.phase("overview"):
             try:
                 overview = storage.league_roster_overview(league_id)
@@ -993,35 +1170,92 @@ def hub_league_insights(
         scoring: dict = {"available": False, "reason": "not_loaded"}
         efficiency: dict = {"available": False, "teams": []}
         ownership: dict = {"players": [], "player_count": 0}
+        cache_status: dict[str, str] = {}
 
         with timer.phase("analytics"):
             if _insights_section(wanted_sections, "cap") or _insights_section(wanted_sections, "trades"):
-                try:
-                    historic = _historic_insights_block(
-                        league_id,
-                        overview,
-                        mode=history_mode,
-                        season_year=history_year,
-                    )
-                    if history_mode in {"year", "all"} and historic.get("analytics"):
-                        analytics = historic["analytics"]
+                from src.draft_hub.insights_cache import read_cap_cache, write_cap_cache
+
+                cached_cap, cap_version = read_cap_cache(
+                    league_id,
+                    history_mode=history_mode,
+                    history_year=history_year,
+                )
+                if cached_cap and not refresh:
+                    historic = cached_cap.get("historic") or {"available": False, "awards": []}
+                    analytics = cached_cap.get("analytics") or analytics
+                    needs_teams = _insights_section(wanted_sections, "trades") or _insights_section(wanted_sections, "cap")
+                    if needs_teams and not (analytics.get("teams") or []):
+                        cached_cap = None
                     else:
+                        cache_status["cap"] = "hit"
+                if not cached_cap or refresh:
+                    cache_status["cap"] = "miss"
+                    try:
+                        if history_mode in {"year", "all"}:
+                            historic = _historic_insights_block(
+                                league_id,
+                                overview,
+                                mode=history_mode,
+                                season_year=history_year,
+                            )
+                            if historic.get("analytics"):
+                                analytics = historic["analytics"]
+                                if history_mode in {"year", "all"}:
+                                    analytics = _enrich_cap_analytics(
+                                        analytics,
+                                        league_id,
+                                        year_specific=(history_mode == "year"),
+                                        season_year=history_year if history_mode == "year" else None,
+                                    )
+                            else:
+                                analytics = build_league_analytics(overview, draft_completed=draft_completed)
+                        else:
+                            analytics = build_league_analytics(overview, draft_completed=draft_completed)
+                            historic = _historic_insights_block(
+                                league_id,
+                                overview,
+                                mode=history_mode,
+                                season_year=history_year,
+                                analytics=analytics,
+                            )
+                        if _insights_section(wanted_sections, "cap"):
+                            write_cap_cache(
+                                league_id,
+                                history_mode=history_mode,
+                                history_year=history_year,
+                                payload={"historic": historic, "analytics": analytics},
+                                source_version=cap_version,
+                            )
+                    except Exception as exc:
+                        logging.getLogger(__name__).exception(
+                            "insights cap block failed league=%s", league_id,
+                        )
+                        historic = {"available": False, "awards": [], "error": str(exc)}
                         analytics = build_league_analytics(overview, draft_completed=draft_completed)
-                except Exception as exc:
-                    logging.getLogger(__name__).exception(
-                        "insights cap block failed league=%s", league_id,
-                    )
-                    historic = {"available": False, "awards": [], "error": str(exc)}
-                    analytics = build_league_analytics(overview, draft_completed=draft_completed)
             if _insights_section(wanted_sections, "trades"):
+                from src.draft_hub.insights_cache import read_fair_values
+
                 try:
+                    season_int = int(league.get("season") or 2025)
+                    fair_map = read_fair_values(league_id, season_int)
+                    if fair_map:
+                        cache_status["fair_values"] = "hit"
+                    else:
+                        cache_status["fair_values"] = "miss"
                     trade = build_trade_insights(
                         overview,
                         my_team_id=my_team_id,
-                        season=int(league.get("season") or 2025),
+                        season=season_int,
                         draft_completed=draft_completed,
                         analytics=analytics,
+                        fair_map=fair_map,
                     )
+                    if not fair_map and not trade.get("suggestions"):
+                        trade["hint"] = (
+                            trade.get("hint")
+                            or "Fair values not warmed yet — sync Sleeper or open Available players, then retry."
+                        )
                 except Exception as exc:
                     logging.getLogger(__name__).exception(
                         "insights trades block failed league=%s", league_id,
@@ -1056,9 +1290,26 @@ def hub_league_insights(
             storage.update_league_sleeper_id(league_id, str(sleeper_lid))
         if _insights_section(wanted_sections, "scoring"):
             with timer.phase("scoring"):
+                from src.draft_hub.insights_cache import read_scoring_derived, scoring_season_key
+
+                if not (analytics.get("teams") or []):
+                    from src.draft_hub.insights_cache import read_cap_cache
+
+                    cap_hit, _ = read_cap_cache(
+                        league_id,
+                        history_mode=history_mode,
+                        history_year=history_year,
+                    )
+                    if cap_hit and (cap_hit.get("analytics") or {}).get("teams"):
+                        analytics = cap_hit["analytics"]
+                    else:
+                        analytics = build_league_analytics(overview, draft_completed=draft_completed)
+
                 try:
                     effective_scoring_season = scoring_season
-                    if not effective_scoring_season and history_mode == "year" and history_year is not None:
+                    if not effective_scoring_season and history_mode == "all":
+                        effective_scoring_season = "all"
+                    elif not effective_scoring_season and history_mode == "year" and history_year is not None:
                         effective_scoring_season = str(history_year)
                     scoring = (
                         get_sleeper_scoring_history(
@@ -1074,50 +1325,92 @@ def hub_league_insights(
                             "hint": "Link Sleeper on Setup to load scoring.",
                         }
                     )
+                    cache_status["scoring"] = "hit" if scoring.get("cached") else "miss"
                     from src.draft_hub.owner_display import (
                         enrich_team_row,
                         planning_season_for_user,
+                        scoring_owner_maps_for_league,
                         scoring_year_specific,
-                        team_owner_map_for_league,
                     )
                     from src.draft_hub.scoring_insights import build_scoring_awards
 
                     planning_season = planning_season_for_user(sub, league)
-                    efficiency = _build_cap_efficiency_for_insights(
-                        league_id,
-                        overview,
-                        analytics,
-                        scoring,
-                        cap_efficiency_season=cap_efficiency_season,
-                        history_mode=history_mode,
-                        history_year=history_year,
-                        planning_season=planning_season,
+                    season_key = scoring_season_key(effective_scoring_season)
+                    resolved_sleeper = str(
+                        (scoring.get("sleeper_league_id") if isinstance(scoring, dict) else None)
+                        or sleeper_lid
+                        or ""
                     )
+                    derived = (
+                        read_scoring_derived(resolved_sleeper, season_key)
+                        if resolved_sleeper and not refresh
+                        else None
+                    )
+                    if derived:
+                        cache_status["scoring_derived"] = "hit"
+                        efficiency = derived.get("efficiency") or {"available": False, "teams": []}
+                        prebuilt_awards = derived.get("awards") or []
+                    else:
+                        cache_status["scoring_derived"] = "miss"
+                        efficiency = _build_cap_efficiency_for_insights(
+                            league_id,
+                            overview,
+                            analytics,
+                            scoring,
+                            cap_efficiency_season=cap_efficiency_season,
+                            history_mode=history_mode,
+                            history_year=history_year,
+                            planning_season=planning_season,
+                        )
+                        prebuilt_awards = None
 
                     if isinstance(scoring, dict):
                         scoring = dict(scoring)
                         if effective_scoring_season:
                             scoring["season"] = str(effective_scoring_season)
                             scoring["requested_season"] = str(effective_scoring_season)
-                        owner_map = team_owner_map_for_league(league_id)
                         display_season = str(
                             effective_scoring_season
                             or scoring.get("requested_season")
                             or scoring.get("season")
                             or ""
                         )
+                        owner_map, sleeper_owner_map = scoring_owner_maps_for_league(
+                            league_id,
+                            season_year=display_season if display_season.isdigit() else None,
+                            sleeper_league_id=scoring.get("sleeper_league_id") or str(sleeper_lid or ""),
+                        )
                         year_specific = scoring_year_specific(display_season, planning_season)
                         if scoring.get("standings"):
                             scoring["standings"] = [
-                                enrich_team_row(s, owner_map, year_specific=year_specific)
+                                enrich_team_row(
+                                    s,
+                                    owner_map,
+                                    year_specific=year_specific,
+                                    sleeper_owner_map=sleeper_owner_map,
+                                )
                                 for s in scoring["standings"]
                             ]
-                        scoring["awards"] = build_scoring_awards(
-                            scoring,
-                            efficiency=efficiency,
-                            owner_map=owner_map,
-                            planning_season=planning_season,
-                        )
+                        scoring["owner_map"] = owner_map
+                        if prebuilt_awards is not None:
+                            scoring["awards"] = prebuilt_awards
+                        else:
+                            scoring["awards"] = build_scoring_awards(
+                                scoring,
+                                efficiency=efficiency,
+                                owner_map=owner_map,
+                                sleeper_owner_map=sleeper_owner_map,
+                                planning_season=planning_season,
+                            )
+                            if resolved_sleeper:
+                                from src.draft_hub.insights_cache import write_scoring_derived
+
+                                write_scoring_derived(
+                                    resolved_sleeper,
+                                    season_key,
+                                    awards=scoring["awards"],
+                                    efficiency=efficiency,
+                                )
                 except Exception as exc:
                     logging.getLogger(__name__).exception(
                         "insights scoring block failed league=%s", league_id,
@@ -1155,7 +1448,7 @@ def hub_league_insights(
                     }
         from src.draft_hub.owner_display import planning_season_for_user, team_owner_map_for_league
 
-    return {
+    payload = {
         "analytics": analytics,
         "trade": trade,
         "draft_recap": draft_recap,
@@ -1167,7 +1460,98 @@ def hub_league_insights(
         "owner_map": team_owner_map_for_league(league_id),
         "planning_season": planning_season_for_user(sub, league),
         "hub_context": ctx,
+        "cache_status": cache_status,
+        "timing_ms": round(sum(timer.phases.values()), 1) if timer.phases else None,
     }
+    if cache_key:
+        _INSIGHTS_RESPONSE_CACHE[cache_key] = (time.time(), payload)
+    return payload
+
+
+@router.get("/league/{league_id}/insights/status")
+def hub_league_insights_status(
+    league_id: str,
+    _user=Depends(require_hub_user),
+) -> dict:
+    from src.draft_hub.insights_cache import insights_status
+    from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
+
+    sub = _sub(_user)
+    _ctx_for_league(sub, league_id)
+    sleeper_lid = resolve_sleeper_league_id(league_id) or ""
+    league = storage.get_league(league_id) or {}
+    chain_seasons: list[str] = []
+    if sleeper_lid:
+        from src.draft_hub.league_history import sleeper_league_season_chain
+
+        chain_seasons = [str(c["season"]) for c in sleeper_league_season_chain(str(sleeper_lid))]
+    status = insights_status(league_id, str(sleeper_lid) if sleeper_lid else None)
+    return {
+        **status,
+        "planning_season": str(league.get("season") or ""),
+        "available_scoring_seasons": chain_seasons,
+    }
+
+
+@router.get("/league/{league_id}/insights/cap")
+def hub_league_insights_cap(
+    response: Response,
+    league_id: str,
+    history_season: Optional[str] = Query(None),
+    refresh: bool = Query(False),
+    _user=Depends(require_hub_user),
+) -> dict:
+    return hub_league_insights(
+        response=response,
+        league_id=league_id,
+        refresh=refresh,
+        history_season=history_season,
+        sections="cap",
+        ownership_only=False,
+        _user=_user,
+    )
+
+
+@router.get("/league/{league_id}/insights/scoring")
+def hub_league_insights_scoring(
+    response: Response,
+    league_id: str,
+    refresh: bool = Query(False),
+    scoring_season: Optional[str] = Query(None),
+    cap_efficiency_season: Optional[str] = Query(None),
+    history_season: Optional[str] = Query(None),
+    _user=Depends(require_hub_user),
+) -> dict:
+    return hub_league_insights(
+        response=response,
+        league_id=league_id,
+        refresh=refresh,
+        scoring_season=scoring_season,
+        cap_efficiency_season=cap_efficiency_season,
+        history_season=history_season,
+        sections="scoring",
+        ownership_only=False,
+        _user=_user,
+    )
+
+
+@router.get("/league/{league_id}/insights/trades")
+def hub_league_insights_trades(
+    response: Response,
+    league_id: str,
+    team_id: Optional[str] = None,
+    refresh: bool = Query(False),
+    _user=Depends(require_hub_user),
+) -> dict:
+    return hub_league_insights(
+        response=response,
+        league_id=league_id,
+        team_id=team_id,
+        refresh=refresh,
+        sections="trades",
+        ownership_only=False,
+        _user=_user,
+    )
 
 
 @router.get("/league/{league_id}/scoring-awards")
@@ -1186,9 +1570,7 @@ def hub_league_scoring_awards(
     with HubTimer("scoring-awards", response) as timer:
         with timer.phase("ctx"):
             sub = _sub(_user)
-            ctx = _ctx(sub)
-            if ctx.get("league_id") != league_id:
-                raise HTTPException(status_code=403, detail="Not a member of this league")
+            ctx = _ctx_for_league(sub, league_id)
         with timer.phase("overview"):
             try:
                 overview = storage.league_roster_overview(league_id)
@@ -1234,14 +1616,22 @@ def hub_league_scoring_awards(
             )
             awards = []
             if isinstance(scoring, dict):
-                from src.draft_hub.owner_display import planning_season_for_user, team_owner_map_for_league
+                from src.draft_hub.owner_display import planning_season_for_user, scoring_owner_maps_for_league
 
-                owner_map = team_owner_map_for_league(league_id)
+                display_season = str(
+                    scoring.get("requested_season") or scoring.get("season") or scoring_season or ""
+                )
+                owner_map, sleeper_owner_map = scoring_owner_maps_for_league(
+                    league_id,
+                    season_year=display_season if display_season.isdigit() else None,
+                    sleeper_league_id=scoring.get("sleeper_league_id") or str(sleeper_lid or ""),
+                )
                 planning_season = planning_season_for_user(sub, league)
                 awards = build_scoring_awards(
                     scoring,
                     efficiency=efficiency,
                     owner_map=owner_map,
+                    sleeper_owner_map=sleeper_owner_map,
                     planning_season=planning_season,
                 )
     return {
@@ -1265,9 +1655,7 @@ def hub_league_live_scoring(
     with HubTimer("live-scoring", response) as timer:
         with timer.phase("ctx"):
             sub = _sub(_user)
-            ctx = _ctx(sub)
-            if ctx.get("league_id") != league_id:
-                raise HTTPException(status_code=403, detail="Not a member of this league")
+            ctx = _ctx_for_league(sub, league_id)
         from src.draft_hub.league_live_scoring import get_sleeper_live_week
         from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
 
@@ -1312,9 +1700,7 @@ def hub_contract_history(
     _user=Depends(require_hub_user),
 ) -> dict:
     sub = _sub(_user)
-    ctx = _ctx(sub)
-    if ctx.get("league_id") != league_id:
-        raise HTTPException(status_code=403, detail="Not a member of this league")
+    ctx = _ctx_for_league(sub, league_id)
     from src.draft_hub.legacy_contract_history import build_contract_history_payload
 
     return build_contract_history_payload(
@@ -1352,9 +1738,7 @@ def hub_contract_history_patch(
     _user=Depends(require_hub_user),
 ) -> dict:
     sub = _sub(_user)
-    ctx = _ctx(sub)
-    if ctx.get("league_id") != league_id:
-        raise HTTPException(status_code=403, detail="Not a member of this league")
+    ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
     row = storage.get_league_contract_row(row_id)
     if not row or row.get("league_id") != league_id:
@@ -1363,7 +1747,43 @@ def hub_contract_history_patch(
     note = updates.pop("note", None)
     if not updates:
         return row
-    return row
+    return storage.update_league_contract_row(row_id, updates, edited_by_sub=sub, note=note)
+
+
+class ContractRowCreate(BaseModel):
+    season_year: int
+    owner_label: str
+    player_name: str
+    cap_hit: float
+    hub_team_name: Optional[str] = None
+    player_id: Optional[str] = None
+    position: Optional[str] = None
+    base_salary: Optional[float] = None
+    prior_salary: Optional[float] = None
+    original_draft_year: Optional[int] = None
+    roster_status: Optional[str] = "active"
+    contract_phase: Optional[str] = None
+    acquisition_type: Optional[str] = None
+    status_note: Optional[str] = None
+
+
+@router.post("/league/{league_id}/contract-history")
+def hub_contract_history_create(
+    league_id: str,
+    body: ContractRowCreate,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    row = body.model_dump()
+    if row.get("base_salary") is None:
+        row["base_salary"] = row["cap_hit"]
+    if not row.get("hub_team_name"):
+        row["hub_team_name"] = storage.resolve_hub_team_name(
+            league_id, int(row["season_year"]), row["owner_label"].strip()
+        )
+    return storage.insert_league_contract_row(league_id, int(row.pop("season_year")), row)
 
 
 @router.delete("/league/{league_id}/contract-history/{row_id}")
@@ -1373,9 +1793,7 @@ def hub_contract_history_delete(
     _user=Depends(require_hub_user),
 ) -> dict:
     sub = _sub(_user)
-    ctx = _ctx(sub)
-    if ctx.get("league_id") != league_id:
-        raise HTTPException(status_code=403, detail="Not a member of this league")
+    ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
     row = storage.get_league_contract_row(row_id)
     if not row or row.get("league_id") != league_id:
@@ -1391,9 +1809,7 @@ def hub_contract_history_import(
     _user=Depends(require_hub_user),
 ) -> dict:
     sub = _sub(_user)
-    ctx = _ctx(sub)
-    if ctx.get("league_id") != league_id:
-        raise HTTPException(status_code=403, detail="Not a member of this league")
+    ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
     from src.draft_hub.legacy_contract_history import import_legacy_files
 
@@ -1406,9 +1822,7 @@ def hub_contract_history_reconcile(
     _user=Depends(require_hub_user),
 ) -> dict:
     sub = _sub(_user)
-    ctx = _ctx(sub)
-    if ctx.get("league_id") != league_id:
-        raise HTTPException(status_code=403, detail="Not a member of this league")
+    ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
     from src.draft_hub.legacy_contract_history import reconcile_league_with_sleeper
     from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
@@ -1417,6 +1831,59 @@ def hub_contract_history_reconcile(
     if not sleeper_lid:
         raise HTTPException(status_code=400, detail="Link Sleeper before reconciling history")
     return reconcile_league_with_sleeper(league_id, str(sleeper_lid))
+
+
+class OwnerSeasonMapUpsert(BaseModel):
+    season_year: int
+    owner_label: str
+    hub_team_name: str
+    sleeper_user_id: Optional[str] = None
+
+
+@router.get("/league/{league_id}/owner-season-map")
+def hub_owner_season_map_list(
+    league_id: str,
+    season: Optional[int] = Query(None, description="Filter to one season year"),
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    rows = storage.list_owner_season_map(league_id, season_year=season)
+    return {"rows": rows, "season_year": season}
+
+
+@router.put("/league/{league_id}/owner-season-map")
+def hub_owner_season_map_upsert(
+    league_id: str,
+    body: OwnerSeasonMapUpsert,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    row = storage.upsert_owner_season_map(
+        league_id,
+        int(body.season_year),
+        body.owner_label.strip(),
+        body.hub_team_name.strip(),
+        sleeper_user_id=body.sleeper_user_id,
+        source_kind="manual",
+    )
+    return row
+
+
+@router.delete("/league/{league_id}/owner-season-map/{map_id}")
+def hub_owner_season_map_delete(
+    league_id: str,
+    map_id: int,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    if not storage.delete_owner_season_map(map_id, league_id):
+        raise HTTPException(status_code=404, detail="Owner map row not found")
+    return {"deleted": True, "id": map_id}
 
 
 @router.get("/league/{league_id}/ownership-history")
@@ -1435,9 +1902,7 @@ def hub_ownership_history(
     with HubTimer("ownership-history", response) as timer:
         with timer.phase("ctx"):
             sub = _sub(_user)
-            ctx = _ctx(sub)
-            if ctx.get("league_id") != league_id:
-                raise HTTPException(status_code=403, detail="Not a member of this league")
+            ctx = _ctx_for_league(sub, league_id)
         with timer.phase("overview"):
             try:
                 overview = storage.league_roster_overview(league_id)
@@ -1490,9 +1955,7 @@ def hub_league_trade(
     _user=Depends(require_hub_user),
 ) -> dict:
     sub = _sub(_user)
-    ctx = _ctx(sub)
-    if ctx.get("league_id") != league_id:
-        raise HTTPException(status_code=403, detail="Not a member of this league")
+    ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
     try:
         result = execute_league_trade(
@@ -1514,9 +1977,7 @@ def hub_league_settings(
     _user=Depends(require_hub_user),
 ) -> dict:
     sub = _sub(_user)
-    ctx = _ctx(sub)
-    if ctx.get("league_id") != league_id:
-        raise HTTPException(status_code=403, detail="Not a member of this league")
+    ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
     league = storage.update_league_settings(
         league_id,
@@ -1529,9 +1990,7 @@ def hub_league_settings(
 @router.post("/league/{league_id}/teams/{team_id}/release-claim")
 def hub_release_team_claim(league_id: str, team_id: str, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
-    ctx = _ctx(sub)
-    if ctx.get("league_id") != league_id:
-        raise HTTPException(status_code=403, detail="Not a member of this league")
+    ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
     try:
         team = storage.release_team_claim(league_id, team_id)
@@ -1547,9 +2006,7 @@ def hub_create_league_invite(
     _user=Depends(require_hub_user),
 ) -> dict:
     sub = _sub(_user)
-    ctx = _ctx(sub)
-    if ctx.get("league_id") != league_id:
-        raise HTTPException(status_code=403, detail="Not a member of this league")
+    ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
     try:
         invite = create_invite(league_id, body.email, body.team_name, sub)
@@ -1561,9 +2018,7 @@ def hub_create_league_invite(
 @router.get("/league/{league_id}/invites")
 def hub_list_league_invites(league_id: str, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
-    ctx = _ctx(sub)
-    if ctx.get("league_id") != league_id:
-        raise HTTPException(status_code=403, detail="Not a member of this league")
+    ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
     invites = []
     for inv in storage.list_league_invites(league_id):
@@ -1576,9 +2031,7 @@ def hub_list_league_invites(league_id: str, _user=Depends(require_hub_user)) -> 
 @router.delete("/league/{league_id}/invites/{invite_id}")
 def hub_revoke_league_invite(league_id: str, invite_id: str, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
-    ctx = _ctx(sub)
-    if ctx.get("league_id") != league_id:
-        raise HTTPException(status_code=403, detail="Not a member of this league")
+    ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
     if not storage.revoke_league_invite(league_id, invite_id):
         raise HTTPException(status_code=404, detail="Invite not found")
@@ -2159,9 +2612,7 @@ def hub_connect_sleeper_league(
     _user=Depends(require_hub_user),
 ) -> dict:
     sub = _sub(_user)
-    ctx = _ctx(sub)
-    if ctx.get("league_id") != league_id:
-        raise HTTPException(status_code=403, detail="Not a member of this league")
+    ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
     mappings = [m.model_dump() for m in body.mappings] if body.mappings else None
     try:
@@ -2176,6 +2627,7 @@ def hub_connect_sleeper_league(
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     _refresh_scoring_cache_for_league(league_id)
+    _clear_league_rosters_cache(league_id)
     return {**result, "hub_context": _ctx(sub)}
 
 
@@ -2189,6 +2641,7 @@ def hub_league_sleeper_sync(league_id: str, _user=Depends(require_hub_user)) -> 
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     _refresh_scoring_cache_for_league(league_id)
+    _clear_league_rosters_cache(league_id)
     return {**result, "hub_context": _ctx(sub)}
 
 

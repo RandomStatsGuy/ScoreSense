@@ -11,8 +11,8 @@ from src.config import BEAT_DIGEST_LLM_ENABLED, OPENAI_API_KEY, PROCESSED_DATA_D
 from src.core.projection_context import resolve_projection_context
 from src.integrations.external_projections import _normalize_name
 from src.integrations.sleeper import players_dataframe
-from src.sentiment.beat_digest import beat_digest_for_player
-from src.sentiment.readout import build_sentiment_index
+from src.sentiment.fantasy_digest import fantasy_digest_for_player
+from src.sentiment.fantasy_readout import build_fantasy_index
 
 SLEEPER_HEADSHOT = "https://sleepercdn.com/content/nfl/players/thumb/{sleeper_id}.jpg"
 ESPN_HEADSHOT = "https://a.espncdn.com/i/headshots/nfl/players/full/{espn_id}.png"
@@ -177,14 +177,16 @@ def _attach_digests(
             continue
         enriched = dict(row)
         pname = name_by_id.get(pid) or row.get("player") or pid
-        enriched["beat_digest"] = beat_digest_for_player(
+        enriched["fantasy_digest"] = fantasy_digest_for_player(
             pname,
             row,
+            scope="weekly",
             player_id=str(pid),
             season=season,
             week=week,
             prefer_llm=str(pid) in llm_ids,
         )
+        enriched["beat_digest"] = enriched["fantasy_digest"]
         out[pid] = enriched
     return out
 
@@ -197,7 +199,7 @@ def build_draft_room_enrichment(
     llm_player_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     resolved_season, resolved_week = _resolve_draft_week(season, week)
-    sentiment = build_sentiment_index(resolved_season, resolved_week)
+    sentiment = build_fantasy_index(resolved_season, resolved_week)
     hints = players or []
     media = _media_for_players(hints)
     llm_set = set(str(p) for p in (llm_player_ids or []))
@@ -239,14 +241,15 @@ def beat_digest_single(
     week: int | None = None,
 ) -> dict[str, Any]:
     resolved_season, resolved_week = _resolve_draft_week(season, week)
-    sentiment = build_sentiment_index(resolved_season, resolved_week)
+    sentiment = build_fantasy_index(resolved_season, resolved_week)
     row = sentiment["players"].get(str(player_id))
     if not row:
         return {"player_id": player_id, "beat_digest": None}
     pname = player_name or row.get("player") or player_id
-    digest_result = beat_digest_for_player(
+    digest_result = fantasy_digest_for_player(
         str(pname),
         row,
+        scope="weekly",
         player_id=str(player_id),
         season=sentiment["season"],
         week=sentiment["week"],
@@ -255,8 +258,10 @@ def beat_digest_single(
     )
     return {
         "player_id": player_id,
-        "beat_digest": digest_result["beat_digest"],
-        "beat_digest_source": digest_result.get("beat_digest_source"),
+        "fantasy_digest": digest_result["fantasy_digest"],
+        "fantasy_digest_source": digest_result.get("fantasy_digest_source"),
+        "beat_digest": digest_result["fantasy_digest"],
+        "beat_digest_source": digest_result.get("fantasy_digest_source"),
         "season": sentiment["season"],
         "week": sentiment["week"],
     }

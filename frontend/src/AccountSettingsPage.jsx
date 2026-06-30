@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import LegalLinks from "./LegalLinks";
 import VerifyEmailBanner from "./VerifyEmailBanner";
+import StandalonePageShell from "./layout/StandalonePageShell";
 import {
   changePassword,
   deleteAccount,
@@ -45,20 +46,17 @@ export default function AccountSettingsPage() {
 
   if (!authenticated) {
     return (
-      <div className="auth-shell auth-shell-page">
-        <div className="panel auth-panel">
-          <h2>Account settings</h2>
-          <p className="chart-note">Sign in to manage your account.</p>
-          <button type="button" className="btn-primary" onClick={openSignIn}>
-            Sign in
-          </button>
-          <p className="hub-toolbar">
-            <Link className="btn-ghost btn-sm" to="/projections/weekly">
-              Back to app
-            </Link>
-          </p>
+      <StandalonePageShell title="Account settings">
+        <div className="auth-shell auth-shell-page">
+          <div className="panel auth-panel">
+            <h2 className="auth-panel-title-desktop">Account settings</h2>
+            <p className="chart-note">Sign in to manage your account.</p>
+            <button type="button" className="btn-primary" onClick={openSignIn}>
+              Sign in
+            </button>
+          </div>
         </div>
-      </div>
+      </StandalonePageShell>
     );
   }
 
@@ -126,9 +124,10 @@ export default function AccountSettingsPage() {
   };
 
   return (
-    <div className="auth-shell auth-shell-page account-settings-page">
-      <div className="panel auth-panel account-settings-panel">
-        <h2>Account settings</h2>
+    <StandalonePageShell title="Account settings">
+      <div className="auth-shell auth-shell-page account-settings-page">
+        <div className="panel auth-panel account-settings-panel">
+          <h2 className="auth-panel-title-desktop">Account settings</h2>
         <p className="chart-note">
           {isNative ? "Email account" : "Patreon account"} · {user?.email || user?.name}
         </p>
@@ -256,7 +255,7 @@ export default function AccountSettingsPage() {
           </section>
         )}
 
-        <p className="hub-toolbar">
+        <p className="hub-toolbar auth-panel-back-desktop">
           <Link className="btn-ghost btn-sm" to="/projections/weekly">
             Back to {PRODUCT_NAME}
           </Link>
@@ -266,5 +265,6 @@ export default function AccountSettingsPage() {
         {PRODUCT_NAME} · {STUDIO_NAME}
       </p>
     </div>
+    </StandalonePageShell>
   );
 }

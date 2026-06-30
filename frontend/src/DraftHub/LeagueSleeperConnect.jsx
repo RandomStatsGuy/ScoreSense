@@ -75,12 +75,6 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
   const needsFullImport = sleeperTeamCount > 0 && linkedCount < sleeperTeamCount;
   const hasSleeperLink = Boolean(linkedLeagueId);
 
-  useEffect(() => {
-    if (linkedLeagueId && !fullyLinked) {
-      loadSleeperTeams(linkedLeagueId);
-    }
-  }, [linkedLeagueId, fullyLinked, loadSleeperTeams]);
-
   const connectWithTeams = async (teams, slId) => {
     const payload = {
       sleeper_league_id: slId.trim(),
@@ -182,11 +176,14 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
         </div>
       )}
 
-      {hasSleeperLink && !fullyLinked && !needsFullImport && linkedCount > 0 && sleeperTeamCount > 0 && (
+      {hasSleeperLink && !fullyLinked && !needsFullImport && linkedCount > 0 && (
         <div className="hub-sleeper-connected hub-league-sleeper-status">
           <span className="hub-roster-cap-pill hub-roster-cap-pill-ok">
-            {sleeperMeta?.name || "Sleeper league"} · {linkedCount}/{sleeperTeamCount || linkedCount} teams linked
+            {sleeperMeta?.name || "Sleeper league"} · {linkedCount}/{hubTeamCount} teams linked
           </span>
+          <button type="button" className="btn-ghost btn-sm" onClick={() => loadSleeperTeams(linkedLeagueId)} disabled={loading}>
+            {loading ? "Loading…" : "Check Sleeper status"}
+          </button>
           <button type="button" className="btn-primary" onClick={syncAll} disabled={syncing}>
             {syncing ? "Syncing…" : "Refresh all teams from Sleeper"}
           </button>

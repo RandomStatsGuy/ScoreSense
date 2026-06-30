@@ -59,8 +59,18 @@ def _fuzzy_yaml_owner(team_name: str) -> str | None:
     return best_owner
 
 
-def lookup_owner_label(team_name: str | None, owner_map: dict[str, str] | None) -> str | None:
+def lookup_owner_label(
+    team_name: str | None,
+    owner_map: dict[str, str] | None,
+    *,
+    sleeper_user_id: str | None = None,
+    sleeper_owner_map: dict[str, str] | None = None,
+) -> str | None:
     """Resolve manager abbrev/name for a hub or Sleeper team label."""
+    if sleeper_user_id and sleeper_owner_map:
+        hit = sleeper_owner_map.get(str(sleeper_user_id))
+        if hit:
+            return hit
     name = str(team_name or "").strip()
     if not name:
         return None
@@ -103,26 +113,97 @@ def format_manager_label(
     return owner
 
 
-def team_owner_map_for_league(league_id: str) -> dict[str, str]:
-    """hub team name -> manager label (yaml + latest contract sheet)."""
-    _, team_to_owner = _yaml_maps()
-    out = dict(team_to_owner)
-    try:
-        from src.draft_hub import storage
-        from src.draft_hub.historic_insights import list_history_seasons
+def team_owner_map_for_league(
+    league_id: str,
+    season_year: int | str | None = None,
+) -> dict[str, str]:
+    """Hub / Sleeper team name -> manager label for one season (default: latest)."""
+    team_map, _ = scoring_owner_maps_for_league(league_id, season_year=season_year)
+    return team_map
 
-        seasons = list_history_seasons(league_id)
-        if seasons:
-            latest = max(seasons)
-            for row in storage.list_league_contract_rows(league_id, season_year=latest):
-                team = str(row.get("hub_team_name") or "").strip()
-                owner = str(row.get("owner_label") or "").strip()
-                if team and owner and owner.lower() != team.lower():
-                    out[team] = owner
-                    out[team.lower()] = owner
-    except Exception:
-        pass
-    return out
+
+def scoring_owner_maps_for_league(
+    league_id: str,
+    *,
+    season_year: int | str | None = None,
+    sleeper_league_id: str | None = None,
+) -> tuple[dict[str, str], dict[str, str]]:
+    """
+    Build lookups for scoring awards: team display name -> owner, Sleeper user_id -> owner.
+    """
+    from src.draft_hub import storage
+    from src.draft_hub.historic_insights import list_history_seasons
+
+    _, yaml_team_to_owner = _yaml_maps()
+    team_map: dict[str, str] = dict(yaml_team_to_owner)
+    sleeper_map: dict[str, str] = {}
+
+    seasons = list_history_seasons(league_id)
+    yr: int | None = None
+    if season_year is not None and str(season_year).isdigit():
+        yr = int(season_year)
+    elif seasons:
+        yr = max(seasons)
+
+    if yr is not None:
+        storage.ensure_owner_season_map_seeded(league_id)
+        owner_season_teams: set[str] = set()
+        for row in storage.list_owner_season_map(league_id, season_year=yr):
+            owner = str(row.get("owner_label") or "").strip()
+            team = str(row.get("hub_team_name") or "").strip()
+            if team and owner:
+                team_map[team] = owner
+                team_map[team.lower()] = owner
+                owner_season_teams.add(team)
+                owner_season_teams.add(team.lower())
+            uid = str(row.get("sleeper_user_id") or "").strip()
+            if uid and owner:
+                sleeper_map[uid] = owner
+        for row in storage.list_league_contract_rows(league_id, season_year=yr):
+            team = str(row.get("hub_team_name") or "").strip()
+            owner = str(row.get("owner_label") or "").strip()
+            if not team or not owner or owner.lower() == team.lower():
+                continue
+            if team in owner_season_teams or team.lower() in owner_season_teams:
+                continue
+            team_map[team] = owner
+            team_map[team.lower()] = owner
+
+    if sleeper_league_id:
+        try:
+            from src.integrations.sleeper_league import list_league_teams
+
+            for t in list_league_teams(str(sleeper_league_id)).get("teams") or []:
+                uid = str(t.get("user_id") or "").strip()
+                stname = str(t.get("team_name") or "").strip()
+                if not uid:
+                    continue
+                if uid in sleeper_map:
+                    if stname:
+                        team_map[stname] = sleeper_map[uid]
+                        team_map[stname.lower()] = sleeper_map[uid]
+                    continue
+                owner = team_map.get(stname) or team_map.get(stname.lower())
+                if not owner and yr is not None:
+                    for row in storage.list_owner_season_map(league_id, season_year=yr):
+                        hub_team = str(row.get("hub_team_name") or "").strip()
+                        label = str(row.get("owner_label") or "").strip()
+                        if not hub_team or not label:
+                            continue
+                        ht = hub_team.lower()
+                        sn = stname.lower()
+                        if ht == sn or ht in sn or sn in ht:
+                            owner = label
+                            break
+                if owner:
+                    sleeper_map[uid] = owner
+                    if stname:
+                        team_map[stname] = owner
+                        team_map[stname.lower()] = owner
+        except Exception:
+            pass
+
+    return team_map, sleeper_map
 
 
 def planning_season_for_user(user_sub: str, league: dict[str, Any] | None = None) -> str:
@@ -153,10 +234,17 @@ def enrich_award_display(
     team_name: str | None,
     owner_label: str | None = None,
     owner_map: dict[str, str] | None = None,
+    sleeper_owner_map: dict[str, str] | None = None,
+    sleeper_user_id: str | None = None,
     year_specific: bool = False,
 ) -> dict[str, Any]:
     """Attach owner_name + display_name; team_name kept only when year-specific."""
-    label = owner_label or lookup_owner_label(team_name, owner_map)
+    label = owner_label or lookup_owner_label(
+        team_name,
+        owner_map,
+        sleeper_user_id=sleeper_user_id,
+        sleeper_owner_map=sleeper_owner_map,
+    )
     owner = resolve_owner(team_name, label)
     display = format_manager_label(team_name, owner_label=owner, year_specific=year_specific)
     out = dict(award)
@@ -174,10 +262,17 @@ def enrich_team_row(
     owner_map: dict[str, str] | None,
     *,
     year_specific: bool = False,
+    sleeper_owner_map: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Add owner_name + display_name; keep team_name for joins."""
     name = str(row.get("team_name") or "").strip()
-    owner_label = lookup_owner_label(name, owner_map)
+    owner_id = str(row.get("owner_id") or "").strip() or None
+    owner_label = lookup_owner_label(
+        name,
+        owner_map,
+        sleeper_user_id=owner_id,
+        sleeper_owner_map=sleeper_owner_map,
+    )
     owner = resolve_owner(name, owner_label)
     out = dict(row)
     out["owner_name"] = owner

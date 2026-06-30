@@ -206,3 +206,126 @@ def test_insights_ownership_only_skips_scoring(hub_client, hub_db, monkeypatch):
     assert res.status_code == 200
     assert scoring_calls == []
     assert "players" in res.json()
+
+
+def test_insights_cap_route_skips_sleeper_scoring(hub_client, hub_db, monkeypatch):
+    monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
+    scoring_calls: list[str] = []
+
+    def _track(*_a, **_k):
+        scoring_calls.append("hit")
+        raise AssertionError("Sleeper scoring on cap-only route")
+
+    monkeypatch.setattr("src.draft_hub.league_history.build_sleeper_scoring_history", _track)
+    from src.draft_hub import storage
+
+    league = storage.create_league("dev", "Cap Route League", 2026, LeagueRules())
+    res = hub_client.get(f"/api/hub/league/{league['id']}/insights/cap")
+    assert res.status_code == 200
+    assert scoring_calls == []
+    body = res.json()
+    assert body["analytics"]["teams"] is not None
+    assert "cache_status" in body
+
+
+def test_insights_cap_builds_analytics_once(hub_client, hub_db, monkeypatch):
+    monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
+    import app.hub_routes as hub_routes
+    from src.draft_hub import storage
+    from src.draft_hub.historic_insights import build_current_spend_awards as orig_awards
+
+    hub_routes._INSIGHTS_RESPONSE_CACHE.clear()
+    analytics_passed: list[object] = []
+
+    def _track_awards(overview, **kwargs):
+        analytics_passed.append(kwargs.get("analytics"))
+        return orig_awards(overview, **kwargs)
+
+    monkeypatch.setattr(
+        "src.draft_hub.historic_insights.build_current_spend_awards",
+        _track_awards,
+    )
+    analytics_calls: list[str] = []
+
+    def _track_analytics(overview, **kwargs):
+        analytics_calls.append("analytics")
+        from src.draft_hub.league_analytics import build_league_analytics
+
+        return build_league_analytics(overview, **kwargs)
+
+    monkeypatch.setattr("app.hub_routes.build_league_analytics", _track_analytics)
+
+    league = storage.create_league("dev", "Dedupe League", 2026, LeagueRules())
+    storage.delete_insights_cap_cache(league["id"])
+    res = hub_client.get(f"/api/hub/league/{league['id']}/insights/cap")
+    assert res.status_code == 200
+    assert len(analytics_calls) == 1
+    assert len(analytics_passed) == 1
+    assert analytics_passed[0] is not None
+
+
+def test_insights_trades_skips_draft_pool_when_fair_values_cached(hub_client, hub_db, monkeypatch):
+    monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
+    pool_calls: list[str] = []
+
+    def _boom(*_a, **_k):
+        pool_calls.append("pool")
+        raise AssertionError("draft pool on trades read with fair snapshot")
+
+    monkeypatch.setattr("src.draft_hub.value_sheet._load_draft_pool", _boom)
+    from src.draft_hub import storage
+    from src.draft_hub.draft_pool_cache import pool_fingerprint
+
+    league = storage.create_league("dev", "Trades Cache League", 2026, LeagueRules())
+    storage.upsert_insights_fair_values(
+        league["id"],
+        2026,
+        {"p1": 12.5, "p2": 8.0},
+        pool_fingerprint=pool_fingerprint(),
+    )
+    res = hub_client.get(f"/api/hub/league/{league['id']}/insights/trades")
+    assert res.status_code == 200
+    assert pool_calls == []
+    assert res.json().get("cache_status", {}).get("fair_values") == "hit"
+
+
+def test_insights_status_endpoint(hub_client, hub_db, monkeypatch):
+    monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
+    from src.draft_hub import storage
+
+    league = storage.create_league("dev", "Status League", 2026, LeagueRules())
+    storage.update_league_sleeper_id(league["id"], "sl-status")
+    storage.upsert_sleeper_scoring_cache(
+        "sl-status",
+        {"available": True, "standings": [], "weeks": [], "season": "2026"},
+    )
+    res = hub_client.get(f"/api/hub/league/{league['id']}/insights/status")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["scoring"] == "hit"
+    assert "source_version" in body
+
+
+def test_insights_cached_scoring_section_under_budget(hub_client, hub_db, monkeypatch):
+    import time
+
+    monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
+    from src.draft_hub import storage
+
+    league = storage.create_league("dev", "Timing League", 2026, LeagueRules())
+    storage.update_league_sleeper_id(league["id"], "sl-timing")
+    storage.upsert_sleeper_scoring_cache(
+        "sl-timing",
+        {
+            "available": True,
+            "standings": [{"team_name": "A", "total_points": 100}],
+            "weeks": [{"week": 1, "teams": []}],
+            "season": "2026",
+        },
+    )
+    t0 = time.perf_counter()
+    res = hub_client.get(f"/api/hub/league/{league['id']}/insights/scoring")
+    elapsed_ms = (time.perf_counter() - t0) * 1000
+    assert res.status_code == 200
+    assert res.json()["scoring"]["available"] is True
+    assert elapsed_ms < 5000, f"cached scoring insights too slow: {elapsed_ms:.0f}ms"

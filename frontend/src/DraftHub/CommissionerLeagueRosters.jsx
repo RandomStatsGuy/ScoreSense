@@ -5,6 +5,10 @@ import useMobileLayout from "../useMobileLayout";
 import MobileDataList, { MobileStat } from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
 import LeagueSleeperConnect from "./LeagueSleeperConnect";
+import {
+  getAnyLeagueRostersCache,
+  setLeagueRostersCache,
+} from "./hubDataCache";
 import { fmtSal, leagueStepUp, preDraftCutDeadCap, previewSchedule, scheduleText } from "./rosterFormat";
 
 const POS_ORDER = ["QB", "RB", "WR", "TE"];
@@ -77,7 +81,7 @@ function TeamRosterBlock({
     };
   };
 
-  const saveRow = async (r) => {
+  const saveRow = async (r, opts = {}) => {
     const edit = getEdit(r);
     setSavingId(r.player_id);
     setError("");
@@ -92,7 +96,7 @@ function TeamRosterBlock({
         }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
-      onSaved?.();
+      onSaved?.(opts);
     } catch (e) {
       setError(connectionErrorMessage(e));
     } finally {
@@ -113,7 +117,7 @@ function TeamRosterBlock({
         }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
-      onSaved?.();
+      onSaved?.({ syncHub: true });
     } catch (e) {
       setError(connectionErrorMessage(e));
     } finally {
@@ -134,7 +138,7 @@ function TeamRosterBlock({
         body: JSON.stringify({ player_id: r.player_id }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
-      onSaved?.();
+      onSaved?.({ syncHub: true });
     } catch (e) {
       setError(connectionErrorMessage(e));
     } finally {
@@ -267,7 +271,7 @@ function TeamRosterBlock({
                           ...prev,
                           [r.player_id]: { ...getEdit(r), salary: e.target.value },
                         }))}
-                        onBlur={() => saveRow(r)}
+                        onBlur={() => saveRow(r, { syncHub: false })}
                         onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                       />
                     </label>
@@ -284,7 +288,7 @@ function TeamRosterBlock({
                           ...prev,
                           [r.player_id]: { ...getEdit(r), years: e.target.value },
                         }))}
-                        onBlur={() => saveRow(r)}
+                        onBlur={() => saveRow(r, { syncHub: false })}
                         onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                       />
                     </label>
@@ -347,7 +351,7 @@ function TeamRosterBlock({
                         ...prev,
                         [r.player_id]: { ...getEdit(r), salary: e.target.value },
                       }))}
-                      onBlur={() => saveRow(r)}
+                      onBlur={() => saveRow(r, { syncHub: false })}
                       onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                     />
                   </td>
@@ -363,7 +367,7 @@ function TeamRosterBlock({
                         ...prev,
                         [r.player_id]: { ...getEdit(r), years: e.target.value },
                       }))}
-                      onBlur={() => saveRow(r)}
+                      onBlur={() => saveRow(r, { syncHub: false })}
                       onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                     />
                   </td>
@@ -431,33 +435,58 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
+  const loadGenRef = React.useRef(0);
+  const overviewRef = React.useRef(null);
+  overviewRef.current = overview;
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts = {}) => {
     if (!leagueId) return;
-    setLoading(true);
-    setError("");
-    try {
-      const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/rosters`);
-      if (!res.ok) throw new Error(await parseApiError(res));
-      setOverview(await res.json());
-    } catch (e) {
-      setError(connectionErrorMessage(e));
-    } finally {
+    const cached = !opts.refresh ? getAnyLeagueRostersCache(leagueId) : null;
+    if (cached && !overviewRef.current) {
+      setOverview(cached);
       setLoading(false);
+    }
+    const hasUi = Boolean(overviewRef.current || cached);
+    const background = Boolean(opts.background || (hasUi && !opts.refresh));
+    if (!background && !hasUi) setLoading(true);
+    setError("");
+    const generation = ++loadGenRef.current;
+    try {
+      const params = new URLSearchParams();
+      if (opts.refresh) params.set("refresh", "1");
+      const q = params.toString() ? `?${params.toString()}` : "";
+      const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/rosters${q}`);
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const payload = await res.json();
+      if (generation !== loadGenRef.current) return;
+      setOverview(payload);
+      setLeagueRostersCache(leagueId, payload.source_version || "", payload);
+    } catch (e) {
+      if (generation !== loadGenRef.current) return;
+      if (!overviewRef.current && !cached) {
+        setError(connectionErrorMessage(e));
+      }
+    } finally {
+      if (generation === loadGenRef.current) setLoading(false);
     }
   }, [leagueId]);
 
   useEffect(() => {
     load();
-  }, [load]);
+  }, [leagueId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const maxYears = Number(workspace?.rules?.contracts?.max_years ?? 3);
   const salaryCap = Number(overview?.salary_cap ?? workspace?.rules?.salary_cap ?? 200);
   const targetSeason = season || overview?.league?.season || workspace?.season;
   const draftCompleted = Boolean(hubContext?.draft_completed);
 
+  const handleSaved = useCallback(async (opts = {}) => {
+    await load({ background: Boolean(overviewRef.current), refresh: true });
+    if (opts.syncHub) onChanged?.();
+  }, [load, onChanged]);
+
   const refresh = useCallback(async () => {
-    await load();
+    await load({ refresh: true });
     onChanged?.();
   }, [load, onChanged]);
 
@@ -594,7 +623,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
             rules={leagueRules}
             draftCompleted={draftCompleted}
             defaultOpen={!teamFilter ? idx === 0 : true}
-            onSaved={refresh}
+            onSaved={handleSaved}
           />
         ))}
         {!filteredTeams.length && (

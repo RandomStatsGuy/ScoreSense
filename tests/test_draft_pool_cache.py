@@ -76,3 +76,29 @@ def test_artifact_invalidates_on_fingerprint_change(monkeypatch, tmp_path):
         loaded = draft_pool_cache.load_draft_pool(season)
 
     assert loaded.iloc[0]["Player"] == "B"
+
+
+def test_compute_pool_preserves_te_position(monkeypatch):
+    season = 2026
+
+    def fake_predict(pos, season=season):
+        if pos == "qb":
+            return pd.DataFrame({"player_id": ["q1"], "Player": ["QB1"], "Season Proj": [400.0]})
+        if pos == "rb":
+            return pd.DataFrame({"player_id": ["r1"], "Player": ["RB1"], "Season Proj": [250.0]})
+        if pos == "wr":
+            return pd.DataFrame(
+                {
+                    "player_id": ["00-0036970", "w1"],
+                    "Player": ["Kyle Pitts", "Alpha WR"],
+                    "position": ["TE", "WR"],
+                    "Season Proj": [180.0, 300.0],
+                }
+            )
+        return pd.DataFrame()
+
+    with patch("src.draft_hub.draft_pool_cache.predict_draft_season", side_effect=fake_predict):
+        pool, _ = draft_pool_cache._compute_pool(season)
+
+    wr_te = pool[pool["player_id"].isin(["00-0036970", "w1"])]
+    assert set(wr_te["Position"].tolist()) == {"TE", "WR"}

@@ -3,6 +3,9 @@
 let poolCache = null;
 let overlayCache = null;
 
+const INSIGHTS_SESSION_PREFIX = "ss_insights_";
+const INSIGHTS_CACHE_VERSION = 2;
+
 function rulesKey(rules) {
   if (!rules) return "";
   const roster = rules.roster || {};
@@ -47,6 +50,143 @@ export function setCachedOverlay(season, data) {
 export function clearHubDataCache() {
   poolCache = null;
   overlayCache = null;
+  clearLeagueRostersCache();
+}
+
+/** Session + memory cache for commissioner Teams tab (/league/{id}/rosters). */
+const ROSTERS_SESSION_PREFIX = "ss_rosters_";
+const ROSTERS_CACHE_VERSION = 1;
+
+export function leagueRostersCacheKey(leagueId, sourceVersion = "") {
+  return `${leagueId}:${sourceVersion || "v0"}`;
+}
+
+export function getLeagueRostersCache(leagueId, sourceVersion) {
+  const memKey = leagueRostersCacheKey(leagueId, sourceVersion);
+  if (getLeagueRostersCache._mem?.[memKey]) {
+    return getLeagueRostersCache._mem[memKey];
+  }
+  try {
+    const raw = sessionStorage.getItem(`${ROSTERS_SESSION_PREFIX}${memKey}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed?.v !== ROSTERS_CACHE_VERSION || !parsed?.data) return null;
+    getLeagueRostersCache._mem = getLeagueRostersCache._mem || {};
+    getLeagueRostersCache._mem[memKey] = parsed.data;
+    return parsed.data;
+  } catch {
+    return null;
+  }
+}
+getLeagueRostersCache._mem = {};
+
+export function setLeagueRostersCache(leagueId, sourceVersion, data) {
+  const memKey = leagueRostersCacheKey(leagueId, sourceVersion);
+  getLeagueRostersCache._mem = getLeagueRostersCache._mem || {};
+  getLeagueRostersCache._mem[memKey] = data;
+  try {
+    sessionStorage.setItem(
+      `${ROSTERS_SESSION_PREFIX}${memKey}`,
+      JSON.stringify({ v: ROSTERS_CACHE_VERSION, data, at: Date.now() }),
+    );
+  } catch {
+    /* quota */
+  }
+}
+
+export function getAnyLeagueRostersCache(leagueId) {
+  if (getLeagueRostersCache._mem) {
+    const prefix = `${leagueId}:`;
+    for (const [key, data] of Object.entries(getLeagueRostersCache._mem)) {
+      if (key.startsWith(prefix)) return data;
+    }
+  }
+  try {
+    const prefix = `${ROSTERS_SESSION_PREFIX}${leagueId}:`;
+    let best = null;
+    for (let i = 0; i < sessionStorage.length; i += 1) {
+      const k = sessionStorage.key(i);
+      if (!k?.startsWith(prefix)) continue;
+      const parsed = JSON.parse(sessionStorage.getItem(k));
+      if (parsed?.v === ROSTERS_CACHE_VERSION && parsed?.data) {
+        if (!best || (parsed.at || 0) > (best.at || 0)) best = parsed;
+      }
+    }
+    return best?.data || null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearLeagueRostersCache(leagueId) {
+  getLeagueRostersCache._mem = {};
+  try {
+    const prefix = leagueId
+      ? `${ROSTERS_SESSION_PREFIX}${leagueId}:`
+      : ROSTERS_SESSION_PREFIX;
+    const toRemove = [];
+    for (let i = 0; i < sessionStorage.length; i += 1) {
+      const k = sessionStorage.key(i);
+      if (k?.startsWith(prefix)) toRemove.push(k);
+    }
+    toRemove.forEach((k) => sessionStorage.removeItem(k));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Session-persisted Insights section cache (stale-while-revalidate). */
+export function insightsSectionKey(leagueId, section, seasonKey = "current") {
+  return `${leagueId}:${section}:${seasonKey}`;
+}
+
+export function getInsightsSection(leagueId, section, seasonKey = "current") {
+  const memKey = insightsSectionKey(leagueId, section, seasonKey);
+  if (getInsightsSection._mem?.[memKey]) {
+    return getInsightsSection._mem[memKey];
+  }
+  try {
+    const raw = sessionStorage.getItem(`${INSIGHTS_SESSION_PREFIX}${memKey}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed?.v !== INSIGHTS_CACHE_VERSION || !parsed?.data) return null;
+    getInsightsSection._mem = getInsightsSection._mem || {};
+    getInsightsSection._mem[memKey] = parsed.data;
+    return parsed.data;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+getInsightsSection._mem = {};
+
+export function setInsightsSection(leagueId, section, seasonKey, data) {
+  const memKey = insightsSectionKey(leagueId, section, seasonKey);
+  getInsightsSection._mem = getInsightsSection._mem || {};
+  getInsightsSection._mem[memKey] = data;
+  try {
+    sessionStorage.setItem(
+      `${INSIGHTS_SESSION_PREFIX}${memKey}`,
+      JSON.stringify({ v: INSIGHTS_CACHE_VERSION, data, at: Date.now() }),
+    );
+  } catch {
+    /* quota */
+  }
+}
+
+export function clearInsightsSectionCache(leagueId) {
+  getInsightsSection._mem = {};
+  try {
+    const prefix = `${INSIGHTS_SESSION_PREFIX}${leagueId}:`;
+    const toRemove = [];
+    for (let i = 0; i < sessionStorage.length; i += 1) {
+      const k = sessionStorage.key(i);
+      if (k?.startsWith(prefix)) toRemove.push(k);
+    }
+    toRemove.forEach((k) => sessionStorage.removeItem(k));
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Pool-shaped payload for client cache (valuation fields only). */

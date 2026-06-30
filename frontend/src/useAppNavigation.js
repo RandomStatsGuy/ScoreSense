@@ -21,6 +21,7 @@ export default function useAppNavigation() {
       toolsTab: "dfs",
       hubSubView: "setup",
       insightTab: "cap",
+      adminTab: "overview",
     },
     [location.pathname],
   );
@@ -76,6 +77,16 @@ export default function useAppNavigation() {
     [navigateTo],
   );
 
+  const setSeasonMobilePanel = useCallback(
+    (panel) => navigateTo({
+      view: "projections",
+      projectionsTab: "season",
+      seasonMode: route.seasonMode || "live",
+      seasonMobilePanel: panel,
+    }),
+    [navigateTo, route.seasonMode],
+  );
+
   const setSeasonMode = useCallback(
     (mode) => navigateTo({
       view: "projections",
@@ -110,6 +121,11 @@ export default function useAppNavigation() {
     [navigateTo],
   );
 
+  const setAdminTab = useCallback(
+    (tab) => navigateTo({ view: "admin", adminTab: tab }),
+    [navigateTo],
+  );
+
   const updateFilters = useCallback(
     (updates) => {
       const params = buildFilterSearchParams({
@@ -129,9 +145,11 @@ export default function useAppNavigation() {
     setProjectionsTab,
     setProjectionsMobilePanel,
     setSeasonMode,
+    setSeasonMobilePanel,
     setToolsTab,
     setHubSubView,
     setInsightTab,
+    setAdminTab,
     navigateTo,
     updateFilters,
   };

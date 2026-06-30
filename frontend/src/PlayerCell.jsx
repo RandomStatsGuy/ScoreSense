@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "./auth";
 import { playerInitials, teamLogoUrl } from "./DraftHub/draftMedia";
+import { usePlayerCardOptional } from "./PlayerCardContext";
 
 const mediaCache = new Map();
 
@@ -66,15 +67,38 @@ export default function PlayerCell({
   size = "md",
   showTeam = true,
   className = "",
+  clickable = false,
+  position,
+  season,
+  week,
+  narrativeScope = "weekly",
+  onPlayerClick,
 }) {
   const [imgFailed, setImgFailed] = useState(false);
+  const playerCard = usePlayerCardOptional();
   const row = playerId && media ? media[playerId] : null;
   const teamAbbr = (row?.team || team || "").toUpperCase();
   const headshot = row?.headshot_url || null;
   const logo = row?.team_logo_url || teamLogoUrl(teamAbbr);
 
-  return (
-    <span className={`player-cell player-cell--${size} ${className}`.trim()}>
+  const canOpen = Boolean(clickable && playerId && (onPlayerClick || playerCard));
+  const handleOpen = (event) => {
+    event?.stopPropagation?.();
+    const payload = {
+      playerId,
+      name,
+      team: teamAbbr || team,
+      position,
+      season,
+      week,
+      scope: narrativeScope,
+    };
+    if (onPlayerClick) onPlayerClick(payload);
+    else playerCard?.openPlayerCard(payload);
+  };
+
+  const inner = (
+    <>
       <span className="player-cell-avatar" aria-hidden>
         {headshot && !imgFailed ? (
           <img
@@ -96,6 +120,25 @@ export default function PlayerCell({
           <span className="player-cell-team">{teamAbbr}</span>
         ) : null}
       </span>
+    </>
+  );
+
+  if (canOpen) {
+    return (
+      <button
+        type="button"
+        className={`player-cell player-cell--${size} player-cell--clickable ${className}`.trim()}
+        onClick={handleOpen}
+        aria-label={`Open ${name} details`}
+      >
+        {inner}
+      </button>
+    );
+  }
+
+  return (
+    <span className={`player-cell player-cell--${size} ${className}`.trim()}>
+      {inner}
     </span>
   );
 }

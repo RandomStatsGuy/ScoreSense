@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../auth";
 import { formatRelativeTime, parseApiError } from "../format";
+import useMobileLayout from "../useMobileLayout";
 
 export default function SleeperLink({ workspace, hubContext, onLinked, onRosterChanged }) {
+  const mobileLayout = useMobileLayout();
   const inLeague = hubContext?.mode === "league";
   const leagueSleeperId = hubContext?.sleeper_league_id || workspace?.sleeper_league_id || "";
   const [teams, setTeams] = useState([]);
@@ -234,7 +236,7 @@ export default function SleeperLink({ workspace, hubContext, onLinked, onRosterC
   const showForm = !linked || showConnectionForm;
 
   return (
-    <section className="panel hub-panel hub-sleeper-panel">
+    <section className={`panel hub-panel hub-sleeper-panel${mobileLayout ? " hub-sleeper-panel--mobile" : ""}`}>
       <h3 className="hub-panel-subtitle">Sleeper connection</h3>
       <p className="chart-note hub-sleeper-desc">
         {inLeague && hubContext?.is_commissioner

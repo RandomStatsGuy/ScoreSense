@@ -3,20 +3,23 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { notifyAuthChanged, resetPassword, setToken } from "./auth";
 import AccountAuth from "./AccountAuth";
 import LegalLinks from "./LegalLinks";
+import StandalonePageShell from "./layout/StandalonePageShell";
 import { PRODUCT_NAME, STUDIO_NAME } from "./brand";
 
 function AuthShell({ children, title }) {
   return (
-    <div className="auth-shell auth-shell-page">
-      <div className="panel auth-panel">
-        <h2>{title}</h2>
-        {children}
+    <StandalonePageShell title={title}>
+      <div className="auth-shell auth-shell-page">
+        <div className="panel auth-panel">
+          {!title ? null : <h2 className="auth-panel-title-desktop">{title}</h2>}
+          {children}
+        </div>
+        <LegalLinks className="auth-legal-footer" />
+        <p className="app-studio-credit">
+          {PRODUCT_NAME} · {STUDIO_NAME}
+        </p>
       </div>
-      <LegalLinks className="auth-legal-footer" />
-      <p className="app-studio-credit">
-        {PRODUCT_NAME} · {STUDIO_NAME}
-      </p>
-    </div>
+    </StandalonePageShell>
   );
 }
 

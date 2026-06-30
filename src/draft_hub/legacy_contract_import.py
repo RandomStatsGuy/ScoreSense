@@ -35,6 +35,8 @@ YEAR_FILES = {
 _PDF_PLAYER_RE = re.compile(
     r"([A-Za-z][A-Za-z0-9 .'\-]+?)(\d+)(?=(?:\s+[A-Z][a-z]|\s+[A-Z]{2,}|\s*$))"
 )
+# PDF grid cells: "Tagovailoa13 R Tanehill3" — salary digit, space, next initial.
+_PDF_CELL_SPLIT_RE = re.compile(r"(?<=\d)\s+(?=[A-Z])")
 
 
 def load_owner_team_map(path: Path | None = None) -> dict[str, str]:
@@ -306,51 +308,83 @@ def _parse_pdf_player_chunk(chunk: str) -> tuple[str, float] | None:
     return name, sal
 
 
+def _split_2021_pdf_blocks(text: str) -> list[tuple[list[str], list[str]]]:
+    """Split inaugural PDF text into owner-grid sections (6-team then 4-team blocks)."""
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    block_defs = [
+        ["Aaron D", "Andrew M", "Caleb K", "Chris G", "Colby L", "Dawson O"],
+        ["Josh C", "Justin P", "Nick F", "Stephen P"],
+    ]
+    headers: list[tuple[int, list[str]]] = []
+    for owners in block_defs:
+        for i, line in enumerate(lines):
+            if line.startswith(owners[0]) and all(owner in line for owner in owners):
+                headers.append((i, owners))
+                break
+
+    sections: list[tuple[list[str], list[str]]] = []
+    for idx, (start_i, owners) in enumerate(headers):
+        end_i = headers[idx + 1][0] if idx + 1 < len(headers) else len(lines)
+        body: list[str] = []
+        for line in lines[start_i + 2 : end_i]:
+            if (
+                line.startswith("Subtotal")
+                or line.startswith("Cap Hit")
+                or line.startswith("Total")
+                or line.startswith("To Spend")
+            ):
+                break
+            body.append(line)
+        sections.append((owners, body))
+    return sections
+
+
+def _parse_2021_pdf_line(
+    line: str,
+    owners: list[str],
+    owner_map: dict[str, str],
+) -> list[dict[str, Any]]:
+    """Parse one position row from the 2021 auction grid."""
+    positions = {"QB", "RB", "WR", "TE", "K", "D"}
+    parts = line.split()
+    if not parts or parts[0] not in positions:
+        return []
+    pos = parts[0]
+    rest = " ".join(parts[1:])
+    if rest.endswith(pos):
+        rest = rest[: -len(pos)].strip()
+    chunks = _PDF_CELL_SPLIT_RE.split(rest)
+    rows: list[dict[str, Any]] = []
+    for owner, chunk in zip(owners, chunks):
+        parsed = _parse_pdf_player_chunk(chunk)
+        if not parsed:
+            continue
+        name, salary = parsed
+        rows.append(
+            _base_row(
+                season_year=2021,
+                owner_label=owner,
+                player_name=name,
+                owner_map=owner_map,
+                position=pos if pos != "D" else "DEF",
+                base_salary=salary,
+                cap_hit=salary,
+                original_draft_year=2021,
+                contract_phase="initial",
+                acquisition_type="draft",
+            )
+        )
+    return rows
+
+
 def parse_2021_pdf(filepath: Path, owner_map: dict[str, str]) -> list[dict[str, Any]]:
     """Parse inaugural auction grid from commissioner PDF."""
     reader = PdfReader(str(filepath))
     text = "\n".join((page.extract_text() or "") for page in reader.pages)
     rows: list[dict[str, Any]] = []
-
-    blocks = [
-        (["Aaron D", "Andrew M", "Caleb K", "Chris G", "Colby L", "Dawson O"], 6),
-        (["Josh C", "Justin P", "Nick F", "Stephen P"], 4),
-    ]
-    positions = {"QB", "RB", "WR", "TE", "K", "D", "WC"}
-
-    for owners, _n in blocks:
-        for line in text.splitlines():
-            line = line.strip()
-            if not line or line.startswith("Subtotal") or line.startswith("Cap Hit") or line.startswith("Total"):
-                continue
-            parts = line.split()
-            if not parts:
-                continue
-            if parts[0] in positions:
-                pos = parts[0]
-                rest = " ".join(parts[1:])
-                if rest.endswith(pos):
-                    rest = rest[: -len(pos)].strip()
-                chunks = re.split(r"(?<=\d)(?=[A-Z])", rest)
-                for owner, chunk in zip(owners, chunks):
-                    parsed = _parse_pdf_player_chunk(chunk)
-                    if not parsed:
-                        continue
-                    name, salary = parsed
-                    rows.append(
-                        _base_row(
-                            season_year=2021,
-                            owner_label=owner,
-                            player_name=name,
-                            owner_map=owner_map,
-                            position=pos if pos != "D" else "DEF",
-                            base_salary=salary,
-                            cap_hit=salary,
-                            original_draft_year=2021,
-                            contract_phase="initial",
-                            acquisition_type="draft",
-                        )
-                    )
+    for owners, body_lines in _split_2021_pdf_blocks(text):
+        for line in body_lines:
+            rows.extend(_parse_2021_pdf_line(line, owners, owner_map))
     return rows
 
 

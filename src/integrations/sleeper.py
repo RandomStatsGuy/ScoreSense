@@ -25,7 +25,7 @@ EXCLUDED_SLEEPER_STATUSES = {"Inactive", "Retired"}
 SLEEPER_POSITIONS: dict[str, frozenset[str]] = {
     "qb": frozenset({"QB"}),
     "rb": frozenset({"RB", "FB"}),
-    "wr": frozenset({"WR"}),
+    "wr": frozenset({"WR", "TE"}),
 }
 
 

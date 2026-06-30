@@ -14,15 +14,22 @@ def _award(
     headline: str,
     roast: str | None = None,
     team_name: str | None = None,
+    owner_id: str | None = None,
     amount: float | None = None,
     detail: str | None = None,
     tone: str = "neutral",
     owner_map: dict[str, str] | None = None,
+    sleeper_owner_map: dict[str, str] | None = None,
     year_specific: bool = False,
 ) -> dict[str, Any]:
     from src.draft_hub.owner_display import enrich_award_display, lookup_owner_label
 
-    owner_label = lookup_owner_label(team_name, owner_map)
+    owner_label = lookup_owner_label(
+        team_name,
+        owner_map,
+        sleeper_user_id=owner_id,
+        sleeper_owner_map=sleeper_owner_map,
+    )
     base = {
         "id": award_id,
         "title": title,
@@ -37,6 +44,8 @@ def _award(
         team_name=team_name,
         owner_label=owner_label,
         owner_map=owner_map,
+        sleeper_owner_map=sleeper_owner_map,
+        sleeper_user_id=owner_id,
         year_specific=year_specific,
     )
 
@@ -51,6 +60,7 @@ def build_scoring_awards(
     *,
     efficiency: dict[str, Any] | None = None,
     owner_map: dict[str, str] | None = None,
+    sleeper_owner_map: dict[str, str] | None = None,
     planning_season: str | None = None,
 ) -> list[dict[str, Any]]:
     """Team-level scoring awards for the Insights scoring tab."""
@@ -80,11 +90,13 @@ def build_scoring_awards(
             headline=f"{leader['total_points']} pts — league-high output",
             roast="The rest of the league is filing a complaint.",
             team_name=leader["team_name"],
+            owner_id=leader.get("owner_id"),
             amount=leader["total_points"],
             detail=f"{season} · {leader.get('avg_points', 0)} avg · {leader.get('weeks_scored', 0)} weeks",
             tone="gold",
-            owner_map=owner_map,
-            year_specific=year_specific,
+                owner_map=owner_map,
+                sleeper_owner_map=sleeper_owner_map,
+                year_specific=year_specific,
         )
     )
 
@@ -98,36 +110,54 @@ def build_scoring_awards(
                 headline=f"{gap} pts behind 1st place",
                 roast="The rebuild is going great. Trust the process.",
                 team_name=basement["team_name"],
+                owner_id=basement.get("owner_id"),
                 amount=basement["total_points"],
                 detail=f"{basement['total_points']} total pts · dead last",
                 tone="bad",
                 owner_map=owner_map,
+                sleeper_owner_map=sleeper_owner_map,
                 year_specific=year_specific,
             )
         )
 
-    week_scores: list[tuple[float, str, int]] = []
-    weekly_gaps: list[tuple[float, int, str, str]] = []
+    week_scores: list[tuple[float, str, int, str]] = []
+    weekly_gaps: list[tuple[float, int, str, str, str, str]] = []
     weekly_second: list[tuple[str, int]] = []
+    team_to_owner_id: dict[str, str] = {}
+    for wk in weeks:
+        for row in wk.get("teams") or []:
+            tname = str(row.get("team_name") or "")
+            oid = str(row.get("owner_id") or "")
+            if tname and oid:
+                team_to_owner_id[tname] = oid
+
     for wk in weeks:
         teams = wk.get("teams") or []
         scored = sorted(
-            ((float(t.get("points") or 0), t["team_name"]) for t in teams if float(t.get("points") or 0) > 0),
+            (
+                (
+                    float(t.get("points") or 0),
+                    t["team_name"],
+                    str(t.get("owner_id") or team_to_owner_id.get(t["team_name"], "")),
+                )
+                for t in teams
+                if float(t.get("points") or 0) > 0
+            ),
             key=lambda x: x[0],
             reverse=True,
         )
-        for pts, team_name in scored:
-            week_scores.append((pts, team_name, int(wk["week"])))
+        for pts, team_name, owner_id in scored:
+            week_scores.append((pts, team_name, int(wk["week"]), owner_id))
         if len(scored) >= 2:
-            top_pts, top_team = scored[0]
-            second_pts, second_team = scored[1]
+            top_pts, top_team, top_oid = scored[0]
+            second_pts, second_team, second_oid = scored[1]
             gap = top_pts - second_pts
             if gap > 0.05:
-                weekly_gaps.append((gap, int(wk["week"]), top_team, second_team))
+                weekly_gaps.append((gap, int(wk["week"]), top_team, second_team, top_oid, second_oid))
                 weekly_second.append((second_team, int(wk["week"])))
 
     if week_scores:
-        boom_pts, boom_team, boom_week = max(week_scores, key=lambda x: x[0])
+        boom_pts, boom_team, boom_week, boom_oid = max(week_scores, key=lambda x: x[0])
         awards.append(
             _award(
                 "weekly_nuke",
@@ -135,14 +165,16 @@ def build_scoring_awards(
                 headline=f"{boom_pts} pts in week {boom_week}",
                 roast="That wasn't a lineup. That was a war crime.",
                 team_name=boom_team,
+                owner_id=boom_oid or None,
                 amount=boom_pts,
                 detail="Highest single-week score in the league",
                 tone="gold",
                 owner_map=owner_map,
+                sleeper_owner_map=sleeper_owner_map,
                 year_specific=year_specific,
             )
         )
-        bust_pts, bust_team, bust_week = min(week_scores, key=lambda x: x[0])
+        bust_pts, bust_team, bust_week, bust_oid = min(week_scores, key=lambda x: x[0])
         awards.append(
             _award(
                 "weekly_disaster",
@@ -150,16 +182,18 @@ def build_scoring_awards(
                 headline=f"{bust_pts} pts in week {bust_week}",
                 roast="Commissioner should've sent a wellness check.",
                 team_name=bust_team,
+                owner_id=bust_oid or None,
                 amount=bust_pts,
                 detail="Lowest single-week score in the league",
                 tone="bad",
                 owner_map=owner_map,
+                sleeper_owner_map=sleeper_owner_map,
                 year_specific=year_specific,
             )
         )
 
     if weekly_gaps:
-        margin, week_num, winner, _runner_up = max(weekly_gaps, key=lambda x: x[0])
+        margin, week_num, winner, _runner_up, winner_oid, _ = max(weekly_gaps, key=lambda x: x[0])
         awards.append(
             _award(
                 "margin_massacre",
@@ -167,14 +201,16 @@ def build_scoring_awards(
                 headline=f"+{margin:.1f} pts in week {week_num}",
                 roast="Second place wasn't close. It was theoretical.",
                 team_name=winner,
+                owner_id=winner_oid or None,
                 amount=margin,
                 detail="Biggest weekly gap over the runner-up",
                 tone="gold",
                 owner_map=owner_map,
+                sleeper_owner_map=sleeper_owner_map,
                 year_specific=year_specific,
             )
         )
-        nail, nail_week, nail_winner, _ = min(weekly_gaps, key=lambda x: x[0])
+        nail, nail_week, nail_winner, _, nail_oid, _ = min(weekly_gaps, key=lambda x: x[0])
         awards.append(
             _award(
                 "nail_biter",
@@ -182,10 +218,12 @@ def build_scoring_awards(
                 headline=f"Won week {nail_week} by {nail:.1f} pts",
                 roast="One bad snap away from group chat chaos.",
                 team_name=nail_winner,
+                owner_id=nail_oid or None,
                 amount=nail,
                 detail="Closest weekly margin at the top",
                 tone="good",
                 owner_map=owner_map,
+                sleeper_owner_map=sleeper_owner_map,
                 year_specific=year_specific,
             )
         )
@@ -203,11 +241,13 @@ def build_scoring_awards(
                     headline=f"{bridesmaid_count} weeks in 2nd",
                     roast="Always bridesmaid, never the weekly bully.",
                     team_name=bridesmaid_team,
+                    owner_id=team_to_owner_id.get(bridesmaid_team) or None,
                     amount=float(bridesmaid_count),
                     detail="Most runner-up weekly finishes",
                     tone="bad",
-                    owner_map=owner_map,
-                    year_specific=year_specific,
+                owner_map=owner_map,
+                sleeper_owner_map=sleeper_owner_map,
+                year_specific=year_specific,
                 )
             )
 
@@ -231,10 +271,12 @@ def build_scoring_awards(
                 headline=f"{avg:.1f} avg · σ {stdev:.1f}",
                 roast="No spikes. No soul. Just points.",
                 team_name=name,
+                owner_id=team_to_owner_id.get(name) or None,
                 amount=avg,
                 detail="Most consistent weekly scoring",
                 tone="good",
                 owner_map=owner_map,
+                sleeper_owner_map=sleeper_owner_map,
                 year_specific=year_specific,
             )
         )
@@ -246,10 +288,12 @@ def build_scoring_awards(
                 headline=f"{avg:.1f} avg · σ {stdev:.1f}",
                 roast="Your league chat never knows which version shows up.",
                 team_name=name,
+                owner_id=team_to_owner_id.get(name) or None,
                 amount=stdev,
                 detail="Wildest week-to-week swings",
                 tone="bad",
                 owner_map=owner_map,
+                sleeper_owner_map=sleeper_owner_map,
                 year_specific=year_specific,
             )
         )
@@ -267,10 +311,12 @@ def build_scoring_awards(
                 headline=f"{swing:.1f} pt spread · {peak:.0f} peak / {floor:.0f} floor",
                 roast="Same manager. Completely different team.",
                 team_name=name,
+                owner_id=team_to_owner_id.get(name) or None,
                 amount=swing,
                 detail="Biggest gap between best and worst week",
                 tone="bad",
                 owner_map=owner_map,
+                sleeper_owner_map=sleeper_owner_map,
                 year_specific=year_specific,
             )
         )
@@ -287,22 +333,29 @@ def build_scoring_awards(
                 headline=f"{mid_team.get('avg_points', 0)} avg · league avg {league_avg:.1f}",
                 roast="Not bad. Not good. Just… there.",
                 team_name=mid_team["team_name"],
+                owner_id=mid_team.get("owner_id"),
                 amount=float(mid_team.get("avg_points") or 0),
                 detail="Closest to the league scoring average",
                 tone="neutral",
                 owner_map=owner_map,
+                sleeper_owner_map=sleeper_owner_map,
                 year_specific=year_specific,
             )
         )
 
     week_wins: dict[str, int] = defaultdict(int)
+    week_win_owner: dict[str, str] = {}
     for wk in weeks:
         teams = wk.get("teams") or []
         scored = [t for t in teams if float(t.get("points") or 0) > 0]
         if not scored:
             continue
         top = max(scored, key=lambda t: float(t.get("points") or 0))
-        week_wins[top["team_name"]] += 1
+        tname = top["team_name"]
+        week_wins[tname] += 1
+        oid = str(top.get("owner_id") or "")
+        if oid:
+            week_win_owner[tname] = oid
     if week_wins:
         wire_team, wire_count = max(week_wins.items(), key=lambda x: x[1])
         awards.append(
@@ -312,10 +365,12 @@ def build_scoring_awards(
                 headline=f"{wire_count} week{'s' if wire_count != 1 else ''} on top",
                 roast="Owned the scoreboard like it owed them money.",
                 team_name=wire_team,
+                owner_id=week_win_owner.get(wire_team) or team_to_owner_id.get(wire_team) or None,
                 amount=float(wire_count),
                 detail="Most weeks with the league-high score",
                 tone="good",
                 owner_map=owner_map,
+                sleeper_owner_map=sleeper_owner_map,
                 year_specific=year_specific,
             )
         )
@@ -336,8 +391,9 @@ def build_scoring_awards(
                         amount=best.get("points_per_dollar"),
                         detail=f"{best.get('total_points', 0)} pts on {best.get('committed', 0)} committed",
                         tone="good",
-                        owner_map=owner_map,
-                        year_specific=year_specific,
+                owner_map=owner_map,
+                sleeper_owner_map=sleeper_owner_map,
+                year_specific=year_specific,
                     )
                 )
             if worst.get("points_per_dollar") is not None and len(teams) > 1:
@@ -351,8 +407,9 @@ def build_scoring_awards(
                         amount=worst.get("points_per_dollar"),
                         detail="Lowest points per committed dollar",
                         tone="bad",
-                        owner_map=owner_map,
-                        year_specific=year_specific,
+                owner_map=owner_map,
+                sleeper_owner_map=sleeper_owner_map,
+                year_specific=year_specific,
                     )
                 )
 

@@ -272,6 +272,40 @@ def _migrate(conn: sqlite3.Connection) -> None:
         )"""
     )
     conn.execute(
+        """CREATE TABLE IF NOT EXISTS insights_cap_cache (
+            league_id TEXT NOT NULL,
+            season_key TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            built_at TEXT NOT NULL,
+            source_version TEXT NOT NULL,
+            PRIMARY KEY (league_id, season_key)
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS insights_scoring_derived (
+            sleeper_league_id TEXT NOT NULL,
+            season_key TEXT NOT NULL,
+            awards_json TEXT NOT NULL,
+            efficiency_json TEXT NOT NULL,
+            built_at TEXT NOT NULL,
+            PRIMARY KEY (sleeper_league_id, season_key)
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS insights_fair_values (
+            league_id TEXT NOT NULL,
+            season INTEGER NOT NULL,
+            player_id TEXT NOT NULL,
+            fair_value REAL NOT NULL,
+            pool_fingerprint TEXT NOT NULL,
+            built_at TEXT NOT NULL,
+            PRIMARY KEY (league_id, season, player_id)
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_insights_fair_league ON insights_fair_values(league_id, season)"
+    )
+    conn.execute(
         """CREATE TABLE IF NOT EXISTS league_legacy_import (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             league_id TEXT NOT NULL,
@@ -331,6 +365,23 @@ def _migrate(conn: sqlite3.Connection) -> None:
             edited_at TEXT NOT NULL,
             note TEXT
         )"""
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS league_owner_season_map (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            league_id TEXT NOT NULL,
+            season_year INTEGER NOT NULL,
+            owner_label TEXT NOT NULL,
+            hub_team_name TEXT NOT NULL,
+            sleeper_user_id TEXT,
+            source_kind TEXT NOT NULL DEFAULT 'manual',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(league_id, season_year, owner_label)
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_owner_season_map_league ON league_owner_season_map(league_id, season_year)"
     )
     conn.execute(
         """CREATE TABLE IF NOT EXISTS league_player_movement (
@@ -1308,24 +1359,13 @@ def league_roster_overview(league_id: str) -> dict[str, Any]:
         raise ValueError("League not found")
     teams = list_league_teams(league_id)
     cap = float(league["rules"]["salary_cap"])
-    ws_id = roster_workspace_for_league(league)
-    roster = list_league_roster(ws_id)
-    by_team: dict[str, list[dict[str, Any]]] = {t["id"]: [] for t in teams}
-    for row in roster:
-        tid = str(row.get("team_id") or "")
-        if tid in by_team:
-            by_team[tid].append(row)
+    by_team = list_league_rosters_by_team(league_id)
 
     if any(len(rows) > 28 for rows in by_team.values()):
         from src.draft_hub.league_sleeper_sync import reconcile_league_roster_assignments
 
         reconcile_league_roster_assignments(league_id)
-        roster = list_league_roster(ws_id)
-        by_team = {t["id"]: [] for t in teams}
-        for row in roster:
-            tid = str(row.get("team_id") or "")
-            if tid in by_team:
-                by_team[tid].append(row)
+        by_team = list_league_rosters_by_team(league_id)
 
     from src.draft_hub.hub_context import filter_team_sleeper_roster
 
@@ -1880,6 +1920,214 @@ def get_sleeper_scoring_cache(sleeper_league_id: str) -> dict[str, Any] | None:
     return {"payload": payload, "synced_at": row["synced_at"]}
 
 
+def roster_source_version(league_id: str) -> str:
+    """Fingerprint league roster rows for commissioner Teams tab cache keys."""
+    import hashlib
+
+    league = get_league(league_id)
+    if not league:
+        return "0"
+    ws_id = roster_workspace_for_league(league)
+    with get_conn() as conn:
+        row = conn.execute(
+            """SELECT COUNT(*) AS n,
+                      COALESCE(SUM(salary), 0) AS sal,
+                      COALESCE(SUM(contract_years), 0) AS yrs
+               FROM roster_slot
+               WHERE workspace_id = ? AND team_id IS NOT NULL AND team_id != ''""",
+            (str(ws_id),),
+        ).fetchone()
+    raw = f"{row['n']}:{row['sal']}:{row['yrs']}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
+
+def insights_source_version(league_id: str) -> str:
+    """Fingerprint roster slots, contract rows, and owner-season-map revision."""
+    import hashlib
+
+    with get_conn() as conn:
+        league_row = conn.execute(
+            "SELECT * FROM league WHERE id = ?",
+            (str(league_id),),
+        ).fetchone()
+        roster_slots = 0
+        if league_row:
+            league = dict(league_row)
+            ws_id = roster_workspace_for_league(league)
+            roster_slots = conn.execute(
+                "SELECT COUNT(*) AS n FROM roster_slot WHERE workspace_id = ?",
+                (str(ws_id),),
+            ).fetchone()["n"]
+        contract_rows = conn.execute(
+            "SELECT COUNT(*) AS n FROM league_contract_row WHERE league_id = ?",
+            (str(league_id),),
+        ).fetchone()["n"]
+        osm = conn.execute(
+            """SELECT COALESCE(MAX(updated_at), '') AS rev
+               FROM league_owner_season_map WHERE league_id = ?""",
+            (str(league_id),),
+        ).fetchone()["rev"]
+    raw = f"{roster_slots}:{contract_rows}:{osm}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
+
+def get_insights_cap_cache(league_id: str, season_key: str) -> dict[str, Any] | None:
+    with get_conn() as conn:
+        row = conn.execute(
+            """SELECT payload_json, built_at, source_version
+               FROM insights_cap_cache
+               WHERE league_id = ? AND season_key = ?""",
+            (str(league_id), str(season_key)),
+        ).fetchone()
+    if not row:
+        return None
+    try:
+        payload = json.loads(row["payload_json"])
+    except json.JSONDecodeError:
+        return None
+    return {
+        "payload": payload,
+        "built_at": row["built_at"],
+        "source_version": row["source_version"],
+    }
+
+
+def upsert_insights_cap_cache(
+    league_id: str,
+    season_key: str,
+    payload: dict[str, Any],
+    *,
+    source_version: str,
+) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO insights_cap_cache
+               (league_id, season_key, payload_json, built_at, source_version)
+               VALUES (?, ?, ?, ?, ?)
+               ON CONFLICT(league_id, season_key) DO UPDATE SET
+                 payload_json = excluded.payload_json,
+                 built_at = excluded.built_at,
+                 source_version = excluded.source_version""",
+            (
+                str(league_id),
+                str(season_key),
+                json.dumps(payload),
+                _utcnow(),
+                str(source_version),
+            ),
+        )
+
+
+def delete_insights_cap_cache(league_id: str) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            "DELETE FROM insights_cap_cache WHERE league_id = ?",
+            (str(league_id),),
+        )
+
+
+def get_insights_scoring_derived(
+    sleeper_league_id: str,
+    season_key: str,
+) -> dict[str, Any] | None:
+    with get_conn() as conn:
+        row = conn.execute(
+            """SELECT awards_json, efficiency_json, built_at
+               FROM insights_scoring_derived
+               WHERE sleeper_league_id = ? AND season_key = ?""",
+            (str(sleeper_league_id), str(season_key)),
+        ).fetchone()
+    if not row:
+        return None
+    try:
+        awards = json.loads(row["awards_json"])
+        efficiency = json.loads(row["efficiency_json"])
+    except json.JSONDecodeError:
+        return None
+    return {
+        "awards": awards,
+        "efficiency": efficiency,
+        "built_at": row["built_at"],
+    }
+
+
+def upsert_insights_scoring_derived(
+    sleeper_league_id: str,
+    season_key: str,
+    *,
+    awards: list[dict[str, Any]],
+    efficiency: dict[str, Any],
+) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO insights_scoring_derived
+               (sleeper_league_id, season_key, awards_json, efficiency_json, built_at)
+               VALUES (?, ?, ?, ?, ?)
+               ON CONFLICT(sleeper_league_id, season_key) DO UPDATE SET
+                 awards_json = excluded.awards_json,
+                 efficiency_json = excluded.efficiency_json,
+                 built_at = excluded.built_at""",
+            (
+                str(sleeper_league_id),
+                str(season_key),
+                json.dumps(awards),
+                json.dumps(efficiency),
+                _utcnow(),
+            ),
+        )
+
+
+def get_insights_fair_values(
+    league_id: str,
+    season: int,
+    pool_fingerprint: str,
+) -> dict[str, float] | None:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT player_id, fair_value, pool_fingerprint
+               FROM insights_fair_values
+               WHERE league_id = ? AND season = ?""",
+            (str(league_id), int(season)),
+        ).fetchall()
+    if not rows:
+        return None
+    if str(rows[0]["pool_fingerprint"]) != str(pool_fingerprint):
+        return None
+    return {str(r["player_id"]): float(r["fair_value"]) for r in rows}
+
+
+def upsert_insights_fair_values(
+    league_id: str,
+    season: int,
+    fair_map: dict[str, float],
+    *,
+    pool_fingerprint: str,
+) -> None:
+    now = _utcnow()
+    with get_conn() as conn:
+        conn.execute(
+            "DELETE FROM insights_fair_values WHERE league_id = ? AND season = ?",
+            (str(league_id), int(season)),
+        )
+        conn.executemany(
+            """INSERT INTO insights_fair_values
+               (league_id, season, player_id, fair_value, pool_fingerprint, built_at)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            [
+                (
+                    str(league_id),
+                    int(season),
+                    str(pid),
+                    float(val),
+                    str(pool_fingerprint),
+                    now,
+                )
+                for pid, val in fair_map.items()
+                if pid and val
+            ],
+        )
+
+
 def upsert_sleeper_live_scoring_cache(
     sleeper_league_id: str,
     week: int,
@@ -2292,6 +2540,190 @@ def delete_league_contract_row(row_id: int, league_id: str) -> bool:
             (int(row_id), league_id),
         )
         return cur.rowcount > 0
+
+
+def insert_league_contract_row(
+    league_id: str,
+    season_year: int,
+    row: dict[str, Any],
+) -> dict[str, Any]:
+    """Insert a commissioner-authored contract snapshot row."""
+    now = _utcnow()
+    cap_hit = row.get("cap_hit")
+    base_salary = row.get("base_salary", cap_hit)
+    with get_conn() as conn:
+        cur = conn.execute(
+            """INSERT INTO league_contract_row (
+                league_id, season_year, owner_label, hub_team_name, player_name, player_id,
+                position, base_salary, cap_hit, prior_salary, original_draft_year,
+                roster_status, contract_phase, acquisition_type, status_note,
+                source_kind, confidence, needs_review, review_reason, sleeper_verified,
+                import_id, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                league_id,
+                int(season_year),
+                row["owner_label"],
+                row.get("hub_team_name"),
+                row["player_name"],
+                row.get("player_id"),
+                row.get("position"),
+                base_salary,
+                cap_hit,
+                row.get("prior_salary"),
+                row.get("original_draft_year"),
+                row.get("roster_status") or "active",
+                row.get("contract_phase"),
+                row.get("acquisition_type"),
+                row.get("status_note"),
+                row.get("source_kind") or "manual",
+                row.get("confidence") or "manual",
+                1 if row.get("needs_review") else 0,
+                row.get("review_reason"),
+                1 if row.get("sleeper_verified") else 0,
+                row.get("import_id"),
+                now,
+                now,
+            ),
+        )
+        row_id = int(cur.lastrowid)
+    created = get_league_contract_row(row_id)
+    if not created:
+        raise ValueError("Failed to create contract row")
+    return created
+
+
+def _owner_season_map_dict(row: sqlite3.Row) -> dict[str, Any]:
+    return dict(row)
+
+
+def list_owner_season_map(
+    league_id: str,
+    *,
+    season_year: int | None = None,
+) -> list[dict[str, Any]]:
+    ensure_owner_season_map_seeded(league_id)
+    clauses = ["league_id = ?"]
+    params: list[Any] = [league_id]
+    if season_year is not None:
+        clauses.append("season_year = ?")
+        params.append(int(season_year))
+    sql = (
+        f"SELECT * FROM league_owner_season_map WHERE {' AND '.join(clauses)} "
+        "ORDER BY season_year DESC, owner_label"
+    )
+    with get_conn() as conn:
+        rows = conn.execute(sql, params).fetchall()
+    return [_owner_season_map_dict(r) for r in rows]
+
+
+def upsert_owner_season_map(
+    league_id: str,
+    season_year: int,
+    owner_label: str,
+    hub_team_name: str,
+    *,
+    sleeper_user_id: str | None = None,
+    source_kind: str = "manual",
+) -> dict[str, Any]:
+    now = _utcnow()
+    owner = str(owner_label or "").strip()
+    team = str(hub_team_name or "").strip()
+    if not owner or not team:
+        raise ValueError("owner_label and hub_team_name are required")
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO league_owner_season_map (
+                league_id, season_year, owner_label, hub_team_name, sleeper_user_id,
+                source_kind, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(league_id, season_year, owner_label) DO UPDATE SET
+                hub_team_name = excluded.hub_team_name,
+                sleeper_user_id = COALESCE(excluded.sleeper_user_id, league_owner_season_map.sleeper_user_id),
+                source_kind = excluded.source_kind,
+                updated_at = excluded.updated_at""",
+            (
+                league_id,
+                int(season_year),
+                owner,
+                team,
+                sleeper_user_id,
+                source_kind,
+                now,
+                now,
+            ),
+        )
+        row = conn.execute(
+            """SELECT * FROM league_owner_season_map
+               WHERE league_id = ? AND season_year = ? AND owner_label = ?""",
+            (league_id, int(season_year), owner),
+        ).fetchone()
+    return _owner_season_map_dict(row) if row else {}
+
+
+def delete_owner_season_map(map_id: int, league_id: str) -> bool:
+    with get_conn() as conn:
+        cur = conn.execute(
+            "DELETE FROM league_owner_season_map WHERE id = ? AND league_id = ?",
+            (int(map_id), league_id),
+        )
+        return cur.rowcount > 0
+
+
+def resolve_hub_team_name(
+    league_id: str,
+    season_year: int,
+    owner_label: str,
+) -> str | None:
+    owner = str(owner_label or "").strip()
+    if not owner:
+        return None
+    ensure_owner_season_map_seeded(league_id)
+    with get_conn() as conn:
+        row = conn.execute(
+            """SELECT hub_team_name FROM league_owner_season_map
+               WHERE league_id = ? AND season_year = ? AND owner_label = ?""",
+            (league_id, int(season_year), owner),
+        ).fetchone()
+        if row and row["hub_team_name"]:
+            return str(row["hub_team_name"])
+        has_custom_map = conn.execute(
+            "SELECT 1 FROM league_owner_season_map WHERE league_id = ? LIMIT 1",
+            (league_id,),
+        ).fetchone()
+    if has_custom_map:
+        return None
+    from src.draft_hub.legacy_contract_import import load_owner_team_map
+
+    return load_owner_team_map().get(owner)
+
+
+def ensure_owner_season_map_seeded(league_id: str) -> None:
+    """One-time seed from manager_team_map.yaml for each imported season."""
+    with get_conn() as conn:
+        count = conn.execute(
+            "SELECT COUNT(*) AS n FROM league_owner_season_map WHERE league_id = ?",
+            (league_id,),
+        ).fetchone()["n"]
+    if count:
+        return
+    from src.draft_hub.legacy_contract_import import TEAM_OWNERS, load_owner_team_map
+
+    yaml_map = load_owner_team_map()
+    seasons = list_league_contract_seasons(league_id)
+    if not seasons or not yaml_map:
+        return
+    for yr in seasons:
+        for owner in TEAM_OWNERS:
+            team = yaml_map.get(owner)
+            if team:
+                upsert_owner_season_map(
+                    league_id,
+                    yr,
+                    owner,
+                    team,
+                    source_kind="yaml_seed",
+                )
 
 
 def replace_league_movements(league_id: str, season_year: int, events: list[dict[str, Any]]) -> int:

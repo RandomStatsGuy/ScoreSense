@@ -4,8 +4,12 @@ from __future__ import annotations
 
 import argparse
 
+from src.config import CACHE_DIR
 from src.sentiment.beat_digest import _DIGEST_CACHE_DIR
+from src.sentiment.fantasy_readout import invalidate_fantasy_response_cache
 from src.sentiment.readout import invalidate_sentiment_response_cache
+
+_FANTASY_DIGEST_DIR = CACHE_DIR / "fantasy_digest"
 
 
 def purge_beat_digest_cache() -> dict:
@@ -15,8 +19,14 @@ def purge_beat_digest_cache() -> dict:
         for path in cache_dir.glob("*.json"):
             path.unlink(missing_ok=True)
             removed += 1
+    fantasy_removed = 0
+    if _FANTASY_DIGEST_DIR.exists():
+        for path in _FANTASY_DIGEST_DIR.rglob("*.json"):
+            path.unlink(missing_ok=True)
+            fantasy_removed += 1
     invalidate_sentiment_response_cache()
-    return {"removed": removed, "cache_dir": str(cache_dir)}
+    invalidate_fantasy_response_cache()
+    return {"removed": removed, "fantasy_removed": fantasy_removed, "cache_dir": str(cache_dir)}
 
 
 def main() -> None:
@@ -41,6 +51,7 @@ def main() -> None:
             season = int(get_projection_meta("qb")["default_season"])
         features = rebuild_sentiment_features(int(season))
         invalidate_sentiment_response_cache()
+        invalidate_fantasy_response_cache()
         cols = [c for c in ("yt_chapter_notes", "yt_top_sentence") if c in features.columns]
         print({"rebuilt_season": season, "rows": len(features), "new_columns": cols})
 

@@ -13,6 +13,7 @@ import useMobileLayout from "./useMobileLayout";
 import MobileDataList, { MobileStat } from "./MobileDataList";
 import MobilePlayerCard from "./MobilePlayerCard";
 import PlayerCell, { usePlayerMedia } from "./PlayerCell";
+import SentimentBadge from "./SentimentBadge";
 
 function SortHeader({ label, sortKey, sort, onSort, tip, className = "" }) {
   const active = sort.column === sortKey;
@@ -101,6 +102,8 @@ function sortValue(row, key) {
       return Number(rosSeasonP50(row)) || 0;
     case "SeasonP90":
       return Number(rosSeasonP90(row)) || 0;
+    case "Narrative":
+      return Number(row.sentiment?.mention_count) || 0;
     default:
       return 0;
   }
@@ -114,6 +117,7 @@ export default function SeasonTable({
   searchSlot,
   metaLine,
   loading = false,
+  showSentiment = false,
 }) {
   const [sort, setSort] = useState({ column: seasonComplete ? "PPG" : "SeasonP50", dir: "desc" });
   const mobileLayout = useMobileLayout();
@@ -145,6 +149,11 @@ export default function SeasonTable({
   );
   const playerMedia = usePlayerMedia(playerIds);
 
+  const showNarrative = useMemo(
+    () => showSentiment && (rows || []).some((row) => Number(row.sentiment?.mention_count) > 0),
+    [rows, showSentiment],
+  );
+
   const toggleSort = (column) => {
     setSort((prev) =>
       prev.column === column
@@ -153,22 +162,24 @@ export default function SeasonTable({
     );
   };
 
-  const colCount = seasonComplete ? 5 : 10;
+  const colCount = (seasonComplete ? 5 : 10) + (showNarrative ? 1 : 0);
 
   return (
     <>
       <div className="table-controls">
         {searchSlot}
-        <button
-          type="button"
-          className="btn-export-csv"
-          onClick={() => exportCsv(sorted, seasonComplete)}
-          disabled={!sorted.length}
-          title="Download filtered table as CSV"
-        >
-          <DownloadIcon />
-          CSV
-        </button>
+        {!mobileLayout && (
+          <button
+            type="button"
+            className="btn-export-csv"
+            onClick={() => exportCsv(sorted, seasonComplete)}
+            disabled={!sorted.length}
+            title="Download filtered table as CSV"
+          >
+            <DownloadIcon />
+            CSV
+          </button>
+        )}
       </div>
       <div className="table-toolbar">
         <span className="table-meta">{sorted.length} players</span>
@@ -198,6 +209,8 @@ export default function SeasonTable({
                     media={playerMedia}
                     size="sm"
                     showTeam={false}
+                    clickable={Boolean(row.player_id)}
+                    narrativeScope="season"
                   />
                 )}
                 meta={meta}
@@ -298,6 +311,16 @@ export default function SeasonTable({
                   />
                 </>
               )}
+              {showNarrative && (
+                <SortHeader
+                  label="Fantasy"
+                  sortKey="Narrative"
+                  sort={sort}
+                  onSort={toggleSort}
+                  tip="Season-to-date fantasy analyst narrative"
+                  className="col-narrative"
+                />
+              )}
             </tr>
           </thead>
           <tbody>
@@ -318,6 +341,8 @@ export default function SeasonTable({
                     media={playerMedia}
                     size="sm"
                     showTeam={false}
+                    clickable={Boolean(row.player_id)}
+                    narrativeScope="season"
                   />
                 </td>
                 <td>{row.Team || "—"}</td>
@@ -332,6 +357,11 @@ export default function SeasonTable({
                     <td className="num">{fmtNum(rosSeasonP50(row))}</td>
                     <td className="num num-secondary">{fmtNum(rosSeasonP90(row))}</td>
                   </>
+                )}
+                {showNarrative && (
+                  <td className="col-narrative">
+                    <SentimentBadge sentiment={row.sentiment} compact table />
+                  </td>
                 )}
               </tr>
             ))}

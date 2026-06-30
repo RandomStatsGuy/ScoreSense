@@ -10,7 +10,7 @@ import { sentimentLabelText } from "./sentimentDisplay";
 export default function SentimentBadge({ sentiment, compact = false, table = false }) {
   if (!sentiment || !(Number(sentiment.mention_count) > 0)) {
     return (
-      <span className={`sentiment-badge sentiment-badge-empty${table ? " sentiment-badge-table" : ""}`}>
+      <span className={`sentiment-badge sentiment-badge-empty state-empty-text${table ? " sentiment-badge-table" : ""}`}>
         —
       </span>
     );
@@ -18,7 +18,7 @@ export default function SentimentBadge({ sentiment, compact = false, table = fal
 
   const label = sentiment.sentiment_label || "neutral";
   const text = sentiment.sentiment_label_text || sentimentLabelText(label);
-  const narrative = sentiment.beat_digest || sentiment.snippet || sentiment.sentiment_summary || "";
+  const narrative = sentiment.fantasy_digest || sentiment.beat_digest || sentiment.snippet || sentiment.sentiment_summary || "";
   const rawSnippet = sentiment.snippet?.trim();
 
   const flags = [];

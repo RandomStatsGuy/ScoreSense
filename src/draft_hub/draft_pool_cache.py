@@ -55,7 +55,11 @@ def _compute_pool(season: int) -> tuple[pd.DataFrame, dict[str, Any]]:
                 "depth_chart": df.attrs.get("depth_chart") or {"applied": False},
             }
         part = df.copy()
-        part["Position"] = label
+        if pos == "wr" and "position" in part.columns:
+            raw_pos = part["position"].astype(str).str.upper()
+            part["Position"] = raw_pos.where(raw_pos.isin(["WR", "TE"]), "WR")
+        else:
+            part["Position"] = label
         if "player_id" not in part.columns:
             part["player_id"] = part["Player"].astype(str)
         frames.append(part)
