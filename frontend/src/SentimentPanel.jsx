@@ -217,8 +217,14 @@ export default function SentimentPanel({
     if (meta.season != null && meta.week != null) {
       parts.push(isSeason ? `${meta.season} · through W${meta.week}` : `${meta.season} · W${meta.week}`);
     }
-    if (meta.context_fallback && meta.requested_season != null && meta.requested_week != null) {
-      parts.push(`fallback from ${meta.requested_season} W${meta.requested_week}`);
+    if meta.context_fallback && meta.requested_season != null && meta.requested_week != null) {
+      const reqLabel = `${meta.requested_season} W${meta.requested_week}`;
+      const shownLabel = `${meta.season ?? season} W${meta.week ?? week}`;
+      if (reqLabel !== shownLabel) {
+        parts.push(`showing ${shownLabel}`);
+      } else {
+        parts.push(`fallback from ${reqLabel}`);
+      }
     }
     if (meta.last_refresh) {
       parts.push(`Updated ${new Date(meta.last_refresh).toLocaleString()}`);
@@ -234,7 +240,11 @@ export default function SentimentPanel({
     const reqWeek = meta.requested_week ?? week;
     return (
       <div className="sentiment-fallback-banner" role="status">
-        Showing <strong>Wk {shownWeek}</strong> (no fantasy data for Wk {reqWeek}).
+        Showing <strong>{shownSeason} Wk {shownWeek}</strong> analyst context
+        {reqSeason !== shownSeason || reqWeek !== shownWeek ? (
+          <> (no fantasy YouTube data for {reqSeason} Wk {reqWeek})</>
+        ) : null}
+        .
       </div>
     );
   }, [meta, season, week]);

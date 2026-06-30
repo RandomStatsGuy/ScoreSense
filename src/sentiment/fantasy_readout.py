@@ -198,11 +198,9 @@ def _resolve_fantasy_week(
     if not season_scoped.empty:
         latest_row = season_scoped.sort_values("week").iloc[-1]
         return season, int(latest_row["week"]), True
-    max_season = int(features["season"].max()) if not features.empty else season
-    if season <= max_season + 1 and season > max_season:
-        latest = _latest_fantasy_week(features, position)
-        if latest is not None:
-            return latest[0], latest[1], True
+    latest = _latest_fantasy_week(features, position)
+    if latest is not None:
+        return latest[0], latest[1], True
     return season, week, False
 
 
