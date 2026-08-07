@@ -30,7 +30,8 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-EXCLUDE_DIRS = {
+# Directory *names* skipped anywhere in the relative path (tooling / caches only).
+EXCLUDE_DIR_NAMES = {
     ".git",
     ".venv",
     "venv",
@@ -39,14 +40,17 @@ EXCLUDE_DIRS = {
     ".pytest_cache",
     ".cursor",
     "terminals",
-    "data/raw",
-    "data/cache",
-    "draft_hub",
-    "auth",
-    "league_contract_history",
-    "artifacts/analytics",
-    "artifacts/backtest",
 }
+# Path prefixes (posix) skipped — mutable runtime data / heavy research blobs.
+# Do NOT put "draft_hub" or "auth" here as bare names: that would skip src/draft_hub and src/auth.
+EXCLUDE_PREFIXES = (
+    "data/raw/",
+    "data/cache/",
+    "data/draft_hub/",  # SQLite league state — volume-mounted on VPS; never overwrite
+    "artifacts/analytics/",
+    "artifacts/backtest/",
+    "league_contract_history/",
+)
 EXCLUDE_FILES = {".env"}
 # Keep models + draft pool; skip heavy research/backtest blobs on first deploy.
 
@@ -81,7 +85,10 @@ def _scp_base(user: str, host: str, port: str, key: str) -> list[str]:
 
 def _should_skip(rel: Path) -> bool:
     parts = set(rel.parts)
-    if parts & EXCLUDE_DIRS:
+    if parts & EXCLUDE_DIR_NAMES:
+        return True
+    rel_posix = rel.as_posix()
+    if any(rel_posix == p.rstrip("/") or rel_posix.startswith(p) for p in EXCLUDE_PREFIXES):
         return True
     if rel.name in EXCLUDE_FILES:
         return True
