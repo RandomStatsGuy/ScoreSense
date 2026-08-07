@@ -85,12 +85,19 @@ _SUMMARY_LABELS = {
     "total",
     "remaining",
     "cap space",
+    "total salary",
+    "salary available",
+    "team total",
 }
 
 
 def _is_summary_label(text: str) -> bool:
     key = _cell_str(text).lower().rstrip(":")
-    return key in _SUMMARY_LABELS
+    if key in _SUMMARY_LABELS:
+        return True
+    if key.startswith("total salary") or key.startswith("salary available"):
+        return True
+    return False
 
 
 def _attach_hub_team(row: dict[str, Any], owner_map: dict[str, str]) -> dict[str, Any]:
@@ -410,6 +417,8 @@ def parse_year_workbook(
 
 def process_league_history(data_dir: Path | None = None) -> pd.DataFrame:
     """Flatten commissioner files into a single contract-history dataframe."""
+    from src.draft_hub.draft_results_import import apply_draft_tags_to_dataframe, load_draft_wins_by_season
+
     base = data_dir or OLD_LEAGUE_FILES_DIR
     owner_map = load_owner_team_map()
     all_rows: list[dict[str, Any]] = []
@@ -426,8 +435,15 @@ def process_league_history(data_dir: Path | None = None) -> pd.DataFrame:
     if not all_rows:
         return pd.DataFrame()
     df = pd.DataFrame(all_rows)
-    df.loc[df["cap_hit"] == 1, "contract_phase"] = "waiver_rental"
-    df.loc[df["cap_hit"] == 1, "acquisition_type"] = "waiver"
+    waiver_mask = df["cap_hit"] == 1
+    df.loc[waiver_mask, "contract_phase"] = "waiver_rental"
+    df.loc[waiver_mask, "acquisition_type"] = "waiver"
+    fa_mask = (~waiver_mask) & (df["cap_hit"] > 1) & (df["acquisition_type"] == "unknown")
+    df.loc[fa_mask, "acquisition_type"] = "post_draft_fa"
+
+    wins_by_season, _draft_meta = load_draft_wins_by_season(base)
+    if wins_by_season:
+        df, _tagged = apply_draft_tags_to_dataframe(df, wins_by_season)
     return df
 
 

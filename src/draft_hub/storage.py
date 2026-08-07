@@ -320,6 +320,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_legacy_import_league ON league_legacy_import(league_id, season_year)"
     )
+    _safe_add_column(conn, "league_legacy_import", "snapshot_phase", "TEXT DEFAULT 'unknown'")
+    _safe_add_column(conn, "league_legacy_import", "source_fingerprint", "TEXT")
     conn.execute(
         """CREATE TABLE IF NOT EXISTS league_contract_row (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -383,6 +385,33 @@ def _migrate(conn: sqlite3.Connection) -> None:
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_owner_season_map_league ON league_owner_season_map(league_id, season_year)"
     )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS league_season_salary_cap (
+            league_id TEXT NOT NULL,
+            season_year INTEGER NOT NULL,
+            salary_cap REAL NOT NULL,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (league_id, season_year)
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS league_player_name_alias (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            league_id TEXT NOT NULL,
+            alias_name TEXT NOT NULL,
+            canonical_name TEXT NOT NULL,
+            sleeper_player_id TEXT,
+            position TEXT,
+            source_kind TEXT NOT NULL DEFAULT 'manual',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(league_id, alias_name)
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_player_name_alias_league ON league_player_name_alias(league_id)"
+    )
+    _safe_add_column(conn, "league_player_name_alias", "sleeper_player_id", "TEXT")
     conn.execute(
         """CREATE TABLE IF NOT EXISTS league_player_movement (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1627,6 +1656,10 @@ def roster_workspace_for_league(league: dict[str, Any]) -> str:
     ws_id = league.get("workspace_id")
     if ws_id:
         return str(ws_id)
+    # Mock/test rooms have no workspace: keep their rosters isolated under the
+    # league id so draft picks never touch the commissioner's real hub roster.
+    if league.get("test_mode"):
+        return str(league["id"])
     comm = league.get("commissioner_sub")
     if comm:
         return str(get_or_create_workspace(str(comm))["id"])
@@ -1962,12 +1995,31 @@ def insights_source_version(league_id: str) -> str:
             "SELECT COUNT(*) AS n FROM league_contract_row WHERE league_id = ?",
             (str(league_id),),
         ).fetchone()["n"]
+        manual_rows = conn.execute(
+            """SELECT COUNT(*) AS n FROM league_contract_row
+               WHERE league_id = ? AND source_kind = 'manual'""",
+            (str(league_id),),
+        ).fetchone()["n"]
+        import_rev = conn.execute(
+            """SELECT COALESCE(MAX(imported_at), '') AS rev
+               FROM league_legacy_import WHERE league_id = ?""",
+            (str(league_id),),
+        ).fetchone()["rev"]
+        import_fp = conn.execute(
+            """SELECT COALESCE(GROUP_CONCAT(source_fingerprint), '') AS fps
+               FROM (
+                   SELECT source_fingerprint FROM league_legacy_import
+                   WHERE league_id = ? AND source_fingerprint IS NOT NULL
+                   ORDER BY imported_at DESC
+               )""",
+            (str(league_id),),
+        ).fetchone()["fps"]
         osm = conn.execute(
             """SELECT COALESCE(MAX(updated_at), '') AS rev
                FROM league_owner_season_map WHERE league_id = ?""",
             (str(league_id),),
         ).fetchone()["rev"]
-    raw = f"{roster_slots}:{contract_rows}:{osm}"
+    raw = f"{roster_slots}:{contract_rows}:{manual_rows}:{import_rev}:{import_fp}:{osm}"
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 
@@ -2385,6 +2437,57 @@ def record_legacy_import(
         return int(cur.lastrowid)
 
 
+def list_legacy_imports(league_id: str) -> list[dict[str, Any]]:
+    """Latest import record per season (most recent imported_at)."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT * FROM league_legacy_import
+               WHERE league_id = ?
+               ORDER BY season_year, imported_at DESC""",
+            (str(league_id),),
+        ).fetchall()
+    best: dict[int, dict[str, Any]] = {}
+    for row in rows:
+        yr = int(row["season_year"])
+        if yr not in best:
+            best[yr] = dict(row)
+    return sorted(best.values(), key=lambda r: int(r["season_year"]))
+
+
+def update_legacy_import_metadata(
+    league_id: str,
+    season_year: int,
+    *,
+    snapshot_phase: str | None = None,
+    source_fingerprint: str | None = None,
+) -> None:
+    """Update metadata on the most recent import row for a season."""
+    with get_conn() as conn:
+        row = conn.execute(
+            """SELECT id FROM league_legacy_import
+               WHERE league_id = ? AND season_year = ?
+               ORDER BY imported_at DESC LIMIT 1""",
+            (str(league_id), int(season_year)),
+        ).fetchone()
+        if not row:
+            return
+        sets: list[str] = []
+        params: list[Any] = []
+        if snapshot_phase is not None:
+            sets.append("snapshot_phase = ?")
+            params.append(snapshot_phase)
+        if source_fingerprint is not None:
+            sets.append("source_fingerprint = ?")
+            params.append(source_fingerprint)
+        if not sets:
+            return
+        params.append(int(row["id"]))
+        conn.execute(
+            f"UPDATE league_legacy_import SET {', '.join(sets)} WHERE id = ?",
+            params,
+        )
+
+
 def replace_league_contract_season(
     league_id: str,
     season_year: int,
@@ -2670,6 +2773,56 @@ def delete_owner_season_map(map_id: int, league_id: str) -> bool:
         return cur.rowcount > 0
 
 
+def list_season_salary_caps(league_id: str) -> dict[int, float]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT season_year, salary_cap FROM league_season_salary_cap
+               WHERE league_id = ? ORDER BY season_year""",
+            (league_id,),
+        ).fetchall()
+    return {int(r["season_year"]): float(r["salary_cap"]) for r in rows}
+
+
+def upsert_season_salary_cap(
+    league_id: str,
+    season_year: int,
+    salary_cap: float,
+) -> dict[str, Any]:
+    cap = float(salary_cap)
+    if cap < 0:
+        raise ValueError("salary_cap must be non-negative")
+    now = _utcnow()
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO league_season_salary_cap (
+                league_id, season_year, salary_cap, updated_at
+            ) VALUES (?, ?, ?, ?)
+            ON CONFLICT(league_id, season_year) DO UPDATE SET
+                salary_cap = excluded.salary_cap,
+                updated_at = excluded.updated_at""",
+            (league_id, int(season_year), cap, now),
+        )
+        row = conn.execute(
+            """SELECT * FROM league_season_salary_cap
+               WHERE league_id = ? AND season_year = ?""",
+            (league_id, int(season_year)),
+        ).fetchone()
+    if not row:
+        raise ValueError("Failed to save season salary cap")
+    return dict(row)
+
+
+def resolve_salary_cap_for_season(
+    league_id: str,
+    season_year: int,
+    default_cap: float,
+    *,
+    caps: dict[int, float] | None = None,
+) -> float:
+    season_caps = caps if caps is not None else list_season_salary_caps(league_id)
+    return float(season_caps.get(int(season_year), float(default_cap)))
+
+
 def resolve_hub_team_name(
     league_id: str,
     season_year: int,
@@ -2764,6 +2917,43 @@ def replace_league_movements(league_id: str, season_year: int, events: list[dict
     return count
 
 
+def get_league_movement(movement_id: int) -> dict[str, Any] | None:
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM league_player_movement WHERE id = ?",
+            (int(movement_id),),
+        ).fetchone()
+    if not row:
+        return None
+    d = dict(row)
+    if d.get("payload_json"):
+        try:
+            d["payload"] = json.loads(d["payload_json"])
+        except json.JSONDecodeError:
+            d["payload"] = None
+    return d
+
+
+def update_league_movement(movement_id: int, updates: dict[str, Any]) -> dict[str, Any] | None:
+    allowed = {"event_type", "from_owner", "to_owner", "salary", "dead_cap", "confidence", "week"}
+    sets: list[str] = []
+    params: list[Any] = []
+    for key, val in updates.items():
+        if key not in allowed:
+            continue
+        sets.append(f"{key} = ?")
+        params.append(val)
+    if not sets:
+        return get_league_movement(movement_id)
+    params.append(int(movement_id))
+    with get_conn() as conn:
+        conn.execute(
+            f"UPDATE league_player_movement SET {', '.join(sets)} WHERE id = ?",
+            params,
+        )
+    return get_league_movement(movement_id)
+
+
 def list_league_movements(
     league_id: str,
     *,
@@ -2787,3 +2977,68 @@ def list_league_movements(
                 d["payload"] = None
         out.append(d)
     return out
+
+
+def _player_name_alias_dict(row: sqlite3.Row | dict[str, Any]) -> dict[str, Any]:
+    return dict(row)
+
+
+def list_player_name_aliases(league_id: str) -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT * FROM league_player_name_alias
+               WHERE league_id = ? ORDER BY alias_name COLLATE NOCASE""",
+            (league_id,),
+        ).fetchall()
+    return [_player_name_alias_dict(r) for r in rows]
+
+
+def upsert_player_name_alias(
+    league_id: str,
+    alias_name: str,
+    canonical_name: str,
+    *,
+    position: str | None = None,
+    sleeper_player_id: str | None = None,
+    source_kind: str = "manual",
+) -> dict[str, Any]:
+    now = _utcnow()
+    alias = str(alias_name or "").strip()
+    canonical = str(canonical_name or "").strip()
+    if not alias or not canonical:
+        raise ValueError("alias_name and canonical_name are required")
+    pos = str(position or "").strip().upper() or None
+    if pos in {"DST", "D"}:
+        pos = "DEF"
+    sid = str(sleeper_player_id or "").strip() or None
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO league_player_name_alias (
+                league_id, alias_name, canonical_name, sleeper_player_id, position,
+                source_kind, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(league_id, alias_name) DO UPDATE SET
+                canonical_name = excluded.canonical_name,
+                sleeper_player_id = COALESCE(excluded.sleeper_player_id, league_player_name_alias.sleeper_player_id),
+                position = COALESCE(excluded.position, league_player_name_alias.position),
+                source_kind = excluded.source_kind,
+                updated_at = excluded.updated_at""",
+            (league_id, alias, canonical, sid, pos, source_kind, now, now),
+        )
+        row = conn.execute(
+            """SELECT * FROM league_player_name_alias
+               WHERE league_id = ? AND alias_name = ?""",
+            (league_id, alias),
+        ).fetchone()
+    if not row:
+        raise RuntimeError("Failed to upsert player name alias")
+    return _player_name_alias_dict(row)
+
+
+def delete_player_name_alias(alias_id: int, league_id: str) -> bool:
+    with get_conn() as conn:
+        cur = conn.execute(
+            "DELETE FROM league_player_name_alias WHERE id = ? AND league_id = ?",
+            (int(alias_id), league_id),
+        )
+    return cur.rowcount > 0

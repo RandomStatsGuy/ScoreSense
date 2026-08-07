@@ -8,24 +8,15 @@ import DraftRosterPanel from "./DraftRosterPanel";
 import DraftTeamCard from "./DraftTeamCard";
 import DraftPickRecap from "./DraftPickRecap";
 import DraftRecapPanel from "./DraftRecapPanel";
+import DraftOwnerReport from "./DraftOwnerReport";
 import DraftCommissionerSettings from "./DraftCommissionerSettings";
 import ValueSheetTable from "./ValueSheetTable";
+import { confirmDialog } from "../ui/confirm";
 import DraftDeadlineClock from "./DraftDeadlineClock";
 import { HubPage } from "./HubUILayout";
 import { isRowAvailable } from "./valueSheetUtils";
 import { buildRosterCapacity, canAcquireAtPosition, formatDraftEvent, minNextBid } from "./draftRoomHelpers";
-
-function fmtSal(v) {
-  if (v == null || !Number.isFinite(Number(v))) return "—";
-  return `$${Number(v).toFixed(0)}`;
-}
-
-const DRAFT_STATUS_LABELS = {
-  setup: "Getting ready",
-  nominating: "Pick a player",
-  bidding: "Place bids",
-  completed: "Finished",
-};
+import { fmtSal } from "./rosterFormat";
 
 function draftPhaseStep(status) {
   if (status === "bidding") return 2;
@@ -134,24 +125,31 @@ export default function DraftRoom({
     [hubRoster],
   );
 
+  const testMode = Boolean(league?.test_mode);
+
   const clientAvailableRows = useMemo(() => {
     const drafted = draftedIds;
     return (valueRows || []).filter((r) => {
       if (!r.player_id || drafted.has(r.player_id)) return false;
-      if (!isRowAvailable(r)) return false;
+      // Mock drafts start from empty rosters: the sheet's is_available reflects
+      // the linked real league's rosters, so only in-draft picks exclude players.
+      if (!testMode && !isRowAvailable(r)) return false;
       if (poolMode === "roster_plus_rookies") {
         return r.is_rookie || hubIdSet.has(r.player_id);
       }
       return true;
     });
-  }, [valueRows, draftedIds, poolMode, hubIdSet]);
+  }, [valueRows, draftedIds, poolMode, hubIdSet, testMode]);
 
+  // Prefer client-side filtering of the cached value sheet; server pool rows
+  // are a fallback for cold sheets and get drafted players filtered per pick.
+  const hasValueRows = Boolean(valueRows?.length);
   const availableRows = useMemo(() => {
-    if (nominationPoolRows != null && nominationPoolRows.length > 0) {
-      return nominationPoolRows;
+    if (!hasValueRows && nominationPoolRows != null && nominationPoolRows.length > 0) {
+      return nominationPoolRows.filter((r) => !r.player_id || !draftedIds.has(r.player_id));
     }
     return clientAvailableRows;
-  }, [nominationPoolRows, clientAvailableRows]);
+  }, [hasValueRows, nominationPoolRows, clientAvailableRows, draftedIds]);
 
   const boardLoading = poolLoading || (availableRows.length === 0 && valueSheetLoading);
 
@@ -184,7 +182,6 @@ export default function DraftRoom({
     () => teams.find((t) => String(t.id) === String(nominatorTeamId)),
     [teams, nominatorTeamId],
   );
-  const testMode = Boolean(league?.test_mode);
   const isMyNominationTurn = !nominatorTeamId
     || String(myTeamId) === String(nominatorTeamId)
     || (!testMode && isCommissioner);
@@ -214,9 +211,18 @@ export default function DraftRoom({
     [mediaByPlayerId, sentimentByPlayerId, beatDigests],
   );
 
+  // Key on the stable id list so a new valueRows array identity with the same
+  // players does not re-POST enrichment for up to 400 rows.
+  const valueRowsRef = useRef(valueRows);
+  valueRowsRef.current = valueRows;
+  const enrichmentIdsKey = useMemo(
+    () => (valueRows || []).slice(0, 400).map((r) => r.player_id).filter(Boolean).join(","),
+    [valueRows],
+  );
+
   useEffect(() => {
-    if (!season || !valueRows?.length || testMode) return;
-    const players = valueRows.slice(0, 400).map((r) => ({
+    if (!season || !enrichmentIdsKey || testMode) return;
+    const players = (valueRowsRef.current || []).slice(0, 400).map((r) => ({
       player_id: r.player_id,
       player_name: r.player,
       team: r.team,
@@ -238,7 +244,7 @@ export default function DraftRoom({
       }
     })();
     return () => { cancelled = true; };
-  }, [season, valueRows, testMode]);
+  }, [season, enrichmentIdsKey, testMode]);
 
   useEffect(() => {
     if (session?.status === "bidding") setBoardOpen(false);
@@ -255,8 +261,10 @@ export default function DraftRoom({
     }
   }, [league?.test_mode, league?.id]);
 
+  // Server nomination pool is only needed when the value sheet is cold; each
+  // fetch runs a full build_value_sheet server-side, so avoid per-pick refetches.
   useEffect(() => {
-    if (!leagueId || testMode || mockModeLabel) {
+    if (!leagueId || hasValueRows) {
       setNominationPoolRows(null);
       setPoolLoading(false);
       return undefined;
@@ -276,7 +284,7 @@ export default function DraftRoom({
       }
     })();
     return () => { cancelled = true; };
-  }, [leagueId, testMode, mockModeLabel, draftedCount, poolMode]);
+  }, [leagueId, hasValueRows, poolMode]);
 
   const allowMidDraftCuts = Boolean(rules?.auction?.allow_mid_draft_cuts);
 
@@ -284,6 +292,18 @@ export default function DraftRoom({
     () => teams.find((t) => t.id === myTeamId),
     [teams, myTeamId],
   );
+
+  // Rail shows other teams in nomination order (viewer's team is pinned above).
+  const railTeams = useMemo(() => {
+    const order = session?.nomination_order || [];
+    const idx = (id) => {
+      const i = order.indexOf(id);
+      return i === -1 ? order.length : i;
+    };
+    return teams
+      .filter((t) => t.id !== myTeamId)
+      .sort((a, b) => idx(a.id) - idx(b.id));
+  }, [teams, myTeamId, session?.nomination_order]);
   const cutsActive = allowMidDraftCuts && leagueId && !draftCompleted;
 
   const previewRow = useMemo(
@@ -430,14 +450,23 @@ export default function DraftRoom({
     if (leagueId) refresh();
   }, [leagueId, refresh]);
 
-  // Poll during live draft (test mode bots); WS handles most updates
+  // Poll during live draft (test mode bots); WS handles most updates.
+  // Mock drafts always tick (bots only act on server refresh); real-league
+  // rooms skip hidden tabs and catch up on return.
   useEffect(() => {
     if (!leagueId || !inLiveDraft) return undefined;
     const ms = testMode ? 5000 : 8000;
     const id = setInterval(() => {
-      wsRefresh();
+      if (testMode || document.visibilityState === "visible") wsRefresh();
     }, ms);
-    return () => clearInterval(id);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") wsRefresh();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, [leagueId, inLiveDraft, testMode, wsRefresh]);
 
   const applyBidAmount = useCallback((next) => {
@@ -454,8 +483,14 @@ export default function DraftRoom({
     }
   }, [session?.status, session?.high_bid, suggestedBid]);
 
-  // Reset manual bid edits when a new player opens for bidding
+  // Reset manual bid edits when a new player opens for bidding.
+  // Guarded by ref: suggestedBid changes on every bot bid and must not wipe
+  // the user's typed amount mid-auction.
+  const lastNomineeIdRef = useRef(null);
   useEffect(() => {
+    const nomineeId = nominee?.player_id ?? null;
+    if (nomineeId === lastNomineeIdRef.current) return;
+    lastNomineeIdRef.current = nomineeId;
     bidTouched.current = false;
     if (session?.status === "bidding" && !bidFocused.current) {
       setBidAmount(String(suggestedBid));
@@ -466,6 +501,12 @@ export default function DraftRoom({
     && (!bidAmount || Number(bidAmount) < suggestedBid);
   const nomineePosBlocked = nominee && !canAcquire(nominee.position);
   const selectedNomBlocked = previewRow && !canAcquire(previewRow.position);
+
+  const minBidUnit = Number(rules?.auction?.min_bid ?? 1);
+  const openSlotsTotal = useMemo(
+    () => Object.values(posCapacity).reduce((sum, c) => sum + (c?.remaining || 0), 0),
+    [posCapacity],
+  );
 
   const runAction = async (fn) => {
     setBusy(true);
@@ -479,7 +520,7 @@ export default function DraftRoom({
     }
   };
 
-  const startMockDraft = async (mode) => {
+  const startMockDraft = async (mode, { simulate = false } = {}) => {
     await runAction(async () => {
       const body = {
         mode,
@@ -498,10 +539,47 @@ export default function DraftRoom({
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
-      setMockModeLabel(mode === "league_mirror" ? "League mirror mock" : "Quick mock");
-      applyState(data.state);
+      setMockModeLabel(
+        simulate
+          ? "Simulated mock"
+          : mode === "league_mirror"
+            ? "League mirror mock"
+            : "Quick mock",
+      );
       onLeagueIdChange(data.league_id);
       connectWs(data.league_id);
+      if (simulate) {
+        const sim = await apiFetch(`/api/hub/league/${data.league_id}/test/simulate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        if (!sim.ok) throw new Error(await parseApiError(sim));
+        applyState((await sim.json()).state);
+      } else {
+        applyState(data.state);
+      }
+    });
+  };
+
+  const simulateRemainingDraft = async () => {
+    if (!leagueId) return;
+    if (!(await confirmDialog({
+      title: "Simulate full draft",
+      message: "Run the rest of this practice draft instantly? Bots nominate and settle every auction until rosters are full.",
+      confirmLabel: "Simulate",
+    }))) {
+      return;
+    }
+    await runAction(async () => {
+      const res = await apiFetch(`/api/hub/league/${leagueId}/test/simulate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      applyState((await res.json()).state);
+      setMockModeLabel("Simulated mock");
     });
   };
 
@@ -517,7 +595,12 @@ export default function DraftRoom({
 
   const endDraft = async () => {
     const label = testMode ? "practice draft" : "draft";
-    if (!window.confirm(`End this ${label} now? Picks so far are kept. Any player currently on the block goes back to the pool.`)) {
+    if (!(await confirmDialog({
+      title: `End ${label}`,
+      message: `End this ${label} now? Picks so far are kept. Any player currently on the block goes back to the pool.`,
+      confirmLabel: "End now",
+      danger: true,
+    }))) {
       return;
     }
     await runAction(async () => {
@@ -529,7 +612,12 @@ export default function DraftRoom({
   };
 
   const resetPracticeDraft = async () => {
-    if (!window.confirm("Reset this practice draft? All picks, bid log, recap, and budgets will be cleared. Bots stay in the room.")) {
+    if (!(await confirmDialog({
+      title: "Reset practice draft",
+      message: "Reset this practice draft? All picks, bid log, recap, and budgets will be cleared. Bots stay in the room.",
+      confirmLabel: "Reset draft",
+      danger: true,
+    }))) {
       return;
     }
     await runAction(async () => {
@@ -566,7 +654,12 @@ export default function DraftRoom({
 
   const cutPlayer = async (playerId) => {
     if (!playerId || !leagueId) return;
-    if (!window.confirm("Drop this player? Cap refund depends on your league cut rules.")) return;
+    if (!(await confirmDialog({
+      title: "Drop player",
+      message: "Drop this player? Cap refund depends on your league cut rules.",
+      confirmLabel: "Drop player",
+      danger: true,
+    }))) return;
     await runAction(async () => {
       const res = await apiFetch(`/api/hub/league/${leagueId}/cut`, {
         method: "POST",
@@ -711,7 +804,6 @@ export default function DraftRoom({
       ? session?.nomination_deadline
       : null;
 
-  const statusLabel = DRAFT_STATUS_LABELS[draftStatus] || draftStatus;
   const activePhase = draftPhaseStep(draftStatus);
 
   useEffect(() => {
@@ -756,10 +848,37 @@ export default function DraftRoom({
     nominateHint,
   ]);
 
+  const nomineeRow = useMemo(
+    () => (valueRows || []).find((r) => String(r.player_id) === String(nominee?.player_id)) || null,
+    [valueRows, nominee?.player_id],
+  );
+  const nomineeStats = useMemo(() => {
+    if (!nominee) return null;
+    return {
+      perGame: nominee.per_game_proj ?? nomineeRow?.per_game_proj,
+      seasonProj: nominee.season_proj ?? nomineeRow?.season_proj,
+      fairValue: nominee.fair_value ?? nomineeRow?.fair_value ?? nomineeRow?.model_bid_hint,
+      minSal: nomineeRow?.min_sal,
+      maxSal: nomineeRow?.max_sal,
+      tier: nomineeRow?.tier,
+    };
+  }, [nominee, nomineeRow]);
+
+  const myBudget = Number(myTeam?.budget_remaining);
+  const myMaxBid = Number.isFinite(myBudget)
+    ? Math.max(0, myBudget - Math.max(0, openSlotsTotal - 1) * minBidUnit)
+    : null;
+  const nomineePosKey = nominee
+    ? (() => {
+        const raw = String(nominee.position || "").toUpperCase();
+        return raw === "DST" || raw === "D/ST" ? "DEF" : raw;
+      })()
+    : null;
+  const nomineeSlotsLeft = nomineePosKey ? posCapacity[nomineePosKey]?.remaining ?? null : null;
+
   const bidPanel = session?.status === "bidding" ? (
     <div className={`hub-draft-actions hub-draft-actions-prominent hub-draft-actions-on-block${mobileLayout ? " hub-draft-actions--mobile" : ""}`}>
       <div className="hub-action-block">
-        <span className="hub-action-title">Place your bid</span>
         <div className={`hub-action-row${mobileLayout ? " hub-action-row--stacked" : ""}`}>
           <input
             type="number"
@@ -800,6 +919,17 @@ export default function DraftRoom({
             </button>
           )}
         </div>
+        {myTeamId && Number.isFinite(myBudget) && (
+          <p className="hub-bid-you chart-note">
+            You: <strong>{fmtSal(myBudget)}</strong> left
+            {myMaxBid != null && (
+              <> · max bid <strong>{fmtSal(myMaxBid)}</strong></>
+            )}
+            {nomineeSlotsLeft != null && (
+              <> · {nominee?.position} slots open: {nomineeSlotsLeft}</>
+            )}
+          </p>
+        )}
         {bidInvalid && (
           <p className="hub-bid-hint">Minimum bid is {fmtSal(suggestedBid)}</p>
         )}
@@ -831,27 +961,33 @@ export default function DraftRoom({
               <span className={`hub-draft-phase-step${activePhase >= 2 ? " is-active" : ""}${activePhase > 2 ? " is-done" : ""}`}>Bid</span>
               <span className={`hub-draft-phase-step${activePhase >= 3 ? " is-active" : ""}`}>Award</span>
             </div>
-            {liveStatus && (
+            {/* Bidding details live in the auction card — header only guides nominations. */}
+            {session?.status === "nominating" && liveStatus && (
               <>
                 <strong className="hub-draft-live-title">{liveStatus.title}</strong>
-                {liveStatus.detail && <span className="chart-note">{liveStatus.detail}</span>}
                 {activeDeadline && (
                   <DraftDeadlineClock deadline={activeDeadline} className="hub-draft-live-timer" />
                 )}
               </>
             )}
-            {testMode && (
-              <span className="chart-note hub-draft-live-mock">{mockModeLabel || "Mock"}</span>
-            )}
           </div>
           <div className="hub-draft-head-actions">
             {league && (
               <span className="chart-note hub-draft-sub hub-draft-sub-inline">
-                {league.name}
-                {league.test_mode ? " · sandbox" : ""}
+                {league.test_mode ? mockModeLabel || "Mock draft" : league.name}
               </span>
             )}
-            <span className={`hub-draft-pill hub-draft-${session?.status || "setup"}`}>{statusLabel}</span>
+            {testMode && isCommissioner && (
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                disabled={busy}
+                onClick={simulateRemainingDraft}
+                title="Finish the practice draft instantly"
+              >
+                Simulate
+              </button>
+            )}
             {isCommissioner && (
               <button type="button" className="btn-ghost btn-sm hub-draft-end-btn" disabled={busy} onClick={endDraft}>
                 End
@@ -899,6 +1035,14 @@ export default function DraftRoom({
         </div>
       )}
 
+      {draftCompleted && myTeamId && leagueId && (
+        <DraftOwnerReport
+          leagueId={leagueId}
+          maxContractYears={rules?.contracts?.max_years}
+          onSaved={applyState}
+        />
+      )}
+
       {draftCompleted && recapHasStory && draftRecap && (
         <DraftRecapPanel
           recap={draftRecap}
@@ -939,6 +1083,15 @@ export default function DraftRoom({
                 />
               </label>
             </div>
+            <button
+              type="button"
+              className="btn-ghost"
+              disabled={busy || (valueSheetLoading && !valueRows?.length)}
+              onClick={() => startMockDraft("quick_bots", { simulate: true })}
+              title="Dev: run a full mock draft instantly, then open the post-draft report"
+            >
+              {busy ? "Simulating…" : "Simulate full draft"}
+            </button>
             {valueSheetLoading && !valueRows?.length && (
               <p className="chart-note">Loading player pool…</p>
             )}
@@ -1001,26 +1154,28 @@ export default function DraftRoom({
             )}
 
             {nominee ? (
-              <DraftNomineeCard
-                playerName={nominee.player_name}
-                position={nominee.position}
-                team={nominee.team}
-                {...playerContext(nominee.player_id)}
-                digestLoading={digestLoadingId === nominee.player_id}
-                sentimentMeta={sentimentMeta}
-                highBid={session.high_bidder_team_id ? session.high_bid : null}
-                openingBid={rules?.auction?.min_bid}
-                highBidderName={highBidder?.name}
-                highBidderIsBot={highBidder?.is_bot}
-                deadline={session.status === "bidding" ? session.bid_deadline : null}
-              />
+              <div className="hub-auction-card">
+                <DraftNomineeCard
+                  playerName={nominee.player_name}
+                  position={nominee.position}
+                  team={nominee.team}
+                  {...playerContext(nominee.player_id)}
+                  stats={nomineeStats}
+                  digestLoading={digestLoadingId === nominee.player_id}
+                  sentimentMeta={sentimentMeta}
+                  highBid={session.high_bidder_team_id ? session.high_bid : null}
+                  openingBid={rules?.auction?.min_bid}
+                  highBidderName={highBidder?.name}
+                  highBidderIsBot={highBidder?.is_bot}
+                  deadline={session.status === "bidding" ? session.bid_deadline : null}
+                />
+                {bidPanel}
+              </div>
             ) : session?.status === "nominating" && !isMyNominationTurn ? (
               <div className="hub-nominee-card hub-nominee-empty">
                 <span>Waiting for {nominatorTeam?.name || "next manager"}</span>
               </div>
             ) : null}
-
-            {bidPanel}
 
             {inLiveDraft && (
               <>
@@ -1085,6 +1240,7 @@ export default function DraftRoom({
                       showStatus={false}
                       defaultPosFilter="ALL"
                       maxRows={60}
+                      narrativeScope="season"
                       selectedPlayerId={nomPlayerId}
                       onSelectPlayer={(row) => setNomPlayerId(row.player_id)}
                       onRowDoubleClick={
@@ -1121,6 +1277,9 @@ export default function DraftRoom({
               onCutPlayer={cutPlayer}
               cutBusy={busy}
               budgetRemaining={myTeam?.budget_remaining}
+              maxBid={Number.isFinite(myBudget) ? myMaxBid : null}
+              isNominator={String(myTeamId) === String(nominatorTeamId) && session?.status === "nominating"}
+              isHighBidder={myTeamId && session?.high_bidder_team_id === myTeamId}
               ended={draftCompleted}
             />
             {draftCompleted && events.length > 0 && (
@@ -1138,10 +1297,11 @@ export default function DraftRoom({
             )}
             {!draftCompleted && (
             <>
-            <h3 className="hub-section-title">Teams</h3>
-            <p className="chart-note hub-draft-sidebar-hint">{draftedCount} drafted</p>
+            <h3 className="hub-section-title hub-draft-rail-title">
+              Teams <span className="chart-note">· {draftedCount} drafted</span>
+            </h3>
             <div className="hub-teams-list">
-              {teams.map((t) => (
+              {railTeams.map((t) => (
                 <DraftTeamCard
                   key={t.id}
                   team={t}
@@ -1149,8 +1309,8 @@ export default function DraftRoom({
                   cap={cap}
                   isLeader={t.id === session?.high_bidder_team_id}
                   isNominator={String(t.id) === String(nominatorTeamId)}
-                  isViewer={t.id === myTeamId}
-                  defaultOpen={t.id === myTeamId}
+                  isViewer={false}
+                  defaultOpen={false}
                   rosterLimits={roomState?.roster_limits}
                 />
               ))}

@@ -27,8 +27,11 @@ def _artifact_paths(season: int) -> tuple[Path, Path]:
 
 
 def pool_fingerprint() -> str:
-    """Hash of feature + model file mtimes — invalidates artifacts when inputs change."""
-    parts: list[str] = []
+    """Hash of feature + model + rookie-override mtimes — invalidates artifacts when inputs change."""
+    parts: list[str] = [
+        # Bump when projection post-processing changes (e.g. vet backup scaling).
+        "proj_logic:vet_backup_v1",
+    ]
     for pos in ("qb", "rb", "wr"):
         feat = PROCESSED_DATA_DIR / f"{pos}_mlready.parquet"
         if feat.exists():
@@ -37,6 +40,13 @@ def pool_fingerprint() -> str:
         model = MODEL_DIR / name
         if model.exists():
             parts.append(f"model:{name}:{model.stat().st_mtime_ns}")
+    try:
+        from src.config import ROOKIE_ROLE_OVERRIDES_PATH
+
+        if ROOKIE_ROLE_OVERRIDES_PATH.exists():
+            parts.append(f"rookie_overrides:{ROOKIE_ROLE_OVERRIDES_PATH.stat().st_mtime_ns}")
+    except Exception:
+        pass
     return hashlib.sha256("|".join(parts).encode()).hexdigest()[:16]
 
 

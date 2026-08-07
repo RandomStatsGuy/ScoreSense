@@ -286,14 +286,10 @@ function AccuracyHero({ position, summary, upsideSummary, seasonRange, report })
               {fpBenchmark ? (
                 <>
                   Consensus PPR weekly benchmark ({((report?.fantasypros_coverage_rate ?? 0) * 100).toFixed(0)}%
-                  coverage). Not used as a model feature (
-                  <code>FANTASYPROS_USE_AS_FEATURE=false</code>).
+                  coverage), shown for comparison only — not an input to our model.
                 </>
               ) : (
-                <>
-                  Add <code>FANTASYPROS_API_KEY</code> and prefetch the archive to enable the
-                  FantasyPros comparison line.
-                </>
+                <>The FantasyPros comparison line isn&apos;t available right now.</>
               )}
             </dd>
           </div>
@@ -314,8 +310,8 @@ function SeasonLongAccuracySection({ report }) {
       <details className="metric-group accuracy-collapsible">
         <summary className="metric-group-summary">Season-long accuracy</summary>
         <p className="metric-group-desc metric-group-desc-tight">
-          Draft-style preseason totals and mid-season ROS projections — run{" "}
-          <code>python -m src.analytics.season_long_eval</code> to populate.
+          Draft-style preseason totals and mid-season rest-of-season projections.
+          These aren&apos;t available yet — check back after the next model refresh.
         </p>
       </details>
     );
@@ -551,12 +547,12 @@ export default function AccuracyChart({
     return (
       <div className="accuracy-section">
         <div className="panel muted">
-          No accuracy report yet. Run <code>python -m src.products.accuracy_report</code>
-          {onRebuild ? " or rebuild below." : "."}
+          Accuracy backtests aren&apos;t available yet.
+          {onRebuild ? " An admin can rebuild them below." : " Check back soon."}
         </div>
         {onRebuild && (
           <details className="accuracy-admin">
-            <summary className="accuracy-admin-summary">Report maintenance</summary>
+            <summary className="accuracy-admin-summary">Report maintenance (admin)</summary>
             <button
               type="button"
               className="btn-ghost btn-sm accuracy-admin-btn"

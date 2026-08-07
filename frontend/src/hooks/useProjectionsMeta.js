@@ -15,6 +15,8 @@ export default function useProjectionsMeta() {
   const [draftSeason, setDraftSeason] = useState(null);
   const projMetaRef = useRef(null);
   projMetaRef.current = projMeta;
+  const contextRef = useRef({ season: null, week: null, rosSeason: null, rosFromWeek: null });
+  contextRef.current = { season, week, rosSeason, rosFromWeek };
 
   const weekOptions = useMemo(() => {
     if (!projMeta || season == null) return [];
@@ -38,10 +40,19 @@ export default function useProjectionsMeta() {
       const data = await res.json();
       if (signal?.aborted) return null;
       setProjMeta(data);
-      setSeason(data.default_season);
-      setWeek(data.default_week);
-      setRosSeason(data.default_season);
-      setRosFromWeek(data.default_week);
+      // Keep the current season/week context across position switches when the
+      // new position has data for it; otherwise fall back to that position's defaults.
+      const isValidContext = (s, w) =>
+        s != null && w != null && (data.weeks_by_season?.[String(s)] || []).includes(w);
+      const prev = contextRef.current;
+      if (!isValidContext(prev.season, prev.week)) {
+        setSeason(data.default_season);
+        setWeek(data.default_week);
+      }
+      if (!isValidContext(prev.rosSeason, prev.rosFromWeek)) {
+        setRosSeason(data.default_season);
+        setRosFromWeek(data.default_week);
+      }
       return data;
     } catch (err) {
       if (!isAbortError(err)) {

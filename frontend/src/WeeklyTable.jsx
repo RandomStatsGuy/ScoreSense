@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import Chip from "./Chip";
-import { isPlayerUnavailable, unavailableLabel } from "./format";
-import HoverTip from "./HoverTip";
+import { fmtNum, isPlayerUnavailable, unavailableLabel } from "./format";
+import { SortHeader, ExportCsvButton, useTableSort, csvQuote, downloadCsv } from "./table";
 import QuantileBar from "./QuantileBarShared";
 import SentimentBadge from "./SentimentBadge";
 import { TableSkeleton } from "./TableSkeleton";
@@ -27,21 +27,121 @@ function injuryBoostClass(boost) {
   return n > 0 ? "injury-pos" : "injury-neg";
 }
 
-function SortHeader({ label, sortKey, sort, onSort, tip, className = "" }) {
-  const active = sort.column === sortKey;
-  const arrow = !active ? "↕" : sort.dir === "asc" ? "↑" : "↓";
-  return (
-    <HoverTip
-      as="th"
-      content={tip}
-      className={`sortable-header col-tip ${className}`.trim()}
-      onClick={() => onSort(sortKey)}
-      aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}
-    >
-      {label} <span className="sort-indicator">{arrow}</span>
-    </HoverTip>
-  );
+/** DvP tone from "Opp Def Rank" (1 = toughest defense). Bottom third = favorable. */
+function matchupTone(rank, teamCount) {
+  const r = Number(rank);
+  if (!Number.isFinite(r) || !teamCount) return null;
+  if (r <= Math.floor(teamCount / 3)) return "bad";
+  if (r > Math.ceil((teamCount * 2) / 3)) return "good";
+  return null;
 }
+
+function matchupTitle(rank, teamCount, position) {
+  const r = Number(rank);
+  if (!Number.isFinite(r) || !teamCount) return undefined;
+  const vs = position === "rb" ? "the run" : "the pass";
+  const tone = matchupTone(r, teamCount);
+  const label =
+    tone === "good" ? "favorable matchup" : tone === "bad" ? "tough matchup" : "average matchup";
+  return `Opponent defense ranks ${r} of ${teamCount} vs ${vs} (1 = toughest) — ${label}`;
+}
+
+const WeeklyTableRow = React.memo(function WeeklyTableRow({
+  row,
+  rowIndex,
+  showOpponent,
+  hasSentiment,
+  showBoost,
+  unavailableColSpan,
+  scaleMax,
+  playerMedia,
+  position,
+  season,
+  week,
+  dvpTeamCount,
+}) {
+  const status = row["Injury Status"] || "";
+  const unavailable = isPlayerUnavailable(status);
+  const p50 = Number(row["Projected Points"]) || 0;
+  const p10 = Number(row["Low (P10)"]) || 0;
+  const p90 = Number(row["High (P90)"]) || 0;
+  const tag = unavailableLabel(status);
+
+  return (
+    <tr className={unavailable ? "row-unavailable" : undefined}>
+      <td className="col-player">
+        <PlayerCell
+          name={row.Player}
+          team={row.Team}
+          playerId={row.player_id}
+          media={playerMedia}
+          size="sm"
+          showTeam={false}
+          clickable={Boolean(row.player_id)}
+          position={position}
+          season={season}
+          week={week}
+        />
+        <span className="col-player-mobile-meta">
+          {row.Team || "—"}
+          {showOpponent && row.Opponent ? ` · ${row.Opponent}` : ""}
+        </span>
+      </td>
+      <td className="col-team">
+        {row.Team ? <Chip tone="team">{row.Team}</Chip> : "—"}
+      </td>
+      {showOpponent && (
+        <td
+          className={`col-opp${row.Opponent === "BYE" ? " muted" : ""}${
+            matchupTone(row["Opp Def Rank"], dvpTeamCount)
+              ? ` matchup-${matchupTone(row["Opp Def Rank"], dvpTeamCount)}`
+              : ""
+          }`}
+          title={matchupTitle(row["Opp Def Rank"], dvpTeamCount, position)}
+        >
+          {row.Opponent || "—"}
+        </td>
+      )}
+      {hasSentiment && (
+        <td className="col-narrative">
+          <SentimentBadge sentiment={row.sentiment} compact table />
+        </td>
+      )}
+      {unavailable ? (
+        <td colSpan={unavailableColSpan} className="out-tag-cell">
+          <span className="out-tag">{tag}</span>
+          <span className="out-tag-note">Projections suppressed — Sleeper {status}</span>
+        </td>
+      ) : (
+        <>
+          <td className="num num-proj">
+            <span className="col-proj-value">{fmtNum(row["Projected Points"], 1)}</span>
+            <span className="col-proj-mobile-range">
+              {fmtNum(row["Low (P10)"], 1)}–{fmtNum(row["High (P90)"], 1)}
+            </span>
+          </td>
+          <td className="range-cell">
+            <QuantileBar
+              p10={p10}
+              p50={p50}
+              p90={p90}
+              scaleMax={scaleMax}
+              rowIndex={rowIndex}
+              showVolatility
+            />
+          </td>
+          {showBoost && (
+            <td className={`num ${injuryBoostClass(row["Injury Boost"])}`}>
+              {row["Injury Boost"]
+                ? `${Number(row["Injury Boost"]) > 0 ? "+" : ""}${(Number(row["Injury Boost"]) * 100).toFixed(0)}%`
+                : "—"}
+            </td>
+          )}
+        </>
+      )}
+    </tr>
+  );
+});
 
 function exportCsv(rows) {
   const header = ["Player", "Team", "Projected", "Floor", "Ceiling", "Injury Boost", "Injury Status"];
@@ -50,38 +150,19 @@ function exportCsv(rows) {
     ...rows.map((row) => {
       const status = row["Injury Status"] || "";
       const unavailable = isPlayerUnavailable(status);
+      const boost = Number(row["Injury Boost"]);
       return [
-        `"${String(row.Player).replace(/"/g, '""')}"`,
+        csvQuote(row.Player),
         row.Team || "",
-        unavailable ? "OUT" : Number(row["Projected Points"]).toFixed(2),
-        unavailable ? "OUT" : Number(row["Low (P10)"]).toFixed(2),
-        unavailable ? "OUT" : Number(row["High (P90)"]).toFixed(2),
-        unavailable ? "" : row["Injury Boost"] ? (Number(row["Injury Boost"]) * 100).toFixed(1) : "",
+        unavailable ? "OUT" : fmtNum(row["Projected Points"], 2, ""),
+        unavailable ? "OUT" : fmtNum(row["Low (P10)"], 2, ""),
+        unavailable ? "OUT" : fmtNum(row["High (P90)"], 2, ""),
+        !unavailable && Number.isFinite(boost) && boost !== 0 ? (boost * 100).toFixed(1) : "",
         unavailable ? unavailableLabel(status) : status,
       ].join(",");
     }),
   ];
-  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `scoresense-projections-${Date.now()}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function DownloadIcon() {
-  return (
-    <svg className="export-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 3v12m0 0l4-4m-4 4l-4-4M5 21h14"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  downloadCsv("scoresense-projections", lines);
 }
 
 export default function WeeklyTable({
@@ -96,7 +177,7 @@ export default function WeeklyTable({
   season,
   week,
 }) {
-  const [sort, setSort] = useState({ column: "P50", dir: "desc" });
+  const [sort, toggleSort] = useTableSort({ column: "P50", dir: "desc" });
   const mobileLayout = useMobileLayout();
 
   const showOpponent = useMemo(
@@ -118,7 +199,8 @@ export default function WeeklyTable({
     [rows]
   );
 
-  const baseColCount = 3 + (showOpponent ? 1 : 0) + (hasSentiment ? 1 : 0) + (showBoost ? 1 : 0);
+  // Player, Team, Proj, Range are always present; Opp/Narrative/Boost are conditional.
+  const baseColCount = 4 + (showOpponent ? 1 : 0) + (hasSentiment ? 1 : 0) + (showBoost ? 1 : 0);
   const emptyColSpan = baseColCount;
   const unavailableColSpan = 2 + (showBoost ? 1 : 0);
 
@@ -126,7 +208,11 @@ export default function WeeklyTable({
     let list = rows || [];
     const q = (search || "").trim().toLowerCase();
     if (q) {
-      list = list.filter((r) => String(r.Player || "").toLowerCase().includes(q));
+      list = list.filter(
+        (r) =>
+          String(r.Player || "").toLowerCase().includes(q) ||
+          String(r.Team || "").toLowerCase().includes(q),
+      );
     }
     if (teamsFilter?.length) {
       const set = new Set(teamsFilter.map((t) => t.toUpperCase()));
@@ -142,6 +228,16 @@ export default function WeeklyTable({
     return maxP90 > 0 ? maxP90 : 1;
   }, [rows]);
 
+  // Number of ranked defenses in the slate (max observed rank) for DvP bucketing.
+  const dvpTeamCount = useMemo(() => {
+    let max = 0;
+    for (const r of rows || []) {
+      const rank = Number(r["Opp Def Rank"]);
+      if (Number.isFinite(rank) && rank > max) max = rank;
+    }
+    return max;
+  }, [rows]);
+
   const sorted = useMemo(() => {
     const key = SORT_KEYS[sort.column] || sort.column;
     const dir = sort.dir === "asc" ? 1 : -1;
@@ -150,7 +246,7 @@ export default function WeeklyTable({
       const bOut = isPlayerUnavailable(b["Injury Status"]);
       if (aOut !== bOut) return aOut ? 1 : -1;
 
-      if (key === "Player" || key === "Team") {
+      if (key === "Player" || key === "Team" || key === "Opponent") {
         return dir * String(a[key] || "").localeCompare(String(b[key] || ""));
       }
       if (key === "Narrative") {
@@ -173,14 +269,6 @@ export default function WeeklyTable({
   );
   const playerMedia = usePlayerMedia(playerIds);
 
-  const toggleSort = (column) => {
-    setSort((prev) =>
-      prev.column === column
-        ? { column, dir: prev.dir === "asc" ? "desc" : "asc" }
-        : { column, dir: "desc" }
-    );
-  };
-
   const hasFilters = Boolean((search || "").trim() || teamsFilter?.length);
   const emptyMessage = loading
     ? null
@@ -193,16 +281,7 @@ export default function WeeklyTable({
       <div className="table-controls">
         {searchSlot}
         {!mobileLayout && (
-          <button
-            type="button"
-            className="btn-export-csv"
-            onClick={() => exportCsv(sorted)}
-            disabled={!sorted.length}
-            title="Download filtered table as CSV"
-          >
-            <DownloadIcon />
-            CSV
-          </button>
+          <ExportCsvButton onExport={() => exportCsv(sorted)} disabled={!sorted.length} />
         )}
       </div>
       <div className="table-toolbar">
@@ -243,7 +322,7 @@ export default function WeeklyTable({
                   />
                 )}
                 meta={metaParts.join(" · ")}
-                heroValue={unavailable ? tag : p50.toFixed(1)}
+                heroValue={unavailable ? tag : fmtNum(row["Projected Points"], 1)}
                 heroLabel={unavailable ? "" : "proj"}
                 heroMuted={unavailable}
                 unavailable={unavailable}
@@ -260,11 +339,12 @@ export default function WeeklyTable({
                             p90={p90}
                             scaleMax={scaleMax}
                             rowIndex={rowIndex}
+                            showVolatility
                           />
                         </div>
                         <div className="mobile-stat-grid">
-                          <MobileStat label="Floor" value={p10.toFixed(1)} />
-                          <MobileStat label="Ceiling" value={p90.toFixed(1)} />
+                          <MobileStat label="Floor" value={fmtNum(row["Low (P10)"], 1)} />
+                          <MobileStat label="Ceiling" value={fmtNum(row["High (P90)"], 1)} />
                           {showBoost && row["Injury Boost"] ? (
                             <MobileStat
                               label="Injury boost"
@@ -320,13 +400,14 @@ export default function WeeklyTable({
                 tip="Expected fantasy points this week (median projection)"
                 className="col-proj"
               />
-              <HoverTip
-                as="th"
-                className="col-tip col-range"
-                content="Visual range from floor to ceiling. Hover for exact values; white tick = projected score."
-              >
-                Range
-              </HoverTip>
+              <SortHeader
+                label="Range"
+                sortKey="P90"
+                sort={sort}
+                onSort={toggleSort}
+                tip="Floor-to-ceiling range — sorts by ceiling (P90). Hover a bar for exact values; white tick = projected score; amber = boom/bust spread."
+                className="col-range"
+              />
               {showBoost && (
                 <SortHeader
                   label="Boost"
@@ -350,81 +431,23 @@ export default function WeeklyTable({
                 </td>
               </tr>
             )}
-            {sorted.map((row, rowIndex) => {
-              const status = row["Injury Status"] || "";
-              const unavailable = isPlayerUnavailable(status);
-              const p50 = Number(row["Projected Points"]) || 0;
-              const p10 = Number(row["Low (P10)"]) || 0;
-              const p90 = Number(row["High (P90)"]) || 0;
-              const tag = unavailableLabel(status);
-
-              return (
-                <tr key={`${row.player_id || row.Player}-${row.Team}`} className={unavailable ? "row-unavailable" : undefined}>
-                  <td className="col-player">
-                    <PlayerCell
-                      name={row.Player}
-                      team={row.Team}
-                      playerId={row.player_id}
-                      media={playerMedia}
-                      size="sm"
-                      showTeam={false}
-                      clickable={Boolean(row.player_id)}
-                      position={position}
-                      season={season}
-                      week={week}
-                    />
-                    <span className="col-player-mobile-meta">
-                      {row.Team || "—"}
-                      {showOpponent && row.Opponent ? ` · ${row.Opponent}` : ""}
-                    </span>
-                  </td>
-                  <td className="col-team">
-                    {row.Team ? <Chip tone="team">{row.Team}</Chip> : "—"}
-                  </td>
-                  {showOpponent && (
-                    <td className={`col-opp${row.Opponent === "BYE" ? " muted" : ""}`}>
-                      {row.Opponent || "—"}
-                    </td>
-                  )}
-                  {hasSentiment && (
-                    <td className="col-narrative">
-                      <SentimentBadge sentiment={row.sentiment} compact table />
-                    </td>
-                  )}
-                  {unavailable ? (
-                    <td colSpan={unavailableColSpan} className="out-tag-cell">
-                      <span className="out-tag">{tag}</span>
-                      <span className="out-tag-note">Projections suppressed — Sleeper {status}</span>
-                    </td>
-                  ) : (
-                    <>
-                      <td className="num num-proj">
-                        <span className="col-proj-value">{p50.toFixed(1)}</span>
-                        <span className="col-proj-mobile-range">
-                          {p10.toFixed(1)}–{p90.toFixed(1)}
-                        </span>
-                      </td>
-                      <td className="range-cell">
-                        <QuantileBar
-                          p10={p10}
-                          p50={p50}
-                          p90={p90}
-                          scaleMax={scaleMax}
-                          rowIndex={rowIndex}
-                        />
-                      </td>
-                      {showBoost && (
-                        <td className={`num ${injuryBoostClass(row["Injury Boost"])}`}>
-                          {row["Injury Boost"]
-                            ? `${Number(row["Injury Boost"]) > 0 ? "+" : ""}${(Number(row["Injury Boost"]) * 100).toFixed(0)}%`
-                            : "—"}
-                        </td>
-                      )}
-                    </>
-                  )}
-                </tr>
-              );
-            })}
+            {sorted.map((row, rowIndex) => (
+              <WeeklyTableRow
+                key={`${row.player_id || row.Player}-${row.Team}`}
+                row={row}
+                rowIndex={rowIndex}
+                showOpponent={showOpponent}
+                hasSentiment={hasSentiment}
+                showBoost={showBoost}
+                unavailableColSpan={unavailableColSpan}
+                scaleMax={scaleMax}
+                playerMedia={playerMedia}
+                position={position}
+                season={season}
+                week={week}
+                dvpTeamCount={dvpTeamCount}
+              />
+            ))}
               </>
             )}
           </tbody>

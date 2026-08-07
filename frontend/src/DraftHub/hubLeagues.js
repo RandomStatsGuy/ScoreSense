@@ -66,7 +66,7 @@ export async function setHubFocus({ leagueId = null, solo = false } = {}) {
   const res = await requestActiveLeague(body);
   if (res.status === 405 || res.status === 404) {
     throw new Error(
-      "League switching is unavailable — restart the API with .\\scripts\\dev\\restart_api.ps1, then refresh this page.",
+      "League switching is temporarily unavailable. Please refresh the page and try again.",
     );
   }
   if (!res.ok) throw new Error(await parseApiError(res));

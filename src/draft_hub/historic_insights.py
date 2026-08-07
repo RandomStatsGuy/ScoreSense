@@ -7,7 +7,7 @@ from collections import defaultdict
 from typing import Any
 
 from src.draft_hub import storage
-from src.draft_hub.legacy_contract_history import _displayable_contract_row
+from src.draft_hub.contract_rows_merged import active_merged_contract_rows, list_merged_contract_rows
 from src.draft_hub.player_name_match import (
     cluster_key,
     find_matching_player_key,
@@ -46,13 +46,24 @@ def _row_position(row: dict[str, Any]) -> str | None:
 def _active_contract_rows(
     league_id: str,
     season_year: int | None = None,
+    *,
+    view: str = "snapshot",
 ) -> list[dict[str, Any]]:
-    rows = storage.list_league_contract_rows(league_id, season_year=season_year)
-    return [
-        r
-        for r in rows
-        if _displayable_contract_row(r) and str(r.get("roster_status") or "active") == "active"
-    ]
+    if season_year is not None:
+        return active_merged_contract_rows(league_id, season_year, view=view)
+    return active_merged_contract_rows(league_id, None, view=view)
+
+
+def _all_merged_rows(
+    league_id: str,
+    season_year: int,
+    *,
+    view: str = "snapshot",
+) -> list[dict[str, Any]]:
+    from src.draft_hub.legacy_contract_history import _displayable_contract_row
+
+    rows = list_merged_contract_rows(league_id, season_year=season_year, view=view)
+    return [r for r in rows if _displayable_contract_row(r) or str(r.get("roster_status") or "") == "cut"]
 
 
 def list_history_seasons(league_id: str) -> list[int]:
@@ -64,6 +75,7 @@ def build_contract_analytics(
     *,
     season_year: int | None = None,
     salary_cap: float = DEFAULT_SALARY_CAP,
+    view: str = "snapshot",
 ) -> dict[str, Any] | None:
     """League cap analytics from commissioner sheets (one season or all-time averages)."""
     seasons = list_history_seasons(league_id)
@@ -71,12 +83,23 @@ def build_contract_analytics(
         return None
 
     if season_year is not None:
-        rows = _active_contract_rows(league_id, season_year)
-        return _analytics_snapshot(rows, salary_cap=salary_cap, label=str(season_year), league_id=league_id)
+        active_rows = _active_contract_rows(league_id, season_year, view=view)
+        all_rows = _all_merged_rows(league_id, season_year, view=view)
+        cut_rows = [
+            r for r in all_rows
+            if str(r.get("roster_status") or "") == "cut"
+        ]
+        return _analytics_snapshot(
+            active_rows,
+            salary_cap=salary_cap,
+            label=str(season_year),
+            league_id=league_id,
+            cut_rows=cut_rows,
+        )
 
     team_season_rows: dict[str, dict[int, list[dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
     for yr in seasons:
-        for row in _active_contract_rows(league_id, yr):
+        for row in _active_contract_rows(league_id, yr, view=view):
             team = _row_team_name(league_id, row)
             team_season_rows[team][yr].append(row)
 
@@ -87,7 +110,8 @@ def build_contract_analytics(
     for team_name, season_map in sorted(team_season_rows.items()):
         season_snapshots: list[dict[str, Any]] = []
         for yr, rows in season_map.items():
-            snap = _analytics_snapshot(rows, salary_cap=salary_cap, label=str(yr), league_id=league_id)
+            yr_cap = storage.resolve_salary_cap_for_season(league_id, int(yr), salary_cap)
+            snap = _analytics_snapshot(rows, salary_cap=yr_cap, label=str(yr), league_id=league_id)
             if snap["teams"]:
                 season_snapshots.append(snap["teams"][0])
 
@@ -156,11 +180,18 @@ def _analytics_snapshot(
     salary_cap: float,
     label: str,
     league_id: str | None = None,
+    cut_rows: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     teams_out: list[dict[str, Any]] = []
     all_spend: dict[str, list[float]] = {p: [] for p in ANALYTICS_POSITIONS}
     all_counts: dict[str, list[int]] = {p: [] for p in ANALYTICS_POSITIONS}
     by_team: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    dead_by_team: dict[str, float] = defaultdict(float)
+    for row in cut_rows or []:
+        team = _row_team_name(league_id, row) if league_id else (
+            row.get("hub_team_name") or row.get("owner_label") or "Unknown"
+        )
+        dead_by_team[team] += float(row.get("cap_hit") or row.get("base_salary") or 0)
     for row in rows:
         team = _row_team_name(league_id, row) if league_id else (
             row.get("hub_team_name") or row.get("owner_label") or "Unknown"
@@ -178,9 +209,11 @@ def _analytics_snapshot(
             spend[pos] += sal
             counts[pos] += 1
         committed = round(sum(spend.values()), 2)
-        unspent = round(max(0.0, salary_cap - committed), 2)
+        dead_cap = round(dead_by_team.get(team_name, 0.0), 2)
+        unspent = round(max(0.0, salary_cap - committed - dead_cap), 2)
         pct = {p: round((spend[p] / salary_cap) * 100, 1) if salary_cap else 0.0 for p in ANALYTICS_POSITIONS}
         pct_unspent = round((unspent / salary_cap) * 100, 1) if salary_cap else 0.0
+        pct_dead = round((dead_cap / salary_cap) * 100, 1) if salary_cap else 0.0
         for p in ANALYTICS_POSITIONS:
             all_spend[p].append(spend[p])
             all_counts[p].append(counts[p])
@@ -192,10 +225,10 @@ def _analytics_snapshot(
                 "count_by_position": counts,
                 "pct_by_position": pct,
                 "committed": committed,
-                "dead_cap": 0.0,
+                "dead_cap": dead_cap,
                 "unspent": unspent,
                 "pct_unspent": pct_unspent,
-                "pct_dead_cap": 0.0,
+                "pct_dead_cap": pct_dead,
                 "player_count": sum(counts.values()),
             }
         )
@@ -305,8 +338,12 @@ def _filter_timeline_by_season(timeline: list[dict[str, Any]], season_year: int)
 
 
 def _profile_for_player(player: dict[str, Any], profiles: list[dict[str, Any]]) -> dict[str, Any] | None:
+    lookup: dict[str, dict[str, Any]] = {}
+    key = _name_key(player.get("player_name") or "")
+    if key:
+        lookup[key] = player
     for prof in profiles:
-        if find_matching_player_key(prof["player_name"], prof.get("position"), by_key={player.get("player_name") or "": player}):
+        if find_matching_player_key(prof["player_name"], prof.get("position"), lookup):
             return prof
     ck = cluster_key(player.get("player_name") or "", player.get("position"))
     if ck:

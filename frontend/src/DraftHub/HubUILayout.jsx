@@ -1,4 +1,19 @@
 import React, { useEffect, useRef, useState } from "react";
+import { sortIndicator } from "./valueSheetUtils";
+
+/** Sortable column header shared by hub tables. */
+export function SortTh({ label, col, sortKey, sortDir, onSort, className = "", title }) {
+  return (
+    <th
+      className={`sortable-header ${className}`.trim()}
+      onClick={() => onSort(col)}
+      title={title}
+    >
+      {label}
+      <span className="sort-indicator"> {sortIndicator(sortKey, sortDir, col)}</span>
+    </th>
+  );
+}
 
 export function HubPage({ className = "", children }) {
   return (

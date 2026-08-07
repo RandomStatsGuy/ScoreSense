@@ -15,7 +15,12 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from app.process_pool import init_process_executor, shutdown_process_executor, submit_cpu_job
+from app.process_pool import (
+    get_process_executor,
+    init_process_executor,
+    shutdown_process_executor,
+    submit_cpu_job,
+)
 from app.auth import (
     FRONTEND_URL,
     accept_native_terms,
@@ -64,7 +69,7 @@ from src.projections.predict import get_model_metrics, predict_upcoming_week
 from src.projections.projection_meta import get_projection_meta
 from src.projections.draft_meta import get_draft_meta
 from src.projections.draft_projections import draft_projection_note, predict_draft_season
-from src.projections.weekly_cache import load_weekly_prediction
+from src.projections.weekly_cache import compute_weekly_artifact, load_weekly_prediction
 from src.draft_hub.draft_pool_cache import draft_pool_for_position
 from src.products.bestball_board import build_bestball_board
 from src.products.dfs_config import list_site_configs
@@ -208,12 +213,15 @@ def player_card_get(
 
 @app.get("/api/auth/config")
 def auth_config() -> dict:
+    from src.draft_hub.hub_demo import demo_config
+
     return {
         "auth_required": auth_enabled(),
         "hub_auth_required": hub_auth_enabled(),
         "patreon_configured": patreon_configured(),
         "accounts_enabled": True,
         "admin_configured": admin_configured(),
+        "hub_demo": demo_config(),
         **auth_public_config(),
     }
 
@@ -790,12 +798,38 @@ def _predict_response(
     if position not in ("qb", "rb", "wr"):
         raise HTTPException(status_code=400, detail="position must be qb, rb, or wr")
     try:
-        preds = load_weekly_prediction(
-            position,
-            season=season,
-            week=week,
-            apply_injury_adjustments=apply_injury_adjustments,
-        )
+        if season is not None and week is not None:
+            preds = load_weekly_prediction(
+                position,
+                season=season,
+                week=week,
+                apply_injury_adjustments=apply_injury_adjustments,
+                allow_compute=False,
+            )
+            if preds.empty:
+                # Cold cache: run inference in the shared process pool so it
+                # doesn't stall other requests, then re-read the saved artifact.
+                get_process_executor().submit(
+                    compute_weekly_artifact,
+                    position,
+                    int(season),
+                    int(week),
+                    apply_injury_adjustments,
+                ).result()
+                preds = load_weekly_prediction(
+                    position,
+                    season=season,
+                    week=week,
+                    apply_injury_adjustments=apply_injury_adjustments,
+                    allow_compute=False,
+                )
+        else:
+            preds = load_weekly_prediction(
+                position,
+                season=season,
+                week=week,
+                apply_injury_adjustments=apply_injury_adjustments,
+            )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     meta = {}
@@ -818,7 +852,7 @@ def _predict_response(
         "count": len(preds),
         "meta": meta,
         "note": note,
-        "projections": preds.to_dict(orient="records"),
+        "projections": _json_safe_records(preds),
     }
 
 

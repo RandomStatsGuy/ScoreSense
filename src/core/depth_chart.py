@@ -32,10 +32,28 @@ def _non_rookie_rank(row: pd.Series) -> int:
     return 0 if bool(row.get("_rookie_estimate", False)) else 1
 
 
-def _qb_starter_key(row: pd.Series, games_played: dict[str, int]) -> tuple[int, int, float, float]:
+def _sleeper_depth_sort_key(row: pd.Series) -> tuple[int, int]:
+    """Prefer Sleeper depth chart order when present (QB1 before prior-year volume leaders)."""
+    dc = row.get("_sleeper_depth_order")
+    try:
+        if dc is None or (isinstance(dc, float) and pd.isna(dc)):
+            return (0, 0)
+        dc_i = int(dc)
+    except (TypeError, ValueError):
+        return (0, 0)
+    if dc_i <= 0:
+        return (0, 0)
+    # reverse=True ⇒ (1, -1) beats (1, -2) beats (0, 0)
+    return (1, -dc_i)
+
+
+def _qb_starter_key(row: pd.Series, games_played: dict[str, int]) -> tuple:
     pid = str(row.get("player_id") or "")
     gp = int(games_played.get(pid, 0))
+    has_dc, dc_pri = _sleeper_depth_sort_key(row)
     return (
+        has_dc,
+        dc_pri,
         gp,
         _non_rookie_rank(row),
         float(row.get("pass_attmpt_avg") or 0),
@@ -43,10 +61,13 @@ def _qb_starter_key(row: pd.Series, games_played: dict[str, int]) -> tuple[int, 
     )
 
 
-def _rb_starter_key(row: pd.Series, games_played: dict[str, int]) -> tuple[int, int, float, float, float]:
+def _rb_starter_key(row: pd.Series, games_played: dict[str, int]) -> tuple:
     pid = str(row.get("player_id") or "")
     gp = int(games_played.get(pid, 0))
+    has_dc, dc_pri = _sleeper_depth_sort_key(row)
     return (
+        has_dc,
+        dc_pri,
         gp,
         _non_rookie_rank(row),
         float(row.get("carry_share_avg") or 0),
@@ -55,10 +76,13 @@ def _rb_starter_key(row: pd.Series, games_played: dict[str, int]) -> tuple[int, 
     )
 
 
-def _wr_starter_key(row: pd.Series, games_played: dict[str, int]) -> tuple[int, int, float, float, float]:
+def _wr_starter_key(row: pd.Series, games_played: dict[str, int]) -> tuple:
     pid = str(row.get("player_id") or "")
     gp = int(games_played.get(pid, 0))
+    has_dc, dc_pri = _sleeper_depth_sort_key(row)
     return (
+        has_dc,
+        dc_pri,
         gp,
         _non_rookie_rank(row),
         float(row.get("target_share_avg") or 0),

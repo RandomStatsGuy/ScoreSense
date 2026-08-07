@@ -40,7 +40,7 @@ export default function MobileMenuSheet({
               openSignIn();
             }}
           >
-            Sign in with Patreon
+            Sign in
           </button>
         ) : null}
         {authReady && authenticated ? (

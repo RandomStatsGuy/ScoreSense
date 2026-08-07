@@ -162,18 +162,22 @@ def build_contract_from_roster_edit(
 
 
 def can_renew(row: dict[str, Any], rules: LeagueRules) -> tuple[bool, str]:
+    """One extension is allowed only at the end of a rookie deal (before draft)."""
     contract = row.get("contract") or {}
     ctype = contract.get("contract_type") or "veteran"
+    yrs = int(contract.get("years_remaining") or row.get("contract_years") or 1)
+    if yrs > 1:
+        return False, "Extension only when the current deal is in its final year."
     if contract.get("renewal_used"):
-        return False, "Renewal already used — player becomes a free agent after this deal."
+        return False, "Renewal already used — player becomes a free agent."
     cr = contract_rules(rules)
     if ctype == "rookie":
-        return True, "Eligible for one post-rookie extension."
+        return True, "Eligible for one post-rookie extension (1–3 years)."
     if ctype == "extension":
-        return False, "Already on an extension."
+        return False, "Already on an extension — expires to free agency."
     if cr.allow_veteran_renewal:
         return True, "Eligible for renewal."
-    return False, "Veteran renewals disabled in league rules."
+    return False, "Veterans cannot be re-signed — expires to free agency."
 
 
 def renew_player_contract(

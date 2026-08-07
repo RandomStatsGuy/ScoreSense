@@ -170,6 +170,19 @@ class TestDraftSetupRequest(BaseModel):
     bot_budget: Optional[float] = None
 
 
+class SimulateDraftRequest(BaseModel):
+    max_picks: Optional[int] = None
+
+
+class DraftContractItem(BaseModel):
+    player_id: str
+    contract_years: int = 1
+
+
+class DraftContractsRequest(BaseModel):
+    contracts: list[DraftContractItem]
+
+
 class MockDraftStartRequest(BaseModel):
     mode: Literal["quick_bots", "league_mirror"]
     season: int = 2025

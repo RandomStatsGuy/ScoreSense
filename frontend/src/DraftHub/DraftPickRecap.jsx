@@ -13,7 +13,7 @@ const GRADE_LABEL = {
 export default function DraftPickRecap({ recap, onDismiss }) {
   useEffect(() => {
     if (!recap) return undefined;
-    const id = setTimeout(() => onDismiss?.(), 9000);
+    const id = setTimeout(() => onDismiss?.(), 4500);
     return () => clearTimeout(id);
   }, [recap, onDismiss]);
 

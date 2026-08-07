@@ -149,6 +149,10 @@ def predict_draft_season(
             axis=1,
         )
 
+    from src.integrations.sleeper import apply_vet_backup_projection_scale
+
+    result = apply_vet_backup_projection_scale(result, roster)
+
     meta_cols = ["Season Proj", "Season Floor", "Season Ceiling", "Per-Game Proj"]
     for col in meta_cols:
         if col in result.columns:
@@ -204,7 +208,8 @@ def draft_projection_note(
         )
         if rookies:
             parts.append(
-                "Rookie totals start from a backup baseline, scale by Sleeper depth chart, "
+                "Rookie totals start from a low-usage backup feature template, scale by "
+                "Sleeper depth + draft-capital (search rank), "
                 "optional camp overrides (data/projections/rookie_role_overrides.yaml), "
                 "and YouTube role-hype when available."
             )

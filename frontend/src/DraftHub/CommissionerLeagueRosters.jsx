@@ -10,6 +10,7 @@ import {
   setLeagueRostersCache,
 } from "./hubDataCache";
 import { fmtSal, leagueStepUp, preDraftCutDeadCap, previewSchedule, scheduleText } from "./rosterFormat";
+import { confirmDialog } from "../ui/confirm";
 
 const POS_ORDER = ["QB", "RB", "WR", "TE"];
 
@@ -126,7 +127,12 @@ function TeamRosterBlock({
   };
 
   const dropPlayer = async (r) => {
-    if (!window.confirm(`Drop ${r.player_name} from ${block.team.name}?`)) {
+    if (!(await confirmDialog({
+      title: "Drop player",
+      message: `Drop ${r.player_name} from ${block.team.name}?`,
+      confirmLabel: "Drop player",
+      danger: true,
+    }))) {
       return;
     }
     setSavingId(r.player_id);
@@ -253,7 +259,7 @@ function TeamRosterBlock({
                   <>
                     {isCut && <span className="hub-sleeper-badge hub-cut-badge">Cut</span>}
                     {!draftCompleted && yrsLeft <= 1 && !isCut && (
-                      <span className="hub-sleeper-badge hub-expiring-badge">Expires after draft</span>
+                      <span className="hub-sleeper-badge hub-expiring-badge">Expires before draft</span>
                     )}
                   </>
                 )}
@@ -334,7 +340,7 @@ function TeamRosterBlock({
                         {r.team || "—"}
                         {isCut && <span className="hub-sleeper-badge hub-cut-badge">Cut</span>}
                         {!draftCompleted && yrsLeft <= 1 && !isCut && (
-                          <span className="hub-sleeper-badge hub-expiring-badge">Expires after draft</span>
+                          <span className="hub-sleeper-badge hub-expiring-badge">Expires before draft</span>
                         )}
                       </span>
                     </div>

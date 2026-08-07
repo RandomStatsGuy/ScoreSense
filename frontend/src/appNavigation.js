@@ -26,8 +26,6 @@ export const SEASON_MODES = [
 
 export const TOOLS_TABS = [
   { id: "dfs", label: "DFS" },
-  { id: "bestball", label: "Best Ball" },
-  { id: "props", label: "Props" },
 ];
 
 export const SECTION_SUBTITLES = {
@@ -44,14 +42,13 @@ export const SECTION_SUBTITLES = {
     roster: "Contracts",
     room: "Live auction",
     planner: "Cap & cuts",
+    trades: "Trade ideas",
     insights: "Spend & scoring",
     live: "This week's matchup",
     "league-rosters": "All rosters",
   },
   tools: {
     dfs: "DFS lineups & stacks",
-    bestball: "Model rank vs ADP",
-    props: "Fair lines vs market",
   },
   model: "How we validate projections before you use them",
   admin: "League and account management",

@@ -236,8 +236,7 @@ export default function SleeperLink({ workspace, hubContext, onLinked, onRosterC
   const showForm = !linked || showConnectionForm;
 
   return (
-    <section className={`panel hub-panel hub-sleeper-panel${mobileLayout ? " hub-sleeper-panel--mobile" : ""}`}>
-      <h3 className="hub-panel-subtitle">Sleeper connection</h3>
+    <section className={`hub-sleeper-panel${mobileLayout ? " hub-sleeper-panel--mobile" : ""}`}>
       <p className="chart-note hub-sleeper-desc">
         {inLeague && hubContext?.is_commissioner
           ? "Link your team; sync imports all rosters."

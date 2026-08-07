@@ -4,7 +4,6 @@ import {
   fetchAuthConfig,
   fetchMe,
   handleAuthCallback,
-  loginWithPatreon,
   logout,
   notifyAuthChanged,
 } from "./auth";
@@ -37,6 +36,7 @@ export default function AuthGate({ children }) {
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
   const [signInOpen, setSignInOpen] = useState(false);
+  const [hubDemo, setHubDemo] = useState({ available: false });
 
   const refreshMe = useCallback(async () => {
     const me = await fetchMe();
@@ -55,6 +55,7 @@ export default function AuthGate({ children }) {
         setPatreonConfigured(config.patreon_configured);
         setTermsUrl(config.terms_url || "");
         setPrivacyUrl(config.privacy_url || "");
+        setHubDemo(config.hub_demo || { available: false });
         await refreshMe();
       } catch (err) {
         setError(err.message || "Auth check failed");
@@ -94,13 +95,14 @@ export default function AuthGate({ children }) {
       termsUrl,
       privacyUrl,
       patreonConfigured,
+      hubDemo,
       signInOpen,
       openSignIn: () => setSignInOpen(true),
       closeSignIn: () => setSignInOpen(false),
       refreshAuth: refreshMe,
       logout: onLogout,
     }),
-    [ready, authenticated, user, hubAuthRequired, termsUrl, privacyUrl, patreonConfigured, signInOpen, refreshMe],
+    [ready, authenticated, user, hubAuthRequired, termsUrl, privacyUrl, patreonConfigured, hubDemo, signInOpen, refreshMe],
   );
 
   if (!ready) {
@@ -115,28 +117,12 @@ export default function AuthGate({ children }) {
         <AccountAuth
           onAuthed={onAuthed}
           title={`Sign in to ${PRODUCT_NAME}`}
-          subtitle="Patreon login below, or create a free account."
+          subtitle="Create a free account, or continue with Patreon."
           termsUrl={termsUrl}
           privacyUrl={privacyUrl}
+          patreonConfigured={patreonConfigured}
         />
-        {patreonConfigured && (
-          <section className="panel auth-panel auth-panel-secondary">
-            <h3 className="hub-panel-subtitle">Patreon subscribers</h3>
-            <p className="chart-note">Active patrons only.</p>
-            {error && <div className="error">{error}</div>}
-            <button
-              type="button"
-              className="btn-ghost"
-              onClick={() =>
-                loginWithPatreon(`${window.location.pathname}${window.location.search}`).catch(
-                  (e) => setError(e.message),
-                )
-              }
-            >
-              Log in with Patreon
-            </button>
-          </section>
-        )}
+        {error && <div className="error">{error}</div>}
         <LegalLinks termsUrl={termsUrl} privacyUrl={privacyUrl} className="auth-legal-footer" />
         <p className="app-studio-credit">
           {PRODUCT_NAME} · {STUDIO_NAME}
@@ -164,6 +150,7 @@ export default function AuthGate({ children }) {
               subtitle="Saves league, Sleeper link, and contracts."
               termsUrl={termsUrl}
               privacyUrl={privacyUrl}
+              patreonConfigured={patreonConfigured}
             />
           </div>
         </div>

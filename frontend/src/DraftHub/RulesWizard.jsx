@@ -211,8 +211,12 @@ export default function RulesWizard({
 
   return (
     <HubPage className={`${embedded ? "hub-panel-embedded" : ""}${mobileLayout ? " hub-rules-wizard--mobile" : ""}`.trim()}>
-      {!embedded && <h2>League rules</h2>}
-      <h3 className="hub-panel-subtitle">{embedded ? "League settings" : "League rules"}</h3>
+      {!embedded && (
+        <>
+          <h2>League rules</h2>
+          <h3 className="hub-panel-subtitle">League rules</h3>
+        </>
+      )}
       {readOnlyRules && <p className="chart-note">Managed by your commissioner.</p>}
 
       <div className="hub-form-row">

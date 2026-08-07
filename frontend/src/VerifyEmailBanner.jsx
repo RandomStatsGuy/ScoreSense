@@ -15,8 +15,8 @@ export default function VerifyEmailBanner({ user, onVerified }) {
     return (
       <div className="verify-email-banner panel" role="status">
         <p>
-          Your session is for <strong>{user.email}</strong>, but that account is no longer on the server
-          (often after a deploy reset). Sign out, then sign up or sign in again with the same email.
+          We couldn&apos;t find an account for <strong>{user.email}</strong>. Please sign out, then
+          sign up or sign in again with the same email.
         </p>
       </div>
     );
@@ -78,7 +78,7 @@ export default function VerifyEmailBanner({ user, onVerified }) {
   return (
     <div className="verify-email-banner panel" role="status">
       <p>
-        Verify <strong>{user.email}</strong> to use Draft Hub. Check your inbox for the link.
+        Verify <strong>{user.email}</strong> to use your League. Check your inbox for the link.
       </p>
       <div className="hub-toolbar">
         <button type="button" className="btn-ghost btn-sm" disabled={busy || refreshBusy} onClick={resend}>

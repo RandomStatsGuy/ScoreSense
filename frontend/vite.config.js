@@ -60,6 +60,7 @@ export default defineConfig(({ mode }) => {
       "/api": {
         target: `http://127.0.0.1:${apiPort}`,
         changeOrigin: true,
+        ws: true,
       },
     },
   },

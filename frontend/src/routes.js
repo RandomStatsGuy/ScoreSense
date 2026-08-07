@@ -5,9 +5,8 @@ export const HUB_SLUG_TO_ID = {
   roster: "roster",
   draft: "room",
   cap: "planner",
+  trades: "trades",
   insights: "insights",
-  live: "live",
-  teams: "league-rosters",
 };
 
 export const HUB_ID_TO_SLUG = Object.fromEntries(
@@ -19,8 +18,10 @@ export const INSIGHT_SLUG_TO_ID = {
   spend: "cap",
   scoring: "scoring",
   history: "ownership",
-  contracts: "contracts",
-  trades: "trades",
+  desk: "desk",
+  // Legacy aliases → commissioner desk
+  salaries: "desk",
+  contracts: "desk",
 };
 
 export const INSIGHT_ID_TO_SLUG = Object.fromEntries(
@@ -33,7 +34,7 @@ export const SEASON_PANELS = new Set(["projections", "narrative"]);
 
 export const SEASON_MODES = new Set(["preseason", "live"]);
 
-export const TOOLS_TABS = new Set(["dfs", "bestball", "props"]);
+export const TOOLS_TABS = new Set(["dfs"]);
 
 export const ADMIN_TABS = new Set(["overview", "users", "leagues"]);
 
@@ -88,6 +89,28 @@ export function parseAppPath(pathname) {
       };
     }
     const slug = parts[1] || "setup";
+    if (slug === "live") {
+      return {
+        view: "hub",
+        projectionsTab: null,
+        projectionsMobilePanel: null,
+        seasonMode: null,
+        toolsTab: null,
+        hubSubView: "insights",
+        insightTab: "scoring",
+      };
+    }
+    if (slug === "teams") {
+      return {
+        view: "hub",
+        projectionsTab: null,
+        projectionsMobilePanel: null,
+        seasonMode: null,
+        toolsTab: null,
+        hubSubView: "insights",
+        insightTab: "desk",
+      };
+    }
     const hubSubView = HUB_SLUG_TO_ID[slug] || "setup";
     return {
       view: "hub",
@@ -196,6 +219,7 @@ export function parseFilterParams(searchParams) {
   const draftSeason = searchParams.get("draftSeason");
   const fromWeek = searchParams.get("fromWeek");
   const rosSeason = searchParams.get("rosSeason");
+  const search = searchParams.get("q");
 
   return {
     position: pos && ["qb", "rb", "wr"].includes(pos) ? pos : null,
@@ -205,6 +229,7 @@ export function parseFilterParams(searchParams) {
     draftSeason: draftSeason != null && draftSeason !== "" ? Number(draftSeason) : null,
     rosFromWeek: fromWeek != null && fromWeek !== "" ? Number(fromWeek) : null,
     rosSeason: rosSeason != null && rosSeason !== "" ? Number(rosSeason) : null,
+    search: search != null && search !== "" ? search : null,
   };
 }
 
@@ -216,6 +241,7 @@ export function buildFilterSearchParams({
   draftSeason,
   rosSeason,
   rosFromWeek,
+  search,
   preserveParams,
 }) {
   const params = new URLSearchParams(preserveParams || undefined);
@@ -241,6 +267,12 @@ export function buildFilterSearchParams({
     params.set("rosSeason", String(rosSeason));
   } else {
     params.delete("rosSeason");
+  }
+
+  if (search != null && String(search).trim() !== "") {
+    params.set("q", String(search).trim());
+  } else {
+    params.delete("q");
   }
 
   return params;

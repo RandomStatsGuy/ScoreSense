@@ -4,7 +4,10 @@ import useCoarsePointer from "./useCoarsePointer";
 
 const FLIP_BELOW_ROW_INDEX = 3;
 
-function QuantileTooltipContent({ p10, p50, p90, spread }) {
+/** Spread ÷ projection at or above this marks a boom/bust (high-variance) projection. */
+const VOLATILITY_RATIO_HIGH = 1.25;
+
+function QuantileTooltipContent({ p10, p50, p90, spread, volatile }) {
   return (
     <div className="quantile-tooltip-body">
       <span className="quantile-tooltip-title">Likely scoring range</span>
@@ -16,12 +19,15 @@ function QuantileTooltipContent({ p10, p50, p90, spread }) {
         <span className="quantile-tooltip-label">Ceiling</span>
         <span className="quantile-tooltip-value quantile-tooltip-value-high">{p90.toFixed(1)}</span>
       </div>
-      <span className="quantile-tooltip-sub">{spread} pt spread (floor to ceiling)</span>
+      <span className="quantile-tooltip-sub">
+        {spread} pt spread (floor to ceiling)
+        {volatile ? " · boom/bust" : ""}
+      </span>
     </div>
   );
 }
 
-export default function QuantileBar({ p10, p50, p90, scaleMax, rowIndex = 0 }) {
+export default function QuantileBar({ p10, p50, p90, scaleMax, rowIndex = 0, showVolatility = false }) {
   const barRef = useRef(null);
   const [tip, setTip] = useState(null);
   const coarse = useCoarsePointer();
@@ -30,6 +36,8 @@ export default function QuantileBar({ p10, p50, p90, scaleMax, rowIndex = 0 }) {
   const mid = Math.max(0, Math.min(100, (p50 / max) * 100));
   const right = Math.max(0, Math.min(100, (p90 / max) * 100));
   const spread = (p90 - p10).toFixed(1);
+  const volatile =
+    showVolatility && p50 > 0 && (p90 - p10) / p50 >= VOLATILITY_RATIO_HIGH;
   const preferBelow = rowIndex < FLIP_BELOW_ROW_INDEX;
 
   const showTip = useCallback(() => {
@@ -82,7 +90,7 @@ export default function QuantileBar({ p10, p50, p90, scaleMax, rowIndex = 0 }) {
     <>
       <div
         ref={barRef}
-        className={`quantile-bar quantile-bar-interactive${touchOpen ? " is-touch-open" : ""}`}
+        className={`quantile-bar quantile-bar-interactive${volatile ? " quantile-bar-volatile" : ""}${touchOpen ? " is-touch-open" : ""}`}
         onMouseEnter={coarse ? undefined : showTip}
         onMouseLeave={coarse ? undefined : hideTip}
         onFocus={showTip}
@@ -109,7 +117,7 @@ export default function QuantileBar({ p10, p50, p90, scaleMax, rowIndex = 0 }) {
             style={{ left: tip.x, top: tip.y }}
             role="tooltip"
           >
-            <QuantileTooltipContent p10={p10} p50={p50} p90={p90} spread={spread} />
+            <QuantileTooltipContent p10={p10} p50={p50} p90={p90} spread={spread} volatile={volatile} />
           </div>,
           document.body
         )}

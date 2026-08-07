@@ -289,6 +289,12 @@ def nominate(league_id: str, user_sub: str, player: dict[str, Any]) -> dict[str,
     pos = normalize_position(player.get("position"))
     team_roster = storage.list_team_roster(league_id, team["id"])
     assert_can_acquire(rules, team_roster, pos)
+    # Mock leagues have no workspace and skip the pool eligibility check below,
+    # so guard against renominating an already-won player here.
+    from src.draft_hub.draft_pool import list_drafted_player_ids
+
+    if str(player["player_id"]) in list_drafted_player_ids(league_id):
+        raise ValueError("Player already drafted")
     workspace_id = league.get("workspace_id")
     if workspace_id:
         ws = storage.get_workspace_by_id(workspace_id)
@@ -422,7 +428,8 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
         return get_room_state(league_id, user_sub)
     new_budget = float(winner["budget_remaining"]) - float(amount)
     storage.update_team_budget(winner_id, new_budget)
-    ws_id = league.get("workspace_id") or league["id"]
+    # Must match the workspace list_team_roster reads from, or picks vanish.
+    ws_id = storage.roster_workspace_for_league(league)
     storage.add_roster_slot(
         ws_id,
         {
@@ -432,6 +439,7 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
             "position": nominee.get("position"),
             "salary": float(amount),
             "contract_years": 1,
+            "source": "draft",
         },
         team_id=winner_id,
     )
@@ -485,7 +493,7 @@ def cut_player(league_id: str, user_sub: str, player_id: str) -> dict[str, Any]:
     team = storage.get_team_by_user(league_id, user_sub)
     if not team:
         raise ValueError("Not a league member")
-    ws_id = league.get("workspace_id") or league["id"]
+    ws_id = storage.roster_workspace_for_league(league)
     roster = storage.list_team_roster(league_id, team["id"])
     slot = next((r for r in roster if str(r.get("player_id")) == player_id), None)
     if not slot:
@@ -504,6 +512,34 @@ def cut_player(league_id: str, user_sub: str, player_id: str) -> dict[str, Any]:
             "refund": refund,
         },
     )
+    return get_room_state(league_id, user_sub)
+
+
+def set_draft_contracts(
+    league_id: str,
+    user_sub: str,
+    items: list[dict[str, Any]],
+    max_years: int = 4,
+) -> dict[str, Any]:
+    """Owner assigns contract lengths to their own drafted players."""
+    league = storage.get_league(league_id)
+    if not league:
+        raise ValueError("League not found")
+    team = storage.get_team_by_user(league_id, user_sub)
+    if not team:
+        raise ValueError("Not a league member")
+    ws_id = storage.roster_workspace_for_league(league)
+    roster_ids = {
+        str(r.get("player_id")) for r in storage.list_team_roster(league_id, team["id"])
+    }
+    for item in items:
+        player_id = str(item.get("player_id") or "")
+        years = int(item.get("years") or 0)
+        if player_id not in roster_ids:
+            raise ValueError("Player not on your roster")
+        if not 1 <= years <= max_years:
+            raise ValueError(f"Contract years must be between 1 and {max_years}")
+        storage.update_roster_slot(ws_id, player_id, team_id=team["id"], contract_years=years)
     return get_room_state(league_id, user_sub)
 
 
@@ -526,10 +562,12 @@ def check_timers(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
     now = datetime.now(timezone.utc)
     status = session.get("status")
     test_mode = storage.league_test_mode(league_id)
+    # Bot actions build state under the bot's identity — rebuild with the
+    # caller's sub or the polling client would adopt the bot's viewer/team.
     if status == "nominating" and test_mode:
         bot_state = maybe_bot_nominate(league_id)
         if bot_state:
-            return bot_state
+            return get_room_state(league_id, user_sub)
     if status == "bidding" and session.get("bid_deadline"):
         deadline = _parse_utc(session["bid_deadline"])
         if now >= deadline:
@@ -537,7 +575,7 @@ def check_timers(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
         if _bot_delay_elapsed(session, LeagueRules.model_validate(league["rules"])):
             bot_state = maybe_bot_bid(league_id)
             if bot_state:
-                return bot_state
+                return get_room_state(league_id, user_sub)
     if status == "nominating" and session.get("nomination_deadline"):
         deadline = _parse_utc(session["nomination_deadline"])
         if now >= deadline:

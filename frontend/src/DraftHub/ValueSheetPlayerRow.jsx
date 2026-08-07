@@ -16,6 +16,7 @@ function ValueSheetPlayerRow({
   onAddPlayer,
   onRowDoubleClick,
   playerMedia,
+  narrativeScope,
 }) {
   const handleRowClick = useCallback(() => {
     if (onSelectPlayer) onSelectPlayer(row);
@@ -58,6 +59,7 @@ function ValueSheetPlayerRow({
           size="sm"
           showTeam={false}
           clickable={Boolean(row.player_id)}
+          narrativeScope={narrativeScope}
         />
         {row.is_rookie && <span className="hub-sleeper-badge">Rookie est.</span>}
       </td>
@@ -122,6 +124,7 @@ function propsAreEqual(prev, next) {
     && prev.onSelectPlayer === next.onSelectPlayer
     && prev.onAddPlayer === next.onAddPlayer
     && prev.onRowDoubleClick === next.onRowDoubleClick
+    && prev.narrativeScope === next.narrativeScope
   );
 }
 

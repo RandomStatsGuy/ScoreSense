@@ -36,6 +36,7 @@ export default function MobileBottomSheet({
         ref={sheetRef}
         className={`app-mobile-sheet ${className}`.trim()}
         role="dialog"
+        aria-modal="true"
         aria-label={ariaLabel || title || "Panel"}
         onClick={(event) => event.stopPropagation()}
       >

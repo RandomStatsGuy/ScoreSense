@@ -20,6 +20,7 @@ from src.draft_hub.draft_state import (
     get_room_state,
     nominate,
     place_bid,
+    set_draft_contracts,
     set_nomination_order,
     set_pool_mode,
     start_draft,
@@ -34,6 +35,7 @@ from src.draft_hub.pre_draft_cap import (
     cap_summary_for_phase,
     contract_on_cut_status_change,
     pre_draft_cap_summary,
+    roster_for_pre_draft_validation,
 )
 from src.draft_hub.rules_engine import cap_summary, multi_year_cap_plan, validate_roster
 from src.draft_hub.salary_import import match_ranges_to_pool, parse_salary_range_csv
@@ -62,7 +64,9 @@ from src.draft_hub.schemas import (
     SleeperLeagueConnectRequest,
     SleeperLinkRequest,
     SleeperSyncRequest,
+    DraftContractsRequest,
     MockDraftStartRequest,
+    SimulateDraftRequest,
     TestDraftSetupRequest,
     TradeSwapRequest,
     LeagueTradeRequest,
@@ -76,7 +80,8 @@ from src.draft_hub.league_invites import build_invite_url, create_invite
 from src.draft_hub.league_sleeper_sync import connect_sleeper_league
 from src.draft_hub.league_sheet_import import parse_league_sheet_csv
 from src.draft_hub.mock_draft import start_mock_draft
-from src.draft_hub.test_draft import reset_test_draft, setup_test_draft
+from src.draft_hub.draft_recap import build_owner_draft_report
+from src.draft_hub.test_draft import reset_test_draft, setup_test_draft, simulate_draft
 from src.draft_hub.trade_executor import execute_league_trade
 from src.draft_hub.trade_insights import build_trade_insights
 from src.draft_hub.league_efficiency import build_cap_efficiency
@@ -405,6 +410,7 @@ def hub_value_overlay(
                 sleeper_player_ids=sleeper_ids,
                 team_count=team_count,
                 pool_payload=pool_payload,
+                draft_completed=bool(ctx.get("draft_completed")),
             )
             sheet["sleeper"] = get_sleeper_context(sub)
             sheet["hub_context"] = ctx
@@ -441,6 +447,7 @@ def hub_value_sheet(
                     league_roster=league_roster,
                     my_team_id=team_id,
                     sleeper_player_ids=sleeper_ids,
+                    draft_completed=bool(ctx.get("draft_completed")),
                 )
             else:
                 sheet = build_value_sheet(
@@ -452,6 +459,7 @@ def hub_value_sheet(
                     my_team_id=team_id,
                     sleeper_player_ids=sleeper_ids,
                     team_count=team_count,
+                    draft_completed=bool(ctx.get("draft_completed")),
                 )
             sheet["sleeper"] = get_sleeper_context(sub)
             sheet["hub_context"] = ctx
@@ -628,7 +636,10 @@ def hub_cap_sheet(response: Response, _user=Depends(require_hub_user)) -> dict:
             roster = list_roster_for_context(ctx, live_sleeper=False)
         with timer.phase("cap_math"):
             summary = cap_summary_for_phase(rules, roster, draft_completed=draft_completed)
-            errors = validate_roster(rules, roster)
+            errors = validate_roster(
+                rules,
+                roster_for_pre_draft_validation(rules, roster, draft_completed=draft_completed),
+            )
             plan = multi_year_cap_plan(rules, roster, draft_completed=draft_completed)
             pre_draft = pre_draft_cap_summary(rules, roster, draft_completed=draft_completed)
             sleeper = get_sleeper_context(sub)
@@ -860,6 +871,28 @@ def _enrich_cap_analytics(
     return {**analytics, "teams": teams}
 
 
+def _resolve_cap_for_insights(
+    league_id: str,
+    season_year: int | None,
+    default_cap: float,
+) -> float:
+    if season_year is not None:
+        return storage.resolve_salary_cap_for_season(league_id, int(season_year), default_cap)
+    return default_cap
+
+
+def _contract_view_for_season(league: dict[str, Any], season_year: int | None) -> str:
+    """Use effective Sleeper projection for planning season when draft is complete."""
+    if season_year is None:
+        return "snapshot"
+    planning = league.get("season")
+    if planning is None or int(season_year) != int(planning):
+        return "snapshot"
+    if league.get("draft_completed"):
+        return "effective"
+    return "snapshot"
+
+
 def _historic_insights_block(
     league_id: str,
     overview: dict,
@@ -877,29 +910,38 @@ def _historic_insights_block(
 
     meta = build_historic_meta(league_id)
     league = overview.get("league") or {}
-    cap = float(overview.get("salary_cap") or (league.get("rules") or {}).get("salary_cap") or 200)
+    default_cap = float(overview.get("salary_cap") or (league.get("rules") or {}).get("salary_cap") or 200)
 
     if not meta.get("available"):
         awards = (
-            build_current_spend_awards(overview, salary_cap=cap, analytics=analytics)
+            build_current_spend_awards(overview, salary_cap=default_cap, analytics=analytics)
             if mode == "current"
             else []
         )
         return {**meta, "mode": mode, "season": season_year, "awards": awards}
 
+    view = _contract_view_for_season(league, season_year if mode == "year" else None)
+
     if mode == "year" and season_year is not None:
-        analytics = build_contract_analytics(league_id, season_year=season_year, salary_cap=cap)
+        cap = _resolve_cap_for_insights(league_id, season_year, default_cap)
+        analytics = build_contract_analytics(
+            league_id, season_year=season_year, salary_cap=cap, view=view,
+        )
         awards = build_contract_awards(league_id, season_year=season_year, salary_cap=cap)
     elif mode == "all":
-        analytics = build_contract_analytics(league_id, season_year=None, salary_cap=cap)
-        awards = build_contract_awards(league_id, season_year=None, salary_cap=cap)
+        analytics = build_contract_analytics(league_id, season_year=None, salary_cap=default_cap)
+        awards = build_contract_awards(league_id, season_year=None, salary_cap=default_cap)
     else:
+        cap = default_cap
+        if season_year is not None:
+            cap = _resolve_cap_for_insights(league_id, season_year, default_cap)
         awards = build_current_spend_awards(overview, salary_cap=cap, analytics=analytics)
 
     return {
         **meta,
         "mode": mode,
         "season": season_year,
+        "contract_view": view,
         "analytics": analytics,
         "awards": awards,
     }
@@ -921,7 +963,7 @@ def _build_cap_efficiency_for_insights(
     from src.draft_hub.owner_display import scoring_owner_maps_for_league, scoring_year_specific
 
     league = overview.get("league") or {}
-    cap = float(overview.get("salary_cap") or (league.get("rules") or {}).get("salary_cap") or 200)
+    default_cap = float(overview.get("salary_cap") or (league.get("rules") or {}).get("salary_cap") or 200)
     eff_cap_year: int | None = None
     if cap_efficiency_season and str(cap_efficiency_season).isdigit():
         eff_cap_year = int(cap_efficiency_season)
@@ -930,7 +972,11 @@ def _build_cap_efficiency_for_insights(
 
     eff_analytics = analytics
     if eff_cap_year is not None:
-        contract_cap = build_contract_analytics(league_id, season_year=eff_cap_year, salary_cap=cap)
+        cap = _resolve_cap_for_insights(league_id, eff_cap_year, default_cap)
+        view = _contract_view_for_season(league, eff_cap_year)
+        contract_cap = build_contract_analytics(
+            league_id, season_year=eff_cap_year, salary_cap=cap, view=view,
+        )
         if contract_cap:
             eff_analytics = contract_cap
 
@@ -1696,6 +1742,7 @@ def hub_league_live_scoring(
 def hub_contract_history(
     league_id: str,
     season: Optional[int] = Query(None, description="Filter to one season year"),
+    all_seasons: bool = Query(False, description="Return all seasons (default is latest only)"),
     owner: Optional[str] = Query(None, description="Filter to commissioner owner label"),
     _user=Depends(require_hub_user),
 ) -> dict:
@@ -1707,7 +1754,182 @@ def hub_contract_history(
         league_id,
         season_year=season,
         owner_label=owner,
+        all_seasons=all_seasons,
     )
+
+
+@router.get("/league/{league_id}/contract-history/audit")
+def hub_contract_history_audit(
+    league_id: str,
+    season: int = Query(..., description="Season year to audit"),
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    _ctx_for_league(sub, league_id)
+    from src.draft_hub.contract_history_audit import audit_contract_history
+
+    return audit_contract_history(league_id, season_year=int(season))
+
+
+@router.get("/league/{league_id}/contract-history/sleeper-hints")
+def hub_contract_history_sleeper_hints(
+    league_id: str,
+    season: int = Query(..., description="Season year for owner-change hints"),
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    _ctx_for_league(sub, league_id)
+    from src.draft_hub.sleeper_acquisition_hints import build_sleeper_hints_payload
+
+    return build_sleeper_hints_payload(league_id, season_year=int(season))
+
+
+@router.get("/league/{league_id}/team-salary-sheets")
+def hub_team_salary_sheets(
+    league_id: str,
+    season: Optional[int] = Query(None, description="Season year for roster sheets"),
+    view: Optional[str] = Query(None, description="snapshot or effective"),
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    from src.draft_hub.team_salary_sheets import build_team_salary_sheets_payload
+
+    league = storage.get_league(league_id) or {}
+    cap = float((league.get("rules") or ctx.get("rules") or {}).get("salary_cap") or 200)
+    sheet_view = view or "snapshot"
+    if sheet_view not in ("snapshot", "effective"):
+        sheet_view = "snapshot"
+    return build_team_salary_sheets_payload(
+        league_id,
+        season_year=int(season) if season is not None else None,
+        salary_cap=cap,
+        view=sheet_view,
+    )
+
+
+@router.get("/league/{league_id}/team-salary-sheets/audit")
+def hub_team_salary_sheets_audit(
+    league_id: str,
+    season: Optional[int] = Query(None, description="Season year to audit"),
+    owner: Optional[str] = Query(None, description="Owner label (omit for all teams)"),
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    _ctx_for_league(sub, league_id)
+    from src.draft_hub.salary_sheet_audit import build_salary_sheet_audit
+
+    return build_salary_sheet_audit(
+        league_id,
+        season_year=int(season) if season is not None else None,
+        owner_label=owner.strip() if owner else None,
+    )
+
+
+@router.get("/league/{league_id}/contract-history/player-journey")
+def hub_contract_history_player_journey(
+    league_id: str,
+    player: str = Query(..., min_length=1),
+    season: Optional[int] = Query(None, description="Season being edited (highlights that row)"),
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    _ctx_for_league(sub, league_id)
+    from src.draft_hub.legacy_contract_history import build_player_contract_journey
+    from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
+
+    league = storage.get_league(league_id) or {}
+    sleeper_lid = resolve_sleeper_league_id(league_id) or league.get("sleeper_league_id")
+
+    return build_player_contract_journey(
+        league_id,
+        player.strip(),
+        editing_season=int(season) if season is not None else None,
+        sleeper_league_id=str(sleeper_lid) if sleeper_lid else None,
+    )
+
+
+class AuditPatchItem(BaseModel):
+    row_id: Optional[int] = None
+    season_year: Optional[int] = None
+    patch: dict[str, Any]
+
+
+class AuditApplyFlagsBody(BaseModel):
+    patches: list[AuditPatchItem]
+
+
+@router.post("/league/{league_id}/contract-history/audit/apply-flags")
+def hub_contract_history_apply_flags(
+    league_id: str,
+    body: AuditApplyFlagsBody,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    from src.draft_hub.contract_history_audit import apply_audit_patches
+
+    patches = [p.model_dump(exclude_none=True) for p in body.patches]
+    return apply_audit_patches(league_id, patches, edited_by_sub=sub)
+
+
+class MovementResolveBody(BaseModel):
+    event_type: Optional[str] = None
+    story: Optional[str] = None
+    from_owner: Optional[str] = None
+    to_owner: Optional[str] = None
+    salary: Optional[float] = None
+    dead_cap: Optional[float] = None
+
+
+class MovementBulkResolveBody(BaseModel):
+    movement_ids: list[int]
+    story: str
+
+
+@router.post("/league/{league_id}/contract-history/movements/bulk-resolve")
+def hub_contract_history_movement_bulk_resolve(
+    league_id: str,
+    body: MovementBulkResolveBody,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    from src.draft_hub.contract_movement_resolve import apply_story_to_movements
+
+    if not body.movement_ids:
+        raise HTTPException(status_code=400, detail="movement_ids required")
+    updated = apply_story_to_movements(league_id, body.movement_ids, body.story)
+    return {"updated": updated, "count": len(updated)}
+
+
+@router.post("/league/{league_id}/contract-history/movements/{movement_id}/resolve")
+def hub_contract_history_movement_resolve(
+    league_id: str,
+    movement_id: int,
+    body: MovementResolveBody,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    mov = storage.get_league_movement(movement_id)
+    if not mov or mov.get("league_id") != league_id:
+        raise HTTPException(status_code=404, detail="Movement not found")
+    if body.story:
+        from src.draft_hub.contract_movement_resolve import apply_story_to_movements
+
+        updated = apply_story_to_movements(league_id, [movement_id], body.story)
+        return updated[0] if updated else mov
+    updates = body.model_dump(exclude_none=True)
+    updates.pop("story", None)
+    if not updates.get("event_type"):
+        raise HTTPException(status_code=400, detail="event_type or story required")
+    updates["confidence"] = "manual"
+    updated = storage.update_league_movement(movement_id, updates)
+    return updated or mov
 
 
 class ContractRowPatch(BaseModel):
@@ -1811,9 +2033,91 @@ def hub_contract_history_import(
     sub = _sub(_user)
     ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
-    from src.draft_hub.legacy_contract_history import import_legacy_files
+    from src.draft_hub.contract_sync import sync_commissioner_sheets
 
-    return import_legacy_files(league_id, imported_by_sub=sub)
+    return sync_commissioner_sheets(league_id, imported_by_sub=sub, reconcile_sleeper=True)
+
+
+@router.get("/league/{league_id}/contract-history/sync-status")
+def hub_contract_history_sync_status(
+    league_id: str,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    _ctx_for_league(sub, league_id)
+    from src.draft_hub.contract_sync import commissioner_sync_status
+
+    imports = storage.list_legacy_imports(league_id)
+    return {
+        **commissioner_sync_status(league_id),
+        "imports": imports,
+    }
+
+
+@router.get("/league/{league_id}/freshness")
+def hub_league_freshness(
+    league_id: str,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    from src.draft_hub.hub_freshness import league_data_freshness
+
+    include_detail = bool(ctx.get("is_commissioner"))
+    return league_data_freshness(league_id, include_contract_detail=include_detail)
+
+
+class ContractSyncBody(BaseModel):
+    snapshot_phases: Optional[dict[str, str]] = None
+    reconcile_sleeper: bool = True
+
+
+@router.post("/league/{league_id}/contract-history/sync")
+def hub_contract_history_sync(
+    league_id: str,
+    body: Optional[ContractSyncBody] = None,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    from src.draft_hub.contract_sync import sync_commissioner_sheets
+
+    phases_raw = (body.snapshot_phases if body else None) or {}
+    phases = {int(k): str(v) for k, v in phases_raw.items()}
+    return sync_commissioner_sheets(
+        league_id,
+        imported_by_sub=sub,
+        reconcile_sleeper=body.reconcile_sleeper if body else True,
+        snapshot_phases=phases or None,
+    )
+
+
+@router.get("/league/{league_id}/contract-history/apply-sleeper-moves")
+def hub_contract_apply_sleeper_moves_preview(
+    league_id: str,
+    season: int = Query(..., description="Season year to preview"),
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    _ctx_for_league(sub, league_id)
+    from src.draft_hub.in_season_contract_projection import diff_effective_vs_db
+
+    return diff_effective_vs_db(league_id, int(season))
+
+
+@router.post("/league/{league_id}/contract-history/apply-sleeper-moves")
+def hub_contract_apply_sleeper_moves(
+    league_id: str,
+    season: int = Query(..., description="Season year to materialize"),
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    from src.draft_hub.in_season_contract_projection import materialize_sleeper_moves
+
+    return materialize_sleeper_moves(league_id, int(season), edited_by_sub=sub)
 
 
 @router.post("/league/{league_id}/contract-history/reconcile-sleeper")
@@ -1838,6 +2142,11 @@ class OwnerSeasonMapUpsert(BaseModel):
     owner_label: str
     hub_team_name: str
     sleeper_user_id: Optional[str] = None
+
+
+class SeasonSalaryCapUpsert(BaseModel):
+    season_year: int
+    salary_cap: float
 
 
 @router.get("/league/{league_id}/owner-season-map")
@@ -1872,6 +2181,27 @@ def hub_owner_season_map_upsert(
     return row
 
 
+@router.put("/league/{league_id}/season-salary-cap")
+def hub_season_salary_cap_upsert(
+    league_id: str,
+    body: SeasonSalaryCapUpsert,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    if body.salary_cap < 0:
+        raise HTTPException(status_code=400, detail="salary_cap must be non-negative")
+    try:
+        return storage.upsert_season_salary_cap(
+            league_id,
+            int(body.season_year),
+            float(body.salary_cap),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.delete("/league/{league_id}/owner-season-map/{map_id}")
 def hub_owner_season_map_delete(
     league_id: str,
@@ -1884,6 +2214,142 @@ def hub_owner_season_map_delete(
     if not storage.delete_owner_season_map(map_id, league_id):
         raise HTTPException(status_code=404, detail="Owner map row not found")
     return {"deleted": True, "id": map_id}
+
+
+class PlayerNameAliasUpsert(BaseModel):
+    alias_name: str
+    canonical_name: Optional[str] = None
+    sleeper_player_id: Optional[str] = None
+    position: Optional[str] = None
+
+
+@router.get("/league/{league_id}/player-name-aliases")
+def hub_player_name_aliases_list(
+    league_id: str,
+    include_unmapped: bool = Query(
+        False,
+        description="Scan cap sheets for unmapped abbreviations (slow; omit after saves)",
+    ),
+    season: Optional[int] = Query(None, description="Season for unmapped scan"),
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    _ctx_for_league(sub, league_id)
+    from src.draft_hub.player_name_aliases import enrich_alias_rows, find_unmapped_names
+
+    league = storage.get_league(league_id) or {}
+    draft_season = int(
+        season
+        if season is not None
+        else league.get("draft_season") or league.get("season") or 2025
+    )
+    rows = enrich_alias_rows(
+        league_id,
+        storage.list_player_name_aliases(league_id),
+        season=draft_season,
+    )
+    out: dict[str, Any] = {"rows": rows, "season_year": draft_season}
+    if include_unmapped:
+        out["unmapped_names"] = find_unmapped_names(league_id, season=draft_season)
+    return out
+
+
+@router.get("/league/{league_id}/player-name-aliases/lookup")
+def hub_player_name_alias_lookup(
+    league_id: str,
+    sleeper_player_id: str = Query(..., min_length=1),
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    _ctx_for_league(sub, league_id)
+    from src.integrations.sleeper import player_by_sleeper_id
+
+    info = player_by_sleeper_id(sleeper_player_id.strip())
+    if not info:
+        raise HTTPException(status_code=404, detail="Sleeper player not found")
+    return info
+
+
+@router.get("/league/{league_id}/player-name-aliases/suggest")
+def hub_player_name_alias_suggest(
+    league_id: str,
+    name: Optional[str] = Query(None),
+    sleeper_player_id: Optional[str] = Query(None),
+    position: Optional[str] = Query(None),
+    season: Optional[int] = Query(None),
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    league = _ctx_for_league(sub, league_id)
+    sid = str(sleeper_player_id or "").strip()
+    if sid:
+        from src.integrations.sleeper import player_by_sleeper_id
+
+        info = player_by_sleeper_id(sid)
+        if not info:
+            return {"suggestions": []}
+        return {"suggestions": [{**info, "source": "sleeper"}]}
+
+    q = str(name or "").strip()
+    if not q:
+        raise HTTPException(status_code=400, detail="name or sleeper_player_id is required")
+
+    from src.draft_hub.player_name_aliases import suggest_canonical_names
+
+    yr = int(season) if season is not None else int(league.get("draft_season") or league.get("season") or 2025)
+    return {
+        "suggestions": suggest_canonical_names(
+            q,
+            position=position,
+            season=yr,
+            sleeper_only=True,
+        ),
+    }
+
+
+@router.put("/league/{league_id}/player-name-aliases")
+def hub_player_name_alias_upsert(
+    league_id: str,
+    body: PlayerNameAliasUpsert,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    from src.draft_hub.player_name_aliases import prepare_alias_upsert
+
+    try:
+        fields = prepare_alias_upsert(
+            body.alias_name.strip(),
+            canonical_name=body.canonical_name.strip() if body.canonical_name else None,
+            sleeper_player_id=body.sleeper_player_id,
+            position=body.position,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    row = storage.upsert_player_name_alias(
+        league_id,
+        fields["alias_name"],
+        fields["canonical_name"],
+        position=fields.get("position"),
+        sleeper_player_id=fields.get("sleeper_player_id"),
+        source_kind="manual",
+    )
+    return row
+
+
+@router.delete("/league/{league_id}/player-name-aliases/{alias_id}")
+def hub_player_name_alias_delete(
+    league_id: str,
+    alias_id: int,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    if not storage.delete_player_name_alias(alias_id, league_id):
+        raise HTTPException(status_code=404, detail="Player name alias not found")
+    return {"deleted": True, "id": alias_id}
 
 
 @router.get("/league/{league_id}/ownership-history")
@@ -2428,6 +2894,85 @@ async def hub_test_draft_reset(league_id: str, _user=Depends(require_hub_user)) 
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@router.post("/league/{league_id}/test/simulate")
+async def hub_test_draft_simulate(
+    league_id: str,
+    body: SimulateDraftRequest = None,
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Run the rest of a practice draft instantly (dev tool)."""
+    sub = _sub(_user)
+    try:
+        max_picks = body.max_picks if body else None
+        state = simulate_draft(league_id, sub, max_picks=max_picks)
+        await broadcast_room(league_id)
+        return {"state": state}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/league/{league_id}/owner-draft-report")
+def hub_owner_draft_report(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    team = storage.get_team_by_user(league_id, sub)
+    if not team:
+        raise HTTPException(status_code=403, detail="Join this draft room to view your report")
+    roster = storage.list_team_roster(league_id, team["id"])
+    report = build_owner_draft_report(
+        league_id,
+        team["id"],
+        roster=roster,
+        budget_remaining=float(team.get("budget_remaining") or 0),
+    )
+    if not report:
+        raise HTTPException(status_code=404, detail="No draft picks for your team yet")
+    league = storage.get_league(league_id) or {}
+    rules = LeagueRules.model_validate(league.get("rules") or {})
+    report["max_contract_years"] = int(rules.contracts.max_years)
+    report["team_name"] = team.get("name")
+    return report
+
+
+@router.post("/league/{league_id}/draft-contracts")
+async def hub_set_draft_contracts(
+    league_id: str,
+    body: DraftContractsRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Let each owner set contract years on players they won in the draft."""
+    sub = _sub(_user)
+    league = storage.get_league(league_id)
+    if not league:
+        raise HTTPException(status_code=404, detail="League not found")
+    team = storage.get_team_by_user(league_id, sub)
+    if not team:
+        raise HTTPException(status_code=403, detail="Join this draft room to set contracts")
+    rules = LeagueRules.model_validate(league["rules"])
+    max_years = int(rules.contracts.max_years)
+    ws_id = storage.roster_workspace_for_league(league)
+    updated = []
+    for item in body.contracts or []:
+        yrs = int(item.contract_years)
+        if yrs < 1 or yrs > max_years:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Contract years must be between 1 and {max_years}",
+            )
+        try:
+            slot = storage.update_roster_slot(
+                ws_id,
+                item.player_id,
+                team_id=team["id"],
+                contract_years=yrs,
+            )
+            updated.append(slot)
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+    state = get_room_state(league_id, sub)
+    await broadcast_room(league_id)
+    return {"updated": len(updated), "state": state}
+
+
 # --- Sleeper linking ---
 
 
@@ -2467,6 +3012,53 @@ def hub_players_media(
     hints = [{"player_id": pid} for pid in player_ids[:80]]
     media = build_player_media_batch(hints)
     return {"media": media}
+
+
+@router.post("/cap-sheet/validate")
+async def hub_cap_sheet_validate(
+    file: UploadFile = File(...),
+    replace_existing: bool = True,
+    sync_sleeper_first: bool = Query(False),
+    contracts_only: bool = Query(False),
+    _user=Depends(require_hub_user),
+) -> dict:
+    from pathlib import Path
+
+    import yaml
+
+    from src.config import DATA_DIR
+    from src.draft_hub.cap_sheet_import import parse_cap_sheet_tsv, validate_cap_sheet_for_league
+    from src.draft_hub.schemas import LeagueRules
+
+    sub = _sub(_user)
+    ctx = _ctx(sub)
+    if ctx.get("mode") != "league" or not ctx.get("is_commissioner"):
+        raise HTTPException(status_code=403, detail="Only the league commissioner can validate cap sheets")
+    league_id = str(ctx.get("league_id") or "")
+    if not league_id:
+        raise HTTPException(status_code=400, detail="Join or create a league first")
+    league = storage.get_league(league_id)
+    if not league:
+        raise HTTPException(status_code=404, detail="League not found")
+    rules = LeagueRules.model_validate(league.get("rules") or ctx["rules"])
+    raw = await file.read()
+    try:
+        parsed = parse_cap_sheet_tsv(raw, season=int(ctx.get("season") or league.get("season") or 2025), rules=rules)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    map_path = DATA_DIR / "draft_hub" / "manager_team_map.yaml"
+    manager_map: dict[str, str] = {}
+    if map_path.is_file():
+        data = yaml.safe_load(map_path.read_text(encoding="utf-8")) or {}
+        manager_map = {str(k): str(v) for k, v in data.items()}
+    effective_replace = replace_existing and not (contracts_only or sync_sleeper_first)
+    return validate_cap_sheet_for_league(
+        league_id,
+        parsed,
+        manager_map,
+        replace_existing=effective_replace,
+        contracts_only=contracts_only or sync_sleeper_first,
+    )
 
 
 @router.post("/cap-sheet/import")
@@ -2730,3 +3322,34 @@ def hub_sleeper_import(body: SleeperImportRequest, _user=Depends(require_hub_use
             sleeper_player_ids=[r["player_id"] for r in rows],
         )
     return {"imported": count, "pruned_junk": pruned, "players": rows, "sleeper": get_sleeper_context(sub)}
+
+
+@router.get("/demo/config")
+def hub_demo_config() -> dict:
+    from src.draft_hub.hub_demo import demo_config
+
+    return demo_config()
+
+
+@router.get("/demo/workspace")
+def hub_demo_workspace() -> dict:
+    from src.draft_hub.hub_demo import build_demo_workspace
+
+    return build_demo_workspace()
+
+
+@router.get("/demo/league/{league_id}/insights")
+def hub_demo_league_insights(
+    league_id: str,
+    sections: Optional[str] = Query(None, description="Comma-separated: cap,scoring,trades"),
+) -> dict:
+    from src.draft_hub.hub_demo import build_demo_insights
+
+    return build_demo_insights(league_id, sections=sections or "cap,scoring,trades")
+
+
+@router.get("/demo/league/{league_id}/freshness")
+def hub_demo_league_freshness(league_id: str) -> dict:
+    from src.draft_hub.hub_demo import build_demo_freshness
+
+    return build_demo_freshness(league_id)

@@ -14,7 +14,7 @@ from src.draft_hub.legacy_contract_import import (
     parse_modern_owner_sheet,
     process_league_history,
 )
-from src.draft_hub.legacy_contract_history import _displayable_contract_row
+from src.draft_hub.legacy_contract_history import _displayable_contract_row, _overlayable_contract_row
 from src.draft_hub.player_name_match import is_garbage_player_name
 from src.config import OLD_LEAGUE_FILES_DIR
 
@@ -32,6 +32,18 @@ def test_process_league_history_parses_excel_files(owner_map):
     assert set(df["season_year"].unique()) >= {2021, 2022, 2023, 2024, 2025}
     assert set(df["owner_label"].unique()).issubset(set(TEAM_OWNERS))
     assert df["cap_hit"].notna().any()
+
+
+def test_summary_sheet_rows_not_displayable():
+    for name in ("TOTAL SALARY", "Salary Available", "Team total"):
+        row = {
+            "player_name": name,
+            "position": "NAN",
+            "cap_hit": 200,
+            "source_kind": "import",
+        }
+        assert not _displayable_contract_row(row)
+        assert not _overlayable_contract_row(row)
 
 
 def test_2021_pdf_parser_splits_grid_cells(owner_map):

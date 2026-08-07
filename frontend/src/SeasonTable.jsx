@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   fmtNum,
   rosGamesPlayed,
@@ -9,40 +9,14 @@ import {
   rosSeasonP50,
   rosSeasonP90,
 } from "./format";
+import { SortHeader, ExportCsvButton, useTableSort, csvQuote, downloadCsv } from "./table";
 import useMobileLayout from "./useMobileLayout";
 import MobileDataList, { MobileStat } from "./MobileDataList";
 import MobilePlayerCard from "./MobilePlayerCard";
 import PlayerCell, { usePlayerMedia } from "./PlayerCell";
 import SentimentBadge from "./SentimentBadge";
-
-function SortHeader({ label, sortKey, sort, onSort, tip, className = "" }) {
-  const active = sort.column === sortKey;
-  const arrow = !active ? "↕" : sort.dir === "asc" ? "↑" : "↓";
-  return (
-    <th
-      className={`sortable-header col-tip ${className}`.trim()}
-      title={tip}
-      onClick={() => onSort(sortKey)}
-      aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}
-    >
-      {label} <span className="sort-indicator">{arrow}</span>
-    </th>
-  );
-}
-
-function DownloadIcon() {
-  return (
-    <svg className="export-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 3v12m0 0l4-4m-4 4l-4-4M5 21h14"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+import Chip from "./Chip";
+import { TableSkeleton } from "./TableSkeleton";
 
 function exportCsv(rows, seasonComplete) {
   const baseHeader = ["Player", "Team", "Reg pts", "G", "PPG"];
@@ -53,7 +27,7 @@ function exportCsv(rows, seasonComplete) {
     header.join(","),
     ...rows.map((row) => {
       const base = [
-        `"${String(row.Player).replace(/"/g, '""')}"`,
+        csvQuote(row.Player),
         row.Team || "",
         fmtNum(rosRegPts(row), 1, ""),
         rosGamesPlayed(row) ?? "",
@@ -71,13 +45,7 @@ function exportCsv(rows, seasonComplete) {
     }),
   ];
 
-  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `scoresense-season-${Date.now()}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadCsv("scoresense-season", lines);
 }
 
 function sortValue(row, key) {
@@ -122,14 +90,18 @@ export default function SeasonTable({
   season,
   week,
 }) {
-  const [sort, setSort] = useState({ column: seasonComplete ? "PPG" : "SeasonP50", dir: "desc" });
+  const [sort, toggleSort] = useTableSort({ column: seasonComplete ? "PPG" : "SeasonP50", dir: "desc" });
   const mobileLayout = useMobileLayout();
 
   const filtered = useMemo(() => {
     let list = rows || [];
     const q = (search || "").trim().toLowerCase();
     if (q) {
-      list = list.filter((r) => String(r.Player || "").toLowerCase().includes(q));
+      list = list.filter(
+        (r) =>
+          String(r.Player || "").toLowerCase().includes(q) ||
+          String(r.Team || "").toLowerCase().includes(q),
+      );
     }
     return list;
   }, [rows, search]);
@@ -157,14 +129,6 @@ export default function SeasonTable({
     [rows, showSentiment],
   );
 
-  const toggleSort = (column) => {
-    setSort((prev) =>
-      prev.column === column
-        ? { column, dir: prev.dir === "asc" ? "desc" : "asc" }
-        : { column, dir: "desc" }
-    );
-  };
-
   const colCount = (seasonComplete ? 5 : 10) + (showNarrative ? 1 : 0);
 
   return (
@@ -172,16 +136,7 @@ export default function SeasonTable({
       <div className="table-controls">
         {searchSlot}
         {!mobileLayout && (
-          <button
-            type="button"
-            className="btn-export-csv"
-            onClick={() => exportCsv(sorted, seasonComplete)}
-            disabled={!sorted.length}
-            title="Download filtered table as CSV"
-          >
-            <DownloadIcon />
-            CSV
-          </button>
+          <ExportCsvButton onExport={() => exportCsv(sorted, seasonComplete)} disabled={!sorted.length} />
         )}
       </div>
       <div className="table-toolbar">
@@ -330,16 +285,19 @@ export default function SeasonTable({
             </tr>
           </thead>
           <tbody>
-            {sorted.length === 0 && (
+            {loading && sorted.length === 0 && (
+              <TableSkeleton rows={14} cols={colCount} />
+            )}
+            {!loading && sorted.length === 0 && (
               <tr>
-                <td colSpan={colCount} className="muted">
-                  {loading ? "Loading season totals…" : "No players match your filters."}
+                <td colSpan={colCount} className="table-empty-state">
+                  No players match your filters.
                 </td>
               </tr>
             )}
             {sorted.map((row) => (
               <tr key={`${row.player_id || row.Player}-${row.Team}`}>
-                <td>
+                <td className="col-player">
                   <PlayerCell
                     name={row.Player}
                     team={row.Team}
@@ -354,7 +312,7 @@ export default function SeasonTable({
                     week={week ?? projectionWeek}
                   />
                 </td>
-                <td>{row.Team || "—"}</td>
+                <td>{row.Team ? <Chip tone="team">{row.Team}</Chip> : "—"}</td>
                 <td className="num">{fmtNum(rosRegPts(row))}</td>
                 <td className="num muted">{rosGamesPlayed(row) ?? "—"}</td>
                 <td className="num">{fmtNum(rosPPG(row))}</td>

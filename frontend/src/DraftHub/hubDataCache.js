@@ -177,7 +177,9 @@ export function setInsightsSection(leagueId, section, seasonKey, data) {
 export function clearInsightsSectionCache(leagueId) {
   getInsightsSection._mem = {};
   try {
-    const prefix = `${INSIGHTS_SESSION_PREFIX}${leagueId}:`;
+    const prefix = leagueId
+      ? `${INSIGHTS_SESSION_PREFIX}${leagueId}:`
+      : INSIGHTS_SESSION_PREFIX;
     const toRemove = [];
     for (let i = 0; i < sessionStorage.length; i += 1) {
       const k = sessionStorage.key(i);
@@ -187,6 +189,30 @@ export function clearInsightsSectionCache(leagueId) {
   } catch {
     /* ignore */
   }
+}
+
+/** Clear insights cache after cap sheet sync / contract updates. */
+export function invalidateInsightsAfterCapSync(leagueId) {
+  if (leagueId) clearInsightsSectionCache(leagueId);
+  invalidateFreshnessCache(leagueId);
+}
+
+/** In-memory freshness strip cache (/league/{id}/freshness). */
+const freshnessCache = new Map();
+
+export function getFreshnessCache(leagueId) {
+  if (!leagueId) return null;
+  return freshnessCache.get(leagueId) || null;
+}
+
+export function setFreshnessCache(leagueId, data) {
+  if (!leagueId) return;
+  freshnessCache.set(leagueId, { data, at: Date.now() });
+}
+
+export function invalidateFreshnessCache(leagueId) {
+  if (leagueId) freshnessCache.delete(leagueId);
+  else freshnessCache.clear();
 }
 
 /** Pool-shaped payload for client cache (valuation fields only). */

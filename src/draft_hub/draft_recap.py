@@ -239,6 +239,75 @@ def _notable_picks(picks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out[:7]
 
 
+def build_owner_draft_report(
+    league_id: str,
+    team_id: str,
+    *,
+    roster: list[dict[str, Any]] | None = None,
+    budget_remaining: float | None = None,
+) -> dict[str, Any] | None:
+    """Per-owner post-draft breakdown: picks, grades, spend by position."""
+    events = storage.list_draft_events(league_id, limit=500)
+    picks = [p for p in _pick_rows(events) if str(p.get("team_id")) == str(team_id)]
+    if not picks and not roster:
+        return None
+
+    roster_by_id = {str(r.get("player_id")): r for r in (roster or []) if r.get("player_id")}
+    rows: list[dict[str, Any]] = []
+    for p in picks:
+        slot = roster_by_id.get(str(p.get("player_id")) or "")
+        rows.append(
+            {
+                **p,
+                "contract_years": int(slot.get("contract_years") or 1) if slot else 1,
+                "salary": float(slot.get("salary") if slot and slot.get("salary") is not None else p["amount"]),
+            }
+        )
+    # Roster slots with no win event (edge: imported mid-flow) still show up.
+    seen = {str(r["player_id"]) for r in rows if r.get("player_id")}
+    for slot in roster or []:
+        pid = str(slot.get("player_id") or "")
+        if not pid or pid in seen:
+            continue
+        rows.append(
+            {
+                "team_id": str(team_id),
+                "team_name": "",
+                "player_id": pid,
+                "player_name": slot.get("player_name") or "Player",
+                "position": slot.get("position") or "?",
+                "amount": float(slot.get("salary") or 0),
+                "fair_value": None,
+                "value_grade": "pick",
+                "value_blurb": None,
+                "ratio": None,
+                "contract_years": int(slot.get("contract_years") or 1),
+                "salary": float(slot.get("salary") or 0),
+            }
+        )
+
+    by_pos: dict[str, dict[str, Any]] = {}
+    for r in rows:
+        pos = str(r.get("position") or "?").upper()
+        bucket = by_pos.setdefault(pos, {"position": pos, "count": 0, "spent": 0.0})
+        bucket["count"] += 1
+        bucket["spent"] = round(bucket["spent"] + float(r.get("amount") or 0), 2)
+
+    total_spent = round(sum(float(r.get("amount") or 0) for r in rows), 2)
+    steals = sum(1 for r in rows if r.get("value_grade") in STEAL_GRADES)
+    reaches = sum(1 for r in rows if r.get("value_grade") in REACH_GRADES)
+    return {
+        "team_id": str(team_id),
+        "pick_count": len(rows),
+        "total_spent": total_spent,
+        "budget_remaining": budget_remaining,
+        "steals": steals,
+        "reaches": reaches,
+        "by_position": sorted(by_pos.values(), key=lambda b: (-b["spent"], b["position"])),
+        "picks": rows,
+    }
+
+
 def build_draft_recap(
     league_id: str,
     *,

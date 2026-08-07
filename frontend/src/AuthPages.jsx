@@ -46,22 +46,16 @@ export function AuthVerifyPage() {
   const success = params.get("success") === "1";
   const error = params.get("error");
   const token = params.get("token");
+  const confirming = token && !success && !error;
 
+  // Hooks must run unconditionally on every render (Rules of Hooks).
   useEffect(() => {
-    if (token && !success && !error) {
+    if (confirming) {
       window.location.replace(
         `/api/auth/verify-email?token=${encodeURIComponent(token)}`,
       );
     }
-  }, [token, success, error]);
-
-  if (token && !success && !error) {
-    return (
-      <AuthShell title="Email verification">
-        <p className="chart-note">Confirming your email…</p>
-      </AuthShell>
-    );
-  }
+  }, [confirming, token]);
 
   useEffect(() => {
     if (success) {
@@ -69,11 +63,19 @@ export function AuthVerifyPage() {
     }
   }, [success]);
 
+  if (confirming) {
+    return (
+      <AuthShell title="Email verification">
+        <p className="chart-note">Confirming your email…</p>
+      </AuthShell>
+    );
+  }
+
   return (
     <AuthShell title={success ? "Email verified" : "Email verification"}>
       {success && (
         <p className="chart-note">
-          Your email is verified. You can use Draft Hub and all saved league features.
+          Your email is verified. You can use your League and all saved features.
         </p>
       )}
       {error && <p className="error">This verification link is invalid or expired.</p>}
@@ -82,7 +84,7 @@ export function AuthVerifyPage() {
       )}
       <p className="hub-toolbar">
         <a className="btn-primary btn-sm" href="/hub/setup">
-          Open Draft Hub
+          Open League
         </a>
         <a className="btn-ghost btn-sm" href="/projections/weekly">
           Browse projections

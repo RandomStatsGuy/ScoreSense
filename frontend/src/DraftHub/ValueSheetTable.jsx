@@ -1,19 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
-import { TableSkeleton } from "../TableSkeleton";
+import { TableSkeletonBody } from "../TableSkeleton";
 import useMobileLayout from "../useMobileLayout";
 import MobileDataList, { MobileStat } from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
 import { usePlayerMedia } from "../PlayerCell";
 import HubTabIntro from "./HubTabIntro";
-import { HubPage, HubTableCard, HubFilterMenu } from "./HubUILayout";
+import { HubPage, HubTableCard, HubFilterMenu, SortTh } from "./HubUILayout";
 import {
   filterAndSortRows,
   fmtSal,
   formatStatusLabel,
   nextSortState,
-  sortIndicator,
 } from "./valueSheetUtils";
 import { HUB_POSITION_FILTERS } from "./hubPositions";
 import ValueSheetPlayerRow from "./ValueSheetPlayerRow";
@@ -27,19 +26,6 @@ const AVAILABILITY_FILTERS = [
   { id: "MINE", label: "Mine" },
   { id: "SLEEPER", label: "Targets" },
 ];
-
-function SortTh({ label, col, sortKey, sortDir, onSort, className = "", title }) {
-  return (
-    <th
-      className={`sortable-header ${className}`.trim()}
-      onClick={() => onSort(col)}
-      title={title}
-    >
-      {label}
-      <span className="sort-indicator"> {sortIndicator(sortKey, sortDir, col)}</span>
-    </th>
-  );
-}
 
 export default function ValueSheetTable({
   rows,
@@ -66,6 +52,7 @@ export default function ValueSheetTable({
   showTierFilters = true,
   hideHeader = false,
   hideIntro = false,
+  narrativeScope = "weekly",
 }) {
   const isAvailableView = mode === "available";
   const [sortKey, setSortKey] = useState("fair_value");
@@ -395,7 +382,7 @@ export default function ValueSheetTable({
             </tr>
           </thead>
           {showSkeleton ? (
-            <TableSkeleton rows={14} cols={colCount} />
+            <TableSkeletonBody rows={14} cols={colCount} />
           ) : (
             <tbody>
               {!loading && sorted.length === 0 && (
@@ -419,6 +406,7 @@ export default function ValueSheetTable({
                   onRowDoubleClick={onRowDoubleClick}
                   onAddPlayer={addPlayer}
                   playerMedia={playerMedia}
+                  narrativeScope={narrativeScope}
                 />
               ))}
             </tbody>

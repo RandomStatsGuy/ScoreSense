@@ -2,16 +2,47 @@
 # Matched on player name + team (+ optional position). Replaces the Sleeper tier
 # unless sentiment_blend is false. YouTube role-hype still applies when true.
 #
-# role_mult: scales the median backup feature template (same units as Sleeper tiers).
+# role_mult: scales the low-usage backup feature template (same units as Sleeper tiers).
 # Typical range: 0.20 (deep development) to 2.8 (day-one starter).
+# Draft capital note: Sleeper search_rank is used as a capital proxy in code; these
+# overrides capture landing-spot / camp consensus beyond raw depth chart.
 
 2026:
+  # --- QB ---
   - player: Fernando Mendoza
     team: LV
     position: QB
     role_mult: 2.75
     role_label: starter-camp
-    note: Raiders QB1, first-round pick
+    note: Raiders QB1, No. 1 overall; Kirk Cousins competition but clear draft capital
+
+  - player: Ty Simpson
+    team: LAR
+    position: QB
+    role_mult: 0.42
+    role_label: development
+    note: Behind Stafford; dynasty stash, minimal 2026 redraft volume
+
+  - player: Carson Beck
+    team: ARI
+    position: QB
+    role_mult: 0.48
+    role_label: backup
+    note: QB2 path; possible late-season spot starts only
+
+  - player: Cade Klubnik
+    team: NYJ
+    position: QB
+    role_mult: 0.50
+    role_label: backup
+    note: Jets QB2 depth behind the starter
+
+  - player: Garrett Nussmeier
+    team: KC
+    position: QB
+    role_mult: 0.30
+    role_label: development
+    note: Deep Chiefs QB room; developmental stash
 
   - player: Jacob Clark
     team: LV
@@ -19,3 +50,160 @@
     role_mult: 0.26
     role_label: development
     note: UDFA, third-string path
+
+  # --- RB ---
+  - player: Jeremiyah Love
+    team: ARI
+    position: RB
+    role_mult: 2.15
+    role_label: workhorse
+    note: No. 3 overall; feature-back path, top fantasy rookie
+
+  - player: Jadarian Price
+    team: SEA
+    position: RB
+    role_mult: 1.45
+    role_label: committee-lead
+    note: Round 1; fills Walker void in committee with Charbonnet
+
+  - player: Mike Washington
+    team: LV
+    position: RB
+    role_mult: 0.85
+    role_label: rb2
+    note: Day-2 capital; RB2/committee path in Las Vegas
+
+  - player: Emmett Johnson
+    team: KC
+    position: RB
+    role_mult: 0.72
+    role_label: committee
+    note: Early capital into crowded KC backfield
+
+  - player: Jonah Coleman
+    team: DEN
+    position: RB
+    role_mult: 0.70
+    role_label: committee
+    note: Early capital; committee/change-of-pace role
+
+  - player: Nicholas Singleton
+    team: TEN
+    position: RB
+    role_mult: 0.58
+    role_label: depth
+    note: Depth/committee behind incumbents
+
+  # --- WR ---
+  - player: Carnell Tate
+    team: TEN
+    position: WR
+    role_mult: 1.80
+    role_label: wr1-path
+    note: No. 4 overall; projected Titans WR1 opposite Wan'Dale Robinson
+
+  - player: Jordyn Tyson
+    team: NO
+    position: WR
+    role_mult: 1.28
+    role_label: wr2
+    note: Round 1; Olave complement with WR3 upside
+
+  - player: Makai Lemon
+    team: PHI
+    position: WR
+    role_mult: 1.22
+    role_label: wr2
+    note: Round 1; No. 2 opposite Smith if Brown moved
+
+  - player: KC Concepcion
+    team: CLE
+    position: WR
+    role_mult: 1.18
+    role_label: wr2-slot
+    note: Round 1 slot/gadget; QB situation caps ceiling
+
+  - player: Omar Cooper
+    team: NYJ
+    position: WR
+    role_mult: 1.00
+    role_label: wr3
+    note: Round 1; WR3 behind Wilson with Sadiq also added
+
+  - player: Antonio Williams
+    team: WAS
+    position: WR
+    role_mult: 1.08
+    role_label: wr2
+    note: Round 3; path to Commanders WR2 / flex
+
+  - player: Zachariah Branch
+    team: ATL
+    position: WR
+    role_mult: 0.95
+    role_label: wr2
+    note: Day-2 capital; rotational WR2 path
+
+  - player: Denzel Boston
+    team: CLE
+    position: WR
+    role_mult: 0.82
+    role_label: wr3
+    note: Round 2; red-zone upside behind Concepcion
+
+  - player: Germie Bernard
+    team: PIT
+    position: WR
+    role_mult: 0.72
+    role_label: wr3
+    note: Round 2; depth behind Metcalf/Pittman
+
+  - player: Caleb Douglas
+    team: MIA
+    position: WR
+    role_mult: 0.78
+    role_label: wr3
+    note: Round 3; thin Miami WR room, camp buzz candidate
+
+  - player: De'Zhaun Stribling
+    team: SF
+    position: WR
+    role_mult: 0.52
+    role_label: depth
+    note: Round 2 into loaded 49ers room; dynasty stash
+
+  - player: Malachi Fields
+    team: NYG
+    position: WR
+    role_mult: 0.48
+    role_label: depth
+    note: Round 3; contested-catch depth
+
+  # --- TE ---
+  - player: Kenyon Sadiq
+    team: NYJ
+    position: TE
+    role_mult: 1.55
+    role_label: te1-path
+    note: Round 1 TE; immediate every-down upside in NY
+
+  - player: Eli Stowers
+    team: PHI
+    position: TE
+    role_mult: 0.55
+    role_label: te2
+    note: Round 2 behind Goedert; dynasty more than redraft
+
+  - player: Max Klare
+    team: LAR
+    position: TE
+    role_mult: 0.40
+    role_label: depth
+    note: Deep Rams TE room; limited 2026 path
+
+  - player: Marlin Klein
+    team: HOU
+    position: TE
+    role_mult: 0.36
+    role_label: depth
+    note: Behind Schultz/Stover; developmental

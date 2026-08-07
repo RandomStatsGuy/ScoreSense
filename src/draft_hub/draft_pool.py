@@ -25,12 +25,20 @@ def normalize_pool_mode(mode: str | None) -> PoolMode:
 
 
 def list_drafted_player_ids(league_id: str) -> set[str]:
+    """Players still under contract (or already drafted) — not nominatable."""
+    from src.draft_hub.pre_draft_cap import retained_through_draft
+
+    league = storage.get_league(league_id)
+    draft_completed = bool(league and league.get("draft_completed"))
     ids: set[str] = set()
     for team in storage.list_league_teams(league_id):
         for row in storage.list_team_roster(league_id, team["id"]):
             pid = str(row.get("player_id") or "").strip()
-            if pid:
-                ids.add(pid)
+            if not pid:
+                continue
+            if not retained_through_draft(row, draft_completed=draft_completed):
+                continue
+            ids.add(pid)
     return ids
 
 
@@ -102,6 +110,7 @@ def build_nomination_pool(
         hub_available,
         sleeper_player_ids=sleeper_player_ids or set(),
         team_count=team_count,
+        draft_completed=bool(league and league.get("draft_completed")),
     )
     rows = filter_nomination_rows(
         list(sheet.get("rows") or []),

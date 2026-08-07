@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import uuid
+import zlib
 from typing import Any
 
 from src.draft_hub import storage
 from src.draft_hub.draft_state import get_room_state, place_bid
+from src.draft_hub.rules_engine import roster_limits
 from src.draft_hub.schemas import LeagueRules
 
 BOT_NAMES = [
@@ -78,30 +80,24 @@ def reset_test_draft(league_id: str, commissioner_sub: str) -> dict[str, Any]:
     return {"state": get_room_state(league_id, commissioner_sub)}
 
 
-def maybe_bot_nominate(league_id: str) -> dict[str, Any] | None:
-    """When a bot is on the clock, nominate a top available player (test mode only)."""
+def _team_sub(team: dict[str, Any]) -> str | None:
+    """Sub usable with nominate/place_bid for either a bot or a human team."""
+    if team.get("is_bot"):
+        return f"bot:{team['id']}"
+    return team.get("user_sub")
+
+
+def _pick_nomination_payload(
+    league_id: str,
+    league: dict[str, Any],
+    rules: LeagueRules,
+    team: dict[str, Any],
+    session: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Best available player this team can still roster, as a nominate() payload."""
     from src.draft_hub.draft_pool import build_nomination_pool
-    from src.draft_hub.draft_state import _current_nominator_team_id, nominate
     from src.draft_hub.rules_engine import assert_can_acquire
 
-    if not storage.league_test_mode(league_id):
-        return None
-    state = get_room_state(league_id)
-    session = state.get("session") or {}
-    if session.get("status") != "nominating":
-        return None
-
-    nominator_id = _current_nominator_team_id(session)
-    if not nominator_id:
-        return None
-    team = storage.get_team(nominator_id)
-    if not team or not team.get("is_bot"):
-        return None
-
-    league = storage.get_league(league_id)
-    if not league:
-        return None
-    rules = LeagueRules.model_validate(league["rules"])
     ws = storage.roster_workspace_for_league(league)
     pool = build_nomination_pool(
         league_id=league_id,
@@ -126,22 +122,68 @@ def maybe_bot_nominate(league_id: str) -> dict[str, Any] | None:
         reverse=True,
     )
     pick = candidates[0]
+    return {
+        "player_id": pick["player_id"],
+        "player_name": pick.get("player") or pick.get("player_name"),
+        "team": pick.get("team", ""),
+        "position": pick.get("position"),
+        "fair_value": pick.get("fair_value"),
+        "season_proj": pick.get("season_proj"),
+        "per_game_proj": pick.get("per_game_proj"),
+    }
+
+
+def maybe_bot_nominate(league_id: str) -> dict[str, Any] | None:
+    """When a bot is on the clock, nominate a top available player (test mode only)."""
+    from src.draft_hub.draft_state import _current_nominator_team_id, nominate
+
+    if not storage.league_test_mode(league_id):
+        return None
+    state = get_room_state(league_id)
+    session = state.get("session") or {}
+    if session.get("status") != "nominating":
+        return None
+
+    nominator_id = _current_nominator_team_id(session)
+    if not nominator_id:
+        return None
+    team = storage.get_team(nominator_id)
+    if not team or not team.get("is_bot"):
+        return None
+
+    league = storage.get_league(league_id)
+    if not league:
+        return None
+    rules = LeagueRules.model_validate(league["rules"])
+    payload = _pick_nomination_payload(league_id, league, rules, team, session)
+    if not payload:
+        return None
     try:
-        return nominate(
-            league_id,
-            f"bot:{team['id']}",
-            {
-                "player_id": pick["player_id"],
-                "player_name": pick.get("player") or pick.get("player_name"),
-                "team": pick.get("team", ""),
-                "position": pick.get("position"),
-                "fair_value": pick.get("fair_value"),
-                "season_proj": pick.get("season_proj"),
-                "per_game_proj": pick.get("per_game_proj"),
-            },
-        )
+        return nominate(league_id, f"bot:{team['id']}", payload)
     except ValueError:
         return None
+
+
+def bot_max_price(bot_id: str, nominee: dict[str, Any], min_bid: float) -> float:
+    """Per-bot price ceiling around the player's fair value.
+
+    Deterministic (crc32 of bot+player) so a bot doesn't re-roll its valuation
+    on every timer tick: each bot values the player at 0.75x–1.15x fair value,
+    which lets auctions end near fair price instead of climbing forever.
+    """
+    try:
+        fair = float(nominee.get("fair_value") or 0)
+    except (TypeError, ValueError):
+        fair = 0.0
+    if fair <= 0:
+        return min_bid * 3  # unvalued players are cheap fliers only
+    seed = zlib.crc32(f"{bot_id}:{nominee.get('player_id')}".encode()) % 1000
+    mult = 0.75 + 0.4 * (seed / 999)
+    return max(min_bid, round(fair * mult))
+
+
+def _total_roster_slots(rules: LeagueRules) -> int:
+    return sum(int(lim.get("max") or 0) for lim in roster_limits(rules).values())
 
 
 def maybe_bot_bid(league_id: str) -> dict[str, Any] | None:
@@ -161,6 +203,8 @@ def maybe_bot_bid(league_id: str) -> dict[str, Any] | None:
 
     rules = LeagueRules.model_validate(state["league"]["rules"])
     min_bid = float(rules.auction.min_bid)
+    nominee = session.get("current_nominee") or {}
+    total_slots = _total_roster_slots(rules)
 
     for bot in bots:
         if bot["id"] == high_team_id:
@@ -169,8 +213,140 @@ def maybe_bot_bid(league_id: str) -> dict[str, Any] | None:
         next_bid = max(min_bid, high_bid + min_bid)
         if next_bid > budget:
             continue
+        if next_bid > bot_max_price(bot["id"], nominee, min_bid):
+            continue
+        # Keep min_bid in reserve for every roster slot still to fill.
+        open_slots = total_slots - len(storage.list_team_roster(league_id, bot["id"]))
+        if open_slots > 1 and next_bid > budget - min_bid * (open_slots - 1):
+            continue
         try:
             return place_bid(league_id, f"bot:{bot['id']}", next_bid)
         except ValueError:
             continue
     return None
+
+
+def _settle_auction(league_id: str) -> None:
+    """Resolve the current auction in one step (simulation only).
+
+    Instead of ticking $1 bids back and forth, compute every team's price
+    ceiling and let the highest bidder pay second-price + min_bid — same
+    outcome as the live bot loop, but one bid per pick.
+    """
+    from src.draft_hub.draft_state import award_nominee
+    from src.draft_hub.rules_engine import assert_can_acquire
+
+    session = storage.get_draft_session(league_id) or {}
+    if session.get("status") != "bidding":
+        return
+    league = storage.get_league(league_id)
+    rules = LeagueRules.model_validate(league["rules"])
+    min_bid = float(rules.auction.min_bid)
+    total_slots = _total_roster_slots(rules)
+    nominee = session.get("current_nominee") or {}
+    high_bid = float(session.get("high_bid") or 0)
+    high_team_id = session.get("high_bidder_team_id")
+
+    offers: list[tuple[float, str, str]] = []
+    for team in storage.list_league_teams(league_id):
+        sub = _team_sub(team)
+        if not sub:
+            continue
+        roster = storage.list_team_roster(league_id, team["id"])
+        try:
+            assert_can_acquire(rules, roster, nominee.get("position"))
+        except ValueError:
+            continue
+        budget = float(team.get("budget_remaining") or 0)
+        open_slots = total_slots - len(roster)
+        affordable = budget - min_bid * max(0, open_slots - 1)
+        ceiling = min(bot_max_price(team["id"], nominee, min_bid), affordable)
+        floor = high_bid + min_bid if team["id"] != high_team_id else high_bid
+        if ceiling >= max(min_bid, floor):
+            offers.append((ceiling, team["id"], sub))
+
+    offers.sort(key=lambda o: o[0], reverse=True)
+    if offers:
+        top_ceiling, winner_id, winner_sub = offers[0]
+        runner_up = offers[1][0] if len(offers) > 1 else 0.0
+        price = max(min_bid, high_bid + min_bid, min(top_ceiling, runner_up + min_bid))
+        if winner_id != high_team_id:
+            try:
+                place_bid(league_id, winner_sub, price)
+            except ValueError:
+                pass
+    award_nominee(league_id)
+
+
+def simulate_draft(
+    league_id: str,
+    commissioner_sub: str,
+    max_picks: int | None = None,
+) -> dict[str, Any]:
+    """Run the whole draft instantly (dev tool, practice rooms only)."""
+    from src.draft_hub.draft_state import (
+        _advance_nominator,
+        _current_nominator_team_id,
+        end_draft,
+        nominate,
+        start_draft,
+    )
+
+    league = storage.get_league(league_id)
+    if not league:
+        raise ValueError("League not found")
+    if league["commissioner_sub"] != commissioner_sub:
+        raise ValueError("Only commissioner can simulate the draft")
+    if not storage.league_test_mode(league_id):
+        raise ValueError("Simulation is only available in practice draft rooms")
+
+    session = storage.get_draft_session(league_id)
+    if not session or session.get("status") == "setup":
+        start_draft(league_id, commissioner_sub)
+
+    rules = LeagueRules.model_validate(league["rules"])
+    teams = storage.list_league_teams(league_id)
+    pick_cap = int(max_picks) if max_picks else _total_roster_slots(rules) * max(1, len(teams))
+    picks = 0
+    stalled_turns = 0
+
+    # Every iteration either nominates, settles an auction, or skips a full
+    # roster — bounded by picks plus one skipped turn per team per pick.
+    for _ in range(pick_cap * (len(teams) + 2) + 10):
+        session = storage.get_draft_session(league_id) or {}
+        status = session.get("status")
+        if status == "completed" or picks >= pick_cap:
+            break
+        if status == "bidding":
+            _settle_auction(league_id)
+            picks += 1
+            continue
+        if status != "nominating":
+            break
+
+        nominator_id = _current_nominator_team_id(session)
+        team = storage.get_team(nominator_id) if nominator_id else None
+        payload = (
+            _pick_nomination_payload(league_id, league, rules, team, session) if team else None
+        )
+        sub = _team_sub(team) if team else None
+        nominated = False
+        if payload and sub:
+            try:
+                nominate(league_id, sub, payload)
+                nominated = True
+            except ValueError:
+                pass
+        if nominated:
+            stalled_turns = 0
+        else:
+            # Roster full (or pool empty) for this team — pass the clock along.
+            _advance_nominator(league_id)
+            stalled_turns += 1
+            if stalled_turns >= max(1, len(teams)):
+                break  # nobody can nominate: the draft is over
+
+    session = storage.get_draft_session(league_id) or {}
+    if session.get("status") != "completed":
+        end_draft(league_id, commissioner_sub)
+    return get_room_state(league_id, commissioner_sub)

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { apiFetch, loginWithPatreon } from "./auth";
+import { apiFetch } from "./auth";
 import { connectionErrorMessage, parseApiError } from "./format";
 import AccountAuth from "./AccountAuth";
 import { useAuth } from "./AuthContext";
@@ -22,7 +22,6 @@ export default function InviteAccept({ authenticated, user, onAccepted, onDismis
   const [loading, setLoading] = useState(Boolean(token));
   const [accepting, setAccepting] = useState(false);
   const [error, setError] = useState("");
-  const [patreonError, setPatreonError] = useState("");
 
   useEffect(() => {
     if (!token) return;
@@ -65,12 +64,6 @@ export default function InviteAccept({ authenticated, user, onAccepted, onDismis
     }
   }, [token, onAccepted]);
 
-  const patreonLogin = () => {
-    setPatreonError("");
-    const next = `/?invite=${encodeURIComponent(token)}`;
-    loginWithPatreon(next).catch((e) => setPatreonError(e.message));
-  };
-
   if (!token) return null;
 
   const emailMatches = preview?.email
@@ -97,23 +90,16 @@ export default function InviteAccept({ authenticated, user, onAccepted, onDismis
           </>
         )}
         {!authenticated && preview?.status === "pending" && (
-          <>
-            <AccountAuth
-              title="Sign in to join your league"
-              subtitle={`Sign in with ${preview.email}`}
-              defaultEmail={preview.email}
-              termsUrl={termsUrl}
-              privacyUrl={privacyUrl}
-              onAuthed={() => window.dispatchEvent(new Event("scoresense-auth-changed"))}
-            />
-            {patreonConfigured && (
-              <div className="hub-toolbar invite-patreon-row">
-                <button type="button" className="btn-ghost btn-sm" onClick={patreonLogin}>
-                  Log in with Patreon
-                </button>
-              </div>
-            )}
-          </>
+          <AccountAuth
+            title="Sign in to join your league"
+            subtitle={`Sign in with ${preview.email}`}
+            defaultEmail={preview.email}
+            termsUrl={termsUrl}
+            privacyUrl={privacyUrl}
+            patreonConfigured={patreonConfigured}
+            patreonNext={`/?invite=${encodeURIComponent(token)}`}
+            onAuthed={() => window.dispatchEvent(new Event("scoresense-auth-changed"))}
+          />
         )}
         {authenticated && preview?.status === "pending" && !emailMatches && (
           <p className="error">
@@ -128,7 +114,6 @@ export default function InviteAccept({ authenticated, user, onAccepted, onDismis
           </div>
         )}
         {error && <div className="error">{error}</div>}
-        {patreonError && <div className="error">{patreonError}</div>}
         <button type="button" className="btn-ghost btn-sm invite-dismiss" onClick={() => { clearInviteParam(); onDismiss?.(); }}>
           Dismiss
         </button>

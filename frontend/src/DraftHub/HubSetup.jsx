@@ -6,19 +6,25 @@ import LeagueSheetImport from "./LeagueSheetImport";
 import CapSheetImport from "./CapSheetImport";
 import LeagueInvites from "./LeagueInvites";
 import LeagueSetup from "./LeagueSetup";
-import HubSetupChecklist from "./HubSetupChecklist";
+import HubSetupChecklist, { hasRules, hasSleeper } from "./HubSetupChecklist";
 import useMobileLayout from "../useMobileLayout";
 import { effectiveHubContext } from "./hubContext";
 
+/**
+ * Collapsible setup section (desktop and mobile). Sections that still need
+ * attention default open; completed/secondary ones start collapsed so the
+ * page reads as a short checklist instead of a wall of expanded panels.
+ */
 function SetupSection({
   title,
+  hint,
   children,
   mobileLayout,
   defaultOpen = false,
   flat = false,
   className = "hub-setup-panel",
 }) {
-  if (!mobileLayout || flat) {
+  if (flat) {
     return (
       <section className={`panel ${className}${flat && mobileLayout ? " hub-setup-panel--flat" : ""}`}>
         {children}
@@ -27,8 +33,11 @@ function SetupSection({
   }
   return (
     <details className={`hub-setup-accordion panel ${className}`} open={defaultOpen}>
-      <summary>{title}</summary>
-      {children}
+      <summary>
+        {title}
+        {hint ? <span className="hub-setup-accordion-hint">{hint}</span> : null}
+      </summary>
+      <div className="hub-setup-accordion-body">{children}</div>
     </details>
   );
 }
@@ -56,6 +65,8 @@ export default function HubSetup({
   const ctx = effectiveHubContext(hubContext, workspace);
   const inLeague = ctx?.mode === "league";
   const isCommissioner = ctx?.is_commissioner;
+  const sleeperLinked = hasSleeper(workspace, ctx);
+  const rulesConfigured = hasRules(workspace);
 
   return (
     <div className={`hub-setup hub-setup-compact${mobileLayout ? " hub-setup--mobile" : ""}`}>
@@ -86,7 +97,13 @@ export default function HubSetup({
         />
       </SetupSection>
 
-      <SetupSection title="Sleeper" mobileLayout={mobileLayout} className="hub-setup-panel hub-setup-panel--sleeper">
+      <SetupSection
+        title="Sleeper connection"
+        hint={sleeperLinked ? "Linked" : "Not linked"}
+        defaultOpen={!sleeperLinked}
+        mobileLayout={mobileLayout}
+        className="hub-setup-panel hub-setup-panel--sleeper"
+      >
         <SleeperLink
           workspace={workspace}
           hubContext={ctx}
@@ -102,7 +119,13 @@ export default function HubSetup({
         )}
       </SetupSection>
 
-      <SetupSection title="Rules" mobileLayout={mobileLayout} className="hub-setup-panel">
+      <SetupSection
+        title="League rules"
+        hint={rulesConfigured ? "Configured" : "Needs setup"}
+        defaultOpen={!rulesConfigured}
+        mobileLayout={mobileLayout}
+        className="hub-setup-panel hub-setup-panel--rules"
+      >
         <RulesWizard
           workspace={workspace}
           hubContext={ctx}
@@ -114,7 +137,12 @@ export default function HubSetup({
       </SetupSection>
 
       {inLeague && isCommissioner && (
-        <SetupSection title="Invites & imports" mobileLayout={mobileLayout} className="hub-setup-panel hub-setup-alt">
+        <SetupSection
+          title="Commissioner tools"
+          hint="Invites · imports"
+          mobileLayout={mobileLayout}
+          className="hub-setup-panel hub-setup-alt"
+        >
           <LeagueInvites
             leagueId={ctx.league_id}
             hubContext={ctx}
@@ -131,7 +159,12 @@ export default function HubSetup({
       )}
 
       {!inLeague && (
-        <SetupSection title="Spreadsheet import" mobileLayout={mobileLayout} className="hub-setup-panel hub-setup-alt">
+        <SetupSection
+          title="Spreadsheet import"
+          hint="Optional"
+          mobileLayout={mobileLayout}
+          className="hub-setup-panel hub-setup-alt"
+        >
           <LeagueSheetImport season={workspace?.season} onImported={onRosterChanged} embedded />
           <SalaryRangeImport season={workspace?.season} onImported={onRangesUpdated} embedded />
         </SetupSection>

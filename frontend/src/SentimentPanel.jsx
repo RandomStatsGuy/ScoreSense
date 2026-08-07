@@ -217,7 +217,7 @@ export default function SentimentPanel({
     if (meta.season != null && meta.week != null) {
       parts.push(isSeason ? `${meta.season} · through W${meta.week}` : `${meta.season} · W${meta.week}`);
     }
-    if meta.context_fallback && meta.requested_season != null && meta.requested_week != null) {
+    if (meta.context_fallback && meta.requested_season != null && meta.requested_week != null) {
       const reqLabel = `${meta.requested_season} W${meta.requested_week}`;
       const shownLabel = `${meta.season ?? season} W${meta.week ?? week}`;
       if (reqLabel !== shownLabel) {

@@ -31,11 +31,14 @@ export default function DraftCommissionerSettings({
   }, [poolMode]);
 
   useEffect(() => {
-    if (nominationOrder?.length) {
-      setOrder(nominationOrder.map(String));
-      return;
-    }
-    setOrder((teams || []).map((t) => String(t.id)));
+    const next = nominationOrder?.length
+      ? nominationOrder.map(String)
+      : (teams || []).map((t) => String(t.id));
+    // Bail out when unchanged: parent passes fresh array identities each render,
+    // so unconditionally setting a new array here causes an infinite render loop.
+    setOrder((prev) =>
+      prev.length === next.length && prev.every((v, i) => v === next[i]) ? prev : next,
+    );
   }, [nominationOrder, teams]);
 
   const move = (idx, dir) => {

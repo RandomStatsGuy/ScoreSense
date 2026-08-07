@@ -11,6 +11,7 @@ export const AuthContext = createContext({
   openSignIn: () => {},
   closeSignIn: () => {},
   signInOpen: false,
+  hubDemo: { available: false },
   refreshAuth: async () => {},
   logout: async () => {},
 });

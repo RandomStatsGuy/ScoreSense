@@ -1,10 +1,7 @@
 import React, { useMemo } from "react";
+import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 import { HUB_POS_ORDER, normalizeHubPosition } from "./hubPositions";
-
-function fmtSal(v) {
-  if (v == null || !Number.isFinite(Number(v))) return "—";
-  return `$${Number(v).toFixed(0)}`;
-}
+import { fmtSal } from "./rosterFormat";
 
 export default function DraftRosterPanel({
   viewer,
@@ -13,10 +10,19 @@ export default function DraftRosterPanel({
   onCutPlayer,
   cutBusy = false,
   budgetRemaining,
+  maxBid = null,
+  isNominator = false,
+  isHighBidder = false,
   ended = false,
 }) {
   const roster = viewer?.roster || [];
   const capacity = viewer?.capacity?.by_position || {};
+
+  const playerIds = useMemo(
+    () => roster.map((r) => r.player_id).filter(Boolean),
+    [roster],
+  );
+  const playerMedia = usePlayerMedia(playerIds);
 
   const grouped = useMemo(() => {
     const map = {};
@@ -52,15 +58,21 @@ export default function DraftRosterPanel({
 
   return (
     <div className="hub-roster-panel">
-      <h3 className="hub-section-title">{viewer.team_name || "Your team"}</h3>
-      {allowMidDraftCuts && (
-        <p className="chart-note hub-draft-cut-banner">
-          Mid-draft cuts on — drop a player to free cap
-          {budgetRemaining != null ? ` (${fmtSal(budgetRemaining)} left)` : ""}.
+      <div className="hub-roster-panel-head">
+        <h3 className="hub-section-title">{viewer.team_name || "Your team"}</h3>
+        {isNominator && <span className="hub-team-tag hub-team-tag-nom">Nominates</span>}
+        {isHighBidder && <span className="hub-team-tag hub-team-tag-lead">High bid</span>}
+      </div>
+      {!ended && budgetRemaining != null && (
+        <p className="chart-note hub-roster-panel-budget">
+          <strong>{fmtSal(budgetRemaining)}</strong> left
+          {maxBid != null && <> · max bid <strong>{fmtSal(maxBid)}</strong></>}
         </p>
       )}
-      {!allowMidDraftCuts && !ended && (
-        <p className="chart-note hub-draft-sidebar-hint">Auction roster</p>
+      {allowMidDraftCuts && !ended && (
+        <p className="chart-note hub-draft-cut-banner">
+          Mid-draft cuts on — drop a player to free cap.
+        </p>
       )}
       <div className="hub-cap-grid">
         {limitRows.map((pos) => {
@@ -83,7 +95,16 @@ export default function DraftRosterPanel({
           {sortedRoster.map((row) => (
             <li key={row.player_id} className="hub-roster-row">
               <span className="hub-roster-pos">{normalizeHubPosition(row.position)}</span>
-              <span className="hub-roster-name">{row.player_name}</span>
+              <span className="hub-roster-name">
+                <PlayerCell
+                  name={row.player_name}
+                  playerId={row.player_id}
+                  media={playerMedia}
+                  size="sm"
+                  showTeam={false}
+                  narrativeScope="season"
+                />
+              </span>
               <span className="hub-roster-sal">{fmtSal(row.salary)}</span>
               {allowMidDraftCuts && onCutPlayer && (
                 <button

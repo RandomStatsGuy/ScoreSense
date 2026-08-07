@@ -39,6 +39,9 @@ export function ProjectionsFilterControls({
   onSearchChange,
 }) {
   const isSheet = layout === "sheet";
+  const weekIdx = week != null && weekOptions ? weekOptions.indexOf(week) : -1;
+  const canStepPrev = weekIdx > 0;
+  const canStepNext = weekIdx >= 0 && weekIdx < (weekOptions?.length || 0) - 1;
 
   return (
     <>
@@ -135,15 +138,35 @@ export function ProjectionsFilterControls({
             </label>
             <label className={isSheet ? "mobile-filter-field" : "header-inline-field header-context-field"}>
               <span className={isSheet ? "mobile-filter-label" : "header-field-label"}>Week</span>
-              <select
-                className="header-select header-context-control"
-                value={week ?? ""}
-                onChange={(e) => onWeekChange(Number(e.target.value))}
-              >
-                {weekOptions.map((w) => (
-                  <option key={w} value={w}>{w}</option>
-                ))}
-              </select>
+              <div className="week-stepper">
+                <button
+                  type="button"
+                  className="week-step-btn"
+                  aria-label="Previous week"
+                  disabled={!canStepPrev}
+                  onClick={() => onWeekChange(weekOptions[weekIdx - 1])}
+                >
+                  ‹
+                </button>
+                <select
+                  className="header-select header-context-control"
+                  value={week ?? ""}
+                  onChange={(e) => onWeekChange(Number(e.target.value))}
+                >
+                  {weekOptions.map((w) => (
+                    <option key={w} value={w}>{w}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="week-step-btn"
+                  aria-label="Next week"
+                  disabled={!canStepNext}
+                  onClick={() => onWeekChange(weekOptions[weekIdx + 1])}
+                >
+                  ›
+                </button>
+              </div>
             </label>
             <TeamFilter
               className={isSheet ? "mobile-filter-team" : "header-context-field header-context-field--team"}

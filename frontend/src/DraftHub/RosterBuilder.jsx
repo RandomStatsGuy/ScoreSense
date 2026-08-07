@@ -286,7 +286,7 @@ export default function RosterBuilder({
       {!readOnly && !mobileLayout && (
         <p className="chart-note hub-roster-contract-help">
           Saves on blur · step-up +${defaultStepUp}/yr
-          {!draftCompleted && " · 1yr deals expire after draft"}
+          {!draftCompleted && " · Final-year deals expire before draft (rookies can extend once)"}
         </p>
       )}
 
@@ -355,7 +355,9 @@ export default function RosterBuilder({
                 ? storedSchedule
                 : (previewSchedule(edit.salary, edit.years, defaultStepUp) || storedSchedule);
               const expiringBadge = !draftCompleted && yrsLeft <= 1 && !isCut
-                ? (mobileLayout ? "Expires soon" : "Expires after draft")
+                ? (r.contract?.contract_type === "rookie"
+                  ? (mobileLayout ? "Extend?" : "Extend to keep")
+                  : (mobileLayout ? "FA" : "Expires — FA"))
                 : (yrsLeft === 1 ? "Final year" : null);
               const actions = [];
               if (!draftCompleted) {
@@ -489,7 +491,9 @@ export default function RosterBuilder({
                 ? storedSchedule
                 : (previewSchedule(edit.salary, edit.years, defaultStepUp) || storedSchedule);
               const expiringBadge = !draftCompleted && yrsLeft <= 1 && !isCut
-                ? (mobileLayout ? "Expires soon" : "Expires after draft")
+                ? (r.contract?.contract_type === "rookie"
+                  ? (mobileLayout ? "Extend?" : "Extend to keep")
+                  : (mobileLayout ? "FA" : "Expires — FA"))
                 : (yrsLeft === 1 ? "Final year" : null);
               return (
                 <tr key={r.player_id} className={`${isSleeperPlayer(r) ? "hub-sleeper-row" : ""}${isCut ? " hub-cut-row" : ""}`}>

@@ -69,11 +69,7 @@ export function rosSeasonP90(row) {
 export async function parseApiError(res, fallback = "Request failed") {
   const text = await res.text();
   if (res.status === 404 && text.includes("Not Found")) {
-    return (
-      "API route not found — the server is probably running old code. " +
-      "Restart with: uvicorn app.api:app --reload --port 8000 " +
-      "(Docker: docker compose build api && docker compose up -d api)"
-    );
+    return "This feature is temporarily unavailable. Please refresh and try again.";
   }
   if (!text) return fallback;
   try {
@@ -94,7 +90,7 @@ export function connectionErrorMessage(err, fallback) {
     msg.includes("NetworkError") ||
     msg.includes("proxy error")
   ) {
-    return "Cannot reach the API on port 8000. Start it with: uvicorn app.api:app --reload --port 8000";
+    return "Can't reach the server right now. Check your connection and try again.";
   }
   return msg || fallback;
 }

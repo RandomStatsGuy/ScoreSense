@@ -3,7 +3,6 @@ import { apiFetch } from "../auth";
 import { useAuth } from "../AuthContext";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
-import HubSeasonStatus from "./HubSeasonStatus";
 import HubSubnav from "./HubSubnav";
 import useMobileLayout from "../useMobileLayout";
 import { HubPage } from "./HubUILayout";
@@ -15,13 +14,16 @@ import ValueSheetTable from "./ValueSheetTable";
 import RosterBuilder from "./RosterBuilder";
 import DraftRoom from "./DraftRoom";
 import CapPlanner from "./CapPlanner";
-import CommissionerLeagueRosters from "./CommissionerLeagueRosters";
 import LeagueInsights from "./LeagueInsights";
-import LeagueLiveScoring from "./LeagueLiveScoring";
+import LeagueTrades from "./LeagueTrades";
 import LeagueContextBanner from "./LeagueContextBanner";
+import HubDataFreshness from "./HubDataFreshness";
+import HubDemoBanner from "./HubDemoBanner";
+import { defaultInsightTab, isInsightTabAllowed } from "./hubInsightsTabs";
 import {
   clearHubDataCache,
   getCachedPool,
+  invalidateFreshnessCache,
   mergePoolAndOverlay,
   poolPayloadFromSheet,
   setCachedOverlay,
@@ -36,9 +38,18 @@ const EMPTY_VALUE_ROWS = [];
 const TABS_NEED_VALUE_SHEET = new Set(["value", "room"]);
 /** Tabs that need cap-sheet (also hits roster on the server). */
 const TABS_NEED_CAP_SHEET = new Set(["planner", "roster"]);
+/** Tabs that read the hub roster ("value" marks my players via rosterIds). */
+const TABS_NEED_ROSTER = new Set(["setup", "value", "roster", "planner", "room"]);
 
 export default function DraftHub({ subView, onSubViewChange, onHubContextChange, insightTab, onInsightTabChange }) {
-  const { authenticated, refreshAuth, hubAuthRequired, ready: authReady, user, termsUrl, privacyUrl } = useAuth();
+  const { authenticated, refreshAuth, hubAuthRequired, hubDemo, ready: authReady, user, termsUrl, privacyUrl, patreonConfigured } = useAuth();
+  const [demoMode, setDemoMode] = useState(() => {
+    try {
+      return sessionStorage.getItem("ss_hub_demo") === "1";
+    } catch {
+      return false;
+    }
+  });
   const [workspace, setWorkspace] = useState(null);
   const [valueSheet, setValueSheet] = useState(null);
   const [roster, setRoster] = useState([]);
@@ -55,6 +66,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const [valueSheetLoading, setValueSheetLoading] = useState(false);
   const subViewRef = React.useRef(subView);
   subViewRef.current = subView;
+  /** Roster fetch runs once per boot, on first entry to a tab that reads it. */
+  const rosterBootRef = React.useRef(false);
   const [rosterLoading, setRosterLoading] = useState(false);
   const [memberships, setMemberships] = useState([]);
   const [leagueSwitchBusy, setLeagueSwitchBusy] = useState(false);
@@ -69,16 +82,47 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     if (subView === "available") setSubView("value");
   }, [subView, setSubView]);
 
+  useEffect(() => {
+    if (subView === "live") {
+      setSubView("insights");
+      onInsightTabChange?.("scoring");
+    } else if (subView === "league-rosters") {
+      setSubView("insights");
+      onInsightTabChange?.("desk");
+    }
+  }, [subView, setSubView, onInsightTabChange]);
+
+  const goToCommissionerDesk = useCallback(() => {
+    setSubView("insights");
+    onInsightTabChange?.("desk");
+  }, [setSubView, onInsightTabChange]);
+
+  const onInsights = subView === "insights";
+
+  // Insights/Trades stay mounted (display:none) after first visit so revisits
+  // skip refetch + chart remount. Heavy tabs (value sheet, draft room) still unmount.
+  const [visitedTabs, setVisitedTabs] = useState(() => new Set());
+  useEffect(() => {
+    if (subView !== "insights" && subView !== "trades") return;
+    setVisitedTabs((prev) => {
+      if (prev.has(subView)) return prev;
+      const next = new Set(prev);
+      next.add(subView);
+      return next;
+    });
+  }, [subView]);
+
   const rosterIds = useMemo(
     () => new Set(roster.map((r) => r.player_id)),
     [roster],
   );
 
   const loadWorkspace = useCallback(async (signal) => {
-    const res = await apiFetch("/api/hub/workspace", { signal });
+    const path = demoMode ? "/api/hub/demo/workspace" : "/api/hub/workspace";
+    const res = await apiFetch(path, { signal });
     if (!res.ok) throw new Error(await parseApiError(res));
     return res.json();
-  }, []);
+  }, [demoMode]);
 
   const loadHubContext = useCallback(async (signal) => {
     const res = await apiFetch("/api/hub/context", { signal });
@@ -218,17 +262,41 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     return merged;
   }, []);
 
+  const enterDemo = useCallback(() => {
+    try {
+      sessionStorage.setItem("ss_hub_demo", "1");
+    } catch {
+      /* ignore */
+    }
+    setDemoMode(true);
+    clearHubDataCache();
+    setSubView("insights");
+  }, [setSubView]);
+
+  const exitDemo = useCallback(() => {
+    try {
+      sessionStorage.removeItem("ss_hub_demo");
+    } catch {
+      /* ignore */
+    }
+    setDemoMode(false);
+    clearHubDataCache();
+  }, []);
+
   const refreshAll = useCallback(async (signal) => {
     setLoading(true);
     setError("");
     try {
-      if (!authenticated && hubAuthRequired !== false) {
+      if (!demoMode && !authenticated && hubAuthRequired !== false) {
         return;
       }
-      const [ws, presetsRes] = await Promise.all([
-        loadWorkspace(signal),
-        apiFetch("/api/hub/presets", { signal }),
-      ]);
+      const requests = [loadWorkspace(signal)];
+      if (!demoMode) {
+        requests.push(apiFetch("/api/hub/presets", { signal }));
+      }
+      const results = await Promise.all(requests);
+      const ws = results[0];
+      const presetsRes = results[1];
       if (signal?.aborted) return;
       const ctx = ws.hub_context || null;
       setWorkspace({ ...ws, hub_context: ctx });
@@ -236,13 +304,16 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       setLeagueId((prev) => prev || ctx?.league_id || "");
       const merged = effectiveMemberships(ws.memberships || [], ctx);
       if (!signal?.aborted) setMemberships(merged);
-      if (presetsRes.ok) {
+      if (presetsRes?.ok) {
         const p = await presetsRes.json();
         if (!signal?.aborted) setPresets(p.presets || []);
       }
     } catch (e) {
       if (isAbortError(e)) return;
       const msg = connectionErrorMessage(e);
+      if (demoMode && /demo|404|not configured/i.test(msg)) {
+        exitDemo();
+      }
       if (/sign in|login required|401/i.test(msg)) {
         setError("");
       } else {
@@ -251,16 +322,27 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
-    if (!signal?.aborted) {
-      void refreshRoster(signal);
-    }
+    // Roster load is deferred to the first roster-needing tab (see effect below).
+    rosterBootRef.current = false;
   }, [
     authenticated,
     applyHubContext,
+    demoMode,
+    exitDemo,
     hubAuthRequired,
     loadWorkspace,
-    refreshRoster,
   ]);
+
+  useEffect(() => {
+    if (!workspace || loading) return undefined;
+    if (rosterBootRef.current || !TABS_NEED_ROSTER.has(subView)) return undefined;
+    const controller = new AbortController();
+    rosterBootRef.current = true;
+    refreshRoster(controller.signal).finally(() => {
+      if (controller.signal.aborted) rosterBootRef.current = false;
+    });
+    return () => controller.abort();
+  }, [subView, workspace, loading, refreshRoster]);
 
   /** Load cap sheet for league mode (season banner) and cap/roster tabs; value sheet per tab. */
   useEffect(() => {
@@ -303,6 +385,19 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     window.addEventListener("scoresense-auth-changed", onAuthChanged);
     return () => window.removeEventListener("scoresense-auth-changed", onAuthChanged);
   }, [refreshAll]);
+
+  useEffect(() => {
+    if (!demoMode) return;
+    const controller = new AbortController();
+    refreshAll(controller.signal);
+    return () => controller.abort();
+  }, [demoMode, refreshAll]);
+
+  useEffect(() => {
+    if (demoMode && !hubDemo?.available) {
+      exitDemo();
+    }
+  }, [demoMode, hubDemo?.available, exitDemo]);
 
   const onWorkspaceSaved = useCallback(async (updated) => {
     setWorkspace(updated);
@@ -358,6 +453,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       if (data.hub_context) applyHubContext(data.hub_context);
       setLeagueSyncMessage(data.message || `Synced ${data.teams_synced ?? 0} teams.`);
       clearHubDataCache();
+      if (lid) invalidateFreshnessCache(lid);
       await onRosterChanged();
     } catch (e) {
       const msg = connectionErrorMessage(e);
@@ -432,11 +528,20 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const valueRows = valueSheet?.rows ?? EMPTY_VALUE_ROWS;
   const valueSleeper = valueSheet?.sleeper ?? workspace;
 
-  if (authReady && !authenticated && hubAuthRequired !== false) {
+  useEffect(() => {
+    if (subView !== "insights" || !effectiveCtx) return;
+    const isCommish = Boolean(effectiveCtx.is_commissioner);
+    if (!isInsightTabAllowed(insightTab, isCommish)) {
+      onInsightTabChange?.(defaultInsightTab(isCommish));
+    }
+  }, [subView, insightTab, effectiveCtx, onInsightTabChange]);
+
+  if (authReady && !authenticated && hubAuthRequired !== false && !demoMode) {
     return (
       <div className="draft-hub draft-hub-auth">
         <AccountAuth
           onAuthed={async () => {
+            exitDemo();
             await refreshAuth();
             await refreshAll();
           }}
@@ -445,7 +550,18 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           compact
           termsUrl={termsUrl}
           privacyUrl={privacyUrl}
+          patreonConfigured={patreonConfigured}
         />
+        {hubDemo?.available && (
+          <div className="hub-demo-cta">
+            <p className="chart-note">
+              Or explore a sample league with Spend, Scoring, and Trades — no account required.
+            </p>
+            <button type="button" className="btn-ghost" onClick={enterDemo}>
+              Explore demo league
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -483,6 +599,12 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
 
   return (
     <div className="draft-hub">
+      {demoMode && (
+        <HubDemoBanner
+          leagueName={effectiveCtx?.league_name}
+          onExit={exitDemo}
+        />
+      )}
       {mobileLayout && (
         <HubSubnav
           subView={subView}
@@ -491,25 +613,18 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           mobileLayout
         />
       )}
-      {effectiveCtx?.mode === "league" && subView !== "setup" && (
-        <HubSeasonStatus
-          workspace={workspace}
-          hubContext={effectiveCtx}
-          capSheet={capSheet}
-          rosterLoading={rosterLoading}
-          onNavigate={setSubView}
-        />
-      )}
-
       {(memberships.length > 0 || effectiveCtx?.mode === "league")
-        && subView !== "insights"
         && subView !== "room"
         && subView !== "setup" && (
         <LeagueContextBanner
+          compact={onInsights}
           hubContext={effectiveCtx}
           memberships={memberships}
+          capSheet={capSheet}
+          onNavigate={setSubView}
           onLeagueSwitch={onLeagueSwitch}
           onNavigateSetup={() => setSubView("setup")}
+          onNavigateManage={goToCommissionerDesk}
           onLeagueSync={onLeagueSleeperSync}
           syncing={leagueSyncing}
           syncMessage={leagueSyncMessage}
@@ -518,9 +633,20 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         />
       )}
 
+      {effectiveCtx?.mode === "league"
+        && subView !== "setup"
+        && subView !== "room"
+        && !onInsights && (
+        <HubDataFreshness
+          leagueId={effectiveCtx.league_id}
+          hubContext={effectiveCtx}
+          leagueSyncing={leagueSyncing}
+        />
+      )}
+
       {error && <div className="error">{error}</div>}
 
-      {subView === "setup" && (
+      {subView === "setup" && !demoMode && (
         <HubSetup
           workspace={workspace}
           hubContext={effectiveCtx}
@@ -567,32 +693,25 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         />
       )}
 
-      {subView === "league-rosters" && effectiveCtx?.is_commissioner && (
-        <CommissionerLeagueRosters
-          leagueId={effectiveCtx.league_id}
-          season={workspace?.season}
-          workspace={workspace}
-          hubContext={effectiveCtx}
-          onChanged={onRosterChanged}
-        />
+      {(subView === "trades" || visitedTabs.has("trades")) && effectiveCtx?.mode === "league" && (
+        <div className={subView === "trades" ? undefined : "app-view-pane-hidden"}>
+          <LeagueTrades
+            leagueId={effectiveCtx.league_id}
+            hubContext={effectiveCtx}
+          />
+        </div>
       )}
 
-      {subView === "insights" && effectiveCtx?.mode === "league" && (
-        <LeagueInsights
-          leagueId={effectiveCtx.league_id}
-          hubContext={effectiveCtx}
-          onNavigate={setSubView}
-          activeTab={insightTab}
-          onActiveTabChange={onInsightTabChange}
-        />
-      )}
-
-      {subView === "live" && effectiveCtx?.mode === "league" && (
-        <LeagueLiveScoring
-          leagueId={effectiveCtx.league_id}
-          hubContext={effectiveCtx}
-          onNavigate={setSubView}
-        />
+      {(subView === "insights" || visitedTabs.has("insights")) && effectiveCtx?.mode === "league" && (
+        <div className={subView === "insights" ? undefined : "app-view-pane-hidden"}>
+          <LeagueInsights
+            leagueId={effectiveCtx.league_id}
+            hubContext={effectiveCtx}
+            onNavigate={setSubView}
+            activeTab={insightTab}
+            onActiveTabChange={onInsightTabChange}
+          />
+        </div>
       )}
 
       {subView === "planner" && (
@@ -606,7 +725,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         />
       )}
 
-      {subView === "room" && (
+      {subView === "room" && !demoMode && (
         <DraftRoom
           leagueId={leagueId || effectiveCtx?.league_id || ""}
           onLeagueIdChange={setLeagueId}

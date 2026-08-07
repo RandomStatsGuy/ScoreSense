@@ -225,7 +225,7 @@ export default function AccountSettingsPage() {
           <section className="account-settings-section account-settings-danger">
             <h3 className="hub-panel-subtitle">Delete account</h3>
             <p className="chart-note">
-              Removes your login credentials. Draft Hub leagues and rosters linked to your account may
+              Removes your login credentials. League data and rosters linked to your account may
               still exist until manually cleaned up.
             </p>
             <form className="account-auth-form" onSubmit={submitDelete}>

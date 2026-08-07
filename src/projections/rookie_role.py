@@ -39,54 +39,135 @@ def _search_rank(value: Any) -> int | None:
     return n
 
 
-def rookie_role_multiplier(position: str, sleeper_row: pd.Series) -> tuple[float, str]:
-    """Scale factor from Sleeper depth chart and search rank alone."""
-    pos = str(position or "").lower()
-    dc = _safe_int(sleeper_row.get("depth_chart_order"))
-    rank = _search_rank(sleeper_row.get("search_rank"))
+def resolve_rookie_skill_position(position: str, sleeper_row: pd.Series | None = None) -> str:
+    """Normalize to qb/rb/wr/te using Sleeper position when available."""
+    if sleeper_row is not None:
+        sleeper_pos = str(sleeper_row.get("position") or "").strip().upper()
+        if sleeper_pos == "FB":
+            return "rb"
+        if sleeper_pos in {"QB", "RB", "WR", "TE"}:
+            return sleeper_pos.lower()
+    pos = str(position or "").strip().lower()
+    if pos in {"qb", "rb", "wr", "te"}:
+        return pos
+    if pos in {"rec", "flex"}:
+        return "wr"
+    return pos or "wr"
+
+
+def draft_capital_factor(search_rank: int | None) -> tuple[float, str]:
+    """Multiplicative draft-capital prior from Sleeper search_rank (proxy for pick quality).
+
+    Sleeper does not expose draft round/pick on the players endpoint, so search_rank
+    is the best available capital signal. 1.0 = neutral.
+    """
+    if search_rank is None:
+        return 1.0, ""
+    if search_rank <= 20:
+        return 1.28, "elite-capital"
+    if search_rank <= 60:
+        return 1.16, "r1-capital"
+    if search_rank <= 120:
+        return 1.08, "day2-capital"
+    if search_rank <= 250:
+        return 1.0, ""
+    if search_rank <= 500:
+        return 0.92, "late-capital"
+    return 0.82, "udfa-capital"
+
+
+def _depth_role_multiplier(pos: str, dc: int | None) -> tuple[float, str] | None:
+    """Depth-chart tier when Sleeper has an order; None if depth is unknown."""
+    if dc is None:
+        return None
 
     if pos == "qb":
         if dc == 1:
-            if rank is not None and rank <= 100:
-                return 2.6, "starter-likely"
             return 2.0, "depth-qb1"
         if dc == 2:
             return 0.60, "backup"
-        if dc is not None and dc >= 3:
-            return 0.28, "third-string"
-        if rank is not None and rank <= 200:
-            return 1.15, "hyped-rookie"
-        return 0.32, "development"
+        return 0.28, "third-string"
 
     if pos == "rb":
         if dc == 1:
             return 1.75, "rb1-path"
         if dc == 2:
             return 0.78, "rb2"
-        if dc is not None and dc >= 3:
-            return 0.42, "depth"
-        if rank is not None and rank <= 250:
-            return 1.05, "draft-capital"
-        return 0.45, "development"
+        return 0.42, "depth"
 
-    if pos == "wr":
+    if pos == "te":
         if dc == 1:
-            return 1.65, "wr1-path"
+            return 1.45, "te1-path"
         if dc == 2:
-            return 1.05, "wr2"
-        if dc == 3:
-            return 0.68, "slot"
-        if dc is not None and dc >= 4:
-            return 0.38, "depth"
+            return 0.72, "te2"
+        return 0.38, "depth"
+
+    # WR (default skill)
+    if dc == 1:
+        return 1.65, "wr1-path"
+    if dc == 2:
+        return 1.05, "wr2"
+    if dc == 3:
+        return 0.68, "slot"
+    return 0.38, "depth"
+
+
+def _capital_only_baseline(pos: str, rank: int | None) -> tuple[float, str]:
+    """Fallback when depth chart order is missing — capital-driven absolute mult."""
+    cap, cap_label = draft_capital_factor(rank)
+    if pos == "qb":
+        base, label = 0.32, "development"
+        if rank is not None and rank <= 200:
+            base, label = 1.15, "hyped-rookie"
+    elif pos == "rb":
+        base, label = 0.45, "development"
+        if rank is not None and rank <= 250:
+            base, label = 1.05, "draft-capital"
+    elif pos == "te":
+        base, label = 0.40, "development"
+        if rank is not None and rank <= 250:
+            base, label = 0.95, "draft-capital"
+    else:
+        base, label = 0.42, "development"
         if rank is not None and rank <= 300:
-            return 0.95, "draft-capital"
-        return 0.42, "development"
+            base, label = 0.95, "draft-capital"
 
-    return BACKUP_BASELINE_MULT, "baseline"
+    # Cap factor already informs the absolute baseline above for mid ranks;
+    # still nudge extremes so elite/UDFA diverge further.
+    if cap_label in {"elite-capital", "r1-capital", "udfa-capital", "late-capital"}:
+        mult = base * cap
+        label = f"{label}+{cap_label}" if cap_label else label
+        return mult, label
+    return base, label
 
 
-@lru_cache(maxsize=4)
-def _load_overrides_file(path: str) -> dict[int, list[dict[str, Any]]]:
+def rookie_role_multiplier(position: str, sleeper_row: pd.Series) -> tuple[float, str]:
+    """Scale factor from Sleeper depth chart + search-rank draft capital."""
+    pos = resolve_rookie_skill_position(position, sleeper_row)
+    dc = _safe_int(sleeper_row.get("depth_chart_order"))
+    rank = _search_rank(sleeper_row.get("search_rank"))
+
+    depth = _depth_role_multiplier(pos, dc)
+    if depth is None:
+        return _capital_only_baseline(pos, rank)
+
+    mult, label = depth
+    # Mild capital nudge when depth is known (avoid double-counting starter bumps).
+    cap, cap_label = draft_capital_factor(rank)
+    if pos == "qb" and dc == 1 and rank is not None and rank <= 100:
+        # Keep prior "starter-likely" behavior for hyped QB1 rookies.
+        mult = 2.6
+        label = "starter-likely"
+    else:
+        # Blend: depth dominates; capital moves ± up to ~14% of the gap from 1.0.
+        mult = mult * (1.0 + 0.5 * (cap - 1.0))
+        if cap_label:
+            label = f"{label}+{cap_label}"
+    return mult, label
+
+
+@lru_cache(maxsize=8)
+def _load_overrides_file(path: str, mtime_ns: int) -> dict[int, list[dict[str, Any]]]:
     p = Path(path)
     if not p.exists():
         return {}
@@ -108,7 +189,9 @@ def _load_overrides_file(path: str) -> dict[int, list[dict[str, Any]]]:
 def load_rookie_role_overrides(season: int, path: Path | None = None) -> list[dict[str, Any]]:
     """Manual camp-battle overrides for a target season."""
     p = path or ROOKIE_ROLE_OVERRIDES_PATH
-    return list(_load_overrides_file(str(p.resolve())).get(int(season), []))
+    resolved = str(p.resolve())
+    mtime_ns = p.stat().st_mtime_ns if p.exists() else 0
+    return list(_load_overrides_file(resolved, mtime_ns).get(int(season), []))
 
 
 def lookup_rookie_override(
@@ -245,12 +328,13 @@ def compute_rookie_role(
     player_name = str(sleeper_row.get("full_name") or "")
     team = str(sleeper_row.get("team") or "")
     player_id = str(sleeper_row.get("gsis_id") or sleeper_row.get("player_id") or "").strip() or None
+    skill_pos = resolve_rookie_skill_position(position, sleeper_row)
 
-    base_mult, label = rookie_role_multiplier(position, sleeper_row)
+    base_mult, label = rookie_role_multiplier(skill_pos, sleeper_row)
     override = lookup_rookie_override(
         player_name=player_name,
         team=team,
-        position=position,
+        position=skill_pos,
         season=season,
     )
 
@@ -267,7 +351,7 @@ def compute_rookie_role(
             player_name=player_name,
             team=team,
             player_id=player_id,
-            position=position,
+            position=skill_pos,
             season=season,
         )
         mult *= sent_mult
@@ -302,5 +386,6 @@ def rookie_role_note_suffix(roster: pd.DataFrame) -> str:
     labels = rookies["_rookie_role_label"].astype(str).value_counts()
     top = ", ".join(f"{k} ({v})" for k, v in labels.head(4).items())
     return (
-        f" Rookie estimates use Sleeper depth, optional camp overrides, and role-hype sentiment ({top})."
+        f" Rookie estimates use backup-usage features, Sleeper depth, draft-capital "
+        f"(search rank), camp overrides, and role-hype sentiment ({top})."
     )

@@ -1,16 +1,18 @@
 import React, { useMemo, useRef, useState } from "react";
 import MobileBottomSheet from "../layout/MobileBottomSheet";
 
+/** group: "prep" (draft prep) | "season" (in-season) | "office" (league office). */
 export const HUB_SUBVIEWS = [
-  { id: "setup", label: "Setup", shortLabel: "Setup", hint: "League & rules" },
-  { id: "value", label: "Players", shortLabel: "Players", hint: "Prices" },
-  { id: "roster", label: "Roster", shortLabel: "Roster", hint: "Contracts" },
-  { id: "room", label: "Draft", shortLabel: "Draft", hint: "Live auction" },
-  { id: "planner", label: "Cap", shortLabel: "Cap", hint: "Cap & cuts" },
-  { id: "insights", label: "Insights", shortLabel: "Stats", leagueOnly: true, hint: "Spend & scoring" },
-  { id: "live", label: "Live", shortLabel: "Live", leagueOnly: true, hint: "This week's matchup" },
-  { id: "league-rosters", label: "Teams", shortLabel: "Teams", commissionerOnly: true, hint: "All rosters" },
+  { id: "setup", label: "Setup", shortLabel: "Setup", hint: "League & rules", group: "prep" },
+  { id: "value", label: "Players", shortLabel: "Players", hint: "Prices", group: "prep" },
+  { id: "room", label: "Draft", shortLabel: "Draft", hint: "Live auction", group: "prep" },
+  { id: "roster", label: "Roster", shortLabel: "Roster", hint: "Contracts", group: "season" },
+  { id: "planner", label: "Cap", shortLabel: "Cap", hint: "Cap & cuts", group: "season" },
+  { id: "trades", label: "Trades", shortLabel: "Trades", leagueOnly: true, hint: "Trade ideas", group: "season" },
+  { id: "insights", label: "Insights", shortLabel: "Insights", leagueOnly: true, hint: "Spend & scoring", group: "office" },
 ];
+
+const GROUP_LABELS = { prep: "Prep", season: "Season", office: "League" };
 
 function filterSubviews(hubContext) {
   return HUB_SUBVIEWS.filter((v) => {
@@ -39,20 +41,32 @@ export default function HubSubnav({ subView, hubContext, onNavigate, mobileLayou
           role="tablist"
           aria-label="League"
         >
-          {visible.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              role="tab"
-              aria-selected={subView === v.id}
-              className={`app-section-subnav-btn${subView === v.id ? " active" : ""}`}
-              onClick={() => onNavigate(v.id)}
-              title={v.hint}
-            >
-              <span className="app-section-subnav-label">{v.label}</span>
-              <span className="app-section-subnav-label-short">{v.shortLabel || v.label}</span>
-            </button>
-          ))}
+          {visible.map((v, i) => {
+            const newGroup = i > 0 && visible[i - 1].group !== v.group;
+            return (
+              <React.Fragment key={v.id}>
+                {newGroup && (
+                  <span
+                    className="app-section-subnav-divider"
+                    role="presentation"
+                    aria-hidden="true"
+                    title={GROUP_LABELS[v.group]}
+                  />
+                )}
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={subView === v.id}
+                  className={`app-section-subnav-btn${subView === v.id ? " active" : ""}`}
+                  onClick={() => onNavigate(v.id)}
+                  title={v.hint}
+                >
+                  <span className="app-section-subnav-label">{v.label}</span>
+                  <span className="app-section-subnav-label-short">{v.shortLabel || v.label}</span>
+                </button>
+              </React.Fragment>
+            );
+          })}
         </nav>
         {mobileLayout && visible.length > 5 ? (
           <button
@@ -78,20 +92,27 @@ export default function HubSubnav({ subView, hubContext, onNavigate, mobileLayou
         className="app-mobile-sheet-hub-tabs"
       >
         <div className="app-mobile-sheet-list">
-          {visible.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              className={`app-mobile-sheet-item app-mobile-sheet-item-subdued${subView === v.id ? " active" : ""}`}
-              onClick={() => {
-                onNavigate(v.id);
-                setPickerOpen(false);
-              }}
-            >
-              <span>{v.label}</span>
-              <span className="chart-note">{v.hint}</span>
-            </button>
-          ))}
+          {visible.map((v, i) => {
+            const newGroup = i === 0 || visible[i - 1].group !== v.group;
+            return (
+              <React.Fragment key={v.id}>
+                {newGroup && (
+                  <p className="app-mobile-sheet-group">{GROUP_LABELS[v.group]}</p>
+                )}
+                <button
+                  type="button"
+                  className={`app-mobile-sheet-item app-mobile-sheet-item-subdued${subView === v.id ? " active" : ""}`}
+                  onClick={() => {
+                    onNavigate(v.id);
+                    setPickerOpen(false);
+                  }}
+                >
+                  <span>{v.label}</span>
+                  <span className="chart-note">{v.hint}</span>
+                </button>
+              </React.Fragment>
+            );
+          })}
         </div>
       </MobileBottomSheet>
     </>

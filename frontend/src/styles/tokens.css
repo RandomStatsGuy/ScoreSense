@@ -58,8 +58,68 @@
   --radius-lg: 16px;
   --radius-pill: 999px;
   --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 8px 32px rgba(0, 0, 0, 0.28);
+  --shadow-popover: 0 12px 40px rgba(0, 0, 0, 0.45);
   --space-xs: 0.35rem;
   --space-sm: 0.55rem;
   --space-md: 0.85rem;
   --space-lg: 1.25rem;
+  --space-xl: 1.75rem;
+
+  /* Slate scale — structural surfaces, borders, muted text.
+     Use these instead of one-off #hex values scattered through styles.css. */
+  --slate-950: #0b1220;
+  --slate-900: #0f172a;
+  --slate-800: #1e293b;
+  --slate-700: #334155;
+  --slate-600: #475569;
+  --slate-500: #64748b;
+  --slate-400: #94a3b8;
+  --slate-300: #cbd5e1;
+  --slate-200: #e2e8f0;
+  --slate-100: #f1f5f9;
+
+  /* Legacy aliases referenced across styles.css (now defined, not fallbacks) */
+  --bg: var(--bg-base);
+  --panel-bg: var(--slate-900);
+  --surface-raised: #111827;
+  --muted: #9aa3b2;
+
+  /* Typography scale */
+  --text-xs: 0.72rem;
+  --text-sm: 0.82rem;
+  --text-md: 0.9rem;
+  --text-lg: 1.05rem;
+  --text-xl: 1.35rem;
+  --text-2xl: 1.75rem;
+  --font-weight-normal: 500;
+  --font-weight-medium: 600;
+  --font-weight-bold: 700;
+  --line-tight: 1.15;
+  --line-normal: 1.45;
+
+  /* Z-index scale — one source of truth for stacking.
+     Ordered so overlays never trap each other:
+     content < sticky headers < bottom nav < invite < sheet < confirm < tooltip. */
+  --z-base: 1;
+  --z-sticky: 20;
+  --z-dropdown: 60;
+  --z-bottom-nav: 1100;
+  --z-invite: 1200;
+  --z-sheet: 1300;
+  --z-confirm: 1400;
+  --z-tooltip: 100001;
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 0.12s;
+  --duration-normal: 0.2s;
+  --duration-slow: 0.32s;
+
+  /* Component tokens */
+  --control-height: 2.25rem;
+  --control-height-sm: 1.85rem;
+  --touch-target: 2.75rem;
+  --danger: #ef4444;
+  --danger-soft: rgba(239, 68, 68, 0.14);
+  --danger-border: rgba(239, 68, 68, 0.4);
 }

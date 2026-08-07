@@ -71,6 +71,7 @@ def test_apply_sleeper_roster_overlay_updates_teams_and_adds_rookie():
                 "season": 2026,
                 "week": 1,
                 "passing_yards_avg": 220.0,
+                "pass_attmpt_avg": 34.0,
             },
             {
                 "player_id": "00-0038102",
@@ -79,6 +80,25 @@ def test_apply_sleeper_roster_overlay_updates_teams_and_adds_rookie():
                 "season": 2026,
                 "week": 1,
                 "passing_yards_avg": 180.0,
+                "pass_attmpt_avg": 28.0,
+            },
+            {
+                "player_id": "00-0039999",
+                "player_display_name": "Backup Vet",
+                "team": "DEN",
+                "season": 2026,
+                "week": 1,
+                "passing_yards_avg": 120.0,
+                "pass_attmpt_avg": 18.0,
+            },
+            {
+                "player_id": "00-0038888",
+                "player_display_name": "Third String",
+                "team": "WAS",
+                "season": 2026,
+                "week": 1,
+                "passing_yards_avg": 90.0,
+                "pass_attmpt_avg": 12.0,
             },
         ]
     )
@@ -109,6 +129,171 @@ def test_apply_sleeper_roster_overlay_updates_teams_and_adds_rookie():
     assert clark["_rookie_role_label"] == "development"
     assert float(clark["_rookie_role_mult"]) == 0.26
     assert float(clark["passing_yards_avg"]) < float(mendoza["passing_yards_avg"])
+    # Backup template should be below the starter-heavy all-roster median path.
+    assert float(mendoza["pass_attmpt_avg"]) < 34.0 * 2.75
+
+
+def test_backup_template_prefers_low_usage(monkeypatch):
+    from src.integrations.sleeper import _backup_feature_template
+
+    roster = pd.DataFrame(
+        [
+            {"player_display_name": "High", "pass_attmpt_avg": 40.0, "passing_yards_avg": 300.0},
+            {"player_display_name": "Mid", "pass_attmpt_avg": 28.0, "passing_yards_avg": 220.0},
+            {"player_display_name": "Low1", "pass_attmpt_avg": 14.0, "passing_yards_avg": 110.0},
+            {"player_display_name": "Low2", "pass_attmpt_avg": 10.0, "passing_yards_avg": 80.0},
+            {"player_display_name": "Low3", "pass_attmpt_avg": 8.0, "passing_yards_avg": 60.0},
+        ]
+    )
+    _template, medians = _backup_feature_template(roster, "qb")
+    assert float(medians["pass_attmpt_avg"]) < 20.0
+    assert float(medians["passing_yards_avg"]) < 150.0
+
+
+def test_te_rookie_keeps_te_position():
+    roster = pd.DataFrame(
+        [
+            {
+                "player_id": "00-0030565",
+                "player_display_name": "Vet WR",
+                "team": "KC",
+                "position": "WR",
+                "season": 2026,
+                "week": 1,
+                "target_share_avg": 0.22,
+                "receiving_yards_avg": 70.0,
+            },
+            {
+                "player_id": "00-0030566",
+                "player_display_name": "Vet WR2",
+                "team": "BUF",
+                "position": "WR",
+                "season": 2026,
+                "week": 1,
+                "target_share_avg": 0.18,
+                "receiving_yards_avg": 55.0,
+            },
+            {
+                "player_id": "00-0030567",
+                "player_display_name": "Vet WR3",
+                "team": "MIA",
+                "position": "WR",
+                "season": 2026,
+                "week": 1,
+                "target_share_avg": 0.12,
+                "receiving_yards_avg": 40.0,
+            },
+            {
+                "player_id": "00-0030568",
+                "player_display_name": "Vet WR4",
+                "team": "CIN",
+                "position": "WR",
+                "season": 2026,
+                "week": 1,
+                "target_share_avg": 0.08,
+                "receiving_yards_avg": 28.0,
+            },
+        ]
+    )
+    sleeper = pd.DataFrame(
+        [
+            {
+                "sleeper_id": "te1",
+                "full_name": "Kenyon Sadiq",
+                "team": "NYJ",
+                "position": "TE",
+                "status": "Active",
+                "gsis_id": "",
+                "years_exp": 0,
+                "depth_chart_order": 1,
+                "search_rank": 109,
+            }
+        ]
+    )
+    updated, stats = apply_sleeper_roster_overlay(
+        roster,
+        "wr",
+        season=2026,
+        sleeper_df=sleeper,
+    )
+    assert stats["rookies_added"] == 1
+    sadiq = updated[updated["player_display_name"] == "Kenyon Sadiq"].iloc[0]
+    assert sadiq["position"] == "TE"
+    assert sadiq["_rookie_role_label"] == "te1-path"
+    assert float(sadiq["_rookie_role_mult"]) == 1.55
+
+
+def test_vet_backup_scaling_rattler_and_richardson():
+    from src.integrations.sleeper import sleeper_vet_backup_mult
+
+    assert sleeper_vet_backup_mult("qb", 1) == (1.0, "")
+    r_mult, r_label = sleeper_vet_backup_mult("qb", 2)
+    assert r_mult < 0.5
+    assert "backup" in r_label
+    a_mult, _ = sleeper_vet_backup_mult("qb", 3)
+    assert a_mult < r_mult
+
+
+def test_overlay_scales_qb2_features():
+    sleeper = pd.DataFrame(
+        [
+            {
+                "sleeper_id": "s1",
+                "full_name": "Tyler Shough",
+                "team": "NO",
+                "position": "QB",
+                "status": "Active",
+                "gsis_id": "00-0039001",
+                "years_exp": 1,
+                "depth_chart_order": 1,
+                "search_rank": 81,
+            },
+            {
+                "sleeper_id": "s2",
+                "full_name": "Spencer Rattler",
+                "team": "NO",
+                "position": "QB",
+                "status": "Active",
+                "gsis_id": "00-0039002",
+                "years_exp": 2,
+                "depth_chart_order": 2,
+                "search_rank": 999,
+            },
+        ]
+    )
+    roster = pd.DataFrame(
+        [
+            {
+                "player_id": "00-0039001",
+                "player_display_name": "Tyler Shough",
+                "team": "NO",
+                "season": 2026,
+                "week": 1,
+                "pass_attmpt_avg": 20.0,
+                "passing_yards_avg": 150.0,
+            },
+            {
+                "player_id": "00-0039002",
+                "player_display_name": "Spencer Rattler",
+                "team": "NO",
+                "season": 2026,
+                "week": 1,
+                "pass_attmpt_avg": 32.0,
+                "passing_yards_avg": 230.0,
+            },
+        ]
+    )
+    updated, stats = apply_sleeper_roster_overlay(
+        roster, "qb", season=2026, sleeper_df=sleeper, add_rookies=False
+    )
+    assert stats["backups_scaled"] == 1
+    shough = updated[updated["player_display_name"] == "Tyler Shough"].iloc[0]
+    rattler = updated[updated["player_display_name"] == "Spencer Rattler"].iloc[0]
+    assert float(shough.get("_vet_backup_mult", 1.0) or 1.0) >= 0.999
+    assert float(rattler["_vet_backup_mult"]) < 0.5
+    assert int(rattler["_sleeper_depth_order"]) == 2
+    # Prior-season features stay intact; projection scale is applied post-model.
+    assert float(rattler["pass_attmpt_avg"]) == 32.0
 
 
 def test_apply_sleeper_roster_overlay_drops_unrostered():

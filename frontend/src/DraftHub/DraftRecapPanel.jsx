@@ -1,4 +1,5 @@
 import React from "react";
+import { fmtSal } from "./rosterFormat";
 
 const GRADE_LABEL = {
   steal: "Steal",
@@ -9,11 +10,6 @@ const GRADE_LABEL = {
   major_reach: "Major reach",
   pick: "Sold",
 };
-
-function fmtSal(v) {
-  if (v == null || !Number.isFinite(Number(v))) return "—";
-  return `$${Number(v).toFixed(0)}`;
-}
 
 export default function DraftRecapPanel({ recap, compact = false, hideHero = false, onViewInsights }) {
   if (!recap) return null;

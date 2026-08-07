@@ -19,10 +19,7 @@ export const STATUS_ORDER = {
   taken: 5,
 };
 
-export function fmtSal(v) {
-  if (v == null || !Number.isFinite(Number(v))) return "—";
-  return `$${Number(v).toFixed(0)}`;
-}
+export { fmtSal } from "./rosterFormat";
 
 const STATUS_LABELS = {
   available: "Free agent",

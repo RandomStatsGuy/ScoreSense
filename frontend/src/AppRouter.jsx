@@ -25,6 +25,9 @@ export default function AppRouter() {
       <Route path="/projections/weekly" element={<App />} />
       <Route path="/projections/weekly/:panel" element={<App />} />
       <Route path="/projections/season/:mode" element={<App />} />
+      <Route path="/hub/insights/trades" element={<Navigate to="/hub/trades" replace />} />
+      <Route path="/hub/live" element={<Navigate to="/hub/insights/scoring" replace />} />
+      <Route path="/hub/teams" element={<Navigate to="/hub/insights/desk" replace />} />
       <Route path="/hub/insights/:insightTab" element={<App />} />
       <Route path="/hub/insights" element={<Navigate to="/hub/insights/spend" replace />} />
       <Route path="/hub/:tab" element={<App />} />

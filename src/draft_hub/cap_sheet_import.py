@@ -182,6 +182,7 @@ def parse_cap_sheet_tsv(
     players_df = players_dataframe()
     rows_out: list[dict[str, Any]] = []
     unmatched: list[str] = []
+    duplicates: list[str] = []
     seen: set[tuple[str, str]] = set()
 
     col = {c.lower().strip(): c for c in df.columns}
@@ -221,6 +222,7 @@ def parse_cap_sheet_tsv(
             dead = salary if salary is not None else 0.0
             key = (mgr.lower(), hit["player_id"])
             if key in seen:
+                duplicates.append(f"{mgr}: CUT {pname}")
                 continue
             seen.add(key)
             contract = build_contract_from_roster_edit(rules, current_salary=dead, years_remaining=1)
@@ -247,6 +249,7 @@ def parse_cap_sheet_tsv(
 
         key = (mgr.lower(), hit["player_id"])
         if key in seen:
+            duplicates.append(f"{mgr}: {pname} ({pos})")
             continue
         seen.add(key)
 
@@ -268,11 +271,84 @@ def parse_cap_sheet_tsv(
         "rows": rows_out,
         "teams_found": teams,
         "unmatched": unmatched,
+        "duplicates": duplicates,
         "stats": {
             "matched": len(rows_out),
             "unmatched": len(unmatched),
+            "duplicates": len(duplicates),
             "teams": len(teams),
         },
+    }
+
+
+def validate_cap_sheet_for_league(
+    league_id: str,
+    parsed: dict[str, Any],
+    manager_map: dict[str, str],
+    *,
+    replace_existing: bool = True,
+    contracts_only: bool = False,
+) -> dict[str, Any]:
+    """Dry-run cap sheet import — structured errors/warnings, no DB writes."""
+    from src.draft_hub import storage
+
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    if not parsed.get("rows") and not parsed.get("unmatched"):
+        errors.append("File is empty or has no parseable rows.")
+
+    for item in parsed.get("unmatched") or []:
+        errors.append(f"Unmatched player: {item}")
+
+    for item in parsed.get("duplicates") or []:
+        warnings.append(f"Duplicate row skipped: {item}")
+
+    league = storage.get_league(league_id)
+    if not league:
+        errors.append("League not found.")
+        return {"ok": False, "errors": errors, "warnings": warnings, "stats": parsed.get("stats") or {}}
+
+    hub_teams = {str(t["name"]).lower(): t for t in storage.list_league_teams(league_id)}
+
+    def _find_team(hub_name: str) -> dict[str, Any] | None:
+        key = str(hub_name).lower()
+        if key in hub_teams:
+            return hub_teams[key]
+        for name, team in hub_teams.items():
+            if key in name or name in key:
+                return team
+        return None
+
+    unmapped: list[str] = []
+    for mgr in parsed.get("teams_found") or []:
+        hub_name = manager_map.get(mgr) or manager_map.get(str(mgr).strip())
+        if not hub_name:
+            unmapped.append(mgr)
+            continue
+        if not _find_team(hub_name):
+            errors.append(f"Manager {mgr} maps to '{hub_name}' but no matching hub team exists.")
+
+    for mgr in unmapped:
+        warnings.append(f"Manager not in manager_team_map.yaml: {mgr}")
+
+    if replace_existing and not contracts_only:
+        warnings.append("Replace mode will wipe all league rosters before import.")
+
+    ws_id = storage.roster_workspace_for_league(league)
+    current_roster = storage.list_league_roster(ws_id) if ws_id else []
+    sheet_ids = {str(r.get("player_id")) for r in parsed.get("rows") or [] if r.get("player_id")}
+    overlap = sum(1 for slot in current_roster if str(slot.get("player_id")) in sheet_ids)
+
+    return {
+        "ok": len(errors) == 0,
+        "errors": errors,
+        "warnings": warnings,
+        "stats": parsed.get("stats") or {},
+        "teams_found": parsed.get("teams_found") or [],
+        "would_replace": bool(replace_existing and not contracts_only),
+        "current_roster_count": len(current_roster),
+        "sheet_player_overlap": overlap,
     }
 
 

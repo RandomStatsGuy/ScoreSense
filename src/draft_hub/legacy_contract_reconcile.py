@@ -60,36 +60,71 @@ def infer_movements_from_snapshots(
             continue
         curr_owner = curr_owner_row["owner_label"]
         if curr_owner != prev_owner:
-            events.append(
-                {
-                    "season_year": season_year,
-                    "player_name": prev["player_name"],
-                    "event_type": "trade_out",
-                    "from_owner": prev_owner,
-                    "to_owner": curr_owner,
-                    "salary": prev.get("cap_hit"),
-                    "source": "import_diff",
-                    "confidence": "ambiguous",
-                }
-            )
-            events.append(
-                {
-                    "season_year": season_year,
-                    "player_name": curr_owner_row["player_name"],
-                    "event_type": "trade_in",
-                    "from_owner": prev_owner,
-                    "to_owner": curr_owner,
-                    "salary": curr_owner_row.get("cap_hit"),
-                    "source": "import_diff",
-                    "confidence": "ambiguous",
-                }
-            )
+            acq = str(curr_owner_row.get("acquisition_type") or "")
+            if acq == "draft":
+                events.append(
+                    {
+                        "season_year": season_year,
+                        "player_name": prev["player_name"],
+                        "event_type": "cut",
+                        "from_owner": prev_owner,
+                        "to_owner": None,
+                        "salary": prev.get("cap_hit"),
+                        "source": "import_diff",
+                        "confidence": "inferred",
+                    }
+                )
+                events.append(
+                    {
+                        "season_year": season_year,
+                        "player_name": curr_owner_row["player_name"],
+                        "event_type": "draft",
+                        "from_owner": prev_owner,
+                        "to_owner": curr_owner,
+                        "salary": curr_owner_row.get("cap_hit"),
+                        "source": "import_diff",
+                        "confidence": "inferred",
+                    }
+                )
+            else:
+                events.append(
+                    {
+                        "season_year": season_year,
+                        "player_name": prev["player_name"],
+                        "event_type": "trade_out",
+                        "from_owner": prev_owner,
+                        "to_owner": curr_owner,
+                        "salary": prev.get("cap_hit"),
+                        "source": "import_diff",
+                        "confidence": "ambiguous",
+                    }
+                )
+                events.append(
+                    {
+                        "season_year": season_year,
+                        "player_name": curr_owner_row["player_name"],
+                        "event_type": "trade_in",
+                        "from_owner": prev_owner,
+                        "to_owner": curr_owner,
+                        "salary": curr_owner_row.get("cap_hit"),
+                        "source": "import_diff",
+                        "confidence": "ambiguous",
+                    }
+                )
+            continue
 
     for key, curr in curr_by_player.items():
         if key in prev_by_player:
             continue
         acq = curr.get("acquisition_type") or "unknown"
-        etype = "waiver" if acq == "waiver" or curr.get("cap_hit") == 1 else "acquired"
+        if acq == "draft":
+            etype = "draft"
+        elif acq == "waiver" or curr.get("cap_hit") == 1:
+            etype = "waiver"
+        elif acq == "post_draft_fa":
+            etype = "post_draft_fa"
+        else:
+            etype = "acquired"
         events.append(
             {
                 "season_year": season_year,
@@ -151,83 +186,31 @@ def reconcile_movements_with_sleeper(
     *,
     season_year: int,
 ) -> dict[str, Any]:
-    """Upgrade ambiguous import_diff events when Sleeper has a matching trade or waiver."""
+    """Upgrade ambiguous import_diff events using structured Sleeper transaction data."""
+    from src.draft_hub.sleeper_acquisition_hints import (
+        apply_sleeper_acquisition_tags,
+        sleeper_league_id_for_season,
+    )
+
     events = storage.list_league_movements(league_id, season_year=season_year)
     if not events:
         events = infer_movements_from_snapshots(league_id, season_year=season_year)
         storage.replace_league_movements(league_id, season_year, events)
 
-    txs = fetch_sleeper_transactions(sleeper_league_id)
-    raw_players = load_sleeper_players()
-    trade_keys: set[str] = set()
-    waiver_keys: set[str] = set()
-
-    for tx in txs:
-        tx_type = str(tx.get("type") or "").lower()
-        adds = tx.get("adds") or {}
-        drops = tx.get("drops") or {}
-        txid = str(tx.get("transaction_id") or "")
-        for sid in list(adds.keys()) + list(drops.keys()):
-            pname = _player_name_from_sleeper_id(str(sid), raw_players)
-            key = _name_key(pname)
-            if tx_type == "trade":
-                trade_keys.add(key)
-            elif tx_type in ("waiver", "free_agent"):
-                waiver_keys.add(key)
-
-    upgraded = 0
-    row_flags: list[tuple[int, str]] = []
-    for ev in events:
-        if ev.get("confidence") != "ambiguous":
-            continue
-        key = _name_key(ev.get("player_name") or "")
-        if key in trade_keys:
-            ev["confidence"] = "sleeper_trade"
-            ev["source"] = "sleeper"
-            upgraded += 1
-        elif key in waiver_keys:
-            ev["confidence"] = "sleeper_waiver"
-            ev["source"] = "sleeper"
-            ev["event_type"] = "waiver"
-            upgraded += 1
-
-    if upgraded:
-        storage.replace_league_movements(league_id, season_year, events)
-
-    ambiguous_rows = storage.list_league_contract_rows(league_id, season_year=season_year)
-    for row in ambiguous_rows:
-        key = _name_key(row["player_name"])
-        if key in trade_keys:
-            storage.update_league_contract_row(
-                int(row["id"]),
-                {
-                    "acquisition_type": "trade",
-                    "confidence": "sleeper_confirmed",
-                    "needs_review": False,
-                    "sleeper_verified": True,
-                },
-                edited_by_sub="system:sleeper",
-                note="Sleeper transaction matched",
-            )
-            upgraded += 1
-        elif key in waiver_keys and row.get("cap_hit") == 1:
-            storage.update_league_contract_row(
-                int(row["id"]),
-                {
-                    "acquisition_type": "waiver",
-                    "confidence": "sleeper_confirmed",
-                    "sleeper_verified": True,
-                },
-                edited_by_sub="system:sleeper",
-                note="Sleeper waiver matched",
-            )
-            upgraded += 1
-
+    lid = sleeper_league_id_for_season(sleeper_league_id, season_year) or sleeper_league_id
+    stats = apply_sleeper_acquisition_tags(
+        league_id,
+        sleeper_league_id,
+        season_year=season_year,
+    )
     return {
         "season_year": season_year,
-        "transactions_scanned": len(txs),
-        "events_upgraded": upgraded,
-        "movement_count": len(events),
+        "sleeper_league_id": lid,
+        "transactions_scanned": stats.get("acquisitions_found", 0),
+        "events_upgraded": stats.get("rows_tagged", 0) + stats.get("movements_resolved", 0),
+        "rows_tagged": stats.get("rows_tagged", 0),
+        "movements_resolved": stats.get("movements_resolved", 0),
+        "movement_count": len(storage.list_league_movements(league_id, season_year=season_year)),
     }
 
 

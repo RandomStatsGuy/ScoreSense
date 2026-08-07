@@ -129,7 +129,7 @@ export default function LeagueSetup({
   };
 
   return (
-    <section className={`panel hub-league-setup${mobileLayout ? " hub-league-setup--mobile" : ""}`}>
+    <section className={`hub-league-setup${mobileLayout ? " hub-league-setup--mobile" : ""}`}>
       <LeagueSwitcher
         memberships={memberships}
         hubContext={ctx}

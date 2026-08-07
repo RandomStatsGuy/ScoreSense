@@ -16,11 +16,15 @@ def test_rookie_contract_flat_years():
 
 def test_mendoza_extension_step_up():
     rules = load_preset("salary_cap_auction_v1")
+    contract = build_rookie_contract(10, 2)
+    contract["years_remaining"] = 1
+    contract["schedule"] = [{"year_offset": 0, "salary": 10}]
     row = {
         "player_id": "00-0000001",
         "player_name": "Fernando Mendoza",
         "salary": 10,
-        "contract": build_rookie_contract(10, 2),
+        "contract_years": 1,
+        "contract": contract,
     }
     ext = renew_player_contract(row, rules, extension_years=3, start_salary=10)
     salaries = [y["salary"] for y in ext["schedule"]]

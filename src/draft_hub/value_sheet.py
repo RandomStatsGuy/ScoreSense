@@ -192,14 +192,24 @@ def build_value_overlay(
     my_team_id: str | None = None,
     targets: set[str] | None = None,
     sleeper_player_ids: set[str] | None = None,
+    draft_completed: bool = False,
 ) -> dict[str, Any]:
     """Apply roster / league availability overlay to a pre-built pool payload."""
-    roster_map = {str(r["player_id"]): r for r in roster if r.get("player_id")}
-    league_map: dict[str, dict[str, Any]] = {}
-    for row in league_roster if league_roster is not None else roster:
-        pid = str(row.get("player_id") or "")
-        if pid:
-            league_map[pid] = row
+    from src.draft_hub.pre_draft_cap import retained_through_draft
+
+    def _kept(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+        out: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            pid = str(row.get("player_id") or "")
+            if not pid:
+                continue
+            if not retained_through_draft(row, draft_completed=draft_completed):
+                continue
+            out[pid] = row
+        return out
+
+    roster_map = _kept(roster)
+    league_map = _kept(league_roster if league_roster is not None else roster)
     targets = targets or set()
     sleeper_ids = sleeper_player_ids or set()
 
@@ -267,6 +277,7 @@ def build_value_overlay_sheet(
     sleeper_player_ids: set[str] | None = None,
     team_count: int = 12,
     pool_payload: dict[str, Any] | None = None,
+    draft_completed: bool = False,
 ) -> dict[str, Any]:
     """Overlay only — uses warm pool cache when pool_payload is omitted."""
     payload = pool_payload or peek_pool_payload_cache(
@@ -282,6 +293,7 @@ def build_value_overlay_sheet(
         my_team_id=my_team_id,
         targets=targets,
         sleeper_player_ids=sleeper_player_ids,
+        draft_completed=draft_completed,
     )
 
 
@@ -296,6 +308,7 @@ def build_value_sheet(
     targets: set[str] | None = None,
     sleeper_player_ids: set[str] | None = None,
     team_count: int = 12,
+    draft_completed: bool = False,
 ) -> dict[str, Any]:
     pool_payload = build_draft_pool_payload(
         season, rules, salary_ranges, team_count=team_count
@@ -308,4 +321,5 @@ def build_value_sheet(
         my_team_id=my_team_id,
         targets=targets,
         sleeper_player_ids=sleeper_player_ids,
+        draft_completed=draft_completed,
     )

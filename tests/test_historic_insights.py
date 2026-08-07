@@ -11,6 +11,7 @@ from src.draft_hub.historic_insights import (
     enrich_ownership_with_contracts,
     list_history_seasons,
 )
+from src.draft_hub.legacy_contract_history import dedupe_contract_rows
 from src.draft_hub.schemas import LeagueRules
 
 
@@ -65,6 +66,41 @@ def league_with_contracts(hub_db):
     return lid
 
 
+def test_dedupe_contract_rows_keeps_manual():
+    rows = [
+        {"season_year": 2024, "owner_label": "Aaron D", "player_name": "CJ Stroud", "position": "QB",
+         "cap_hit": 7, "roster_status": "active", "source_kind": "import", "id": 1},
+        {"season_year": 2024, "owner_label": "Aaron D", "player_name": "CJ Stroud", "position": "QB",
+         "cap_hit": 7, "roster_status": "active", "source_kind": "import", "id": 2},
+        {"season_year": 2024, "owner_label": "Aaron D", "player_name": "CJ Stroud", "position": "QB",
+         "cap_hit": 8, "roster_status": "active", "source_kind": "manual", "id": 3},
+    ]
+    out = dedupe_contract_rows(rows)
+    assert len(out) == 1
+    assert out[0]["id"] == 3
+
+
+def test_player_journey_dedupes_rows(league_with_contracts):
+    from src.draft_hub.legacy_contract_history import build_player_contract_journey
+
+    lid = league_with_contracts
+    storage.insert_league_contract_row(
+        lid,
+        2024,
+        {
+            "owner_label": "Aaron D",
+            "player_name": "CJ Stroud",
+            "position": "QB",
+            "cap_hit": 7.0,
+            "roster_status": "active",
+        },
+    )
+    journey = build_player_contract_journey(lid, "CJ Stroud", editing_season=2024)
+    yr2024 = [s for s in journey["seasons"] if s["season_year"] == 2024]
+    assert len(yr2024) == 1
+    assert journey["editing_row_id"] is not None
+
+
 def test_list_history_seasons(league_with_contracts):
     seasons = list_history_seasons(league_with_contracts)
     assert seasons == [2025, 2024]
@@ -95,6 +131,24 @@ def test_enrich_ownership_adds_contract_stats(league_with_contracts):
     hall = next(p for p in out["players"] if "Hall" in p["player_name"])
     assert hall["contract_stats"]["avg_cap"] == 29.5
     assert any(ev.get("event_type") == "contract" for ev in hall["timeline"])
+
+
+def test_enrich_ownership_filters_by_season(league_with_contracts):
+    ownership = {
+        "players": [
+            {
+                "player_id": "sleeper-1",
+                "player_name": "B. Hall",
+                "position": "RB",
+                "timeline": [{"event_type": "season_roster", "season": 2024, "team_name": "Team A"}],
+            }
+        ],
+        "player_count": 1,
+    }
+    out = enrich_ownership_with_contracts(ownership, league_with_contracts, season_year=2024)
+    assert out["player_count"] >= 1
+    hall = next(p for p in out["players"] if "Hall" in p["player_name"])
+    assert hall["contract_stats"]["seasons"] == [2024]
 
 
 def test_build_contract_awards_season(league_with_contracts):

@@ -1,10 +1,13 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import QuantileBar from "./QuantileBarShared";
 import { TableSkeleton } from "./TableSkeleton";
 import useMobileLayout from "./useMobileLayout";
 import MobileDataList, { MobileStat } from "./MobileDataList";
 import MobilePlayerCard from "./MobilePlayerCard";
 import PlayerCell, { usePlayerMedia } from "./PlayerCell";
+import Chip from "./Chip";
+import { fmtNum } from "./format";
+import { SortHeader, ExportCsvButton, useTableSort, csvQuote, downloadCsv } from "./table";
 
 const SORT_KEYS = {
   Player: "Player",
@@ -14,21 +17,6 @@ const SORT_KEYS = {
   Floor: "Season Floor",
   Ceiling: "Season Ceiling",
 };
-
-function SortHeader({ label, sortKey, sort, onSort, className = "", tip }) {
-  const active = sort.column === sortKey;
-  const arrow = !active ? "↕" : sort.dir === "asc" ? "↑" : "↓";
-  return (
-    <th
-      className={`sortable-header col-tip ${className}`.trim()}
-      title={tip}
-      onClick={() => onSort(sortKey)}
-      aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}
-    >
-      {label} <span className="sort-indicator">{arrow}</span>
-    </th>
-  );
-}
 
 function exportCsv(rows) {
   const header = [
@@ -45,44 +33,43 @@ function exportCsv(rows) {
     header.join(","),
     ...rows.map((row) =>
       [
-        `"${String(row.Player).replace(/"/g, '""')}"`,
+        csvQuote(row.Player),
         row.Team || "",
-        Number(row["Season Proj"]).toFixed(1),
-        Number(row["Season Floor"]).toFixed(1),
-        Number(row["Season Ceiling"]).toFixed(1),
-        Number(row["Per-Game Proj"]).toFixed(1),
-        Number(row["Per-Game Floor"]).toFixed(1),
-        Number(row["Per-Game Ceiling"]).toFixed(1),
+        fmtNum(row["Season Proj"], 1, ""),
+        fmtNum(row["Season Floor"], 1, ""),
+        fmtNum(row["Season Ceiling"], 1, ""),
+        fmtNum(row["Per-Game Proj"], 1, ""),
+        fmtNum(row["Per-Game Floor"], 1, ""),
+        fmtNum(row["Per-Game Ceiling"], 1, ""),
       ].join(",")
     ),
   ];
-  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `scoresense-draft-${Date.now()}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadCsv("scoresense-draft", lines);
 }
 
 export default function DraftTable({ rows, search, metaLine, searchSlot, loading = false, position, season }) {
-  const [sort, setSort] = useState({ column: "Proj", dir: "desc" });
+  const [sort, toggleSort] = useTableSort({ column: "Proj", dir: "desc" });
   const mobileLayout = useMobileLayout();
 
   const filtered = useMemo(() => {
     let list = rows || [];
     const q = (search || "").trim().toLowerCase();
     if (q) {
-      list = list.filter((r) => String(r.Player || "").toLowerCase().includes(q));
+      list = list.filter(
+        (r) =>
+          String(r.Player || "").toLowerCase().includes(q) ||
+          String(r.Team || "").toLowerCase().includes(q),
+      );
     }
     return list;
   }, [rows, search]);
 
   const scaleMax = useMemo(() => {
-    if (!filtered.length) return 1;
-    const maxP90 = Math.max(...filtered.map((r) => Number(r["Per-Game Ceiling"]) || 0));
+    const slate = rows || [];
+    if (!slate.length) return 1;
+    const maxP90 = Math.max(...slate.map((r) => Number(r["Per-Game Ceiling"]) || 0));
     return maxP90 > 0 ? maxP90 : 1;
-  }, [filtered]);
+  }, [rows]);
 
   const sorted = useMemo(() => {
     const key = SORT_KEYS[sort.column] || sort.column;
@@ -101,27 +88,12 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
   );
   const playerMedia = usePlayerMedia(playerIds);
 
-  const toggleSort = (column) => {
-    setSort((prev) =>
-      prev.column === column
-        ? { column, dir: prev.dir === "asc" ? "desc" : "asc" }
-        : { column, dir: "desc" }
-    );
-  };
-
   return (
     <>
       <div className="table-controls">
         {searchSlot}
         {!mobileLayout && (
-          <button
-            type="button"
-            className="btn-export-csv"
-            onClick={() => exportCsv(sorted)}
-            disabled={!sorted.length}
-          >
-            CSV
-          </button>
+          <ExportCsvButton onExport={() => exportCsv(sorted)} disabled={!sorted.length} />
         )}
       </div>
       <div className="table-toolbar">
@@ -165,7 +137,7 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
                   />
                 )}
                 meta={row.Team || "—"}
-                heroValue={Number(row["Season Proj"]).toFixed(0)}
+                heroValue={fmtNum(row["Season Proj"], 0)}
                 heroLabel="season"
                 badge={rookieBadge}
                 expanded={(
@@ -180,11 +152,11 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
                       />
                     </div>
                     <div className="mobile-stat-grid">
-                      <MobileStat label="Per-game" value={p50.toFixed(1)} />
-                      <MobileStat label="Floor" value={Number(row["Season Floor"]).toFixed(0)} />
-                      <MobileStat label="Ceiling" value={Number(row["Season Ceiling"]).toFixed(0)} />
-                      <MobileStat label="PG floor" value={p10.toFixed(1)} />
-                      <MobileStat label="PG ceiling" value={p90.toFixed(1)} />
+                      <MobileStat label="Per-game" value={fmtNum(row["Per-Game Proj"], 1)} />
+                      <MobileStat label="Floor" value={fmtNum(row["Season Floor"], 0)} />
+                      <MobileStat label="Ceiling" value={fmtNum(row["Season Ceiling"], 0)} />
+                      <MobileStat label="PG floor" value={fmtNum(row["Per-Game Floor"], 1)} />
+                      <MobileStat label="PG ceiling" value={fmtNum(row["Per-Game Ceiling"], 1)} />
                     </div>
                   </>
                 )}
@@ -273,8 +245,8 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
                       </span>
                     ) : null}
                   </td>
-                  <td>{row.Team || "—"}</td>
-                  <td className="num num-proj">{Number(row["Season Proj"]).toFixed(0)}</td>
+                  <td>{row.Team ? <Chip tone="team">{row.Team}</Chip> : "—"}</td>
+                  <td className="num num-proj">{fmtNum(row["Season Proj"], 0)}</td>
                   <td className="range-cell">
                     <QuantileBar
                       p10={p10}
@@ -285,12 +257,12 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
                     />
                   </td>
                   <td className="num num-secondary col-floor-ceiling">
-                    {Number(row["Season Floor"]).toFixed(0)}
+                    {fmtNum(row["Season Floor"], 0)}
                   </td>
                   <td className="num num-secondary col-floor-ceiling">
-                    {Number(row["Season Ceiling"]).toFixed(0)}
+                    {fmtNum(row["Season Ceiling"], 0)}
                   </td>
-                  <td className="num">{p50.toFixed(1)}</td>
+                  <td className="num">{fmtNum(row["Per-Game Proj"], 1)}</td>
                 </tr>
               );
             })}

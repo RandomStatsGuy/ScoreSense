@@ -5,6 +5,7 @@ import useMobileLayout from "./useMobileLayout";
 import MobileSubnav from "./layout/MobileSubnav";
 import MobileDataList, { MobileStat } from "./MobileDataList";
 import MobilePlayerCard from "./MobilePlayerCard";
+import PlayerCell, { usePlayerMedia } from "./PlayerCell";
 
 const OBJECTIVES = [
   { id: "median", label: "Proj (P50)", hint: "Maximize expected points" },
@@ -419,6 +420,18 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
     return list;
   }, [pool, search, posFilter]);
 
+  const narrativePlayerIds = useMemo(() => {
+    const ids = new Set();
+    (pool || []).forEach((r) => {
+      if (r.player_id) ids.add(String(r.player_id));
+    });
+    lineup.forEach((r) => {
+      if (r.player_id) ids.add(String(r.player_id));
+    });
+    return [...ids];
+  }, [pool, lineup]);
+  const playerMedia = usePlayerMedia(narrativePlayerIds);
+
   const handleSeasonChange = (nextSeason) => {
     const s = Number(nextSeason);
     setSeason(s);
@@ -828,7 +841,15 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                           />
                         </td>
                         <td>
-                          {row.Player}
+                          <PlayerCell
+                            name={row.Player}
+                            team={row.Team}
+                            playerId={pid}
+                            media={playerMedia}
+                            size="sm"
+                            showTeam={false}
+                            narrativeScope="weekly"
+                          />
                           {out && <span className="badge badge-out lineup-out-badge">OUT</span>}
                           {row.on_bye && <span className="badge badge-doubtful lineup-out-badge">BYE</span>}
                         </td>
@@ -948,7 +969,17 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                   {lineup.map((row) => (
                     <tr key={`${row.slot}-${row.player_id}`}>
                       <td><span className="lineup-slot-badge">{row.slot}</span></td>
-                      <td>{row.player}</td>
+                      <td>
+                        <PlayerCell
+                          name={row.player}
+                          team={row.team}
+                          playerId={row.player_id}
+                          media={playerMedia}
+                          size="sm"
+                          showTeam={false}
+                          narrativeScope="weekly"
+                        />
+                      </td>
                       <td>{row.position}</td>
                       {isDfs && <td className="num">{formatSalary(row.salary)}</td>}
                       <td className="num">{fmtNum(row.proj)}</td>

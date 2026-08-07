@@ -4,16 +4,24 @@ import VerifyEmailBanner from "../VerifyEmailBanner";
 
 const DISMISS_KEY = "hub_setup_checklist_dismissed";
 
-function hasRules(workspace) {
+export function hasRules(workspace) {
   return Boolean(workspace?.rules && workspace?.preset_id);
 }
 
-function hasSleeper(workspace, hubContext) {
+export function hasSleeper(workspace, hubContext) {
   return Boolean(
     hubContext?.sleeper_league_id
       || workspace?.sleeper_league_id
       || (workspace?.sleeper_player_ids || []).length > 0,
   );
+}
+
+/** Scroll to a setup section, opening it first if it's a collapsed accordion. */
+function revealSection(selector) {
+  const el = document.querySelector(selector);
+  if (!el) return;
+  if (el.tagName === "DETAILS") el.open = true;
+  el.scrollIntoView?.({ behavior: "smooth" });
 }
 
 export default function HubSetupChecklist({
@@ -42,13 +50,13 @@ export default function HubSetupChecklist({
         id: "rules",
         label: "Configure rules",
         done: hasRules(workspace),
-        action: () => document.querySelector(".hub-setup-panel .rules-wizard, .hub-setup-accordion")?.scrollIntoView?.({ behavior: "smooth" }),
+        action: () => revealSection(".hub-setup-panel--rules"),
       },
       {
         id: "sleeper",
         label: "Link Sleeper",
         done: hasSleeper(workspace, hubContext),
-        action: () => document.querySelector(".hub-setup-panel--sleeper, .hub-setup-accordion")?.scrollIntoView?.({ behavior: "smooth" }),
+        action: () => revealSection(".hub-setup-panel--sleeper"),
       },
       {
         id: "league",

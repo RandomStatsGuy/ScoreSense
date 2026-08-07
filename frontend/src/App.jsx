@@ -4,9 +4,7 @@ import { useAuth } from "./AuthContext";
 import DraftTable from "./DraftTable";
 import DraftHub from "./DraftHub/DraftHub";
 import HubSubnav, { HUB_SUBVIEWS } from "./DraftHub/HubSubnav";
-import BestBallBoard from "./BestBallBoard";
 import DfsOptimizer from "./LineupOptimizer";
-import PropScan from "./PropScan";
 import SeasonTable from "./SeasonTable";
 import SeasonTransitionState from "./SeasonTransitionState";
 import InjurySidebar from "./InjurySidebar";
@@ -27,8 +25,9 @@ import MobileShell from "./layout/MobileShell";
 import MobileHeader from "./layout/MobileHeader";
 import MobileSubnav from "./layout/MobileSubnav";
 import MobileFilterSheet from "./layout/MobileFilterSheet";
-import ProjectionsFilterBar from "./layout/ProjectionsFilterBar";
+import ProjectionsFilterBar, { PROJECTION_POSITIONS } from "./layout/ProjectionsFilterBar";
 import MobileMenuSheet from "./layout/MobileMenuSheet";
+import UserMenu from "./layout/UserMenu";
 import {
   APP_SECTIONS,
   PROJECTIONS_TABS,
@@ -50,11 +49,7 @@ import { PlayerCardProvider } from "./PlayerCardContext";
 
 const AccuracyChart = lazy(() => import("./AccuracyChart"));
 
-const POSITIONS = [
-  { id: "qb", label: "QB" },
-  { id: "rb", label: "RB" },
-  { id: "wr", label: "WR/TE" },
-];
+const POSITIONS = PROJECTION_POSITIONS;
 
 export default function App() {
   const {
@@ -550,15 +545,17 @@ export default function App() {
         draftSeason: overrides.draftSeason ?? draftSeason,
         rosSeason: overrides.rosSeason ?? rosSeason,
         rosFromWeek: overrides.rosFromWeek ?? rosFromWeek,
+        search: overrides.search ?? searchQuery,
       });
     },
-    [updateFilters, position, season, week, selectedTeams, draftSeason, rosSeason, rosFromWeek],
+    [updateFilters, position, season, week, selectedTeams, draftSeason, rosSeason, rosFromWeek, searchQuery],
   );
 
   const handlePositionChange = useCallback(
     (pos) => {
       setPosition(pos);
-      syncFiltersToUrl({ position: pos });
+      setSearchQuery("");
+      syncFiltersToUrl({ position: pos, search: "" });
     },
     [syncFiltersToUrl],
   );
@@ -588,6 +585,20 @@ export default function App() {
   useEffect(() => {
     setSearchQuery("");
   }, [view, projectionsTab, seasonMode, toolsTab]);
+
+  // Restore search from the URL (?q=). Declared after the clear-on-view-change
+  // effect so a shared/reloaded URL keeps its search on first mount.
+  useEffect(() => {
+    if (filtersFromUrl.search != null) setSearchQuery(filtersFromUrl.search);
+  }, [filtersFromUrl.search]);
+
+  // Mirror search edits back to the URL (debounced — raw keyboard input).
+  useEffect(() => {
+    if (!isWeeklyProjections) return undefined;
+    if ((filtersFromUrl.search || "") === (searchQuery || "").trim()) return undefined;
+    const timer = window.setTimeout(() => syncFiltersToUrl({}), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery, isWeeklyProjections, filtersFromUrl.search, syncFiltersToUrl]);
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -927,63 +938,29 @@ export default function App() {
                 ))}
               </nav>
               <div className="app-header-actions">
-                {authReady && !authenticated && (
+                {showDataRefresh && (
                   <button
+                    className="btn-ghost btn-header-action"
                     type="button"
-                    className="btn-primary btn-header-action"
-                    onClick={openSignIn}
+                    onClick={triggerRefresh}
+                    disabled={dataRefreshLoading}
                   >
-                    Sign in
+                    {dataRefreshLoading ? "Loading…" : "Refresh"}
                   </button>
                 )}
-                {authReady && authenticated && (
-                  <span className="app-header-user">
-                    <span className="app-header-user-name">
-                      {user?.name || user?.email || "Signed in"}
-                    </span>
-                    <a className="btn-ghost btn-sm" href="/account">
-                      Account
-                    </a>
-                    <button type="button" className="btn-ghost btn-sm" onClick={authLogout}>
-                      Log out
-                    </button>
-                  </span>
-                )}
-                <div className="app-header-action-btns">
-                  {showDataRefresh && (
-                    <button
-                      className="btn-ghost btn-header-action"
-                      type="button"
-                      onClick={triggerRefresh}
-                      disabled={dataRefreshLoading}
-                    >
-                      {dataRefreshLoading ? "Loading…" : "Refresh"}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="app-header-info-link"
-                    onClick={() => goToSection("model")}
-                    aria-current={view === "model" ? "page" : undefined}
-                  >
-                    Model info
-                  </button>
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      className="app-header-info-link"
-                      onClick={() => goToSection("admin")}
-                      aria-current={view === "admin" ? "page" : undefined}
-                    >
-                      Admin
-                    </button>
-                  )}
-                </div>
-                {refreshStatus?.completed_at && (
-                  <time className="app-header-meta" dateTime={refreshStatus.completed_at}>
-                    Updated {new Date(refreshStatus.completed_at).toLocaleString()}
-                  </time>
-                )}
+                <UserMenu
+                  authReady={authReady}
+                  authenticated={authenticated}
+                  user={user}
+                  isAdmin={isAdmin}
+                  view={view}
+                  openSignIn={openSignIn}
+                  onAccount={() => routerNavigate("/account")}
+                  onGoToModel={() => goToSection("model")}
+                  onGoToAdmin={() => goToSection("admin")}
+                  onLogout={authLogout}
+                  refreshStatus={refreshStatus}
+                />
               </div>
             </div>
 
@@ -1014,7 +991,7 @@ export default function App() {
               </div>
             )}
 
-            {view === "tools" && (
+            {view === "tools" && TOOLS_TABS.length > 1 && (
               mobileLayout ? (
                 <MobileSubnav
                   tabs={TOOLS_TABS}
@@ -1045,24 +1022,6 @@ export default function App() {
                 onNavigate={setHubSubView}
                 mobileLayout={mobileLayout}
               />
-            )}
-
-            {view === "hub" && !hubNeedsSignIn && hubContext?.mode === "league" && hubContext.league_name && hubSubView !== "setup" && (
-              <div className="app-header-hub-meta">
-                <span className="app-header-hub-league" title={hubContext.league_name}>
-                  {hubContext.league_name}
-                </span>
-                <span className="app-header-hub-phase">
-                  {hubContext.season ?? new Date().getFullYear()}
-                  {" · "}
-                  {hubContext.draft_completed ? "In season" : "Before draft"}
-                </span>
-                {hubContext.sleeper_league_id ? (
-                  <span className="app-header-hub-badge">Sleeper</span>
-                ) : (
-                  <span className="app-header-hub-badge app-header-hub-badge-muted">No Sleeper</span>
-                )}
-              </div>
             )}
           </div>
 
@@ -1175,6 +1134,7 @@ export default function App() {
                 season={season}
                 week={week}
                 searchSlot={
+                  !mobileLayout ? null : (
                   <input
                     type="search"
                     className="search-input"
@@ -1183,6 +1143,7 @@ export default function App() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     aria-label="Search players"
                   />
+                  )
                 }
               />
             </section>
@@ -1346,16 +1307,8 @@ export default function App() {
           </section>
         )}
 
-        {view === "tools" && toolsTab === "dfs" && (
+        {view === "tools" && (
           <DfsOptimizer projMeta={projMeta} loading={loading} />
-        )}
-
-        {view === "tools" && toolsTab === "bestball" && (
-          <BestBallBoard draftMeta={draftMeta} loading={loading} />
-        )}
-
-        {view === "tools" && toolsTab === "props" && (
-          <PropScan projMeta={projMeta} loading={loading} />
         )}
 
         {view === "model" && accuracyRebuildPhase === "building" && (

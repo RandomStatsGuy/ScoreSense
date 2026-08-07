@@ -2,11 +2,34 @@ import React, { useEffect, useState } from "react";
 import {
   forgotPassword,
   loginAccount,
+  loginWithPatreon,
   notifyAuthChanged,
   registerAccount,
   setToken,
 } from "./auth";
 import LegalLinks, { TermsCheckbox } from "./LegalLinks";
+
+/** Patreon sign-in row — shared across every auth surface so email + Patreon
+ *  are always presented together (gate, modal, hub, invite, mobile menu). */
+function PatreonOption({ patreonNext, onError }) {
+  return (
+    <div className="account-auth-alt">
+      <div className="account-auth-divider"><span>or</span></div>
+      <button
+        type="button"
+        className="btn-ghost account-auth-patreon"
+        onClick={() =>
+          loginWithPatreon(
+            patreonNext || `${window.location.pathname}${window.location.search}`,
+          ).catch((e) => onError?.(e.message))
+        }
+      >
+        Continue with Patreon
+      </button>
+      <p className="chart-note account-auth-patreon-note">For active patrons.</p>
+    </div>
+  );
+}
 
 export default function AccountAuth({
   onAuthed,
@@ -18,6 +41,8 @@ export default function AccountAuth({
   termsUrl,
   privacyUrl,
   onForgotPassword,
+  patreonConfigured = false,
+  patreonNext,
 }) {
   const [mode, setMode] = useState(initialMode);
   const [email, setEmail] = useState(defaultEmail);
@@ -181,6 +206,9 @@ export default function AccountAuth({
       )}
       {error && <div className="error">{error}</div>}
       {mode === "register" && info && <p className="chart-note">{info}</p>}
+      {patreonConfigured && (
+        <PatreonOption patreonNext={patreonNext} onError={setError} />
+      )}
       {!compact && mode === "register" && (
         <LegalLinks termsUrl={termsUrl} privacyUrl={privacyUrl} compact showDisclaimer={false} />
       )}

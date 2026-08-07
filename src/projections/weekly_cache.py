@@ -96,6 +96,26 @@ def load_weekly_prediction(
     return df
 
 
+def compute_weekly_artifact(
+    position: str,
+    season: int,
+    week: int,
+    apply_injury_adjustments: bool = True,
+) -> int:
+    """Process-pool worker: compute and persist a weekly artifact.
+
+    Returns the row count; the caller re-reads the artifact from disk so the
+    DataFrame never crosses the process boundary.
+    """
+    df = load_weekly_prediction(
+        position,
+        season=season,
+        week=week,
+        apply_injury_adjustments=apply_injury_adjustments,
+    )
+    return int(len(df))
+
+
 def save_weekly_artifact(
     position: str,
     season: int,

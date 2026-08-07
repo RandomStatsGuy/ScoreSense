@@ -4,14 +4,49 @@ import Chip, { sentimentChipTone } from "../Chip";
 import { mentionCountLabel } from "../format";
 import { playerInitials, teamLogoUrl } from "./draftMedia";
 import DraftDeadlineClock from "./DraftDeadlineClock";
+import { fmtSal } from "./rosterFormat";
+
+function fmtPts(v, digits = 1) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return null;
+  return n.toFixed(digits);
+}
+
+function NomineeStats({ stats }) {
+  if (!stats) return null;
+  const items = [];
+  const ppg = fmtPts(stats.perGame);
+  const season = fmtPts(stats.seasonProj, 0);
+  if (ppg != null) items.push({ label: "Proj PPG", value: ppg });
+  if (season != null) items.push({ label: "Season", value: `${season} pts` });
+  if (stats.fairValue != null) items.push({ label: "Fair value", value: fmtSal(stats.fairValue) });
+  if (stats.minSal != null && stats.maxSal != null) {
+    items.push({ label: "Range", value: `${fmtSal(stats.minSal)}–${fmtSal(stats.maxSal)}` });
+  }
+  if (stats.tier != null && stats.tier !== "") items.push({ label: "Tier", value: String(stats.tier) });
+  if (items.length === 0) return null;
+  return (
+    <div className="hub-nominee-stats">
+      {items.map((it) => (
+        <div key={it.label} className="hub-nominee-stat">
+          <span className="hub-cap-label">{it.label}</span>
+          <strong>{it.value}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function PlayerAvatar({ name, headshotUrl, team, teamLogoUrl: logoOverride, size = "lg" }) {
   const [imgFailed, setImgFailed] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
   const logo = logoOverride || teamLogoUrl(team);
+  const showHeadshot = headshotUrl && !imgFailed;
+  const logoAsMain = !showHeadshot && logo && !logoFailed;
 
   return (
     <div className={`hub-draft-avatar-wrap hub-draft-avatar-${size}`}>
-      {headshotUrl && !imgFailed ? (
+      {showHeadshot ? (
         <img
           className="hub-draft-headshot"
           src={headshotUrl}
@@ -19,12 +54,20 @@ function PlayerAvatar({ name, headshotUrl, team, teamLogoUrl: logoOverride, size
           loading="lazy"
           onError={() => setImgFailed(true)}
         />
+      ) : logoAsMain ? (
+        <img
+          className="hub-draft-headshot hub-draft-headshot-logo"
+          src={logo}
+          alt=""
+          loading="lazy"
+          onError={() => setLogoFailed(true)}
+        />
       ) : (
         <div className="hub-draft-headshot hub-draft-headshot-fallback" aria-hidden>
           {playerInitials(name)}
         </div>
       )}
-      {logo && (
+      {logo && showHeadshot && (
         <img className="hub-draft-team-badge" src={logo} alt="" loading="lazy" />
       )}
     </div>
@@ -50,6 +93,7 @@ export default function DraftNomineeCard({
   deadline,
   label = "On the block",
   compact = false,
+  stats = null,
 }) {
   const digest = beatDigest || sentiment?.fantasy_digest || sentiment?.beat_digest;
   const hasStory = sentiment && Number(sentiment.mention_count) > 0;
@@ -91,6 +135,8 @@ export default function DraftNomineeCard({
               <span>{team || "—"}</span>
             </p>
           </div>
+
+          <NomineeStats stats={stats} />
 
           {hasStory ? (
             <div className="hub-draft-story">

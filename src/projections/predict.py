@@ -177,6 +177,14 @@ def predict_upcoming_week(
         apply_injury_adjustments=apply_injury_adjustments,
     )
 
+    from src.integrations.sleeper import apply_vet_backup_projection_scale
+
+    result = apply_vet_backup_projection_scale(result, subset)
+
+    from src.projections.matchup_context import attach_matchup_context
+
+    result = attach_matchup_context(result, df, season, week, position)
+
     feature_season = int(inference_meta.get("feature_season") or season)
     if inference_meta.get("preseason_mode"):
         overlay = inference_meta.get("roster_overlay") or {}

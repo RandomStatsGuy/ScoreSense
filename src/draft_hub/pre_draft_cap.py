@@ -1,10 +1,10 @@
-"""Pre-draft cap planning — cuts, expiring deals, and draft budget."""
+"""Pre-draft cap planning — cuts, contract expiry before draft, and draft budget."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from src.draft_hub.contracts import cap_hit
+from src.draft_hub.contracts import can_renew, cap_hit
 from src.draft_hub.rules_engine import cap_relevant_roster, cut_refund, normalize_position
 from src.draft_hub.schemas import LeagueRules
 
@@ -23,6 +23,10 @@ def is_active_for_pre_draft(row: dict[str, Any]) -> bool:
 def years_remaining(row: dict[str, Any]) -> int:
     contract = row.get("contract") or {}
     return int(contract.get("years_remaining") or row.get("contract_years") or 1)
+
+
+def contract_type(row: dict[str, Any]) -> str:
+    return str((row.get("contract") or {}).get("contract_type") or "veteran")
 
 
 def cut_obligation_years(row: dict[str, Any]) -> int:
@@ -92,10 +96,54 @@ def contract_on_cut_status_change(
     return None
 
 
-def expires_after_draft(row: dict[str, Any], *, draft_completed: bool) -> bool:
+def expires_before_draft(row: dict[str, Any], *, draft_completed: bool) -> bool:
+    """Final year of a pre-draft deal — leaves the roster before this draft unless extended.
+
+    Players acquired in the current auction (source draft/auction) keep a valid 1-year
+    deal for this season and are not treated as expired keepers.
+    """
     if draft_completed:
         return False
-    return is_active_for_pre_draft(row) and years_remaining(row) <= 1
+    if not is_active_for_pre_draft(row):
+        return False
+    if years_remaining(row) > 1:
+        return False
+    source = str(row.get("source") or "").strip().lower()
+    if source in ("draft", "auction", "mock", "test_draft"):
+        return False
+    return True
+
+
+# Back-compat alias used by older call sites / tests.
+expires_after_draft = expires_before_draft
+
+
+def retained_through_draft(row: dict[str, Any], *, draft_completed: bool) -> bool:
+    """Still under contract for this draft season (counts toward cap / blocks nomination)."""
+    if not is_active_for_pre_draft(row):
+        return False
+    if draft_completed:
+        return True
+    if years_remaining(row) > 1:
+        return True
+    # 1-year auction acquisitions for the upcoming season.
+    source = str(row.get("source") or "").strip().lower()
+    return source in ("draft", "auction", "mock", "test_draft")
+
+
+def _player_brief(row: dict[str, Any], rules: LeagueRules) -> dict[str, Any]:
+    ok, reason = can_renew(row, rules)
+    sal = cap_hit(row, 0)
+    return {
+        "player_id": row.get("player_id"),
+        "player_name": row.get("player_name"),
+        "position": normalize_position(row.get("position")),
+        "salary": sal,
+        "years_remaining": years_remaining(row),
+        "contract_type": contract_type(row),
+        "can_extend": ok,
+        "extend_reason": reason,
+    }
 
 
 def pre_draft_cap_summary(
@@ -109,48 +157,29 @@ def pre_draft_cap_summary(
 
     cap = float(rules.salary_cap)
     scoped = cap_relevant_roster(rules, roster)
-    active = [r for r in scoped if is_active_for_pre_draft(r)]
+    retained = [r for r in scoped if retained_through_draft(r, draft_completed=False)]
     cuts = [r for r in scoped if roster_status(r) == ROSTER_CUT_BEFORE_DRAFT]
 
-    committed = round(sum(cap_hit(r, 0) for r in active), 2)
+    committed = round(sum(cap_hit(r, 0) for r in retained), 2)
     dead_cap = total_pre_draft_dead_cap(rules, scoped, year_offset=0)
     cap_freed_from_cuts = round(sum(pre_draft_cut_cap_freed(rules, r) for r in cuts), 2)
     draft_budget = round(cap - committed - dead_cap, 2)
 
-    expiring = []
-    for row in active:
-        if expires_after_draft(row, draft_completed=False):
-            sal = cap_hit(row, 0)
-            expiring.append(
-                {
-                    "player_id": row.get("player_id"),
-                    "player_name": row.get("player_name"),
-                    "position": normalize_position(row.get("position")),
-                    "salary": sal,
-                    "years_remaining": years_remaining(row),
-                }
-            )
+    must_extend: list[dict[str, Any]] = []
+    dropping: list[dict[str, Any]] = []
+    for row in scoped:
+        if not expires_before_draft(row, draft_completed=False):
+            continue
+        brief = _player_brief(row, rules)
+        if brief["can_extend"]:
+            must_extend.append(brief)
+        else:
+            dropping.append(brief)
 
-    pending_cuts = []
-    for row in cuts:
-        sal = cap_hit(row, 0)
-        dead = pre_draft_cut_dead_cap_at_offset(rules, row, 0)
-        obligation_years = cut_obligation_years(row)
-        refund_pct = float(rules.contracts.cut_refund_pct)
-        pending_cuts.append(
-            {
-                "player_id": row.get("player_id"),
-                "player_name": row.get("player_name"),
-                "position": normalize_position(row.get("position")),
-                "salary": sal,
-                "dead_cap": round(dead, 2),
-                "cap_freed": pre_draft_cut_cap_freed(rules, row),
-                "dead_cap_years": obligation_years,
-                "cut_refund_pct": refund_pct,
-            }
-        )
+    # Combined list for older UI (banner chips, etc.).
+    expiring = [*must_extend, *dropping]
 
-    after_draft_committed = round(sum(cap_hit(r, 1) for r in active), 2)
+    after_draft_committed = round(sum(cap_hit(r, 1) for r in retained), 2)
     after_draft_dead = total_pre_draft_dead_cap(rules, scoped, year_offset=1)
     after_draft_budget = round(cap - after_draft_committed - after_draft_dead, 2)
 
@@ -161,13 +190,32 @@ def pre_draft_cap_summary(
         "dead_cap": dead_cap,
         "draft_budget_available": draft_budget,
         "cap_freed_from_cuts": cap_freed_from_cuts,
+        "must_extend": must_extend,
+        "dropping_at_draft": dropping,
+        "expiring_before_draft": expiring,
+        # Deprecated alias — same as expiring_before_draft.
         "expiring_after_draft": expiring,
-        "pending_cuts": pending_cuts,
+        "pending_cuts": [
+            {
+                "player_id": row.get("player_id"),
+                "player_name": row.get("player_name"),
+                "position": normalize_position(row.get("position")),
+                "salary": cap_hit(row, 0),
+                "dead_cap": round(pre_draft_cut_dead_cap_at_offset(rules, row, 0), 2),
+                "cap_freed": pre_draft_cut_cap_freed(rules, row),
+                "dead_cap_years": cut_obligation_years(row),
+                "cut_refund_pct": float(rules.contracts.cut_refund_pct),
+            }
+            for row in cuts
+        ],
         "after_draft_projection": {
             "committed": after_draft_committed,
             "dead_cap": after_draft_dead,
             "budget_available": after_draft_budget,
-            "note": "Assumes no new signings; expiring contracts drop off after the draft.",
+            "note": (
+                "Expired deals leave before the draft (FA). "
+                "Rookies finishing a 2-year deal can take one 1–3 year extension."
+            ),
         },
     }
 
@@ -178,21 +226,35 @@ def cap_summary_for_phase(
     *,
     draft_completed: bool = False,
 ) -> dict[str, Any]:
-    """Cap totals respecting pre-draft cuts when the draft has not completed."""
+    """Cap totals respecting pre-draft cuts and contract expiry before draft."""
+    from src.draft_hub.rules_engine import cap_summary
+
     scoped = cap_relevant_roster(rules, roster)
     if draft_completed:
         pool = scoped
     else:
-        pool = [r for r in scoped if is_active_for_pre_draft(r)]
+        pool = [r for r in scoped if retained_through_draft(r, draft_completed=False)]
 
-    cap = float(rules.salary_cap)
-    spent = round(sum(cap_hit(r, 0) for r in pool), 2)
+    base = cap_summary(rules, pool)
     dead_cap = 0.0 if draft_completed else total_pre_draft_dead_cap(rules, scoped, year_offset=0)
+    spent = float(base["spent"])
+    cap = float(base["salary_cap"])
     return {
-        "salary_cap": cap,
-        "spent": spent,
+        **base,
         "dead_cap": dead_cap,
         "remaining": round(cap - spent - dead_cap, 2),
-        "roster_size": len(pool),
         "draft_completed": draft_completed,
     }
+
+
+def roster_for_pre_draft_validation(
+    rules: LeagueRules,
+    roster: list[dict[str, Any]],
+    *,
+    draft_completed: bool,
+) -> list[dict[str, Any]]:
+    """Roster rows that still count toward position limits before the draft."""
+    scoped = cap_relevant_roster(rules, roster)
+    if draft_completed:
+        return scoped
+    return [r for r in scoped if retained_through_draft(r, draft_completed=False)]

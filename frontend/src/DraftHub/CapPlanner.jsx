@@ -82,8 +82,36 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
     }
   };
 
+  const mustExtend = preDraft?.must_extend ?? [];
+  const droppingAtDraft = preDraft?.dropping_at_draft ?? [];
+  const extendableIds = useMemo(
+    () => new Set(mustExtend.map((p) => String(p.player_id))),
+    [mustExtend],
+  );
+  const droppingIds = useMemo(
+    () => new Set(droppingAtDraft.map((p) => String(p.player_id))),
+    [droppingAtDraft],
+  );
+  const extendableRoster = useMemo(
+    () => (roster || []).filter((r) => extendableIds.has(String(r.player_id))),
+    [roster, extendableIds],
+  );
+
+  const expiryBadge = (playerId) => {
+    const pid = String(playerId);
+    if (extendableIds.has(pid)) {
+      return <span className="hub-sleeper-badge hub-expiring-badge">Extend to keep</span>;
+    }
+    if (droppingIds.has(pid)) {
+      return <span className="hub-sleeper-badge hub-expiring-badge">Expires — FA</span>;
+    }
+    return null;
+  };
+
   const glossary = (
     <>
+      <p><strong>Expire before draft</strong> — Final-year deals leave your roster (FA) unless extended.</p>
+      <p><strong>Rookie extension</strong> — Only after a 2-year rookie deal; one 1–3 year extension.</p>
       <p><strong>Dead cap</strong> — Counts after a cut.</p>
       <p><strong>Step-up</strong> — +${stepUp}/yr on extensions.</p>
       <p><strong>Cut refund</strong> — {cutPct}% back; rest is dead cap.</p>
@@ -162,7 +190,11 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
       {preDraft && (
         <HubSection
           title="Pre-draft"
-          hint={mobileLayout ? "Cuts & dead money" : `Cuts free ${cutPct}% cap; the rest is dead money each year left on the deal.`}
+          hint={
+            mobileLayout
+              ? "Cuts, expiry & extensions"
+              : `Final-year deals leave before draft (FA). Rookies can extend once. Cuts free ${cutPct}% cap.`
+          }
         >
           <div className="hub-pre-draft-stats">
             <div className="hub-pre-draft-stat-card">
@@ -193,12 +225,28 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
               </ul>
             </details>
           )}
-          {preDraft.expiring_after_draft?.length > 0 && (
-            <details className="hub-pre-draft-details">
-              <summary>{preDraft.expiring_after_draft.length} free at draft (1 yr left)</summary>
+          {mustExtend.length > 0 && (
+            <details className="hub-pre-draft-details" open>
+              <summary>{mustExtend.length} extend to keep (rookie deal ending)</summary>
               <ul className="hub-pre-draft-list">
-                {preDraft.expiring_after_draft.map((p) => (
-                  <li key={p.player_id}>{p.player_name}: {fmtSal(p.salary)}</li>
+                {mustExtend.map((p) => (
+                  <li key={p.player_id}>
+                    {p.player_name}: {fmtSal(p.salary)}
+                    <span className="table-meta"> · extend 1–3 yrs or FA</span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+          {droppingAtDraft.length > 0 && (
+            <details className="hub-pre-draft-details" open={mustExtend.length === 0}>
+              <summary>{droppingAtDraft.length} expire before draft (FA)</summary>
+              <ul className="hub-pre-draft-list">
+                {droppingAtDraft.map((p) => (
+                  <li key={p.player_id}>
+                    {p.player_name}: {fmtSal(p.salary)}
+                    <span className="table-meta"> · cannot re-sign</span>
+                  </li>
                 ))}
               </ul>
             </details>
@@ -262,34 +310,47 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
         </HubSection>
       )}
 
-      {roster.length > 0 && (
-        <HubSection title="Extend contract">
-          <HubToolbar>
-            <label>
-              Player
-              <select value={extendPlayer} onChange={(e) => setExtendPlayer(e.target.value)}>
-                <option value="">Select player…</option>
-                {roster.map((r) => (
-                  <option key={r.player_id} value={r.player_id}>
-                    {r.player_name} ({r.contract?.years_remaining ?? r.contract_years}y)
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Years
-              <input
-                type="number"
-                min={1}
-                max={3}
-                value={extendYears}
-                onChange={(e) => setExtendYears(e.target.value)}
-              />
-            </label>
-            <button type="button" className="btn-primary btn-sm" onClick={extend} disabled={!extendPlayer}>
-              Extend
-            </button>
-          </HubToolbar>
+      {!draftCompleted && (
+        <HubSection
+          title="Extend contract"
+          hint={
+            extendableRoster.length > 0
+              ? "Rookies finishing a 2-year deal — one extension of 1–3 years."
+              : "No rookies eligible to extend right now."
+          }
+        >
+          {extendableRoster.length > 0 ? (
+            <HubToolbar>
+              <label>
+                Player
+                <select value={extendPlayer} onChange={(e) => setExtendPlayer(e.target.value)}>
+                  <option value="">Select player…</option>
+                  {extendableRoster.map((r) => (
+                    <option key={r.player_id} value={r.player_id}>
+                      {r.player_name} (rookie)
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Years
+                <input
+                  type="number"
+                  min={1}
+                  max={3}
+                  value={extendYears}
+                  onChange={(e) => setExtendYears(e.target.value)}
+                />
+              </label>
+              <button type="button" className="btn-primary btn-sm" onClick={extend} disabled={!extendPlayer}>
+                Extend
+              </button>
+            </HubToolbar>
+          ) : (
+            <p className="chart-note">
+              Veterans and prior extensions expire to free agency — they cannot be re-signed.
+            </p>
+          )}
         </HubSection>
       )}
 
@@ -305,6 +366,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                     key={r.player_id}
                     name={r.player_name}
                     meta={`${r.contract?.years_remaining ?? r.contract_years ?? "—"} yrs left`}
+                    badge={expiryBadge(r.player_id)}
                     heroValue={fmtSal(capHitForRow(r, 0))}
                     heroLabel={String(baseSeason)}
                     expanded={(
@@ -342,8 +404,12 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                 </thead>
                 <tbody>
                   {roster.map((r) => (
-                    <tr key={r.player_id}>
-                      <td>{r.player_name}</td>
+                    <tr key={r.player_id} className={droppingIds.has(String(r.player_id)) || extendableIds.has(String(r.player_id)) ? "hub-cap-row--expiring" : undefined}>
+                      <td>
+                        {r.player_name}
+                        {" "}
+                        {expiryBadge(r.player_id)}
+                      </td>
                       <td>{fmtSal(capHitForRow(r, 0))}</td>
                       <td>{r.contract?.years_remaining ?? r.contract_years ?? "—"}</td>
                       <td className="chart-note">{scheduleText(r)}</td>

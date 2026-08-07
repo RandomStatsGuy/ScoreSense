@@ -12,6 +12,37 @@ from src.projections.draft_projections import predict_draft_season
 from src.projections.predict import predict_upcoming_week
 
 
+def test_filter_qb_prefers_sleeper_depth_over_prior_volume():
+    """QB2 with big prior volume must not outrank the listed Sleeper QB1."""
+    mlready = pd.DataFrame(
+        {
+            "player_id": ["shough", "rattler"],
+            "player_display_name": ["Tyler Shough", "Spencer Rattler"],
+            "season": [2025, 2025],
+            "week": [2, 16],
+            "team": ["NO", "NO"],
+            "pass_attmpt_avg": [18.0, 32.0],
+            "passing_yards_avg": [140.0, 230.0],
+        }
+    )
+    roster = pd.DataFrame(
+        {
+            "player_id": ["shough", "rattler"],
+            "player_display_name": ["Tyler Shough", "Spencer Rattler"],
+            "team": ["NO", "NO"],
+            "season": [2026, 2026],
+            "week": [1, 1],
+            "pass_attmpt_avg": [18.0, 32.0],
+            "passing_yards_avg": [140.0, 230.0],
+            "_sleeper_depth_order": [1, 2],
+        }
+    )
+    filtered, meta = filter_qb_depth_chart(roster, mlready, feature_season=2025)
+    assert len(filtered) == 1
+    assert filtered.iloc[0]["player_display_name"] == "Tyler Shough"
+    assert "Spencer Rattler" in meta["removed_players"]
+
+
 def test_filter_qb_depth_chart_keeps_pass_volume_leader():
     mlready = pd.DataFrame(
         {
@@ -270,3 +301,16 @@ def test_draft_preseason_ind_starter_is_daniel_jones():
     assert depth.get("keep_per_team") == 2
     assert len(ind) == 2
     assert ind.iloc[0]["Player"] == "Daniel Jones"
+    assert "Anthony Richardson" not in set(draft["Player"])
+
+
+def test_draft_preseason_rattler_is_backup_not_starter_volume():
+    draft = predict_draft_season("qb", season=2026)
+    no = draft[draft["Team"] == "NO"].sort_values("Season Proj", ascending=False)
+    assert len(no) >= 1
+    assert no.iloc[0]["Player"] == "Tyler Shough"
+    rattler = draft[draft["Player"] == "Spencer Rattler"]
+    if not rattler.empty:
+        # Kept as QB2 in draft depth, but must not look like a starter.
+        assert float(rattler.iloc[0]["Season Proj"]) < 60.0
+        assert float(rattler.iloc[0]["Season Proj"]) < float(no.iloc[0]["Season Proj"]) * 0.5
