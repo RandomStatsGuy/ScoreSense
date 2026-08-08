@@ -9,7 +9,19 @@ import {
   getAnyLeagueRostersCache,
   setLeagueRostersCache,
 } from "./hubDataCache";
-import { fmtSal, leagueStepUp, preDraftCutDeadCap, previewSchedule, scheduleText } from "./rosterFormat";
+import {
+  CONTRACT_TYPE_OPTIONS,
+  contractScheduleHint,
+  contractTypeBadgeClass,
+  contractTypeLabel,
+  fmtSal,
+  leagueStepUp,
+  preDraftCutDeadCap,
+  previewSchedule,
+  scheduleText,
+  seasonCapYearHint,
+  YEARS_LEFT_HINT,
+} from "./rosterFormat";
 import { confirmDialog } from "../ui/confirm";
 
 const POS_ORDER = ["QB", "RB", "WR", "TE"];
@@ -52,6 +64,7 @@ function TeamRosterBlock({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [edits, setEdits] = useState({});
+  const [typeOverrides, setTypeOverrides] = useState({});
   const [savingId, setSavingId] = useState(null);
   const [error, setError] = useState("");
   const mobileLayout = useMobileLayout();
@@ -62,6 +75,7 @@ function TeamRosterBlock({
 
   useEffect(() => {
     setEdits({});
+    setTypeOverrides({});
   }, [block.team.id, block.roster]);
 
   const sorted = useMemo(
@@ -99,6 +113,46 @@ function TeamRosterBlock({
       if (!res.ok) throw new Error(await parseApiError(res));
       onSaved?.(opts);
     } catch (e) {
+      setError(connectionErrorMessage(e));
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const saveContractType = async (r, nextType) => {
+    const cur = String(r.contract?.contract_type || "veteran");
+    if (nextType === cur && !r.contract?.pending_type) return;
+    setTypeOverrides((prev) => ({ ...prev, [r.player_id]: nextType }));
+    setSavingId(r.player_id);
+    setError("");
+    try {
+      const res = await apiFetch("/api/hub/roster/contract-type", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ player_id: r.player_id, contract_type: nextType }),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const data = await res.json();
+      const savedType = data.saved_contract_type
+        || data.slot?.contract?.contract_type
+        || (data.pending_type ? nextType : null);
+      if (!data.pending_type && savedType !== nextType) {
+        throw new Error(
+          `Type did not save (still ${savedType || "unknown"}; received ${data.received_contract_type || "?"})`,
+        );
+      }
+      setTypeOverrides((prev) => ({ ...prev, [r.player_id]: data.pending_type ? cur : savedType }));
+      onSaved?.({ syncHub: true });
+      if (data.pending_type) {
+        setError("Submitted — waiting on commissioner.");
+        setTimeout(() => setError(""), 2500);
+      }
+    } catch (e) {
+      setTypeOverrides((prev) => {
+        const next = { ...prev };
+        delete next[r.player_id];
+        return next;
+      });
       setError(connectionErrorMessage(e));
     } finally {
       setSavingId(null);
@@ -211,6 +265,13 @@ function TeamRosterBlock({
       {open && error && <div className="error hub-league-team-error">{error}</div>}
 
       {open && (
+        <p className="chart-note hub-roster-contract-help" title={seasonCapYearHint(season)}>
+          Cap hit is for the {season} season (after the {season} draft).{" "}
+          {contractScheduleHint(stepUp)}. {YEARS_LEFT_HINT}
+        </p>
+      )}
+
+      {open && (
       mobileLayout ? (
         <MobileDataList
           emptyMessage={!sorted.length ? "No players. Sync from Sleeper above." : null}
@@ -220,8 +281,18 @@ function TeamRosterBlock({
             const saving = savingId === r.player_id;
             const isCut = r.roster_status === "cut_before_draft";
             const yrsLeft = Number(r.contract?.years_remaining ?? r.contract_years ?? 1);
-            const storedSchedule = scheduleText(r);
-            const livePreview = previewSchedule(edit.salary, edit.years, stepUp) || storedSchedule;
+            const ctype = String(
+              typeOverrides[r.player_id] || r.contract?.contract_type || "veteran",
+            );
+            const pendingType = r.contract?.pending_type;
+            const inferredMeta = !r.contract?.contract_type_manual && r.contract?.inferred_from
+              ? String(r.contract.inferred_from).replace("nfl_yr_", "NFL yr ")
+              : null;
+            const storedSchedule = scheduleText(r, rules);
+            const livePreview = previewSchedule(edit.salary, edit.years, stepUp, ctype) || storedSchedule;
+            const expiringBadge = !draftCompleted && yrsLeft <= 1 && !isCut
+              ? (ctype === "rookie" ? "Extend to keep" : "Expires — FA")
+              : null;
             const actions = [];
             if (!draftCompleted) {
               actions.push(
@@ -254,19 +325,35 @@ function TeamRosterBlock({
                 name={r.player_name}
                 meta={[r.team, r.position].filter(Boolean).join(" · ") || "—"}
                 heroValue={fmtSal(edit.salary)}
-                heroLabel="cap"
+                heroLabel={`${season} $`}
                 badge={(
                   <>
+                    <span className={contractTypeBadgeClass(ctype)}>{contractTypeLabel(ctype)}</span>
+                    {pendingType && <span className="hub-sleeper-badge hub-pending-badge">Pending</span>}
+                    {inferredMeta && <span className="hub-contract-infer-meta">Auto · {inferredMeta}</span>}
                     {isCut && <span className="hub-sleeper-badge hub-cut-badge">Cut</span>}
-                    {!draftCompleted && yrsLeft <= 1 && !isCut && (
-                      <span className="hub-sleeper-badge hub-expiring-badge">Expires before draft</span>
-                    )}
+                    {expiringBadge && <span className="hub-sleeper-badge hub-expiring-badge">{expiringBadge}</span>}
                   </>
                 )}
                 expanded={(
                   <div className="mobile-stat-grid hub-roster-mobile-grid">
                     <label className="hub-roster-mobile-field">
-                      <span className="mobile-stat-label">Cap hit ({season})</span>
+                      <span className="mobile-stat-label">Contract type</span>
+                      <select
+                        className="hub-roster-edit-input"
+                        value={pendingType || ctype}
+                        disabled={saving || isCut}
+                        onChange={(e) => saveContractType(r, e.target.value)}
+                      >
+                        {CONTRACT_TYPE_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="hub-roster-mobile-field">
+                      <span className="mobile-stat-label" title={seasonCapYearHint(season)}>
+                        Cap hit ({season} season)
+                      </span>
                       <input
                         type="number"
                         className="hub-roster-edit-input"
@@ -282,7 +369,7 @@ function TeamRosterBlock({
                       />
                     </label>
                     <label className="hub-roster-mobile-field">
-                      <span className="mobile-stat-label">Yrs left</span>
+                      <span className="mobile-stat-label" title={YEARS_LEFT_HINT}>Yrs left</span>
                       <input
                         type="number"
                         className="hub-roster-edit-input hub-roster-edit-input-sm"
@@ -311,14 +398,15 @@ function TeamRosterBlock({
           })}
         </MobileDataList>
       ) : (
-      <div className="table-wrap hub-league-table-wrap">
+      <div className="table-wrap table-sticky hub-league-table-wrap">
         <table className="data-table hub-table hub-roster-table hub-league-roster-table">
           <thead>
             <tr>
               <th>Player</th>
               <th>Pos</th>
-              <th>Cap hit ({season})</th>
-              <th>Yrs left</th>
+              <th>Type</th>
+              <th title={seasonCapYearHint(season)}>{season} season $</th>
+              <th title={YEARS_LEFT_HINT}>Yrs left</th>
               <th>Schedule</th>
               <th aria-label="Actions" />
             </tr>
@@ -329,8 +417,18 @@ function TeamRosterBlock({
               const saving = savingId === r.player_id;
               const isCut = r.roster_status === "cut_before_draft";
               const yrsLeft = Number(r.contract?.years_remaining ?? r.contract_years ?? 1);
-              const storedSchedule = scheduleText(r);
-              const livePreview = previewSchedule(edit.salary, edit.years, stepUp) || storedSchedule;
+              const ctype = String(
+                typeOverrides[r.player_id] || r.contract?.contract_type || "veteran",
+              );
+              const pendingType = r.contract?.pending_type;
+              const inferredMeta = !r.contract?.contract_type_manual && r.contract?.inferred_from
+                ? String(r.contract.inferred_from).replace("nfl_yr_", "NFL yr ")
+                : null;
+              const storedSchedule = scheduleText(r, rules);
+              const livePreview = previewSchedule(edit.salary, edit.years, stepUp, ctype) || storedSchedule;
+              const expiringBadge = !draftCompleted && yrsLeft <= 1 && !isCut
+                ? (ctype === "rookie" ? "Extend to keep" : "Expires — FA")
+                : null;
               return (
                 <tr key={r.player_id} className={isCut ? "hub-cut-row" : ""}>
                   <td>
@@ -338,14 +436,29 @@ function TeamRosterBlock({
                       <span className="hub-roster-player-name">{r.player_name}</span>
                       <span className="hub-league-player-meta">
                         {r.team || "—"}
+                        {pendingType && <span className="hub-sleeper-badge hub-pending-badge">Pending</span>}
+                        {inferredMeta && <span className="hub-contract-infer-meta">Auto · {inferredMeta}</span>}
                         {isCut && <span className="hub-sleeper-badge hub-cut-badge">Cut</span>}
-                        {!draftCompleted && yrsLeft <= 1 && !isCut && (
-                          <span className="hub-sleeper-badge hub-expiring-badge">Expires before draft</span>
+                        {expiringBadge && (
+                          <span className="hub-sleeper-badge hub-expiring-badge">{expiringBadge}</span>
                         )}
                       </span>
                     </div>
                   </td>
                   <td><span className="hub-roster-pos-tag">{r.position}</span></td>
+                  <td>
+                    <select
+                      className="hub-roster-edit-input hub-roster-type-select"
+                      value={pendingType || ctype}
+                      disabled={saving || isCut}
+                      onChange={(e) => saveContractType(r, e.target.value)}
+                      aria-label={`Contract type for ${r.player_name}`}
+                    >
+                      {CONTRACT_TYPE_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  </td>
                   <td>
                     <input
                       type="number"
@@ -359,6 +472,7 @@ function TeamRosterBlock({
                       }))}
                       onBlur={() => saveRow(r, { syncHub: false })}
                       onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                      title={seasonCapYearHint(season)}
                     />
                   </td>
                   <td>
@@ -375,6 +489,7 @@ function TeamRosterBlock({
                       }))}
                       onBlur={() => saveRow(r, { syncHub: false })}
                       onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                      title={YEARS_LEFT_HINT}
                     />
                   </td>
                   <td className="chart-note hub-schedule-preview">{livePreview}</td>
@@ -405,7 +520,7 @@ function TeamRosterBlock({
             })}
             {!sorted.length && (
               <tr>
-                <td colSpan={6} className="chart-note hub-roster-empty">
+                <td colSpan={7} className="chart-note hub-roster-empty">
                   No players. Sync from Sleeper above.
                 </td>
               </tr>
@@ -481,8 +596,11 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
     load();
   }, [leagueId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const maxYears = Number(workspace?.rules?.contracts?.max_years ?? 3);
-  const salaryCap = Number(overview?.salary_cap ?? workspace?.rules?.salary_cap ?? 200);
+  const maxYears = Number(
+    workspace?.rules?.contracts?.max_years
+    ?? overview?.league?.rules?.contracts?.max_years
+    ?? 3,
+  );
   const targetSeason = season || overview?.league?.season || workspace?.season;
   const draftCompleted = Boolean(hubContext?.draft_completed);
 
@@ -513,7 +631,8 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
       .filter(Boolean);
   }, [teams, search, teamFilter]);
 
-  const leagueRules = workspace?.rules;
+  const salaryCap = Number(overview?.salary_cap ?? workspace?.rules?.salary_cap ?? 200);
+  const leagueRules = workspace?.rules || overview?.league?.rules;
 
   const leagueTotals = useMemo(() => {
     let players = 0;
@@ -545,7 +664,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
         <div className="hub-league-rosters-intro">
           <h2>League rosters</h2>
           <p className="hub-league-rosters-lead hub-league-rosters-lead--desktop">
-            Edit teams · cut = refund · drop = remove
+            Pick a team to edit · Type / {targetSeason || "season"} season $ / Yrs left · cut = refund · drop = remove
           </p>
         </div>
         <div className="hub-league-rosters-summary" aria-label="League totals">
@@ -619,21 +738,29 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
       )}
 
       <div className="hub-league-team-list">
-        {filteredTeams.map((block, idx) => (
-          <TeamRosterBlock
-            key={block.team.id}
-            block={block}
-            season={targetSeason}
-            maxYears={maxYears}
-            salaryCap={salaryCap}
-            rules={leagueRules}
-            draftCompleted={draftCompleted}
-            defaultOpen={!teamFilter ? idx === 0 : true}
-            onSaved={handleSaved}
-          />
-        ))}
-        {!filteredTeams.length && (
-          <p className="chart-note">No teams match your search.</p>
+        {!teamFilter && !search.trim() ? (
+          <p className="chart-note">
+            No team selected — click a team above to edit salaries, years, and contract type.
+          </p>
+        ) : (
+          <>
+            {filteredTeams.map((block) => (
+              <TeamRosterBlock
+                key={block.team.id}
+                block={block}
+                season={targetSeason}
+                maxYears={maxYears}
+                salaryCap={salaryCap}
+                rules={leagueRules}
+                draftCompleted={draftCompleted}
+                defaultOpen={Boolean(teamFilter) || Boolean(search.trim())}
+                onSaved={handleSaved}
+              />
+            ))}
+            {!filteredTeams.length && (
+              <p className="chart-note">No teams match your search.</p>
+            )}
+          </>
         )}
       </div>
         </>

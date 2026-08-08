@@ -35,6 +35,21 @@ def test_top_five_wr_above_25():
         assert fair_auction_value(rank, n, "WR", rules, team_count=10) >= 25 - rank * 4
 
 
+def test_qb_relevant_includes_roster_minimum():
+    """Leagues that require 2 QBs should price more than starter*teams QBs."""
+    rules = _rules()
+    # Force a 2-QB minimum like the live cap league.
+    roster = dict(rules.roster or {})
+    qb = dict(roster.get("qb") or {})
+    qb.update({"starter": 1, "min": 2, "max": 4})
+    roster["qb"] = qb
+    rules = rules.model_copy(update={"roster": roster})
+    n = auction_relevant_count("QB", 10, rules)
+    assert n >= 18
+    # Rank 14 (e.g. Lamar in a noisy pool) still gets a non-min bid.
+    assert fair_auction_value(14, n, "QB", rules, team_count=10) > 1
+
+
 def test_elite_below_cap_quarter():
     rules = _rules()
     cap = float(rules.salary_cap)

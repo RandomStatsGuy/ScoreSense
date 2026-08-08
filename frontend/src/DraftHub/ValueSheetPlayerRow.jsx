@@ -12,6 +12,7 @@ function ValueSheetPlayerRow({
   inRoster,
   isAdding,
   isSelected,
+  isCommissioner = false,
   onSelectPlayer,
   onAddPlayer,
   onRowDoubleClick,
@@ -43,6 +44,8 @@ function ValueSheetPlayerRow({
   );
 
   const statusLabel = formatStatusLabel(row.status);
+  const taken = row.status === "taken";
+  const addLabel = taken && isCommissioner ? "Reassign" : "Add";
 
   return (
     <tr
@@ -100,9 +103,10 @@ function ValueSheetPlayerRow({
             type="button"
             className="btn-ghost btn-sm"
             disabled={isAdding}
+            title={taken && !isCommissioner ? "Already on another roster" : undefined}
             onClick={handleAddClick}
           >
-            Add
+            {isAdding ? "Adding…" : addLabel}
           </button>
         )}
       </td>
@@ -121,6 +125,7 @@ function propsAreEqual(prev, next) {
     && prev.inRoster === next.inRoster
     && prev.isAdding === next.isAdding
     && prev.isSelected === next.isSelected
+    && prev.isCommissioner === next.isCommissioner
     && prev.onSelectPlayer === next.onSelectPlayer
     && prev.onAddPlayer === next.onAddPlayer
     && prev.onRowDoubleClick === next.onRowDoubleClick

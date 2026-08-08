@@ -52,15 +52,28 @@ def _overlayable_contract_row(row: dict[str, Any]) -> bool:
         return False
     if is_garbage_player_name(row.get("player_name") or ""):
         return False
-    if str(row.get("source_kind") or "") in {"manual", "import"}:
+    kind = str(row.get("source_kind") or "")
+    # Sleeper roster snapshots are the base layer, not overlays.
+    if kind in {"week1_sleeper", "pre_draft_sleeper"}:
+        return False
+    if kind in {"manual", "import"}:
         return True
     return _displayable_contract_row(row)
 
 
 def _dedupe_rank(row: dict[str, Any]) -> tuple:
+    kind = str(row.get("source_kind") or "")
+    # Prefer manual edits, then Sleeper snapshot, then import.
+    source_rank = (
+        2
+        if kind == "manual"
+        else 1
+        if kind in {"week1_sleeper", "pre_draft_sleeper"}
+        else 0
+    )
     cap = float(row.get("cap_hit") or row.get("base_salary") or 0)
     return (
-        1 if row.get("source_kind") == "manual" else 0,
+        source_rank,
         1 if str(row.get("roster_status") or "active") == "active" else 0,
         cap,
         int(row.get("id") or 0),

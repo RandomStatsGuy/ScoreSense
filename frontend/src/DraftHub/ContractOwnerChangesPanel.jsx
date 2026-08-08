@@ -6,13 +6,17 @@ const STORY_BUTTONS = [
   { id: "cut", label: "Cut / released" },
   { id: "draft_win", label: "Won at auction" },
   { id: "trade", label: "Traded" },
-  { id: "waiver", label: "Waiver ($1)" },
-  { id: "post_draft_fa", label: "Free agent" },
+  { id: "post_draft_fa", label: "FA lottery" },
 ];
 
 function fmtSal(v) {
   if (v == null || !Number.isFinite(Number(v))) return "";
   return `$${Number(v).toFixed(0)}`;
+}
+
+function salaryDisplay(story) {
+  if (story.salary_label) return story.salary_label;
+  return fmtSal(story.salary);
 }
 
 function playerStoryText(story) {
@@ -57,7 +61,7 @@ function PlayerStoryRow({ story, leagueId, onResolved }) {
         <strong>{story.player_name}</strong>
         <span className="table-meta">
           {story.from_owner ? `${story.from_owner} → ${story.to_owner || "?"}` : story.to_owner}
-          {story.salary != null ? ` · ${fmtSal(story.salary)}` : ""}
+          {salaryDisplay(story) ? ` · ${salaryDisplay(story)}` : ""}
         </span>
       </div>
       <p className="hub-owner-change-hint">{playerStoryText(story)}</p>
@@ -247,8 +251,10 @@ export default function ContractOwnerChangesPanel({
         Who changed teams for {season}?
       </h4>
       <p className="chart-note hub-section-hint">
-        Compared {Number(season) - 1} → {season} cap sheets. Pick what actually happened — most
-        moves are cuts plus auction wins, not Sleeper trades.
+        Compared {Number(season) - 1} → {season} cap sheets. Most leftovers are FA lottery
+        (on the year sheet, not draft/trade). Sleeper trades may be from the prior season.
+        FA contracts are always $1 and expire before the next draft (not keepers).
+        In-season $1 waivers are not retained on Historic sheets.
         {hintsLoading && " Loading Sleeper hints…"}
       </p>
 

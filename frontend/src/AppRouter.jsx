@@ -26,12 +26,17 @@ export default function AppRouter() {
       <Route path="/projections/weekly/:panel" element={<App />} />
       <Route path="/projections/season/:mode" element={<App />} />
       <Route path="/hub/insights/trades" element={<Navigate to="/hub/trades" replace />} />
+      <Route path="/hub/insights/desk" element={<Navigate to="/hub/office/current" replace />} />
+      <Route path="/hub/insights/salaries" element={<Navigate to="/hub/office/historic" replace />} />
+      <Route path="/hub/insights/contracts" element={<Navigate to="/hub/office/historic" replace />} />
       <Route path="/hub/live" element={<Navigate to="/hub/insights/scoring" replace />} />
-      <Route path="/hub/teams" element={<Navigate to="/hub/insights/desk" replace />} />
+      <Route path="/hub/teams" element={<Navigate to="/hub/office/current" replace />} />
+      <Route path="/hub/office/:officeTab" element={<App />} />
+      <Route path="/hub/office" element={<Navigate to="/hub/office/chat" replace />} />
       <Route path="/hub/insights/:insightTab" element={<App />} />
       <Route path="/hub/insights" element={<Navigate to="/hub/insights/spend" replace />} />
       <Route path="/hub/:tab" element={<App />} />
-      <Route path="/hub" element={<Navigate to="/hub/setup" replace />} />
+      <Route path="/hub" element={<Navigate to="/hub/players" replace />} />
       <Route path="/tools/:tab" element={<App />} />
       <Route path="/tools" element={<Navigate to="/tools/dfs" replace />} />
       <Route path="/model" element={<App />} />

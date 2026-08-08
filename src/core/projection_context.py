@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 import pandas as pd
 
 from src.integrations.sleeper import get_nfl_state
@@ -62,9 +64,14 @@ def resolve_projection_context(
     df: pd.DataFrame,
     season: int | None = None,
     week: int | None = None,
+    *,
+    now: datetime | None = None,
 ) -> tuple[int, int]:
     """
     Choose target season/week for projections.
+
+    Defaults to the next regular-season week that still has football to play,
+    advancing at Tuesday 00:00 Eastern (12am after Monday Night Football).
 
     Avoids defaulting to Super Bowl week (22), which only includes two teams.
     """
@@ -72,32 +79,55 @@ def resolve_projection_context(
         return season, week
 
     data_season = int(df["season"].max())
-    available_seasons = set(df["season"].unique())
+    available_seasons = set(int(s) for s in df["season"].unique())
 
     try:
         state = get_nfl_state()
         st_season = int(state.get("season") or state.get("league_season") or data_season)
         st_week = int(state.get("week") or 0)
-        st_type = str(state.get("season_type", "off"))
+        st_type = str(state.get("season_type", "off")).lower()
 
-        if st_type == "off" and season is None and week is None:
-            upcoming = upcoming_season(data_season)
-            if not season_in_mlready(df, upcoming):
-                return upcoming, 1
+        # Offseason / preseason boards → upcoming (or current) regular season week 1.
+        if st_type in {"off", "pre"} and season is None and week is None:
+            target_season = st_season if st_type == "pre" else upcoming_season(data_season)
+            if st_type == "off" and not season_in_mlready(df, target_season):
+                return target_season, 1
+            if st_type == "pre":
+                return (target_season if target_season in available_seasons else upcoming_season(data_season)), 1
 
-        if (
-            st_type != "off"
-            and st_week > 0
-            and st_season in available_seasons
-        ):
-            return st_season, (week or st_week + 1)
+        # Regular / post: schedule-based "next week with football", Mon-night rollover.
+        if st_type in {"regular", "post", "playoffs"} or (st_type not in {"off", "pre"} and st_week > 0):
+            cal_season = st_season
+            from src.core.schedule_utils import current_projection_week
+
+            proj_week = current_projection_week(cal_season, now=now)
+            if proj_week is not None:
+                if week is not None:
+                    return (season or cal_season), week
+                # Prefer calendar season even if mlready is still prior year (preseason overlay).
+                return cal_season, proj_week
+
+            # Regular season fully rolled over (playoffs / off).
+            if st_type in {"post", "playoffs"} and st_week > 0:
+                return cal_season, min(st_week, REGULAR_SEASON_MAX_WEEK)
     except Exception:
         pass
 
     season = season or data_season
     season_df = df[df["season"] == season]
     if week is None:
+        # Schedule fallback when Sleeper state is unavailable.
+        try:
+            from src.core.schedule_utils import current_projection_week
+
+            proj_week = current_projection_week(int(season), now=now)
+            if proj_week is not None:
+                return int(season), proj_week
+        except Exception:
+            pass
         week = last_full_slate_week(season_df) + 1
+        if week > REGULAR_SEASON_MAX_WEEK:
+            week = REGULAR_SEASON_MAX_WEEK
     return season, week
 
 

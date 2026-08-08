@@ -6,6 +6,7 @@ import useMobileLayout from "../useMobileLayout";
 import MobileDataList, { MobileStat } from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
 import { usePlayerMedia } from "../PlayerCell";
+import { confirmDialog } from "../ui/confirm";
 import HubTabIntro from "./HubTabIntro";
 import { HubPage, HubTableCard, HubFilterMenu, SortTh } from "./HubUILayout";
 import {
@@ -53,6 +54,7 @@ export default function ValueSheetTable({
   hideHeader = false,
   hideIntro = false,
   narrativeScope = "weekly",
+  isCommissioner = false,
 }) {
   const isAvailableView = mode === "available";
   const [sortKey, setSortKey] = useState("fair_value");
@@ -62,6 +64,7 @@ export default function ValueSheetTable({
   const [tierFilter, setTierFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [addingId, setAddingId] = useState(null);
+  const [addError, setAddError] = useState("");
   const [showAdvancedLocal, setShowAdvancedLocal] = useState(false);
   const [mobileListLimit, setMobileListLimit] = useState(80);
 
@@ -118,28 +121,52 @@ export default function ValueSheetTable({
     setSortDir(next.sortDir);
   };
 
-  const addPlayer = useCallback(async (row) => {
+  const postAddPlayer = useCallback(async (row, { force = false } = {}) => {
     const sal = row.fair_value ?? row.model_bid_hint ?? row.min_sal ?? 1;
+    const res = await apiFetch("/api/hub/roster", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        player_id: row.player_id,
+        player_name: row.player,
+        team: row.team,
+        position: row.position,
+        salary: sal,
+        contract_years: 1,
+        force,
+      }),
+    });
+    if (!res.ok) throw new Error(await parseApiError(res));
+  }, []);
+
+  const addPlayer = useCallback(async (row) => {
+    const taken = row.status === "taken";
+    setAddError("");
+    if (taken && !isCommissioner) {
+      setAddError(`${row.player || "Player"} is already on another roster.`);
+      return;
+    }
+    if (taken && isCommissioner) {
+      const ok = await confirmDialog({
+        title: "Player already taken",
+        message:
+          `${row.player || "This player"} is already on another team's roster. `
+          + "Reassign them to your team? They will be removed from the other roster.",
+        confirmLabel: "Reassign",
+        danger: true,
+      });
+      if (!ok) return;
+    }
     setAddingId(row.player_id);
     try {
-      const res = await apiFetch("/api/hub/roster", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          player_id: row.player_id,
-          player_name: row.player,
-          team: row.team,
-          position: row.position,
-          salary: sal,
-          contract_years: 1,
-        }),
-      });
-      if (!res.ok) throw new Error(await parseApiError(res));
+      await postAddPlayer(row, { force: taken && isCommissioner });
       onAddToRoster?.();
+    } catch (e) {
+      setAddError(e.message || "Could not add player");
     } finally {
       setAddingId(null);
     }
-  }, [onAddToRoster]);
+  }, [isCommissioner, onAddToRoster, postAddPlayer]);
 
   const mobileLayout = useMobileLayout();
 
@@ -225,6 +252,7 @@ export default function ValueSheetTable({
           </label>
         )}
       </div>
+      {addError && <div className="error">{addError}</div>}
       {mobileLayout && (
         <div className="hub-filter-summary-bar" aria-live="polite">
           {sorted.length} shown
@@ -284,15 +312,17 @@ export default function ValueSheetTable({
               );
             }
             if (showAdd && !inRoster && !showSelect) {
+              const taken = r.status === "taken";
               actions.push(
                 <button
                   key="add"
                   type="button"
                   className="btn-ghost btn-sm"
                   disabled={addingId === r.player_id}
+                  title={taken && !isCommissioner ? "Already on another roster" : undefined}
                   onClick={() => addPlayer(r)}
                 >
-                  {addingId === r.player_id ? "Adding…" : "Add"}
+                  {addingId === r.player_id ? "Adding…" : taken && isCommissioner ? "Reassign" : "Add"}
                 </button>,
               );
             }
@@ -402,6 +432,7 @@ export default function ValueSheetTable({
                   inRoster={Boolean(rosterIds?.has(r.player_id))}
                   isAdding={addingId === r.player_id}
                   isSelected={selectedPlayerId === r.player_id}
+                  isCommissioner={isCommissioner}
                   onSelectPlayer={onSelectPlayer}
                   onRowDoubleClick={onRowDoubleClick}
                   onAddPlayer={addPlayer}

@@ -63,6 +63,31 @@ def project_effective_season(
     if not acquisitions:
         return snapshot_rows
 
+    # Week-1 snapshot already includes pre-kickoff roster; only overlay in-season moves.
+    from src.draft_hub.sleeper_week1_snapshot import _week1_kickoff_utc
+
+    kickoff = _week1_kickoff_utc(int(season_year))
+    filtered: list[dict[str, Any]] = []
+    for ev in acquisitions:
+        at = ev.get("event_at")
+        if at:
+            try:
+                from datetime import datetime
+
+                created = datetime.fromisoformat(str(at).replace("Z", "+00:00"))
+                if created.tzinfo is None:
+                    from datetime import timezone
+
+                    created = created.replace(tzinfo=timezone.utc)
+                if created < kickoff:
+                    continue
+            except (TypeError, ValueError):
+                pass
+        filtered.append(ev)
+    acquisitions = filtered
+    if not acquisitions:
+        return snapshot_rows
+
     roster_salaries = _roster_salary_by_player(league_id)
     rows = [dict(r) for r in snapshot_rows]
 
@@ -112,7 +137,7 @@ def project_effective_season(
                     salary = float(row.get("cap_hit") or row.get("base_salary") or 0)
                     break
         if salary is None:
-            salary = 1.0 if acq_type in ("waiver", "post_draft_fa", "free_agent") else 0.0
+            salary = 1.0 if acq_type in ("waiver", "post_draft_fa", "fa_contract", "free_agent") else 0.0
 
         new_key = (to_owner, pk)
         if new_key in seen_new:

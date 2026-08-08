@@ -19,6 +19,8 @@ STATE_CACHE = CACHE_DIR / "sleeper_nfl_state.json"
 STATE_CACHE_TTL_SECONDS = 300
 PLAYERS_CACHE = CACHE_DIR / "sleeper_players.json"
 PLAYERS_CACHE_TTL_SECONDS = 86400
+_PLAYERS_RAW_CACHE: dict[str, Any] | None = None
+_PLAYERS_RAW_MTIME: float = -1.0
 _PLAYERS_DF_CACHE: pd.DataFrame | None = None
 _PLAYERS_DF_MTIME: float = -1.0
 _PLAYERS_SEARCH_ROWS: list[dict[str, Any]] | None = None
@@ -175,17 +177,29 @@ def get_nfl_state(use_cache: bool = True) -> dict:
 
 
 def load_sleeper_players(force_refresh: bool = False) -> dict:
-    """Load Sleeper player dictionary, cached locally for 24h."""
+    """Load Sleeper player dictionary, cached on disk (24h) and in-process by mtime."""
+    global _PLAYERS_RAW_CACHE, _PLAYERS_RAW_MTIME
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    if (
-        not force_refresh
-        and PLAYERS_CACHE.exists()
-        and (time.time() - PLAYERS_CACHE.stat().st_mtime) < PLAYERS_CACHE_TTL_SECONDS
-    ):
-        return json.loads(PLAYERS_CACHE.read_text(encoding="utf-8"))
+
+    if not force_refresh and PLAYERS_CACHE.exists():
+        mtime = PLAYERS_CACHE.stat().st_mtime
+        fresh_on_disk = (time.time() - mtime) < PLAYERS_CACHE_TTL_SECONDS
+        if (
+            fresh_on_disk
+            and _PLAYERS_RAW_CACHE is not None
+            and mtime == _PLAYERS_RAW_MTIME
+        ):
+            return _PLAYERS_RAW_CACHE
+        if fresh_on_disk:
+            players = json.loads(PLAYERS_CACHE.read_text(encoding="utf-8"))
+            _PLAYERS_RAW_CACHE = players
+            _PLAYERS_RAW_MTIME = mtime
+            return players
 
     players = _fetch_json(SLEEPER_PLAYERS_URL)
     PLAYERS_CACHE.write_text(json.dumps(players), encoding="utf-8")
+    _PLAYERS_RAW_CACHE = players
+    _PLAYERS_RAW_MTIME = PLAYERS_CACHE.stat().st_mtime if PLAYERS_CACHE.exists() else time.time()
     return players
 
 

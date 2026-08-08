@@ -7,6 +7,13 @@ from typing import Any
 from src.draft_hub import storage
 from src.draft_hub.draft_pool_cache import pool_fingerprint
 
+# Bump when fair-value math changes so stored snapshots invalidate.
+FAIR_VALUE_ALGO = "v2-roster-min"
+
+
+def _fair_fingerprint() -> str:
+    return f"{pool_fingerprint()}|{FAIR_VALUE_ALGO}"
+
 
 def cap_season_key(history_mode: str, history_year: int | None) -> str:
     if history_mode == "year" and history_year is not None:
@@ -84,8 +91,7 @@ def write_scoring_derived(
 
 
 def read_fair_values(league_id: str, season: int) -> dict[str, float] | None:
-    fp = pool_fingerprint()
-    return storage.get_insights_fair_values(league_id, season, fp)
+    return storage.get_insights_fair_values(league_id, season, _fair_fingerprint())
 
 
 def build_and_store_fair_values(
@@ -114,7 +120,7 @@ def build_and_store_fair_values(
             league_id,
             season,
             fair_map,
-            pool_fingerprint=pool_fingerprint(),
+            pool_fingerprint=_fair_fingerprint(),
         )
     return fair_map
 

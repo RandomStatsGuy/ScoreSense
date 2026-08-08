@@ -117,11 +117,19 @@ def _row_hit(row: pd.Series, position: str) -> dict[str, Any] | None:
     pos = str(row.get("position") or position).upper()
     if pos == "FB":
         pos = "RB"
+    years_exp = None
+    try:
+        if row.get("years_exp") is not None and str(row.get("years_exp")).strip() != "":
+            years_exp = max(0, int(row.get("years_exp")))
+    except (TypeError, ValueError):
+        years_exp = None
     return {
         "player_id": gsis,
         "player_name": str(row.get("full_name") or ""),
         "team": str(row.get("team") or "").upper(),
         "position": pos,
+        "sleeper_player_id": str(row.get("sleeper_id") or "") or None,
+        "years_exp": years_exp,
     }
 
 
@@ -132,22 +140,53 @@ def _build_schedule(
     *,
     rules: LeagueRules,
     na_2026: bool,
+    years_exp: int | None = None,
+    season: int | None = None,
 ) -> dict[str, Any]:
+    from src.draft_hub.contract_typing import apply_type_to_contract, infer_contract_type
+
     schedule_vals: list[float] = [salary]
     for val in future:
         if val is not None and val > 0:
             schedule_vals.append(val)
-    if len(schedule_vals) == 1 and years_remaining > 1 and not na_2026:
-        step = float(rules.contracts.extension_step_up)
-        while len(schedule_vals) < years_remaining:
-            schedule_vals.append(round(schedule_vals[-1] + step, 2))
     yrs = max(1, len(schedule_vals)) if len(schedule_vals) > 1 else years_remaining
-    return build_contract_from_roster_edit(
+    multi_year = len(schedule_vals) > 1
+    if multi_year:
+        # Sheet multi-year steps are usually extensions; keep as rookie if still in NFL window.
+        if years_exp is not None and years_exp < int(rules.contracts.rookie_years):
+            inferred = "rookie"
+        else:
+            inferred = "extension"
+    else:
+        inferred = infer_contract_type(None, rules, years_exp=years_exp, season=season)
+    # Pad missing future years: rookies stay flat; extensions step +$5.
+    if len(schedule_vals) == 1 and years_remaining > 1 and not na_2026:
+        if inferred == "rookie":
+            while len(schedule_vals) < years_remaining:
+                schedule_vals.append(schedule_vals[-1])
+        elif inferred == "extension":
+            step = float(rules.contracts.extension_step_up)
+            while len(schedule_vals) < years_remaining:
+                schedule_vals.append(round(schedule_vals[-1] + step, 2))
+        else:
+            while len(schedule_vals) < years_remaining:
+                schedule_vals.append(schedule_vals[-1])
+        yrs = max(1, len(schedule_vals))
+    contract = build_contract_from_roster_edit(
         rules,
         current_salary=salary,
         years_remaining=yrs,
         salary_schedule=schedule_vals if len(schedule_vals) > 1 else None,
-        contract_type="extension" if len(schedule_vals) > 1 else "veteran",
+        contract_type=inferred,
+    )
+    return apply_type_to_contract(
+        rules,
+        {"salary": salary, "contract_years": yrs, "contract": contract},
+        contract_type=inferred,
+        years_remaining=yrs,
+        salary=salary,
+        years_exp=years_exp,
+        manual=False,
     )
 
 
@@ -254,7 +293,15 @@ def parse_cap_sheet_tsv(
         seen.add(key)
 
         cap = float(salary if salary is not None else 1.0)
-        contract = _build_schedule(cap, years_rem, future, rules=rules, na_2026=na_2026)
+        contract = _build_schedule(
+            cap,
+            years_rem,
+            future,
+            rules=rules,
+            na_2026=na_2026,
+            years_exp=hit.get("years_exp"),
+            season=season,
+        )
         status = "cut_before_draft" if is_cut else "active"
         rows_out.append({
             **hit,
@@ -409,10 +456,14 @@ def import_cap_sheet_to_league(
     if not league.get("workspace_id"):
         storage.set_league_workspace_id(league_id, ws_id)
 
+    from src.draft_hub.contract_backfill import backfill_league_contracts
+
+    backfill = backfill_league_contracts(league_id)
     return {
         "imported": sum(by_team.values()),
         "by_team": by_team,
         "skipped_managers": sorted(set(skipped_mgr)),
+        "backfill": backfill,
     }
 
 

@@ -72,19 +72,72 @@ def alias_meta_by_name_key(league_id: str) -> dict[str, dict[str, Any]]:
     return out
 
 
-def enrich_row_with_alias(row: dict[str, Any], meta_by_key: dict[str, dict[str, Any]]) -> dict[str, Any]:
+def alias_meta_by_sleeper_id(league_id: str) -> dict[str, dict[str, Any]]:
+    """Map Sleeper player id → preferred alias row (first wins; stable for display)."""
+    out: dict[str, dict[str, Any]] = {}
+    for row in storage.list_player_name_aliases(league_id):
+        sid = str(row.get("sleeper_player_id") or "").strip()
+        if not sid or sid in out:
+            continue
+        out[sid] = row
+    return out
+
+
+def row_sleeper_id(row: dict[str, Any] | None) -> str:
+    """Sleeper id from sheet/DB row (week-1 stores it as player_id)."""
+    if not row:
+        return ""
+    for key in ("sleeper_player_id", "player_id"):
+        sid = str(row.get(key) or "").strip()
+        if sid:
+            return sid
+    return ""
+
+
+def enrich_row_with_alias(
+    row: dict[str, Any],
+    meta_by_key: dict[str, dict[str, Any]],
+    meta_by_sid: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     raw = str(row.get("player_name") or "").strip()
-    meta = meta_by_key.get(name_key(raw))
-    if not meta:
+    sid = row_sleeper_id(row)
+    meta = meta_by_key.get(name_key(raw)) if raw else None
+    if not meta and sid and meta_by_sid:
+        meta = meta_by_sid.get(sid)
+
+    if not meta and not sid:
         return row
-    canonical = str(meta.get("canonical_name") or "").strip()
-    out: dict[str, Any] = {**row, "name_mapped": True}
-    sid = str(meta.get("sleeper_player_id") or "").strip()
-    if sid:
-        out["sleeper_player_id"] = sid
+
+    if not meta and sid:
+        info = player_by_sleeper_id(sid)
+        if not info:
+            return {**row, "sleeper_player_id": sid, "name_mapped": True}
+        canonical = str(info.get("player_name") or "").strip()
+        out: dict[str, Any] = {**row, "sleeper_player_id": sid, "name_mapped": True}
+        if canonical and canonical != raw:
+            out["canonical_player_name"] = canonical
+        info_pos = str(info.get("position") or "").strip().upper()
+        if info_pos in {"DST", "D"}:
+            info_pos = "DEF"
+        sheet_pos = str(row.get("position") or "").strip().upper()
+        weak_sheet_pos = (
+            not sheet_pos
+            or sheet_pos in {"NAN", "NONE", "WC", "?"}
+            or sheet_pos not in {"QB", "RB", "WR", "TE", "K", "DEF", "DST", "D"}
+        )
+        if info_pos and weak_sheet_pos:
+            out["position"] = info_pos
+        return out
+
+    canonical = str((meta or {}).get("canonical_name") or "").strip()
+    out = {**row, "name_mapped": True}
+    meta_sid = str((meta or {}).get("sleeper_player_id") or "").strip() or sid
+    if meta_sid:
+        out["sleeper_player_id"] = meta_sid
+        sid = meta_sid
     if canonical and canonical != raw:
         out["canonical_player_name"] = canonical
-    alias_pos = str(meta.get("position") or "").strip().upper()
+    alias_pos = str((meta or {}).get("position") or "").strip().upper()
     if alias_pos in {"DST", "D"}:
         alias_pos = "DEF"
     if sid and not alias_pos:

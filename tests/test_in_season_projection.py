@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from src.draft_hub import storage
 from src.draft_hub.in_season_contract_projection import (
     diff_effective_vs_db,
@@ -107,3 +109,43 @@ def test_project_effective_adds_sleeper_acquisition(hub_db, monkeypatch):
     out = project_effective_season(lid, 2025, snapshot)
     names = {r.get("player_name") for r in out}
     assert "New Pickup" in names
+
+
+def test_project_effective_skips_pre_week1_moves(hub_db, monkeypatch):
+    league = storage.create_league("proj-prew1", "PreW1", 2025, LeagueRules())
+    lid = league["id"]
+    storage.update_league_sleeper_id(lid, "sleeper123")
+    with storage.get_conn() as conn:
+        conn.execute("UPDATE league SET draft_completed = 1 WHERE id = ?", (lid,))
+
+    monkeypatch.setattr(
+        "src.draft_hub.sleeper_acquisition_hints.parse_sleeper_acquisitions",
+        lambda *a, **k: [
+            {
+                "player_name": "Early Trade",
+                "player_key": "earlytrade",
+                "to_owner": "Owner B",
+                "from_owner": "Owner A",
+                "event_type": "trade",
+                "event_at": "2025-08-01T12:00:00+00:00",
+                "sleeper_transaction_id": "pre",
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        "src.draft_hub.sleeper_week1_snapshot._week1_kickoff_utc",
+        lambda _yr: datetime(2025, 9, 5, 17, 0, tzinfo=timezone.utc),
+    )
+    snapshot = [
+        {
+            "owner_label": "Owner A",
+            "player_name": "Early Trade",
+            "position": "WR",
+            "cap_hit": 12.0,
+            "roster_status": "active",
+        }
+    ]
+    out = project_effective_season(lid, 2025, snapshot)
+    assert len(out) == 1
+    assert out[0]["owner_label"] == "Owner A"
+    assert out[0].get("roster_status") == "active"

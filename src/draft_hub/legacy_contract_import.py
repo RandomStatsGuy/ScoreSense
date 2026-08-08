@@ -74,7 +74,7 @@ def _is_blank_name(name: str) -> bool:
     return _norm_name(name).lower() in {"", "nan", "none", "nat", "player"}
 
 
-VALID_ROSTER_POSITIONS = {"QB", "RB", "WR", "TE", "K", "DEF", "DST", "D"}
+VALID_ROSTER_POSITIONS = {"QB", "RB", "WR", "TE", "K", "DEF", "DST", "D", "CUT"}
 
 _SUMMARY_LABELS = {
     "salary",
@@ -271,32 +271,44 @@ def parse_modern_owner_sheet(
             continue
         roster_status = "active"
         dead_note = status_raw
-        if "CUT" in status_raw.upper():
+        pos_out: str | None = position if position not in {"CUT", "DST", "D"} else (
+            "DEF" if position in {"DST", "D"} else None
+        )
+        # Pos=CUT or Status=CUT → cut/dead line.
+        if position == "CUT" or "CUT" in status_raw.upper():
             roster_status = "cut"
-            if cap_hit is None and prior is not None:
-                cap_hit = prior
+            # Blank year-salary on a CUT = $0 toward this sheet's cap (matches Excel
+            # Salary/Available). Only apply 50% when the sheet wrote full prior as $.
+            if cap_hit is None:
+                cap_hit = 0.0
+            else:
+                from src.draft_hub.contract_history_audit import normalize_cut_cap_hit
+
+                cap_hit = normalize_cut_cap_hit(
+                    cap_hit=cap_hit,
+                    prior_salary=prior,
+                    cut_refund_pct=0.5,
+                )
         if cap_hit is None and roster_status == "active":
             continue
         if cap_hit is None:
             continue
-        acquisition = "waiver" if cap_hit == 1 else "unknown"
+        acquisition = "unknown"
         phase = "post_2024_base" if season_year >= 2024 else "extension"
-        if cap_hit == 1:
-            phase = "waiver_rental"
         rows.append(
             _base_row(
                 season_year=season_year,
                 owner_label=owner,
                 player_name=player,
                 owner_map=owner_map,
-                position=position or None,
+                position=pos_out,
                 prior_salary=prior,
                 base_salary=cap_hit,
                 cap_hit=cap_hit,
                 roster_status=roster_status,
                 contract_phase=phase,
                 acquisition_type=acquisition,
-                status_note=dead_note or None,
+                status_note=dead_note or ("CUT" if roster_status == "cut" else None),
             )
         )
     return rows
@@ -435,11 +447,8 @@ def process_league_history(data_dir: Path | None = None) -> pd.DataFrame:
     if not all_rows:
         return pd.DataFrame()
     df = pd.DataFrame(all_rows)
-    waiver_mask = df["cap_hit"] == 1
-    df.loc[waiver_mask, "contract_phase"] = "waiver_rental"
-    df.loc[waiver_mask, "acquisition_type"] = "waiver"
-    fa_mask = (~waiver_mask) & (df["cap_hit"] > 1) & (df["acquisition_type"] == "unknown")
-    df.loc[fa_mask, "acquisition_type"] = "post_draft_fa"
+    # Year-sheet acquisition is set by draft tags + owner-change reconcile
+    # (trade → draft → FA lottery). Do not guess waiver/FA from dollar amount.
 
     wins_by_season, _draft_meta = load_draft_wins_by_season(base)
     if wins_by_season:

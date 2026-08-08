@@ -109,6 +109,8 @@ def resolve_hub_context(user_sub: str) -> dict[str, Any]:
         league, team = membership
         league_ws_id = storage.roster_workspace_for_league(league)
         rules = LeagueRules.model_validate(league["rules"])
+        is_primary = str(league["commissioner_sub"]) == str(user_sub)
+        is_staff = is_primary or bool(team.get("is_commissioner"))
         return _with_permissions({
             "mode": "league",
             "hub_focus": hub_focus,
@@ -120,7 +122,8 @@ def resolve_hub_context(user_sub: str) -> dict[str, Any]:
             "league_status": league["status"],
             "team_id": team["id"],
             "team_name": team["name"],
-            "is_commissioner": league["commissioner_sub"] == user_sub,
+            "is_commissioner": is_staff,
+            "is_primary_commissioner": is_primary,
             "lock_team_claims": bool(league.get("lock_team_claims", True)),
             "draft_completed": bool(league.get("draft_completed", False)),
             "rules": rules.model_dump(),
@@ -138,6 +141,7 @@ def resolve_hub_context(user_sub: str) -> dict[str, Any]:
         "personal_workspace_id": ws["id"],
         "league_id": None,
         "is_commissioner": True,
+        "is_primary_commissioner": True,
         "draft_completed": False,
         "rules": rules.model_dump(),
         "season": int(ws["season"]),
@@ -153,6 +157,7 @@ def _with_permissions(ctx: dict[str, Any]) -> dict[str, Any]:
     ctx["can_import_league_sheet"] = (not in_league) or is_comm
     ctx["can_invite_members"] = in_league and is_comm
     ctx["can_manage_roster"] = (not in_league) or is_comm
+    ctx.setdefault("is_primary_commissioner", is_comm and not in_league)
     return ctx
 
 

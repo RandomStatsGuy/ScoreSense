@@ -17,7 +17,15 @@ def is_league_member(ctx: dict[str, Any]) -> bool:
 
 def require_commissioner(ctx: dict[str, Any]) -> None:
     if not is_commissioner(ctx):
-        raise HTTPException(status_code=403, detail="Only the league commissioner can do this")
+        raise HTTPException(status_code=403, detail="Only league commissioners can do this")
+
+
+def require_primary_commissioner(ctx: dict[str, Any]) -> None:
+    if not (ctx.get("mode") == "league" and ctx.get("is_primary_commissioner")):
+        raise HTTPException(
+            status_code=403,
+            detail="Only the primary commissioner can do this",
+        )
 
 
 def require_league_member(ctx: dict[str, Any]) -> None:

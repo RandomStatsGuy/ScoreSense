@@ -3,21 +3,23 @@ import MobileBottomSheet from "../layout/MobileBottomSheet";
 
 /** group: "prep" (draft prep) | "season" (in-season) | "office" (league office). */
 export const HUB_SUBVIEWS = [
-  { id: "setup", label: "Setup", shortLabel: "Setup", hint: "League & rules", group: "prep" },
   { id: "value", label: "Players", shortLabel: "Players", hint: "Prices", group: "prep" },
   { id: "room", label: "Draft", shortLabel: "Draft", hint: "Live auction", group: "prep" },
-  { id: "roster", label: "Roster", shortLabel: "Roster", hint: "Contracts", group: "season" },
+  { id: "roster", label: "My team", shortLabel: "My team", hint: "Your contracts", group: "season" },
+  { id: "rosters", label: "Rosters", shortLabel: "Rosters", leagueOnly: true, hint: "All teams", group: "season" },
   { id: "planner", label: "Cap", shortLabel: "Cap", hint: "Cap & cuts", group: "season" },
-  { id: "trades", label: "Trades", shortLabel: "Trades", leagueOnly: true, hint: "Trade ideas", group: "season" },
+  { id: "trades", label: "Trades", shortLabel: "Trades", leagueOnly: true, hint: "Propose & accept", group: "season" },
   { id: "insights", label: "Insights", shortLabel: "Insights", leagueOnly: true, hint: "Spend & scoring", group: "office" },
+  { id: "office", label: "Office", shortLabel: "Office", leagueOnly: true, hint: "Chat & contracts", group: "office" },
 ];
 
 const GROUP_LABELS = { prep: "Prep", season: "Season", office: "League" };
 
 function filterSubviews(hubContext) {
+  const inLeague = hubContext?.mode === "league" || Boolean(hubContext?.league_id);
   return HUB_SUBVIEWS.filter((v) => {
     if (v.commissionerOnly && !hubContext?.is_commissioner) return false;
-    if (v.leagueOnly && hubContext?.mode !== "league") return false;
+    if (v.leagueOnly && !inLeague) return false;
     return true;
   });
 }

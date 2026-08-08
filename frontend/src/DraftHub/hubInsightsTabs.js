@@ -1,19 +1,17 @@
-/** Insights sub-tab config — role-gated for commissioner-only surfaces. */
+/** Insights sub-tab config — analytics only (Desk moved to Office). */
 
 export const INSIGHTS_TABS = [
   { id: "cap", label: "Spend", roles: ["owner", "commissioner"] },
   { id: "scoring", label: "Scoring", roles: ["owner", "commissioner"] },
   { id: "ownership", label: "History", roles: ["owner", "commissioner"] },
-  { id: "desk", label: "Desk", roles: ["commissioner"] },
 ];
 
-/** Legacy tab ids from old URLs — map to current tabs. */
+/** Legacy tab ids from old URLs. */
 export const INSIGHT_TAB_ALIASES = {
-  salaries: "desk",
-  contracts: "desk",
+  salaries: "cap",
+  contracts: "cap",
+  desk: "cap",
 };
-
-const COMMISSIONER_ONLY = new Set(["desk"]);
 
 export function normalizeInsightTab(tabId) {
   return INSIGHT_TAB_ALIASES[tabId] || tabId;
@@ -22,7 +20,6 @@ export function normalizeInsightTab(tabId) {
 export function isInsightTabAllowed(tabId, isCommissioner) {
   const id = normalizeInsightTab(tabId);
   if (!id) return false;
-  if (COMMISSIONER_ONLY.has(id)) return Boolean(isCommissioner);
   return INSIGHTS_TABS.some((t) => t.id === id);
 }
 

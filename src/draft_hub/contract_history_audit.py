@@ -19,6 +19,7 @@ ISSUE_CATEGORIES = {
     "in_season_waiver_not_dollar": "waivers",
     "post_draft_fa_as_waiver": "post_draft_fa",
     "post_draft_fa_salary_missing": "post_draft_fa",
+    "fa_contract_not_dollar": "fa_contract",
     "waiver_missing_prior_cut": "waivers",
     "cap_over_limit": "cap",
     "roster_over_max": "cap",
@@ -59,8 +60,22 @@ def _float(val: Any) -> float | None:
     try:
         if val is None:
             return None
-        return float(val)
+        out = float(val)
+        if out != out:  # NaN
+            return None
+        return out
     except (TypeError, ValueError):
+        return None
+
+
+def _int_year(val: Any) -> int | None:
+    """Parse draft/season year; treat NaN/blank as missing."""
+    f = _float(val)
+    if f is None:
+        return None
+    try:
+        return int(f)
+    except (TypeError, ValueError, OverflowError):
         return None
 
 
@@ -71,9 +86,16 @@ def _years_in_league(season_year: int, original_draft_year: int | None) -> int |
 
 
 def _in_rookie_window(season_year: int, row: dict[str, Any], rules: ContractRules) -> bool:
-    draft_yr = row.get("original_draft_year")
+    """True while the prior row is still on the flat 2-year rookie deal."""
+    ctype = str(row.get("contract_type") or "").lower()
+    contract = row.get("contract") if isinstance(row.get("contract"), dict) else {}
+    if not ctype and contract:
+        ctype = str(contract.get("contract_type") or "").lower()
+    if ctype == "rookie":
+        return True
+    draft_yr = _int_year(row.get("original_draft_year"))
     if draft_yr is not None:
-        yrs = _years_in_league(season_year, int(draft_yr))
+        yrs = _years_in_league(season_year, draft_yr)
         if yrs is not None and yrs < int(rules.rookie_years):
             return True
     phase = str(row.get("contract_phase") or "").lower()
@@ -85,6 +107,7 @@ def _expected_active_cap(
     season_year: int,
     rules: ContractRules,
 ) -> float | None:
+    """YoY expected salary: rookies stay flat for 2 years; otherwise + extension_step_up."""
     prev_cap = _float(prev_row.get("cap_hit"))
     if prev_cap is None:
         return None
@@ -97,22 +120,155 @@ def _dead_cap_amount(prior_cap: float, rules: ContractRules) -> float:
     return round(prior_cap * (1.0 - float(rules.cut_refund_pct)), 2)
 
 
+def cut_looks_like_full_salary_dead(
+    cap_hit: float | None,
+    prior_salary: float | None,
+    *,
+    tol: float = 0.051,
+) -> bool:
+    """True when cut cap_hit equals prior (100% dead instead of refund %)."""
+    hit = _float(cap_hit)
+    prior = _float(prior_salary)
+    if hit is None or prior is None or prior <= 0:
+        return False
+    return abs(hit - prior) <= tol
+
+
+def normalize_cut_cap_hit(
+    *,
+    cap_hit: float | None,
+    prior_salary: float | None,
+    cut_refund_pct: float = 0.5,
+) -> float | None:
+    """Historic cut dead $ for a year-sheet row.
+
+    - Blank / None → $0 (Excel Available math does not invent dead).
+    - Explicit $0 → keep $0 (no-dead pre-draft drop).
+    - cap_hit == prior → apply (1 - refund%) (sheet mistakenly left full salary).
+    - Otherwise keep the sheet amount (already adjusted dead money).
+    """
+    hit = _float(cap_hit)
+    prior = _float(prior_salary)
+    pct = float(cut_refund_pct)
+    if hit is None:
+        return 0.0
+    if abs(hit) <= 0.051:
+        return 0.0
+    if cut_looks_like_full_salary_dead(hit, prior):
+        return round(float(prior) * (1.0 - pct), 2)
+    return hit
+
+
+def apply_cut_dead_cap_to_row_updates(
+    existing: dict[str, Any],
+    updates: dict[str, Any],
+    *,
+    cut_refund_pct: float = 0.5,
+) -> dict[str, Any]:
+    """When flipping a row to cut, ensure prior_salary + dead cap_hit are set."""
+    out = dict(updates)
+    new_status = str(out.get("roster_status") or existing.get("roster_status") or "active")
+    if new_status != "cut":
+        return out
+    prior = out.get("prior_salary")
+    if prior is None:
+        prior = existing.get("prior_salary")
+    if prior is None and str(existing.get("roster_status") or "active") != "cut":
+        # Becoming a cut: prior basis is current active salary.
+        prior = existing.get("cap_hit") or existing.get("base_salary")
+        if prior is not None and "prior_salary" not in out:
+            out["prior_salary"] = prior
+    # Only auto-set dead $ when caller did not send an explicit new cap_hit,
+    # or when existing/new hit looks like full prior.
+    explicit_hit = "cap_hit" in out
+    hit = out.get("cap_hit") if explicit_hit else existing.get("cap_hit")
+    if not explicit_hit or cut_looks_like_full_salary_dead(hit, prior or out.get("prior_salary")):
+        dead = normalize_cut_cap_hit(
+            cap_hit=hit,
+            prior_salary=prior if prior is not None else out.get("prior_salary"),
+            cut_refund_pct=cut_refund_pct,
+        )
+        if dead is not None:
+            out["cap_hit"] = dead
+            out["base_salary"] = dead
+    return out
+
+
+def normalize_league_cut_dead_caps(
+    league_id: str,
+    *,
+    cut_refund_pct: float | None = None,
+    edited_by_sub: str = "system:dead_cap",
+) -> dict[str, Any]:
+    """Fix cut rows that store 100% of prior as dead money."""
+    league = storage.get_league(league_id) or {}
+    rules = LeagueRules.model_validate(league.get("rules") or {})
+    pct = float(cut_refund_pct if cut_refund_pct is not None else rules.contracts.cut_refund_pct)
+    fixed = 0
+    scanned = 0
+    details: list[dict[str, Any]] = []
+    for yr in storage.list_league_contract_seasons(league_id):
+        for row in storage.list_league_contract_rows(league_id, season_year=yr):
+            if str(row.get("roster_status") or "") != "cut":
+                continue
+            scanned += 1
+            prior = _float(row.get("prior_salary"))
+            hit = _float(row.get("cap_hit"))
+            if not cut_looks_like_full_salary_dead(hit, prior):
+                continue
+            dead = normalize_cut_cap_hit(
+                cap_hit=hit,
+                prior_salary=prior,
+                cut_refund_pct=pct,
+            )
+            if dead is None or hit is None or abs(dead - hit) < 0.01:
+                continue
+            storage.update_league_contract_row(
+                int(row["id"]),
+                {"cap_hit": dead, "base_salary": dead},
+                edited_by_sub=edited_by_sub,
+                note=f"Normalize cut dead cap to {(1 - pct) * 100:.0f}% of prior ${prior:.0f}",
+            )
+            fixed += 1
+            details.append(
+                {
+                    "row_id": row["id"],
+                    "season_year": yr,
+                    "owner_label": row.get("owner_label"),
+                    "player_name": row.get("player_name"),
+                    "from": hit,
+                    "to": dead,
+                    "prior_salary": prior,
+                }
+            )
+    return {"scanned": scanned, "fixed": fixed, "details": details}
+
+
 def _is_in_season_waiver(row: dict[str, Any]) -> bool:
     acq = str(row.get("acquisition_type") or "").lower()
     cap = _float(row.get("cap_hit"))
-    if acq == "post_draft_fa":
+    if acq in {"post_draft_fa", "fa_contract"}:
         return False
     if cap is not None and cap == 1:
         return acq == "waiver" or str(row.get("contract_phase") or "") == "waiver_rental"
     return False
 
 
+def _is_fa_contract(row: dict[str, Any]) -> bool:
+    from src.draft_hub.acquisition_semantics import is_fa_contract
+
+    return is_fa_contract(row)
+
+
 def _is_post_draft_fa(row: dict[str, Any]) -> bool:
+    """Post-draft FA lottery (real salary). Not $1 FA contracts."""
     acq = str(row.get("acquisition_type") or "").lower()
+    if acq == "fa_contract":
+        return False
     if acq == "post_draft_fa":
         return True
     cap = _float(row.get("cap_hit"))
-    return cap is not None and cap > 1 and acq not in {"waiver", "trade", "draft"}
+    return cap is not None and cap > 1 and acq not in {"waiver", "trade", "draft", "fa_contract"}
 
 
 def _index_rows(rows: list[dict[str, Any]], *, active_only: bool = False) -> dict[str, list[dict[str, Any]]]:
@@ -295,6 +451,26 @@ def audit_contract_history(
                         },
                     )
                 )
+            elif _is_fa_contract(row):
+                if cap is None or abs(float(cap) - 1.0) > 0.051:
+                    issues.append(
+                        _issue(
+                            "fa_contract_not_dollar",
+                            severity="error",
+                            row_id=row.get("id"),
+                            player_name=pname,
+                            message=(
+                                f"FA contract should be $1 and expires before draft; "
+                                f"got ${cap or 0:.0f}."
+                            ),
+                            expected=1,
+                            suggested_patch={
+                                "cap_hit": 1,
+                                "base_salary": 1,
+                                "acquisition_type": "fa_contract",
+                            },
+                        )
+                    )
             elif _is_in_season_waiver(row) or tagged_waiver:
                 if cap != 1 or phase != "waiver_rental":
                     issues.append(
@@ -324,7 +500,9 @@ def audit_contract_history(
                         )
                     )
 
-            elif _is_post_draft_fa(row) or (cap is not None and cap > 1 and acq not in {"trade", "draft", "waiver"}):
+            elif _is_post_draft_fa(row) or (
+                cap is not None and cap > 1 and acq not in {"trade", "draft", "waiver", "fa_contract"}
+            ):
                 if cap is None or cap <= 1:
                     issues.append(
                         _issue(

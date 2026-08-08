@@ -17,12 +17,28 @@ import {
   HubToolbar,
   rosterAlertVariant,
 } from "./HubUILayout";
-import { fmtSal, scheduleText } from "./rosterFormat";
+import { fmtSal, leagueStepUp, scheduleText } from "./rosterFormat";
 
-function capHitForRow(row, offset = 0) {
+function capHitForRow(row, offset = 0, rules) {
   const contract = row?.contract;
   const yrs = Number(contract?.years_remaining ?? row?.contract_years ?? 1);
   if (offset >= yrs) return null;
+  const ctype = String(contract?.contract_type || "veteran");
+  const base = Number(contract?.current_salary ?? row?.salary ?? 0);
+  // Rookie/veteran deals are flat; don't trust a stale stepped schedule.
+  if (ctype !== "extension" && Number.isFinite(base)) {
+    return offset === 0 || offset < yrs ? base : null;
+  }
+  if (ctype === "extension" && Number.isFinite(base)) {
+    const step = Number(contract?.step_up_per_year);
+    const useStep = Number.isFinite(step) && step > 0 ? step : leagueStepUp(rules);
+    const sched = contract?.schedule;
+    if (sched?.length) {
+      const hit = sched.find((y) => Number(y.year_offset) === offset);
+      if (hit) return Number(hit.salary);
+    }
+    return Math.round(base + useStep * offset);
+  }
   const sched = contract?.schedule;
   if (sched?.length) {
     const hit = sched.find((y) => Number(y.year_offset) === offset);
@@ -47,7 +63,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
   const isCommissioner = Boolean(hubContext?.is_commissioner);
   const inLeague = hubContext?.mode === "league";
   const cutPct = Math.round((workspace?.rules?.contracts?.cut_refund_pct ?? 0.5) * 100);
-  const stepUp = workspace?.rules?.contracts?.default_step_up ?? workspace?.rules?.step_up ?? 5;
+  const stepUp = leagueStepUp(workspace?.rules);
   const hasRoster = (roster?.length ?? 0) > 0;
   const mobileLayout = useMobileLayout();
 
@@ -111,9 +127,10 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
   const glossary = (
     <>
       <p><strong>Expire before draft</strong> — Final-year deals leave your roster (FA) unless extended.</p>
+      <p><strong>Years left</strong> — Includes the upcoming season; drops by 1 when the draft is marked complete.</p>
       <p><strong>Rookie extension</strong> — Only after a 2-year rookie deal; one 1–3 year extension.</p>
       <p><strong>Dead cap</strong> — Counts after a cut.</p>
-      <p><strong>Step-up</strong> — +${stepUp}/yr on extensions.</p>
+      <p><strong>Step-up</strong> — Rookies stay flat; +${stepUp}/yr only on extensions.</p>
       <p><strong>Cut refund</strong> — {cutPct}% back; rest is dead cap.</p>
     </>
   );
@@ -218,6 +235,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
               <ul className="hub-pre-draft-list">
                 {preDraft.pending_cuts.map((p) => (
                   <li key={p.player_id}>
+                    {p.position && <span className="hub-roster-pos-tag">{p.position}</span>}{" "}
                     {p.player_name}: frees {fmtSal(p.cap_freed)}, dead {fmtSal(p.dead_cap)}
                     {p.dead_cap_years > 1 ? ` (${p.dead_cap_years} yrs)` : ""}
                   </li>
@@ -231,6 +249,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
               <ul className="hub-pre-draft-list">
                 {mustExtend.map((p) => (
                   <li key={p.player_id}>
+                    {p.position && <span className="hub-roster-pos-tag">{p.position}</span>}{" "}
                     {p.player_name}: {fmtSal(p.salary)}
                     <span className="table-meta"> · extend 1–3 yrs or FA</span>
                   </li>
@@ -244,12 +263,16 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
               <ul className="hub-pre-draft-list">
                 {droppingAtDraft.map((p) => (
                   <li key={p.player_id}>
+                    {p.position && <span className="hub-roster-pos-tag">{p.position}</span>}{" "}
                     {p.player_name}: {fmtSal(p.salary)}
                     <span className="table-meta"> · cannot re-sign</span>
                   </li>
                 ))}
               </ul>
             </details>
+          )}
+          {mustExtend.length === 0 && droppingAtDraft.length === 0 && (
+            <p className="chart-note">No deals end at this draft.</p>
           )}
         </HubSection>
       )}
@@ -297,7 +320,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                 <tbody>
                   {positionRows.map((pos) => (
                     <tr key={pos}>
-                      <td>{pos}</td>
+                      <td><span className="hub-roster-pos-tag">{pos}</span></td>
                       <td>{summary.by_position_count?.[pos] ?? 0}</td>
                       <td>{fmtSal(summary.by_position_spend?.[pos])}</td>
                     </tr>
@@ -348,7 +371,9 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
             </HubToolbar>
           ) : (
             <p className="chart-note">
-              Veterans and prior extensions expire to free agency — they cannot be re-signed.
+              {mustExtend.length === 0 && droppingAtDraft.length === 0
+                ? "No deals end at this draft — nothing to extend yet."
+                : "Veterans and prior extensions expire to free agency — they cannot be re-signed."}
             </p>
           )}
         </HubSection>
@@ -367,7 +392,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                     name={r.player_name}
                     meta={`${r.contract?.years_remaining ?? r.contract_years ?? "—"} yrs left`}
                     badge={expiryBadge(r.player_id)}
-                    heroValue={fmtSal(capHitForRow(r, 0))}
+                    heroValue={fmtSal(capHitForRow(r, 0, workspace?.rules))}
                     heroLabel={String(baseSeason)}
                     expanded={(
                       <div className="mobile-stat-grid">
@@ -375,12 +400,12 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                           <MobileStat
                             key={y.seasonLabel}
                             label={String(y.seasonLabel)}
-                            value={fmtSal(capHitForRow(r, idx + 1))}
+                            value={fmtSal(capHitForRow(r, idx + 1, workspace?.rules))}
                           />
                         ))}
                         <MobileStat
                           label="Schedule"
-                          value={scheduleText(r) || "—"}
+                          value={scheduleText(r, workspace?.rules) || "—"}
                           className="hub-roster-mobile-schedule"
                         />
                       </div>
@@ -410,11 +435,11 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                         {" "}
                         {expiryBadge(r.player_id)}
                       </td>
-                      <td>{fmtSal(capHitForRow(r, 0))}</td>
+                      <td>{fmtSal(capHitForRow(r, 0, workspace?.rules))}</td>
                       <td>{r.contract?.years_remaining ?? r.contract_years ?? "—"}</td>
-                      <td className="chart-note">{scheduleText(r)}</td>
+                      <td className="chart-note">{scheduleText(r, workspace?.rules)}</td>
                       {yearLabels.slice(1, 3).map((y, idx) => (
-                        <td key={y.seasonLabel}>{fmtSal(capHitForRow(r, idx + 1))}</td>
+                        <td key={y.seasonLabel}>{fmtSal(capHitForRow(r, idx + 1, workspace?.rules))}</td>
                       ))}
                     </tr>
                   ))}

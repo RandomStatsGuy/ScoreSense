@@ -1,0 +1,252 @@
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { apiFetch } from "../auth";
+import { connectionErrorMessage, parseApiError } from "../format";
+import PlayerCell, { usePlayerMedia } from "../PlayerCell";
+import { HubPage, HubTableCard } from "./HubUILayout";
+import HubTabIntro from "./HubTabIntro";
+import { fmtSal } from "./rosterFormat";
+import { seedTradeFromPlayer } from "./tradeSeed";
+
+function gradeLabel(grade) {
+  if (grade === "good") return "Good value";
+  if (grade === "bad") return "Overpay";
+  if (grade === "fair") return "Fair";
+  return null;
+}
+
+function contractGradeText(row) {
+  const grade = gradeLabel(row.contract_grade);
+  if (!grade) return null;
+  const delta = row.value_delta;
+  const fair = row.fair_value;
+  const parts = [grade];
+  if (delta != null) {
+    parts.push(`(${delta <= 0 ? "" : "+"}${fmtSal(delta)})`);
+  }
+  if (fair != null) {
+    parts.push(`vs ${fmtSal(fair)} fair`);
+  }
+  return parts.join(" ");
+}
+
+export default function LeagueRostersBrowser({
+  leagueId,
+  hubContext,
+  onNavigateTrade,
+}) {
+  const [overview, setOverview] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const myTeamId = hubContext?.team_id || "";
+  const [teamId, setTeamId] = useState(myTeamId);
+
+  const load = useCallback(async ({ refresh = false } = {}) => {
+    if (!leagueId) {
+      setLoading(false);
+      setOverview(null);
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const q = refresh ? "?refresh=1" : "";
+      const res = await apiFetch(
+        `/api/hub/league/${encodeURIComponent(leagueId)}/rosters${q}`,
+      );
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const data = await res.json();
+      setOverview(data);
+      setTeamId((prev) => {
+        if (prev && (data.teams || []).some((b) => b.team?.id === prev)) return prev;
+        if (myTeamId && (data.teams || []).some((b) => b.team?.id === myTeamId)) return myTeamId;
+        return data.teams?.[0]?.team?.id || "";
+      });
+    } catch (e) {
+      setError(connectionErrorMessage(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [leagueId, myTeamId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const block = useMemo(
+    () => (overview?.teams || []).find((b) => b.team?.id === teamId) || null,
+    [overview, teamId],
+  );
+  const stats = block?.stats || {};
+  const roster = useMemo(
+    () => (block?.roster || []).filter((r) => String(r.roster_status || "active") === "active"),
+    [block],
+  );
+  const playerIds = useMemo(() => roster.map((r) => r.player_id).filter(Boolean), [roster]);
+  const media = usePlayerMedia(playerIds);
+
+  const addToTrade = (row) => {
+    seedTradeFromPlayer({
+      player_id: row.player_id,
+      player_name: row.player_name,
+      team_id: teamId,
+      salary: row.salary,
+      position: row.position,
+    });
+    onNavigateTrade?.();
+  };
+
+  return (
+    <HubPage>
+      <HubTabIntro
+        title="Rosters"
+        purpose="Browse every team’s contracts, spot good and bad deals, and start a trade."
+      />
+      {error && <div className="error">{error}</div>}
+      {loading && !overview && <p className="chart-note">Loading league rosters…</p>}
+
+      {overview && (
+        <>
+          <div className="hub-roster-browser-toolbar">
+            <label className="hub-roster-browser-team">
+              <span className="visually-hidden">Team</span>
+              <select
+                className="hub-league-switcher-select"
+                value={teamId}
+                onChange={(e) => setTeamId(e.target.value)}
+              >
+                {(overview.teams || []).map((b) => (
+                  <option key={b.team.id} value={b.team.id}>
+                    {b.team.name}
+                    {b.team.id === myTeamId ? " (you)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="btn-ghost btn-sm hub-roster-browser-refresh"
+              onClick={() => load({ refresh: true })}
+            >
+              Refresh
+            </button>
+          </div>
+
+          {block && (
+            <div className="hub-roster-team-stats" aria-label="Team summary">
+              <span><strong>{fmtSal(stats.committed)}</strong> committed</span>
+              <span><strong>{fmtSal(stats.dead_cap)}</strong> dead</span>
+              <span><strong>{fmtSal(stats.unspent)}</strong> free</span>
+              {stats.fp_per_dollar != null && (
+                <span><strong>{stats.fp_per_dollar}</strong> fp/$</span>
+              )}
+              {Object.entries(stats.by_position_spend || {}).map(([pos, amt]) => (
+                <span key={pos} className="hub-insights-chip">
+                  {pos} {fmtSal(amt)}
+                  {stats.by_position_count?.[pos] != null
+                    ? ` · ${stats.by_position_count[pos]}`
+                    : ""}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <HubTableCard>
+            <div className="table-wrap">
+              <table className="data-table hub-table hub-roster-table">
+                <thead>
+                  <tr>
+                    <th>Player</th>
+                    <th>Pos</th>
+                    <th className="num">Cap</th>
+                    <th className="num">Yrs</th>
+                    <th>Type</th>
+                    <th>Contract</th>
+                    <th className="num">fp/$</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {roster.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="hub-roster-empty">No active players.</td>
+                    </tr>
+                  )}
+                  {roster.map((r) => {
+                    const gradeText = contractGradeText(r);
+                    return (
+                      <tr
+                        key={r.player_id}
+                        className={r.overpay ? "hub-overpay" : ""}
+                      >
+                        <td className="col-player">
+                          <PlayerCell
+                            name={r.player_name}
+                            team={r.team}
+                            playerId={r.player_id}
+                            media={media}
+                            size="sm"
+                            showTeam={false}
+                            narrativeScope="season"
+                          />
+                          {r.expire_chip === "extend" && (
+                            <span className="hub-sleeper-badge">Extend</span>
+                          )}
+                          {r.expire_chip === "fa" && (
+                            <span className="hub-sleeper-badge">Expires FA</span>
+                          )}
+                        </td>
+                        <td>{r.position}</td>
+                        <td className="num">{fmtSal(r.salary)}</td>
+                        <td className="num">{r.years_remaining ?? r.contract_years ?? "—"}</td>
+                        <td>{r.contract_type || "—"}</td>
+                        <td>
+                          {gradeText ? (
+                            <span
+                              className={
+                                r.contract_grade === "good"
+                                  ? "hub-value-delta-pos"
+                                  : r.contract_grade === "bad"
+                                    ? "hub-value-delta-neg"
+                                    : "hub-value-delta-fair"
+                              }
+                              title={r.fair_value != null ? `Model fair auction value ${fmtSal(r.fair_value)}` : undefined}
+                            >
+                              {gradeText}
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td className="num">{r.fp_per_dollar ?? "—"}</td>
+                        <td>
+                          {r.player_id && teamId !== myTeamId && (
+                            <button
+                              type="button"
+                              className="btn-ghost btn-sm"
+                              onClick={() => addToTrade(r)}
+                            >
+                              Trade for
+                            </button>
+                          )}
+                          {r.player_id && teamId === myTeamId && (
+                            <button
+                              type="button"
+                              className="btn-ghost btn-sm"
+                              onClick={() => addToTrade(r)}
+                            >
+                              Add to trade
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </HubTableCard>
+        </>
+      )}
+    </HubPage>
+  );
+}

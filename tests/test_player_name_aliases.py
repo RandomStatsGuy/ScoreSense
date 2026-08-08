@@ -275,6 +275,49 @@ def test_enrich_row_with_alias_marks_same_name_maps(hub_db):
     assert row["sleeper_player_id"] == "5846"
 
 
+def test_enrich_row_from_week1_player_id(hub_db, monkeypatch):
+    from src.draft_hub.player_name_aliases import alias_meta_by_sleeper_id
+
+    monkeypatch.setattr(
+        "src.draft_hub.player_name_aliases.player_by_sleeper_id",
+        lambda sid: {
+            "sleeper_player_id": sid,
+            "player_name": "J.J. McCarthy",
+            "position": "QB",
+            "team": "MIN",
+        },
+    )
+    league = storage.create_league("sid-enrich", "SID Enrich", 2025, LeagueRules())
+    lid = league["id"]
+    storage.upsert_player_name_alias(
+        lid,
+        "Penix Jr",
+        "Michael Penix",
+        position="QB",
+        sleeper_player_id="11559",
+    )
+    meta = alias_meta_by_name_key(lid)
+    by_sid = alias_meta_by_sleeper_id(lid)
+
+    mccarthy = enrich_row_with_alias(
+        {"player_name": "J. McCarthy", "player_id": "11565", "position": "QB"},
+        meta,
+        by_sid,
+    )
+    assert mccarthy["name_mapped"] is True
+    assert mccarthy["canonical_player_name"] == "J.J. McCarthy"
+    assert mccarthy["sleeper_player_id"] == "11565"
+
+    penix = enrich_row_with_alias(
+        {"player_name": "M. Penix", "player_id": "11559", "position": "QB"},
+        meta,
+        by_sid,
+    )
+    assert penix["name_mapped"] is True
+    assert penix["canonical_player_name"] == "Michael Penix"
+    assert penix["sleeper_player_id"] == "11559"
+
+
 def test_prepare_alias_upsert_defense(hub_db, monkeypatch):
     monkeypatch.setattr(
         "src.draft_hub.player_name_aliases.player_by_sleeper_id",

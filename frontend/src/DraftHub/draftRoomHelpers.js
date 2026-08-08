@@ -58,6 +58,24 @@ export function canAcquireAtPosition(capacity, position) {
   return !cap.at_max;
 }
 
+/**
+ * Match backend retained_through_draft — expirees / FA contracts stay on the
+ * roster row but must remain nominatable in the draft pool.
+ */
+export function isRetainedThroughDraft(row, draftCompleted = false) {
+  if (!row) return false;
+  if (String(row.roster_status || "active") === "cut_before_draft") return false;
+  const acq = String(
+    row.acquisition_type || row.contract?.acquisition_type || "",
+  ).toLowerCase();
+  if (acq === "fa_contract") return false;
+  if (draftCompleted) return true;
+  const yrs = Number(row.contract?.years_remaining ?? row.contract_years ?? 1);
+  if (yrs > 1) return true;
+  const source = String(row.source || "").toLowerCase();
+  return ["draft", "auction", "mock", "test_draft"].includes(source);
+}
+
 /** Client-side roster capacity from league rules + draft roster rows. */
 export function buildRosterCapacity(rules, roster) {
   const rosterRules = rules?.roster || {};

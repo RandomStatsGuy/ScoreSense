@@ -244,14 +244,86 @@ def end_draft(league_id: str, user_sub: str) -> dict[str, Any]:
         last_bid_at=None,
     )
     storage.update_league_status(league_id, "completed")
+    was_complete = bool(league.get("draft_completed"))
     storage.update_league_settings(league_id, draft_completed=True)
+    year_tick = None
+    if not was_complete:
+        from src.draft_hub.contract_year_clock import tick_contracts_on_draft_complete
+
+        year_tick = tick_contracts_on_draft_complete(league_id)
 
     payload: dict[str, Any] = {"by": user_sub}
     if nominee:
         payload["released_nominee"] = nominee.get("player_name")
         payload["released_player_id"] = nominee.get("player_id")
+    if year_tick:
+        payload["contract_year_tick"] = {
+            "advanced": year_tick.get("advanced"),
+            "expired": year_tick.get("expired"),
+        }
     storage.append_draft_event(league_id, "end", payload)
-    return get_room_state(league_id, user_sub)
+    state = get_room_state(league_id, user_sub)
+    if year_tick:
+        state["contract_year_tick"] = year_tick
+    return state
+
+
+def reset_live_draft(league_id: str, user_sub: str) -> dict[str, Any]:
+    """Undo a live (non-practice) draft: clear auction picks/events, restore session to setup.
+
+    Keepers (non-draft sources) stay. If draft was already marked complete, rewinds the
+    contract year clock for remaining keepers (players who expired on End are not restored).
+    """
+    league = storage.get_league(league_id)
+    if not league:
+        raise ValueError("League not found")
+    if league["commissioner_sub"] != user_sub:
+        raise ValueError("Only commissioner can reset the draft")
+    if storage.league_test_mode(league_id):
+        raise ValueError("Use practice draft reset for mock rooms")
+
+    session = storage.get_draft_session(league_id) or {}
+    status = session.get("status") or "setup"
+    was_completed = bool(league.get("draft_completed")) or status == "completed"
+    if status in ("setup", None, "") and not was_completed:
+        raise ValueError("Draft has not started")
+
+    rules = LeagueRules.model_validate(league["rules"])
+    cap = float(rules.salary_cap)
+
+    picks_removed = storage.clear_league_draft_picks(league_id)
+    storage.clear_draft_events(league_id)
+    storage.reset_league_team_budgets(league_id, cap)
+    storage.update_draft_session(
+        league_id,
+        status="setup",
+        current_nominee_json=None,
+        high_bid=None,
+        high_bidder_team_id=None,
+        nomination_deadline=None,
+        bid_deadline=None,
+        started_at=None,
+        completed_at=None,
+        last_bid_at=None,
+        nominator_index=0,
+        nomination_order_json=None,
+    )
+    storage.update_league_status(league_id, "setup")
+    storage.update_league_settings(league_id, draft_completed=False)
+
+    year_rewind = None
+    if was_completed:
+        from src.draft_hub.contract_year_clock import rewind_contracts_on_draft_reset
+
+        year_rewind = rewind_contracts_on_draft_reset(league_id)
+
+    state = get_room_state(league_id, user_sub)
+    return {
+        "state": state,
+        "picks_removed": picks_removed,
+        "year_rewind": year_rewind,
+        "warning": (year_rewind or {}).get("note") if was_completed else None,
+    }
 
 
 def set_pool_mode(league_id: str, user_sub: str, pool_mode: str) -> dict[str, Any]:

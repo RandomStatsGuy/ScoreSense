@@ -8,7 +8,9 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
   const mobileLayout = useMobileLayout();
   const [email, setEmail] = useState("");
   const [teamName, setTeamName] = useState("");
+  const [coCommissioner, setCoCommissioner] = useState(false);
   const [teams, setTeams] = useState([]);
+  const [commissionerSub, setCommissionerSub] = useState("");
   const [invites, setInvites] = useState([]);
   const [lockClaims, setLockClaims] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -27,6 +29,7 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
       const data = await res.json();
       setTeams(data.teams || []);
       setInvites(data.invites || []);
+      setCommissionerSub(data.commissioner_sub || "");
       setLockClaims(data.hub_context?.lock_team_claims !== false);
     } catch (e) {
       setError(connectionErrorMessage(e));
@@ -52,7 +55,11 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
       const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/invites`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), team_name: teamName.trim() }),
+        body: JSON.stringify({
+          email: email.trim(),
+          team_name: teamName.trim(),
+          co_commissioner: coCommissioner,
+        }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
@@ -60,6 +67,7 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
       setLastEmailSent(data.invite?.email_sent ?? null);
       setEmail("");
       setTeamName("");
+      setCoCommissioner(false);
       await loadMembers();
       onChanged?.(data.hub_context);
     } catch (err) {
@@ -158,6 +166,16 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
             required
           />
         </label>
+        {hubContext?.is_primary_commissioner && (
+          <label className="hub-salary-toggle">
+            <input
+              type="checkbox"
+              checked={coCommissioner}
+              onChange={(e) => setCoCommissioner(e.target.checked)}
+            />
+            Invite as co-commissioner
+          </label>
+        )}
         <button type="submit" className="btn-primary" disabled={sending}>
           {sending ? "Sending…" : "Send invite"}
         </button>
@@ -190,12 +208,14 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
           <h4>Teams</h4>
           {mobileLayout ? (
             <MobileDataList>
-              {teams.filter((t) => !t.is_commissioner).map((t) => (
+              {teams.filter((t) => !(commissionerSub && t.user_sub && String(t.user_sub) === String(commissionerSub))).map((t) => (
                 <div key={t.id} className="hub-invite-mobile-card">
                   <div>
                     <strong>{t.name}</strong>
                     <span className="table-meta">
-                      {t.user_sub ? " · linked" : " · unclaimed"}
+                      {t.user_sub ? " · claimed" : " · unclaimed"}
+                      {t.sleeper_roster_id ? " · Sleeper linked" : ""}
+                      {t.is_commissioner && t.user_sub ? " · co-commish" : ""}
                     </span>
                   </div>
                   {t.user_sub ? (
@@ -208,12 +228,16 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
             </MobileDataList>
           ) : (
           <ul className="hub-invite-list">
-            {teams.filter((t) => !t.is_commissioner).map((t) => (
+            {teams.filter((t) => !(commissionerSub && t.user_sub && String(t.user_sub) === String(commissionerSub))).map((t) => (
               <li key={t.id}>
                 <strong>{t.name}</strong>
                 {t.user_sub ? (
                   <>
-                    <span className="table-meta"> · linked</span>
+                    <span className="table-meta">
+                      {" · claimed"}
+                      {t.sleeper_roster_id ? " · Sleeper linked" : ""}
+                      {t.is_commissioner ? " · co-commish" : ""}
+                    </span>
                     <button type="button" className="btn-ghost btn-sm" onClick={() => releaseClaim(t.id)}>
                       Release claim
                     </button>
@@ -235,7 +259,10 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
             {invites.filter((i) => i.status === "pending").map((inv) => (
               <li key={inv.id}>
                 <strong>{inv.team_name}</strong>
-                <span className="table-meta"> · {inv.email}</span>
+                <span className="table-meta">
+                  {" · "}{inv.email}
+                  {inv.co_commissioner ? " · co-commish" : ""}
+                </span>
                 <div className="hub-toolbar">
                   <button
                     type="button"

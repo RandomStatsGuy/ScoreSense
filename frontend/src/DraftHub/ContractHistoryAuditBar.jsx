@@ -4,7 +4,8 @@ const CATEGORY_LABELS = {
   salary: "Renewals",
   cuts: "Cuts / dead cap",
   waivers: "Waivers",
-  post_draft_fa: "Post-draft FA",
+  post_draft_fa: "FA lottery",
+  fa_contract: "FA contract",
   cap: "Cap / roster",
   ambiguous: "Ambiguous",
 };

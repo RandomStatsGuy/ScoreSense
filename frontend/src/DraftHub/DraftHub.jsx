@@ -15,11 +15,14 @@ import RosterBuilder from "./RosterBuilder";
 import DraftRoom from "./DraftRoom";
 import CapPlanner from "./CapPlanner";
 import LeagueInsights from "./LeagueInsights";
+import LeagueOffice from "./LeagueOffice";
 import LeagueTrades from "./LeagueTrades";
+import LeagueRostersBrowser from "./LeagueRostersBrowser";
 import LeagueContextBanner from "./LeagueContextBanner";
 import HubDataFreshness from "./HubDataFreshness";
 import HubDemoBanner from "./HubDemoBanner";
 import { defaultInsightTab, isInsightTabAllowed } from "./hubInsightsTabs";
+import { defaultOfficeTab, isOfficeTabAllowed } from "./hubOfficeTabs";
 import {
   clearHubDataCache,
   getCachedPool,
@@ -35,13 +38,13 @@ import { fetchHubMemberships, setHubFocus, effectiveMemberships } from "./hubLea
 const EMPTY_VALUE_ROWS = [];
 
 /** Tabs that need the heavy value-sheet / draft-pool payload. */
-const TABS_NEED_VALUE_SHEET = new Set(["value", "room"]);
+const TABS_NEED_VALUE_SHEET = new Set(["value", "room", "rosters", "trades"]);
 /** Tabs that need cap-sheet (also hits roster on the server). */
-const TABS_NEED_CAP_SHEET = new Set(["planner", "roster"]);
+const TABS_NEED_CAP_SHEET = new Set(["planner", "roster", "rosters"]);
 /** Tabs that read the hub roster ("value" marks my players via rosterIds). */
-const TABS_NEED_ROSTER = new Set(["setup", "value", "roster", "planner", "room"]);
+const TABS_NEED_ROSTER = new Set(["setup", "value", "roster", "rosters", "planner", "room", "trades"]);
 
-export default function DraftHub({ subView, onSubViewChange, onHubContextChange, insightTab, onInsightTabChange }) {
+export default function DraftHub({ subView, onSubViewChange, onHubContextChange, insightTab, onInsightTabChange, officeTab, onOfficeTabChange }) {
   const { authenticated, refreshAuth, hubAuthRequired, hubDemo, ready: authReady, user, termsUrl, privacyUrl, patreonConfigured } = useAuth();
   const [demoMode, setDemoMode] = useState(() => {
     try {
@@ -87,15 +90,15 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       setSubView("insights");
       onInsightTabChange?.("scoring");
     } else if (subView === "league-rosters") {
-      setSubView("insights");
-      onInsightTabChange?.("desk");
+      setSubView("office");
+      onOfficeTabChange?.("current");
     }
-  }, [subView, setSubView, onInsightTabChange]);
+  }, [subView, setSubView, onInsightTabChange, onOfficeTabChange]);
 
   const goToCommissionerDesk = useCallback(() => {
-    setSubView("insights");
-    onInsightTabChange?.("desk");
-  }, [setSubView, onInsightTabChange]);
+    setSubView("office");
+    onOfficeTabChange?.("current");
+  }, [setSubView, onOfficeTabChange]);
 
   const onInsights = subView === "insights";
 
@@ -103,7 +106,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   // skip refetch + chart remount. Heavy tabs (value sheet, draft room) still unmount.
   const [visitedTabs, setVisitedTabs] = useState(() => new Set());
   useEffect(() => {
-    if (subView !== "insights" && subView !== "trades") return;
+    if (subView !== "insights" && subView !== "trades" && subView !== "office") return;
     setVisitedTabs((prev) => {
       if (prev.has(subView)) return prev;
       const next = new Set(prev);
@@ -536,6 +539,14 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     }
   }, [subView, insightTab, effectiveCtx, onInsightTabChange]);
 
+  useEffect(() => {
+    if (subView !== "office" || !effectiveCtx) return;
+    const isCommish = Boolean(effectiveCtx.is_commissioner);
+    if (!isOfficeTabAllowed(officeTab, isCommish)) {
+      onOfficeTabChange?.(defaultOfficeTab(isCommish));
+    }
+  }, [subView, officeTab, effectiveCtx, onOfficeTabChange]);
+
   if (authReady && !authenticated && hubAuthRequired !== false && !demoMode) {
     return (
       <div className="draft-hub draft-hub-auth">
@@ -677,6 +688,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           rosterIds={rosterIds}
           sleeper={valueSleeper}
           loading={valueSheetLoading}
+          isCommissioner={Boolean(effectiveCtx?.is_commissioner)}
         />
       )}
 
@@ -693,11 +705,48 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         />
       )}
 
+      {subView === "rosters" && (
+        effectiveCtx?.mode === "league" && effectiveCtx?.league_id ? (
+          <LeagueRostersBrowser
+            leagueId={effectiveCtx.league_id}
+            hubContext={effectiveCtx}
+            onNavigateTrade={() => setSubView("trades")}
+          />
+        ) : (
+          <HubPage>
+            <h2 className="hub-tab-intro-title">Rosters</h2>
+            <p className="chart-note">
+              Open a shared league to browse every team&apos;s contracts.
+              {" "}
+              <button type="button" className="btn-link" onClick={() => setSubView("setup")}>
+                League settings
+              </button>
+            </p>
+          </HubPage>
+        )
+      )}
+
       {(subView === "trades" || visitedTabs.has("trades")) && effectiveCtx?.mode === "league" && (
         <div className={subView === "trades" ? undefined : "app-view-pane-hidden"}>
           <LeagueTrades
             leagueId={effectiveCtx.league_id}
             hubContext={effectiveCtx}
+          />
+        </div>
+      )}
+
+
+      {(subView === "office" || visitedTabs.has("office")) && effectiveCtx?.mode === "league" && (
+        <div className={subView === "office" ? undefined : "app-view-pane-hidden"}>
+          <LeagueOffice
+            leagueId={effectiveCtx.league_id}
+            hubContext={effectiveCtx}
+            workspace={workspace}
+            officeTab={officeTab}
+            onOfficeTabChange={onOfficeTabChange}
+            onChanged={applyHubContext}
+            onNavigate={setSubView}
+            active={subView === "office"}
           />
         </div>
       )}

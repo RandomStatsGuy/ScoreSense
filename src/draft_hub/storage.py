@@ -437,6 +437,23 @@ def _migrate(conn: sqlite3.Connection) -> None:
         "CREATE INDEX IF NOT EXISTS idx_movement_league_season ON league_player_movement(league_id, season_year)"
     )
     conn.execute(
+        """CREATE TABLE IF NOT EXISTS trade_proposal (
+            id TEXT PRIMARY KEY,
+            league_id TEXT NOT NULL,
+            created_by_sub TEXT NOT NULL,
+            status TEXT NOT NULL,
+            parties_json TEXT NOT NULL,
+            dead_cap_assignments_json TEXT NOT NULL,
+            acceptances_json TEXT NOT NULL,
+            note TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_trade_proposal_league ON trade_proposal(league_id, status)"
+    )
+    conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_roster_workspace ON roster_slot(workspace_id)"
     )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_roster_team ON roster_slot(team_id)")
@@ -445,6 +462,34 @@ def _migrate(conn: sqlite3.Connection) -> None:
     )
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_draft_event_league ON draft_event(league_id)"
+    )
+
+    _safe_add_column(conn, "league_invite", "co_commissioner", "INTEGER NOT NULL DEFAULT 0")
+
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS league_chat_channel (
+            id TEXT PRIMARY KEY,
+            league_id TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            UNIQUE(league_id, kind)
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_chat_channel_league ON league_chat_channel(league_id)"
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS league_chat_message (
+            id TEXT PRIMARY KEY,
+            channel_id TEXT NOT NULL,
+            author_sub TEXT NOT NULL,
+            team_id TEXT,
+            body TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_chat_message_channel ON league_chat_message(channel_id, created_at)"
     )
 
 
@@ -633,10 +678,12 @@ def _workspace_dict(row: sqlite3.Row) -> dict[str, Any]:
 
 
 def _roster_dict(row: sqlite3.Row) -> dict[str, Any]:
+    from src.draft_hub.contracts import repair_flat_deal_schedule
+
     d = dict(row)
     if d.get("contract_json"):
         try:
-            d["contract"] = json.loads(d["contract_json"])
+            d["contract"] = repair_flat_deal_schedule(json.loads(d["contract_json"]))
         except json.JSONDecodeError:
             d["contract"] = None
     else:
@@ -649,6 +696,23 @@ def _roster_dict(row: sqlite3.Row) -> dict[str, Any]:
 def get_workspace_rules(user_sub: str) -> LeagueRules:
     ws = get_or_create_workspace(user_sub)
     return LeagueRules.model_validate(ws["rules"])
+
+
+def _rules_for_roster_workspace(conn: sqlite3.Connection, workspace_id: str) -> LeagueRules:
+    """League rules when the workspace is shared; otherwise personal workspace rules."""
+    league = conn.execute(
+        "SELECT rules_json FROM league WHERE workspace_id = ? LIMIT 1",
+        (workspace_id,),
+    ).fetchone()
+    if league and league["rules_json"]:
+        return _rules_from_json(league["rules_json"])
+    ws = conn.execute(
+        "SELECT rules_json FROM hub_workspace WHERE id = ?",
+        (workspace_id,),
+    ).fetchone()
+    if ws and ws["rules_json"]:
+        return _rules_from_json(ws["rules_json"])
+    return LeagueRules()
 
 
 def upsert_salary_ranges(workspace_id: str, rows: list[dict[str, Any]]) -> int:
@@ -713,17 +777,18 @@ def add_roster_slot(workspace_id: str, row: dict[str, Any], team_id: str | None 
     contract = row.get("contract")
     contract_json = json.dumps(contract) if contract else None
     source = row.get("source") or "manual"
+    roster_status = str(row.get("roster_status") or "active")
     with get_conn() as conn:
         conn.execute(
             """INSERT INTO roster_slot
                (workspace_id, team_id, player_id, player_name, team, position, salary, contract_years,
-                acquired_at, sleeper_player_id, source, contract_json)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                acquired_at, sleeper_player_id, source, contract_json, roster_status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(workspace_id, player_id) DO UPDATE SET
                  team_id=excluded.team_id, player_name=excluded.player_name, team=excluded.team,
                  position=excluded.position, salary=excluded.salary, contract_years=excluded.contract_years,
                  sleeper_player_id=excluded.sleeper_player_id, source=excluded.source,
-                 contract_json=excluded.contract_json""",
+                 contract_json=excluded.contract_json, roster_status=excluded.roster_status""",
             (
                 workspace_id,
                 team_id,
@@ -737,6 +802,7 @@ def add_roster_slot(workspace_id: str, row: dict[str, Any], team_id: str | None 
                 row.get("sleeper_player_id"),
                 source,
                 contract_json,
+                roster_status,
             ),
         )
         r = conn.execute(
@@ -779,10 +845,13 @@ def update_roster_slot(
         yrs = int(contract_years) if contract_years is not None else int(row["contract_years"])
         if yrs < 1:
             raise ValueError("Contract years must be at least 1")
-        contract_json = json.dumps(contract) if contract else row["contract_json"]
-        if contract:
+        # Use `is not None` so an empty dict still writes (truthy check would skip).
+        if contract is not None:
+            contract_json = json.dumps(contract)
             sal = float(contract.get("current_salary") or contract.get("base_salary") or sal)
             yrs = int(contract.get("years_remaining") or yrs)
+        else:
+            contract_json = row["contract_json"]
         updates = ["salary = ?", "contract_years = ?", "contract_json = ?"]
         params: list[Any] = [sal, yrs, contract_json]
         if roster_status is not None:
@@ -792,6 +861,88 @@ def update_roster_slot(
         conn.execute(
             f"UPDATE roster_slot SET {', '.join(updates)} WHERE id = ?",
             params,
+        )
+        updated = conn.execute("SELECT * FROM roster_slot WHERE id = ?", (row["id"],)).fetchone()
+        return _roster_dict(updated)
+
+
+def set_roster_contract_type(
+    workspace_id: str,
+    player_id: str,
+    contract_type: str,
+    *,
+    team_id: str | None = None,
+    any_team: bool = False,
+    manual: bool = True,
+    pending_type: str | None = None,
+    pending_by: str | None = None,
+) -> dict[str, Any]:
+    """Set contract_type on a roster row by primary key (avoids duplicate-row races)."""
+    from datetime import datetime, timezone
+
+    with get_conn() as conn:
+        row = None
+        # Prefer the caller's team row when duplicates exist.
+        if team_id:
+            row = conn.execute(
+                "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ? AND team_id = ?",
+                (workspace_id, player_id, team_id),
+            ).fetchone()
+        if row is None and any_team:
+            row = conn.execute(
+                "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
+                (workspace_id, player_id),
+            ).fetchone()
+        if row is None and not team_id:
+            row = conn.execute(
+                "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ? AND (team_id IS NULL OR team_id = '')",
+                (workspace_id, player_id),
+            ).fetchone()
+        if row is None and not any_team:
+            # Last resort for league edits when team_id was wrong/missing.
+            row = conn.execute(
+                "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
+                (workspace_id, player_id),
+            ).fetchone()
+        if not row:
+            raise ValueError("Player not on roster")
+
+        prior: dict[str, Any] = {}
+        if row["contract_json"]:
+            try:
+                prior = json.loads(row["contract_json"]) or {}
+            except json.JSONDecodeError:
+                prior = {}
+
+        if pending_type:
+            contract = dict(prior)
+            contract["pending_type"] = pending_type
+            contract["pending_type_by"] = pending_by
+            contract["pending_type_at"] = datetime.now(timezone.utc).isoformat()
+            if "years_remaining" not in contract:
+                contract["years_remaining"] = int(row["contract_years"] or 1)
+            if "current_salary" not in contract:
+                contract["current_salary"] = float(row["salary"] or 0)
+        else:
+            # Rebuild schedule for the new type (rookies/vets flat; extensions step).
+            from src.draft_hub.contract_typing import apply_type_to_contract
+
+            rules = _rules_for_roster_workspace(conn, workspace_id)
+            row_dict = _roster_dict(row)
+            contract = apply_type_to_contract(
+                rules,
+                row_dict,
+                contract_type=str(contract_type),
+                manual=manual,
+                clear_pending=True,
+            )
+
+        contract_json = json.dumps(contract)
+        yrs = int(contract.get("years_remaining") or row["contract_years"] or 1)
+        sal = float(contract.get("current_salary") or row["salary"] or 0)
+        conn.execute(
+            "UPDATE roster_slot SET contract_json = ?, contract_years = ?, salary = ? WHERE id = ?",
+            (contract_json, yrs, sal, row["id"]),
         )
         updated = conn.execute("SELECT * FROM roster_slot WHERE id = ?", (row["id"],)).fetchone()
         return _roster_dict(updated)
@@ -1185,13 +1336,139 @@ def log_league_trade(
     team_b_id: str,
     send_a: list[str],
     send_b: list[str],
+    proposal_id: str | None = None,
+    parties: list[dict[str, Any]] | None = None,
+    dead_cap_assignments: list[dict[str, Any]] | None = None,
 ) -> None:
+    payload_extra = {
+        "proposal_id": proposal_id,
+        "parties": parties,
+        "dead_cap_assignments": dead_cap_assignments,
+    }
     with get_conn() as conn:
         conn.execute(
             """INSERT INTO trade_log (league_id, team_a_id, team_b_id, send_a_json, send_b_json, created_at)
                VALUES (?, ?, ?, ?, ?, ?)""",
-            (league_id, team_a_id, team_b_id, json.dumps(send_a), json.dumps(send_b), _utcnow()),
+            (
+                league_id,
+                team_a_id,
+                team_b_id,
+                json.dumps({"players": send_a, **({k: v for k, v in payload_extra.items() if v is not None})}),
+                json.dumps(send_b),
+                _utcnow(),
+            ),
         )
+
+
+def _proposal_dict(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "league_id": row["league_id"],
+        "created_by_sub": row["created_by_sub"],
+        "status": row["status"],
+        "parties": json.loads(row["parties_json"] or "[]"),
+        "dead_cap_assignments": json.loads(row["dead_cap_assignments_json"] or "[]"),
+        "acceptances": json.loads(row["acceptances_json"] or "{}"),
+        "note": row["note"],
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
+
+
+def create_trade_proposal(
+    league_id: str,
+    *,
+    created_by_sub: str,
+    parties: list[dict[str, Any]],
+    dead_cap_assignments: list[dict[str, Any]] | None = None,
+    acceptances: dict[str, str] | None = None,
+    note: str | None = None,
+    status: str = "pending",
+) -> dict[str, Any]:
+    pid = str(uuid.uuid4())
+    now = _utcnow()
+    team_ids = [str(p["team_id"]) for p in parties]
+    acc = dict(acceptances) if acceptances is not None else {tid: "pending" for tid in team_ids}
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO trade_proposal
+               (id, league_id, created_by_sub, status, parties_json, dead_cap_assignments_json,
+                acceptances_json, note, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                pid,
+                league_id,
+                created_by_sub,
+                status,
+                json.dumps(parties),
+                json.dumps(dead_cap_assignments or []),
+                json.dumps(acc),
+                note,
+                now,
+                now,
+            ),
+        )
+        row = conn.execute("SELECT * FROM trade_proposal WHERE id = ?", (pid,)).fetchone()
+        return _proposal_dict(row)
+
+
+def get_trade_proposal(proposal_id: str) -> dict[str, Any] | None:
+    with get_conn() as conn:
+        row = conn.execute("SELECT * FROM trade_proposal WHERE id = ?", (proposal_id,)).fetchone()
+        return _proposal_dict(row) if row else None
+
+
+def list_trade_proposals(league_id: str, *, status: str | None = None) -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        if status:
+            rows = conn.execute(
+                """SELECT * FROM trade_proposal WHERE league_id = ? AND status = ?
+                   ORDER BY created_at DESC""",
+                (league_id, status),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """SELECT * FROM trade_proposal WHERE league_id = ?
+                   ORDER BY created_at DESC LIMIT 100""",
+                (league_id,),
+            ).fetchall()
+        return [_proposal_dict(r) for r in rows]
+
+
+def update_trade_proposal(
+    proposal_id: str,
+    *,
+    status: str | None = None,
+    acceptances: dict[str, str] | None = None,
+    parties: list[dict[str, Any]] | None = None,
+    dead_cap_assignments: list[dict[str, Any]] | None = None,
+    note: str | None = None,
+) -> dict[str, Any] | None:
+    with get_conn() as conn:
+        row = conn.execute("SELECT * FROM trade_proposal WHERE id = ?", (proposal_id,)).fetchone()
+        if not row:
+            return None
+        updates: list[str] = ["updated_at = ?"]
+        params: list[Any] = [_utcnow()]
+        if status is not None:
+            updates.append("status = ?")
+            params.append(status)
+        if acceptances is not None:
+            updates.append("acceptances_json = ?")
+            params.append(json.dumps(acceptances))
+        if parties is not None:
+            updates.append("parties_json = ?")
+            params.append(json.dumps(parties))
+        if dead_cap_assignments is not None:
+            updates.append("dead_cap_assignments_json = ?")
+            params.append(json.dumps(dead_cap_assignments))
+        if note is not None:
+            updates.append("note = ?")
+            params.append(note)
+        params.append(proposal_id)
+        conn.execute(f"UPDATE trade_proposal SET {', '.join(updates)} WHERE id = ?", params)
+        updated = conn.execute("SELECT * FROM trade_proposal WHERE id = ?", (proposal_id,)).fetchone()
+        return _proposal_dict(updated)
 
 
 def _team_dict(row: sqlite3.Row) -> dict[str, Any]:
@@ -1370,11 +1647,15 @@ def release_team_claim(league_id: str, team_id: str) -> dict[str, Any]:
     team = get_team(team_id)
     if not team or team["league_id"] != league_id:
         raise ValueError("Team not found in this league")
-    if team.get("is_commissioner"):
-        raise ValueError("Cannot release the commissioner team")
+    league = get_league(league_id)
+    if not league:
+        raise ValueError("League not found")
+    if str(team.get("user_sub") or "") == str(league.get("commissioner_sub") or ""):
+        raise ValueError("Cannot release the primary commissioner team")
     with get_conn() as conn:
         conn.execute(
-            "UPDATE team SET user_sub = NULL, joined_at = NULL WHERE id = ? AND league_id = ?",
+            """UPDATE team SET user_sub = NULL, joined_at = NULL, is_commissioner = 0
+               WHERE id = ? AND league_id = ?""",
             (team_id, league_id),
         )
         row = conn.execute("SELECT * FROM team WHERE id = ?", (team_id,)).fetchone()
@@ -1666,6 +1947,26 @@ def roster_workspace_for_league(league: dict[str, Any]) -> str:
     return str(league["id"])
 
 
+def clear_league_draft_picks(league_id: str) -> int:
+    """Remove auction awards (source=draft) for all teams in this league. Keepers stay."""
+    league = get_league(league_id)
+    if not league:
+        return 0
+    teams = list_league_teams(league_id)
+    team_ids = [str(t["id"]) for t in teams]
+    if not team_ids:
+        return 0
+    ws = roster_workspace_for_league(league)
+    placeholders = ",".join("?" * len(team_ids))
+    with get_conn() as conn:
+        cur = conn.execute(
+            f"""DELETE FROM roster_slot
+                WHERE workspace_id = ? AND source = 'draft' AND team_id IN ({placeholders})""",
+            [ws, *team_ids],
+        )
+        return int(cur.rowcount)
+
+
 def clear_draft_events(league_id: str) -> None:
     with get_conn() as conn:
         conn.execute("DELETE FROM draft_event WHERE league_id = ?", (league_id,))
@@ -1701,6 +2002,7 @@ def reset_league_team_budgets(league_id: str, cap: float) -> None:
 
 
 def _invite_dict(row: sqlite3.Row) -> dict[str, Any]:
+    keys = set(row.keys())
     return {
         "id": row["id"],
         "league_id": row["league_id"],
@@ -1713,6 +2015,7 @@ def _invite_dict(row: sqlite3.Row) -> dict[str, Any]:
         "expires_at": row["expires_at"],
         "accepted_by_sub": row["accepted_by_sub"],
         "accepted_at": row["accepted_at"],
+        "co_commissioner": bool(row["co_commissioner"]) if "co_commissioner" in keys else False,
     }
 
 
@@ -1744,6 +2047,7 @@ def create_league_invite(
     *,
     token: str,
     expires_at: str,
+    co_commissioner: bool = False,
 ) -> dict[str, Any]:
     from src.auth.user_store import normalize_email, validate_email
 
@@ -1764,9 +2068,19 @@ def create_league_invite(
     with get_conn() as conn:
         conn.execute(
             """INSERT INTO league_invite
-               (id, league_id, email, team_name, token, status, invited_by_sub, created_at, expires_at)
-               VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)""",
-            (invite_id, league_id, email_norm, team["name"], token, invited_by_sub, now, expires_at),
+               (id, league_id, email, team_name, token, status, invited_by_sub, created_at, expires_at, co_commissioner)
+               VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)""",
+            (
+                invite_id,
+                league_id,
+                email_norm,
+                team["name"],
+                token,
+                invited_by_sub,
+                now,
+                expires_at,
+                1 if co_commissioner else 0,
+            ),
         )
         row = conn.execute("SELECT * FROM league_invite WHERE id = ?", (invite_id,)).fetchone()
         invite = _invite_dict(row)
@@ -1834,6 +2148,9 @@ def accept_league_invite(token: str, user_sub: str, user_email: str) -> dict[str
         raise ValueError("Sign in with the email address that received this invite")
 
     league_id = invite["league_id"]
+    league = get_league(league_id)
+    if not league:
+        raise ValueError("League not found")
     existing = get_team_by_user(league_id, user_sub)
     if existing:
         raise ValueError("You are already on a team in this league")
@@ -1845,11 +2162,12 @@ def accept_league_invite(token: str, user_sub: str, user_email: str) -> dict[str
     if team.get("user_sub") and team["user_sub"] != user_sub:
         raise ValueError("This team has already been claimed")
 
+    make_staff = bool(invite.get("co_commissioner")) or str(league.get("commissioner_sub") or "") == str(user_sub)
     now = _utcnow()
     with get_conn() as conn:
         conn.execute(
-            "UPDATE team SET user_sub = ?, joined_at = ? WHERE id = ?",
-            (user_sub, now, team["id"]),
+            "UPDATE team SET user_sub = ?, joined_at = ?, is_commissioner = ? WHERE id = ?",
+            (user_sub, now, 1 if make_staff else 0, team["id"]),
         )
         conn.execute(
             """UPDATE league_invite
@@ -1862,6 +2180,172 @@ def accept_league_invite(token: str, user_sub: str, user_email: str) -> dict[str
         "team": get_team(team["id"]),
         "invite": get_invite_by_token(token),
     }
+
+
+def set_team_co_commissioner(
+    league_id: str,
+    team_id: str,
+    *,
+    enabled: bool,
+    actor_sub: str,
+) -> dict[str, Any]:
+    """Promote or demote a claimed team as co-commissioner. Primary only."""
+    league = get_league(league_id)
+    if not league:
+        raise ValueError("League not found")
+    if str(league.get("commissioner_sub") or "") != str(actor_sub):
+        raise ValueError("Only the primary commissioner can change co-commissioner roles")
+    team = get_team(team_id)
+    if not team or team.get("league_id") != league_id:
+        raise ValueError("Team not found in this league")
+    if not team.get("user_sub"):
+        raise ValueError("Team must be claimed before granting co-commissioner")
+    if str(team.get("user_sub")) == str(league.get("commissioner_sub")):
+        raise ValueError("Cannot change the primary commissioner's staff flag this way")
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE team SET is_commissioner = ? WHERE id = ? AND league_id = ?",
+            (1 if enabled else 0, team_id, league_id),
+        )
+    return get_team(team_id)
+
+
+CHAT_KINDS = frozenset({"league", "office"})
+CHAT_BODY_MAX = 2000
+
+
+def _chat_channel_dict(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "league_id": row["league_id"],
+        "kind": row["kind"],
+        "created_at": row["created_at"],
+    }
+
+
+def _chat_message_dict(row: sqlite3.Row, *, team_name: str | None = None) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "channel_id": row["channel_id"],
+        "author_sub": row["author_sub"],
+        "team_id": row["team_id"],
+        "team_name": team_name,
+        "body": row["body"],
+        "created_at": row["created_at"],
+    }
+
+
+def ensure_chat_channels(league_id: str) -> dict[str, dict[str, Any]]:
+    """Create league + office channels if missing; return kind → channel."""
+    now = _utcnow()
+    out: dict[str, dict[str, Any]] = {}
+    with get_conn() as conn:
+        for kind in ("league", "office"):
+            row = conn.execute(
+                "SELECT * FROM league_chat_channel WHERE league_id = ? AND kind = ?",
+                (league_id, kind),
+            ).fetchone()
+            if not row:
+                channel_id = str(uuid.uuid4())
+                conn.execute(
+                    """INSERT INTO league_chat_channel (id, league_id, kind, created_at)
+                       VALUES (?, ?, ?, ?)""",
+                    (channel_id, league_id, kind, now),
+                )
+                row = conn.execute(
+                    "SELECT * FROM league_chat_channel WHERE id = ?",
+                    (channel_id,),
+                ).fetchone()
+            out[kind] = _chat_channel_dict(row)
+    return out
+
+
+def list_chat_messages(
+    league_id: str,
+    kind: str,
+    *,
+    before: str | None = None,
+    limit: int = 50,
+) -> list[dict[str, Any]]:
+    if kind not in CHAT_KINDS:
+        raise ValueError("Invalid chat channel")
+    channels = ensure_chat_channels(league_id)
+    channel = channels[kind]
+    lim = max(1, min(int(limit or 50), 100))
+    with get_conn() as conn:
+        if before:
+            rows = conn.execute(
+                """SELECT * FROM league_chat_message
+                   WHERE channel_id = ? AND created_at < ?
+                   ORDER BY created_at DESC LIMIT ?""",
+                (channel["id"], before, lim),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """SELECT * FROM league_chat_message
+                   WHERE channel_id = ?
+                   ORDER BY created_at DESC LIMIT ?""",
+                (channel["id"], lim),
+            ).fetchall()
+    team_names = {t["id"]: t.get("name") for t in list_league_teams(league_id)}
+    messages = [
+        _chat_message_dict(r, team_name=team_names.get(r["team_id"]))
+        for r in rows
+    ]
+    messages.reverse()
+    return messages
+
+
+def post_chat_message(
+    league_id: str,
+    kind: str,
+    *,
+    author_sub: str,
+    team_id: str | None,
+    body: str,
+) -> dict[str, Any]:
+    if kind not in CHAT_KINDS:
+        raise ValueError("Invalid chat channel")
+    text = str(body or "").strip()
+    if not text:
+        raise ValueError("Message cannot be empty")
+    if len(text) > CHAT_BODY_MAX:
+        raise ValueError(f"Message too long (max {CHAT_BODY_MAX} characters)")
+    channels = ensure_chat_channels(league_id)
+    channel = channels[kind]
+    msg_id = str(uuid.uuid4())
+    now = _utcnow()
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO league_chat_message
+               (id, channel_id, author_sub, team_id, body, created_at)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (msg_id, channel["id"], author_sub, team_id, text, now),
+        )
+        row = conn.execute(
+            "SELECT * FROM league_chat_message WHERE id = ?",
+            (msg_id,),
+        ).fetchone()
+    team_name = None
+    if team_id:
+        team = get_team(team_id)
+        team_name = team.get("name") if team else None
+    return _chat_message_dict(row, team_name=team_name)
+
+
+def clear_chat_messages(league_id: str, kind: str) -> dict[str, Any]:
+    """Delete all messages in one chat channel (league or office)."""
+    if kind not in CHAT_KINDS:
+        raise ValueError("Invalid chat channel")
+    channels = ensure_chat_channels(league_id)
+    channel = channels[kind]
+    with get_conn() as conn:
+        cur = conn.execute(
+            "DELETE FROM league_chat_message WHERE channel_id = ?",
+            (channel["id"],),
+        )
+        deleted = int(cur.rowcount or 0)
+    return {"kind": kind, "deleted": deleted, "channel_id": channel["id"]}
 
 
 def import_commissioner_league_sheet(
@@ -2291,7 +2775,11 @@ def list_memberships_for_sub(user_sub: str) -> list[dict[str, Any]]:
                 "room_code": row["room_code"],
                 "league_season": row["league_season"],
                 "test_mode": bool(row["test_mode"]) if row["test_mode"] is not None else False,
-                "is_commissioner": str(row["commissioner_sub"]) == str(user_sub),
+                "is_commissioner": (
+                    str(row["commissioner_sub"]) == str(user_sub)
+                    or bool(team.get("is_commissioner"))
+                ),
+                "is_primary_commissioner": str(row["commissioner_sub"]) == str(user_sub),
             }
         )
     return out
@@ -2395,10 +2883,27 @@ def delete_league(league_id: str) -> dict[str, Any]:
                 f"DELETE FROM roster_slot WHERE team_id IN ({placeholders})",
                 team_ids,
             )
+        # Practice rooms isolate rosters under the league id — wipe that workspace too.
+        if league.get("test_mode") and ws_id:
+            conn.execute("DELETE FROM roster_slot WHERE workspace_id = ?", (ws_id,))
         conn.execute("DELETE FROM draft_event WHERE league_id = ?", (league_id,))
         conn.execute("DELETE FROM draft_session WHERE league_id = ?", (league_id,))
         conn.execute("DELETE FROM trade_log WHERE league_id = ?", (league_id,))
         conn.execute("DELETE FROM league_invite WHERE league_id = ?", (league_id,))
+        channel_ids = [
+            str(r["id"])
+            for r in conn.execute(
+                "SELECT id FROM league_chat_channel WHERE league_id = ?",
+                (league_id,),
+            ).fetchall()
+        ]
+        if channel_ids:
+            placeholders = ",".join("?" * len(channel_ids))
+            conn.execute(
+                f"DELETE FROM league_chat_message WHERE channel_id IN ({placeholders})",
+                channel_ids,
+            )
+        conn.execute("DELETE FROM league_chat_channel WHERE league_id = ?", (league_id,))
         conn.execute("DELETE FROM team WHERE league_id = ?", (league_id,))
         conn.execute("DELETE FROM league WHERE id = ?", (league_id,))
     return {
@@ -2496,11 +3001,30 @@ def replace_league_contract_season(
     import_id: int | None = None,
 ) -> int:
     """Replace imported contract rows for one season (manual edits preserved via re-apply if needed)."""
+    return replace_league_contract_season_source(
+        league_id,
+        season_year,
+        rows,
+        source_kind="import",
+        import_id=import_id,
+    )
+
+
+def replace_league_contract_season_source(
+    league_id: str,
+    season_year: int,
+    rows: list[dict[str, Any]],
+    *,
+    source_kind: str = "import",
+    import_id: int | None = None,
+) -> int:
+    """Replace contract rows for one season + source_kind (manual / other sources preserved)."""
     now = _utcnow()
+    kind = str(source_kind or "import")
     with get_conn() as conn:
         conn.execute(
-            "DELETE FROM league_contract_row WHERE league_id = ? AND season_year = ? AND source_kind = 'import'",
-            (league_id, int(season_year)),
+            "DELETE FROM league_contract_row WHERE league_id = ? AND season_year = ? AND source_kind = ?",
+            (league_id, int(season_year), kind),
         )
         count = 0
         for r in rows:
@@ -2528,8 +3052,8 @@ def replace_league_contract_season(
                     r.get("contract_phase"),
                     r.get("acquisition_type"),
                     r.get("status_note"),
-                    r.get("source_kind") or "import",
-                    r.get("confidence") or "imported",
+                    r.get("source_kind") or kind,
+                    r.get("confidence") or ("imported" if kind == "import" else kind),
                     1 if r.get("needs_review") else 0,
                     r.get("review_reason"),
                     1 if r.get("sleeper_verified") else 0,

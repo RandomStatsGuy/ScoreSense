@@ -82,8 +82,8 @@ def build_salary_sheet_audit(
     season_year: int | None = None,
     owner_label: str | None = None,
 ) -> dict[str, Any]:
-    file_by_season = load_commissioner_rows_by_season()
-    db_by_season = load_database_overlay_rows_by_season(league_id)
+    file_by_season = _load_commissioner_rows_by_season()
+    db_by_season = _load_database_overlay_rows_by_season(league_id)
     if file_by_season:
         data_source = "commissioner_files"
         sheet_by_season = file_by_season
@@ -120,7 +120,7 @@ def build_salary_sheet_audit(
 
     alias_map = load_alias_map(league_id)
     alias_meta = alias_meta_by_name_key(league_id)
-    effective_active = merged_active_rows_for_ownership(file_rows, db_rows, alias_map)
+    effective_active = _merged_active_rows_for_ownership(file_rows, db_rows, alias_map)
     league_owners = _league_active_owner_by_player(effective_active, alias_map)
     owner_keys = _active_sheet_keys_by_owner(effective_active, alias_map)
     owner_sleeper_ids = {

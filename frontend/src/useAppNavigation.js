@@ -19,8 +19,9 @@ export default function useAppNavigation() {
       projectionsMobilePanel: "projections",
       seasonMode: "live",
       toolsTab: "dfs",
-      hubSubView: "setup",
+      hubSubView: "value",
       insightTab: "cap",
+      officeTab: "chat",
       adminTab: "overview",
     },
     [location.pathname],
@@ -102,14 +103,15 @@ export default function useAppNavigation() {
   );
 
   const setHubSubView = useCallback(
-    (subView, insightTab) => {
+    (subView, insightOrOfficeTab) => {
       navigateTo({
         view: "hub",
         hubSubView: subView,
-        insightTab: subView === "insights" ? (insightTab || route.insightTab || "cap") : null,
+        insightTab: subView === "insights" ? (insightOrOfficeTab || route.insightTab || "cap") : null,
+        officeTab: subView === "office" ? (insightOrOfficeTab || route.officeTab || "chat") : null,
       });
     },
-    [navigateTo, route.insightTab],
+    [navigateTo, route.insightTab, route.officeTab],
   );
 
   const setInsightTab = useCallback(
@@ -117,6 +119,17 @@ export default function useAppNavigation() {
       view: "hub",
       hubSubView: "insights",
       insightTab: tab,
+      officeTab: null,
+    }),
+    [navigateTo],
+  );
+
+  const setOfficeTab = useCallback(
+    (tab) => navigateTo({
+      view: "hub",
+      hubSubView: "office",
+      officeTab: tab,
+      insightTab: null,
     }),
     [navigateTo],
   );
@@ -149,6 +162,7 @@ export default function useAppNavigation() {
     setToolsTab,
     setHubSubView,
     setInsightTab,
+    setOfficeTab,
     setAdminTab,
     navigateTo,
     updateFilters,

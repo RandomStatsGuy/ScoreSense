@@ -44,12 +44,27 @@ def is_garbage_player_name(name: str) -> bool:
     return False
 
 
+_GENERATIONAL_SUFFIXES = frozenset({"jr", "sr", "ii", "iii", "iv", "v"})
+
+
+def _strip_generational_tokens(tokens: list[str]) -> list[str]:
+    """Drop trailing Jr/Sr/II/III so 'Penix Jr' keys as penix, not jr."""
+    out = list(tokens)
+    while out:
+        tail = re.sub(r"[^A-Za-z]", "", out[-1]).lower()
+        if tail in _GENERATIONAL_SUFFIXES:
+            out.pop()
+            continue
+        break
+    return out
+
+
 def last_name_key(name: str) -> str:
     n = norm_name(name)
     if is_garbage_player_name(n):
         return ""
     parts = re.split(r"[\s.]+", n)
-    tokens = [p for p in parts if p and not p.isdigit()]
+    tokens = _strip_generational_tokens([p for p in parts if p and not p.isdigit()])
     if not tokens:
         return name_key(n)
     last = re.sub(r"[^A-Za-z'-]", "", tokens[-1]).lower()

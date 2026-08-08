@@ -6,8 +6,44 @@ import time
 from typing import Any
 
 from src.draft_hub import storage
-from src.draft_hub.contracts import build_veteran_contract
+from src.draft_hub.contract_typing import apply_type_to_contract, infer_contract_type, suggested_rookie_years_pre_draft
+from src.draft_hub.schemas import LeagueRules
+from src.draft_hub.years_exp_lookup import years_exp_for_player
 from src.integrations.sleeper_league import fetch_all_linked_rosters, fetch_linked_roster, list_league_teams
+
+
+def _default_contract_for_sleeper_player(
+    player: dict[str, Any],
+    rules: LeagueRules,
+    *,
+    season: int,
+    draft_completed: bool,
+) -> dict[str, Any]:
+    exp = years_exp_for_player(row=player)
+    ctype = infer_contract_type(
+        None,
+        rules,
+        years_exp=exp,
+        season=season,
+    )
+    yrs = 1
+    if ctype == "rookie" and not draft_completed:
+        suggested = suggested_rookie_years_pre_draft(rules, years_exp=exp)
+        if suggested is not None:
+            yrs = suggested
+        else:
+            yrs = int(rules.contracts.rookie_years)
+    elif ctype == "rookie":
+        yrs = max(1, int(rules.contracts.rookie_years) - int(exp or 0))
+    return apply_type_to_contract(
+        rules,
+        {"salary": 1, "contract_years": yrs, "contract": {}},
+        contract_type=ctype,
+        years_remaining=yrs,
+        salary=1.0,
+        years_exp=exp,
+        manual=False,
+    )
 
 _ALLOWLIST_CACHE: dict[tuple[str, str], tuple[float, set[str]]] = {}
 _SNAPSHOT_CACHE: dict[tuple[str, str], tuple[float, dict[str, Any]]] = {}
@@ -22,8 +58,14 @@ def merge_sleeper_team_roster(
     workspace_id: str,
     team_id: str,
     players: list[dict[str, Any]],
+    *,
+    rules: LeagueRules | None = None,
+    season: int | None = None,
+    draft_completed: bool = False,
 ) -> dict[str, int]:
     """Add new Sleeper pickups; refresh names/teams without overwriting contracts."""
+    rules = rules or LeagueRules()
+    season = int(season or 2026)
     added = 0
     updated = 0
     for p in players:
@@ -44,7 +86,12 @@ def merge_sleeper_team_roster(
             )
             updated += 1
             continue
-        contract = build_veteran_contract(1, 1)
+        contract = _default_contract_for_sleeper_player(
+            p,
+            rules,
+            season=season,
+            draft_completed=draft_completed,
+        )
         storage.add_roster_slot(
             workspace_id,
             {
@@ -53,7 +100,7 @@ def merge_sleeper_team_roster(
                 "team": p.get("team"),
                 "position": p.get("position"),
                 "salary": contract["current_salary"],
-                "contract_years": 1,
+                "contract_years": contract["years_remaining"],
                 "sleeper_player_id": p.get("sleeper_player_id"),
                 "source": "sleeper",
                 "contract": contract,
@@ -183,7 +230,6 @@ def compose_team_roster_from_live_snapshot(
 
     Ignores stale Sleeper rows that were incorrectly stacked on this team_id during import.
     """
-    from src.draft_hub.contracts import build_veteran_contract
     from src.draft_hub.hub_context import filter_team_sleeper_roster
 
     team = storage.get_team(team_id)
@@ -205,6 +251,11 @@ def compose_team_roster_from_live_snapshot(
         except Exception:
             pass
         return filter_team_sleeper_roster(team, db_roster, live_allowlist=live_allowlist)
+
+    league = storage.get_league(league_id) or {}
+    rules = LeagueRules.model_validate(league.get("rules") or {})
+    season = int(league.get("season") or 2026)
+    draft_completed = bool(league.get("draft_completed"))
 
     manual = [r for r in db_roster if str(r.get("source") or "") != "sleeper"]
     live_players = list(snapshot.get("players") or [])
@@ -236,7 +287,12 @@ def compose_team_roster_from_live_snapshot(
         if row:
             sleeper_rows.append(row)
             continue
-        contract = build_veteran_contract(1, 1)
+        contract = _default_contract_for_sleeper_player(
+            player,
+            rules,
+            season=season,
+            draft_completed=draft_completed,
+        )
         sleeper_rows.append(
             {
                 "player_id": pid,
@@ -244,7 +300,7 @@ def compose_team_roster_from_live_snapshot(
                 "team": player.get("team"),
                 "position": player.get("position"),
                 "salary": contract["current_salary"],
-                "contract_years": 1,
+                "contract_years": contract["years_remaining"],
                 "sleeper_player_id": player.get("sleeper_player_id"),
                 "source": "sleeper",
                 "contract": contract,
@@ -354,14 +410,27 @@ def ensure_sleeper_team_links(league_id: str) -> dict[str, Any]:
         raise ValueError("Could not load any Sleeper rosters for this league.")
 
     moves = detect_and_apply_sleeper_trades(ws_id, team_snapshots)
+    rules = LeagueRules.model_validate(league.get("rules") or {})
+    season = int(league.get("season") or 2026)
+    draft_completed = bool(league.get("draft_completed"))
     merge_stats = {"added": 0, "updated": 0}
     for tid, players in team_snapshots.items():
-        stats = merge_sleeper_team_roster(ws_id, tid, players)
+        stats = merge_sleeper_team_roster(
+            ws_id,
+            tid,
+            players,
+            rules=rules,
+            season=season,
+            draft_completed=draft_completed,
+        )
         merge_stats["added"] += stats["added"]
         merge_stats["updated"] += stats["updated"]
 
     reattach = reattach_league_roster_slots(league_id)
     reconcile = reconcile_league_roster_assignments(league_id)
+    from src.draft_hub.contract_backfill import backfill_league_contracts
+
+    backfill = backfill_league_contracts(league_id)
     message = _sync_summary_message(team_meta, reconcile, merge_stats)
 
     return {
@@ -374,6 +443,7 @@ def ensure_sleeper_team_links(league_id: str) -> dict[str, Any]:
         "merge": merge_stats,
         "reattach": reattach,
         "reconcile": reconcile,
+        "backfill": backfill,
         "message": message,
     }
 

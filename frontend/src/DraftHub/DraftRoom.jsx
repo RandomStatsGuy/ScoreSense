@@ -15,7 +15,13 @@ import { confirmDialog } from "../ui/confirm";
 import DraftDeadlineClock from "./DraftDeadlineClock";
 import { HubPage } from "./HubUILayout";
 import { isRowAvailable } from "./valueSheetUtils";
-import { buildRosterCapacity, canAcquireAtPosition, formatDraftEvent, minNextBid } from "./draftRoomHelpers";
+import {
+  buildRosterCapacity,
+  canAcquireAtPosition,
+  formatDraftEvent,
+  isRetainedThroughDraft,
+  minNextBid,
+} from "./draftRoomHelpers";
 import { fmtSal } from "./rosterFormat";
 
 function draftPhaseStep(status) {
@@ -42,6 +48,8 @@ export default function DraftRoom({
   const [bidAmount, setBidAmount] = useState("");
   const [nomPlayerId, setNomPlayerId] = useState("");
   const [mockModeLabel, setMockModeLabel] = useState("");
+  const [sandboxSourceLeagueId, setSandboxSourceLeagueId] = useState("");
+  const [expirePreview, setExpirePreview] = useState(null);
   const [botCount, setBotCount] = useState(7);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -114,11 +122,14 @@ export default function DraftRoom({
 
   const draftedIds = useMemo(() => {
     const ids = new Set();
+    const draftDone = Boolean(league?.draft_completed) || session?.status === "completed";
     Object.values(roomState?.rosters || {}).forEach((rows) => {
-      (rows || []).forEach((r) => { if (r.player_id) ids.add(r.player_id); });
+      (rows || []).forEach((r) => {
+        if (r.player_id && isRetainedThroughDraft(r, draftDone)) ids.add(r.player_id);
+      });
     });
     return ids;
-  }, [roomState?.rosters]);
+  }, [roomState?.rosters, league?.draft_completed, session?.status]);
 
   const hubIdSet = useMemo(
     () => new Set((hubRoster || []).map((r) => r.player_id).filter(Boolean)),
@@ -260,6 +271,24 @@ export default function DraftRoom({
       setMockModeLabel("");
     }
   }, [league?.test_mode, league?.id]);
+
+  useEffect(() => {
+    if (!usingHubLeague || !leagueId || !isCommissioner) {
+      if (!testMode) setExpirePreview(null);
+      return undefined;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch(`/api/hub/league/${leagueId}/draft-expire-preview`);
+        if (!res.ok || cancelled) return;
+        setExpirePreview(await res.json());
+      } catch {
+        if (!cancelled) setExpirePreview(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [usingHubLeague, leagueId, isCommissioner, testMode]);
 
   // Server nomination pool is only needed when the value sheet is cold; each
   // fetch runs a full build_value_sheet server-side, so avoid per-pick refetches.
@@ -529,8 +558,11 @@ export default function DraftRoom({
         bot_count: Number(botCount) || 7,
         auto_start: true,
       };
-      if (mode === "league_mirror") {
+      if (mode === "league_mirror" || mode === "keeper_sandbox") {
         body.source_league_id = linkedHubLeagueId || leagueId;
+      }
+      if (mode === "keeper_sandbox") {
+        body.auto_start = false;
       }
       const res = await apiFetch("/api/hub/mock-draft/start", {
         method: "POST",
@@ -542,10 +574,15 @@ export default function DraftRoom({
       setMockModeLabel(
         simulate
           ? "Simulated mock"
-          : mode === "league_mirror"
-            ? "League mirror mock"
-            : "Quick mock",
+          : mode === "keeper_sandbox"
+            ? "Keeper sandbox"
+            : mode === "league_mirror"
+              ? "League mirror mock"
+              : "Quick mock",
       );
+      if (mode === "keeper_sandbox") {
+        setSandboxSourceLeagueId(data.source_league_id || linkedHubLeagueId || leagueId || "");
+      }
       onLeagueIdChange(data.league_id);
       connectWs(data.league_id);
       if (simulate) {
@@ -558,6 +595,49 @@ export default function DraftRoom({
         applyState((await sim.json()).state);
       } else {
         applyState(data.state);
+      }
+    });
+  };
+
+  const startKeeperSandbox = async () => {
+    if (!(await confirmDialog({
+      title: "Keeper expire sandbox",
+      message: (
+        "Create a practice copy of this league’s keepers and contracts?\n\n"
+        + "• Real league is untouched\n"
+        + "• Start / End draft here to test expirees and year tick\n"
+        + "• Delete sandbox when done"
+      ),
+      confirmLabel: "Create sandbox",
+    }))) {
+      return;
+    }
+    await startMockDraft("keeper_sandbox");
+  };
+
+  const deleteSandbox = async () => {
+    if (!leagueId || !testMode) return;
+    if (!(await confirmDialog({
+      title: "Delete sandbox",
+      message: "Delete this practice room and all copied keepers? Your real league is unchanged.",
+      confirmLabel: "Delete sandbox",
+      danger: true,
+    }))) {
+      return;
+    }
+    await runAction(async () => {
+      const res = await apiFetch(`/api/hub/league/${leagueId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const backId = sandboxSourceLeagueId || linkedHubLeagueId || "";
+      setSandboxSourceLeagueId("");
+      setMockModeLabel("");
+      setRoomState(null);
+      setExpirePreview(null);
+      if (backId) {
+        onLeagueIdChange(backId);
+        connectWs(backId);
+      } else {
+        onLeagueIdChange("");
       }
     });
   };
@@ -628,6 +708,34 @@ export default function DraftRoom({
       setPickRecap(null);
       setDraftRecap(null);
       setNomPlayerId("");
+      wsRefresh();
+    });
+  };
+
+  const resetLiveDraft = async () => {
+    if (!(await confirmDialog({
+      title: "Reset live draft",
+      message: (
+        "Reset this live draft back to before it started?\n\n"
+        + "• Clears auction picks, bid log, and budgets\n"
+        + "• Keepers stay on rosters\n"
+        + "• If draft was already marked complete, years left are +1 for remaining keepers "
+        + "(players who expired when you ended are not restored — re-sync if needed)"
+      ),
+      confirmLabel: "Reset draft",
+      danger: true,
+    }))) {
+      return;
+    }
+    await runAction(async () => {
+      const res = await apiFetch(`/api/hub/league/${leagueId}/reset-draft`, { method: "POST" });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const data = await res.json();
+      applyState(data.state);
+      setPickRecap(null);
+      setDraftRecap(null);
+      setNomPlayerId("");
+      if (data.warning) setError(data.warning);
       wsRefresh();
     });
   };
@@ -993,6 +1101,28 @@ export default function DraftRoom({
                 End
               </button>
             )}
+            {isCommissioner && !testMode && (
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                disabled={busy}
+                onClick={resetLiveDraft}
+                title="Undo draft start — clear auction picks, keep keepers"
+              >
+                Reset
+              </button>
+            )}
+            {testMode && isCommissioner && (
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                disabled={busy}
+                onClick={deleteSandbox}
+                title="Delete this practice room — real league untouched"
+              >
+                Delete sandbox
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1029,6 +1159,16 @@ export default function DraftRoom({
             {testMode && isCommissioner && (
               <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={resetPracticeDraft}>
                 New mock
+              </button>
+            )}
+            {testMode && isCommissioner && (
+              <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={deleteSandbox}>
+                Delete sandbox
+              </button>
+            )}
+            {!testMode && isCommissioner && (
+              <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={resetLiveDraft}>
+                Reset draft
               </button>
             )}
           </div>
@@ -1105,18 +1245,44 @@ export default function DraftRoom({
             )}
           </div>
 
+          {usingHubLeague && isCommissioner && expirePreview && (
+            <p className="chart-note hub-draft-expire-preview">
+              Keepers: {expirePreview.retained_count} retained · {expirePreview.expire_count} expire before draft
+              (nominatable). Real league unchanged in a keeper sandbox.
+            </p>
+          )}
+          {testMode && mockModeLabel === "Keeper sandbox" && inDraftSetup && (
+            <p className="chart-note hub-draft-expire-preview">
+              Sandbox copy of keepers — inspect Office/Roster expire badges, then Start live draft.
+              Delete sandbox when finished.
+            </p>
+          )}
+
           <details className="hub-draft-more">
             <summary>More options</summary>
             <div className="hub-draft-more-body">
               {usingHubLeague ? (
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm"
-                  disabled={busy}
-                  onClick={() => startMockDraft("league_mirror")}
-                >
-                  Mock with {hubContext?.league_name || "your league"} managers
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm"
+                    disabled={busy}
+                    onClick={() => startMockDraft("league_mirror")}
+                  >
+                    Mock with {hubContext?.league_name || "your league"} managers
+                  </button>
+                  {isCommissioner && (
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm"
+                      disabled={busy}
+                      onClick={startKeeperSandbox}
+                      title="Copy keepers into a practice room to test expire / year tick"
+                    >
+                      Keeper sandbox
+                    </button>
+                  )}
+                </>
               ) : (
                 <p className="chart-note">
                   Join a league in{" "}
@@ -1125,6 +1291,16 @@ export default function DraftRoom({
                   </button>{" "}
                   to mock with your managers.
                 </p>
+              )}
+              {testMode && isCommissioner && inDraftSetup && (
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  disabled={busy}
+                  onClick={deleteSandbox}
+                >
+                  Delete sandbox
+                </button>
               )}
               {leagueId && inDraftSetup && !roomLoading && isCommissioner && (
                 <DraftCommissionerSettings

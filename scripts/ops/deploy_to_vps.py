@@ -94,6 +94,9 @@ def _should_skip(rel: Path) -> bool:
         return True
     if rel.suffix in {".pyc", ".log"}:
         return True
+    # Excel / Office lock files (open workbook) — PermissionError on Windows
+    if rel.name.startswith("~$"):
+        return True
     return False
 
 

@@ -19,10 +19,7 @@ import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../fo
 import useMobileLayout from "../useMobileLayout";
 import MobileDataList, { MobileStat } from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
-import CommissionerLeagueRosters from "./CommissionerLeagueRosters";
 import DraftRecapPanel from "./DraftRecapPanel";
-import LeagueContractHistory from "./LeagueContractHistory";
-import TeamSalarySheets from "./TeamSalarySheets";
 import { HubPage, HubSegmentNav, HubFilterChip, HubFilterGroup, HubFilterScroll, SortTh } from "./HubUILayout";
 import {
   INSIGHTS_TAB_SECTIONS,
@@ -705,7 +702,7 @@ export default function LeagueInsights({
   useEffect(() => {
     if (prevTabRef.current === activeTab) return;
     prevTabRef.current = activeTab;
-    if (activeTab === "ownership" || activeTab === "desk") return;
+    if (activeTab === "ownership") return;
     const sections = INSIGHTS_TAB_SECTIONS[activeTab];
     if (!sections) return;
     const season = scoringSeasonRef.current || latestScoringSeasonRef.current;
@@ -1052,21 +1049,6 @@ export default function LeagueInsights({
   };
 
   if (loading && !data) {
-    if (activeTab === "desk") {
-      return (
-        <div className="hub-insights">
-          <div className="hub-insights-sticky">
-            <HubSegmentNav tabs={insightsTabs} active={activeTab} onChange={setActiveTab} ariaLabel="Insights" />
-          </div>
-          <CommissionerDesk
-            leagueId={leagueId}
-            hubContext={hubContext}
-            historySeason={historySeason}
-            isCommissioner={isCommissioner}
-          />
-        </div>
-      );
-    }
     return (
       <div className="hub-insights">
         <div className="hub-insights-sticky">
@@ -1107,16 +1089,6 @@ export default function LeagueInsights({
         />
       )}
 
-      {activeTab === "desk" && (
-        <InsightsSeasonBar
-          value={historySeason}
-          seasons={historic.seasons}
-          historic={historic}
-          onChange={onHistorySeasonChange}
-          disabled={loading || tabLoading}
-          label="Season"
-        />
-      )}
 
       {error && <div className="error">{error}</div>}
 
@@ -1899,58 +1871,7 @@ export default function LeagueInsights({
         </HubPage>
       )}
 
-      {activeTab === "desk" && (
-        <CommissionerDesk
-          leagueId={leagueId}
-          hubContext={hubContext}
-          historySeason={historySeason}
-          isCommissioner={isCommissioner}
-        />
-      )}
-
     </div>
   );
 }
 
-function CommissionerDesk({ leagueId, hubContext, historySeason, isCommissioner }) {
-  const seasonFilter = historySeason === "current" ? "" : historySeason;
-  return (
-    <div className="hub-commissioner-desk">
-      <HubPage className="hub-desk-section">
-        <header className="hub-section-head">
-          <h2 className="hub-tab-intro-title">All rosters</h2>
-          <p className="hub-section-hint">Edit every team&apos;s roster and salaries.</p>
-        </header>
-        <CommissionerLeagueRosters
-          leagueId={leagueId}
-          season={hubContext?.season}
-          hubContext={hubContext}
-        />
-      </HubPage>
-      <HubPage className="hub-desk-section">
-        <header className="hub-section-head">
-          <h2 className="hub-tab-intro-title">Salary sheets</h2>
-          <p className="hub-section-hint">Import and reconcile commissioner cap sheets.</p>
-        </header>
-        <TeamSalarySheets
-          leagueId={leagueId}
-          seasonFilter={seasonFilter}
-          isCommissioner={isCommissioner}
-          embedded
-        />
-      </HubPage>
-      <HubPage className="hub-desk-section">
-        <header className="hub-section-head">
-          <h2 className="hub-tab-intro-title">Contract history</h2>
-          <p className="hub-section-hint">Audit and edit imported contract rows.</p>
-        </header>
-        <LeagueContractHistory
-          leagueId={leagueId}
-          hubContext={hubContext}
-          seasonFilter={seasonFilter}
-          embedded
-        />
-      </HubPage>
-    </div>
-  );
-}

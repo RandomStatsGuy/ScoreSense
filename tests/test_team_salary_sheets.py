@@ -103,8 +103,20 @@ def test_season_salary_cap_overrides_unspent(salary_league, monkeypatch):
     assert payload["salary_caps_by_season"]["2025"] == 100
     assert caleb["totals"]["unspent"] == 87
     assert payload["summary_matrix"][0]["seasons"]["2025"]["unspent"] == pytest.approx(
-        100 - payload["summary_matrix"][0]["seasons"]["2025"]["committed"]
+        100 - payload["summary_matrix"][0]["seasons"]["2025"]["against_cap"]
     )
+
+
+def test_team_totals_spent_includes_dead_cap():
+    rows = [
+        {"player_name": "Active", "cap_hit": 100, "roster_status": "active"},
+        {"player_name": "Cut", "cap_hit": 25, "roster_status": "cut"},
+    ]
+    totals = _team_totals(rows, salary_cap=200)
+    assert totals["committed"] == 100
+    assert totals["dead_cap"] == 25
+    assert totals["against_cap"] == 125
+    assert totals["unspent"] == 75
 
 
 def test_season_salary_caps_independent_by_year(salary_league, monkeypatch):

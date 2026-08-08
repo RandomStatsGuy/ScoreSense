@@ -113,6 +113,49 @@ def test_group_ambiguous_pairs_trade_rows():
     assert sorted(groups[0]["movement_ids"]) == [1, 2]
 
 
+def test_group_ambiguous_name_key_siblings():
+    """Spelling variants (La Porta / LaPorta) collapse to one resolve card."""
+    movements = [
+        {
+            "id": 1,
+            "confidence": "ambiguous",
+            "player_name": "S. La Porta",
+            "from_owner": "Aaron D",
+            "to_owner": "Dawson O",
+            "event_type": "trade_out",
+            "salary": 3,
+        },
+        {
+            "id": 2,
+            "confidence": "ambiguous",
+            "player_name": "S. LaPorta",
+            "from_owner": "Aaron D",
+            "to_owner": "Dawson O",
+            "event_type": "trade_in",
+            "salary": 8,
+        },
+    ]
+    groups = group_ambiguous_movements(movements)
+    assert len(groups) == 1
+    assert sorted(groups[0]["movement_ids"]) == [1, 2]
+    assert groups[0]["salary_label"] == "$3 / $8"
+    assert " " in groups[0]["player_name"]  # prefer spaced display name
+
+
+def test_post_draft_fa_story_cuts_departure_half():
+    out = resolve_updates_for_movement(
+        {"event_type": "trade_out", "from_owner": "A", "to_owner": "B"},
+        "post_draft_fa",
+    )
+    assert out["event_type"] == "cut"
+    assert out["to_owner"] is None
+    inn = resolve_updates_for_movement(
+        {"event_type": "trade_in", "from_owner": "A", "to_owner": "B"},
+        "post_draft_fa",
+    )
+    assert inn["event_type"] == "post_draft_fa"
+
+
 def test_group_departures_bulk_from_one_owner():
     movements = [
         {"id": 1, "confidence": "ambiguous", "player_name": "P1", "from_owner": "Aaron D", "to_owner": "B", "event_type": "trade_out"},
@@ -134,7 +177,9 @@ def test_build_owner_changes_payload_shape():
     assert payload["season_year"] == 2024
     assert "player_stories" in payload
     assert "stories" in payload
-
+    story_ids = [s["id"] for s in payload["stories"]]
+    assert story_ids == ["cut", "draft_win", "trade", "post_draft_fa"]
+    assert "waiver" not in story_ids
 
 def test_infer_movements_draft_tagged_not_ambiguous(monkeypatch):
     prev_rows = [

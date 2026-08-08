@@ -39,10 +39,11 @@ export const SECTION_SUBTITLES = {
   hub: {
     setup: "League & rules",
     value: "Prices",
-    roster: "Contracts",
+    roster: "Your contracts",
+    rosters: "All teams",
     room: "Live auction",
     planner: "Cap & cuts",
-    trades: "Trade ideas",
+    trades: "Propose & accept",
     insights: "Spend & scoring",
     live: "This week's matchup",
     "league-rosters": "All rosters",

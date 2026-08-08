@@ -1097,6 +1097,8 @@ export default function App() {
               onHubContextChange={setHubContext}
               insightTab={insightTab}
               onInsightTabChange={nav.setInsightTab}
+              officeTab={nav.officeTab}
+              onOfficeTabChange={nav.setOfficeTab}
             />
           </div>
         )}

@@ -55,10 +55,12 @@ def _team_totals(
         else:
             committed += sal
             player_count += 1
-    unspent = max(0.0, salary_cap - committed - dead_cap)
+    against_cap = committed + dead_cap
+    unspent = max(0.0, salary_cap - against_cap)
     return {
         "committed": round(committed, 2),
         "dead_cap": round(dead_cap, 2),
+        "against_cap": round(against_cap, 2),
         "unspent": round(unspent, 2),
         "player_count": player_count,
     }
@@ -97,9 +99,22 @@ def build_team_salary_sheets_payload(
     )
     season_caps = storage.list_season_salary_caps(league_id)
     effective_season = season_year if season_year is not None else max(seasons)
+    # Allow opening a planning year before any rows exist (e.g. pre-draft seed).
     if effective_season not in seasons:
-        effective_season = max(seasons)
-    prior_season = effective_season - 1 if effective_season - 1 in seasons else None
+        if season_year is not None:
+            seasons = sorted(set(seasons) | {int(season_year)})
+            rows_by_season = {**rows_by_season, int(season_year): []}
+        else:
+            effective_season = max(seasons)
+    prior_season = effective_season - 1 if (effective_season - 1) in seasons else None
+    if prior_season is None:
+        prior_candidates = [
+            y for y in seasons if y < effective_season
+        ] or [
+            y for y in rows_by_season if y < effective_season
+        ]
+        if prior_candidates:
+            prior_season = max(prior_candidates)
     salary_caps_by_season = {
         str(yr): _cap_for_season(season_caps, yr, default_cap) for yr in seasons
     }
@@ -114,6 +129,11 @@ def build_team_salary_sheets_payload(
                 continue
             owner_labels.add(owner)
             season_rows[yr][owner].append(row)
+
+    # Empty planning year: still list owners from the prior sheet so the UI can seed.
+    if not season_rows.get(effective_season) and prior_season is not None:
+        for owner in season_rows.get(prior_season, {}):
+            owner_labels.add(owner)
 
     ordered_owners = sorted(owner_labels, key=_owner_sort_key)
 

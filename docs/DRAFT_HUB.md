@@ -22,6 +22,27 @@ Default preset: `data/draft_hub/presets/salary_cap_auction_v1.yaml`
 - 1–3 year contracts, 50% cut refund (configurable)
 - Auction timers (nomination / bid)
 
+## Contract scenarios (roster → UI)
+
+Real-world cases → Contract type / Years left / Cap Planner badges: [CONTRACT_SCENARIOS.md](./CONTRACT_SCENARIOS.md).
+
+## Trades (propose / accept)
+
+- **Rosters** tab: browse any team (cap, position spend, fp/$, good/bad contracts) → **Trade for** / **Add to trade**.
+- **Trades** tab: Builder (multi-team, drops, dead-cap assignee), Inbox (accept/reject), Ideas (load suggested packages).
+- Every party must **Accept**; commissioner can **Force apply**. Cap + position max are hard-validated before execute.
+- Dropped players free salary for the cutter; dead money (`cut_refund_pct`) can be **fully assigned** to another party (player moves as `cut_before_draft` onto that roster).
+- APIs: `GET/POST /api/hub/league/{id}/trades`, `.../respond`, `.../force`, `.../cancel`. `GET .../rosters` is member-readable.
+
+## Office (league ops)
+
+- Top-level **Office** tab (Insights stays Spend / Scoring / History only).
+- **Chat**: League channel (all members) + Office channel (primary + co-commissioners).
+- **Current**: live multi-team contract edit (same store as My team / Cap).
+- **Historic**: season-gated salary sheets (prefer Sleeper week-1, else pre-draft rosters, else Excel; $ seeded from prior year). Commissioner **Build pre-draft sheet** (`POST .../build-pre-draft?season=Y`) before the draft; **Build week-1 sheet** (`POST .../build-week1?season=Y`) once week-1 matchups exist. **FA lottery** = post-draft FA win (real $); **FA contract** = always $1 and expires before the next draft (skipped as keepers on pre-draft seed). Contract-history row audit under Advanced.
+- **Members**: claim vs Sleeper link status, invites with optional co-commissioner, promote/demote co-commish (primary only).
+- Co-commissioners share operational powers with the primary except transfer ownership / demote other staff.
+
 ## Salary range CSV
 
 Columns (flexible headers):

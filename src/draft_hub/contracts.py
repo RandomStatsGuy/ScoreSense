@@ -112,6 +112,55 @@ def schedule_preview(contract: dict[str, Any] | None) -> list[float]:
     return out
 
 
+def _schedule_step_for_type(
+    ctype: str,
+    *,
+    step_up: float | None,
+    cr: ContractRules,
+) -> float:
+    """Rookie/veteran deals are flat; only extensions step (+$5 by default).
+
+    Callers often pass the league extension step for every edit — ignore it unless
+    the deal is actually an extension.
+    """
+    if str(ctype) != "extension":
+        return 0.0
+    if step_up is not None:
+        return float(step_up)
+    return float(cr.extension_step_up)
+
+
+def repair_flat_deal_schedule(contract: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Flatten mistyped stepped schedules on rookie/veteran deals (read-path safety net)."""
+    if not contract:
+        return contract
+    ctype = str(contract.get("contract_type") or "veteran")
+    if ctype == "extension":
+        return contract
+    yrs = int(contract.get("years_remaining") or 0)
+    if yrs < 1:
+        return contract
+    base = float(contract.get("current_salary") or contract.get("base_salary") or 0)
+    schedule = contract.get("schedule") or []
+    needs_repair = float(contract.get("step_up_per_year") or 0) != 0
+    if not needs_repair:
+        for i in range(yrs):
+            sal = salary_for_year(contract, i)
+            if sal > 0 and abs(sal - base) > 0.001:
+                needs_repair = True
+                break
+            if i < len(schedule) and abs(float(schedule[i].get("salary") or 0) - base) > 0.001:
+                needs_repair = True
+                break
+    if not needs_repair and len(schedule) >= yrs:
+        return contract
+    out = dict(contract)
+    out["schedule"] = [{"year_offset": i, "salary": round(base, 2)} for i in range(yrs)]
+    out["step_up_per_year"] = 0.0
+    out["current_salary"] = round(base, 2)
+    return out
+
+
 def build_contract_from_roster_edit(
     rules: LeagueRules,
     *,
@@ -128,37 +177,54 @@ def build_contract_from_roster_edit(
     base = round(float(current_salary), 2)
     prior = existing or {}
     ctype = contract_type or prior.get("contract_type") or "veteran"
+    step = _schedule_step_for_type(str(ctype), step_up=step_up, cr=cr)
 
-    if salary_schedule:
+    if ctype == "rookie":
+        # Rookie deals stay flat for the full term; +$5 only happens on extension.
+        amounts = [base for _ in range(yrs)]
+    elif salary_schedule:
         amounts = [round(float(s), 2) for s in salary_schedule if s is not None][:yrs]
         if not amounts:
             amounts = [base]
         while len(amounts) < yrs:
-            step = float(step_up if step_up is not None else cr.extension_step_up)
-            amounts.append(round(amounts[-1] + step, 2))
-    elif prior.get("schedule") and int(prior.get("years_remaining") or 0) == yrs:
+            amounts.append(round(amounts[-1] + step, 2) if step else amounts[-1])
+    elif prior.get("schedule") and int(prior.get("years_remaining") or 0) == yrs and ctype == "extension":
         amounts = schedule_preview(prior)[:yrs]
         if amounts and amounts[0] != base:
             amounts[0] = base
+        while len(amounts) < yrs:
+            amounts.append(round(amounts[-1] + step, 2) if step else amounts[-1])
     else:
-        step = float(step_up if step_up is not None else cr.extension_step_up)
-        if ctype == "extension" or step > 0:
+        if step:
             amounts = [round(base + step * i, 2) for i in range(yrs)]
         else:
             amounts = [base for _ in range(yrs)]
 
     schedule = [{"year_offset": i, "salary": amounts[i]} for i in range(len(amounts))]
     years_total = int(prior.get("years_total") or max(yrs, len(amounts)))
-    return {
+    out: dict[str, Any] = {
         "contract_type": ctype,
         "base_salary": base,
         "years_total": years_total,
         "years_remaining": yrs,
-        "renewal_used": bool(prior.get("renewal_used")),
-        "step_up_per_year": float(step_up if step_up is not None else cr.extension_step_up),
+        "renewal_used": bool(prior.get("renewal_used")) or ctype == "extension",
+        "step_up_per_year": step,
         "schedule": schedule,
         "current_salary": schedule[0]["salary"],
     }
+    # Preserve typing / approval metadata across salary & years edits.
+    for key in (
+        "contract_type_manual",
+        "inferred_from",
+        "years_exp",
+        "pending_type",
+        "pending_type_by",
+        "pending_type_at",
+        "source",
+    ):
+        if key in prior and prior[key] is not None:
+            out[key] = prior[key]
+    return out
 
 
 def can_renew(row: dict[str, Any], rules: LeagueRules) -> tuple[bool, str]:

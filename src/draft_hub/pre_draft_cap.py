@@ -101,11 +101,17 @@ def expires_before_draft(row: dict[str, Any], *, draft_completed: bool) -> bool:
 
     Players acquired in the current auction (source draft/auction) keep a valid 1-year
     deal for this season and are not treated as expired keepers.
+
+    FA contract ($1) always expires before the next draft even if still on Sleeper.
     """
     if draft_completed:
         return False
     if not is_active_for_pre_draft(row):
         return False
+    from src.draft_hub.acquisition_semantics import is_fa_contract
+
+    if is_fa_contract(row):
+        return True
     if years_remaining(row) > 1:
         return False
     source = str(row.get("source") or "").strip().lower()
@@ -121,6 +127,10 @@ expires_after_draft = expires_before_draft
 def retained_through_draft(row: dict[str, Any], *, draft_completed: bool) -> bool:
     """Still under contract for this draft season (counts toward cap / blocks nomination)."""
     if not is_active_for_pre_draft(row):
+        return False
+    from src.draft_hub.acquisition_semantics import is_fa_contract
+
+    if is_fa_contract(row):
         return False
     if draft_completed:
         return True

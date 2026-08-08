@@ -14,6 +14,27 @@ def test_rookie_contract_flat_years():
     assert c["schedule"][1]["salary"] == 10
 
 
+def test_roster_edit_rookie_stays_flat_extension_steps():
+    from src.draft_hub.contracts import build_contract_from_roster_edit
+
+    rules = load_preset("salary_cap_auction_v1")
+    rook = build_contract_from_roster_edit(
+        rules, current_salary=10, years_remaining=2, contract_type="rookie", step_up=5
+    )
+    assert [y["salary"] for y in rook["schedule"]] == [10, 10]
+    assert float(rook.get("step_up_per_year") or 0) == 0
+
+    vet = build_contract_from_roster_edit(
+        rules, current_salary=12, years_remaining=2, contract_type="veteran", step_up=5
+    )
+    assert [y["salary"] for y in vet["schedule"]] == [12, 12]
+
+    ext = build_contract_from_roster_edit(
+        rules, current_salary=15, years_remaining=3, contract_type="extension"
+    )
+    assert [y["salary"] for y in ext["schedule"]] == [15, 20, 25]
+
+
 def test_mendoza_extension_step_up():
     rules = load_preset("salary_cap_auction_v1")
     contract = build_rookie_contract(10, 2)

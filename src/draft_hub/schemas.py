@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -57,6 +57,8 @@ class RosterAddRequest(BaseModel):
     position: str
     salary: float
     contract_years: int = 1
+    # Commissioners only: reassign a player already on another team's roster.
+    force: bool = False
 
 
 class RosterRemoveRequest(BaseModel):
@@ -70,6 +72,17 @@ class RosterUpdateRequest(BaseModel):
     step_up: Optional[float] = None
     salary_schedule: Optional[list[float]] = None
     roster_status: Optional[str] = None  # active | cut_before_draft
+    contract_type: Optional[str] = None  # rookie | veteran | extension
+
+
+class ContractTypeUpdateRequest(BaseModel):
+    player_id: str
+    contract_type: str  # rookie | veteran | extension
+
+
+class ContractTypeDecisionRequest(BaseModel):
+    player_id: str
+    approve: bool = True
 
 
 class LeagueSettingsUpdate(BaseModel):
@@ -112,10 +125,19 @@ class LeagueJoinRequest(BaseModel):
 class LeagueInviteCreateRequest(BaseModel):
     email: str
     team_name: str
+    co_commissioner: bool = False
 
 
 class LeagueInviteAcceptRequest(BaseModel):
     token: str
+
+
+class TeamCoCommissionerRequest(BaseModel):
+    enabled: bool
+
+
+class ChatMessageCreateRequest(BaseModel):
+    body: str = Field(..., min_length=1, max_length=2000)
 
 
 class DraftNominateRequest(BaseModel):
@@ -160,6 +182,35 @@ class LeagueTradeRequest(BaseModel):
     send_b: list[str] = Field(default_factory=list)
 
 
+class TradeSendLeg(BaseModel):
+    player_id: str
+    to_team_id: str
+
+
+class TradePartyInput(BaseModel):
+    team_id: str
+    sends: list[Union[TradeSendLeg, str]] = Field(default_factory=list)
+    drops: list[str] = Field(default_factory=list)
+
+
+class DeadCapAssignment(BaseModel):
+    player_id: str
+    from_team_id: str
+    assigned_to_team_id: str
+    amount: Optional[float] = None
+
+
+class TradeProposalCreate(BaseModel):
+    parties: list[TradePartyInput]
+    dead_cap_assignments: list[DeadCapAssignment] = Field(default_factory=list)
+    note: Optional[str] = None
+    validate_only: bool = False
+
+
+class TradeProposalRespond(BaseModel):
+    approve: bool = True
+
+
 class LeagueSheetImportRequest(BaseModel):
     manager_team_name: Optional[str] = None
     replace_sleeper_sourced: bool = True
@@ -184,7 +235,7 @@ class DraftContractsRequest(BaseModel):
 
 
 class MockDraftStartRequest(BaseModel):
-    mode: Literal["quick_bots", "league_mirror"]
+    mode: Literal["quick_bots", "league_mirror", "keeper_sandbox"]
     season: int = 2025
     team_count: int = 12
     bot_count: int = 7

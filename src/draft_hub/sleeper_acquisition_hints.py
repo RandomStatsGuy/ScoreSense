@@ -144,6 +144,41 @@ def parse_sleeper_acquisitions(
     return events
 
 
+def parse_sleeper_acquisitions_for_owner_change(
+    league_id: str,
+    sleeper_league_id: str,
+    *,
+    season_year: int,
+) -> list[dict[str, Any]]:
+    """Acquisitions for YoY owner-change: scan prior season and current season."""
+    by_key: dict[tuple, dict[str, Any]] = {}
+    for yr in (int(season_year) - 1, int(season_year)):
+        if yr < 1:
+            continue
+        for ev in parse_sleeper_acquisitions(
+            league_id,
+            sleeper_league_id,
+            season_year=yr,
+        ):
+            key = (
+                ev.get("player_key"),
+                ev.get("from_owner"),
+                ev.get("to_owner"),
+                ev.get("event_type"),
+                ev.get("sleeper_transaction_id"),
+            )
+            # Prefer trades; keep first occurrence otherwise.
+            prev = by_key.get(key)
+            if prev is None:
+                by_key[key] = ev
+            elif ev.get("event_type") == "trade" and prev.get("event_type") != "trade":
+                by_key[key] = ev
+    # Trades first so hint matchers prefer them.
+    out = list(by_key.values())
+    out.sort(key=lambda e: (0 if e.get("event_type") == "trade" else 1, e.get("event_at") or ""))
+    return out
+
+
 def build_sleeper_hints_payload(
     league_id: str,
     *,
@@ -353,7 +388,7 @@ def sleeper_hints_for_movements(
     movements: list[dict[str, Any]],
 ) -> dict[str, dict[str, Any]]:
     """Map player_key -> best Sleeper hint for ambiguous owner-change rows."""
-    acquisitions = parse_sleeper_acquisitions(
+    acquisitions = parse_sleeper_acquisitions_for_owner_change(
         league_id,
         sleeper_league_id,
         season_year=season_year,
@@ -365,16 +400,21 @@ def sleeper_hints_for_movements(
         pk = _name_key(mov.get("player_name") or "")
         if not pk:
             continue
+        # Prefer trades for Historic YoY; skip mid-season waiver/FA noise.
         for ev in acquisitions:
+            if ev.get("event_type") != "trade":
+                continue
             if ev.get("player_key") != pk:
                 continue
             if mov.get("from_owner") and ev.get("from_owner") != mov.get("from_owner"):
                 continue
             if mov.get("to_owner") and ev.get("to_owner") != mov.get("to_owner"):
                 continue
+            yr = ev.get("season_year")
+            when = f" ({str(ev['event_at'])[:10]})" if ev.get("event_at") else ""
             hints[pk] = {
-                "story": "trade" if ev["event_type"] == "trade" else ev["event_type"],
-                "label": ev.get("label") or f"Sleeper {ev['event_type']}",
+                "story": "trade",
+                "label": f"Sleeper trade{when}" + (f" · {yr}" if yr else ""),
                 "event_at": ev.get("event_at"),
                 "from_owner": ev.get("from_owner"),
                 "to_owner": ev.get("to_owner"),
@@ -383,78 +423,170 @@ def sleeper_hints_for_movements(
     return hints
 
 
+def _tag_contract_row_acquisition(
+    curr_rows: list[dict[str, Any]],
+    *,
+    player_key: str,
+    to_owner: str | None,
+    acquisition_type: str,
+    confidence: str,
+    note: str,
+    edited_by: str,
+) -> bool:
+    if not player_key or not to_owner:
+        return False
+    for row in curr_rows:
+        if _name_key(row.get("player_name") or "") != player_key:
+            continue
+        if row.get("owner_label") != to_owner:
+            continue
+        if str(row.get("roster_status") or "active") != "active":
+            continue
+        if row.get("sleeper_verified") and row.get("acquisition_type") == acquisition_type:
+            return False
+        if (
+            confidence == "inferred"
+            and row.get("acquisition_type") in ("draft", "trade", "post_draft_fa", "fa_contract", "waiver")
+            and not row.get("needs_review")
+        ):
+            return False
+        storage.update_league_contract_row(
+            int(row["id"]),
+            {
+                "acquisition_type": acquisition_type,
+                "confidence": confidence,
+                "needs_review": False,
+                "sleeper_verified": confidence == "sleeper_confirmed",
+            },
+            edited_by_sub=edited_by,
+            note=note,
+        )
+        return True
+    return False
+
+
 def apply_sleeper_acquisition_tags(
     league_id: str,
     sleeper_league_id: str,
     *,
     season_year: int,
 ) -> dict[str, Any]:
-    """Tag contract rows and resolve movements using structured Sleeper data."""
-    from src.draft_hub.contract_movement_resolve import apply_story_to_movements
+    """Resolve owner-change movements: trade (Y-1|Y) → draft → FA lottery."""
+    from src.draft_hub.contract_movement_resolve import (
+        apply_story_to_movements,
+        group_ambiguous_movements,
+    )
+    from src.draft_hub.draft_results_import import find_draft_win, load_draft_wins_by_season
 
     lid = sleeper_league_id_for_season(sleeper_league_id, season_year) or sleeper_league_id
-    acquisitions = parse_sleeper_acquisitions(league_id, lid, season_year=season_year)
-    prev_rows = storage.list_league_contract_rows(league_id, season_year=season_year - 1)
-    prev_by_player: dict[str, str] = {}
-    for r in prev_rows:
-        if str(r.get("roster_status") or "active") != "active":
-            continue
-        prev_by_player[_name_key(r.get("player_name") or "")] = str(r.get("owner_label") or "")
-
-    rows_tagged = 0
-    movements_resolved = 0
-    curr_rows = storage.list_league_contract_rows(league_id, season_year=season_year)
-
-    for ev in acquisitions:
-        pk = ev.get("player_key") or ""
-        to_owner = ev.get("to_owner")
-        if not pk or not to_owner:
-            continue
-        prev_owner = prev_by_player.get(pk)
-        if prev_owner == to_owner:
-            continue
-        for row in curr_rows:
-            if _name_key(row.get("player_name") or "") != pk:
-                continue
-            if row.get("owner_label") != to_owner:
-                continue
-            if str(row.get("roster_status") or "active") != "active":
-                continue
-            if row.get("sleeper_verified") and row.get("acquisition_type") == ev["event_type"]:
-                continue
-            storage.update_league_contract_row(
-                int(row["id"]),
-                {
-                    "acquisition_type": ev["event_type"],
-                    "confidence": "sleeper_confirmed",
-                    "needs_review": False,
-                    "sleeper_verified": True,
-                },
-                edited_by_sub="system:sleeper",
-                note=f"Sleeper {ev['event_type']} {ev.get('event_at') or ''}".strip(),
-            )
-            rows_tagged += 1
-            break
-
-    movements = storage.list_league_movements(league_id, season_year=season_year)
-    hints = sleeper_hints_for_movements(
+    acquisitions = parse_sleeper_acquisitions_for_owner_change(
         league_id,
         sleeper_league_id,
         season_year=season_year,
-        movements=movements,
     )
-    for mov in movements:
-        if mov.get("confidence") != "ambiguous":
+    trade_events = [e for e in acquisitions if e.get("event_type") == "trade"]
+
+    curr_rows = storage.list_league_contract_rows(league_id, season_year=season_year)
+    rows_tagged = 0
+    movements_resolved = 0
+
+    for ev in trade_events:
+        pk = ev.get("player_key") or ""
+        to_owner = ev.get("to_owner")
+        if _tag_contract_row_acquisition(
+            curr_rows,
+            player_key=pk,
+            to_owner=to_owner,
+            acquisition_type="trade",
+            confidence="sleeper_confirmed",
+            note=f"Sleeper trade {ev.get('event_at') or ''}".strip(),
+            edited_by="system:sleeper",
+        ):
+            rows_tagged += 1
+
+    # Refresh rows after trade tags (ids stable; acquisition fields may have changed).
+    curr_rows = storage.list_league_contract_rows(league_id, season_year=season_year)
+    movements = storage.list_league_movements(league_id, season_year=season_year)
+    stories = group_ambiguous_movements(movements)
+
+    wins_by_season, _ = load_draft_wins_by_season()
+    from src.draft_hub.draft_results_import import _index_draft_wins
+
+    draft_index = _index_draft_wins(wins_by_season)
+
+    for story in stories:
+        pk = _name_key(story.get("player_name") or "")
+        ids = [int(i) for i in story.get("movement_ids") or []]
+        if not ids:
             continue
-        pk = _name_key(mov.get("player_name") or "")
-        hint = hints.get(pk)
-        if not hint:
+        from_owner = story.get("from_owner")
+        to_owner = story.get("to_owner")
+
+        trade_hit = next(
+            (
+                e
+                for e in trade_events
+                if e.get("player_key") == pk
+                and (not from_owner or e.get("from_owner") == from_owner)
+                and (not to_owner or e.get("to_owner") == to_owner)
+            ),
+            None,
+        )
+        if trade_hit:
+            apply_story_to_movements(
+                league_id, ids, "trade", confidence="sleeper_confirmed"
+            )
+            movements_resolved += len(ids)
+            if _tag_contract_row_acquisition(
+                curr_rows,
+                player_key=pk,
+                to_owner=to_owner,
+                acquisition_type="trade",
+                confidence="sleeper_confirmed",
+                note=f"Sleeper trade {trade_hit.get('event_at') or ''}".strip(),
+                edited_by="system:sleeper",
+            ):
+                rows_tagged += 1
             continue
-        story = hint["story"]
-        if story == "post_draft_fa":
-            story = "post_draft_fa"
-        apply_story_to_movements(league_id, [int(mov["id"])], story)
-        movements_resolved += 1
+
+        draft_win = find_draft_win(
+            int(season_year),
+            str(story.get("player_name") or ""),
+            to_owner,
+            draft_index,
+        )
+        if draft_win:
+            apply_story_to_movements(
+                league_id, ids, "draft_win", confidence="inferred"
+            )
+            movements_resolved += len(ids)
+            if _tag_contract_row_acquisition(
+                curr_rows,
+                player_key=pk,
+                to_owner=to_owner,
+                acquisition_type="draft",
+                confidence="inferred",
+                note=f"Draft win {season_year}",
+                edited_by="system:draft",
+            ):
+                rows_tagged += 1
+            continue
+
+        # Residual on year sheet with a real contract → FA lottery.
+        apply_story_to_movements(
+            league_id, ids, "post_draft_fa", confidence="inferred"
+        )
+        movements_resolved += len(ids)
+        if _tag_contract_row_acquisition(
+            curr_rows,
+            player_key=pk,
+            to_owner=to_owner,
+            acquisition_type="post_draft_fa",
+            confidence="inferred",
+            note=f"FA lottery {season_year} (on year sheet, not draft/trade)",
+            edited_by="system:fa_lottery",
+        ):
+            rows_tagged += 1
 
     return {
         "season_year": season_year,

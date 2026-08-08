@@ -157,6 +157,68 @@ def test_dead_cap_wrong(commissioner_league):
     assert issue["expected"] == 10.0
 
 
+def test_normalize_cut_cap_hit_halves_full_prior():
+    from src.draft_hub.contract_history_audit import normalize_cut_cap_hit
+
+    assert normalize_cut_cap_hit(cap_hit=22, prior_salary=22, cut_refund_pct=0.5) == 11
+    assert normalize_cut_cap_hit(cap_hit=5.5, prior_salary=11, cut_refund_pct=0.5) == 5.5
+    assert normalize_cut_cap_hit(cap_hit=0, prior_salary=20, cut_refund_pct=0.5) == 0.0
+    assert normalize_cut_cap_hit(cap_hit=None, prior_salary=20, cut_refund_pct=0.5) == 0.0
+
+
+def test_normalize_league_cut_dead_caps_fixes_full_salary(commissioner_league):
+    from src.draft_hub.contract_history_audit import normalize_league_cut_dead_caps
+
+    lid = commissioner_league["id"]
+    _seed_season(
+        lid,
+        2025,
+        [
+            {
+                "owner_label": "Caleb K",
+                "player_name": "A. Jones",
+                "position": "RB",
+                "cap_hit": 22.0,
+                "prior_salary": 22.0,
+                "roster_status": "cut",
+            },
+            {
+                "owner_label": "Caleb K",
+                "player_name": "Half Ok",
+                "position": "WR",
+                "cap_hit": 5.0,
+                "prior_salary": 10.0,
+                "roster_status": "cut",
+            },
+        ],
+    )
+    result = normalize_league_cut_dead_caps(lid)
+    assert result["fixed"] == 1
+    rows = {
+        r["player_name"]: r
+        for r in storage.list_league_contract_rows(lid, season_year=2025)
+    }
+    assert rows["A. Jones"]["cap_hit"] == 11.0
+    assert rows["Half Ok"]["cap_hit"] == 5.0
+
+
+def test_apply_cut_dead_cap_on_status_change():
+    from src.draft_hub.contract_history_audit import apply_cut_dead_cap_to_row_updates
+
+    existing = {
+        "roster_status": "active",
+        "cap_hit": 22.0,
+        "base_salary": 22.0,
+        "prior_salary": None,
+    }
+    out = apply_cut_dead_cap_to_row_updates(
+        existing, {"roster_status": "cut"}, cut_refund_pct=0.5
+    )
+    assert out["prior_salary"] == 22.0
+    assert out["cap_hit"] == 11.0
+    assert out["base_salary"] == 11.0
+
+
 def test_in_season_waiver_not_dollar(commissioner_league):
     lid = commissioner_league["id"]
     _seed_season(
@@ -197,6 +259,28 @@ def test_post_draft_fa_as_waiver(commissioner_league):
     )
     audit = audit_contract_history(lid, season_year=2024)
     assert "post_draft_fa_as_waiver" in {i["code"] for i in audit["issues"]}
+
+
+def test_fa_contract_must_be_one_dollar(commissioner_league):
+    lid = commissioner_league["id"]
+    _seed_season(
+        lid,
+        2024,
+        [
+            {
+                "owner_label": "Aaron D",
+                "player_name": "Dollar FA",
+                "position": "RB",
+                "cap_hit": 8.0,
+                "roster_status": "active",
+                "acquisition_type": "fa_contract",
+            }
+        ],
+    )
+    audit = audit_contract_history(lid, season_year=2024)
+    codes = {i["code"] for i in audit["issues"]}
+    assert "fa_contract_not_dollar" in codes
+    assert "post_draft_fa_salary_missing" not in codes
 
 
 def test_apply_audit_patches(commissioner_league):
@@ -282,16 +366,18 @@ def test_audit_api(commissioner_league):
         app.dependency_overrides.pop(require_hub_user, None)
 
 
-def test_process_league_history_waiver_vs_fa():
+def test_process_league_history_leaves_acquisition_unknown():
+    """Dollar amount alone must not invent waiver / FA lottery tags."""
+    import pandas as pd
+
+    from src.draft_hub.legacy_contract_import import process_league_history
+
+    # Unit-level: the old heuristic is gone; unknown stays until reconcile.
     df = pd.DataFrame(
         [
             {"season_year": 2024, "cap_hit": 1, "acquisition_type": "unknown", "player_name": "W"},
             {"season_year": 2024, "cap_hit": 15, "acquisition_type": "unknown", "player_name": "F"},
         ]
     )
-    waiver_mask = df["cap_hit"] == 1
-    df.loc[waiver_mask, "acquisition_type"] = "waiver"
-    fa_mask = (~waiver_mask) & (df["cap_hit"] > 1) & (df["acquisition_type"] == "unknown")
-    df.loc[fa_mask, "acquisition_type"] = "post_draft_fa"
-    assert df.loc[0, "acquisition_type"] == "waiver"
-    assert df.loc[1, "acquisition_type"] == "post_draft_fa"
+    assert (df["acquisition_type"] == "unknown").all()
+    assert process_league_history  # module still importable after heuristic removal

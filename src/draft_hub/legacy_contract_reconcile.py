@@ -155,22 +155,35 @@ def infer_movements_from_snapshots(
     return events
 
 
-def fetch_sleeper_transactions(sleeper_league_id: str, *, max_rounds: int = 25) -> list[dict[str, Any]]:
+def fetch_sleeper_transactions(
+    sleeper_league_id: str,
+    *,
+    max_rounds: int = 25,
+    include_round_zero: bool = True,
+) -> list[dict[str, Any]]:
+    """Fetch Sleeper transactions. Round 0 = preseason/offseason (pre–week 1)."""
     out: list[dict[str, Any]] = []
-    for rnd in range(1, max_rounds + 1):
+    start = 0 if include_round_zero else 1
+    for rnd in range(start, max_rounds + 1):
         try:
             resp = requests.get(
                 f"{SLEEPER_API}/league/{sleeper_league_id}/transactions/{rnd}",
                 timeout=25,
             )
             if resp.status_code == 404:
+                if rnd == 0:
+                    continue
                 break
             resp.raise_for_status()
             batch = resp.json() or []
             if not batch:
+                if rnd == 0:
+                    continue
                 break
             out.extend(batch)
         except Exception:
+            if rnd == 0:
+                continue
             break
     return out
 

@@ -17,11 +17,17 @@ MIN_RELEVANT = {"QB": 8, "RB": 14, "WR": 14, "TE": 6, "K": 12, "DEF": 12}
 
 
 def auction_relevant_count(pos: str, team_count: int, rules: LeagueRules) -> int:
-    """How many players at a position receive meaningful auction bids league-wide."""
+    """How many players at a position receive meaningful auction bids league-wide.
+
+    Uses starter slots plus most of the required roster minimum (QB2 / RB3, etc.),
+    not starters alone — otherwise 10-team / 2-QB leagues only price 10 QBs and
+    everyone else collapses to min-bid.
+    """
     pos = normalize_position(pos)
     roster = rules.roster or {}
     pos_rule = roster.get(pos.lower(), {}) if isinstance(roster.get(pos.lower()), dict) else {}
     starters = int(pos_rule.get("starter") or 1)
+    minimum = int(pos_rule.get("min") or starters)
     teams = max(int(team_count), 2)
 
     flex = roster.get("flex") or {}
@@ -31,9 +37,12 @@ def auction_relevant_count(pos: str, team_count: int, rules: LeagueRules) -> int
     if flex_starters and pos in flex_eligible:
         flex_add = flex_starters * teams * FLEX_POS_SHARE.get(pos, 0.33)
 
-    n = int(round(starters * teams + flex_add))
+    bench = max(0, minimum - starters)
+    # Skill-position benches are deep; QB/TE/K/DEF bench spots still draw real bids.
+    bench_share = 0.55 if pos in {"RB", "WR"} else 0.9
+    n = int(round(starters * teams + bench * teams * bench_share + flex_add))
     floor = MIN_RELEVANT.get(pos, 8)
-    ceiling = max(floor, teams * int(pos_rule.get("max") or starters * 2))
+    ceiling = max(floor, teams * int(pos_rule.get("max") or max(starters * 2, minimum)))
     return max(floor, min(n, ceiling))
 
 

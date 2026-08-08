@@ -25,6 +25,8 @@ def create_invite(
     email: str,
     team_name: str,
     invited_by_sub: str,
+    *,
+    co_commissioner: bool = False,
 ) -> dict:
     validate_email(email)
     token = secrets.token_urlsafe(32)
@@ -35,26 +37,44 @@ def create_invite(
         invited_by_sub,
         token=token,
         expires_at=invite_expires_at(),
+        co_commissioner=co_commissioner,
     )
     invite["invite_url"] = build_invite_url(token)
+    role_note = " as a co-commissioner" if co_commissioner else ""
     invite["email_sent"] = send_invite_email(
         normalize_email(email),
         league_name=invite.get("league_name") or storage.get_league(league_id).get("name", "your league"),
         team_name=invite["team_name"],
         invite_url=invite["invite_url"],
+        co_commissioner=co_commissioner,
+        role_note=role_note,
     )
     return invite
 
 
-def send_invite_email(to_email: str, *, league_name: str, team_name: str, invite_url: str) -> bool:
+def send_invite_email(
+    to_email: str,
+    *,
+    league_name: str,
+    team_name: str,
+    invite_url: str,
+    co_commissioner: bool = False,
+    role_note: str = "",
+) -> bool:
+    staff_line = (
+        "You'll join as a co-commissioner and can help manage contracts and invites."
+        if co_commissioner
+        else "Sleeper still runs scoring and roster moves — Draft Hub tracks contracts and cap for your league."
+    )
     body = "\n".join(
         [
-            f"You've been invited to manage {team_name} in {league_name} on ScoreSense Draft Hub.",
+            f"You've been invited to manage {team_name} in {league_name} on ScoreSense Draft Hub{role_note}.",
+            "",
+            staff_line,
             "",
             "Create a free ScoreSense account (or sign in) with this email address, then open:",
             invite_url,
             "",
-            "Sleeper still runs scoring and roster moves — Draft Hub tracks contracts and cap for your league.",
         ]
     )
     return send_email(

@@ -102,6 +102,17 @@ export default function LeagueContextBanner({
                 disabled={syncing || switchBusy}
               />
             )}
+            {onNavigateSetup && (
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                title="League settings"
+                onClick={onNavigateSetup}
+                disabled={syncing || switchBusy}
+              >
+                Settings
+              </button>
+            )}
             {onLeagueSync && hubContext.league_id && (
               <button
                 type="button"

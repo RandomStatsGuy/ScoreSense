@@ -136,8 +136,8 @@ export default function ContractPlayerJourney({
     <>
       {editingSeason && (
         <p className="hub-contract-journey-context">
-          Cap sheet rows are end-of-season snapshots. Sleeper moves below show{' '}
-          <em>when</em> they traded — tag Acquired on the join season, not renewals.
+          Cap sheet rows are the roster <em>after that year’s draft</em>. Sleeper moves
+          below show <em>when</em> someone traded — set Acquired on the join season, not renewals.
         </p>
       )}
       {loading && <p className="chart-note">Loading…</p>}

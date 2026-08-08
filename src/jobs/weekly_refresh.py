@@ -48,27 +48,21 @@ def run_weekly_refresh(
     save_target_quality_report()
 
     state = get_nfl_state()
-    season = int(state.get("season", seasons[-1]))
-    week = int(state.get("week", 1))
-    offseason = str(state.get("season_type", "off")) == "off" or week <= 0
-    if offseason:
-        season = seasons[-1]
-        import pandas as pd
-        from src.config import PROCESSED_DATA_DIR
-        from src.core.projection_context import last_full_slate_week
-        qb = pd.read_parquet(PROCESSED_DATA_DIR / "qb_mlready.parquet")
-        week = last_full_slate_week(qb[qb["season"] == season]) + 1
-    else:
-        week = week + 1
-    predictions = predict_all_positions(season=season, week=week)
     proj_meta = get_projection_meta("qb")
+    season = int(proj_meta["default_season"])
+    week = int(proj_meta["default_week"])
+    # Fallback if meta is unavailable for some reason.
+    if season <= 0 or week <= 0:
+        season = int(state.get("season", seasons[-1]))
+        week = int(state.get("week", 1)) or 1
+    predictions = predict_all_positions(season=season, week=week)
     weekly_prewarm = prewarm_weekly_predictions(
-        int(proj_meta["default_season"]),
-        int(proj_meta["default_week"]),
+        season,
+        week,
     )
     ros_prewarm = prewarm_ros_predictions(
-        int(proj_meta["default_season"]),
-        int(proj_meta["default_week"]),
+        season,
+        week,
     )
 
     fp_status = None

@@ -20,6 +20,7 @@ from src.draft_hub.draft_state import (
     get_room_state,
     nominate,
     place_bid,
+    reset_live_draft,
     set_draft_contracts,
     set_nomination_order,
     set_pool_mode,
@@ -57,6 +58,8 @@ from src.draft_hub.schemas import (
     NominationOrderUpdate,
     LeagueRules,
     LeagueSheetImportRequest,
+    ContractTypeDecisionRequest,
+    ContractTypeUpdateRequest,
     RosterAddRequest,
     RosterRemoveRequest,
     RosterUpdateRequest,
@@ -70,19 +73,33 @@ from src.draft_hub.schemas import (
     TestDraftSetupRequest,
     TradeSwapRequest,
     LeagueTradeRequest,
+    TradeProposalCreate,
+    TradeProposalRespond,
+    ChatMessageCreateRequest,
+    TeamCoCommissionerRequest,
     WorkspaceUpdate,
 )
 from src.draft_hub.contracts import renew_player_contract, roster_row_from_import, swap_contracts, build_contract_from_roster_edit
+from src.draft_hub.contract_typing import CONTRACT_TYPES, apply_type_to_contract
 from src.draft_hub.hub_context import list_roster_for_context, resolve_hub_context, roster_scope
-from src.draft_hub.league_permissions import can_edit_roster, require_commissioner
+from src.draft_hub.league_permissions import can_edit_roster, require_commissioner, require_primary_commissioner
 from src.draft_hub.league_analytics import build_league_analytics
 from src.draft_hub.league_invites import build_invite_url, create_invite
 from src.draft_hub.league_sleeper_sync import connect_sleeper_league
 from src.draft_hub.league_sheet_import import parse_league_sheet_csv
 from src.draft_hub.mock_draft import start_mock_draft
+from src.draft_hub.draft_expire_preview import build_draft_expire_preview
 from src.draft_hub.draft_recap import build_owner_draft_report
 from src.draft_hub.test_draft import reset_test_draft, setup_test_draft, simulate_draft
 from src.draft_hub.trade_executor import execute_league_trade
+from src.draft_hub.trade_proposals import (
+    cancel_proposal,
+    force_execute_proposal,
+    propose_trade,
+    respond_to_proposal,
+    validate_trade_package,
+)
+from src.draft_hub.roster_overview_enrich import enrich_league_roster_overview
 from src.draft_hub.trade_insights import build_trade_insights
 from src.draft_hub.league_efficiency import build_cap_efficiency
 from src.draft_hub.sleeper_link import (
@@ -523,6 +540,37 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
     if ctx.get("mode") == "league" and not can_edit_roster(ctx):
         raise HTTPException(status_code=403, detail="Join a league team to edit your roster")
     ws_id, team_id = roster_scope(ctx)
+    existing = storage.get_roster_slot(ws_id, body.player_id)
+    if existing:
+        existing_team_id = str(existing.get("team_id") or "") or None
+        same_team = bool(
+            (team_id and existing_team_id == str(team_id))
+            or (not team_id and not existing_team_id)
+        )
+        if same_team:
+            raise HTTPException(
+                status_code=409,
+                detail=f"{body.player_name or 'Player'} is already on your roster",
+            )
+        owner_label = "another team"
+        if existing_team_id:
+            owner = storage.get_team(existing_team_id)
+            if owner and owner.get("name"):
+                owner_label = str(owner["name"])
+        pname = body.player_name or existing.get("player_name") or "Player"
+        if ctx.get("mode") == "league" and not ctx.get("is_commissioner"):
+            raise HTTPException(
+                status_code=409,
+                detail=f"{pname} is already on {owner_label}'s roster",
+            )
+        if not body.force:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"{pname} is already on {owner_label}'s roster. "
+                    "Confirm to reassign them to your team."
+                ),
+            )
     rules = LeagueRules.model_validate(ctx["rules"])
     contract = build_contract_from_roster_edit(
         rules,
@@ -562,6 +610,70 @@ def hub_remove_roster(body: RosterRemoveRequest, _user=Depends(require_hub_user)
     return {"removed": body.player_id}
 
 
+@router.post("/roster/contract-type")
+def hub_set_roster_contract_type(body: ContractTypeUpdateRequest, _user=Depends(require_hub_user)) -> dict:
+    """Dedicated contract-type writer — avoids general roster PATCH field-drop issues."""
+    sub = _sub(_user)
+    ctx = _ctx(sub)
+    ws_id, team_id = roster_scope(ctx)
+    ctype = str(body.contract_type or "").strip().lower()
+    if ctype not in CONTRACT_TYPES:
+        raise HTTPException(status_code=400, detail="contract_type must be rookie, veteran, or extension")
+    if ctx.get("mode") == "league" and not (ctx.get("is_commissioner") or can_edit_roster(ctx)):
+        raise HTTPException(status_code=403, detail="Join a league team to change contract type")
+
+    can_apply = bool(
+        ctx.get("mode") == "solo"
+        or ctx.get("is_commissioner")
+        or ctx.get("can_edit_salaries")
+    )
+    pending = False
+    try:
+        if can_apply:
+            slot = storage.set_roster_contract_type(
+                ws_id,
+                body.player_id,
+                ctype,
+                team_id=team_id,
+                any_team=bool(ctx.get("mode") == "league" and ctx.get("is_commissioner")),
+                manual=True,
+            )
+        else:
+            slot = storage.set_roster_contract_type(
+                ws_id,
+                body.player_id,
+                ctype,
+                team_id=team_id,
+                any_team=False,
+                pending_type=ctype,
+                pending_by=sub,
+            )
+            pending = True
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    saved = (slot.get("contract") or {}).get("contract_type")
+    if can_apply and saved != ctype:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Contract type failed to persist (got {saved!r}, wanted {ctype!r})",
+        )
+
+    _invalidate_league_rosters_from_ctx(ctx)
+    rules = LeagueRules.model_validate(ctx["rules"])
+    roster = list_roster_for_context(ctx)
+    draft_completed = bool(ctx.get("draft_completed"))
+    return {
+        "slot": slot,
+        "pending_type": pending,
+        "received_contract_type": ctype,
+        "saved_contract_type": saved if can_apply else (slot.get("contract") or {}).get("pending_type"),
+        "validation_errors": validate_roster(rules, roster),
+        "pre_draft": pre_draft_cap_summary(rules, roster, draft_completed=draft_completed),
+        "hub_context": ctx,
+    }
+
+
 @router.patch("/roster")
 def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
@@ -569,8 +681,13 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
     ws_id, team_id = roster_scope(ctx)
     draft_completed = bool(ctx.get("draft_completed"))
     salary_fields = body.salary is not None or body.contract_years is not None or body.salary_schedule is not None
+    type_field = body.contract_type is not None
     if salary_fields and ctx.get("mode") == "league" and not ctx.get("can_edit_salaries"):
         raise HTTPException(status_code=403, detail="Only the league commissioner can update salaries")
+    if type_field and ctx.get("mode") == "league" and not (
+        ctx.get("is_commissioner") or can_edit_roster(ctx)
+    ):
+        raise HTTPException(status_code=403, detail="Join a league team to propose contract type changes")
     if body.roster_status is not None and body.roster_status not in (ROSTER_ACTIVE, ROSTER_CUT_BEFORE_DRAFT):
         raise HTTPException(status_code=400, detail="roster_status must be active or cut_before_draft")
     if body.roster_status is not None and draft_completed:
@@ -585,6 +702,8 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
         )
     if body.salary is not None and body.salary < 0:
         raise HTTPException(status_code=400, detail="Salary cannot be negative")
+    if type_field and body.contract_type not in CONTRACT_TYPES:
+        raise HTTPException(status_code=400, detail="contract_type must be rookie, veteran, or extension")
     existing = storage.get_roster_slot(ws_id, body.player_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Player not on roster")
@@ -594,7 +713,64 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
     cur_sal = float(body.salary if body.salary is not None else existing["salary"])
     cur_yrs = int(yrs_in if yrs_in is not None else existing.get("contract_years") or 1)
     contract = None
-    if salary_fields:
+    pending = False
+    # Anyone who can edit salaries (commish / solo) applies type immediately.
+    can_apply_type = bool(
+        ctx.get("mode") == "solo"
+        or ctx.get("is_commissioner")
+        or ctx.get("can_edit_salaries")
+    )
+
+    if type_field and not can_apply_type and ctx.get("mode") == "league":
+        try:
+            slot = storage.set_roster_contract_type(
+                ws_id,
+                body.player_id,
+                str(body.contract_type),
+                team_id=team_id,
+                any_team=False,
+                pending_type=str(body.contract_type),
+                pending_by=sub,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        pending = True
+        contract = slot.get("contract")
+    elif type_field and can_apply_type:
+        try:
+            slot = storage.set_roster_contract_type(
+                ws_id,
+                body.player_id,
+                str(body.contract_type),
+                team_id=team_id,
+                any_team=bool(ctx.get("mode") == "league" and ctx.get("is_commissioner")),
+                manual=True,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        if not salary_fields and body.roster_status is None:
+            roster = list_roster_for_context(ctx)
+            _invalidate_league_rosters_from_ctx(ctx)
+            return {
+                "slot": slot,
+                "validation_errors": validate_roster(rules, roster),
+                "multi_year_plan": multi_year_cap_plan(rules, roster, draft_completed=draft_completed),
+                "pre_draft": pre_draft_cap_summary(rules, roster, draft_completed=draft_completed),
+                "pending_type": False,
+                "received_contract_type": body.contract_type,
+                "saved_contract_type": (slot.get("contract") or {}).get("contract_type"),
+            }
+        contract = build_contract_from_roster_edit(
+            rules,
+            current_salary=cur_sal,
+            years_remaining=cur_yrs,
+            existing=slot.get("contract"),
+            step_up=float(rules.contracts.extension_step_up),
+            salary_schedule=body.salary_schedule,
+            contract_type=str(body.contract_type),
+        )
+        contract["contract_type_manual"] = True
+    elif salary_fields:
         contract = build_contract_from_roster_edit(
             rules,
             current_salary=cur_sal,
@@ -605,6 +781,25 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
         )
     elif body.roster_status is not None:
         contract = contract_on_cut_status_change(existing, roster_status=body.roster_status)
+
+    if type_field and not can_apply_type and ctx.get("mode") == "league":
+        # Already persisted pending above.
+        roster = list_roster_for_context(ctx)
+        errors = validate_roster(rules, roster)
+        plan = multi_year_cap_plan(rules, roster, draft_completed=draft_completed)
+        pre_draft = pre_draft_cap_summary(rules, roster, draft_completed=draft_completed)
+        _invalidate_league_rosters_from_ctx(ctx)
+        return {
+            "slot": slot,
+            "validation_errors": errors,
+            "multi_year_plan": plan,
+            "pre_draft": pre_draft,
+            "pending_type": True,
+        }
+
+    if type_field and contract is None:
+        raise HTTPException(status_code=400, detail="Could not update contract type")
+
     try:
         slot = storage.update_roster_slot(
             ws_id,
@@ -616,12 +811,29 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    # Re-read so the response reflects persisted JSON (catches write mismatches).
+    persisted = storage.get_roster_slot(ws_id, body.player_id) or slot
+    if type_field and can_apply_type:
+        saved_type = (persisted.get("contract") or {}).get("contract_type")
+        if saved_type != body.contract_type:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Contract type failed to persist (got {saved_type!r})",
+            )
+
     roster = list_roster_for_context(ctx)
     errors = validate_roster(rules, roster)
     plan = multi_year_cap_plan(rules, roster, draft_completed=draft_completed)
     pre_draft = pre_draft_cap_summary(rules, roster, draft_completed=draft_completed)
     _invalidate_league_rosters_from_ctx(ctx)
-    return {"slot": slot, "validation_errors": errors, "multi_year_plan": plan, "pre_draft": pre_draft}
+    return {
+        "slot": persisted,
+        "validation_errors": errors,
+        "multi_year_plan": plan,
+        "pre_draft": pre_draft,
+        "pending_type": pending,
+    }
 
 
 @router.get("/cap-sheet")
@@ -743,9 +955,15 @@ def hub_join_league(body: LeagueJoinRequest, _user=Depends(require_hub_user)) ->
 def hub_league_members(league_id: str, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
     ctx = _ctx_for_league(sub, league_id)
+    league = storage.get_league(league_id)
     teams = storage.list_league_teams(league_id)
     invites = storage.list_league_invites(league_id) if ctx.get("is_commissioner") else []
-    return {"teams": teams, "invites": invites, "hub_context": ctx}
+    return {
+        "teams": teams,
+        "invites": invites,
+        "hub_context": ctx,
+        "commissioner_sub": league.get("commissioner_sub") if league else None,
+    }
 
 
 @router.get("/league/{league_id}/rosters")
@@ -755,13 +973,15 @@ def hub_league_rosters(
     refresh: bool = Query(False, description="Bypass cached league rosters payload"),
     _user=Depends(require_hub_user),
 ) -> dict:
+    """All-team roster browser — any league member (read-only)."""
     from src.draft_hub import storage as hub_storage
 
     sub = _sub(_user)
-    _assert_league_commissioner(league_id, sub)
-    ctx = _ctx(sub)
+    ctx = _ctx_for_league(sub, league_id)
     source_version = hub_storage.roster_source_version(league_id)
-    cache_key = f"{league_id}:{source_version}"
+    from src.draft_hub.insights_cache import FAIR_VALUE_ALGO
+
+    cache_key = f"{league_id}:{source_version}:{FAIR_VALUE_ALGO}:enriched"
     if not refresh:
         cached = _LEAGUE_ROSTERS_CACHE.get(cache_key)
         if cached and (time.time() - cached[0]) < _LEAGUE_ROSTERS_CACHE_TTL:
@@ -786,11 +1006,136 @@ def hub_league_rosters(
                 overview = storage.league_roster_overview(league_id)
             except ValueError as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
+        with timer.phase("enrich"):
+            from src.draft_hub.insights_cache import build_and_store_fair_values, read_fair_values
+
+            league_meta = overview.get("league") or {}
+            season_int = int(league_meta.get("season") or 0)
+            fair_map = read_fair_values(league_id, season_int) if season_int else None
+            if not fair_map and season_int:
+                with timer.phase("fair-warm"):
+                    fair_map = build_and_store_fair_values(league_id, overview, season_int)
+            overview = enrich_league_roster_overview(overview, fair_map=fair_map or {})
 
     payload = {**overview, "hub_context": ctx, "source_version": source_version}
     _LEAGUE_ROSTERS_CACHE[cache_key] = (time.time(), payload)
     response.headers["X-Roster-Cache"] = "miss"
     return payload
+
+
+@router.get("/league/{league_id}/trades")
+def hub_list_trade_proposals(
+    league_id: str,
+    status: Optional[str] = Query(None),
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    proposals = storage.list_trade_proposals(league_id, status=status)
+    return {"proposals": proposals, "count": len(proposals), "hub_context": ctx}
+
+
+@router.post("/league/{league_id}/trades")
+def hub_create_trade_proposal(
+    league_id: str,
+    body: TradeProposalCreate,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    if not ctx.get("team_id"):
+        raise HTTPException(status_code=403, detail="Join a league team to propose trades")
+    parties = [p.model_dump() for p in body.parties]
+    assignments = [a.model_dump() for a in body.dead_cap_assignments]
+    try:
+        if body.validate_only:
+            check = validate_trade_package(league_id, parties, assignments)
+            return {**check, "hub_context": ctx}
+        proposal = propose_trade(
+            league_id,
+            created_by_sub=sub,
+            proposer_team_id=str(ctx["team_id"]),
+            parties=parties,
+            dead_cap_assignments=assignments,
+            note=body.note,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _invalidate_league_rosters_from_ctx(ctx)
+    return {"proposal": proposal, "hub_context": ctx}
+
+
+@router.get("/league/{league_id}/trades/{proposal_id}")
+def hub_get_trade_proposal(
+    league_id: str,
+    proposal_id: str,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    prop = storage.get_trade_proposal(proposal_id)
+    if not prop or prop.get("league_id") != league_id:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+    return {"proposal": prop, "hub_context": ctx}
+
+
+@router.post("/league/{league_id}/trades/{proposal_id}/respond")
+def hub_respond_trade_proposal(
+    league_id: str,
+    proposal_id: str,
+    body: TradeProposalRespond,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    team_id = str(ctx.get("team_id") or "")
+    if not team_id:
+        raise HTTPException(status_code=403, detail="Join a league team to respond")
+    try:
+        prop = respond_to_proposal(
+            proposal_id, team_id=team_id, approve=body.approve, user_sub=sub
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if prop.get("status") == "executed":
+        _invalidate_league_rosters_from_ctx(ctx)
+    return {"proposal": prop, "hub_context": ctx}
+
+
+@router.post("/league/{league_id}/trades/{proposal_id}/force")
+def hub_force_trade_proposal(
+    league_id: str,
+    proposal_id: str,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    try:
+        prop = force_execute_proposal(proposal_id, commissioner_sub=sub)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _invalidate_league_rosters_from_ctx(ctx)
+    return {"proposal": prop, "hub_context": ctx}
+
+
+@router.post("/league/{league_id}/trades/{proposal_id}/cancel")
+def hub_cancel_trade_proposal(
+    league_id: str,
+    proposal_id: str,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    try:
+        prop = cancel_proposal(
+            proposal_id,
+            user_sub=sub,
+            is_commissioner=bool(ctx.get("is_commissioner")),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"proposal": prop, "hub_context": ctx}
 
 
 def _parse_history_season(value: str | None) -> tuple[str, int | None]:
@@ -1787,6 +2132,7 @@ def hub_contract_history_sleeper_hints(
 @router.get("/league/{league_id}/team-salary-sheets")
 def hub_team_salary_sheets(
     league_id: str,
+    response: Response,
     season: Optional[int] = Query(None, description="Season year for roster sheets"),
     view: Optional[str] = Query(None, description="snapshot or effective"),
     _user=Depends(require_hub_user),
@@ -1800,6 +2146,7 @@ def hub_team_salary_sheets(
     sheet_view = view or "snapshot"
     if sheet_view not in ("snapshot", "effective"):
         sheet_view = "snapshot"
+    response.headers["Cache-Control"] = "no-store"
     return build_team_salary_sheets_payload(
         league_id,
         season_year=int(season) if season is not None else None,
@@ -1969,6 +2316,15 @@ def hub_contract_history_patch(
     note = updates.pop("note", None)
     if not updates:
         return row
+    if updates.get("roster_status") == "cut" or (
+        str(row.get("roster_status") or "") == "cut" and "cap_hit" in updates
+    ):
+        from src.draft_hub.contract_history_audit import apply_cut_dead_cap_to_row_updates
+        from src.draft_hub.schemas import LeagueRules
+
+        league = storage.get_league(league_id) or {}
+        pct = float(LeagueRules.model_validate(league.get("rules") or {}).contracts.cut_refund_pct)
+        updates = apply_cut_dead_cap_to_row_updates(row, updates, cut_refund_pct=pct)
     return storage.update_league_contract_row(row_id, updates, edited_by_sub=sub, note=note)
 
 
@@ -1999,6 +2355,24 @@ def hub_contract_history_create(
     ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
     row = body.model_dump()
+    if str(row.get("roster_status") or "active") == "cut":
+        from src.draft_hub.contract_history_audit import normalize_cut_cap_hit
+        from src.draft_hub.schemas import LeagueRules
+
+        league = storage.get_league(league_id) or {}
+        pct = float(LeagueRules.model_validate(league.get("rules") or {}).contracts.cut_refund_pct)
+        prior = row.get("prior_salary")
+        if prior is None:
+            prior = row.get("cap_hit")
+            row["prior_salary"] = prior
+        dead = normalize_cut_cap_hit(
+            cap_hit=row.get("cap_hit"),
+            prior_salary=prior,
+            cut_refund_pct=pct,
+        )
+        if dead is not None:
+            row["cap_hit"] = dead
+            row["base_salary"] = dead
     if row.get("base_salary") is None:
         row["base_salary"] = row["cap_hit"]
     if not row.get("hub_team_name"):
@@ -2091,6 +2465,54 @@ def hub_contract_history_sync(
         reconcile_sleeper=body.reconcile_sleeper if body else True,
         snapshot_phases=phases or None,
     )
+
+
+@router.post("/league/{league_id}/contract-history/build-week1")
+def hub_contract_history_build_week1(
+    league_id: str,
+    season: int = Query(..., description="Season year to build from Sleeper week-1 matchups"),
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Build / replace year-sheet rows from Sleeper week-1 rosters (salary seeded from Excel/prior)."""
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    from src.draft_hub.sleeper_week1_snapshot import build_and_persist_week1_sheet
+
+    try:
+        return build_and_persist_week1_sheet(
+            league_id,
+            season_year=int(season),
+            imported_by_sub=sub,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Week-1 build failed: {exc}") from exc
+
+
+@router.post("/league/{league_id}/contract-history/build-pre-draft")
+def hub_contract_history_build_pre_draft(
+    league_id: str,
+    season: int = Query(..., description="Season year to seed from current/pre-draft Sleeper rosters"),
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Seed a year sheet from live Sleeper rosters before the draft (salaries from prior year)."""
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    from src.draft_hub.sleeper_week1_snapshot import build_and_persist_pre_draft_sheet
+
+    try:
+        return build_and_persist_pre_draft_sheet(
+            league_id,
+            season_year=int(season),
+            imported_by_sub=sub,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Pre-draft build failed: {exc}") from exc
 
 
 @router.get("/league/{league_id}/contract-history/apply-sleeper-moves")
@@ -2302,7 +2724,7 @@ def hub_player_name_alias_suggest(
             q,
             position=position,
             season=yr,
-            sleeper_only=True,
+            sleeper_only=False,
         ),
     }
 
@@ -2445,12 +2867,22 @@ def hub_league_settings(
     sub = _sub(_user)
     ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
+    prior = storage.get_league(league_id) or {}
+    was_complete = bool(prior.get("draft_completed"))
     league = storage.update_league_settings(
         league_id,
         lock_team_claims=body.lock_team_claims,
         draft_completed=body.draft_completed,
     )
-    return {"league": league, "hub_context": _ctx(sub)}
+    year_tick = None
+    if body.draft_completed is True and not was_complete:
+        from src.draft_hub.contract_year_clock import tick_contracts_on_draft_complete
+
+        year_tick = tick_contracts_on_draft_complete(league_id)
+    out: dict = {"league": league, "hub_context": _ctx(sub)}
+    if year_tick is not None:
+        out["contract_year_tick"] = year_tick
+    return out
 
 
 @router.post("/league/{league_id}/teams/{team_id}/release-claim")
@@ -2474,8 +2906,19 @@ def hub_create_league_invite(
     sub = _sub(_user)
     ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
+    if body.co_commissioner and not ctx.get("is_primary_commissioner"):
+        raise HTTPException(
+            status_code=403,
+            detail="Only the primary commissioner can invite co-commissioners",
+        )
     try:
-        invite = create_invite(league_id, body.email, body.team_name, sub)
+        invite = create_invite(
+            league_id,
+            body.email,
+            body.team_name,
+            sub,
+            co_commissioner=bool(body.co_commissioner),
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"invite": invite, "hub_context": _ctx(sub)}
@@ -2504,6 +2947,102 @@ def hub_revoke_league_invite(league_id: str, invite_id: str, _user=Depends(requi
     return {"revoked": invite_id}
 
 
+@router.post("/league/{league_id}/teams/{team_id}/co-commissioner")
+def hub_set_co_commissioner(
+    league_id: str,
+    team_id: str,
+    body: TeamCoCommissionerRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_primary_commissioner(ctx)
+    try:
+        team = storage.set_team_co_commissioner(
+            league_id, team_id, enabled=bool(body.enabled), actor_sub=sub,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"team": team, "hub_context": _ctx(sub)}
+
+
+@router.get("/league/{league_id}/chat/{kind}/messages")
+def hub_list_chat_messages(
+    league_id: str,
+    kind: str,
+    before: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=100),
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    kind_norm = str(kind or "").strip().lower()
+    if kind_norm == "office":
+        require_commissioner(ctx)
+    elif kind_norm != "league":
+        raise HTTPException(status_code=400, detail="Invalid chat channel")
+    try:
+        messages = storage.list_chat_messages(league_id, kind_norm, before=before, limit=limit)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"kind": kind_norm, "messages": messages}
+
+
+@router.post("/league/{league_id}/chat/{kind}/messages")
+async def hub_post_chat_message(
+    league_id: str,
+    kind: str,
+    body: ChatMessageCreateRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    kind_norm = str(kind or "").strip().lower()
+    if kind_norm == "office":
+        require_commissioner(ctx)
+    elif kind_norm != "league":
+        raise HTTPException(status_code=400, detail="Invalid chat channel")
+    try:
+        message = storage.post_chat_message(
+            league_id,
+            kind_norm,
+            author_sub=sub,
+            team_id=ctx.get("team_id"),
+            body=body.body,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await draft_room_manager.broadcast(
+        league_id,
+        {"type": "chat", "kind": kind_norm, "message": message},
+    )
+    return {"message": message}
+
+
+@router.delete("/league/{league_id}/chat/{kind}/messages")
+async def hub_clear_chat_messages(
+    league_id: str,
+    kind: str,
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Primary commissioner: wipe all messages in a chat channel."""
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_primary_commissioner(ctx)
+    kind_norm = str(kind or "").strip().lower()
+    if kind_norm not in ("league", "office"):
+        raise HTTPException(status_code=400, detail="Invalid chat channel")
+    try:
+        result = storage.clear_chat_messages(league_id, kind_norm)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await draft_room_manager.broadcast(
+        league_id,
+        {"type": "chat_cleared", "kind": kind_norm},
+    )
+    return result
+
+
 @router.get("/invites/{token}")
 def hub_preview_invite(token: str) -> dict:
     invite = storage.get_invite_by_token(token)
@@ -2516,6 +3055,7 @@ def hub_preview_invite(token: str) -> dict:
         "league_name": invite.get("league_name"),
         "league_season": invite.get("league_season"),
         "expires_at": invite["expires_at"],
+        "co_commissioner": bool(invite.get("co_commissioner")),
     }
 
 
@@ -2621,6 +3161,19 @@ async def hub_end_draft(league_id: str, _user=Depends(require_hub_user)) -> dict
         state = end_draft(league_id, sub)
         await broadcast_room(league_id)
         return state
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/league/{league_id}/reset-draft")
+async def hub_reset_live_draft(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    """Reset a live draft back to pre-start (keepers stay; auction picks cleared)."""
+    sub = _sub(_user)
+    try:
+        result = reset_live_draft(league_id, sub)
+        _invalidate_league_rosters_from_ctx(_ctx_for_league(sub, league_id))
+        await broadcast_room(league_id)
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -2763,6 +3316,86 @@ def hub_renew_contract(body: ContractRenewRequest, _user=Depends(require_hub_use
     }
 
 
+@router.get("/contract/pending-types")
+def hub_list_pending_contract_types(_user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx(sub)
+    if ctx.get("mode") != "league" or not ctx.get("league_id"):
+        return {"pending": [], "hub_context": ctx}
+    require_commissioner(ctx)
+    by_team = storage.list_league_rosters_by_team(str(ctx["league_id"]))
+    pending: list[dict[str, Any]] = []
+    teams = {t["id"]: t for t in storage.list_league_teams(str(ctx["league_id"]))}
+    for tid, rows in by_team.items():
+        team = teams.get(tid) or {}
+        for row in rows:
+            contract = row.get("contract") or {}
+            if not contract.get("pending_type"):
+                continue
+            pending.append(
+                {
+                    "player_id": row["player_id"],
+                    "player_name": row.get("player_name"),
+                    "position": row.get("position"),
+                    "team_id": tid,
+                    "team_name": team.get("name"),
+                    "current_type": contract.get("contract_type") or "veteran",
+                    "pending_type": contract.get("pending_type"),
+                    "pending_type_by": contract.get("pending_type_by"),
+                    "pending_type_at": contract.get("pending_type_at"),
+                }
+            )
+    return {"pending": pending, "hub_context": ctx}
+
+
+@router.post("/contract/pending-types/decide")
+def hub_decide_pending_contract_type(body: ContractTypeDecisionRequest, _user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx(sub)
+    require_commissioner(ctx)
+    ws_id, _team_id = roster_scope(ctx)
+    rules = LeagueRules.model_validate(ctx["rules"])
+    existing = None
+    if ctx.get("league_id"):
+        by_team = storage.list_league_rosters_by_team(str(ctx["league_id"]))
+        for rows in by_team.values():
+            hit = next((r for r in rows if str(r.get("player_id")) == str(body.player_id)), None)
+            if hit:
+                existing = hit
+                break
+    if not existing:
+        existing = storage.get_roster_slot(ws_id, body.player_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Player not on roster")
+    prior = dict(existing.get("contract") or {})
+    pending_type = prior.get("pending_type")
+    if not pending_type:
+        raise HTTPException(status_code=400, detail="No pending contract type for this player")
+    if body.approve:
+        if pending_type not in CONTRACT_TYPES:
+            raise HTTPException(status_code=400, detail="Invalid pending type")
+        contract = apply_type_to_contract(
+            rules,
+            existing,
+            contract_type=str(pending_type),
+            manual=True,
+            clear_pending=True,
+        )
+    else:
+        contract = {**prior}
+        contract.pop("pending_type", None)
+        contract.pop("pending_type_by", None)
+        contract.pop("pending_type_at", None)
+    slot = storage.update_roster_slot(
+        ws_id,
+        body.player_id,
+        contract=contract,
+        any_team=True,
+    )
+    _invalidate_league_rosters_from_ctx(ctx)
+    return {"slot": slot, "approved": bool(body.approve), "hub_context": _ctx(sub)}
+
+
 @router.post("/trade/swap")
 def hub_trade_swap(body: TradeSwapRequest, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
@@ -2856,6 +3489,15 @@ async def hub_league_sheet_import(
 @router.post("/mock-draft/start")
 async def hub_mock_draft_start(body: MockDraftStartRequest, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
+    if body.mode == "keeper_sandbox":
+        if not body.source_league_id:
+            raise HTTPException(status_code=400, detail="source_league_id required for keeper_sandbox")
+        src_ctx = _ctx_for_league(sub, body.source_league_id)
+        require_commissioner(src_ctx)
+    # Keeper sandbox stays in setup unless the client explicitly requests auto_start.
+    auto_start = body.auto_start
+    if body.mode == "keeper_sandbox" and "auto_start" not in body.model_fields_set:
+        auto_start = False
     try:
         result = start_mock_draft(
             sub,
@@ -2864,12 +3506,41 @@ async def hub_mock_draft_start(body: MockDraftStartRequest, _user=Depends(requir
             team_count=body.team_count,
             bot_count=body.bot_count,
             source_league_id=body.source_league_id,
-            auto_start=body.auto_start,
+            auto_start=auto_start,
             name=body.name,
         )
         await broadcast_room(result["league_id"])
         result["hub_context"] = _ctx(sub)
         return result
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/league/{league_id}/draft-expire-preview")
+def hub_draft_expire_preview(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    """Who is retained vs expires before draft (read-only)."""
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    try:
+        return build_draft_expire_preview(league_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.delete("/league/{league_id}")
+def hub_delete_test_league(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    """Delete a practice/sandbox league only (test_mode). Real leagues are blocked."""
+    sub = _sub(_user)
+    league = storage.get_league(league_id)
+    if not league:
+        raise HTTPException(status_code=404, detail="League not found")
+    if not league.get("test_mode"):
+        raise HTTPException(status_code=400, detail="Only practice / sandbox rooms can be deleted this way")
+    if league.get("commissioner_sub") != sub:
+        raise HTTPException(status_code=403, detail="Only the commissioner can delete this sandbox")
+    try:
+        return storage.delete_league(league_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

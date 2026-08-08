@@ -126,6 +126,10 @@ def sync_commissioner_sheets(
 
     movement_count = infer_all_season_movements(league_id)
 
+    from src.draft_hub.contract_history_audit import normalize_league_cut_dead_caps
+
+    dead_cap_fix = normalize_league_cut_dead_caps(league_id)
+
     sleeper_results: list[dict[str, Any]] = []
     if reconcile_sleeper:
         league = storage.get_league(league_id) or {}
@@ -149,6 +153,7 @@ def sync_commissioner_sheets(
     return {
         **import_result,
         "movements_inferred": movement_count,
+        "dead_cap_normalized": dead_cap_fix,
         "sleeper_reconcile": sleeper_results,
         "sync_status": commissioner_sync_status(league_id),
     }

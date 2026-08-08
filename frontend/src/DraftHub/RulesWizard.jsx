@@ -145,7 +145,7 @@ export default function RulesWizard({
           />
         </label>
         <label>
-          <span className="hub-field-label">Step-up ($)</span>
+          <span className="hub-field-label">Extension step-up ($/yr)</span>
           <input
             type="number"
             min={0}

@@ -199,6 +199,99 @@ def _league_week_windows(season: int) -> tuple[tuple[int, pd.Timestamp, pd.Times
     return tuple(windows)
 
 
+def _parse_gametime(val: object) -> tuple[int, int]:
+    text = str(val or "").strip()
+    if not text or ":" not in text:
+        return 0, 0
+    try:
+        hh_s, mm_s = text.split(":", 1)
+        return max(0, min(23, int(hh_s))), max(0, min(59, int(mm_s)))
+    except (TypeError, ValueError):
+        return 0, 0
+
+
+def week_last_kickoff_et(season: int, week: int) -> datetime | None:
+    """Latest kickoff (America/New_York) for a regular-season week."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    et = ZoneInfo("America/New_York")
+    schedules = _load_schedules([season])
+    games = schedules[
+        (schedules["season"] == season)
+        & (schedules["week"] == int(week))
+        & (schedules["week"] <= REGULAR_SEASON_MAX_WEEK)
+    ]
+    if games.empty:
+        return None
+    latest: datetime | None = None
+    for _, row in games.iterrows():
+        day = pd.Timestamp(row["gameday"])
+        if pd.isna(day):
+            continue
+        if day.tzinfo is not None:
+            date_et = day.tz_convert(et).date()
+        else:
+            date_et = day.date()
+        hh, mm = _parse_gametime(row.get("gametime"))
+        kick = datetime(date_et.year, date_et.month, date_et.day, hh, mm, tzinfo=et)
+        if latest is None or kick > latest:
+            latest = kick
+    return latest
+
+
+def week_rollover_at_et(season: int, week: int) -> datetime | None:
+    """
+    When the projection board advances past this week.
+
+    Rolls at 12:00 AM Eastern at the end of Monday night (Tuesday 00:00 ET)
+    after that week's last kickoff.
+    """
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    et = ZoneInfo("America/New_York")
+    last = week_last_kickoff_et(season, week)
+    if last is None:
+        return None
+    local = last.astimezone(et)
+    days_to_tue = (1 - local.weekday()) % 7  # Monday=0 … Tuesday=1
+    if days_to_tue == 0:
+        # Last kickoff is already on Tuesday — next board flip is the following Tuesday.
+        candidate = local.replace(hour=0, minute=0, second=0, microsecond=0)
+        if local >= candidate:
+            candidate = candidate + timedelta(days=7)
+        return candidate
+    target = local + timedelta(days=days_to_tue)
+    return datetime(target.year, target.month, target.day, 0, 0, 0, tzinfo=et)
+
+
+def current_projection_week(
+    season: int,
+    *,
+    now: datetime | None = None,
+) -> int | None:
+    """
+    Next regular-season week that still has football to play / is the active slate.
+
+    Advances at Tuesday 00:00 ET after each week's Monday Night Football.
+    Returns None when the regular season has fully rolled over.
+    """
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    et = ZoneInfo("America/New_York")
+    now_et = (now or datetime.now(et)).astimezone(et)
+    weeks = regular_season_weeks(season)
+    for week in weeks:
+        rollover = week_rollover_at_et(season, week)
+        if rollover is None:
+            continue
+        if now_et < rollover:
+            return int(week)
+    return None
+
+
 def map_publish_time_to_league_week(published_at: pd.Timestamp, season: int) -> int | None:
     """Map league-wide fantasy content to NFL week using schedule windows."""
     if pd.isna(published_at):

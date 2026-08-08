@@ -4,6 +4,7 @@ from src.draft_hub.contracts import build_rookie_contract, can_renew, renew_play
 from src.draft_hub.pre_draft_cap import (
     ROSTER_CUT_BEFORE_DRAFT,
     cap_summary_for_phase,
+    expires_before_draft,
     pre_draft_cap_summary,
     pre_draft_cut_dead_cap_at_offset,
     retained_through_draft,
@@ -89,6 +90,17 @@ def test_pre_draft_cut_dead_cap_persists_in_multi_year_plan():
     assert plan[2]["dead_cap"] == 40
     assert pre_draft_cut_dead_cap_at_offset(rules, roster[0], 2) == 40
     assert pre_draft_cut_dead_cap_at_offset(rules, roster[0], 3) == 0
+
+
+def test_fa_contract_always_expires_before_draft():
+    """$1 FA contracts leave before draft even with years_remaining > 1 on the row."""
+    row = _row("fac", 1, 2)
+    row["acquisition_type"] = "fa_contract"
+    assert expires_before_draft(row, draft_completed=False) is True
+    assert retained_through_draft(row, draft_completed=False) is False
+    summary = pre_draft_cap_summary(LeagueRules(salary_cap=200), [row], draft_completed=False)
+    assert summary["season_committed"] == 0
+    assert any(p["player_id"] == "fac" for p in summary["dropping_at_draft"])
 
 
 def test_expiring_veteran_drops_before_draft_and_frees_cap():

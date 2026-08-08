@@ -3,30 +3,54 @@ export const HUB_SLUG_TO_ID = {
   setup: "setup",
   players: "value",
   roster: "roster",
+  rosters: "rosters",
   draft: "room",
   cap: "planner",
   trades: "trades",
   insights: "insights",
+  office: "office",
 };
 
-export const HUB_ID_TO_SLUG = Object.fromEntries(
-  Object.entries(HUB_SLUG_TO_ID).map(([slug, id]) => [id, slug]),
-);
+/** Explicit reverse map (do not derive — avoids roster/rosters collisions). */
+export const HUB_ID_TO_SLUG = {
+  setup: "setup",
+  value: "players",
+  roster: "roster",
+  rosters: "rosters",
+  room: "draft",
+  planner: "cap",
+  trades: "trades",
+  insights: "insights",
+  office: "office",
+};
 
 /** Insights URL slug ↔ internal tab id */
 export const INSIGHT_SLUG_TO_ID = {
   spend: "cap",
   scoring: "scoring",
   history: "ownership",
-  desk: "desk",
-  // Legacy aliases → commissioner desk
-  salaries: "desk",
-  contracts: "desk",
 };
 
 export const INSIGHT_ID_TO_SLUG = Object.fromEntries(
   Object.entries(INSIGHT_SLUG_TO_ID).map(([slug, id]) => [id, slug]),
 );
+
+/** Office URL slug ↔ internal tab id */
+export const OFFICE_SLUG_TO_ID = {
+  chat: "chat",
+  current: "current",
+  historic: "historic",
+  members: "members",
+};
+
+export const OFFICE_ID_TO_SLUG = { ...OFFICE_SLUG_TO_ID };
+
+/** Legacy Insights desk tabs → Office pane */
+export const LEGACY_DESK_TO_OFFICE = {
+  desk: "current",
+  salaries: "historic",
+  contracts: "historic",
+};
 
 export const WEEKLY_PANELS = new Set(["projections", "injuries", "fantasy"]);
 
@@ -75,6 +99,18 @@ export function parseAppPath(pathname) {
   if (root === "hub") {
     if (parts[1] === "insights") {
       const insightSlug = parts[2];
+      if (insightSlug && LEGACY_DESK_TO_OFFICE[insightSlug]) {
+        return {
+          view: "hub",
+          projectionsTab: null,
+          projectionsMobilePanel: null,
+          seasonMode: null,
+          toolsTab: null,
+          hubSubView: "office",
+          insightTab: null,
+          officeTab: LEGACY_DESK_TO_OFFICE[insightSlug],
+        };
+      }
       const insightTab = insightSlug
         ? (INSIGHT_SLUG_TO_ID[insightSlug] || "cap")
         : "cap";
@@ -86,9 +122,24 @@ export function parseAppPath(pathname) {
         toolsTab: null,
         hubSubView: "insights",
         insightTab,
+        officeTab: null,
       };
     }
-    const slug = parts[1] || "setup";
+    if (parts[1] === "office") {
+      const officeSlug = parts[2] || "chat";
+      const officeTab = OFFICE_SLUG_TO_ID[officeSlug] || "chat";
+      return {
+        view: "hub",
+        projectionsTab: null,
+        projectionsMobilePanel: null,
+        seasonMode: null,
+        toolsTab: null,
+        hubSubView: "office",
+        insightTab: null,
+        officeTab,
+      };
+    }
+    const slug = parts[1] || "players";
     if (slug === "live") {
       return {
         view: "hub",
@@ -98,6 +149,7 @@ export function parseAppPath(pathname) {
         toolsTab: null,
         hubSubView: "insights",
         insightTab: "scoring",
+        officeTab: null,
       };
     }
     if (slug === "teams") {
@@ -107,11 +159,12 @@ export function parseAppPath(pathname) {
         projectionsMobilePanel: null,
         seasonMode: null,
         toolsTab: null,
-        hubSubView: "insights",
-        insightTab: "desk",
+        hubSubView: "office",
+        insightTab: null,
+        officeTab: "current",
       };
     }
-    const hubSubView = HUB_SLUG_TO_ID[slug] || "setup";
+    const hubSubView = HUB_SLUG_TO_ID[slug] || "value";
     return {
       view: "hub",
       projectionsTab: null,
@@ -120,6 +173,7 @@ export function parseAppPath(pathname) {
       toolsTab: null,
       hubSubView,
       insightTab: hubSubView === "insights" ? "cap" : null,
+      officeTab: hubSubView === "office" ? "chat" : null,
     };
   }
 
@@ -172,8 +226,9 @@ export function buildAppPath({
   seasonMode = "live",
   seasonMobilePanel = "projections",
   toolsTab = "dfs",
-  hubSubView = "setup",
+  hubSubView = "value",
   insightTab = "cap",
+  officeTab = "chat",
   adminTab = "overview",
 }) {
   if (view === "projections") {
@@ -196,7 +251,11 @@ export function buildAppPath({
       const slug = INSIGHT_ID_TO_SLUG[insightTab] || "spend";
       return `/hub/insights/${slug}`;
     }
-    const slug = HUB_ID_TO_SLUG[hubSubView] || "setup";
+    if (hubSubView === "office") {
+      const slug = OFFICE_ID_TO_SLUG[officeTab] || "chat";
+      return `/hub/office/${slug}`;
+    }
+    const slug = HUB_ID_TO_SLUG[hubSubView] || "players";
     return `/hub/${slug}`;
   }
   if (view === "tools") {

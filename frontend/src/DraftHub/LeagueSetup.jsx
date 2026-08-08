@@ -1,10 +1,12 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
 import { effectiveHubContext } from "./hubContext";
 import LeagueSwitcher from "./LeagueSwitcher";
 import { effectiveMemberships, isSoloContext } from "./hubLeagues";
+
+const TYPE_LABEL = { rookie: "Rookie deal", veteran: "Veteran", extension: "Extension" };
 
 export default function LeagueSetup({
   workspace,
@@ -40,9 +42,49 @@ export default function LeagueSetup({
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
   const [showAddLeague, setShowAddLeague] = useState(false);
+  const [pendingTypes, setPendingTypes] = useState([]);
 
   const season = workspace?.season ?? new Date().getFullYear();
   const presetLabel = presets?.find((p) => p.id === "salary_cap_auction_v1")?.label || "Salary cap auction";
+
+  useEffect(() => {
+    if (!isCommissioner || !ctx?.league_id) {
+      setPendingTypes([]);
+      return undefined;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch("/api/hub/contract/pending-types");
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (!cancelled) setPendingTypes(data.pending || []);
+      } catch {
+        if (!cancelled) setPendingTypes([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isCommissioner, ctx?.league_id, msg]);
+
+  const decidePending = async (playerId, approve) => {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await apiFetch("/api/hub/contract/pending-types/decide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ player_id: playerId, approve }),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      setPendingTypes((prev) => prev.filter((p) => p.player_id !== playerId));
+      setMsg(approve ? "Contract type approved." : "Contract type rejected.");
+      onLeagueCreated?.();
+    } catch (e) {
+      setError(e.message || "Could not update pending type");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const createLeague = async () => {
     if (!leagueName.trim()) {
@@ -110,6 +152,12 @@ export default function LeagueSetup({
 
   const toggleDraftCompleted = async () => {
     if (!ctx?.league_id) return;
+    if (!draftCompleted) {
+      const ok = window.confirm(
+        "This starts the new contract year. Every active player’s years left will drop by 1. Anyone at 0 leaves as a free agent. Continue?",
+      );
+      if (!ok) return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -119,8 +167,16 @@ export default function LeagueSetup({
         body: JSON.stringify({ draft_completed: !draftCompleted }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
-      onLeagueCreated?.(await res.json());
-      setMsg(draftCompleted ? "Back to pre-draft mode." : "Draft marked complete.");
+      const data = await res.json();
+      onLeagueCreated?.(data);
+      const tick = data.contract_year_tick;
+      if (!draftCompleted && tick) {
+        const parts = [`Contracts updated: ${tick.advanced || 0} players −1 year`];
+        if (tick.expired) parts.push(`${tick.expired} became FA`);
+        setMsg(parts.join("; ") + ".");
+      } else {
+        setMsg(draftCompleted ? "Back to pre-draft mode." : "Draft marked complete.");
+      }
     } catch (e) {
       setError(e.message || "Could not update league settings");
     } finally {
@@ -180,6 +236,34 @@ export default function LeagueSetup({
           </div>
           {leagueSyncMessage && <p className="chart-note hub-league-sync-msg">{leagueSyncMessage}</p>}
           {leagueSyncError && <div className="error hub-league-sync-error">{leagueSyncError}</div>}
+        </div>
+      )}
+
+      {isCommissioner && pendingTypes.length > 0 && (
+        <div className="hub-pending-types">
+          <h3 className="hub-pending-types-title">Pending contract types</h3>
+          <ul className="hub-pending-types-list">
+            {pendingTypes.map((p) => (
+              <li key={p.player_id} className="hub-pending-types-item">
+                <div>
+                  <strong>{p.player_name}</strong>
+                  <span className="table-meta">
+                    {" · "}{p.team_name || "Team"}
+                    {" · "}{TYPE_LABEL[p.current_type] || p.current_type}
+                    {" → "}{TYPE_LABEL[p.pending_type] || p.pending_type}
+                  </span>
+                </div>
+                <div className="hub-pending-types-actions">
+                  <button type="button" className="btn-primary btn-sm" disabled={busy} onClick={() => decidePending(p.player_id, true)}>
+                    Approve
+                  </button>
+                  <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={() => decidePending(p.player_id, false)}>
+                    Reject
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
