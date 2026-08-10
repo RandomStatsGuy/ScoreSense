@@ -28,7 +28,26 @@ jobs:
             # Documented production path (AGENTS.md / docs/DEPLOY_CLOUDFLARE_TUNNEL.md)
             cd /root/scoresense
 
-            git pull origin master
+            # Preserve host runtime state that must not be wiped by a hard reset.
+            # .env is gitignored (survives reset). draft_hub.db is tracked in git
+            # but the live league DB on the VPS must not be replaced by the repo copy.
+            DB_BACKUP=""
+            if [ -f data/draft_hub/draft_hub.db ]; then
+              DB_BACKUP="$(mktemp /tmp/scoresense-draft-hub.XXXXXX.db)"
+              cp -a data/draft_hub/draft_hub.db "$DB_BACKUP"
+            fi
+
+            # VPS working trees are often dirty with generated artifacts/data.
+            # Hard-reset to origin/master so deploys are deterministic.
+            git fetch origin master
+            git checkout master
+            git reset --hard origin/master
+
+            if [ -n "$DB_BACKUP" ] && [ -f "$DB_BACKUP" ]; then
+              mkdir -p data/draft_hub
+              cp -a "$DB_BACKUP" data/draft_hub/draft_hub.db
+              rm -f "$DB_BACKUP"
+            fi
 
             # Rebuild frontend inside the image and recreate the API container
             bash deploy/server/deploy-on-server.sh
