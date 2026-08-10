@@ -1,12 +1,39 @@
 name: CI
 
+# Keep unit tests, but avoid burning Actions minutes on every intermediate
+# agent push while a PR is still a draft.
 on:
   push:
-    branches: [main, master]
+    branches: [master, develop]
+    paths:
+      - "app/**"
+      - "src/**"
+      - "frontend/**"
+      - "tests/**"
+      - "requirements.txt"
+      - "pyproject.toml"
+      - ".github/workflows/ci.yml"
   pull_request:
+    types: [opened, ready_for_review, reopened, synchronize]
+    branches: [develop, master]
+    paths:
+      - "app/**"
+      - "src/**"
+      - "frontend/**"
+      - "tests/**"
+      - "requirements.txt"
+      - "pyproject.toml"
+      - ".github/workflows/ci.yml"
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
+    # Draft PRs are for iteration. Run CI when the PR is ready (or on
+    # push to protected integration branches).
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
