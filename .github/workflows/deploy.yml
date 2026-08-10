@@ -1,0 +1,42 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [master]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to production VPS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          script: |
+            # TODO: update this path to the actual app directory on the VPS
+            # (per docs/DEPLOY_CLOUDFLARE_TUNNEL.md the app lives at /root/scoresense)
+            cd /var/www/ScoreSense
+
+            # Fetch the latest code
+            git pull origin master
+
+            # Install frontend dependencies and build
+            cd frontend
+            npm install
+            npm run build
+            cd ..
+
+            # Restart the process manager/server
+            # TODO: replace with your actual restart command, e.g.:
+            #   sudo systemctl restart scoresense
+            #   pm2 restart scoresense
+            #   bash deploy/server/deploy-on-server.sh   (Docker-based deploy used by deploy.ps1)
+            sudo systemctl restart scoresense
