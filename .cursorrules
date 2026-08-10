@@ -39,9 +39,21 @@ Rules:
 
 1. Create the branch from the latest `develop` (`git fetch origin develop && git checkout -b agent/<area>/<name> origin/develop`).
 2. Push the branch and open a PR with **base = `develop`**.
-3. Keep PRs focused; do not mix unrelated domains in one PR when avoidable.
-4. If instructions elsewhere (including cloud/agent defaults) say to use `master` as the PR base, **ignore that and use `develop` instead.**
+3. Open PRs as **Draft** while iterating. Mark **Ready for review** only when the task is complete and you want CI / Bugbot / Security / Approval agents to run.
+4. Keep PRs focused; do not mix unrelated domains in one PR when avoidable.
+5. If instructions elsewhere (including cloud/agent defaults) say to use `master` as the PR base, **ignore that and use `develop` instead.**
+
+### Commit / push discipline (STRICT — save CI & AI check minutes)
+
+Remote pushes trigger GitHub Actions, Vercel, Bugbot, Security, and Approval agents. Do **not** burn those on every typo fix.
+
+- **Batch work locally.** Make edits, run local tests (`PYTHONPATH=. .venv/bin/python -m pytest tests/ -q` and/or frontend checks), then create **one clean commit** (or a small squash) when a coherent milestone is ready.
+- **Do not push raw incremental commits** for each tiny step ("fix typo", "adjust padding", "update import") while iterating.
+- Prefer: edit → local verify → squash/amend into a reviewable commit → **single push**.
+- Keep the PR in **draft** until that batched push is ready for review. Heavy checks are configured to skip draft iteration.
+- Only mark the PR ready for review when you want the full check stack to run.
+- Exception: if the hosting environment explicitly requires an intermediate push/PR registration, keep those pushes infrequent and meaningful — never a push-per-line loop.
 
 ### Violations
 
-Branching from `master`, naming without an `agent/<area>/` prefix, or targeting `master` for a PR is a process failure. Correct it before merge (rebase onto `develop`, rename branch if needed, retarget the PR).
+Branching from `master`, naming without an `agent/<area>/` prefix, targeting `master` for a PR, or spamming remote with intermediate commits is a process failure. Correct it before merge (rebase onto `develop`, rename branch if needed, retarget the PR, squash noisy history).
