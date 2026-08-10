@@ -8,6 +8,7 @@ from typing import Any
 
 from src.draft_hub import storage
 from src.draft_hub.contract_rows_merged import active_merged_contract_rows, list_merged_contract_rows
+from src.draft_hub.legacy_contract_history import _displayable_contract_row
 from src.draft_hub.player_name_match import (
     cluster_key,
     find_matching_player_key,
@@ -60,8 +61,6 @@ def _all_merged_rows(
     *,
     view: str = "snapshot",
 ) -> list[dict[str, Any]]:
-    from src.draft_hub.legacy_contract_history import _displayable_contract_row
-
     rows = list_merged_contract_rows(league_id, season_year=season_year, view=view)
     return [r for r in rows if _displayable_contract_row(r) or str(r.get("roster_status") or "") == "cut"]
 

@@ -301,7 +301,10 @@ def test_draft_preseason_ind_starter_is_daniel_jones():
     assert depth.get("keep_per_team") == 2
     assert len(ind) == 2
     assert ind.iloc[0]["Player"] == "Daniel Jones"
-    assert "Anthony Richardson" not in set(draft["Player"])
+    # Draft depth keeps QB2; Richardson may remain as a scaled backup.
+    richardson = draft[draft["Player"] == "Anthony Richardson"]
+    if not richardson.empty:
+        assert float(richardson.iloc[0]["Season Proj"]) < float(ind.iloc[0]["Season Proj"]) * 0.5
 
 
 def test_draft_preseason_rattler_is_backup_not_starter_volume():

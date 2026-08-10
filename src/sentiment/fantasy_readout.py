@@ -185,6 +185,12 @@ def _resolve_fantasy_week(
     season: int,
     week: int,
 ) -> tuple[int, int, bool]:
+    """Use latest available narrative week when the requested slate has no mentions.
+
+    Same-season missing weeks fall back within that season. Cross-season fallback
+    only applies for the upcoming season (max_season + 1), matching beat-writer
+    sentiment resolution — far-future empty seasons stay empty.
+    """
     scoped = _position_filter(features, position)
     has_data = not scoped[
         (scoped["season"] == season)
@@ -198,9 +204,16 @@ def _resolve_fantasy_week(
     if not season_scoped.empty:
         latest_row = season_scoped.sort_values("week").iloc[-1]
         return season, int(latest_row["week"]), True
-    latest = _latest_fantasy_week(features, position)
-    if latest is not None:
-        return latest[0], latest[1], True
+    if features.empty or "season" not in features.columns:
+        return season, week, False
+    max_season = int(features["season"].max())
+    # Allow fallback for the current or upcoming season (including when the
+    # requested season exists in features but has no fantasy mentions yet).
+    # Far-future empty seasons (e.g. 2099) stay empty.
+    if season <= max_season + 1:
+        latest = _latest_fantasy_week(features, position)
+        if latest is not None:
+            return latest[0], latest[1], True
     return season, week, False
 
 

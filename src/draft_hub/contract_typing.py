@@ -266,6 +266,10 @@ def advance_roster_contracts_for_draft_complete(
         status = str(row.get("roster_status") or "active")
         if status != "active":
             continue
+        # Fresh auction awards are for the upcoming season — do not burn a year
+        # on the same draft-complete tick that keepers advance on.
+        if str(row.get("source") or "") == "draft":
+            continue
         new_contract = advance_contract_year(row.get("contract"), row)
         if new_contract is None:
             expired += 1

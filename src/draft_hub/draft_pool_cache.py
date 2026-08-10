@@ -44,7 +44,10 @@ def pool_fingerprint() -> str:
         from src.config import ROOKIE_ROLE_OVERRIDES_PATH
 
         if ROOKIE_ROLE_OVERRIDES_PATH.exists():
-            parts.append(f"rookie_overrides:{ROOKIE_ROLE_OVERRIDES_PATH.stat().st_mtime_ns}")
+            # Content hash (not mtime) so edits are detected even on filesystems
+            # with coarse timestamp resolution.
+            digest = hashlib.sha256(ROOKIE_ROLE_OVERRIDES_PATH.read_bytes()).hexdigest()[:16]
+            parts.append(f"rookie_overrides:{digest}")
     except Exception:
         pass
     return hashlib.sha256("|".join(parts).encode()).hexdigest()[:16]

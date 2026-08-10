@@ -69,7 +69,11 @@ def test_import_applies_owner_map(hub_db, monkeypatch):
     assert all(r.get("hub_team_name") == "Mapped Aaron Team" for r in rows)
 
 
-def test_analytics_groups_by_mapped_team(hub_db):
+def test_analytics_groups_by_mapped_team(hub_db, monkeypatch):
+    monkeypatch.setattr(
+        "src.draft_hub.contract_rows_merged.load_commissioner_rows_by_season",
+        lambda: {},
+    )
     league = storage.create_league("anal-map", "Analytics Map", 2025, LeagueRules())
     lid = league["id"]
     storage.upsert_owner_season_map(lid, 2024, "Aaron D", "Display Team", source_kind="manual")
@@ -94,9 +98,13 @@ def test_analytics_groups_by_mapped_team(hub_db):
     assert "Stale Name" not in teams
 
 
-def test_contract_awards_use_owner_season_map(hub_db):
+def test_contract_awards_use_owner_season_map(hub_db, monkeypatch):
     from src.draft_hub.historic_insights import build_contract_awards
 
+    monkeypatch.setattr(
+        "src.draft_hub.contract_rows_merged.load_commissioner_rows_by_season",
+        lambda: {},
+    )
     league = storage.create_league("award-map", "Award Map", 2025, LeagueRules())
     lid = league["id"]
     storage.upsert_owner_season_map(lid, 2025, "Aaron D", "2025 Aaron Team", source_kind="manual")
