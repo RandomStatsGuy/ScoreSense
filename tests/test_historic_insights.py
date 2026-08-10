@@ -16,7 +16,12 @@ from src.draft_hub.schemas import LeagueRules
 
 
 @pytest.fixture()
-def league_with_contracts(hub_db):
+def league_with_contracts(hub_db, monkeypatch):
+    # Isolate fixture DB rows from global old_league_files Excel merges.
+    monkeypatch.setattr(
+        "src.draft_hub.contract_rows_merged.load_commissioner_rows_by_season",
+        lambda: {},
+    )
     league = storage.create_league("hist", "Historic", 2025, LeagueRules())
     lid = league["id"]
     storage.replace_league_contract_season(

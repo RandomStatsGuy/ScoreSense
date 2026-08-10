@@ -274,14 +274,14 @@ def test_insights_trades_skips_draft_pool_when_fair_values_cached(hub_client, hu
 
     monkeypatch.setattr("src.draft_hub.value_sheet._load_draft_pool", _boom)
     from src.draft_hub import storage
-    from src.draft_hub.draft_pool_cache import pool_fingerprint
+    from src.draft_hub.insights_cache import _fair_fingerprint
 
     league = storage.create_league("dev", "Trades Cache League", 2026, LeagueRules())
     storage.upsert_insights_fair_values(
         league["id"],
         2026,
         {"p1": 12.5, "p2": 8.0},
-        pool_fingerprint=pool_fingerprint(),
+        pool_fingerprint=_fair_fingerprint(),
     )
     res = hub_client.get(f"/api/hub/league/{league['id']}/insights/trades")
     assert res.status_code == 200

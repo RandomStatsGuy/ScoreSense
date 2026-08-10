@@ -1,0 +1,34 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [master]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to production VPS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        # appleboy/ssh-action@v1.2.5 — pin to commit SHA so the tag cannot be retargeted
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Docker image rebuild can exceed the action default (10m)
+          command_timeout: 30m
+          script: |
+            set -euo pipefail
+
+            # Documented production path (AGENTS.md / docs/DEPLOY_CLOUDFLARE_TUNNEL.md)
+            cd /root/scoresense
+
+            git pull origin master
+
+            # Rebuild frontend inside the image and recreate the API container
+            bash deploy/server/deploy-on-server.sh
