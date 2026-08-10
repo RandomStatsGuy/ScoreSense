@@ -14,29 +14,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1
+        # appleboy/ssh-action@v1.2.5 — pin to commit SHA so the tag cannot be retargeted
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          script_stop: true
+          # Docker image rebuild can exceed the action default (10m)
+          command_timeout: 30m
           script: |
-            # TODO: update this path to the actual app directory on the VPS
-            # (per docs/DEPLOY_CLOUDFLARE_TUNNEL.md the app lives at /root/scoresense)
-            cd /var/www/ScoreSense
+            set -euo pipefail
 
-            # Fetch the latest code
+            # Documented production path (AGENTS.md / docs/DEPLOY_CLOUDFLARE_TUNNEL.md)
+            cd /root/scoresense
+
             git pull origin master
 
-            # Install frontend dependencies and build
-            cd frontend
-            npm install
-            npm run build
-            cd ..
-
-            # Restart the process manager/server
-            # TODO: replace with your actual restart command, e.g.:
-            #   sudo systemctl restart scoresense
-            #   pm2 restart scoresense
-            #   bash deploy/server/deploy-on-server.sh   (Docker-based deploy used by deploy.ps1)
-            sudo systemctl restart scoresense
+            # Rebuild frontend inside the image and recreate the API container
+            bash deploy/server/deploy-on-server.sh
