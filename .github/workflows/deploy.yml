@@ -31,10 +31,23 @@ jobs:
             # Preserve host runtime state that must not be wiped by a hard reset.
             # .env is gitignored (survives reset). draft_hub.db is tracked in git
             # but the live league DB on the VPS must not be replaced by the repo copy.
+            # Draft Hub uses SQLite WAL — stop writers, checkpoint, then back up a
+            # single consistent main DB so reset/restore cannot pair a new main
+            # file with stale -wal/-shm sidecars.
+            if [ -f deploy/docker-compose.prod.yml ]; then
+              docker compose -f deploy/docker-compose.prod.yml stop api || true
+            fi
+
             DB_BACKUP=""
             if [ -f data/draft_hub/draft_hub.db ]; then
               DB_BACKUP="$(mktemp /tmp/scoresense-draft-hub.XXXXXX.db)"
-              cp -a data/draft_hub/draft_hub.db "$DB_BACKUP"
+              if command -v sqlite3 >/dev/null 2>&1; then
+                sqlite3 data/draft_hub/draft_hub.db "PRAGMA wal_checkpoint(TRUNCATE);"
+                sqlite3 data/draft_hub/draft_hub.db ".backup '$DB_BACKUP'"
+              else
+                cp -a data/draft_hub/draft_hub.db "$DB_BACKUP"
+              fi
+              rm -f data/draft_hub/draft_hub.db-wal data/draft_hub/draft_hub.db-shm
             fi
 
             # VPS working trees are often dirty with generated artifacts/data.
@@ -46,6 +59,7 @@ jobs:
             if [ -n "$DB_BACKUP" ] && [ -f "$DB_BACKUP" ]; then
               mkdir -p data/draft_hub
               cp -a "$DB_BACKUP" data/draft_hub/draft_hub.db
+              rm -f data/draft_hub/draft_hub.db-wal data/draft_hub/draft_hub.db-shm
               rm -f "$DB_BACKUP"
             fi
 

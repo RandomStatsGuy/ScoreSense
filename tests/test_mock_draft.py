@@ -201,8 +201,19 @@ def test_simulate_draft_and_owner_contracts(hub_db, monkeypatch):
     wins = [e for e in state["events"] if e.get("event_type") == "win"]
     assert len(wins) >= 1
 
+    # Auction ceilings are seeded from team UUIDs, so the human can lose every
+    # pick. Prefer mock-user when they won; otherwise use any rostered team so
+    # owner-report / contract updates stay covered.
     team = storage.get_team_by_user(league_id, "mock-user")
-    roster = storage.list_team_roster(league_id, team["id"])
+    roster = storage.list_team_roster(league_id, team["id"]) if team else []
+    if not roster:
+        for t in storage.list_league_teams(league_id):
+            r = storage.list_team_roster(league_id, t["id"])
+            if r:
+                team, roster = t, r
+                break
+    assert team is not None and roster, "simulation produced wins but no roster slots"
+
     report = build_owner_draft_report(
         league_id,
         team["id"],
@@ -212,11 +223,10 @@ def test_simulate_draft_and_owner_contracts(hub_db, monkeypatch):
     assert report is not None
     assert report["pick_count"] == len(roster)
 
-    if roster:
-        pid = roster[0]["player_id"]
-        league = storage.get_league(league_id)
-        ws = storage.roster_workspace_for_league(league)
-        storage.update_roster_slot(ws, pid, team_id=team["id"], contract_years=3)
-        updated = storage.list_team_roster(league_id, team["id"])
-        slot = next(r for r in updated if str(r["player_id"]) == str(pid))
-        assert int(slot["contract_years"]) == 3
+    pid = roster[0]["player_id"]
+    league = storage.get_league(league_id)
+    ws = storage.roster_workspace_for_league(league)
+    storage.update_roster_slot(ws, pid, team_id=team["id"], contract_years=3)
+    updated = storage.list_team_roster(league_id, team["id"])
+    slot = next(r for r in updated if str(r["player_id"]) == str(pid))
+    assert int(slot["contract_years"]) == 3
