@@ -35,7 +35,9 @@ jobs:
             # single consistent main DB so reset/restore cannot pair a new main
             # file with stale -wal/-shm sidecars.
             if [ -f deploy/docker-compose.prod.yml ]; then
-              docker compose -f deploy/docker-compose.prod.yml stop api || true
+              # Must succeed: a failed stop must not continue to WAL checkpoint /
+              # sidecar removal while the API may still hold the DB open.
+              docker compose -f deploy/docker-compose.prod.yml stop api
             fi
 
             DB_BACKUP=""
