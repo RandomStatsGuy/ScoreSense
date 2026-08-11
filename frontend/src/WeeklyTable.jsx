@@ -212,8 +212,9 @@ function exportCsv(rows) {
   downloadCsv("scoresense-projections", lines);
 }
 
+// Number(null) === 0; coerce missing projections to NaN so they stay unranked.
 const rankMetric = (row) =>
-  isPlayerUnavailable(row["Injury Status"]) ? NaN : Number(row["Projected Points"]);
+  isPlayerUnavailable(row["Injury Status"]) ? NaN : Number(row["Projected Points"] ?? NaN);
 
 export default function WeeklyTable({
   rows,
