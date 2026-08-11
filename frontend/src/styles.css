@@ -2050,8 +2050,9 @@ input[type="search"].search-input {
   left: 0;
   z-index: 1;
   background: var(--panel-bg, #0f172a);
-  min-width: 7.5rem;
-  max-width: 11rem;
+  width: auto;
+  min-width: 8rem;
+  max-width: none;
   box-shadow: 2px 0 6px rgba(0, 0, 0, 0.2);
 }
 
@@ -2125,7 +2126,8 @@ input[type="search"].search-input {
   flex-direction: column;
   align-items: flex-end;
   gap: 0.2rem;
-  min-width: 5.5rem;
+  min-width: 0;
+  width: 100%;
 }
 
 .season-range-cell-main {
@@ -2140,8 +2142,8 @@ input[type="search"].search-input {
 
 .season-range-cell-bar {
   width: 100%;
-  min-width: 5.5rem;
-  max-width: 7.5rem;
+  min-width: 0;
+  max-width: none;
 }
 
 .season-range-cell-bar .quantile-bar {
@@ -3285,13 +3287,7 @@ th.hover-tip-trigger.col-tip {
   margin: 0 0 0.75rem;
 }
 
-th.col-range {
-  min-width: 140px;
-}
-
-.col-floor-ceiling {
-  white-space: nowrap;
-}
+/* col-range / col-floor-ceiling widths set with table-layout: fixed above */
 
 /* Primary metric column (projected points / season total) — strongest number on the row. */
 th.col-proj,
@@ -3771,6 +3767,102 @@ table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.88rem;
+}
+
+/* Fixed layout keeps short cols (team/pos/status) from absorbing leftover width.
+   Scoped to projection/value tables that define column budgets — not every hub table. */
+.table-wrap > table:has(.col-range),
+.hub-table:has(.hub-col-fv) {
+  table-layout: fixed;
+}
+
+th.col-team,
+td.col-team,
+th.col-opp,
+td.col-opp {
+  width: var(--col-team-width);
+  min-width: var(--col-team-width);
+  max-width: var(--col-team-width);
+  white-space: nowrap;
+}
+
+th.col-opp,
+td.col-opp {
+  width: var(--col-opp-width);
+  min-width: var(--col-opp-width);
+  max-width: var(--col-opp-width);
+}
+
+th.col-proj,
+td.num-proj {
+  width: var(--col-season-width);
+  max-width: 8rem;
+}
+
+th.col-range,
+td.range-cell {
+  width: auto;
+  min-width: 7.5rem;
+}
+
+.col-floor-ceiling {
+  width: var(--col-floor-ceiling-width);
+  min-width: var(--col-floor-ceiling-width);
+  max-width: var(--col-floor-ceiling-width);
+  white-space: nowrap;
+}
+
+th.col-per-game,
+td.col-per-game {
+  width: var(--col-per-game-width);
+  min-width: var(--col-per-game-width);
+  max-width: var(--col-per-game-width);
+  white-space: nowrap;
+}
+
+.hub-table .hub-col-team {
+  width: var(--col-team-width);
+  max-width: var(--col-team-width);
+  white-space: nowrap;
+}
+.hub-table .hub-col-pos {
+  width: var(--hub-col-pos-width);
+  max-width: var(--hub-col-pos-width);
+  text-align: center;
+  white-space: nowrap;
+}
+.hub-table .hub-col-proj {
+  width: var(--hub-col-proj-width);
+  max-width: 7.5rem;
+}
+.hub-table .hub-col-pg,
+.hub-table .hub-col-spread,
+.hub-table .hub-col-min,
+.hub-table .hub-col-max,
+.hub-table .hub-col-delta {
+  width: var(--hub-col-num-width);
+  max-width: var(--hub-col-num-width);
+  white-space: nowrap;
+}
+.hub-table .hub-col-fv {
+  width: 5.5rem;
+  max-width: 5.5rem;
+  white-space: nowrap;
+}
+.hub-table .hub-col-tier {
+  width: 4.5rem;
+  max-width: 4.5rem;
+  white-space: nowrap;
+}
+.hub-table .hub-col-status {
+  width: var(--hub-col-status-width);
+  max-width: var(--hub-col-status-width);
+  white-space: nowrap;
+}
+.hub-table .hub-col-actions {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
 }
 
 th, td {
@@ -7270,7 +7362,10 @@ td.col-rank.col-rank-top {
   display: inline-flex;
 }
 .hub-col-risk {
+  width: 3.25rem;
   min-width: 3.25rem;
+  max-width: 3.25rem;
+  white-space: nowrap;
 }
 .hub-insights { display: flex; flex-direction: column; gap: 1rem; }
 .hub-insights-league-meta { margin: -0.35rem 0 0; }

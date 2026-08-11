@@ -254,7 +254,7 @@ export default function DraftTable({
             <tr>
               <th className="num col-rank" title="Position rank by projected season total">#</th>
               <SortHeader label="Player" sortKey="Player" sort={sort} onSort={toggleSort} className="col-player" />
-              <SortHeader label="Team" sortKey="Team" sort={sort} onSort={toggleSort} />
+              <SortHeader label="Team" sortKey="Team" sort={sort} onSort={toggleSort} className="col-team" />
               <SortHeader
                 label="Season"
                 sortKey="Proj"
@@ -285,6 +285,7 @@ export default function DraftTable({
                 sortKey="PerGame"
                 sort={sort}
                 onSort={toggleSort}
+                className="col-per-game"
                 tip="Season projection divided by expected games"
               />
             </tr>
@@ -335,7 +336,7 @@ export default function DraftTable({
                       </span>
                     ) : null}
                   </td>
-                  <td>{row.Team ? <Chip tone="team">{row.Team}</Chip> : "—"}</td>
+                  <td className="col-team">{row.Team ? <Chip tone="team">{row.Team}</Chip> : "—"}</td>
                   <td className="num num-proj">
                     <SeasonRangeCell
                       row={row}
@@ -361,7 +362,7 @@ export default function DraftTable({
                   <td className="num num-secondary col-floor-ceiling">
                     {formatSeasonPts(band.p90 ?? row["Season Ceiling"], 0)}
                   </td>
-                  <td className="num">{fmtNum(row["Per-Game Proj"], 1)}</td>
+                  <td className="num col-per-game">{fmtNum(row["Per-Game Proj"], 1)}</td>
                 </tr>
               );
             })}

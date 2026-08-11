@@ -233,7 +233,7 @@ export default function SeasonTable({
                 #
               </th>
               <SortHeader label="Player" sortKey="Player" sort={sort} onSort={toggleSort} className="col-player" />
-              <SortHeader label="Team" sortKey="Team" sort={sort} onSort={toggleSort} />
+              <SortHeader label="Team" sortKey="Team" sort={sort} onSort={toggleSort} className="col-team" />
               <SortHeader
                 label="Reg pts"
                 sortKey="RegPts"
@@ -348,7 +348,7 @@ export default function SeasonTable({
                     week={week ?? projectionWeek}
                   />
                 </td>
-                <td>{row.Team ? <Chip tone="team">{row.Team}</Chip> : "—"}</td>
+                <td className="col-team">{row.Team ? <Chip tone="team">{row.Team}</Chip> : "—"}</td>
                 <td className="num">{fmtNum(rosRegPts(row))}</td>
                 <td className="num muted">{rosGamesPlayed(row) ?? "—"}</td>
                 <td className={`num${seasonComplete ? " num-proj" : ""}`}>{fmtNum(rosPPG(row))}</td>
