@@ -70,12 +70,13 @@ export function computeRiskAdjustedValue(
 
 /** Prefer backend RAAV; fall back to client preview when tolerance is non-zero. */
 export function resolveRiskAdjustedValue(row, riskTolerance, rules) {
+  const tol = riskTolerance ?? rules?.risk_tolerance ?? 0;
+  // Balanced/neutral stance must use fair value even if rows still carry stale RAAV.
+  if (!isRiskToleranceActive(tol)) return null;
   const backend = row?.risk_adjusted_value;
   if (backend != null && Number.isFinite(Number(backend))) {
     return Number(backend);
   }
-  const tol = riskTolerance ?? rules?.risk_tolerance ?? 0;
-  if (!isRiskToleranceActive(tol)) return null;
   const fair = row?.fair_value ?? row?.model_bid_hint;
   return computeRiskAdjustedValue(fair, row?.risk_score, tol, {
     minBid: rules?.auction?.min_bid ?? 1,

@@ -139,9 +139,11 @@ export default function ValueSheetTable({
       search,
       sortKey,
       sortDir,
+      riskTolerance,
+      rules,
     });
     return maxRows ? list.slice(0, maxRows) : list;
-  }, [rows, isAvailableView, posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, maxRows]);
+  }, [rows, isAvailableView, posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, maxRows, riskTolerance, rules]);
 
   const seasonScaleMax = useMemo(() => {
     let max = 0;

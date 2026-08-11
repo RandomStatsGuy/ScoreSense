@@ -1,4 +1,5 @@
 import { upsideSkew } from "../seasonQuantiles";
+import { effectiveAuctionBid } from "../riskAdjustedValue";
 import { normalizeHubPosition } from "./hubPositions";
 
 export const TIER_ORDER = {
@@ -43,9 +44,9 @@ export function isRowAvailable(row) {
   return status === "available" || status === "pass" || status === "target" || status === "sleeper";
 }
 
-export function compareRows(a, b, sortKey, sortDir) {
-  const av = sortValue(a, sortKey);
-  const bv = sortValue(b, sortKey);
+export function compareRows(a, b, sortKey, sortDir, riskTolerance = 0, rules = null) {
+  const av = sortValue(a, sortKey, riskTolerance, rules);
+  const bv = sortValue(b, sortKey, riskTolerance, rules);
   let cmp = 0;
   if (typeof av === "string" || typeof bv === "string") {
     cmp = String(av).localeCompare(String(bv), undefined, { sensitivity: "base" });
@@ -70,7 +71,7 @@ function rowUpsideSkew(row) {
   return upsideSkew(row?.season_p10, row?.season_p50 ?? row?.season_proj, row?.season_p90);
 }
 
-function sortValue(row, key) {
+function sortValue(row, key, riskTolerance = 0, rules = null) {
   switch (key) {
     case "tier":
       return TIER_ORDER[row.tier] ?? 99;
@@ -81,10 +82,9 @@ function sortValue(row, key) {
     case "position":
       return row[key] || row[key === "player" ? "player_name" : key] || "zzz";
     case "fair_value":
-      // When RAAV is populated (risk_tolerance != 0), sort by the displayed bid.
-      return row.risk_adjusted_value ?? row.fair_value ?? row.model_bid_hint ?? null;
     case "risk_adjusted_value":
-      return row.risk_adjusted_value ?? row.fair_value ?? row.model_bid_hint ?? null;
+      // Match RaavBidCell / effectiveAuctionBid (backend RAAV or client preview).
+      return effectiveAuctionBid(row, riskTolerance, rules);
     case "risk_score":
       return row.risk_score != null && Number.isFinite(Number(row.risk_score))
         ? Number(row.risk_score)
@@ -120,6 +120,8 @@ export function filterAndSortRows(rows, {
   search = "",
   sortKey = "fair_value",
   sortDir = "desc",
+  riskTolerance = 0,
+  rules = null,
 }) {
   let list = [...(rows || [])];
   if (pool === "available") {
@@ -150,7 +152,7 @@ export function filterAndSortRows(rows, {
         || String(r.team || "").toLowerCase().includes(q),
     );
   }
-  list.sort((a, b) => compareRows(a, b, sortKey, sortDir));
+  list.sort((a, b) => compareRows(a, b, sortKey, sortDir, riskTolerance, rules));
   return list;
 }
 
