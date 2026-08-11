@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { apiFetch } from "../../auth";
 import { connectionErrorMessage, parseApiError } from "../../format";
 import {
@@ -72,6 +72,16 @@ export function useInsightsData(leagueId, refs) {
   const loadGenerationRef = useRef(0);
   const loadCacheRef = useRef(new Map());
   const scoringPrefetchRef = useRef(false);
+  const leagueIdRef = useRef(leagueId);
+  leagueIdRef.current = leagueId;
+
+  // Prefetch is one-shot per league; reset when the room changes so the next
+  // league can warm Scoring. Bump generation so in-flight loads/prefetches from
+  // the previous room cannot merge into or discard the new league's responses.
+  useEffect(() => {
+    scoringPrefetchRef.current = false;
+    loadGenerationRef.current += 1;
+  }, [leagueId]);
 
   const resolveHistorySeason = useCallback((tab, opts = {}) => {
     const active = opts.activeTab ?? tab;
@@ -211,9 +221,10 @@ export function useInsightsData(leagueId, refs) {
   const prefetchScoring = useCallback(async (handlers) => {
     if (!leagueId || scoringPrefetchRef.current) return;
     scoringPrefetchRef.current = true;
+    const prefetchFor = leagueId;
     try {
       const res = await apiFetch(
-        `/api/hub/league/${encodeURIComponent(leagueId)}/insights/status`,
+        `/api/hub/league/${encodeURIComponent(prefetchFor)}/insights/status`,
       );
       if (res.ok) {
         const status = await res.json();
@@ -222,6 +233,8 @@ export function useInsightsData(leagueId, refs) {
     } catch {
       return;
     }
+    // Drop if the user switched leagues while the status check was in flight.
+    if (leagueIdRef.current !== prefetchFor) return;
     await load(
       {
         sections: "scoring",
