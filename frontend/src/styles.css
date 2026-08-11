@@ -3758,8 +3758,11 @@ h2 {
 }
 
 .table-wrap {
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
+  overscroll-behavior-x: contain;
   max-height: 70vh;
+  max-width: 100%;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
 }
@@ -5325,7 +5328,12 @@ td.col-rank.col-rank-top {
 }
 
 .hub-team-salary-sheets { display: flex; flex-direction: column; gap: 1rem; }
-.hub-salary-matrix-wrap { overflow-x: auto; }
+.hub-salary-matrix-wrap {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
 .hub-salary-matrix-table th.hub-salary-matrix-season-head {
   text-align: center;
   border-bottom: none;
@@ -8446,7 +8454,16 @@ td.col-rank.col-rank-top {
 
 /* --- Mobile shell (tablet + phone) --- */
 @media (max-width: 768px) {
+  /* Keep the page on a single vertical axis; wide children scroll inside wrappers. */
+  html,
+  body {
+    overflow-x: clip;
+    overscroll-behavior-x: none;
+  }
+
   .app {
+    overflow-x: clip;
+    max-width: 100%;
     padding:
       0.75rem
       max(0.75rem, env(safe-area-inset-right))
@@ -9209,6 +9226,9 @@ td.col-rank.col-rank-top {
 
   .table-wrap {
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    /* Prefer horizontal containment inside the wrap; page stays pan-y. */
+    touch-action: pan-x pan-y;
   }
 
   table {
@@ -10615,6 +10635,21 @@ td.col-rank.col-rank-top {
 }
 
 /* League Rosters browser + trade builder */
+.hub-roster-browser-table-wrap .mobile-data-list {
+  margin: 0;
+}
+
+.hub-roster-grade-chip {
+  display: inline-block;
+  padding: 0.08rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  background: rgba(148, 163, 184, 0.12);
+  white-space: nowrap;
+}
+
 .hub-roster-browser-toolbar {
   display: flex;
   flex-wrap: wrap;
