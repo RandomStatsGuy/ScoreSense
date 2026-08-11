@@ -66,6 +66,11 @@ def _sleeper_row_for_hint(
     pid = str(player_id or "").strip()
     if _GSIS_RE.match(pid) and pid in by_gsis:
         return by_gsis[pid]
+    # Hub stores many non-GSIS players as sleeper-{id} (same as years_exp_lookup).
+    if pid.startswith("sleeper-"):
+        sid = pid.removeprefix("sleeper-").strip()
+        if sid and sid in by_sleeper_id:
+            return by_sleeper_id[sid]
     if pid.isdigit() and pid in by_sleeper_id:
         return by_sleeper_id[pid]
     name = str(player_name or "").strip()

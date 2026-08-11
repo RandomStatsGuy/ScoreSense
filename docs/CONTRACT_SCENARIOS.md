@@ -12,9 +12,9 @@ Use this when importing a cap sheet, fixing mistagged players, or deciding exten
 |---|---|
 | Rookie deal length | **2** seasons |
 | Post-rookie extension | **One** extension of **1–3** years |
-| Extension step-up | **+$5**/yr (league setting) |
+| Veteran Deal / Rookie Extension step-up | **+$5**/yr from starting salary (league setting) |
 | Veterans after their deal | **Cannot re-sign** → free agency |
-| After an extension ends | **Cannot re-sign** → free agency |
+| After a Rookie Extension ends | **Cannot re-sign** → free agency |
 | Max continuous ownership | Rookie 2 + extension up to 3 ≈ **5** seasons |
 
 Contracts expire **before** the next draft (keepers with 1 year left leave unless extended). Players you **just bought in this auction** are not treated as expiring keepers.
@@ -28,8 +28,8 @@ Contracts expire **before** the next draft (keepers with 1 year left leave unles
 | UI label | Meaning |
 |---|---|
 | **Rookie deal** | Still on the initial 2-year rookie contract; can extend once in the final year |
-| **Veteran** | Not a rookie deal / not an extension — final year → FA (no re-sign) |
-| **Extension** | Already used the one post-rookie extension — when years hit 1 → FA |
+| **Veteran Deal** | Not a rookie deal / not a Rookie Extension — multi-year deals step +$5/yr; final year → FA (no re-sign) |
+| **Rookie Extension** | Already used the one post-rookie extension — steps +$5/yr; when years hit 1 → FA |
 
 Auto-tagging (Sleeper sync / import) uses NFL experience (`years_exp` &lt; 2 → rookie). Commissioners can override; members can propose a type for commissioner approval.
 
@@ -51,7 +51,7 @@ If a sheet shows `1` but you still have the player for the upcoming season on a 
 | Badge | When |
 |---|---|
 | **Extend to keep** | Final year **and** type is Rookie deal (eligible for one extension) |
-| **Expires — FA** | Final year **and** Veteran or Extension (cannot re-sign) |
+| **Expires — FA** | Final year **and** Veteran Deal or Rookie Extension (cannot re-sign) |
 | _(none)_ | Years left ≥ 2, or just drafted this auction |
 
 ---
@@ -82,7 +82,7 @@ If a sheet shows `1` but you still have the player for the upcoming season on a 
 
 **Action:** Cap Planner → **Extend** (1–3 years, step-up applies) **or** let them hit FA.
 
-Do **not** set type to Veteran here — that removes extend eligibility.
+Do **not** set type to Veteran Deal here — that removes extend eligibility.
 
 ---
 
@@ -92,7 +92,7 @@ Do **not** set type to Veteran here — that removes extend eligibility.
 
 | Field | Set to |
 |---|---|
-| Contract type | **Extension** |
+| Contract type | **Rookie Extension** |
 | Years left | Remaining seasons **including** the upcoming one |
 
 **Cap Planner:** when years = 1 → **Expires — FA** (cannot extend again).
@@ -105,7 +105,7 @@ Do **not** set type to Veteran here — that removes extend eligibility.
 
 | Field | Set to |
 |---|---|
-| Contract type | **Veteran** (or **Extension** only if they were already extended in *your* league) |
+| Contract type | **Veteran Deal** (or **Rookie Extension** only if they were already extended in *your* league) |
 | Years left | Whatever their current deal still covers (often **1**) |
 
 **Cap Planner:** years = 1 → **Expires — FA**. You cannot re-sign them after expiry.
@@ -118,7 +118,7 @@ Do **not** set type to Veteran here — that removes extend eligibility.
 
 | Field | Set to |
 |---|---|
-| Contract type | Usually **Rookie deal** if NFL rookie class; else **Veteran** |
+| Contract type | Usually **Rookie deal** if NFL rookie class; else **Veteran Deal** |
 | Years left | Deal length you drafted (often **1** for vets, **2** for rookies) |
 | Source | System tags `draft` / `auction` |
 
@@ -144,9 +144,9 @@ Type/years stay on the row for dead-cap math; they are not FA you can re-buy und
 | Sheet reality | Fix in UI |
 |---|---|
 | Player is a second-year NFL player on a 2-yr fantasy rookie deal, sheet shows 1 year | Type **Rookie deal**, years **2** (pre-draft) |
-| Multi-year stepped salaries (15 / 20 / 25) | Usually **Extension**; years = number of salary columns left |
-| One year, long-time NFL vet | **Veteran**, years **1** |
-| Import forced everyone to Veteran | Manually set Rookie deal where NFL exp &lt; 2, or Sync Sleeper to re-infer |
+| Multi-year stepped salaries (15 / 20 / 25) | Usually **Rookie Extension** or **Veteran Deal**; years = number of salary columns left |
+| One year, long-time NFL vet | **Veteran Deal**, years **1** |
+| Import forced everyone to Veteran Deal | Manually set Rookie deal where NFL exp &lt; 2, or Sync Sleeper to re-infer |
 
 ---
 
@@ -180,7 +180,8 @@ Is years left ≥ 2?
 2. Run the auction / draft.
 3. Commissioner marks **Draft done** (confirm dialog).
 4. Every active contract **−1 year**; anyone at 0 is removed as FA.
-5. Next offseason, use Cap Planner again on whoever is now at 1 year.
+5. When the league planning season advances (e.g. 2025 → 2026), Hub reopens **pre-draft** mode but **keeps** those ticked years — it does not reset everyone back to 2.
+6. Next offseason, use Cap Planner again on whoever is now at 1 year.
 
 ---
 
@@ -188,10 +189,10 @@ Is years left ≥ 2?
 
 - NFL: drafted 2025, still in year-1/2 window.
 - Fantasy: 2-year rookie deal covering 2025 + 2026.
-- **Pre-2026 draft:** Type = **Rookie deal**, Years = **2**.
-- Not on Extend / FA lists.
-- After draft marked complete: Years → **1**.
-- Pre-2027 draft: Years = **1** → **Extend to keep** or FA.
+- **Pre-2025 draft (just signed):** Type = **Rookie deal**, Years = **2**.
+- After 2025 draft marked complete: Years → **1**.
+- **Planning season advanced to 2026 (pre-draft):** Years stay **1** → **Extend to keep** or FA.
+- Sync / backfill must not push a correctly typed rookie back to 2 after the year clock has ticked.
 
 ---
 

@@ -131,8 +131,8 @@ def apply_type_to_contract(
         contract["schedule"] = [{"year_offset": i, "salary": sal} for i in range(yrs)]
         contract["current_salary"] = sal
         contract["step_up_per_year"] = 0.0
-    elif ctype == "veteran" and not existing.get("step_up_per_year") and yrs == 1:
-        contract = build_veteran_contract(sal, yrs)
+    elif ctype == "veteran" and yrs == 1:
+        contract = build_veteran_contract(sal, yrs, step_up=0.0)
     else:
         contract = build_contract_from_roster_edit(
             rules,
@@ -189,12 +189,17 @@ def backfill_row_contract(
     cur_type = str(existing.get("contract_type") or "veteran")
     cur_yrs = int(existing.get("years_remaining") or row.get("contract_years") or 1)
     new_yrs = cur_yrs
+    mistyped_or_missing = (not existing.get("contract_type")) or inferred != cur_type
     if (
         not draft_completed
         and inferred == "rookie"
+        and mistyped_or_missing
         and exp is not None
         and exp < int(rules.contracts.rookie_years)
     ):
+        # Only inflate years when correcting a mistype. Do not undo a
+        # draft-complete year tick on an already-correct rookie deal when the
+        # league re-opens pre-draft for the next planning season (e.g. 2026).
         suggested = suggested_rookie_years_pre_draft(rules, years_exp=exp)
         if suggested is not None and suggested > cur_yrs:
             new_yrs = suggested
@@ -232,7 +237,7 @@ def advance_contract_year(contract: dict[str, Any] | None, row: dict[str, Any]) 
     if not shifted:
         step = float(existing.get("step_up_per_year") or 0)
         ctype = str(existing.get("contract_type") or "veteran")
-        if ctype == "extension" and step:
+        if ctype in ("extension", "veteran") and step:
             shifted = [{"year_offset": i, "salary": round(sal + step * (i + 1), 2)} for i in range(new_yrs)]
             # After burning year 0, current salary is old year-1.
             sal = float(shifted[0]["salary"])
@@ -292,7 +297,29 @@ def rewind_contract_year(contract: dict[str, Any] | None, row: dict[str, Any]) -
     sal = float(existing.get("current_salary") or existing.get("base_salary") or row.get("salary") or 0)
     new_yrs = yrs + 1
     schedule = list(existing.get("schedule") or [])
-    shifted: list[dict[str, Any]] = [{"year_offset": 0, "salary": sal}]
+    step = float(existing.get("step_up_per_year") or 0)
+    ctype = str(existing.get("contract_type") or "veteran")
+    # Stepped veteran/extension: year-0 before the tick was current - step.
+    if ctype in ("extension", "veteran") and step > 0:
+        prior_sal = round(sal - step, 2)
+        shifted: list[dict[str, Any]] = [{"year_offset": 0, "salary": prior_sal}]
+        for entry in schedule:
+            off = int(entry.get("year_offset", 0))
+            shifted.append({
+                "year_offset": off + 1,
+                "salary": float(entry.get("salary") or sal),
+            })
+        while len(shifted) < new_yrs:
+            i = len(shifted)
+            shifted.append({"year_offset": i, "salary": round(prior_sal + step * i, 2)})
+        return {
+            **existing,
+            "years_remaining": new_yrs,
+            "schedule": shifted[:new_yrs],
+            "current_salary": prior_sal,
+            "base_salary": prior_sal,
+        }
+    shifted = [{"year_offset": 0, "salary": sal}]
     for entry in schedule:
         off = int(entry.get("year_offset", 0))
         shifted.append({
