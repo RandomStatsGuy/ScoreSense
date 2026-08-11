@@ -9238,8 +9238,12 @@ td.col-rank.col-rank-top {
   }
 
   .hub-filter-menu-trigger {
-    min-height: 2rem;
-    padding: 0.28rem 0.55rem;
+    min-height: 2.35rem;
+    padding: 0.32rem 0.6rem;
+  }
+
+  .hub-filter-menu-option {
+    padding: 0.55rem 0.6rem;
   }
 
   .hub-advanced-toggle--compact {
@@ -9251,16 +9255,19 @@ td.col-rank.col-rank-top {
   }
 
   .filter-chip,
-  .chip-filter {
+  .chip-filter,
+  .hub-filter-bar .filter-chip {
     font-size: 0.74rem;
     padding: 0.38rem 0.62rem;
     min-height: 2.25rem;
   }
 
   .filter-chip--compact,
-  .chip-filter.chip-tier {
+  .chip-filter.chip-tier,
+  .hub-filter-bar .filter-chip--compact {
     font-size: 0.7rem;
     padding: 0.34rem 0.55rem;
+    min-height: 2.1rem;
   }
 
   .hub-segment-nav {
