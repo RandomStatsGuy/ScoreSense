@@ -25,11 +25,11 @@ function capHitForRow(row, offset = 0, rules) {
   if (offset >= yrs) return null;
   const ctype = String(contract?.contract_type || "veteran");
   const base = Number(contract?.current_salary ?? row?.salary ?? 0);
-  // Rookie/veteran deals are flat; don't trust a stale stepped schedule.
-  if (ctype !== "extension" && Number.isFinite(base)) {
+  // Rookie deals are flat; don't trust a stale stepped schedule.
+  if (ctype === "rookie" && Number.isFinite(base)) {
     return offset === 0 || offset < yrs ? base : null;
   }
-  if (ctype === "extension" && Number.isFinite(base)) {
+  if ((ctype === "extension" || ctype === "veteran") && Number.isFinite(base)) {
     const step = Number(contract?.step_up_per_year);
     const useStep = Number.isFinite(step) && step > 0 ? step : leagueStepUp(rules);
     const sched = contract?.schedule;
@@ -373,7 +373,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
             <p className="chart-note">
               {mustExtend.length === 0 && droppingAtDraft.length === 0
                 ? "No deals end at this draft — nothing to extend yet."
-                : "Veterans and prior extensions expire to free agency — they cannot be re-signed."}
+                : "Veteran Deals and Rookie Extensions expire to free agency — they cannot be re-signed."}
             </p>
           )}
         </HubSection>

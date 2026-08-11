@@ -14,7 +14,7 @@ def test_rookie_contract_flat_years():
     assert c["schedule"][1]["salary"] == 10
 
 
-def test_roster_edit_rookie_stays_flat_extension_steps():
+def test_roster_edit_rookie_stays_flat_vet_and_extension_step():
     from src.draft_hub.contracts import build_contract_from_roster_edit
 
     rules = load_preset("salary_cap_auction_v1")
@@ -27,7 +27,8 @@ def test_roster_edit_rookie_stays_flat_extension_steps():
     vet = build_contract_from_roster_edit(
         rules, current_salary=12, years_remaining=2, contract_type="veteran", step_up=5
     )
-    assert [y["salary"] for y in vet["schedule"]] == [12, 12]
+    assert [y["salary"] for y in vet["schedule"]] == [12, 17]
+    assert float(vet.get("step_up_per_year") or 0) == 5
 
     ext = build_contract_from_roster_edit(
         rules, current_salary=15, years_remaining=3, contract_type="extension"

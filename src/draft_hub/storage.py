@@ -924,7 +924,7 @@ def set_roster_contract_type(
             if "current_salary" not in contract:
                 contract["current_salary"] = float(row["salary"] or 0)
         else:
-            # Rebuild schedule for the new type (rookies/vets flat; extensions step).
+            # Rebuild schedule for the new type (rookies flat; vets/extensions step).
             from src.draft_hub.contract_typing import apply_type_to_contract
 
             rules = _rules_for_roster_workspace(conn, workspace_id)

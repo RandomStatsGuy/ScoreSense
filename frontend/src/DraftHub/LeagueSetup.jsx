@@ -6,7 +6,7 @@ import { effectiveHubContext } from "./hubContext";
 import LeagueSwitcher from "./LeagueSwitcher";
 import { effectiveMemberships, isSoloContext } from "./hubLeagues";
 
-const TYPE_LABEL = { rookie: "Rookie deal", veteran: "Veteran", extension: "Extension" };
+const TYPE_LABEL = { rookie: "Rookie deal", veteran: "Veteran Deal", extension: "Rookie Extension" };
 
 export default function LeagueSetup({
   workspace,

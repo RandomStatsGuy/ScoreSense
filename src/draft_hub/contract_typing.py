@@ -131,8 +131,8 @@ def apply_type_to_contract(
         contract["schedule"] = [{"year_offset": i, "salary": sal} for i in range(yrs)]
         contract["current_salary"] = sal
         contract["step_up_per_year"] = 0.0
-    elif ctype == "veteran" and not existing.get("step_up_per_year") and yrs == 1:
-        contract = build_veteran_contract(sal, yrs)
+    elif ctype == "veteran" and yrs == 1:
+        contract = build_veteran_contract(sal, yrs, step_up=0.0)
     else:
         contract = build_contract_from_roster_edit(
             rules,
@@ -232,7 +232,7 @@ def advance_contract_year(contract: dict[str, Any] | None, row: dict[str, Any]) 
     if not shifted:
         step = float(existing.get("step_up_per_year") or 0)
         ctype = str(existing.get("contract_type") or "veteran")
-        if ctype == "extension" and step:
+        if ctype in ("extension", "veteran") and step:
             shifted = [{"year_offset": i, "salary": round(sal + step * (i + 1), 2)} for i in range(new_yrs)]
             # After burning year 0, current salary is old year-1.
             sal = float(shifted[0]["salary"])

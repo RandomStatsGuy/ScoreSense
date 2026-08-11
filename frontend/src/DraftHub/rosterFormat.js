@@ -5,13 +5,13 @@ export function fmtSal(v) {
 
 export const CONTRACT_TYPE_OPTIONS = [
   { value: "rookie", label: "Rookie deal" },
-  { value: "veteran", label: "Veteran" },
-  { value: "extension", label: "Extension" },
+  { value: "veteran", label: "Veteran Deal" },
+  { value: "extension", label: "Rookie Extension" },
 ];
 
 export function contractTypeLabel(type) {
   const hit = CONTRACT_TYPE_OPTIONS.find((o) => o.value === type);
-  return hit?.label || "Veteran";
+  return hit?.label || "Veteran Deal";
 }
 
 export function contractTypeBadgeClass(type) {
@@ -31,9 +31,10 @@ export const YEARS_LEFT_HINT = (
   + "not when the NFL season ends."
 );
 
-/** Step applies only to extensions; rookies/vets stay flat. */
+/** Step applies to Veteran Deal and Rookie Extension; rookies stay flat. */
 export function scheduleStepForType(contractType, rules, storedStep) {
-  if (String(contractType || "veteran") !== "extension") return 0;
+  const ctype = String(contractType || "veteran");
+  if (ctype === "rookie") return 0;
   const stored = Number(storedStep);
   if (Number.isFinite(stored) && stored > 0) return stored;
   return leagueStepUp(rules);
@@ -42,9 +43,10 @@ export function scheduleStepForType(contractType, rules, storedStep) {
 export function previewSchedule(salary, years, stepUp, contractType = "veteran") {
   const sal = Number(salary);
   const yrs = Number(years);
-  const step = String(contractType || "veteran") === "extension"
-    ? (Number.isFinite(Number(stepUp)) ? Number(stepUp) : 0)
-    : 0;
+  const ctype = String(contractType || "veteran");
+  const step = ctype === "rookie"
+    ? 0
+    : (Number.isFinite(Number(stepUp)) ? Number(stepUp) : 0);
   if (!Number.isFinite(sal) || !Number.isFinite(yrs) || yrs < 1) return "";
   const parts = [];
   for (let i = 0; i < yrs; i += 1) {
@@ -58,9 +60,6 @@ export function scheduleText(row, rules) {
   const sal = Number(row?.contract?.current_salary ?? row?.salary);
   const yrs = Number(row?.contract?.years_remaining ?? row?.contract_years ?? 1);
   if (Number.isFinite(sal) && Number.isFinite(yrs) && yrs >= 1) {
-    if (ctype !== "extension") {
-      return previewSchedule(sal, yrs, 0, ctype);
-    }
     const step = scheduleStepForType(ctype, rules, row?.contract?.step_up_per_year);
     const fromPreview = previewSchedule(sal, yrs, step, ctype);
     if (fromPreview) return fromPreview;
@@ -76,7 +75,7 @@ export function leagueStepUp(rules) {
 
 export function contractScheduleHint(stepUp) {
   const step = Number.isFinite(Number(stepUp)) ? Number(stepUp) : 5;
-  return `Rookies flat 2 yrs · extension +$${step}/yr`;
+  return `Rookies flat 2 yrs · Veteran Deal / Rookie Extension +$${step}/yr`;
 }
 
 export function cutRefundPct(rules) {
