@@ -12,6 +12,7 @@ from src.config import (
     PRESEASON_FP_BLEND_ENABLED,
     PRESEASON_USE_EXPECTED_GAMES,
     PROCESSED_DATA_DIR,
+    SEASON_QUANTILE_METHOD,
 )
 from src.projections.predict import predict_from_features
 from src.projections.season_blend import (
@@ -21,6 +22,12 @@ from src.projections.season_blend import (
     preseason_blend_alpha,
     prior_year_games_map,
     prior_year_ppg_map,
+)
+from src.projections.season_quantiles import (
+    METHOD_INDEPENDENT_SCALE,
+    METHOD_MC_SCHEDULE_V1,
+    aggregate_season_quantiles_mc,
+    legacy_scale_season_quantiles,
 )
 from src.core.projection_context import build_inference_roster, feature_season_for_inference
 
@@ -85,8 +92,6 @@ def predict_draft_season(
             "Per-Game Floor": weekly["Low (P10)"].round(1),
             "Per-Game Ceiling": weekly["High (P90)"].round(1),
             "Season Proj": season_proj,
-            "Season Floor": (weekly["Low (P10)"] * games_per_season).round(1),
-            "Season Ceiling": (weekly["High (P90)"] * games_per_season).round(1),
         }
     )
     pos = position.lower()
@@ -125,6 +130,77 @@ def predict_draft_season(
                     result["Season Proj"], fp_total, beta=fp_beta
                 )
                 result["Per-Game Proj"] = (result["Season Proj"] / games_per_season).round(1)
+
+    # SCORE-2: season tails are a proper functional of the weekly quantile law
+    # (schedule-aware MC), not weekly P10/P90 x games_per_season. Recenter the
+    # weekly (q10, q50, q90) on the *final* (post-blend) Per-Game Proj before
+    # simulating, so Season P50/Floor/Ceiling bracket Season Proj instead of
+    # the pre-blend raw model rate — the model's uncertainty *shape* (spread)
+    # is preserved, only the center shifts with the blend. Season Floor/
+    # Ceiling alias the new Season P10/P90 so existing consumers get
+    # calibrated ranges without a schema break; `season_quantile_method`
+    # documents which aggregator produced them (SEASON_QUANTILE_METHOD flag
+    # keeps the literal legacy x17-on-raw-quantiles path for A/B comparison).
+    games_for_tails = games if isinstance(games, pd.Series) else pd.Series(
+        float(games_per_season), index=weekly.index
+    )
+    teams_for_schedule = weekly["Team"] if "Team" in weekly.columns else pd.Series("", index=weekly.index)
+    blend_shift = result["Per-Game Proj"].astype(float) - weekly["Projected Points"].astype(float)
+    q10_centered = weekly["Low (P10)"].astype(float) + blend_shift
+    q50_centered = result["Per-Game Proj"].astype(float)
+    q90_centered = weekly["High (P90)"].astype(float) + blend_shift
+
+    method = SEASON_QUANTILE_METHOD
+    season_q_meta: dict = {}
+    if method == METHOD_MC_SCHEDULE_V1:
+        try:
+            season_q = aggregate_season_quantiles_mc(
+                q10_centered,
+                q50_centered,
+                q90_centered,
+                teams_for_schedule,
+                games_for_tails,
+                season,
+            )
+            season_q_meta = season_q.meta
+        except Exception:
+            method = METHOD_INDEPENDENT_SCALE
+            season_q = legacy_scale_season_quantiles(
+                weekly["Low (P10)"], weekly["Projected Points"], weekly["High (P90)"], games_per_season
+            )
+            season_q_meta = season_q.meta
+    else:
+        method = METHOD_INDEPENDENT_SCALE
+        season_q = legacy_scale_season_quantiles(
+            weekly["Low (P10)"], weekly["Projected Points"], weekly["High (P90)"], games_per_season
+        )
+        season_q_meta = season_q.meta
+
+    season_p10 = pd.Series(season_q.season_p10, index=weekly.index)
+    season_p50 = pd.Series(season_q.season_p50, index=weekly.index)
+    season_p90 = pd.Series(season_q.season_p90, index=weekly.index)
+    if method == METHOD_MC_SCHEDULE_V1:
+        # By construction, Season P50 = (blended) Season Proj: for boom/bust
+        # committee roles (large weekly upside skew, sigma_hi >> sigma_lo) the
+        # sum-of-weeks median genuinely drifts above the per-game median x
+        # games (Jensen effect from CLT-driven symmetrization of the skew).
+        # That's a real distributional fact, but "Floor > Proj" would look
+        # like a bug in every consumer. We keep the simulation's *spread and
+        # shape* (P90-P50, P50-P10) and shift the whole triplet so the center
+        # matches Season Proj exactly.
+        shift = result["Season Proj"].astype(float) - season_p50
+        season_p10 = (season_p10 + shift).clip(lower=0.0)
+        season_p90 = season_p90 + shift
+        season_p50 = result["Season Proj"].astype(float)
+    result["Season P10"] = season_p10.round(1)
+    result["Season P50"] = season_p50.round(1)
+    result["Season P90"] = season_p90.round(1)
+    result["Season Spread"] = (result["Season P90"] - result["Season P10"]).round(1)
+    result["games_expected"] = pd.Series(season_q.games_expected, index=weekly.index).round(2)
+    result["season_quantile_method"] = method
+    result["Season Floor"] = result["Season P10"]
+    result["Season Ceiling"] = result["Season P90"]
+
     if "player_id" in weekly.columns:
         result["player_id"] = weekly["player_id"]
     if "position" in weekly.columns:
@@ -153,7 +229,17 @@ def predict_draft_season(
 
     result = apply_vet_backup_projection_scale(result, roster)
 
-    meta_cols = ["Season Proj", "Season Floor", "Season Ceiling", "Per-Game Proj"]
+    meta_cols = [
+        "Season Proj",
+        "Season Floor",
+        "Season Ceiling",
+        "Season P10",
+        "Season P50",
+        "Season P90",
+        "Season Spread",
+        "games_expected",
+        "Per-Game Proj",
+    ]
     for col in meta_cols:
         if col in result.columns:
             result[col] = result[col].fillna(0.0)
@@ -162,6 +248,8 @@ def predict_draft_season(
     result.attrs["games_per_season"] = games_per_season
     result.attrs["roster_overlay"] = roster_overlay
     result.attrs["depth_chart"] = inference_meta.get("depth_chart") or {"applied": False}
+    result.attrs["season_quantile_method"] = method
+    result.attrs["season_coverage_meta"] = season_q_meta
     result.attrs["rookie_role_adjusted"] = bool(
         roster.get("_rookie_role_mult", pd.Series(dtype=float)).notna().any()
         if "_rookie_role_mult" in roster.columns
@@ -184,6 +272,7 @@ def draft_projection_note(
     roster_overlay: dict | None = None,
     depth_chart: dict | None = None,
     position: str = "qb",
+    season_quantile_method: str | None = None,
 ) -> str:
     feature_note = (
         f"using {feature_season} stats as inputs"
@@ -191,9 +280,16 @@ def draft_projection_note(
         else f"using {season} in-season stats"
     )
     parts = [
-        f"Season totals assume {games_per_season} games at the Week 1 per-game rate ({feature_note}).",
-        "Not schedule- or bye-adjusted.",
+        f"Season Proj assumes {games_per_season} games at the Week 1 per-game rate ({feature_note})."
     ]
+    if season_quantile_method == METHOD_MC_SCHEDULE_V1:
+        parts.append(
+            "Season P10/P50/P90 (Floor/Ceiling) come from a schedule- and bye-adjusted Monte "
+            "Carlo simulation anchored to each player's expected games — not weekly P10/P90 "
+            "scaled by games played."
+        )
+    else:
+        parts.append("Not schedule- or bye-adjusted.")
     overlay = roster_overlay or {}
     if overlay.get("applied"):
         moves = int(overlay.get("teams_updated", 0))
