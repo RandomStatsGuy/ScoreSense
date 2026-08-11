@@ -19,7 +19,17 @@ function NomineeStats({ stats }) {
   const season = fmtPts(stats.seasonProj, 0);
   if (ppg != null) items.push({ label: "Proj PPG", value: ppg });
   if (season != null) items.push({ label: "Season", value: `${season} pts` });
-  if (stats.fairValue != null) items.push({ label: "Fair value", value: fmtSal(stats.fairValue) });
+  const bidLabel = stats.bidLabel || (stats.useRaav ? "Bid to" : "Fair value");
+  if (stats.bidTo != null) {
+    items.push({
+      label: bidLabel,
+      value: stats.raavDeltaLabel
+        ? `${fmtSal(stats.bidTo)} (${stats.raavDeltaLabel})`
+        : fmtSal(stats.bidTo),
+    });
+  } else if (stats.fairValue != null) {
+    items.push({ label: "Fair value", value: fmtSal(stats.fairValue) });
+  }
   if (stats.minSal != null && stats.maxSal != null) {
     items.push({ label: "Range", value: `${fmtSal(stats.minSal)}–${fmtSal(stats.maxSal)}` });
   }

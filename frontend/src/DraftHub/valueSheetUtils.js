@@ -81,7 +81,14 @@ function sortValue(row, key) {
     case "position":
       return row[key] || row[key === "player" ? "player_name" : key] || "zzz";
     case "fair_value":
-      return row.fair_value ?? row.model_bid_hint ?? null;
+      // When RAAV is populated (risk_tolerance != 0), sort by the displayed bid.
+      return row.risk_adjusted_value ?? row.fair_value ?? row.model_bid_hint ?? null;
+    case "risk_adjusted_value":
+      return row.risk_adjusted_value ?? row.fair_value ?? row.model_bid_hint ?? null;
+    case "risk_score":
+      return row.risk_score != null && Number.isFinite(Number(row.risk_score))
+        ? Number(row.risk_score)
+        : null;
     case "min_sal":
       return row.min_sal ?? null;
     case "max_sal":
@@ -155,6 +162,8 @@ export function nextSortState(currentKey, currentDir, clickedKey) {
     "season_proj",
     "per_game_proj",
     "fair_value",
+    "risk_adjusted_value",
+    "risk_score",
     "min_sal",
     "max_sal",
     "value_delta",

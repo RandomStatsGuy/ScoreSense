@@ -689,6 +689,12 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           sleeper={valueSleeper}
           loading={valueSheetLoading}
           isCommissioner={Boolean(effectiveCtx?.is_commissioner)}
+          riskTolerance={
+            effectiveCtx?.rules?.risk_tolerance
+            ?? workspace?.rules?.risk_tolerance
+            ?? 0
+          }
+          rules={effectiveCtx?.rules || workspace?.rules || null}
         />
       )}
 
