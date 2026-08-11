@@ -1068,6 +1068,16 @@ body {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+/* Magnifier affordance — true search fields only (`.search-input` also skins
+   generic inputs/selects that must not get the icon). */
+input[type="search"].search-input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.8-3.8'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 0.7rem center;
+  background-size: 0.9rem;
+  padding-left: 2.1rem;
+}
+
 .search-input:focus {
   outline: none;
   border-color: rgba(59, 130, 246, 0.55);
@@ -3892,9 +3902,9 @@ th.num {
 .injury-neg { color: #fbbf7a; font-weight: 600; }
 .injury-neutral { color: #64748b; }
 
-/* DvP matchup context on the Opp column (rank vs position, 1 = toughest). */
-.col-opp.matchup-good { color: #6ee7a0; font-weight: 600; }
-.col-opp.matchup-bad { color: #fca5a5; font-weight: 600; }
+/* DvP matchup context on the Opp column and mobile card meta (1 = toughest). */
+.matchup-good { color: #6ee7a0; font-weight: 600; }
+.matchup-bad { color: #fca5a5; font-weight: 600; }
 
 /* Non-color matchup cue so favorable/tough isn't communicated by hue alone. */
 .matchup-indicator {
@@ -6847,15 +6857,16 @@ td.col-rank.col-rank-top {
   position: absolute;
   top: calc(100% - 0.12rem);
   left: 0;
-  z-index: 40;
+  z-index: var(--z-dropdown);
   min-width: 7.25rem;
   max-height: 13.5rem;
   overflow-y: auto;
   padding: 0.4rem 0.28rem 0.28rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
-  background: #0f172a;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
+  /* Clearly elevated above page content (page bg is #0f172a — too close to blend). */
+  background: var(--tooltip-bg);
+  box-shadow: var(--shadow-popover);
   -webkit-overflow-scrolling: touch;
 }
 
@@ -8523,7 +8534,7 @@ td.col-rank.col-rank-top {
     border-radius: var(--radius-sm);
     background: transparent;
     color: var(--text-muted);
-    font-size: 0.62rem;
+    font-size: 0.7rem;
     font-weight: 600;
     letter-spacing: 0.02em;
     cursor: pointer;
@@ -8724,12 +8735,30 @@ td.col-rank.col-rank-top {
     }
   }
 
+  /* Grip strip: drag handle + header pinned while the sheet body scrolls. */
+  .app-mobile-sheet-grip {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bg-elevated);
+    touch-action: none;
+  }
+
+  .app-mobile-sheet-handle {
+    display: block;
+    width: 2.5rem;
+    height: 0.28rem;
+    margin: 0.5rem auto 0.1rem;
+    border-radius: var(--radius-pill);
+    background: var(--slate-600);
+  }
+
   .app-mobile-sheet-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    padding: 0.85rem 1rem 0.55rem;
+    padding: 0.45rem 1rem 0.55rem;
     border-bottom: 1px solid var(--border);
   }
 
@@ -9094,10 +9123,12 @@ td.col-rank.col-rank-top {
     align-self: flex-end;
   }
 
+  /* Keep count + context on one compact line to save vertical space. */
   .table-toolbar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2rem 0.75rem;
+    margin-bottom: 0.45rem;
   }
 
   .table-wrap {
@@ -9236,8 +9267,12 @@ td.col-rank.col-rank-top {
   }
 
   .hub-filter-menu-trigger {
-    min-height: 2rem;
-    padding: 0.28rem 0.55rem;
+    min-height: 2.35rem;
+    padding: 0.32rem 0.6rem;
+  }
+
+  .hub-filter-menu-option {
+    padding: 0.55rem 0.6rem;
   }
 
   .hub-advanced-toggle--compact {
@@ -9249,16 +9284,19 @@ td.col-rank.col-rank-top {
   }
 
   .filter-chip,
-  .chip-filter {
+  .chip-filter,
+  .hub-filter-bar .filter-chip {
     font-size: 0.74rem;
     padding: 0.38rem 0.62rem;
     min-height: 2.25rem;
   }
 
   .filter-chip--compact,
-  .chip-filter.chip-tier {
+  .chip-filter.chip-tier,
+  .hub-filter-bar .filter-chip--compact {
     font-size: 0.7rem;
     padding: 0.34rem 0.55rem;
+    min-height: 2.1rem;
   }
 
   .hub-segment-nav {
@@ -9481,6 +9519,16 @@ td.col-rank.col-rank-top {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-muted);
+}
+
+/* Floor–ceiling (or per-game) readout under the hero value. */
+.mobile-player-card-hero-sub {
+  font-size: 0.68rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .mobile-player-card-chevron {
@@ -9895,6 +9943,9 @@ td.col-rank.col-rank-top {
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  /* Fade the trailing edge so offscreen tabs are discoverable. */
+  mask-image: linear-gradient(to right, #000 calc(100% - 1.75rem), transparent);
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 1.75rem), transparent);
 }
 
 .hub-subnav-row .app-section-subnav--hub::-webkit-scrollbar {
@@ -9963,7 +10014,7 @@ td.col-rank.col-rank-top {
   }
 
   .projections-mobile-tabs.mobile-subnav-row {
-    margin-bottom: 0.65rem;
+    margin-bottom: 0.45rem;
   }
 
   .projections-mobile-tabs .app-section-subnav-btn {
@@ -10243,7 +10294,7 @@ td.col-rank.col-rank-top {
   .projections-mobile-pos-chips {
     display: flex;
     gap: 0.35rem;
-    padding: 0.35rem 0.85rem 0.5rem;
+    padding: 0.25rem 0.85rem 0.4rem;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }

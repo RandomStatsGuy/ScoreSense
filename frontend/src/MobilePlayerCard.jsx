@@ -7,6 +7,7 @@ export default function MobilePlayerCard({
   rank,
   heroValue,
   heroLabel = "",
+  heroSub,
   heroMuted = false,
   badge,
   expanded,
@@ -57,6 +58,7 @@ export default function MobilePlayerCard({
         <div className={`mobile-player-card-hero${heroMuted ? " mobile-player-card-hero--muted" : ""}`}>
           <span className="mobile-player-card-hero-value">{heroValue}</span>
           {heroLabel ? <span className="mobile-player-card-hero-label">{heroLabel}</span> : null}
+          {heroSub ? <span className="mobile-player-card-hero-sub">{heroSub}</span> : null}
           {hasExpand ? (
             <span className="mobile-player-card-chevron" aria-hidden="true">
               {open ? "▴" : "▾"}

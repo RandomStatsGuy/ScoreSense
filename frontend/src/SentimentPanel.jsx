@@ -6,6 +6,7 @@ import HoverTip, { TipLine, TipTitle } from "./HoverTip";
 import { connectionErrorMessage, fmtMentions, parseApiError } from "./format";
 import SentimentBadge from "./SentimentBadge";
 import SentimentMeter from "./SentimentMeter";
+import useMobileLayout from "./useMobileLayout";
 
 const SentimentCharts = lazy(() => import("./SentimentCharts"));
 
@@ -143,11 +144,16 @@ export default function SentimentPanel({
   error: errorProp,
   className = "",
 }) {
+  const mobileLayout = useMobileLayout();
   const [playersLocal, setPlayersLocal] = useState([]);
   const [metaLocal, setMetaLocal] = useState(null);
   const [loadingLocal, setLoadingLocal] = useState(false);
   const [errorLocal, setErrorLocal] = useState("");
-  const [open, setOpen] = useState(false);
+  // Collapsed by default in the desktop sidebar; on mobile the panel IS the
+  // "Analyst" tab the user tapped, so it must render its content directly.
+  const [openState, setOpenState] = useState(null);
+  const open = openState ?? mobileLayout;
+  const setOpen = setOpenState;
   const [view, setView] = useState("list");
   const [filter, setFilter] = useState("");
 
@@ -281,14 +287,16 @@ export default function SentimentPanel({
               </button>
             </div>
           )}
-          <button
-            type="button"
-            className="btn-ghost sentiment-panel-toggle"
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-          >
-            {open ? "Hide" : "Show"}
-          </button>
+          {!mobileLayout && (
+            <button
+              type="button"
+              className="btn-ghost sentiment-panel-toggle"
+              onClick={() => setOpen(!open)}
+              aria-expanded={open}
+            >
+              {open ? "Hide" : "Show"}
+            </button>
+          )}
         </div>
       </div>
 

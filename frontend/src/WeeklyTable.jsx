@@ -212,8 +212,9 @@ function exportCsv(rows) {
   downloadCsv("scoresense-projections", lines);
 }
 
+// Number(null) === 0; coerce missing projections to NaN so they stay unranked.
 const rankMetric = (row) =>
-  isPlayerUnavailable(row["Injury Status"]) ? NaN : Number(row["Projected Points"]);
+  isPlayerUnavailable(row["Injury Status"]) ? NaN : Number(row["Projected Points"] ?? NaN);
 
 export default function WeeklyTable({
   rows,
@@ -355,8 +356,33 @@ export default function WeeklyTable({
             const p10 = Number(row["Low (P10)"]) || 0;
             const p90 = Number(row["High (P90)"]) || 0;
             const tag = unavailableLabel(status);
-            const metaParts = [row.Team || "—"];
-            if (showOpponent && row.Opponent) metaParts.push(row.Opponent);
+            const tone = matchupTone(row["Opp Def Rank"], dvpTeamCount);
+            const metaNode = (
+              <>
+                {row.Team || "—"}
+                {showOpponent && row.Opponent ? (
+                  <>
+                    {" · "}
+                    <span className={tone ? `matchup-${tone}` : undefined}>
+                      {row.Opponent}
+                      {tone ? (
+                        <span
+                          className={`matchup-indicator matchup-indicator-${tone}`}
+                          aria-hidden="true"
+                        >
+                          {tone === "good" ? "▲" : "▼"}
+                        </span>
+                      ) : null}
+                      {tone ? (
+                        <span className="sr-only">
+                          {tone === "good" ? "favorable matchup" : "tough matchup"}
+                        </span>
+                      ) : null}
+                    </span>
+                  </>
+                ) : null}
+              </>
+            );
 
             return (
               <MobilePlayerCard
@@ -377,9 +403,11 @@ export default function WeeklyTable({
                     week={week}
                   />
                 )}
-                meta={metaParts.join(" · ")}
+                badge={unavailable ? null : <InjuryStatusTag status={status} />}
+                meta={metaNode}
                 heroValue={unavailable ? tag : fmtNum(row["Projected Points"], 1)}
                 heroLabel={unavailable ? "" : "proj"}
+                heroSub={unavailable ? null : `${fmtNum(p10, 1)}–${fmtNum(p90, 1)}`}
                 heroMuted={unavailable}
                 unavailable={unavailable}
                 expanded={(
