@@ -14,11 +14,29 @@ import {
   seasonRangeTooltip,
 } from "./seasonQuantiles";
 
-function ProjStat({ label, value }) {
+function ProjStat({ label, value, emphasis = false }) {
   return (
-    <div className="player-card-stat">
+    <div className={`player-card-stat${emphasis ? " player-card-stat--primary" : ""}`}>
       <span className="player-card-stat-label">{label}</span>
       <span className="player-card-stat-value">{value ?? "—"}</span>
+    </div>
+  );
+}
+
+/**
+ * Range bar scaled with headroom so the P10–P90 band renders proportionally
+ * (QuantileBar's scaleMax defaults to 1, which pins everything to the right),
+ * with floor/ceiling end labels so the bar reads without hovering.
+ */
+function ScaledRangeBar({ p10, p50, p90, title, subtitle, formatValue }) {
+  if (![p10, p50, p90].every(Number.isFinite)) return null;
+  const scaleMax = p90 > 0 ? p90 * 1.12 : 1;
+  const fmt = formatValue || ((v) => v.toFixed(1));
+  return (
+    <div className="player-card-range">
+      <span className="player-card-range-label" aria-hidden="true">{fmt(p10)}</span>
+      <QuantileBar p10={p10} p50={p50} p90={p90} scaleMax={scaleMax} title={title} subtitle={subtitle} />
+      <span className="player-card-range-label" aria-hidden="true">{fmt(p90)}</span>
     </div>
   );
 }
@@ -51,7 +69,6 @@ function PlayerCardBody({ data, loading, error, fallbackName }) {
   const weeklyP10 = weekly ? Number(weekly["Low (P10)"]) : null;
   const weeklyP50 = weekly ? Number(weekly["Projected Points"]) : null;
   const weeklyP90 = weekly ? Number(weekly["High (P90)"]) : null;
-  const hasWeeklyBar = [weeklyP10, weeklyP50, weeklyP90].every(Number.isFinite);
 
   return (
     <div className="player-card-body">
@@ -72,7 +89,7 @@ function PlayerCardBody({ data, loading, error, fallbackName }) {
         <section className="player-card-section">
           <h3>Weekly projection</h3>
           <div className="player-card-stats">
-            <ProjStat label="Proj" value={Number(weekly["Projected Points"]).toFixed(1)} />
+            <ProjStat label="Proj" value={Number(weekly["Projected Points"]).toFixed(1)} emphasis />
             <ProjStat label="Floor" value={Number(weekly["Low (P10)"]).toFixed(1)} />
             <ProjStat label="Ceiling" value={Number(weekly["High (P90)"]).toFixed(1)} />
             {weekly["Injury Boost"] ? (
@@ -82,14 +99,12 @@ function PlayerCardBody({ data, loading, error, fallbackName }) {
               />
             ) : null}
           </div>
-          {hasWeeklyBar ? (
-            <QuantileBar
-              p10={weeklyP10}
-              p50={weeklyP50}
-              p90={weeklyP90}
-              title="Per-game scoring range"
-            />
-          ) : null}
+          <ScaledRangeBar
+            p10={weeklyP10}
+            p50={weeklyP50}
+            p90={weeklyP90}
+            title="Per-game scoring range"
+          />
         </section>
       ) : null}
 
@@ -100,6 +115,7 @@ function PlayerCardBody({ data, loading, error, fallbackName }) {
             <ProjStat
               label="Season P50"
               value={formatSeasonPts(seasonBand?.p50 ?? season["Season Proj"] ?? season["Season P50"], 1)}
+              emphasis
             />
             <ProjStat
               label="Floor"
@@ -122,27 +138,14 @@ function PlayerCardBody({ data, loading, error, fallbackName }) {
                   <span className="hub-sleeper-badge season-range-prelim-badge">Preliminary</span>
                 ) : null}
               </div>
-              <QuantileBar
+              <ScaledRangeBar
                 p10={seasonBand.p10}
                 p50={seasonBand.p50}
                 p90={seasonBand.p90}
                 title={seasonTip}
                 subtitle={`${formatSeasonPts(seasonBand.p10, 1)} · ${formatSeasonPts(seasonBand.p50, 1)} · ${formatSeasonPts(seasonBand.p90, 1)}`}
+                formatValue={(v) => formatSeasonPts(v, 0)}
               />
-              {hasWeeklyBar ? (
-                <>
-                  <div className="player-card-uncertainty-label player-card-uncertainty-label--secondary">
-                    Per-game (week volatility)
-                  </div>
-                  <QuantileBar
-                    p10={weeklyP10}
-                    p50={weeklyP50}
-                    p90={weeklyP90}
-                    title="Per-game scoring range"
-                    subtitle="Week volatility vs season compression above"
-                  />
-                </>
-              ) : null}
             </div>
           ) : null}
         </section>
@@ -172,6 +175,16 @@ export default function PlayerCardModal({ request, onClose }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Escape closes the desktop dialog (the mobile sheet handles its own).
+  useEffect(() => {
+    if (!request || mobileLayout) return undefined;
+    const onKey = (event) => {
+      if (event.key === "Escape") onClose?.();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [request, mobileLayout, onClose]);
 
   useEffect(() => {
     if (!request?.playerId) {
@@ -235,12 +248,11 @@ export default function PlayerCardModal({ request, onClose }) {
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="player-card-dialog-head">
-          <h2>{title}</h2>
-          <button type="button" className="btn-ghost player-card-close" onClick={onClose} aria-label="Close">
-            Close
-          </button>
-        </div>
+        {/* Player identity in the body doubles as the dialog heading. */}
+        <button type="button" className="btn-ghost player-card-close" onClick={onClose} aria-label="Close">
+          Close
+        </button>
+        {loading && !data ? <h2 className="player-card-dialog-title">{title}</h2> : null}
         {body}
       </div>
     </div>

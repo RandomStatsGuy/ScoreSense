@@ -8,7 +8,16 @@ import MobilePlayerCard from "./MobilePlayerCard";
 import PlayerCell, { usePlayerMedia } from "./PlayerCell";
 import Chip from "./Chip";
 import { fmtNum } from "./format";
-import { SortHeader, ExportCsvButton, useTableSort, csvQuote, downloadCsv } from "./table";
+import {
+  SortHeader,
+  ExportCsvButton,
+  TableEmptyState,
+  useTableSort,
+  useRankMap,
+  rowRankKey,
+  csvQuote,
+  downloadCsv,
+} from "./table";
 import {
   formatSeasonPts,
   isScheduleAwareMethod,
@@ -58,6 +67,8 @@ function exportCsv(rows) {
   downloadCsv("scoresense-draft", lines);
 }
 
+const rankBySeasonProj = (row) => Number(row["Season Proj"]);
+
 export default function DraftTable({
   rows,
   search,
@@ -67,9 +78,12 @@ export default function DraftTable({
   position,
   season,
   seasonQuantileMethod,
+  onClearFilters,
 }) {
   const [sort, toggleSort] = useTableSort({ column: "Proj", dir: "desc" });
   const mobileLayout = useMobileLayout();
+  const rankMap = useRankMap(rows, rankBySeasonProj);
+  const hasFilters = Boolean((search || "").trim());
   const method = seasonQuantileMethod
     || rows?.find((r) => r.season_quantile_method)?.season_quantile_method
     || null;
@@ -142,7 +156,14 @@ export default function DraftTable({
       {mobileLayout ? (
         <MobileDataList
           loading={loading && sorted.length === 0}
-          emptyMessage={!loading && sorted.length === 0 ? "No draft projections available." : null}
+          emptyMessage={
+            !loading && sorted.length === 0
+              ? hasFilters
+                ? "No players match your search."
+                : "No draft projections available."
+              : null
+          }
+          onEmptyAction={hasFilters && sorted.length === 0 ? onClearFilters : undefined}
         >
           {sorted.map((row, rowIndex) => {
             const p50 = Number(row["Per-Game Proj"]) || 0;
@@ -160,8 +181,9 @@ export default function DraftTable({
 
             return (
               <MobilePlayerCard
-                key={`${row.player_id || row.Player}-${row.Team}`}
+                key={rowRankKey(row)}
                 name={row.Player}
+                rank={rankMap.get(rowRankKey(row)) ?? null}
                 titleNode={(
                   <PlayerCell
                     name={row.Player}
@@ -224,11 +246,12 @@ export default function DraftTable({
           })}
         </MobileDataList>
       ) : (
-      <div className="table-wrap table-sticky">
+      <div className="table-wrap table-sticky table-has-rank">
         <table>
           <thead>
             <tr>
-              <SortHeader label="Player" sortKey="Player" sort={sort} onSort={toggleSort} />
+              <th className="num col-rank" title="Position rank by projected season total">#</th>
+              <SortHeader label="Player" sortKey="Player" sort={sort} onSort={toggleSort} className="col-player" />
               <SortHeader label="Team" sortKey="Team" sort={sort} onSort={toggleSort} />
               <SortHeader
                 label="Season"
@@ -266,24 +289,29 @@ export default function DraftTable({
           </thead>
           <tbody>
             {loading && sorted.length === 0 ? (
-              <TableSkeleton rows={14} cols={7} />
+              <TableSkeleton rows={14} cols={8} />
             ) : (
               <>
             {sorted.length === 0 && (
-              <tr>
-                <td colSpan={7} className="table-empty-state">
-                  No draft projections available.
-                </td>
-              </tr>
+              <TableEmptyState
+                colSpan={8}
+                message={hasFilters ? "No players match your search." : "No draft projections available."}
+                actionLabel="Clear filters"
+                onAction={hasFilters ? onClearFilters : undefined}
+              />
             )}
             {sorted.map((row, rowIndex) => {
               const p50 = Number(row["Per-Game Proj"]) || 0;
               const p10 = Number(row["Per-Game Floor"]) || 0;
               const p90 = Number(row["Per-Game Ceiling"]) || 0;
               const band = resolveSeasonBand(row, { method });
+              const rank = rankMap.get(rowRankKey(row)) ?? null;
               return (
-                <tr key={`${row.player_id || row.Player}-${row.Team}`}>
-                  <td>
+                <tr key={rowRankKey(row)}>
+                  <td className={`num col-rank${rank != null && rank <= 3 ? " col-rank-top" : ""}`}>
+                    {rank ?? "—"}
+                  </td>
+                  <td className="col-player">
                     <PlayerCell
                       name={row.Player}
                       team={row.Team}

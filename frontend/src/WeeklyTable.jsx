@@ -1,7 +1,16 @@
 import React, { useMemo } from "react";
-import Chip from "./Chip";
+import Chip, { injuryChipTone } from "./Chip";
 import { fmtNum, isPlayerUnavailable, unavailableLabel } from "./format";
-import { SortHeader, ExportCsvButton, useTableSort, csvQuote, downloadCsv } from "./table";
+import {
+  SortHeader,
+  ExportCsvButton,
+  TableEmptyState,
+  useTableSort,
+  useRankMap,
+  rowRankKey,
+  csvQuote,
+  downloadCsv,
+} from "./table";
 import QuantileBar from "./QuantileBarShared";
 import SentimentBadge from "./SentimentBadge";
 import { TableSkeleton } from "./TableSkeleton";
@@ -46,9 +55,34 @@ function matchupTitle(rank, teamCount, position) {
   return `Opponent defense ranks ${r} of ${teamCount} vs ${vs} (1 = toughest) — ${label}`;
 }
 
+/** Abbreviated injury designation shown inline next to the player name. */
+function injuryAbbrev(status) {
+  const s = String(status || "").toLowerCase();
+  if (s.includes("questionable")) return "Q";
+  if (s.includes("doubtful")) return "D";
+  if (s.includes("probable")) return "P";
+  return null;
+}
+
+export function InjuryStatusTag({ status }) {
+  const abbrev = injuryAbbrev(status);
+  if (!abbrev) return null;
+  return (
+    <Chip
+      tone={injuryChipTone(status)}
+      className="player-status-chip"
+      title={`Injury status: ${status}`}
+      aria-label={`Injury status: ${status}`}
+    >
+      {abbrev}
+    </Chip>
+  );
+}
+
 const WeeklyTableRow = React.memo(function WeeklyTableRow({
   row,
   rowIndex,
+  rank,
   showOpponent,
   hasSentiment,
   showBoost,
@@ -66,22 +100,29 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   const p10 = Number(row["Low (P10)"]) || 0;
   const p90 = Number(row["High (P90)"]) || 0;
   const tag = unavailableLabel(status);
+  const tone = matchupTone(row["Opp Def Rank"], dvpTeamCount);
 
   return (
     <tr className={unavailable ? "row-unavailable" : undefined}>
+      <td className={`num col-rank${rank != null && rank <= 3 ? " col-rank-top" : ""}`}>
+        {rank ?? "—"}
+      </td>
       <td className="col-player">
-        <PlayerCell
-          name={row.Player}
-          team={row.Team}
-          playerId={row.player_id}
-          media={playerMedia}
-          size="sm"
-          showTeam={false}
-          clickable={Boolean(row.player_id)}
-          position={position}
-          season={season}
-          week={week}
-        />
+        <span className="col-player-inner">
+          <PlayerCell
+            name={row.Player}
+            team={row.Team}
+            playerId={row.player_id}
+            media={playerMedia}
+            size="sm"
+            showTeam={false}
+            clickable={Boolean(row.player_id)}
+            position={position}
+            season={season}
+            week={week}
+          />
+          <InjuryStatusTag status={unavailable ? "" : status} />
+        </span>
         <span className="col-player-mobile-meta">
           {row.Team || "—"}
           {showOpponent && row.Opponent ? ` · ${row.Opponent}` : ""}
@@ -92,14 +133,20 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
       </td>
       {showOpponent && (
         <td
-          className={`col-opp${row.Opponent === "BYE" ? " muted" : ""}${
-            matchupTone(row["Opp Def Rank"], dvpTeamCount)
-              ? ` matchup-${matchupTone(row["Opp Def Rank"], dvpTeamCount)}`
-              : ""
-          }`}
+          className={`col-opp${row.Opponent === "BYE" ? " muted" : ""}${tone ? ` matchup-${tone}` : ""}`}
           title={matchupTitle(row["Opp Def Rank"], dvpTeamCount, position)}
         >
           {row.Opponent || "—"}
+          {tone ? (
+            <span className={`matchup-indicator matchup-indicator-${tone}`} aria-hidden="true">
+              {tone === "good" ? "▲" : "▼"}
+            </span>
+          ) : null}
+          {tone ? (
+            <span className="sr-only">
+              {tone === "good" ? "favorable matchup" : "tough matchup"}
+            </span>
+          ) : null}
         </td>
       )}
       {hasSentiment && (
@@ -165,6 +212,9 @@ function exportCsv(rows) {
   downloadCsv("scoresense-projections", lines);
 }
 
+const rankMetric = (row) =>
+  isPlayerUnavailable(row["Injury Status"]) ? NaN : Number(row["Projected Points"]);
+
 export default function WeeklyTable({
   rows,
   search,
@@ -176,6 +226,7 @@ export default function WeeklyTable({
   position,
   season,
   week,
+  onClearFilters,
 }) {
   const [sort, toggleSort] = useTableSort({ column: "P50", dir: "desc" });
   const mobileLayout = useMobileLayout();
@@ -199,8 +250,8 @@ export default function WeeklyTable({
     [rows]
   );
 
-  // Player, Team, Proj, Range are always present; Opp/Narrative/Boost are conditional.
-  const baseColCount = 4 + (showOpponent ? 1 : 0) + (hasSentiment ? 1 : 0) + (showBoost ? 1 : 0);
+  // Rank, Player, Team, Proj, Range are always present; Opp/Narrative/Boost are conditional.
+  const baseColCount = 5 + (showOpponent ? 1 : 0) + (hasSentiment ? 1 : 0) + (showBoost ? 1 : 0);
   const emptyColSpan = baseColCount;
   const unavailableColSpan = 2 + (showBoost ? 1 : 0);
 
@@ -269,6 +320,9 @@ export default function WeeklyTable({
   );
   const playerMedia = usePlayerMedia(playerIds);
 
+  // Position rank over the full slate (stable regardless of sort/filter).
+  const rankMap = useRankMap(rows, rankMetric);
+
   const hasFilters = Boolean((search || "").trim() || teamsFilter?.length);
   const emptyMessage = loading
     ? null
@@ -292,6 +346,7 @@ export default function WeeklyTable({
         <MobileDataList
           loading={loading && sorted.length === 0}
           emptyMessage={!loading && sorted.length === 0 ? emptyMessage : null}
+          onEmptyAction={hasFilters && sorted.length === 0 ? onClearFilters : undefined}
         >
           {sorted.map((row, rowIndex) => {
             const status = row["Injury Status"] || "";
@@ -305,8 +360,9 @@ export default function WeeklyTable({
 
             return (
               <MobilePlayerCard
-                key={`${row.player_id || row.Player}-${row.Team}`}
+                key={rowRankKey(row)}
                 name={row.Player}
+                rank={rankMap.get(rowRankKey(row)) ?? null}
                 titleNode={(
                   <PlayerCell
                     name={row.Player}
@@ -366,11 +422,12 @@ export default function WeeklyTable({
           })}
         </MobileDataList>
       ) : (
-      <div className="table-wrap table-sticky">
+      <div className="table-wrap table-sticky table-has-rank">
         <table>
           <thead>
             <tr>
-              <SortHeader label="Player" sortKey="Player" sort={sort} onSort={toggleSort} />
+              <th className="num col-rank" title="Position rank by projected points">#</th>
+              <SortHeader label="Player" sortKey="Player" sort={sort} onSort={toggleSort} className="col-player" />
               <SortHeader label="Team" sortKey="Team" sort={sort} onSort={toggleSort} className="col-team" />
               {showOpponent && (
                 <SortHeader
@@ -425,17 +482,19 @@ export default function WeeklyTable({
             ) : (
               <>
             {sorted.length === 0 && emptyMessage && (
-              <tr>
-                <td colSpan={emptyColSpan} className="table-empty-state">
-                  {emptyMessage}
-                </td>
-              </tr>
+              <TableEmptyState
+                colSpan={emptyColSpan}
+                message={emptyMessage}
+                actionLabel="Clear filters"
+                onAction={hasFilters ? onClearFilters : undefined}
+              />
             )}
             {sorted.map((row, rowIndex) => (
               <WeeklyTableRow
-                key={`${row.player_id || row.Player}-${row.Team}`}
+                key={rowRankKey(row)}
                 row={row}
                 rowIndex={rowIndex}
+                rank={rankMap.get(rowRankKey(row)) ?? null}
                 showOpponent={showOpponent}
                 hasSentiment={hasSentiment}
                 showBoost={showBoost}
