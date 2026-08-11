@@ -9,11 +9,11 @@ export function SortHeader({ label, sortKey, sort, onSort, tip, className = "" }
     <HoverTip
       as="th"
       content={tip}
-      className={`sortable-header col-tip ${className}`.trim()}
+      className={`sortable-header col-tip${active ? " sort-active" : ""} ${className}`.trim()}
       onClick={() => onSort(sortKey)}
       aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}
     >
-      {label} <span className="sort-indicator">{arrow}</span>
+      {label} <span className="sort-indicator" aria-hidden="true">{arrow}</span>
     </HoverTip>
   );
 }

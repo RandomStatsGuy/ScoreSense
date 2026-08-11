@@ -22,7 +22,14 @@ function MobileSkeleton({ rows = 10 }) {
   );
 }
 
-export default function MobileDataList({ loading = false, emptyMessage, skeletonRows = 10, children }) {
+export default function MobileDataList({
+  loading = false,
+  emptyMessage,
+  emptyActionLabel,
+  onEmptyAction,
+  skeletonRows = 10,
+  children,
+}) {
   const childCount = React.Children.count(children);
 
   if (loading && childCount === 0) {
@@ -30,7 +37,16 @@ export default function MobileDataList({ loading = false, emptyMessage, skeleton
   }
 
   if (!loading && emptyMessage) {
-    return <p className="mobile-data-list-empty">{emptyMessage}</p>;
+    return (
+      <div className="mobile-data-list-empty">
+        <p className="mobile-data-list-empty-message">{emptyMessage}</p>
+        {onEmptyAction ? (
+          <button type="button" className="btn-ghost btn-sm" onClick={onEmptyAction}>
+            {emptyActionLabel || "Clear filters"}
+          </button>
+        ) : null}
+      </div>
+    );
   }
 
   return <div className="mobile-data-list">{children}</div>;

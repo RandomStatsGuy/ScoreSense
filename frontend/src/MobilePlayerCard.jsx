@@ -4,6 +4,7 @@ export default function MobilePlayerCard({
   name,
   titleNode,
   meta,
+  rank,
   heroValue,
   heroLabel = "",
   heroMuted = false,
@@ -43,6 +44,11 @@ export default function MobilePlayerCard({
       >
         <div className="mobile-player-card-main">
           <div className="mobile-player-card-name-row">
+            {rank != null ? (
+              <span className="mobile-player-card-rank" aria-label={`Rank ${rank}`}>
+                {rank}
+              </span>
+            ) : null}
             {titleNode || <span className="mobile-player-card-name">{name}</span>}
             {badge}
           </div>

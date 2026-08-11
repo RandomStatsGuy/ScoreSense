@@ -97,7 +97,7 @@ export default function ValueSheetTable({
   const showSelect = Boolean(onSelectPlayer);
   const actionCol = showAdd || showSelect;
   // Core: Player, Pos, Season, Bid, Tier (+ optional Status/Δ/Action). Advanced adds Team/PG/Spread/Min/Max.
-  const baseCols = 5 + (showAdvanced ? 4 : 0) + (showDelta ? 1 : 0) + (showStatus ? 1 : 0) + (actionCol ? 1 : 0);
+  const baseCols = 5 + (showAdvanced ? 5 : 0) + (showDelta ? 1 : 0) + (showStatus ? 1 : 0) + (actionCol ? 1 : 0);
   const colCount = baseCols;
 
   useEffect(() => {

@@ -2,6 +2,13 @@
 
 * { box-sizing: border-box; }
 
+/* Keyboard focus baseline — visible ring on any interactive element that
+   doesn't define its own :focus-visible treatment. */
+:where(button, a, select, input, textarea, summary, [role="button"], [tabindex="0"]):focus-visible {
+  outline: 2px solid var(--accent-muted);
+  outline-offset: 2px;
+}
+
 body {
   margin: 0;
   background:
@@ -707,6 +714,29 @@ body {
   min-width: 9rem;
 }
 
+/* Narrow-desktop range (769–900px): keep filter fields inline instead of the
+   default stacked column layout, so the bar stays one or two compact rows. */
+@media (min-width: 769px) and (max-width: 900px) {
+  .projections-filter-bar .header-context-field.header-inline-field {
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+    gap: 0.28rem;
+  }
+
+  .projections-filter-bar .header-context-control {
+    width: auto;
+  }
+
+  .projections-filter-bar .projections-filter-search .search-input {
+    width: 10rem;
+  }
+
+  .projections-filter-bar .week-stepper {
+    width: auto;
+  }
+}
+
 .week-stepper {
   display: flex;
   align-items: stretch;
@@ -1378,10 +1408,11 @@ body {
 }
 
 .col-narrative {
-  width: 4.75rem;
-  min-width: 4.75rem;
-  max-width: 4.75rem;
+  width: 6.5rem;
+  min-width: 6.5rem;
+  max-width: 6.5rem;
   white-space: nowrap;
+  overflow: hidden;
   vertical-align: middle;
   text-align: center;
   padding-left: 0.4rem;
@@ -1963,12 +1994,29 @@ body {
   box-shadow: 2px 0 6px rgba(0, 0, 0, 0.2);
 }
 
+/* Tables with a leading rank column: rank pins at 0, player follows it. */
+.table-has-rank thead th:first-child {
+  box-shadow: none;
+}
+
+.table-has-rank thead th.col-player {
+  position: sticky;
+  left: var(--rank-col-width);
+  z-index: 21;
+  box-shadow: 2px 0 2px rgba(0, 0, 0, 0.15);
+}
+
+.table-has-rank.table-sticky tbody td.col-player {
+  left: var(--rank-col-width);
+}
+
+/* Sticky cells need opaque zebra backgrounds so scrolled columns can't bleed through. */
 .table-sticky tbody tr:nth-child(even) td.col-player {
-  background: rgba(15, 23, 42, 0.55);
+  background: #101a2e;
 }
 
 .table-sticky tbody tr:hover td.col-player {
-  background: rgba(30, 41, 59, 0.45);
+  background: #1a2540;
 }
 
 .data-table tbody tr:nth-child(even) td {
@@ -1976,7 +2024,7 @@ body {
 }
 
 .data-table tbody tr:hover td {
-  background: rgba(30, 41, 59, 0.45);
+  background: var(--row-hover-bg);
 }
 
 .hub-table tbody tr:nth-child(even) td {
@@ -2006,11 +2054,11 @@ body {
 }
 
 .hub-table tbody tr:nth-child(even) td.col-player {
-  background: rgba(15, 23, 42, 0.55);
+  background: #101a2e;
 }
 
 .hub-table tbody tr:hover td.col-player {
-  background: rgba(30, 41, 59, 0.45);
+  background: #1a2540;
 }
 
 .sortable-header {
@@ -2023,9 +2071,25 @@ body {
   color: #cbd5e1;
 }
 
+/* Quiet by default; reveal on hover, emphasize the active sort column. */
 .sort-indicator {
   font-size: 0.72rem;
   color: #64748b;
+  opacity: 0.35;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.sortable-header:hover .sort-indicator {
+  opacity: 1;
+}
+
+.sortable-header.sort-active {
+  color: var(--text-primary);
+}
+
+.sortable-header.sort-active .sort-indicator {
+  opacity: 1;
+  color: var(--accent-muted);
 }
 
 .range-cell {
@@ -3219,10 +3283,16 @@ th.col-range {
   white-space: nowrap;
 }
 
+/* Primary metric column (projected points / season total) — strongest number on the row. */
 th.col-proj,
-td.num-proj {
+.num-proj {
   font-weight: 700;
   color: #f8fafc;
+  font-variant-numeric: tabular-nums;
+}
+
+td.num-proj .col-proj-value {
+  font-size: 0.98rem;
 }
 
 th.col-tip {
@@ -3701,7 +3771,7 @@ tbody tr {
 }
 
 tbody tr:hover td {
-  background: rgba(30, 41, 59, 0.45);
+  background: var(--row-hover-bg);
 }
 
 td.col-player {
@@ -3799,11 +3869,6 @@ td.col-player {
   border-color: var(--border);
 }
 
-.num-proj {
-  font-weight: 650;
-  color: #93c5fd;
-}
-
 th {
   color: #94a3b8;
   font-weight: 600;
@@ -3830,6 +3895,94 @@ th.num {
 /* DvP matchup context on the Opp column (rank vs position, 1 = toughest). */
 .col-opp.matchup-good { color: #6ee7a0; font-weight: 600; }
 .col-opp.matchup-bad { color: #fca5a5; font-weight: 600; }
+
+/* Non-color matchup cue so favorable/tough isn't communicated by hue alone. */
+.matchup-indicator {
+  margin-left: 0.28rem;
+  font-size: 0.55rem;
+  vertical-align: 0.12em;
+  opacity: 0.9;
+}
+
+/* Position rank column — stable rank by the table's primary metric. */
+th.col-rank,
+td.col-rank {
+  width: var(--rank-col-width);
+  min-width: var(--rank-col-width);
+  max-width: var(--rank-col-width);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+td.col-rank.col-rank-top {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+/* Keep rank pinned with the player column during horizontal scroll. */
+.table-sticky thead th.col-rank {
+  position: sticky;
+  left: 0;
+  z-index: 21;
+}
+
+.table-sticky tbody td.col-rank {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.table-sticky tbody tr:nth-child(even) td.col-rank {
+  background: #101a2e;
+}
+
+.table-sticky tbody tr:hover td.col-rank {
+  background: #1a2540;
+}
+
+/* Player identity cell — name plus inline injury designation. */
+.col-player-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.player-status-chip {
+  padding: 0.06rem 0.38rem;
+  font-size: 0.66rem;
+  flex-shrink: 0;
+  cursor: help;
+}
+
+/* Empty state with a recovery action (shared across data tables). */
+.table-empty-state-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.table-empty-state-action {
+  border: 1px solid var(--border-strong);
+}
+
+.mobile-data-list-empty-message {
+  margin: 0 0 0.15rem;
+}
+
+/* Rank number on mobile player cards. */
+.mobile-player-card-rank {
+  flex-shrink: 0;
+  min-width: 1.6rem;
+  text-align: right;
+  padding-right: 0.1rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
 
 /* Legacy `.badge` API — kept as thin aliases over the `.chip` visual language
    so injury badges match everywhere. Prefer <Chip> in new code. */
@@ -5004,9 +5157,21 @@ th.num {
 }
 .hub-freshness-chip {
   display: inline-flex;
-  gap: 0.35rem;
-  align-items: baseline;
+  gap: 0.4rem;
+  align-items: center;
   font-size: 0.78rem;
+  padding: 0.22rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: rgba(15, 23, 42, 0.55);
+  cursor: default;
+}
+.hub-freshness-dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: var(--tone-positive);
+  flex-shrink: 0;
 }
 .hub-freshness-chip-label {
   color: var(--text-secondary);
@@ -5014,13 +5179,20 @@ th.num {
 }
 .hub-freshness-chip-value {
   color: var(--text-primary);
+  font-weight: 600;
+}
+.hub-freshness-chip-stale .hub-freshness-dot {
+  background: var(--tone-caution);
 }
 .hub-freshness-chip-stale .hub-freshness-chip-value {
-  color: var(--tone-negative, #f87171);
-  font-weight: 600;
+  color: var(--tone-caution-text, #fde68a);
+}
+.hub-freshness-chip-muted .hub-freshness-dot {
+  background: var(--slate-600);
 }
 .hub-freshness-chip-muted .hub-freshness-chip-value {
   color: var(--text-secondary);
+  font-weight: 500;
 }
 .hub-freshness-actions {
   display: flex;
@@ -7129,23 +7301,25 @@ th.num {
 }
 
 .player-card-dialog {
+  position: relative;
   width: min(32rem, 100%);
   max-height: min(85vh, 720px);
   overflow: auto;
   padding: 1rem 1.1rem 1.15rem;
 }
 
-.player-card-dialog-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 0.85rem;
+/* Floats over the body and stays pinned while the dialog scrolls. */
+.player-card-dialog .player-card-close {
+  float: right;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
-.player-card-dialog-head h2 {
-  margin: 0;
+.player-card-dialog-title {
+  margin: 0 0 0.85rem;
   font-size: 1.05rem;
+  padding-right: 4rem;
 }
 
 .player-card-head {
@@ -7154,6 +7328,11 @@ th.num {
   justify-content: space-between;
   gap: 0.65rem;
   margin-bottom: 0.85rem;
+}
+
+/* Clear the floating Close control in the desktop dialog. */
+.player-card-dialog .player-card-head {
+  padding-right: 4.25rem;
 }
 
 .player-card-section {
@@ -7187,6 +7366,38 @@ th.num {
   font-size: 0.95rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+.player-card-stat--primary .player-card-stat-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent-muted);
+}
+
+/* Range bar with floor/ceiling end labels (player card). */
+.player-card-range {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.2rem;
+}
+
+.player-card-range .quantile-bar {
+  flex: 1;
+  min-width: 0;
+}
+
+.player-card-range-label {
+  flex-shrink: 0;
+  min-width: 2.2rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.player-card-range-label:first-child {
+  text-align: right;
 }
 
 .player-card-narrative {
@@ -8919,7 +9130,7 @@ th.num {
   }
 
   tbody tr:hover td.col-player {
-    background: rgba(30, 41, 59, 0.45);
+    background: #1a2540;
   }
 
   .team-filter {

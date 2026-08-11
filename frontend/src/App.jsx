@@ -560,6 +560,12 @@ export default function App() {
     [syncFiltersToUrl],
   );
 
+  const clearTableFilters = useCallback(() => {
+    setSearchQuery("");
+    setSelectedTeams([]);
+    syncFiltersToUrl({ search: "", selectedTeams: [] });
+  }, [syncFiltersToUrl]);
+
   const urlFiltersBootstrapped = useRef(false);
   useEffect(() => {
     if (!projMeta || urlFiltersBootstrapped.current) return;
@@ -1135,6 +1141,7 @@ export default function App() {
                 position={position}
                 season={season}
                 week={week}
+                onClearFilters={clearTableFilters}
                 searchSlot={
                   !mobileLayout ? null : (
                   <input
@@ -1178,24 +1185,27 @@ export default function App() {
 
         {view === "projections" && projectionsTab === "season" && (
           <section className="panel wide panel-season">
-            <nav className="season-mode-tabs" role="tablist" aria-label="Season mode">
-              {SEASON_MODES.map((mode) => (
-                <button
-                  key={mode.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={seasonMode === mode.id}
-                  title={mode.hint}
-                  className={`season-mode-tab${seasonMode === mode.id ? " active" : ""}`}
-                  onClick={() => {
-                    seasonModeUserPicked.current = true;
-                    setSeasonMode(mode.id);
-                  }}
-                >
-                  <span className="season-mode-tab-label">{mode.shortLabel}</span>
-                </button>
-              ))}
-            </nav>
+            {/* Desktop already exposes this switch in the filter bar. */}
+            {mobileLayout && (
+              <nav className="season-mode-tabs" role="tablist" aria-label="Season mode">
+                {SEASON_MODES.map((mode) => (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={seasonMode === mode.id}
+                    title={mode.hint}
+                    className={`season-mode-tab${seasonMode === mode.id ? " active" : ""}`}
+                    onClick={() => {
+                      seasonModeUserPicked.current = true;
+                      setSeasonMode(mode.id);
+                    }}
+                  >
+                    <span className="season-mode-tab-label">{mode.shortLabel}</span>
+                  </button>
+                ))}
+              </nav>
+            )}
 
             {seasonMode === "preseason" ? (
               <DraftTable
@@ -1204,6 +1214,7 @@ export default function App() {
                   loading={draftLoading}
                   position={position}
                   season={draftSeason}
+                  onClearFilters={clearTableFilters}
                   searchSlot={
                     <input
                       type="search"
@@ -1272,6 +1283,7 @@ export default function App() {
                   position={position}
                   season={rosSeason ?? season}
                   week={rosFromWeek ?? week}
+                  onClearFilters={clearTableFilters}
                   searchSlot={
                     <input
                       type="search"

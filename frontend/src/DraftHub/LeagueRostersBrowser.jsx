@@ -108,7 +108,7 @@ export default function LeagueRostersBrowser({
         <>
           <div className="hub-roster-browser-toolbar">
             <label className="hub-roster-browser-team">
-              <span className="visually-hidden">Team</span>
+              <span className="sr-only">Team</span>
               <select
                 className="hub-league-switcher-select"
                 value={teamId}

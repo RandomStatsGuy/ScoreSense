@@ -13,8 +13,13 @@ function FreshnessChip({ label, at, stale, missing }) {
   if (at) value = formatRelativeTime(at);
   else if (missing) value = "Not linked";
   const tone = stale ? "stale" : at ? "ok" : "muted";
+  const toneLabel = stale ? "stale" : at ? "up to date" : missing ? "not linked" : "no data";
   return (
-    <span className={`hub-freshness-chip hub-freshness-chip-${tone}`} title={at || undefined}>
+    <span
+      className={`hub-freshness-chip hub-freshness-chip-${tone}`}
+      title={at ? `${label}: ${toneLabel} (${at})` : `${label}: ${toneLabel}`}
+    >
+      <span className="hub-freshness-dot" aria-hidden="true" />
       <span className="hub-freshness-chip-label">{label}</span>
       <span className="hub-freshness-chip-value">{value}</span>
     </span>

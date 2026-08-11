@@ -275,7 +275,7 @@ export default function LeagueOffice({
           {seasonOptions?.length > 0 && (
             <div className="hub-filter-bar">
               <label className="hub-league-search">
-                <span className="visually-hidden">Season</span>
+                <span className="sr-only">Season</span>
                 <select
                   className="hub-league-switcher-select"
                   value={historySeason || "current"}
