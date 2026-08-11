@@ -1600,11 +1600,30 @@ def update_league_rules(league_id: str, rules: LeagueRules) -> dict[str, Any] | 
 
 
 def update_league_season(league_id: str, season: int) -> dict[str, Any] | None:
+    """Bump planning season. Advancing the year reopens pre-draft without rewinding contracts.
+
+    Years left are owned by the draft-complete clock — advancing 2025→2026 must not
+    reset everyone back to rookie defaults; keepers keep their post-tick lengths.
+    """
     with get_conn() as conn:
-        conn.execute(
-            "UPDATE league SET season = ? WHERE id = ?",
-            (int(season), league_id),
-        )
+        prior = conn.execute(
+            "SELECT season, draft_completed FROM league WHERE id = ?",
+            (league_id,),
+        ).fetchone()
+        if not prior:
+            return None
+        new_season = int(season)
+        old_season = int(prior["season"] or 0)
+        if new_season > old_season:
+            conn.execute(
+                "UPDATE league SET season = ?, draft_completed = 0 WHERE id = ?",
+                (new_season, league_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE league SET season = ? WHERE id = ?",
+                (new_season, league_id),
+            )
         row = conn.execute("SELECT * FROM league WHERE id = ?", (league_id,)).fetchone()
         return _league_dict(row) if row else None
 

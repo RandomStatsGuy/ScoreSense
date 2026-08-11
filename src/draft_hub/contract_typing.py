@@ -189,12 +189,17 @@ def backfill_row_contract(
     cur_type = str(existing.get("contract_type") or "veteran")
     cur_yrs = int(existing.get("years_remaining") or row.get("contract_years") or 1)
     new_yrs = cur_yrs
+    mistyped_or_missing = (not existing.get("contract_type")) or inferred != cur_type
     if (
         not draft_completed
         and inferred == "rookie"
+        and mistyped_or_missing
         and exp is not None
         and exp < int(rules.contracts.rookie_years)
     ):
+        # Only inflate years when correcting a mistype. Do not undo a
+        # draft-complete year tick on an already-correct rookie deal when the
+        # league re-opens pre-draft for the next planning season (e.g. 2026).
         suggested = suggested_rookie_years_pre_draft(rules, years_exp=exp)
         if suggested is not None and suggested > cur_yrs:
             new_yrs = suggested

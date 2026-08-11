@@ -180,7 +180,8 @@ Is years left ≥ 2?
 2. Run the auction / draft.
 3. Commissioner marks **Draft done** (confirm dialog).
 4. Every active contract **−1 year**; anyone at 0 is removed as FA.
-5. Next offseason, use Cap Planner again on whoever is now at 1 year.
+5. When the league planning season advances (e.g. 2025 → 2026), Hub reopens **pre-draft** mode but **keeps** those ticked years — it does not reset everyone back to 2.
+6. Next offseason, use Cap Planner again on whoever is now at 1 year.
 
 ---
 
@@ -188,10 +189,10 @@ Is years left ≥ 2?
 
 - NFL: drafted 2025, still in year-1/2 window.
 - Fantasy: 2-year rookie deal covering 2025 + 2026.
-- **Pre-2026 draft:** Type = **Rookie deal**, Years = **2**.
-- Not on Extend / FA lists.
-- After draft marked complete: Years → **1**.
-- Pre-2027 draft: Years = **1** → **Extend to keep** or FA.
+- **Pre-2025 draft (just signed):** Type = **Rookie deal**, Years = **2**.
+- After 2025 draft marked complete: Years → **1**.
+- **Planning season advanced to 2026 (pre-draft):** Years stay **1** → **Extend to keep** or FA.
+- Sync / backfill must not push a correctly typed rookie back to 2 after the year clock has ticked.
 
 ---
 
