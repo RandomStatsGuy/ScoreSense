@@ -190,8 +190,29 @@ def _refresh_scoring_cache_for_league(league_id: str) -> None:
         league = overview.get("league") or {}
         season = int(league.get("season") or 2025)
         build_and_store_fair_values(league_id, overview, season)
+        # Re-materialize Spend tab so the next Insights visit skips overview rebuild.
+        from src.draft_hub.insights_cache import write_cap_cache
+        from src.draft_hub.league_analytics import build_league_analytics
+
+        analytics = build_league_analytics(
+            overview,
+            draft_completed=bool(league.get("draft_completed")),
+        )
+        historic = _historic_insights_block(
+            league_id,
+            overview,
+            mode="current",
+            season_year=None,
+            analytics=analytics,
+        )
+        write_cap_cache(
+            league_id,
+            history_mode="current",
+            history_year=None,
+            payload={"historic": historic, "analytics": analytics},
+        )
     except Exception:
-        logger.warning("fair value warm failed for league %s", league_id, exc_info=True)
+        logger.warning("fair value / cap warm failed for league %s", league_id, exc_info=True)
 
 
 def _assert_league_access(league_id: str, sub: str) -> None:
@@ -1530,6 +1551,50 @@ def hub_league_insights(
         with timer.phase("ctx"):
             sub = _sub(_user)
             ctx = _ctx_for_league(sub, league_id)
+
+        # Cap-only Spend tab: serve SQLite materialization without reloading every roster.
+        if (
+            not refresh
+            and not ownership_only
+            and wanted_sections == {"cap"}
+        ):
+            from src.draft_hub.insights_cache import read_cap_cache
+            from src.draft_hub.owner_display import planning_season_for_user, team_owner_map_for_league
+
+            with timer.phase("cap_cache"):
+                cached_cap, _cap_version = read_cap_cache(
+                    league_id,
+                    history_mode=history_mode,
+                    history_year=history_year,
+                )
+            analytics_hit = (cached_cap or {}).get("analytics") or {}
+            if cached_cap and (analytics_hit.get("teams") or []):
+                league = storage.get_league(league_id) or {}
+                payload = {
+                    "analytics": analytics_hit,
+                    "trade": {
+                        "my_team_id": str(team_id or ctx.get("team_id") or ""),
+                        "balance": {},
+                        "actionable_needs": [],
+                        "partners": [],
+                        "suggestions": [],
+                    },
+                    "draft_recap": None,
+                    "scoring": {"available": False, "reason": "not_loaded"},
+                    "scoring_awards": [],
+                    "efficiency": {"available": False, "teams": []},
+                    "ownership": {"players": [], "player_count": 0},
+                    "historic": cached_cap.get("historic") or {"available": False, "awards": []},
+                    "owner_map": team_owner_map_for_league(league_id),
+                    "planning_season": planning_season_for_user(sub, league),
+                    "hub_context": ctx,
+                    "cache_status": {"cap": "hit"},
+                    "timing_ms": round(sum(timer.phases.values()), 1) if timer.phases else None,
+                }
+                if cache_key:
+                    _INSIGHTS_RESPONSE_CACHE[cache_key] = (time.time(), payload)
+                return payload
+
         with timer.phase("overview"):
             try:
                 overview = storage.league_roster_overview(league_id)

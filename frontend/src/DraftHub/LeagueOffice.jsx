@@ -16,6 +16,31 @@ import {
 } from "./hubOfficeTabs";
 import { seasonCapYearHint } from "./rosterFormat";
 
+/** Mount bulk contract-history tools only after the commissioner opens Advanced. */
+function OfficeAdvancedAudit({ leagueId, hubContext, seasonFilter }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <details
+      className="hub-office-advanced"
+      open={open}
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+    >
+      <summary>Advanced · bulk audit (optional)</summary>
+      <p className="chart-note" style={{ marginTop: 0 }}>
+        Optional bulk audit and import tools — day-to-day edits stay on the table above.
+      </p>
+      {open && (
+        <LeagueContractHistory
+          leagueId={leagueId}
+          hubContext={hubContext}
+          seasonFilter={seasonFilter}
+          embedded
+        />
+      )}
+    </details>
+  );
+}
+
 function OfficeMembers({ leagueId, hubContext, onChanged }) {
   const [teams, setTeams] = useState([]);
   const [commissionerSub, setCommissionerSub] = useState("");
@@ -304,18 +329,11 @@ export default function LeagueOffice({
             />
           </HubPage>
           <HubPage>
-            <details className="hub-office-advanced">
-              <summary>Advanced · bulk audit (optional)</summary>
-              <p className="chart-note" style={{ marginTop: 0 }}>
-                Optional bulk audit and import tools — day-to-day edits stay on the table above.
-              </p>
-              <LeagueContractHistory
-                leagueId={leagueId}
-                hubContext={hubContext}
-                seasonFilter={seasonFilter}
-                embedded
-              />
-            </details>
+            <OfficeAdvancedAudit
+              leagueId={leagueId}
+              hubContext={hubContext}
+              seasonFilter={seasonFilter}
+            />
           </HubPage>
         </>
       )}

@@ -613,7 +613,7 @@ export default function LeagueInsights({
     () => ({ capSeasonRef, scoringSeasonRef, historySeasonRef }),
     [],
   );
-  const { load: loadInsights, loadCacheRef } = useInsightsData(leagueId, insightsRefs);
+  const { load: loadInsights, loadCacheRef, prefetchScoring } = useInsightsData(leagueId, insightsRefs);
   const insightsHandlers = useMemo(() => ({
     setData,
     setLoading,
@@ -644,6 +644,12 @@ export default function LeagueInsights({
     loadCacheRef.current.clear();
     load({ activeTab: "cap", sections: "cap" });
   }, [leagueId, load, loadCacheRef]);
+
+  // After Spend paints, warm Scoring in the background when DB cache is already hot.
+  useEffect(() => {
+    if (!leagueId || loading || !data?.analytics) return;
+    prefetchScoring(insightsHandlers);
+  }, [leagueId, loading, data?.analytics, prefetchScoring, insightsHandlers]);
 
   const loadOwnershipHistory = useCallback(async (opts = {}) => {
     if (!leagueId) return null;
