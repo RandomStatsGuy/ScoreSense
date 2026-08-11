@@ -159,12 +159,12 @@ def _build_schedule(
             inferred = "extension"
     else:
         inferred = infer_contract_type(None, rules, years_exp=years_exp, season=season)
-    # Pad missing future years: rookies stay flat; extensions step +$5.
+    # Pad missing future years: rookies stay flat; vets / extensions step +$5.
     if len(schedule_vals) == 1 and years_remaining > 1 and not na_2026:
         if inferred == "rookie":
             while len(schedule_vals) < years_remaining:
                 schedule_vals.append(schedule_vals[-1])
-        elif inferred == "extension":
+        elif inferred in ("extension", "veteran"):
             step = float(rules.contracts.extension_step_up)
             while len(schedule_vals) < years_remaining:
                 schedule_vals.append(round(schedule_vals[-1] + step, 2))

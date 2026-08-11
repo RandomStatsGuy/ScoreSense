@@ -54,16 +54,27 @@ def build_extension_contract(
     }
 
 
-def build_veteran_contract(base_salary: float, years: int = 1) -> dict[str, Any]:
+def build_veteran_contract(
+    base_salary: float,
+    years: int = 1,
+    *,
+    step_up: float = 0.0,
+) -> dict[str, Any]:
+    """Multi-year veteran deals step by ``step_up`` each year (league default $5)."""
     yrs = max(1, years)
     sal = round(float(base_salary), 2)
-    schedule = [{"year_offset": i, "salary": sal} for i in range(yrs)]
+    step = float(step_up or 0)
+    if step and yrs > 1:
+        schedule = [{"year_offset": i, "salary": round(sal + step * i, 2)} for i in range(yrs)]
+    else:
+        schedule = [{"year_offset": i, "salary": sal} for i in range(yrs)]
     return {
         "contract_type": "veteran",
         "base_salary": sal,
         "years_total": yrs,
         "years_remaining": yrs,
         "renewal_used": False,
+        "step_up_per_year": step if yrs > 1 else 0.0,
         "schedule": schedule,
         "current_salary": sal,
     }
@@ -118,12 +129,14 @@ def _schedule_step_for_type(
     step_up: float | None,
     cr: ContractRules,
 ) -> float:
-    """Rookie/veteran deals are flat; only extensions step (+$5 by default).
+    """Rookie deals are flat; veteran deals and rookie extensions step (+$5 by default).
 
-    Callers often pass the league extension step for every edit — ignore it unless
-    the deal is actually an extension.
+    Callers often pass the league extension step for every edit — ignore it for rookies.
     """
-    if str(ctype) != "extension":
+    kind = str(ctype or "veteran")
+    if kind == "rookie":
+        return 0.0
+    if kind not in ("extension", "veteran"):
         return 0.0
     if step_up is not None:
         return float(step_up)
@@ -131,34 +144,61 @@ def _schedule_step_for_type(
 
 
 def repair_flat_deal_schedule(contract: dict[str, Any] | None) -> dict[str, Any] | None:
-    """Flatten mistyped stepped schedules on rookie/veteran deals (read-path safety net)."""
+    """Read-path schedule repair: flatten rookies; ensure multi-year vets/extensions step."""
     if not contract:
         return contract
     ctype = str(contract.get("contract_type") or "veteran")
-    if ctype == "extension":
-        return contract
     yrs = int(contract.get("years_remaining") or 0)
     if yrs < 1:
         return contract
     base = float(contract.get("current_salary") or contract.get("base_salary") or 0)
     schedule = contract.get("schedule") or []
-    needs_repair = float(contract.get("step_up_per_year") or 0) != 0
-    if not needs_repair:
+
+    if ctype == "rookie":
+        needs_repair = float(contract.get("step_up_per_year") or 0) != 0
+        if not needs_repair:
+            for i in range(yrs):
+                sal = salary_for_year(contract, i)
+                if sal > 0 and abs(sal - base) > 0.001:
+                    needs_repair = True
+                    break
+                if i < len(schedule) and abs(float(schedule[i].get("salary") or 0) - base) > 0.001:
+                    needs_repair = True
+                    break
+        if not needs_repair and len(schedule) >= yrs:
+            return contract
+        out = dict(contract)
+        out["schedule"] = [{"year_offset": i, "salary": round(base, 2)} for i in range(yrs)]
+        out["step_up_per_year"] = 0.0
+        out["current_salary"] = round(base, 2)
+        return out
+
+    if ctype in ("veteran", "extension") and yrs > 1:
+        actual: list[float] = []
         for i in range(yrs):
             sal = salary_for_year(contract, i)
-            if sal > 0 and abs(sal - base) > 0.001:
-                needs_repair = True
-                break
-            if i < len(schedule) and abs(float(schedule[i].get("salary") or 0) - base) > 0.001:
-                needs_repair = True
-                break
-    if not needs_repair and len(schedule) >= yrs:
-        return contract
-    out = dict(contract)
-    out["schedule"] = [{"year_offset": i, "salary": round(base, 2)} for i in range(yrs)]
-    out["step_up_per_year"] = 0.0
-    out["current_salary"] = round(base, 2)
-    return out
+            if sal <= 0 and i < len(schedule):
+                sal = float(schedule[i].get("salary") or 0)
+            actual.append(round(float(sal or 0), 2))
+        # Preserve custom stepped schedules; only repair flat / short ones.
+        is_flat = len(actual) >= yrs and all(abs(v - base) < 0.001 for v in actual[:yrs])
+        incomplete = len(actual) < yrs or any(v <= 0 for v in actual[:yrs])
+        stored_step = float(contract.get("step_up_per_year") or 0)
+        if not is_flat and not incomplete:
+            if stored_step > 0:
+                return contract
+            # Infer step from first YoY delta when metadata is missing.
+            out = dict(contract)
+            out["step_up_per_year"] = round(actual[1] - actual[0], 2) if len(actual) > 1 else 5.0
+            return out
+        step = stored_step if stored_step > 0 else 5.0
+        expected = [round(base + step * i, 2) for i in range(yrs)]
+        out = dict(contract)
+        out["step_up_per_year"] = step
+        out["schedule"] = [{"year_offset": i, "salary": expected[i]} for i in range(yrs)]
+        out["current_salary"] = round(base, 2)
+        return out
+    return contract
 
 
 def build_contract_from_roster_edit(
