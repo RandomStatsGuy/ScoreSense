@@ -714,6 +714,29 @@ body {
   min-width: 9rem;
 }
 
+/* Narrow-desktop range (769–900px): keep filter fields inline instead of the
+   default stacked column layout, so the bar stays one or two compact rows. */
+@media (min-width: 769px) and (max-width: 900px) {
+  .projections-filter-bar .header-context-field.header-inline-field {
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+    gap: 0.28rem;
+  }
+
+  .projections-filter-bar .header-context-control {
+    width: auto;
+  }
+
+  .projections-filter-bar .projections-filter-search .search-input {
+    width: 10rem;
+  }
+
+  .projections-filter-bar .week-stepper {
+    width: auto;
+  }
+}
+
 .week-stepper {
   display: flex;
   align-items: stretch;
@@ -1987,8 +2010,9 @@ body {
   left: var(--rank-col-width);
 }
 
+/* Sticky cells need opaque zebra backgrounds so scrolled columns can't bleed through. */
 .table-sticky tbody tr:nth-child(even) td.col-player {
-  background: rgba(15, 23, 42, 0.55);
+  background: #101a2e;
 }
 
 .table-sticky tbody tr:hover td.col-player {
@@ -2030,7 +2054,7 @@ body {
 }
 
 .hub-table tbody tr:nth-child(even) td.col-player {
-  background: rgba(15, 23, 42, 0.55);
+  background: #101a2e;
 }
 
 .hub-table tbody tr:hover td.col-player {
@@ -3910,7 +3934,7 @@ td.col-rank.col-rank-top {
 }
 
 .table-sticky tbody tr:nth-child(even) td.col-rank {
-  background: rgba(15, 23, 42, 0.55);
+  background: #101a2e;
 }
 
 .table-sticky tbody tr:hover td.col-rank {
