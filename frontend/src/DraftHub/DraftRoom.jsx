@@ -23,6 +23,12 @@ import {
   minNextBid,
 } from "./draftRoomHelpers";
 import { fmtSal } from "./rosterFormat";
+import {
+  effectiveAuctionBid,
+  formatRaavDelta,
+  isRiskToleranceActive,
+  raavDelta,
+} from "../riskAdjustedValue";
 
 function draftPhaseStep(status) {
   if (status === "bidding") return 2;
@@ -786,6 +792,7 @@ export default function DraftRoom({
     player_name: row.player,
     team: row.team,
     position: row.position,
+    // Keep fair_value as neutral baseline; risk-adjusted $ is a UI recommendation.
     fair_value: row.fair_value ?? row.model_bid_hint ?? null,
     season_proj: row.season_proj ?? null,
     per_game_proj: row.per_game_proj ?? null,
@@ -962,15 +969,32 @@ export default function DraftRoom({
   );
   const nomineeStats = useMemo(() => {
     if (!nominee) return null;
+    const source = nomineeRow || {
+      fair_value: nominee.fair_value,
+      model_bid_hint: nominee.fair_value,
+      risk_adjusted_value: nominee.risk_adjusted_value,
+      risk_score: nominee.risk_score,
+    };
+    const fair = source.fair_value ?? source.model_bid_hint ?? null;
+    const bidTo = effectiveAuctionBid(source, rules?.risk_tolerance, rules);
+    const useRaav = isRiskToleranceActive(rules?.risk_tolerance)
+      && bidTo != null
+      && fair != null
+      && Number(bidTo) !== Number(fair);
+    const delta = raavDelta(source, rules?.risk_tolerance, rules);
     return {
       perGame: nominee.per_game_proj ?? nomineeRow?.per_game_proj,
       seasonProj: nominee.season_proj ?? nomineeRow?.season_proj,
-      fairValue: nominee.fair_value ?? nomineeRow?.fair_value ?? nomineeRow?.model_bid_hint,
+      fairValue: fair,
+      bidTo: bidTo ?? fair,
+      bidLabel: useRaav || isRiskToleranceActive(rules?.risk_tolerance) ? "Bid to" : "Fair value",
+      useRaav,
+      raavDeltaLabel: formatRaavDelta(delta),
       minSal: nomineeRow?.min_sal,
       maxSal: nomineeRow?.max_sal,
       tier: nomineeRow?.tier,
     };
-  }, [nominee, nomineeRow]);
+  }, [nominee, nomineeRow, rules]);
 
   const myBudget = Number(myTeam?.budget_remaining);
   const myMaxBid = Number.isFinite(myBudget)
@@ -1361,7 +1385,11 @@ export default function DraftRoom({
                       {previewRow.player}
                       <span className="chart-note">
                         {" "}
-                        · {previewRow.position} · fair {fmtSal(previewRow.fair_value)}
+                        · {previewRow.position}
+                        {" · "}
+                        {isRiskToleranceActive(rules?.risk_tolerance) ? "bid" : "fair"}{" "}
+                        {fmtSal(effectiveAuctionBid(previewRow, rules?.risk_tolerance, rules)
+                          ?? previewRow.fair_value)}
                       </span>
                     </span>
                     <button
@@ -1417,6 +1445,8 @@ export default function DraftRoom({
                       defaultPosFilter="ALL"
                       maxRows={60}
                       narrativeScope="season"
+                      riskTolerance={rules?.risk_tolerance ?? 0}
+                      rules={rules || null}
                       selectedPlayerId={nomPlayerId}
                       onSelectPlayer={(row) => setNomPlayerId(row.player_id)}
                       onRowDoubleClick={
