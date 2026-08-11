@@ -12,6 +12,7 @@ from typing import Any
 import pandas as pd
 
 from src.config import DRAFT_POOL_DIR, MODEL_DIR, PROCESSED_DATA_DIR, SEASON_QUANTILE_METHOD
+from src.draft_hub.auction_values import RISK_WEIGHT
 from src.projections.draft_projections import predict_draft_season
 
 _POOL_CACHE: dict[int, tuple[str, pd.DataFrame]] = {}
@@ -33,6 +34,9 @@ def pool_fingerprint() -> str:
         "proj_logic:vet_backup_v1",
         # SCORE-2: schedule-aware MC season P10/P50/P90 aggregator vs legacy x17 scale.
         f"season_quantile_method:{SEASON_QUANTILE_METHOD}",
+        # SCORE-3: risk-adjusted auction value weight / scoring logic version.
+        f"raav_risk_weight:{RISK_WEIGHT}",
+        "raav_risk_logic:v1",
     ]
     for pos in ("qb", "rb", "wr"):
         feat = PROCESSED_DATA_DIR / f"{pos}_mlready.parquet"

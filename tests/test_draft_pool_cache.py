@@ -46,6 +46,18 @@ def test_pool_fingerprint_includes_rookie_overrides(monkeypatch, tmp_path):
     assert fp1 != fp2
 
 
+def test_pool_fingerprint_includes_raav_risk_weight(monkeypatch, tmp_path):
+    feat = tmp_path / "qb_mlready.parquet"
+    feat.write_bytes(b"x")
+    monkeypatch.setattr(draft_pool_cache, "PROCESSED_DATA_DIR", tmp_path)
+    monkeypatch.setattr(draft_pool_cache, "MODEL_DIR", tmp_path)
+
+    fp1 = draft_pool_cache.pool_fingerprint()
+    monkeypatch.setattr(draft_pool_cache, "RISK_WEIGHT", draft_pool_cache.RISK_WEIGHT + 0.05)
+    fp2 = draft_pool_cache.pool_fingerprint()
+    assert fp1 != fp2
+
+
 def test_load_draft_pool_uses_artifact(monkeypatch, tmp_path):
     season = 2026
     pool_dir = tmp_path / "pool"

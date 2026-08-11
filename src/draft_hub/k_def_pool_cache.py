@@ -92,6 +92,8 @@ def load_k_def_rows(
                     "range_source": None,
                     "model_bid_hint": fair,
                     "fair_value": fair,
+                    "risk_score": None,
+                    "risk_adjusted_value": None,
                     "tier": _tier_from_fair(fair, rules),
                     "is_rookie": False,
                 }
@@ -121,6 +123,8 @@ def load_k_def_rows(
                     "range_source": None,
                     "model_bid_hint": fair,
                     "fair_value": fair,
+                    "risk_score": None,
+                    "risk_adjusted_value": None,
                     "tier": _tier_from_fair(fair, rules),
                     "is_rookie": False,
                 }
