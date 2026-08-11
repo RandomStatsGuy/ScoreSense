@@ -7188,6 +7188,82 @@ td.col-rank.col-rank-top {
 .hub-overpay { background: var(--tone-negative-soft); }
 .hub-value-delta-pos { color: var(--tone-positive, #16a34a); font-weight: 600; }
 .hub-value-delta-neg { color: var(--tone-negative, #dc2626); font-weight: 600; }
+
+/* SCORE-3: risk-adjusted auction value */
+.hub-risk-tolerance {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0.85rem;
+}
+.hub-risk-tolerance-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem 0.75rem;
+}
+.hub-risk-tolerance-segment {
+  width: fit-content;
+  max-width: 100%;
+}
+.hub-risk-tolerance-segment .header-segment-tab {
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-pill);
+}
+.hub-risk-tolerance-segment .header-segment-tab:hover:not(:disabled):not(.active) {
+  color: var(--text-primary);
+  background: rgba(148, 163, 184, 0.12);
+}
+.hub-risk-tolerance-segment .header-segment-tab.active {
+  background: var(--accent-soft);
+  color: var(--accent-muted);
+  font-weight: 600;
+}
+.hub-risk-tolerance-segment .header-segment-tab:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.hub-risk-tolerance-hint {
+  margin: 0;
+}
+.hub-raav-bid {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.hub-raav-bid-main {
+  font-variant-numeric: tabular-nums;
+}
+.hub-raav-delta {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  padding: 0.08rem 0.28rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.hub-raav-delta--up {
+  color: var(--tone-positive);
+  background: var(--tone-positive-soft);
+}
+.hub-raav-delta--down {
+  color: var(--tone-caution-text, #fde68a);
+  background: var(--tone-caution-soft);
+}
+.hub-raav-delta-tip {
+  display: inline-flex;
+}
+.hub-col-risk {
+  min-width: 3.25rem;
+}
 .hub-insights { display: flex; flex-direction: column; gap: 1rem; }
 .hub-insights-league-meta { margin: -0.35rem 0 0; }
 .hub-insights-empty-state {
@@ -9239,6 +9315,7 @@ td.col-rank.col-rank-top {
   .hub-table .hub-col-spread,
   .hub-table .hub-col-min,
   .hub-table .hub-col-max,
+  .hub-table .hub-col-risk,
   .hub-table .hub-col-delta,
   .hub-table .hub-col-tier {
     display: none;

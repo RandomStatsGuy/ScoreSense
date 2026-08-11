@@ -71,3 +71,26 @@ def test_build_draft_pool_payload_handles_missing_season_quantile_columns(monkey
     assert row["season_p50"] is None
     assert row["games_expected"] is None
     assert row["season_quantile_method"] is None
+
+
+def test_build_draft_pool_payload_exposes_risk_fields(monkeypatch):
+    """SCORE-3: risk_score always; risk_adjusted_value only when risk_tolerance != 0."""
+    monkeypatch.setattr("src.draft_hub.value_sheet.load_draft_pool", lambda season: _sample_pool())
+    invalidate_pool_payload_cache()
+
+    neutral = build_draft_pool_payload(2026, LeagueRules(), [], team_count=12)
+    for row in neutral["rows"]:
+        if row["player_id"] in {"p1", "p2"}:
+            assert "risk_score" in row
+            assert row["risk_score"] is not None
+            assert row["risk_adjusted_value"] is None
+
+    invalidate_pool_payload_cache()
+    aggressive = build_draft_pool_payload(
+        2026, LeagueRules(risk_tolerance=1.0), [], team_count=12
+    )
+    rows = {r["player_id"]: r for r in aggressive["rows"]}
+    assert rows["p1"]["risk_adjusted_value"] is not None
+    assert rows["p2"]["risk_adjusted_value"] is not None
+    # Neutral fair_value / model_bid_hint remain the baseline fields.
+    assert rows["p1"]["fair_value"] == rows["p1"]["model_bid_hint"]

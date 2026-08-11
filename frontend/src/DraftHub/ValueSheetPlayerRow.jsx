@@ -2,7 +2,9 @@ import React, { memo, useCallback, useMemo } from "react";
 import PlayerCell from "../PlayerCell";
 import SeasonRangeCell from "../SeasonRangeCell";
 import { formatSeasonPts } from "../seasonQuantiles";
+import { formatRiskScore, isRiskToleranceActive, riskScoreTooltip } from "../riskAdjustedValue";
 import { fmtSal, formatStatusLabel } from "./valueSheetUtils";
+import RaavBidCell from "./RaavBidCell";
 
 function ValueSheetPlayerRow({
   row,
@@ -11,6 +13,9 @@ function ValueSheetPlayerRow({
   showStatus,
   showAdd,
   showSelect,
+  showRiskScore = false,
+  riskTolerance = 0,
+  rules = null,
   inRoster,
   isAdding,
   isSelected,
@@ -54,6 +59,8 @@ function ValueSheetPlayerRow({
     () => (row.season_spread != null ? formatSeasonPts(row.season_spread, 0) : "—"),
     [row.season_spread],
   );
+  const showRaavBadge = isRiskToleranceActive(riskTolerance)
+    || (row.risk_adjusted_value != null && Number.isFinite(Number(row.risk_adjusted_value)));
 
   return (
     <tr
@@ -92,7 +99,19 @@ function ValueSheetPlayerRow({
           <td className="num hub-col-max">{fmtSal(row.max_sal)}</td>
         </>
       )}
-      <td className="num hub-col-fv">{fmtSal(row.fair_value ?? row.model_bid_hint)}</td>
+      <td className="num hub-col-fv">
+        <RaavBidCell
+          row={row}
+          riskTolerance={riskTolerance}
+          rules={rules}
+          showDeltaBadge={showRaavBadge}
+        />
+      </td>
+      {showRiskScore && (
+        <td className="num hub-col-risk" title={riskScoreTooltip()}>
+          {formatRiskScore(row.risk_score)}
+        </td>
+      )}
       {showDelta && (
         <td className="num hub-col-delta">
           {row.value_delta != null ? (
@@ -138,6 +157,9 @@ function propsAreEqual(prev, next) {
     && prev.showStatus === next.showStatus
     && prev.showAdd === next.showAdd
     && prev.showSelect === next.showSelect
+    && prev.showRiskScore === next.showRiskScore
+    && prev.riskTolerance === next.riskTolerance
+    && prev.rules === next.rules
     && prev.inRoster === next.inRoster
     && prev.isAdding === next.isAdding
     && prev.isSelected === next.isSelected

@@ -24,6 +24,16 @@ import {
   seasonMethodShortLabel,
   seasonRangeTooltip,
 } from "../seasonQuantiles";
+import {
+  effectiveAuctionBid,
+  formatRaavDelta,
+  formatRiskScore,
+  isRiskToleranceActive,
+  raavDelta,
+  riskScoreTooltip,
+  riskToleranceLabel,
+} from "../riskAdjustedValue";
+import RaavBidCell from "./RaavBidCell";
 
 const TIERS = ["ALL", "Elite", "Tier 1", "Tier 2", "Tier 3", "Depth"];
 const POSITIONS = HUB_POSITION_FILTERS;
@@ -41,6 +51,7 @@ const RISK_PROFILE_FILTERS = [
 ];
 const SORT_MENU_OPTIONS = [
   { id: "fair_value", label: "Suggested bid" },
+  { id: "risk_score", label: "Risk score" },
   { id: "season_proj", label: "Season P50" },
   { id: "season_spread", label: "Season spread" },
   { id: "upside_skew", label: "Upside skew" },
@@ -75,6 +86,8 @@ export default function ValueSheetTable({
   hideIntro = false,
   narrativeScope = "weekly",
   isCommissioner = false,
+  riskTolerance = 0,
+  rules = null,
 }) {
   const isAvailableView = mode === "available";
   const [sortKey, setSortKey] = useState("fair_value");
@@ -92,12 +105,20 @@ export default function ValueSheetTable({
   const MOBILE_LIST_PAGE = 80;
 
   const showAdvanced = showAdvancedProp ?? (compact ? true : showAdvancedLocal);
+  const activeRisk = isRiskToleranceActive(riskTolerance);
+  // Risk score column: Advanced always; also when RAAV stance is on so the badge has context.
+  const showRiskScore = showAdvanced || activeRisk;
 
   const sleeperLinked = Boolean(sleeper?.sleeper_league_id && sleeper?.sleeper_roster_id);
   const showSelect = Boolean(onSelectPlayer);
   const actionCol = showAdd || showSelect;
-  // Core: Player, Pos, Season, Bid, Tier (+ optional Status/Δ/Action). Advanced adds Team/PG/Spread/Min/Max.
-  const baseCols = 5 + (showAdvanced ? 5 : 0) + (showDelta ? 1 : 0) + (showStatus ? 1 : 0) + (actionCol ? 1 : 0);
+  // Core: Player, Pos, Season, Bid, Tier (+ optional Status/Δ/Action/Risk). Advanced adds Team/PG/Spread/Min/Max.
+  const baseCols = 5
+    + (showAdvanced ? 5 : 0)
+    + (showRiskScore ? 1 : 0)
+    + (showDelta ? 1 : 0)
+    + (showStatus ? 1 : 0)
+    + (actionCol ? 1 : 0);
   const colCount = baseCols;
 
   useEffect(() => {
@@ -170,7 +191,11 @@ export default function ValueSheetTable({
   };
 
   const postAddPlayer = useCallback(async (row, { force = false } = {}) => {
-    const sal = row.fair_value ?? row.model_bid_hint ?? row.min_sal ?? 1;
+    const sal = effectiveAuctionBid(row, riskTolerance, rules)
+      ?? row.fair_value
+      ?? row.model_bid_hint
+      ?? row.min_sal
+      ?? 1;
     const res = await apiFetch("/api/hub/roster", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -185,7 +210,7 @@ export default function ValueSheetTable({
       }),
     });
     if (!res.ok) throw new Error(await parseApiError(res));
-  }, []);
+  }, [riskTolerance, rules]);
 
   const addPlayer = useCallback(async (row) => {
     const taken = row.status === "taken";
@@ -264,7 +289,17 @@ export default function ValueSheetTable({
         <HubTabIntro
           title={panelTitle}
           compact={compact}
-          learnMore={showDelta && !compact && !mobileLayout ? <p>Δ = contract minus suggested price (negative = value).</p> : null}
+          learnMore={(showDelta || activeRisk) && !compact && !mobileLayout ? (
+            <>
+              {showDelta && <p>Δ = contract minus suggested price (negative = value).</p>}
+              {activeRisk && (
+                <p>
+                  Risk-adjusted $ badges show how {riskToleranceLabel(riskTolerance)} stance
+                  shifts fair value from season P10/P90 variance.
+                </p>
+              )}
+            </>
+          ) : null}
         />
       )}
 
@@ -273,6 +308,7 @@ export default function ValueSheetTable({
           {panelSub}
           {sleeperLinked ? ` · ${sleeper.sleeper_team_name || "Sleeper linked"}` : ""}
           {seasonMethodNote ? ` · ${seasonMethodNote}` : ""}
+          {activeRisk ? ` · ${riskToleranceLabel(riskTolerance)} bids` : ""}
         </div>
       )}
 
@@ -415,7 +451,16 @@ export default function ValueSheetTable({
                 className={`${r.overpay ? "hub-overpay" : ""}${r.on_sleeper ? " hub-sleeper-row" : ""}`.trim()}
                 name={r.player}
                 meta={buildMobileMeta(r)}
-                heroValue={fmtSal(r.fair_value ?? r.model_bid_hint)}
+                heroValue={(
+                  <RaavBidCell
+                    row={r}
+                    riskTolerance={riskTolerance}
+                    rules={rules}
+                    showDeltaBadge={activeRisk
+                      || (r.risk_adjusted_value != null
+                        && Number.isFinite(Number(r.risk_adjusted_value)))}
+                  />
+                )}
                 heroLabel="bid"
                 selected={selectedPlayerId === r.player_id}
                 onSelect={onSelectPlayer ? () => onSelectPlayer(r) : undefined}
@@ -435,6 +480,19 @@ export default function ValueSheetTable({
                       }
                       title={rangeTip}
                     />
+                    {showRiskScore && (
+                      <MobileStat
+                        label="Risk score"
+                        value={formatRiskScore(r.risk_score)}
+                        title={riskScoreTooltip()}
+                      />
+                    )}
+                    {activeRisk && formatRaavDelta(raavDelta(r, riskTolerance, rules)) && (
+                      <MobileStat
+                        label="RAAV Δ"
+                        value={formatRaavDelta(raavDelta(r, riskTolerance, rules))}
+                      />
+                    )}
                     {showAdvanced && (
                       <>
                         <MobileStat
@@ -511,7 +569,28 @@ export default function ValueSheetTable({
                   <SortTh label="Max" col="max_sal" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-max" />
                 </>
               )}
-              <SortTh label="Suggested bid" col="fair_value" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-fv" />
+              <SortTh
+                label="Suggested bid"
+                col="fair_value"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+                className="hub-col-fv"
+                title={activeRisk
+                  ? `Primary bid uses risk-adjusted value (${riskToleranceLabel(riskTolerance)} stance)`
+                  : "Neutral fair auction value from Season Proj rank"}
+              />
+              {showRiskScore && (
+                <SortTh
+                  label="Risk"
+                  col="risk_score"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                  className="hub-col-risk"
+                  title={riskScoreTooltip()}
+                />
+              )}
               {showDelta && (
                 <SortTh
                   label="Δ"
@@ -546,6 +625,9 @@ export default function ValueSheetTable({
                   showStatus={showStatus}
                   showAdd={showAdd}
                   showSelect={showSelect}
+                  showRiskScore={showRiskScore}
+                  riskTolerance={riskTolerance}
+                  rules={rules}
                   inRoster={Boolean(rosterIds?.has(r.player_id))}
                   isAdding={addingId === r.player_id}
                   isSelected={selectedPlayerId === r.player_id}

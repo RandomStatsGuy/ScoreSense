@@ -12,6 +12,7 @@ function rulesKey(rules) {
   const serialize = (pos) => JSON.stringify(roster[pos] || {});
   return [
     rules.salary_cap,
+    rules.risk_tolerance ?? 0,
     serialize("qb"),
     serialize("rb"),
     serialize("wr"),
@@ -241,6 +242,8 @@ export function poolPayloadFromSheet(sheet) {
       range_source: row.range_source,
       model_bid_hint: row.model_bid_hint,
       fair_value: row.fair_value,
+      risk_score: row.risk_score,
+      risk_adjusted_value: row.risk_adjusted_value,
       tier: row.tier,
       is_rookie: row.is_rookie,
     })),

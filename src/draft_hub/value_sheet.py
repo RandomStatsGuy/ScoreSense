@@ -156,6 +156,8 @@ def build_draft_pool_payload(
         fair_value = mv.get("fair_value")
         if rng.get("source") == "import" and min_sal is not None and max_sal is not None:
             fair_value = round((float(min_sal) + float(max_sal)) / 2, 0)
+        risk_score = mv.get("risk_score")
+        risk_adjusted_value = mv.get("risk_adjusted_value")
         rows.append(
             {
                 "player_id": pid,
@@ -177,6 +179,9 @@ def build_draft_pool_payload(
                 "range_source": rng.get("source"),
                 "model_bid_hint": fair_value,
                 "fair_value": fair_value,
+                # SCORE-3: risk_score always; risk_adjusted_value only when risk_tolerance != 0.
+                "risk_score": risk_score,
+                "risk_adjusted_value": risk_adjusted_value,
                 "tier": rng.get("tier") or mv.get("tier") or _tier_from_fair(fair_value, rules),
                 "is_rookie": bool(p.get("Rookie Est.")),
             }

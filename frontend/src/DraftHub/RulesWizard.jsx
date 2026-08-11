@@ -2,10 +2,16 @@ import React, { useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
+import {
+  normalizeRiskTolerance,
+  RISK_TOLERANCE_OPTIONS,
+  riskToleranceLabel,
+} from "../riskAdjustedValue";
 import { HubPage } from "./HubUILayout";
 
 const DEFAULT_RULES = {
   salary_cap: 200,
+  risk_tolerance: 0,
   auction: { min_bid: 1, nomination_timer_sec: 60, bid_timer_sec: 30, allow_mid_draft_cuts: true },
   roster: {
     qb: { min: 2, max: 4, starter: 1 },
@@ -69,6 +75,8 @@ export default function RulesWizard({
   ]);
 
   const updateCap = (v) => setRules((r) => ({ ...r, salary_cap: Number(v) }));
+  const updateRiskTolerance = (v) =>
+    setRules((r) => ({ ...r, risk_tolerance: normalizeRiskTolerance(v) }));
   const updateContract = (field, v) =>
     setRules((r) => ({
       ...r,
@@ -84,6 +92,8 @@ export default function RulesWizard({
       ...r,
       auction: { ...r.auction, [field]: v },
     }));
+  const activeRisk = normalizeRiskTolerance(rules.risk_tolerance);
+  const activeRiskHint = RISK_TOLERANCE_OPTIONS.find((o) => o.value === activeRisk)?.hint;
 
   const save = async () => {
     setSaving(true);
@@ -256,6 +266,42 @@ export default function RulesWizard({
             disabled={readOnlyRules}
           />
         </label>
+      </div>
+
+      <div className="hub-risk-tolerance">
+        <div className="hub-risk-tolerance-head">
+          <span className="hub-field-label">Risk tolerance</span>
+          <span className="chart-note">
+            Fold season P10/P90 variance into suggested bids ({riskToleranceLabel(activeRisk)})
+          </span>
+        </div>
+        <div
+          className="header-segment hub-risk-tolerance-segment"
+          role="radiogroup"
+          aria-label="Auction risk tolerance"
+        >
+          {RISK_TOLERANCE_OPTIONS.map((opt) => {
+            const selected = activeRisk === opt.value;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                className={`header-segment-tab${selected ? " active" : ""}`}
+                disabled={readOnlyRules}
+                title={opt.hint}
+                onClick={() => {
+                  formDirty.current = true;
+                  updateRiskTolerance(opt.value);
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+        {activeRiskHint && <p className="chart-note hub-risk-tolerance-hint">{activeRiskHint}</p>}
       </div>
 
       {presets.length > 0 && !readOnlyRules && (

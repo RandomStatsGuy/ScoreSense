@@ -3,11 +3,17 @@
 import pandas as pd
 
 from src.draft_hub.auction_values import (
+    RISK_WEIGHT,
     auction_relevant_count,
     build_player_values,
     fair_auction_value,
+    risk_adjusted_auction_value,
+    risk_z_scores,
+    season_cv,
+    upside_skew,
 )
 from src.draft_hub.presets import load_preset
+from src.draft_hub.schemas import LeagueRules
 
 
 def _rules():
@@ -83,3 +89,145 @@ def test_fair_value_for_te_falls_back_to_wr_pool():
     fair = fair_value_for_row(te_row, pool, rules, team_count=10)
     assert fair is not None
     assert fair > 0
+
+
+def test_upside_skew_matches_frontend_formula():
+    # (280-210)/(210-140) = 70/70 = 1.0
+    assert upside_skew(140, 210, 280) == 1.0
+    # Boom/bust: (280-210)/(210-140) wait — (280-210)/(210-100)
+    assert abs(upside_skew(100, 210, 280) - (70 / 110)) < 1e-9
+    assert upside_skew(190, 210, 230) == 1.0
+    assert upside_skew(None, 210, 280) is None
+    assert upside_skew(210, 210, 280) is None  # zero downside
+
+
+def test_season_cv_guards_nonpositive_p50():
+    assert season_cv(140, 210, 280) == (280 - 140) / (2 * 210)
+    assert season_cv(10, 0, 20) is None
+    assert season_cv(10, -5, 20) is None
+
+
+def test_risk_z_scores_within_group():
+    zs = risk_z_scores([0.1, 0.2, 0.3, None])
+    assert abs(sum(zs[:3])) < 1e-9  # zero-mean over finite values
+    assert zs[3] == 0.0
+    assert risk_z_scores([0.2, 0.2, 0.2]) == [0.0, 0.0, 0.0]
+
+
+def test_build_player_values_neutral_risk_tolerance_keeps_raav_null():
+    rules = _rules()
+    assert float(rules.risk_tolerance) == 0.0
+    pool = pd.DataFrame(
+        [
+            {
+                "player_id": "safe",
+                "Player": "Safe RB",
+                "Position": "RB",
+                "Season Proj": 210,
+                "Season P10": 190,
+                "Season P50": 210,
+                "Season P90": 230,
+            },
+            {
+                "player_id": "volatile",
+                "Player": "Vol WR",
+                "Position": "RB",
+                "Season Proj": 210,
+                "Season P10": 140,
+                "Season P50": 210,
+                "Season P90": 280,
+            },
+        ]
+    )
+    values = build_player_values(pool, rules, team_count=10)
+    # Same median proj → tied ranks still get distinct risk_score from P10/P90 width.
+    assert values["safe"]["risk_adjusted_value"] is None
+    assert values["volatile"]["risk_adjusted_value"] is None
+    assert values["volatile"]["risk_score"] > values["safe"]["risk_score"]
+
+
+def test_build_player_values_aggressive_raises_high_risk_and_is_budget_neutral():
+    rules = _rules().model_copy(update={"risk_tolerance": 1.0})
+    pool = pd.DataFrame(
+        [
+            {
+                "player_id": "safe",
+                "Player": "Safe",
+                "Position": "WR",
+                "Season Proj": 220,
+                "Season P10": 200,
+                "Season P50": 220,
+                "Season P90": 240,
+            },
+            {
+                "player_id": "mid",
+                "Player": "Mid",
+                "Position": "WR",
+                "Season Proj": 200,
+                "Season P10": 170,
+                "Season P50": 200,
+                "Season P90": 230,
+            },
+            {
+                "player_id": "boom",
+                "Player": "Boom",
+                "Position": "WR",
+                "Season Proj": 180,
+                "Season P10": 100,
+                "Season P50": 180,
+                "Season P90": 280,
+            },
+        ]
+    )
+    values = build_player_values(pool, rules, team_count=10)
+    fair_sum = sum(v["fair_value"] for v in values.values())
+    raav_sum = sum(v["risk_adjusted_value"] for v in values.values())
+    # Budget-neutral within rounding of dollar clamps.
+    assert abs(fair_sum - raav_sum) <= len(values)
+
+    boom = values["boom"]
+    safe = values["safe"]
+    assert boom["risk_score"] > safe["risk_score"]
+    # Aggressive: high-risk player gets a premium vs their own fair baseline.
+    assert boom["risk_adjusted_value"] >= boom["fair_value"]
+    assert safe["risk_adjusted_value"] <= safe["fair_value"]
+
+
+def test_build_player_values_conservative_discounts_high_risk():
+    rules = LeagueRules(risk_tolerance=-1.0, salary_cap=200.0)
+    # Copy roster/auction from preset so relevant counts stay realistic.
+    preset = _rules()
+    rules = rules.model_copy(update={"roster": preset.roster, "auction": preset.auction})
+    pool = pd.DataFrame(
+        [
+            {
+                "player_id": "safe",
+                "Player": "Safe",
+                "Position": "RB",
+                "Season Proj": 210,
+                "Season P10": 190,
+                "Season P50": 210,
+                "Season P90": 230,
+            },
+            {
+                "player_id": "boom",
+                "Player": "Boom",
+                "Position": "RB",
+                "Season Proj": 210,
+                "Season P10": 120,
+                "Season P50": 210,
+                "Season P90": 300,
+            },
+        ]
+    )
+    values = build_player_values(pool, rules, team_count=10)
+    assert values["boom"]["risk_adjusted_value"] < values["boom"]["fair_value"]
+    assert values["safe"]["risk_adjusted_value"] > values["safe"]["fair_value"]
+
+
+def test_risk_adjusted_auction_value_uses_module_weight():
+    rules = LeagueRules(risk_tolerance=1.0, salary_cap=200.0)
+    fair = 40.0
+    # risk_z=1 → multiplier 1 + 1*RISK_WEIGHT*1
+    expected = round(fair * (1.0 + RISK_WEIGHT), 0)
+    assert risk_adjusted_auction_value(fair, 1.0, rules) == expected

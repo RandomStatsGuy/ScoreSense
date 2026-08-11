@@ -41,6 +41,9 @@ class LeagueRules(BaseModel):
     auction: AuctionRules = Field(default_factory=AuctionRules)
     roster: dict[str, Any] = Field(default_factory=dict)
     contracts: ContractRules = Field(default_factory=ContractRules)
+    # SCORE-3: Conservative (-1) / Balanced (0, default) / Aggressive (+1).
+    # Neutral default keeps fair_value pricing unchanged until a league opts in.
+    risk_tolerance: float = Field(default=0.0, ge=-1.0, le=1.0)
 
 
 class WorkspaceUpdate(BaseModel):
