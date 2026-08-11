@@ -155,3 +155,14 @@ def test_media_lookup_by_name_when_gsis_missing():
     assert row["headshot_url"] is not None
     assert "9228" in row["headshot_url"]
     assert row["team_logo_url"] == team_logo_url("CAR")
+
+
+def test_media_lookup_sleeper_prefixed_id_without_name():
+    """Roster/media APIs often have sleeper-{id} and abbreviated names — ID must resolve."""
+    from src.draft_hub.draft_enrichment import build_player_media_batch
+
+    media = build_player_media_batch([{"player_id": "sleeper-6806"}])
+    row = media["sleeper-6806"]
+    assert row["headshot_url"] is not None
+    assert "6806" in row["headshot_url"]
+    assert row["sleeper_id"] == "6806"
