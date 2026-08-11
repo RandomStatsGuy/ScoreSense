@@ -127,3 +127,22 @@ def test_repair_applies_step_to_flat_multi_year_veteran():
     fixed = repair_flat_deal_schedule(flat)
     assert [y["salary"] for y in fixed["schedule"]] == [8, 13]
     assert float(fixed.get("step_up_per_year") or 0) == 5
+
+
+def test_repair_uses_league_step_up_when_stored_missing():
+    """Custom leagues must not fall back to hardcoded $5 on read-path repair."""
+    from src.draft_hub.contracts import repair_flat_deal_schedule
+
+    flat = {
+        "contract_type": "veteran",
+        "current_salary": 8,
+        "years_remaining": 2,
+        "step_up_per_year": 0,
+        "schedule": [
+            {"year_offset": 0, "salary": 8},
+            {"year_offset": 1, "salary": 8},
+        ],
+    }
+    fixed = repair_flat_deal_schedule(flat, step_up=10)
+    assert [y["salary"] for y in fixed["schedule"]] == [8, 18]
+    assert float(fixed.get("step_up_per_year") or 0) == 10

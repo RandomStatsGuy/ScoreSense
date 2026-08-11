@@ -677,13 +677,22 @@ def _workspace_dict(row: sqlite3.Row) -> dict[str, Any]:
     }
 
 
-def _roster_dict(row: sqlite3.Row) -> dict[str, Any]:
+def _roster_dict(row: sqlite3.Row, *, step_up: float | None = None) -> dict[str, Any]:
     from src.draft_hub.contracts import repair_flat_deal_schedule
 
     d = dict(row)
     if d.get("contract_json"):
         try:
-            d["contract"] = repair_flat_deal_schedule(json.loads(d["contract_json"]))
+            repair_step = step_up
+            if repair_step is None and d.get("workspace_id"):
+                with get_conn() as conn:
+                    repair_step = float(
+                        _rules_for_roster_workspace(conn, str(d["workspace_id"])).contracts.extension_step_up
+                    )
+            d["contract"] = repair_flat_deal_schedule(
+                json.loads(d["contract_json"]),
+                step_up=repair_step,
+            )
         except json.JSONDecodeError:
             d["contract"] = None
     else:
@@ -770,7 +779,8 @@ def list_roster(workspace_id: str, team_id: str | None = None) -> list[dict[str,
                 "SELECT * FROM roster_slot WHERE workspace_id = ? AND (team_id IS NULL OR team_id = '')",
                 (workspace_id,),
             ).fetchall()
-    return [_roster_dict(r) for r in rows]
+        step = float(_rules_for_roster_workspace(conn, workspace_id).contracts.extension_step_up)
+    return [_roster_dict(r, step_up=step) for r in rows]
 
 
 def add_roster_slot(workspace_id: str, row: dict[str, Any], team_id: str | None = None) -> dict[str, Any]:
@@ -1778,7 +1788,8 @@ def list_league_roster(workspace_id: str) -> list[dict[str, Any]]:
             "SELECT * FROM roster_slot WHERE workspace_id = ? AND team_id IS NOT NULL AND team_id != ''",
             (workspace_id,),
         ).fetchall()
-    return [_roster_dict(r) for r in rows]
+        step = float(_rules_for_roster_workspace(conn, workspace_id).contracts.extension_step_up)
+    return [_roster_dict(r, step_up=step) for r in rows]
 
 
 def list_league_rosters_by_team(league_id: str) -> dict[str, list[dict[str, Any]]]:
@@ -1794,10 +1805,11 @@ def list_league_rosters_by_team(league_id: str) -> dict[str, list[dict[str, Any]
             "SELECT * FROM roster_slot WHERE workspace_id = ? AND team_id IS NOT NULL AND team_id != ''",
             (workspace_id,),
         ).fetchall()
+        step = float(_rules_for_roster_workspace(conn, workspace_id).contracts.extension_step_up)
     for row in rows:
         tid = str(row["team_id"])
         if tid in out:
-            out[tid].append(_roster_dict(row))
+            out[tid].append(_roster_dict(row, step_up=step))
     return out
 
 
@@ -1818,7 +1830,8 @@ def list_orphan_roster_slots(workspace_id: str) -> list[dict[str, Any]]:
                WHERE workspace_id = ? AND (team_id IS NULL OR team_id = '')""",
             (workspace_id,),
         ).fetchall()
-    return [_roster_dict(r) for r in rows]
+        step = float(_rules_for_roster_workspace(conn, workspace_id).contracts.extension_step_up)
+    return [_roster_dict(r, step_up=step) for r in rows]
 
 
 def move_roster_player(workspace_id: str, player_id: str, to_team_id: str) -> dict[str, Any] | None:

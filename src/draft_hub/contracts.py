@@ -143,8 +143,17 @@ def _schedule_step_for_type(
     return float(cr.extension_step_up)
 
 
-def repair_flat_deal_schedule(contract: dict[str, Any] | None) -> dict[str, Any] | None:
-    """Read-path schedule repair: flatten rookies; ensure multi-year vets/extensions step."""
+def repair_flat_deal_schedule(
+    contract: dict[str, Any] | None,
+    *,
+    step_up: float | None = None,
+) -> dict[str, Any] | None:
+    """Read-path schedule repair: flatten rookies; ensure multi-year vets/extensions step.
+
+    When rebuilding a flat/incomplete multi-year veteran or extension schedule and the
+    stored ``step_up_per_year`` is missing or zero, use ``step_up`` (league
+    ``extension_step_up``) when provided; otherwise fall back to the schema default ($5).
+    """
     if not contract:
         return contract
     ctype = str(contract.get("contract_type") or "veteran")
@@ -153,6 +162,7 @@ def repair_flat_deal_schedule(contract: dict[str, Any] | None) -> dict[str, Any]
         return contract
     base = float(contract.get("current_salary") or contract.get("base_salary") or 0)
     schedule = contract.get("schedule") or []
+    default_step = float(step_up) if step_up is not None else 5.0
 
     if ctype == "rookie":
         needs_repair = float(contract.get("step_up_per_year") or 0) != 0
@@ -189,9 +199,11 @@ def repair_flat_deal_schedule(contract: dict[str, Any] | None) -> dict[str, Any]
                 return contract
             # Infer step from first YoY delta when metadata is missing.
             out = dict(contract)
-            out["step_up_per_year"] = round(actual[1] - actual[0], 2) if len(actual) > 1 else 5.0
+            out["step_up_per_year"] = (
+                round(actual[1] - actual[0], 2) if len(actual) > 1 else default_step
+            )
             return out
-        step = stored_step if stored_step > 0 else 5.0
+        step = stored_step if stored_step > 0 else default_step
         expected = [round(base + step * i, 2) for i in range(yrs)]
         out = dict(contract)
         out["step_up_per_year"] = step
