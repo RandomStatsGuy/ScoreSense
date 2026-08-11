@@ -86,8 +86,9 @@ function sortValue(row, key) {
   }
 }
 
-const rankByPPG = (row) => Number(rosPPG(row));
-const rankBySeasonP50 = (row) => Number(rosSeasonP50(row));
+// Number(null) === 0; coerce missing metrics to NaN so useRankMap leaves them unranked.
+const rankByPPG = (row) => Number(rosPPG(row) ?? NaN);
+const rankBySeasonP50 = (row) => Number(rosSeasonP50(row) ?? NaN);
 
 export default function SeasonTable({
   rows,
