@@ -1068,6 +1068,16 @@ body {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+/* Magnifier affordance — true search fields only (`.search-input` also skins
+   generic inputs/selects that must not get the icon). */
+input[type="search"].search-input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.8-3.8'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 0.7rem center;
+  background-size: 0.9rem;
+  padding-left: 2.1rem;
+}
+
 .search-input:focus {
   outline: none;
   border-color: rgba(59, 130, 246, 0.55);
@@ -8523,7 +8533,7 @@ td.col-rank.col-rank-top {
     border-radius: var(--radius-sm);
     background: transparent;
     color: var(--text-muted);
-    font-size: 0.62rem;
+    font-size: 0.7rem;
     font-weight: 600;
     letter-spacing: 0.02em;
     cursor: pointer;
@@ -8724,12 +8734,30 @@ td.col-rank.col-rank-top {
     }
   }
 
+  /* Grip strip: drag handle + header pinned while the sheet body scrolls. */
+  .app-mobile-sheet-grip {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bg-elevated);
+    touch-action: none;
+  }
+
+  .app-mobile-sheet-handle {
+    display: block;
+    width: 2.5rem;
+    height: 0.28rem;
+    margin: 0.5rem auto 0.1rem;
+    border-radius: var(--radius-pill);
+    background: var(--slate-600);
+  }
+
   .app-mobile-sheet-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    padding: 0.85rem 1rem 0.55rem;
+    padding: 0.45rem 1rem 0.55rem;
     border-bottom: 1px solid var(--border);
   }
 
