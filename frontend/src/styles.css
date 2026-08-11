@@ -3766,9 +3766,10 @@ table {
   font-size: 0.88rem;
 }
 
-/* Fixed layout keeps short cols (team/pos/status) from absorbing leftover width. */
-.table-wrap > table,
-.hub-table {
+/* Fixed layout keeps short cols (team/pos/status) from absorbing leftover width.
+   Scoped to projection/value tables that define column budgets — not every hub table. */
+.table-wrap > table:has(.col-range),
+.hub-table:has(.hub-col-fv) {
   table-layout: fixed;
 }
 
