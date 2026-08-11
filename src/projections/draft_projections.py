@@ -140,7 +140,8 @@ def predict_draft_season(
     # Ceiling alias the new Season P10/P90 so existing consumers get
     # calibrated ranges without a schema break; `season_quantile_method`
     # documents which aggregator produced them (SEASON_QUANTILE_METHOD flag
-    # keeps the literal legacy x17-on-raw-quantiles path for A/B comparison).
+    # keeps the legacy ×games path — still on blend-centered quantiles — for
+    # A/B comparison against MC).
     games_for_tails = games if isinstance(games, pd.Series) else pd.Series(
         float(games_per_season), index=weekly.index
     )
@@ -164,34 +165,37 @@ def predict_draft_season(
             )
             season_q_meta = season_q.meta
         except Exception:
+            # Fall back to ×games on the *blend-centered* weekly law — never the
+            # pre-blend raw medians — so Floor/Ceiling still bracket Season Proj.
             method = METHOD_INDEPENDENT_SCALE
             season_q = legacy_scale_season_quantiles(
-                weekly["Low (P10)"], weekly["Projected Points"], weekly["High (P90)"], games_per_season
+                q10_centered, q50_centered, q90_centered, games_per_season
             )
             season_q_meta = season_q.meta
     else:
         method = METHOD_INDEPENDENT_SCALE
         season_q = legacy_scale_season_quantiles(
-            weekly["Low (P10)"], weekly["Projected Points"], weekly["High (P90)"], games_per_season
+            q10_centered, q50_centered, q90_centered, games_per_season
         )
         season_q_meta = season_q.meta
 
     season_p10 = pd.Series(season_q.season_p10, index=weekly.index)
     season_p50 = pd.Series(season_q.season_p50, index=weekly.index)
     season_p90 = pd.Series(season_q.season_p90, index=weekly.index)
-    if method == METHOD_MC_SCHEDULE_V1:
-        # By construction, Season P50 = (blended) Season Proj: for boom/bust
-        # committee roles (large weekly upside skew, sigma_hi >> sigma_lo) the
-        # sum-of-weeks median genuinely drifts above the per-game median x
-        # games (Jensen effect from CLT-driven symmetrization of the skew).
-        # That's a real distributional fact, but "Floor > Proj" would look
-        # like a bug in every consumer. We keep the simulation's *spread and
-        # shape* (P90-P50, P50-P10) and shift the whole triplet so the center
-        # matches Season Proj exactly.
-        shift = result["Season Proj"].astype(float) - season_p50
-        season_p10 = (season_p10 + shift).clip(lower=0.0)
-        season_p90 = season_p90 + shift
-        season_p50 = result["Season Proj"].astype(float)
+    # By construction, Season P50 = (blended) Season Proj. For MC, boom/bust
+    # committee roles (large weekly upside skew, sigma_hi >> sigma_lo) can make
+    # the sum-of-weeks median drift above the per-game median × games (Jensen
+    # effect from CLT-driven symmetrization of the skew). For legacy / MC
+    # fallback, flat ×games_per_season can also drift from Season Proj when
+    # expected games differ. "Floor > Proj" would look like a bug in every
+    # consumer, and SeasonRangeCell displays Season P50 as the headline while
+    # sorting/bids use Season Proj — so keep the aggregator's *spread and
+    # shape* (P90−P50, P50−P10) and shift the whole triplet so the center
+    # matches Season Proj exactly.
+    shift = result["Season Proj"].astype(float) - season_p50
+    season_p10 = (season_p10 + shift).clip(lower=0.0)
+    season_p90 = season_p90 + shift
+    season_p50 = result["Season Proj"].astype(float)
     result["Season P10"] = season_p10.round(1)
     result["Season P50"] = season_p50.round(1)
     result["Season P90"] = season_p90.round(1)

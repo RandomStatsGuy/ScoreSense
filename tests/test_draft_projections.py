@@ -82,9 +82,11 @@ def test_predict_draft_season_legacy_method_matches_naive_scale(monkeypatch):
     monkeypatch.setattr(draft_projections_mod, "SEASON_QUANTILE_METHOD", METHOD_INDEPENDENT_SCALE)
     draft = predict_draft_season("qb", season=2026)
     assert (draft["season_quantile_method"] == METHOD_INDEPENDENT_SCALE).all()
-    # Per-Game Floor/Ceiling are already rounded to 1 decimal, so x17 only matches
-    # the (unrounded-input) legacy Season Floor/Ceiling up to a small rounding delta.
-    naive_floor = draft["Per-Game Floor"] * 17
-    naive_ceiling = draft["Per-Game Ceiling"] * 17
-    assert (draft["Season Floor"] - naive_floor).abs().max() < 1.0
-    assert (draft["Season Ceiling"] - naive_ceiling).abs().max() < 1.0
+    # Legacy still uses weekly×games (not MC), but on blend-centered quantiles
+    # with Season P50 forced to Season Proj so the displayed band brackets the
+    # headline used for sorting/bids (same contract as the MC path).
+    assert (draft["Season P50"] - draft["Season Proj"]).abs().max() < 0.15
+    assert (draft["Season Floor"] <= draft["Season Proj"] + 1e-6).all()
+    assert (draft["Season Proj"] <= draft["Season Ceiling"] + 1e-6).all()
+    assert (draft["Season Floor"] == draft["Season P10"]).all()
+    assert (draft["Season Ceiling"] == draft["Season P90"]).all()
