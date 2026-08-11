@@ -28,7 +28,7 @@ export function seasonCapYearHint(year) {
 
 export const YEARS_LEFT_HINT = (
   "Includes the upcoming season. Years drop by 1 when the commissioner marks draft complete — "
-  + "not when the NFL season ends."
+  + "not when the NFL season ends or the planning season advances."
 );
 
 /** Step applies only to extensions; rookies/vets stay flat. */
