@@ -1,3 +1,4 @@
+import { upsideSkew } from "../seasonQuantiles";
 import { normalizeHubPosition } from "./hubPositions";
 
 export const TIER_ORDER = {
@@ -62,6 +63,13 @@ export function compareRows(a, b, sortKey, sortDir) {
   return sortDir === "asc" ? cmp : -cmp;
 }
 
+function rowUpsideSkew(row) {
+  if (row?.upside_skew != null && Number.isFinite(Number(row.upside_skew))) {
+    return Number(row.upside_skew);
+  }
+  return upsideSkew(row?.season_p10, row?.season_p50 ?? row?.season_proj, row?.season_p90);
+}
+
 function sortValue(row, key) {
   switch (key) {
     case "tier":
@@ -78,9 +86,22 @@ function sortValue(row, key) {
       return row.min_sal ?? null;
     case "max_sal":
       return row.max_sal ?? null;
+    case "season_spread":
+      return row.season_spread ?? null;
+    case "upside_skew":
+      return rowUpsideSkew(row);
     default:
       return row[key];
   }
+}
+
+function matchesRiskProfile(row, riskProfile) {
+  if (!riskProfile || riskProfile === "ALL") return true;
+  const skew = rowUpsideSkew(row);
+  if (skew == null) return false;
+  if (riskProfile === "UPSIDE") return skew >= 1.15;
+  if (riskProfile === "FLOOR") return skew <= 0.85;
+  return true;
 }
 
 export function filterAndSortRows(rows, {
@@ -88,6 +109,7 @@ export function filterAndSortRows(rows, {
   posFilter = "ALL",
   statusFilter = "ALL",
   tierFilter = "ALL",
+  riskProfile = "ALL",
   search = "",
   sortKey = "fair_value",
   sortDir = "desc",
@@ -111,6 +133,9 @@ export function filterAndSortRows(rows, {
   } else if (statusFilter === "SLEEPER") {
     list = list.filter((r) => r.on_sleeper);
   }
+  if (riskProfile && riskProfile !== "ALL") {
+    list = list.filter((r) => matchesRiskProfile(r, riskProfile));
+  }
   if (search.trim()) {
     const q = search.toLowerCase();
     list = list.filter(
@@ -126,7 +151,16 @@ export function nextSortState(currentKey, currentDir, clickedKey) {
   if (currentKey === clickedKey) {
     return { sortKey: clickedKey, sortDir: currentDir === "asc" ? "desc" : "asc" };
   }
-  const descFirst = ["season_proj", "per_game_proj", "fair_value", "min_sal", "max_sal", "value_delta"].includes(clickedKey);
+  const descFirst = [
+    "season_proj",
+    "per_game_proj",
+    "fair_value",
+    "min_sal",
+    "max_sal",
+    "value_delta",
+    "season_spread",
+    "upside_skew",
+  ].includes(clickedKey);
   return { sortKey: clickedKey, sortDir: descFirst ? "desc" : "asc" };
 }
 

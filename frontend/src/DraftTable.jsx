@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import QuantileBar from "./QuantileBarShared";
+import SeasonRangeCell from "./SeasonRangeCell";
 import { TableSkeleton } from "./TableSkeleton";
 import useMobileLayout from "./useMobileLayout";
 import MobileDataList, { MobileStat } from "./MobileDataList";
@@ -8,6 +9,12 @@ import PlayerCell, { usePlayerMedia } from "./PlayerCell";
 import Chip from "./Chip";
 import { fmtNum } from "./format";
 import { SortHeader, ExportCsvButton, useTableSort, csvQuote, downloadCsv } from "./table";
+import {
+  formatSeasonPts,
+  isScheduleAwareMethod,
+  resolveSeasonBand,
+  seasonRangeTooltip,
+} from "./seasonQuantiles";
 
 const SORT_KEYS = {
   Player: "Player",
@@ -16,6 +23,7 @@ const SORT_KEYS = {
   PerGame: "Per-Game Proj",
   Floor: "Season Floor",
   Ceiling: "Season Ceiling",
+  Spread: "Season Spread",
 };
 
 function exportCsv(rows) {
@@ -25,31 +33,48 @@ function exportCsv(rows) {
     "Season Proj",
     "Season Floor",
     "Season Ceiling",
+    "Season Spread",
     "Per-Game Proj",
     "Per-Game Floor",
     "Per-Game Ceiling",
   ];
   const lines = [
     header.join(","),
-    ...rows.map((row) =>
-      [
+    ...rows.map((row) => {
+      const band = resolveSeasonBand(row);
+      return [
         csvQuote(row.Player),
         row.Team || "",
         fmtNum(row["Season Proj"], 1, ""),
-        fmtNum(row["Season Floor"], 1, ""),
-        fmtNum(row["Season Ceiling"], 1, ""),
+        fmtNum(band.p10 ?? row["Season Floor"], 1, ""),
+        fmtNum(band.p90 ?? row["Season Ceiling"], 1, ""),
+        fmtNum(band.spread ?? row["Season Spread"], 1, ""),
         fmtNum(row["Per-Game Proj"], 1, ""),
         fmtNum(row["Per-Game Floor"], 1, ""),
         fmtNum(row["Per-Game Ceiling"], 1, ""),
-      ].join(",")
-    ),
+      ].join(",");
+    }),
   ];
   downloadCsv("scoresense-draft", lines);
 }
 
-export default function DraftTable({ rows, search, metaLine, searchSlot, loading = false, position, season }) {
+export default function DraftTable({
+  rows,
+  search,
+  metaLine,
+  searchSlot,
+  loading = false,
+  position,
+  season,
+  seasonQuantileMethod,
+}) {
   const [sort, toggleSort] = useTableSort({ column: "Proj", dir: "desc" });
   const mobileLayout = useMobileLayout();
+  const method = seasonQuantileMethod
+    || rows?.find((r) => r.season_quantile_method)?.season_quantile_method
+    || null;
+  const scheduleAware = isScheduleAwareMethod(method);
+  const seasonTip = seasonRangeTooltip(method, { preliminary: !scheduleAware });
 
   const filtered = useMemo(() => {
     let list = rows || [];
@@ -71,6 +96,15 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
     return maxP90 > 0 ? maxP90 : 1;
   }, [rows]);
 
+  const seasonScaleMax = useMemo(() => {
+    let max = 0;
+    for (const row of rows || []) {
+      const band = resolveSeasonBand(row, { method });
+      if (band.p90 != null && band.p90 > max) max = band.p90;
+    }
+    return max > 0 ? max : 1;
+  }, [rows, method]);
+
   const sorted = useMemo(() => {
     const key = SORT_KEYS[sort.column] || sort.column;
     const dir = sort.dir === "asc" ? 1 : -1;
@@ -78,9 +112,14 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
       if (key === "Player" || key === "Team") {
         return dir * String(a[key] || "").localeCompare(String(b[key] || ""));
       }
+      if (key === "Season Spread") {
+        const as = resolveSeasonBand(a, { method }).spread ?? 0;
+        const bs = resolveSeasonBand(b, { method }).spread ?? 0;
+        return dir * (as - bs);
+      }
       return dir * ((Number(a[key]) || 0) - (Number(b[key]) || 0));
     });
-  }, [filtered, sort]);
+  }, [filtered, sort, method]);
 
   const playerIds = useMemo(
     () => sorted.map((r) => r.player_id).filter(Boolean),
@@ -109,6 +148,7 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
             const p50 = Number(row["Per-Game Proj"]) || 0;
             const p10 = Number(row["Per-Game Floor"]) || 0;
             const p90 = Number(row["Per-Game Ceiling"]) || 0;
+            const band = resolveSeasonBand(row, { method });
             const rookieBadge = row["Rookie Est."] ? (
               <span
                 className="rookie-est-badge"
@@ -144,19 +184,38 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
                   <>
                     <div className="range-cell">
                       <QuantileBar
-                        p10={p10}
-                        p50={p50}
-                        p90={p90}
-                        scaleMax={scaleMax}
+                        p10={band.p10 ?? 0}
+                          p50={band.p50 ?? (Number(row["Season Proj"]) || 0)}
+                        p90={band.p90 ?? 0}
+                        scaleMax={seasonScaleMax}
                         rowIndex={rowIndex}
+                        title={seasonTip}
                       />
                     </div>
                     <div className="mobile-stat-grid">
                       <MobileStat label="Per-game" value={fmtNum(row["Per-Game Proj"], 1)} />
-                      <MobileStat label="Floor" value={fmtNum(row["Season Floor"], 0)} />
-                      <MobileStat label="Ceiling" value={fmtNum(row["Season Ceiling"], 0)} />
+                      <MobileStat
+                        label="Floor"
+                        value={formatSeasonPts(band.p10 ?? row["Season Floor"], 0)}
+                        title={seasonTip}
+                      />
+                      <MobileStat
+                        label="Ceiling"
+                        value={formatSeasonPts(band.p90 ?? row["Season Ceiling"], 0)}
+                        title={seasonTip}
+                      />
                       <MobileStat label="PG floor" value={fmtNum(row["Per-Game Floor"], 1)} />
                       <MobileStat label="PG ceiling" value={fmtNum(row["Per-Game Ceiling"], 1)} />
+                      <div className="range-cell">
+                        <QuantileBar
+                          p10={p10}
+                          p50={p50}
+                          p90={p90}
+                          scaleMax={scaleMax}
+                          rowIndex={rowIndex}
+                          title="Per-game scoring range"
+                        />
+                      </div>
                     </div>
                   </>
                 )}
@@ -172,12 +231,12 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
               <SortHeader label="Player" sortKey="Player" sort={sort} onSort={toggleSort} />
               <SortHeader label="Team" sortKey="Team" sort={sort} onSort={toggleSort} />
               <SortHeader
-                label="Season Proj"
+                label="Season"
                 sortKey="Proj"
                 sort={sort}
                 onSort={toggleSort}
                 className="col-proj"
-                tip="Expected full-season PPR total"
+                tip={seasonTip}
               />
               <th className="col-range" title="Weekly floor to ceiling range (per game)">Per-game range</th>
               <SortHeader
@@ -186,7 +245,7 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
                 sort={sort}
                 onSort={toggleSort}
                 className="col-floor-ceiling"
-                tip="Season floor (P10)"
+                tip={scheduleAware ? "Season P10 (schedule-aware)" : "Season floor (preliminary)"}
               />
               <SortHeader
                 label="Ceiling"
@@ -194,14 +253,14 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
                 sort={sort}
                 onSort={toggleSort}
                 className="col-floor-ceiling"
-                tip="Season ceiling (P90)"
+                tip={scheduleAware ? "Season P90 (schedule-aware)" : "Season ceiling (preliminary)"}
               />
               <SortHeader
                 label="Per-game"
                 sortKey="PerGame"
                 sort={sort}
                 onSort={toggleSort}
-                tip="Season projection divided by games"
+                tip="Season projection divided by expected games"
               />
             </tr>
           </thead>
@@ -221,6 +280,7 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
               const p50 = Number(row["Per-Game Proj"]) || 0;
               const p10 = Number(row["Per-Game Floor"]) || 0;
               const p90 = Number(row["Per-Game Ceiling"]) || 0;
+              const band = resolveSeasonBand(row, { method });
               return (
                 <tr key={`${row.player_id || row.Player}-${row.Team}`}>
                   <td>
@@ -246,7 +306,15 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
                     ) : null}
                   </td>
                   <td>{row.Team ? <Chip tone="team">{row.Team}</Chip> : "—"}</td>
-                  <td className="num num-proj">{fmtNum(row["Season Proj"], 0)}</td>
+                  <td className="num num-proj">
+                    <SeasonRangeCell
+                      row={row}
+                      method={method}
+                      scaleMax={seasonScaleMax}
+                      rowIndex={rowIndex}
+                      digits={0}
+                    />
+                  </td>
                   <td className="range-cell">
                     <QuantileBar
                       p10={p10}
@@ -254,13 +322,14 @@ export default function DraftTable({ rows, search, metaLine, searchSlot, loading
                       p90={p90}
                       scaleMax={scaleMax}
                       rowIndex={rowIndex}
+                      title="Per-game scoring range"
                     />
                   </td>
                   <td className="num num-secondary col-floor-ceiling">
-                    {fmtNum(row["Season Floor"], 0)}
+                    {formatSeasonPts(band.p10 ?? row["Season Floor"], 0)}
                   </td>
                   <td className="num num-secondary col-floor-ceiling">
-                    {fmtNum(row["Season Ceiling"], 0)}
+                    {formatSeasonPts(band.p90 ?? row["Season Ceiling"], 0)}
                   </td>
                   <td className="num">{fmtNum(row["Per-Game Proj"], 1)}</td>
                 </tr>

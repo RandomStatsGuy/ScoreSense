@@ -11,7 +11,7 @@ from typing import Any
 
 import pandas as pd
 
-from src.config import DRAFT_POOL_DIR, MODEL_DIR, PROCESSED_DATA_DIR
+from src.config import DRAFT_POOL_DIR, MODEL_DIR, PROCESSED_DATA_DIR, SEASON_QUANTILE_METHOD
 from src.projections.draft_projections import predict_draft_season
 
 _POOL_CACHE: dict[int, tuple[str, pd.DataFrame]] = {}
@@ -31,6 +31,8 @@ def pool_fingerprint() -> str:
     parts: list[str] = [
         # Bump when projection post-processing changes (e.g. vet backup scaling).
         "proj_logic:vet_backup_v1",
+        # SCORE-2: schedule-aware MC season P10/P50/P90 aggregator vs legacy x17 scale.
+        f"season_quantile_method:{SEASON_QUANTILE_METHOD}",
     ]
     for pos in ("qb", "rb", "wr"):
         feat = PROCESSED_DATA_DIR / f"{pos}_mlready.parquet"
@@ -66,6 +68,8 @@ def _compute_pool(season: int) -> tuple[pd.DataFrame, dict[str, Any]]:
                 "games_per_season": int(df.attrs.get("games_per_season") or 17),
                 "roster_overlay": df.attrs.get("roster_overlay") or {},
                 "depth_chart": df.attrs.get("depth_chart") or {"applied": False},
+                "season_quantile_method": df.attrs.get("season_quantile_method"),
+                "season_coverage_meta": df.attrs.get("season_coverage_meta") or {},
             }
         part = df.copy()
         if pos == "wr" and "position" in part.columns:
@@ -170,6 +174,8 @@ def draft_pool_for_position(position: str, season: int) -> pd.DataFrame:
         part.attrs["games_per_season"] = meta.get("games_per_season")
         part.attrs["roster_overlay"] = meta.get("roster_overlay") or {}
         part.attrs["depth_chart"] = meta.get("depth_chart") or {"applied": False}
+        part.attrs["season_quantile_method"] = meta.get("season_quantile_method")
+        part.attrs["season_coverage_meta"] = meta.get("season_coverage_meta") or {}
     return part.reset_index(drop=True)
 
 

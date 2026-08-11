@@ -1218,9 +1218,11 @@ export default function App() {
                     draftSeason != null ? (
                       <span className="table-meta">
                         {draftSeason} preseason
-                        {draftResponseMeta?.games_per_season
-                          ? ` · ${draftResponseMeta.games_per_season}-game pace`
-                          : ""}
+                        {draftResponseMeta?.season_quantile_method === "mc_schedule_v1"
+                          ? " · schedule-aware P10–P90"
+                          : draftResponseMeta?.games_per_season
+                            ? ` · ${draftResponseMeta.games_per_season}-game pace (preliminary)`
+                            : " · preliminary season bands"}
                         {draftResponseMeta?.feature_season != null
                           && draftResponseMeta.feature_season < draftSeason
                           ? ` · ${draftResponseMeta.feature_season} inputs`
@@ -1228,6 +1230,7 @@ export default function App() {
                       </span>
                     ) : null
                   }
+                  seasonQuantileMethod={draftResponseMeta?.season_quantile_method}
                 />
             ) : seasonLoading ? (
               <div className="season-refresh-banner" role="status" aria-live="polite">

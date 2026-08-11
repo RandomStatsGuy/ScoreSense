@@ -17,6 +17,13 @@ import {
 } from "./valueSheetUtils";
 import { HUB_POSITION_FILTERS } from "./hubPositions";
 import ValueSheetPlayerRow from "./ValueSheetPlayerRow";
+import {
+  formatSeasonPts,
+  isScheduleAwareMethod,
+  resolveSeasonBand,
+  seasonMethodShortLabel,
+  seasonRangeTooltip,
+} from "../seasonQuantiles";
 
 const TIERS = ["ALL", "Elite", "Tier 1", "Tier 2", "Tier 3", "Depth"];
 const POSITIONS = HUB_POSITION_FILTERS;
@@ -26,6 +33,19 @@ const AVAILABILITY_FILTERS = [
   { id: "TAKEN", label: "Taken" },
   { id: "MINE", label: "Mine" },
   { id: "SLEEPER", label: "Targets" },
+];
+const RISK_PROFILE_FILTERS = [
+  { id: "ALL", label: "All" },
+  { id: "UPSIDE", label: "Ceiling" },
+  { id: "FLOOR", label: "Floor" },
+];
+const SORT_MENU_OPTIONS = [
+  { id: "fair_value", label: "Suggested bid" },
+  { id: "season_proj", label: "Season P50" },
+  { id: "season_spread", label: "Season spread" },
+  { id: "upside_skew", label: "Upside skew" },
+  { id: "value_delta", label: "Δ vs contract" },
+  { id: "player", label: "Name" },
 ];
 
 export default function ValueSheetTable({
@@ -62,6 +82,7 @@ export default function ValueSheetTable({
   const [posFilter, setPosFilter] = useState(defaultPosFilter);
   const [statusFilter, setStatusFilter] = useState(isAvailableView ? "AVAILABLE" : "ALL");
   const [tierFilter, setTierFilter] = useState("ALL");
+  const [riskProfile, setRiskProfile] = useState("ALL");
   const [search, setSearch] = useState("");
   const [addingId, setAddingId] = useState(null);
   const [addError, setAddError] = useState("");
@@ -75,7 +96,8 @@ export default function ValueSheetTable({
   const sleeperLinked = Boolean(sleeper?.sleeper_league_id && sleeper?.sleeper_roster_id);
   const showSelect = Boolean(onSelectPlayer);
   const actionCol = showAdd || showSelect;
-  const baseCols = 4 + (showAdvanced ? 4 : 0) + 1 + (showDelta ? 1 : 0) + (showStatus ? 1 : 0) + (actionCol ? 1 : 0);
+  // Core: Player, Pos, Season, Bid, Tier (+ optional Status/Δ/Action). Advanced adds Team/PG/Spread/Min/Max.
+  const baseCols = 5 + (showAdvanced ? 4 : 0) + (showDelta ? 1 : 0) + (showStatus ? 1 : 0) + (actionCol ? 1 : 0);
   const colCount = baseCols;
 
   useEffect(() => {
@@ -84,7 +106,7 @@ export default function ValueSheetTable({
 
   useEffect(() => {
     setMobileListLimit(MOBILE_LIST_PAGE);
-  }, [posFilter, statusFilter, tierFilter, search, sortKey, sortDir, rows]);
+  }, [posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, rows]);
 
   const sorted = useMemo(() => {
     const list = filterAndSortRows(rows, {
@@ -92,12 +114,38 @@ export default function ValueSheetTable({
       posFilter,
       statusFilter: isAvailableView ? "ALL" : statusFilter,
       tierFilter,
+      riskProfile,
       search,
       sortKey,
       sortDir,
     });
     return maxRows ? list.slice(0, maxRows) : list;
-  }, [rows, isAvailableView, posFilter, statusFilter, tierFilter, search, sortKey, sortDir, maxRows]);
+  }, [rows, isAvailableView, posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, maxRows]);
+
+  const seasonScaleMax = useMemo(() => {
+    let max = 0;
+    for (const row of rows || []) {
+      const band = resolveSeasonBand(row);
+      if (band.p90 != null && band.p90 > max) max = band.p90;
+    }
+    return max > 0 ? max : 1;
+  }, [rows]);
+
+  const seasonMethod = useMemo(() => {
+    for (const row of rows || []) {
+      if (row?.season_quantile_method) return row.season_quantile_method;
+    }
+    return null;
+  }, [rows]);
+
+  const seasonMethodNote = useMemo(() => {
+    if (!rows?.length) return null;
+    const label = seasonMethodShortLabel(seasonMethod);
+    if (isScheduleAwareMethod(seasonMethod)) {
+      return label;
+    }
+    return label || "preliminary season bands";
+  }, [rows, seasonMethod]);
 
   const mobileRows = useMemo(
     () => (maxRows ? sorted : sorted.slice(0, mobileListLimit)),
@@ -190,6 +238,15 @@ export default function ValueSheetTable({
   );
   const positionOptions = useMemo(() => POSITIONS.map((p) => ({ id: p, label: p })), []);
   const tierOptions = useMemo(() => TIERS.map((t) => ({ id: t, label: t })), []);
+  const riskOptions = useMemo(
+    () => RISK_PROFILE_FILTERS.map((f) => ({ id: f.id, label: f.label })),
+    [],
+  );
+  const sortMenuOptions = useMemo(() => {
+    const opts = [...SORT_MENU_OPTIONS];
+    if (!showDelta) return opts.filter((o) => o.id !== "value_delta");
+    return opts;
+  }, [showDelta]);
 
   const showSkeleton = loading && sorted.length === 0;
 
@@ -215,6 +272,7 @@ export default function ValueSheetTable({
         <div className="hub-page-meta">
           {panelSub}
           {sleeperLinked ? ` · ${sleeper.sleeper_team_name || "Sleeper linked"}` : ""}
+          {seasonMethodNote ? ` · ${seasonMethodNote}` : ""}
         </div>
       )}
 
@@ -240,6 +298,27 @@ export default function ValueSheetTable({
               onChange={setStatusFilter}
             />
           )}
+          <HubFilterMenu
+            label="Risk"
+            value={riskProfile}
+            options={riskOptions}
+            onChange={setRiskProfile}
+          />
+          <HubFilterMenu
+            label="Sort"
+            value={sortKey}
+            options={sortMenuOptions}
+            onChange={(key) => {
+              const next = nextSortState(sortKey, sortDir, key);
+              // Selecting a new sort dimension from the menu always starts desc-first for metrics.
+              if (key !== sortKey) {
+                setSortKey(next.sortKey);
+                setSortDir(next.sortDir);
+              } else {
+                setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+              }
+            }}
+          />
         </div>
         {!compact && showAdvancedProp == null && (
           <label className="hub-advanced-toggle hub-advanced-toggle--compact">
@@ -259,6 +338,7 @@ export default function ValueSheetTable({
           {posFilter !== "ALL" ? ` · ${posFilter}` : ""}
           {tierFilter !== "ALL" ? ` · ${tierFilter}` : ""}
           {statusFilter !== "ALL" ? ` · ${statusFilter}` : ""}
+          {riskProfile !== "ALL" ? ` · ${riskProfile}` : ""}
           {search.trim() ? ` · “${search.trim()}”` : ""}
           {` · sort ${sortKey}`}
         </div>
@@ -273,6 +353,8 @@ export default function ValueSheetTable({
           {mobileRows.map((r, idx) => {
             const inRoster = Boolean(rosterIds?.has(r.player_id));
             const statusLabel = formatStatusLabel(r.status);
+            const band = resolveSeasonBand(r);
+            const rangeTip = seasonRangeTooltip(band.method, { preliminary: band.preliminary });
             const actions = [];
             if (showSelect && onRowDoubleClick) {
               actions.push(
@@ -340,9 +422,25 @@ export default function ValueSheetTable({
                 badge={r.is_rookie ? <span className="hub-sleeper-badge">Rookie est.</span> : null}
                 expanded={(
                   <div className="mobile-stat-grid">
+                    <MobileStat
+                      label="Season P50"
+                      value={formatSeasonPts(band.p50, 0)}
+                    />
+                    <MobileStat
+                      label="Season range"
+                      value={
+                        band.p10 != null && band.p90 != null
+                          ? `${formatSeasonPts(band.p10, 0)}–${formatSeasonPts(band.p90, 0)}${band.preliminary ? " · prelim" : ""}`
+                          : "—"
+                      }
+                      title={rangeTip}
+                    />
                     {showAdvanced && (
                       <>
-                        <MobileStat label="Season proj" value={r.season_proj ?? "—"} />
+                        <MobileStat
+                          label="Spread"
+                          value={band.spread != null ? formatSeasonPts(band.spread, 0) : "—"}
+                        />
                         <MobileStat label="Per-game" value={r.per_game_proj ?? "—"} />
                         <MobileStat label="Min" value={fmtSal(r.min_sal)} />
                         <MobileStat label="Max" value={fmtSal(r.max_sal)} />
@@ -386,10 +484,29 @@ export default function ValueSheetTable({
                 <SortTh label="Team" col="team" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-team" />
               )}
               <SortTh label="Pos" col="position" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-pos" />
+              <SortTh
+                label="Season"
+                col="season_proj"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+                className="hub-col-proj"
+                title={seasonRangeTooltip(seasonMethod, {
+                  preliminary: !isScheduleAwareMethod(seasonMethod),
+                })}
+              />
               {showAdvanced && (
                 <>
-                  <SortTh label="Season Proj" col="season_proj" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-proj" />
                   <SortTh label="Per-game" col="per_game_proj" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-pg" />
+                  <SortTh
+                    label="Spread"
+                    col="season_spread"
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={onSort}
+                    className="hub-col-spread"
+                    title="Season P90 − P10 (wider = more auction risk / upside)"
+                  />
                   <SortTh label="Min" col="min_sal" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-min" />
                   <SortTh label="Max" col="max_sal" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-max" />
                 </>
@@ -438,6 +555,8 @@ export default function ValueSheetTable({
                   onAddPlayer={addPlayer}
                   playerMedia={playerMedia}
                   narrativeScope={narrativeScope}
+                  seasonScaleMax={seasonScaleMax}
+                  rowIndex={idx}
                 />
               ))}
             </tbody>

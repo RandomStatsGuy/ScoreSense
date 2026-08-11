@@ -8,6 +8,11 @@ import QuantileBar from "./QuantileBarShared";
 import { connectionErrorMessage, parseApiError } from "./format";
 import useMobileLayout from "./useMobileLayout";
 import MobileBottomSheet from "./layout/MobileBottomSheet";
+import {
+  formatSeasonPts,
+  resolveSeasonBand,
+  seasonRangeTooltip,
+} from "./seasonQuantiles";
 
 function ProjStat({ label, value }) {
   return (
@@ -31,6 +36,22 @@ function PlayerCardBody({ data, loading, error, fallbackName }) {
   const season = data.season_projection;
   const narrative = data.narrative;
   const injury = data.injury;
+  const seasonBand = season
+    ? resolveSeasonBand({
+      ...season,
+      season_p10: season["Season P10"] ?? season["Season Floor"] ?? season["Season Low"],
+      season_p50: season["Season P50"] ?? season["Season Proj"],
+      season_p90: season["Season P90"] ?? season["Season Ceiling"] ?? season["Season High"],
+      season_quantile_method: season.season_quantile_method,
+    })
+    : null;
+  const seasonTip = seasonBand
+    ? seasonRangeTooltip(seasonBand.method, { preliminary: seasonBand.preliminary })
+    : null;
+  const weeklyP10 = weekly ? Number(weekly["Low (P10)"]) : null;
+  const weeklyP50 = weekly ? Number(weekly["Projected Points"]) : null;
+  const weeklyP90 = weekly ? Number(weekly["High (P90)"]) : null;
+  const hasWeeklyBar = [weeklyP10, weeklyP50, weeklyP90].every(Number.isFinite);
 
   return (
     <div className="player-card-body">
@@ -61,11 +82,12 @@ function PlayerCardBody({ data, loading, error, fallbackName }) {
               />
             ) : null}
           </div>
-          {weekly["Low (P10)"] != null && weekly["High (P90)"] != null ? (
+          {hasWeeklyBar ? (
             <QuantileBar
-              p10={Number(weekly["Low (P10)"])}
-              p50={Number(weekly["Projected Points"])}
-              p90={Number(weekly["High (P90)"])}
+              p10={weeklyP10}
+              p50={weeklyP50}
+              p90={weeklyP90}
+              title="Per-game scoring range"
             />
           ) : null}
         </section>
@@ -76,14 +98,53 @@ function PlayerCardBody({ data, loading, error, fallbackName }) {
           <h3>Season outlook</h3>
           <div className="player-card-stats">
             <ProjStat
-              label="Season proj"
-              value={Number(season["Season Proj"] ?? season["Season P50"]).toFixed(1)}
+              label="Season P50"
+              value={formatSeasonPts(seasonBand?.p50 ?? season["Season Proj"] ?? season["Season P50"], 1)}
+            />
+            <ProjStat
+              label="Floor"
+              value={seasonBand?.p10 != null ? formatSeasonPts(seasonBand.p10, 1) : "—"}
+            />
+            <ProjStat
+              label="Ceiling"
+              value={seasonBand?.p90 != null ? formatSeasonPts(seasonBand.p90, 1) : "—"}
             />
             <ProjStat
               label="ROS"
               value={Number(season["ROS Proj"] ?? season["ROS P50"]).toFixed(1)}
             />
           </div>
+          {seasonBand?.p10 != null && seasonBand?.p50 != null && seasonBand?.p90 != null ? (
+            <div className="player-card-uncertainty">
+              <div className="player-card-uncertainty-label">
+                Season total
+                {seasonBand.preliminary ? (
+                  <span className="hub-sleeper-badge season-range-prelim-badge">Preliminary</span>
+                ) : null}
+              </div>
+              <QuantileBar
+                p10={seasonBand.p10}
+                p50={seasonBand.p50}
+                p90={seasonBand.p90}
+                title={seasonTip}
+                subtitle={`${formatSeasonPts(seasonBand.p10, 1)} · ${formatSeasonPts(seasonBand.p50, 1)} · ${formatSeasonPts(seasonBand.p90, 1)}`}
+              />
+              {hasWeeklyBar ? (
+                <>
+                  <div className="player-card-uncertainty-label player-card-uncertainty-label--secondary">
+                    Per-game (week volatility)
+                  </div>
+                  <QuantileBar
+                    p10={weeklyP10}
+                    p50={weeklyP50}
+                    p90={weeklyP90}
+                    title="Per-game scoring range"
+                    subtitle="Week volatility vs season compression above"
+                  />
+                </>
+              ) : null}
+            </div>
+          ) : null}
         </section>
       ) : null}
 

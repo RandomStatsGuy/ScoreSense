@@ -1,5 +1,7 @@
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import PlayerCell from "../PlayerCell";
+import SeasonRangeCell from "../SeasonRangeCell";
+import { formatSeasonPts } from "../seasonQuantiles";
 import { fmtSal, formatStatusLabel } from "./valueSheetUtils";
 
 function ValueSheetPlayerRow({
@@ -18,6 +20,8 @@ function ValueSheetPlayerRow({
   onRowDoubleClick,
   playerMedia,
   narrativeScope,
+  seasonScaleMax,
+  rowIndex = 0,
 }) {
   const handleRowClick = useCallback(() => {
     if (onSelectPlayer) onSelectPlayer(row);
@@ -46,6 +50,10 @@ function ValueSheetPlayerRow({
   const statusLabel = formatStatusLabel(row.status);
   const taken = row.status === "taken";
   const addLabel = taken && isCommissioner ? "Reassign" : "Add";
+  const spreadLabel = useMemo(
+    () => (row.season_spread != null ? formatSeasonPts(row.season_spread, 0) : "—"),
+    [row.season_spread],
+  );
 
   return (
     <tr
@@ -68,10 +76,18 @@ function ValueSheetPlayerRow({
       </td>
       {showAdvanced && <td className="hub-col-team">{row.team}</td>}
       <td className="hub-col-pos">{row.position}</td>
+      <td className="num hub-col-proj">
+        <SeasonRangeCell
+          row={row}
+          scaleMax={seasonScaleMax}
+          rowIndex={rowIndex}
+          digits={0}
+        />
+      </td>
       {showAdvanced && (
         <>
-          <td className="num hub-col-proj">{row.season_proj}</td>
           <td className="num hub-col-pg">{row.per_game_proj}</td>
+          <td className="num hub-col-spread">{spreadLabel}</td>
           <td className="num hub-col-min">{fmtSal(row.min_sal)}</td>
           <td className="num hub-col-max">{fmtSal(row.max_sal)}</td>
         </>
@@ -130,6 +146,8 @@ function propsAreEqual(prev, next) {
     && prev.onAddPlayer === next.onAddPlayer
     && prev.onRowDoubleClick === next.onRowDoubleClick
     && prev.narrativeScope === next.narrativeScope
+    && prev.seasonScaleMax === next.seasonScaleMax
+    && prev.rowIndex === next.rowIndex
   );
 }
 

@@ -2046,6 +2046,66 @@ body {
   min-width: 120px;
 }
 
+.season-range-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+  min-width: 5.5rem;
+}
+
+.season-range-cell-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.season-range-cell-p50 {
+  font-variant-numeric: tabular-nums;
+}
+
+.season-range-cell-bar {
+  width: 100%;
+  min-width: 5.5rem;
+  max-width: 7.5rem;
+}
+
+.season-range-cell-bar .quantile-bar {
+  height: 1.1rem;
+  min-width: 0;
+}
+
+.season-range-cell-span {
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.season-range-prelim-badge {
+  font-size: 0.62rem;
+  letter-spacing: 0.02em;
+}
+
+.player-card-uncertainty {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+.player-card-uncertainty-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+}
+
+.player-card-uncertainty-label--secondary {
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
 .quantile-bar-interactive {
   cursor: help;
 }
@@ -8934,6 +8994,7 @@ th.num {
   .hub-table .hub-col-team,
   .hub-table .hub-col-pos,
   .hub-table .hub-col-pg,
+  .hub-table .hub-col-spread,
   .hub-table .hub-col-min,
   .hub-table .hub-col-max,
   .hub-table .hub-col-delta,

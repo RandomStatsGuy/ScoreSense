@@ -145,6 +145,10 @@ def build_draft_pool_payload(
         pos = normalize_position(p.get("Position"))
         season_proj = float(p.get("Season Proj") or 0)
         pg_proj = float(p.get("Per-Game Proj") or 0)
+        season_p10 = p.get("Season P10")
+        season_p50 = p.get("Season P50")
+        season_p90 = p.get("Season P90")
+        season_spread = p.get("Season Spread")
         rng = range_map.get(pid) or {}
         mv = model_values.get(pid) or {}
         min_sal = rng.get("min_sal") if rng.get("min_sal") is not None else mv.get("min_sal")
@@ -160,6 +164,14 @@ def build_draft_pool_payload(
                 "position": pos,
                 "season_proj": round(season_proj, 1),
                 "per_game_proj": round(pg_proj, 1),
+                "season_p10": round(float(season_p10), 1) if pd.notna(season_p10) else None,
+                "season_p50": round(float(season_p50), 1) if pd.notna(season_p50) else None,
+                "season_p90": round(float(season_p90), 1) if pd.notna(season_p90) else None,
+                "season_spread": round(float(season_spread), 1) if pd.notna(season_spread) else None,
+                "games_expected": round(float(games_exp), 2) if pd.notna(games_exp := p.get("games_expected")) else None,
+                "season_quantile_method": (
+                    str(sqm) if pd.notna(sqm := p.get("season_quantile_method")) else None
+                ),
                 "min_sal": min_sal,
                 "max_sal": max_sal,
                 "range_source": rng.get("source"),
