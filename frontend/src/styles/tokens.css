@@ -117,6 +117,15 @@
 
   /* Component tokens */
   --rank-col-width: 2.4rem;
+  --col-team-width: 3.4rem;
+  --col-opp-width: 3.4rem;
+  --col-season-width: 6.75rem;
+  --col-floor-ceiling-width: 5rem;
+  --col-per-game-width: 6.25rem;
+  --hub-col-pos-width: 2.75rem;
+  --hub-col-proj-width: 6.75rem;
+  --hub-col-num-width: 3.5rem;
+  --hub-col-status-width: 6.5rem;
   --row-hover-bg: rgba(64, 106, 191, 0.16);
   --control-height: 2.25rem;
   --control-height-sm: 1.85rem;

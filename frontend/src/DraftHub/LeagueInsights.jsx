@@ -613,7 +613,7 @@ export default function LeagueInsights({
     () => ({ capSeasonRef, scoringSeasonRef, historySeasonRef }),
     [],
   );
-  const { load: loadInsights, loadCacheRef } = useInsightsData(leagueId, insightsRefs);
+  const { load: loadInsights, loadCacheRef, prefetchScoring } = useInsightsData(leagueId, insightsRefs);
   const insightsHandlers = useMemo(() => ({
     setData,
     setLoading,
@@ -644,6 +644,23 @@ export default function LeagueInsights({
     loadCacheRef.current.clear();
     load({ activeTab: "cap", sections: "cap" });
   }, [leagueId, load, loadCacheRef]);
+
+  // After Spend paints, warm Scoring in the background when DB cache is already hot.
+  // Gate on the current league's payload so a switch cannot merge scoring into
+  // the previous room (loading/tabLoading may still reflect the prior fetch).
+  useEffect(() => {
+    if (!leagueId || loading || tabLoading || !data?.analytics) return;
+    if (String(data?.hub_context?.league_id || "") !== String(leagueId)) return;
+    prefetchScoring(insightsHandlers);
+  }, [
+    leagueId,
+    loading,
+    tabLoading,
+    data?.analytics,
+    data?.hub_context?.league_id,
+    prefetchScoring,
+    insightsHandlers,
+  ]);
 
   const loadOwnershipHistory = useCallback(async (opts = {}) => {
     if (!leagueId) return null;

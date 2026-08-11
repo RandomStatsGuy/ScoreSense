@@ -159,6 +159,40 @@ def test_insights_cap_section_skips_scoring(hub_client, hub_db, monkeypatch):
     assert body["scoring"]["reason"] == "not_loaded"
 
 
+def test_insights_cap_cache_hit_skips_roster_overview(hub_client, hub_db, monkeypatch):
+    """Spend tab should not rebuild every roster when SQLite cap cache is warm."""
+    monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
+    from src.draft_hub import storage
+    from src.draft_hub.insights_cache import write_cap_cache
+
+    league = storage.create_league("dev", "Cap Cache League", 2026, LeagueRules())
+    lid = str(league["id"])
+    write_cap_cache(
+        lid,
+        history_mode="current",
+        history_year=None,
+        payload={
+            "analytics": {
+                "teams": [{"team_id": "t1", "name": "T1", "committed": 100}],
+                "positions": [],
+            },
+            "historic": {"available": True, "awards": []},
+        },
+    )
+
+    def _boom(*_a, **_k):
+        raise AssertionError("league_roster_overview should not run on cap cache hit")
+
+    monkeypatch.setattr("src.draft_hub.storage.league_roster_overview", _boom)
+
+    res = hub_client.get(f"/api/hub/league/{lid}/insights?sections=cap")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["cache_status"]["cap"] == "hit"
+    assert body["analytics"]["teams"][0]["name"] == "T1"
+    assert body["scoring"]["reason"] == "not_loaded"
+
+
 def test_insights_sections_skips_unrequested_blocks(hub_client, hub_db, monkeypatch):
     monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
     trade_calls: list[str] = []

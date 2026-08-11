@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
+import useMobileLayout from "../useMobileLayout";
+import MobileDataList, { MobileStat } from "../MobileDataList";
+import MobilePlayerCard from "../MobilePlayerCard";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 import { HubPage, HubTableCard } from "./HubUILayout";
 import HubTabIntro from "./HubTabIntro";
@@ -12,6 +15,12 @@ function gradeLabel(grade) {
   if (grade === "bad") return "Overpay";
   if (grade === "fair") return "Fair";
   return null;
+}
+
+function gradeClass(grade) {
+  if (grade === "good") return "hub-value-delta-pos";
+  if (grade === "bad") return "hub-value-delta-neg";
+  return "hub-value-delta-fair";
 }
 
 function contractGradeText(row) {
@@ -29,11 +38,23 @@ function contractGradeText(row) {
   return parts.join(" ");
 }
 
+/** Compact chip for collapsed mobile cards — avoids multi-line contract cells. */
+function contractGradeChip(row) {
+  const grade = gradeLabel(row.contract_grade);
+  if (!grade) return null;
+  const delta = row.value_delta;
+  if (delta == null || grade === "Fair") return grade;
+  const deltaStr = `${delta <= 0 ? "" : "+"}${fmtSal(delta)}`;
+  if (grade === "Good value") return `Value ${deltaStr}`;
+  return `${grade} ${deltaStr}`;
+}
+
 export default function LeagueRostersBrowser({
   leagueId,
   hubContext,
   onNavigateTrade,
 }) {
+  const mobileLayout = useMobileLayout();
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -82,7 +103,8 @@ export default function LeagueRostersBrowser({
     [block],
   );
   const playerIds = useMemo(() => roster.map((r) => r.player_id).filter(Boolean), [roster]);
-  const media = usePlayerMedia(playerIds);
+  // Desktop table still uses headshots; skip the media fetch on mobile cards.
+  const media = usePlayerMedia(mobileLayout ? [] : playerIds);
 
   const addToTrade = (row) => {
     seedTradeFromPlayer({
@@ -94,6 +116,8 @@ export default function LeagueRostersBrowser({
     });
     onNavigateTrade?.();
   };
+
+  const tradeLabel = teamId === myTeamId ? "Add to trade" : "Trade for";
 
   return (
     <HubPage>
@@ -150,100 +174,152 @@ export default function LeagueRostersBrowser({
             </div>
           )}
 
-          <HubTableCard>
-            <div className="table-wrap">
-              <table className="data-table hub-table hub-roster-table">
-                <thead>
-                  <tr>
-                    <th>Player</th>
-                    <th>Pos</th>
-                    <th className="num">Cap</th>
-                    <th className="num">Yrs</th>
-                    <th>Type</th>
-                    <th>Contract</th>
-                    <th className="num">fp/$</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {roster.length === 0 && (
-                    <tr>
-                      <td colSpan={8} className="hub-roster-empty">No active players.</td>
-                    </tr>
-                  )}
-                  {roster.map((r) => {
-                    const gradeText = contractGradeText(r);
-                    return (
-                      <tr
-                        key={r.player_id}
-                        className={r.overpay ? "hub-overpay" : ""}
-                      >
-                        <td className="col-player">
-                          <PlayerCell
-                            name={r.player_name}
-                            team={r.team}
-                            playerId={r.player_id}
-                            media={media}
-                            size="sm"
-                            showTeam={false}
-                            narrativeScope="season"
-                          />
+          <HubTableCard className="hub-roster-browser-table-wrap">
+            {mobileLayout ? (
+              <MobileDataList
+                emptyMessage={!roster.length ? "No active players." : null}
+              >
+                {roster.map((r) => {
+                  const gradeChip = contractGradeChip(r);
+                  const gradeText = contractGradeText(r);
+                  const yrs = r.years_remaining ?? r.contract_years ?? "—";
+                  const actions = r.player_id
+                    ? [
+                        <button
+                          key="trade"
+                          type="button"
+                          className="btn-ghost btn-sm"
+                          onClick={() => addToTrade(r)}
+                        >
+                          {tradeLabel}
+                        </button>,
+                      ]
+                    : null;
+                  return (
+                    <MobilePlayerCard
+                      key={r.player_id}
+                      className={r.overpay ? "hub-overpay" : ""}
+                      name={r.player_name}
+                      meta={[r.team, r.position].filter(Boolean).join(" · ") || "—"}
+                      heroValue={fmtSal(r.salary)}
+                      heroLabel="cap"
+                      heroSub={yrs !== "—" ? `${yrs} yr${yrs === 1 ? "" : "s"}` : undefined}
+                      badge={(
+                        <>
+                          {gradeChip && (
+                            <span
+                              className={`hub-roster-grade-chip ${gradeClass(r.contract_grade)}`}
+                              title={gradeText || undefined}
+                            >
+                              {gradeChip}
+                            </span>
+                          )}
                           {r.expire_chip === "extend" && (
                             <span className="hub-sleeper-badge">Extend</span>
                           )}
                           {r.expire_chip === "fa" && (
                             <span className="hub-sleeper-badge">Expires FA</span>
                           )}
-                        </td>
-                        <td>{r.position}</td>
-                        <td className="num">{fmtSal(r.salary)}</td>
-                        <td className="num">{r.years_remaining ?? r.contract_years ?? "—"}</td>
-                        <td>{r.contract_type || "—"}</td>
-                        <td>
-                          {gradeText ? (
-                            <span
-                              className={
-                                r.contract_grade === "good"
-                                  ? "hub-value-delta-pos"
-                                  : r.contract_grade === "bad"
-                                    ? "hub-value-delta-neg"
-                                    : "hub-value-delta-fair"
-                              }
-                              title={r.fair_value != null ? `Model fair auction value ${fmtSal(r.fair_value)}` : undefined}
-                            >
-                              {gradeText}
-                            </span>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                        <td className="num">{r.fp_per_dollar ?? "—"}</td>
-                        <td>
-                          {r.player_id && teamId !== myTeamId && (
-                            <button
-                              type="button"
-                              className="btn-ghost btn-sm"
-                              onClick={() => addToTrade(r)}
-                            >
-                              Trade for
-                            </button>
-                          )}
-                          {r.player_id && teamId === myTeamId && (
-                            <button
-                              type="button"
-                              className="btn-ghost btn-sm"
-                              onClick={() => addToTrade(r)}
-                            >
-                              Add to trade
-                            </button>
-                          )}
-                        </td>
+                        </>
+                      )}
+                      expanded={(
+                        <div className="mobile-stat-grid hub-roster-mobile-grid">
+                          <MobileStat label="Type" value={r.contract_type || "—"} />
+                          <MobileStat label="Yrs left" value={yrs} />
+                          <MobileStat label="fp/$" value={r.fp_per_dollar ?? "—"} />
+                          <MobileStat
+                            label="Contract"
+                            value={gradeText || "—"}
+                            className={gradeText ? gradeClass(r.contract_grade) : ""}
+                            title={r.fair_value != null ? `Model fair auction value ${fmtSal(r.fair_value)}` : undefined}
+                          />
+                        </div>
+                      )}
+                      actions={actions}
+                    />
+                  );
+                })}
+              </MobileDataList>
+            ) : (
+              <div className="table-wrap">
+                <table className="data-table hub-table hub-roster-table">
+                  <thead>
+                    <tr>
+                      <th>Player</th>
+                      <th>Pos</th>
+                      <th className="num">Cap</th>
+                      <th className="num">Yrs</th>
+                      <th>Type</th>
+                      <th>Contract</th>
+                      <th className="num">fp/$</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {roster.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="hub-roster-empty">No active players.</td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                    )}
+                    {roster.map((r) => {
+                      const gradeText = contractGradeText(r);
+                      return (
+                        <tr
+                          key={r.player_id}
+                          className={r.overpay ? "hub-overpay" : ""}
+                        >
+                          <td className="col-player">
+                            <PlayerCell
+                              name={r.player_name}
+                              team={r.team}
+                              playerId={r.player_id}
+                              media={media}
+                              size="sm"
+                              showTeam={false}
+                              narrativeScope="season"
+                            />
+                            {r.expire_chip === "extend" && (
+                              <span className="hub-sleeper-badge">Extend</span>
+                            )}
+                            {r.expire_chip === "fa" && (
+                              <span className="hub-sleeper-badge">Expires FA</span>
+                            )}
+                          </td>
+                          <td>{r.position}</td>
+                          <td className="num">{fmtSal(r.salary)}</td>
+                          <td className="num">{r.years_remaining ?? r.contract_years ?? "—"}</td>
+                          <td>{r.contract_type || "—"}</td>
+                          <td>
+                            {gradeText ? (
+                              <span
+                                className={gradeClass(r.contract_grade)}
+                                title={r.fair_value != null ? `Model fair auction value ${fmtSal(r.fair_value)}` : undefined}
+                              >
+                                {gradeText}
+                              </span>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                          <td className="num">{r.fp_per_dollar ?? "—"}</td>
+                          <td>
+                            {r.player_id && (
+                              <button
+                                type="button"
+                                className="btn-ghost btn-sm"
+                                onClick={() => addToTrade(r)}
+                              >
+                                {tradeLabel}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </HubTableCard>
         </>
       )}

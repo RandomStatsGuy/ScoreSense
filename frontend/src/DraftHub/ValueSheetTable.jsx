@@ -604,7 +604,7 @@ export default function ValueSheetTable({
               )}
               <SortTh label="Tier" col="tier" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-tier" />
               {showStatus && <SortTh label="Status" col="status" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-status" />}
-              {actionCol && <th />}
+              {actionCol && <th className="hub-col-actions" aria-label="Actions" />}
             </tr>
           </thead>
           {showSkeleton ? (
