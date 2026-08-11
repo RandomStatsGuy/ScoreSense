@@ -32,7 +32,7 @@ export const SECTION_SUBTITLES = {
   projections: {
     weekly: "Weekly floor–ceiling projections",
     season: {
-      preseason: "Season Proj / Floor / Ceiling",
+      preseason: "Season P50 with schedule-aware floor–ceiling",
       live: "Points scored + rest-of-season",
     },
   },

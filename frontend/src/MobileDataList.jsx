@@ -1,8 +1,8 @@
 import React from "react";
 
-export function MobileStat({ label, value, className = "" }) {
+export function MobileStat({ label, value, className = "", title }) {
   return (
-    <div className={`mobile-stat ${className}`.trim()}>
+    <div className={`mobile-stat ${className}`.trim()} title={title}>
       <span className="mobile-stat-label">{label}</span>
       <span className="mobile-stat-value">{value}</span>
     </div>
