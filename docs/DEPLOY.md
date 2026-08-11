@@ -1,5 +1,7 @@
 # Hosting ScoreSense for Patreon subscribers
 
+Production hosting is the VPS + Cloudflare tunnel (see [DEPLOY_CLOUDFLARE_TUNNEL.md](./DEPLOY_CLOUDFLARE_TUNNEL.md)). For Vercel PR previews and Deployment Protection, see [VERCEL_PREVIEWS.md](./VERCEL_PREVIEWS.md).
+
 ## 1. Patreon OAuth setup
 
 1. Register a client at [Patreon Developer Portal](https://www.patreon.com/portal/registration/register-clients).
