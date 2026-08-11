@@ -144,8 +144,15 @@ export function useInsightsData(leagueId, refs) {
     const background = Boolean(
       opts.background || (opts.merge && dataRef?.current) || hasStale,
     );
-    if (background) setTabLoading?.(true);
-    else setLoading?.(true);
+    // One in-flight load owns one indicator; clear the other so a discarded
+    // background prefetch cannot leave tabLoading stuck after a foreground load.
+    if (background) {
+      setTabLoading?.(true);
+      setLoading?.(false);
+    } else {
+      setLoading?.(true);
+      setTabLoading?.(false);
+    }
     setError?.("");
 
     try {
@@ -207,6 +214,7 @@ export function useInsightsData(leagueId, refs) {
         ? "Insights failed to load. Try again in a moment or switch tabs."
         : msg);
     } finally {
+      if (generation !== loadGenerationRef.current) return;
       if (background) setTabLoading?.(false);
       else setLoading?.(false);
     }
