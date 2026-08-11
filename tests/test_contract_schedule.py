@@ -127,3 +127,22 @@ def test_repair_applies_step_to_flat_multi_year_veteran():
     fixed = repair_flat_deal_schedule(flat)
     assert [y["salary"] for y in fixed["schedule"]] == [8, 13]
     assert float(fixed.get("step_up_per_year") or 0) == 5
+
+
+def test_repair_uses_league_default_step():
+    from src.draft_hub.contracts import repair_flat_deal_schedule
+
+    flat = {
+        "contract_type": "veteran",
+        "current_salary": 10,
+        "years_remaining": 3,
+        "step_up_per_year": 0,
+        "schedule": [
+            {"year_offset": 0, "salary": 10},
+            {"year_offset": 1, "salary": 10},
+            {"year_offset": 2, "salary": 10},
+        ],
+    }
+    fixed = repair_flat_deal_schedule(flat, default_step=3.0)
+    assert [y["salary"] for y in fixed["schedule"]] == [10, 13, 16]
+    assert float(fixed.get("step_up_per_year") or 0) == 3.0

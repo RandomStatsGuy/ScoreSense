@@ -143,8 +143,15 @@ def _schedule_step_for_type(
     return float(cr.extension_step_up)
 
 
-def repair_flat_deal_schedule(contract: dict[str, Any] | None) -> dict[str, Any] | None:
-    """Read-path schedule repair: flatten rookies; ensure multi-year vets/extensions step."""
+def repair_flat_deal_schedule(
+    contract: dict[str, Any] | None,
+    *,
+    default_step: float = 5.0,
+) -> dict[str, Any] | None:
+    """Read-path schedule repair: flatten rookies; ensure multi-year vets/extensions step.
+
+    ``default_step`` should be the league's ``extension_step_up`` when known.
+    """
     if not contract:
         return contract
     ctype = str(contract.get("contract_type") or "veteran")
@@ -153,6 +160,7 @@ def repair_flat_deal_schedule(contract: dict[str, Any] | None) -> dict[str, Any]
         return contract
     base = float(contract.get("current_salary") or contract.get("base_salary") or 0)
     schedule = contract.get("schedule") or []
+    league_step = float(default_step) if float(default_step or 0) > 0 else 5.0
 
     if ctype == "rookie":
         needs_repair = float(contract.get("step_up_per_year") or 0) != 0
@@ -189,9 +197,11 @@ def repair_flat_deal_schedule(contract: dict[str, Any] | None) -> dict[str, Any]
                 return contract
             # Infer step from first YoY delta when metadata is missing.
             out = dict(contract)
-            out["step_up_per_year"] = round(actual[1] - actual[0], 2) if len(actual) > 1 else 5.0
+            out["step_up_per_year"] = (
+                round(actual[1] - actual[0], 2) if len(actual) > 1 else league_step
+            )
             return out
-        step = stored_step if stored_step > 0 else 5.0
+        step = stored_step if stored_step > 0 else league_step
         expected = [round(base + step * i, 2) for i in range(yrs)]
         out = dict(contract)
         out["step_up_per_year"] = step

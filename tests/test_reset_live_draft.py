@@ -146,5 +146,27 @@ def test_rewind_contract_year_roundtrip():
     }
     advanced = advance_contract_year(contract, row)
     assert advanced["years_remaining"] == 1
+    assert advanced["current_salary"] == 13
     rewound = rewind_contract_year(advanced, {**row, "contract_years": 1, "salary": advanced["current_salary"]})
     assert rewound["years_remaining"] == 2
+    assert rewound["current_salary"] == 8
+    assert [y["salary"] for y in rewound["schedule"]] == [8, 13]
+
+
+def test_rewind_restores_stepped_veteran_schedule():
+    row = {"salary": 8, "contract_years": 2}
+    contract = {
+        "years_remaining": 2,
+        "current_salary": 8,
+        "base_salary": 8,
+        "schedule": [{"year_offset": 0, "salary": 8}, {"year_offset": 1, "salary": 13}],
+        "contract_type": "veteran",
+        "step_up_per_year": 5,
+    }
+    advanced = advance_contract_year(contract, row)
+    assert advanced["years_remaining"] == 1
+    assert [y["salary"] for y in advanced["schedule"]] == [13]
+    rewound = rewind_contract_year(advanced, {**row, "contract_years": 1, "salary": 13})
+    assert rewound["years_remaining"] == 2
+    assert rewound["current_salary"] == 8
+    assert [y["salary"] for y in rewound["schedule"]] == [8, 13]

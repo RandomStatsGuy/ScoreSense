@@ -33,9 +33,14 @@ function capHitForRow(row, offset = 0, rules) {
     const step = Number(contract?.step_up_per_year);
     const useStep = Number.isFinite(step) && step > 0 ? step : leagueStepUp(rules);
     const sched = contract?.schedule;
+    // Ignore legacy flat multi-year schedules; prefer stepped preview like scheduleText.
     if (sched?.length) {
-      const hit = sched.find((y) => Number(y.year_offset) === offset);
-      if (hit) return Number(hit.salary);
+      const amounts = sched.map((y) => Number(y.salary));
+      const isFlat = amounts.length > 0 && amounts.every((v) => Math.abs(v - base) < 0.001);
+      if (!isFlat) {
+        const hit = sched.find((y) => Number(y.year_offset) === offset);
+        if (hit) return Number(hit.salary);
+      }
     }
     return Math.round(base + useStep * offset);
   }

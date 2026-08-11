@@ -297,7 +297,29 @@ def rewind_contract_year(contract: dict[str, Any] | None, row: dict[str, Any]) -
     sal = float(existing.get("current_salary") or existing.get("base_salary") or row.get("salary") or 0)
     new_yrs = yrs + 1
     schedule = list(existing.get("schedule") or [])
-    shifted: list[dict[str, Any]] = [{"year_offset": 0, "salary": sal}]
+    step = float(existing.get("step_up_per_year") or 0)
+    ctype = str(existing.get("contract_type") or "veteran")
+    # Stepped veteran/extension: year-0 before the tick was current - step.
+    if ctype in ("extension", "veteran") and step > 0:
+        prior_sal = round(sal - step, 2)
+        shifted: list[dict[str, Any]] = [{"year_offset": 0, "salary": prior_sal}]
+        for entry in schedule:
+            off = int(entry.get("year_offset", 0))
+            shifted.append({
+                "year_offset": off + 1,
+                "salary": float(entry.get("salary") or sal),
+            })
+        while len(shifted) < new_yrs:
+            i = len(shifted)
+            shifted.append({"year_offset": i, "salary": round(prior_sal + step * i, 2)})
+        return {
+            **existing,
+            "years_remaining": new_yrs,
+            "schedule": shifted[:new_yrs],
+            "current_salary": prior_sal,
+            "base_salary": prior_sal,
+        }
+    shifted = [{"year_offset": 0, "salary": sal}]
     for entry in schedule:
         off = int(entry.get("year_offset", 0))
         shifted.append({
