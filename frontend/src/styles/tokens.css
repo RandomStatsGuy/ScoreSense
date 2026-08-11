@@ -116,6 +116,8 @@
   --duration-slow: 0.32s;
 
   /* Component tokens */
+  --rank-col-width: 2.4rem;
+  --row-hover-bg: rgba(64, 106, 191, 0.16);
   --control-height: 2.25rem;
   --control-height-sm: 1.85rem;
   --touch-target: 2.75rem;

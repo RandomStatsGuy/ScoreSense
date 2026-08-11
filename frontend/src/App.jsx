@@ -560,6 +560,12 @@ export default function App() {
     [syncFiltersToUrl],
   );
 
+  const clearTableFilters = useCallback(() => {
+    setSearchQuery("");
+    setSelectedTeams([]);
+    syncFiltersToUrl({ search: "", selectedTeams: [] });
+  }, [syncFiltersToUrl]);
+
   const urlFiltersBootstrapped = useRef(false);
   useEffect(() => {
     if (!projMeta || urlFiltersBootstrapped.current) return;
@@ -1135,6 +1141,7 @@ export default function App() {
                 position={position}
                 season={season}
                 week={week}
+                onClearFilters={clearTableFilters}
                 searchSlot={
                   !mobileLayout ? null : (
                   <input
@@ -1204,6 +1211,7 @@ export default function App() {
                   loading={draftLoading}
                   position={position}
                   season={draftSeason}
+                  onClearFilters={clearTableFilters}
                   searchSlot={
                     <input
                       type="search"
@@ -1272,6 +1280,7 @@ export default function App() {
                   position={position}
                   season={rosSeason ?? season}
                   week={rosFromWeek ?? week}
+                  onClearFilters={clearTableFilters}
                   searchSlot={
                     <input
                       type="search"

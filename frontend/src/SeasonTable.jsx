@@ -9,7 +9,16 @@ import {
   rosSeasonP50,
   rosSeasonP90,
 } from "./format";
-import { SortHeader, ExportCsvButton, useTableSort, csvQuote, downloadCsv } from "./table";
+import {
+  SortHeader,
+  ExportCsvButton,
+  TableEmptyState,
+  useTableSort,
+  useRankMap,
+  rowRankKey,
+  csvQuote,
+  downloadCsv,
+} from "./table";
 import useMobileLayout from "./useMobileLayout";
 import MobileDataList, { MobileStat } from "./MobileDataList";
 import MobilePlayerCard from "./MobilePlayerCard";
@@ -77,6 +86,9 @@ function sortValue(row, key) {
   }
 }
 
+const rankByPPG = (row) => Number(rosPPG(row));
+const rankBySeasonP50 = (row) => Number(rosSeasonP50(row));
+
 export default function SeasonTable({
   rows,
   seasonComplete,
@@ -89,9 +101,14 @@ export default function SeasonTable({
   position,
   season,
   week,
+  onClearFilters,
 }) {
   const [sort, toggleSort] = useTableSort({ column: seasonComplete ? "PPG" : "SeasonP50", dir: "desc" });
   const mobileLayout = useMobileLayout();
+
+  // Position rank over the full slate: PPG once the season is final,
+  // projected season total (P50) while it is live.
+  const rankMap = useRankMap(rows, seasonComplete ? rankByPPG : rankBySeasonP50);
 
   const filtered = useMemo(() => {
     let list = rows || [];
@@ -129,7 +146,8 @@ export default function SeasonTable({
     [rows, showSentiment],
   );
 
-  const colCount = (seasonComplete ? 5 : 10) + (showNarrative ? 1 : 0);
+  const colCount = (seasonComplete ? 6 : 11) + (showNarrative ? 1 : 0);
+  const hasFilters = Boolean((search || "").trim());
 
   return (
     <>
@@ -147,6 +165,7 @@ export default function SeasonTable({
         <MobileDataList
           loading={loading && sorted.length === 0}
           emptyMessage={!loading && sorted.length === 0 ? "No players match your filters." : null}
+          onEmptyAction={hasFilters && sorted.length === 0 ? onClearFilters : undefined}
         >
           {sorted.map((row) => {
             const heroValue = seasonComplete
@@ -157,8 +176,9 @@ export default function SeasonTable({
 
             return (
               <MobilePlayerCard
-                key={`${row.player_id || row.Player}-${row.Team}`}
+                key={rowRankKey(row)}
                 name={row.Player}
+                rank={rankMap.get(rowRankKey(row)) ?? null}
                 titleNode={(
                   <PlayerCell
                     name={row.Player}
@@ -198,11 +218,17 @@ export default function SeasonTable({
           })}
         </MobileDataList>
       ) : (
-      <div className="table-wrap table-sticky">
+      <div className="table-wrap table-sticky table-has-rank">
         <table>
           <thead>
             <tr>
-              <SortHeader label="Player" sortKey="Player" sort={sort} onSort={toggleSort} />
+              <th
+                className="num col-rank"
+                title={seasonComplete ? "Position rank by points per game" : "Position rank by projected season total"}
+              >
+                #
+              </th>
+              <SortHeader label="Player" sortKey="Player" sort={sort} onSort={toggleSort} className="col-player" />
               <SortHeader label="Team" sortKey="Team" sort={sort} onSort={toggleSort} />
               <SortHeader
                 label="Reg pts"
@@ -289,14 +315,20 @@ export default function SeasonTable({
               <TableSkeleton rows={14} cols={colCount} />
             )}
             {!loading && sorted.length === 0 && (
-              <tr>
-                <td colSpan={colCount} className="table-empty-state">
-                  No players match your filters.
-                </td>
-              </tr>
+              <TableEmptyState
+                colSpan={colCount}
+                message="No players match your filters."
+                actionLabel="Clear filters"
+                onAction={hasFilters ? onClearFilters : undefined}
+              />
             )}
-            {sorted.map((row) => (
-              <tr key={`${row.player_id || row.Player}-${row.Team}`}>
+            {sorted.map((row) => {
+              const rank = rankMap.get(rowRankKey(row)) ?? null;
+              return (
+              <tr key={rowRankKey(row)}>
+                <td className={`num col-rank${rank != null && rank <= 3 ? " col-rank-top" : ""}`}>
+                  {rank ?? "—"}
+                </td>
                 <td className="col-player">
                   <PlayerCell
                     name={row.Player}
@@ -315,13 +347,13 @@ export default function SeasonTable({
                 <td>{row.Team ? <Chip tone="team">{row.Team}</Chip> : "—"}</td>
                 <td className="num">{fmtNum(rosRegPts(row))}</td>
                 <td className="num muted">{rosGamesPlayed(row) ?? "—"}</td>
-                <td className="num">{fmtNum(rosPPG(row))}</td>
+                <td className={`num${seasonComplete ? " num-proj" : ""}`}>{fmtNum(rosPPG(row))}</td>
                 {!seasonComplete && (
                   <>
                     <td className="num muted">{row["Weeks Remaining"] ?? "—"}</td>
                     <td className="num">{fmtNum(rosNextWeekP50(row))}</td>
                     <td className="num">{fmtNum(rosP50(row))}</td>
-                    <td className="num">{fmtNum(rosSeasonP50(row))}</td>
+                    <td className="num num-proj">{fmtNum(rosSeasonP50(row))}</td>
                     <td className="num num-secondary">{fmtNum(rosSeasonP90(row))}</td>
                   </>
                 )}
@@ -331,7 +363,8 @@ export default function SeasonTable({
                   </td>
                 )}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
