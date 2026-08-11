@@ -201,6 +201,7 @@ export default function DraftTable({
                 meta={row.Team || "—"}
                 heroValue={fmtNum(row["Season Proj"], 0)}
                 heroLabel="season"
+                heroSub={`${fmtNum(row["Per-Game Proj"], 1)} /gm`}
                 badge={rookieBadge}
                 expanded={(
                   <>

@@ -3892,9 +3892,9 @@ th.num {
 .injury-neg { color: #fbbf7a; font-weight: 600; }
 .injury-neutral { color: #64748b; }
 
-/* DvP matchup context on the Opp column (rank vs position, 1 = toughest). */
-.col-opp.matchup-good { color: #6ee7a0; font-weight: 600; }
-.col-opp.matchup-bad { color: #fca5a5; font-weight: 600; }
+/* DvP matchup context on the Opp column and mobile card meta (1 = toughest). */
+.matchup-good { color: #6ee7a0; font-weight: 600; }
+.matchup-bad { color: #fca5a5; font-weight: 600; }
 
 /* Non-color matchup cue so favorable/tough isn't communicated by hue alone. */
 .matchup-indicator {
@@ -9094,10 +9094,12 @@ td.col-rank.col-rank-top {
     align-self: flex-end;
   }
 
+  /* Keep count + context on one compact line to save vertical space. */
   .table-toolbar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2rem 0.75rem;
+    margin-bottom: 0.45rem;
   }
 
   .table-wrap {
@@ -9481,6 +9483,16 @@ td.col-rank.col-rank-top {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-muted);
+}
+
+/* Floor–ceiling (or per-game) readout under the hero value. */
+.mobile-player-card-hero-sub {
+  font-size: 0.68rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .mobile-player-card-chevron {
@@ -9895,6 +9907,9 @@ td.col-rank.col-rank-top {
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  /* Fade the trailing edge so offscreen tabs are discoverable. */
+  mask-image: linear-gradient(to right, #000 calc(100% - 1.75rem), transparent);
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 1.75rem), transparent);
 }
 
 .hub-subnav-row .app-section-subnav--hub::-webkit-scrollbar {
@@ -9963,7 +9978,7 @@ td.col-rank.col-rank-top {
   }
 
   .projections-mobile-tabs.mobile-subnav-row {
-    margin-bottom: 0.65rem;
+    margin-bottom: 0.45rem;
   }
 
   .projections-mobile-tabs .app-section-subnav-btn {
@@ -10243,7 +10258,7 @@ td.col-rank.col-rank-top {
   .projections-mobile-pos-chips {
     display: flex;
     gap: 0.35rem;
-    padding: 0.35rem 0.85rem 0.5rem;
+    padding: 0.25rem 0.85rem 0.4rem;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
