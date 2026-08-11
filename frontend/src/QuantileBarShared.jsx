@@ -7,10 +7,10 @@ const FLIP_BELOW_ROW_INDEX = 3;
 /** Spread ÷ projection at or above this marks a boom/bust (high-variance) projection. */
 const VOLATILITY_RATIO_HIGH = 1.25;
 
-function QuantileTooltipContent({ p10, p50, p90, spread, volatile }) {
+function QuantileTooltipContent({ p10, p50, p90, spread, volatile, title, subtitle }) {
   return (
     <div className="quantile-tooltip-body">
-      <span className="quantile-tooltip-title">Likely scoring range</span>
+      <span className="quantile-tooltip-title">{title || "Likely scoring range"}</span>
       <div className="quantile-tooltip-grid">
         <span className="quantile-tooltip-label">Floor</span>
         <span className="quantile-tooltip-value">{p10.toFixed(1)}</span>
@@ -20,14 +20,23 @@ function QuantileTooltipContent({ p10, p50, p90, spread, volatile }) {
         <span className="quantile-tooltip-value quantile-tooltip-value-high">{p90.toFixed(1)}</span>
       </div>
       <span className="quantile-tooltip-sub">
-        {spread} pt spread (floor to ceiling)
+        {subtitle || `${spread} pt spread (floor to ceiling)`}
         {volatile ? " · boom/bust" : ""}
       </span>
     </div>
   );
 }
 
-export default function QuantileBar({ p10, p50, p90, scaleMax, rowIndex = 0, showVolatility = false }) {
+export default function QuantileBar({
+  p10,
+  p50,
+  p90,
+  scaleMax,
+  rowIndex = 0,
+  showVolatility = false,
+  title,
+  subtitle,
+}) {
   const barRef = useRef(null);
   const [tip, setTip] = useState(null);
   const coarse = useCoarsePointer();
@@ -117,7 +126,15 @@ export default function QuantileBar({ p10, p50, p90, scaleMax, rowIndex = 0, sho
             style={{ left: tip.x, top: tip.y }}
             role="tooltip"
           >
-            <QuantileTooltipContent p10={p10} p50={p50} p90={p90} spread={spread} volatile={volatile} />
+            <QuantileTooltipContent
+              p10={p10}
+              p50={p50}
+              p90={p90}
+              spread={spread}
+              volatile={volatile}
+              title={title}
+              subtitle={subtitle}
+            />
           </div>,
           document.body
         )}
