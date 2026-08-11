@@ -176,6 +176,16 @@ export default function PlayerCardModal({ request, onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Escape closes the desktop dialog (the mobile sheet handles its own).
+  useEffect(() => {
+    if (!request || mobileLayout) return undefined;
+    const onKey = (event) => {
+      if (event.key === "Escape") onClose?.();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [request, mobileLayout, onClose]);
+
   useEffect(() => {
     if (!request?.playerId) {
       setData(null);
