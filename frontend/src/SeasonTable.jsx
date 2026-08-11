@@ -173,6 +173,8 @@ export default function SeasonTable({
               ? fmtNum(rosPPG(row))
               : fmtNum(rosSeasonP50(row));
             const heroLabel = seasonComplete ? "PPG" : "season";
+            const games = Number(rosGamesPlayed(row)) || 0;
+            const heroSub = !seasonComplete && games > 0 ? `${fmtNum(rosPPG(row))} ppg` : null;
             const meta = [row.Team || "—", `${fmtNum(rosRegPts(row))} reg pts`].join(" · ");
 
             return (
@@ -198,6 +200,7 @@ export default function SeasonTable({
                 meta={meta}
                 heroValue={heroValue}
                 heroLabel={heroLabel}
+                heroSub={heroSub}
                 expanded={(
                   <div className="mobile-stat-grid">
                     <MobileStat label="Reg pts" value={fmtNum(rosRegPts(row))} />

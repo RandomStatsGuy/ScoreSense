@@ -67,7 +67,8 @@ function exportCsv(rows) {
   downloadCsv("scoresense-draft", lines);
 }
 
-const rankBySeasonProj = (row) => Number(row["Season Proj"]);
+// Number(null) === 0; coerce missing projections to NaN so they stay unranked.
+const rankBySeasonProj = (row) => Number(row["Season Proj"] ?? NaN);
 
 export default function DraftTable({
   rows,
@@ -201,6 +202,7 @@ export default function DraftTable({
                 meta={row.Team || "—"}
                 heroValue={fmtNum(row["Season Proj"], 0)}
                 heroLabel="season"
+                heroSub={`${fmtNum(row["Per-Game Proj"], 1)} /gm`}
                 badge={rookieBadge}
                 expanded={(
                   <>
