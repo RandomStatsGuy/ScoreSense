@@ -1022,9 +1022,17 @@ def _draft_response(position: str, season: Optional[int] = None) -> dict:
     games_per_season = int(preds.attrs.get("games_per_season", 17))
     roster_overlay = preds.attrs.get("roster_overlay") or {}
     depth_chart = preds.attrs.get("depth_chart") or {}
+    season_quantile_method = preds.attrs.get("season_quantile_method")
+    season_coverage_meta = preds.attrs.get("season_coverage_meta") or {}
     target_season = int(preds["Season"].iloc[0]) if len(preds) else season
     note = draft_projection_note(
-        target_season, feature_season, games_per_season, roster_overlay, depth_chart, position
+        target_season,
+        feature_season,
+        games_per_season,
+        roster_overlay,
+        depth_chart,
+        position,
+        season_quantile_method,
     )
     meta = {
         "season": target_season,
@@ -1033,6 +1041,8 @@ def _draft_response(position: str, season: Optional[int] = None) -> dict:
         "teams": int(preds["Team"].nunique()) if "Team" in preds.columns else None,
         "roster_overlay": roster_overlay,
         "depth_chart": depth_chart,
+        "season_quantile_method": season_quantile_method,
+        "season_coverage_meta": season_coverage_meta,
     }
     return {
         "position": position,

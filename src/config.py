@@ -178,6 +178,11 @@ PRESEASON_USE_EXPECTED_GAMES = os.getenv("PRESEASON_USE_EXPECTED_GAMES", "true")
     "yes",
 )
 
+# SCORE-2: schedule-aware correlated MC season P10/P50/P90 aggregation.
+# "mc_schedule_v1" (default) replaces the naive weekly-quantile x GAMES_PER_SEASON scale;
+# "independent_scale" keeps the legacy behavior for A/B comparison.
+SEASON_QUANTILE_METHOD = os.getenv("SEASON_QUANTILE_METHOD", "mc_schedule_v1").strip().lower()
+
 # Beat digest / OpenAI (read here — not os.environ in sentiment modules)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")

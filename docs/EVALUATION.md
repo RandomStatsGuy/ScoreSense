@@ -72,6 +72,29 @@ Metrics: MAE and Spearman rank correlation on season totals. Baseline: prior-yea
 
 API: `GET /api/accuracy/season-long?position=qb` — shown on the Accuracy tab under **Season-long accuracy**.
 
+## Season quantiles (SCORE-2)
+
+`Season Floor`/`Season Ceiling` (and the underlying `Season P10`/`Season P50`/`Season P90`) are no
+longer weekly `Low (P10)`/`High (P90)` × 17 — stacking weekly quantiles overstates season interval
+width under independence (`Q_τ(Σ X_w) ≠ Σ Q_τ(X_w)`) and ignores byes/game-count uncertainty.
+`src/projections/season_quantiles.py` instead runs a schedule-aware Monte Carlo: fits an asymmetric
+weekly law to `(q10, q50, q90)`, simulates which scheduled (non-bye) weeks are played from a
+major/minor-injury mixture anchored to the *same* `expected_preseason_games` used for `Season
+Proj`, and correlates outcomes via a shared team-week "script" shock plus AR(1) week-to-week
+persistence. `season_quantile_method` on each draft-pool row is `mc_schedule_v1` (default) or the
+legacy `independent_scale` (`SEASON_QUANTILE_METHOD=independent_scale`, kept for A/B). Bump the
+draft-pool fingerprint tag in `pool_fingerprint()` when tuning the simulation constants.
+
+Offline interval-coverage eval (target ~80%, see acceptance criteria on the ticket):
+
+```bash
+python -m src.analytics.season_quantile_coverage_eval --position all
+```
+
+Output: `artifacts/analytics/season_quantile_coverage.json` — empirical coverage (share of holdout
+actual season totals inside `[Season P10, Season P90]`) by position/season, plus the legacy
+`independent_scale` band for comparison.
+
 ## Detailed results
 
 Full JSON metrics: `artifacts/backtest/backtest_summary.json`
