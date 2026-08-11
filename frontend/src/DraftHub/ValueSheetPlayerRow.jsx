@@ -121,13 +121,13 @@ function ValueSheetPlayerRow({
           ) : "—"}
         </td>
       )}
-      <td>{row.tier}</td>
+      <td className="hub-col-tier">{row.tier}</td>
       {showStatus && (
         <td className="hub-col-status">
           <span className={`hub-status hub-status-${row.status}`} title={row.status}>{statusLabel}</span>
         </td>
       )}
-      <td>
+      <td className="hub-col-actions">
         {showSelect && (
           <button type="button" className="btn-ghost btn-sm" onClick={handleSelectClick}>
             Select
