@@ -646,10 +646,21 @@ export default function LeagueInsights({
   }, [leagueId, load, loadCacheRef]);
 
   // After Spend paints, warm Scoring in the background when DB cache is already hot.
+  // Gate on the current league's payload so a switch cannot merge scoring into
+  // the previous room (loading/tabLoading may still reflect the prior fetch).
   useEffect(() => {
-    if (!leagueId || loading || !data?.analytics) return;
+    if (!leagueId || loading || tabLoading || !data?.analytics) return;
+    if (String(data?.hub_context?.league_id || "") !== String(leagueId)) return;
     prefetchScoring(insightsHandlers);
-  }, [leagueId, loading, data?.analytics, prefetchScoring, insightsHandlers]);
+  }, [
+    leagueId,
+    loading,
+    tabLoading,
+    data?.analytics,
+    data?.hub_context?.league_id,
+    prefetchScoring,
+    insightsHandlers,
+  ]);
 
   const loadOwnershipHistory = useCallback(async (opts = {}) => {
     if (!leagueId) return null;
