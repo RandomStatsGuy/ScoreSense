@@ -3,14 +3,16 @@ import { sortIndicator } from "./valueSheetUtils";
 
 /** Sortable column header shared by hub tables. */
 export function SortTh({ label, col, sortKey, sortDir, onSort, className = "", title }) {
+  const active = sortKey === col;
   return (
     <th
-      className={`sortable-header ${className}`.trim()}
+      className={`sortable-header${active ? " sort-active" : ""} ${className}`.trim()}
       onClick={() => onSort(col)}
       title={title}
+      aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
     >
       {label}
-      <span className="sort-indicator"> {sortIndicator(sortKey, sortDir, col)}</span>
+      <span className="sort-indicator" aria-hidden="true"> {sortIndicator(sortKey, sortDir, col)}</span>
     </th>
   );
 }

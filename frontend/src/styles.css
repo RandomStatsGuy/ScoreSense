@@ -2047,9 +2047,25 @@ body {
   color: #cbd5e1;
 }
 
+/* Quiet by default; reveal on hover, emphasize the active sort column. */
 .sort-indicator {
   font-size: 0.72rem;
   color: #64748b;
+  opacity: 0.35;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.sortable-header:hover .sort-indicator {
+  opacity: 1;
+}
+
+.sortable-header.sort-active {
+  color: var(--text-primary);
+}
+
+.sortable-header.sort-active .sort-indicator {
+  opacity: 1;
+  color: var(--accent-muted);
 }
 
 .range-cell {

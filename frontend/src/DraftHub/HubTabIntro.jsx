@@ -34,7 +34,7 @@ export default function HubTabIntro({
       )}
       {learnMore && (
         <details className="hub-tab-intro-learn">
-          <summary>More</summary>
+          <summary>Learn more</summary>
           <div className="hub-tab-intro-learn-body">{learnMore}</div>
         </details>
       )}
