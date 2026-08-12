@@ -93,6 +93,10 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   season,
   week,
   dvpTeamCount,
+  compareEnabled,
+  selected,
+  selectDisabled,
+  onToggleSelect,
 }) {
   const status = row["Injury Status"] || "";
   const unavailable = isPlayerUnavailable(status);
@@ -101,9 +105,30 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   const p90 = Number(row["High (P90)"]) || 0;
   const tag = unavailableLabel(status);
   const tone = matchupTone(row["Opp Def Rank"], dvpTeamCount);
+  const canSelect = compareEnabled && Boolean(row.player_id) && !unavailable;
 
   return (
-    <tr className={unavailable ? "row-unavailable" : undefined}>
+    <tr
+      className={[
+        unavailable ? "row-unavailable" : "",
+        selected ? "row-compare-selected" : "",
+      ]
+        .filter(Boolean)
+        .join(" ") || undefined}
+    >
+      {compareEnabled ? (
+        <td className="col-compare-select">
+          <label className="compare-select-label">
+            <input
+              type="checkbox"
+              checked={selected}
+              disabled={!canSelect || (selectDisabled && !selected)}
+              onChange={() => onToggleSelect?.(row)}
+              aria-label={`Select ${row.Player || "player"} for start/sit compare`}
+            />
+          </label>
+        </td>
+      ) : null}
       <td className={`num col-rank${rank != null && rank <= 3 ? " col-rank-top" : ""}`}>
         {rank ?? "—"}
       </td>
@@ -228,9 +253,23 @@ export default function WeeklyTable({
   season,
   week,
   onClearFilters,
+  /** SCORE-4: enable 2–4 player start/sit multi-select. */
+  compareEnabled = false,
+  selectedCompareIds = null,
+  maxCompare = 4,
+  onToggleCompare,
+  onOpenCompare,
+  onClearCompare,
+  compareSelectionMeta = null,
 }) {
   const [sort, toggleSort] = useTableSort({ column: "P50", dir: "desc" });
   const mobileLayout = useMobileLayout();
+  const selectedSet = useMemo(
+    () => new Set((selectedCompareIds || []).map(String)),
+    [selectedCompareIds],
+  );
+  const selectedCount = selectedSet.size;
+  const selectDisabled = selectedCount >= maxCompare;
 
   const showOpponent = useMemo(
     () => (rows || []).some((row) => row.Opponent),
@@ -251,8 +290,13 @@ export default function WeeklyTable({
     [rows]
   );
 
-  // Rank, Player, Team, Proj, Range are always present; Opp/Narrative/Boost are conditional.
-  const baseColCount = 5 + (showOpponent ? 1 : 0) + (hasSentiment ? 1 : 0) + (showBoost ? 1 : 0);
+  // Select, Rank, Player, Team, Proj, Range are base; Opp/Narrative/Boost are conditional.
+  const baseColCount =
+    5 +
+    (compareEnabled ? 1 : 0) +
+    (showOpponent ? 1 : 0) +
+    (hasSentiment ? 1 : 0) +
+    (showBoost ? 1 : 0);
   const emptyColSpan = baseColCount;
   const unavailableColSpan = 2 + (showBoost ? 1 : 0);
 
@@ -331,6 +375,14 @@ export default function WeeklyTable({
       ? "No players match your search or team filters."
       : "No projections available for this week.";
 
+  const selectionLabel =
+    compareSelectionMeta?.length
+      ? compareSelectionMeta
+          .map((p) => p.name || p.player_id)
+          .filter(Boolean)
+          .join(", ")
+      : "";
+
   return (
     <>
       <div className="table-controls">
@@ -342,7 +394,50 @@ export default function WeeklyTable({
       <div className="table-toolbar">
         <span className="table-meta">{sorted.length} players</span>
         {metaLine}
+        {compareEnabled ? (
+          <span className="table-meta table-meta-compare-hint">
+            Select 2–{maxCompare} for start/sit
+          </span>
+        ) : null}
       </div>
+      {compareEnabled && selectedCount > 0 ? (
+        <div className="compare-selection-bar" role="region" aria-label="Start/sit selection">
+          <div className="compare-selection-meta">
+            <strong>
+              {selectedCount} selected
+            </strong>
+            <span className="muted">
+              {selectedCount < 2
+                ? ` · pick ${2 - selectedCount} more`
+                : selectedCount >= maxCompare
+                  ? ` · max ${maxCompare}`
+                  : ` · up to ${maxCompare}`}
+            </span>
+            {selectionLabel ? (
+              <span className="compare-selection-names muted" title={selectionLabel}>
+                {selectionLabel}
+              </span>
+            ) : null}
+          </div>
+          <div className="compare-selection-actions">
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              onClick={onClearCompare}
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              className="btn primary btn-sm"
+              disabled={selectedCount < 2}
+              onClick={onOpenCompare}
+            >
+              Compare
+            </button>
+          </div>
+        </div>
+      ) : null}
       {mobileLayout ? (
         <MobileDataList
           loading={loading && sorted.length === 0}
@@ -357,6 +452,9 @@ export default function WeeklyTable({
             const p90 = Number(row["High (P90)"]) || 0;
             const tag = unavailableLabel(status);
             const tone = matchupTone(row["Opp Def Rank"], dvpTeamCount);
+            const pid = row.player_id ? String(row.player_id) : "";
+            const selected = pid ? selectedSet.has(pid) : false;
+            const canSelect = compareEnabled && Boolean(pid) && !unavailable;
             const metaNode = (
               <>
                 {row.Team || "—"}
@@ -389,6 +487,7 @@ export default function WeeklyTable({
                 key={rowRankKey(row)}
                 name={row.Player}
                 rank={rankMap.get(rowRankKey(row)) ?? null}
+                selected={selected}
                 titleNode={(
                   <PlayerCell
                     name={row.Player}
@@ -410,6 +509,20 @@ export default function WeeklyTable({
                 heroSub={unavailable ? null : `${fmtNum(p10, 1)}–${fmtNum(p90, 1)}`}
                 heroMuted={unavailable}
                 unavailable={unavailable}
+                actions={
+                  compareEnabled ? (
+                    <label className="compare-select-label compare-select-label--mobile">
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        disabled={!canSelect || (selectDisabled && !selected)}
+                        onChange={() => onToggleCompare?.(row)}
+                        aria-label={`Select ${row.Player || "player"} for start/sit compare`}
+                      />
+                      <span>Compare</span>
+                    </label>
+                  ) : null
+                }
                 expanded={(
                   <>
                     {unavailable ? (
@@ -450,10 +563,15 @@ export default function WeeklyTable({
           })}
         </MobileDataList>
       ) : (
-      <div className="table-wrap table-sticky table-has-rank">
+      <div className={`table-wrap table-sticky table-has-rank${compareEnabled ? " table-has-compare" : ""}`}>
         <table>
           <thead>
             <tr>
+              {compareEnabled ? (
+                <th className="col-compare-select" title="Select players to compare (2–4)">
+                  <span className="sr-only">Compare</span>
+                </th>
+              ) : null}
               <th className="num col-rank" title="Position rank by projected points">#</th>
               <SortHeader label="Player" sortKey="Player" sort={sort} onSort={toggleSort} className="col-player" />
               <SortHeader label="Team" sortKey="Team" sort={sort} onSort={toggleSort} className="col-team" />
@@ -517,7 +635,9 @@ export default function WeeklyTable({
                 onAction={hasFilters ? onClearFilters : undefined}
               />
             )}
-            {sorted.map((row, rowIndex) => (
+            {sorted.map((row, rowIndex) => {
+              const pid = row.player_id ? String(row.player_id) : "";
+              return (
               <WeeklyTableRow
                 key={rowRankKey(row)}
                 row={row}
@@ -533,8 +653,13 @@ export default function WeeklyTable({
                 season={season}
                 week={week}
                 dvpTeamCount={dvpTeamCount}
+                compareEnabled={compareEnabled}
+                selected={pid ? selectedSet.has(pid) : false}
+                selectDisabled={selectDisabled}
+                onToggleSelect={onToggleCompare}
               />
-            ))}
+              );
+            })}
               </>
             )}
           </tbody>
