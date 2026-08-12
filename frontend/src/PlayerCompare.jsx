@@ -223,6 +223,7 @@ export default function PlayerCompare({
                       position={player.position_key || String(player.position || "").toLowerCase()}
                       season={data.meta?.season ?? season}
                       week={data.meta?.week ?? week}
+                      applyInjuryAdjustments={applyInjuryAdjustments}
                     />
                     {onRemovePlayer && players.length > MIN_COMPARE ? (
                       <button
