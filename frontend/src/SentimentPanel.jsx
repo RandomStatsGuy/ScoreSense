@@ -256,7 +256,9 @@ export default function SentimentPanel({
   }, [meta, season, week]);
 
   return (
-    <section className={`panel wide sentiment-panel projections-mobile-panel ${className}`.trim()}>
+    <section
+      className={`panel wide sentiment-panel projections-mobile-panel${open ? " sentiment-panel--open" : " sentiment-panel--collapsed"}${className ? ` ${className}` : ""}`.trim()}
+    >
       <div className="sentiment-panel-head">
         <div className="sentiment-panel-title-block">
           <h2>{panelTitle}</h2>

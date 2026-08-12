@@ -1264,60 +1264,60 @@ export default function App() {
                     className="projections-mobile-tabs"
                   />
                 )}
-                <div className="grid projections-grid">
-                <div
-                  className={`projections-mobile-panel${!seasonMobilePanel || seasonMobilePanel === "projections" ? " is-mobile-active" : ""}`}
-                >
-                {seasonRefreshing && (
-                  <div className="season-refresh-banner" role="status" aria-live="polite">
-                    <span className="season-transition-spinner season-transition-spinner-sm" aria-hidden="true" />
-                    Updating {rosMeta?.season ?? projMeta?.default_season} season totals…
-                  </div>
-                )}
-                <SeasonTable
-                  rows={rosTableRows}
-                  seasonComplete={seasonComplete}
-                  projectionWeek={rosMeta?.projection_week}
-                  search={searchQuery}
-                  showSentiment
-                  position={position}
-                  season={rosSeason ?? season}
-                  week={rosFromWeek ?? week}
-                  onClearFilters={clearTableFilters}
-                  searchSlot={
-                    <input
-                      type="search"
-                      className="search-input"
-                      placeholder="Search players…"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      aria-label="Search players"
+                <div className="grid projections-grid projections-grid--season-live">
+                  <div
+                    className={`projections-mobile-panel${!seasonMobilePanel || seasonMobilePanel === "projections" ? " is-mobile-active" : ""}`}
+                  >
+                    {seasonRefreshing && (
+                      <div className="season-refresh-banner" role="status" aria-live="polite">
+                        <span className="season-transition-spinner season-transition-spinner-sm" aria-hidden="true" />
+                        Updating {rosMeta?.season ?? projMeta?.default_season} season totals…
+                      </div>
+                    )}
+                    <SeasonTable
+                      rows={rosTableRows}
+                      seasonComplete={seasonComplete}
+                      projectionWeek={rosMeta?.projection_week}
+                      search={searchQuery}
+                      showSentiment
+                      position={position}
+                      season={rosSeason ?? season}
+                      week={rosFromWeek ?? week}
+                      onClearFilters={clearTableFilters}
+                      searchSlot={
+                        <input
+                          type="search"
+                          className="search-input"
+                          placeholder="Search players…"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          aria-label="Search players"
+                        />
+                      }
+                      metaLine={
+                        rosMeta?.season != null ? (
+                          <span className="table-meta">
+                            {rosMeta.season} season
+                            {seasonComplete ? " · final" : ` · ${rosMeta.weeks_remaining} weeks left`}
+                            {rosFromWeek != null ? ` · as of week ${rosFromWeek}` : ""}
+                          </span>
+                        ) : null
+                      }
+                      loading={seasonLoading}
                     />
-                  }
-                  metaLine={
-                    rosMeta?.season != null ? (
-                      <span className="table-meta">
-                        {rosMeta.season} season
-                        {seasonComplete ? " · final" : ` · ${rosMeta.weeks_remaining} weeks left`}
-                        {rosFromWeek != null ? ` · as of week ${rosFromWeek}` : ""}
-                      </span>
-                    ) : null
-                  }
-                  loading={seasonLoading}
-                />
-                </div>
+                  </div>
 
-                <SentimentPanel
-                  className={`projections-mobile-panel${seasonMobilePanel === "narrative" ? " is-mobile-active" : ""}`}
-                  position={position}
-                  season={rosSeason ?? season}
-                  week={rosFromWeek ?? week}
-                  scope="season"
-                  players={seasonSentimentPlayers}
-                  meta={seasonSentimentMeta}
-                  loading={seasonSentimentLoading}
-                  error={seasonSentimentError}
-                />
+                  <SentimentPanel
+                    className={seasonMobilePanel === "narrative" ? "is-mobile-active" : ""}
+                    position={position}
+                    season={rosSeason ?? season}
+                    week={rosFromWeek ?? week}
+                    scope="season"
+                    players={seasonSentimentPlayers}
+                    meta={seasonSentimentMeta}
+                    loading={seasonSentimentLoading}
+                    error={seasonSentimentError}
+                  />
                 </div>
               </>
             )}
