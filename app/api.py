@@ -70,6 +70,11 @@ from src.projections.projection_meta import get_projection_meta
 from src.projections.draft_meta import get_draft_meta
 from src.projections.draft_projections import draft_projection_note, predict_draft_season
 from src.projections.weekly_cache import compute_weekly_artifact, load_weekly_prediction
+from src.projections.player_compare import (
+    build_player_compare,
+    filter_projections_by_ids,
+    parse_compare_player_ids,
+)
 from src.draft_hub.draft_pool_cache import draft_pool_for_position
 from src.products.bestball_board import build_bestball_board
 from src.products.dfs_config import list_site_configs
@@ -122,6 +127,9 @@ class ProjectionRequest(BaseModel):
     season: Optional[int] = None
     week: Optional[int] = None
     apply_injury_adjustments: bool = True
+    # Optional filter — comma-separated or list of player_id values (SCORE-4).
+    player_ids: Optional[list[str]] = None
+    ids: Optional[str] = None
 
 
 class LineupOptimizeRequest(BaseModel):
@@ -167,6 +175,7 @@ def health() -> dict:
             "draft": "/api/draft/{position}" in route_paths,
             "ros": "/api/ros/{position}" in route_paths,
             "draft_hub": "/api/hub/workspace" in route_paths,
+            "player_compare": "/api/predict/compare" in route_paths,
         },
     }
 
@@ -788,11 +797,28 @@ def _ros_legacy_aliases(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return records
 
 
+def _warm_weekly_artifact(
+    position: str,
+    season: int,
+    week: int,
+    apply_injury_adjustments: bool,
+) -> None:
+    """Cold-cache warm via shared process pool (used by predict + compare)."""
+    get_process_executor().submit(
+        compute_weekly_artifact,
+        position,
+        int(season),
+        int(week),
+        apply_injury_adjustments,
+    ).result()
+
+
 def _predict_response(
     position: str,
     season: Optional[int] = None,
     week: Optional[int] = None,
     apply_injury_adjustments: bool = True,
+    player_ids: Optional[list[str]] = None,
 ) -> dict:
     position = position.lower()
     if position not in ("qb", "rb", "wr"):
@@ -809,13 +835,7 @@ def _predict_response(
             if preds.empty:
                 # Cold cache: run inference in the shared process pool so it
                 # doesn't stall other requests, then re-read the saved artifact.
-                get_process_executor().submit(
-                    compute_weekly_artifact,
-                    position,
-                    int(season),
-                    int(week),
-                    apply_injury_adjustments,
-                ).result()
+                _warm_weekly_artifact(position, int(season), int(week), apply_injury_adjustments)
                 preds = load_weekly_prediction(
                     position,
                     season=season,
@@ -847,12 +867,17 @@ def _predict_response(
             meta["roster_overlay"] = inference.get("roster_overlay")
             meta["depth_chart"] = inference.get("depth_chart") or {"applied": False}
         note = str(preds.attrs.get("projection_note") or "")
+    projections = _json_safe_records(preds)
+    ids = parse_compare_player_ids(player_ids)
+    if ids:
+        projections = filter_projections_by_ids(projections, ids)
+        meta = {**meta, "filtered_player_ids": ids}
     return {
         "position": position,
-        "count": len(preds),
+        "count": len(projections),
         "meta": meta,
         "note": note,
-        "projections": _json_safe_records(preds),
+        "projections": projections,
     }
 
 
@@ -909,12 +934,44 @@ def _ros_response(
 
 @app.post("/api/predict")
 def predict(request: ProjectionRequest, _user=Depends(require_patron)) -> dict:
+    ids = list(request.player_ids or [])
+    if request.ids:
+        ids.extend(parse_compare_player_ids(request.ids))
     return _predict_response(
         request.position,
         request.season,
         request.week,
         request.apply_injury_adjustments,
+        player_ids=ids or None,
     )
+
+
+@app.get("/api/predict/compare")
+def predict_compare(
+    ids: str = Query(..., description="Comma-separated player_id values (2–4)"),
+    season: Optional[int] = None,
+    week: Optional[int] = None,
+    apply_injury_adjustments: bool = True,
+    _user=Depends(require_patron),
+) -> dict:
+    """Start/sit comparison for 2–4 players from weekly projection artifacts."""
+    player_ids = parse_compare_player_ids(ids)
+
+    def _compute(position: str, s: int, w: int, apply_injury: bool) -> None:
+        _warm_weekly_artifact(position, s, w, apply_injury)
+
+    try:
+        return build_player_compare(
+            player_ids,
+            season=season,
+            week=week,
+            apply_injury_adjustments=apply_injury_adjustments,
+            compute_fn=_compute,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 @app.get("/api/predict/{position}")
@@ -923,9 +980,19 @@ def predict_get(
     season: Optional[int] = None,
     week: Optional[int] = None,
     apply_injury_adjustments: bool = True,
+    ids: Optional[str] = Query(
+        None,
+        description="Optional comma-separated player_id filter (SCORE-4)",
+    ),
     _user=Depends(require_patron),
 ) -> dict:
-    return _predict_response(position, season, week, apply_injury_adjustments)
+    return _predict_response(
+        position,
+        season,
+        week,
+        apply_injury_adjustments,
+        player_ids=parse_compare_player_ids(ids) or None,
+    )
 
 
 @app.get("/api/sentiment/{position}")
