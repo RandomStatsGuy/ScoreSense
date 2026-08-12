@@ -344,6 +344,7 @@ export default function DraftTable({
                       scaleMax={seasonScaleMax}
                       rowIndex={rowIndex}
                       digits={0}
+                      showBar={false}
                     />
                   </td>
                   <td className="range-cell">

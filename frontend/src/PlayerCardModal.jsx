@@ -135,7 +135,9 @@ function PlayerCardBody({ data, loading, error, fallbackName }) {
               <div className="player-card-uncertainty-label">
                 Season total
                 {seasonBand.preliminary ? (
-                  <span className="hub-sleeper-badge season-range-prelim-badge">Preliminary</span>
+                  <span className="season-range-prelim-note" title={seasonTip}>
+                    Preliminary
+                  </span>
                 ) : null}
               </div>
               <ScaledRangeBar
