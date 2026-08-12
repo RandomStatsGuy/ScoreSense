@@ -245,10 +245,14 @@ export default function SentimentPanel({
     const reqSeason = meta.requested_season ?? season;
     const reqWeek = meta.requested_week ?? week;
     return (
-      <div className="sentiment-fallback-banner" role="status">
-        Historical context from <strong>{shownSeason} Wk {shownWeek}</strong>
-        {reqSeason !== shownSeason || reqWeek !== shownWeek ? (
-          <> — no matching-week analyst data for {reqSeason} Wk {reqWeek}</>
+      <div className="sentiment-fallback-banner sentiment-fallback-banner--prominent" role="status">
+        <strong>Historical context</strong>
+        {" — "}
+        no {reqSeason} Week {reqWeek} data yet
+        {shownSeason != null && shownWeek != null ? (
+          <>
+            . Showing <strong>{shownSeason} Wk {shownWeek}</strong>
+          </>
         ) : null}
         .
       </div>

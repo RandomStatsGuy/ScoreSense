@@ -867,15 +867,18 @@ export default function App() {
     if (view === "model") return "Model accuracy";
     if (view === "projections") {
       const posLabel = POSITIONS.find((p) => p.id === position)?.label || "";
-      const tabLabel = projectionsTab === "weekly" ? "Weekly" : "Season";
-      return posLabel ? `${tabLabel} · ${posLabel}` : tabLabel;
+      if (projectionsTab === "weekly") {
+        const weekLabel = week != null ? `W${week}` : "Weekly";
+        return posLabel ? `${weekLabel} · ${posLabel}` : weekLabel;
+      }
+      return posLabel ? `Season · ${posLabel}` : "Season";
     }
     if (view === "tools") {
       const tab = TOOLS_TABS.find((t) => t.id === toolsTab);
       return tab ? `Tools · ${tab.label}` : "Tools";
     }
     return currentViewLabel;
-  }, [view, hubNeedsSignIn, hubSubView, hubContext, mobileLayout, projectionsTab, position, toolsTab, currentViewLabel]);
+  }, [view, hubNeedsSignIn, hubSubView, hubContext, mobileLayout, projectionsTab, position, week, toolsTab, currentViewLabel]);
 
   const weeklyMobileTabs = useMemo(
     () => [
@@ -887,8 +890,11 @@ export default function App() {
       },
       {
         id: "fantasy",
-        label: "Analyst",
-        badge: sentimentPlayers.length > 0 ? sentimentPlayers.length : null,
+        label:
+          sentimentPlayers.length > 0
+            ? `Analyst context (${sentimentPlayers.length})`
+            : "Analyst context",
+        shortLabel: sentimentPlayers.length > 0 ? `Analyst (${sentimentPlayers.length})` : "Analyst",
       },
     ],
     [sidebarInjuries.length, sentimentPlayers.length],
@@ -899,8 +905,14 @@ export default function App() {
       { id: "projections", label: "Projections" },
       {
         id: "narrative",
-        label: "Analyst",
-        badge: seasonSentimentPlayers.length > 0 ? seasonSentimentPlayers.length : null,
+        label:
+          seasonSentimentPlayers.length > 0
+            ? `Analyst context (${seasonSentimentPlayers.length})`
+            : "Analyst context",
+        shortLabel:
+          seasonSentimentPlayers.length > 0
+            ? `Analyst (${seasonSentimentPlayers.length})`
+            : "Analyst",
       },
     ],
     [seasonSentimentPlayers.length],
@@ -1172,17 +1184,25 @@ export default function App() {
         )}
 
         {view === "projections" && mobileLayout && (
-          <div className="projections-mobile-pos-chips" role="group" aria-label="Position">
-            {POSITIONS.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                className={`tab header-segment-tab ${position === p.id ? "active" : ""}`}
-                onClick={() => handlePositionChange(p.id)}
-              >
-                {p.label}
-              </button>
-            ))}
+          <div className="projections-mobile-pos-row">
+            <div className="projections-mobile-pos-chips" role="group" aria-label="Position">
+              {POSITIONS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`tab header-segment-tab ${position === p.id ? "active" : ""}`}
+                  onClick={() => handlePositionChange(p.id)}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            <span
+              className="projections-mobile-scoring-chip"
+              title="ScoreSense weekly model is trained on PPR scoring"
+            >
+              PPR
+            </span>
           </div>
         )}
 
@@ -1224,6 +1244,7 @@ export default function App() {
                 onChange={setProjectionsMobilePanel}
                 ariaLabel="Weekly view"
                 className="projections-mobile-tabs"
+                showShortLabels
               />
             )}
             <div className="grid projections-grid">
@@ -1270,10 +1291,10 @@ export default function App() {
                   <input
                     type="search"
                     className="search-input"
-                    placeholder="Search players…"
+                    placeholder="Player or team…"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    aria-label="Search players"
+                    aria-label="Search player or team"
                   />
                   )
                 }
@@ -1344,10 +1365,10 @@ export default function App() {
                     <input
                       type="search"
                       className="search-input"
-                      placeholder="Search players…"
+                      placeholder="Player or team…"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      aria-label="Search players"
+                      aria-label="Search player or team"
                     />
                   }
                   metaLine={
@@ -1387,6 +1408,7 @@ export default function App() {
                     onChange={setSeasonMobilePanel}
                     ariaLabel="Season view"
                     className="projections-mobile-tabs"
+                    showShortLabels
                   />
                 )}
                 <div className="grid projections-grid projections-grid--season-live">
@@ -1413,10 +1435,10 @@ export default function App() {
                         <input
                           type="search"
                           className="search-input"
-                          placeholder="Search players…"
+                          placeholder="Player or team…"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          aria-label="Search players"
+                          aria-label="Search player or team"
                         />
                       }
                       metaLine={
