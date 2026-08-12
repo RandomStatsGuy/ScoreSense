@@ -53,8 +53,19 @@ export default function UserMenu({
     };
   }, [open]);
 
+  // Portal removes the popover from the trigger's DOM tab order; move focus in once.
+  useEffect(() => {
+    if (!open || !coords || !popoverRef.current) return;
+    if (document.activeElement !== triggerRef.current) return;
+    popoverRef.current.querySelector('[role="menuitem"]')?.focus();
+  }, [open, coords]);
+
   useEffect(() => {
     if (!open) return undefined;
+
+    const menuItems = () =>
+      Array.from(popoverRef.current?.querySelectorAll('[role="menuitem"]') || []);
+
     const onDown = (e) => {
       const t = e.target;
       if (rootRef.current?.contains(t)) return;
@@ -62,7 +73,33 @@ export default function UserMenu({
       setOpen(false);
     };
     const onKey = (e) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setOpen(false);
+        triggerRef.current?.focus();
+        return;
+      }
+
+      const items = menuItems();
+      if (!items.length) return;
+      const idx = items.indexOf(document.activeElement);
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        items[idx < 0 ? 0 : (idx + 1) % items.length].focus();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        items[idx < 0 ? items.length - 1 : (idx - 1 + items.length) % items.length].focus();
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        items[0].focus();
+      } else if (e.key === "End") {
+        e.preventDefault();
+        items[items.length - 1].focus();
+      } else if (e.key === "Tab") {
+        // Leave the portaled menu and close so focus continues in document order.
+        setOpen(false);
+      }
     };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
