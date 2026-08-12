@@ -11175,3 +11175,312 @@ td.col-rank.col-rank-top {
   align-items: center;
 }
 .hub-league-chat-compose .search-input { flex: 1; }
+
+/* —— SCORE-4 start/sit player compare —— */
+:root {
+  --compare-select-col-width: 2.25rem;
+}
+
+.table-meta-compare-hint {
+  margin-left: auto;
+  opacity: 0.85;
+}
+
+.compare-selection-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.35rem 0 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 10px);
+  background: var(--bg-subtle);
+}
+
+.compare-selection-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.5rem;
+  min-width: 0;
+  font-size: 0.84rem;
+}
+
+.compare-selection-names {
+  flex: 1 1 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+}
+
+.compare-selection-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.compare-select-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0;
+  cursor: pointer;
+}
+
+.compare-select-label input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.compare-select-label--mobile {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.col-compare-select {
+  width: var(--compare-select-col-width);
+  min-width: var(--compare-select-col-width);
+  text-align: center;
+  padding-left: 0.35rem !important;
+  padding-right: 0.35rem !important;
+}
+
+.table-has-compare.table-has-rank thead th.col-rank,
+.table-has-compare.table-has-rank tbody td.col-rank {
+  left: var(--compare-select-col-width);
+}
+
+.table-has-compare.table-has-rank thead th.col-player,
+.table-has-compare.table-has-rank.table-sticky tbody td.col-player {
+  left: calc(var(--compare-select-col-width) + var(--rank-col-width));
+}
+
+.table-has-compare.table-sticky thead th.col-compare-select,
+.table-has-compare.table-sticky tbody td.col-compare-select {
+  position: sticky;
+  left: 0;
+  z-index: 22;
+  background: var(--bg-elevated, #0f172a);
+}
+
+.table-has-compare.table-sticky tbody tr:nth-child(even) td.col-compare-select {
+  background: #101a2e;
+}
+
+.table-has-compare.table-sticky tbody tr:hover td.col-compare-select {
+  background: #1a2540;
+}
+
+.row-compare-selected td {
+  background: var(--accent-soft) !important;
+}
+
+.panel-player-compare {
+  margin-bottom: 1rem;
+}
+
+.player-compare-head {
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.player-compare-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.player-compare-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.player-compare-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.player-compare-reco {
+  margin: 0;
+}
+
+.player-compare-reco-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--accent-muted);
+}
+
+.player-compare-reco-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.92rem;
+}
+
+.player-compare-reco-note {
+  margin: 0.45rem 0 0;
+  font-size: 0.75rem;
+}
+
+.player-compare-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 720px) {
+  .player-compare-grid--2,
+  .player-compare-grid--3,
+  .player-compare-grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .player-compare-grid--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .player-compare-grid--4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.player-compare-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 10px);
+  background: var(--bg-subtle);
+}
+
+.player-compare-card--leader {
+  border-color: var(--accent-muted);
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.25);
+}
+
+.player-compare-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.player-compare-remove {
+  flex-shrink: 0;
+}
+
+.player-compare-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.55rem;
+  font-size: 0.8rem;
+}
+
+.player-compare-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.player-compare-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.45);
+  text-align: center;
+}
+
+.player-compare-metric--p50 {
+  background: rgba(37, 99, 235, 0.16);
+}
+
+.player-compare-metric--best {
+  outline: 1px solid var(--accent-muted);
+}
+
+.player-compare-metric-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #64748b);
+}
+
+.player-compare-metric-value {
+  font-size: 1.15rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-compare-range {
+  min-height: 1.75rem;
+}
+
+.player-compare-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.player-compare-stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.player-compare-stats dt {
+  margin: 0;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #64748b);
+}
+
+.player-compare-stats dd {
+  margin: 0;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 720px) {
+  .compare-selection-bar {
+    position: sticky;
+    bottom: calc(3.35rem + env(safe-area-inset-bottom, 0px));
+    z-index: 30;
+    margin-bottom: 0.25rem;
+    backdrop-filter: blur(8px);
+    background: rgba(11, 18, 32, 0.96);
+  }
+
+  .player-compare-head {
+    flex-direction: column;
+  }
+
+  .player-compare-head-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .player-compare-head-actions .btn-ghost {
+    flex: 1;
+  }
+}

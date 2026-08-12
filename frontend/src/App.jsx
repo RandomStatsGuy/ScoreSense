@@ -10,6 +10,7 @@ import SeasonTransitionState from "./SeasonTransitionState";
 import InjurySidebar from "./InjurySidebar";
 import SentimentPanel from "./SentimentPanel";
 import WeeklyTable from "./WeeklyTable";
+import PlayerCompare, { MAX_COMPARE as MAX_COMPARE_PLAYERS } from "./PlayerCompare";
 import useAccuracyRebuildPoll from "./useAccuracyRebuildPoll";
 import useAppNavigation from "./useAppNavigation";
 import useMobileLayout from "./useMobileLayout";
@@ -88,6 +89,11 @@ export default function App() {
     setAdminTab,
   } = nav;
   const [hubContext, setHubContext] = useState(null);
+  const [compareIds, setCompareIds] = useState(() => filtersFromUrl.compareIds || []);
+  const [compareViewOpen, setCompareViewOpen] = useState(
+    () => Boolean(filtersFromUrl.compareView && (filtersFromUrl.compareIds || []).length >= 2),
+  );
+  const [compareMetaById, setCompareMetaById] = useState({});
   const [position, setPosition] = useState(filtersFromUrl.position || "qb");
   const [projections, setProjections] = useState([]);
   const [rosProjections, setRosProjections] = useState([]);
@@ -546,10 +552,97 @@ export default function App() {
         rosSeason: overrides.rosSeason ?? rosSeason,
         rosFromWeek: overrides.rosFromWeek ?? rosFromWeek,
         search: overrides.search ?? searchQuery,
+        compareIds: overrides.compareIds ?? compareIds,
+        compareView: overrides.compareView ?? compareViewOpen,
       });
     },
-    [updateFilters, position, season, week, selectedTeams, draftSeason, rosSeason, rosFromWeek, searchQuery],
+    [
+      updateFilters,
+      position,
+      season,
+      week,
+      selectedTeams,
+      draftSeason,
+      rosSeason,
+      rosFromWeek,
+      searchQuery,
+      compareIds,
+      compareViewOpen,
+    ],
   );
+
+  const compareSelectionMeta = useMemo(
+    () =>
+      compareIds.map((id) => compareMetaById[id] || { player_id: id, name: id }),
+    [compareIds, compareMetaById],
+  );
+
+  const handleToggleCompare = useCallback(
+    (row) => {
+      const id = row?.player_id != null ? String(row.player_id) : "";
+      if (!id) return;
+      const has = compareIds.includes(id);
+      if (!has && compareIds.length >= MAX_COMPARE_PLAYERS) return;
+      const next = has ? compareIds.filter((x) => x !== id) : [...compareIds, id];
+      if (!has) {
+        setCompareMetaById((meta) => ({
+          ...meta,
+          [id]: {
+            player_id: id,
+            name: row.Player || id,
+            position: row.Position || position,
+            team: row.Team || "",
+          },
+        }));
+      }
+      const stillOpen = compareViewOpen && next.length >= 2;
+      setCompareIds(next);
+      if (!stillOpen && compareViewOpen) setCompareViewOpen(false);
+      syncFiltersToUrl({ compareIds: next, compareView: stillOpen });
+    },
+    [compareIds, compareViewOpen, position, syncFiltersToUrl],
+  );
+
+  const handleOpenCompare = useCallback(() => {
+    if (compareIds.length < 2) return;
+    setCompareViewOpen(true);
+    syncFiltersToUrl({ compareIds, compareView: true });
+  }, [compareIds, syncFiltersToUrl]);
+
+  const handleCloseCompare = useCallback(() => {
+    setCompareViewOpen(false);
+    syncFiltersToUrl({ compareIds, compareView: false });
+  }, [compareIds, syncFiltersToUrl]);
+
+  const handleClearCompare = useCallback(() => {
+    setCompareIds([]);
+    setCompareViewOpen(false);
+    setCompareMetaById({});
+    syncFiltersToUrl({ compareIds: [], compareView: false });
+  }, [syncFiltersToUrl]);
+
+  const handleRemoveComparePlayer = useCallback(
+    (playerId) => {
+      const id = String(playerId || "");
+      if (!id) return;
+      const next = compareIds.filter((x) => x !== id);
+      const stillOpen = next.length >= 2;
+      setCompareIds(next);
+      if (!stillOpen) setCompareViewOpen(false);
+      syncFiltersToUrl({ compareIds: next, compareView: stillOpen });
+    },
+    [compareIds, syncFiltersToUrl],
+  );
+
+  // Browser back/forward + shared deep-links for start/sit selection.
+  useEffect(() => {
+    const fromUrl = filtersFromUrl.compareIds || [];
+    setCompareIds((prev) => {
+      const fromUrlKey = fromUrl.join(",");
+      return fromUrlKey !== prev.join(",") ? fromUrl : prev;
+    });
+    setCompareViewOpen(Boolean(filtersFromUrl.compareView && fromUrl.length >= 2));
+  }, [filtersFromUrl.compareIds, filtersFromUrl.compareView]);
 
   const handlePositionChange = useCallback(
     (pos) => {
@@ -1111,6 +1204,17 @@ export default function App() {
 
         {view === "projections" && projectionsTab === "weekly" && (
           <>
+            {compareViewOpen && compareIds.length >= 2 ? (
+              <PlayerCompare
+                playerIds={compareIds}
+                season={season}
+                week={week}
+                onClose={handleCloseCompare}
+                onClear={handleClearCompare}
+                onRemovePlayer={handleRemoveComparePlayer}
+              />
+            ) : (
+              <>
             {mobileLayout && (
               <MobileSubnav
                 tabs={weeklyMobileTabs}
@@ -1142,6 +1246,13 @@ export default function App() {
                 season={season}
                 week={week}
                 onClearFilters={clearTableFilters}
+                compareEnabled
+                selectedCompareIds={compareIds}
+                maxCompare={MAX_COMPARE_PLAYERS}
+                onToggleCompare={handleToggleCompare}
+                onOpenCompare={handleOpenCompare}
+                onClearCompare={handleClearCompare}
+                compareSelectionMeta={compareSelectionMeta}
                 searchSlot={
                   !mobileLayout ? null : (
                   <input
@@ -1180,6 +1291,8 @@ export default function App() {
               error={sentimentError}
             />
           </div>
+              </>
+            )}
           </>
         )}
 
