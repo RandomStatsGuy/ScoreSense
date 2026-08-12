@@ -49,8 +49,14 @@ def test_player_card_shape(mock_build, client):
         "weekly_projection": {"Player": "Test Player", "Projected Points": 12.5},
         "season_projection": None,
         "narrative": None,
+        "narrative_meta": {"context_fallback": False},
         "injury": None,
-        "meta": {"season": 2025, "week": 10, "scope": "weekly"},
+        "meta": {
+            "season": 2025,
+            "week": 10,
+            "scope": "weekly",
+            "apply_injury_adjustments": False,
+        },
     }
 
     def _patron():
@@ -61,7 +67,9 @@ def test_player_card_shape(mock_build, client):
 
     app.dependency_overrides[require_patron] = _patron
     try:
-        res = client.get("/api/player/12345/card?season=2025&week=10")
+        res = client.get(
+            "/api/player/12345/card?season=2025&week=10&apply_injury_adjustments=false"
+        )
     finally:
         app.dependency_overrides.clear()
 
@@ -73,6 +81,88 @@ def test_player_card_shape(mock_build, client):
     assert data["narrative"] is None
     assert data["meta"]["scope"] == "weekly"
     mock_build.assert_called_once()
+    kwargs = mock_build.call_args.kwargs
+    assert kwargs["season"] == 2025
+    assert kwargs["week"] == 10
+    assert kwargs["apply_injury_adjustments"] is False
+
+
+def test_build_player_card_honors_injury_flag(monkeypatch):
+    """Card weekly numbers must use the same injury flag as the table/compare."""
+    import pandas as pd
+
+    import src.projections.player_card as pc
+
+    calls = []
+
+    def fake_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True):
+        calls.append((position, season, week, apply_injury_adjustments))
+        return pd.DataFrame(
+            [
+                {
+                    "player_id": "00-0033873",
+                    "Player": "Lamar Jackson",
+                    "Team": "BAL",
+                    "Position": "QB",
+                    "Projected Points": 23.1 if not apply_injury_adjustments else 29.8,
+                    "Low (P10)": 18.0,
+                    "High (P90)": 35.0,
+                }
+            ]
+        )
+
+    monkeypatch.setattr(pc, "load_weekly_prediction", fake_load)
+    monkeypatch.setattr(
+        pc,
+        "load_ros_prediction",
+        lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError("no ros")),
+    )
+    monkeypatch.setattr(pc, "_resolve_context", lambda s, w: (2026, 2))
+    monkeypatch.setattr(pc, "_guess_position", lambda _pid: "qb")
+    monkeypatch.setattr(pc, "build_player_media_batch", lambda _rows: {})
+    monkeypatch.setattr(pc, "_narrative_for_player", lambda *a, **k: (None, {"context_fallback": False}))
+    monkeypatch.setattr(pc, "_injury_for_player", lambda _pid: None)
+
+    card = pc.build_player_card(
+        "00-0033873",
+        season=2026,
+        week=2,
+        position="qb",
+        apply_injury_adjustments=False,
+    )
+    assert card["weekly_projection"]["Projected Points"] == 23.1
+    assert card["meta"]["apply_injury_adjustments"] is False
+    assert calls
+    assert all(flag is False for _pos, _season, _week, flag in calls)
+
+
+def test_narrative_for_player_weekly_uses_position_response(monkeypatch):
+    """Weekly card narrative must resolve week/fallback by the player's position."""
+    import src.projections.player_card as pc
+
+    calls = []
+
+    def fake_weekly(pos, season, week):
+        calls.append((pos, season, week))
+        return {
+            "season": 2025,
+            "week": 18,
+            "requested_season": season,
+            "requested_week": week,
+            "context_fallback": True,
+            "players": [{"player_id": "qb1", "player": "Test QB"}],
+        }
+
+    monkeypatch.setattr(pc, "build_fantasy_weekly_response", fake_weekly)
+
+    row, meta = pc._narrative_for_player("qb1", "qb", 2026, 1, "weekly")
+    assert calls == [("qb", 2026, 1)]
+    assert row["player_id"] == "qb1"
+    assert meta["season"] == 2025
+    assert meta["week"] == 18
+    assert meta["context_fallback"] is True
+    assert meta["requested_season"] == 2026
+    assert meta["requested_week"] == 1
 
 
 def test_player_card_json_serializable():

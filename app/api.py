@@ -233,6 +233,7 @@ def player_card_get(
     week: Optional[int] = None,
     scope: str = Query("weekly", description="weekly or season narrative scope"),
     position: Optional[str] = None,
+    apply_injury_adjustments: bool = True,
     _user=Depends(require_patron),
 ) -> dict:
     from fastapi.encoders import jsonable_encoder
@@ -246,6 +247,7 @@ def player_card_get(
                 week=week,
                 scope=scope,
                 position=position.lower() if position else None,
+                apply_injury_adjustments=apply_injury_adjustments,
             )
         )
     except ValueError as exc:
@@ -894,7 +896,10 @@ def _predict_response(
             "week": int(preds["Week"].iloc[0]) if "Week" in preds.columns else None,
             "teams": int(preds["Team"].nunique()) if "Team" in preds.columns else None,
             "preseason_mode": bool(preds.attrs.get("preseason_mode")),
+            "apply_injury_adjustments": bool(apply_injury_adjustments),
         }
+        if preds.attrs.get("built_at"):
+            meta["built_at"] = preds.attrs.get("built_at")
         inference = preds.attrs.get("inference_meta") or {}
         if inference:
             meta["feature_season"] = inference.get("feature_season")

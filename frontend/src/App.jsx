@@ -42,6 +42,7 @@ import { apiFetch } from "./auth";
 import { isAbortError } from "./fetchAbort";
 import {
   connectionErrorMessage,
+  formatRelativeTime,
   parseApiError,
 } from "./format";
 import { playerSentimentKey, buildSentimentMap, resolveRowSentiment } from "./sentimentDisplay";
@@ -1209,6 +1210,7 @@ export default function App() {
                 playerIds={compareIds}
                 season={season}
                 week={week}
+                applyInjuryAdjustments={isLiveContext}
                 onClose={handleCloseCompare}
                 onClear={handleClearCompare}
                 onRemovePlayer={handleRemoveComparePlayer}
@@ -1229,11 +1231,19 @@ export default function App() {
               <div className="panel-head panel-head-mobile-compact">
                 <div>
                   <h2>Weekly projections</h2>
+                  {season != null && week != null ? (
+                    <p className="panel-subtitle">
+                      {season} · Wk {week}
+                      {meta?.built_at && formatRelativeTime(meta.built_at)
+                        ? ` · Projections ${String(formatRelativeTime(meta.built_at)).replace(/^Updated /i, "").toLowerCase()}`
+                        : ""}
+                    </p>
+                  ) : null}
                 </div>
               </div>
               {!isLiveContext && projMeta && !meta?.preseason_mode && (
                 <div className="info-callout info-callout-compact" role="status">
-                  Injuries = current week only.
+                  Showing base projections for this week (live injury boosts apply to Wk {projMeta.default_week} only).
                 </div>
               )}
               <WeeklyTable
@@ -1253,6 +1263,7 @@ export default function App() {
                 onToggleCompare={handleToggleCompare}
                 onOpenCompare={handleOpenCompare}
                 onClearCompare={handleClearCompare}
+                onRemoveCompare={handleRemoveComparePlayer}
                 compareSelectionMeta={compareSelectionMeta}
                 searchSlot={
                   !mobileLayout ? null : (

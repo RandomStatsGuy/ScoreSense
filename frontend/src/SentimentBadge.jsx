@@ -25,13 +25,21 @@ export default function SentimentBadge({ sentiment, compact = false, table = fal
   if (Number(sentiment.injury_flag) > 0) flags.push("injury");
   if (Number(sentiment.role_hype_flag) > 0) flags.push("hype");
 
+  const seasonWeek =
+    sentiment.season != null && sentiment.week != null
+      ? `${sentiment.season} · W${sentiment.week}`
+      : null;
+  const confidence = sentiment.confidence != null ? String(sentiment.confidence) : null;
+
   const tipContent = (
     <>
       <TipTitle>{text}</TipTitle>
       <TipLine>
         {mentionCountLabel(sentiment.mention_count)}
         {flags.length ? ` · ${flags.join(", ")}` : ""}
+        {seasonWeek ? ` · ${seasonWeek}` : ""}
       </TipLine>
+      {confidence ? <TipLine>Signal strength: {confidence}</TipLine> : null}
       {narrative ? <TipLine className="hover-tip-snippet">{narrative}</TipLine> : null}
       {rawSnippet && rawSnippet !== narrative ? (
         <TipLine className="hover-tip-snippet muted">Raw: {rawSnippet}</TipLine>

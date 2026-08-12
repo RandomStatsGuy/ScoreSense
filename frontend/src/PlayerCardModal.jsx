@@ -34,17 +34,32 @@ function ScaledRangeBar({ p10, p50, p90, title, subtitle, formatValue }) {
   const scaleMax = p90 > 0 ? p90 * 1.12 : 1;
   const fmt = formatValue || ((v) => v.toFixed(1));
   return (
-    <div className="player-card-range">
-      <span className="player-card-range-label" aria-hidden="true">{fmt(p10)}</span>
-      <QuantileBar p10={p10} p50={p50} p90={p90} scaleMax={scaleMax} title={title} subtitle={subtitle} />
-      <span className="player-card-range-label" aria-hidden="true">{fmt(p90)}</span>
+    <div className="player-card-range-wrap">
+      <div className="player-card-range">
+        <span className="player-card-range-label" aria-hidden="true">{fmt(p10)}</span>
+        <QuantileBar p10={p10} p50={p50} p90={p90} scaleMax={scaleMax} title={title} subtitle={subtitle} />
+        <span className="player-card-range-label" aria-hidden="true">{fmt(p90)}</span>
+      </div>
+      <div className="range-scale-legend" aria-hidden="true">
+        <span>Floor</span>
+        <span>Projection</span>
+        <span>Ceiling</span>
+      </div>
     </div>
   );
+}
+
+function contextLabel(meta, request) {
+  const season = meta?.season ?? request?.season;
+  const week = meta?.week ?? request?.week;
+  if (season == null || week == null) return null;
+  return `${season} · Wk ${week}`;
 }
 
 function PlayerCardBody({ data, loading, error, fallbackName, request }) {
   const [whyOpen, setWhyOpen] = useState(false);
   const explainPlayerId = data?.player_id || request?.playerId || "";
+  const applyInjury = request?.applyInjuryAdjustments ?? true;
 
   useEffect(() => {
     setWhyOpen(false);
@@ -61,8 +76,10 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
   const weekly = data.weekly_projection;
   const season = data.season_projection;
   const narrative = data.narrative;
+  const narrativeMeta = data.narrative_meta || {};
   const injury = data.injury;
   const canExplain = Boolean(data.player_id && weekly);
+  const weekLabel = contextLabel(data.meta, request);
   const seasonBand = season
     ? resolveSeasonBand({
       ...season,
@@ -78,6 +95,15 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
   const weeklyP10 = weekly ? Number(weekly["Low (P10)"]) : null;
   const weeklyP50 = weekly ? Number(weekly["Projected Points"]) : null;
   const weeklyP90 = weekly ? Number(weekly["High (P90)"]) : null;
+  const narrativeFallback = Boolean(narrativeMeta.context_fallback);
+  const narrativeShown =
+    narrativeMeta.season != null && narrativeMeta.week != null
+      ? `${narrativeMeta.season} · W${narrativeMeta.week}`
+      : null;
+  const narrativeRequested =
+    narrativeMeta.requested_season != null && narrativeMeta.requested_week != null
+      ? `${narrativeMeta.requested_season} · W${narrativeMeta.requested_week}`
+      : weekLabel;
 
   return (
     <div className="player-card-body">
@@ -93,10 +119,18 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
           <Chip tone={injuryChipTone(injury.injury_status)}>{injury.injury_status}</Chip>
         ) : null}
       </div>
+      {weekLabel ? (
+        <p className="player-card-context muted" role="status">
+          {weekLabel}
+          {data.meta?.apply_injury_adjustments === false || !applyInjury
+            ? " · base projections (no live injury boosts)"
+            : " · live injury adjustments"}
+        </p>
+      ) : null}
 
       {weekly ? (
         <section className="player-card-section">
-          <h3>Weekly projection</h3>
+          <h3>Weekly projection{weekLabel ? ` · ${weekLabel}` : ""}</h3>
           <div className="player-card-stats">
             <ProjStat label="Proj" value={Number(weekly["Projected Points"]).toFixed(1)} emphasis />
             <ProjStat label="Floor" value={Number(weekly["Low (P10)"]).toFixed(1)} />
@@ -145,7 +179,7 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
                 Season total
                 {seasonBand.preliminary ? (
                   <span className="season-range-prelim-note" title={seasonTip}>
-                    Preliminary
+                    Preseason estimate
                   </span>
                 ) : null}
               </div>
@@ -164,6 +198,15 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
 
       <section className="player-card-section">
         <h3>Analyst context</h3>
+        {narrativeFallback && narrativeShown ? (
+          <div className="sentiment-fallback-banner player-card-narrative-fallback" role="status">
+            Historical context from <strong>{narrativeShown}</strong>
+            {narrativeRequested && narrativeRequested !== narrativeShown
+              ? ` (none for ${narrativeRequested})`
+              : ""}
+            .
+          </div>
+        ) : null}
         {narrative ? (
           <>
             <div className="player-card-narrative-head">
@@ -174,7 +217,11 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
             </p>
           </>
         ) : (
-          <p className="state-empty-text player-card-empty">No analyst context for this player yet.</p>
+          <p className="state-empty-text player-card-empty">
+            {narrativeFallback
+              ? "No matching-week analyst context for this player."
+              : "No analyst context for this player yet."}
+          </p>
         )}
       </section>
 
@@ -194,7 +241,7 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
               season={request?.season}
               week={request?.week}
               position={request?.position || data.position}
-              applyInjuryAdjustments={request?.applyInjuryAdjustments ?? true}
+              applyInjuryAdjustments={applyInjury}
               active
               className="projection-explanation--card"
             />
@@ -237,6 +284,8 @@ export default function PlayerCardModal({ request, onClose }) {
         if (request.week != null) params.set("week", String(request.week));
         if (request.scope) params.set("scope", request.scope);
         if (request.position) params.set("position", request.position);
+        const applyInjury = request.applyInjuryAdjustments ?? true;
+        params.set("apply_injury_adjustments", applyInjury ? "true" : "false");
         const q = params.toString() ? `?${params.toString()}` : "";
         const res = await apiFetch(
           `/api/player/${encodeURIComponent(request.playerId)}/card${q}`,
