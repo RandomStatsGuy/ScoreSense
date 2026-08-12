@@ -1,9 +1,14 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 /**
  * Desktop account dropdown. Consolidates Account, Model accuracy, Admin,
  * data-refresh status, and Log out into a single menu so the header stays to
  * one row of actions.
+ *
+ * Popover is portaled to document.body with position:fixed so it is not trapped
+ * by the header shell's backdrop-filter stacking context (which otherwise loses
+ * to sticky projection filters / table headers).
  */
 export default function UserMenu({
   authReady,
@@ -19,15 +24,82 @@ export default function UserMenu({
   refreshStatus,
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const [coords, setCoords] = useState(null);
+  const rootRef = useRef(null);
+  const triggerRef = useRef(null);
+  const popoverRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) {
+      setCoords(null);
+      return undefined;
+    }
+
+    const update = () => {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setCoords({
+        top: Math.round(rect.bottom + 6),
+        right: Math.round(Math.max(8, window.innerWidth - rect.right)),
+      });
+    };
+
+    update();
+    window.addEventListener("resize", update);
+    // Capture scroll from nested sticky/overflow containers too.
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open]);
+
+  // Portal removes the popover from the trigger's DOM tab order; move focus in once.
+  useEffect(() => {
+    if (!open || !coords || !popoverRef.current) return;
+    if (document.activeElement !== triggerRef.current) return;
+    popoverRef.current.querySelector('[role="menuitem"]')?.focus();
+  }, [open, coords]);
 
   useEffect(() => {
     if (!open) return undefined;
+
+    const menuItems = () =>
+      Array.from(popoverRef.current?.querySelectorAll('[role="menuitem"]') || []);
+
     const onDown = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      const t = e.target;
+      if (rootRef.current?.contains(t)) return;
+      if (popoverRef.current?.contains(t)) return;
+      setOpen(false);
     };
     const onKey = (e) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setOpen(false);
+        triggerRef.current?.focus();
+        return;
+      }
+
+      const items = menuItems();
+      if (!items.length) return;
+      const idx = items.indexOf(document.activeElement);
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        items[idx < 0 ? 0 : (idx + 1) % items.length].focus();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        items[idx < 0 ? items.length - 1 : (idx - 1 + items.length) % items.length].focus();
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        items[0].focus();
+      } else if (e.key === "End") {
+        e.preventDefault();
+        items[items.length - 1].focus();
+      } else if (e.key === "Tab") {
+        // Leave the portaled menu and close so focus continues in document order.
+        setOpen(false);
+      }
     };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
@@ -62,25 +134,14 @@ export default function UserMenu({
     fn?.();
   };
 
-  return (
-    <div className="user-menu" ref={ref}>
-      <button
-        type="button"
-        className="user-menu-trigger"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <span className="user-menu-avatar" aria-hidden="true">
-          {String(label).trim().charAt(0).toUpperCase() || "?"}
-        </span>
-        <span className="user-menu-name">{label}</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
-      {open && (
-        <div className="user-menu-popover" role="menu">
+  const menu = open && coords
+    ? createPortal(
+        <div
+          ref={popoverRef}
+          className="user-menu-popover user-menu-popover--portal"
+          role="menu"
+          style={{ top: coords.top, right: coords.right }}
+        >
           <button type="button" role="menuitem" className="user-menu-item" onClick={run(onAccount)}>
             Account settings
           </button>
@@ -111,8 +172,30 @@ export default function UserMenu({
           <button type="button" role="menuitem" className="user-menu-item" onClick={run(onLogout)}>
             Log out
           </button>
-        </div>
-      )}
+        </div>,
+        document.body,
+      )
+    : null;
+
+  return (
+    <div className={`user-menu${open ? " is-open" : ""}`} ref={rootRef}>
+      <button
+        ref={triggerRef}
+        type="button"
+        className="user-menu-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="user-menu-avatar" aria-hidden="true">
+          {String(label).trim().charAt(0).toUpperCase() || "?"}
+        </span>
+        <span className="user-menu-name">{label}</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {menu}
     </div>
   );
 }
