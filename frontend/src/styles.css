@@ -2127,13 +2127,6 @@ input[type="search"].search-input {
   align-items: flex-end;
   gap: 0.2rem;
   min-width: 0;
-  width: 100%;
-}
-
-.season-range-cell-main {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
 }
 
 .season-range-cell-p50 {
@@ -2142,8 +2135,8 @@ input[type="search"].search-input {
 
 .season-range-cell-bar {
   width: 100%;
-  min-width: 0;
-  max-width: none;
+  min-width: 5.5rem;
+  max-width: 7.5rem;
 }
 
 .season-range-cell-bar .quantile-bar {
@@ -2156,9 +2149,13 @@ input[type="search"].search-input {
   line-height: 1.2;
 }
 
-.season-range-prelim-badge {
-  font-size: 0.62rem;
-  letter-spacing: 0.02em;
+/* One-off note (player card), not a per-row table badge. */
+.season-range-prelim-note {
+  margin-left: 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--text-muted);
 }
 
 .player-card-uncertainty {
