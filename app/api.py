@@ -75,6 +75,7 @@ from src.projections.player_compare import (
     filter_projections_by_ids,
     parse_compare_player_ids,
 )
+from src.projections.projection_explanation import build_projection_explanation
 from src.draft_hub.draft_pool_cache import draft_pool_for_position
 from src.products.bestball_board import build_bestball_board
 from src.products.dfs_config import list_site_configs
@@ -176,6 +177,7 @@ def health() -> dict:
             "ros": "/api/ros/{position}" in route_paths,
             "draft_hub": "/api/hub/workspace" in route_paths,
             "player_compare": "/api/predict/compare" in route_paths,
+            "projection_explanation": "/api/player/{player_id}/explanation" in route_paths,
         },
     }
 
@@ -190,6 +192,38 @@ def players_media(
     player_ids = [p.strip() for p in ids.split(",") if p.strip()]
     hints = [{"player_id": pid} for pid in player_ids[:80]]
     return {"media": build_player_media_batch(hints)}
+
+
+@app.get("/api/player/{player_id}/explanation")
+def player_explanation_get(
+    player_id: str,
+    season: Optional[int] = None,
+    week: Optional[int] = None,
+    position: Optional[str] = None,
+    apply_injury_adjustments: bool = True,
+    _user=Depends(require_patron),
+) -> dict:
+    """Structured \"Why this projection?\" panel — artifact signals + sentiment overlay."""
+    from fastapi.encoders import jsonable_encoder
+
+    def _compute(pos: str, s: int, w: int, apply_injury: bool) -> None:
+        _warm_weekly_artifact(pos, s, w, apply_injury)
+
+    try:
+        return jsonable_encoder(
+            build_projection_explanation(
+                player_id,
+                season=season,
+                week=week,
+                position=position.lower() if position else None,
+                apply_injury_adjustments=apply_injury_adjustments,
+                compute_fn=_compute,
+            )
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 @app.get("/api/player/{player_id}/card")
