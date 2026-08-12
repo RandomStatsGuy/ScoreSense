@@ -60,23 +60,30 @@ function matchupTitle(rank, teamCount, position) {
 /** Abbreviated injury designation shown inline next to the player name. */
 function injuryAbbrev(status) {
   const s = String(status || "").toLowerCase();
-  if (s.includes("questionable")) return "Q";
-  if (s.includes("doubtful")) return "D";
-  if (s.includes("probable")) return "P";
+  if (s.includes("questionable")) return { short: "Q", label: "Questionable" };
+  if (s.includes("doubtful")) return { short: "D", label: "Doubtful" };
+  if (s.includes("probable")) return { short: "P", label: "Probable" };
   return null;
 }
 
-export function InjuryStatusTag({ status }) {
+export function InjuryStatusTag({ status, verbose = false }) {
   const abbrev = injuryAbbrev(status);
   if (!abbrev) return null;
   return (
     <Chip
       tone={injuryChipTone(status)}
-      className="player-status-chip"
+      className={`player-status-chip${verbose ? " player-status-chip--verbose" : ""}`}
       title={`Injury status: ${status}`}
       aria-label={`Injury status: ${status}`}
     >
-      {abbrev}
+      {verbose ? (
+        <>
+          <span className="player-status-chip-short">{abbrev.short}</span>
+          <span className="player-status-chip-label">{abbrev.label}</span>
+        </>
+      ) : (
+        abbrev.short
+      )}
     </Chip>
   );
 }
@@ -470,7 +477,7 @@ export default function WeeklyTable({
       </div>
       {compareEnabled && selectedCount > 0 ? (
         <div className="compare-selection-bar" role="region" aria-label="Compare selection">
-          <div className="compare-selection-meta">
+          <div className="compare-selection-count">
             <strong>
               {selectedCount} selected
             </strong>
@@ -481,28 +488,28 @@ export default function WeeklyTable({
                   ? ` · max ${maxCompare}`
                   : ` · up to ${maxCompare}`}
             </span>
-            {compareSelectionMeta?.length ? (
-              <div className="compare-selection-chips">
-                {compareSelectionMeta.map((p) => {
-                  const id = String(p.player_id || "");
-                  const name = p.name || id;
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      className="compare-selection-chip"
-                      onClick={() => onRemoveCompare?.(id)}
-                      aria-label={`Remove ${name} from compare`}
-                      title={`Remove ${name}`}
-                    >
-                      <span>{name}</span>
-                      <span aria-hidden="true">×</span>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
           </div>
+          {compareSelectionMeta?.length ? (
+            <div className="compare-selection-chips">
+              {compareSelectionMeta.map((p) => {
+                const id = String(p.player_id || "");
+                const name = p.name || id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className="compare-selection-chip"
+                    onClick={() => onRemoveCompare?.(id)}
+                    aria-label={`Remove ${name} from compare`}
+                    title={`Remove ${name}`}
+                  >
+                    <span>{name}</span>
+                    <span aria-hidden="true">×</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
           <div className="compare-selection-actions">
             <button
               type="button"
@@ -583,17 +590,37 @@ export default function WeeklyTable({
                     clickable={false}
                   />
                 )}
-                badge={unavailable ? null : <InjuryStatusTag status={status} />}
+                badge={unavailable ? null : <InjuryStatusTag status={status} verbose />}
                 meta={metaNode}
                 heroValue={unavailable ? tag : fmtNum(row["Projected Points"], 1)}
-                heroLabel={unavailable ? "" : "proj"}
-                heroSub={unavailable ? null : `${fmtNum(p10, 1)}–${fmtNum(p90, 1)}`}
+                heroLabel={unavailable ? "" : "Proj"}
+                heroSub={unavailable ? null : (
+                  <span className="mobile-player-card-floor-ceil">
+                    <span className="sr-only">Floor to ceiling </span>
+                    {fmtNum(p10, 1)}–{fmtNum(p90, 1)}
+                    <span className="mobile-player-card-floor-ceil-label" aria-hidden="true"> Floor–Ceiling</span>
+                  </span>
+                )}
                 heroMuted={unavailable}
                 unavailable={unavailable}
+                aside={
+                  compareEnabled ? (
+                    <label className={`compare-select-label compare-select-label--card${selected ? " is-selected" : ""}`}>
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        disabled={!canSelect || (selectDisabled && !selected)}
+                        onChange={() => onToggleCompare?.(row)}
+                        aria-label={`Select ${row.Player || "player"} for compare`}
+                      />
+                      <span>{selected ? "Selected" : "Compare"}</span>
+                    </label>
+                  ) : null
+                }
                 actions={
-                  pid || compareEnabled ? (
+                  pid ? (
                     <div className="mobile-player-card-action-row">
-                      {pid && playerCard ? (
+                      {playerCard ? (
                         <button
                           type="button"
                           className="btn-ghost btn-sm"
@@ -613,25 +640,11 @@ export default function WeeklyTable({
                           Details
                         </button>
                       ) : null}
-                      {pid ? (
-                        <WhyToggleButton
-                          playerName={row.Player}
-                          expanded={whyPlayerId === pid}
-                          onToggle={() => toggleWhy(pid)}
-                        />
-                      ) : null}
-                      {compareEnabled ? (
-                        <label className="compare-select-label compare-select-label--mobile">
-                          <input
-                            type="checkbox"
-                            checked={selected}
-                            disabled={!canSelect || (selectDisabled && !selected)}
-                            onChange={() => onToggleCompare?.(row)}
-                            aria-label={`Select ${row.Player || "player"} for compare`}
-                          />
-                          <span>Compare</span>
-                        </label>
-                      ) : null}
+                      <WhyToggleButton
+                        playerName={row.Player}
+                        expanded={whyPlayerId === pid}
+                        onToggle={() => toggleWhy(pid)}
+                      />
                     </div>
                   ) : null
                 }

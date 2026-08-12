@@ -14,7 +14,11 @@ export default function MobileHeader({
   return (
     <div className="app-header-mobile-top">
       <h1 className="app-header-mobile-brand">{PRODUCT_NAME}</h1>
-      <p className="app-header-mobile-context">{contextLabel}</p>
+      {contextLabel ? (
+        <p className="app-header-mobile-context" title={contextLabel}>
+          {contextLabel}
+        </p>
+      ) : null}
       <div className="app-header-mobile-actions">
         {showFilter ? (
           <button

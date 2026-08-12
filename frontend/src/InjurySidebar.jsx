@@ -95,18 +95,21 @@ export default function InjurySidebar({
                   <Chip tone={injuryChipTone(p.injury_status)}>{p.injury_status}</Chip>
                 </span>
                 {detail ? <span className="injury-detail">{detail}</span> : null}
-                {returnEst ? (
-                  <span
-                    className="injury-return-estimate"
-                    title="Heuristic from injury type and designation — not an official team report"
-                  >
-                    {returnEst.text}
-                    {returnEst.isEstimate ? (
-                      <span className="injury-return-estimate-tag">estimate</span>
+                {(returnEst || updated) ? (
+                  <div className="injury-card-foot">
+                    {returnEst ? (
+                      <Chip
+                        tone="neutral"
+                        className="injury-return-chip"
+                        title="Heuristic from injury type and designation — not an official team report"
+                      >
+                        {returnEst.text}
+                        {returnEst.isEstimate ? " · est." : ""}
+                      </Chip>
                     ) : null}
-                  </span>
+                    {updated ? <span className="injury-updated">{updated}</span> : null}
+                  </div>
                 ) : null}
-                {updated ? <span className="injury-updated">{updated}</span> : null}
               </li>
             );
           })}

@@ -101,14 +101,14 @@ export function ProjectionsFilterControls({
           <>
             {isSheet ? (
               <label className="mobile-filter-field">
-                <span className="mobile-filter-label">Search players</span>
+                <span className="mobile-filter-label">Search</span>
                 <input
                   type="search"
                   className="search-input"
-                  placeholder="Name or team…"
+                  placeholder="Player or team…"
                   value={searchQuery || ""}
                   onChange={(e) => onSearchChange?.(e.target.value)}
-                  aria-label="Search players"
+                  aria-label="Search player or team"
                 />
               </label>
             ) : (
@@ -120,7 +120,7 @@ export function ProjectionsFilterControls({
                   placeholder="Player or team…"
                   value={searchQuery || ""}
                   onChange={(e) => onSearchChange?.(e.target.value)}
-                  aria-label="Search players"
+                  aria-label="Search player or team"
                 />
               </label>
             )}
@@ -173,6 +173,7 @@ export function ProjectionsFilterControls({
               teams={projMeta?.teams || []}
               selected={selectedTeams}
               onChange={onTeamsChange}
+              variant={isSheet ? "sheet" : "menu"}
             />
           </>
         ) : null}
@@ -221,6 +222,12 @@ export function ProjectionsFilterControls({
           </>
         ) : null}
       </div>
+
+      {isSheet ? (
+        <p className="mobile-filter-scoring-note chart-note" title="ScoreSense weekly model is trained on PPR scoring">
+          Scoring: PPR
+        </p>
+      ) : null}
     </>
   );
 }
