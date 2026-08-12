@@ -1427,15 +1427,15 @@ input[type="search"].search-input {
 }
 
 .col-narrative {
-  width: 6.5rem;
-  min-width: 6.5rem;
-  max-width: 6.5rem;
+  width: var(--col-narrative-width);
+  min-width: var(--col-narrative-width);
+  max-width: var(--col-narrative-width);
   white-space: nowrap;
   overflow: hidden;
   vertical-align: middle;
   text-align: center;
-  padding-left: 0.4rem;
-  padding-right: 0.4rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
 }
 
 .table-sticky thead th.col-narrative {
@@ -2221,6 +2221,8 @@ input[type="search"].search-input {
   min-width: 140px;
   padding-top: 0.45rem;
   padding-bottom: 0.45rem;
+  padding-left: 0.75rem;
+  padding-right: 0.85rem;
   overflow: hidden;
 }
 
@@ -3940,6 +3942,8 @@ td.col-opp {
   min-width: var(--col-team-width);
   max-width: var(--col-team-width);
   white-space: nowrap;
+  padding-left: 0.55rem;
+  padding-right: 0.55rem;
 }
 
 th.col-opp,
@@ -3953,12 +3957,25 @@ th.col-proj,
 td.num-proj {
   width: var(--col-season-width);
   max-width: 8rem;
+  text-align: right;
+  padding-right: 0.75rem;
 }
 
 th.col-range,
 td.range-cell {
   width: auto;
-  min-width: 7.5rem;
+  min-width: 8.5rem;
+}
+
+th.col-why,
+td.col-why {
+  width: var(--col-why-width);
+  min-width: var(--col-why-width);
+  max-width: var(--col-why-width);
+  text-align: center;
+  padding-left: 0.25rem;
+  padding-right: 0.35rem;
+  vertical-align: middle;
 }
 
 .col-floor-ceiling {
@@ -4038,6 +4055,11 @@ tbody tr:hover td {
 td.col-player {
   font-weight: 600;
   color: var(--text-primary);
+  min-width: 11rem;
+}
+
+th.col-player {
+  min-width: 11rem;
 }
 
 .team-chip {
@@ -4204,9 +4226,15 @@ td.col-rank.col-rank-top {
 
 /* Player identity cell — name plus inline injury designation. */
 .col-player-inner {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.col-player-inner .player-cell {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -7607,7 +7635,14 @@ td.col-rank.col-rank-top {
 }
 .player-cell-initials { font-size: 0.65rem; font-weight: 600; color: var(--text-muted); }
 .player-cell-text { display: inline-flex; flex-direction: column; gap: 0.05rem; min-width: 0; }
-.player-cell-name { font-weight: 500; line-height: 1.2; }
+.player-cell-name {
+  font-weight: 500;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
 .player-cell-team { font-size: 0.72rem; color: var(--text-secondary); }
 
 .player-cell--clickable {
@@ -11840,6 +11875,11 @@ td.col-rank.col-rank-top {
   border: 1px solid rgba(59, 130, 246, 0.35);
   border-radius: var(--radius-sm);
   background: var(--accent-soft);
+}
+
+.col-why .why-toggle {
+  width: 100%;
+  justify-content: center;
 }
 
 .why-toggle:hover,
