@@ -11534,6 +11534,13 @@ td.col-rank.col-rank-top {
   flex-shrink: 0;
 }
 
+@media (min-width: 391px) {
+  /* Source order is count, chips, actions; keep count + actions on one row. */
+  .compare-selection-count { order: 1; }
+  .compare-selection-actions { order: 2; }
+  .compare-selection-chips { order: 3; }
+}
+
 @media (max-width: 390px) {
   .compare-selection-bar {
     flex-direction: column;

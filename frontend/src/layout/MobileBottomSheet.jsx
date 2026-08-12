@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import useMobileLayout from "../useMobileLayout";
 
 /** Swipe distance (px) past which a downward drag dismisses the sheet. */
 const DISMISS_THRESHOLD = 90;
@@ -14,6 +15,7 @@ export default function MobileBottomSheet({
 }) {
   const sheetRef = useRef(null);
   const dragStartY = useRef(null);
+  const mobileLayout = useMobileLayout();
 
   useEffect(() => {
     if (!open) return undefined;
@@ -21,20 +23,23 @@ export default function MobileBottomSheet({
       if (event.key === "Escape") onClose?.();
     };
     document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
 
-    // Portal lives outside #root — mark the app shell inert so background
-    // controls are not exposed to assistive tech while the dialog is open.
+    // Overlay is `display: none` above the mobile breakpoint. Only lock the
+    // page while the sheet is actually visible so a rotate/resize cannot leave
+    // #root inert with no way to dismiss.
     const root = document.getElementById("root");
-    if (root) root.setAttribute("inert", "");
+    const prev = document.body.style.overflow;
+    if (mobileLayout) {
+      document.body.style.overflow = "hidden";
+      if (root) root.setAttribute("inert", "");
+    }
 
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
       root?.removeAttribute("inert");
     };
-  }, [open, onClose]);
+  }, [open, onClose, mobileLayout]);
 
   if (!open) return null;
 
