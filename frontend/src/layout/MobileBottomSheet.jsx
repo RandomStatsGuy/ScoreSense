@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 /** Swipe distance (px) past which a downward drag dismisses the sheet. */
 const DISMISS_THRESHOLD = 90;
@@ -22,9 +23,16 @@ export default function MobileBottomSheet({
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
+    // Portal lives outside #root — mark the app shell inert so background
+    // controls are not exposed to assistive tech while the dialog is open.
+    const root = document.getElementById("root");
+    if (root) root.setAttribute("inert", "");
+
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
+      root?.removeAttribute("inert");
     };
   }, [open, onClose]);
 
@@ -55,7 +63,7 @@ export default function MobileBottomSheet({
     }
   };
 
-  return (
+  return createPortal(
     <div
       className="app-mobile-sheet-overlay"
       role="presentation"
@@ -92,6 +100,7 @@ export default function MobileBottomSheet({
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -1830,6 +1830,61 @@ input[type="search"].search-input {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
+.team-filter--sheet {
+  width: 100%;
+}
+
+.team-filter--sheet .team-filter-btn {
+  width: 100%;
+  min-width: 0;
+  justify-content: space-between;
+}
+
+.team-filter-menu--sheet {
+  position: static;
+  margin-top: 0.45rem;
+  max-height: min(55vh, 22rem);
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.team-filter-search {
+  display: block;
+}
+
+.team-filter-search .search-input {
+  width: 100%;
+}
+
+.team-filter-menu-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.team-filter-menu-actions .team-filter-action {
+  flex: 1;
+  text-align: center;
+}
+
+.team-filter-action--done {
+  color: var(--accent-muted, #93c5fd);
+  font-weight: 600;
+}
+
+.team-filter-menu-list {
+  overflow: auto;
+  min-height: 0;
+  flex: 1;
+}
+
+.team-filter-empty {
+  margin: 0.35rem 0.4rem;
+  font-size: 0.82rem;
+}
+
 .team-filter-action {
   width: 100%;
   background: transparent;
@@ -1991,6 +2046,23 @@ input[type="search"].search-input {
   letter-spacing: 0.04em;
   color: var(--text-muted);
   vertical-align: baseline;
+}
+
+.injury-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.55rem;
+  margin-top: 0.35rem;
+}
+
+.injury-return-chip {
+  font-size: 0.72rem;
+}
+
+.injury-card-foot .injury-updated {
+  display: inline;
+  margin: 0;
 }
 
 .preseason-note {
@@ -2294,6 +2366,13 @@ input[type="search"].search-input {
   color: var(--tooltip-accent);
   font-size: 0.85rem;
   line-height: 1.45;
+}
+
+.sentiment-fallback-banner--prominent {
+  padding: 0.7rem 0.85rem;
+  border-width: 1.5px;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .accuracy-intro {
@@ -8753,6 +8832,32 @@ td.col-rank.col-rank-top {
     white-space: nowrap;
   }
 
+  @media (max-width: 360px) {
+    .app-header-mobile-top {
+      grid-template-columns: 1fr auto;
+      grid-template-areas:
+        "brand actions"
+        "context context";
+      row-gap: 0.2rem;
+    }
+
+    .app-header-mobile-brand {
+      grid-area: brand;
+    }
+
+    .app-header-mobile-actions {
+      grid-area: actions;
+    }
+
+    .app-header-mobile-context {
+      grid-area: context;
+      text-align: left;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+  }
+
   .app-header--hub-guest .app-header-mobile-context {
     color: var(--text-secondary);
   }
@@ -9714,19 +9819,34 @@ td.col-rank.col-rank-top {
   opacity: 0.82;
 }
 
+.mobile-player-card-top {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
 .mobile-player-card-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.65rem;
-  width: 100%;
-  padding: 0.65rem 0.75rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  padding: 0.65rem 0.55rem 0.65rem 0.75rem;
   border: none;
   background: transparent;
   color: inherit;
   text-align: left;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-player-card-aside {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0.45rem 0.55rem 0.45rem 0;
 }
 
 .mobile-player-card-header:disabled {
@@ -9775,7 +9895,7 @@ td.col-rank.col-rank-top {
 }
 
 .mobile-player-card-hero-value {
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
@@ -9783,7 +9903,7 @@ td.col-rank.col-rank-top {
 }
 
 .mobile-player-card-hero-label {
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -9792,12 +9912,61 @@ td.col-rank.col-rank-top {
 
 /* Floor–ceiling (or per-game) readout under the hero value. */
 .mobile-player-card-hero-sub {
-  font-size: 0.68rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 0.74rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   color: var(--text-secondary);
   line-height: 1.2;
   white-space: nowrap;
+}
+
+.mobile-player-card-floor-ceil-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.player-status-chip--verbose {
+  gap: 0.25rem;
+}
+
+.player-status-chip-short {
+  font-weight: 700;
+}
+
+.player-status-chip-label {
+  font-weight: 500;
+  font-size: 0.72rem;
+}
+
+.compare-select-label--card {
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 3.4rem;
+  min-height: 2.75rem;
+  padding: 0.3rem 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  background: rgba(15, 23, 42, 0.65);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.compare-select-label--card.is-selected {
+  border-color: rgba(59, 130, 246, 0.65);
+  color: var(--accent-muted);
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.compare-select-label--card input {
+  width: 1.05rem;
+  height: 1.05rem;
 }
 
 .mobile-player-card-chevron {
@@ -10560,10 +10729,18 @@ td.col-rank.col-rank-top {
     padding: 0.75rem;
   }
 
+  .projections-mobile-pos-row {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.25rem 0.85rem 0.4rem;
+  }
+
   .projections-mobile-pos-chips {
     display: flex;
+    flex: 1 1 auto;
     gap: 0.35rem;
-    padding: 0.25rem 0.85rem 0.4rem;
+    min-width: 0;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -10571,6 +10748,27 @@ td.col-rank.col-rank-top {
   .projections-mobile-pos-chips .header-segment-tab {
     flex: 1 0 auto;
     min-height: 2.25rem;
+  }
+
+  .projections-mobile-scoring-chip {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.25rem;
+    padding: 0.2rem 0.55rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    background: rgba(15, 23, 42, 0.65);
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  .mobile-filter-scoring-note {
+    margin: 0.75rem 0 0;
+    font-size: 0.8rem;
   }
 
   .draft-hub > .hub-subnav-row {
@@ -11230,14 +11428,21 @@ td.col-rank.col-rank-top {
 
 .compare-selection-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.55rem 0.75rem;
   margin: 0.35rem 0 0.75rem;
   padding: 0.55rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-md, 10px);
   background: var(--bg-subtle);
+}
+
+.compare-selection-count {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.84rem;
 }
 
 .compare-selection-meta {
@@ -11262,7 +11467,6 @@ td.col-rank.col-rank-top {
   flex-wrap: wrap;
   gap: 0.35rem;
   flex: 1 1 100%;
-  margin-top: 0.15rem;
 }
 
 .compare-selection-chip {
@@ -11328,6 +11532,31 @@ td.col-rank.col-rank-top {
   align-items: center;
   gap: 0.4rem;
   flex-shrink: 0;
+}
+
+@media (max-width: 390px) {
+  .compare-selection-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .compare-selection-count {
+    flex: 0 0 auto;
+  }
+
+  .compare-selection-chips {
+    flex: 0 0 auto;
+  }
+
+  .compare-selection-actions {
+    width: 100%;
+  }
+
+  .compare-selection-actions .btn-ghost,
+  .compare-selection-actions .btn.primary,
+  .compare-selection-actions .btn-primary {
+    flex: 1 1 0;
+  }
 }
 
 .compare-select-label {
