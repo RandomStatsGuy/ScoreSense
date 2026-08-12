@@ -182,18 +182,22 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
             applyInjuryAdjustments={applyInjuryAdjustments}
           />
           <InjuryStatusTag status={unavailable ? "" : status} />
-          {canExplain ? (
-            <WhyToggleButton
-              playerName={row.Player}
-              expanded={whyExpanded}
-              onToggle={onToggleWhy}
-            />
-          ) : null}
         </span>
         <span className="col-player-mobile-meta">
           {row.Team || "—"}
           {showOpponent && row.Opponent ? ` · ${row.Opponent}` : ""}
         </span>
+      </td>
+      <td className="col-why">
+        {canExplain ? (
+          <WhyToggleButton
+            playerName={row.Player}
+            expanded={whyExpanded}
+            onToggle={onToggleWhy}
+          />
+        ) : (
+          <span className="muted">—</span>
+        )}
       </td>
       <td className="col-team">
         {row.Team ? <Chip tone="team">{row.Team}</Chip> : "—"}
@@ -361,9 +365,9 @@ export default function WeeklyTable({
     [rows]
   );
 
-  // Select, Rank, Player, Team, Proj, Range are base; Opp/Narrative/Boost are conditional.
+  // Select, Rank, Player, Why, Team, Proj, Range are base; Opp/Signal/Boost are conditional.
   const baseColCount =
-    5 +
+    6 +
     (compareEnabled ? 1 : 0) +
     (showOpponent ? 1 : 0) +
     (hasSentiment ? 1 : 0) +
@@ -710,6 +714,9 @@ export default function WeeklyTable({
               ) : null}
               <th className="num col-rank" title="Position rank by projected points">#</th>
               <SortHeader label="Player" sortKey="Player" sort={sort} onSort={toggleSort} className="col-player" />
+              <th className="col-why" title="Why this projection?">
+                <span className="sr-only">Why</span>
+              </th>
               <SortHeader label="Team" sortKey="Team" sort={sort} onSort={toggleSort} className="col-team" />
               {showOpponent && (
                 <SortHeader
@@ -723,11 +730,11 @@ export default function WeeklyTable({
               )}
               {hasSentiment && (
                 <SortHeader
-                  label="Analyst signal"
+                  label="Signal"
                   sortKey="Narrative"
                   sort={sort}
                   onSort={toggleSort}
-                  tip="Fantasy analyst signal — hover a tag for recency and digest preview"
+                  tip="Analyst signal — hover a tag for recency and digest preview"
                   className="col-narrative"
                 />
               )}

@@ -120,9 +120,11 @@
 
   /* Component tokens */
   --rank-col-width: 2.4rem;
-  --col-team-width: 3.4rem;
-  --col-opp-width: 3.4rem;
-  --col-season-width: 6.75rem;
+  --col-why-width: 3.25rem;
+  --col-team-width: 3.75rem;
+  --col-opp-width: 3.75rem;
+  --col-season-width: 5.5rem;
+  --col-narrative-width: 5.75rem;
   --col-floor-ceiling-width: 5rem;
   --col-per-game-width: 6.25rem;
   --hub-col-pos-width: 2.75rem;
