@@ -112,11 +112,16 @@ export default function PlayerCompare({
     <section className="panel wide panel-player-compare" aria-labelledby="player-compare-title">
       <div className="panel-head panel-head-mobile-compact player-compare-head">
         <div>
-          <h2 id="player-compare-title">Start / Sit compare</h2>
+          <h2 id="player-compare-title">Compare players</h2>
           <p className="panel-subtitle">
-            Side-by-side weekly P10 / P50 / P90
-            {data?.meta?.week != null ? ` · Week ${data.meta.week}` : week != null ? ` · Week ${week}` : ""}
-            {data?.meta?.season != null ? ` · ${data.meta.season}` : ""}
+            Side-by-side weekly Floor / Projection / Ceiling
+            {data?.meta?.season != null || season != null
+              ? ` · ${data?.meta?.season ?? season}`
+              : ""}
+            {data?.meta?.week != null || week != null
+              ? ` · Wk ${data?.meta?.week ?? week}`
+              : ""}
+            {applyInjuryAdjustments === false ? " · base projections" : " · live injury adjustments"}
           </p>
         </div>
         <div className="player-compare-head-actions">

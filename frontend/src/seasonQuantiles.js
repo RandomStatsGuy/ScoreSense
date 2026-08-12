@@ -6,7 +6,7 @@ export const METHOD_INDEPENDENT_SCALE = "independent_scale";
 const SCHEDULE_AWARE_TIP =
   "Schedule-aware 80% season range (bye & games adjusted).";
 const PRELIMINARY_TIP =
-  "Preliminary season range (legacy weekly×games scale) — artifact still warming.";
+  "Preseason estimate; calibrated as games are played.";
 
 export function isScheduleAwareMethod(method) {
   return String(method || "") === METHOD_MC_SCHEDULE_V1;
@@ -14,7 +14,7 @@ export function isScheduleAwareMethod(method) {
 
 export function seasonMethodShortLabel(method) {
   if (isScheduleAwareMethod(method)) return "schedule-aware P10–P90";
-  if (String(method || "") === METHOD_INDEPENDENT_SCALE) return "preliminary ×games scale";
+  if (String(method || "") === METHOD_INDEPENDENT_SCALE) return "preseason estimate";
   return null;
 }
 

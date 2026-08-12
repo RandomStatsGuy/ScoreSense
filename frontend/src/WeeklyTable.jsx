@@ -19,6 +19,7 @@ import useMobileLayout from "./useMobileLayout";
 import MobileDataList, { MobileStat } from "./MobileDataList";
 import MobilePlayerCard from "./MobilePlayerCard";
 import PlayerCell, { usePlayerMedia } from "./PlayerCell";
+import { usePlayerCardOptional } from "./PlayerCardContext";
 
 const SORT_KEYS = {
   Player: "Player",
@@ -150,7 +151,7 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
               checked={selected}
               disabled={!canSelect || (selectDisabled && !selected)}
               onChange={() => onToggleSelect?.(row)}
-              aria-label={`Select ${row.Player || "player"} for start/sit compare`}
+              aria-label={`Select ${row.Player || "player"} for compare`}
             />
           </label>
         </td>
@@ -310,11 +311,13 @@ export default function WeeklyTable({
   onToggleCompare,
   onOpenCompare,
   onClearCompare,
+  onRemoveCompare,
   compareSelectionMeta = null,
 }) {
   const [sort, toggleSort] = useTableSort({ column: "P50", dir: "desc" });
   const [whyPlayerId, setWhyPlayerId] = useState(null);
   const mobileLayout = useMobileLayout();
+  const playerCard = usePlayerCardOptional();
   const selectedSet = useMemo(
     () => new Set((selectedCompareIds || []).map(String)),
     [selectedCompareIds],
@@ -436,13 +439,10 @@ export default function WeeklyTable({
       ? "No players match your search or team filters."
       : "No projections available for this week.";
 
-  const selectionLabel =
-    compareSelectionMeta?.length
-      ? compareSelectionMeta
-          .map((p) => p.name || p.player_id)
-          .filter(Boolean)
-          .join(", ")
-      : "";
+  const resultLabel =
+    selectedCount > 0
+      ? `${sorted.length} result${sorted.length === 1 ? "" : "s"} · ${selectedCount} selected`
+      : `${sorted.length} player${sorted.length === 1 ? "" : "s"}`;
 
   return (
     <>
@@ -453,16 +453,23 @@ export default function WeeklyTable({
         )}
       </div>
       <div className="table-toolbar">
-        <span className="table-meta">{sorted.length} players</span>
+        <span className="table-meta">{resultLabel}</span>
         {metaLine}
+        {!mobileLayout ? (
+          <span className="table-meta range-scale-legend range-scale-legend--toolbar" aria-hidden="true">
+            <span>Floor</span>
+            <span>Projection</span>
+            <span>Ceiling</span>
+          </span>
+        ) : null}
         {compareEnabled ? (
           <span className="table-meta table-meta-compare-hint">
-            Select 2–{maxCompare} for start/sit
+            Compare 2–{maxCompare} players
           </span>
         ) : null}
       </div>
       {compareEnabled && selectedCount > 0 ? (
-        <div className="compare-selection-bar" role="region" aria-label="Start/sit selection">
+        <div className="compare-selection-bar" role="region" aria-label="Compare selection">
           <div className="compare-selection-meta">
             <strong>
               {selectedCount} selected
@@ -474,10 +481,26 @@ export default function WeeklyTable({
                   ? ` · max ${maxCompare}`
                   : ` · up to ${maxCompare}`}
             </span>
-            {selectionLabel ? (
-              <span className="compare-selection-names muted" title={selectionLabel}>
-                {selectionLabel}
-              </span>
+            {compareSelectionMeta?.length ? (
+              <div className="compare-selection-chips">
+                {compareSelectionMeta.map((p) => {
+                  const id = String(p.player_id || "");
+                  const name = p.name || id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      className="compare-selection-chip"
+                      onClick={() => onRemoveCompare?.(id)}
+                      aria-label={`Remove ${name} from compare`}
+                      title={`Remove ${name}`}
+                    >
+                      <span>{name}</span>
+                      <span aria-hidden="true">×</span>
+                    </button>
+                  );
+                })}
+              </div>
             ) : null}
           </div>
           <div className="compare-selection-actions">
@@ -557,11 +580,7 @@ export default function WeeklyTable({
                     media={playerMedia}
                     size="sm"
                     showTeam={false}
-                    clickable={Boolean(row.player_id)}
-                    position={position}
-                    season={season}
-                    week={week}
-                    applyInjuryAdjustments={applyInjuryAdjustments}
+                    clickable={false}
                   />
                 )}
                 badge={unavailable ? null : <InjuryStatusTag status={status} />}
@@ -574,6 +593,26 @@ export default function WeeklyTable({
                 actions={
                   pid || compareEnabled ? (
                     <div className="mobile-player-card-action-row">
+                      {pid && playerCard ? (
+                        <button
+                          type="button"
+                          className="btn-ghost btn-sm"
+                          onClick={() =>
+                            playerCard.openPlayerCard({
+                              playerId: pid,
+                              name: row.Player,
+                              team: row.Team,
+                              position,
+                              season,
+                              week,
+                              applyInjuryAdjustments,
+                              scope: "weekly",
+                            })
+                          }
+                        >
+                          Details
+                        </button>
+                      ) : null}
                       {pid ? (
                         <WhyToggleButton
                           playerName={row.Player}
@@ -588,7 +627,7 @@ export default function WeeklyTable({
                             checked={selected}
                             disabled={!canSelect || (selectDisabled && !selected)}
                             onChange={() => onToggleCompare?.(row)}
-                            aria-label={`Select ${row.Player || "player"} for start/sit compare`}
+                            aria-label={`Select ${row.Player || "player"} for compare`}
                           />
                           <span>Compare</span>
                         </label>
@@ -671,11 +710,11 @@ export default function WeeklyTable({
               )}
               {hasSentiment && (
                 <SortHeader
-                  label="Narrative"
+                  label="Analyst signal"
                   sortKey="Narrative"
                   sort={sort}
                   onSort={toggleSort}
-                  tip="Weekly beat/fantasy video tone — bullish, bearish, injury concern, or role hype"
+                  tip="Fantasy analyst signal — hover a tag for recency, confidence, and digest preview"
                   className="col-narrative"
                 />
               )}
@@ -692,7 +731,7 @@ export default function WeeklyTable({
                 sortKey="P90"
                 sort={sort}
                 onSort={toggleSort}
-                tip="Floor-to-ceiling range — sorts by ceiling (P90). Hover a bar for exact values; white tick = projected score; amber = boom/bust spread."
+                tip="Floor / Projection / Ceiling (P10 · P50 · P90). Sorts by ceiling. White tick = projected score; amber = boom/bust spread."
                 className="col-range"
               />
               {showBoost && (

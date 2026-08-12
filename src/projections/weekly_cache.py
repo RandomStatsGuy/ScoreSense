@@ -80,6 +80,8 @@ def load_weekly_prediction(
         if meta.get("fingerprint") == fp:
             df = pd.read_parquet(parquet_path)
             _apply_saved_attrs(df, meta)
+            if meta.get("built_at"):
+                df.attrs["built_at"] = meta["built_at"]
             _WEEKLY_CACHE[key] = (fp, df.copy())
             return df
 
@@ -93,6 +95,9 @@ def load_weekly_prediction(
         apply_injury_adjustments=apply_injury_adjustments,
     )
     save_weekly_artifact(pos, int(season), int(week), apply_injury_adjustments, df)
+    # Mirror the artifact timestamp onto the in-process frame for API freshness.
+    if "built_at" not in df.attrs:
+        df.attrs["built_at"] = datetime.now(timezone.utc).isoformat()
     return df
 
 
@@ -125,6 +130,8 @@ def save_weekly_artifact(
 ) -> Path:
     parquet_path, meta_path = _artifact_paths(position, season, week, apply_injury_adjustments)
     df.to_parquet(parquet_path, index=False)
+    built_at = datetime.now(timezone.utc).isoformat()
+    df.attrs["built_at"] = built_at
     meta: dict[str, Any] = {
         "position": position.lower(),
         "season": season,
@@ -132,7 +139,7 @@ def save_weekly_artifact(
         "apply_injury_adjustments": apply_injury_adjustments,
         "fingerprint": weekly_fingerprint(),
         "rows": int(len(df)),
-        "built_at": datetime.now(timezone.utc).isoformat(),
+        "built_at": built_at,
         "attrs": {
             k: df.attrs[k]
             for k in ("inference_meta", "projection_note", "preseason_mode")

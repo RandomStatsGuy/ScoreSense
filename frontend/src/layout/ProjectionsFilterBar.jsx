@@ -230,7 +230,9 @@ export default function ProjectionsFilterBar(props) {
     <div className="projections-filter-bar" role="region" aria-label="Projection filters">
       <div className="projections-filter-bar-inner">
         <ProjectionsFilterControls layout="bar" {...props} />
-        <p className="projections-filter-scoring-note chart-note">PPR scoring (model default)</p>
+        <p className="projections-filter-scoring-note chart-note" title="ScoreSense weekly model is trained on PPR scoring">
+          Scoring: PPR
+        </p>
       </div>
     </div>
   );

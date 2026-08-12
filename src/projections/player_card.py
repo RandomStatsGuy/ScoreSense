@@ -124,22 +124,34 @@ def _injury_for_player(player_id: str) -> dict[str, Any] | None:
     return None
 
 
+def _narrative_meta_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "season": payload.get("season"),
+        "week": payload.get("week"),
+        "requested_season": payload.get("requested_season"),
+        "requested_week": payload.get("requested_week"),
+        "context_fallback": bool(payload.get("context_fallback")),
+    }
+
+
 def _narrative_for_player(
     player_id: str,
     position: str,
     season: int,
     week: int,
     scope: str,
-) -> dict[str, Any] | None:
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
     pos = position.lower()
     if scope == "season":
         payload = build_fantasy_season_response(pos, season, week)
+        meta = _narrative_meta_from_payload(payload)
         for row in payload.get("players") or []:
             if str(row.get("player_id") or "") == str(player_id):
-                return row
-        return None
+                return row, meta
+        return None, meta
     index = build_fantasy_index(season, week)
-    return (index.get("players") or {}).get(str(player_id))
+    meta = _narrative_meta_from_payload(index)
+    return (index.get("players") or {}).get(str(player_id)), meta
 
 
 def build_player_card(
@@ -149,6 +161,7 @@ def build_player_card(
     week: int | None = None,
     scope: str = "weekly",
     position: str | None = None,
+    apply_injury_adjustments: bool = True,
 ) -> dict[str, Any]:
     pid = str(player_id or "").strip()
     if not pid:
@@ -156,6 +169,7 @@ def build_player_card(
 
     resolved_season, resolved_week = _resolve_context(season, week)
     scope_norm = "season" if str(scope).lower() == "season" else "weekly"
+    apply_injury = bool(apply_injury_adjustments)
 
     media_batch = build_player_media_batch([{"player_id": pid}])
     media = media_batch.get(pid) or {}
@@ -174,7 +188,7 @@ def build_player_card(
                 pos,
                 season=resolved_season,
                 week=resolved_week,
-                apply_injury_adjustments=True,
+                apply_injury_adjustments=apply_injury,
             )
             row = _find_projection_row(preds, pid)
             if row:
@@ -189,13 +203,15 @@ def build_player_card(
             resolved_pos,
             season=resolved_season,
             week=resolved_week,
-            apply_injury_adjustments=True,
+            apply_injury_adjustments=apply_injury,
         )
         season_projection = _find_projection_row(ros, pid)
     except FileNotFoundError:
         season_projection = None
 
-    narrative = _narrative_for_player(pid, resolved_pos, resolved_season, resolved_week, scope_norm)
+    narrative, narrative_meta = _narrative_for_player(
+        pid, resolved_pos, resolved_season, resolved_week, scope_norm
+    )
     injury = _injury_for_player(pid)
 
     name = (
@@ -218,10 +234,12 @@ def build_player_card(
         "weekly_projection": weekly_projection,
         "season_projection": season_projection,
         "narrative": narrative,
+        "narrative_meta": narrative_meta,
         "injury": injury,
         "meta": {
             "season": resolved_season,
             "week": resolved_week,
             "scope": scope_norm,
+            "apply_injury_adjustments": apply_injury,
         },
     })

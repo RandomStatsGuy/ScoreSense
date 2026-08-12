@@ -24,7 +24,7 @@ export function ExportCsvButton({ onExport, disabled }) {
       title="Download filtered table as CSV"
     >
       <DownloadIcon />
-      CSV
+      Export CSV
     </button>
   );
 }
