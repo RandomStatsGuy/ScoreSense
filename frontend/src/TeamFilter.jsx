@@ -38,7 +38,7 @@ export default function TeamFilter({
     return (teams || []).filter((team) => String(team).toLowerCase().includes(q));
   }, [teams, query]);
 
-  const label = `Teams (${selected.length})`;
+  const label = selected.length === 0 ? "All teams" : `Teams (${selected.length})`;
 
   return (
     <div className={`team-filter${isSheet ? " team-filter--sheet" : ""}${className ? ` ${className}` : ""}`} ref={ref}>

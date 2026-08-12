@@ -595,11 +595,11 @@ export default function WeeklyTable({
                 heroValue={unavailable ? tag : fmtNum(row["Projected Points"], 1)}
                 heroLabel={unavailable ? "" : "Proj"}
                 heroSub={unavailable ? null : (
-                  <span className="mobile-player-card-floor-ceil">
+                  <>
                     <span className="sr-only">Floor to ceiling </span>
                     {fmtNum(p10, 1)}–{fmtNum(p90, 1)}
-                    <span className="mobile-player-card-floor-ceil-label" aria-hidden="true"> Floor–Ceiling</span>
-                  </span>
+                    <span className="mobile-player-card-floor-ceil-label" aria-hidden="true">Floor–Ceiling</span>
+                  </>
                 )}
                 heroMuted={unavailable}
                 unavailable={unavailable}
