@@ -97,7 +97,9 @@ export default function UserMenu({
         e.preventDefault();
         items[items.length - 1].focus();
       } else if (e.key === "Tab") {
-        // Leave the portaled menu and close so focus continues in document order.
+        // Portal is outside the trigger's tab sequence; put focus back on the
+        // menu button before unmount so native Tab continues from there.
+        triggerRef.current?.focus();
         setOpen(false);
       }
     };
