@@ -144,6 +144,8 @@ def _row_to_fantasy_player(
         "fantasy_mentions": _fantasy_mentions(row),
         "narrative_source_count": _fantasy_source_count(row),
         "scope": scope,
+        "season": season,
+        "week": week,
     }
     if mention_trend is not None:
         payload["mention_trend"] = mention_trend

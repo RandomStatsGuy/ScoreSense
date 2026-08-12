@@ -136,6 +136,35 @@ def test_build_player_card_honors_injury_flag(monkeypatch):
     assert all(flag is False for _pos, _season, _week, flag in calls)
 
 
+def test_narrative_for_player_weekly_uses_position_response(monkeypatch):
+    """Weekly card narrative must resolve week/fallback by the player's position."""
+    import src.projections.player_card as pc
+
+    calls = []
+
+    def fake_weekly(pos, season, week):
+        calls.append((pos, season, week))
+        return {
+            "season": 2025,
+            "week": 18,
+            "requested_season": season,
+            "requested_week": week,
+            "context_fallback": True,
+            "players": [{"player_id": "qb1", "player": "Test QB"}],
+        }
+
+    monkeypatch.setattr(pc, "build_fantasy_weekly_response", fake_weekly)
+
+    row, meta = pc._narrative_for_player("qb1", "qb", 2026, 1, "weekly")
+    assert calls == [("qb", 2026, 1)]
+    assert row["player_id"] == "qb1"
+    assert meta["season"] == 2025
+    assert meta["week"] == 18
+    assert meta["context_fallback"] is True
+    assert meta["requested_season"] == 2026
+    assert meta["requested_week"] == 1
+
+
 def test_player_card_json_serializable():
     import json
 

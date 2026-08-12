@@ -714,7 +714,7 @@ export default function WeeklyTable({
                   sortKey="Narrative"
                   sort={sort}
                   onSort={toggleSort}
-                  tip="Fantasy analyst signal — hover a tag for recency, confidence, and digest preview"
+                  tip="Fantasy analyst signal — hover a tag for recency and digest preview"
                   className="col-narrative"
                 />
               )}

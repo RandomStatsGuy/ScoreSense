@@ -29,12 +29,7 @@ export default function SentimentBadge({ sentiment, compact = false, table = fal
     sentiment.season != null && sentiment.week != null
       ? `${sentiment.season} · W${sentiment.week}`
       : null;
-  const confidence =
-    sentiment.confidence != null
-      ? String(sentiment.confidence)
-      : Number.isFinite(Number(sentiment.mention_count))
-        ? `${fmtMentions(sentiment.mention_count)} mentions`
-        : null;
+  const confidence = sentiment.confidence != null ? String(sentiment.confidence) : null;
 
   const tipContent = (
     <>

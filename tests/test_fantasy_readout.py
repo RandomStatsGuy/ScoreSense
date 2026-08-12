@@ -123,6 +123,9 @@ def test_build_fantasy_weekly_excludes_beat_only_players(monkeypatch):
     assert player["player_id"] == "p1"
     assert "beat_writer" not in player
     assert player["mention_count"] == pytest.approx(2.0)
+    assert player["season"] == 2026
+    assert player["week"] == 1
+    assert "confidence" not in player
     networks = {s["network"] for s in player["sources"]}
     assert "locked_on" not in networks
     assert "fantasy_footballers" in networks
@@ -140,6 +143,8 @@ def test_build_fantasy_season_aggregates_weeks(monkeypatch):
     player = response["players"][0]
     assert player["mention_count"] == pytest.approx(3.0)
     assert player["weeks_with_mentions"] == 2
+    assert player["season"] == 2026
+    assert player["week"] == 2
     assert player.get("fantasy_digest")
     assert "beat_writer" not in player
 

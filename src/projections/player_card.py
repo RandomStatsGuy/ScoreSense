@@ -14,7 +14,10 @@ from src.draft_hub.draft_enrichment import build_player_media_batch
 from src.integrations.sleeper import injured_players, players_dataframe
 from src.projections.ros_cache import load_ros_prediction
 from src.projections.weekly_cache import load_weekly_prediction
-from src.sentiment.fantasy_readout import build_fantasy_index, build_fantasy_season_response
+from src.sentiment.fantasy_readout import (
+    build_fantasy_season_response,
+    build_fantasy_weekly_response,
+)
 
 POSITIONS = ("qb", "rb", "wr")
 
@@ -144,14 +147,13 @@ def _narrative_for_player(
     pos = position.lower()
     if scope == "season":
         payload = build_fantasy_season_response(pos, season, week)
-        meta = _narrative_meta_from_payload(payload)
-        for row in payload.get("players") or []:
-            if str(row.get("player_id") or "") == str(player_id):
-                return row, meta
-        return None, meta
-    index = build_fantasy_index(season, week)
-    meta = _narrative_meta_from_payload(index)
-    return (index.get("players") or {}).get(str(player_id)), meta
+    else:
+        payload = build_fantasy_weekly_response(pos, season, week)
+    meta = _narrative_meta_from_payload(payload)
+    for row in payload.get("players") or []:
+        if str(row.get("player_id") or "") == str(player_id):
+            return row, meta
+    return None, meta
 
 
 def build_player_card(
