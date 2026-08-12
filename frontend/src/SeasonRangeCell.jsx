@@ -7,7 +7,8 @@ import {
 } from "./seasonQuantiles";
 
 /**
- * Compact P50 + floor–ceiling affordance for Draft Hub / draft tables.
+ * Compact P50 + optional floor–ceiling bar for Draft Hub / draft tables.
+ * Preliminary status belongs in table chrome / tooltips — not a per-row badge.
  */
 export default function SeasonRangeCell({
   row,
@@ -28,16 +29,9 @@ export default function SeasonRangeCell({
       className={`season-range-cell${band.preliminary ? " season-range-cell--preliminary" : ""}${className ? ` ${className}` : ""}`}
       title={tip}
     >
-      <div className="season-range-cell-main">
-        <span className="season-range-cell-p50 num-proj">
-          {formatSeasonPts(band.p50, digits)}
-        </span>
-        {band.preliminary && (
-          <span className="hub-sleeper-badge season-range-prelim-badge" title={tip}>
-            Preliminary
-          </span>
-        )}
-      </div>
+      <span className="season-range-cell-p50 num-proj">
+        {formatSeasonPts(band.p50, digits)}
+      </span>
       {hasRange && showBar ? (
         <div className="season-range-cell-bar">
           <QuantileBar
@@ -50,10 +44,6 @@ export default function SeasonRangeCell({
             subtitle={`${formatSeasonPts(band.p10, digits)} – ${formatSeasonPts(band.p90, digits)} pts`}
           />
         </div>
-      ) : hasRange ? (
-        <span className="season-range-cell-span table-meta">
-          {formatSeasonPts(band.p10, digits)}–{formatSeasonPts(band.p90, digits)}
-        </span>
       ) : null}
     </div>
   );
