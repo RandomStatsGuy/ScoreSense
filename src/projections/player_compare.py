@@ -226,6 +226,23 @@ def _ensure_weekly_pool(
     )
 
 
+def _index_compare_players(
+    pools: dict[str, pd.DataFrame],
+    ids: Sequence[str],
+) -> dict[str, tuple[str, pd.Series]]:
+    """Map requested player_id → (position, row) from loaded weekly pools."""
+    wanted = set(ids)
+    index: dict[str, tuple[str, pd.Series]] = {}
+    for pos, pool in pools.items():
+        if pool.empty or "player_id" not in pool.columns:
+            continue
+        for _, row in pool.iterrows():
+            pid = str(row["player_id"])
+            if pid in wanted and pid not in index:
+                index[pid] = (pos, row)
+    return index
+
+
 def build_player_compare(
     player_ids: Sequence[str],
     *,
@@ -240,29 +257,45 @@ def build_player_compare(
 
     pools: dict[str, pd.DataFrame] = {}
     rank_maps: dict[str, dict[str, int]] = {}
+    # Pass 1: read cached artifacts only — do not warm unused positions.
     for pos in POSITIONS:
-        try:
-            pool = _ensure_weekly_pool(
-                pos,
-                resolved_season,
-                resolved_week,
-                apply_injury_adjustments=apply_injury_adjustments,
-                compute_fn=compute_fn,
-            )
-        except FileNotFoundError:
-            pool = pd.DataFrame()
+        pool = load_weekly_prediction(
+            pos,
+            season=resolved_season,
+            week=resolved_week,
+            apply_injury_adjustments=apply_injury_adjustments,
+            allow_compute=False,
+        )
         pools[pos] = pool
         rank_maps[pos] = position_rank_map(pool)
 
-    # player_id → (position, row)
-    index: dict[str, tuple[str, pd.Series]] = {}
-    for pos, pool in pools.items():
-        if pool.empty or "player_id" not in pool.columns:
-            continue
-        for _, row in pool.iterrows():
-            pid = str(row["player_id"])
-            if pid in ids and pid not in index:
-                index[pid] = (pos, row)
+    index = _index_compare_players(pools, ids)
+    unresolved = [pid for pid in ids if pid not in index]
+
+    # Pass 2: warm only empty pools until requested IDs resolve.
+    service_error: FileNotFoundError | None = None
+    if unresolved:
+        for pos in POSITIONS:
+            if not unresolved:
+                break
+            if not pools[pos].empty:
+                continue
+            try:
+                pool = _ensure_weekly_pool(
+                    pos,
+                    resolved_season,
+                    resolved_week,
+                    apply_injury_adjustments=apply_injury_adjustments,
+                    compute_fn=compute_fn,
+                )
+            except FileNotFoundError as exc:
+                # Preserve service-unavailable signal for the route (HTTP 503).
+                service_error = exc
+                continue
+            pools[pos] = pool
+            rank_maps[pos] = position_rank_map(pool)
+            index = _index_compare_players(pools, ids)
+            unresolved = [pid for pid in ids if pid not in index]
 
     players: list[dict[str, Any]] = []
     missing: list[str] = []
@@ -298,6 +331,8 @@ def build_player_compare(
         )
 
     if len(players) < MIN_COMPARE_PLAYERS:
+        if service_error is not None:
+            raise service_error
         raise ValueError(
             "Could not resolve enough weekly projections for comparison "
             f"(found {len(players)}, need {MIN_COMPARE_PLAYERS}). "
