@@ -100,7 +100,9 @@ export default function InjurySidebar({
                     title="Heuristic from injury type and designation — not an official team report"
                   >
                     {returnEst.text}
-                    <span className="injury-return-estimate-tag">estimate</span>
+                    {returnEst.isEstimate ? (
+                      <span className="injury-return-estimate-tag">estimate</span>
+                    ) : null}
                   </span>
                 ) : null}
                 {updated ? <span className="injury-updated">{updated}</span> : null}

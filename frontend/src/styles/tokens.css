@@ -99,9 +99,12 @@
 
   /* Z-index scale — one source of truth for stacking.
      Ordered so overlays never trap each other:
-     content < sticky headers < bottom nav < invite < sheet < confirm < tooltip. */
+     content < sticky headers < header chrome < dropdowns < bottom nav < invite < sheet < confirm < tooltip.
+     Account menu is portaled to body at --z-dropdown so header backdrop-filter
+     cannot trap it under sticky projection filters / table headers. */
   --z-base: 1;
   --z-sticky: 20;
+  --z-header: 50;
   --z-dropdown: 60;
   --z-bottom-nav: 1100;
   --z-invite: 1200;
