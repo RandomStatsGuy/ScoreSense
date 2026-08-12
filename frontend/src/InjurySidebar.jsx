@@ -57,13 +57,14 @@ export default function InjurySidebar({
   }, [position, selectedTeams, searchQuery, sorted.length]);
 
   if (!isLiveContext) {
+    const weekLabel = defaultWeek != null ? `Week ${defaultWeek}` : "the live week";
     return (
       <section className={`panel injury-sidebar projections-mobile-panel ${className}`.trim()}>
         <div className="injury-sidebar-head">
           <h2>Injuries</h2>
         </div>
         <div className="state-empty-callout sidebar-empty-callout" role="status">
-          Injuries appear during the live NFL week — switch to Wk {defaultWeek} to view current designations.
+          No injury data is available for this week. View {weekLabel} data for current designations.
         </div>
       </section>
     );
