@@ -4,6 +4,7 @@ import { isAbortError } from "./fetchAbort";
 import Chip, { injuryChipTone } from "./Chip";
 import PlayerCell from "./PlayerCell";
 import SentimentBadge from "./SentimentBadge";
+import ProjectionExplanationPanel from "./ProjectionExplanationPanel";
 import QuantileBar from "./QuantileBarShared";
 import { connectionErrorMessage, parseApiError } from "./format";
 import useMobileLayout from "./useMobileLayout";
@@ -41,7 +42,14 @@ function ScaledRangeBar({ p10, p50, p90, title, subtitle, formatValue }) {
   );
 }
 
-function PlayerCardBody({ data, loading, error, fallbackName }) {
+function PlayerCardBody({ data, loading, error, fallbackName, request }) {
+  const [whyOpen, setWhyOpen] = useState(false);
+  const explainPlayerId = data?.player_id || request?.playerId || "";
+
+  useEffect(() => {
+    setWhyOpen(false);
+  }, [explainPlayerId]);
+
   if (loading) {
     return <p className="player-card-loading chart-note">Loading player…</p>;
   }
@@ -54,6 +62,7 @@ function PlayerCardBody({ data, loading, error, fallbackName }) {
   const season = data.season_projection;
   const narrative = data.narrative;
   const injury = data.injury;
+  const canExplain = Boolean(data.player_id && weekly);
   const seasonBand = season
     ? resolveSeasonBand({
       ...season,
@@ -168,6 +177,30 @@ function PlayerCardBody({ data, loading, error, fallbackName }) {
           <p className="state-empty-text player-card-empty">No analyst context for this player yet.</p>
         )}
       </section>
+
+      {canExplain ? (
+        <section className="player-card-section player-card-section--why">
+          <button
+            type="button"
+            className={`btn-ghost btn-sm why-toggle${whyOpen ? " why-toggle--open" : ""}`}
+            onClick={() => setWhyOpen((v) => !v)}
+            aria-expanded={whyOpen}
+          >
+            Why this projection?
+          </button>
+          {whyOpen ? (
+            <ProjectionExplanationPanel
+              playerId={data.player_id}
+              season={request?.season}
+              week={request?.week}
+              position={request?.position || data.position}
+              applyInjuryAdjustments={request?.applyInjuryAdjustments ?? true}
+              active
+              className="projection-explanation--card"
+            />
+          ) : null}
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -231,6 +264,7 @@ export default function PlayerCardModal({ request, onClose }) {
       loading={loading}
       error={error}
       fallbackName={request.playerName}
+      request={request}
     />
   );
 
