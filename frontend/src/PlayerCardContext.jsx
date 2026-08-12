@@ -16,6 +16,7 @@ export function PlayerCardProvider({ children }) {
       season: params.season,
       week: params.week,
       scope: params.scope || "weekly",
+      applyInjuryAdjustments: params.applyInjuryAdjustments,
     });
   }, []);
 

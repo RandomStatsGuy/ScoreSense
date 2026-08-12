@@ -194,7 +194,7 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
               season={request?.season}
               week={request?.week}
               position={request?.position || data.position}
-              applyInjuryAdjustments
+              applyInjuryAdjustments={request?.applyInjuryAdjustments ?? true}
               active
               className="projection-explanation--card"
             />

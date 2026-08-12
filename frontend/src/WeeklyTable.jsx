@@ -171,6 +171,7 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
             position={position}
             season={season}
             week={week}
+            applyInjuryAdjustments={applyInjuryAdjustments}
           />
           <InjuryStatusTag status={unavailable ? "" : status} />
           {canExplain ? (
@@ -560,6 +561,7 @@ export default function WeeklyTable({
                     position={position}
                     season={season}
                     week={week}
+                    applyInjuryAdjustments={applyInjuryAdjustments}
                   />
                 )}
                 badge={unavailable ? null : <InjuryStatusTag status={status} />}

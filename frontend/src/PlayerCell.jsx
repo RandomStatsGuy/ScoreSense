@@ -71,6 +71,7 @@ export default function PlayerCell({
   position,
   season,
   week,
+  applyInjuryAdjustments,
   narrativeScope = "weekly",
   onPlayerClick,
 }) {
@@ -91,6 +92,7 @@ export default function PlayerCell({
       position,
       season,
       week,
+      applyInjuryAdjustments,
       scope: narrativeScope,
     };
     if (onPlayerClick) onPlayerClick(payload);
