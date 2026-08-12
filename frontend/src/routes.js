@@ -270,6 +270,21 @@ export function buildAppPath({
   return "/projections/weekly";
 }
 
+/** Parse comma-separated compare player IDs (SCORE-4 start/sit), capped at 4. */
+export function parseCompareIds(raw) {
+  if (raw == null || raw === "") return [];
+  const seen = new Set();
+  const out = [];
+  for (const part of String(raw).split(",")) {
+    const id = part.trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+    if (out.length >= 4) break;
+  }
+  return out;
+}
+
 export function parseFilterParams(searchParams) {
   const pos = searchParams.get("pos");
   const season = searchParams.get("season");
@@ -279,6 +294,9 @@ export function parseFilterParams(searchParams) {
   const fromWeek = searchParams.get("fromWeek");
   const rosSeason = searchParams.get("rosSeason");
   const search = searchParams.get("q");
+  const compareRaw = searchParams.get("compare");
+  const compareIds = parseCompareIds(compareRaw);
+  const compareView = searchParams.get("cmp") === "1";
 
   return {
     position: pos && ["qb", "rb", "wr"].includes(pos) ? pos : null,
@@ -289,6 +307,9 @@ export function parseFilterParams(searchParams) {
     rosFromWeek: fromWeek != null && fromWeek !== "" ? Number(fromWeek) : null,
     rosSeason: rosSeason != null && rosSeason !== "" ? Number(rosSeason) : null,
     search: search != null && search !== "" ? search : null,
+    compareIds: compareIds.length ? compareIds : null,
+    /** Open state for the comparison panel (`cmp=1` deep-link, SCORE-4). */
+    compareView,
   };
 }
 
@@ -301,6 +322,8 @@ export function buildFilterSearchParams({
   rosSeason,
   rosFromWeek,
   search,
+  compareIds,
+  compareView,
   preserveParams,
 }) {
   const params = new URLSearchParams(preserveParams || undefined);
@@ -332,6 +355,22 @@ export function buildFilterSearchParams({
     params.set("q", String(search).trim());
   } else {
     params.delete("q");
+  }
+
+  // Only touch compare / cmp when callers pass them explicitly so unrelated
+  // filter updates preserve selection + open state via preserveParams.
+  if (compareIds !== undefined) {
+    const ids = parseCompareIds(compareIds);
+    if (ids.length) params.set("compare", ids.join(","));
+    else params.delete("compare");
+  }
+
+  if (compareView !== undefined) {
+    const ids = parseCompareIds(
+      compareIds !== undefined ? compareIds : params.get("compare"),
+    );
+    if (compareView && ids.length >= 2) params.set("cmp", "1");
+    else params.delete("cmp");
   }
 
   return params;
