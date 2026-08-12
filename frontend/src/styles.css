@@ -3524,6 +3524,44 @@ code {
   align-items: start;
 }
 
+/*
+ * Season Live: many numeric columns need the full panel width. Keep the
+ * analyst panel as a compact strip until the user expands it; then use a
+ * capped sidebar instead of a ~40% column that crushes the table.
+ */
+@media (min-width: 901px) {
+  .projections-grid--season-live {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .projections-grid--season-live:has(.sentiment-panel--open) {
+    grid-template-columns: minmax(0, 2.6fr) minmax(260px, 22rem);
+  }
+
+  .projections-grid--season-live > .sentiment-panel--collapsed {
+    order: -1;
+  }
+
+  .panel-season .sentiment-panel {
+    background: rgba(15, 23, 42, 0.35);
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  .panel-season .sentiment-panel--collapsed {
+    padding: 0.55rem 0.75rem;
+  }
+
+  .panel-season .sentiment-panel--collapsed .sentiment-panel-head {
+    margin-bottom: 0;
+    align-items: center;
+  }
+
+  .panel-season .sentiment-panel--collapsed .sentiment-panel-summary {
+    margin: 0;
+  }
+}
+
 .panel {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
