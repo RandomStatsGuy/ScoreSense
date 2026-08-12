@@ -1245,6 +1245,7 @@ export default function App() {
                 position={position}
                 season={season}
                 week={week}
+                applyInjuryAdjustments={isLiveContext}
                 onClearFilters={clearTableFilters}
                 compareEnabled
                 selectedCompareIds={compareIds}

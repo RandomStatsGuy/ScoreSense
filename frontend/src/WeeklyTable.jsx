@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Chip, { injuryChipTone } from "./Chip";
 import { fmtNum, isPlayerUnavailable, unavailableLabel } from "./format";
 import {
@@ -13,6 +13,7 @@ import {
 } from "./table";
 import QuantileBar from "./QuantileBarShared";
 import SentimentBadge from "./SentimentBadge";
+import ProjectionExplanationPanel from "./ProjectionExplanationPanel";
 import { TableSkeleton } from "./TableSkeleton";
 import useMobileLayout from "./useMobileLayout";
 import MobileDataList, { MobileStat } from "./MobileDataList";
@@ -79,6 +80,24 @@ export function InjuryStatusTag({ status }) {
   );
 }
 
+function WhyToggleButton({ playerName, expanded, onToggle }) {
+  return (
+    <button
+      type="button"
+      className={`btn-ghost btn-sm why-toggle${expanded ? " why-toggle--open" : ""}`}
+      onClick={(event) => {
+        event.stopPropagation();
+        onToggle?.();
+      }}
+      aria-expanded={expanded}
+      aria-label={`Why this projection for ${playerName || "player"}`}
+      title="Why this projection?"
+    >
+      Why?
+    </button>
+  );
+}
+
 const WeeklyTableRow = React.memo(function WeeklyTableRow({
   row,
   rowIndex,
@@ -97,6 +116,10 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   selected,
   selectDisabled,
   onToggleSelect,
+  whyExpanded,
+  onToggleWhy,
+  whyColSpan,
+  applyInjuryAdjustments,
 }) {
   const status = row["Injury Status"] || "";
   const unavailable = isPlayerUnavailable(status);
@@ -106,12 +129,15 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   const tag = unavailableLabel(status);
   const tone = matchupTone(row["Opp Def Rank"], dvpTeamCount);
   const canSelect = compareEnabled && Boolean(row.player_id) && !unavailable;
+  const canExplain = Boolean(row.player_id);
 
   return (
+    <>
     <tr
       className={[
         unavailable ? "row-unavailable" : "",
         selected ? "row-compare-selected" : "",
+        whyExpanded ? "row-why-open" : "",
       ]
         .filter(Boolean)
         .join(" ") || undefined}
@@ -147,6 +173,13 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
             week={week}
           />
           <InjuryStatusTag status={unavailable ? "" : status} />
+          {canExplain ? (
+            <WhyToggleButton
+              playerName={row.Player}
+              expanded={whyExpanded}
+              onToggle={onToggleWhy}
+            />
+          ) : null}
         </span>
         <span className="col-player-mobile-meta">
           {row.Team || "—"}
@@ -212,6 +245,21 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
         </>
       )}
     </tr>
+    {whyExpanded && canExplain ? (
+      <tr className="row-why-panel">
+        <td colSpan={whyColSpan}>
+          <ProjectionExplanationPanel
+            playerId={row.player_id}
+            season={season}
+            week={week}
+            position={position}
+            applyInjuryAdjustments={applyInjuryAdjustments}
+            active
+          />
+        </td>
+      </tr>
+    ) : null}
+    </>
   );
 });
 
@@ -252,6 +300,7 @@ export default function WeeklyTable({
   position,
   season,
   week,
+  applyInjuryAdjustments = true,
   onClearFilters,
   /** SCORE-4: enable 2–4 player start/sit multi-select. */
   compareEnabled = false,
@@ -263,6 +312,7 @@ export default function WeeklyTable({
   compareSelectionMeta = null,
 }) {
   const [sort, toggleSort] = useTableSort({ column: "P50", dir: "desc" });
+  const [whyPlayerId, setWhyPlayerId] = useState(null);
   const mobileLayout = useMobileLayout();
   const selectedSet = useMemo(
     () => new Set((selectedCompareIds || []).map(String)),
@@ -270,6 +320,16 @@ export default function WeeklyTable({
   );
   const selectedCount = selectedSet.size;
   const selectDisabled = selectedCount >= maxCompare;
+
+  const toggleWhy = (playerId) => {
+    const id = playerId ? String(playerId) : "";
+    if (!id) return;
+    setWhyPlayerId((prev) => (prev === id ? null : id));
+  };
+
+  useEffect(() => {
+    setWhyPlayerId(null);
+  }, [position, season, week, applyInjuryAdjustments]);
 
   const showOpponent = useMemo(
     () => (rows || []).some((row) => row.Opponent),
@@ -510,17 +570,28 @@ export default function WeeklyTable({
                 heroMuted={unavailable}
                 unavailable={unavailable}
                 actions={
-                  compareEnabled ? (
-                    <label className="compare-select-label compare-select-label--mobile">
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        disabled={!canSelect || (selectDisabled && !selected)}
-                        onChange={() => onToggleCompare?.(row)}
-                        aria-label={`Select ${row.Player || "player"} for start/sit compare`}
-                      />
-                      <span>Compare</span>
-                    </label>
+                  pid || compareEnabled ? (
+                    <div className="mobile-player-card-action-row">
+                      {pid ? (
+                        <WhyToggleButton
+                          playerName={row.Player}
+                          expanded={whyPlayerId === pid}
+                          onToggle={() => toggleWhy(pid)}
+                        />
+                      ) : null}
+                      {compareEnabled ? (
+                        <label className="compare-select-label compare-select-label--mobile">
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            disabled={!canSelect || (selectDisabled && !selected)}
+                            onChange={() => onToggleCompare?.(row)}
+                            aria-label={`Select ${row.Player || "player"} for start/sit compare`}
+                          />
+                          <span>Compare</span>
+                        </label>
+                      ) : null}
+                    </div>
                   ) : null
                 }
                 expanded={(
@@ -555,6 +626,17 @@ export default function WeeklyTable({
                       <div className="mobile-player-card-sentiment">
                         <SentimentBadge sentiment={row.sentiment} compact />
                       </div>
+                    ) : null}
+                    {pid && whyPlayerId === pid ? (
+                      <ProjectionExplanationPanel
+                        playerId={pid}
+                        season={season}
+                        week={week}
+                        position={position}
+                        applyInjuryAdjustments={applyInjuryAdjustments}
+                        active
+                        className="projection-explanation--mobile"
+                      />
                     ) : null}
                   </>
                 )}
@@ -657,6 +739,10 @@ export default function WeeklyTable({
                 selected={pid ? selectedSet.has(pid) : false}
                 selectDisabled={selectDisabled}
                 onToggleSelect={onToggleCompare}
+                whyExpanded={Boolean(pid && whyPlayerId === pid)}
+                onToggleWhy={() => toggleWhy(pid)}
+                whyColSpan={emptyColSpan}
+                applyInjuryAdjustments={applyInjuryAdjustments}
               />
               );
             })}
