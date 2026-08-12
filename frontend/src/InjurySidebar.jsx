@@ -13,6 +13,35 @@ const SEVERITY_ORDER = {
   Questionable: 4,
 };
 
+/** Compact status label for the narrow sidebar; full status stays in title/aria. */
+function injuryStatusShort(status) {
+  const s = String(status || "").trim();
+  const lower = s.toLowerCase();
+  if (lower.includes("questionable")) return "Q";
+  if (lower.includes("doubtful")) return "D";
+  if (lower.includes("probable")) return "P";
+  if (/(^|\s)out(\s|$)/i.test(s)) return "Out";
+  if (/\bir\b/i.test(s)) return "IR";
+  if (/\bpup\b/i.test(s)) return "PUP";
+  return s.length > 8 ? `${s.slice(0, 7)}…` : s;
+}
+
+function compactReturnLabel(returnEst) {
+  if (!returnEst?.text) return null;
+  // "Est. return: 1-3 weeks" → "1–3 wk"
+  let label = String(returnEst.text).replace(/^Est\.\s*return:\s*/i, "").trim();
+  label = label
+    .replace(/\bweeks?\b/gi, "wk")
+    .replace(/\bdays?\b/gi, "d")
+    .replace(/\s*-\s*/g, "–");
+  return label;
+}
+
+function compactUpdated(updated) {
+  if (!updated) return null;
+  return String(updated).replace(/^Updated\s+/i, "");
+}
+
 function injuryCardClass(status) {
   const s = String(status || "").toLowerCase();
   if (/(out|ir|pup|inactive|suspended)/.test(s)) return "injury-card injury-card--severe";
@@ -83,32 +112,38 @@ export default function InjurySidebar({
           {sorted.length === 0 && <li className="muted">No matching injuries</li>}
           {sorted.map((p) => {
             const detail = injuryDetailLine(p);
-            const updated = formatRelativeTime(p.news_updated);
+            const updated = compactUpdated(formatRelativeTime(p.news_updated));
             const returnEst = formatReturnEstimate(p.return_estimate);
+            const returnLabel = compactReturnLabel(returnEst);
+            const statusShort = injuryStatusShort(p.injury_status);
+            const metaBits = [
+              p.team,
+              detail,
+              returnLabel,
+              updated,
+            ].filter(Boolean);
+
             return (
               <li key={p.sleeper_id} className={injuryCardClass(p.injury_status)}>
-                <span className="injury-card-name">{p.full_name}</span>
-                <span className="injury-row-meta">
-                  <span className="injury-row-team">
-                    {p.team} · {p.position}
+                <div className="injury-card-top">
+                  <span className="injury-card-name" title={p.full_name}>
+                    {p.full_name}
                   </span>
-                  <Chip tone={injuryChipTone(p.injury_status)}>{p.injury_status}</Chip>
-                </span>
-                {detail ? <span className="injury-detail">{detail}</span> : null}
-                {(returnEst || updated) ? (
-                  <div className="injury-card-foot">
-                    {returnEst ? (
-                      <Chip
-                        tone="neutral"
-                        className="injury-return-chip"
-                        title="Heuristic from injury type and designation — not an official team report"
-                      >
-                        {returnEst.text}
-                        {returnEst.isEstimate ? " · est." : ""}
-                      </Chip>
-                    ) : null}
-                    {updated ? <span className="injury-updated">{updated}</span> : null}
-                  </div>
+                  {p.injury_status ? (
+                    <Chip
+                      tone={injuryChipTone(p.injury_status)}
+                      className="injury-status-chip"
+                      title={p.injury_status}
+                      aria-label={`Injury status: ${p.injury_status}`}
+                    >
+                      {statusShort}
+                    </Chip>
+                  ) : null}
+                </div>
+                {metaBits.length ? (
+                  <p className="injury-card-meta" title={metaBits.join(" · ")}>
+                    {metaBits.join(" · ")}
+                  </p>
                 ) : null}
               </li>
             );
