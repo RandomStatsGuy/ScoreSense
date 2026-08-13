@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import Chip, { injuryChipTone } from "./Chip";
-import { formatRelativeTime, formatReturnEstimate, injuryDetailLine } from "./format";
+import { formatRelativeTime, formatReturnEstimate } from "./format";
 
 const POSITION_LABELS = { qb: "QB", rb: "RB", wr: "WR/TE" };
 const POSITION_PLURAL = { qb: "QBs", rb: "RBs", wr: "WR/TE" };
@@ -26,15 +26,18 @@ function injuryStatusShort(status) {
   return s.length > 8 ? `${s.slice(0, 7)}…` : s;
 }
 
+const RETURN_HEURISTIC_TITLE =
+  "Heuristic from injury type and designation — not an official team report";
+
 function compactReturnLabel(returnEst) {
   if (!returnEst?.text) return null;
-  // "Est. return: 1-3 weeks" → "1–3 wk"
+  // "Est. return: 1-3 weeks" → "est. 1–3 wk"
   let label = String(returnEst.text).replace(/^Est\.\s*return:\s*/i, "").trim();
   label = label
     .replace(/\bweeks?\b/gi, "wk")
     .replace(/\bdays?\b/gi, "d")
     .replace(/\s*-\s*/g, "–");
-  return label;
+  return returnEst.isEstimate ? `est. ${label}` : label;
 }
 
 function compactUpdated(updated) {
@@ -111,17 +114,15 @@ export default function InjurySidebar({
         <ul className="injury-list">
           {sorted.length === 0 && <li className="muted">No matching injuries</li>}
           {sorted.map((p) => {
-            const detail = injuryDetailLine(p);
+            const bodyPart = String(p.injury_body_part || "").trim() || null;
+            const notes = String(p.injury_notes || "").trim() || null;
             const updated = compactUpdated(formatRelativeTime(p.news_updated));
             const returnEst = formatReturnEstimate(p.return_estimate);
             const returnLabel = compactReturnLabel(returnEst);
             const statusShort = injuryStatusShort(p.injury_status);
-            const metaBits = [
-              p.team,
-              detail,
-              returnLabel,
-              updated,
-            ].filter(Boolean);
+            const leadBits = [p.team, bodyPart].filter(Boolean);
+            const tailBits = [returnLabel, updated].filter(Boolean);
+            const metaTitle = [...leadBits, notes, ...tailBits].filter(Boolean).join(" · ");
 
             return (
               <li key={p.sleeper_id} className={injuryCardClass(p.injury_status)}>
@@ -140,9 +141,26 @@ export default function InjurySidebar({
                     </Chip>
                   ) : null}
                 </div>
-                {metaBits.length ? (
-                  <p className="injury-card-meta" title={metaBits.join(" · ")}>
-                    {metaBits.join(" · ")}
+                {(leadBits.length || notes || tailBits.length) ? (
+                  <p className="injury-card-meta" title={metaTitle}>
+                    {leadBits.length ? (
+                      <span className="injury-card-meta-lead">{leadBits.join(" · ")}</span>
+                    ) : null}
+                    {notes ? (
+                      <span className="injury-card-meta-notes">
+                        {leadBits.length ? " · " : ""}
+                        {notes}
+                      </span>
+                    ) : null}
+                    {tailBits.length ? (
+                      <span
+                        className="injury-card-meta-tail"
+                        title={returnLabel ? RETURN_HEURISTIC_TITLE : undefined}
+                      >
+                        {leadBits.length || notes ? " · " : ""}
+                        {tailBits.join(" · ")}
+                      </span>
+                    ) : null}
                   </p>
                 ) : null}
               </li>
