@@ -12181,3 +12181,165 @@ td.col-rank.col-rank-top {
     padding: 0.55rem 0.6rem;
   }
 }
+
+/* —— Weekly Command Center (SCORE-6) —— */
+.hub-wcc-toolbar {
+  margin-bottom: 0.35rem;
+}
+
+.hub-wcc-sync-msg {
+  margin: 0 0 0.75rem;
+}
+
+.hub-wcc-decision-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.hub-wcc-decision {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  background: linear-gradient(145deg, rgba(59, 130, 246, 0.12) 0%, rgba(15, 23, 42, 0.35) 100%);
+}
+
+.hub-wcc-decision-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.hub-wcc-decision-message {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+
+.hub-wcc-decision-meta {
+  margin: 0.3rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.hub-wcc-decision-delta {
+  flex-shrink: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #93c5fd;
+  letter-spacing: -0.02em;
+}
+
+.hub-wcc-top-messages,
+.hub-wcc-range-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.hub-wcc-range-item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+}
+
+.hub-wcc-range-vals {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.hub-wcc-player-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.hub-wcc-flags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.hub-wcc-flag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.4rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.hub-wcc-flag--warn {
+  color: #fcd34d;
+  border-color: rgba(252, 211, 77, 0.35);
+  background: rgba(252, 211, 77, 0.08);
+}
+
+.hub-wcc-flag--danger {
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.hub-wcc-flag--muted {
+  color: var(--text-muted);
+}
+
+.hub-wcc-mobile-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.85rem;
+  margin-top: 0.35rem;
+}
+
+.hub-wcc-roster-toggle {
+  margin: 0 0 0.85rem;
+}
+
+.hub-wcc-table td,
+.hub-wcc-table th {
+  white-space: nowrap;
+}
+
+.hub-wcc-table .col-player {
+  white-space: normal;
+}
+
+@media (max-width: 768px) {
+  .hub-wcc-decisions {
+    order: -1;
+  }
+
+  .hub-wcc .hub-stat-grid {
+    margin-bottom: 0.75rem;
+  }
+
+  .hub-wcc-decision {
+    padding: 0.75rem 0.8rem;
+  }
+
+  .hub-wcc-decision-delta {
+    font-size: 1.15rem;
+  }
+}

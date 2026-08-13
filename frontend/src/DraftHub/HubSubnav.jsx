@@ -5,6 +5,7 @@ import MobileBottomSheet from "../layout/MobileBottomSheet";
 export const HUB_SUBVIEWS = [
   { id: "value", label: "Players", shortLabel: "Players", hint: "Prices", group: "prep" },
   { id: "room", label: "Draft", shortLabel: "Draft", hint: "Live auction", group: "prep" },
+  { id: "week", label: "Your Week", shortLabel: "Week", hint: "Lineup decisions", group: "season" },
   { id: "roster", label: "My team", shortLabel: "My team", hint: "Your contracts", group: "season" },
   { id: "rosters", label: "Rosters", shortLabel: "Rosters", leagueOnly: true, hint: "All teams", group: "season" },
   { id: "planner", label: "Cap", shortLabel: "Cap", hint: "Cap & cuts", group: "season" },
