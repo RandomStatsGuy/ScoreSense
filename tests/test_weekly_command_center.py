@@ -315,6 +315,140 @@ def test_bench_over_starter_decision():
     assert "bench_p50_above_threshold" in decisions[0]["reasons"]
 
 
+def test_no_illegal_flex_swap_onto_te_or_rb_slot():
+    starters = [
+        {
+            "player_id": "te-start",
+            "player_name": "TE Starter",
+            "position": "TE",
+            "slot": "TE",
+            "p50": None,
+            "has_projection": False,
+        },
+        {
+            "player_id": "rb-start",
+            "player_name": "RB Starter",
+            "position": "RB",
+            "slot": "RB2",
+            "p50": 8.0,
+            "p10": 3.0,
+            "has_projection": True,
+            "volatility": 0.3,
+        },
+        {
+            "player_id": "flex-start",
+            "player_name": "FLEX RB",
+            "position": "RB",
+            "slot": "FLEX",
+            "p50": 8.0,
+            "p10": 3.0,
+            "has_projection": True,
+            "volatility": 0.3,
+        },
+    ]
+    bench = [
+        {
+            "player_id": "wr-bench",
+            "player_name": "Bench WR",
+            "position": "WR",
+            "slot": "BN",
+            "p50": 16.0,
+            "p10": 7.0,
+            "has_projection": True,
+            "volatility": 0.4,
+        }
+    ]
+    decisions = build_lineup_decisions(starters, bench, threshold=2.0)
+    assert [d["starter_slot"] for d in decisions] == ["FLEX"]
+    assert decisions[0]["bench_player_id"] == "wr-bench"
+
+
+def test_bye_and_injured_bench_not_recommended():
+    starters = [
+        {
+            "player_id": "wr-start",
+            "player_name": "Healthy WR",
+            "position": "WR",
+            "slot": "WR2",
+            "p50": 10.0,
+            "p10": 4.0,
+            "has_projection": True,
+            "volatility": 0.4,
+            "on_bye": False,
+            "injured": False,
+        }
+    ]
+    bench = [
+        {
+            "player_id": "wr-bye",
+            "player_name": "Bye WR",
+            "position": "WR",
+            "slot": "BN",
+            "p50": 20.0,
+            "p10": 8.0,
+            "has_projection": True,
+            "volatility": 0.4,
+            "on_bye": True,
+            "injured": False,
+        },
+        {
+            "player_id": "wr-out",
+            "player_name": "Out WR",
+            "position": "WR",
+            "slot": "BN",
+            "p50": 19.0,
+            "p10": 8.0,
+            "has_projection": True,
+            "volatility": 0.4,
+            "on_bye": False,
+            "injured": True,
+        },
+    ]
+    decisions = build_lineup_decisions(starters, bench, threshold=2.0)
+    assert decisions == []
+
+
+def test_one_decision_per_bench_player():
+    starters = [
+        {
+            "player_id": "wr1",
+            "player_name": "WR1",
+            "position": "WR",
+            "slot": "WR1",
+            "p50": 10.0,
+            "p10": 4.0,
+            "has_projection": True,
+            "volatility": 0.3,
+        },
+        {
+            "player_id": "wr2",
+            "player_name": "WR2",
+            "position": "WR",
+            "slot": "WR2",
+            "p50": 8.0,
+            "p10": 3.0,
+            "has_projection": True,
+            "volatility": 0.3,
+        },
+    ]
+    bench = [
+        {
+            "player_id": "wr-bench",
+            "player_name": "Bench WR",
+            "position": "WR",
+            "slot": "BN",
+            "p50": 20.0,
+            "p10": 9.0,
+            "has_projection": True,
+            "volatility": 0.4,
+        }
+    ]
+    decisions = build_lineup_decisions(starters, bench, threshold=2.0)
+    assert len(decisions) == 1
+    assert decisions[0]["bench_player_id"] == "wr-bench"
+    assert decisions[0]["starter_player_id"] == "wr2"
+
+
 def test_build_command_center_payload(hub_db):
     league, team, ws, comm = _seed_league_roster(hub_db)
     from src.draft_hub.hub_context import resolve_hub_context

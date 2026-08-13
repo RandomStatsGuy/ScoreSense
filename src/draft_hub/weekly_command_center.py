@@ -328,13 +328,10 @@ def _same_or_flex_match(
     bp = bench.get("position")
     if sp == bp:
         return True
-    # Bench can replace a FLEX starter if both are flex-eligible.
+    # Dedicated RB/WR/TE slots are not interchangeable. A bench player may only
+    # replace a FLEX starter when they are flex-eligible.
     if str(starter.get("slot") or "").startswith("FLEX"):
         return bp in flex_eligible
-    # Bench flex-eligible player can challenge a starter of another flex position
-    # only when comparing into a flex-eligible starter slot that could move.
-    if sp in flex_eligible and bp in flex_eligible:
-        return True
     return False
 
 
@@ -356,6 +353,10 @@ def build_lineup_decisions(
             bid = str(bench_player["player_id"])
             pair = (bid, sid)
             if pair in seen_pairs:
+                continue
+            # Bye / Out / IR bench players are not startable this week even if
+            # artifacts still emit a P50.
+            if bench_player.get("on_bye") or bench_player.get("injured"):
                 continue
             if not _same_or_flex_match(starter, bench_player, flex_eligible):
                 continue
@@ -447,13 +448,21 @@ def build_lineup_decisions(
         ),
         reverse=True,
     )
-    # One recommendation per starter slot (highest-value challenger wins).
-    best_by_starter: dict[str, dict[str, Any]] = {}
+    # One recommendation per starter slot and per bench player: the same bench
+    # player cannot be started in two slots, and each slot keeps its highest-
+    # value unused challenger (decisions are already ranked).
+    assigned: list[dict[str, Any]] = []
+    used_starters: set[str] = set()
+    used_bench: set[str] = set()
     for decision in decisions:
         sid = str(decision["starter_player_id"])
-        if sid not in best_by_starter:
-            best_by_starter[sid] = decision
-    return list(best_by_starter.values())
+        bid = str(decision["bench_player_id"])
+        if sid in used_starters or bid in used_bench:
+            continue
+        used_starters.add(sid)
+        used_bench.add(bid)
+        assigned.append(decision)
+    return assigned
 
 
 def build_wide_ranges(
