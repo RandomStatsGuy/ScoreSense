@@ -554,6 +554,39 @@ def hub_list_roster(
     return {"roster": roster, "count": len(roster), "hub_context": ctx}
 
 
+@router.get("/week")
+def hub_weekly_command_center(
+    response: Response,
+    season: Optional[int] = Query(None, description="NFL season (defaults from hub + mlready)"),
+    week: Optional[int] = Query(None, description="NFL week (defaults from mlready context)"),
+    apply_injury_adjustments: bool = Query(True),
+    bench_over_starter_threshold: float = Query(
+        2.0,
+        ge=0.0,
+        description="Bench P50 must exceed starter P50 by this amount to recommend a swap",
+    ),
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Personalized Your Week command center — roster × weekly artifacts (no live Sleeper)."""
+    from fastapi.encoders import jsonable_encoder
+
+    from src.draft_hub.weekly_command_center import build_weekly_command_center
+
+    with HubTimer("week", response) as timer:
+        with timer.phase("ctx"):
+            sub = _sub(_user)
+            ctx = _ctx(sub)
+        with timer.phase("build"):
+            payload = build_weekly_command_center(
+                ctx,
+                season=season,
+                week=week,
+                apply_injury_adjustments=apply_injury_adjustments,
+                bench_over_starter_threshold=bench_over_starter_threshold,
+            )
+    return jsonable_encoder(payload)
+
+
 @router.post("/roster")
 def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
