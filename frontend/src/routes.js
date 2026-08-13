@@ -2,6 +2,7 @@
 export const HUB_SLUG_TO_ID = {
   setup: "setup",
   players: "value",
+  week: "week",
   roster: "roster",
   rosters: "rosters",
   draft: "room",
@@ -15,6 +16,7 @@ export const HUB_SLUG_TO_ID = {
 export const HUB_ID_TO_SLUG = {
   setup: "setup",
   value: "players",
+  week: "week",
   roster: "roster",
   rosters: "rosters",
   room: "draft",

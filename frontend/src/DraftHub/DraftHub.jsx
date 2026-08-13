@@ -21,6 +21,7 @@ import LeagueRostersBrowser from "./LeagueRostersBrowser";
 import LeagueContextBanner from "./LeagueContextBanner";
 import HubDataFreshness from "./HubDataFreshness";
 import HubDemoBanner from "./HubDemoBanner";
+import WeeklyCommandCenter from "./WeeklyCommandCenter";
 import { defaultInsightTab, isInsightTabAllowed } from "./hubInsightsTabs";
 import { defaultOfficeTab, isOfficeTabAllowed } from "./hubOfficeTabs";
 import {
@@ -695,6 +696,20 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
             ?? 0
           }
           rules={effectiveCtx?.rules || workspace?.rules || null}
+        />
+      )}
+
+      {subView === "week" && (
+        <WeeklyCommandCenter
+          hubContext={effectiveCtx}
+          onSynced={async (result) => {
+            if (result?.hub_context) applyHubContext(result.hub_context);
+            const lid = effectiveCtx?.league_id;
+            if (lid) invalidateFreshnessCache(lid);
+            clearHubDataCache();
+            await onRosterChanged();
+          }}
+          onNavigateSetup={() => setSubView("setup")}
         />
       )}
 
