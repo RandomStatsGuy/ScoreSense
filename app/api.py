@@ -178,6 +178,7 @@ def health() -> dict:
             "draft_hub": "/api/hub/workspace" in route_paths,
             "player_compare": "/api/predict/compare" in route_paths,
             "projection_explanation": "/api/player/{player_id}/explanation" in route_paths,
+            "weekly_command_center": "/api/hub/week" in route_paths,
         },
     }
 
