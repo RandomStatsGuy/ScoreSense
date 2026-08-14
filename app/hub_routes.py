@@ -785,6 +785,7 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
                 any_team=False,
                 pending_type=str(body.contract_type),
                 pending_by=sub,
+                edited_by_sub=sub,
             )
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -799,6 +800,7 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
                 team_id=team_id,
                 any_team=bool(ctx.get("mode") == "league" and ctx.get("is_commissioner")),
                 manual=True,
+                edited_by_sub=sub,
             )
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -862,6 +864,7 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
             contract=contract,
             roster_status=body.roster_status,
             any_team=bool(ctx.get("mode") == "league" and ctx.get("is_commissioner")),
+            edited_by_sub=sub,
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -1071,7 +1074,12 @@ def hub_league_rosters(
                     fair_map = build_and_store_fair_values(league_id, overview, season_int)
             overview = enrich_league_roster_overview(overview, fair_map=fair_map or {})
 
-    payload = {**overview, "hub_context": ctx, "source_version": source_version}
+    payload = {
+        **overview,
+        "hub_context": ctx,
+        "source_version": source_version,
+        **hub_storage.league_cache_revisions(league_id),
+    }
     _LEAGUE_ROSTERS_CACHE[cache_key] = (time.time(), payload)
     response.headers["X-Roster-Cache"] = "miss"
     return payload
@@ -1232,10 +1240,21 @@ def _clear_league_rosters_cache(league_id: str | None = None) -> None:
             del _LEAGUE_ROSTERS_CACHE[key]
 
 
+def _clear_insights_response_cache(league_id: str | None = None) -> None:
+    if not league_id:
+        _INSIGHTS_RESPONSE_CACHE.clear()
+        return
+    prefix = f"{league_id}:"
+    for key in list(_INSIGHTS_RESPONSE_CACHE):
+        if key.startswith(prefix):
+            del _INSIGHTS_RESPONSE_CACHE[key]
+
+
 def _invalidate_league_rosters_from_ctx(ctx: dict[str, Any]) -> None:
     lid = str(ctx.get("league_id") or "")
     if lid:
         _clear_league_rosters_cache(lid)
+        _clear_insights_response_cache(lid)
 
 
 def _insights_cache_key(
@@ -2423,7 +2442,9 @@ def hub_contract_history_patch(
         league = storage.get_league(league_id) or {}
         pct = float(LeagueRules.model_validate(league.get("rules") or {}).contracts.cut_refund_pct)
         updates = apply_cut_dead_cap_to_row_updates(row, updates, cut_refund_pct=pct)
-    return storage.update_league_contract_row(row_id, updates, edited_by_sub=sub, note=note)
+    updated = storage.update_league_contract_row(row_id, updates, edited_by_sub=sub, note=note)
+    _clear_insights_response_cache(league_id)
+    return updated
 
 
 class ContractRowCreate(BaseModel):
