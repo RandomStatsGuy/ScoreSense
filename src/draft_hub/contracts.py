@@ -6,6 +6,8 @@ from typing import Any
 
 from src.draft_hub.schemas import ContractRules, LeagueRules
 
+PENDING_EXTENSION_KEY = "pending_extension"
+
 
 def _valid_gsis(player_id: str) -> bool:
     pid = str(player_id or "").strip()
@@ -270,11 +272,22 @@ def build_contract_from_roster_edit(
         "pending_type",
         "pending_type_by",
         "pending_type_at",
+        PENDING_EXTENSION_KEY,
         "source",
     ):
         if key in prior and prior[key] is not None:
             out[key] = prior[key]
     return out
+
+
+def has_pending_extension(contract_or_row: dict[str, Any] | None) -> bool:
+    if not contract_or_row:
+        return False
+    contract = contract_or_row.get("contract") if "contract" in contract_or_row else contract_or_row
+    if not isinstance(contract, dict):
+        return False
+    pending = contract.get(PENDING_EXTENSION_KEY)
+    return isinstance(pending, dict) and bool(pending)
 
 
 def can_renew(row: dict[str, Any], rules: LeagueRules) -> tuple[bool, str]:
@@ -284,6 +297,8 @@ def can_renew(row: dict[str, Any], rules: LeagueRules) -> tuple[bool, str]:
     yrs = int(contract.get("years_remaining") or row.get("contract_years") or 1)
     if yrs > 1:
         return False, "Extension only when the current deal is in its final year."
+    if has_pending_extension(contract):
+        return False, "Extension already queued — activates when draft is marked complete."
     if contract.get("renewal_used"):
         return False, "Renewal already used — player becomes a free agent."
     cr = contract_rules(rules)
@@ -303,19 +318,85 @@ def renew_player_contract(
     extension_years: int,
     start_salary: float | None = None,
 ) -> dict[str, Any]:
+    """Build the extension terms (does not attach pending / does not tick)."""
     ok, msg = can_renew(row, rules)
     if not ok:
         raise ValueError(msg)
     contract = row.get("contract") or build_veteran_contract(row.get("salary") or 1, 1)
     cr = contract_rules(rules)
     base = float(start_salary if start_salary is not None else contract.get("current_salary") or row.get("salary") or 1)
-    if contract.get("contract_type") == "rookie":
-        # Mendoza example: $10 rookie -> extension starts at base + step (default +5) each year
-        ext_base = base + float(cr.extension_step_up)
+    # Mendoza example: $10 rookie -> extension starts at base + step (default +5) each year
+    ext_base = base + float(cr.extension_step_up)
+    return build_extension_contract(rules, start_salary=ext_base, years=extension_years)
+
+
+def queue_pending_extension(
+    row: dict[str, Any],
+    rules: LeagueRules,
+    *,
+    extension_years: int,
+    start_salary: float | None = None,
+) -> dict[str, Any]:
+    """Keep the active deal intact; store extension for activation after draft-complete tick."""
+    extension = renew_player_contract(
+        row, rules, extension_years=extension_years, start_salary=start_salary
+    )
+    existing = dict(row.get("contract") or {})
+    existing[PENDING_EXTENSION_KEY] = {
+        "years": int(extension.get("years_remaining") or extension_years),
+        "start_salary": float(extension.get("current_salary") or extension.get("base_salary") or 0),
+        "step_up_per_year": float(extension.get("step_up_per_year") or 0),
+        "contract": extension,
+    }
+    return existing
+
+
+def activate_pending_extension(
+    contract: dict[str, Any] | None,
+    rules: LeagueRules,
+) -> dict[str, Any] | None:
+    """Materialize a queued extension at full chosen duration (call after year tick)."""
+    existing = dict(contract or {})
+    pending = existing.get(PENDING_EXTENSION_KEY)
+    if not isinstance(pending, dict):
+        return None
+    built = pending.get("contract")
+    if isinstance(built, dict) and built.get("years_remaining") is not None:
+        out = dict(built)
     else:
-        ext_base = base + float(cr.extension_step_up)
-    new_contract = build_extension_contract(rules, start_salary=ext_base, years=extension_years)
-    return new_contract
+        years = int(pending.get("years") or 1)
+        start = float(pending.get("start_salary") or existing.get("current_salary") or 1)
+        step = pending.get("step_up_per_year")
+        out = build_extension_contract(
+            rules,
+            start_salary=start,
+            years=years,
+            step_up=float(step) if step is not None else None,
+        )
+    out.pop(PENDING_EXTENSION_KEY, None)
+    # Carry identity / provenance fields from the prior deal when present.
+    for key in ("years_exp", "inferred_from", "source", "acquisition_type"):
+        if key in existing and key not in out:
+            out[key] = existing[key]
+    return out
+
+
+def apply_or_queue_extension(
+    row: dict[str, Any],
+    rules: LeagueRules,
+    *,
+    extension_years: int,
+    start_salary: float | None = None,
+    draft_completed: bool = False,
+) -> dict[str, Any]:
+    """Pre-draft: queue pending. Post-draft: apply extension terms immediately."""
+    if draft_completed:
+        return renew_player_contract(
+            row, rules, extension_years=extension_years, start_salary=start_salary
+        )
+    return queue_pending_extension(
+        row, rules, extension_years=extension_years, start_salary=start_salary
+    )
 
 
 def swap_contracts(row_a: dict[str, Any], row_b: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:

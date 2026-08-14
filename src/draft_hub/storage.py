@@ -215,6 +215,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE league ADD COLUMN lock_team_claims INTEGER NOT NULL DEFAULT 1")
     if "draft_completed" not in league_cols:
         conn.execute("ALTER TABLE league ADD COLUMN draft_completed INTEGER NOT NULL DEFAULT 0")
+    if "draft_contract_snapshot_json" not in league_cols:
+        conn.execute("ALTER TABLE league ADD COLUMN draft_contract_snapshot_json TEXT")
 
     roster_cols = {row[1] for row in conn.execute("PRAGMA table_info(roster_slot)").fetchall()}
     if "roster_status" not in roster_cols:
@@ -1935,6 +1937,47 @@ def _league_dict(row: sqlite3.Row) -> dict[str, Any]:
     }
 
 
+def save_draft_contract_snapshot(league_id: str, snapshot: dict[str, Any]) -> None:
+    """Persist pre/post draft-complete contract snapshot JSON on the league row."""
+    payload = dict(snapshot or {})
+    payload.setdefault("captured_at", _utcnow())
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE league SET draft_contract_snapshot_json = ? WHERE id = ?",
+            (json.dumps(payload), league_id),
+        )
+
+
+def get_draft_contract_snapshot(league_id: str) -> dict[str, Any] | None:
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT draft_contract_snapshot_json FROM league WHERE id = ?",
+            (league_id,),
+        ).fetchone()
+    if not row:
+        return None
+    raw = None
+    try:
+        raw = row["draft_contract_snapshot_json"]
+    except (KeyError, IndexError):
+        raw = None
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def clear_draft_contract_snapshot(league_id: str) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE league SET draft_contract_snapshot_json = NULL WHERE id = ?",
+            (league_id,),
+        )
+
+
 def import_roster_snapshot(
     workspace_id: str,
     team_id: str | None,
@@ -1988,7 +2031,9 @@ def roster_workspace_for_league(league: dict[str, Any]) -> str:
 
 
 def clear_league_draft_picks(league_id: str) -> int:
-    """Remove auction awards (source=draft) for all teams in this league. Keepers stay."""
+    """Remove current-auction awards for all teams in this league. Keepers stay."""
+    from src.draft_hub.acquisition_semantics import CURRENT_AUCTION_SOURCES
+
     league = get_league(league_id)
     if not league:
         return 0
@@ -1997,12 +2042,16 @@ def clear_league_draft_picks(league_id: str) -> int:
     if not team_ids:
         return 0
     ws = roster_workspace_for_league(league)
-    placeholders = ",".join("?" * len(team_ids))
+    team_ph = ",".join("?" * len(team_ids))
+    src_list = sorted(CURRENT_AUCTION_SOURCES)
+    src_ph = ",".join("?" * len(src_list))
     with get_conn() as conn:
         cur = conn.execute(
             f"""DELETE FROM roster_slot
-                WHERE workspace_id = ? AND source = 'draft' AND team_id IN ({placeholders})""",
-            [ws, *team_ids],
+                WHERE workspace_id = ?
+                  AND lower(coalesce(source, '')) IN ({src_ph})
+                  AND team_id IN ({team_ph})""",
+            [ws, *src_list, *team_ids],
         )
         return int(cur.rowcount)
 

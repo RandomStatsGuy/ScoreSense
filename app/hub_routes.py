@@ -79,7 +79,7 @@ from src.draft_hub.schemas import (
     TeamCoCommissionerRequest,
     WorkspaceUpdate,
 )
-from src.draft_hub.contracts import renew_player_contract, roster_row_from_import, swap_contracts, build_contract_from_roster_edit
+from src.draft_hub.contracts import renew_player_contract, roster_row_from_import, swap_contracts, build_contract_from_roster_edit, apply_or_queue_extension
 from src.draft_hub.contract_typing import CONTRACT_TYPES, apply_type_to_contract
 from src.draft_hub.hub_context import list_roster_for_context, resolve_hub_context, roster_scope
 from src.draft_hub.league_permissions import can_edit_roster, require_commissioner, require_primary_commissioner
@@ -3372,9 +3372,14 @@ def hub_extend_contract(body: ContractExtendRequest, _user=Depends(require_hub_u
     row = next((r for r in roster if r["player_id"] == body.player_id), None)
     if not row:
         raise HTTPException(status_code=404, detail="Player not on roster")
+    draft_completed = bool(ctx.get("draft_completed"))
     try:
-        contract = renew_player_contract(
-            row, rules, extension_years=body.extension_years, start_salary=body.new_salary
+        contract = apply_or_queue_extension(
+            row,
+            rules,
+            extension_years=body.extension_years,
+            start_salary=body.new_salary,
+            draft_completed=draft_completed,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -3382,8 +3387,9 @@ def hub_extend_contract(body: ContractExtendRequest, _user=Depends(require_hub_u
     roster = storage.list_roster(ws_id, team_id)
     return {
         "slot": slot,
+        "pending_extension": bool((slot.get("contract") or {}).get("pending_extension")),
         "validation_errors": validate_roster(rules, roster),
-        "multi_year_plan": multi_year_cap_plan(rules, roster, draft_completed=bool(ctx.get("draft_completed"))),
+        "multi_year_plan": multi_year_cap_plan(rules, roster, draft_completed=draft_completed),
     }
 
 
@@ -3399,9 +3405,14 @@ def hub_renew_contract(body: ContractRenewRequest, _user=Depends(require_hub_use
     row = next((r for r in roster if r["player_id"] == body.player_id), None)
     if not row:
         raise HTTPException(status_code=404, detail="Player not on roster")
+    draft_completed = bool(ctx.get("draft_completed"))
     try:
-        contract = renew_player_contract(
-            row, rules, extension_years=body.extension_years, start_salary=body.start_salary
+        contract = apply_or_queue_extension(
+            row,
+            rules,
+            extension_years=body.extension_years,
+            start_salary=body.start_salary,
+            draft_completed=draft_completed,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -3409,8 +3420,9 @@ def hub_renew_contract(body: ContractRenewRequest, _user=Depends(require_hub_use
     roster = storage.list_roster(ws_id, team_id)
     return {
         "slot": slot,
+        "pending_extension": bool((slot.get("contract") or {}).get("pending_extension")),
         "validation_errors": validate_roster(rules, roster),
-        "multi_year_plan": multi_year_cap_plan(rules, roster, draft_completed=bool(ctx.get("draft_completed"))),
+        "multi_year_plan": multi_year_cap_plan(rules, roster, draft_completed=draft_completed),
     }
 
 

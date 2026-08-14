@@ -182,6 +182,25 @@ def test_draft_acquired_one_year_still_retained():
     assert summary["must_extend"] == []
 
 
+def test_pending_extension_retained_not_must_extend():
+    from src.draft_hub.contracts import apply_or_queue_extension
+
+    rules = LeagueRules(salary_cap=200)
+    row = _row("rook", 10, 1, contract_type="rookie")
+    row["contract"] = apply_or_queue_extension(
+        row, rules, extension_years=2, start_salary=10, draft_completed=False
+    )
+    assert retained_through_draft(row, draft_completed=False)
+    assert expires_before_draft(row, draft_completed=False) is False
+    summary = pre_draft_cap_summary(rules, [row], draft_completed=False)
+    assert summary["must_extend"] == []
+    assert summary["dropping_at_draft"] == []
+    assert summary["season_committed"] == 10
+    ok, msg = can_renew(row, rules)
+    assert not ok
+    assert "queued" in msg.lower()
+
+
 def test_no_pre_draft_when_draft_completed():
     rules = LeagueRules(salary_cap=200)
     roster = [_row("a", 50, 1, ROSTER_CUT_BEFORE_DRAFT)]
