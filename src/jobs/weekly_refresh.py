@@ -133,6 +133,15 @@ def run_weekly_refresh(
     except Exception as exc:
         beat_digest_status = {"status": "error", "detail": str(exc)}
 
+    # After weekly inj/no_inj + sentiment/digests so media_context can be materialized.
+    player_context_status = None
+    try:
+        from src.projections.player_context import prewarm_player_context
+
+        player_context_status = prewarm_player_context(season, week)
+    except Exception as exc:
+        player_context_status = {"status": "error", "detail": str(exc)}
+
     status = {
         "started_at": started,
         "completed_at": datetime.now(timezone.utc).isoformat(),
@@ -145,6 +154,7 @@ def run_weekly_refresh(
         },
         "weekly_predictions_prewarm": weekly_prewarm,
         "ros_predictions_prewarm": ros_prewarm,
+        "player_context_prewarm": player_context_status,
         "fantasypros_archive": fp_status,
         "fantasypros_draft_ecr": fp_draft_ecr,
         "dfs_slates": dfs_slate_status,
