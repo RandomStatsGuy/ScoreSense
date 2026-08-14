@@ -5,6 +5,7 @@ import Chip, { injuryChipTone } from "./Chip";
 import PlayerCell from "./PlayerCell";
 import SentimentBadge from "./SentimentBadge";
 import ProjectionExplanationPanel from "./ProjectionExplanationPanel";
+import PlayerContextPanel from "./PlayerContextPanel";
 import QuantileBar from "./QuantileBarShared";
 import { connectionErrorMessage, parseApiError } from "./format";
 import useMobileLayout from "./useMobileLayout";
@@ -65,13 +66,35 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
     setWhyOpen(false);
   }, [explainPlayerId]);
 
+  const contextPanel = explainPlayerId ? (
+    <section className="player-card-section player-card-section--context">
+      <PlayerContextPanel
+        playerId={explainPlayerId}
+        season={request?.season}
+        week={request?.week}
+        active
+        className="player-context-panel--card"
+      />
+    </section>
+  ) : null;
+
   if (loading) {
-    return <p className="player-card-loading chart-note">Loading player…</p>;
+    return (
+      <>
+        <p className="player-card-loading chart-note">Loading player…</p>
+        {contextPanel}
+      </>
+    );
   }
   if (error) {
-    return <div className="error">{error}</div>;
+    return (
+      <>
+        <div className="error">{error}</div>
+        {contextPanel}
+      </>
+    );
   }
-  if (!data) return null;
+  if (!data) return contextPanel;
 
   const weekly = data.weekly_projection;
   const season = data.season_projection;
@@ -195,6 +218,8 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
           ) : null}
         </section>
       ) : null}
+
+      {contextPanel}
 
       <section className="player-card-section">
         <h3>Analyst context</h3>

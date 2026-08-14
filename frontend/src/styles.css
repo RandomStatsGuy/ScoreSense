@@ -12343,3 +12343,247 @@ td.col-rank.col-rank-top {
     font-size: 1.15rem;
   }
 }
+
+/* —— Cached player context (SCORE-23) —— */
+.player-context-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 8px);
+  background: color-mix(in srgb, var(--surface) 92%, var(--bg));
+}
+
+.player-context-panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.player-context-panel-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem 0.75rem;
+}
+
+.player-context-panel-title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.player-context-panel-week {
+  font-size: 0.78rem;
+}
+
+.player-context-panel-sub {
+  margin: 0;
+  font-size: 0.74rem;
+  line-height: var(--line-normal);
+}
+
+.player-context-stale-banner {
+  margin: 0.2rem 0 0;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius-sm, 6px);
+  background: color-mix(in srgb, var(--caution, #c58a2e) 16%, transparent);
+  color: var(--text);
+  font-size: 0.78rem;
+}
+
+.player-context-built {
+  margin: 0;
+  font-size: 0.72rem;
+}
+
+.player-context-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.player-context-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.player-context-block-title {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.player-context-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.85rem;
+}
+
+.player-context-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 3.2rem;
+}
+
+.player-context-stat-label {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.player-context-stat-value {
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.player-context-stat--primary .player-context-stat-value {
+  color: var(--accent, var(--text));
+}
+
+.player-context-stat-hint {
+  font-size: 0.7rem;
+}
+
+.player-context-avail-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.65rem;
+}
+
+.player-context-practice {
+  font-size: 0.78rem;
+}
+
+.player-context-drivers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.player-context-driver-chip {
+  font-size: 0.72rem;
+}
+
+.player-context-media-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.55rem;
+}
+
+.player-context-overlay-chip {
+  font-size: 0.68rem;
+}
+
+.player-context-media-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.player-context-media-summary {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: var(--line-normal);
+}
+
+.player-context-empty {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.player-context-panel--card,
+.player-context-panel--table,
+.player-context-panel--mobile {
+  margin-top: 0.15rem;
+}
+
+.player-card-section--context {
+  padding-top: 0.15rem;
+}
+
+.player-context-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.player-context-badges--table {
+  display: flex;
+  margin-top: 0.2rem;
+}
+
+.player-context-badges--mobile {
+  display: flex;
+  margin: 0.35rem 0 0.15rem;
+}
+
+.player-context-badge {
+  font-size: 0.68rem;
+  gap: 0.2rem;
+}
+
+.player-context-badge-meta {
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.col-why-actions {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.2rem;
+}
+
+.ctx-toggle {
+  min-width: 2.4rem;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.72rem;
+}
+
+.ctx-toggle--open {
+  color: var(--accent, var(--text));
+  font-weight: 650;
+}
+
+.table-meta-context-cold,
+.table-meta-context-stale {
+  color: var(--text-secondary);
+}
+
+.row-context-panel td {
+  padding-top: 0.35rem;
+  padding-bottom: 0.75rem;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+}
+
+@media (max-width: 768px) {
+  .player-context-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .col-player-inner .ctx-toggle {
+    display: none;
+  }
+
+  .player-context-panel {
+    padding: 0.55rem 0.6rem;
+  }
+}
