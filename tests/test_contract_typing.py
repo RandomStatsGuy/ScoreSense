@@ -27,9 +27,18 @@ def _rules() -> LeagueRules:
     return LeagueRules()
 
 
-def test_henderson_like_inference_and_years():
+def test_suggested_rookie_years_pre_draft_by_exp():
+    """years_exp=0 → full 2-year deal; years_exp=1 → 1 year left (no +1 inflate)."""
     rules = _rules()
-    assert suggested_rookie_years_pre_draft(rules, years_exp=1) == 2
+    assert suggested_rookie_years_pre_draft(rules, years_exp=0) == 2
+    assert suggested_rookie_years_pre_draft(rules, years_exp=1) == 1
+    assert suggested_rookie_years_pre_draft(rules, years_exp=2) is None
+    assert suggested_rookie_years_pre_draft(rules, years_exp=None) is None
+
+
+def test_mistyped_veteran_years_exp_1_becomes_rookie_without_inflate():
+    """Type correction only: mistyped vet with years_exp=1 keeps 1 year, not 2."""
+    rules = _rules()
     assert infer_contract_type(None, rules, years_exp=1, season=2026) == "rookie"
     row = {
         "player_id": "00-henderson",
@@ -39,6 +48,22 @@ def test_henderson_like_inference_and_years():
         "roster_status": "active",
     }
     updated = backfill_row_contract(rules, row, season=2026, draft_completed=False, years_exp=1)
+    assert updated is not None
+    assert updated["contract_type"] == "rookie"
+    assert updated["years_remaining"] == 1
+
+
+def test_mistyped_veteran_years_exp_0_corrected_to_two_year_rookie():
+    """Actual mistype with NFL years_exp=0 may still inflate 1→2 on backfill."""
+    rules = _rules()
+    row = {
+        "player_id": "00-true-rookie",
+        "salary": 5,
+        "contract_years": 1,
+        "contract": {"contract_type": "veteran", "years_remaining": 1, "current_salary": 5},
+        "roster_status": "active",
+    }
+    updated = backfill_row_contract(rules, row, season=2026, draft_completed=False, years_exp=0)
     assert updated is not None
     assert updated["contract_type"] == "rookie"
     assert updated["years_remaining"] == 2
