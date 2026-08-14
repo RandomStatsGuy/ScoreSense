@@ -1,9 +1,44 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { apiFetch } from "../auth";
+import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
 import LeagueSwitcher from "./LeagueSwitcher";
 import { effectiveMemberships, isSoloContext } from "./hubLeagues";
+import {
+  getFreshnessCache,
+  invalidateFreshnessCache,
+  invalidateInsightsAfterCapSync,
+  setFreshnessCache,
+} from "./hubDataCache";
 import { fmtSal } from "./rosterFormat";
 
+function ageShort(at) {
+  if (!at) return null;
+  const ms = typeof at === "number" ? at : Date.parse(at);
+  if (!Number.isFinite(ms)) return null;
+  const diffSec = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (diffSec < 60) return "just now";
+  const diffMin = Math.round(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 48) return `${diffHr}h`;
+  return `${Math.round(diffHr / 24)}d`;
+}
+
+function sourceStatusLabel({ at, stale, missing, available }) {
+  if (missing || available === false) return "Not available";
+  if (stale) {
+    const age = ageShort(at);
+    return age ? `Stale ${age}` : "Stale";
+  }
+  if (at) return formatRelativeTime(at) || "Up to date";
+  return "Not synced yet";
+}
+
+/**
+ * Slim persistent League context bar (SCORE-9).
+ * Replaces the large hero + equal-weight freshness chip strip.
+ */
 export default function LeagueContextBanner({
   hubContext,
   memberships = [],
@@ -15,9 +50,9 @@ export default function LeagueContextBanner({
   syncMessage,
   syncError,
   switchBusy = false,
-  compact = false,
   capSheet = null,
   onNavigate,
+  onProjectionsRefresh,
 }) {
   const leagues = useMemo(
     () => effectiveMemberships(memberships, hubContext),
@@ -26,181 +61,414 @@ export default function LeagueContextBanner({
   const inLeague = !isSoloContext(hubContext);
   const hasLeagues = leagues.length > 0;
   const mobileLayout = useMobileLayout();
+  const syncMenuId = useId();
+  const syncWrapRef = useRef(null);
+  const [syncOpen, setSyncOpen] = useState(false);
+  const [sheetSyncing, setSheetSyncing] = useState(false);
+  const [freshness, setFreshness] = useState(() => (
+    getFreshnessCache(hubContext?.league_id)?.data || null
+  ));
+  const [freshnessLoading, setFreshnessLoading] = useState(false);
+  const [freshnessError, setFreshnessError] = useState("");
+  const [projRefreshing, setProjRefreshing] = useState(false);
+
+  const leagueId = hubContext?.league_id;
+  const isDemo = Boolean(hubContext?.demo);
+  const isCommish = Boolean(hubContext?.is_commissioner);
+
+  const loadFreshness = useCallback(async (signal) => {
+    if (!leagueId || hubContext?.mode !== "league") return;
+    const cached = getFreshnessCache(leagueId);
+    if (cached?.data) setFreshness(cached.data);
+    setFreshnessLoading(!cached?.data);
+    setFreshnessError("");
+    try {
+      const root = isDemo ? "/api/hub/demo" : "/api/hub";
+      const res = await apiFetch(
+        `${root}/league/${encodeURIComponent(leagueId)}/freshness`,
+        { signal },
+      );
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const payload = await res.json();
+      setFreshnessCache(leagueId, payload);
+      setFreshness(payload);
+    } catch (e) {
+      if (signal?.aborted) return;
+      setFreshnessError(connectionErrorMessage(e));
+    } finally {
+      if (!signal?.aborted) setFreshnessLoading(false);
+    }
+  }, [leagueId, hubContext?.mode, isDemo]);
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    loadFreshness(ctrl.signal);
+    return () => ctrl.abort();
+  }, [loadFreshness]);
+
+  useEffect(() => {
+    if (!syncOpen) return undefined;
+    const onDoc = (event) => {
+      if (syncWrapRef.current && !syncWrapRef.current.contains(event.target)) {
+        setSyncOpen(false);
+      }
+    };
+    const onKey = (event) => {
+      if (event.key === "Escape") setSyncOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [syncOpen]);
+
+  const runSheetSync = useCallback(async () => {
+    if (!leagueId || isDemo) return;
+    setSheetSyncing(true);
+    setFreshnessError("");
+    try {
+      const res = await apiFetch(
+        `/api/hub/league/${encodeURIComponent(leagueId)}/contract-history/sync`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" },
+      );
+      if (!res.ok) throw new Error(await parseApiError(res));
+      invalidateInsightsAfterCapSync(leagueId);
+      invalidateFreshnessCache(leagueId);
+      await loadFreshness(undefined);
+    } catch (e) {
+      setFreshnessError(connectionErrorMessage(e));
+    } finally {
+      setSheetSyncing(false);
+    }
+  }, [leagueId, isDemo, loadFreshness]);
+
+  const runProjectionsRefresh = useCallback(async () => {
+    if (!onProjectionsRefresh) {
+      invalidateFreshnessCache(leagueId);
+      await loadFreshness(undefined);
+      return;
+    }
+    setProjRefreshing(true);
+    setFreshnessError("");
+    try {
+      await onProjectionsRefresh();
+      invalidateFreshnessCache(leagueId);
+      await loadFreshness(undefined);
+    } catch (e) {
+      setFreshnessError(connectionErrorMessage(e));
+    } finally {
+      setProjRefreshing(false);
+    }
+  }, [onProjectionsRefresh, leagueId, loadFreshness]);
+
+  const runSleeperSync = useCallback(async () => {
+    if (!leagueId || !onLeagueSync) return;
+    await onLeagueSync(leagueId);
+    invalidateFreshnessCache(leagueId);
+    await loadFreshness(undefined);
+  }, [leagueId, onLeagueSync, loadFreshness]);
 
   if (!inLeague && !hasLeagues) return null;
 
-  const isCommish = hubContext?.is_commissioner;
-  const syncTitle = "Sync rosters from Sleeper";
-  const leagueNote = inLeague
-    ? (isCommish
-      ? (mobileLayout ? "Sleeper sync only — edits stay here." : "Rosters sync from Sleeper. Edits here don't change Sleeper.")
-      : (mobileLayout ? "Link Sleeper · sync after trades." : "Link Sleeper in Setup. Sync after trades."))
-    : (mobileLayout ? "Setup → pick or create a league." : "Open Setup to pick a league or create one.");
-
   const phaseLabel = inLeague
-    ? (hubContext.draft_completed
-      ? `${hubContext.season ?? ""} · In season`.replace(/^ · /, "")
-      : `${hubContext.season ?? ""} · Before draft`.replace(/^ · /, ""))
+    ? (hubContext.draft_completed ? "In season" : "Pre-draft")
+    : "Solo";
+  const roleLabel = inLeague
+    ? (isCommish ? "Commissioner" : "Member")
     : null;
+  const leagueName = inLeague
+    ? (hubContext.league_name || "League")
+    : "Solo prep";
 
-  // Pre-draft cap chips folded in from the former HubSeasonStatus strip.
   const preDraft = inLeague && !hubContext.draft_completed ? capSheet?.pre_draft : null;
-  const draftBudget = preDraft?.draft_budget_available;
-  const expiring = preDraft?.expiring_before_draft ?? preDraft?.expiring_after_draft ?? [];
   const mustExtend = preDraft?.must_extend ?? [];
   const dropping = preDraft?.dropping_at_draft ?? [];
-  const pendingCuts = preDraft?.pending_cuts ?? [];
-  const statusChips = preDraft && (draftBudget != null || expiring.length > 0 || pendingCuts.length > 0) ? (
-    <div className="hub-league-hero-status" role="status">
-      {draftBudget != null && (
-        <span className="hub-season-status-chip hub-season-status-chip--budget">
-          {fmtSal(draftBudget)} for auction
-        </span>
-      )}
-      {mustExtend.length > 0 && (
-        <span className="hub-season-status-chip hub-season-status-chip--warn">
-          {mustExtend.length} need extension
-        </span>
-      )}
-      {dropping.length > 0 && (
-        <span className="hub-season-status-chip hub-season-status-chip--warn">
-          {dropping.length} expire → FA
-        </span>
-      )}
-      {pendingCuts.length > 0 && (
-        <span className="hub-season-status-chip">
-          {pendingCuts.length} pending cut{pendingCuts.length === 1 ? "" : "s"}
-        </span>
-      )}
-      {expiring.length > 0 && onNavigate && (
-        <button type="button" className="btn-link" onClick={() => onNavigate("planner")}>
-          Cap planner
-        </button>
-      )}
-    </div>
-  ) : null;
+  const remaining = capSheet?.summary?.remaining;
+  const overCapBy = Number.isFinite(Number(remaining)) && Number(remaining) < 0
+    ? Math.abs(Number(remaining))
+    : null;
 
-  if (compact && inLeague) {
-    return (
-      <section className="hub-league-hero hub-league-hero--compact" role="status">
-        <div className="hub-league-hero-top">
-          <div className="hub-league-hero-main hub-league-hero-main--compact">
-            {phaseLabel && <span className="hub-league-hero-phase-chip">{phaseLabel}</span>}
-            <h2 className="hub-league-hero-title">{hubContext.league_name || "League"}</h2>
-            <span className="hub-league-hero-meta">
-              {hubContext.team_name}
-              {isCommish ? " · Commissioner" : ""}
-            </span>
-          </div>
-          <div className="hub-league-hero-actions">
-            {(hasLeagues || inLeague) && onLeagueSwitch && (
-              <LeagueSwitcher
-                memberships={memberships}
-                hubContext={hubContext}
-                onSwitch={onLeagueSwitch}
-                variant="compact"
-                disabled={syncing || switchBusy}
-              />
-            )}
-            {onNavigateSetup && (
-              <button
-                type="button"
-                className="btn-ghost btn-sm"
-                title="League settings"
-                onClick={onNavigateSetup}
-                disabled={syncing || switchBusy}
-              >
-                Settings
-              </button>
-            )}
-            {onLeagueSync && hubContext.league_id && (
-              <button
-                type="button"
-                className="btn-ghost btn-sm"
-                title={syncTitle}
-                onClick={() => onLeagueSync(hubContext.league_id)}
-                disabled={syncing || switchBusy}
-              >
-                {syncing ? "Syncing…" : "Sync Sleeper"}
-              </button>
-            )}
-          </div>
-        </div>
-        {syncError && <div className="error hub-league-sync-error">{syncError}</div>}
-      </section>
-    );
+  const poolStale = Boolean(freshness?.projections?.stale)
+    || (freshness && freshness.projections?.available === false);
+  const projAge = ageShort(freshness?.projections?.built_at);
+  const capSheetsStale = Boolean(freshness?.cap_sheets?.stale);
+
+  const attentionItems = [];
+  if (inLeague && poolStale) {
+    attentionItems.push({
+      id: "projections",
+      tone: "attention",
+      label: freshness?.projections?.available === false
+        ? "Projections missing"
+        : (projAge ? `Projections stale ${projAge}` : "Projections stale"),
+      actionLabel: "Sync projections",
+      onAction: () => {
+        setSyncOpen(true);
+        runProjectionsRefresh();
+      },
+    });
+  }
+  if (inLeague && overCapBy != null) {
+    attentionItems.push({
+      id: "over-cap",
+      tone: "attention",
+      label: `Over cap ${fmtSal(overCapBy)}`,
+      actionLabel: "Cap planner",
+      onAction: onNavigate ? () => onNavigate("planner") : null,
+    });
+  }
+  if (inLeague && mustExtend.length > 0) {
+    attentionItems.push({
+      id: "extend",
+      tone: "attention",
+      label: `${mustExtend.length} need extension`,
+      actionLabel: "Cap planner",
+      onAction: onNavigate ? () => onNavigate("planner") : null,
+    });
+  } else if (inLeague && dropping.length > 0) {
+    attentionItems.push({
+      id: "expire",
+      tone: "attention",
+      label: `${dropping.length} expire → FA`,
+      actionLabel: "Cap planner",
+      onAction: onNavigate ? () => onNavigate("planner") : null,
+    });
+  }
+  if (inLeague && capSheetsStale && isCommish) {
+    attentionItems.push({
+      id: "cap-sheets",
+      tone: "attention",
+      label: "Cap sheets stale",
+      actionLabel: "Sync sheets",
+      onAction: () => {
+        setSyncOpen(true);
+        runSheetSync();
+      },
+    });
   }
 
-  return (
-    <section className="hub-league-hero" role="status">
-      <div className="hub-league-hero-top">
-        <div className="hub-league-hero-main">
-          {inLeague ? (
-            <>
-              {!mobileLayout && phaseLabel && (
-                <p className="hub-league-hero-kicker">{phaseLabel}</p>
-              )}
-              <h2 className="hub-league-hero-title">{hubContext.league_name || "League"}</h2>
-              <span className="hub-league-hero-meta">
-                {hubContext.team_name}
-                {hubContext.league_room_code ? ` · ${hubContext.league_room_code}` : ""}
-                {isCommish ? (mobileLayout ? " · Commish" : " · Commissioner") : ""}
-              </span>
-            </>
-          ) : (
-            <>
-              {!mobileLayout && <p className="hub-league-hero-kicker">Mode</p>}
-              <h2 className="hub-league-hero-title">Solo prep</h2>
-              <span className="hub-league-hero-meta">
-                {mobileLayout ? "Pick a league below" : "Solo workspace — switch to a league for shared tools"}
-              </span>
-            </>
-          )}
-        </div>
-        {(hasLeagues || inLeague) && onLeagueSwitch && (
-          <LeagueSwitcher
-            memberships={memberships}
-            hubContext={hubContext}
-            onSwitch={onLeagueSwitch}
-            variant="compact"
-            disabled={syncing || switchBusy}
-          />
-        )}
-      </div>
-      {statusChips}
-      <p className="hub-league-hero-note">
-        {leagueNote}
-        {onNavigateSetup && (
+  const busy = syncing || switchBusy || sheetSyncing || projRefreshing;
+  const sleeperLinked = Boolean(freshness?.sleeper?.linked);
+
+  const identityLine = (
+    <div className="hub-league-context-identity">
+      <p className="hub-league-context-line">
+        <span className="hub-league-context-kicker">League</span>
+        <span className="hub-league-context-name">{leagueName}</span>
+        <span className="hub-league-context-sep" aria-hidden="true">·</span>
+        <span className="hub-league-context-phase">{phaseLabel}</span>
+        {roleLabel && (
           <>
-            {" "}
-            <button type="button" className="btn-link" onClick={onNavigateSetup}>
-              {mobileLayout ? "Settings" : "League settings"}
-            </button>
+            <span className="hub-league-context-sep" aria-hidden="true">·</span>
+            <span className="hub-league-context-role">{roleLabel}</span>
           </>
         )}
-        {isCommish && onNavigateManage && (
+        {inLeague
+          && hubContext.team_name
+          && !mobileLayout
+          && String(hubContext.team_name).trim().toLowerCase() !== String(roleLabel || "").toLowerCase()
+          && (
           <>
-            {" "}
-            <button type="button" className="btn-link" onClick={onNavigateManage}>
-              {mobileLayout ? "Desk" : "Commissioner desk"}
-            </button>
+            <span className="hub-league-context-sep" aria-hidden="true">·</span>
+            <span className="hub-league-context-team">{hubContext.team_name}</span>
           </>
         )}
       </p>
-      {onLeagueSync && inLeague && hubContext.league_id && (
-        <div className="hub-toolbar hub-league-sync-toolbar">
-          <button
-            type="button"
-            className="btn-ghost btn-sm"
-            title={syncTitle}
-            onClick={() => onLeagueSync(hubContext.league_id)}
-            disabled={syncing || switchBusy}
+      {(hasLeagues || inLeague) && onLeagueSwitch && (
+        <LeagueSwitcher
+          memberships={memberships}
+          hubContext={hubContext}
+          onSwitch={onLeagueSwitch}
+          variant="compact"
+          disabled={busy}
+        />
+      )}
+    </div>
+  );
+
+  const attentionRow = attentionItems.length > 0 ? (
+    <div className="hub-league-context-attention" role="status">
+      <span className="hub-league-context-attention-label">Needs attention</span>
+      <ul className="hub-league-context-attention-list">
+        {attentionItems.map((item) => (
+          <li key={item.id} className="hub-league-context-attention-item">
+            <span className="hub-league-context-attention-text">{item.label}</span>
+            {item.onAction && item.actionLabel && (
+              <button
+                type="button"
+                className="btn-link hub-league-context-attention-action"
+                onClick={item.onAction}
+                disabled={busy}
+              >
+                {item.actionLabel}
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  ) : null;
+
+  const syncPopover = inLeague && leagueId ? (
+    <div className="hub-league-context-sync" ref={syncWrapRef}>
+      <button
+        type="button"
+        className="btn-ghost btn-sm hub-league-context-sync-trigger"
+        aria-haspopup="dialog"
+        aria-expanded={syncOpen}
+        aria-controls={syncMenuId}
+        disabled={switchBusy}
+        onClick={() => setSyncOpen((v) => !v)}
+      >
+        {syncing || sheetSyncing || projRefreshing ? "Syncing…" : "Sync league"}
+        <span className="hub-league-context-sync-caret" aria-hidden="true">▾</span>
+      </button>
+      {syncOpen && (
+        <div
+          id={syncMenuId}
+          className="hub-league-context-sync-panel"
+          role="dialog"
+          aria-label="Sync league sources"
+        >
+          <div className="hub-league-context-sync-row">
+            <div className="hub-league-context-sync-meta">
+              <strong>Sleeper</strong>
+              <span>
+                {freshnessLoading && !freshness
+                  ? "Checking…"
+                  : sourceStatusLabel({
+                    at: freshness?.sleeper?.synced_at,
+                    missing: freshness && !sleeperLinked,
+                  })}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="btn-primary btn-sm"
+              onClick={runSleeperSync}
+              disabled={busy || !sleeperLinked}
+              title="Sync rosters from Sleeper"
+            >
+              {syncing ? "Syncing…" : "Sync"}
+            </button>
+          </div>
+
+          <div className="hub-league-context-sync-row">
+            <div className="hub-league-context-sync-meta">
+              <strong>Scoring</strong>
+              <span>
+                {sourceStatusLabel({
+                  at: freshness?.scoring?.synced_at,
+                  missing: freshness && !freshness.scoring?.linked,
+                })}
+              </span>
+            </div>
+            <span className="hub-league-context-sync-note">Via Sleeper sync</span>
+          </div>
+
+          <div className="hub-league-context-sync-row">
+            <div className="hub-league-context-sync-meta">
+              <strong>Cap sheets</strong>
+              <span>
+                {sourceStatusLabel({
+                  at: freshness?.cap_sheets?.last_imported_at,
+                  stale: freshness?.cap_sheets?.stale,
+                })}
+              </span>
+            </div>
+            {isCommish && !isDemo ? (
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={runSheetSync}
+                disabled={busy}
+                title="Re-import cap sheets and contract history"
+              >
+                {sheetSyncing ? "Syncing…" : "Sync sheets"}
+              </button>
+            ) : (
+              <span className="hub-league-context-sync-note">Commissioner</span>
+            )}
+          </div>
+
+          <div
+            className={
+              `hub-league-context-sync-row${poolStale ? " hub-league-context-sync-row--attention" : ""}`
+            }
           >
-            {syncing ? "Syncing…" : "Sync Sleeper"}
-          </button>
-          {syncMessage && <p className="chart-note hub-league-sync-msg">{syncMessage}</p>}
-          {syncError && <div className="error hub-league-sync-error">{syncError}</div>}
+            <div className="hub-league-context-sync-meta">
+              <strong>Projections</strong>
+              <span>
+                {sourceStatusLabel({
+                  at: freshness?.projections?.built_at,
+                  stale: freshness?.projections?.stale,
+                  available: freshness?.projections?.available,
+                  missing: freshness && freshness.projections?.available === false,
+                })}
+              </span>
+            </div>
+            <button
+              type="button"
+              className={poolStale ? "btn-primary btn-sm" : "btn-ghost btn-sm"}
+              onClick={runProjectionsRefresh}
+              disabled={busy}
+              title="Reload draft-pool projections for this league"
+            >
+              {projRefreshing ? "Refreshing…" : "Sync projections"}
+            </button>
+          </div>
+
+          {(syncMessage || syncError || freshnessError) && (
+            <div className="hub-league-context-sync-footer">
+              {syncMessage && <p className="chart-note">{syncMessage}</p>}
+              {(syncError || freshnessError) && (
+                <p className="error hub-league-context-sync-error">
+                  {syncError || freshnessError}
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="hub-league-context-sync-links">
+            {onNavigateSetup && (
+              <button type="button" className="btn-link" onClick={() => { setSyncOpen(false); onNavigateSetup(); }}>
+                League settings
+              </button>
+            )}
+            {isCommish && onNavigateManage && (
+              <button type="button" className="btn-link" onClick={() => { setSyncOpen(false); onNavigateManage(); }}>
+                Commissioner desk
+              </button>
+            )}
+          </div>
         </div>
+      )}
+    </div>
+  ) : (
+    <div className="hub-league-context-sync">
+      {onNavigateSetup && (
+        <button type="button" className="btn-ghost btn-sm" onClick={onNavigateSetup}>
+          League settings
+        </button>
+      )}
+    </div>
+  );
+
+  return (
+    <section
+      className="hub-league-context-bar"
+      role="status"
+      aria-busy={busy || freshnessLoading}
+    >
+      <div className="hub-league-context-top">
+        {identityLine}
+        {syncPopover}
+      </div>
+      {attentionRow}
+      {(syncError || freshnessError) && !syncOpen && (
+        <p className="error hub-league-context-inline-error">{syncError || freshnessError}</p>
       )}
     </section>
   );
