@@ -3211,6 +3211,7 @@ def update_league_contract_row(
     row = get_league_contract_row(row_id)
     if not row:
         raise ValueError("Contract row not found")
+    original_kind = str(row.get("source_kind") or "")
     sets: list[str] = []
     params: list[Any] = []
     now = _utcnow()
@@ -3246,6 +3247,17 @@ def update_league_contract_row(
             params,
         )
     updated = get_league_contract_row(row_id)
+    # SCORE-39: editing a Sleeper sheet row must not remove it from the Sleeper
+    # membership base. Re-seed the pre-edit Sleeper row so later sync can merge
+    # manuals on top instead of dropping corrections when Sleeper rows remain.
+    if updated and original_kind in {"week1_sleeper", "pre_draft_sleeper"}:
+        from src.draft_hub.sheet_roster_sync import preserve_sleeper_base_after_manual_edit
+
+        preserve_sleeper_base_after_manual_edit(
+            str(row["league_id"]),
+            season_year=int(row["season_year"]),
+            original_row={**row, "source_kind": original_kind},
+        )
     return updated or row
 
 
