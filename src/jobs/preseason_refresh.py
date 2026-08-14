@@ -52,13 +52,15 @@ def run_preseason_refresh(
     pool_status = pool_artifact_status(draft_season)
 
     proj_meta = get_projection_meta("qb")
+    weekly_season = int(proj_meta["default_season"])
+    weekly_week = int(proj_meta["default_week"])
     weekly_prewarm = prewarm_weekly_predictions(
-        int(proj_meta["default_season"]),
-        int(proj_meta["default_week"]),
+        weekly_season,
+        weekly_week,
     )
     ros_prewarm = prewarm_ros_predictions(
-        int(proj_meta["default_season"]),
-        int(proj_meta["default_week"]),
+        weekly_season,
+        weekly_week,
     )
 
     fp_ecr_status = None
@@ -92,6 +94,14 @@ def run_preseason_refresh(
     except Exception as exc:
         beat_digest_status = {"status": "error", "detail": str(exc)}
 
+    player_context_status = None
+    try:
+        from src.projections.player_context import prewarm_player_context
+
+        player_context_status = prewarm_player_context(weekly_season, weekly_week)
+    except Exception as exc:
+        player_context_status = {"status": "error", "detail": str(exc)}
+
     status = {
         "started_at": started,
         "completed_at": datetime.now(timezone.utc).isoformat(),
@@ -101,6 +111,7 @@ def run_preseason_refresh(
         "draft_pool_artifact": pool_status,
         "weekly_predictions_prewarm": weekly_prewarm,
         "ros_predictions_prewarm": ros_prewarm,
+        "player_context_prewarm": player_context_status,
         "fantasypros_draft_ecr": fp_ecr_status,
         "sentiment_refresh": sentiment_status,
         "beat_digest_prewarm": beat_digest_status,

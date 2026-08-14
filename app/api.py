@@ -70,6 +70,7 @@ from src.projections.projection_meta import get_projection_meta
 from src.projections.draft_meta import get_draft_meta
 from src.projections.draft_projections import draft_projection_note, predict_draft_season
 from src.projections.weekly_cache import compute_weekly_artifact, load_weekly_prediction
+from src.projections.player_context import get_player_context, list_player_context
 from src.projections.player_compare import (
     build_player_compare,
     filter_projections_by_ids,
@@ -178,6 +179,7 @@ def health() -> dict:
             "draft_hub": "/api/hub/workspace" in route_paths,
             "player_compare": "/api/predict/compare" in route_paths,
             "projection_explanation": "/api/player/{player_id}/explanation" in route_paths,
+            "player_context": "/api/player/{player_id}/context" in route_paths,
             "weekly_command_center": "/api/hub/week" in route_paths,
         },
     }
@@ -223,6 +225,45 @@ def player_explanation_get(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.get("/api/player/{player_id}/context")
+def player_context_get(
+    player_id: str,
+    season: Optional[int] = None,
+    week: Optional[int] = None,
+    _user=Depends(require_patron),
+) -> dict:
+    """Cached player-context read model (SCORE-23) — artifact only, zero live work."""
+    from fastapi.encoders import jsonable_encoder
+
+    try:
+        return jsonable_encoder(
+            get_player_context(player_id, season=season, week=week)
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.get("/api/players/context")
+def players_context_list(
+    season: Optional[int] = None,
+    week: Optional[int] = None,
+    ids: str = Query("", description="Optional comma-separated player_id filter"),
+    _user=Depends(require_patron),
+) -> dict:
+    """List/card variant of the cached player-context read model."""
+    from fastapi.encoders import jsonable_encoder
+
+    player_ids = [p.strip() for p in ids.split(",") if p.strip()] or None
+    try:
+        return jsonable_encoder(
+            list_player_context(season=season, week=week, player_ids=player_ids)
+        )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
