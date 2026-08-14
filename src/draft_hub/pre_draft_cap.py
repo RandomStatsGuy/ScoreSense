@@ -108,14 +108,17 @@ def expires_before_draft(row: dict[str, Any], *, draft_completed: bool) -> bool:
         return False
     if not is_active_for_pre_draft(row):
         return False
-    from src.draft_hub.acquisition_semantics import is_fa_contract
+    from src.draft_hub.acquisition_semantics import is_current_auction_award, is_fa_contract
+    from src.draft_hub.contracts import has_pending_extension
 
     if is_fa_contract(row):
         return True
+    # Queued extension activates after draft-complete tick — keep them for this draft.
+    if has_pending_extension(row):
+        return False
     if years_remaining(row) > 1:
         return False
-    source = str(row.get("source") or "").strip().lower()
-    if source in ("draft", "auction", "mock", "test_draft"):
+    if is_current_auction_award(row):
         return False
     return True
 
@@ -128,7 +131,8 @@ def retained_through_draft(row: dict[str, Any], *, draft_completed: bool) -> boo
     """Still under contract for this draft season (counts toward cap / blocks nomination)."""
     if not is_active_for_pre_draft(row):
         return False
-    from src.draft_hub.acquisition_semantics import is_fa_contract
+    from src.draft_hub.acquisition_semantics import is_current_auction_award, is_fa_contract
+    from src.draft_hub.contracts import has_pending_extension
 
     if is_fa_contract(row):
         return False
@@ -136,9 +140,10 @@ def retained_through_draft(row: dict[str, Any], *, draft_completed: bool) -> boo
         return True
     if years_remaining(row) > 1:
         return True
+    if has_pending_extension(row):
+        return True
     # 1-year auction acquisitions for the upcoming season.
-    source = str(row.get("source") or "").strip().lower()
-    return source in ("draft", "auction", "mock", "test_draft")
+    return is_current_auction_award(row)
 
 
 def _player_brief(row: dict[str, Any], rules: LeagueRules) -> dict[str, Any]:
