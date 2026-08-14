@@ -79,7 +79,7 @@ from src.draft_hub.schemas import (
     TeamCoCommissionerRequest,
     WorkspaceUpdate,
 )
-from src.draft_hub.contracts import renew_player_contract, roster_row_from_import, swap_contracts, build_contract_from_roster_edit, apply_or_queue_extension
+from src.draft_hub.contracts import apply_or_queue_extension, roster_row_from_import, swap_contracts, build_contract_from_roster_edit
 from src.draft_hub.contract_typing import CONTRACT_TYPES, apply_type_to_contract
 from src.draft_hub.hub_context import list_roster_for_context, resolve_hub_context, roster_scope
 from src.draft_hub.league_permissions import can_edit_roster, require_commissioner, require_primary_commissioner
