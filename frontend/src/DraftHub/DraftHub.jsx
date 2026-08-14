@@ -19,7 +19,6 @@ import LeagueOffice from "./LeagueOffice";
 import LeagueTrades from "./LeagueTrades";
 import LeagueRostersBrowser from "./LeagueRostersBrowser";
 import LeagueContextBanner from "./LeagueContextBanner";
-import HubDataFreshness from "./HubDataFreshness";
 import HubDemoBanner from "./HubDemoBanner";
 import WeeklyCommandCenter from "./WeeklyCommandCenter";
 import { defaultInsightTab, isInsightTabAllowed } from "./hubInsightsTabs";
@@ -66,6 +65,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const [leagueSyncing, setLeagueSyncing] = useState(false);
   const [leagueSyncMessage, setLeagueSyncMessage] = useState("");
   const [leagueSyncError, setLeagueSyncError] = useState("");
+  const [weekReloadToken, setWeekReloadToken] = useState(0);
   const mobileLayout = useMobileLayout();
   const [valueSheetLoading, setValueSheetLoading] = useState(false);
   const subViewRef = React.useRef(subView);
@@ -100,8 +100,6 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     setSubView("office");
     onOfficeTabChange?.("current");
   }, [setSubView, onOfficeTabChange]);
-
-  const onInsights = subView === "insights";
 
   // Insights/Trades stay mounted (display:none) after first visit so revisits
   // skip refetch + chart remount. Heavy tabs (value sheet, draft room) still unmount.
@@ -459,6 +457,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       clearHubDataCache();
       if (lid) invalidateFreshnessCache(lid);
       await onRosterChanged();
+      setWeekReloadToken((n) => n + 1);
     } catch (e) {
       const msg = connectionErrorMessage(e);
       setLeagueSyncError(msg);
@@ -629,7 +628,6 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         && subView !== "room"
         && subView !== "setup" && (
         <LeagueContextBanner
-          compact={onInsights}
           hubContext={effectiveCtx}
           memberships={memberships}
           capSheet={capSheet}
@@ -642,17 +640,15 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           syncMessage={leagueSyncMessage}
           syncError={leagueSyncError}
           switchBusy={leagueSwitchBusy}
-        />
-      )}
-
-      {effectiveCtx?.mode === "league"
-        && subView !== "setup"
-        && subView !== "room"
-        && !onInsights && (
-        <HubDataFreshness
-          leagueId={effectiveCtx.league_id}
-          hubContext={effectiveCtx}
-          leagueSyncing={leagueSyncing}
+          onProjectionsRefresh={async () => {
+            clearHubDataCache();
+            await refreshValueSheet(
+              workspace?.season || effectiveCtx?.season,
+              workspace?.rules || effectiveCtx?.rules,
+              { forcePool: true },
+            );
+            setWeekReloadToken((n) => n + 1);
+          }}
         />
       )}
 
@@ -702,6 +698,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       {subView === "week" && (
         <WeeklyCommandCenter
           hubContext={effectiveCtx}
+          reloadToken={weekReloadToken}
           onSynced={async (result) => {
             if (result?.hub_context) applyHubContext(result.hub_context);
             const lid = effectiveCtx?.league_id;

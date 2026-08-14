@@ -150,6 +150,7 @@ export default function WeeklyCommandCenter({
   hubContext,
   onSynced,
   onNavigateSetup,
+  reloadToken,
 }) {
   const mobileLayout = useMobileLayout();
   const [data, setData] = useState(null);
@@ -185,7 +186,7 @@ export default function WeeklyCommandCenter({
     const ctrl = new AbortController();
     load(ctrl.signal);
     return () => ctrl.abort();
-  }, [load, hubContext?.league_id, hubContext?.team_id, hubContext?.mode]);
+  }, [load, hubContext?.league_id, hubContext?.team_id, hubContext?.mode, reloadToken]);
 
   useEffect(() => {
     setShowRosterDetail(!mobileLayout);
@@ -243,6 +244,8 @@ export default function WeeklyCommandCenter({
   const weekLabel = meta.week != null ? `Week ${meta.week}` : "Your Week";
   const teamLabel = data?.hub_context?.team_name || hubContext?.team_name;
   const leagueLabel = data?.hub_context?.league_name || hubContext?.league_name;
+  const isSolo = hubContext?.mode !== "league";
+  const showSoloSync = isSolo && Boolean(sync.sync_endpoint);
 
   return (
     <HubPage className="hub-wcc">
@@ -285,7 +288,7 @@ export default function WeeklyCommandCenter({
         >
           {loading ? "Loading…" : "Refresh"}
         </button>
-        {sync.sync_endpoint && (
+        {showSoloSync && (
           <button
             type="button"
             className="btn-primary btn-sm"
@@ -325,12 +328,16 @@ export default function WeeklyCommandCenter({
               </button>
             ) : null}
           >
-            League is not linked to Sleeper. Link in Setup, then use Sync League.
+            {showSoloSync
+              ? "League is not linked to Sleeper. Link in Setup, then use Sync League."
+              : "League is not linked to Sleeper. Link in Setup, then use Sync league above."}
           </HubAlert>
         )}
         {status.empty_roster && (
           <HubAlert variant="info">
-            No roster players yet. Sync League after linking Sleeper, or add contracts in My team.
+            {showSoloSync
+              ? "No roster players yet. Sync League after linking Sleeper, or add contracts in My team."
+              : "No roster players yet. Sync league above after linking Sleeper, or add contracts in My team."}
           </HubAlert>
         )}
         {status.projections_missing && (
