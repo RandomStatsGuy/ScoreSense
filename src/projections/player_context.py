@@ -258,7 +258,13 @@ def _cached_digest_summary(
 
 
 def _load_weekly_pair(season: int, week: int) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Load inj + no_inj weekly artifacts with allow_compute=False."""
+    """Load inj + no_inj weekly artifacts without live predict.
+
+    Weekly refresh may rewrite ``*_mlready.parquet`` after prewarm, which
+    changes ``weekly_fingerprint()`` while the parquet files are still on
+    disk. ``allow_stale=True`` joins those artifacts instead of treating a
+    fingerprint miss as a missing cache.
+    """
     frames_inj: list[pd.DataFrame] = []
     frames_base: list[pd.DataFrame] = []
     for pos in POSITIONS:
@@ -268,6 +274,7 @@ def _load_weekly_pair(season: int, week: int) -> tuple[pd.DataFrame, pd.DataFram
             week=week,
             apply_injury_adjustments=True,
             allow_compute=False,
+            allow_stale=True,
         )
         base = load_weekly_prediction(
             pos,
@@ -275,6 +282,7 @@ def _load_weekly_pair(season: int, week: int) -> tuple[pd.DataFrame, pd.DataFram
             week=week,
             apply_injury_adjustments=False,
             allow_compute=False,
+            allow_stale=True,
         )
         if not inj.empty:
             frames_inj.append(inj)

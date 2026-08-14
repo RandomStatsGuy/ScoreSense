@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 
 from app.api import app
 from src.integrations.injury_snapshot import build_injury_snapshot
+from src.projections import weekly_cache
 from src.projections.player_context import (
     build_player_context_rows,
     get_player_context,
@@ -106,6 +107,7 @@ def _fake_weekly_load(
     week=None,
     apply_injury_adjustments=True,
     allow_compute=True,
+    allow_stale=False,
 ):
     assert allow_compute is False, "player-context build must not live-predict"
     pos = str(position).lower()
@@ -394,3 +396,49 @@ def test_serve_path_does_not_call_sleeper_or_predict(tmp_path, monkeypatch):
         assert out["player_id"] == "p1"
         sleeper.assert_not_called()
         predict.assert_not_called()
+
+
+@patch("src.projections.player_context._cached_digest_summary", return_value=(None, None))
+@patch("src.projections.player_context._load_sentiment_index", return_value={})
+def test_build_player_context_uses_stale_weekly_artifacts(_sent, _digest, tmp_path, monkeypatch):
+    """Weekly refresh may rewrite mlready after prewarm; context must still join artifacts."""
+    processed = tmp_path / "processed"
+    processed.mkdir()
+    monkeypatch.setattr(weekly_cache, "WEEKLY_PREDICTIONS_DIR", tmp_path / "weekly")
+    monkeypatch.setattr(weekly_cache, "PROCESSED_DATA_DIR", processed)
+    monkeypatch.setattr(weekly_cache, "MODEL_DIR", tmp_path / "models")
+    monkeypatch.setattr(
+        "src.projections.player_context.PLAYER_CONTEXT_DIR",
+        tmp_path / "ctx",
+    )
+    weekly_cache.invalidate_weekly_cache()
+    invalidate_player_context_cache()
+
+    (processed / "qb_mlready.parquet").write_bytes(b"pre-enrich")
+    weekly_cache.save_weekly_artifact("wr", 2026, 1, True, INJ_WR.copy())
+    weekly_cache.save_weekly_artifact("wr", 2026, 1, False, BASE_WR.copy())
+
+    # enrich_position_mlready always to_parquet's mlready, changing weekly_fingerprint().
+    (processed / "qb_mlready.parquet").write_bytes(b"post-enrich")
+    weekly_cache.invalidate_weekly_cache()
+
+    cold = weekly_cache.load_weekly_prediction(
+        "wr",
+        season=2026,
+        week=1,
+        apply_injury_adjustments=True,
+        allow_compute=False,
+    )
+    assert cold.empty
+
+    snapshot = {
+        "injury_snapshot_id": "inj_2026w1_stale",
+        "built_at": "2026-08-14T00:00:00+00:00",
+        "players": [],
+    }
+    rows, meta = build_player_context_rows(2026, 1, injury_snapshot=snapshot)
+    assert meta["rows"] == 2
+    assert {r["player_id"] for r in rows} == {"wr-higgins", "wr-quiet"}
+    higgins = next(r for r in rows if r["player_id"] == "wr-higgins")
+    assert higgins["projection"]["final"] == 16.8
+    assert higgins["projection"]["base"] == 14.7

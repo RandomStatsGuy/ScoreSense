@@ -51,8 +51,16 @@ def load_weekly_prediction(
     *,
     apply_injury_adjustments: bool = True,
     allow_compute: bool = True,
+    allow_stale: bool = False,
 ) -> pd.DataFrame:
-    """Load cached weekly predictions or compute and persist."""
+    """Load cached weekly predictions or compute and persist.
+
+    ``allow_stale=True`` returns an on-disk artifact even when its fingerprint
+    no longer matches ``weekly_fingerprint()`` (e.g. mlready rewritten after
+    prewarm). Callers that must not live-predict should set this rather than
+    treating a fingerprint miss as a missing file. Stale hits are not stored
+    in the in-process cache under the current fingerprint.
+    """
     if season is None or week is None:
         return predict_upcoming_week(
             position,
@@ -77,12 +85,14 @@ def load_weekly_prediction(
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             meta = {}
-        if meta.get("fingerprint") == fp:
+        fingerprint_ok = meta.get("fingerprint") == fp
+        if fingerprint_ok or allow_stale:
             df = pd.read_parquet(parquet_path)
             _apply_saved_attrs(df, meta)
             if meta.get("built_at"):
                 df.attrs["built_at"] = meta["built_at"]
-            _WEEKLY_CACHE[key] = (fp, df.copy())
+            if fingerprint_ok:
+                _WEEKLY_CACHE[key] = (fp, df.copy())
             return df
 
     if not allow_compute:
