@@ -148,16 +148,12 @@ function RosterMobileList({ rows, emptyLabel }) {
 
 export default function WeeklyCommandCenter({
   hubContext,
-  onSynced,
   onNavigateSetup,
 }) {
   const mobileLayout = useMobileLayout();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [syncing, setSyncing] = useState(false);
-  const [syncMessage, setSyncMessage] = useState("");
-  const [syncError, setSyncError] = useState("");
   const [weekOverride, setWeekOverride] = useState("");
   const [showRosterDetail, setShowRosterDetail] = useState(!mobileLayout);
 
@@ -190,40 +186,6 @@ export default function WeeklyCommandCenter({
   useEffect(() => {
     setShowRosterDetail(!mobileLayout);
   }, [mobileLayout]);
-
-  const runSync = useCallback(async () => {
-    const endpoint = data?.sync?.sync_endpoint;
-    if (!endpoint) return;
-    setSyncing(true);
-    setSyncError("");
-    setSyncMessage("");
-    try {
-      const isSolo = endpoint === "/api/hub/sleeper/sync";
-      const res = await apiFetch(endpoint, {
-        method: data?.sync?.sync_action || "POST",
-        ...(isSolo
-          ? {
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ import_to_hub: true }),
-            }
-          : {}),
-      });
-      if (!res.ok) throw new Error(await parseApiError(res));
-      const result = await res.json();
-      setSyncMessage(
-        result.message
-        || (result.teams_synced != null
-          ? `Synced ${result.teams_synced} team(s) from Sleeper.`
-          : "League synced from Sleeper."),
-      );
-      await onSynced?.(result);
-      await load();
-    } catch (e) {
-      setSyncError(connectionErrorMessage(e));
-    } finally {
-      setSyncing(false);
-    }
-  }, [data?.sync?.sync_action, data?.sync?.sync_endpoint, load, onSynced]);
 
   const meta = data?.meta || {};
   const status = data?.status || {};
@@ -281,21 +243,10 @@ export default function WeeklyCommandCenter({
           type="button"
           className="btn-ghost btn-sm"
           onClick={() => load()}
-          disabled={loading || syncing}
+          disabled={loading}
         >
           {loading ? "Loading…" : "Refresh"}
         </button>
-        {sync.sync_endpoint && (
-          <button
-            type="button"
-            className="btn-primary btn-sm"
-            onClick={runSync}
-            disabled={syncing || loading || !sync.linked}
-            title={sync.note || "Explicit Sleeper sync — never runs on dashboard load"}
-          >
-            {syncing ? "Syncing…" : "Sync League"}
-          </button>
-        )}
       </HubToolbar>
 
       <HubPageMeta>
@@ -312,8 +263,6 @@ export default function WeeklyCommandCenter({
       </HubPageMeta>
 
       {error && <div className="error">{error}</div>}
-      {syncError && <div className="error">{syncError}</div>}
-      {syncMessage && <p className="chart-note hub-wcc-sync-msg">{syncMessage}</p>}
 
       <HubAlertStack>
         {status.unlinked_league && (
@@ -325,12 +274,12 @@ export default function WeeklyCommandCenter({
               </button>
             ) : null}
           >
-            League is not linked to Sleeper. Link in Setup, then use Sync League.
+            League is not linked to Sleeper. Link in Setup, then use Sync league above.
           </HubAlert>
         )}
         {status.empty_roster && (
           <HubAlert variant="info">
-            No roster players yet. Sync League after linking Sleeper, or add contracts in My team.
+            No roster players yet. Sync league above after linking Sleeper, or add contracts in My team.
           </HubAlert>
         )}
         {status.projections_missing && (
