@@ -77,9 +77,14 @@ export default function LeagueContextBanner({
   const isCommish = Boolean(hubContext?.is_commissioner);
 
   const loadFreshness = useCallback(async (signal) => {
-    if (!leagueId || hubContext?.mode !== "league") return;
+    if (!leagueId || hubContext?.mode !== "league") {
+      setFreshness(null);
+      setFreshnessLoading(false);
+      setFreshnessError("");
+      return;
+    }
     const cached = getFreshnessCache(leagueId);
-    if (cached?.data) setFreshness(cached.data);
+    setFreshness(cached?.data || null);
     setFreshnessLoading(!cached?.data);
     setFreshnessError("");
     try {
@@ -250,7 +255,9 @@ export default function LeagueContextBanner({
   }
 
   const busy = syncing || switchBusy || sheetSyncing || projRefreshing;
-  const sleeperLinked = Boolean(freshness?.sleeper?.linked);
+  const sleeperLinked = Boolean(
+    freshness?.sleeper?.linked || hubContext?.sleeper_league_id,
+  );
 
   const identityLine = (
     <div className="hub-league-context-identity">

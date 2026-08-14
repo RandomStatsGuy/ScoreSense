@@ -65,6 +65,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const [leagueSyncing, setLeagueSyncing] = useState(false);
   const [leagueSyncMessage, setLeagueSyncMessage] = useState("");
   const [leagueSyncError, setLeagueSyncError] = useState("");
+  const [weekReloadToken, setWeekReloadToken] = useState(0);
   const mobileLayout = useMobileLayout();
   const [valueSheetLoading, setValueSheetLoading] = useState(false);
   const subViewRef = React.useRef(subView);
@@ -456,6 +457,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       clearHubDataCache();
       if (lid) invalidateFreshnessCache(lid);
       await onRosterChanged();
+      setWeekReloadToken((n) => n + 1);
     } catch (e) {
       const msg = connectionErrorMessage(e);
       setLeagueSyncError(msg);
@@ -645,6 +647,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
               workspace?.rules || effectiveCtx?.rules,
               { forcePool: true },
             );
+            setWeekReloadToken((n) => n + 1);
           }}
         />
       )}
@@ -695,6 +698,14 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       {subView === "week" && (
         <WeeklyCommandCenter
           hubContext={effectiveCtx}
+          reloadToken={weekReloadToken}
+          onSynced={async (result) => {
+            if (result?.hub_context) applyHubContext(result.hub_context);
+            const lid = effectiveCtx?.league_id;
+            if (lid) invalidateFreshnessCache(lid);
+            clearHubDataCache();
+            await onRosterChanged();
+          }}
           onNavigateSetup={() => setSubView("setup")}
         />
       )}
