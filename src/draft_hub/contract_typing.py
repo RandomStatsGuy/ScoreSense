@@ -90,17 +90,20 @@ def suggested_rookie_years_pre_draft(
     *,
     years_exp: int | None,
 ) -> int | None:
-    """Years left including upcoming season (pre-draft), from NFL experience."""
+    """Years left on a rookie deal pre-draft, from NFL experience.
+
+    ``years_exp`` is seasons already played. Remaining years are
+    ``rookie_years - years_exp`` (e.g. 0→2, 1→1 for a 2-year window).
+    Do not add +1: that inflates a correctly ticked 1-year rookie back to 2
+    when the league reopens pre-draft for the next planning season.
+    """
     if years_exp is None:
         return None
     cr = contract_rules(rules)
     limit = int(cr.rookie_years)
     if years_exp >= limit:
         return None
-    # years_exp seasons already played; upcoming season has not ticked yet.
-    if years_exp <= 0:
-        return limit
-    return max(1, limit - years_exp + 1)
+    return max(1, limit - years_exp)
 
 
 def apply_type_to_contract(
