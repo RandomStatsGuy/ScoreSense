@@ -181,6 +181,8 @@ def build_team_salary_sheets_payload(
     sync_status = commissioner_sync_status(league_id)
     imports = storage.list_legacy_imports(league_id)
     import_meta = {int(r["season_year"]): r for r in imports}
+    revisions = storage.league_cache_revisions(league_id)
+    source_version = storage.insights_source_version(league_id)
 
     return {
         "available": True,
@@ -196,6 +198,9 @@ def build_team_salary_sheets_payload(
         "summary_matrix": summary_matrix,
         "team_sheets": team_sheets,
         "sync_status": sync_status,
+        "live_roster_revision": revisions["live_roster_revision"],
+        "historic_snapshot_revision": revisions["historic_snapshot_revision"],
+        "source_version": source_version,
         "import_meta": {
             str(yr): {
                 "snapshot_phase": row.get("snapshot_phase"),

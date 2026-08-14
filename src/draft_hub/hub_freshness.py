@@ -106,6 +106,7 @@ def league_data_freshness(league_id: str, *, include_contract_detail: bool = Tru
             "season": pool_status.get("season"),
         },
         "insights_version": storage.insights_source_version(league_id),
+        **storage.league_cache_revisions(league_id),
     }
 
     if include_contract_detail:
