@@ -2571,16 +2571,20 @@ def hub_contract_history_build_week1(
     season: int = Query(..., description="Season year to build from Sleeper week-1 matchups"),
     _user=Depends(require_hub_user),
 ) -> dict:
-    """Build / replace year-sheet rows from Sleeper week-1 rosters (salary seeded from Excel/prior)."""
+    """Build / replace year-sheet rows from Sleeper week-1 rosters (salary seeded from Excel/prior).
+
+    Manual Historic overlays are preserved (SCORE-39); other seasons are untouched.
+    """
     sub = _sub(_user)
     ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
-    from src.draft_hub.sleeper_week1_snapshot import build_and_persist_week1_sheet
+    from src.draft_hub.sheet_roster_sync import sync_sleeper_year_sheet
 
     try:
-        return build_and_persist_week1_sheet(
+        return sync_sleeper_year_sheet(
             league_id,
             season_year=int(season),
+            mode="week1",
             imported_by_sub=sub,
         )
     except ValueError as exc:
@@ -2595,16 +2599,20 @@ def hub_contract_history_build_pre_draft(
     season: int = Query(..., description="Season year to seed from current/pre-draft Sleeper rosters"),
     _user=Depends(require_hub_user),
 ) -> dict:
-    """Seed a year sheet from live Sleeper rosters before the draft (salaries from prior year)."""
+    """Seed a year sheet from live Sleeper rosters before the draft (salaries from prior year).
+
+    Manual Historic overlays are preserved (SCORE-39); other seasons are untouched.
+    """
     sub = _sub(_user)
     ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
-    from src.draft_hub.sleeper_week1_snapshot import build_and_persist_pre_draft_sheet
+    from src.draft_hub.sheet_roster_sync import sync_sleeper_year_sheet
 
     try:
-        return build_and_persist_pre_draft_sheet(
+        return sync_sleeper_year_sheet(
             league_id,
             season_year=int(season),
+            mode="pre_draft",
             imported_by_sub=sub,
         )
     except ValueError as exc:
