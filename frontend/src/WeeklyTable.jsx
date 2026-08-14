@@ -14,8 +14,11 @@ import {
 import QuantileBar from "./QuantileBarShared";
 import SentimentBadge from "./SentimentBadge";
 import ProjectionExplanationPanel from "./ProjectionExplanationPanel";
+import PlayerContextBadges from "./PlayerContextBadges";
+import PlayerContextPanel from "./PlayerContextPanel";
 import { TableSkeleton } from "./TableSkeleton";
 import useMobileLayout from "./useMobileLayout";
+import usePlayersContext from "./usePlayersContext";
 import MobileDataList, { MobileStat } from "./MobileDataList";
 import MobilePlayerCard from "./MobilePlayerCard";
 import PlayerCell, { usePlayerMedia } from "./PlayerCell";
@@ -128,6 +131,9 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   onToggleWhy,
   whyColSpan,
   applyInjuryAdjustments,
+  playerContext,
+  contextExpanded,
+  onToggleContext,
 }) {
   const status = row["Injury Status"] || "";
   const unavailable = isPlayerUnavailable(status);
@@ -138,6 +144,7 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   const tone = matchupTone(row["Opp Def Rank"], dvpTeamCount);
   const canSelect = compareEnabled && Boolean(row.player_id) && !unavailable;
   const canExplain = Boolean(row.player_id);
+  const canContext = Boolean(row.player_id);
 
   return (
     <>
@@ -146,6 +153,7 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
         unavailable ? "row-unavailable" : "",
         selected ? "row-compare-selected" : "",
         whyExpanded ? "row-why-open" : "",
+        contextExpanded ? "row-context-open" : "",
       ]
         .filter(Boolean)
         .join(" ") || undefined}
@@ -183,18 +191,40 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
           />
           <InjuryStatusTag status={unavailable ? "" : status} />
         </span>
+        {playerContext ? (
+          <PlayerContextBadges context={playerContext} className="player-context-badges--table" />
+        ) : null}
         <span className="col-player-mobile-meta">
           {row.Team || "—"}
           {showOpponent && row.Opponent ? ` · ${row.Opponent}` : ""}
         </span>
       </td>
       <td className="col-why">
-        {canExplain ? (
-          <WhyToggleButton
-            playerName={row.Player}
-            expanded={whyExpanded}
-            onToggle={onToggleWhy}
-          />
+        {canExplain || canContext ? (
+          <span className="col-why-actions">
+            {canExplain ? (
+              <WhyToggleButton
+                playerName={row.Player}
+                expanded={whyExpanded}
+                onToggle={onToggleWhy}
+              />
+            ) : null}
+            {canContext ? (
+              <button
+                type="button"
+                className={`btn-ghost btn-sm ctx-toggle${contextExpanded ? " ctx-toggle--open" : ""}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onToggleContext?.();
+                }}
+                aria-expanded={Boolean(contextExpanded)}
+                aria-label={`Cached week context for ${row.Player || "player"}`}
+                title="Cached week context"
+              >
+                Ctx
+              </button>
+            ) : null}
+          </span>
         ) : (
           <span className="muted">—</span>
         )}
@@ -272,6 +302,19 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
         </td>
       </tr>
     ) : null}
+    {contextExpanded && canContext ? (
+      <tr className="row-context-panel">
+        <td colSpan={whyColSpan}>
+          <PlayerContextPanel
+            playerId={row.player_id}
+            season={season}
+            week={week}
+            active
+            className="player-context-panel--table"
+          />
+        </td>
+      </tr>
+    ) : null}
     </>
   );
 });
@@ -327,8 +370,12 @@ export default function WeeklyTable({
 }) {
   const [sort, toggleSort] = useTableSort({ column: "P50", dir: "desc" });
   const [whyPlayerId, setWhyPlayerId] = useState(null);
+  const [contextPlayerId, setContextPlayerId] = useState(null);
   const mobileLayout = useMobileLayout();
   const playerCard = usePlayerCardOptional();
+  const playersContext = usePlayersContext(season, week, {
+    enabled: season != null && week != null,
+  });
   const selectedSet = useMemo(
     () => new Set((selectedCompareIds || []).map(String)),
     [selectedCompareIds],
@@ -342,8 +389,15 @@ export default function WeeklyTable({
     setWhyPlayerId((prev) => (prev === id ? null : id));
   };
 
+  const toggleContext = (playerId) => {
+    const id = playerId ? String(playerId) : "";
+    if (!id) return;
+    setContextPlayerId((prev) => (prev === id ? null : id));
+  };
+
   useEffect(() => {
     setWhyPlayerId(null);
+    setContextPlayerId(null);
   }, [position, season, week, applyInjuryAdjustments]);
 
   const showOpponent = useMemo(
@@ -466,6 +520,16 @@ export default function WeeklyTable({
       <div className="table-toolbar">
         <span className="table-meta">{resultLabel}</span>
         {metaLine}
+        {playersContext.unavailable ? (
+          <span className="table-meta table-meta-context-cold" role="status">
+            Context cache warming
+          </span>
+        ) : null}
+        {playersContext.meta?.stale ? (
+          <span className="table-meta table-meta-context-stale" role="status">
+            Context snapshot stale
+          </span>
+        ) : null}
         {!mobileLayout ? (
           <span className="table-meta range-scale-legend range-scale-legend--toolbar" aria-hidden="true">
             <span>Floor</span>
@@ -649,6 +713,16 @@ export default function WeeklyTable({
                         expanded={whyPlayerId === pid}
                         onToggle={() => toggleWhy(pid)}
                       />
+                      <button
+                        type="button"
+                        className={`btn-ghost btn-sm ctx-toggle${contextPlayerId === pid ? " ctx-toggle--open" : ""}`}
+                        onClick={() => toggleContext(pid)}
+                        aria-expanded={contextPlayerId === pid}
+                        aria-label={`Cached week context for ${row.Player || "player"}`}
+                        title="Cached week context"
+                      >
+                        Ctx
+                      </button>
                     </div>
                   ) : null
                 }
@@ -680,6 +754,12 @@ export default function WeeklyTable({
                         </div>
                       </>
                     )}
+                    {pid ? (
+                      <PlayerContextBadges
+                        context={playersContext.byId.get(pid)}
+                        className="player-context-badges--mobile"
+                      />
+                    ) : null}
                     {hasSentiment ? (
                       <div className="mobile-player-card-sentiment">
                         <SentimentBadge sentiment={row.sentiment} compact />
@@ -694,6 +774,15 @@ export default function WeeklyTable({
                         applyInjuryAdjustments={applyInjuryAdjustments}
                         active
                         className="projection-explanation--mobile"
+                      />
+                    ) : null}
+                    {pid && contextPlayerId === pid ? (
+                      <PlayerContextPanel
+                        playerId={pid}
+                        season={season}
+                        week={week}
+                        active
+                        className="player-context-panel--mobile"
                       />
                     ) : null}
                   </>
@@ -714,8 +803,8 @@ export default function WeeklyTable({
               ) : null}
               <th className="num col-rank" title="Position rank by projected points">#</th>
               <SortHeader label="Player" sortKey="Player" sort={sort} onSort={toggleSort} className="col-player" />
-              <th className="col-why" title="Why this projection?">
-                <span className="sr-only">Why</span>
+              <th className="col-why" title="Why this projection? / Cached week context">
+                <span className="sr-only">Why / Context</span>
               </th>
               <SortHeader label="Team" sortKey="Team" sort={sort} onSort={toggleSort} className="col-team" />
               {showOpponent && (
@@ -804,6 +893,9 @@ export default function WeeklyTable({
                 onToggleWhy={() => toggleWhy(pid)}
                 whyColSpan={emptyColSpan}
                 applyInjuryAdjustments={applyInjuryAdjustments}
+                playerContext={pid ? playersContext.byId.get(pid) : null}
+                contextExpanded={Boolean(pid && contextPlayerId === pid)}
+                onToggleContext={() => toggleContext(pid)}
               />
               );
             })}

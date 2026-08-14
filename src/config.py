@@ -99,6 +99,8 @@ PREDICTIONS_DIR = PROJECT_ROOT / "artifacts" / "predictions"
 DRAFT_POOL_DIR = PROJECT_ROOT / "artifacts" / "draft_pool"
 WEEKLY_PREDICTIONS_DIR = PROJECT_ROOT / "artifacts" / "weekly_predictions"
 ROS_PREDICTIONS_DIR = PROJECT_ROOT / "artifacts" / "ros_predictions"
+PLAYER_CONTEXT_DIR = PROJECT_ROOT / "artifacts" / "player_context"
+INJURY_SNAPSHOTS_DIR = CACHE_DIR / "injury_snapshots"
 BACKTEST_DIR = PROJECT_ROOT / "artifacts" / "backtest"
 BACKTEST_CACHE_DIR = CACHE_DIR / "backtest_models"
 BACKTEST_CHECKPOINT_VERSION = "v1"
@@ -214,5 +216,7 @@ for path in (
     DRAFT_HUB_DIR,
     BDB_DIR,
     NGS_RAW_DIR,
+    PLAYER_CONTEXT_DIR,
+    INJURY_SNAPSHOTS_DIR,
 ):
     path.mkdir(parents=True, exist_ok=True)
