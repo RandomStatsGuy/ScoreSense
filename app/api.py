@@ -181,6 +181,7 @@ def health() -> dict:
             "projection_explanation": "/api/player/{player_id}/explanation" in route_paths,
             "player_context": "/api/player/{player_id}/context" in route_paths,
             "weekly_command_center": "/api/hub/week" in route_paths,
+            "league_home": "/api/hub/home" in route_paths,
             "projection_movement": "/api/predict/{position}/changes" in route_paths,
         },
     }
