@@ -18,6 +18,13 @@ import {
   seasonCapYearHint,
   YEARS_LEFT_HINT,
 } from "./rosterFormat";
+import {
+  canManagerRookieExtend,
+  hasPendingExtension,
+  postRookieExtend,
+  previewRookieExtendStartSalary,
+  rookieExtendSuccessMessage,
+} from "./rookieExtend";
 import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 const TEAM_LOGO_ALIASES = { JAX: "jax", JAC: "jax", LA: "lar", LAR: "lar", WSH: "wsh", WAS: "wsh" };
 
@@ -58,6 +65,7 @@ export default function RosterBuilder({
   const [posFilter, setPosFilter] = useState("ALL");
 
   const [typeOverrides, setTypeOverrides] = useState({});
+  const [extendYearsById, setExtendYearsById] = useState({});
 
   const mobileLayout = useMobileLayout();
   const maxYears = Number(workspace?.rules?.contracts?.max_years ?? 3);
@@ -71,6 +79,7 @@ export default function RosterBuilder({
   const isLeague = hubContext?.mode === "league";
   const isCommissioner = Boolean(hubContext?.is_commissioner || hubContext?.can_edit_salaries);
   // SCORE-41: league My Team never edits salary/years/type — Office Current is the only arbitrary editor.
+  // SCORE-42: managers may still queue a server-calculated rookie extension for their own eligible rookies.
   const contractsReadOnly = isLeague || readOnly;
   const canEditType = !contractsReadOnly;
 
@@ -166,6 +175,7 @@ export default function RosterBuilder({
   useEffect(() => {
     setDraftEdits({});
     setTypeOverrides({});
+    setExtendYearsById({});
   }, [roster]);
 
   const getEdit = useCallback((r) => {
@@ -187,6 +197,28 @@ export default function RosterBuilder({
       return { ...prev, [pid]: { ...base, ...patch } };
     });
   };
+
+  const extendYearsFor = useCallback((r) => {
+    const raw = extendYearsById[r.player_id];
+    const n = Number(raw);
+    if (Number.isFinite(n) && n >= 1 && n <= 3) return n;
+    return 1;
+  }, [extendYearsById]);
+
+  const queueRookieExtend = useCallback(async (r) => {
+    setSavingId(r.player_id);
+    setError("");
+    try {
+      const data = await postRookieExtend(r.player_id, extendYearsFor(r));
+      setError(rookieExtendSuccessMessage(data));
+      setTimeout(() => setError(""), 4000);
+      onChanged?.();
+    } catch (e) {
+      setError(e.message || "Could not queue extension");
+    } finally {
+      setSavingId(null);
+    }
+  }, [extendYearsFor, onChanged]);
 
   const saveRow = useCallback(async (r) => {
     if (hubContext?.mode === "league") return;
@@ -318,7 +350,7 @@ export default function RosterBuilder({
             ? (
               <p>
                 {isLeague
-                  ? "Salary, years, and type are edited in Office Current only."
+                  ? "Salary, years, and type are edited in Office Current only. Final-year rookies can still queue one extension here."
                   : "Read-only — ask commish to edit."}
                 {officeLink ? <> {officeLink}</> : null}
               </p>
@@ -380,6 +412,8 @@ export default function RosterBuilder({
             ? <> — {officeLink || "use Office Current to edit"}.</>
             : ". Commissioners edit salary, years, and type in Office."}
           {" "}
+          Before draft, final-year rookies can queue one 1–3 year extension (start salary = current + ${defaultStepUp}).
+          {" "}
           {YEARS_LEFT_HINT}
         </p>
       )}
@@ -414,7 +448,11 @@ export default function RosterBuilder({
         <p className="chart-note">Salaries set by commish. Sync Sleeper after trades.</p>
       )}
 
-      {error && <div className="error">{error}</div>}
+      {error && (
+        <div className={/queued|already queued/i.test(error) ? "hub-msg" : "error"}>
+          {error}
+        </div>
+      )}
 
       <div className="hub-filter-bar hub-roster-pos-bar">
         {!mobileLayout && (
@@ -475,15 +513,53 @@ export default function RosterBuilder({
                 ? storedSchedule
                 : (previewSchedule(edit.salary, edit.years, defaultStepUp, ctype) || storedSchedule);
               const pendingType = r.contract?.pending_type;
+              const pendingExt = hasPendingExtension(r);
+              const extendEligible = canManagerRookieExtend(r, { draftCompleted }).ok;
+              const extendStart = extendEligible
+                ? previewRookieExtendStartSalary(r, workspace?.rules)
+                : null;
               const inferredMeta = !r.contract?.contract_type_manual && r.contract?.inferred_from
                 ? String(r.contract.inferred_from).replace("nfl_yr_", "NFL yr ")
                 : null;
-              const expiringBadge = !draftCompleted && yrsLeft <= 1 && !isCut
-                ? (ctype === "rookie"
-                  ? (mobileLayout ? "Extend?" : "Extend to keep")
-                  : (mobileLayout ? "FA" : "Expires — FA"))
-                : (yrsLeft === 1 ? "Final year" : null);
+              const expiringBadge = pendingExt
+                ? null
+                : (!draftCompleted && yrsLeft <= 1 && !isCut
+                  ? (ctype === "rookie"
+                    ? (mobileLayout ? "Extend?" : "Extend to keep")
+                    : (mobileLayout ? "FA" : "Expires — FA"))
+                  : (yrsLeft === 1 ? "Final year" : null));
               const actions = [];
+              if (extendEligible) {
+                actions.push(
+                  <label key="extend-years" className="hub-roster-extend-years">
+                    <span className="sr-only">Extension years</span>
+                    <select
+                      className="hub-roster-edit-input hub-roster-edit-input-sm"
+                      value={extendYearsFor(r)}
+                      disabled={isSaving}
+                      onChange={(e) => setExtendYearsById((prev) => ({
+                        ...prev,
+                        [r.player_id]: e.target.value,
+                      }))}
+                      aria-label={`Extension years for ${r.player_name}`}
+                    >
+                      <option value={1}>1 yr</option>
+                      <option value={2}>2 yr</option>
+                      <option value={3}>3 yr</option>
+                    </select>
+                  </label>,
+                  <button
+                    key="extend"
+                    type="button"
+                    className="btn-primary btn-sm"
+                    disabled={isSaving}
+                    title={extendStart != null ? `Starts at ${fmtSal(extendStart)}` : undefined}
+                    onClick={() => queueRookieExtend(r)}
+                  >
+                    {mobileLayout ? "Extend" : "Queue extension"}
+                  </button>,
+                );
+              }
               if (!draftCompleted) {
                 actions.push(
                   <button
@@ -523,6 +599,7 @@ export default function RosterBuilder({
                       {isSleeperPlayer(r) && <span className="hub-sleeper-badge">Sleeper</span>}
                       <span className={contractTypeBadgeClass(ctype)}>{contractTypeLabel(ctype)}</span>
                       {pendingType && <span className="hub-sleeper-badge hub-pending-badge">Pending</span>}
+                      {pendingExt && <span className="hub-sleeper-badge hub-pending-badge">Extension queued</span>}
                       {inferredMeta && <span className="hub-contract-infer-meta">Auto · {inferredMeta}</span>}
                       {isCut && <span className="hub-sleeper-badge hub-cut-badge">Cut before draft</span>}
                       {expiringBadge && <span className="hub-sleeper-badge hub-expiring-badge">{expiringBadge}</span>}
@@ -638,14 +715,21 @@ export default function RosterBuilder({
                 ? storedSchedule
                 : (previewSchedule(edit.salary, edit.years, defaultStepUp, ctype) || storedSchedule);
               const pendingType = r.contract?.pending_type;
+              const pendingExt = hasPendingExtension(r);
+              const extendEligible = canManagerRookieExtend(r, { draftCompleted }).ok;
+              const extendStart = extendEligible
+                ? previewRookieExtendStartSalary(r, workspace?.rules)
+                : null;
               const inferredMeta = !r.contract?.contract_type_manual && r.contract?.inferred_from
                 ? String(r.contract.inferred_from).replace("nfl_yr_", "NFL yr ")
                 : null;
-              const expiringBadge = !draftCompleted && yrsLeft <= 1 && !isCut
-                ? (ctype === "rookie"
-                  ? (mobileLayout ? "Extend?" : "Extend to keep")
-                  : (mobileLayout ? "FA" : "Expires — FA"))
-                : (yrsLeft === 1 ? "Final year" : null);
+              const expiringBadge = pendingExt
+                ? null
+                : (!draftCompleted && yrsLeft <= 1 && !isCut
+                  ? (ctype === "rookie"
+                    ? (mobileLayout ? "Extend?" : "Extend to keep")
+                    : (mobileLayout ? "FA" : "Expires — FA"))
+                  : (yrsLeft === 1 ? "Final year" : null));
               return (
                 <tr key={r.player_id} className={`${isSleeperPlayer(r) ? "hub-sleeper-row" : ""}${isCut ? " hub-cut-row" : ""}`}>
                   <td>
@@ -672,6 +756,7 @@ export default function RosterBuilder({
                           {r.team || "—"}
                           {isSleeperPlayer(r) && <span className="hub-sleeper-badge">Sleeper</span>}
                           {pendingType && <span className="hub-sleeper-badge hub-pending-badge">Pending</span>}
+                          {pendingExt && <span className="hub-sleeper-badge hub-pending-badge">Extension queued</span>}
                           {inferredMeta && <span className="hub-contract-infer-meta">Auto · {inferredMeta}</span>}
                           {isCut && <span className="hub-sleeper-badge hub-cut-badge">Cut before draft</span>}
                           {expiringBadge && <span className="hub-sleeper-badge hub-expiring-badge">{expiringBadge}</span>}
@@ -734,10 +819,40 @@ export default function RosterBuilder({
                     )}
                   </td>
                   <td className="chart-note hub-schedule-preview">{livePreview || "—"}</td>
-                  {(!readOnly || !draftCompleted) && (
+                  {(!readOnly || !draftCompleted || extendEligible || pendingExt) && (
                   <td className="hub-roster-actions">
                     {!contractsReadOnly && isSaving && <span className="hub-roster-save-hint">Saving…</span>}
                     {!contractsReadOnly && !isSaving && justSaved && <span className="hub-roster-save-hint hub-roster-save-ok">Saved</span>}
+                    {extendEligible && (
+                      <>
+                        <label className="hub-roster-extend-years">
+                          <span className="sr-only">Extension years</span>
+                          <select
+                            className="hub-roster-edit-input hub-roster-edit-input-sm"
+                            value={extendYearsFor(r)}
+                            disabled={isSaving}
+                            onChange={(e) => setExtendYearsById((prev) => ({
+                              ...prev,
+                              [r.player_id]: e.target.value,
+                            }))}
+                            aria-label={`Extension years for ${r.player_name}`}
+                          >
+                            <option value={1}>1 yr</option>
+                            <option value={2}>2 yr</option>
+                            <option value={3}>3 yr</option>
+                          </select>
+                        </label>
+                        <button
+                          type="button"
+                          className="btn-primary btn-sm"
+                          disabled={isSaving}
+                          title={extendStart != null ? `Starts at ${fmtSal(extendStart)}` : undefined}
+                          onClick={() => queueRookieExtend(r)}
+                        >
+                          Queue extension
+                        </button>
+                      </>
+                    )}
                     {!draftCompleted && (
                       <button
                         type="button"

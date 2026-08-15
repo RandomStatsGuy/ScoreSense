@@ -7733,6 +7733,15 @@ td.col-rank.col-rank-top {
 .hub-roster-edit-input-sm { width: 3rem; }
 .hub-roster-edit-input:focus { border-color: var(--accent-muted); outline: none; }
 .hub-roster-actions { white-space: nowrap; text-align: right; }
+.hub-roster-actions .hub-roster-extend-years {
+  display: inline-block;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+.hub-extend-start-preview {
+  align-self: flex-end;
+  padding-bottom: 0.35rem;
+}
 .hub-roster-save-hint { font-size: 0.72rem; color: var(--text-muted); margin-right: 0.35rem; }
 .hub-roster-save-ok { color: #6ee7b7; }
 .hub-roster-empty { padding: 1.5rem !important; text-align: center; }
