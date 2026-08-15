@@ -181,6 +181,7 @@ def health() -> dict:
             "projection_explanation": "/api/player/{player_id}/explanation" in route_paths,
             "player_context": "/api/player/{player_id}/context" in route_paths,
             "weekly_command_center": "/api/hub/week" in route_paths,
+            "projection_movement": "/api/predict/{position}/changes" in route_paths,
         },
     }
 
@@ -953,6 +954,56 @@ def _predict_response(
     if ids:
         projections = filter_projections_by_ids(projections, ids)
         meta = {**meta, "filtered_player_ids": ids}
+
+    # Soft-join SCORE-7 movement — never fail the base projection payload.
+    movement_meta: dict[str, Any] | None = None
+    if season is not None and week is not None and projections:
+        try:
+            from src.projections.projection_movement import (
+                load_projection_movement,
+                movement_index_by_player_id,
+            )
+
+            move_index = movement_index_by_player_id(
+                position,
+                int(season),
+                int(week),
+                apply_injury_adjustments=apply_injury_adjustments,
+            )
+            if move_index:
+                for rec in projections:
+                    pid = str(rec.get("player_id") or "").strip()
+                    move = move_index.get(pid)
+                    if not move:
+                        continue
+                    rec["p50_delta"] = move.get("p50_delta")
+                    rec["rank_delta"] = move.get("rank_delta")
+                    rec["previous_rank"] = move.get("previous_rank")
+                    rec["current_rank"] = move.get("current_rank")
+                    rec["previous_p50"] = move.get("previous_p50")
+                    rec["movement_material"] = move.get("material")
+                try:
+                    _, move_meta = load_projection_movement(
+                        position,
+                        int(season),
+                        int(week),
+                        apply_injury_adjustments=apply_injury_adjustments,
+                    )
+                    movement_meta = {
+                        "available": bool(move_meta.get("available")),
+                        "generated_at": move_meta.get("generated_at"),
+                        "fingerprint": move_meta.get("fingerprint"),
+                    }
+                except FileNotFoundError:
+                    movement_meta = {"available": True}
+            else:
+                movement_meta = {"available": False}
+        except Exception:
+            movement_meta = {"available": False}
+
+    if movement_meta is not None:
+        meta = {**meta, "projection_movement": movement_meta}
+
     return {
         "position": position,
         "count": len(projections),
@@ -1053,6 +1104,53 @@ def predict_compare(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.get("/api/predict/{position}/changes")
+def predict_changes_get(
+    position: str,
+    season: Optional[int] = None,
+    week: Optional[int] = None,
+    apply_injury_adjustments: bool = True,
+    material_only: bool = Query(False, description="Only material movers"),
+    limit: Optional[int] = Query(None, ge=1, le=500, description="Max rows"),
+    ids: Optional[str] = Query(
+        None,
+        description="Optional comma-separated player_id filter",
+    ),
+    _user=Depends(require_patron),
+) -> dict:
+    """Biggest movers / What Changed — serve-only projection movement artifact."""
+    position = position.lower()
+    if position not in ("qb", "rb", "wr"):
+        raise HTTPException(status_code=400, detail="position must be qb, rb, or wr")
+    from src.core.projection_context import resolve_projection_context
+    from src.config import PROCESSED_DATA_DIR
+    from src.projections.projection_movement import build_projection_movement_payload
+
+    resolved_season, resolved_week = season, week
+    if resolved_season is None or resolved_week is None:
+        try:
+            path = PROCESSED_DATA_DIR / "qb_mlready.parquet"
+            frame = pd.read_parquet(path, columns=["season", "week"])
+            resolved_season, resolved_week = resolve_projection_context(
+                frame, resolved_season, resolved_week
+            )
+        except Exception as exc:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Unable to resolve season/week for projection movement: {exc}",
+            ) from exc
+
+    return build_projection_movement_payload(
+        position,
+        int(resolved_season),
+        int(resolved_week),
+        apply_injury_adjustments=apply_injury_adjustments,
+        material_only=material_only,
+        limit=limit,
+        player_ids=parse_compare_player_ids(ids) or None,
+    )
 
 
 @app.get("/api/predict/{position}")
