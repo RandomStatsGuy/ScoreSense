@@ -26,7 +26,7 @@ def test_normalize_pool_mode():
 def test_roster_capacity_at_max(hub_db):
     rules = load_preset("salary_cap_auction_v1")
     roster = [
-        {"player_id": f"w{i}", "position": "WR", "salary": 1}
+        {"player_id": f"w{i}", "position": "WR", "salary": 1, "source": "draft", "contract_years": 1}
         for i in range(rules.roster["wr"]["max"])
     ]
     cap = roster_capacity(rules, roster)
@@ -72,13 +72,19 @@ def test_nominate_blocked_at_position_max(hub_db, monkeypatch):
                 "position": "WR",
                 "salary": 5,
                 "contract_years": 1,
+                "source": "draft",
             },
             team_id=team_id,
         )
 
     monkeypatch.setattr(
-        "src.draft_hub.draft_state.assert_player_nomination_eligible",
-        lambda **kwargs: None,
+        "src.draft_hub.draft_state.resolve_nomination_player",
+        lambda **kwargs: {
+            "player_id": "new-wr",
+            "player_name": "New WR",
+            "team": "DAL",
+            "position": "WR",
+        },
     )
     storage.update_draft_session(league["id"], status="nominating")
 
@@ -114,6 +120,7 @@ def test_bid_blocked_at_position_max(hub_db):
                 "position": "WR",
                 "salary": 5,
                 "contract_years": 1,
+                "source": "draft",
             },
             team_id=human["id"],
         )

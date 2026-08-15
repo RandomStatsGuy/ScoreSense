@@ -103,11 +103,17 @@ def can_afford_bid(rules: LeagueRules, budget_remaining: float, bid: float) -> b
     return bid >= float(rules.auction.min_bid) and bid <= budget_remaining
 
 
+def _occupying(rules: LeagueRules, roster: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    from src.draft_hub.draft_budgets import occupying_roster
+
+    return occupying_roster(rules, roster, draft_completed=False)
+
+
 def count_at_position(rules: LeagueRules, roster: list[dict[str, Any]], position: str) -> int:
     pos = normalize_position(position)
     return sum(
         1
-        for row in cap_relevant_roster(rules, roster)
+        for row in _occupying(rules, roster)
         if normalize_position(row.get("position")) == pos
     )
 
@@ -122,6 +128,12 @@ def position_at_max(rules: LeagueRules, roster: list[dict[str, Any]], position: 
 
 
 def assert_can_acquire(rules: LeagueRules, roster: list[dict[str, Any]], position: str) -> None:
+    from src.draft_hub.draft_budgets import total_roster_slots
+
+    occupying = _occupying(rules, roster)
+    total_max = total_roster_slots(rules)
+    if total_max and len(occupying) >= total_max:
+        raise ValueError(f"Roster at maximum size ({total_max})")
     pos = normalize_position(position)
     pos_key = pos.lower()
     limits = roster_limits(rules)
@@ -134,10 +146,12 @@ def assert_can_acquire(rules: LeagueRules, roster: list[dict[str, Any]], positio
 
 
 def roster_capacity(rules: LeagueRules, roster: list[dict[str, Any]]) -> dict[str, Any]:
+    from src.draft_hub.draft_budgets import open_roster_slots, total_roster_slots
+
     limits = roster_limits(rules)
-    roster = cap_relevant_roster(rules, roster)
+    occupying = _occupying(rules, roster)
     counts: dict[str, int] = {}
-    for row in roster:
+    for row in occupying:
         pos = normalize_position(row.get("position"))
         counts[pos] = counts.get(pos, 0) + 1
     by_position: dict[str, dict[str, int | bool]] = {}
@@ -152,7 +166,13 @@ def roster_capacity(rules: LeagueRules, roster: list[dict[str, Any]]) -> dict[st
             "at_max": count >= max_n,
             "remaining": max(0, max_n - count),
         }
-    return {"by_position": by_position, "roster_size": len(roster)}
+    size_max = total_roster_slots(rules)
+    return {
+        "by_position": by_position,
+        "roster_size": len(occupying),
+        "roster_size_max": size_max,
+        "remaining": open_roster_slots(rules, roster, draft_completed=False),
+    }
 
 
 def multi_year_cap_plan(
