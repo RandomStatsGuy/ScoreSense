@@ -36,7 +36,7 @@ export default function AppRouter() {
       <Route path="/hub/insights/:insightTab" element={<App />} />
       <Route path="/hub/insights" element={<Navigate to="/hub/insights/spend" replace />} />
       <Route path="/hub/:tab" element={<App />} />
-      <Route path="/hub" element={<Navigate to="/hub/players" replace />} />
+      <Route path="/hub" element={<Navigate to="/hub/home" replace />} />
       <Route path="/tools/:tab" element={<App />} />
       <Route path="/tools" element={<Navigate to="/tools/dfs" replace />} />
       <Route path="/model" element={<App />} />

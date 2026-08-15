@@ -1,5 +1,6 @@
 /** Hub URL slug ↔ internal subView id */
 export const HUB_SLUG_TO_ID = {
+  home: "home",
   setup: "setup",
   players: "value",
   week: "week",
@@ -14,6 +15,7 @@ export const HUB_SLUG_TO_ID = {
 
 /** Explicit reverse map (do not derive — avoids roster/rosters collisions). */
 export const HUB_ID_TO_SLUG = {
+  home: "home",
   setup: "setup",
   value: "players",
   week: "week",
@@ -141,7 +143,7 @@ export function parseAppPath(pathname) {
         officeTab,
       };
     }
-    const slug = parts[1] || "players";
+    const slug = parts[1] || "home";
     if (slug === "live") {
       return {
         view: "hub",
@@ -228,7 +230,7 @@ export function buildAppPath({
   seasonMode = "live",
   seasonMobilePanel = "projections",
   toolsTab = "dfs",
-  hubSubView = "value",
+  hubSubView = "home",
   insightTab = "cap",
   officeTab = "chat",
   adminTab = "overview",

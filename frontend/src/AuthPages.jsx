@@ -83,7 +83,7 @@ export function AuthVerifyPage() {
         <p className="chart-note">Check your inbox for a verification link.</p>
       )}
       <p className="hub-toolbar">
-        <a className="btn-primary btn-sm" href="/hub/setup">
+        <a className="btn-primary btn-sm" href="/hub/home">
           Open League
         </a>
         <a className="btn-ghost btn-sm" href="/projections/weekly">

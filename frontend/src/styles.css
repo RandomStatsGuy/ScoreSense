@@ -13000,3 +13000,161 @@ td.col-rank.col-rank-top {
   }
 }
 
+/* —— League Home / action center (SCORE-10) —— */
+.hub-league-home .hub-home-toolbar {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.hub-home-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.55rem;
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.hub-home-status-line {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.hub-home-phase-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.18rem 0.45rem;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--bg-elevated, transparent) 80%, transparent);
+}
+
+.hub-home-phase-badge--pre_draft {
+  border-color: color-mix(in srgb, var(--accent, #6ea8fe) 45%, var(--border));
+  color: var(--accent, #6ea8fe);
+}
+
+.hub-home-phase-badge--live_draft {
+  border-color: color-mix(in srgb, var(--caution, #c58a2e) 50%, var(--border));
+  color: var(--caution, #c58a2e);
+}
+
+.hub-home-phase-badge--in_season {
+  border-color: color-mix(in srgb, var(--tone-positive, #4ade80) 45%, var(--border));
+  color: var(--tone-positive, #4ade80);
+}
+
+.hub-home-phase-badge--offseason {
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+.hub-home-action-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.hub-home-action {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-elevated, transparent) 70%, transparent);
+}
+
+.hub-home-action--danger {
+  border-color: color-mix(in srgb, var(--tone-negative, #f87171) 40%, var(--border));
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--tone-negative, #f87171) 12%, transparent) 0%,
+    color-mix(in srgb, var(--bg-elevated, transparent) 55%, transparent) 100%
+  );
+}
+
+.hub-home-action--warn {
+  border-color: color-mix(in srgb, var(--caution, #c58a2e) 40%, var(--border));
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--caution, #c58a2e) 12%, transparent) 0%,
+    color-mix(in srgb, var(--bg-elevated, transparent) 55%, transparent) 100%
+  );
+}
+
+.hub-home-action--info {
+  border-color: color-mix(in srgb, var(--accent, #6ea8fe) 30%, var(--border));
+}
+
+.hub-home-action-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.hub-home-action-message {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+
+.hub-home-action-meta {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.hub-home-action-go {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.hub-home-stats {
+  margin-top: 0.35rem;
+}
+
+.hub-home-settings-note {
+  margin: 0.85rem 0 0;
+}
+
+.hub-setup-home-link {
+  margin-bottom: 0.15rem;
+}
+
+.hub-setup-home-link .hub-tab-intro-title {
+  margin-top: 0.35rem;
+}
+
+@media (max-width: 768px) {
+  .hub-league-home--mobile .hub-home-toolbar {
+    gap: 0.45rem;
+  }
+
+  .hub-league-home--mobile .hub-home-status-line {
+    font-size: 0.88rem;
+  }
+
+  .hub-league-home--mobile .hub-home-action {
+    padding: 0.7rem 0.75rem;
+  }
+
+  .hub-league-home--mobile .hub-home-action-message {
+    font-size: 0.9rem;
+  }
+}
+
