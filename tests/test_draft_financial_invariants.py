@@ -10,8 +10,16 @@ from src.draft_hub.draft_budgets import (
     DEADCAP_PREFIX,
     computed_auction_budget,
     max_affordable_bid,
+    preserve_cut_liability,
 )
-from src.draft_hub.draft_state import award_nominee, nominate, place_bid, start_draft
+from src.draft_hub.draft_state import (
+    award_nominee,
+    end_draft,
+    nominate,
+    place_bid,
+    reset_live_draft,
+    start_draft,
+)
 from src.draft_hub.mock_draft import start_mock_draft
 from src.draft_hub.presets import load_preset
 from src.draft_hub.rules_engine import assert_can_acquire
@@ -94,6 +102,28 @@ def test_computed_budget_is_cap_minus_retained_and_dead(hub_db):
     # $80 keeper + 50% of $40 cut = $20 dead → $100 auction budget
     assert computed_auction_budget(seeded["rules"], rows) == 100.0
     assert storage.get_team(seeded["comm_team_id"])["budget_remaining"] == 200.0
+
+
+def test_completed_fallback_subtracts_dead_and_excludes_expiring(hub_db):
+    seeded = _seed_source()
+    storage.add_roster_slot(
+        seeded["ws_id"],
+        {
+            "player_id": "exp-wr",
+            "player_name": "Expiring WR",
+            "team": "CHI",
+            "position": "WR",
+            "salary": 30,
+            "contract_years": 1,
+            "contract": build_veteran_contract(30, 1),
+            "source": "sheet",
+        },
+        team_id=seeded["comm_team_id"],
+    )
+    rows = storage.list_team_roster(seeded["league_id"], seeded["comm_team_id"])
+    # 1-year keeper is not retained before the draft; dead cap still counts after complete.
+    assert computed_auction_budget(seeded["rules"], rows, draft_completed=False) == 100.0
+    assert computed_auction_budget(seeded["rules"], rows, draft_completed=True) == 70.0
 
 
 def test_start_draft_and_sandbox_sync_budgets(hub_db):
@@ -240,6 +270,113 @@ def test_award_preserves_cut_liability(hub_db, monkeypatch):
     assert by_id[f"{DEADCAP_PREFIX}cut-qb"]["roster_status"] == "cut_before_draft"
     assert by_id["cut-qb"]["source"] == "draft"
     assert by_id["cut-qb"]["roster_status"] == "active"
+
+
+def test_preserve_cut_liability_when_deadcap_row_exists(hub_db):
+    seeded = _seed_source()
+    first = preserve_cut_liability(seeded["ws_id"], "cut-qb")
+    assert first is not None
+    assert first["player_id"] == f"{DEADCAP_PREFIX}cut-qb"
+    storage.add_roster_slot(
+        seeded["ws_id"],
+        {
+            "player_id": "cut-qb",
+            "player_name": "Cut QB",
+            "team": "BUF",
+            "position": "QB",
+            "salary": 40,
+            "contract_years": 1,
+            "contract": build_veteran_contract(40, 1),
+            "source": "sheet",
+            "roster_status": "cut_before_draft",
+        },
+        team_id=seeded["comm_team_id"],
+    )
+    second = preserve_cut_liability(seeded["ws_id"], "cut-qb")
+    assert second is not None
+    assert second["player_id"] == f"{DEADCAP_PREFIX}cut-qb"
+    storage.add_roster_slot(
+        seeded["ws_id"],
+        {
+            "player_id": "cut-qb",
+            "player_name": "Cut QB",
+            "team": "BUF",
+            "position": "QB",
+            "salary": 2,
+            "contract_years": 1,
+            "source": "draft",
+        },
+        team_id=seeded["comm_team_id"],
+    )
+    rows = storage.list_team_roster(seeded["league_id"], seeded["comm_team_id"])
+    by_id = {r["player_id"]: r for r in rows}
+    assert f"{DEADCAP_PREFIX}cut-qb" in by_id
+    assert by_id["cut-qb"]["source"] == "draft"
+
+
+def test_reset_after_end_syncs_budget_after_rewind(hub_db):
+    seeded = _seed_source()
+    storage.add_roster_slot(
+        seeded["ws_id"],
+        {
+            "player_id": "keep-te",
+            "player_name": "Keeper TE",
+            "team": "KC",
+            "position": "TE",
+            "salary": 10,
+            "contract_years": 2,
+            "contract": {
+                "contract_type": "veteran",
+                "years_remaining": 2,
+                "current_salary": 10,
+                "base_salary": 10,
+                "step_up_per_year": 5,
+                "schedule": [
+                    {"year_offset": 0, "salary": 10},
+                    {"year_offset": 1, "salary": 15},
+                ],
+            },
+            "source": "sheet",
+        },
+        team_id=seeded["comm_team_id"],
+    )
+    start_draft(seeded["league_id"], seeded["comm_sub"])
+    # $80 + $10 retained + $20 dead → $90
+    assert float(storage.get_team(seeded["comm_team_id"])["budget_remaining"]) == 90.0
+    end_draft(seeded["league_id"], seeded["comm_sub"])
+    reset_live_draft(seeded["league_id"], seeded["comm_sub"])
+    assert float(storage.get_team(seeded["comm_team_id"])["budget_remaining"]) == 90.0
+
+
+def test_sandbox_reset_after_end_uses_pre_draft_budget(hub_db):
+    seeded = _seed_source()
+    storage.add_roster_slot(
+        seeded["ws_id"],
+        {
+            "player_id": "exp-wr",
+            "player_name": "Expiring WR",
+            "team": "CHI",
+            "position": "WR",
+            "salary": 30,
+            "contract_years": 1,
+            "contract": build_veteran_contract(30, 1),
+            "source": "sheet",
+        },
+        team_id=seeded["comm_team_id"],
+    )
+    out = start_mock_draft(
+        seeded["comm_sub"],
+        mode="keeper_sandbox",
+        source_league_id=seeded["league_id"],
+        auto_start=False,
+    )
+    sandbox_id = out["league_id"]
+    comm = next(t for t in storage.list_league_teams(sandbox_id) if t.get("is_commissioner"))
+    assert float(comm["budget_remaining"]) == 100.0
+    start_draft(sandbox_id, seeded["comm_sub"])
+    end_draft(sandbox_id, seeded["comm_sub"])
+    reset_test_draft(sandbox_id, seeded["comm_sub"])
+    assert float(storage.get_team(comm["id"])["budget_remaining"]) == 100.0
 
 
 def test_sandbox_reset_restores_keepers_and_budgets(hub_db):

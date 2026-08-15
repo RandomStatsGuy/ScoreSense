@@ -60,7 +60,6 @@ def reset_test_draft(league_id: str, commissioner_sub: str) -> dict[str, Any]:
     if not restored:
         storage.clear_league_team_rosters(league_id)
     storage.clear_draft_events(league_id)
-    sync_league_auction_budgets(league_id)
     storage.update_draft_session(
         league_id,
         status="setup",
@@ -77,6 +76,7 @@ def reset_test_draft(league_id: str, commissioner_sub: str) -> dict[str, Any]:
     )
     storage.update_league_status(league_id, "setup")
     storage.update_league_settings(league_id, draft_completed=False)
+    sync_league_auction_budgets(league_id)
 
     return {"state": get_room_state(league_id, commissioner_sub)}
 

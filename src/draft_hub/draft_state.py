@@ -314,9 +314,6 @@ def reset_live_draft(league_id: str, user_sub: str) -> dict[str, Any]:
 
     picks_removed = storage.clear_league_draft_picks(league_id)
     storage.clear_draft_events(league_id)
-    from src.draft_hub.draft_budgets import sync_league_auction_budgets
-
-    sync_league_auction_budgets(league_id)
     storage.update_draft_session(
         league_id,
         status="setup",
@@ -339,6 +336,10 @@ def reset_live_draft(league_id: str, user_sub: str) -> dict[str, Any]:
         from src.draft_hub.contract_year_clock import rewind_contracts_on_draft_reset
 
         year_rewind = rewind_contracts_on_draft_reset(league_id)
+
+    from src.draft_hub.draft_budgets import sync_league_auction_budgets
+
+    sync_league_auction_budgets(league_id)
 
     state = get_room_state(league_id, user_sub)
     warning = None
