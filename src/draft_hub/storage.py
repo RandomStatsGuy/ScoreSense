@@ -220,6 +220,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
     # SCORE-40: monotonic cache revisions for live roster vs historic snapshots.
     _safe_add_column(conn, "league", "live_roster_revision", "INTEGER NOT NULL DEFAULT 0")
     _safe_add_column(conn, "league", "historic_snapshot_revision", "INTEGER NOT NULL DEFAULT 0")
+    _safe_add_column(conn, "league", "sandbox_baseline_json", "TEXT")
 
     roster_cols = {row[1] for row in conn.execute("PRAGMA table_info(roster_slot)").fetchall()}
     if "roster_status" not in roster_cols:
@@ -2068,6 +2069,71 @@ def clear_draft_contract_snapshot(league_id: str) -> None:
             "UPDATE league SET draft_contract_snapshot_json = NULL WHERE id = ?",
             (league_id,),
         )
+
+
+def save_sandbox_baseline(league_id: str, snapshot: dict[str, Any]) -> None:
+    payload = dict(snapshot or {})
+    payload.setdefault("captured_at", _utcnow())
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE league SET sandbox_baseline_json = ? WHERE id = ?",
+            (json.dumps(payload), league_id),
+        )
+
+
+def get_sandbox_baseline(league_id: str) -> dict[str, Any] | None:
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT sandbox_baseline_json FROM league WHERE id = ?",
+            (league_id,),
+        ).fetchone()
+    if not row:
+        return None
+    try:
+        raw = row["sandbox_baseline_json"]
+    except (KeyError, IndexError):
+        raw = None
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def rekey_roster_player_id(
+    workspace_id: str,
+    old_player_id: str,
+    new_player_id: str,
+    *,
+    contract: dict[str, Any] | None = None,
+    roster_status: str | None = None,
+) -> dict[str, Any]:
+    """Change a roster row's player_id (used to park cut liabilities)."""
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
+            (workspace_id, old_player_id),
+        ).fetchone()
+        if not row:
+            raise ValueError("Player not on roster")
+        updates = ["player_id = ?"]
+        params: list[Any] = [new_player_id]
+        if contract is not None:
+            updates.append("contract_json = ?")
+            params.append(json.dumps(contract))
+        if roster_status is not None:
+            updates.append("roster_status = ?")
+            params.append(roster_status)
+        params.append(row["id"])
+        conn.execute(
+            f"UPDATE roster_slot SET {', '.join(updates)} WHERE id = ?",
+            params,
+        )
+        updated = conn.execute("SELECT * FROM roster_slot WHERE id = ?", (row["id"],)).fetchone()
+        _bump_live_for_workspace_conn(conn, workspace_id)
+        return _roster_dict(updated)
 
 
 def import_roster_snapshot(

@@ -82,7 +82,8 @@ def test_reset_live_draft_clears_picks_keeps_keepers(hub_db):
     assert roster[0]["player_id"] == "keeper1"
     assert roster[0]["source"] == "sheet"
     refreshed = storage.get_team(team["id"])
-    assert float(refreshed["budget_remaining"]) == float(load_preset("salary_cap_auction_v1").salary_cap)
+    # $12 two-year keeper is retained — auction budget is cap minus that hit.
+    assert float(refreshed["budget_remaining"]) == 188.0
 
 
 def test_reset_after_end_rewinds_years(hub_db):

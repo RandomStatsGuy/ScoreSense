@@ -128,7 +128,7 @@ def build_nomination_pool(
     }
 
 
-def assert_player_nomination_eligible(
+def resolve_nomination_player(
     *,
     league_id: str,
     pool_mode: str | None,
@@ -137,7 +137,8 @@ def assert_player_nomination_eligible(
     rules: LeagueRules,
     workspace_id: str,
     sleeper_player_ids: set[str] | None = None,
-) -> None:
+) -> dict[str, Any]:
+    """Return the server pool row for player_id. Does not trust client identity/position."""
     pool = build_nomination_pool(
         league_id=league_id,
         pool_mode=pool_mode,
@@ -149,8 +150,30 @@ def assert_player_nomination_eligible(
     pid = str(player_id)
     if pid in list_drafted_player_ids(league_id):
         raise ValueError("Player already drafted")
-    allowed = {str(r.get("player_id")) for r in pool["rows"]}
-    if pid not in allowed:
+    match = next((r for r in pool["rows"] if str(r.get("player_id")) == pid), None)
+    if not match:
         if normalize_pool_mode(pool_mode) == "roster_plus_rookies":
             raise ValueError("Player not in your available pool (roster + rookies only)")
         raise ValueError("Player not available for nomination")
+    return match
+
+
+def assert_player_nomination_eligible(
+    *,
+    league_id: str,
+    pool_mode: str | None,
+    player_id: str,
+    season: int,
+    rules: LeagueRules,
+    workspace_id: str,
+    sleeper_player_ids: set[str] | None = None,
+) -> None:
+    resolve_nomination_player(
+        league_id=league_id,
+        pool_mode=pool_mode,
+        player_id=player_id,
+        season=season,
+        rules=rules,
+        workspace_id=workspace_id,
+        sleeper_player_ids=sleeper_player_ids,
+    )

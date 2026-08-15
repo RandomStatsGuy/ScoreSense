@@ -8,7 +8,7 @@ from typing import Any
 
 from src.draft_hub import storage
 from src.draft_hub.draft_state import get_room_state, place_bid
-from src.draft_hub.rules_engine import roster_limits
+from src.draft_hub.draft_budgets import total_roster_slots
 from src.draft_hub.schemas import LeagueRules
 
 BOT_NAMES = [
@@ -54,12 +54,13 @@ def reset_test_draft(league_id: str, commissioner_sub: str) -> dict[str, Any]:
     if not storage.league_test_mode(league_id):
         raise ValueError("Reset is only available for practice draft rooms")
 
-    rules = LeagueRules.model_validate(league["rules"])
-    cap = float(rules.salary_cap)
+    from src.draft_hub.draft_budgets import restore_sandbox_baseline, sync_league_auction_budgets
 
-    storage.clear_league_team_rosters(league_id)
+    restored = restore_sandbox_baseline(league_id)
+    if not restored:
+        storage.clear_league_team_rosters(league_id)
     storage.clear_draft_events(league_id)
-    storage.reset_league_team_budgets(league_id, cap)
+    sync_league_auction_budgets(league_id)
     storage.update_draft_session(
         league_id,
         status="setup",
@@ -183,7 +184,7 @@ def bot_max_price(bot_id: str, nominee: dict[str, Any], min_bid: float) -> float
 
 
 def _total_roster_slots(rules: LeagueRules) -> int:
-    return sum(int(lim.get("max") or 0) for lim in roster_limits(rules).values())
+    return total_roster_slots(rules)
 
 
 def maybe_bot_bid(league_id: str) -> dict[str, Any] | None:
@@ -204,7 +205,6 @@ def maybe_bot_bid(league_id: str) -> dict[str, Any] | None:
     rules = LeagueRules.model_validate(state["league"]["rules"])
     min_bid = float(rules.auction.min_bid)
     nominee = session.get("current_nominee") or {}
-    total_slots = _total_roster_slots(rules)
 
     for bot in bots:
         if bot["id"] == high_team_id:
@@ -216,7 +216,11 @@ def maybe_bot_bid(league_id: str) -> dict[str, Any] | None:
         if next_bid > bot_max_price(bot["id"], nominee, min_bid):
             continue
         # Keep min_bid in reserve for every roster slot still to fill.
-        open_slots = total_slots - len(storage.list_team_roster(league_id, bot["id"]))
+        from src.draft_hub.draft_budgets import open_roster_slots
+
+        open_slots = open_roster_slots(
+            rules, storage.list_team_roster(league_id, bot["id"]), draft_completed=False
+        )
         if open_slots > 1 and next_bid > budget - min_bid * (open_slots - 1):
             continue
         try:
@@ -242,7 +246,6 @@ def _settle_auction(league_id: str) -> None:
     league = storage.get_league(league_id)
     rules = LeagueRules.model_validate(league["rules"])
     min_bid = float(rules.auction.min_bid)
-    total_slots = _total_roster_slots(rules)
     nominee = session.get("current_nominee") or {}
     high_bid = float(session.get("high_bid") or 0)
     high_team_id = session.get("high_bidder_team_id")
@@ -258,7 +261,9 @@ def _settle_auction(league_id: str) -> None:
         except ValueError:
             continue
         budget = float(team.get("budget_remaining") or 0)
-        open_slots = total_slots - len(roster)
+        from src.draft_hub.draft_budgets import open_roster_slots
+
+        open_slots = open_roster_slots(rules, roster, draft_completed=False)
         affordable = budget - min_bid * max(0, open_slots - 1)
         ceiling = min(bot_max_price(team["id"], nominee, min_bid), affordable)
         floor = high_bid + min_bid if team["id"] != high_team_id else high_bid
