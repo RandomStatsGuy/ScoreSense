@@ -44,6 +44,7 @@ export default function RosterBuilder({
   capSheet,
   readOnly = false,
   showManagerTeam = false,
+  onEditInOffice,
 }) {
   const [playerId, setPlayerId] = useState("");
   const [salary, setSalary] = useState("");
@@ -67,7 +68,11 @@ export default function RosterBuilder({
   const preDraft = !draftCompleted ? capSheet?.pre_draft : null;
   const linked = Boolean(sleeper?.sleeper_league_id && sleeper?.sleeper_roster_id);
   const teamName = sleeper?.sleeper_team_name;
-  const canEditType = !readOnly || Boolean(hubContext?.mode === "league" && hubContext?.team_id);
+  const isLeague = hubContext?.mode === "league";
+  const isCommissioner = Boolean(hubContext?.is_commissioner || hubContext?.can_edit_salaries);
+  // SCORE-41: league My Team never edits salary/years/type — Office Current is the only arbitrary editor.
+  const contractsReadOnly = isLeague || readOnly;
+  const canEditType = !contractsReadOnly;
 
   const isSleeperPlayer = (r) => r.source === "sleeper" || Boolean(r.sleeper_player_id);
   const lookup = valueRows?.find((r) => r.player_id === playerId);
@@ -184,6 +189,7 @@ export default function RosterBuilder({
   };
 
   const saveRow = useCallback(async (r) => {
+    if (hubContext?.mode === "league") return;
     const edit = getEdit(r);
     const nextSal = Number(edit.salary);
     const nextYears = Number(edit.years);
@@ -213,9 +219,10 @@ export default function RosterBuilder({
     } finally {
       setSavingId(null);
     }
-  }, [getEdit, onChanged]);
+  }, [getEdit, onChanged, hubContext?.mode]);
 
   const saveContractType = useCallback(async (r, nextType) => {
+    if (hubContext?.mode === "league") return;
     const cur = String(r.contract?.contract_type || "veteran");
     if (nextType === cur && !r.contract?.pending_type) return;
     setTypeOverrides((prev) => ({ ...prev, [r.player_id]: nextType }));
@@ -255,7 +262,7 @@ export default function RosterBuilder({
     } finally {
       setSavingId(null);
     }
-  }, [onChanged]);
+  }, [onChanged, hubContext?.mode]);
 
   const remove = async (pid) => {
     const res = await apiFetch("/api/hub/roster", {
@@ -268,6 +275,7 @@ export default function RosterBuilder({
   };
 
   const addManual = async () => {
+    if (hubContext?.mode === "league") return;
     setError("");
     const row = lookup;
     if (!row) {
@@ -294,12 +302,29 @@ export default function RosterBuilder({
     }
   };
 
+  const officeLink = isCommissioner && onEditInOffice ? (
+    <button type="button" className="btn-link" onClick={onEditInOffice}>
+      Edit in Office
+    </button>
+  ) : null;
+
   return (
     <HubPage className="hub-roster-builder">
       <HubTabIntro
         title="Roster"
         compact
-        learnMore={readOnly ? <p>Read-only — ask commish to edit.</p> : null}
+        learnMore={
+          contractsReadOnly
+            ? (
+              <p>
+                {isLeague
+                  ? "Salary, years, and type are edited in Office Current only."
+                  : "Read-only — ask commish to edit."}
+                {officeLink ? <> {officeLink}</> : null}
+              </p>
+            )
+            : null
+        }
       />
 
       <div className="hub-roster-hero">
@@ -342,19 +367,24 @@ export default function RosterBuilder({
         </div>
       </div>
 
-      {!readOnly && !mobileLayout && (
+      {!contractsReadOnly && !mobileLayout && (
         <p className="chart-note hub-roster-contract-help" title={seasonCapYearHint(season)}>
           Saves on blur · {contractScheduleHint(defaultStepUp)} · {YEARS_LEFT_HINT}
           {!draftCompleted && " · Final-year deals expire before draft (rookies can extend once)"}
         </p>
       )}
-      {readOnly && canEditType && !mobileLayout && (
+      {contractsReadOnly && isLeague && (
         <p className="chart-note hub-roster-contract-help">
-          You can propose a contract type — commissioner approves. {YEARS_LEFT_HINT}
+          Contract fields are read-only here
+          {isCommissioner
+            ? <> — {officeLink || "use Office Current to edit"}.</>
+            : ". Commissioners edit salary, years, and type in Office."}
+          {" "}
+          {YEARS_LEFT_HINT}
         </p>
       )}
 
-      {!readOnly && (
+      {!contractsReadOnly && (
       <details className="hub-roster-add">
         <summary>Add player manually</summary>
         <div className="hub-form-row hub-roster-add-row">
@@ -380,7 +410,7 @@ export default function RosterBuilder({
       </details>
       )}
 
-      {readOnly && !mobileLayout && (
+      {contractsReadOnly && !isLeague && !mobileLayout && (
         <p className="chart-note">Salaries set by commish. Sync Sleeper after trades.</p>
       )}
 
@@ -441,7 +471,7 @@ export default function RosterBuilder({
                 typeOverrides[r.player_id] || r.contract?.contract_type || "veteran"
               );
               const storedSchedule = scheduleText(r, workspace?.rules);
-              const livePreview = readOnly
+              const livePreview = contractsReadOnly
                 ? storedSchedule
                 : (previewSchedule(edit.salary, edit.years, defaultStepUp, ctype) || storedSchedule);
               const pendingType = r.contract?.pending_type;
@@ -500,7 +530,7 @@ export default function RosterBuilder({
                   )}
                   expanded={(
                     <div className="mobile-stat-grid hub-roster-mobile-grid">
-                      {canEditType && (
+                      {canEditType ? (
                         <label className="hub-roster-mobile-field">
                           <span className="mobile-stat-label">Contract type</span>
                           <select
@@ -514,8 +544,10 @@ export default function RosterBuilder({
                             ))}
                           </select>
                         </label>
+                      ) : (
+                        <MobileStat label="Type" value={contractTypeLabel(ctype)} />
                       )}
-                      {readOnly ? (
+                      {contractsReadOnly ? (
                         <MobileStat label={`Cap hit (${season})`} value={fmtSal(edit.salary)} />
                       ) : (
                         <label className="hub-roster-mobile-field">
@@ -533,7 +565,7 @@ export default function RosterBuilder({
                           />
                         </label>
                       )}
-                      {readOnly ? (
+                      {contractsReadOnly ? (
                         <MobileStat label="Yrs left" value={edit.years} />
                       ) : (
                         <label className="hub-roster-mobile-field">
@@ -560,10 +592,10 @@ export default function RosterBuilder({
                         value={livePreview || "—"}
                         className="hub-roster-mobile-schedule"
                       />
-                      {!readOnly && isSaving && (
+                      {!contractsReadOnly && isSaving && (
                         <span className="hub-roster-save-hint hub-roster-mobile-save">Saving…</span>
                       )}
-                      {!readOnly && !isSaving && justSaved && (
+                      {!contractsReadOnly && !isSaving && justSaved && (
                         <span className="hub-roster-save-hint hub-roster-save-ok hub-roster-mobile-save">Saved</span>
                       )}
                     </div>
@@ -602,7 +634,7 @@ export default function RosterBuilder({
                 typeOverrides[r.player_id] || r.contract?.contract_type || "veteran"
               );
               const storedSchedule = scheduleText(r, workspace?.rules);
-              const livePreview = readOnly
+              const livePreview = contractsReadOnly
                 ? storedSchedule
                 : (previewSchedule(edit.salary, edit.years, defaultStepUp, ctype) || storedSchedule);
               const pendingType = r.contract?.pending_type;
@@ -667,7 +699,7 @@ export default function RosterBuilder({
                     )}
                   </td>
                   <td>
-                    {readOnly ? (
+                    {contractsReadOnly ? (
                       <span>{fmtSal(edit.salary)}</span>
                     ) : (
                     <input
@@ -684,7 +716,7 @@ export default function RosterBuilder({
                     )}
                   </td>
                   <td>
-                    {readOnly ? (
+                    {contractsReadOnly ? (
                       <span>{edit.years}</span>
                     ) : (
                     <input
@@ -704,8 +736,8 @@ export default function RosterBuilder({
                   <td className="chart-note hub-schedule-preview">{livePreview || "—"}</td>
                   {(!readOnly || !draftCompleted) && (
                   <td className="hub-roster-actions">
-                    {!readOnly && isSaving && <span className="hub-roster-save-hint">Saving…</span>}
-                    {!readOnly && !isSaving && justSaved && <span className="hub-roster-save-hint hub-roster-save-ok">Saved</span>}
+                    {!contractsReadOnly && isSaving && <span className="hub-roster-save-hint">Saving…</span>}
+                    {!contractsReadOnly && !isSaving && justSaved && <span className="hub-roster-save-hint hub-roster-save-ok">Saved</span>}
                     {!draftCompleted && (
                       <button
                         type="button"
