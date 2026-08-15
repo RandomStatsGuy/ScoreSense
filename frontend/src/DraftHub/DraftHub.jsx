@@ -21,6 +21,7 @@ import LeagueRostersBrowser from "./LeagueRostersBrowser";
 import LeagueContextBanner from "./LeagueContextBanner";
 import HubDemoBanner from "./HubDemoBanner";
 import WeeklyCommandCenter from "./WeeklyCommandCenter";
+import LeagueHome from "./LeagueHome";
 import { defaultInsightTab, isInsightTabAllowed } from "./hubInsightsTabs";
 import { defaultOfficeTab, isOfficeTabAllowed } from "./hubOfficeTabs";
 import {
@@ -42,7 +43,7 @@ const TABS_NEED_VALUE_SHEET = new Set(["value", "room", "rosters", "trades"]);
 /** Tabs that need cap-sheet (also hits roster on the server). */
 const TABS_NEED_CAP_SHEET = new Set(["planner", "roster", "rosters"]);
 /** Tabs that read the hub roster ("value" marks my players via rosterIds). */
-const TABS_NEED_ROSTER = new Set(["setup", "value", "roster", "rosters", "planner", "room", "trades"]);
+const TABS_NEED_ROSTER = new Set(["home", "setup", "value", "roster", "rosters", "planner", "room", "trades"]);
 
 export default function DraftHub({ subView, onSubViewChange, onHubContextChange, insightTab, onInsightTabChange, officeTab, onOfficeTabChange }) {
   const { authenticated, refreshAuth, hubAuthRequired, hubDemo, ready: authReady, user, termsUrl, privacyUrl, patreonConfigured } = useAuth();
@@ -653,6 +654,15 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       )}
 
       {error && <div className="error">{error}</div>}
+
+      {subView === "home" && !demoMode && (
+        <LeagueHome
+          hubContext={effectiveCtx}
+          reloadToken={weekReloadToken}
+          onNavigate={setSubView}
+          onNavigateSetup={() => setSubView("setup")}
+        />
+      )}
 
       {subView === "setup" && !demoMode && (
         <HubSetup

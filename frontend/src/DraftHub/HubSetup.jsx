@@ -70,6 +70,17 @@ export default function HubSetup({
 
   return (
     <div className={`hub-setup hub-setup-compact${mobileLayout ? " hub-setup--mobile" : ""}`}>
+      <div className="hub-setup-home-link">
+        {onNavigate ? (
+          <button type="button" className="btn-link" onClick={() => onNavigate("home")}>
+            ← League Home
+          </button>
+        ) : null}
+        <h2 className="hub-tab-intro-title">League settings</h2>
+        <p className="chart-note hub-setup-lead">
+          Rules, Sleeper link, and imports. Day-to-day actions live on League Home.
+        </p>
+      </div>
       <HubSetupChecklist
         workspace={workspace}
         hubContext={ctx}

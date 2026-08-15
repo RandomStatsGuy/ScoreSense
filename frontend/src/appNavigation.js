@@ -37,6 +37,7 @@ export const SECTION_SUBTITLES = {
     },
   },
   hub: {
+    home: "Phase-aware checklist & action center",
     setup: "League & rules",
     value: "Prices",
     week: "Your lineup decisions this week",

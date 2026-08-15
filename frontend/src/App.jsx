@@ -1021,7 +1021,7 @@ export default function App() {
           user={user}
           onAccepted={() => {
             goToHub();
-            setHubSubView("setup");
+            setHubSubView("home");
             window.dispatchEvent(new Event("scoresense-auth-changed"));
           }}
         />

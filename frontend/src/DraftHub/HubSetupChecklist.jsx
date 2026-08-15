@@ -104,8 +104,8 @@ export default function HubSetupChecklist({
               </button>
             )}
             {step.done && step.id === "league" && onNavigate && (
-              <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("value")}>
-                Players →
+              <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("home")}>
+                League Home →
               </button>
             )}
           </li>

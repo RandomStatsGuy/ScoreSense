@@ -19,7 +19,7 @@ export default function useAppNavigation() {
       projectionsMobilePanel: "projections",
       seasonMode: "live",
       toolsTab: "dfs",
-      hubSubView: "value",
+      hubSubView: "home",
       insightTab: "cap",
       officeTab: "chat",
       adminTab: "overview",
@@ -53,7 +53,7 @@ export default function useAppNavigation() {
     (section) => {
       if (section === route.view && section !== "hub") return;
       const base = { view: section };
-      if (section === "hub") base.hubSubView = route.hubSubView || "setup";
+      if (section === "hub") base.hubSubView = route.hubSubView || "home";
       if (section === "projections") {
         base.projectionsTab = route.projectionsTab || "weekly";
         base.seasonMode = route.seasonMode || "live";
