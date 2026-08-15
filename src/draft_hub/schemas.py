@@ -40,6 +40,8 @@ class LeagueRules(BaseModel):
     salary_cap: float = 200.0
     auction: AuctionRules = Field(default_factory=AuctionRules)
     roster: dict[str, Any] = Field(default_factory=dict)
+    # Explicit total roster cap. When omitted, sum of per-position maxes is used.
+    roster_size_max: Optional[int] = None
     contracts: ContractRules = Field(default_factory=ContractRules)
     # SCORE-3: Conservative (-1) / Balanced (0, default) / Aggressive (+1).
     # Neutral default keeps fair_value pricing unchanged until a league opts in.

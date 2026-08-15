@@ -6,10 +6,10 @@ import json
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from src.draft_hub.rules_engine import can_afford_bid, cut_refund, normalize_position, assert_can_acquire, roster_capacity
+from src.draft_hub.rules_engine import cut_refund, normalize_position, assert_can_acquire, roster_capacity
 from src.draft_hub.schemas import LeagueRules
 from src.draft_hub import storage
-from src.draft_hub.draft_pool import assert_player_nomination_eligible, normalize_pool_mode
+from src.draft_hub.draft_pool import normalize_pool_mode, resolve_nomination_player
 
 
 def _resolve_team(league_id: str, user_sub: str) -> dict[str, Any] | None:
@@ -169,13 +169,27 @@ def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any
     teams = storage.list_league_teams(league_id)
     events = storage.list_draft_events(league_id, limit=50)
     rosters = storage.list_league_rosters_by_team(league_id)
+    draft_completed = bool(league.get("draft_completed"))
+    from src.draft_hub.draft_budgets import team_auction_finance
+
+    enriched_teams: list[dict[str, Any]] = []
+    for team in teams:
+        roster = rosters.get(team["id"]) or []
+        finance = team_auction_finance(
+            rules,
+            roster,
+            draft_completed=draft_completed,
+            budget_remaining=float(team.get("budget_remaining") or 0),
+        )
+        enriched_teams.append({**team, **finance})
     out: dict[str, Any] = {
         "league": league,
         "session": session,
-        "teams": teams,
+        "teams": enriched_teams,
         "events": events,
         "rosters": rosters,
         "roster_limits": rules.roster,
+        "roster_size_max": int(getattr(rules, "roster_size_max", None) or 0) or None,
         "pool_mode": normalize_pool_mode(session.get("pool_mode")),
         "nominator_team_id": _current_nominator_team_id(session) if session else None,
     }
@@ -183,11 +197,18 @@ def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any
         team = storage.get_team_by_user(league_id, user_sub)
         if team:
             team_roster = rosters.get(team["id"]) or []
+            finance = team_auction_finance(
+                rules,
+                team_roster,
+                draft_completed=draft_completed,
+                budget_remaining=float(team.get("budget_remaining") or 0),
+            )
             out["viewer"] = {
                 "team_id": team["id"],
                 "team_name": team["name"],
                 "roster": team_roster,
                 "capacity": roster_capacity(rules, team_roster),
+                **finance,
             }
     return out
 
@@ -199,6 +220,9 @@ def start_draft(league_id: str, user_sub: str) -> dict[str, Any]:
     if league["commissioner_sub"] != user_sub:
         raise ValueError("Only commissioner can start draft")
     rules = LeagueRules.model_validate(league["rules"])
+    from src.draft_hub.draft_budgets import sync_league_auction_budgets
+
+    sync_league_auction_budgets(league_id)
     teams = storage.list_league_teams(league_id)
     order = _build_nomination_order(teams)
     storage.update_league_status(league_id, "live")
@@ -288,12 +312,11 @@ def reset_live_draft(league_id: str, user_sub: str) -> dict[str, Any]:
     if status in ("setup", None, "") and not was_completed:
         raise ValueError("Draft has not started")
 
-    rules = LeagueRules.model_validate(league["rules"])
-    cap = float(rules.salary_cap)
-
     picks_removed = storage.clear_league_draft_picks(league_id)
     storage.clear_draft_events(league_id)
-    storage.reset_league_team_budgets(league_id, cap)
+    from src.draft_hub.draft_budgets import sync_league_auction_budgets
+
+    sync_league_auction_budgets(league_id)
     storage.update_draft_session(
         league_id,
         status="setup",
@@ -364,37 +387,36 @@ def nominate(league_id: str, user_sub: str, player: dict[str, Any]) -> dict[str,
         nominator = storage.get_team(nominator_id)
         name = (nominator or {}).get("name") or "another team"
         raise ValueError(f"It is {name}'s turn to nominate")
-    pos = normalize_position(player.get("position"))
-    team_roster = storage.list_team_roster(league_id, team["id"])
-    assert_can_acquire(rules, team_roster, pos)
-    # Mock leagues have no workspace and skip the pool eligibility check below,
-    # so guard against renominating an already-won player here.
     from src.draft_hub.draft_pool import list_drafted_player_ids
 
-    if str(player["player_id"]) in list_drafted_player_ids(league_id):
+    if str(player.get("player_id") or "") in list_drafted_player_ids(league_id):
         raise ValueError("Player already drafted")
-    workspace_id = league.get("workspace_id")
-    if workspace_id:
-        ws = storage.get_workspace_by_id(workspace_id)
-        sleeper_ids = set((ws or {}).get("sleeper_player_ids") or [])
-        assert_player_nomination_eligible(
-            league_id=league_id,
-            pool_mode=session.get("pool_mode"),
-            player_id=str(player["player_id"]),
-            season=int(league["season"]),
-            rules=rules,
-            workspace_id=workspace_id,
-            sleeper_player_ids=sleeper_ids,
-        )
+    workspace_id = storage.roster_workspace_for_league(league)
+    ws = storage.get_workspace_by_id(workspace_id) if league.get("workspace_id") else None
+    sleeper_ids = set((ws or {}).get("sleeper_player_ids") or [])
+    resolved = resolve_nomination_player(
+        league_id=league_id,
+        pool_mode=session.get("pool_mode"),
+        player_id=str(player.get("player_id") or ""),
+        season=int(league["season"]),
+        rules=rules,
+        workspace_id=workspace_id,
+        sleeper_player_ids=sleeper_ids,
+    )
+    pos = normalize_position(resolved.get("position") or player.get("position"))
+    team_roster = storage.list_team_roster(league_id, team["id"])
+    assert_can_acquire(rules, team_roster, pos)
     nominee = {
-        "player_id": player["player_id"],
-        "player_name": player.get("player_name"),
-        "team": player.get("team"),
+        "player_id": resolved.get("player_id") or player.get("player_id"),
+        "player_name": resolved.get("player") or resolved.get("player_name") or player.get("player_name"),
+        "team": resolved.get("team") or player.get("team"),
         "position": pos,
         "nominating_team_id": team["id"],
     }
     for key in ("fair_value", "season_proj", "per_game_proj"):
-        val = player.get(key)
+        val = resolved.get(key)
+        if val is None:
+            val = player.get(key)
         if val is not None:
             nominee[key] = val
     storage.update_draft_session(
@@ -421,12 +443,19 @@ def place_bid(league_id: str, user_sub: str, amount: float) -> dict[str, Any]:
     if not session or session.get("status") != "bidding":
         raise ValueError("No active bidding")
     rules = LeagueRules.model_validate(league["rules"])
-    if not can_afford_bid(rules, float(team["budget_remaining"]), amount):
-        raise ValueError("Bid exceeds budget or below minimum")
+    from src.draft_hub.draft_budgets import assert_can_afford_auction_bid
+
+    bidder_roster = storage.list_team_roster(league_id, team["id"])
+    assert_can_afford_auction_bid(
+        rules,
+        bidder_roster,
+        float(team["budget_remaining"]),
+        amount,
+        draft_completed=bool(league.get("draft_completed")),
+    )
     nominee = session.get("current_nominee") or {}
     nominee_pos = nominee.get("position")
     if nominee_pos:
-        bidder_roster = storage.list_team_roster(league_id, team["id"])
         assert_can_acquire(rules, bidder_roster, nominee_pos)
     current = float(session.get("high_bid") or 0)
     if amount <= current:
@@ -508,6 +537,9 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
     storage.update_team_budget(winner_id, new_budget)
     # Must match the workspace list_team_roster reads from, or picks vanish.
     ws_id = storage.roster_workspace_for_league(league)
+    from src.draft_hub.draft_budgets import preserve_cut_liability
+
+    preserve_cut_liability(ws_id, str(nominee["player_id"]))
     storage.add_roster_slot(
         ws_id,
         {

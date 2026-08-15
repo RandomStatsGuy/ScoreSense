@@ -85,14 +85,13 @@ def _clone_keeper_sandbox(
     if viewer_id:
         team_map[viewer_id] = str(comm_team["id"])
 
-    budget = float(rules.salary_cap)
     for src_team in source_teams:
         sid = str(src_team["id"])
         if viewer_id and sid == viewer_id:
             continue
         label = str(src_team.get("name") or "Manager").strip() or "Manager"
         bot_id = str(uuid.uuid4())
-        storage.add_bot_team(league_id, bot_id, f"{label} (Sandbox)", budget)
+        storage.add_bot_team(league_id, bot_id, f"{label} (Sandbox)", 0.0)
         team_map[sid] = bot_id
 
     # If viewer wasn't on a team (commish-only), map first source team to commissioner.
@@ -133,10 +132,16 @@ def _clone_keeper_sandbox(
             )
             players_copied += 1
 
+    from src.draft_hub.draft_budgets import save_sandbox_baseline, sync_league_auction_budgets
+
+    budgets = sync_league_auction_budgets(league_id)
+    save_sandbox_baseline(league_id)
+
     summary = build_draft_expire_preview(league_id)
     summary["teams"] = len(storage.list_league_teams(league_id))
     summary["players"] = players_copied
     summary["source_league_id"] = source_league_id
+    summary["budgets"] = budgets
 
     if auto_start:
         start_draft(league_id, commissioner_sub)
