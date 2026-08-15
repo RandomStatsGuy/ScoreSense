@@ -122,7 +122,7 @@ export default function LeagueRostersBrowser({
   return (
     <HubPage>
       <HubTabIntro
-        title="Rosters"
+        title="League Rosters"
         purpose="Browse every team’s contracts, spot good and bad deals, and start a trade."
       />
       {error && <div className="error">{error}</div>}

@@ -76,7 +76,15 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const [memberships, setMemberships] = useState([]);
   const [leagueSwitchBusy, setLeagueSwitchBusy] = useState(false);
 
-  const setSubView = onSubViewChange;
+  const setSubView = useCallback((id, tab) => {
+    // Legacy internal id from "All teams" CTAs → Commissioner Current desk
+    if (id === "league-rosters") {
+      onSubViewChange?.("office", "current");
+      return;
+    }
+    onSubViewChange?.(id, tab);
+  }, [onSubViewChange]);
+
   const applyHubContext = useCallback((ctx) => {
     setHubContext(ctx);
     onHubContextChange?.(ctx);
@@ -88,18 +96,13 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
 
   useEffect(() => {
     if (subView === "live") {
-      setSubView("insights");
-      onInsightTabChange?.("scoring");
-    } else if (subView === "league-rosters") {
-      setSubView("office");
-      onOfficeTabChange?.("current");
+      setSubView("insights", "scoring");
     }
-  }, [subView, setSubView, onInsightTabChange, onOfficeTabChange]);
+  }, [subView, setSubView]);
 
   const goToCommissionerDesk = useCallback(() => {
-    setSubView("office");
-    onOfficeTabChange?.("current");
-  }, [setSubView, onOfficeTabChange]);
+    setSubView("office", "current");
+  }, [setSubView]);
 
   // Insights/Trades stay mounted (display:none) after first visit so revisits
   // skip refetch + chart remount. Heavy tabs (value sheet, draft room) still unmount.
@@ -733,7 +736,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           />
         ) : (
           <HubPage>
-            <h2 className="hub-tab-intro-title">Rosters</h2>
+            <h2 className="hub-tab-intro-title">League Rosters</h2>
             <p className="chart-note">
               Open a shared league to browse every team&apos;s contracts.
               {" "}

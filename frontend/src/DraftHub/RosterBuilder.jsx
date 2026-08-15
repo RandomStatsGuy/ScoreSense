@@ -78,7 +78,7 @@ export default function RosterBuilder({
   const teamName = sleeper?.sleeper_team_name;
   const isLeague = hubContext?.mode === "league";
   const isCommissioner = Boolean(hubContext?.is_commissioner || hubContext?.can_edit_salaries);
-  // SCORE-41: league My Team never edits salary/years/type — Office Current is the only arbitrary editor.
+  // SCORE-41: league My Roster never edits salary/years/type — Commissioner Current is the only arbitrary editor.
   // SCORE-42: managers may still queue a server-calculated rookie extension for their own eligible rookies.
   const contractsReadOnly = isLeague || readOnly;
   const canEditType = !contractsReadOnly;
@@ -336,21 +336,21 @@ export default function RosterBuilder({
 
   const officeLink = isCommissioner && onEditInOffice ? (
     <button type="button" className="btn-link" onClick={onEditInOffice}>
-      Edit in Office
+      Edit in Commissioner
     </button>
   ) : null;
 
   return (
     <HubPage className="hub-roster-builder">
       <HubTabIntro
-        title="Roster"
+        title="My Roster"
         compact
         learnMore={
           contractsReadOnly
             ? (
               <p>
                 {isLeague
-                  ? "Salary, years, and type are edited in Office Current only. Final-year rookies can still queue one extension here."
+                  ? "Salary, years, and type are edited in Commissioner Current only. Final-year rookies can still queue one extension here."
                   : "Read-only — ask commish to edit."}
                 {officeLink ? <> {officeLink}</> : null}
               </p>
@@ -409,8 +409,8 @@ export default function RosterBuilder({
         <p className="chart-note hub-roster-contract-help">
           Contract fields are read-only here
           {isCommissioner
-            ? <> — {officeLink || "use Office Current to edit"}.</>
-            : ". Commissioners edit salary, years, and type in Office."}
+            ? <> — {officeLink || "use Commissioner Current to edit"}.</>
+            : ". Commissioners edit salary, years, and type in Commissioner."}
           {" "}
           Before draft, final-year rookies can queue one 1–3 year extension (start salary = current + ${defaultStepUp}).
           {" "}

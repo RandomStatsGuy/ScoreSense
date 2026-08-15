@@ -244,7 +244,7 @@ export default function LeagueOffice({
   return (
     <div className="hub-league-office">
       <HubTabIntro
-        title="Office"
+        title="Commissioner"
         purpose={
           isCommissioner
             ? "Chat, edit live contracts, reconcile historic sheets, and manage members."
@@ -277,7 +277,7 @@ export default function LeagueOffice({
           <p className="chart-note">
             Live keepers for season {hubContext?.season}. Use{" "}
             <button type="button" className="btn-link" onClick={() => onNavigate?.("planner")}>
-              Cap
+              My Cap
             </button>
             {" "}for extend / FA, or{" "}
             <button type="button" className="btn-link" onClick={() => onOfficeTabChange?.("historic")}>

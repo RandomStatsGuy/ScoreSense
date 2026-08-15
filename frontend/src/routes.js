@@ -1,15 +1,21 @@
-/** Hub URL slug ↔ internal subView id */
+/** Hub URL slug ↔ internal subView id (canonical + SCORE-11 aliases). */
 export const HUB_SLUG_TO_ID = {
   setup: "setup",
+  home: "setup",
   players: "value",
   week: "week",
+  lineup: "week",
+  "this-week": "week",
   roster: "roster",
+  "my-roster": "roster",
   rosters: "rosters",
   draft: "room",
   cap: "planner",
+  "my-cap": "planner",
   trades: "trades",
   insights: "insights",
   office: "office",
+  commissioner: "office",
 };
 
 /** Explicit reverse map (do not derive — avoids roster/rosters collisions). */
@@ -127,7 +133,7 @@ export function parseAppPath(pathname) {
         officeTab: null,
       };
     }
-    if (parts[1] === "office") {
+    if (parts[1] === "office" || parts[1] === "commissioner") {
       const officeSlug = parts[2] || "chat";
       const officeTab = OFFICE_SLUG_TO_ID[officeSlug] || "chat";
       return {

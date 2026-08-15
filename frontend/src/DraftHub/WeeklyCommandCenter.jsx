@@ -241,7 +241,7 @@ export default function WeeklyCommandCenter({
     ? formatRelativeTime(sync.sleeper_synced_at)
     : (sync.linked ? "Synced — time unknown" : "Not linked");
 
-  const weekLabel = meta.week != null ? `Week ${meta.week}` : "Your Week";
+  const weekLabel = meta.week != null ? `Week ${meta.week}` : "This Week";
   const teamLabel = data?.hub_context?.team_name || hubContext?.team_name;
   const leagueLabel = data?.hub_context?.league_name || hubContext?.league_name;
   const isSolo = hubContext?.mode !== "league";
@@ -250,7 +250,7 @@ export default function WeeklyCommandCenter({
   return (
     <HubPage className="hub-wcc">
       <HubTabIntro
-        title="Your Week"
+        title="This Week"
         purpose="Lineup decisions for your Hub roster from current weekly projections — no silent Sleeper polling."
         audience={teamLabel || leagueLabel || "You"}
         learnMore={(
@@ -336,8 +336,8 @@ export default function WeeklyCommandCenter({
         {status.empty_roster && (
           <HubAlert variant="info">
             {showSoloSync
-              ? "No roster players yet. Sync League after linking Sleeper, or add contracts in My team."
-              : "No roster players yet. Sync league above after linking Sleeper, or add contracts in My team."}
+              ? "No roster players yet. Sync League after linking Sleeper, or add contracts in My Roster."
+              : "No roster players yet. Sync league above after linking Sleeper, or add contracts in My Roster."}
           </HubAlert>
         )}
         {status.projections_missing && (

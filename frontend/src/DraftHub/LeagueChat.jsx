@@ -140,7 +140,7 @@ export default function LeagueChat({ leagueId, hubContext }) {
 
   const clearChat = async () => {
     if (!leagueId || !isPrimary || clearing) return;
-    const label = kind === "office" ? "Office" : "League";
+    const label = kind === "office" ? "Commissioner" : "League";
     if (!(await confirmDialog({
       title: `Clear ${label} chat`,
       message: `Delete all messages in ${label} chat? This cannot be undone.`,
@@ -171,7 +171,7 @@ export default function LeagueChat({ leagueId, hubContext }) {
         </HubFilterChip>
         {isStaff && (
           <HubFilterChip active={kind === "office"} onClick={() => setKind("office")}>
-            Office
+            Commissioner
           </HubFilterChip>
         )}
         <span className="table-meta">

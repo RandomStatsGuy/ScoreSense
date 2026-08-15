@@ -220,7 +220,7 @@ export default function LeagueContextBanner({
       id: "over-cap",
       tone: "attention",
       label: `Over cap ${fmtSal(overCapBy)}`,
-      actionLabel: "Cap planner",
+      actionLabel: "My Cap",
       onAction: onNavigate ? () => onNavigate("planner") : null,
     });
   }
@@ -229,7 +229,7 @@ export default function LeagueContextBanner({
       id: "extend",
       tone: "attention",
       label: `${mustExtend.length} need extension`,
-      actionLabel: "Cap planner",
+      actionLabel: "My Cap",
       onAction: onNavigate ? () => onNavigate("planner") : null,
     });
   } else if (inLeague && dropping.length > 0) {
@@ -237,7 +237,7 @@ export default function LeagueContextBanner({
       id: "expire",
       tone: "attention",
       label: `${dropping.length} expire → FA`,
-      actionLabel: "Cap planner",
+      actionLabel: "My Cap",
       onAction: onNavigate ? () => onNavigate("planner") : null,
     });
   }

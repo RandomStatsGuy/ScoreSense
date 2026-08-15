@@ -162,8 +162,8 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
   if (!summary) {
     return (
       <HubPage>
-        <HubTabIntro title="Cap planner" compact />
-        <p className="chart-note">No cap data. Add players on Roster first.</p>
+        <HubTabIntro title="My Cap" compact />
+        <p className="chart-note">No cap data. Add players on My Roster first.</p>
       </HubPage>
     );
   }
@@ -172,7 +172,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
 
   return (
     <HubPage>
-      <HubTabIntro title="Cap planner" compact learnMore={glossary} />
+      <HubTabIntro title="My Cap" compact learnMore={glossary} />
 
       <HubPageMeta>
         {workspace?.name}
