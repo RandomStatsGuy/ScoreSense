@@ -1,6 +1,4 @@
 import React, { useMemo, useState } from "react";
-import { apiFetch } from "../auth";
-import { parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
 import MobileDataList, { MobileStat } from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
@@ -18,6 +16,12 @@ import {
   rosterAlertVariant,
 } from "./HubUILayout";
 import { fmtSal, leagueStepUp, scheduleText } from "./rosterFormat";
+import {
+  hasPendingExtension,
+  postRookieExtend,
+  previewRookieExtendStartSalary,
+  rookieExtendSuccessMessage,
+} from "./rookieExtend";
 
 function capHitForRow(row, offset = 0, rules) {
   const contract = row?.contract;
@@ -90,13 +94,9 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
   const extend = async () => {
     setMsg("");
     try {
-      const res = await apiFetch("/api/hub/contract/renew", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ player_id: extendPlayer, extension_years: Number(extendYears) }),
-      });
-      if (!res.ok) throw new Error(await parseApiError(res));
-      setMsg("Contract extended.");
+      const data = await postRookieExtend(extendPlayer, extendYears);
+      setMsg(rookieExtendSuccessMessage(data));
+      setExtendPlayer("");
       onChanged?.();
     } catch (e) {
       setMsg(e.message);
@@ -117,9 +117,27 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
     () => (roster || []).filter((r) => extendableIds.has(String(r.player_id))),
     [roster, extendableIds],
   );
+  const selectedExtendRow = useMemo(
+    () => extendableRoster.find((r) => String(r.player_id) === String(extendPlayer)),
+    [extendableRoster, extendPlayer],
+  );
+  const selectedStartSalary = selectedExtendRow
+    ? previewRookieExtendStartSalary(selectedExtendRow, workspace?.rules)
+    : null;
+  const pendingExtendIds = useMemo(
+    () => new Set(
+      (roster || [])
+        .filter((r) => hasPendingExtension(r))
+        .map((r) => String(r.player_id)),
+    ),
+    [roster],
+  );
 
   const expiryBadge = (playerId) => {
     const pid = String(playerId);
+    if (pendingExtendIds.has(pid)) {
+      return <span className="hub-sleeper-badge hub-pending-badge">Extension queued</span>;
+    }
     if (extendableIds.has(pid)) {
       return <span className="hub-sleeper-badge hub-expiring-badge">Extend to keep</span>;
     }
@@ -133,7 +151,8 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
     <>
       <p><strong>Expire before draft</strong> — Final-year deals leave your roster (FA) unless extended.</p>
       <p><strong>Years left</strong> — Includes the upcoming season; drops by 1 when the draft is marked complete.</p>
-      <p><strong>Rookie extension</strong> — Only after a 2-year rookie deal; one 1–3 year extension.</p>
+      <p><strong>Rookie extension</strong> — Final-year rookies only; one 1–3 year extension. Start salary is server-set (current + ${stepUp}).</p>
+      <p><strong>Queued</strong> — Extension activates when draft is marked complete (1- and 3-year terms preserved).</p>
       <p><strong>Dead cap</strong> — Counts after a cut.</p>
       <p><strong>Step-up</strong> — Rookies stay flat; +${stepUp}/yr only on extensions.</p>
       <p><strong>Cut refund</strong> — {cutPct}% back; rest is dead cap.</p>
@@ -343,8 +362,10 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
           title="Extend contract"
           hint={
             extendableRoster.length > 0
-              ? "Rookies finishing a 2-year deal — one extension of 1–3 years."
-              : "No rookies eligible to extend right now."
+              ? `Final-year rookies — pick 1–3 years. Start salary is current + $${stepUp} (server-calculated).`
+              : pendingExtendIds.size > 0
+                ? "Extension(s) already queued — they activate when draft is marked complete."
+                : "No rookies eligible to extend right now."
           }
         >
           {extendableRoster.length > 0 ? (
@@ -355,7 +376,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                   <option value="">Select player…</option>
                   {extendableRoster.map((r) => (
                     <option key={r.player_id} value={r.player_id}>
-                      {r.player_name} (rookie)
+                      {r.player_name} (rookie · {fmtSal(r.salary)})
                     </option>
                   ))}
                 </select>
@@ -370,21 +391,38 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                   onChange={(e) => setExtendYears(e.target.value)}
                 />
               </label>
+              {selectedStartSalary != null && (
+                <span className="chart-note hub-extend-start-preview">
+                  Starts at {fmtSal(selectedStartSalary)}
+                </span>
+              )}
               <button type="button" className="btn-primary btn-sm" onClick={extend} disabled={!extendPlayer}>
-                Extend
+                Queue extension
               </button>
             </HubToolbar>
           ) : (
             <p className="chart-note">
-              {mustExtend.length === 0 && droppingAtDraft.length === 0
-                ? "No deals end at this draft — nothing to extend yet."
-                : "Veteran Deals and Rookie Extensions expire to free agency — they cannot be re-signed."}
+              {pendingExtendIds.size > 0
+                ? "All eligible rookies already have an extension queued."
+                : mustExtend.length === 0 && droppingAtDraft.length === 0
+                  ? "No deals end at this draft — nothing to extend yet."
+                  : "Veteran Deals and Rookie Extensions expire to free agency — they cannot be re-signed."}
             </p>
           )}
         </HubSection>
       )}
 
-      {msg && <p className={`hub-msg${msg.includes("fail") || msg.includes("Could") ? " hub-msg--error" : ""}`}>{msg}</p>}
+      {msg && (
+        <p
+          className={`hub-msg${
+            /fail|could not|only |must |already queued with different|not on roster|403|400/i.test(msg)
+              ? " hub-msg--error"
+              : ""
+          }`}
+        >
+          {msg}
+        </p>
+      )}
 
       {roster.length > 0 && (
         <HubSection title="Cap sheet" hint={mobileLayout ? "By season" : "Current deal and scheduled hits by season."}>
@@ -434,7 +472,13 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                 </thead>
                 <tbody>
                   {roster.map((r) => (
-                    <tr key={r.player_id} className={droppingIds.has(String(r.player_id)) || extendableIds.has(String(r.player_id)) ? "hub-cap-row--expiring" : undefined}>
+                    <tr key={r.player_id} className={
+                      droppingIds.has(String(r.player_id))
+                      || extendableIds.has(String(r.player_id))
+                      || pendingExtendIds.has(String(r.player_id))
+                        ? "hub-cap-row--expiring"
+                        : undefined
+                    }>
                       <td>
                         {r.player_name}
                         {" "}
