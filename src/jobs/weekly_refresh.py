@@ -11,6 +11,7 @@ from src.draft_hub.draft_pool_cache import pool_artifact_status, save_pool_artif
 from src.projections.draft_meta import get_draft_meta
 from src.projections.draft_projections import predict_draft_season
 from src.projections.projection_meta import get_projection_meta
+from src.core.projection_context import is_nfl_offseason
 from src.projections.weekly_cache import prewarm_weekly_predictions
 from src.projections.ros_cache import prewarm_ros_predictions
 from src.etl.nflverse_etl import build_all_datasets
@@ -48,6 +49,7 @@ def run_weekly_refresh(
     save_target_quality_report()
 
     state = get_nfl_state()
+    offseason = is_nfl_offseason()
     proj_meta = get_projection_meta("qb")
     season = int(proj_meta["default_season"])
     week = int(proj_meta["default_week"])
@@ -60,6 +62,29 @@ def run_weekly_refresh(
         season,
         week,
     )
+    # Movement artifacts are written inside save_weekly_artifact during prewarm.
+    projection_movement_status = None
+    try:
+        from src.projections.projection_movement import build_projection_movement_payload
+
+        movement_summary: dict = {"status": "ok", "variants": {}}
+        for pos in ("qb", "rb", "wr"):
+            for apply_injury in (True, False):
+                key = f"{pos}:inj{int(apply_injury)}"
+                payload = build_projection_movement_payload(
+                    pos,
+                    season,
+                    week,
+                    apply_injury_adjustments=apply_injury,
+                )
+                movement_summary["variants"][key] = {
+                    "available": payload.get("available"),
+                    "count": payload.get("count"),
+                    "material_rows": (payload.get("meta") or {}).get("material_rows"),
+                }
+        projection_movement_status = movement_summary
+    except Exception as exc:
+        projection_movement_status = {"status": "error", "detail": str(exc)}
     ros_prewarm = prewarm_ros_predictions(
         season,
         week,
@@ -153,6 +178,7 @@ def run_weekly_refresh(
             pos: len(df) for pos, df in predictions.items()
         },
         "weekly_predictions_prewarm": weekly_prewarm,
+        "projection_movement": projection_movement_status,
         "ros_predictions_prewarm": ros_prewarm,
         "player_context_prewarm": player_context_status,
         "fantasypros_archive": fp_status,
