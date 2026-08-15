@@ -230,7 +230,12 @@ def load_database_overlay_rows_by_season(league_id: str) -> dict[int, list[dict[
 
 
 def season_rows_source(league_id: str) -> tuple[dict[int, list[dict[str, Any]]], str]:
-    """Prefer Sleeper snapshots (week-1 / pre-draft) per season; else Excel; else DB."""
+    """Membership base per season: Sleeper snapshot when present, else Excel, else DB.
+
+    Manual Historic corrections are **not** selected here — they are applied as
+    overlays via ``load_database_overlay_rows_by_season`` + ``merge_owner_roster``.
+    Never collapse to ``sleeper_rows or rows`` for the final sheet (SCORE-39).
+    """
     from src.draft_hub.sleeper_week1_snapshot import PRE_DRAFT_SOURCE_KIND, SOURCE_KIND
 
     sleeper = load_week1_rows_by_season(league_id)
@@ -238,6 +243,8 @@ def season_rows_source(league_id: str) -> tuple[dict[int, list[dict[str, Any]]],
     if sleeper or file_rows:
         out: dict[int, list[dict[str, Any]]] = {}
         for yr in sorted(set(sleeper.keys()) | set(file_rows.keys())):
+            # Membership SoT: Sleeper when this season has a snapshot; else Excel.
+            # Manuals stay in the overlay layer (see sheet_roster_sync).
             if sleeper.get(yr):
                 out[yr] = sleeper[yr]
             else:

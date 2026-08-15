@@ -120,10 +120,135 @@ def test_reset_after_end_rewinds_years(hub_db):
     assert int((after_end.get("contract") or {}).get("years_remaining") or after_end["contract_years"]) == 1
 
     result = reset_live_draft(league["id"], "live-commish")
+    assert result["year_rewind"]["lossless"] is True
     assert result["year_rewind"]["rewound"] == 1
     restored = storage.list_league_rosters_by_team(league["id"])[team["id"]][0]
     assert int((restored.get("contract") or {}).get("years_remaining") or restored["contract_years"]) == 2
     assert result["state"]["league"]["draft_completed"] is False
+    assert result["warning"] is None
+
+
+def test_reset_after_end_restores_expired_keepers(hub_db):
+    """Lossless reset reinstates keepers deleted by the draft-complete year tick."""
+    league = _live_league()
+    teams = storage.list_league_teams(league["id"])
+    team = teams[0]
+    ws = storage.roster_workspace_for_league(league)
+    storage.add_roster_slot(
+        ws,
+        {
+            "player_id": "expiring-vet",
+            "player_name": "Expiring Vet",
+            "team": "CHI",
+            "position": "WR",
+            "salary": 20,
+            "contract_years": 1,
+            "source": "sheet",
+            "contract": {
+                "contract_type": "veteran",
+                "years_remaining": 1,
+                "current_salary": 20,
+                "schedule": [{"year_offset": 0, "salary": 20}],
+            },
+        },
+        team_id=team["id"],
+    )
+    storage.add_roster_slot(
+        ws,
+        {
+            "player_id": "auction-win",
+            "player_name": "Auction Win",
+            "team": "BUF",
+            "position": "RB",
+            "salary": 35,
+            "contract_years": 1,
+            "source": "draft",
+            "contract": {
+                "contract_type": "veteran",
+                "years_remaining": 1,
+                "current_salary": 35,
+                "schedule": [{"year_offset": 0, "salary": 35}],
+            },
+        },
+        team_id=team["id"],
+    )
+    start_draft(league["id"], "live-commish")
+    end_draft(league["id"], "live-commish")
+
+    after = {r["player_id"]: r for r in storage.list_league_rosters_by_team(league["id"])[team["id"]]}
+    assert "expiring-vet" not in after
+    assert "auction-win" in after
+    assert int(after["auction-win"]["contract"]["years_remaining"]) == 1
+
+    result = reset_live_draft(league["id"], "live-commish")
+    assert result["year_rewind"]["lossless"] is True
+    assert result["picks_removed"] == 1
+    restored = {r["player_id"]: r for r in storage.list_league_rosters_by_team(league["id"])[team["id"]]}
+    assert "expiring-vet" in restored
+    assert "auction-win" not in restored
+    assert int(restored["expiring-vet"]["contract"]["years_remaining"]) == 1
+
+
+def test_end_draft_activates_pending_extension_and_skips_auction(hub_db):
+    from src.draft_hub.contracts import apply_or_queue_extension, build_rookie_contract
+
+    league = _live_league()
+    teams = storage.list_league_teams(league["id"])
+    team = teams[0]
+    ws = storage.roster_workspace_for_league(league)
+    rules = load_preset("salary_cap_auction_v1")
+    row = {
+        "player_id": "rook-ext",
+        "player_name": "Rook Extend",
+        "team": "NE",
+        "position": "QB",
+        "salary": 10,
+        "contract_years": 1,
+        "source": "sheet",
+        "contract": {
+            **build_rookie_contract(10, 2),
+            "years_remaining": 1,
+            "schedule": [{"year_offset": 0, "salary": 10}],
+        },
+    }
+    row["contract"] = apply_or_queue_extension(
+        row, rules, extension_years=3, start_salary=10, draft_completed=False
+    )
+    storage.add_roster_slot(ws, row, team_id=team["id"])
+    storage.add_roster_slot(
+        ws,
+        {
+            "player_id": "new-buy",
+            "player_name": "New Buy",
+            "team": "KC",
+            "position": "WR",
+            "salary": 40,
+            "contract_years": 1,
+            "source": "auction",
+            "contract": {
+                "contract_type": "veteran",
+                "years_remaining": 1,
+                "current_salary": 40,
+                "schedule": [{"year_offset": 0, "salary": 40}],
+            },
+        },
+        team_id=team["id"],
+    )
+    start_draft(league["id"], "live-commish")
+    state = end_draft(league["id"], "live-commish")
+    tick = state.get("contract_year_tick") or {}
+    assert tick.get("extensions_activated") == 1
+    assert tick.get("skipped_auction") == 1
+    assert tick.get("snapshot_published") is True
+
+    by_id = {r["player_id"]: r for r in storage.list_league_rosters_by_team(league["id"])[team["id"]]}
+    assert int(by_id["rook-ext"]["contract"]["years_remaining"]) == 3
+    assert by_id["rook-ext"]["contract"]["contract_type"] == "extension"
+    assert "pending_extension" not in by_id["rook-ext"]["contract"]
+    assert int(by_id["new-buy"]["contract"]["years_remaining"]) == 1
+    snap = storage.get_draft_contract_snapshot(league["id"])
+    assert snap and snap.get("published") is True
+    assert snap.get("post_draft", {}).get("extensions_activated") == 1
 
 
 def test_reset_live_rejected_for_practice(hub_db):

@@ -90,17 +90,20 @@ def suggested_rookie_years_pre_draft(
     *,
     years_exp: int | None,
 ) -> int | None:
-    """Years left including upcoming season (pre-draft), from NFL experience."""
+    """Years left on a rookie deal pre-draft, from NFL experience.
+
+    ``years_exp`` is seasons already played. Remaining years are
+    ``rookie_years - years_exp`` (e.g. 0→2, 1→1 for a 2-year window).
+    Do not add +1: that inflates a correctly ticked 1-year rookie back to 2
+    when the league reopens pre-draft for the next planning season.
+    """
     if years_exp is None:
         return None
     cr = contract_rules(rules)
     limit = int(cr.rookie_years)
     if years_exp >= limit:
         return None
-    # years_exp seasons already played; upcoming season has not ticked yet.
-    if years_exp <= 0:
-        return limit
-    return max(1, limit - years_exp + 1)
+    return max(1, limit - years_exp)
 
 
 def apply_type_to_contract(
@@ -260,33 +263,87 @@ def advance_roster_contracts_for_draft_complete(
     rules: LeagueRules,
     roster: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """Apply year tick to active rows. Caller persists updates.
+    """Apply year tick to active keepers, then activate pending extensions.
 
-    Returns summary + list of {player_id, contract|None, expired}.
+    Order (once per draft complete):
+      1. Skip current auction awards (draft / auction / mock / test_draft).
+      2. Expire / burn one year on prior keeper deals.
+      3. Activate queued extensions at full chosen duration (1 stays 1, 3 stays 3).
+
+    Returns summary + list of {player_id, contract|None, expired, ...}.
     """
+    from src.draft_hub.acquisition_semantics import is_current_auction_award
+    from src.draft_hub.contracts import activate_pending_extension, has_pending_extension
+
     updates: list[dict[str, Any]] = []
     expired = 0
     advanced = 0
+    skipped_auction = 0
+    extensions_activated = 0
     for row in roster:
         status = str(row.get("roster_status") or "active")
         if status != "active":
             continue
         # Fresh auction awards are for the upcoming season — do not burn a year
         # on the same draft-complete tick that keepers advance on.
-        if str(row.get("source") or "") == "draft":
+        if is_current_auction_award(row):
+            skipped_auction += 1
             continue
-        new_contract = advance_contract_year(row.get("contract"), row)
-        if new_contract is None:
+
+        prior = dict(row.get("contract") or {})
+        pending = has_pending_extension(prior)
+        ticked = advance_contract_year(prior, row)
+
+        if pending:
+            activated = activate_pending_extension(prior, rules)
+            if activated is None:
+                # Should not happen when pending is present; fall through safely.
+                if ticked is None:
+                    expired += 1
+                    updates.append(
+                        {"player_id": row["player_id"], "contract": None, "expired": True}
+                    )
+                else:
+                    advanced += 1
+                    updates.append(
+                        {
+                            "player_id": row["player_id"],
+                            "contract": ticked,
+                            "expired": False,
+                        }
+                    )
+                continue
+            extensions_activated += 1
+            updates.append(
+                {
+                    "player_id": row["player_id"],
+                    "contract": activated,
+                    "expired": False,
+                    "extension_activated": True,
+                    # Prior deal would have expired or advanced; extension replaces it.
+                    "prior_expired": ticked is None,
+                }
+            )
+            continue
+
+        if ticked is None:
             expired += 1
             updates.append({"player_id": row["player_id"], "contract": None, "expired": True})
         else:
             advanced += 1
-            updates.append({"player_id": row["player_id"], "contract": new_contract, "expired": False})
+            updates.append(
+                {"player_id": row["player_id"], "contract": ticked, "expired": False}
+            )
     return {
         "advanced": advanced,
         "expired": expired,
+        "skipped_auction": skipped_auction,
+        "extensions_activated": extensions_activated,
         "updates": updates,
-        "note": "Contract year started — years left dropped by 1.",
+        "note": (
+            "Contract year started — keeper years left dropped by 1; "
+            "auction awards skipped; pending extensions activated at full duration."
+        ),
     }
 
 
@@ -341,22 +398,26 @@ def rewind_contract_year(contract: dict[str, Any] | None, row: dict[str, Any]) -
 def rewind_roster_contracts_after_draft_reset(
     roster: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """Reverse year tick for active keepers still on the roster."""
+    """Best-effort reverse year tick for keepers still rostered (no pre-tick snapshot)."""
+    from src.draft_hub.acquisition_semantics import is_current_auction_award
+
     updates: list[dict[str, Any]] = []
     for row in roster:
         status = str(row.get("roster_status") or "active")
         if status != "active":
             continue
-        # Draft awards are removed separately; only rewind keepers / imports.
-        if str(row.get("source") or "") == "draft":
+        # Auction awards are removed separately; only rewind keepers / imports.
+        if is_current_auction_award(row):
             continue
         contract = rewind_contract_year(row.get("contract"), row)
         updates.append({"player_id": row["player_id"], "contract": contract})
     return {
         "rewound": len(updates),
         "updates": updates,
+        "lossless": False,
         "note": (
             "Years left +1 for remaining keepers. "
-            "Players who expired when draft was marked complete are not restored — re-sync sheets/Sleeper if needed."
+            "Players who expired when draft was marked complete are not restored — "
+            "re-sync sheets/Sleeper if needed. Prefer reset with a draft-complete snapshot."
         ),
     }

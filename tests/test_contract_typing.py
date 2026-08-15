@@ -27,9 +27,18 @@ def _rules() -> LeagueRules:
     return LeagueRules()
 
 
-def test_henderson_like_inference_and_years():
+def test_suggested_rookie_years_pre_draft_by_exp():
+    """years_exp=0 → full 2-year deal; years_exp=1 → 1 year left (no +1 inflate)."""
     rules = _rules()
-    assert suggested_rookie_years_pre_draft(rules, years_exp=1) == 2
+    assert suggested_rookie_years_pre_draft(rules, years_exp=0) == 2
+    assert suggested_rookie_years_pre_draft(rules, years_exp=1) == 1
+    assert suggested_rookie_years_pre_draft(rules, years_exp=2) is None
+    assert suggested_rookie_years_pre_draft(rules, years_exp=None) is None
+
+
+def test_mistyped_veteran_years_exp_1_becomes_rookie_without_inflate():
+    """Type correction only: mistyped vet with years_exp=1 keeps 1 year, not 2."""
+    rules = _rules()
     assert infer_contract_type(None, rules, years_exp=1, season=2026) == "rookie"
     row = {
         "player_id": "00-henderson",
@@ -39,6 +48,22 @@ def test_henderson_like_inference_and_years():
         "roster_status": "active",
     }
     updated = backfill_row_contract(rules, row, season=2026, draft_completed=False, years_exp=1)
+    assert updated is not None
+    assert updated["contract_type"] == "rookie"
+    assert updated["years_remaining"] == 1
+
+
+def test_mistyped_veteran_years_exp_0_corrected_to_two_year_rookie():
+    """Actual mistype with NFL years_exp=0 may still inflate 1→2 on backfill."""
+    rules = _rules()
+    row = {
+        "player_id": "00-true-rookie",
+        "salary": 5,
+        "contract_years": 1,
+        "contract": {"contract_type": "veteran", "years_remaining": 1, "current_salary": 5},
+        "roster_status": "active",
+    }
+    updated = backfill_row_contract(rules, row, season=2026, draft_completed=False, years_exp=0)
     assert updated is not None
     assert updated["contract_type"] == "rookie"
     assert updated["years_remaining"] == 2
@@ -143,6 +168,109 @@ def test_year_clock_advances_and_expires():
     assert kept["contract"]["years_remaining"] == 1
     dropped = next(u for u in summary["updates"] if u["player_id"] == "b")
     assert dropped["expired"] is True
+
+
+def test_auction_awards_survive_draft_complete_tick():
+    """Current auction winners (all acquisition sources) are not year-ticked."""
+    from src.draft_hub.acquisition_semantics import CURRENT_AUCTION_SOURCES
+
+    rules = _rules()
+    roster = []
+    for i, src in enumerate(sorted(CURRENT_AUCTION_SOURCES)):
+        roster.append(
+            {
+                "player_id": f"award-{src}",
+                "roster_status": "active",
+                "source": src,
+                "contract_years": 1,
+                "salary": 10 + i,
+                "contract": {
+                    "contract_type": "veteran",
+                    "years_remaining": 1,
+                    "current_salary": 10 + i,
+                    "schedule": [{"year_offset": 0, "salary": 10 + i}],
+                },
+            }
+        )
+    roster.append(
+        {
+            "player_id": "keeper",
+            "roster_status": "active",
+            "source": "sheet",
+            "contract_years": 2,
+            "salary": 8,
+            "contract": {
+                "contract_type": "rookie",
+                "years_remaining": 2,
+                "current_salary": 8,
+                "schedule": [
+                    {"year_offset": 0, "salary": 8},
+                    {"year_offset": 1, "salary": 8},
+                ],
+            },
+        }
+    )
+    summary = advance_roster_contracts_for_draft_complete(rules, roster)
+    assert summary["skipped_auction"] == len(CURRENT_AUCTION_SOURCES)
+    assert summary["advanced"] == 1
+    assert summary["expired"] == 0
+    assert {u["player_id"] for u in summary["updates"]} == {"keeper"}
+    assert next(u for u in summary["updates"] if u["player_id"] == "keeper")["contract"][
+        "years_remaining"
+    ] == 1
+
+
+def test_pending_extensions_activate_after_tick_at_full_duration():
+    """1-year and 3-year queued extensions keep chosen duration after draft complete."""
+    from src.draft_hub.contracts import apply_or_queue_extension, build_rookie_contract
+
+    rules = _rules()
+    one_yr = {
+        "player_id": "ext-1",
+        "roster_status": "active",
+        "source": "sheet",
+        "salary": 10,
+        "contract_years": 1,
+        "contract": {
+            **build_rookie_contract(10, 2),
+            "years_remaining": 1,
+            "schedule": [{"year_offset": 0, "salary": 10}],
+        },
+    }
+    three_yr = {
+        "player_id": "ext-3",
+        "roster_status": "active",
+        "source": "sheet",
+        "salary": 12,
+        "contract_years": 1,
+        "contract": {
+            **build_rookie_contract(12, 2),
+            "years_remaining": 1,
+            "schedule": [{"year_offset": 0, "salary": 12}],
+        },
+    }
+    one_yr["contract"] = apply_or_queue_extension(
+        one_yr, rules, extension_years=1, start_salary=10, draft_completed=False
+    )
+    three_yr["contract"] = apply_or_queue_extension(
+        three_yr, rules, extension_years=3, start_salary=12, draft_completed=False
+    )
+    # Still final-year rookies until tick activates the queue.
+    assert one_yr["contract"]["years_remaining"] == 1
+    assert one_yr["contract"]["contract_type"] == "rookie"
+    assert three_yr["contract"]["pending_extension"]["years"] == 3
+
+    summary = advance_roster_contracts_for_draft_complete(rules, [one_yr, three_yr])
+    assert summary["extensions_activated"] == 2
+    assert summary["expired"] == 0
+    u1 = next(u for u in summary["updates"] if u["player_id"] == "ext-1")
+    u3 = next(u for u in summary["updates"] if u["player_id"] == "ext-3")
+    assert u1["extension_activated"] is True
+    assert u1["contract"]["years_remaining"] == 1
+    assert u1["contract"]["contract_type"] == "extension"
+    assert "pending_extension" not in u1["contract"]
+    assert u3["contract"]["years_remaining"] == 3
+    assert [y["salary"] for y in u3["contract"]["schedule"]] == [17, 22, 27]
 
 
 def test_pre_draft_henderson_not_expiring_with_two_years():

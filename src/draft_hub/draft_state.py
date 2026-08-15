@@ -318,11 +318,17 @@ def reset_live_draft(league_id: str, user_sub: str) -> dict[str, Any]:
         year_rewind = rewind_contracts_on_draft_reset(league_id)
 
     state = get_room_state(league_id, user_sub)
+    warning = None
+    if was_completed and year_rewind is not None:
+        if year_rewind.get("lossless"):
+            warning = None
+        else:
+            warning = year_rewind.get("note")
     return {
         "state": state,
         "picks_removed": picks_removed,
         "year_rewind": year_rewind,
-        "warning": (year_rewind or {}).get("note") if was_completed else None,
+        "warning": warning,
     }
 
 

@@ -161,13 +161,24 @@ class DraftCutRequest(BaseModel):
     player_id: str
 
 
+class RookieExtendRequest(BaseModel):
+    """Manager rookie-extension command — years only; salary is server-calculated."""
+
+    player_id: str
+    extension_years: int = 1
+
+
 class ContractExtendRequest(BaseModel):
+    """Legacy alias for RookieExtendRequest. ``new_salary`` is ignored."""
+
     player_id: str
     extension_years: int
     new_salary: Optional[float] = None
 
 
 class ContractRenewRequest(BaseModel):
+    """Legacy alias for RookieExtendRequest. ``start_salary`` is ignored."""
+
     player_id: str
     extension_years: int = 1
     start_salary: Optional[float] = None

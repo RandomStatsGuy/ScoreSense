@@ -10,6 +10,20 @@ POST_DRAFT_FA = "post_draft_fa"
 FA_CONTRACT = "fa_contract"
 FA_CONTRACT_SALARY = 1.0
 
+# Acquired in the current auction / mock — do not year-tick on draft complete.
+CURRENT_AUCTION_SOURCES = frozenset({"draft", "auction", "mock", "test_draft"})
+
+
+def acquisition_source_of(row: dict[str, Any] | None) -> str:
+    if not row:
+        return ""
+    return str(row.get("source") or "").strip().lower()
+
+
+def is_current_auction_award(row: dict[str, Any] | None) -> bool:
+    """True for this draft's auction/mock awards (1-year deals start after draft complete)."""
+    return acquisition_source_of(row) in CURRENT_AUCTION_SOURCES
+
 
 def acquisition_type_of(row: dict[str, Any] | None) -> str:
     if not row:

@@ -720,6 +720,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           hubContext={effectiveCtx}
           capSheet={capSheet}
           readOnly={effectiveCtx?.mode === "league" && !effectiveCtx?.can_edit_salaries}
+          onEditInOffice={goToCommissionerDesk}
         />
       )}
 

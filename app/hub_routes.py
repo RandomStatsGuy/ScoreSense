@@ -45,6 +45,7 @@ from src.draft_hub.schemas import (
     AuctionRulesUpdate,
     ContractExtendRequest,
     ContractRenewRequest,
+    RookieExtendRequest,
     DraftBidRequest,
     DraftCutRequest,
     DraftEnrichmentRequest,
@@ -79,7 +80,12 @@ from src.draft_hub.schemas import (
     TeamCoCommissionerRequest,
     WorkspaceUpdate,
 )
-from src.draft_hub.contracts import renew_player_contract, roster_row_from_import, swap_contracts, build_contract_from_roster_edit
+from src.draft_hub.contracts import (
+    apply_rookie_extension_command,
+    roster_row_from_import,
+    swap_contracts,
+    build_contract_from_roster_edit,
+)
 from src.draft_hub.contract_typing import CONTRACT_TYPES, apply_type_to_contract
 from src.draft_hub.hub_context import list_roster_for_context, resolve_hub_context, roster_scope
 from src.draft_hub.league_permissions import can_edit_roster, require_commissioner, require_primary_commissioner
@@ -785,6 +791,7 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
                 any_team=False,
                 pending_type=str(body.contract_type),
                 pending_by=sub,
+                edited_by_sub=sub,
             )
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -799,6 +806,7 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
                 team_id=team_id,
                 any_team=bool(ctx.get("mode") == "league" and ctx.get("is_commissioner")),
                 manual=True,
+                edited_by_sub=sub,
             )
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -862,6 +870,7 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
             contract=contract,
             roster_status=body.roster_status,
             any_team=bool(ctx.get("mode") == "league" and ctx.get("is_commissioner")),
+            edited_by_sub=sub,
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -1071,7 +1080,12 @@ def hub_league_rosters(
                     fair_map = build_and_store_fair_values(league_id, overview, season_int)
             overview = enrich_league_roster_overview(overview, fair_map=fair_map or {})
 
-    payload = {**overview, "hub_context": ctx, "source_version": source_version}
+    payload = {
+        **overview,
+        "hub_context": ctx,
+        "source_version": source_version,
+        **hub_storage.league_cache_revisions(league_id),
+    }
     _LEAGUE_ROSTERS_CACHE[cache_key] = (time.time(), payload)
     response.headers["X-Roster-Cache"] = "miss"
     return payload
@@ -1232,10 +1246,21 @@ def _clear_league_rosters_cache(league_id: str | None = None) -> None:
             del _LEAGUE_ROSTERS_CACHE[key]
 
 
+def _clear_insights_response_cache(league_id: str | None = None) -> None:
+    if not league_id:
+        _INSIGHTS_RESPONSE_CACHE.clear()
+        return
+    prefix = f"{league_id}:"
+    for key in list(_INSIGHTS_RESPONSE_CACHE):
+        if key.startswith(prefix):
+            del _INSIGHTS_RESPONSE_CACHE[key]
+
+
 def _invalidate_league_rosters_from_ctx(ctx: dict[str, Any]) -> None:
     lid = str(ctx.get("league_id") or "")
     if lid:
         _clear_league_rosters_cache(lid)
+        _clear_insights_response_cache(lid)
 
 
 def _insights_cache_key(
@@ -2423,7 +2448,9 @@ def hub_contract_history_patch(
         league = storage.get_league(league_id) or {}
         pct = float(LeagueRules.model_validate(league.get("rules") or {}).contracts.cut_refund_pct)
         updates = apply_cut_dead_cap_to_row_updates(row, updates, cut_refund_pct=pct)
-    return storage.update_league_contract_row(row_id, updates, edited_by_sub=sub, note=note)
+    updated = storage.update_league_contract_row(row_id, updates, edited_by_sub=sub, note=note)
+    _clear_insights_response_cache(league_id)
+    return updated
 
 
 class ContractRowCreate(BaseModel):
@@ -2571,16 +2598,20 @@ def hub_contract_history_build_week1(
     season: int = Query(..., description="Season year to build from Sleeper week-1 matchups"),
     _user=Depends(require_hub_user),
 ) -> dict:
-    """Build / replace year-sheet rows from Sleeper week-1 rosters (salary seeded from Excel/prior)."""
+    """Build / replace year-sheet rows from Sleeper week-1 rosters (salary seeded from Excel/prior).
+
+    Manual Historic overlays are preserved (SCORE-39); other seasons are untouched.
+    """
     sub = _sub(_user)
     ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
-    from src.draft_hub.sleeper_week1_snapshot import build_and_persist_week1_sheet
+    from src.draft_hub.sheet_roster_sync import sync_sleeper_year_sheet
 
     try:
-        return build_and_persist_week1_sheet(
+        return sync_sleeper_year_sheet(
             league_id,
             season_year=int(season),
+            mode="week1",
             imported_by_sub=sub,
         )
     except ValueError as exc:
@@ -2595,16 +2626,20 @@ def hub_contract_history_build_pre_draft(
     season: int = Query(..., description="Season year to seed from current/pre-draft Sleeper rosters"),
     _user=Depends(require_hub_user),
 ) -> dict:
-    """Seed a year sheet from live Sleeper rosters before the draft (salaries from prior year)."""
+    """Seed a year sheet from live Sleeper rosters before the draft (salaries from prior year).
+
+    Manual Historic overlays are preserved (SCORE-39); other seasons are untouched.
+    """
     sub = _sub(_user)
     ctx = _ctx_for_league(sub, league_id)
     require_commissioner(ctx)
-    from src.draft_hub.sleeper_week1_snapshot import build_and_persist_pre_draft_sheet
+    from src.draft_hub.sheet_roster_sync import sync_sleeper_year_sheet
 
     try:
-        return build_and_persist_pre_draft_sheet(
+        return sync_sleeper_year_sheet(
             league_id,
             season_year=int(season),
+            mode="pre_draft",
             imported_by_sub=sub,
         )
     except ValueError as exc:
@@ -3360,58 +3395,97 @@ async def hub_cut(league_id: str, body: DraftCutRequest, _user=Depends(require_h
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@router.post("/contract/extend")
-def hub_extend_contract(body: ContractExtendRequest, _user=Depends(require_hub_user)) -> dict:
-    sub = _sub(_user)
-    ctx = _ctx(sub)
-    if ctx.get("mode") == "league" and not ctx.get("can_edit_salaries"):
-        raise HTTPException(status_code=403, detail="Only the league commissioner can extend contracts")
+def _hub_rookie_extend(
+    *,
+    player_id: str,
+    extension_years: int,
+    ctx: dict[str, Any],
+) -> dict:
+    """One server-calculated manager rookie-extension command (SCORE-42).
+
+    Client salaries are ignored. Terms activate after the draft-complete tick.
+    """
     ws_id, team_id = roster_scope(ctx)
     rules = LeagueRules.model_validate(ctx["rules"])
-    roster = storage.list_roster(ws_id, team_id)
-    row = next((r for r in roster if r["player_id"] == body.player_id), None)
-    if not row:
+    draft_completed = bool(ctx.get("draft_completed"))
+
+    existing = storage.get_roster_slot(ws_id, player_id)
+    if not existing:
         raise HTTPException(status_code=404, detail="Player not on roster")
+    if ctx.get("mode") == "league":
+        if not team_id:
+            raise HTTPException(status_code=403, detail="Join a league team to extend rookies")
+        if str(existing.get("team_id") or "") != str(team_id):
+            raise HTTPException(status_code=403, detail="Can only extend rookies on your own team")
+
     try:
-        contract = renew_player_contract(
-            row, rules, extension_years=body.extension_years, start_salary=body.new_salary
+        contract, already_applied = apply_rookie_extension_command(
+            existing,
+            rules,
+            extension_years=extension_years,
+            draft_completed=draft_completed,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    slot = storage.extend_contract(ws_id, body.player_id, body.extension_years, body.new_salary, contract=contract)
-    roster = storage.list_roster(ws_id, team_id)
+
+    pending = (contract or {}).get("pending_extension") or {}
+    server_start = float(pending.get("start_salary") or 0) or None
+    if already_applied:
+        slot = storage.get_roster_slot(ws_id, player_id) or existing
+    else:
+        slot = storage.extend_contract(
+            ws_id,
+            player_id,
+            int(pending.get("years") or extension_years),
+            server_start,
+            contract=contract,
+        )
+    roster = list_roster_for_context(ctx)
+    _invalidate_league_rosters_from_ctx(ctx)
     return {
         "slot": slot,
+        "pending_extension": bool((slot.get("contract") or {}).get("pending_extension")),
+        "already_applied": already_applied,
+        "extension_years": int(pending.get("years") or extension_years),
+        "start_salary": server_start,
         "validation_errors": validate_roster(rules, roster),
-        "multi_year_plan": multi_year_cap_plan(rules, roster, draft_completed=bool(ctx.get("draft_completed"))),
+        "multi_year_plan": multi_year_cap_plan(rules, roster, draft_completed=draft_completed),
+        "pre_draft": pre_draft_cap_summary(rules, roster, draft_completed=draft_completed),
+        "hub_context": ctx,
     }
+
+
+@router.post("/contract/rookie-extend")
+def hub_rookie_extend(body: RookieExtendRequest, _user=Depends(require_hub_user)) -> dict:
+    """Idempotent manager command: queue a server-calculated post-rookie extension."""
+    ctx = _ctx(_sub(_user))
+    return _hub_rookie_extend(
+        player_id=body.player_id,
+        extension_years=body.extension_years,
+        ctx=ctx,
+    )
+
+
+@router.post("/contract/extend")
+def hub_extend_contract(body: ContractExtendRequest, _user=Depends(require_hub_user)) -> dict:
+    """Legacy alias for ``/contract/rookie-extend`` (client ``new_salary`` ignored)."""
+    ctx = _ctx(_sub(_user))
+    return _hub_rookie_extend(
+        player_id=body.player_id,
+        extension_years=body.extension_years,
+        ctx=ctx,
+    )
 
 
 @router.post("/contract/renew")
 def hub_renew_contract(body: ContractRenewRequest, _user=Depends(require_hub_user)) -> dict:
-    sub = _sub(_user)
-    ctx = _ctx(sub)
-    if ctx.get("mode") == "league" and not ctx.get("can_edit_salaries"):
-        raise HTTPException(status_code=403, detail="Only the league commissioner can renew contracts")
-    ws_id, team_id = roster_scope(ctx)
-    rules = LeagueRules.model_validate(ctx["rules"])
-    roster = storage.list_roster(ws_id, team_id)
-    row = next((r for r in roster if r["player_id"] == body.player_id), None)
-    if not row:
-        raise HTTPException(status_code=404, detail="Player not on roster")
-    try:
-        contract = renew_player_contract(
-            row, rules, extension_years=body.extension_years, start_salary=body.start_salary
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    slot = storage.extend_contract(ws_id, body.player_id, body.extension_years, body.start_salary, contract=contract)
-    roster = storage.list_roster(ws_id, team_id)
-    return {
-        "slot": slot,
-        "validation_errors": validate_roster(rules, roster),
-        "multi_year_plan": multi_year_cap_plan(rules, roster, draft_completed=bool(ctx.get("draft_completed"))),
-    }
+    """Legacy alias for ``/contract/rookie-extend`` (client ``start_salary`` ignored)."""
+    ctx = _ctx(_sub(_user))
+    return _hub_rookie_extend(
+        player_id=body.player_id,
+        extension_years=body.extension_years,
+        ctx=ctx,
+    )
 
 
 @router.get("/contract/pending-types")

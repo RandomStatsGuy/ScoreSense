@@ -215,6 +215,11 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE league ADD COLUMN lock_team_claims INTEGER NOT NULL DEFAULT 1")
     if "draft_completed" not in league_cols:
         conn.execute("ALTER TABLE league ADD COLUMN draft_completed INTEGER NOT NULL DEFAULT 0")
+    if "draft_contract_snapshot_json" not in league_cols:
+        conn.execute("ALTER TABLE league ADD COLUMN draft_contract_snapshot_json TEXT")
+    # SCORE-40: monotonic cache revisions for live roster vs historic snapshots.
+    _safe_add_column(conn, "league", "live_roster_revision", "INTEGER NOT NULL DEFAULT 0")
+    _safe_add_column(conn, "league", "historic_snapshot_revision", "INTEGER NOT NULL DEFAULT 0")
 
     roster_cols = {row[1] for row in conn.execute("PRAGMA table_info(roster_slot)").fetchall()}
     if "roster_status" not in roster_cols:
@@ -367,6 +372,24 @@ def _migrate(conn: sqlite3.Connection) -> None:
             edited_at TEXT NOT NULL,
             note TEXT
         )"""
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS league_roster_edit (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            league_id TEXT NOT NULL,
+            roster_slot_id INTEGER,
+            player_id TEXT NOT NULL,
+            field_name TEXT NOT NULL,
+            old_value TEXT,
+            new_value TEXT,
+            edited_by_sub TEXT NOT NULL,
+            edited_at TEXT NOT NULL,
+            note TEXT,
+            live_revision INTEGER NOT NULL
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_league_roster_edit_league ON league_roster_edit(league_id, edited_at)"
     )
     conn.execute(
         """CREATE TABLE IF NOT EXISTS league_owner_season_map (
@@ -827,6 +850,7 @@ def add_roster_slot(workspace_id: str, row: dict[str, Any], team_id: str | None 
             "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
             (workspace_id, row["player_id"]),
         ).fetchone()
+        _bump_live_for_workspace_conn(conn, workspace_id)
         return _roster_dict(r)
 
 
@@ -840,6 +864,8 @@ def update_roster_slot(
     contract: dict[str, Any] | None = None,
     roster_status: str | None = None,
     any_team: bool = False,
+    edited_by_sub: str | None = None,
+    note: str | None = None,
 ) -> dict[str, Any]:
     with get_conn() as conn:
         if any_team:
@@ -859,6 +885,7 @@ def update_roster_slot(
             ).fetchone()
         if not row:
             raise ValueError("Player not on roster")
+        prior = _roster_dict(row)
         sal = float(salary) if salary is not None else float(row["salary"])
         yrs = int(contract_years) if contract_years is not None else int(row["contract_years"])
         if yrs < 1:
@@ -881,7 +908,41 @@ def update_roster_slot(
             params,
         )
         updated = conn.execute("SELECT * FROM roster_slot WHERE id = ?", (row["id"],)).fetchone()
-        return _roster_dict(updated)
+        after = _roster_dict(updated)
+        bumped = _bump_live_for_workspace_conn(conn, workspace_id)
+        if edited_by_sub and bumped:
+            changes: list[tuple[str, Any, Any]] = []
+            if float(prior.get("salary") or 0) != float(after.get("salary") or 0):
+                changes.append(("salary", prior.get("salary"), after.get("salary")))
+            if int(prior.get("contract_years") or 0) != int(after.get("contract_years") or 0):
+                changes.append(
+                    ("contract_years", prior.get("contract_years"), after.get("contract_years"))
+                )
+            prior_ctype = (prior.get("contract") or {}).get("contract_type")
+            after_ctype = (after.get("contract") or {}).get("contract_type")
+            if prior_ctype != after_ctype:
+                changes.append(("contract_type", prior_ctype, after_ctype))
+            prior_sched = (prior.get("contract") or {}).get("salary_schedule")
+            after_sched = (after.get("contract") or {}).get("salary_schedule")
+            if prior_sched != after_sched:
+                changes.append(("salary_schedule", prior_sched, after_sched))
+            if str(prior.get("roster_status") or "") != str(after.get("roster_status") or ""):
+                changes.append(
+                    ("roster_status", prior.get("roster_status"), after.get("roster_status"))
+                )
+            if changes:
+                for lid, rev in bumped:
+                    _record_roster_edits_conn(
+                        conn,
+                        league_id=lid,
+                        roster_slot_id=int(row["id"]),
+                        player_id=str(player_id),
+                        changes=changes,
+                        edited_by_sub=edited_by_sub,
+                        note=note,
+                        live_revision=rev,
+                    )
+        return after
 
 
 def set_roster_contract_type(
@@ -894,6 +955,8 @@ def set_roster_contract_type(
     manual: bool = True,
     pending_type: str | None = None,
     pending_by: str | None = None,
+    edited_by_sub: str | None = None,
+    note: str | None = None,
 ) -> dict[str, Any]:
     """Set contract_type on a roster row by primary key (avoids duplicate-row races)."""
     from datetime import datetime, timezone
@@ -931,6 +994,7 @@ def set_roster_contract_type(
                 prior = json.loads(row["contract_json"]) or {}
             except json.JSONDecodeError:
                 prior = {}
+        prior_type = prior.get("contract_type")
 
         if pending_type:
             contract = dict(prior)
@@ -963,7 +1027,24 @@ def set_roster_contract_type(
             (contract_json, yrs, sal, row["id"]),
         )
         updated = conn.execute("SELECT * FROM roster_slot WHERE id = ?", (row["id"],)).fetchone()
-        return _roster_dict(updated)
+        after = _roster_dict(updated)
+        bumped = _bump_live_for_workspace_conn(conn, workspace_id)
+        audit_sub = edited_by_sub or pending_by
+        if audit_sub and bumped:
+            field = "pending_type" if pending_type else "contract_type"
+            new_val = pending_type or contract.get("contract_type")
+            for lid, rev in bumped:
+                _record_roster_edits_conn(
+                    conn,
+                    league_id=lid,
+                    roster_slot_id=int(row["id"]),
+                    player_id=str(player_id),
+                    changes=[(field, prior_type, new_val)],
+                    edited_by_sub=str(audit_sub),
+                    note=note,
+                    live_revision=rev,
+                )
+        return after
 
 
 def remove_roster_by_source(workspace_id: str, source: str, team_id: str | None = None) -> int:
@@ -1344,6 +1425,8 @@ def transfer_roster_players(
                 (to_team_id, workspace_id, pid, from_team_id),
             )
             moved += cur.rowcount
+        if moved:
+            _bump_live_for_workspace_conn(conn, workspace_id)
     return moved
 
 
@@ -1870,11 +1953,14 @@ def move_roster_player(workspace_id: str, player_id: str, to_team_id: str) -> di
         ).fetchone()
         if not row:
             return None
+        if str(row["team_id"] or "") == str(to_team_id):
+            return _roster_dict(row)
         conn.execute(
             "UPDATE roster_slot SET team_id = ? WHERE id = ?",
             (to_team_id, row["id"]),
         )
         updated = conn.execute("SELECT * FROM roster_slot WHERE id = ?", (row["id"],)).fetchone()
+        _bump_live_for_workspace_conn(conn, workspace_id)
         return _roster_dict(updated)
 
 
@@ -1896,16 +1982,16 @@ def update_roster_metadata(
             return None
         updates: list[str] = []
         params: list[Any] = []
-        if player_name is not None:
+        if player_name is not None and player_name != row["player_name"]:
             updates.append("player_name = ?")
             params.append(player_name)
-        if team is not None:
+        if team is not None and team != row["team"]:
             updates.append("team = ?")
             params.append(team)
-        if position is not None:
+        if position is not None and position != row["position"]:
             updates.append("position = ?")
             params.append(position)
-        if sleeper_player_id is not None:
+        if sleeper_player_id is not None and sleeper_player_id != row["sleeper_player_id"]:
             updates.append("sleeper_player_id = ?")
             params.append(sleeper_player_id)
         if not updates:
@@ -1913,10 +1999,12 @@ def update_roster_metadata(
         params.append(row["id"])
         conn.execute(f"UPDATE roster_slot SET {', '.join(updates)} WHERE id = ?", params)
         updated = conn.execute("SELECT * FROM roster_slot WHERE id = ?", (row["id"],)).fetchone()
+        _bump_live_for_workspace_conn(conn, workspace_id)
         return _roster_dict(updated)
 
 
 def _league_dict(row: sqlite3.Row) -> dict[str, Any]:
+    keys = row.keys()
     return {
         "id": row["id"],
         "workspace_id": row["workspace_id"],
@@ -1927,12 +2015,59 @@ def _league_dict(row: sqlite3.Row) -> dict[str, Any]:
         "room_code": row["room_code"],
         "status": row["status"],
         "team_count": row["team_count"],
-        "test_mode": bool(row["test_mode"]) if "test_mode" in row.keys() else False,
-        "sleeper_league_id": row["sleeper_league_id"] if "sleeper_league_id" in row.keys() else None,
-        "lock_team_claims": bool(row["lock_team_claims"]) if "lock_team_claims" in row.keys() else True,
-        "draft_completed": bool(row["draft_completed"]) if "draft_completed" in row.keys() else False,
+        "test_mode": bool(row["test_mode"]) if "test_mode" in keys else False,
+        "sleeper_league_id": row["sleeper_league_id"] if "sleeper_league_id" in keys else None,
+        "lock_team_claims": bool(row["lock_team_claims"]) if "lock_team_claims" in keys else True,
+        "draft_completed": bool(row["draft_completed"]) if "draft_completed" in keys else False,
+        "live_roster_revision": int(row["live_roster_revision"] or 0)
+        if "live_roster_revision" in keys
+        else 0,
+        "historic_snapshot_revision": int(row["historic_snapshot_revision"] or 0)
+        if "historic_snapshot_revision" in keys
+        else 0,
         "created_at": row["created_at"],
     }
+
+
+def save_draft_contract_snapshot(league_id: str, snapshot: dict[str, Any]) -> None:
+    """Persist pre/post draft-complete contract snapshot JSON on the league row."""
+    payload = dict(snapshot or {})
+    payload.setdefault("captured_at", _utcnow())
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE league SET draft_contract_snapshot_json = ? WHERE id = ?",
+            (json.dumps(payload), league_id),
+        )
+
+
+def get_draft_contract_snapshot(league_id: str) -> dict[str, Any] | None:
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT draft_contract_snapshot_json FROM league WHERE id = ?",
+            (league_id,),
+        ).fetchone()
+    if not row:
+        return None
+    raw = None
+    try:
+        raw = row["draft_contract_snapshot_json"]
+    except (KeyError, IndexError):
+        raw = None
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def clear_draft_contract_snapshot(league_id: str) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE league SET draft_contract_snapshot_json = NULL WHERE id = ?",
+            (league_id,),
+        )
 
 
 def import_roster_snapshot(
@@ -1988,7 +2123,9 @@ def roster_workspace_for_league(league: dict[str, Any]) -> str:
 
 
 def clear_league_draft_picks(league_id: str) -> int:
-    """Remove auction awards (source=draft) for all teams in this league. Keepers stay."""
+    """Remove current-auction awards for all teams in this league. Keepers stay."""
+    from src.draft_hub.acquisition_semantics import CURRENT_AUCTION_SOURCES
+
     league = get_league(league_id)
     if not league:
         return 0
@@ -1997,12 +2134,16 @@ def clear_league_draft_picks(league_id: str) -> int:
     if not team_ids:
         return 0
     ws = roster_workspace_for_league(league)
-    placeholders = ",".join("?" * len(team_ids))
+    team_ph = ",".join("?" * len(team_ids))
+    src_list = sorted(CURRENT_AUCTION_SOURCES)
+    src_ph = ",".join("?" * len(src_list))
     with get_conn() as conn:
         cur = conn.execute(
             f"""DELETE FROM roster_slot
-                WHERE workspace_id = ? AND source = 'draft' AND team_id IN ({placeholders})""",
-            [ws, *team_ids],
+                WHERE workspace_id = ?
+                  AND lower(coalesce(source, '')) IN ({src_ph})
+                  AND team_id IN ({team_ph})""",
+            [ws, *src_list, *team_ids],
         )
         return int(cur.rowcount)
 
@@ -2484,6 +2625,7 @@ def roster_source_version(league_id: str) -> str:
     league = get_league(league_id)
     if not league:
         return "0"
+    live_rev = int(league.get("live_roster_revision") or 0)
     ws_id = roster_workspace_for_league(league)
     with get_conn() as conn:
         row = conn.execute(
@@ -2494,12 +2636,109 @@ def roster_source_version(league_id: str) -> str:
                WHERE workspace_id = ? AND team_id IS NOT NULL AND team_id != ''""",
             (str(ws_id),),
         ).fetchone()
-    raw = f"{row['n']}:{row['sal']}:{row['yrs']}"
+    raw = f"live={live_rev}:{row['n']}:{row['sal']}:{row['yrs']}"
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 
+def league_cache_revisions(league_id: str) -> dict[str, int]:
+    """Return monotonic live + historic cache revisions for a league."""
+    league = get_league(league_id)
+    if not league:
+        return {"live_roster_revision": 0, "historic_snapshot_revision": 0}
+    return {
+        "live_roster_revision": int(league.get("live_roster_revision") or 0),
+        "historic_snapshot_revision": int(league.get("historic_snapshot_revision") or 0),
+    }
+
+
+def _league_ids_for_roster_workspace(conn: sqlite3.Connection, workspace_id: str) -> list[str]:
+    """Resolve league id(s) that store rosters in this workspace."""
+    rows = conn.execute(
+        "SELECT id FROM league WHERE workspace_id = ?",
+        (str(workspace_id),),
+    ).fetchall()
+    if rows:
+        return [str(r["id"]) for r in rows]
+    # test_mode / isolated rooms use league id as the roster workspace.
+    row = conn.execute(
+        "SELECT id FROM league WHERE id = ?",
+        (str(workspace_id),),
+    ).fetchone()
+    return [str(row["id"])] if row else []
+
+
+def _bump_revision_conn(
+    conn: sqlite3.Connection,
+    league_id: str,
+    column: str,
+) -> int:
+    if column not in {"live_roster_revision", "historic_snapshot_revision"}:
+        raise ValueError(f"Unknown revision column: {column}")
+    conn.execute(
+        f"UPDATE league SET {column} = COALESCE({column}, 0) + 1 WHERE id = ?",
+        (str(league_id),),
+    )
+    row = conn.execute(
+        f"SELECT {column} AS rev FROM league WHERE id = ?",
+        (str(league_id),),
+    ).fetchone()
+    return int(row["rev"] or 0) if row else 0
+
+
+def bump_live_roster_revision(league_id: str) -> int:
+    """Advance live roster revision (Insights / league-rosters cache keys)."""
+    with get_conn() as conn:
+        return _bump_revision_conn(conn, league_id, "live_roster_revision")
+
+
+def bump_historic_snapshot_revision(league_id: str) -> int:
+    """Advance historic snapshot revision (Insights / salary-sheet cache keys)."""
+    with get_conn() as conn:
+        return _bump_revision_conn(conn, league_id, "historic_snapshot_revision")
+
+
+def _bump_live_for_workspace_conn(conn: sqlite3.Connection, workspace_id: str) -> list[tuple[str, int]]:
+    bumped: list[tuple[str, int]] = []
+    for lid in _league_ids_for_roster_workspace(conn, workspace_id):
+        bumped.append((lid, _bump_revision_conn(conn, lid, "live_roster_revision")))
+    return bumped
+
+
+def _record_roster_edits_conn(
+    conn: sqlite3.Connection,
+    *,
+    league_id: str,
+    roster_slot_id: int | None,
+    player_id: str,
+    changes: list[tuple[str, Any, Any]],
+    edited_by_sub: str,
+    note: str | None,
+    live_revision: int,
+) -> None:
+    now = _utcnow()
+    for field_name, old_val, new_val in changes:
+        conn.execute(
+            """INSERT INTO league_roster_edit
+               (league_id, roster_slot_id, player_id, field_name, old_value, new_value,
+                edited_by_sub, edited_at, note, live_revision)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                str(league_id),
+                roster_slot_id,
+                str(player_id),
+                str(field_name),
+                None if old_val is None else str(old_val),
+                None if new_val is None else str(new_val),
+                str(edited_by_sub),
+                now,
+                note,
+                int(live_revision),
+            ),
+        )
+
+
 def insights_source_version(league_id: str) -> str:
-    """Fingerprint roster slots, contract rows, and owner-season-map revision."""
+    """Fingerprint roster/historic revisions plus import and owner-map metadata."""
     import hashlib
 
     with get_conn() as conn:
@@ -2507,9 +2746,13 @@ def insights_source_version(league_id: str) -> str:
             "SELECT * FROM league WHERE id = ?",
             (str(league_id),),
         ).fetchone()
+        live_rev = 0
+        hist_rev = 0
         roster_slots = 0
         if league_row:
             league = dict(league_row)
+            live_rev = int(league.get("live_roster_revision") or 0)
+            hist_rev = int(league.get("historic_snapshot_revision") or 0)
             ws_id = roster_workspace_for_league(league)
             roster_slots = conn.execute(
                 "SELECT COUNT(*) AS n FROM roster_slot WHERE workspace_id = ?",
@@ -2543,7 +2786,10 @@ def insights_source_version(league_id: str) -> str:
                FROM league_owner_season_map WHERE league_id = ?""",
             (str(league_id),),
         ).fetchone()["rev"]
-    raw = f"{roster_slots}:{contract_rows}:{manual_rows}:{import_rev}:{import_fp}:{osm}"
+    raw = (
+        f"live={live_rev}:hist={hist_rev}:"
+        f"{roster_slots}:{contract_rows}:{manual_rows}:{import_rev}:{import_fp}:{osm}"
+    )
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 
@@ -2979,6 +3225,7 @@ def record_legacy_import(
                VALUES (?, ?, ?, ?, ?, ?, ?)""",
             (league_id, int(season_year), source_kind, source_path, now, imported_by_sub, int(row_count)),
         )
+        _bump_revision_conn(conn, league_id, "historic_snapshot_revision")
         return int(cur.lastrowid)
 
 
@@ -3103,6 +3350,7 @@ def replace_league_contract_season_source(
                 ),
             )
             count += 1
+        _bump_revision_conn(conn, league_id, "historic_snapshot_revision")
     return count
 
 
@@ -3162,6 +3410,7 @@ def update_league_contract_row(
     row = get_league_contract_row(row_id)
     if not row:
         raise ValueError("Contract row not found")
+    original_kind = str(row.get("source_kind") or "")
     sets: list[str] = []
     params: list[Any] = []
     now = _utcnow()
@@ -3196,7 +3445,19 @@ def update_league_contract_row(
             f"UPDATE league_contract_row SET {', '.join(sets)} WHERE id = ?",
             params,
         )
+        _bump_revision_conn(conn, str(row["league_id"]), "historic_snapshot_revision")
     updated = get_league_contract_row(row_id)
+    # SCORE-39: editing a Sleeper sheet row must not remove it from the Sleeper
+    # membership base. Re-seed the pre-edit Sleeper row so later sync can merge
+    # manuals on top instead of dropping corrections when Sleeper rows remain.
+    if updated and original_kind in {"week1_sleeper", "pre_draft_sleeper"}:
+        from src.draft_hub.sheet_roster_sync import preserve_sleeper_base_after_manual_edit
+
+        preserve_sleeper_base_after_manual_edit(
+            str(row["league_id"]),
+            season_year=int(row["season_year"]),
+            original_row={**row, "source_kind": original_kind},
+        )
     return updated or row
 
 
@@ -3206,6 +3467,8 @@ def delete_league_contract_row(row_id: int, league_id: str) -> bool:
             "DELETE FROM league_contract_row WHERE id = ? AND league_id = ?",
             (int(row_id), league_id),
         )
+        if cur.rowcount > 0:
+            _bump_revision_conn(conn, league_id, "historic_snapshot_revision")
         return cur.rowcount > 0
 
 
@@ -3254,6 +3517,7 @@ def insert_league_contract_row(
             ),
         )
         row_id = int(cur.lastrowid)
+        _bump_revision_conn(conn, league_id, "historic_snapshot_revision")
     created = get_league_contract_row(row_id)
     if not created:
         raise ValueError("Failed to create contract row")
@@ -3299,6 +3563,11 @@ def upsert_owner_season_map(
     if not owner or not team:
         raise ValueError("owner_label and hub_team_name are required")
     with get_conn() as conn:
+        prior = conn.execute(
+            """SELECT hub_team_name, sleeper_user_id, source_kind FROM league_owner_season_map
+               WHERE league_id = ? AND season_year = ? AND owner_label = ?""",
+            (league_id, int(season_year), owner),
+        ).fetchone()
         conn.execute(
             """INSERT INTO league_owner_season_map (
                 league_id, season_year, owner_label, hub_team_name, sleeper_user_id,
@@ -3325,6 +3594,14 @@ def upsert_owner_season_map(
                WHERE league_id = ? AND season_year = ? AND owner_label = ?""",
             (league_id, int(season_year), owner),
         ).fetchone()
+        # yaml_seed bulk inserts should not spam historic revisions.
+        changed = prior is None or (
+            str(prior["hub_team_name"] or "") != team
+            or (sleeper_user_id is not None and str(prior["sleeper_user_id"] or "") != str(sleeper_user_id))
+            or str(prior["source_kind"] or "") != str(source_kind)
+        )
+        if changed and source_kind != "yaml_seed":
+            _bump_revision_conn(conn, league_id, "historic_snapshot_revision")
     return _owner_season_map_dict(row) if row else {}
 
 
@@ -3334,6 +3611,8 @@ def delete_owner_season_map(map_id: int, league_id: str) -> bool:
             "DELETE FROM league_owner_season_map WHERE id = ? AND league_id = ?",
             (int(map_id), league_id),
         )
+        if cur.rowcount > 0:
+            _bump_revision_conn(conn, league_id, "historic_snapshot_revision")
         return cur.rowcount > 0
 
 
