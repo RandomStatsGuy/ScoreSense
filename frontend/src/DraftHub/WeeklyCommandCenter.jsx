@@ -5,6 +5,12 @@ import { isAbortError } from "../fetchAbort";
 import useMobileLayout from "../useMobileLayout";
 import MobileDataList, { MobileStat } from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
+import {
+  formatMovementSummary,
+  formatP50Move,
+  formatRankMove,
+  rowMovementTone,
+} from "../projectionMovement";
 import HubTabIntro from "./HubTabIntro";
 import {
   HubAlert,
@@ -20,6 +26,44 @@ import {
 
 function fmtPts(value) {
   return fmtNum(value, 1);
+}
+
+function ProjectionChangeItem({ item }) {
+  const rankLabel = formatRankMove({
+    previousRank: item?.previous_rank,
+    currentRank: item?.current_rank,
+    rankDelta: item?.rank_delta,
+    position: item?.position,
+  });
+  const p50Label = formatP50Move(item?.p50_delta ?? item?.delta_p50);
+  const tone = rowMovementTone(item);
+  const name = item?.player_name || item?.player_id || "Player";
+  const metaBits = [
+    item?.position,
+    item?.team,
+    item?.slot || item?.lineup_role,
+  ].filter(Boolean);
+
+  return (
+    <li className={`hub-wcc-move-item hub-wcc-move-item--${tone}`}>
+      <div className="hub-wcc-move-main">
+        <strong>{name}</strong>
+        {metaBits.length ? (
+          <span className="chart-note"> {metaBits.join(" · ")}</span>
+        ) : null}
+        {rankLabel ? (
+          <div className="hub-wcc-move-rank">{rankLabel}</div>
+        ) : null}
+      </div>
+      {p50Label ? (
+        <span className="hub-wcc-move-p50" title="P50 vs prior refresh">
+          {p50Label}
+        </span>
+      ) : (
+        <span className="hub-wcc-move-p50 muted">—</span>
+      )}
+    </li>
+  );
 }
 
 function playerMeta(player) {
@@ -236,6 +280,12 @@ export default function WeeklyCommandCenter({
   const starters = data?.roster?.starters || [];
   const bench = data?.roster?.bench || [];
   const projectionChanges = data?.projection_changes || { available: false, items: [] };
+  const materialMoves = (projectionChanges.items || []).filter(
+    (item) => item.material === true || item.movement_material === true,
+  );
+  const projectionChangeItems = materialMoves.length
+    ? materialMoves
+    : (projectionChanges.items || []).slice(0, 8);
 
   const syncedLabel = sync.sleeper_synced_at
     ? formatRelativeTime(sync.sleeper_synced_at)
@@ -261,7 +311,8 @@ export default function WeeklyCommandCenter({
               P50 thresholds against that inferred lineup.
             </p>
             <p>
-              Projection movement vs prior refresh is not tracked yet.
+              Projection changes list material moves on your roster vs the prior
+              weekly refresh (rank and P50), when a movement artifact is available.
             </p>
           </>
         )}
@@ -440,17 +491,19 @@ export default function WeeklyCommandCenter({
 
       <HubSection
         title="Projection changes"
-        hint="Material moves since the prior refresh."
+        hint="Material moves since the prior refresh (rank + P50)."
       >
-        {projectionChanges.available && projectionChanges.items?.length ? (
-          <ul className="hub-wcc-top-messages">
-            {projectionChanges.items.map((item) => (
-              <li key={item.player_id || item.message}>
-                {item.message
-                  || `${item.player_name} ${item.delta_p50 >= 0 ? "+" : ""}${fmtPts(item.delta_p50)}`}
-              </li>
+        {projectionChanges.available && projectionChangeItems.length ? (
+          <ul className="hub-wcc-move-list">
+            {projectionChangeItems.slice(0, 12).map((item) => (
+              <ProjectionChangeItem
+                key={item.player_id || formatMovementSummary(item)}
+                item={item}
+              />
             ))}
           </ul>
+        ) : projectionChanges.available ? (
+          <p className="chart-note">No material projection moves on your roster this refresh.</p>
         ) : (
           <p className="chart-note">
             {projectionChanges.note || "Projection movement tracking is not available yet."}
