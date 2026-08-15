@@ -311,6 +311,44 @@ def can_renew(row: dict[str, Any], rules: LeagueRules) -> tuple[bool, str]:
     return False, "Veterans cannot be re-signed — expires to free agency."
 
 
+def extension_window_open(*, draft_completed: bool) -> bool:
+    """Managers may only queue rookie extensions before draft is marked complete."""
+    return not bool(draft_completed)
+
+
+def compute_rookie_extension_start_salary(row: dict[str, Any], rules: LeagueRules) -> float:
+    """Server-calculated start: current salary + league extension step-up (default +$5)."""
+    contract = row.get("contract") or {}
+    cr = contract_rules(rules)
+    current = float(contract.get("current_salary") or row.get("salary") or 1)
+    return round(current + float(cr.extension_step_up), 2)
+
+
+def can_manager_rookie_extend(
+    row: dict[str, Any],
+    rules: LeagueRules,
+    *,
+    draft_completed: bool = False,
+) -> tuple[bool, str]:
+    """Eligibility for the manager rookie-extension command (own-team checks are route-level)."""
+    if not extension_window_open(draft_completed=draft_completed):
+        return False, "Rookie extensions are only available before the draft is marked complete."
+    contract = row.get("contract") or {}
+    ctype = str(contract.get("contract_type") or "veteran")
+    if ctype != "rookie":
+        return False, "Only players on a rookie deal can use this extension."
+    return can_renew(row, rules)
+
+
+def _normalize_extension_years(rules: LeagueRules, extension_years: int) -> int:
+    cr = contract_rules(rules)
+    yrs = int(extension_years)
+    max_yrs = int(cr.max_years)
+    if yrs < 1 or yrs > max_yrs:
+        raise ValueError(f"Extension years must be between 1 and {max_yrs}.")
+    return yrs
+
+
 def renew_player_contract(
     row: dict[str, Any],
     rules: LeagueRules,
@@ -318,16 +356,17 @@ def renew_player_contract(
     extension_years: int,
     start_salary: float | None = None,
 ) -> dict[str, Any]:
-    """Build the extension terms (does not attach pending / does not tick)."""
+    """Build the extension terms (does not attach pending / does not tick).
+
+    ``start_salary`` is ignored — start is always current + league step-up.
+    """
     ok, msg = can_renew(row, rules)
     if not ok:
         raise ValueError(msg)
-    contract = row.get("contract") or build_veteran_contract(row.get("salary") or 1, 1)
-    cr = contract_rules(rules)
-    base = float(start_salary if start_salary is not None else contract.get("current_salary") or row.get("salary") or 1)
-    # Mendoza example: $10 rookie -> extension starts at base + step (default +5) each year
-    ext_base = base + float(cr.extension_step_up)
-    return build_extension_contract(rules, start_salary=ext_base, years=extension_years)
+    _ = start_salary  # client-supplied salaries are never trusted
+    years = _normalize_extension_years(rules, extension_years)
+    ext_base = compute_rookie_extension_start_salary(row, rules)
+    return build_extension_contract(rules, start_salary=ext_base, years=years)
 
 
 def queue_pending_extension(
@@ -389,14 +428,53 @@ def apply_or_queue_extension(
     start_salary: float | None = None,
     draft_completed: bool = False,
 ) -> dict[str, Any]:
-    """Pre-draft: queue pending. Post-draft: apply extension terms immediately."""
+    """Pre-draft: queue pending. Post-draft: apply extension terms immediately.
+
+    Client ``start_salary`` is ignored; terms are always server-calculated.
+    """
     if draft_completed:
         return renew_player_contract(
-            row, rules, extension_years=extension_years, start_salary=start_salary
+            row, rules, extension_years=extension_years, start_salary=None
         )
     return queue_pending_extension(
-        row, rules, extension_years=extension_years, start_salary=start_salary
+        row, rules, extension_years=extension_years, start_salary=None
     )
+
+
+def apply_rookie_extension_command(
+    row: dict[str, Any],
+    rules: LeagueRules,
+    *,
+    extension_years: int,
+    draft_completed: bool = False,
+) -> tuple[dict[str, Any], bool]:
+    """Idempotent manager rookie-extension: queue pending terms for post-draft activation.
+
+    Returns ``(contract_json, already_applied)``. Re-submitting the same years is a no-op
+    success. Outside the pre-draft window, non-rookies, final-year failures, or a conflicting
+    queued duration raise ``ValueError``.
+    """
+    years = _normalize_extension_years(rules, extension_years)
+    if not extension_window_open(draft_completed=draft_completed):
+        raise ValueError("Rookie extensions are only available before the draft is marked complete.")
+
+    contract = dict(row.get("contract") or {})
+    if has_pending_extension(contract):
+        pending = contract.get(PENDING_EXTENSION_KEY) or {}
+        pending_years = int(pending.get("years") or 0)
+        if pending_years == years:
+            return contract, True
+        raise ValueError(
+            f"Extension already queued for {pending_years} year(s) — "
+            "cannot change duration after submission."
+        )
+
+    ok, msg = can_manager_rookie_extend(row, rules, draft_completed=draft_completed)
+    if not ok:
+        raise ValueError(msg)
+
+    queued = queue_pending_extension(row, rules, extension_years=years)
+    return queued, False
 
 
 def swap_contracts(row_a: dict[str, Any], row_b: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
