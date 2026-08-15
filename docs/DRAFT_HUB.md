@@ -94,7 +94,7 @@ Player IDs are mapped via Sleeper `gsis_id` → ScoreSense `player_id` when avai
 | POST | `/api/hub/league/join` | Join by room code |
 | GET | `/api/hub/league/{id}` | Room state |
 | WS | `/api/hub/ws/{league_id}` | Realtime updates |
-| POST | `/api/hub/contract/extend` | Extend contract (Phase C) |
+| POST | `/api/hub/contract/rookie-extend` | Manager rookie extension (server-calculated; aliases: `/extend`, `/renew`) |
 | POST | `/api/hub/sleeper/import` | Sleeper roster snapshot (read-only) |
 
 ## Roadmap
