@@ -40,6 +40,8 @@ class LeagueRules(BaseModel):
     salary_cap: float = 200.0
     auction: AuctionRules = Field(default_factory=AuctionRules)
     roster: dict[str, Any] = Field(default_factory=dict)
+    # Explicit total roster cap. When omitted, sum of per-position maxes is used.
+    roster_size_max: Optional[int] = None
     contracts: ContractRules = Field(default_factory=ContractRules)
     # SCORE-3: Conservative (-1) / Balanced (0, default) / Aggressive (+1).
     # Neutral default keeps fair_value pricing unchanged until a league opts in.
@@ -166,6 +168,12 @@ class RookieExtendRequest(BaseModel):
 
     player_id: str
     extension_years: int = 1
+
+
+class RookieYearRemediationRequest(BaseModel):
+    """Optional player_id filter for SCORE-38 inflated-year corrections."""
+
+    player_ids: list[str] = Field(default_factory=list)
 
 
 class ContractExtendRequest(BaseModel):

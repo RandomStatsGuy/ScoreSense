@@ -85,7 +85,23 @@ def test_mock_league_recap_overview_after_end(hub_db):
     assert recap["pick_count"] == 1
 
 
-def test_mock_award_lands_on_roster_and_blocks_renomination(hub_db):
+def _stub_pool_player(monkeypatch, player):
+    monkeypatch.setattr(
+        "src.draft_hub.draft_state.resolve_nomination_player",
+        lambda **kwargs: {
+            "player_id": player["player_id"],
+            "player": player.get("player_name"),
+            "player_name": player.get("player_name"),
+            "team": player.get("team"),
+            "position": player.get("position"),
+            "fair_value": player.get("fair_value"),
+            "season_proj": player.get("season_proj"),
+            "per_game_proj": player.get("per_game_proj"),
+        },
+    )
+
+
+def test_mock_award_lands_on_roster_and_blocks_renomination(hub_db, monkeypatch):
     """Mock leagues have no workspace: the award must write to the same roster
     workspace the reads use, and a won player can't be nominated again."""
     out = start_mock_draft("mock-user", mode="quick_bots", bot_count=2, auto_start=True)
@@ -99,6 +115,7 @@ def test_mock_award_lands_on_roster_and_blocks_renomination(hub_db):
         "season_proj": 250,
         "per_game_proj": 15,
     }
+    _stub_pool_player(monkeypatch, player)
     nominate(league_id, "mock-user", player)
     place_bid(league_id, "mock-user", 5)
     award_nominee(league_id, "mock-user")
@@ -111,7 +128,7 @@ def test_mock_award_lands_on_roster_and_blocks_renomination(hub_db):
         nominate(league_id, "mock-user", player)
 
 
-def test_bot_bidding_stops_at_fair_value_ceiling(hub_db):
+def test_bot_bidding_stops_at_fair_value_ceiling(hub_db, monkeypatch):
     """Bots value players at 0.75x–1.15x fair value — an auction must converge
     near fair price instead of climbing until budgets run out."""
     from src.draft_hub.test_draft import bot_max_price, maybe_bot_bid
@@ -119,19 +136,17 @@ def test_bot_bidding_stops_at_fair_value_ceiling(hub_db):
     out = start_mock_draft("mock-user", mode="quick_bots", bot_count=3, auto_start=True)
     league_id = out["league_id"]
     fair = 20
-    nominate(
-        league_id,
-        "mock-user",
-        {
-            "player_id": "p1",
-            "player_name": "Test WR",
-            "team": "KC",
-            "position": "WR",
-            "fair_value": fair,
-            "season_proj": 250,
-            "per_game_proj": 15,
-        },
-    )
+    player = {
+        "player_id": "p1",
+        "player_name": "Test WR",
+        "team": "KC",
+        "position": "WR",
+        "fair_value": fair,
+        "season_proj": 250,
+        "per_game_proj": 15,
+    }
+    _stub_pool_player(monkeypatch, player)
+    nominate(league_id, "mock-user", player)
     for _ in range(80):
         if maybe_bot_bid(league_id) is None:
             break

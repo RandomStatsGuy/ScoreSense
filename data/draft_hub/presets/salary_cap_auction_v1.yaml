@@ -17,6 +17,7 @@ roster:
   k: { min: 0, max: 2, starter: 1 }
   def: { min: 0, max: 2, starter: 1 }
   flex: { starter: 1, eligible: [RB, WR, TE] }
+roster_size_max: 27
 contracts:
   max_years: 3
   cut_refund_pct: 0.5

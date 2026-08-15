@@ -216,6 +216,36 @@ def test_historic_second_salary_edit_bumps_even_when_already_manual(hub_db):
     assert v3 != v2
 
 
+def test_extend_delete_rules_cap_and_alias_bump(hub_db):
+    lid, ws, team_a, _ = _seed_league_with_player(hub_db)
+    live0 = storage.league_cache_revisions(lid)["live_roster_revision"]
+    hist0 = storage.league_cache_revisions(lid)["historic_snapshot_revision"]
+
+    storage.extend_contract(ws, "00-0035676", 1, new_salary=45.0)
+    live1 = storage.league_cache_revisions(lid)["live_roster_revision"]
+    assert live1 == live0 + 1
+
+    storage.update_league_rules(lid, LeagueRules(salary_cap=210.0))
+    live2 = storage.league_cache_revisions(lid)["live_roster_revision"]
+    assert live2 == live1 + 1
+
+    storage.upsert_season_salary_cap(lid, 2025, 185.0)
+    hist1 = storage.league_cache_revisions(lid)["historic_snapshot_revision"]
+    assert hist1 == hist0 + 1
+
+    alias = storage.upsert_player_name_alias(lid, "J Chase", "Ja'Marr Chase", position="WR")
+    hist2 = storage.league_cache_revisions(lid)["historic_snapshot_revision"]
+    assert hist2 == hist1 + 1
+
+    assert storage.delete_player_name_alias(alias["id"], lid) is True
+    hist3 = storage.league_cache_revisions(lid)["historic_snapshot_revision"]
+    assert hist3 == hist2 + 1
+
+    assert storage.remove_roster_slot(ws, "00-0035676") is True
+    live3 = storage.league_cache_revisions(lid)["live_roster_revision"]
+    assert live3 == live2 + 1
+
+
 def test_team_salary_sheets_include_revision_source_version(hub_db):
     lid, _, _, _ = _seed_league_with_player(hub_db)
     storage.insert_league_contract_row(

@@ -64,11 +64,15 @@ export function canAcquireAtPosition(capacity, position) {
  */
 export function isRetainedThroughDraft(row, draftCompleted = false) {
   if (!row) return false;
-  if (String(row.roster_status || "active") === "cut_before_draft") return false;
+  const pid = String(row.player_id || "");
+  if (pid.startsWith("deadcap:")) return false;
+  const status = String(row.roster_status || "active");
+  if (["cut_before_draft", "cut", "waived", "traded"].includes(status)) return false;
   const acq = String(
     row.acquisition_type || row.contract?.acquisition_type || "",
   ).toLowerCase();
   if (acq === "fa_contract") return false;
+  if (row.contract?.pending_extension) return true;
   if (draftCompleted) return true;
   const yrs = Number(row.contract?.years_remaining ?? row.contract_years ?? 1);
   if (yrs > 1) return true;
@@ -81,6 +85,7 @@ export function buildRosterCapacity(rules, roster) {
   const rosterRules = rules?.roster || {};
   const counts = {};
   for (const row of roster || []) {
+    if (!isRetainedThroughDraft(row, false)) continue;
     const raw = String(row.position || "").toUpperCase();
     const pos = raw === "DST" || raw === "D/ST" ? "DEF" : raw === "REC" ? "WR" : raw;
     if (pos) {

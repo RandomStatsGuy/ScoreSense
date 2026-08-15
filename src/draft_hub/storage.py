@@ -220,6 +220,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
     # SCORE-40: monotonic cache revisions for live roster vs historic snapshots.
     _safe_add_column(conn, "league", "live_roster_revision", "INTEGER NOT NULL DEFAULT 0")
     _safe_add_column(conn, "league", "historic_snapshot_revision", "INTEGER NOT NULL DEFAULT 0")
+    _safe_add_column(conn, "league", "sandbox_baseline_json", "TEXT")
 
     roster_cols = {row[1] for row in conn.execute("PRAGMA table_info(roster_slot)").fetchall()}
     if "roster_status" not in roster_cols:
@@ -1142,6 +1143,8 @@ def remove_roster_slot(workspace_id: str, player_id: str) -> bool:
             "DELETE FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
             (workspace_id, player_id),
         )
+        if cur.rowcount > 0:
+            _bump_live_for_workspace_conn(conn, workspace_id)
         return cur.rowcount > 0
 
 
@@ -1174,6 +1177,7 @@ def extend_contract(workspace_id: str, player_id: str, extension_years: int,
             (slot["id"], extension_years, new_salary, _utcnow()),
         )
         r = conn.execute("SELECT * FROM roster_slot WHERE id = ?", (slot["id"],)).fetchone()
+        _bump_live_for_workspace_conn(conn, workspace_id)
         return _roster_dict(r)
 
 
@@ -1696,6 +1700,7 @@ def update_league_rules(league_id: str, rules: LeagueRules) -> dict[str, Any] | 
             "UPDATE league SET rules_json = ? WHERE id = ?",
             (_rules_to_json(rules), league_id),
         )
+        _bump_revision_conn(conn, league_id, "live_roster_revision")
         row = conn.execute("SELECT * FROM league WHERE id = ?", (league_id,)).fetchone()
         return _league_dict(row) if row else None
 
@@ -2068,6 +2073,71 @@ def clear_draft_contract_snapshot(league_id: str) -> None:
             "UPDATE league SET draft_contract_snapshot_json = NULL WHERE id = ?",
             (league_id,),
         )
+
+
+def save_sandbox_baseline(league_id: str, snapshot: dict[str, Any]) -> None:
+    payload = dict(snapshot or {})
+    payload.setdefault("captured_at", _utcnow())
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE league SET sandbox_baseline_json = ? WHERE id = ?",
+            (json.dumps(payload), league_id),
+        )
+
+
+def get_sandbox_baseline(league_id: str) -> dict[str, Any] | None:
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT sandbox_baseline_json FROM league WHERE id = ?",
+            (league_id,),
+        ).fetchone()
+    if not row:
+        return None
+    try:
+        raw = row["sandbox_baseline_json"]
+    except (KeyError, IndexError):
+        raw = None
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def rekey_roster_player_id(
+    workspace_id: str,
+    old_player_id: str,
+    new_player_id: str,
+    *,
+    contract: dict[str, Any] | None = None,
+    roster_status: str | None = None,
+) -> dict[str, Any]:
+    """Change a roster row's player_id (used to park cut liabilities)."""
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
+            (workspace_id, old_player_id),
+        ).fetchone()
+        if not row:
+            raise ValueError("Player not on roster")
+        updates = ["player_id = ?"]
+        params: list[Any] = [new_player_id]
+        if contract is not None:
+            updates.append("contract_json = ?")
+            params.append(json.dumps(contract))
+        if roster_status is not None:
+            updates.append("roster_status = ?")
+            params.append(roster_status)
+        params.append(row["id"])
+        conn.execute(
+            f"UPDATE roster_slot SET {', '.join(updates)} WHERE id = ?",
+            params,
+        )
+        updated = conn.execute("SELECT * FROM roster_slot WHERE id = ?", (row["id"],)).fetchone()
+        _bump_live_for_workspace_conn(conn, workspace_id)
+        return _roster_dict(updated)
 
 
 def import_roster_snapshot(
@@ -3650,6 +3720,7 @@ def upsert_season_salary_cap(
                WHERE league_id = ? AND season_year = ?""",
             (league_id, int(season_year)),
         ).fetchone()
+        _bump_revision_conn(conn, league_id, "historic_snapshot_revision")
     if not row:
         raise ValueError("Failed to save season salary cap")
     return dict(row)
@@ -3873,6 +3944,7 @@ def upsert_player_name_alias(
                WHERE league_id = ? AND alias_name = ?""",
             (league_id, alias),
         ).fetchone()
+        _bump_revision_conn(conn, league_id, "historic_snapshot_revision")
     if not row:
         raise RuntimeError("Failed to upsert player name alias")
     return _player_name_alias_dict(row)
@@ -3884,4 +3956,6 @@ def delete_player_name_alias(alias_id: int, league_id: str) -> bool:
             "DELETE FROM league_player_name_alias WHERE id = ? AND league_id = ?",
             (int(alias_id), league_id),
         )
-    return cur.rowcount > 0
+        if cur.rowcount > 0:
+            _bump_revision_conn(conn, league_id, "historic_snapshot_revision")
+        return cur.rowcount > 0

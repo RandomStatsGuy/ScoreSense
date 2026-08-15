@@ -333,6 +333,12 @@ def can_manager_rookie_extend(
     """Eligibility for the manager rookie-extension command (own-team checks are route-level)."""
     if not extension_window_open(draft_completed=draft_completed):
         return False, "Rookie extensions are only available before the draft is marked complete."
+    status = str(row.get("roster_status") or "active")
+    if status != "active":
+        return False, "Inactive or cut players cannot be extended."
+    cr = contract_rules(rules)
+    if not bool(cr.one_renewal_after_rookie):
+        return False, "Rookie extensions are disabled in this league's rules."
     contract = row.get("contract") or {}
     ctype = str(contract.get("contract_type") or "veteran")
     if ctype != "rookie":
@@ -475,6 +481,33 @@ def apply_rookie_extension_command(
 
     queued = queue_pending_extension(row, rules, extension_years=years)
     return queued, False
+
+
+def cancel_pending_extension(row: dict[str, Any]) -> dict[str, Any]:
+    """Remove a queued rookie extension (commissioner cancel/replace)."""
+    contract = dict(row.get("contract") or {})
+    if not has_pending_extension(contract):
+        raise ValueError("No pending extension to cancel.")
+    contract.pop(PENDING_EXTENSION_KEY, None)
+    return contract
+
+
+def replace_pending_extension(
+    row: dict[str, Any],
+    rules: LeagueRules,
+    *,
+    extension_years: int,
+    draft_completed: bool = False,
+) -> dict[str, Any]:
+    """Commissioner: cancel the queued duration and queue a new one."""
+    if not extension_window_open(draft_completed=draft_completed):
+        raise ValueError("Rookie extensions are only available before the draft is marked complete.")
+    cleared = dict(row)
+    cleared["contract"] = cancel_pending_extension(row)
+    queued, _ = apply_rookie_extension_command(
+        cleared, rules, extension_years=extension_years, draft_completed=draft_completed
+    )
+    return queued
 
 
 def swap_contracts(row_a: dict[str, Any], row_b: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:

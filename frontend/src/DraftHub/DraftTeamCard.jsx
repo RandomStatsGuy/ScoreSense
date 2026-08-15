@@ -53,6 +53,7 @@ export default function DraftTeamCard({
           <span className="hub-team-card-tags">
             {isNominator ? <span className="hub-team-tag hub-team-tag-nom">Nominate</span> : null}
             {isLeader ? <span className="hub-team-tag hub-team-tag-lead">High bid</span> : null}
+            {team.over_cap ? <span className="hub-team-tag">Over cap</span> : null}
           </span>
           <span className="hub-team-card-meta">
             {fmtSal(team.budget_remaining)}

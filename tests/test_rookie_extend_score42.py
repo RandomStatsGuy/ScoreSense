@@ -13,7 +13,9 @@ from src.draft_hub.contracts import (
     apply_rookie_extension_command,
     build_rookie_contract,
     can_manager_rookie_extend,
+    cancel_pending_extension,
     compute_rookie_extension_start_salary,
+    replace_pending_extension,
 )
 from src.draft_hub.presets import load_preset
 from src.draft_hub.schemas import LeagueRules
@@ -94,6 +96,29 @@ def test_eligibility_gates_window_type_and_years():
     ok, msg = can_manager_rookie_extend(vet, rules, draft_completed=False)
     assert ok is False
     assert "rookie deal" in msg.lower()
+
+    cut = _final_year_rookie(player_id="00-0039004")
+    cut["roster_status"] = "cut_before_draft"
+    ok, msg = can_manager_rookie_extend(cut, rules, draft_completed=False)
+    assert ok is False
+    assert "inactive" in msg.lower() or "cut" in msg.lower()
+
+    disabled = LeagueRules(contracts=rules.contracts.model_copy(update={"one_renewal_after_rookie": False}))
+    ok, msg = can_manager_rookie_extend(row, disabled, draft_completed=False)
+    assert ok is False
+    assert "disabled" in msg.lower()
+
+
+def test_commissioner_can_cancel_and_replace_pending_extension():
+    rules = load_preset("salary_cap_auction_v1")
+    row = _final_year_rookie()
+    queued, _ = apply_rookie_extension_command(row, rules, extension_years=3, draft_completed=False)
+    row["contract"] = queued
+    cleared = cancel_pending_extension(row)
+    assert "pending_extension" not in cleared
+    row["contract"] = queued
+    replaced = replace_pending_extension(row, rules, extension_years=1, draft_completed=False)
+    assert replaced["pending_extension"]["years"] == 1
 
 
 def test_one_and_three_year_durations_survive_draft_complete_tick():
@@ -189,5 +214,51 @@ def test_legacy_extend_ignores_new_salary(hub_db):
         assert res.status_code == 200, res.text
         assert res.json()["start_salary"] == 17.0
         assert res.json()["slot"]["contract"]["pending_extension"]["start_salary"] == 17.0
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_commissioner_cancel_and_replace_endpoints(hub_db):
+    rules = LeagueRules()
+    league = storage.create_league("comm-cancel", "Cancel League", 2026, rules, team_count=8)
+    owner = storage.join_league("mgr-cancel", league["room_code"], "Owner")
+    ws_id = storage.roster_workspace_for_league(league)
+    storage.add_roster_slot(
+        ws_id,
+        _final_year_rookie(player_id="00-0039301", salary=10),
+        team_id=owner["id"],
+    )
+
+    mgr = _client_for("mgr-cancel")
+    try:
+        queued = mgr.post(
+            "/api/hub/contract/rookie-extend",
+            json={"player_id": "00-0039301", "extension_years": 3},
+        )
+        assert queued.status_code == 200, queued.text
+        forbidden = mgr.post(
+            "/api/hub/contract/rookie-extend/cancel",
+            json={"player_id": "00-0039301", "extension_years": 3},
+        )
+        assert forbidden.status_code == 403
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+    comm = _client_for("comm-cancel")
+    try:
+        replaced = comm.post(
+            "/api/hub/contract/rookie-extend/replace",
+            json={"player_id": "00-0039301", "extension_years": 1},
+        )
+        assert replaced.status_code == 200, replaced.text
+        assert replaced.json()["extension_years"] == 1
+        cancelled = comm.post(
+            "/api/hub/contract/rookie-extend/cancel",
+            json={"player_id": "00-0039301", "extension_years": 1},
+        )
+        assert cancelled.status_code == 200, cancelled.text
+        assert cancelled.json()["pending_extension"] is False
+        slot = storage.get_roster_slot(ws_id, "00-0039301")
+        assert "pending_extension" not in (slot.get("contract") or {})
     finally:
         app.dependency_overrides.pop(require_hub_user, None)

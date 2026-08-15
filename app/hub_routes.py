@@ -46,6 +46,7 @@ from src.draft_hub.schemas import (
     ContractExtendRequest,
     ContractRenewRequest,
     RookieExtendRequest,
+    RookieYearRemediationRequest,
     DraftBidRequest,
     DraftCutRequest,
     DraftEnrichmentRequest,
@@ -82,6 +83,8 @@ from src.draft_hub.schemas import (
 )
 from src.draft_hub.contracts import (
     apply_rookie_extension_command,
+    cancel_pending_extension,
+    replace_pending_extension,
     roster_row_from_import,
     swap_contracts,
     build_contract_from_roster_edit,
@@ -3486,6 +3489,109 @@ def hub_renew_contract(body: ContractRenewRequest, _user=Depends(require_hub_use
         extension_years=body.extension_years,
         ctx=ctx,
     )
+
+
+@router.post("/contract/rookie-extend/cancel")
+def hub_rookie_extend_cancel(body: RookieExtendRequest, _user=Depends(require_hub_user)) -> dict:
+    """Commissioner: drop a queued rookie extension."""
+    sub = _sub(_user)
+    ctx = _ctx(sub)
+    require_commissioner(ctx)
+    ws_id, _team_id = roster_scope(ctx)
+    existing = storage.get_roster_slot(ws_id, body.player_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Player not on roster")
+    try:
+        contract = cancel_pending_extension(existing)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    slot = storage.update_roster_slot(
+        ws_id,
+        body.player_id,
+        contract=contract,
+        any_team=True,
+        edited_by_sub=sub,
+        note="commissioner cancel pending rookie extension",
+    )
+    _invalidate_league_rosters_from_ctx(ctx)
+    return {"slot": slot, "pending_extension": False, "hub_context": ctx}
+
+
+@router.post("/contract/rookie-extend/replace")
+def hub_rookie_extend_replace(body: RookieExtendRequest, _user=Depends(require_hub_user)) -> dict:
+    """Commissioner: replace a queued rookie-extension duration."""
+    sub = _sub(_user)
+    ctx = _ctx(sub)
+    require_commissioner(ctx)
+    ws_id, _team_id = roster_scope(ctx)
+    rules = LeagueRules.model_validate(ctx["rules"])
+    existing = storage.get_roster_slot(ws_id, body.player_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Player not on roster")
+    try:
+        contract = replace_pending_extension(
+            existing,
+            rules,
+            extension_years=body.extension_years,
+            draft_completed=bool(ctx.get("draft_completed")),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    slot = storage.update_roster_slot(
+        ws_id,
+        body.player_id,
+        contract=contract,
+        any_team=True,
+        edited_by_sub=sub,
+        note="commissioner replace pending rookie extension",
+    )
+    pending = (slot.get("contract") or {}).get("pending_extension") or {}
+    _invalidate_league_rosters_from_ctx(ctx)
+    return {
+        "slot": slot,
+        "pending_extension": True,
+        "extension_years": int(pending.get("years") or body.extension_years),
+        "hub_context": ctx,
+    }
+
+
+@router.get("/league/{league_id}/rookie-year-remediation")
+def hub_rookie_year_remediation_preview(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    """Preview persisted SCORE-38 inflated rookie-year rows."""
+    ctx = _ctx(_sub(_user))
+    require_commissioner(ctx)
+    if str(ctx.get("league_id") or "") != str(league_id):
+        raise HTTPException(status_code=403, detail="Not this league's commissioner")
+    from src.draft_hub.rookie_year_remediation import preview_inflated_rookie_years
+
+    try:
+        return preview_inflated_rookie_years(league_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/league/{league_id}/rookie-year-remediation")
+def hub_rookie_year_remediation_apply(
+    league_id: str,
+    body: RookieYearRemediationRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Correct persisted years_exp=1 / years_left=2 rookie rows."""
+    sub = _sub(_user)
+    ctx = _ctx(sub)
+    require_commissioner(ctx)
+    if str(ctx.get("league_id") or "") != str(league_id):
+        raise HTTPException(status_code=403, detail="Not this league's commissioner")
+    from src.draft_hub.rookie_year_remediation import apply_inflated_rookie_year_corrections
+
+    try:
+        return apply_inflated_rookie_year_corrections(
+            league_id,
+            edited_by_sub=sub,
+            player_ids=list(body.player_ids or []) or None,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/contract/pending-types")

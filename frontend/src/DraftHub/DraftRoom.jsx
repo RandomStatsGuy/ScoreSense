@@ -997,9 +997,13 @@ export default function DraftRoom({
   }, [nominee, nomineeRow, rules]);
 
   const myBudget = Number(myTeam?.budget_remaining);
-  const myMaxBid = Number.isFinite(myBudget)
-    ? Math.max(0, myBudget - Math.max(0, openSlotsTotal - 1) * minBidUnit)
-    : null;
+  const serverMaxBid = Number(myTeam?.max_bid);
+  const myMaxBid = Number.isFinite(serverMaxBid)
+    ? Math.max(0, serverMaxBid)
+    : Number.isFinite(myBudget)
+      ? Math.max(0, myBudget - Math.max(0, openSlotsTotal - 1) * minBidUnit)
+      : null;
+  const overCap = Boolean(myTeam?.over_cap || myTeam?.locked);
   const nomineePosKey = nominee
     ? (() => {
         const raw = String(nominee.position || "").toUpperCase();
@@ -1040,7 +1044,7 @@ export default function DraftRoom({
           <button
             type="button"
             className="btn-primary"
-            disabled={Boolean(pendingAction) || bidInvalid || nomineePosBlocked}
+            disabled={Boolean(pendingAction) || bidInvalid || nomineePosBlocked || overCap}
             onClick={() => bid()}
           >
             {pendingAction === "bid" ? "Bidding…" : `Bid ${fmtSal(bidAmount)}`}
@@ -1059,6 +1063,9 @@ export default function DraftRoom({
             )}
             {nomineeSlotsLeft != null && (
               <> · {nominee?.position} slots open: {nomineeSlotsLeft}</>
+            )}
+            {overCap && (
+              <> · <strong>over cap — bidding locked</strong></>
             )}
           </p>
         )}
