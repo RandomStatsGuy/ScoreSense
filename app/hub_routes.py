@@ -593,6 +593,29 @@ def hub_weekly_command_center(
     return jsonable_encoder(payload)
 
 
+@router.get("/home")
+def hub_league_home(
+    response: Response,
+    include_week: bool = Query(
+        True,
+        description="When in-season, include lineup decision counts from weekly artifacts",
+    ),
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Phase-aware League Home + action center (SCORE-10). No live Sleeper."""
+    from fastapi.encoders import jsonable_encoder
+
+    from src.draft_hub.league_home import build_league_home
+
+    with HubTimer("home", response) as timer:
+        with timer.phase("ctx"):
+            sub = _sub(_user)
+            ctx = _ctx(sub)
+        with timer.phase("build"):
+            payload = build_league_home(ctx, include_week=include_week)
+    return jsonable_encoder(payload)
+
+
 @router.post("/roster")
 def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
