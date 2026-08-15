@@ -14,6 +14,7 @@ from src.draft_hub.pre_draft_cap import (
     pre_draft_cap_summary,
     retained_through_draft,
     roster_status,
+    total_pre_draft_dead_cap,
 )
 from src.draft_hub.rules_engine import roster_limits
 from src.draft_hub.schemas import LeagueRules
@@ -89,13 +90,12 @@ def computed_auction_budget(
     summary = pre_draft_cap_summary(rules, roster, draft_completed=draft_completed)
     if summary is None:
         from src.draft_hub.contracts import cap_hit
-        from src.draft_hub.pre_draft_cap import total_pre_draft_dead_cap
 
         committed = sum(
             cap_hit(r, 0)
-            for r in occupying_roster(rules, roster, draft_completed=True)
+            for r in occupying_roster(rules, roster, draft_completed=draft_completed)
         )
-        dead = 0.0
+        dead = total_pre_draft_dead_cap(rules, roster, year_offset=0)
         return round(float(rules.salary_cap) - committed - dead, 2)
     return float(summary["draft_budget_available"])
 
@@ -197,6 +197,8 @@ def preserve_cut_liability(workspace_id: str, player_id: str) -> dict[str, Any] 
     new_id = deadcap_player_id(player_id)
     if str(existing.get("player_id")) == new_id:
         return existing
+    if storage.get_roster_slot(workspace_id, new_id):
+        storage.remove_roster_slot(workspace_id, new_id)
     contract = dict(existing.get("contract") or {})
     contract["liability_only"] = True
     contract["liability_of"] = str(player_id)
