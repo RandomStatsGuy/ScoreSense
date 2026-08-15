@@ -170,9 +170,6 @@ class RookieExtendRequest(BaseModel):
     extension_years: int = 1
 
 
-    player_ids: list[str] = Field(default_factory=list)
-
-
 class ContractExtendRequest(BaseModel):
     """Legacy alias for RookieExtendRequest. ``new_salary`` is ignored."""
 
