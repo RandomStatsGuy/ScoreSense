@@ -2,14 +2,20 @@ import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "./auth";
 import { isAbortError } from "./fetchAbort";
 import { connectionErrorMessage, parseApiError } from "./format";
+import { applyMediaQueryParams } from "./mediaContext";
 import { indexPlayersContext } from "./playerContextDisplay";
 
 /**
  * Batch-load the SCORE-23/30 cached player-context list for a slate.
  * One GET /api/players/context?compact=true per season/week — table-safe fields only.
  * Heavy excerpts/sources/summaries/drivers lazy-load via PlayerContextPanel detail.
+ * SCORE-34: optional media_mode=outlook|week1_pulse|older for preseason list badges.
  */
-export default function usePlayersContext(season, week, { enabled = true } = {}) {
+export default function usePlayersContext(
+  season,
+  week,
+  { enabled = true, mediaMode = null } = {},
+) {
   const [byId, setById] = useState(() => new Map());
   const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -36,6 +42,7 @@ export default function usePlayersContext(season, week, { enabled = true } = {})
     params.set("week", String(week));
     // SCORE-30: always request compact list; never pull narrative bodies for tables.
     params.set("compact", "true");
+    applyMediaQueryParams(params, { mediaMode });
     const q = `?${params.toString()}`;
 
     (async () => {
@@ -68,7 +75,7 @@ export default function usePlayersContext(season, week, { enabled = true } = {})
     })();
 
     return () => controller.abort();
-  }, [enabled, season, week]);
+  }, [enabled, season, week, mediaMode]);
 
   return useMemo(
     () => ({ byId, meta, loading, error, unavailable }),

@@ -5,15 +5,20 @@ import Chip from "./Chip";
 import HoverTip, { TipLine, TipTitle } from "./HoverTip";
 import { connectionErrorMessage, fmtMentions, parseApiError } from "./format";
 import HistoricalMediaOptIn from "./HistoricalMediaOptIn";
+import PreseasonMediaModeToggle from "./PreseasonMediaModeToggle";
 import SentimentBadge from "./SentimentBadge";
 import SentimentMeter from "./SentimentMeter";
 import useMobileLayout from "./useMobileLayout";
 import {
+  MEDIA_MODE,
+  applyMediaQueryParams,
   formatHistoricalWeekLabel,
   isHistoricalAvailable,
+  isOlderMediaMode,
+  mediaModeLabel,
   mergeMediaMetaFields,
   pickHistoricalWeek,
-  setIncludeHistoricalParam,
+  shouldShowPreseasonMediaModeToggle,
 } from "./mediaContext";
 import {
   pickFantasyMediaDigest,
@@ -158,6 +163,8 @@ export default function SentimentPanel({
   error: errorProp,
   includeHistorical: includeHistoricalProp,
   onIncludeHistorical,
+  mediaMode: mediaModeProp,
+  onMediaModeChange,
   className = "",
 }) {
   const mobileLayout = useMobileLayout();
@@ -165,7 +172,7 @@ export default function SentimentPanel({
   const [metaLocal, setMetaLocal] = useState(null);
   const [loadingLocal, setLoadingLocal] = useState(false);
   const [errorLocal, setErrorLocal] = useState("");
-  const [includeHistoricalLocal, setIncludeHistoricalLocal] = useState(false);
+  const [mediaModeLocal, setMediaModeLocal] = useState(null);
   // Collapsed by default in the desktop sidebar; on mobile the panel IS the
   // "Analyst" tab the user tapped, so it must render its content directly.
   const [openState, setOpenState] = useState(null);
@@ -188,21 +195,39 @@ export default function SentimentPanel({
   const meta = controlled ? metaProp : metaLocal;
   const loading = controlled ? Boolean(loadingProp) : loadingLocal;
   const error = controlled ? errorProp || "" : errorLocal;
-  const includeHistorical = controlled
-    ? Boolean(includeHistoricalProp)
-    : includeHistoricalLocal;
+  const mediaModeControlled = mediaModeProp !== undefined;
+  const mediaMode = mediaModeControlled
+    ? mediaModeProp ?? null
+    : mediaModeLocal;
+  // SCORE-28/34: older is opt-in via media_mode=older (aliases include_historical).
+  const includeHistorical = mediaModeControlled
+    ? isOlderMediaMode(mediaMode) || Boolean(includeHistoricalProp)
+    : isOlderMediaMode(mediaMode);
 
   useEffect(() => {
-    if (!controlled) setIncludeHistoricalLocal(false);
-  }, [controlled, position, season, week, scope]);
+    if (!mediaModeControlled) setMediaModeLocal(null);
+  }, [mediaModeControlled, position, season, week, scope]);
+
+  const requestMediaMode = useCallback((nextMode) => {
+    if (mediaModeControlled) {
+      onMediaModeChange?.(nextMode);
+      return;
+    }
+    setMediaModeLocal(nextMode);
+  }, [mediaModeControlled, onMediaModeChange]);
 
   const requestIncludeHistorical = useCallback(() => {
+    if (mediaModeControlled) {
+      onMediaModeChange?.(MEDIA_MODE.OLDER);
+      onIncludeHistorical?.(true);
+      return;
+    }
     if (controlled) {
       onIncludeHistorical?.(true);
       return;
     }
-    setIncludeHistoricalLocal(true);
-  }, [controlled, onIncludeHistorical]);
+    setMediaModeLocal(MEDIA_MODE.OLDER);
+  }, [mediaModeControlled, controlled, onMediaModeChange, onIncludeHistorical]);
 
   const fetchSentiment = useCallback(async (signal) => {
     if (controlled || season == null || week == null) return;
@@ -213,7 +238,12 @@ export default function SentimentPanel({
         season: String(season),
         week: String(week),
       });
-      if (!isSeason) setIncludeHistoricalParam(params, includeHistorical);
+      if (!isSeason) {
+        applyMediaQueryParams(params, {
+          mediaMode,
+          includeHistorical,
+        });
+      }
       const res = await apiFetch(
         `${apiPath}?${params.toString()}`,
         { signal },
@@ -231,7 +261,7 @@ export default function SentimentPanel({
     } finally {
       setLoadingLocal(false);
     }
-  }, [controlled, apiPath, panelTitle, position, season, week, includeHistorical, isSeason]);
+  }, [controlled, apiPath, panelTitle, position, season, week, mediaMode, includeHistorical, isSeason]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -253,12 +283,18 @@ export default function SentimentPanel({
   const media = meta?.media_context;
   const historical = pickHistoricalWeek(media);
   const historicalLabel = formatHistoricalWeekLabel(historical);
+  const optedIntoOlder = includeHistorical || isOlderMediaMode(mediaMode);
   const showHistoricalOptIn =
     !isSeason
     && !hasData
     && !loading
     && isHistoricalAvailable(media)
-    && !includeHistorical;
+    && !optedIntoOlder;
+  const showModeToggle = !isSeason && shouldShowPreseasonMediaModeToggle({
+    media,
+    week: meta?.requested_week ?? meta?.week ?? week,
+  });
+  const activeModeLabel = mediaModeLabel(media?.mode || mediaMode);
 
   const summary = useMemo(() => {
     if (!meta) return null;
@@ -269,19 +305,22 @@ export default function SentimentPanel({
     if (meta.season != null && meta.week != null) {
       parts.push(isSeason ? `${meta.season} · through W${meta.week}` : `${meta.season} · W${meta.week}`);
     }
+    if (activeModeLabel && !optedIntoOlder) {
+      parts.push(activeModeLabel);
+    }
     if (meta.context_fallback && historicalLabel) {
       parts.push(`older from ${historicalLabel}`);
-    } else if (isHistoricalAvailable(media) && !includeHistorical) {
+    } else if (isHistoricalAvailable(media) && !optedIntoOlder) {
       parts.push("older commentary available");
     }
     if (meta.last_refresh) {
       parts.push(`Updated ${new Date(meta.last_refresh).toLocaleString()}`);
     }
     return parts.join(" · ");
-  }, [meta, isSeason, historicalLabel, media, includeHistorical]);
+  }, [meta, isSeason, historicalLabel, media, optedIntoOlder, activeModeLabel]);
 
   const fallbackBanner = useMemo(() => {
-    if (!meta?.context_fallback && !(includeHistorical && isHistoricalAvailable(media))) {
+    if (!meta?.context_fallback && !(optedIntoOlder && isHistoricalAvailable(media))) {
       return null;
     }
     const shownLabel = historicalLabel
@@ -295,8 +334,7 @@ export default function SentimentPanel({
         {" — not current-week coverage."}
       </div>
     );
-  }, [meta, includeHistorical, media, historicalLabel]);
-
+  }, [meta, optedIntoOlder, media, historicalLabel]);
   return (
     <section
       className={`panel wide sentiment-panel projections-mobile-panel${open ? " sentiment-panel--open" : " sentiment-panel--collapsed"}${className ? ` ${className}` : ""}`.trim()}
@@ -345,6 +383,21 @@ export default function SentimentPanel({
       </div>
 
       {open && summary && <p className="sentiment-panel-meta-line">{summary}</p>}
+      {open && showModeToggle ? (
+        <div className="sentiment-media-mode-row">
+          <PreseasonMediaModeToggle
+            value={mediaMode}
+            media={media}
+            week={meta?.requested_week ?? meta?.week ?? week}
+            disabled={loading}
+            onChange={requestMediaMode}
+          />
+          <p className="sentiment-media-mode-hint">
+            Cached preseason modes — Outlook is recent lookback; Week 1 pulse is schedule-mapped.
+            Older commentary stays opt-in.
+          </p>
+        </div>
+      ) : null}
       {open && fallbackBanner}
       {error && open && <div className="error">{error}</div>}
 

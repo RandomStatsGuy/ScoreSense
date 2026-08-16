@@ -4,6 +4,7 @@ import { apiFetch } from "./auth";
 import { isAbortError } from "./fetchAbort";
 import { connectionErrorMessage, formatRelativeTime, parseApiError } from "./format";
 import HistoricalMediaOptIn from "./HistoricalMediaOptIn";
+import PreseasonMediaModeToggle from "./PreseasonMediaModeToggle";
 import ProjectionTrustLabel from "./ProjectionTrustLabel";
 import {
   canLabelIncludedInProjection,
@@ -15,11 +16,15 @@ import {
   shouldShowProjectionAssumesActive,
 } from "./playerContextDisplay";
 import {
+  MEDIA_MODE,
+  applyMediaQueryParams,
   formatHistoricalWeekLabel,
   isCurrentMedia,
   isHistoricalAvailable,
+  isOlderMediaMode,
+  mediaModeLabel,
   pickHistoricalWeek,
-  setIncludeHistoricalParam,
+  shouldShowPreseasonMediaModeToggle,
 } from "./mediaContext";
 
 function ContextStat({ label, value, emphasis = false, hint }) {
@@ -38,23 +43,37 @@ function ContextStat({ label, value, emphasis = false, hint }) {
  * SCORE-28: historical media requires View older commentary opt-in.
  * SCORE-30: lazy-loads full detail (excerpts/sources/drivers) via
  * GET /api/player/{id}/context — artifact only (zero live work on expand).
+ * SCORE-34: preseason media_mode=outlook|week1_pulse; older stays opt-in.
  */
 export default function PlayerContextPanel({
   playerId,
   season,
   week,
   active = true,
+  mediaMode: mediaModeProp,
+  onMediaModeChange,
   className = "",
 }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [cold, setCold] = useState(false);
-  const [includeHistorical, setIncludeHistorical] = useState(false);
+  const [mediaModeLocal, setMediaModeLocal] = useState(null);
+
+  const controlled = mediaModeProp !== undefined;
+  const mediaMode = controlled ? mediaModeProp ?? null : mediaModeLocal;
 
   useEffect(() => {
-    setIncludeHistorical(false);
-  }, [playerId, season, week]);
+    if (!controlled) setMediaModeLocal(null);
+  }, [controlled, playerId, season, week]);
+
+  const setMediaMode = (next) => {
+    if (controlled) {
+      onMediaModeChange?.(next);
+      return;
+    }
+    setMediaModeLocal(next);
+  };
 
   useEffect(() => {
     if (!active || !playerId) {
@@ -73,7 +92,7 @@ export default function PlayerContextPanel({
     const params = new URLSearchParams();
     if (season != null) params.set("season", String(season));
     if (week != null) params.set("week", String(week));
-    setIncludeHistoricalParam(params, includeHistorical);
+    applyMediaQueryParams(params, { mediaMode });
     const q = params.toString() ? `?${params.toString()}` : "";
 
     (async () => {
@@ -109,7 +128,7 @@ export default function PlayerContextPanel({
     })();
 
     return () => controller.abort();
-  }, [active, playerId, season, week, includeHistorical]);
+  }, [active, playerId, season, week, mediaMode]);
 
   if (!active || !playerId) return null;
 
@@ -134,11 +153,17 @@ export default function PlayerContextPanel({
   const historical = pickHistoricalWeek(media);
   const historicalLabel = formatHistoricalWeekLabel(historical);
   const mediaBody = media?.summary || media?.excerpt;
+  const optedIntoOlder = isOlderMediaMode(mediaMode);
   const showCurrentMedia = isCurrentMedia(media) && (mediaLabel || mediaBody);
   const showHistoricalOptIn =
-    isHistoricalAvailable(media) && !includeHistorical && !mediaBody;
+    isHistoricalAvailable(media) && !optedIntoOlder && !mediaBody;
   const showHistoricalContent =
-    isHistoricalAvailable(media) && includeHistorical && (mediaBody || mediaLabel);
+    isHistoricalAvailable(media) && optedIntoOlder && (mediaBody || mediaLabel);
+  const modeBannerLabel = mediaModeLabel(media?.mode || mediaMode);
+  const showModeToggle = shouldShowPreseasonMediaModeToggle({
+    media,
+    week: meta?.week ?? week,
+  });
 
   function renderMediaBody(bodyMedia, { emptyNote = "Signal present; no digest summary." } = {}) {
     const label = mediaSignalLabel(bodyMedia?.signal);
@@ -321,6 +346,22 @@ export default function PlayerContextPanel({
               {showCurrentMedia || showHistoricalContent ? (
                 <ProjectionTrustLabel kind="commentary" />
               ) : null}
+              {showModeToggle ? (
+                <div className="player-context-media-mode-row">
+                  <PreseasonMediaModeToggle
+                    value={mediaMode}
+                    media={media}
+                    week={meta?.week ?? week}
+                    disabled={loading}
+                    onChange={(mode) => setMediaMode(mode)}
+                  />
+                  {modeBannerLabel && !isOlderMediaMode(mediaMode) ? (
+                    <span className="player-context-media-mode-label muted">
+                      {modeBannerLabel}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
             {showCurrentMedia ? (
               renderMediaBody(media)
@@ -329,7 +370,7 @@ export default function PlayerContextPanel({
                 requestedWeek={meta?.week ?? week}
                 media={media}
                 loading={loading}
-                onViewOlder={() => setIncludeHistorical(true)}
+                onViewOlder={() => setMediaMode(MEDIA_MODE.OLDER)}
               />
             ) : showHistoricalContent ? (
               <>

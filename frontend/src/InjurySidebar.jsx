@@ -190,12 +190,14 @@ export default function InjurySidebar({
   defaultWeek,
   season,
   week,
+  mediaMode = null,
   onCompareReplacements,
   className = "",
 }) {
   const [allSearch, setAllSearch] = useState("");
   const context = usePlayersContext(season ?? defaultSeason, week ?? defaultWeek, {
     enabled: Boolean(isLiveContext && (season ?? defaultSeason) != null && (week ?? defaultWeek) != null),
+    mediaMode,
   });
 
   const sortedAll = useMemo(() => sortInjuriesBySeverity(players || []), [players]);
