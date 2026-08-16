@@ -1939,6 +1939,145 @@ input[type="search"].search-input {
   margin: 0.3rem 0 0;
 }
 
+.injury-section {
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.injury-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.injury-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.injury-section-title {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: var(--text-primary);
+}
+
+.injury-section-count {
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.injury-section-sub {
+  margin: 0.15rem 0 0.45rem;
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
+.injury-empty-row {
+  padding: 0.35rem 0.15rem;
+  font-size: 0.75rem;
+}
+
+.injury-attention-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+
+.injury-attention-fact strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.injury-attention-trust {
+  margin-top: 0.2rem;
+}
+
+.injury-card-actions {
+  margin-top: 0.25rem;
+}
+
+.injury-compare-btn {
+  padding: 0.15rem 0.4rem;
+  font-size: 0.68rem;
+  min-height: 0;
+}
+
+.injury-card--opportunity {
+  border-left-color: #34d399;
+}
+
+.injury-opp-delta {
+  flex: 0 0 auto;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #34d399;
+}
+
+.injury-opp-driver {
+  margin: 0.1rem 0 0;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.injury-section--all {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.injury-all-summary {
+  list-style: none;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.15rem 0;
+  user-select: none;
+}
+
+.injury-all-summary::-webkit-details-marker {
+  display: none;
+}
+
+.injury-all-summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 0.35rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+
+.injury-section--all[open] > .injury-all-summary::before {
+  transform: rotate(90deg);
+}
+
+.injury-all-summary .injury-section-title {
+  display: inline;
+}
+
+.injury-all-body {
+  margin-top: 0.45rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.injury-all-search {
+  width: 100%;
+  font-size: 0.78rem;
+  padding: 0.35rem 0.5rem;
+}
+
 .injury-list-scroll {
   max-height: 70vh;
   overflow-x: hidden;
