@@ -1,18 +1,40 @@
 import React, { useEffect, useRef, useState } from "react";
+import HoverTip from "../HoverTip";
 import { sortIndicator } from "./valueSheetUtils";
 
 /** Sortable column header shared by hub tables. */
-export function SortTh({ label, col, sortKey, sortDir, onSort, className = "", title }) {
+export function SortTh({ label, col, sortKey, sortDir, onSort, className = "", title, tip }) {
   const active = sortKey === col;
+  const tipContent = tip || title;
+  const classes = `sortable-header${active ? " sort-active" : ""}${tipContent ? " col-tip" : ""} ${className}`.trim();
+  const ariaSort = active ? (sortDir === "asc" ? "ascending" : "descending") : "none";
+  const indicator = (
+    <span className="sort-indicator" aria-hidden="true"> {sortIndicator(sortKey, sortDir, col)}</span>
+  );
+
+  if (tipContent) {
+    return (
+      <HoverTip
+        as="th"
+        content={tipContent}
+        className={classes}
+        onClick={() => onSort(col)}
+        aria-sort={ariaSort}
+      >
+        {label}
+        {indicator}
+      </HoverTip>
+    );
+  }
+
   return (
     <th
-      className={`sortable-header${active ? " sort-active" : ""} ${className}`.trim()}
+      className={classes}
       onClick={() => onSort(col)}
-      title={title}
-      aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+      aria-sort={ariaSort}
     >
       {label}
-      <span className="sort-indicator" aria-hidden="true"> {sortIndicator(sortKey, sortDir, col)}</span>
+      {indicator}
     </th>
   );
 }

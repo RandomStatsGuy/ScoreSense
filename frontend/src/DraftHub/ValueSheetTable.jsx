@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
+import HoverTip, { TipLine, TipTitle } from "../HoverTip";
 import { TableSkeletonBody } from "../TableSkeleton";
 import useMobileLayout from "../useMobileLayout";
 import MobileDataList, { MobileStat } from "../MobileDataList";
@@ -52,12 +53,30 @@ const RISK_PROFILE_FILTERS = [
 const SORT_MENU_OPTIONS = [
   { id: "fair_value", label: "Suggested bid" },
   { id: "risk_score", label: "Risk score" },
-  { id: "season_proj", label: "Season P50" },
+  { id: "season_proj", label: "Projected points" },
   { id: "season_spread", label: "Season spread" },
   { id: "upside_skew", label: "Upside skew" },
-  { id: "value_delta", label: "Δ vs contract" },
+  { id: "value_delta", label: "Value vs cost" },
   { id: "player", label: "Name" },
 ];
+
+/** SCORE-16: plain-language column + control copy. */
+const VALUE_VS_COST_TIP = (
+  <>
+    <TipTitle>Value vs cost</TipTitle>
+    <TipLine>
+      Contract salary minus suggested bid. Negative means the player costs less than fair value.
+    </TipLine>
+  </>
+);
+const PROJECTED_POINTS_TIP = (
+  <>
+    <TipTitle>Projected points</TipTitle>
+    <TipLine>
+      Median season fantasy points with a floor–ceiling band. Use it to compare production before bidding.
+    </TipLine>
+  </>
+);
 
 export default function ValueSheetTable({
   rows,
@@ -100,6 +119,7 @@ export default function ValueSheetTable({
   const [addingId, setAddingId] = useState(null);
   const [addError, setAddError] = useState("");
   const [showAdvancedLocal, setShowAdvancedLocal] = useState(false);
+  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const [mobileListLimit, setMobileListLimit] = useState(80);
 
   const MOBILE_LIST_PAGE = 80;
@@ -108,11 +128,12 @@ export default function ValueSheetTable({
   const activeRisk = isRiskToleranceActive(riskTolerance);
   // Risk score column: Advanced always; also when RAAV stance is on so the badge has context.
   const showRiskScore = showAdvanced || activeRisk;
+  const showAdvancedToggle = !compact && showAdvancedProp == null;
 
   const sleeperLinked = Boolean(sleeper?.sleeper_league_id && sleeper?.sleeper_roster_id);
   const showSelect = Boolean(onSelectPlayer);
   const actionCol = showAdd || showSelect;
-  // Core: Player, Pos, Season, Bid, Tier (+ optional Status/Δ/Action/Risk). Advanced adds Team/PG/Spread/Min/Max.
+  // Core: Player, Pos, Projected pts, Bid, Tier (+ optional Status/Value/Action/Risk). Advanced adds Team/PG/Spread/Min/Max.
   const baseCols = 5
     + (showAdvanced ? 5 : 0)
     + (showRiskScore ? 1 : 0)
@@ -163,10 +184,53 @@ export default function ValueSheetTable({
     if (!rows?.length) return null;
     const label = seasonMethodShortLabel(seasonMethod);
     if (isScheduleAwareMethod(seasonMethod)) {
-      return label;
+      return { text: label, preliminary: false };
     }
-    return label || "preliminary season bands";
+    return { text: label || "preliminary season bands", preliminary: true };
   }, [rows, seasonMethod]);
+
+  const seasonBandsTip = useMemo(() => {
+    const tip = seasonRangeTooltip(seasonMethod, {
+      preliminary: !isScheduleAwareMethod(seasonMethod),
+    });
+    return (
+      <>
+        <TipTitle>
+          {seasonMethodNote?.preliminary ? "Preliminary season bands" : "Season range"}
+        </TipTitle>
+        <TipLine>{tip}</TipLine>
+      </>
+    );
+  }, [seasonMethod, seasonMethodNote]);
+
+  const projectedPointsTip = useMemo(() => {
+    const bandTip = seasonRangeTooltip(seasonMethod, {
+      preliminary: !isScheduleAwareMethod(seasonMethod),
+    });
+    return (
+      <>
+        {PROJECTED_POINTS_TIP}
+        <TipLine>{bandTip}</TipLine>
+      </>
+    );
+  }, [seasonMethod]);
+
+  const secondaryFilterCount = useMemo(() => {
+    let n = 0;
+    if (showTierFilters && tierFilter !== "ALL") n += 1;
+    if (!isAvailableView && statusFilter !== "ALL") n += 1;
+    if (riskProfile !== "ALL") n += 1;
+    if (showAdvancedToggle && showAdvancedLocal) n += 1;
+    return n;
+  }, [
+    showTierFilters,
+    tierFilter,
+    isAvailableView,
+    statusFilter,
+    riskProfile,
+    showAdvancedToggle,
+    showAdvancedLocal,
+  ]);
 
   const mobileRows = useMemo(
     () => (maxRows ? sorted : sorted.slice(0, mobileListLimit)),
@@ -291,11 +355,15 @@ export default function ValueSheetTable({
           compact={compact}
           learnMore={(showDelta || activeRisk) && !compact && !mobileLayout ? (
             <>
-              {showDelta && <p>Δ = contract minus suggested price (negative = value).</p>}
+              {showDelta && (
+                <p>
+                  Value vs cost = contract salary minus suggested bid (negative = good value).
+                </p>
+              )}
               {activeRisk && (
                 <p>
                   Risk-adjusted $ badges show how {riskToleranceLabel(riskTolerance)} stance
-                  shifts fair value from season P10/P90 variance.
+                  shifts fair value from season floor/ceiling variance.
                 </p>
               )}
             </>
@@ -307,7 +375,14 @@ export default function ValueSheetTable({
         <div className="hub-page-meta">
           {panelSub}
           {sleeperLinked ? ` · ${sleeper.sleeper_team_name || "Sleeper linked"}` : ""}
-          {seasonMethodNote ? ` · ${seasonMethodNote}` : ""}
+          {seasonMethodNote ? (
+            <>
+              {" · "}
+              <HoverTip content={seasonBandsTip} className="hub-page-meta-tip">
+                {seasonMethodNote.text}
+              </HoverTip>
+            </>
+          ) : null}
           {activeRisk ? ` · ${riskToleranceLabel(riskTolerance)} bids` : ""}
         </div>
       )}
@@ -323,6 +398,49 @@ export default function ValueSheetTable({
         />
         <div className="hub-filter-bar-menus">
           <HubFilterMenu label="Pos" value={posFilter} options={positionOptions} onChange={setPosFilter} />
+          <HubFilterMenu
+            label="Sort"
+            value={sortKey}
+            options={sortMenuOptions}
+            onChange={(key) => {
+              const next = nextSortState(sortKey, sortDir, key);
+              // Selecting a new sort dimension from the menu always starts desc-first for metrics.
+              if (key !== sortKey) {
+                setSortKey(next.sortKey);
+                setSortDir(next.sortDir);
+              } else {
+                setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+              }
+            }}
+          />
+          <div className={`hub-more-filters${moreFiltersOpen ? " is-open" : ""}`}>
+            <button
+              type="button"
+              className={`hub-more-filters-trigger${secondaryFilterCount > 0 ? " has-active" : ""}`}
+              aria-expanded={moreFiltersOpen}
+              aria-controls="hub-players-more-filters"
+              onClick={() => setMoreFiltersOpen((open) => !open)}
+            >
+              More filters
+              {secondaryFilterCount > 0 ? (
+                <span className="hub-more-filters-count" aria-label={`${secondaryFilterCount} active`}>
+                  {secondaryFilterCount}
+                </span>
+              ) : null}
+              <span className="hub-filter-menu-caret" aria-hidden="true">
+                {moreFiltersOpen ? "▴" : "▾"}
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+      {moreFiltersOpen && (
+        <div
+          id="hub-players-more-filters"
+          className="hub-more-filters-panel"
+          role="region"
+          aria-label="More player filters"
+        >
           {showTierFilters && (
             <HubFilterMenu label="Tier" value={tierFilter} options={tierOptions} onChange={setTierFilter} />
           )}
@@ -340,33 +458,21 @@ export default function ValueSheetTable({
             options={riskOptions}
             onChange={setRiskProfile}
           />
-          <HubFilterMenu
-            label="Sort"
-            value={sortKey}
-            options={sortMenuOptions}
-            onChange={(key) => {
-              const next = nextSortState(sortKey, sortDir, key);
-              // Selecting a new sort dimension from the menu always starts desc-first for metrics.
-              if (key !== sortKey) {
-                setSortKey(next.sortKey);
-                setSortDir(next.sortDir);
-              } else {
-                setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-              }
-            }}
-          />
+          {showAdvancedToggle && (
+            <label
+              className="hub-advanced-toggle hub-advanced-toggle--compact"
+              title="Adds team, per-game pace, projection spread, and min/max bid range when you need finer auction detail."
+            >
+              <input
+                type="checkbox"
+                checked={showAdvancedLocal}
+                onChange={(e) => setShowAdvancedLocal(e.target.checked)}
+              />
+              Advanced
+            </label>
+          )}
         </div>
-        {!compact && showAdvancedProp == null && (
-          <label className="hub-advanced-toggle hub-advanced-toggle--compact">
-            <input
-              type="checkbox"
-              checked={showAdvancedLocal}
-              onChange={(e) => setShowAdvancedLocal(e.target.checked)}
-            />
-            Advanced
-          </label>
-        )}
-      </div>
+      )}
       {addError && <div className="error">{addError}</div>}
       {mobileLayout && (
         <div className="hub-filter-summary-bar" aria-live="polite">
@@ -468,8 +574,9 @@ export default function ValueSheetTable({
                 expanded={(
                   <div className="mobile-stat-grid">
                     <MobileStat
-                      label="Season P50"
+                      label="Projected pts"
                       value={formatSeasonPts(band.p50, 0)}
+                      title={rangeTip}
                     />
                     <MobileStat
                       label="Season range"
@@ -489,7 +596,7 @@ export default function ValueSheetTable({
                     )}
                     {activeRisk && formatRaavDelta(raavDelta(r, riskTolerance, rules)) && (
                       <MobileStat
-                        label="RAAV Δ"
+                        label="Risk-adj. Δ"
                         value={formatRaavDelta(raavDelta(r, riskTolerance, rules))}
                       />
                     )}
@@ -506,8 +613,9 @@ export default function ValueSheetTable({
                     )}
                     {showDelta && r.value_delta != null && (
                       <MobileStat
-                        label="Δ vs contract"
+                        label="Value vs cost"
                         value={`${r.value_delta <= 0 ? "" : "+"}${fmtSal(r.value_delta)}`}
+                        title="Contract salary minus suggested bid (negative = good value)"
                       />
                     )}
                     {showStatus && (
@@ -543,15 +651,13 @@ export default function ValueSheetTable({
               )}
               <SortTh label="Pos" col="position" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-pos" />
               <SortTh
-                label="Season"
+                label="Projected pts"
                 col="season_proj"
                 sortKey={sortKey}
                 sortDir={sortDir}
                 onSort={onSort}
                 className="hub-col-proj"
-                title={seasonRangeTooltip(seasonMethod, {
-                  preliminary: !isScheduleAwareMethod(seasonMethod),
-                })}
+                tip={projectedPointsTip}
               />
               {showAdvanced && (
                 <>
@@ -563,7 +669,7 @@ export default function ValueSheetTable({
                     sortDir={sortDir}
                     onSort={onSort}
                     className="hub-col-spread"
-                    title="Season P90 − P10 (wider = more auction risk / upside)"
+                    tip="Season ceiling minus floor (wider = more auction risk / upside)"
                   />
                   <SortTh label="Min" col="min_sal" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-min" />
                   <SortTh label="Max" col="max_sal" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-max" />
@@ -576,9 +682,9 @@ export default function ValueSheetTable({
                 sortDir={sortDir}
                 onSort={onSort}
                 className="hub-col-fv"
-                title={activeRisk
+                tip={activeRisk
                   ? `Primary bid uses risk-adjusted value (${riskToleranceLabel(riskTolerance)} stance)`
-                  : "Neutral fair auction value from Season Proj rank"}
+                  : "Neutral fair auction value from projected points rank"}
               />
               {showRiskScore && (
                 <SortTh
@@ -588,18 +694,18 @@ export default function ValueSheetTable({
                   sortDir={sortDir}
                   onSort={onSort}
                   className="hub-col-risk"
-                  title={riskScoreTooltip()}
+                  tip={riskScoreTooltip()}
                 />
               )}
               {showDelta && (
                 <SortTh
-                  label="Δ"
+                  label="Value vs cost"
                   col="value_delta"
                   sortKey={sortKey}
                   sortDir={sortDir}
                   onSort={onSort}
                   className="hub-col-delta"
-                  title="Your contract minus suggested price (negative = good value)"
+                  tip={VALUE_VS_COST_TIP}
                 />
               )}
               <SortTh label="Tier" col="tier" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-tier" />
