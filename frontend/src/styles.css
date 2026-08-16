@@ -6652,6 +6652,148 @@ td.col-rank.col-rank-top {
 .hub-league-sleeper-details { margin: 0.65rem 0; font-size: 0.88rem; }
 .hub-roster-cap-pill-ok { border-color: rgba(74, 222, 128, 0.35); }
 .hub-roster-contract-help { max-width: 52rem; margin: 0 0 0.75rem; }
+.hub-roster-contract-rules {
+  max-width: 40rem;
+  margin: 0 0 0.65rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.hub-roster-contract-rules summary {
+  cursor: pointer;
+  user-select: none;
+  font-weight: 550;
+  color: var(--text-secondary);
+}
+.hub-roster-contract-rules-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.45rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 0.5rem);
+  background: rgba(15, 23, 42, 0.35);
+}
+.hub-roster-contract-rules-body p { margin: 0; }
+.hub-roster-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.45rem;
+  border-radius: var(--radius-sm, 0.3rem);
+  border: 1px solid var(--border);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.hub-roster-status--ok {
+  color: var(--text-secondary);
+  background: rgba(148, 163, 184, 0.1);
+}
+.hub-roster-status--warn {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.08);
+}
+.hub-roster-status--pending {
+  color: #93c5fd;
+  border-color: rgba(147, 197, 253, 0.35);
+  background: rgba(147, 197, 253, 0.08);
+}
+.hub-roster-status--cut {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.08);
+}
+.hub-roster-player-open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.hub-roster-player-open:hover .hub-roster-player-name,
+.hub-roster-player-open:focus-visible .hub-roster-player-name {
+  color: var(--accent-muted, #6ea8fe);
+}
+.hub-roster-row--selected td {
+  background: rgba(110, 168, 254, 0.06);
+}
+.hub-roster-side-panel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(2, 6, 23, 0.55);
+}
+.hub-roster-side-panel {
+  width: min(24rem, 100%);
+  height: 100%;
+  max-height: 100vh;
+  overflow: auto;
+  margin: 0;
+  border-radius: 0;
+  border-left: 1px solid var(--border);
+  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.35);
+  padding: 1rem 1.05rem 1.25rem;
+}
+.hub-roster-side-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+.hub-roster-side-panel-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+}
+.hub-roster-contract-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.hub-roster-contract-panel-meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+.hub-roster-contract-panel-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.hub-roster-contract-panel-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.65rem;
+}
+.hub-roster-contract-panel-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.hub-roster-contract-panel-schedule .hub-schedule-preview {
+  font-variant-numeric: tabular-nums;
+}
+.hub-roster-contract-panel-save {
+  min-height: 1.1rem;
+}
+.hub-roster-contract-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--border);
+}
 .hub-league-roster-totals { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.65rem 0 1rem; }
 
 /* League rosters view */
