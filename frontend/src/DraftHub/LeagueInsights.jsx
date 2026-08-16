@@ -32,6 +32,11 @@ import {
   normalizeInsightTab,
   visibleInsightsTabs,
 } from "./hubInsightsTabs";
+import {
+  ownershipRefreshAffordance,
+  scoringWaitingCopy,
+  shouldShowScoringTables,
+} from "./insightsEmptyStates";
 import { fmtSal } from "./rosterFormat";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 
@@ -582,6 +587,7 @@ export default function LeagueInsights({
   const [capSortDir, setCapSortDir] = useState("desc");
   const [capEffSortKey, setCapEffSortKey] = useState("efficiency_rank");
   const [capEffSortDir, setCapEffSortDir] = useState("asc");
+  const [capLeagueTableOpen, setCapLeagueTableOpen] = useState(false);
   const [scoringTeamFilter, setScoringTeamFilter] = useState("");
   const [scoringSortKey, setScoringSortKey] = useState("total_points");
   const [scoringSortDir, setScoringSortDir] = useState("desc");
@@ -913,12 +919,8 @@ export default function LeagueInsights({
     ? (data?.scoring?.requested_season || data?.scoring?.season || "")
     : scoringSeason;
   const scoringAwards = data?.scoring?.awards || data?.scoring_awards || [];
-  const hasScoringPoints = useMemo(() => {
-    const sc = data?.scoring;
-    if (!sc?.available) return false;
-    if ((sc.standings || []).some((t) => Number(t.total_points) > 0)) return true;
-    return (sc.weeks || []).some((wk) => (wk.teams || []).some((t) => Number(t.points) > 0));
-  }, [data]);
+  const showScoringTables = shouldShowScoringTables(data?.scoring);
+  const scoringWaiting = scoringWaitingCopy(data?.scoring);
   const scoringSeasonLabel = activeScoringSeason === "all"
     ? "All time"
     : activeScoringSeason
@@ -1021,6 +1023,7 @@ export default function LeagueInsights({
   const historyYear = historyMode === "year" ? Number(historySeason) : null;
   const historyLabel = historySeasonLabel(historyMode, historyYear);
   const usingHistoricCap = capHistoryMode !== "current" && Boolean(data?.analytics?.source === "contract_history");
+  const historyRefresh = ownershipRefreshAffordance(ownership, hubContext);
 
   const onCapSeasonChange = (next) => {
     setCapSeason(next);
@@ -1231,7 +1234,7 @@ export default function LeagueInsights({
           </div>
           )}
 
-          {efficiency?.available && (efficiency.teams || []).length > 0 && (
+          {efficiency?.available && (efficiency.teams || []).some((t) => Number(t.total_points) > 0) && (
             <div className="hub-insights-efficiency">
               <h3 className="hub-panel-subtitle">
                 Cap efficiency
@@ -1317,7 +1320,18 @@ export default function LeagueInsights({
             </div>
           )}
 
-          <div className="hub-table-card hub-insights-table-wrap">
+          <details
+            className="hub-insights-secondary-table"
+            open={capLeagueTableOpen}
+            onToggle={(e) => setCapLeagueTableOpen(e.currentTarget.open)}
+          >
+            <summary className="hub-insights-secondary-table-summary">
+              Full league table
+              <span className="table-meta">
+                {capTeamsRaw.length} team{capTeamsRaw.length === 1 ? "" : "s"} · optional detail
+              </span>
+            </summary>
+            <div className="hub-table-card hub-insights-table-wrap">
           <h3 className="hub-panel-subtitle hub-insights-table-title">Team breakdown</h3>
           <InsightsTableToolbar
             search={capTeamFilter}
@@ -1399,7 +1413,8 @@ export default function LeagueInsights({
           {filteredCapTeams.length === 0 && (
             <p className="chart-note">No teams match this filter.</p>
           )}
-          </div>
+            </div>
+          </details>
         </HubPage>
       )}
 
@@ -1471,16 +1486,7 @@ export default function LeagueInsights({
             />
           )}
 
-          {data?.scoring?.available && data?.scoring?.preseason && (
-            <InsightsCrimeReportPlaceholder
-              title="Scoring awards"
-              subtitle="Season highlights"
-              scopeLabel={scoringSeasonLabel}
-              message={data.scoring.hint || "Season has not started yet."}
-            />
-          )}
-
-          {data?.scoring?.available && !data?.scoring?.preseason && scoringAwards.length > 0 && (
+          {data?.scoring?.available && !data?.scoring?.preseason && scoringAwards.length > 0 && showScoringTables && (
             <InsightsAwardsPanel
               awards={scoringAwards}
               scopeLabel={scoringSeasonLabel}
@@ -1495,7 +1501,7 @@ export default function LeagueInsights({
             />
           )}
 
-          {data?.scoring?.available && !data?.scoring?.preseason && scoringAwards.length === 0 && hasScoringPoints && (
+          {data?.scoring?.available && !data?.scoring?.preseason && scoringAwards.length === 0 && showScoringTables && (
             <InsightsCrimeReportPlaceholder
               title="Scoring awards"
               subtitle="Season highlights"
@@ -1508,16 +1514,14 @@ export default function LeagueInsights({
             />
           )}
 
-          {data?.scoring?.available && !data?.scoring?.preseason && !hasScoringPoints && (
-            <InsightsCrimeReportPlaceholder
-              title="Scoring awards"
-              subtitle="Season highlights"
-              scopeLabel={scoringSeasonLabel}
-              message="No scored weeks yet — check back after your league plays."
-            />
+          {data?.scoring?.available && !showScoringTables && (
+            <div className="hub-insights-empty-state">
+              <h3>{scoringWaiting.title}</h3>
+              <p>{scoringWaiting.body}</p>
+            </div>
           )}
 
-          {data?.scoring?.available && (
+          {data?.scoring?.available && showScoringTables && (
             <>
               {showScoringCharts && scoringLineData.length > 0 && chartVisibleTeams.length > 0 ? (
                 <div className="hub-insights-chart-panel">
@@ -1759,17 +1763,24 @@ export default function LeagueInsights({
             <div className="hub-insights-controls">
               <button
                 type="button"
-                className="btn-ghost btn-sm"
-                disabled={ownershipLoading || ownershipSeasonLoading}
+                className={`${historyRefresh.emphasize ? "btn-primary" : "btn-ghost"} btn-sm`}
+                disabled={
+                  !historyRefresh.canRefresh
+                  || ownershipLoading
+                  || ownershipSeasonLoading
+                }
+                title={historyRefresh.disabledReason || undefined}
                 onClick={() => loadOwnershipHistory({ refresh: true, keepSelection: true })}
               >
-                {ownershipSeasonLoading ? "Loading…" : "Refresh history"}
+                {ownershipSeasonLoading
+                  ? "Loading…"
+                  : historyRefresh.buttonLabel}
               </button>
             </div>
           </header>
           {ownershipError && <p className="chart-note error">{ownershipError}</p>}
-          {ownership?.hint && (
-            <p className="chart-note hub-insights-scoring-hint">{ownership.hint}</p>
+          {historyRefresh.showHint && (
+            <p className="chart-note hub-insights-scoring-hint">{historyRefresh.showHint}</p>
           )}
           {ownershipLoading && (
             <p className="chart-note">Loading player list…</p>
