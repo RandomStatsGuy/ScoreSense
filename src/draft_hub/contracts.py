@@ -56,6 +56,56 @@ def build_extension_contract(
     }
 
 
+def auction_win_is_rookie(rules: LeagueRules, nominee: dict[str, Any] | None) -> bool:
+    """True when an auction award should land a flat 2-year rookie deal."""
+    row = nominee or {}
+    if row.get("is_rookie") is True:
+        return True
+    exp = None
+    for key in ("years_exp", "nfl_years_exp"):
+        if row.get(key) is not None:
+            try:
+                exp = max(0, int(row[key]))
+                break
+            except (TypeError, ValueError):
+                pass
+    if exp is None:
+        try:
+            from src.draft_hub.years_exp_lookup import years_exp_for_player
+
+            exp = years_exp_for_player(player_id=row.get("player_id"), row=row)
+        except Exception:
+            exp = None
+    if exp is None:
+        return False
+    from src.draft_hub.contract_typing import in_nfl_rookie_window
+
+    return in_nfl_rookie_window(rules, years_exp=exp)
+
+
+def build_auction_win_contract(
+    rules: LeagueRules,
+    amount: float,
+    *,
+    is_rookie: bool,
+) -> dict[str, Any]:
+    """Fixed auction terms: rookies 2y flat at sale price; vets 2y with step-up.
+
+    Owners do not choose years here — that only happens in the pre-draft
+    rookie-extension window.
+    """
+    years = max(2, int(contract_rules(rules).rookie_years or 2))
+    sal = round(float(amount), 2)
+    if is_rookie:
+        contract = build_rookie_contract(sal, min(years, 2))
+        contract["source"] = "draft"
+        return contract
+    step = float(contract_rules(rules).extension_step_up)
+    contract = build_veteran_contract(sal, 2, step_up=step)
+    contract["source"] = "draft"
+    return contract
+
+
 def build_veteran_contract(
     base_salary: float,
     years: int = 1,

@@ -7734,7 +7734,6 @@ td.col-rank.col-rank-top {
   background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.25);
 }
 .hub-roster-cut-btn { margin-left: auto; flex-shrink: 0; }
-.hub-roster-row { display: flex; align-items: center; gap: 0.35rem; }
 .hub-draft-cut-hint { margin-top: 0.35rem; }
 .hub-draft-cut-banner {
   padding: 0.45rem 0.55rem; margin-bottom: 0.45rem; border-radius: var(--radius-sm);
@@ -9049,13 +9048,129 @@ td.col-rank.col-rank-top {
   border-radius: 999px; font-size: 0.75rem; background: rgba(255, 255, 255, 0.06);
 }
 .hub-cap-chip-full { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
-.hub-roster-list { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow: auto; }
+.hub-roster-list { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow-x: hidden; overflow-y: auto; }
 .hub-roster-row {
-  display: grid; grid-template-columns: 2rem 1fr auto; gap: 0.35rem; align-items: center;
-  padding: 0.25rem 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 0.85rem;
+  display: grid;
+  grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+  grid-template-areas: "pos name sal";
+  column-gap: 0.4rem;
+  row-gap: 0.12rem;
+  align-items: center;
+  padding: 0.38rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.82rem;
 }
-.hub-roster-pos { font-weight: 600; opacity: 0.75; }
-.hub-roster-sal { font-variant-numeric: tabular-nums; opacity: 0.85; }
+.hub-roster-row:has(.hub-roster-actions) {
+  grid-template-areas:
+    "pos name sal"
+    ". actions actions";
+}
+.hub-roster-pos { grid-area: pos; font-weight: 600; opacity: 0.75; font-size: 0.72rem; }
+.hub-roster-name { grid-area: name; min-width: 0; overflow: hidden; }
+.hub-roster-name .player-cell,
+.hub-roster-name { white-space: nowrap; text-overflow: ellipsis; }
+.hub-roster-sal { grid-area: sal; font-variant-numeric: tabular-nums; opacity: 0.85; font-size: 0.78rem; }
+.hub-roster-actions {
+  grid-area: actions;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+.hub-roster-action {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+.hub-roster-action:hover:not(:disabled) { color: var(--text-primary); }
+.hub-roster-action--drop:hover:not(:disabled) { color: #fca5a5; }
+.hub-roster-action--trade:hover:not(:disabled) { color: #93c5fd; }
+.hub-roster-action:disabled { opacity: 0.45; cursor: not-allowed; }
+.hub-draft-trade-inbox-btn {
+  width: 100%;
+  margin: 0 0 0.45rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(147, 197, 253, 0.28);
+  background: rgba(59, 130, 246, 0.1);
+  color: #bfdbfe;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.hub-draft-trade-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-confirm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.72);
+}
+.hub-draft-trade-card {
+  width: min(100%, 36rem);
+  max-height: min(90vh, 40rem);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.9rem 1rem;
+}
+.hub-draft-trade-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.hub-draft-trade-head h3 { margin: 0.1rem 0 0; }
+.hub-draft-trade-tabs { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.hub-draft-trade-partner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+.hub-draft-trade-partner select { min-width: 10rem; }
+.hub-draft-trade-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.hub-draft-trade-col-title { display: block; font-size: 0.8rem; margin-bottom: 0.35rem; }
+.hub-draft-trade-list { list-style: none; margin: 0; padding: 0; max-height: 14rem; overflow: auto; }
+.hub-draft-trade-pick {
+  display: grid;
+  grid-template-columns: auto 1.6rem minmax(0, 1fr) auto;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.28rem 0.2rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.hub-draft-trade-pick.is-on { background: rgba(59, 130, 246, 0.1); }
+.hub-draft-trade-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hub-draft-trade-actions { display: flex; justify-content: flex-end; gap: 0.45rem; }
+.hub-draft-trade-inbox { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.65rem; }
+.hub-draft-trade-inbox-item {
+  padding: 0.55rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.hub-draft-trade-inbox-item p { margin: 0 0 0.4rem; font-size: 0.85rem; }
+.hub-owner-contract-cell { font-size: 0.78rem; color: var(--text-secondary); }
+@media (max-width: 640px) {
+  .hub-draft-trade-grid { grid-template-columns: 1fr; }
+}
 .hub-toolbar-compact { margin-bottom: 0.5rem; }
 .hub-toolbar-pos { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .hub-draft-sidebar-hint { margin: -0.35rem 0 0.65rem; font-size: 0.82rem; }

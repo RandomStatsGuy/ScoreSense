@@ -78,6 +78,22 @@ export function contractScheduleHint(stepUp) {
   return `Rookies flat 2 yrs · Veteran Deal / Rookie Extension +$${step}/yr`;
 }
 
+/** Read-only auction award line: "Rookie deal · 2y · $12 → $12" */
+export function auctionAwardContractLabel(pick, stepUp = 5) {
+  const ctype = String(pick?.contract_type || "");
+  const years = Number(pick?.contract_years || 2);
+  const paid = Number(pick?.salary ?? pick?.amount);
+  const step = ctype === "rookie"
+    ? 0
+    : Number(pick?.step_up_per_year ?? stepUp);
+  const sched = Array.isArray(pick?.salary_schedule) && pick.salary_schedule.length
+    ? pick.salary_schedule.map((n) => fmtSal(n)).join(" → ")
+    : previewSchedule(paid, years, step, ctype || "veteran");
+  const kind = ctype === "rookie" ? "Rookie deal" : "Veteran deal";
+  const yrs = Number.isFinite(years) ? `${years}y` : "2y";
+  return sched ? `${kind} · ${yrs} · ${sched}` : `${kind} · ${yrs}`;
+}
+
 export function cutRefundPct(rules) {
   return Number(rules?.contracts?.cut_refund_pct ?? 0.5);
 }

@@ -24,6 +24,8 @@ export function formatDraftEvent(ev) {
         : "Draft ended by commissioner";
     case "cut":
       return `Cut · refund ${fmt(p.refund)}`;
+    case "trade":
+      return p.summary ? `Trade · ${p.summary}` : "Trade completed";
     default:
       return ev.event_type;
   }

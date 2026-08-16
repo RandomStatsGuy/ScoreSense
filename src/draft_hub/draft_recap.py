@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.draft_hub import storage
+from src.draft_hub.contracts import schedule_preview
 
 STEAL_GRADES = frozenset({"steal", "great_value"})
 REACH_GRADES = frozenset({"reach", "major_reach", "slight_reach"})
@@ -249,40 +250,25 @@ def build_owner_draft_report(
     """Per-owner post-draft breakdown: picks, grades, spend by position."""
     events = storage.list_draft_events(league_id, limit=500)
     picks = [p for p in _pick_rows(events) if str(p.get("team_id")) == str(team_id)]
-    if not picks and not roster:
+    if not picks:
         return None
 
     roster_by_id = {str(r.get("player_id")): r for r in (roster or []) if r.get("player_id")}
     rows: list[dict[str, Any]] = []
     for p in picks:
         slot = roster_by_id.get(str(p.get("player_id")) or "")
+        contract = (slot or {}).get("contract") or {}
+        ctype = str(contract.get("contract_type") or "")
+        years = int(contract.get("years_remaining") or (slot or {}).get("contract_years") or 2)
+        step = float(contract.get("step_up_per_year") or 0)
         rows.append(
             {
                 **p,
-                "contract_years": int(slot.get("contract_years") or 1) if slot else 1,
+                "contract_years": years,
+                "contract_type": ctype or None,
+                "step_up_per_year": step,
+                "salary_schedule": schedule_preview(contract) if contract else [],
                 "salary": float(slot.get("salary") if slot and slot.get("salary") is not None else p["amount"]),
-            }
-        )
-    # Roster slots with no win event (edge: imported mid-flow) still show up.
-    seen = {str(r["player_id"]) for r in rows if r.get("player_id")}
-    for slot in roster or []:
-        pid = str(slot.get("player_id") or "")
-        if not pid or pid in seen:
-            continue
-        rows.append(
-            {
-                "team_id": str(team_id),
-                "team_name": "",
-                "player_id": pid,
-                "player_name": slot.get("player_name") or "Player",
-                "position": slot.get("position") or "?",
-                "amount": float(slot.get("salary") or 0),
-                "fair_value": None,
-                "value_grade": "pick",
-                "value_blurb": None,
-                "ratio": None,
-                "contract_years": int(slot.get("contract_years") or 1),
-                "salary": float(slot.get("salary") or 0),
             }
         )
 

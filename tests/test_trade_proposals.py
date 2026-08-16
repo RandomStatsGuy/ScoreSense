@@ -6,6 +6,7 @@ from app.api import app
 from app.auth import require_hub_user
 from src.draft_hub import storage
 from src.draft_hub.presets import load_preset
+from src.draft_hub.draft_state import start_draft
 from src.draft_hub.trade_proposals import (
     execute_multiparty_trade,
     force_execute_proposal,
@@ -133,6 +134,27 @@ def test_over_cap_with_dead_rejected(hub_db):
     check = validate_trade_package(league["id"], parties, assignments)
     assert not check["ok"]
     assert any("over cap" in e.lower() for e in check["errors"])
+
+
+def test_mid_draft_trade_syncs_budgets_and_logs_event(hub_db):
+    league, team_a, team_b, ws, comm, member = _two_team_league(hub_db, a_salary=40, b_salary=10)
+    for pid in ("p-a", "p-b"):
+        storage.update_roster_slot(ws["id"], pid, contract_years=2, any_team=True)
+    start_draft(league["id"], comm)
+    execute_multiparty_trade(
+        league["id"],
+        [
+            {"team_id": team_a["id"], "sends": ["p-a"], "drops": []},
+            {"team_id": team_b["id"], "sends": ["p-b"], "drops": []},
+        ],
+    )
+    a = storage.get_team(team_a["id"])
+    b = storage.get_team(team_b["id"])
+    # Cap 200; after swap A holds $10, B holds $40.
+    assert float(a["budget_remaining"]) == 190
+    assert float(b["budget_remaining"]) == 160
+    events = storage.list_draft_events(league["id"], limit=20)
+    assert any(e.get("event_type") == "trade" for e in events)
 
 
 def test_commissioner_force_apply(hub_db):

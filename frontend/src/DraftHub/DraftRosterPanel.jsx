@@ -3,17 +3,50 @@ import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 import { HUB_POS_ORDER, normalizeHubPosition } from "./hubPositions";
 import { fmtSal } from "./rosterFormat";
 
+function RosterActions({ showDrop, showTrade, cutBusy, onDrop, onTrade, playerName }) {
+  if (!showDrop && !showTrade) return null;
+  return (
+    <span className="hub-roster-actions">
+      {showDrop && (
+        <button
+          type="button"
+          className="hub-roster-action hub-roster-action--drop"
+          disabled={cutBusy}
+          onClick={onDrop}
+          title="Drop player back into the pool and apply cap refund"
+        >
+          Drop
+        </button>
+      )}
+      {showTrade && (
+        <button
+          type="button"
+          className="hub-roster-action hub-roster-action--trade"
+          onClick={onTrade}
+          title={`Offer ${playerName} in a trade`}
+        >
+          Trade
+        </button>
+      )}
+    </span>
+  );
+}
+
 export default function DraftRosterPanel({
   viewer,
   rosterLimits,
   allowMidDraftCuts = false,
+  allowTrades = false,
   onCutPlayer,
+  onTradePlayer,
   cutBusy = false,
   budgetRemaining,
   maxBid = null,
   isNominator = false,
   isHighBidder = false,
   ended = false,
+  pendingTradeCount = 0,
+  onOpenInbox,
 }) {
   const roster = viewer?.roster || [];
   const capacity = viewer?.capacity?.by_position || {};
@@ -56,6 +89,8 @@ export default function DraftRosterPanel({
     );
   }
 
+  const liveActions = !ended && (allowMidDraftCuts || allowTrades);
+
   return (
     <div className="hub-roster-panel">
       <div className="hub-roster-panel-head">
@@ -69,10 +104,23 @@ export default function DraftRosterPanel({
           {maxBid != null && <> · max bid <strong>{fmtSal(maxBid)}</strong></>}
         </p>
       )}
-      {allowMidDraftCuts && !ended && (
+      {liveActions && (
         <p className="chart-note hub-draft-cut-banner">
-          Mid-draft cuts on — drop a player to free cap.
+          {allowMidDraftCuts && allowTrades
+            ? "Drop returns a player to the pool. Trade opens a two-team offer."
+            : allowMidDraftCuts
+              ? "Mid-draft cuts on — drop a player to free cap."
+              : "Tap Trade on a player to start an offer."}
         </p>
+      )}
+      {pendingTradeCount > 0 && onOpenInbox && (
+        <button
+          type="button"
+          className="hub-draft-trade-inbox-btn"
+          onClick={onOpenInbox}
+        >
+          {pendingTradeCount} pending trade{pendingTradeCount === 1 ? "" : "s"}
+        </button>
       )}
       <div className="hub-cap-grid">
         {limitRows.map((pos) => {
@@ -106,17 +154,21 @@ export default function DraftRosterPanel({
                 />
               </span>
               <span className="hub-roster-sal">{fmtSal(row.salary)}</span>
-              {allowMidDraftCuts && onCutPlayer && (
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm hub-roster-cut-btn"
-                  disabled={cutBusy}
-                  onClick={() => onCutPlayer(row.player_id)}
-                  title="Drop player and apply cap refund"
-                >
-                  Drop
-                </button>
-              )}
+              <RosterActions
+                showDrop={Boolean(allowMidDraftCuts && onCutPlayer && !ended)}
+                showTrade={Boolean(allowTrades && onTradePlayer && !ended)}
+                cutBusy={cutBusy}
+                onDrop={() => onCutPlayer(row.player_id)}
+                onTrade={() => onTradePlayer({
+                  player_id: row.player_id,
+                  player_name: row.player_name,
+                  position: row.position,
+                  salary: row.salary,
+                  team_id: viewer.team_id,
+                  mine: true,
+                })}
+                playerName={row.player_name}
+              />
             </li>
           ))}
         </ul>
