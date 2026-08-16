@@ -206,6 +206,10 @@ def player_explanation_get(
     week: Optional[int] = None,
     position: Optional[str] = None,
     apply_injury_adjustments: bool = True,
+    include_historical: bool = Query(
+        False,
+        description="Opt in to older media narrative when current week has none (SCORE-28)",
+    ),
     _user=Depends(require_patron),
 ) -> dict:
     """Structured \"Why this projection?\" panel — artifact signals + sentiment overlay."""
@@ -222,6 +226,7 @@ def player_explanation_get(
                 week=week,
                 position=position.lower() if position else None,
                 apply_injury_adjustments=apply_injury_adjustments,
+                include_historical=include_historical,
                 compute_fn=_compute,
             )
         )
@@ -236,6 +241,10 @@ def player_context_get(
     player_id: str,
     season: Optional[int] = None,
     week: Optional[int] = None,
+    include_historical: bool = Query(
+        False,
+        description="Opt in to older media_context narrative when state is historical_available",
+    ),
     _user=Depends(require_patron),
 ) -> dict:
     """Cached player-context read model (SCORE-23) — artifact only, zero live work."""
@@ -243,7 +252,12 @@ def player_context_get(
 
     try:
         return jsonable_encoder(
-            get_player_context(player_id, season=season, week=week)
+            get_player_context(
+                player_id,
+                season=season,
+                week=week,
+                include_historical=include_historical,
+            )
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -256,6 +270,10 @@ def players_context_list(
     season: Optional[int] = None,
     week: Optional[int] = None,
     ids: str = Query("", description="Optional comma-separated player_id filter"),
+    include_historical: bool = Query(
+        False,
+        description="Opt in to older media_context narrative when state is historical_available",
+    ),
     _user=Depends(require_patron),
 ) -> dict:
     """List/card variant of the cached player-context read model."""
@@ -264,7 +282,12 @@ def players_context_list(
     player_ids = [p.strip() for p in ids.split(",") if p.strip()] or None
     try:
         return jsonable_encoder(
-            list_player_context(season=season, week=week, player_ids=player_ids)
+            list_player_context(
+                season=season,
+                week=week,
+                player_ids=player_ids,
+                include_historical=include_historical,
+            )
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
@@ -278,6 +301,10 @@ def player_card_get(
     scope: str = Query("weekly", description="weekly or season narrative scope"),
     position: Optional[str] = None,
     apply_injury_adjustments: bool = True,
+    include_historical: bool = Query(
+        False,
+        description="Opt in to older fantasy narrative when current week has none",
+    ),
     _user=Depends(require_patron),
 ) -> dict:
     from fastapi.encoders import jsonable_encoder
@@ -292,6 +319,7 @@ def player_card_get(
                 scope=scope,
                 position=position.lower() if position else None,
                 apply_injury_adjustments=apply_injury_adjustments,
+                include_historical=include_historical,
             )
         )
     except ValueError as exc:
@@ -1180,6 +1208,10 @@ def sentiment_get(
     position: str,
     season: Optional[int] = None,
     week: Optional[int] = None,
+    include_historical: bool = Query(
+        False,
+        description="Opt in to older narrative when current week has none (SCORE-28)",
+    ),
     _user=Depends(require_patron),
 ) -> dict:
     position = position.lower()
@@ -1192,7 +1224,12 @@ def sentiment_get(
         path = PROCESSED_DATA_DIR / "qb_mlready.parquet"
         df = pd.read_parquet(path, columns=["season", "week"])
         resolved_season, resolved_week = resolve_projection_context(df, season, week)
-        return build_sentiment_response(position, resolved_season, resolved_week)
+        return build_sentiment_response(
+            position,
+            resolved_season,
+            resolved_week,
+            include_historical=include_historical,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -1214,6 +1251,10 @@ def fantasy_narrative_weekly_get(
     position: str,
     season: Optional[int] = None,
     week: Optional[int] = None,
+    include_historical: bool = Query(
+        False,
+        description="Opt in to older fantasy narrative when current week has none (SCORE-28)",
+    ),
     _user=Depends(require_patron),
 ) -> dict:
     position = position.lower()
@@ -1221,7 +1262,12 @@ def fantasy_narrative_weekly_get(
         raise HTTPException(status_code=400, detail="position must be qb, rb, or wr")
     try:
         resolved_season, resolved_week = _resolve_fantasy_narrative_context(season, week)
-        return build_fantasy_weekly_response(position, resolved_season, resolved_week)
+        return build_fantasy_weekly_response(
+            position,
+            resolved_season,
+            resolved_week,
+            include_historical=include_historical,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

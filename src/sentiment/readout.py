@@ -18,6 +18,14 @@ from src.sentiment.display import sentiment_label, sentiment_label_text, sentime
 from src.sentiment.chat_sports_channels import load_chat_sports_channels
 from src.sentiment.fantasy_channels import FANTASY_NETWORK_COLUMNS, load_fantasy_channels
 from src.sentiment.networks import load_networks, network_label
+from src.sentiment.media_context import (
+    MEDIA_STATE_CURRENT,
+    MEDIA_STATE_HISTORICAL_AVAILABLE,
+    MEDIA_STATE_NONE,
+    empty_media_context,
+    media_context_block,
+    resolve_media_week,
+)
 
 _SENTIMENT_RESPONSE_CACHE: dict[str, tuple[str, dict]] = {}
 
@@ -245,30 +253,57 @@ def _row_to_sentiment_player(
     return payload
 
 
+def _sentiment_coverage_mask(df: pd.DataFrame) -> pd.Series:
+    if df.empty:
+        return pd.Series(dtype=bool)
+    return df["yt_mention_count"].fillna(0) > 0
+
+
+def _resolve_sentiment_media_week(
+    features: pd.DataFrame,
+    position: str,
+    season: int,
+    week: int,
+    *,
+    include_historical: bool = False,
+    any_position: bool = False,
+):
+    return resolve_media_week(
+        features,
+        season=season,
+        week=week,
+        has_coverage=_sentiment_coverage_mask,
+        position_filter=None if any_position else (lambda df: _position_filter(df, position)),
+        include_historical=include_historical,
+        # Beat-writer path historically only cross-season fell back for upcoming season.
+        allow_cross_season=True,
+    )
+
+
 def _resolve_sentiment_week_any(
     features: pd.DataFrame,
     season: int,
     week: int,
+    *,
+    include_historical: bool = False,
 ) -> tuple[int, int, bool]:
-    has_data = not features[
-        (features["season"] == season)
-        & (features["week"] == week)
-        & (features["yt_mention_count"].fillna(0) > 0)
-    ].empty
-    if has_data:
-        return season, week, False
-    latest = _latest_sentiment_week(features, "wr")
-    if latest is None:
-        latest = _latest_sentiment_week(features, "qb")
-    if latest is not None:
-        return latest[0], latest[1], True
-    return season, week, False
+    resolved = _resolve_sentiment_media_week(
+        features,
+        "wr",
+        season,
+        week,
+        include_historical=include_historical,
+        any_position=True,
+    )
+    return resolved.serve_season, resolved.serve_week, resolved.context_fallback
 
 
 def build_sentiment_index(
     season: int,
     week: int,
     sentiment_path: Path | None = None,
+    *,
+    include_historical: bool = False,
 ) -> dict[str, Any]:
     """All players with narrative data for a week, keyed by player_id."""
     features = load_sentiment_features(sentiment_path)
@@ -279,11 +314,33 @@ def build_sentiment_index(
             "requested_season": season,
             "requested_week": week,
             "context_fallback": False,
+            "media_context": empty_media_context(state=MEDIA_STATE_NONE),
             "players": {},
         }
 
     requested_season, requested_week = season, week
-    season, week, context_fallback = _resolve_sentiment_week_any(features, season, week)
+    resolved = _resolve_sentiment_media_week(
+        features,
+        "wr",
+        season,
+        week,
+        include_historical=include_historical,
+        any_position=True,
+    )
+    season, week = resolved.serve_season, resolved.serve_week
+    context_fallback = resolved.context_fallback
+    media_ctx = media_context_block(resolved)
+
+    if resolved.state != MEDIA_STATE_CURRENT and not resolved.serving_historical:
+        return {
+            "season": requested_season,
+            "week": requested_week,
+            "requested_season": requested_season,
+            "requested_week": requested_week,
+            "context_fallback": False,
+            "media_context": media_ctx,
+            "players": {},
+        }
 
     scoped = features[(features["season"] == season) & (features["week"] == week)].copy()
     scoped = scoped[scoped["yt_mention_count"].fillna(0) > 0]
@@ -313,6 +370,7 @@ def build_sentiment_index(
         "requested_season": requested_season,
         "requested_week": requested_week,
         "context_fallback": context_fallback,
+        "media_context": media_ctx,
         "players": players,
     }
 
@@ -333,22 +391,19 @@ def _resolve_sentiment_week(
     position: str,
     season: int,
     week: int,
+    *,
+    include_historical: bool = False,
 ) -> tuple[int, int, bool]:
-    """Use latest available narrative week when the requested slate has no mentions."""
-    scoped = _position_filter(features, position)
-    has_data = not scoped[
-        (scoped["season"] == season)
-        & (scoped["week"] == week)
-        & (scoped["yt_mention_count"].fillna(0) > 0)
-    ].empty
-    if has_data:
-        return season, week, False
-    max_season = int(features["season"].max())
-    if season <= max_season + 1 and season > max_season:
-        latest = _latest_sentiment_week(features, position)
-        if latest is not None:
-            return latest[0], latest[1], True
-    return season, week, False
+    """Legacy tuple wrapper — historical only when include_historical=True."""
+    resolved = _resolve_sentiment_media_week(
+        features,
+        position,
+        season,
+        week,
+        include_historical=include_historical,
+        any_position=False,
+    )
+    return resolved.serve_season, resolved.serve_week, resolved.context_fallback
 
 
 def build_sentiment_response(
@@ -356,13 +411,15 @@ def build_sentiment_response(
     season: int,
     week: int,
     sentiment_path: Path | None = None,
+    *,
+    include_historical: bool = False,
 ) -> dict:
     position = position.lower()
     if position not in ("qb", "rb", "wr"):
         raise ValueError("position must be qb, rb, or wr")
 
     fp = _sentiment_fingerprint()
-    cache_key = f"{position}:{season}:{week}"
+    cache_key = f"{position}:{season}:{week}:hist={int(bool(include_historical))}"
     cached = _SENTIMENT_RESPONSE_CACHE.get(cache_key)
     if cached is not None and cached[0] == fp:
         return cached[1]
@@ -381,6 +438,7 @@ def build_sentiment_response(
             "requested_season": season,
             "requested_week": week,
             "context_fallback": False,
+            "media_context": empty_media_context(state=MEDIA_STATE_NONE),
             "count": 0,
             "meta": {
                 "channels_active": 0,
@@ -396,7 +454,51 @@ def build_sentiment_response(
         return empty
 
     requested_season, requested_week = season, week
-    season, week, context_fallback = _resolve_sentiment_week(features, position, season, week)
+    resolved = _resolve_sentiment_media_week(
+        features,
+        position,
+        season,
+        week,
+        include_historical=include_historical,
+        any_position=False,
+    )
+    season, week = resolved.serve_season, resolved.serve_week
+    context_fallback = resolved.context_fallback
+    media_ctx = media_context_block(resolved)
+
+    if resolved.state != MEDIA_STATE_CURRENT and not resolved.serving_historical:
+        note = (
+            "Weekly video narrative from team channels (Locked On, SB Nation, Chat Sports) and league fantasy shows. "
+            "Context only — not blended into projections unless promoted."
+        )
+        if resolved.state == MEDIA_STATE_HISTORICAL_AVAILABLE:
+            note = (
+                f"No current {requested_season} Week {requested_week} narrative. "
+                f"Older discussion is available from {resolved.historical_season} "
+                f"Week {resolved.historical_week}. Pass include_historical=1 to load it. "
+            ) + note
+        result = {
+            "position": position,
+            "season": requested_season,
+            "week": requested_week,
+            "requested_season": requested_season,
+            "requested_week": requested_week,
+            "context_fallback": False,
+            "media_context": media_ctx,
+            "count": 0,
+            "meta": {
+                "channels_active": 0,
+                "channels_configured": len(channels),
+                "last_refresh": refresh.get("completed_at"),
+                "data_coverage": 0.0,
+                "sources": _sources_meta(),
+                "beat_writers_by_team": beat_writers,
+                "note": note,
+            },
+            "players": [],
+        }
+        _SENTIMENT_RESPONSE_CACHE[cache_key] = (fp, result)
+        return result
 
     scoped = _position_filter(features, position)
     scoped = scoped[(scoped["season"] == season) & (scoped["week"] == week)]
@@ -428,8 +530,8 @@ def build_sentiment_response(
     )
     if context_fallback:
         note = (
-            f"No narrative for {requested_season} Week {requested_week}; showing latest available "
-            f"({season} Week {week}). "
+            f"Showing older narrative from {season} Week {week} "
+            f"(requested {requested_season} Week {requested_week}). "
         ) + note
     result = {
         "position": position,
@@ -438,6 +540,7 @@ def build_sentiment_response(
         "requested_season": requested_season,
         "requested_week": requested_week,
         "context_fallback": context_fallback,
+        "media_context": media_ctx,
         "count": len(players),
         "meta": {
             "channels_active": teams_active,

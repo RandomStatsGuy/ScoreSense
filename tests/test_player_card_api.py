@@ -136,27 +136,66 @@ def test_build_player_card_honors_injury_flag(monkeypatch):
     assert all(flag is False for _pos, _season, _week, flag in calls)
 
 
-def test_narrative_for_player_weekly_uses_position_response(monkeypatch):
-    """Weekly card narrative must resolve week/fallback by the player's position."""
+def test_narrative_for_player_weekly_no_silent_historical(monkeypatch):
+    """Weekly card narrative stays on requested week unless include_historical."""
     import src.projections.player_card as pc
 
     calls = []
 
-    def fake_weekly(pos, season, week):
-        calls.append((pos, season, week))
+    def fake_weekly(pos, season, week, include_historical=False):
+        calls.append((pos, season, week, include_historical))
+        return {
+            "season": season,
+            "week": week,
+            "requested_season": season,
+            "requested_week": week,
+            "context_fallback": False,
+            "media_context": {
+                "state": "historical_available",
+                "historical": {"season": 2025, "week": 18},
+                "summary": None,
+                "signal": None,
+                "source_count": 0,
+                "updated_at": None,
+                "affects_projection": False,
+            },
+            "players": [],
+        }
+
+    monkeypatch.setattr(pc, "build_fantasy_weekly_response", fake_weekly)
+
+    row, meta = pc._narrative_for_player("qb1", "qb", 2026, 1, "weekly")
+    assert calls == [("qb", 2026, 1, False)]
+    assert row is None
+    assert meta["season"] == 2026
+    assert meta["week"] == 1
+    assert meta["context_fallback"] is False
+    assert meta["media_context"]["state"] == "historical_available"
+
+
+def test_narrative_for_player_weekly_include_historical(monkeypatch):
+    import src.projections.player_card as pc
+
+    def fake_weekly(pos, season, week, include_historical=False):
+        assert include_historical is True
         return {
             "season": 2025,
             "week": 18,
             "requested_season": season,
             "requested_week": week,
             "context_fallback": True,
+            "media_context": {
+                "state": "historical_available",
+                "historical": {"season": 2025, "week": 18},
+            },
             "players": [{"player_id": "qb1", "player": "Test QB"}],
         }
 
     monkeypatch.setattr(pc, "build_fantasy_weekly_response", fake_weekly)
 
-    row, meta = pc._narrative_for_player("qb1", "qb", 2026, 1, "weekly")
-    assert calls == [("qb", 2026, 1)]
+    row, meta = pc._narrative_for_player(
+        "qb1", "qb", 2026, 1, "weekly", include_historical=True
+    )
     assert row["player_id"] == "qb1"
     assert meta["season"] == 2025
     assert meta["week"] == 18

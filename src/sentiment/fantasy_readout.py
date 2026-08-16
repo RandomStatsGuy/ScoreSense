@@ -13,6 +13,13 @@ from src.sentiment.aggregate import load_sentiment_features
 from src.sentiment.display import sentiment_label, sentiment_label_text, sentiment_summary
 from src.sentiment.fantasy_channels import FANTASY_NETWORK_COLUMNS, load_fantasy_channels
 from src.sentiment.fantasy_digest import fantasy_digest_for_player
+from src.sentiment.media_context import (
+    MEDIA_STATE_CURRENT,
+    MEDIA_STATE_HISTORICAL_AVAILABLE,
+    MEDIA_STATE_NONE,
+    media_context_block,
+    resolve_media_week,
+)
 from src.sentiment.networks import load_networks, network_label
 from src.sentiment.readout import _player_names, _position_filter
 
@@ -181,42 +188,49 @@ def _latest_fantasy_week(features: pd.DataFrame, position: str) -> tuple[int, in
     return int(latest["season"]), int(latest["week"])
 
 
+def _fantasy_coverage_mask(df: pd.DataFrame) -> pd.Series:
+    if df.empty:
+        return pd.Series(dtype=bool)
+    return df.apply(fantasy_mention_count, axis=1) > 0
+
+
+def _resolve_fantasy_media_week(
+    features: pd.DataFrame,
+    position: str,
+    season: int,
+    week: int,
+    *,
+    include_historical: bool = False,
+):
+    """Resolve fantasy media slate — historical only when explicitly opted in."""
+    return resolve_media_week(
+        features,
+        season=season,
+        week=week,
+        has_coverage=_fantasy_coverage_mask,
+        position_filter=lambda df: _position_filter(df, position),
+        include_historical=include_historical,
+        allow_cross_season=True,
+    )
+
+
 def _resolve_fantasy_week(
     features: pd.DataFrame,
     position: str,
     season: int,
     week: int,
+    *,
+    include_historical: bool = False,
 ) -> tuple[int, int, bool]:
-    """Use latest available narrative week when the requested slate has no mentions.
-
-    Same-season missing weeks fall back within that season. Cross-season fallback
-    only applies for the upcoming season (max_season + 1), matching beat-writer
-    sentiment resolution — far-future empty seasons stay empty.
-    """
-    scoped = _position_filter(features, position)
-    has_data = not scoped[
-        (scoped["season"] == season)
-        & (scoped["week"] == week)
-        & (scoped.apply(fantasy_mention_count, axis=1) > 0)
-    ].empty
-    if has_data:
-        return season, week, False
-    season_scoped = scoped[(scoped["season"] == season)]
-    season_scoped = season_scoped[season_scoped.apply(fantasy_mention_count, axis=1) > 0]
-    if not season_scoped.empty:
-        latest_row = season_scoped.sort_values("week").iloc[-1]
-        return season, int(latest_row["week"]), True
-    if features.empty or "season" not in features.columns:
-        return season, week, False
-    max_season = int(features["season"].max())
-    # Allow fallback for the current or upcoming season (including when the
-    # requested season exists in features but has no fantasy mentions yet).
-    # Far-future empty seasons (e.g. 2099) stay empty.
-    if season <= max_season + 1:
-        latest = _latest_fantasy_week(features, position)
-        if latest is not None:
-            return latest[0], latest[1], True
-    return season, week, False
+    """Legacy tuple wrapper around SCORE-28 media week resolution."""
+    resolved = _resolve_fantasy_media_week(
+        features,
+        position,
+        season,
+        week,
+        include_historical=include_historical,
+    )
+    return resolved.serve_season, resolved.serve_week, resolved.context_fallback
 
 
 def _fantasy_sources_meta() -> dict:
@@ -237,7 +251,10 @@ def _empty_response(
     season: int,
     week: int,
     scope: str,
+    media_context: dict | None = None,
 ) -> dict:
+    from src.sentiment.media_context import empty_media_context
+
     refresh = get_sentiment_refresh_status()
     note = (
         "Fantasy video context only — does not change projections or injury boosts. "
@@ -251,6 +268,7 @@ def _empty_response(
         "requested_season": season,
         "requested_week": week,
         "context_fallback": False,
+        "media_context": media_context or empty_media_context(state=MEDIA_STATE_NONE),
         "count": 0,
         "meta": {
             "last_refresh": refresh.get("completed_at"),
@@ -266,13 +284,15 @@ def build_fantasy_weekly_response(
     season: int,
     week: int,
     sentiment_path: Path | None = None,
+    *,
+    include_historical: bool = False,
 ) -> dict:
     position = position.lower()
     if position not in ("qb", "rb", "wr"):
         raise ValueError("position must be qb, rb, or wr")
 
     fp = _fantasy_fingerprint()
-    cache_key = f"weekly:{position}:{season}:{week}"
+    cache_key = f"weekly:{position}:{season}:{week}:hist={int(bool(include_historical))}"
     cached = _FANTASY_RESPONSE_CACHE.get(cache_key)
     if cached is not None and cached[0] == fp:
         return cached[1]
@@ -284,7 +304,47 @@ def build_fantasy_weekly_response(
         return empty
 
     requested_season, requested_week = season, week
-    season, week, context_fallback = _resolve_fantasy_week(features, position, season, week)
+    resolved = _resolve_fantasy_media_week(
+        features,
+        position,
+        season,
+        week,
+        include_historical=include_historical,
+    )
+    season, week = resolved.serve_season, resolved.serve_week
+    context_fallback = resolved.context_fallback
+    media_ctx = media_context_block(resolved)
+
+    if resolved.state != MEDIA_STATE_CURRENT and not resolved.serving_historical:
+        note = (
+            "Fantasy video context only — does not change projections or injury boosts. "
+            "Weekly analyst buzz from league-wide fantasy YouTube shows."
+        )
+        if resolved.state == MEDIA_STATE_HISTORICAL_AVAILABLE:
+            note = (
+                f"No current {requested_season} Week {requested_week} fantasy narrative. "
+                f"Older discussion is available from {resolved.historical_season} "
+                f"Week {resolved.historical_week}. Pass include_historical=1 to load it. "
+            ) + note
+        result = {
+            "position": position,
+            "scope": "weekly",
+            "season": requested_season,
+            "week": requested_week,
+            "requested_season": requested_season,
+            "requested_week": requested_week,
+            "context_fallback": False,
+            "media_context": media_ctx,
+            "count": 0,
+            "meta": {
+                "last_refresh": get_sentiment_refresh_status().get("completed_at"),
+                "sources": _fantasy_sources_meta(),
+                "note": note,
+            },
+            "players": [],
+        }
+        _FANTASY_RESPONSE_CACHE[cache_key] = (fp, result)
+        return result
 
     scoped = _position_filter(features, position)
     scoped = scoped[(scoped["season"] == season) & (scoped["week"] == week)].copy()
@@ -319,8 +379,8 @@ def build_fantasy_weekly_response(
     )
     if context_fallback:
         note = (
-            f"No fantasy narrative for {requested_season} Week {requested_week}; showing latest available "
-            f"({season} Week {week}). "
+            f"Showing older fantasy narrative from {season} Week {week} "
+            f"(requested {requested_season} Week {requested_week}). "
         ) + note
 
     result = {
@@ -331,6 +391,7 @@ def build_fantasy_weekly_response(
         "requested_season": requested_season,
         "requested_week": requested_week,
         "context_fallback": context_fallback,
+        "media_context": media_ctx,
         "count": len(players),
         "meta": {
             "last_refresh": refresh.get("completed_at"),
@@ -477,6 +538,15 @@ def build_fantasy_season_response(
         "requested_season": requested_season,
         "requested_week": requested_week,
         "context_fallback": False,
+        "media_context": {
+            "state": MEDIA_STATE_CURRENT,
+            "signal": None,
+            "source_count": len(players),
+            "summary": None,
+            "updated_at": None,
+            "historical": None,
+            "affects_projection": False,
+        },
         "count": len(players),
         "meta": {
             "last_refresh": refresh.get("completed_at"),
@@ -494,21 +564,46 @@ def build_fantasy_index(
     season: int,
     week: int,
     sentiment_path: Path | None = None,
+    *,
+    include_historical: bool = False,
 ) -> dict[str, Any]:
     """Fantasy weekly players keyed by player_id (draft hub enrichment)."""
     features = load_sentiment_features(sentiment_path)
     if features.empty:
+        from src.sentiment.media_context import empty_media_context
+
         return {
             "season": season,
             "week": week,
             "requested_season": season,
             "requested_week": week,
             "context_fallback": False,
+            "media_context": empty_media_context(state=MEDIA_STATE_NONE),
             "players": {},
         }
 
     requested_season, requested_week = season, week
-    season, week, context_fallback = _resolve_fantasy_week(features, "wr", season, week)
+    resolved = _resolve_fantasy_media_week(
+        features,
+        "wr",
+        season,
+        week,
+        include_historical=include_historical,
+    )
+    season, week = resolved.serve_season, resolved.serve_week
+    context_fallback = resolved.context_fallback
+    media_ctx = media_context_block(resolved)
+
+    if resolved.state != MEDIA_STATE_CURRENT and not resolved.serving_historical:
+        return {
+            "season": requested_season,
+            "week": requested_week,
+            "requested_season": requested_season,
+            "requested_week": requested_week,
+            "context_fallback": False,
+            "media_context": media_ctx,
+            "players": {},
+        }
 
     scoped = features[(features["season"] == season) & (features["week"] == week)].copy()
     scoped["_fantasy_mentions"] = scoped.apply(fantasy_mention_count, axis=1)
@@ -540,5 +635,6 @@ def build_fantasy_index(
         "requested_season": requested_season,
         "requested_week": requested_week,
         "context_fallback": context_fallback,
+        "media_context": media_ctx,
         "players": players,
     }

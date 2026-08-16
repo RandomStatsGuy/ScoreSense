@@ -205,6 +205,15 @@ def test_build_projection_explanation_payload(_load, _ctx, _usage, narrative_fn)
         "season": 2026,
         "week": 1,
         "context_fallback": False,
+        "media_context": {
+            "state": "none",
+            "signal": None,
+            "source_count": 0,
+            "summary": None,
+            "updated_at": None,
+            "historical": None,
+            "affects_projection": False,
+        },
     }
 
     payload = build_projection_explanation("wr-higgins")
@@ -248,6 +257,15 @@ def test_missing_sentiment_does_not_degrade(_load, _ctx, _usage, narrative_fn):
         "season": None,
         "week": None,
         "context_fallback": False,
+        "media_context": {
+            "state": "none",
+            "signal": None,
+            "source_count": 0,
+            "summary": None,
+            "updated_at": None,
+            "historical": None,
+            "affects_projection": False,
+        },
     }
     payload = build_projection_explanation("wr-quiet")
     assert payload["projection"]["p50"] == 8.0

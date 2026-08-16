@@ -248,6 +248,7 @@ def test_player_context_api_shape(mock_get, client):
             "source_count": 3,
             "summary": "Role trending up.",
             "updated_at": "2026-08-14T00:00:00+00:00",
+            "historical": None,
             "affects_projection": False,
         },
         "meta": {"season": 2026, "week": 1, "stale": False},
@@ -352,6 +353,7 @@ def test_serve_path_does_not_call_sleeper_or_predict(tmp_path, monkeypatch):
             "source_count": 0,
             "summary": None,
             "updated_at": None,
+            "historical": None,
             "affects_projection": False,
         },
         "meta": {"season": 2026, "week": 1},
@@ -363,7 +365,7 @@ def test_serve_path_does_not_call_sleeper_or_predict(tmp_path, monkeypatch):
         "fingerprint": "deadbeefdeadbeef",
         "built_at": "2026-08-14T00:00:00+00:00",
         "rows": 1,
-        "schema_version": "player_context_v1",
+        "schema_version": "player_context_v2",
     }
     parquet = Path(tmp_path) / "2026_w1.parquet"
     meta_path = Path(tmp_path) / "2026_w1.meta.json"
@@ -394,3 +396,118 @@ def test_serve_path_does_not_call_sleeper_or_predict(tmp_path, monkeypatch):
         assert out["player_id"] == "p1"
         sleeper.assert_not_called()
         predict.assert_not_called()
+
+
+def test_media_context_historical_available_requires_opt_in(tmp_path, monkeypatch):
+    """SCORE-28: historical media is pointed at, not auto-injected as current."""
+    from src.projections import player_context as pc
+
+    monkeypatch.setattr(pc, "PLAYER_CONTEXT_DIR", Path(tmp_path))
+    invalidate_player_context_cache()
+
+    payload = {
+        "player_id": "p-hist",
+        "player_name": "Hist Player",
+        "position": "WR",
+        "team": "KC",
+        "projection": {
+            "base": 10.0,
+            "final": 10.0,
+            "injury_delta": 0.0,
+            "injury_snapshot_id": "inj_2026w1_x",
+        },
+        "availability": {"status": None, "practice": None, "updated_at": None},
+        "opportunity_adjustment": {"points": 0.0, "drivers": [], "included": False},
+        "media_context": {
+            "state": "historical_available",
+            "signal": None,
+            "source_count": 0,
+            "summary": None,
+            "updated_at": None,
+            "historical": {
+                "season": 2025,
+                "week": 18,
+                "signal": "mentioned",
+                "source_count": 2,
+                "summary": "Older Week 18 buzz",
+                "updated_at": "2025-12-30T00:00:00+00:00",
+            },
+            "affects_projection": False,
+        },
+        "meta": {"season": 2026, "week": 1},
+    }
+    meta = {
+        "season": 2026,
+        "week": 1,
+        "injury_snapshot_id": "inj_2026w1_x",
+        "fingerprint": "abcdabcdabcdabcd",
+        "built_at": "2026-08-14T00:00:00+00:00",
+        "rows": 1,
+        "schema_version": "player_context_v2",
+    }
+    parquet = Path(tmp_path) / "2026_w1.parquet"
+    meta_path = Path(tmp_path) / "2026_w1.meta.json"
+    pd.DataFrame(
+        {
+            "player_id": ["p-hist"],
+            "player_name": ["Hist Player"],
+            "position": ["WR"],
+            "team": ["KC"],
+            "payload_json": [json.dumps(payload)],
+        }
+    ).to_parquet(parquet, index=False)
+    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+
+    with (
+        patch(
+            "src.projections.player_context.player_context_fingerprint",
+            return_value="abcdabcdabcdabcd",
+        ),
+        patch(
+            "src.projections.player_context.season_week_context",
+            return_value=(2026, 1),
+        ),
+    ):
+        default = get_player_context("p-hist", season=2026, week=1)
+        assert default["media_context"]["state"] == "historical_available"
+        assert default["media_context"]["summary"] is None
+        assert default["media_context"]["signal"] is None
+        assert default["media_context"]["historical"] == {"season": 2025, "week": 18}
+
+        opted = get_player_context(
+            "p-hist", season=2026, week=1, include_historical=True
+        )
+        assert opted["media_context"]["state"] == "historical_available"
+        assert opted["media_context"]["summary"] == "Older Week 18 buzz"
+        assert opted["media_context"]["signal"] == "mentioned"
+        assert opted["media_context"]["source_count"] == 2
+
+
+@patch("app.api.get_player_context")
+def test_player_context_api_include_historical_query(mock_get, client):
+    mock_get.return_value = {
+        "player_id": "p-hist",
+        "media_context": {
+            "state": "historical_available",
+            "summary": "Older Week 18 buzz",
+            "signal": "mentioned",
+            "source_count": 2,
+            "historical": {"season": 2025, "week": 18},
+            "affects_projection": False,
+        },
+        "meta": {"season": 2026, "week": 1, "include_historical": True},
+    }
+    from app.auth import require_patron
+
+    app.dependency_overrides[require_patron] = lambda: {"sub": "test"}
+    try:
+        res = client.get(
+            "/api/player/p-hist/context?season=2026&week=1&include_historical=true"
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert res.status_code == 200
+    assert res.json()["media_context"]["state"] == "historical_available"
+    kwargs = mock_get.call_args.kwargs
+    assert kwargs.get("include_historical") is True

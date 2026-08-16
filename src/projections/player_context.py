@@ -34,9 +34,18 @@ from src.integrations.injury_snapshot import (
     save_injury_snapshot,
 )
 from src.projections.weekly_cache import load_weekly_prediction, weekly_fingerprint
+from src.sentiment.media_context import (
+    MEDIA_STATE_CURRENT,
+    MEDIA_STATE_HISTORICAL_AVAILABLE,
+    MEDIA_STATE_NONE,
+    apply_historical_opt_in,
+    empty_media_context,
+    find_player_historical_row,
+    strip_historical_content,
+)
 
 POSITIONS = ("qb", "rb", "wr")
-SCHEMA_VERSION = "player_context_v1"
+SCHEMA_VERSION = "player_context_v2"
 _P50_KEYS = ("Projected Points", "P50", "p50")
 
 _CONTEXT_CACHE: dict[str, tuple[str, pd.DataFrame, dict[str, Any]]] = {}
@@ -177,15 +186,22 @@ def _media_source_count(row: dict[str, Any] | None) -> int:
     return 0
 
 
-def _load_sentiment_index(season: int, week: int) -> dict[str, dict[str, Any]]:
-    """Index sentiment feature rows for season/week by player_id (no LLM)."""
+def _load_sentiment_features_frame() -> pd.DataFrame:
     if not SENTIMENT_FEATURES_PATH.exists():
-        return {}
+        return pd.DataFrame()
     try:
         df = pd.read_parquet(SENTIMENT_FEATURES_PATH)
     except (OSError, ValueError):
-        return {}
+        return pd.DataFrame()
     if df.empty or "player_id" not in df.columns:
+        return pd.DataFrame()
+    return df
+
+
+def _load_sentiment_index(season: int, week: int) -> dict[str, dict[str, Any]]:
+    """Index sentiment feature rows for season/week by player_id (no LLM)."""
+    df = _load_sentiment_features_frame()
+    if df.empty:
         return {}
     scoped = df
     if "season" in df.columns:
@@ -199,6 +215,73 @@ def _load_sentiment_index(season: int, week: int) -> dict[str, dict[str, Any]]:
         pid = str(row["player_id"])
         index[pid] = {str(k): _json_safe(v) for k, v in row.items()}
     return index
+
+
+def _build_media_context_for_player(
+    pid: str,
+    player_name: str,
+    season: int,
+    week: int,
+    *,
+    sentiment_index: dict[str, dict[str, Any]],
+    features: pd.DataFrame,
+) -> dict[str, Any]:
+    """Build media_context with SCORE-28 states (never silent historical fill)."""
+    sent = sentiment_index.get(pid)
+    signal = _media_signal(sent)
+    source_count = _media_source_count(sent)
+    summary, media_updated = _cached_digest_summary(
+        pid, player_name, season, week, sent
+    )
+    if sent and not media_updated and SENTIMENT_FEATURES_PATH.exists():
+        media_updated = datetime.fromtimestamp(
+            SENTIMENT_FEATURES_PATH.stat().st_mtime, tz=timezone.utc
+        ).isoformat()
+
+    if sent and source_count > 0:
+        return {
+            "state": MEDIA_STATE_CURRENT,
+            "signal": signal,
+            "source_count": source_count,
+            "summary": summary,
+            "updated_at": media_updated,
+            "historical": None,
+            "affects_projection": False,
+        }
+
+    hist = find_player_historical_row(features, pid, season=season, week=week)
+    if hist is None:
+        return empty_media_context(state=MEDIA_STATE_NONE)
+
+    hist_season, hist_week, hist_row = hist
+    hist_dict = {str(k): _json_safe(v) for k, v in hist_row.items()}
+    hist_signal = _media_signal(hist_dict)
+    hist_count = _media_source_count(hist_dict)
+    hist_summary, hist_updated = _cached_digest_summary(
+        pid, player_name, hist_season, hist_week, hist_dict
+    )
+    if hist_dict and not hist_updated and SENTIMENT_FEATURES_PATH.exists():
+        hist_updated = datetime.fromtimestamp(
+            SENTIMENT_FEATURES_PATH.stat().st_mtime, tz=timezone.utc
+        ).isoformat()
+
+    # Store historical narrative under nested key for opt-in serve; top-level stays empty.
+    return {
+        "state": MEDIA_STATE_HISTORICAL_AVAILABLE,
+        "signal": None,
+        "source_count": 0,
+        "summary": None,
+        "updated_at": None,
+        "historical": {
+            "season": hist_season,
+            "week": hist_week,
+            "signal": hist_signal,
+            "source_count": hist_count,
+            "summary": hist_summary,
+            "updated_at": hist_updated,
+        },
+        "affects_projection": False,
+    }
 
 
 def _cached_digest_summary(
@@ -332,6 +415,7 @@ def build_player_context_rows(
             name_index[pname] = pid
 
     sentiment_index = _load_sentiment_index(season, week)
+    sentiment_features = _load_sentiment_features_frame()
     snapshot_id = str(injury_snapshot["injury_snapshot_id"])
     built_at = datetime.now(timezone.utc).isoformat()
     rows: list[dict[str, Any]] = []
@@ -369,21 +453,15 @@ def build_player_context_rows(
             if status:
                 avail = {**avail, "status": status}
 
-        sent = sentiment_index.get(pid)
-        signal = _media_signal(sent)
-        source_count = _media_source_count(sent)
         player_name = str(primary.get("Player") or "")
-        summary, media_updated = _cached_digest_summary(
-            pid, player_name, season, week, sent
+        media_context = _build_media_context_for_player(
+            pid,
+            player_name,
+            season,
+            week,
+            sentiment_index=sentiment_index,
+            features=sentiment_features,
         )
-        if sent and not media_updated and SENTIMENT_FEATURES_PATH.exists():
-            media_updated = datetime.fromtimestamp(
-                SENTIMENT_FEATURES_PATH.stat().st_mtime, tz=timezone.utc
-            ).isoformat()
-        media_state = "current" if sent and source_count > 0 else "none"
-        if media_state == "none":
-            signal = None
-            summary = None
 
         payload = {
             "player_id": pid,
@@ -406,14 +484,7 @@ def build_player_context_rows(
                 "drivers": drivers,
                 "included": included,
             },
-            "media_context": {
-                "state": media_state,
-                "signal": signal,
-                "source_count": source_count,
-                "summary": summary,
-                "updated_at": media_updated,
-                "affects_projection": False,
-            },
+            "media_context": media_context,
             "meta": {
                 "season": int(season),
                 "week": int(week),
@@ -549,11 +620,40 @@ def _payloads_from_frame(df: pd.DataFrame) -> list[dict[str, Any]]:
     return out
 
 
+def _finalize_media_context(
+    payload: dict[str, Any],
+    *,
+    include_historical: bool,
+) -> dict[str, Any]:
+    """Serve-path: strip or promote historical narrative per opt-in."""
+    media = payload.get("media_context")
+    if include_historical:
+        payload["media_context"] = apply_historical_opt_in(media)
+    else:
+        # Keep pointer metadata (season/week) but never expose historical text/signals.
+        stripped = strip_historical_content(media)
+        # Preserve nested historical season/week from artifact when available.
+        raw_hist = (media or {}).get("historical") if isinstance(media, dict) else None
+        if (
+            stripped.get("state") == MEDIA_STATE_HISTORICAL_AVAILABLE
+            and isinstance(raw_hist, dict)
+            and raw_hist.get("season") is not None
+            and raw_hist.get("week") is not None
+        ):
+            stripped["historical"] = {
+                "season": int(raw_hist["season"]),
+                "week": int(raw_hist["week"]),
+            }
+        payload["media_context"] = stripped
+    return payload
+
+
 def get_player_context(
     player_id: str,
     *,
     season: int | None = None,
     week: int | None = None,
+    include_historical: bool = False,
 ) -> dict[str, Any]:
     """Serve a single player's cached context payload."""
     pid = str(player_id or "").strip()
@@ -567,6 +667,7 @@ def get_player_context(
     if hit.empty:
         raise ValueError(f"No player context for player_id={pid}")
     payload = json.loads(str(hit.iloc[0]["payload_json"]))
+    payload = _finalize_media_context(payload, include_historical=include_historical)
     payload["meta"] = {
         **(payload.get("meta") or {}),
         "season": resolved_season,
@@ -576,6 +677,7 @@ def get_player_context(
         "fingerprint": meta.get("fingerprint"),
         "stale": bool(meta.get("stale")),
         "schema_version": meta.get("schema_version") or SCHEMA_VERSION,
+        "include_historical": bool(include_historical),
     }
     return payload
 
@@ -585,6 +687,7 @@ def list_player_context(
     season: int | None = None,
     week: int | None = None,
     player_ids: list[str] | None = None,
+    include_historical: bool = False,
 ) -> dict[str, Any]:
     """Serve the full (or filtered) player-context list for a slate."""
     resolved_season, resolved_week = season_week_context(season, week)
@@ -593,6 +696,10 @@ def list_player_context(
     if player_ids:
         wanted = {str(p).strip() for p in player_ids if str(p).strip()}
         players = [p for p in players if str(p.get("player_id")) in wanted]
+    players = [
+        _finalize_media_context(p, include_historical=include_historical)
+        for p in players
+    ]
     return {
         "count": len(players),
         "players": players,
@@ -605,5 +712,6 @@ def list_player_context(
             "stale": bool(meta.get("stale")),
             "schema_version": meta.get("schema_version") or SCHEMA_VERSION,
             "rows": meta.get("rows"),
+            "include_historical": bool(include_historical),
         },
     }
