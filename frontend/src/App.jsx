@@ -96,6 +96,9 @@ export default function App() {
   );
   const [compareMetaById, setCompareMetaById] = useState({});
   const [position, setPosition] = useState(filtersFromUrl.position || "qb");
+  const [movementFilter, setMovementFilter] = useState(
+    () => filtersFromUrl.movementFilter || "all",
+  );
   const [projections, setProjections] = useState([]);
   const [rosProjections, setRosProjections] = useState([]);
   const [rosMeta, setRosMeta] = useState(null);
@@ -531,6 +534,12 @@ export default function App() {
   }, [filtersFromUrl.selectedTeams]);
 
   useEffect(() => {
+    if (filtersFromUrl.movementFilter != null) {
+      setMovementFilter(filtersFromUrl.movementFilter);
+    }
+  }, [filtersFromUrl.movementFilter]);
+
+  useEffect(() => {
     if (filtersFromUrl.draftSeason != null) setDraftSeason(filtersFromUrl.draftSeason);
   }, [filtersFromUrl.draftSeason]);
 
@@ -555,6 +564,7 @@ export default function App() {
         search: overrides.search ?? searchQuery,
         compareIds: overrides.compareIds ?? compareIds,
         compareView: overrides.compareView ?? compareViewOpen,
+        movementFilter: overrides.movementFilter ?? movementFilter,
       });
     },
     [
@@ -569,6 +579,7 @@ export default function App() {
       searchQuery,
       compareIds,
       compareViewOpen,
+      movementFilter,
     ],
   );
 
@@ -657,8 +668,18 @@ export default function App() {
   const clearTableFilters = useCallback(() => {
     setSearchQuery("");
     setSelectedTeams([]);
-    syncFiltersToUrl({ search: "", selectedTeams: [] });
+    setMovementFilter("all");
+    syncFiltersToUrl({ search: "", selectedTeams: [], movementFilter: "all" });
   }, [syncFiltersToUrl]);
+
+  const handleMovementFilterChange = useCallback(
+    (next) => {
+      const id = next || "all";
+      setMovementFilter(id);
+      syncFiltersToUrl({ movementFilter: id });
+    },
+    [syncFiltersToUrl],
+  );
 
   const urlFiltersBootstrapped = useRef(false);
   useEffect(() => {
@@ -1000,7 +1021,7 @@ export default function App() {
           user={user}
           onAccepted={() => {
             goToHub();
-            setHubSubView("setup");
+            setHubSubView("home");
             window.dispatchEvent(new Event("scoresense-auth-changed"));
           }}
         />
@@ -1278,6 +1299,9 @@ export default function App() {
                 week={week}
                 applyInjuryAdjustments={isLiveContext}
                 onClearFilters={clearTableFilters}
+                movementFilter={movementFilter}
+                onMovementFilterChange={handleMovementFilterChange}
+                movementAvailable={Boolean(meta?.projection_movement?.available)}
                 compareEnabled
                 selectedCompareIds={compareIds}
                 maxCompare={MAX_COMPARE_PLAYERS}

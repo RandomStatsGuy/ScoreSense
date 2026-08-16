@@ -1,5 +1,6 @@
 /** Hub URL slug ↔ internal subView id */
 export const HUB_SLUG_TO_ID = {
+  home: "home",
   setup: "setup",
   players: "value",
   week: "week",
@@ -14,6 +15,7 @@ export const HUB_SLUG_TO_ID = {
 
 /** Explicit reverse map (do not derive — avoids roster/rosters collisions). */
 export const HUB_ID_TO_SLUG = {
+  home: "home",
   setup: "setup",
   value: "players",
   week: "week",
@@ -141,7 +143,7 @@ export function parseAppPath(pathname) {
         officeTab,
       };
     }
-    const slug = parts[1] || "players";
+    const slug = parts[1] || "home";
     if (slug === "live") {
       return {
         view: "hub",
@@ -228,7 +230,7 @@ export function buildAppPath({
   seasonMode = "live",
   seasonMobilePanel = "projections",
   toolsTab = "dfs",
-  hubSubView = "value",
+  hubSubView = "home",
   insightTab = "cap",
   officeTab = "chat",
   adminTab = "overview",
@@ -287,6 +289,17 @@ export function parseCompareIds(raw) {
   return out;
 }
 
+/** SCORE-7: `movers` URL filter — all | 1/material | risers | fallers. */
+function parseMoversFilter(raw) {
+  if (raw == null || raw === "") return null;
+  const v = String(raw).trim().toLowerCase();
+  if (v === "1" || v === "true" || v === "material" || v === "movers") return "movers";
+  if (v === "risers" || v === "riser" || v === "up") return "risers";
+  if (v === "fallers" || v === "faller" || v === "down") return "fallers";
+  if (v === "all" || v === "0" || v === "false") return "all";
+  return null;
+}
+
 export function parseFilterParams(searchParams) {
   const pos = searchParams.get("pos");
   const season = searchParams.get("season");
@@ -299,6 +312,7 @@ export function parseFilterParams(searchParams) {
   const compareRaw = searchParams.get("compare");
   const compareIds = parseCompareIds(compareRaw);
   const compareView = searchParams.get("cmp") === "1";
+  const movementFilter = parseMoversFilter(searchParams.get("movers"));
 
   return {
     position: pos && ["qb", "rb", "wr"].includes(pos) ? pos : null,
@@ -312,6 +326,8 @@ export function parseFilterParams(searchParams) {
     compareIds: compareIds.length ? compareIds : null,
     /** Open state for the comparison panel (`cmp=1` deep-link, SCORE-4). */
     compareView,
+    /** SCORE-7 Biggest Movers filter (`movers=`). */
+    movementFilter,
   };
 }
 
@@ -326,6 +342,7 @@ export function buildFilterSearchParams({
   search,
   compareIds,
   compareView,
+  movementFilter,
   preserveParams,
 }) {
   const params = new URLSearchParams(preserveParams || undefined);
@@ -373,6 +390,17 @@ export function buildFilterSearchParams({
     );
     if (compareView && ids.length >= 2) params.set("cmp", "1");
     else params.delete("cmp");
+  }
+
+  // SCORE-7: only mutate `movers` when explicitly provided.
+  if (movementFilter !== undefined) {
+    if (!movementFilter || movementFilter === "all") {
+      params.delete("movers");
+    } else if (movementFilter === "movers") {
+      params.set("movers", "1");
+    } else {
+      params.set("movers", String(movementFilter));
+    }
   }
 
   return params;

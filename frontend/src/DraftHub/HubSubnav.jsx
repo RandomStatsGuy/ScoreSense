@@ -1,8 +1,9 @@
 import React, { useMemo, useRef, useState } from "react";
 import MobileBottomSheet from "../layout/MobileBottomSheet";
 
-/** group: "prep" (draft prep) | "season" (in-season) | "office" (league office). */
+/** group: "home" | "prep" (draft prep) | "season" (in-season) | "office" (league office). */
 export const HUB_SUBVIEWS = [
+  { id: "home", label: "Home", shortLabel: "Home", hint: "Action center", group: "home" },
   { id: "value", label: "Players", shortLabel: "Players", hint: "Prices", group: "prep" },
   { id: "room", label: "Draft", shortLabel: "Draft", hint: "Live auction", group: "prep" },
   { id: "week", label: "Your Week", shortLabel: "Week", hint: "Lineup decisions", group: "season" },
@@ -14,7 +15,7 @@ export const HUB_SUBVIEWS = [
   { id: "office", label: "Office", shortLabel: "Office", leagueOnly: true, hint: "Chat & contracts", group: "office" },
 ];
 
-const GROUP_LABELS = { prep: "Prep", season: "Season", office: "League" };
+const GROUP_LABELS = { home: "Home", prep: "Prep", season: "Season", office: "League" };
 
 function filterSubviews(hubContext) {
   const inLeague = hubContext?.mode === "league" || Boolean(hubContext?.league_id);

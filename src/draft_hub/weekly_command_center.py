@@ -529,6 +529,70 @@ def _sync_metadata(ctx: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _roster_projection_changes(
+    players: list[dict[str, Any]],
+    season: int,
+    week: int,
+    *,
+    apply_injury_adjustments: bool,
+) -> dict[str, Any]:
+    """Attach SCORE-7 movement for roster players (soft-fail if artifact missing)."""
+    try:
+        from src.projections.projection_movement import build_projection_movement_payload
+    except Exception:
+        return {
+            "available": False,
+            "items": [],
+            "note": "Projection movement module unavailable.",
+        }
+
+    by_pos: dict[str, list[str]] = {}
+    for player in players:
+        pos = normalize_position(player.get("position")).lower()
+        pid = str(player.get("player_id") or "").strip()
+        if pos not in ARTIFACT_POSITIONS or not pid:
+            continue
+        by_pos.setdefault(pos, []).append(pid)
+
+    items: list[dict[str, Any]] = []
+    any_available = False
+    notes: list[str] = []
+    for pos, pids in by_pos.items():
+        payload = build_projection_movement_payload(
+            pos,
+            int(season),
+            int(week),
+            apply_injury_adjustments=apply_injury_adjustments,
+            material_only=False,
+            player_ids=pids,
+        )
+        if payload.get("available"):
+            any_available = True
+        else:
+            note = (payload.get("meta") or {}).get("note")
+            if note:
+                notes.append(str(note))
+        for change in payload.get("changes") or []:
+            items.append(change)
+
+    items.sort(
+        key=lambda c: (
+            abs(float(c.get("rank_delta") or 0)),
+            abs(float(c.get("p50_delta") or 0)),
+        ),
+        reverse=True,
+    )
+    return {
+        "available": any_available,
+        "items": items,
+        "note": (
+            None
+            if any_available
+            else (notes[0] if notes else "Projection movement artifact not available.")
+        ),
+    }
+
+
 def build_weekly_command_center(
     ctx: dict[str, Any],
     *,
@@ -642,12 +706,12 @@ def build_weekly_command_center(
         },
         "decisions": decisions,
         "wide_ranges": wide_ranges,
-        # No prior-refresh projection history yet — stub for UI continuity.
-        "projection_changes": {
-            "available": False,
-            "items": [],
-            "note": "Projection movement tracking is not persisted yet.",
-        },
+        "projection_changes": _roster_projection_changes(
+            [*starters, *bench],
+            resolved_season,
+            resolved_week,
+            apply_injury_adjustments=apply_injury_adjustments,
+        ),
         "counts": {
             "roster": len(players),
             "starters": len(starters),

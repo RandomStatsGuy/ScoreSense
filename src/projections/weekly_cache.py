@@ -129,15 +129,28 @@ def save_weekly_artifact(
     df: pd.DataFrame,
 ) -> Path:
     parquet_path, meta_path = _artifact_paths(position, season, week, apply_injury_adjustments)
+
+    # Capture prior artifact before overwrite so refresh can emit movement (SCORE-7).
+    previous_df = None
+    previous_meta: dict[str, Any] | None = None
+    if parquet_path.exists() and meta_path.exists():
+        try:
+            previous_meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            previous_df = pd.read_parquet(parquet_path)
+        except (json.JSONDecodeError, OSError, ValueError):
+            previous_df = None
+            previous_meta = None
+
     df.to_parquet(parquet_path, index=False)
     built_at = datetime.now(timezone.utc).isoformat()
     df.attrs["built_at"] = built_at
+    fingerprint = weekly_fingerprint()
     meta: dict[str, Any] = {
         "position": position.lower(),
         "season": season,
         "week": week,
         "apply_injury_adjustments": apply_injury_adjustments,
-        "fingerprint": weekly_fingerprint(),
+        "fingerprint": fingerprint,
         "rows": int(len(df)),
         "built_at": built_at,
         "attrs": {
@@ -149,6 +162,30 @@ def save_weekly_artifact(
     meta_path.write_text(json.dumps(meta, indent=2, default=str), encoding="utf-8")
     key = _cache_key(position, season, week, apply_injury_adjustments)
     _WEEKLY_CACHE[key] = (meta["fingerprint"], df.copy())
+
+    # Movement is best-effort — never block weekly artifact writes.
+    try:
+        from src.projections.projection_movement import save_projection_movement_artifact
+
+        # Same fingerprint ⇒ not a meaningful refresh; keep prior movement if any.
+        prior_fp = None if not previous_meta else previous_meta.get("fingerprint")
+        if prior_fp == fingerprint and previous_df is not None:
+            return parquet_path
+
+        save_projection_movement_artifact(
+            position,
+            season,
+            week,
+            apply_injury_adjustments,
+            df,
+            previous_df=previous_df,
+            previous_meta=previous_meta,
+            current_fingerprint=fingerprint,
+            current_built_at=built_at,
+        )
+    except Exception:
+        pass
+
     return parquet_path
 
 

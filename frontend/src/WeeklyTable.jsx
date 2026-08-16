@@ -23,6 +23,15 @@ import MobileDataList, { MobileStat } from "./MobileDataList";
 import MobilePlayerCard from "./MobilePlayerCard";
 import PlayerCell, { usePlayerMedia } from "./PlayerCell";
 import { usePlayerCardOptional } from "./PlayerCardContext";
+import {
+  MOVEMENT_FILTERS,
+  formatP50Move,
+  formatRankMove,
+  hasMovement,
+  matchesMovementFilter,
+  movementSortScore,
+  rowMovementTone,
+} from "./projectionMovement";
 
 const SORT_KEYS = {
   Player: "Player",
@@ -33,7 +42,83 @@ const SORT_KEYS = {
   P10: "Low (P10)",
   P90: "High (P90)",
   Injury: "Injury Boost",
+  RankDelta: "rank_delta",
+  P50Delta: "p50_delta",
+  Move: "_movement_score",
 };
+
+function RankMoveInline({ row, position }) {
+  const rankLabel = formatRankMove({
+    previousRank: row.previous_rank,
+    currentRank: row.current_rank,
+    rankDelta: row.rank_delta,
+    position: row.Position || position,
+  });
+  if (!rankLabel) return null;
+  const tone = movementToneFromDelta(row.rank_delta);
+  return (
+    <span
+      className={`proj-move proj-move--${tone}${row.movement_material ? " proj-move--material" : ""}`}
+      title={`Rank ${rankLabel} vs prior refresh`}
+    >
+      <span className="proj-move-rank">{rankLabel}</span>
+    </span>
+  );
+}
+
+function P50MoveInline({ row }) {
+  const p50Label = formatP50Move(row.p50_delta);
+  if (!p50Label) return null;
+  const tone = movementToneFromDelta(row.p50_delta);
+  return (
+    <span
+      className={`proj-move-p50-inline proj-move--${tone}`}
+      title={`Projection ${p50Label} vs prior refresh`}
+    >
+      {p50Label}
+    </span>
+  );
+}
+
+function MovementInline({ row, position, compact = false }) {
+  if (!hasMovement(row)) return null;
+  const tone = rowMovementTone(row);
+  const rankLabel = formatRankMove({
+    previousRank: row.previous_rank,
+    currentRank: row.current_rank,
+    rankDelta: row.rank_delta,
+    position: row.Position || position,
+  });
+  const p50Label = formatP50Move(row.p50_delta);
+  if (!rankLabel && !p50Label) return null;
+  const title = [
+    rankLabel ? `Rank ${rankLabel}` : null,
+    p50Label ? `Projection ${p50Label} vs prior refresh` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  return (
+    <span
+      className={`proj-move proj-move--${tone}${compact ? " proj-move--compact" : ""}${
+        row.movement_material ? " proj-move--material" : ""
+      }`}
+      title={title}
+    >
+      {rankLabel ? <span className="proj-move-rank">{rankLabel}</span> : null}
+      {p50Label ? (
+        <span className="proj-move-p50">
+          {compact ? p50Label : `Proj ${p50Label}`}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+function movementToneFromDelta(delta) {
+  const n = Number(delta);
+  if (!Number.isFinite(n) || n === 0) return "neutral";
+  return n > 0 ? "up" : "down";
+}
 
 function injuryBoostClass(boost) {
   const n = Number(boost);
@@ -134,6 +219,7 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   playerContext,
   contextExpanded,
   onToggleContext,
+  showMovement = false,
 }) {
   const status = row["Injury Status"] || "";
   const unavailable = isPlayerUnavailable(status);
@@ -172,7 +258,10 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
         </td>
       ) : null}
       <td className={`num col-rank${rank != null && rank <= 3 ? " col-rank-top" : ""}`}>
-        {rank ?? "—"}
+        <span className="col-rank-stack">
+          <span className="col-rank-value">{rank ?? "—"}</span>
+          {showMovement ? <RankMoveInline row={row} position={position} /> : null}
+        </span>
       </td>
       <td className="col-player">
         <span className="col-player-inner">
@@ -263,7 +352,10 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
       ) : (
         <>
           <td className="num num-proj">
-            <span className="col-proj-value">{fmtNum(row["Projected Points"], 1)}</span>
+            <span className="col-proj-stack">
+              <span className="col-proj-value">{fmtNum(row["Projected Points"], 1)}</span>
+              {showMovement ? <P50MoveInline row={row} /> : null}
+            </span>
             <span className="col-proj-mobile-range">
               {fmtNum(row["Low (P10)"], 1)}–{fmtNum(row["High (P90)"], 1)}
             </span>
@@ -320,7 +412,18 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
 });
 
 function exportCsv(rows) {
-  const header = ["Player", "Team", "Projected", "Floor", "Ceiling", "Injury Boost", "Injury Status"];
+  const header = [
+    "Player",
+    "Team",
+    "Projected",
+    "Floor",
+    "Ceiling",
+    "P50 Δ",
+    "Rank Δ",
+    "Prev Rank",
+    "Injury Boost",
+    "Injury Status",
+  ];
   const lines = [
     header.join(","),
     ...rows.map((row) => {
@@ -333,6 +436,9 @@ function exportCsv(rows) {
         unavailable ? "OUT" : fmtNum(row["Projected Points"], 2, ""),
         unavailable ? "OUT" : fmtNum(row["Low (P10)"], 2, ""),
         unavailable ? "OUT" : fmtNum(row["High (P90)"], 2, ""),
+        Number.isFinite(Number(row.p50_delta)) ? Number(row.p50_delta).toFixed(2) : "",
+        Number.isFinite(Number(row.rank_delta)) ? String(row.rank_delta) : "",
+        Number.isFinite(Number(row.previous_rank)) ? String(row.previous_rank) : "",
         !unavailable && Number.isFinite(boost) && boost !== 0 ? (boost * 100).toFixed(1) : "",
         unavailable ? unavailableLabel(status) : status,
       ].join(",");
@@ -367,6 +473,10 @@ export default function WeeklyTable({
   onClearCompare,
   onRemoveCompare,
   compareSelectionMeta = null,
+  /** SCORE-7: Biggest Movers filter + soft-joined movement fields. */
+  movementFilter = "all",
+  onMovementFilterChange,
+  movementAvailable = false,
 }) {
   const [sort, toggleSort] = useTableSort({ column: "P50", dir: "desc" });
   const [whyPlayerId, setWhyPlayerId] = useState(null);
@@ -382,6 +492,7 @@ export default function WeeklyTable({
   );
   const selectedCount = selectedSet.size;
   const selectDisabled = selectedCount >= maxCompare;
+  const showMovement = Boolean(movementAvailable);
 
   const toggleWhy = (playerId) => {
     const id = playerId ? String(playerId) : "";
@@ -399,6 +510,14 @@ export default function WeeklyTable({
     setWhyPlayerId(null);
     setContextPlayerId(null);
   }, [position, season, week, applyInjuryAdjustments]);
+
+  // When switching into a movers filter, prefer biggest-move sort.
+  useEffect(() => {
+    if (!movementAvailable) return;
+    if (movementFilter && movementFilter !== "all") {
+      toggleSort("Move", { forceDir: "desc" });
+    }
+  }, [movementFilter, movementAvailable]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showOpponent = useMemo(
     () => (rows || []).some((row) => row.Opponent),
@@ -443,8 +562,11 @@ export default function WeeklyTable({
       const set = new Set(teamsFilter.map((t) => t.toUpperCase()));
       list = list.filter((r) => set.has(String(r.Team || "").toUpperCase()));
     }
+    if (movementAvailable && movementFilter && movementFilter !== "all") {
+      list = list.filter((r) => matchesMovementFilter(r, movementFilter));
+    }
     return list;
-  }, [rows, search, teamsFilter]);
+  }, [rows, search, teamsFilter, movementAvailable, movementFilter]);
 
   const scaleMax = useMemo(() => {
     const slate = rows || [];
@@ -482,6 +604,18 @@ export default function WeeklyTable({
         const bs = Number(b.sentiment?.sentiment_score) || 0;
         return dir * (as - bs);
       }
+      if (key === "_movement_score") {
+        return dir * (movementSortScore(a) - movementSortScore(b));
+      }
+      if (key === "rank_delta" || key === "p50_delta") {
+        const av = Number(a[key]);
+        const bv = Number(b[key]);
+        const aMissing = !Number.isFinite(av);
+        const bMissing = !Number.isFinite(bv);
+        if (aMissing !== bMissing) return aMissing ? 1 : -1;
+        if (av !== bv) return dir * (av - bv);
+        return dir * (movementSortScore(a) - movementSortScore(b));
+      }
       const av = Number(a[key]) || 0;
       const bv = Number(b[key]) || 0;
       return dir * (av - bv);
@@ -497,11 +631,17 @@ export default function WeeklyTable({
   // Position rank over the full slate (stable regardless of sort/filter).
   const rankMap = useRankMap(rows, rankMetric);
 
-  const hasFilters = Boolean((search || "").trim() || teamsFilter?.length);
+  const hasFilters = Boolean(
+    (search || "").trim() ||
+      teamsFilter?.length ||
+      (movementAvailable && movementFilter && movementFilter !== "all"),
+  );
   const emptyMessage = loading
     ? null
     : hasFilters
-      ? "No players match your search or team filters."
+      ? movementFilter && movementFilter !== "all"
+        ? "No players match this movement filter."
+        : "No players match your search or team filters."
       : "No projections available for this week.";
 
   const resultLabel =
@@ -517,9 +657,33 @@ export default function WeeklyTable({
           <ExportCsvButton onExport={() => exportCsv(sorted)} disabled={!sorted.length} />
         )}
       </div>
+      {showMovement ? (
+        <div
+          className="proj-move-filter"
+          role="group"
+          aria-label="Projection movement filter"
+        >
+          {MOVEMENT_FILTERS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              className={`proj-move-filter-btn${movementFilter === f.id ? " active" : ""}`}
+              onClick={() => onMovementFilterChange?.(f.id)}
+              aria-pressed={movementFilter === f.id}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="table-toolbar">
         <span className="table-meta">{resultLabel}</span>
         {metaLine}
+        {showMovement ? (
+          <span className="table-meta table-meta-movement" role="status">
+            What changed vs prior refresh
+          </span>
+        ) : null}
         {playersContext.unavailable ? (
           <span className="table-meta table-meta-context-cold" role="status">
             Context cache warming
@@ -667,6 +831,11 @@ export default function WeeklyTable({
                     <span className="sr-only">Floor to ceiling </span>
                     {fmtNum(p10, 1)}–{fmtNum(p90, 1)}
                     <span className="mobile-player-card-floor-ceil-label" aria-hidden="true">Floor–Ceiling</span>
+                    {showMovement && hasMovement(row) ? (
+                      <span className="mobile-player-card-move">
+                        <MovementInline row={row} position={position} compact />
+                      </span>
+                    ) : null}
                   </>
                 )}
                 heroMuted={unavailable}
@@ -792,7 +961,7 @@ export default function WeeklyTable({
           })}
         </MobileDataList>
       ) : (
-      <div className={`table-wrap table-sticky table-has-rank${compareEnabled ? " table-has-compare" : ""}`}>
+      <div className={`table-wrap table-sticky table-has-rank${compareEnabled ? " table-has-compare" : ""}${showMovement ? " table-has-movement" : ""}`}>
         <table>
           <thead>
             <tr>
@@ -801,7 +970,16 @@ export default function WeeklyTable({
                   <span className="sr-only">Compare</span>
                 </th>
               ) : null}
-              <th className="num col-rank" title="Position rank by projected points">#</th>
+              <th
+                className="num col-rank"
+                title={
+                  showMovement
+                    ? "Position rank by projected points. Movement shows prior → current (▲ rose)."
+                    : "Position rank by projected points"
+                }
+              >
+                #
+              </th>
               <SortHeader label="Player" sortKey="Player" sort={sort} onSort={toggleSort} className="col-player" />
               <th className="col-why" title="Why this projection? / Cached week context">
                 <span className="sr-only">Why / Context</span>
@@ -896,6 +1074,7 @@ export default function WeeklyTable({
                 playerContext={pid ? playersContext.byId.get(pid) : null}
                 contextExpanded={Boolean(pid && contextPlayerId === pid)}
                 onToggleContext={() => toggleContext(pid)}
+                showMovement={showMovement}
               />
               );
             })}
