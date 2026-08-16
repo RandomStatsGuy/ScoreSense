@@ -4828,6 +4828,147 @@ td.col-rank.col-rank-top {
   font-variant-numeric: tabular-nums;
 }
 
+/* SCORE-19: one prominent over/under-cap decision card */
+.hub-cap-status-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0 0 1rem;
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: linear-gradient(145deg, rgba(59, 130, 246, 0.12) 0%, rgba(15, 23, 42, 0.45) 100%);
+}
+
+.hub-cap-status-card--over {
+  border-color: rgba(248, 113, 113, 0.45);
+  background: linear-gradient(145deg, rgba(248, 113, 113, 0.16) 0%, rgba(15, 23, 42, 0.5) 100%);
+}
+
+.hub-cap-status-card--at {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: linear-gradient(145deg, rgba(251, 191, 36, 0.1) 0%, rgba(15, 23, 42, 0.45) 100%);
+}
+
+.hub-cap-status-card--under {
+  border-color: rgba(52, 211, 153, 0.35);
+  background: linear-gradient(145deg, rgba(52, 211, 153, 0.1) 0%, rgba(15, 23, 42, 0.45) 100%);
+}
+
+.hub-cap-status-eyebrow {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.hub-cap-status-headline {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.4vw, 1.7rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.hub-cap-status-card--over .hub-cap-status-headline {
+  color: #fca5a5;
+}
+
+.hub-cap-status-meta {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.hub-cap-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.85rem;
+  margin-top: 0.35rem;
+}
+
+.hub-cap-season-section {
+  margin-top: 0.15rem;
+}
+
+.hub-cap-season-section .hub-section-title {
+  font-size: 0.95rem;
+}
+
+.hub-cap-season-section .hub-section-hint {
+  font-size: 0.78rem;
+}
+
+.hub-cap-season-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.28);
+}
+
+.hub-cap-season-row {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.5rem 0.75rem;
+  align-items: baseline;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.hub-cap-season-row:first-child {
+  border-top: 0;
+}
+
+.hub-cap-season-year {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.hub-cap-season-committed,
+.hub-cap-season-free {
+  color: var(--text-primary);
+}
+
+.hub-cap-season-free {
+  text-align: right;
+}
+
+.hub-cap-season-free.is-over {
+  color: #fca5a5;
+}
+
+.hub-cap-season-unit {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.hub-cap-pre-draft-dead {
+  margin: 0 0 0.35rem;
+}
+
+@media (max-width: 480px) {
+  .hub-cap-season-row {
+    grid-template-columns: 3.5rem 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .hub-cap-season-free {
+    grid-column: 2;
+    text-align: left;
+  }
+}
+
 .hub-negative,
 .hub-stat-value.hub-negative {
   color: #fca5a5;
