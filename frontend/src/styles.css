@@ -8776,6 +8776,108 @@ td.col-rank.col-rank-top {
 .hub-draft-practice-cta strong { display: block; margin-bottom: 0.2rem; }
 .hub-draft-practice-actions { margin: 0; align-items: flex-end; }
 .hub-draft-entry { display: flex; flex-direction: column; gap: 0.85rem; margin-bottom: 1rem; }
+
+.hub-draft-status-card {
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+}
+.hub-draft-status-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.hub-draft-status-card-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.hub-draft-status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem 0.85rem;
+  margin: 0;
+}
+.hub-draft-status-item {
+  min-width: 0;
+}
+.hub-draft-status-item dt {
+  margin: 0 0 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.hub-draft-status-item dd {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.hub-draft-status-detail {
+  font-weight: 400;
+  font-size: 0.78rem;
+}
+
+.hub-draft-entry-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.hub-draft-entry-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+}
+.hub-draft-entry-card.is-emphasized {
+  border-color: color-mix(in srgb, var(--accent, #6ea8fe) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 8%, transparent);
+}
+.hub-draft-entry-card--live.is-emphasized {
+  border-color: color-mix(in srgb, var(--tone-positive, #4ade80) 42%, var(--border));
+  background: color-mix(in srgb, var(--tone-positive, #4ade80) 9%, transparent);
+}
+.hub-draft-entry-card-head h3 {
+  margin: 0 0 0.3rem;
+  font-size: 1rem;
+}
+.hub-draft-entry-card-head p {
+  margin: 0;
+  max-width: 28rem;
+}
+.hub-draft-entry-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+.hub-draft-entry-pool-note { margin: 0; }
+
+@media (max-width: 768px) {
+  .hub-draft-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .hub-draft-entry-split {
+    grid-template-columns: 1fr;
+  }
+  /* Live draft first on mobile when both cards stack */
+  .hub-draft-entry-card--live { order: 0; }
+  .hub-draft-entry-card--practice { order: 1; }
+}
+
 .hub-draft-setup-bar-secondary {
   padding: 0.85rem 1rem;
   border-radius: var(--radius-md);
