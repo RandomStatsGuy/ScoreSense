@@ -19,7 +19,11 @@ from src.config import (
 from src.core.features import prepare_feature_matrix
 from src.ml.quantile import predict_quantiles
 from src.integrations.sleeper import injured_players
-from src.core.opportunity import compute_vacated_usage
+from src.core.opportunity import (
+    OPPORTUNITY_ADJUSTMENT_COL,
+    attach_opportunity_adjustment,
+    compute_vacated_usage,
+)
 from src.core.projection_context import (
     build_inference_roster,
     resolve_projection_context,
@@ -140,9 +144,10 @@ def predict_from_features(
         name_col = _player_name_col(roster)
         boost_map = roster.set_index(name_col)["injury_opportunity_boost"].to_dict()
         note_map = roster.set_index(name_col)["injury_note"].to_dict()
-        result["Injury Boost"] = result["Player"].map(boost_map).fillna(0.0)
+        mapped = result["Player"].map(boost_map).fillna(0.0)
+        attach_opportunity_adjustment(result, mapped)
         result["Injury Note"] = result["Player"].map(note_map).fillna("")
-        multiplier = 1.0 + result["Injury Boost"].clip(0, 0.35)
+        multiplier = 1.0 + result[OPPORTUNITY_ADJUSTMENT_COL].clip(0, 0.35)
         for col in ("Projected Points", "Low (P10)", "High (P90)"):
             result[col] = result[col] * multiplier
         result = _attach_sleeper_injury_status(result)
