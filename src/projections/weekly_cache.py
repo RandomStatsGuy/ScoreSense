@@ -11,6 +11,7 @@ from typing import Any
 import pandas as pd
 
 from src.config import MODEL_DIR, PROCESSED_DATA_DIR, WEEKLY_PREDICTIONS_DIR
+from src.core.opportunity import ensure_opportunity_adjustment_columns
 from src.projections.predict import predict_upcoming_week
 
 _WEEKLY_CACHE: dict[str, tuple[str, pd.DataFrame]] = {}
@@ -54,11 +55,13 @@ def load_weekly_prediction(
 ) -> pd.DataFrame:
     """Load cached weekly predictions or compute and persist."""
     if season is None or week is None:
-        return predict_upcoming_week(
-            position,
-            season=season,
-            week=week,
-            apply_injury_adjustments=apply_injury_adjustments,
+        return ensure_opportunity_adjustment_columns(
+            predict_upcoming_week(
+                position,
+                season=season,
+                week=week,
+                apply_injury_adjustments=apply_injury_adjustments,
+            )
         )
 
     pos = position.lower()
@@ -69,7 +72,7 @@ def load_weekly_prediction(
         out = cached[1].copy()
         for k, v in cached[1].attrs.items():
             out.attrs[k] = v
-        return out
+        return ensure_opportunity_adjustment_columns(out)
 
     parquet_path, meta_path = _artifact_paths(pos, int(season), int(week), apply_injury_adjustments)
     if parquet_path.exists() and meta_path.exists():
@@ -78,7 +81,7 @@ def load_weekly_prediction(
         except (json.JSONDecodeError, OSError):
             meta = {}
         if meta.get("fingerprint") == fp:
-            df = pd.read_parquet(parquet_path)
+            df = ensure_opportunity_adjustment_columns(pd.read_parquet(parquet_path))
             _apply_saved_attrs(df, meta)
             if meta.get("built_at"):
                 df.attrs["built_at"] = meta["built_at"]
@@ -88,11 +91,13 @@ def load_weekly_prediction(
     if not allow_compute:
         return pd.DataFrame()
 
-    df = predict_upcoming_week(
-        pos,
-        season=int(season),
-        week=int(week),
-        apply_injury_adjustments=apply_injury_adjustments,
+    df = ensure_opportunity_adjustment_columns(
+        predict_upcoming_week(
+            pos,
+            season=int(season),
+            week=int(week),
+            apply_injury_adjustments=apply_injury_adjustments,
+        )
     )
     save_weekly_artifact(pos, int(season), int(week), apply_injury_adjustments, df)
     # Mirror the artifact timestamp onto the in-process frame for API freshness.

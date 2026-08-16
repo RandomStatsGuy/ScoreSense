@@ -31,7 +31,7 @@ Position-specific **quantile gradient boosting** (P10 / P50 / P90) with unified 
 | Feature | Implementation |
 |---------|----------------|
 | Prediction intervals | `src/ml/quantile.py` — sklearn quantile GBM |
-| Injury adjustments | `src/integrations/sleeper.py` + `src/opportunity.py` |
+| Opportunity adjustment | `src/core/opportunity.py` + Sleeper injury status (`src/integrations/sleeper.py`) |
 | NGS tracking | `bdb_companion/ngs_tracking.py` — reads `data/raw/ngs/` |
 | React dashboard | `frontend/` + `app/api.py` |
 | Weekly cron | `src/jobs/weekly_refresh.py` + GitHub Actions |

@@ -5,6 +5,11 @@ from __future__ import annotations
 import pandas as pd
 
 from src.config import GAMES_PER_SEASON, PROCESSED_DATA_DIR, MODEL_DIR
+from src.core.opportunity import (
+    OPPORTUNITY_ADJUSTMENT_COL,
+    OPPORTUNITY_ADJUSTMENT_LEGACY_COL,
+    ensure_opportunity_adjustment_columns,
+)
 from src.core.projection_context import REGULAR_SEASON_MAX_WEEK, build_inference_roster, resolve_projection_context
 from src.projections.predict import predict_from_features
 from src.projections.season_blend import ROS_ROLLING_WEEKS, games_remaining_in_season
@@ -151,8 +156,10 @@ def predict_rest_of_season(
             "Season P90": out["season_high"].round(1),
         }
     )
-    if "Injury Boost" in out.columns:
-        result["Injury Boost"] = out["Injury Boost"].fillna(0.0)
+    out_norm = ensure_opportunity_adjustment_columns(out)
+    if OPPORTUNITY_ADJUSTMENT_COL in out_norm.columns:
+        result[OPPORTUNITY_ADJUSTMENT_COL] = out_norm[OPPORTUNITY_ADJUSTMENT_COL].fillna(0.0)
+        result[OPPORTUNITY_ADJUSTMENT_LEGACY_COL] = result[OPPORTUNITY_ADJUSTMENT_COL]
 
     numeric_cols = [
         "Reg Season Pts",
@@ -163,7 +170,8 @@ def predict_rest_of_season(
         "Season P50",
         "Season P10",
         "Season P90",
-        "Injury Boost",
+        OPPORTUNITY_ADJUSTMENT_COL,
+        OPPORTUNITY_ADJUSTMENT_LEGACY_COL,
     ]
     for col in numeric_cols:
         if col in result.columns:

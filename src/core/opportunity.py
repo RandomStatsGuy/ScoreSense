@@ -1,6 +1,14 @@
-"""Injury-driven opportunity adjustments for projections."""
+"""Teammate-availability opportunity adjustments for projections.
+
+Product/API language: **Opportunity adjustment** (points or fraction delta driven
+by teammate availability). Internal feature column remains
+``injury_opportunity_boost``; prediction table columns use the display name
+``Opportunity Adjustment`` with a temporary ``Injury Boost`` compat alias.
+"""
 
 from __future__ import annotations
+
+from typing import Any, Iterable
 
 import pandas as pd
 
@@ -13,6 +21,17 @@ STATUS_WEIGHT = {
     "Doubtful": 0.75,
     "Questionable": 0.35,
 }
+
+# Canonical prediction-frame column (API records / CSV / parquet).
+OPPORTUNITY_ADJUSTMENT_COL = "Opportunity Adjustment"
+# Temporary read/write alias while clients migrate off the old name.
+OPPORTUNITY_ADJUSTMENT_LEGACY_COL = "Injury Boost"
+OPPORTUNITY_ADJUSTMENT_KEYS: tuple[str, ...] = (
+    OPPORTUNITY_ADJUSTMENT_COL,
+    "opportunity_adjustment",
+    OPPORTUNITY_ADJUSTMENT_LEGACY_COL,
+    "injury_boost",
+)
 
 
 def _name_col(df: pd.DataFrame) -> str:
@@ -83,17 +102,87 @@ def compute_vacated_usage(
     return out
 
 
+def pick_opportunity_adjustment(
+    row: dict[str, Any] | pd.Series | None,
+    keys: Iterable[str] = OPPORTUNITY_ADJUSTMENT_KEYS,
+) -> float | None:
+    """Read opportunity adjustment fraction from a row (canonical + legacy aliases)."""
+    if row is None:
+        return None
+    getter = row.get if hasattr(row, "get") else None
+    for key in keys:
+        raw = getter(key) if getter is not None else (row[key] if key in row.index else None)
+        if raw is None or raw == "":
+            continue
+        try:
+            if pd.isna(raw):
+                continue
+        except (TypeError, ValueError):
+            pass
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def attach_opportunity_adjustment(
+    frame: pd.DataFrame,
+    values: pd.Series | float,
+    *,
+    include_legacy_alias: bool = True,
+) -> pd.DataFrame:
+    """Write canonical Opportunity Adjustment (+ optional Injury Boost alias)."""
+    result = frame
+    series = (
+        pd.Series(values, index=result.index, dtype="float64")
+        if not isinstance(values, pd.Series)
+        else pd.to_numeric(values, errors="coerce")
+    )
+    series = series.reindex(result.index).fillna(0.0).astype(float)
+    result[OPPORTUNITY_ADJUSTMENT_COL] = series
+    if include_legacy_alias:
+        result[OPPORTUNITY_ADJUSTMENT_LEGACY_COL] = series
+    return result
+
+
+def ensure_opportunity_adjustment_columns(
+    frame: pd.DataFrame,
+    *,
+    include_legacy_alias: bool = True,
+) -> pd.DataFrame:
+    """Normalize opportunity columns on load so serve paths expose the new name.
+
+    Accepts frames that only have the legacy ``Injury Boost`` column (cold
+    artifacts) and dual-writes the canonical name during the alias period.
+    """
+    if frame is None or frame.empty:
+        return frame
+    source = None
+    for key in OPPORTUNITY_ADJUSTMENT_KEYS:
+        if key in frame.columns:
+            source = pd.to_numeric(frame[key], errors="coerce").fillna(0.0)
+            break
+    if source is None:
+        return frame
+    out = frame.copy()
+    return attach_opportunity_adjustment(
+        out, source, include_legacy_alias=include_legacy_alias
+    )
+
+
 def apply_opportunity_to_projections(
     projections: pd.DataFrame,
     roster_df: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Scale projections by injury opportunity boost (used by legacy callers)."""
+    """Scale projections by opportunity adjustment (used by legacy callers)."""
     roster = compute_vacated_usage(roster_df)
     name_col = _name_col(roster)
     boost = roster.set_index(name_col)["injury_opportunity_boost"]
     result = projections.copy()
-    result["Injury Boost"] = result["Player"].map(boost).fillna(0.0)
-    multiplier = 1.0 + result["Injury Boost"].clip(0, 0.35)
+    mapped = result["Player"].map(boost).fillna(0.0)
+    attach_opportunity_adjustment(result, mapped)
+    multiplier = 1.0 + result[OPPORTUNITY_ADJUSTMENT_COL].clip(0, 0.35)
     for col in ("Projected Points", "Low (P10)", "High (P90)"):
         if col in result.columns:
             result[col] = result[col] * multiplier

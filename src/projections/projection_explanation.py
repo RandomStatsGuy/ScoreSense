@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 
 from src.config import PROCESSED_DATA_DIR, SENTIMENT_FEATURES_PATH
+from src.core.opportunity import pick_opportunity_adjustment
 from src.core.projection_context import resolve_projection_context
 from src.projections.player_compare import volatility
 from src.projections.weekly_cache import load_weekly_prediction
@@ -27,7 +28,7 @@ _P10_KEYS = ("Low (P10)", "P10", "p10")
 _P90_KEYS = ("High (P90)", "P90", "p90")
 
 # Opportunity / usage thresholds (artifact-relative).
-_INJURY_BOOST_UP = 0.05
+_OPPORTUNITY_ADJUSTMENT_UP = 0.05
 _SHARE_PCT_UP = 0.65
 _SHARE_PCT_DOWN = 0.35
 _OPP_RANK_FAVORABLE = 22  # higher Opp Def Rank = softer (more EPA allowed)
@@ -397,12 +398,12 @@ def build_projection_signals(
     """Deterministic structured signals from projection + feature context (no LLM)."""
     signals: list[dict[str, Any]] = []
 
-    boost = _pick_num(projection, ("Injury Boost", "injury_boost")) or 0.0
+    boost = pick_opportunity_adjustment(projection) or 0.0
     injury_note = str(projection.get("Injury Note") or projection.get("injury_note") or "").strip()
-    if boost >= _INJURY_BOOST_UP:
+    if boost >= _OPPORTUNITY_ADJUSTMENT_UP:
         strength = "high" if boost >= 0.12 else "medium"
         detail = (
-            f"Injury-driven opportunity boost of {boost:.0%} from teammate availability."
+            f"Opportunity adjustment of {boost:.0%} from teammate availability."
         )
         if injury_note:
             detail = f"{detail} Context: {injury_note}."
@@ -413,7 +414,12 @@ def build_projection_signals(
                 direction="up",
                 strength=strength,
                 detail=detail,
-                metrics={"injury_boost": round(boost, 4), "injury_note": injury_note or None},
+                metrics={
+                    "opportunity_adjustment": round(boost, 4),
+                    # Compat alias during SCORE-26 rollout.
+                    "injury_boost": round(boost, 4),
+                    "injury_note": injury_note or None,
+                },
             )
         )
 
@@ -671,7 +677,9 @@ def build_projection_explanation(
             "volatility": None if vol is None else round(vol, 4),
             "opponent": projection.get("Opponent"),
             "injury_status": projection.get("Injury Status") or None,
-            "injury_boost": _pick_num(projection, ("Injury Boost",)),
+            "opportunity_adjustment": pick_opportunity_adjustment(projection),
+            # Compat alias during SCORE-26 rollout (prefer opportunity_adjustment).
+            "injury_boost": pick_opportunity_adjustment(projection),
             "injury_note": (projection.get("Injury Note") or None) or None,
             "opp_def_rank": _pick_num(projection, ("Opp Def Rank",)),
             "opp_def_epa": _pick_num(projection, ("Opp Def EPA",)),
