@@ -174,7 +174,12 @@ function TradePlayerRow({
               </span>
             )}
             {row.fp_per_dollar != null && (
-              <span className="hub-trade-fpd">{row.fp_per_dollar} fp/$</span>
+              <span
+                className="hub-trade-fpd"
+                title="Projected fair-value fantasy points per dollar of salary"
+              >
+                {row.fp_per_dollar} pts /$
+              </span>
             )}
           </div>
         </div>
