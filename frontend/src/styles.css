@@ -11895,6 +11895,43 @@ td.col-rank.col-rank-top {
   flex-direction: column;
   gap: 0.65rem;
 }
+.hub-trade-ideas-blurb {
+  margin: 0;
+  max-width: 42rem;
+}
+.hub-trade-ideas-balance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem 1.25rem;
+  align-items: flex-start;
+}
+.hub-trade-idea-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.hub-trade-idea-why,
+.hub-trade-idea-cap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.hub-trade-idea-why-text,
+.hub-trade-idea-cap-line {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.hub-trade-idea-why-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+}
+.hub-trade-idea-cap-sep {
+  margin: 0 0.35rem;
+  color: var(--text-muted);
+}
 .hub-trade-proposal-card { gap: 0.55rem; }
 .hub-trade-proposal-head {
   display: flex;
