@@ -71,6 +71,11 @@ from src.projections.draft_meta import get_draft_meta
 from src.projections.draft_projections import draft_projection_note, predict_draft_season
 from src.projections.weekly_cache import compute_weekly_artifact, load_weekly_prediction
 from src.projections.player_context import get_player_context, list_player_context
+from src.projections.injury_overlay import (
+    get_injury_overlay,
+    list_injury_overlays,
+    recompute_injury_overlays,
+)
 from src.projections.player_compare import (
     build_player_compare,
     filter_projections_by_ids,
@@ -180,6 +185,7 @@ def health() -> dict:
             "player_compare": "/api/predict/compare" in route_paths,
             "projection_explanation": "/api/player/{player_id}/explanation" in route_paths,
             "player_context": "/api/player/{player_id}/context" in route_paths,
+            "injury_overlays": "/api/injury-overlays" in route_paths,
             "weekly_command_center": "/api/hub/week" in route_paths,
             "league_home": "/api/hub/home" in route_paths,
             "projection_movement": "/api/predict/{position}/changes" in route_paths,
@@ -726,6 +732,88 @@ def injuries(
         return {"count": len(players), "players": players}
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.get("/api/injury-overlays")
+def injury_overlays_list(
+    season: Optional[int] = None,
+    week: Optional[int] = None,
+    teams: str = Query("", description="Optional comma-separated team filter"),
+    ids: str = Query("", description="Optional comma-separated player_id filter"),
+    _user=Depends(require_patron),
+) -> dict:
+    """Serve cached injury overlays (baseline + availability + opportunity) — SCORE-31."""
+    from fastapi.encoders import jsonable_encoder
+    from src.projections.player_context import season_week_context
+
+    try:
+        resolved_season, resolved_week = season_week_context(season, week)
+        team_list = [t.strip().upper() for t in teams.split(",") if t.strip()] or None
+        id_list = [p.strip() for p in ids.split(",") if p.strip()] or None
+        return jsonable_encoder(
+            list_injury_overlays(
+                resolved_season,
+                resolved_week,
+                teams=team_list,
+                player_ids=id_list,
+            )
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.get("/api/injury-overlays/{player_id}")
+def injury_overlay_get(
+    player_id: str,
+    season: Optional[int] = None,
+    week: Optional[int] = None,
+    _user=Depends(require_patron),
+) -> dict:
+    """Serve a single player's injury overlay read model — SCORE-31."""
+    from fastapi.encoders import jsonable_encoder
+    from src.projections.player_context import season_week_context
+
+    try:
+        resolved_season, resolved_week = season_week_context(season, week)
+        return jsonable_encoder(
+            get_injury_overlay(player_id, resolved_season, resolved_week)
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.post("/api/injury-overlays/recompute")
+def injury_overlays_recompute(
+    season: Optional[int] = None,
+    week: Optional[int] = None,
+    force: bool = Query(
+        False,
+        description="Bypass debounce window and recompute immediately",
+    ),
+    teams: str = Query(
+        "",
+        description="Optional comma-separated team allow-list (skips snapshot diff)",
+    ),
+    _user=Depends(require_admin),
+) -> dict:
+    """Admin: diff injury snapshot and recompute overlays for changed teams only."""
+    from fastapi.encoders import jsonable_encoder
+    from src.projections.player_context import season_week_context
+
+    resolved_season, resolved_week = season_week_context(season, week)
+    team_set = {t.strip().upper() for t in teams.split(",") if t.strip()} or None
+    try:
+        result = recompute_injury_overlays(
+            resolved_season,
+            resolved_week,
+            force=force,
+            teams=team_set,
+        )
+        return jsonable_encoder(result)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 @app.get("/api/accuracy/season-long")
