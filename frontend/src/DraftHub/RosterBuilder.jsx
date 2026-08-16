@@ -75,10 +75,10 @@ function ContractRulesDisclosure({
         {contractsReadOnly && isLeague ? (
           <>
             <p>
-              Salary, years, and type are edited in Office Current only
+              Salary, years, and type are edited in Commissioner → Contracts only
               {isCommissioner
-                ? <> — {officeLink || "use Office Current to edit"}.</>
-                : ". Commissioners edit those fields in Office."}
+                ? <> — {officeLink || "use Commissioner → Contracts to edit"}.</>
+                : ". Commissioners edit those fields in Commissioner."}
             </p>
             <p>
               Before draft, final-year rookies can queue one 1–3 year extension
@@ -326,7 +326,7 @@ export default function RosterBuilder({
   const teamName = sleeper?.sleeper_team_name;
   const isLeague = hubContext?.mode === "league";
   const isCommissioner = Boolean(hubContext?.is_commissioner || hubContext?.can_edit_salaries);
-  // SCORE-41: league My Team never edits salary/years/type — Office Current is the only arbitrary editor.
+  // SCORE-41: league My Team never edits salary/years/type — Commissioner → Contracts is the only arbitrary editor.
   // SCORE-42: managers may still queue a server-calculated rookie extension for their own eligible rookies.
   const contractsReadOnly = isLeague || readOnly;
   const canEditType = !contractsReadOnly;
@@ -609,7 +609,7 @@ export default function RosterBuilder({
 
   const officeLink = isCommissioner && onEditInOffice ? (
     <button type="button" className="btn-link" onClick={onEditInOffice}>
-      Edit in Office
+      Edit in Commissioner
     </button>
   ) : null;
 
@@ -698,7 +698,7 @@ export default function RosterBuilder({
             ? (
               <p>
                 {isLeague
-                  ? "Salary, years, and type are edited in Office Current only. Final-year rookies can still queue one extension here."
+                  ? "Salary, years, and type are edited in Commissioner → Contracts only. Final-year rookies can still queue one extension here."
                   : "Read-only — ask commish to edit."}
                 {officeLink ? <> {officeLink}</> : null}
               </p>

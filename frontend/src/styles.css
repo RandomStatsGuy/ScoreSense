@@ -12358,8 +12358,70 @@ td.col-rank.col-rank-top {
   margin: 0.45rem 0 0.65rem;
 }
 
-/* League Office + chat */
+/* Commissioner workspace + chat */
 .hub-league-office { display: flex; flex-direction: column; gap: 0.85rem; }
+.hub-office-admin-boundary {
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  border-left: 3px solid var(--accent, #3b82f6);
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+.hub-office-tab-bar .hub-office-tab-group {
+  flex: 0 0 auto;
+  align-self: center;
+  margin: 0 0.15rem 0 0.55rem;
+  padding: 0 0.35rem 0 0;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+  border-right: 1px solid rgba(148, 163, 184, 0.28);
+}
+.hub-office-tab-bar .hub-office-tab-group:first-child {
+  margin-left: 0;
+}
+.hub-sheets-guide {
+  margin: 0 0 0.85rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.hub-sheets-guide summary {
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.hub-sheets-guide-body {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.hub-sheets-guide-body p { margin: 0 0 0.45rem; }
+.hub-sheets-guide-body p:last-child { margin-bottom: 0; }
+.hub-office-access {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+}
+.hub-office-access-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+.hub-office-access-section:first-child {
+  border-top: none;
+  padding-top: 0;
+}
 .hub-office-advanced {
   margin-top: 0.5rem;
   padding: 0.65rem 0.75rem;

@@ -177,7 +177,7 @@ export default function DraftEntryPanel({
       )}
       {testMode && mockModeLabel === "Keeper sandbox" && inDraftSetup && (
         <p className="chart-note hub-draft-expire-preview">
-          Sandbox copy of keepers — inspect Office/Roster expire badges, then Start live draft.
+          Sandbox copy of keepers — inspect Commissioner/Roster expire badges, then Start live draft.
           Delete sandbox when finished.
         </p>
       )}
