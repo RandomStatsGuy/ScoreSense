@@ -2623,6 +2623,46 @@ input[type="search"].search-input {
   margin-bottom: 0.45rem;
 }
 
+.preseason-media-mode-toggle {
+  flex-shrink: 0;
+}
+
+.preseason-media-mode-tab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.preseason-media-mode-tab--empty:not(.active) {
+  opacity: 0.72;
+}
+
+.player-context-media-mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.player-context-media-mode-label {
+  font-size: 0.78rem;
+  color: var(--text-secondary, var(--muted, #64748b));
+}
+
+.sentiment-media-mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: 0.35rem 0 0.55rem;
+}
+
+.sentiment-media-mode-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary, var(--muted, #64748b));
+}
+
 .accuracy-intro {
   margin: 0 0 1rem;
   max-width: 52rem;
@@ -13692,7 +13732,12 @@ td.col-rank.col-rank-top {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem 0.55rem;
+  gap: 0.45rem 0.65rem;
+  margin-bottom: 0.35rem;
+}
+
+.player-context-media-head .player-context-block-title {
+  margin-bottom: 0;
 }
 
 .player-context-overlay-chip {

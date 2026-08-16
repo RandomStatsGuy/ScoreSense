@@ -1,17 +1,27 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  MEDIA_MODE,
   MEDIA_STATE,
   VIEW_OLDER_COMMENTARY_LABEL,
+  applyMediaQueryParams,
   canShowCurrentWeekMediaBadge,
   formatHistoricalWeekLabel,
+  hasPreseasonMediaModes,
   historicalOptInCopy,
   isCurrentMedia,
   isHistoricalAvailable,
+  isOlderMediaMode,
+  isPreseasonMediaMode,
   mediaContextState,
+  mediaModeLabel,
   mergeMediaMetaFields,
+  modesAvailable,
+  normalizeMediaMode,
   pickHistoricalWeek,
   setIncludeHistoricalParam,
+  setMediaModeParam,
+  shouldShowPreseasonMediaModeToggle,
 } from "./mediaContext.js";
 
 test("mediaContextState normalizes known and unknown states", () => {
@@ -95,4 +105,80 @@ test("mergeMediaMetaFields lifts media_context from API payload", () => {
   assert.equal(merged.media_context.state, "historical_available");
   assert.equal(merged.context_fallback, false);
   assert.equal(mergeMediaMetaFields(null), null);
+});
+
+test("normalizeMediaMode accepts SCORE-34 modes only", () => {
+  assert.equal(normalizeMediaMode("outlook"), MEDIA_MODE.OUTLOOK);
+  assert.equal(normalizeMediaMode("WEEK1_PULSE"), MEDIA_MODE.WEEK1_PULSE);
+  assert.equal(normalizeMediaMode("older"), MEDIA_MODE.OLDER);
+  assert.equal(normalizeMediaMode("nope"), null);
+  assert.equal(normalizeMediaMode(null), null);
+  assert.equal(isPreseasonMediaMode("outlook"), true);
+  assert.equal(isPreseasonMediaMode("older"), false);
+  assert.equal(isOlderMediaMode("older"), true);
+  assert.equal(mediaModeLabel("week1_pulse"), "Week 1 pulse");
+});
+
+test("modesAvailable and hasPreseasonMediaModes read flags", () => {
+  assert.deepEqual(modesAvailable(null), {
+    outlook: false,
+    week1_pulse: false,
+    older: false,
+  });
+  const media = {
+    modes_available: { outlook: true, week1_pulse: false, older: true },
+  };
+  assert.equal(hasPreseasonMediaModes(media), true);
+  assert.equal(
+    hasPreseasonMediaModes({ modes_available: { older: true } }),
+    false,
+  );
+});
+
+test("shouldShowPreseasonMediaModeToggle includes Week 1 even without buckets", () => {
+  assert.equal(
+    shouldShowPreseasonMediaModeToggle({
+      media: { modes_available: { older: true } },
+      week: 1,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldShowPreseasonMediaModeToggle({
+      media: { modes_available: { older: true } },
+      week: 5,
+    }),
+    false,
+  );
+  assert.equal(
+    shouldShowPreseasonMediaModeToggle({
+      media: { modes_available: { outlook: true } },
+      week: 5,
+    }),
+    true,
+  );
+});
+
+test("setMediaModeParam and applyMediaQueryParams prefer media_mode", () => {
+  const params = new URLSearchParams();
+  setMediaModeParam(params, "outlook");
+  assert.equal(params.get("media_mode"), "outlook");
+  assert.equal(params.has("include_historical"), false);
+
+  setMediaModeParam(params, "older");
+  assert.equal(params.get("media_mode"), "older");
+  assert.equal(params.get("include_historical"), "true");
+
+  setMediaModeParam(params, null);
+  assert.equal(params.has("media_mode"), false);
+
+  const p2 = new URLSearchParams();
+  applyMediaQueryParams(p2, { includeHistorical: true });
+  assert.equal(p2.get("media_mode"), "older");
+  assert.equal(p2.get("include_historical"), "true");
+
+  const p3 = new URLSearchParams();
+  applyMediaQueryParams(p3, { mediaMode: "week1_pulse", includeHistorical: true });
+  assert.equal(p3.get("media_mode"), "week1_pulse");
+  assert.equal(p3.has("include_historical"), false);
 });

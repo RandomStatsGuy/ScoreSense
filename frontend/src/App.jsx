@@ -11,7 +11,7 @@ import InjurySidebar from "./InjurySidebar";
 import { pickReplacementCandidates } from "./injuryExperience";
 import SentimentPanel from "./SentimentPanel";
 import WeeklyTable from "./WeeklyTable";
-import { setIncludeHistoricalParam } from "./mediaContext";
+import { applyMediaQueryParams } from "./mediaContext";
 import PlayerCompare, { MAX_COMPARE as MAX_COMPARE_PLAYERS } from "./PlayerCompare";
 import useAccuracyRebuildPoll from "./useAccuracyRebuildPoll";
 import useAppNavigation from "./useAppNavigation";
@@ -148,8 +148,8 @@ export default function App() {
   const [sentimentMeta, setSentimentMeta] = useState(null);
   const [sentimentLoading, setSentimentLoading] = useState(false);
   const [sentimentError, setSentimentError] = useState("");
-  /** SCORE-28: opt-in key must match current slate or historical stays off. */
-  const [historicalSentimentOptInKey, setHistoricalSentimentOptInKey] = useState(null);
+  /** SCORE-28/34: media mode opt-in must match current slate or resets. */
+  const [weeklyMediaModeOptIn, setWeeklyMediaModeOptIn] = useState(null);
   const [seasonSentimentPlayers, setSeasonSentimentPlayers] = useState([]);
   const [seasonSentimentMeta, setSeasonSentimentMeta] = useState(null);
   const [seasonSentimentLoading, setSeasonSentimentLoading] = useState(false);
@@ -166,10 +166,11 @@ export default function App() {
   const isProjectionsDataView = isWeeklyProjections || isSeasonPreseason || isSeasonLive;
   const weeklySentimentSlateKey =
     season != null && week != null ? `${position}:${season}:${week}` : null;
-  const includeHistoricalSentiment =
-    Boolean(weeklySentimentSlateKey)
-    && historicalSentimentOptInKey === weeklySentimentSlateKey;
-
+  const weeklyMediaMode =
+    weeklyMediaModeOptIn?.key === weeklySentimentSlateKey
+      ? weeklyMediaModeOptIn.mode
+      : null;
+  const includeHistoricalSentiment = weeklyMediaMode === "older";
   const fetchDraft = useCallback(async (signal) => {
     if (draftSeason == null) return;
     setDraftLoading(true);
@@ -223,7 +224,9 @@ export default function App() {
   const fetchSentiment = useCallback(async (signal, override = null) => {
     const targetSeason = override?.season ?? season;
     const targetWeek = override?.week ?? week;
-    const includeHistorical = override?.includeHistorical ?? includeHistoricalSentiment;
+    const mediaMode = override?.mediaMode ?? weeklyMediaMode;
+    const includeHistorical = override?.includeHistorical
+      ?? (mediaMode === "older");
     if (targetSeason == null || targetWeek == null) return;
     setSentimentLoading(true);
     setSentimentError("");
@@ -232,7 +235,7 @@ export default function App() {
         season: String(targetSeason),
         week: String(targetWeek),
       });
-      setIncludeHistoricalParam(params, includeHistorical);
+      applyMediaQueryParams(params, { mediaMode, includeHistorical });
       const res = await apiFetch(
         `/api/fantasy-narrative/${position}/weekly?${params.toString()}`,
         { signal },
@@ -259,8 +262,7 @@ export default function App() {
     } finally {
       setSentimentLoading(false);
     }
-  }, [position, season, week, includeHistoricalSentiment]);
-
+  }, [position, season, week, weeklyMediaMode]);
   const fetchSeasonSentiment = useCallback(async (signal, override = null) => {
     const targetSeason = override?.season ?? rosSeason ?? season;
     const targetWeek = override?.week ?? rosFromWeek ?? week;
@@ -844,7 +846,7 @@ export default function App() {
     const controller = new AbortController();
     fetchSentiment(controller.signal);
     return () => controller.abort();
-  }, [isWeeklyProjections, fetchSentiment, season, week, position, includeHistoricalSentiment]);
+  }, [isWeeklyProjections, fetchSentiment, season, week, position, weeklyMediaMode]);
 
   useEffect(() => {
     fetchMeta();
@@ -1353,6 +1355,11 @@ export default function App() {
                 season={season}
                 week={week}
                 applyInjuryAdjustments={isLiveContext}
+                mediaMode={weeklyMediaMode}
+                onMediaModeChange={(mode) => {
+                  if (!weeklySentimentSlateKey) return;
+                  setWeeklyMediaModeOptIn({ key: weeklySentimentSlateKey, mode });
+                }}
                 onClearFilters={clearTableFilters}
                 movementFilter={movementFilter}
                 onMovementFilterChange={handleMovementFilterChange}
@@ -1392,6 +1399,7 @@ export default function App() {
               defaultWeek={projMeta?.default_week}
               season={season}
               week={week}
+              mediaMode={weeklyMediaMode}
               onCompareReplacements={handleCompareReplacements}
             />
 
@@ -1405,11 +1413,18 @@ export default function App() {
               meta={sentimentMeta}
               loading={sentimentLoading}
               error={sentimentError}
+              mediaMode={weeklyMediaMode}
               includeHistorical={includeHistoricalSentiment}
+              onMediaModeChange={(mode) => {
+                if (!weeklySentimentSlateKey) return;
+                setWeeklyMediaModeOptIn({ key: weeklySentimentSlateKey, mode });
+              }}
               onIncludeHistorical={() => {
-                if (weeklySentimentSlateKey) {
-                  setHistoricalSentimentOptInKey(weeklySentimentSlateKey);
-                }
+                if (!weeklySentimentSlateKey) return;
+                setWeeklyMediaModeOptIn({
+                  key: weeklySentimentSlateKey,
+                  mode: "older",
+                });
               }}
             />
           </div>
