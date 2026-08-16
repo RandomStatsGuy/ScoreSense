@@ -260,6 +260,13 @@ def player_context_get(
         False,
         description="Opt in to older media_context narrative when state is historical_available",
     ),
+    media_mode: Optional[str] = Query(
+        None,
+        description=(
+            "SCORE-34 preseason media mode: outlook | week1_pulse | older. "
+            "older aliases include_historical=true. Cached only — no live LLM/YouTube."
+        ),
+    ),
     _user=Depends(require_patron),
 ) -> dict:
     """Full cached player-context detail (SCORE-23/30) — artifact only, zero live work."""
@@ -272,6 +279,7 @@ def player_context_get(
                 season=season,
                 week=week,
                 include_historical=include_historical,
+                media_mode=media_mode,
             )
         )
     except ValueError as exc:
@@ -288,6 +296,13 @@ def players_context_list(
     include_historical: bool = Query(
         False,
         description="Opt in to older media_context narrative when state is historical_available",
+    ),
+    media_mode: Optional[str] = Query(
+        None,
+        description=(
+            "SCORE-34 preseason media mode: outlook | week1_pulse | older. "
+            "older aliases include_historical=true."
+        ),
     ),
     compact: bool = Query(
         True,
@@ -310,6 +325,7 @@ def players_context_list(
                 week=week,
                 player_ids=player_ids,
                 include_historical=include_historical,
+                media_mode=media_mode,
                 compact=compact,
             )
         )
@@ -1461,6 +1477,13 @@ def fantasy_narrative_weekly_get(
         False,
         description="Opt in to older fantasy narrative when current week has none (SCORE-28)",
     ),
+    media_mode: Optional[str] = Query(
+        None,
+        description=(
+            "SCORE-34: outlook (preseason lookback week=0) | week1_pulse | older. "
+            "Cached features only."
+        ),
+    ),
     _user=Depends(require_patron),
 ) -> dict:
     position = position.lower()
@@ -1473,6 +1496,7 @@ def fantasy_narrative_weekly_get(
             resolved_season,
             resolved_week,
             include_historical=include_historical,
+            media_mode=media_mode,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
