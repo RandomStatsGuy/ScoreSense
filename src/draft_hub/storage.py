@@ -392,6 +392,34 @@ def _migrate(conn: sqlite3.Connection) -> None:
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_league_roster_edit_league ON league_roster_edit(league_id, edited_at)"
     )
+    # SCORE-43: immutable correction events (prior published state + new snapshot revision).
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS league_historic_correction (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            league_id TEXT NOT NULL,
+            row_id INTEGER NOT NULL,
+            season_year INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            mode TEXT NOT NULL,
+            edited_by_sub TEXT NOT NULL,
+            edited_at TEXT NOT NULL,
+            before_json TEXT NOT NULL,
+            after_json TEXT NOT NULL,
+            historic_snapshot_revision INTEGER NOT NULL,
+            live_applied INTEGER NOT NULL DEFAULT 0,
+            live_before_json TEXT,
+            live_after_json TEXT,
+            live_roster_revision INTEGER
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_historic_correction_league "
+        "ON league_historic_correction(league_id, season_year, edited_at)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_historic_correction_row "
+        "ON league_historic_correction(row_id, edited_at)"
+    )
     conn.execute(
         """CREATE TABLE IF NOT EXISTS league_owner_season_map (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2761,6 +2789,112 @@ def bump_historic_snapshot_revision(league_id: str) -> int:
     """Advance historic snapshot revision (Insights / salary-sheet cache keys)."""
     with get_conn() as conn:
         return _bump_revision_conn(conn, league_id, "historic_snapshot_revision")
+
+
+def insert_historic_correction(
+    league_id: str,
+    *,
+    row_id: int,
+    season_year: int,
+    reason: str,
+    mode: str,
+    edited_by_sub: str,
+    before_json: dict[str, Any],
+    after_json: dict[str, Any],
+    historic_snapshot_revision: int,
+    live_applied: bool = False,
+    live_before_json: dict[str, Any] | None = None,
+    live_after_json: dict[str, Any] | None = None,
+    live_roster_revision: int | None = None,
+) -> int:
+    """Persist a SCORE-43 historic correction event (keeps prior published state)."""
+    import json
+
+    now = _utcnow()
+    with get_conn() as conn:
+        cur = conn.execute(
+            """INSERT INTO league_historic_correction (
+                league_id, row_id, season_year, reason, mode, edited_by_sub, edited_at,
+                before_json, after_json, historic_snapshot_revision,
+                live_applied, live_before_json, live_after_json, live_roster_revision
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                str(league_id),
+                int(row_id),
+                int(season_year),
+                str(reason),
+                str(mode),
+                str(edited_by_sub),
+                now,
+                json.dumps(before_json, default=str),
+                json.dumps(after_json, default=str),
+                int(historic_snapshot_revision),
+                1 if live_applied else 0,
+                json.dumps(live_before_json, default=str) if live_before_json is not None else None,
+                json.dumps(live_after_json, default=str) if live_after_json is not None else None,
+                int(live_roster_revision) if live_roster_revision is not None else None,
+            ),
+        )
+        return int(cur.lastrowid)
+
+
+def get_historic_correction(correction_id: int) -> dict[str, Any] | None:
+    import json
+
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM league_historic_correction WHERE id = ?",
+            (int(correction_id),),
+        ).fetchone()
+    if not row:
+        return None
+    d = dict(row)
+    d["live_applied"] = bool(d.get("live_applied"))
+    for key in ("before_json", "after_json", "live_before_json", "live_after_json"):
+        raw = d.get(key)
+        if raw:
+            try:
+                d[key.replace("_json", "")] = json.loads(raw)
+            except (TypeError, json.JSONDecodeError):
+                d[key.replace("_json", "")] = None
+        else:
+            d[key.replace("_json", "")] = None
+    return d
+
+
+def list_historic_corrections(
+    league_id: str,
+    *,
+    season_year: int | None = None,
+    row_id: int | None = None,
+    limit: int = 100,
+) -> list[dict[str, Any]]:
+    clauses = ["league_id = ?"]
+    params: list[Any] = [str(league_id)]
+    if season_year is not None:
+        clauses.append("season_year = ?")
+        params.append(int(season_year))
+    if row_id is not None:
+        clauses.append("row_id = ?")
+        params.append(int(row_id))
+    params.append(max(1, min(int(limit), 500)))
+    with get_conn() as conn:
+        rows = conn.execute(
+            f"""SELECT id, league_id, row_id, season_year, reason, mode, edited_by_sub,
+                       edited_at, historic_snapshot_revision, live_applied, live_roster_revision
+                FROM league_historic_correction
+                WHERE {' AND '.join(clauses)}
+                ORDER BY id DESC
+                LIMIT ?""",
+            params,
+        ).fetchall()
+    return [
+        {
+            **dict(r),
+            "live_applied": bool(r["live_applied"]),
+        }
+        for r in rows
+    ]
 
 
 def _bump_live_for_workspace_conn(conn: sqlite3.Connection, workspace_id: str) -> list[tuple[str, int]]:

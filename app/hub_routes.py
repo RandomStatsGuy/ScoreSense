@@ -64,6 +64,7 @@ from src.draft_hub.schemas import (
     RosterAddRequest,
     RosterRemoveRequest,
     RosterUpdateRequest,
+    HistoricCorrectionRequest,
     SleeperImportRequest,
     SleeperLeagueConnectRequest,
     SleeperLinkRequest,
@@ -765,6 +766,7 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
     draft_completed = bool(ctx.get("draft_completed"))
     salary_fields = body.salary is not None or body.contract_years is not None or body.salary_schedule is not None
     type_field = body.contract_type is not None
+    status_field = body.roster_status is not None
     if salary_fields and ctx.get("mode") == "league" and not ctx.get("can_edit_salaries"):
         raise HTTPException(status_code=403, detail="Only the league commissioner can update salaries")
     if type_field and ctx.get("mode") == "league" and not (
@@ -793,6 +795,30 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
     if ctx.get("mode") == "league" and not ctx.get("is_commissioner"):
         if existing.get("team_id") and str(existing["team_id"]) != str(team_id):
             raise HTTPException(status_code=403, detail="Cannot edit another team's roster")
+
+    # SCORE-43: commissioner Office Current overrides require a reason + before/after.
+    commissioner_override = bool(
+        ctx.get("mode") == "league"
+        and ctx.get("is_commissioner")
+        and (salary_fields or status_field or (type_field and ctx.get("can_edit_salaries")))
+    )
+    note = str(body.note or "").strip() or None
+    if commissioner_override and (salary_fields or status_field):
+        if not note or len(note) < 3:
+            raise HTTPException(
+                status_code=400,
+                detail="Commissioner override requires a reason (note, at least 3 characters)",
+            )
+    from src.draft_hub.historic_corrections import commissioner_override_before_after
+
+    before_snap, after_snap = commissioner_override_before_after(
+        existing,
+        salary=body.salary,
+        contract_years=yrs_in,
+        roster_status=body.roster_status,
+        contract_type=body.contract_type,
+    )
+
     cur_sal = float(body.salary if body.salary is not None else existing["salary"])
     cur_yrs = int(yrs_in if yrs_in is not None else existing.get("contract_years") or 1)
     contract = None
@@ -815,6 +841,7 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
                 pending_type=str(body.contract_type),
                 pending_by=sub,
                 edited_by_sub=sub,
+                note=note,
             )
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -830,13 +857,14 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
                 any_team=bool(ctx.get("mode") == "league" and ctx.get("is_commissioner")),
                 manual=True,
                 edited_by_sub=sub,
+                note=note,
             )
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         if not salary_fields and body.roster_status is None:
             roster = list_roster_for_context(ctx)
             _invalidate_league_rosters_from_ctx(ctx)
-            return {
+            payload = {
                 "slot": slot,
                 "validation_errors": validate_roster(rules, roster),
                 "multi_year_plan": multi_year_cap_plan(rules, roster, draft_completed=draft_completed),
@@ -845,6 +873,21 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
                 "received_contract_type": body.contract_type,
                 "saved_contract_type": (slot.get("contract") or {}).get("contract_type"),
             }
+            if commissioner_override:
+                lid = ctx.get("league_id")
+                revs = storage.league_cache_revisions(str(lid)) if lid else {}
+                payload.update(
+                    {
+                        "before": before_snap,
+                        "after": {
+                            **after_snap,
+                            "contract_type": (slot.get("contract") or {}).get("contract_type"),
+                        },
+                        "note": note,
+                        "live_roster_revision": revs.get("live_roster_revision"),
+                    }
+                )
+            return payload
         contract = build_contract_from_roster_edit(
             rules,
             current_salary=cur_sal,
@@ -894,6 +937,7 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
             roster_status=body.roster_status,
             any_team=bool(ctx.get("mode") == "league" and ctx.get("is_commissioner")),
             edited_by_sub=sub,
+            note=note,
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -913,13 +957,32 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
     plan = multi_year_cap_plan(rules, roster, draft_completed=draft_completed)
     pre_draft = pre_draft_cap_summary(rules, roster, draft_completed=draft_completed)
     _invalidate_league_rosters_from_ctx(ctx)
-    return {
+    payload = {
         "slot": persisted,
         "validation_errors": errors,
         "multi_year_plan": plan,
         "pre_draft": pre_draft,
         "pending_type": pending,
     }
+    if commissioner_override:
+        lid = ctx.get("league_id")
+        revs = storage.league_cache_revisions(str(lid)) if lid else {}
+        payload.update(
+            {
+                "before": before_snap,
+                "after": {
+                    "player_id": persisted.get("player_id"),
+                    "player_name": persisted.get("player_name"),
+                    "salary": persisted.get("salary"),
+                    "contract_years": persisted.get("contract_years"),
+                    "roster_status": persisted.get("roster_status"),
+                    "contract_type": (persisted.get("contract") or {}).get("contract_type"),
+                },
+                "note": note,
+                "live_roster_revision": revs.get("live_roster_revision"),
+            }
+        )
+    return payload
 
 
 @router.get("/cap-sheet")
@@ -2448,6 +2511,7 @@ class ContractRowPatch(BaseModel):
     confidence: Optional[str] = None
     needs_review: Optional[bool] = None
     review_reason: Optional[str] = None
+    # SCORE-43: salary patches require a correction reason; prefer POST .../correct.
     note: Optional[str] = None
 
 
@@ -2468,6 +2532,15 @@ def hub_contract_history_patch(
     note = updates.pop("note", None)
     if not updates:
         return row
+    salary_touch = any(k in updates for k in ("cap_hit", "base_salary", "prior_salary"))
+    if salary_touch and (not note or len(str(note).strip()) < 3):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Historic salary corrections require a reason. "
+                "Use POST /contract-history/{row_id}/correct (history_only | preview_forward | apply_forward)."
+            ),
+        )
     if updates.get("roster_status") == "cut" or (
         str(row.get("roster_status") or "") == "cut" and "cap_hit" in updates
     ):
@@ -2480,6 +2553,89 @@ def hub_contract_history_patch(
     updated = storage.update_league_contract_row(row_id, updates, edited_by_sub=sub, note=note)
     _clear_insights_response_cache(league_id)
     return updated
+
+
+@router.get("/league/{league_id}/contract-history/corrections")
+def hub_contract_corrections_list(
+    league_id: str,
+    season: Optional[int] = Query(None, description="Filter by season year"),
+    row_id: Optional[int] = Query(None, description="Filter by contract row id"),
+    limit: int = Query(50, ge=1, le=200),
+    _user=Depends(require_hub_user),
+) -> dict:
+    """SCORE-43: list published historic correction events (snapshot versions)."""
+    sub = _sub(_user)
+    _ctx_for_league(sub, league_id)
+    rows = storage.list_historic_corrections(
+        league_id,
+        season_year=season,
+        row_id=row_id,
+        limit=limit,
+    )
+    revs = storage.league_cache_revisions(league_id)
+    return {
+        "corrections": rows,
+        "historic_snapshot_revision": revs["historic_snapshot_revision"],
+        "live_roster_revision": revs["live_roster_revision"],
+    }
+
+
+@router.get("/league/{league_id}/contract-history/{row_id}/correction-context")
+def hub_contract_correction_context(
+    league_id: str,
+    row_id: int,
+    _user=Depends(require_hub_user),
+) -> dict:
+    """SCORE-43: source, phase, original values, and snapshot revision for Correct historical record."""
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    from src.draft_hub.historic_corrections import correction_context
+
+    try:
+        return correction_context(league_id, int(row_id))
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/league/{league_id}/contract-history/{row_id}/correct")
+def hub_contract_correct(
+    league_id: str,
+    row_id: int,
+    body: HistoricCorrectionRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    """SCORE-43: publish a historic correction (history-only or preview/apply forward)."""
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    from src.draft_hub.historic_corrections import correct_historic_row
+
+    top_level = body.model_dump(
+        exclude_none=True,
+        exclude={"reason", "mode", "updates", "forward_rebuild_approved"},
+    )
+    updates = dict(body.updates or {})
+    updates.update(top_level)
+    try:
+        result = correct_historic_row(
+            league_id,
+            int(row_id),
+            reason=body.reason,
+            mode=body.mode,
+            updates=updates,
+            edited_by_sub=sub,
+            forward_rebuild_approved=bool(body.forward_rebuild_approved),
+        )
+    except ValueError as exc:
+        msg = str(exc)
+        code = 404 if "not found" in msg.lower() else 400
+        raise HTTPException(status_code=code, detail=msg) from exc
+    if result.get("applied"):
+        _clear_insights_response_cache(league_id)
+        if result.get("live_applied"):
+            _invalidate_league_rosters_from_ctx(ctx)
+    return result
 
 
 class ContractRowCreate(BaseModel):
