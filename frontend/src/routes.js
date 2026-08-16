@@ -39,12 +39,13 @@ export const INSIGHT_ID_TO_SLUG = Object.fromEntries(
   Object.entries(INSIGHT_SLUG_TO_ID).map(([slug, id]) => [id, slug]),
 );
 
-/** Office URL slug ↔ internal tab id */
+/** Commissioner (/hub/office) URL slug ↔ internal tab id */
 export const OFFICE_SLUG_TO_ID = {
   chat: "chat",
   current: "current",
   historic: "historic",
   members: "members",
+  access: "access",
 };
 
 export const OFFICE_ID_TO_SLUG = { ...OFFICE_SLUG_TO_ID };

@@ -9,12 +9,21 @@ import LeagueContractHistory from "./LeagueContractHistory";
 import LeagueChat from "./LeagueChat";
 import LeagueInvites from "./LeagueInvites";
 import LeagueSleeperConnect from "./LeagueSleeperConnect";
+import CapSheetImport from "./CapSheetImport";
+import LeagueSheetImport from "./LeagueSheetImport";
 import {
   defaultOfficeTab,
   isOfficeTabAllowed,
   visibleOfficeTabs,
 } from "./hubOfficeTabs";
-import { seasonCapYearHint } from "./rosterFormat";
+import {
+  commissionerIntro,
+  markSheetsGuideSeen,
+  sheetsDefaultHint,
+  sheetsGuideCopy,
+  shouldAutoOpenSheetsGuide,
+  tabsWithGroupLabels,
+} from "./commissionerSections";
 
 /** Mount bulk contract-history tools only after the commissioner opens Advanced. */
 function OfficeAdvancedAudit({ leagueId, hubContext, seasonFilter }) {
@@ -37,6 +46,30 @@ function OfficeAdvancedAudit({ leagueId, hubContext, seasonFilter }) {
           embedded
         />
       )}
+    </details>
+  );
+}
+
+function SheetsYearGuide({ year }) {
+  const guide = useMemo(() => sheetsGuideCopy(year), [year]);
+  const [open, setOpen] = useState(() => shouldAutoOpenSheetsGuide());
+
+  return (
+    <details
+      className="hub-sheets-guide"
+      open={open}
+      onToggle={(e) => {
+        const next = e.currentTarget.open;
+        setOpen(next);
+        if (!next) markSheetsGuideSeen();
+      }}
+    >
+      <summary>{guide.summary}</summary>
+      <div className="hub-sheets-guide-body">
+        {guide.paragraphs.map((p) => (
+          <p key={p}>{p}</p>
+        ))}
+      </div>
     </details>
   );
 }
@@ -72,13 +105,6 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
 
   const claimed = teams.filter((t) => t.user_sub).length;
   const sleeperLinked = teams.filter((t) => t.sleeper_roster_id).length;
-  const overview = useMemo(
-    () => ({
-      league: { sleeper_league_id: hubContext?.sleeper_league_id },
-      teams: teams.map((t) => ({ team: t })),
-    }),
-    [teams, hubContext?.sleeper_league_id],
-  );
 
   const toggleCoCommish = async (teamId, enabled) => {
     setBusy(teamId);
@@ -105,6 +131,13 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
 
   return (
     <div className="hub-office-members">
+      <header className="hub-section-head">
+        <h3 className="hub-section-title">Membership</h3>
+        <p className="hub-section-hint">
+          Who claimed each team and co-commissioner roles. Invites and Sleeper mapping live under Access.
+        </p>
+      </header>
+
       <div className="hub-roster-team-stats" aria-label="Membership summary">
         <span><strong>{claimed}</strong> / {teams.length} claimed</span>
         <span><strong>{sleeperLinked}</strong> / {teams.length} Sleeper-linked</span>
@@ -168,24 +201,46 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
 
-      <div className="hub-office-members-connect">
-        <header className="hub-section-head">
-          <h3 className="hub-section-title">Sleeper mapping</h3>
-          <p className="hub-section-hint">Connect hub teams to Sleeper rosters.</p>
-        </header>
-        <LeagueSleeperConnect
-          leagueId={leagueId}
-          hubContext={hubContext}
-          overview={overview}
-          onConnected={() => {
-            load();
-            onChanged?.();
-          }}
-        />
-      </div>
+function OfficeAccess({ leagueId, hubContext, workspace, onChanged }) {
+  const [teams, setTeams] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-      <div className="hub-office-members-invites">
+  const load = useCallback(async () => {
+    if (!leagueId) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/members`);
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const data = await res.json();
+      setTeams(data.teams || []);
+    } catch (e) {
+      setError(connectionErrorMessage(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [leagueId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const overview = useMemo(
+    () => ({
+      league: { sleeper_league_id: hubContext?.sleeper_league_id },
+      teams: teams.map((t) => ({ team: t })),
+    }),
+    [teams, hubContext?.sleeper_league_id],
+  );
+
+  return (
+    <div className="hub-office-access">
+      <section className="hub-office-access-section">
         <header className="hub-section-head">
           <h3 className="hub-section-title">Invites</h3>
           <p className="hub-section-hint">Email invites can include co-commissioner access.</p>
@@ -195,7 +250,41 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
           hubContext={hubContext}
           onChanged={onChanged}
         />
-      </div>
+      </section>
+
+      <section className="hub-office-access-section">
+        <header className="hub-section-head">
+          <h3 className="hub-section-title">Sleeper mapping</h3>
+          <p className="hub-section-hint">Connect hub teams to Sleeper rosters.</p>
+        </header>
+        {error && <div className="error">{error}</div>}
+        {loading && <p className="chart-note">Loading teams…</p>}
+        {!loading && (
+          <LeagueSleeperConnect
+            leagueId={leagueId}
+            hubContext={hubContext}
+            overview={overview}
+            onConnected={() => {
+              load();
+              onChanged?.();
+            }}
+          />
+        )}
+      </section>
+
+      <section className="hub-office-access-section">
+        <header className="hub-section-head">
+          <h3 className="hub-section-title">Imports</h3>
+          <p className="hub-section-hint">Bring in league or cap sheets from CSV / Excel.</p>
+        </header>
+        <LeagueSheetImport
+          season={workspace?.season || hubContext?.season}
+          onImported={onChanged}
+          embedded
+          commissionerMode
+        />
+        <CapSheetImport onImported={onChanged} embedded />
+      </section>
     </div>
   );
 }
@@ -212,6 +301,8 @@ export default function LeagueOffice({
 }) {
   const isCommissioner = Boolean(hubContext?.is_commissioner);
   const tabs = useMemo(() => visibleOfficeTabs(isCommissioner), [isCommissioner]);
+  const navItems = useMemo(() => tabsWithGroupLabels(tabs), [tabs]);
+  const intro = useMemo(() => commissionerIntro(isCommissioner), [isCommissioner]);
   const activeTab = isOfficeTabAllowed(officeTab, isCommissioner)
     ? officeTab
     : defaultOfficeTab(isCommissioner);
@@ -231,7 +322,7 @@ export default function LeagueOffice({
   }, [season]);
 
   useEffect(() => {
-    // Keep URL in sync only while Office is the visible hub tab. This pane stays
+    // Keep URL in sync only while Commissioner is the visible hub tab. This pane stays
     // mounted (display:none) after first visit — syncing when inactive yanks
     // navigation back to /hub/office whenever officeTab is cleared.
     if (!active) return;
@@ -240,28 +331,38 @@ export default function LeagueOffice({
 
   // "Current" = planning season (may have no rows yet — seed via pre-draft).
   const seasonFilter = historySeason === "current" ? String(season) : historySeason;
+  const guideYear = historySeason === "current" ? season : historySeason;
 
   return (
     <div className="hub-league-office">
       <HubTabIntro
-        title="Office"
-        purpose={
-          isCommissioner
-            ? "Chat, edit live contracts, reconcile historic sheets, and manage members."
-            : "League chat — talk with every team."
-        }
+        title={intro.title}
+        purpose={intro.purpose}
+        audience={intro.audience}
       />
 
-      <div className="hub-filter-bar">
+      {isCommissioner && (
+        <p className="hub-office-admin-boundary" role="note">
+          Admin tools — edits here apply league-wide. Day-to-day roster and cap work stays on My Roster and Cap.
+        </p>
+      )}
+
+      <div className="hub-filter-bar hub-office-tab-bar">
         <HubFilterScroll>
-          {tabs.map((t) => (
-            <HubFilterChip
-              key={t.id}
-              active={activeTab === t.id}
-              onClick={() => onOfficeTabChange?.(t.id)}
-            >
-              {t.label}
-            </HubFilterChip>
+          {navItems.map((item) => (
+            item.type === "label" ? (
+              <span key={item.id} className="hub-office-tab-group" aria-hidden="true">
+                {item.label}
+              </span>
+            ) : (
+              <HubFilterChip
+                key={item.id}
+                active={activeTab === item.id}
+                onClick={() => onOfficeTabChange?.(item.id)}
+              >
+                {item.label}
+              </HubFilterChip>
+            )
           ))}
         </HubFilterScroll>
       </div>
@@ -274,17 +375,20 @@ export default function LeagueOffice({
 
       {activeTab === "current" && isCommissioner && (
         <HubPage>
-          <p className="chart-note">
-            Live keepers for season {hubContext?.season}. Use{" "}
-            <button type="button" className="btn-link" onClick={() => onNavigate?.("planner")}>
-              Cap
-            </button>
-            {" "}for extend / FA, or{" "}
-            <button type="button" className="btn-link" onClick={() => onOfficeTabChange?.("historic")}>
-              Historic
-            </button>
-            {" "}for past year sheets.
-          </p>
+          <header className="hub-section-head">
+            <h3 className="hub-section-title">Live contracts</h3>
+            <p className="hub-section-hint">
+              Keepers for season {hubContext?.season}. Use{" "}
+              <button type="button" className="btn-link" onClick={() => onNavigate?.("planner")}>
+                Cap
+              </button>
+              {" "}for extend / FA, or{" "}
+              <button type="button" className="btn-link" onClick={() => onOfficeTabChange?.("historic")}>
+                Sheets
+              </button>
+              {" "}for year books.
+            </p>
+          </header>
           <CommissionerLeagueRosters
             leagueId={leagueId}
             season={hubContext?.season}
@@ -316,11 +420,9 @@ export default function LeagueOffice({
           <HubPage>
             <header className="hub-section-head">
               <h2 className="hub-tab-intro-title">Salary sheets</h2>
-              <p className="hub-section-hint">
-                {seasonCapYearHint(historySeason === "current" ? season : historySeason)}
-                {" "}Edit Pos, $, Status, and Acquired on the table.
-              </p>
+              <p className="hub-section-hint">{sheetsDefaultHint()}</p>
             </header>
+            <SheetsYearGuide year={guideYear} />
             <TeamSalarySheets
               leagueId={leagueId}
               seasonFilter={seasonFilter}
@@ -343,6 +445,17 @@ export default function LeagueOffice({
           <OfficeMembers
             leagueId={leagueId}
             hubContext={hubContext}
+            onChanged={onChanged}
+          />
+        </HubPage>
+      )}
+
+      {activeTab === "access" && isCommissioner && (
+        <HubPage>
+          <OfficeAccess
+            leagueId={leagueId}
+            hubContext={hubContext}
+            workspace={workspace}
             onChanged={onChanged}
           />
         </HubPage>
