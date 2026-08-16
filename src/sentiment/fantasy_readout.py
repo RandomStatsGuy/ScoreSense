@@ -170,10 +170,10 @@ def _row_to_fantasy_player(
         prefer_llm=prefer_llm,
         return_meta=True,
     )
-    payload["fantasy_digest"] = digest_result["fantasy_digest"]
-    payload["fantasy_digest_source"] = digest_result.get("fantasy_digest_source")
-    payload["beat_digest"] = payload["fantasy_digest"]
-    payload["beat_digest_source"] = payload["fantasy_digest_source"]
+    payload["fantasy_media_digest"] = digest_result["fantasy_media_digest"]
+    payload["fantasy_media_digest_source"] = digest_result.get(
+        "fantasy_media_digest_source"
+    )
     return payload
 
 

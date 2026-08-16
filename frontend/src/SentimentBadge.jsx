@@ -18,7 +18,7 @@ export default function SentimentBadge({ sentiment, compact = false, table = fal
 
   const label = sentiment.sentiment_label || "neutral";
   const text = sentiment.sentiment_label_text || sentimentLabelText(label);
-  const narrative = sentiment.fantasy_digest || sentiment.beat_digest || sentiment.snippet || sentiment.sentiment_summary || "";
+  const narrative = sentiment.fantasy_media_digest || sentiment.snippet || sentiment.sentiment_summary || "";
   const rawSnippet = sentiment.snippet?.trim();
 
   const flags = [];

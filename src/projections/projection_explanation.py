@@ -387,8 +387,8 @@ def _narrative_from_sentiment(
             return_meta=True,
         )
         if isinstance(result, dict):
-            digest = result.get("fantasy_digest") or None
-            digest_source = result.get("fantasy_digest_source")
+            digest = result.get("fantasy_media_digest") or None
+            digest_source = result.get("fantasy_media_digest_source")
     except Exception:
         digest = extractive_fantasy_digest(
             name,

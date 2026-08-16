@@ -48,11 +48,11 @@ function mergeSentimentMeta(data) {
 }
 
 function digestText(row) {
-  return row.fantasy_digest?.trim() || row.beat_digest?.trim() || "";
+  return row.fantasy_media_digest?.trim() || "";
 }
 
 function digestSource(row) {
-  return row.fantasy_digest_source || row.beat_digest_source;
+  return row.fantasy_media_digest_source;
 }
 
 function trendLabel(trend) {

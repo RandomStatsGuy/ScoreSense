@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from app.auth import hub_auth_enabled, require_hub_user, ws_user_from_token
 from src.draft_hub import storage
-from src.draft_hub.draft_enrichment import beat_digest_single, build_draft_room_enrichment
+from src.draft_hub.draft_enrichment import build_draft_room_enrichment, fantasy_media_digest_single
 from src.draft_hub.draft_state import (
     award_nominee,
     check_timers,
@@ -984,8 +984,8 @@ def hub_draft_room_enrichment_post(body: DraftEnrichmentRequest, _user=Depends(r
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@router.get("/draft-room/beat-digest/{player_id}")
-def hub_draft_beat_digest(
+@router.get("/draft-room/fantasy-media-digest/{player_id}")
+def hub_draft_fantasy_media_digest(
     player_id: str,
     player_name: Optional[str] = None,
     season: Optional[int] = None,
@@ -993,7 +993,9 @@ def hub_draft_beat_digest(
     _user=Depends(require_hub_user),
 ) -> dict:
     try:
-        return beat_digest_single(player_id, player_name=player_name, season=season, week=week)
+        return fantasy_media_digest_single(
+            player_id, player_name=player_name, season=season, week=week
+        )
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
