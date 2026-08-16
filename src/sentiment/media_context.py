@@ -69,6 +69,8 @@ def empty_media_context(
         "signal": None,
         "source_count": 0,
         "summary": None,
+        "excerpt": None,
+        "sources": [],
         "updated_at": None,
         "historical": historical,
         "affects_projection": False,
@@ -81,6 +83,8 @@ def media_context_block(
     signal: str | None = None,
     source_count: int = 0,
     summary: str | None = None,
+    excerpt: str | None = None,
+    sources: list[dict[str, Any]] | None = None,
     updated_at: str | None = None,
 ) -> dict[str, Any]:
     """Build a media_context object that never mislabels historical as current."""
@@ -93,6 +97,7 @@ def media_context_block(
             "season": int(resolution.historical_season),
             "week": int(resolution.historical_week),
         }
+    source_list = list(sources or [])
 
     if resolution.state == MEDIA_STATE_CURRENT:
         return {
@@ -100,6 +105,8 @@ def media_context_block(
             "signal": signal,
             "source_count": int(source_count or 0),
             "summary": summary,
+            "excerpt": excerpt,
+            "sources": source_list,
             "updated_at": updated_at,
             "historical": None,
             "affects_projection": False,
@@ -112,6 +119,8 @@ def media_context_block(
                 "signal": signal,
                 "source_count": int(source_count or 0),
                 "summary": summary,
+                "excerpt": excerpt,
+                "sources": source_list,
                 "updated_at": updated_at,
                 "historical": historical,
                 "affects_projection": False,
@@ -143,6 +152,8 @@ def strip_historical_content(media_context: dict[str, Any] | None) -> dict[str, 
             "signal": media_context.get("signal"),
             "source_count": int(media_context.get("source_count") or 0),
             "summary": media_context.get("summary"),
+            "excerpt": media_context.get("excerpt"),
+            "sources": list(media_context.get("sources") or []),
             "updated_at": media_context.get("updated_at"),
             "historical": None,
             "affects_projection": False,
@@ -171,6 +182,8 @@ def apply_historical_opt_in(media_context: dict[str, Any] | None) -> dict[str, A
         "signal": historical.get("signal"),
         "source_count": int(historical.get("source_count") or 0),
         "summary": historical.get("summary"),
+        "excerpt": historical.get("excerpt"),
+        "sources": list(historical.get("sources") or []),
         "updated_at": historical.get("updated_at"),
         "historical": {
             "season": int(historical["season"]),

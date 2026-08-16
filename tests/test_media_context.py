@@ -96,6 +96,8 @@ def test_strip_and_apply_historical_opt_in():
         "signal": None,
         "source_count": 0,
         "summary": None,
+        "excerpt": None,
+        "sources": [],
         "updated_at": None,
         "historical": {
             "season": 2025,
@@ -103,6 +105,8 @@ def test_strip_and_apply_historical_opt_in():
             "signal": "mentioned",
             "source_count": 3,
             "summary": "Older commentary",
+            "excerpt": "Older excerpt",
+            "sources": [{"label": "Old Show"}],
             "updated_at": "2025-01-01T00:00:00+00:00",
         },
         "affects_projection": False,
@@ -110,12 +114,16 @@ def test_strip_and_apply_historical_opt_in():
     stripped = strip_historical_content(stored)
     assert stripped["state"] == MEDIA_STATE_HISTORICAL_AVAILABLE
     assert stripped["summary"] is None
+    assert stripped["excerpt"] is None
+    assert stripped["sources"] == []
     assert stripped["signal"] is None
     assert stripped["historical"] == {"season": 2025, "week": 18}
 
     opted = apply_historical_opt_in(stored)
     assert opted["state"] == MEDIA_STATE_HISTORICAL_AVAILABLE
     assert opted["summary"] == "Older commentary"
+    assert opted["excerpt"] == "Older excerpt"
+    assert opted["sources"] == [{"label": "Old Show"}]
     assert opted["signal"] == "mentioned"
     assert opted["source_count"] == 3
     assert opted["historical"] == {"season": 2025, "week": 18}

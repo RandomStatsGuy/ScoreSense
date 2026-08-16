@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -14,8 +15,11 @@ from app.api import app
 from src.integrations.injury_snapshot import build_injury_snapshot
 from src.projections.player_context import (
     build_player_context_rows,
+    compact_player_context,
+    detail_available_for_payload,
     get_player_context,
     invalidate_player_context_cache,
+    injury_age_hours,
     list_player_context,
     parse_opportunity_drivers,
     save_player_context_artifact,
@@ -205,6 +209,8 @@ def test_build_player_context_schema(_load, _save_snap, _sent, _digest, tmp_path
     assert "00-0036322" in higgins["opportunity_adjustment"]["drivers"]
     assert higgins["media_context"]["affects_projection"] is False
     assert higgins["media_context"]["state"] == "none"
+    assert "excerpt" in higgins["media_context"]
+    assert "sources" in higgins["media_context"]
 
     quiet = by_id["wr-quiet"]
     assert quiet["availability"]["status"] == "Questionable"
@@ -217,10 +223,18 @@ def test_build_player_context_schema(_load, _save_snap, _sent, _digest, tmp_path
     payload = get_player_context("wr-higgins", season=2026, week=1)
     assert payload["projection"]["final"] == 16.8
     assert payload["meta"]["injury_snapshot_id"] == "inj_2026w1_test"
+    assert payload["meta"]["view"] == "detail"
 
     listed = list_player_context(season=2026, week=1, player_ids=["wr-quiet"])
     assert listed["count"] == 1
-    assert listed["players"][0]["player_id"] == "wr-quiet"
+    assert listed["meta"]["compact"] is True
+    assert listed["meta"]["view"] == "compact"
+    quiet_row = listed["players"][0]
+    assert quiet_row["player_id"] == "wr-quiet"
+    assert quiet_row["detail_available"] is True
+    assert "summary" not in quiet_row["media_context"]
+    assert "drivers" not in quiet_row["opportunity_adjustment"]
+    assert "projection" not in quiet_row
 
 
 @patch("app.api.get_player_context")
@@ -236,7 +250,7 @@ def test_player_context_api_shape(mock_get, client):
             "injury_delta": 2.1,
             "injury_snapshot_id": "inj_2026w1_abc",
         },
-        "availability": {"status": None, "practice": None, "updated_at": None},
+        "availability": {"status": None, "practice": None, "updated_at": None, "age_hours": None},
         "opportunity_adjustment": {
             "points": 2.1,
             "drivers": ["justin-jefferson"],
@@ -247,11 +261,14 @@ def test_player_context_api_shape(mock_get, client):
             "signal": "role_up",
             "source_count": 3,
             "summary": "Role trending up.",
+            "excerpt": "Higgins elevated with Chase limited",
+            "sources": [{"label": "Fantasy Footballers"}],
             "updated_at": "2026-08-14T00:00:00+00:00",
             "historical": None,
             "affects_projection": False,
         },
-        "meta": {"season": 2026, "week": 1, "stale": False},
+        "detail_available": True,
+        "meta": {"season": 2026, "week": 1, "stale": False, "view": "detail"},
     }
 
     from app.auth import require_patron
@@ -267,6 +284,8 @@ def test_player_context_api_shape(mock_get, client):
     assert data["projection"]["injury_snapshot_id"] == "inj_2026w1_abc"
     assert data["opportunity_adjustment"]["included"] is True
     assert data["media_context"]["affects_projection"] is False
+    assert data["media_context"]["excerpt"]
+    assert data["detail_available"] is True
     mock_get.assert_called_once()
 
 
@@ -309,8 +328,16 @@ def test_player_context_api_503_when_cold(mock_get, client):
 def test_players_context_list_api(mock_list, client):
     mock_list.return_value = {
         "count": 1,
-        "players": [{"player_id": "wr-higgins", "projection": {"base": 14.7}}],
-        "meta": {"season": 2026, "week": 1},
+        "players": [
+            {
+                "player_id": "wr-higgins",
+                "availability": {"status": None, "age_hours": None},
+                "opportunity_adjustment": {"points": 2.1, "included": True},
+                "media_context": {"signal": "role_up", "source_count": 3},
+                "detail_available": True,
+            }
+        ],
+        "meta": {"season": 2026, "week": 1, "compact": True, "view": "compact"},
     }
     from app.auth import require_patron
 
@@ -324,6 +351,82 @@ def test_players_context_list_api(mock_list, client):
     mock_list.assert_called_once()
     kwargs = mock_list.call_args.kwargs
     assert kwargs["player_ids"] == ["wr-higgins"]
+    assert kwargs.get("compact") is True
+
+
+@patch("app.api.list_player_context")
+def test_players_context_list_api_compact_false(mock_list, client):
+    mock_list.return_value = {
+        "count": 0,
+        "players": [],
+        "meta": {"season": 2026, "week": 1, "compact": False, "view": "detail"},
+    }
+    from app.auth import require_patron
+
+    app.dependency_overrides[require_patron] = lambda: {"sub": "test"}
+    try:
+        res = client.get(
+            "/api/players/context?season=2026&week=1&compact=false"
+        )
+    finally:
+        app.dependency_overrides.clear()
+    assert res.status_code == 200
+    assert mock_list.call_args.kwargs.get("compact") is False
+
+
+def test_injury_age_hours_and_compact_shape():
+    now = datetime(2026, 8, 16, 18, 0, tzinfo=timezone.utc)
+    assert injury_age_hours("2026-08-16T12:00:00+00:00", now=now) == 6.0
+    assert injury_age_hours(None) is None
+
+    full = {
+        "player_id": "p1",
+        "player_name": "Test",
+        "position": "WR",
+        "team": "CIN",
+        "projection": {
+            "base": 10.0,
+            "final": 12.0,
+            "injury_delta": 2.0,
+            "injury_snapshot_id": "inj_x",
+        },
+        "availability": {
+            "status": "Questionable",
+            "practice": "Limited",
+            "updated_at": "2026-08-16T12:00:00+00:00",
+        },
+        "opportunity_adjustment": {
+            "points": 2.0,
+            "drivers": ["00-0036322"],
+            "included": True,
+        },
+        "media_context": {
+            "state": "current",
+            "signal": "role_up",
+            "source_count": 2,
+            "summary": "Long digest body that must not ship in table rows.",
+            "excerpt": "Strongest excerpt text",
+            "sources": [{"label": "Show A"}, {"label": "Show B"}],
+            "updated_at": "2026-08-16T10:00:00+00:00",
+            "historical": None,
+            "affects_projection": False,
+        },
+        "meta": {"season": 2026, "week": 1, "stale": False, "fingerprint": "abc"},
+    }
+    assert detail_available_for_payload(full) is True
+    compact = compact_player_context(full, now=now)
+    assert compact["availability"]["status"] == "Questionable"
+    assert compact["availability"]["age_hours"] == 6.0
+    assert compact["opportunity_adjustment"] == {"points": 2.0, "included": True}
+    assert compact["media_context"]["signal"] == "role_up"
+    assert compact["media_context"]["source_count"] == 2
+    assert "summary" not in compact["media_context"]
+    assert "excerpt" not in compact["media_context"]
+    assert "sources" not in compact["media_context"]
+    assert "drivers" not in compact["opportunity_adjustment"]
+    assert "projection" not in compact
+    assert compact["detail_available"] is True
+    assert compact["meta"]["view"] == "compact"
 
 
 def test_serve_path_does_not_call_sleeper_or_predict(tmp_path, monkeypatch):
@@ -352,6 +455,8 @@ def test_serve_path_does_not_call_sleeper_or_predict(tmp_path, monkeypatch):
             "signal": None,
             "source_count": 0,
             "summary": None,
+            "excerpt": None,
+            "sources": [],
             "updated_at": None,
             "historical": None,
             "affects_projection": False,
@@ -365,7 +470,7 @@ def test_serve_path_does_not_call_sleeper_or_predict(tmp_path, monkeypatch):
         "fingerprint": "deadbeefdeadbeef",
         "built_at": "2026-08-14T00:00:00+00:00",
         "rows": 1,
-        "schema_version": "player_context_v2",
+        "schema_version": "player_context_v3",
     }
     parquet = Path(tmp_path) / "2026_w1.parquet"
     meta_path = Path(tmp_path) / "2026_w1.meta.json"
@@ -394,8 +499,111 @@ def test_serve_path_does_not_call_sleeper_or_predict(tmp_path, monkeypatch):
     ):
         out = get_player_context("p1", season=2026, week=1)
         assert out["player_id"] == "p1"
+        assert out["meta"]["view"] == "detail"
+        listed = list_player_context(season=2026, week=1, compact=True)
+        assert listed["players"][0]["detail_available"] is False
+        assert "summary" not in listed["players"][0]["media_context"]
         sleeper.assert_not_called()
         predict.assert_not_called()
+
+
+def test_list_compact_omits_heavy_bodies_detail_keeps_them(tmp_path, monkeypatch):
+    """SCORE-30: table list is compact; single-player detail keeps narrative bodies."""
+    monkeypatch.setattr(
+        "src.projections.player_context.PLAYER_CONTEXT_DIR",
+        Path(tmp_path),
+    )
+    invalidate_player_context_cache()
+
+    payload = {
+        "player_id": "wr-higgins",
+        "player_name": "Tee Higgins",
+        "position": "WR",
+        "team": "CIN",
+        "projection": {
+            "base": 14.7,
+            "final": 16.8,
+            "injury_delta": 2.1,
+            "injury_snapshot_id": "inj_2026w1_x",
+        },
+        "availability": {
+            "status": "Questionable",
+            "practice": "Limited",
+            "updated_at": "2026-08-15T12:00:00+00:00",
+        },
+        "opportunity_adjustment": {
+            "points": 2.1,
+            "drivers": ["00-0036322"],
+            "included": True,
+        },
+        "media_context": {
+            "state": "current",
+            "signal": "role_up",
+            "source_count": 2,
+            "summary": "Role trending up — discussed by 2 fantasy shows.",
+            "excerpt": "Higgins sees elevated targets with Chase limited",
+            "sources": [{"label": "Fantasy Footballers"}, {"label": "Establish The Run"}],
+            "updated_at": "2026-08-15T18:00:00+00:00",
+            "historical": None,
+            "affects_projection": False,
+        },
+        "meta": {"season": 2026, "week": 1},
+    }
+    meta = {
+        "season": 2026,
+        "week": 1,
+        "injury_snapshot_id": "inj_2026w1_x",
+        "fingerprint": "abcdabcdabcdabcd",
+        "built_at": "2026-08-14T00:00:00+00:00",
+        "rows": 1,
+        "schema_version": "player_context_v3",
+    }
+    parquet = Path(tmp_path) / "2026_w1.parquet"
+    meta_path = Path(tmp_path) / "2026_w1.meta.json"
+    pd.DataFrame(
+        {
+            "player_id": ["wr-higgins"],
+            "player_name": ["Tee Higgins"],
+            "position": ["WR"],
+            "team": ["CIN"],
+            "payload_json": [json.dumps(payload)],
+        }
+    ).to_parquet(parquet, index=False)
+    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+
+    with (
+        patch(
+            "src.projections.player_context.player_context_fingerprint",
+            return_value="abcdabcdabcdabcd",
+        ),
+        patch(
+            "src.projections.player_context.season_week_context",
+            return_value=(2026, 1),
+        ),
+    ):
+        listed = list_player_context(season=2026, week=1, compact=True)
+        row = listed["players"][0]
+        assert listed["meta"]["compact"] is True
+        assert row["availability"]["status"] == "Questionable"
+        assert row["availability"]["age_hours"] is not None
+        assert row["opportunity_adjustment"]["points"] == 2.1
+        assert row["media_context"]["signal"] == "role_up"
+        assert row["media_context"]["source_count"] == 2
+        assert row["detail_available"] is True
+        assert "summary" not in row["media_context"]
+        assert "excerpt" not in row["media_context"]
+        assert "sources" not in row["media_context"]
+        assert "drivers" not in row["opportunity_adjustment"]
+
+        detail = get_player_context("wr-higgins", season=2026, week=1)
+        assert detail["meta"]["view"] == "detail"
+        assert detail["media_context"]["summary"].startswith("Role trending")
+        assert detail["media_context"]["excerpt"].startswith("Higgins sees")
+        assert len(detail["media_context"]["sources"]) == 2
+        assert detail["opportunity_adjustment"]["drivers"] == ["00-0036322"]
+        assert detail["projection"]["final"] == 16.8
+        assert detail["detail_available"] is True
+        assert detail["availability"]["age_hours"] is not None
 
 
 def test_media_context_historical_available_requires_opt_in(tmp_path, monkeypatch):
@@ -423,6 +631,8 @@ def test_media_context_historical_available_requires_opt_in(tmp_path, monkeypatc
             "signal": None,
             "source_count": 0,
             "summary": None,
+            "excerpt": None,
+            "sources": [],
             "updated_at": None,
             "historical": {
                 "season": 2025,
@@ -430,6 +640,8 @@ def test_media_context_historical_available_requires_opt_in(tmp_path, monkeypatc
                 "signal": "mentioned",
                 "source_count": 2,
                 "summary": "Older Week 18 buzz",
+                "excerpt": "Older excerpt",
+                "sources": [{"label": "Old Show"}],
                 "updated_at": "2025-12-30T00:00:00+00:00",
             },
             "affects_projection": False,
@@ -443,7 +655,7 @@ def test_media_context_historical_available_requires_opt_in(tmp_path, monkeypatc
         "fingerprint": "abcdabcdabcdabcd",
         "built_at": "2026-08-14T00:00:00+00:00",
         "rows": 1,
-        "schema_version": "player_context_v2",
+        "schema_version": "player_context_v3",
     }
     parquet = Path(tmp_path) / "2026_w1.parquet"
     meta_path = Path(tmp_path) / "2026_w1.meta.json"
@@ -473,12 +685,20 @@ def test_media_context_historical_available_requires_opt_in(tmp_path, monkeypatc
         assert default["media_context"]["summary"] is None
         assert default["media_context"]["signal"] is None
         assert default["media_context"]["historical"] == {"season": 2025, "week": 18}
+        assert default["detail_available"] is True
+
+        compact = list_player_context(season=2026, week=1, compact=True)["players"][0]
+        assert compact["detail_available"] is True
+        assert compact["media_context"]["historical"] == {"season": 2025, "week": 18}
+        assert "summary" not in compact["media_context"]
 
         opted = get_player_context(
             "p-hist", season=2026, week=1, include_historical=True
         )
         assert opted["media_context"]["state"] == "historical_available"
         assert opted["media_context"]["summary"] == "Older Week 18 buzz"
+        assert opted["media_context"]["excerpt"] == "Older excerpt"
+        assert opted["media_context"]["sources"] == [{"label": "Old Show"}]
         assert opted["media_context"]["signal"] == "mentioned"
         assert opted["media_context"]["source_count"] == 2
 
