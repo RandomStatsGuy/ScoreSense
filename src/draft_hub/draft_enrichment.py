@@ -231,6 +231,7 @@ def build_draft_room_enrichment(
         "requested_season": sentiment["requested_season"],
         "requested_week": sentiment["requested_week"],
         "context_fallback": sentiment["context_fallback"],
+        "media_context": sentiment.get("media_context"),
         "sentiment_by_player_id": sentiment_players,
         "media_by_player_id": media,
         "team_logo_by_team": teams,

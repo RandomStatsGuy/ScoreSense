@@ -134,6 +134,7 @@ def _narrative_meta_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "requested_season": payload.get("requested_season"),
         "requested_week": payload.get("requested_week"),
         "context_fallback": bool(payload.get("context_fallback")),
+        "media_context": payload.get("media_context"),
     }
 
 
@@ -143,12 +144,16 @@ def _narrative_for_player(
     season: int,
     week: int,
     scope: str,
+    *,
+    include_historical: bool = False,
 ) -> tuple[dict[str, Any] | None, dict[str, Any]]:
     pos = position.lower()
     if scope == "season":
         payload = build_fantasy_season_response(pos, season, week)
     else:
-        payload = build_fantasy_weekly_response(pos, season, week)
+        payload = build_fantasy_weekly_response(
+            pos, season, week, include_historical=include_historical
+        )
     meta = _narrative_meta_from_payload(payload)
     for row in payload.get("players") or []:
         if str(row.get("player_id") or "") == str(player_id):
@@ -164,6 +169,7 @@ def build_player_card(
     scope: str = "weekly",
     position: str | None = None,
     apply_injury_adjustments: bool = True,
+    include_historical: bool = False,
 ) -> dict[str, Any]:
     pid = str(player_id or "").strip()
     if not pid:
@@ -212,7 +218,12 @@ def build_player_card(
         season_projection = None
 
     narrative, narrative_meta = _narrative_for_player(
-        pid, resolved_pos, resolved_season, resolved_week, scope_norm
+        pid,
+        resolved_pos,
+        resolved_season,
+        resolved_week,
+        scope_norm,
+        include_historical=include_historical,
     )
     injury = _injury_for_player(pid)
 
@@ -243,5 +254,6 @@ def build_player_card(
             "week": resolved_week,
             "scope": scope_norm,
             "apply_injury_adjustments": apply_injury,
+            "include_historical": bool(include_historical),
         },
     })

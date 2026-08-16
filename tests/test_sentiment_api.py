@@ -33,6 +33,7 @@ def test_build_sentiment_response_empty():
     assert response["count"] == 0
     assert response["players"] == []
     assert response["context_fallback"] is False
+    assert response["media_context"]["state"] == "none"
     assert response["requested_season"] == 2099
     assert "note" in response["meta"]
     assert "sources" in response["meta"]
@@ -44,6 +45,7 @@ def test_build_sentiment_response_2026_week1():
     response = build_sentiment_response("qb", season=2026, week=1)
     if response["count"] > 0:
         assert response["context_fallback"] is False
+        assert response["media_context"]["state"] == "current"
         assert response["requested_season"] == 2026
         assert response["requested_week"] == 1
         assert response["season"] == 2026
@@ -55,3 +57,8 @@ def test_build_sentiment_response_2026_week1():
             "cache",
             None,
         )
+    else:
+        assert response["media_context"]["state"] in ("none", "historical_available")
+        assert response["season"] == 2026
+        assert response["week"] == 1
+        assert response["context_fallback"] is False

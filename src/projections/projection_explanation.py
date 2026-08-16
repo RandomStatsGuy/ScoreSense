@@ -269,6 +269,15 @@ def _empty_narrative() -> dict[str, Any]:
         "season": None,
         "week": None,
         "context_fallback": False,
+        "media_context": {
+            "state": "none",
+            "signal": None,
+            "source_count": 0,
+            "summary": None,
+            "updated_at": None,
+            "historical": None,
+            "affects_projection": False,
+        },
     }
 
 
@@ -278,8 +287,21 @@ def _narrative_from_sentiment(
     season: int,
     week: int,
     player_name: str | None,
+    include_historical: bool = False,
 ) -> dict[str, Any]:
-    """Read pre-aggregated sentiment parquet only — no live scrape, no LLM on miss."""
+    """Read pre-aggregated sentiment parquet only — no live scrape, no LLM on miss.
+
+    SCORE-28: do not silently inject historical rows as current-week narrative.
+    Historical content requires ``include_historical=True``.
+    """
+    from src.sentiment.media_context import (
+        MEDIA_STATE_CURRENT,
+        MEDIA_STATE_HISTORICAL_AVAILABLE,
+        MEDIA_STATE_NONE,
+        empty_media_context,
+        find_player_historical_row,
+    )
+
     empty = _empty_narrative()
     if not SENTIMENT_FEATURES_PATH.exists():
         return empty
@@ -298,19 +320,38 @@ def _narrative_from_sentiment(
 
     exact = scoped[(scoped["season"] == season) & (scoped["week"] == week)]
     context_fallback = False
-    if exact.empty:
-        prior = scoped[
-            (scoped["season"] < season)
-            | ((scoped["season"] == season) & (scoped["week"] <= week))
-        ]
-        if prior.empty:
-            row = scoped.sort_values(["season", "week"]).iloc[-1]
-            context_fallback = True
-        else:
-            row = prior.sort_values(["season", "week"]).iloc[-1]
-            context_fallback = int(row["season"]) != season or int(row["week"]) != week
-    else:
+    hist_meta: dict[str, Any] | None = None
+
+    if not exact.empty and float(exact.iloc[0].get("yt_mention_count") or 0) > 0:
         row = exact.iloc[0]
+        media_state = MEDIA_STATE_CURRENT
+        serve_season, serve_week = int(row["season"]), int(row["week"])
+    else:
+        hist = find_player_historical_row(features, pid, season=season, week=week)
+        if hist is None:
+            return {
+                **empty,
+                "media_context": empty_media_context(state=MEDIA_STATE_NONE),
+            }
+        hist_season, hist_week, hist_row = hist
+        hist_meta = {"season": hist_season, "week": hist_week}
+        if not include_historical:
+            return {
+                **empty,
+                "available": False,
+                "season": None,
+                "week": None,
+                "context_fallback": False,
+                "media_context": empty_media_context(
+                    state=MEDIA_STATE_HISTORICAL_AVAILABLE,
+                    historical_season=hist_season,
+                    historical_week=hist_week,
+                ),
+            }
+        row = hist_row
+        context_fallback = True
+        media_state = MEDIA_STATE_HISTORICAL_AVAILABLE
+        serve_season, serve_week = hist_season, hist_week
 
     score = float(row.get("yt_sentiment_score") or 0.0)
     injury_flag = float(row.get("yt_injury_flag") or 0.0)
@@ -340,8 +381,8 @@ def _narrative_from_sentiment(
             sentiment_payload,
             scope="weekly",
             player_id=pid,
-            season=int(row["season"]),
-            week=int(row["week"]),
+            season=serve_season,
+            week=serve_week,
             prefer_llm=False,
             return_meta=True,
         )
@@ -360,6 +401,20 @@ def _narrative_from_sentiment(
             role_hype_flag=role_hype,
         )
         digest_source = "extractive"
+
+    media_context = {
+        "state": media_state,
+        "signal": (
+            "role_up"
+            if role_hype > 0
+            else ("injury_watch" if injury_flag > 0 else ("mentioned" if mentions > 0 else None))
+        ),
+        "source_count": int(round(mentions)),
+        "summary": digest,
+        "updated_at": None,
+        "historical": hist_meta if media_state == MEDIA_STATE_HISTORICAL_AVAILABLE else None,
+        "affects_projection": False,
+    }
 
     return {
         "available": True,
@@ -381,9 +436,10 @@ def _narrative_from_sentiment(
         "digest": digest,
         "digest_source": digest_source,
         "snippet": snippet,
-        "season": int(row["season"]),
-        "week": int(row["week"]),
+        "season": serve_season,
+        "week": serve_week,
         "context_fallback": context_fallback,
+        "media_context": media_context,
     }
 
 
@@ -567,6 +623,7 @@ def build_projection_explanation(
     week: int | None = None,
     position: str | None = None,
     apply_injury_adjustments: bool = True,
+    include_historical: bool = False,
     compute_fn: Any | None = None,
 ) -> dict[str, Any]:
     """Build a lightweight Why? panel payload for one projected player."""
@@ -649,6 +706,7 @@ def build_projection_explanation(
         season=resolved_season,
         week=resolved_week,
         player_name=str(player_name) if player_name else None,
+        include_historical=include_historical,
     )
 
     return {
