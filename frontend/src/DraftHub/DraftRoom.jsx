@@ -10,6 +10,7 @@ import DraftTeamCard from "./DraftTeamCard";
 import DraftPickRecap from "./DraftPickRecap";
 import DraftRecapPanel from "./DraftRecapPanel";
 import DraftOwnerReport from "./DraftOwnerReport";
+import DraftTradeModal from "./DraftTradeModal";
 import DraftEntryPanel from "./DraftEntryPanel";
 import ValueSheetTable from "./ValueSheetTable";
 import { confirmDialog } from "../ui/confirm";
@@ -69,6 +70,8 @@ export default function DraftRoom({
   const [draftRecap, setDraftRecap] = useState(null);
   const [nominationPoolRows, setNominationPoolRows] = useState(null);
   const [poolLoading, setPoolLoading] = useState(false);
+  const [tradeModal, setTradeModal] = useState(null);
+  const [pendingTradeCount, setPendingTradeCount] = useState(0);
   const mobileLayout = useMobileLayout();
   const [mobilePanel, setMobilePanel] = useState(() => {
     if (typeof sessionStorage === "undefined") return "auction";
@@ -352,6 +355,34 @@ export default function DraftRoom({
       .sort((a, b) => idx(a.id) - idx(b.id));
   }, [teams, myTeamId, session?.nomination_order]);
   const cutsActive = allowMidDraftCuts && leagueId && !draftCompleted;
+  const tradesActive = Boolean(leagueId && myTeamId && !draftCompleted);
+
+  useEffect(() => {
+    if (!tradesActive || !leagueId || !myTeamId) {
+      setPendingTradeCount(0);
+      return undefined;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/trades?status=pending`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const mine = (data.proposals || []).filter((p) => (
+          (p.parties || []).some((party) => party.team_id === myTeamId)
+        ));
+        if (!cancelled) setPendingTradeCount(mine.length);
+      } catch {
+        /* keep last count */
+      }
+    };
+    load();
+    const timer = setInterval(load, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [tradesActive, leagueId, myTeamId, roomState?.events?.length]);
 
   const previewRow = useMemo(
     () => nominatePool.find((r) => r.player_id === nomPlayerId),
@@ -1216,11 +1247,7 @@ export default function DraftRoom({
       )}
 
       {draftCompleted && myTeamId && leagueId && (
-        <DraftOwnerReport
-          leagueId={leagueId}
-          maxContractYears={rules?.contracts?.max_years}
-          onSaved={applyState}
-        />
+        <DraftOwnerReport leagueId={leagueId} />
       )}
 
       {draftCompleted && recapHasStory && draftRecap && (
@@ -1410,13 +1437,17 @@ export default function DraftRoom({
               viewer={viewerPanel}
               rosterLimits={roomState?.roster_limits}
               allowMidDraftCuts={cutsActive}
+              allowTrades={tradesActive}
               onCutPlayer={cutPlayer}
+              onTradePlayer={(seed) => setTradeModal({ seed, view: "builder" })}
               cutBusy={busy}
               budgetRemaining={myTeam?.budget_remaining}
               maxBid={Number.isFinite(myBudget) ? myMaxBid : null}
               isNominator={String(myTeamId) === String(nominatorTeamId) && session?.status === "nominating"}
               isHighBidder={myTeamId && session?.high_bidder_team_id === myTeamId}
               ended={draftCompleted}
+              pendingTradeCount={pendingTradeCount}
+              onOpenInbox={() => setTradeModal({ seed: null, view: "inbox" })}
             />
             {draftCompleted && events.length > 0 && (
               <details className="hub-draft-log hub-draft-log-sidebar">
@@ -1448,6 +1479,8 @@ export default function DraftRoom({
                   isViewer={false}
                   defaultOpen={false}
                   rosterLimits={roomState?.roster_limits}
+                  allowTrades={tradesActive}
+                  onTradePlayer={(seed) => setTradeModal({ seed, view: "builder" })}
                 />
               ))}
             </div>
@@ -1475,6 +1508,22 @@ export default function DraftRoom({
             )}
           </aside>
         </div>
+      )}
+
+      {tradeModal && leagueId && myTeamId && (
+        <DraftTradeModal
+          leagueId={leagueId}
+          myTeamId={myTeamId}
+          teams={teams}
+          rosters={roomState?.rosters || {}}
+          seed={tradeModal.seed}
+          initialView={tradeModal.view}
+          onClose={() => setTradeModal(null)}
+          onApplied={() => {
+            setTradeModal(null);
+            wsRefresh();
+          }}
+        />
       )}
     </HubPage>
   );

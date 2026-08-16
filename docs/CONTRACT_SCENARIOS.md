@@ -116,13 +116,18 @@ Do **not** set type to Veteran Deal here — that removes extend eligibility.
 
 **Examples:** Nominated and awarded in the live room / mock.
 
+Auction terms are assigned automatically. Owners do **not** pick years after the sale.
+
 | Field | Set to |
 |---|---|
-| Contract type | Usually **Rookie deal** if NFL rookie class; else **Veteran Deal** |
-| Years left | Deal length you drafted (often **1** for vets, **2** for rookies) |
+| Contract type | **Rookie deal** if NFL rookie class; else **Veteran Deal** |
+| Years left | **2** |
+| Salary | Sale price in year 1. Rookies stay flat; veterans step +$5/yr (league setting) |
 | Source | System tags `draft` / `auction` |
 
-**Cap Planner:** Even with years = 1, **not** treated as “expire before draft” for *this* draft — they are this year’s acquisition.
+Year control is only the **pre-draft rookie extension** window (add 1–3 years, with step-ups).
+
+**Cap Planner:** Brand-new auction buys are this year’s acquisition, not “expire before draft.”
 
 ---
 

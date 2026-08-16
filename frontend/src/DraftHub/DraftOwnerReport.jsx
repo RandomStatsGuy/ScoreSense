@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
-import { fmtSal } from "./rosterFormat";
+import { auctionAwardContractLabel, fmtSal } from "./rosterFormat";
 
 const GRADE_LABEL = {
   steal: "Steal",
@@ -15,15 +15,10 @@ const GRADE_LABEL = {
 
 export default function DraftOwnerReport({
   leagueId,
-  maxContractYears: maxYearsProp,
-  onSaved,
 }) {
   const [report, setReport] = useState(null);
-  const [yearsByPlayer, setYearsByPlayer] = useState({});
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [savedNote, setSavedNote] = useState("");
 
   useEffect(() => {
     if (!leagueId) return undefined;
@@ -37,11 +32,6 @@ export default function DraftOwnerReport({
         const data = await res.json();
         if (cancelled) return;
         setReport(data);
-        const next = {};
-        for (const p of data.picks || []) {
-          next[p.player_id] = Number(p.contract_years) || 1;
-        }
-        setYearsByPlayer(next);
       } catch (e) {
         if (!cancelled) setError(e.message || "Could not load your draft report");
       } finally {
@@ -51,52 +41,6 @@ export default function DraftOwnerReport({
     return () => { cancelled = true; };
   }, [leagueId]);
 
-  const maxYears = Number(report?.max_contract_years || maxYearsProp || 3);
-  const yearOptions = useMemo(
-    () => Array.from({ length: maxYears }, (_, i) => i + 1),
-    [maxYears],
-  );
-
-  const dirty = useMemo(() => {
-    if (!report?.picks) return false;
-    return report.picks.some(
-      (p) => Number(yearsByPlayer[p.player_id] || 1) !== Number(p.contract_years || 1),
-    );
-  }, [report, yearsByPlayer]);
-
-  const saveContracts = async () => {
-    if (!leagueId || !report?.picks?.length) return;
-    setSaving(true);
-    setError("");
-    setSavedNote("");
-    try {
-      const contracts = report.picks.map((p) => ({
-        player_id: p.player_id,
-        contract_years: Number(yearsByPlayer[p.player_id]) || 1,
-      }));
-      const res = await apiFetch(`/api/hub/league/${leagueId}/draft-contracts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contracts }),
-      });
-      if (!res.ok) throw new Error(await parseApiError(res));
-      const data = await res.json();
-      setReport((prev) => ({
-        ...prev,
-        picks: (prev?.picks || []).map((p) => ({
-          ...p,
-          contract_years: Number(yearsByPlayer[p.player_id]) || 1,
-        })),
-      }));
-      setSavedNote(`Saved ${data.updated} contract${data.updated === 1 ? "" : "s"}`);
-      onSaved?.(data.state);
-    } catch (e) {
-      setError(e.message || "Save failed");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   if (loading) {
     return <p className="chart-note hub-owner-report-loading">Loading your draft…</p>;
   }
@@ -104,6 +48,8 @@ export default function DraftOwnerReport({
     return <div className="error">{error}</div>;
   }
   if (!report) return null;
+
+  const stepUp = Number(report.extension_step_up ?? 5);
 
   return (
     <section className="hub-owner-report">
@@ -118,14 +64,6 @@ export default function DraftOwnerReport({
             {report.reaches > 0 && <> · {report.reaches} reach{report.reaches === 1 ? "" : "es"}</>}
           </p>
         </div>
-        <button
-          type="button"
-          className="btn-primary btn-sm"
-          disabled={saving || !dirty}
-          onClick={saveContracts}
-        >
-          {saving ? "Saving…" : dirty ? "Save contracts" : "Contracts saved"}
-        </button>
       </header>
 
       {report.by_position?.length > 0 && (
@@ -139,7 +77,6 @@ export default function DraftOwnerReport({
       )}
 
       {error && <div className="error hub-owner-report-error">{error}</div>}
-      {savedNote && <p className="chart-note hub-owner-report-saved">{savedNote}</p>}
 
       <div className="hub-owner-report-table-wrap">
         <table className="hub-owner-report-table">
@@ -149,7 +86,7 @@ export default function DraftOwnerReport({
               <th>Paid</th>
               <th>Fair</th>
               <th>Grade</th>
-              <th>Years</th>
+              <th>Contract</th>
             </tr>
           </thead>
           <tbody>
@@ -166,21 +103,8 @@ export default function DraftOwnerReport({
                     {GRADE_LABEL[p.value_grade] || "Pick"}
                   </span>
                 </td>
-                <td>
-                  <select
-                    className="hub-owner-years"
-                    value={yearsByPlayer[p.player_id] ?? 1}
-                    onChange={(e) => {
-                      const v = Number(e.target.value) || 1;
-                      setYearsByPlayer((prev) => ({ ...prev, [p.player_id]: v }));
-                      setSavedNote("");
-                    }}
-                    aria-label={`Contract years for ${p.player_name}`}
-                  >
-                    {yearOptions.map((y) => (
-                      <option key={y} value={y}>{y}y</option>
-                    ))}
-                  </select>
+                <td className="hub-owner-contract-cell">
+                  {auctionAwardContractLabel(p, stepUp)}
                 </td>
               </tr>
             ))}
@@ -188,7 +112,9 @@ export default function DraftOwnerReport({
         </table>
       </div>
       <p className="chart-note hub-owner-report-hint">
-        Set contract length for each pick (1–{maxYears} years), then save.
+        Auction deals are automatic: rookies stay 2 years at the sale price;
+        veterans are 2 years with a {fmtSal(stepUp)}/yr step-up.
+        Choose extra years only during the pre-draft rookie extension window.
       </p>
     </section>
   );

@@ -1129,7 +1129,7 @@ def hub_list_trade_proposals(
 
 
 @router.post("/league/{league_id}/trades")
-def hub_create_trade_proposal(
+async def hub_create_trade_proposal(
     league_id: str,
     body: TradeProposalCreate,
     _user=Depends(require_hub_user),
@@ -1155,6 +1155,7 @@ def hub_create_trade_proposal(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     _invalidate_league_rosters_from_ctx(ctx)
+    await broadcast_room(league_id)
     return {"proposal": proposal, "hub_context": ctx}
 
 
@@ -1173,7 +1174,7 @@ def hub_get_trade_proposal(
 
 
 @router.post("/league/{league_id}/trades/{proposal_id}/respond")
-def hub_respond_trade_proposal(
+async def hub_respond_trade_proposal(
     league_id: str,
     proposal_id: str,
     body: TradeProposalRespond,
@@ -1192,11 +1193,12 @@ def hub_respond_trade_proposal(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if prop.get("status") == "executed":
         _invalidate_league_rosters_from_ctx(ctx)
+    await broadcast_room(league_id)
     return {"proposal": prop, "hub_context": ctx}
 
 
 @router.post("/league/{league_id}/trades/{proposal_id}/force")
-def hub_force_trade_proposal(
+async def hub_force_trade_proposal(
     league_id: str,
     proposal_id: str,
     _user=Depends(require_hub_user),
@@ -1209,11 +1211,12 @@ def hub_force_trade_proposal(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     _invalidate_league_rosters_from_ctx(ctx)
+    await broadcast_room(league_id)
     return {"proposal": prop, "hub_context": ctx}
 
 
 @router.post("/league/{league_id}/trades/{proposal_id}/cancel")
-def hub_cancel_trade_proposal(
+async def hub_cancel_trade_proposal(
     league_id: str,
     proposal_id: str,
     _user=Depends(require_hub_user),
@@ -1228,6 +1231,7 @@ def hub_cancel_trade_proposal(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await broadcast_room(league_id)
     return {"proposal": prop, "hub_context": ctx}
 
 
@@ -3797,7 +3801,9 @@ def hub_owner_draft_report(league_id: str, _user=Depends(require_hub_user)) -> d
     league = storage.get_league(league_id) or {}
     rules = LeagueRules.model_validate(league.get("rules") or {})
     report["max_contract_years"] = int(rules.contracts.max_years)
+    report["extension_step_up"] = float(rules.contracts.extension_step_up)
     report["team_name"] = team.get("name")
+    report["contracts_locked"] = True
     return report
 
 
@@ -3807,38 +3813,18 @@ async def hub_set_draft_contracts(
     body: DraftContractsRequest,
     _user=Depends(require_hub_user),
 ) -> dict:
-    """Let each owner set contract years on players they won in the draft."""
+    """Auction years are assigned automatically; this endpoint is closed to owners."""
     sub = _sub(_user)
-    league = storage.get_league(league_id)
-    if not league:
-        raise HTTPException(status_code=404, detail="League not found")
-    team = storage.get_team_by_user(league_id, sub)
-    if not team:
-        raise HTTPException(status_code=403, detail="Join this draft room to set contracts")
-    rules = LeagueRules.model_validate(league["rules"])
-    max_years = int(rules.contracts.max_years)
-    ws_id = storage.roster_workspace_for_league(league)
-    updated = []
-    for item in body.contracts or []:
-        yrs = int(item.contract_years)
-        if yrs < 1 or yrs > max_years:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Contract years must be between 1 and {max_years}",
-            )
-        try:
-            slot = storage.update_roster_slot(
-                ws_id,
-                item.player_id,
-                team_id=team["id"],
-                contract_years=yrs,
-            )
-            updated.append(slot)
-        except ValueError as exc:
-            raise HTTPException(status_code=404, detail=str(exc)) from exc
-    state = get_room_state(league_id, sub)
+    try:
+        state = set_draft_contracts(
+            league_id,
+            sub,
+            [item.model_dump() for item in (body.contracts or [])],
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     await broadcast_room(league_id)
-    return {"updated": len(updated), "state": state}
+    return {"updated": 0, "state": state}
 
 
 # --- Sleeper linking ---
