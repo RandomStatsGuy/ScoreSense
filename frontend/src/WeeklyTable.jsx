@@ -16,6 +16,7 @@ import SentimentBadge from "./SentimentBadge";
 import ProjectionExplanationPanel from "./ProjectionExplanationPanel";
 import PlayerContextBadges from "./PlayerContextBadges";
 import PlayerContextPanel from "./PlayerContextPanel";
+import { isDetailAvailable } from "./playerContextDisplay";
 import { TableSkeleton } from "./TableSkeleton";
 import useMobileLayout from "./useMobileLayout";
 import usePlayersContext from "./usePlayersContext";
@@ -231,7 +232,8 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   const tone = matchupTone(row["Opp Def Rank"], dvpTeamCount);
   const canSelect = compareEnabled && Boolean(row.player_id) && !unavailable;
   const canExplain = Boolean(row.player_id);
-  const canContext = Boolean(row.player_id);
+  // SCORE-30: hide Ctx when compact list says there is nothing to lazy-load.
+  const canContext = Boolean(row.player_id) && isDetailAvailable(playerContext);
 
   return (
     <>
@@ -779,6 +781,8 @@ export default function WeeklyTable({
             const pid = row.player_id ? String(row.player_id) : "";
             const selected = pid ? selectedSet.has(pid) : false;
             const canSelect = compareEnabled && Boolean(pid) && !unavailable;
+            const playerCtx = pid ? playersContext.byId.get(pid) : null;
+            const canContext = Boolean(pid) && isDetailAvailable(playerCtx);
             const metaNode = (
               <>
                 {row.Team || "—"}
@@ -883,16 +887,18 @@ export default function WeeklyTable({
                         expanded={whyPlayerId === pid}
                         onToggle={() => toggleWhy(pid)}
                       />
-                      <button
-                        type="button"
-                        className={`btn-ghost btn-sm ctx-toggle${contextPlayerId === pid ? " ctx-toggle--open" : ""}`}
-                        onClick={() => toggleContext(pid)}
-                        aria-expanded={contextPlayerId === pid}
-                        aria-label={`Cached week context for ${row.Player || "player"}`}
-                        title="Cached week context"
-                      >
-                        Ctx
-                      </button>
+                      {canContext ? (
+                        <button
+                          type="button"
+                          className={`btn-ghost btn-sm ctx-toggle${contextPlayerId === pid ? " ctx-toggle--open" : ""}`}
+                          onClick={() => toggleContext(pid)}
+                          aria-expanded={contextPlayerId === pid}
+                          aria-label={`Cached week context for ${row.Player || "player"}`}
+                          title="Cached week context"
+                        >
+                          Ctx
+                        </button>
+                      ) : null}
                     </div>
                   ) : null
                 }
@@ -926,7 +932,7 @@ export default function WeeklyTable({
                     )}
                     {pid ? (
                       <PlayerContextBadges
-                        context={playersContext.byId.get(pid)}
+                        context={playerCtx}
                         slateMeta={playersContext.meta}
                         className="player-context-badges--mobile"
                       />
@@ -947,7 +953,7 @@ export default function WeeklyTable({
                         className="projection-explanation--mobile"
                       />
                     ) : null}
-                    {pid && contextPlayerId === pid ? (
+                    {canContext && contextPlayerId === pid ? (
                       <PlayerContextPanel
                         playerId={pid}
                         season={season}

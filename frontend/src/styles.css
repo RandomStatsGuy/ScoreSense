@@ -13711,6 +13711,26 @@ td.col-rank.col-rank-top {
   line-height: var(--line-normal);
 }
 
+.player-context-media-excerpt {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: var(--line-normal);
+  color: var(--text-secondary);
+}
+
+.player-context-media-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.player-context-source-chip {
+  font-size: 0.68rem;
+}
+
 .player-context-empty {
   margin: 0;
   font-size: 0.8rem;
