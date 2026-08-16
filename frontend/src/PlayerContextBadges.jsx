@@ -4,6 +4,7 @@ import ProjectionTrustLabel from "./ProjectionTrustLabel";
 import {
   canLabelIncludedInProjection,
   commentaryOnlyLabel,
+  formatInjuryAgeHours,
   formatOppPoints,
   mediaSignalLabel,
   mediaSignalTone,
@@ -13,7 +14,7 @@ import { canShowCurrentWeekMediaBadge } from "./mediaContext";
 
 /**
  * Compact chips for weekly list rows — availability / opportunity / media
- * from the cached player-context read model, with SCORE-24 trust labels.
+ * from the SCORE-30 compact player-context list (no excerpts/sources/drivers).
  */
 export default function PlayerContextBadges({
   context,
@@ -28,9 +29,11 @@ export default function PlayerContextBadges({
   const showIncluded = canLabelIncludedInProjection(context, slateMeta);
   const showAssumesActive = shouldShowProjectionAssumesActive(context);
   const commentaryLabel = commentaryOnlyLabel(media);
+  const ageLabel = formatInjuryAgeHours(avail?.age_hours);
   const chips = [];
 
   if (avail?.status) {
+    const ageHint = ageLabel ? ` · ${ageLabel} old` : "";
     chips.push(
       <span key="avail" className="player-context-badge-group">
         <Chip
@@ -38,11 +41,14 @@ export default function PlayerContextBadges({
           className="player-context-badge"
           title={
             avail.practice
-              ? `Availability: ${avail.status} · practice ${avail.practice}`
-              : `Availability: ${avail.status}`
+              ? `Availability: ${avail.status} · practice ${avail.practice}${ageHint}`
+              : `Availability: ${avail.status}${ageHint}`
           }
         >
           {avail.status}
+          {ageLabel ? (
+            <span className="player-context-badge-meta">{ageLabel}</span>
+          ) : null}
         </Chip>
         {showAssumesActive ? (
           <ProjectionTrustLabel kind="assumes_active" className="projection-trust-label--compact" />
@@ -54,16 +60,12 @@ export default function PlayerContextBadges({
   if (opp?.included) {
     const pts = formatOppPoints(opp.points);
     if (pts) {
-      const driverHint =
-        Array.isArray(opp.drivers) && opp.drivers.length
-          ? ` · drivers: ${opp.drivers.slice(0, 3).join(", ")}`
-          : "";
       chips.push(
         <span key="opp" className="player-context-badge-group">
           <Chip
             tone={Number(opp.points) >= 0 ? "positive" : "negative"}
             className="player-context-badge player-context-badge--opp"
-            title={`Opportunity adjustment ${pts} pts${driverHint}`}
+            title={`Opportunity adjustment ${pts} pts`}
           >
             Opp {pts}
           </Chip>
@@ -76,21 +78,20 @@ export default function PlayerContextBadges({
   }
 
   // SCORE-28: only current-week media gets a list badge — never historical.
+  // SCORE-30: title from signal + source_count only (no summary body on list).
   if (canShowCurrentWeekMediaBadge(media)) {
     const label = mediaSignalLabel(media.signal);
+    const count = Number(media.source_count) || 0;
     chips.push(
       <span key="media" className="player-context-badge-group">
         <Chip
           tone={mediaSignalTone(media.signal)}
           className="player-context-badge player-context-badge--media"
-          title={
-            media.summary
-              || `${label}${media.source_count ? ` · ${media.source_count} sources` : ""} · ${commentaryLabel || "Commentary only"}`
-          }
+          title={`${label}${count ? ` · ${count} source${count === 1 ? "" : "s"}` : ""} · ${commentaryLabel || "Commentary only"}`}
         >
           {label}
-          {Number(media.source_count) > 0 ? (
-            <span className="player-context-badge-meta">{media.source_count}</span>
+          {count > 0 ? (
+            <span className="player-context-badge-meta">{count}</span>
           ) : null}
         </Chip>
         {commentaryLabel ? (
