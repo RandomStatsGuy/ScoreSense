@@ -11537,6 +11537,126 @@ td.col-rank.col-rank-top {
 .hub-trade-builder { display: flex; flex-direction: column; gap: 0.85rem; }
 .hub-trade-alerts { margin-bottom: 0.35rem; }
 .hub-trade-msg { margin: 0.15rem 0 0.35rem; }
+.hub-trade-flow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.15rem;
+}
+.hub-trade-flow-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.25);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.hub-trade-flow-step:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.hub-trade-flow-step.is-active {
+  border-color: rgba(59, 130, 246, 0.45);
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--text);
+}
+.hub-trade-flow-step.is-done {
+  color: var(--text);
+  border-color: rgba(74, 222, 128, 0.28);
+}
+.hub-trade-flow-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  background: rgba(148, 163, 184, 0.16);
+}
+.hub-trade-flow-step.is-active .hub-trade-flow-step-num {
+  background: rgba(59, 130, 246, 0.35);
+}
+.hub-trade-step { display: flex; flex-direction: column; gap: 0.75rem; }
+.hub-trade-step-copy { display: flex; flex-direction: column; gap: 0.2rem; }
+.hub-trade-step-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+.hub-trade-you-line {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+.hub-trade-partner-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.55rem;
+}
+.hub-trade-partner-card {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.35);
+  color: var(--text);
+  cursor: pointer;
+}
+.hub-trade-partner-card:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+.hub-trade-partner-card.is-selected {
+  border-color: rgba(59, 130, 246, 0.55);
+  background: rgba(59, 130, 246, 0.12);
+  box-shadow: inset 3px 0 0 var(--accent, #3b82f6);
+}
+.hub-trade-party-name {
+  font-size: 0.95rem;
+  flex: 1;
+  min-width: 0;
+}
+.hub-trade-cap-review {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+.hub-trade-cap-review-card {
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.hub-trade-cap-review-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.hub-trade-cap-review-legs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.25rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+@media (max-width: 640px) {
+  .hub-trade-flow-step-label { font-size: 0.75rem; }
+  .hub-trade-partner-grid { grid-template-columns: 1fr 1fr; }
+}
 .hub-trade-package {
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 8px;
