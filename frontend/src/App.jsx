@@ -8,6 +8,7 @@ import DfsOptimizer from "./LineupOptimizer";
 import SeasonTable from "./SeasonTable";
 import SeasonTransitionState from "./SeasonTransitionState";
 import InjurySidebar from "./InjurySidebar";
+import { pickReplacementCandidates } from "./injuryExperience";
 import SentimentPanel from "./SentimentPanel";
 import WeeklyTable from "./WeeklyTable";
 import PlayerCompare, { MAX_COMPARE as MAX_COMPARE_PLAYERS } from "./PlayerCompare";
@@ -620,6 +621,41 @@ export default function App() {
     setCompareViewOpen(true);
     syncFiltersToUrl({ compareIds, compareView: true });
   }, [compareIds, syncFiltersToUrl]);
+
+  /** SCORE-25: seed compare with an injured slate player + healthy teammates. */
+  const handleCompareReplacements = useCallback(
+    (injuredRow) => {
+      const injuredId = injuredRow?.player_id != null ? String(injuredRow.player_id) : "";
+      if (!injuredId) return;
+      const replacements = pickReplacementCandidates(injuredRow, tableRows, { limit: 2 });
+      const nextIds = [injuredId];
+      const nextMeta = {
+        [injuredId]: {
+          player_id: injuredId,
+          name: injuredRow.Player || injuredId,
+          position: injuredRow.Position || position,
+          team: injuredRow.Team || "",
+        },
+      };
+      for (const row of replacements) {
+        const id = row?.player_id != null ? String(row.player_id) : "";
+        if (!id || nextIds.includes(id) || nextIds.length >= MAX_COMPARE_PLAYERS) continue;
+        nextIds.push(id);
+        nextMeta[id] = {
+          player_id: id,
+          name: row.Player || id,
+          position: row.Position || position,
+          team: row.Team || "",
+        };
+      }
+      setCompareMetaById((meta) => ({ ...meta, ...nextMeta }));
+      setCompareIds(nextIds);
+      const open = nextIds.length >= 2;
+      setCompareViewOpen(open);
+      syncFiltersToUrl({ compareIds: nextIds, compareView: open });
+    },
+    [tableRows, position, syncFiltersToUrl],
+  );
 
   const handleCloseCompare = useCallback(() => {
     setCompareViewOpen(false);
@@ -1328,12 +1364,16 @@ export default function App() {
             <InjurySidebar
               className={`projections-mobile-panel${projectionsMobilePanel === "injuries" ? " is-mobile-active" : ""}`}
               players={sidebarInjuries}
+              projections={tableRows}
               position={position}
               selectedTeams={selectedTeams}
               searchQuery={searchQuery}
               isLiveContext={isLiveContext}
               defaultSeason={projMeta?.default_season}
               defaultWeek={projMeta?.default_week}
+              season={season}
+              week={week}
+              onCompareReplacements={handleCompareReplacements}
             />
 
             <SentimentPanel

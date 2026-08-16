@@ -1,37 +1,26 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import Chip, { injuryChipTone } from "./Chip";
+import ProjectionTrustLabel from "./ProjectionTrustLabel";
 import { formatRelativeTime, formatReturnEstimate } from "./format";
+import usePlayersContext from "./usePlayersContext";
+import {
+  buildAttentionItems,
+  buildOpportunityItems,
+  filterInjuriesByQuery,
+  injuryCardClass,
+  injuryStatusShort,
+  practiceLabel,
+  sortInjuriesBySeverity,
+} from "./injuryExperience";
 
 const POSITION_LABELS = { qb: "QB", rb: "RB", wr: "WR/TE" };
 const POSITION_PLURAL = { qb: "QBs", rb: "RBs", wr: "WR/TE" };
-
-const SEVERITY_ORDER = {
-  Out: 0,
-  IR: 1,
-  PUP: 2,
-  Doubtful: 3,
-  Questionable: 4,
-};
-
-/** Compact status label for the narrow sidebar; full status stays in title/aria. */
-function injuryStatusShort(status) {
-  const s = String(status || "").trim();
-  const lower = s.toLowerCase();
-  if (lower.includes("questionable")) return "Q";
-  if (lower.includes("doubtful")) return "D";
-  if (lower.includes("probable")) return "P";
-  if (/(^|\s)out(\s|$)/i.test(s)) return "Out";
-  if (/\bir\b/i.test(s)) return "IR";
-  if (/\bpup\b/i.test(s)) return "PUP";
-  return s.length > 8 ? `${s.slice(0, 7)}…` : s;
-}
 
 const RETURN_HEURISTIC_TITLE =
   "Heuristic from injury type and designation — not an official team report";
 
 function compactReturnLabel(returnEst) {
   if (!returnEst?.text) return null;
-  // "Est. return: 1-3 weeks" → "est. 1–3 wk"
   let label = String(returnEst.text).replace(/^Est\.\s*return:\s*/i, "").trim();
   label = label
     .replace(/\bweeks?\b/gi, "wk")
@@ -45,48 +34,210 @@ function compactUpdated(updated) {
   return String(updated).replace(/^Updated\s+/i, "");
 }
 
-function injuryCardClass(status) {
-  const s = String(status || "").toLowerCase();
-  if (/(out|ir|pup|inactive|suspended)/.test(s)) return "injury-card injury-card--severe";
-  if (s.includes("doubtful")) return "injury-card injury-card--doubtful";
-  if (s.includes("questionable")) return "injury-card injury-card--questionable";
-  return "injury-card injury-card--default";
+function InjuryMetaLine({ injury }) {
+  const bodyPart = String(injury.injury_body_part || "").trim() || null;
+  const notes = String(injury.injury_notes || "").trim() || null;
+  const updated = compactUpdated(formatRelativeTime(injury.news_updated));
+  const returnEst = formatReturnEstimate(injury.return_estimate);
+  const returnLabel = compactReturnLabel(returnEst);
+  const leadBits = [injury.team, bodyPart].filter(Boolean);
+  const tailBits = [returnLabel, updated].filter(Boolean);
+  const metaTitle = [...leadBits, notes, ...tailBits].filter(Boolean).join(" · ");
+  if (!leadBits.length && !notes && !tailBits.length) return null;
+
+  return (
+    <p className="injury-card-meta" title={metaTitle}>
+      {leadBits.length ? (
+        <span className="injury-card-meta-lead">{leadBits.join(" · ")}</span>
+      ) : null}
+      {notes ? (
+        <span className="injury-card-meta-notes">
+          {leadBits.length ? " · " : ""}
+          {notes}
+        </span>
+      ) : null}
+      {tailBits.length ? (
+        <span
+          className="injury-card-meta-tail"
+          title={returnLabel ? RETURN_HEURISTIC_TITLE : undefined}
+        >
+          {leadBits.length || notes ? " · " : ""}
+          {tailBits.join(" · ")}
+        </span>
+      ) : null}
+    </p>
+  );
 }
 
-function sortInjuries(players) {
-  return [...players].sort((a, b) => {
-    const sa = SEVERITY_ORDER[a.injury_status] ?? 99;
-    const sb = SEVERITY_ORDER[b.injury_status] ?? 99;
-    if (sa !== sb) return sa - sb;
-    return String(a.full_name || "").localeCompare(String(b.full_name || ""));
-  });
+function AttentionCard({ item, onCompareReplacements }) {
+  const { injury, status, practice, changedAt, assumesActive, projectionRow } = item;
+  const statusShort = injuryStatusShort(status);
+  const changedLabel = compactUpdated(formatRelativeTime(changedAt));
+  const practiceText = practice || practiceLabel(injury);
+
+  return (
+    <li className={injuryCardClass(status)}>
+      <div className="injury-card-top">
+        <span className="injury-card-name" title={injury.full_name}>
+          {injury.full_name}
+        </span>
+        {status ? (
+          <Chip
+            tone={injuryChipTone(status)}
+            className="injury-status-chip"
+            title={status}
+            aria-label={`Injury status: ${status}`}
+          >
+            {statusShort}
+          </Chip>
+        ) : null}
+      </div>
+      <div className="injury-attention-facts">
+        {practiceText ? (
+          <span className="injury-attention-fact">
+            Practice <strong>{practiceText}</strong>
+          </span>
+        ) : (
+          <span className="injury-attention-fact muted">Practice unknown</span>
+        )}
+        {changedLabel ? (
+          <span className="injury-attention-fact muted">{changedLabel}</span>
+        ) : null}
+      </div>
+      {assumesActive ? (
+        <div className="injury-attention-trust">
+          <ProjectionTrustLabel kind="assumes_active" className="projection-trust-label--compact" />
+        </div>
+      ) : null}
+      <InjuryMetaLine injury={injury} />
+      {onCompareReplacements && projectionRow?.player_id ? (
+        <div className="injury-card-actions">
+          <button
+            type="button"
+            className="btn btn-ghost injury-compare-btn"
+            onClick={() => onCompareReplacements(projectionRow)}
+          >
+            Compare replacements
+          </button>
+        </div>
+      ) : null}
+    </li>
+  );
 }
 
+function OpportunityCard({ item }) {
+  return (
+    <li className="injury-card injury-card--opportunity">
+      <div className="injury-card-top">
+        <span className="injury-card-name" title={item.name}>
+          {item.name}
+        </span>
+        {item.pointsLabel ? (
+          <span className="injury-opp-delta" aria-label={`Opportunity ${item.pointsLabel}`}>
+            {item.pointsLabel}
+          </span>
+        ) : null}
+      </div>
+      <p className="injury-card-meta">
+        <span className="injury-card-meta-lead">
+          {[item.team, item.position].filter(Boolean).join(" · ")}
+        </span>
+      </p>
+      {item.driverLabel ? (
+        <p className="injury-opp-driver">{item.driverLabel}</p>
+      ) : null}
+    </li>
+  );
+}
+
+function AllInjuryCard({ injury }) {
+  const statusShort = injuryStatusShort(injury.injury_status);
+  return (
+    <li className={injuryCardClass(injury.injury_status)}>
+      <div className="injury-card-top">
+        <span className="injury-card-name" title={injury.full_name}>
+          {injury.full_name}
+        </span>
+        {injury.injury_status ? (
+          <Chip
+            tone={injuryChipTone(injury.injury_status)}
+            className="injury-status-chip"
+            title={injury.injury_status}
+            aria-label={`Injury status: ${injury.injury_status}`}
+          >
+            {statusShort}
+          </Chip>
+        ) : null}
+      </div>
+      <InjuryMetaLine injury={injury} />
+    </li>
+  );
+}
+
+/**
+ * SCORE-25 Injuries panel: Needs attention · Opportunity changes · All (collapsed).
+ * Consumes /api/injuries + weekly projections (+ cached player-context when warm).
+ * Does not poll Sleeper on page view.
+ */
 export default function InjurySidebar({
   players,
+  projections = [],
   position,
   selectedTeams,
   searchQuery,
   isLiveContext,
   defaultSeason,
   defaultWeek,
+  season,
+  week,
+  onCompareReplacements,
   className = "",
 }) {
-  const sorted = useMemo(() => sortInjuries(players || []), [players]);
+  const [allSearch, setAllSearch] = useState("");
+  const context = usePlayersContext(season ?? defaultSeason, week ?? defaultWeek, {
+    enabled: Boolean(isLiveContext && (season ?? defaultSeason) != null && (week ?? defaultWeek) != null),
+  });
+
+  const sortedAll = useMemo(() => sortInjuriesBySeverity(players || []), [players]);
+
+  const attention = useMemo(
+    () =>
+      buildAttentionItems({
+        injuries: sortedAll,
+        projections,
+        contextById: context.byId,
+      }),
+    [sortedAll, projections, context.byId],
+  );
+
+  const opportunities = useMemo(
+    () =>
+      buildOpportunityItems({
+        projections,
+        injuries: players,
+        contextById: context.byId,
+      }),
+    [projections, players, context.byId],
+  );
+
+  const allFiltered = useMemo(
+    () => filterInjuriesByQuery(sortedAll, allSearch),
+    [sortedAll, allSearch],
+  );
 
   const headerLine = useMemo(() => {
     const posLabel = POSITION_PLURAL[position] || POSITION_LABELS[position] || position?.toUpperCase();
-    const count = sorted.length;
+    const count = sortedAll.length;
     const noun = count === 1 ? posLabel.replace(/s$/, "") : posLabel;
     let line = `${count} injured ${noun}`;
     if (selectedTeams?.length) {
       line += ` · ${selectedTeams.join(", ")}`;
     }
     if (searchQuery?.trim()) {
-      line += ` · "${searchQuery.trim()}"`;
+      line += ` · table filter "${searchQuery.trim()}"`;
     }
     return line;
-  }, [position, selectedTeams, searchQuery, sorted.length]);
+  }, [position, selectedTeams, searchQuery, sortedAll.length]);
 
   if (!isLiveContext) {
     const weekLabel = defaultWeek != null ? `Week ${defaultWeek}` : "the live week";
@@ -110,64 +261,85 @@ export default function InjurySidebar({
           <p className="panel-subtitle">{headerLine}</p>
         </div>
       </div>
-      <div className="injury-list-scroll">
-        <ul className="injury-list">
-          {sorted.length === 0 && <li className="muted">No matching injuries</li>}
-          {sorted.map((p) => {
-            const bodyPart = String(p.injury_body_part || "").trim() || null;
-            const notes = String(p.injury_notes || "").trim() || null;
-            const updated = compactUpdated(formatRelativeTime(p.news_updated));
-            const returnEst = formatReturnEstimate(p.return_estimate);
-            const returnLabel = compactReturnLabel(returnEst);
-            const statusShort = injuryStatusShort(p.injury_status);
-            const leadBits = [p.team, bodyPart].filter(Boolean);
-            const tailBits = [returnLabel, updated].filter(Boolean);
-            const metaTitle = [...leadBits, notes, ...tailBits].filter(Boolean).join(" · ");
 
-            return (
-              <li key={p.sleeper_id} className={injuryCardClass(p.injury_status)}>
-                <div className="injury-card-top">
-                  <span className="injury-card-name" title={p.full_name}>
-                    {p.full_name}
-                  </span>
-                  {p.injury_status ? (
-                    <Chip
-                      tone={injuryChipTone(p.injury_status)}
-                      className="injury-status-chip"
-                      title={p.injury_status}
-                      aria-label={`Injury status: ${p.injury_status}`}
-                    >
-                      {statusShort}
-                    </Chip>
-                  ) : null}
-                </div>
-                {(leadBits.length || notes || tailBits.length) ? (
-                  <p className="injury-card-meta" title={metaTitle}>
-                    {leadBits.length ? (
-                      <span className="injury-card-meta-lead">{leadBits.join(" · ")}</span>
-                    ) : null}
-                    {notes ? (
-                      <span className="injury-card-meta-notes">
-                        {leadBits.length ? " · " : ""}
-                        {notes}
-                      </span>
-                    ) : null}
-                    {tailBits.length ? (
-                      <span
-                        className="injury-card-meta-tail"
-                        title={returnLabel ? RETURN_HEURISTIC_TITLE : undefined}
-                      >
-                        {leadBits.length || notes ? " · " : ""}
-                        {tailBits.join(" · ")}
-                      </span>
-                    ) : null}
-                  </p>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
+      <div className="injury-list-scroll">
+        <section className="injury-section" aria-labelledby="injury-attention-heading">
+          <div className="injury-section-head">
+            <h3 id="injury-attention-heading" className="injury-section-title">
+              Needs your attention
+            </h3>
+            <span className="injury-section-count muted">{attention.length}</span>
+          </div>
+          <p className="injury-section-sub muted">
+            Injured players on this week’s projection slate
+          </p>
+          <ul className="injury-list">
+            {attention.length === 0 ? (
+              <li className="muted injury-empty-row">No slate injuries need attention</li>
+            ) : (
+              attention.map((item) => (
+                <AttentionCard
+                  key={item.key}
+                  item={item}
+                  onCompareReplacements={onCompareReplacements}
+                />
+              ))
+            )}
+          </ul>
+        </section>
+
+        <section className="injury-section" aria-labelledby="injury-opportunity-heading">
+          <div className="injury-section-head">
+            <h3 id="injury-opportunity-heading" className="injury-section-title">
+              Opportunity changes
+            </h3>
+            <span className="injury-section-count muted">{opportunities.length}</span>
+          </div>
+          <p className="injury-section-sub muted">
+            Healthy teammates whose projections moved with an injury
+          </p>
+          <ul className="injury-list">
+            {opportunities.length === 0 ? (
+              <li className="muted injury-empty-row">No fantasy opportunity bumps right now</li>
+            ) : (
+              opportunities.map((item) => <OpportunityCard key={item.key} item={item} />)
+            )}
+          </ul>
+        </section>
+
+        <details className="injury-section injury-section--all">
+          <summary className="injury-all-summary">
+            <span className="injury-section-title">All reported injuries</span>
+            <span className="injury-section-count muted">{sortedAll.length}</span>
+          </summary>
+          <div className="injury-all-body">
+            <label className="injury-all-search-label">
+              <span className="sr-only">Search all injuries</span>
+              <input
+                type="search"
+                className="search-input injury-all-search"
+                placeholder="Search injuries…"
+                value={allSearch}
+                onChange={(e) => setAllSearch(e.target.value)}
+                aria-label="Search all reported injuries"
+              />
+            </label>
+            <ul className="injury-list">
+              {allFiltered.length === 0 ? (
+                <li className="muted injury-empty-row">No matching injuries</li>
+              ) : (
+                allFiltered.map((p) => (
+                  <AllInjuryCard key={p.sleeper_id || playerKeySafe(p)} injury={p} />
+                ))
+              )}
+            </ul>
+          </div>
+        </details>
       </div>
     </section>
   );
+}
+
+function playerKeySafe(p) {
+  return `${p.full_name}|${p.team}|${p.position}`;
 }
