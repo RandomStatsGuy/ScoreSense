@@ -12,6 +12,7 @@ from src.integrations.youtube import TRANSCRIPTS_DIR, load_raw_content_cache
 from src.sentiment.aggregate import FEATURE_COLUMNS, SNIPPET_MAX, load_sentiment_features, save_sentiment_features
 from src.sentiment.extract import extract_mentions
 from src.sentiment.fantasy_channels import FANTASY_NETWORK_COLUMNS, LEAGUE_TEAM_CODE, load_fantasy_channels, promoted_fantasy_channel_ids
+from src.sentiment.media_context import resolve_publish_week_for_features
 from src.sentiment.player_link import link_mention_league, load_season_roster, roster_display_names_all
 
 
@@ -48,7 +49,13 @@ def _process_league_videos(
 
     for _, video in videos.iterrows():
         published_at = pd.Timestamp(video.get("published_at"))
-        week = map_publish_time_to_league_week(published_at, season)
+        mapped = map_publish_time_to_league_week(published_at, season)
+        # SCORE-34: unmapped recent preseason videos land in outlook week=0.
+        week = resolve_publish_week_for_features(
+            published_at,
+            season,
+            mapped_week=mapped,
+        )
         if week is None:
             continue
 
