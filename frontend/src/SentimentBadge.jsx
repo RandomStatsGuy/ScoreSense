@@ -3,6 +3,7 @@ import Chip, { sentimentChipTone } from "./Chip";
 import HoverTip, { TipLine, TipTitle } from "./HoverTip";
 import { fmtMentions, mentionCountLabel } from "./format";
 import { sentimentLabelText } from "./sentimentDisplay";
+import { fantasyMediaNarrative } from "./fantasyMediaDigest";
 
 /**
  * Compact weekly narrative indicator for table cells and cards.
@@ -18,7 +19,11 @@ export default function SentimentBadge({ sentiment, compact = false, table = fal
 
   const label = sentiment.sentiment_label || "neutral";
   const text = sentiment.sentiment_label_text || sentimentLabelText(label);
-  const narrative = sentiment.fantasy_media_digest || sentiment.snippet || sentiment.sentiment_summary || "";
+  const narrative = fantasyMediaNarrative(
+    sentiment,
+    sentiment.snippet,
+    sentiment.sentiment_summary,
+  );
   const rawSnippet = sentiment.snippet?.trim();
 
   const flags = [];

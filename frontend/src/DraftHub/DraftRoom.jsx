@@ -3,6 +3,7 @@ import useMobileLayout from "../useMobileLayout";
 import MobileSubnav from "../layout/MobileSubnav";
 import { apiFetch, getToken } from "../auth";
 import { parseApiError } from "../format";
+import { pickFantasyMediaDigest } from "../fantasyMediaDigest";
 import DraftNomineeCard from "./DraftNomineeCard";
 import DraftRosterPanel from "./DraftRosterPanel";
 import DraftTeamCard from "./DraftTeamCard";
@@ -233,7 +234,7 @@ export default function DraftRoom({
         headshotUrl: media.headshot_url || null,
         teamLogoUrl: media.team_logo_url || null,
         fantasyMediaDigest:
-          fantasyMediaDigests[playerId] || sentiment?.fantasy_media_digest || null,
+          fantasyMediaDigests[playerId] || pickFantasyMediaDigest(sentiment) || null,
       };
     },
     [mediaByPlayerId, sentimentByPlayerId, fantasyMediaDigests],
@@ -366,7 +367,8 @@ export default function DraftRoom({
     setFantasyMediaDigests((prev) => {
       const next = { ...prev };
       for (const [pid, row] of Object.entries(enrichment.sentiment_by_player_id)) {
-        if (row?.fantasy_media_digest && !next[pid]) next[pid] = row.fantasy_media_digest;
+        const digest = pickFantasyMediaDigest(row);
+        if (digest && !next[pid]) next[pid] = digest;
       }
       return next;
     });

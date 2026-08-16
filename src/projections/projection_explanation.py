@@ -37,7 +37,7 @@ _VOL_HIGH = 0.70
 _VOL_LOW = 0.35
 
 _NARRATIVE_DISCLAIMER = (
-    "Sentiment and beat/fantasy digests are contextual overlays — "
+    "Sentiment and fantasy media digests are contextual overlays — "
     "they are not ScoreSense projection drivers."
 )
 
