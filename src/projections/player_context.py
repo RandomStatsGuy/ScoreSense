@@ -208,49 +208,61 @@ def _cached_digest_summary(
     week: int,
     sentiment_row: dict[str, Any] | None,
 ) -> tuple[str | None, str | None]:
-    """Read prewarmed fantasy digest cache only — never call LLM/extractive."""
+    """Read prewarmed fantasy digest cache only — never call LLM."""
     if not sentiment_row:
         return None, None
     try:
-        from src.sentiment.fantasy_digest import (
-            _cache_get,
-            _daily_cache_key,
-        )
+        from src.sentiment.analyst_context import compute_evidence_hash, evidence_cache_key
+        from src.sentiment.fantasy_digest import _cache_get
     except Exception:
         return None, None
 
-    cache_key = _daily_cache_key(
-        scope="weekly",
+    chapter_notes = str(sentiment_row.get("yt_chapter_notes") or sentiment_row.get("chapter_notes") or "")
+    top_sentence = str(
+        sentiment_row.get("yt_top_sentence")
+        or sentiment_row.get("top_sentence")
+        or sentiment_row.get("yt_top_snippet")
+        or sentiment_row.get("snippet")
+        or ""
+    )
+    snippet = chapter_notes or top_sentence or str(sentiment_row.get("yt_top_snippet") or "")
+    ehash = compute_evidence_hash(
+        chapter_notes=chapter_notes,
+        top_sentence=top_sentence,
+        snippet=snippet,
+        sentiment_label=str(sentiment_row.get("sentiment_label") or "neutral"),
+        injury_flag=float(sentiment_row.get("yt_injury_flag") or sentiment_row.get("injury_flag") or 0),
+        role_hype_flag=float(sentiment_row.get("yt_role_hype_flag") or sentiment_row.get("role_hype_flag") or 0),
+        mention_count=float(sentiment_row.get("yt_mention_count") or sentiment_row.get("mention_count") or 0),
+    )
+    cache_key = evidence_cache_key(
         player_id=player_id,
         player_name=player_name,
         season=season,
         week=week,
+        evidence_hash=ehash,
+        scope="fantasy|weekly",
     )
     cached = _cache_get("weekly", cache_key)
     if cached:
         return cached, datetime.now(timezone.utc).isoformat()
 
-    # Fallback: materialize extractive summary at *build* time only (caller).
-    snippet = str(
-        sentiment_row.get("yt_top_snippet")
-        or sentiment_row.get("top_sentence")
-        or sentiment_row.get("snippet")
-        or ""
-    ).strip()
+    # Fallback: materialize template/extractive summary at *build* time only (caller).
     if not snippet and float(sentiment_row.get("yt_mention_count") or 0) <= 0:
         return None, None
     try:
-        from src.sentiment.fantasy_digest import extractive_fantasy_digest
+        from src.sentiment.fantasy_digest import build_fantasy_template_or_extractive
 
-        digest = extractive_fantasy_digest(
+        digest, _source = build_fantasy_template_or_extractive(
             player_name,
             scope="weekly",
             snippet=snippet,
-            chapter_notes="",
-            top_sentence=snippet,
+            chapter_notes=chapter_notes,
+            top_sentence=top_sentence,
             sentiment_label=str(sentiment_row.get("sentiment_label") or "neutral"),
             injury_flag=float(sentiment_row.get("yt_injury_flag") or 0),
             role_hype_flag=float(sentiment_row.get("yt_role_hype_flag") or 0),
+            mention_count=float(sentiment_row.get("yt_mention_count") or 0),
         )
         return digest or None, datetime.now(timezone.utc).isoformat()
     except Exception:

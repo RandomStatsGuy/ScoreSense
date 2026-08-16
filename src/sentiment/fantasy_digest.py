@@ -2,21 +2,28 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
 import requests
 
 from src.config import (
-    BEAT_DIGEST_CACHE_VERSION,
     BEAT_DIGEST_LLM_ENABLED,
     CACHE_DIR,
     OPENAI_API_KEY,
     OPENAI_MODEL,
+)
+from src.sentiment.analyst_context import (
+    budget_allows_call,
+    compute_evidence_hash,
+    evidence_cache_key,
+    prompt_version,
+    record_llm_spend,
+    strongest_excerpt,
+    template_analyst_summary,
 )
 from src.sentiment.beat_digest import (
     _collect_topics,
@@ -62,30 +69,51 @@ def _cache_path(scope: FantasyDigestScope, key: str) -> Path:
     return _cache_dir(scope) / f"{key}.json"
 
 
-def _cache_get(scope: FantasyDigestScope, key: str, *, max_age_hours: float = 24.0) -> str | None:
+def _cache_get_record(scope: FantasyDigestScope, key: str) -> dict[str, Any] | None:
     path = _cache_path(scope, key)
     if not path.exists():
         return None
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-        cached_at = data.get("cached_at")
-        if cached_at:
-            ts = datetime.fromisoformat(str(cached_at))
-            if ts.tzinfo is None:
-                ts = ts.replace(tzinfo=timezone.utc)
-            age_h = (datetime.now(timezone.utc) - ts).total_seconds() / 3600.0
-            if age_h > max_age_hours:
-                return None
-        return str(data.get("digest") or "") or None
+        if not isinstance(data, dict):
+            return None
+        if not str(data.get("digest") or ""):
+            return None
+        return data
     except (json.JSONDecodeError, OSError, ValueError):
         return None
 
 
-def _cache_set(scope: FantasyDigestScope, key: str, digest: str) -> None:
-    _cache_path(scope, key).write_text(
-        json.dumps({"digest": digest, "cached_at": datetime.now(timezone.utc).isoformat()}),
-        encoding="utf-8",
-    )
+def _cache_get(scope: FantasyDigestScope, key: str, *, max_age_hours: float | None = None) -> str | None:
+    _ = max_age_hours
+    data = _cache_get_record(scope, key)
+    if not data:
+        return None
+    return str(data.get("digest") or "") or None
+
+
+def _cache_set(
+    scope: FantasyDigestScope,
+    key: str,
+    digest: str,
+    *,
+    template: str | None = None,
+    source: str = "template",
+    evidence_hash: str | None = None,
+    excerpt: str | None = None,
+    source_labels: list[str] | None = None,
+) -> None:
+    payload = {
+        "digest": digest,
+        "template": template if template is not None else digest,
+        "digest_source": source,
+        "evidence_hash": evidence_hash,
+        "prompt_version": prompt_version(),
+        "excerpt": excerpt or "",
+        "source_labels": list(source_labels or []),
+        "cached_at": datetime.now(timezone.utc).isoformat(),
+    }
+    _cache_path(scope, key).write_text(json.dumps(payload), encoding="utf-8")
 
 
 def _daily_cache_key(
@@ -95,12 +123,17 @@ def _daily_cache_key(
     player_name: str,
     season: int | None,
     week: int | None,
+    evidence_hash: str = "",
 ) -> str:
-    day = date.today().isoformat()
-    pid = str(player_id or player_name).strip()
-    return hashlib.sha256(
-        f"{BEAT_DIGEST_CACHE_VERSION}|fantasy|{scope}|{pid}|{season}|{week}|{day}".encode()
-    ).hexdigest()[:24]
+    """Evidence-hash cache key (name kept for compatibility)."""
+    return evidence_cache_key(
+        player_id=player_id,
+        player_name=player_name,
+        season=season,
+        week=week,
+        evidence_hash=evidence_hash or "missing",
+        scope=f"fantasy|{scope}",
+    )
 
 
 def extractive_fantasy_digest(
@@ -207,6 +240,60 @@ def extractive_fantasy_digest(
     )
 
 
+def build_fantasy_template_or_extractive(
+    player_name: str,
+    *,
+    scope: FantasyDigestScope = "weekly",
+    snippet: str = "",
+    chapter_notes: str = "",
+    top_sentence: str = "",
+    sentiment_label: str = "neutral",
+    injury_flag: float = 0.0,
+    role_hype_flag: float = 0.0,
+    source_labels: list[str] | None = None,
+    mention_count: float = 0.0,
+    mention_trend: float | None = None,
+    weeks_with_mentions: int | None = None,
+) -> tuple[str, str]:
+    template = template_analyst_summary(
+        sentiment_label=sentiment_label,
+        mention_count=mention_count,
+        source_labels=source_labels,
+        injury_flag=injury_flag,
+        role_hype_flag=role_hype_flag,
+        chapter_notes=chapter_notes,
+        top_sentence=top_sentence,
+        snippet=snippet,
+        scope=scope,
+    )
+    topics = _collect_topics(
+        player_name=player_name,
+        snippet=snippet,
+        chapter_notes=chapter_notes,
+        top_sentence=top_sentence,
+    )
+    if (
+        float(injury_flag or 0) > 0
+        or float(role_hype_flag or 0) > 0
+        or (source_labels and mention_count > 0)
+        or not topics
+    ):
+        return template, "template"
+    extractive = extractive_fantasy_digest(
+        player_name,
+        scope=scope,
+        snippet=snippet,
+        chapter_notes=chapter_notes,
+        top_sentence=top_sentence,
+        sentiment_label=sentiment_label,
+        injury_flag=injury_flag,
+        role_hype_flag=role_hype_flag,
+        mention_trend=mention_trend,
+        weeks_with_mentions=weeks_with_mentions,
+    )
+    return extractive, "extractive"
+
+
 def _llm_fantasy_digest(
     player_name: str,
     *,
@@ -219,6 +306,7 @@ def _llm_fantasy_digest(
     top_sentence: str = "",
     mention_trend: float | None = None,
     weeks_with_mentions: int | None = None,
+    charge_budget: bool = True,
 ) -> str | None:
     if not BEAT_DIGEST_LLM_ENABLED:
         return None
@@ -230,6 +318,8 @@ def _llm_fantasy_digest(
         top_sentence=top_sentence,
     )
     if not api_key or not brief.strip():
+        return None
+    if charge_budget and not budget_allows_call():
         return None
     flags: list[str] = []
     if injury_flag > 0:
@@ -262,7 +352,7 @@ def _llm_fantasy_digest(
                             f"Overall tone: {sentiment_label}\n"
                             f"{flag_line}\n"
                             f"{week_line}"
-                            f"Notes from {time_label}:\n{brief[:1600]}"
+                            f"Notes from {time_label} (snippets only):\n{brief[:1600]}"
                         ),
                     },
                 ],
@@ -274,6 +364,8 @@ def _llm_fantasy_digest(
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"].strip()
         content = re.sub(r"^[\"']|[\"']$", "", content)
+        if content and charge_budget:
+            record_llm_spend()
         return content if content else None
     except Exception:
         return None
@@ -287,9 +379,11 @@ def fantasy_digest_for_player(
     player_id: str | None = None,
     season: int | None = None,
     week: int | None = None,
-    prefer_llm: bool = True,
+    prefer_llm: bool = False,
     return_meta: bool = False,
+    charge_budget: bool = True,
 ) -> str | dict[str, Any]:
+    """Build fantasy digest. Default template/extractive — LLM only when prefer_llm=True (async)."""
     chapter_notes = str(sentiment.get("chapter_notes") or "")
     top_sentence = str(sentiment.get("top_sentence") or sentiment.get("snippet") or "")
     snippet = chapter_notes or top_sentence or str(sentiment.get("snippet") or "")
@@ -298,22 +392,74 @@ def fantasy_digest_for_player(
     role_hype_flag = float(sentiment.get("role_hype_flag") or 0)
     mention_trend = sentiment.get("mention_trend")
     weeks_with_mentions = sentiment.get("weeks_with_mentions")
+    sources = [s.get("label") or s.get("network_label") for s in (sentiment.get("sources") or [])]
+    sources = [s for s in sources if s]
+    if not sources:
+        sources = [c for c in (sentiment.get("channels") or []) if c]
+    mention_count = float(
+        sentiment.get("mention_count")
+        or sentiment.get("fantasy_mentions")
+        or sentiment.get("narrative_source_count")
+        or 0
+    )
 
-    cache_key = _daily_cache_key(
-        scope=scope,
+    ehash = compute_evidence_hash(
+        chapter_notes=chapter_notes,
+        top_sentence=top_sentence,
+        snippet=snippet,
+        sentiment_label=label,
+        injury_flag=injury_flag,
+        role_hype_flag=role_hype_flag,
+        mention_count=mention_count,
+        source_labels=sources,
+        mention_trend=float(mention_trend) if mention_trend is not None else None,
+        weeks_with_mentions=int(weeks_with_mentions) if weeks_with_mentions is not None else None,
+    )
+    cache_key = evidence_cache_key(
         player_id=player_id,
         player_name=player_name,
         season=season,
         week=week,
+        evidence_hash=ehash,
+        scope=f"fantasy|{scope}",
     )
-    cached = _cache_get(scope, cache_key)
+    cached = _cache_get_record(scope, cache_key)
     if cached:
-        if return_meta:
-            return {"fantasy_digest": cached, "fantasy_digest_source": "cache"}
-        return cached
+        digest = str(cached.get("digest") or "")
+        source = str(cached.get("digest_source") or "cache")
+        if digest and (not prefer_llm or source == "llm"):
+            if return_meta:
+                return {
+                    "fantasy_digest": digest,
+                    "fantasy_digest_source": "cache",
+                    "template": cached.get("template") or digest,
+                    "evidence_hash": ehash,
+                    "prompt_version": cached.get("prompt_version") or prompt_version(),
+                }
+            return digest
+
+    template, template_source = build_fantasy_template_or_extractive(
+        player_name,
+        scope=scope,
+        snippet=snippet,
+        chapter_notes=chapter_notes,
+        top_sentence=top_sentence,
+        sentiment_label=label,
+        injury_flag=injury_flag,
+        role_hype_flag=role_hype_flag,
+        source_labels=sources,
+        mention_count=mention_count,
+        mention_trend=float(mention_trend) if mention_trend is not None else None,
+        weeks_with_mentions=int(weeks_with_mentions) if weeks_with_mentions is not None else None,
+    )
+    excerpt = strongest_excerpt(
+        chapter_notes=chapter_notes,
+        top_sentence=top_sentence,
+        snippet=snippet,
+    )
 
     digest: str | None = None
-    source = "extractive"
+    source = template_source
     if prefer_llm:
         digest = _llm_fantasy_digest(
             player_name,
@@ -326,25 +472,30 @@ def fantasy_digest_for_player(
             top_sentence=top_sentence,
             mention_trend=float(mention_trend) if mention_trend is not None else None,
             weeks_with_mentions=int(weeks_with_mentions) if weeks_with_mentions is not None else None,
+            charge_budget=charge_budget,
         )
         if digest:
             source = "llm"
 
     if not digest:
-        digest = extractive_fantasy_digest(
-            player_name,
-            scope=scope,
-            snippet=snippet,
-            chapter_notes=chapter_notes,
-            top_sentence=top_sentence,
-            sentiment_label=label,
-            injury_flag=injury_flag,
-            role_hype_flag=role_hype_flag,
-            mention_trend=float(mention_trend) if mention_trend is not None else None,
-            weeks_with_mentions=int(weeks_with_mentions) if weeks_with_mentions is not None else None,
-        )
+        digest = template
 
-    _cache_set(scope, cache_key, digest)
+    _cache_set(
+        scope,
+        cache_key,
+        digest,
+        template=template,
+        source=source,
+        evidence_hash=ehash,
+        excerpt=excerpt,
+        source_labels=sources,
+    )
     if return_meta:
-        return {"fantasy_digest": digest, "fantasy_digest_source": source}
+        return {
+            "fantasy_digest": digest,
+            "fantasy_digest_source": source,
+            "template": template,
+            "evidence_hash": ehash,
+            "prompt_version": prompt_version(),
+        }
     return digest

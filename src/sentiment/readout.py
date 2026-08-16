@@ -166,12 +166,8 @@ def _sources_from_feature_row(row: pd.Series, team: str, channel_lookup: dict[tu
 
 
 def _prefer_llm_for_row(row: pd.Series, rank: int, top_n: int = BEAT_DIGEST_LLM_TOP_N) -> bool:
-    if rank < top_n:
-        return True
-    if float(row.get("yt_injury_flag") or 0) > 0:
-        return True
-    if float(row.get("yt_role_hype_flag") or 0) > 0:
-        return True
+    """SCORE-27: request handlers never call LLM. Kept for import compatibility."""
+    _ = (row, rank, top_n)
     return False
 
 
@@ -304,7 +300,7 @@ def build_sentiment_index(
             networks=networks,
             season=season,
             week=week,
-            prefer_llm=_prefer_llm_for_row(row, rank),
+            prefer_llm=False,  # SCORE-27: template/extractive only on request path
         )
 
     return {
@@ -417,7 +413,7 @@ def build_sentiment_response(
                 networks=networks,
                 season=season,
                 week=week,
-                prefer_llm=_prefer_llm_for_row(row, rank),
+                prefer_llm=False,  # SCORE-27: no LLM on request path
             )
         )
 

@@ -187,13 +187,19 @@ PRESEASON_USE_EXPECTED_GAMES = os.getenv("PRESEASON_USE_EXPECTED_GAMES", "true")
 SEASON_QUANTILE_METHOD = os.getenv("SEASON_QUANTILE_METHOD", "mc_schedule_v1").strip().lower()
 
 # Beat digest / OpenAI (read here — not os.environ in sentiment modules)
+# SCORE-27: request handlers never call LLM; async jobs only, budget-gated.
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 BEAT_DIGEST_LLM_ENABLED = os.getenv("BEAT_DIGEST_LLM_ENABLED", "true").lower() in ("1", "true", "yes")
 BEAT_DIGEST_LLM_TOP_N = int(os.getenv("BEAT_DIGEST_LLM_TOP_N", "40"))
 BEAT_DIGEST_PREWARM_TOP_N = int(os.getenv("BEAT_DIGEST_PREWARM_TOP_N", "200"))
-# Bump when digest logic changes so stale file cache is not reused.
-BEAT_DIGEST_CACHE_VERSION = os.getenv("BEAT_DIGEST_CACHE_VERSION", "v2")
+# Cache key includes evidence_hash + prompt_version; bump cache version on schema change.
+BEAT_DIGEST_CACHE_VERSION = os.getenv("BEAT_DIGEST_CACHE_VERSION", "v3")
+BEAT_DIGEST_PROMPT_VERSION = os.getenv("BEAT_DIGEST_PROMPT_VERSION", "v1")
+BEAT_DIGEST_LLM_DAILY_BUDGET_USD = float(os.getenv("BEAT_DIGEST_LLM_DAILY_BUDGET_USD", "2.0"))
+BEAT_DIGEST_LLM_PER_RUN_BUDGET_USD = float(os.getenv("BEAT_DIGEST_LLM_PER_RUN_BUDGET_USD", "0.50"))
+# Conservative gpt-4o-mini estimate for a short digest completion.
+BEAT_DIGEST_LLM_EST_COST_PER_CALL_USD = float(os.getenv("BEAT_DIGEST_LLM_EST_COST_PER_CALL_USD", "0.0004"))
 
 # Compressed Parquet defaults for mlready / cache writes (zstd ≈ 3–5× smaller than CSV)
 PARQUET_WRITE_KWARGS = {"index": False, "compression": "zstd"}

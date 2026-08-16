@@ -170,7 +170,8 @@ def _attach_digests(
     llm_player_ids: set[str] | None = None,
 ) -> dict[str, dict]:
     name_by_id = {str(h["player_id"]): str(h.get("player_name") or "") for h in hints if h.get("player_id")}
-    llm_ids = llm_player_ids or set()
+    # SCORE-27: request path never calls LLM (llm_player_ids retained for API compat only).
+    _ = llm_player_ids
     target_ids = {str(h["player_id"]) for h in hints if h.get("player_id")}
     if not target_ids:
         return {}
@@ -189,7 +190,7 @@ def _attach_digests(
             player_id=str(pid),
             season=season,
             week=week,
-            prefer_llm=str(pid) in llm_ids,
+            prefer_llm=False,
         )
         enriched["beat_digest"] = enriched["fantasy_digest"]
         out[pid] = enriched
@@ -258,7 +259,7 @@ def beat_digest_single(
         player_id=str(player_id),
         season=sentiment["season"],
         week=sentiment["week"],
-        prefer_llm=True,
+        prefer_llm=False,  # SCORE-27: serve cache/template only
         return_meta=True,
     )
     return {

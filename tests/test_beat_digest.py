@@ -91,9 +91,69 @@ def test_beat_digest_source_meta(monkeypatch, tmp_path):
         prefer_llm=False,
         return_meta=True,
     )
-    assert result["beat_digest_source"] == "extractive"
+    assert result["beat_digest_source"] in ("extractive", "template")
     assert result["beat_digest"]
+    assert result.get("evidence_hash")
+    assert result.get("template")
     assert "quiet" not in result["beat_digest"].lower()
+
+
+def test_beat_digest_evidence_hash_cache(monkeypatch, tmp_path):
+    from src.sentiment import beat_digest as mod
+
+    monkeypatch.setattr(mod, "_DIGEST_CACHE_DIR", tmp_path)
+    monkeypatch.setattr(mod, "_llm_beat_digest", lambda *a, **k: "LLM summary text.")
+
+    sent = {"snippet": "00:00 Test topic", "sentiment_label": "neutral", "sources": []}
+    first = mod.beat_digest_for_player(
+        "Test Player",
+        sent,
+        player_id="p1",
+        season=2025,
+        week=1,
+        prefer_llm=True,
+        charge_budget=False,
+    )
+    assert first == "LLM summary text."
+
+    monkeypatch.setattr(mod, "_llm_beat_digest", lambda *a, **k: "Should not call again")
+    second = mod.beat_digest_for_player(
+        "Test Player",
+        sent,
+        player_id="p1",
+        season=2025,
+        week=1,
+        prefer_llm=True,
+        charge_budget=False,
+    )
+    assert second == "LLM summary text."
+
+
+def test_beat_digest_llm_fail_keeps_template(monkeypatch, tmp_path):
+    from src.sentiment import beat_digest as mod
+
+    monkeypatch.setattr(mod, "_DIGEST_CACHE_DIR", tmp_path)
+    monkeypatch.setattr(mod, "_llm_beat_digest", lambda *a, **k: None)
+
+    sent = {
+        "top_sentence": "Increased target share this week",
+        "sentiment_label": "hype",
+        "role_hype_flag": 1.0,
+        "mention_count": 3,
+        "sources": [{"label": "Late Round"}],
+    }
+    result = mod.beat_digest_for_player(
+        "Test Player",
+        sent,
+        player_id="p3",
+        season=2026,
+        week=1,
+        prefer_llm=True,
+        return_meta=True,
+        charge_budget=False,
+    )
+    assert result["beat_digest_source"] in ("template", "extractive")
+    assert result["template"] == result["beat_digest"] or result["template"]
 
 
 def test_extractive_skips_clickbait_chapters_for_role_hype():
@@ -110,35 +170,6 @@ def test_extractive_skips_clickbait_chapters_for_role_hype():
     assert "Health is the headline" not in text
     assert "SAVAGELY" not in text
     assert "Jackson" in text
-
-
-def test_beat_digest_daily_cache(monkeypatch, tmp_path):
-    from src.sentiment import beat_digest as mod
-
-    monkeypatch.setattr(mod, "_DIGEST_CACHE_DIR", tmp_path)
-    monkeypatch.setattr(mod, "_llm_beat_digest", lambda *a, **k: "LLM summary text.")
-
-    sent = {"snippet": "00:00 Test topic", "sentiment_label": "neutral", "sources": []}
-    first = mod.beat_digest_for_player(
-        "Test Player",
-        sent,
-        player_id="p1",
-        season=2025,
-        week=1,
-        prefer_llm=True,
-    )
-    assert first == "LLM summary text."
-
-    monkeypatch.setattr(mod, "_llm_beat_digest", lambda *a, **k: "Should not call again")
-    second = mod.beat_digest_for_player(
-        "Test Player",
-        sent,
-        player_id="p1",
-        season=2025,
-        week=1,
-        prefer_llm=True,
-    )
-    assert second == "LLM summary text."
 
 
 def test_media_lookup_by_name_when_gsis_missing():

@@ -2,21 +2,28 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import requests
 
 from src.config import (
-    BEAT_DIGEST_CACHE_VERSION,
-    CACHE_DIR,
     BEAT_DIGEST_LLM_ENABLED,
+    CACHE_DIR,
     OPENAI_API_KEY,
     OPENAI_MODEL,
+)
+from src.sentiment.analyst_context import (
+    budget_allows_call,
+    compute_evidence_hash,
+    evidence_cache_key,
+    prompt_version,
+    record_llm_spend,
+    strongest_excerpt,
+    template_analyst_summary,
 )
 
 _DIGEST_CACHE_DIR = CACHE_DIR / "draft_beat_digest"
@@ -55,30 +62,52 @@ def _cache_path(key: str) -> Path:
     return _DIGEST_CACHE_DIR / f"{key}.json"
 
 
-def _cache_get(key: str, *, max_age_hours: float = 24.0) -> str | None:
+def _cache_get_record(key: str) -> dict[str, Any] | None:
     path = _cache_path(key)
     if not path.exists():
         return None
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-        cached_at = data.get("cached_at")
-        if cached_at:
-            ts = datetime.fromisoformat(str(cached_at))
-            if ts.tzinfo is None:
-                ts = ts.replace(tzinfo=timezone.utc)
-            age_h = (datetime.now(timezone.utc) - ts).total_seconds() / 3600.0
-            if age_h > max_age_hours:
-                return None
-        return str(data.get("digest") or "") or None
+        if not isinstance(data, dict):
+            return None
+        digest = str(data.get("digest") or "") or None
+        if not digest:
+            return None
+        return data
     except (json.JSONDecodeError, OSError, ValueError):
         return None
 
 
-def _cache_set(key: str, digest: str) -> None:
-    _cache_path(key).write_text(
-        json.dumps({"digest": digest, "cached_at": datetime.now(timezone.utc).isoformat()}),
-        encoding="utf-8",
-    )
+def _cache_get(key: str, *, max_age_hours: float | None = None) -> str | None:
+    """Return cached digest text. Evidence-hash keys do not expire by TTL."""
+    _ = max_age_hours  # retained for call-site compatibility; hash keys are sticky
+    data = _cache_get_record(key)
+    if not data:
+        return None
+    return str(data.get("digest") or "") or None
+
+
+def _cache_set(
+    key: str,
+    digest: str,
+    *,
+    template: str | None = None,
+    source: str = "template",
+    evidence_hash: str | None = None,
+    excerpt: str | None = None,
+    source_labels: list[str] | None = None,
+) -> None:
+    payload = {
+        "digest": digest,
+        "template": template if template is not None else digest,
+        "digest_source": source,
+        "evidence_hash": evidence_hash,
+        "prompt_version": prompt_version(),
+        "excerpt": excerpt or "",
+        "source_labels": list(source_labels or []),
+        "cached_at": datetime.now(timezone.utc).isoformat(),
+    }
+    _cache_path(key).write_text(json.dumps(payload), encoding="utf-8")
 
 
 def _daily_cache_key(
@@ -87,10 +116,17 @@ def _daily_cache_key(
     player_name: str,
     season: int | None,
     week: int | None,
+    evidence_hash: str = "",
 ) -> str:
-    day = date.today().isoformat()
-    pid = str(player_id or player_name).strip()
-    return hashlib.sha256(f"{BEAT_DIGEST_CACHE_VERSION}|{pid}|{season}|{week}|{day}".encode()).hexdigest()[:24]
+    """Evidence-hash cache key (name kept for compatibility with older imports)."""
+    return evidence_cache_key(
+        player_id=player_id,
+        player_name=player_name,
+        season=season,
+        week=week,
+        evidence_hash=evidence_hash or "missing",
+        scope="beat",
+    )
 
 
 def parse_chapter_titles(snippet: str) -> list[str]:
@@ -229,20 +265,21 @@ def snippet_to_brief(
     chapter_notes: str = "",
     top_sentence: str = "",
 ) -> str:
-    """Structured notes for LLM input — no timestamps."""
+    """Structured notes for LLM input — snippets only, no full transcripts."""
     if chapter_notes:
         topics = [_clean_topic(t, player_name) for t in chapter_notes.split(" | ")]
         topics = _dedupe_topics([t for t in topics if t])
         if topics:
-            return "\n".join(f"- {t}" for t in topics)
+            return "\n".join(f"- {t}" for t in topics[:6])
     topics = [_clean_topic(t, player_name) for t in parse_chapter_titles(snippet)]
     topics = _dedupe_topics([t for t in topics if t])
     if topics:
-        return "\n".join(f"- {t}" for t in topics)
+        return "\n".join(f"- {t}" for t in topics[:6])
     plain_source = top_sentence or snippet
     plain = re.sub(r"(?:\d{1,2}:){1,2}\d{2}\s*", " ", plain_source)
     plain = re.sub(r"\s+", " ", plain).strip()
-    return plain[:1200] if plain else ""
+    # Hard cap — never send long transcripts to the model.
+    return plain[:800] if plain else ""
 
 
 def _topic_phrase(topic: str) -> str:
@@ -266,7 +303,7 @@ def extractive_beat_digest(
     source_labels: list[str] | None = None,
 ) -> str:
     """Rule-based 1–2 sentence columnist-style update from chapter titles or transcript."""
-    _ = source_labels  # sources shown separately in UI
+    _ = source_labels  # sources shown separately in UI for extractive path
     topics = _collect_topics(
         player_name=player_name,
         snippet=snippet,
@@ -328,6 +365,59 @@ def extractive_beat_digest(
     )
 
 
+def build_template_or_extractive(
+    player_name: str,
+    *,
+    snippet: str = "",
+    chapter_notes: str = "",
+    top_sentence: str = "",
+    sentiment_label: str = "neutral",
+    injury_flag: float = 0.0,
+    role_hype_flag: float = 0.0,
+    source_labels: list[str] | None = None,
+    mention_count: float = 0.0,
+    prefer_template: bool = True,
+) -> tuple[str, str]:
+    """Return (digest, source) where source is template|extractive."""
+    template = template_analyst_summary(
+        sentiment_label=sentiment_label,
+        mention_count=mention_count,
+        source_labels=source_labels,
+        injury_flag=injury_flag,
+        role_hype_flag=role_hype_flag,
+        chapter_notes=chapter_notes,
+        top_sentence=top_sentence,
+        snippet=snippet,
+        scope="weekly",
+    )
+    topics = _collect_topics(
+        player_name=player_name,
+        snippet=snippet,
+        chapter_notes=chapter_notes,
+        top_sentence=top_sentence,
+    )
+    # Prefer structured template when SCORE-27 signal fields are present;
+    # fall back to extractive when we have usable chapter topics and no strong flags.
+    if prefer_template and (
+        float(injury_flag or 0) > 0
+        or float(role_hype_flag or 0) > 0
+        or (source_labels and mention_count > 0)
+        or not topics
+    ):
+        return template, "template"
+    extractive = extractive_beat_digest(
+        player_name,
+        snippet=snippet,
+        chapter_notes=chapter_notes,
+        top_sentence=top_sentence,
+        sentiment_label=sentiment_label,
+        injury_flag=injury_flag,
+        role_hype_flag=role_hype_flag,
+        source_labels=source_labels,
+    )
+    return extractive, "extractive"
+
+
 _LLM_SYSTEM = (
     "You are an NFL fantasy columnist writing a short draft-room update about one player.\n\n"
     "Write 1–2 complete sentences in third person. Synthesize the notes into one coherent storyline — "
@@ -349,6 +439,7 @@ def _llm_beat_digest(
     role_hype_flag: float = 0.0,
     chapter_notes: str = "",
     top_sentence: str = "",
+    charge_budget: bool = True,
 ) -> str | None:
     if not BEAT_DIGEST_LLM_ENABLED:
         return None
@@ -360,6 +451,8 @@ def _llm_beat_digest(
         top_sentence=top_sentence,
     )
     if not api_key or not brief.strip():
+        return None
+    if charge_budget and not budget_allows_call():
         return None
     _ = source_labels
     flags: list[str] = []
@@ -382,7 +475,7 @@ def _llm_beat_digest(
                             f"Player: {player_name}\n"
                             f"Overall tone: {sentiment_label}\n"
                             f"{flag_line}\n"
-                            f"Notes from this week:\n{brief[:1600]}"
+                            f"Notes from this week (snippets only):\n{brief[:1600]}"
                         ),
                     },
                 ],
@@ -394,6 +487,8 @@ def _llm_beat_digest(
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"].strip()
         content = re.sub(r"^[\"']|[\"']$", "", content)
+        if content and charge_budget:
+            record_llm_spend()
         return content if content else None
     except Exception:
         return None
@@ -406,32 +501,77 @@ def beat_digest_for_player(
     player_id: str | None = None,
     season: int | None = None,
     week: int | None = None,
-    prefer_llm: bool = True,
+    prefer_llm: bool = False,
     return_meta: bool = False,
+    charge_budget: bool = True,
 ) -> str | dict[str, Any]:
+    """Build analyst digest. Default is template/extractive — no LLM on request paths."""
     chapter_notes = str(sentiment.get("chapter_notes") or "")
     top_sentence = str(sentiment.get("top_sentence") or sentiment.get("snippet") or "")
     snippet = chapter_notes or top_sentence or str(sentiment.get("snippet") or "")
     label = str(sentiment.get("sentiment_label") or "neutral")
     sources = [s.get("label") or s.get("network_label") for s in (sentiment.get("sources") or [])]
     sources = [s for s in sources if s]
+    if not sources:
+        sources = [c for c in (sentiment.get("channels") or []) if c]
     injury_flag = float(sentiment.get("injury_flag") or 0)
     role_hype_flag = float(sentiment.get("role_hype_flag") or 0)
+    mention_count = float(sentiment.get("mention_count") or sentiment.get("fantasy_mentions") or 0)
 
-    cache_key = _daily_cache_key(
+    ehash = compute_evidence_hash(
+        chapter_notes=chapter_notes,
+        top_sentence=top_sentence,
+        snippet=snippet,
+        sentiment_label=label,
+        injury_flag=injury_flag,
+        role_hype_flag=role_hype_flag,
+        mention_count=mention_count,
+        source_labels=sources,
+    )
+    cache_key = evidence_cache_key(
         player_id=player_id,
         player_name=player_name,
         season=season,
         week=week,
+        evidence_hash=ehash,
+        scope="beat",
     )
-    cached = _cache_get(cache_key)
+    cached = _cache_get_record(cache_key)
     if cached:
-        if return_meta:
-            return {"beat_digest": cached, "beat_digest_source": "cache"}
-        return cached
+        digest = str(cached.get("digest") or "")
+        source = str(cached.get("digest_source") or "cache")
+        # If LLM already cached for this evidence, reuse; if caller asked for LLM
+        # and cache is only template, fall through to try upgrade.
+        if digest and (not prefer_llm or source == "llm"):
+            if return_meta:
+                return {
+                    "beat_digest": digest,
+                    "beat_digest_source": "cache",
+                    "template": cached.get("template") or digest,
+                    "evidence_hash": ehash,
+                    "prompt_version": cached.get("prompt_version") or prompt_version(),
+                }
+            return digest
+
+    template, template_source = build_template_or_extractive(
+        player_name,
+        snippet=snippet,
+        chapter_notes=chapter_notes,
+        top_sentence=top_sentence,
+        sentiment_label=label,
+        injury_flag=injury_flag,
+        role_hype_flag=role_hype_flag,
+        source_labels=sources,
+        mention_count=mention_count,
+    )
+    excerpt = strongest_excerpt(
+        chapter_notes=chapter_notes,
+        top_sentence=top_sentence,
+        snippet=snippet,
+    )
 
     digest: str | None = None
-    source = "extractive"
+    source = template_source
     if prefer_llm:
         digest = _llm_beat_digest(
             player_name,
@@ -442,23 +582,29 @@ def beat_digest_for_player(
             role_hype_flag=role_hype_flag,
             chapter_notes=chapter_notes,
             top_sentence=top_sentence,
+            charge_budget=charge_budget,
         )
         if digest:
             source = "llm"
 
     if not digest:
-        digest = extractive_beat_digest(
-            player_name,
-            snippet=snippet,
-            chapter_notes=chapter_notes,
-            top_sentence=top_sentence,
-            sentiment_label=label,
-            injury_flag=injury_flag,
-            role_hype_flag=role_hype_flag,
-            source_labels=sources,
-        )
+        digest = template
 
-    _cache_set(cache_key, digest)
+    _cache_set(
+        cache_key,
+        digest,
+        template=template,
+        source=source,
+        evidence_hash=ehash,
+        excerpt=excerpt,
+        source_labels=sources,
+    )
     if return_meta:
-        return {"beat_digest": digest, "beat_digest_source": source}
+        return {
+            "beat_digest": digest,
+            "beat_digest_source": source,
+            "template": template,
+            "evidence_hash": ehash,
+            "prompt_version": prompt_version(),
+        }
     return digest

@@ -82,12 +82,8 @@ def _fantasy_source_count(row: pd.Series) -> float:
 
 
 def _prefer_llm_for_fantasy(row: pd.Series, rank: int, top_n: int = BEAT_DIGEST_LLM_TOP_N) -> bool:
-    if rank < top_n:
-        return True
-    if float(row.get("yt_injury_flag") or 0) > 0:
-        return True
-    if float(row.get("yt_role_hype_flag") or 0) > 0:
-        return True
+    """SCORE-27: request handlers never call LLM. Kept for import compatibility."""
+    _ = (row, rank, top_n)
     return False
 
 
@@ -309,7 +305,7 @@ def build_fantasy_weekly_response(
                 season=season,
                 week=week,
                 scope="weekly",
-                prefer_llm=_prefer_llm_for_fantasy(row, rank),
+                prefer_llm=False,  # SCORE-27: no LLM on request path
             )
         )
 
@@ -458,7 +454,7 @@ def build_fantasy_season_response(
                 season=season,
                 week=end_week,
                 scope="season",
-                prefer_llm=_prefer_llm_for_fantasy(row, rank),
+                prefer_llm=False,  # SCORE-27: no LLM on request path
                 mention_trend=float(row.get("_mention_trend") or 0),
                 weeks_with_mentions=int(row.get("_weeks_with_mentions") or 0),
             )
@@ -531,7 +527,7 @@ def build_fantasy_index(
             season=season,
             week=week,
             scope="weekly",
-            prefer_llm=_prefer_llm_for_fantasy(row, rank),
+            prefer_llm=False,  # SCORE-27: template/extractive only on request path
         )
 
     return {

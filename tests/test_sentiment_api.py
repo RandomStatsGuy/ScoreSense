@@ -51,6 +51,7 @@ def test_build_sentiment_response_2026_week1():
         assert all(not str(p["player"]).startswith("00-") for p in response["players"])
         assert response["players"][0].get("beat_digest_source") in (
             "extractive",
+            "template",
             "llm",
             "cache",
             None,

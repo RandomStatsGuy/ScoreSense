@@ -38,6 +38,7 @@ def test_fantasy_digest_cache_keys_differ_by_scope():
         player_name="Test",
         season=2026,
         week=1,
+        evidence_hash="abc123",
     )
     season = _daily_cache_key(
         scope="season",
@@ -45,6 +46,7 @@ def test_fantasy_digest_cache_keys_differ_by_scope():
         player_name="Test",
         season=2026,
         week=1,
+        evidence_hash="abc123",
     )
     assert weekly != season
 
@@ -73,4 +75,6 @@ def test_fantasy_digest_for_player_returns_meta(monkeypatch, tmp_path):
         return_meta=True,
     )
     assert result["fantasy_digest"]
-    assert result["fantasy_digest_source"] == "extractive"
+    assert result["fantasy_digest_source"] in ("extractive", "template")
+    assert result.get("evidence_hash")
+    assert result.get("template")
