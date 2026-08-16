@@ -15,6 +15,10 @@ import {
   pickHistoricalWeek,
   setIncludeHistoricalParam,
 } from "./mediaContext";
+import {
+  pickFantasyMediaDigest,
+  pickFantasyMediaDigestSource,
+} from "./fantasyMediaDigest";
 
 const SentimentCharts = lazy(() => import("./SentimentCharts"));
 
@@ -48,11 +52,11 @@ function mergeSentimentMeta(data) {
 }
 
 function digestText(row) {
-  return row.fantasy_media_digest?.trim() || "";
+  return pickFantasyMediaDigest(row);
 }
 
 function digestSource(row) {
-  return row.fantasy_media_digest_source;
+  return pickFantasyMediaDigestSource(row);
 }
 
 function trendLabel(trend) {

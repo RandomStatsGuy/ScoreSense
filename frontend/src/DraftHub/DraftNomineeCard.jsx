@@ -7,6 +7,7 @@ import {
   isHistoricalAvailable,
   pickHistoricalWeek,
 } from "../mediaContext";
+import { pickFantasyMediaDigest } from "../fantasyMediaDigest";
 import { playerInitials, teamLogoUrl } from "./draftMedia";
 import DraftDeadlineClock from "./DraftDeadlineClock";
 import { fmtSal } from "./rosterFormat";
@@ -110,7 +111,7 @@ export default function DraftNomineeCard({
   compact = false,
   stats = null,
 }) {
-  const digest = fantasyMediaDigest || sentiment?.fantasy_media_digest;
+  const digest = fantasyMediaDigest || pickFantasyMediaDigest(sentiment) || null;
   const hasStory = sentiment && Number(sentiment.mention_count) > 0;
   const labelText = sentiment?.sentiment_label_text || sentiment?.sentiment_label;
   const historicalLabel = formatHistoricalWeekLabel(
@@ -164,7 +165,7 @@ export default function DraftNomineeCard({
             <div className="hub-draft-story">
               <div className="hub-draft-story-head">
                 <span className="hub-draft-story-kicker">
-                  Beat report
+                  Fantasy narrative
                   {sentimentMeta?.week ? ` · Wk ${sentimentMeta.week}` : ""}
                   {sentimentMeta?.context_fallback ? " · older" : ""}
                 </span>

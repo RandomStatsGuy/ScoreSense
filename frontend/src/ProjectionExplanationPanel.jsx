@@ -169,7 +169,7 @@ export default function ProjectionExplanationPanel({
               <p className="projection-explanation-disclaimer muted">{narrative.disclaimer}</p>
             ) : (
               <p className="projection-explanation-disclaimer muted">
-                Sentiment and beat/fantasy digests are contextual overlays — they are not
+                Sentiment and fantasy media digests are contextual overlays — they are not
                 ScoreSense projection drivers.
               </p>
             )}

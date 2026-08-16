@@ -26,6 +26,7 @@ import {
   pickHistoricalWeek,
   setIncludeHistoricalParam,
 } from "./mediaContext";
+import { fantasyMediaNarrative } from "./fantasyMediaDigest";
 
 function ProjStat({ label, value, emphasis = false }) {
   return (
@@ -257,7 +258,7 @@ function PlayerCardBody({
               <SentimentBadge sentiment={narrative} compact />
             </div>
             <p className="player-card-narrative">
-              {narrative.fantasy_media_digest || narrative.snippet || "—"}
+              {fantasyMediaNarrative(narrative, narrative.snippet) || "—"}
             </p>
           </>
         ) : showHistoricalOptIn ? (
