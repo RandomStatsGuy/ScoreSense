@@ -90,7 +90,7 @@ test("buildOpportunityItems prefers fantasy skill drivers from Injury Note", () 
       Position: "WR",
       player_id: "ja",
       "Injury Status": "",
-      "Injury Boost": 0.14,
+      "Opportunity Adjustment": 0.14,
       "Injury Note": "Justin Jefferson (Questionable)",
       "Projected Points": 16.8,
     },
@@ -115,6 +115,39 @@ test("buildOpportunityItems prefers fantasy skill drivers from Injury Note", () 
   assert.equal(items[0].name, "Jordan Addison");
   assert.match(items[0].driverLabel, /Justin Jefferson/);
   assert.ok(items[0].points >= 1.5);
+});
+
+test("buildOpportunityItems falls back to Injury Boost alias column", () => {
+  const injuries = [
+    {
+      sleeper_id: "1",
+      full_name: "Justin Jefferson",
+      team: "MIN",
+      position: "WR",
+      injury_status: "Questionable",
+      gsis_id: "00-0036322",
+    },
+  ];
+  const projections = [
+    {
+      Player: "Jordan Addison",
+      Team: "MIN",
+      Position: "WR",
+      player_id: "ja",
+      "Injury Status": "",
+      "Injury Boost": 0.14,
+      "Injury Note": "Justin Jefferson (Questionable)",
+      "Projected Points": 16.8,
+    },
+  ];
+  const items = buildOpportunityItems({
+    projections,
+    injuries,
+    contextById: null,
+    minPoints: 0.5,
+  });
+  assert.equal(items.length, 1);
+  assert.equal(items[0].name, "Jordan Addison");
 });
 
 test("buildOpportunityItems uses player-context deltas when present", () => {

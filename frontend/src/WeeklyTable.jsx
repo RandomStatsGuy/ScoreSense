@@ -32,6 +32,12 @@ import {
   movementSortScore,
   rowMovementTone,
 } from "./projectionMovement";
+import {
+  formatOpportunityAdjustmentPct,
+  opportunityAdjustmentClass,
+  pickOpportunityAdjustment,
+  slateHasOpportunityAdjustment,
+} from "./opportunityAdjustment";
 
 const SORT_KEYS = {
   Player: "Player",
@@ -41,7 +47,7 @@ const SORT_KEYS = {
   P50: "Projected Points",
   P10: "Low (P10)",
   P90: "High (P90)",
-  Injury: "Injury Boost",
+  Opportunity: "_opportunity_adjustment",
   RankDelta: "rank_delta",
   P50Delta: "p50_delta",
   Move: "_movement_score",
@@ -118,12 +124,6 @@ function movementToneFromDelta(delta) {
   const n = Number(delta);
   if (!Number.isFinite(n) || n === 0) return "neutral";
   return n > 0 ? "up" : "down";
-}
-
-function injuryBoostClass(boost) {
-  const n = Number(boost);
-  if (!Number.isFinite(n) || n === 0) return "injury-neutral";
-  return n > 0 ? "injury-pos" : "injury-neg";
 }
 
 /** DvP tone from "Opp Def Rank" (1 = toughest defense). Bottom third = favorable. */
@@ -376,10 +376,8 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
             />
           </td>
           {showBoost && (
-            <td className={`num ${injuryBoostClass(row["Injury Boost"])}`}>
-              {row["Injury Boost"]
-                ? `${Number(row["Injury Boost"]) > 0 ? "+" : ""}${(Number(row["Injury Boost"]) * 100).toFixed(0)}%`
-                : "—"}
+            <td className={`num ${opportunityAdjustmentClass(pickOpportunityAdjustment(row))}`}>
+              {formatOpportunityAdjustmentPct(row) || "—"}
             </td>
           )}
         </>
@@ -426,7 +424,7 @@ function exportCsv(rows) {
     "P50 Δ",
     "Rank Δ",
     "Prev Rank",
-    "Injury Boost",
+    "Opportunity Adjustment",
     "Injury Status",
   ];
   const lines = [
@@ -434,7 +432,7 @@ function exportCsv(rows) {
     ...rows.map((row) => {
       const status = row["Injury Status"] || "";
       const unavailable = isPlayerUnavailable(status);
-      const boost = Number(row["Injury Boost"]);
+      const boost = pickOpportunityAdjustment(row);
       return [
         csvQuote(row.Player),
         row.Team || "",
@@ -444,7 +442,7 @@ function exportCsv(rows) {
         Number.isFinite(Number(row.p50_delta)) ? Number(row.p50_delta).toFixed(2) : "",
         Number.isFinite(Number(row.rank_delta)) ? String(row.rank_delta) : "",
         Number.isFinite(Number(row.previous_rank)) ? String(row.previous_rank) : "",
-        !unavailable && Number.isFinite(boost) && boost !== 0 ? (boost * 100).toFixed(1) : "",
+        !unavailable && boost != null && boost !== 0 ? (boost * 100).toFixed(1) : "",
         unavailable ? unavailableLabel(status) : status,
       ].join(",");
     }),
@@ -534,16 +532,9 @@ export default function WeeklyTable({
     [rows, showSentiment]
   );
 
-  const showBoost = useMemo(
-    () =>
-      (rows || []).some((row) => {
-        const n = Number(row["Injury Boost"]);
-        return Number.isFinite(n) && n !== 0;
-      }),
-    [rows]
-  );
+  const showBoost = useMemo(() => slateHasOpportunityAdjustment(rows), [rows]);
 
-  // Select, Rank, Player, Why, Team, Proj, Range are base; Opp/Signal/Boost are conditional.
+  // Select, Rank, Player, Why, Team, Proj, Range are base; Opp/Signal/Opp adj are conditional.
   const baseColCount =
     6 +
     (compareEnabled ? 1 : 0) +
@@ -611,6 +602,11 @@ export default function WeeklyTable({
       }
       if (key === "_movement_score") {
         return dir * (movementSortScore(a) - movementSortScore(b));
+      }
+      if (key === "_opportunity_adjustment") {
+        const av = pickOpportunityAdjustment(a) || 0;
+        const bv = pickOpportunityAdjustment(b) || 0;
+        return dir * (av - bv);
       }
       if (key === "rank_delta" || key === "p50_delta") {
         const av = Number(a[key]);
@@ -919,10 +915,10 @@ export default function WeeklyTable({
                         <div className="mobile-stat-grid">
                           <MobileStat label="Floor" value={fmtNum(row["Low (P10)"], 1)} />
                           <MobileStat label="Ceiling" value={fmtNum(row["High (P90)"], 1)} />
-                          {showBoost && row["Injury Boost"] ? (
+                          {showBoost && formatOpportunityAdjustmentPct(row) ? (
                             <MobileStat
-                              label="Injury boost"
-                              value={`${Number(row["Injury Boost"]) > 0 ? "+" : ""}${(Number(row["Injury Boost"]) * 100).toFixed(0)}%`}
+                              label="Opportunity adjustment"
+                              value={formatOpportunityAdjustmentPct(row)}
                             />
                           ) : null}
                         </div>
@@ -1029,11 +1025,11 @@ export default function WeeklyTable({
               />
               {showBoost && (
                 <SortHeader
-                  label="Boost"
-                  sortKey="Injury"
+                  label="Opp adj"
+                  sortKey="Opportunity"
                   sort={sort}
                   onSort={toggleSort}
-                  tip="Extra opportunity when teammates are injured. +15% means the projection was raised 15%."
+                  tip="Opportunity adjustment when teammates are unavailable. +15% means the projection was raised 15%."
                 />
               )}
             </tr>

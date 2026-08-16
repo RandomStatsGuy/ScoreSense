@@ -7,6 +7,7 @@ import {
   formatOppPoints,
   shouldShowProjectionAssumesActive,
 } from "./playerContextDisplay.js";
+import { pickOpportunityAdjustment } from "./opportunityAdjustment.js";
 
 const SEVERITY_ORDER = {
   Out: 0,
@@ -96,10 +97,10 @@ export function slugifyName(name) {
     .replace(/^-+|-+$/g, "");
 }
 
-/** Estimate absolute point delta from boosted projection + Injury Boost fraction. */
-export function estimateOpportunityPoints(projectedPoints, injuryBoost) {
+/** Estimate absolute point delta from boosted projection + opportunity adjustment fraction. */
+export function estimateOpportunityPoints(projectedPoints, opportunityAdjustment) {
   const pts = Number(projectedPoints);
-  const boost = Number(injuryBoost);
+  const boost = Number(opportunityAdjustment);
   if (!Number.isFinite(pts) || !Number.isFinite(boost) || boost <= 0) return null;
   const delta = (pts * boost) / (1 + boost);
   return Math.round(delta * 10) / 10;
@@ -161,7 +162,7 @@ export function buildAttentionItems({ injuries, projections, contextById }) {
 
 /**
  * Healthy beneficiaries with a material opportunity bump + fantasy skill driver.
- * Prefers player-context deltas; falls back to projection Injury Boost + Injury Note.
+ * Prefers player-context deltas; falls back to projection Opportunity Adjustment + Injury Note.
  */
 export function buildOpportunityItems({
   projections,
@@ -235,8 +236,8 @@ export function buildOpportunityItems({
     }
 
     if (!included) {
-      const boost = Number(row["Injury Boost"]);
-      if (!Number.isFinite(boost) || boost <= 0) continue;
+      const boost = pickOpportunityAdjustment(row);
+      if (boost == null || !Number.isFinite(boost) || boost <= 0) continue;
       const noteDrivers = parseInjuryNoteDrivers(row["Injury Note"]);
       const fantasyDrivers = [];
       for (const d of noteDrivers) {
