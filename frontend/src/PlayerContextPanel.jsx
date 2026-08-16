@@ -3,6 +3,7 @@ import Chip, { injuryChipTone } from "./Chip";
 import { apiFetch } from "./auth";
 import { isAbortError } from "./fetchAbort";
 import { connectionErrorMessage, formatRelativeTime, parseApiError } from "./format";
+import HistoricalMediaOptIn from "./HistoricalMediaOptIn";
 import ProjectionTrustLabel from "./ProjectionTrustLabel";
 import {
   canLabelIncludedInProjection,
@@ -12,6 +13,13 @@ import {
   mediaSignalTone,
   shouldShowProjectionAssumesActive,
 } from "./playerContextDisplay";
+import {
+  formatHistoricalWeekLabel,
+  isCurrentMedia,
+  isHistoricalAvailable,
+  pickHistoricalWeek,
+  setIncludeHistoricalParam,
+} from "./mediaContext";
 
 function ContextStat({ label, value, emphasis = false, hint }) {
   return (
@@ -26,6 +34,7 @@ function ContextStat({ label, value, emphasis = false, hint }) {
 /**
  * Detail panel for SCORE-23 cached player-context read model.
  * SCORE-24: explicit Included / Commentary / Assumes-active trust labels.
+ * SCORE-28: historical media requires View older commentary opt-in.
  * GET /api/player/{id}/context — artifact only (zero live work on page view).
  */
 export default function PlayerContextPanel({
@@ -39,6 +48,11 @@ export default function PlayerContextPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [cold, setCold] = useState(false);
+  const [includeHistorical, setIncludeHistorical] = useState(false);
+
+  useEffect(() => {
+    setIncludeHistorical(false);
+  }, [playerId, season, week]);
 
   useEffect(() => {
     if (!active || !playerId) {
@@ -57,6 +71,7 @@ export default function PlayerContextPanel({
     const params = new URLSearchParams();
     if (season != null) params.set("season", String(season));
     if (week != null) params.set("week", String(week));
+    setIncludeHistoricalParam(params, includeHistorical);
     const q = params.toString() ? `?${params.toString()}` : "";
 
     (async () => {
@@ -92,7 +107,7 @@ export default function PlayerContextPanel({
     })();
 
     return () => controller.abort();
-  }, [active, playerId, season, week]);
+  }, [active, playerId, season, week, includeHistorical]);
 
   if (!active || !playerId) return null;
 
@@ -115,6 +130,13 @@ export default function PlayerContextPanel({
   const builtAt = formatRelativeTime(meta?.artifact_built_at || meta?.context_built_at);
   const showIncluded = data ? canLabelIncludedInProjection(data) : false;
   const showAssumesActive = data ? shouldShowProjectionAssumesActive(data) : false;
+  const historical = pickHistoricalWeek(media);
+  const historicalLabel = formatHistoricalWeekLabel(historical);
+  const showCurrentMedia = isCurrentMedia(media) && (mediaLabel || media?.summary);
+  const showHistoricalOptIn =
+    isHistoricalAvailable(media) && !includeHistorical && !media?.summary;
+  const showHistoricalContent =
+    isHistoricalAvailable(media) && includeHistorical && (media?.summary || mediaLabel);
 
   return (
     <section
@@ -243,9 +265,11 @@ export default function PlayerContextPanel({
           <div className="player-context-block player-context-block--media">
             <div className="player-context-media-head">
               <h4 className="player-context-block-title">Media context</h4>
-              <ProjectionTrustLabel kind="commentary" />
+              {showCurrentMedia || showHistoricalContent ? (
+                <ProjectionTrustLabel kind="commentary" />
+              ) : null}
             </div>
-            {media?.state === "current" ? (
+            {showCurrentMedia ? (
               <div className="player-context-media-body">
                 {mediaLabel ? (
                   <Chip tone={mediaSignalTone(media.signal)}>
@@ -259,6 +283,38 @@ export default function PlayerContextPanel({
                   <p className="player-context-media-summary">{media.summary}</p>
                 ) : (
                   <p className="chart-note">Signal present; no digest summary.</p>
+                )}
+                {mediaUpdated ? (
+                  <p className="chart-note">{mediaUpdated}</p>
+                ) : null}
+              </div>
+            ) : showHistoricalOptIn ? (
+              <HistoricalMediaOptIn
+                requestedWeek={meta?.week ?? week}
+                media={media}
+                loading={loading}
+                onViewOlder={() => setIncludeHistorical(true)}
+              />
+            ) : showHistoricalContent ? (
+              <div className="player-context-media-body">
+                {historicalLabel ? (
+                  <p className="sentiment-fallback-banner player-context-historical-banner" role="status">
+                    Older commentary from <strong>{historicalLabel}</strong>
+                    {" — not current-week coverage."}
+                  </p>
+                ) : null}
+                {mediaLabel ? (
+                  <Chip tone={mediaSignalTone(media.signal)}>
+                    {mediaLabel}
+                    {Number(media.source_count) > 0
+                      ? ` · ${media.source_count} source${media.source_count === 1 ? "" : "s"}`
+                      : ""}
+                  </Chip>
+                ) : null}
+                {media.summary ? (
+                  <p className="player-context-media-summary">{media.summary}</p>
+                ) : (
+                  <p className="chart-note">Older coverage present; no digest summary.</p>
                 )}
                 {mediaUpdated ? (
                   <p className="chart-note">{mediaUpdated}</p>

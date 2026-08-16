@@ -19,6 +19,13 @@ import {
   formatOpportunityAdjustmentPct,
   pickOpportunityAdjustment,
 } from "./opportunityAdjustment";
+import HistoricalMediaOptIn from "./HistoricalMediaOptIn";
+import {
+  formatHistoricalWeekLabel,
+  isHistoricalAvailable,
+  pickHistoricalWeek,
+  setIncludeHistoricalParam,
+} from "./mediaContext";
 
 function ProjStat({ label, value, emphasis = false }) {
   return (
@@ -61,7 +68,15 @@ function contextLabel(meta, request) {
   return `${season} · Wk ${week}`;
 }
 
-function PlayerCardBody({ data, loading, error, fallbackName, request }) {
+function PlayerCardBody({
+  data,
+  loading,
+  error,
+  fallbackName,
+  request,
+  includeHistorical = false,
+  onViewOlderCommentary,
+}) {
   const [whyOpen, setWhyOpen] = useState(false);
   const explainPlayerId = data?.player_id || request?.playerId || "";
   const applyInjury = request?.applyInjuryAdjustments ?? true;
@@ -82,7 +97,7 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
     </section>
   ) : null;
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <>
         <p className="player-card-loading chart-note">Loading player…</p>
@@ -90,7 +105,7 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
       </>
     );
   }
-  if (error) {
+  if (error && !data) {
     return (
       <>
         <div className="error">{error}</div>
@@ -123,14 +138,17 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
   const weeklyP50 = weekly ? Number(weekly["Projected Points"]) : null;
   const weeklyP90 = weekly ? Number(weekly["High (P90)"]) : null;
   const narrativeFallback = Boolean(narrativeMeta.context_fallback);
-  const narrativeShown =
-    narrativeMeta.season != null && narrativeMeta.week != null
-      ? `${narrativeMeta.season} · W${narrativeMeta.week}`
-      : null;
-  const narrativeRequested =
-    narrativeMeta.requested_season != null && narrativeMeta.requested_week != null
-      ? `${narrativeMeta.requested_season} · W${narrativeMeta.requested_week}`
-      : weekLabel;
+  const media = narrativeMeta.media_context;
+  const historical = pickHistoricalWeek(media);
+  const historicalLabel = formatHistoricalWeekLabel(historical)
+    || (narrativeMeta.season != null && narrativeMeta.week != null
+      ? formatHistoricalWeekLabel({ season: narrativeMeta.season, week: narrativeMeta.week })
+      : null);
+  const showHistoricalOptIn =
+    !narrative
+    && isHistoricalAvailable(media)
+    && !includeHistorical
+    && typeof onViewOlderCommentary === "function";
 
   return (
     <div className="player-card-body">
@@ -227,13 +245,10 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
 
       <section className="player-card-section">
         <h3>Analyst context</h3>
-        {narrativeFallback && narrativeShown ? (
+        {(narrativeFallback || (narrative && isHistoricalAvailable(media))) && historicalLabel ? (
           <div className="sentiment-fallback-banner player-card-narrative-fallback" role="status">
-            Historical context from <strong>{narrativeShown}</strong>
-            {narrativeRequested && narrativeRequested !== narrativeShown
-              ? ` (none for ${narrativeRequested})`
-              : ""}
-            .
+            Older commentary from <strong>{historicalLabel}</strong>
+            {" — not current-week coverage."}
           </div>
         ) : null}
         {narrative ? (
@@ -245,11 +260,16 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
               {narrative.fantasy_digest || narrative.beat_digest || narrative.snippet || "—"}
             </p>
           </>
+        ) : showHistoricalOptIn ? (
+          <HistoricalMediaOptIn
+            requestedWeek={request?.week ?? narrativeMeta.requested_week}
+            media={media}
+            loading={loading}
+            onViewOlder={onViewOlderCommentary}
+          />
         ) : (
           <p className="state-empty-text player-card-empty">
-            {narrativeFallback
-              ? "No matching-week analyst context for this player."
-              : "No analyst context for this player yet."}
+            No analyst context for this player yet.
           </p>
         )}
       </section>
@@ -286,6 +306,7 @@ export default function PlayerCardModal({ request, onClose }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [includeHistorical, setIncludeHistorical] = useState(false);
 
   // Escape closes the desktop dialog (the mobile sheet handles its own).
   useEffect(() => {
@@ -296,6 +317,10 @@ export default function PlayerCardModal({ request, onClose }) {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [request, mobileLayout, onClose]);
+
+  useEffect(() => {
+    setIncludeHistorical(false);
+  }, [request?.playerId, request?.season, request?.week, request?.scope]);
 
   useEffect(() => {
     if (!request?.playerId) {
@@ -315,6 +340,7 @@ export default function PlayerCardModal({ request, onClose }) {
         if (request.position) params.set("position", request.position);
         const applyInjury = request.applyInjuryAdjustments ?? true;
         params.set("apply_injury_adjustments", applyInjury ? "true" : "false");
+        setIncludeHistoricalParam(params, includeHistorical);
         const q = params.toString() ? `?${params.toString()}` : "";
         const res = await apiFetch(
           `/api/player/${encodeURIComponent(request.playerId)}/card${q}`,
@@ -331,7 +357,7 @@ export default function PlayerCardModal({ request, onClose }) {
       }
     })();
     return () => controller.abort();
-  }, [request]);
+  }, [request, includeHistorical]);
 
   if (!request) return null;
 
@@ -343,6 +369,8 @@ export default function PlayerCardModal({ request, onClose }) {
       error={error}
       fallbackName={request.playerName}
       request={request}
+      includeHistorical={includeHistorical}
+      onViewOlderCommentary={() => setIncludeHistorical(true)}
     />
   );
 

@@ -209,7 +209,10 @@ export default function DraftRoom({
     ? {
         season: enrichment.season,
         week: enrichment.week,
+        requested_season: enrichment.requested_season,
+        requested_week: enrichment.requested_week,
         context_fallback: enrichment.context_fallback,
+        media_context: enrichment.media_context,
       }
     : null;
 

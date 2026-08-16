@@ -2,6 +2,11 @@ import React, { useState } from "react";
 import SentimentBadge from "../SentimentBadge";
 import Chip, { sentimentChipTone } from "../Chip";
 import { mentionCountLabel } from "../format";
+import {
+  formatHistoricalWeekLabel,
+  isHistoricalAvailable,
+  pickHistoricalWeek,
+} from "../mediaContext";
 import { playerInitials, teamLogoUrl } from "./draftMedia";
 import DraftDeadlineClock from "./DraftDeadlineClock";
 import { fmtSal } from "./rosterFormat";
@@ -108,6 +113,13 @@ export default function DraftNomineeCard({
   const digest = beatDigest || sentiment?.fantasy_digest || sentiment?.beat_digest;
   const hasStory = sentiment && Number(sentiment.mention_count) > 0;
   const labelText = sentiment?.sentiment_label_text || sentiment?.sentiment_label;
+  const historicalLabel = formatHistoricalWeekLabel(
+    pickHistoricalWeek(sentimentMeta?.media_context),
+  );
+  const olderAvailable =
+    !hasStory
+    && isHistoricalAvailable(sentimentMeta?.media_context)
+    && Boolean(historicalLabel);
 
   return (
     <article className={`hub-nominee-card${compact ? " hub-nominee-card-compact" : ""}`}>
@@ -154,7 +166,7 @@ export default function DraftNomineeCard({
                 <span className="hub-draft-story-kicker">
                   Beat report
                   {sentimentMeta?.week ? ` · Wk ${sentimentMeta.week}` : ""}
-                  {sentimentMeta?.context_fallback ? " · latest" : ""}
+                  {sentimentMeta?.context_fallback ? " · older" : ""}
                 </span>
                 <span className="hub-draft-story-mentions">{mentionCountLabel(sentiment.mention_count)}</span>
               </div>
@@ -175,8 +187,15 @@ export default function DraftNomineeCard({
             </div>
           ) : (
             <p className="hub-draft-no-story">
-              No fantasy narrative this week
-              {sentimentMeta?.week ? ` (Week ${sentimentMeta.week})` : ""}.
+              {olderAvailable
+                ? `No current-week fantasy narrative. Older discussion exists from ${historicalLabel} (not shown here).`
+                : `No fantasy narrative this week${
+                  sentimentMeta?.requested_week != null
+                    ? ` (Week ${sentimentMeta.requested_week})`
+                    : sentimentMeta?.week
+                      ? ` (Week ${sentimentMeta.week})`
+                      : ""
+                }.`}
             </p>
           )}
 
