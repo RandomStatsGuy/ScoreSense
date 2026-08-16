@@ -2,12 +2,17 @@
 
 Build jobs materialize a versioned snapshot from the on-disk Sleeper players
 cache (or an optional forced refresh). Serve paths must never call this module.
+
+SCORE-31: material team diffs ignore punctuation-only note noise and
+``updated_at`` bumps so overlay recompute stays team-scoped.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import re
+import string
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -15,11 +20,94 @@ from typing import Any
 from src.config import INJURY_SNAPSHOTS_DIR
 from src.integrations.sleeper import PLAYERS_CACHE, load_sleeper_players
 
+# Strip punctuation / collapse whitespace for note equality (SCORE-31).
+_NOTE_PUNCT_RE = re.compile(
+    f"[{re.escape(string.punctuation)}]+"
+    r"|[\u2010-\u2015\u2212\u00b7\u2022\u2026]"
+)
+_NOTE_SPACE_RE = re.compile(r"\s+")
+
 
 def _norm_str(value: Any) -> str:
     if value is None:
         return ""
     return str(value).strip()
+
+
+def normalize_injury_note(value: Any) -> str:
+    """Normalize injury note text so punctuation-only edits compare equal."""
+    text = _norm_str(value).lower()
+    if not text:
+        return ""
+    text = _NOTE_PUNCT_RE.sub(" ", text)
+    text = _NOTE_SPACE_RE.sub(" ", text).strip()
+    return text
+
+
+def material_player_state(row: dict[str, Any]) -> tuple[Any, ...]:
+    """Material availability key used for team-scoped overlay diffs.
+
+    Excludes ``updated_at`` (timestamp-only noise) and uses normalized notes so
+    punctuation-only edits do not trigger recompute.
+    """
+    pid = _norm_str(row.get("gsis_id")) or _norm_str(row.get("sleeper_id"))
+    return (
+        pid,
+        _norm_str(row.get("team")).upper(),
+        _norm_str(row.get("position")).upper(),
+        _norm_str(row.get("status")).lower(),
+        _norm_str(row.get("practice")).lower(),
+        _norm_str(row.get("injury_body_part")).lower(),
+        normalize_injury_note(row.get("injury_notes") or row.get("injury_note")),
+    )
+
+
+def _fingerprint_material_rows(rows: list[dict[str, Any]]) -> str:
+    """Fingerprint material state only (stable vs note punctuation / updated_at)."""
+    material = [list(material_player_state(r)) for r in rows]
+    material.sort(key=lambda item: (item[0], item[1], item[2]))
+    payload = json.dumps(material, sort_keys=False, separators=(",", ":"), default=str)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def team_material_states(snapshot: dict[str, Any] | None) -> dict[str, set[tuple[Any, ...]]]:
+    """Map team → set of material player states for that team."""
+    out: dict[str, set[tuple[Any, ...]]] = {}
+    if not snapshot:
+        return out
+    for row in snapshot.get("players") or []:
+        team = _norm_str(row.get("team")).upper()
+        if not team:
+            continue
+        out.setdefault(team, set()).add(material_player_state(row))
+    return out
+
+
+def diff_injury_snapshots(
+    previous: dict[str, Any] | None,
+    current: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Return teams whose *material* injury state changed (SCORE-31).
+
+    Punctuation-only note edits and ``updated_at`` bumps alone do not count.
+    """
+    prev_teams = team_material_states(previous)
+    curr_teams = team_material_states(current)
+    all_teams = set(prev_teams) | set(curr_teams)
+    changed: list[str] = []
+    unchanged: list[str] = []
+    for team in sorted(all_teams):
+        if prev_teams.get(team, set()) != curr_teams.get(team, set()):
+            changed.append(team)
+        else:
+            unchanged.append(team)
+    return {
+        "changed_teams": changed,
+        "unchanged_teams": unchanged,
+        "material_change": bool(changed),
+        "previous_snapshot_id": (previous or {}).get("injury_snapshot_id"),
+        "current_snapshot_id": (current or {}).get("injury_snapshot_id"),
+    }
 
 
 def _player_availability_row(sleeper_id: str, info: dict[str, Any]) -> dict[str, Any] | None:
@@ -44,7 +132,13 @@ def _player_availability_row(sleeper_id: str, info: dict[str, Any]) -> dict[str,
         except (TypeError, ValueError, OSError, OverflowError):
             updated_at = _norm_str(news_updated) or None
 
-    if not status and not practice and not updated_at:
+    injury_notes = (
+        _norm_str(info.get("injury_notes"))
+        or _norm_str(info.get("injury_note"))
+        or None
+    )
+
+    if not status and not practice and not updated_at and not injury_notes:
         return None
 
     gsis_id = _norm_str(info.get("gsis_id")) or None
@@ -57,13 +151,14 @@ def _player_availability_row(sleeper_id: str, info: dict[str, Any]) -> dict[str,
         "status": status,
         "practice": practice,
         "injury_body_part": _norm_str(info.get("injury_body_part")) or None,
+        "injury_notes": injury_notes,
         "updated_at": updated_at,
     }
 
 
 def _fingerprint_rows(rows: list[dict[str, Any]]) -> str:
-    payload = json.dumps(rows, sort_keys=True, separators=(",", ":"), default=str)
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+    """Snapshot id digest from material state (SCORE-31 stable fingerprint)."""
+    return _fingerprint_material_rows(rows)
 
 
 def load_players_cache_disk_only() -> dict[str, Any]:
@@ -153,6 +248,78 @@ def write_injury_snapshot(
     )
     save_injury_snapshot(snapshot)
     return snapshot
+
+
+def load_injury_snapshot(
+    season: int,
+    week: int,
+    *,
+    snapshot_id: str | None = None,
+) -> dict[str, Any] | None:
+    """Load a persisted injury snapshot (by id or latest pointer)."""
+    INJURY_SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
+    path: Path | None = None
+    if snapshot_id:
+        path = INJURY_SNAPSHOTS_DIR / f"{snapshot_id}.json"
+    else:
+        latest = INJURY_SNAPSHOTS_DIR / f"latest_{int(season)}_w{int(week)}.json"
+        if latest.exists():
+            try:
+                pointer = json.loads(latest.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                pointer = {}
+            sid = pointer.get("injury_snapshot_id")
+            if sid:
+                path = INJURY_SNAPSHOTS_DIR / f"{sid}.json"
+            elif pointer.get("path"):
+                path = Path(str(pointer["path"]))
+    if path is None or not path.exists():
+        return None
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    return raw if isinstance(raw, dict) else None
+
+
+def injured_frame_from_snapshot(snapshot: dict[str, Any] | None) -> "pd.DataFrame":
+    """Build an ``injured_players``-compatible frame from a frozen snapshot."""
+    import pandas as pd
+
+    from src.integrations.sleeper import INJURY_STATUSES
+
+    rows: list[dict[str, Any]] = []
+    for row in (snapshot or {}).get("players") or []:
+        status = _norm_str(row.get("status"))
+        if status not in INJURY_STATUSES:
+            continue
+        team = _norm_str(row.get("team")).upper()
+        if not team:
+            continue
+        rows.append(
+            {
+                "full_name": _norm_str(row.get("full_name")) or "",
+                "team": team,
+                "position": _norm_str(row.get("position")).upper() or "",
+                "injury_status": status,
+                "gsis_id": _norm_str(row.get("gsis_id")) or None,
+                "sleeper_id": _norm_str(row.get("sleeper_id")) or None,
+                "injury_notes": _norm_str(row.get("injury_notes")) or "",
+            }
+        )
+    if not rows:
+        return pd.DataFrame(
+            columns=[
+                "full_name",
+                "team",
+                "position",
+                "injury_status",
+                "gsis_id",
+                "sleeper_id",
+                "injury_notes",
+            ]
+        )
+    return pd.DataFrame(rows)
 
 
 def index_availability_by_player_id(snapshot: dict[str, Any]) -> dict[str, dict[str, Any]]:

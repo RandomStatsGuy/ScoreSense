@@ -159,6 +159,14 @@ def run_weekly_refresh(
         fantasy_media_digest_status = {"status": "error", "detail": str(exc)}
 
     # After weekly inj/no_inj + sentiment/digests so media_context can be materialized.
+    injury_overlay_status = None
+    try:
+        from src.projections.injury_overlay import prewarm_injury_overlays
+
+        injury_overlay_status = prewarm_injury_overlays(season, week, force=True)
+    except Exception as exc:
+        injury_overlay_status = {"status": "error", "detail": str(exc)}
+
     player_context_status = None
     try:
         from src.projections.player_context import prewarm_player_context
@@ -180,6 +188,7 @@ def run_weekly_refresh(
         "weekly_predictions_prewarm": weekly_prewarm,
         "projection_movement": projection_movement_status,
         "ros_predictions_prewarm": ros_prewarm,
+        "injury_overlay_prewarm": injury_overlay_status,
         "player_context_prewarm": player_context_status,
         "fantasypros_archive": fp_status,
         "fantasypros_draft_ecr": fp_draft_ecr,

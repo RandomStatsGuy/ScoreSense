@@ -96,6 +96,16 @@ def run_preseason_refresh(
     except Exception as exc:
         fantasy_media_digest_status = {"status": "error", "detail": str(exc)}
 
+    injury_overlay_status = None
+    try:
+        from src.projections.injury_overlay import prewarm_injury_overlays
+
+        injury_overlay_status = prewarm_injury_overlays(
+            weekly_season, weekly_week, force=True
+        )
+    except Exception as exc:
+        injury_overlay_status = {"status": "error", "detail": str(exc)}
+
     player_context_status = None
     try:
         from src.projections.player_context import prewarm_player_context
@@ -113,6 +123,7 @@ def run_preseason_refresh(
         "draft_pool_artifact": pool_status,
         "weekly_predictions_prewarm": weekly_prewarm,
         "ros_predictions_prewarm": ros_prewarm,
+        "injury_overlay_prewarm": injury_overlay_status,
         "player_context_prewarm": player_context_status,
         "fantasypros_draft_ecr": fp_ecr_status,
         "sentiment_refresh": sentiment_status,

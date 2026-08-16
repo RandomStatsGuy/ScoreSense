@@ -101,7 +101,12 @@ WEEKLY_PREDICTIONS_DIR = PROJECT_ROOT / "artifacts" / "weekly_predictions"
 WEEKLY_PROJECTION_CHANGES_DIR = PROJECT_ROOT / "artifacts" / "weekly_projection_changes"
 ROS_PREDICTIONS_DIR = PROJECT_ROOT / "artifacts" / "ros_predictions"
 PLAYER_CONTEXT_DIR = PROJECT_ROOT / "artifacts" / "player_context"
+INJURY_OVERLAYS_DIR = PROJECT_ROOT / "artifacts" / "injury_overlays"
 INJURY_SNAPSHOTS_DIR = CACHE_DIR / "injury_snapshots"
+# SCORE-31: skip rapid overlay recomputes unless force=True.
+INJURY_OVERLAY_DEBOUNCE_SECONDS = int(
+    os.environ.get("INJURY_OVERLAY_DEBOUNCE_SECONDS", "60")
+)
 BACKTEST_DIR = PROJECT_ROOT / "artifacts" / "backtest"
 BACKTEST_CACHE_DIR = CACHE_DIR / "backtest_models"
 BACKTEST_CHECKPOINT_VERSION = "v1"
@@ -218,6 +223,7 @@ for path in (
     BDB_DIR,
     NGS_RAW_DIR,
     PLAYER_CONTEXT_DIR,
+    INJURY_OVERLAYS_DIR,
     INJURY_SNAPSHOTS_DIR,
 ):
     path.mkdir(parents=True, exist_ok=True)
