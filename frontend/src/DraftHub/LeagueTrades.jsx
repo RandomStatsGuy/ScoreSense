@@ -10,6 +10,11 @@ import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hub
 import { fmtSal } from "./rosterFormat";
 import { clearTradeSeed, readTradeSeed } from "./tradeSeed";
 import { formatStatDelta, projectTeamTradeStats } from "./tradeProjection";
+import {
+  formatIdeaCapNet,
+  ideaCapImpact,
+  whyThisHelpsText,
+} from "./tradeIdeaHelpers";
 
 const MAX_PARTIES = 4;
 
@@ -1311,65 +1316,123 @@ export default function LeagueTrades({ leagueId, hubContext }) {
 
       {tab === "ideas" && (
         <div className="hub-trade-ideas">
-          {(trade.balance?.surplus || []).length > 0 && (
-            <div className="hub-insights-chips">
-              <span className="table-meta">Tradeable depth</span>
-              {(trade.balance.surplus || []).map((s) => (
-                <Chip key={s} label={`${s} extra`} tone="good" />
-              ))}
+          <p className="chart-note hub-trade-ideas-blurb">
+            Suggestions use your surplus and roster needs — packages send depth you can spare and target
+            positions where you are thin.
+          </p>
+          {((trade.balance?.surplus || []).length > 0 || (trade.balance?.need || []).length > 0) && (
+            <div className="hub-insights-chips hub-trade-ideas-balance">
+              {(trade.balance?.surplus || []).length > 0 && (
+                <div className="hub-insights-balance-group">
+                  <span className="table-meta">Your surplus</span>
+                  <div className="hub-insights-balance-chips">
+                    {(trade.balance.surplus || []).map((s) => (
+                      <Chip key={`surplus-${s}`} label={`${s} extra`} tone="surplus" />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(trade.balance?.need || []).length > 0 && (
+                <div className="hub-insights-balance-group">
+                  <span className="table-meta">Your needs</span>
+                  <div className="hub-insights-balance-chips">
+                    {(trade.balance.need || []).map((n) => (
+                      <Chip key={`need-${n}`} label={`${n} need`} tone="need" />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {(trade.suggestions || []).length > 0 ? (
-            (trade.suggestions || []).map((s, idx) => (
-              <div key={`${s.partner_team_id}-${idx}`} className="hub-insights-suggestion">
-                <p className="hub-insights-suggestion-rationale">{s.rationale}</p>
-                <div className="hub-trade-idea-sides">
-                  <div>
-                    <span className="table-meta">You send</span>
-                    <ul className="hub-trade-proposal-legs">
-                      {(s.send || []).map((x) => (
-                        <li key={x.player_id}>
-                          <span className="hub-roster-pos-tag">{x.position || rowByPlayer[x.player_id]?.position || "?"}</span>
-                          <PlayerCell
-                            name={x.player_name}
-                            playerId={x.player_id}
-                            media={media}
-                            size="sm"
-                            showTeam={false}
-                            narrativeScope="season"
-                          />
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <span className="table-meta">You get · {s.partner_team_name || teamName(s.partner_team_id)}</span>
-                    <ul className="hub-trade-proposal-legs">
-                      {(s.receive || []).map((x) => (
-                        <li key={x.player_id}>
-                          <span className="hub-roster-pos-tag">{x.position || rowByPlayer[x.player_id]?.position || "?"}</span>
-                          <PlayerCell
-                            name={x.player_name}
-                            playerId={x.player_id}
-                            media={media}
-                            size="sm"
-                            showTeam={false}
-                            narrativeScope="season"
-                          />
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="btn-primary btn-sm"
-                  onClick={() => loadSuggestion(s)}
+            (trade.suggestions || []).map((s, idx) => {
+              const cap = ideaCapImpact(s, rowByPlayer);
+              const netFmt = formatIdeaCapNet(cap.net);
+              const fills = (s.fills_needs || []).filter(Boolean);
+              const moves = (s.moves_surplus || []).filter(Boolean);
+              return (
+                <div
+                  key={`${s.partner_team_id}-${idx}`}
+                  className="hub-insights-suggestion hub-trade-idea-card"
                 >
-                  Load into builder
-                </button>
-              </div>
-            ))
+                  <div className="hub-trade-idea-why" aria-label="Why this helps">
+                    <span className="table-meta">Why this helps</span>
+                    <p className="hub-trade-idea-why-text">{whyThisHelpsText(s)}</p>
+                    {(fills.length > 0 || moves.length > 0) && (
+                      <div className="hub-trade-idea-why-chips">
+                        {fills.map((pos) => (
+                          <Chip key={`fill-${pos}`} label={`Need ${pos}`} tone="need" />
+                        ))}
+                        {moves.map((pos) => (
+                          <Chip key={`move-${pos}`} label={`Surplus ${pos}`} tone="surplus" />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="hub-trade-idea-sides">
+                    <div>
+                      <span className="table-meta">You send</span>
+                      <ul className="hub-trade-proposal-legs">
+                        {(s.send || []).map((x) => (
+                          <li key={x.player_id}>
+                            <span className="hub-roster-pos-tag">{x.position || rowByPlayer[x.player_id]?.position || "?"}</span>
+                            <PlayerCell
+                              name={x.player_name}
+                              playerId={x.player_id}
+                              media={media}
+                              size="sm"
+                              showTeam={false}
+                              narrativeScope="season"
+                            />
+                            <span className="hub-trade-salary-inline">
+                              {fmtSal(x.salary ?? rowByPlayer[x.player_id]?.salary)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <span className="table-meta">You get · {s.partner_team_name || teamName(s.partner_team_id)}</span>
+                      <ul className="hub-trade-proposal-legs">
+                        {(s.receive || []).map((x) => (
+                          <li key={x.player_id}>
+                            <span className="hub-roster-pos-tag">{x.position || rowByPlayer[x.player_id]?.position || "?"}</span>
+                            <PlayerCell
+                              name={x.player_name}
+                              playerId={x.player_id}
+                              media={media}
+                              size="sm"
+                              showTeam={false}
+                              narrativeScope="season"
+                            />
+                            <span className="hub-trade-salary-inline">
+                              {fmtSal(x.salary ?? rowByPlayer[x.player_id]?.salary)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="hub-trade-idea-cap" aria-label="Cap impact">
+                    <span className="table-meta">Cap impact</span>
+                    <p className="hub-trade-idea-cap-line">
+                      Send {fmtSal(cap.sendSal)}
+                      <span className="hub-trade-idea-cap-sep">·</span>
+                      Receive {fmtSal(cap.recvSal)}
+                      <span className="hub-trade-idea-cap-sep">·</span>
+                      <span className={netFmt.tone || undefined}>{netFmt.text}</span>
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-primary btn-sm"
+                    onClick={() => loadSuggestion(s)}
+                  >
+                    Load into builder
+                  </button>
+                </div>
+              );
+            })
           ) : (
             <div className="hub-insights-empty-state">
               <h3>No packages yet</h3>
