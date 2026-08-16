@@ -13444,8 +13444,65 @@ td.col-rank.col-rank-top {
   gap: 0.4rem 0.65rem;
 }
 
+.player-context-avail-stack,
+.player-context-opp-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
 .player-context-practice {
   font-size: 0.78rem;
+}
+
+/* SCORE-24: Included / Commentary / Assumes-active trust labels */
+.projection-trust-label {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.12rem 0.4rem;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--surface) 88%, var(--bg));
+}
+
+.projection-trust-label--included {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--positive, #2f9e6b) 35%, var(--border));
+  background: color-mix(in srgb, var(--positive, #2f9e6b) 12%, transparent);
+}
+
+.projection-trust-label--commentary {
+  color: var(--text-secondary);
+  border-color: color-mix(in srgb, var(--text-secondary) 28%, var(--border));
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+}
+
+.projection-trust-label--assumes_active {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--caution, #c58a2e) 40%, var(--border));
+  background: color-mix(in srgb, var(--caution, #c58a2e) 14%, transparent);
+}
+
+.projection-trust-label--compact {
+  font-size: 0.62rem;
+  padding: 0.08rem 0.32rem;
+  font-weight: 650;
+}
+
+.player-context-badge-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.3rem;
+  max-width: 100%;
 }
 
 .player-context-drivers {

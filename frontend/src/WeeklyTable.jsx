@@ -217,6 +217,7 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   whyColSpan,
   applyInjuryAdjustments,
   playerContext,
+  contextSlateMeta = null,
   contextExpanded,
   onToggleContext,
   showMovement = false,
@@ -281,7 +282,11 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
           <InjuryStatusTag status={unavailable ? "" : status} />
         </span>
         {playerContext ? (
-          <PlayerContextBadges context={playerContext} className="player-context-badges--table" />
+          <PlayerContextBadges
+            context={playerContext}
+            slateMeta={contextSlateMeta}
+            className="player-context-badges--table"
+          />
         ) : null}
         <span className="col-player-mobile-meta">
           {row.Team || "—"}
@@ -926,6 +931,7 @@ export default function WeeklyTable({
                     {pid ? (
                       <PlayerContextBadges
                         context={playersContext.byId.get(pid)}
+                        slateMeta={playersContext.meta}
                         className="player-context-badges--mobile"
                       />
                     ) : null}
@@ -1072,6 +1078,7 @@ export default function WeeklyTable({
                 whyColSpan={emptyColSpan}
                 applyInjuryAdjustments={applyInjuryAdjustments}
                 playerContext={pid ? playersContext.byId.get(pid) : null}
+                contextSlateMeta={playersContext.meta}
                 contextExpanded={Boolean(pid && contextPlayerId === pid)}
                 onToggleContext={() => toggleContext(pid)}
                 showMovement={showMovement}
