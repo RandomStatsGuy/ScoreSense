@@ -247,7 +247,7 @@ def player_context_get(
     ),
     _user=Depends(require_patron),
 ) -> dict:
-    """Cached player-context read model (SCORE-23) — artifact only, zero live work."""
+    """Full cached player-context detail (SCORE-23/30) — artifact only, zero live work."""
     from fastapi.encoders import jsonable_encoder
 
     try:
@@ -274,9 +274,17 @@ def players_context_list(
         False,
         description="Opt in to older media_context narrative when state is historical_available",
     ),
+    compact: bool = Query(
+        True,
+        description=(
+            "SCORE-30: omit heavy narrative bodies (summaries/excerpts/sources/drivers). "
+            "Set false only for debugging; UI should lazy-load detail via "
+            "/api/player/{id}/context."
+        ),
+    ),
     _user=Depends(require_patron),
 ) -> dict:
-    """List/card variant of the cached player-context read model."""
+    """List/card variant of the cached player-context read model (compact by default)."""
     from fastapi.encoders import jsonable_encoder
 
     player_ids = [p.strip() for p in ids.split(",") if p.strip()] or None
@@ -287,6 +295,7 @@ def players_context_list(
                 week=week,
                 player_ids=player_ids,
                 include_historical=include_historical,
+                compact=compact,
             )
         )
     except FileNotFoundError as exc:

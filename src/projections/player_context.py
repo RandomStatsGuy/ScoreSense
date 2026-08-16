@@ -1,10 +1,15 @@
-"""Cached player-context read model (SCORE-23).
+"""Cached player-context read model (SCORE-23 / SCORE-30).
 
 Background jobs join weekly inj/no_inj projections, a frozen injury snapshot,
 and pre-aggregated sentiment digests into a versioned parquet artifact.
 
 Page-view serving reads that artifact only — never YouTube ingest, LLM, Sleeper
 polling, or live ``predict_*``.
+
+SCORE-30: ``GET /api/players/context`` defaults to a compact table payload
+(injury badge/age, adjustment, analyst signal + source_count, detail_available).
+Heavy excerpts/sources/summaries/drivers are lazy-loaded via
+``GET /api/player/{id}/context``.
 """
 
 from __future__ import annotations
@@ -35,7 +40,6 @@ from src.integrations.injury_snapshot import (
 )
 from src.projections.weekly_cache import load_weekly_prediction, weekly_fingerprint
 from src.sentiment.media_context import (
-    MEDIA_STATE_CURRENT,
     MEDIA_STATE_HISTORICAL_AVAILABLE,
     MEDIA_STATE_NONE,
     apply_historical_opt_in,
@@ -45,7 +49,7 @@ from src.sentiment.media_context import (
 )
 
 POSITIONS = ("qb", "rb", "wr")
-SCHEMA_VERSION = "player_context_v2"
+SCHEMA_VERSION = "player_context_v3"
 _P50_KEYS = ("Projected Points", "P50", "p50")
 
 _CONTEXT_CACHE: dict[str, tuple[str, pd.DataFrame, dict[str, Any]]] = {}
@@ -186,6 +190,153 @@ def _media_source_count(row: dict[str, Any] | None) -> int:
     return 0
 
 
+def _media_excerpt(row: dict[str, Any] | None) -> str | None:
+    if not row:
+        return None
+    for key in ("yt_top_snippet", "top_sentence", "yt_top_sentence", "snippet"):
+        text = str(row.get(key) or "").strip()
+        if text:
+            return text
+    return None
+
+
+def _media_sources(row: dict[str, Any] | None) -> list[dict[str, str]]:
+    """Compact source labels from pre-aggregated sentiment features (no network)."""
+    if not row:
+        return []
+    raw = row.get("source_labels") or row.get("channels") or row.get("yt_channels")
+    out: list[dict[str, str]] = []
+    seen: set[str] = set()
+    if isinstance(raw, str):
+        tokens = [t.strip() for t in raw.split("|") if t.strip()]
+    elif isinstance(raw, (list, tuple)):
+        tokens = []
+        for item in raw:
+            if isinstance(item, dict):
+                label = str(item.get("label") or item.get("network") or "").strip()
+                if label:
+                    tokens.append(label)
+            else:
+                label = str(item or "").strip()
+                if label:
+                    tokens.append(label)
+    else:
+        tokens = []
+    for label in tokens:
+        key = label.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append({"label": label})
+    return out
+
+
+def injury_age_hours(
+    updated_at: str | None,
+    *,
+    now: datetime | None = None,
+) -> float | None:
+    """Hours since injury/availability ``updated_at`` (serve-time badge age)."""
+    if not updated_at:
+        return None
+    try:
+        ts = datetime.fromisoformat(str(updated_at).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    clock = now or datetime.now(timezone.utc)
+    if clock.tzinfo is None:
+        clock = clock.replace(tzinfo=timezone.utc)
+    age = (clock - ts).total_seconds() / 3600.0
+    if age < 0:
+        return 0.0
+    return round(age, 2)
+
+
+def detail_available_for_payload(payload: dict[str, Any]) -> bool:
+    """True when expand would surface narrative, drivers, or injury explanation."""
+    media = payload.get("media_context") if isinstance(payload.get("media_context"), dict) else {}
+    opp = (
+        payload.get("opportunity_adjustment")
+        if isinstance(payload.get("opportunity_adjustment"), dict)
+        else {}
+    )
+    avail = payload.get("availability") if isinstance(payload.get("availability"), dict) else {}
+
+    if media.get("summary") or media.get("excerpt"):
+        return True
+    if media.get("sources"):
+        return True
+    if int(media.get("source_count") or 0) > 0 or media.get("signal"):
+        return True
+    if str(media.get("state") or "") == MEDIA_STATE_HISTORICAL_AVAILABLE:
+        return True
+    if opp.get("included") or (opp.get("drivers") or []):
+        return True
+    if avail.get("status") or avail.get("practice"):
+        return True
+    return False
+
+
+def compact_player_context(
+    payload: dict[str, Any],
+    *,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Table/list shape: badge fields only — no excerpts, sources, summaries, drivers."""
+    avail = payload.get("availability") if isinstance(payload.get("availability"), dict) else {}
+    opp = (
+        payload.get("opportunity_adjustment")
+        if isinstance(payload.get("opportunity_adjustment"), dict)
+        else {}
+    )
+    media = payload.get("media_context") if isinstance(payload.get("media_context"), dict) else {}
+    meta = payload.get("meta") if isinstance(payload.get("meta"), dict) else {}
+
+    compact_media: dict[str, Any] = {
+        "state": media.get("state") or MEDIA_STATE_NONE,
+        "signal": media.get("signal"),
+        "source_count": int(media.get("source_count") or 0),
+        "affects_projection": bool(media.get("affects_projection")),
+    }
+    # Preserve historical week pointer without narrative bodies.
+    if str(media.get("state") or "") == MEDIA_STATE_HISTORICAL_AVAILABLE:
+        hist = media.get("historical")
+        if isinstance(hist, dict) and hist.get("season") is not None and hist.get("week") is not None:
+            compact_media["historical"] = {
+                "season": int(hist["season"]),
+                "week": int(hist["week"]),
+            }
+
+    return {
+        "player_id": payload.get("player_id"),
+        "player_name": payload.get("player_name"),
+        "position": payload.get("position"),
+        "team": payload.get("team"),
+        "availability": {
+            "status": avail.get("status"),
+            "practice": avail.get("practice"),
+            "updated_at": avail.get("updated_at"),
+            "age_hours": injury_age_hours(avail.get("updated_at"), now=now),
+        },
+        "opportunity_adjustment": {
+            "points": opp.get("points"),
+            "included": bool(opp.get("included")),
+        },
+        "media_context": compact_media,
+        "detail_available": detail_available_for_payload(payload),
+        "meta": {
+            "season": meta.get("season"),
+            "week": meta.get("week"),
+            "stale": bool(meta.get("stale")),
+            "fingerprint": meta.get("fingerprint"),
+            "schema_version": meta.get("schema_version") or SCHEMA_VERSION,
+            "view": "compact",
+        },
+    }
+
+
 def _load_sentiment_features_frame() -> pd.DataFrame:
     if not SENTIMENT_FEATURES_PATH.exists():
         return pd.DataFrame()
@@ -230,6 +381,8 @@ def _build_media_context_for_player(
     sent = sentiment_index.get(pid)
     signal = _media_signal(sent)
     source_count = _media_source_count(sent)
+    excerpt = _media_excerpt(sent)
+    sources = _media_sources(sent)
     summary, media_updated = _cached_digest_summary(
         pid, player_name, season, week, sent
     )
@@ -244,6 +397,8 @@ def _build_media_context_for_player(
             "signal": signal,
             "source_count": source_count,
             "summary": summary,
+            "excerpt": excerpt,
+            "sources": sources,
             "updated_at": media_updated,
             "historical": None,
             "affects_projection": False,
@@ -257,6 +412,8 @@ def _build_media_context_for_player(
     hist_dict = {str(k): _json_safe(v) for k, v in hist_row.items()}
     hist_signal = _media_signal(hist_dict)
     hist_count = _media_source_count(hist_dict)
+    hist_excerpt = _media_excerpt(hist_dict)
+    hist_sources = _media_sources(hist_dict)
     hist_summary, hist_updated = _cached_digest_summary(
         pid, player_name, hist_season, hist_week, hist_dict
     )
@@ -271,6 +428,8 @@ def _build_media_context_for_player(
         "signal": None,
         "source_count": 0,
         "summary": None,
+        "excerpt": None,
+        "sources": [],
         "updated_at": None,
         "historical": {
             "season": hist_season,
@@ -278,6 +437,8 @@ def _build_media_context_for_player(
             "signal": hist_signal,
             "source_count": hist_count,
             "summary": hist_summary,
+            "excerpt": hist_excerpt,
+            "sources": hist_sources,
             "updated_at": hist_updated,
         },
         "affects_projection": False,
@@ -655,7 +816,7 @@ def get_player_context(
     week: int | None = None,
     include_historical: bool = False,
 ) -> dict[str, Any]:
-    """Serve a single player's cached context payload."""
+    """Serve a single player's full cached context payload (lazy-load detail)."""
     pid = str(player_id or "").strip()
     if not pid:
         raise ValueError("player_id is required")
@@ -668,6 +829,13 @@ def get_player_context(
         raise ValueError(f"No player context for player_id={pid}")
     payload = json.loads(str(hit.iloc[0]["payload_json"]))
     payload = _finalize_media_context(payload, include_historical=include_historical)
+    # Ensure detail keys exist even on older v2 artifacts.
+    media = payload.get("media_context")
+    if isinstance(media, dict):
+        media.setdefault("excerpt", None)
+        media.setdefault("sources", [])
+        payload["media_context"] = media
+    payload["detail_available"] = detail_available_for_payload(payload)
     payload["meta"] = {
         **(payload.get("meta") or {}),
         "season": resolved_season,
@@ -678,7 +846,16 @@ def get_player_context(
         "stale": bool(meta.get("stale")),
         "schema_version": meta.get("schema_version") or SCHEMA_VERSION,
         "include_historical": bool(include_historical),
+        "view": "detail",
     }
+    # Serve-time injury badge age for detail consumers.
+    avail = payload.get("availability")
+    if isinstance(avail, dict):
+        avail = {
+            **avail,
+            "age_hours": injury_age_hours(avail.get("updated_at")),
+        }
+        payload["availability"] = avail
     return payload
 
 
@@ -688,8 +865,13 @@ def list_player_context(
     week: int | None = None,
     player_ids: list[str] | None = None,
     include_historical: bool = False,
+    compact: bool = True,
 ) -> dict[str, Any]:
-    """Serve the full (or filtered) player-context list for a slate."""
+    """Serve player-context list for a slate.
+
+    Default ``compact=True`` (SCORE-30) omits heavy narrative bodies so weekly
+    tables stay small; open a player via ``get_player_context`` for detail.
+    """
     resolved_season, resolved_week = season_week_context(season, week)
     df, meta = load_player_context_frame(resolved_season, resolved_week)
     players = _payloads_from_frame(df)
@@ -700,6 +882,27 @@ def list_player_context(
         _finalize_media_context(p, include_historical=include_historical)
         for p in players
     ]
+    if compact:
+        players = [compact_player_context(p) for p in players]
+    else:
+        enriched: list[dict[str, Any]] = []
+        for player in players:
+            media = player.get("media_context")
+            if isinstance(media, dict):
+                media.setdefault("excerpt", None)
+                media.setdefault("sources", [])
+                player["media_context"] = media
+            avail = player.get("availability")
+            if isinstance(avail, dict):
+                player["availability"] = {
+                    **avail,
+                    "age_hours": injury_age_hours(avail.get("updated_at")),
+                }
+            player["detail_available"] = detail_available_for_payload(player)
+            player_meta = player.get("meta") if isinstance(player.get("meta"), dict) else {}
+            player["meta"] = {**player_meta, "view": "detail"}
+            enriched.append(player)
+        players = enriched
     return {
         "count": len(players),
         "players": players,
@@ -713,5 +916,7 @@ def list_player_context(
             "schema_version": meta.get("schema_version") or SCHEMA_VERSION,
             "rows": meta.get("rows"),
             "include_historical": bool(include_historical),
+            "compact": bool(compact),
+            "view": "compact" if compact else "detail",
         },
     }
