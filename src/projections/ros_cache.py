@@ -33,8 +33,12 @@ def _artifact_paths(position: str, season: int, week: int, apply_injury: bool) -
     )
 
 
+# Bump when ROS aggregation semantics change (e.g. SCORE-32 opportunity decay).
+ROS_AGGREGATION_VERSION = "ros_opp_decay_v1"
+
+
 def ros_fingerprint() -> str:
-    parts: list[str] = []
+    parts: list[str] = [f"agg:{ROS_AGGREGATION_VERSION}"]
     for pos in ("qb", "rb", "wr"):
         feat = PROCESSED_DATA_DIR / f"{pos}_mlready.parquet"
         if feat.exists():

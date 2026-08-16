@@ -1174,6 +1174,13 @@ def _ros_response(
                 f"{meta['season']} regular season complete (weeks 1–18). "
                 "Totals are points scored; no ROS left."
             )
+        elif apply_injury_adjustments:
+            note = (
+                f"Season P50 = reg-season points + baseline ROS rate × {weeks_remaining} weeks left, "
+                "plus near-term opportunity decayed by injury return window "
+                "(Questionable does not apply for the full ROS). "
+                f"Next P50 is the week {projection_week} injury-adjusted median."
+            )
         else:
             note = (
                 f"Season P50 = reg-season points + next-week P50 × {weeks_remaining} weeks left. "
