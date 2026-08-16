@@ -9,7 +9,7 @@ import DraftTeamCard from "./DraftTeamCard";
 import DraftPickRecap from "./DraftPickRecap";
 import DraftRecapPanel from "./DraftRecapPanel";
 import DraftOwnerReport from "./DraftOwnerReport";
-import DraftCommissionerSettings from "./DraftCommissionerSettings";
+import DraftEntryPanel from "./DraftEntryPanel";
 import ValueSheetTable from "./ValueSheetTable";
 import { confirmDialog } from "../ui/confirm";
 import DraftDeadlineClock from "./DraftDeadlineClock";
@@ -1079,8 +1079,8 @@ export default function DraftRoom({
           <h2 className="hub-draft-idle-title">Draft room</h2>
           <p className="chart-note hub-draft-idle-lead">
             {usingHubLeague
-              ? `${hubContext?.league_name || league?.name || "Your league"} — mock or go live.`
-              : "Mock with bots, or set up a league."}
+              ? `${hubContext?.league_name || league?.name || "Your league"} — practice first, or start the live draft when ready.`
+              : "Practice with bots, or set up a league to go live."}
           </p>
         </header>
       )}
@@ -1225,121 +1225,35 @@ export default function DraftRoom({
       <DraftPickRecap recap={pickRecap} onDismiss={() => setPickRecap(null)} />
 
       {showDraftEntry && (
-        <div className="hub-draft-entry">
-          <div className="hub-draft-idle-actions">
-            <div className="hub-draft-idle-mock">
-              <button
-                type="button"
-                className="btn-primary"
-                disabled={busy || (valueSheetLoading && !valueRows?.length)}
-                onClick={() => startMockDraft("quick_bots")}
-              >
-                {busy ? "Starting…" : "Quick mock draft"}
-              </button>
-              <label className="hub-draft-idle-bots">
-                Bots
-                <input
-                  type="number"
-                  min={1}
-                  max={11}
-                  value={botCount}
-                  onChange={(e) => setBotCount(e.target.value)}
-                />
-              </label>
-            </div>
-            <button
-              type="button"
-              className="btn-ghost"
-              disabled={busy || (valueSheetLoading && !valueRows?.length)}
-              onClick={() => startMockDraft("quick_bots", { simulate: true })}
-              title="Dev: run a full mock draft instantly, then open the post-draft report"
-            >
-              {busy ? "Simulating…" : "Simulate full draft"}
-            </button>
-            {valueSheetLoading && !valueRows?.length && (
-              <p className="chart-note">Loading player pool…</p>
-            )}
-            {leagueId && inDraftSetup && !roomLoading && isCommissioner && (
-              <button type="button" className="btn-ghost" disabled={busy} onClick={startDraft}>
-                Start live draft
-              </button>
-            )}
-            {leagueId && inDraftSetup && !roomLoading && !isCommissioner && (
-              <span className="chart-note hub-draft-idle-wait">Waiting for commissioner</span>
-            )}
-          </div>
-
-          {usingHubLeague && isCommissioner && expirePreview && (
-            <p className="chart-note hub-draft-expire-preview">
-              Keepers: {expirePreview.retained_count} retained · {expirePreview.expire_count} expire before draft
-              (nominatable). Real league unchanged in a keeper sandbox.
-            </p>
-          )}
-          {testMode && mockModeLabel === "Keeper sandbox" && inDraftSetup && (
-            <p className="chart-note hub-draft-expire-preview">
-              Sandbox copy of keepers — inspect Office/Roster expire badges, then Start live draft.
-              Delete sandbox when finished.
-            </p>
-          )}
-
-          <details className="hub-draft-more">
-            <summary>More options</summary>
-            <div className="hub-draft-more-body">
-              {usingHubLeague ? (
-                <>
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm"
-                    disabled={busy}
-                    onClick={() => startMockDraft("league_mirror")}
-                  >
-                    Mock with {hubContext?.league_name || "your league"} managers
-                  </button>
-                  {isCommissioner && (
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm"
-                      disabled={busy}
-                      onClick={startKeeperSandbox}
-                      title="Copy keepers into a practice room to test expire / year tick"
-                    >
-                      Keeper sandbox
-                    </button>
-                  )}
-                </>
-              ) : (
-                <p className="chart-note">
-                  Join a league in{" "}
-                  <button type="button" className="btn-link" onClick={() => onNavigate?.("setup")}>
-                    Setup
-                  </button>{" "}
-                  to mock with your managers.
-                </p>
-              )}
-              {testMode && isCommissioner && inDraftSetup && (
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm"
-                  disabled={busy}
-                  onClick={deleteSandbox}
-                >
-                  Delete sandbox
-                </button>
-              )}
-              {leagueId && inDraftSetup && !roomLoading && isCommissioner && (
-                <DraftCommissionerSettings
-                  leagueId={leagueId}
-                  rules={rules}
-                  teams={teams}
-                  nominationOrder={session?.nomination_order}
-                  poolMode={poolMode}
-                  disabled={busy}
-                  onUpdated={applyState}
-                />
-              )}
-            </div>
-          </details>
-        </div>
+        <DraftEntryPanel
+          busy={busy}
+          showPoolLoading={Boolean(valueSheetLoading && !valueRows?.length)}
+          poolBlocked={Boolean(valueSheetLoading && !valueRows?.length)}
+          botCount={botCount}
+          onBotCountChange={setBotCount}
+          onPracticeDraft={() => startMockDraft("quick_bots")}
+          onSimulateFullDraft={() => startMockDraft("quick_bots", { simulate: true })}
+          onStartLiveDraft={startDraft}
+          onStartLeagueMirror={() => startMockDraft("league_mirror")}
+          onStartKeeperSandbox={startKeeperSandbox}
+          onDeleteSandbox={deleteSandbox}
+          onCommissionerUpdated={applyState}
+          onNavigate={onNavigate}
+          hubContext={hubContext}
+          league={league}
+          leagueId={leagueId}
+          rules={rules}
+          teams={teams}
+          session={session}
+          poolMode={poolMode}
+          usingHubLeague={usingHubLeague}
+          isCommissioner={isCommissioner}
+          testMode={testMode}
+          inDraftSetup={inDraftSetup}
+          roomLoading={roomLoading}
+          mockModeLabel={mockModeLabel}
+          expirePreview={expirePreview}
+        />
       )}
 
       {leagueId && (inLiveDraft || draftCompleted) && (

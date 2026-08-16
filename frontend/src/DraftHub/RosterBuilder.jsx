@@ -4,6 +4,7 @@ import { parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
 import MobileDataList, { MobileStat } from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
+import MobileBottomSheet from "../layout/MobileBottomSheet";
 import HubTabIntro from "./HubTabIntro";
 import { HubFilterChip, HubFilterScroll, HubPage, HubTableCard } from "./HubUILayout";
 import {
@@ -26,6 +27,7 @@ import {
   rookieExtendSuccessMessage,
 } from "./rookieExtend";
 import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
+
 const TEAM_LOGO_ALIASES = { JAX: "jax", JAC: "jax", LA: "lar", LAR: "lar", WSH: "wsh", WAS: "wsh" };
 
 function teamLogoUrl(team) {
@@ -39,6 +41,251 @@ function posSortKey(position) {
   const pos = normalizeHubPosition(position);
   const idx = HUB_POS_ORDER.indexOf(pos);
   return idx >= 0 ? idx : HUB_POS_ORDER.length;
+}
+
+function rosterStatusInfo(r, { draftCompleted, ctype, pendingType, pendingExt }) {
+  if (r.roster_status === "cut_before_draft") {
+    return { label: "Cut before draft", tone: "cut" };
+  }
+  if (pendingExt) return { label: "Extension queued", tone: "pending" };
+  if (pendingType) return { label: "Pending type", tone: "pending" };
+  const yrsLeft = Number(r.contract?.years_remaining ?? r.contract_years ?? 1);
+  if (!draftCompleted && yrsLeft <= 1) {
+    return ctype === "rookie"
+      ? { label: "Extend?", tone: "warn" }
+      : { label: "Expires — FA", tone: "warn" };
+  }
+  if (yrsLeft === 1) return { label: "Final year", tone: "warn" };
+  return { label: "Active", tone: "ok" };
+}
+
+function ContractRulesDisclosure({
+  contractsReadOnly,
+  isLeague,
+  isCommissioner,
+  officeLink,
+  defaultStepUp,
+  season,
+  draftCompleted,
+}) {
+  return (
+    <details className="hub-roster-contract-rules">
+      <summary>Contract rules</summary>
+      <div className="hub-roster-contract-rules-body chart-note">
+        {contractsReadOnly && isLeague ? (
+          <>
+            <p>
+              Salary, years, and type are edited in Commissioner → Contracts only
+              {isCommissioner
+                ? <> — {officeLink || "use Commissioner → Contracts to edit"}.</>
+                : ". Commissioners edit those fields in Commissioner."}
+            </p>
+            <p>
+              Before draft, final-year rookies can queue one 1–3 year extension
+              (start salary = current + ${defaultStepUp}).
+            </p>
+          </>
+        ) : (
+          <p title={seasonCapYearHint(season)}>
+            {contractScheduleHint(defaultStepUp)}
+            {!draftCompleted && " · Final-year deals expire before draft (rookies can extend once)"}
+          </p>
+        )}
+        <p>{YEARS_LEFT_HINT}</p>
+        {!contractsReadOnly && (
+          <p>{seasonCapYearHint(season)}</p>
+        )}
+      </div>
+    </details>
+  );
+}
+
+function ContractSidePanelBody({
+  r,
+  season,
+  contractsReadOnly,
+  canEditType,
+  draftCompleted,
+  readOnly,
+  edit,
+  setEdit,
+  ctype,
+  pendingType,
+  pendingExt,
+  inferredMeta,
+  livePreview,
+  isSaving,
+  justSaved,
+  extendEligible,
+  extendStart,
+  extendYearsFor,
+  setExtendYearsById,
+  saveRow,
+  saveContractType,
+  queueRookieExtend,
+  toggleCut,
+  remove,
+  maxYears,
+  status,
+}) {
+  const isCut = r.roster_status === "cut_before_draft";
+
+  return (
+    <div className="hub-roster-contract-panel-body">
+      <div className="hub-roster-contract-panel-meta">
+        <div className="hub-roster-contract-panel-identity">
+          <strong>{r.player_name}</strong>
+          <span className="chart-note">
+            {[r.team, normalizeHubPosition(r.position) || r.position].filter(Boolean).join(" · ") || "—"}
+          </span>
+        </div>
+        <span className={`hub-roster-status hub-roster-status--${status.tone}`}>{status.label}</span>
+      </div>
+
+      <div className="hub-roster-contract-panel-grid">
+        {canEditType ? (
+          <label className="hub-roster-mobile-field">
+            <span className="mobile-stat-label">Contract type</span>
+            <select
+              className="hub-roster-edit-input"
+              value={pendingType || ctype}
+              disabled={isSaving}
+              onChange={(e) => saveContractType(r, e.target.value)}
+            >
+              {CONTRACT_TYPE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <div className="hub-roster-contract-panel-stat">
+            <span className="mobile-stat-label">Contract type</span>
+            <span className={contractTypeBadgeClass(ctype)}>{contractTypeLabel(ctype)}</span>
+            {inferredMeta && <span className="hub-contract-infer-meta">Auto · {inferredMeta}</span>}
+          </div>
+        )}
+
+        {contractsReadOnly ? (
+          <div className="hub-roster-contract-panel-stat">
+            <span className="mobile-stat-label">Cap hit ({season})</span>
+            <strong>{fmtSal(edit.salary)}</strong>
+          </div>
+        ) : (
+          <label className="hub-roster-mobile-field">
+            <span className="mobile-stat-label">Cap hit ({season})</span>
+            <input
+              type="number"
+              className="hub-roster-edit-input"
+              min={0}
+              step={1}
+              value={edit.salary}
+              disabled={isSaving}
+              onChange={(e) => setEdit(r.player_id, { salary: e.target.value })}
+              onBlur={() => saveRow(r)}
+              onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+            />
+          </label>
+        )}
+
+        {contractsReadOnly ? (
+          <div className="hub-roster-contract-panel-stat">
+            <span className="mobile-stat-label">Years left</span>
+            <strong>{edit.years}</strong>
+          </div>
+        ) : (
+          <label className="hub-roster-mobile-field">
+            <span className="mobile-stat-label">Years left</span>
+            <input
+              type="number"
+              className="hub-roster-edit-input hub-roster-edit-input-sm"
+              min={1}
+              max={maxYears}
+              step={1}
+              value={edit.years}
+              disabled={isSaving}
+              onChange={(e) => setEdit(r.player_id, { years: e.target.value })}
+              onBlur={() => saveRow(r)}
+              onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+            />
+          </label>
+        )}
+      </div>
+
+      <div className="hub-roster-contract-panel-stat hub-roster-contract-panel-schedule">
+        <span className="mobile-stat-label">Schedule</span>
+        <strong className="hub-schedule-preview">{livePreview || "—"}</strong>
+      </div>
+
+      {(pendingType || pendingExt) && (
+        <p className="chart-note">
+          {pendingType ? "Type change pending commissioner approval. " : ""}
+          {pendingExt ? "Extension is queued for commissioner apply." : ""}
+        </p>
+      )}
+
+      {!contractsReadOnly && (
+        <div className="hub-roster-contract-panel-save" aria-live="polite">
+          {isSaving && <span className="hub-roster-save-hint">Saving…</span>}
+          {!isSaving && justSaved && (
+            <span className="hub-roster-save-hint hub-roster-save-ok">Saved</span>
+          )}
+        </div>
+      )}
+
+      <div className="hub-roster-contract-panel-actions">
+        {extendEligible && (
+          <>
+            <label className="hub-roster-extend-years">
+              <span className="sr-only">Extension years</span>
+              <select
+                className="hub-roster-edit-input hub-roster-edit-input-sm"
+                value={extendYearsFor(r)}
+                disabled={isSaving}
+                onChange={(e) => setExtendYearsById((prev) => ({
+                  ...prev,
+                  [r.player_id]: e.target.value,
+                }))}
+                aria-label={`Extension years for ${r.player_name}`}
+              >
+                <option value={1}>1 yr</option>
+                <option value={2}>2 yr</option>
+                <option value={3}>3 yr</option>
+              </select>
+            </label>
+            <button
+              type="button"
+              className="btn-primary btn-sm"
+              disabled={isSaving}
+              title={extendStart != null ? `Starts at ${fmtSal(extendStart)}` : undefined}
+              onClick={() => queueRookieExtend(r)}
+            >
+              Queue extension
+            </button>
+          </>
+        )}
+        {!draftCompleted && (
+          <button
+            type="button"
+            className={`btn-ghost btn-sm${isCut ? " hub-uncut-btn" : ""}`}
+            disabled={isSaving}
+            onClick={() => toggleCut(r, !isCut)}
+          >
+            {isCut ? "Undo cut" : "Cut pre-draft"}
+          </button>
+        )}
+        {!readOnly && (
+          <button
+            type="button"
+            className="btn-ghost btn-sm"
+            disabled={isSaving}
+            onClick={() => remove(r.player_id)}
+          >
+            Remove
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function RosterBuilder({
@@ -63,6 +310,7 @@ export default function RosterBuilder({
   const [savedId, setSavedId] = useState(null);
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState("ALL");
+  const [selectedPlayerId, setSelectedPlayerId] = useState(null);
 
   const [typeOverrides, setTypeOverrides] = useState({});
   const [extendYearsById, setExtendYearsById] = useState({});
@@ -78,7 +326,7 @@ export default function RosterBuilder({
   const teamName = sleeper?.sleeper_team_name;
   const isLeague = hubContext?.mode === "league";
   const isCommissioner = Boolean(hubContext?.is_commissioner || hubContext?.can_edit_salaries);
-  // SCORE-41: league My Team never edits salary/years/type — Office Current is the only arbitrary editor.
+  // SCORE-41: league My Team never edits salary/years/type — Commissioner → Contracts is the only arbitrary editor.
   // SCORE-42: managers may still queue a server-calculated rookie extension for their own eligible rookies.
   const contractsReadOnly = isLeague || readOnly;
   const canEditType = !contractsReadOnly;
@@ -119,6 +367,13 @@ export default function RosterBuilder({
     if (preDraft) return preDraft.season_committed;
     return (roster || []).reduce((sum, r) => sum + Number(r.salary || 0), 0);
   }, [preDraft, roster]);
+
+  const selectedRow = useMemo(
+    () => (selectedPlayerId ? (roster || []).find((r) => r.player_id === selectedPlayerId) : null),
+    [roster, selectedPlayerId],
+  );
+
+  const closeContractPanel = useCallback(() => setSelectedPlayerId(null), []);
 
   const toggleCut = useCallback(async (r, cut) => {
     setSavingId(r.player_id);
@@ -177,6 +432,21 @@ export default function RosterBuilder({
     setTypeOverrides({});
     setExtendYearsById({});
   }, [roster]);
+
+  useEffect(() => {
+    if (selectedPlayerId && !(roster || []).some((r) => r.player_id === selectedPlayerId)) {
+      setSelectedPlayerId(null);
+    }
+  }, [roster, selectedPlayerId]);
+
+  useEffect(() => {
+    if (!selectedRow || mobileLayout) return undefined;
+    const onKey = (event) => {
+      if (event.key === "Escape") closeContractPanel();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [selectedRow, mobileLayout, closeContractPanel]);
 
   const getEdit = useCallback((r) => {
     const d = draftEdits[r.player_id];
@@ -303,7 +573,10 @@ export default function RosterBuilder({
       body: JSON.stringify({ player_id: pid }),
     });
     if (!res.ok) setError(await parseApiError(res));
-    else onChanged?.();
+    else {
+      if (selectedPlayerId === pid) setSelectedPlayerId(null);
+      onChanged?.();
+    }
   };
 
   const addManual = async () => {
@@ -336,9 +609,84 @@ export default function RosterBuilder({
 
   const officeLink = isCommissioner && onEditInOffice ? (
     <button type="button" className="btn-link" onClick={onEditInOffice}>
-      Edit in Office
+      Edit in Commissioner
     </button>
   ) : null;
+
+  const rowViewModel = useCallback((r) => {
+    const edit = getEdit(r);
+    const ctype = String(typeOverrides[r.player_id] || r.contract?.contract_type || "veteran");
+    const pendingType = r.contract?.pending_type;
+    const pendingExt = hasPendingExtension(r);
+    const storedSchedule = scheduleText(r, workspace?.rules);
+    const livePreview = contractsReadOnly
+      ? storedSchedule
+      : (previewSchedule(edit.salary, edit.years, defaultStepUp, ctype) || storedSchedule);
+    const status = rosterStatusInfo(r, { draftCompleted, ctype, pendingType, pendingExt });
+    const extendEligible = canManagerRookieExtend(r, { draftCompleted }).ok;
+    const extendStart = extendEligible
+      ? previewRookieExtendStartSalary(r, workspace?.rules)
+      : null;
+    const inferredMeta = !r.contract?.contract_type_manual && r.contract?.inferred_from
+      ? String(r.contract.inferred_from).replace("nfl_yr_", "NFL yr ")
+      : null;
+    return {
+      edit,
+      ctype,
+      pendingType,
+      pendingExt,
+      livePreview,
+      status,
+      extendEligible,
+      extendStart,
+      inferredMeta,
+      isSaving: savingId === r.player_id,
+      justSaved: savedId === r.player_id,
+    };
+  }, [
+    getEdit,
+    typeOverrides,
+    workspace?.rules,
+    contractsReadOnly,
+    defaultStepUp,
+    draftCompleted,
+    savingId,
+    savedId,
+  ]);
+
+  const colSpan = showManagerTeam ? 7 : 6;
+
+  const panelProps = selectedRow ? (() => {
+    const vm = rowViewModel(selectedRow);
+    return {
+      r: selectedRow,
+      season,
+      contractsReadOnly,
+      canEditType,
+      draftCompleted,
+      readOnly,
+      edit: vm.edit,
+      setEdit,
+      ctype: vm.ctype,
+      pendingType: vm.pendingType,
+      pendingExt: vm.pendingExt,
+      inferredMeta: vm.inferredMeta,
+      livePreview: vm.livePreview,
+      isSaving: vm.isSaving,
+      justSaved: vm.justSaved,
+      extendEligible: vm.extendEligible,
+      extendStart: vm.extendStart,
+      extendYearsFor,
+      setExtendYearsById,
+      saveRow,
+      saveContractType,
+      queueRookieExtend,
+      toggleCut,
+      remove,
+      maxYears,
+      status: vm.status,
+    };
+  })() : null;
 
   return (
     <HubPage className="hub-roster-builder">
@@ -350,7 +698,7 @@ export default function RosterBuilder({
             ? (
               <p>
                 {isLeague
-                  ? "Salary, years, and type are edited in Office Current only. Final-year rookies can still queue one extension here."
+                  ? "Salary, years, and type are edited in Commissioner → Contracts only. Final-year rookies can still queue one extension here."
                   : "Read-only — ask commish to edit."}
                 {officeLink ? <> {officeLink}</> : null}
               </p>
@@ -399,24 +747,15 @@ export default function RosterBuilder({
         </div>
       </div>
 
-      {!contractsReadOnly && !mobileLayout && (
-        <p className="chart-note hub-roster-contract-help" title={seasonCapYearHint(season)}>
-          Saves on blur · {contractScheduleHint(defaultStepUp)} · {YEARS_LEFT_HINT}
-          {!draftCompleted && " · Final-year deals expire before draft (rookies can extend once)"}
-        </p>
-      )}
-      {contractsReadOnly && isLeague && (
-        <p className="chart-note hub-roster-contract-help">
-          Contract fields are read-only here
-          {isCommissioner
-            ? <> — {officeLink || "use Office Current to edit"}.</>
-            : ". Commissioners edit salary, years, and type in Office."}
-          {" "}
-          Before draft, final-year rookies can queue one 1–3 year extension (start salary = current + ${defaultStepUp}).
-          {" "}
-          {YEARS_LEFT_HINT}
-        </p>
-      )}
+      <ContractRulesDisclosure
+        contractsReadOnly={contractsReadOnly}
+        isLeague={isLeague}
+        isCommissioner={isCommissioner}
+        officeLink={officeLink}
+        defaultStepUp={defaultStepUp}
+        season={season}
+        draftCompleted={draftCompleted}
+      />
 
       {!contractsReadOnly && (
       <details className="hub-roster-add">
@@ -455,26 +794,14 @@ export default function RosterBuilder({
       )}
 
       <div className="hub-filter-bar hub-roster-pos-bar">
-        {!mobileLayout && (
-          <input
-            type="search"
-            className="search-input hub-filter-search"
-            placeholder="Search roster…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search roster"
-          />
-        )}
-        {mobileLayout && (
-          <input
-            type="search"
-            className="search-input hub-filter-search hub-roster-mobile-search"
-            placeholder="Search roster…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search roster"
-          />
-        )}
+        <input
+          type="search"
+          className={`search-input hub-filter-search${mobileLayout ? " hub-roster-mobile-search" : ""}`}
+          placeholder="Search roster…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          aria-label="Search roster"
+        />
         <HubFilterScroll>
           {HUB_POSITION_FILTERS.map((p) => (
             <HubFilterChip
@@ -500,184 +827,43 @@ export default function RosterBuilder({
             }
           >
             {filteredRoster.map((r) => {
-              const edit = getEdit(r);
-              const isSaving = savingId === r.player_id;
-              const justSaved = savedId === r.player_id;
-              const yrsLeft = Number(r.contract?.years_remaining ?? r.contract_years ?? 1);
-              const isCut = r.roster_status === "cut_before_draft";
-              const ctype = String(
-                typeOverrides[r.player_id] || r.contract?.contract_type || "veteran"
-              );
-              const storedSchedule = scheduleText(r, workspace?.rules);
-              const livePreview = contractsReadOnly
-                ? storedSchedule
-                : (previewSchedule(edit.salary, edit.years, defaultStepUp, ctype) || storedSchedule);
-              const pendingType = r.contract?.pending_type;
-              const pendingExt = hasPendingExtension(r);
-              const extendEligible = canManagerRookieExtend(r, { draftCompleted }).ok;
-              const extendStart = extendEligible
-                ? previewRookieExtendStartSalary(r, workspace?.rules)
-                : null;
-              const inferredMeta = !r.contract?.contract_type_manual && r.contract?.inferred_from
-                ? String(r.contract.inferred_from).replace("nfl_yr_", "NFL yr ")
-                : null;
-              const expiringBadge = pendingExt
-                ? null
-                : (!draftCompleted && yrsLeft <= 1 && !isCut
-                  ? (ctype === "rookie"
-                    ? (mobileLayout ? "Extend?" : "Extend to keep")
-                    : (mobileLayout ? "FA" : "Expires — FA"))
-                  : (yrsLeft === 1 ? "Final year" : null));
-              const actions = [];
-              if (extendEligible) {
-                actions.push(
-                  <label key="extend-years" className="hub-roster-extend-years">
-                    <span className="sr-only">Extension years</span>
-                    <select
-                      className="hub-roster-edit-input hub-roster-edit-input-sm"
-                      value={extendYearsFor(r)}
-                      disabled={isSaving}
-                      onChange={(e) => setExtendYearsById((prev) => ({
-                        ...prev,
-                        [r.player_id]: e.target.value,
-                      }))}
-                      aria-label={`Extension years for ${r.player_name}`}
-                    >
-                      <option value={1}>1 yr</option>
-                      <option value={2}>2 yr</option>
-                      <option value={3}>3 yr</option>
-                    </select>
-                  </label>,
-                  <button
-                    key="extend"
-                    type="button"
-                    className="btn-primary btn-sm"
-                    disabled={isSaving}
-                    title={extendStart != null ? `Starts at ${fmtSal(extendStart)}` : undefined}
-                    onClick={() => queueRookieExtend(r)}
-                  >
-                    {mobileLayout ? "Extend" : "Queue extension"}
-                  </button>,
-                );
-              }
-              if (!draftCompleted) {
-                actions.push(
-                  <button
-                    key="cut"
-                    type="button"
-                    className={`btn-ghost btn-sm${isCut ? " hub-uncut-btn" : ""}`}
-                    disabled={isSaving}
-                    onClick={() => toggleCut(r, !isCut)}
-                  >
-                    {isCut ? "Undo" : (mobileLayout ? "Cut" : "Cut pre-draft")}
-                  </button>,
-                );
-              }
-              if (!readOnly) {
-                actions.push(
-                  <button
-                    key="remove"
-                    type="button"
-                    className="btn-ghost btn-sm"
-                    disabled={isSaving}
-                    onClick={() => remove(r.player_id)}
-                  >
-                    Remove
-                  </button>,
-                );
-              }
+              const vm = rowViewModel(r);
               return (
                 <MobilePlayerCard
                   key={r.player_id}
-                  className={`${isSleeperPlayer(r) ? "hub-sleeper-row" : ""}${isCut ? " hub-cut-row" : ""}`.trim()}
+                  className={`${isSleeperPlayer(r) ? "hub-sleeper-row" : ""}${r.roster_status === "cut_before_draft" ? " hub-cut-row" : ""}`.trim()}
                   name={r.player_name}
                   meta={[r.team, normalizeHubPosition(r.position)].filter(Boolean).join(" · ") || "—"}
-                  heroValue={fmtSal(edit.salary)}
+                  heroValue={fmtSal(vm.edit.salary)}
                   heroLabel="cap"
                   badge={(
                     <>
                       {isSleeperPlayer(r) && <span className="hub-sleeper-badge">Sleeper</span>}
-                      <span className={contractTypeBadgeClass(ctype)}>{contractTypeLabel(ctype)}</span>
-                      {pendingType && <span className="hub-sleeper-badge hub-pending-badge">Pending</span>}
-                      {pendingExt && <span className="hub-sleeper-badge hub-pending-badge">Extension queued</span>}
-                      {inferredMeta && <span className="hub-contract-infer-meta">Auto · {inferredMeta}</span>}
-                      {isCut && <span className="hub-sleeper-badge hub-cut-badge">Cut before draft</span>}
-                      {expiringBadge && <span className="hub-sleeper-badge hub-expiring-badge">{expiringBadge}</span>}
+                      <span className={`hub-roster-status hub-roster-status--${vm.status.tone}`}>
+                        {vm.status.label}
+                      </span>
                     </>
                   )}
                   expanded={(
                     <div className="mobile-stat-grid hub-roster-mobile-grid">
-                      {canEditType ? (
-                        <label className="hub-roster-mobile-field">
-                          <span className="mobile-stat-label">Contract type</span>
-                          <select
-                            className="hub-roster-edit-input"
-                            value={pendingType || ctype}
-                            disabled={isSaving}
-                            onChange={(e) => saveContractType(r, e.target.value)}
-                          >
-                            {CONTRACT_TYPE_OPTIONS.map((o) => (
-                              <option key={o.value} value={o.value}>{o.label}</option>
-                            ))}
-                          </select>
-                        </label>
-                      ) : (
-                        <MobileStat label="Type" value={contractTypeLabel(ctype)} />
-                      )}
-                      {contractsReadOnly ? (
-                        <MobileStat label={`Cap hit (${season})`} value={fmtSal(edit.salary)} />
-                      ) : (
-                        <label className="hub-roster-mobile-field">
-                          <span className="mobile-stat-label">Cap hit ({season})</span>
-                          <input
-                            type="number"
-                            className="hub-roster-edit-input"
-                            min={0}
-                            step={1}
-                            value={edit.salary}
-                            disabled={isSaving}
-                            onChange={(e) => setEdit(r.player_id, { salary: e.target.value })}
-                            onBlur={() => saveRow(r)}
-                            onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-                          />
-                        </label>
-                      )}
-                      {contractsReadOnly ? (
-                        <MobileStat label="Yrs left" value={edit.years} />
-                      ) : (
-                        <label className="hub-roster-mobile-field">
-                          <span className="mobile-stat-label">Yrs left</span>
-                          <input
-                            type="number"
-                            className="hub-roster-edit-input hub-roster-edit-input-sm"
-                            min={1}
-                            max={maxYears}
-                            step={1}
-                            value={edit.years}
-                            disabled={isSaving}
-                            onChange={(e) => setEdit(r.player_id, { years: e.target.value })}
-                            onBlur={() => saveRow(r)}
-                            onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-                          />
-                        </label>
-                      )}
+                      <MobileStat label="Pos" value={normalizeHubPosition(r.position) || r.position || "—"} />
+                      <MobileStat label={`Cap hit (${season})`} value={fmtSal(vm.edit.salary)} />
+                      <MobileStat label="Yrs left" value={vm.edit.years} />
+                      <MobileStat label="Status" value={vm.status.label} />
                       {showManagerTeam && (
                         <MobileStat label="Manager" value={r.manager_team || "—"} />
                       )}
-                      <MobileStat
-                        label="Schedule"
-                        value={livePreview || "—"}
-                        className="hub-roster-mobile-schedule"
-                      />
-                      {!contractsReadOnly && isSaving && (
-                        <span className="hub-roster-save-hint hub-roster-mobile-save">Saving…</span>
-                      )}
-                      {!contractsReadOnly && !isSaving && justSaved && (
-                        <span className="hub-roster-save-hint hub-roster-save-ok hub-roster-mobile-save">Saved</span>
-                      )}
                     </div>
                   )}
-                  actions={actions.length > 0 ? actions : null}
+                  actions={(
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm"
+                      onClick={() => setSelectedPlayerId(r.player_id)}
+                    >
+                      Contract
+                    </button>
+                  )}
                 />
               );
             })}
@@ -690,199 +876,89 @@ export default function RosterBuilder({
               <th>Player</th>
               {showManagerTeam && <th>Manager</th>}
               <th>Pos</th>
-              <th>Type</th>
               <th>Cap hit ({season})</th>
-              <th>Yrs left</th>
-              <th>Schedule</th>
-              {(!readOnly || !draftCompleted) && <th aria-label="Actions" />}
+              <th>Years</th>
+              <th>Status</th>
+              <th aria-label="Contract" />
             </tr>
           </thead>
           <tbody>
             {filteredRoster.map((r) => {
               const media = mediaById[r.player_id] || {};
-              const edit = getEdit(r);
               const logo = media.team_logo_url || teamLogoUrl(r.team);
               const thumb = media.headshot_url || logo;
-              const isSaving = savingId === r.player_id;
-              const justSaved = savedId === r.player_id;
-              const yrsLeft = Number(r.contract?.years_remaining ?? r.contract_years ?? 1);
+              const vm = rowViewModel(r);
               const isCut = r.roster_status === "cut_before_draft";
-              const ctype = String(
-                typeOverrides[r.player_id] || r.contract?.contract_type || "veteran"
-              );
-              const storedSchedule = scheduleText(r, workspace?.rules);
-              const livePreview = contractsReadOnly
-                ? storedSchedule
-                : (previewSchedule(edit.salary, edit.years, defaultStepUp, ctype) || storedSchedule);
-              const pendingType = r.contract?.pending_type;
-              const pendingExt = hasPendingExtension(r);
-              const extendEligible = canManagerRookieExtend(r, { draftCompleted }).ok;
-              const extendStart = extendEligible
-                ? previewRookieExtendStartSalary(r, workspace?.rules)
-                : null;
-              const inferredMeta = !r.contract?.contract_type_manual && r.contract?.inferred_from
-                ? String(r.contract.inferred_from).replace("nfl_yr_", "NFL yr ")
-                : null;
-              const expiringBadge = pendingExt
-                ? null
-                : (!draftCompleted && yrsLeft <= 1 && !isCut
-                  ? (ctype === "rookie"
-                    ? (mobileLayout ? "Extend?" : "Extend to keep")
-                    : (mobileLayout ? "FA" : "Expires — FA"))
-                  : (yrsLeft === 1 ? "Final year" : null));
+              const selected = selectedPlayerId === r.player_id;
               return (
-                <tr key={r.player_id} className={`${isSleeperPlayer(r) ? "hub-sleeper-row" : ""}${isCut ? " hub-cut-row" : ""}`}>
+                <tr
+                  key={r.player_id}
+                  className={`${isSleeperPlayer(r) ? "hub-sleeper-row" : ""}${isCut ? " hub-cut-row" : ""}${selected ? " hub-roster-row--selected" : ""}`}
+                >
                   <td>
-                    <div className="hub-roster-player-cell">
-                      {thumb ? (
-                        <img
-                          className="hub-roster-player-thumb"
-                          src={thumb}
-                          alt=""
-                          onError={(e) => {
-                            if (logo && e.currentTarget.src !== logo) e.currentTarget.src = logo;
-                            else e.currentTarget.style.visibility = "hidden";
-                          }}
-                        />
-                      ) : (
-                        <span className="hub-roster-player-thumb hub-roster-player-thumb-empty" />
-                      )}
-                      <div className="hub-roster-player-text">
-                        <span className="hub-roster-player-name">{r.player_name}</span>
-                        <span className="hub-roster-player-team">
-                          {logo && (
-                            <img className="hub-roster-inline-logo" src={logo} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                          )}
-                          {r.team || "—"}
-                          {isSleeperPlayer(r) && <span className="hub-sleeper-badge">Sleeper</span>}
-                          {pendingType && <span className="hub-sleeper-badge hub-pending-badge">Pending</span>}
-                          {pendingExt && <span className="hub-sleeper-badge hub-pending-badge">Extension queued</span>}
-                          {inferredMeta && <span className="hub-contract-infer-meta">Auto · {inferredMeta}</span>}
-                          {isCut && <span className="hub-sleeper-badge hub-cut-badge">Cut before draft</span>}
-                          {expiringBadge && <span className="hub-sleeper-badge hub-expiring-badge">{expiringBadge}</span>}
-                        </span>
+                    <button
+                      type="button"
+                      className="hub-roster-player-open"
+                      onClick={() => setSelectedPlayerId(r.player_id)}
+                    >
+                      <div className="hub-roster-player-cell">
+                        {thumb ? (
+                          <img
+                            className="hub-roster-player-thumb"
+                            src={thumb}
+                            alt=""
+                            onError={(e) => {
+                              if (logo && e.currentTarget.src !== logo) e.currentTarget.src = logo;
+                              else e.currentTarget.style.visibility = "hidden";
+                            }}
+                          />
+                        ) : (
+                          <span className="hub-roster-player-thumb hub-roster-player-thumb-empty" />
+                        )}
+                        <div className="hub-roster-player-text">
+                          <span className="hub-roster-player-name">{r.player_name}</span>
+                          <span className="hub-roster-player-team">
+                            {logo && (
+                              <img className="hub-roster-inline-logo" src={logo} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                            )}
+                            {r.team || "—"}
+                            {isSleeperPlayer(r) && <span className="hub-sleeper-badge">Sleeper</span>}
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    </button>
                   </td>
                   {showManagerTeam && <td>{r.manager_team || "—"}</td>}
                   <td><span className="hub-roster-pos-tag">{normalizeHubPosition(r.position) || r.position || "—"}</span></td>
+                  <td>{fmtSal(vm.edit.salary)}</td>
+                  <td>{vm.edit.years}</td>
                   <td>
-                    {canEditType ? (
-                      <select
-                        className="hub-roster-edit-input hub-roster-type-select"
-                        value={pendingType || ctype}
-                        disabled={isSaving}
-                        onChange={(e) => saveContractType(r, e.target.value)}
-                        aria-label={`Contract type for ${r.player_name}`}
-                      >
-                        {CONTRACT_TYPE_OPTIONS.map((o) => (
-                          <option key={o.value} value={o.value}>{o.label}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className={contractTypeBadgeClass(ctype)}>{contractTypeLabel(ctype)}</span>
-                    )}
+                    <span className={`hub-roster-status hub-roster-status--${vm.status.tone}`}>
+                      {vm.status.label}
+                    </span>
                   </td>
-                  <td>
-                    {contractsReadOnly ? (
-                      <span>{fmtSal(edit.salary)}</span>
-                    ) : (
-                    <input
-                      type="number"
-                      className="hub-roster-edit-input"
-                      min={0}
-                      step={1}
-                      value={edit.salary}
-                      disabled={isSaving}
-                      onChange={(e) => setEdit(r.player_id, { salary: e.target.value })}
-                      onBlur={() => saveRow(r)}
-                      onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-                    />
-                    )}
-                  </td>
-                  <td>
-                    {contractsReadOnly ? (
-                      <span>{edit.years}</span>
-                    ) : (
-                    <input
-                      type="number"
-                      className="hub-roster-edit-input hub-roster-edit-input-sm"
-                      min={1}
-                      max={maxYears}
-                      step={1}
-                      value={edit.years}
-                      disabled={isSaving}
-                      onChange={(e) => setEdit(r.player_id, { years: e.target.value })}
-                      onBlur={() => saveRow(r)}
-                      onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-                    />
-                    )}
-                  </td>
-                  <td className="chart-note hub-schedule-preview">{livePreview || "—"}</td>
-                  {(!readOnly || !draftCompleted || extendEligible || pendingExt) && (
                   <td className="hub-roster-actions">
-                    {!contractsReadOnly && isSaving && <span className="hub-roster-save-hint">Saving…</span>}
-                    {!contractsReadOnly && !isSaving && justSaved && <span className="hub-roster-save-hint hub-roster-save-ok">Saved</span>}
-                    {extendEligible && (
-                      <>
-                        <label className="hub-roster-extend-years">
-                          <span className="sr-only">Extension years</span>
-                          <select
-                            className="hub-roster-edit-input hub-roster-edit-input-sm"
-                            value={extendYearsFor(r)}
-                            disabled={isSaving}
-                            onChange={(e) => setExtendYearsById((prev) => ({
-                              ...prev,
-                              [r.player_id]: e.target.value,
-                            }))}
-                            aria-label={`Extension years for ${r.player_name}`}
-                          >
-                            <option value={1}>1 yr</option>
-                            <option value={2}>2 yr</option>
-                            <option value={3}>3 yr</option>
-                          </select>
-                        </label>
-                        <button
-                          type="button"
-                          className="btn-primary btn-sm"
-                          disabled={isSaving}
-                          title={extendStart != null ? `Starts at ${fmtSal(extendStart)}` : undefined}
-                          onClick={() => queueRookieExtend(r)}
-                        >
-                          Queue extension
-                        </button>
-                      </>
-                    )}
-                    {!draftCompleted && (
-                      <button
-                        type="button"
-                        className={`btn-ghost btn-sm${isCut ? " hub-uncut-btn" : ""}`}
-                        disabled={isSaving}
-                        onClick={() => toggleCut(r, !isCut)}
-                      >
-                        {isCut ? "Undo" : (mobileLayout ? "Cut" : "Cut pre-draft")}
-                      </button>
-                    )}
-                    {!readOnly && (
-                    <button type="button" className="btn-ghost btn-sm" disabled={isSaving} onClick={() => remove(r.player_id)}>
-                      Remove
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm"
+                      onClick={() => setSelectedPlayerId(r.player_id)}
+                    >
+                      Contract
                     </button>
-                    )}
                   </td>
-                  )}
                 </tr>
               );
             })}
             {!sortedRoster.length && (
               <tr>
-                <td colSpan={showManagerTeam ? (readOnly ? 7 : 9) : (readOnly ? 6 : 8)} className="chart-note hub-roster-empty">
+                <td colSpan={colSpan} className="chart-note hub-roster-empty">
                   No players yet. Link Sleeper in Setup or add from Values.
                 </td>
               </tr>
             )}
             {Boolean(sortedRoster.length) && !filteredRoster.length && (
               <tr>
-                <td colSpan={showManagerTeam ? (readOnly ? 7 : 9) : (readOnly ? 6 : 8)} className="chart-note hub-roster-empty">
+                <td colSpan={colSpan} className="chart-note hub-roster-empty">
                   No players match these filters.
                 </td>
               </tr>
@@ -892,6 +968,45 @@ export default function RosterBuilder({
         </div>
         )}
       </HubTableCard>
+
+      {panelProps && mobileLayout && (
+        <MobileBottomSheet
+          open
+          onClose={closeContractPanel}
+          title={`Contract · ${selectedRow.player_name}`}
+          className="app-mobile-sheet-contract-edit"
+        >
+          <ContractSidePanelBody {...panelProps} />
+        </MobileBottomSheet>
+      )}
+
+      {panelProps && !mobileLayout && (
+        <div
+          className="hub-roster-side-panel-overlay"
+          role="presentation"
+          onClick={closeContractPanel}
+        >
+          <aside
+            className="hub-roster-side-panel panel"
+            role="dialog"
+            aria-label={`Contract for ${selectedRow.player_name}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="hub-roster-side-panel-head">
+              <h3 className="hub-roster-side-panel-title">Contract</h3>
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={closeContractPanel}
+                aria-label="Close contract panel"
+              >
+                Close
+              </button>
+            </div>
+            <ContractSidePanelBody {...panelProps} />
+          </aside>
+        </div>
+      )}
     </HubPage>
   );
 }

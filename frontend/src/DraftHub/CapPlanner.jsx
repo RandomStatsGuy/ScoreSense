@@ -9,12 +9,11 @@ import {
   HubPage,
   HubPageMeta,
   HubSection,
-  HubStatCard,
-  HubStatGrid,
   HubTableCard,
   HubToolbar,
   rosterAlertVariant,
 } from "./HubUILayout";
+import { buildCapStatusCard } from "./capStatusCard";
 import { fmtSal, leagueStepUp, scheduleText } from "./rosterFormat";
 import {
   hasPendingExtension,
@@ -168,7 +167,19 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
     );
   }
 
-  const remainingTone = summary.remaining < 0 ? "danger" : "accent";
+  const salaryCap = Number(
+    summary.salary_cap ?? workspace?.rules?.salary_cap ?? preDraft?.salary_cap,
+  );
+  const deadCap = Number(summary.dead_cap ?? preDraft?.dead_cap ?? 0);
+  const statusCard = buildCapStatusCard({
+    remaining: summary.remaining,
+    spent: summary.spent,
+    salaryCap,
+    rosterSize: summary.roster_size,
+    deadCap,
+    preDraft: Boolean(preDraft),
+  });
+  const seasonPlan = yearLabels.slice(0, 3);
 
   return (
     <HubPage>
@@ -190,23 +201,56 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
         )}
       </HubPageMeta>
 
-      <HubStatGrid>
-        <HubStatCard label="Committed" value={fmtSal(summary.spent)} />
-        <HubStatCard
-          label={preDraft ? "Left this season" : "Auction budget"}
-          value={fmtSal(summary.remaining)}
-          tone={remainingTone}
-        />
-        <HubStatCard label="Roster" value={String(summary.roster_size)} />
-        {yearLabels.slice(0, 3).map((year) => (
-          <HubStatCard
-            key={year.label}
-            label={String(year.seasonLabel)}
-            value={fmtSal(year.total_committed)}
-            sub={`${fmtSal(year.cap_remaining)} free`}
-          />
-        ))}
-      </HubStatGrid>
+      {statusCard && (
+        <article
+          className={`hub-cap-status-card hub-cap-status-card--${statusCard.tone}`}
+          aria-label={statusCard.label}
+        >
+          <p className="hub-cap-status-eyebrow">{statusCard.label}</p>
+          <p className="hub-cap-status-headline">{statusCard.headline}</p>
+          {statusCard.meta ? (
+            <p className="hub-cap-status-meta">{statusCard.meta}</p>
+          ) : null}
+          {statusCard.tone === "over" && onNavigate && (
+            <div className="hub-cap-status-actions">
+              <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("roster")}>
+                Review roster
+              </button>
+              <button type="button" className="btn-link" onClick={() => onNavigate("value")}>
+                Browse players
+              </button>
+            </div>
+          )}
+        </article>
+      )}
+
+      {seasonPlan.length > 0 && (
+        <HubSection
+          title="By season"
+          hint="Committed vs free under the same cap each year."
+          className="hub-cap-season-section"
+        >
+          <ul className="hub-cap-season-list" aria-label="Season-by-season cap">
+            {seasonPlan.map((year) => {
+              const free = Number(year.cap_remaining);
+              const freeOver = Number.isFinite(free) && free < 0;
+              return (
+                <li key={year.label || year.seasonLabel} className="hub-cap-season-row">
+                  <span className="hub-cap-season-year">{year.seasonLabel}</span>
+                  <span className="hub-cap-season-committed">
+                    {fmtSal(year.total_committed)}
+                    <span className="hub-cap-season-unit"> committed</span>
+                  </span>
+                  <span className={`hub-cap-season-free${freeOver ? " is-over" : ""}`}>
+                    {fmtSal(year.cap_remaining)}
+                    <span className="hub-cap-season-unit"> free</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </HubSection>
+      )}
 
       {errors.length > 0 && (
         <HubAlertStack>
@@ -237,22 +281,14 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
               : `Final-year deals leave before draft (FA). Rookies can extend once. Cuts free ${cutPct}% cap.`
           }
         >
-          <div className="hub-pre-draft-stats">
-            <div className="hub-pre-draft-stat-card">
-              <span className="hub-stat-label">Committed</span>
-              <strong>{fmtSal(preDraft.season_committed)}</strong>
-            </div>
-            <div className="hub-pre-draft-stat-card">
-              <span className="hub-stat-label">Auction budget</span>
-              <strong>{fmtSal(preDraft.draft_budget_available)}</strong>
-            </div>
-            {preDraft.dead_cap > 0 && (
-              <div className="hub-pre-draft-stat-card">
-                <span className="hub-stat-label">Dead cap</span>
-                <strong>{fmtSal(preDraft.dead_cap)}</strong>
-              </div>
-            )}
-          </div>
+          {preDraft.dead_cap > 0 && (
+            <p className="hub-cap-pre-draft-dead chart-note">
+              Dead cap this season: <strong>{fmtSal(preDraft.dead_cap)}</strong>
+              {preDraft.cap_freed_from_cuts > 0
+                ? ` · pending cuts free ${fmtSal(preDraft.cap_freed_from_cuts)}`
+                : ""}
+            </p>
+          )}
           {preDraft.pending_cuts?.length > 0 && (
             <details className="hub-pre-draft-details" open>
               <summary>{preDraft.pending_cuts.length} pending cut(s)</summary>

@@ -10,11 +10,28 @@ import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hub
 import { fmtSal } from "./rosterFormat";
 import { clearTradeSeed, readTradeSeed } from "./tradeSeed";
 import { formatStatDelta, projectTeamTradeStats } from "./tradeProjection";
+import {
+  formatIdeaCapNet,
+  ideaCapImpact,
+  whyThisHelpsText,
+} from "./tradeIdeaHelpers";
 
 const MAX_PARTIES = 4;
 
+const BUILDER_STEPS = [
+  { id: "partner", label: "Partner" },
+  { id: "players", label: "Players" },
+  { id: "review", label: "Cap impact" },
+  { id: "propose", label: "Propose" },
+];
+
 function emptyParty(teamId) {
   return { team_id: teamId || "", sends: [], drops: [] };
+}
+
+function builderStepIndex(stepId) {
+  const i = BUILDER_STEPS.findIndex((s) => s.id === stepId);
+  return i >= 0 ? i : 0;
 }
 
 function Chip({ label, tone }) {
@@ -157,7 +174,12 @@ function TradePlayerRow({
               </span>
             )}
             {row.fp_per_dollar != null && (
-              <span className="hub-trade-fpd">{row.fp_per_dollar} fp/$</span>
+              <span
+                className="hub-trade-fpd"
+                title="Projected fair-value fantasy points per dollar of salary"
+              >
+                {row.fp_per_dollar} pts /$
+              </span>
             )}
           </div>
         </div>
@@ -188,6 +210,7 @@ function TradePlayerRow({
 
 export default function LeagueTrades({ leagueId, hubContext }) {
   const [tab, setTab] = useState("builder");
+  const [builderStep, setBuilderStep] = useState("partner");
   const [insights, setInsights] = useState(null);
   const [proposals, setProposals] = useState([]);
   const [rosters, setRosters] = useState([]);
@@ -303,6 +326,7 @@ export default function LeagueTrades({ leagueId, hubContext }) {
         });
         setParties(next);
         setTab("builder");
+        setBuilderStep(otherId ? "players" : "partner");
       } else if (myTeamId) {
         setParties((prev) => {
           if (prev[0]?.team_id) return prev;
@@ -442,15 +466,6 @@ export default function LeagueTrades({ leagueId, hubContext }) {
     setValidationErrors([]);
   };
 
-  const setPartyTeam = (idx, teamId) => {
-    clearValidation();
-    setParties((prev) => {
-      const next = prev.map((p, i) => (i === idx ? { ...p, team_id: teamId, sends: [], drops: [] } : p));
-      syncDeadCapDefaults(next);
-      return next;
-    });
-  };
-
   const toggleSend = (idx, playerId, toTeamId) => {
     clearValidation();
     setParties((prev) => {
@@ -479,22 +494,6 @@ export default function LeagueTrades({ leagueId, hubContext }) {
         const sends = p.sends.filter((s) => s.player_id !== playerId);
         return { ...p, drops, sends };
       });
-      syncDeadCapDefaults(next);
-      return next;
-    });
-  };
-
-  const addParty = () => {
-    if (parties.length >= MAX_PARTIES) return;
-    clearValidation();
-    setParties((prev) => [...prev, emptyParty("")]);
-  };
-
-  const removeParty = (idx) => {
-    if (parties.length <= 2) return;
-    clearValidation();
-    setParties((prev) => {
-      const next = prev.filter((_, i) => i !== idx);
       syncDeadCapDefaults(next);
       return next;
     });
@@ -557,6 +556,7 @@ export default function LeagueTrades({ leagueId, hubContext }) {
       if (!res.ok) throw new Error(await parseApiError(res));
       setMsg("Proposal sent — waiting for acceptances.");
       setTab("inbox");
+      setBuilderStep("partner");
       await loadProposals();
     } catch (e) {
       setError(e.message || "Could not propose");
@@ -652,11 +652,58 @@ export default function LeagueTrades({ leagueId, hubContext }) {
     setDeadCapAssignments([]);
     clearValidation();
     setTab("builder");
+    setBuilderStep("players");
     setMsg("Loaded package into builder.");
   };
 
-  const otherTeamOptions = (currentId) =>
-    teams.filter((t) => t.id === currentId || !parties.some((p) => p.team_id === t.id && p.team_id !== currentId));
+  const partnerTeamIds = useMemo(
+    () => parties.slice(1).map((p) => p.team_id).filter(Boolean),
+    [parties],
+  );
+
+  const hasPartner = partnerTeamIds.length > 0;
+  const hasPackage = packageLegs.length > 0;
+  const activeParties = useMemo(
+    () => parties.map((p, idx) => ({ ...p, idx })).filter((p) => p.team_id),
+    [parties],
+  );
+
+  const togglePartner = (teamId) => {
+    if (!teamId || teamId === myTeamId) return;
+    clearValidation();
+    setParties((prev) => {
+      const mine = {
+        ...(prev[0] || emptyParty(myTeamId)),
+        team_id: myTeamId || prev[0]?.team_id || "",
+      };
+      const partners = prev.slice(1).filter((p) => p.team_id && p.team_id !== myTeamId);
+      const at = partners.findIndex((p) => p.team_id === teamId);
+      let nextPartners;
+      if (at >= 0) {
+        nextPartners = partners.filter((p) => p.team_id !== teamId);
+      } else if (partners.length + 1 >= MAX_PARTIES) {
+        return prev;
+      } else {
+        nextPartners = [...partners, emptyParty(teamId)];
+      }
+      const next = [mine, ...(nextPartners.length ? nextPartners : [emptyParty("")])];
+      syncDeadCapDefaults(next);
+      return next;
+    });
+  };
+
+  const goBuilderStep = (stepId) => {
+    clearValidation();
+    setMsg("");
+    setBuilderStep(stepId);
+  };
+
+  const canEnterStep = (stepId) => {
+    if (stepId === "partner") return true;
+    if (stepId === "players") return hasPartner;
+    if (stepId === "review" || stepId === "propose") return hasPartner && hasPackage;
+    return false;
+  };
 
   const filterRows = (rows) => {
     const q = search.trim().toLowerCase();
@@ -670,12 +717,259 @@ export default function LeagueTrades({ leagueId, hubContext }) {
 
   const bannerErrors = validationErrors;
   const bannerError = error;
+  const stepIdx = builderStepIndex(builderStep);
+  const capLimit = salaryCap ?? rules?.salary_cap;
+
+  const renderPartyPlayerColumns = () => (
+    <div className={`hub-trade-parties hub-trade-parties-${Math.min(Math.max(activeParties.length, 2), 4)}`}>
+      {activeParties.map((party) => {
+        const idx = party.idx;
+        const others = parties.filter((p, i) => i !== idx && p.team_id).map((p) => p.team_id);
+        const defaultTo = others[0] || "";
+        const rows = filterRows(rosterByTeam[party.team_id] || []);
+        const incoming = receivingFor(party.team_id);
+        const teamProjected = party.team_id ? projectedByTeam[party.team_id] : null;
+        return (
+          <div key={idx} className="hub-trade-party-col panel">
+            <div className="hub-trade-party-head">
+              <strong className="hub-trade-party-name">
+                {teamName(party.team_id)}
+                {party.team_id === myTeamId ? " (you)" : ""}
+              </strong>
+            </div>
+
+            <TeamCapStrip
+              projected={teamProjected}
+              salaryCap={capLimit}
+            />
+
+            <ul className="hub-trade-player-list">
+              {rows.length === 0 && (
+                <li className="chart-note hub-trade-empty-list">No players match filters.</li>
+              )}
+              {rows.map((r) => {
+                const sending = party.sends.some((s) => s.player_id === r.player_id);
+                const dropping = party.drops.includes(r.player_id);
+                return (
+                  <TradePlayerRow
+                    key={r.player_id}
+                    row={r}
+                    media={media}
+                    sending={sending}
+                    dropping={dropping}
+                    canSend={Boolean(defaultTo)}
+                    onSend={() => toggleSend(idx, r.player_id, defaultTo)}
+                    onDrop={() => toggleDrop(idx, r.player_id)}
+                  />
+                );
+              })}
+            </ul>
+
+            {incoming.length > 0 && (
+              <div className="hub-trade-legs hub-trade-receiving">
+                <strong>Receiving</strong>
+                {incoming.map((s) => (
+                  <div key={s.player_id} className="hub-trade-leg-row">
+                    <span className="hub-roster-pos-tag">{s.row?.position || "?"}</span>
+                    <PlayerCell
+                      name={s.row?.player_name || s.player_id}
+                      team={s.row?.team}
+                      playerId={s.player_id}
+                      media={media}
+                      size="sm"
+                      showTeam={false}
+                      narrativeScope="season"
+                    />
+                    <span className="hub-trade-salary-inline">{fmtSal(s.row?.salary)}</span>
+                    <span className="table-meta">from {teamName(s.from_team_id)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {party.sends.length > 0 && (
+              <div className="hub-trade-legs">
+                <strong>Sending</strong>
+                {party.sends.map((s) => {
+                  const row = rowByPlayer[s.player_id];
+                  return (
+                    <div key={s.player_id} className="hub-trade-leg-row">
+                      <span className="hub-roster-pos-tag">{row?.position || "?"}</span>
+                      <span>{playerLabel(party.team_id, s.player_id)}</span>
+                      <span className="hub-trade-salary-inline">{fmtSal(row?.salary)}</span>
+                      <span className="table-meta">→</span>
+                      {activeParties.length > 2 ? (
+                        <select
+                          value={s.to_team_id}
+                          onChange={(e) => {
+                            clearValidation();
+                            const to = e.target.value;
+                            setParties((prev) => prev.map((p, i) => {
+                              if (i !== idx) return p;
+                              return {
+                                ...p,
+                                sends: p.sends.map((x) =>
+                                  x.player_id === s.player_id ? { ...x, to_team_id: to } : x,
+                                ),
+                              };
+                            }));
+                          }}
+                        >
+                          {others.map((oid) => (
+                            <option key={oid} value={oid}>{teamName(oid)}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="table-meta">{teamName(s.to_team_id)}</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {party.drops.length > 0 && (
+              <div className="hub-trade-legs">
+                <strong>Drops · dead cap assignee</strong>
+                {party.drops.map((pid) => {
+                  const a = deadCapAssignments.find(
+                    (x) => x.player_id === pid && x.from_team_id === party.team_id,
+                  ) || { assigned_to_team_id: party.team_id };
+                  const row = rowByPlayer[pid];
+                  return (
+                    <div key={pid} className="hub-trade-leg-row hub-trade-drop-row">
+                      <span className="hub-roster-pos-tag">{row?.position || "?"}</span>
+                      <span>{playerLabel(party.team_id, pid)}</span>
+                      <label className="table-meta hub-trade-dead-label">
+                        Dead →
+                        <select
+                          value={a.assigned_to_team_id}
+                          onChange={(e) => {
+                            clearValidation();
+                            const assigned = e.target.value;
+                            setDeadCapAssignments((prev) => {
+                              const rest = prev.filter(
+                                (x) => !(x.player_id === pid && x.from_team_id === party.team_id),
+                              );
+                              return [
+                                ...rest,
+                                {
+                                  player_id: pid,
+                                  from_team_id: party.team_id,
+                                  assigned_to_team_id: assigned,
+                                },
+                              ];
+                            });
+                          }}
+                        >
+                          {activeParties.map((p) => (
+                            <option key={p.team_id} value={p.team_id}>
+                              {teamName(p.team_id)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      {a.amount != null && (
+                        <span className="hub-trade-stat-warn">{fmtSal(a.amount)}</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const renderPackageSummary = () => (
+    packageLegs.length > 0 && (
+      <div className="hub-trade-package" aria-label="Package summary">
+        <div className="hub-trade-package-title">Package</div>
+        <ul className="hub-trade-package-list">
+          {packageLegs.map((leg) => (
+            <li key={`${leg.drop ? "drop" : "send"}-${leg.from}-${leg.player_id}`}>
+              <span className="hub-roster-pos-tag">{leg.position || "?"}</span>
+              <strong>{leg.name}</strong>
+              <span className="hub-trade-salary-inline">{fmtSal(leg.salary)}</span>
+              {leg.drop ? (
+                <span className="hub-trade-leg-flow">drop from {teamName(leg.from)}</span>
+              ) : (
+                <span className="hub-trade-leg-flow">
+                  {teamName(leg.from)} → {teamName(leg.to)}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  );
+
+  const renderCapReview = () => (
+    <div className="hub-trade-cap-review" aria-label="Cap impact review">
+      {activeParties.map((party) => (
+        <div key={party.team_id} className="hub-trade-cap-review-card panel">
+          <div className="hub-trade-cap-review-head">
+            <strong>
+              {teamName(party.team_id)}
+              {party.team_id === myTeamId ? " (you)" : ""}
+            </strong>
+          </div>
+          <TeamCapStrip
+            projected={projectedByTeam[party.team_id]}
+            salaryCap={capLimit}
+          />
+          {(party.sends.length > 0 || party.drops.length > 0 || receivingFor(party.team_id).length > 0) && (
+            <div className="hub-trade-cap-review-legs">
+              {receivingFor(party.team_id).map((s) => (
+                <div key={`in-${s.player_id}`} className="hub-trade-leg-row">
+                  <span className="table-meta">In</span>
+                  <span className="hub-roster-pos-tag">{s.row?.position || "?"}</span>
+                  <span>{s.row?.player_name || s.player_id}</span>
+                  <span className="hub-trade-salary-inline">{fmtSal(s.row?.salary)}</span>
+                </div>
+              ))}
+              {party.sends.map((s) => {
+                const row = rowByPlayer[s.player_id];
+                return (
+                  <div key={`out-${s.player_id}`} className="hub-trade-leg-row">
+                    <span className="table-meta">Out</span>
+                    <span className="hub-roster-pos-tag">{row?.position || "?"}</span>
+                    <span>{playerLabel(party.team_id, s.player_id)}</span>
+                    <span className="hub-trade-salary-inline">{fmtSal(row?.salary)}</span>
+                  </div>
+                );
+              })}
+              {party.drops.map((pid) => {
+                const row = rowByPlayer[pid];
+                const a = deadCapAssignments.find(
+                  (x) => x.player_id === pid && x.from_team_id === party.team_id,
+                );
+                return (
+                  <div key={`drop-${pid}`} className="hub-trade-leg-row">
+                    <span className="table-meta">Drop</span>
+                    <span className="hub-roster-pos-tag">{row?.position || "?"}</span>
+                    <span>{playerLabel(party.team_id, pid)}</span>
+                    {a?.assigned_to_team_id && (
+                      <span className="table-meta">dead → {teamName(a.assigned_to_team_id)}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <HubPage>
       <HubTabIntro
         title="Trades"
-        purpose="Build multi-team packages, assign dead cap on drops, and collect accepts."
+        purpose="Build a trade—we'll calculate cap impact and track approvals."
       />
 
       <div className="hub-filter-bar hub-trade-tabs">
@@ -707,252 +1001,220 @@ export default function LeagueTrades({ leagueId, hubContext }) {
 
       {tab === "builder" && !loading && (
         <div className="hub-trade-builder">
-          {packageLegs.length > 0 && (
-            <div className="hub-trade-package" aria-label="Package summary">
-              <div className="hub-trade-package-title">Package</div>
-              <ul className="hub-trade-package-list">
-                {packageLegs.map((leg) => (
-                  <li key={`${leg.drop ? "drop" : "send"}-${leg.from}-${leg.player_id}`}>
-                    <span className="hub-roster-pos-tag">{leg.position || "?"}</span>
-                    <strong>{leg.name}</strong>
-                    <span className="hub-trade-salary-inline">{fmtSal(leg.salary)}</span>
-                    {leg.drop ? (
-                      <span className="hub-trade-leg-flow">drop from {teamName(leg.from)}</span>
-                    ) : (
-                      <span className="hub-trade-leg-flow">
-                        {teamName(leg.from)} → {teamName(leg.to)}
-                      </span>
-                    )}
-                  </li>
-                ))}
+          <nav className="hub-trade-flow-steps" aria-label="Trade builder steps">
+            {BUILDER_STEPS.map((s, i) => {
+              const reachable = canEnterStep(s.id);
+              const isActive = builderStep === s.id;
+              const isDone = i < stepIdx;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={[
+                    "hub-trade-flow-step",
+                    isActive ? "is-active" : "",
+                    isDone ? "is-done" : "",
+                  ].filter(Boolean).join(" ")}
+                  disabled={!reachable && !isActive}
+                  onClick={() => reachable && goBuilderStep(s.id)}
+                  aria-current={isActive ? "step" : undefined}
+                >
+                  <span className="hub-trade-flow-step-num">{i + 1}</span>
+                  <span className="hub-trade-flow-step-label">{s.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {builderStep === "partner" && (
+            <div className="hub-trade-step hub-trade-step-partner">
+              <div className="hub-trade-step-copy">
+                <h3 className="hub-trade-step-title">Pick a trade partner</h3>
+                <p className="chart-note">
+                  Choose who you want to trade with. Player selection comes next.
+                </p>
+              </div>
+              {myTeamId && (
+                <p className="hub-trade-you-line">
+                  You: <strong>{teamName(myTeamId)}</strong>
+                </p>
+              )}
+              <ul className="hub-trade-partner-grid">
+                {teams.filter((t) => t.id && t.id !== myTeamId).map((t) => {
+                  const selected = partnerTeamIds.includes(t.id);
+                  return (
+                    <li key={t.id}>
+                      <button
+                        type="button"
+                        className={`hub-trade-partner-card${selected ? " is-selected" : ""}`}
+                        onClick={() => togglePartner(t.id)}
+                        aria-pressed={selected}
+                      >
+                        <strong>{t.name}</strong>
+                        <span className="table-meta">
+                          {selected ? "Selected" : "Tap to select"}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
+              {teams.filter((t) => t.id && t.id !== myTeamId).length === 0 && (
+                <p className="chart-note">No other teams in this league yet.</p>
+              )}
+              {partnerTeamIds.length > 1 && (
+                <p className="chart-note">
+                  Multi-team trade · {partnerTeamIds.length} partners
+                </p>
+              )}
+              <div className="hub-toolbar hub-trade-builder-actions">
+                <button
+                  type="button"
+                  className="btn-primary btn-sm"
+                  disabled={!hasPartner}
+                  onClick={() => goBuilderStep("players")}
+                >
+                  Continue to players
+                </button>
+              </div>
             </div>
           )}
 
-          <div className="hub-trade-filters hub-filter-bar">
-            <input
-              type="search"
-              className="search-input hub-filter-search"
-              placeholder="Search players…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              aria-label="Filter roster players"
-            />
-            <HubFilterScroll className="hub-trade-pos-filters">
-              {HUB_POSITION_FILTERS.map((p) => (
-                <HubFilterChip
-                  key={p}
-                  active={posFilter === p}
-                  onClick={() => setPosFilter(p)}
-                >
-                  {p === "ALL" ? "All" : p}
-                </HubFilterChip>
-              ))}
-            </HubFilterScroll>
-          </div>
-
-          <div className={`hub-trade-parties hub-trade-parties-${Math.min(parties.length, 4)}`}>
-            {parties.map((party, idx) => {
-              const others = parties.filter((p, i) => i !== idx && p.team_id).map((p) => p.team_id);
-              const defaultTo = others[0] || "";
-              const rows = filterRows(rosterByTeam[party.team_id] || []);
-              const incoming = receivingFor(party.team_id);
-              const teamProjected = party.team_id ? projectedByTeam[party.team_id] : null;
-              return (
-                <div key={idx} className="hub-trade-party-col panel">
-                  <div className="hub-trade-party-head">
-                    <select
-                      value={party.team_id}
-                      onChange={(e) => setPartyTeam(idx, e.target.value)}
-                      aria-label={`Party ${idx + 1} team`}
+          {builderStep === "players" && (
+            <div className="hub-trade-step hub-trade-step-players">
+              <div className="hub-trade-step-copy">
+                <h3 className="hub-trade-step-title">Choose players</h3>
+                <p className="chart-note">
+                  Mark who each side sends or drops. Cap impact is reviewed next.
+                </p>
+              </div>
+              {renderPackageSummary()}
+              <div className="hub-trade-filters hub-filter-bar">
+                <input
+                  type="search"
+                  className="search-input hub-filter-search"
+                  placeholder="Search players…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  aria-label="Filter roster players"
+                />
+                <HubFilterScroll className="hub-trade-pos-filters">
+                  {HUB_POSITION_FILTERS.map((p) => (
+                    <HubFilterChip
+                      key={p}
+                      active={posFilter === p}
+                      onClick={() => setPosFilter(p)}
                     >
-                      <option value="">Select team…</option>
-                      {otherTeamOptions(party.team_id).map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name}{t.id === myTeamId ? " (you)" : ""}
-                        </option>
-                      ))}
-                    </select>
-                    {parties.length > 2 && (
-                      <button type="button" className="btn-ghost btn-sm" onClick={() => removeParty(idx)}>
-                        Remove
-                      </button>
-                    )}
-                  </div>
+                      {p === "ALL" ? "All" : p}
+                    </HubFilterChip>
+                  ))}
+                </HubFilterScroll>
+              </div>
+              {renderPartyPlayerColumns()}
+              <div className="hub-toolbar hub-trade-builder-actions">
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => goBuilderStep("partner")}
+                >
+                  Back
+                </button>
+                {activeParties.length < MAX_PARTIES && (
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm"
+                    onClick={() => goBuilderStep("partner")}
+                  >
+                    Add / change partners
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn-primary btn-sm"
+                  disabled={!hasPackage}
+                  onClick={() => goBuilderStep("review")}
+                >
+                  Review cap impact
+                </button>
+              </div>
+            </div>
+          )}
 
-                  {party.team_id && (
-                    <TeamCapStrip
-                      projected={teamProjected}
-                      salaryCap={salaryCap ?? rules?.salary_cap}
-                    />
-                  )}
+          {builderStep === "review" && (
+            <div className="hub-trade-step hub-trade-step-review">
+              <div className="hub-trade-step-copy">
+                <h3 className="hub-trade-step-title">Review cap impact</h3>
+                <p className="chart-note">
+                  Confirm projected committed salary, free cap, and roster counts before proposing.
+                </p>
+              </div>
+              {renderPackageSummary()}
+              {renderCapReview()}
+              <div className="hub-toolbar hub-trade-builder-actions">
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => goBuilderStep("players")}
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  disabled={Boolean(busy)}
+                  onClick={validate}
+                >
+                  {busy === "validate" ? "Checking…" : "Check constraints"}
+                </button>
+                <button
+                  type="button"
+                  className="btn-primary btn-sm"
+                  disabled={!hasPackage}
+                  onClick={() => goBuilderStep("propose")}
+                >
+                  Continue to propose
+                </button>
+              </div>
+            </div>
+          )}
 
-                  {!party.team_id ? (
-                    <p className="chart-note">Pick a team to load roster.</p>
-                  ) : (
-                    <ul className="hub-trade-player-list">
-                      {rows.length === 0 && (
-                        <li className="chart-note hub-trade-empty-list">No players match filters.</li>
-                      )}
-                      {rows.map((r) => {
-                        const sending = party.sends.some((s) => s.player_id === r.player_id);
-                        const dropping = party.drops.includes(r.player_id);
-                        return (
-                          <TradePlayerRow
-                            key={r.player_id}
-                            row={r}
-                            media={media}
-                            sending={sending}
-                            dropping={dropping}
-                            canSend={Boolean(defaultTo)}
-                            onSend={() => toggleSend(idx, r.player_id, defaultTo)}
-                            onDrop={() => toggleDrop(idx, r.player_id)}
-                          />
-                        );
-                      })}
-                    </ul>
-                  )}
-
-                  {incoming.length > 0 && (
-                    <div className="hub-trade-legs hub-trade-receiving">
-                      <strong>Receiving</strong>
-                      {incoming.map((s) => (
-                        <div key={s.player_id} className="hub-trade-leg-row">
-                          <span className="hub-roster-pos-tag">{s.row?.position || "?"}</span>
-                          <PlayerCell
-                            name={s.row?.player_name || s.player_id}
-                            team={s.row?.team}
-                            playerId={s.player_id}
-                            media={media}
-                            size="sm"
-                            showTeam={false}
-                            narrativeScope="season"
-                          />
-                          <span className="hub-trade-salary-inline">{fmtSal(s.row?.salary)}</span>
-                          <span className="table-meta">from {teamName(s.from_team_id)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {party.sends.length > 0 && (
-                    <div className="hub-trade-legs">
-                      <strong>Sending</strong>
-                      {party.sends.map((s) => {
-                        const row = rowByPlayer[s.player_id];
-                        return (
-                          <div key={s.player_id} className="hub-trade-leg-row">
-                            <span className="hub-roster-pos-tag">{row?.position || "?"}</span>
-                            <span>{playerLabel(party.team_id, s.player_id)}</span>
-                            <span className="hub-trade-salary-inline">{fmtSal(row?.salary)}</span>
-                            <span className="table-meta">→</span>
-                            {parties.length > 2 ? (
-                              <select
-                                value={s.to_team_id}
-                                onChange={(e) => {
-                                  clearValidation();
-                                  const to = e.target.value;
-                                  setParties((prev) => prev.map((p, i) => {
-                                    if (i !== idx) return p;
-                                    return {
-                                      ...p,
-                                      sends: p.sends.map((x) =>
-                                        x.player_id === s.player_id ? { ...x, to_team_id: to } : x,
-                                      ),
-                                    };
-                                  }));
-                                }}
-                              >
-                                {others.map((oid) => (
-                                  <option key={oid} value={oid}>{teamName(oid)}</option>
-                                ))}
-                              </select>
-                            ) : (
-                              <span className="table-meta">{teamName(s.to_team_id)}</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {party.drops.length > 0 && (
-                    <div className="hub-trade-legs">
-                      <strong>Drops · dead cap assignee</strong>
-                      {party.drops.map((pid) => {
-                        const a = deadCapAssignments.find(
-                          (x) => x.player_id === pid && x.from_team_id === party.team_id,
-                        ) || { assigned_to_team_id: party.team_id };
-                        const row = rowByPlayer[pid];
-                        return (
-                          <div key={pid} className="hub-trade-leg-row hub-trade-drop-row">
-                            <span className="hub-roster-pos-tag">{row?.position || "?"}</span>
-                            <span>{playerLabel(party.team_id, pid)}</span>
-                            <label className="table-meta hub-trade-dead-label">
-                              Dead →
-                              <select
-                                value={a.assigned_to_team_id}
-                                onChange={(e) => {
-                                  clearValidation();
-                                  const assigned = e.target.value;
-                                  setDeadCapAssignments((prev) => {
-                                    const rest = prev.filter(
-                                      (x) => !(x.player_id === pid && x.from_team_id === party.team_id),
-                                    );
-                                    return [
-                                      ...rest,
-                                      {
-                                        player_id: pid,
-                                        from_team_id: party.team_id,
-                                        assigned_to_team_id: assigned,
-                                      },
-                                    ];
-                                  });
-                                }}
-                              >
-                                {parties.filter((p) => p.team_id).map((p) => (
-                                  <option key={p.team_id} value={p.team_id}>
-                                    {teamName(p.team_id)}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                            {a.amount != null && (
-                              <span className="hub-trade-stat-warn">{fmtSal(a.amount)}</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="hub-toolbar hub-trade-builder-actions">
-            {parties.length < MAX_PARTIES && (
-              <button type="button" className="btn-ghost btn-sm" onClick={addParty}>
-                Add team
-              </button>
-            )}
-            <button
-              type="button"
-              className="btn-ghost btn-sm"
-              disabled={Boolean(busy)}
-              onClick={validate}
-            >
-              {busy === "validate" ? "Checking…" : "Check constraints"}
-            </button>
-            <button
-              type="button"
-              className="btn-primary btn-sm"
-              disabled={Boolean(busy)}
-              onClick={propose}
-            >
-              {busy === "propose" ? "Sending…" : "Propose trade"}
-            </button>
-          </div>
+          {builderStep === "propose" && (
+            <div className="hub-trade-step hub-trade-step-propose">
+              <div className="hub-trade-step-copy">
+                <h3 className="hub-trade-step-title">Propose trade</h3>
+                <p className="chart-note">
+                  Send the package for partner approval. Every team in the trade must accept.
+                </p>
+              </div>
+              {renderPackageSummary()}
+              {renderCapReview()}
+              <div className="hub-toolbar hub-trade-builder-actions">
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => goBuilderStep("review")}
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  disabled={Boolean(busy)}
+                  onClick={validate}
+                >
+                  {busy === "validate" ? "Checking…" : "Check constraints"}
+                </button>
+                <button
+                  type="button"
+                  className="btn-primary btn-sm"
+                  disabled={Boolean(busy) || !hasPackage}
+                  onClick={propose}
+                >
+                  {busy === "propose" ? "Sending…" : "Propose trade"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1059,65 +1321,123 @@ export default function LeagueTrades({ leagueId, hubContext }) {
 
       {tab === "ideas" && (
         <div className="hub-trade-ideas">
-          {(trade.balance?.surplus || []).length > 0 && (
-            <div className="hub-insights-chips">
-              <span className="table-meta">Tradeable depth</span>
-              {(trade.balance.surplus || []).map((s) => (
-                <Chip key={s} label={`${s} extra`} tone="good" />
-              ))}
+          <p className="chart-note hub-trade-ideas-blurb">
+            Suggestions use your surplus and roster needs — packages send depth you can spare and target
+            positions where you are thin.
+          </p>
+          {((trade.balance?.surplus || []).length > 0 || (trade.balance?.need || []).length > 0) && (
+            <div className="hub-insights-chips hub-trade-ideas-balance">
+              {(trade.balance?.surplus || []).length > 0 && (
+                <div className="hub-insights-balance-group">
+                  <span className="table-meta">Your surplus</span>
+                  <div className="hub-insights-balance-chips">
+                    {(trade.balance.surplus || []).map((s) => (
+                      <Chip key={`surplus-${s}`} label={`${s} extra`} tone="surplus" />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(trade.balance?.need || []).length > 0 && (
+                <div className="hub-insights-balance-group">
+                  <span className="table-meta">Your needs</span>
+                  <div className="hub-insights-balance-chips">
+                    {(trade.balance.need || []).map((n) => (
+                      <Chip key={`need-${n}`} label={`${n} need`} tone="need" />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {(trade.suggestions || []).length > 0 ? (
-            (trade.suggestions || []).map((s, idx) => (
-              <div key={`${s.partner_team_id}-${idx}`} className="hub-insights-suggestion">
-                <p className="hub-insights-suggestion-rationale">{s.rationale}</p>
-                <div className="hub-trade-idea-sides">
-                  <div>
-                    <span className="table-meta">You send</span>
-                    <ul className="hub-trade-proposal-legs">
-                      {(s.send || []).map((x) => (
-                        <li key={x.player_id}>
-                          <span className="hub-roster-pos-tag">{x.position || rowByPlayer[x.player_id]?.position || "?"}</span>
-                          <PlayerCell
-                            name={x.player_name}
-                            playerId={x.player_id}
-                            media={media}
-                            size="sm"
-                            showTeam={false}
-                            narrativeScope="season"
-                          />
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <span className="table-meta">You get · {s.partner_team_name || teamName(s.partner_team_id)}</span>
-                    <ul className="hub-trade-proposal-legs">
-                      {(s.receive || []).map((x) => (
-                        <li key={x.player_id}>
-                          <span className="hub-roster-pos-tag">{x.position || rowByPlayer[x.player_id]?.position || "?"}</span>
-                          <PlayerCell
-                            name={x.player_name}
-                            playerId={x.player_id}
-                            media={media}
-                            size="sm"
-                            showTeam={false}
-                            narrativeScope="season"
-                          />
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="btn-primary btn-sm"
-                  onClick={() => loadSuggestion(s)}
+            (trade.suggestions || []).map((s, idx) => {
+              const cap = ideaCapImpact(s, rowByPlayer);
+              const netFmt = formatIdeaCapNet(cap.net);
+              const fills = (s.fills_needs || []).filter(Boolean);
+              const moves = (s.moves_surplus || []).filter(Boolean);
+              return (
+                <div
+                  key={`${s.partner_team_id}-${idx}`}
+                  className="hub-insights-suggestion hub-trade-idea-card"
                 >
-                  Load into builder
-                </button>
-              </div>
-            ))
+                  <div className="hub-trade-idea-why" aria-label="Why this helps">
+                    <span className="table-meta">Why this helps</span>
+                    <p className="hub-trade-idea-why-text">{whyThisHelpsText(s)}</p>
+                    {(fills.length > 0 || moves.length > 0) && (
+                      <div className="hub-trade-idea-why-chips">
+                        {fills.map((pos) => (
+                          <Chip key={`fill-${pos}`} label={`Need ${pos}`} tone="need" />
+                        ))}
+                        {moves.map((pos) => (
+                          <Chip key={`move-${pos}`} label={`Surplus ${pos}`} tone="surplus" />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="hub-trade-idea-sides">
+                    <div>
+                      <span className="table-meta">You send</span>
+                      <ul className="hub-trade-proposal-legs">
+                        {(s.send || []).map((x) => (
+                          <li key={x.player_id}>
+                            <span className="hub-roster-pos-tag">{x.position || rowByPlayer[x.player_id]?.position || "?"}</span>
+                            <PlayerCell
+                              name={x.player_name}
+                              playerId={x.player_id}
+                              media={media}
+                              size="sm"
+                              showTeam={false}
+                              narrativeScope="season"
+                            />
+                            <span className="hub-trade-salary-inline">
+                              {fmtSal(x.salary ?? rowByPlayer[x.player_id]?.salary)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <span className="table-meta">You get · {s.partner_team_name || teamName(s.partner_team_id)}</span>
+                      <ul className="hub-trade-proposal-legs">
+                        {(s.receive || []).map((x) => (
+                          <li key={x.player_id}>
+                            <span className="hub-roster-pos-tag">{x.position || rowByPlayer[x.player_id]?.position || "?"}</span>
+                            <PlayerCell
+                              name={x.player_name}
+                              playerId={x.player_id}
+                              media={media}
+                              size="sm"
+                              showTeam={false}
+                              narrativeScope="season"
+                            />
+                            <span className="hub-trade-salary-inline">
+                              {fmtSal(x.salary ?? rowByPlayer[x.player_id]?.salary)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="hub-trade-idea-cap" aria-label="Cap impact">
+                    <span className="table-meta">Cap impact</span>
+                    <p className="hub-trade-idea-cap-line">
+                      Send {fmtSal(cap.sendSal)}
+                      <span className="hub-trade-idea-cap-sep">·</span>
+                      Receive {fmtSal(cap.recvSal)}
+                      <span className="hub-trade-idea-cap-sep">·</span>
+                      <span className={netFmt.tone || undefined}>{netFmt.text}</span>
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-primary btn-sm"
+                    onClick={() => loadSuggestion(s)}
+                  >
+                    Load into builder
+                  </button>
+                </div>
+              );
+            })
           ) : (
             <div className="hub-insights-empty-state">
               <h3>No packages yet</h3>

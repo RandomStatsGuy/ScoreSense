@@ -6,13 +6,20 @@ export const HUB_SUBVIEWS = [
   { id: "home", label: "Home", shortLabel: "Home", hint: "Action center", group: "home" },
   { id: "value", label: "Players", shortLabel: "Players", hint: "Prices", group: "prep" },
   { id: "room", label: "Draft", shortLabel: "Draft", hint: "Live auction", group: "prep" },
-  { id: "week", label: "Your Week", shortLabel: "Week", hint: "Lineup decisions", group: "season" },
+  { id: "week", label: "This Week", shortLabel: "Week", hint: "Lineup decisions", group: "season" },
   { id: "roster", label: "My team", shortLabel: "My team", hint: "Your contracts", group: "season" },
   { id: "rosters", label: "Rosters", shortLabel: "Rosters", leagueOnly: true, hint: "All teams", group: "season" },
   { id: "planner", label: "Cap", shortLabel: "Cap", hint: "Cap & cuts", group: "season" },
   { id: "trades", label: "Trades", shortLabel: "Trades", leagueOnly: true, hint: "Propose & accept", group: "season" },
   { id: "insights", label: "Insights", shortLabel: "Insights", leagueOnly: true, hint: "Spend & scoring", group: "office" },
-  { id: "office", label: "Office", shortLabel: "Office", leagueOnly: true, hint: "Chat & contracts", group: "office" },
+  {
+    id: "office",
+    label: "Commissioner",
+    shortLabel: "Commish",
+    leagueOnly: true,
+    hint: "Admin: chat, contracts, sheets",
+    group: "office",
+  },
 ];
 
 const GROUP_LABELS = { home: "Home", prep: "Prep", season: "Season", office: "League" };

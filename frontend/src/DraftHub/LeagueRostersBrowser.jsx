@@ -161,7 +161,9 @@ export default function LeagueRostersBrowser({
               <span><strong>{fmtSal(stats.dead_cap)}</strong> dead</span>
               <span><strong>{fmtSal(stats.unspent)}</strong> free</span>
               {stats.fp_per_dollar != null && (
-                <span><strong>{stats.fp_per_dollar}</strong> fp/$</span>
+                <span title="Projected fair-value fantasy points per dollar of salary">
+                  <strong>{stats.fp_per_dollar}</strong> pts /$
+                </span>
               )}
               {Object.entries(stats.by_position_spend || {}).map(([pos, amt]) => (
                 <span key={pos} className="hub-insights-chip">
@@ -226,7 +228,11 @@ export default function LeagueRostersBrowser({
                         <div className="mobile-stat-grid hub-roster-mobile-grid">
                           <MobileStat label="Type" value={r.contract_type || "—"} />
                           <MobileStat label="Yrs left" value={yrs} />
-                          <MobileStat label="fp/$" value={r.fp_per_dollar ?? "—"} />
+                          <MobileStat
+                            label="Pts /$"
+                            value={r.fp_per_dollar ?? "—"}
+                            title="Projected fair-value fantasy points per dollar of salary"
+                          />
                           <MobileStat
                             label="Contract"
                             value={gradeText || "—"}
@@ -251,7 +257,12 @@ export default function LeagueRostersBrowser({
                       <th className="num">Yrs</th>
                       <th>Type</th>
                       <th>Contract</th>
-                      <th className="num">fp/$</th>
+                      <th
+                        className="num"
+                        title="Projected fair-value fantasy points per dollar of salary"
+                      >
+                        Pts /$
+                      </th>
                       <th />
                     </tr>
                   </thead>

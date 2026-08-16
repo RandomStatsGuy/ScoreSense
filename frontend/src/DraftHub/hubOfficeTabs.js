@@ -1,13 +1,14 @@
-/** Office sub-tab config — Chat for all members; staff panes for commissioners. */
+/** Commissioner workspace sub-tab config — Chat for all members; admin panes for commissioners. */
 
 export const OFFICE_TABS = [
-  { id: "chat", label: "Chat", roles: ["owner", "commissioner"] },
-  { id: "current", label: "Current", roles: ["commissioner"] },
-  { id: "historic", label: "Historic", roles: ["commissioner"] },
-  { id: "members", label: "Members", roles: ["commissioner"] },
+  { id: "chat", label: "Chat", group: "chat", roles: ["owner", "commissioner"] },
+  { id: "current", label: "Contracts", group: "contracts", roles: ["commissioner"] },
+  { id: "historic", label: "Sheets", group: "contracts", roles: ["commissioner"] },
+  { id: "members", label: "Members", group: "membership", roles: ["commissioner"] },
+  { id: "access", label: "Access", group: "access", roles: ["commissioner"] },
 ];
 
-/** Legacy Insights desk URLs → Office panes. */
+/** Legacy Insights desk URLs → Commissioner panes. */
 export const OFFICE_LEGACY_INSIGHT_REDIRECT = {
   desk: "current",
   salaries: "historic",

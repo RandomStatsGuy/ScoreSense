@@ -3,11 +3,14 @@ import Chip, { injuryChipTone } from "./Chip";
 import { apiFetch } from "./auth";
 import { isAbortError } from "./fetchAbort";
 import { connectionErrorMessage, formatRelativeTime, parseApiError } from "./format";
+import ProjectionTrustLabel from "./ProjectionTrustLabel";
 import {
+  canLabelIncludedInProjection,
   formatOppPoints,
   formatProjPts,
   mediaSignalLabel,
   mediaSignalTone,
+  shouldShowProjectionAssumesActive,
 } from "./playerContextDisplay";
 
 function ContextStat({ label, value, emphasis = false, hint }) {
@@ -22,6 +25,7 @@ function ContextStat({ label, value, emphasis = false, hint }) {
 
 /**
  * Detail panel for SCORE-23 cached player-context read model.
+ * SCORE-24: explicit Included / Commentary / Assumes-active trust labels.
  * GET /api/player/{id}/context — artifact only (zero live work on page view).
  */
 export default function PlayerContextPanel({
@@ -109,6 +113,8 @@ export default function PlayerContextPanel({
   const mediaUpdated = formatRelativeTime(media?.updated_at);
   const availUpdated = formatRelativeTime(avail?.updated_at);
   const builtAt = formatRelativeTime(meta?.artifact_built_at || meta?.context_built_at);
+  const showIncluded = data ? canLabelIncludedInProjection(data) : false;
+  const showAssumesActive = data ? shouldShowProjectionAssumesActive(data) : false;
 
   return (
     <section
@@ -176,16 +182,21 @@ export default function PlayerContextPanel({
           <div className="player-context-block">
             <h4 className="player-context-block-title">Availability</h4>
             {avail?.status || avail?.practice ? (
-              <div className="player-context-avail-row">
-                {avail.status ? (
-                  <Chip tone={injuryChipTone(avail.status)}>{avail.status}</Chip>
-                ) : (
-                  <span className="muted">No designation</span>
-                )}
-                {avail.practice ? (
-                  <span className="player-context-practice muted">
-                    Practice: {avail.practice}
-                  </span>
+              <div className="player-context-avail-stack">
+                <div className="player-context-avail-row">
+                  {avail.status ? (
+                    <Chip tone={injuryChipTone(avail.status)}>{avail.status}</Chip>
+                  ) : (
+                    <span className="muted">No designation</span>
+                  )}
+                  {avail.practice ? (
+                    <span className="player-context-practice muted">
+                      Practice: {avail.practice}
+                    </span>
+                  ) : null}
+                </div>
+                {showAssumesActive ? (
+                  <ProjectionTrustLabel kind="assumes_active" />
                 ) : null}
               </div>
             ) : (
@@ -199,14 +210,18 @@ export default function PlayerContextPanel({
           <div className="player-context-block">
             <h4 className="player-context-block-title">Opportunity</h4>
             {opp?.included ? (
-              <>
+              <div className="player-context-opp-stack">
                 <div className="player-context-stats">
                   <ContextStat
                     label="Adj"
                     value={oppPts || "—"}
                     emphasis
+                    hint={oppPts ? "opportunity adjustment" : null}
                   />
                 </div>
+                {showIncluded ? (
+                  <ProjectionTrustLabel kind="included" />
+                ) : null}
                 {Array.isArray(opp.drivers) && opp.drivers.length ? (
                   <p className="player-context-drivers">
                     Drivers:{" "}
@@ -216,10 +231,8 @@ export default function PlayerContextPanel({
                       </Chip>
                     ))}
                   </p>
-                ) : (
-                  <p className="chart-note">Included in final projection.</p>
-                )}
-              </>
+                ) : null}
+              </div>
             ) : (
               <p className="state-empty-text player-context-empty">
                 No opportunity adjustment this week.
@@ -230,9 +243,7 @@ export default function PlayerContextPanel({
           <div className="player-context-block player-context-block--media">
             <div className="player-context-media-head">
               <h4 className="player-context-block-title">Media context</h4>
-              <Chip tone="neutral" className="player-context-overlay-chip">
-                Overlay · does not affect projection
-              </Chip>
+              <ProjectionTrustLabel kind="commentary" />
             </div>
             {media?.state === "current" ? (
               <div className="player-context-media-body">
