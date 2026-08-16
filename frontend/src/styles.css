@@ -12538,13 +12538,49 @@ td.col-rank.col-rank-top {
   }
 }
 
-/* —— Weekly Command Center (SCORE-6) —— */
+/* —— Weekly Command Center (SCORE-6 / SCORE-13) —— */
 .hub-wcc-toolbar {
   margin-bottom: 0.35rem;
 }
 
 .hub-wcc-sync-msg {
   margin: 0 0 0.75rem;
+}
+
+.hub-wcc-coverage-block {
+  margin: 0.15rem 0 0;
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-md);
+  border: 1px dashed rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.hub-wcc-coverage-title {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.hub-wcc-coverage-body {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.hub-wcc-coverage-hint {
+  margin: 0.55rem 0 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--text-muted, var(--text-secondary));
+}
+
+.hub-wcc-coverage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  margin-top: 0.85rem;
 }
 
 .hub-wcc-decision-list {

@@ -23,6 +23,10 @@ import {
   HubTableCard,
   HubToolbar,
 } from "./HubUILayout";
+import {
+  isPoorProjectionCoverage,
+  projectionCoverageRatio,
+} from "./projectionCoverage";
 
 function fmtPts(value) {
   return fmtNum(value, 1);
@@ -56,7 +60,7 @@ function ProjectionChangeItem({ item }) {
         ) : null}
       </div>
       {p50Label ? (
-        <span className="hub-wcc-move-p50" title="P50 vs prior refresh">
+        <span className="hub-wcc-move-p50" title="Projected points vs prior refresh">
           {p50Label}
         </span>
       ) : (
@@ -115,7 +119,7 @@ function DecisionCard({ decision }) {
         </p>
       </div>
       {delta != null && (
-        <span className="hub-wcc-decision-delta" title="Projected P50 advantage">
+        <span className="hub-wcc-decision-delta" title="Projected point advantage">
           +{fmtPts(delta)}
         </span>
       )}
@@ -291,28 +295,33 @@ export default function WeeklyCommandCenter({
     ? formatRelativeTime(sync.sleeper_synced_at)
     : (sync.linked ? "Synced — time unknown" : "Not linked");
 
-  const weekLabel = meta.week != null ? `Week ${meta.week}` : "Your Week";
+  const weekLabel = meta.week != null ? `Week ${meta.week}` : "This Week";
   const teamLabel = data?.hub_context?.team_name || hubContext?.team_name;
   const leagueLabel = data?.hub_context?.league_name || hubContext?.league_name;
   const isSolo = hubContext?.mode !== "league";
   const showSoloSync = isSolo && Boolean(sync.sync_endpoint);
+  const canSyncRoster = Boolean(sync.sync_endpoint) && Boolean(sync.linked);
+  const poorCoverage = Boolean(data) && isPoorProjectionCoverage({ counts, status });
+  const rosterCount = Number(counts.roster) || 0;
+  const missingCount = Number(counts.missing_projections) || 0;
+  const coveredCount = Math.max(0, rosterCount - missingCount);
+  const coveragePct = Math.round(projectionCoverageRatio(counts) * 100);
 
   return (
     <HubPage className="hub-wcc">
       <HubTabIntro
-        title="Your Week"
-        purpose="Lineup decisions for your Hub roster from current weekly projections — no silent Sleeper polling."
+        title="This Week"
+        purpose="Lineup help for this week based on your latest synced roster and current projections."
         audience={teamLabel || leagueLabel || "You"}
         learnMore={(
           <>
             <p>
-              Starters are inferred from league starter counts using a salary-desc heuristic
-              (Hub does not store weekly lineup slots). Swap suggestions use deterministic
-              P50 thresholds against that inferred lineup.
+              Recommendations use your latest synced roster. We estimate starters from
+              league roster rules and contract salary when weekly lineup slots are not stored.
             </p>
             <p>
-              Projection changes list material moves on your roster vs the prior
-              weekly refresh (rank and P50), when a movement artifact is available.
+              We flag moves only when a bench player meaningfully outprojects the starter.
+              Projection changes highlight notable moves on your roster since the last refresh.
             </p>
           </>
         )}
@@ -345,7 +354,7 @@ export default function WeeklyCommandCenter({
             className="btn-primary btn-sm"
             onClick={runSync}
             disabled={syncing || loading || !sync.linked}
-            title={sync.note || "Explicit Sleeper sync — never runs on dashboard load"}
+            title={sync.note || "Pull the latest roster from Sleeper"}
           >
             {syncing ? "Syncing…" : "Sync League"}
           </button>
@@ -361,7 +370,7 @@ export default function WeeklyCommandCenter({
           ? ` · Projections ${formatRelativeTime(meta.projections_built_at) || "available"}`
           : ""}
         {meta.starter_inference === "league_rules_salary"
-          ? " · Starters inferred (salary)"
+          ? " · Starters estimated from roster"
           : ""}
       </HubPageMeta>
 
@@ -391,9 +400,9 @@ export default function WeeklyCommandCenter({
               : "No roster players yet. Sync league above after linking Sleeper, or add contracts in My team."}
           </HubAlert>
         )}
-        {status.projections_missing && (
+        {status.projections_missing && !poorCoverage && (
           <HubAlert variant="warn">
-            Weekly projection artifacts are missing for this week. Roster still loads from Hub state.
+            Weekly projections are not available for this week yet. Your roster still loads from Hub.
           </HubAlert>
         )}
         {Boolean(counts.on_bye) && (
@@ -406,11 +415,11 @@ export default function WeeklyCommandCenter({
             {counts.injured} injured / unavailable player{counts.injured === 1 ? "" : "s"} on roster.
           </HubAlert>
         )}
-        {Boolean(counts.missing_projections) && !status.projections_missing && (
+        {Boolean(counts.missing_projections) && !status.projections_missing && !poorCoverage && (
           <HubAlert variant="info">
             {counts.missing_projections} roster player{counts.missing_projections === 1 ? "" : "s"} without a weekly projection
             {meta.missing_positions?.length
-              ? ` (no artifact for ${meta.missing_positions.join(", ").toUpperCase()})`
+              ? ` (positions still building: ${meta.missing_positions.join(", ").toUpperCase()})`
               : ""}
             .
           </HubAlert>
@@ -419,11 +428,57 @@ export default function WeeklyCommandCenter({
 
       <HubSection
         title="Decisions that need attention"
-        hint="Highest-value lineup swaps first. Bench P50 must clear the starter by the configured threshold."
+        hint="Highest-value lineup swaps first. We flag moves only when a bench player meaningfully outprojects the starter."
         className="hub-wcc-decisions"
       >
         {loading && !data ? (
-          <p className="chart-note">Loading your week…</p>
+          <p className="chart-note">Loading this week…</p>
+        ) : poorCoverage ? (
+          <div className="hub-wcc-coverage-block" role="status">
+            <h4 className="hub-wcc-coverage-title">Projections need attention</h4>
+            <p className="hub-wcc-coverage-body">
+              {status.projections_missing
+                ? "Weekly projections are not available for this week yet, so lineup recommendations would not be reliable."
+                : (
+                  <>
+                    Only {coveredCount} of {rosterCount} roster players have weekly projections
+                    ({coveragePct}% coverage)
+                    {missingCount > 0 ? ` — ${missingCount} missing` : ""}
+                    . Lineup advice would mostly be noise until coverage improves.
+                  </>
+                )}
+            </p>
+            <p className="hub-wcc-coverage-hint">
+              Recommendations use your latest synced roster. Refresh projections after a sync,
+              or sync your league roster if it looks out of date.
+            </p>
+            <div className="hub-wcc-coverage-actions">
+              <button
+                type="button"
+                className="btn-primary btn-sm"
+                onClick={() => load()}
+                disabled={loading || syncing}
+              >
+                {loading ? "Refreshing…" : "Refresh projections"}
+              </button>
+              {canSyncRoster && (
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={runSync}
+                  disabled={syncing || loading}
+                  title={sync.note || "Pull the latest roster from Sleeper"}
+                >
+                  {syncing ? "Syncing…" : "Sync roster"}
+                </button>
+              )}
+              {status.unlinked_league && onNavigateSetup && (
+                <button type="button" className="btn-link" onClick={onNavigateSetup}>
+                  League settings
+                </button>
+              )}
+            </div>
+          </div>
         ) : decisions.length === 0 ? (
           <p className="chart-note">{summary.headline || "No high-value lineup swaps this week."}</p>
         ) : (
@@ -436,7 +491,7 @@ export default function WeeklyCommandCenter({
             ))}
           </div>
         )}
-        {summary.top_messages?.length > 0 && decisions.length === 0 && (
+        {!poorCoverage && summary.top_messages?.length > 0 && decisions.length === 0 && (
           <ul className="hub-wcc-top-messages">
             {summary.top_messages.map((msg) => (
               <li key={msg}>{msg}</li>
@@ -448,9 +503,13 @@ export default function WeeklyCommandCenter({
       <HubStatGrid>
         <HubStatCard
           label="Decisions"
-          value={counts.decisions ?? "—"}
-          sub={summary.headline || "—"}
-          tone={(counts.decisions || 0) > 0 ? "accent" : "default"}
+          value={poorCoverage ? "—" : (counts.decisions ?? "—")}
+          sub={
+            poorCoverage
+              ? "Waiting on projection coverage"
+              : (summary.headline || "—")
+          }
+          tone={!poorCoverage && (counts.decisions || 0) > 0 ? "accent" : "default"}
         />
         <HubStatCard label="Starters" value={counts.starters ?? "—"} />
         <HubStatCard label="Bench" value={counts.bench ?? "—"} />
@@ -463,7 +522,7 @@ export default function WeeklyCommandCenter({
 
       <HubSection
         title="Wide projection ranges"
-        hint="Unusually high volatility or floor–ceiling spread on your roster."
+        hint="Players with an unusually wide floor-to-ceiling spread this week."
       >
         {wideRanges.length === 0 ? (
           <p className="chart-note">No unusually wide ranges this week.</p>
@@ -491,7 +550,7 @@ export default function WeeklyCommandCenter({
 
       <HubSection
         title="Projection changes"
-        hint="Material moves since the prior refresh (rank + P50)."
+        hint="Notable moves on your roster since the last refresh."
       >
         {projectionChanges.available && projectionChangeItems.length ? (
           <ul className="hub-wcc-move-list">
@@ -503,7 +562,7 @@ export default function WeeklyCommandCenter({
             ))}
           </ul>
         ) : projectionChanges.available ? (
-          <p className="chart-note">No material projection moves on your roster this refresh.</p>
+          <p className="chart-note">No notable projection moves on your roster this refresh.</p>
         ) : (
           <p className="chart-note">
             {projectionChanges.note || "Projection movement tracking is not available yet."}
@@ -528,12 +587,12 @@ export default function WeeklyCommandCenter({
         <>
           <HubSection
             title="Starters"
-            hint="Inferred current lineup (league rules + salary)."
+            hint="Estimated current lineup from league rules and salary."
           >
             {mobileLayout ? (
-              <RosterMobileList rows={starters} emptyLabel="No starters inferred." />
+              <RosterMobileList rows={starters} emptyLabel="No starters estimated." />
             ) : (
-              <RosterTable rows={starters} emptyLabel="No starters inferred." />
+              <RosterTable rows={starters} emptyLabel="No starters estimated." />
             )}
           </HubSection>
 
