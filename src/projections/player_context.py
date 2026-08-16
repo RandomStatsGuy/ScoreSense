@@ -254,6 +254,47 @@ def injury_age_hours(
     return round(age, 2)
 
 
+def attach_inclusion_trust(
+    payload: dict[str, Any],
+    *,
+    artifact_meta: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """SCORE-33: stamp inclusion_trust so UI never falsely claims Included."""
+    from src.integrations.injury_poll import compute_inclusion_trust
+
+    meta = payload.get("meta") if isinstance(payload.get("meta"), dict) else {}
+    art = artifact_meta or {}
+    opp = (
+        payload.get("opportunity_adjustment")
+        if isinstance(payload.get("opportunity_adjustment"), dict)
+        else {}
+    )
+    avail = payload.get("availability") if isinstance(payload.get("availability"), dict) else {}
+    projection_at = (
+        meta.get("artifact_built_at")
+        or meta.get("context_built_at")
+        or art.get("built_at")
+        or art.get("injury_snapshot_built_at")
+        or meta.get("injury_snapshot_built_at")
+    )
+    stale = bool(meta.get("stale") if "stale" in meta else art.get("stale"))
+    trust = compute_inclusion_trust(
+        opportunity_included=bool(opp.get("included")),
+        artifact_stale=stale,
+        projection_freshness_at=projection_at,
+        injury_status_freshness_at=avail.get("updated_at"),
+    )
+    payload["inclusion_trust"] = trust
+    # Mirror can_label onto opportunity_adjustment for compact consumers.
+    payload["opportunity_adjustment"] = {
+        **opp,
+        "can_label_included": trust["can_label_included"],
+        "stale_vs_projection": trust["stale_vs_projection"],
+        "safeguard_message": trust["message"],
+    }
+    return payload
+
+
 def detail_available_for_payload(payload: dict[str, Any]) -> bool:
     """True when expand would surface narrative, drivers, or injury explanation."""
     media = payload.get("media_context") if isinstance(payload.get("media_context"), dict) else {}
@@ -309,7 +350,7 @@ def compact_player_context(
                 "week": int(hist["week"]),
             }
 
-    return {
+    compact = {
         "player_id": payload.get("player_id"),
         "player_name": payload.get("player_name"),
         "position": payload.get("position"),
@@ -333,8 +374,12 @@ def compact_player_context(
             "fingerprint": meta.get("fingerprint"),
             "schema_version": meta.get("schema_version") or SCHEMA_VERSION,
             "view": "compact",
+            "artifact_built_at": meta.get("artifact_built_at") or meta.get("context_built_at"),
+            "context_built_at": meta.get("context_built_at"),
+            "injury_snapshot_built_at": meta.get("injury_snapshot_built_at"),
         },
     }
+    return attach_inclusion_trust(compact, artifact_meta=meta)
 
 
 def _load_sentiment_features_frame() -> pd.DataFrame:
@@ -842,6 +887,7 @@ def get_player_context(
         "week": resolved_week,
         "artifact_built_at": meta.get("built_at"),
         "injury_snapshot_id": meta.get("injury_snapshot_id"),
+        "injury_snapshot_built_at": meta.get("injury_snapshot_built_at"),
         "fingerprint": meta.get("fingerprint"),
         "stale": bool(meta.get("stale")),
         "schema_version": meta.get("schema_version") or SCHEMA_VERSION,
@@ -856,7 +902,7 @@ def get_player_context(
             "age_hours": injury_age_hours(avail.get("updated_at")),
         }
         payload["availability"] = avail
-    return payload
+    return attach_inclusion_trust(payload, artifact_meta=meta)
 
 
 def list_player_context(
@@ -882,8 +928,32 @@ def list_player_context(
         _finalize_media_context(p, include_historical=include_historical)
         for p in players
     ]
+    list_meta = {
+        "season": resolved_season,
+        "week": resolved_week,
+        "built_at": meta.get("built_at"),
+        "injury_snapshot_built_at": meta.get("injury_snapshot_built_at"),
+        "injury_snapshot_id": meta.get("injury_snapshot_id"),
+        "fingerprint": meta.get("fingerprint"),
+        "stale": bool(meta.get("stale")),
+        "schema_version": meta.get("schema_version") or SCHEMA_VERSION,
+        "rows": meta.get("rows"),
+        "include_historical": bool(include_historical),
+        "compact": bool(compact),
+        "view": "compact" if compact else "detail",
+    }
     if compact:
-        players = [compact_player_context(p) for p in players]
+        stamped: list[dict[str, Any]] = []
+        for player in players:
+            player_meta = player.get("meta") if isinstance(player.get("meta"), dict) else {}
+            player["meta"] = {
+                **player_meta,
+                "stale": bool(meta.get("stale")),
+                "artifact_built_at": meta.get("built_at"),
+                "injury_snapshot_built_at": meta.get("injury_snapshot_built_at"),
+            }
+            stamped.append(compact_player_context(player))
+        players = stamped
     else:
         enriched: list[dict[str, Any]] = []
         for player in players:
@@ -900,23 +970,17 @@ def list_player_context(
                 }
             player["detail_available"] = detail_available_for_payload(player)
             player_meta = player.get("meta") if isinstance(player.get("meta"), dict) else {}
-            player["meta"] = {**player_meta, "view": "detail"}
-            enriched.append(player)
+            player["meta"] = {
+                **player_meta,
+                "view": "detail",
+                "stale": bool(meta.get("stale")),
+                "artifact_built_at": meta.get("built_at"),
+                "injury_snapshot_built_at": meta.get("injury_snapshot_built_at"),
+            }
+            enriched.append(attach_inclusion_trust(player, artifact_meta=meta))
         players = enriched
     return {
         "count": len(players),
         "players": players,
-        "meta": {
-            "season": resolved_season,
-            "week": resolved_week,
-            "built_at": meta.get("built_at"),
-            "injury_snapshot_id": meta.get("injury_snapshot_id"),
-            "fingerprint": meta.get("fingerprint"),
-            "stale": bool(meta.get("stale")),
-            "schema_version": meta.get("schema_version") or SCHEMA_VERSION,
-            "rows": meta.get("rows"),
-            "include_historical": bool(include_historical),
-            "compact": bool(compact),
-            "view": "compact" if compact else "detail",
-        },
+        "meta": list_meta,
     }

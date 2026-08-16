@@ -417,7 +417,12 @@ def test_injury_age_hours_and_compact_shape():
     compact = compact_player_context(full, now=now)
     assert compact["availability"]["status"] == "Questionable"
     assert compact["availability"]["age_hours"] == 6.0
-    assert compact["opportunity_adjustment"] == {"points": 2.0, "included": True}
+    assert compact["opportunity_adjustment"]["points"] == 2.0
+    assert compact["opportunity_adjustment"]["included"] is True
+    assert compact["opportunity_adjustment"]["can_label_included"] is True
+    assert compact["opportunity_adjustment"]["stale_vs_projection"] is False
+    assert "inclusion_trust" in compact
+    assert compact["inclusion_trust"]["can_label_included"] is True
     assert compact["media_context"]["signal"] == "role_up"
     assert compact["media_context"]["source_count"] == 2
     assert "summary" not in compact["media_context"]

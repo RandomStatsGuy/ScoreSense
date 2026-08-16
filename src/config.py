@@ -107,6 +107,20 @@ INJURY_SNAPSHOTS_DIR = CACHE_DIR / "injury_snapshots"
 INJURY_OVERLAY_DEBOUNCE_SECONDS = int(
     os.environ.get("INJURY_OVERLAY_DEBOUNCE_SECONDS", "60")
 )
+# SCORE-33: adaptive centralized Sleeper injury poll cadence (seconds).
+INJURY_POLL_STATUS_PATH = CACHE_DIR / "injury_poll_status.json"
+INJURY_POLL_REPORTING_SECONDS = int(
+    os.environ.get("INJURY_POLL_REPORTING_SECONDS", str(8 * 60))
+)  # game / injury-report windows
+INJURY_POLL_INSEASON_SECONDS = int(
+    os.environ.get("INJURY_POLL_INSEASON_SECONDS", str(45 * 60))
+)  # normal in-season
+INJURY_POLL_OFFSEASON_SECONDS = int(
+    os.environ.get("INJURY_POLL_OFFSEASON_SECONDS", str(3 * 3600))
+)  # off / pre
+INJURY_POLL_MANUAL_COOLDOWN_SECONDS = int(
+    os.environ.get("INJURY_POLL_MANUAL_COOLDOWN_SECONDS", "120")
+)
 BACKTEST_DIR = PROJECT_ROOT / "artifacts" / "backtest"
 BACKTEST_CACHE_DIR = CACHE_DIR / "backtest_models"
 BACKTEST_CHECKPOINT_VERSION = "v1"
