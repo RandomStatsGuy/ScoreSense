@@ -86,13 +86,15 @@ def run_preseason_refresh(
     except Exception as exc:
         sentiment_status = {"status": "error", "detail": str(exc)}
 
-    beat_digest_status = None
+    fantasy_media_digest_status = None
     try:
-        from src.jobs.prewarm_beat_digests import prewarm_beat_digests
+        from src.jobs.prewarm_fantasy_media_digests import prewarm_fantasy_media_digests
 
-        beat_digest_status = prewarm_beat_digests(season=draft_season, week=1)
+        fantasy_media_digest_status = prewarm_fantasy_media_digests(
+            season=draft_season, week=1
+        )
     except Exception as exc:
-        beat_digest_status = {"status": "error", "detail": str(exc)}
+        fantasy_media_digest_status = {"status": "error", "detail": str(exc)}
 
     player_context_status = None
     try:
@@ -114,7 +116,7 @@ def run_preseason_refresh(
         "player_context_prewarm": player_context_status,
         "fantasypros_draft_ecr": fp_ecr_status,
         "sentiment_refresh": sentiment_status,
-        "beat_digest_prewarm": beat_digest_status,
+        "fantasy_media_digest_prewarm": fantasy_media_digest_status,
     }
     REFRESH_STATUS.write_text(json.dumps(status, indent=2))
     return status

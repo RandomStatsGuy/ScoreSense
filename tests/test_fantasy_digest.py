@@ -72,5 +72,7 @@ def test_fantasy_digest_for_player_returns_meta(monkeypatch, tmp_path):
         prefer_llm=False,
         return_meta=True,
     )
-    assert result["fantasy_digest"]
-    assert result["fantasy_digest_source"] == "extractive"
+    assert result["fantasy_media_digest"]
+    assert result["fantasy_media_digest_source"] == "extractive"
+    assert "beat_digest" not in result
+    assert "fantasy_digest" not in result

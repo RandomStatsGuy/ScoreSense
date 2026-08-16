@@ -96,7 +96,7 @@ export default function DraftNomineeCard({
   headshotUrl,
   teamLogoUrl: logoOverride,
   sentiment,
-  beatDigest,
+  fantasyMediaDigest,
   digestLoading,
   sentimentMeta,
   highBid,
@@ -110,7 +110,7 @@ export default function DraftNomineeCard({
   compact = false,
   stats = null,
 }) {
-  const digest = beatDigest || sentiment?.fantasy_digest || sentiment?.beat_digest;
+  const digest = fantasyMediaDigest || sentiment?.fantasy_media_digest;
   const hasStory = sentiment && Number(sentiment.mention_count) > 0;
   const labelText = sentiment?.sentiment_label_text || sentiment?.sentiment_label;
   const historicalLabel = formatHistoricalWeekLabel(

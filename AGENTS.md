@@ -53,7 +53,7 @@ See `.cursor/rules/draft-hub-performance.mdc`, `ml-projections.mdc`, `frontend-d
 | Valuations | `src/draft_hub/auction_values.py`, `value_sheet.py` |
 | Hub UI | `frontend/src/DraftHub/DraftHub.jsx`, `hubDataCache.js` |
 | Rookie role | `src/projections/rookie_role.py`, `data/projections/rookie_role_overrides.yaml` |
-| Sentiment readout | `src/sentiment/readout.py`, `beat_digest.py` |
+| Sentiment readout | `src/sentiment/readout.py`, `fantasy_digest.py`, `beat_digest.py` |
 | Refresh jobs | `src/jobs/weekly_refresh.py`, `preseason_refresh.py` |
 
 ## Pre-warm caches (offseason / after model retrain)

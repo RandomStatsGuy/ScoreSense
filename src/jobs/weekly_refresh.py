@@ -150,13 +150,13 @@ def run_weekly_refresh(
         except Exception as exc:
             sentiment_status = {"status": "error", "detail": str(exc)}
 
-    beat_digest_status = None
+    fantasy_media_digest_status = None
     try:
-        from src.jobs.prewarm_beat_digests import prewarm_beat_digests
+        from src.jobs.prewarm_fantasy_media_digests import prewarm_fantasy_media_digests
 
-        beat_digest_status = prewarm_beat_digests(season=season, week=week)
+        fantasy_media_digest_status = prewarm_fantasy_media_digests(season=season, week=week)
     except Exception as exc:
-        beat_digest_status = {"status": "error", "detail": str(exc)}
+        fantasy_media_digest_status = {"status": "error", "detail": str(exc)}
 
     # After weekly inj/no_inj + sentiment/digests so media_context can be materialized.
     player_context_status = None
@@ -186,7 +186,7 @@ def run_weekly_refresh(
         "dfs_slates": dfs_slate_status,
         "props_archive": props_status,
         "sentiment_refresh": sentiment_status,
-        "beat_digest_prewarm": beat_digest_status,
+        "fantasy_media_digest_prewarm": fantasy_media_digest_status,
         "draft_projections": draft_counts or None,
         "draft_pool_artifact": draft_pool_status,
     }

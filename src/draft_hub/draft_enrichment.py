@@ -182,7 +182,7 @@ def _attach_digests(
             continue
         enriched = dict(row)
         pname = name_by_id.get(pid) or row.get("player") or pid
-        enriched["fantasy_digest"] = fantasy_digest_for_player(
+        enriched["fantasy_media_digest"] = fantasy_digest_for_player(
             pname,
             row,
             scope="weekly",
@@ -191,7 +191,6 @@ def _attach_digests(
             week=week,
             prefer_llm=str(pid) in llm_ids,
         )
-        enriched["beat_digest"] = enriched["fantasy_digest"]
         out[pid] = enriched
     return out
 
@@ -239,18 +238,19 @@ def build_draft_room_enrichment(
     }
 
 
-def beat_digest_single(
+def fantasy_media_digest_single(
     player_id: str,
     *,
     player_name: str | None = None,
     season: int | None = None,
     week: int | None = None,
 ) -> dict[str, Any]:
+    """Return fantasy-show media digest for one draft-room player (not beat reporting)."""
     resolved_season, resolved_week = _resolve_draft_week(season, week)
     sentiment = build_fantasy_index(resolved_season, resolved_week)
     row = sentiment["players"].get(str(player_id))
     if not row:
-        return {"player_id": player_id, "beat_digest": None}
+        return {"player_id": player_id, "fantasy_media_digest": None}
     pname = player_name or row.get("player") or player_id
     digest_result = fantasy_digest_for_player(
         str(pname),
@@ -264,10 +264,8 @@ def beat_digest_single(
     )
     return {
         "player_id": player_id,
-        "fantasy_digest": digest_result["fantasy_digest"],
-        "fantasy_digest_source": digest_result.get("fantasy_digest_source"),
-        "beat_digest": digest_result["fantasy_digest"],
-        "beat_digest_source": digest_result.get("fantasy_digest_source"),
+        "fantasy_media_digest": digest_result["fantasy_media_digest"],
+        "fantasy_media_digest_source": digest_result.get("fantasy_media_digest_source"),
         "season": sentiment["season"],
         "week": sentiment["week"],
     }

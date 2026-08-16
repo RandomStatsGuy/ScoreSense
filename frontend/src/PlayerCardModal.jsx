@@ -257,7 +257,7 @@ function PlayerCardBody({
               <SentimentBadge sentiment={narrative} compact />
             </div>
             <p className="player-card-narrative">
-              {narrative.fantasy_digest || narrative.beat_digest || narrative.snippet || "—"}
+              {narrative.fantasy_media_digest || narrative.snippet || "—"}
             </p>
           </>
         ) : showHistoricalOptIn ? (

@@ -309,7 +309,10 @@ def fantasy_digest_for_player(
     cached = _cache_get(scope, cache_key)
     if cached:
         if return_meta:
-            return {"fantasy_digest": cached, "fantasy_digest_source": "cache"}
+            return {
+                "fantasy_media_digest": cached,
+                "fantasy_media_digest_source": "cache",
+            }
         return cached
 
     digest: str | None = None
@@ -346,5 +349,8 @@ def fantasy_digest_for_player(
 
     _cache_set(scope, cache_key, digest)
     if return_meta:
-        return {"fantasy_digest": digest, "fantasy_digest_source": source}
+        return {
+            "fantasy_media_digest": digest,
+            "fantasy_media_digest_source": source,
+        }
     return digest

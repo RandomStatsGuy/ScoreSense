@@ -145,7 +145,9 @@ def test_build_fantasy_season_aggregates_weeks(monkeypatch):
     assert player["weeks_with_mentions"] == 2
     assert player["season"] == 2026
     assert player["week"] == 2
-    assert player.get("fantasy_digest")
+    assert player.get("fantasy_media_digest")
+    assert "beat_digest" not in player
+    assert "fantasy_digest" not in player
     assert "beat_writer" not in player
 
 
