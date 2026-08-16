@@ -161,7 +161,7 @@ export default function SentimentPanel({
   const panelTitle = isSeason ? "Season analyst context" : "Analyst context";
   const panelSubtitle = isSeason
     ? "YouTube fantasy analysts — season-to-date outlook, not in projections."
-    : "YouTube fantasy analysts — does not change projections or injury boosts.";
+    : "YouTube fantasy analysts — does not change projections or opportunity adjustments.";
   const apiPath = isSeason
     ? `/api/fantasy-narrative/${position}/season`
     : `/api/fantasy-narrative/${position}/weekly`;

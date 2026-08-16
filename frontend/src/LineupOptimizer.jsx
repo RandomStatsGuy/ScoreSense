@@ -675,7 +675,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
 
         {!isLiveContext && activeMeta && (
           <div className="info-callout" role="status">
-            Injury boosts only on live week {activeMeta.default_week}.
+            Opportunity adjustments only on live week {activeMeta.default_week}.
           </div>
         )}
 

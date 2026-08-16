@@ -1321,7 +1321,7 @@ export default function App() {
               </div>
               {!isLiveContext && projMeta && !meta?.preseason_mode && (
                 <div className="info-callout info-callout-compact" role="status">
-                  Showing base projections for this week (live injury boosts apply to Wk {projMeta.default_week} only).
+                  Showing base projections for this week (live opportunity adjustments apply to Wk {projMeta.default_week} only).
                 </div>
               )}
               <WeeklyTable

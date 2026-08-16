@@ -15,6 +15,10 @@ import {
   resolveSeasonBand,
   seasonRangeTooltip,
 } from "./seasonQuantiles";
+import {
+  formatOpportunityAdjustmentPct,
+  pickOpportunityAdjustment,
+} from "./opportunityAdjustment";
 
 function ProjStat({ label, value, emphasis = false }) {
   return (
@@ -146,7 +150,7 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
         <p className="player-card-context muted" role="status">
           {weekLabel}
           {data.meta?.apply_injury_adjustments === false || !applyInjury
-            ? " · base projections (no live injury boosts)"
+            ? " · base projections (no live opportunity adjustments)"
             : " · live injury adjustments"}
         </p>
       ) : null}
@@ -158,10 +162,10 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
             <ProjStat label="Proj" value={Number(weekly["Projected Points"]).toFixed(1)} emphasis />
             <ProjStat label="Floor" value={Number(weekly["Low (P10)"]).toFixed(1)} />
             <ProjStat label="Ceiling" value={Number(weekly["High (P90)"]).toFixed(1)} />
-            {weekly["Injury Boost"] ? (
+            {pickOpportunityAdjustment(weekly) ? (
               <ProjStat
-                label="Injury boost"
-                value={`+${(Number(weekly["Injury Boost"]) * 100).toFixed(0)}%`}
+                label="Opportunity adjustment"
+                value={formatOpportunityAdjustmentPct(weekly)}
               />
             ) : null}
           </div>
