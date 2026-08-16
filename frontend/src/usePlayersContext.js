@@ -9,7 +9,11 @@ import { indexPlayersContext } from "./playerContextDisplay";
  * One GET /api/players/context?compact=true per season/week — table-safe fields only.
  * Heavy excerpts/sources/summaries/drivers lazy-load via PlayerContextPanel detail.
  */
-export default function usePlayersContext(season, week, { enabled = true } = {}) {
+export default function usePlayersContext(
+  season,
+  week,
+  { enabled = true, refreshToken = 0 } = {},
+) {
   const [byId, setById] = useState(() => new Map());
   const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -68,7 +72,7 @@ export default function usePlayersContext(season, week, { enabled = true } = {})
     })();
 
     return () => controller.abort();
-  }, [enabled, season, week]);
+  }, [enabled, season, week, refreshToken]);
 
   return useMemo(
     () => ({ byId, meta, loading, error, unavailable }),

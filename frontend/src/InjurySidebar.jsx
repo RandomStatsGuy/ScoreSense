@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from "react";
 import Chip, { injuryChipTone } from "./Chip";
+import InjuryStaleSafeguard from "./InjuryStaleSafeguard";
 import ProjectionTrustLabel from "./ProjectionTrustLabel";
 import { formatRelativeTime, formatReturnEstimate } from "./format";
+import { formatInjuryPollCadence } from "./injuryRefresh";
 import usePlayersContext from "./usePlayersContext";
 import {
   buildAttentionItems,
@@ -12,6 +14,7 @@ import {
   practiceLabel,
   sortInjuriesBySeverity,
 } from "./injuryExperience";
+import { isStaleVsProjection } from "./playerContextDisplay";
 
 const POSITION_LABELS = { qb: "QB", rb: "RB", wr: "WR/TE" };
 const POSITION_PLURAL = { qb: "QBs", rb: "RBs", wr: "WR/TE" };
@@ -70,10 +73,11 @@ function InjuryMetaLine({ injury }) {
 }
 
 function AttentionCard({ item, onCompareReplacements }) {
-  const { injury, status, practice, changedAt, assumesActive, projectionRow } = item;
+  const { injury, status, practice, changedAt, assumesActive, projectionRow, context } = item;
   const statusShort = injuryStatusShort(status);
   const changedLabel = compactUpdated(formatRelativeTime(changedAt));
   const practiceText = practice || practiceLabel(injury);
+  const showStale = context ? isStaleVsProjection(context) : false;
 
   return (
     <li className={injuryCardClass(status)}>
@@ -109,6 +113,7 @@ function AttentionCard({ item, onCompareReplacements }) {
           <ProjectionTrustLabel kind="assumes_active" className="projection-trust-label--compact" />
         </div>
       ) : null}
+      {showStale ? <InjuryStaleSafeguard context={context} /> : null}
       <InjuryMetaLine injury={injury} />
       {onCompareReplacements && projectionRow?.player_id ? (
         <div className="injury-card-actions">
@@ -146,6 +151,9 @@ function OpportunityCard({ item }) {
       {item.driverLabel ? (
         <p className="injury-opp-driver">{item.driverLabel}</p>
       ) : null}
+      {item.context && isStaleVsProjection(item.context) ? (
+        <InjuryStaleSafeguard context={item.context} />
+      ) : null}
     </li>
   );
 }
@@ -176,8 +184,8 @@ function AllInjuryCard({ injury }) {
 
 /**
  * SCORE-25 Injuries panel: Needs attention · Opportunity changes · All (collapsed).
+ * SCORE-33: manual refresh → POST /api/injuries/refresh (server-owned poll; no browser→Sleeper).
  * Consumes /api/injuries + weekly projections (+ cached player-context when warm).
- * Does not poll Sleeper on page view.
  */
 export default function InjurySidebar({
   players,
@@ -191,11 +199,17 @@ export default function InjurySidebar({
   season,
   week,
   onCompareReplacements,
+  onRefreshInjuries,
+  injuryPoll = null,
+  injuryRefreshBusy = false,
+  injuryRefreshNote = "",
+  contextRefreshToken = 0,
   className = "",
 }) {
   const [allSearch, setAllSearch] = useState("");
   const context = usePlayersContext(season ?? defaultSeason, week ?? defaultWeek, {
     enabled: Boolean(isLiveContext && (season ?? defaultSeason) != null && (week ?? defaultWeek) != null),
+    refreshToken: contextRefreshToken,
   });
 
   const sortedAll = useMemo(() => sortInjuriesBySeverity(players || []), [players]);
@@ -239,6 +253,8 @@ export default function InjurySidebar({
     return line;
   }, [position, selectedTeams, searchQuery, sortedAll.length]);
 
+  const pollLine = useMemo(() => formatInjuryPollCadence(injuryPoll), [injuryPoll]);
+
   if (!isLiveContext) {
     const weekLabel = defaultWeek != null ? `Week ${defaultWeek}` : "the live week";
     return (
@@ -256,10 +272,29 @@ export default function InjurySidebar({
   return (
     <section className={`panel injury-sidebar projections-mobile-panel ${className}`.trim()}>
       <div className="injury-sidebar-head">
-        <div>
-          <h2>Injuries</h2>
-          <p className="panel-subtitle">{headerLine}</p>
+        <div className="injury-sidebar-head-row">
+          <div>
+            <h2>Injuries</h2>
+            <p className="panel-subtitle">{headerLine}</p>
+            {pollLine ? <p className="table-meta muted">{pollLine}</p> : null}
+          </div>
+          {typeof onRefreshInjuries === "function" ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm injury-refresh-btn"
+              onClick={onRefreshInjuries}
+              disabled={injuryRefreshBusy}
+              title="Enqueue a server injury refresh and show the current snapshot"
+            >
+              {injuryRefreshBusy ? "Refreshing…" : "Refresh"}
+            </button>
+          ) : null}
         </div>
+        {injuryRefreshNote ? (
+          <p className="injury-refresh-note" role="status">
+            {injuryRefreshNote}
+          </p>
+        ) : null}
       </div>
 
       <div className="injury-list-scroll">

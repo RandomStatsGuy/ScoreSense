@@ -150,6 +150,7 @@ export function buildAttentionItems({ injuries, projections, contextById }) {
       practice,
       changedAt,
       assumesActive,
+      context: context || null,
       bodyPart: String(injury.injury_body_part || "").trim() || null,
       notes: String(injury.injury_notes || "").trim() || null,
     });
@@ -278,6 +279,7 @@ export function buildOpportunityItems({
         ? `Included because ${primary.name}${primary.status ? ` is ${primary.status}` : " is injured"}`
         : null,
       projectionRow: row,
+      context: context || null,
     });
   }
 

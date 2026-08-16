@@ -2,11 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   TRUST_LABEL,
+  INJURY_STALE_SAFEGUARD_MESSAGE,
   canLabelIncludedInProjection,
   commentaryOnlyLabel,
   formatInjuryAgeHours,
   formatOppPoints,
+  injuryStaleSafeguardMessage,
   isDetailAvailable,
+  isStaleVsProjection,
   shouldShowProjectionAssumesActive,
   parseContextTime,
 } from "./playerContextDisplay.js";
@@ -99,6 +102,61 @@ test("canLabelIncludedInProjection requires included + freshness", () => {
     canLabelIncludedInProjection(included, { stale: true }),
     false,
   );
+});
+
+test("canLabelIncludedInProjection prefers SCORE-33 inclusion_trust", () => {
+  const trusted = baseContext({
+    opportunity_adjustment: { points: 2.1, included: true },
+    inclusion_trust: {
+      included: true,
+      can_label_included: true,
+      stale_vs_projection: false,
+      message: null,
+    },
+  });
+  assert.equal(canLabelIncludedInProjection(trusted), true);
+
+  const blocked = baseContext({
+    opportunity_adjustment: {
+      points: 2.1,
+      included: true,
+      can_label_included: false,
+      stale_vs_projection: true,
+      safeguard_message: INJURY_STALE_SAFEGUARD_MESSAGE,
+    },
+    inclusion_trust: {
+      included: true,
+      can_label_included: false,
+      stale_vs_projection: true,
+      message: INJURY_STALE_SAFEGUARD_MESSAGE,
+    },
+    availability: {
+      status: "Out",
+      practice: null,
+      updated_at: "2026-08-14T20:00:00+00:00",
+    },
+    meta: {
+      context_built_at: "2026-08-14T12:00:00+00:00",
+      stale: false,
+    },
+  });
+  assert.equal(canLabelIncludedInProjection(blocked), false);
+  assert.equal(isStaleVsProjection(blocked), true);
+  assert.equal(
+    injuryStaleSafeguardMessage(blocked),
+    INJURY_STALE_SAFEGUARD_MESSAGE,
+  );
+
+  const oppOnly = baseContext({
+    opportunity_adjustment: {
+      points: 1.2,
+      included: true,
+      can_label_included: false,
+      stale_vs_projection: true,
+    },
+  });
+  assert.equal(canLabelIncludedInProjection(oppOnly), false);
+  assert.equal(isStaleVsProjection(oppOnly), true);
 });
 
 test("shouldShowProjectionAssumesActive for Q/D without own reduction", () => {

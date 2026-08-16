@@ -47,6 +47,10 @@ import {
   formatRelativeTime,
   parseApiError,
 } from "./format";
+import {
+  injuryRefreshFeedback,
+  parseInjuryRefreshPayload,
+} from "./injuryRefresh";
 import { playerSentimentKey, buildSentimentMap, resolveRowSentiment } from "./sentimentDisplay";
 import { PRODUCT_NAME, STUDIO_NAME } from "./brand";
 import { PlayerCardProvider } from "./PlayerCardContext";
@@ -142,6 +146,10 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTeams, setSelectedTeams] = useState([]);
   const [allInjuries, setAllInjuries] = useState([]);
+  const [injuryPoll, setInjuryPoll] = useState(null);
+  const [injuryRefreshBusy, setInjuryRefreshBusy] = useState(false);
+  const [injuryRefreshNote, setInjuryRefreshNote] = useState("");
+  const [contextRefreshToken, setContextRefreshToken] = useState(0);
   const [subtitleDisplay, setSubtitleDisplay] = useState(SECTION_SUBTITLES.projections.weekly);
   const [subtitleFading, setSubtitleFading] = useState(false);
   const [sentimentPlayers, setSentimentPlayers] = useState([]);
@@ -451,12 +459,34 @@ export default function App() {
       if (injRes.ok) {
         const inj = await injRes.json();
         setAllInjuries(inj.players || []);
+        setInjuryPoll(inj.meta?.poll || null);
       }
       if (statusRes.ok) {
         setRefreshStatus(await statusRes.json());
       }
     } catch {
       /* optional during dev */
+    }
+  }, []);
+
+  const refreshInjuries = useCallback(async () => {
+    setInjuryRefreshBusy(true);
+    setInjuryRefreshNote("");
+    try {
+      const res = await apiFetch("/api/injuries/refresh", { method: "POST" });
+      if (!res.ok) {
+        throw new Error(await parseApiError(res, "Injury refresh failed"));
+      }
+      const payload = await res.json();
+      const parsed = parseInjuryRefreshPayload(payload);
+      if (parsed.players) setAllInjuries(parsed.players);
+      if (parsed.poll) setInjuryPoll(parsed.poll);
+      setInjuryRefreshNote(injuryRefreshFeedback(parsed));
+      setContextRefreshToken((n) => n + 1);
+    } catch (err) {
+      setInjuryRefreshNote(connectionErrorMessage(err, "Injury refresh failed"));
+    } finally {
+      setInjuryRefreshBusy(false);
     }
   }, []);
 
@@ -1357,6 +1387,7 @@ export default function App() {
                 movementFilter={movementFilter}
                 onMovementFilterChange={handleMovementFilterChange}
                 movementAvailable={Boolean(meta?.projection_movement?.available)}
+                contextRefreshToken={contextRefreshToken}
                 compareEnabled
                 selectedCompareIds={compareIds}
                 maxCompare={MAX_COMPARE_PLAYERS}
@@ -1393,6 +1424,11 @@ export default function App() {
               season={season}
               week={week}
               onCompareReplacements={handleCompareReplacements}
+              onRefreshInjuries={refreshInjuries}
+              injuryPoll={injuryPoll}
+              injuryRefreshBusy={injuryRefreshBusy}
+              injuryRefreshNote={injuryRefreshNote}
+              contextRefreshToken={contextRefreshToken}
             />
 
             <SentimentPanel

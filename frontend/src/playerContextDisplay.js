@@ -13,6 +13,10 @@ export const TRUST_LABEL = {
   ASSUMES_ACTIVE: "Projection assumes active",
 };
 
+/** SCORE-33: shown when injury status is newer than the projection snapshot. */
+export const INJURY_STALE_SAFEGUARD_MESSAGE =
+  "Injury status changed after this projection was calculated. Refresh to update.";
+
 /** Designations where we must not imply the player's own line is fully modeled. */
 const ASSUMES_ACTIVE_STATUS_RE = /questionable|doubtful/i;
 
@@ -95,13 +99,18 @@ export function injuryStatusFreshnessAt(context) {
 }
 
 /**
- * Only label "Included in projection" when:
- * - opportunity_adjustment.included is true
- * - artifact is not flagged stale (AC11 coordination)
- * - projection snapshot time ≥ displayed injury status time (when both known)
+ * SCORE-33: prefer server inclusion_trust / opportunity_adjustment.can_label_included.
+ * Fallback (pre-SCORE-33 payloads): included + not artifact-stale + projection ≥ injury time.
  */
 export function canLabelIncludedInProjection(context, slateMeta = null) {
+  const trust = context?.inclusion_trust;
+  if (trust && typeof trust.can_label_included === "boolean") {
+    return trust.can_label_included;
+  }
   const opp = context?.opportunity_adjustment;
+  if (opp && typeof opp.can_label_included === "boolean") {
+    return opp.can_label_included;
+  }
   if (!opp?.included) return false;
   if (context?.meta?.stale || slateMeta?.stale) return false;
 
@@ -109,6 +118,34 @@ export function canLabelIncludedInProjection(context, slateMeta = null) {
   const projAt = projectionFreshnessAt(context, slateMeta);
   if (injuryAt && projAt && projAt.getTime() < injuryAt.getTime()) return false;
   return true;
+}
+
+/** True when injury status is newer than the projection snapshot used for labeling. */
+export function isStaleVsProjection(context) {
+  const trust = context?.inclusion_trust;
+  if (trust && typeof trust.stale_vs_projection === "boolean") {
+    return trust.stale_vs_projection;
+  }
+  const opp = context?.opportunity_adjustment;
+  if (opp && typeof opp.stale_vs_projection === "boolean") {
+    return opp.stale_vs_projection;
+  }
+  const injuryAt = injuryStatusFreshnessAt(context);
+  const projAt = projectionFreshnessAt(context);
+  return Boolean(injuryAt && projAt && projAt.getTime() < injuryAt.getTime());
+}
+
+/**
+ * Safeguard copy when injury outruns the projection snapshot.
+ * Prefers server message; falls back to the SCORE-33 canonical string.
+ */
+export function injuryStaleSafeguardMessage(context) {
+  if (!isStaleVsProjection(context)) return null;
+  const fromTrust = context?.inclusion_trust?.message;
+  if (fromTrust) return String(fromTrust);
+  const fromOpp = context?.opportunity_adjustment?.safeguard_message;
+  if (fromOpp) return String(fromOpp);
+  return INJURY_STALE_SAFEGUARD_MESSAGE;
 }
 
 /**

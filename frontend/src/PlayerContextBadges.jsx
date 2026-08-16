@@ -1,11 +1,13 @@
 import React from "react";
 import Chip, { injuryChipTone } from "./Chip";
+import InjuryStaleSafeguard from "./InjuryStaleSafeguard";
 import ProjectionTrustLabel from "./ProjectionTrustLabel";
 import {
   canLabelIncludedInProjection,
   commentaryOnlyLabel,
   formatInjuryAgeHours,
   formatOppPoints,
+  isStaleVsProjection,
   mediaSignalLabel,
   mediaSignalTone,
   shouldShowProjectionAssumesActive,
@@ -27,6 +29,7 @@ export default function PlayerContextBadges({
   const opp = context.opportunity_adjustment;
   const media = context.media_context;
   const showIncluded = canLabelIncludedInProjection(context, slateMeta);
+  const showStaleSafeguard = isStaleVsProjection(context);
   const showAssumesActive = shouldShowProjectionAssumesActive(context);
   const commentaryLabel = commentaryOnlyLabel(media);
   const ageLabel = formatInjuryAgeHours(avail?.age_hours);
@@ -71,6 +74,8 @@ export default function PlayerContextBadges({
           </Chip>
           {showIncluded ? (
             <ProjectionTrustLabel kind="included" className="projection-trust-label--compact" />
+          ) : showStaleSafeguard ? (
+            <InjuryStaleSafeguard context={context} compact />
           ) : null}
         </span>,
       );

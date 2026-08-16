@@ -407,6 +407,7 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
             season={season}
             week={week}
             active
+            refreshToken={contextRefreshToken}
             className="player-context-panel--table"
           />
         </td>
@@ -482,6 +483,8 @@ export default function WeeklyTable({
   movementFilter = "all",
   onMovementFilterChange,
   movementAvailable = false,
+  /** SCORE-33: bump after injury refresh so inclusion_trust reloads. */
+  contextRefreshToken = 0,
 }) {
   const [sort, toggleSort] = useTableSort({ column: "P50", dir: "desc" });
   const [whyPlayerId, setWhyPlayerId] = useState(null);
@@ -490,6 +493,7 @@ export default function WeeklyTable({
   const playerCard = usePlayerCardOptional();
   const playersContext = usePlayersContext(season, week, {
     enabled: season != null && week != null,
+    refreshToken: contextRefreshToken,
   });
   const selectedSet = useMemo(
     () => new Set((selectedCompareIds || []).map(String)),
@@ -959,6 +963,7 @@ export default function WeeklyTable({
                         season={season}
                         week={week}
                         active
+                        refreshToken={contextRefreshToken}
                         className="player-context-panel--mobile"
                       />
                     ) : null}

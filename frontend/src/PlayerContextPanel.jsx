@@ -4,12 +4,14 @@ import { apiFetch } from "./auth";
 import { isAbortError } from "./fetchAbort";
 import { connectionErrorMessage, formatRelativeTime, parseApiError } from "./format";
 import HistoricalMediaOptIn from "./HistoricalMediaOptIn";
+import InjuryStaleSafeguard from "./InjuryStaleSafeguard";
 import ProjectionTrustLabel from "./ProjectionTrustLabel";
 import {
   canLabelIncludedInProjection,
   formatInjuryAgeHours,
   formatOppPoints,
   formatProjPts,
+  isStaleVsProjection,
   mediaSignalLabel,
   mediaSignalTone,
   shouldShowProjectionAssumesActive,
@@ -44,6 +46,8 @@ export default function PlayerContextPanel({
   season,
   week,
   active = true,
+  /** SCORE-33: bump after injury refresh to re-read inclusion_trust. */
+  refreshToken = 0,
   className = "",
 }) {
   const [data, setData] = useState(null);
@@ -109,7 +113,7 @@ export default function PlayerContextPanel({
     })();
 
     return () => controller.abort();
-  }, [active, playerId, season, week, includeHistorical]);
+  }, [active, playerId, season, week, includeHistorical, refreshToken]);
 
   if (!active || !playerId) return null;
 
@@ -130,6 +134,7 @@ export default function PlayerContextPanel({
   const availUpdated = formatRelativeTime(avail?.updated_at);
   const builtAt = formatRelativeTime(meta?.artifact_built_at || meta?.context_built_at);
   const showIncluded = data ? canLabelIncludedInProjection(data) : false;
+  const showStaleSafeguard = data ? isStaleVsProjection(data) : false;
   const showAssumesActive = data ? shouldShowProjectionAssumesActive(data) : false;
   const historical = pickHistoricalWeek(media);
   const historicalLabel = formatHistoricalWeekLabel(historical);
@@ -204,6 +209,7 @@ export default function PlayerContextPanel({
             Snapshot may be stale relative to newer weekly inputs.
           </p>
         ) : null}
+        {showStaleSafeguard ? <InjuryStaleSafeguard context={data} /> : null}
         {builtAt ? (
           <p className="player-context-built muted" role="status">
             {builtAt}

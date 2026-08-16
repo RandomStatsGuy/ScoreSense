@@ -1930,6 +1930,13 @@ input[type="search"].search-input {
   border-bottom: 1px solid var(--border);
 }
 
+.injury-sidebar-head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
 .injury-sidebar-head .panel-subtitle {
   margin-top: 0.15rem;
   font-size: 0.74rem;
@@ -1937,6 +1944,42 @@ input[type="search"].search-input {
 
 .injury-sidebar-head .table-meta {
   margin: 0.3rem 0 0;
+}
+
+.injury-refresh-btn {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.injury-refresh-note {
+  margin: 0.4rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+.injury-stale-safeguard {
+  margin: 0.25rem 0 0;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius-sm, 6px);
+  background: color-mix(in srgb, var(--caution, #c58a2e) 16%, transparent);
+  color: var(--text);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.injury-stale-safeguard--compact {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.08rem 0.32rem;
+  border: 1px solid color-mix(in srgb, var(--caution, #c58a2e) 40%, var(--border));
+  font-size: 0.62rem;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
 }
 
 .injury-section {
