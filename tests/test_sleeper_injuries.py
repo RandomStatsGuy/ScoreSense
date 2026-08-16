@@ -18,6 +18,8 @@ def test_injuries_api_shape():
         payload = injuries()
     except Exception:
         return
+    assert "meta" in payload
+    assert payload["meta"].get("network_on_request") is False
     if payload["count"] == 0:
         return
     player = payload["players"][0]

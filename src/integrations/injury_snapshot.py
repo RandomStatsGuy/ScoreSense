@@ -282,6 +282,75 @@ def load_injury_snapshot(
     return raw if isinstance(raw, dict) else None
 
 
+def injured_players_from_disk() -> "pd.DataFrame":
+    """Serve-only injured roster from on-disk Sleeper cache (never networks).
+
+    SCORE-33: browsers / ``GET /api/injuries`` must not trigger Sleeper polling.
+    """
+    import pandas as pd
+
+    from src.integrations.sleeper import INJURY_STATUSES
+
+    raw = load_players_cache_disk_only()
+    rows: list[dict[str, Any]] = []
+    for sleeper_id, info in (raw or {}).items():
+        if not isinstance(info, dict):
+            continue
+        status = _norm_str(info.get("injury_status"))
+        if status not in INJURY_STATUSES:
+            continue
+        team = _norm_str(info.get("team")).upper()
+        if not team:
+            continue
+        rows.append(
+            {
+                "sleeper_id": str(sleeper_id),
+                "full_name": _norm_str(info.get("full_name")) or "",
+                "first_name": _norm_str(info.get("first_name")) or "",
+                "last_name": _norm_str(info.get("last_name")) or "",
+                "team": team,
+                "position": _norm_str(info.get("position")).upper() or "",
+                "injury_status": status,
+                "injury_body_part": _norm_str(info.get("injury_body_part")) or "",
+                "injury_notes": _norm_str(info.get("injury_notes")) or "",
+                "injury_start_date": info.get("injury_start_date"),
+                "practice_participation": _norm_str(info.get("practice_participation"))
+                or "",
+                "practice_description": _norm_str(info.get("practice_description")) or "",
+                "news_updated": info.get("news_updated"),
+                "status": _norm_str(info.get("status")) or "",
+                "gsis_id": _norm_str(info.get("gsis_id")) or "",
+                "espn_id": _norm_str(info.get("espn_id")) or "",
+            }
+        )
+    if not rows:
+        return pd.DataFrame(
+            columns=[
+                "sleeper_id",
+                "full_name",
+                "first_name",
+                "last_name",
+                "team",
+                "position",
+                "injury_status",
+                "injury_body_part",
+                "injury_notes",
+                "injury_start_date",
+                "practice_participation",
+                "practice_description",
+                "news_updated",
+                "status",
+                "gsis_id",
+                "espn_id",
+            ]
+        )
+    return (
+        pd.DataFrame(rows)
+        .sort_values(["team", "position", "full_name"])
+        .reset_index(drop=True)
+    )
+
+
 def injured_frame_from_snapshot(snapshot: dict[str, Any] | None) -> "pd.DataFrame":
     """Build an ``injured_players``-compatible frame from a frozen snapshot."""
     import pandas as pd

@@ -41,6 +41,7 @@ from app.auth import (
     request_password_reset,
     require_patron,
     require_admin,
+    is_admin_user,
     resend_verification_email,
     reset_password_with_token,
     resolve_native_user_id,
@@ -64,6 +65,13 @@ from src.jobs.accuracy_rebuild import (
 from src.config import FRONTEND_DIST, TWA_PACKAGE_NAME, TWA_SHA256_FINGERPRINT
 from src.auth import user_store
 from src.integrations.sleeper import get_nfl_state, injured_players
+from src.integrations.injury_snapshot import injured_players_from_disk
+from src.integrations.injury_poll import (
+    enqueue_manual_injury_refresh,
+    get_injury_poll_status,
+    maybe_tick_injury_poll,
+    run_injury_poll,
+)
 from src.jobs.weekly_refresh import get_refresh_status, run_weekly_refresh
 from src.projections.predict import get_model_metrics, predict_upcoming_week
 from src.projections.projection_meta import get_projection_meta
@@ -186,6 +194,7 @@ def health() -> dict:
             "projection_explanation": "/api/player/{player_id}/explanation" in route_paths,
             "player_context": "/api/player/{player_id}/context" in route_paths,
             "injury_overlays": "/api/injury-overlays" in route_paths,
+            "injury_poll": "/api/injuries/poll" in route_paths,
             "weekly_command_center": "/api/hub/week" in route_paths,
             "league_home": "/api/hub/home" in route_paths,
             "projection_movement": "/api/predict/{position}/changes" in route_paths,
@@ -712,12 +721,29 @@ def projection_meta(position: str, _user=Depends(require_patron)) -> dict:
 def injuries(
     team: Optional[str] = None,
     position: Optional[str] = None,
+    background_tasks: BackgroundTasks = None,
     _user=Depends(require_patron),
 ) -> dict:
+    """Serve cached Sleeper injuries (SCORE-33).
+
+    Never hits the Sleeper network on the request path. When the adaptive poll
+    cadence is due, enqueues a background refresh (stale-while-revalidate).
+    """
     try:
         from src.integrations.injury_timeline import attach_return_estimates
 
-        df = injured_players()
+        tick = maybe_tick_injury_poll(enqueue=True)
+        if tick.get("should_enqueue") and tick.get("tick") == "due":
+            if background_tasks is not None:
+                background_tasks.add_task(run_injury_poll, False, True, "stale_while_revalidate")
+            else:
+                try:
+                    submit_cpu_job(run_injury_poll, False, True, "stale_while_revalidate")
+                except RuntimeError:
+                    # No running event loop (sync tests) — skip enqueue.
+                    pass
+
+        df = injured_players_from_disk()
         if team:
             teams = {t.strip().upper() for t in team.split(",") if t.strip()}
             if teams:
@@ -729,9 +755,85 @@ def injuries(
             if allowed:
                 df = df[df["position"].isin(allowed)]
         players = attach_return_estimates(df.to_dict(orient="records"))
-        return {"count": len(players), "players": players}
+        poll = get_injury_poll_status()
+        return {
+            "count": len(players),
+            "players": players,
+            "meta": {
+                "source": "sleeper_players_cache",
+                "served_from_cache": True,
+                "network_on_request": False,
+                "poll": {
+                    "phase": poll.get("phase"),
+                    "cadence_seconds": poll.get("cadence_seconds"),
+                    "last_success_at": poll.get("last_success_at"),
+                    "next_poll_at": poll.get("next_poll_at"),
+                    "poll_due": poll.get("poll_due"),
+                    "is_refreshing": poll.get("is_refreshing"),
+                    "players_cache_mtime": poll.get("players_cache_mtime"),
+                },
+            },
+        }
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.get("/api/injuries/poll")
+def injuries_poll_status(
+    background_tasks: BackgroundTasks = None,
+    _user=Depends(require_patron),
+) -> dict:
+    """Adaptive poller status; enqueues a due tick without blocking on Sleeper."""
+    tick = maybe_tick_injury_poll(enqueue=True)
+    if tick.get("should_enqueue") and tick.get("tick") == "due":
+        if background_tasks is not None:
+            background_tasks.add_task(run_injury_poll, False, True, "scheduled")
+        else:
+            try:
+                submit_cpu_job(run_injury_poll, False, True, "scheduled")
+            except RuntimeError:
+                pass
+    return get_injury_poll_status()
+
+
+@app.post("/api/injuries/refresh")
+def injuries_refresh(
+    force: bool = Query(
+        False,
+        description="Bypass manual cooldown (admin). Still enqueues; does not block.",
+    ),
+    background_tasks: BackgroundTasks = None,
+    user=Depends(require_patron),
+) -> dict:
+    """Rate-limited manual refresh: enqueue poll, serve current snapshot immediately."""
+    from src.integrations.injury_timeline import attach_return_estimates
+
+    is_admin = bool(is_admin_user(user if isinstance(user, dict) else None))
+    queued = enqueue_manual_injury_refresh(force=bool(force and is_admin))
+    if queued.get("should_enqueue"):
+        if background_tasks is not None:
+            background_tasks.add_task(run_injury_poll, True, True, "manual")
+        else:
+            try:
+                submit_cpu_job(run_injury_poll, True, True, "manual")
+            except RuntimeError:
+                pass
+
+    players = attach_return_estimates(injured_players_from_disk().to_dict(orient="records"))
+    status_code_hint = 200 if queued.get("allowed") else 429
+    return {
+        "status": queued.get("status"),
+        "allowed": queued.get("allowed"),
+        "retry_after_seconds": queued.get("retry_after_seconds"),
+        "http_status_hint": status_code_hint,
+        "poll": queued.get("poll") or get_injury_poll_status(),
+        "injuries": {"count": len(players), "players": players},
+        "message": (
+            "Refresh queued; serving current snapshot"
+            if queued.get("allowed")
+            else "Manual refresh rate-limited; serving current snapshot"
+        ),
+    }
 
 
 @app.get("/api/injury-overlays")
