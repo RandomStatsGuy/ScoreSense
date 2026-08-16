@@ -11,6 +11,7 @@ import InjurySidebar from "./InjurySidebar";
 import { pickReplacementCandidates } from "./injuryExperience";
 import SentimentPanel from "./SentimentPanel";
 import WeeklyTable from "./WeeklyTable";
+import { setIncludeHistoricalParam } from "./mediaContext";
 import PlayerCompare, { MAX_COMPARE as MAX_COMPARE_PLAYERS } from "./PlayerCompare";
 import useAccuracyRebuildPoll from "./useAccuracyRebuildPoll";
 import useAppNavigation from "./useAppNavigation";
@@ -147,6 +148,8 @@ export default function App() {
   const [sentimentMeta, setSentimentMeta] = useState(null);
   const [sentimentLoading, setSentimentLoading] = useState(false);
   const [sentimentError, setSentimentError] = useState("");
+  /** SCORE-28: opt-in key must match current slate or historical stays off. */
+  const [historicalSentimentOptInKey, setHistoricalSentimentOptInKey] = useState(null);
   const [seasonSentimentPlayers, setSeasonSentimentPlayers] = useState([]);
   const [seasonSentimentMeta, setSeasonSentimentMeta] = useState(null);
   const [seasonSentimentLoading, setSeasonSentimentLoading] = useState(false);
@@ -161,6 +164,11 @@ export default function App() {
   const isSeasonPreseason = view === "projections" && projectionsTab === "season" && seasonMode === "preseason";
   const isSeasonLive = view === "projections" && projectionsTab === "season" && seasonMode === "live";
   const isProjectionsDataView = isWeeklyProjections || isSeasonPreseason || isSeasonLive;
+  const weeklySentimentSlateKey =
+    season != null && week != null ? `${position}:${season}:${week}` : null;
+  const includeHistoricalSentiment =
+    Boolean(weeklySentimentSlateKey)
+    && historicalSentimentOptInKey === weeklySentimentSlateKey;
 
   const fetchDraft = useCallback(async (signal) => {
     if (draftSeason == null) return;
@@ -215,12 +223,18 @@ export default function App() {
   const fetchSentiment = useCallback(async (signal, override = null) => {
     const targetSeason = override?.season ?? season;
     const targetWeek = override?.week ?? week;
+    const includeHistorical = override?.includeHistorical ?? includeHistoricalSentiment;
     if (targetSeason == null || targetWeek == null) return;
     setSentimentLoading(true);
     setSentimentError("");
     try {
+      const params = new URLSearchParams({
+        season: String(targetSeason),
+        week: String(targetWeek),
+      });
+      setIncludeHistoricalParam(params, includeHistorical);
       const res = await apiFetch(
-        `/api/fantasy-narrative/${position}/weekly?season=${targetSeason}&week=${targetWeek}`,
+        `/api/fantasy-narrative/${position}/weekly?${params.toString()}`,
         { signal },
       );
       if (!res.ok) throw new Error(await parseApiError(res, "Failed to load fantasy weekly narrative"));
@@ -234,6 +248,7 @@ export default function App() {
         requested_season: data.requested_season,
         requested_week: data.requested_week,
         context_fallback: data.context_fallback,
+        media_context: data.media_context || null,
         count: data.count,
       });
     } catch (err) {
@@ -244,7 +259,7 @@ export default function App() {
     } finally {
       setSentimentLoading(false);
     }
-  }, [position, season, week]);
+  }, [position, season, week, includeHistoricalSentiment]);
 
   const fetchSeasonSentiment = useCallback(async (signal, override = null) => {
     const targetSeason = override?.season ?? rosSeason ?? season;
@@ -820,12 +835,16 @@ export default function App() {
   useEffect(() => {
     if (!isWeeklyProjections || season == null || week == null) return undefined;
     const controller = new AbortController();
-    Promise.all([
-      fetchProjections(controller.signal),
-      fetchSentiment(controller.signal),
-    ]);
+    fetchProjections(controller.signal);
     return () => controller.abort();
-  }, [isWeeklyProjections, fetchProjections, fetchSentiment, season, week, position]);
+  }, [isWeeklyProjections, fetchProjections, season, week, position]);
+
+  useEffect(() => {
+    if (!isWeeklyProjections || season == null || week == null) return undefined;
+    const controller = new AbortController();
+    fetchSentiment(controller.signal);
+    return () => controller.abort();
+  }, [isWeeklyProjections, fetchSentiment, season, week, position, includeHistoricalSentiment]);
 
   useEffect(() => {
     fetchMeta();
@@ -1386,6 +1405,12 @@ export default function App() {
               meta={sentimentMeta}
               loading={sentimentLoading}
               error={sentimentError}
+              includeHistorical={includeHistoricalSentiment}
+              onIncludeHistorical={() => {
+                if (weeklySentimentSlateKey) {
+                  setHistoricalSentimentOptInKey(weeklySentimentSlateKey);
+                }
+              }}
             />
           </div>
               </>

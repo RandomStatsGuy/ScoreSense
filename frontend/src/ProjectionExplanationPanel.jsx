@@ -3,6 +3,13 @@ import Chip, { sentimentChipTone } from "./Chip";
 import { apiFetch } from "./auth";
 import { connectionErrorMessage, parseApiError } from "./format";
 import { isAbortError } from "./fetchAbort";
+import HistoricalMediaOptIn from "./HistoricalMediaOptIn";
+import {
+  formatHistoricalWeekLabel,
+  isHistoricalAvailable,
+  pickHistoricalWeek,
+  setIncludeHistoricalParam,
+} from "./mediaContext";
 
 function directionGlyph(direction) {
   if (direction === "up") return "↑";
@@ -35,6 +42,7 @@ function SignalRow({ signal }) {
 /**
  * Structured "Why this projection?" panel — GET /api/player/{id}/explanation (SCORE-5).
  * Model signals and narrative/sentiment overlay are visually separated.
+ * SCORE-28: historical narrative requires explicit opt-in.
  */
 export default function ProjectionExplanationPanel({
   playerId,
@@ -48,6 +56,11 @@ export default function ProjectionExplanationPanel({
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [includeHistorical, setIncludeHistorical] = useState(false);
+
+  useEffect(() => {
+    setIncludeHistorical(false);
+  }, [playerId, season, week]);
 
   useEffect(() => {
     if (!active || !playerId) {
@@ -66,6 +79,7 @@ export default function ProjectionExplanationPanel({
     if (week != null) params.set("week", String(week));
     if (position) params.set("position", String(position));
     params.set("apply_injury_adjustments", applyInjuryAdjustments ? "true" : "false");
+    setIncludeHistoricalParam(params, includeHistorical);
     const q = params.toString() ? `?${params.toString()}` : "";
 
     (async () => {
@@ -88,7 +102,7 @@ export default function ProjectionExplanationPanel({
     })();
 
     return () => controller.abort();
-  }, [active, playerId, season, week, position, applyInjuryAdjustments]);
+  }, [active, playerId, season, week, position, applyInjuryAdjustments, includeHistorical]);
 
   if (!active || !playerId) return null;
 
@@ -96,6 +110,11 @@ export default function ProjectionExplanationPanel({
   const narrative = data?.narrative_context;
   const movement = data?.movement;
   const narrativeAvailable = Boolean(narrative?.available);
+  const media = narrative?.media_context;
+  const historical = pickHistoricalWeek(media);
+  const historicalLabel = formatHistoricalWeekLabel(historical);
+  const showHistoricalOptIn =
+    !narrativeAvailable && isHistoricalAvailable(media) && !includeHistorical;
 
   return (
     <section
@@ -156,6 +175,15 @@ export default function ProjectionExplanationPanel({
             )}
             {narrativeAvailable ? (
               <div className="projection-explanation-narrative-body">
+                {narrative.context_fallback || isHistoricalAvailable(media) ? (
+                  <p className="sentiment-fallback-banner" role="status">
+                    Older commentary
+                    {historicalLabel || (narrative.season != null && narrative.week != null)
+                      ? ` from ${historicalLabel || `${narrative.season} Week ${narrative.week}`}`
+                      : ""}
+                    {" — not current-week coverage."}
+                  </p>
+                ) : null}
                 {narrative.sentiment_label ? (
                   <Chip
                     tone={sentimentChipTone(narrative.sentiment_label)}
@@ -175,16 +203,14 @@ export default function ProjectionExplanationPanel({
                     || narrative.snippet
                     || "Narrative available but no digest text."}
                 </p>
-                {narrative.context_fallback ? (
-                  <p className="chart-note">
-                    Showing nearest available narrative week
-                    {narrative.season != null && narrative.week != null
-                      ? ` (${narrative.season} W${narrative.week})`
-                      : ""}
-                    .
-                  </p>
-                ) : null}
               </div>
+            ) : showHistoricalOptIn ? (
+              <HistoricalMediaOptIn
+                requestedWeek={week}
+                media={media}
+                loading={loading}
+                onViewOlder={() => setIncludeHistorical(true)}
+              />
             ) : (
               <p className="state-empty-text projection-explanation-empty">
                 No narrative context for this player yet.

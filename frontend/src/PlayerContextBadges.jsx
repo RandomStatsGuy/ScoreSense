@@ -9,6 +9,7 @@ import {
   mediaSignalTone,
   shouldShowProjectionAssumesActive,
 } from "./playerContextDisplay";
+import { canShowCurrentWeekMediaBadge } from "./mediaContext";
 
 /**
  * Compact chips for weekly list rows — availability / opportunity / media
@@ -74,7 +75,8 @@ export default function PlayerContextBadges({
     }
   }
 
-  if (media?.state === "current" && media?.signal) {
+  // SCORE-28: only current-week media gets a list badge — never historical.
+  if (canShowCurrentWeekMediaBadge(media)) {
     const label = mediaSignalLabel(media.signal);
     chips.push(
       <span key="media" className="player-context-badge-group">
