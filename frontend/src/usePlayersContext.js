@@ -5,8 +5,9 @@ import { connectionErrorMessage, parseApiError } from "./format";
 import { indexPlayersContext } from "./playerContextDisplay";
 
 /**
- * Batch-load the SCORE-23 cached player-context list for a slate.
- * One GET /api/players/context per season/week — no live YouTube/LLM/predict.
+ * Batch-load the SCORE-23/30 cached player-context list for a slate.
+ * One GET /api/players/context?compact=true per season/week — table-safe fields only.
+ * Heavy excerpts/sources/summaries/drivers lazy-load via PlayerContextPanel detail.
  */
 export default function usePlayersContext(season, week, { enabled = true } = {}) {
   const [byId, setById] = useState(() => new Map());
@@ -33,6 +34,8 @@ export default function usePlayersContext(season, week, { enabled = true } = {})
     const params = new URLSearchParams();
     params.set("season", String(season));
     params.set("week", String(week));
+    // SCORE-30: always request compact list; never pull narrative bodies for tables.
+    params.set("compact", "true");
     const q = `?${params.toString()}`;
 
     (async () => {

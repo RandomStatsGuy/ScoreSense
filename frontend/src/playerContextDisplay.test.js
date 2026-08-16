@@ -4,7 +4,9 @@ import {
   TRUST_LABEL,
   canLabelIncludedInProjection,
   commentaryOnlyLabel,
+  formatInjuryAgeHours,
   formatOppPoints,
+  isDetailAvailable,
   shouldShowProjectionAssumesActive,
   parseContextTime,
 } from "./playerContextDisplay.js";
@@ -36,6 +38,25 @@ test("formatOppPoints formats signed tenths", () => {
   assert.equal(formatOppPoints(2.1), "+2.1");
   assert.equal(formatOppPoints(-1.25), "−1.3");
   assert.equal(formatOppPoints(0), null);
+});
+
+test("isDetailAvailable respects SCORE-30 compact flag", () => {
+  assert.equal(isDetailAvailable(null), false);
+  assert.equal(isDetailAvailable({ detail_available: false }), false);
+  assert.equal(isDetailAvailable({ detail_available: true }), true);
+  assert.equal(
+    isDetailAvailable(baseContext()),
+    true,
+    "detail payloads without flag still expand",
+  );
+});
+
+test("formatInjuryAgeHours formats compact badge ages", () => {
+  assert.equal(formatInjuryAgeHours(null), null);
+  assert.equal(formatInjuryAgeHours(-1), null);
+  assert.equal(formatInjuryAgeHours(0.4), "<1h");
+  assert.equal(formatInjuryAgeHours(6.2), "6h");
+  assert.equal(formatInjuryAgeHours(72), "3d");
 });
 
 test("canLabelIncludedInProjection requires included + freshness", () => {
@@ -128,4 +149,28 @@ test("parseContextTime handles ISO and unix", () => {
   assert.ok(parseContextTime(1_700_000_000_000));
   assert.equal(parseContextTime(null), null);
   assert.equal(parseContextTime("not-a-date"), null);
+});
+
+test("compact list opportunity has points/included without drivers", () => {
+  const compact = {
+    opportunity_adjustment: { points: 2.1, included: true },
+    media_context: {
+      state: "current",
+      signal: "role_up",
+      source_count: 3,
+      affects_projection: false,
+    },
+    availability: { status: "Questionable", age_hours: 5.5 },
+    detail_available: true,
+    meta: { view: "compact", stale: false },
+  };
+  assert.equal(isDetailAvailable(compact), true);
+  assert.equal(formatOppPoints(compact.opportunity_adjustment.points), "+2.1");
+  assert.equal(formatInjuryAgeHours(compact.availability.age_hours), "6h");
+  assert.equal(
+    compact.opportunity_adjustment.drivers,
+    undefined,
+    "compact rows omit drivers",
+  );
+  assert.equal(compact.media_context.summary, undefined);
 });

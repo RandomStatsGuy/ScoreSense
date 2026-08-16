@@ -150,15 +150,23 @@ def run_weekly_refresh(
         except Exception as exc:
             sentiment_status = {"status": "error", "detail": str(exc)}
 
-    beat_digest_status = None
+    fantasy_media_digest_status = None
     try:
-        from src.jobs.prewarm_beat_digests import prewarm_beat_digests
+        from src.jobs.prewarm_fantasy_media_digests import prewarm_fantasy_media_digests
 
-        beat_digest_status = prewarm_beat_digests(season=season, week=week)
+        fantasy_media_digest_status = prewarm_fantasy_media_digests(season=season, week=week)
     except Exception as exc:
-        beat_digest_status = {"status": "error", "detail": str(exc)}
+        fantasy_media_digest_status = {"status": "error", "detail": str(exc)}
 
     # After weekly inj/no_inj + sentiment/digests so media_context can be materialized.
+    injury_overlay_status = None
+    try:
+        from src.projections.injury_overlay import prewarm_injury_overlays
+
+        injury_overlay_status = prewarm_injury_overlays(season, week, force=True)
+    except Exception as exc:
+        injury_overlay_status = {"status": "error", "detail": str(exc)}
+
     player_context_status = None
     try:
         from src.projections.player_context import prewarm_player_context
@@ -180,13 +188,14 @@ def run_weekly_refresh(
         "weekly_predictions_prewarm": weekly_prewarm,
         "projection_movement": projection_movement_status,
         "ros_predictions_prewarm": ros_prewarm,
+        "injury_overlay_prewarm": injury_overlay_status,
         "player_context_prewarm": player_context_status,
         "fantasypros_archive": fp_status,
         "fantasypros_draft_ecr": fp_draft_ecr,
         "dfs_slates": dfs_slate_status,
         "props_archive": props_status,
         "sentiment_refresh": sentiment_status,
-        "beat_digest_prewarm": beat_digest_status,
+        "fantasy_media_digest_prewarm": fantasy_media_digest_status,
         "draft_projections": draft_counts or None,
         "draft_pool_artifact": draft_pool_status,
     }

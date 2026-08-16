@@ -3,15 +3,24 @@ import Chip, { injuryChipTone } from "./Chip";
 import { apiFetch } from "./auth";
 import { isAbortError } from "./fetchAbort";
 import { connectionErrorMessage, formatRelativeTime, parseApiError } from "./format";
+import HistoricalMediaOptIn from "./HistoricalMediaOptIn";
 import ProjectionTrustLabel from "./ProjectionTrustLabel";
 import {
   canLabelIncludedInProjection,
+  formatInjuryAgeHours,
   formatOppPoints,
   formatProjPts,
   mediaSignalLabel,
   mediaSignalTone,
   shouldShowProjectionAssumesActive,
 } from "./playerContextDisplay";
+import {
+  formatHistoricalWeekLabel,
+  isCurrentMedia,
+  isHistoricalAvailable,
+  pickHistoricalWeek,
+  setIncludeHistoricalParam,
+} from "./mediaContext";
 
 function ContextStat({ label, value, emphasis = false, hint }) {
   return (
@@ -26,7 +35,9 @@ function ContextStat({ label, value, emphasis = false, hint }) {
 /**
  * Detail panel for SCORE-23 cached player-context read model.
  * SCORE-24: explicit Included / Commentary / Assumes-active trust labels.
- * GET /api/player/{id}/context — artifact only (zero live work on page view).
+ * SCORE-28: historical media requires View older commentary opt-in.
+ * SCORE-30: lazy-loads full detail (excerpts/sources/drivers) via
+ * GET /api/player/{id}/context — artifact only (zero live work on expand).
  */
 export default function PlayerContextPanel({
   playerId,
@@ -39,6 +50,11 @@ export default function PlayerContextPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [cold, setCold] = useState(false);
+  const [includeHistorical, setIncludeHistorical] = useState(false);
+
+  useEffect(() => {
+    setIncludeHistorical(false);
+  }, [playerId, season, week]);
 
   useEffect(() => {
     if (!active || !playerId) {
@@ -57,6 +73,7 @@ export default function PlayerContextPanel({
     const params = new URLSearchParams();
     if (season != null) params.set("season", String(season));
     if (week != null) params.set("week", String(week));
+    setIncludeHistoricalParam(params, includeHistorical);
     const q = params.toString() ? `?${params.toString()}` : "";
 
     (async () => {
@@ -92,7 +109,7 @@ export default function PlayerContextPanel({
     })();
 
     return () => controller.abort();
-  }, [active, playerId, season, week]);
+  }, [active, playerId, season, week, includeHistorical]);
 
   if (!active || !playerId) return null;
 
@@ -110,11 +127,62 @@ export default function PlayerContextPanel({
   const deltaLabel = formatOppPoints(proj?.injury_delta);
   const oppPts = formatOppPoints(opp?.points);
   const mediaLabel = mediaSignalLabel(media?.signal);
-  const mediaUpdated = formatRelativeTime(media?.updated_at);
   const availUpdated = formatRelativeTime(avail?.updated_at);
   const builtAt = formatRelativeTime(meta?.artifact_built_at || meta?.context_built_at);
   const showIncluded = data ? canLabelIncludedInProjection(data) : false;
   const showAssumesActive = data ? shouldShowProjectionAssumesActive(data) : false;
+  const historical = pickHistoricalWeek(media);
+  const historicalLabel = formatHistoricalWeekLabel(historical);
+  const mediaBody = media?.summary || media?.excerpt;
+  const showCurrentMedia = isCurrentMedia(media) && (mediaLabel || mediaBody);
+  const showHistoricalOptIn =
+    isHistoricalAvailable(media) && !includeHistorical && !mediaBody;
+  const showHistoricalContent =
+    isHistoricalAvailable(media) && includeHistorical && (mediaBody || mediaLabel);
+
+  function renderMediaBody(bodyMedia, { emptyNote = "Signal present; no digest summary." } = {}) {
+    const label = mediaSignalLabel(bodyMedia?.signal);
+    const summary = bodyMedia?.summary;
+    const excerpt = bodyMedia?.excerpt;
+    const sources = Array.isArray(bodyMedia?.sources) ? bodyMedia.sources : [];
+    const updated = formatRelativeTime(bodyMedia?.updated_at);
+    return (
+      <div className="player-context-media-body">
+        {label ? (
+          <Chip tone={mediaSignalTone(bodyMedia.signal)}>
+            {label}
+            {Number(bodyMedia.source_count) > 0
+              ? ` · ${bodyMedia.source_count} source${bodyMedia.source_count === 1 ? "" : "s"}`
+              : ""}
+          </Chip>
+        ) : null}
+        {summary ? (
+          <p className="player-context-media-summary">{summary}</p>
+        ) : null}
+        {excerpt && excerpt !== summary ? (
+          <p className="player-context-media-excerpt">{excerpt}</p>
+        ) : null}
+        {!summary && !excerpt ? (
+          <p className="chart-note">{emptyNote}</p>
+        ) : null}
+        {sources.length ? (
+          <ul className="player-context-media-sources" aria-label="Media sources">
+            {sources.slice(0, 6).map((src, i) => {
+              const text = src?.label || src?.network_label || src?.network || "Source";
+              return (
+                <li key={`${text}-${i}`}>
+                  <Chip tone="neutral" className="player-context-source-chip">
+                    {text}
+                  </Chip>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+        {updated ? <p className="chart-note">{updated}</p> : null}
+      </div>
+    );
+  }
 
   return (
     <section
@@ -203,7 +271,14 @@ export default function PlayerContextPanel({
               <p className="state-empty-text player-context-empty">No availability flags.</p>
             )}
             {availUpdated ? (
-              <p className="chart-note">{availUpdated}</p>
+              <p className="chart-note">
+                {availUpdated}
+                {formatInjuryAgeHours(avail?.age_hours)
+                  ? ` · ${formatInjuryAgeHours(avail.age_hours)} old`
+                  : ""}
+              </p>
+            ) : formatInjuryAgeHours(avail?.age_hours) ? (
+              <p className="chart-note">{formatInjuryAgeHours(avail.age_hours)} old</p>
             ) : null}
           </div>
 
@@ -243,27 +318,31 @@ export default function PlayerContextPanel({
           <div className="player-context-block player-context-block--media">
             <div className="player-context-media-head">
               <h4 className="player-context-block-title">Media context</h4>
-              <ProjectionTrustLabel kind="commentary" />
+              {showCurrentMedia || showHistoricalContent ? (
+                <ProjectionTrustLabel kind="commentary" />
+              ) : null}
             </div>
-            {media?.state === "current" ? (
-              <div className="player-context-media-body">
-                {mediaLabel ? (
-                  <Chip tone={mediaSignalTone(media.signal)}>
-                    {mediaLabel}
-                    {Number(media.source_count) > 0
-                      ? ` · ${media.source_count} source${media.source_count === 1 ? "" : "s"}`
-                      : ""}
-                  </Chip>
+            {showCurrentMedia ? (
+              renderMediaBody(media)
+            ) : showHistoricalOptIn ? (
+              <HistoricalMediaOptIn
+                requestedWeek={meta?.week ?? week}
+                media={media}
+                loading={loading}
+                onViewOlder={() => setIncludeHistorical(true)}
+              />
+            ) : showHistoricalContent ? (
+              <>
+                {historicalLabel ? (
+                  <p className="sentiment-fallback-banner player-context-historical-banner" role="status">
+                    Older commentary from <strong>{historicalLabel}</strong>
+                    {" — not current-week coverage."}
+                  </p>
                 ) : null}
-                {media.summary ? (
-                  <p className="player-context-media-summary">{media.summary}</p>
-                ) : (
-                  <p className="chart-note">Signal present; no digest summary.</p>
-                )}
-                {mediaUpdated ? (
-                  <p className="chart-note">{mediaUpdated}</p>
-                ) : null}
-              </div>
+                {renderMediaBody(media, {
+                  emptyNote: "Older coverage present; no digest summary.",
+                })}
+              </>
             ) : (
               <p className="state-empty-text player-context-empty">
                 No media context for this player yet.

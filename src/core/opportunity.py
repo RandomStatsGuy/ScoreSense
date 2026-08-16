@@ -1,6 +1,15 @@
-"""Injury-driven opportunity adjustments for projections."""
+"""Teammate-availability opportunity adjustments for projections.
+
+Product/API language: **Opportunity adjustment** (points or fraction delta driven
+by teammate availability). Internal feature column remains
+``injury_opportunity_boost``; prediction table columns use the display name
+``Opportunity Adjustment`` with a temporary ``Injury Boost`` compat alias.
+"""
 
 from __future__ import annotations
+
+import re
+from typing import Any, Iterable
 
 import pandas as pd
 
@@ -14,6 +23,33 @@ STATUS_WEIGHT = {
     "Questionable": 0.35,
 }
 
+# ROS near-term horizons (weeks) aligned with data/injury/return_heuristics.yaml
+# defaults (weeks_max / mid-window). Current-week opportunity must not be
+# multiplied across every remaining game for short-lived tags like Questionable.
+ROS_OPPORTUNITY_HORIZON_WEEKS: dict[str, int] = {
+    "Out": 1,
+    "IR": 6,
+    "PUP": 9,
+    "Doubtful": 2,
+    "Questionable": 1,
+}
+DEFAULT_ROS_OPPORTUNITY_HORIZON_WEEKS = 1
+
+_NOTE_STATUS_RE = re.compile(
+    r"^\s*(?P<name>.+?)\s*(?:\((?P<status>[^)]*)\))?\s*$"
+)
+
+# Canonical prediction-frame column (API records / CSV / parquet).
+OPPORTUNITY_ADJUSTMENT_COL = "Opportunity Adjustment"
+# Temporary read/write alias while clients migrate off the old name.
+OPPORTUNITY_ADJUSTMENT_LEGACY_COL = "Injury Boost"
+OPPORTUNITY_ADJUSTMENT_KEYS: tuple[str, ...] = (
+    OPPORTUNITY_ADJUSTMENT_COL,
+    "opportunity_adjustment",
+    OPPORTUNITY_ADJUSTMENT_LEGACY_COL,
+    "injury_boost",
+)
+
 
 def _name_col(df: pd.DataFrame) -> str:
     if "player_display_name" in df.columns:
@@ -21,6 +57,75 @@ def _name_col(df: pd.DataFrame) -> str:
     if "player_name" in df.columns:
         return "player_name"
     return "Player"
+
+
+def parse_injury_note_statuses(injury_note: str | None) -> list[str]:
+    """Extract injury status labels from an ``Injury Note`` string.
+
+    Notes look like ``\"Ja'Marr Chase (Questionable); Other (Out)\"``.
+    """
+    note = str(injury_note or "").strip()
+    if not note:
+        return []
+    statuses: list[str] = []
+    for segment in note.split(";"):
+        segment = segment.strip()
+        if not segment:
+            continue
+        match = _NOTE_STATUS_RE.match(segment)
+        if not match:
+            continue
+        status = (match.group("status") or "").strip()
+        if status:
+            statuses.append(status)
+    return statuses
+
+
+def ros_opportunity_horizon_weeks(
+    statuses: Iterable[str] | None = None,
+    *,
+    injury_note: str | None = None,
+    has_opportunity: bool = False,
+) -> int:
+    """Return-window horizon (weeks) for applying current opportunity to ROS.
+
+    Uses the max status horizon from ``ROS_OPPORTUNITY_HORIZON_WEEKS``. When a
+    boost is present but statuses are unknown, defaults to
+    ``DEFAULT_ROS_OPPORTUNITY_HORIZON_WEEKS`` (Questionable-scale).
+    """
+    resolved = list(statuses or [])
+    if not resolved and injury_note:
+        resolved = parse_injury_note_statuses(injury_note)
+    if not resolved:
+        return DEFAULT_ROS_OPPORTUNITY_HORIZON_WEEKS if has_opportunity else 0
+    return max(
+        ROS_OPPORTUNITY_HORIZON_WEEKS.get(str(status).strip(), DEFAULT_ROS_OPPORTUNITY_HORIZON_WEEKS)
+        for status in resolved
+    )
+
+
+def ros_opportunity_decay_factors(horizon_weeks: int, weeks_remaining: int) -> list[float]:
+    """Per-offset decay factors for current-week opportunity over remaining weeks.
+
+    Linear decay to zero by ``horizon_weeks``:
+
+    * ``factor[k] = max(0, 1 - k / horizon_weeks)`` for ``k`` in ``0 .. weeks_remaining-1``
+    * Questionable (horizon=1) → ``[1.0, 0, 0, ...]`` — this week only
+    * Doubtful (horizon=2) → ``[1.0, 0.5, 0, ...]``
+
+    Weekly single-week projections are unchanged; only ROS aggregation uses these
+    factors so short-lived designations do not inflate season-long totals.
+    """
+    remaining = max(0, int(weeks_remaining))
+    horizon = max(0, int(horizon_weeks))
+    if remaining <= 0 or horizon <= 0:
+        return [0.0] * remaining
+    return [max(0.0, 1.0 - (k / float(horizon))) for k in range(remaining)]
+
+
+def effective_ros_opportunity_weeks(horizon_weeks: int, weeks_remaining: int) -> float:
+    """Sum of decay factors — effective weeks of current opportunity credited to ROS."""
+    return float(sum(ros_opportunity_decay_factors(horizon_weeks, weeks_remaining)))
 
 
 def compute_vacated_usage(
@@ -83,17 +188,87 @@ def compute_vacated_usage(
     return out
 
 
+def pick_opportunity_adjustment(
+    row: dict[str, Any] | pd.Series | None,
+    keys: Iterable[str] = OPPORTUNITY_ADJUSTMENT_KEYS,
+) -> float | None:
+    """Read opportunity adjustment fraction from a row (canonical + legacy aliases)."""
+    if row is None:
+        return None
+    getter = row.get if hasattr(row, "get") else None
+    for key in keys:
+        raw = getter(key) if getter is not None else (row[key] if key in row.index else None)
+        if raw is None or raw == "":
+            continue
+        try:
+            if pd.isna(raw):
+                continue
+        except (TypeError, ValueError):
+            pass
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def attach_opportunity_adjustment(
+    frame: pd.DataFrame,
+    values: pd.Series | float,
+    *,
+    include_legacy_alias: bool = True,
+) -> pd.DataFrame:
+    """Write canonical Opportunity Adjustment (+ optional Injury Boost alias)."""
+    result = frame
+    series = (
+        pd.Series(values, index=result.index, dtype="float64")
+        if not isinstance(values, pd.Series)
+        else pd.to_numeric(values, errors="coerce")
+    )
+    series = series.reindex(result.index).fillna(0.0).astype(float)
+    result[OPPORTUNITY_ADJUSTMENT_COL] = series
+    if include_legacy_alias:
+        result[OPPORTUNITY_ADJUSTMENT_LEGACY_COL] = series
+    return result
+
+
+def ensure_opportunity_adjustment_columns(
+    frame: pd.DataFrame,
+    *,
+    include_legacy_alias: bool = True,
+) -> pd.DataFrame:
+    """Normalize opportunity columns on load so serve paths expose the new name.
+
+    Accepts frames that only have the legacy ``Injury Boost`` column (cold
+    artifacts) and dual-writes the canonical name during the alias period.
+    """
+    if frame is None or frame.empty:
+        return frame
+    source = None
+    for key in OPPORTUNITY_ADJUSTMENT_KEYS:
+        if key in frame.columns:
+            source = pd.to_numeric(frame[key], errors="coerce").fillna(0.0)
+            break
+    if source is None:
+        return frame
+    out = frame.copy()
+    return attach_opportunity_adjustment(
+        out, source, include_legacy_alias=include_legacy_alias
+    )
+
+
 def apply_opportunity_to_projections(
     projections: pd.DataFrame,
     roster_df: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Scale projections by injury opportunity boost (used by legacy callers)."""
+    """Scale projections by opportunity adjustment (used by legacy callers)."""
     roster = compute_vacated_usage(roster_df)
     name_col = _name_col(roster)
     boost = roster.set_index(name_col)["injury_opportunity_boost"]
     result = projections.copy()
-    result["Injury Boost"] = result["Player"].map(boost).fillna(0.0)
-    multiplier = 1.0 + result["Injury Boost"].clip(0, 0.35)
+    mapped = result["Player"].map(boost).fillna(0.0)
+    attach_opportunity_adjustment(result, mapped)
+    multiplier = 1.0 + result[OPPORTUNITY_ADJUSTMENT_COL].clip(0, 0.35)
     for col in ("Projected Points", "Low (P10)", "High (P90)"):
         if col in result.columns:
             result[col] = result[col] * multiplier

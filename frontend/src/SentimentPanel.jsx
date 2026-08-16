@@ -4,9 +4,21 @@ import { isAbortError } from "./fetchAbort";
 import Chip from "./Chip";
 import HoverTip, { TipLine, TipTitle } from "./HoverTip";
 import { connectionErrorMessage, fmtMentions, parseApiError } from "./format";
+import HistoricalMediaOptIn from "./HistoricalMediaOptIn";
 import SentimentBadge from "./SentimentBadge";
 import SentimentMeter from "./SentimentMeter";
 import useMobileLayout from "./useMobileLayout";
+import {
+  formatHistoricalWeekLabel,
+  isHistoricalAvailable,
+  mergeMediaMetaFields,
+  pickHistoricalWeek,
+  setIncludeHistoricalParam,
+} from "./mediaContext";
+import {
+  pickFantasyMediaDigest,
+  pickFantasyMediaDigestSource,
+} from "./fantasyMediaDigest";
 
 const SentimentCharts = lazy(() => import("./SentimentCharts"));
 
@@ -25,6 +37,7 @@ const NETWORK_CHIP_TONE = {
 
 function mergeSentimentMeta(data) {
   if (!data) return null;
+  const mediaFields = mergeMediaMetaFields(data) || {};
   return {
     ...(data.meta || {}),
     scope: data.scope,
@@ -33,16 +46,17 @@ function mergeSentimentMeta(data) {
     requested_season: data.requested_season,
     requested_week: data.requested_week,
     context_fallback: data.context_fallback,
+    media_context: mediaFields.media_context,
     count: data.count,
   };
 }
 
 function digestText(row) {
-  return row.fantasy_digest?.trim() || row.beat_digest?.trim() || "";
+  return pickFantasyMediaDigest(row);
 }
 
 function digestSource(row) {
-  return row.fantasy_digest_source || row.beat_digest_source;
+  return pickFantasyMediaDigestSource(row);
 }
 
 function trendLabel(trend) {
@@ -142,6 +156,8 @@ export default function SentimentPanel({
   meta: metaProp,
   loading: loadingProp,
   error: errorProp,
+  includeHistorical: includeHistoricalProp,
+  onIncludeHistorical,
   className = "",
 }) {
   const mobileLayout = useMobileLayout();
@@ -149,6 +165,7 @@ export default function SentimentPanel({
   const [metaLocal, setMetaLocal] = useState(null);
   const [loadingLocal, setLoadingLocal] = useState(false);
   const [errorLocal, setErrorLocal] = useState("");
+  const [includeHistoricalLocal, setIncludeHistoricalLocal] = useState(false);
   // Collapsed by default in the desktop sidebar; on mobile the panel IS the
   // "Analyst" tab the user tapped, so it must render its content directly.
   const [openState, setOpenState] = useState(null);
@@ -161,7 +178,7 @@ export default function SentimentPanel({
   const panelTitle = isSeason ? "Season analyst context" : "Analyst context";
   const panelSubtitle = isSeason
     ? "YouTube fantasy analysts — season-to-date outlook, not in projections."
-    : "YouTube fantasy analysts — does not change projections or injury boosts.";
+    : "YouTube fantasy analysts — does not change projections or opportunity adjustments.";
   const apiPath = isSeason
     ? `/api/fantasy-narrative/${position}/season`
     : `/api/fantasy-narrative/${position}/weekly`;
@@ -171,14 +188,34 @@ export default function SentimentPanel({
   const meta = controlled ? metaProp : metaLocal;
   const loading = controlled ? Boolean(loadingProp) : loadingLocal;
   const error = controlled ? errorProp || "" : errorLocal;
+  const includeHistorical = controlled
+    ? Boolean(includeHistoricalProp)
+    : includeHistoricalLocal;
+
+  useEffect(() => {
+    if (!controlled) setIncludeHistoricalLocal(false);
+  }, [controlled, position, season, week, scope]);
+
+  const requestIncludeHistorical = useCallback(() => {
+    if (controlled) {
+      onIncludeHistorical?.(true);
+      return;
+    }
+    setIncludeHistoricalLocal(true);
+  }, [controlled, onIncludeHistorical]);
 
   const fetchSentiment = useCallback(async (signal) => {
     if (controlled || season == null || week == null) return;
     setLoadingLocal(true);
     setErrorLocal("");
     try {
+      const params = new URLSearchParams({
+        season: String(season),
+        week: String(week),
+      });
+      if (!isSeason) setIncludeHistoricalParam(params, includeHistorical);
       const res = await apiFetch(
-        `${apiPath}?season=${season}&week=${week}`,
+        `${apiPath}?${params.toString()}`,
         { signal },
       );
       if (!res.ok) throw new Error(await parseApiError(res, `Failed to load ${panelTitle.toLowerCase()}`));
@@ -194,7 +231,7 @@ export default function SentimentPanel({
     } finally {
       setLoadingLocal(false);
     }
-  }, [controlled, apiPath, panelTitle, position, season, week]);
+  }, [controlled, apiPath, panelTitle, position, season, week, includeHistorical, isSeason]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -213,6 +250,15 @@ export default function SentimentPanel({
   }, [players, filter]);
 
   const hasData = players.length > 0;
+  const media = meta?.media_context;
+  const historical = pickHistoricalWeek(media);
+  const historicalLabel = formatHistoricalWeekLabel(historical);
+  const showHistoricalOptIn =
+    !isSeason
+    && !hasData
+    && !loading
+    && isHistoricalAvailable(media)
+    && !includeHistorical;
 
   const summary = useMemo(() => {
     if (!meta) return null;
@@ -223,41 +269,33 @@ export default function SentimentPanel({
     if (meta.season != null && meta.week != null) {
       parts.push(isSeason ? `${meta.season} · through W${meta.week}` : `${meta.season} · W${meta.week}`);
     }
-    if (meta.context_fallback && meta.requested_season != null && meta.requested_week != null) {
-      const reqLabel = `${meta.requested_season} W${meta.requested_week}`;
-      const shownLabel = `${meta.season ?? season} W${meta.week ?? week}`;
-      if (reqLabel !== shownLabel) {
-        parts.push(`showing ${shownLabel}`);
-      } else {
-        parts.push(`fallback from ${reqLabel}`);
-      }
+    if (meta.context_fallback && historicalLabel) {
+      parts.push(`older from ${historicalLabel}`);
+    } else if (isHistoricalAvailable(media) && !includeHistorical) {
+      parts.push("older commentary available");
     }
     if (meta.last_refresh) {
       parts.push(`Updated ${new Date(meta.last_refresh).toLocaleString()}`);
     }
     return parts.join(" · ");
-  }, [meta, isSeason]);
+  }, [meta, isSeason, historicalLabel, media, includeHistorical]);
 
   const fallbackBanner = useMemo(() => {
-    if (!meta?.context_fallback) return null;
-    const shownSeason = meta.season ?? season;
-    const shownWeek = meta.week ?? week;
-    const reqSeason = meta.requested_season ?? season;
-    const reqWeek = meta.requested_week ?? week;
+    if (!meta?.context_fallback && !(includeHistorical && isHistoricalAvailable(media))) {
+      return null;
+    }
+    const shownLabel = historicalLabel
+      || (meta.season != null && meta.week != null
+        ? `${meta.season} Week ${meta.week}`
+        : null);
+    if (!shownLabel) return null;
     return (
       <div className="sentiment-fallback-banner sentiment-fallback-banner--prominent" role="status">
-        <strong>Historical context</strong>
-        {" — "}
-        no {reqSeason} Week {reqWeek} data yet
-        {shownSeason != null && shownWeek != null ? (
-          <>
-            . Showing <strong>{shownSeason} Wk {shownWeek}</strong>
-          </>
-        ) : null}
-        .
+        Older commentary from <strong>{shownLabel}</strong>
+        {" — not current-week coverage."}
       </div>
     );
-  }, [meta, season, week]);
+  }, [meta, includeHistorical, media, historicalLabel]);
 
   return (
     <section
@@ -341,7 +379,16 @@ export default function SentimentPanel({
             <div className="sentiment-charts-empty">Loading {panelTitle.toLowerCase()}…</div>
           )}
 
-          {!loading && !hasData && (
+          {!loading && showHistoricalOptIn && (
+            <HistoricalMediaOptIn
+              className="sentiment-historical-opt-in"
+              requestedWeek={meta?.requested_week ?? week}
+              media={media}
+              onViewOlder={requestIncludeHistorical}
+            />
+          )}
+
+          {!loading && !hasData && !showHistoricalOptIn && (
             <div className="state-empty-callout sentiment-charts-empty">
               {isSeason
                 ? "No analyst context for this season yet — data appears once in-season YouTube mentions are ingested."

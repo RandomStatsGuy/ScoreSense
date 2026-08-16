@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 
 from src.config import PROCESSED_DATA_DIR, SENTIMENT_FEATURES_PATH
+from src.core.opportunity import pick_opportunity_adjustment
 from src.core.projection_context import resolve_projection_context
 from src.projections.player_compare import volatility
 from src.projections.weekly_cache import load_weekly_prediction
@@ -27,7 +28,7 @@ _P10_KEYS = ("Low (P10)", "P10", "p10")
 _P90_KEYS = ("High (P90)", "P90", "p90")
 
 # Opportunity / usage thresholds (artifact-relative).
-_INJURY_BOOST_UP = 0.05
+_OPPORTUNITY_ADJUSTMENT_UP = 0.05
 _SHARE_PCT_UP = 0.65
 _SHARE_PCT_DOWN = 0.35
 _OPP_RANK_FAVORABLE = 22  # higher Opp Def Rank = softer (more EPA allowed)
@@ -36,7 +37,7 @@ _VOL_HIGH = 0.70
 _VOL_LOW = 0.35
 
 _NARRATIVE_DISCLAIMER = (
-    "Sentiment and beat/fantasy digests are contextual overlays — "
+    "Sentiment and fantasy media digests are contextual overlays — "
     "they are not ScoreSense projection drivers."
 )
 
@@ -268,6 +269,15 @@ def _empty_narrative() -> dict[str, Any]:
         "season": None,
         "week": None,
         "context_fallback": False,
+        "media_context": {
+            "state": "none",
+            "signal": None,
+            "source_count": 0,
+            "summary": None,
+            "updated_at": None,
+            "historical": None,
+            "affects_projection": False,
+        },
     }
 
 
@@ -277,8 +287,21 @@ def _narrative_from_sentiment(
     season: int,
     week: int,
     player_name: str | None,
+    include_historical: bool = False,
 ) -> dict[str, Any]:
-    """Read pre-aggregated sentiment parquet only — no live scrape, no LLM on miss."""
+    """Read pre-aggregated sentiment parquet only — no live scrape, no LLM on miss.
+
+    SCORE-28: do not silently inject historical rows as current-week narrative.
+    Historical content requires ``include_historical=True``.
+    """
+    from src.sentiment.media_context import (
+        MEDIA_STATE_CURRENT,
+        MEDIA_STATE_HISTORICAL_AVAILABLE,
+        MEDIA_STATE_NONE,
+        empty_media_context,
+        find_player_historical_row,
+    )
+
     empty = _empty_narrative()
     if not SENTIMENT_FEATURES_PATH.exists():
         return empty
@@ -297,19 +320,38 @@ def _narrative_from_sentiment(
 
     exact = scoped[(scoped["season"] == season) & (scoped["week"] == week)]
     context_fallback = False
-    if exact.empty:
-        prior = scoped[
-            (scoped["season"] < season)
-            | ((scoped["season"] == season) & (scoped["week"] <= week))
-        ]
-        if prior.empty:
-            row = scoped.sort_values(["season", "week"]).iloc[-1]
-            context_fallback = True
-        else:
-            row = prior.sort_values(["season", "week"]).iloc[-1]
-            context_fallback = int(row["season"]) != season or int(row["week"]) != week
-    else:
+    hist_meta: dict[str, Any] | None = None
+
+    if not exact.empty and float(exact.iloc[0].get("yt_mention_count") or 0) > 0:
         row = exact.iloc[0]
+        media_state = MEDIA_STATE_CURRENT
+        serve_season, serve_week = int(row["season"]), int(row["week"])
+    else:
+        hist = find_player_historical_row(features, pid, season=season, week=week)
+        if hist is None:
+            return {
+                **empty,
+                "media_context": empty_media_context(state=MEDIA_STATE_NONE),
+            }
+        hist_season, hist_week, hist_row = hist
+        hist_meta = {"season": hist_season, "week": hist_week}
+        if not include_historical:
+            return {
+                **empty,
+                "available": False,
+                "season": None,
+                "week": None,
+                "context_fallback": False,
+                "media_context": empty_media_context(
+                    state=MEDIA_STATE_HISTORICAL_AVAILABLE,
+                    historical_season=hist_season,
+                    historical_week=hist_week,
+                ),
+            }
+        row = hist_row
+        context_fallback = True
+        media_state = MEDIA_STATE_HISTORICAL_AVAILABLE
+        serve_season, serve_week = hist_season, hist_week
 
     score = float(row.get("yt_sentiment_score") or 0.0)
     injury_flag = float(row.get("yt_injury_flag") or 0.0)
@@ -339,14 +381,14 @@ def _narrative_from_sentiment(
             sentiment_payload,
             scope="weekly",
             player_id=pid,
-            season=int(row["season"]),
-            week=int(row["week"]),
+            season=serve_season,
+            week=serve_week,
             prefer_llm=False,
             return_meta=True,
         )
         if isinstance(result, dict):
-            digest = result.get("fantasy_digest") or None
-            digest_source = result.get("fantasy_digest_source")
+            digest = result.get("fantasy_media_digest") or None
+            digest_source = result.get("fantasy_media_digest_source")
     except Exception:
         digest = extractive_fantasy_digest(
             name,
@@ -359,6 +401,20 @@ def _narrative_from_sentiment(
             role_hype_flag=role_hype,
         )
         digest_source = "extractive"
+
+    media_context = {
+        "state": media_state,
+        "signal": (
+            "role_up"
+            if role_hype > 0
+            else ("injury_watch" if injury_flag > 0 else ("mentioned" if mentions > 0 else None))
+        ),
+        "source_count": int(round(mentions)),
+        "summary": digest,
+        "updated_at": None,
+        "historical": hist_meta if media_state == MEDIA_STATE_HISTORICAL_AVAILABLE else None,
+        "affects_projection": False,
+    }
 
     return {
         "available": True,
@@ -380,9 +436,10 @@ def _narrative_from_sentiment(
         "digest": digest,
         "digest_source": digest_source,
         "snippet": snippet,
-        "season": int(row["season"]),
-        "week": int(row["week"]),
+        "season": serve_season,
+        "week": serve_week,
         "context_fallback": context_fallback,
+        "media_context": media_context,
     }
 
 
@@ -397,12 +454,12 @@ def build_projection_signals(
     """Deterministic structured signals from projection + feature context (no LLM)."""
     signals: list[dict[str, Any]] = []
 
-    boost = _pick_num(projection, ("Injury Boost", "injury_boost")) or 0.0
+    boost = pick_opportunity_adjustment(projection) or 0.0
     injury_note = str(projection.get("Injury Note") or projection.get("injury_note") or "").strip()
-    if boost >= _INJURY_BOOST_UP:
+    if boost >= _OPPORTUNITY_ADJUSTMENT_UP:
         strength = "high" if boost >= 0.12 else "medium"
         detail = (
-            f"Injury-driven opportunity boost of {boost:.0%} from teammate availability."
+            f"Opportunity adjustment of {boost:.0%} from teammate availability."
         )
         if injury_note:
             detail = f"{detail} Context: {injury_note}."
@@ -413,7 +470,12 @@ def build_projection_signals(
                 direction="up",
                 strength=strength,
                 detail=detail,
-                metrics={"injury_boost": round(boost, 4), "injury_note": injury_note or None},
+                metrics={
+                    "opportunity_adjustment": round(boost, 4),
+                    # Compat alias during SCORE-26 rollout.
+                    "injury_boost": round(boost, 4),
+                    "injury_note": injury_note or None,
+                },
             )
         )
 
@@ -561,6 +623,7 @@ def build_projection_explanation(
     week: int | None = None,
     position: str | None = None,
     apply_injury_adjustments: bool = True,
+    include_historical: bool = False,
     compute_fn: Any | None = None,
 ) -> dict[str, Any]:
     """Build a lightweight Why? panel payload for one projected player."""
@@ -643,6 +706,7 @@ def build_projection_explanation(
         season=resolved_season,
         week=resolved_week,
         player_name=str(player_name) if player_name else None,
+        include_historical=include_historical,
     )
 
     return {
@@ -671,7 +735,9 @@ def build_projection_explanation(
             "volatility": None if vol is None else round(vol, 4),
             "opponent": projection.get("Opponent"),
             "injury_status": projection.get("Injury Status") or None,
-            "injury_boost": _pick_num(projection, ("Injury Boost",)),
+            "opportunity_adjustment": pick_opportunity_adjustment(projection),
+            # Compat alias during SCORE-26 rollout (prefer opportunity_adjustment).
+            "injury_boost": pick_opportunity_adjustment(projection),
             "injury_note": (projection.get("Injury Note") or None) or None,
             "opp_def_rank": _pick_num(projection, ("Opp Def Rank",)),
             "opp_def_epa": _pick_num(projection, ("Opp Def EPA",)),

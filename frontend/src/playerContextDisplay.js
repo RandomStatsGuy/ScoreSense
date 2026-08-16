@@ -1,4 +1,4 @@
-/** Display helpers for SCORE-23/24 cached player-context payloads. */
+/** Display helpers for SCORE-23/24/30 cached player-context payloads. */
 
 export const MEDIA_SIGNAL_LABELS = {
   role_up: "Role up",
@@ -39,6 +39,30 @@ export function formatOppPoints(points) {
 export function formatProjPts(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n.toFixed(1) : "—";
+}
+
+/**
+ * SCORE-30: table expand affordance from compact list rows.
+ * Hide Ctx when the cached row has nothing worth lazy-loading.
+ */
+export function isDetailAvailable(context) {
+  if (!context || typeof context !== "object") return false;
+  if (typeof context.detail_available === "boolean") {
+    return context.detail_available;
+  }
+  // Detail endpoint / pre-SCORE-30 rows without the flag still warrant expand.
+  return true;
+}
+
+/** Compact injury age for badges (hours since availability.updated_at). */
+export function formatInjuryAgeHours(ageHours) {
+  if (ageHours == null || ageHours === "") return null;
+  const n = Number(ageHours);
+  if (!Number.isFinite(n) || n < 0) return null;
+  if (n < 1) return "<1h";
+  if (n < 48) return `${Math.round(n)}h`;
+  const days = Math.round(n / 24);
+  return `${days}d`;
 }
 
 /**

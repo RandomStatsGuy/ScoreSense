@@ -3,6 +3,7 @@ import useMobileLayout from "../useMobileLayout";
 import MobileSubnav from "../layout/MobileSubnav";
 import { apiFetch, getToken } from "../auth";
 import { parseApiError } from "../format";
+import { pickFantasyMediaDigest } from "../fantasyMediaDigest";
 import DraftNomineeCard from "./DraftNomineeCard";
 import DraftRosterPanel from "./DraftRosterPanel";
 import DraftTeamCard from "./DraftTeamCard";
@@ -62,7 +63,7 @@ export default function DraftRoom({
   const [pendingAction, setPendingAction] = useState("");
   const [boardOpen, setBoardOpen] = useState(true);
   const [enrichment, setEnrichment] = useState(null);
-  const [beatDigests, setBeatDigests] = useState({});
+  const [fantasyMediaDigests, setFantasyMediaDigests] = useState({});
   const [digestLoadingId, setDigestLoadingId] = useState(null);
   const [pickRecap, setPickRecap] = useState(null);
   const [draftRecap, setDraftRecap] = useState(null);
@@ -209,23 +210,34 @@ export default function DraftRoom({
     ? {
         season: enrichment.season,
         week: enrichment.week,
+        requested_season: enrichment.requested_season,
+        requested_week: enrichment.requested_week,
         context_fallback: enrichment.context_fallback,
+        media_context: enrichment.media_context,
       }
     : null;
 
   const playerContext = useCallback(
     (playerId, row) => {
-      if (!playerId) return { sentiment: null, headshotUrl: null, teamLogoUrl: null, beatDigest: null };
+      if (!playerId) {
+        return {
+          sentiment: null,
+          headshotUrl: null,
+          teamLogoUrl: null,
+          fantasyMediaDigest: null,
+        };
+      }
       const media = mediaByPlayerId[playerId] || {};
       const sentiment = sentimentByPlayerId[playerId] || null;
       return {
         sentiment,
         headshotUrl: media.headshot_url || null,
         teamLogoUrl: media.team_logo_url || null,
-        beatDigest: beatDigests[playerId] || sentiment?.beat_digest || null,
+        fantasyMediaDigest:
+          fantasyMediaDigests[playerId] || pickFantasyMediaDigest(sentiment) || null,
       };
     },
-    [mediaByPlayerId, sentimentByPlayerId, beatDigests],
+    [mediaByPlayerId, sentimentByPlayerId, fantasyMediaDigests],
   );
 
   // Key on the stable id list so a new valueRows array identity with the same
@@ -352,10 +364,11 @@ export default function DraftRoom({
   // Seed extractive digests from enrichment; on-demand LLM fetch for active nominee.
   useEffect(() => {
     if (!enrichment?.sentiment_by_player_id) return;
-    setBeatDigests((prev) => {
+    setFantasyMediaDigests((prev) => {
       const next = { ...prev };
       for (const [pid, row] of Object.entries(enrichment.sentiment_by_player_id)) {
-        if (row?.beat_digest && !next[pid]) next[pid] = row.beat_digest;
+        const digest = pickFantasyMediaDigest(row);
+        if (digest && !next[pid]) next[pid] = digest;
       }
       return next;
     });
@@ -379,13 +392,16 @@ export default function DraftRoom({
         const name = nominee?.player_name || previewRow?.player;
         if (name) params.set("player_name", name);
         const res = await apiFetch(
-          `/api/hub/draft-room/beat-digest/${digestTargetId}?${params.toString()}`,
+          `/api/hub/draft-room/fantasy-media-digest/${digestTargetId}?${params.toString()}`,
         );
         if (!res.ok || cancelled) return;
         const data = await res.json();
-        if (data?.beat_digest) {
+        if (data?.fantasy_media_digest) {
           llmDigestFetchedRef.current.add(digestTargetId);
-          setBeatDigests((prev) => ({ ...prev, [digestTargetId]: data.beat_digest }));
+          setFantasyMediaDigests((prev) => ({
+            ...prev,
+            [digestTargetId]: data.fantasy_media_digest,
+          }));
         }
       } catch {
         /* keep extractive fallback */

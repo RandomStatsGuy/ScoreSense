@@ -1,10 +1,15 @@
-"""Cached player-context read model (SCORE-23).
+"""Cached player-context read model (SCORE-23 / SCORE-30).
 
 Background jobs join weekly inj/no_inj projections, a frozen injury snapshot,
 and pre-aggregated sentiment digests into a versioned parquet artifact.
 
 Page-view serving reads that artifact only — never YouTube ingest, LLM, Sleeper
 polling, or live ``predict_*``.
+
+SCORE-30: ``GET /api/players/context`` defaults to a compact table payload
+(injury badge/age, adjustment, analyst signal + source_count, detail_available).
+Heavy excerpts/sources/summaries/drivers are lazy-loaded via
+``GET /api/player/{id}/context``.
 """
 
 from __future__ import annotations
@@ -34,9 +39,17 @@ from src.integrations.injury_snapshot import (
     save_injury_snapshot,
 )
 from src.projections.weekly_cache import load_weekly_prediction, weekly_fingerprint
+from src.sentiment.media_context import (
+    MEDIA_STATE_HISTORICAL_AVAILABLE,
+    MEDIA_STATE_NONE,
+    apply_historical_opt_in,
+    empty_media_context,
+    find_player_historical_row,
+    strip_historical_content,
+)
 
 POSITIONS = ("qb", "rb", "wr")
-SCHEMA_VERSION = "player_context_v1"
+SCHEMA_VERSION = "player_context_v3"
 _P50_KEYS = ("Projected Points", "P50", "p50")
 
 _CONTEXT_CACHE: dict[str, tuple[str, pd.DataFrame, dict[str, Any]]] = {}
@@ -177,15 +190,214 @@ def _media_source_count(row: dict[str, Any] | None) -> int:
     return 0
 
 
-def _load_sentiment_index(season: int, week: int) -> dict[str, dict[str, Any]]:
-    """Index sentiment feature rows for season/week by player_id (no LLM)."""
+def _media_excerpt(row: dict[str, Any] | None) -> str | None:
+    if not row:
+        return None
+    for key in ("yt_top_snippet", "top_sentence", "yt_top_sentence", "snippet"):
+        text = str(row.get(key) or "").strip()
+        if text:
+            return text
+    return None
+
+
+def _media_sources(row: dict[str, Any] | None) -> list[dict[str, str]]:
+    """Compact source labels from pre-aggregated sentiment features (no network)."""
+    if not row:
+        return []
+    raw = row.get("source_labels") or row.get("channels") or row.get("yt_channels")
+    out: list[dict[str, str]] = []
+    seen: set[str] = set()
+    if isinstance(raw, str):
+        tokens = [t.strip() for t in raw.split("|") if t.strip()]
+    elif isinstance(raw, (list, tuple)):
+        tokens = []
+        for item in raw:
+            if isinstance(item, dict):
+                label = str(item.get("label") or item.get("network") or "").strip()
+                if label:
+                    tokens.append(label)
+            else:
+                label = str(item or "").strip()
+                if label:
+                    tokens.append(label)
+    else:
+        tokens = []
+    for label in tokens:
+        key = label.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append({"label": label})
+    return out
+
+
+def injury_age_hours(
+    updated_at: str | None,
+    *,
+    now: datetime | None = None,
+) -> float | None:
+    """Hours since injury/availability ``updated_at`` (serve-time badge age)."""
+    if not updated_at:
+        return None
+    try:
+        ts = datetime.fromisoformat(str(updated_at).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    clock = now or datetime.now(timezone.utc)
+    if clock.tzinfo is None:
+        clock = clock.replace(tzinfo=timezone.utc)
+    age = (clock - ts).total_seconds() / 3600.0
+    if age < 0:
+        return 0.0
+    return round(age, 2)
+
+
+def attach_inclusion_trust(
+    payload: dict[str, Any],
+    *,
+    artifact_meta: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """SCORE-33: stamp inclusion_trust so UI never falsely claims Included."""
+    from src.integrations.injury_poll import compute_inclusion_trust
+
+    meta = payload.get("meta") if isinstance(payload.get("meta"), dict) else {}
+    art = artifact_meta or {}
+    opp = (
+        payload.get("opportunity_adjustment")
+        if isinstance(payload.get("opportunity_adjustment"), dict)
+        else {}
+    )
+    avail = payload.get("availability") if isinstance(payload.get("availability"), dict) else {}
+    projection_at = (
+        meta.get("artifact_built_at")
+        or meta.get("context_built_at")
+        or art.get("built_at")
+        or art.get("injury_snapshot_built_at")
+        or meta.get("injury_snapshot_built_at")
+    )
+    stale = bool(meta.get("stale") if "stale" in meta else art.get("stale"))
+    trust = compute_inclusion_trust(
+        opportunity_included=bool(opp.get("included")),
+        artifact_stale=stale,
+        projection_freshness_at=projection_at,
+        injury_status_freshness_at=avail.get("updated_at"),
+    )
+    payload["inclusion_trust"] = trust
+    # Mirror can_label onto opportunity_adjustment for compact consumers.
+    payload["opportunity_adjustment"] = {
+        **opp,
+        "can_label_included": trust["can_label_included"],
+        "stale_vs_projection": trust["stale_vs_projection"],
+        "safeguard_message": trust["message"],
+    }
+    return payload
+
+
+def detail_available_for_payload(payload: dict[str, Any]) -> bool:
+    """True when expand would surface narrative, drivers, or injury explanation."""
+    media = payload.get("media_context") if isinstance(payload.get("media_context"), dict) else {}
+    opp = (
+        payload.get("opportunity_adjustment")
+        if isinstance(payload.get("opportunity_adjustment"), dict)
+        else {}
+    )
+    avail = payload.get("availability") if isinstance(payload.get("availability"), dict) else {}
+
+    if media.get("summary") or media.get("excerpt"):
+        return True
+    if media.get("sources"):
+        return True
+    if int(media.get("source_count") or 0) > 0 or media.get("signal"):
+        return True
+    if str(media.get("state") or "") == MEDIA_STATE_HISTORICAL_AVAILABLE:
+        return True
+    if opp.get("included") or (opp.get("drivers") or []):
+        return True
+    if avail.get("status") or avail.get("practice"):
+        return True
+    return False
+
+
+def compact_player_context(
+    payload: dict[str, Any],
+    *,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Table/list shape: badge fields only — no excerpts, sources, summaries, drivers."""
+    avail = payload.get("availability") if isinstance(payload.get("availability"), dict) else {}
+    opp = (
+        payload.get("opportunity_adjustment")
+        if isinstance(payload.get("opportunity_adjustment"), dict)
+        else {}
+    )
+    media = payload.get("media_context") if isinstance(payload.get("media_context"), dict) else {}
+    meta = payload.get("meta") if isinstance(payload.get("meta"), dict) else {}
+
+    compact_media: dict[str, Any] = {
+        "state": media.get("state") or MEDIA_STATE_NONE,
+        "signal": media.get("signal"),
+        "source_count": int(media.get("source_count") or 0),
+        "affects_projection": bool(media.get("affects_projection")),
+    }
+    # Preserve historical week pointer without narrative bodies.
+    if str(media.get("state") or "") == MEDIA_STATE_HISTORICAL_AVAILABLE:
+        hist = media.get("historical")
+        if isinstance(hist, dict) and hist.get("season") is not None and hist.get("week") is not None:
+            compact_media["historical"] = {
+                "season": int(hist["season"]),
+                "week": int(hist["week"]),
+            }
+
+    compact = {
+        "player_id": payload.get("player_id"),
+        "player_name": payload.get("player_name"),
+        "position": payload.get("position"),
+        "team": payload.get("team"),
+        "availability": {
+            "status": avail.get("status"),
+            "practice": avail.get("practice"),
+            "updated_at": avail.get("updated_at"),
+            "age_hours": injury_age_hours(avail.get("updated_at"), now=now),
+        },
+        "opportunity_adjustment": {
+            "points": opp.get("points"),
+            "included": bool(opp.get("included")),
+        },
+        "media_context": compact_media,
+        "detail_available": detail_available_for_payload(payload),
+        "meta": {
+            "season": meta.get("season"),
+            "week": meta.get("week"),
+            "stale": bool(meta.get("stale")),
+            "fingerprint": meta.get("fingerprint"),
+            "schema_version": meta.get("schema_version") or SCHEMA_VERSION,
+            "view": "compact",
+            "artifact_built_at": meta.get("artifact_built_at") or meta.get("context_built_at"),
+            "context_built_at": meta.get("context_built_at"),
+            "injury_snapshot_built_at": meta.get("injury_snapshot_built_at"),
+        },
+    }
+    return attach_inclusion_trust(compact, artifact_meta=meta)
+
+
+def _load_sentiment_features_frame() -> pd.DataFrame:
     if not SENTIMENT_FEATURES_PATH.exists():
-        return {}
+        return pd.DataFrame()
     try:
         df = pd.read_parquet(SENTIMENT_FEATURES_PATH)
     except (OSError, ValueError):
-        return {}
+        return pd.DataFrame()
     if df.empty or "player_id" not in df.columns:
+        return pd.DataFrame()
+    return df
+
+
+def _load_sentiment_index(season: int, week: int) -> dict[str, dict[str, Any]]:
+    """Index sentiment feature rows for season/week by player_id (no LLM)."""
+    df = _load_sentiment_features_frame()
+    if df.empty:
         return {}
     scoped = df
     if "season" in df.columns:
@@ -199,6 +411,83 @@ def _load_sentiment_index(season: int, week: int) -> dict[str, dict[str, Any]]:
         pid = str(row["player_id"])
         index[pid] = {str(k): _json_safe(v) for k, v in row.items()}
     return index
+
+
+def _build_media_context_for_player(
+    pid: str,
+    player_name: str,
+    season: int,
+    week: int,
+    *,
+    sentiment_index: dict[str, dict[str, Any]],
+    features: pd.DataFrame,
+) -> dict[str, Any]:
+    """Build media_context with SCORE-28 states (never silent historical fill)."""
+    sent = sentiment_index.get(pid)
+    signal = _media_signal(sent)
+    source_count = _media_source_count(sent)
+    excerpt = _media_excerpt(sent)
+    sources = _media_sources(sent)
+    summary, media_updated = _cached_digest_summary(
+        pid, player_name, season, week, sent
+    )
+    if sent and not media_updated and SENTIMENT_FEATURES_PATH.exists():
+        media_updated = datetime.fromtimestamp(
+            SENTIMENT_FEATURES_PATH.stat().st_mtime, tz=timezone.utc
+        ).isoformat()
+
+    if sent and source_count > 0:
+        return {
+            "state": MEDIA_STATE_CURRENT,
+            "signal": signal,
+            "source_count": source_count,
+            "summary": summary,
+            "excerpt": excerpt,
+            "sources": sources,
+            "updated_at": media_updated,
+            "historical": None,
+            "affects_projection": False,
+        }
+
+    hist = find_player_historical_row(features, pid, season=season, week=week)
+    if hist is None:
+        return empty_media_context(state=MEDIA_STATE_NONE)
+
+    hist_season, hist_week, hist_row = hist
+    hist_dict = {str(k): _json_safe(v) for k, v in hist_row.items()}
+    hist_signal = _media_signal(hist_dict)
+    hist_count = _media_source_count(hist_dict)
+    hist_excerpt = _media_excerpt(hist_dict)
+    hist_sources = _media_sources(hist_dict)
+    hist_summary, hist_updated = _cached_digest_summary(
+        pid, player_name, hist_season, hist_week, hist_dict
+    )
+    if hist_dict and not hist_updated and SENTIMENT_FEATURES_PATH.exists():
+        hist_updated = datetime.fromtimestamp(
+            SENTIMENT_FEATURES_PATH.stat().st_mtime, tz=timezone.utc
+        ).isoformat()
+
+    # Store historical narrative under nested key for opt-in serve; top-level stays empty.
+    return {
+        "state": MEDIA_STATE_HISTORICAL_AVAILABLE,
+        "signal": None,
+        "source_count": 0,
+        "summary": None,
+        "excerpt": None,
+        "sources": [],
+        "updated_at": None,
+        "historical": {
+            "season": hist_season,
+            "week": hist_week,
+            "signal": hist_signal,
+            "source_count": hist_count,
+            "summary": hist_summary,
+            "excerpt": hist_excerpt,
+            "sources": hist_sources,
+            "updated_at": hist_updated,
+        },
+        "affects_projection": False,
+    }
 
 
 def _cached_digest_summary(
@@ -332,6 +621,7 @@ def build_player_context_rows(
             name_index[pname] = pid
 
     sentiment_index = _load_sentiment_index(season, week)
+    sentiment_features = _load_sentiment_features_frame()
     snapshot_id = str(injury_snapshot["injury_snapshot_id"])
     built_at = datetime.now(timezone.utc).isoformat()
     rows: list[dict[str, Any]] = []
@@ -369,21 +659,15 @@ def build_player_context_rows(
             if status:
                 avail = {**avail, "status": status}
 
-        sent = sentiment_index.get(pid)
-        signal = _media_signal(sent)
-        source_count = _media_source_count(sent)
         player_name = str(primary.get("Player") or "")
-        summary, media_updated = _cached_digest_summary(
-            pid, player_name, season, week, sent
+        media_context = _build_media_context_for_player(
+            pid,
+            player_name,
+            season,
+            week,
+            sentiment_index=sentiment_index,
+            features=sentiment_features,
         )
-        if sent and not media_updated and SENTIMENT_FEATURES_PATH.exists():
-            media_updated = datetime.fromtimestamp(
-                SENTIMENT_FEATURES_PATH.stat().st_mtime, tz=timezone.utc
-            ).isoformat()
-        media_state = "current" if sent and source_count > 0 else "none"
-        if media_state == "none":
-            signal = None
-            summary = None
 
         payload = {
             "player_id": pid,
@@ -406,14 +690,7 @@ def build_player_context_rows(
                 "drivers": drivers,
                 "included": included,
             },
-            "media_context": {
-                "state": media_state,
-                "signal": signal,
-                "source_count": source_count,
-                "summary": summary,
-                "updated_at": media_updated,
-                "affects_projection": False,
-            },
+            "media_context": media_context,
             "meta": {
                 "season": int(season),
                 "week": int(week),
@@ -549,13 +826,42 @@ def _payloads_from_frame(df: pd.DataFrame) -> list[dict[str, Any]]:
     return out
 
 
+def _finalize_media_context(
+    payload: dict[str, Any],
+    *,
+    include_historical: bool,
+) -> dict[str, Any]:
+    """Serve-path: strip or promote historical narrative per opt-in."""
+    media = payload.get("media_context")
+    if include_historical:
+        payload["media_context"] = apply_historical_opt_in(media)
+    else:
+        # Keep pointer metadata (season/week) but never expose historical text/signals.
+        stripped = strip_historical_content(media)
+        # Preserve nested historical season/week from artifact when available.
+        raw_hist = (media or {}).get("historical") if isinstance(media, dict) else None
+        if (
+            stripped.get("state") == MEDIA_STATE_HISTORICAL_AVAILABLE
+            and isinstance(raw_hist, dict)
+            and raw_hist.get("season") is not None
+            and raw_hist.get("week") is not None
+        ):
+            stripped["historical"] = {
+                "season": int(raw_hist["season"]),
+                "week": int(raw_hist["week"]),
+            }
+        payload["media_context"] = stripped
+    return payload
+
+
 def get_player_context(
     player_id: str,
     *,
     season: int | None = None,
     week: int | None = None,
+    include_historical: bool = False,
 ) -> dict[str, Any]:
-    """Serve a single player's cached context payload."""
+    """Serve a single player's full cached context payload (lazy-load detail)."""
     pid = str(player_id or "").strip()
     if not pid:
         raise ValueError("player_id is required")
@@ -567,17 +873,36 @@ def get_player_context(
     if hit.empty:
         raise ValueError(f"No player context for player_id={pid}")
     payload = json.loads(str(hit.iloc[0]["payload_json"]))
+    payload = _finalize_media_context(payload, include_historical=include_historical)
+    # Ensure detail keys exist even on older v2 artifacts.
+    media = payload.get("media_context")
+    if isinstance(media, dict):
+        media.setdefault("excerpt", None)
+        media.setdefault("sources", [])
+        payload["media_context"] = media
+    payload["detail_available"] = detail_available_for_payload(payload)
     payload["meta"] = {
         **(payload.get("meta") or {}),
         "season": resolved_season,
         "week": resolved_week,
         "artifact_built_at": meta.get("built_at"),
         "injury_snapshot_id": meta.get("injury_snapshot_id"),
+        "injury_snapshot_built_at": meta.get("injury_snapshot_built_at"),
         "fingerprint": meta.get("fingerprint"),
         "stale": bool(meta.get("stale")),
         "schema_version": meta.get("schema_version") or SCHEMA_VERSION,
+        "include_historical": bool(include_historical),
+        "view": "detail",
     }
-    return payload
+    # Serve-time injury badge age for detail consumers.
+    avail = payload.get("availability")
+    if isinstance(avail, dict):
+        avail = {
+            **avail,
+            "age_hours": injury_age_hours(avail.get("updated_at")),
+        }
+        payload["availability"] = avail
+    return attach_inclusion_trust(payload, artifact_meta=meta)
 
 
 def list_player_context(
@@ -585,25 +910,77 @@ def list_player_context(
     season: int | None = None,
     week: int | None = None,
     player_ids: list[str] | None = None,
+    include_historical: bool = False,
+    compact: bool = True,
 ) -> dict[str, Any]:
-    """Serve the full (or filtered) player-context list for a slate."""
+    """Serve player-context list for a slate.
+
+    Default ``compact=True`` (SCORE-30) omits heavy narrative bodies so weekly
+    tables stay small; open a player via ``get_player_context`` for detail.
+    """
     resolved_season, resolved_week = season_week_context(season, week)
     df, meta = load_player_context_frame(resolved_season, resolved_week)
     players = _payloads_from_frame(df)
     if player_ids:
         wanted = {str(p).strip() for p in player_ids if str(p).strip()}
         players = [p for p in players if str(p.get("player_id")) in wanted]
+    players = [
+        _finalize_media_context(p, include_historical=include_historical)
+        for p in players
+    ]
+    list_meta = {
+        "season": resolved_season,
+        "week": resolved_week,
+        "built_at": meta.get("built_at"),
+        "injury_snapshot_built_at": meta.get("injury_snapshot_built_at"),
+        "injury_snapshot_id": meta.get("injury_snapshot_id"),
+        "fingerprint": meta.get("fingerprint"),
+        "stale": bool(meta.get("stale")),
+        "schema_version": meta.get("schema_version") or SCHEMA_VERSION,
+        "rows": meta.get("rows"),
+        "include_historical": bool(include_historical),
+        "compact": bool(compact),
+        "view": "compact" if compact else "detail",
+    }
+    if compact:
+        stamped: list[dict[str, Any]] = []
+        for player in players:
+            player_meta = player.get("meta") if isinstance(player.get("meta"), dict) else {}
+            player["meta"] = {
+                **player_meta,
+                "stale": bool(meta.get("stale")),
+                "artifact_built_at": meta.get("built_at"),
+                "injury_snapshot_built_at": meta.get("injury_snapshot_built_at"),
+            }
+            stamped.append(compact_player_context(player))
+        players = stamped
+    else:
+        enriched: list[dict[str, Any]] = []
+        for player in players:
+            media = player.get("media_context")
+            if isinstance(media, dict):
+                media.setdefault("excerpt", None)
+                media.setdefault("sources", [])
+                player["media_context"] = media
+            avail = player.get("availability")
+            if isinstance(avail, dict):
+                player["availability"] = {
+                    **avail,
+                    "age_hours": injury_age_hours(avail.get("updated_at")),
+                }
+            player["detail_available"] = detail_available_for_payload(player)
+            player_meta = player.get("meta") if isinstance(player.get("meta"), dict) else {}
+            player["meta"] = {
+                **player_meta,
+                "view": "detail",
+                "stale": bool(meta.get("stale")),
+                "artifact_built_at": meta.get("built_at"),
+                "injury_snapshot_built_at": meta.get("injury_snapshot_built_at"),
+            }
+            enriched.append(attach_inclusion_trust(player, artifact_meta=meta))
+        players = enriched
     return {
         "count": len(players),
         "players": players,
-        "meta": {
-            "season": resolved_season,
-            "week": resolved_week,
-            "built_at": meta.get("built_at"),
-            "injury_snapshot_id": meta.get("injury_snapshot_id"),
-            "fingerprint": meta.get("fingerprint"),
-            "stale": bool(meta.get("stale")),
-            "schema_version": meta.get("schema_version") or SCHEMA_VERSION,
-            "rows": meta.get("rows"),
-        },
+        "meta": list_meta,
     }

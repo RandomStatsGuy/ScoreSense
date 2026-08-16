@@ -32,6 +32,7 @@ WR_POOL = _pool(
             "Season": 2026,
             "player_id": "wr-higgins",
             "Position": "WR",
+            "Opportunity Adjustment": 0.10,
             "Injury Boost": 0.10,
             "Injury Note": "Ja'Marr Chase (Questionable)",
             "Injury Status": "",
@@ -49,6 +50,7 @@ WR_POOL = _pool(
             "Season": 2026,
             "player_id": "wr-quiet",
             "Position": "WR",
+            "Opportunity Adjustment": 0.0,
             "Injury Boost": 0.0,
             "Injury Note": "",
             "Injury Status": "Questionable",
@@ -71,6 +73,7 @@ RB_POOL = _pool(
             "Season": 2026,
             "player_id": "rb-one",
             "Position": "RB",
+            "Opportunity Adjustment": 0.0,
             "Injury Boost": 0.0,
             "Injury Note": "",
             "Injury Status": "",
@@ -91,6 +94,7 @@ QB_POOL = _pool(
             "Season": 2026,
             "player_id": "qb-one",
             "Position": "QB",
+            "Opportunity Adjustment": 0.0,
             "Injury Boost": 0.0,
             "Injury Note": "",
             "Injury Status": "",
@@ -112,7 +116,7 @@ def _fake_load(position, season=None, week=None, apply_injury_adjustments=True, 
 
 def test_build_projection_signals_opportunity_matchup_uncertainty():
     projection = {
-        "Injury Boost": 0.10,
+        "Opportunity Adjustment": 0.10,
         "Injury Note": "Teammate (Out)",
         "Opponent": "BAL",
         "Opp Def Rank": 24,
@@ -135,15 +139,31 @@ def test_build_projection_signals_opportunity_matchup_uncertainty():
     )
     by_id = {s["id"]: s for s in signals}
     assert by_id["expected_volume"]["direction"] == "up"
+    assert by_id["expected_volume"]["metrics"]["opportunity_adjustment"] == 0.1
+    assert "Opportunity adjustment" in by_id["expected_volume"]["detail"]
+    assert "Injury Boost" not in by_id["expected_volume"]["detail"]
     assert by_id["recent_usage"]["direction"] == "up"
     assert by_id["game_environment"]["direction"] == "up"
     assert by_id["uncertainty"]["direction"] == "down"
     assert all(s["source"] == "model_context" for s in signals)
 
 
+def test_build_projection_signals_reads_legacy_injury_boost_alias():
+    signals = build_projection_signals(
+        projection={"Injury Boost": 0.10, "Injury Note": "", "Opponent": "BAL"},
+        usage=None,
+        p10=4.0,
+        p50=14.5,
+        p90=28.0,
+    )
+    by_id = {s["id"]: s for s in signals}
+    assert by_id["expected_volume"]["metrics"]["opportunity_adjustment"] == 0.1
+    assert by_id["expected_volume"]["metrics"]["injury_boost"] == 0.1
+
+
 def test_build_projection_signals_injury_and_tough_matchup():
     projection = {
-        "Injury Boost": 0.0,
+        "Opportunity Adjustment": 0.0,
         "Opponent": "DEN",
         "Opp Def Rank": 3,
         "Injury Status": "Questionable",
@@ -185,6 +205,15 @@ def test_build_projection_explanation_payload(_load, _ctx, _usage, narrative_fn)
         "season": 2026,
         "week": 1,
         "context_fallback": False,
+        "media_context": {
+            "state": "none",
+            "signal": None,
+            "source_count": 0,
+            "summary": None,
+            "updated_at": None,
+            "historical": None,
+            "affects_projection": False,
+        },
     }
 
     payload = build_projection_explanation("wr-higgins")
@@ -195,6 +224,8 @@ def test_build_projection_explanation_payload(_load, _ctx, _usage, narrative_fn)
     assert payload["meta"]["sentiment_is_model_input"] is False
     assert payload["meta"]["projection_movement_available"] is False
     assert payload["projection"]["p50"] == 14.5
+    assert payload["projection"]["opportunity_adjustment"] == 0.1
+    assert payload["projection"]["injury_boost"] == 0.1  # compat alias
     assert payload["projection"]["opp_def_rank"] == 24
     assert isinstance(payload["projection_signals"], list)
     assert any(s["id"] == "expected_volume" for s in payload["projection_signals"])
@@ -226,6 +257,15 @@ def test_missing_sentiment_does_not_degrade(_load, _ctx, _usage, narrative_fn):
         "season": None,
         "week": None,
         "context_fallback": False,
+        "media_context": {
+            "state": "none",
+            "signal": None,
+            "source_count": 0,
+            "summary": None,
+            "updated_at": None,
+            "historical": None,
+            "affects_projection": False,
+        },
     }
     payload = build_projection_explanation("wr-quiet")
     assert payload["projection"]["p50"] == 8.0
@@ -308,6 +348,7 @@ def test_explanation_api_payload():
     data = res.json()
     assert data["player_id"] == "wr-higgins"
     assert data["projection"]["p50"] == 14.5
+    assert data["projection"]["opportunity_adjustment"] == 0.1
     assert "projection_signals" in data
     assert data["meta"]["sentiment_is_model_input"] is False
     assert data["narrative_context"]["is_model_input"] is False
