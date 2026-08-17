@@ -10,6 +10,7 @@ from src.draft_hub.schemas import LeagueRules
 
 ROSTER_ACTIVE = "active"
 ROSTER_CUT_BEFORE_DRAFT = "cut_before_draft"
+ROSTER_EXPIRED = "expired"  # SCORE-45: archived after draft-complete year tick
 
 
 def roster_status(row: dict[str, Any]) -> str:

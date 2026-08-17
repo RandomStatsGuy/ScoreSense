@@ -130,7 +130,7 @@ def test_reset_after_end_rewinds_years(hub_db):
 
 
 def test_reset_after_end_restores_expired_keepers(hub_db):
-    """Lossless reset reinstates keepers deleted by the draft-complete year tick."""
+    """Lossless reset reinstates keepers archived by the draft-complete year tick."""
     league = _live_league()
     teams = storage.list_league_teams(league["id"])
     team = teams[0]
@@ -177,7 +177,9 @@ def test_reset_after_end_restores_expired_keepers(hub_db):
     end_draft(league["id"], "live-commish")
 
     after = {r["player_id"]: r for r in storage.list_league_rosters_by_team(league["id"])[team["id"]]}
-    assert "expiring-vet" not in after
+    assert "expiring-vet" in after
+    assert after["expiring-vet"]["roster_status"] == "expired"
+    assert int(after["expiring-vet"]["contract_years"]) == 0
     assert "auction-win" in after
     assert int(after["auction-win"]["contract"]["years_remaining"]) == 1
 
@@ -186,6 +188,7 @@ def test_reset_after_end_restores_expired_keepers(hub_db):
     assert result["picks_removed"] == 1
     restored = {r["player_id"]: r for r in storage.list_league_rosters_by_team(league["id"])[team["id"]]}
     assert "expiring-vet" in restored
+    assert restored["expiring-vet"]["roster_status"] == "active"
     assert "auction-win" not in restored
     assert int(restored["expiring-vet"]["contract"]["years_remaining"]) == 1
 

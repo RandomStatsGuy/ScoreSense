@@ -11,6 +11,7 @@ from typing import Any
 from src.draft_hub import storage
 from src.draft_hub.pre_draft_cap import (
     ROSTER_CUT_BEFORE_DRAFT,
+    ROSTER_EXPIRED,
     pre_draft_cap_summary,
     retained_through_draft,
     roster_status,
@@ -21,7 +22,7 @@ from src.draft_hub.schemas import LeagueRules
 
 DEADCAP_PREFIX = "deadcap:"
 NON_OCCUPYING_STATUSES = frozenset(
-    {ROSTER_CUT_BEFORE_DRAFT, "cut", "waived", "traded"}
+    {ROSTER_CUT_BEFORE_DRAFT, ROSTER_EXPIRED, "cut", "waived", "traded"}
 )
 
 

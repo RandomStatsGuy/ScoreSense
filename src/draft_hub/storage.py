@@ -920,6 +920,7 @@ def update_roster_slot(
     any_team: bool = False,
     edited_by_sub: str | None = None,
     note: str | None = None,
+    allow_zero_years: bool = False,
 ) -> dict[str, Any]:
     with get_conn() as conn:
         if any_team:
@@ -942,15 +943,22 @@ def update_roster_slot(
         prior = _roster_dict(row)
         sal = float(salary) if salary is not None else float(row["salary"])
         yrs = int(contract_years) if contract_years is not None else int(row["contract_years"])
-        if yrs < 1:
-            raise ValueError("Contract years must be at least 1")
         # Use `is not None` so an empty dict still writes (truthy check would skip).
         if contract is not None:
             contract_json = json.dumps(contract)
             sal = float(contract.get("current_salary") or contract.get("base_salary") or sal)
-            yrs = int(contract.get("years_remaining") or yrs)
+            yrs = int(contract.get("years_remaining") if contract.get("years_remaining") is not None else yrs)
         else:
             contract_json = row["contract_json"]
+        effective_status = str(
+            roster_status if roster_status is not None else (prior.get("roster_status") or "active")
+        )
+        # SCORE-45: archived expired contracts may store years_remaining=0.
+        zero_ok = allow_zero_years or effective_status == "expired"
+        if yrs < 1 and not zero_ok:
+            raise ValueError("Contract years must be at least 1")
+        if yrs < 0:
+            raise ValueError("Contract years cannot be negative")
         updates = ["salary = ?", "contract_years = ?", "contract_json = ?"]
         params: list[Any] = [sal, yrs, contract_json]
         if roster_status is not None:
