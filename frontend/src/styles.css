@@ -4209,6 +4209,136 @@ h2 {
   margin-top: 0.35rem;
 }
 
+.hub-prompt-card,
+.hub-historic-correction-card {
+  width: min(100%, 32rem);
+  max-height: min(90vh, 40rem);
+  overflow: auto;
+}
+
+.hub-prompt-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hub-prompt-textarea {
+  resize: vertical;
+  min-height: 4.5rem;
+  font: inherit;
+}
+
+.hub-prompt-hint {
+  margin: 0;
+}
+
+.hub-override-before-after {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.hub-override-before-after dt {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.hub-override-before-after dd {
+  margin: 0.15rem 0 0;
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--text-primary);
+}
+
+.hub-correction-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem 0.85rem;
+  margin: 0;
+}
+
+.hub-correction-meta dt {
+  margin: 0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.hub-correction-meta dd {
+  margin: 0.1rem 0 0;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.hub-correction-values {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.hub-correction-values th,
+.hub-correction-values td {
+  padding: 0.35rem 0.45rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.hub-correction-values th.num,
+.hub-correction-values td.num {
+  text-align: right;
+}
+
+.hub-correction-changed td {
+  color: var(--text-primary);
+}
+
+.hub-correction-modes {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.hub-correction-mode {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  line-height: 1.35;
+}
+
+.hub-correction-mode input {
+  margin-top: 0.2rem;
+}
+
+.hub-correction-preview {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: rgba(148, 163, 184, 0.06);
+}
+
+.hub-correction-preview-title {
+  margin: 0;
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.hub-correction-error {
+  margin: 0;
+}
+
+.hub-league-team-notice {
+  margin: 0.35rem 0.85rem 0;
+}
+
 .table-wrap {
   overflow-x: auto;
   overflow-y: auto;
