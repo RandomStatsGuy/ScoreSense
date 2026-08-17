@@ -929,7 +929,10 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
         raise HTTPException(status_code=400, detail="Could not update contract type")
 
     try:
-        slot = storage.update_roster_slot(
+        from src.draft_hub.contract_service import apply_roster_edit
+
+        slot = apply_roster_edit(
+            ctx.get("league_id"),
             ws_id,
             body.player_id,
             team_id=team_id,
@@ -938,6 +941,7 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
             any_team=bool(ctx.get("mode") == "league" and ctx.get("is_commissioner")),
             edited_by_sub=sub,
             note=note,
+            op="edit",
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -2767,6 +2771,24 @@ def hub_contract_history_quarantine(
     }
 
 
+@router.get("/league/{league_id}/contracts/archived")
+def hub_contracts_archived(
+    league_id: str,
+    _user=Depends(require_hub_user),
+) -> dict:
+    """SCORE-45: list archived expired contracts (status + as_of + snapshot)."""
+    sub = _sub(_user)
+    _ctx_for_league(sub, league_id)
+    from src.draft_hub.contract_service import list_archived_contracts
+
+    items = list_archived_contracts(league_id)
+    return {
+        "league_id": league_id,
+        "count": len(items),
+        "items": items,
+    }
+
+
 @router.get("/league/{league_id}/freshness")
 def hub_league_freshness(
     league_id: str,
@@ -3647,12 +3669,15 @@ def _hub_rookie_extend(
     if already_applied:
         slot = storage.get_roster_slot(ws_id, player_id) or existing
     else:
-        slot = storage.extend_contract(
+        from src.draft_hub.contract_service import apply_roster_edit
+
+        slot = apply_roster_edit(
+            ctx.get("league_id"),
             ws_id,
             player_id,
-            int(pending.get("years") or extension_years),
-            server_start,
             contract=contract,
+            any_team=True,
+            op="extension",
         )
     roster = list_roster_for_context(ctx)
     _invalidate_league_rosters_from_ctx(ctx)
@@ -3772,11 +3797,15 @@ def hub_decide_pending_contract_type(body: ContractTypeDecisionRequest, _user=De
         contract.pop("pending_type", None)
         contract.pop("pending_type_by", None)
         contract.pop("pending_type_at", None)
-    slot = storage.update_roster_slot(
+    from src.draft_hub.contract_service import apply_roster_edit
+
+    slot = apply_roster_edit(
+        ctx.get("league_id"),
         ws_id,
         body.player_id,
         contract=contract,
         any_team=True,
+        op="edit",
     )
     _invalidate_league_rosters_from_ctx(ctx)
     return {"slot": slot, "approved": bool(body.approve), "hub_context": _ctx(sub)}

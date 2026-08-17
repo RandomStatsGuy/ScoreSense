@@ -76,7 +76,7 @@ class RosterUpdateRequest(BaseModel):
     contract_years: Optional[int] = None  # years remaining on contract
     step_up: Optional[float] = None
     salary_schedule: Optional[list[float]] = None
-    roster_status: Optional[str] = None  # active | cut_before_draft
+    roster_status: Optional[str] = None  # active | cut_before_draft | expired
     contract_type: Optional[str] = None  # rookie | veteran | extension
     # SCORE-43: required for commissioner Office Current overrides (salary/years/status).
     note: Optional[str] = None

@@ -361,11 +361,13 @@ def execute_multiparty_trade(
     event_summary = _trade_event_summary(league_id, norm)
 
     # Apply sends
+    from src.draft_hub.contract_service import apply_trade_drop, apply_trade_transfer
+
     for party in norm:
         from_tid = str(party["team_id"])
         for send in party["sends"]:
-            moved = storage.transfer_roster_players(
-                ws_id, [send["player_id"]], from_tid, send["to_team_id"]
+            moved = apply_trade_transfer(
+                league_id, ws_id, [send["player_id"]], from_tid, send["to_team_id"]
             )
             if moved != 1:
                 raise ValueError(f"Failed to move {send['player_id']}")
@@ -379,19 +381,12 @@ def execute_multiparty_trade(
         for pid in party["drops"]:
             a = assign_map[(from_tid, pid)]
             assignee = str(a["assigned_to_team_id"])
-            slot = storage.get_roster_slot(ws_id, pid)
-            if not slot or str(slot.get("team_id")) != from_tid:
-                raise ValueError(f"Drop {pid} not on expected team")
-            if assignee != from_tid:
-                storage.transfer_roster_players(ws_id, [pid], from_tid, assignee)
-            contract = contract_on_cut_status_change(slot, roster_status=ROSTER_CUT_BEFORE_DRAFT)
-            storage.update_roster_slot(
+            apply_trade_drop(
+                league_id,
                 ws_id,
                 pid,
-                team_id=assignee,
-                contract=contract,
-                roster_status=ROSTER_CUT_BEFORE_DRAFT,
-                any_team=True,
+                from_team_id=from_tid,
+                assignee_team_id=assignee,
             )
 
     # Log (pairwise summary for legacy table + full parties in send_a json)

@@ -296,7 +296,8 @@ def reset_live_draft(league_id: str, user_sub: str) -> dict[str, Any]:
     """Undo a live (non-practice) draft: clear auction picks/events, restore session to setup.
 
     Keepers (non-draft sources) stay. If draft was already marked complete, rewinds the
-    contract year clock for remaining keepers (players who expired on End are not restored).
+    contract year clock. Expired keepers are restored from the pre-tick snapshot or
+    from SCORE-45 archived expired rows (never silently dropped).
     """
     league = storage.get_league(league_id)
     if not league:

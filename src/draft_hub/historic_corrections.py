@@ -206,15 +206,6 @@ def _apply_live_forward(
     existing = storage.get_roster_slot(ws, str(change["player_id"]))
     if not existing:
         raise ValueError("Live roster player disappeared before apply")
-    rules = LeagueRules.model_validate(league.get("rules") or {})
-    yrs = int(existing.get("contract_years") or 1)
-    contract = build_contract_from_roster_edit(
-        rules,
-        current_salary=float(change["after"]),
-        years_remaining=yrs,
-        existing=existing.get("contract"),
-        step_up=float(rules.contracts.extension_step_up),
-    )
     before = {
         "player_id": existing.get("player_id"),
         "salary": existing.get("salary"),
@@ -222,14 +213,15 @@ def _apply_live_forward(
         "roster_status": existing.get("roster_status"),
         "contract_type": (existing.get("contract") or {}).get("contract_type"),
     }
-    slot = storage.update_roster_slot(
+    from src.draft_hub.contract_service import apply_historic_forward_salary
+
+    slot = apply_historic_forward_salary(
+        league_id,
         ws,
-        str(change["player_id"]),
-        team_id=str(change.get("team_id") or existing.get("team_id") or ""),
-        contract=contract,
-        any_team=True,
+        existing,
+        new_salary=float(change["after"]),
         edited_by_sub=edited_by_sub,
-        note=reason,
+        reason=reason,
     )
     after = {
         "player_id": slot.get("player_id"),
