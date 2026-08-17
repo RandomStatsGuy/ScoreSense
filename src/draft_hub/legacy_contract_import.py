@@ -114,6 +114,8 @@ def _base_row(
     owner_map: dict[str, str],
     **extra: Any,
 ) -> dict[str, Any]:
+    from src.draft_hub.sourced_checkpoints import apply_row_identity_and_quarantine
+
     cap = extra.pop("cap_hit", None)
     base = extra.pop("base_salary", cap)
     row = {
@@ -122,7 +124,7 @@ def _base_row(
         "player_name": _norm_name(player_name),
         "base_salary": base,
         "cap_hit": cap if cap is not None else base,
-        "roster_status": "active",
+        "roster_status": extra.pop("roster_status", "active"),
         "contract_phase": extra.pop("contract_phase", None),
         "acquisition_type": extra.pop("acquisition_type", None),
         "source_kind": "import",
@@ -130,7 +132,8 @@ def _base_row(
         "needs_review": False,
         **extra,
     }
-    return _attach_hub_team(row, owner_map)
+    row = _attach_hub_team(row, owner_map)
+    return apply_row_identity_and_quarantine(row)
 
 
 def parse_2022_sheet(df: pd.DataFrame, owner: str, owner_map: dict[str, str]) -> list[dict[str, Any]]:
@@ -412,10 +415,16 @@ def parse_year_workbook(
     season_year: int,
     owner_map: dict[str, str],
 ) -> list[dict[str, Any]]:
+    """Parse per-owner sheets only. League/Master/TRADE sheets are never auto-imported."""
+    from src.draft_hub.sourced_checkpoints import sheets_skipped_for_season
+
     rows: list[dict[str, Any]] = []
     xls = pd.ExcelFile(filepath)
+    skip = sheets_skipped_for_season(season_year)
     for owner in TEAM_OWNERS:
         if owner not in xls.sheet_names:
+            continue
+        if owner in skip:
             continue
         df = pd.read_excel(xls, sheet_name=owner, header=None)
         if season_year == 2022:
@@ -428,8 +437,9 @@ def parse_year_workbook(
 
 
 def process_league_history(data_dir: Path | None = None) -> pd.DataFrame:
-    """Flatten commissioner files into a single contract-history dataframe."""
+    """Flatten commissioner files into sourced checkpoint rows (not a transaction ledger)."""
     from src.draft_hub.draft_results_import import apply_draft_tags_to_dataframe, load_draft_wins_by_season
+    from src.draft_hub.sourced_checkpoints import apply_row_identity_and_quarantine
 
     base = data_dir or OLD_LEAGUE_FILES_DIR
     owner_map = load_owner_team_map()
@@ -446,6 +456,8 @@ def process_league_history(data_dir: Path | None = None) -> pd.DataFrame:
 
     if not all_rows:
         return pd.DataFrame()
+    # Re-stamp identity/quarantine after draft tags may rewrite acquisition fields.
+    all_rows = [apply_row_identity_and_quarantine(r) for r in all_rows]
     df = pd.DataFrame(all_rows)
     # Year-sheet acquisition is set by draft tags + owner-change reconcile
     # (trade → draft → FA lottery). Do not guess waiver/FA from dollar amount.
@@ -453,6 +465,9 @@ def process_league_history(data_dir: Path | None = None) -> pd.DataFrame:
     wins_by_season, _draft_meta = load_draft_wins_by_season(base)
     if wins_by_season:
         df, _tagged = apply_draft_tags_to_dataframe(df, wins_by_season)
+        # Draft tagging can leave quarantine flags intact; re-apply identity only.
+        records = df.to_dict(orient="records")
+        df = pd.DataFrame([apply_row_identity_and_quarantine(r) for r in records])
     return df
 
 

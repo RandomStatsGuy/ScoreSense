@@ -204,8 +204,22 @@ def build_team_salary_sheets_payload(
         "import_meta": {
             str(yr): {
                 "snapshot_phase": row.get("snapshot_phase"),
+                "as_of": row.get("as_of"),
+                "ruleset_version": row.get("ruleset_version"),
+                "salary_cap": row.get("salary_cap"),
                 "imported_at": row.get("imported_at"),
             }
             for yr, row in import_meta.items()
         },
+        "checkpoints": [
+            {
+                "season_year": yr,
+                "phase": (import_meta.get(yr) or {}).get("snapshot_phase"),
+                "as_of": (import_meta.get(yr) or {}).get("as_of"),
+                "ruleset_version": (import_meta.get(yr) or {}).get("ruleset_version"),
+                "salary_cap": (import_meta.get(yr) or {}).get("salary_cap")
+                or season_caps.get(yr),
+            }
+            for yr in seasons
+        ],
     }
