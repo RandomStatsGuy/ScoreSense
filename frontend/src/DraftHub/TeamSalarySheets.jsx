@@ -5,7 +5,37 @@ import { invalidateInsightsAfterCapSync } from "./hubDataCache";
 import { HubFilterChip, HubFilterScroll, HubPage, SortTh } from "./HubUILayout";
 import PlayerNameAliasPanel from "./PlayerNameAliasPanel";
 import { confirmDialog } from "../ui/confirm";
+import { promptDialog } from "../ui/prompt";
+import { historicCorrectionDialog } from "./HistoricCorrectionDialog";
+import { salaryFieldUpdates } from "./historicCorrections";
 import { fmtSal, seasonCapYearHint } from "./rosterFormat";
+
+async function resolveHistoricRowId(leagueId, seasonYear, row, ownerLabel) {
+  const direct = row?.row_id ?? row?.id;
+  if (direct != null && Number.isFinite(Number(direct))) return Number(direct);
+  const yr = Number(seasonYear);
+  if (!leagueId || !Number.isFinite(yr)) return null;
+  try {
+    const res = await apiFetch(
+      `/api/hub/league/${leagueId}/contract-history?season=${encodeURIComponent(yr)}`,
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const rows = Array.isArray(data) ? data : (data.rows || data.contracts || []);
+    const name = String(row?.player_name || "").trim().toLowerCase();
+    const owner = String(ownerLabel || row?.owner_label || "").trim().toLowerCase();
+    const match = rows.find((r) => {
+      if (String(r.player_name || "").trim().toLowerCase() !== name) return false;
+      if (owner && String(r.owner_label || "").trim().toLowerCase() !== owner) return false;
+      return true;
+    });
+    const id = match?.id ?? match?.row_id;
+    return id != null && Number.isFinite(Number(id)) ? Number(id) : null;
+  } catch {
+    return null;
+  }
+}
+
 
 function looksLikeAlias(name) {
   const parts = String(name || "").trim().split(/\s+/);
@@ -726,7 +756,7 @@ function SalaryEditCell({
         type="button"
         className="btn-link hub-salary-cap-btn"
         disabled={isBusy}
-        title="Click to edit salary"
+        title="Correct historical record"
         onClick={() => onStartEdit(`${rowKey}-${field}`)}
       >
         {isBusy ? "…" : fmtSal(value)}
@@ -1354,22 +1384,43 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
     }
     const current = field === "cap_hit" ? row.cap_hit : row.prior_salary;
     if (parsed != null && current != null && Math.abs(Number(current) - parsed) < 0.01) return;
+    if (parsed == null && current == null) return;
 
     const busyField = field === "cap_hit" ? "cap" : "prior";
     setBusyRowKey(`${rowKey}-${busyField}`);
     setActionError("");
     try {
-      if (row.row_id) {
-        const body = field === "cap_hit"
-          ? { cap_hit: parsed, base_salary: parsed }
-          : { prior_salary: parsed };
-        const res = await apiFetch(`/api/hub/league/${leagueId}/contract-history/${row.row_id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+      let rowId = row.row_id ?? row.id ?? null;
+      if (rowId == null) {
+        rowId = await resolveHistoricRowId(leagueId, yr, row, ownerLabel);
+      }
+
+      if (rowId != null) {
+        // SCORE-43: replace silent PATCH with Correct historical record.
+        const result = await historicCorrectionDialog({
+          leagueId,
+          rowId: Number(rowId),
+          updates: salaryFieldUpdates(field, parsed),
+          playerName: row.player_name,
+          seasonYear: Number(yr),
         });
-        if (!res.ok) throw new Error(await parseApiError(res));
+        if (!result) return;
       } else {
+        // File-only line with no published DB row yet — still require a reason.
+        const note = await promptDialog({
+          title: "Correct historical record",
+          message:
+            `${row.player_name || "Player"} · ${yr} has no published snapshot row yet. `
+            + "Saving creates a new published overlay for this sheet (live roster stays unchanged).",
+          label: "Correction reason",
+          placeholder: "Why is this historic value wrong?",
+          confirmLabel: "Publish correction",
+          beforeAfter: {
+            before: current == null ? "—" : fmtSal(current),
+            after: parsed == null ? "—" : fmtSal(parsed),
+          },
+        });
+        if (note == null) return;
         const cap = field === "cap_hit"
           ? (parsed ?? row.cap_hit ?? 1)
           : (row.cap_hit ?? 1);
@@ -1385,6 +1436,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
           base_salary: Number(cap),
           prior_salary: prior ?? undefined,
           roster_status: row.roster_status || "active",
+          status_note: note,
         };
         const res = await apiFetch(`/api/hub/league/${leagueId}/contract-history`, {
           method: "POST",
