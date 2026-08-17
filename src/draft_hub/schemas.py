@@ -76,13 +76,42 @@ class RosterUpdateRequest(BaseModel):
     contract_years: Optional[int] = None  # years remaining on contract
     step_up: Optional[float] = None
     salary_schedule: Optional[list[float]] = None
-    roster_status: Optional[str] = None  # active | cut_before_draft
+    roster_status: Optional[str] = None  # active | cut_before_draft | expired
     contract_type: Optional[str] = None  # rookie | veteran | extension
+    # SCORE-43: required for commissioner Office Current overrides (salary/years/status).
+    note: Optional[str] = None
+
+
+class HistoricCorrectionRequest(BaseModel):
+    """SCORE-43 Correct historical record command."""
+
+    reason: str = Field(..., min_length=3)
+    mode: Literal["history_only", "preview_forward", "apply_forward"] = "history_only"
+    updates: dict[str, Any] = Field(default_factory=dict)
+    forward_rebuild_approved: bool = False
+    # Convenience aliases accepted in updates or top-level:
+    cap_hit: Optional[float] = None
+    base_salary: Optional[float] = None
+    prior_salary: Optional[float] = None
+    roster_status: Optional[str] = None
+    contract_phase: Optional[str] = None
+    status_note: Optional[str] = None
+    owner_label: Optional[str] = None
+    hub_team_name: Optional[str] = None
+    player_name: Optional[str] = None
+    player_id: Optional[str] = None
+    position: Optional[str] = None
+    original_draft_year: Optional[int] = None
+    acquisition_type: Optional[str] = None
+    confidence: Optional[str] = None
+    needs_review: Optional[bool] = None
+    review_reason: Optional[str] = None
 
 
 class ContractTypeUpdateRequest(BaseModel):
     player_id: str
     contract_type: str  # rookie | veteran | extension
+    note: Optional[str] = None
 
 
 class ContractTypeDecisionRequest(BaseModel):

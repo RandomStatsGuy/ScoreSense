@@ -736,3 +736,36 @@ def test_player_context_api_include_historical_query(mock_get, client):
     assert res.json()["media_context"]["state"] == "historical_available"
     kwargs = mock_get.call_args.kwargs
     assert kwargs.get("include_historical") is True
+
+
+@patch("app.api.get_player_context")
+def test_player_context_api_media_mode_query(mock_get, client):
+    mock_get.return_value = {
+        "player_id": "p1",
+        "media_context": {
+            "state": "current",
+            "summary": "Camp outlook",
+            "mode": "outlook",
+            "modes_available": {
+                "outlook": True,
+                "week1_pulse": True,
+                "older": False,
+            },
+            "affects_projection": False,
+        },
+        "meta": {"season": 2026, "week": 1, "media_mode": "outlook"},
+    }
+    from app.auth import require_patron
+
+    app.dependency_overrides[require_patron] = lambda: {"sub": "test"}
+    try:
+        res = client.get(
+            "/api/player/p1/context?season=2026&week=1&media_mode=outlook"
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert res.status_code == 200
+    assert res.json()["media_context"]["mode"] == "outlook"
+    kwargs = mock_get.call_args.kwargs
+    assert kwargs.get("media_mode") == "outlook"

@@ -12,6 +12,7 @@ import ContractDataSourcesBanner from "./ContractDataSourcesBanner";
 import { invalidateInsightsAfterCapSync } from "./hubDataCache";
 import { HubPage } from './HubUILayout';
 import { confirmDialog } from "../ui/confirm";
+import { historicCorrectionDialog } from "./HistoricCorrectionDialog";
 import { fmtSal } from "./rosterFormat";
 
 const ROSTER_STATUSES = ["active", "cut", "ir", "taxi"];
@@ -100,6 +101,32 @@ function ContractRowEditor({ row, leagueId, seasonYear, isNew, onSaved, onDelete
         onSaved(await res.json(), { isNew: true });
         return;
       }
+
+      // SCORE-43: salary field changes go through Correct historical record.
+      const salaryChanged = ["cap_hit", "base_salary", "prior_salary"].some((key) => {
+        const next = body[key];
+        const prev = row?.[key];
+        if (next == null && prev == null) return false;
+        if (next == null || prev == null) return true;
+        return Math.abs(Number(next) - Number(prev)) >= 0.01;
+      });
+      if (salaryChanged) {
+        const updates = {};
+        for (const key of Object.keys(body)) {
+          if (body[key] !== undefined) updates[key] = body[key];
+        }
+        const result = await historicCorrectionDialog({
+          leagueId,
+          rowId: row.id,
+          updates,
+          playerName: body.player_name || row.player_name,
+          seasonYear: Number(seasonYear || row.season_year),
+        });
+        if (!result) return;
+        onSaved(result.after ? { ...row, ...result.after, id: row.id } : result);
+        return;
+      }
+
       const res = await apiFetch(`/api/hub/league/${leagueId}/contract-history/${row.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -276,7 +303,7 @@ function ContractRowEditor({ row, leagueId, seasonYear, isNew, onSaved, onDelete
       {error && <p className="error-banner">{error}</p>}
       <div className="hub-contract-edit-actions">
         <button type="button" className="btn-primary btn-sm" onClick={save} disabled={saving}>
-          {saving ? "Saving…" : isNew ? "Add row" : "Save"}
+          {saving ? "Saving…" : isNew ? "Add row" : "Correct / save"}
         </button>
         <button type="button" className="btn-ghost btn-sm" onClick={onCancel} disabled={saving}>
           Cancel

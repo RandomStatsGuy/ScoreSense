@@ -22,6 +22,36 @@ from src.draft_hub.rules_engine import (
 from src.draft_hub.schemas import LeagueRules
 
 
+def _trade_event_summary(league_id: str, parties: list[dict[str, Any]]) -> dict[str, Any]:
+    """Compact bid-log payload for a mid-draft trade."""
+    teams = {str(t["id"]): t for t in storage.list_league_teams(league_id)}
+    by_team = storage.list_league_rosters_by_team(league_id)
+    owner: dict[str, dict[str, Any]] = {}
+    for tid, rows in by_team.items():
+        for row in rows:
+            pid = str(row.get("player_id") or "")
+            if pid:
+                owner[pid] = row
+    names = [str((teams.get(str(p["team_id"])) or {}).get("name") or "Team") for p in parties]
+    moved: list[str] = []
+    for party in parties:
+        from_name = str((teams.get(str(party["team_id"])) or {}).get("name") or "Team")
+        for send in party.get("sends") or []:
+            row = owner.get(str(send.get("player_id") or ""))
+            player = (row or {}).get("player_name") or send.get("player_id")
+            to_name = str((teams.get(str(send.get("to_team_id"))) or {}).get("name") or "Team")
+            moved.append(f"{player} ({from_name} → {to_name})")
+    if len(names) >= 2:
+        headline = f"{names[0]} ↔ {names[1]}"
+    else:
+        headline = names[0] if names else "Trade"
+    return {
+        "summary": headline if not moved else f"{headline} · {', '.join(moved[:4])}",
+        "team_names": names,
+        "players": moved,
+    }
+
+
 def drop_dead_cap_amount(rules: LeagueRules, row: dict[str, Any]) -> float:
     """Current-season dead money if this active player were cut before the draft."""
     sal = float(cap_hit(row, 0) or 0)
@@ -322,19 +352,22 @@ def execute_multiparty_trade(
         raise ValueError("; ".join(check["errors"]) or "Trade failed validation")
 
     league = storage.get_league(league_id)
-    if not league or not league.get("workspace_id"):
+    if not league:
         raise ValueError("League not found")
-    ws_id = str(league["workspace_id"])
+    ws_id = storage.roster_workspace_for_league(league)
     rules = LeagueRules.model_validate(league["rules"])
     norm = check["parties"]
     assignments = check["dead_cap_assignments"]
+    event_summary = _trade_event_summary(league_id, norm)
 
     # Apply sends
+    from src.draft_hub.contract_service import apply_trade_drop, apply_trade_transfer
+
     for party in norm:
         from_tid = str(party["team_id"])
         for send in party["sends"]:
-            moved = storage.transfer_roster_players(
-                ws_id, [send["player_id"]], from_tid, send["to_team_id"]
+            moved = apply_trade_transfer(
+                league_id, ws_id, [send["player_id"]], from_tid, send["to_team_id"]
             )
             if moved != 1:
                 raise ValueError(f"Failed to move {send['player_id']}")
@@ -348,19 +381,12 @@ def execute_multiparty_trade(
         for pid in party["drops"]:
             a = assign_map[(from_tid, pid)]
             assignee = str(a["assigned_to_team_id"])
-            slot = storage.get_roster_slot(ws_id, pid)
-            if not slot or str(slot.get("team_id")) != from_tid:
-                raise ValueError(f"Drop {pid} not on expected team")
-            if assignee != from_tid:
-                storage.transfer_roster_players(ws_id, [pid], from_tid, assignee)
-            contract = contract_on_cut_status_change(slot, roster_status=ROSTER_CUT_BEFORE_DRAFT)
-            storage.update_roster_slot(
+            apply_trade_drop(
+                league_id,
                 ws_id,
                 pid,
-                team_id=assignee,
-                contract=contract,
-                roster_status=ROSTER_CUT_BEFORE_DRAFT,
-                any_team=True,
+                from_team_id=from_tid,
+                assignee_team_id=assignee,
             )
 
     # Log (pairwise summary for legacy table + full parties in send_a json)
@@ -375,6 +401,13 @@ def execute_multiparty_trade(
         parties=norm,
         dead_cap_assignments=assignments,
     )
+
+    session = storage.get_draft_session(league_id) or {}
+    if session.get("status") in ("nominating", "bidding") and not league.get("draft_completed"):
+        from src.draft_hub.draft_budgets import sync_league_auction_budgets
+
+        sync_league_auction_budgets(league_id)
+        storage.append_draft_event(league_id, "trade", event_summary)
 
     by_team = {
         tid: storage.list_team_roster(league_id, tid) for tid in team_ids

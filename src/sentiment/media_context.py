@@ -1,4 +1,4 @@
-"""SCORE-28 media coverage states — no silent historical fallback.
+"""SCORE-28 media coverage states + SCORE-34 preseason media modes.
 
 Default response states:
 
@@ -7,13 +7,21 @@ Default response states:
 * ``none`` — no usable coverage
 
 Historical text must never be presented as current-week narrative. Callers that
-want older commentary must pass ``include_historical=True`` (explicit opt-in).
+want older commentary must pass ``include_historical=True`` (explicit opt-in)
+or ``media_mode=older``.
+
+SCORE-34 preseason modes (cheap, cached; never per-request LLM/YouTube):
+
+* ``outlook`` — recent preseason commentary (publication lookback, week=0 bucket)
+* ``week1_pulse`` — content mapped to Week 1 schedule windows
+* ``older`` — explicit opt-in historical commentary (never auto-shown as current)
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable
+from datetime import datetime, timezone
+from typing import Any, Callable, Literal
 
 import pandas as pd
 
@@ -25,6 +33,24 @@ MEDIA_STATES = (
     MEDIA_STATE_HISTORICAL_AVAILABLE,
     MEDIA_STATE_NONE,
 )
+
+# SCORE-34 — explicit preseason / media mode selectors
+MEDIA_MODE_OUTLOOK = "outlook"
+MEDIA_MODE_WEEK1_PULSE = "week1_pulse"
+MEDIA_MODE_OLDER = "older"
+MEDIA_MODES = (
+    MEDIA_MODE_OUTLOOK,
+    MEDIA_MODE_WEEK1_PULSE,
+    MEDIA_MODE_OLDER,
+)
+
+# Synthetic week bucket for outlook features (not a real NFL week).
+PRESEASON_OUTLOOK_WEEK = 0
+# Publication lookback for outlook (ticket: last 14–30 days). Default 30.
+PRESEASON_OUTLOOK_LOOKBACK_DAYS = 30
+PRESEASON_OUTLOOK_MIN_LOOKBACK_DAYS = 14
+
+PublishBucket = Literal["outlook", "week1", "in_season", "older", "drop"]
 
 
 @dataclass(frozen=True)
@@ -39,6 +65,7 @@ class MediaWeekResolution:
     historical_season: int | None = None
     historical_week: int | None = None
     include_historical: bool = False
+    media_mode: str | None = None
 
     @property
     def serving_historical(self) -> bool:
@@ -55,16 +82,156 @@ class MediaWeekResolution:
         return self.serving_historical
 
 
+def normalize_media_mode(
+    media_mode: str | None,
+    *,
+    include_historical: bool = False,
+) -> str | None:
+    """Normalize API media_mode; ``include_historical`` aliases to ``older``."""
+    raw = str(media_mode or "").strip().lower()
+    if raw in MEDIA_MODES:
+        return raw
+    if include_historical:
+        return MEDIA_MODE_OLDER
+    return None
+
+
+def modes_available_flags(
+    *,
+    has_outlook: bool = False,
+    has_week1_pulse: bool = False,
+    has_older: bool = False,
+) -> dict[str, bool]:
+    return {
+        MEDIA_MODE_OUTLOOK: bool(has_outlook),
+        MEDIA_MODE_WEEK1_PULSE: bool(has_week1_pulse),
+        MEDIA_MODE_OLDER: bool(has_older),
+    }
+
+
+def media_context_has_narrative(media_context: dict[str, Any] | None) -> bool:
+    if not media_context:
+        return False
+    if media_context.get("summary") or media_context.get("excerpt"):
+        return True
+    if media_context.get("sources"):
+        return True
+    if int(media_context.get("source_count") or 0) > 0:
+        return True
+    if media_context.get("signal"):
+        return True
+    return False
+
+
+def annotate_media_mode(
+    media_context: dict[str, Any] | None,
+    *,
+    mode: str | None,
+    modes_available: dict[str, bool] | None = None,
+) -> dict[str, Any]:
+    """Attach mode metadata without changing narrative fields."""
+    base = dict(media_context or empty_media_context())
+    base["mode"] = mode if mode in MEDIA_MODES else None
+    if modes_available is not None:
+        base["modes_available"] = {
+            MEDIA_MODE_OUTLOOK: bool(modes_available.get(MEDIA_MODE_OUTLOOK)),
+            MEDIA_MODE_WEEK1_PULSE: bool(modes_available.get(MEDIA_MODE_WEEK1_PULSE)),
+            MEDIA_MODE_OLDER: bool(modes_available.get(MEDIA_MODE_OLDER)),
+        }
+    return base
+
+
+def classify_publish_bucket(
+    published_at: Any,
+    season: int,
+    *,
+    mapped_week: int | None = None,
+    now: datetime | None = None,
+    outlook_lookback_days: int = PRESEASON_OUTLOOK_LOOKBACK_DAYS,
+) -> PublishBucket:
+    """Classify a video for preseason mode bucketing by publication date.
+
+    * Week 1 schedule mapping → ``week1``
+    * Other in-season weeks → ``in_season``
+    * Unmapped + within outlook lookback → ``outlook``
+    * Unmapped + older than lookback → ``older`` (not auto-shown)
+    * Unusable timestamp → ``drop``
+    """
+    if mapped_week is not None:
+        week = int(mapped_week)
+        if week == 1:
+            return "week1"
+        if week > 1:
+            return "in_season"
+        if week == PRESEASON_OUTLOOK_WEEK:
+            return "outlook"
+
+    if published_at is None or (isinstance(published_at, float) and pd.isna(published_at)):
+        return "drop"
+    try:
+        ts = pd.Timestamp(published_at)
+    except (TypeError, ValueError):
+        return "drop"
+    if pd.isna(ts):
+        return "drop"
+    if ts.tzinfo is None:
+        ts = ts.tz_localize("UTC")
+    else:
+        ts = ts.tz_convert("UTC")
+
+    now_ts = pd.Timestamp(now or datetime.now(timezone.utc))
+    if now_ts.tzinfo is None:
+        now_ts = now_ts.tz_localize("UTC")
+    else:
+        now_ts = now_ts.tz_convert("UTC")
+
+    if ts > now_ts:
+        return "drop"
+
+    lookback = max(int(outlook_lookback_days), int(PRESEASON_OUTLOOK_MIN_LOOKBACK_DAYS))
+    cutoff = now_ts - pd.Timedelta(days=lookback)
+    if ts >= cutoff:
+        return "outlook"
+    return "older"
+
+
+def resolve_publish_week_for_features(
+    published_at: Any,
+    season: int,
+    *,
+    mapped_week: int | None,
+    now: datetime | None = None,
+    outlook_lookback_days: int = PRESEASON_OUTLOOK_LOOKBACK_DAYS,
+) -> int | None:
+    """Map a publish time to a feature week, including synthetic outlook week=0."""
+    bucket = classify_publish_bucket(
+        published_at,
+        season,
+        mapped_week=mapped_week,
+        now=now,
+        outlook_lookback_days=outlook_lookback_days,
+    )
+    if bucket == "week1":
+        return 1
+    if bucket == "in_season" and mapped_week is not None:
+        return int(mapped_week)
+    if bucket == "outlook":
+        return PRESEASON_OUTLOOK_WEEK
+    return None
+
+
 def empty_media_context(
     *,
     state: str = MEDIA_STATE_NONE,
     historical_season: int | None = None,
     historical_week: int | None = None,
+    mode: str | None = None,
+    modes_available: dict[str, bool] | None = None,
 ) -> dict[str, Any]:
     historical = None
     if historical_season is not None and historical_week is not None:
         historical = {"season": int(historical_season), "week": int(historical_week)}
-    return {
+    out: dict[str, Any] = {
         "state": state if state in MEDIA_STATES else MEDIA_STATE_NONE,
         "signal": None,
         "source_count": 0,
@@ -74,7 +241,15 @@ def empty_media_context(
         "updated_at": None,
         "historical": historical,
         "affects_projection": False,
+        "mode": mode if mode in MEDIA_MODES else None,
     }
+    if modes_available is not None:
+        out["modes_available"] = modes_available_flags(
+            has_outlook=bool(modes_available.get(MEDIA_MODE_OUTLOOK)),
+            has_week1_pulse=bool(modes_available.get(MEDIA_MODE_WEEK1_PULSE)),
+            has_older=bool(modes_available.get(MEDIA_MODE_OLDER)),
+        )
+    return out
 
 
 def media_context_block(
@@ -207,6 +382,11 @@ def latest_week_with_rows(
     scoped = position_filter(features) if position_filter is not None else features
     if scoped.empty:
         return None
+    # Exclude synthetic outlook week from in-season historical resolution.
+    if "week" in scoped.columns:
+        scoped = scoped[scoped["week"].astype(int) != PRESEASON_OUTLOOK_WEEK]
+    if scoped.empty:
+        return None
     mask = has_coverage(scoped)
     covered = scoped[mask]
     if covered.empty:
@@ -243,6 +423,9 @@ def resolve_media_week(
         )
 
     scoped = position_filter(features) if position_filter is not None else features
+    # Outlook (week=0) is a separate mode — never treat it as current/historical week.
+    if "week" in scoped.columns and requested_week != PRESEASON_OUTLOOK_WEEK:
+        scoped = scoped[scoped["week"].astype(int) != PRESEASON_OUTLOOK_WEEK]
     current = scoped[
         (scoped["season"].astype(int) == requested_season)
         & (scoped["week"].astype(int) == requested_week)
@@ -329,6 +512,11 @@ def find_player_historical_row(
     if scoped.empty:
         return None
 
+    # Exclude synthetic outlook week from "older" historical candidates.
+    scoped = scoped[scoped["week"].astype(int) != PRESEASON_OUTLOOK_WEEK]
+    if scoped.empty:
+        return None
+
     def _covered(row: pd.Series) -> bool:
         if has_coverage is not None:
             return bool(has_coverage(row))
@@ -363,3 +551,155 @@ def find_player_historical_row(
     covered_rows.sort(key=lambda r: (int(r["season"]), int(r["week"])))
     row = covered_rows[-1]
     return int(row["season"]), int(row["week"]), row
+
+
+def _mode_payload_has_content(payload: dict[str, Any] | None) -> bool:
+    if not payload:
+        return False
+    if media_context_has_narrative(payload):
+        return True
+    historical = payload.get("historical")
+    if isinstance(historical, dict) and (
+        historical.get("summary")
+        or historical.get("excerpt")
+        or historical.get("sources")
+        or int(historical.get("source_count") or 0) > 0
+        or historical.get("signal")
+    ):
+        return True
+    if (
+        payload.get("state") == MEDIA_STATE_HISTORICAL_AVAILABLE
+        and isinstance(historical, dict)
+        and historical.get("season") is not None
+        and historical.get("week") is not None
+    ):
+        return True
+    return False
+
+
+def build_media_modes_available(media_modes: dict[str, Any] | None) -> dict[str, bool]:
+    modes = media_modes if isinstance(media_modes, dict) else {}
+    return modes_available_flags(
+        has_outlook=_mode_payload_has_content(modes.get(MEDIA_MODE_OUTLOOK)),
+        has_week1_pulse=_mode_payload_has_content(modes.get(MEDIA_MODE_WEEK1_PULSE)),
+        has_older=_mode_payload_has_content(modes.get(MEDIA_MODE_OLDER)),
+    )
+
+
+def select_media_context_for_mode(
+    *,
+    media_context: dict[str, Any] | None,
+    media_modes: dict[str, Any] | None,
+    media_mode: str | None,
+    include_historical: bool = False,
+) -> dict[str, Any]:
+    """Serve-path selector for SCORE-34 modes (artifact-only; no live fetches).
+
+    Default (no mode): SCORE-28 behavior — strip historical unless opted in.
+    ``older`` / ``include_historical``: promote historical narrative, never label
+    it as current-week coverage.
+    ``outlook`` / ``week1_pulse``: serve the matching cached mode bucket.
+    """
+    mode = normalize_media_mode(media_mode, include_historical=include_historical)
+    modes = media_modes if isinstance(media_modes, dict) else {}
+    available = build_media_modes_available(modes)
+
+    if mode == MEDIA_MODE_OUTLOOK:
+        outlook = modes.get(MEDIA_MODE_OUTLOOK)
+        if isinstance(outlook, dict) and media_context_has_narrative(outlook):
+            return annotate_media_mode(
+                {
+                    "state": MEDIA_STATE_CURRENT,
+                    "signal": outlook.get("signal"),
+                    "source_count": int(outlook.get("source_count") or 0),
+                    "summary": outlook.get("summary"),
+                    "excerpt": outlook.get("excerpt"),
+                    "sources": list(outlook.get("sources") or []),
+                    "updated_at": outlook.get("updated_at"),
+                    "historical": None,
+                    "affects_projection": False,
+                },
+                mode=MEDIA_MODE_OUTLOOK,
+                modes_available=available,
+            )
+        return annotate_media_mode(
+            empty_media_context(state=MEDIA_STATE_NONE),
+            mode=MEDIA_MODE_OUTLOOK,
+            modes_available=available,
+        )
+
+    if mode == MEDIA_MODE_WEEK1_PULSE:
+        pulse = modes.get(MEDIA_MODE_WEEK1_PULSE)
+        if isinstance(pulse, dict) and media_context_has_narrative(pulse):
+            return annotate_media_mode(
+                {
+                    "state": MEDIA_STATE_CURRENT,
+                    "signal": pulse.get("signal"),
+                    "source_count": int(pulse.get("source_count") or 0),
+                    "summary": pulse.get("summary"),
+                    "excerpt": pulse.get("excerpt"),
+                    "sources": list(pulse.get("sources") or []),
+                    "updated_at": pulse.get("updated_at"),
+                    "historical": None,
+                    "affects_projection": False,
+                },
+                mode=MEDIA_MODE_WEEK1_PULSE,
+                modes_available=available,
+            )
+        return annotate_media_mode(
+            empty_media_context(state=MEDIA_STATE_NONE),
+            mode=MEDIA_MODE_WEEK1_PULSE,
+            modes_available=available,
+        )
+
+    if mode == MEDIA_MODE_OLDER:
+        older = modes.get(MEDIA_MODE_OLDER)
+        if isinstance(older, dict):
+            if isinstance(older.get("historical"), dict) and (
+                older["historical"].get("summary")
+                or older["historical"].get("excerpt")
+                or older["historical"].get("sources")
+                or int(older["historical"].get("source_count") or 0) > 0
+            ):
+                promoted = apply_historical_opt_in(older)
+            elif media_context_has_narrative(older):
+                promoted = {
+                    "state": MEDIA_STATE_HISTORICAL_AVAILABLE,
+                    "signal": older.get("signal"),
+                    "source_count": int(older.get("source_count") or 0),
+                    "summary": older.get("summary"),
+                    "excerpt": older.get("excerpt"),
+                    "sources": list(older.get("sources") or []),
+                    "updated_at": older.get("updated_at"),
+                    "historical": older.get("historical")
+                    if isinstance(older.get("historical"), dict)
+                    else None,
+                    "affects_projection": False,
+                }
+            else:
+                promoted = apply_historical_opt_in(media_context)
+        else:
+            promoted = apply_historical_opt_in(media_context)
+        return annotate_media_mode(
+            promoted,
+            mode=MEDIA_MODE_OLDER,
+            modes_available=available,
+        )
+
+    # Default SCORE-28 path.
+    if include_historical:
+        selected = apply_historical_opt_in(media_context)
+    else:
+        selected = strip_historical_content(media_context)
+        raw_hist = (media_context or {}).get("historical") if isinstance(media_context, dict) else None
+        if (
+            selected.get("state") == MEDIA_STATE_HISTORICAL_AVAILABLE
+            and isinstance(raw_hist, dict)
+            and raw_hist.get("season") is not None
+            and raw_hist.get("week") is not None
+        ):
+            selected["historical"] = {
+                "season": int(raw_hist["season"]),
+                "week": int(raw_hist["week"]),
+            }
+    return annotate_media_mode(selected, mode=None, modes_available=available)

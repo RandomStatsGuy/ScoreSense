@@ -296,7 +296,8 @@ def reset_live_draft(league_id: str, user_sub: str) -> dict[str, Any]:
     """Undo a live (non-practice) draft: clear auction picks/events, restore session to setup.
 
     Keepers (non-draft sources) stay. If draft was already marked complete, rewinds the
-    contract year clock for remaining keepers (players who expired on End are not restored).
+    contract year clock. Expired keepers are restored from the pre-tick snapshot or
+    from SCORE-45 archived expired rows (never silently dropped).
     """
     league = storage.get_league(league_id)
     if not league:
@@ -414,7 +415,7 @@ def nominate(league_id: str, user_sub: str, player: dict[str, Any]) -> dict[str,
         "position": pos,
         "nominating_team_id": team["id"],
     }
-    for key in ("fair_value", "season_proj", "per_game_proj"):
+    for key in ("fair_value", "season_proj", "per_game_proj", "is_rookie", "years_exp", "nfl_years_exp"):
         val = resolved.get(key)
         if val is None:
             val = player.get(key)
@@ -538,9 +539,12 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
     storage.update_team_budget(winner_id, new_budget)
     # Must match the workspace list_team_roster reads from, or picks vanish.
     ws_id = storage.roster_workspace_for_league(league)
+    from src.draft_hub.contracts import auction_win_is_rookie, build_auction_win_contract
     from src.draft_hub.draft_budgets import preserve_cut_liability
 
     preserve_cut_liability(ws_id, str(nominee["player_id"]))
+    is_rookie = auction_win_is_rookie(rules, nominee)
+    contract = build_auction_win_contract(rules, float(amount), is_rookie=is_rookie)
     storage.add_roster_slot(
         ws_id,
         {
@@ -549,7 +553,8 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
             "team": nominee.get("team"),
             "position": nominee.get("position"),
             "salary": float(amount),
-            "contract_years": 1,
+            "contract_years": int(contract.get("years_remaining") or 2),
+            "contract": contract,
             "source": "draft",
         },
         team_id=winner_id,
@@ -632,26 +637,21 @@ def set_draft_contracts(
     items: list[dict[str, Any]],
     max_years: int = 4,
 ) -> dict[str, Any]:
-    """Owner assigns contract lengths to their own drafted players."""
+    """Owners no longer choose auction contract years.
+
+    Rookies get a flat 2-year deal at the sale price; veterans get 2 years
+    with the league step-up. Year control is only the pre-draft rookie
+    extension window.
+    """
+    _ = (items, max_years, user_sub)
     league = storage.get_league(league_id)
     if not league:
         raise ValueError("League not found")
-    team = storage.get_team_by_user(league_id, user_sub)
-    if not team:
-        raise ValueError("Not a league member")
-    ws_id = storage.roster_workspace_for_league(league)
-    roster_ids = {
-        str(r.get("player_id")) for r in storage.list_team_roster(league_id, team["id"])
-    }
-    for item in items:
-        player_id = str(item.get("player_id") or "")
-        years = int(item.get("years") or 0)
-        if player_id not in roster_ids:
-            raise ValueError("Player not on your roster")
-        if not 1 <= years <= max_years:
-            raise ValueError(f"Contract years must be between 1 and {max_years}")
-        storage.update_roster_slot(ws_id, player_id, team_id=team["id"], contract_years=years)
-    return get_room_state(league_id, user_sub)
+    raise ValueError(
+        "Auction contracts are assigned automatically (rookies 2 years flat, "
+        "veterans 2 years with step-up). Choose years only during the "
+        "pre-draft rookie extension window."
+    )
 
 
 def _parse_utc(iso: str) -> datetime:

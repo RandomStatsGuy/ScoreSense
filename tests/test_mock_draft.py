@@ -236,12 +236,13 @@ def test_simulate_draft_and_owner_contracts(hub_db, monkeypatch):
         budget_remaining=float(team["budget_remaining"]),
     )
     assert report is not None
-    assert report["pick_count"] == len(roster)
-
-    pid = roster[0]["player_id"]
-    league = storage.get_league(league_id)
-    ws = storage.roster_workspace_for_league(league)
-    storage.update_roster_slot(ws, pid, team_id=team["id"], contract_years=3)
-    updated = storage.list_team_roster(league_id, team["id"])
-    slot = next(r for r in updated if str(r["player_id"]) == str(pid))
-    assert int(slot["contract_years"]) == 3
+    drafted_ids = {
+        str((e.get("payload") or {}).get("player_id"))
+        for e in state["events"]
+        if e.get("event_type") == "win" and str((e.get("payload") or {}).get("team_id")) == str(team["id"])
+    }
+    assert report["pick_count"] == len(drafted_ids)
+    assert all(int(p["contract_years"]) == 2 for p in report["picks"])
+    slot = next(r for r in roster if str(r["player_id"]) in drafted_ids)
+    assert int(slot["contract_years"]) == 2
+    assert str((slot.get("contract") or {}).get("contract_type")) == "veteran"

@@ -38,6 +38,9 @@ def _displayable_contract_row(row: dict[str, Any]) -> bool:
         return False
     if is_garbage_player_name(row.get("player_name") or ""):
         return False
+    # Quarantined rows stay visible in Historic for human resolution (SCORE-44).
+    if str(row.get("roster_status") or "").lower() == "quarantined":
+        return True
     pos = _cell_str(row.get("position")).upper()
     if not pos or pos in {"NAN", "NONE"} or pos not in VALID_ROSTER_POSITIONS:
         return False
@@ -51,6 +54,13 @@ def _overlayable_contract_row(row: dict[str, Any]) -> bool:
     if _is_summary_label(row.get("player_name") or ""):
         return False
     if is_garbage_player_name(row.get("player_name") or ""):
+        return False
+    # SCORE-44: quarantined rows never overlay into live ownership / salary sheet.
+    if str(row.get("confidence") or "") == "quarantined":
+        return False
+    if str(row.get("roster_status") or "").lower() == "quarantined":
+        return False
+    if str(row.get("obligation_kind") or "") in {"quarantined", "salary_share"}:
         return False
     kind = str(row.get("source_kind") or "")
     # Sleeper roster snapshots are the base layer, not overlays.
@@ -228,6 +238,38 @@ def build_contract_history_payload(
         movements,
         season_year=effective_season if not all_seasons else None,
     )
+    from src.draft_hub.sourced_checkpoints import (
+        is_cap_obligation_row,
+        is_trusted_ownership_row,
+        list_checkpoint_specs,
+    )
+
+    imports = storage.list_legacy_imports(league_id)
+    import_by_season = {int(r["season_year"]): r for r in imports}
+    checkpoints = []
+    for spec in list_checkpoint_specs():
+        if not spec:
+            continue
+        yr = int(spec["season_year"])
+        imp = import_by_season.get(yr) or {}
+        checkpoints.append(
+            {
+                **spec,
+                "phase": imp.get("snapshot_phase") or spec.get("phase"),
+                "as_of": imp.get("as_of") or spec.get("as_of"),
+                "ruleset_version": imp.get("ruleset_version") or spec.get("ruleset_version"),
+                "salary_cap": imp.get("salary_cap") or spec.get("salary_cap"),
+                "imported_at": imp.get("imported_at"),
+            }
+        )
+    ownership_rows = [r for r in rows if is_trusted_ownership_row(r)]
+    obligation_rows = [r for r in rows if is_cap_obligation_row(r)]
+    quarantined_rows = [
+        r
+        for r in rows
+        if str(r.get("confidence") or "") == "quarantined"
+        or str(r.get("roster_status") or "").lower() == "quarantined"
+    ]
     return {
         "available": bool(rows),
         "seasons": seasons,
@@ -236,12 +278,20 @@ def build_contract_history_payload(
         "owners": owners,
         "row_count": len(rows),
         "needs_review_count": review_count,
+        "ownership_count": len(ownership_rows),
+        "obligation_count": len(obligation_rows),
+        "quarantined_count": len(quarantined_rows),
         "rows": rows,
         "movements": movements,
         "owner_changes": owner_changes,
         "owner_season_map": owner_map_rows,
         "draft_sources": draft_source_status(draft_meta),
         "draft_wins_loaded": int(draft_meta.get("total_wins") or 0),
+        "checkpoints": checkpoints,
+        "quarantine": storage.list_league_import_quarantine(
+            league_id,
+            season_year=None if all_seasons else effective_season,
+        ),
     }
 
 

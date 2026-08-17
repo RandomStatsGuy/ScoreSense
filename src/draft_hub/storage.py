@@ -328,6 +328,10 @@ def _migrate(conn: sqlite3.Connection) -> None:
     )
     _safe_add_column(conn, "league_legacy_import", "snapshot_phase", "TEXT DEFAULT 'unknown'")
     _safe_add_column(conn, "league_legacy_import", "source_fingerprint", "TEXT")
+    # SCORE-44: sourced checkpoint provenance (phase/as_of/ruleset).
+    _safe_add_column(conn, "league_legacy_import", "as_of", "TEXT")
+    _safe_add_column(conn, "league_legacy_import", "ruleset_version", "TEXT")
+    _safe_add_column(conn, "league_legacy_import", "salary_cap", "REAL")
     conn.execute(
         """CREATE TABLE IF NOT EXISTS league_contract_row (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -355,6 +359,27 @@ def _migrate(conn: sqlite3.Connection) -> None:
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         )"""
+    )
+    # SCORE-44: stable franchise id + ownership vs cap-obligation separation.
+    _safe_add_column(conn, "league_contract_row", "franchise_id", "TEXT")
+    _safe_add_column(conn, "league_contract_row", "obligation_kind", "TEXT DEFAULT 'ownership'")
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS league_import_quarantine (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            league_id TEXT NOT NULL,
+            season_year INTEGER,
+            reason_code TEXT NOT NULL,
+            message TEXT NOT NULL,
+            owner_label TEXT,
+            player_name TEXT,
+            source_ref TEXT,
+            detail_json TEXT,
+            created_at TEXT NOT NULL
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_import_quarantine_league "
+        "ON league_import_quarantine(league_id, season_year, reason_code)"
     )
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_contract_row_league_season ON league_contract_row(league_id, season_year)"
@@ -391,6 +416,34 @@ def _migrate(conn: sqlite3.Connection) -> None:
     )
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_league_roster_edit_league ON league_roster_edit(league_id, edited_at)"
+    )
+    # SCORE-43: immutable correction events (prior published state + new snapshot revision).
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS league_historic_correction (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            league_id TEXT NOT NULL,
+            row_id INTEGER NOT NULL,
+            season_year INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            mode TEXT NOT NULL,
+            edited_by_sub TEXT NOT NULL,
+            edited_at TEXT NOT NULL,
+            before_json TEXT NOT NULL,
+            after_json TEXT NOT NULL,
+            historic_snapshot_revision INTEGER NOT NULL,
+            live_applied INTEGER NOT NULL DEFAULT 0,
+            live_before_json TEXT,
+            live_after_json TEXT,
+            live_roster_revision INTEGER
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_historic_correction_league "
+        "ON league_historic_correction(league_id, season_year, edited_at)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_historic_correction_row "
+        "ON league_historic_correction(row_id, edited_at)"
     )
     conn.execute(
         """CREATE TABLE IF NOT EXISTS league_owner_season_map (
@@ -867,6 +920,7 @@ def update_roster_slot(
     any_team: bool = False,
     edited_by_sub: str | None = None,
     note: str | None = None,
+    allow_zero_years: bool = False,
 ) -> dict[str, Any]:
     with get_conn() as conn:
         if any_team:
@@ -889,15 +943,22 @@ def update_roster_slot(
         prior = _roster_dict(row)
         sal = float(salary) if salary is not None else float(row["salary"])
         yrs = int(contract_years) if contract_years is not None else int(row["contract_years"])
-        if yrs < 1:
-            raise ValueError("Contract years must be at least 1")
         # Use `is not None` so an empty dict still writes (truthy check would skip).
         if contract is not None:
             contract_json = json.dumps(contract)
             sal = float(contract.get("current_salary") or contract.get("base_salary") or sal)
-            yrs = int(contract.get("years_remaining") or yrs)
+            yrs = int(contract.get("years_remaining") if contract.get("years_remaining") is not None else yrs)
         else:
             contract_json = row["contract_json"]
+        effective_status = str(
+            roster_status if roster_status is not None else (prior.get("roster_status") or "active")
+        )
+        # SCORE-45: archived expired contracts may store years_remaining=0.
+        zero_ok = allow_zero_years or effective_status == "expired"
+        if yrs < 1 and not zero_ok:
+            raise ValueError("Contract years must be at least 1")
+        if yrs < 0:
+            raise ValueError("Contract years cannot be negative")
         updates = ["salary = ?", "contract_years = ?", "contract_json = ?"]
         params: list[Any] = [sal, yrs, contract_json]
         if roster_status is not None:
@@ -2763,6 +2824,112 @@ def bump_historic_snapshot_revision(league_id: str) -> int:
         return _bump_revision_conn(conn, league_id, "historic_snapshot_revision")
 
 
+def insert_historic_correction(
+    league_id: str,
+    *,
+    row_id: int,
+    season_year: int,
+    reason: str,
+    mode: str,
+    edited_by_sub: str,
+    before_json: dict[str, Any],
+    after_json: dict[str, Any],
+    historic_snapshot_revision: int,
+    live_applied: bool = False,
+    live_before_json: dict[str, Any] | None = None,
+    live_after_json: dict[str, Any] | None = None,
+    live_roster_revision: int | None = None,
+) -> int:
+    """Persist a SCORE-43 historic correction event (keeps prior published state)."""
+    import json
+
+    now = _utcnow()
+    with get_conn() as conn:
+        cur = conn.execute(
+            """INSERT INTO league_historic_correction (
+                league_id, row_id, season_year, reason, mode, edited_by_sub, edited_at,
+                before_json, after_json, historic_snapshot_revision,
+                live_applied, live_before_json, live_after_json, live_roster_revision
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                str(league_id),
+                int(row_id),
+                int(season_year),
+                str(reason),
+                str(mode),
+                str(edited_by_sub),
+                now,
+                json.dumps(before_json, default=str),
+                json.dumps(after_json, default=str),
+                int(historic_snapshot_revision),
+                1 if live_applied else 0,
+                json.dumps(live_before_json, default=str) if live_before_json is not None else None,
+                json.dumps(live_after_json, default=str) if live_after_json is not None else None,
+                int(live_roster_revision) if live_roster_revision is not None else None,
+            ),
+        )
+        return int(cur.lastrowid)
+
+
+def get_historic_correction(correction_id: int) -> dict[str, Any] | None:
+    import json
+
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM league_historic_correction WHERE id = ?",
+            (int(correction_id),),
+        ).fetchone()
+    if not row:
+        return None
+    d = dict(row)
+    d["live_applied"] = bool(d.get("live_applied"))
+    for key in ("before_json", "after_json", "live_before_json", "live_after_json"):
+        raw = d.get(key)
+        if raw:
+            try:
+                d[key.replace("_json", "")] = json.loads(raw)
+            except (TypeError, json.JSONDecodeError):
+                d[key.replace("_json", "")] = None
+        else:
+            d[key.replace("_json", "")] = None
+    return d
+
+
+def list_historic_corrections(
+    league_id: str,
+    *,
+    season_year: int | None = None,
+    row_id: int | None = None,
+    limit: int = 100,
+) -> list[dict[str, Any]]:
+    clauses = ["league_id = ?"]
+    params: list[Any] = [str(league_id)]
+    if season_year is not None:
+        clauses.append("season_year = ?")
+        params.append(int(season_year))
+    if row_id is not None:
+        clauses.append("row_id = ?")
+        params.append(int(row_id))
+    params.append(max(1, min(int(limit), 500)))
+    with get_conn() as conn:
+        rows = conn.execute(
+            f"""SELECT id, league_id, row_id, season_year, reason, mode, edited_by_sub,
+                       edited_at, historic_snapshot_revision, live_applied, live_roster_revision
+                FROM league_historic_correction
+                WHERE {' AND '.join(clauses)}
+                ORDER BY id DESC
+                LIMIT ?""",
+            params,
+        ).fetchall()
+    return [
+        {
+            **dict(r),
+            "live_applied": bool(r["live_applied"]),
+        }
+        for r in rows
+    ]
+
+
 def _bump_live_for_workspace_conn(conn: sqlite3.Connection, workspace_id: str) -> list[tuple[str, int]]:
     bumped: list[tuple[str, int]] = []
     for lid in _league_ids_for_roster_workspace(conn, workspace_id):
@@ -3318,6 +3485,9 @@ def update_legacy_import_metadata(
     *,
     snapshot_phase: str | None = None,
     source_fingerprint: str | None = None,
+    as_of: str | None = None,
+    ruleset_version: str | None = None,
+    salary_cap: float | None = None,
 ) -> None:
     """Update metadata on the most recent import row for a season."""
     with get_conn() as conn:
@@ -3337,6 +3507,15 @@ def update_legacy_import_metadata(
         if source_fingerprint is not None:
             sets.append("source_fingerprint = ?")
             params.append(source_fingerprint)
+        if as_of is not None:
+            sets.append("as_of = ?")
+            params.append(as_of)
+        if ruleset_version is not None:
+            sets.append("ruleset_version = ?")
+            params.append(ruleset_version)
+        if salary_cap is not None:
+            sets.append("salary_cap = ?")
+            params.append(float(salary_cap))
         if not sets:
             return
         params.append(int(row["id"]))
@@ -3344,6 +3523,76 @@ def update_legacy_import_metadata(
             f"UPDATE league_legacy_import SET {', '.join(sets)} WHERE id = ?",
             params,
         )
+
+
+def replace_league_import_quarantine(
+    league_id: str,
+    items: list[dict[str, Any]],
+) -> int:
+    """Replace block/row quarantine inventory for a league (SCORE-44)."""
+    import json
+
+    now = _utcnow()
+    with get_conn() as conn:
+        conn.execute(
+            "DELETE FROM league_import_quarantine WHERE league_id = ?",
+            (str(league_id),),
+        )
+        count = 0
+        for item in items:
+            conn.execute(
+                """INSERT INTO league_import_quarantine (
+                    league_id, season_year, reason_code, message,
+                    owner_label, player_name, source_ref, detail_json, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    str(league_id),
+                    item.get("season_year"),
+                    str(item.get("reason_code") or "unknown"),
+                    str(item.get("message") or ""),
+                    item.get("owner_label"),
+                    item.get("player_name"),
+                    item.get("source_ref"),
+                    json.dumps(item.get("detail") or {}, sort_keys=True),
+                    now,
+                ),
+            )
+            count += 1
+    return count
+
+
+def list_league_import_quarantine(
+    league_id: str,
+    *,
+    season_year: int | None = None,
+) -> list[dict[str, Any]]:
+    import json
+
+    with get_conn() as conn:
+        if season_year is None:
+            rows = conn.execute(
+                """SELECT * FROM league_import_quarantine
+                   WHERE league_id = ?
+                   ORDER BY season_year, reason_code, id""",
+                (str(league_id),),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """SELECT * FROM league_import_quarantine
+                   WHERE league_id = ? AND season_year = ?
+                   ORDER BY reason_code, id""",
+                (str(league_id), int(season_year)),
+            ).fetchall()
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        d = dict(row)
+        raw = d.pop("detail_json", None)
+        try:
+            d["detail"] = json.loads(raw) if raw else {}
+        except (TypeError, ValueError, json.JSONDecodeError):
+            d["detail"] = {}
+        out.append(d)
+    return out
 
 
 def replace_league_contract_season(
@@ -3387,8 +3636,8 @@ def replace_league_contract_season_source(
                     position, base_salary, cap_hit, prior_salary, original_draft_year,
                     roster_status, contract_phase, acquisition_type, status_note,
                     source_kind, confidence, needs_review, review_reason, sleeper_verified,
-                    import_id, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    import_id, franchise_id, obligation_kind, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     league_id,
                     int(season_year),
@@ -3411,6 +3660,8 @@ def replace_league_contract_season_source(
                     r.get("review_reason"),
                     1 if r.get("sleeper_verified") else 0,
                     import_id,
+                    r.get("franchise_id"),
+                    r.get("obligation_kind") or "ownership",
                     now,
                     now,
                 ),
@@ -3472,6 +3723,7 @@ def update_league_contract_row(
         "base_salary", "cap_hit", "prior_salary", "original_draft_year",
         "roster_status", "contract_phase", "acquisition_type", "status_note",
         "confidence", "needs_review", "review_reason", "sleeper_verified",
+        "franchise_id", "obligation_kind",
     }
     row = get_league_contract_row(row_id)
     if not row:
@@ -3554,8 +3806,8 @@ def insert_league_contract_row(
                 position, base_salary, cap_hit, prior_salary, original_draft_year,
                 roster_status, contract_phase, acquisition_type, status_note,
                 source_kind, confidence, needs_review, review_reason, sleeper_verified,
-                import_id, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                import_id, franchise_id, obligation_kind, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 league_id,
                 int(season_year),
@@ -3578,6 +3830,8 @@ def insert_league_contract_row(
                 row.get("review_reason"),
                 1 if row.get("sleeper_verified") else 0,
                 row.get("import_id"),
+                row.get("franchise_id"),
+                row.get("obligation_kind") or "ownership",
                 now,
                 now,
             ),

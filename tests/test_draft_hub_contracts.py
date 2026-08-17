@@ -1,11 +1,38 @@
 """Contract step-up and renewal tests."""
 
 from src.draft_hub.contracts import (
+    auction_win_is_rookie,
+    build_auction_win_contract,
     build_extension_contract,
     build_rookie_contract,
     renew_player_contract,
 )
 from src.draft_hub.presets import load_preset
+
+
+def test_auction_win_contracts_rookie_flat_vet_steps():
+    rules = load_preset("salary_cap_auction_v1")
+    rook = build_auction_win_contract(rules, 39, is_rookie=True)
+    assert rook["contract_type"] == "rookie"
+    assert rook["years_remaining"] == 2
+    assert [y["salary"] for y in rook["schedule"]] == [39, 39]
+    assert float(rook.get("step_up_per_year") or 0) == 0
+
+    vet = build_auction_win_contract(rules, 39, is_rookie=False)
+    assert vet["contract_type"] == "veteran"
+    assert vet["years_remaining"] == 2
+    assert [y["salary"] for y in vet["schedule"]] == [39, 44]
+    assert float(vet.get("step_up_per_year") or 0) == 5
+
+
+def test_auction_win_is_rookie_from_flag_and_years_exp():
+    rules = load_preset("salary_cap_auction_v1")
+    assert auction_win_is_rookie(rules, {"is_rookie": True}) is True
+    assert auction_win_is_rookie(rules, {"is_rookie": False, "years_exp": 4}) is False
+    assert auction_win_is_rookie(rules, {"years_exp": 0}) is True
+    assert auction_win_is_rookie(rules, {"years_exp": 1}) is True
+    assert auction_win_is_rookie(rules, {"years_exp": 2}) is False
+    assert auction_win_is_rookie(rules, {"player_id": "unknown-vet"}) is False
 
 
 def test_rookie_contract_flat_years():

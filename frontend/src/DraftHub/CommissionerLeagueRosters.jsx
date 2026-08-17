@@ -23,6 +23,7 @@ import {
   YEARS_LEFT_HINT,
 } from "./rosterFormat";
 import { confirmDialog } from "../ui/confirm";
+import { promptDialog } from "../ui/prompt";
 
 const POS_ORDER = ["QB", "RB", "WR", "TE"];
 
@@ -67,6 +68,7 @@ function TeamRosterBlock({
   const [typeOverrides, setTypeOverrides] = useState({});
   const [savingId, setSavingId] = useState(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const mobileLayout = useMobileLayout();
 
   useEffect(() => {
@@ -98,19 +100,49 @@ function TeamRosterBlock({
 
   const saveRow = async (r, opts = {}) => {
     const edit = getEdit(r);
+    const nextSal = Number(edit.salary);
+    const nextYears = Number(edit.years);
+    const curSal = Number(r.salary);
+    const curYears = Number(r.contract?.years_remaining ?? r.contract_years ?? 1);
+    if (nextSal === curSal && nextYears === curYears) return;
+
+    // SCORE-43: commissioner Office Current overrides require a reason + before/after.
+    const note = await promptDialog({
+      title: "Commissioner override",
+      message: `Update ${r.player_name || "player"} on the live roster?`,
+      label: "Override reason",
+      placeholder: "Why are you changing this live contract?",
+      confirmLabel: "Apply override",
+      beforeAfter: {
+        before: `${fmtSal(curSal)} · ${curYears} yr`,
+        after: `${fmtSal(Number.isFinite(nextSal) ? nextSal : curSal)} · ${Number.isFinite(nextYears) ? nextYears : curYears} yr`,
+      },
+    });
+    if (note == null) return;
+
     setSavingId(r.player_id);
     setError("");
+    setNotice("");
     try {
       const res = await apiFetch("/api/hub/roster", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           player_id: r.player_id,
-          salary: Number(edit.salary),
-          contract_years: Number(edit.years),
+          salary: Number.isFinite(nextSal) ? nextSal : curSal,
+          contract_years: Number.isFinite(nextYears) ? nextYears : curYears,
+          note,
         }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
+      const data = await res.json();
+      if (data?.before && data?.after) {
+        const rev = data.live_roster_revision != null ? ` · rev ${data.live_roster_revision}` : "";
+        setNotice(
+          `Override saved: ${fmtSal(data.before.salary)} → ${fmtSal(data.after.salary)}${rev}`,
+        );
+        setTimeout(() => setNotice(""), 3500);
+      }
       onSaved?.(opts);
     } catch (e) {
       setError(connectionErrorMessage(e));
@@ -160,18 +192,43 @@ function TeamRosterBlock({
   };
 
   const setCutStatus = async (r, cut) => {
+    const nextStatus = cut ? "cut_before_draft" : "active";
+    const note = await promptDialog({
+      title: "Commissioner override",
+      message: cut
+        ? `Mark ${r.player_name} as cut before draft?`
+        : `Restore ${r.player_name} to active roster?`,
+      label: "Override reason",
+      placeholder: "Why is roster status changing?",
+      confirmLabel: cut ? "Mark cut" : "Restore",
+      beforeAfter: {
+        before: r.roster_status === "cut_before_draft" ? "cut_before_draft" : "active",
+        after: nextStatus,
+      },
+    });
+    if (note == null) return;
+
     setSavingId(r.player_id);
     setError("");
+    setNotice("");
     try {
       const res = await apiFetch("/api/hub/roster", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           player_id: r.player_id,
-          roster_status: cut ? "cut_before_draft" : "active",
+          roster_status: nextStatus,
+          note,
         }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
+      const data = await res.json();
+      if (data?.before && data?.after) {
+        setNotice(
+          `Status override: ${data.before.roster_status || "active"} → ${data.after.roster_status || nextStatus}`,
+        );
+        setTimeout(() => setNotice(""), 3500);
+      }
       onSaved?.({ syncHub: true });
     } catch (e) {
       setError(connectionErrorMessage(e));
@@ -263,6 +320,7 @@ function TeamRosterBlock({
       </summary>
 
       {open && error && <div className="error hub-league-team-error">{error}</div>}
+      {open && notice && <p className="chart-note hub-league-team-notice" role="status">{notice}</p>}
 
       {open && (
         <p className="chart-note hub-roster-contract-help" title={seasonCapYearHint(season)}>

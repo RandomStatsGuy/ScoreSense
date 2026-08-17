@@ -6,6 +6,7 @@ import asyncio
 import math
 import urllib.parse
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any, Optional
 
 import pandas as pd
@@ -14,6 +15,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.datastructures import Headers
+from starlette.staticfiles import NotModifiedResponse
 
 from app.process_pool import (
     get_process_executor,
@@ -260,6 +263,13 @@ def player_context_get(
         False,
         description="Opt in to older media_context narrative when state is historical_available",
     ),
+    media_mode: Optional[str] = Query(
+        None,
+        description=(
+            "SCORE-34 preseason media mode: outlook | week1_pulse | older. "
+            "older aliases include_historical=true. Cached only — no live LLM/YouTube."
+        ),
+    ),
     _user=Depends(require_patron),
 ) -> dict:
     """Full cached player-context detail (SCORE-23/30) — artifact only, zero live work."""
@@ -272,6 +282,7 @@ def player_context_get(
                 season=season,
                 week=week,
                 include_historical=include_historical,
+                media_mode=media_mode,
             )
         )
     except ValueError as exc:
@@ -288,6 +299,13 @@ def players_context_list(
     include_historical: bool = Query(
         False,
         description="Opt in to older media_context narrative when state is historical_available",
+    ),
+    media_mode: Optional[str] = Query(
+        None,
+        description=(
+            "SCORE-34 preseason media mode: outlook | week1_pulse | older. "
+            "older aliases include_historical=true."
+        ),
     ),
     compact: bool = Query(
         True,
@@ -310,6 +328,7 @@ def players_context_list(
                 week=week,
                 player_ids=player_ids,
                 include_historical=include_historical,
+                media_mode=media_mode,
                 compact=compact,
             )
         )
@@ -1461,6 +1480,13 @@ def fantasy_narrative_weekly_get(
         False,
         description="Opt in to older fantasy narrative when current week has none (SCORE-28)",
     ),
+    media_mode: Optional[str] = Query(
+        None,
+        description=(
+            "SCORE-34: outlook (preseason lookback week=0) | week1_pulse | older. "
+            "Cached features only."
+        ),
+    ),
     _user=Depends(require_patron),
 ) -> dict:
     position = position.lower()
@@ -1473,6 +1499,7 @@ def fantasy_narrative_weekly_get(
             resolved_season,
             resolved_week,
             include_historical=include_historical,
+            media_mode=media_mode,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -1906,14 +1933,68 @@ def serve_android_assetlinks() -> list[dict[str, Any]]:
     ]
 
 
+# SPA shell + service worker must revalidate on every visit. Hashed Vite assets
+# under /assets/ are immutable. Without this, Cloudflare caches sw.js (a .js
+# file) and browsers can keep an old PWA forever.
+_FRONTEND_NO_CACHE_NAMES = {
+    "index.html",
+    "sw.js",
+    "registerSW.js",
+    "manifest.webmanifest",
+    "manifest.json",
+}
+_FRONTEND_NO_CACHE_HEADERS = {
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0",
+}
+_FRONTEND_ASSET_CACHE_HEADERS = {
+    "Cache-Control": "public, max-age=31536000, immutable",
+}
+
+
+def frontend_cache_headers(path: Path | str, *, spa_shell: bool = False) -> dict[str, str]:
+    """Cache-Control for built frontend files (HTML/SW vs hashed assets)."""
+    name = Path(path).name
+    if spa_shell or name in _FRONTEND_NO_CACHE_NAMES or name.startswith("workbox-"):
+        return dict(_FRONTEND_NO_CACHE_HEADERS)
+    return {}
+
+
+class ImmutableStaticFiles(StaticFiles):
+    """Long-cache hashed Vite bundles (filename includes a content hash)."""
+
+    def file_response(
+        self,
+        full_path,
+        stat_result,
+        scope,
+        status_code: int = 200,
+    ):
+        request_headers = Headers(scope=scope)
+        response = FileResponse(
+            full_path,
+            status_code=status_code,
+            stat_result=stat_result,
+            headers=_FRONTEND_ASSET_CACHE_HEADERS,
+        )
+        if self.is_not_modified(response.headers, request_headers):
+            return NotModifiedResponse(response.headers)
+        return response
+
+
+def _frontend_file_response(path: Path, *, spa_shell: bool = False) -> FileResponse:
+    return FileResponse(path, headers=frontend_cache_headers(path, spa_shell=spa_shell))
+
+
 if FRONTEND_DIST.exists():
-    app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
+    app.mount("/assets", ImmutableStaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
 
     @app.get("/")
     def serve_dashboard():
         index = FRONTEND_DIST / "index.html"
         if index.exists():
-            return FileResponse(index)
+            return _frontend_file_response(index, spa_shell=True)
         raise HTTPException(status_code=404, detail="Frontend not built. Run: cd frontend && npm run build")
 
     @app.get("/{spa_path:path}")
@@ -1924,10 +2005,10 @@ if FRONTEND_DIST.exists():
             raise HTTPException(status_code=404, detail="Not Found")
         candidate = FRONTEND_DIST / spa_path
         if candidate.is_file():
-            return FileResponse(candidate)
+            return _frontend_file_response(candidate)
         index = FRONTEND_DIST / "index.html"
         if index.exists():
-            return FileResponse(index)
+            return _frontend_file_response(index, spa_shell=True)
         raise HTTPException(status_code=404, detail="Frontend not built. Run: cd frontend && npm run build")
 else:
 

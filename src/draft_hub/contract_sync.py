@@ -14,6 +14,12 @@ from src.draft_hub.legacy_contract_reconcile import (
     infer_all_season_movements,
     reconcile_movements_with_sleeper,
 )
+from src.draft_hub.sourced_checkpoints import (
+    checkpoint_for_season,
+    collect_workbook_quarantines,
+    list_checkpoint_specs,
+    summarize_row_quarantines,
+)
 
 VALID_SNAPSHOT_PHASES = frozenset({
     "pre_draft",
@@ -50,6 +56,15 @@ def parsed_content_fingerprint(data_dir: Path | None = None) -> str:
     return hashlib.sha256("|".join(parts).encode()).hexdigest()[:16]
 
 
+def default_snapshot_phases() -> dict[int, str]:
+    """Season → phase defaults from sourced checkpoint catalog (SCORE-44)."""
+    return {
+        int(spec["season_year"]): str(spec["phase"])
+        for spec in list_checkpoint_specs()
+        if spec
+    }
+
+
 def commissioner_sync_status(league_id: str) -> dict[str, Any]:
     """Compare commissioner files to last DB import."""
     file_fp = commissioner_files_fingerprint()
@@ -72,13 +87,18 @@ def commissioner_sync_status(league_id: str) -> dict[str, Any]:
         season_stale = bool(file_fp and imp_fp and imp_fp != content_fp)
         if file_seasons and yr in file_seasons and (not imp or season_stale):
             stale = True
+        ck = checkpoint_for_season(yr) or {}
         seasons_detail.append(
             {
                 "season_year": yr,
                 "in_files": yr in file_seasons,
                 "in_database": yr in db_seasons,
                 "last_imported_at": imp.get("imported_at") if imp else None,
-                "snapshot_phase": imp.get("snapshot_phase") if imp else None,
+                "snapshot_phase": (imp.get("snapshot_phase") if imp else None) or ck.get("phase"),
+                "as_of": (imp.get("as_of") if imp else None) or ck.get("as_of"),
+                "ruleset_version": (imp.get("ruleset_version") if imp else None)
+                or ck.get("ruleset_version"),
+                "salary_cap": (imp.get("salary_cap") if imp else None) or ck.get("salary_cap"),
                 "stale": season_stale or (yr in file_seasons and not imp),
             }
         )
@@ -86,11 +106,14 @@ def commissioner_sync_status(league_id: str) -> dict[str, Any]:
     if file_seasons and not db_seasons:
         stale = True
 
+    quarantine_rows = storage.list_league_import_quarantine(league_id)
     return {
         "stale": stale,
         "file_fingerprint": file_fp,
         "content_fingerprint": content_fp,
         "seasons": seasons_detail,
+        "checkpoints": list_checkpoint_specs(),
+        "quarantine_count": len(quarantine_rows),
         "has_commissioner_files": bool(file_seasons),
     }
 
@@ -103,26 +126,47 @@ def sync_commissioner_sheets(
     snapshot_phases: dict[int, str] | None = None,
     data_dir: Path | None = None,
 ) -> dict[str, Any]:
-    """Import commissioner files, infer movements, optionally reconcile Sleeper."""
-    content_fp = parsed_content_fingerprint(data_dir)
+    """Import commissioner files as sourced checkpoints; quarantine ambiguous blocks."""
+    base = data_dir or OLD_LEAGUE_FILES_DIR
+    content_fp = parsed_content_fingerprint(base)
     import_result = import_legacy_files(
         league_id,
-        data_dir=data_dir,
+        data_dir=base,
         imported_by_sub=imported_by_sub,
         export_parquet=True,
     )
 
-    phases = snapshot_phases or {}
+    phases = dict(default_snapshot_phases())
+    if snapshot_phases:
+        phases.update({int(k): str(v) for k, v in snapshot_phases.items()})
+
     for season in import_result.get("seasons") or []:
-        phase = phases.get(int(season), "unknown")
+        yr = int(season)
+        ck = checkpoint_for_season(yr) or {}
+        phase = phases.get(yr, ck.get("phase") or "unknown")
         if phase not in VALID_SNAPSHOT_PHASES:
             phase = "unknown"
         storage.update_legacy_import_metadata(
             league_id,
-            int(season),
-            snapshot_phase=phase,
+            yr,
+            snapshot_phase=str(phase),
             source_fingerprint=content_fp,
+            as_of=ck.get("as_of"),
+            ruleset_version=ck.get("ruleset_version"),
+            salary_cap=ck.get("salary_cap"),
         )
+        if ck.get("salary_cap") is not None:
+            storage.upsert_season_salary_cap(league_id, yr, float(ck["salary_cap"]))
+
+    # Block-level quarantines + per-row quarantine inventory.
+    block_hits = collect_workbook_quarantines(base)
+    row_hits: list[dict[str, Any]] = []
+    for yr in storage.list_league_contract_seasons(league_id):
+        rows = storage.list_league_contract_rows(league_id, season_year=yr)
+        summary = summarize_row_quarantines([{**r, "season_year": yr} for r in rows])
+        row_hits.extend(summary.get("items") or [])
+    quarantine_items = block_hits + row_hits
+    storage.replace_league_import_quarantine(league_id, quarantine_items)
 
     movement_count = infer_all_season_movements(league_id)
 
@@ -155,5 +199,11 @@ def sync_commissioner_sheets(
         "movements_inferred": movement_count,
         "dead_cap_normalized": dead_cap_fix,
         "sleeper_reconcile": sleeper_results,
+        "quarantine": {
+            "count": len(quarantine_items),
+            "block_count": len(block_hits),
+            "row_count": len(row_hits),
+        },
+        "checkpoints": list_checkpoint_specs(),
         "sync_status": commissioner_sync_status(league_id),
     }

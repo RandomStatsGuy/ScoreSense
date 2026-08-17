@@ -131,9 +131,51 @@ export function injuryDetailLine(player) {
   return parts.length ? parts.join(" · ") : null;
 }
 
-export function formatReturnEstimate(estimate) {
+/**
+ * Tokens that make a heuristic return window meaningful (beyond a vague body part).
+ * Bare "knee" / "undisclosed" alone do not qualify — see SCORE-35.
+ */
+const RETURN_ESTIMATE_SPECIFICITY_RE =
+  /\b(acl|mcl|pcl|lcl|achilles|meniscus|patella|surgery|surgical|fracture|sprain|strain|tear|torn|rupture|dislocat|broken|grade\s*[1-3]|scope|cartilage|bone\s*bruise)\b/i;
+
+const VAGUE_BODY_ONLY_RE = /^(knee|knee injury|undisclosed|undisclosed injury)$/i;
+
+/**
+ * SCORE-35 — low-information injuries should not show fabricated return windows.
+ * Examples: body part is only "knee" or "undisclosed" with no specific notes.
+ */
+export function isLowInformationInjury(injury) {
+  const body = String(injury?.injury_body_part || "").trim();
+  const notes = String(injury?.injury_notes || "").trim();
+  const detail = `${body} ${notes}`.trim();
+  if (!detail) return false;
+
+  if (RETURN_ESTIMATE_SPECIFICITY_RE.test(detail)) return false;
+
+  if (VAGUE_BODY_ONLY_RE.test(body)) {
+    // Notes empty or just restate the vague body part
+    if (!notes || VAGUE_BODY_ONLY_RE.test(notes) || notes.toLowerCase() === body.toLowerCase()) {
+      return true;
+    }
+  }
+
+  if (/\bundisclosed\b/i.test(body) || /\bundisclosed\b/i.test(notes)) {
+    const withoutUndisclosed = detail.replace(/\bundisclosed(?:\s+injury)?\b/gi, "").trim();
+    if (!withoutUndisclosed || VAGUE_BODY_ONLY_RE.test(withoutUndisclosed)) return true;
+  }
+
+  return false;
+}
+
+/**
+ * Format a return estimate for display. Pass `injury` so low-info cases omit the window.
+ * When shown, copy stays estimate-labeled (never implies an official team timeline).
+ */
+export function formatReturnEstimate(estimate, injury = null) {
+  if (injury && isLowInformationInjury(injury)) return null;
   if (!estimate?.label) return null;
-  const label = String(estimate.label);
+  const label = String(estimate.label).trim();
+  if (!label || /^unknown$/i.test(label)) return null;
   const conf = estimate.confidence ? String(estimate.confidence) : "low";
   return { text: `Est. return: ${label}`, confidence: conf, isEstimate: estimate.is_estimate !== false };
 }

@@ -38,7 +38,8 @@ function InjuryMetaLine({ injury }) {
   const bodyPart = String(injury.injury_body_part || "").trim() || null;
   const notes = String(injury.injury_notes || "").trim() || null;
   const updated = compactUpdated(formatRelativeTime(injury.news_updated));
-  const returnEst = formatReturnEstimate(injury.return_estimate);
+  // SCORE-35: omit heuristic windows when injury detail is too vague (e.g. bare knee / undisclosed)
+  const returnEst = formatReturnEstimate(injury.return_estimate, injury);
   const returnLabel = compactReturnLabel(returnEst);
   const leadBits = [injury.team, bodyPart].filter(Boolean);
   const tailBits = [returnLabel, updated].filter(Boolean);
@@ -190,12 +191,14 @@ export default function InjurySidebar({
   defaultWeek,
   season,
   week,
+  mediaMode = null,
   onCompareReplacements,
   className = "",
 }) {
   const [allSearch, setAllSearch] = useState("");
   const context = usePlayersContext(season ?? defaultSeason, week ?? defaultWeek, {
     enabled: Boolean(isLiveContext && (season ?? defaultSeason) != null && (week ?? defaultWeek) != null),
+    mediaMode,
   });
 
   const sortedAll = useMemo(() => sortInjuriesBySeverity(players || []), [players]);

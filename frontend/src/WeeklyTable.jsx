@@ -222,6 +222,8 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   contextExpanded,
   onToggleContext,
   showMovement = false,
+  mediaMode = null,
+  onMediaModeChange,
 }) {
   const status = row["Injury Status"] || "";
   const unavailable = isPlayerUnavailable(status);
@@ -407,6 +409,8 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
             season={season}
             week={week}
             active
+            mediaMode={mediaMode}
+            onMediaModeChange={onMediaModeChange}
             className="player-context-panel--table"
           />
         </td>
@@ -469,6 +473,9 @@ export default function WeeklyTable({
   week,
   applyInjuryAdjustments = true,
   onClearFilters,
+  /** SCORE-34: shared preseason media_mode for compact list + detail panels. */
+  mediaMode = null,
+  onMediaModeChange,
   /** SCORE-4: enable 2–4 player start/sit multi-select. */
   compareEnabled = false,
   selectedCompareIds = null,
@@ -490,6 +497,7 @@ export default function WeeklyTable({
   const playerCard = usePlayerCardOptional();
   const playersContext = usePlayersContext(season, week, {
     enabled: season != null && week != null,
+    mediaMode,
   });
   const selectedSet = useMemo(
     () => new Set((selectedCompareIds || []).map(String)),
@@ -959,6 +967,8 @@ export default function WeeklyTable({
                         season={season}
                         week={week}
                         active
+                        mediaMode={mediaMode}
+                        onMediaModeChange={onMediaModeChange}
                         className="player-context-panel--mobile"
                       />
                     ) : null}
@@ -1084,6 +1094,8 @@ export default function WeeklyTable({
                 contextExpanded={Boolean(pid && contextPlayerId === pid)}
                 onToggleContext={() => toggleContext(pid)}
                 showMovement={showMovement}
+                mediaMode={mediaMode}
+                onMediaModeChange={onMediaModeChange}
               />
               );
             })}

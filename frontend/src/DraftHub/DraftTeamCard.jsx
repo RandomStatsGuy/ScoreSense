@@ -11,6 +11,8 @@ export default function DraftTeamCard({
   isViewer,
   defaultOpen = false,
   rosterLimits,
+  allowTrades = false,
+  onTradePlayer,
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const spent = cap - Number(team.budget_remaining ?? cap);
@@ -86,6 +88,25 @@ export default function DraftTeamCard({
                   <span className="hub-roster-pos">{row.position}</span>
                   <span className="hub-roster-name">{row.player_name}</span>
                   <span className="hub-roster-sal">{fmtSal(row.salary)}</span>
+                  {allowTrades && onTradePlayer && !isViewer && (
+                    <span className="hub-roster-actions">
+                      <button
+                        type="button"
+                        className="hub-roster-action hub-roster-action--trade"
+                        onClick={() => onTradePlayer({
+                          player_id: row.player_id,
+                          player_name: row.player_name,
+                          position: row.position,
+                          salary: row.salary,
+                          team_id: team.id,
+                          mine: false,
+                        })}
+                        title={`Trade for ${row.player_name}`}
+                      >
+                        Trade
+                      </button>
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

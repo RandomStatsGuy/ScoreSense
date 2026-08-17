@@ -14,10 +14,17 @@ from src.sentiment.display import sentiment_label, sentiment_label_text, sentime
 from src.sentiment.fantasy_channels import FANTASY_NETWORK_COLUMNS, load_fantasy_channels
 from src.sentiment.fantasy_digest import fantasy_digest_for_player
 from src.sentiment.media_context import (
+    MEDIA_MODE_OLDER,
+    MEDIA_MODE_OUTLOOK,
+    MEDIA_MODE_WEEK1_PULSE,
     MEDIA_STATE_CURRENT,
     MEDIA_STATE_HISTORICAL_AVAILABLE,
     MEDIA_STATE_NONE,
+    PRESEASON_OUTLOOK_WEEK,
+    annotate_media_mode,
     media_context_block,
+    modes_available_flags,
+    normalize_media_mode,
     resolve_media_week,
 )
 from src.sentiment.networks import load_networks, network_label
@@ -279,6 +286,100 @@ def _empty_response(
     }
 
 
+def _fantasy_modes_available(
+    features: pd.DataFrame,
+    position: str,
+    season: int,
+) -> dict[str, bool]:
+    scoped = _position_filter(features, position)
+    if scoped.empty or "season" not in scoped.columns:
+        return modes_available_flags()
+    season_rows = scoped[scoped["season"].astype(int) == int(season)]
+    has_outlook = False
+    has_week1 = False
+    has_older = False
+    if not season_rows.empty:
+        outlook = season_rows[season_rows["week"].astype(int) == PRESEASON_OUTLOOK_WEEK]
+        has_outlook = (not outlook.empty) and bool(_fantasy_coverage_mask(outlook).any())
+        week1 = season_rows[season_rows["week"].astype(int) == 1]
+        has_week1 = (not week1.empty) and bool(_fantasy_coverage_mask(week1).any())
+    prior = scoped[
+        (scoped["season"].astype(int) < int(season))
+        | (
+            (scoped["season"].astype(int) == int(season))
+            & (scoped["week"].astype(int) > 1)
+        )
+    ]
+    if not prior.empty:
+        has_older = bool(_fantasy_coverage_mask(prior).any())
+    return modes_available_flags(
+        has_outlook=has_outlook,
+        has_week1_pulse=has_week1,
+        has_older=has_older,
+    )
+
+
+def _build_fantasy_mode_slate(
+    features: pd.DataFrame,
+    position: str,
+    season: int,
+    week: int,
+    *,
+    media_mode: str,
+) -> tuple[int, int, dict[str, Any], str]:
+    """Return (serve_season, serve_week, media_context, note) for explicit modes."""
+    available = _fantasy_modes_available(features, position, season)
+    if media_mode == MEDIA_MODE_OUTLOOK:
+        serve_week = PRESEASON_OUTLOOK_WEEK
+        note = (
+            "Preseason outlook from recent fantasy YouTube (publication lookback). "
+            "Does not change projections."
+        )
+        state = MEDIA_STATE_CURRENT if available[MEDIA_MODE_OUTLOOK] else MEDIA_STATE_NONE
+    elif media_mode == MEDIA_MODE_WEEK1_PULSE:
+        serve_week = 1
+        note = (
+            "Week 1 pulse — fantasy content mapped to Week 1 schedule windows. "
+            "Does not change projections."
+        )
+        state = MEDIA_STATE_CURRENT if available[MEDIA_MODE_WEEK1_PULSE] else MEDIA_STATE_NONE
+    else:  # older
+        resolved = _resolve_fantasy_media_week(
+            features,
+            position,
+            season,
+            week,
+            include_historical=True,
+        )
+        media_ctx = annotate_media_mode(
+            media_context_block(resolved),
+            mode=MEDIA_MODE_OLDER,
+            modes_available=available,
+        )
+        note = (
+            "Older fantasy commentary (explicit opt-in). "
+            "Never presented as current-week coverage."
+        )
+        return resolved.serve_season, resolved.serve_week, media_ctx, note
+
+    media_ctx = annotate_media_mode(
+        {
+            "state": state,
+            "signal": None,
+            "source_count": 0,
+            "summary": None,
+            "excerpt": None,
+            "sources": [],
+            "updated_at": None,
+            "historical": None,
+            "affects_projection": False,
+        },
+        mode=media_mode,
+        modes_available=available,
+    )
+    return season, serve_week, media_ctx, note
+
+
 def build_fantasy_weekly_response(
     position: str,
     season: int,
@@ -286,13 +387,18 @@ def build_fantasy_weekly_response(
     sentiment_path: Path | None = None,
     *,
     include_historical: bool = False,
+    media_mode: str | None = None,
 ) -> dict:
     position = position.lower()
     if position not in ("qb", "rb", "wr"):
         raise ValueError("position must be qb, rb, or wr")
 
+    mode = normalize_media_mode(media_mode, include_historical=include_historical)
     fp = _fantasy_fingerprint()
-    cache_key = f"weekly:{position}:{season}:{week}:hist={int(bool(include_historical))}"
+    cache_key = (
+        f"weekly:{position}:{season}:{week}:hist={int(bool(include_historical))}:"
+        f"mode={mode or 'default'}"
+    )
     cached = _FANTASY_RESPONSE_CACHE.get(cache_key)
     if cached is not None and cached[0] == fp:
         return cached[1]
@@ -300,51 +406,112 @@ def build_fantasy_weekly_response(
     features = load_sentiment_features(sentiment_path)
     if features.empty:
         empty = _empty_response(position=position, season=season, week=week, scope="weekly")
+        if mode:
+            empty["media_context"] = annotate_media_mode(
+                empty.get("media_context"),
+                mode=mode,
+                modes_available=modes_available_flags(),
+            )
+            empty["meta"] = {**(empty.get("meta") or {}), "media_mode": mode}
         _FANTASY_RESPONSE_CACHE[cache_key] = (fp, empty)
         return empty
 
     requested_season, requested_week = season, week
-    resolved = _resolve_fantasy_media_week(
-        features,
-        position,
-        season,
-        week,
-        include_historical=include_historical,
-    )
-    season, week = resolved.serve_season, resolved.serve_week
-    context_fallback = resolved.context_fallback
-    media_ctx = media_context_block(resolved)
+    available = _fantasy_modes_available(features, position, requested_season)
 
-    if resolved.state != MEDIA_STATE_CURRENT and not resolved.serving_historical:
+    if mode in (MEDIA_MODE_OUTLOOK, MEDIA_MODE_WEEK1_PULSE, MEDIA_MODE_OLDER):
+        season, week, media_ctx, note = _build_fantasy_mode_slate(
+            features,
+            position,
+            requested_season,
+            requested_week,
+            media_mode=mode,
+        )
+        context_fallback = mode == MEDIA_MODE_OLDER and media_ctx.get("state") == (
+            MEDIA_STATE_HISTORICAL_AVAILABLE
+        )
+        if media_ctx.get("state") == MEDIA_STATE_NONE and mode != MEDIA_MODE_OLDER:
+            result = {
+                "position": position,
+                "scope": "weekly",
+                "season": requested_season,
+                "week": requested_week,
+                "requested_season": requested_season,
+                "requested_week": requested_week,
+                "context_fallback": False,
+                "media_context": media_ctx,
+                "count": 0,
+                "meta": {
+                    "last_refresh": get_sentiment_refresh_status().get("completed_at"),
+                    "sources": _fantasy_sources_meta(),
+                    "note": note,
+                    "media_mode": mode,
+                },
+                "players": [],
+            }
+            _FANTASY_RESPONSE_CACHE[cache_key] = (fp, result)
+            return result
+        # Fall through to player assembly for outlook / week1 / older-with-content.
+        if mode == MEDIA_MODE_OLDER and not (
+            media_ctx.get("state") == MEDIA_STATE_HISTORICAL_AVAILABLE
+            and (
+                media_ctx.get("summary")
+                or media_ctx.get("excerpt")
+                or media_ctx.get("sources")
+                or int(media_ctx.get("source_count") or 0) > 0
+                or media_ctx.get("signal")
+            )
+        ):
+            # serving_historical path below needs players from resolved week
+            pass
+    else:
+        resolved = _resolve_fantasy_media_week(
+            features,
+            position,
+            season,
+            week,
+            include_historical=include_historical,
+        )
+        season, week = resolved.serve_season, resolved.serve_week
+        context_fallback = resolved.context_fallback
+        media_ctx = annotate_media_mode(
+            media_context_block(resolved),
+            mode=None,
+            modes_available=available,
+        )
         note = (
             "Fantasy video context only — does not change projections or injury boosts. "
             "Weekly analyst buzz from league-wide fantasy YouTube shows."
         )
-        if resolved.state == MEDIA_STATE_HISTORICAL_AVAILABLE:
-            note = (
-                f"No current {requested_season} Week {requested_week} fantasy narrative. "
-                f"Older discussion is available from {resolved.historical_season} "
-                f"Week {resolved.historical_week}. Pass include_historical=1 to load it. "
-            ) + note
-        result = {
-            "position": position,
-            "scope": "weekly",
-            "season": requested_season,
-            "week": requested_week,
-            "requested_season": requested_season,
-            "requested_week": requested_week,
-            "context_fallback": False,
-            "media_context": media_ctx,
-            "count": 0,
-            "meta": {
-                "last_refresh": get_sentiment_refresh_status().get("completed_at"),
-                "sources": _fantasy_sources_meta(),
-                "note": note,
-            },
-            "players": [],
-        }
-        _FANTASY_RESPONSE_CACHE[cache_key] = (fp, result)
-        return result
+
+        if resolved.state != MEDIA_STATE_CURRENT and not resolved.serving_historical:
+            if resolved.state == MEDIA_STATE_HISTORICAL_AVAILABLE:
+                note = (
+                    f"No current {requested_season} Week {requested_week} fantasy narrative. "
+                    f"Older discussion is available from {resolved.historical_season} "
+                    f"Week {resolved.historical_week}. Pass include_historical=1 or "
+                    f"media_mode=older to load it. "
+                ) + note
+            result = {
+                "position": position,
+                "scope": "weekly",
+                "season": requested_season,
+                "week": requested_week,
+                "requested_season": requested_season,
+                "requested_week": requested_week,
+                "context_fallback": False,
+                "media_context": media_ctx,
+                "count": 0,
+                "meta": {
+                    "last_refresh": get_sentiment_refresh_status().get("completed_at"),
+                    "sources": _fantasy_sources_meta(),
+                    "note": note,
+                    "media_mode": None,
+                },
+                "players": [],
+            }
+            _FANTASY_RESPONSE_CACHE[cache_key] = (fp, result)
+            return result
 
     scoped = _position_filter(features, position)
     scoped = scoped[(scoped["season"] == season) & (scoped["week"] == week)].copy()
@@ -373,30 +540,52 @@ def build_fantasy_weekly_response(
             )
         )
 
-    note = (
-        "Fantasy video context only — does not change projections or injury boosts. "
-        "Weekly analyst buzz from league-wide fantasy YouTube shows."
-    )
-    if context_fallback:
+    if mode is None:
         note = (
-            f"Showing older fantasy narrative from {season} Week {week} "
-            f"(requested {requested_season} Week {requested_week}). "
-        ) + note
+            "Fantasy video context only — does not change projections or injury boosts. "
+            "Weekly analyst buzz from league-wide fantasy YouTube shows."
+        )
+        if context_fallback:
+            note = (
+                f"Showing older fantasy narrative from {season} Week {week} "
+                f"(requested {requested_season} Week {requested_week}). "
+            ) + note
+    else:
+        # note already set for explicit modes
+        if mode == MEDIA_MODE_OLDER and players:
+            note = (
+                f"Showing older fantasy narrative from {season} Week {week} "
+                f"(requested {requested_season} Week {requested_week}). "
+            ) + note
+        media_ctx = annotate_media_mode(
+            {
+                **media_ctx,
+                "source_count": len(players),
+            },
+            mode=mode,
+            modes_available=available,
+        )
+
+    # Ensure modes_available on default path too.
+    if mode is None:
+        media_ctx = annotate_media_mode(media_ctx, mode=None, modes_available=available)
 
     result = {
         "position": position,
         "scope": "weekly",
-        "season": season,
-        "week": week,
+        "season": season if mode != MEDIA_MODE_OUTLOOK else requested_season,
+        "week": week if mode != MEDIA_MODE_OUTLOOK else requested_week,
         "requested_season": requested_season,
         "requested_week": requested_week,
-        "context_fallback": context_fallback,
+        "serve_week": week,
+        "context_fallback": bool(context_fallback) if mode in (None, MEDIA_MODE_OLDER) else False,
         "media_context": media_ctx,
         "count": len(players),
         "meta": {
             "last_refresh": refresh.get("completed_at"),
             "sources": _fantasy_sources_meta(),
             "note": note,
+            "media_mode": mode,
         },
         "players": players,
     }
