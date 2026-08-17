@@ -47,6 +47,7 @@ import {
   formatRelativeTime,
   parseApiError,
 } from "./format";
+import { waitForRefreshComplete } from "./refreshStatus";
 import { playerSentimentKey, buildSentimentMap, resolveRowSentiment } from "./sentimentDisplay";
 import { PRODUCT_NAME, STUDIO_NAME } from "./brand";
 import { PlayerCardProvider } from "./PlayerCardContext";
@@ -108,6 +109,7 @@ export default function App() {
   const [draftResponseMeta, setDraftResponseMeta] = useState(null);
   const [meta, setMeta] = useState(null);
   const [refreshStatus, setRefreshStatus] = useState(null);
+  const [pipelineRefreshing, setPipelineRefreshing] = useState(false);
   const [accuracyReport, setAccuracyReport] = useState(null);
   const [upsideReport, setUpsideReport] = useState(null);
   const [seasonLongReport, setSeasonLongReport] = useState(null);
@@ -800,13 +802,13 @@ export default function App() {
   }, [view, hubNeedsSignIn, projectionsTab, toolsTab]);
 
   const showDataRefresh = isProjectionsDataView;
-  const dataRefreshLoading = isSeasonPreseason
+  const dataRefreshLoading = pipelineRefreshing || (isSeasonPreseason
     ? draftLoading
     : isWeeklyProjections
       ? projectionsLoading
       : isSeasonLive
         ? rosLoading
-        : loading;
+        : loading);
 
   const goToHub = useCallback(() => {
     setHubMounted(true);
@@ -900,9 +902,25 @@ export default function App() {
   };
 
   const triggerRefresh = async () => {
-    setLoading(true);
+    setPipelineRefreshing(true);
+    setError("");
+    const cutoffMs = Date.now();
     try {
-      await apiFetch("/api/refresh?retrain=false", { method: "POST" });
+      const res = await apiFetch("/api/refresh?retrain=false", { method: "POST" });
+      if (!res.ok) throw new Error(await parseApiError(res, "Refresh failed"));
+      const body = await res.json().catch(() => ({}));
+      if (body?.status !== "completed") {
+        await waitForRefreshComplete({
+          cutoffMs,
+          fetchStatus: async () => {
+            const statusRes = await apiFetch("/api/refresh/status");
+            if (!statusRes.ok) {
+              throw new Error(await parseApiError(statusRes, "Could not check refresh status"));
+            }
+            return statusRes.json();
+          },
+        });
+      }
       if (isSeasonLive) await fetchRos();
       else if (isSeasonPreseason) await fetchDraft();
       else await fetchProjections();
@@ -910,7 +928,7 @@ export default function App() {
     } catch (err) {
       setError(err.message || "Refresh failed");
     } finally {
-      setLoading(false);
+      setPipelineRefreshing(false);
     }
   };
 
@@ -1135,7 +1153,7 @@ export default function App() {
                     onClick={triggerRefresh}
                     disabled={dataRefreshLoading}
                   >
-                    {dataRefreshLoading ? "Loading…" : "Refresh"}
+                    {dataRefreshLoading ? (pipelineRefreshing ? "Refreshing…" : "Loading…") : "Refresh"}
                   </button>
                 )}
                 <UserMenu
@@ -1333,9 +1351,11 @@ export default function App() {
                   {season != null && week != null ? (
                     <p className="panel-subtitle">
                       {season} · Wk {week}
-                      {meta?.built_at && formatRelativeTime(meta.built_at)
-                        ? ` · Projections ${String(formatRelativeTime(meta.built_at)).replace(/^Updated /i, "").toLowerCase()}`
-                        : ""}
+                      {pipelineRefreshing
+                        ? " · Rebuilding projections…"
+                        : meta?.built_at && formatRelativeTime(meta.built_at)
+                          ? ` · Projections ${String(formatRelativeTime(meta.built_at)).replace(/^Updated /i, "").toLowerCase()}`
+                          : ""}
                     </p>
                   ) : null}
                 </div>

@@ -57,6 +57,7 @@ def load_ros_prediction(
     *,
     apply_injury_adjustments: bool = True,
     allow_compute: bool = True,
+    force: bool = False,
 ) -> pd.DataFrame:
     """Load cached ROS projections or compute and persist."""
     if season is None or week is None:
@@ -70,28 +71,12 @@ def load_ros_prediction(
     pos = position.lower()
     fp = ros_fingerprint()
     key = _cache_key(pos, int(season), int(week), apply_injury_adjustments)
-    cached = _ROS_CACHE.get(key)
-    if cached is not None and cached[0] == fp:
-        return cached[1].copy()
-
     parquet_path, meta_path = _artifact_paths(pos, int(season), int(week), apply_injury_adjustments)
-    if parquet_path.exists() and meta_path.exists():
-        try:
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            meta = {}
-        if meta.get("fingerprint") == fp:
-            df = pd.read_parquet(parquet_path)
-            _ROS_CACHE[key] = (fp, df.copy())
-            return df
-
-    if not allow_compute:
-        return pd.DataFrame()
-
-    with _ROS_COMPUTE_LOCK:
+    if not force:
         cached = _ROS_CACHE.get(key)
         if cached is not None and cached[0] == fp:
             return cached[1].copy()
+
         if parquet_path.exists() and meta_path.exists():
             try:
                 meta = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -101,6 +86,24 @@ def load_ros_prediction(
                 df = pd.read_parquet(parquet_path)
                 _ROS_CACHE[key] = (fp, df.copy())
                 return df
+
+    if not allow_compute:
+        return pd.DataFrame()
+
+    with _ROS_COMPUTE_LOCK:
+        if not force:
+            cached = _ROS_CACHE.get(key)
+            if cached is not None and cached[0] == fp:
+                return cached[1].copy()
+            if parquet_path.exists() and meta_path.exists():
+                try:
+                    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                except (json.JSONDecodeError, OSError):
+                    meta = {}
+                if meta.get("fingerprint") == fp:
+                    df = pd.read_parquet(parquet_path)
+                    _ROS_CACHE[key] = (fp, df.copy())
+                    return df
 
         df = predict_rest_of_season(
             pos,
@@ -146,6 +149,7 @@ def prewarm_ros_predictions(
     *,
     positions: tuple[str, ...] = ("qb", "rb", "wr"),
     injury_variants: tuple[bool, ...] = (True, False),
+    force: bool = False,
 ) -> dict[str, int]:
     """Materialize ROS parquet artifacts for dashboard hot paths."""
     counts: dict[str, int] = {}
@@ -156,6 +160,7 @@ def prewarm_ros_predictions(
                 season=int(season),
                 week=int(week),
                 apply_injury_adjustments=apply_injury,
+                force=force,
             )
             counts[f"{pos}:inj{int(apply_injury)}"] = int(len(df))
     return counts
