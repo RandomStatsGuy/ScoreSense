@@ -57,10 +57,12 @@ def run_preseason_refresh(
     weekly_prewarm = prewarm_weekly_predictions(
         weekly_season,
         weekly_week,
+        force=True,
     )
     ros_prewarm = prewarm_ros_predictions(
         weekly_season,
         weekly_week,
+        force=True,
     )
 
     fp_ecr_status = None

@@ -75,7 +75,7 @@ from src.integrations.injury_poll import (
     maybe_tick_injury_poll,
     run_injury_poll,
 )
-from src.jobs.weekly_refresh import get_refresh_status, run_weekly_refresh
+from src.jobs.weekly_refresh import get_refresh_status, mark_refresh_started, run_weekly_refresh
 from src.projections.predict import get_model_metrics, predict_upcoming_week
 from src.projections.projection_meta import get_projection_meta
 from src.projections.draft_meta import get_draft_meta
@@ -1082,9 +1082,14 @@ async def refresh(
     _user=Depends(require_admin),
 ) -> dict:
     try:
+        started = mark_refresh_started(retrain=retrain, draft_only=draft_only)
         if background_tasks is not None:
             background_tasks.add_task(run_weekly_refresh, retrain, None, draft_only)
-            return {"status": "started", "message": "Weekly refresh running in background"}
+            return {
+                "status": "started",
+                "started_at": started["started_at"],
+                "message": "Weekly refresh running in background. Projections update when it finishes.",
+            }
         loop = asyncio.get_event_loop()
         status = await loop.run_in_executor(None, run_weekly_refresh, retrain, None, draft_only)
         return {"status": "completed", **status}

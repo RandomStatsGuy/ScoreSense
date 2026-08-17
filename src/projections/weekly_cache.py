@@ -52,6 +52,7 @@ def load_weekly_prediction(
     *,
     apply_injury_adjustments: bool = True,
     allow_compute: bool = True,
+    force: bool = False,
 ) -> pd.DataFrame:
     """Load cached weekly predictions or compute and persist."""
     if season is None or week is None:
@@ -67,26 +68,27 @@ def load_weekly_prediction(
     pos = position.lower()
     fp = weekly_fingerprint()
     key = _cache_key(pos, int(season), int(week), apply_injury_adjustments)
-    cached = _WEEKLY_CACHE.get(key)
-    if cached is not None and cached[0] == fp:
-        out = cached[1].copy()
-        for k, v in cached[1].attrs.items():
-            out.attrs[k] = v
-        return ensure_opportunity_adjustment_columns(out)
+    if not force:
+        cached = _WEEKLY_CACHE.get(key)
+        if cached is not None and cached[0] == fp:
+            out = cached[1].copy()
+            for k, v in cached[1].attrs.items():
+                out.attrs[k] = v
+            return ensure_opportunity_adjustment_columns(out)
 
-    parquet_path, meta_path = _artifact_paths(pos, int(season), int(week), apply_injury_adjustments)
-    if parquet_path.exists() and meta_path.exists():
-        try:
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            meta = {}
-        if meta.get("fingerprint") == fp:
-            df = ensure_opportunity_adjustment_columns(pd.read_parquet(parquet_path))
-            _apply_saved_attrs(df, meta)
-            if meta.get("built_at"):
-                df.attrs["built_at"] = meta["built_at"]
-            _WEEKLY_CACHE[key] = (fp, df.copy())
-            return df
+        parquet_path, meta_path = _artifact_paths(pos, int(season), int(week), apply_injury_adjustments)
+        if parquet_path.exists() and meta_path.exists():
+            try:
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                meta = {}
+            if meta.get("fingerprint") == fp:
+                df = ensure_opportunity_adjustment_columns(pd.read_parquet(parquet_path))
+                _apply_saved_attrs(df, meta)
+                if meta.get("built_at"):
+                    df.attrs["built_at"] = meta["built_at"]
+                _WEEKLY_CACHE[key] = (fp, df.copy())
+                return df
 
     if not allow_compute:
         return pd.DataFrame()
@@ -210,6 +212,7 @@ def prewarm_weekly_predictions(
     *,
     positions: tuple[str, ...] = ("qb", "rb", "wr"),
     injury_variants: tuple[bool, ...] = (True, False),
+    force: bool = False,
 ) -> dict[str, int]:
     """Materialize weekly parquet artifacts for dashboard hot paths."""
     counts: dict[str, int] = {}
@@ -220,6 +223,7 @@ def prewarm_weekly_predictions(
                 season=int(season),
                 week=int(week),
                 apply_injury_adjustments=apply_injury,
+                force=force,
             )
             counts[f"{pos}:inj{int(apply_injury)}"] = int(len(df))
     return counts

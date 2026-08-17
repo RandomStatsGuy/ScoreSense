@@ -12,8 +12,8 @@ from src.projections.draft_meta import get_draft_meta
 from src.projections.draft_projections import predict_draft_season
 from src.projections.projection_meta import get_projection_meta
 from src.core.projection_context import is_nfl_offseason
-from src.projections.weekly_cache import prewarm_weekly_predictions
-from src.projections.ros_cache import prewarm_ros_predictions
+from src.projections.weekly_cache import invalidate_weekly_cache, prewarm_weekly_predictions
+from src.projections.ros_cache import invalidate_ros_cache, prewarm_ros_predictions
 from src.etl.nflverse_etl import build_all_datasets
 from src.integrations.sleeper import get_nfl_state, injured_players
 from src.projections.predict import predict_all_positions, save_predictions
@@ -24,25 +24,80 @@ from bdb_companion.target_quality import save_target_quality_report
 REFRESH_STATUS = CACHE_DIR / "last_refresh.json"
 
 
+def _write_refresh_status(payload: dict) -> None:
+    REFRESH_STATUS.parent.mkdir(parents=True, exist_ok=True)
+    REFRESH_STATUS.write_text(json.dumps(payload, indent=2, default=str))
+
+
+def mark_refresh_started(*, retrain: bool = True, draft_only: bool = False) -> dict:
+    """Persist a running marker so the UI can wait instead of refetching stale artifacts."""
+    started = datetime.now(timezone.utc).isoformat()
+    payload = {
+        "status": "running",
+        "started_at": started,
+        "retrain": retrain,
+        "draft_only": draft_only,
+    }
+    existing = get_refresh_status()
+    prev = existing.get("completed_at") or existing.get("last_completed_at")
+    if prev:
+        payload["last_completed_at"] = prev
+    _write_refresh_status(payload)
+    return payload
+
+
 def run_weekly_refresh(
     retrain: bool = True,
     seasons: list[int] | None = None,
     draft_only: bool = False,
 ) -> dict:
     seasons = seasons or DEFAULT_TRAIN_SEASONS + DEFAULT_TEST_SEASONS
-    started = datetime.now(timezone.utc).isoformat()
+    started = mark_refresh_started(retrain=retrain, draft_only=draft_only)["started_at"]
 
+    try:
+        return _run_weekly_refresh(
+            retrain=retrain,
+            seasons=seasons,
+            draft_only=draft_only,
+            started=started,
+        )
+    except Exception as exc:
+        _write_refresh_status(
+            {
+                "status": "error",
+                "started_at": started,
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "error": str(exc),
+                "retrain": retrain,
+                "draft_only": draft_only,
+            }
+        )
+        raise
+
+
+def _run_weekly_refresh(
+    *,
+    retrain: bool,
+    seasons: list[int],
+    draft_only: bool,
+    started: str,
+) -> dict:
     build_all_datasets(seasons=seasons)
+    invalidate_weekly_cache()
+    invalidate_ros_cache()
     if draft_only:
         from src.jobs.preseason_refresh import run_preseason_refresh
 
         draft_status = run_preseason_refresh(seasons=seasons)
-        return {
+        status = {
+            **draft_status,
             "started_at": started,
             "completed_at": draft_status["completed_at"],
             "mode": "draft_only",
-            **draft_status,
+            "status": "completed",
         }
+        _write_refresh_status(status)
+        return status
 
     if retrain:
         train_all(train_seasons=DEFAULT_TRAIN_SEASONS)
@@ -88,6 +143,7 @@ def run_weekly_refresh(
     ros_prewarm = prewarm_ros_predictions(
         season,
         week,
+        force=True,
     )
 
     fp_status = None
@@ -198,15 +254,24 @@ def run_weekly_refresh(
         "fantasy_media_digest_prewarm": fantasy_media_digest_status,
         "draft_projections": draft_counts or None,
         "draft_pool_artifact": draft_pool_status,
+        "status": "completed",
     }
-    REFRESH_STATUS.write_text(json.dumps(status, indent=2))
+    _write_refresh_status(status)
     return status
 
 
 def get_refresh_status() -> dict:
-    if REFRESH_STATUS.exists():
-        return json.loads(REFRESH_STATUS.read_text())
-    return {"status": "never_run"}
+    if not REFRESH_STATUS.exists():
+        return {"status": "never_run"}
+    try:
+        data = json.loads(REFRESH_STATUS.read_text())
+    except (json.JSONDecodeError, OSError):
+        return {"status": "never_run"}
+    if not isinstance(data, dict):
+        return {"status": "never_run"}
+    if "status" not in data:
+        data["status"] = "completed" if data.get("completed_at") else "unknown"
+    return data
 
 
 def main() -> None:
