@@ -2738,6 +2738,35 @@ def hub_contract_history_sync_status(
     }
 
 
+@router.get("/league/{league_id}/contract-history/quarantine")
+def hub_contract_history_quarantine(
+    league_id: str,
+    season: Optional[int] = Query(None, description="Optional season filter"),
+    _user=Depends(require_hub_user),
+) -> dict:
+    """SCORE-44: quarantined import blocks + rows that must not be auto-resolved."""
+    sub = _sub(_user)
+    _ctx_for_league(sub, league_id)
+    from src.draft_hub.sourced_checkpoints import list_checkpoint_specs
+
+    items = storage.list_league_import_quarantine(
+        league_id,
+        season_year=int(season) if season is not None else None,
+    )
+    by_reason: dict[str, int] = {}
+    for item in items:
+        code = str(item.get("reason_code") or "unknown")
+        by_reason[code] = by_reason.get(code, 0) + 1
+    return {
+        "league_id": league_id,
+        "season_year": int(season) if season is not None else None,
+        "count": len(items),
+        "by_reason": by_reason,
+        "items": items,
+        "checkpoints": list_checkpoint_specs(),
+    }
+
+
 @router.get("/league/{league_id}/freshness")
 def hub_league_freshness(
     league_id: str,

@@ -328,6 +328,10 @@ def _migrate(conn: sqlite3.Connection) -> None:
     )
     _safe_add_column(conn, "league_legacy_import", "snapshot_phase", "TEXT DEFAULT 'unknown'")
     _safe_add_column(conn, "league_legacy_import", "source_fingerprint", "TEXT")
+    # SCORE-44: sourced checkpoint provenance (phase/as_of/ruleset).
+    _safe_add_column(conn, "league_legacy_import", "as_of", "TEXT")
+    _safe_add_column(conn, "league_legacy_import", "ruleset_version", "TEXT")
+    _safe_add_column(conn, "league_legacy_import", "salary_cap", "REAL")
     conn.execute(
         """CREATE TABLE IF NOT EXISTS league_contract_row (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -355,6 +359,27 @@ def _migrate(conn: sqlite3.Connection) -> None:
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         )"""
+    )
+    # SCORE-44: stable franchise id + ownership vs cap-obligation separation.
+    _safe_add_column(conn, "league_contract_row", "franchise_id", "TEXT")
+    _safe_add_column(conn, "league_contract_row", "obligation_kind", "TEXT DEFAULT 'ownership'")
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS league_import_quarantine (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            league_id TEXT NOT NULL,
+            season_year INTEGER,
+            reason_code TEXT NOT NULL,
+            message TEXT NOT NULL,
+            owner_label TEXT,
+            player_name TEXT,
+            source_ref TEXT,
+            detail_json TEXT,
+            created_at TEXT NOT NULL
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_import_quarantine_league "
+        "ON league_import_quarantine(league_id, season_year, reason_code)"
     )
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_contract_row_league_season ON league_contract_row(league_id, season_year)"
@@ -3452,6 +3477,9 @@ def update_legacy_import_metadata(
     *,
     snapshot_phase: str | None = None,
     source_fingerprint: str | None = None,
+    as_of: str | None = None,
+    ruleset_version: str | None = None,
+    salary_cap: float | None = None,
 ) -> None:
     """Update metadata on the most recent import row for a season."""
     with get_conn() as conn:
@@ -3471,6 +3499,15 @@ def update_legacy_import_metadata(
         if source_fingerprint is not None:
             sets.append("source_fingerprint = ?")
             params.append(source_fingerprint)
+        if as_of is not None:
+            sets.append("as_of = ?")
+            params.append(as_of)
+        if ruleset_version is not None:
+            sets.append("ruleset_version = ?")
+            params.append(ruleset_version)
+        if salary_cap is not None:
+            sets.append("salary_cap = ?")
+            params.append(float(salary_cap))
         if not sets:
             return
         params.append(int(row["id"]))
@@ -3478,6 +3515,76 @@ def update_legacy_import_metadata(
             f"UPDATE league_legacy_import SET {', '.join(sets)} WHERE id = ?",
             params,
         )
+
+
+def replace_league_import_quarantine(
+    league_id: str,
+    items: list[dict[str, Any]],
+) -> int:
+    """Replace block/row quarantine inventory for a league (SCORE-44)."""
+    import json
+
+    now = _utcnow()
+    with get_conn() as conn:
+        conn.execute(
+            "DELETE FROM league_import_quarantine WHERE league_id = ?",
+            (str(league_id),),
+        )
+        count = 0
+        for item in items:
+            conn.execute(
+                """INSERT INTO league_import_quarantine (
+                    league_id, season_year, reason_code, message,
+                    owner_label, player_name, source_ref, detail_json, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    str(league_id),
+                    item.get("season_year"),
+                    str(item.get("reason_code") or "unknown"),
+                    str(item.get("message") or ""),
+                    item.get("owner_label"),
+                    item.get("player_name"),
+                    item.get("source_ref"),
+                    json.dumps(item.get("detail") or {}, sort_keys=True),
+                    now,
+                ),
+            )
+            count += 1
+    return count
+
+
+def list_league_import_quarantine(
+    league_id: str,
+    *,
+    season_year: int | None = None,
+) -> list[dict[str, Any]]:
+    import json
+
+    with get_conn() as conn:
+        if season_year is None:
+            rows = conn.execute(
+                """SELECT * FROM league_import_quarantine
+                   WHERE league_id = ?
+                   ORDER BY season_year, reason_code, id""",
+                (str(league_id),),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """SELECT * FROM league_import_quarantine
+                   WHERE league_id = ? AND season_year = ?
+                   ORDER BY reason_code, id""",
+                (str(league_id), int(season_year)),
+            ).fetchall()
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        d = dict(row)
+        raw = d.pop("detail_json", None)
+        try:
+            d["detail"] = json.loads(raw) if raw else {}
+        except (TypeError, ValueError, json.JSONDecodeError):
+            d["detail"] = {}
+        out.append(d)
+    return out
 
 
 def replace_league_contract_season(
@@ -3521,8 +3628,8 @@ def replace_league_contract_season_source(
                     position, base_salary, cap_hit, prior_salary, original_draft_year,
                     roster_status, contract_phase, acquisition_type, status_note,
                     source_kind, confidence, needs_review, review_reason, sleeper_verified,
-                    import_id, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    import_id, franchise_id, obligation_kind, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     league_id,
                     int(season_year),
@@ -3545,6 +3652,8 @@ def replace_league_contract_season_source(
                     r.get("review_reason"),
                     1 if r.get("sleeper_verified") else 0,
                     import_id,
+                    r.get("franchise_id"),
+                    r.get("obligation_kind") or "ownership",
                     now,
                     now,
                 ),
@@ -3606,6 +3715,7 @@ def update_league_contract_row(
         "base_salary", "cap_hit", "prior_salary", "original_draft_year",
         "roster_status", "contract_phase", "acquisition_type", "status_note",
         "confidence", "needs_review", "review_reason", "sleeper_verified",
+        "franchise_id", "obligation_kind",
     }
     row = get_league_contract_row(row_id)
     if not row:
@@ -3688,8 +3798,8 @@ def insert_league_contract_row(
                 position, base_salary, cap_hit, prior_salary, original_draft_year,
                 roster_status, contract_phase, acquisition_type, status_note,
                 source_kind, confidence, needs_review, review_reason, sleeper_verified,
-                import_id, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                import_id, franchise_id, obligation_kind, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 league_id,
                 int(season_year),
@@ -3712,6 +3822,8 @@ def insert_league_contract_row(
                 row.get("review_reason"),
                 1 if row.get("sleeper_verified") else 0,
                 row.get("import_id"),
+                row.get("franchise_id"),
+                row.get("obligation_kind") or "ownership",
                 now,
                 now,
             ),
