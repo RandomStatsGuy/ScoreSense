@@ -13,6 +13,10 @@ from src.config import PROJECT_ROOT
 
 HEURISTICS_PATH = PROJECT_ROOT / "data" / "injury" / "return_heuristics.yaml"
 
+# Designations that imply the player may still play this week. Body/note
+# patterns must not advertise a longer absence than the designation itself.
+_PLAYING_STATUSES = frozenset({"Questionable", "Doubtful", "Probable"})
+
 
 @dataclass(frozen=True)
 class InjuryTimeline:
@@ -46,15 +50,53 @@ def _match_patterns(text: str, patterns: list[dict]) -> dict | None:
     return None
 
 
+def _weeks_max(row: dict | None) -> int | None:
+    if not row:
+        return None
+    raw = row.get("weeks_max")
+    try:
+        return int(raw) if raw is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _exceeds_status_window(pattern: dict | None, status_default: dict | None) -> bool:
+    """True when a body/note window is longer than the official designation."""
+    pattern_max = _weeks_max(pattern)
+    status_max = _weeks_max(status_default)
+    if pattern_max is None or status_max is None:
+        return False
+    return pattern_max > status_max
+
+
+def _usable_pattern(
+    pattern: dict | None,
+    status: str,
+    status_default: dict | None,
+) -> dict | None:
+    if not pattern:
+        return None
+    if status in _PLAYING_STATUSES and _exceeds_status_window(pattern, status_default):
+        return None
+    return pattern
+
+
 def _pick_specificity(
     status_default: dict,
     body_hit: dict | None,
     note_hit: dict | None,
     status: str,
 ) -> InjuryTimeline:
-    """Prefer body-part / note patterns over generic status when more specific."""
+    """Prefer body-part / note patterns over generic status when more specific.
+
+    Questionable / Doubtful / Probable cap the window to the designation.
+    An ACL tag on a Q player must not show "Season / multi-month" next to a
+    full weekly projection.
+    """
     status_u = str(status or "").strip()
     candidates: list[tuple[int, dict]] = []
+    note_hit = _usable_pattern(note_hit, status_u, status_default)
+    body_hit = _usable_pattern(body_hit, status_u, status_default)
 
     if status_default:
         candidates.append((1, status_default))
