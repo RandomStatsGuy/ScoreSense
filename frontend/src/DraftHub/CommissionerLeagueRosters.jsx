@@ -323,10 +323,16 @@ function TeamRosterBlock({
       {open && notice && <p className="chart-note hub-league-team-notice" role="status">{notice}</p>}
 
       {open && (
-        <p className="chart-note hub-roster-contract-help" title={seasonCapYearHint(season)}>
-          Cap hit is for the {season} season (after the {season} draft).{" "}
-          {contractScheduleHint(stepUp)}. {YEARS_LEFT_HINT}
-        </p>
+        <details className="hub-roster-contract-rules hub-roster-contract-help">
+          <summary>How this works</summary>
+          <div className="hub-roster-contract-rules-body chart-note">
+            <p title={seasonCapYearHint(season)}>
+              Cap hit is for the {season} season (after the {season} draft).{" "}
+              {contractScheduleHint(stepUp)}.
+            </p>
+            <p>{YEARS_LEFT_HINT}</p>
+          </div>
+        </details>
       )}
 
       {open && (
