@@ -308,4 +308,9 @@ def apply_opportunity_to_projections(
     for col in ("Projected Points", "Low (P10)", "High (P90)"):
         if col in result.columns:
             result[col] = result[col] * multiplier
-    return result
+    from src.ml.quantile import repair_projection_quantiles
+
+    return repair_projection_quantiles(
+        result,
+        column_sets=(("Low (P10)", "Projected Points", "High (P90)"),),
+    )

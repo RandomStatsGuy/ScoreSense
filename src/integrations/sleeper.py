@@ -93,6 +93,8 @@ def _scale_numeric_features(row: pd.Series, mult: float) -> pd.Series:
 
 _PROJ_SCALE_COLS = (
     "Projected Points",
+    "Low (P10)",
+    "High (P90)",
     "Floor",
     "Ceiling",
     "Season Proj",
@@ -149,7 +151,11 @@ def apply_vet_backup_projection_scale(result: pd.DataFrame, roster: pd.DataFrame
             val = row[col]
             if isinstance(val, (int, float)) and not pd.isna(val):
                 out.at[idx, col] = round(float(val) * mult, 3)
-    return out
+
+    # SCORE-50: scale Low/High with P50; still re-assert order after rounding.
+    from src.ml.quantile import repair_projection_quantiles
+
+    return repair_projection_quantiles(out)
 
 
 SLEEPER_POSITIONS: dict[str, frozenset[str]] = {

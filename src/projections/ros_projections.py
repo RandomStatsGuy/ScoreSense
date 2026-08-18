@@ -115,7 +115,22 @@ def _apply_rolling_rate(weekly: pd.DataFrame, rolling: pd.DataFrame) -> pd.DataF
         on="player_id",
         how="left",
     )
-    out["Projected Points"] = out["_rolling_p50"].fillna(out["Projected Points"])
+    # SCORE-50: rolling overwrites P50 only — shift tails by the same delta, then repair.
+    if {"Low (P10)", "High (P90)", "Projected Points"}.issubset(out.columns):
+        old_p50 = out["Projected Points"].astype(float)
+        new_p50 = out["_rolling_p50"].astype(float)
+        shift = (new_p50 - old_p50).fillna(0.0)
+        out["Projected Points"] = new_p50.fillna(old_p50)
+        out["Low (P10)"] = (out["Low (P10)"].astype(float) + shift).clip(lower=0.0)
+        out["High (P90)"] = out["High (P90)"].astype(float) + shift
+        from src.ml.quantile import repair_projection_quantiles
+
+        out = repair_projection_quantiles(
+            out,
+            column_sets=(("Low (P10)", "Projected Points", "High (P90)"),),
+        )
+    else:
+        out["Projected Points"] = out["_rolling_p50"].fillna(out["Projected Points"])
     return out.drop(columns=["_rolling_p50"], errors="ignore")
 
 
@@ -159,6 +174,12 @@ def _scale_ros_with_opportunity_decay(out: pd.DataFrame) -> pd.DataFrame:
         delta = inj_rate - base_rate
         out[dst] = base_rate * remaining + delta * out["_opp_eff_weeks"]
 
+    from src.ml.quantile import repair_projection_quantiles
+
+    out = repair_projection_quantiles(
+        out,
+        column_sets=(("ros_low", "ros_proj", "ros_high"),),
+    )
     return out.drop(columns=["_opp_eff_weeks"], errors="ignore")
 
 
