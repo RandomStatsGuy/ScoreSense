@@ -172,12 +172,19 @@ def save_weekly_artifact(
 
     # Movement is best-effort — never block weekly artifact writes.
     try:
-        from src.projections.projection_movement import save_projection_movement_artifact
+        from src.projections.projection_movement import (
+            projection_content_fingerprint,
+            save_projection_movement_artifact,
+        )
 
-        # Same fingerprint ⇒ not a meaningful refresh; keep prior movement if any.
-        prior_fp = None if not previous_meta else previous_meta.get("fingerprint")
-        if prior_fp == fingerprint and previous_df is not None:
-            return parquet_path
+        # Skip only when projection *content* is unchanged. Weekly fingerprints
+        # track model/feature mtimes and miss roster/injury/depth overlay churn
+        # (SCORE-48: force refresh left movement stuck at available=false).
+        if previous_df is not None and not previous_df.empty:
+            prev_content = projection_content_fingerprint(previous_df)
+            curr_content = projection_content_fingerprint(df)
+            if prev_content == curr_content:
+                return parquet_path
 
         save_projection_movement_artifact(
             position,

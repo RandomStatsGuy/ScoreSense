@@ -275,7 +275,9 @@ export function buildOpportunityItems({
       pointsLabel: formatOppPoints(points),
       drivers,
       driverLabel: primary
-        ? `Included because ${primary.name}${primary.status ? ` is ${primary.status}` : " is injured"}`
+        ? (primary.status
+          ? `${primary.name} · ${primary.status}`
+          : `${primary.name} injured`)
         : null,
       projectionRow: row,
     });

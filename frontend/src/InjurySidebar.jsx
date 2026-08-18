@@ -127,6 +127,7 @@ function AttentionCard({ item, onCompareReplacements }) {
 }
 
 function OpportunityCard({ item }) {
+  const metaLead = [item.team, item.position].filter(Boolean).join(" · ");
   return (
     <li className="injury-card injury-card--opportunity">
       <div className="injury-card-top">
@@ -139,13 +140,18 @@ function OpportunityCard({ item }) {
           </span>
         ) : null}
       </div>
-      <p className="injury-card-meta">
-        <span className="injury-card-meta-lead">
-          {[item.team, item.position].filter(Boolean).join(" · ")}
-        </span>
-      </p>
-      {item.driverLabel ? (
-        <p className="injury-opp-driver">{item.driverLabel}</p>
+      {(metaLead || item.driverLabel) ? (
+        <p className="injury-card-meta injury-opp-meta" title={item.driverLabel || metaLead}>
+          {metaLead ? (
+            <span className="injury-card-meta-lead">{metaLead}</span>
+          ) : null}
+          {item.driverLabel ? (
+            <span className="injury-opp-driver">
+              {metaLead ? " · " : ""}
+              {item.driverLabel}
+            </span>
+          ) : null}
+        </p>
       ) : null}
     </li>
   );

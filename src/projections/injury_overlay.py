@@ -728,3 +728,26 @@ def apply_overlay_to_baseline_points(
         opp = float(overlay.get("opportunity_adjustment") or 0.0)
         delta = avail + opp
     return float(baseline) + float(delta)
+
+
+def apply_overlay_to_quantiles(
+    p10: float,
+    p50: float,
+    p90: float,
+    overlay: dict[str, Any] | None,
+) -> tuple[float, float, float]:
+    """Apply an injury overlay to a P10/P50/P90 triplet (SCORE-50).
+
+    Moves all three by the same delta implied by the overlay's P50 shift, then
+    repairs order while keeping the overlay-adjusted P50 fixed.
+    """
+    from src.ml.quantile import repair_quantile_arrays
+
+    new_p50 = apply_overlay_to_baseline_points(p50, overlay)
+    delta = float(new_p50) - float(p50)
+    q10, q50, q90 = repair_quantile_arrays(
+        np.asarray([float(p10) + delta], dtype=float),
+        np.asarray([float(new_p50)], dtype=float),
+        np.asarray([float(p90) + delta], dtype=float),
+    )
+    return float(q10[0]), float(q50[0]), float(q90[0])

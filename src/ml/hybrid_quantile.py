@@ -88,8 +88,13 @@ def train_hybrid_quantile_bundle(
 
 def predict_hybrid_quantiles(bundle: dict[str, Any], X: pd.DataFrame) -> pd.DataFrame:
     """Predict P10/P50/P90 from a sklearn or hybrid bundle."""
+    from src.ml.quantile import repair_quantile_order
+
     preds = predict_quantiles(bundle["quantile_models"], X)
     if bundle.get("p50_backend") == P50_BACKEND_LAMBDARANK and bundle.get("p50_ranker") is not None:
         preds["q50"] = bundle["p50_ranker"].predict(X)
+        preds["point"] = preds["q50"]
+        # Lambdarank P50 can land outside sklearn P10/P90 — repair tails, keep P50.
+        preds = repair_quantile_order(preds)
         preds["point"] = preds["q50"]
     return preds

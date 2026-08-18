@@ -17,7 +17,7 @@ from src.config import (
     WR_CALIBRATED_MODEL_BUNDLE,
 )
 from src.core.features import prepare_feature_matrix
-from src.ml.quantile import predict_quantiles
+from src.ml.quantile import predict_quantiles, repair_projection_quantiles
 from src.integrations.sleeper import injured_players
 from src.core.opportunity import (
     OPPORTUNITY_ADJUSTMENT_COL,
@@ -152,6 +152,11 @@ def predict_from_features(
             result[col] = result[col] * multiplier
         result = _attach_sleeper_injury_status(result)
 
+    # SCORE-50: opportunity / status transforms must leave floor ≤ proj ≤ ceiling.
+    result = repair_projection_quantiles(
+        result,
+        column_sets=(("Low (P10)", "Projected Points", "High (P90)"),),
+    )
     return result.sort_values("Projected Points", ascending=False).reset_index(drop=True)
 
 
@@ -185,6 +190,10 @@ def predict_upcoming_week(
     from src.integrations.sleeper import apply_vet_backup_projection_scale
 
     result = apply_vet_backup_projection_scale(result, subset)
+    result = repair_projection_quantiles(
+        result,
+        column_sets=(("Low (P10)", "Projected Points", "High (P90)"),),
+    )
 
     from src.projections.matchup_context import attach_matchup_context
 

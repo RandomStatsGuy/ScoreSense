@@ -124,13 +124,14 @@
   --col-team-width: 3.75rem;
   --col-opp-width: 3.75rem;
   --col-season-width: 5.5rem;
+  --col-range-width: 7.5rem;
   --col-narrative-width: 5.75rem;
   --col-floor-ceiling-width: 5rem;
   --col-per-game-width: 6.25rem;
   --hub-col-pos-width: 2.75rem;
   --hub-col-proj-width: 7.25rem;
   --hub-col-num-width: 3.5rem;
-  --hub-col-delta-width: 6.5rem;
+  --hub-col-delta-width: 5.25rem;
   --hub-col-status-width: 6.5rem;
   --row-hover-bg: rgba(64, 106, 191, 0.16);
   --control-height: 2.25rem;

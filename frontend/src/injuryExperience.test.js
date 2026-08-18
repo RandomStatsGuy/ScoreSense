@@ -113,7 +113,7 @@ test("buildOpportunityItems prefers fantasy skill drivers from Injury Note", () 
   });
   assert.equal(items.length, 1);
   assert.equal(items[0].name, "Jordan Addison");
-  assert.match(items[0].driverLabel, /Justin Jefferson/);
+  assert.equal(items[0].driverLabel, "Justin Jefferson · Questionable");
   assert.ok(items[0].points >= 1.5);
 });
 
@@ -191,7 +191,7 @@ test("buildOpportunityItems uses player-context deltas when present", () => {
   assert.equal(items.length, 1);
   assert.equal(items[0].points, 2.1);
   assert.equal(items[0].pointsLabel, "+2.1");
-  assert.match(items[0].driverLabel, /Ja'Marr Chase/);
+  assert.equal(items[0].driverLabel, "Ja'Marr Chase · Questionable");
 });
 
 test("pickReplacementCandidates returns healthy same-team mates", () => {

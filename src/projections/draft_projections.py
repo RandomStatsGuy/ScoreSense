@@ -14,6 +14,7 @@ from src.config import (
     PROCESSED_DATA_DIR,
     SEASON_QUANTILE_METHOD,
 )
+from src.ml.quantile import repair_quantile_arrays, repair_projection_quantiles
 from src.projections.predict import predict_from_features
 from src.projections.season_blend import (
     blend_preseason_totals,
@@ -146,10 +147,26 @@ def predict_draft_season(
         float(games_per_season), index=weekly.index
     )
     teams_for_schedule = weekly["Team"] if "Team" in weekly.columns else pd.Series("", index=weekly.index)
+    # SCORE-50: blend can rewrite Per-Game Proj while raw weekly P10/P90 stay put.
+    # Recenter the weekly law on the blended P50, repair order (P50 fixed), then
+    # write Per-Game Floor/Ceiling from those repaired tails so the RANGE bar
+    # always brackets Per-Game Proj.
     blend_shift = result["Per-Game Proj"].astype(float) - weekly["Projected Points"].astype(float)
-    q10_centered = weekly["Low (P10)"].astype(float) + blend_shift
-    q50_centered = result["Per-Game Proj"].astype(float)
-    q90_centered = weekly["High (P90)"].astype(float) + blend_shift
+    q10_centered, q50_centered, q90_centered = repair_quantile_arrays(
+        weekly["Low (P10)"].astype(float) + blend_shift,
+        result["Per-Game Proj"].astype(float),
+        weekly["High (P90)"].astype(float) + blend_shift,
+    )
+    result["Per-Game Floor"] = pd.Series(q10_centered, index=weekly.index).round(1)
+    result["Per-Game Ceiling"] = pd.Series(q90_centered, index=weekly.index).round(1)
+    # Re-assert after rounding (0.1 pt quantization can re-cross near-equal bands).
+    result = repair_projection_quantiles(
+        result,
+        column_sets=(("Per-Game Floor", "Per-Game Proj", "Per-Game Ceiling"),),
+    )
+    q10_centered = result["Per-Game Floor"].astype(float).to_numpy()
+    q50_centered = result["Per-Game Proj"].astype(float).to_numpy()
+    q90_centered = result["Per-Game Ceiling"].astype(float).to_numpy()
 
     method = SEASON_QUANTILE_METHOD
     season_q_meta: dict = {}
@@ -204,6 +221,17 @@ def predict_draft_season(
     result["season_quantile_method"] = method
     result["Season Floor"] = result["Season P10"]
     result["Season Ceiling"] = result["Season P90"]
+    result = repair_projection_quantiles(
+        result,
+        column_sets=(
+            ("Season P10", "Season P50", "Season P90"),
+            ("Season Floor", "Season Proj", "Season Ceiling"),
+        ),
+    )
+    # Keep Floor/Ceiling aliases aligned with repaired P10/P90.
+    result["Season Floor"] = result["Season P10"]
+    result["Season Ceiling"] = result["Season P90"]
+    result["Season Spread"] = (result["Season P90"] - result["Season P10"]).round(1)
 
     if "player_id" in weekly.columns:
         result["player_id"] = weekly["player_id"]
@@ -232,6 +260,7 @@ def predict_draft_season(
     from src.integrations.sleeper import apply_vet_backup_projection_scale
 
     result = apply_vet_backup_projection_scale(result, roster)
+    result = repair_projection_quantiles(result)
 
     meta_cols = [
         "Season Proj",
