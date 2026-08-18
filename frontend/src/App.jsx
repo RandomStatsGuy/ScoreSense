@@ -48,6 +48,7 @@ import {
   parseApiError,
 } from "./format";
 import { waitForRefreshComplete } from "./refreshStatus";
+import { leftSlateRowsFromChanges } from "./projectionMovement";
 import { playerSentimentKey, buildSentimentMap, resolveRowSentiment } from "./sentimentDisplay";
 import { PRODUCT_NAME, STUDIO_NAME } from "./brand";
 import { PlayerCardProvider } from "./PlayerCardContext";
@@ -103,6 +104,7 @@ export default function App() {
     () => filtersFromUrl.movementFilter || "all",
   );
   const [projections, setProjections] = useState([]);
+  const [leftSlateRows, setLeftSlateRows] = useState([]);
   const [rosProjections, setRosProjections] = useState([]);
   const [rosMeta, setRosMeta] = useState(null);
   const [draftProjections, setDraftProjections] = useState([]);
@@ -213,9 +215,43 @@ export default function App() {
       if (signal?.aborted) return;
       setProjections(data.projections || []);
       setMeta(data.meta || null);
+
+      // SCORE-48: left-slate movers live on /changes only — soft-fail so base table still loads.
+      try {
+        const changesRes = await apiFetch(
+          `/api/predict/${position}/changes?season=${targetSeason}&week=${targetWeek}&apply_injury_adjustments=${live}&material_only=true`,
+          { signal },
+        );
+        if (signal?.aborted) return;
+        if (changesRes.ok) {
+          const changesBody = await changesRes.json();
+          setLeftSlateRows(leftSlateRowsFromChanges(changesBody?.changes));
+          // Prefer /changes empty_reason when predict meta omitted it.
+          if (changesBody?.empty_reason && !data?.meta?.projection_movement?.empty_reason) {
+            setMeta((prev) => {
+              if (!prev) return prev;
+              const pm = prev.projection_movement || {};
+              return {
+                ...prev,
+                projection_movement: {
+                  ...pm,
+                  empty_reason: pm.empty_reason || changesBody.empty_reason,
+                  note: pm.note || changesBody?.meta?.note || null,
+                },
+              };
+            });
+          }
+        } else {
+          setLeftSlateRows([]);
+        }
+      } catch (changesErr) {
+        if (isAbortError(changesErr)) return;
+        setLeftSlateRows([]);
+      }
     } catch (err) {
       if (isAbortError(err)) return;
       setProjections([]);
+      setLeftSlateRows([]);
       setMeta(null);
       setError(connectionErrorMessage(err, "Failed to load projections"));
     } finally {
@@ -1384,6 +1420,10 @@ export default function App() {
                 movementFilter={movementFilter}
                 onMovementFilterChange={handleMovementFilterChange}
                 movementAvailable={Boolean(meta?.projection_movement?.available)}
+                showMovementFilters={meta?.projection_movement != null}
+                movementEmptyReason={meta?.projection_movement?.empty_reason || null}
+                movementNote={meta?.projection_movement?.note || null}
+                leftSlateRows={leftSlateRows}
                 compareEnabled
                 selectedCompareIds={compareIds}
                 maxCompare={MAX_COMPARE_PLAYERS}

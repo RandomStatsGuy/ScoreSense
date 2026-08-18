@@ -29,7 +29,10 @@ import {
   formatP50Move,
   formatRankMove,
   hasMovement,
+  isLeftSlate,
   matchesMovementFilter,
+  mergeRowsForMovementFilter,
+  movementEmptyMessage,
   movementSortScore,
   rowMovementTone,
 } from "./projectionMovement";
@@ -55,18 +58,20 @@ const SORT_KEYS = {
 };
 
 function RankMoveInline({ row, position }) {
+  const leftSlate = isLeftSlate(row);
   const rankLabel = formatRankMove({
     previousRank: row.previous_rank,
     currentRank: row.current_rank,
     rankDelta: row.rank_delta,
     position: row.Position || position,
+    slateStatus: row.slate_status,
   });
   if (!rankLabel) return null;
-  const tone = movementToneFromDelta(row.rank_delta);
+  const tone = leftSlate ? "down" : movementToneFromDelta(row.rank_delta);
   return (
     <span
-      className={`proj-move proj-move--${tone}${row.movement_material ? " proj-move--material" : ""}`}
-      title={`Rank ${rankLabel} vs prior refresh`}
+      className={`proj-move proj-move--${tone}${row.movement_material || leftSlate ? " proj-move--material" : ""}`}
+      title={leftSlate ? `Left slate · ${rankLabel}` : `Rank ${rankLabel} vs prior refresh`}
     >
       <span className="proj-move-rank">{rankLabel}</span>
     </span>
@@ -89,16 +94,19 @@ function P50MoveInline({ row }) {
 
 function MovementInline({ row, position, compact = false }) {
   if (!hasMovement(row)) return null;
+  const leftSlate = isLeftSlate(row);
   const tone = rowMovementTone(row);
   const rankLabel = formatRankMove({
     previousRank: row.previous_rank,
     currentRank: row.current_rank,
     rankDelta: row.rank_delta,
     position: row.Position || position,
+    slateStatus: row.slate_status,
   });
-  const p50Label = formatP50Move(row.p50_delta);
-  if (!rankLabel && !p50Label) return null;
+  const p50Label = leftSlate ? null : formatP50Move(row.p50_delta);
+  if (!rankLabel && !p50Label && !leftSlate) return null;
   const title = [
+    leftSlate ? "Left slate" : null,
     rankLabel ? `Rank ${rankLabel}` : null,
     p50Label ? `Projection ${p50Label} vs prior refresh` : null,
   ]
@@ -107,10 +115,11 @@ function MovementInline({ row, position, compact = false }) {
   return (
     <span
       className={`proj-move proj-move--${tone}${compact ? " proj-move--compact" : ""}${
-        row.movement_material ? " proj-move--material" : ""
+        row.movement_material || leftSlate ? " proj-move--material" : ""
       }`}
       title={title}
     >
+      {leftSlate ? <span className="proj-move-left">Left slate</span> : null}
       {rankLabel ? <span className="proj-move-rank">{rankLabel}</span> : null}
       {p50Label ? (
         <span className="proj-move-p50">
@@ -226,22 +235,24 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   onMediaModeChange,
 }) {
   const status = row["Injury Status"] || "";
-  const unavailable = isPlayerUnavailable(status);
+  const leftSlate = isLeftSlate(row);
+  const unavailable = !leftSlate && isPlayerUnavailable(status);
   const p50 = Number(row["Projected Points"]) || 0;
   const p10 = Number(row["Low (P10)"]) || 0;
   const p90 = Number(row["High (P90)"]) || 0;
   const tag = unavailableLabel(status);
   const tone = matchupTone(row["Opp Def Rank"], dvpTeamCount);
-  const canSelect = compareEnabled && Boolean(row.player_id) && !unavailable;
-  const canExplain = Boolean(row.player_id);
+  const canSelect = compareEnabled && Boolean(row.player_id) && !unavailable && !leftSlate;
+  const canExplain = Boolean(row.player_id) && !leftSlate;
   // SCORE-30: hide Ctx when compact list says there is nothing to lazy-load.
-  const canContext = Boolean(row.player_id) && isDetailAvailable(playerContext);
+  const canContext = Boolean(row.player_id) && !leftSlate && isDetailAvailable(playerContext);
 
   return (
     <>
     <tr
       className={[
         unavailable ? "row-unavailable" : "",
+        leftSlate ? "row-left-slate" : "",
         selected ? "row-compare-selected" : "",
         whyExpanded ? "row-why-open" : "",
         contextExpanded ? "row-context-open" : "",
@@ -284,6 +295,11 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
             applyInjuryAdjustments={applyInjuryAdjustments}
           />
           <InjuryStatusTag status={unavailable ? "" : status} />
+          {leftSlate ? (
+            <Chip tone="caution" className="proj-left-slate-chip" title="Removed from this week's projection slate">
+              Left slate
+            </Chip>
+          ) : null}
         </span>
         {playerContext ? (
           <PlayerContextBadges
@@ -353,10 +369,19 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
           <SentimentBadge sentiment={row.sentiment} compact table />
         </td>
       )}
-      {unavailable ? (
+      {unavailable || leftSlate ? (
         <td colSpan={unavailableColSpan} className="out-tag-cell">
-          <span className="out-tag">{tag}</span>
-          <span className="out-tag-note">Projections suppressed — Sleeper {status}</span>
+          {leftSlate ? (
+            <>
+              <span className="out-tag">Left slate</span>
+              <span className="out-tag-note">No longer on this week&apos;s projections</span>
+            </>
+          ) : (
+            <>
+              <span className="out-tag">{tag}</span>
+              <span className="out-tag-note">Projections suppressed — Sleeper {status}</span>
+            </>
+          )}
         </td>
       ) : (
         <>
@@ -489,6 +514,12 @@ export default function WeeklyTable({
   movementFilter = "all",
   onMovementFilterChange,
   movementAvailable = false,
+  /** SCORE-48: show filter chips whenever movement meta is present (even if empty). */
+  showMovementFilters = null,
+  movementEmptyReason = null,
+  movementNote = null,
+  /** Left-slate rows from `/changes` (not soft-joined onto current projections). */
+  leftSlateRows = null,
 }) {
   const [sort, toggleSort] = useTableSort({ column: "P50", dir: "desc" });
   const [whyPlayerId, setWhyPlayerId] = useState(null);
@@ -506,6 +537,8 @@ export default function WeeklyTable({
   const selectedCount = selectedSet.size;
   const selectDisabled = selectedCount >= maxCompare;
   const showMovement = Boolean(movementAvailable);
+  const showFilters =
+    showMovementFilters == null ? showMovement : Boolean(showMovementFilters);
 
   const toggleWhy = (playerId) => {
     const id = playerId ? String(playerId) : "";
@@ -526,11 +559,11 @@ export default function WeeklyTable({
 
   // When switching into a movers filter, prefer biggest-move sort.
   useEffect(() => {
-    if (!movementAvailable) return;
+    if (!showFilters) return;
     if (movementFilter && movementFilter !== "all") {
       toggleSort("Move", { forceDir: "desc" });
     }
-  }, [movementFilter, movementAvailable]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [movementFilter, showFilters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showOpponent = useMemo(
     () => (rows || []).some((row) => row.Opponent),
@@ -568,11 +601,23 @@ export default function WeeklyTable({
       const set = new Set(teamsFilter.map((t) => t.toUpperCase()));
       list = list.filter((r) => set.has(String(r.Team || "").toUpperCase()));
     }
-    if (movementAvailable && movementFilter && movementFilter !== "all") {
+    if (showFilters && movementFilter && movementFilter !== "all") {
       list = list.filter((r) => matchesMovementFilter(r, movementFilter));
+      list = mergeRowsForMovementFilter(list, leftSlateRows, movementFilter);
+      if (q) {
+        list = list.filter(
+          (r) =>
+            String(r.Player || "").toLowerCase().includes(q) ||
+            String(r.Team || "").toLowerCase().includes(q),
+        );
+      }
+      if (teamsFilter?.length) {
+        const set = new Set(teamsFilter.map((t) => t.toUpperCase()));
+        list = list.filter((r) => set.has(String(r.Team || "").toUpperCase()));
+      }
     }
     return list;
-  }, [rows, search, teamsFilter, movementAvailable, movementFilter]);
+  }, [rows, search, teamsFilter, showFilters, movementFilter, leftSlateRows]);
 
   const scaleMax = useMemo(() => {
     const slate = rows || [];
@@ -595,6 +640,7 @@ export default function WeeklyTable({
     const key = SORT_KEYS[sort.column] || sort.column;
     const dir = sort.dir === "asc" ? 1 : -1;
     return [...filtered].sort((a, b) => {
+      // Injury OUT stays at the bottom; left-slate rows sort by movement score.
       const aOut = isPlayerUnavailable(a["Injury Status"]);
       const bOut = isPlayerUnavailable(b["Injury Status"]);
       if (aOut !== bOut) return aOut ? 1 : -1;
@@ -645,15 +691,22 @@ export default function WeeklyTable({
   const hasFilters = Boolean(
     (search || "").trim() ||
       teamsFilter?.length ||
-      (movementAvailable && movementFilter && movementFilter !== "all"),
+      (showFilters && movementFilter && movementFilter !== "all"),
+  );
+  const movementFilterActive = Boolean(
+    showFilters && movementFilter && movementFilter !== "all",
   );
   const emptyMessage = loading
     ? null
-    : hasFilters
-      ? movementFilter && movementFilter !== "all"
-        ? "No players match this movement filter."
-        : "No players match your search or team filters."
-      : "No projections available for this week.";
+    : movementFilterActive && sorted.length === 0 && !(search || "").trim() && !teamsFilter?.length
+      ? movementEmptyMessage(movementEmptyReason, movementNote, {
+          filterId: movementFilter,
+        }) || "No players match this movement filter."
+      : hasFilters
+        ? movementFilterActive
+          ? "No players match this movement filter."
+          : "No players match your search or team filters."
+        : "No projections available for this week.";
 
   const resultLabel =
     selectedCount > 0
@@ -668,7 +721,7 @@ export default function WeeklyTable({
           <ExportCsvButton onExport={() => exportCsv(sorted)} disabled={!sorted.length} />
         )}
       </div>
-      {showMovement ? (
+      {showFilters ? (
         <div
           className="proj-move-filter"
           role="group"
@@ -690,9 +743,12 @@ export default function WeeklyTable({
       <div className="table-toolbar">
         <span className="table-meta">{resultLabel}</span>
         {metaLine}
-        {showMovement ? (
+        {showFilters ? (
           <span className="table-meta table-meta-movement" role="status">
-            What changed vs prior refresh
+            {showMovement
+              ? "What changed vs prior refresh"
+              : movementEmptyMessage(movementEmptyReason, movementNote) ||
+                "Movement unavailable for this slate"}
           </span>
         ) : null}
         {playersContext.unavailable ? (
@@ -780,7 +836,8 @@ export default function WeeklyTable({
         >
           {sorted.map((row, rowIndex) => {
             const status = row["Injury Status"] || "";
-            const unavailable = isPlayerUnavailable(status);
+            const leftSlate = isLeftSlate(row);
+            const unavailable = !leftSlate && isPlayerUnavailable(status);
             const p50 = Number(row["Projected Points"]) || 0;
             const p10 = Number(row["Low (P10)"]) || 0;
             const p90 = Number(row["High (P90)"]) || 0;
@@ -788,9 +845,9 @@ export default function WeeklyTable({
             const tone = matchupTone(row["Opp Def Rank"], dvpTeamCount);
             const pid = row.player_id ? String(row.player_id) : "";
             const selected = pid ? selectedSet.has(pid) : false;
-            const canSelect = compareEnabled && Boolean(pid) && !unavailable;
+            const canSelect = compareEnabled && Boolean(pid) && !unavailable && !leftSlate;
             const playerCtx = pid ? playersContext.byId.get(pid) : null;
-            const canContext = Boolean(pid) && isDetailAvailable(playerCtx);
+            const canContext = Boolean(pid) && !leftSlate && isDetailAvailable(playerCtx);
             const metaNode = (
               <>
                 {row.Team || "—"}
@@ -835,11 +892,27 @@ export default function WeeklyTable({
                     clickable={false}
                   />
                 )}
-                badge={unavailable ? null : <InjuryStatusTag status={status} verbose />}
+                badge={
+                  leftSlate ? (
+                    <Chip tone="caution" className="proj-left-slate-chip" title="Removed from this week's projection slate">
+                      Left slate
+                    </Chip>
+                  ) : unavailable ? null : (
+                    <InjuryStatusTag status={status} verbose />
+                  )
+                }
                 meta={metaNode}
-                heroValue={unavailable ? tag : fmtNum(row["Projected Points"], 1)}
-                heroLabel={unavailable ? "" : "Proj"}
-                heroSub={unavailable ? null : (
+                heroValue={leftSlate ? "—" : unavailable ? tag : fmtNum(row["Projected Points"], 1)}
+                heroLabel={leftSlate || unavailable ? "" : "Proj"}
+                heroSub={leftSlate ? (
+                  showMovement || showFilters ? (
+                    <span className="mobile-player-card-move">
+                      <MovementInline row={row} position={position} compact />
+                    </span>
+                  ) : (
+                    <span className="muted">Left this week&apos;s slate</span>
+                  )
+                ) : unavailable ? null : (
                   <>
                     <span className="sr-only">Floor to ceiling </span>
                     {fmtNum(p10, 1)}–{fmtNum(p90, 1)}
@@ -851,8 +924,8 @@ export default function WeeklyTable({
                     ) : null}
                   </>
                 )}
-                heroMuted={unavailable}
-                unavailable={unavailable}
+                heroMuted={unavailable || leftSlate}
+                unavailable={unavailable || leftSlate}
                 aside={
                   compareEnabled ? (
                     <label className={`compare-select-label compare-select-label--card${selected ? " is-selected" : ""}`}>
@@ -979,7 +1052,7 @@ export default function WeeklyTable({
           })}
         </MobileDataList>
       ) : (
-      <div className={`table-wrap table-sticky table-has-rank${compareEnabled ? " table-has-compare" : ""}${showMovement ? " table-has-movement" : ""}`}>
+      <div className={`table-wrap table-sticky table-has-rank${compareEnabled ? " table-has-compare" : ""}${showFilters ? " table-has-movement" : ""}`}>
         <table>
           <thead>
             <tr>

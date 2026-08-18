@@ -14205,6 +14205,25 @@ td.col-rank.col-rank-top {
   font-weight: 700;
 }
 
+.proj-move-left {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.proj-left-slate-chip {
+  margin-left: 0.35rem;
+  vertical-align: middle;
+}
+
+.row-left-slate {
+  opacity: 0.92;
+}
+
+.row-left-slate .out-tag {
+  background: var(--tone-warn-soft, rgba(245, 158, 11, 0.16));
+  color: var(--tone-warn, #d97706);
+}
+
 .proj-move-p50-inline {
   font-size: 0.7rem;
   font-weight: 650;
