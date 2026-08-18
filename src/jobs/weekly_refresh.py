@@ -135,7 +135,9 @@ def _run_weekly_refresh(
                 movement_summary["variants"][key] = {
                     "available": payload.get("available"),
                     "count": payload.get("count"),
+                    "empty_reason": payload.get("empty_reason"),
                     "material_rows": (payload.get("meta") or {}).get("material_rows"),
+                    "removed_rows": (payload.get("meta") or {}).get("removed_rows"),
                 }
         projection_movement_status = movement_summary
     except Exception as exc:

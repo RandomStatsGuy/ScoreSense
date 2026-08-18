@@ -1212,6 +1212,8 @@ def _predict_response(
     if season is not None and week is not None and projections:
         try:
             from src.projections.projection_movement import (
+                EMPTY_ARTIFACT_MISSING,
+                EMPTY_NO_PRIOR,
                 load_projection_movement,
                 movement_index_by_player_id,
             )
@@ -1222,6 +1224,20 @@ def _predict_response(
                 int(week),
                 apply_injury_adjustments=apply_injury_adjustments,
             )
+            try:
+                _, move_meta = load_projection_movement(
+                    position,
+                    int(season),
+                    int(week),
+                    apply_injury_adjustments=apply_injury_adjustments,
+                )
+            except FileNotFoundError:
+                move_meta = {
+                    "available": False,
+                    "empty_reason": EMPTY_ARTIFACT_MISSING,
+                    "note": "Projection movement artifact not found.",
+                }
+
             if move_index:
                 for rec in projections:
                     pid = str(rec.get("player_id") or "").strip()
@@ -1233,25 +1249,28 @@ def _predict_response(
                     rec["previous_rank"] = move.get("previous_rank")
                     rec["current_rank"] = move.get("current_rank")
                     rec["previous_p50"] = move.get("previous_p50")
+                    rec["slate_status"] = move.get("slate_status")
                     rec["movement_material"] = move.get("material")
-                try:
-                    _, move_meta = load_projection_movement(
-                        position,
-                        int(season),
-                        int(week),
-                        apply_injury_adjustments=apply_injury_adjustments,
-                    )
-                    movement_meta = {
-                        "available": bool(move_meta.get("available")),
-                        "generated_at": move_meta.get("generated_at"),
-                        "fingerprint": move_meta.get("fingerprint"),
-                    }
-                except FileNotFoundError:
-                    movement_meta = {"available": True}
-            else:
-                movement_meta = {"available": False}
+
+            available = bool(move_meta.get("available"))
+            empty_reason = move_meta.get("empty_reason")
+            if not available and not empty_reason:
+                empty_reason = EMPTY_NO_PRIOR
+            movement_meta = {
+                "available": available,
+                "empty_reason": empty_reason,
+                "note": move_meta.get("note"),
+                "generated_at": move_meta.get("generated_at"),
+                "fingerprint": move_meta.get("fingerprint"),
+                "material_rows": move_meta.get("material_rows"),
+                "removed_rows": move_meta.get("removed_rows"),
+                "schema_version": move_meta.get("schema_version"),
+            }
         except Exception:
-            movement_meta = {"available": False}
+            movement_meta = {
+                "available": False,
+                "empty_reason": EMPTY_ARTIFACT_MISSING,
+            }
 
     if movement_meta is not None:
         meta = {**meta, "projection_movement": movement_meta}
