@@ -43,9 +43,22 @@ export function positionAbbrev(position) {
   return p || "";
 }
 
+const ZERO_P50_EPS = 0.005;
+
+function isNonZeroP50Delta(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && Math.abs(n) >= ZERO_P50_EPS;
+}
+
+function isNonZeroRankDelta(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n !== 0;
+}
+
 /**
  * Rank change label: "RB18 → RB11 ▲7".
  * Positive rank_delta = rose (lower rank number).
+ * Hide unchanged ranks (e.g. "QB1 → QB1") so the table is not filled with no-ops.
  */
 export function formatRankMove({
   previousRank,
@@ -58,9 +71,10 @@ export function formatRankMove({
   const delta = Number(rankDelta);
   const pos = positionAbbrev(position);
   if (!Number.isFinite(prev) || !Number.isFinite(curr)) return null;
+  if (prev === curr && !isNonZeroRankDelta(delta)) return null;
   const left = pos ? `${pos}${prev}` : String(prev);
   const right = pos ? `${pos}${curr}` : String(curr);
-  if (!Number.isFinite(delta) || delta === 0) {
+  if (!isNonZeroRankDelta(delta)) {
     return `${left} → ${right}`;
   }
   const arrow = delta > 0 ? "▲" : "▼";
@@ -68,8 +82,8 @@ export function formatRankMove({
 }
 
 export function formatP50Move(p50Delta, digits = 1) {
-  const signed = formatSignedNum(p50Delta, digits);
-  return signed == null ? null : signed;
+  if (!isNonZeroP50Delta(p50Delta)) return null;
+  return formatSignedNum(p50Delta, digits);
 }
 
 export function movementTone(delta) {
@@ -86,10 +100,7 @@ export function rowMovementTone(row) {
 }
 
 export function hasMovement(row) {
-  return (
-    Number.isFinite(Number(row?.p50_delta)) ||
-    Number.isFinite(Number(row?.rank_delta))
-  );
+  return isNonZeroP50Delta(row?.p50_delta) || isNonZeroRankDelta(row?.rank_delta);
 }
 
 export function isMaterialMover(row) {

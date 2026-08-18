@@ -247,7 +247,7 @@ export default function PlayerContextPanel({
 
       {cold ? (
         <p className="state-empty-text player-context-empty" role="status">
-          Context cache is warming for this slate. Projections still load from the weekly sheet.
+          Injury and news context is still loading for this slate. Projections are unchanged.
         </p>
       ) : null}
 

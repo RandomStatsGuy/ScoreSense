@@ -697,7 +697,7 @@ export default function WeeklyTable({
         ) : null}
         {playersContext.unavailable ? (
           <span className="table-meta table-meta-context-cold" role="status">
-            Context cache warming
+            Injury context still loading
           </span>
         ) : null}
         {playersContext.meta?.stale ? (

@@ -27,4 +27,8 @@ ScoreSense shows **heuristic** return windows in the Injuries sidebar. These are
 
 Edit `return_heuristics.yaml` to adjust status defaults, body-part patterns, and note patterns (e.g. `surgery`, `sprain`).
 
+**Playing designations cap the window.** For Questionable / Doubtful / Probable, a body-part or note pattern cannot outrank the designation with a longer absence. That keeps an ACL leftover on a Q player from showing "Season / multi-month" next to a full weekly projection. Out / IR / PUP still use the longer body-part windows.
+
+Practice reports can still override Questionable (full practice → game-time; DNP → 1–2 weeks).
+
 Future: manual overrides in `data/injury/overrides.yaml`, nflverse spell calibration, sentiment snippet parsing.
