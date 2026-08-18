@@ -71,9 +71,41 @@ def test_predict_draft_season_season_quantiles_live(position):
     assert (draft["Season Ceiling"] == draft["Season P90"]).all()
     assert (draft["games_expected"] >= 0).all()
 
+    # SCORE-50: Per-Game RANGE bar uses Floor/Proj/Ceiling — blend must not leave
+    # P50 outside the shaded band (Purdy-style production regression).
+    assert (draft["Per-Game Floor"] <= draft["Per-Game Proj"] + 1e-6).all()
+    assert (draft["Per-Game Proj"] <= draft["Per-Game Ceiling"] + 1e-6).all()
+
     # No longer the naive weekly-quantile x 17 scale.
     naive_floor = (draft["Per-Game Floor"] * 17).round(1)
     assert not (draft["Season Floor"] == naive_floor).all()
+
+
+def test_draft_per_game_band_brackets_blended_proj():
+    """Purdy-style unit: after blend recentering, per-game floor ≤ proj ≤ ceiling."""
+    from src.ml.quantile import repair_quantile_arrays, repair_projection_quantiles
+
+    # Raw weekly law (pre-blend) vs blended Per-Game Proj (post FP/prior blend).
+    raw_p10 = pd.Series([1.4])
+    raw_p50 = pd.Series([8.5])
+    raw_p90 = pd.Series([10.4])
+    blended_pg = pd.Series([15.3])
+    shift = blended_pg - raw_p50
+    q10, q50, q90 = repair_quantile_arrays(raw_p10 + shift, blended_pg, raw_p90 + shift)
+    result = pd.DataFrame(
+        {
+            "Per-Game Proj": blended_pg.round(1),
+            "Per-Game Floor": pd.Series(q10).round(1),
+            "Per-Game Ceiling": pd.Series(q90).round(1),
+        }
+    )
+    result = repair_projection_quantiles(
+        result,
+        column_sets=(("Per-Game Floor", "Per-Game Proj", "Per-Game Ceiling"),),
+    )
+    assert result.loc[0, "Per-Game Floor"] <= result.loc[0, "Per-Game Proj"]
+    assert result.loc[0, "Per-Game Proj"] <= result.loc[0, "Per-Game Ceiling"]
+    assert result.loc[0, "Per-Game Proj"] == 15.3
 
 
 def test_predict_draft_season_legacy_method_matches_naive_scale(monkeypatch):

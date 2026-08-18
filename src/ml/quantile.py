@@ -64,6 +64,49 @@ def train_quantile_models(
     return models
 
 
+# Display / API column triplets that must obey floor ≤ projected ≤ ceiling.
+# P50 is the ranking key; tails are repaired when later transforms move the center.
+PROJECTION_QUANTILE_COLUMN_SETS: tuple[tuple[str, str, str], ...] = (
+    ("q10", "q50", "q90"),
+    ("Low (P10)", "Projected Points", "High (P90)"),
+    ("Per-Game Floor", "Per-Game Proj", "Per-Game Ceiling"),
+    ("Season P10", "Season P50", "Season P90"),
+    ("Season Floor", "Season Proj", "Season Ceiling"),
+)
+
+
+def repair_quantile_arrays(
+    q10: np.ndarray,
+    q50: np.ndarray,
+    q90: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Enforce q10 <= q50 <= q90 while keeping P50 fixed.
+
+    Separate quantile regressors (especially with P90-only calibration weights) can
+    occasionally cross; repair tails relative to the median instead of re-sorting all
+    three values so rank order stays tied to P50.
+    """
+    q50_a = np.asarray(q50, dtype=float)
+    q10_a = np.asarray(q10, dtype=float)
+    q90_a = np.asarray(q90, dtype=float)
+
+    low = np.minimum(q10_a, q50_a)
+    high = np.maximum(q90_a, q50_a)
+
+    crossed_low = q10_a > q50_a
+    up_spread = np.maximum(high - q50_a, 1.0)
+    low[crossed_low] = q50_a[crossed_low] - 0.35 * up_spread[crossed_low]
+
+    crossed_high = q90_a < q50_a
+    down_spread = np.maximum(q50_a - low, 1.0)
+    high[crossed_high] = q50_a[crossed_high] + 0.35 * down_spread[crossed_high]
+
+    out_q10 = np.minimum(np.maximum(low, 0.0), q50_a)
+    out_q90 = np.maximum(high, q50_a)
+    return out_q10, q50_a, out_q90
+
+
 def repair_quantile_order(preds: pd.DataFrame) -> pd.DataFrame:
     """
     Enforce q10 <= q50 <= q90 while keeping P50 fixed.
@@ -76,23 +119,43 @@ def repair_quantile_order(preds: pd.DataFrame) -> pd.DataFrame:
         return preds
 
     out = preds.copy()
-    q50 = out["q50"].to_numpy(dtype=float)
-    q10 = out["q10"].to_numpy(dtype=float)
-    q90 = out["q90"].to_numpy(dtype=float)
+    q10, q50, q90 = repair_quantile_arrays(out["q10"], out["q50"], out["q90"])
+    out["q10"] = q10
+    out["q50"] = q50
+    out["q90"] = q90
+    return out
 
-    low = np.minimum(q10, q50)
-    high = np.maximum(q90, q50)
 
-    crossed_low = q10 > q50
-    up_spread = np.maximum(high - q50, 1.0)
-    low[crossed_low] = q50[crossed_low] - 0.35 * up_spread[crossed_low]
+def repair_projection_quantiles(
+    frame: pd.DataFrame,
+    *,
+    column_sets: tuple[tuple[str, str, str], ...] | None = None,
+) -> pd.DataFrame:
+    """Repair every present display/API quantile triplet (SCORE-50).
 
-    crossed_high = q90 < q50
-    down_spread = np.maximum(q50 - low, 1.0)
-    high[crossed_high] = q50[crossed_high] + 0.35 * down_spread[crossed_high]
+    Call after any transform that can move P50 without the tails (blend,
+    overlays, rolling rate, vet-backup scale, rounding).
+    """
+    if frame is None or frame.empty:
+        return frame
 
-    out["q10"] = np.minimum(np.maximum(low, 0.0), q50)
-    out["q90"] = np.maximum(high, q50)
+    sets = column_sets or PROJECTION_QUANTILE_COLUMN_SETS
+    out = frame
+    copied = False
+    for low_col, mid_col, high_col in sets:
+        if not {low_col, mid_col, high_col}.issubset(out.columns):
+            continue
+        if not copied:
+            out = frame.copy()
+            copied = True
+        q10, q50, q90 = repair_quantile_arrays(
+            out[low_col].to_numpy(dtype=float),
+            out[mid_col].to_numpy(dtype=float),
+            out[high_col].to_numpy(dtype=float),
+        )
+        out[low_col] = q10
+        out[mid_col] = q50
+        out[high_col] = q90
     return out
 
 
