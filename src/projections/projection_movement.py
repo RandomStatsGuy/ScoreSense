@@ -1,8 +1,12 @@
-"""Projection movement / \"What Changed?\" artifacts (SCORE-7).
+"""Projection movement / \"What Changed?\" artifacts (SCORE-7 / SCORE-48).
 
 Compares successive weekly prediction artifacts during refresh and persists a
 lightweight movement parquet. Request paths only read the artifact — never
 recompute ML or rewrite Hub SQLite.
+
+SCORE-48: rewrite movement when projection *content* changes (not only when the
+weekly model/feature fingerprint bumps), include players who left the slate,
+and expose empty_reason codes for movers empty-states.
 """
 
 from __future__ import annotations
@@ -21,12 +25,22 @@ from src.config import WEEKLY_PREDICTIONS_DIR, WEEKLY_PROJECTION_CHANGES_DIR
 from src.projections.player_compare import position_rank_map
 from src.projections.weekly_cache import weekly_fingerprint
 
-SCHEMA_VERSION = "projection_movement_v1"
+SCHEMA_VERSION = "projection_movement_v2"
 POSITIONS = ("qb", "rb", "wr")
 
 # Material movement gates (either threshold qualifies).
 MATERIAL_P50_ABS = 1.5
 MATERIAL_RANK_ABS = 3
+
+# Empty-state reason codes for API / UI (SCORE-48).
+EMPTY_NO_PRIOR = "no_prior_snapshot"
+EMPTY_NO_MATERIAL = "no_material_moves"
+EMPTY_ARTIFACT_MISSING = "artifact_missing"
+EMPTY_NO_MATCHES = "no_matching_players"
+
+SLATE_STAYED = "stayed"
+SLATE_ENTERED = "entered"
+SLATE_LEFT = "left"
 
 _P50_KEYS = ("Projected Points", "P50", "p50")
 _P10_KEYS = ("Low (P10)", "P10", "p10")
@@ -149,10 +163,39 @@ def movement_fingerprint(
     return hashlib.sha256("|".join(parts).encode()).hexdigest()[:16]
 
 
+def projection_content_fingerprint(df: pd.DataFrame | None) -> str:
+    """Stable hash of player_id + P50 so refresh can detect content changes.
+
+    Weekly artifact fingerprints track model/feature mtimes only. Force refreshes
+    (roster/injury/depth overlays) can change projections without bumping that
+    fingerprint — content hashing prevents skipping movement in those cases.
+    """
+    if df is None or df.empty or "player_id" not in df.columns:
+        return "empty"
+    metric_col = next((c for c in _P50_KEYS if c in df.columns), None)
+    work = df[["player_id"]].copy()
+    work["_pid"] = work["player_id"].astype(str).str.strip()
+    work = work[work["_pid"] != ""]
+    if metric_col is not None:
+        work["_p50"] = pd.to_numeric(df[metric_col], errors="coerce").round(4)
+    else:
+        work["_p50"] = float("nan")
+    work = work.sort_values("_pid")
+    payload = "|".join(
+        f"{pid}:{'' if pd.isna(p50) else f'{float(p50):.4f}'}"
+        for pid, p50 in zip(work["_pid"], work["_p50"], strict=False)
+    )
+    return hashlib.sha256(payload.encode()).hexdigest()[:16]
+
+
 def _is_material(
     p50_delta: float | None,
     rank_delta: float | None,
+    *,
+    left_slate: bool = False,
 ) -> bool:
+    if left_slate:
+        return True
     if p50_delta is not None and abs(float(p50_delta)) >= MATERIAL_P50_ABS:
         return True
     if rank_delta is not None and abs(int(rank_delta)) >= MATERIAL_RANK_ABS:
@@ -169,13 +212,20 @@ def build_projection_movement_rows(
     position: str,
     generated_at: str | None = None,
 ) -> pd.DataFrame:
-    """Compare successive weekly frames; heavy work for the refresh path only."""
+    """Compare successive weekly frames; heavy work for the refresh path only.
+
+    Includes players who left the slate (SCORE-48) as material fallers with
+    ``slate_status=left`` and null current rank/P50.
+    """
     generated_at = generated_at or datetime.now(timezone.utc).isoformat()
     pos = str(position or "").upper()
     if current_df is None or current_df.empty or "player_id" not in current_df.columns:
-        return pd.DataFrame()
+        # Still emit leavers when the slate goes empty.
+        if previous_df is None or previous_df.empty or "player_id" not in previous_df.columns:
+            return pd.DataFrame()
+        current_df = pd.DataFrame(columns=list(previous_df.columns))
 
-    current_ranks = position_rank_map(current_df)
+    current_ranks = position_rank_map(current_df) if not current_df.empty else {}
     previous_ranks = position_rank_map(previous_df) if previous_df is not None else {}
 
     prev_by_id: dict[str, pd.Series] = {}
@@ -186,10 +236,12 @@ def build_projection_movement_rows(
                 prev_by_id[pid] = row
 
     rows: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
     for _, row in current_df.iterrows():
         pid = str(row.get("player_id") or "").strip()
         if not pid:
             continue
+        seen_ids.add(pid)
         current_p50 = _pick_num(row, _P50_KEYS)
         current_p10 = _pick_num(row, _P10_KEYS)
         current_p90 = _pick_num(row, _P90_KEYS)
@@ -210,6 +262,11 @@ def build_projection_movement_rows(
         if previous_rank is not None and current_rank is not None:
             rank_delta = int(previous_rank) - int(current_rank)
 
+        if prev is None:
+            slate_status = SLATE_ENTERED
+        else:
+            slate_status = SLATE_STAYED
+
         material = _is_material(p50_delta, rank_delta)
         rows.append(
             {
@@ -229,6 +286,47 @@ def build_projection_movement_rows(
                 "previous_p90": _round_opt(previous_p90),
                 "current_p10": _round_opt(current_p10),
                 "current_p90": _round_opt(current_p90),
+                "slate_status": slate_status,
+                "material": bool(material),
+                "material_at": generated_at if material else None,
+                "generated_at": generated_at,
+            }
+        )
+
+    # Players who left the slate — material fallers (SCORE-48).
+    for pid, prev in prev_by_id.items():
+        if pid in seen_ids:
+            continue
+        previous_p50 = _pick_num(prev, _P50_KEYS)
+        previous_p10 = _pick_num(prev, _P10_KEYS)
+        previous_p90 = _pick_num(prev, _P90_KEYS)
+        previous_rank = previous_ranks.get(pid)
+        # Treat removal as a full P50 drop so faller / material filters catch it.
+        p50_delta = (-float(previous_p50)) if previous_p50 is not None else None
+        rank_delta = None
+        if previous_rank is not None:
+            # Large negative delta signals a drop off the board.
+            rank_delta = -max(int(previous_rank), MATERIAL_RANK_ABS)
+        material = _is_material(p50_delta, rank_delta, left_slate=True)
+        rows.append(
+            {
+                "player_id": pid,
+                "player_name": str(prev.get("Player") or prev.get("player_name") or ""),
+                "position": str(prev.get("Position") or pos).upper(),
+                "team": str(prev.get("Team") or prev.get("team") or "") or None,
+                "season": int(season),
+                "week": int(week),
+                "previous_p50": _round_opt(previous_p50),
+                "current_p50": None,
+                "p50_delta": _round_opt(p50_delta),
+                "previous_rank": int(previous_rank) if previous_rank is not None else None,
+                "current_rank": None,
+                "rank_delta": int(rank_delta) if rank_delta is not None else None,
+                "previous_p10": _round_opt(previous_p10),
+                "previous_p90": _round_opt(previous_p90),
+                "current_p10": None,
+                "current_p90": None,
+                "slate_status": SLATE_LEFT,
                 "material": bool(material),
                 "material_at": generated_at if material else None,
                 "generated_at": generated_at,
@@ -238,13 +336,18 @@ def build_projection_movement_rows(
     if not rows:
         return pd.DataFrame()
     out = pd.DataFrame(rows)
+    # Preserve missing ranks as <NA> (pandas would otherwise upcast None → NaN).
+    for col in ("previous_rank", "current_rank", "rank_delta"):
+        if col in out.columns:
+            out[col] = pd.to_numeric(out[col], errors="coerce").astype("Int64")
     # Biggest movers first for cheap serve-side sorting.
     out["_abs_rank"] = out["rank_delta"].abs().fillna(0)
     out["_abs_p50"] = out["p50_delta"].abs().fillna(0.0)
+    out["_left"] = (out["slate_status"] == SLATE_LEFT).astype(int)
     out = out.sort_values(
-        ["material", "_abs_rank", "_abs_p50"],
-        ascending=[False, False, False],
-    ).drop(columns=["_abs_rank", "_abs_p50"])
+        ["material", "_left", "_abs_rank", "_abs_p50"],
+        ascending=[False, False, False, False],
+    ).drop(columns=["_abs_rank", "_abs_p50", "_left"])
     return out.reset_index(drop=True)
 
 
@@ -289,6 +392,34 @@ def save_projection_movement_artifact(
         current_fingerprint=str(curr_fp) if curr_fp else None,
         apply_injury_adjustments=apply_injury_adjustments,
     )
+    material_rows = (
+        int(frame["material"].sum())
+        if not frame.empty and "material" in frame.columns
+        else 0
+    )
+    removed_rows = (
+        int((frame["slate_status"] == SLATE_LEFT).sum())
+        if not frame.empty and "slate_status" in frame.columns
+        else 0
+    )
+    entered_rows = (
+        int((frame["slate_status"] == SLATE_ENTERED).sum())
+        if not frame.empty and "slate_status" in frame.columns
+        else 0
+    )
+    if not available:
+        empty_reason = EMPTY_NO_PRIOR
+        note = "No previous valid weekly projection artifact; movement unavailable."
+    elif material_rows == 0:
+        empty_reason = EMPTY_NO_MATERIAL
+        note = (
+            "Prior snapshot compared; no material movers "
+            f"(P50 ≥ {MATERIAL_P50_ABS} or rank ≥ {MATERIAL_RANK_ABS})."
+        )
+    else:
+        empty_reason = None
+        note = None
+
     meta: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "position": position.lower(),
@@ -296,20 +427,21 @@ def save_projection_movement_artifact(
         "week": int(week),
         "apply_injury_adjustments": bool(apply_injury_adjustments),
         "available": bool(available),
+        "empty_reason": empty_reason,
         "fingerprint": fp,
         "weekly_fingerprint": weekly_fingerprint(),
         "previous_fingerprint": prev_fp,
         "current_fingerprint": curr_fp,
+        "previous_content_fingerprint": projection_content_fingerprint(previous_df),
+        "current_content_fingerprint": projection_content_fingerprint(current_df),
         "previous_built_at": None if not previous_meta else previous_meta.get("built_at"),
         "current_built_at": current_built_at or generated_at,
         "generated_at": generated_at,
         "rows": int(len(frame)),
-        "material_rows": int(frame["material"].sum()) if not frame.empty and "material" in frame.columns else 0,
-        "note": (
-            None
-            if available
-            else "No previous valid weekly projection artifact; movement unavailable."
-        ),
+        "material_rows": material_rows,
+        "removed_rows": removed_rows,
+        "entered_rows": entered_rows,
+        "note": note,
     }
     meta_path.write_text(json.dumps(meta, indent=2, default=str), encoding="utf-8")
 
@@ -383,6 +515,9 @@ def movement_index_by_player_id(
         pid = str(rec.get("player_id") or "").strip()
         if not pid:
             continue
+        # Soft-join is for current slate rows; leavers are /changes-only.
+        if str(rec.get("slate_status") or SLATE_STAYED) == SLATE_LEFT:
+            continue
         out[pid] = {
             "previous_p50": _json_safe(rec.get("previous_p50")),
             "current_p50": _json_safe(rec.get("current_p50")),
@@ -392,10 +527,30 @@ def movement_index_by_player_id(
             "rank_delta": _json_safe(rec.get("rank_delta")),
             "previous_p10": _json_safe(rec.get("previous_p10")),
             "previous_p90": _json_safe(rec.get("previous_p90")),
+            "slate_status": rec.get("slate_status") or SLATE_STAYED,
             "material": bool(rec.get("material")),
             "material_at": rec.get("material_at"),
         }
     return out
+
+
+def _payload_empty_reason(
+    *,
+    available: bool,
+    meta: dict[str, Any],
+    changes: list[dict[str, Any]],
+    material_only: bool,
+    filtered: bool,
+) -> str | None:
+    if not available:
+        return meta.get("empty_reason") or EMPTY_NO_PRIOR
+    if changes:
+        return None
+    if material_only:
+        return meta.get("empty_reason") or EMPTY_NO_MATERIAL
+    if filtered:
+        return EMPTY_NO_MATCHES
+    return meta.get("empty_reason")
 
 
 def build_projection_movement_payload(
@@ -423,24 +578,29 @@ def build_projection_movement_payload(
             "season": int(season),
             "week": int(week),
             "available": False,
+            "empty_reason": EMPTY_ARTIFACT_MISSING,
             "count": 0,
             "changes": [],
             "meta": {
                 "apply_injury_adjustments": bool(apply_injury_adjustments),
                 "schema_version": SCHEMA_VERSION,
+                "empty_reason": EMPTY_ARTIFACT_MISSING,
                 "note": "Projection movement artifact not found.",
             },
         }
 
     available = bool(meta.get("available"))
     changes: list[dict[str, Any]] = []
+    filtered = False
     if available and not df.empty:
         records = df.to_dict(orient="records")
         if player_ids:
             wanted = {str(p).strip() for p in player_ids if str(p).strip()}
             records = [r for r in records if str(r.get("player_id")) in wanted]
+            filtered = True
         if material_only:
             records = [r for r in records if r.get("material")]
+            filtered = True
         if limit is not None and limit > 0:
             records = records[: int(limit)]
         for rec in records:
@@ -462,17 +622,27 @@ def build_projection_movement_payload(
                     "previous_p90": _json_safe(rec.get("previous_p90")),
                     "current_p10": _json_safe(rec.get("current_p10")),
                     "current_p90": _json_safe(rec.get("current_p90")),
+                    "slate_status": rec.get("slate_status") or SLATE_STAYED,
                     "material": bool(rec.get("material")),
                     "material_at": rec.get("material_at"),
                     "generated_at": rec.get("generated_at") or meta.get("generated_at"),
                 }
             )
 
+    empty_reason = _payload_empty_reason(
+        available=available,
+        meta=meta,
+        changes=changes,
+        material_only=material_only,
+        filtered=filtered,
+    )
+
     return {
         "position": pos,
         "season": int(season),
         "week": int(week),
         "available": available,
+        "empty_reason": empty_reason,
         "count": len(changes),
         "changes": changes,
         "meta": {
@@ -486,6 +656,9 @@ def build_projection_movement_payload(
             "generated_at": meta.get("generated_at"),
             "rows": meta.get("rows"),
             "material_rows": meta.get("material_rows"),
+            "removed_rows": meta.get("removed_rows"),
+            "entered_rows": meta.get("entered_rows"),
+            "empty_reason": empty_reason,
             "note": meta.get("note"),
             "material_p50_abs": MATERIAL_P50_ABS,
             "material_rank_abs": MATERIAL_RANK_ABS,
