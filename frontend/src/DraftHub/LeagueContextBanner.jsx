@@ -445,9 +445,14 @@ export default function LeagueContextBanner({
               </button>
             )}
             {isCommish && onNavigateManage && (
-              <button type="button" className="btn-link" onClick={() => { setSyncOpen(false); onNavigateManage(); }}>
-                Commissioner desk
-              </button>
+              <>
+                {onNavigateSetup ? (
+                  <span className="hub-league-context-sync-link-sep" aria-hidden="true">·</span>
+                ) : null}
+                <button type="button" className="btn-link" onClick={() => { setSyncOpen(false); onNavigateManage(); }}>
+                  Commissioner desk
+                </button>
+              </>
             )}
           </div>
         </div>
