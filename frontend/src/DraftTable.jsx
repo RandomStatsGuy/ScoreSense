@@ -104,13 +104,6 @@ export default function DraftTable({
     return list;
   }, [rows, search]);
 
-  const scaleMax = useMemo(() => {
-    const slate = rows || [];
-    if (!slate.length) return 1;
-    const maxP90 = Math.max(...slate.map((r) => Number(r["Per-Game Ceiling"]) || 0));
-    return maxP90 > 0 ? maxP90 : 1;
-  }, [rows]);
-
   const seasonScaleMax = useMemo(() => {
     let max = 0;
     for (const row of rows || []) {
@@ -167,10 +160,8 @@ export default function DraftTable({
           onEmptyAction={hasFilters && sorted.length === 0 ? onClearFilters : undefined}
         >
           {sorted.map((row, rowIndex) => {
-            const p50 = Number(row["Per-Game Proj"]) || 0;
-            const p10 = Number(row["Per-Game Floor"]) || 0;
-            const p90 = Number(row["Per-Game Ceiling"]) || 0;
             const band = resolveSeasonBand(row, { method });
+            const seasonP50 = band.p50 ?? (Number(row["Season Proj"]) || 0);
             const rookieBadge = row["Rookie Est."] ? (
               <span
                 className="rookie-est-badge"
@@ -209,11 +200,12 @@ export default function DraftTable({
                     <div className="range-cell">
                       <QuantileBar
                         p10={band.p10 ?? 0}
-                          p50={band.p50 ?? (Number(row["Season Proj"]) || 0)}
+                        p50={seasonP50}
                         p90={band.p90 ?? 0}
                         scaleMax={seasonScaleMax}
                         rowIndex={rowIndex}
                         title={seasonTip}
+                        subtitle={`${formatSeasonPts(band.p10, 0)} – ${formatSeasonPts(band.p90, 0)} season pts`}
                       />
                     </div>
                     <div className="mobile-stat-grid">
@@ -228,18 +220,6 @@ export default function DraftTable({
                         value={formatSeasonPts(band.p90 ?? row["Season Ceiling"], 0)}
                         title={seasonTip}
                       />
-                      <MobileStat label="PG floor" value={fmtNum(row["Per-Game Floor"], 1)} />
-                      <MobileStat label="PG ceiling" value={fmtNum(row["Per-Game Ceiling"], 1)} />
-                      <div className="range-cell">
-                        <QuantileBar
-                          p10={p10}
-                          p50={p50}
-                          p90={p90}
-                          scaleMax={scaleMax}
-                          rowIndex={rowIndex}
-                          title="Per-game scoring range"
-                        />
-                      </div>
                     </div>
                   </>
                 )}
@@ -263,7 +243,7 @@ export default function DraftTable({
                 className="col-proj"
                 tip={seasonTip}
               />
-              <th className="col-range" title="Weekly floor to ceiling range (per game)">Per-game range</th>
+              <th className="col-range" title={seasonTip}>Season range</th>
               <SortHeader
                 label="Floor"
                 sortKey="Floor"
@@ -304,10 +284,8 @@ export default function DraftTable({
               />
             )}
             {sorted.map((row, rowIndex) => {
-              const p50 = Number(row["Per-Game Proj"]) || 0;
-              const p10 = Number(row["Per-Game Floor"]) || 0;
-              const p90 = Number(row["Per-Game Ceiling"]) || 0;
               const band = resolveSeasonBand(row, { method });
+              const seasonP50 = band.p50 ?? (Number(row["Season Proj"]) || 0);
               const rank = rankMap.get(rowRankKey(row)) ?? null;
               return (
                 <tr key={rowRankKey(row)}>
@@ -349,12 +327,13 @@ export default function DraftTable({
                   </td>
                   <td className="range-cell">
                     <QuantileBar
-                      p10={p10}
-                      p50={p50}
-                      p90={p90}
-                      scaleMax={scaleMax}
+                      p10={band.p10 ?? 0}
+                      p50={seasonP50}
+                      p90={band.p90 ?? 0}
+                      scaleMax={seasonScaleMax}
                       rowIndex={rowIndex}
-                      title="Per-game scoring range"
+                      title={seasonTip}
+                      subtitle={`${formatSeasonPts(band.p10, 0)} – ${formatSeasonPts(band.p90, 0)} season pts`}
                     />
                   </td>
                   <td className="num num-secondary col-floor-ceiling">
