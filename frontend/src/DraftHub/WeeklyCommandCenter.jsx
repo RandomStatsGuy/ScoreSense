@@ -38,14 +38,17 @@ function ProjectionChangeItem({ item }) {
     currentRank: item?.current_rank,
     rankDelta: item?.rank_delta,
     position: item?.position,
+    slateStatus: item?.slate_status,
   });
   const p50Label = formatP50Move(item?.p50_delta ?? item?.delta_p50);
   const tone = rowMovementTone(item);
   const name = item?.player_name || item?.player_id || "Player";
+  const leftSlate = String(item?.slate_status || "").toLowerCase() === "left";
   const metaBits = [
     item?.position,
     item?.team,
     item?.slot || item?.lineup_role,
+    leftSlate ? "Left slate" : null,
   ].filter(Boolean);
 
   return (
