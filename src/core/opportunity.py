@@ -13,7 +13,7 @@ from typing import Any, Iterable
 
 import pandas as pd
 
-from src.integrations.sleeper import injured_players, match_player_to_sleeper
+from src.integrations.sleeper import injured_players
 
 STATUS_WEIGHT = {
     "Out": 1.0,
@@ -22,6 +22,10 @@ STATUS_WEIGHT = {
     "Doubtful": 0.75,
     "Questionable": 0.35,
 }
+
+# Do not invent usage for injured players missing from the projection roster
+# (e.g. Questionable backup QBs omitted from the one-QB-per-team slate).
+DEFAULT_OFF_ROSTER_SHARE = 0.0
 
 # ROS near-term horizons (weeks) aligned with data/injury/return_heuristics.yaml
 # defaults (weeks_max / mid-window). Current-week opportunity must not be
@@ -128,11 +132,42 @@ def effective_ros_opportunity_weeks(horizon_weeks: int, weeks_remaining: int) ->
     return float(sum(ros_opportunity_decay_factors(horizon_weeks, weeks_remaining)))
 
 
+def _roster_usage_share(
+    team_df: pd.DataFrame,
+    *,
+    name_col: str,
+    share_col: str,
+    player_name: str,
+) -> float:
+    """Return projected usage share for an injured teammate, or 0 if not on roster.
+
+    SCORE-47: players absent from the projection roster (backups filtered by
+    depth chart, zero/unknown snap share) contribute no vacated usage. Never
+    invent a default share for off-roster injuries.
+    """
+    match = team_df[team_df[name_col].str.lower() == str(player_name).lower()]
+    if match.empty:
+        return DEFAULT_OFF_ROSTER_SHARE
+    raw = match.iloc[0].get(share_col, 0.0)
+    try:
+        share = float(raw)
+    except (TypeError, ValueError):
+        return 0.0
+    if pd.isna(share) or share <= 0.0:
+        return 0.0
+    return share
+
+
 def compute_vacated_usage(
     roster_df: pd.DataFrame,
     injured_df: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
-    """Estimate per-player opportunity boost when teammates are injured."""
+    """Estimate per-player opportunity boost when teammates are injured.
+
+    Only injuries that map to a positive projected usage share on the current
+    roster vacate opportunity. Off-roster backups (common for Questionable
+    depth QBs on a one-starter slate) do not inflate the incumbent.
+    """
     injured_df = injured_df if injured_df is not None else injured_players()
     out = roster_df.copy()
     out["injury_opportunity_boost"] = 0.0
@@ -158,16 +193,17 @@ def compute_vacated_usage(
 
         for _, inj in team_injured.iterrows():
             weight = STATUS_WEIGHT.get(inj.injury_status, 0.5)
-            injured_names.add(inj.full_name.lower())
-            match = team_df[team_df[name_col].str.lower() == inj.full_name.lower()]
-            if match.empty:
-                matched = match_player_to_sleeper(
-                    inj.full_name, team, inj.position, injured_df
-                )
-                share = 0.08 if matched is None else 0.08
-            else:
-                share = float(match.iloc[0].get(share_col, 0.0))
-            vacated += share * weight
+            injured_names.add(str(inj.full_name).lower())
+            share = _roster_usage_share(
+                team_df,
+                name_col=name_col,
+                share_col=share_col,
+                player_name=inj.full_name,
+            )
+            contribution = share * weight
+            if contribution <= 0.0:
+                continue
+            vacated += contribution
             notes.append(f"{inj.full_name} ({inj.injury_status})")
 
         if vacated <= 0:
