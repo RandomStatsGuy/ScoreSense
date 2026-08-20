@@ -97,12 +97,13 @@ def save_pool_artifact(season: int, pool: pd.DataFrame | None = None, sidecar: d
         sidecar = sidecar or {}
     parquet_path, meta_path = _artifact_paths(season)
     pool.to_parquet(parquet_path, index=False)
+    # Sidecar first so a stale attrs built_at cannot clobber the refresh time.
     meta: dict[str, Any] = {
+        **(sidecar or {}),
         "season": season,
         "fingerprint": pool_fingerprint(),
         "rows": int(len(pool)),
         "built_at": datetime.now(timezone.utc).isoformat(),
-        **(sidecar or {}),
     }
     meta_path.write_text(json.dumps(meta, indent=2, default=str), encoding="utf-8")
     fp = pool_fingerprint()

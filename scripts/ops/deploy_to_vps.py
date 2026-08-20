@@ -47,12 +47,20 @@ EXCLUDE_PREFIXES = (
     "data/raw/",
     "data/cache/",
     "data/draft_hub/",  # SQLite league state — volume-mounted on VPS; never overwrite
+    "data/processed/",  # ETL output from VPS refresh — do not clobber with laptop copies
     "artifacts/analytics/",
     "artifacts/backtest/",
+    "artifacts/draft_pool/",
+    "artifacts/weekly_predictions/",
+    "artifacts/ros_predictions/",
+    "artifacts/player_context/",
+    "artifacts/injury_overlays/",
+    "artifacts/weekly_projection_changes/",
+    "artifacts/predictions/",
     "league_contract_history/",
 )
 EXCLUDE_FILES = {".env"}
-# Keep models + draft pool; skip heavy research/backtest blobs on first deploy.
+# Models stay in the tarball (bootstrap). Live refresh outputs stay on the VPS.
 
 
 def _env(name: str, default: str = "") -> str:
