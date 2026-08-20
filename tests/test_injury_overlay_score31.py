@@ -213,6 +213,81 @@ def test_build_overlays_separates_baseline_availability_opportunity():
     assert row["multiplier"] > 1.0
 
 
+def test_build_overlays_ignore_defensive_teammate_injuries():
+    """Questionable CB/DT on the same team must not overlay-boost an RB."""
+    baseline = pd.DataFrame(
+        [
+            {
+                "Player": "Dylan Sampson",
+                "Projected Points": 7.6,
+                "Team": "CLE",
+                "team": "CLE",
+                "player_id": "rb-sampson",
+                "Position": "RB",
+            }
+        ]
+    )
+    roster = pd.DataFrame(
+        [
+            {
+                "player_display_name": "Dylan Sampson",
+                "player_id": "rb-sampson",
+                "team": "CLE",
+                "position": "RB",
+                "target_share_avg": 0.08,
+                "carry_share_avg": 0.42,
+            },
+            {
+                "player_display_name": "Denzel Ward",
+                "player_id": "cb-ward",
+                "team": "CLE",
+                "position": "CB",
+                "target_share_avg": 0.40,
+                "carry_share_avg": 0.40,
+            },
+        ]
+    )
+    snapshot = {
+        "injury_snapshot_id": "inj_2026w1_cle_def",
+        "built_at": "2026-08-20T00:00:00+00:00",
+        "season": 2026,
+        "week": 1,
+        "players": [
+            _snap_player(
+                sleeper_id="ward",
+                gsis_id="cb-ward",
+                full_name="Denzel Ward",
+                team="CLE",
+                position="CB",
+                status="Questionable",
+            ),
+            _snap_player(
+                sleeper_id="graham",
+                gsis_id="dt-graham",
+                full_name="Mason Graham",
+                team="CLE",
+                position="DT",
+                status="Questionable",
+            ),
+        ],
+    }
+    rows = build_overlays_for_teams(
+        2026,
+        1,
+        {"CLE"},
+        injury_snapshot=snapshot,
+        baseline_df=baseline,
+        roster_df=roster,
+    )
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["player_id"] == "rb-sampson"
+    assert row["opportunity_adjustment"] == 0
+    assert row["multiplier"] == 1.0
+    assert row["injury_note"] in (None, "")
+    assert row["driver_player_ids"] == []
+
+
 def test_recompute_only_changed_teams(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "src.projections.injury_overlay.INJURY_OVERLAYS_DIR",
