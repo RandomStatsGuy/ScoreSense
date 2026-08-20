@@ -107,6 +107,24 @@ def test_artifact_invalidates_on_fingerprint_change(monkeypatch, tmp_path):
     assert loaded.iloc[0]["Player"] == "B"
 
 
+def test_save_pool_artifact_built_at_wins_over_sidecar(monkeypatch, tmp_path):
+    season = 2026
+    pool_dir = tmp_path / "pool"
+    monkeypatch.setattr(draft_pool_cache, "DRAFT_POOL_DIR", pool_dir)
+    monkeypatch.setattr(draft_pool_cache, "PROCESSED_DATA_DIR", tmp_path)
+    monkeypatch.setattr(draft_pool_cache, "MODEL_DIR", tmp_path)
+
+    sample = pd.DataFrame({"player_id": ["p1"], "Player": ["A"], "Position": ["QB"]})
+    draft_pool_cache.save_pool_artifact(
+        season,
+        sample,
+        sidecar={"built_at": "2026-06-25T16:08:33.139849+00:00", "feature_season": 2025},
+    )
+    meta = json.loads(draft_pool_cache._artifact_paths(season)[1].read_text(encoding="utf-8"))
+    assert meta["feature_season"] == 2025
+    assert not str(meta["built_at"]).startswith("2026-06-25")
+
+
 def test_compute_pool_preserves_te_position(monkeypatch):
     season = 2026
 
