@@ -108,6 +108,33 @@ export function analyticsEnabled(hostname) {
   return TRACKED_HOSTNAMES.has(String(hostname || "").toLowerCase());
 }
 
+/**
+ * Official gtag snippet for production `index.html`.
+ * GA's stream-setup crawler only inspects HTML (it does not run the SPA bundle),
+ * so the script src and config call must be present in the document source.
+ * Config is hostname-gated so a local `vite preview` of a production build
+ * does not send hits.
+ */
+export function productionGtagHtmlSnippet({
+  measurementId = GA_MEASUREMENT_ID,
+  hostnames = TRACKED_HOSTNAMES,
+} = {}) {
+  const hosts = JSON.stringify([...hostnames]);
+  return [
+    "<!-- Google tag (gtag.js) -->",
+    `<script async src="https://www.googletagmanager.com/gtag/js?id=${measurementId}"></script>`,
+    "<script>",
+    "window.dataLayer = window.dataLayer || [];",
+    "function gtag(){dataLayer.push(arguments);}",
+    "window.__SS_GA = 1;",
+    `if (${hosts}.indexOf(location.hostname) !== -1) {`,
+    "  gtag('js', new Date());",
+    `  gtag('config', '${measurementId}', { send_page_view: false, anonymize_ip: true });`,
+    "}",
+    "</script>",
+  ].join("\n    ");
+}
+
 export function sanitizeSearch(search) {
   const raw = String(search || "");
   const withoutQ = raw.startsWith("?") ? raw.slice(1) : raw;
@@ -223,14 +250,14 @@ export function initAnalytics({
   initialized = true;
 
   ensureGtag(win);
-  win.gtag("js", new Date());
-  win.gtag("config", measurementId, {
-    send_page_view: false,
-    anonymize_ip: true,
-  });
-
   const existing = doc.querySelector(`script[src*="googletagmanager.com/gtag/js"]`);
-  if (!existing) {
+  // Production index.html already ships the official snippet. Don't double-config.
+  if (!existing && !win.__SS_GA) {
+    win.gtag("js", new Date());
+    win.gtag("config", measurementId, {
+      send_page_view: false,
+      anonymize_ip: true,
+    });
     const script = doc.createElement("script");
     script.async = true;
     script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
@@ -244,6 +271,8 @@ export function trackPageView(locationLike, {
   doc = typeof document !== "undefined" ? document : undefined,
 } = {}) {
   if (!win || typeof win.gtag !== "function") return false;
+  const host = win.location?.hostname ?? "";
+  if (!analyticsEnabled(host)) return false;
   const pathname = locationLike?.pathname || "";
   if (shouldSkipPageView(pathname)) return false;
 

@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import { productionGtagHtmlSnippet } from "./src/analytics.js";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -9,6 +10,14 @@ export default defineConfig(({ mode }) => {
   return {
   plugins: [
     react(),
+    {
+      name: "ga4-html-snippet",
+      apply: "build",
+      transformIndexHtml(html) {
+        if (html.includes("googletagmanager.com/gtag/js")) return html;
+        return html.replace("</head>", `    ${productionGtagHtmlSnippet()}\n  </head>`);
+      },
+    },
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "pwa-192.png", "pwa-512.png"],
