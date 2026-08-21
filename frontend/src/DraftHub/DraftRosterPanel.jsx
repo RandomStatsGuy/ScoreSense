@@ -125,13 +125,20 @@ export default function DraftRosterPanel({
       <div className="hub-cap-grid">
         {limitRows.map((pos) => {
           const cap = capacity[pos];
+          const min = Number(cap?.min ?? rosterLimits?.[pos.toLowerCase()]?.min ?? 0);
           const count = cap?.count ?? grouped[pos]?.length ?? 0;
           const max = cap?.max ?? rosterLimits?.[pos.toLowerCase()]?.max ?? "—";
           const atMax = cap?.at_max;
+          const belowMin = cap?.below_min ?? (min > 0 && count < min);
+          const label = min > 0 ? `${count}/${min} min · ${max} max` : `${count}/${max}`;
           return (
-            <div key={pos} className={`hub-cap-chip${atMax ? " hub-cap-chip-full" : ""}`}>
+            <div
+              key={pos}
+              className={`hub-cap-chip${atMax ? " hub-cap-chip-full" : ""}${belowMin ? " hub-cap-chip-need" : ""}`}
+              title={belowMin ? `Need ${min - count} ${pos}` : undefined}
+            >
               <span>{pos}</span>
-              <strong>{count}/{max}</strong>
+              <strong>{label}</strong>
             </div>
           );
         })}

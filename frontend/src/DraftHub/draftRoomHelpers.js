@@ -92,11 +92,12 @@ export function isRetainedThroughDraft(row, draftCompleted = false) {
   return ["draft", "auction", "mock", "test_draft"].includes(source);
 }
 
-/** Client-side roster capacity from league rules + draft roster rows. */
-export function buildRosterCapacity(rules, roster) {
+/** Client-side roster capacity from league rules + occupying roster rows. */
+export function buildRosterCapacity(rules, roster, { draftCompleted = false } = {}) {
   const rosterRules = rules?.roster || {};
   const counts = {};
   for (const row of roster || []) {
+    if (!isRetainedThroughDraft(row, draftCompleted)) continue;
     const raw = String(row.position || "").toUpperCase();
     const pos = raw === "DST" || raw === "D/ST" ? "DEF" : raw === "REC" ? "WR" : raw;
     if (pos) {
@@ -109,15 +110,45 @@ export function buildRosterCapacity(rules, roster) {
     const pos = key.toUpperCase();
     const count = counts[pos] || 0;
     const max = Number(val.max ?? 99);
+    const min = Number(val.min ?? 0);
     byPosition[pos] = {
       count,
-      min: Number(val.min ?? 0),
+      min,
       max,
       at_max: count >= max,
+      below_min: count < min,
       remaining: Math.max(0, max - count),
     };
   }
   return byPosition;
+}
+
+export function unmetMinPositions(capacityByPosition) {
+  return Object.entries(capacityByPosition || {})
+    .filter(([, cap]) => Number(cap?.min) > 0 && Number(cap?.count) < Number(cap.min))
+    .map(([pos]) => pos);
+}
+
+/** Keep unmet-min positions in the visible window without hiding stars. */
+export function pinNeedPositions(rows, needPositions, maxRows) {
+  const list = rows || [];
+  const pins = [...new Set(
+    (needPositions || []).map((p) => String(p || "").toUpperCase()).filter(Boolean),
+  )];
+  if (!pins.length) {
+    return maxRows ? list.slice(0, maxRows) : list;
+  }
+  const pinSet = new Set(pins);
+  const need = [];
+  const rest = [];
+  for (const row of list) {
+    const raw = String(row.position || "").toUpperCase();
+    const pos = raw === "DST" || raw === "D/ST" ? "DEF" : raw === "REC" ? "WR" : raw;
+    if (pinSet.has(pos)) need.push(row);
+    else rest.push(row);
+  }
+  const merged = [...need, ...rest];
+  return maxRows ? merged.slice(0, maxRows) : merged;
 }
 
 export function formatCountdown(seconds) {
