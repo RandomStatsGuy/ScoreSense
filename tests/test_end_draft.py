@@ -19,7 +19,7 @@ def test_commissioner_can_end_live_draft(hub_db):
     ws = storage.get_or_create_workspace("end-draft-user")
     league = storage.create_league("end-draft-user", "End Draft", 2025, rules, workspace_id=ws["id"])
 
-    start_draft(league["id"], "end-draft-user")
+    start_draft(league["id"], "end-draft-user", allow_empty=True)
     state = end_draft(league["id"], "end-draft-user", force=True)
 
     assert state["session"]["status"] == "completed"

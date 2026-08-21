@@ -28,8 +28,8 @@ test("draftEntryPhase maps season and practice states", () => {
 test("draftParticipantSummary excludes bots when humans exist", () => {
   const withHumans = draftParticipantSummary({
     teams: [
-      { id: "1", is_bot: false },
-      { id: "2", is_bot: false },
+      { id: "1", is_bot: false, user_sub: "a" },
+      { id: "2", is_bot: false, user_sub: "b" },
       { id: "b", is_bot: true },
     ],
     teamCount: 12,
@@ -37,6 +37,17 @@ test("draftParticipantSummary excludes bots when humans exist", () => {
   });
   assert.equal(withHumans.label, "2 / 12");
   assert.match(withHumans.detail, /open/);
+
+  const stubsUnclaimed = draftParticipantSummary({
+    teams: [
+      { id: "1", is_bot: false, user_sub: "a" },
+      { id: "stub", is_bot: false },
+    ],
+    teamCount: 12,
+    hasLeague: true,
+  });
+  assert.equal(stubsUnclaimed.label, "1 / 12");
+  assert.equal(stubsUnclaimed.detail, "11 open");
 
   const solo = draftParticipantSummary({
     hasLeague: false,

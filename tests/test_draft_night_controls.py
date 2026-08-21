@@ -48,8 +48,8 @@ def test_future_schedule_blocks_start_until_force(hub_db):
     assert saved["draft_timezone"] == "America/New_York"
     assert saved["draft_starts_at"]
     with pytest.raises(ValueError, match="scheduled"):
-        start_draft(league["id"], "night-comm")
-    state = start_draft(league["id"], "night-comm", force=True)
+        start_draft(league["id"], "night-comm", allow_empty=True)
+    state = start_draft(league["id"], "night-comm", force=True, allow_empty=True)
     assert state["session"]["status"] == "nominating"
 
 
@@ -68,7 +68,7 @@ def test_naive_wall_clock_uses_league_timezone(hub_db):
 
 
 def test_tick_starts_due_live_league(hub_db):
-    league = _league()
+    league = _league(team_count=1)
     past = (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat()
     storage.update_league_settings(league["id"], draft_starts_at=past, draft_timezone="UTC")
     changed = tick_expired_drafts()
@@ -79,7 +79,7 @@ def test_tick_starts_due_live_league(hub_db):
 
 def test_pause_blocks_bids_and_timer_expiry(hub_db):
     league = _league()
-    start_draft(league["id"], "night-comm")
+    start_draft(league["id"], "night-comm", allow_empty=True)
     team = storage.get_team_by_user(league["id"], "night-comm")
     storage.update_draft_session(
         league["id"],
@@ -105,7 +105,7 @@ def test_pause_blocks_bids_and_timer_expiry(hub_db):
 
 def test_resume_shifts_deadlines(hub_db):
     league = _league()
-    start_draft(league["id"], "night-comm")
+    start_draft(league["id"], "night-comm", allow_empty=True)
     original = storage.get_draft_session(league["id"])["nomination_deadline"]
     storage.update_draft_session(
         league["id"],
@@ -121,7 +121,7 @@ def test_resume_shifts_deadlines(hub_db):
 def test_skip_nomination_advances_clock(hub_db):
     league = _league()
     storage.join_league("other-night", league["room_code"], "Other")
-    start_draft(league["id"], "night-comm")
+    start_draft(league["id"], "night-comm", allow_empty=True)
     first = storage.get_draft_session(league["id"])["nominator_index"]
     skip_nomination(league["id"], "night-comm")
     session = storage.get_draft_session(league["id"])
@@ -168,7 +168,7 @@ def test_autodraft_uses_queue_then_need_aware(hub_db, monkeypatch):
         "src.draft_hub.draft_state.resolve_nomination_player",
         lambda **kwargs: player if kwargs.get("player_id") == "queued-te" else wr,
     )
-    start_draft(league["id"], "night-comm")
+    start_draft(league["id"], "night-comm", allow_empty=True)
     set_nomination_queue(league["id"], "night-comm", ["queued-te"], autodraft=True)
     state = check_timers(league["id"], "night-comm")
     assert state["session"]["status"] == "bidding"

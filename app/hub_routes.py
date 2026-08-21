@@ -3536,11 +3536,15 @@ async def hub_set_pool_mode(league_id: str, body: DraftPoolModeRequest, _user=De
 async def hub_start_draft(
     league_id: str,
     force: bool = Query(False, description="Start now even if a future draft time is set"),
+    allow_empty: bool = Query(
+        False,
+        description="Start even if some seats are still unclaimed (live rooms only)",
+    ),
     _user=Depends(require_hub_user),
 ) -> dict:
     sub = _sub(_user)
     try:
-        state = start_draft(league_id, sub, force=force)
+        state = start_draft(league_id, sub, force=force, allow_empty=allow_empty)
         await broadcast_room(league_id)
         return state
     except ValueError as exc:
@@ -3626,10 +3630,18 @@ async def hub_reset_live_draft(league_id: str, _user=Depends(require_hub_user)) 
 
 
 @router.post("/league/{league_id}/nominate")
-async def hub_nominate(league_id: str, body: DraftNominateRequest, _user=Depends(require_hub_user)) -> dict:
+async def hub_nominate(
+    league_id: str,
+    body: DraftNominateRequest,
+    force: bool = Query(
+        False,
+        description="Commissioner nominates on behalf of the on-clock team",
+    ),
+    _user=Depends(require_hub_user),
+) -> dict:
     sub = _sub(_user)
     try:
-        state = nominate(league_id, sub, body.model_dump())
+        state = nominate(league_id, sub, body.model_dump(), force=force)
         await broadcast_room(league_id)
         return state
     except ValueError as exc:

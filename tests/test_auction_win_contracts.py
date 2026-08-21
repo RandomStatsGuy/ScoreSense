@@ -36,7 +36,7 @@ def _seed_league(comm_sub: str = "comm-award"):
 
 
 def _award(monkeypatch, seeded, player):
-    start_draft(seeded["league"]["id"], seeded["comm_sub"])
+    start_draft(seeded["league"]["id"], seeded["comm_sub"], allow_empty=True)
     monkeypatch.setattr(
         "src.draft_hub.draft_state.resolve_nomination_player",
         lambda **kwargs: player,
