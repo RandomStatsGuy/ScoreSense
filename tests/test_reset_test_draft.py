@@ -55,3 +55,15 @@ def test_reset_rejected_for_live_league(hub_db):
     league = storage.create_league("live-user", "Live", 2025, rules, workspace_id=ws["id"])
     with pytest.raises(ValueError, match="practice"):
         reset_test_draft(league["id"], "live-user")
+
+
+def test_setup_rejected_for_live_league(hub_db):
+    rules = load_preset("salary_cap_auction_v1")
+    ws = storage.get_or_create_workspace("live-setup")
+    league = storage.create_league("live-setup", "Live", 2025, rules, workspace_id=ws["id"])
+    with pytest.raises(ValueError, match="live league"):
+        setup_test_draft(league["id"], "live-setup", bot_count=2)
+    saved = storage.get_league(league["id"])
+    assert not saved.get("test_mode")
+    teams = storage.list_league_teams(league["id"])
+    assert not any(t.get("is_bot") for t in teams)

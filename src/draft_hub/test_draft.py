@@ -25,6 +25,10 @@ def setup_test_draft(league_id: str, commissioner_sub: str, bot_count: int = 3,
         raise ValueError("League not found")
     if league["commissioner_sub"] != commissioner_sub:
         raise ValueError("Only commissioner can enable test mode")
+    if not storage.league_test_mode(league_id):
+        raise ValueError(
+            "Cannot run practice setup on a live league. Start a mock or sandbox room instead."
+        )
     rules = LeagueRules.model_validate(league["rules"])
     budget = float(bot_budget if bot_budget is not None else rules.salary_cap)
     bot_count = max(1, min(int(bot_count), 11))
