@@ -140,7 +140,7 @@ def test_mid_draft_trade_syncs_budgets_and_logs_event(hub_db):
     league, team_a, team_b, ws, comm, member = _two_team_league(hub_db, a_salary=40, b_salary=10)
     for pid in ("p-a", "p-b"):
         storage.update_roster_slot(ws["id"], pid, contract_years=2, any_team=True)
-    start_draft(league["id"], comm)
+    start_draft(league["id"], comm, allow_empty=True)
     execute_multiparty_trade(
         league["id"],
         [

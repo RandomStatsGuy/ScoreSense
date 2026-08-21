@@ -45,6 +45,8 @@ export default function DraftEntryPanel({
   roomLoading = false,
   mockModeLabel = "",
   expirePreview = null,
+  emptySeats = 0,
+  claimedHumans = 0,
 }) {
   const ctaDisabled = busy || poolBlocked;
 
@@ -181,6 +183,12 @@ export default function DraftEntryPanel({
               </button>
             )}
           </div>
+          {canStartLive && !testMode && emptySeats > 0 && (
+            <p className="chart-note hub-draft-empty-seats">
+              {emptySeats} empty seat{emptySeats === 1 ? "" : "s"}
+              {claimedHumans ? ` (${claimedHumans} claimed)` : ""}. Starting requires a confirm.
+            </p>
+          )}
           {canStartLive && onSaveSchedule && (
             <div className="hub-draft-schedule">
               <label>

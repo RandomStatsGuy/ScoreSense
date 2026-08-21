@@ -47,7 +47,7 @@ def test_reset_live_draft_clears_picks_keeps_keepers(hub_db):
         },
         team_id=team["id"],
     )
-    start_draft(league["id"], "live-commish")
+    start_draft(league["id"], "live-commish", allow_empty=True)
     storage.add_roster_slot(
         ws,
         {
@@ -114,7 +114,7 @@ def test_reset_after_end_rewinds_years(hub_db):
         },
         team_id=team["id"],
     )
-    start_draft(league["id"], "live-commish")
+    start_draft(league["id"], "live-commish", allow_empty=True)
     end_draft(league["id"], "live-commish", force=True)
 
     after_end = storage.list_league_rosters_by_team(league["id"])[team["id"]][0]
@@ -173,7 +173,7 @@ def test_reset_after_end_restores_expired_keepers(hub_db):
         },
         team_id=team["id"],
     )
-    start_draft(league["id"], "live-commish")
+    start_draft(league["id"], "live-commish", allow_empty=True)
     end_draft(league["id"], "live-commish", force=True)
 
     after = {r["player_id"]: r for r in storage.list_league_rosters_by_team(league["id"])[team["id"]]}
@@ -238,7 +238,7 @@ def test_end_draft_activates_pending_extension_and_skips_auction(hub_db):
         },
         team_id=team["id"],
     )
-    start_draft(league["id"], "live-commish")
+    start_draft(league["id"], "live-commish", allow_empty=True)
     state = end_draft(league["id"], "live-commish", force=True)
     tick = state.get("contract_year_tick") or {}
     assert tick.get("extensions_activated") == 1
