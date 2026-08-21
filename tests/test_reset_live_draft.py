@@ -115,7 +115,7 @@ def test_reset_after_end_rewinds_years(hub_db):
         team_id=team["id"],
     )
     start_draft(league["id"], "live-commish")
-    end_draft(league["id"], "live-commish")
+    end_draft(league["id"], "live-commish", force=True)
 
     after_end = storage.list_league_rosters_by_team(league["id"])[team["id"]][0]
     assert int((after_end.get("contract") or {}).get("years_remaining") or after_end["contract_years"]) == 1
@@ -174,7 +174,7 @@ def test_reset_after_end_restores_expired_keepers(hub_db):
         team_id=team["id"],
     )
     start_draft(league["id"], "live-commish")
-    end_draft(league["id"], "live-commish")
+    end_draft(league["id"], "live-commish", force=True)
 
     after = {r["player_id"]: r for r in storage.list_league_rosters_by_team(league["id"])[team["id"]]}
     assert "expiring-vet" in after
@@ -239,7 +239,7 @@ def test_end_draft_activates_pending_extension_and_skips_auction(hub_db):
         team_id=team["id"],
     )
     start_draft(league["id"], "live-commish")
-    state = end_draft(league["id"], "live-commish")
+    state = end_draft(league["id"], "live-commish", force=True)
     tick = state.get("contract_year_tick") or {}
     assert tick.get("extensions_activated") == 1
     assert tick.get("skipped_auction") == 1

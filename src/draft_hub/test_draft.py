@@ -97,7 +97,7 @@ def _pick_nomination_payload(
 ) -> dict[str, Any] | None:
     """Best available player this team can still roster, as a nominate() payload."""
     from src.draft_hub.draft_pool import build_nomination_pool
-    from src.draft_hub.rules_engine import assert_can_acquire
+    from src.draft_hub.rules_engine import assert_can_acquire, nomination_sort_key
 
     ws = storage.roster_workspace_for_league(league)
     pool = build_nomination_pool(
@@ -118,10 +118,7 @@ def _pick_nomination_payload(
     if not candidates:
         return None
 
-    candidates.sort(
-        key=lambda r: float(r.get("fair_value") or r.get("model_bid_hint") or r.get("season_proj") or 0),
-        reverse=True,
-    )
+    candidates.sort(key=lambda r: nomination_sort_key(rules, roster, r))
     pick = candidates[0]
     return {
         "player_id": pick["player_id"],
@@ -353,5 +350,9 @@ def simulate_draft(
 
     session = storage.get_draft_session(league_id) or {}
     if session.get("status") != "completed":
-        end_draft(league_id, commissioner_sub)
+        from src.draft_hub.draft_state import draft_completion_errors
+
+        # Partial sims (max_picks) and starved pools still need a clean stop.
+        force = max_picks is not None or bool(draft_completion_errors(league_id))
+        end_draft(league_id, commissioner_sub, force=force)
     return get_room_state(league_id, commissioner_sub)

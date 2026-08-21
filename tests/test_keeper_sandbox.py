@@ -140,7 +140,7 @@ def test_end_draft_ticks_and_removes_expiree(hub_db):
     )
     sandbox_id = result["league_id"]
     start_draft(sandbox_id, seeded["comm_sub"])
-    end_draft(sandbox_id, seeded["comm_sub"])
+    end_draft(sandbox_id, seeded["comm_sub"], force=True)
 
     ws = storage.roster_workspace_for_league(storage.get_league(sandbox_id))
     ids = {r["player_id"] for r in storage.list_roster(ws)}

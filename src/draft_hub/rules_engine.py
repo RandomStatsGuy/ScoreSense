@@ -127,6 +127,57 @@ def position_at_max(rules: LeagueRules, roster: list[dict[str, Any]], position: 
     return count_at_position(rules, roster, position) >= int(lim["max"])
 
 
+def position_below_min(rules: LeagueRules, roster: list[dict[str, Any]], position: str) -> bool:
+    pos_key = normalize_position(position).lower()
+    limits = roster_limits(rules)
+    lim = limits.get(pos_key)
+    if not lim:
+        return False
+    return count_at_position(rules, roster, position) < int(lim["min"] or 0)
+
+
+def nomination_sort_key(
+    rules: LeagueRules, roster: list[dict[str, Any]], row: dict[str, Any]
+) -> tuple[int, float]:
+    """Need-aware BPA: unfilled positional mins first, then highest fair value.
+
+    Sort ascending. Tier 0 = this pick fills a league minimum; tier 1 = optional.
+    """
+    pos = normalize_position(row.get("position"))
+    fair = 0.0
+    for key in ("fair_value", "model_bid_hint", "season_proj"):
+        try:
+            fair = float(row.get(key) or 0)
+        except (TypeError, ValueError):
+            fair = 0.0
+        if fair:
+            break
+    below = 0 if position_below_min(rules, roster, pos) else 1
+    return (below, -fair)
+
+
+def occupying_min_errors(rules: LeagueRules, roster: list[dict[str, Any]]) -> list[str]:
+    """Position-min violations for rows that currently occupy a roster slot."""
+    from src.draft_hub.draft_budgets import occupying_roster
+
+    occupying = occupying_roster(rules, roster, draft_completed=False)
+    errors: list[str] = []
+    limits = roster_limits(rules)
+    counts: dict[str, int] = {}
+    for row in occupying:
+        pos = normalize_position(row.get("position"))
+        counts[pos] = counts.get(pos, 0) + 1
+    for key, lim in limits.items():
+        min_n = int(lim.get("min") or 0)
+        if min_n <= 0:
+            continue
+        pos = key.upper()
+        count = int(counts.get(pos, 0))
+        if count < min_n:
+            errors.append(f"Need {min_n - count} more {pos} (min {min_n})")
+    return errors
+
+
 def assert_can_acquire(rules: LeagueRules, roster: list[dict[str, Any]], position: str) -> None:
     from src.draft_hub.draft_budgets import total_roster_slots
 
