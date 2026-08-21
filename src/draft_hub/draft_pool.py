@@ -1,4 +1,4 @@
-"""Draft room nomination pool — full board vs roster + rookies."""
+"""Draft room nomination pool — full board vs keeper-league FA pool."""
 
 from __future__ import annotations
 
@@ -49,13 +49,12 @@ def filter_nomination_rows(
     hub_player_ids: set[str],
     drafted_player_ids: set[str],
 ) -> list[dict[str, Any]]:
-    mode = normalize_pool_mode(pool_mode)
+    """Exclude drafted/retained players. Keeper mode matches full (league keepers off the board)."""
+    _ = (normalize_pool_mode(pool_mode), hub_player_ids)
     out: list[dict[str, Any]] = []
     for row in rows:
         pid = str(row.get("player_id") or "")
         if not pid or pid in drafted_player_ids:
-            continue
-        if mode == "roster_plus_rookies" and not (row.get("is_rookie") or pid in hub_player_ids):
             continue
         out.append(row)
     return out
@@ -153,7 +152,9 @@ def resolve_nomination_player(
     match = next((r for r in pool["rows"] if str(r.get("player_id")) == pid), None)
     if not match:
         if normalize_pool_mode(pool_mode) == "roster_plus_rookies":
-            raise ValueError("Player not in your available pool (roster + rookies only)")
+            raise ValueError(
+                "Player not in the keeper pool (retained keepers stay off the board)"
+            )
         raise ValueError("Player not available for nomination")
     return match
 

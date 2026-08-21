@@ -48,7 +48,7 @@ export default function DraftRoom({
   onLeagueJoined,
   valueRows,
   valueSheetLoading = false,
-  hubRoster = [],
+  hubRoster: _hubRoster = [],
   season,
   hubContext = null,
   onNavigate,
@@ -150,26 +150,20 @@ export default function DraftRoom({
     return ids;
   }, [roomState?.rosters, league?.draft_completed, session?.status]);
 
-  const hubIdSet = useMemo(
-    () => new Set((hubRoster || []).map((r) => r.player_id).filter(Boolean)),
-    [hubRoster],
-  );
-
   const testMode = Boolean(league?.test_mode);
 
   const clientAvailableRows = useMemo(() => {
     const drafted = draftedIds;
     return (valueRows || []).filter((r) => {
       if (!r.player_id || drafted.has(r.player_id)) return false;
+      // Keeper pool: anyone not retained (expirees, FA, undrafted rookies).
+      if (poolMode === "roster_plus_rookies") return true;
       // Mock drafts start from empty rosters: the sheet's is_available reflects
       // the linked real league's rosters, so only in-draft picks exclude players.
       if (!testMode && !isRowAvailable(r)) return false;
-      if (poolMode === "roster_plus_rookies") {
-        return r.is_rookie || hubIdSet.has(r.player_id);
-      }
       return true;
     });
-  }, [valueRows, draftedIds, poolMode, hubIdSet, testMode]);
+  }, [valueRows, draftedIds, poolMode, testMode]);
 
   // Prefer client-side filtering of the cached value sheet; server pool rows
   // are a fallback for cold sheets and get drafted players filtered per pick.

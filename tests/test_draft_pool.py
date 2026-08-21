@@ -38,22 +38,23 @@ def test_roster_capacity_at_max(hub_db):
 
 def test_roster_plus_rookies_pool_filters():
     rows = [
-        {"player_id": "mine-qb", "player": "My QB", "position": "QB", "is_rookie": False},
+        {"player_id": "keeper-qb", "player": "Keeper QB", "position": "QB", "is_rookie": False},
         {"player_id": "other-rb", "player": "Other RB", "position": "RB", "is_rookie": False},
         {"player_id": "rookie-wr", "player": "Rookie WR", "position": "WR", "is_rookie": True},
+        {"player_id": "expire-te", "player": "Expire TE", "position": "TE", "is_rookie": False},
     ]
-    hub_ids = {"mine-qb"}
+    hub_ids = {"keeper-qb", "expire-te"}
+    drafted = {"keeper-qb"}
 
-    full = filter_nomination_rows(rows, pool_mode="full", hub_player_ids=hub_ids, drafted_player_ids=set())
-    assert len(full) == 3
-
+    full = filter_nomination_rows(rows, pool_mode="full", hub_player_ids=hub_ids, drafted_player_ids=drafted)
     restricted = filter_nomination_rows(
         rows,
         pool_mode="roster_plus_rookies",
         hub_player_ids=hub_ids,
-        drafted_player_ids=set(),
+        drafted_player_ids=drafted,
     )
-    assert {r["player_id"] for r in restricted} == {"mine-qb", "rookie-wr"}
+    assert {r["player_id"] for r in restricted} == {"other-rb", "rookie-wr", "expire-te"}
+    assert {r["player_id"] for r in restricted} == {r["player_id"] for r in full}
 
 
 def test_nominate_blocked_at_position_max(hub_db, monkeypatch):
