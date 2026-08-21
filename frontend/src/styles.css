@@ -6334,6 +6334,7 @@ td.col-rank.col-rank-top {
   opacity: 0.85;
 }
 .hub-roster-type-select {
+  width: 12.5rem;
   min-width: 12rem;
   max-width: 14.5rem;
   white-space: nowrap;
@@ -7460,8 +7461,12 @@ td.col-rank.col-rank-top {
   transition: width 0.25s ease;
   flex-shrink: 0;
 }
+.hub-cap-bar.is-over {
+  background: var(--tone-negative-soft);
+}
 .hub-cap-bar.is-over .hub-cap-bar-committed {
   background: linear-gradient(90deg, var(--tone-negative), #fb7185);
+  border-radius: var(--radius-pill);
 }
 .hub-cap-bar-dead {
   height: 100%;
