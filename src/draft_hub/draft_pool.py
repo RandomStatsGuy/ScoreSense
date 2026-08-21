@@ -49,9 +49,8 @@ def filter_nomination_rows(
     hub_player_ids: set[str],
     drafted_player_ids: set[str],
 ) -> list[dict[str, Any]]:
-    mode = normalize_pool_mode(pool_mode)
-    _ = hub_player_ids  # kept for call-site compatibility; keepers live in drafted_player_ids
-    _ = mode
+    """Exclude drafted/retained players. Keeper mode matches full (league keepers off the board)."""
+    _ = (normalize_pool_mode(pool_mode), hub_player_ids)
     out: list[dict[str, Any]] = []
     for row in rows:
         pid = str(row.get("player_id") or "")
