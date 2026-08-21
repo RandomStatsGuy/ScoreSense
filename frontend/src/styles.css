@@ -6333,7 +6333,11 @@ td.col-rank.col-rank-top {
   color: var(--text-secondary);
   opacity: 0.85;
 }
-.hub-roster-type-select { min-width: 7.5rem; max-width: 9.5rem; }
+.hub-roster-type-select {
+  min-width: 12rem;
+  max-width: 14.5rem;
+  white-space: nowrap;
+}
 .hub-pending-types {
   margin: 0.75rem 0 1rem;
   padding: 0.75rem 0.9rem;
@@ -7438,6 +7442,7 @@ td.col-rank.col-rank-top {
   padding-right: 0;
 }
 .hub-league-cap-free { color: var(--tone-positive); font-weight: 600; }
+.hub-league-cap-free.is-over { color: var(--tone-negative); }
 .hub-league-cut-count { color: var(--tone-negative); font-weight: 500; }
 .hub-cap-bar {
   display: flex;
@@ -7454,6 +7459,9 @@ td.col-rank.col-rank-top {
   background: linear-gradient(90deg, var(--accent), #60a5fa);
   transition: width 0.25s ease;
   flex-shrink: 0;
+}
+.hub-cap-bar.is-over .hub-cap-bar-committed {
+  background: linear-gradient(90deg, var(--tone-negative), #fb7185);
 }
 .hub-cap-bar-dead {
   height: 100%;
@@ -7472,6 +7480,10 @@ td.col-rank.col-rank-top {
   background: rgba(0, 0, 0, 0.12);
 }
 .hub-league-roster-table td { vertical-align: middle; }
+.hub-league-roster-table th:nth-child(3),
+.hub-league-roster-table td:nth-child(3) {
+  min-width: 12.5rem;
+}
 .hub-league-player-cell { display: flex; flex-direction: column; gap: 0.1rem; }
 .hub-league-player-meta {
   display: flex;
@@ -7620,6 +7632,17 @@ td.col-rank.col-rank-top {
 }
 .hub-league-jump-pill.active .hub-league-jump-meta {
   color: rgba(255, 255, 255, 0.78);
+}
+.hub-league-jump-pill.is-over:not(.active) {
+  border-color: var(--tone-negative-border);
+}
+.hub-league-jump-pill.is-over:not(.active) .hub-league-jump-meta {
+  color: var(--tone-negative);
+  font-weight: 600;
+}
+.hub-league-jump-pill.is-over:hover:not(.active) {
+  border-color: var(--tone-negative-border);
+  background: var(--tone-negative-soft);
 }
 .hub-league-team-summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 0.35rem 0.75rem; align-items: baseline; }
 

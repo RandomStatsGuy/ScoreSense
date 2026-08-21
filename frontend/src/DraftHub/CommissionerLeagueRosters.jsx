@@ -15,11 +15,12 @@ import {
   contractTypeBadgeClass,
   contractTypeLabel,
   fmtSal,
+  formatCapRemaining,
   leagueStepUp,
-  preDraftCutDeadCap,
   previewSchedule,
   scheduleText,
   seasonCapYearHint,
+  teamCapStats,
   YEARS_LEFT_HINT,
 } from "./rosterFormat";
 import { confirmDialog } from "../ui/confirm";
@@ -31,26 +32,6 @@ function posSortKey(position) {
   const pos = String(position || "").toUpperCase();
   const idx = POS_ORDER.indexOf(pos);
   return idx >= 0 ? idx : POS_ORDER.length;
-}
-
-function activeRoster(roster) {
-  return (roster || []).filter((r) => r.roster_status !== "cut_before_draft");
-}
-
-function teamCapStats(block, salaryCap, rules) {
-  const active = activeRoster(block.roster);
-  const cuts = (block.roster || []).filter((r) => r.roster_status === "cut_before_draft");
-  const committed = active.reduce((sum, r) => sum + Number(r.salary || 0), 0);
-  const deadCap = cuts.reduce((sum, r) => sum + preDraftCutDeadCap(r, rules), 0);
-  const cap = Number(salaryCap) || 200;
-  return {
-    committed,
-    deadCap,
-    remaining: cap - committed - deadCap,
-    cap,
-    playerCount: active.length,
-    cutCount: (block.roster?.length || 0) - active.length,
-  };
 }
 
 function TeamRosterBlock({
@@ -265,6 +246,7 @@ function TeamRosterBlock({
 
   const team = block.team;
   const stats = teamCapStats(block, salaryCap, rules);
+  const remainingLabel = formatCapRemaining(stats.remaining);
   const committedPct = Math.min(100, (stats.committed / stats.cap) * 100);
   const deadCapPct = Math.min(100 - committedPct, (stats.deadCap / stats.cap) * 100);
   const capPct = Math.min(100, Math.round(committedPct + deadCapPct));
@@ -296,7 +278,9 @@ function TeamRosterBlock({
           {stats.deadCap > 0 && (
             <span className="hub-league-cut-count">{fmtSal(stats.deadCap)} dead cap</span>
           )}
-          <span className="hub-league-cap-free">{fmtSal(stats.remaining)} free</span>
+          <span className={`hub-league-cap-free${remainingLabel.over ? " is-over" : ""}`}>
+            {remainingLabel.text}
+          </span>
           {stats.cutCount > 0 && (
             <span className="hub-league-cut-count">{stats.cutCount} cut pre-draft</span>
           )}
@@ -305,12 +289,14 @@ function TeamRosterBlock({
           )}
         </div>
         <div
-          className="hub-cap-bar"
+          className={`hub-cap-bar${remainingLabel.over ? " is-over" : ""}`}
           role="progressbar"
           aria-valuenow={capPct}
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-label={`${capPct}% of salary cap used`}
+          aria-label={remainingLabel.over
+            ? `${remainingLabel.text} cap`
+            : `${capPct}% of salary cap used`}
         >
           <div className="hub-cap-bar-committed" style={{ width: `${committedPct}%` }} />
           {deadCapPct > 0 && (
@@ -517,6 +503,7 @@ function TeamRosterBlock({
                       disabled={saving || isCut}
                       onChange={(e) => saveContractType(r, e.target.value)}
                       aria-label={`Contract type for ${r.player_name}`}
+                      title={contractTypeLabel(pendingType || ctype)}
                     >
                       {CONTRACT_TYPE_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
@@ -779,16 +766,19 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
           <div className="hub-league-team-jump" role="group" aria-label="Filter by team">
             {teams.map((block) => {
               const s = teamCapStats(block, salaryCap, leagueRules);
+              const rem = formatCapRemaining(s.remaining);
               return (
                 <button
                   key={block.team.id}
                   type="button"
-                  className={`hub-league-jump-pill${teamFilter === block.team.id ? " active" : ""}`}
+                  className={`hub-league-jump-pill${teamFilter === block.team.id ? " active" : ""}${rem.over ? " is-over" : ""}`}
                   onClick={() => setTeamFilter((id) => (id === block.team.id ? "" : block.team.id))}
-                  title={`${block.team.name} · ${fmtSal(s.committed)} committed`}
+                  title={`${block.team.name} · ${fmtSal(s.committed)} committed${rem.over ? ` · ${rem.text}` : ""}`}
                 >
                   {block.team.name}
-                  <span className="hub-league-jump-meta">{fmtSal(s.committed)}</span>
+                  <span className="hub-league-jump-meta">
+                    {rem.over ? rem.text : fmtSal(s.committed)}
+                  </span>
                 </button>
               );
             })}

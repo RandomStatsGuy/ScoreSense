@@ -1,6 +1,20 @@
 export function fmtSal(v) {
   if (v == null || !Number.isFinite(Number(v))) return "—";
-  return `$${Number(v).toFixed(0)}`;
+  const n = Number(v);
+  const abs = Math.abs(n).toFixed(0);
+  if (n < 0 && Number(abs) !== 0) return `-$${abs}`;
+  return `$${abs}`;
+}
+
+/** Remaining cap copy for roster headers. Over-cap is never labeled "free". */
+export function formatCapRemaining(remaining) {
+  if (remaining == null || remaining === "") return { text: "—", over: false };
+  const rem = Number(remaining);
+  if (!Number.isFinite(rem)) return { text: "—", over: false };
+  if (rem < -0.005) {
+    return { text: `${fmtSal(Math.abs(rem))} over`, over: true };
+  }
+  return { text: `${fmtSal(rem)} free`, over: false };
 }
 
 export const CONTRACT_TYPE_OPTIONS = [
@@ -118,6 +132,23 @@ export function preDraftCutDeadCap(row, rules) {
   const sal = capHitForRow(row, 0);
   const refund = sal * cutRefundPct(rules);
   return Math.round((sal - refund) * 100) / 100;
+}
+
+export function teamCapStats(block, salaryCap, rules) {
+  const roster = block?.roster || [];
+  const active = roster.filter((r) => r.roster_status !== "cut_before_draft");
+  const cuts = roster.filter((r) => r.roster_status === "cut_before_draft");
+  const committed = active.reduce((sum, r) => sum + Number(r.salary || 0), 0);
+  const deadCap = cuts.reduce((sum, r) => sum + preDraftCutDeadCap(r, rules), 0);
+  const cap = Number(salaryCap) || 200;
+  return {
+    committed,
+    deadCap,
+    remaining: cap - committed - deadCap,
+    cap,
+    playerCount: active.length,
+    cutCount: roster.length - active.length,
+  };
 }
 
 /** Dead money if an active player were cut before the draft. */
