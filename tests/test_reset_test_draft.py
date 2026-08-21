@@ -37,7 +37,7 @@ def test_reset_clears_practice_draft(hub_db):
         team_id=team["id"],
     )
     storage.append_draft_event(league["id"], "win", {"team_id": team["id"], "player_name": "Player One", "amount": 10})
-    end_draft(league["id"], "reset-user")
+    end_draft(league["id"], "reset-user", force=True)
 
     assert build_draft_recap(league["id"]) is not None
 

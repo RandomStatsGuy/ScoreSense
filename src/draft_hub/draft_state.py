@@ -6,7 +6,13 @@ import json
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from src.draft_hub.rules_engine import cut_refund, normalize_position, assert_can_acquire, roster_capacity
+from src.draft_hub.rules_engine import (
+    assert_can_acquire,
+    cut_refund,
+    occupying_min_errors,
+    normalize_position,
+    roster_capacity,
+)
 from src.draft_hub.schemas import LeagueRules
 from src.draft_hub import storage
 from src.draft_hub.draft_pool import normalize_pool_mode, resolve_nomination_player
@@ -239,7 +245,23 @@ def start_draft(league_id: str, user_sub: str) -> dict[str, Any]:
     return get_room_state(league_id, user_sub)
 
 
-def end_draft(league_id: str, user_sub: str) -> dict[str, Any]:
+def draft_completion_errors(league_id: str) -> list[str]:
+    """Per-team positional minimums still unfilled (keepers + awards)."""
+    league = storage.get_league(league_id)
+    if not league:
+        return ["League not found"]
+    rules = LeagueRules.model_validate(league["rules"])
+    by_team = storage.list_league_rosters_by_team(league_id)
+    lines: list[str] = []
+    for team in storage.list_league_teams(league_id):
+        name = str(team.get("name") or "Team")
+        errs = occupying_min_errors(rules, by_team.get(team["id"]) or [])
+        if errs:
+            lines.append(f"{name}: {'; '.join(errs)}")
+    return lines
+
+
+def end_draft(league_id: str, user_sub: str, *, force: bool = False) -> dict[str, Any]:
     league = storage.get_league(league_id)
     if not league:
         raise ValueError("League not found")
@@ -251,6 +273,13 @@ def end_draft(league_id: str, user_sub: str) -> dict[str, Any]:
     status = session.get("status")
     if status in ("setup", "completed", None, ""):
         raise ValueError("Draft is not in progress")
+    min_errors = draft_completion_errors(league_id)
+    if min_errors and not force:
+        raise ValueError(
+            "Cannot end draft — rosters still under positional minimums. "
+            + " | ".join(min_errors)
+            + ". Nominate remaining needs, or end anyway to override."
+        )
 
     nominee = None
     if session.get("current_nominee_json"):
@@ -276,7 +305,9 @@ def end_draft(league_id: str, user_sub: str) -> dict[str, Any]:
 
         year_tick = tick_contracts_on_draft_complete(league_id)
 
-    payload: dict[str, Any] = {"by": user_sub}
+    payload: dict[str, Any] = {"by": user_sub, "forced": bool(force and min_errors)}
+    if min_errors and force:
+        payload["incomplete_rosters"] = min_errors
     if nominee:
         payload["released_nominee"] = nominee.get("player_name")
         payload["released_player_id"] = nominee.get("player_id")
@@ -408,6 +439,16 @@ def nominate(league_id: str, user_sub: str, player: dict[str, Any]) -> dict[str,
     pos = normalize_position(resolved.get("position") or player.get("position"))
     team_roster = storage.list_team_roster(league_id, team["id"])
     assert_can_acquire(rules, team_roster, pos)
+    min_bid = float(rules.auction.min_bid)
+    from src.draft_hub.draft_budgets import assert_can_afford_auction_bid
+
+    assert_can_afford_auction_bid(
+        rules,
+        team_roster,
+        float(team.get("budget_remaining") or 0),
+        min_bid,
+        draft_completed=bool(league.get("draft_completed")),
+    )
     nominee = {
         "player_id": resolved.get("player_id") or player.get("player_id"),
         "player_name": resolved.get("player") or resolved.get("player_name") or player.get("player_name"),
@@ -425,12 +466,22 @@ def nominate(league_id: str, user_sub: str, player: dict[str, Any]) -> dict[str,
         league_id,
         status="bidding",
         current_nominee_json=json.dumps(nominee),
-        high_bid=None,
-        high_bidder_team_id=None,
+        high_bid=min_bid,
+        high_bidder_team_id=team["id"],
         bid_deadline=_deadline(rules.auction.bid_timer_sec),
         last_bid_at=_now_iso(),
     )
     storage.append_draft_event(league_id, "nominate", nominee)
+    storage.append_draft_event(
+        league_id,
+        "bid",
+        {
+            "team_id": team["id"],
+            "team_name": team.get("name"),
+            "amount": min_bid,
+            "opening": True,
+        },
+    )
     return get_room_state(league_id, user_sub)
 
 
@@ -485,7 +536,9 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
     nominee = session.get("current_nominee")
     winner_id = session.get("high_bidder_team_id")
     amount = session.get("high_bid")
-    if not nominee or not winner_id or amount is None:
+    rules = LeagueRules.model_validate(league["rules"])
+    min_bid = float(rules.auction.min_bid)
+    if not nominee:
         storage.update_draft_session(
             league_id,
             status="nominating",
@@ -494,26 +547,40 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
             high_bidder_team_id=None,
             bid_deadline=None,
             last_bid_at=None,
-            nomination_deadline=_deadline(
-                LeagueRules.model_validate(league["rules"]).auction.nomination_timer_sec
-            ),
+            nomination_deadline=_deadline(rules.auction.nomination_timer_sec),
         )
         _advance_nominator(league_id)
-        storage.append_draft_event(
-            league_id,
-            "pass",
-            {
-                "player_id": nominee.get("player_id") if nominee else None,
-                "player_name": nominee.get("player_name") if nominee else None,
-                "reason": "no_bids",
-            },
-        )
+        storage.append_draft_event(league_id, "pass", {"reason": "no_nominee"})
         return get_room_state(league_id, user_sub)
+    if not winner_id or amount is None:
+        winner_id = nominee.get("nominating_team_id")
+        amount = min_bid
+        if not winner_id:
+            storage.update_draft_session(
+                league_id,
+                status="nominating",
+                current_nominee_json=None,
+                high_bid=None,
+                high_bidder_team_id=None,
+                bid_deadline=None,
+                last_bid_at=None,
+                nomination_deadline=_deadline(rules.auction.nomination_timer_sec),
+            )
+            _advance_nominator(league_id)
+            storage.append_draft_event(
+                league_id,
+                "pass",
+                {
+                    "player_id": nominee.get("player_id"),
+                    "player_name": nominee.get("player_name"),
+                    "reason": "no_bids",
+                },
+            )
+            return get_room_state(league_id, user_sub)
 
     winner = storage.get_team(winner_id)
     if not winner:
         raise ValueError("Winning team not found")
-    rules = LeagueRules.model_validate(league["rules"])
     winner_roster = storage.list_team_roster(league_id, winner_id)
     try:
         assert_can_acquire(rules, winner_roster, nominee.get("position"))

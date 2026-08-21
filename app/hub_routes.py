@@ -3524,10 +3524,14 @@ async def hub_start_draft(league_id: str, _user=Depends(require_hub_user)) -> di
 
 
 @router.post("/league/{league_id}/end")
-async def hub_end_draft(league_id: str, _user=Depends(require_hub_user)) -> dict:
+async def hub_end_draft(
+    league_id: str,
+    force: bool = Query(False, description="Override positional-minimum completion gate"),
+    _user=Depends(require_hub_user),
+) -> dict:
     sub = _sub(_user)
     try:
-        state = end_draft(league_id, sub)
+        state = end_draft(league_id, sub, force=force)
         await broadcast_room(league_id)
         return state
     except ValueError as exc:
