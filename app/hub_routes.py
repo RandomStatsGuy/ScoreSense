@@ -4052,6 +4052,7 @@ def hub_delete_test_league(league_id: str, _user=Depends(require_hub_user)) -> d
 
 @router.post("/league/{league_id}/test/setup")
 def hub_test_draft_setup(league_id: str, body: TestDraftSetupRequest, _user=Depends(require_hub_user)) -> dict:
+    """Add bots to an existing practice/sandbox room. Live leagues are rejected."""
     sub = _sub(_user)
     try:
         return setup_test_draft(league_id, sub, body.bot_count, body.bot_budget)

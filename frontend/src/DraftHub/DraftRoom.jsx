@@ -903,18 +903,6 @@ export default function DraftRoom({
     });
   };
 
-  const setupTestDraft = async () => {
-    await runAction(async () => {
-      const res = await apiFetch(`/api/hub/league/${leagueId}/test/setup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bot_count: Number(botCount) || 3 }),
-      });
-      if (!res.ok) throw new Error(await parseApiError(res));
-      applyState((await res.json()).state);
-    });
-  };
-
   const award = async () => {
     await runAction(async () => {
       const res = await apiFetch(`/api/hub/league/${leagueId}/award`, { method: "POST" });
