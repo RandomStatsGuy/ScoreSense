@@ -729,6 +729,72 @@ def _parse_utc(iso: str) -> datetime:
     return dt.astimezone(timezone.utc)
 
 
+def _session_timer_fingerprint(session: dict[str, Any] | None) -> tuple:
+    if not session:
+        return ()
+    nominee = session.get("current_nominee") or {}
+    return (
+        session.get("status"),
+        session.get("high_bid"),
+        session.get("high_bidder_team_id"),
+        session.get("nominator_index"),
+        session.get("bid_deadline"),
+        session.get("nomination_deadline"),
+        nominee.get("player_id") if isinstance(nominee, dict) else None,
+    )
+
+
+def _expire_nomination(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
+    """Nomination clock hit zero: auto-nominate BPA, or skip the on-clock team."""
+    from src.draft_hub.test_draft import _pick_nomination_payload, _team_sub
+
+    league = storage.get_league(league_id)
+    session = storage.get_draft_session(league_id)
+    if not league or not session or session.get("status") != "nominating":
+        return get_room_state(league_id, user_sub)
+    rules = LeagueRules.model_validate(league["rules"])
+    nominator_id = _current_nominator_team_id(session)
+    team = storage.get_team(nominator_id) if nominator_id else None
+    payload = (
+        _pick_nomination_payload(league_id, league, rules, team, session) if team else None
+    )
+    sub = _team_sub(team) if team else None
+    if payload and sub:
+        try:
+            nominate(league_id, sub, payload)
+            return get_room_state(league_id, user_sub)
+        except ValueError:
+            pass
+    _advance_nominator(league_id)
+    storage.update_draft_session(
+        league_id,
+        nomination_deadline=_deadline(rules.auction.nomination_timer_sec),
+        last_bid_at=None,
+    )
+    storage.append_draft_event(
+        league_id,
+        "pass",
+        {
+            "reason": "nomination_timeout",
+            "team_id": nominator_id,
+            "team_name": (team or {}).get("name"),
+        },
+    )
+    return get_room_state(league_id, user_sub)
+
+
+def tick_expired_drafts() -> list[str]:
+    """Advance every in-progress auction. Returns league ids whose state changed."""
+    changed: list[str] = []
+    for league_id in storage.list_in_progress_draft_league_ids():
+        before = _session_timer_fingerprint(storage.get_draft_session(league_id))
+        check_timers(league_id)
+        after = _session_timer_fingerprint(storage.get_draft_session(league_id))
+        if before != after:
+            changed.append(league_id)
+    return changed
+
+
 def check_timers(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
     """Auto-pass expired bids/nominations; bots may bid/nominate in test mode."""
     from src.draft_hub.test_draft import maybe_bot_bid, maybe_bot_nominate
@@ -754,13 +820,10 @@ def check_timers(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
             bot_state = maybe_bot_bid(league_id)
             if bot_state:
                 return get_room_state(league_id, user_sub)
+    session = storage.get_draft_session(league_id) or session
+    status = session.get("status")
     if status == "nominating" and session.get("nomination_deadline"):
         deadline = _parse_utc(session["nomination_deadline"])
         if now >= deadline:
-            storage.update_draft_session(
-                league_id,
-                nomination_deadline=_deadline(
-                    LeagueRules.model_validate(league["rules"]).auction.nomination_timer_sec
-                ),
-            )
+            return _expire_nomination(league_id, user_sub)
     return get_room_state(league_id, user_sub)
