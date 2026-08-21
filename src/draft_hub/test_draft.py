@@ -73,6 +73,8 @@ def reset_test_draft(league_id: str, commissioner_sub: str) -> dict[str, Any]:
         last_bid_at=None,
         nominator_index=0,
         nomination_order_json=None,
+        paused=0,
+        paused_at=None,
     )
     storage.update_league_status(league_id, "setup")
     storage.update_league_settings(league_id, draft_completed=False)
@@ -121,6 +123,12 @@ def _pick_nomination_payload(
     need_fill = [r for r in candidates if should_need_bid(rules, roster, r.get("position"))]
     if need_fill:
         candidates = need_fill
+    queue_ids = [str(pid) for pid in (team.get("nomination_queue") or []) if pid]
+    if queue_ids:
+        by_id = {str(r.get("player_id")): r for r in candidates}
+        queued = [by_id[pid] for pid in queue_ids if pid in by_id]
+        if queued:
+            candidates = queued
     candidates.sort(key=lambda r: nomination_sort_key(rules, roster, r))
     pick = candidates[0]
     return {
@@ -161,6 +169,36 @@ def maybe_bot_nominate(league_id: str) -> dict[str, Any] | None:
         return None
     try:
         return nominate(league_id, f"bot:{team['id']}", payload)
+    except ValueError:
+        return None
+
+
+def maybe_autodraft_nominate(league_id: str) -> dict[str, Any] | None:
+    """On-clock human with autodraft enabled — queue then need-aware BPA."""
+    from src.draft_hub.draft_state import _current_nominator_team_id, nominate
+
+    state = get_room_state(league_id)
+    session = state.get("session") or {}
+    if session.get("status") != "nominating" or session.get("paused"):
+        return None
+    nominator_id = _current_nominator_team_id(session)
+    if not nominator_id:
+        return None
+    team = storage.get_team(nominator_id)
+    if not team or team.get("is_bot") or not team.get("autodraft"):
+        return None
+    sub = _team_sub(team)
+    if not sub:
+        return None
+    league = storage.get_league(league_id)
+    if not league:
+        return None
+    rules = LeagueRules.model_validate(league["rules"])
+    payload = _pick_nomination_payload(league_id, league, rules, team, session)
+    if not payload:
+        return None
+    try:
+        return nominate(league_id, sub, payload)
     except ValueError:
         return None
 

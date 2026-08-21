@@ -5,6 +5,12 @@ import useMobileLayout from "../useMobileLayout";
 import { effectiveHubContext } from "./hubContext";
 import LeagueSwitcher from "./LeagueSwitcher";
 import { effectiveMemberships, isSoloContext } from "./hubLeagues";
+import {
+  DRAFT_TZ_OPTIONS,
+  browserTimeZone,
+  formatDraftScheduleLabel,
+  utcIsoToWall,
+} from "./draftEntryStatus";
 
 const TYPE_LABEL = { rookie: "Rookie deal", veteran: "Veteran Deal", extension: "Rookie Extension" };
 
@@ -43,6 +49,8 @@ export default function LeagueSetup({
   const [msg, setMsg] = useState("");
   const [showAddLeague, setShowAddLeague] = useState(false);
   const [pendingTypes, setPendingTypes] = useState([]);
+  const [draftTz, setDraftTz] = useState(ctx?.draft_timezone || browserTimeZone());
+  const [draftWall, setDraftWall] = useState(() => utcIsoToWall(ctx?.draft_starts_at, ctx?.draft_timezone || browserTimeZone()));
 
   const season = workspace?.season ?? new Date().getFullYear();
   const presetLabel = presets?.find((p) => p.id === "salary_cap_auction_v1")?.label || "Salary cap auction";
@@ -65,6 +73,12 @@ export default function LeagueSetup({
     })();
     return () => { cancelled = true; };
   }, [isCommissioner, ctx?.league_id, msg]);
+
+  useEffect(() => {
+    const tz = ctx?.draft_timezone || browserTimeZone();
+    setDraftTz(tz);
+    setDraftWall(utcIsoToWall(ctx?.draft_starts_at, tz));
+  }, [ctx?.draft_starts_at, ctx?.draft_timezone]);
 
   const decidePending = async (playerId, approve) => {
     setBusy(true);
@@ -184,6 +198,32 @@ export default function LeagueSetup({
     }
   };
 
+  const saveDraftNight = async (clear = false) => {
+    if (!ctx?.league_id) return;
+    setBusy(true);
+    setError("");
+    setMsg("");
+    try {
+      const res = await apiFetch(`/api/hub/league/${ctx.league_id}/settings`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          clear
+            ? { clear_draft_start: true }
+            : { draft_starts_at: draftWall, draft_timezone: draftTz },
+        ),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const data = await res.json();
+      onLeagueCreated?.(data);
+      setMsg(clear ? "Draft time cleared." : "Draft night saved.");
+    } catch (e) {
+      setError(e.message || "Could not save draft time");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <section className={`hub-league-setup${mobileLayout ? " hub-league-setup--mobile" : ""}`}>
       <LeagueSwitcher
@@ -236,6 +276,54 @@ export default function LeagueSetup({
           </div>
           {leagueSyncMessage && <p className="chart-note hub-league-sync-msg">{leagueSyncMessage}</p>}
           {leagueSyncError && <div className="error hub-league-sync-error">{leagueSyncError}</div>}
+        </div>
+      )}
+
+      {inLeague && isCommissioner && !draftCompleted && (
+        <div className="hub-draft-schedule hub-draft-schedule--setup">
+          <h3 className="hub-pending-types-title">Draft night</h3>
+          <p className="chart-note">
+            {ctx?.draft_starts_at
+              ? formatDraftScheduleLabel(ctx.draft_starts_at, draftTz)
+              : "Set a date so managers can plan. The room auto-starts at that time."}
+          </p>
+          <label>
+            Date & time
+            <input
+              type="datetime-local"
+              value={draftWall}
+              onChange={(e) => setDraftWall(e.target.value)}
+              disabled={busy}
+            />
+          </label>
+          <label>
+            Timezone
+            <select value={draftTz} onChange={(e) => setDraftTz(e.target.value)} disabled={busy}>
+              {(DRAFT_TZ_OPTIONS.includes(draftTz) ? DRAFT_TZ_OPTIONS : [draftTz, ...DRAFT_TZ_OPTIONS]).map((tz) => (
+                <option key={tz} value={tz}>{tz.replace(/_/g, " ")}</option>
+              ))}
+            </select>
+          </label>
+          <div className="hub-draft-schedule-actions">
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              disabled={busy || !draftWall}
+              onClick={() => saveDraftNight(false)}
+            >
+              Save draft time
+            </button>
+            {ctx?.draft_starts_at && (
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                disabled={busy}
+                onClick={() => saveDraftNight(true)}
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
       )}
 

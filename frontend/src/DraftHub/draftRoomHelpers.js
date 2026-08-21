@@ -17,10 +17,17 @@ export function formatDraftEvent(ev) {
       if (p.reason === "nomination_timeout") {
         return `${p.team_name || "Team"} skipped — nomination clock expired`;
       }
+      if (p.reason === "commissioner_skip") {
+        return `${p.team_name || "Team"} skipped by commissioner`;
+      }
       if (p.reason === "position_cap") return `${p.player_id ? "No sale" : "Nomination passed"} · roster position full`;
       return p.player_id ? "No sale" : "Nomination passed";
     case "start":
       return "Draft started";
+    case "pause":
+      return "Draft paused";
+    case "resume":
+      return "Draft resumed";
     case "end":
       return p.released_nominee
         ? `Draft ended · ${p.released_nominee} returned to the pool`

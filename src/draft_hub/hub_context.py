@@ -126,6 +126,8 @@ def resolve_hub_context(user_sub: str) -> dict[str, Any]:
             "is_primary_commissioner": is_primary,
             "lock_team_claims": bool(league.get("lock_team_claims", True)),
             "draft_completed": bool(league.get("draft_completed", False)),
+            "draft_starts_at": league.get("draft_starts_at"),
+            "draft_timezone": league.get("draft_timezone"),
             "rules": rules.model_dump(),
             "season": int(league["season"]),
             "sleeper_league_id": league.get("sleeper_league_id"),

@@ -275,6 +275,28 @@ export default function LeagueHome({
             tone="accent"
           />
         ) : null}
+        {data?.draft_schedule ? (
+          <HubStatCard
+            label="Draft night"
+            value={
+              data.draft_schedule.is_due
+                ? "Due"
+                : data.draft_schedule.seconds_until > 0
+                  ? `${Math.max(1, Math.round(data.draft_schedule.seconds_until / 60))}m`
+                  : "Set"
+            }
+            sub={new Date(data.draft_schedule.starts_at).toLocaleString(undefined, {
+              timeZone: data.draft_schedule.timezone || undefined,
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+              timeZoneName: "short",
+            })}
+            tone="accent"
+          />
+        ) : null}
         {phase.id === "offseason" ? (
           <HubStatCard
             label="Roster"
