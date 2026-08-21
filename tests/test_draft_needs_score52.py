@@ -11,7 +11,11 @@ from src.draft_hub.draft_state import (
     start_draft,
 )
 from src.draft_hub.presets import load_preset
-from src.draft_hub.rules_engine import nomination_sort_key, occupying_min_errors
+from src.draft_hub.rules_engine import (
+    nomination_sort_key,
+    occupying_min_errors,
+    should_need_bid,
+)
 from src.draft_hub.schemas import LeagueRules
 from src.draft_hub.test_draft import setup_test_draft, simulate_draft
 
@@ -43,6 +47,22 @@ def test_nomination_sort_prefers_unfilled_te_min():
     te = {"position": "TE", "fair_value": 4, "player_id": "te1"}
     ranked = sorted([wr, te], key=lambda r: nomination_sort_key(rules, roster, r))
     assert ranked[0]["player_id"] == "te1"
+
+
+def test_should_need_bid_blocks_luxury_until_te_min():
+    rules = _need_rules()
+    assert should_need_bid(rules, [], "TE") is True
+    assert should_need_bid(rules, [], "WR") is False
+    filled = [
+        {
+            "player_id": "te1",
+            "position": "TE",
+            "salary": 1,
+            "contract_years": 1,
+            "source": "draft",
+        }
+    ]
+    assert should_need_bid(rules, filled, "WR") is True
 
 
 def test_occupying_min_errors_te():

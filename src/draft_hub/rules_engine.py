@@ -178,6 +178,35 @@ def occupying_min_errors(rules: LeagueRules, roster: list[dict[str, Any]]) -> li
     return errors
 
 
+def unmet_minimum_positions(rules: LeagueRules, roster: list[dict[str, Any]]) -> set[str]:
+    """Uppercase positions still below league min."""
+    from src.draft_hub.draft_budgets import occupying_roster
+
+    occupying = occupying_roster(rules, roster, draft_completed=False)
+    limits = roster_limits(rules)
+    counts: dict[str, int] = {}
+    for row in occupying:
+        pos = normalize_position(row.get("position"))
+        counts[pos] = counts.get(pos, 0) + 1
+    unmet: set[str] = set()
+    for key, lim in limits.items():
+        min_n = int(lim.get("min") or 0)
+        if min_n <= 0:
+            continue
+        pos = key.upper()
+        if int(counts.get(pos, 0)) < min_n:
+            unmet.add(pos)
+    return unmet
+
+
+def should_need_bid(rules: LeagueRules, roster: list[dict[str, Any]], position: str) -> bool:
+    """If any min is unfilled, only bid/nominate that fills one of those mins."""
+    unmet = unmet_minimum_positions(rules, roster)
+    if not unmet:
+        return True
+    return normalize_position(position) in unmet
+
+
 def assert_can_acquire(rules: LeagueRules, roster: list[dict[str, Any]], position: str) -> None:
     from src.draft_hub.draft_budgets import total_roster_slots
 
