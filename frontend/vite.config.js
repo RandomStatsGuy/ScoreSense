@@ -51,6 +51,14 @@ export default defineConfig(({ mode }) => {
             urlPattern: /^\/api\/.*/i,
             handler: "NetworkOnly",
           },
+          {
+            urlPattern: /^https:\/\/www\.googletagmanager\.com\/.*/i,
+            handler: "NetworkOnly",
+          },
+          {
+            urlPattern: /^https:\/\/(?:www|region1)\.google-analytics\.com\/.*/i,
+            handler: "NetworkOnly",
+          },
         ],
       },
     }),

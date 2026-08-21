@@ -27,7 +27,7 @@ function LegalShell({ title, children }) {
 export default function PrivacyPage() {
   return (
     <LegalShell title="Privacy Policy">
-      <p className="chart-note">Last updated: June 2026</p>
+      <p className="chart-note">Last updated: August 2026</p>
       <section>
         <h2 className="hub-panel-subtitle">1. Who we are</h2>
         <p>
@@ -59,8 +59,8 @@ export default function PrivacyPage() {
         <h2 className="hub-panel-subtitle">3. How we use it</h2>
         <p>
           To authenticate you, send account emails (verification, password reset, league invites),
-          store your league workspace, and improve the product. We do not sell your personal
-          information.
+          store your league workspace, and understand how the product is used so we can improve it.
+          We do not sell your personal information.
         </p>
       </section>
       <section>
@@ -74,7 +74,15 @@ export default function PrivacyPage() {
         <h2 className="hub-panel-subtitle">5. Third parties</h2>
         <p>
           Patreon (OAuth), Sleeper (when you link a league), and email delivery providers process
-          data according to their policies when you use those features.
+          data according to their policies when you use those features. We use Google Analytics 4
+          on app.fourthdownlabs.com to measure which pages are used. Google receives the page path,
+          a human-readable page title, and truncated query filters (for example position or week).
+          We do not send login tokens, invite codes, search text, or player-compare IDs to Google.
+          IP anonymization is enabled. See{" "}
+          <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">
+            Google&apos;s privacy policy
+          </a>
+          .
         </p>
       </section>
       <section>
