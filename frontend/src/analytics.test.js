@@ -5,6 +5,7 @@ import {
   analyticsEnabled,
   buildPageViewPayload,
   initAnalytics,
+  productionGtagHtmlSnippet,
   pageGroupForPath,
   pageTitleForPath,
   resetAnalyticsForTests,
@@ -90,6 +91,20 @@ test("buildPageViewPayload sanitizes location and sets title/group", () => {
   assert.equal(payload.page_group, "projections");
 });
 
+test("productionGtagHtmlSnippet is the official tag Google's HTML crawler looks for", () => {
+  const html = productionGtagHtmlSnippet();
+  assert.match(html, /<!-- Google tag \(gtag\.js\) -->/);
+  assert.match(
+    html,
+    new RegExp(`src="https://www.googletagmanager.com/gtag/js\\?id=${GA_MEASUREMENT_ID}"`),
+  );
+  assert.match(html, /send_page_view:\s*false/);
+  assert.match(html, /anonymize_ip:\s*true/);
+  assert.match(html, /window\.__SS_GA = 1/);
+  assert.match(html, /app\.fourthdownlabs\.com/);
+  assert.match(html, /indexOf\(location\.hostname\)/);
+});
+
 test("initAnalytics no-ops off production host and loads gtag once on prod", () => {
   resetAnalyticsForTests();
   const localWin = { location: { hostname: "localhost" }, dataLayer: [] };
@@ -127,6 +142,35 @@ test("initAnalytics no-ops off production host and loads gtag once on prod", () 
     true,
   );
   assert.equal(scripts.length, 1);
+});
+
+test("initAnalytics skips a second snippet when HTML already loaded gtag", () => {
+  resetAnalyticsForTests();
+  const scripts = [];
+  const prodWin = { location: { hostname: "app.fourthdownlabs.com" }, __SS_GA: 1 };
+  const prodDoc = {
+    querySelector: () => ({ src: `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}` }),
+    createElement: () => ({ tag: "script", async: false, src: "" }),
+    head: { appendChild(el) { scripts.push(el); } },
+  };
+  assert.equal(
+    initAnalytics({ hostname: "app.fourthdownlabs.com", win: prodWin, doc: prodDoc }),
+    true,
+  );
+  assert.equal(scripts.length, 0);
+});
+
+test("trackPageView no-ops on localhost even if gtag exists", () => {
+  resetAnalyticsForTests();
+  const events = [];
+  const win = {
+    location: { hostname: "localhost", origin: "http://localhost:5173" },
+    gtag(...args) {
+      events.push(args);
+    },
+  };
+  assert.equal(trackPageView({ pathname: "/projections/weekly" }, { win, doc: { title: "" } }), false);
+  assert.equal(events.length, 0);
 });
 
 test("trackPageView sends sanitized page_view and skips callback", () => {
