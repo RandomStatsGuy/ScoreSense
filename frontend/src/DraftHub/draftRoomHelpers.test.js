@@ -21,6 +21,28 @@ test("formatDraftEvent describes nomination timeout skip", () => {
   );
 });
 
+test("formatDraftEvent describes commissioner force nominate", () => {
+  assert.equal(
+    formatDraftEvent({
+      event_type: "force_nominate",
+      payload: { player_name: "Puka", team_name: "Bob" },
+    }),
+    "Commissioner nominated Puka for Bob",
+  );
+  assert.match(
+    formatDraftEvent({
+      event_type: "nominate",
+      payload: {
+        player_name: "Puka",
+        position: "WR",
+        forced: true,
+        nominating_team_name: "Bob",
+      },
+    }),
+    /force-nominated for Bob/,
+  );
+});
+
 test("formatDraftEvent describes pause resume and commissioner skip", () => {
   assert.equal(formatDraftEvent({ event_type: "pause", payload: {} }), "Draft paused");
   assert.equal(formatDraftEvent({ event_type: "resume", payload: {} }), "Draft resumed");

@@ -109,10 +109,16 @@ export function draftParticipantSummary({
       detail: "You + bots (practice)",
     };
   }
-  const humans = teams.filter((t) => !t?.is_bot);
-  const joined = humans.length > 0 ? humans.length : teams.length;
+  const claimed = teams.filter((t) => !t?.is_bot && t?.user_sub);
+  if (claimed.length > 0) {
+    return {
+      label: `${claimed.length} / ${target}`,
+      detail: claimed.length === target ? "Full" : `${target - claimed.length} open`,
+    };
+  }
+  const joined = teams.length;
   return {
     label: `${joined} / ${target}`,
-    detail: joined === target ? "Full" : `${target - joined} open`,
+    detail: joined === target ? "Full" : `${Math.max(0, target - joined)} open`,
   };
 }

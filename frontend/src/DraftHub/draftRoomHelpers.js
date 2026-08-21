@@ -5,7 +5,11 @@ export function formatDraftEvent(ev) {
     case "bid":
       return `${p.team_name || "Team"} bid ${fmt(p.amount)}`;
     case "nominate":
-      return `${p.player_name || "Player"} (${p.position || "?"}) nominated`;
+      return p.forced
+        ? `${p.player_name || "Player"} (${p.position || "?"}) force-nominated for ${p.nominating_team_name || "on-clock team"}`
+        : `${p.player_name || "Player"} (${p.position || "?"}) nominated`;
+    case "force_nominate":
+      return `Commissioner nominated ${p.player_name || "player"} for ${p.team_name || "on-clock team"}`;
     case "win":
       return p.value_blurb
         ? `${p.team_name || "Team"} gets ${p.player_name || "Player"} — ${p.value_blurb}`

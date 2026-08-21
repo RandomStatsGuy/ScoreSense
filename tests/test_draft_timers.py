@@ -65,7 +65,7 @@ def test_expired_nomination_auto_nominates(hub_db, monkeypatch):
             "pool_mode": "full",
         },
     )
-    start_draft(league["id"], "timer-nom")
+    start_draft(league["id"], "timer-nom", allow_empty=True)
     storage.update_draft_session(league["id"], nomination_deadline=_past())
     state = check_timers(league["id"], "timer-nom")
     session = state["session"]
@@ -93,7 +93,7 @@ def test_expired_nomination_skips_when_pool_empty(hub_db, monkeypatch):
             "pool_mode": "full",
         },
     )
-    start_draft(league["id"], "timer-skip")
+    start_draft(league["id"], "timer-skip", allow_empty=True)
     session = storage.get_draft_session(league["id"])
     first = int(session.get("nominator_index") or 0)
     storage.update_draft_session(league["id"], nomination_deadline=_past())
@@ -124,7 +124,7 @@ def test_tick_expired_drafts_awards_expired_bid(hub_db, monkeypatch):
     )
     from src.draft_hub.draft_state import nominate
 
-    start_draft(league["id"], "tick-award")
+    start_draft(league["id"], "tick-award", allow_empty=True)
     nominate(league["id"], "tick-award", player)
     storage.update_draft_session(league["id"], bid_deadline=_past())
     changed = tick_expired_drafts()

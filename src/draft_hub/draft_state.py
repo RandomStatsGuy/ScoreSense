@@ -198,6 +198,8 @@ def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any
         "roster_size_max": int(getattr(rules, "roster_size_max", None) or 0) or None,
         "pool_mode": normalize_pool_mode(session.get("pool_mode")),
         "nominator_team_id": _current_nominator_team_id(session) if session else None,
+        "empty_seats": empty_seat_count(league_id, league),
+        "claimed_humans": len(claimed_human_teams(league_id)),
     }
     if user_sub:
         team = storage.get_team_by_user(league_id, user_sub)
@@ -278,7 +280,27 @@ def set_draft_schedule(
     return get_room_state(league_id, user_sub)
 
 
-def start_draft(league_id: str, user_sub: str, *, force: bool = False) -> dict[str, Any]:
+def claimed_human_teams(league_id: str) -> list[dict[str, Any]]:
+    return [
+        t
+        for t in storage.list_league_teams(league_id)
+        if not t.get("is_bot") and t.get("user_sub")
+    ]
+
+
+def empty_seat_count(league_id: str, league: dict[str, Any] | None = None) -> int:
+    row = league or storage.get_league(league_id) or {}
+    target = int(row.get("team_count") or 0)
+    return max(0, target - len(claimed_human_teams(league_id)))
+
+
+def start_draft(
+    league_id: str,
+    user_sub: str,
+    *,
+    force: bool = False,
+    allow_empty: bool = False,
+) -> dict[str, Any]:
     league = storage.get_league(league_id)
     if not league:
         raise ValueError("League not found")
@@ -293,6 +315,16 @@ def start_draft(league_id: str, user_sub: str, *, force: bool = False) -> dict[s
         if datetime.now(timezone.utc) < when:
             raise ValueError(
                 "Draft is scheduled for later. Use Start now (force) to override."
+            )
+    if not storage.league_test_mode(league_id) and not allow_empty:
+        empty = empty_seat_count(league_id, league)
+        if empty:
+            claimed = len(claimed_human_teams(league_id))
+            target = int(league.get("team_count") or 0)
+            noun = "seat" if empty == 1 else "seats"
+            raise ValueError(
+                f"{empty} empty {noun} ({claimed} of {target} claimed). "
+                "Fill the room or start with empty seats."
             )
     rules = LeagueRules.model_validate(league["rules"])
     from src.draft_hub.draft_budgets import sync_league_auction_budgets
@@ -575,12 +607,18 @@ def set_pool_mode(league_id: str, user_sub: str, pool_mode: str) -> dict[str, An
     return get_room_state(league_id, user_sub)
 
 
-def nominate(league_id: str, user_sub: str, player: dict[str, Any]) -> dict[str, Any]:
+def nominate(
+    league_id: str,
+    user_sub: str,
+    player: dict[str, Any],
+    *,
+    force: bool = False,
+) -> dict[str, Any]:
     league = storage.get_league(league_id)
     if not league:
         raise ValueError("League not found")
-    team = _resolve_team(league_id, user_sub)
-    if not team:
+    caller_team = _resolve_team(league_id, user_sub)
+    if not caller_team:
         raise ValueError("Not a league member")
     session = storage.get_draft_session(league_id)
     if not session or session.get("status") not in ("nominating", "bidding"):
@@ -590,10 +628,21 @@ def nominate(league_id: str, user_sub: str, player: dict[str, Any]) -> dict[str,
     nominator_id = _current_nominator_team_id(session)
     is_commissioner = league["commissioner_sub"] == user_sub
     test_mode = storage.league_test_mode(league_id)
-    if nominator_id and not test_mode and not is_commissioner and str(team["id"]) != str(nominator_id):
-        nominator = storage.get_team(nominator_id)
-        name = (nominator or {}).get("name") or "another team"
-        raise ValueError(f"It is {name}'s turn to nominate")
+    forced = False
+    team = caller_team
+    if nominator_id and str(caller_team["id"]) != str(nominator_id):
+        if test_mode:
+            team = caller_team
+        elif force and is_commissioner:
+            on_clock = storage.get_team(nominator_id)
+            if not on_clock:
+                raise ValueError("On-clock team not found")
+            team = on_clock
+            forced = True
+        else:
+            nominator = storage.get_team(nominator_id)
+            name = (nominator or {}).get("name") or "another team"
+            raise ValueError(f"It is {name}'s turn to nominate")
     from src.draft_hub.draft_pool import list_drafted_player_ids
 
     if str(player.get("player_id") or "") in list_drafted_player_ids(league_id):
@@ -629,6 +678,7 @@ def nominate(league_id: str, user_sub: str, player: dict[str, Any]) -> dict[str,
         "team": resolved.get("team") or player.get("team"),
         "position": pos,
         "nominating_team_id": team["id"],
+        "nominating_team_name": team.get("name"),
     }
     for key in ("fair_value", "season_proj", "per_game_proj", "is_rookie", "years_exp", "nfl_years_exp"):
         val = resolved.get(key)
@@ -636,6 +686,9 @@ def nominate(league_id: str, user_sub: str, player: dict[str, Any]) -> dict[str,
             val = player.get(key)
         if val is not None:
             nominee[key] = val
+    if forced:
+        nominee["forced"] = True
+        nominee["forced_by"] = user_sub
     storage.update_draft_session(
         league_id,
         status="bidding",
@@ -646,6 +699,19 @@ def nominate(league_id: str, user_sub: str, player: dict[str, Any]) -> dict[str,
         last_bid_at=_now_iso(),
     )
     storage.append_draft_event(league_id, "nominate", nominee)
+    if forced:
+        storage.append_draft_event(
+            league_id,
+            "force_nominate",
+            {
+                "by": user_sub,
+                "team_id": team["id"],
+                "team_name": team.get("name"),
+                "player_id": nominee.get("player_id"),
+                "player_name": nominee.get("player_name"),
+                "position": nominee.get("position"),
+            },
+        )
     storage.append_draft_event(
         league_id,
         "bid",

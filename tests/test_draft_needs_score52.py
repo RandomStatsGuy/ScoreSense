@@ -106,7 +106,7 @@ def test_nominate_places_opening_min_bid(hub_db, monkeypatch):
         "fair_value": 8,
     }
     _stub_pool(monkeypatch, [player])
-    start_draft(league["id"], "open-bid")
+    start_draft(league["id"], "open-bid", allow_empty=True)
     state = nominate(league["id"], "open-bid", player)
     session = state["session"]
     team = storage.get_team_by_user(league["id"], "open-bid")
@@ -126,7 +126,7 @@ def test_end_draft_blocked_when_mins_unfilled(hub_db):
     rules = _need_rules()
     ws = storage.get_or_create_workspace("gate-user")
     league = storage.create_league("gate-user", "Gate", 2026, rules, workspace_id=ws["id"])
-    start_draft(league["id"], "gate-user")
+    start_draft(league["id"], "gate-user", allow_empty=True)
     errs = draft_completion_errors(league["id"])
     assert errs
     assert any("TE" in e for e in errs)

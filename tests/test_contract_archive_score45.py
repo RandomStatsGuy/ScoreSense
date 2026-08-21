@@ -132,7 +132,7 @@ def test_end_draft_archives_and_reset_restores(hub_db):
         },
         team_id=team["id"],
     )
-    start_draft(league["id"], "end-archive")
+    start_draft(league["id"], "end-archive", allow_empty=True)
     end_draft(league["id"], "end-archive", force=True)
 
     after = {r["player_id"]: r for r in storage.list_league_rosters_by_team(league["id"])[team["id"]]}

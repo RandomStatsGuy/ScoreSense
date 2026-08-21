@@ -206,8 +206,15 @@ export default function DraftRoom({
     [teams, nominatorTeamId],
   );
   const isMyNominationTurn = !nominatorTeamId
-    || String(myTeamId) === String(nominatorTeamId)
-    || (!testMode && isCommissioner);
+    || String(myTeamId) === String(nominatorTeamId);
+  const canForceNominate = Boolean(
+    !testMode
+    && isCommissioner
+    && session?.status === "nominating"
+    && !session?.paused
+    && nominatorTeamId
+    && String(myTeamId) !== String(nominatorTeamId),
+  );
 
   const sentimentByPlayerId = enrichment?.sentiment_by_player_id || {};
   const mediaByPlayerId = enrichment?.media_by_player_id || {};
@@ -735,9 +742,31 @@ export default function DraftRoom({
       force = true;
     }
     await runAction(async () => {
-      const qs = force ? "?force=true" : "";
-      const res = await apiFetch(`/api/hub/league/${leagueId}/start${qs}`, { method: "POST" });
-      if (!res.ok) throw new Error(await parseApiError(res));
+      const postStart = async ({ allowEmpty = false } = {}) => {
+        const q = new URLSearchParams();
+        if (force) q.set("force", "true");
+        if (allowEmpty) q.set("allow_empty", "true");
+        const qs = q.toString() ? `?${q}` : "";
+        return apiFetch(`/api/hub/league/${leagueId}/start${qs}`, { method: "POST" });
+      };
+      let res = await postStart();
+      if (!res.ok) {
+        const detail = await parseApiError(res);
+        if (/empty seat/i.test(detail)) {
+          if (!(await confirmDialog({
+            title: "Empty seats",
+            message: `${detail}\n\nStart anyway? Unclaimed seats will not bid.`,
+            confirmLabel: "Start with empty seats",
+            danger: true,
+          }))) {
+            throw new Error(detail);
+          }
+          res = await postStart({ allowEmpty: true });
+          if (!res.ok) throw new Error(await parseApiError(res));
+        } else {
+          throw new Error(detail);
+        }
+      }
       applyState(await res.json());
     });
   };
@@ -926,9 +955,20 @@ export default function DraftRoom({
     per_game_proj: row.per_game_proj ?? null,
   }), []);
 
-  const nominateRow = useCallback(async (row) => {
+  const nominateRow = useCallback(async (row, { force = false } = {}) => {
     if (!row) return;
-    if (!canAcquire(row.position)) {
+    if (force) {
+      if (!(await confirmDialog({
+        title: "Force nominate",
+        message:
+          `Nominate ${row.player || row.player_name || "this player"} on behalf of `
+          + `${nominatorTeam?.name || "the on-clock team"}? The opening min bid hits their budget, not yours.`,
+        confirmLabel: "Force nominate",
+        danger: true,
+      }))) {
+        return;
+      }
+    } else if (!canAcquire(row.position)) {
       setError(`Your roster is at the ${row.position} maximum — cut or trade before nominating.`);
       return;
     }
@@ -936,7 +976,8 @@ export default function DraftRoom({
     setPendingAction("nominate");
     setError("");
     try {
-      const res = await apiFetch(`/api/hub/league/${leagueId}/nominate`, {
+      const qs = force ? "?force=true" : "";
+      const res = await apiFetch(`/api/hub/league/${leagueId}/nominate${qs}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(playerPayload(row)),
@@ -950,12 +991,12 @@ export default function DraftRoom({
     } finally {
       setPendingAction("");
     }
-  }, [canAcquire, leagueId, applyState, wsRefresh, playerPayload]);
+  }, [canAcquire, leagueId, applyState, wsRefresh, playerPayload, nominatorTeam?.name]);
 
   const nominate = async () => {
     const row = previewRow;
     if (!row) return;
-    await nominateRow(row);
+    await nominateRow(row, { force: canForceNominate });
   };
 
   const bid = async (amount) => {
@@ -1065,7 +1106,9 @@ export default function DraftRoom({
         phase: 1,
         title: isMyNominationTurn
           ? `Your turn — ${nominateHint.toLowerCase()}`
-          : `Waiting for ${nominatorTeam?.name || "next manager"}`,
+          : canForceNominate
+            ? `Waiting for ${nominatorTeam?.name || "next manager"} — Force nominate available`
+            : `Waiting for ${nominatorTeam?.name || "next manager"}`,
         detail: availableRows.length > 0 ? `${availableRows.length} available` : null,
       };
     }
@@ -1083,6 +1126,7 @@ export default function DraftRoom({
     inLiveDraft,
     session,
     isMyNominationTurn,
+    canForceNominate,
     nominatorTeam,
     availableRows.length,
     highBidder,
@@ -1409,6 +1453,8 @@ export default function DraftRoom({
           roomLoading={roomLoading}
           mockModeLabel={mockModeLabel}
           expirePreview={expirePreview}
+          emptySeats={Number(roomState?.empty_seats) || 0}
+          claimedHumans={Number(roomState?.claimed_humans) || 0}
         />
       )}
 
@@ -1443,7 +1489,10 @@ export default function DraftRoom({
               </div>
             ) : session?.status === "nominating" && !isMyNominationTurn ? (
               <div className="hub-nominee-card hub-nominee-empty">
-                <span>Waiting for {nominatorTeam?.name || "next manager"}</span>
+                <span>
+                  Waiting for {nominatorTeam?.name || "next manager"}
+                  {canForceNominate ? " — you can Force nominate for them" : ""}
+                </span>
               </div>
             ) : null}
 
@@ -1465,10 +1514,19 @@ export default function DraftRoom({
                     <button
                       type="button"
                       className="btn-primary btn-sm"
-                      disabled={Boolean(pendingAction) || selectedNomBlocked || !isMyNominationTurn || Boolean(session?.paused)}
+                      disabled={
+                        Boolean(pendingAction)
+                        || Boolean(session?.paused)
+                        || (!canForceNominate && selectedNomBlocked)
+                        || !(isMyNominationTurn || canForceNominate)
+                      }
                       onClick={nominate}
                     >
-                      {pendingAction === "nominate" ? "Nominating…" : "Nominate"}
+                      {pendingAction === "nominate"
+                        ? "Nominating…"
+                        : canForceNominate
+                          ? "Force nominate"
+                          : "Nominate"}
                     </button>
                   </div>
                 )}
@@ -1488,7 +1546,9 @@ export default function DraftRoom({
                       <span className="chart-note">
                         {session?.status === "nominating" && isMyNominationTurn
                           ? nominateHint
-                          : session?.status === "bidding"
+                          : session?.status === "nominating" && canForceNominate
+                            ? "Select a player, then Force nominate for the on-clock team"
+                            : session?.status === "bidding"
                             ? "Browse while you wait"
                             : "Waiting to nominate"}
                       </span>
@@ -1520,7 +1580,9 @@ export default function DraftRoom({
                       selectedPlayerId={nomPlayerId}
                       onSelectPlayer={(row) => setNomPlayerId(row.player_id)}
                       onRowDoubleClick={
-                        session?.status === "nominating" && isMyNominationTurn ? nominateRow : undefined
+                        session?.status === "nominating" && (isMyNominationTurn || canForceNominate)
+                          ? (row) => nominateRow(row, { force: canForceNominate })
+                          : undefined
                       }
                     />
                   )}
