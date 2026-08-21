@@ -21,6 +21,18 @@ test("formatDraftEvent describes nomination timeout skip", () => {
   );
 });
 
+test("formatDraftEvent describes pause resume and commissioner skip", () => {
+  assert.equal(formatDraftEvent({ event_type: "pause", payload: {} }), "Draft paused");
+  assert.equal(formatDraftEvent({ event_type: "resume", payload: {} }), "Draft resumed");
+  assert.equal(
+    formatDraftEvent({
+      event_type: "pass",
+      payload: { reason: "commissioner_skip", team_name: "Bob" },
+    }),
+    "Bob skipped by commissioner",
+  );
+});
+
 test("auctionAwardContractLabel describes locked rookie and vet deals", () => {
   assert.equal(
     auctionAwardContractLabel({

@@ -24,6 +24,11 @@ from src.draft_hub.draft_state import (
     set_draft_contracts,
     set_nomination_order,
     set_pool_mode,
+    pause_draft,
+    resume_draft,
+    set_draft_schedule,
+    set_nomination_queue,
+    skip_nomination,
     start_draft,
     update_auction_rules,
 )
@@ -57,6 +62,7 @@ from src.draft_hub.schemas import (
     LeagueJoinRequest,
     LeagueSettingsUpdate,
     NominationOrderUpdate,
+    NominationQueueUpdate,
     LeagueRules,
     LeagueSheetImportRequest,
     ContractTypeDecisionRequest,
@@ -3243,6 +3249,20 @@ def hub_league_settings(
         lock_team_claims=body.lock_team_claims,
         draft_completed=body.draft_completed,
     )
+    if body.clear_draft_start or body.draft_starts_at is not None or body.draft_timezone is not None:
+        try:
+            from src.draft_hub.draft_state import set_draft_schedule as _set_sked
+
+            state = _set_sked(
+                league_id,
+                sub,
+                starts_at=body.draft_starts_at,
+                timezone_name=body.draft_timezone,
+                clear=bool(body.clear_draft_start),
+            )
+            league = state.get("league") or storage.get_league(league_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
     year_tick = None
     if body.draft_completed is True and not was_complete:
         from src.draft_hub.contract_year_clock import tick_contracts_on_draft_complete
@@ -3513,10 +3533,64 @@ async def hub_set_pool_mode(league_id: str, body: DraftPoolModeRequest, _user=De
 
 
 @router.post("/league/{league_id}/start")
-async def hub_start_draft(league_id: str, _user=Depends(require_hub_user)) -> dict:
+async def hub_start_draft(
+    league_id: str,
+    force: bool = Query(False, description="Start now even if a future draft time is set"),
+    _user=Depends(require_hub_user),
+) -> dict:
     sub = _sub(_user)
     try:
-        state = start_draft(league_id, sub)
+        state = start_draft(league_id, sub, force=force)
+        await broadcast_room(league_id)
+        return state
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/league/{league_id}/pause")
+async def hub_pause_draft(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    try:
+        state = pause_draft(league_id, sub)
+        await broadcast_room(league_id)
+        return state
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/league/{league_id}/resume")
+async def hub_resume_draft(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    try:
+        state = resume_draft(league_id, sub)
+        await broadcast_room(league_id)
+        return state
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/league/{league_id}/skip-nomination")
+async def hub_skip_nomination(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    try:
+        state = skip_nomination(league_id, sub)
+        await broadcast_room(league_id)
+        return state
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.put("/league/{league_id}/nomination-queue")
+async def hub_nomination_queue(
+    league_id: str,
+    body: NominationQueueUpdate,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    try:
+        state = set_nomination_queue(
+            league_id, sub, body.player_ids, autodraft=body.autodraft
+        )
         await broadcast_room(league_id)
         return state
     except ValueError as exc:

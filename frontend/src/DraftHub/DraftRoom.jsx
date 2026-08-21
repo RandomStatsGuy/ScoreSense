@@ -12,6 +12,8 @@ import DraftRecapPanel from "./DraftRecapPanel";
 import DraftOwnerReport from "./DraftOwnerReport";
 import DraftTradeModal from "./DraftTradeModal";
 import DraftEntryPanel from "./DraftEntryPanel";
+import DraftNominationQueue from "./DraftNominationQueue";
+import LeagueChat from "./LeagueChat";
 import ValueSheetTable from "./ValueSheetTable";
 import { confirmDialog } from "../ui/confirm";
 import DraftDeadlineClock from "./DraftDeadlineClock";
@@ -719,8 +721,67 @@ export default function DraftRoom({
   const createTestLeague = async () => startMockDraft("quick_bots");
 
   const startDraft = async () => {
+    const startsAt = league?.draft_starts_at;
+    const scheduledFuture = startsAt && new Date(startsAt).getTime() > Date.now();
+    let force = false;
+    if (scheduledFuture) {
+      if (!(await confirmDialog({
+        title: "Start now",
+        message: "Draft night is still in the future. Start the auction now anyway?",
+        confirmLabel: "Start now",
+      }))) {
+        return;
+      }
+      force = true;
+    }
     await runAction(async () => {
-      const res = await apiFetch(`/api/hub/league/${leagueId}/start`, { method: "POST" });
+      const qs = force ? "?force=true" : "";
+      const res = await apiFetch(`/api/hub/league/${leagueId}/start${qs}`, { method: "POST" });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      applyState(await res.json());
+    });
+  };
+
+  const saveDraftSchedule = async ({ wall, timezone, clear } = {}) => {
+    await runAction(async () => {
+      const res = await apiFetch(`/api/hub/league/${leagueId}/settings`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          clear
+            ? { clear_draft_start: true }
+            : { draft_starts_at: wall, draft_timezone: timezone },
+        ),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const data = await res.json();
+      if (data.league) {
+        setRoomState((prev) => (prev ? { ...prev, league: { ...prev.league, ...data.league } } : prev));
+      }
+    });
+  };
+
+  const pauseOrResumeDraft = async () => {
+    const paused = Boolean(session?.paused);
+    await runAction(async () => {
+      const res = await apiFetch(`/api/hub/league/${leagueId}/${paused ? "resume" : "pause"}`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      applyState(await res.json());
+    });
+  };
+
+  const skipNominationTurn = async () => {
+    if (!(await confirmDialog({
+      title: "Skip nominator",
+      message: "Skip this team's nomination and pass the clock to the next manager?",
+      confirmLabel: "Skip",
+    }))) {
+      return;
+    }
+    await runAction(async () => {
+      const res = await apiFetch(`/api/hub/league/${leagueId}/skip-nomination`, { method: "POST" });
       if (!res.ok) throw new Error(await parseApiError(res));
       applyState(await res.json());
     });
@@ -1107,7 +1168,7 @@ export default function DraftRoom({
           <button
             type="button"
             className="btn-primary"
-            disabled={Boolean(pendingAction) || bidInvalid || nomineePosBlocked}
+            disabled={Boolean(pendingAction) || bidInvalid || nomineePosBlocked || Boolean(session?.paused)}
             onClick={() => bid()}
           >
             {pendingAction === "bid" ? "Bidding…" : `Bid ${fmtSal(bidAmount)}`}
@@ -1165,7 +1226,11 @@ export default function DraftRoom({
               <>
                 <strong className="hub-draft-live-title">{liveStatus.title}</strong>
                 {activeDeadline && (
-                  <DraftDeadlineClock deadline={activeDeadline} className="hub-draft-live-timer" />
+                  <DraftDeadlineClock
+                    deadline={activeDeadline}
+                    paused={Boolean(session?.paused)}
+                    className="hub-draft-live-timer"
+                  />
                 )}
               </>
             )}
@@ -1185,6 +1250,26 @@ export default function DraftRoom({
                 title="Finish the practice draft instantly"
               >
                 Simulate
+              </button>
+            )}
+            {isCommissioner && inLiveDraft && (
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                disabled={busy}
+                onClick={pauseOrResumeDraft}
+              >
+                {session?.paused ? "Resume" : "Pause"}
+              </button>
+            )}
+            {isCommissioner && inLiveDraft && session?.status === "nominating" && !session?.paused && (
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                disabled={busy}
+                onClick={skipNominationTurn}
+              >
+                Skip nom
               </button>
             )}
             {isCommissioner && (
@@ -1225,6 +1310,7 @@ export default function DraftRoom({
             { id: "auction", label: "Auction" },
             { id: "pool", label: "Pool" },
             { id: "teams", label: "Teams" },
+            { id: "chat", label: "Chat" },
           ]}
           active={mobilePanel}
           onChange={setMobilePanelPersist}
@@ -1285,6 +1371,12 @@ export default function DraftRoom({
 
       {error && <div className="error hub-draft-error">{error}</div>}
 
+      {inLiveDraft && session?.paused && (
+        <div className="hub-draft-paused-banner" role="status">
+          Draft paused — clocks are frozen until the commissioner resumes.
+        </div>
+      )}
+
       <DraftPickRecap recap={pickRecap} onDismiss={() => setPickRecap(null)} />
 
       {showDraftEntry && (
@@ -1297,6 +1389,7 @@ export default function DraftRoom({
           onPracticeDraft={() => startMockDraft("quick_bots")}
           onSimulateFullDraft={() => startMockDraft("quick_bots", { simulate: true })}
           onStartLiveDraft={startDraft}
+          onSaveSchedule={saveDraftSchedule}
           onStartLeagueMirror={() => startMockDraft("league_mirror")}
           onStartKeeperSandbox={startKeeperSandbox}
           onDeleteSandbox={deleteSandbox}
@@ -1372,7 +1465,7 @@ export default function DraftRoom({
                     <button
                       type="button"
                       className="btn-primary btn-sm"
-                      disabled={Boolean(pendingAction) || selectedNomBlocked || !isMyNominationTurn}
+                      disabled={Boolean(pendingAction) || selectedNomBlocked || !isMyNominationTurn || Boolean(session?.paused)}
                       onClick={nominate}
                     >
                       {pendingAction === "nominate" ? "Nominating…" : "Nominate"}
@@ -1469,6 +1562,33 @@ export default function DraftRoom({
               pendingTradeCount={pendingTradeCount}
               onOpenInbox={() => setTradeModal({ seed: null, view: "inbox" })}
             />
+            {inLiveDraft && myTeamId && leagueId && (
+              <DraftNominationQueue
+                leagueId={leagueId}
+                queue={roomState?.viewer?.nomination_queue || []}
+                autodraft={Boolean(roomState?.viewer?.autodraft)}
+                selectedPlayerId={nomPlayerId}
+                selectedPlayerName={previewRow?.player || previewRow?.player_name || ""}
+                playerNames={Object.fromEntries(
+                  (availableRows || []).map((r) => [
+                    String(r.player_id),
+                    `${r.player || r.player_name || r.player_id} (${r.position || "?"})`,
+                  ]),
+                )}
+                disabled={busy}
+                onUpdated={applyState}
+              />
+            )}
+            {inLiveDraft && leagueId && (
+              <div className="hub-draft-mobile-section hub-draft-mobile-section--chat">
+                <LeagueChat
+                  leagueId={leagueId}
+                  hubContext={hubContext}
+                  compact
+                  lockedKind="league"
+                />
+              </div>
+            )}
             {draftCompleted && events.length > 0 && (
               <details className="hub-draft-log hub-draft-log-sidebar">
                 <summary>Bid log</summary>

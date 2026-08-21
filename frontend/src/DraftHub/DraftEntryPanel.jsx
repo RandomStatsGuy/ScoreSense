@@ -1,11 +1,17 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import DraftCommissionerSettings from "./DraftCommissionerSettings";
 import {
+  DRAFT_TZ_OPTIONS,
+  browserTimeZone,
   draftEntryPhase,
   draftFormatLabel,
   draftParticipantSummary,
+  formatDraftScheduleLabel,
+  formatDraftWait,
+  utcIsoToWall,
 } from "./draftEntryStatus";
 import { fmtSal } from "./rosterFormat";
+import { secondsUntil } from "./draftRoomHelpers";
 
 /**
  * Draft room idle entry: status card + distinct Practice vs Live CTAs (SCORE-17).
@@ -19,6 +25,7 @@ export default function DraftEntryPanel({
   onPracticeDraft,
   onSimulateFullDraft,
   onStartLiveDraft,
+  onSaveSchedule,
   onStartLeagueMirror,
   onStartKeeperSandbox,
   onDeleteSandbox,
@@ -62,6 +69,31 @@ export default function DraftEntryPanel({
   const waitingForCommish = Boolean(leagueId && inDraftSetup && !roomLoading && !isCommissioner);
   const liveEmphasis = canStartLive || waitingForCommish;
   const leagueName = hubContext?.league_name || league?.name || "your league";
+  const tzDefault = league?.draft_timezone || hubContext?.draft_timezone || browserTimeZone();
+  const [draftTz, setDraftTz] = useState(tzDefault);
+  const [draftWall, setDraftWall] = useState(() => utcIsoToWall(league?.draft_starts_at, tzDefault));
+  const [scheduleBusy, setScheduleBusy] = useState(false);
+
+  useEffect(() => {
+    const nextTz = league?.draft_timezone || hubContext?.draft_timezone || browserTimeZone();
+    setDraftTz(nextTz);
+    setDraftWall(utcIsoToWall(league?.draft_starts_at || hubContext?.draft_starts_at, nextTz));
+  }, [league?.draft_starts_at, league?.draft_timezone, hubContext?.draft_starts_at, hubContext?.draft_timezone]);
+
+  const startsAt = league?.draft_starts_at || hubContext?.draft_starts_at;
+  const waitSecs = startsAt ? secondsUntil(startsAt) : null;
+  const scheduledLabel = startsAt ? formatDraftScheduleLabel(startsAt, draftTz) : "";
+  const tzOptions = DRAFT_TZ_OPTIONS.includes(draftTz) ? DRAFT_TZ_OPTIONS : [draftTz, ...DRAFT_TZ_OPTIONS];
+
+  const saveSchedule = async (clear = false) => {
+    if (!onSaveSchedule) return;
+    setScheduleBusy(true);
+    try {
+      await onSaveSchedule(clear ? { clear: true } : { wall: draftWall, timezone: draftTz });
+    } finally {
+      setScheduleBusy(false);
+    }
+  };
 
   return (
     <div className="hub-draft-entry">
@@ -92,6 +124,17 @@ export default function DraftEntryPanel({
             <dt>Phase</dt>
             <dd>{phase.label}</dd>
           </div>
+          <div className="hub-draft-status-item">
+            <dt>Draft night</dt>
+            <dd>
+              {scheduledLabel || "Not scheduled"}
+              {waitSecs != null && waitSecs > 0 && (
+                <span className="hub-draft-status-detail chart-note">
+                  {formatDraftWait(waitSecs)}
+                </span>
+              )}
+            </dd>
+          </div>
         </dl>
       </section>
 
@@ -115,7 +158,11 @@ export default function DraftEntryPanel({
                 disabled={busy}
                 onClick={onStartLiveDraft}
               >
-                {busy ? "Starting…" : "Start live draft"}
+                {busy
+                  ? "Starting…"
+                  : startsAt && waitSecs > 0
+                    ? "Start now"
+                    : "Start live draft"}
               </button>
             ) : waitingForCommish ? (
               <span className="chart-note hub-draft-idle-wait">Waiting for commissioner to start</span>
@@ -134,6 +181,51 @@ export default function DraftEntryPanel({
               </button>
             )}
           </div>
+          {canStartLive && onSaveSchedule && (
+            <div className="hub-draft-schedule">
+              <label>
+                Date & time
+                <input
+                  type="datetime-local"
+                  value={draftWall}
+                  onChange={(e) => setDraftWall(e.target.value)}
+                  disabled={scheduleBusy || busy}
+                />
+              </label>
+              <label>
+                Timezone
+                <select
+                  value={draftTz}
+                  onChange={(e) => setDraftTz(e.target.value)}
+                  disabled={scheduleBusy || busy}
+                >
+                  {tzOptions.map((tz) => (
+                    <option key={tz} value={tz}>{tz.replace(/_/g, " ")}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="hub-draft-schedule-actions">
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  disabled={scheduleBusy || busy || !draftWall}
+                  onClick={() => saveSchedule(false)}
+                >
+                  {scheduleBusy ? "Saving…" : "Save draft time"}
+                </button>
+                {startsAt && (
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm"
+                    disabled={scheduleBusy || busy}
+                    onClick={() => saveSchedule(true)}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </article>
 
         <article className={`hub-draft-entry-card hub-draft-entry-card--practice${!liveEmphasis ? " is-emphasized" : ""}`}>

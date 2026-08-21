@@ -214,17 +214,86 @@ def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any
                 "team_name": team["name"],
                 "roster": team_roster,
                 "capacity": roster_capacity(rules, team_roster),
+                "nomination_queue": list(team.get("nomination_queue") or []),
+                "autodraft": bool(team.get("autodraft")),
                 **finance,
             }
     return out
 
 
-def start_draft(league_id: str, user_sub: str) -> dict[str, Any]:
+def _require_commissioner(league: dict[str, Any], user_sub: str) -> None:
+    if league["commissioner_sub"] != user_sub:
+        raise ValueError("Only commissioner can do that")
+
+
+def _assert_not_paused(session: dict[str, Any] | None) -> None:
+    if session and session.get("paused"):
+        raise ValueError("Draft is paused")
+
+
+def _parse_league_start(starts_at: str, tz_name: str) -> datetime:
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+    try:
+        zone = ZoneInfo(tz_name)
+    except (ZoneInfoNotFoundError, Exception) as exc:
+        raise ValueError(f"Unknown timezone: {tz_name}") from exc
+    text = str(starts_at).strip().replace("Z", "+00:00")
+    try:
+        dt = datetime.fromisoformat(text)
+    except ValueError as exc:
+        raise ValueError("draft_starts_at must be an ISO datetime") from exc
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=zone)
+    return dt.astimezone(timezone.utc)
+
+
+def set_draft_schedule(
+    league_id: str,
+    user_sub: str,
+    *,
+    starts_at: str | None = None,
+    timezone_name: str | None = None,
+    clear: bool = False,
+) -> dict[str, Any]:
+    league = storage.get_league(league_id)
+    if not league:
+        raise ValueError("League not found")
+    _require_commissioner(league, user_sub)
+    session = storage.get_draft_session(league_id) or {}
+    if session.get("status") not in (None, "", "setup"):
+        raise ValueError("Draft time can only change before the draft starts")
+    if clear:
+        storage.update_league_settings(league_id, clear_draft_start=True)
+        return get_room_state(league_id, user_sub)
+    tz = str(timezone_name or league.get("draft_timezone") or "America/New_York").strip() or "America/New_York"
+    utc = None
+    if starts_at:
+        utc = _parse_league_start(starts_at, tz).replace(microsecond=0).isoformat()
+    storage.update_league_settings(
+        league_id,
+        draft_starts_at=utc,
+        draft_timezone=tz,
+    )
+    return get_room_state(league_id, user_sub)
+
+
+def start_draft(league_id: str, user_sub: str, *, force: bool = False) -> dict[str, Any]:
     league = storage.get_league(league_id)
     if not league:
         raise ValueError("League not found")
     if league["commissioner_sub"] != user_sub:
         raise ValueError("Only commissioner can start draft")
+    session = storage.get_draft_session(league_id) or {}
+    if session.get("status") in ("nominating", "bidding"):
+        return get_room_state(league_id, user_sub)
+    starts = league.get("draft_starts_at")
+    if starts and not force:
+        when = _parse_utc(starts)
+        if datetime.now(timezone.utc) < when:
+            raise ValueError(
+                "Draft is scheduled for later. Use Start now (force) to override."
+            )
     rules = LeagueRules.model_validate(league["rules"])
     from src.draft_hub.draft_budgets import sync_league_auction_budgets
 
@@ -240,9 +309,111 @@ def start_draft(league_id: str, user_sub: str) -> dict[str, Any]:
         nomination_order_json=json.dumps(order),
         nominator_index=0,
         last_bid_at=None,
+        paused=0,
+        paused_at=None,
     )
     storage.append_draft_event(league_id, "start", {"by": user_sub})
     return get_room_state(league_id, user_sub)
+
+
+def pause_draft(league_id: str, user_sub: str) -> dict[str, Any]:
+    league = storage.get_league(league_id)
+    if not league:
+        raise ValueError("League not found")
+    _require_commissioner(league, user_sub)
+    session = storage.get_draft_session(league_id)
+    if not session or session.get("status") not in ("nominating", "bidding"):
+        raise ValueError("Draft is not in progress")
+    if session.get("paused"):
+        return get_room_state(league_id, user_sub)
+    storage.update_draft_session(league_id, paused=1, paused_at=_now_iso())
+    storage.append_draft_event(league_id, "pause", {"by": user_sub})
+    return get_room_state(league_id, user_sub)
+
+
+def resume_draft(league_id: str, user_sub: str) -> dict[str, Any]:
+    league = storage.get_league(league_id)
+    if not league:
+        raise ValueError("League not found")
+    _require_commissioner(league, user_sub)
+    session = storage.get_draft_session(league_id)
+    if not session or not session.get("paused"):
+        return get_room_state(league_id, user_sub)
+    paused_at = session.get("paused_at")
+    shift = timedelta(0)
+    if paused_at:
+        shift = datetime.now(timezone.utc) - _parse_utc(paused_at)
+        if shift.total_seconds() < 0:
+            shift = timedelta(0)
+    updates: dict[str, Any] = {"paused": 0, "paused_at": None}
+    for key in ("nomination_deadline", "bid_deadline"):
+        raw = session.get(key)
+        if raw:
+            updates[key] = (_parse_utc(raw) + shift).isoformat()
+    storage.update_draft_session(league_id, **updates)
+    storage.append_draft_event(league_id, "resume", {"by": user_sub})
+    return get_room_state(league_id, user_sub)
+
+
+def skip_nomination(league_id: str, user_sub: str) -> dict[str, Any]:
+    league = storage.get_league(league_id)
+    if not league:
+        raise ValueError("League not found")
+    _require_commissioner(league, user_sub)
+    session = storage.get_draft_session(league_id)
+    if not session or session.get("status") != "nominating":
+        raise ValueError("No nomination to skip")
+    _assert_not_paused(session)
+    rules = LeagueRules.model_validate(league["rules"])
+    nominator_id = _current_nominator_team_id(session)
+    team = storage.get_team(nominator_id) if nominator_id else None
+    _advance_nominator(league_id)
+    storage.update_draft_session(
+        league_id,
+        nomination_deadline=_deadline(rules.auction.nomination_timer_sec),
+        last_bid_at=None,
+    )
+    storage.append_draft_event(
+        league_id,
+        "pass",
+        {
+            "reason": "commissioner_skip",
+            "team_id": nominator_id,
+            "team_name": (team or {}).get("name"),
+        },
+    )
+    return get_room_state(league_id, user_sub)
+
+
+def set_nomination_queue(
+    league_id: str,
+    user_sub: str,
+    player_ids: list[str],
+    autodraft: bool | None = None,
+) -> dict[str, Any]:
+    team = _resolve_team(league_id, user_sub)
+    if not team:
+        raise ValueError("Not a league member")
+    cleaned = [str(pid).strip() for pid in player_ids if str(pid or "").strip()]
+    if len(cleaned) > 40:
+        raise ValueError("Nomination queue is limited to 40 players")
+    storage.update_team_draft_prefs(
+        team["id"],
+        nomination_queue=cleaned,
+        autodraft=autodraft,
+    )
+    return get_room_state(league_id, user_sub)
+
+
+def _pop_queue_player(team: dict[str, Any], player_id: str) -> None:
+    queue = [str(pid) for pid in (team.get("nomination_queue") or [])]
+    pid = str(player_id or "")
+    if pid not in queue:
+        return
+    storage.update_team_draft_prefs(
+        team["id"],
+        nomination_queue=[x for x in queue if x != pid],
+    )
 
 
 def draft_completion_errors(league_id: str) -> list[str]:
@@ -359,6 +530,8 @@ def reset_live_draft(league_id: str, user_sub: str) -> dict[str, Any]:
         last_bid_at=None,
         nominator_index=0,
         nomination_order_json=None,
+        paused=0,
+        paused_at=None,
     )
     storage.update_league_status(league_id, "setup")
     storage.update_league_settings(league_id, draft_completed=False)
@@ -412,6 +585,7 @@ def nominate(league_id: str, user_sub: str, player: dict[str, Any]) -> dict[str,
     session = storage.get_draft_session(league_id)
     if not session or session.get("status") not in ("nominating", "bidding"):
         raise ValueError("Draft not accepting nominations")
+    _assert_not_paused(session)
     rules = LeagueRules.model_validate(league["rules"])
     nominator_id = _current_nominator_team_id(session)
     is_commissioner = league["commissioner_sub"] == user_sub
@@ -482,6 +656,7 @@ def nominate(league_id: str, user_sub: str, player: dict[str, Any]) -> dict[str,
             "opening": True,
         },
     )
+    _pop_queue_player(team, nominee.get("player_id"))
     return get_room_state(league_id, user_sub)
 
 
@@ -495,6 +670,7 @@ def place_bid(league_id: str, user_sub: str, amount: float) -> dict[str, Any]:
     session = storage.get_draft_session(league_id)
     if not session or session.get("status") != "bidding":
         raise ValueError("No active bidding")
+    _assert_not_paused(session)
     rules = LeagueRules.model_validate(league["rules"])
     from src.draft_hub.draft_budgets import assert_can_afford_auction_bid
 
@@ -783,10 +959,24 @@ def _expire_nomination(league_id: str, user_sub: str | None = None) -> dict[str,
     return get_room_state(league_id, user_sub)
 
 
+def tick_scheduled_starts() -> list[str]:
+    """Auto-start live leagues whose published draft time has arrived."""
+    started: list[str] = []
+    for league_id, commissioner_sub in storage.list_due_scheduled_drafts():
+        try:
+            start_draft(league_id, commissioner_sub)
+            started.append(league_id)
+        except ValueError:
+            continue
+    return started
+
+
 def tick_expired_drafts() -> list[str]:
     """Advance every in-progress auction. Returns league ids whose state changed."""
-    changed: list[str] = []
+    changed: list[str] = tick_scheduled_starts()
     for league_id in storage.list_in_progress_draft_league_ids():
+        if league_id in changed:
+            continue
         before = _session_timer_fingerprint(storage.get_draft_session(league_id))
         check_timers(league_id)
         after = _session_timer_fingerprint(storage.get_draft_session(league_id))
@@ -797,11 +987,13 @@ def tick_expired_drafts() -> list[str]:
 
 def check_timers(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
     """Auto-pass expired bids/nominations; bots may bid/nominate in test mode."""
-    from src.draft_hub.test_draft import maybe_bot_bid, maybe_bot_nominate
+    from src.draft_hub.test_draft import maybe_autodraft_nominate, maybe_bot_bid, maybe_bot_nominate
 
     league = storage.get_league(league_id)
     session = storage.get_draft_session(league_id)
     if not league or not session:
+        return get_room_state(league_id, user_sub)
+    if session.get("paused"):
         return get_room_state(league_id, user_sub)
     now = datetime.now(timezone.utc)
     status = session.get("status")
@@ -811,6 +1003,10 @@ def check_timers(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
     if status == "nominating" and test_mode:
         bot_state = maybe_bot_nominate(league_id)
         if bot_state:
+            return get_room_state(league_id, user_sub)
+    if status == "nominating":
+        auto_state = maybe_autodraft_nominate(league_id)
+        if auto_state:
             return get_room_state(league_id, user_sub)
     if status == "bidding" and session.get("bid_deadline"):
         deadline = _parse_utc(session["bid_deadline"])

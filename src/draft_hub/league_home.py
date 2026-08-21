@@ -39,6 +39,7 @@ _PRIMARY_CTA = {
 # Priority order for action center (lower = higher priority).
 _ACTION_PRIORITY = {
     "cap_overage": 10,
+    "draft_night": 12,
     "sync_league": 20,
     "projections_stale": 30,
     "projections_missing": 35,
@@ -63,6 +64,29 @@ def _parse_iso(value: str | None) -> datetime | None:
         return dt
     except (TypeError, ValueError):
         return None
+
+
+def build_draft_schedule(
+    league: dict[str, Any] | None,
+    *,
+    now: datetime | None = None,
+) -> dict[str, Any] | None:
+    if not league:
+        return None
+    starts = league.get("draft_starts_at")
+    if not starts:
+        return None
+    when = _parse_iso(str(starts))
+    if when is None:
+        return None
+    ref = now or datetime.now(timezone.utc)
+    seconds = int((when.astimezone(timezone.utc) - ref.astimezone(timezone.utc)).total_seconds())
+    return {
+        "starts_at": starts,
+        "timezone": league.get("draft_timezone") or "UTC",
+        "seconds_until": seconds,
+        "is_due": seconds <= 0,
+    }
 
 
 def _days_ago(built_at: str | None, *, now: datetime | None = None) -> int | None:
@@ -157,6 +181,7 @@ def _build_actions(
     pre_draft: dict[str, Any] | None,
     week_summary: dict[str, Any],
     sleeper_linked: bool,
+    draft_schedule: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
     phase_id = phase["id"]
@@ -173,6 +198,21 @@ def _build_actions(
                 amount=overage,
             )
         )
+
+    if phase_id == PHASE_PRE_DRAFT and draft_schedule and not draft_schedule.get("is_due"):
+        secs = int(draft_schedule.get("seconds_until") or 0)
+        if 0 < secs <= 48 * 3600:
+            hours = secs // 3600
+            mins = (secs % 3600) // 60
+            wait = f"{hours}h {mins}m" if hours else f"{mins}m"
+            actions.append(
+                _action(
+                    "draft_night",
+                    severity="medium",
+                    message=f"Draft night starts in {wait}",
+                    href="room",
+                )
+            )
 
     if not sleeper_linked and phase_id != PHASE_LIVE_DRAFT:
         actions.append(
@@ -287,6 +327,8 @@ def _attention_line(actions: list[dict[str, Any]], freshness: dict[str, Any]) ->
         elif aid == "lineup_decisions":
             n = item.get("count") or 0
             parts.append(f"{n} lineup decision{'s' if n != 1 else ''}")
+        elif aid == "draft_night":
+            parts.append("draft night upcoming")
         elif aid == "sync_league":
             parts.append("league not linked")
         elif aid == "cap_sheets_stale":
@@ -350,12 +392,13 @@ def build_league_home(
     league_id = ctx.get("league_id")
     league_status = ctx.get("league_status")
     draft_session_status = None
+    league_row: dict[str, Any] | None = None
     if league_id:
         session = storage.get_draft_session(str(league_id)) or {}
         draft_session_status = session.get("status")
+        league_row = storage.get_league(str(league_id)) or {}
         if not league_status:
-            league = storage.get_league(str(league_id)) or {}
-            league_status = league.get("status")
+            league_status = league_row.get("status")
 
     nfl_season_type = _nfl_season_type()
     phase = resolve_league_phase(
@@ -411,6 +454,7 @@ def build_league_home(
     )
 
     week_summary = _week_summary_for_home(ctx, phase, include_week=include_week)
+    draft_schedule = build_draft_schedule(league_row, now=now)
     actions = _build_actions(
         phase=phase,
         freshness=freshness,
@@ -418,6 +462,7 @@ def build_league_home(
         pre_draft=pre_draft,
         week_summary=week_summary,
         sleeper_linked=sleeper_linked,
+        draft_schedule=draft_schedule,
     )
     attention_line = _attention_line(actions, freshness)
 
@@ -441,6 +486,7 @@ def build_league_home(
         },
         "phase": phase,
         "status_line": _status_line(ctx, phase),
+        "draft_schedule": draft_schedule,
         "attention": {
             "line": attention_line,
             "items": [

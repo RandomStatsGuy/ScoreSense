@@ -11833,8 +11833,18 @@ td.col-rank.col-rank-top {
 
   .hub-draft-layout--mobile-staged[data-mobile-panel="auction"] .hub-draft-mobile-section--auction,
   .hub-draft-layout--mobile-staged[data-mobile-panel="pool"] .hub-draft-mobile-section--pool,
-  .hub-draft-layout--mobile-staged[data-mobile-panel="teams"] .hub-draft-mobile-section--teams {
+  .hub-draft-layout--mobile-staged[data-mobile-panel="teams"] .hub-draft-mobile-section--teams,
+  .hub-draft-layout--mobile-staged[data-mobile-panel="chat"] .hub-draft-mobile-section--teams,
+  .hub-draft-layout--mobile-staged[data-mobile-panel="chat"] .hub-draft-mobile-section--chat {
     display: block;
+  }
+
+  .hub-draft-layout--mobile-staged[data-mobile-panel="chat"] .hub-draft-sidebar > :not(.hub-draft-mobile-section--chat) {
+    display: none;
+  }
+
+  .hub-draft-layout--mobile-staged[data-mobile-panel="teams"] .hub-draft-mobile-section--chat {
+    display: none;
   }
 
   .hub-draft-board-panel--mobile {
@@ -12974,6 +12984,80 @@ td.col-rank.col-rank-top {
   align-items: center;
 }
 .hub-league-chat-compose .search-input { flex: 1; }
+.hub-league-chat--compact {
+  min-height: 0;
+  margin-top: 0.75rem;
+}
+.hub-league-chat--compact .hub-league-chat-list {
+  min-height: 8rem;
+  max-height: 14rem;
+}
+.hub-league-chat-compact-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.hub-draft-paused-banner {
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(250, 204, 21, 0.12);
+  border: 1px solid rgba(250, 204, 21, 0.28);
+  font-size: 0.9rem;
+}
+.hub-draft-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.hub-draft-schedule label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+.hub-draft-schedule-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.hub-draft-schedule--setup {
+  margin: 0.75rem 0 1rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+}
+.hub-nom-queue {
+  margin: 0.75rem 0;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+}
+.hub-nom-queue summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.hub-nom-queue-list {
+  margin: 0.5rem 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.hub-nom-queue-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.85rem;
+}
+.hub-nom-queue-move {
+  display: flex;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
 
 /* —— SCORE-4 start/sit player compare —— */
 :root {

@@ -4,6 +4,8 @@ import {
   draftEntryPhase,
   draftFormatLabel,
   draftParticipantSummary,
+  formatDraftWait,
+  utcIsoToWall,
 } from "./draftEntryStatus.js";
 
 test("draftFormatLabel uses salary cap auction when auction rules exist", () => {
@@ -42,4 +44,12 @@ test("draftParticipantSummary excludes bots when humans exist", () => {
     teamCount: 12,
   });
   assert.equal(solo.label, "8 / 12");
+});
+
+test("formatDraftWait and utcIsoToWall", () => {
+  assert.equal(formatDraftWait(30), "30s");
+  assert.equal(formatDraftWait(120), "2m");
+  assert.match(formatDraftWait(3700), /1h/);
+  const wall = utcIsoToWall("2026-09-01T00:00:00.000Z", "UTC");
+  assert.equal(wall, "2026-09-01T00:00");
 });

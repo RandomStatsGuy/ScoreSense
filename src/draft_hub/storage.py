@@ -232,6 +232,12 @@ def _migrate(conn: sqlite3.Connection) -> None:
     _safe_add_column(conn, "draft_session", "last_bid_at", "TEXT")
     _safe_add_column(conn, "draft_session", "nominator_index", "INTEGER NOT NULL DEFAULT 0")
     _safe_add_column(conn, "draft_session", "nomination_order_json", "TEXT")
+    _safe_add_column(conn, "league", "draft_starts_at", "TEXT")
+    _safe_add_column(conn, "league", "draft_timezone", "TEXT")
+    _safe_add_column(conn, "draft_session", "paused", "INTEGER NOT NULL DEFAULT 0")
+    _safe_add_column(conn, "draft_session", "paused_at", "TEXT")
+    _safe_add_column(conn, "team", "nomination_queue_json", "TEXT")
+    _safe_add_column(conn, "team", "autodraft", "INTEGER NOT NULL DEFAULT 0")
 
     conn.execute(
         """CREATE TABLE IF NOT EXISTS league_invite (
@@ -1378,6 +1384,7 @@ def get_draft_session(league_id: str) -> dict[str, Any] | None:
             d["nomination_order"] = json.loads(d["nomination_order_json"])
         else:
             d["nomination_order"] = []
+        d["paused"] = bool(int(d.get("paused") or 0))
         return d
 
 
@@ -1423,6 +1430,7 @@ def update_draft_session(league_id: str, **fields: Any) -> dict[str, Any]:
         "status", "current_nominee_json", "high_bid", "high_bidder_team_id",
         "nomination_deadline", "bid_deadline", "started_at", "completed_at", "pool_mode",
         "last_bid_at", "nominator_index", "nomination_order_json",
+        "paused", "paused_at",
     }
     parts = []
     params: list[Any] = []
@@ -1447,6 +1455,69 @@ def update_league_status(league_id: str, status: str) -> None:
 def update_team_budget(team_id: str, budget_remaining: float) -> None:
     with get_conn() as conn:
         conn.execute("UPDATE team SET budget_remaining = ? WHERE id = ?", (budget_remaining, team_id))
+
+
+def _nomination_queue_from_row(row: sqlite3.Row, keys: Any) -> list[str]:
+    if "nomination_queue_json" not in keys:
+        return []
+    raw = row["nomination_queue_json"]
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        return []
+    if not isinstance(parsed, list):
+        return []
+    return [str(pid) for pid in parsed if str(pid or "").strip()]
+
+
+def update_team_draft_prefs(
+    team_id: str,
+    *,
+    nomination_queue: list[str] | None = None,
+    autodraft: bool | None = None,
+) -> dict[str, Any] | None:
+    with get_conn() as conn:
+        if nomination_queue is not None:
+            conn.execute(
+                "UPDATE team SET nomination_queue_json = ? WHERE id = ?",
+                (json.dumps([str(pid) for pid in nomination_queue if str(pid or "").strip()]), team_id),
+            )
+        if autodraft is not None:
+            conn.execute(
+                "UPDATE team SET autodraft = ? WHERE id = ?",
+                (1 if autodraft else 0, team_id),
+            )
+        row = conn.execute("SELECT * FROM team WHERE id = ?", (team_id,)).fetchone()
+        return _team_dict(row) if row else None
+
+
+def list_due_scheduled_drafts(now: datetime | None = None) -> list[tuple[str, str]]:
+    """(league_id, commissioner_sub) for live rooms whose scheduled start is due."""
+    clock = now or datetime.now(timezone.utc)
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT l.id, l.commissioner_sub, l.draft_starts_at
+               FROM league l
+               JOIN draft_session s ON s.league_id = l.id
+               WHERE l.draft_starts_at IS NOT NULL AND TRIM(l.draft_starts_at) != ''
+                 AND COALESCE(l.test_mode, 0) = 0
+                 AND COALESCE(l.draft_completed, 0) = 0
+                 AND LOWER(COALESCE(l.status, 'setup')) = 'setup'
+                 AND LOWER(COALESCE(s.status, 'setup')) = 'setup'"""
+        ).fetchall()
+    due: list[tuple[str, str]] = []
+    for row in rows:
+        try:
+            when = datetime.fromisoformat(str(row["draft_starts_at"]).replace("Z", "+00:00"))
+            if when.tzinfo is None:
+                when = when.replace(tzinfo=timezone.utc)
+            if when.astimezone(timezone.utc) <= clock:
+                due.append((str(row["id"]), str(row["commissioner_sub"])))
+        except (TypeError, ValueError):
+            continue
+    return due
 
 
 def get_team(team_id: str) -> dict[str, Any] | None:
@@ -1665,6 +1736,8 @@ def _team_dict(row: sqlite3.Row) -> dict[str, Any]:
         "sleeper_team_name": row["sleeper_team_name"] if "sleeper_team_name" in keys else None,
         "sleeper_player_ids": player_ids,
         "sleeper_synced_at": row["sleeper_synced_at"] if "sleeper_synced_at" in keys else None,
+        "nomination_queue": _nomination_queue_from_row(row, keys),
+        "autodraft": bool(int(row["autodraft"] or 0)) if "autodraft" in keys else False,
     }
 
 
@@ -1815,8 +1888,17 @@ def update_league_settings(
     *,
     lock_team_claims: bool | None = None,
     draft_completed: bool | None = None,
+    draft_starts_at: str | None = None,
+    draft_timezone: str | None = None,
+    clear_draft_start: bool = False,
 ) -> dict[str, Any] | None:
-    if lock_team_claims is None and draft_completed is None:
+    if (
+        lock_team_claims is None
+        and draft_completed is None
+        and draft_starts_at is None
+        and draft_timezone is None
+        and not clear_draft_start
+    ):
         return get_league(league_id)
     with get_conn() as conn:
         if lock_team_claims is not None:
@@ -1829,6 +1911,22 @@ def update_league_settings(
                 "UPDATE league SET draft_completed = ? WHERE id = ?",
                 (1 if draft_completed else 0, league_id),
             )
+        if clear_draft_start:
+            conn.execute(
+                "UPDATE league SET draft_starts_at = NULL, draft_timezone = NULL WHERE id = ?",
+                (league_id,),
+            )
+        else:
+            if draft_starts_at is not None:
+                conn.execute(
+                    "UPDATE league SET draft_starts_at = ? WHERE id = ?",
+                    (draft_starts_at, league_id),
+                )
+            if draft_timezone is not None:
+                conn.execute(
+                    "UPDATE league SET draft_timezone = ? WHERE id = ?",
+                    (draft_timezone, league_id),
+                )
         row = conn.execute("SELECT * FROM league WHERE id = ?", (league_id,)).fetchone()
         return _league_dict(row) if row else None
 
@@ -2090,6 +2188,8 @@ def _league_dict(row: sqlite3.Row) -> dict[str, Any]:
         "sleeper_league_id": row["sleeper_league_id"] if "sleeper_league_id" in keys else None,
         "lock_team_claims": bool(row["lock_team_claims"]) if "lock_team_claims" in keys else True,
         "draft_completed": bool(row["draft_completed"]) if "draft_completed" in keys else False,
+        "draft_starts_at": row["draft_starts_at"] if "draft_starts_at" in keys else None,
+        "draft_timezone": row["draft_timezone"] if "draft_timezone" in keys else None,
         "live_roster_revision": int(row["live_roster_revision"] or 0)
         if "live_roster_revision" in keys
         else 0,

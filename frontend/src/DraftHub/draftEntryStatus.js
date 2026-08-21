@@ -1,5 +1,71 @@
 /** Labels and counts for the Draft room entry status card (SCORE-17). */
 
+export const DRAFT_TZ_OPTIONS = [
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "America/Phoenix",
+  "America/Anchorage",
+  "Pacific/Honolulu",
+  "UTC",
+];
+
+export function browserTimeZone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
+  } catch {
+    return "America/New_York";
+  }
+}
+
+export function utcIsoToWall(iso, timeZone) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timeZone || "UTC",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(d);
+  const get = (type) => parts.find((p) => p.type === type)?.value || "";
+  const hour = String(get("hour")).padStart(2, "0");
+  return `${get("year")}-${get("month")}-${get("day")}T${hour}:${get("minute")}`;
+}
+
+export function formatDraftScheduleLabel(iso, timeZone) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString(undefined, {
+    timeZone: timeZone || undefined,
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+}
+
+export function formatDraftWait(secondsUntilStart) {
+  const secs = Number(secondsUntilStart);
+  if (!Number.isFinite(secs)) return "";
+  if (secs <= 0) return "Starting now";
+  if (secs < 60) return `${Math.ceil(secs)}s`;
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  const rem = mins % 60;
+  if (hours < 48) return rem ? `${hours}h ${rem}m` : `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ${hours % 24}h`;
+}
+
 export function draftFormatLabel(rules) {
   if (!rules || rules.auction != null) return "Salary cap auction";
   return "Auction";
