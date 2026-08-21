@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { formatDraftEvent } from "./draftRoomHelpers.js";
+import { formatDraftEvent, buildRosterCapacity, unmetMinPositions, pinNeedPositions } from "./draftRoomHelpers.js";
 import { auctionAwardContractLabel } from "./rosterFormat.js";
 
 test("formatDraftEvent describes mid-draft trades", () => {
@@ -75,4 +75,32 @@ test("auctionAwardContractLabel describes locked rookie and vet deals", () => {
     }),
     "Veteran deal · 2y · $20 → $25",
   );
+});
+
+test("buildRosterCapacity ignores expirees and flags below_min", () => {
+  const rules = {
+    roster: {
+      wr: { min: 0, max: 8 },
+      te: { min: 1, max: 3 },
+    },
+  };
+  const cap = buildRosterCapacity(rules, [
+    { player_id: "keep", position: "WR", source: "draft", contract_years: 1 },
+    { player_id: "expire", position: "TE", source: "sheet", contract_years: 1 },
+  ]);
+  assert.equal(cap.WR.count, 1);
+  assert.equal(cap.TE.count, 0);
+  assert.equal(cap.TE.below_min, true);
+  assert.deepEqual(unmetMinPositions(cap), ["TE"]);
+});
+
+test("pinNeedPositions lifts unmet-min positions into the visible window", () => {
+  const rows = [
+    { player_id: "wr1", position: "WR" },
+    { player_id: "wr2", position: "WR" },
+    { player_id: "te1", position: "TE" },
+    { player_id: "wr3", position: "WR" },
+  ];
+  const visible = pinNeedPositions(rows, ["TE"], 3);
+  assert.deepEqual(visible.map((r) => r.player_id), ["te1", "wr1", "wr2"]);
 });

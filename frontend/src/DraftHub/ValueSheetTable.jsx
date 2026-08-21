@@ -9,14 +9,15 @@ import MobilePlayerCard from "../MobilePlayerCard";
 import { usePlayerMedia } from "../PlayerCell";
 import { confirmDialog } from "../ui/confirm";
 import HubTabIntro from "./HubTabIntro";
-import { HubPage, HubTableCard, HubFilterMenu, SortTh } from "./HubUILayout";
+import { pinNeedPositions } from "./draftRoomHelpers";
 import {
   filterAndSortRows,
   fmtSal,
   formatStatusLabel,
   nextSortState,
 } from "./valueSheetUtils";
-import { HUB_POSITION_FILTERS } from "./hubPositions";
+import { HubPage, HubTableCard, HubFilterMenu, HubFilterChip, SortTh } from "./HubUILayout";
+import { HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import ValueSheetPlayerRow from "./ValueSheetPlayerRow";
 import {
   formatSeasonPts,
@@ -107,6 +108,7 @@ export default function ValueSheetTable({
   isCommissioner = false,
   riskTolerance = 0,
   rules = null,
+  needPositions = [],
 }) {
   const isAvailableView = mode === "available";
   const [sortKey, setSortKey] = useState("fair_value");
@@ -116,6 +118,7 @@ export default function ValueSheetTable({
   const [tierFilter, setTierFilter] = useState("ALL");
   const [riskProfile, setRiskProfile] = useState("ALL");
   const [search, setSearch] = useState("");
+  const [needsOnly, setNeedsOnly] = useState(false);
   const [addingId, setAddingId] = useState(null);
   const [addError, setAddError] = useState("");
   const [showAdvancedLocal, setShowAdvancedLocal] = useState(false);
@@ -151,7 +154,7 @@ export default function ValueSheetTable({
   }, [posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, rows]);
 
   const sorted = useMemo(() => {
-    const list = filterAndSortRows(rows, {
+    let list = filterAndSortRows(rows, {
       pool: isAvailableView ? "available" : "all",
       posFilter,
       statusFilter: isAvailableView ? "ALL" : statusFilter,
@@ -161,8 +164,13 @@ export default function ValueSheetTable({
       sortKey,
       sortDir,
     });
-    return maxRows ? list.slice(0, maxRows) : list;
-  }, [rows, isAvailableView, posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, maxRows]);
+    const pins = [...new Set((needPositions || []).map((p) => String(p || "").toUpperCase()).filter(Boolean))];
+    if (needsOnly && pins.length) {
+      const pinSet = new Set(pins);
+      list = list.filter((r) => pinSet.has(normalizeHubPosition(r.position)));
+    }
+    return pinNeedPositions(list, pins, maxRows);
+  }, [rows, isAvailableView, posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, maxRows, needPositions, needsOnly]);
 
   const seasonScaleMax = useMemo(() => {
     let max = 0;
@@ -398,6 +406,16 @@ export default function ValueSheetTable({
         />
         <div className="hub-filter-bar-menus">
           <HubFilterMenu label="Pos" value={posFilter} options={positionOptions} onChange={setPosFilter} />
+          {needPositions?.length > 0 && (
+            <HubFilterChip
+              compact={compact}
+              active={needsOnly}
+              onClick={() => setNeedsOnly((v) => !v)}
+              title={`Pin ${needPositions.join(", ")} into the visible list (unmet minimums)`}
+            >
+              Needs {needPositions.join(" ")}
+            </HubFilterChip>
+          )}
           <HubFilterMenu
             label="Sort"
             value={sortKey}

@@ -25,6 +25,7 @@ import {
   formatDraftEvent,
   isRetainedThroughDraft,
   minNextBid,
+  unmetMinPositions,
 } from "./draftRoomHelpers";
 import { fmtSal } from "./rosterFormat";
 import {
@@ -119,7 +120,13 @@ export default function DraftRoom({
     return roomState?.viewer?.roster || [];
   }, [myTeamId, roomState?.rosters, roomState?.viewer?.roster]);
 
-  const posCapacity = useMemo(() => buildRosterCapacity(rules, myRoster), [rules, myRoster]);
+  const posCapacity = useMemo(
+    () => buildRosterCapacity(rules, myRoster, {
+      draftCompleted: Boolean(league?.draft_completed) || session?.status === "completed",
+    }),
+    [rules, myRoster, league?.draft_completed, session?.status],
+  );
+  const needPositions = useMemo(() => unmetMinPositions(posCapacity), [posCapacity]);
 
   const viewerPanel = useMemo(() => {
     if (!myTeamId && !roomState?.viewer) return null;
@@ -1562,6 +1569,7 @@ export default function DraftRoom({
                       showStatus={false}
                       defaultPosFilter="ALL"
                       maxRows={60}
+                      needPositions={needPositions}
                       narrativeScope="season"
                       riskTolerance={rules?.risk_tolerance ?? 0}
                       rules={rules || null}
@@ -1669,6 +1677,7 @@ export default function DraftRoom({
                   isViewer={false}
                   defaultOpen={false}
                   rosterLimits={roomState?.roster_limits}
+                  draftCompleted={draftCompleted}
                   allowTrades={tradesActive}
                   onTradePlayer={(seed) => setTradeModal({ seed, view: "builder" })}
                 />
@@ -1691,6 +1700,7 @@ export default function DraftRoom({
                       isViewer={t.id === myTeamId}
                       defaultOpen={t.id === myTeamId}
                       rosterLimits={roomState?.roster_limits}
+                      draftCompleted={draftCompleted}
                     />
                   ))}
                 </div>

@@ -244,6 +244,7 @@ def roster_capacity(rules: LeagueRules, roster: list[dict[str, Any]]) -> dict[st
             "min": int(lim["min"]),
             "max": max_n,
             "at_max": count >= max_n,
+            "below_min": count < int(lim["min"]),
             "remaining": max(0, max_n - count),
         }
     size_max = total_roster_slots(rules)
