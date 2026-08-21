@@ -19,10 +19,10 @@ function formatTime(iso) {
   }
 }
 
-export default function LeagueChat({ leagueId, hubContext }) {
+export default function LeagueChat({ leagueId, hubContext, compact = false, lockedKind = null }) {
   const isStaff = Boolean(hubContext?.is_commissioner);
   const isPrimary = Boolean(hubContext?.is_primary_commissioner);
-  const [kind, setKind] = useState("league");
+  const [kind, setKind] = useState(lockedKind || "league");
   const [messages, setMessages] = useState([]);
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
@@ -55,8 +55,12 @@ export default function LeagueChat({ leagueId, hubContext }) {
   }, [load]);
 
   useEffect(() => {
+    if (lockedKind) {
+      setKind(lockedKind);
+      return;
+    }
     if (!isStaff && kind === "office") setKind("league");
-  }, [isStaff, kind]);
+  }, [isStaff, kind, lockedKind]);
 
   useEffect(() => {
     const el = listRef.current;
@@ -164,7 +168,8 @@ export default function LeagueChat({ leagueId, hubContext }) {
   };
 
   return (
-    <div className="hub-league-chat">
+    <div className={`hub-league-chat${compact ? " hub-league-chat--compact" : ""}`}>
+      {!compact && (
       <div className="hub-filter-bar hub-league-chat-channels">
         <HubFilterChip active={kind === "league"} onClick={() => setKind("league")}>
           League
@@ -191,6 +196,13 @@ export default function LeagueChat({ leagueId, hubContext }) {
           </button>
         )}
       </div>
+      )}
+      {compact && (
+        <div className="hub-league-chat-compact-head">
+          <strong>Draft chat</strong>
+          <span className="chart-note">League</span>
+        </div>
+      )}
 
       {error && <div className="error">{error}</div>}
       {loading && <p className="chart-note">Loading messages…</p>}

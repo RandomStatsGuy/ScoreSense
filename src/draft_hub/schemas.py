@@ -122,6 +122,14 @@ class ContractTypeDecisionRequest(BaseModel):
 class LeagueSettingsUpdate(BaseModel):
     lock_team_claims: Optional[bool] = None
     draft_completed: Optional[bool] = None
+    draft_starts_at: Optional[str] = None
+    draft_timezone: Optional[str] = None
+    clear_draft_start: Optional[bool] = None
+
+
+class NominationQueueUpdate(BaseModel):
+    player_ids: list[str] = Field(default_factory=list)
+    autodraft: Optional[bool] = None
 
 
 class AuctionRulesUpdate(BaseModel):

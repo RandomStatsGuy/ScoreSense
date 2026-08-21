@@ -2,19 +2,20 @@ import React, { useEffect, useState } from "react";
 import { formatCountdown, secondsUntil } from "./draftRoomHelpers";
 
 /** Isolated 1s countdown — avoids re-rendering the whole draft room. */
-export default function DraftDeadlineClock({ deadline, className = "" }) {
+export default function DraftDeadlineClock({ deadline, paused = false, className = "" }) {
   const [seconds, setSeconds] = useState(() => (deadline ? secondsUntil(deadline) : null));
 
   useEffect(() => {
-    if (!deadline) {
-      setSeconds(null);
+    if (paused || !deadline) {
+      setSeconds(paused && deadline ? secondsUntil(deadline) : null);
       return undefined;
     }
     setSeconds(secondsUntil(deadline));
     const id = setInterval(() => setSeconds(secondsUntil(deadline)), 1000);
     return () => clearInterval(id);
-  }, [deadline]);
+  }, [deadline, paused]);
 
+  if (paused) return <span className={className}>Paused</span>;
   if (seconds == null) return null;
   return <span className={className}>{formatCountdown(seconds)}</span>;
 }
