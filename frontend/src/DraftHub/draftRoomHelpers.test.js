@@ -11,6 +11,16 @@ test("formatDraftEvent describes mid-draft trades", () => {
   assert.equal(formatDraftEvent({ event_type: "trade", payload: {} }), "Trade completed");
 });
 
+test("formatDraftEvent describes nomination timeout skip", () => {
+  assert.equal(
+    formatDraftEvent({
+      event_type: "pass",
+      payload: { reason: "nomination_timeout", team_name: "Bob" },
+    }),
+    "Bob skipped — nomination clock expired",
+  );
+});
+
 test("auctionAwardContractLabel describes locked rookie and vet deals", () => {
   assert.equal(
     auctionAwardContractLabel({

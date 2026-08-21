@@ -117,8 +117,18 @@ from app.auth import admin_configured
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_process_executor(max_workers=1)
-    yield
-    shutdown_process_executor(wait=False)
+    from app.draft_ticker import draft_ticker_loop
+
+    ticker = asyncio.create_task(draft_ticker_loop(), name="draft-ticker")
+    try:
+        yield
+    finally:
+        ticker.cancel()
+        try:
+            await ticker
+        except asyncio.CancelledError:
+            pass
+        shutdown_process_executor(wait=False)
 
 
 app = FastAPI(

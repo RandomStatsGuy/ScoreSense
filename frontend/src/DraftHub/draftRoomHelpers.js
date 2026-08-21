@@ -14,6 +14,9 @@ export function formatDraftEvent(ev) {
       if (p.reason === "no_bids") {
         return `${p.player_name || "Player"} passed — no bids`;
       }
+      if (p.reason === "nomination_timeout") {
+        return `${p.team_name || "Team"} skipped — nomination clock expired`;
+      }
       if (p.reason === "position_cap") return `${p.player_id ? "No sale" : "Nomination passed"} · roster position full`;
       return p.player_id ? "No sale" : "Nomination passed";
     case "start":
