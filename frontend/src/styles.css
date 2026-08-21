@@ -9213,6 +9213,7 @@ td.col-rank.col-rank-top {
   border-radius: 999px; font-size: 0.75rem; background: rgba(255, 255, 255, 0.06);
 }
 .hub-cap-chip-full { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
+.hub-cap-chip-need { background: rgba(245, 158, 11, 0.18); color: #fbbf24; }
 .hub-roster-list { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow-x: hidden; overflow-y: auto; }
 .hub-roster-row {
   display: grid;
@@ -9596,6 +9597,7 @@ td.col-rank.col-rank-top {
   font-size: 0.72rem; padding: 0.1rem 0.4rem; border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
 }
+.hub-team-pos-need { background: rgba(245, 158, 11, 0.18); color: #fbbf24; }
 .hub-team-roster-detail { padding: 0 0.85rem 0.75rem; border-top: 1px solid var(--border); }
 .hub-row-selected { background: rgba(59, 130, 246, 0.12) !important; }
 .hub-draft-phase {

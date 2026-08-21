@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { HUB_POS_ORDER, normalizeHubPosition } from "./hubPositions";
+import { isRetainedThroughDraft } from "./draftRoomHelpers";
 import { fmtSal } from "./rosterFormat";
 
 export default function DraftTeamCard({
@@ -11,11 +12,17 @@ export default function DraftTeamCard({
   isViewer,
   defaultOpen = false,
   rosterLimits,
+  draftCompleted = false,
   allowTrades = false,
   onTradePlayer,
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const spent = cap - Number(team.budget_remaining ?? cap);
+
+  const occupying = useMemo(
+    () => (roster || []).filter((row) => isRetainedThroughDraft(row, draftCompleted)),
+    [roster, draftCompleted],
+  );
 
   const grouped = useMemo(() => {
     const map = {};
@@ -27,13 +34,25 @@ export default function DraftTeamCard({
     return map;
   }, [roster]);
 
+  const occupyCounts = useMemo(() => {
+    const counts = {};
+    for (const row of occupying) {
+      const pos = normalizeHubPosition(row.position || "?");
+      counts[pos] = (counts[pos] || 0) + 1;
+    }
+    return counts;
+  }, [occupying]);
+
   const posSummary = useMemo(() => {
     return HUB_POS_ORDER.map((pos) => {
-      const count = grouped[pos]?.length ?? 0;
-      const max = rosterLimits?.[pos.toLowerCase()]?.max;
-      return { pos, count, max };
-    }).filter((row) => row.count > 0 || row.max);
-  }, [grouped, rosterLimits]);
+      const count = occupyCounts[pos] || 0;
+      const lim = rosterLimits?.[pos.toLowerCase()] || {};
+      const max = lim.max;
+      const min = Number(lim.min ?? 0);
+      const need = Math.max(0, min - count);
+      return { pos, count, max, min, need };
+    }).filter((row) => row.count > 0 || row.max || row.need);
+  }, [occupyCounts, rosterLimits]);
 
   const orderedRoster = useMemo(
     () =>
@@ -58,7 +77,7 @@ export default function DraftTeamCard({
           </span>
           <span className="hub-team-card-meta">
             {fmtSal(team.budget_remaining)}
-            <span className="chart-note"> · {roster.length}</span>
+            <span className="chart-note"> · {occupying.length}</span>
           </span>
         </div>
         <div className="hub-budget-bar">
@@ -68,14 +87,21 @@ export default function DraftTeamCard({
       {open && (
         <div className="hub-team-roster-detail">
           <p className="chart-note hub-team-detail-meta">
-            {fmtSal(team.budget_remaining)} left · {fmtSal(spent)} spent · {roster.length} players
+            {fmtSal(team.budget_remaining)} left · {fmtSal(spent)} spent · {occupying.length} players
             {team.is_commissioner ? " · Commish" : ""}
             {team.is_bot ? " · Bot" : ""}
           </p>
           {posSummary.length > 0 && (
             <div className="hub-team-pos-summary">
-              {posSummary.map(({ pos, count, max }) => (
-                <span key={pos} className="hub-team-pos-pill">{pos} {count}{max ? `/${max}` : ""}</span>
+              {posSummary.map(({ pos, count, max, min, need }) => (
+                <span
+                  key={pos}
+                  className={`hub-team-pos-pill${need ? " hub-team-pos-need" : ""}`}
+                >
+                  {need
+                    ? `Need ${pos} · ${count}/${min}`
+                    : `${pos} ${count}${max ? `/${max}` : ""}`}
+                </span>
               ))}
             </div>
           )}

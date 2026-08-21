@@ -31,6 +31,7 @@ def test_roster_capacity_at_max(hub_db):
     ]
     cap = roster_capacity(rules, roster)
     assert cap["by_position"]["WR"]["at_max"] is True
+    assert cap["by_position"]["TE"]["below_min"] is True
     with pytest.raises(ValueError, match="WR maximum"):
         assert_can_acquire(rules, roster, "WR")
 
