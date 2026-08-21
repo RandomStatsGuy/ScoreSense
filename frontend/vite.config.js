@@ -15,7 +15,10 @@ export default defineConfig(({ mode }) => {
       apply: "build",
       transformIndexHtml(html) {
         if (html.includes("googletagmanager.com/gtag/js")) return html;
-        return html.replace("</head>", `    ${productionGtagHtmlSnippet()}\n  </head>`);
+        return html.replace(
+          "<head>",
+          `<head>\n    ${productionGtagHtmlSnippet()}`,
+        );
       },
     },
     VitePWA({
