@@ -1381,6 +1381,15 @@ def get_draft_session(league_id: str) -> dict[str, Any] | None:
         return d
 
 
+def list_in_progress_draft_league_ids() -> list[str]:
+    """League ids whose auction is nominating or bidding (for the server ticker)."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT league_id FROM draft_session WHERE status IN ('nominating', 'bidding')"
+        ).fetchall()
+    return [str(r["league_id"]) for r in rows]
+
+
 def append_draft_event(league_id: str, event_type: str, payload: dict[str, Any]) -> dict[str, Any]:
     now = _utcnow()
     with get_conn() as conn:
