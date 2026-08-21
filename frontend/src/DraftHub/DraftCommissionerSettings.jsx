@@ -111,11 +111,11 @@ export default function DraftCommissionerSettings({
         Who can be nominated
         <select value={nomPool} disabled={disabled || saving} onChange={(e) => setNomPool(e.target.value)}>
           <option value="full">Any undrafted NFL player</option>
-          <option value="roster_plus_rookies">Keeper league — my roster + rookies only</option>
+          <option value="roster_plus_rookies">Keeper league — keepers off, FA and expirees in</option>
         </select>
       </label>
       <p className="chart-note hub-draft-pool-hint">
-        Keeper mode hides rostered players from the pool.
+        Keeper mode hides players retained through the draft. Expirees, cuts, and undrafted rookies stay nominatable.
       </p>
       <p className="chart-note">Nomination order:</p>
       <ol className="hub-nomination-order">
