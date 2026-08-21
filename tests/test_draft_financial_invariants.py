@@ -172,13 +172,12 @@ def test_over_cap_team_cannot_bid(hub_db, monkeypatch):
             "position": "WR",
         },
     )
-    nominate(
-        seeded["league_id"],
-        seeded["comm_sub"],
-        {"player_id": "fa-wr", "player_name": "FA WR", "position": "WR"},
-    )
     with pytest.raises(ValueError, match="over cap"):
-        place_bid(seeded["league_id"], seeded["comm_sub"], 1)
+        nominate(
+            seeded["league_id"],
+            seeded["comm_sub"],
+            {"player_id": "fa-wr", "player_name": "FA WR", "position": "WR"},
+        )
 
 
 def test_server_reserves_min_bid_for_open_slots(hub_db):
@@ -343,7 +342,7 @@ def test_reset_after_end_syncs_budget_after_rewind(hub_db):
     start_draft(seeded["league_id"], seeded["comm_sub"])
     # $80 + $10 retained + $20 dead → $90
     assert float(storage.get_team(seeded["comm_team_id"])["budget_remaining"]) == 90.0
-    end_draft(seeded["league_id"], seeded["comm_sub"])
+    end_draft(seeded["league_id"], seeded["comm_sub"], force=True)
     reset_live_draft(seeded["league_id"], seeded["comm_sub"])
     assert float(storage.get_team(seeded["comm_team_id"])["budget_remaining"]) == 90.0
 
@@ -374,7 +373,7 @@ def test_sandbox_reset_after_end_uses_pre_draft_budget(hub_db):
     comm = next(t for t in storage.list_league_teams(sandbox_id) if t.get("is_commissioner"))
     assert float(comm["budget_remaining"]) == 100.0
     start_draft(sandbox_id, seeded["comm_sub"])
-    end_draft(sandbox_id, seeded["comm_sub"])
+    end_draft(sandbox_id, seeded["comm_sub"], force=True)
     reset_test_draft(sandbox_id, seeded["comm_sub"])
     assert float(storage.get_team(comm["id"])["budget_remaining"]) == 100.0
 

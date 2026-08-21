@@ -97,7 +97,7 @@ def _pick_nomination_payload(
 ) -> dict[str, Any] | None:
     """Best available player this team can still roster, as a nominate() payload."""
     from src.draft_hub.draft_pool import build_nomination_pool
-    from src.draft_hub.rules_engine import assert_can_acquire
+    from src.draft_hub.rules_engine import assert_can_acquire, nomination_sort_key, should_need_bid
 
     ws = storage.roster_workspace_for_league(league)
     pool = build_nomination_pool(
@@ -118,10 +118,10 @@ def _pick_nomination_payload(
     if not candidates:
         return None
 
-    candidates.sort(
-        key=lambda r: float(r.get("fair_value") or r.get("model_bid_hint") or r.get("season_proj") or 0),
-        reverse=True,
-    )
+    need_fill = [r for r in candidates if should_need_bid(rules, roster, r.get("position"))]
+    if need_fill:
+        candidates = need_fill
+    candidates.sort(key=lambda r: nomination_sort_key(rules, roster, r))
     pick = candidates[0]
     return {
         "player_id": pick["player_id"],
@@ -217,10 +217,12 @@ def maybe_bot_bid(league_id: str) -> dict[str, Any] | None:
             continue
         # Keep min_bid in reserve for every roster slot still to fill.
         from src.draft_hub.draft_budgets import open_roster_slots
+        from src.draft_hub.rules_engine import should_need_bid
 
-        open_slots = open_roster_slots(
-            rules, storage.list_team_roster(league_id, bot["id"]), draft_completed=False
-        )
+        roster = storage.list_team_roster(league_id, bot["id"])
+        if not should_need_bid(rules, roster, nominee.get("position")):
+            continue
+        open_slots = open_roster_slots(rules, roster, draft_completed=False)
         if open_slots > 1 and next_bid > budget - min_bid * (open_slots - 1):
             continue
         try:
@@ -238,7 +240,7 @@ def _settle_auction(league_id: str) -> None:
     outcome as the live bot loop, but one bid per pick.
     """
     from src.draft_hub.draft_state import award_nominee
-    from src.draft_hub.rules_engine import assert_can_acquire
+    from src.draft_hub.rules_engine import assert_can_acquire, should_need_bid
 
     session = storage.get_draft_session(league_id) or {}
     if session.get("status") != "bidding":
@@ -259,6 +261,10 @@ def _settle_auction(league_id: str) -> None:
         try:
             assert_can_acquire(rules, roster, nominee.get("position"))
         except ValueError:
+            continue
+        if str(team["id"]) != str(high_team_id) and not should_need_bid(
+            rules, roster, nominee.get("position")
+        ):
             continue
         budget = float(team.get("budget_remaining") or 0)
         from src.draft_hub.draft_budgets import open_roster_slots
@@ -353,5 +359,9 @@ def simulate_draft(
 
     session = storage.get_draft_session(league_id) or {}
     if session.get("status") != "completed":
-        end_draft(league_id, commissioner_sub)
+        from src.draft_hub.draft_state import draft_completion_errors
+
+        # Partial sims (max_picks) and starved pools still need a clean stop.
+        force = max_picks is not None or bool(draft_completion_errors(league_id))
+        end_draft(league_id, commissioner_sub, force=force)
     return get_room_state(league_id, commissioner_sub)

@@ -77,7 +77,7 @@ def test_mock_league_recap_overview_after_end(hub_db):
             "value_grade": "steal",
         },
     )
-    end_draft(league_id, "mock-user")
+    end_draft(league_id, "mock-user", force=True)
     overview = storage.league_roster_overview(league_id)
     assert overview["teams"]
     recap = build_draft_recap(league_id, overview=overview)
@@ -161,7 +161,7 @@ def test_bot_bidding_stops_at_fair_value_ceiling(hub_db, monkeypatch):
 
 def test_mock_league_empty_recap_after_end_without_picks(hub_db):
     out = start_mock_draft("mock-user", mode="quick_bots", bot_count=2, auto_start=True)
-    end_draft(out["league_id"], "mock-user")
+    end_draft(out["league_id"], "mock-user", force=True)
     recap = build_draft_recap(out["league_id"])
     assert recap is None
 

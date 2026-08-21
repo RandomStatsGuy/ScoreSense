@@ -20,7 +20,7 @@ def test_commissioner_can_end_live_draft(hub_db):
     league = storage.create_league("end-draft-user", "End Draft", 2025, rules, workspace_id=ws["id"])
 
     start_draft(league["id"], "end-draft-user")
-    state = end_draft(league["id"], "end-draft-user")
+    state = end_draft(league["id"], "end-draft-user", force=True)
 
     assert state["session"]["status"] == "completed"
     assert state["session"]["completed_at"]
@@ -42,7 +42,7 @@ def test_end_draft_releases_open_nominee(hub_db):
         high_bidder_team_id=storage.list_league_teams(league["id"])[0]["id"],
     )
 
-    state = end_draft(league["id"], "end-draft-user-2")
+    state = end_draft(league["id"], "end-draft-user-2", force=True)
     assert state["session"]["status"] == "completed"
     assert state["session"]["current_nominee_json"] is None
     assert state["events"][-1]["payload"]["released_nominee"] == "Open Player"

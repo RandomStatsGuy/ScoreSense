@@ -730,15 +730,35 @@ export default function DraftRoom({
     const label = testMode ? "practice draft" : "draft";
     if (!(await confirmDialog({
       title: `End ${label}`,
-      message: `End this ${label} now? Picks so far are kept. Any player currently on the block goes back to the pool.`,
+      message: `End this ${label} now? Picks so far are kept. Any player currently on the block goes back to the pool. Teams still under positional minimums will be blocked unless you override.`,
       confirmLabel: "End now",
       danger: true,
     }))) {
       return;
     }
     await runAction(async () => {
-      const res = await apiFetch(`/api/hub/league/${leagueId}/end`, { method: "POST" });
-      if (!res.ok) throw new Error(await parseApiError(res));
+      const postEnd = async (force) => {
+        const qs = force ? "?force=true" : "";
+        return apiFetch(`/api/hub/league/${leagueId}/end${qs}`, { method: "POST" });
+      };
+      let res = await postEnd(false);
+      if (!res.ok) {
+        const detail = await parseApiError(res);
+        if (/under positional minimums/i.test(detail)) {
+          if (!(await confirmDialog({
+            title: "Rosters still short",
+            message: `${detail}\n\nEnd anyway? Contract years will still tick.`,
+            confirmLabel: "End anyway",
+            danger: true,
+          }))) {
+            throw new Error(detail);
+          }
+          res = await postEnd(true);
+          if (!res.ok) throw new Error(await parseApiError(res));
+        } else {
+          throw new Error(detail);
+        }
+      }
       applyState(await res.json());
       wsRefresh();
     });
