@@ -113,3 +113,97 @@ def test_already_on_own_roster_rejected(hub_db):
         assert "already on your roster" in res.json()["detail"]
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_commissioner_can_add_player_to_another_team(hub_db):
+    rules = LeagueRules()
+    league = storage.create_league("comm-add-other", "Add Other League", 2026, rules, team_count=10)
+    owner = storage.join_league("owner-add-other", league["room_code"], "Disappointment")
+    storage.join_league("member-add-other", league["room_code"], "Member Team")
+    ws_id = storage.roster_workspace_for_league(league)
+
+    client = _client_for("comm-add-other")
+    try:
+        # Owner posting team_id=owner["id"] is their own team (allowed). A
+        # third member targeting Disappointment must be rejected.
+        member = _client_for("member-add-other")
+        blocked = member.post(
+            "/api/hub/roster",
+            json=_payload(player_id="4039", player_name="Ja'Marr Chase", team_id=owner["id"]),
+        )
+        assert blocked.status_code == 403, blocked.text
+        assert "commissioner" in blocked.json()["detail"].lower()
+
+        # _client_for mutates shared dependency_overrides — rebind commissioner.
+        client = _client_for("comm-add-other")
+        missing = client.post(
+            "/api/hub/roster",
+            json=_payload(player_id="4039", player_name="Ja'Marr Chase", team_id="not-a-team"),
+        )
+        assert missing.status_code == 400
+
+        ok = client.post(
+            "/api/hub/roster",
+            json=_payload(
+                player_id="4039",
+                player_name="Ja'Marr Chase",
+                team="CIN",
+                position="WR",
+                salary=12,
+                contract_years=2,
+                contract_type="rookie",
+                team_id=owner["id"],
+            ),
+        )
+        assert ok.status_code == 200, ok.text
+        slot = storage.get_roster_slot(ws_id, "4039")
+        assert slot["team_id"] == owner["id"]
+        assert slot["player_name"] == "Ja'Marr Chase"
+        assert slot["salary"] == 12
+        assert (slot.get("contract") or {}).get("contract_type") == "rookie"
+        comm_team = storage.get_team_by_user(league["id"], "comm-add-other")
+        assert slot["team_id"] != comm_team["id"]
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_commissioner_force_reassigns_to_requested_team(hub_db):
+    rules = LeagueRules()
+    league = storage.create_league("comm-force-target", "Force Target League", 2026, rules, team_count=10)
+    owner = storage.join_league("owner-force-target", league["room_code"], "Alpha")
+    dest = storage.join_league("dest-force-target", league["room_code"], "Disappointment")
+    ws_id = storage.roster_workspace_for_league(league)
+    storage.add_roster_slot(
+        ws_id,
+        {
+            "player_id": "00-0033873",
+            "player_name": "Patrick Mahomes",
+            "team": "KC",
+            "position": "QB",
+            "salary": 40,
+            "contract_years": 1,
+        },
+        team_id=owner["id"],
+    )
+
+    client = _client_for("comm-force-target")
+    try:
+        blocked = client.post("/api/hub/roster", json=_payload(team_id=dest["id"]))
+        assert blocked.status_code == 409
+        assert "Alpha" in blocked.json()["detail"]
+        assert "Disappointment" in blocked.json()["detail"]
+        assert "Confirm" in blocked.json()["detail"]
+
+        already = client.post(
+            "/api/hub/roster",
+            json=_payload(team_id=owner["id"], force=True),
+        )
+        assert already.status_code == 409
+        assert "this roster" in already.json()["detail"]
+
+        ok = client.post("/api/hub/roster", json=_payload(team_id=dest["id"], force=True))
+        assert ok.status_code == 200, ok.text
+        slot = storage.get_roster_slot(ws_id, "00-0033873")
+        assert slot["team_id"] == dest["id"]
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)

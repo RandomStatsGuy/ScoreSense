@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
@@ -24,6 +24,10 @@ import {
 } from "./rosterFormat";
 import { confirmDialog } from "../ui/confirm";
 import { promptDialog } from "../ui/prompt";
+import {
+  buildLiveRosterAddBody,
+  isRosterReassignConflict,
+} from "./liveRosterAdd";
 
 const POS_ORDER = ["QB", "RB", "WR", "TE"];
 
@@ -53,8 +57,239 @@ function teamCapStats(block, salaryCap, rules) {
   };
 }
 
+function AddPlayerForm({ leagueId, season, teamId, teamName, maxYears, onSaved, onError, onNotice }) {
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [salary, setSalary] = useState("1");
+  const [years, setYears] = useState("1");
+  const [contractType, setContractType] = useState("veteran");
+  const [openList, setOpenList] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const abortRef = useRef(null);
+
+  useEffect(() => {
+    const q = query.trim();
+    if (selected && q === selected.player_name) {
+      setSuggestions([]);
+      setOpenList(false);
+      return undefined;
+    }
+    if (q.length < 2 || !leagueId) {
+      setSuggestions([]);
+      setSearching(false);
+      return undefined;
+    }
+    const ctrl = new AbortController();
+    abortRef.current?.abort();
+    abortRef.current = ctrl;
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const params = new URLSearchParams({ name: q });
+        if (season) params.set("season", String(season));
+        const res = await apiFetch(
+          `/api/hub/league/${encodeURIComponent(leagueId)}/player-name-aliases/suggest?${params}`,
+          { signal: ctrl.signal },
+        );
+        if (!res.ok) throw new Error(await parseApiError(res));
+        const data = await res.json();
+        const rows = (data.suggestions || []).filter(
+          (s) => s.sleeper_player_id || s.player_id,
+        );
+        setSuggestions(rows);
+        setOpenList(true);
+      } catch (e) {
+        if (e?.name === "AbortError") return;
+        setSuggestions([]);
+        onError?.(connectionErrorMessage(e));
+      } finally {
+        if (!ctrl.signal.aborted) setSearching(false);
+      }
+    }, 250);
+    return () => {
+      clearTimeout(timer);
+      ctrl.abort();
+    };
+  }, [query, leagueId, season, selected, onError]);
+
+  const pickSuggestion = (row) => {
+    setSelected(row);
+    setQuery(row.player_name || "");
+    setSuggestions([]);
+    setOpenList(false);
+    onError?.("");
+  };
+
+  const resetForm = () => {
+    setQuery("");
+    setSelected(null);
+    setSuggestions([]);
+    setSalary("1");
+    setYears("1");
+    setContractType("veteran");
+    setOpenList(false);
+  };
+
+  const submit = async ({ force = false } = {}) => {
+    const body = buildLiveRosterAddBody({
+      suggestion: selected,
+      salary,
+      years,
+      contractType,
+      teamId,
+      force,
+    });
+    if (!body) {
+      onError?.("Search and pick a player, then set salary and years.");
+      return;
+    }
+    if (!force) setAdding(true);
+    onError?.("");
+    try {
+      const res = await apiFetch("/api/hub/roster", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.status === 409) {
+        const msg = await parseApiError(res);
+        if (!force && isRosterReassignConflict(msg)) {
+          const ok = await confirmDialog({
+            title: "Player already rostered",
+            message: msg,
+            confirmLabel: `Move to ${teamName}`,
+            danger: true,
+          });
+          if (ok) {
+            await submit({ force: true });
+          }
+          return;
+        }
+        throw new Error(msg);
+      }
+      if (!res.ok) throw new Error(await parseApiError(res));
+      onNotice?.(`Added ${body.player_name} to ${teamName}.`);
+      resetForm();
+      onSaved?.({ syncHub: true });
+    } catch (e) {
+      onError?.(connectionErrorMessage(e));
+    } finally {
+      if (!force) setAdding(false);
+    }
+  };
+
+  return (
+    <div className="hub-league-add-player">
+      <h4 className="hub-league-add-player-title">Add player</h4>
+      <div className="hub-league-add-player-grid">
+        <label className="hub-league-add-search">
+          <span>Player</span>
+          <input
+            type="text"
+            className="search-input"
+            role="combobox"
+            aria-expanded={openList && suggestions.length > 0}
+            aria-autocomplete="list"
+            autoComplete="off"
+            placeholder="Search NFL players…"
+            value={query}
+            disabled={adding}
+            onChange={(e) => {
+              setSelected(null);
+              setQuery(e.target.value);
+            }}
+            onFocus={() => { if (suggestions.length) setOpenList(true); }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setOpenList(false);
+              if (e.key === "Enter" && suggestions[0] && !selected) {
+                e.preventDefault();
+                pickSuggestion(suggestions[0]);
+              }
+            }}
+          />
+          {searching && <span className="hub-league-add-search-status">Searching…</span>}
+          {openList && suggestions.length > 0 && (
+            <ul className="hub-league-suggest" role="listbox">
+              {suggestions.slice(0, 8).map((row) => (
+                <li key={`${row.sleeper_player_id || row.player_id}-${row.player_name}`}>
+                  <button
+                    type="button"
+                    className="hub-league-suggest-item"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => pickSuggestion(row)}
+                  >
+                    <strong>{row.player_name}</strong>
+                    <span>
+                      {[row.position, row.team].filter(Boolean).join(" · ") || row.source || "player"}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </label>
+        <label>
+          <span>Type</span>
+          <select
+            className="hub-roster-edit-input hub-roster-type-select"
+            value={contractType}
+            disabled={adding}
+            onChange={(e) => setContractType(e.target.value)}
+          >
+            {CONTRACT_TYPE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>{season ? `${season} $` : "Salary"}</span>
+          <input
+            type="number"
+            className="hub-roster-edit-input"
+            min={0}
+            value={salary}
+            disabled={adding}
+            onChange={(e) => setSalary(e.target.value)}
+          />
+        </label>
+        <label>
+          <span>Yrs left</span>
+          <input
+            type="number"
+            className="hub-roster-edit-input hub-roster-edit-input-sm"
+            min={1}
+            max={maxYears}
+            value={years}
+            disabled={adding}
+            onChange={(e) => setYears(e.target.value)}
+          />
+        </label>
+        <button
+          type="button"
+          className="btn-primary btn-sm"
+          disabled={adding || !selected}
+          onClick={() => submit()}
+        >
+          {adding ? "Adding…" : "Add to roster"}
+        </button>
+      </div>
+      {selected && (
+        <p className="chart-note hub-league-add-selected">
+          Adding {selected.player_name}
+          {[selected.position, selected.team].filter(Boolean).length
+            ? ` · ${[selected.position, selected.team].filter(Boolean).join(" · ")}`
+            : ""}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function TeamRosterBlock({
   block,
+  leagueId,
   season,
   maxYears,
   salaryCap,
@@ -335,10 +570,26 @@ function TeamRosterBlock({
         </details>
       )}
 
+      {open && leagueId && (
+        <AddPlayerForm
+          leagueId={leagueId}
+          season={season}
+          teamId={team.id}
+          teamName={team.name}
+          maxYears={maxYears}
+          onSaved={onSaved}
+          onError={setError}
+          onNotice={(msg) => {
+            setNotice(msg);
+            setTimeout(() => setNotice(""), 3500);
+          }}
+        />
+      )}
+
       {open && (
       mobileLayout ? (
         <MobileDataList
-          emptyMessage={!sorted.length ? "No players. Sync from Sleeper above." : null}
+          emptyMessage={!sorted.length ? "No players. Add one above, or sync from Sleeper above." : null}
         >
           {sorted.map((r) => {
             const edit = getEdit(r);
@@ -585,7 +836,7 @@ function TeamRosterBlock({
             {!sorted.length && (
               <tr>
                 <td colSpan={7} className="chart-note hub-roster-empty">
-                  No players. Sync from Sleeper above.
+                  No players. Add one above, or sync from Sleeper above.
                 </td>
               </tr>
             )}
@@ -728,7 +979,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
         <div className="hub-league-rosters-intro">
           <h2>League rosters</h2>
           <p className="hub-league-rosters-lead hub-league-rosters-lead--desktop">
-            Pick a team to edit · Type / {targetSeason || "season"} season $ / Yrs left · cut = refund · drop = remove
+            Pick a team to edit · add players · Type / {targetSeason || "season"} season $ / Yrs left · cut = refund · drop = remove
           </p>
         </div>
         <div className="hub-league-rosters-summary" aria-label="League totals">
@@ -804,7 +1055,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
       <div className="hub-league-team-list">
         {!teamFilter && !search.trim() ? (
           <p className="chart-note">
-            No team selected — click a team above to edit salaries, years, and contract type.
+            No team selected — click a team above to add players or edit salaries, years, and contract type.
           </p>
         ) : (
           <>
@@ -812,6 +1063,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
               <TeamRosterBlock
                 key={block.team.id}
                 block={block}
+                leagueId={leagueId}
                 season={targetSeason}
                 maxYears={maxYears}
                 salaryCap={salaryCap}

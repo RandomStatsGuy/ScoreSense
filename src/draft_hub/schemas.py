@@ -62,6 +62,10 @@ class RosterAddRequest(BaseModel):
     position: str
     salary: float
     contract_years: int = 1
+    contract_type: Optional[str] = None  # rookie | veteran | extension
+    # Commissioners: add onto this league team instead of the caller's roster.
+    team_id: Optional[str] = None
+    sleeper_player_id: Optional[str] = None
     # Commissioners only: reassign a player already on another team's roster.
     force: bool = False
 
