@@ -678,7 +678,7 @@ export default function DraftRoom({
         bot_count: Number(botCount) || 7,
         auto_start: true,
       };
-      if (mode === "league_mirror" || mode === "keeper_sandbox") {
+      if (linkedHubLeagueId || leagueId) {
         body.source_league_id = linkedHubLeagueId || leagueId;
       }
       if (mode === "keeper_sandbox") {
@@ -772,7 +772,9 @@ export default function DraftRoom({
     if (!leagueId) return;
     if (!(await confirmDialog({
       title: "Simulate full draft",
-      message: "Run the rest of this practice draft instantly? Bots nominate and settle every auction until rosters are full.",
+      message: pickDraft
+        ? "Run the rest of this practice draft instantly? Bots pick until rosters are full."
+        : "Run the rest of this practice draft instantly? Bots nominate and settle every auction until rosters are full.",
       confirmLabel: "Simulate",
     }))) {
       return;
@@ -798,7 +800,9 @@ export default function DraftRoom({
     if (scheduledFuture) {
       if (!(await confirmDialog({
         title: "Start now",
-        message: "Draft night is still in the future. Start the auction now anyway?",
+        message: pickDraft
+          ? "Draft night is still in the future. Start the pick draft now anyway?"
+          : "Draft night is still in the future. Start the auction now anyway?",
         confirmLabel: "Start now",
       }))) {
         return;
@@ -819,7 +823,7 @@ export default function DraftRoom({
         if (/empty seat/i.test(detail)) {
           if (!(await confirmDialog({
             title: "Empty seats",
-            message: `${detail}\n\nStart anyway? Unclaimed seats will not bid.`,
+            message: `${detail}\n\nStart anyway? Unclaimed seats will not ${pickDraft ? "pick" : "bid"}.`,
             confirmLabel: "Start with empty seats",
             danger: true,
           }))) {
@@ -867,8 +871,10 @@ export default function DraftRoom({
 
   const skipNominationTurn = async () => {
     if (!(await confirmDialog({
-      title: "Skip nominator",
-      message: "Skip this team's nomination and pass the clock to the next manager?",
+      title: pickDraft ? "Skip pick" : "Skip nominator",
+      message: pickDraft
+        ? "Skip this team's pick and pass the clock to the next manager?"
+        : "Skip this team's nomination and pass the clock to the next manager?",
       confirmLabel: "Skip",
     }))) {
       return;
@@ -921,7 +927,9 @@ export default function DraftRoom({
   const resetPracticeDraft = async () => {
     if (!(await confirmDialog({
       title: "Reset practice draft",
-      message: "Reset this practice draft? All picks, bid log, recap, and budgets will be cleared. Bots stay in the room.",
+      message: pickDraft
+        ? "Reset this practice draft? All picks, recap, and queues will be cleared. Bots stay in the room."
+        : "Reset this practice draft? All picks, bid log, recap, and budgets will be cleared. Bots stay in the room.",
       confirmLabel: "Reset draft",
       danger: true,
     }))) {
@@ -1757,6 +1765,7 @@ export default function DraftRoom({
               ended={draftCompleted}
               pendingTradeCount={pendingTradeCount}
               onOpenInbox={() => setTradeModal({ seed: null, view: "inbox" })}
+              pickDraft={pickDraft}
             />
             </div>
             {inLiveDraft && myTeamId && leagueId && (

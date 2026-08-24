@@ -125,7 +125,7 @@ export default function DraftTeamCard({
                 <li key={row.player_id} className="hub-roster-row">
                   <span className="hub-roster-pos">{row.position}</span>
                   <span className="hub-roster-name">{row.player_name}</span>
-                  <span className="hub-roster-sal">{fmtSal(row.salary)}</span>
+                  {!pickDraft && <span className="hub-roster-sal">{fmtSal(row.salary)}</span>}
                   {allowTrades && onTradePlayer && !isViewer && (
                     <span className="hub-roster-actions">
                       <button
