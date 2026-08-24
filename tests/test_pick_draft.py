@@ -224,3 +224,37 @@ def test_pick_recap_skips_cap_awards(hub_db):
     assert recap["headline"]
     assert "Snake" in recap["headline"] or "snake" in recap["headline"].lower()
     assert recap["total_spent"] == 0
+
+
+def test_http_pick_assigns(hub_db, monkeypatch):
+    from fastapi.testclient import TestClient
+    from app.api import app
+    from app.auth import require_hub_user
+
+    _stub_resolve(monkeypatch)
+    league = _league("http-comm", team_count=1)
+    start_draft(league["id"], "http-comm")
+    app.dependency_overrides[require_hub_user] = lambda: {"sub": "http-comm", "auth_type": "dev"}
+    client = TestClient(app)
+    try:
+        res = client.post(
+            f"/api/hub/league/{league['id']}/pick",
+            json=_player("http-wr"),
+        )
+        assert res.status_code == 200, res.text
+        body = res.json()
+        assert body["session"]["status"] == "picking"
+        assert body.get("pick")
+        roster = storage.list_team_roster(
+            league["id"],
+            storage.get_team_by_user(league["id"], "http-comm")["id"],
+        )
+        assert any(r["player_id"] == "http-wr" for r in roster)
+        nom = client.post(
+            f"/api/hub/league/{league['id']}/nominate",
+            json=_player("http-nom"),
+        )
+        assert nom.status_code == 400
+        assert "pick draft" in (nom.json().get("detail") or "").lower()
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
