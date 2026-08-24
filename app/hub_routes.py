@@ -623,13 +623,36 @@ def hub_league_home(
     return jsonable_encoder(payload)
 
 
+def _resolve_roster_add_team(ctx: dict[str, Any], requested_team_id: str | None) -> tuple[str | None, str]:
+    """Return (team_id, destination label). Label is 'your team' for the caller's roster."""
+    _ws_id, own_team_id = roster_scope(ctx)
+    requested = str(requested_team_id or "").strip()
+    if not requested:
+        return own_team_id, "your team"
+    if ctx.get("mode") != "league":
+        raise HTTPException(status_code=400, detail="team_id is only valid in a league")
+    team = storage.get_team(requested)
+    if not team or str(team.get("league_id") or "") != str(ctx.get("league_id") or ""):
+        raise HTTPException(status_code=400, detail="Team not found in this league")
+    target_id = str(team["id"])
+    if str(own_team_id or "") != target_id and not ctx.get("is_commissioner"):
+        raise HTTPException(
+            status_code=403,
+            detail="Only the commissioner can add a player to another team",
+        )
+    if own_team_id and str(own_team_id) == target_id:
+        return target_id, "your team"
+    return target_id, str(team.get("name") or "this team")
+
+
 @router.post("/roster")
 def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
     ctx = _ctx(sub)
     if ctx.get("mode") == "league" and not can_edit_roster(ctx):
         raise HTTPException(status_code=403, detail="Join a league team to edit your roster")
-    ws_id, team_id = roster_scope(ctx)
+    ws_id, _own_team_id = roster_scope(ctx)
+    team_id, dest_label = _resolve_roster_add_team(ctx, body.team_id)
     existing = storage.get_roster_slot(ws_id, body.player_id)
     if existing:
         existing_team_id = str(existing.get("team_id") or "") or None
@@ -638,9 +661,12 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
             or (not team_id and not existing_team_id)
         )
         if same_team:
+            already = (
+                "your roster" if dest_label == "your team" else "this roster"
+            )
             raise HTTPException(
                 status_code=409,
-                detail=f"{body.player_name or 'Player'} is already on your roster",
+                detail=f"{body.player_name or 'Player'} is already on {already}",
             )
         owner_label = "another team"
         if existing_team_id:
@@ -658,15 +684,27 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
                 status_code=409,
                 detail=(
                     f"{pname} is already on {owner_label}'s roster. "
-                    "Confirm to reassign them to your team."
+                    f"Confirm to reassign them to {dest_label}."
                 ),
             )
     rules = LeagueRules.model_validate(ctx["rules"])
+    ctype = str(body.contract_type or "").strip().lower() or None
+    if ctype and ctype not in CONTRACT_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail="contract_type must be rookie, veteran, or extension",
+        )
     contract = build_contract_from_roster_edit(
         rules,
         current_salary=float(body.salary),
         years_remaining=int(body.contract_years or 1),
+        contract_type=ctype,
     )
+    if ctype:
+        contract["contract_type_manual"] = True
+    sleeper_id = str(body.sleeper_player_id or "").strip() or None
+    if not sleeper_id and str(body.player_id).isdigit():
+        sleeper_id = str(body.player_id)
     row = storage.add_roster_slot(
         ws_id,
         {
@@ -677,10 +715,11 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
             "salary": contract["current_salary"],
             "contract_years": contract["years_remaining"],
             "contract": contract,
+            "sleeper_player_id": sleeper_id,
         },
         team_id=team_id,
     )
-    roster = list_roster_for_context(ctx)
+    roster = storage.list_roster(ws_id, team_id) if team_id else list_roster_for_context(ctx)
     errors = validate_roster(rules, roster)
     _invalidate_league_rosters_from_ctx(ctx)
     return {"slot": row, "validation_errors": errors}
