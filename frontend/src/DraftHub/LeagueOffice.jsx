@@ -10,6 +10,7 @@ import LeagueChat from "./LeagueChat";
 import LeagueInvites from "./LeagueInvites";
 import LeagueSleeperConnect from "./LeagueSleeperConnect";
 import CapSheetImport from "./CapSheetImport";
+import { hubTeamLabel } from "./hubTeamLabel";
 import LeagueSheetImport from "./LeagueSheetImport";
 import {
   defaultOfficeTab,
@@ -168,7 +169,7 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
                 : (t.is_commissioner ? "Co-commish" : "Member");
               return (
                 <tr key={t.id}>
-                  <td>{t.name}</td>
+                  <td>{hubTeamLabel(t)}</td>
                   <td>{t.user_sub ? "Claimed" : "Unclaimed"}</td>
                   <td>
                     {t.sleeper_roster_id
@@ -307,7 +308,12 @@ export default function LeagueOffice({
     ? officeTab
     : defaultOfficeTab(isCommissioner);
   const [historySeason, setHistorySeason] = useState("current");
+  const [dataEpoch, setDataEpoch] = useState(0);
   const season = Number(hubContext?.season || new Date().getFullYear());
+  const handleChanged = useCallback(() => {
+    setDataEpoch((n) => n + 1);
+    onChanged?.();
+  }, [onChanged]);
   const seasonOptions = useMemo(() => {
     const years = [];
     for (let y = season; y >= season - 6; y -= 1) {
@@ -394,7 +400,8 @@ export default function LeagueOffice({
             season={hubContext?.season}
             workspace={workspace}
             hubContext={hubContext}
-            onChanged={onChanged}
+            onChanged={handleChanged}
+            reloadNonce={dataEpoch}
           />
         </HubPage>
       )}
@@ -427,6 +434,7 @@ export default function LeagueOffice({
               leagueId={leagueId}
               seasonFilter={seasonFilter}
               isCommissioner={isCommissioner}
+              reloadNonce={dataEpoch}
               embedded
             />
           </HubPage>
@@ -445,7 +453,7 @@ export default function LeagueOffice({
           <OfficeMembers
             leagueId={leagueId}
             hubContext={hubContext}
-            onChanged={onChanged}
+            onChanged={handleChanged}
           />
         </HubPage>
       )}
@@ -456,7 +464,7 @@ export default function LeagueOffice({
             leagueId={leagueId}
             hubContext={hubContext}
             workspace={workspace}
-            onChanged={onChanged}
+            onChanged={handleChanged}
           />
         </HubPage>
       )}

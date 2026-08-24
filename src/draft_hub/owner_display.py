@@ -23,6 +23,8 @@ def _yaml_maps() -> tuple[dict[str, str], dict[str, str]]:
         return owner_to_team, team_to_owner
     for owner, team in raw.items():
         o = str(owner or "").strip()
+        if o.startswith("_") or not isinstance(team, str):
+            continue
         t = str(team or "").strip().strip('"')
         if not o or not t:
             continue
@@ -30,6 +32,14 @@ def _yaml_maps() -> tuple[dict[str, str], dict[str, str]]:
         team_to_owner[t] = o
         team_to_owner[t.lower()] = o
     return owner_to_team, team_to_owner
+
+
+# Unique former Sleeper names that are not a current franchise label.
+_HISTORIC_TEAM_OWNERS = {
+    "lincoler's dual ethics": "Justin P",
+    f"lincoler{chr(8217)}s dual ethics": "Justin P",
+    "daddio of the pandio": "Colby L",
+}
 
 
 def _fuzzy_yaml_owner(team_name: str) -> str | None:
@@ -43,6 +53,9 @@ def _fuzzy_yaml_owner(team_name: str) -> str | None:
     lower = name.lower()
     if lower in team_to_owner:
         return team_to_owner[lower]
+    historic = _HISTORIC_TEAM_OWNERS.get(lower)
+    if historic:
+        return historic
 
     best_owner: str | None = None
     best_len = 0
