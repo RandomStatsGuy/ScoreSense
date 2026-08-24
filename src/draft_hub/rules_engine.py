@@ -32,6 +32,11 @@ def roster_limits(rules: LeagueRules) -> dict[str, dict[str, int]]:
     return out
 
 
+def salary_roster_limits_relaxed(rules: LeagueRules) -> bool:
+    """True when a practice room has opted out of cap / position enforcement."""
+    return bool(getattr(rules, "relax_salary_roster_limits", False))
+
+
 def cap_relevant_roster(rules: LeagueRules, roster: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Limit cap math to positions governed by league roster rules (QB/RB/WR/TE)."""
     allowed = {k.upper() for k in roster_limits(rules)}
@@ -158,6 +163,8 @@ def nomination_sort_key(
 
 def occupying_min_errors(rules: LeagueRules, roster: list[dict[str, Any]]) -> list[str]:
     """Position-min violations for rows that currently occupy a roster slot."""
+    if salary_roster_limits_relaxed(rules):
+        return []
     from src.draft_hub.draft_budgets import occupying_roster
 
     occupying = occupying_roster(rules, roster, draft_completed=False)
@@ -201,6 +208,8 @@ def unmet_minimum_positions(rules: LeagueRules, roster: list[dict[str, Any]]) ->
 
 def should_need_bid(rules: LeagueRules, roster: list[dict[str, Any]], position: str) -> bool:
     """If any min is unfilled, only bid/nominate that fills one of those mins."""
+    if salary_roster_limits_relaxed(rules):
+        return True
     unmet = unmet_minimum_positions(rules, roster)
     if not unmet:
         return True
@@ -210,6 +219,8 @@ def should_need_bid(rules: LeagueRules, roster: list[dict[str, Any]], position: 
 def assert_can_acquire(rules: LeagueRules, roster: list[dict[str, Any]], position: str) -> None:
     from src.draft_hub.draft_budgets import total_roster_slots
 
+    if salary_roster_limits_relaxed(rules):
+        return
     occupying = _occupying(rules, roster)
     total_max = total_roster_slots(rules)
     if total_max and len(occupying) >= total_max:
@@ -243,8 +254,8 @@ def roster_capacity(rules: LeagueRules, roster: list[dict[str, Any]]) -> dict[st
             "count": count,
             "min": int(lim["min"]),
             "max": max_n,
-            "at_max": count >= max_n,
-            "below_min": count < int(lim["min"]),
+            "at_max": False if salary_roster_limits_relaxed(rules) else count >= max_n,
+            "below_min": False if salary_roster_limits_relaxed(rules) else count < int(lim["min"]),
             "remaining": max(0, max_n - count),
         }
     size_max = total_roster_slots(rules)

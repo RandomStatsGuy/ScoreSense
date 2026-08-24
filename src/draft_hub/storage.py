@@ -1835,6 +1835,8 @@ def list_live_memberships_for_sub(user_sub: str) -> list[dict[str, Any]]:
 
 
 def update_league_rules(league_id: str, rules: LeagueRules) -> dict[str, Any] | None:
+    if getattr(rules, "relax_salary_roster_limits", False) and not league_test_mode(league_id):
+        rules = rules.model_copy(update={"relax_salary_roster_limits": False})
     with get_conn() as conn:
         conn.execute(
             "UPDATE league SET rules_json = ? WHERE id = ?",

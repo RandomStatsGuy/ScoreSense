@@ -98,6 +98,7 @@ export default function DraftRoom({
   const session = roomState?.session;
   const league = roomState?.league;
   const rules = league?.rules;
+  const relaxLimits = Boolean(rules?.relax_salary_roster_limits || roomState?.limits_relaxed);
   const nominee = session?.current_nominee;
   const teams = roomState?.teams || [];
   const events = roomState?.events || [];
@@ -123,8 +124,9 @@ export default function DraftRoom({
   const posCapacity = useMemo(
     () => buildRosterCapacity(rules, myRoster, {
       draftCompleted: Boolean(league?.draft_completed) || session?.status === "completed",
+      relaxLimits,
     }),
-    [rules, myRoster, league?.draft_completed, session?.status],
+    [rules, myRoster, league?.draft_completed, session?.status, relaxLimits],
   );
   const needPositions = useMemo(() => unmetMinPositions(posCapacity), [posCapacity]);
 
@@ -182,8 +184,8 @@ export default function DraftRoom({
   const nominatePool = availableRows;
 
   const canAcquire = useCallback(
-    (position) => canAcquireAtPosition(posCapacity, position),
-    [posCapacity],
+    (position) => canAcquireAtPosition(posCapacity, position, { relaxLimits }),
+    [posCapacity, relaxLimits],
   );
 
   const isCommissioner = useMemo(
@@ -612,7 +614,7 @@ export default function DraftRoom({
     }
   };
 
-  const startMockDraft = async (mode, { simulate = false } = {}) => {
+  const startMockDraft = async (mode, { simulate = false, relaxSalaryRosterLimits = false } = {}) => {
     await runAction(async () => {
       const body = {
         mode,
@@ -626,6 +628,7 @@ export default function DraftRoom({
       }
       if (mode === "keeper_sandbox") {
         body.auto_start = false;
+        body.relax_salary_roster_limits = Boolean(relaxSalaryRosterLimits);
       }
       const res = await apiFetch("/api/hub/mock-draft/start", {
         method: "POST",
@@ -662,7 +665,7 @@ export default function DraftRoom({
     });
   };
 
-  const startKeeperSandbox = async () => {
+  const startKeeperSandbox = async (opts = {}) => {
     if (!(await confirmDialog({
       title: "Keeper expire sandbox",
       message: (
@@ -670,12 +673,17 @@ export default function DraftRoom({
         + "• Real league is untouched\n"
         + "• Start / End draft here to test expirees and year tick\n"
         + "• Delete sandbox when done"
+        + (opts.relaxSalaryRosterLimits
+          ? "\n• Salary cap and position limits will be off (salaries can stay stale)"
+          : "")
       ),
       confirmLabel: "Create sandbox",
     }))) {
       return;
     }
-    await startMockDraft("keeper_sandbox");
+    await startMockDraft("keeper_sandbox", {
+      relaxSalaryRosterLimits: opts.relaxSalaryRosterLimits,
+    });
   };
 
   const deleteSandbox = async () => {
@@ -1159,7 +1167,7 @@ export default function DraftRoom({
 
   const myBudget = Number(myTeam?.budget_remaining);
   const myMaxBid = Number.isFinite(myBudget)
-    ? Math.max(0, myBudget - Math.max(0, openSlotsTotal - 1) * minBidUnit)
+    ? Math.max(0, relaxLimits ? myBudget : myBudget - Math.max(0, openSlotsTotal - 1) * minBidUnit)
     : null;
   const nomineePosKey = nominee
     ? (() => {
@@ -1229,6 +1237,11 @@ export default function DraftRoom({
         {nomineePosBlocked && (
           <p className="hub-bid-hint">At {nominee?.position} max — can&apos;t bid.</p>
         )}
+        {relaxLimits && (
+          <p className="chart-note hub-sandbox-relax-banner">
+            Sandbox: salary cap and position limits are off.
+          </p>
+        )}
       </div>
     </div>
   ) : null;
@@ -1273,6 +1286,9 @@ export default function DraftRoom({
               <span className="chart-note hub-draft-sub hub-draft-sub-inline">
                 {league.test_mode ? mockModeLabel || "Mock draft" : league.name}
               </span>
+            )}
+            {relaxLimits && (
+              <span className="chart-note hub-sandbox-relax-banner">Limits off</span>
             )}
             {testMode && isCommissioner && (
               <button

@@ -17,7 +17,7 @@ from src.draft_hub.pre_draft_cap import (
     roster_status,
     total_pre_draft_dead_cap,
 )
-from src.draft_hub.rules_engine import roster_limits
+from src.draft_hub.rules_engine import roster_limits, salary_roster_limits_relaxed
 from src.draft_hub.schemas import LeagueRules
 
 DEADCAP_PREFIX = "deadcap:"
@@ -88,6 +88,8 @@ def computed_auction_budget(
     *,
     draft_completed: bool = False,
 ) -> float:
+    if salary_roster_limits_relaxed(rules):
+        return round(float(rules.salary_cap), 2)
     summary = pre_draft_cap_summary(rules, roster, draft_completed=draft_completed)
     if summary is None:
         from src.draft_hub.contracts import cap_hit
@@ -111,6 +113,8 @@ def max_affordable_bid(
     """Highest legal bid after reserving min_bid for every other open slot."""
     min_bid = float(rules.auction.min_bid)
     budget = float(budget_remaining)
+    if salary_roster_limits_relaxed(rules):
+        return round(max(0.0, budget), 2)
     if budget < min_bid:
         return 0.0
     open_slots = open_roster_slots(rules, roster, draft_completed=draft_completed)
@@ -129,6 +133,10 @@ def assert_can_afford_auction_bid(
     min_bid = float(rules.auction.min_bid)
     bid = float(amount)
     budget = float(budget_remaining)
+    if salary_roster_limits_relaxed(rules):
+        if bid < min_bid:
+            raise ValueError("Bid exceeds budget or below minimum")
+        return
     if budget <= 0:
         raise ValueError("Team is over cap and cannot bid")
     if bid < min_bid:
@@ -158,16 +166,18 @@ def team_auction_finance(
     budget = float(budget_remaining) if budget_remaining is not None else draft_budget
     occupying = occupying_roster(rules, roster, draft_completed=draft_completed)
     open_slots = open_roster_slots(rules, roster, draft_completed=draft_completed)
+    relaxed = salary_roster_limits_relaxed(rules)
     return {
         "draft_budget": draft_budget,
-        "over_cap": draft_budget < 0,
-        "locked": draft_budget <= 0,
+        "over_cap": False if relaxed else draft_budget < 0,
+        "locked": False if relaxed else draft_budget <= 0,
         "open_slots": open_slots,
         "occupying": len(occupying),
         "roster_size_max": total_roster_slots(rules),
         "max_bid": max_affordable_bid(
             rules, roster, budget, draft_completed=draft_completed
         ),
+        "limits_relaxed": relaxed,
     }
 
 

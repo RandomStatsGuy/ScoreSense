@@ -46,6 +46,9 @@ class LeagueRules(BaseModel):
     # SCORE-3: Conservative (-1) / Balanced (0, default) / Aggressive (+1).
     # Neutral default keeps fair_value pricing unchanged until a league opts in.
     risk_tolerance: float = Field(default=0.0, ge=-1.0, le=1.0)
+    # Practice/keeper sandbox only: skip cap, roster-size, and position min/max
+    # so a draft can run before salaries are updated.
+    relax_salary_roster_limits: bool = False
 
 
 class WorkspaceUpdate(BaseModel):
@@ -138,6 +141,8 @@ class AuctionRulesUpdate(BaseModel):
     bid_timer_sec: Optional[int] = None
     bid_extension_sec: Optional[int] = None
     bot_reaction_delay_sec: Optional[int] = None
+    # test_mode only; ignored on live leagues.
+    relax_salary_roster_limits: Optional[bool] = None
 
 
 class NominationOrderUpdate(BaseModel):
@@ -295,6 +300,7 @@ class MockDraftStartRequest(BaseModel):
     source_league_id: Optional[str] = None
     auto_start: bool = True
     name: Optional[str] = None
+    relax_salary_roster_limits: bool = False
 
 
 class SleeperImportRequest(BaseModel):
