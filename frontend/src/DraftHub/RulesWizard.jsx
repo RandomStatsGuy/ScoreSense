@@ -8,6 +8,7 @@ import {
   riskToleranceLabel,
 } from "../riskAdjustedValue";
 import { HubPage } from "./HubUILayout";
+import { isPickDraft } from "./draftEntryStatus";
 
 const DEFAULT_RULES = {
   salary_cap: 200,
@@ -94,6 +95,7 @@ export default function RulesWizard({
     }));
   const activeRisk = normalizeRiskTolerance(rules.risk_tolerance);
   const activeRiskHint = RISK_TOLERANCE_OPTIONS.find((o) => o.value === activeRisk)?.hint;
+  const pickDraft = isPickDraft(rules);
 
   const save = async () => {
     setSaving(true);
@@ -142,6 +144,7 @@ export default function RulesWizard({
 
   const advanced = (
     <>
+      {!pickDraft && (
       <div className="hub-form-row">
         <label>
           <span className="hub-field-label">Max years</span>
@@ -178,6 +181,8 @@ export default function RulesWizard({
           />
         </label>
       </div>
+      )}
+      {!pickDraft && (
       <label className="hub-toggle-row">
         <input
           type="checkbox"
@@ -187,6 +192,7 @@ export default function RulesWizard({
         />
         <span>Allow mid-draft cuts</span>
       </label>
+      )}
       <div className="hub-limits-grid">
         {ROSTER_LIMIT_KEYS.map((pos) => (
           <div key={pos} className="hub-limit-card">
@@ -254,6 +260,7 @@ export default function RulesWizard({
             disabled={readOnlyRules}
           />
         </label>
+        {!pickDraft && (
         <label>
           <span className="hub-field-label">Salary cap ($)</span>
           <input
@@ -266,13 +273,14 @@ export default function RulesWizard({
             disabled={readOnlyRules}
           />
         </label>
+        )}
       </div>
 
       <div className="hub-risk-tolerance">
         <div className="hub-risk-tolerance-head">
           <span className="hub-field-label">Risk tolerance</span>
           <span className="chart-note">
-            Fold season P10/P90 variance into suggested bids ({riskToleranceLabel(activeRisk)})
+            Fold season P10/P90 variance into {pickDraft ? "player ranks" : "suggested bids"} ({riskToleranceLabel(activeRisk)})
           </span>
         </div>
         <div
@@ -316,7 +324,7 @@ export default function RulesWizard({
 
       {embedded ? (
         <details className="hub-setup-alt hub-setup-alt-nested">
-          <summary>Contract & roster limits</summary>
+          <summary>{pickDraft ? "Roster limits" : "Contract & roster limits"}</summary>
           {advanced}
         </details>
       ) : (

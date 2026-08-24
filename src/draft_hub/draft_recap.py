@@ -6,6 +6,7 @@ from typing import Any
 
 from src.draft_hub import storage
 from src.draft_hub.contracts import schedule_preview
+from src.draft_hub.pick_draft import draft_type_of, is_pick_draft
 from src.draft_hub.rules_engine import salary_roster_limits_relaxed
 from src.draft_hub.schemas import LeagueRules
 
@@ -16,11 +17,12 @@ REACH_GRADES = frozenset({"reach", "major_reach", "slight_reach"})
 def _pick_rows(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for ev in events:
-        if ev.get("event_type") != "win":
+        kind = ev.get("event_type")
+        if kind not in ("win", "pick"):
             continue
         p = ev.get("payload") or {}
         amount = float(p.get("amount") or 0)
-        if amount <= 0:
+        if kind == "win" and amount <= 0:
             continue
         fair_raw = p.get("fair_value")
         fair = float(fair_raw) if fair_raw is not None else None
@@ -42,7 +44,11 @@ def _pick_rows(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return rows
 
 
-def _headline(picks: list[dict[str, Any]], *, test_mode: bool) -> str:
+def _headline(picks: list[dict[str, Any]], *, test_mode: bool, pick_draft: bool = False, draft_type: str = "auction") -> str:
+    if pick_draft:
+        if draft_type == "linear":
+            return "Linear draft in the books."
+        return "Snake draft in the books."
     if not picks:
         return "Draft in the books."
     steals = sum(1 for p in picks if p["value_grade"] in STEAL_GRADES)
@@ -61,14 +67,16 @@ def _headline(picks: list[dict[str, Any]], *, test_mode: bool) -> str:
     return "Another chaotic auction in the books."
 
 
-def _subheadline(picks: list[dict[str, Any]], overview: dict[str, Any] | None) -> str:
-    total = sum(p["amount"] for p in picks)
-    parts = [f"{len(picks)} player{'s' if len(picks) != 1 else ''} drafted", f"${total:.0f} spent league-wide"]
-    if overview:
-        teams = overview.get("teams") or []
-        if teams:
-            left = sum(float(t.get("cap_remaining") or 0) for t in teams)
-            parts.append(f"${left:.0f} left on the table")
+def _subheadline(picks: list[dict[str, Any]], overview: dict[str, Any] | None, *, pick_draft: bool = False) -> str:
+    parts = [f"{len(picks)} player{'s' if len(picks) != 1 else ''} drafted"]
+    if not pick_draft:
+        total = sum(p["amount"] for p in picks)
+        parts.append(f"${total:.0f} spent league-wide")
+        if overview:
+            teams = overview.get("teams") or []
+            if teams:
+                left = sum(float(t.get("cap_remaining") or 0) for t in teams)
+                parts.append(f"${left:.0f} left on the table")
     return " · ".join(parts)
 
 
@@ -320,12 +328,14 @@ def build_draft_recap(
     except Exception:
         rules = None
     limits_relaxed = bool(rules and salary_roster_limits_relaxed(rules))
-    cap_awards = () if limits_relaxed else (
+    pick_draft = bool(rules and is_pick_draft(rules))
+    dtype = draft_type_of(rules) if rules else "auction"
+    cap_awards = () if (limits_relaxed or pick_draft) else (
         _award_tightwad(overview),
         _award_spender(overview),
         _award_position_obsessed(picks, overview),
     )
-    awards = [
+    awards = [] if pick_draft else [
         a
         for a in (
             _award_steal(picks),
@@ -342,13 +352,15 @@ def build_draft_recap(
             rostered += len(block.get("roster") or [])
 
     return {
-        "headline": _headline(picks, test_mode=test_mode),
-        "subheadline": _subheadline(picks, overview),
+        "headline": _headline(picks, test_mode=test_mode, pick_draft=pick_draft, draft_type=dtype),
+        "subheadline": _subheadline(picks, overview, pick_draft=pick_draft),
+        "draft_type": dtype,
+        "pick_draft": pick_draft,
         "test_mode": test_mode,
         "pick_count": len(picks),
         "total_spent": round(sum(p["amount"] for p in picks), 2),
         "awards": awards,
-        "notable_picks": _notable_picks(picks),
+        "notable_picks": (picks[:6] if pick_draft else _notable_picks(picks)),
         "completed_at": session.get("completed_at"),
         "limits_relaxed": limits_relaxed,
         "scopes": {

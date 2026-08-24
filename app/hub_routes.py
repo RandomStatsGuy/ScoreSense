@@ -19,6 +19,7 @@ from src.draft_hub.draft_state import (
     cut_player,
     end_draft,
     get_room_state,
+    make_pick,
     nominate,
     place_bid,
     reset_live_draft,
@@ -3688,6 +3689,25 @@ async def hub_nominate(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@router.post("/league/{league_id}/pick")
+async def hub_pick(
+    league_id: str,
+    body: DraftNominateRequest,
+    force: bool = Query(
+        False,
+        description="Commissioner picks on behalf of the on-clock team",
+    ),
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    try:
+        state = make_pick(league_id, sub, body.model_dump(), force=force)
+        await broadcast_room(league_id)
+        return state
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.post("/league/{league_id}/bid")
 async def hub_bid(league_id: str, body: DraftBidRequest, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
@@ -4323,11 +4343,13 @@ async def hub_cap_sheet_import(
                 "waived": result.get("waived"),
             }
         else:
+            sheet_season = int(ctx.get("season") or league.get("season") or 2025)
             result = import_cap_sheet_to_league(
                 league_id,
                 parsed,
                 manager_map,
                 replace_existing=replace_existing,
+                historic_season=sheet_season,
             )
             result["mode"] = "replace_rosters"
     except ValueError as exc:

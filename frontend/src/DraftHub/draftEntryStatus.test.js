@@ -5,6 +5,7 @@ import {
   draftFormatLabel,
   draftParticipantSummary,
   formatDraftWait,
+  isPickDraft,
   utcIsoToWall,
 } from "./draftEntryStatus.js";
 
@@ -12,6 +13,10 @@ test("draftFormatLabel uses salary cap auction when auction rules exist", () => 
   assert.equal(draftFormatLabel({ auction: { min_bid: 1 }, salary_cap: 200 }), "Salary cap auction");
   assert.equal(draftFormatLabel(null), "Salary cap auction");
   assert.equal(draftFormatLabel({ salary_cap: 200 }), "Auction");
+  assert.equal(draftFormatLabel({ draft_type: "snake" }), "Snake draft");
+  assert.equal(draftFormatLabel({ draft_type: "linear", auction: { min_bid: 1 } }), "Linear draft");
+  assert.equal(isPickDraft({ draft_type: "snake" }), true);
+  assert.equal(isPickDraft({ draft_type: "auction" }), false);
 });
 
 test("draftEntryPhase maps season and practice states", () => {

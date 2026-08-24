@@ -12,7 +12,7 @@ def _sample_tsv(*rows: str) -> bytes:
     return (header + "\n".join(rows)).encode("utf-8")
 
 
-def test_validate_cap_sheet_unmatched_manager():
+def test_validate_cap_sheet_unmatched_manager(hub_db):
     league = storage.create_league(
         commissioner_sub="comm-sub",
         name="Validate League",
@@ -33,7 +33,7 @@ def test_validate_cap_sheet_unmatched_manager():
     assert any("Manager not in" in w for w in report["warnings"])
 
 
-def test_validate_cap_sheet_happy_path():
+def test_validate_cap_sheet_happy_path(hub_db):
     league = storage.create_league(
         commissioner_sub="comm-sub-2",
         name="Validate League 2",

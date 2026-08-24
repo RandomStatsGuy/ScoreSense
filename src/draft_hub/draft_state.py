@@ -17,6 +17,14 @@ from src.draft_hub.rules_engine import (
 from src.draft_hub.schemas import LeagueRules
 from src.draft_hub import storage
 from src.draft_hub.draft_pool import normalize_pool_mode, resolve_nomination_player
+from src.draft_hub.pick_draft import (
+    all_rosters_full,
+    draft_type_of,
+    is_pick_draft,
+    pick_clock,
+    team_at_pick_index,
+    team_roster_is_full,
+)
 
 
 def _resolve_team(league_id: str, user_sub: str) -> dict[str, Any] | None:
@@ -62,20 +70,58 @@ def _build_nomination_order(teams: list[dict[str, Any]]) -> list[str]:
     return [str(t["id"]) for t in humans + bots]
 
 
-def _current_nominator_team_id(session: dict[str, Any]) -> str | None:
+def _current_nominator_team_id(
+    session: dict[str, Any],
+    rules: LeagueRules | None = None,
+) -> str | None:
     order = session.get("nomination_order") or []
     if not order:
         return None
-    idx = int(session.get("nominator_index") or 0) % len(order)
-    return str(order[idx])
+    idx = int(session.get("nominator_index") or 0)
+    if rules is not None and is_pick_draft(rules):
+        return team_at_pick_index(order, idx, draft_type_of(rules))
+    return str(order[idx % len(order)])
+
+
+def _skip_full_on_clock(league_id: str) -> None:
+    """Advance past teams that already filled every roster slot (keepers)."""
+    league = storage.get_league(league_id)
+    if not league:
+        return
+    rules = LeagueRules.model_validate(league["rules"])
+    if not is_pick_draft(rules):
+        return
+    session = storage.get_draft_session(league_id) or {}
+    order = list(session.get("nomination_order") or [])
+    if not order:
+        return
+    idx = int(session.get("nominator_index") or 0)
+    dtype = draft_type_of(rules)
+    n = len(order)
+    for _ in range(n * 4 + 2):
+        if all_rosters_full(league_id, rules):
+            break
+        tid = team_at_pick_index(order, idx, dtype)
+        roster = storage.list_team_roster(league_id, tid) if tid else []
+        if not team_roster_is_full(rules, roster):
+            break
+        idx += 1
+    storage.update_draft_session(league_id, nominator_index=idx)
 
 
 def _advance_nominator(league_id: str) -> None:
+    league = storage.get_league(league_id)
     session = storage.get_draft_session(league_id) or {}
     order = session.get("nomination_order") or []
     if not order:
         return
-    idx = (int(session.get("nominator_index") or 0) + 1) % len(order)
+    rules = LeagueRules.model_validate(league["rules"]) if league else None
+    idx = int(session.get("nominator_index") or 0)
+    if rules is not None and is_pick_draft(rules):
+        storage.update_draft_session(league_id, nominator_index=idx + 1)
+        _skip_full_on_clock(league_id)
+        return
+    idx = (idx + 1) % len(order)
     storage.update_draft_session(league_id, nominator_index=idx)
 
 
@@ -216,7 +262,9 @@ def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any
         "roster_limits": rules.roster,
         "roster_size_max": int(getattr(rules, "roster_size_max", None) or 0) or None,
         "pool_mode": normalize_pool_mode(session.get("pool_mode")),
-        "nominator_team_id": _current_nominator_team_id(session) if session else None,
+        "nominator_team_id": _current_nominator_team_id(session, rules) if session else None,
+        "draft_type": draft_type_of(rules),
+        "pick": pick_clock(session, rules) if is_pick_draft(rules) else None,
         "empty_seats": empty_seat_count(league_id, league),
         "claimed_humans": len(claimed_human_teams(league_id)),
         "limits_relaxed": salary_roster_limits_relaxed(rules),
@@ -342,7 +390,7 @@ def start_draft(
     if league["commissioner_sub"] != user_sub:
         raise ValueError("Only commissioner can start draft")
     session = storage.get_draft_session(league_id) or {}
-    if session.get("status") in ("nominating", "bidding"):
+    if session.get("status") in ("nominating", "bidding", "picking"):
         return get_room_state(league_id, user_sub)
     starts = league.get("draft_starts_at")
     if starts and not force:
@@ -368,9 +416,10 @@ def start_draft(
     teams = storage.list_league_teams(league_id)
     order = _build_nomination_order(teams)
     storage.update_league_status(league_id, "live")
+    status = "picking" if is_pick_draft(rules) else "nominating"
     storage.update_draft_session(
         league_id,
-        status="nominating",
+        status=status,
         started_at=_now_iso(),
         nomination_deadline=_deadline(rules.auction.nomination_timer_sec),
         nomination_order_json=json.dumps(order),
@@ -379,7 +428,15 @@ def start_draft(
         paused=0,
         paused_at=None,
     )
-    storage.append_draft_event(league_id, "start", {"by": user_sub})
+    if is_pick_draft(rules):
+        _skip_full_on_clock(league_id)
+        if all_rosters_full(league_id, rules):
+            return end_draft(league_id, user_sub, force=True)
+    storage.append_draft_event(
+        league_id,
+        "start",
+        {"by": user_sub, "draft_type": draft_type_of(rules)},
+    )
     return get_room_state(league_id, user_sub)
 
 
@@ -389,7 +446,7 @@ def pause_draft(league_id: str, user_sub: str) -> dict[str, Any]:
         raise ValueError("League not found")
     _require_commissioner(league, user_sub)
     session = storage.get_draft_session(league_id)
-    if not session or session.get("status") not in ("nominating", "bidding"):
+    if not session or session.get("status") not in ("nominating", "bidding", "picking"):
         raise ValueError("Draft is not in progress")
     if session.get("paused"):
         return get_room_state(league_id, user_sub)
@@ -428,11 +485,11 @@ def skip_nomination(league_id: str, user_sub: str) -> dict[str, Any]:
         raise ValueError("League not found")
     _require_commissioner(league, user_sub)
     session = storage.get_draft_session(league_id)
-    if not session or session.get("status") != "nominating":
-        raise ValueError("No nomination to skip")
+    if not session or session.get("status") not in ("nominating", "picking"):
+        raise ValueError("No pick or nomination to skip")
     _assert_not_paused(session)
     rules = LeagueRules.model_validate(league["rules"])
-    nominator_id = _current_nominator_team_id(session)
+    nominator_id = _current_nominator_team_id(session, rules)
     team = storage.get_team(nominator_id) if nominator_id else None
     _advance_nominator(league_id)
     storage.update_draft_session(
@@ -635,8 +692,8 @@ def set_pool_mode(league_id: str, user_sub: str, pool_mode: str) -> dict[str, An
     if league["commissioner_sub"] != user_sub:
         raise ValueError("Only commissioner can change pool mode")
     session = storage.get_draft_session(league_id)
-    if not session or session.get("status") not in ("setup", "nominating"):
-        raise ValueError("Pool mode can only change before or during open nominations")
+    if not session or session.get("status") not in ("setup", "nominating", "picking"):
+        raise ValueError("Pool mode can only change before or during an open draft")
     mode = normalize_pool_mode(pool_mode)
     storage.update_draft_session(league_id, pool_mode=mode)
     return get_room_state(league_id, user_sub)
@@ -656,11 +713,13 @@ def nominate(
     if not caller_team:
         raise ValueError("Not a league member")
     session = storage.get_draft_session(league_id)
+    rules = LeagueRules.model_validate(league["rules"])
+    if is_pick_draft(rules):
+        raise ValueError("This league uses a pick draft. Select a player to pick.")
     if not session or session.get("status") not in ("nominating", "bidding"):
         raise ValueError("Draft not accepting nominations")
     _assert_not_paused(session)
-    rules = LeagueRules.model_validate(league["rules"])
-    nominator_id = _current_nominator_team_id(session)
+    nominator_id = _current_nominator_team_id(session, rules)
     is_commissioner = league["commissioner_sub"] == user_sub
     test_mode = storage.league_test_mode(league_id)
     forced = False
@@ -761,6 +820,121 @@ def nominate(
     return get_room_state(league_id, user_sub)
 
 
+def make_pick(
+    league_id: str,
+    user_sub: str,
+    player: dict[str, Any],
+    *,
+    force: bool = False,
+) -> dict[str, Any]:
+    """Assign a player to the on-clock team in a snake/linear draft."""
+    league = storage.get_league(league_id)
+    if not league:
+        raise ValueError("League not found")
+    caller_team = _resolve_team(league_id, user_sub)
+    if not caller_team:
+        raise ValueError("Not a league member")
+    session = storage.get_draft_session(league_id)
+    rules = LeagueRules.model_validate(league["rules"])
+    if not is_pick_draft(rules):
+        raise ValueError("This league uses an auction. Nominate the player instead.")
+    if not session or session.get("status") != "picking":
+        raise ValueError("Draft is not accepting picks")
+    _assert_not_paused(session)
+    on_clock_id = _current_nominator_team_id(session, rules)
+    is_commissioner = league["commissioner_sub"] == user_sub
+    forced = False
+    team = caller_team
+    if on_clock_id and str(caller_team["id"]) != str(on_clock_id):
+        if force and is_commissioner:
+            on_clock = storage.get_team(on_clock_id)
+            if not on_clock:
+                raise ValueError("On-clock team not found")
+            team = on_clock
+            forced = True
+        else:
+            on_clock = storage.get_team(on_clock_id)
+            name = (on_clock or {}).get("name") or "another team"
+            raise ValueError(f"It is {name}'s turn to pick")
+    from src.draft_hub.draft_pool import list_drafted_player_ids
+
+    if str(player.get("player_id") or "") in list_drafted_player_ids(league_id):
+        raise ValueError("Player already drafted")
+    workspace_id = storage.roster_workspace_for_league(league)
+    ws = storage.get_workspace_by_id(workspace_id) if league.get("workspace_id") else None
+    sleeper_ids = set((ws or {}).get("sleeper_player_ids") or [])
+    resolved = resolve_nomination_player(
+        league_id=league_id,
+        pool_mode=session.get("pool_mode"),
+        player_id=str(player.get("player_id") or ""),
+        season=int(league["season"]),
+        rules=rules,
+        workspace_id=workspace_id,
+        sleeper_player_ids=sleeper_ids,
+    )
+    pos = normalize_position(resolved.get("position") or player.get("position"))
+    team_roster = storage.list_team_roster(league_id, team["id"])
+    assert_can_acquire(rules, team_roster, pos)
+    if team_roster_is_full(rules, team_roster):
+        raise ValueError("That roster is already full")
+    clock = pick_clock(session, rules)
+    picked = {
+        "player_id": resolved.get("player_id") or player.get("player_id"),
+        "player_name": resolved.get("player") or resolved.get("player_name") or player.get("player_name"),
+        "team": resolved.get("team") or player.get("team"),
+        "position": pos,
+        "picking_team_id": team["id"],
+        "picking_team_name": team.get("name"),
+        "team_id": team["id"],
+        "team_name": team.get("name"),
+        "amount": 0,
+        "overall": clock.get("overall"),
+        "round": clock.get("round"),
+        "slot": clock.get("slot"),
+    }
+    for key in ("fair_value", "season_proj", "per_game_proj", "is_rookie", "years_exp", "nfl_years_exp"):
+        val = resolved.get(key)
+        if val is None:
+            val = player.get(key)
+        if val is not None:
+            picked[key] = val
+    if forced:
+        picked["forced"] = True
+        picked["forced_by"] = user_sub
+    storage.add_roster_slot(
+        workspace_id,
+        {
+            "player_id": picked["player_id"],
+            "player_name": picked.get("player_name"),
+            "team": picked.get("team"),
+            "position": picked.get("position"),
+            "salary": 0.0,
+            "contract_years": 1,
+            "source": "draft",
+        },
+        team_id=team["id"],
+    )
+    storage.append_draft_event(league_id, "pick", picked)
+    _pop_queue_player(team, picked.get("player_id"))
+    _advance_nominator(league_id)
+    if all_rosters_full(league_id, rules):
+        try:
+            return end_draft(league_id, league["commissioner_sub"], force=True)
+        except ValueError:
+            pass
+    storage.update_draft_session(
+        league_id,
+        status="picking",
+        current_nominee_json=None,
+        high_bid=None,
+        high_bidder_team_id=None,
+        bid_deadline=None,
+        last_bid_at=None,
+        nomination_deadline=_deadline(rules.auction.nomination_timer_sec),
+    )
+    return get_room_state(league_id, user_sub)
+
+
 def place_bid(league_id: str, user_sub: str, amount: float) -> dict[str, Any]:
     league = storage.get_league(league_id)
     if not league:
@@ -773,6 +947,8 @@ def place_bid(league_id: str, user_sub: str, amount: float) -> dict[str, Any]:
         raise ValueError("No active bidding")
     _assert_not_paused(session)
     rules = LeagueRules.model_validate(league["rules"])
+    if is_pick_draft(rules):
+        raise ValueError("This league uses a pick draft, not an auction")
     from src.draft_hub.draft_budgets import assert_can_afford_auction_bid
 
     bidder_roster = storage.list_team_roster(league_id, team["id"])
@@ -814,6 +990,8 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
     winner_id = session.get("high_bidder_team_id")
     amount = session.get("high_bid")
     rules = LeagueRules.model_validate(league["rules"])
+    if is_pick_draft(rules):
+        raise ValueError("This league uses a pick draft, not an auction")
     min_bid = float(rules.auction.min_bid)
     if not nominee:
         storage.update_draft_session(
@@ -1060,6 +1238,47 @@ def _expire_nomination(league_id: str, user_sub: str | None = None) -> dict[str,
     return get_room_state(league_id, user_sub)
 
 
+def _expire_pick(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
+    """Pick clock hit zero: auto-pick BPA, or skip the on-clock team."""
+    from src.draft_hub.test_draft import _pick_nomination_payload, _team_sub
+
+    league = storage.get_league(league_id)
+    session = storage.get_draft_session(league_id)
+    if not league or not session or session.get("status") != "picking":
+        return get_room_state(league_id, user_sub)
+    rules = LeagueRules.model_validate(league["rules"])
+    nominator_id = _current_nominator_team_id(session, rules)
+    team = storage.get_team(nominator_id) if nominator_id else None
+    payload = (
+        _pick_nomination_payload(league_id, league, rules, team, session) if team else None
+    )
+    sub = _team_sub(team) if team else None
+    if payload and sub:
+        try:
+            make_pick(league_id, sub, payload)
+            return get_room_state(league_id, user_sub)
+        except ValueError:
+            pass
+    _advance_nominator(league_id)
+    storage.update_draft_session(
+        league_id,
+        nomination_deadline=_deadline(rules.auction.nomination_timer_sec),
+        last_bid_at=None,
+    )
+    storage.append_draft_event(
+        league_id,
+        "pass",
+        {
+            "reason": "pick_timeout",
+            "team_id": nominator_id,
+            "team_name": (team or {}).get("name"),
+        },
+    )
+    return get_room_state(league_id, user_sub)
+
+
+
+
 def tick_scheduled_starts() -> list[str]:
     """Auto-start live leagues whose published draft time has arrived."""
     started: list[str] = []
@@ -1087,8 +1306,14 @@ def tick_expired_drafts() -> list[str]:
 
 
 def check_timers(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
-    """Auto-pass expired bids/nominations; bots may bid/nominate in test mode."""
-    from src.draft_hub.test_draft import maybe_autodraft_nominate, maybe_bot_bid, maybe_bot_nominate
+    """Auto-pass expired bids/nominations/picks; bots may act in test mode."""
+    from src.draft_hub.test_draft import (
+        maybe_autodraft_nominate,
+        maybe_autodraft_pick,
+        maybe_bot_bid,
+        maybe_bot_nominate,
+        maybe_bot_pick,
+    )
 
     league = storage.get_league(league_id)
     session = storage.get_draft_session(league_id)
@@ -1109,6 +1334,14 @@ def check_timers(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
         auto_state = maybe_autodraft_nominate(league_id)
         if auto_state:
             return get_room_state(league_id, user_sub)
+    if status == "picking" and test_mode:
+        bot_state = maybe_bot_pick(league_id)
+        if bot_state:
+            return get_room_state(league_id, user_sub)
+    if status == "picking":
+        auto_state = maybe_autodraft_pick(league_id)
+        if auto_state:
+            return get_room_state(league_id, user_sub)
     if status == "bidding" and session.get("bid_deadline"):
         deadline = _parse_utc(session["bid_deadline"])
         if now >= deadline:
@@ -1123,4 +1356,8 @@ def check_timers(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
         deadline = _parse_utc(session["nomination_deadline"])
         if now >= deadline:
             return _expire_nomination(league_id, user_sub)
+    if status == "picking" and session.get("nomination_deadline"):
+        deadline = _parse_utc(session["nomination_deadline"])
+        if now >= deadline:
+            return _expire_pick(league_id, user_sub)
     return get_room_state(league_id, user_sub)

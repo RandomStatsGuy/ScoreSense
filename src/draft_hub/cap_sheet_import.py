@@ -15,7 +15,7 @@ from src.integrations.sleeper import players_dataframe
 
 _SKILL = frozenset({"QB", "RB", "WR", "TE", "FB", "K", "DEF", "DST"})
 _TERM_CUT = re.compile(r"\bcut\b", re.I)
-_TERM_NA = re.compile(r"\bNA\s*2026\b", re.I)
+_TERM_NA = re.compile(r"\bNA\s+(20\d{2})\b", re.I)
 _TERM_YR = re.compile(r"^(\d+)/(\d+)$")
 _NUM = re.compile(r"^\d+(?:\.\d+)?$")
 
@@ -31,15 +31,22 @@ def _parse_float(val: Any) -> float | None:
     return None
 
 
-def parse_contract_term(term: str) -> tuple[int, bool, bool]:
-    """Return (years_remaining, is_cut, na_2026)."""
+def parse_contract_term(term: str, *, season: int = 2025) -> tuple[int, bool, bool]:
+    """Return (years_remaining, is_cut, na_term).
+
+    ``NA 20XX`` means the deal expires before that season, so years left
+    include the sheet season: NA 2026 on a 2025 sheet → 1 year; NA 2027 → 2.
+    """
     raw = str(term or "").strip()
     if not raw:
         return 1, False, False
     if _TERM_CUT.search(raw):
         return 1, True, False
-    if _TERM_NA.search(raw):
-        return 1, False, True
+    m_na = _TERM_NA.search(raw)
+    if m_na:
+        end_year = int(m_na.group(1))
+        years = max(1, end_year - int(season))
+        return years, False, True
     m = _TERM_YR.match(raw.split()[0])
     if m:
         current, total = int(m.group(1)), int(m.group(2))
@@ -51,15 +58,50 @@ def _match_player(name: str, position: str, df: pd.DataFrame) -> dict[str, Any] 
     pos = str(position or "").strip().upper()
     if pos == "FB":
         pos = "RB"
+    if pos in {"DST", "D", "DEF"}:
+        pos = "DEF"
     clean = re.sub(r"\s+", " ", str(name or "").strip())
     if not clean:
         return None
 
+    if pos == "DEF":
+        hit = _match_dst(clean, df)
+        if hit:
+            return hit
     positions = [pos] if pos in _SKILL else list(_SKILL)
     for try_pos in positions:
         hit = _match_player_pos(clean, try_pos, df)
         if hit:
             return hit
+    return None
+
+
+def _best_search_rank_hit(frame: pd.DataFrame, pos: str) -> dict[str, Any] | None:
+    if frame is None or frame.empty:
+        return None
+    ranks = pd.to_numeric(frame["search_rank"], errors="coerce").fillna(9_999_999.0)
+    return _row_hit(frame.loc[ranks.idxmin()], pos)
+
+
+def _match_dst(clean: str, df: pd.DataFrame) -> dict[str, Any] | None:
+    pool = df[df["position"].astype(str).str.upper() == "DEF"]
+    if pool.empty:
+        return None
+    key = _normalize_name(clean)
+    if not key:
+        return None
+    for _, row in pool.iterrows():
+        last = str(row.get("last_name") or "")
+        first = str(row.get("first_name") or "")
+        team = str(row.get("team") or "")
+        names = {
+            _normalize_name(last),
+            _normalize_name(first),
+            _normalize_name(team),
+            _normalize_name(f"{first} {last}"),
+        }
+        if key in names:
+            return _row_hit(row, "DEF")
     return None
 
 
@@ -93,10 +135,18 @@ def _match_player_pos(clean: str, pos: str, df: pd.DataFrame) -> dict[str, Any] 
     if len(by_last) == 1:
         return _row_hit(by_last.iloc[0], pos)
 
+    # "B. Robinson" is Brian once Bijan is written out as Bijan on the same sheet.
+    if pos == "RB" and last.lower() == "robinson" and first.lower() in {"b"}:
+        brian = by_last[by_last["first_name"].astype(str).str.lower() == "brian"]
+        if not brian.empty:
+            return _row_hit(brian.iloc[0], pos)
+
     initial = first[0].lower()
     filt = by_last[by_last["first_name"].astype(str).str.lower().str.startswith(initial)]
     if len(filt) == 1:
         return _row_hit(filt.iloc[0], pos)
+    if len(filt) > 1:
+        return _best_search_rank_hit(filt, pos)
 
     if len(first) >= 2:
         filt2 = by_last[
@@ -104,6 +154,8 @@ def _match_player_pos(clean: str, pos: str, df: pd.DataFrame) -> dict[str, Any] 
         ]
         if len(filt2) == 1:
             return _row_hit(filt2.iloc[0], pos)
+        if len(filt2) > 1:
+            return _best_search_rank_hit(filt2, pos)
     return None
 
 
@@ -123,9 +175,14 @@ def _row_hit(row: pd.Series, position: str) -> dict[str, Any] | None:
             years_exp = max(0, int(row.get("years_exp")))
     except (TypeError, ValueError):
         years_exp = None
+    name = str(row.get("full_name") or "").strip()
+    if not name:
+        first = str(row.get("first_name") or "").strip()
+        last = str(row.get("last_name") or "").strip()
+        name = f"{first} {last}".strip() or str(row.get("team") or "").upper()
     return {
         "player_id": gsis,
-        "player_name": str(row.get("full_name") or ""),
+        "player_name": name,
         "team": str(row.get("team") or "").upper(),
         "position": pos,
         "sleeper_player_id": str(row.get("sleeper_id") or "") or None,
@@ -139,7 +196,7 @@ def _build_schedule(
     future: list[float | None],
     *,
     rules: LeagueRules,
-    na_2026: bool,
+    na_term: bool,
     years_exp: int | None = None,
     season: int | None = None,
 ) -> dict[str, Any]:
@@ -160,7 +217,7 @@ def _build_schedule(
     else:
         inferred = infer_contract_type(None, rules, years_exp=years_exp, season=season)
     # Pad missing future years: rookies stay flat; vets / extensions step +$5.
-    if len(schedule_vals) == 1 and years_remaining > 1 and not na_2026:
+    if len(schedule_vals) == 1 and years_remaining > 1 and not na_term:
         if inferred == "rookie":
             while len(schedule_vals) < years_remaining:
                 schedule_vals.append(schedule_vals[-1])
@@ -245,7 +302,7 @@ def parse_cap_sheet_tsv(
 
         salary = _parse_float(r.get(sal_c)) if sal_c else None
         term_raw = str(r.get(term_c) or "").strip() if term_c else ""
-        years_rem, is_cut, na_2026 = parse_contract_term(term_raw)
+        years_rem, is_cut, na_term = parse_contract_term(term_raw, season=season)
         future = [
             _parse_float(r.get(y2_c)) if y2_c else None,
             _parse_float(r.get(y3_c)) if y3_c else None,
@@ -259,6 +316,11 @@ def parse_cap_sheet_tsv(
                 unmatched.append(f"{mgr}: CUT {pname}")
                 continue
             dead = salary if salary is not None else 0.0
+            if dead <= 0:
+                for val in future:
+                    if val is not None and val > 0:
+                        dead = val
+                        break
             key = (mgr.lower(), hit["player_id"])
             if key in seen:
                 duplicates.append(f"{mgr}: CUT {pname}")
@@ -292,13 +354,13 @@ def parse_cap_sheet_tsv(
             continue
         seen.add(key)
 
-        cap = float(salary if salary is not None else 1.0)
+        cap = float(salary) if salary is not None else 0.0
         contract = _build_schedule(
             cap,
             years_rem,
             future,
             rules=rules,
-            na_2026=na_2026,
+            na_term=na_term,
             years_exp=hit.get("years_exp"),
             season=season,
         )
@@ -399,12 +461,47 @@ def validate_cap_sheet_for_league(
     }
 
 
+def contract_history_from_parsed(
+    parsed: dict[str, Any],
+    manager_map: dict[str, str],
+    *,
+    season_year: int,
+) -> list[dict[str, Any]]:
+    """Turn cap-sheet roster rows into Historic year-sheet rows."""
+    out: list[dict[str, Any]] = []
+    for row in parsed.get("rows") or []:
+        mgr = str(row.get("manager_team") or "")
+        cut = str(row.get("roster_status") or "") == "cut_before_draft"
+        pos = str(row.get("position") or "")
+        if pos in {"DST", "D"}:
+            pos = "DEF"
+        out.append(
+            {
+                "owner_label": mgr,
+                "hub_team_name": manager_map.get(mgr) or manager_map.get(mgr.strip()),
+                "player_name": row.get("player_name"),
+                "player_id": row.get("player_id"),
+                "position": pos,
+                "base_salary": row.get("salary"),
+                "cap_hit": row.get("salary"),
+                "roster_status": "cut" if cut else "active",
+                "status_note": "CUT" if cut else None,
+                "source_kind": "import",
+                "obligation_kind": "cut_dead_cap" if cut else "ownership",
+                "contract_phase": "post_2024_base",
+                "acquisition_type": "unknown",
+            }
+        )
+    return out
+
+
 def import_cap_sheet_to_league(
     league_id: str,
     parsed: dict[str, Any],
     manager_map: dict[str, str],
     *,
     replace_existing: bool = True,
+    historic_season: int | None = None,
 ) -> dict[str, Any]:
     """Apply parsed cap sheet rows to a league workspace."""
     from src.draft_hub import storage
@@ -425,12 +522,20 @@ def import_cap_sheet_to_league(
         return None
 
     if replace_existing:
-        with storage.get_conn() as conn:
-            conn.execute("DELETE FROM roster_slot WHERE workspace_id = ?", (ws_id,))
+        storage.clear_league_team_rosters(league_id)
+
+    # Active rows first so a CUT dead-cap line cannot steal a player who is
+    # already on another team (roster_slot is unique on workspace + player_id).
+    rows = list(parsed.get("rows") or [])
+    rows.sort(
+        key=lambda r: 1 if str(r.get("roster_status") or "active") == "cut_before_draft" else 0
+    )
 
     by_team: dict[str, int] = {}
     skipped_mgr: list[str] = []
-    for row in parsed.get("rows") or []:
+    skipped_cut_elsewhere: list[str] = []
+    imported_ids: set[str] = set()
+    for row in rows:
         mgr = str(row.get("manager_team") or "")
         hub_name = manager_map.get(mgr) or manager_map.get(mgr.strip())
         if not hub_name:
@@ -441,6 +546,14 @@ def import_cap_sheet_to_league(
             skipped_mgr.append(f"{mgr}->{hub_name}")
             continue
         payload = {k: v for k, v in row.items() if k != "manager_team"}
+        pid = str(payload.get("player_id") or "")
+        is_cut = str(payload.get("roster_status") or "active") == "cut_before_draft"
+        if pid and pid in imported_ids:
+            if is_cut:
+                skipped_cut_elsewhere.append(f"{mgr}: CUT {payload.get('player_name')}")
+            else:
+                skipped_mgr.append(f"{mgr}: duplicate {payload.get('player_name')}")
+            continue
         storage.add_roster_slot(ws_id, payload, team_id=str(team["id"]))
         if payload.get("roster_status") and payload["roster_status"] != "active":
             storage.update_roster_slot(
@@ -450,11 +563,24 @@ def import_cap_sheet_to_league(
                 roster_status=payload["roster_status"],
                 any_team=True,
             )
+        if pid:
+            imported_ids.add(pid)
         label = team["name"]
         by_team[label] = by_team.get(label, 0) + 1
 
     if not league.get("workspace_id"):
         storage.set_league_workspace_id(league_id, ws_id)
+
+    historic_written = 0
+    if historic_season is not None:
+        historic_written = storage.replace_league_contract_season_source(
+            league_id,
+            int(historic_season),
+            contract_history_from_parsed(
+                parsed, manager_map, season_year=int(historic_season)
+            ),
+            source_kind="import",
+        )
 
     from src.draft_hub.contract_backfill import backfill_league_contracts
 
@@ -463,6 +589,8 @@ def import_cap_sheet_to_league(
         "imported": sum(by_team.values()),
         "by_team": by_team,
         "skipped_managers": sorted(set(skipped_mgr)),
+        "skipped_cut_elsewhere": skipped_cut_elsewhere,
+        "historic": historic_written,
         "backfill": backfill,
     }
 
@@ -509,6 +637,9 @@ def overlay_cap_sheet_contracts(
         payload = {k: v for k, v in row.items() if k != "manager_team"}
         team_id = str(team["id"])
         existing = storage.get_roster_slot(ws_id, pid)
+        is_cut = str(payload.get("roster_status") or "active") == "cut_before_draft"
+        if existing and is_cut and str(existing.get("team_id") or "") != team_id:
+            continue
         if existing:
             if str(existing.get("team_id") or "") != team_id:
                 storage.move_roster_player(ws_id, pid, team_id)
