@@ -10,6 +10,7 @@ import LeagueChat from "./LeagueChat";
 import LeagueInvites from "./LeagueInvites";
 import LeagueSleeperConnect from "./LeagueSleeperConnect";
 import CapSheetImport from "./CapSheetImport";
+import { hubTeamLabel } from "./hubTeamLabel";
 import LeagueSheetImport from "./LeagueSheetImport";
 import {
   defaultOfficeTab,
@@ -168,7 +169,7 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
                 : (t.is_commissioner ? "Co-commish" : "Member");
               return (
                 <tr key={t.id}>
-                  <td>{t.name}</td>
+                  <td>{hubTeamLabel(t)}</td>
                   <td>{t.user_sub ? "Claimed" : "Unclaimed"}</td>
                   <td>
                     {t.sleeper_roster_id

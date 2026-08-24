@@ -211,7 +211,7 @@ def test_cap_sheet_validate_accepts_multipart_file(hub_db):
     sub = "cap-upload-api"
     storage.create_league(
         sub, "Upload League", 2026, LeagueRules(),
-        commissioner_team_name="Thanks noob noob",
+        commissioner_team_name="Disappointment",
     )
     app.dependency_overrides[require_hub_user] = lambda: {"sub": sub, "auth_type": "dev"}
     client = TestClient(app)
@@ -250,8 +250,13 @@ def test_match_hub_team_does_not_substring_steal():
     hub_short = {"disappointment": disappointment, "noob": noob}
     assert match_hub_team(hub_short, "Thanks noob noob") is None
 
+    sleeper_named = {
+        "old label": {"id": "d", "name": "Old Label", "sleeper_team_name": "Disappointment"},
+    }
+    assert match_hub_team(sleeper_named, "Disappointment")["id"] == "d"
 
-def test_import_keeps_aaron_and_josh_on_yaml_teams(hub_db):
+
+def test_import_follows_live_owner_map_not_stale_yaml(hub_db):
     from src.draft_hub.team_salary_sheets import build_team_salary_sheets_payload
 
     rules = LeagueRules()
@@ -281,18 +286,18 @@ def test_import_keeps_aaron_and_josh_on_yaml_teams(hub_db):
     )
     teams = {t["name"]: t["id"] for t in storage.list_league_teams(league["id"])}
     by_team = storage.list_league_rosters_by_team(league["id"])
-    aaron_names = [r["player_name"] for r in by_team[teams["Thanks noob noob"]]]
-    josh_names = [r["player_name"] for r in by_team[teams["Disappointment"]]]
+    aaron_names = [r["player_name"] for r in by_team[teams["Disappointment"]]]
+    josh_names = [r["player_name"] for r in by_team[teams["Thanks noob noob"]]]
     assert any("Stroud" in n for n in aaron_names)
     assert any("Herbert" in n for n in josh_names)
     assert not any("Herbert" in n for n in aaron_names)
     assert not any("Stroud" in n for n in josh_names)
-    assert storage.resolve_hub_team_name(league["id"], 2026, "Aaron D") == "Thanks noob noob"
-    assert storage.resolve_hub_team_name(league["id"], 2026, "Josh C") == "Disappointment"
+    assert storage.resolve_hub_team_name(league["id"], 2026, "Aaron D") == "Disappointment"
+    assert storage.resolve_hub_team_name(league["id"], 2026, "Josh C") == "Thanks noob noob"
 
     payload = build_team_salary_sheets_payload(league["id"], season_year=2026)
     sheets = {s["owner_label"]: s for s in payload.get("team_sheets") or []}
     assert any("Stroud" in str(r.get("player_name")) for r in sheets["Aaron D"]["rows"])
     assert any("Herbert" in str(r.get("player_name")) for r in sheets["Josh C"]["rows"])
-    assert sheets["Aaron D"]["team_name"] == "Thanks noob noob"
-    assert sheets["Josh C"]["team_name"] == "Disappointment"
+    assert sheets["Aaron D"]["team_name"] == "Disappointment"
+    assert sheets["Josh C"]["team_name"] == "Thanks noob noob"

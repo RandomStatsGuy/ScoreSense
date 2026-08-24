@@ -68,6 +68,9 @@ def league_with_contracts(hub_db, monkeypatch):
             },
         ],
     )
+    # Keep 2024–2025 labels as they were; YAML now reflects 2026 Sleeper names.
+    storage.upsert_owner_season_map(lid, 2024, "Aaron D", "Thanks noob noob", source_kind="manual")
+    storage.upsert_owner_season_map(lid, 2025, "Aaron D", "Thanks noob noob", source_kind="manual")
     return lid
 
 

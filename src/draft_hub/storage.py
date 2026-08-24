@@ -3959,6 +3959,45 @@ def _owner_season_map_dict(row: sqlite3.Row) -> dict[str, Any]:
     return dict(row)
 
 
+def get_owner_season_map_row(
+    league_id: str,
+    season_year: int,
+    owner_label: str,
+) -> dict[str, Any] | None:
+    owner = str(owner_label or "").strip()
+    if not owner:
+        return None
+    with get_conn() as conn:
+        row = conn.execute(
+            """SELECT * FROM league_owner_season_map
+               WHERE league_id = ? AND season_year = ? AND owner_label = ?""",
+            (league_id, int(season_year), owner),
+        ).fetchone()
+    return _owner_season_map_dict(row) if row else None
+
+
+def retarget_owner_season_map_team_name(
+    league_id: str,
+    season_year: int,
+    old_name: str,
+    new_name: str,
+) -> int:
+    """Follow a Hub team rename so owner maps keep pointing at the same franchise."""
+    old = str(old_name or "").strip()
+    new = str(new_name or "").strip()
+    if not old or not new or old == new:
+        return 0
+    now = _utcnow()
+    with get_conn() as conn:
+        cur = conn.execute(
+            """UPDATE league_owner_season_map
+               SET hub_team_name = ?, source_kind = 'sleeper_rename', updated_at = ?
+               WHERE league_id = ? AND season_year = ? AND hub_team_name = ?""",
+            (new, now, league_id, int(season_year), old),
+        )
+        return int(cur.rowcount or 0)
+
+
 def list_owner_season_map(
     league_id: str,
     *,

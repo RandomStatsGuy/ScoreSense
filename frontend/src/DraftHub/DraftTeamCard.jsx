@@ -3,6 +3,7 @@ import { HUB_POS_ORDER, normalizeHubPosition } from "./hubPositions";
 import { isRetainedThroughDraft } from "./draftRoomHelpers";
 import { fmtSal } from "./rosterFormat";
 import { teamBudgetLine, teamRosterLine } from "./draftLiveConsole";
+import { hubTeamLabel } from "./hubTeamLabel";
 
 export default function DraftTeamCard({
   team,
@@ -72,7 +73,7 @@ export default function DraftTeamCard({
     >
       <button type="button" className="hub-team-card-toggle" onClick={() => setOpen((v) => !v)}>
         <div className="hub-team-card-head">
-          <strong className="hub-team-card-name">{team.name}</strong>
+          <strong className="hub-team-card-name">{hubTeamLabel(team)}</strong>
           <span className="hub-team-card-tags">
             {isNominator ? <span className="hub-team-tag hub-team-tag-nom">{pickDraft ? "On the clock" : "Nominate"}</span> : null}
             {!pickDraft && isLeader ? <span className="hub-team-tag hub-team-tag-lead">High bid</span> : null}

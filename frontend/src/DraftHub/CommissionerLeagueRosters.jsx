@@ -5,6 +5,7 @@ import useMobileLayout from "../useMobileLayout";
 import MobileDataList, { MobileStat } from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
 import LeagueSleeperConnect from "./LeagueSleeperConnect";
+import { hubTeamLabel } from "./hubTeamLabel";
 import {
   getAnyLeagueRostersCache,
   setLeagueRostersCache,
@@ -475,7 +476,7 @@ function TeamRosterBlock({
   const dropPlayer = async (r) => {
     if (!(await confirmDialog({
       title: "Drop player",
-      message: `Drop ${r.player_name} from ${block.team.name}?`,
+      message: `Drop ${r.player_name} from ${hubTeamLabel(block.team)}?`,
       confirmLabel: "Drop player",
       danger: true,
     }))) {
@@ -513,7 +514,7 @@ function TeamRosterBlock({
     >
       <summary className="hub-league-team-card-head">
         <div className="hub-league-team-card-title">
-          <strong>{team.name}</strong>
+          <strong>{hubTeamLabel(team)}</strong>
           <span className="hub-league-team-badges">
             {team.user_sub ? (
               <span className="hub-badge hub-badge-claimed">Claimed</span>
@@ -575,7 +576,7 @@ function TeamRosterBlock({
           leagueId={leagueId}
           season={season}
           teamId={team.id}
-          teamName={team.name}
+          teamName={hubTeamLabel(team)}
           maxYears={maxYears}
           onSaved={onSaved}
           onError={setError}
@@ -1036,9 +1037,9 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
                   type="button"
                   className={`hub-league-jump-pill${teamFilter === block.team.id ? " active" : ""}`}
                   onClick={() => setTeamFilter((id) => (id === block.team.id ? "" : block.team.id))}
-                  title={`${block.team.name} · ${fmtSal(s.committed)} committed`}
+                  title={`${hubTeamLabel(block.team)} · ${fmtSal(s.committed)} committed`}
                 >
-                  {block.team.name}
+                  {hubTeamLabel(block.team)}
                   <span className="hub-league-jump-meta">{fmtSal(s.committed)}</span>
                 </button>
               );
