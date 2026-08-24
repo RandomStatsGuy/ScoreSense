@@ -229,6 +229,38 @@ def _total_roster_slots(rules: LeagueRules) -> int:
     return total_roster_slots(rules)
 
 
+def _blocks_luxury_min_steal(
+    rules: LeagueRules,
+    league_id: str,
+    roster: list[dict[str, Any]],
+    position: str | None,
+) -> bool:
+    """True when this team should not bid: others still need this positional min.
+
+    Bot ceilings hash off random team ids, so a team that already filled TE
+    can otherwise snag remaining TEs as cheap extras and starve another club.
+    Relaxed sandboxes skip positional mins entirely.
+    """
+    from src.draft_hub.rules_engine import (
+        normalize_position,
+        salary_roster_limits_relaxed,
+        unmet_minimum_positions,
+    )
+
+    if salary_roster_limits_relaxed(rules):
+        return False
+    pos = normalize_position(position)
+    if not pos:
+        return False
+    if unmet_minimum_positions(rules, roster):
+        return False
+    for team in storage.list_league_teams(league_id):
+        other = storage.list_team_roster(league_id, team["id"])
+        if pos in unmet_minimum_positions(rules, other):
+            return True
+    return False
+
+
 def maybe_bot_bid(league_id: str) -> dict[str, Any] | None:
     state = get_room_state(league_id)
     session = state.get("session") or {}
@@ -263,6 +295,8 @@ def maybe_bot_bid(league_id: str) -> dict[str, Any] | None:
 
         roster = storage.list_team_roster(league_id, bot["id"])
         if not should_need_bid(rules, roster, nominee.get("position")):
+            continue
+        if _blocks_luxury_min_steal(rules, league_id, roster, nominee.get("position")):
             continue
         if not salary_roster_limits_relaxed(rules):
             open_slots = open_roster_slots(rules, roster, draft_completed=False)
@@ -307,6 +341,10 @@ def _settle_auction(league_id: str) -> None:
             continue
         if str(team["id"]) != str(high_team_id) and not should_need_bid(
             rules, roster, nominee.get("position")
+        ):
+            continue
+        if str(team["id"]) != str(high_team_id) and _blocks_luxury_min_steal(
+            rules, league_id, roster, nominee.get("position")
         ):
             continue
         budget = float(team.get("budget_remaining") or 0)
