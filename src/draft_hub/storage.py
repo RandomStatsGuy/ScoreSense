@@ -1389,10 +1389,10 @@ def get_draft_session(league_id: str) -> dict[str, Any] | None:
 
 
 def list_in_progress_draft_league_ids() -> list[str]:
-    """League ids whose auction is nominating or bidding (for the server ticker)."""
+    """League ids whose draft is nominating, bidding, or picking (for the server ticker)."""
     with get_conn() as conn:
         rows = conn.execute(
-            "SELECT league_id FROM draft_session WHERE status IN ('nominating', 'bidding')"
+            "SELECT league_id FROM draft_session WHERE status IN ('nominating', 'bidding', 'picking')"
         ).fetchall()
     return [str(r["league_id"]) for r in rows]
 

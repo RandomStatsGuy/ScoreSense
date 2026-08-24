@@ -61,6 +61,30 @@ export function nextNominator(session, teams = []) {
   return teams.find((t) => String(t.id) === String(nextId)) || { id: nextId };
 }
 
+export function nextOnClock(session, teams = [], draftType = "auction") {
+  const order = session?.nomination_order || [];
+  if (!order.length) return null;
+  const idx = (Number(session?.nominator_index) || 0) + 1;
+  const n = order.length;
+  const rnd = Math.floor(idx / n);
+  let slot = idx % n;
+  if (draftType === "snake" && rnd % 2 === 1) slot = n - 1 - slot;
+  const nextId = order[slot];
+  return teams.find((t) => String(t.id) === String(nextId)) || { id: nextId };
+}
+
+export function teamRosterLine(team = {}) {
+  const rostered = Number(team.occupying);
+  const max = Number(team.roster_size_max);
+  const rosterN = Number.isFinite(rostered) ? rostered : 0;
+  const maxN = Number.isFinite(max) && max > 0 ? max : null;
+  return {
+    rostered: rosterN,
+    rosterMax: maxN,
+    text: maxN ? `${rosterN}/${maxN} rostered` : `${rosterN} rostered`,
+  };
+}
+
 export function teamBudgetLine(team = {}) {
   const rostered = Number(team.occupying);
   const max = Number(team.roster_size_max);

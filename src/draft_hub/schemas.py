@@ -38,6 +38,8 @@ class ContractRules(BaseModel):
 
 class LeagueRules(BaseModel):
     salary_cap: float = 200.0
+    # auction = salary-cap nomination auction; snake/linear = classic pick draft.
+    draft_type: Literal["auction", "snake", "linear"] = "auction"
     auction: AuctionRules = Field(default_factory=AuctionRules)
     roster: dict[str, Any] = Field(default_factory=dict)
     # Explicit total roster cap. When omitted, sum of per-position maxes is used.

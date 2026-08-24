@@ -66,7 +66,15 @@ export function formatDraftWait(secondsUntilStart) {
   return `${days}d ${hours % 24}h`;
 }
 
+export function isPickDraft(rules) {
+  const t = String(rules?.draft_type || "").toLowerCase();
+  return t === "snake" || t === "linear";
+}
+
 export function draftFormatLabel(rules) {
+  const t = String(rules?.draft_type || "").toLowerCase();
+  if (t === "snake") return "Snake draft";
+  if (t === "linear") return "Linear draft";
   if (!rules || rules.auction != null) return "Salary cap auction";
   return "Auction";
 }

@@ -403,7 +403,7 @@ def execute_multiparty_trade(
     )
 
     session = storage.get_draft_session(league_id) or {}
-    if session.get("status") in ("nominating", "bidding") and not league.get("draft_completed"):
+    if session.get("status") in ("nominating", "bidding", "picking") and not league.get("draft_completed"):
         from src.draft_hub.draft_budgets import sync_league_auction_budgets
 
         sync_league_auction_budgets(league_id)

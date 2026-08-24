@@ -109,10 +109,17 @@ def main() -> None:
         parsed,
         manager_map,
         replace_existing=True,
+        historic_season=args.season,
     )
     print(f"Imported {result['imported']} roster rows")
     for team, n in sorted(result.get("by_team", {}).items()):
         print(f"  {team}: {n}")
+    if result.get("historic"):
+        print(f"Historic {args.season} contract rows: {result['historic']}")
+    if result.get("skipped_cut_elsewhere"):
+        print("CUT skipped (player already on another team):")
+        for item in result["skipped_cut_elsewhere"]:
+            print(f"  - {item}")
     if result.get("skipped_managers"):
         print("Skipped (no team map):", ", ".join(result["skipped_managers"]))
 

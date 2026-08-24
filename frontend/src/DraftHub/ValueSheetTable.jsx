@@ -115,7 +115,9 @@ export default function ValueSheetTable({
   watchIds = [],
   canNominate = false,
   minBid = 1,
+  actionLabel,
 }) {
+  const nominateText = actionLabel || (draftConsole ? `Nominate for $${Number(minBid || 1)}` : "Nominate");
   const isAvailableView = mode === "available";
   const [sortKey, setSortKey] = useState("fair_value");
   const [sortDir, setSortDir] = useState("desc");
@@ -542,7 +544,7 @@ export default function ValueSheetTable({
                     onRowDoubleClick(r);
                   }}
                 >
-                  {draftConsole ? `Nominate for $${Number(minBid || 1)}` : "Nominate"}
+                  {nominateText}
                 </button>,
               );
             } else if (showSelect) {
@@ -564,7 +566,7 @@ export default function ValueSheetTable({
                   className="btn-primary btn-sm"
                   onClick={() => onRowDoubleClick(r)}
                 >
-                  {draftConsole ? `Nominate for $${Number(minBid || 1)}` : "Nominate"}
+                  {nominateText}
                 </button>,
               );
             }

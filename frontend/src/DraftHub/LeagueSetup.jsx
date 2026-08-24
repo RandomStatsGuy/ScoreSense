@@ -48,12 +48,15 @@ export default function LeagueSetup({
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
   const [showAddLeague, setShowAddLeague] = useState(false);
+  const [presetId, setPresetId] = useState("salary_cap_auction_v1");
   const [pendingTypes, setPendingTypes] = useState([]);
   const [draftTz, setDraftTz] = useState(ctx?.draft_timezone || browserTimeZone());
   const [draftWall, setDraftWall] = useState(() => utcIsoToWall(ctx?.draft_starts_at, ctx?.draft_timezone || browserTimeZone()));
 
   const season = workspace?.season ?? new Date().getFullYear();
-  const presetLabel = presets?.find((p) => p.id === "salary_cap_auction_v1")?.label || "Salary cap auction";
+  const presetLabel = presets?.find((p) => p.id === presetId)?.label
+    || presets?.find((p) => p.id === "salary_cap_auction_v1")?.label
+    || "Salary cap auction";
 
   useEffect(() => {
     if (!isCommissioner || !ctx?.league_id) {
@@ -117,6 +120,7 @@ export default function LeagueSetup({
           season,
           team_count: Number(teamCount) || 12,
           commissioner_team_name: teamName.trim() || "Commissioner",
+          preset_id: presetId,
         }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
@@ -384,6 +388,18 @@ export default function LeagueSetup({
                   <label>
                     Your team name
                     <input value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="My Team" />
+                  </label>
+                  <label>
+                    Draft format
+                    <select value={presetId} onChange={(e) => setPresetId(e.target.value)}>
+                      {(presets || [
+                        { id: "salary_cap_auction_v1", label: "Salary cap auction" },
+                        { id: "snake_draft_v1", label: "Snake draft" },
+                        { id: "linear_draft_v1", label: "Linear draft" },
+                      ]).map((p) => (
+                        <option key={p.id} value={p.id}>{p.label}</option>
+                      ))}
+                    </select>
                   </label>
                   <label>
                     Teams

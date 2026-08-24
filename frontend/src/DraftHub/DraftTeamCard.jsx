@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { HUB_POS_ORDER, normalizeHubPosition } from "./hubPositions";
 import { isRetainedThroughDraft } from "./draftRoomHelpers";
 import { fmtSal } from "./rosterFormat";
-import { teamBudgetLine } from "./draftLiveConsole";
+import { teamBudgetLine, teamRosterLine } from "./draftLiveConsole";
 
 export default function DraftTeamCard({
   team,
@@ -16,6 +16,7 @@ export default function DraftTeamCard({
   draftCompleted = false,
   allowTrades = false,
   onTradePlayer,
+  pickDraft = false,
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const spent = cap - Number(team.budget_remaining ?? cap);
@@ -73,26 +74,32 @@ export default function DraftTeamCard({
         <div className="hub-team-card-head">
           <strong className="hub-team-card-name">{team.name}</strong>
           <span className="hub-team-card-tags">
-            {isNominator ? <span className="hub-team-tag hub-team-tag-nom">Nominate</span> : null}
-            {isLeader ? <span className="hub-team-tag hub-team-tag-lead">High bid</span> : null}
+            {isNominator ? <span className="hub-team-tag hub-team-tag-nom">{pickDraft ? "On the clock" : "Nominate"}</span> : null}
+            {!pickDraft && isLeader ? <span className="hub-team-tag hub-team-tag-lead">High bid</span> : null}
           </span>
           <span className="hub-team-card-meta">
-            {teamBudgetLine({
-              ...team,
-              occupying: occupying.length,
-              roster_size_max: team.roster_size_max,
-              max_bid: team.max_bid,
-            }).text}
+            {pickDraft
+              ? teamRosterLine({ ...team, occupying: occupying.length }).text
+              : teamBudgetLine({
+                  ...team,
+                  occupying: occupying.length,
+                  roster_size_max: team.roster_size_max,
+                  max_bid: team.max_bid,
+                }).text}
           </span>
         </div>
+        {!pickDraft && (
         <div className="hub-budget-bar">
           <div className="hub-budget-fill" style={{ width: `${Math.min(100, (spent / cap) * 100)}%` }} />
         </div>
+        )}
       </button>
       {open && (
         <div className="hub-team-roster-detail">
           <p className="chart-note hub-team-detail-meta">
-            {fmtSal(team.budget_remaining)} left · {fmtSal(spent)} spent · {occupying.length} players
+            {pickDraft
+              ? `${occupying.length} players`
+              : `${fmtSal(team.budget_remaining)} left · ${fmtSal(spent)} spent · ${occupying.length} players`}
             {team.is_commissioner ? " · Commish" : ""}
             {team.is_bot ? " · Bot" : ""}
           </p>

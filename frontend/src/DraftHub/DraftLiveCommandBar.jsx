@@ -40,8 +40,11 @@ export default function DraftLiveCommandBar({
   canNominate = false,
   onNominate,
   nominateLabel,
+  pickDraft = false,
+  pickClock = null,
 }) {
   const status = session?.status;
+  const picking = pickDraft || status === "picking";
   const highBid = Number(session?.high_bid || 0);
   const relation = bidRelation({
     myTeamId,
@@ -59,7 +62,7 @@ export default function DraftLiveCommandBar({
   };
 
   return (
-    <div className="hub-draft-live-command" role="region" aria-label="Live auction command bar">
+    <div className="hub-draft-live-command" role="region" aria-label={picking ? "Live pick command bar" : "Live auction command bar"}>
       <div className="hub-draft-live-command-main">
         <span
           className={`hub-draft-conn hub-draft-conn--${connectionStatus}`}
@@ -80,13 +83,19 @@ export default function DraftLiveCommandBar({
         ) : (
           <>
             <strong className="hub-draft-live-command-player">
-              {isMyNominationTurn ? "Your turn to nominate" : `Waiting for ${nominatorTeam?.name || "nominator"}`}
+              {picking
+                ? (isMyNominationTurn ? "Your pick" : `On the clock: ${nominatorTeam?.name || "a team"}`)
+                : (isMyNominationTurn ? "Your turn to nominate" : `Waiting for ${nominatorTeam?.name || "nominator"}`)}
             </strong>
-            {nextNominatorTeam?.name && (
+            {picking && pickClock?.round ? (
+              <span className="hub-draft-live-command-next">
+                Round {pickClock.round} · Pick {pickClock.overall}
+              </span>
+            ) : nextNominatorTeam?.name ? (
               <span className="hub-draft-live-command-next">
                 Next {nextNominatorTeam.name}
               </span>
-            )}
+            ) : null}
           </>
         )}
         <DraftDeadlineClock
@@ -121,10 +130,10 @@ export default function DraftLiveCommandBar({
           </form>
         ) : canNominate ? (
           <button type="button" className="btn-primary" onClick={onNominate} disabled={bidDisabled}>
-            {nominateLabel || `Nominate for ${fmtSal(minBid || 1)}`}
+            {nominateLabel || (picking ? "Pick" : `Nominate for ${fmtSal(minBid || 1)}`)}
           </button>
         ) : null}
-        {Number.isFinite(Number(myBudget)) && (
+        {!picking && Number.isFinite(Number(myBudget)) && (
           <span className="hub-draft-live-command-cap">
             {fmtSal(myBudget)} left
             {myMaxBid != null && <> · max {fmtSal(myMaxBid)}</>}
