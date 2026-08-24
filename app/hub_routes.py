@@ -4013,6 +4013,7 @@ async def hub_mock_draft_start(body: MockDraftStartRequest, _user=Depends(requir
             source_league_id=body.source_league_id,
             auto_start=auto_start,
             name=body.name,
+            relax_salary_roster_limits=body.relax_salary_roster_limits,
         )
         await broadcast_room(result["league_id"])
         result["hub_context"] = _ctx(sub)

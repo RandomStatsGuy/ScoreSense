@@ -65,7 +65,8 @@ export function secondsUntil(iso) {
   return Math.max(0, Math.ceil(ms / 1000));
 }
 
-export function canAcquireAtPosition(capacity, position) {
+export function canAcquireAtPosition(capacity, position, { relaxLimits } = {}) {
+  if (relaxLimits) return true;
   if (!position) return true;
   const pos = String(position).toUpperCase();
   const normalized = pos === "DST" || pos === "D/ST" ? "DEF" : pos;
@@ -93,7 +94,7 @@ export function isRetainedThroughDraft(row, draftCompleted = false) {
 }
 
 /** Client-side roster capacity from league rules + occupying roster rows. */
-export function buildRosterCapacity(rules, roster, { draftCompleted = false } = {}) {
+export function buildRosterCapacity(rules, roster, { draftCompleted = false, relaxLimits = false } = {}) {
   const rosterRules = rules?.roster || {};
   const counts = {};
   for (const row of roster || []) {
@@ -115,8 +116,8 @@ export function buildRosterCapacity(rules, roster, { draftCompleted = false } = 
       count,
       min,
       max,
-      at_max: count >= max,
-      below_min: count < min,
+      at_max: relaxLimits ? false : count >= max,
+      below_min: relaxLimits ? false : count < min,
       remaining: Math.max(0, max - count),
     };
   }

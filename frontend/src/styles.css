@@ -9145,6 +9145,20 @@ td.col-rank.col-rank-top {
   margin-top: 0.55rem; padding: 0.65rem 0.75rem;
   border: 1px dashed var(--border); border-radius: var(--radius-md);
 }
+.hub-sandbox-relax-check {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  align-items: flex-start;
+}
+.hub-sandbox-relax-banner,
+.hub-sandbox-relax-banner {
+  margin: 0.25rem 0 0;
+  padding: 0.4rem 0.55rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  background: rgba(250, 204, 21, 0.08);
+}
 
 .hub-draft-live-strip {
   display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.65rem;

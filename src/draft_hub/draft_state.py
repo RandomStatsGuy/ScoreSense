@@ -12,6 +12,7 @@ from src.draft_hub.rules_engine import (
     occupying_min_errors,
     normalize_position,
     roster_capacity,
+    salary_roster_limits_relaxed,
 )
 from src.draft_hub.schemas import LeagueRules
 from src.draft_hub import storage
@@ -97,15 +98,33 @@ def update_auction_rules(league_id: str, user_sub: str, updates: dict[str, Any])
     if league["commissioner_sub"] != user_sub:
         raise ValueError("Only commissioner can change auction settings")
     session = storage.get_draft_session(league_id) or {}
-    if session.get("status") and session.get("status") != "setup":
+    timer_keys = (
+        "min_bid",
+        "nomination_timer_sec",
+        "bid_timer_sec",
+        "bid_extension_sec",
+        "bot_reaction_delay_sec",
+    )
+    has_timer_updates = any(updates.get(key) is not None for key in timer_keys)
+    if has_timer_updates and session.get("status") and session.get("status") != "setup":
         raise ValueError("Auction settings can only change before the draft starts")
+    relax = updates.get("relax_salary_roster_limits")
+    if relax is not None and not storage.league_test_mode(league_id):
+        raise ValueError("Salary and roster limits can only be relaxed in a practice sandbox")
     rules = LeagueRules.model_validate(league["rules"])
     auction = rules.auction.model_dump()
-    for key in ("min_bid", "nomination_timer_sec", "bid_timer_sec", "bid_extension_sec", "bot_reaction_delay_sec"):
+    for key in timer_keys:
         if updates.get(key) is not None:
             auction[key] = int(updates[key])
-    rules = rules.model_copy(update={"auction": rules.auction.model_copy(update=auction)})
+    patch: dict[str, Any] = {"auction": rules.auction.model_copy(update=auction)}
+    if relax is not None:
+        patch["relax_salary_roster_limits"] = bool(relax)
+    rules = rules.model_copy(update=patch)
     storage.update_league_rules(league_id, rules)
+    if relax is not None:
+        from src.draft_hub.draft_budgets import sync_league_auction_budgets
+
+        sync_league_auction_budgets(league_id)
     return get_room_state(league_id, user_sub)
 
 
@@ -200,6 +219,7 @@ def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any
         "nominator_team_id": _current_nominator_team_id(session) if session else None,
         "empty_seats": empty_seat_count(league_id, league),
         "claimed_humans": len(claimed_human_teams(league_id)),
+        "limits_relaxed": salary_roster_limits_relaxed(rules),
     }
     if user_sub:
         team = storage.get_team_by_user(league_id, user_sub)

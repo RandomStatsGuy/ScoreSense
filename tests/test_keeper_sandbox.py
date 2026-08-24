@@ -6,9 +6,16 @@ import pytest
 
 from src.draft_hub import storage
 from src.draft_hub.contracts import build_rookie_contract, build_veteran_contract
+from src.draft_hub.draft_budgets import computed_auction_budget
 from src.draft_hub.draft_expire_preview import build_draft_expire_preview
 from src.draft_hub.draft_pool import list_drafted_player_ids
-from src.draft_hub.draft_state import end_draft, start_draft
+from src.draft_hub.draft_state import (
+    end_draft,
+    get_room_state,
+    nominate,
+    start_draft,
+    update_auction_rules,
+)
 from src.draft_hub.mock_draft import start_mock_draft
 from src.draft_hub.presets import load_preset
 from src.draft_hub.schemas import LeagueRules
@@ -169,3 +176,136 @@ def test_delete_sandbox_leaves_source_intact(hub_db):
         "00-vet-expire",
         "00-other-keep",
     }
+
+
+def _add_over_cap_keeper(seeded: dict) -> None:
+    storage.add_roster_slot(
+        seeded["ws_id"],
+        {
+            "player_id": "00-over-keep",
+            "player_name": "Over Cap Keeper",
+            "team": "MIA",
+            "position": "WR",
+            "salary": 250,
+            "contract_years": 2,
+            "contract": build_veteran_contract(250, 2),
+            "source": "sheet",
+        },
+        team_id=seeded["comm_team_id"],
+    )
+
+
+def _sandbox_comm_team(sandbox_id: str) -> dict:
+    return next(t for t in storage.list_league_teams(sandbox_id) if t.get("is_commissioner"))
+
+
+def test_over_cap_sandbox_blocks_nominate_until_limits_relaxed(hub_db, monkeypatch):
+    seeded = _seed_source_league()
+    _add_over_cap_keeper(seeded)
+    result = start_mock_draft(
+        seeded["comm_sub"],
+        mode="keeper_sandbox",
+        source_league_id=seeded["league_id"],
+        auto_start=False,
+    )
+    sandbox_id = result["league_id"]
+    comm = _sandbox_comm_team(sandbox_id)
+    rules = LeagueRules.model_validate(storage.get_league(sandbox_id)["rules"])
+    roster = storage.list_team_roster(sandbox_id, comm["id"])
+    assert computed_auction_budget(rules, roster) < 0
+    assert float(storage.get_team(comm["id"])["budget_remaining"]) < 0
+    assert rules.relax_salary_roster_limits is False
+
+    start_draft(sandbox_id, seeded["comm_sub"])
+    monkeypatch.setattr(
+        "src.draft_hub.draft_state.resolve_nomination_player",
+        lambda **kwargs: {
+            "player_id": "fa-wr",
+            "player_name": "FA WR",
+            "team": "DAL",
+            "position": "WR",
+        },
+    )
+    with pytest.raises(ValueError, match="over cap"):
+        nominate(
+            sandbox_id,
+            seeded["comm_sub"],
+            {"player_id": "fa-wr", "player_name": "FA WR", "position": "WR"},
+        )
+
+
+def test_relaxed_sandbox_gives_full_cap_and_allows_nominate(hub_db, monkeypatch):
+    seeded = _seed_source_league()
+    _add_over_cap_keeper(seeded)
+    result = start_mock_draft(
+        seeded["comm_sub"],
+        mode="keeper_sandbox",
+        source_league_id=seeded["league_id"],
+        auto_start=False,
+        relax_salary_roster_limits=True,
+    )
+    sandbox_id = result["league_id"]
+    comm = _sandbox_comm_team(sandbox_id)
+    rules = LeagueRules.model_validate(storage.get_league(sandbox_id)["rules"])
+    assert rules.relax_salary_roster_limits is True
+    roster = storage.list_team_roster(sandbox_id, comm["id"])
+    assert computed_auction_budget(rules, roster) == float(rules.salary_cap)
+    assert float(storage.get_team(comm["id"])["budget_remaining"]) == float(rules.salary_cap)
+    assert get_room_state(sandbox_id, seeded["comm_sub"])["limits_relaxed"] is True
+
+    start_draft(sandbox_id, seeded["comm_sub"])
+    monkeypatch.setattr(
+        "src.draft_hub.draft_state.resolve_nomination_player",
+        lambda **kwargs: {
+            "player_id": "fa-wr",
+            "player_name": "FA WR",
+            "team": "DAL",
+            "position": "WR",
+        },
+    )
+    nominate(
+        sandbox_id,
+        seeded["comm_sub"],
+        {"player_id": "fa-wr", "player_name": "FA WR", "position": "WR"},
+    )
+
+
+def test_sandbox_can_toggle_relaxed_limits_and_resync_budgets(hub_db):
+    seeded = _seed_source_league()
+    _add_over_cap_keeper(seeded)
+    result = start_mock_draft(
+        seeded["comm_sub"],
+        mode="keeper_sandbox",
+        source_league_id=seeded["league_id"],
+        auto_start=False,
+    )
+    sandbox_id = result["league_id"]
+    comm = _sandbox_comm_team(sandbox_id)
+    assert float(storage.get_team(comm["id"])["budget_remaining"]) < 0
+
+    state = update_auction_rules(
+        sandbox_id,
+        seeded["comm_sub"],
+        {"relax_salary_roster_limits": True},
+    )
+    assert state["limits_relaxed"] is True
+    rules = LeagueRules.model_validate(storage.get_league(sandbox_id)["rules"])
+    assert rules.relax_salary_roster_limits is True
+    assert float(storage.get_team(comm["id"])["budget_remaining"]) == float(rules.salary_cap)
+
+
+def test_live_league_cannot_relax_salary_roster_limits(hub_db):
+    seeded = _seed_source_league()
+    with pytest.raises(ValueError, match="practice sandbox"):
+        update_auction_rules(
+            seeded["league_id"],
+            seeded["comm_sub"],
+            {"relax_salary_roster_limits": True},
+        )
+    storage.update_league_rules(
+        seeded["league_id"],
+        seeded["rules"].model_copy(update={"relax_salary_roster_limits": True}),
+    )
+    live_rules = LeagueRules.model_validate(storage.get_league(seeded["league_id"])["rules"])
+    assert live_rules.relax_salary_roster_limits is False
+

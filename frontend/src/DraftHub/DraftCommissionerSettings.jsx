@@ -8,6 +8,7 @@ export default function DraftCommissionerSettings({
   teams,
   nominationOrder = [],
   poolMode = "full",
+  testMode = false,
   disabled,
   onUpdated,
 }) {
@@ -17,6 +18,7 @@ export default function DraftCommissionerSettings({
   const [botDelay, setBotDelay] = useState(auction.bot_reaction_delay_sec ?? 4);
   const [nomPool, setNomPool] = useState(poolMode === "roster_plus_rookies" ? "roster_plus_rookies" : "full");
   const [order, setOrder] = useState([]);
+  const [relaxLimits, setRelaxLimits] = useState(Boolean(rules?.relax_salary_roster_limits));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -29,6 +31,10 @@ export default function DraftCommissionerSettings({
   useEffect(() => {
     setNomPool(poolMode === "roster_plus_rookies" ? "roster_plus_rookies" : "full");
   }, [poolMode]);
+
+  useEffect(() => {
+    setRelaxLimits(Boolean(rules?.relax_salary_roster_limits));
+  }, [rules?.relax_salary_roster_limits]);
 
   useEffect(() => {
     const next = nominationOrder?.length
@@ -61,6 +67,7 @@ export default function DraftCommissionerSettings({
           bid_timer_sec: Number(bidTimer),
           nomination_timer_sec: Number(nomTimer),
           bot_reaction_delay_sec: Number(botDelay),
+          ...(testMode ? { relax_salary_roster_limits: relaxLimits } : {}),
         }),
       });
       if (!rulesRes.ok) throw new Error(await parseApiError(rulesRes));
@@ -117,6 +124,22 @@ export default function DraftCommissionerSettings({
       <p className="chart-note hub-draft-pool-hint">
         Keeper mode hides players retained through the draft. Expirees, cuts, and undrafted rookies stay nominatable.
       </p>
+      {testMode && (
+        <>
+          <label className="hub-toggle-row hub-toggle-row-compact">
+            <input
+              type="checkbox"
+              checked={relaxLimits}
+              onChange={(e) => setRelaxLimits(e.target.checked)}
+              disabled={disabled || saving}
+            />
+            Ignore salary cap and position limits
+          </label>
+          <p className="chart-note">
+            Practice only. Lets you nominate and bid before keeper salaries are updated.
+          </p>
+        </>
+      )}
       <p className="chart-note">Nomination order:</p>
       <ol className="hub-nomination-order">
         {order.map((teamId, idx) => (

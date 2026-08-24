@@ -259,14 +259,15 @@ def maybe_bot_bid(league_id: str) -> dict[str, Any] | None:
             continue
         # Keep min_bid in reserve for every roster slot still to fill.
         from src.draft_hub.draft_budgets import open_roster_slots
-        from src.draft_hub.rules_engine import should_need_bid
+        from src.draft_hub.rules_engine import salary_roster_limits_relaxed, should_need_bid
 
         roster = storage.list_team_roster(league_id, bot["id"])
         if not should_need_bid(rules, roster, nominee.get("position")):
             continue
-        open_slots = open_roster_slots(rules, roster, draft_completed=False)
-        if open_slots > 1 and next_bid > budget - min_bid * (open_slots - 1):
-            continue
+        if not salary_roster_limits_relaxed(rules):
+            open_slots = open_roster_slots(rules, roster, draft_completed=False)
+            if open_slots > 1 and next_bid > budget - min_bid * (open_slots - 1):
+                continue
         try:
             return place_bid(league_id, f"bot:{bot['id']}", next_bid)
         except ValueError:
@@ -310,9 +311,13 @@ def _settle_auction(league_id: str) -> None:
             continue
         budget = float(team.get("budget_remaining") or 0)
         from src.draft_hub.draft_budgets import open_roster_slots
+        from src.draft_hub.rules_engine import salary_roster_limits_relaxed
 
-        open_slots = open_roster_slots(rules, roster, draft_completed=False)
-        affordable = budget - min_bid * max(0, open_slots - 1)
+        if salary_roster_limits_relaxed(rules):
+            affordable = budget
+        else:
+            open_slots = open_roster_slots(rules, roster, draft_completed=False)
+            affordable = budget - min_bid * max(0, open_slots - 1)
         ceiling = min(bot_max_price(team["id"], nominee, min_bid), affordable)
         floor = high_bid + min_bid if team["id"] != high_team_id else high_bid
         if ceiling >= max(min_bid, floor):
