@@ -865,7 +865,7 @@ function LeagueRostersSkeleton() {
   );
 }
 
-export default function CommissionerLeagueRosters({ leagueId, season, workspace, hubContext, onChanged }) {
+export default function CommissionerLeagueRosters({ leagueId, season, workspace, hubContext, onChanged, reloadNonce = 0 }) {
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -908,8 +908,8 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
   }, [leagueId]);
 
   useEffect(() => {
-    load();
-  }, [leagueId]); // eslint-disable-line react-hooks/exhaustive-deps
+    load({ refresh: Boolean(reloadNonce) });
+  }, [leagueId, reloadNonce]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const maxYears = Number(
     workspace?.rules?.contracts?.max_years

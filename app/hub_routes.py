@@ -4354,6 +4354,7 @@ async def hub_cap_sheet_import(
             result["mode"] = "replace_rosters"
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _invalidate_league_rosters_from_ctx(ctx)
     if sync_sleeper_first or contracts_only:
         _refresh_scoring_cache_for_league(league_id)
     overview = storage.league_roster_overview(league_id)

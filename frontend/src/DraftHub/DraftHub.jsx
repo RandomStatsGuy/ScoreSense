@@ -79,6 +79,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
 
   const setSubView = onSubViewChange;
   const applyHubContext = useCallback((ctx) => {
+    if (!ctx || typeof ctx !== "object") return;
     setHubContext(ctx);
     onHubContextChange?.(ctx);
   }, [onHubContextChange]);
@@ -442,6 +443,14 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     }
   }, [hubContext?.mode, loadCapSheet, refreshOverlayOnly, refreshRoster, workspace?.rules, workspace?.season]);
 
+  const onOfficeChanged = useCallback(async (maybeCtx) => {
+    if (maybeCtx?.mode) applyHubContext(maybeCtx);
+    const lid = maybeCtx?.league_id || hubContext?.league_id;
+    clearHubDataCache();
+    if (lid) invalidateFreshnessCache(lid);
+    await onRosterChanged();
+  }, [applyHubContext, hubContext?.league_id, onRosterChanged]);
+
   const onLeagueSleeperSync = useCallback(async (lid) => {
     setLeagueSyncing(true);
     setLeagueSyncError("");
@@ -773,7 +782,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
             workspace={workspace}
             officeTab={officeTab}
             onOfficeTabChange={onOfficeTabChange}
-            onChanged={applyHubContext}
+            onChanged={onOfficeChanged}
             onNavigate={setSubView}
             active={subView === "office"}
           />

@@ -490,9 +490,51 @@ def contract_history_from_parsed(
                 "obligation_kind": "cut_dead_cap" if cut else "ownership",
                 "contract_phase": "post_2024_base",
                 "acquisition_type": "unknown",
+                "sleeper_player_id": row.get("sleeper_player_id"),
             }
         )
     return out
+
+
+def _seed_year_sheet_from_parsed(
+    league_id: str,
+    parsed: dict[str, Any],
+    manager_map: dict[str, str],
+    *,
+    season_year: int,
+) -> int:
+    """Make the cap sheet the editable year-book for ``season_year``.
+
+    Commissioner Sheets prefer Sleeper week-1 / pre-draft snapshots over
+    ``source_kind=import`` overlays. Replace those snapshots so Contracts
+    and Sheets show the same imported keepers.
+    """
+    from src.draft_hub import storage
+    from src.draft_hub.sleeper_week1_snapshot import (
+        PRE_DRAFT_SOURCE_KIND,
+        SOURCE_KIND,
+        persist_pre_draft_contract_rows,
+    )
+
+    rows = contract_history_from_parsed(parsed, manager_map, season_year=int(season_year))
+    written = storage.replace_league_contract_season_source(
+        league_id,
+        int(season_year),
+        rows,
+        source_kind="import",
+    )
+    persist_pre_draft_contract_rows(
+        league_id,
+        int(season_year),
+        [{**row, "source_kind": PRE_DRAFT_SOURCE_KIND} for row in rows],
+    )
+    storage.replace_league_contract_season_source(
+        league_id,
+        int(season_year),
+        [],
+        source_kind=SOURCE_KIND,
+    )
+    return written
 
 
 def import_cap_sheet_to_league(
@@ -572,15 +614,13 @@ def import_cap_sheet_to_league(
         storage.set_league_workspace_id(league_id, ws_id)
 
     historic_written = 0
-    if historic_season is not None:
-        historic_written = storage.replace_league_contract_season_source(
-            league_id,
-            int(historic_season),
-            contract_history_from_parsed(
-                parsed, manager_map, season_year=int(historic_season)
-            ),
-            source_kind="import",
-        )
+    sheet_year = int(historic_season) if historic_season is not None else int(league.get("season") or 2026)
+    historic_written = _seed_year_sheet_from_parsed(
+        league_id,
+        parsed,
+        manager_map,
+        season_year=sheet_year,
+    )
 
     from src.draft_hub.contract_backfill import backfill_league_contracts
 
@@ -591,6 +631,7 @@ def import_cap_sheet_to_league(
         "skipped_managers": sorted(set(skipped_mgr)),
         "skipped_cut_elsewhere": skipped_cut_elsewhere,
         "historic": historic_written,
+        "sheet_season": sheet_year,
         "backfill": backfill,
     }
 
