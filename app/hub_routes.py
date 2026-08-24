@@ -4241,7 +4241,7 @@ def hub_players_media(
 @router.post("/cap-sheet/validate")
 async def hub_cap_sheet_validate(
     file: UploadFile = File(...),
-    replace_existing: bool = True,
+    replace_existing: bool = Query(True),
     sync_sleeper_first: bool = Query(False),
     contracts_only: bool = Query(False),
     _user=Depends(require_hub_user),
@@ -4288,7 +4288,7 @@ async def hub_cap_sheet_validate(
 @router.post("/cap-sheet/import")
 async def hub_cap_sheet_import(
     file: UploadFile = File(...),
-    replace_existing: bool = True,
+    replace_existing: bool = Query(True),
     sync_sleeper_first: bool = Query(False, description="Pull live Sleeper rosters before applying sheet"),
     contracts_only: bool = Query(
         False,
