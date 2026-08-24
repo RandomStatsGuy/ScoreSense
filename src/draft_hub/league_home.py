@@ -118,7 +118,7 @@ def resolve_league_phase(
     league = str(league_status or "").lower()
     nfl = str(nfl_season_type or _nfl_season_type()).lower()
 
-    if session in {"nominating", "bidding"} or league == "live":
+    if session in {"nominating", "bidding", "picking"} or league == "live":
         phase_id = PHASE_LIVE_DRAFT
     elif not draft_completed:
         phase_id = PHASE_PRE_DRAFT
