@@ -443,3 +443,82 @@ def test_reconcile_moves_players_to_correct_team(hub_db, monkeypatch):
     assert result["moved"] == 1
     assert len(storage.list_roster(ws["id"], team_a["id"])) == 1
     assert len(storage.list_roster(ws["id"], team_b["id"])) == 1
+
+
+def test_reconcile_does_not_move_cap_sheet_rows(hub_db, monkeypatch):
+    from src.draft_hub.league_sleeper_sync import reconcile_league_roster_assignments
+
+    comm = "comm-sheet-reconcile"
+    member = "member-sheet-reconcile"
+    ws = storage.get_or_create_workspace(comm)
+    rules = load_preset("salary_cap_auction_v1")
+    league = storage.create_league(
+        comm, "Sheet Reconcile", 2026, rules, workspace_id=ws["id"],
+        commissioner_team_name="Thanks noob noob",
+    )
+    team_a = storage.get_team_by_user(league["id"], comm)
+    team_b = storage.join_league(member, league["room_code"], "Disappointment")
+
+    storage.update_league_sleeper_id(league["id"], "sl-sheet")
+    storage.update_team_sleeper_link(team_a["id"], sleeper_roster_id="1", sleeper_player_ids=["stroud"])
+    storage.update_team_sleeper_link(team_b["id"], sleeper_roster_id="2", sleeper_player_ids=["herbert"])
+
+    storage.add_roster_slot(
+        ws["id"],
+        {
+            "player_id": "stroud",
+            "player_name": "C.J. Stroud",
+            "team": "HOU",
+            "position": "QB",
+            "salary": 7,
+            "contract_years": 2,
+            "source": "sheet",
+        },
+        team_id=team_a["id"],
+    )
+    storage.add_roster_slot(
+        ws["id"],
+        {
+            "player_id": "herbert",
+            "player_name": "Justin Herbert",
+            "team": "LAC",
+            "position": "QB",
+            "salary": 23,
+            "contract_years": 3,
+            "source": "sheet",
+        },
+        team_id=team_b["id"],
+    )
+
+    def fake_snapshots(_sl_id):
+        return {
+            "1": {
+                "players": [{"player_id": "herbert", "sleeper_player_id": "sp-h"}],
+                "team_name": "Thanks noob noob",
+            },
+            "2": {
+                "players": [{"player_id": "stroud", "sleeper_player_id": "sp-s"}],
+                "team_name": "Disappointment",
+            },
+        }
+
+    monkeypatch.setattr(
+        "src.draft_hub.league_sleeper_sync.fetch_all_linked_rosters",
+        fake_snapshots,
+    )
+    monkeypatch.setattr(
+        "src.draft_hub.league_sleeper_sync.list_league_teams",
+        lambda _sl: {
+            "teams": [
+                {"roster_id": "1", "team_name": "Thanks noob noob"},
+                {"roster_id": "2", "team_name": "Disappointment"},
+            ],
+        },
+    )
+
+    result = reconcile_league_roster_assignments(league["id"])
+    assert result["moved"] == 0
+    thanks = storage.list_roster(ws["id"], team_a["id"])
+    disappointment = storage.list_roster(ws["id"], team_b["id"])
+    assert [r["player_id"] for r in thanks] == ["stroud"]
+    assert [r["player_id"] for r in disappointment] == ["herbert"]

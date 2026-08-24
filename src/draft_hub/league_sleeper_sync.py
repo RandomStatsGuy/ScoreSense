@@ -621,6 +621,12 @@ def reconcile_league_roster_assignments(league_id: str) -> dict[str, Any]:
 
     moved = 0
     for slot in storage.list_league_roster(ws_id):
+        # Cap-sheet / manual / draft rows are the hub source of truth. Moving them
+        # onto Sleeper-name matches swapped Disappointment ↔ Thanks noob noob when
+        # those Sleeper display names drifted from manager_team_map.yaml.
+        source = str(slot.get("source") or "").strip().lower()
+        if source and source != "sleeper":
+            continue
         pid = str(slot.get("player_id") or "")
         if not pid:
             continue

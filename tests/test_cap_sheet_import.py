@@ -232,3 +232,67 @@ def test_cap_sheet_validate_accepts_multipart_file(hub_db):
         assert body["stats"]["matched"] >= 1
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_match_hub_team_does_not_substring_steal():
+    from src.draft_hub.cap_sheet_import import match_hub_team
+
+    disappointment = {"id": "d", "name": "Disappointment"}
+    thanks = {"id": "t", "name": "Thanks noob noob"}
+    noob = {"id": "n", "name": "noob"}
+    hub = {
+        "disappointment": disappointment,
+        "thanks noob noob": thanks,
+        "noob": noob,
+    }
+    assert match_hub_team(hub, "Thanks noob noob")["id"] == "t"
+    assert match_hub_team(hub, "Disappointment")["id"] == "d"
+    hub_short = {"disappointment": disappointment, "noob": noob}
+    assert match_hub_team(hub_short, "Thanks noob noob") is None
+
+
+def test_import_keeps_aaron_and_josh_on_yaml_teams(hub_db):
+    from src.draft_hub.team_salary_sheets import build_team_salary_sheets_payload
+
+    rules = LeagueRules()
+    comm = "cap-swap-comm"
+    ws = storage.get_or_create_workspace(comm)
+    league = storage.create_league(
+        comm, "Swap League", 2026, rules, workspace_id=ws["id"], team_count=4,
+        commissioner_team_name="Thanks noob noob",
+    )
+    storage.get_or_create_league_team_by_name(league["id"], "Disappointment", rules.salary_cap)
+    storage.upsert_owner_season_map(
+        league["id"], 2026, "Aaron D", "Disappointment", source_kind="manual"
+    )
+    storage.upsert_owner_season_map(
+        league["id"], 2026, "Josh C", "Thanks noob noob", source_kind="manual"
+    )
+    raw = _tsv(
+        "Aaron D\tQB\tC.J. Stroud\t7\t1/2",
+        "Josh C\tQB\tJustin Herbert\t23\t3/3",
+    )
+    parsed = parse_cap_sheet_tsv(raw, season=2025, rules=rules)
+    import_cap_sheet_to_league(
+        league["id"],
+        parsed,
+        {"Aaron D": "Thanks noob noob", "Josh C": "Disappointment"},
+        replace_existing=True,
+    )
+    teams = {t["name"]: t["id"] for t in storage.list_league_teams(league["id"])}
+    by_team = storage.list_league_rosters_by_team(league["id"])
+    aaron_names = [r["player_name"] for r in by_team[teams["Thanks noob noob"]]]
+    josh_names = [r["player_name"] for r in by_team[teams["Disappointment"]]]
+    assert any("Stroud" in n for n in aaron_names)
+    assert any("Herbert" in n for n in josh_names)
+    assert not any("Herbert" in n for n in aaron_names)
+    assert not any("Stroud" in n for n in josh_names)
+    assert storage.resolve_hub_team_name(league["id"], 2026, "Aaron D") == "Thanks noob noob"
+    assert storage.resolve_hub_team_name(league["id"], 2026, "Josh C") == "Disappointment"
+
+    payload = build_team_salary_sheets_payload(league["id"], season_year=2026)
+    sheets = {s["owner_label"]: s for s in payload.get("team_sheets") or []}
+    assert any("Stroud" in str(r.get("player_name")) for r in sheets["Aaron D"]["rows"])
+    assert any("Herbert" in str(r.get("player_name")) for r in sheets["Josh C"]["rows"])
+    assert sheets["Aaron D"]["team_name"] == "Thanks noob noob"
+    assert sheets["Josh C"]["team_name"] == "Disappointment"

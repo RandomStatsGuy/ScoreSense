@@ -18,6 +18,60 @@ _TERM_CUT = re.compile(r"\bcut\b", re.I)
 _TERM_NA = re.compile(r"\bNA\s+(20\d{2})\b", re.I)
 _TERM_YR = re.compile(r"^(\d+)/(\d+)$")
 _NUM = re.compile(r"^\d+(?:\.\d+)?$")
+_TEAM_KEY = re.compile(r"[^a-z0-9]+")
+
+
+def _norm_team_key(name: str) -> str:
+    return _TEAM_KEY.sub("", str(name or "").lower())
+
+
+def match_hub_team(hub_teams: dict[str, dict[str, Any]], hub_name: str) -> dict[str, Any] | None:
+    """Resolve a YAML/Sleeper team label to a hub team.
+
+    Exact (case-insensitive) or punctuation-normalized match only. Do not
+    substring-match — that used to steal players across similarly named teams.
+    """
+    key = str(hub_name or "").strip().lower()
+    if not key:
+        return None
+    if key in hub_teams:
+        return hub_teams[key]
+    want = _norm_team_key(hub_name)
+    if not want:
+        return None
+    hits = [team for name, team in hub_teams.items() if _norm_team_key(name) == want]
+    if len(hits) == 1:
+        return hits[0]
+    return None
+
+
+def _apply_owner_season_map(
+    league_id: str,
+    manager_map: dict[str, str],
+    seasons: list[int],
+) -> None:
+    """Keep Sheets/Insights owner→team names aligned with this cap-sheet import."""
+    from src.draft_hub import storage
+
+    seen: set[int] = set()
+    for raw in seasons:
+        if raw is None:
+            continue
+        yr = int(raw)
+        if yr in seen:
+            continue
+        seen.add(yr)
+        for owner, hub in manager_map.items():
+            label = str(owner or "").strip()
+            team = str(hub or "").strip()
+            if label and team:
+                storage.upsert_owner_season_map(
+                    league_id,
+                    yr,
+                    label,
+                    team,
+                    source_kind="cap_sheet_import",
+                )
 
 
 def _parse_float(val: Any) -> float | None:
@@ -420,22 +474,13 @@ def validate_cap_sheet_for_league(
 
     hub_teams = {str(t["name"]).lower(): t for t in storage.list_league_teams(league_id)}
 
-    def _find_team(hub_name: str) -> dict[str, Any] | None:
-        key = str(hub_name).lower()
-        if key in hub_teams:
-            return hub_teams[key]
-        for name, team in hub_teams.items():
-            if key in name or name in key:
-                return team
-        return None
-
     unmapped: list[str] = []
     for mgr in parsed.get("teams_found") or []:
         hub_name = manager_map.get(mgr) or manager_map.get(str(mgr).strip())
         if not hub_name:
             unmapped.append(mgr)
             continue
-        if not _find_team(hub_name):
+        if not match_hub_team(hub_teams, hub_name):
             errors.append(f"Manager {mgr} maps to '{hub_name}' but no matching hub team exists.")
 
     for mgr in unmapped:
@@ -554,15 +599,6 @@ def import_cap_sheet_to_league(
     ws_id = storage.roster_workspace_for_league(league)
     hub_teams = {str(t["name"]).lower(): t for t in storage.list_league_teams(league_id)}
 
-    def _find_team(hub_name: str) -> dict[str, Any] | None:
-        key = str(hub_name).lower()
-        if key in hub_teams:
-            return hub_teams[key]
-        for name, team in hub_teams.items():
-            if key in name or name in key:
-                return team
-        return None
-
     if replace_existing:
         storage.clear_league_team_rosters(league_id)
 
@@ -583,7 +619,7 @@ def import_cap_sheet_to_league(
         if not hub_name:
             skipped_mgr.append(mgr)
             continue
-        team = _find_team(hub_name)
+        team = match_hub_team(hub_teams, hub_name)
         if not team:
             skipped_mgr.append(f"{mgr}->{hub_name}")
             continue
@@ -621,6 +657,11 @@ def import_cap_sheet_to_league(
         manager_map,
         season_year=sheet_year,
     )
+    _apply_owner_season_map(
+        league_id,
+        manager_map,
+        [sheet_year, int(league.get("season") or sheet_year)],
+    )
 
     from src.draft_hub.contract_backfill import backfill_league_contracts
 
@@ -650,15 +691,6 @@ def overlay_cap_sheet_contracts(
     ws_id = storage.roster_workspace_for_league(league)
     hub_teams = {str(t["name"]).lower(): t for t in storage.list_league_teams(league_id)}
 
-    def _find_team(hub_name: str) -> dict[str, Any] | None:
-        key = str(hub_name).lower()
-        if key in hub_teams:
-            return hub_teams[key]
-        for name, team in hub_teams.items():
-            if key in name or name in key:
-                return team
-        return None
-
     updated = 0
     added = 0
     moved = 0
@@ -669,13 +701,14 @@ def overlay_cap_sheet_contracts(
         if not hub_name:
             skipped_mgr.append(mgr)
             continue
-        team = _find_team(hub_name)
+        team = match_hub_team(hub_teams, hub_name)
         if not team:
             skipped_mgr.append(f"{mgr}->{hub_name}")
             continue
 
         pid = str(row["player_id"])
         payload = {k: v for k, v in row.items() if k != "manager_team"}
+        payload["source"] = "sheet"
         team_id = str(team["id"])
         existing = storage.get_roster_slot(ws_id, pid)
         is_cut = str(payload.get("roster_status") or "active") == "cut_before_draft"
@@ -685,15 +718,15 @@ def overlay_cap_sheet_contracts(
             if str(existing.get("team_id") or "") != team_id:
                 storage.move_roster_player(ws_id, pid, team_id)
                 moved += 1
-            storage.update_roster_slot(
-                ws_id,
-                pid,
-                salary=float(payload["salary"]),
-                contract_years=int(payload.get("contract_years") or 1),
-                contract=payload.get("contract"),
-                roster_status=str(payload.get("roster_status") or "active"),
-                any_team=True,
-            )
+            storage.add_roster_slot(ws_id, payload, team_id=team_id)
+            if payload.get("roster_status") and payload["roster_status"] != "active":
+                storage.update_roster_slot(
+                    ws_id,
+                    pid,
+                    team_id=team_id,
+                    roster_status=payload["roster_status"],
+                    any_team=True,
+                )
             updated += 1
         else:
             storage.add_roster_slot(ws_id, payload, team_id=team_id)
