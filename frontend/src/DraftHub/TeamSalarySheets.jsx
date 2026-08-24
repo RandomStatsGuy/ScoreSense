@@ -1079,7 +1079,7 @@ function TeamRosterSheet({
   );
 }
 
-export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommissioner = false, embedded = false }) {
+export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommissioner = false, embedded = false, reloadNonce = 0 }) {
   const [data, setData] = useState(null);
   const [audit, setAudit] = useState(null);
   const [season, setSeason] = useState("");
@@ -1245,7 +1245,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
       return;
     }
     loadRef.current(undefined, { silent: Boolean(dataRef.current) });
-  }, [leagueId, parentSeason]);
+  }, [leagueId, parentSeason, reloadNonce]);
 
   const seasons = data?.seasons || [];
   const priorSeason = data?.prior_season;

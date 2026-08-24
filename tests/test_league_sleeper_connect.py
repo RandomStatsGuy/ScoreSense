@@ -122,3 +122,25 @@ def test_merge_reassigns_solo_orphan_slots(hub_db):
     roster = storage.list_roster(ws["id"], comm_team["id"])
     assert len(roster) == 1
     assert roster[0]["player_id"] == "p-orphan"
+
+
+def test_apply_sleeper_display_name_renames_claimed_team(hub_db):
+    from src.draft_hub.league_sleeper_sync import apply_sleeper_display_name
+
+    comm = "rename-claimed-comm"
+    ws = storage.get_or_create_workspace(comm)
+    rules = load_preset("salary_cap_auction_v1")
+    league = storage.create_league(
+        comm, "Rename League", 2026, rules, workspace_id=ws["id"],
+        commissioner_team_name="Old Label",
+    )
+    team = storage.get_team_by_user(league["id"], comm)
+    assert team["user_sub"]
+    storage.upsert_owner_season_map(
+        league["id"], 2026, "Aaron D", "Old Label", source_kind="manual"
+    )
+    assert apply_sleeper_display_name(team["id"], "Disappointment") is True
+    refreshed = storage.get_team(team["id"])
+    assert refreshed["name"] == "Disappointment"
+    assert refreshed["sleeper_team_name"] == "Disappointment"
+    assert storage.resolve_hub_team_name(league["id"], 2026, "Aaron D") == "Disappointment"

@@ -48,6 +48,57 @@ def _default_contract_for_sleeper_player(
 _ALLOWLIST_CACHE: dict[tuple[str, str], tuple[float, set[str]]] = {}
 _SNAPSHOT_CACHE: dict[tuple[str, str], tuple[float, dict[str, Any]]] = {}
 _ALLOWLIST_TTL_SEC = 300
+_NAME_REFRESH_AT: dict[str, float] = {}
+_NAME_REFRESH_TTL_SEC = 60
+
+
+def apply_sleeper_display_name(team_id: str, sleeper_name: str) -> bool:
+    """Keep Hub team.name in sync with the live Sleeper label, including claimed teams."""
+    name = str(sleeper_name or "").strip()
+    team = storage.get_team(team_id)
+    if not team or not name:
+        return False
+    old = str(team.get("name") or "").strip()
+    changed = old != name
+    if str(team.get("sleeper_team_name") or "") != name:
+        storage.update_team_sleeper_link(team_id, sleeper_team_name=name)
+    if changed:
+        storage.update_team_display_name(team_id, name)
+        league_id = str(team.get("league_id") or "")
+        league = storage.get_league(league_id) if league_id else None
+        season = int((league or {}).get("season") or 0)
+        if league_id and season and old:
+            storage.retarget_owner_season_map_team_name(league_id, season, old, name)
+    return changed
+
+
+def refresh_sleeper_display_names(league_id: str) -> int:
+    """Best-effort name-only refresh from Sleeper metadata (no roster overwrite)."""
+    now = time.time()
+    last = _NAME_REFRESH_AT.get(str(league_id))
+    if last and now - last < _NAME_REFRESH_TTL_SEC:
+        return 0
+    sleeper_lid = resolve_sleeper_league_id(league_id)
+    if not sleeper_lid:
+        return 0
+    try:
+        meta = list_league_teams(sleeper_lid)
+    except Exception:
+        return 0
+    _NAME_REFRESH_AT[str(league_id)] = now
+    by_roster = {str(t.get("roster_id")): t for t in meta.get("teams") or []}
+    updated = 0
+    for team in storage.list_league_teams(league_id):
+        rid = str(team.get("sleeper_roster_id") or "")
+        if not rid:
+            continue
+        st = by_roster.get(rid)
+        if not st:
+            continue
+        new_name = str(st.get("team_name") or "").strip()
+        if new_name and apply_sleeper_display_name(str(team["id"]), new_name):
+            updated += 1
+    return updated
 
 
 def _snapshot_players(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
@@ -154,11 +205,14 @@ def fetch_team_snapshot_cached(league_id: str, team_id: str) -> dict[str, Any] |
             allowed.add(str(player["sleeper_player_id"]))
     _ALLOWLIST_CACHE[cache_key] = (now, allowed)
 
+    live_name = snapshot.get("team_name") or team.get("sleeper_team_name")
     storage.update_team_sleeper_link(
         team_id,
         sleeper_player_ids=snapshot.get("player_ids") or [p["player_id"] for p in snapshot.get("players") or []],
-        sleeper_team_name=snapshot.get("team_name") or team.get("sleeper_team_name"),
+        sleeper_team_name=live_name,
     )
+    if live_name:
+        apply_sleeper_display_name(str(team_id), str(live_name))
     return snapshot
 
 
@@ -398,10 +452,13 @@ def ensure_sleeper_team_links(league_id: str) -> dict[str, Any]:
             sleeper_team_name=st.get("team_name") or snapshot.get("team_name"),
             sleeper_player_ids=snapshot.get("player_ids") or [p["player_id"] for p in players],
         )
+        live_name = str(st.get("team_name") or snapshot.get("team_name") or "").strip()
+        if live_name:
+            apply_sleeper_display_name(str(team["id"]), live_name)
         team_meta.append(
             {
                 "team_id": team["id"],
-                "team_name": team.get("name"),
+                "team_name": (storage.get_team(str(team["id"])) or team).get("name"),
                 "player_count": len(players),
             }
         )
@@ -621,6 +678,12 @@ def reconcile_league_roster_assignments(league_id: str) -> dict[str, Any]:
 
     moved = 0
     for slot in storage.list_league_roster(ws_id):
+        # Cap-sheet / manual / draft rows are the hub source of truth. Moving them
+        # onto Sleeper-name matches swapped Disappointment ↔ Thanks noob noob when
+        # those Sleeper display names drifted from manager_team_map.yaml.
+        source = str(slot.get("source") or "").strip().lower()
+        if source and source != "sleeper":
+            continue
         pid = str(slot.get("player_id") or "")
         if not pid:
             continue
@@ -707,8 +770,7 @@ def connect_sleeper_league(
             else:
                 team = storage.get_or_create_league_team_by_name(league_id, sname, cap)
             used_hub.add(str(team["id"]))
-            if not team.get("user_sub"):
-                storage.update_team_display_name(str(team["id"]), sname)
+            apply_sleeper_display_name(str(team["id"]), sname)
             resolved.append((rid, team))
 
     storage.update_league_sleeper_id(league_id, str(sleeper_league_id))
@@ -800,6 +862,9 @@ def sync_team_sleeper_to_league(
         sleeper_player_ids=snapshot.get("player_ids") or [p["player_id"] for p in players],
         sleeper_team_name=snapshot.get("team_name") or team.get("sleeper_team_name"),
     )
+    live_name = str(snapshot.get("team_name") or team.get("sleeper_team_name") or "").strip()
+    if live_name:
+        apply_sleeper_display_name(str(team_id), live_name)
 
     moves: list[dict[str, Any]] = []
     if run_league_trade_scan:

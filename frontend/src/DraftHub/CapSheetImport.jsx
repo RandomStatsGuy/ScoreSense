@@ -22,7 +22,7 @@ export default function CapSheetImport({ onImported, embedded = false }) {
   const pendingFileRef = useRef(null);
   const [importing, setImporting] = useState(false);
   const [validating, setValidating] = useState(false);
-  const [syncSleeperFirst, setSyncSleeperFirst] = useState(true);
+  const [syncSleeperFirst, setSyncSleeperFirst] = useState(false);
   const [validation, setValidation] = useState(null);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
@@ -121,7 +121,7 @@ export default function CapSheetImport({ onImported, embedded = false }) {
             pendingFileRef.current = null;
           }}
         />
-        Sync live Sleeper rosters first, then apply contracts from sheet (recommended)
+        Sync live Sleeper rosters first, then apply contracts from sheet (leave unchecked to load the cap sheet as-is)
       </label>
       {!syncSleeperFirst && (
         <p className="chart-note admin-muted">

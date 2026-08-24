@@ -97,7 +97,8 @@ def test_import_keeps_active_when_cut_exists_elsewhere(hub_db):
     assert caleb == []
 
     historic = storage.list_league_contract_rows(league["id"], season_year=2025)
-    assert len(historic) == 2
+    imports = [r for r in historic if r.get("source_kind") == "import"]
+    assert len(imports) == 2
 
 
 def test_import_clears_only_this_league_rosters(hub_db):
@@ -136,6 +137,71 @@ def test_import_clears_only_this_league_rosters(hub_db):
     assert any("Mahomes" in str(r["player_name"]) for r in imported[team_a["id"]])
 
 
+def test_import_seeds_commissioner_year_sheets(hub_db, tmp_path, monkeypatch):
+    """Replace import becomes the editable Sheets year book, not a hidden overlay."""
+    from src.draft_hub.contract_rows_merged import _COMMISSIONER_ROWS_CACHE
+    from src.draft_hub.sleeper_week1_snapshot import SOURCE_KIND
+    from src.draft_hub.team_salary_sheets import build_team_salary_sheets_payload
+
+    monkeypatch.setattr(
+        "src.draft_hub.contract_rows_merged.OLD_LEAGUE_FILES_DIR",
+        tmp_path / "no-excel",
+    )
+    _COMMISSIONER_ROWS_CACHE["key"] = None
+    _COMMISSIONER_ROWS_CACHE["rows"] = None
+
+    rules = LeagueRules()
+    comm = "cap-sheet-tabs"
+    ws = storage.get_or_create_workspace(comm)
+    league = storage.create_league(
+        comm, "Sheet League", 2026, rules, workspace_id=ws["id"], team_count=4,
+        commissioner_team_name="Thanks noob noob",
+    )
+    storage.replace_league_contract_season_source(
+        league["id"],
+        2026,
+        [
+            {
+                "owner_label": "Aaron D",
+                "hub_team_name": "Thanks noob noob",
+                "player_name": "Tyreek Hill",
+                "position": "WR",
+                "base_salary": 1,
+                "cap_hit": 1,
+                "roster_status": "active",
+                "source_kind": SOURCE_KIND,
+            }
+        ],
+        source_kind=SOURCE_KIND,
+    )
+    raw = _tsv("Aaron D\tWR\tTyreek Hill\t39\tNA 2026")
+    parsed = parse_cap_sheet_tsv(raw, season=2025, rules=rules)
+    result = import_cap_sheet_to_league(
+        league["id"],
+        parsed,
+        {"Aaron D": "Thanks noob noob"},
+        replace_existing=True,
+    )
+    assert result["sheet_season"] == 2026
+    assert result["historic"] >= 1
+
+    payload = build_team_salary_sheets_payload(league["id"], season_year=2026)
+    assert payload.get("available") is True
+    sheets = payload.get("team_sheets") or []
+    rows = []
+    for sheet in sheets:
+        rows.extend(sheet.get("rows") or [])
+    tyreek = next((r for r in rows if "Hill" in str(r.get("player_name") or "")), None)
+    assert tyreek is not None, payload
+    assert float(tyreek.get("cap_hit") or 0) == 39
+
+    week1 = [
+        r for r in storage.list_league_contract_rows(league["id"], season_year=2026)
+        if r.get("source_kind") == SOURCE_KIND
+    ]
+    assert week1 == []
+
+
 def test_cap_sheet_validate_accepts_multipart_file(hub_db):
     from fastapi.testclient import TestClient
 
@@ -145,7 +211,7 @@ def test_cap_sheet_validate_accepts_multipart_file(hub_db):
     sub = "cap-upload-api"
     storage.create_league(
         sub, "Upload League", 2026, LeagueRules(),
-        commissioner_team_name="Thanks noob noob",
+        commissioner_team_name="Disappointment",
     )
     app.dependency_overrides[require_hub_user] = lambda: {"sub": sub, "auth_type": "dev"}
     client = TestClient(app)
@@ -166,3 +232,72 @@ def test_cap_sheet_validate_accepts_multipart_file(hub_db):
         assert body["stats"]["matched"] >= 1
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_match_hub_team_does_not_substring_steal():
+    from src.draft_hub.cap_sheet_import import match_hub_team
+
+    disappointment = {"id": "d", "name": "Disappointment"}
+    thanks = {"id": "t", "name": "Thanks noob noob"}
+    noob = {"id": "n", "name": "noob"}
+    hub = {
+        "disappointment": disappointment,
+        "thanks noob noob": thanks,
+        "noob": noob,
+    }
+    assert match_hub_team(hub, "Thanks noob noob")["id"] == "t"
+    assert match_hub_team(hub, "Disappointment")["id"] == "d"
+    hub_short = {"disappointment": disappointment, "noob": noob}
+    assert match_hub_team(hub_short, "Thanks noob noob") is None
+
+    sleeper_named = {
+        "old label": {"id": "d", "name": "Old Label", "sleeper_team_name": "Disappointment"},
+    }
+    assert match_hub_team(sleeper_named, "Disappointment")["id"] == "d"
+
+
+def test_import_follows_live_owner_map_not_stale_yaml(hub_db):
+    from src.draft_hub.team_salary_sheets import build_team_salary_sheets_payload
+
+    rules = LeagueRules()
+    comm = "cap-swap-comm"
+    ws = storage.get_or_create_workspace(comm)
+    league = storage.create_league(
+        comm, "Swap League", 2026, rules, workspace_id=ws["id"], team_count=4,
+        commissioner_team_name="Thanks noob noob",
+    )
+    storage.get_or_create_league_team_by_name(league["id"], "Disappointment", rules.salary_cap)
+    storage.upsert_owner_season_map(
+        league["id"], 2026, "Aaron D", "Disappointment", source_kind="manual"
+    )
+    storage.upsert_owner_season_map(
+        league["id"], 2026, "Josh C", "Thanks noob noob", source_kind="manual"
+    )
+    raw = _tsv(
+        "Aaron D\tQB\tC.J. Stroud\t7\t1/2",
+        "Josh C\tQB\tJustin Herbert\t23\t3/3",
+    )
+    parsed = parse_cap_sheet_tsv(raw, season=2025, rules=rules)
+    import_cap_sheet_to_league(
+        league["id"],
+        parsed,
+        {"Aaron D": "Thanks noob noob", "Josh C": "Disappointment"},
+        replace_existing=True,
+    )
+    teams = {t["name"]: t["id"] for t in storage.list_league_teams(league["id"])}
+    by_team = storage.list_league_rosters_by_team(league["id"])
+    aaron_names = [r["player_name"] for r in by_team[teams["Disappointment"]]]
+    josh_names = [r["player_name"] for r in by_team[teams["Thanks noob noob"]]]
+    assert any("Stroud" in n for n in aaron_names)
+    assert any("Herbert" in n for n in josh_names)
+    assert not any("Herbert" in n for n in aaron_names)
+    assert not any("Stroud" in n for n in josh_names)
+    assert storage.resolve_hub_team_name(league["id"], 2026, "Aaron D") == "Disappointment"
+    assert storage.resolve_hub_team_name(league["id"], 2026, "Josh C") == "Thanks noob noob"
+
+    payload = build_team_salary_sheets_payload(league["id"], season_year=2026)
+    sheets = {s["owner_label"]: s for s in payload.get("team_sheets") or []}
+    assert any("Stroud" in str(r.get("player_name")) for r in sheets["Aaron D"]["rows"])
+    assert any("Herbert" in str(r.get("player_name")) for r in sheets["Josh C"]["rows"])
+    assert sheets["Aaron D"]["team_name"] == "Disappointment"
+    assert sheets["Josh C"]["team_name"] == "Thanks noob noob"

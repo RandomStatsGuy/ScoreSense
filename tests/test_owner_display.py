@@ -72,7 +72,7 @@ def test_award_entry_shows_manager_for_current_roster():
         team_name="Disappointment",
         year_specific=False,
     )
-    assert award["display_name"] == "Josh C"
+    assert award["display_name"] == "Aaron D"
     assert award["team_name"] is None
 
 

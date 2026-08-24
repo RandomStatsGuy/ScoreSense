@@ -3,6 +3,7 @@ import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
 import MobileDataList from "../MobileDataList";
+import { hubTeamLabel } from "./hubTeamLabel";
 
 export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
   const mobileLayout = useMobileLayout();
@@ -211,7 +212,7 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
               {teams.filter((t) => !(commissionerSub && t.user_sub && String(t.user_sub) === String(commissionerSub))).map((t) => (
                 <div key={t.id} className="hub-invite-mobile-card">
                   <div>
-                    <strong>{t.name}</strong>
+                    <strong>{hubTeamLabel(t)}</strong>
                     <span className="table-meta">
                       {t.user_sub ? " · claimed" : " · unclaimed"}
                       {t.sleeper_roster_id ? " · Sleeper linked" : ""}
@@ -230,7 +231,7 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
           <ul className="hub-invite-list">
             {teams.filter((t) => !(commissionerSub && t.user_sub && String(t.user_sub) === String(commissionerSub))).map((t) => (
               <li key={t.id}>
-                <strong>{t.name}</strong>
+                <strong>{hubTeamLabel(t)}</strong>
                 {t.user_sub ? (
                   <>
                     <span className="table-meta">

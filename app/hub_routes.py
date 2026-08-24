@@ -1158,6 +1158,12 @@ def hub_league_members(league_id: str, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
     ctx = _ctx_for_league(sub, league_id)
     league = storage.get_league(league_id)
+    try:
+        from src.draft_hub.league_sleeper_sync import refresh_sleeper_display_names
+
+        refresh_sleeper_display_names(league_id)
+    except Exception:
+        logger.debug("sleeper display-name refresh skipped", exc_info=True)
     teams = storage.list_league_teams(league_id)
     invites = storage.list_league_invites(league_id) if ctx.get("is_commissioner") else []
     return {
@@ -4354,6 +4360,7 @@ async def hub_cap_sheet_import(
             result["mode"] = "replace_rosters"
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _invalidate_league_rosters_from_ctx(ctx)
     if sync_sleeper_first or contracts_only:
         _refresh_scoring_cache_for_league(league_id)
     overview = storage.league_roster_overview(league_id)
