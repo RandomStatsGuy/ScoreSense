@@ -21,6 +21,7 @@ def list_presets() -> list[dict]:
                 "id": data.get("id") or path.stem,
                 "label": data.get("label") or path.stem,
                 "description": data.get("description") or "",
+                "draft_type": data.get("draft_type") or "auction",
             }
         )
     return out

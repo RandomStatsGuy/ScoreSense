@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
+import { isPickDraft } from "./draftEntryStatus";
 
 export default function DraftCommissionerSettings({
   leagueId,
@@ -13,6 +14,7 @@ export default function DraftCommissionerSettings({
   onUpdated,
 }) {
   const auction = rules?.auction || {};
+  const pickDraft = isPickDraft(rules);
   const [bidTimer, setBidTimer] = useState(auction.bid_timer_sec ?? 30);
   const [nomTimer, setNomTimer] = useState(auction.nomination_timer_sec ?? 60);
   const [botDelay, setBotDelay] = useState(auction.bot_reaction_delay_sec ?? 4);
@@ -101,12 +103,14 @@ export default function DraftCommissionerSettings({
     <div className="hub-draft-commissioner-settings">
       <strong>Draft settings</strong>
       <div className="hub-form-row hub-draft-settings-grid">
+        {!pickDraft && (
         <label>
           Bid timer (sec)
           <input type="number" min={10} max={120} value={bidTimer} disabled={disabled || saving} onChange={(e) => setBidTimer(e.target.value)} />
         </label>
+        )}
         <label>
-          Nomination timer (sec)
+          {pickDraft ? "Pick clock (sec)" : "Nomination timer (sec)"}
           <input type="number" min={15} max={180} value={nomTimer} disabled={disabled || saving} onChange={(e) => setNomTimer(e.target.value)} />
         </label>
         <label>
@@ -115,7 +119,7 @@ export default function DraftCommissionerSettings({
         </label>
       </div>
       <label className="hub-draft-pool-setting">
-        Who can be nominated
+        {pickDraft ? "Who can be drafted" : "Who can be nominated"}
         <select value={nomPool} disabled={disabled || saving} onChange={(e) => setNomPool(e.target.value)}>
           <option value="full">Any undrafted NFL player</option>
           <option value="roster_plus_rookies">Keeper league — keepers off, FA and expirees in</option>
@@ -133,10 +137,12 @@ export default function DraftCommissionerSettings({
               onChange={(e) => setRelaxLimits(e.target.checked)}
               disabled={disabled || saving}
             />
-            Ignore salary cap and position limits
+            {pickDraft ? "Ignore position limits" : "Ignore salary cap and position limits"}
           </label>
           <p className="chart-note">
-            Practice only. Lets you nominate and bid before keeper salaries are updated.
+            {pickDraft
+              ? "Practice only. Lets you pick before roster limits are locked in."
+              : "Practice only. Lets you nominate and bid before keeper salaries are updated."}
           </p>
         </>
       )}

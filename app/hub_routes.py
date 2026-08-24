@@ -19,6 +19,7 @@ from src.draft_hub.draft_state import (
     cut_player,
     end_draft,
     get_room_state,
+    make_pick,
     nominate,
     place_bid,
     reset_live_draft,
@@ -3682,6 +3683,25 @@ async def hub_nominate(
     sub = _sub(_user)
     try:
         state = nominate(league_id, sub, body.model_dump(), force=force)
+        await broadcast_room(league_id)
+        return state
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/league/{league_id}/pick")
+async def hub_pick(
+    league_id: str,
+    body: DraftNominateRequest,
+    force: bool = Query(
+        False,
+        description="Commissioner picks on behalf of the on-clock team",
+    ),
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    try:
+        state = make_pick(league_id, sub, body.model_dump(), force=force)
         await broadcast_room(league_id)
         return state
     except ValueError as exc:

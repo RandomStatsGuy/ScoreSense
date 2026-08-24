@@ -18,7 +18,8 @@ import ValueSheetTable from "./ValueSheetTable";
 import { confirmDialog } from "../ui/confirm";
 import DraftDeadlineClock from "./DraftDeadlineClock";
 import DraftLiveCommandBar from "./DraftLiveCommandBar";
-import { viewerIsCommissioner, nextNominator, loadWatchIds, toggleWatchId, teamBudgetLine } from "./draftLiveConsole";
+import { viewerIsCommissioner, nextNominator, nextOnClock, loadWatchIds, toggleWatchId, teamBudgetLine } from "./draftLiveConsole";
+import { isPickDraft } from "./draftEntryStatus";
 import { HubPage } from "./HubUILayout";
 import { isRowAvailable } from "./valueSheetUtils";
 import {
@@ -40,7 +41,7 @@ import {
 function draftPhaseStep(status) {
   if (status === "bidding") return 2;
   if (status === "completed") return 3;
-  if (status === "nominating") return 1;
+  if (status === "nominating" || status === "picking") return 1;
   return 0;
 }
 
@@ -104,6 +105,8 @@ export default function DraftRoom({
   const session = roomState?.session;
   const league = roomState?.league;
   const rules = league?.rules;
+  const pickDraft = isPickDraft(rules) || ["snake", "linear"].includes(String(roomState?.draft_type || ""));
+  const pickClock = roomState?.pick || null;
   const relaxLimits = Boolean(rules?.relax_salary_roster_limits || roomState?.limits_relaxed);
   const nominee = session?.current_nominee;
   const teams = roomState?.teams || [];
@@ -206,7 +209,8 @@ export default function DraftRoom({
   const draftStatus = session?.status || "setup";
   const inDraftSetup = draftStatus === "setup";
   const draftCompleted = draftStatus === "completed";
-  const inLiveDraft = draftStatus === "nominating" || draftStatus === "bidding";
+  const inLiveDraft = draftStatus === "nominating" || draftStatus === "bidding" || draftStatus === "picking";
+  const onClock = draftStatus === "nominating" || draftStatus === "picking";
   const recapHasStory = Boolean(
     draftRecap && ((draftRecap.awards?.length ?? 0) > 0 || (draftRecap.notable_picks?.length ?? 0) > 0),
   );
@@ -223,7 +227,7 @@ export default function DraftRoom({
   const canForceNominate = Boolean(
     !testMode
     && isCommissioner
-    && session?.status === "nominating"
+    && (session?.status === "nominating" || session?.status === "picking")
     && !session?.paused
     && nominatorTeamId
     && String(myTeamId) !== String(nominatorTeamId),
@@ -427,7 +431,7 @@ export default function DraftRoom({
   }, [enrichment]);
 
   const digestTargetId = nominee?.player_id
-    || (session?.status === "nominating" && nomPlayerId ? nomPlayerId : null);
+    || ((session?.status === "nominating" || session?.status === "picking") && nomPlayerId ? nomPlayerId : null);
 
   useEffect(() => {
     if (!digestTargetId || !season) return;
@@ -1007,25 +1011,27 @@ export default function DraftRoom({
     if (!row) return;
     if (force) {
       if (!(await confirmDialog({
-        title: "Force nominate",
-        message:
-          `Nominate ${row.player || row.player_name || "this player"} on behalf of `
-          + `${nominatorTeam?.name || "the on-clock team"}? The opening min bid hits their budget, not yours.`,
-        confirmLabel: "Force nominate",
+        title: pickDraft ? "Force pick" : "Force nominate",
+        message: pickDraft
+          ? `Pick ${row.player || row.player_name || "this player"} for ${nominatorTeam?.name || "the on-clock team"}?`
+          : (`Nominate ${row.player || row.player_name || "this player"} on behalf of `
+            + `${nominatorTeam?.name || "the on-clock team"}? The opening min bid hits their budget, not yours.`),
+        confirmLabel: pickDraft ? "Force pick" : "Force nominate",
         danger: true,
       }))) {
         return;
       }
     } else if (!canAcquire(row.position)) {
-      setError(`Your roster is at the ${row.position} maximum — cut or trade before nominating.`);
+      setError(`Your roster is at the ${row.position} maximum — cut or trade before ${pickDraft ? "picking" : "nominating"}.`);
       return;
     }
     setNomPlayerId(row.player_id);
-    setPendingAction("nominate");
+    setPendingAction(pickDraft ? "pick" : "nominate");
     setError("");
     try {
       const qs = force ? "?force=true" : "";
-      const res = await apiFetch(`/api/hub/league/${leagueId}/nominate${qs}`, {
+      const path = pickDraft ? "pick" : "nominate";
+      const res = await apiFetch(`/api/hub/league/${leagueId}/${path}${qs}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(playerPayload(row)),
@@ -1035,11 +1041,11 @@ export default function DraftRoom({
       bidTouched.current = false;
       wsRefresh();
     } catch (e) {
-      setError(e.message || "Nomination failed");
+      setError(e.message || (pickDraft ? "Pick failed" : "Nomination failed"));
     } finally {
       setPendingAction("");
     }
-  }, [canAcquire, leagueId, applyState, wsRefresh, playerPayload, nominatorTeam?.name]);
+  }, [canAcquire, leagueId, applyState, wsRefresh, playerPayload, nominatorTeam?.name, pickDraft]);
 
   const nominate = async () => {
     const row = previewRow;
@@ -1132,30 +1138,31 @@ export default function DraftRoom({
 
   const activeDeadline = session?.status === "bidding"
     ? session?.bid_deadline
-    : session?.status === "nominating"
+    : (session?.status === "nominating" || session?.status === "picking")
       ? session?.nomination_deadline
       : null;
 
   const activePhase = draftPhaseStep(draftStatus);
 
   useEffect(() => {
-    if (!mobileLayout || !inLiveDraft || session?.status !== "nominating" || !isMyNominationTurn) return;
+    if (!mobileLayout || !inLiveDraft || !onClock || !isMyNominationTurn) return;
     setMobilePanelPersist("pool");
   }, [mobileLayout, inLiveDraft, session?.status, isMyNominationTurn, setMobilePanelPersist]);
 
   const nominateHint = mobileLayout
-    ? "Tap a player, then Nominate"
-    : "Double-click a player to nominate";
+    ? (pickDraft ? "Tap a player, then Pick" : "Tap a player, then Nominate")
+    : (pickDraft ? "Double-click a player to pick" : "Double-click a player to nominate");
 
   const liveStatus = useMemo(() => {
     if (!inLiveDraft || !session) return null;
-    if (session.status === "nominating") {
+    if (session.status === "nominating" || session.status === "picking") {
+      const forceLabel = pickDraft ? "Force pick" : "Force nominate";
       return {
         phase: 1,
         title: isMyNominationTurn
           ? `Your turn — ${nominateHint.toLowerCase()}`
           : canForceNominate
-            ? `Waiting for ${nominatorTeam?.name || "next manager"} — Force nominate available`
+            ? `Waiting for ${nominatorTeam?.name || "next manager"} — ${forceLabel} available`
             : `Waiting for ${nominatorTeam?.name || "next manager"}`,
         detail: availableRows.length > 0 ? `${availableRows.length} available` : null,
       };
@@ -1313,13 +1320,22 @@ export default function DraftRoom({
       {inLiveDraft && (
         <div className="hub-draft-live-strip" role="status">
           <div className="hub-draft-live-strip-main">
-            <div className="hub-draft-phase-strip hub-draft-phase-strip-inline" aria-label="Auction phase">
-              <span className={`hub-draft-phase-step${activePhase >= 1 ? " is-active" : ""}${activePhase > 1 ? " is-done" : ""}`}>Nominate</span>
-              <span className={`hub-draft-phase-step${activePhase >= 2 ? " is-active" : ""}${activePhase > 2 ? " is-done" : ""}`}>Bid</span>
-              <span className={`hub-draft-phase-step${activePhase >= 3 ? " is-active" : ""}`}>Award</span>
+            <div className="hub-draft-phase-strip hub-draft-phase-strip-inline" aria-label={pickDraft ? "Draft phase" : "Auction phase"}>
+              {pickDraft ? (
+                <>
+                  <span className={`hub-draft-phase-step${activePhase >= 1 ? " is-active" : ""}${activePhase > 1 ? " is-done" : ""}`}>Pick</span>
+                  <span className={`hub-draft-phase-step${activePhase >= 3 ? " is-active" : ""}`}>Done</span>
+                </>
+              ) : (
+                <>
+                  <span className={`hub-draft-phase-step${activePhase >= 1 ? " is-active" : ""}${activePhase > 1 ? " is-done" : ""}`}>Nominate</span>
+                  <span className={`hub-draft-phase-step${activePhase >= 2 ? " is-active" : ""}${activePhase > 2 ? " is-done" : ""}`}>Bid</span>
+                  <span className={`hub-draft-phase-step${activePhase >= 3 ? " is-active" : ""}`}>Award</span>
+                </>
+              )}
             </div>
             {/* Bidding details live in the auction card — header only guides nominations. */}
-            {session?.status === "nominating" && liveStatus && (
+            {(session?.status === "nominating" || session?.status === "picking") && liveStatus && (
               <>
                 <strong className="hub-draft-live-title">{liveStatus.title}</strong>
                 {activeDeadline && (
@@ -1362,14 +1378,14 @@ export default function DraftRoom({
                 {session?.paused ? "Resume" : "Pause"}
               </button>
             )}
-            {isCommissioner && inLiveDraft && session?.status === "nominating" && !session?.paused && (
+            {isCommissioner && inLiveDraft && (session?.status === "nominating" || session?.status === "picking") && !session?.paused && (
               <button
                 type="button"
                 className="btn-ghost btn-sm"
                 disabled={busy}
                 onClick={skipNominationTurn}
               >
-                Skip nom
+                {pickDraft ? "Skip pick" : "Skip nom"}
               </button>
             )}
             {isCommissioner && (
@@ -1502,13 +1518,15 @@ export default function DraftRoom({
           isCommissioner={isCommissioner}
           onAward={award}
           nominatorTeam={nominatorTeam}
-          nextNominatorTeam={nextNominator(session, teams)}
+          nextNominatorTeam={pickDraft ? nextOnClock(session, teams, roomState?.draft_type || rules?.draft_type) : nextNominator(session, teams)}
           isMyNominationTurn={isMyNominationTurn}
           connectionStatus={connectionStatus}
           paused={Boolean(session?.paused)}
-          canNominate={session?.status === "nominating" && (isMyNominationTurn || canForceNominate)}
+          canNominate={onClock && (isMyNominationTurn || canForceNominate)}
           onNominate={nominate}
-          nominateLabel={`Nominate for ${fmtSal(minBidUnit || 1)}`}
+          nominateLabel={pickDraft ? (canForceNominate ? "Force pick" : "Pick") : `Nominate for ${fmtSal(minBidUnit || 1)}`}
+          pickDraft={pickDraft}
+          pickClock={pickClock}
         />
       )}
 
@@ -1585,18 +1603,18 @@ export default function DraftRoom({
                 />
                 {bidPanel}
               </div>
-            ) : session?.status === "nominating" && !isMyNominationTurn ? (
+            ) : (session?.status === "nominating" || session?.status === "picking") && !isMyNominationTurn ? (
               <div className="hub-nominee-card hub-nominee-empty">
                 <span>
                   Waiting for {nominatorTeam?.name || "next manager"}
-                  {canForceNominate ? " — you can Force nominate for them" : ""}
+                  {canForceNominate ? (pickDraft ? " — you can Force pick for them" : " — you can Force nominate for them") : ""}
                 </span>
               </div>
             ) : null}
 
             {inLiveDraft && (
               <>
-                {session?.status === "nominating" && previewRow && nomPlayerId && (
+                {(session?.status === "nominating" || session?.status === "picking") && previewRow && nomPlayerId && (
                   <div className="hub-nominate-confirm hub-nominate-confirm-slim">
                     <span className="hub-nominate-confirm-name">
                       {previewRow.player}
@@ -1620,11 +1638,11 @@ export default function DraftRoom({
                       }
                       onClick={nominate}
                     >
-                      {pendingAction === "nominate"
-                        ? "Nominating…"
+                      {pendingAction === "nominate" || pendingAction === "pick"
+                        ? (pickDraft ? "Picking…" : "Nominating…")
                         : canForceNominate
-                          ? `Force nominate for ${fmtSal(minBidUnit || 1)}`
-                          : `Nominate for ${fmtSal(minBidUnit || 1)}`}
+                          ? (pickDraft ? "Force pick" : `Force nominate for ${fmtSal(minBidUnit || 1)}`)
+                          : (pickDraft ? "Pick" : `Nominate for ${fmtSal(minBidUnit || 1)}`)}
                     </button>
                   </div>
                 )}
@@ -1642,13 +1660,15 @@ export default function DraftRoom({
                   <div className="hub-event-panel hub-event-panel-pool hub-draft-pool-pane">
                     <div className="hub-section-head">
                       <span className="chart-note">
-                        {session?.status === "nominating" && isMyNominationTurn
-                          ? nominateHint
-                          : session?.status === "nominating" && canForceNominate
-                            ? "Select a player, then Force nominate for the on-clock team"
+                        {onClock && isMyNominationTurn
+                          ? (pickDraft ? "Select a player, then pick" : nominateHint)
+                          : onClock && canForceNominate
+                            ? (pickDraft
+                              ? "Select a player, then Force pick for the on-clock team"
+                              : "Select a player, then Force nominate for the on-clock team")
                             : session?.status === "bidding"
                             ? "Browse while you wait"
-                            : "Waiting to nominate"}
+                            : (pickDraft ? "Waiting to pick" : "Waiting to nominate")}
                       </span>
                     </div>
                   {boardLoading ? (
@@ -1680,15 +1700,16 @@ export default function DraftRoom({
                       selectedPlayerId={nomPlayerId}
                       onSelectPlayer={(row) => setNomPlayerId(row.player_id)}
                       onRowDoubleClick={
-                        session?.status === "nominating" && (isMyNominationTurn || canForceNominate)
+                        onClock && (isMyNominationTurn || canForceNominate)
                           ? (row) => nominateRow(row, { force: canForceNominate })
                           : undefined
                       }
                       onQueuePlayer={queuePlayer}
                       onWatchPlayer={toggleWatch}
                       watchIds={watchIds}
-                      canNominate={session?.status === "nominating" && (isMyNominationTurn || canForceNominate)}
+                      canNominate={onClock && (isMyNominationTurn || canForceNominate)}
                       minBid={minBidUnit || 1}
+                      actionLabel={pickDraft ? (canForceNominate ? "Force pick" : "Pick") : undefined}
                     />
                   )}
                   </div>
@@ -1698,7 +1719,7 @@ export default function DraftRoom({
             )}
 
             <details className="hub-draft-log">
-              <summary>Bid log</summary>
+              <summary>{pickDraft ? "Pick log" : "Bid log"}</summary>
               <ul className="hub-event-log">
                 {events.length === 0 && <li className="hub-event-empty">No events yet</li>}
                 {[...events].reverse().slice(0, 20).map((ev) => (
@@ -1731,7 +1752,7 @@ export default function DraftRoom({
               cutBusy={busy}
               budgetRemaining={myTeam?.budget_remaining}
               maxBid={Number.isFinite(myBudget) ? myMaxBid : null}
-              isNominator={String(myTeamId) === String(nominatorTeamId) && session?.status === "nominating"}
+              isNominator={String(myTeamId) === String(nominatorTeamId) && (session?.status === "nominating" || session?.status === "picking")}
               isHighBidder={myTeamId && session?.high_bidder_team_id === myTeamId}
               ended={draftCompleted}
               pendingTradeCount={pendingTradeCount}
@@ -1769,7 +1790,7 @@ export default function DraftRoom({
             )}
             {draftCompleted && events.length > 0 && (
               <details className="hub-draft-log hub-draft-log-sidebar">
-                <summary>Bid log</summary>
+                <summary>{pickDraft ? "Pick log" : "Bid log"}</summary>
                 <ul className="hub-event-log">
                   {[...events].reverse().slice(0, 20).map((ev) => (
                     <li key={ev.id} className={`hub-event hub-event-${ev.event_type}`}>
@@ -1798,6 +1819,7 @@ export default function DraftRoom({
                   defaultOpen={false}
                   rosterLimits={roomState?.roster_limits}
                   draftCompleted={draftCompleted}
+                  pickDraft={pickDraft}
                   allowTrades={tradesActive}
                   onTradePlayer={(seed) => setTradeModal({ seed, view: "builder" })}
                 />
@@ -1821,6 +1843,7 @@ export default function DraftRoom({
                       defaultOpen={t.id === myTeamId}
                       rosterLimits={roomState?.roster_limits}
                       draftCompleted={draftCompleted}
+                      pickDraft={pickDraft}
                     />
                   ))}
                 </div>

@@ -15,7 +15,8 @@ export default function DraftRecapPanel({ recap, compact = false, hideHero = fal
   if (!recap) return null;
   const hasAwards = (recap.awards?.length ?? 0) > 0;
   const hasNotable = (recap.notable_picks?.length ?? 0) > 0;
-  if (!hasAwards && !hasNotable) return null;
+  const pickDraft = Boolean(recap.pick_draft);
+  if (!hasAwards && !hasNotable && !pickDraft) return null;
 
   return (
     <section className={`hub-draft-recap${compact ? " hub-draft-recap-compact" : ""}`}>
@@ -27,9 +28,11 @@ export default function DraftRecapPanel({ recap, compact = false, hideHero = fal
             {recap.subheadline && <p className="chart-note">{recap.subheadline}</p>}
             {recap.scopes && (
               <p className="chart-note">
-                {recap.scopes.this_mock && <>This mock: {recap.scopes.this_mock.auction_wins} auction wins · {fmtSal(recap.scopes.this_mock.total_spent)} spent. </>}
-                {recap.scopes.league_wide && <>League-wide: {recap.scopes.league_wide.rostered_count} rostered in sandbox.</>}
-                {recap.limits_relaxed ? " Cap-efficiency awards hidden while salary limits are off." : ""}
+                {pickDraft
+                  ? <>{recap.pick_count} picks{recap.draft_type ? ` · ${recap.draft_type} draft` : ""}.</>
+                  : recap.scopes.this_mock && <>This mock: {recap.scopes.this_mock.auction_wins} auction wins · {fmtSal(recap.scopes.this_mock.total_spent)} spent. </>}
+                {!pickDraft && recap.scopes.league_wide && <>League-wide: {recap.scopes.league_wide.rostered_count} rostered in sandbox.</>}
+                {!pickDraft && recap.limits_relaxed ? " Cap-efficiency awards hidden while salary limits are off." : ""}
               </p>
             )}
           </div>
@@ -62,16 +65,16 @@ export default function DraftRecapPanel({ recap, compact = false, hideHero = fal
 
       {recap.notable_picks?.length > 0 && (
         <div className="hub-draft-recap-notable">
-          <h3>Notable sales</h3>
+          <h3>{pickDraft ? "Notable picks" : "Notable sales"}</h3>
           <ul>
             {recap.notable_picks.map((pick) => (
               <li key={`${pick.player_id}-${pick.team_id}`}>
                 <span className={`hub-draft-recap-grade hub-draft-recap-grade-${pick.value_grade}`}>
-                  {GRADE_LABEL[pick.value_grade] || "Pick"}
+                  {pickDraft ? "Pick" : (GRADE_LABEL[pick.value_grade] || "Pick")}
                 </span>
                 <span>
-                  {pick.team_name} · {pick.player_name} ({pick.position}) — {fmtSal(pick.amount)}
-                  {pick.fair_value != null ? ` · fair ${fmtSal(pick.fair_value)}` : ""}
+                  {pick.team_name} · {pick.player_name} ({pick.position})
+                  {!pickDraft && <> — {fmtSal(pick.amount)}{pick.fair_value != null ? ` · fair ${fmtSal(pick.fair_value)}` : ""}</>}
                 </span>
               </li>
             ))}

@@ -207,6 +207,67 @@ def maybe_autodraft_nominate(league_id: str) -> dict[str, Any] | None:
         return None
 
 
+def maybe_bot_pick(league_id: str) -> dict[str, Any] | None:
+    """When a bot is on the clock in a pick draft, take BPA (test mode only)."""
+    from src.draft_hub.draft_state import _current_nominator_team_id, make_pick
+
+    if not storage.league_test_mode(league_id):
+        return None
+    state = get_room_state(league_id)
+    session = state.get("session") or {}
+    if session.get("status") != "picking":
+        return None
+    league = storage.get_league(league_id)
+    if not league:
+        return None
+    rules = LeagueRules.model_validate(league["rules"])
+    nominator_id = _current_nominator_team_id(session, rules)
+    if not nominator_id:
+        return None
+    team = storage.get_team(nominator_id)
+    if not team or not team.get("is_bot"):
+        return None
+    payload = _pick_nomination_payload(league_id, league, rules, team, session)
+    if not payload:
+        return None
+    try:
+        return make_pick(league_id, f"bot:{team['id']}", payload)
+    except ValueError:
+        return None
+
+
+def maybe_autodraft_pick(league_id: str) -> dict[str, Any] | None:
+    """On-clock human with autodraft enabled — queue then need-aware BPA."""
+    from src.draft_hub.draft_state import _current_nominator_team_id, make_pick
+
+    state = get_room_state(league_id)
+    session = state.get("session") or {}
+    if session.get("status") != "picking" or session.get("paused"):
+        return None
+    league = storage.get_league(league_id)
+    if not league:
+        return None
+    rules = LeagueRules.model_validate(league["rules"])
+    nominator_id = _current_nominator_team_id(session, rules)
+    if not nominator_id:
+        return None
+    team = storage.get_team(nominator_id)
+    if not team or team.get("is_bot") or not team.get("autodraft"):
+        return None
+    sub = _team_sub(team)
+    if not sub:
+        return None
+    payload = _pick_nomination_payload(league_id, league, rules, team, session)
+    if not payload:
+        return None
+    try:
+        return make_pick(league_id, sub, payload)
+    except ValueError:
+        return None
+
+
+
+
 def bot_max_price(bot_id: str, nominee: dict[str, Any], min_bid: float) -> float:
     """Per-bot price ceiling around the player's fair value.
 
@@ -384,9 +445,11 @@ def simulate_draft(
         _advance_nominator,
         _current_nominator_team_id,
         end_draft,
+        make_pick,
         nominate,
         start_draft,
     )
+    from src.draft_hub.pick_draft import is_pick_draft
 
     league = storage.get_league(league_id)
     if not league:
@@ -417,10 +480,33 @@ def simulate_draft(
             _settle_auction(league_id)
             picks += 1
             continue
+        if status == "picking":
+            nominator_id = _current_nominator_team_id(session, rules)
+            team = storage.get_team(nominator_id) if nominator_id else None
+            payload = (
+                _pick_nomination_payload(league_id, league, rules, team, session) if team else None
+            )
+            sub = _team_sub(team) if team else None
+            picked = False
+            if payload and sub:
+                try:
+                    make_pick(league_id, sub, payload)
+                    picked = True
+                    picks += 1
+                except ValueError:
+                    pass
+            if picked:
+                stalled_turns = 0
+            else:
+                _advance_nominator(league_id)
+                stalled_turns += 1
+                if stalled_turns >= max(1, len(teams)):
+                    break
+            continue
         if status != "nominating":
             break
 
-        nominator_id = _current_nominator_team_id(session)
+        nominator_id = _current_nominator_team_id(session, rules if is_pick_draft(rules) else None)
         team = storage.get_team(nominator_id) if nominator_id else None
         payload = (
             _pick_nomination_payload(league_id, league, rules, team, session) if team else None

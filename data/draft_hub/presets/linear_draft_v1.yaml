@@ -1,0 +1,28 @@
+id: linear_draft_v1
+label: Linear draft
+description: Straight-through pick draft (same order every round). No salary cap.
+draft_type: linear
+salary_cap: 0
+auction:
+  min_bid: 1
+  nomination_timer_sec: 60
+  bid_timer_sec: 30
+  bid_extension_sec: 5
+  bot_reaction_delay_sec: 4
+  allow_mid_draft_cuts: false
+roster:
+  qb: { min: 1, max: 3, starter: 1 }
+  rb: { min: 2, max: 8, starter: 2 }
+  wr: { min: 2, max: 8, starter: 2 }
+  te: { min: 1, max: 3, starter: 1 }
+  k: { min: 1, max: 2, starter: 1 }
+  def: { min: 1, max: 2, starter: 1 }
+  flex: { starter: 1, eligible: [RB, WR, TE] }
+roster_size_max: 16
+contracts:
+  max_years: 1
+  cut_refund_pct: 0
+  extension_step_up: 0
+  rookie_years: 1
+  one_renewal_after_rookie: false
+  allow_veteran_renewal: false

@@ -7,6 +7,8 @@ import {
   riskBand,
   suggestedBidSource,
   nextNominator,
+  nextOnClock,
+  teamRosterLine,
   teamBudgetLine,
   recapScopes,
   shortContractLabel,
@@ -46,6 +48,18 @@ test("nextNominator wraps the nomination order", () => {
   const session = { nomination_order: ["t1", "t2", "t3"], nominator_index: 2 };
   const teams = [{ id: "t1", name: "A" }, { id: "t3", name: "C" }];
   assert.equal(nextNominator(session, teams).id, "t1");
+});
+
+test("nextOnClock snakes odd rounds instead of wrapping", () => {
+  const session = { nomination_order: ["t1", "t2", "t3"], nominator_index: 2 };
+  const teams = [{ id: "t1", name: "A" }, { id: "t3", name: "C" }];
+  assert.equal(nextOnClock(session, teams, "linear").id, "t1");
+  assert.equal(nextOnClock(session, teams, "snake").id, "t3");
+});
+
+test("teamRosterLine omits budget", () => {
+  const line = teamRosterLine({ occupying: 4, roster_size_max: 16 });
+  assert.equal(line.text, "4/16 rostered");
 });
 
 test("teamBudgetLine spells out budget, roster, and max bid", () => {

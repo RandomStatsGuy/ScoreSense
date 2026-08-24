@@ -6,6 +6,7 @@ import {
   draftEntryPhase,
   draftFormatLabel,
   draftParticipantSummary,
+  isPickDraft,
   formatDraftScheduleLabel,
   formatDraftWait,
   utcIsoToWall,
@@ -52,6 +53,7 @@ export default function DraftEntryPanel({
   const [relaxSandboxLimits, setRelaxSandboxLimits] = useState(false);
 
   const formatLabel = draftFormatLabel(rules || league?.rules);
+  const pickDraft = isPickDraft(rules || league?.rules);
   const budget = Number((rules || league?.rules)?.salary_cap ?? 200);
   const phase = draftEntryPhase({
     hubContext,
@@ -112,10 +114,12 @@ export default function DraftEntryPanel({
             <dt>Format</dt>
             <dd>{formatLabel}</dd>
           </div>
+          {!pickDraft && (
           <div className="hub-draft-status-item">
             <dt>Budget</dt>
             <dd>{fmtSal(budget)}</dd>
           </div>
+          )}
           <div className="hub-draft-status-item">
             <dt>Participants</dt>
             <dd>
