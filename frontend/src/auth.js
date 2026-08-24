@@ -13,19 +13,31 @@ export function notifyAuthChanged() {
   window.dispatchEvent(new CustomEvent("scoresense-auth-changed"));
 }
 
-export function authHeaders() {
+function isFormDataBody(body) {
+  return typeof FormData !== "undefined" && body instanceof FormData;
+}
+
+export function authHeaders({ json = true } = {}) {
   const token = getToken();
-  const headers = { "Content-Type": "application/json" };
+  const headers = {};
+  if (json) headers["Content-Type"] = "application/json";
   if (token) headers.Authorization = `Bearer ${token}`;
   return headers;
 }
 
 export async function apiFetch(url, options = {}) {
   const { signal, headers, ...rest } = options;
+  const form = isFormDataBody(rest.body);
+  const merged = { ...authHeaders({ json: !form }), ...(headers || {}) };
+  if (form) {
+    // Browser must set multipart boundary; a JSON content-type drops the file.
+    delete merged["Content-Type"];
+    delete merged["content-type"];
+  }
   const init = {
     ...rest,
     credentials: "include",
-    headers: { ...authHeaders(), ...(headers || {}) },
+    headers: merged,
   };
   if (signal instanceof AbortSignal) {
     init.signal = signal;
