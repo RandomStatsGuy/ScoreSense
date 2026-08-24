@@ -238,6 +238,10 @@ def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any
                 "capacity": roster_capacity(rules, team_roster),
                 "nomination_queue": list(team.get("nomination_queue") or []),
                 "autodraft": bool(team.get("autodraft")),
+                "is_commissioner": (
+                    str(league.get("commissioner_sub") or "") == str(user_sub)
+                    or bool(team.get("is_commissioner"))
+                ),
                 **finance,
             }
     return out
@@ -246,6 +250,17 @@ def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any
 def _require_commissioner(league: dict[str, Any], user_sub: str) -> None:
     if league["commissioner_sub"] != user_sub:
         raise ValueError("Only commissioner can do that")
+
+def user_is_draft_staff(league_id: str, user_sub: str) -> bool:
+    """Primary commissioner or co-commissioner. Does not change hub focus."""
+    league = storage.get_league(league_id)
+    if not league:
+        return False
+    if str(league.get("commissioner_sub") or "") == str(user_sub):
+        return True
+    team = storage.get_team_by_user(league_id, user_sub)
+    return bool(team and team.get("is_commissioner"))
+
 
 
 def _assert_not_paused(session: dict[str, Any] | None) -> None:

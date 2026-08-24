@@ -17,6 +17,8 @@ import LeagueChat from "./LeagueChat";
 import ValueSheetTable from "./ValueSheetTable";
 import { confirmDialog } from "../ui/confirm";
 import DraftDeadlineClock from "./DraftDeadlineClock";
+import DraftLiveCommandBar from "./DraftLiveCommandBar";
+import { viewerIsCommissioner, nextNominator, loadWatchIds, toggleWatchId, teamBudgetLine } from "./draftLiveConsole";
 import { HubPage } from "./HubUILayout";
 import { isRowAvailable } from "./valueSheetUtils";
 import {
@@ -76,6 +78,10 @@ export default function DraftRoom({
   const [tradeModal, setTradeModal] = useState(null);
   const [pendingTradeCount, setPendingTradeCount] = useState(0);
   const mobileLayout = useMobileLayout();
+  const [connectionStatus, setConnectionStatus] = useState("connecting");
+  const [railTab, setRailTab] = useState("roster");
+  const [watchIds, setWatchIds] = useState([]);
+  const wsAliveRef = useRef(true);
   const [mobilePanel, setMobilePanel] = useState(() => {
     if (typeof sessionStorage === "undefined") return "auction";
     return sessionStorage.getItem("scoresense-draft-mobile-panel") || "auction";
@@ -189,8 +195,12 @@ export default function DraftRoom({
   );
 
   const isCommissioner = useMemo(
-    () => Boolean(hubContext?.is_commissioner) || teams.some((t) => t.is_commissioner && !t.is_bot),
-    [hubContext?.is_commissioner, teams],
+    () => viewerIsCommissioner({
+      hubContext,
+      viewer: roomState?.viewer,
+      myTeam: teams.find((t) => t.id === myTeamId),
+    }),
+    [hubContext, roomState?.viewer, teams, myTeamId],
   );
 
   const draftStatus = session?.status || "setup";
@@ -291,9 +301,8 @@ export default function DraftRoom({
   }, [season, enrichmentIdsKey, testMode]);
 
   useEffect(() => {
-    if (session?.status === "bidding") setBoardOpen(false);
-    else if (session?.status === "nominating") setBoardOpen(true);
-  }, [session?.status]);
+    if (!mobileLayout) setBoardOpen(true);
+  }, [mobileLayout, session?.status]);
 
   useEffect(() => {
     if (testMode && inLiveDraft) setEnrichment(null);
@@ -505,16 +514,29 @@ export default function DraftRoom({
   }, []);
 
   const connectWs = useCallback((id) => {
-    if (wsRef.current) wsRef.current.close();
+    wsAliveRef.current = true;
+    if (wsRef.current) {
+      try { wsRef.current.close(); } catch { /* ignore */ }
+    }
     const proto = window.location.protocol === "https:" ? "wss" : "ws";
     const token = getToken();
     const qs = token ? `?token=${encodeURIComponent(token)}` : "";
+    setConnectionStatus((cur) => (cur === "live" ? "reconnecting" : "connecting"));
     const ws = new WebSocket(`${proto}://${window.location.host}/api/hub/ws/${id}${qs}`);
+    ws.onopen = () => setConnectionStatus("live");
     ws.onmessage = (ev) => {
       try {
         const msg = JSON.parse(ev.data);
         if (msg.type === "state") applyState(msg.payload);
       } catch { /* ignore */ }
+    };
+    ws.onerror = () => setConnectionStatus("offline");
+    ws.onclose = () => {
+      setConnectionStatus("offline");
+      if (!wsAliveRef.current) return;
+      window.setTimeout(() => {
+        if (wsAliveRef.current) connectWs(id);
+      }, 2000);
     };
     wsRef.current = ws;
   }, [applyState]);
@@ -537,8 +559,37 @@ export default function DraftRoom({
 
   useEffect(() => {
     if (leagueId) connectWs(leagueId);
-    return () => wsRef.current?.close();
+    return () => {
+      wsAliveRef.current = false;
+      wsRef.current?.close();
+    };
   }, [leagueId, connectWs]);
+
+  useEffect(() => {
+    if (leagueId) setWatchIds(loadWatchIds(leagueId));
+  }, [leagueId]);
+
+  const toggleWatch = useCallback((row) => {
+    if (!leagueId || !row?.player_id) return;
+    setWatchIds(toggleWatchId(leagueId, row.player_id));
+  }, [leagueId]);
+
+  const queuePlayer = useCallback(async (row) => {
+    const pid = String(row?.player_id || "");
+    if (!leagueId || !pid) return;
+    const current = roomState?.viewer?.nomination_queue || [];
+    if (current.map(String).includes(pid)) return;
+    const res = await apiFetch(`/api/hub/league/${leagueId}/nomination-queue`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        player_ids: [...current, pid],
+        autodraft: Boolean(roomState?.viewer?.autodraft),
+      }),
+    });
+    if (!res.ok) throw new Error(await parseApiError(res));
+    applyState(await res.json());
+  }, [leagueId, roomState?.viewer?.nomination_queue, roomState?.viewer?.autodraft, applyState]);
 
   useEffect(() => {
     if (leagueId) refresh();
@@ -1180,7 +1231,13 @@ export default function DraftRoom({
   const bidPanel = session?.status === "bidding" ? (
     <div className={`hub-draft-actions hub-draft-actions-prominent hub-draft-actions-on-block${mobileLayout ? " hub-draft-actions--mobile" : ""}`}>
       <div className="hub-action-block">
-        <div className={`hub-action-row${mobileLayout ? " hub-action-row--stacked" : ""}`}>
+        <form
+          className={`hub-action-row${mobileLayout ? " hub-action-row--stacked" : ""}`}
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!(pendingAction || bidInvalid || nomineePosBlocked || session?.paused)) bid();
+          }}
+        >
           <input
             type="number"
             className="hub-bid-input"
@@ -1207,19 +1264,13 @@ export default function DraftRoom({
             </button>
           ))}
           <button
-            type="button"
+            type="submit"
             className="btn-primary"
             disabled={Boolean(pendingAction) || bidInvalid || nomineePosBlocked || Boolean(session?.paused)}
-            onClick={() => bid()}
           >
             {pendingAction === "bid" ? "Bidding…" : `Bid ${fmtSal(bidAmount)}`}
           </button>
-          {session.high_bidder_team_id && (
-            <button type="button" className="btn-ghost" disabled={busy} onClick={award}>
-              Award now {fmtSal(session.high_bid)}
-            </button>
-          )}
-        </div>
+        </form>
         {myTeamId && Number.isFinite(myBudget) && (
           <p className="hub-bid-you chart-note">
             You: <strong>{fmtSal(myBudget)}</strong> left
@@ -1379,18 +1430,31 @@ export default function DraftRoom({
           <div className="hub-draft-ended-actions">
             {recapHasStory && usingHubLeague && onNavigate && (
               <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("insights")}>
-                Insights
+                View insights
               </button>
             )}
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              onClick={() => {
+                setRailTab("teams");
+                setMobilePanelPersist("teams");
+              }}
+            >
+              Review draft board
+            </button>
             {testMode && isCommissioner && (
-              <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={resetPracticeDraft}>
+              <button type="button" className="btn-primary btn-sm" disabled={busy} onClick={resetPracticeDraft}>
                 New mock
               </button>
             )}
             {testMode && isCommissioner && (
-              <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={deleteSandbox}>
-                Delete sandbox
-              </button>
+              <details className="hub-draft-ended-overflow">
+                <summary className="btn-ghost btn-sm">More</summary>
+                <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={deleteSandbox}>
+                  Delete sandbox
+                </button>
+              </details>
             )}
             {!testMode && isCommissioner && (
               <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={resetLiveDraft}>
@@ -1419,6 +1483,35 @@ export default function DraftRoom({
       )}
 
       {error && <div className="error hub-draft-error">{error}</div>}
+      {inLiveDraft && (
+        <DraftLiveCommandBar
+          session={session}
+          nominee={nominee}
+          myTeamId={myTeamId}
+          myBudget={myBudget}
+          myMaxBid={myMaxBid}
+          suggestedBid={suggestedBid}
+          minBid={minBidUnit}
+          bidAmount={bidAmount}
+          onBidAmountChange={applyBidAmount}
+          onBidAmountFocus={() => { bidFocused.current = true; }}
+          onBidAmountBlur={() => { bidFocused.current = false; }}
+          onBid={() => bid()}
+          bidDisabled={Boolean(pendingAction) || Boolean(session?.paused)}
+          pendingAction={pendingAction}
+          isCommissioner={isCommissioner}
+          onAward={award}
+          nominatorTeam={nominatorTeam}
+          nextNominatorTeam={nextNominator(session, teams)}
+          isMyNominationTurn={isMyNominationTurn}
+          connectionStatus={connectionStatus}
+          paused={Boolean(session?.paused)}
+          canNominate={session?.status === "nominating" && (isMyNominationTurn || canForceNominate)}
+          onNominate={nominate}
+          nominateLabel={`Nominate for ${fmtSal(minBidUnit || 1)}`}
+        />
+      )}
+
 
       {inLiveDraft && session?.paused && (
         <div className="hub-draft-paused-banner" role="status">
@@ -1465,7 +1558,7 @@ export default function DraftRoom({
 
       {leagueId && (inLiveDraft || draftCompleted) && (
         <div
-          className={`hub-draft-layout${draftCompleted ? " hub-draft-layout--ended" : ""}${mobileLayout ? " hub-draft-layout--mobile-staged" : ""}`}
+          className={`hub-draft-layout${draftCompleted ? " hub-draft-layout--ended" : " hub-draft-layout--live-console"}${mobileLayout ? " hub-draft-layout--mobile-staged" : ""}`}
           data-mobile-panel={mobileLayout ? mobilePanel : undefined}
         >
           {!draftCompleted && (
@@ -1530,8 +1623,8 @@ export default function DraftRoom({
                       {pendingAction === "nominate"
                         ? "Nominating…"
                         : canForceNominate
-                          ? "Force nominate"
-                          : "Nominate"}
+                          ? `Force nominate for ${fmtSal(minBidUnit || 1)}`
+                          : `Nominate for ${fmtSal(minBidUnit || 1)}`}
                     </button>
                   </div>
                 )}
@@ -1546,7 +1639,7 @@ export default function DraftRoom({
                     <span className="chart-note"> · {availableRows.length} left · search for more</span>
                   </summary>
                   {boardOpen && (
-                  <div className="hub-event-panel hub-event-panel-pool">
+                  <div className="hub-event-panel hub-event-panel-pool hub-draft-pool-pane">
                     <div className="hub-section-head">
                       <span className="chart-note">
                         {session?.status === "nominating" && isMyNominationTurn
@@ -1567,6 +1660,7 @@ export default function DraftRoom({
                   ) : (
                     <ValueSheetTable
                       compact
+                      draftConsole
                       mode="all"
                       hideHeader
                       showTierFilters={false}
@@ -1590,6 +1684,11 @@ export default function DraftRoom({
                           ? (row) => nominateRow(row, { force: canForceNominate })
                           : undefined
                       }
+                      onQueuePlayer={queuePlayer}
+                      onWatchPlayer={toggleWatch}
+                      watchIds={watchIds}
+                      canNominate={session?.status === "nominating" && (isMyNominationTurn || canForceNominate)}
+                      minBid={minBidUnit || 1}
                     />
                   )}
                   </div>
@@ -1614,6 +1713,14 @@ export default function DraftRoom({
           )}
 
           <aside className="hub-draft-sidebar hub-draft-mobile-section hub-draft-mobile-section--teams">
+            {!draftCompleted && (
+              <div className="hub-draft-live-rail-tabs" role="tablist" aria-label="Draft sidebar">
+                {[["roster", "My roster"], ["teams", "Teams"], ["queue", "Queue"], ["chat", "Chat"]].map(([id, label]) => (
+                  <button key={id} type="button" role="tab" aria-selected={railTab === id} className={`hub-draft-live-rail-tab${railTab === id ? " is-active" : ""}`} onClick={() => setRailTab(id)}>{label}</button>
+                ))}
+              </div>
+            )}
+            <div className={draftCompleted || railTab === "roster" ? "" : "hub-draft-rail-hidden"}>
             <DraftRosterPanel
               viewer={viewerPanel}
               rosterLimits={roomState?.roster_limits}
@@ -1630,7 +1737,9 @@ export default function DraftRoom({
               pendingTradeCount={pendingTradeCount}
               onOpenInbox={() => setTradeModal({ seed: null, view: "inbox" })}
             />
+            </div>
             {inLiveDraft && myTeamId && leagueId && (
+              <div className={railTab === "queue" ? "" : "hub-draft-rail-hidden"}>
               <DraftNominationQueue
                 leagueId={leagueId}
                 queue={roomState?.viewer?.nomination_queue || []}
@@ -1646,9 +1755,10 @@ export default function DraftRoom({
                 disabled={busy}
                 onUpdated={applyState}
               />
+              </div>
             )}
             {inLiveDraft && leagueId && (
-              <div className="hub-draft-mobile-section hub-draft-mobile-section--chat">
+              <div className={`hub-draft-mobile-section hub-draft-mobile-section--chat${railTab === "chat" ? "" : " hub-draft-rail-hidden"}`}>
                 <LeagueChat
                   leagueId={leagueId}
                   hubContext={hubContext}
@@ -1671,7 +1781,7 @@ export default function DraftRoom({
               </details>
             )}
             {!draftCompleted && (
-            <>
+            <div className={railTab === "teams" ? "" : "hub-draft-rail-hidden"}>
             <h3 className="hub-section-title hub-draft-rail-title">
               Teams <span className="chart-note">· {draftedCount} drafted</span>
             </h3>
@@ -1693,7 +1803,7 @@ export default function DraftRoom({
                 />
               ))}
             </div>
-            </>
+            </div>
             )}
             {draftCompleted && teams.length > 0 && (
               <details className="hub-draft-teams-collapsed">
