@@ -53,6 +53,25 @@ def test_build_draft_recap_after_completed_draft(hub_db):
     assert any(a["id"] == "reach_of_draft" for a in recap["awards"])
 
 
+def test_relaxed_limits_skip_cap_awards_and_label_scopes(hub_db):
+    rules = load_preset("salary_cap_auction_v1")
+    rules = rules.model_copy(update={"relax_salary_roster_limits": True})
+    ws = storage.get_or_create_workspace("recap-relax")
+    league = storage.create_league("recap-relax", "Relax Recap", 2025, rules, workspace_id=ws["id"])
+    teams = storage.list_league_teams(league["id"])
+    team = teams[0]
+    storage.update_draft_session(league["id"], status="completed", completed_at="2026-01-01T00:00:00+00:00")
+    storage.update_league_settings(league["id"], draft_completed=True)
+    _seed_win(league["id"], team_id=team["id"], team_name=team["name"], player="Steal RB", amount=8, fair=20, grade="steal")
+    overview = storage.league_roster_overview(league["id"])
+    recap = build_draft_recap(league["id"], overview=overview)
+    assert recap["limits_relaxed"] is True
+    assert recap["scopes"]["this_mock"]["auction_wins"] == 1
+    assert recap["scopes"]["league_wide"]["rostered_count"] == overview["teams"][0]["player_count"]
+    assert "Hypothetical" in recap["scopes"]["full_keeper_roster"]["note"]
+    assert not any(a["id"] in {"tightwad", "empty_wallet", "position_obsessed"} for a in recap["awards"])
+
+
 def test_no_recap_while_draft_in_progress(hub_db):
     rules = load_preset("salary_cap_auction_v1")
     league = storage.create_league("recap-user-2", "Live", 2025, rules)

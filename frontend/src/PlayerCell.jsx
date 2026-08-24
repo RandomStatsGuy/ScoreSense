@@ -118,8 +118,10 @@ export default function PlayerCell({
       </span>
       <span className="player-cell-text">
         <span className="player-cell-name">{name}</span>
-        {showTeam && teamAbbr ? (
-          <span className="player-cell-team">{teamAbbr}</span>
+        {position || (showTeam && teamAbbr) ? (
+          <span className="player-cell-meta">
+            {[position, teamAbbr].filter(Boolean).join(" · ")}
+          </span>
         ) : null}
       </span>
     </>

@@ -14705,3 +14705,57 @@ td.col-rank.col-rank-top {
   }
 }
 
+
+.hub-draft-live-command {
+  position: sticky; top: 0; z-index: 45;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 0.75rem 1rem; margin: 0 0 0.75rem; padding: 0.7rem 0.9rem;
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  background: var(--bg-elevated); box-shadow: 0 8px 24px rgba(0,0,0,.28);
+}
+.hub-draft-live-command-main, .hub-draft-live-command-actions {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.55rem 0.85rem;
+}
+.hub-draft-live-command-player { font-size: 1.05rem; }
+.hub-draft-live-command-price, .hub-draft-live-command-clock {
+  font-variant-numeric: tabular-nums; font-size: 1.15rem; font-weight: 700;
+}
+.hub-draft-live-command-rel--winning { color: #86efac; }
+.hub-draft-live-command-rel--outbid { color: #fca5a5; }
+.hub-draft-conn {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  padding: 0.15rem 0.45rem; border-radius: 999px; border: 1px solid var(--border);
+}
+.hub-draft-conn--live { background: rgba(34,197,94,.16); color: #86efac; }
+.hub-draft-conn--connecting, .hub-draft-conn--reconnecting { background: rgba(251,191,36,.16); color: #fbbf24; }
+.hub-draft-conn--offline { background: rgba(248,113,113,.16); color: #fca5a5; }
+.hub-draft-layout--live-console {
+  grid-template-columns: minmax(0,1fr) 20rem; align-items: stretch;
+  min-height: calc(100vh - 9rem); overflow: hidden;
+}
+.hub-draft-layout--live-console .hub-draft-main {
+  min-height: 0; overflow: hidden; display: flex; flex-direction: column;
+}
+.hub-draft-pool-pane { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.hub-draft-layout--live-console .hub-event-panel-pool,
+.hub-draft-layout--live-console .table-wrap { max-height: none; overflow: visible; }
+.hub-draft-layout--live-console .hub-draft-sidebar { max-height: none; overflow: hidden; position: static; }
+.hub-draft-live-rail-tabs, .hub-draft-live-rail-tabs { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.5rem; }
+.hub-draft-live-rail-tab {
+  appearance: none; background: transparent; border: 1px solid var(--border);
+  color: var(--text-secondary); border-radius: 999px; padding: 0.2rem 0.6rem;
+  font-size: 0.78rem; cursor: pointer;
+}
+.hub-draft-live-rail-tab.is-active { background: var(--accent-soft, rgba(96,165,250,.2)); color: var(--text-primary); }
+.hub-draft-rail-hidden { display: none; }
+.hub-draft-row-actions { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.hub-draft-layout--ended .hub-roster-list { max-height: none; overflow: visible; }
+.hub-pick-recap { top: 5.75rem; right: 1.25rem; bottom: auto; }
+.player-cell-meta { display: block; font-size: 0.72rem; color: var(--text-muted, #94a3b8); }
+.hub-draft-ended-overflow summary { cursor: pointer; list-style: none; }
+@media (max-width: 768px) {
+  .hub-draft-live-command { position: sticky; top: 0; }
+  .hub-draft-layout--live-console { min-height: 0; overflow: visible; grid-template-columns: 1fr; }
+  .hub-draft-layout--live-console .hub-draft-main,
+  .hub-draft-layout--live-console .hub-draft-sidebar { overflow: visible; }
+}

@@ -109,6 +109,12 @@ export default function ValueSheetTable({
   riskTolerance = 0,
   rules = null,
   needPositions = [],
+  draftConsole = false,
+  onQueuePlayer,
+  onWatchPlayer,
+  watchIds = [],
+  canNominate = false,
+  minBid = 1,
 }) {
   const isAvailableView = mode === "available";
   const [sortKey, setSortKey] = useState("fair_value");
@@ -127,17 +133,20 @@ export default function ValueSheetTable({
 
   const MOBILE_LIST_PAGE = 80;
 
-  const showAdvanced = showAdvancedProp ?? (compact ? true : showAdvancedLocal);
+  const showAdvanced = showAdvancedProp ?? (draftConsole ? false : compact ? true : showAdvancedLocal);
   const activeRisk = isRiskToleranceActive(riskTolerance);
   // Risk score column: Advanced always; also when RAAV stance is on so the badge has context.
-  const showRiskScore = showAdvanced || activeRisk;
+  const showRiskScore = draftConsole ? true : (showAdvanced || activeRisk);
+  const showPosCol = !draftConsole;
+  const showValueRange = draftConsole;
   const showAdvancedToggle = !compact && showAdvancedProp == null;
 
   const sleeperLinked = Boolean(sleeper?.sleeper_league_id && sleeper?.sleeper_roster_id);
   const showSelect = Boolean(onSelectPlayer);
   const actionCol = showAdd || showSelect;
   // Core: Player, Pos, Projected pts, Bid, Tier (+ optional Status/Value/Action/Risk). Advanced adds Team/PG/Spread/Min/Max.
-  const baseCols = 5
+  const baseCols = (showPosCol ? 5 : 4)
+    + (showValueRange ? 1 : 0)
     + (showAdvanced ? 5 : 0)
     + (showRiskScore ? 1 : 0)
     + (showDelta ? 1 : 0)
@@ -527,7 +536,7 @@ export default function ValueSheetTable({
                     onRowDoubleClick(r);
                   }}
                 >
-                  Nominate
+                  {draftConsole ? `Nominate for $${Number(minBid || 1)}` : "Nominate"}
                 </button>,
               );
             } else if (showSelect) {
@@ -549,7 +558,7 @@ export default function ValueSheetTable({
                   className="btn-primary btn-sm"
                   onClick={() => onRowDoubleClick(r)}
                 >
-                  Nominate
+                  {draftConsole ? `Nominate for $${Number(minBid || 1)}` : "Nominate"}
                 </button>,
               );
             }
@@ -667,7 +676,9 @@ export default function ValueSheetTable({
               {showAdvanced && (
                 <SortTh label="Team" col="team" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-team" />
               )}
-              <SortTh label="Pos" col="position" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-pos" />
+              {showPosCol && (
+                <SortTh label="Pos" col="position" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-pos" />
+              )}
               <SortTh
                 label="Projected pts"
                 col="season_proj"
@@ -692,6 +703,11 @@ export default function ValueSheetTable({
                   <SortTh label="Min" col="min_sal" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-min" />
                   <SortTh label="Max" col="max_sal" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-max" />
                 </>
+              )}
+              {showValueRange && (
+                <th className="hub-col-value" title="Model auction range (min–max) for this player">
+                  Value
+                </th>
               )}
               <SortTh
                 label="Suggested bid"
@@ -742,6 +758,12 @@ export default function ValueSheetTable({
               )}
               {sorted.map((r, idx) => (
                 <ValueSheetPlayerRow
+                  draftConsole={draftConsole}
+                  onQueuePlayer={onQueuePlayer}
+                  onWatchPlayer={onWatchPlayer}
+                  watchIds={watchIds}
+                  canNominate={canNominate}
+                  minBid={minBid}
                   key={r.player_id || `row-${idx}`}
                   row={r}
                   showAdvanced={showAdvanced}

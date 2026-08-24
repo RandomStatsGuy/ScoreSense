@@ -6,6 +6,8 @@ from typing import Any
 
 from src.draft_hub import storage
 from src.draft_hub.contracts import schedule_preview
+from src.draft_hub.rules_engine import salary_roster_limits_relaxed
+from src.draft_hub.schemas import LeagueRules
 
 STEAL_GRADES = frozenset({"steal", "great_value"})
 REACH_GRADES = frozenset({"reach", "major_reach", "slight_reach"})
@@ -313,6 +315,16 @@ def build_draft_recap(
         return None
 
     test_mode = storage.league_test_mode(league_id)
+    try:
+        rules = LeagueRules.model_validate(league.get("rules") or {})
+    except Exception:
+        rules = None
+    limits_relaxed = bool(rules and salary_roster_limits_relaxed(rules))
+    cap_awards = () if limits_relaxed else (
+        _award_tightwad(overview),
+        _award_spender(overview),
+        _award_position_obsessed(picks, overview),
+    )
     awards = [
         a
         for a in (
@@ -320,12 +332,14 @@ def build_draft_recap(
             _award_reach(picks),
             _award_splash(picks),
             _award_coupon_clipper(picks),
-            _award_tightwad(overview),
-            _award_spender(overview),
-            _award_position_obsessed(picks, overview),
+            *cap_awards,
         )
         if a
     ]
+    rostered = 0
+    if overview:
+        for block in overview.get("teams") or []:
+            rostered += len(block.get("roster") or [])
 
     return {
         "headline": _headline(picks, test_mode=test_mode),
@@ -336,4 +350,25 @@ def build_draft_recap(
         "awards": awards,
         "notable_picks": _notable_picks(picks),
         "completed_at": session.get("completed_at"),
+        "limits_relaxed": limits_relaxed,
+        "scopes": {
+            "this_mock": {
+                "label": "This mock",
+                "auction_wins": len(picks),
+                "total_spent": round(sum(p["amount"] for p in picks), 2),
+            },
+            "full_keeper_roster": {
+                "label": "Full keeper roster",
+                "note": (
+                    "Hypothetical full-roster exposure — salary limits are off"
+                    if limits_relaxed
+                    else "Keepers, dead cap, and auction wins"
+                ),
+            },
+            "league_wide": {
+                "label": "League-wide",
+                "auction_wins": len(picks),
+                "rostered_count": rostered,
+            },
+        },
     }
