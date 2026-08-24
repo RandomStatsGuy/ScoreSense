@@ -378,7 +378,7 @@ export default function LeagueOffice({
           <header className="hub-section-head">
             <h3 className="hub-section-title">Live contracts</h3>
             <p className="hub-section-hint">
-              Keepers for season {hubContext?.season}. Use{" "}
+              Keepers for season {hubContext?.season}. Add missing players here. Use{" "}
               <button type="button" className="btn-link" onClick={() => onNavigate?.("planner")}>
                 Cap
               </button>
