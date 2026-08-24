@@ -193,3 +193,48 @@ export function connectionStatusLabel(status) {
   if (status === "reconnecting") return "Reconnecting";
   return "Offline";
 }
+
+export function isLiveAuctionStatus(status) {
+  return status === "nominating" || status === "bidding";
+}
+
+/**
+ * Ignore stale/partial room payloads so the live auction cannot flash back
+ * to the setup "draft page" (wrong league, missing session, reconnect race).
+ */
+export function shouldApplyRoomState(prev, next, currentLeagueId) {
+  if (!next || typeof next !== "object") return false;
+  const nextLeagueId = next.league?.id;
+  if (currentLeagueId && nextLeagueId && String(nextLeagueId) !== String(currentLeagueId)) {
+    return false;
+  }
+  const prevLive = isLiveAuctionStatus(prev?.session?.status);
+  const nextStatus = next.session?.status;
+  const nextLive = isLiveAuctionStatus(nextStatus);
+  const nextCompleted = nextStatus === "completed" || Boolean(next.league?.draft_completed);
+  const nextExplicitSetup = nextStatus === "setup";
+  if (prevLive && !nextLive && !nextCompleted && !nextExplicitSetup) {
+    return false;
+  }
+  return true;
+}
+
+/** Broadcasts omit `viewer`; keep the last one so the roster/turn UI stays put. */
+export function mergeRoomState(prev, next) {
+  if (!next) return prev || next;
+  if (!prev) return next;
+  const sameLeague = !prev.league?.id || !next.league?.id
+    || String(prev.league.id) === String(next.league.id);
+  if (sameLeague && prev.viewer && !next.viewer) {
+    return { ...next, viewer: prev.viewer };
+  }
+  return next;
+}
+
+/** Only reconnect after an unexpected close of the socket we still own. */
+export function shouldScheduleWsReconnect({
+  roomStillMounted = true,
+  closedSocketIsCurrent = true,
+} = {}) {
+  return Boolean(roomStillMounted && closedSocketIsCurrent);
+}

@@ -5,7 +5,7 @@ import pytest
 from src.draft_hub import storage
 from src.draft_hub.draft_pool import build_nomination_pool
 from src.draft_hub.draft_recap import build_draft_recap
-from src.draft_hub.draft_state import award_nominee, end_draft, nominate, place_bid
+from src.draft_hub.draft_state import award_nominee, end_draft, get_room_state, nominate, place_bid
 from src.draft_hub.mock_draft import start_mock_draft
 from src.draft_hub.presets import load_preset
 from src.draft_hub.schemas import LeagueRules
@@ -25,6 +25,9 @@ def test_quick_mock_creates_test_league_and_starts(hub_db):
     assert out["state"]["session"]["status"] in ("nominating", "bidding")
     teams = out["state"]["teams"]
     assert sum(1 for t in teams if t.get("is_bot")) == 3
+    as_member = get_room_state(out["league_id"], "mock-user")
+    assert as_member.get("viewer", {}).get("team_id")
+    assert "viewer" not in get_room_state(out["league_id"])
 
 
 def test_mock_league_nomination_pool_without_workspace(hub_db, monkeypatch):
