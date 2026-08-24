@@ -14,6 +14,7 @@ from src.draft_hub import storage
 from src.draft_hub.draft_enrichment import build_draft_room_enrichment, fantasy_media_digest_single
 from src.draft_hub.draft_state import (
     award_nominee,
+    user_is_draft_staff,
     check_timers,
     cut_player,
     end_draft,
@@ -3700,8 +3701,12 @@ async def hub_bid(league_id: str, body: DraftBidRequest, _user=Depends(require_h
 
 @router.post("/league/{league_id}/award")
 async def hub_award(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    _assert_league_access(league_id, sub)
+    if not user_is_draft_staff(league_id, sub):
+        raise HTTPException(status_code=403, detail="Only commissioners can award an auction early")
     try:
-        state = award_nominee(league_id)
+        state = award_nominee(league_id, sub)
         await broadcast_room(league_id)
         return state
     except ValueError as exc:

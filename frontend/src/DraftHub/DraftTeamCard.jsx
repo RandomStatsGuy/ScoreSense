@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { HUB_POS_ORDER, normalizeHubPosition } from "./hubPositions";
 import { isRetainedThroughDraft } from "./draftRoomHelpers";
 import { fmtSal } from "./rosterFormat";
+import { teamBudgetLine } from "./draftLiveConsole";
 
 export default function DraftTeamCard({
   team,
@@ -76,8 +77,12 @@ export default function DraftTeamCard({
             {isLeader ? <span className="hub-team-tag hub-team-tag-lead">High bid</span> : null}
           </span>
           <span className="hub-team-card-meta">
-            {fmtSal(team.budget_remaining)}
-            <span className="chart-note"> · {occupying.length}</span>
+            {teamBudgetLine({
+              ...team,
+              occupying: occupying.length,
+              roster_size_max: team.roster_size_max,
+              max_bid: team.max_bid,
+            }).text}
           </span>
         </div>
         <div className="hub-budget-bar">

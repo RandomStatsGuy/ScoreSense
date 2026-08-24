@@ -25,6 +25,13 @@ export default function DraftRecapPanel({ recap, compact = false, hideHero = fal
             <p className="hub-draft-recap-kicker">Recap</p>
             <h3>{recap.headline}</h3>
             {recap.subheadline && <p className="chart-note">{recap.subheadline}</p>}
+            {recap.scopes && (
+              <p className="chart-note">
+                {recap.scopes.this_mock && <>This mock: {recap.scopes.this_mock.auction_wins} auction wins · {fmtSal(recap.scopes.this_mock.total_spent)} spent. </>}
+                {recap.scopes.league_wide && <>League-wide: {recap.scopes.league_wide.rostered_count} rostered in sandbox.</>}
+                {recap.limits_relaxed ? " Cap-efficiency awards hidden while salary limits are off." : ""}
+              </p>
+            )}
           </div>
           {onViewInsights && (
             <button type="button" className="btn-ghost btn-sm" onClick={onViewInsights}>

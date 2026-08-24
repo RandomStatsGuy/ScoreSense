@@ -126,3 +126,17 @@ export function dropDeadCapAmount(row, rules) {
   if (!Number.isFinite(sal) || sal <= 0) return 0;
   return Math.round((sal - sal * cutRefundPct(rules)) * 100) / 100;
 }
+
+export function shortAuctionContractLabel(pick, stepUp = 5) {
+  const years = Number(pick?.contract_years || 2);
+  const ctype = String(pick?.contract_type || "");
+  const paid = Number(pick?.salary ?? pick?.amount);
+  const step = ctype === "rookie" ? 0 : Number(pick?.step_up_per_year ?? stepUp);
+  const sched = Array.isArray(pick?.salary_schedule) && pick.salary_schedule.length
+    ? pick.salary_schedule
+    : null;
+  const first = sched ? Number(sched[0]) : paid;
+  const last = sched ? Number(sched[sched.length - 1]) : (Number.isFinite(paid) ? paid + step * Math.max(0, years - 1) : paid);
+  if (!Number.isFinite(first)) return `${Number.isFinite(years) ? years : 2} yrs`;
+  return `${Number.isFinite(years) ? years : 2} yrs · $${Math.round(first)} → $${Math.round(last)}`;
+}

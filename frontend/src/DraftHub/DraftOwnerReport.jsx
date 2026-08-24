@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
-import { auctionAwardContractLabel, fmtSal } from "./rosterFormat";
+import { auctionAwardContractLabel, shortAuctionContractLabel, fmtSal } from "./rosterFormat";
 
 const GRADE_LABEL = {
   steal: "Steal",
@@ -55,7 +55,7 @@ export default function DraftOwnerReport({
     <section className="hub-owner-report">
       <header className="hub-owner-report-head">
         <div>
-          <p className="hub-owner-report-kicker">Your draft</p>
+          <p className="hub-owner-report-kicker">Your draft · This mock</p>
           <h3>{report.team_name || "Your team"}</h3>
           <p className="chart-note">
             {report.pick_count} picks · {fmtSal(report.total_spent)} spent
@@ -104,7 +104,7 @@ export default function DraftOwnerReport({
                   </span>
                 </td>
                 <td className="hub-owner-contract-cell">
-                  {auctionAwardContractLabel(p, stepUp)}
+                  <span title={auctionAwardContractLabel(p, stepUp)}>{shortAuctionContractLabel(p, stepUp)}</span>
                 </td>
               </tr>
             ))}

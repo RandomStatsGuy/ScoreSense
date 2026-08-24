@@ -5,6 +5,7 @@ import { formatSeasonPts } from "../seasonQuantiles";
 import { formatRiskScore, isRiskToleranceActive, riskScoreTooltip } from "../riskAdjustedValue";
 import { fmtSal, formatStatusLabel } from "./valueSheetUtils";
 import RaavBidCell from "./RaavBidCell";
+import { riskBand, riskBandTooltip, suggestedBidCaption } from "./draftLiveConsole";
 
 function ValueSheetPlayerRow({
   row,
@@ -27,6 +28,12 @@ function ValueSheetPlayerRow({
   narrativeScope,
   seasonScaleMax,
   rowIndex = 0,
+  draftConsole = false,
+  onQueuePlayer,
+  onWatchPlayer,
+  watchIds = [],
+  canNominate = false,
+  minBid = 1,
 }) {
   const handleRowClick = useCallback(() => {
     if (onSelectPlayer) onSelectPlayer(row);
@@ -75,14 +82,15 @@ function ValueSheetPlayerRow({
           playerId={row.player_id}
           media={playerMedia}
           size="sm"
-          showTeam={false}
+          showTeam={Boolean(!draftConsole)}
+          position={draftConsole ? row.position : undefined}
           clickable={Boolean(row.player_id)}
           narrativeScope={narrativeScope}
         />
         {row.is_rookie && <span className="hub-sleeper-badge">Rookie est.</span>}
       </td>
       {showAdvanced && <td className="hub-col-team">{row.team}</td>}
-      <td className="hub-col-pos">{row.position}</td>
+      {!draftConsole && <td className="hub-col-pos">{row.position}</td>}
       <td className="num hub-col-proj">
         <SeasonRangeCell
           row={row}
@@ -90,6 +98,9 @@ function ValueSheetPlayerRow({
           rowIndex={rowIndex}
           digits={0}
         />
+        {draftConsole && row.per_game_proj != null && (
+          <div className="chart-note">{row.per_game_proj}/g</div>
+        )}
       </td>
       {showAdvanced && (
         <>
@@ -99,7 +110,14 @@ function ValueSheetPlayerRow({
           <td className="num hub-col-max">{fmtSal(row.max_sal)}</td>
         </>
       )}
-      <td className="num hub-col-fv">
+      {draftConsole && (
+        <td className="num hub-col-value" title="Model auction range">
+          {row.min_sal != null && row.max_sal != null
+            ? `${fmtSal(row.min_sal)}–${fmtSal(row.max_sal)}`
+            : "—"}
+        </td>
+      )}
+      <td className="num hub-col-fv" title={draftConsole ? suggestedBidCaption(isRiskToleranceActive(riskTolerance)) : undefined}>
         <RaavBidCell
           row={row}
           riskTolerance={riskTolerance}
@@ -108,8 +126,8 @@ function ValueSheetPlayerRow({
         />
       </td>
       {showRiskScore && (
-        <td className="num hub-col-risk" title={riskScoreTooltip()}>
-          {formatRiskScore(row.risk_score)}
+        <td className="num hub-col-risk" title={draftConsole ? riskBandTooltip(row.risk_score) : riskScoreTooltip()}>
+          {draftConsole ? riskBand(row.risk_score).label : formatRiskScore(row.risk_score)}
         </td>
       )}
       {showDelta && (
@@ -128,6 +146,24 @@ function ValueSheetPlayerRow({
         </td>
       )}
       <td className="hub-col-actions">
+        {draftConsole && (
+          <div className="hub-draft-row-actions" onClick={(event) => event.stopPropagation()}>
+            {canNominate && (
+              <button type="button" className="btn-primary btn-sm" onClick={() => onRowDoubleClick?.(row)}>
+                {`Nominate for $${Number(minBid || 1)}`}
+              </button>
+            )}
+            <button type="button" className="btn-ghost btn-sm" onClick={() => onQueuePlayer?.(row)}>Queue</button>
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              aria-pressed={(watchIds || []).map(String).includes(String(row.player_id))}
+              onClick={() => onWatchPlayer?.(row)}
+            >
+              {(watchIds || []).map(String).includes(String(row.player_id)) ? "★" : "☆"}
+            </button>
+          </div>
+        )}
         {showSelect && (
           <button type="button" className="btn-ghost btn-sm" onClick={handleSelectClick}>
             Select
