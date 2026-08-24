@@ -49,6 +49,7 @@ def _clone_keeper_sandbox(
     source_league_id: str,
     name: str | None = None,
     auto_start: bool = False,
+    relax_salary_roster_limits: bool = False,
 ) -> dict[str, Any]:
     """Copy real keepers/contracts into an isolated test_mode room."""
     source = _assert_source_access(source_league_id, commissioner_sub)
@@ -56,6 +57,8 @@ def _clone_keeper_sandbox(
         raise ValueError("Cannot clone a practice room — pick your real league")
 
     rules = LeagueRules.model_validate(source.get("rules") or {})
+    if relax_salary_roster_limits:
+        rules = rules.model_copy(update={"relax_salary_roster_limits": True})
     season = int(source.get("season") or 2026)
     source_teams = storage.list_league_teams(source_league_id)
     if not source_teams:
@@ -166,6 +169,7 @@ def start_mock_draft(
     source_league_id: str | None = None,
     auto_start: bool = True,
     name: str | None = None,
+    relax_salary_roster_limits: bool = False,
 ) -> dict[str, Any]:
     """Create a sandbox mock draft and optionally start the auction immediately."""
     if mode == "keeper_sandbox":
@@ -176,6 +180,7 @@ def start_mock_draft(
             source_league_id=source_league_id,
             name=name,
             auto_start=auto_start,
+            relax_salary_roster_limits=relax_salary_roster_limits,
         )
 
     rules = load_preset("salary_cap_auction_v1")

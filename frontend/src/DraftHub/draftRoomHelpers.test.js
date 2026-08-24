@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { formatDraftEvent, buildRosterCapacity, unmetMinPositions, pinNeedPositions } from "./draftRoomHelpers.js";
+import { formatDraftEvent, buildRosterCapacity, canAcquireAtPosition, unmetMinPositions, pinNeedPositions } from "./draftRoomHelpers.js";
 import { auctionAwardContractLabel } from "./rosterFormat.js";
 
 test("formatDraftEvent describes mid-draft trades", () => {
@@ -103,4 +103,25 @@ test("pinNeedPositions lifts unmet-min positions into the visible window", () =>
   ];
   const visible = pinNeedPositions(rows, ["TE"], 3);
   assert.deepEqual(visible.map((r) => r.player_id), ["te1", "wr1", "wr2"]);
+});
+
+test("buildRosterCapacity relaxLimits clears at_max and below_min", () => {
+  const rules = {
+    roster: {
+      wr: { min: 0, max: 1 },
+      te: { min: 1, max: 3 },
+    },
+  };
+  const roster = [
+    { player_id: "keep", position: "WR", source: "draft", contract_years: 1 },
+  ];
+  const blocked = buildRosterCapacity(rules, roster);
+  assert.equal(blocked.WR.at_max, true);
+  assert.equal(blocked.TE.below_min, true);
+  assert.equal(canAcquireAtPosition(blocked, "WR"), false);
+
+  const relaxed = buildRosterCapacity(rules, roster, { relaxLimits: true });
+  assert.equal(relaxed.WR.at_max, false);
+  assert.equal(relaxed.TE.below_min, false);
+  assert.equal(canAcquireAtPosition(relaxed, "WR", { relaxLimits: true }), true);
 });

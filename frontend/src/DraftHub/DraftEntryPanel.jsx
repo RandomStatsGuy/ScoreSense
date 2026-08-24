@@ -49,6 +49,7 @@ export default function DraftEntryPanel({
   claimedHumans = 0,
 }) {
   const ctaDisabled = busy || poolBlocked;
+  const [relaxSandboxLimits, setRelaxSandboxLimits] = useState(false);
 
   const formatLabel = draftFormatLabel(rules || league?.rules);
   const budget = Number((rules || league?.rules)?.salary_cap ?? 200);
@@ -279,6 +280,9 @@ export default function DraftEntryPanel({
         <p className="chart-note hub-draft-expire-preview">
           Sandbox copy of keepers — inspect Commissioner/Roster expire badges, then Start live draft.
           Delete sandbox when finished.
+          {rules?.relax_salary_roster_limits
+            ? " Salary cap and position limits are off."
+            : ""}
         </p>
       )}
 
@@ -305,15 +309,29 @@ export default function DraftEntryPanel({
                 Practice with {hubContext?.league_name || "your league"} managers
               </button>
               {isCommissioner && (
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm"
-                  disabled={busy}
-                  onClick={() => onStartKeeperSandbox?.()}
-                  title="Copy keepers into a practice room to test expire / year tick"
-                >
-                  Keeper sandbox
-                </button>
+                <div className="hub-sandbox-relax-check">
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm"
+                    disabled={busy}
+                    onClick={() => onStartKeeperSandbox?.({ relaxSalaryRosterLimits: relaxSandboxLimits })}
+                    title="Copy keepers into a practice room to test expire / year tick"
+                  >
+                    Keeper sandbox
+                  </button>
+                  <label className="hub-toggle-row hub-toggle-row-compact">
+                    <input
+                      type="checkbox"
+                      checked={relaxSandboxLimits}
+                      onChange={(e) => setRelaxSandboxLimits(e.target.checked)}
+                      disabled={busy}
+                    />
+                    Ignore salary cap and position limits
+                  </label>
+                  <span className="chart-note">
+                    Use when keeper salaries aren’t updated yet. Practice room only — live draft still enforces cap and roster limits.
+                  </span>
+                </div>
               )}
             </>
           ) : (
@@ -342,6 +360,7 @@ export default function DraftEntryPanel({
               teams={teams}
               nominationOrder={session?.nomination_order}
               poolMode={poolMode}
+              testMode={testMode}
               disabled={busy}
               onUpdated={onCommissionerUpdated}
             />
