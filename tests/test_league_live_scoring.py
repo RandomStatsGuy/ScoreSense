@@ -166,8 +166,19 @@ def test_week_picker_meta_includes_current_and_max():
 def hub_client():
     from fastapi.testclient import TestClient
     from app.api import app
+    from app.auth import require_hub_user
 
-    return TestClient(app)
+    # Pin the viewer to "dev" and clear leftover overrides from other API tests
+    # (the app singleton otherwise keeps require_hub_user bound to another sub).
+    app.dependency_overrides[require_hub_user] = lambda: {
+        "sub": "dev",
+        "auth_type": "dev",
+        "name": "Dev",
+    }
+    try:
+        yield TestClient(app)
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
 
 
 def test_live_scoring_route_no_sleeper(hub_client, hub_db, monkeypatch):
