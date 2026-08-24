@@ -72,7 +72,13 @@ export default function LeagueChat({ leagueId, hubContext, compact = false, lock
     if (!leagueId) return undefined;
     const timer = setInterval(() => {
       load();
-    }, 12000);
+    }, compact ? 4000 : 12000);
+
+    if (compact) {
+      // Live draft already holds /api/hub/ws/{id}. A second socket to the same
+      // path makes proxies drop the room connection and the UI flickers.
+      return () => clearInterval(timer);
+    }
 
     let ws;
     try {
@@ -109,7 +115,7 @@ export default function LeagueChat({ leagueId, hubContext, compact = false, lock
         /* ignore */
       }
     };
-  }, [leagueId, kind, load]);
+  }, [leagueId, kind, load, compact]);
 
   const send = async (e) => {
     e.preventDefault();

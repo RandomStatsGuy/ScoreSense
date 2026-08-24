@@ -3731,14 +3731,14 @@ async def hub_ws(
 
     await draft_room_manager.connect(league_id, websocket)
     try:
-        state = get_room_state(league_id)
+        state = get_room_state(league_id, sub)
         await websocket.send_json({"type": "state", "payload": state})
         while True:
             msg = await websocket.receive_text()
             if msg == "ping":
                 await websocket.send_text("pong")
             elif msg == "refresh":
-                state = check_timers(league_id)
+                state = check_timers(league_id, sub)
                 await websocket.send_json({"type": "state", "payload": state})
     except WebSocketDisconnect:
         pass

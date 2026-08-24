@@ -18,7 +18,17 @@ import ValueSheetTable from "./ValueSheetTable";
 import { confirmDialog } from "../ui/confirm";
 import DraftDeadlineClock from "./DraftDeadlineClock";
 import DraftLiveCommandBar from "./DraftLiveCommandBar";
-import { viewerIsCommissioner, nextNominator, loadWatchIds, toggleWatchId, teamBudgetLine } from "./draftLiveConsole";
+import {
+  viewerIsCommissioner,
+  nextNominator,
+  loadWatchIds,
+  toggleWatchId,
+  teamBudgetLine,
+  isLiveAuctionStatus,
+  shouldApplyRoomState,
+  mergeRoomState,
+  shouldScheduleWsReconnect,
+} from "./draftLiveConsole";
 import { HubPage } from "./HubUILayout";
 import { isRowAvailable } from "./valueSheetUtils";
 import {
@@ -81,7 +91,10 @@ export default function DraftRoom({
   const [connectionStatus, setConnectionStatus] = useState("connecting");
   const [railTab, setRailTab] = useState("roster");
   const [watchIds, setWatchIds] = useState([]);
-  const wsAliveRef = useRef(true);
+  const wsAliveRef = useRef(false);
+  const wsGenRef = useRef(0);
+  const wsReconnectTimerRef = useRef(null);
+  const roomFetchGenRef = useRef(0);
   const [mobilePanel, setMobilePanel] = useState(() => {
     if (typeof sessionStorage === "undefined") return "auction";
     return sessionStorage.getItem("scoresense-draft-mobile-panel") || "auction";
@@ -203,10 +216,15 @@ export default function DraftRoom({
     [hubContext, roomState?.viewer, teams, myTeamId],
   );
 
-  const draftStatus = session?.status || "setup";
+  const draftStatus = session?.status
+    || (league?.draft_completed
+      ? "completed"
+      : league?.status === "live"
+        ? "nominating"
+        : "setup");
   const inDraftSetup = draftStatus === "setup";
-  const draftCompleted = draftStatus === "completed";
-  const inLiveDraft = draftStatus === "nominating" || draftStatus === "bidding";
+  const draftCompleted = draftStatus === "completed" || Boolean(league?.draft_completed);
+  const inLiveDraft = isLiveAuctionStatus(draftStatus);
   const recapHasStory = Boolean(
     draftRecap && ((draftRecap.awards?.length ?? 0) > 0 || (draftRecap.notable_picks?.length ?? 0) > 0),
   );
@@ -302,7 +320,7 @@ export default function DraftRoom({
 
   useEffect(() => {
     if (!mobileLayout) setBoardOpen(true);
-  }, [mobileLayout, session?.status]);
+  }, [mobileLayout]);
 
   useEffect(() => {
     if (testMode && inLiveDraft) setEnrichment(null);
@@ -503,9 +521,12 @@ export default function DraftRoom({
   }, [leagueId, draftCompleted, testMode, draftedCount]);
 
   const applyState = useCallback((state) => {
-    setRoomState(state);
+    setRoomState((prev) => {
+      if (!shouldApplyRoomState(prev, state, leagueId)) return prev;
+      return mergeRoomState(prev, state);
+    });
     setError("");
-  }, []);
+  }, [leagueId]);
 
   const wsRefresh = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -513,47 +534,80 @@ export default function DraftRoom({
     }
   }, []);
 
-  const connectWs = useCallback((id) => {
-    wsAliveRef.current = true;
-    if (wsRef.current) {
-      try { wsRef.current.close(); } catch { /* ignore */ }
+  const clearWsReconnectTimer = useCallback(() => {
+    if (wsReconnectTimerRef.current) {
+      window.clearTimeout(wsReconnectTimerRef.current);
+      wsReconnectTimerRef.current = null;
     }
+  }, []);
+
+  const teardownSocket = useCallback((socket) => {
+    if (!socket) return;
+    socket.onopen = null;
+    socket.onmessage = null;
+    socket.onerror = null;
+    socket.onclose = null;
+    try { socket.close(); } catch { /* ignore */ }
+  }, []);
+
+  const connectWs = useCallback((id) => {
+    if (!id) return;
+    wsAliveRef.current = true;
+    clearWsReconnectTimer();
+    const gen = ++wsGenRef.current;
+    const prev = wsRef.current;
+    wsRef.current = null;
+    teardownSocket(prev);
     const proto = window.location.protocol === "https:" ? "wss" : "ws";
     const token = getToken();
     const qs = token ? `?token=${encodeURIComponent(token)}` : "";
     setConnectionStatus((cur) => (cur === "live" ? "reconnecting" : "connecting"));
     const ws = new WebSocket(`${proto}://${window.location.host}/api/hub/ws/${id}${qs}`);
-    ws.onopen = () => setConnectionStatus("live");
+    ws.onopen = () => {
+      if (wsGenRef.current !== gen) return;
+      setConnectionStatus("live");
+    };
     ws.onmessage = (ev) => {
+      if (wsGenRef.current !== gen) return;
       try {
         const msg = JSON.parse(ev.data);
         if (msg.type === "state") applyState(msg.payload);
       } catch { /* ignore */ }
     };
-    ws.onerror = () => setConnectionStatus("offline");
+    ws.onerror = () => {
+      if (wsGenRef.current === gen) setConnectionStatus("offline");
+    };
     ws.onclose = () => {
+      if (!shouldScheduleWsReconnect({
+        roomStillMounted: wsAliveRef.current,
+        closedSocketIsCurrent: wsGenRef.current === gen,
+      })) {
+        return;
+      }
       setConnectionStatus("offline");
-      if (!wsAliveRef.current) return;
-      window.setTimeout(() => {
-        if (wsAliveRef.current) connectWs(id);
+      wsReconnectTimerRef.current = window.setTimeout(() => {
+        if (wsAliveRef.current && wsGenRef.current === gen) connectWs(id);
       }, 2000);
     };
     wsRef.current = ws;
-  }, [applyState]);
+  }, [applyState, clearWsReconnectTimer, teardownSocket]);
 
   const refresh = useCallback(async () => {
     if (!leagueId) return;
+    const gen = ++roomFetchGenRef.current;
     setRoomLoading(true);
     try {
       const res = await apiFetch(`/api/hub/league/${leagueId}`);
+      if (gen !== roomFetchGenRef.current) return;
       if (!res.ok) {
         throw new Error(await parseApiError(res));
       }
       applyState(await res.json());
     } catch (e) {
+      if (gen !== roomFetchGenRef.current) return;
       setError(e.message || "Could not load draft room");
     } finally {
-      setRoomLoading(false);
+      if (gen === roomFetchGenRef.current) setRoomLoading(false);
     }
   }, [leagueId, applyState]);
 
@@ -561,9 +615,12 @@ export default function DraftRoom({
     if (leagueId) connectWs(leagueId);
     return () => {
       wsAliveRef.current = false;
-      wsRef.current?.close();
+      clearWsReconnectTimer();
+      const prev = wsRef.current;
+      wsRef.current = null;
+      teardownSocket(prev);
     };
-  }, [leagueId, connectWs]);
+  }, [leagueId, connectWs, clearWsReconnectTimer, teardownSocket]);
 
   useEffect(() => {
     if (leagueId) setWatchIds(loadWatchIds(leagueId));
@@ -701,7 +758,6 @@ export default function DraftRoom({
         setSandboxSourceLeagueId(data.source_league_id || linkedHubLeagueId || leagueId || "");
       }
       onLeagueIdChange(data.league_id);
-      connectWs(data.league_id);
       if (simulate) {
         const sim = await apiFetch(`/api/hub/league/${data.league_id}/test/simulate`, {
           method: "POST",
@@ -757,7 +813,6 @@ export default function DraftRoom({
       setExpirePreview(null);
       if (backId) {
         onLeagueIdChange(backId);
-        connectWs(backId);
       } else {
         onLeagueIdChange("");
       }
@@ -827,6 +882,7 @@ export default function DraftRoom({
           throw new Error(detail);
         }
       }
+      roomFetchGenRef.current += 1;
       applyState(await res.json());
     });
   };

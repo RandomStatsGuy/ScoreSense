@@ -364,8 +364,14 @@ export default function ValueSheetTable({
     return parts.join(" · ") || "—";
   }, []);
 
+  const sheetClass = compact ? "hub-panel-compact" : "";
+  const Wrapper = draftConsole ? "div" : HubPage;
+  const wrapperClass = draftConsole
+    ? `hub-embedded-sheet${sheetClass ? ` ${sheetClass}` : ""}`
+    : sheetClass;
+
   return (
-    <HubPage className={compact ? "hub-panel-compact" : ""}>
+    <Wrapper className={wrapperClass}>
       {!hideHeader && !hideIntro && (
         <HubTabIntro
           title={panelTitle}
@@ -793,6 +799,6 @@ export default function ValueSheetTable({
       </div>
       )}
       </HubTableCard>
-    </HubPage>
+    </Wrapper>
   );
 }
