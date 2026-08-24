@@ -33,6 +33,7 @@ function ValueSheetPlayerRow({
   onWatchPlayer,
   watchIds = [],
   canNominate = false,
+  actionLabel,
   minBid = 1,
 }) {
   const handleRowClick = useCallback(() => {
@@ -150,7 +151,7 @@ function ValueSheetPlayerRow({
           <div className="hub-draft-row-actions" onClick={(event) => event.stopPropagation()}>
             {canNominate && (
               <button type="button" className="btn-primary btn-sm" onClick={() => onRowDoubleClick?.(row)}>
-                {`Nominate for $${Number(minBid || 1)}`}
+                {actionLabel || `Nominate for $${Number(minBid || 1)}`}
               </button>
             )}
             <button type="button" className="btn-ghost btn-sm" onClick={() => onQueuePlayer?.(row)}>Queue</button>
