@@ -76,7 +76,12 @@ export default function CapSheetImport({ onImported, embedded = false }) {
       const data = await res.json();
       setValidation(data);
     } catch (e) {
-      setError(e.message || "Validation failed");
+      const msg = e.message || "Validation failed";
+      setError(
+        /field required/i.test(msg)
+          ? "The file didn't reach the server. Use the .tsv from the repo (not Excel) and try again."
+          : msg,
+      );
       pendingFileRef.current = null;
     } finally {
       setValidating(false);
@@ -104,7 +109,7 @@ export default function CapSheetImport({ onImported, embedded = false }) {
       {!embedded && <h2>Cap sheet import</h2>}
       <p className="chart-note">
         Commissioner tab-separated cap sheet: manager, position, player, salary, contract years.
-        Map manager abbreviations in <code>data/draft_hub/manager_team_map.yaml</code>.
+        Use a <code>.tsv</code> (for example <code>data/draft_hub/cap_sheet_test.tsv</code>), not the Excel workbook.
       </p>
       <label className="admin-checkbox hub-cap-import-option">
         <input

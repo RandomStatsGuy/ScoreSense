@@ -12,6 +12,9 @@ import {
   teamBudgetLine,
   recapScopes,
   shortContractLabel,
+  shouldApplyRoomState,
+  mergeRoomState,
+  shouldScheduleWsReconnect,
 } from "./draftLiveConsole.js";
 
 test("viewerIsCommissioner uses only the viewer's staff flag", () => {
@@ -93,5 +96,57 @@ test("shortContractLabel collapses award copy", () => {
       salary_schedule: [4, 9],
     }),
     "2 yrs · $4 → $9",
+  );
+});
+
+test("shouldApplyRoomState drops stale setup flashes during a live auction", () => {
+  const live = {
+    league: { id: "sandbox" },
+    session: { status: "nominating" },
+    viewer: { team_id: "t1" },
+  };
+  assert.equal(
+    shouldApplyRoomState(live, { league: { id: "real" }, session: { status: "setup" } }, "sandbox"),
+    false,
+  );
+  assert.equal(
+    shouldApplyRoomState(live, { league: { id: "sandbox" }, session: {} }, "sandbox"),
+    false,
+  );
+  assert.equal(
+    shouldApplyRoomState(live, { league: { id: "sandbox" }, session: { status: "setup" } }, "sandbox"),
+    true,
+  );
+  assert.equal(
+    shouldApplyRoomState(live, { league: { id: "sandbox" }, session: { status: "bidding" } }, "sandbox"),
+    true,
+  );
+});
+
+test("mergeRoomState keeps viewer when a broadcast omits it", () => {
+  const prev = {
+    league: { id: "lg" },
+    session: { status: "nominating" },
+    viewer: { team_id: "t1", team_name: "Me" },
+  };
+  const next = {
+    league: { id: "lg" },
+    session: { status: "nominating" },
+  };
+  assert.equal(mergeRoomState(prev, next).viewer.team_id, "t1");
+});
+
+test("shouldScheduleWsReconnect ignores closes from a replaced socket", () => {
+  assert.equal(
+    shouldScheduleWsReconnect({ roomStillMounted: true, closedSocketIsCurrent: false }),
+    false,
+  );
+  assert.equal(
+    shouldScheduleWsReconnect({ roomStillMounted: false, closedSocketIsCurrent: true }),
+    false,
+  );
+  assert.equal(
+    shouldScheduleWsReconnect({ roomStillMounted: true, closedSocketIsCurrent: true }),
+    true,
   );
 });

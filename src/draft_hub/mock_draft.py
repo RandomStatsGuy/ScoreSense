@@ -183,19 +183,30 @@ def start_mock_draft(
             relax_salary_roster_limits=relax_salary_roster_limits,
         )
 
-    rules = load_preset("salary_cap_auction_v1")
     team_count = max(2, min(int(team_count), 24))
     bot_count = max(1, min(int(bot_count), 11))
+    source = None
+    if source_league_id:
+        source = _assert_source_access(source_league_id, commissioner_sub)
+
+    if source is not None:
+        rules = LeagueRules.model_validate(source.get("rules") or {})
+        season = int(source.get("season") or season)
+    else:
+        rules = load_preset("salary_cap_auction_v1")
 
     if mode == "league_mirror":
         if not source_league_id:
             raise ValueError("source_league_id required for league_mirror mock")
-        source = _assert_source_access(source_league_id, commissioner_sub)
+        source = source or _assert_source_access(source_league_id, commissioner_sub)
         viewer = storage.get_team_by_user(source_league_id, commissioner_sub)
         display_name = name or f"{source.get('name', 'League')} — mock draft"
     else:
         viewer = None
-        display_name = name or "Quick mock draft"
+        if source is not None:
+            display_name = name or f"{source.get('name', 'League')} — practice"
+        else:
+            display_name = name or "Quick mock draft"
 
     league = storage.create_league(
         commissioner_sub,

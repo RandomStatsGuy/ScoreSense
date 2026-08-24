@@ -2,6 +2,10 @@
 
 * { box-sizing: border-box; }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 /* Keyboard focus baseline — visible ring on any interactive element that
    doesn't define its own :focus-visible treatment. */
 :where(button, a, select, input, textarea, summary, [role="button"], [tabindex="0"]):focus-visible {
@@ -5910,6 +5914,15 @@ td.col-rank.col-rank-top {
 
 .hub-draft-room.hub-page {
   padding-bottom: 1rem;
+}
+
+.hub-draft-room .hub-page,
+.hub-embedded-sheet {
+  backdrop-filter: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
 }
 
 .hub-draft-idle-title {

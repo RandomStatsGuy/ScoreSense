@@ -1,22 +1,34 @@
 import { useEffect, useState } from "react";
-import { MOBILE_MEDIA_QUERY } from "./breakpoints";
+import { MOBILE_MEDIA_QUERY, nextMobileLayout } from "./breakpoints";
 
 export default function useMobileLayout() {
   const [mobile, setMobile] = useState(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return false;
-    return window.matchMedia(MOBILE_MEDIA_QUERY).matches;
+    if (typeof window === "undefined") return false;
+    return nextMobileLayout(false, window.innerWidth);
   });
 
   useEffect(() => {
-    if (!window.matchMedia) return undefined;
-    const mq = window.matchMedia(MOBILE_MEDIA_QUERY);
-    const onChange = (event) => setMobile(event.matches);
-    if (mq.addEventListener) {
-      mq.addEventListener("change", onChange);
-      return () => mq.removeEventListener("change", onChange);
+    const apply = () => {
+      setMobile((was) => nextMobileLayout(was, window.innerWidth));
+    };
+    apply();
+    window.addEventListener("resize", apply);
+    const mq = window.matchMedia?.(MOBILE_MEDIA_QUERY);
+    if (mq?.addEventListener) {
+      mq.addEventListener("change", apply);
+      return () => {
+        window.removeEventListener("resize", apply);
+        mq.removeEventListener("change", apply);
+      };
     }
-    mq.addListener(onChange);
-    return () => mq.removeListener(onChange);
+    if (mq?.addListener) {
+      mq.addListener(apply);
+      return () => {
+        window.removeEventListener("resize", apply);
+        mq.removeListener(apply);
+      };
+    }
+    return () => window.removeEventListener("resize", apply);
   }, []);
 
   return mobile;

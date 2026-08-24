@@ -258,3 +258,21 @@ def test_http_pick_assigns(hub_db, monkeypatch):
         assert "pick draft" in (nom.json().get("detail") or "").lower()
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_practice_mock_inherits_snake_rules(hub_db):
+    from src.draft_hub.mock_draft import start_mock_draft
+
+    league = _league("snake-comm", team_count=4)
+    out = start_mock_draft(
+        "snake-comm",
+        mode="quick_bots",
+        source_league_id=league["id"],
+        bot_count=2,
+        auto_start=True,
+    )
+    mock = storage.get_league(out["league_id"])
+    assert mock["rules"]["draft_type"] == "snake"
+    session = (out.get("state") or {}).get("session") or storage.get_draft_session(out["league_id"])
+    assert session["status"] == "picking"
+    assert (out.get("state") or {}).get("draft_type") == "snake"

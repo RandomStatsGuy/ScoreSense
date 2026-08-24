@@ -117,7 +117,9 @@ export default function ValueSheetTable({
   minBid = 1,
   actionLabel,
 }) {
+  const pickDraft = Boolean(actionLabel) && !String(actionLabel).toLowerCase().includes("nominate");
   const nominateText = actionLabel || (draftConsole ? `Nominate for $${Number(minBid || 1)}` : "Nominate");
+  const valueColLabel = pickDraft ? "Value" : "Suggested bid";
   const isAvailableView = mode === "available";
   const [sortKey, setSortKey] = useState("fair_value");
   const [sortDir, setSortDir] = useState("desc");
@@ -351,10 +353,12 @@ export default function ValueSheetTable({
     [],
   );
   const sortMenuOptions = useMemo(() => {
-    const opts = [...SORT_MENU_OPTIONS];
+    const opts = SORT_MENU_OPTIONS.map((o) => (
+      o.id === "fair_value" ? { ...o, label: valueColLabel } : o
+    ));
     if (!showDelta) return opts.filter((o) => o.id !== "value_delta");
     return opts;
-  }, [showDelta]);
+  }, [showDelta, valueColLabel]);
 
   const showSkeleton = loading && sorted.length === 0;
 
@@ -366,8 +370,14 @@ export default function ValueSheetTable({
     return parts.join(" · ") || "—";
   }, []);
 
+  const sheetClass = compact ? "hub-panel-compact" : "";
+  const Wrapper = draftConsole ? "div" : HubPage;
+  const wrapperClass = draftConsole
+    ? `hub-embedded-sheet${sheetClass ? ` ${sheetClass}` : ""}`
+    : sheetClass;
+
   return (
-    <HubPage className={compact ? "hub-panel-compact" : ""}>
+    <Wrapper className={wrapperClass}>
       {!hideHeader && !hideIntro && (
         <HubTabIntro
           title={panelTitle}
@@ -712,7 +722,7 @@ export default function ValueSheetTable({
                 </th>
               )}
               <SortTh
-                label="Suggested bid"
+                label={valueColLabel}
                 col="fair_value"
                 sortKey={sortKey}
                 sortDir={sortDir}
@@ -766,6 +776,7 @@ export default function ValueSheetTable({
                   watchIds={watchIds}
                   canNominate={canNominate}
                   minBid={minBid}
+                  actionLabel={nominateText}
                   key={r.player_id || `row-${idx}`}
                   row={r}
                   showAdvanced={showAdvanced}
@@ -795,6 +806,6 @@ export default function ValueSheetTable({
       </div>
       )}
       </HubTableCard>
-    </HubPage>
+    </Wrapper>
   );
 }

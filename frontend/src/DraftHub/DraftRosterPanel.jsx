@@ -47,6 +47,7 @@ export default function DraftRosterPanel({
   ended = false,
   pendingTradeCount = 0,
   onOpenInbox,
+  pickDraft = false,
 }) {
   const roster = viewer?.roster || [];
   const capacity = viewer?.capacity?.by_position || {};
@@ -95,10 +96,10 @@ export default function DraftRosterPanel({
     <div className="hub-roster-panel">
       <div className="hub-roster-panel-head">
         <h3 className="hub-section-title">{viewer.team_name || "Your team"}</h3>
-        {isNominator && <span className="hub-team-tag hub-team-tag-nom">Nominates</span>}
-        {isHighBidder && <span className="hub-team-tag hub-team-tag-lead">High bid</span>}
+        {isNominator && <span className="hub-team-tag hub-team-tag-nom">{pickDraft ? "On the clock" : "Nominates"}</span>}
+        {!pickDraft && isHighBidder && <span className="hub-team-tag hub-team-tag-lead">High bid</span>}
       </div>
-      {!ended && budgetRemaining != null && (
+      {!ended && !pickDraft && budgetRemaining != null && (
         <p className="chart-note hub-roster-panel-budget">
           <strong>{fmtSal(budgetRemaining)}</strong> left
           {maxBid != null && <> · max bid <strong>{fmtSal(maxBid)}</strong></>}
@@ -160,7 +161,7 @@ export default function DraftRosterPanel({
                   narrativeScope="season"
                 />
               </span>
-              <span className="hub-roster-sal">{fmtSal(row.salary)}</span>
+              {!pickDraft && <span className="hub-roster-sal">{fmtSal(row.salary)}</span>}
               <RosterActions
                 showDrop={Boolean(allowMidDraftCuts && onCutPlayer && !ended)}
                 showTrade={Boolean(allowTrades && onTradePlayer && !ended)}

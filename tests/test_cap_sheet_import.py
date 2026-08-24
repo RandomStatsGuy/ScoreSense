@@ -134,3 +134,35 @@ def test_import_clears_only_this_league_rosters(hub_db):
     imported = storage.list_league_rosters_by_team(league_a["id"])
     team_a = next(t for t in storage.list_league_teams(league_a["id"]) if t["name"] == "Alpha Team")
     assert any("Mahomes" in str(r["player_name"]) for r in imported[team_a["id"]])
+
+
+def test_cap_sheet_validate_accepts_multipart_file(hub_db):
+    from fastapi.testclient import TestClient
+
+    from app.api import app
+    from app.auth import require_hub_user
+
+    sub = "cap-upload-api"
+    storage.create_league(
+        sub, "Upload League", 2026, LeagueRules(),
+        commissioner_team_name="Thanks noob noob",
+    )
+    app.dependency_overrides[require_hub_user] = lambda: {"sub": sub, "auth_type": "dev"}
+    client = TestClient(app)
+    try:
+        missing = client.post("/api/hub/cap-sheet/validate?replace_existing=true")
+        assert missing.status_code == 422
+        detail = missing.json()["detail"]
+        assert any("file" in str(d.get("loc", "")).lower() for d in detail)
+
+        raw = _tsv("Aaron D\tQB\tPatrick Mahomes\t25\t1/2")
+        ok = client.post(
+            "/api/hub/cap-sheet/validate?replace_existing=true",
+            files={"file": ("cap.tsv", raw, "text/tab-separated-values")},
+        )
+        assert ok.status_code == 200, ok.text
+        body = ok.json()
+        assert body["ok"] is True
+        assert body["stats"]["matched"] >= 1
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
