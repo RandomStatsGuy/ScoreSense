@@ -4323,11 +4323,13 @@ async def hub_cap_sheet_import(
                 "waived": result.get("waived"),
             }
         else:
+            sheet_season = int(ctx.get("season") or league.get("season") or 2025)
             result = import_cap_sheet_to_league(
                 league_id,
                 parsed,
                 manager_map,
                 replace_existing=replace_existing,
+                historic_season=sheet_season,
             )
             result["mode"] = "replace_rosters"
     except ValueError as exc:
