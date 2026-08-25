@@ -1391,6 +1391,9 @@ export default function DraftRoom({
           {league?.name ? (
             <span className="chart-note">{league.name}</span>
           ) : null}
+          {roomLoading && !inLiveDraft && !draftCompleted ? (
+            <span className="chart-note">Loading mock draft…</span>
+          ) : null}
         </div>
       )}
 
