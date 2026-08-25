@@ -204,7 +204,10 @@ export function pageTitleForPath(pathname) {
     return `League · ${hub}`;
   }
 
-  if (parsed.view === "tools") return "Tools · DFS";
+  if (parsed.view === "tools") {
+    if (parsed.toolsTab === "mock-draft") return "Tools · Mock draft";
+    return "Tools · DFS";
+  }
   if (parsed.view === "admin") {
     if (parsed.adminTab === "users") return "Admin · Users";
     if (parsed.adminTab === "leagues") return "Admin · Leagues";

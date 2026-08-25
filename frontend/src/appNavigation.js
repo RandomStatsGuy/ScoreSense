@@ -26,6 +26,7 @@ export const SEASON_MODES = [
 
 export const TOOLS_TABS = [
   { id: "dfs", label: "DFS" },
+  { id: "mock-draft", label: "Mock draft" },
 ];
 
 export const SECTION_SUBTITLES = {
@@ -53,6 +54,7 @@ export const SECTION_SUBTITLES = {
   },
   tools: {
     dfs: "DFS lineups & stacks",
+    "mock-draft": "Practice vs bots, or simulate a full draft",
   },
   model: "How we validate projections before you use them",
   admin: "League and account management",

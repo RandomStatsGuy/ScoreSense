@@ -65,6 +65,7 @@ test("pageTitleForPath matches product areas", () => {
   assert.equal(pageTitleForPath("/hub/office/chat"), "League · Office · Chat");
   assert.equal(pageTitleForPath("/hub/office/members"), "League · Office · Members");
   assert.equal(pageTitleForPath("/tools/dfs"), "Tools · DFS");
+  assert.equal(pageTitleForPath("/tools/mock-draft"), "Tools · Mock draft");
   assert.equal(pageTitleForPath("/model"), "Model accuracy");
   assert.equal(pageTitleForPath("/admin"), "Admin · Overview");
   assert.equal(pageTitleForPath("/admin/users"), "Admin · Users");
@@ -75,6 +76,7 @@ test("pageGroupForPath buckets by top-level area", () => {
   assert.equal(pageGroupForPath("/projections/weekly"), "projections");
   assert.equal(pageGroupForPath("/hub/draft"), "hub");
   assert.equal(pageGroupForPath("/tools/dfs"), "tools");
+  assert.equal(pageGroupForPath("/tools/mock-draft"), "tools");
   assert.equal(pageGroupForPath("/privacy"), "legal");
   assert.equal(pageGroupForPath("/auth/verify"), "auth");
 });

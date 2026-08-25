@@ -9662,6 +9662,134 @@ td.col-rank.col-rank-top {
   .hub-draft-entry-card--practice { order: 1; }
 }
 
+.mock-draft-tool {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.mock-draft-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.mock-draft-formats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.mock-draft-format-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  text-align: left;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.mock-draft-format-card strong {
+  font-size: 0.95rem;
+}
+.mock-draft-format-card.is-active {
+  border-color: color-mix(in srgb, var(--accent, #6ea8fe) 42%, var(--border));
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 9%, transparent);
+}
+.mock-draft-format-card:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.mock-draft-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  align-items: flex-start;
+}
+.mock-draft-teams {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 12rem;
+}
+.mock-draft-teams legend {
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+.mock-draft-team-chips {
+  display: flex;
+  gap: 0.4rem;
+}
+.mock-draft-team-chip {
+  min-width: 2.6rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.mock-draft-team-chip.is-active {
+  border-color: color-mix(in srgb, var(--accent, #6ea8fe) 50%, var(--border));
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 12%, transparent);
+}
+.mock-draft-league-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.mock-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.mock-draft-recent h3 {
+  margin: 0 0 0.55rem;
+  font-size: 0.95rem;
+}
+.mock-draft-recent ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.mock-draft-recent li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+}
+.mock-draft-recent li > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.mock-draft-room-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .mock-draft-formats {
+    grid-template-columns: 1fr;
+  }
+}
+
 .hub-draft-setup-bar-secondary {
   padding: 0.85rem 1rem;
   border-radius: var(--radius-md);
