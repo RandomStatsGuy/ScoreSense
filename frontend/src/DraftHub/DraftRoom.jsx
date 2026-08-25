@@ -66,6 +66,9 @@ export default function DraftRoom({
   season,
   hubContext = null,
   onNavigate,
+  toolMode = false,
+  toolLabel = "",
+  onExitRoom,
 }) {
   const [roomState, setRoomState] = useState(null);
   const [roomLoading, setRoomLoading] = useState(false);
@@ -75,7 +78,6 @@ export default function DraftRoom({
   const [mockModeLabel, setMockModeLabel] = useState("");
   const [sandboxSourceLeagueId, setSandboxSourceLeagueId] = useState("");
   const [expirePreview, setExpirePreview] = useState(null);
-  const [botCount, setBotCount] = useState(7);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState("");
@@ -235,7 +237,7 @@ export default function DraftRoom({
   );
   const linkedHubLeagueId = hubContext?.league_id || "";
   const usingHubLeague = Boolean(leagueId && linkedHubLeagueId && leagueId === linkedHubLeagueId);
-  const showDraftEntry = !inLiveDraft && !draftCompleted;
+  const showDraftEntry = !toolMode && !inLiveDraft && !draftCompleted;
   const nominatorTeamId = roomState?.nominator_team_id;
   const nominatorTeam = useMemo(
     () => teams.find((t) => String(t.id) === String(nominatorTeamId)),
@@ -336,6 +338,10 @@ export default function DraftRoom({
       setMockModeLabel("");
     }
   }, [league?.test_mode, league?.id]);
+
+  useEffect(() => {
+    if (toolMode && toolLabel) setMockModeLabel(toolLabel);
+  }, [toolMode, toolLabel]);
 
   useEffect(() => {
     if (!usingHubLeague || !leagueId || !isCommissioner) {
@@ -727,13 +733,13 @@ export default function DraftRoom({
     }
   };
 
-  const startMockDraft = async (mode, { simulate = false, relaxSalaryRosterLimits = false } = {}) => {
+  const startMockDraft = async (mode, { relaxSalaryRosterLimits = false } = {}) => {
     await runAction(async () => {
       const body = {
         mode,
         season: season || 2025,
         team_count: 12,
-        bot_count: Number(botCount) || 7,
+        bot_count: 7,
         auto_start: true,
       };
       if (linkedHubLeagueId || leagueId) {
@@ -751,29 +757,17 @@ export default function DraftRoom({
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
       setMockModeLabel(
-        simulate
-          ? "Simulated mock"
-          : mode === "keeper_sandbox"
-            ? "Keeper sandbox"
-            : mode === "league_mirror"
-              ? "League mirror mock"
-              : "Quick mock",
+        mode === "keeper_sandbox"
+          ? "Keeper sandbox"
+          : mode === "league_mirror"
+            ? "League mirror mock"
+            : "Quick mock",
       );
       if (mode === "keeper_sandbox") {
         setSandboxSourceLeagueId(data.source_league_id || linkedHubLeagueId || leagueId || "");
       }
       onLeagueIdChange(data.league_id);
-      if (simulate) {
-        const sim = await apiFetch(`/api/hub/league/${data.league_id}/test/simulate`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
-        });
-        if (!sim.ok) throw new Error(await parseApiError(sim));
-        applyState((await sim.json()).state);
-      } else {
-        applyState(data.state);
-      }
+      applyState(data.state);
     });
   };
 
@@ -816,6 +810,11 @@ export default function DraftRoom({
       setMockModeLabel("");
       setRoomState(null);
       setExpirePreview(null);
+      if (toolMode) {
+        onExitRoom?.();
+        onLeagueIdChange("");
+        return;
+      }
       if (backId) {
         onLeagueIdChange(backId);
       } else {
@@ -846,8 +845,6 @@ export default function DraftRoom({
       setMockModeLabel("Simulated mock");
     });
   };
-
-  const createTestLeague = async () => startMockDraft("quick_bots");
 
   const startDraft = async () => {
     const startsAt = league?.draft_starts_at;
@@ -1371,15 +1368,33 @@ export default function DraftRoom({
 
   return (
     <HubPage className={`hub-draft-room${draftCompleted ? " hub-draft-room--ended" : ""}`}>
-      {!inLiveDraft && !draftCompleted && (
+      {!inLiveDraft && !draftCompleted && !toolMode && (
         <header className="hub-draft-idle-header">
           <h2 className="hub-draft-idle-title">Draft room</h2>
           <p className="chart-note hub-draft-idle-lead">
             {usingHubLeague
-              ? `${hubContext?.league_name || league?.name || "Your league"} — practice first, or start the live draft when ready.`
-              : "Practice with bots, or set up a league to go live."}
+              ? `${hubContext?.league_name || league?.name || "Your league"} — start the live draft when ready. Mock drafts live in Tools.`
+              : "Set up a league to go live, or open a mock draft in Tools."}
           </p>
         </header>
+      )}
+
+      {toolMode && (
+        <div className="mock-draft-room-bar">
+          <button
+            type="button"
+            className="btn-ghost btn-sm"
+            onClick={() => onExitRoom?.()}
+          >
+            Back to setup
+          </button>
+          {league?.name ? (
+            <span className="chart-note">{league.name}</span>
+          ) : null}
+          {roomLoading && !inLiveDraft && !draftCompleted ? (
+            <span className="chart-note">Loading mock draft…</span>
+          ) : null}
+        </div>
       )}
 
       {inLiveDraft && (
@@ -1428,7 +1443,7 @@ export default function DraftRoom({
                 className="btn-ghost btn-sm"
                 disabled={busy}
                 onClick={simulateRemainingDraft}
-                title="Finish the practice draft instantly"
+                title="Finish the mock instantly"
               >
                 Simulate
               </button>
@@ -1475,9 +1490,9 @@ export default function DraftRoom({
                 className="btn-ghost btn-sm"
                 disabled={busy}
                 onClick={deleteSandbox}
-                title="Delete this practice room — real league untouched"
+                title={toolMode ? "Discard this mock room" : "Delete this practice room — real league untouched"}
               >
-                Delete sandbox
+                {toolMode ? "Discard mock" : "Delete sandbox"}
               </button>
             )}
           </div>
@@ -1502,7 +1517,7 @@ export default function DraftRoom({
       {draftCompleted && (
         <div className="hub-draft-ended" role="status">
           <div className="hub-draft-ended-main">
-            <strong>{testMode ? "Practice done" : "Draft ended"}</strong>
+            <strong>{testMode ? "Mock draft done" : "Draft ended"}</strong>
             <span className="chart-note hub-draft-ended-meta">
               {draftedCount} drafted
               {draftedCount === 0 && !recapHasStory ? " · no picks" : ""}
@@ -1529,11 +1544,16 @@ export default function DraftRoom({
                 New mock
               </button>
             )}
+            {toolMode && (
+              <button type="button" className="btn-ghost btn-sm" onClick={() => onExitRoom?.()}>
+                Back to setup
+              </button>
+            )}
             {testMode && isCommissioner && (
               <details className="hub-draft-ended-overflow">
                 <summary className="btn-ghost btn-sm">More</summary>
                 <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={deleteSandbox}>
-                  Delete sandbox
+                  {toolMode ? "Discard mock" : "Delete sandbox"}
                 </button>
               </details>
             )}
@@ -1607,15 +1627,8 @@ export default function DraftRoom({
       {showDraftEntry && (
         <DraftEntryPanel
           busy={busy}
-          showPoolLoading={Boolean(valueSheetLoading && !valueRows?.length)}
-          poolBlocked={Boolean(valueSheetLoading && !valueRows?.length)}
-          botCount={botCount}
-          onBotCountChange={setBotCount}
-          onPracticeDraft={() => startMockDraft("quick_bots")}
-          onSimulateFullDraft={() => startMockDraft("quick_bots", { simulate: true })}
           onStartLiveDraft={startDraft}
           onSaveSchedule={saveDraftSchedule}
-          onStartLeagueMirror={() => startMockDraft("league_mirror")}
           onStartKeeperSandbox={startKeeperSandbox}
           onDeleteSandbox={deleteSandbox}
           onCommissionerUpdated={applyState}

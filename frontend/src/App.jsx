@@ -5,6 +5,7 @@ import DraftTable from "./DraftTable";
 import DraftHub from "./DraftHub/DraftHub";
 import HubSubnav, { HUB_SUBVIEWS } from "./DraftHub/HubSubnav";
 import DfsOptimizer from "./LineupOptimizer";
+import MockDraftTool from "./DraftHub/MockDraftTool";
 import SeasonTable from "./SeasonTable";
 import SeasonTransitionState from "./SeasonTransitionState";
 import InjurySidebar from "./InjurySidebar";
@@ -1635,7 +1636,11 @@ export default function App() {
           </section>
         )}
 
-        {view === "tools" && (
+        {view === "tools" && toolsTab === "mock-draft" && (
+          <MockDraftTool projMeta={projMeta} />
+        )}
+
+        {view === "tools" && toolsTab !== "mock-draft" && (
           <DfsOptimizer projMeta={projMeta} loading={loading} />
         )}
 

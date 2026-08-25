@@ -15,6 +15,7 @@ import {
   shouldApplyRoomState,
   mergeRoomState,
   shouldScheduleWsReconnect,
+  isLiveAuctionStatus,
 } from "./draftLiveConsole.js";
 
 test("viewerIsCommissioner uses only the viewer's staff flag", () => {
@@ -97,6 +98,14 @@ test("shortContractLabel collapses award copy", () => {
     }),
     "2 yrs · $4 → $9",
   );
+});
+
+test("isLiveAuctionStatus includes pick-draft clocks", () => {
+  assert.equal(isLiveAuctionStatus("nominating"), true);
+  assert.equal(isLiveAuctionStatus("bidding"), true);
+  assert.equal(isLiveAuctionStatus("picking"), true);
+  assert.equal(isLiveAuctionStatus("setup"), false);
+  assert.equal(isLiveAuctionStatus("completed"), false);
 });
 
 test("shouldApplyRoomState drops stale setup flashes during a live auction", () => {

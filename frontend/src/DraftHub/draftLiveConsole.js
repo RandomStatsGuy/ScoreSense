@@ -195,7 +195,7 @@ export function connectionStatusLabel(status) {
 }
 
 export function isLiveAuctionStatus(status) {
-  return status === "nominating" || status === "bidding";
+  return status === "nominating" || status === "bidding" || status === "picking";
 }
 
 /**

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DraftCommissionerSettings from "./DraftCommissionerSettings";
 import {
   DRAFT_TZ_OPTIONS,
@@ -15,19 +16,12 @@ import { fmtSal } from "./rosterFormat";
 import { secondsUntil } from "./draftRoomHelpers";
 
 /**
- * Draft room idle entry: status card + distinct Practice vs Live CTAs (SCORE-17).
+ * Draft room idle entry: live-draft CTA, with mock drafts in Tools.
  */
 export default function DraftEntryPanel({
   busy = false,
-  showPoolLoading = false,
-  poolBlocked = false,
-  botCount,
-  onBotCountChange,
-  onPracticeDraft,
-  onSimulateFullDraft,
   onStartLiveDraft,
   onSaveSchedule,
-  onStartLeagueMirror,
   onStartKeeperSandbox,
   onDeleteSandbox,
   onCommissionerUpdated,
@@ -49,7 +43,7 @@ export default function DraftEntryPanel({
   emptySeats = 0,
   claimedHumans = 0,
 }) {
-  const ctaDisabled = busy || poolBlocked;
+  const navigate = useNavigate();
   const [relaxSandboxLimits, setRelaxSandboxLimits] = useState(false);
 
   const formatLabel = draftFormatLabel(rules || league?.rules);
@@ -66,7 +60,6 @@ export default function DraftEntryPanel({
   const participants = draftParticipantSummary({
     teams,
     teamCount: league?.team_count ?? 12,
-    botCount,
     hasLeague: Boolean(leagueId),
   });
 
@@ -243,34 +236,20 @@ export default function DraftEntryPanel({
 
         <article className={`hub-draft-entry-card hub-draft-entry-card--practice${!liveEmphasis ? " is-emphasized" : ""}`}>
           <header className="hub-draft-entry-card-head">
-            <h3>Practice draft</h3>
+            <h3>Mock draft</h3>
             <p className="chart-note">
-              Mock with bots. Does not change keepers, contracts, or your real league.
+              Practice vs bots in Tools. Does not change keepers, contracts, or this league.
             </p>
           </header>
-          <div className="hub-draft-entry-card-actions hub-draft-idle-mock">
+          <div className="hub-draft-entry-card-actions">
             <button
               type="button"
               className={liveEmphasis ? "btn-ghost" : "btn-primary"}
-              disabled={ctaDisabled}
-              onClick={() => onPracticeDraft?.()}
+              onClick={() => navigate("/tools/mock-draft")}
             >
-              {busy ? "Starting…" : "Practice draft"}
+              Open mock draft
             </button>
-            <label className="hub-draft-idle-bots">
-              Bots
-              <input
-                type="number"
-                min={1}
-                max={11}
-                value={botCount}
-                onChange={(e) => onBotCountChange?.(e.target.value)}
-              />
-            </label>
           </div>
-          {showPoolLoading && (
-            <p className="chart-note hub-draft-entry-pool-note">Loading player pool…</p>
-          )}
         </article>
       </div>
 
@@ -293,58 +272,37 @@ export default function DraftEntryPanel({
       <details className="hub-draft-more">
         <summary>More options</summary>
         <div className="hub-draft-more-body">
-          <button
-            type="button"
-            className="btn-ghost btn-sm"
-            disabled={ctaDisabled}
-            onClick={() => onSimulateFullDraft?.()}
-            title="Dev: run a full practice draft instantly, then open the post-draft report"
-          >
-            {busy ? "Simulating…" : "Simulate full draft"}
-          </button>
-          {usingHubLeague ? (
-            <>
+          {usingHubLeague && isCommissioner ? (
+            <div className="hub-sandbox-relax-check">
               <button
                 type="button"
                 className="btn-ghost btn-sm"
                 disabled={busy}
-                onClick={() => onStartLeagueMirror?.()}
+                onClick={() => onStartKeeperSandbox?.({ relaxSalaryRosterLimits: relaxSandboxLimits })}
+                title="Copy keepers into a practice room to test expire / year tick"
               >
-                Practice with {hubContext?.league_name || "your league"} managers
+                Keeper sandbox
               </button>
-              {isCommissioner && (
-                <div className="hub-sandbox-relax-check">
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm"
-                    disabled={busy}
-                    onClick={() => onStartKeeperSandbox?.({ relaxSalaryRosterLimits: relaxSandboxLimits })}
-                    title="Copy keepers into a practice room to test expire / year tick"
-                  >
-                    Keeper sandbox
-                  </button>
-                  <label className="hub-toggle-row hub-toggle-row-compact">
-                    <input
-                      type="checkbox"
-                      checked={relaxSandboxLimits}
-                      onChange={(e) => setRelaxSandboxLimits(e.target.checked)}
-                      disabled={busy}
-                    />
-                    Ignore salary cap and position limits
-                  </label>
-                  <span className="chart-note">
-                    Use when keeper salaries aren’t updated yet. Practice room only — live draft still enforces cap and roster limits.
-                  </span>
-                </div>
-              )}
-            </>
+              <label className="hub-toggle-row hub-toggle-row-compact">
+                <input
+                  type="checkbox"
+                  checked={relaxSandboxLimits}
+                  onChange={(e) => setRelaxSandboxLimits(e.target.checked)}
+                  disabled={busy}
+                />
+                Ignore salary cap and position limits
+              </label>
+              <span className="chart-note">
+                Use when keeper salaries aren’t updated yet. Practice room only — live draft still enforces cap and roster limits.
+              </span>
+            </div>
           ) : (
             <p className="chart-note">
-              Join a league in{" "}
-              <button type="button" className="btn-link" onClick={() => onNavigate?.("setup")}>
-                Setup
-              </button>{" "}
-              to practice with your managers.
+              Mock drafts and full simulations live in{" "}
+              <button type="button" className="btn-link" onClick={() => navigate("/tools/mock-draft")}>
+                Tools → Mock draft
+              </button>
+              .
             </p>
           )}
           {testMode && isCommissioner && inDraftSetup && (
