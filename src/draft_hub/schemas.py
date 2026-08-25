@@ -307,6 +307,7 @@ class MockDraftStartRequest(BaseModel):
     auto_start: bool = True
     name: Optional[str] = None
     relax_salary_roster_limits: bool = False
+    preset_id: Optional[str] = None
 
 
 class SleeperImportRequest(BaseModel):

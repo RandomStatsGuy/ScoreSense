@@ -3415,6 +3415,47 @@ def list_memberships_for_sub(user_sub: str) -> list[dict[str, Any]]:
     return out
 
 
+def list_mock_drafts_for_sub(user_sub: str, limit: int = 8) -> list[dict[str, Any]]:
+    """Recent practice / mock rooms the user owns a seat in (newest first)."""
+    cap = max(1, min(int(limit), 24))
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT l.id, l.name, l.season, l.status, l.draft_completed, l.team_count,
+                      l.created_at, l.rules_json
+               FROM league l
+               JOIN team t ON t.league_id = l.id
+               WHERE t.user_sub = ?
+                 AND COALESCE(l.test_mode, 0) = 1
+                 AND (t.is_bot IS NULL OR t.is_bot = 0)
+               ORDER BY l.created_at DESC
+               LIMIT ?""",
+            (user_sub, cap),
+        ).fetchall()
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        try:
+            rules = json.loads(row["rules_json"] or "{}")
+        except (TypeError, ValueError, json.JSONDecodeError):
+            rules = {}
+        if not isinstance(rules, dict):
+            rules = {}
+        completed = bool(row["draft_completed"]) if "draft_completed" in row.keys() else False
+        status = "completed" if completed else str(row["status"] or "setup")
+        out.append(
+            {
+                "league_id": row["id"],
+                "name": row["name"],
+                "season": row["season"],
+                "status": status,
+                "draft_completed": completed,
+                "team_count": row["team_count"],
+                "created_at": row["created_at"],
+                "draft_type": str(rules.get("draft_type") or "auction"),
+            }
+        )
+    return out
+
+
 def list_distinct_hub_subs() -> list[str]:
     """All user_sub values seen in workspaces or team claims."""
     subs: set[str] = set()

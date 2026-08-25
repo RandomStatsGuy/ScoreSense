@@ -249,3 +249,73 @@ def test_simulate_draft_and_owner_contracts(hub_db, monkeypatch):
     slot = next(r for r in roster if str(r["player_id"]) in drafted_ids)
     assert int(slot["contract_years"]) == 2
     assert str((slot.get("contract") or {}).get("contract_type")) == "veteran"
+
+
+def test_quick_mock_snake_preset_starts_picking(hub_db):
+    out = start_mock_draft(
+        "mock-user",
+        mode="quick_bots",
+        bot_count=2,
+        team_count=3,
+        preset_id="snake_draft_v1",
+        auto_start=True,
+    )
+    league = storage.get_league(out["league_id"])
+    rules = LeagueRules.model_validate(league["rules"])
+    assert rules.draft_type == "snake"
+    assert out["state"]["session"]["status"] == "picking"
+
+
+def test_unknown_preset_rejected(hub_db):
+    with pytest.raises(ValueError, match="Unknown preset"):
+        start_mock_draft("mock-user", mode="quick_bots", preset_id="not_a_preset")
+
+
+def test_list_mock_drafts_for_sub(hub_db):
+    first = start_mock_draft("mock-user", mode="quick_bots", bot_count=2, auto_start=False)
+    start_mock_draft("other-user", mode="quick_bots", bot_count=2, auto_start=False)
+    rooms = storage.list_mock_drafts_for_sub("mock-user")
+    assert len(rooms) == 1
+    assert rooms[0]["league_id"] == first["league_id"]
+    assert rooms[0]["draft_type"] == "auction"
+    assert rooms[0]["status"] == "setup"
+
+
+def test_http_mock_draft_preset_and_list(hub_db):
+    from fastapi.testclient import TestClient
+
+    from app.api import app
+    from app.auth import require_hub_user
+
+    app.dependency_overrides[require_hub_user] = lambda: {"sub": "http-mock", "auth_type": "dev"}
+    client = TestClient(app)
+    try:
+        res = client.post(
+            "/api/hub/mock-draft/start",
+            json={
+                "mode": "quick_bots",
+                "preset_id": "linear_draft_v1",
+                "team_count": 4,
+                "bot_count": 3,
+                "auto_start": False,
+            },
+        )
+        assert res.status_code == 200, res.text
+        body = res.json()
+        assert body["mock_mode"] == "quick_bots"
+        league = storage.get_league(body["league_id"])
+        assert LeagueRules.model_validate(league["rules"]).draft_type == "linear"
+
+        listed = client.get("/api/hub/mock-drafts")
+        assert listed.status_code == 200, listed.text
+        rooms = listed.json()["rooms"]
+        assert any(r["league_id"] == body["league_id"] for r in rooms)
+        assert any(r["draft_type"] == "linear" for r in rooms)
+
+        bad = client.post(
+            "/api/hub/mock-draft/start",
+            json={"mode": "quick_bots", "preset_id": "nope"},
+        )
+        assert bad.status_code == 400
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)

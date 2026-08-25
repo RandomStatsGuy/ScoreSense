@@ -63,7 +63,7 @@ export const SEASON_PANELS = new Set(["projections", "narrative"]);
 
 export const SEASON_MODES = new Set(["preseason", "live"]);
 
-export const TOOLS_TABS = new Set(["dfs"]);
+export const TOOLS_TABS = new Set(["dfs", "mock-draft"]);
 
 export const ADMIN_TABS = new Set(["overview", "users", "leagues"]);
 

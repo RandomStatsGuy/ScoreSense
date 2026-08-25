@@ -9,7 +9,7 @@ from typing import Any, Literal
 from src.draft_hub import storage
 from src.draft_hub.draft_expire_preview import build_draft_expire_preview
 from src.draft_hub.draft_state import get_room_state, start_draft
-from src.draft_hub.presets import load_preset
+from src.draft_hub.presets import list_presets, load_preset
 from src.draft_hub.schemas import LeagueRules
 from src.draft_hub.test_draft import setup_test_draft
 
@@ -159,6 +159,17 @@ def _clone_keeper_sandbox(
     }
 
 
+def _load_mock_preset(preset_id: str | None) -> LeagueRules:
+    pid = str(preset_id or "salary_cap_auction_v1").strip() or "salary_cap_auction_v1"
+    known = {str(p.get("id")) for p in list_presets() if p.get("id")}
+    if known and pid not in known:
+        raise ValueError(f"Unknown preset: {pid}")
+    try:
+        return load_preset(pid)
+    except FileNotFoundError as exc:
+        raise ValueError(str(exc)) from exc
+
+
 def start_mock_draft(
     commissioner_sub: str,
     *,
@@ -170,6 +181,7 @@ def start_mock_draft(
     auto_start: bool = True,
     name: str | None = None,
     relax_salary_roster_limits: bool = False,
+    preset_id: str | None = None,
 ) -> dict[str, Any]:
     """Create a sandbox mock draft and optionally start the auction immediately."""
     if mode == "keeper_sandbox":
@@ -192,8 +204,10 @@ def start_mock_draft(
     if source is not None:
         rules = LeagueRules.model_validate(source.get("rules") or {})
         season = int(source.get("season") or season)
+        if mode == "league_mirror":
+            team_count = max(2, min(int(source.get("team_count") or team_count), 24))
     else:
-        rules = load_preset("salary_cap_auction_v1")
+        rules = _load_mock_preset(preset_id)
 
     if mode == "league_mirror":
         if not source_league_id:
@@ -205,8 +219,14 @@ def start_mock_draft(
         viewer = None
         if source is not None:
             display_name = name or f"{source.get('name', 'League')} — practice"
+        elif name:
+            display_name = name
+        elif getattr(rules, "draft_type", None) == "snake":
+            display_name = "Snake mock draft"
+        elif getattr(rules, "draft_type", None) == "linear":
+            display_name = "Linear mock draft"
         else:
-            display_name = name or "Quick mock draft"
+            display_name = "Quick mock draft"
 
     league = storage.create_league(
         commissioner_sub,

@@ -4061,6 +4061,13 @@ async def hub_league_sheet_import(
     }
 
 
+@router.get("/mock-drafts")
+def hub_list_mock_drafts(_user=Depends(require_hub_user)) -> dict:
+    """Recent practice rooms for the Tools → Mock draft launcher."""
+    sub = _sub(_user)
+    return {"rooms": storage.list_mock_drafts_for_sub(sub)}
+
+
 @router.post("/mock-draft/start")
 async def hub_mock_draft_start(body: MockDraftStartRequest, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
@@ -4084,6 +4091,7 @@ async def hub_mock_draft_start(body: MockDraftStartRequest, _user=Depends(requir
             auto_start=auto_start,
             name=body.name,
             relax_salary_roster_limits=body.relax_salary_roster_limits,
+            preset_id=body.preset_id,
         )
         await broadcast_room(result["league_id"])
         result["hub_context"] = _ctx(sub)
