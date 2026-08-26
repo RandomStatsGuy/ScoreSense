@@ -188,6 +188,9 @@ def build_draft_pool_payload(
         )
 
     rows.extend(load_k_def_rows(rules, salary_ranges, team_count=team_count))
+    from src.draft_hub.jsonutil import json_safe
+
+    rows = json_safe(rows)
     rows.sort(key=lambda r: (-(r.get("season_proj") or 0), r.get("player") or ""))
     payload = {
         "season": season,

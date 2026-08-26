@@ -31,8 +31,8 @@ def list_drafted_player_ids(league_id: str) -> set[str]:
     league = storage.get_league(league_id)
     draft_completed = bool(league and league.get("draft_completed"))
     ids: set[str] = set()
-    for team in storage.list_league_teams(league_id):
-        for row in storage.list_team_roster(league_id, team["id"]):
+    for rows in storage.list_league_rosters_by_team(league_id).values():
+        for row in rows:
             pid = str(row.get("player_id") or "").strip()
             if not pid:
                 continue

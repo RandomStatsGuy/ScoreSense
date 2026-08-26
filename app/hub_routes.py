@@ -4165,6 +4165,15 @@ async def hub_test_draft_simulate(
         return {"state": state}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Mock draft simulation failed for %s", league_id)
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Simulation failed while finishing the draft. "
+                "Open the mock from Recent mocks — it may have completed."
+            ),
+        ) from exc
 
 
 @router.get("/league/{league_id}/owner-draft-report")

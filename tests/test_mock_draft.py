@@ -1,5 +1,7 @@
 """Mock draft launcher."""
 
+import json
+
 import pytest
 
 from src.draft_hub import storage
@@ -317,5 +319,88 @@ def test_http_mock_draft_preset_and_list(hub_db):
             json={"mode": "quick_bots", "preset_id": "nope"},
         )
         assert bad.status_code == 400
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_nan_pool_pick_room_state_is_strict_json(hub_db, monkeypatch):
+    """Late-round missing projections used to 500 the end-of-draft HTTP payload."""
+    out = start_mock_draft("mock-user", mode="quick_bots", bot_count=2, auto_start=True)
+    player = {
+        "player_id": "p-nan",
+        "player_name": "Depth WR",
+        "team": "KC",
+        "position": "WR",
+        "fair_value": float("nan"),
+        "season_proj": float("nan"),
+        "per_game_proj": float("inf"),
+    }
+    _stub_pool_player(monkeypatch, player)
+    nominate(out["league_id"], "mock-user", player)
+    state = get_room_state(out["league_id"], "mock-user")
+    json.dumps(state, allow_nan=False)
+    events = [e for e in state["events"] if e.get("event_type") == "nominate"]
+    assert events
+    payload = events[-1].get("payload") or {}
+    assert payload.get("fair_value") is None
+    assert payload.get("season_proj") is None
+
+
+def test_award_auto_ends_when_rosters_are_full(hub_db, monkeypatch):
+    out = start_mock_draft("mock-user", mode="quick_bots", bot_count=2, auto_start=True)
+    league_id = out["league_id"]
+    player = {
+        "player_id": "p-last",
+        "player_name": "Last WR",
+        "team": "KC",
+        "position": "WR",
+        "fair_value": 10,
+        "season_proj": 80,
+        "per_game_proj": 8,
+    }
+    _stub_pool_player(monkeypatch, player)
+    nominate(league_id, "mock-user", player)
+    monkeypatch.setattr("src.draft_hub.draft_state.all_rosters_full", lambda *a, **k: True)
+    award_nominee(league_id, "mock-user")
+    session = storage.get_draft_session(league_id)
+    assert session["status"] == "completed"
+    league = storage.get_league(league_id)
+    assert league.get("draft_completed") is True
+
+
+def test_http_simulate_with_nan_pool_serializes(hub_db, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from app.api import app
+    from app.auth import require_hub_user
+
+    rows = _fake_pool_rows(12)
+    rows[-1]["fair_value"] = float("nan")
+    rows[-1]["season_proj"] = float("nan")
+    rows[-1]["per_game_proj"] = float("inf")
+    monkeypatch.setattr(
+        "src.draft_hub.value_sheet.build_draft_pool_payload",
+        lambda *a, **k: {"rows": rows},
+    )
+    app.dependency_overrides[require_hub_user] = lambda: {"sub": "http-sim", "auth_type": "dev"}
+    client = TestClient(app)
+    try:
+        started = client.post(
+            "/api/hub/mock-draft/start",
+            json={
+                "mode": "quick_bots",
+                "preset_id": "salary_cap_auction_v1",
+                "team_count": 3,
+                "bot_count": 2,
+                "auto_start": True,
+            },
+        )
+        assert started.status_code == 200, started.text
+        league_id = started.json()["league_id"]
+        sim = client.post(f"/api/hub/league/{league_id}/test/simulate", json={})
+        assert sim.status_code == 200, sim.text
+        body = sim.json()
+        json.dumps(body, allow_nan=False)
+        assert body["state"]["session"]["status"] == "completed"
     finally:
         app.dependency_overrides.pop(require_hub_user, None)

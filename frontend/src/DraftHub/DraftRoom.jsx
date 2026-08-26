@@ -874,7 +874,11 @@ export default function DraftRoom({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
-      if (!res.ok) throw new Error(await parseApiError(res));
+      if (!res.ok) {
+        const detail = await parseApiError(res);
+        await refresh();
+        throw new Error(detail);
+      }
       applyState((await res.json()).state);
       setMockModeLabel("Simulated mock");
     });

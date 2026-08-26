@@ -154,7 +154,12 @@ export default function MockDraftTool({ projMeta = null }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({}),
         });
-        if (!sim.ok) throw new Error(await parseApiError(sim));
+        if (!sim.ok) {
+          const simError = await parseApiError(sim);
+          setToolLabel("Simulated mock");
+          persistLeague(data.league_id);
+          throw new Error(simError);
+        }
       }
       setToolLabel(simulate ? "Simulated mock" : (useLeagueManagers ? "League mirror mock" : "Mock draft"));
       persistLeague(data.league_id);

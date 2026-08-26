@@ -75,8 +75,10 @@ def all_rosters_full(league_id: str, rules: LeagueRules) -> bool:
     cap = total_roster_slots(rules)
     if cap <= 0:
         return False
-    for team in storage.list_league_teams(league_id):
-        roster = storage.list_team_roster(league_id, team["id"])
+    by_team = storage.list_league_rosters_by_team(league_id)
+    if not by_team:
+        return False
+    for roster in by_team.values():
         if len(occupying_roster(rules, roster, draft_completed=False)) < cap:
             return False
     return True

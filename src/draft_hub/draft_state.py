@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import contextlib
+import contextvars
 import json
+import math
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Iterator
 
 from src.draft_hub.rules_engine import (
     assert_can_acquire,
@@ -17,6 +20,8 @@ from src.draft_hub.rules_engine import (
 from src.draft_hub.schemas import LeagueRules
 from src.draft_hub import storage
 from src.draft_hub.draft_pool import normalize_pool_mode, resolve_nomination_player
+from src.draft_hub.jsonutil import dumps as json_dumps
+from src.draft_hub.jsonutil import json_safe
 from src.draft_hub.pick_draft import (
     all_rosters_full,
     draft_type_of,
@@ -25,6 +30,27 @@ from src.draft_hub.pick_draft import (
     team_at_pick_index,
     team_roster_is_full,
 )
+
+_RETURN_ROOM_STATE: contextvars.ContextVar[bool] = contextvars.ContextVar(
+    "draft_return_room_state",
+    default=True,
+)
+
+
+@contextlib.contextmanager
+def suppress_room_state() -> Iterator[None]:
+    """Skip get_room_state rebuilds on nominate/award/pick during instant sims."""
+    token = _RETURN_ROOM_STATE.set(False)
+    try:
+        yield
+    finally:
+        _RETURN_ROOM_STATE.reset(token)
+
+
+def _emit_state(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
+    if not _RETURN_ROOM_STATE.get():
+        return {}
+    return get_room_state(league_id, user_sub)
 
 
 def _resolve_team(league_id: str, user_sub: str) -> dict[str, Any] | None:
@@ -84,28 +110,38 @@ def _current_nominator_team_id(
 
 
 def _skip_full_on_clock(league_id: str) -> None:
-    """Advance past teams that already filled every roster slot (keepers)."""
+    """Advance past teams that already filled every roster slot."""
     league = storage.get_league(league_id)
     if not league:
         return
     rules = LeagueRules.model_validate(league["rules"])
-    if not is_pick_draft(rules):
-        return
     session = storage.get_draft_session(league_id) or {}
     order = list(session.get("nomination_order") or [])
     if not order:
         return
     idx = int(session.get("nominator_index") or 0)
-    dtype = draft_type_of(rules)
     n = len(order)
-    for _ in range(n * 4 + 2):
+    if is_pick_draft(rules):
+        dtype = draft_type_of(rules)
+        for _ in range(n * 4 + 2):
+            if all_rosters_full(league_id, rules):
+                break
+            tid = team_at_pick_index(order, idx, dtype)
+            roster = storage.list_team_roster(league_id, tid) if tid else []
+            if not team_roster_is_full(rules, roster):
+                break
+            idx += 1
+        storage.update_draft_session(league_id, nominator_index=idx)
+        return
+    idx = idx % n
+    for _ in range(n):
         if all_rosters_full(league_id, rules):
             break
-        tid = team_at_pick_index(order, idx, dtype)
+        tid = order[idx]
         roster = storage.list_team_roster(league_id, tid) if tid else []
         if not team_roster_is_full(rules, roster):
             break
-        idx += 1
+        idx = (idx + 1) % n
     storage.update_draft_session(league_id, nominator_index=idx)
 
 
@@ -123,6 +159,7 @@ def _advance_nominator(league_id: str) -> None:
         return
     idx = (idx + 1) % len(order)
     storage.update_draft_session(league_id, nominator_index=idx)
+    _skip_full_on_clock(league_id)
 
 
 def _bot_delay_elapsed(session: dict[str, Any], rules: LeagueRules) -> bool:
@@ -196,10 +233,23 @@ def set_nomination_order(league_id: str, user_sub: str, team_ids: list[str]) -> 
     return get_room_state(league_id, user_sub)
 
 
+def _finite_or_none(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        num = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(num):
+        return None
+    return num
+
+
 def _pick_value_grade(amount: float, fair_value: float | None, per_game: float | None = None) -> str:
-    if fair_value is None or amount <= 0:
+    fair = _finite_or_none(fair_value)
+    if fair is None or amount <= 0:
         return "pick"
-    ratio = float(fair_value) / float(amount)
+    ratio = fair / float(amount)
     if ratio >= 1.25:
         return "steal"
     if ratio >= 1.08:
@@ -214,10 +264,13 @@ def _pick_value_grade(amount: float, fair_value: float | None, per_game: float |
 
 
 def _pick_value_blurb(grade: str, *, amount: float, fair_value: float | None, per_game: float | None) -> str:
-    ppg = f"{per_game:.1f} PPG" if per_game is not None else None
-    fair = f"${fair_value:.0f} fair" if fair_value is not None else None
-    spent = f"${amount:.0f} spent"
-    meta = " · ".join(x for x in (ppg, fair, spent) if x)
+    pg = _finite_or_none(per_game)
+    fair = _finite_or_none(fair_value)
+    spent_n = _finite_or_none(amount)
+    ppg = f"{pg:.1f} PPG" if pg is not None else None
+    fair_s = f"${fair:.0f} fair" if fair is not None else None
+    spent = f"${spent_n:.0f} spent" if spent_n is not None else None
+    meta = " · ".join(x for x in (ppg, fair_s, spent) if x)
     labels = {
         "steal": "Steal!",
         "great_value": "Great value",
@@ -292,7 +345,7 @@ def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any
                 ),
                 **finance,
             }
-    return out
+    return json_safe(out)
 
 
 def _require_commissioner(league: dict[str, Any], user_sub: str) -> None:
@@ -614,7 +667,7 @@ def end_draft(league_id: str, user_sub: str, *, force: bool = False) -> dict[str
     storage.append_draft_event(league_id, "end", payload)
     state = get_room_state(league_id, user_sub)
     if year_tick:
-        state["contract_year_tick"] = year_tick
+        state["contract_year_tick"] = json_safe(year_tick)
     return state
 
 
@@ -699,12 +752,60 @@ def set_pool_mode(league_id: str, user_sub: str, pool_mode: str) -> dict[str, An
     return get_room_state(league_id, user_sub)
 
 
+def _resolved_pool_player(
+    league: dict[str, Any],
+    session: dict[str, Any],
+    player: dict[str, Any],
+    *,
+    from_pool: bool,
+) -> dict[str, Any]:
+    from src.draft_hub.draft_pool import list_drafted_player_ids
+
+    if str(player.get("player_id") or "") in list_drafted_player_ids(league["id"]):
+        raise ValueError("Player already drafted")
+    if from_pool:
+        resolved = dict(player)
+        if not resolved.get("player") and resolved.get("player_name"):
+            resolved["player"] = resolved.get("player_name")
+        return resolved
+    workspace_id = storage.roster_workspace_for_league(league)
+    ws = storage.get_workspace_by_id(workspace_id) if league.get("workspace_id") else None
+    sleeper_ids = set((ws or {}).get("sleeper_player_ids") or [])
+    return resolve_nomination_player(
+        league_id=league["id"],
+        pool_mode=session.get("pool_mode"),
+        player_id=str(player.get("player_id") or ""),
+        season=int(league["season"]),
+        rules=LeagueRules.model_validate(league["rules"]),
+        workspace_id=workspace_id,
+        sleeper_player_ids=sleeper_ids,
+    )
+
+
+def _maybe_end_if_rosters_full(
+    league_id: str,
+    league: dict[str, Any],
+    rules: LeagueRules,
+) -> dict[str, Any] | None:
+    if not all_rosters_full(league_id, rules):
+        return None
+    comm = league.get("commissioner_sub")
+    if not comm:
+        return None
+    try:
+        ended = end_draft(league_id, comm, force=True)
+    except ValueError:
+        return None
+    return ended if _RETURN_ROOM_STATE.get() else {}
+
+
 def nominate(
     league_id: str,
     user_sub: str,
     player: dict[str, Any],
     *,
     force: bool = False,
+    from_pool: bool = False,
 ) -> dict[str, Any]:
     league = storage.get_league(league_id)
     if not league:
@@ -737,22 +838,7 @@ def nominate(
             nominator = storage.get_team(nominator_id)
             name = (nominator or {}).get("name") or "another team"
             raise ValueError(f"It is {name}'s turn to nominate")
-    from src.draft_hub.draft_pool import list_drafted_player_ids
-
-    if str(player.get("player_id") or "") in list_drafted_player_ids(league_id):
-        raise ValueError("Player already drafted")
-    workspace_id = storage.roster_workspace_for_league(league)
-    ws = storage.get_workspace_by_id(workspace_id) if league.get("workspace_id") else None
-    sleeper_ids = set((ws or {}).get("sleeper_player_ids") or [])
-    resolved = resolve_nomination_player(
-        league_id=league_id,
-        pool_mode=session.get("pool_mode"),
-        player_id=str(player.get("player_id") or ""),
-        season=int(league["season"]),
-        rules=rules,
-        workspace_id=workspace_id,
-        sleeper_player_ids=sleeper_ids,
-    )
+    resolved = _resolved_pool_player(league, session, player, from_pool=from_pool)
     pos = normalize_position(resolved.get("position") or player.get("position"))
     team_roster = storage.list_team_roster(league_id, team["id"])
     assert_can_acquire(rules, team_roster, pos)
@@ -786,7 +872,7 @@ def nominate(
     storage.update_draft_session(
         league_id,
         status="bidding",
-        current_nominee_json=json.dumps(nominee),
+        current_nominee_json=json_dumps(nominee),
         high_bid=min_bid,
         high_bidder_team_id=team["id"],
         bid_deadline=_deadline(rules.auction.bid_timer_sec),
@@ -817,7 +903,7 @@ def nominate(
         },
     )
     _pop_queue_player(team, nominee.get("player_id"))
-    return get_room_state(league_id, user_sub)
+    return _emit_state(league_id, user_sub)
 
 
 def make_pick(
@@ -826,6 +912,7 @@ def make_pick(
     player: dict[str, Any],
     *,
     force: bool = False,
+    from_pool: bool = False,
 ) -> dict[str, Any]:
     """Assign a player to the on-clock team in a snake/linear draft."""
     league = storage.get_league(league_id)
@@ -856,22 +943,8 @@ def make_pick(
             on_clock = storage.get_team(on_clock_id)
             name = (on_clock or {}).get("name") or "another team"
             raise ValueError(f"It is {name}'s turn to pick")
-    from src.draft_hub.draft_pool import list_drafted_player_ids
-
-    if str(player.get("player_id") or "") in list_drafted_player_ids(league_id):
-        raise ValueError("Player already drafted")
+    resolved = _resolved_pool_player(league, session, player, from_pool=from_pool)
     workspace_id = storage.roster_workspace_for_league(league)
-    ws = storage.get_workspace_by_id(workspace_id) if league.get("workspace_id") else None
-    sleeper_ids = set((ws or {}).get("sleeper_player_ids") or [])
-    resolved = resolve_nomination_player(
-        league_id=league_id,
-        pool_mode=session.get("pool_mode"),
-        player_id=str(player.get("player_id") or ""),
-        season=int(league["season"]),
-        rules=rules,
-        workspace_id=workspace_id,
-        sleeper_player_ids=sleeper_ids,
-    )
     pos = normalize_position(resolved.get("position") or player.get("position"))
     team_roster = storage.list_team_roster(league_id, team["id"])
     assert_can_acquire(rules, team_roster, pos)
@@ -917,11 +990,9 @@ def make_pick(
     storage.append_draft_event(league_id, "pick", picked)
     _pop_queue_player(team, picked.get("player_id"))
     _advance_nominator(league_id)
-    if all_rosters_full(league_id, rules):
-        try:
-            return end_draft(league_id, league["commissioner_sub"], force=True)
-        except ValueError:
-            pass
+    ended = _maybe_end_if_rosters_full(league_id, league, rules)
+    if ended is not None:
+        return ended
     storage.update_draft_session(
         league_id,
         status="picking",
@@ -932,7 +1003,7 @@ def make_pick(
         last_bid_at=None,
         nomination_deadline=_deadline(rules.auction.nomination_timer_sec),
     )
-    return get_room_state(league_id, user_sub)
+    return _emit_state(league_id, user_sub)
 
 
 def place_bid(league_id: str, user_sub: str, amount: float) -> dict[str, Any]:
@@ -978,7 +1049,7 @@ def place_bid(league_id: str, user_sub: str, amount: float) -> dict[str, Any]:
         "bid",
         {"team_id": team["id"], "team_name": team["name"], "amount": amount},
     )
-    return get_room_state(league_id, user_sub)
+    return _emit_state(league_id, user_sub)
 
 
 def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
@@ -1006,7 +1077,7 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
         )
         _advance_nominator(league_id)
         storage.append_draft_event(league_id, "pass", {"reason": "no_nominee"})
-        return get_room_state(league_id, user_sub)
+        return _emit_state(league_id, user_sub)
     if not winner_id or amount is None:
         winner_id = nominee.get("nominating_team_id")
         amount = min_bid
@@ -1031,7 +1102,7 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
                     "reason": "no_bids",
                 },
             )
-            return get_room_state(league_id, user_sub)
+            return _emit_state(league_id, user_sub)
 
     winner = storage.get_team(winner_id)
     if not winner:
@@ -1056,7 +1127,7 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
             "pass",
             {"player_id": nominee.get("player_id"), "reason": "position_cap"},
         )
-        return get_room_state(league_id, user_sub)
+        return _emit_state(league_id, user_sub)
     new_budget = float(winner["budget_remaining"]) - float(amount)
     storage.update_team_budget(winner_id, new_budget)
     # Must match the workspace list_team_roster reads from, or picks vanish.
@@ -1083,8 +1154,8 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
     )
     grade = _pick_value_grade(
         float(amount),
-        float(nominee["fair_value"]) if nominee.get("fair_value") is not None else None,
-        float(nominee["per_game_proj"]) if nominee.get("per_game_proj") is not None else None,
+        _finite_or_none(nominee.get("fair_value")),
+        _finite_or_none(nominee.get("per_game_proj")),
     )
     storage.append_draft_event(
         league_id,
@@ -1097,8 +1168,8 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
             "value_blurb": _pick_value_blurb(
                 grade,
                 amount=float(amount),
-                fair_value=float(nominee["fair_value"]) if nominee.get("fair_value") is not None else None,
-                per_game=float(nominee["per_game_proj"]) if nominee.get("per_game_proj") is not None else None,
+                fair_value=_finite_or_none(nominee.get("fair_value")),
+                per_game=_finite_or_none(nominee.get("per_game_proj")),
             ),
             "fair_value": nominee.get("fair_value"),
             "per_game_proj": nominee.get("per_game_proj"),
@@ -1118,7 +1189,10 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
         nomination_deadline=_deadline(rules.auction.nomination_timer_sec),
     )
     _advance_nominator(league_id)
-    return get_room_state(league_id, user_sub)
+    ended = _maybe_end_if_rosters_full(league_id, league, rules)
+    if ended is not None:
+        return ended
+    return _emit_state(league_id, user_sub)
 
 
 def cut_player(league_id: str, user_sub: str, player_id: str) -> dict[str, Any]:
@@ -1216,7 +1290,7 @@ def _expire_nomination(league_id: str, user_sub: str | None = None) -> dict[str,
     sub = _team_sub(team) if team else None
     if payload and sub:
         try:
-            nominate(league_id, sub, payload)
+            nominate(league_id, sub, payload, from_pool=True)
             return get_room_state(league_id, user_sub)
         except ValueError:
             pass
@@ -1255,7 +1329,7 @@ def _expire_pick(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
     sub = _team_sub(team) if team else None
     if payload and sub:
         try:
-            make_pick(league_id, sub, payload)
+            make_pick(league_id, sub, payload, from_pool=True)
             return get_room_state(league_id, user_sub)
         except ValueError:
             pass
@@ -1294,8 +1368,10 @@ def tick_scheduled_starts() -> list[str]:
 def tick_expired_drafts() -> list[str]:
     """Advance every in-progress auction. Returns league ids whose state changed."""
     changed: list[str] = tick_scheduled_starts()
+    from src.draft_hub.test_draft import SIMULATING_LEAGUE_IDS
+
     for league_id in storage.list_in_progress_draft_league_ids():
-        if league_id in changed:
+        if league_id in changed or league_id in SIMULATING_LEAGUE_IDS:
             continue
         before = _session_timer_fingerprint(storage.get_draft_session(league_id))
         check_timers(league_id)
@@ -1308,12 +1384,16 @@ def tick_expired_drafts() -> list[str]:
 def check_timers(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
     """Auto-pass expired bids/nominations/picks; bots may act in test mode."""
     from src.draft_hub.test_draft import (
+        SIMULATING_LEAGUE_IDS,
         maybe_autodraft_nominate,
         maybe_autodraft_pick,
         maybe_bot_bid,
         maybe_bot_nominate,
         maybe_bot_pick,
     )
+
+    if league_id in SIMULATING_LEAGUE_IDS:
+        return get_room_state(league_id, user_sub)
 
     league = storage.get_league(league_id)
     session = storage.get_draft_session(league_id)
@@ -1324,6 +1404,10 @@ def check_timers(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
     now = datetime.now(timezone.utc)
     status = session.get("status")
     test_mode = storage.league_test_mode(league_id)
+    if test_mode and status in ("nominating", "bidding", "picking"):
+        rules = LeagueRules.model_validate(league["rules"])
+        if _maybe_end_if_rosters_full(league_id, league, rules) is not None:
+            return get_room_state(league_id, user_sub)
     # Bot actions build state under the bot's identity — rebuild with the
     # caller's sub or the polling client would adopt the bot's viewer/team.
     if status == "nominating" and test_mode:
