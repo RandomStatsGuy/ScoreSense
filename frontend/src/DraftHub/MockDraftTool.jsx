@@ -4,7 +4,8 @@ import { useAuth } from "../AuthContext";
 import { connectionErrorMessage, parseApiError } from "../format";
 import AccountAuth from "../AccountAuth";
 import VerifyEmailBanner from "../VerifyEmailBanner";
-import { HubAlert, HubPage } from "./HubUILayout";
+import Button from "../ui/Button";
+import { HubAlert, HubFilterChip, HubPage } from "./HubUILayout";
 import HubTabIntro from "./HubTabIntro";
 import DraftRoom from "./DraftRoom";
 import {
@@ -14,8 +15,12 @@ import {
   buildMockDraftStartBody,
   mockDraftDisplayName,
   mockDraftFormatLabel,
+  mockDraftLaunchSummary,
+  mockRoomPhaseKey,
   mockRoomPhaseLabel,
+  mockRoomResumeLabel,
   readStoredMockLeagueId,
+  resolveMockDraftSeason,
   writeStoredMockLeagueId,
 } from "./mockDraftConfig";
 
@@ -53,9 +58,21 @@ export default function MockDraftTool({ projMeta = null }) {
   );
   const sourceLeagueId = hubContext?.mode === "league" ? hubContext.league_id : null;
   const hasLeague = Boolean(sourceLeagueId);
-  const season = projMeta?.default_season || hubContext?.season || 2026;
+  const season = resolveMockDraftSeason(projMeta, hubContext);
   const botCount = botCountForTeams(teamCount);
   const formatLocked = Boolean((useLeagueRules || useLeagueManagers) && hasLeague);
+  const launchSummary = useMemo(
+    () => mockDraftLaunchSummary({
+      presetId,
+      teamCount,
+      season,
+      useLeagueRules,
+      useLeagueManagers,
+      hasLeague,
+      leagueName: hubContext?.league_name,
+    }),
+    [presetId, teamCount, season, useLeagueRules, useLeagueManagers, hasLeague, hubContext?.league_name],
+  );
 
   useEffect(() => {
     if (!formatLocked) return;
@@ -215,9 +232,14 @@ export default function MockDraftTool({ projMeta = null }) {
     <HubPage className="mock-draft-tool">
       <HubTabIntro
         title="Mock draft"
-        purpose="Practice against bots without touching your real league. Play a live mock, or simulate a full draft and jump to the recap."
+        purpose="You control one team. Bots fill the remaining seats. Nothing here touches your real league."
+        audience="Draft live when you want the clock, or run an instant simulation to jump to the recap."
       />
       {error ? <HubAlert variant="danger">{error}</HubAlert> : null}
+
+      <p className="mock-draft-role" role="note">
+        Your seat is human. The other {botCount} {botCount === 1 ? "team is a bot" : "teams are bots"}.
+      </p>
 
       <div className="mock-draft-setup">
         <section className="mock-draft-formats" aria-label="Draft format">
@@ -244,21 +266,21 @@ export default function MockDraftTool({ projMeta = null }) {
 
         <div className="mock-draft-controls">
           <fieldset className="mock-draft-teams" disabled={busy}>
-            <legend>Teams</legend>
+            <legend>Field size</legend>
             <div className="mock-draft-team-chips" role="group" aria-label="League size">
               {MOCK_TEAM_SIZES.map((n) => (
-                <button
+                <HubFilterChip
                   key={n}
-                  type="button"
-                  className={`mock-draft-team-chip${teamCount === n ? " is-active" : ""}`}
-                  aria-pressed={teamCount === n}
+                  compact
+                  active={teamCount === n}
+                  disabled={busy}
                   onClick={() => setTeamCount(n)}
                 >
-                  {n}
-                </button>
+                  {n} teams
+                </HubFilterChip>
               ))}
             </div>
-            <p className="chart-note">You plus {botCount} bots.</p>
+            <p className="chart-note">1 human + {botCount} bots</p>
           </fieldset>
 
           {hasLeague ? (
@@ -270,7 +292,10 @@ export default function MockDraftTool({ projMeta = null }) {
                   disabled={busy}
                   onChange={(e) => setUseLeagueRules(e.target.checked)}
                 />
-                Use {hubContext?.league_name || "my league"} rules
+                <span>
+                  Use {hubContext?.league_name || "my league"} rules
+                  <span className="hub-toggle-hint">Scoring, roster spots, and draft type from the league.</span>
+                </span>
               </label>
               <label className="hub-toggle-row">
                 <input
@@ -279,7 +304,10 @@ export default function MockDraftTool({ projMeta = null }) {
                   disabled={busy}
                   onChange={(e) => setUseLeagueManagers(e.target.checked)}
                 />
-                Fill seats with my league&apos;s managers
+                <span>
+                  Fill seats with {hubContext?.league_name || "my league"}&apos;s managers
+                  <span className="hub-toggle-hint">Bot names only. Does not copy keepers or rosters.</span>
+                </span>
               </label>
             </div>
           ) : (
@@ -289,55 +317,107 @@ export default function MockDraftTool({ projMeta = null }) {
           )}
         </div>
 
-        <div className="mock-draft-actions">
-          <button
-            type="button"
-            className="btn-primary"
-            disabled={busy}
-            onClick={() => startRoom({ simulate: false })}
-          >
-            {busy && busyKind === "start" ? "Starting…" : "Start mock draft"}
-          </button>
-          <button
-            type="button"
-            className="btn-ghost"
-            disabled={busy}
-            onClick={() => startRoom({ simulate: true })}
-            title="Run every pick instantly, then open the recap"
-          >
-            {busy && busyKind === "simulate" ? "Simulating…" : "Simulate full draft"}
-          </button>
+        <section className="mock-draft-summary" aria-label="Launch summary">
+          <h3 className="mock-draft-summary-title">This mock</h3>
+          <dl className="mock-draft-summary-grid">
+            <div>
+              <dt>Format</dt>
+              <dd>{launchSummary.format}</dd>
+            </div>
+            <div>
+              <dt>Teams</dt>
+              <dd>{launchSummary.teams}</dd>
+            </div>
+            <div>
+              <dt>Bots</dt>
+              <dd>{launchSummary.bots}</dd>
+            </div>
+            <div>
+              <dt>Projections</dt>
+              <dd>{launchSummary.season ?? "App default"}</dd>
+            </div>
+            <div>
+              <dt>Rules</dt>
+              <dd>{launchSummary.ruleSource}</dd>
+            </div>
+            <div>
+              <dt>Managers</dt>
+              <dd>{launchSummary.managerSource}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <div className="hub-draft-entry-split mock-draft-launch">
+          <div className="hub-draft-entry-card hub-draft-entry-card--live is-emphasized">
+            <div className="hub-draft-entry-card-head">
+              <h3>Draft live vs bots</h3>
+              <p>
+                Interactive room. You pick or nominate at your seat; bots handle the other teams on the clock.
+              </p>
+            </div>
+            <div className="hub-draft-entry-card-actions">
+              <Button
+                disabled={busy}
+                onClick={() => startRoom({ simulate: false })}
+              >
+                {busy && busyKind === "start" ? "Starting…" : "Start mock draft"}
+              </Button>
+            </div>
+          </div>
+          <div className="hub-draft-entry-card hub-draft-entry-card--practice">
+            <div className="hub-draft-entry-card-head">
+              <h3>Instant simulation</h3>
+              <p>
+                No live clock. Bots take every pick immediately, then the recap opens.
+                A 12-team auction can take a minute.
+              </p>
+            </div>
+            <div className="hub-draft-entry-card-actions">
+              <Button
+                variant="ghost"
+                disabled={busy}
+                onClick={() => startRoom({ simulate: true })}
+                title="Run every pick instantly, then open the recap"
+              >
+                {busy && busyKind === "simulate" ? "Simulating…" : "Simulate full draft"}
+              </Button>
+            </div>
+          </div>
         </div>
-        <p className="chart-note">
-          Simulate finishes the draft immediately — a 12-team auction can take a minute.
-        </p>
       </div>
 
       {recent.length > 0 && (
         <section className="mock-draft-recent" aria-label="Recent mock drafts">
           <h3>Recent mocks</h3>
           <ul>
-            {recent.map((room) => (
-              <li key={room.league_id}>
-                <div>
-                  <strong>{room.name || "Mock draft"}</strong>
-                  <span className="chart-note">
-                    {mockDraftFormatLabel(room.draft_type)}
-                    {" · "}
-                    {mockRoomPhaseLabel(room)}
-                    {room.team_count ? ` · ${room.team_count} teams` : ""}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm"
-                  disabled={busy}
-                  onClick={() => resumeRoom(room.league_id, room.name || "Mock draft")}
+            {recent.map((room) => {
+              const phase = mockRoomPhaseKey(room);
+              return (
+                <li
+                  key={room.league_id}
+                  className={`mock-draft-recent-item mock-draft-recent-item--${phase}`}
                 >
-                  {room.draft_completed ? "View recap" : "Resume"}
-                </button>
-              </li>
-            ))}
+                  <div>
+                    <strong className="mock-draft-recent-name">{room.name || "Mock draft"}</strong>
+                    <div className="mock-draft-recent-meta">
+                      <span className={`mock-draft-status mock-draft-status--${phase}`}>
+                        {mockRoomPhaseLabel(room)}
+                      </span>
+                      <span>{mockDraftFormatLabel(room.draft_type)}</span>
+                      {room.team_count ? <span>{room.team_count}-team</span> : null}
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => resumeRoom(room.league_id, room.name || "Mock draft")}
+                  >
+                    {mockRoomResumeLabel(room)}
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}

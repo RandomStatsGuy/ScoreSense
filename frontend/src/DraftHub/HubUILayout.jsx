@@ -135,6 +135,8 @@ export function HubFilterChip({
   accentColor,
   title,
   compact = false,
+  disabled = false,
+  ...rest
 }) {
   const classes = [
     "filter-chip",
@@ -162,6 +164,8 @@ export function HubFilterChip({
       style={chipStyle}
       title={title}
       aria-pressed={active}
+      disabled={disabled}
+      {...rest}
     >
       {children}
     </button>

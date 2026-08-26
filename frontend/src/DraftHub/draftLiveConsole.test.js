@@ -8,6 +8,7 @@ import {
   suggestedBidSource,
   nextNominator,
   nextOnClock,
+  formatPickTracker,
   teamRosterLine,
   teamBudgetLine,
   recapScopes,
@@ -59,6 +60,14 @@ test("nextOnClock snakes odd rounds instead of wrapping", () => {
   const teams = [{ id: "t1", name: "A" }, { id: "t3", name: "C" }];
   assert.equal(nextOnClock(session, teams, "linear").id, "t1");
   assert.equal(nextOnClock(session, teams, "snake").id, "t3");
+});
+
+test("formatPickTracker is compact and includes next seat", () => {
+  assert.equal(formatPickTracker(null), "");
+  assert.equal(
+    formatPickTracker({ round: 2, overall: 14 }, { nextTeam: { name: "Bot 3" } }),
+    "R2 · P14 · Next Bot 3",
+  );
 });
 
 test("teamRosterLine omits budget", () => {

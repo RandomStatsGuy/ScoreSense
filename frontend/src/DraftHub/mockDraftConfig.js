@@ -27,10 +27,29 @@ export function botCountForTeams(teamCount) {
   return n - 1;
 }
 
+/** First finite season from app meta, hub context, or an explicit number. */
+export function resolveMockDraftSeason(...sources) {
+  for (const source of sources) {
+    if (source == null || source === "") continue;
+    if (typeof source === "object") {
+      const nested = resolveMockDraftSeason(source.default_season, source.season);
+      if (nested != null) return nested;
+      continue;
+    }
+    const n = Number(source);
+    if (Number.isFinite(n) && n >= 1999) return n;
+  }
+  return null;
+}
+
+function presetById(presetId) {
+  return MOCK_DRAFT_PRESETS.find((p) => p.id === presetId) || MOCK_DRAFT_PRESETS[0];
+}
+
 export function buildMockDraftStartBody({
   presetId = "salary_cap_auction_v1",
   teamCount = 12,
-  season = 2026,
+  season,
   sourceLeagueId = null,
   useLeagueRules = false,
   useLeagueManagers = false,
@@ -39,9 +58,10 @@ export function buildMockDraftStartBody({
   const teams = MOCK_TEAM_SIZES.includes(Number(teamCount)) ? Number(teamCount) : 12;
   const hasSource = Boolean(sourceLeagueId);
   const mode = useLeagueManagers && hasSource ? "league_mirror" : "quick_bots";
+  const resolvedSeason = resolveMockDraftSeason(season);
   const body = {
     mode,
-    season: Number(season) || 2026,
+    season: resolvedSeason ?? 2026,
     team_count: teams,
     bot_count: botCountForTeams(teams),
     auto_start: true,
@@ -78,11 +98,47 @@ export function mockRoomPhaseLabel(room) {
   return "In progress";
 }
 
+export function mockRoomPhaseKey(room) {
+  const label = mockRoomPhaseLabel(room);
+  if (label === "Completed") return "completed";
+  if (label === "Ready") return "ready";
+  return "live";
+}
+
+export function mockRoomResumeLabel(room) {
+  return mockRoomPhaseKey(room) === "completed" ? "View recap" : "Resume";
+}
+
 export function mockDraftFormatLabel(draftType) {
   const t = String(draftType || "auction").toLowerCase();
   if (t === "snake") return "Snake";
   if (t === "linear") return "Linear";
   return "Auction";
+}
+
+export function mockDraftLaunchSummary({
+  presetId = "salary_cap_auction_v1",
+  teamCount = 12,
+  season = null,
+  useLeagueRules = false,
+  useLeagueManagers = false,
+  hasLeague = false,
+  leagueName = "",
+} = {}) {
+  const preset = presetById(presetId);
+  const teams = MOCK_TEAM_SIZES.includes(Number(teamCount)) ? Number(teamCount) : 12;
+  const league = String(leagueName || "").trim() || "your league";
+  const copiesLeagueRules = Boolean(hasLeague && (useLeagueRules || useLeagueManagers));
+  const resolvedSeason = resolveMockDraftSeason(season);
+  return {
+    format: preset.label,
+    teams,
+    bots: botCountForTeams(teams),
+    you: 1,
+    season: resolvedSeason,
+    ruleSource: copiesLeagueRules ? `${league} rules` : `${preset.label} preset`,
+    managerSource: hasLeague && useLeagueManagers ? `${league} managers` : "Generic bots",
+  };
 }
 
 export function readStoredMockLeagueId(storage) {
