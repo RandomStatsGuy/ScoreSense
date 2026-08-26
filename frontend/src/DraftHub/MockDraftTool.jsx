@@ -352,7 +352,9 @@ export default function MockDraftTool({ projMeta = null }) {
             <div className="hub-draft-entry-card-head">
               <h3>Draft live vs bots</h3>
               <p>
-                Interactive room. You pick or nominate at your seat; bots handle the other teams on the clock.
+                Interactive room. You{" "}
+                {presetId === "snake_draft_v1" || presetId === "linear_draft_v1" ? "pick" : "nominate"}
+                {" "}at your seat; bots handle the other teams on the clock.
               </p>
             </div>
             <div className="hub-draft-entry-card-actions">
@@ -369,7 +371,7 @@ export default function MockDraftTool({ projMeta = null }) {
               <h3>Instant simulation</h3>
               <p>
                 No live clock. Bots take every pick immediately, then the recap opens.
-                A 12-team auction can take a minute.
+                {" "}A {launchSummary.teams}-team {String(launchSummary.format || "draft").toLowerCase()} can take a minute.
               </p>
             </div>
             <div className="hub-draft-entry-card-actions">

@@ -35,6 +35,7 @@ import {
 } from "./hubDataCache";
 import { effectiveHubContext } from "./hubContext";
 import { fetchHubMemberships, setHubFocus, effectiveMemberships } from "./hubLeagues";
+import { isPickDraft } from "./draftEntryStatus";
 
 const EMPTY_VALUE_ROWS = [];
 
@@ -711,6 +712,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
             ?? 0
           }
           rules={effectiveCtx?.rules || workspace?.rules || null}
+          pickDraft={isPickDraft(effectiveCtx?.rules || workspace?.rules)}
         />
       )}
 

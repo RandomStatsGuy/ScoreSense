@@ -11,7 +11,7 @@ export const MOCK_DRAFT_PRESETS = [
   {
     id: "snake_draft_v1",
     label: "Snake draft",
-    hint: "Classic snake — pick when the clock hits your seat.",
+    hint: "Classic snake — pick when the clock hits your seat. No bidding, no salary cap.",
   },
   {
     id: "linear_draft_v1",

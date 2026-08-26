@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from src.draft_hub import storage
-from src.draft_hub.draft_recap import build_draft_recap
+from src.draft_hub.draft_recap import build_draft_recap, build_owner_draft_report
 from src.draft_hub.draft_state import make_pick, nominate, start_draft
 from src.draft_hub.pick_draft import is_pick_draft, team_at_pick_index
 from src.draft_hub.presets import load_preset
@@ -213,6 +213,7 @@ def test_pick_recap_skips_cap_awards(hub_db):
             "amount": 0,
             "overall": 1,
             "round": 1,
+            "season_proj": 180.4,
         },
     )
     recap = build_draft_recap(league["id"])
@@ -224,6 +225,18 @@ def test_pick_recap_skips_cap_awards(hub_db):
     assert recap["headline"]
     assert "Snake" in recap["headline"] or "snake" in recap["headline"].lower()
     assert recap["total_spent"] == 0
+    assert recap["notable_picks"][0]["overall"] == 1
+    assert recap["notable_picks"][0]["round"] == 1
+    assert recap["notable_picks"][0]["season_proj"] == 180.4
+
+    report = build_owner_draft_report(league["id"], team["id"])
+    assert report is not None
+    assert report["pick_draft"] is True
+    assert report["draft_type"] == "snake"
+    assert report["picks"][0]["overall"] == 1
+    assert report["picks"][0]["round"] == 1
+    assert report["picks"][0]["season_proj"] == 180.4
+    assert report["total_spent"] == 0
 
 
 def test_http_pick_assigns(hub_db, monkeypatch):

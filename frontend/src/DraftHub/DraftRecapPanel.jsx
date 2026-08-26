@@ -1,5 +1,6 @@
 import React from "react";
 import { fmtSal } from "./rosterFormat";
+import { formatPickSlot } from "./draftRoomHelpers";
 
 const GRADE_LABEL = {
   steal: "Steal",
@@ -69,12 +70,13 @@ export default function DraftRecapPanel({ recap, compact = false, hideHero = fal
           <ul>
             {recap.notable_picks.map((pick) => (
               <li key={`${pick.player_id}-${pick.team_id}`}>
-                <span className={`hub-draft-recap-grade hub-draft-recap-grade-${pick.value_grade}`}>
-                  {pickDraft ? "Pick" : (GRADE_LABEL[pick.value_grade] || "Pick")}
+                <span className={`hub-draft-recap-grade hub-draft-recap-grade-${pickDraft ? "pick" : pick.value_grade}`}>
+                  {pickDraft ? (formatPickSlot(pick) || "Pick") : (GRADE_LABEL[pick.value_grade] || "Pick")}
                 </span>
                 <span>
                   {pick.team_name} · {pick.player_name} ({pick.position})
                   {!pickDraft && <> — {fmtSal(pick.amount)}{pick.fair_value != null ? ` · fair ${fmtSal(pick.fair_value)}` : ""}</>}
+                  {pickDraft && pick.season_proj != null && <> · {Number(pick.season_proj).toFixed(0)} pts</>}
                 </span>
               </li>
             ))}

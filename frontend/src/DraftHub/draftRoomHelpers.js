@@ -1,3 +1,15 @@
+/** Compact round/overall label, e.g. `R1 · P1`. */
+export function formatPickSlot(payload = {}) {
+  const round = payload.round == null || payload.round === "" ? null : Number(payload.round);
+  const overall = payload.overall == null || payload.overall === "" ? null : Number(payload.overall);
+  const hasRound = Number.isFinite(round);
+  const hasOverall = Number.isFinite(overall);
+  if (hasRound && hasOverall) return `R${round} · P${overall}`;
+  if (hasOverall) return `P${overall}`;
+  if (hasRound) return `R${round}`;
+  return "";
+}
+
 /** Format draft room events for display. */
 export function formatDraftEvent(ev) {
   const p = ev.payload || {};
@@ -10,6 +22,14 @@ export function formatDraftEvent(ev) {
         : `${p.player_name || "Player"} (${p.position || "?"}) nominated`;
     case "force_nominate":
       return `Commissioner nominated ${p.player_name || "player"} for ${p.team_name || "on-clock team"}`;
+    case "pick": {
+      const who = `${p.player_name || "Player"} (${p.position || "?"})`;
+      const loc = formatPickSlot(p);
+      const locBit = loc ? ` · ${loc}` : "";
+      return p.forced
+        ? `${p.team_name || "Team"} force-picked ${who}${locBit}`
+        : `${p.team_name || "Team"} picked ${who}${locBit}`;
+    }
     case "win":
       return p.value_blurb
         ? `${p.team_name || "Team"} gets ${p.player_name || "Player"} — ${p.value_blurb}`
@@ -20,6 +40,9 @@ export function formatDraftEvent(ev) {
       }
       if (p.reason === "nomination_timeout") {
         return `${p.team_name || "Team"} skipped — nomination clock expired`;
+      }
+      if (p.reason === "pick_timeout") {
+        return `${p.team_name || "Team"} skipped — pick clock expired`;
       }
       if (p.reason === "commissioner_skip") {
         return `${p.team_name || "Team"} skipped by commissioner`;

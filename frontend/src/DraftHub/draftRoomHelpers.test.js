@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { formatDraftEvent, buildRosterCapacity, canAcquireAtPosition, unmetMinPositions, pinNeedPositions } from "./draftRoomHelpers.js";
+import { formatDraftEvent, formatPickSlot, buildRosterCapacity, canAcquireAtPosition, unmetMinPositions, pinNeedPositions } from "./draftRoomHelpers.js";
 import { auctionAwardContractLabel } from "./rosterFormat.js";
 
 test("formatDraftEvent describes mid-draft trades", () => {
@@ -41,6 +41,49 @@ test("formatDraftEvent describes commissioner force nominate", () => {
     }),
     /force-nominated for Bob/,
   );
+});
+
+test("formatDraftEvent describes snake picks and pick-clock skips", () => {
+  assert.equal(
+    formatDraftEvent({
+      event_type: "pick",
+      payload: {
+        team_name: "You",
+        player_name: "Zay Flowers",
+        position: "WR",
+        round: 1,
+        overall: 1,
+      },
+    }),
+    "You picked Zay Flowers (WR) · R1 · P1",
+  );
+  assert.equal(
+    formatDraftEvent({
+      event_type: "pick",
+      payload: {
+        team_name: "You",
+        player_name: "Puka",
+        position: "WR",
+        forced: true,
+        round: 2,
+        overall: 12,
+      },
+    }),
+    "You force-picked Puka (WR) · R2 · P12",
+  );
+  assert.equal(
+    formatDraftEvent({
+      event_type: "pass",
+      payload: { reason: "pick_timeout", team_name: "Bot 3" },
+    }),
+    "Bot 3 skipped — pick clock expired",
+  );
+});
+
+test("formatPickSlot omits dollars and missing slots", () => {
+  assert.equal(formatPickSlot({ round: 1, overall: 1 }), "R1 · P1");
+  assert.equal(formatPickSlot({ overall: 14 }), "P14");
+  assert.equal(formatPickSlot({}), "");
 });
 
 test("formatDraftEvent describes pause resume and commissioner skip", () => {
