@@ -284,6 +284,15 @@ def _pick_value_blurb(grade: str, *, amount: float, fair_value: float | None, pe
     return f"{head} — {meta}" if meta else head
 
 
+def _room_event_limit(rules: LeagueRules, team_count: int) -> int:
+    """Auction keeps a short live log; pick drafts need every pick for the board."""
+    if not is_pick_draft(rules):
+        return 50
+    roster_max = int(getattr(rules, "roster_size_max", None) or 16)
+    n = max(2, int(team_count) or 2)
+    return max(80, n * roster_max + 64)
+
+
 def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
     league = storage.get_league(league_id)
     if not league:
@@ -291,7 +300,11 @@ def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any
     session = storage.get_draft_session(league_id) or {}
     rules = LeagueRules.model_validate(league["rules"])
     teams = storage.list_league_teams(league_id)
-    events = storage.list_draft_events(league_id, limit=50)
+    configured_teams = int(league.get("team_count") or 0) or len(teams)
+    events = storage.list_draft_events(
+        league_id,
+        limit=_room_event_limit(rules, max(len(teams), configured_teams)),
+    )
     rosters = storage.list_league_rosters_by_team(league_id)
     draft_completed = bool(league.get("draft_completed"))
     from src.draft_hub.draft_budgets import team_auction_finance
@@ -306,11 +319,13 @@ def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any
             budget_remaining=float(team.get("budget_remaining") or 0),
         )
         enriched_teams.append({**team, **finance})
+    picks = [e for e in events if str(e.get("event_type") or "") == "pick"]
     out: dict[str, Any] = {
         "league": league,
         "session": session,
         "teams": enriched_teams,
         "events": events,
+        "picks": picks,
         "rosters": rosters,
         "roster_limits": rules.roster,
         "roster_size_max": int(getattr(rules, "roster_size_max", None) or 0) or None,
@@ -860,7 +875,18 @@ def nominate(
         "nominating_team_id": team["id"],
         "nominating_team_name": team.get("name"),
     }
-    for key in ("fair_value", "season_proj", "per_game_proj", "is_rookie", "years_exp", "nfl_years_exp"):
+    for key in (
+        "fair_value",
+        "season_proj",
+        "per_game_proj",
+        "season_p10",
+        "season_p50",
+        "season_p90",
+        "season_spread",
+        "is_rookie",
+        "years_exp",
+        "nfl_years_exp",
+    ):
         val = resolved.get(key)
         if val is None:
             val = player.get(key)
@@ -965,7 +991,18 @@ def make_pick(
         "round": clock.get("round"),
         "slot": clock.get("slot"),
     }
-    for key in ("fair_value", "season_proj", "per_game_proj", "is_rookie", "years_exp", "nfl_years_exp"):
+    for key in (
+        "fair_value",
+        "season_proj",
+        "per_game_proj",
+        "season_p10",
+        "season_p50",
+        "season_p90",
+        "season_spread",
+        "is_rookie",
+        "years_exp",
+        "nfl_years_exp",
+    ):
         val = resolved.get(key)
         if val is None:
             val = player.get(key)

@@ -19,6 +19,7 @@ import {
 import { HubPage, HubTableCard, HubFilterMenu, HubFilterChip, SortTh } from "./HubUILayout";
 import { HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import ValueSheetPlayerRow from "./ValueSheetPlayerRow";
+import { columnsForDraftMode, positionalRanks } from "./valueSheetColumns";
 import {
   formatSeasonPts,
   isScheduleAwareMethod,
@@ -50,15 +51,6 @@ const RISK_PROFILE_FILTERS = [
   { id: "ALL", label: "All" },
   { id: "UPSIDE", label: "Ceiling" },
   { id: "FLOOR", label: "Floor" },
-];
-const SORT_MENU_OPTIONS = [
-  { id: "fair_value", label: "Suggested bid" },
-  { id: "risk_score", label: "Risk score" },
-  { id: "season_proj", label: "Projected points" },
-  { id: "season_spread", label: "Season spread" },
-  { id: "upside_skew", label: "Upside skew" },
-  { id: "value_delta", label: "Value vs cost" },
-  { id: "player", label: "Name" },
 ];
 const DEFAULT_SORT_KEY = "fair_value";
 const PICK_DRAFT_SORT_KEY = "season_proj";
@@ -136,7 +128,10 @@ export default function ValueSheetTable({
   const pickDraft = pickDraftProp != null
     ? Boolean(pickDraftProp)
     : Boolean(actionLabel) && !String(actionLabel).toLowerCase().includes("nominate");
-  const nominateText = actionLabel || (draftConsole ? `Nominate for $${Number(minBid || 1)}` : "Nominate");
+  const nominateText = actionLabel
+    || (draftConsole
+      ? (pickDraft ? "Pick" : `Nominate for $${Number(minBid || 1)}`)
+      : "Nominate");
   const valueColLabel = "Suggested bid";
   const isAvailableView = mode === "available";
   const [sortKey, setSortKey] = useState(() => defaultSortKeyForBoard(pickDraft));
@@ -157,29 +152,31 @@ export default function ValueSheetTable({
 
   const showAdvanced = showAdvancedProp ?? (draftConsole ? false : compact ? true : showAdvancedLocal);
   const activeRisk = isRiskToleranceActive(riskTolerance) && !pickDraft;
-  // Risk score column: Advanced always; also when RAAV stance is on so the badge has context.
-  const showRiskScore = draftConsole ? true : (showAdvanced || activeRisk);
-  const showPosCol = !draftConsole;
-  const showValueRange = draftConsole && !pickDraft;
-  const showFairValue = !pickDraft;
-  const showCostDelta = showDelta && !pickDraft;
-  const showSalaryBounds = showAdvanced && !pickDraft;
   const showAdvancedToggle = !compact && showAdvancedProp == null;
-
-  const sleeperLinked = Boolean(sleeper?.sleeper_league_id && sleeper?.sleeper_roster_id);
+  const schema = useMemo(
+    () => columnsForDraftMode({
+      pickDraft,
+      compact,
+      advanced: showAdvanced,
+      draftConsole,
+      showDelta,
+      showStatus,
+      showAdd,
+      showSelect: Boolean(onSelectPlayer),
+      riskActive: activeRisk,
+    }),
+    [pickDraft, compact, showAdvanced, draftConsole, showDelta, showStatus, showAdd, onSelectPlayer, activeRisk],
+  );
+  const showRiskScore = schema.showRiskScore;
+  const showPosCol = schema.showPosCol;
+  const showValueRange = schema.showValueRange;
+  const showFairValue = schema.showFairValue;
+  const showCostDelta = schema.showCostDelta;
+  const showSalaryBounds = schema.showSalaryBounds;
   const showSelect = Boolean(onSelectPlayer);
-  const actionCol = showAdd || showSelect;
-  const colCount = 1
-    + (showPosCol ? 1 : 0)
-    + 1
-    + (showAdvanced ? (showSalaryBounds ? 5 : 3) : 0)
-    + (showValueRange ? 1 : 0)
-    + (showFairValue ? 1 : 0)
-    + (showRiskScore ? 1 : 0)
-    + (showCostDelta ? 1 : 0)
-    + 1
-    + (showStatus ? 1 : 0)
-    + (actionCol ? 1 : 0);
+  const actionCol = schema.actionCol;
+  const colCount = schema.colCount;
+  const sleeperLinked = Boolean(sleeper?.sleeper_league_id && sleeper?.sleeper_roster_id);
 
   useEffect(() => {
     setPosFilter(defaultPosFilter);
@@ -194,8 +191,17 @@ export default function ValueSheetTable({
     setMobileListLimit(MOBILE_LIST_PAGE);
   }, [posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, rows]);
 
+  const rankMap = useMemo(() => positionalRanks(rows), [rows]);
+  const rankedRows = useMemo(
+    () => (rows || []).map((r) => ({
+      ...r,
+      pos_rank: rankMap.get(String(r.player_id)) ?? r.pos_rank ?? null,
+    })),
+    [rows, rankMap],
+  );
+
   const sorted = useMemo(() => {
-    let list = filterAndSortRows(rows, {
+    let list = filterAndSortRows(rankedRows, {
       pool: isAvailableView ? "available" : "all",
       posFilter,
       statusFilter: isAvailableView ? "ALL" : statusFilter,
@@ -211,7 +217,7 @@ export default function ValueSheetTable({
       list = list.filter((r) => pinSet.has(normalizeHubPosition(r.position)));
     }
     return pinNeedPositions(list, pins, maxRows);
-  }, [rows, isAvailableView, posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, maxRows, needPositions, needsOnly]);
+  }, [rankedRows, isAvailableView, posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, maxRows, needPositions, needsOnly]);
 
   const seasonScaleMax = useMemo(() => {
     let max = 0;
@@ -381,13 +387,13 @@ export default function ValueSheetTable({
     [],
   );
   const sortMenuOptions = useMemo(() => {
-    let opts = SORT_MENU_OPTIONS.map((o) => (
+    if (pickDraft) return schema.sortOptions;
+    let opts = schema.sortOptions.map((o) => (
       o.id === "fair_value" ? { ...o, label: valueColLabel } : o
     ));
-    if (pickDraft) opts = opts.filter((o) => o.id !== "fair_value" && o.id !== "value_delta");
-    else if (!showCostDelta) opts = opts.filter((o) => o.id !== "value_delta");
+    if (!showCostDelta) opts = opts.filter((o) => o.id !== "value_delta");
     return opts;
-  }, [showCostDelta, valueColLabel, pickDraft]);
+  }, [schema.sortOptions, showCostDelta, valueColLabel, pickDraft]);
 
   const resetBoard = useCallback(() => {
     setSortKey(defaultSortKeyForBoard(pickDraft));
@@ -420,9 +426,10 @@ export default function ValueSheetTable({
     const parts = [];
     if (row.team) parts.push(row.team);
     if (row.position) parts.push(row.position);
-    if (row.tier) parts.push(row.tier);
+    if (row.pos_rank) parts.push(`${row.position}${row.pos_rank}`);
+    if (!pickDraft && row.tier) parts.push(row.tier);
     return parts.join(" · ") || "—";
-  }, []);
+  }, [pickDraft]);
 
   const sheetClass = compact ? "hub-panel-compact" : "";
   const Wrapper = draftConsole ? "div" : HubPage;
@@ -480,7 +487,22 @@ export default function ValueSheetTable({
           aria-label="Search players"
         />
         <div className="hub-filter-bar-menus">
-          <HubFilterMenu label="Pos" value={posFilter} options={positionOptions} onChange={setPosFilter} />
+          {pickDraft ? (
+            <div className="hub-pos-chip-row" role="group" aria-label="Position">
+              {positionOptions.map((opt) => (
+                <HubFilterChip
+                  key={opt.id}
+                  compact={compact}
+                  active={posFilter === opt.id}
+                  onClick={() => setPosFilter(opt.id)}
+                >
+                  {opt.label}
+                </HubFilterChip>
+              ))}
+            </div>
+          ) : (
+            <HubFilterMenu label="Pos" value={posFilter} options={positionOptions} onChange={setPosFilter} />
+          )}
           {needPositions?.length > 0 && (
             <HubFilterChip
               compact={compact}
@@ -549,7 +571,7 @@ export default function ValueSheetTable({
           role="region"
           aria-label="More player filters"
         >
-          {showTierFilters && (
+          {showTierFilters && !pickDraft && (
             <HubFilterMenu label="Tier" value={tierFilter} options={tierOptions} onChange={setTierFilter} />
           )}
           {availabilityFilterOptions.length > 0 && (
@@ -642,6 +664,24 @@ export default function ValueSheetTable({
                   onClick={() => onRowDoubleClick(r)}
                 >
                   {nominateText}
+                </button>,
+              );
+            }
+            if (draftConsole) {
+              actions.push(
+                <button key="queue" type="button" className="btn-ghost btn-sm" onClick={() => onQueuePlayer?.(r)}>
+                  Queue
+                </button>,
+              );
+              actions.push(
+                <button
+                  key="watch"
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  aria-pressed={(watchIds || []).map(String).includes(String(r.player_id))}
+                  onClick={() => onWatchPlayer?.(r)}
+                >
+                  {(watchIds || []).map(String).includes(String(r.player_id)) ? "Watching" : "Watch"}
                 </button>,
               );
             }
@@ -758,11 +798,11 @@ export default function ValueSheetTable({
         </>
       ) : (
       <div className="table-wrap table-sticky">
-        <table className="data-table hub-table">
+        <table className={`data-table hub-table${pickDraft ? " hub-table--pick-draft" : ""}`}>
           <thead>
             <tr>
               <SortTh label="Player" col="player" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="col-player" />
-              {showAdvanced && (
+              {schema.showTeam && (
                 <SortTh label="Team" col="team" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-team" />
               )}
               {showPosCol && (
@@ -777,26 +817,39 @@ export default function ValueSheetTable({
                 className="hub-col-proj"
                 tip={projectedPointsTip}
               />
-              {showAdvanced && (
+              {schema.showPosRank && (
+                <SortTh label="Pos rank" col="pos_rank" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-posrank" />
+              )}
+              {schema.showNeed && (
+                <th className="hub-col-need">Fit</th>
+              )}
+              {schema.showP10 && (
                 <>
-                  <SortTh label="Per-game" col="per_game_proj" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-pg" />
-                  <SortTh
-                    label="Spread"
-                    col="season_spread"
-                    sortKey={sortKey}
-                    sortDir={sortDir}
-                    onSort={onSort}
-                    className="hub-col-spread"
-                    tip={pickDraft
-                      ? "Season ceiling minus floor (wider = more boom/bust)"
-                      : "Season ceiling minus floor (wider = more auction risk / upside)"}
-                  />
-                  {showSalaryBounds && (
-                    <>
-                      <SortTh label="Min" col="min_sal" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-min" />
-                      <SortTh label="Max" col="max_sal" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-max" />
-                    </>
-                  )}
+                  <SortTh label="P10" col="season_p10" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-p10" tip="Season floor (10th percentile)" />
+                  <SortTh label="P50" col="season_p50" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-p50" />
+                  <SortTh label="P90" col="season_p90" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-p90" tip="Season ceiling (90th percentile)" />
+                </>
+              )}
+              {schema.showPerGame && (
+                <SortTh label="Per-game" col="per_game_proj" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-pg" />
+              )}
+              {schema.showSpread && (
+                <SortTh
+                  label="Spread"
+                  col="season_spread"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                  className="hub-col-spread"
+                  tip={pickDraft
+                    ? "Season ceiling minus floor (wider = more boom/bust)"
+                    : "Season ceiling minus floor (wider = more auction risk / upside)"}
+                />
+              )}
+              {showSalaryBounds && (
+                <>
+                  <SortTh label="Min" col="min_sal" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-min" />
+                  <SortTh label="Max" col="max_sal" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-max" />
                 </>
               )}
               {showValueRange && (
@@ -839,7 +892,9 @@ export default function ValueSheetTable({
                   tip={VALUE_VS_COST_TIP}
                 />
               )}
-              <SortTh label="Tier" col="tier" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-tier" />
+              {schema.showTier && (
+                <SortTh label="Tier" col="tier" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-tier" />
+              )}
               {showStatus && <SortTh label="Status" col="status" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-status" />}
               {actionCol && <th className="hub-col-actions" aria-label="Actions" />}
             </tr>
@@ -865,6 +920,17 @@ export default function ValueSheetTable({
                   pickDraft={pickDraft}
                   showValueRange={showValueRange}
                   showFairValue={showFairValue}
+                  showTier={schema.showTier}
+                  showPosRank={schema.showPosRank}
+                  showNeed={schema.showNeed}
+                  showP10={schema.showP10}
+                  showTeam={schema.showTeam}
+                  showPosCol={showPosCol}
+                  showPerGame={schema.showPerGame}
+                  showSpread={schema.showSpread}
+                  showSalaryBounds={showSalaryBounds}
+                  actionCol={actionCol}
+                  needPositions={needPositions}
                   key={r.player_id || `row-${idx}`}
                   row={r}
                   showAdvanced={showAdvanced}

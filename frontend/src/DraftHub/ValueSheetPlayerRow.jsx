@@ -38,6 +38,17 @@ function ValueSheetPlayerRow({
   pickDraft = false,
   showValueRange,
   showFairValue = true,
+  showTier = true,
+  showPosRank = false,
+  showNeed = false,
+  showP10 = false,
+  showTeam = false,
+  showPosCol = true,
+  showPerGame = false,
+  showSpread = false,
+  showSalaryBounds = false,
+  actionCol = true,
+  needPositions = [],
 }) {
   const handleRowClick = useCallback(() => {
     if (onSelectPlayer) onSelectPlayer(row);
@@ -72,6 +83,9 @@ function ValueSheetPlayerRow({
   );
   const showRaavBadge = isRiskToleranceActive(riskTolerance)
     || (row.risk_adjusted_value != null && Number.isFinite(Number(row.risk_adjusted_value)));
+  const isNeed = (needPositions || []).some(
+    (p) => String(p || "").toUpperCase() === String(row.position || "").toUpperCase(),
+  );
 
   return (
     <tr
@@ -91,10 +105,10 @@ function ValueSheetPlayerRow({
           clickable={Boolean(row.player_id)}
           narrativeScope={narrativeScope}
         />
-        {row.is_rookie && <span className="hub-sleeper-badge">Rookie est.</span>}
-      </td>
-      {showAdvanced && <td className="hub-col-team">{row.team}</td>}
-      {!draftConsole && <td className="hub-col-pos">{row.position}</td>}
+          {row.is_rookie && <span className="hub-sleeper-badge">Rookie est.</span>}
+        </td>
+      {showTeam && <td className="hub-col-team" title={row.team}>{row.team}</td>}
+      {showPosCol && <td className="hub-col-pos">{row.position}</td>}
       <td className="num hub-col-proj">
         <SeasonRangeCell
           row={row}
@@ -106,19 +120,34 @@ function ValueSheetPlayerRow({
           <div className="chart-note">{row.per_game_proj}/g</div>
         )}
       </td>
-      {showAdvanced && (
+      {showPosRank && (
+        <td className="num hub-col-posrank">{row.pos_rank != null ? `${row.position}${row.pos_rank}` : "—"}</td>
+      )}
+      {showNeed && (
+        <td className="hub-col-need">
+          {isNeed ? <span className="hub-need-chip">Need</span> : <span className="chart-note">—</span>}
+        </td>
+      )}
+      {showP10 && (
         <>
-          <td className="num hub-col-pg">{row.per_game_proj}</td>
-          <td className="num hub-col-spread">{spreadLabel}</td>
-          {!pickDraft && (
-            <>
-              <td className="num hub-col-min">{fmtSal(row.min_sal)}</td>
-              <td className="num hub-col-max">{fmtSal(row.max_sal)}</td>
-            </>
-          )}
+          <td className="num hub-col-p10">{row.season_p10 != null ? formatSeasonPts(row.season_p10, 0) : "—"}</td>
+          <td className="num hub-col-p50">{formatSeasonPts(row.season_p50 ?? row.season_proj, 0)}</td>
+          <td className="num hub-col-p90">{row.season_p90 != null ? formatSeasonPts(row.season_p90, 0) : "—"}</td>
         </>
       )}
-      {(showValueRange ?? draftConsole) && !pickDraft && (
+      {showPerGame && (
+        <td className="num hub-col-pg">{row.per_game_proj}</td>
+      )}
+      {showSpread && (
+        <td className="num hub-col-spread">{spreadLabel}</td>
+      )}
+      {showSalaryBounds && (
+        <>
+          <td className="num hub-col-min">{fmtSal(row.min_sal)}</td>
+          <td className="num hub-col-max">{fmtSal(row.max_sal)}</td>
+        </>
+      )}
+      {showValueRange && (
         <td className="num hub-col-value" title="Model auction range">
           {row.min_sal != null && row.max_sal != null
             ? `${fmtSal(row.min_sal)}–${fmtSal(row.max_sal)}`
@@ -149,18 +178,19 @@ function ValueSheetPlayerRow({
           ) : "—"}
         </td>
       )}
-      <td className="hub-col-tier">{row.tier}</td>
+      {showTier && <td className="hub-col-tier">{row.tier}</td>}
       {showStatus && (
         <td className="hub-col-status">
           <span className={`hub-status hub-status-${row.status}`} title={row.status}>{statusLabel}</span>
         </td>
       )}
+      {actionCol && (
       <td className="hub-col-actions">
         {draftConsole && (
           <div className="hub-draft-row-actions" onClick={(event) => event.stopPropagation()}>
             {canNominate && (
               <button type="button" className="btn-primary btn-sm" onClick={() => onRowDoubleClick?.(row)}>
-                {actionLabel || `Nominate for $${Number(minBid || 1)}`}
+                {actionLabel || (pickDraft ? "Pick" : `Nominate for $${Number(minBid || 1)}`)}
               </button>
             )}
             <button type="button" className="btn-ghost btn-sm" onClick={() => onQueuePlayer?.(row)}>Queue</button>
@@ -191,6 +221,7 @@ function ValueSheetPlayerRow({
           </button>
         )}
       </td>
+      )}
     </tr>
   );
 }
@@ -219,6 +250,16 @@ function propsAreEqual(prev, next) {
     && prev.pickDraft === next.pickDraft
     && prev.showValueRange === next.showValueRange
     && prev.showFairValue === next.showFairValue
+    && prev.showTier === next.showTier
+    && prev.showPosRank === next.showPosRank
+    && prev.showNeed === next.showNeed
+    && prev.showP10 === next.showP10
+    && prev.showTeam === next.showTeam
+    && prev.showPosCol === next.showPosCol
+    && prev.showPerGame === next.showPerGame
+    && prev.showSpread === next.showSpread
+    && prev.showSalaryBounds === next.showSalaryBounds
+    && prev.actionCol === next.actionCol
     && prev.actionLabel === next.actionLabel
     && prev.canNominate === next.canNominate
     && prev.draftConsole === next.draftConsole
