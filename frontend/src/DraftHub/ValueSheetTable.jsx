@@ -19,7 +19,7 @@ import {
 import { HubPage, HubTableCard, HubFilterMenu, HubFilterChip, SortTh } from "./HubUILayout";
 import { HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import ValueSheetPlayerRow from "./ValueSheetPlayerRow";
-import { columnsForDraftMode, positionalRanks } from "./valueSheetColumns";
+import { columnsForDraftMode, positionalRanks, sortLabelForKey } from "./valueSheetColumns";
 import {
   formatSeasonPts,
   isScheduleAwareMethod,
@@ -418,7 +418,10 @@ export default function ValueSheetTable({
     || needsOnly
     || showAdvancedLocal,
   );
-  const activeSortLabel = sortMenuOptions.find((o) => o.id === sortKey)?.label || sortKey;
+  const activeSortLabel = sortLabelForKey(sortMenuOptions, sortKey);
+  const emptyMessage = boardDirty
+    ? "No players match these filters."
+    : "No players available.";
 
   const showSkeleton = loading && sorted.length === 0;
 
@@ -560,7 +563,7 @@ export default function ValueSheetTable({
             disabled={!boardDirty}
             onClick={resetBoard}
           >
-            Reset board
+            Reset filters
           </button>
         </div>
       )}
@@ -614,7 +617,7 @@ export default function ValueSheetTable({
           {statusFilter !== "ALL" ? ` · ${statusFilter}` : ""}
           {riskProfile !== "ALL" ? ` · ${riskProfile}` : ""}
           {search.trim() ? ` · “${search.trim()}”` : ""}
-          {` · sort ${sortKey}`}
+          {` · sort ${activeSortLabel}`}
         </div>
       )}
       <HubTableCard>
@@ -622,7 +625,9 @@ export default function ValueSheetTable({
         <>
         <MobileDataList
           loading={showSkeleton}
-          emptyMessage={!loading && sorted.length === 0 ? "No players match these filters." : null}
+          emptyMessage={!loading && sorted.length === 0 ? emptyMessage : null}
+          emptyActionLabel="Reset filters"
+          onEmptyAction={!loading && sorted.length === 0 && boardDirty ? resetBoard : undefined}
         >
           {mobileRows.map((r, idx) => {
             const inRoster = Boolean(rosterIds?.has(r.player_id));
@@ -905,7 +910,16 @@ export default function ValueSheetTable({
             <tbody>
               {!loading && sorted.length === 0 && (
                 <tr>
-                  <td colSpan={colCount} className="hub-roster-empty">No players match these filters.</td>
+                  <td colSpan={colCount} className="hub-roster-empty">
+                    <div className="hub-table-empty-filter-state">
+                      <span>{emptyMessage}</span>
+                      {boardDirty ? (
+                        <button type="button" className="btn-ghost btn-sm" onClick={resetBoard}>
+                          Reset filters
+                        </button>
+                      ) : null}
+                    </div>
+                  </td>
                 </tr>
               )}
               {sorted.map((r, idx) => (

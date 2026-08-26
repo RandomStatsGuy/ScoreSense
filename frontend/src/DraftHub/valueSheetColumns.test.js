@@ -5,6 +5,7 @@ import {
   columnsForDraftMode,
   pickDraftSchemaHasNoAuctionColumns,
   PICK_DRAFT_SORT_OPTIONS,
+  sortLabelForKey,
 } from "./valueSheetColumns.js";
 
 test("pick-draft live console schema has no auction columns", () => {
@@ -75,4 +76,9 @@ test("loading/empty colCount matches populated schema", () => {
   const live = columnsForDraftMode({ pickDraft: true, compact: true, draftConsole: true, showStatus: false, showSelect: true });
   const empty = columnsForDraftMode({ pickDraft: true, compact: true, draftConsole: true, showStatus: false, showSelect: true });
   assert.equal(live.colCount, empty.colCount);
+});
+
+test("sort labels stay human-readable in compact and mobile summaries", () => {
+  assert.equal(sortLabelForKey(PICK_DRAFT_SORT_OPTIONS, "season_proj"), "Projected points");
+  assert.equal(sortLabelForKey([], "season_spread"), "Season Spread");
 });
