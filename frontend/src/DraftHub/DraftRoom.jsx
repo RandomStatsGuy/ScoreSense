@@ -18,6 +18,7 @@ import ValueSheetTable from "./ValueSheetTable";
 import { confirmDialog } from "../ui/confirm";
 import DraftDeadlineClock from "./DraftDeadlineClock";
 import DraftLiveCommandBar from "./DraftLiveCommandBar";
+import DraftOverflowMenu from "./DraftOverflowMenu";
 import {
   viewerIsCommissioner,
   nextNominator,
@@ -1517,38 +1518,37 @@ export default function DraftRoom({
               </button>
             )}
             {isCommissioner && (
-              <details className="hub-draft-commish-overflow">
-                <summary className="btn-ghost btn-sm" aria-label="More commissioner controls">More</summary>
-                <div className="hub-draft-commish-overflow-menu">
-                  <button type="button" className="btn-ghost btn-sm hub-draft-end-btn" disabled={busy} onClick={endDraft}>
-                    End draft
+              <DraftOverflowMenu>
+                <button type="button" role="menuitem" className="btn-ghost btn-sm hub-draft-end-btn" disabled={busy} onClick={endDraft}>
+                  End draft
+                </button>
+                {!testMode && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="btn-ghost btn-sm"
+                    disabled={busy}
+                    onClick={resetLiveDraft}
+                    title={pickDraft
+                      ? "Undo draft start — clear picks, keep keepers"
+                      : "Undo draft start — clear auction picks, keep keepers"}
+                  >
+                    Reset
                   </button>
-                  {isCommissioner && !testMode && (
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm"
-                      disabled={busy}
-                      onClick={resetLiveDraft}
-                      title={pickDraft
-                        ? "Undo draft start — clear picks, keep keepers"
-                        : "Undo draft start — clear auction picks, keep keepers"}
-                    >
-                      Reset
-                    </button>
-                  )}
-                  {testMode && (
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm"
-                      disabled={busy}
-                      onClick={deleteSandbox}
-                      title={toolMode ? "Discard this mock room" : "Delete this practice room — real league untouched"}
-                    >
-                      {toolMode ? "Discard mock" : "Delete sandbox"}
-                    </button>
-                  )}
-                </div>
-              </details>
+                )}
+                {testMode && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="btn-ghost btn-sm"
+                    disabled={busy}
+                    onClick={deleteSandbox}
+                    title={toolMode ? "Discard this mock room" : "Delete this practice room — real league untouched"}
+                  >
+                    {toolMode ? "Discard mock" : "Delete sandbox"}
+                  </button>
+                )}
+              </DraftOverflowMenu>
             )}
           </div>
         </div>
