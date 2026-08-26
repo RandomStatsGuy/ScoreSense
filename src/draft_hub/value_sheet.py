@@ -188,15 +188,30 @@ def build_draft_pool_payload(
         )
 
     rows.extend(load_k_def_rows(rules, salary_ranges, team_count=team_count))
+    from src.draft_hub.draft_pool_cache import missing_tight_ends, position_counts
     from src.draft_hub.jsonutil import json_safe
 
     rows = json_safe(rows)
     rows.sort(key=lambda r: (-(r.get("season_proj") or 0), r.get("player") or ""))
+    counts = position_counts(pool)
+    te_min = 0
+    te_rule = (rules.roster or {}).get("te") if isinstance(rules.roster, dict) else None
+    if isinstance(te_rule, dict):
+        te_min = int(te_rule.get("min") or 0)
+    warnings: list[str] = []
+    if te_min > 0 and (counts.get("TE") or 0) == 0:
+        warnings.append(
+            "Draft pool has 0 tight ends while this league requires TE. "
+            "The cached player pool looks stale and should be rebuilt."
+        )
     payload = {
         "season": season,
         "team_count": team_count,
         "count": len(rows),
         "pool_mode": "draft",
+        "position_counts": counts,
+        "missing_tight_ends": missing_tight_ends(pool),
+        "pool_warnings": warnings,
         "rows": rows,
     }
     _POOL_PAYLOAD_CACHE[cache_key] = (now, payload)

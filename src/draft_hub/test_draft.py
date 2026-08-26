@@ -146,6 +146,9 @@ def _pick_nomination_payload(
         "fair_value": pick.get("fair_value"),
         "season_proj": pick.get("season_proj"),
         "per_game_proj": pick.get("per_game_proj"),
+        "season_p10": pick.get("season_p10"),
+        "season_p50": pick.get("season_p50"),
+        "season_p90": pick.get("season_p90"),
     }
 
 

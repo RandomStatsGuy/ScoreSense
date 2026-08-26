@@ -49,6 +49,8 @@ def test_build_draft_recap_after_completed_draft(hub_db):
     assert recap is not None
     assert recap["pick_count"] == 2
     assert recap["headline"]
+    assert recap.get("pick_draft") is False
+    assert recap.get("projected_standings") in (None, [])
     assert any(a["id"] == "steal_of_draft" for a in recap["awards"])
     assert any(a["id"] == "reach_of_draft" for a in recap["awards"])
 

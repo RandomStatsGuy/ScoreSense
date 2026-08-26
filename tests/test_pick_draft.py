@@ -149,6 +149,15 @@ def test_snake_pick_assigns_and_reverses_round_two(hub_db, monkeypatch):
 
     state = make_pick(league["id"], other_sub, _player("p3"))
     assert state["nominator_team_id"] == first_id
+    # Round 2 ends with the original first seat; round 3 starts with that same seat.
+    state = make_pick(league["id"], first_sub, _player("p4"))
+    assert state["nominator_team_id"] == first_id
+    assert state["pick"]["round"] == 3
+    state = make_pick(league["id"], first_sub, _player("p5"))
+    assert state["nominator_team_id"] == other_id
+    state = make_pick(league["id"], other_sub, _player("p6"))
+    assert state["nominator_team_id"] == other_id
+    assert state["pick"]["round"] == 4
 
 
 def test_linear_does_not_reverse(hub_db, monkeypatch):
@@ -168,6 +177,15 @@ def test_linear_does_not_reverse(hub_db, monkeypatch):
     state = make_pick(league["id"], other_sub, _player("p2"))
     assert state["nominator_team_id"] == first_id
     assert state["pick"]["round"] == 2
+    state = make_pick(league["id"], first_sub, _player("p3"))
+    assert state["nominator_team_id"] == other_id
+    state = make_pick(league["id"], other_sub, _player("p4"))
+    assert state["nominator_team_id"] == first_id
+    assert state["pick"]["round"] == 3
+    state = make_pick(league["id"], first_sub, _player("p5"))
+    assert state["nominator_team_id"] == other_id
+    state = make_pick(league["id"], other_sub, _player("p6"))
+    assert state["nominator_team_id"] == first_id
 
 
 def test_commissioner_force_pick_uses_on_clock_team(hub_db, monkeypatch):
@@ -221,10 +239,27 @@ def test_pick_recap_skips_cap_awards(hub_db):
     assert recap["pick_draft"] is True
     assert recap["draft_type"] == "snake"
     assert recap["pick_count"] == 1
-    assert recap["awards"] == []
+    auction_ids = {
+        "steal_of_draft",
+        "reach_of_draft",
+        "splash",
+        "coupon_clipper",
+        "tightwad",
+        "empty_wallet",
+        "position_obsessed",
+        "cap_hoarder",
+    }
+    assert not any(a["id"] in auction_ids for a in recap["awards"])
+    award_blob = " ".join(f"{a.get('title')} {a.get('detail')} {a.get('blurb')}" for a in recap["awards"]).lower()
+    for banned in ("cap hoarder", "empty wallet", "amount spent", "fair salary", "auction wins", "notable sales", "$"):
+        assert banned not in award_blob
     assert recap["headline"]
     assert "Snake" in recap["headline"] or "snake" in recap["headline"].lower()
     assert recap["total_spent"] == 0
+    assert recap.get("record_games") == 14
+    assert recap.get("projected_standings")
+    assert recap["projected_standings"][0]["points_p10"] <= recap["projected_standings"][0]["points_p50"]
+    assert recap["projected_standings"][0]["points_p50"] <= recap["projected_standings"][0]["points_p90"]
     assert recap["notable_picks"][0]["overall"] == 1
     assert recap["notable_picks"][0]["round"] == 1
     assert recap["notable_picks"][0]["season_proj"] == 180.4
@@ -237,6 +272,38 @@ def test_pick_recap_skips_cap_awards(hub_db):
     assert report["picks"][0]["round"] == 1
     assert report["picks"][0]["season_proj"] == 180.4
     assert report["total_spent"] == 0
+
+
+def test_linear_recap_headline_and_no_auction_awards(hub_db):
+    rules = load_preset("linear_draft_v1")
+    league = storage.create_league("recap-lin", "Linear Recap", 2025, rules, test_mode=True)
+    teams = storage.list_league_teams(league["id"])
+    team = teams[0]
+    storage.update_draft_session(league["id"], status="completed", completed_at="2026-01-01T00:00:00+00:00")
+    storage.update_league_settings(league["id"], draft_completed=True)
+    storage.append_draft_event(
+        league["id"],
+        "pick",
+        {
+            "team_id": team["id"],
+            "team_name": team["name"],
+            "player_id": "p-lin",
+            "player_name": "Linear Pick",
+            "position": "WR",
+            "amount": 0,
+            "overall": 1,
+            "round": 1,
+            "season_proj": 160,
+        },
+    )
+    recap = build_draft_recap(league["id"])
+    assert recap["pick_draft"] is True
+    assert recap["draft_type"] == "linear"
+    assert "linear" in recap["headline"].lower()
+    assert "snake" not in recap["headline"].lower()
+    auction_ids = {"steal_of_draft", "tightwad", "empty_wallet"}
+    assert not any(a["id"] in auction_ids for a in recap["awards"])
+    assert recap.get("projected_standings")
 
 
 def test_http_pick_assigns(hub_db, monkeypatch):

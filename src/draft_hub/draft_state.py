@@ -860,7 +860,18 @@ def nominate(
         "nominating_team_id": team["id"],
         "nominating_team_name": team.get("name"),
     }
-    for key in ("fair_value", "season_proj", "per_game_proj", "is_rookie", "years_exp", "nfl_years_exp"):
+    for key in (
+        "fair_value",
+        "season_proj",
+        "per_game_proj",
+        "season_p10",
+        "season_p50",
+        "season_p90",
+        "season_spread",
+        "is_rookie",
+        "years_exp",
+        "nfl_years_exp",
+    ):
         val = resolved.get(key)
         if val is None:
             val = player.get(key)
@@ -965,7 +976,18 @@ def make_pick(
         "round": clock.get("round"),
         "slot": clock.get("slot"),
     }
-    for key in ("fair_value", "season_proj", "per_game_proj", "is_rookie", "years_exp", "nfl_years_exp"):
+    for key in (
+        "fair_value",
+        "season_proj",
+        "per_game_proj",
+        "season_p10",
+        "season_p50",
+        "season_p90",
+        "season_spread",
+        "is_rookie",
+        "years_exp",
+        "nfl_years_exp",
+    ):
         val = resolved.get(key)
         if val is None:
             val = player.get(key)
