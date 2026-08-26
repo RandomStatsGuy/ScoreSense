@@ -9272,10 +9272,6 @@ td.col-rank.col-rank-top {
   background: rgba(255, 255, 255, 0.02);
   overflow: visible;
 }
-.hub-draft-live-strip:has(.hub-draft-commish-overflow[open]) {
-  position: relative;
-  z-index: var(--z-dropdown);
-}
 .hub-draft-live-strip-main {
   display: flex; flex-wrap: wrap; align-items: center; gap: 0.55rem; min-width: 0;
 }
@@ -9899,8 +9895,10 @@ td.col-rank.col-rank-top {
   padding: 0.45rem;
   min-width: 10rem;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--bg-elevated, #0f172a);
+  /* Opaque slate — --bg-elevated is the same translucent fill as the live
+     command bar / sidebar, so the menu looked clipped behind that chrome. */
+  border: 1px solid var(--border-strong);
+  background: var(--tooltip-bg);
   box-shadow: var(--shadow-popover, 0 8px 24px rgba(0, 0, 0, 0.35));
 }
 .hub-draft-commish-overflow-menu--portal {
@@ -9908,6 +9906,8 @@ td.col-rank.col-rank-top {
   top: auto;
   right: auto;
   margin: 0;
+  isolation: isolate;
+  z-index: var(--z-dropdown-portal);
 }
 .hub-draft-commish-overflow-menu [role="menuitem"] {
   width: 100%;

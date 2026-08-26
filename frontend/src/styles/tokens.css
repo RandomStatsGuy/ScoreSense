@@ -99,14 +99,18 @@
 
   /* Z-index scale — one source of truth for stacking.
      Ordered so overlays never trap each other:
-     content < sticky headers < header chrome < dropdowns < bottom nav < invite < sheet < confirm < tooltip.
+     content < sticky headers < header chrome < in-flow dropdowns < bottom nav
+     < portaled dropdowns < invite < sheet < confirm < tooltip.
      Account menu is portaled to body at --z-dropdown so header backdrop-filter
-     cannot trap it under sticky projection filters / table headers. */
+     cannot trap it under sticky projection filters / table headers.
+     Live-room More is portaled at --z-dropdown-portal so End draft sits above
+     the sticky command bar, mobile Auction/Pick tabs, and bottom nav. */
   --z-base: 1;
   --z-sticky: 20;
   --z-header: 50;
   --z-dropdown: 60;
   --z-bottom-nav: 1100;
+  --z-dropdown-portal: 1150;
   --z-invite: 1200;
   --z-sheet: 1300;
   --z-confirm: 1400;
