@@ -107,6 +107,8 @@ export default function DraftNomineeCard({
   timerLabel,
   timerSeconds,
   deadline,
+  paused = false,
+  pausedLabel = "Paused",
   label = "On the block",
   compact = false,
   stats = null,
@@ -135,7 +137,14 @@ export default function DraftNomineeCard({
         </div>
         {(deadline || timerSeconds != null) && (
           deadline
-            ? <DraftDeadlineClock deadline={deadline} className="hub-timer" />
+            ? (
+              <DraftDeadlineClock
+                deadline={deadline}
+                paused={paused}
+                pausedLabel={pausedLabel}
+                className="hub-timer"
+              />
+            )
             : <span className="hub-timer">{timerLabel || `${timerSeconds}s`}</span>
         )}
       </header>

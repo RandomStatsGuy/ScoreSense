@@ -9516,6 +9516,8 @@ td.col-rank.col-rank-top {
 }
 .hub-draft-ended-actions {
   display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.35rem;
   flex-shrink: 0;
 }
@@ -9537,6 +9539,7 @@ td.col-rank.col-rank-top {
 .hub-draft-log-sidebar {
   margin: 0;
   font-size: 0.85rem;
+  scroll-margin-top: 6rem;
 }
 .hub-draft-teams-collapsed summary,
 .hub-draft-log-sidebar summary {
@@ -9922,6 +9925,13 @@ td.col-rank.col-rank-top {
   margin: 0.35rem 0 0.15rem;
   font-size: 0.78rem;
   color: var(--text-secondary);
+}
+.hub-table-empty-filter-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem 0.65rem;
 }
 
 @media (max-width: 768px) {
@@ -13415,6 +13425,29 @@ td.col-rank.col-rank-top {
   border: 1px solid rgba(250, 204, 21, 0.28);
   font-size: 0.9rem;
 }
+.hub-draft-simulation-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(96, 165, 250, 0.35);
+}
+.hub-draft-simulation-pulse {
+  width: 0.65rem;
+  height: 0.65rem;
+  flex: 0 0 0.65rem;
+  border-radius: 999px;
+  background: #60a5fa;
+  box-shadow: 0 0 0 0 rgba(96, 165, 250, 0.4);
+  animation: hub-draft-simulation-pulse 1.4s ease-out infinite;
+}
+@keyframes hub-draft-simulation-pulse {
+  70% { box-shadow: 0 0 0 0.45rem rgba(96, 165, 250, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(96, 165, 250, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hub-draft-simulation-pulse { animation: none; }
+}
 .hub-draft-schedule {
   display: flex;
   flex-direction: column;
@@ -15063,6 +15096,14 @@ td.col-rank.col-rank-top {
   .hub-draft-layout--live-console { min-height: 0; overflow: visible; grid-template-columns: 1fr; }
   .hub-draft-layout--live-console .hub-draft-main,
   .hub-draft-layout--live-console .hub-draft-sidebar { overflow: visible; }
+  .hub-pick-recap {
+    top: auto;
+    right: 0.75rem;
+    bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+    width: calc(100vw - 1.5rem);
+    max-height: min(14rem, 35vh);
+    overflow: auto;
+  }
 }
 
 /* Pick-draft board + recap + player table (snake / linear) */
@@ -15080,6 +15121,7 @@ td.col-rank.col-rank-top {
   flex-direction: column;
 }
 .hub-pick-board--recap { max-height: min(48vh, 28rem); display: flex; flex-direction: column; }
+.hub-pick-board--recap { scroll-margin-top: 6rem; }
 .hub-pick-board-toolbar {
   display: flex;
   flex-wrap: wrap;

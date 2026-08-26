@@ -10,6 +10,22 @@ export function formatPickSlot(payload = {}) {
   return "";
 }
 
+/** Mode-specific destination for the completed-draft review action. */
+export function completedDraftReviewTarget(pickDraft = false) {
+  if (pickDraft) {
+    return {
+      id: "hub-completed-draft-board",
+      label: "View draft board",
+      openDetails: false,
+    };
+  }
+  return {
+    id: "hub-completed-draft-teams",
+    label: "Review teams",
+    openDetails: true,
+  };
+}
+
 /** Format draft room events for display. */
 export function formatDraftEvent(ev) {
   const p = ev.payload || {};

@@ -287,7 +287,7 @@ def build_owner_draft_report(
     budget_remaining: float | None = None,
 ) -> dict[str, Any] | None:
     """Per-owner post-draft breakdown: picks, grades, spend by position."""
-    events = storage.list_draft_events(league_id, limit=500)
+    events = storage.list_draft_result_events(league_id)
     picks = [p for p in _pick_rows(events) if str(p.get("team_id")) == str(team_id)]
     if not picks:
         return None
@@ -355,7 +355,7 @@ def build_draft_recap(
     if not draft_completed:
         return None
 
-    events = storage.list_draft_events(league_id, limit=500)
+    events = storage.list_draft_result_events(league_id)
     picks = _pick_rows(events)
     if not picks:
         return None

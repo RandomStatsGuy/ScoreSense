@@ -17,6 +17,7 @@ import {
   mergeRoomState,
   shouldScheduleWsReconnect,
   isLiveAuctionStatus,
+  draftInteractionState,
 } from "./draftLiveConsole.js";
 
 test("viewerIsCommissioner uses only the viewer's staff flag", () => {
@@ -115,6 +116,33 @@ test("isLiveAuctionStatus includes pick-draft clocks", () => {
   assert.equal(isLiveAuctionStatus("picking"), true);
   assert.equal(isLiveAuctionStatus("setup"), false);
   assert.equal(isLiveAuctionStatus("completed"), false);
+});
+
+test("draftInteractionState locks mutations and freezes clocks during simulation", () => {
+  assert.deepEqual(
+    draftInteractionState({ simulationStatus: "running" }),
+    {
+      locked: true,
+      simulationActive: true,
+      simulating: true,
+      clockPaused: true,
+      clockLabel: "Simulating…",
+    },
+  );
+  assert.equal(draftInteractionState({ simulationStatus: "confirming" }).locked, true);
+  assert.equal(draftInteractionState({ simulationStatus: "failed" }).locked, false);
+  assert.equal(draftInteractionState({ pendingAction: "bid" }).locked, true);
+  assert.equal(draftInteractionState({ busy: true }).locked, true);
+  assert.deepEqual(
+    draftInteractionState({ paused: true }),
+    {
+      locked: true,
+      simulationActive: false,
+      simulating: false,
+      clockPaused: true,
+      clockLabel: "Paused",
+    },
+  );
 });
 
 test("shouldApplyRoomState drops stale setup flashes during a live auction", () => {

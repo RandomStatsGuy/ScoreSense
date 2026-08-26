@@ -37,6 +37,7 @@ export default function DraftLiveCommandBar({
   isMyNominationTurn = false,
   connectionStatus = "connecting",
   paused = false,
+  pausedLabel = "Paused",
   canNominate = false,
   onNominate,
   nominateLabel,
@@ -101,6 +102,7 @@ export default function DraftLiveCommandBar({
         <DraftDeadlineClock
           deadline={deadline}
           paused={paused}
+          pausedLabel={pausedLabel}
           className="hub-draft-live-command-clock"
         />
       </div>
@@ -116,6 +118,7 @@ export default function DraftLiveCommandBar({
               value={bidAmount}
               min={nextBid}
               step={minBid || 1}
+              disabled={bidDisabled}
               onFocus={onBidAmountFocus}
               onBlur={onBidAmountBlur}
               onChange={(e) => onBidAmountChange?.(e.target.value)}
@@ -144,6 +147,7 @@ export default function DraftLiveCommandBar({
             type="button"
             className="btn-ghost btn-sm hub-draft-award-now"
             onClick={onAward}
+            disabled={bidDisabled}
             title="Commissioner only — settle this auction immediately"
           >
             Award now {fmtSal(highBid)}
