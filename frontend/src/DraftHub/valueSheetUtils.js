@@ -95,6 +95,14 @@ function sortValue(row, key) {
       return row.max_sal ?? null;
     case "season_spread":
       return row.season_spread ?? null;
+    case "season_p10":
+      return row.season_p10 ?? null;
+    case "season_p50":
+      return row.season_p50 ?? row.season_proj ?? null;
+    case "season_p90":
+      return row.season_p90 ?? null;
+    case "pos_rank":
+      return row.pos_rank ?? null;
     case "upside_skew":
       return rowUpsideSkew(row);
     default:
@@ -168,6 +176,9 @@ export function nextSortState(currentKey, currentDir, clickedKey) {
     "max_sal",
     "value_delta",
     "season_spread",
+    "season_p10",
+    "season_p50",
+    "season_p90",
     "upside_skew",
   ].includes(clickedKey);
   return { sortKey: clickedKey, sortDir: descFirst ? "desc" : "asc" };

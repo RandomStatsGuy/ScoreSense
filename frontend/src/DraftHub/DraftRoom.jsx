@@ -15,6 +15,7 @@ import DraftEntryPanel from "./DraftEntryPanel";
 import DraftNominationQueue from "./DraftNominationQueue";
 import LeagueChat from "./LeagueChat";
 import ValueSheetTable from "./ValueSheetTable";
+import SnakeDraftBoard from "./SnakeDraftBoard";
 import { confirmDialog } from "../ui/confirm";
 import DraftDeadlineClock from "./DraftDeadlineClock";
 import DraftLiveCommandBar from "./DraftLiveCommandBar";
@@ -155,6 +156,9 @@ export default function DraftRoom({
   const nominee = session?.current_nominee;
   const teams = roomState?.teams || [];
   const events = roomState?.events || [];
+  const pickEvents = (Array.isArray(roomState?.picks) && roomState.picks.length)
+    ? roomState.picks
+    : events;
 
   const suggestedBid = useMemo(() => minNextBid(session, rules), [session, rules]);
   const highBidder = useMemo(
@@ -261,7 +265,12 @@ export default function DraftRoom({
   const inLiveDraft = isLiveAuctionStatus(draftStatus);
   const onClock = draftStatus === "nominating" || draftStatus === "picking";
   const recapHasStory = Boolean(
-    draftRecap && ((draftRecap.awards?.length ?? 0) > 0 || (draftRecap.notable_picks?.length ?? 0) > 0),
+    draftRecap && (
+      (draftRecap.awards?.length ?? 0) > 0
+      || (draftRecap.notable_picks?.length ?? 0) > 0
+      || (draftRecap.projected_standings?.length ?? 0) > 0
+      || draftRecap.pick_draft
+    ),
   );
   const linkedHubLeagueId = hubContext?.league_id || "";
   const usingHubLeague = Boolean(leagueId && linkedHubLeagueId && leagueId === linkedHubLeagueId);
@@ -1621,11 +1630,40 @@ export default function DraftRoom({
         </div>
       )}
 
+      {draftCompleted && pickDraft && recapHasStory && draftRecap && (
+        <DraftRecapPanel
+          recap={draftRecap}
+          compact
+          hideHero={false}
+          viewerTeamId={myTeamId}
+          mobile={mobileLayout}
+          board={(
+            <SnakeDraftBoard
+              nominationOrder={session?.nomination_order}
+              teams={teams}
+              events={pickEvents}
+              draftType={roomState?.draft_type || rules?.draft_type}
+              currentOverall={pickClock?.overall}
+              viewerTeamId={myTeamId}
+              rules={rules}
+              mediaByPlayerId={mediaByPlayerId}
+              compactDefault={false}
+              variant="recap"
+            />
+          )}
+          onViewInsights={
+            usingHubLeague && onNavigate
+              ? () => onNavigate("insights")
+              : undefined
+          }
+        />
+      )}
+
       {draftCompleted && myTeamId && leagueId && (
         <DraftOwnerReport leagueId={leagueId} />
       )}
 
-      {draftCompleted && recapHasStory && draftRecap && (
+      {draftCompleted && !pickDraft && recapHasStory && draftRecap && (
         <DraftRecapPanel
           recap={draftRecap}
           compact
@@ -1727,6 +1765,21 @@ export default function DraftRoom({
                 nextTeam={nextClockTeam}
                 deadline={activeDeadline}
                 paused={Boolean(session?.paused)}
+              />
+            )}
+
+            {pickDraft && (onClock || draftCompleted === false) && (
+              <SnakeDraftBoard
+                nominationOrder={session?.nomination_order}
+                teams={teams}
+                events={pickEvents}
+                draftType={roomState?.draft_type || rules?.draft_type}
+                currentOverall={pickClock?.overall}
+                viewerTeamId={myTeamId}
+                rules={rules}
+                mediaByPlayerId={mediaByPlayerId}
+                compactDefault
+                variant="live"
               />
             )}
 

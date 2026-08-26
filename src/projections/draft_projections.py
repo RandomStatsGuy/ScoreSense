@@ -235,7 +235,10 @@ def predict_draft_season(
 
     if "player_id" in weekly.columns:
         result["player_id"] = weekly["player_id"]
-    if "position" in weekly.columns:
+    # predict_from_features copies mlready `position` onto capital `Position`.
+    if "Position" in weekly.columns:
+        result["position"] = weekly["Position"]
+    elif "position" in weekly.columns:
         result["position"] = weekly["position"]
     if "_rookie_estimate" in roster.columns:
         name_col = _rookie_index_col(roster)

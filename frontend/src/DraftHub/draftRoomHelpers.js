@@ -92,7 +92,7 @@ export function canAcquireAtPosition(capacity, position, { relaxLimits } = {}) {
   if (relaxLimits) return true;
   if (!position) return true;
   const pos = String(position).toUpperCase();
-  const normalized = pos === "DST" || pos === "D/ST" ? "DEF" : pos;
+    const normalized = pos === "DST" || pos === "D/ST" || pos === "D" ? "DEF" : pos;
   const cap = capacity?.[normalized] || capacity?.[pos];
   if (!cap) return true;
   return !cap.at_max;
@@ -123,7 +123,7 @@ export function buildRosterCapacity(rules, roster, { draftCompleted = false, rel
   for (const row of roster || []) {
     if (!isRetainedThroughDraft(row, draftCompleted)) continue;
     const raw = String(row.position || "").toUpperCase();
-    const pos = raw === "DST" || raw === "D/ST" ? "DEF" : raw === "REC" ? "WR" : raw;
+    const pos = raw === "DST" || raw === "D/ST" || raw === "D" ? "DEF" : raw === "REC" ? "WR" : raw;
     if (pos) {
       counts[pos] = (counts[pos] || 0) + 1;
     }
@@ -167,7 +167,7 @@ export function pinNeedPositions(rows, needPositions, maxRows) {
   const rest = [];
   for (const row of list) {
     const raw = String(row.position || "").toUpperCase();
-    const pos = raw === "DST" || raw === "D/ST" ? "DEF" : raw === "REC" ? "WR" : raw;
+    const pos = raw === "DST" || raw === "D/ST" || raw === "D" ? "DEF" : raw === "REC" ? "WR" : raw;
     if (pinSet.has(pos)) need.push(row);
     else rest.push(row);
   }

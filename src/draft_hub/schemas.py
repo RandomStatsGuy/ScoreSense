@@ -51,6 +51,8 @@ class LeagueRules(BaseModel):
     # Practice/keeper sandbox only: skip cap, roster-size, and position min/max
     # so a draft can run before salaries are updated.
     relax_salary_roster_limits: bool = False
+    # Fantasy regular-season games used for pick-draft record projections.
+    regular_season_games: int = 14
 
 
 class WorkspaceUpdate(BaseModel):
