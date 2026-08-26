@@ -33,6 +33,7 @@ function ValueSheetPlayerRow({
   onWatchPlayer,
   watchIds = [],
   canNominate = false,
+  actionsDisabled = false,
   actionLabel,
   minBid = 1,
   pickDraft = false,
@@ -55,8 +56,8 @@ function ValueSheetPlayerRow({
   }, [onSelectPlayer, row]);
 
   const handleRowDoubleClick = useCallback(() => {
-    onRowDoubleClick?.(row);
-  }, [onRowDoubleClick, row]);
+    if (!actionsDisabled) onRowDoubleClick?.(row);
+  }, [actionsDisabled, onRowDoubleClick, row]);
 
   const handleSelectClick = useCallback(
     (e) => {
@@ -92,6 +93,7 @@ function ValueSheetPlayerRow({
       className={`${row.overpay ? "hub-overpay" : ""}${row.on_sleeper ? " hub-sleeper-row" : ""}${isSelected ? " hub-row-selected" : ""}`}
       onClick={onSelectPlayer ? handleRowClick : undefined}
       onDoubleClick={onRowDoubleClick ? handleRowDoubleClick : undefined}
+      aria-disabled={actionsDisabled && onRowDoubleClick ? "true" : undefined}
     >
       <td className="col-player">
         <PlayerCell
@@ -189,11 +191,23 @@ function ValueSheetPlayerRow({
         {draftConsole && (
           <div className="hub-draft-row-actions" onClick={(event) => event.stopPropagation()}>
             {canNominate && (
-              <button type="button" className="btn-primary btn-sm" onClick={() => onRowDoubleClick?.(row)}>
+              <button
+                type="button"
+                className="btn-primary btn-sm"
+                disabled={actionsDisabled}
+                onClick={() => onRowDoubleClick?.(row)}
+              >
                 {actionLabel || (pickDraft ? "Pick" : `Nominate for $${Number(minBid || 1)}`)}
               </button>
             )}
-            <button type="button" className="btn-ghost btn-sm" onClick={() => onQueuePlayer?.(row)}>Queue</button>
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              disabled={actionsDisabled}
+              onClick={() => onQueuePlayer?.(row)}
+            >
+              Queue
+            </button>
             <button
               type="button"
               className="btn-ghost btn-sm"
@@ -213,7 +227,7 @@ function ValueSheetPlayerRow({
           <button
             type="button"
             className="btn-ghost btn-sm"
-            disabled={isAdding}
+            disabled={actionsDisabled || isAdding}
             title={taken && !isCommissioner ? "Already on another roster" : undefined}
             onClick={handleAddClick}
           >
@@ -262,6 +276,7 @@ function propsAreEqual(prev, next) {
     && prev.actionCol === next.actionCol
     && prev.actionLabel === next.actionLabel
     && prev.canNominate === next.canNominate
+    && prev.actionsDisabled === next.actionsDisabled
     && prev.draftConsole === next.draftConsole
   );
 }

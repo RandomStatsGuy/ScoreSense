@@ -3,7 +3,16 @@ import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 import { HUB_POS_ORDER, normalizeHubPosition } from "./hubPositions";
 import { fmtSal } from "./rosterFormat";
 
-function RosterActions({ showDrop, showTrade, cutBusy, onDrop, onTrade, playerName, pickDraft = false }) {
+function RosterActions({
+  showDrop,
+  showTrade,
+  cutBusy,
+  actionsDisabled,
+  onDrop,
+  onTrade,
+  playerName,
+  pickDraft = false,
+}) {
   if (!showDrop && !showTrade) return null;
   return (
     <span className="hub-roster-actions">
@@ -11,7 +20,7 @@ function RosterActions({ showDrop, showTrade, cutBusy, onDrop, onTrade, playerNa
         <button
           type="button"
           className="hub-roster-action hub-roster-action--drop"
-          disabled={cutBusy}
+          disabled={cutBusy || actionsDisabled}
           onClick={onDrop}
           title={pickDraft
             ? "Drop player back into the pool"
@@ -24,6 +33,7 @@ function RosterActions({ showDrop, showTrade, cutBusy, onDrop, onTrade, playerNa
         <button
           type="button"
           className="hub-roster-action hub-roster-action--trade"
+          disabled={actionsDisabled}
           onClick={onTrade}
           title={`Offer ${playerName} in a trade`}
         >
@@ -42,6 +52,7 @@ export default function DraftRosterPanel({
   onCutPlayer,
   onTradePlayer,
   cutBusy = false,
+  actionsDisabled = false,
   budgetRemaining,
   maxBid = null,
   isNominator = false,
@@ -124,6 +135,7 @@ export default function DraftRosterPanel({
         <button
           type="button"
           className="hub-draft-trade-inbox-btn"
+          disabled={actionsDisabled}
           onClick={onOpenInbox}
         >
           {pendingTradeCount} pending trade{pendingTradeCount === 1 ? "" : "s"}
@@ -172,6 +184,7 @@ export default function DraftRosterPanel({
                 showDrop={Boolean(allowMidDraftCuts && onCutPlayer && !ended)}
                 showTrade={Boolean(allowTrades && onTradePlayer && !ended)}
                 cutBusy={cutBusy}
+                actionsDisabled={actionsDisabled}
                 onDrop={() => onCutPlayer(row.player_id)}
                 onTrade={() => onTradePlayer({
                   player_id: row.player_id,
