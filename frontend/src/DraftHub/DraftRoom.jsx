@@ -156,6 +156,9 @@ export default function DraftRoom({
   const nominee = session?.current_nominee;
   const teams = roomState?.teams || [];
   const events = roomState?.events || [];
+  const pickEvents = (Array.isArray(roomState?.picks) && roomState.picks.length)
+    ? roomState.picks
+    : events;
 
   const suggestedBid = useMemo(() => minNextBid(session, rules), [session, rules]);
   const highBidder = useMemo(
@@ -1638,7 +1641,7 @@ export default function DraftRoom({
             <SnakeDraftBoard
               nominationOrder={session?.nomination_order}
               teams={teams}
-              events={events}
+              events={pickEvents}
               draftType={roomState?.draft_type || rules?.draft_type}
               currentOverall={pickClock?.overall}
               viewerTeamId={myTeamId}
@@ -1769,7 +1772,7 @@ export default function DraftRoom({
               <SnakeDraftBoard
                 nominationOrder={session?.nomination_order}
                 teams={teams}
-                events={events}
+                events={pickEvents}
                 draftType={roomState?.draft_type || rules?.draft_type}
                 currentOverall={pickClock?.overall}
                 viewerTeamId={myTeamId}

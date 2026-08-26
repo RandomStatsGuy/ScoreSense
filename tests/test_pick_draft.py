@@ -356,3 +356,39 @@ def test_practice_mock_inherits_snake_rules(hub_db):
     session = (out.get("state") or {}).get("session") or storage.get_draft_session(out["league_id"])
     assert session["status"] == "picking"
     assert (out.get("state") or {}).get("draft_type") == "snake"
+
+
+def test_pick_draft_room_state_loads_full_pick_history(hub_db, monkeypatch):
+    from src.draft_hub.draft_state import get_room_state
+
+    league = _league("snake-comm", team_count=12)
+    start_draft(league["id"], "snake-comm")
+    seen = {}
+    real = storage.list_draft_events
+
+    def wrapped(league_id, limit=100):
+        seen["limit"] = limit
+        return real(league_id, limit=limit)
+
+    monkeypatch.setattr(storage, "list_draft_events", wrapped)
+    state = get_room_state(league["id"], "snake-comm")
+    assert seen["limit"] >= 12 * 16
+    assert "picks" in state
+    assert isinstance(state["picks"], list)
+
+
+def test_auction_room_state_keeps_short_event_window(hub_db, monkeypatch):
+    from src.draft_hub.draft_state import get_room_state
+
+    league = _league("auc-comm", preset="salary_cap_auction_v1", team_count=12)
+    start_draft(league["id"], "auc-comm")
+    seen = {}
+    real = storage.list_draft_events
+
+    def wrapped(league_id, limit=100):
+        seen["limit"] = limit
+        return real(league_id, limit=limit)
+
+    monkeypatch.setattr(storage, "list_draft_events", wrapped)
+    get_room_state(league["id"], "auc-comm")
+    assert seen["limit"] == 50
