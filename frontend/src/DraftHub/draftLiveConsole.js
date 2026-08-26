@@ -207,6 +207,28 @@ export function isLiveAuctionStatus(status) {
 }
 
 /**
+ * One lock policy for every draft mutation and every visible clock.
+ * Simulation is client-initiated and can outlive several server clock ticks,
+ * so it must freeze the UI even before the completed room state arrives.
+ */
+export function draftInteractionState({
+  busy = false,
+  pendingAction = "",
+  paused = false,
+  simulationStatus = "idle",
+} = {}) {
+  const simulationActive = simulationStatus === "confirming" || simulationStatus === "running";
+  const simulating = simulationStatus === "running";
+  return {
+    locked: Boolean(busy || pendingAction || paused || simulationActive),
+    simulationActive,
+    simulating,
+    clockPaused: Boolean(paused || simulating),
+    clockLabel: simulating ? "Simulating…" : "Paused",
+  };
+}
+
+/**
  * Ignore stale/partial room payloads so the live auction cannot flash back
  * to the setup "draft page" (wrong league, missing session, reconnect race).
  */

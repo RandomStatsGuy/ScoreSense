@@ -121,6 +121,7 @@ export default function ValueSheetTable({
   onWatchPlayer,
   watchIds = [],
   canNominate = false,
+  actionsDisabled = false,
   minBid = 1,
   actionLabel,
   pickDraft: pickDraftProp,
@@ -636,6 +637,7 @@ export default function ValueSheetTable({
                   key="nominate"
                   type="button"
                   className="btn-primary btn-sm"
+                  disabled={actionsDisabled}
                   onClick={() => {
                     onSelectPlayer?.(r);
                     onRowDoubleClick(r);
@@ -661,6 +663,7 @@ export default function ValueSheetTable({
                   key="nominate"
                   type="button"
                   className="btn-primary btn-sm"
+                  disabled={actionsDisabled}
                   onClick={() => onRowDoubleClick(r)}
                 >
                   {nominateText}
@@ -669,7 +672,13 @@ export default function ValueSheetTable({
             }
             if (draftConsole) {
               actions.push(
-                <button key="queue" type="button" className="btn-ghost btn-sm" onClick={() => onQueuePlayer?.(r)}>
+                <button
+                  key="queue"
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  disabled={actionsDisabled}
+                  onClick={() => onQueuePlayer?.(r)}
+                >
                   Queue
                 </button>,
               );
@@ -692,7 +701,7 @@ export default function ValueSheetTable({
                   key="add"
                   type="button"
                   className="btn-ghost btn-sm"
-                  disabled={addingId === r.player_id}
+                  disabled={actionsDisabled || addingId === r.player_id}
                   title={taken && !isCommissioner ? "Already on another roster" : undefined}
                   onClick={() => addPlayer(r)}
                 >
@@ -915,6 +924,7 @@ export default function ValueSheetTable({
                   onWatchPlayer={onWatchPlayer}
                   watchIds={watchIds}
                   canNominate={canNominate}
+                  actionsDisabled={actionsDisabled}
                   minBid={minBid}
                   actionLabel={nominateText}
                   pickDraft={pickDraft}

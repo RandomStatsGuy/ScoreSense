@@ -15,7 +15,8 @@ import DraftEntryPanel from "./DraftEntryPanel";
 import DraftNominationQueue from "./DraftNominationQueue";
 import LeagueChat from "./LeagueChat";
 import ValueSheetTable from "./ValueSheetTable";
-import SnakeDraftBoard from "./SnakeDraftBoard";
+// Explicit extension avoids colliding with snakeDraftBoard.js on Windows.
+import SnakeDraftBoard from "./SnakeDraftBoard.jsx";
 import { confirmDialog } from "../ui/confirm";
 import DraftDeadlineClock from "./DraftDeadlineClock";
 import DraftLiveCommandBar from "./DraftLiveCommandBar";
@@ -32,6 +33,7 @@ import {
   shouldApplyRoomState,
   mergeRoomState,
   shouldScheduleWsReconnect,
+  draftInteractionState,
 } from "./draftLiveConsole";
 import { isPickDraft } from "./draftEntryStatus";
 import { HubPage } from "./HubUILayout";
@@ -68,6 +70,7 @@ function DraftOnClockPanel({
   nextTeam,
   deadline,
   paused,
+  pausedLabel,
 }) {
   const title = isMyTurn
     ? (pickDraft ? "You're on the clock" : "Your nomination")
@@ -80,7 +83,12 @@ function DraftOnClockPanel({
         {tracker ? <span className="chart-note">{tracker}</span> : null}
       </div>
       {deadline ? (
-        <DraftDeadlineClock deadline={deadline} paused={paused} className="hub-draft-live-timer" />
+        <DraftDeadlineClock
+          deadline={deadline}
+          paused={paused}
+          pausedLabel={pausedLabel}
+          className="hub-draft-live-timer"
+        />
       ) : null}
     </div>
   );
@@ -110,6 +118,7 @@ export default function DraftRoom({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState("");
+  const [simulationStatus, setSimulationStatus] = useState("idle");
   const [boardOpen, setBoardOpen] = useState(true);
   const [enrichment, setEnrichment] = useState(null);
   const [fantasyMediaDigests, setFantasyMediaDigests] = useState({});
@@ -264,6 +273,17 @@ export default function DraftRoom({
   const draftCompleted = draftStatus === "completed" || Boolean(league?.draft_completed);
   const inLiveDraft = isLiveAuctionStatus(draftStatus);
   const onClock = draftStatus === "nominating" || draftStatus === "picking";
+  const {
+    locked: draftControlsLocked,
+    simulating: simulationRunning,
+    clockPaused,
+    clockLabel,
+  } = draftInteractionState({
+    busy,
+    pendingAction,
+    paused: Boolean(session?.paused),
+    simulationStatus,
+  });
   const recapHasStory = Boolean(
     draftRecap && (
       (draftRecap.awards?.length ?? 0) > 0
@@ -372,6 +392,10 @@ export default function DraftRoom({
   useEffect(() => {
     if (!mobileLayout) setBoardOpen(true);
   }, [mobileLayout]);
+
+  useEffect(() => {
+    setSimulationStatus("idle");
+  }, [leagueId]);
 
   useEffect(() => {
     if (testMode && inLiveDraft) setEnrichment(null);
@@ -688,7 +712,7 @@ export default function DraftRoom({
 
   const queuePlayer = useCallback(async (row) => {
     const pid = String(row?.player_id || "");
-    if (!leagueId || !pid) return;
+    if (!leagueId || !pid || draftControlsLocked) return;
     const current = roomState?.viewer?.nomination_queue || [];
     if (current.map(String).includes(pid)) return;
     const res = await apiFetch(`/api/hub/league/${leagueId}/nomination-queue`, {
@@ -701,7 +725,7 @@ export default function DraftRoom({
     });
     if (!res.ok) throw new Error(await parseApiError(res));
     applyState(await res.json());
-  }, [leagueId, roomState?.viewer?.nomination_queue, roomState?.viewer?.autodraft, applyState]);
+  }, [leagueId, roomState?.viewer?.nomination_queue, roomState?.viewer?.autodraft, applyState, draftControlsLocked]);
 
   useEffect(() => {
     if (leagueId) refresh();
@@ -869,6 +893,7 @@ export default function DraftRoom({
 
   const simulateRemainingDraft = async () => {
     if (!leagueId) return;
+    setSimulationStatus("confirming");
     if (!(await confirmDialog({
       title: "Simulate full draft",
       message: pickDraft
@@ -876,9 +901,14 @@ export default function DraftRoom({
         : "Run the rest of this practice draft instantly? Bots nominate and settle every auction until rosters are full.",
       confirmLabel: "Simulate",
     }))) {
+      setSimulationStatus("idle");
       return;
     }
-    await runAction(async () => {
+    setSimulationStatus("running");
+    setBusy(true);
+    setError("");
+    setTradeModal(null);
+    try {
       const res = await apiFetch(`/api/hub/league/${leagueId}/test/simulate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -891,7 +921,13 @@ export default function DraftRoom({
       }
       applyState((await res.json()).state);
       setMockModeLabel("Simulated mock");
-    });
+      setSimulationStatus("completed");
+    } catch (e) {
+      setSimulationStatus("failed");
+      setError(e.message || "Simulation failed. Refresh the room, then retry.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const startDraft = async () => {
@@ -1045,6 +1081,7 @@ export default function DraftRoom({
       setPickRecap(null);
       setDraftRecap(null);
       setNomPlayerId("");
+      setSimulationStatus("idle");
       wsRefresh();
     });
   };
@@ -1078,6 +1115,7 @@ export default function DraftRoom({
   };
 
   const award = async () => {
+    if (draftControlsLocked) return;
     await runAction(async () => {
       const res = await apiFetch(`/api/hub/league/${leagueId}/award`, { method: "POST" });
       if (!res.ok) throw new Error(await parseApiError(res));
@@ -1086,7 +1124,7 @@ export default function DraftRoom({
   };
 
   const cutPlayer = async (playerId) => {
-    if (!playerId || !leagueId) return;
+    if (!playerId || !leagueId || draftControlsLocked) return;
     if (!(await confirmDialog({
       title: "Drop player",
       message: "Drop this player? Cap refund depends on your league cut rules.",
@@ -1118,7 +1156,7 @@ export default function DraftRoom({
   }), []);
 
   const nominateRow = useCallback(async (row, { force = false } = {}) => {
-    if (!row) return;
+    if (!row || draftControlsLocked) return;
     if (force) {
       if (!(await confirmDialog({
         title: pickDraft ? "Force pick" : "Force nominate",
@@ -1155,7 +1193,7 @@ export default function DraftRoom({
     } finally {
       setPendingAction("");
     }
-  }, [canAcquire, leagueId, applyState, wsRefresh, playerPayload, nominatorTeam?.name, pickDraft]);
+  }, [canAcquire, leagueId, applyState, wsRefresh, playerPayload, nominatorTeam?.name, pickDraft, draftControlsLocked]);
 
   const nominate = async () => {
     const row = previewRow;
@@ -1164,6 +1202,7 @@ export default function DraftRoom({
   };
 
   const bid = async (amount) => {
+    if (draftControlsLocked) return;
     const val = amount ?? Number(bidAmount);
     if (!Number.isFinite(val) || !session) return;
     if (!myTeamId) {
@@ -1239,7 +1278,12 @@ export default function DraftRoom({
   }, [leagueId, applyState, wsRefresh]);
 
   useEffect(() => {
-    if (session?.status !== "bidding" || !session?.bid_deadline) {
+    if (
+      session?.status !== "bidding"
+      || !session?.bid_deadline
+      || session?.paused
+      || simulationRunning
+    ) {
       timerExpiredRef.current = false;
       return undefined;
     }
@@ -1251,7 +1295,7 @@ export default function DraftRoom({
       expireAuctionTimer();
     }, delay);
     return () => clearTimeout(id);
-  }, [session?.status, session?.bid_deadline, expireAuctionTimer]);
+  }, [session?.status, session?.bid_deadline, session?.paused, simulationRunning, expireAuctionTimer]);
 
   const activeDeadline = session?.status === "bidding"
     ? session?.bid_deadline
@@ -1359,19 +1403,22 @@ export default function DraftRoom({
           className={`hub-action-row${mobileLayout ? " hub-action-row--stacked" : ""}`}
           onSubmit={(event) => {
             event.preventDefault();
-            if (!(pendingAction || bidInvalid || nomineePosBlocked || session?.paused)) bid();
+            if (!(draftControlsLocked || bidInvalid || nomineePosBlocked)) bid();
           }}
         >
+          <label className="sr-only" htmlFor="hub-auction-bid-amount">Bid amount</label>
           <input
+            id="hub-auction-bid-amount"
             type="number"
             className="hub-bid-input"
             value={bidAmount}
             min={suggestedBid}
+            disabled={draftControlsLocked}
             onFocus={() => { bidFocused.current = true; }}
             onBlur={() => { bidFocused.current = false; }}
             onChange={(e) => applyBidAmount(e.target.value)}
           />
-          <button type="button" className="btn-ghost btn-sm" onClick={() => applyBidAmount(suggestedBid)}>
+          <button type="button" className="btn-ghost btn-sm" disabled={draftControlsLocked} onClick={() => applyBidAmount(suggestedBid)}>
             Min {fmtSal(suggestedBid)}
           </button>
           {[1, 5, 10].map((inc) => (
@@ -1379,6 +1426,7 @@ export default function DraftRoom({
               key={inc}
               type="button"
               className="btn-ghost btn-sm"
+              disabled={draftControlsLocked}
               onClick={() => {
                 const high = Number(session?.high_bid ?? 0) || 0;
                 applyBidAmount(Math.max(suggestedBid, high + inc));
@@ -1390,7 +1438,7 @@ export default function DraftRoom({
           <button
             type="submit"
             className="btn-primary"
-            disabled={Boolean(pendingAction) || bidInvalid || nomineePosBlocked || Boolean(session?.paused)}
+            disabled={draftControlsLocked || bidInvalid || nomineePosBlocked}
           >
             {pendingAction === "bid" ? "Bidding…" : `Bid ${fmtSal(bidAmount)}`}
           </button>
@@ -1479,7 +1527,8 @@ export default function DraftRoom({
                 {activeDeadline && (
                   <DraftDeadlineClock
                     deadline={activeDeadline}
-                    paused={Boolean(session?.paused)}
+                    paused={clockPaused}
+                    pausedLabel={clockLabel}
                     className="hub-draft-live-timer"
                   />
                 )}
@@ -1499,11 +1548,15 @@ export default function DraftRoom({
               <button
                 type="button"
                 className="btn-ghost btn-sm"
-                disabled={busy}
+                disabled={draftControlsLocked}
                 onClick={simulateRemainingDraft}
                 title="Finish the mock instantly"
               >
-                Simulate
+                {simulationRunning
+                  ? "Simulating…"
+                  : simulationStatus === "failed"
+                    ? "Retry simulation"
+                    : "Simulate"}
               </button>
             )}
             {isCommissioner && inLiveDraft && (
@@ -1691,7 +1744,7 @@ export default function DraftRoom({
           onBidAmountFocus={() => { bidFocused.current = true; }}
           onBidAmountBlur={() => { bidFocused.current = false; }}
           onBid={() => bid()}
-          bidDisabled={Boolean(pendingAction) || Boolean(session?.paused)}
+          bidDisabled={draftControlsLocked}
           pendingAction={pendingAction}
           isCommissioner={isCommissioner}
           onAward={award}
@@ -1699,8 +1752,9 @@ export default function DraftRoom({
           nextNominatorTeam={nextClockTeam}
           isMyNominationTurn={isMyNominationTurn}
           connectionStatus={connectionStatus}
-          paused={Boolean(session?.paused)}
-          canNominate={onClock && (isMyNominationTurn || canForceNominate)}
+          paused={clockPaused}
+          pausedLabel={clockLabel}
+          canNominate={!draftControlsLocked && onClock && (isMyNominationTurn || canForceNominate)}
           onNominate={nominate}
           nominateLabel={pickDraft ? (canForceNominate ? "Force pick" : "Pick") : `Nominate for ${fmtSal(minBidUnit || 1)}`}
           pickDraft={pickDraft}
@@ -1712,6 +1766,20 @@ export default function DraftRoom({
       {inLiveDraft && session?.paused && (
         <div className="hub-draft-paused-banner" role="status">
           Draft paused — clocks are frozen until the commissioner resumes.
+        </div>
+      )}
+
+      {inLiveDraft && simulationRunning && (
+        <div
+          className="hub-draft-paused-banner hub-draft-simulation-banner"
+          role="status"
+          aria-live="polite"
+        >
+          <span className="hub-draft-simulation-pulse" aria-hidden />
+          <span>
+            <strong>Finishing mock draft…</strong>
+            {" "}Bots are completing every roster. Draft controls and clocks are frozen until the recap is ready.
+          </span>
         </div>
       )}
 
@@ -1756,7 +1824,7 @@ export default function DraftRoom({
               <p className="chart-note hub-draft-loading">Loading draft room…</p>
             )}
 
-            {onClock && !busy && (
+            {onClock && (
               <DraftOnClockPanel
                 pickDraft={pickDraft}
                 isMyTurn={isMyNominationTurn}
@@ -1764,7 +1832,8 @@ export default function DraftRoom({
                 pickClock={pickClock}
                 nextTeam={nextClockTeam}
                 deadline={activeDeadline}
-                paused={Boolean(session?.paused)}
+                paused={clockPaused}
+                pausedLabel={clockLabel}
               />
             )}
 
@@ -1798,6 +1867,8 @@ export default function DraftRoom({
                   highBidderName={highBidder?.name}
                   highBidderIsBot={highBidder?.is_bot}
                   deadline={session.status === "bidding" ? session.bid_deadline : null}
+                  paused={clockPaused}
+                  pausedLabel={clockLabel}
                 />
                 {bidPanel}
               </div>
@@ -1830,8 +1901,7 @@ export default function DraftRoom({
                       type="button"
                       className="btn-primary btn-sm"
                       disabled={
-                        Boolean(pendingAction)
-                        || Boolean(session?.paused)
+                        draftControlsLocked
                         || (!canForceNominate && selectedNomBlocked)
                         || !(isMyNominationTurn || canForceNominate)
                       }
@@ -1899,14 +1969,15 @@ export default function DraftRoom({
                       selectedPlayerId={nomPlayerId}
                       onSelectPlayer={(row) => setNomPlayerId(row.player_id)}
                       onRowDoubleClick={
-                        onClock && (isMyNominationTurn || canForceNominate)
+                        !draftControlsLocked && onClock && (isMyNominationTurn || canForceNominate)
                           ? (row) => nominateRow(row, { force: canForceNominate })
                           : undefined
                       }
                       onQueuePlayer={queuePlayer}
                       onWatchPlayer={toggleWatch}
                       watchIds={watchIds}
-                      canNominate={onClock && (isMyNominationTurn || canForceNominate)}
+                      canNominate={!draftControlsLocked && onClock && (isMyNominationTurn || canForceNominate)}
+                      actionsDisabled={draftControlsLocked}
                       minBid={minBidUnit || 1}
                       pickDraft={pickDraft}
                       actionLabel={pickDraft ? (canForceNominate ? "Force pick" : "Pick") : undefined}
@@ -1950,6 +2021,7 @@ export default function DraftRoom({
               onCutPlayer={cutPlayer}
               onTradePlayer={(seed) => setTradeModal({ seed, view: "builder" })}
               cutBusy={busy}
+              actionsDisabled={draftControlsLocked}
               budgetRemaining={myTeam?.budget_remaining}
               maxBid={Number.isFinite(myBudget) ? myMaxBid : null}
               isNominator={String(myTeamId) === String(nominatorTeamId) && (session?.status === "nominating" || session?.status === "picking")}
@@ -1974,7 +2046,7 @@ export default function DraftRoom({
                     `${r.player || r.player_name || r.player_id} (${r.position || "?"})`,
                   ]),
                 )}
-                disabled={busy}
+                disabled={draftControlsLocked}
                 pickDraft={pickDraft}
                 onUpdated={applyState}
               />
@@ -2022,7 +2094,7 @@ export default function DraftRoom({
                   rosterLimits={roomState?.roster_limits}
                   draftCompleted={draftCompleted}
                   pickDraft={pickDraft}
-                  allowTrades={tradesActive}
+                  allowTrades={tradesActive && !draftControlsLocked}
                   onTradePlayer={(seed) => setTradeModal({ seed, view: "builder" })}
                 />
               ))}
