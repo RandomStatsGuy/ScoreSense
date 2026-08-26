@@ -61,7 +61,12 @@ const SORT_MENU_OPTIONS = [
   { id: "player", label: "Name" },
 ];
 const DEFAULT_SORT_KEY = "fair_value";
+const PICK_DRAFT_SORT_KEY = "season_proj";
 const DEFAULT_SORT_DIR = "desc";
+
+function defaultSortKeyForBoard(pickDraft) {
+  return pickDraft ? PICK_DRAFT_SORT_KEY : DEFAULT_SORT_KEY;
+}
 
 /** SCORE-16: plain-language column + control copy. */
 const VALUE_VS_COST_TIP = (
@@ -77,6 +82,14 @@ const PROJECTED_POINTS_TIP = (
     <TipTitle>Projected points</TipTitle>
     <TipLine>
       Median season fantasy points with a floor–ceiling band. Use it to compare production before bidding.
+    </TipLine>
+  </>
+);
+const PROJECTED_POINTS_TIP_PICK = (
+  <>
+    <TipTitle>Projected points</TipTitle>
+    <TipLine>
+      Median season fantasy points with a floor–ceiling band. Use it to compare production before you pick.
     </TipLine>
   </>
 );
@@ -118,12 +131,15 @@ export default function ValueSheetTable({
   canNominate = false,
   minBid = 1,
   actionLabel,
+  pickDraft: pickDraftProp,
 }) {
-  const pickDraft = Boolean(actionLabel) && !String(actionLabel).toLowerCase().includes("nominate");
+  const pickDraft = pickDraftProp != null
+    ? Boolean(pickDraftProp)
+    : Boolean(actionLabel) && !String(actionLabel).toLowerCase().includes("nominate");
   const nominateText = actionLabel || (draftConsole ? `Nominate for $${Number(minBid || 1)}` : "Nominate");
-  const valueColLabel = pickDraft ? "Value" : "Suggested bid";
+  const valueColLabel = "Suggested bid";
   const isAvailableView = mode === "available";
-  const [sortKey, setSortKey] = useState(DEFAULT_SORT_KEY);
+  const [sortKey, setSortKey] = useState(() => defaultSortKeyForBoard(pickDraft));
   const [sortDir, setSortDir] = useState(DEFAULT_SORT_DIR);
   const [posFilter, setPosFilter] = useState(defaultPosFilter);
   const [statusFilter, setStatusFilter] = useState(isAvailableView ? "AVAILABLE" : "ALL");
@@ -140,29 +156,39 @@ export default function ValueSheetTable({
   const MOBILE_LIST_PAGE = 80;
 
   const showAdvanced = showAdvancedProp ?? (draftConsole ? false : compact ? true : showAdvancedLocal);
-  const activeRisk = isRiskToleranceActive(riskTolerance);
+  const activeRisk = isRiskToleranceActive(riskTolerance) && !pickDraft;
   // Risk score column: Advanced always; also when RAAV stance is on so the badge has context.
   const showRiskScore = draftConsole ? true : (showAdvanced || activeRisk);
   const showPosCol = !draftConsole;
-  const showValueRange = draftConsole;
+  const showValueRange = draftConsole && !pickDraft;
+  const showFairValue = !pickDraft;
+  const showCostDelta = showDelta && !pickDraft;
+  const showSalaryBounds = showAdvanced && !pickDraft;
   const showAdvancedToggle = !compact && showAdvancedProp == null;
 
   const sleeperLinked = Boolean(sleeper?.sleeper_league_id && sleeper?.sleeper_roster_id);
   const showSelect = Boolean(onSelectPlayer);
   const actionCol = showAdd || showSelect;
-  // Core: Player, Pos, Projected pts, Bid, Tier (+ optional Status/Value/Action/Risk). Advanced adds Team/PG/Spread/Min/Max.
-  const baseCols = (showPosCol ? 5 : 4)
+  const colCount = 1
+    + (showPosCol ? 1 : 0)
+    + 1
+    + (showAdvanced ? (showSalaryBounds ? 5 : 3) : 0)
     + (showValueRange ? 1 : 0)
-    + (showAdvanced ? 5 : 0)
+    + (showFairValue ? 1 : 0)
     + (showRiskScore ? 1 : 0)
-    + (showDelta ? 1 : 0)
+    + (showCostDelta ? 1 : 0)
+    + 1
     + (showStatus ? 1 : 0)
     + (actionCol ? 1 : 0);
-  const colCount = baseCols;
 
   useEffect(() => {
     setPosFilter(defaultPosFilter);
   }, [defaultPosFilter]);
+
+  useEffect(() => {
+    if (!pickDraft) return;
+    setSortKey((key) => (key === "fair_value" || key === "value_delta" ? PICK_DRAFT_SORT_KEY : key));
+  }, [pickDraft]);
 
   useEffect(() => {
     setMobileListLimit(MOBILE_LIST_PAGE);
@@ -232,11 +258,11 @@ export default function ValueSheetTable({
     });
     return (
       <>
-        {PROJECTED_POINTS_TIP}
+        {pickDraft ? PROJECTED_POINTS_TIP_PICK : PROJECTED_POINTS_TIP}
         <TipLine>{bandTip}</TipLine>
       </>
     );
-  }, [seasonMethod]);
+  }, [seasonMethod, pickDraft]);
 
   const secondaryFilterCount = useMemo(() => {
     let n = 0;
@@ -355,15 +381,16 @@ export default function ValueSheetTable({
     [],
   );
   const sortMenuOptions = useMemo(() => {
-    const opts = SORT_MENU_OPTIONS.map((o) => (
+    let opts = SORT_MENU_OPTIONS.map((o) => (
       o.id === "fair_value" ? { ...o, label: valueColLabel } : o
     ));
-    if (!showDelta) return opts.filter((o) => o.id !== "value_delta");
+    if (pickDraft) opts = opts.filter((o) => o.id !== "fair_value" && o.id !== "value_delta");
+    else if (!showCostDelta) opts = opts.filter((o) => o.id !== "value_delta");
     return opts;
-  }, [showDelta, valueColLabel]);
+  }, [showCostDelta, valueColLabel, pickDraft]);
 
   const resetBoard = useCallback(() => {
-    setSortKey(DEFAULT_SORT_KEY);
+    setSortKey(defaultSortKeyForBoard(pickDraft));
     setSortDir(DEFAULT_SORT_DIR);
     setPosFilter(defaultPosFilter);
     setStatusFilter(isAvailableView ? "AVAILABLE" : "ALL");
@@ -372,10 +399,10 @@ export default function ValueSheetTable({
     setSearch("");
     setNeedsOnly(false);
     setShowAdvancedLocal(false);
-  }, [defaultPosFilter, isAvailableView]);
+  }, [defaultPosFilter, isAvailableView, pickDraft]);
 
   const boardDirty = Boolean(
-    sortKey !== DEFAULT_SORT_KEY
+    sortKey !== defaultSortKeyForBoard(pickDraft)
     || sortDir !== DEFAULT_SORT_DIR
     || posFilter !== defaultPosFilter
     || (!isAvailableView && statusFilter !== "ALL")
@@ -409,9 +436,9 @@ export default function ValueSheetTable({
         <HubTabIntro
           title={panelTitle}
           compact={compact}
-          learnMore={(showDelta || activeRisk) && !compact && !mobileLayout ? (
+          learnMore={(showCostDelta || activeRisk) && !compact && !mobileLayout ? (
             <>
-              {showDelta && (
+              {showCostDelta && (
                 <p>
                   Value vs cost = contract salary minus suggested bid (negative = good value).
                 </p>
@@ -439,7 +466,7 @@ export default function ValueSheetTable({
               </HoverTip>
             </>
           ) : null}
-          {activeRisk ? ` · ${riskToleranceLabel(riskTolerance)} bids` : ""}
+          {activeRisk && !pickDraft ? ` · ${riskToleranceLabel(riskTolerance)} bids` : ""}
         </div>
       )}
 
@@ -542,7 +569,9 @@ export default function ValueSheetTable({
           {showAdvancedToggle && (
             <label
               className="hub-advanced-toggle hub-advanced-toggle--compact"
-              title="Adds team, per-game pace, projection spread, and min/max bid range when you need finer auction detail."
+              title={pickDraft
+                ? "Adds team, per-game pace, and projection spread."
+                : "Adds team, per-game pace, projection spread, and min/max bid range when you need finer auction detail."}
             >
               <input
                 type="checkbox"
@@ -638,17 +667,19 @@ export default function ValueSheetTable({
                 className={`${r.overpay ? "hub-overpay" : ""}${r.on_sleeper ? " hub-sleeper-row" : ""}`.trim()}
                 name={r.player}
                 meta={buildMobileMeta(r)}
-                heroValue={(
-                  <RaavBidCell
-                    row={r}
-                    riskTolerance={riskTolerance}
-                    rules={rules}
-                    showDeltaBadge={activeRisk
-                      || (r.risk_adjusted_value != null
-                        && Number.isFinite(Number(r.risk_adjusted_value)))}
-                  />
-                )}
-                heroLabel="bid"
+                heroValue={pickDraft
+                  ? formatSeasonPts(band.p50, 0)
+                  : (
+                    <RaavBidCell
+                      row={r}
+                      riskTolerance={riskTolerance}
+                      rules={rules}
+                      showDeltaBadge={activeRisk
+                        || (r.risk_adjusted_value != null
+                          && Number.isFinite(Number(r.risk_adjusted_value)))}
+                    />
+                  )}
+                heroLabel={pickDraft ? "proj" : "bid"}
                 selected={selectedPlayerId === r.player_id}
                 onSelect={onSelectPlayer ? () => onSelectPlayer(r) : undefined}
                 badge={r.is_rookie ? <span className="hub-sleeper-badge">Rookie est.</span> : null}
@@ -675,7 +706,7 @@ export default function ValueSheetTable({
                         title={riskScoreTooltip()}
                       />
                     )}
-                    {activeRisk && formatRaavDelta(raavDelta(r, riskTolerance, rules)) && (
+                    {activeRisk && !pickDraft && formatRaavDelta(raavDelta(r, riskTolerance, rules)) && (
                       <MobileStat
                         label="Risk-adj. Δ"
                         value={formatRaavDelta(raavDelta(r, riskTolerance, rules))}
@@ -688,11 +719,15 @@ export default function ValueSheetTable({
                           value={band.spread != null ? formatSeasonPts(band.spread, 0) : "—"}
                         />
                         <MobileStat label="Per-game" value={r.per_game_proj ?? "—"} />
-                        <MobileStat label="Min" value={fmtSal(r.min_sal)} />
-                        <MobileStat label="Max" value={fmtSal(r.max_sal)} />
+                        {showSalaryBounds && (
+                          <>
+                            <MobileStat label="Min" value={fmtSal(r.min_sal)} />
+                            <MobileStat label="Max" value={fmtSal(r.max_sal)} />
+                          </>
+                        )}
                       </>
                     )}
-                    {showDelta && r.value_delta != null && (
+                    {showCostDelta && r.value_delta != null && (
                       <MobileStat
                         label="Value vs cost"
                         value={`${r.value_delta <= 0 ? "" : "+"}${fmtSal(r.value_delta)}`}
@@ -752,10 +787,16 @@ export default function ValueSheetTable({
                     sortDir={sortDir}
                     onSort={onSort}
                     className="hub-col-spread"
-                    tip="Season ceiling minus floor (wider = more auction risk / upside)"
+                    tip={pickDraft
+                      ? "Season ceiling minus floor (wider = more boom/bust)"
+                      : "Season ceiling minus floor (wider = more auction risk / upside)"}
                   />
-                  <SortTh label="Min" col="min_sal" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-min" />
-                  <SortTh label="Max" col="max_sal" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-max" />
+                  {showSalaryBounds && (
+                    <>
+                      <SortTh label="Min" col="min_sal" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-min" />
+                      <SortTh label="Max" col="max_sal" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-max" />
+                    </>
+                  )}
                 </>
               )}
               {showValueRange && (
@@ -763,6 +804,7 @@ export default function ValueSheetTable({
                   Value
                 </th>
               )}
+              {showFairValue && (
               <SortTh
                 label={valueColLabel}
                 col="fair_value"
@@ -774,6 +816,7 @@ export default function ValueSheetTable({
                   ? `Primary bid uses risk-adjusted value (${riskToleranceLabel(riskTolerance)} stance)`
                   : "Neutral fair auction value from projected points rank"}
               />
+              )}
               {showRiskScore && (
                 <SortTh
                   label="Risk"
@@ -785,7 +828,7 @@ export default function ValueSheetTable({
                   tip={riskScoreTooltip()}
                 />
               )}
-              {showDelta && (
+              {showCostDelta && (
                 <SortTh
                   label="Value vs cost"
                   col="value_delta"
@@ -819,10 +862,13 @@ export default function ValueSheetTable({
                   canNominate={canNominate}
                   minBid={minBid}
                   actionLabel={nominateText}
+                  pickDraft={pickDraft}
+                  showValueRange={showValueRange}
+                  showFairValue={showFairValue}
                   key={r.player_id || `row-${idx}`}
                   row={r}
                   showAdvanced={showAdvanced}
-                  showDelta={showDelta}
+                  showDelta={showCostDelta}
                   showStatus={showStatus}
                   showAdd={showAdd}
                   showSelect={showSelect}

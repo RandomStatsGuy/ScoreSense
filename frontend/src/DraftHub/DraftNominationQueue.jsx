@@ -10,6 +10,7 @@ export default function DraftNominationQueue({
   selectedPlayerName = "",
   playerNames = {},
   disabled = false,
+  pickDraft = false,
   onUpdated,
 }) {
   const [saving, setSaving] = useState(false);
@@ -59,7 +60,7 @@ export default function DraftNominationQueue({
   return (
     <details className="hub-nom-queue">
       <summary>
-        Nomination queue
+        {pickDraft ? "Pick queue" : "Nomination queue"}
         <span className="chart-note">
           {" · "}
           {queue.length ? `${queue.length} queued` : "optional"}
@@ -67,7 +68,9 @@ export default function DraftNominationQueue({
         </span>
       </summary>
       <p className="chart-note">
-        If you go AFK, the room nominates from this list (then best available that fills a min).
+        {pickDraft
+          ? "If you go AFK, the room picks from this list (then best available that fills a min)."
+          : "If you go AFK, the room nominates from this list (then best available that fills a min)."}
       </p>
       <label className="hub-toggle-row hub-toggle-row-compact">
         <input

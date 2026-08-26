@@ -18,6 +18,7 @@ import ValueSheetTable from "./ValueSheetTable";
 import { confirmDialog } from "../ui/confirm";
 import DraftDeadlineClock from "./DraftDeadlineClock";
 import DraftLiveCommandBar from "./DraftLiveCommandBar";
+import DraftOverflowMenu from "./DraftOverflowMenu";
 import {
   viewerIsCommissioner,
   nextNominator,
@@ -49,6 +50,7 @@ import {
   isRiskToleranceActive,
   raavDelta,
 } from "../riskAdjustedValue";
+import { formatSeasonPts } from "../seasonQuantiles";
 
 function draftPhaseStep(status) {
   if (status === "bidding") return 2;
@@ -99,7 +101,6 @@ export default function DraftRoom({
 }) {
   const [roomState, setRoomState] = useState(null);
   const [roomLoading, setRoomLoading] = useState(false);
-  const [leagueName, setLeagueName] = useState("My Auction");
   const [bidAmount, setBidAmount] = useState("");
   const [nomPlayerId, setNomPlayerId] = useState("");
   const [mockModeLabel, setMockModeLabel] = useState("");
@@ -874,7 +875,11 @@ export default function DraftRoom({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
-      if (!res.ok) throw new Error(await parseApiError(res));
+      if (!res.ok) {
+        const detail = await parseApiError(res);
+        await refresh();
+        throw new Error(detail);
+      }
       applyState((await res.json()).state);
       setMockModeLabel("Simulated mock");
     });
@@ -1190,11 +1195,15 @@ export default function DraftRoom({
   };
 
   useEffect(() => {
-    const wins = (events || []).filter((e) => e.event_type === "win");
-    const lastWin = wins[wins.length - 1];
-    if (!lastWin || lastWin.id === lastWinEventIdRef.current) return;
-    lastWinEventIdRef.current = lastWin.id;
-    const p = lastWin.payload || {};
+    const awards = (events || []).filter((e) => e.event_type === "win" || e.event_type === "pick");
+    const lastAward = awards[awards.length - 1];
+    if (!lastAward || lastAward.id === lastWinEventIdRef.current) return;
+    lastWinEventIdRef.current = lastAward.id;
+    const p = lastAward.payload || {};
+    const isPick = lastAward.event_type === "pick" || pickDraft;
+    const proj = p.season_proj != null && Number.isFinite(Number(p.season_proj))
+      ? `${Number(p.season_proj).toFixed(0)} proj pts`
+      : "";
     setPickRecap({
       player_name: p.player_name,
       position: p.position,
@@ -1202,9 +1211,12 @@ export default function DraftRoom({
       amount: p.amount,
       value_grade: p.value_grade,
       value_blurb: p.value_blurb,
-      detail: p.value_blurb,
+      detail: isPick ? (proj || p.value_blurb) : p.value_blurb,
+      round: p.round,
+      overall: p.overall,
+      pick_draft: isPick,
     });
-  }, [events]);
+  }, [events, pickDraft]);
 
   const expireAuctionTimer = useCallback(async () => {
     if (!leagueId) return;
@@ -1506,36 +1518,37 @@ export default function DraftRoom({
               </button>
             )}
             {isCommissioner && (
-              <details className="hub-draft-commish-overflow">
-                <summary className="btn-ghost btn-sm" aria-label="More commissioner controls">More</summary>
-                <div className="hub-draft-commish-overflow-menu">
-                  <button type="button" className="btn-ghost btn-sm hub-draft-end-btn" disabled={busy} onClick={endDraft}>
-                    End draft
+              <DraftOverflowMenu>
+                <button type="button" role="menuitem" className="btn-ghost btn-sm hub-draft-end-btn" disabled={busy} onClick={endDraft}>
+                  End draft
+                </button>
+                {!testMode && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="btn-ghost btn-sm"
+                    disabled={busy}
+                    onClick={resetLiveDraft}
+                    title={pickDraft
+                      ? "Undo draft start — clear picks, keep keepers"
+                      : "Undo draft start — clear auction picks, keep keepers"}
+                  >
+                    Reset
                   </button>
-                  {isCommissioner && !testMode && (
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm"
-                      disabled={busy}
-                      onClick={resetLiveDraft}
-                      title="Undo draft start — clear auction picks, keep keepers"
-                    >
-                      Reset
-                    </button>
-                  )}
-                  {testMode && (
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm"
-                      disabled={busy}
-                      onClick={deleteSandbox}
-                      title={toolMode ? "Discard this mock room" : "Delete this practice room — real league untouched"}
-                    >
-                      {toolMode ? "Discard mock" : "Delete sandbox"}
-                    </button>
-                  )}
-                </div>
-              </details>
+                )}
+                {testMode && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="btn-ghost btn-sm"
+                    disabled={busy}
+                    onClick={deleteSandbox}
+                    title={toolMode ? "Discard this mock room" : "Delete this practice room — real league untouched"}
+                  >
+                    {toolMode ? "Discard mock" : "Delete sandbox"}
+                  </button>
+                )}
+              </DraftOverflowMenu>
             )}
           </div>
         </div>
@@ -1545,7 +1558,7 @@ export default function DraftRoom({
         <MobileSubnav
           className="hub-draft-mobile-tabs"
           tabs={[
-            { id: "auction", label: "Auction" },
+            { id: "auction", label: pickDraft ? "Pick" : "Auction" },
             { id: "pool", label: "Pool" },
             { id: "teams", label: "Teams" },
             { id: "chat", label: "Chat" },
@@ -1664,7 +1677,7 @@ export default function DraftRoom({
         </div>
       )}
 
-      <DraftPickRecap recap={pickRecap} onDismiss={() => setPickRecap(null)} />
+      <DraftPickRecap recap={pickRecap} pickDraft={pickDraft} onDismiss={() => setPickRecap(null)} />
 
       {showDraftEntry && (
         <DraftEntryPanel
@@ -1754,9 +1767,10 @@ export default function DraftRoom({
                         {" "}
                         · {previewRow.position}
                         {" · "}
-                        {isRiskToleranceActive(rules?.risk_tolerance) ? "bid" : "fair"}{" "}
-                        {fmtSal(effectiveAuctionBid(previewRow, rules?.risk_tolerance, rules)
-                          ?? previewRow.fair_value)}
+                        {pickDraft
+                          ? `${formatSeasonPts(previewRow.season_proj, 0)} pts`
+                          : `${isRiskToleranceActive(rules?.risk_tolerance) ? "bid" : "fair"} ${fmtSal(effectiveAuctionBid(previewRow, rules?.risk_tolerance, rules)
+                            ?? previewRow.fair_value)}`}
                       </span>
                     </span>
                     <button
@@ -1807,7 +1821,7 @@ export default function DraftRoom({
                     <p className="chart-note hub-draft-loading">Loading players…</p>
                   ) : availableRows.length === 0 ? (
                     <p className="chart-note hub-draft-loading">
-                      No players available. Check the Value sheet tab loads, then refresh.
+                      No players available. Refresh the board and try again.
                     </p>
                   ) : (
                     <ValueSheetTable
@@ -1841,6 +1855,7 @@ export default function DraftRoom({
                       watchIds={watchIds}
                       canNominate={onClock && (isMyNominationTurn || canForceNominate)}
                       minBid={minBidUnit || 1}
+                      pickDraft={pickDraft}
                       actionLabel={pickDraft ? (canForceNominate ? "Force pick" : "Pick") : undefined}
                     />
                   )}
@@ -1907,6 +1922,7 @@ export default function DraftRoom({
                   ]),
                 )}
                 disabled={busy}
+                pickDraft={pickDraft}
                 onUpdated={applyState}
               />
               </div>

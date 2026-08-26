@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from src.draft_hub.schemas import LeagueRules
@@ -152,10 +153,11 @@ def nomination_sort_key(
     fair = 0.0
     for key in ("fair_value", "model_bid_hint", "season_proj"):
         try:
-            fair = float(row.get(key) or 0)
+            cand = float(row.get(key) or 0)
         except (TypeError, ValueError):
-            fair = 0.0
-        if fair:
+            cand = 0.0
+        if cand and math.isfinite(cand):
+            fair = cand
             break
     below = 0 if position_below_min(rules, roster, pos) else 1
     return (below, -fair)

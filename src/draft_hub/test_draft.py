@@ -17,6 +17,9 @@ BOT_NAMES = [
     "Bot Kilo",
 ]
 
+# Instant sims must not share a clock tick with the live ticker / room poller.
+SIMULATING_LEAGUE_IDS: set[str] = set()
+
 
 def setup_test_draft(league_id: str, commissioner_sub: str, bot_count: int = 3,
                      bot_budget: float | None = None) -> dict[str, Any]:
@@ -172,7 +175,7 @@ def maybe_bot_nominate(league_id: str) -> dict[str, Any] | None:
     if not payload:
         return None
     try:
-        return nominate(league_id, f"bot:{team['id']}", payload)
+        return nominate(league_id, f"bot:{team['id']}", payload, from_pool=True)
     except ValueError:
         return None
 
@@ -202,7 +205,7 @@ def maybe_autodraft_nominate(league_id: str) -> dict[str, Any] | None:
     if not payload:
         return None
     try:
-        return nominate(league_id, sub, payload)
+        return nominate(league_id, sub, payload, from_pool=True)
     except ValueError:
         return None
 
@@ -231,7 +234,7 @@ def maybe_bot_pick(league_id: str) -> dict[str, Any] | None:
     if not payload:
         return None
     try:
-        return make_pick(league_id, f"bot:{team['id']}", payload)
+        return make_pick(league_id, f"bot:{team['id']}", payload, from_pool=True)
     except ValueError:
         return None
 
@@ -261,7 +264,7 @@ def maybe_autodraft_pick(league_id: str) -> dict[str, Any] | None:
     if not payload:
         return None
     try:
-        return make_pick(league_id, sub, payload)
+        return make_pick(league_id, sub, payload, from_pool=True)
     except ValueError:
         return None
 
@@ -445,9 +448,11 @@ def simulate_draft(
         _advance_nominator,
         _current_nominator_team_id,
         end_draft,
+        get_room_state,
         make_pick,
         nominate,
         start_draft,
+        suppress_room_state,
     )
     from src.draft_hub.pick_draft import is_pick_draft
 
@@ -468,71 +473,81 @@ def simulate_draft(
     pick_cap = int(max_picks) if max_picks else _total_roster_slots(rules) * max(1, len(teams))
     picks = 0
     stalled_turns = 0
-
-    # Every iteration either nominates, settles an auction, or skips a full
-    # roster — bounded by picks plus one skipped turn per team per pick.
-    for _ in range(pick_cap * (len(teams) + 2) + 10):
-        session = storage.get_draft_session(league_id) or {}
-        status = session.get("status")
-        if status == "completed" or picks >= pick_cap:
-            break
-        if status == "bidding":
-            _settle_auction(league_id)
-            picks += 1
-            continue
-        if status == "picking":
-            nominator_id = _current_nominator_team_id(session, rules)
-            team = storage.get_team(nominator_id) if nominator_id else None
-            payload = (
-                _pick_nomination_payload(league_id, league, rules, team, session) if team else None
-            )
-            sub = _team_sub(team) if team else None
-            picked = False
-            if payload and sub:
-                try:
-                    make_pick(league_id, sub, payload)
-                    picked = True
-                    picks += 1
-                except ValueError:
-                    pass
-            if picked:
-                stalled_turns = 0
-            else:
-                _advance_nominator(league_id)
-                stalled_turns += 1
-                if stalled_turns >= max(1, len(teams)):
+    SIMULATING_LEAGUE_IDS.add(league_id)
+    try:
+        with suppress_room_state():
+            # Every iteration either nominates, settles an auction, or skips a full
+            # roster — bounded by picks plus one skipped turn per team per pick.
+            for _ in range(pick_cap * (len(teams) + 2) + 10):
+                session = storage.get_draft_session(league_id) or {}
+                status = session.get("status")
+                if status == "completed" or picks >= pick_cap:
                     break
-            continue
-        if status != "nominating":
-            break
+                if status == "bidding":
+                    _settle_auction(league_id)
+                    picks += 1
+                    continue
+                if status == "picking":
+                    nominator_id = _current_nominator_team_id(session, rules)
+                    team = storage.get_team(nominator_id) if nominator_id else None
+                    payload = (
+                        _pick_nomination_payload(league_id, league, rules, team, session)
+                        if team
+                        else None
+                    )
+                    sub = _team_sub(team) if team else None
+                    picked = False
+                    if payload and sub:
+                        try:
+                            make_pick(league_id, sub, payload, from_pool=True)
+                            picked = True
+                            picks += 1
+                        except ValueError:
+                            pass
+                    if picked:
+                        stalled_turns = 0
+                    else:
+                        _advance_nominator(league_id)
+                        stalled_turns += 1
+                        if stalled_turns >= max(1, len(teams)):
+                            break
+                    continue
+                if status != "nominating":
+                    break
 
-        nominator_id = _current_nominator_team_id(session, rules if is_pick_draft(rules) else None)
-        team = storage.get_team(nominator_id) if nominator_id else None
-        payload = (
-            _pick_nomination_payload(league_id, league, rules, team, session) if team else None
-        )
-        sub = _team_sub(team) if team else None
-        nominated = False
-        if payload and sub:
-            try:
-                nominate(league_id, sub, payload)
-                nominated = True
-            except ValueError:
-                pass
-        if nominated:
-            stalled_turns = 0
-        else:
-            # Roster full (or pool empty) for this team — pass the clock along.
-            _advance_nominator(league_id)
-            stalled_turns += 1
-            if stalled_turns >= max(1, len(teams)):
-                break  # nobody can nominate: the draft is over
+                nominator_id = _current_nominator_team_id(
+                    session, rules if is_pick_draft(rules) else None
+                )
+                team = storage.get_team(nominator_id) if nominator_id else None
+                payload = (
+                    _pick_nomination_payload(league_id, league, rules, team, session)
+                    if team
+                    else None
+                )
+                sub = _team_sub(team) if team else None
+                nominated = False
+                if payload and sub:
+                    try:
+                        nominate(league_id, sub, payload, from_pool=True)
+                        nominated = True
+                    except ValueError:
+                        pass
+                if nominated:
+                    stalled_turns = 0
+                else:
+                    # Roster full (or pool empty) for this team — pass the clock along.
+                    _advance_nominator(league_id)
+                    stalled_turns += 1
+                    if stalled_turns >= max(1, len(teams)):
+                        break  # nobody can nominate: the draft is over
 
-    session = storage.get_draft_session(league_id) or {}
-    if session.get("status") != "completed":
-        from src.draft_hub.draft_state import draft_completion_errors
+            session = storage.get_draft_session(league_id) or {}
+            if session.get("status") != "completed":
+                from src.draft_hub.draft_state import draft_completion_errors
 
-        # Partial sims (max_picks) and starved pools still need a clean stop.
-        force = max_picks is not None or bool(draft_completion_errors(league_id))
-        end_draft(league_id, commissioner_sub, force=force)
+                # Partial sims (max_picks) and starved pools still need a clean stop.
+                force = max_picks is not None or bool(draft_completion_errors(league_id))
+                end_draft(league_id, commissioner_sub, force=force)
+    finally:
+        SIMULATING_LEAGUE_IDS.discard(league_id)
     return get_room_state(league_id, commissioner_sub)

@@ -1375,7 +1375,9 @@ def get_draft_session(league_id: str) -> dict[str, Any] | None:
             return None
         d = dict(row)
         if d.get("current_nominee_json"):
-            d["current_nominee"] = json.loads(d["current_nominee_json"])
+            from src.draft_hub.jsonutil import json_safe
+
+            d["current_nominee"] = json_safe(json.loads(d["current_nominee_json"]))
         else:
             d["current_nominee"] = None
         if not d.get("pool_mode"):
@@ -1397,17 +1399,25 @@ def list_in_progress_draft_league_ids() -> list[str]:
     return [str(r["league_id"]) for r in rows]
 
 
+def _draft_payload_dumps(payload: dict[str, Any] | None) -> str:
+    from src.draft_hub.jsonutil import dumps
+
+    return dumps(payload or {})
+
+
 def append_draft_event(league_id: str, event_type: str, payload: dict[str, Any]) -> dict[str, Any]:
     now = _utcnow()
     with get_conn() as conn:
         conn.execute(
             "INSERT INTO draft_event (league_id, event_type, payload_json, created_at) VALUES (?, ?, ?, ?)",
-            (league_id, event_type, json.dumps(payload), now),
+            (league_id, event_type, _draft_payload_dumps(payload), now),
         )
         eid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
         row = conn.execute("SELECT * FROM draft_event WHERE id = ?", (eid,)).fetchone()
         d = dict(row)
-        d["payload"] = json.loads(d["payload_json"])
+        from src.draft_hub.jsonutil import json_safe
+
+        d["payload"] = json_safe(json.loads(d["payload_json"]))
         return d
 
 
@@ -1418,9 +1428,11 @@ def list_draft_events(league_id: str, limit: int = 100) -> list[dict[str, Any]]:
             (league_id, limit),
         ).fetchall()
     out = []
+    from src.draft_hub.jsonutil import json_safe
+
     for r in rows:
         d = dict(r)
-        d["payload"] = json.loads(d["payload_json"])
+        d["payload"] = json_safe(json.loads(d["payload_json"]))
         out.append(d)
     return list(reversed(out))
 

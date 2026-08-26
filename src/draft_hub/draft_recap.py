@@ -14,6 +14,24 @@ STEAL_GRADES = frozenset({"steal", "great_value"})
 REACH_GRADES = frozenset({"reach", "major_reach", "slight_reach"})
 
 
+def _opt_int(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _opt_float(value: Any) -> float | None:
+    if value is None or value == "":
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def _pick_rows(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for ev in events:
@@ -27,6 +45,7 @@ def _pick_rows(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         fair_raw = p.get("fair_value")
         fair = float(fair_raw) if fair_raw is not None else None
         ratio = (fair / amount) if fair is not None and amount > 0 else None
+        season_proj = _opt_float(p.get("season_proj"))
         rows.append(
             {
                 "team_id": str(p.get("team_id") or ""),
@@ -39,6 +58,10 @@ def _pick_rows(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "value_grade": p.get("value_grade") or "pick",
                 "value_blurb": p.get("value_blurb"),
                 "ratio": round(ratio, 3) if ratio is not None else None,
+                "overall": _opt_int(p.get("overall")),
+                "round": _opt_int(p.get("round")),
+                "slot": _opt_int(p.get("slot")),
+                "season_proj": round(season_proj, 1) if season_proj is not None else None,
             }
         )
     return rows
@@ -292,6 +315,13 @@ def build_owner_draft_report(
     total_spent = round(sum(float(r.get("amount") or 0) for r in rows), 2)
     steals = sum(1 for r in rows if r.get("value_grade") in STEAL_GRADES)
     reaches = sum(1 for r in rows if r.get("value_grade") in REACH_GRADES)
+    league = storage.get_league(league_id) or {}
+    try:
+        rules = LeagueRules.model_validate(league.get("rules") or {})
+    except Exception:
+        rules = None
+    pick_draft = bool(rules and is_pick_draft(rules))
+    dtype = draft_type_of(rules) if rules else "auction"
     return {
         "team_id": str(team_id),
         "pick_count": len(rows),
@@ -301,6 +331,8 @@ def build_owner_draft_report(
         "reaches": reaches,
         "by_position": sorted(by_pos.values(), key=lambda b: (-b["spent"], b["position"])),
         "picks": rows,
+        "pick_draft": pick_draft,
+        "draft_type": dtype,
     }
 
 

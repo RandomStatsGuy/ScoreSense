@@ -67,17 +67,28 @@ export function rosSeasonP90(row) {
 }
 
 export async function parseApiError(res, fallback = "Request failed") {
+  if (res.status === 502 || res.status === 504 || res.status === 524) {
+    return "This took too long. If you were simulating a mock, open it from Recent mocks — the draft may have finished.";
+  }
   const text = await res.text();
+  if (!text) {
+    if (res.status >= 500) {
+      return "The server failed to finish this request. If you were simulating a mock, check Recent mocks.";
+    }
+    return fallback;
+  }
   if (res.status === 404 && text.includes("Not Found")) {
     return "This feature is temporarily unavailable. Please refresh and try again.";
   }
-  if (!text) return fallback;
   try {
     const body = JSON.parse(text);
     if (typeof body.detail === "string") return body.detail;
     if (Array.isArray(body.detail)) return body.detail.map((d) => d.msg || String(d)).join("; ");
     return body.message || text;
   } catch {
+    if (res.status >= 500) {
+      return "The server failed to finish this request. If you were simulating a mock, check Recent mocks.";
+    }
     return text.length > 200 ? fallback : text;
   }
 }

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import { auctionAwardContractLabel, shortAuctionContractLabel, fmtSal } from "./rosterFormat";
+import { formatPickSlot } from "./draftRoomHelpers";
+import { formatSeasonPts } from "../seasonQuantiles";
 
 const GRADE_LABEL = {
   steal: "Steal",
@@ -50,6 +52,7 @@ export default function DraftOwnerReport({
   if (!report) return null;
 
   const stepUp = Number(report.extension_step_up ?? 5);
+  const pickDraft = Boolean(report.pick_draft);
 
   return (
     <section className="hub-owner-report">
@@ -58,10 +61,15 @@ export default function DraftOwnerReport({
           <p className="hub-owner-report-kicker">Your draft · This mock</p>
           <h3>{report.team_name || "Your team"}</h3>
           <p className="chart-note">
-            {report.pick_count} picks · {fmtSal(report.total_spent)} spent
-            {report.budget_remaining != null && <> · {fmtSal(report.budget_remaining)} left</>}
-            {report.steals > 0 && <> · {report.steals} steal{report.steals === 1 ? "" : "s"}</>}
-            {report.reaches > 0 && <> · {report.reaches} reach{report.reaches === 1 ? "" : "es"}</>}
+            {report.pick_count} picks
+            {!pickDraft && (
+              <>
+                {" · "}{fmtSal(report.total_spent)} spent
+                {report.budget_remaining != null && <> · {fmtSal(report.budget_remaining)} left</>}
+                {report.steals > 0 && <> · {report.steals} steal{report.steals === 1 ? "" : "s"}</>}
+                {report.reaches > 0 && <> · {report.reaches} reach{report.reaches === 1 ? "" : "es"}</>}
+              </>
+            )}
           </p>
         </div>
       </header>
@@ -70,7 +78,7 @@ export default function DraftOwnerReport({
         <div className="hub-owner-report-pos">
           {report.by_position.map((b) => (
             <span key={b.position} className="hub-cap-chip">
-              {b.position} {b.count} · {fmtSal(b.spent)}
+              {pickDraft ? `${b.position} ${b.count}` : `${b.position} ${b.count} · ${fmtSal(b.spent)}`}
             </span>
           ))}
         </div>
@@ -79,43 +87,66 @@ export default function DraftOwnerReport({
       {error && <div className="error hub-owner-report-error">{error}</div>}
 
       <div className="hub-owner-report-table-wrap">
-        <table className="hub-owner-report-table">
+        <table className={`hub-owner-report-table${pickDraft ? " hub-owner-report-table--picks" : ""}`}>
           <thead>
-            <tr>
-              <th>Player</th>
-              <th>Paid</th>
-              <th>Fair</th>
-              <th>Grade</th>
-              <th>Contract</th>
-            </tr>
+            {pickDraft ? (
+              <tr>
+                <th>Pick</th>
+                <th>Player</th>
+                <th>Proj</th>
+              </tr>
+            ) : (
+              <tr>
+                <th>Player</th>
+                <th>Paid</th>
+                <th>Fair</th>
+                <th>Grade</th>
+                <th>Contract</th>
+              </tr>
+            )}
           </thead>
           <tbody>
             {report.picks.map((p) => (
               <tr key={p.player_id}>
-                <td>
-                  <strong>{p.player_name}</strong>
-                  <span className="chart-note"> · {p.position}</span>
-                </td>
-                <td>{fmtSal(p.amount)}</td>
-                <td>{p.fair_value != null ? fmtSal(p.fair_value) : "—"}</td>
-                <td>
-                  <span className={`hub-draft-recap-grade hub-draft-recap-grade-${p.value_grade}`}>
-                    {GRADE_LABEL[p.value_grade] || "Pick"}
-                  </span>
-                </td>
-                <td className="hub-owner-contract-cell">
-                  <span title={auctionAwardContractLabel(p, stepUp)}>{shortAuctionContractLabel(p, stepUp)}</span>
-                </td>
+                {pickDraft ? (
+                  <>
+                    <td>{formatPickSlot(p) || "—"}</td>
+                    <td>
+                      <strong>{p.player_name}</strong>
+                      <span className="chart-note"> · {p.position}</span>
+                    </td>
+                    <td>{p.season_proj != null ? formatSeasonPts(p.season_proj, 0) : "—"}</td>
+                  </>
+                ) : (
+                  <>
+                    <td>
+                      <strong>{p.player_name}</strong>
+                      <span className="chart-note"> · {p.position}</span>
+                    </td>
+                    <td>{fmtSal(p.amount)}</td>
+                    <td>{p.fair_value != null ? fmtSal(p.fair_value) : "—"}</td>
+                    <td>
+                      <span className={`hub-draft-recap-grade hub-draft-recap-grade-${p.value_grade}`}>
+                        {GRADE_LABEL[p.value_grade] || "Pick"}
+                      </span>
+                    </td>
+                    <td className="hub-owner-contract-cell">
+                      <span title={auctionAwardContractLabel(p, stepUp)}>{shortAuctionContractLabel(p, stepUp)}</span>
+                    </td>
+                  </>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className="chart-note hub-owner-report-hint">
-        Auction deals are automatic: rookies stay 2 years at the sale price;
-        veterans are 2 years with a {fmtSal(stepUp)}/yr step-up.
-        Choose extra years only during the pre-draft rookie extension window.
-      </p>
+      {!pickDraft && (
+        <p className="chart-note hub-owner-report-hint">
+          Auction deals are automatic: rookies stay 2 years at the sale price;
+          veterans are 2 years with a {fmtSal(stepUp)}/yr step-up.
+          Choose extra years only during the pre-draft rookie extension window.
+        </p>
+      )}
     </section>
   );
 }
