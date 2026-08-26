@@ -9903,6 +9903,17 @@ td.col-rank.col-rank-top {
   background: var(--bg-elevated, #0f172a);
   box-shadow: var(--shadow-popover, 0 8px 24px rgba(0, 0, 0, 0.35));
 }
+.hub-draft-commish-overflow-menu--portal {
+  position: fixed;
+  top: auto;
+  right: auto;
+  margin: 0;
+}
+.hub-draft-commish-overflow-menu [role="menuitem"] {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
 .hub-board-sort-state {
   display: flex;
   flex-wrap: wrap;
