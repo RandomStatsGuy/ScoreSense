@@ -9216,6 +9216,10 @@ td.col-rank.col-rank-top {
   border-radius: var(--radius-pill);
   background: rgba(255, 255, 255, 0.08);
 }
+.hub-draft-recap-grade-pick {
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
 .hub-draft-recap-grade-steal, .hub-draft-recap-grade-great_value { background: rgba(34, 197, 94, 0.18); color: #86efac; }
 .hub-draft-recap-grade-reach, .hub-draft-recap-grade-major_reach, .hub-draft-recap-grade-slight_reach { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
 .hub-room-banner { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; padding: 0.65rem; background: var(--accent-soft); border-radius: var(--radius-sm); margin-bottom: 0.75rem; }
@@ -10192,6 +10196,17 @@ td.col-rank.col-rank-top {
   padding: 0.4rem 0.45rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   white-space: nowrap;
+}
+.hub-owner-report-table--picks {
+  min-width: 18rem;
+}
+.hub-owner-report-table--picks td:nth-child(2) {
+  white-space: normal;
+}
+.hub-owner-report-table--picks th:last-child,
+.hub-owner-report-table--picks td:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 .hub-owner-report-table th {
   font-size: 0.72rem;

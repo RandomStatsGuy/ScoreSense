@@ -87,7 +87,7 @@ export default function DraftOwnerReport({
       {error && <div className="error hub-owner-report-error">{error}</div>}
 
       <div className="hub-owner-report-table-wrap">
-        <table className="hub-owner-report-table">
+        <table className={`hub-owner-report-table${pickDraft ? " hub-owner-report-table--picks" : ""}`}>
           <thead>
             {pickDraft ? (
               <tr>

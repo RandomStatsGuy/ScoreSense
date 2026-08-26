@@ -115,7 +115,9 @@ export default function DraftRosterPanel({
               ? (pickDraft
                 ? "Mid-draft cuts on — drop a player back into the pool."
                 : "Mid-draft cuts on — drop a player to free cap.")
-              : "Tap Trade on a player to start an offer."}
+              : (pickDraft
+                ? "Trade a drafted player with another team."
+                : "Tap Trade on a player to start an offer.")}
         </p>
       )}
       {pendingTradeCount > 0 && onOpenInbox && (
