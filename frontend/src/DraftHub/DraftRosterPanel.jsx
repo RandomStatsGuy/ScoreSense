@@ -3,7 +3,7 @@ import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 import { HUB_POS_ORDER, normalizeHubPosition } from "./hubPositions";
 import { fmtSal } from "./rosterFormat";
 
-function RosterActions({ showDrop, showTrade, cutBusy, onDrop, onTrade, playerName }) {
+function RosterActions({ showDrop, showTrade, cutBusy, onDrop, onTrade, playerName, pickDraft = false }) {
   if (!showDrop && !showTrade) return null;
   return (
     <span className="hub-roster-actions">
@@ -13,7 +13,9 @@ function RosterActions({ showDrop, showTrade, cutBusy, onDrop, onTrade, playerNa
           className="hub-roster-action hub-roster-action--drop"
           disabled={cutBusy}
           onClick={onDrop}
-          title="Drop player back into the pool and apply cap refund"
+          title={pickDraft
+            ? "Drop player back into the pool"
+            : "Drop player back into the pool and apply cap refund"}
         >
           Drop
         </button>
@@ -110,8 +112,12 @@ export default function DraftRosterPanel({
           {allowMidDraftCuts && allowTrades
             ? "Drop returns a player to the pool. Trade opens a two-team offer."
             : allowMidDraftCuts
-              ? "Mid-draft cuts on — drop a player to free cap."
-              : "Tap Trade on a player to start an offer."}
+              ? (pickDraft
+                ? "Mid-draft cuts on — drop a player back into the pool."
+                : "Mid-draft cuts on — drop a player to free cap.")
+              : (pickDraft
+                ? "Trade a drafted player with another team."
+                : "Tap Trade on a player to start an offer.")}
         </p>
       )}
       {pendingTradeCount > 0 && onOpenInbox && (
@@ -176,6 +182,7 @@ export default function DraftRosterPanel({
                   mine: true,
                 })}
                 playerName={row.player_name}
+                pickDraft={pickDraft}
               />
             </li>
           ))}

@@ -35,6 +35,9 @@ function ValueSheetPlayerRow({
   canNominate = false,
   actionLabel,
   minBid = 1,
+  pickDraft = false,
+  showValueRange,
+  showFairValue = true,
 }) {
   const handleRowClick = useCallback(() => {
     if (onSelectPlayer) onSelectPlayer(row);
@@ -107,17 +110,22 @@ function ValueSheetPlayerRow({
         <>
           <td className="num hub-col-pg">{row.per_game_proj}</td>
           <td className="num hub-col-spread">{spreadLabel}</td>
-          <td className="num hub-col-min">{fmtSal(row.min_sal)}</td>
-          <td className="num hub-col-max">{fmtSal(row.max_sal)}</td>
+          {!pickDraft && (
+            <>
+              <td className="num hub-col-min">{fmtSal(row.min_sal)}</td>
+              <td className="num hub-col-max">{fmtSal(row.max_sal)}</td>
+            </>
+          )}
         </>
       )}
-      {draftConsole && (
+      {(showValueRange ?? draftConsole) && !pickDraft && (
         <td className="num hub-col-value" title="Model auction range">
           {row.min_sal != null && row.max_sal != null
             ? `${fmtSal(row.min_sal)}–${fmtSal(row.max_sal)}`
             : "—"}
         </td>
       )}
+      {showFairValue && (
       <td className="num hub-col-fv" title={draftConsole ? suggestedBidCaption(isRiskToleranceActive(riskTolerance)) : undefined}>
         <RaavBidCell
           row={row}
@@ -126,6 +134,7 @@ function ValueSheetPlayerRow({
           showDeltaBadge={showRaavBadge}
         />
       </td>
+      )}
       {showRiskScore && (
         <td className="num hub-col-risk" title={draftConsole ? riskBandTooltip(row.risk_score) : riskScoreTooltip()}>
           {draftConsole ? riskBand(row.risk_score).label : formatRiskScore(row.risk_score)}
@@ -207,6 +216,12 @@ function propsAreEqual(prev, next) {
     && prev.narrativeScope === next.narrativeScope
     && prev.seasonScaleMax === next.seasonScaleMax
     && prev.rowIndex === next.rowIndex
+    && prev.pickDraft === next.pickDraft
+    && prev.showValueRange === next.showValueRange
+    && prev.showFairValue === next.showFairValue
+    && prev.actionLabel === next.actionLabel
+    && prev.canNominate === next.canNominate
+    && prev.draftConsole === next.draftConsole
   );
 }
 

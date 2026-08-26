@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  MOCK_DRAFT_PRESETS,
   MOCK_DRAFT_STORAGE_KEY,
   botCountForTeams,
   buildMockDraftStartBody,
@@ -61,6 +62,10 @@ test("mock labels cover format and room phase", () => {
     "Dynasty — simulated mock",
   );
   assert.equal(mockDraftFormatLabel("snake"), "Snake");
+  assert.match(
+    MOCK_DRAFT_PRESETS.find((p) => p.id === "snake_draft_v1").hint,
+    /no salary cap/i,
+  );
   assert.equal(mockRoomPhaseLabel({ status: "setup" }), "Ready");
   assert.equal(mockRoomPhaseLabel({ draft_completed: true }), "Completed");
   assert.equal(mockRoomPhaseLabel({ status: "completed" }), "Completed");
