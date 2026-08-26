@@ -60,6 +60,8 @@ const SORT_MENU_OPTIONS = [
   { id: "value_delta", label: "Value vs cost" },
   { id: "player", label: "Name" },
 ];
+const DEFAULT_SORT_KEY = "fair_value";
+const DEFAULT_SORT_DIR = "desc";
 
 /** SCORE-16: plain-language column + control copy. */
 const VALUE_VS_COST_TIP = (
@@ -121,8 +123,8 @@ export default function ValueSheetTable({
   const nominateText = actionLabel || (draftConsole ? `Nominate for $${Number(minBid || 1)}` : "Nominate");
   const valueColLabel = pickDraft ? "Value" : "Suggested bid";
   const isAvailableView = mode === "available";
-  const [sortKey, setSortKey] = useState("fair_value");
-  const [sortDir, setSortDir] = useState("desc");
+  const [sortKey, setSortKey] = useState(DEFAULT_SORT_KEY);
+  const [sortDir, setSortDir] = useState(DEFAULT_SORT_DIR);
   const [posFilter, setPosFilter] = useState(defaultPosFilter);
   const [statusFilter, setStatusFilter] = useState(isAvailableView ? "AVAILABLE" : "ALL");
   const [tierFilter, setTierFilter] = useState("ALL");
@@ -360,6 +362,31 @@ export default function ValueSheetTable({
     return opts;
   }, [showDelta, valueColLabel]);
 
+  const resetBoard = useCallback(() => {
+    setSortKey(DEFAULT_SORT_KEY);
+    setSortDir(DEFAULT_SORT_DIR);
+    setPosFilter(defaultPosFilter);
+    setStatusFilter(isAvailableView ? "AVAILABLE" : "ALL");
+    setTierFilter("ALL");
+    setRiskProfile("ALL");
+    setSearch("");
+    setNeedsOnly(false);
+    setShowAdvancedLocal(false);
+  }, [defaultPosFilter, isAvailableView]);
+
+  const boardDirty = Boolean(
+    sortKey !== DEFAULT_SORT_KEY
+    || sortDir !== DEFAULT_SORT_DIR
+    || posFilter !== defaultPosFilter
+    || (!isAvailableView && statusFilter !== "ALL")
+    || (showTierFilters && tierFilter !== "ALL")
+    || riskProfile !== "ALL"
+    || search.trim()
+    || needsOnly
+    || showAdvancedLocal,
+  );
+  const activeSortLabel = sortMenuOptions.find((o) => o.id === sortKey)?.label || sortKey;
+
   const showSkeleton = loading && sorted.length === 0;
 
   const buildMobileMeta = useCallback((row) => {
@@ -473,6 +500,21 @@ export default function ValueSheetTable({
           </div>
         </div>
       </div>
+      {draftConsole && (
+        <div className="hub-board-sort-state" aria-live="polite">
+          <span>
+            Sorted by {activeSortLabel} {sortDir === "asc" ? "↑" : "↓"}
+          </span>
+          <button
+            type="button"
+            className="btn-ghost btn-sm"
+            disabled={!boardDirty}
+            onClick={resetBoard}
+          >
+            Reset board
+          </button>
+        </div>
+      )}
       {moreFiltersOpen && (
         <div
           id="hub-players-more-filters"
