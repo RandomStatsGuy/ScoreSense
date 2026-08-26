@@ -6,8 +6,12 @@ import {
   buildMockDraftStartBody,
   mockDraftDisplayName,
   mockDraftFormatLabel,
+  mockDraftLaunchSummary,
+  mockRoomPhaseKey,
   mockRoomPhaseLabel,
+  mockRoomResumeLabel,
   readStoredMockLeagueId,
+  resolveMockDraftSeason,
   writeStoredMockLeagueId,
 } from "./mockDraftConfig.js";
 
@@ -29,6 +33,7 @@ test("buildMockDraftStartBody uses preset when no league overlay", () => {
   assert.equal(body.preset_id, "snake_draft_v1");
   assert.equal(body.source_league_id, undefined);
   assert.equal(body.auto_start, true);
+  assert.equal(body.season, 2026);
 });
 
 test("buildMockDraftStartBody copies league rules or manager names", () => {
@@ -58,7 +63,55 @@ test("mock labels cover format and room phase", () => {
   assert.equal(mockDraftFormatLabel("snake"), "Snake");
   assert.equal(mockRoomPhaseLabel({ status: "setup" }), "Ready");
   assert.equal(mockRoomPhaseLabel({ draft_completed: true }), "Completed");
+  assert.equal(mockRoomPhaseLabel({ status: "completed" }), "Completed");
   assert.equal(mockRoomPhaseLabel({ status: "nominating" }), "In progress");
+  assert.equal(mockRoomPhaseKey({ status: "completed" }), "completed");
+  assert.equal(mockRoomPhaseKey({ draft_completed: true }), "completed");
+  assert.equal(mockRoomResumeLabel({ status: "completed" }), "View recap");
+  assert.equal(mockRoomResumeLabel({ status: "picking" }), "Resume");
+});
+
+test("resolveMockDraftSeason prefers application defaults over a hard-coded year", () => {
+  assert.equal(resolveMockDraftSeason({ default_season: 2025 }, { season: 2024 }), 2025);
+  assert.equal(resolveMockDraftSeason(null, { season: 2024 }), 2024);
+  assert.equal(resolveMockDraftSeason(undefined, undefined), null);
+});
+
+test("launch summary keeps rules and manager names on separate fields", () => {
+  const preset = mockDraftLaunchSummary({
+    presetId: "snake_draft_v1",
+    teamCount: 10,
+    season: 2026,
+  });
+  assert.equal(preset.format, "Snake draft");
+  assert.equal(preset.teams, 10);
+  assert.equal(preset.bots, 9);
+  assert.equal(preset.season, 2026);
+  assert.equal(preset.ruleSource, "Snake draft preset");
+  assert.equal(preset.managerSource, "Generic bots");
+
+  const mixed = mockDraftLaunchSummary({
+    presetId: "snake_draft_v1",
+    teamCount: 10,
+    season: { default_season: 2026 },
+    hasLeague: true,
+    leagueName: "WCC",
+    useLeagueRules: false,
+    useLeagueManagers: true,
+  });
+  assert.match(mixed.ruleSource, /WCC rules/);
+  assert.match(mixed.managerSource, /WCC managers/);
+  assert.doesNotMatch(mixed.managerSource, /rules/i);
+
+  const rulesOnly = mockDraftLaunchSummary({
+    presetId: "linear_draft_v1",
+    hasLeague: true,
+    leagueName: "WCC",
+    useLeagueRules: true,
+    useLeagueManagers: false,
+  });
+  assert.match(rulesOnly.ruleSource, /WCC rules/);
+  assert.equal(rulesOnly.managerSource, "Generic bots");
 });
 
 test("session storage helpers round-trip a room id", () => {

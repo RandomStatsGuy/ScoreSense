@@ -73,6 +73,14 @@ export function nextOnClock(session, teams = [], draftType = "auction") {
   return teams.find((t) => String(t.id) === String(nextId)) || { id: nextId };
 }
 
+export function formatPickTracker(pickClock, { nextTeam } = {}) {
+  if (!pickClock?.round) return "";
+  const parts = [`R${pickClock.round}`, `P${pickClock.overall}`];
+  const nextName = String(nextTeam?.name || "").trim();
+  if (nextName) parts.push(`Next ${nextName}`);
+  return parts.join(" · ");
+}
+
 export function teamRosterLine(team = {}) {
   const rostered = Number(team.occupying);
   const max = Number(team.roster_size_max);

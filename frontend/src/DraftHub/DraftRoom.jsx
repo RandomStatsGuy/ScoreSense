@@ -22,6 +22,7 @@ import {
   viewerIsCommissioner,
   nextNominator,
   nextOnClock,
+  formatPickTracker,
   loadWatchIds,
   toggleWatchId,
   teamBudgetLine,
@@ -54,6 +55,32 @@ function draftPhaseStep(status) {
   if (status === "completed") return 3;
   if (status === "nominating" || status === "picking") return 1;
   return 0;
+}
+
+function DraftOnClockPanel({
+  pickDraft,
+  isMyTurn,
+  nominatorName,
+  pickClock,
+  nextTeam,
+  deadline,
+  paused,
+}) {
+  const title = isMyTurn
+    ? (pickDraft ? "You're on the clock" : "Your nomination")
+    : `On the clock: ${nominatorName || "a team"}`;
+  const tracker = formatPickTracker(pickClock, { nextTeam });
+  return (
+    <div className={`hub-draft-on-clock${isMyTurn ? " is-yours" : ""}`} role="status">
+      <div className="hub-draft-on-clock-main">
+        <strong>{title}</strong>
+        {tracker ? <span className="chart-note">{tracker}</span> : null}
+      </div>
+      {deadline ? (
+        <DraftDeadlineClock deadline={deadline} paused={paused} className="hub-draft-live-timer" />
+      ) : null}
+    </div>
+  );
 }
 
 export default function DraftRoom({
@@ -245,6 +272,13 @@ export default function DraftRoom({
   );
   const isMyNominationTurn = !nominatorTeamId
     || String(myTeamId) === String(nominatorTeamId);
+  const nextClockTeam = useMemo(
+    () => (pickDraft
+      ? nextOnClock(session, teams, roomState?.draft_type || rules?.draft_type)
+      : nextNominator(session, teams)),
+    [pickDraft, session, teams, roomState?.draft_type, rules?.draft_type],
+  );
+  const pickTracker = formatPickTracker(pickClock, { nextTeam: nextClockTeam });
   const canForceNominate = Boolean(
     !testMode
     && isCommissioner
@@ -1418,6 +1452,9 @@ export default function DraftRoom({
             {(session?.status === "nominating" || session?.status === "picking") && liveStatus && (
               <>
                 <strong className="hub-draft-live-title">{liveStatus.title}</strong>
+                {pickTracker ? (
+                  <span className="hub-draft-pick-tracker">{pickTracker}</span>
+                ) : null}
                 {activeDeadline && (
                   <DraftDeadlineClock
                     deadline={activeDeadline}
@@ -1469,31 +1506,36 @@ export default function DraftRoom({
               </button>
             )}
             {isCommissioner && (
-              <button type="button" className="btn-ghost btn-sm hub-draft-end-btn" disabled={busy} onClick={endDraft}>
-                End
-              </button>
-            )}
-            {isCommissioner && !testMode && (
-              <button
-                type="button"
-                className="btn-ghost btn-sm"
-                disabled={busy}
-                onClick={resetLiveDraft}
-                title="Undo draft start — clear auction picks, keep keepers"
-              >
-                Reset
-              </button>
-            )}
-            {testMode && isCommissioner && (
-              <button
-                type="button"
-                className="btn-ghost btn-sm"
-                disabled={busy}
-                onClick={deleteSandbox}
-                title={toolMode ? "Discard this mock room" : "Delete this practice room — real league untouched"}
-              >
-                {toolMode ? "Discard mock" : "Delete sandbox"}
-              </button>
+              <details className="hub-draft-commish-overflow">
+                <summary className="btn-ghost btn-sm" aria-label="More commissioner controls">More</summary>
+                <div className="hub-draft-commish-overflow-menu">
+                  <button type="button" className="btn-ghost btn-sm hub-draft-end-btn" disabled={busy} onClick={endDraft}>
+                    End draft
+                  </button>
+                  {isCommissioner && !testMode && (
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm"
+                      disabled={busy}
+                      onClick={resetLiveDraft}
+                      title="Undo draft start — clear auction picks, keep keepers"
+                    >
+                      Reset
+                    </button>
+                  )}
+                  {testMode && (
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm"
+                      disabled={busy}
+                      onClick={deleteSandbox}
+                      title={toolMode ? "Discard this mock room" : "Delete this practice room — real league untouched"}
+                    >
+                      {toolMode ? "Discard mock" : "Delete sandbox"}
+                    </button>
+                  )}
+                </div>
+              </details>
             )}
           </div>
         </div>
@@ -1603,7 +1645,7 @@ export default function DraftRoom({
           isCommissioner={isCommissioner}
           onAward={award}
           nominatorTeam={nominatorTeam}
-          nextNominatorTeam={pickDraft ? nextOnClock(session, teams, roomState?.draft_type || rules?.draft_type) : nextNominator(session, teams)}
+          nextNominatorTeam={nextClockTeam}
           isMyNominationTurn={isMyNominationTurn}
           connectionStatus={connectionStatus}
           paused={Boolean(session?.paused)}
@@ -1661,6 +1703,18 @@ export default function DraftRoom({
           <div className="hub-draft-main hub-draft-mobile-section hub-draft-mobile-section--auction">
             {roomLoading && !session && (
               <p className="chart-note hub-draft-loading">Loading draft room…</p>
+            )}
+
+            {onClock && (
+              <DraftOnClockPanel
+                pickDraft={pickDraft}
+                isMyTurn={isMyNominationTurn}
+                nominatorName={nominatorTeam?.name}
+                pickClock={pickClock}
+                nextTeam={nextClockTeam}
+                deadline={activeDeadline}
+                paused={Boolean(session?.paused)}
+              />
             )}
 
             {nominee ? (
