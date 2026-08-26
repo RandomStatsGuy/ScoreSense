@@ -1705,7 +1705,7 @@ export default function DraftRoom({
               <p className="chart-note hub-draft-loading">Loading draft room…</p>
             )}
 
-            {onClock && (
+            {onClock && !busy && (
               <DraftOnClockPanel
                 pickDraft={pickDraft}
                 isMyTurn={isMyNominationTurn}
