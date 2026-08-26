@@ -19,6 +19,15 @@ export const AUCTION_SORT_OPTIONS = [
   { id: "player", label: "Name" },
 ];
 
+/** Resolve a user-facing sort label without leaking internal snake_case keys. */
+export function sortLabelForKey(options, key) {
+  const found = (options || []).find((option) => option.id === key)?.label;
+  if (found) return found;
+  return String(key || "Sort")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 const COL = {
   player: { id: "player", label: "Player", className: "col-player" },
   team: { id: "team", label: "Team", className: "hub-col-team" },

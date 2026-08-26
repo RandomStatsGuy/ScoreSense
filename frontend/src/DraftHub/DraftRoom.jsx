@@ -15,7 +15,8 @@ import DraftEntryPanel from "./DraftEntryPanel";
 import DraftNominationQueue from "./DraftNominationQueue";
 import LeagueChat from "./LeagueChat";
 import ValueSheetTable from "./ValueSheetTable";
-import SnakeDraftBoard from "./SnakeDraftBoard";
+// Explicit extension avoids colliding with snakeDraftBoard.js on Windows.
+import SnakeDraftBoard from "./SnakeDraftBoard.jsx";
 import { confirmDialog } from "../ui/confirm";
 import DraftDeadlineClock from "./DraftDeadlineClock";
 import DraftLiveCommandBar from "./DraftLiveCommandBar";
@@ -39,6 +40,7 @@ import { isRowAvailable } from "./valueSheetUtils";
 import {
   buildRosterCapacity,
   canAcquireAtPosition,
+  completedDraftReviewTarget,
   formatDraftEvent,
   isRetainedThroughDraft,
   minNextBid,
@@ -272,6 +274,10 @@ export default function DraftRoom({
       || draftRecap.pick_draft
     ),
   );
+  const completedReview = completedDraftReviewTarget(pickDraft);
+  const hasCompletedReview = pickDraft
+    ? Boolean(recapHasStory && draftRecap)
+    : teams.length > 0;
   const linkedHubLeagueId = hubContext?.league_id || "";
   const usingHubLeague = Boolean(leagueId && linkedHubLeagueId && leagueId === linkedHubLeagueId);
   const showDraftEntry = !toolMode && !inLiveDraft && !draftCompleted;
@@ -1148,6 +1154,7 @@ export default function DraftRoom({
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       applyState(await res.json());
+      setNomPlayerId("");
       bidTouched.current = false;
       wsRefresh();
     } catch (e) {
@@ -1156,6 +1163,22 @@ export default function DraftRoom({
       setPendingAction("");
     }
   }, [canAcquire, leagueId, applyState, wsRefresh, playerPayload, nominatorTeam?.name, pickDraft]);
+
+  const reviewCompletedDraft = useCallback(() => {
+    if (typeof document === "undefined") return;
+    const target = document.getElementById(completedReview.id);
+    if (!target) return;
+    if (completedReview.openDetails && target.tagName === "DETAILS") {
+      target.open = true;
+    }
+    const reduceMotion = typeof window !== "undefined"
+      && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    target.scrollIntoView({
+      behavior: reduceMotion ? "auto" : "smooth",
+      block: "start",
+    });
+    target.focus({ preventScroll: true });
+  }, [completedReview.id, completedReview.openDetails]);
 
   const nominate = async () => {
     const row = previewRow;
@@ -1563,7 +1586,7 @@ export default function DraftRoom({
         </div>
       )}
 
-      {mobileLayout && leagueId && (inLiveDraft || draftCompleted) && (
+      {mobileLayout && leagueId && inLiveDraft && (
         <MobileSubnav
           className="hub-draft-mobile-tabs"
           tabs={[
@@ -1579,8 +1602,8 @@ export default function DraftRoom({
       )}
 
       {draftCompleted && (
-        <div className="hub-draft-ended" role="status">
-          <div className="hub-draft-ended-main">
+        <div className="hub-draft-ended">
+          <div className="hub-draft-ended-main" role="status">
             <strong>{testMode ? "Mock draft done" : "Draft ended"}</strong>
             <span className="chart-note hub-draft-ended-meta">
               {draftedCount} drafted
@@ -1593,24 +1616,18 @@ export default function DraftRoom({
                 View insights
               </button>
             )}
-            <button
-              type="button"
-              className="btn-ghost btn-sm"
-              onClick={() => {
-                setRailTab("teams");
-                setMobilePanelPersist("teams");
-              }}
-            >
-              Review draft board
-            </button>
+            {hasCompletedReview && (
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={reviewCompletedDraft}
+              >
+                {completedReview.label}
+              </button>
+            )}
             {testMode && isCommissioner && (
               <button type="button" className="btn-primary btn-sm" disabled={busy} onClick={resetPracticeDraft}>
                 New mock
-              </button>
-            )}
-            {toolMode && (
-              <button type="button" className="btn-ghost btn-sm" onClick={() => onExitRoom?.()}>
-                Back to setup
               </button>
             )}
             {testMode && isCommissioner && (
@@ -1639,6 +1656,7 @@ export default function DraftRoom({
           mobile={mobileLayout}
           board={(
             <SnakeDraftBoard
+              id={completedReview.id}
               nominationOrder={session?.nomination_order}
               teams={teams}
               events={pickEvents}
@@ -1747,8 +1765,8 @@ export default function DraftRoom({
 
       {leagueId && (inLiveDraft || draftCompleted) && (
         <div
-          className={`hub-draft-layout${draftCompleted ? " hub-draft-layout--ended" : " hub-draft-layout--live-console"}${mobileLayout ? " hub-draft-layout--mobile-staged" : ""}`}
-          data-mobile-panel={mobileLayout ? mobilePanel : undefined}
+          className={`hub-draft-layout${draftCompleted ? " hub-draft-layout--ended" : " hub-draft-layout--live-console"}${mobileLayout && !draftCompleted ? " hub-draft-layout--mobile-staged" : ""}`}
+          data-mobile-panel={mobileLayout && !draftCompleted ? mobilePanel : undefined}
         >
           {!draftCompleted && (
           <div className="hub-draft-main hub-draft-mobile-section hub-draft-mobile-section--auction">
@@ -1852,10 +1870,10 @@ export default function DraftRoom({
                   onToggle={(e) => !mobileLayout && setBoardOpen(e.currentTarget.open)}
                 >
                   <summary className="hub-draft-board-summary">
-                    Draft board
-                    <span className="chart-note"> · {availableRows.length} left · search for more</span>
+                    Available players
+                    <span className="chart-note"> · {availableRows.length} left · search and filter</span>
                   </summary>
-                  {boardOpen && (
+                  {(mobileLayout ? mobilePanel === "pool" : boardOpen) && (
                   <div className="hub-event-panel hub-event-panel-pool hub-draft-pool-pane">
                     <div className="hub-section-head">
                       <span className="chart-note">
@@ -1874,7 +1892,7 @@ export default function DraftRoom({
                     <p className="chart-note hub-draft-loading">Loading players…</p>
                   ) : availableRows.length === 0 ? (
                     <p className="chart-note hub-draft-loading">
-                      No players available. Refresh the board and try again.
+                      No players remain in the draft pool. Refresh to check for updated player data.
                     </p>
                   ) : (
                     <ValueSheetTable
@@ -2030,7 +2048,11 @@ export default function DraftRoom({
             </div>
             )}
             {draftCompleted && teams.length > 0 && (
-              <details className="hub-draft-teams-collapsed">
+              <details
+                id={!pickDraft ? completedReview.id : undefined}
+                className="hub-draft-teams-collapsed"
+                tabIndex={!pickDraft ? -1 : undefined}
+              >
                 <summary>Teams · {draftedCount} drafted</summary>
                 <div className="hub-teams-list">
                   {teams.map((t) => (

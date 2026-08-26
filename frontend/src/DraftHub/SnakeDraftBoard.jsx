@@ -15,6 +15,7 @@ function CellMark({ nflTeam, playerName }) {
 }
 
 export default function SnakeDraftBoard({
+  id,
   nominationOrder,
   teams,
   events,
@@ -85,8 +86,10 @@ export default function SnakeDraftBoard({
 
   return (
     <section
+      id={id}
       className={`hub-pick-board${variant === "recap" ? " hub-pick-board--recap" : ""}`}
       aria-label={`${board.snake ? "Snake" : "Linear"} draft board`}
+      tabIndex={variant === "recap" ? -1 : undefined}
     >
       <header className="hub-pick-board-toolbar">
         <div className="hub-pick-board-kicker">

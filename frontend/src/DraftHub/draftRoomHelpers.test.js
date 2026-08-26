@@ -1,6 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { formatDraftEvent, formatPickSlot, buildRosterCapacity, canAcquireAtPosition, unmetMinPositions, pinNeedPositions } from "./draftRoomHelpers.js";
+import {
+  buildRosterCapacity,
+  canAcquireAtPosition,
+  completedDraftReviewTarget,
+  formatDraftEvent,
+  formatPickSlot,
+  pinNeedPositions,
+  unmetMinPositions,
+} from "./draftRoomHelpers.js";
 import { auctionAwardContractLabel } from "./rosterFormat.js";
 
 test("formatDraftEvent describes mid-draft trades", () => {
@@ -84,6 +92,19 @@ test("formatPickSlot omits dollars and missing slots", () => {
   assert.equal(formatPickSlot({ round: 1, overall: 1 }), "R1 · P1");
   assert.equal(formatPickSlot({ overall: 14 }), "P14");
   assert.equal(formatPickSlot({}), "");
+});
+
+test("completed draft review targets the real mode-specific destination", () => {
+  assert.deepEqual(completedDraftReviewTarget(true), {
+    id: "hub-completed-draft-board",
+    label: "View draft board",
+    openDetails: false,
+  });
+  assert.deepEqual(completedDraftReviewTarget(false), {
+    id: "hub-completed-draft-teams",
+    label: "Review teams",
+    openDetails: true,
+  });
 });
 
 test("formatDraftEvent describes pause resume and commissioner skip", () => {
