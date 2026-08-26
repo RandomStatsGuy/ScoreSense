@@ -1437,6 +1437,31 @@ def list_draft_events(league_id: str, limit: int = 100) -> list[dict[str, Any]]:
     return list(reversed(out))
 
 
+def list_draft_result_events(league_id: str) -> list[dict[str, Any]]:
+    """Return the complete ordered pick/win history for reports and recaps.
+
+    Live room event feeds are intentionally bounded, but a full auction creates
+    several events per player and can exceed those limits. Post-draft totals
+    must therefore query result events directly instead of reading a suffix of
+    the general activity log.
+    """
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT * FROM draft_event
+               WHERE league_id = ? AND event_type IN ('win', 'pick')
+               ORDER BY id ASC""",
+            (league_id,),
+        ).fetchall()
+    out = []
+    from src.draft_hub.jsonutil import json_safe
+
+    for r in rows:
+        d = dict(r)
+        d["payload"] = json_safe(json.loads(d["payload_json"]))
+        out.append(d)
+    return out
+
+
 def update_draft_session(league_id: str, **fields: Any) -> dict[str, Any]:
     allowed = {
         "status", "current_nominee_json", "high_bid", "high_bidder_team_id",
