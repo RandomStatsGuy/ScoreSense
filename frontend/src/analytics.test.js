@@ -57,8 +57,10 @@ test("pageTitleForPath matches product areas", () => {
   assert.equal(pageTitleForPath("/projections/season/live"), "Projections · Season · Live");
   assert.equal(pageTitleForPath("/hub/home"), "Fantasy · Home");
   assert.equal(pageTitleForPath("/hub/rules"), "Fantasy · Rules");
-  assert.equal(pageTitleForPath("/hub/players"), "Fantasy · Available players");
+  assert.equal(pageTitleForPath("/hub/players"), "Fantasy · Players");
   assert.equal(pageTitleForPath("/hub/draft"), "Fantasy · Draft");
+  assert.equal(pageTitleForPath("/hub/week"), "Fantasy · This Week");
+  assert.equal(pageTitleForPath("/hub/roster"), "Fantasy · My Team");
   assert.equal(pageTitleForPath("/hub/cap"), "Fantasy · Cap");
   assert.equal(pageTitleForPath("/hub/insights/spend"), "Fantasy · Insights · Spend");
   assert.equal(pageTitleForPath("/hub/insights/scoring"), "Fantasy · Insights · Scoring");
@@ -75,7 +77,7 @@ test("pageTitleForPath matches product areas", () => {
 
 test("pageGroupForPath buckets by top-level area", () => {
   assert.equal(pageGroupForPath("/projections/weekly"), "projections");
-  assert.equal(pageGroupForPath("/hub/draft"), "hub");
+  assert.equal(pageGroupForPath("/hub/draft"), "fantasy");
   assert.equal(pageGroupForPath("/tools/dfs"), "tools");
   assert.equal(pageGroupForPath("/tools/mock-draft"), "tools");
   assert.equal(pageGroupForPath("/privacy"), "legal");
@@ -199,6 +201,6 @@ test("trackPageView sends sanitized page_view and skips callback", () => {
   assert.equal(events[0][1], "page_view");
   assert.equal(events[0][2].page_title, "Fantasy · Draft");
   assert.equal(events[0][2].page_path, "/hub/draft?pos=wr");
-  assert.equal(events[0][2].page_group, "hub");
+  assert.equal(events[0][2].page_group, "fantasy");
   assert.equal(doc.title, "Fantasy · Draft · ScoreSense");
 });

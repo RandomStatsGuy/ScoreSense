@@ -171,3 +171,24 @@ def test_commissioner_force_apply(hub_db):
     forced = force_execute_proposal(prop["id"], commissioner_sub=comm)
     assert forced["status"] == "executed"
     assert storage.get_roster_slot(ws["id"], "p-a")["team_id"] == team_b["id"]
+
+
+def test_offseason_blocks_one_year_sends(hub_db, monkeypatch):
+    league, team_a, team_b, _ws, _comm, _member = _two_team_league(hub_db)
+    storage.update_league_settings(league["id"], draft_completed=True)
+    monkeypatch.setattr(
+        "src.draft_hub.acquisition_window.get_nfl_state",
+        lambda use_cache=True: {"season_type": "off", "week": 1, "season": 2026},
+    )
+    try:
+        validate_trade_package(
+            league["id"],
+            [
+                {"team_id": team_a["id"], "sends": ["p-a"], "drops": []},
+                {"team_id": team_b["id"], "sends": ["p-b"], "drops": []},
+            ],
+            [],
+        )
+        raise AssertionError("expected offseason one-year send to raise")
+    except ValueError as exc:
+        assert "Player B" in str(exc)

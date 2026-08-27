@@ -30,6 +30,7 @@ export function buildLiveRosterAddBody({
     contract_years: Math.round(yrs),
     contract_type: String(contractType || "veteran").trim().toLowerCase() || "veteran",
     force: Boolean(force),
+    staff_edit: true,
   };
   const tid = String(teamId || "").trim();
   if (tid) body.team_id = tid;

@@ -1857,3 +1857,239 @@
     min-width: 0;
   }
 }
+
+/* Shared Fantasy experience layout (Draft idle, This Week, Cap) ------------ */
+
+.hub-experience-page.hub-page {
+  padding: 0;
+  overflow: visible;
+  background: var(--experience-canvas);
+  border-color: var(--experience-rule);
+}
+
+.hub-experience-stack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hub-experience-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 2rem 2.15rem 1.8rem;
+  border-bottom: 1px solid var(--experience-rule);
+  background:
+    radial-gradient(circle at 88% 10%, rgba(91, 143, 232, 0.12), transparent 30%),
+    linear-gradient(145deg, #111d2c 0%, #0c1623 72%);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.hub-experience-eyebrow {
+  display: block;
+  margin-bottom: 0.55rem;
+  color: #8fb4f2;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.hub-experience-hero h2 {
+  margin: 0;
+  max-width: 36rem;
+  color: var(--text-primary);
+  font-size: clamp(1.7rem, 2.8vw, 2.45rem);
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+}
+
+.hub-experience-hero p {
+  max-width: 42rem;
+  margin: 0.8rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.hub-experience-hero-status {
+  margin-top: 0.7rem;
+  color: var(--text-primary);
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
+.hub-experience-chip {
+  flex: none;
+  padding: 0.45rem 0.72rem;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  border-radius: var(--radius-pill);
+  background: rgba(52, 211, 153, 0.08);
+  color: #a7f3d0;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.hub-experience-chip.is-readonly {
+  border-color: var(--experience-rule);
+  background: rgba(149, 164, 184, 0.07);
+  color: var(--text-secondary);
+}
+
+.hub-experience-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(17.5rem, 20rem);
+  gap: 1rem;
+  align-items: start;
+  padding: 1rem;
+}
+
+.hub-experience-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.hub-experience-section {
+  padding: 1.2rem;
+  border: 1px solid var(--experience-rule);
+  border-radius: var(--radius-md);
+  background: var(--experience-surface);
+}
+
+.hub-experience-page .hub-section,
+.hub-experience-page .hub-table-card,
+.hub-experience-page .hub-toolbar,
+.hub-experience-page .hub-alert-stack,
+.hub-experience-page .hub-cap-status-card {
+  padding: 1.15rem 1.2rem;
+  border: 1px solid var(--experience-rule);
+  border-radius: var(--radius-md);
+  background: var(--experience-surface);
+  box-shadow: none;
+}
+
+.hub-experience-page .hub-page-meta {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.hub-experience-summary {
+  position: sticky;
+  top: 1rem;
+  padding: 1.15rem;
+  border: 1px solid rgba(91, 143, 232, 0.22);
+  border-radius: var(--radius-md);
+  background: #132033;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+}
+
+.hub-experience-summary h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
+.hub-experience-summary > div > p,
+.hub-experience-summary-note {
+  margin: 0.2rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.hub-experience-summary dl {
+  margin: 1rem 0;
+}
+
+.hub-experience-summary dl > div {
+  display: flex;
+  padding: 0.65rem 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8rem;
+  border-bottom: 1px solid var(--experience-rule);
+}
+
+.hub-experience-summary dt {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+.hub-experience-summary dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.hub-experience-summary-action {
+  width: 100%;
+  margin-top: 0.35rem;
+}
+
+.hub-experience-learn,
+.hub-experience-empty {
+  padding: 0 2.15rem 1.5rem;
+}
+
+.hub-experience-learn summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.hub-experience-learn > div {
+  margin-top: 0.7rem;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.hub-draft-room.hub-experience-page .hub-draft-entry {
+  margin-bottom: 0;
+}
+
+@media (max-width: 1080px) {
+  .hub-experience-layout {
+    grid-template-columns: minmax(0, 1fr) 17rem;
+  }
+}
+
+@media (max-width: 860px) {
+  .hub-experience-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .hub-experience-summary {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .hub-experience-hero {
+    padding: 1.25rem;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .hub-experience-layout {
+    padding: 0.7rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-experience-summary,
+  .hub-experience-chip,
+  .hub-experience-hero,
+  .hub-rules-summary,
+  .hub-rules-policy,
+  .fantasy-chat-drawer {
+    transition: none;
+  }
+}
+

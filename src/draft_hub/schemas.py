@@ -77,6 +77,8 @@ class RosterAddRequest(BaseModel):
     sleeper_player_id: Optional[str] = None
     # Commissioners only: reassign a player already on another team's roster.
     force: bool = False
+    # Roster management only. Players-tab adds still follow the acquisition window.
+    staff_edit: bool = False
 
 
 class RosterRemoveRequest(BaseModel):
@@ -358,3 +360,12 @@ class DraftEnrichmentRequest(BaseModel):
     week: Optional[int] = None
     players: list[DraftPlayerHint] = Field(default_factory=list)
     llm_player_ids: list[str] = Field(default_factory=list)
+    media_only: bool = False
+
+
+class FaBidRequest(BaseModel):
+    player_id: str
+    player_name: str
+    team: str = ""
+    position: str = ""
+    bid_amount: float

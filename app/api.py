@@ -223,7 +223,7 @@ def players_media(
     from src.draft_hub.draft_enrichment import build_player_media_batch
 
     player_ids = [p.strip() for p in ids.split(",") if p.strip()]
-    hints = [{"player_id": pid} for pid in player_ids[:80]]
+    hints = [{"player_id": pid} for pid in player_ids[:200]]
     return {"media": build_player_media_batch(hints)}
 
 

@@ -201,11 +201,33 @@ def build_draft_room_enrichment(
     week: int | None = None,
     players: list[dict[str, Any]] | None = None,
     llm_player_ids: list[str] | None = None,
+    media_only: bool = False,
 ) -> dict[str, Any]:
-    resolved_season, resolved_week = _resolve_draft_week(season, week)
-    sentiment = build_fantasy_index(resolved_season, resolved_week)
     hints = players or []
     media = _media_for_players(hints)
+    teams: dict[str, str] = {}
+    for info in media.values():
+        team = info.get("team")
+        if team:
+            url = team_logo_url(str(team))
+            if url:
+                teams[str(team).upper()] = url
+    if media_only:
+        return {
+            "season": season,
+            "week": week,
+            "requested_season": season,
+            "requested_week": week,
+            "context_fallback": False,
+            "media_context": None,
+            "sentiment_by_player_id": {},
+            "media_by_player_id": media,
+            "team_logo_by_team": teams,
+            "llm_available": False,
+        }
+
+    resolved_season, resolved_week = _resolve_draft_week(season, week)
+    sentiment = build_fantasy_index(resolved_season, resolved_week)
     llm_set = set(str(p) for p in (llm_player_ids or []))
 
     sentiment_players = _attach_digests(
@@ -215,14 +237,6 @@ def build_draft_room_enrichment(
         week=sentiment["week"],
         llm_player_ids=llm_set,
     )
-
-    teams: dict[str, str] = {}
-    for info in media.values():
-        team = info.get("team")
-        if team:
-            url = team_logo_url(str(team))
-            if url:
-                teams[str(team).upper()] = url
 
     return {
         "season": sentiment["season"],

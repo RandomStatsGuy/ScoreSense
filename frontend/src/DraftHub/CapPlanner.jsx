@@ -2,12 +2,13 @@ import React, { useMemo, useState } from "react";
 import useMobileLayout from "../useMobileLayout";
 import MobileDataList, { MobileStat } from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
-import HubTabIntro from "./HubTabIntro";
 import {
   HubAlert,
   HubAlertStack,
+  HubExperienceHero,
+  HubExperienceLayout,
+  HubExperienceSummary,
   HubPage,
-  HubPageMeta,
   HubSection,
   HubTableCard,
   HubToolbar,
@@ -166,9 +167,15 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
 
   if (!summary) {
     return (
-      <HubPage>
-        <HubTabIntro title="Cap planner" compact />
-        <p className="chart-note">No cap data. Add players on Roster first.</p>
+      <HubPage className="hub-experience-page">
+        <HubExperienceHero
+          eyebrow="Cap"
+          heading="See the next three seasons before you spend."
+          support="Add contracts on My Team or Roster management to plan cuts, extensions, and leftover cap."
+          chip="No cap data"
+          chipTone="readonly"
+        />
+        <p className="chart-note hub-experience-empty">No cap data. Add players on Roster first.</p>
       </HubPage>
     );
   }
@@ -188,25 +195,52 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
   const seasonPlan = yearLabels.slice(0, 3);
 
   return (
-    <HubPage>
-      <HubTabIntro title="Cap planner" compact learnMore={glossary} />
+    <HubPage className="hub-experience-page">
+      <HubExperienceHero
+        eyebrow="Cap"
+        heading="See the next three seasons before you spend."
+        support={
+          preDraft
+            ? "Final-year deals leave before draft unless extended. Use this board to keep leftover cap honest."
+            : "Committed salary, dead cap, and leftover room for the seasons that still matter."
+        }
+        chip={statusCard?.label || "Cap plan"}
+        chipTone={statusCard?.tone === "over" ? "readonly" : "active"}
+      >
+        {statusCard ? (
+          <p className="hub-experience-hero-status">{statusCard.headline}</p>
+        ) : null}
+      </HubExperienceHero>
 
-      <HubPageMeta>
-        {workspace?.name}
-        {" · "}
-        ${workspace?.rules?.salary_cap} cap
-        {" · "}
-        {baseSeason} season
-        {inLeague && onNavigate && (
-          <>
-            {" · "}
-            <button type="button" className="btn-link" onClick={() => onNavigate("insights")}>
-              League spend →
-            </button>
-          </>
+      <HubExperienceLayout
+        summaryLabel="Cap snapshot"
+        summary={(
+          <HubExperienceSummary
+            title={workspace?.name || "Your team"}
+            subtitle={`${baseSeason} season · ${fmtSal(salaryCap)} cap`}
+            items={[
+              { id: "remaining", label: "Remaining", value: fmtSal(summary.remaining) },
+              { id: "spent", label: "Committed", value: fmtSal(summary.spent) },
+              { id: "dead", label: "Dead cap", value: fmtSal(deadCap) },
+              { id: "roster", label: "Roster", value: String(summary.roster_size ?? roster?.length ?? "—") },
+              { id: "step", label: "Annual step-up", value: fmtSal(stepUp) },
+              { id: "cut", label: "Cut refund", value: `${cutPct}%` },
+            ]}
+            note={statusCard?.meta || "Policy changes shape new contracts. Existing deals keep their schedules."}
+            action={
+              inLeague && onNavigate ? (
+                <button
+                  type="button"
+                  className="btn-ghost hub-experience-summary-action"
+                  onClick={() => onNavigate("insights")}
+                >
+                  League spend
+                </button>
+              ) : null
+            }
+          />
         )}
-      </HubPageMeta>
-
+      >
       {statusCard && (
         <article
           className={`hub-cap-status-card hub-cap-status-card--${statusCard.tone}`}
@@ -541,6 +575,11 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
           </HubTableCard>
         </HubSection>
       )}
+        <details className="hub-experience-learn">
+          <summary>How cap years work</summary>
+          <div>{glossary}</div>
+        </details>
+      </HubExperienceLayout>
     </HubPage>
   );
 }

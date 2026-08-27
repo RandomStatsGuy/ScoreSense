@@ -13,6 +13,7 @@ function ValueSheetPlayerRow({
   showDelta,
   showStatus,
   showAdd,
+  addMode = "add",
   showSelect,
   showRiskScore = false,
   riskTolerance = 0,
@@ -77,7 +78,11 @@ function ValueSheetPlayerRow({
 
   const statusLabel = formatStatusLabel(row.status);
   const taken = row.status === "taken";
-  const addLabel = taken && isCommissioner ? "Reassign" : "Add";
+  const addLabel = isAdding
+    ? (addMode === "bid" ? "Bidding…" : "Adding…")
+    : addMode === "bid"
+      ? "Bid"
+      : (taken && isCommissioner ? "Reassign" : "Add");
   const spreadLabel = useMemo(
     () => (row.season_spread != null ? formatSeasonPts(row.season_spread, 0) : "—"),
     [row.season_spread],
@@ -231,7 +236,7 @@ function ValueSheetPlayerRow({
             title={taken && !isCommissioner ? "Already on another roster" : undefined}
             onClick={handleAddClick}
           >
-            {isAdding ? "Adding…" : addLabel}
+            {addLabel}
           </button>
         )}
       </td>
@@ -247,6 +252,7 @@ function propsAreEqual(prev, next) {
     && prev.showDelta === next.showDelta
     && prev.showStatus === next.showStatus
     && prev.showAdd === next.showAdd
+    && prev.addMode === next.addMode
     && prev.showSelect === next.showSelect
     && prev.showRiskScore === next.showRiskScore
     && prev.riskTolerance === next.riskTolerance

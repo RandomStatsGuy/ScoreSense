@@ -574,6 +574,27 @@ def _migrate(conn: sqlite3.Connection) -> None:
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_chat_message_channel ON league_chat_message(channel_id, created_at)"
     )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS fa_bid (
+            id TEXT PRIMARY KEY,
+            league_id TEXT NOT NULL,
+            team_id TEXT NOT NULL,
+            player_id TEXT NOT NULL,
+            player_name TEXT,
+            nfl_team TEXT,
+            position TEXT,
+            bid_amount REAL NOT NULL,
+            window_id TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'open',
+            user_sub TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(league_id, team_id, player_id, window_id)
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_fa_bid_window ON fa_bid(league_id, window_id, status)"
+    )
 
 
 _DB_INITIALIZED = False
@@ -4433,3 +4454,150 @@ def delete_player_name_alias(alias_id: int, league_id: str) -> bool:
             (int(alias_id), league_id),
         )
     return cur.rowcount > 0
+
+
+def _fa_bid_dict(row: sqlite3.Row) -> dict[str, Any]:
+    keys = row.keys()
+    return {
+        "id": row["id"],
+        "league_id": row["league_id"],
+        "team_id": row["team_id"],
+        "player_id": row["player_id"],
+        "player_name": row["player_name"],
+        "nfl_team": row["nfl_team"] if "nfl_team" in keys else None,
+        "position": row["position"],
+        "bid_amount": float(row["bid_amount"]),
+        "window_id": row["window_id"],
+        "status": row["status"],
+        "user_sub": row["user_sub"] if "user_sub" in keys else None,
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
+
+
+def upsert_fa_bid(
+    *,
+    league_id: str,
+    team_id: str,
+    player_id: str,
+    player_name: str | None,
+    nfl_team: str | None,
+    position: str | None,
+    bid_amount: float,
+    window_id: str,
+    user_sub: str | None,
+) -> dict[str, Any]:
+    now = _utcnow()
+    bid_id = str(uuid.uuid4())
+    with get_conn() as conn:
+        existing = conn.execute(
+            """SELECT id FROM fa_bid
+               WHERE league_id = ? AND team_id = ? AND player_id = ? AND window_id = ?""",
+            (league_id, team_id, player_id, window_id),
+        ).fetchone()
+        if existing:
+            conn.execute(
+                """UPDATE fa_bid
+                   SET player_name = ?, nfl_team = ?, position = ?, bid_amount = ?,
+                       status = 'open', user_sub = ?, updated_at = ?
+                   WHERE id = ?""",
+                (
+                    player_name,
+                    nfl_team,
+                    position,
+                    float(bid_amount),
+                    user_sub,
+                    now,
+                    existing["id"],
+                ),
+            )
+            row = conn.execute(
+                "SELECT * FROM fa_bid WHERE id = ?", (existing["id"],)
+            ).fetchone()
+        else:
+            conn.execute(
+                """INSERT INTO fa_bid (
+                    id, league_id, team_id, player_id, player_name, nfl_team, position,
+                    bid_amount, window_id, status, user_sub, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?)""",
+                (
+                    bid_id,
+                    league_id,
+                    team_id,
+                    player_id,
+                    player_name,
+                    nfl_team,
+                    position,
+                    float(bid_amount),
+                    window_id,
+                    user_sub,
+                    now,
+                    now,
+                ),
+            )
+            row = conn.execute("SELECT * FROM fa_bid WHERE id = ?", (bid_id,)).fetchone()
+    return _fa_bid_dict(row)
+
+
+def list_fa_bids(
+    league_id: str,
+    *,
+    window_id: str | None = None,
+    player_id: str | None = None,
+    status: str | None = "open",
+) -> list[dict[str, Any]]:
+    sql = "SELECT * FROM fa_bid WHERE league_id = ?"
+    params: list[Any] = [league_id]
+    if window_id:
+        sql += " AND window_id = ?"
+        params.append(window_id)
+    if player_id:
+        sql += " AND player_id = ?"
+        params.append(player_id)
+    if status:
+        sql += " AND status = ?"
+        params.append(status)
+    sql += " ORDER BY bid_amount DESC, created_at ASC"
+    with get_conn() as conn:
+        rows = conn.execute(sql, params).fetchall()
+    return [_fa_bid_dict(r) for r in rows]
+
+
+def list_open_fa_window_ids(league_id: str) -> list[str]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT DISTINCT window_id FROM fa_bid
+               WHERE league_id = ? AND status = 'open'""",
+            (league_id,),
+        ).fetchall()
+    return [str(r["window_id"]) for r in rows]
+
+
+def close_fa_bids_for_player(
+    league_id: str,
+    window_id: str,
+    player_id: str,
+    *,
+    winner_id: str | None,
+) -> None:
+    now = _utcnow()
+    with get_conn() as conn:
+        if winner_id:
+            conn.execute(
+                """UPDATE fa_bid SET status = 'won', updated_at = ?
+                   WHERE id = ? AND league_id = ?""",
+                (now, winner_id, league_id),
+            )
+            conn.execute(
+                """UPDATE fa_bid SET status = 'lost', updated_at = ?
+                   WHERE league_id = ? AND window_id = ? AND player_id = ?
+                     AND id != ? AND status = 'open'""",
+                (now, league_id, window_id, player_id, winner_id),
+            )
+        else:
+            conn.execute(
+                """UPDATE fa_bid SET status = 'cancelled', updated_at = ?
+                   WHERE league_id = ? AND window_id = ? AND player_id = ?
+                     AND status = 'open'""",
+                (now, league_id, window_id, player_id),
+            )

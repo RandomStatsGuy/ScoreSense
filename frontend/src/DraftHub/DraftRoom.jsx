@@ -35,6 +35,7 @@ import {
 } from "./draftLiveConsole";
 import { isPickDraft } from "./draftEntryStatus";
 import { HubPage } from "./HubUILayout";
+import { enrichmentPlayerHints } from "./draftRoomEnrichment";
 import { isRowAvailable } from "./valueSheetUtils";
 import {
   buildRosterCapacity,
@@ -347,31 +348,35 @@ export default function DraftRoom({
     [mediaByPlayerId, sentimentByPlayerId, fantasyMediaDigests],
   );
 
-  // Key on the stable id list so a new valueRows array identity with the same
-  // players does not re-POST enrichment for up to 400 rows.
-  const valueRowsRef = useRef(valueRows);
-  valueRowsRef.current = valueRows;
-  const enrichmentIdsKey = useMemo(
-    () => (valueRows || []).slice(0, 400).map((r) => r.player_id).filter(Boolean).join(","),
-    [valueRows],
+  // Prefer the on-screen pool (value sheet or nomination-pool fallback) so mock
+  // drafts still get headshots when valueRows is empty.
+  const enrichmentPlayers = useMemo(
+    () => enrichmentPlayerHints(availableRows, [nominee, ...(myRoster || [])]),
+    [availableRows, nominee, myRoster],
   );
+  const enrichmentIdsKey = useMemo(
+    () => enrichmentPlayers.map((row) => row.player_id).join(","),
+    [enrichmentPlayers],
+  );
+  const enrichmentPlayersRef = useRef(enrichmentPlayers);
+  enrichmentPlayersRef.current = enrichmentPlayers;
+  const mediaOnlyEnrichment = Boolean(toolMode || testMode);
 
   useEffect(() => {
-    if (!season || !enrichmentIdsKey || testMode) return;
-    const players = (valueRowsRef.current || []).slice(0, 400).map((r) => ({
-      player_id: r.player_id,
-      player_name: r.player,
-      team: r.team,
-      position: r.position,
-    })).filter((r) => r.player_id);
-    if (!players.length) return;
+    if (!season || !enrichmentIdsKey) return undefined;
+    const players = enrichmentPlayersRef.current || [];
+    if (!players.length) return undefined;
     let cancelled = false;
     (async () => {
       try {
         const res = await apiFetch("/api/hub/draft-room/enrichment", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ season, players }),
+          body: JSON.stringify({
+            season,
+            players,
+            media_only: mediaOnlyEnrichment,
+          }),
         });
         if (!res.ok || cancelled) return;
         setEnrichment(await res.json());
@@ -380,15 +385,11 @@ export default function DraftRoom({
       }
     })();
     return () => { cancelled = true; };
-  }, [season, enrichmentIdsKey, testMode]);
+  }, [season, enrichmentIdsKey, mediaOnlyEnrichment]);
 
   useEffect(() => {
     setSimulationStatus("idle");
   }, [leagueId]);
-
-  useEffect(() => {
-    if (testMode && inLiveDraft) setEnrichment(null);
-  }, [testMode, inLiveDraft]);
 
   useEffect(() => {
     if (league && !league.test_mode) {
@@ -1353,8 +1354,8 @@ export default function DraftRoom({
     ? Math.max(0, relaxLimits ? myBudget : myBudget - Math.max(0, openSlotsTotal - 1) * minBidUnit)
     : null;
   return (
-    <HubPage className={`hub-draft-room${draftCompleted ? " hub-draft-room--ended" : ""}`}>
-      {!inLiveDraft && !draftCompleted && !toolMode && (
+    <HubPage className={`hub-draft-room${draftCompleted ? " hub-draft-room--ended" : ""}${showDraftEntry ? " hub-experience-page" : ""}`}>
+      {!inLiveDraft && !draftCompleted && !toolMode && !showDraftEntry && (
         <header className="hub-draft-idle-header">
           <h2 className="hub-draft-idle-title">Draft room</h2>
           <p className="chart-note hub-draft-idle-lead">
@@ -1727,6 +1728,7 @@ export default function DraftRoom({
               pickDraft={pickDraft}
               needPositions={needPositions}
               selectedPlayerId={nomPlayerId}
+              mediaByPlayerId={mediaByPlayerId}
               onSelectPlayer={(row) => setNomPlayerId(row.player_id)}
               onDraftPlayer={
                 !draftControlsLocked && onClock && (isMyNominationTurn || canForceNominate)
