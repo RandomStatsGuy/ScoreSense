@@ -5,6 +5,7 @@ import AnalyticsListener from "./AnalyticsListener";
 import AppRouter from "./AppRouter";
 import AuthGate from "./AuthGate";
 import "./styles.css";
+import "./styles/product-hierarchy.css";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>

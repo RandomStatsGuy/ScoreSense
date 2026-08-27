@@ -53,6 +53,8 @@ export default function LeagueContextBanner({
   capSheet = null,
   onNavigate,
   onProjectionsRefresh,
+  showAttention = true,
+  currentView = null,
 }) {
   const leagues = useMemo(
     () => effectiveMemberships(memberships, hubContext),
@@ -222,6 +224,7 @@ export default function LeagueContextBanner({
       label: `Over cap ${fmtSal(overCapBy)}`,
       actionLabel: "Cap planner",
       onAction: onNavigate ? () => onNavigate("planner") : null,
+      target: "planner",
     });
   }
   if (inLeague && mustExtend.length > 0) {
@@ -231,6 +234,7 @@ export default function LeagueContextBanner({
       label: `${mustExtend.length} need extension`,
       actionLabel: "Cap planner",
       onAction: onNavigate ? () => onNavigate("planner") : null,
+      target: "planner",
     });
   } else if (inLeague && dropping.length > 0) {
     attentionItems.push({
@@ -239,6 +243,7 @@ export default function LeagueContextBanner({
       label: `${dropping.length} expire → FA`,
       actionLabel: "Cap planner",
       onAction: onNavigate ? () => onNavigate("planner") : null,
+      target: "planner",
     });
   }
   if (inLeague && capSheetsStale && isCommish) {
@@ -255,16 +260,33 @@ export default function LeagueContextBanner({
   }
 
   const busy = syncing || switchBusy || sheetSyncing || projRefreshing;
+  const visibleAttentionItems = showAttention
+    ? attentionItems.filter((item) => item.target !== currentView)
+    : [];
   const sleeperLinked = Boolean(
     freshness?.sleeper?.linked || hubContext?.sleeper_league_id,
   );
 
+  const showSwitcher = Boolean((hasLeagues || inLeague) && onLeagueSwitch);
   const identityLine = (
     <div className="hub-league-context-identity">
+      {showSwitcher && (
+        <LeagueSwitcher
+          memberships={memberships}
+          hubContext={hubContext}
+          onSwitch={onLeagueSwitch}
+          variant="compact"
+          disabled={busy}
+        />
+      )}
       <p className="hub-league-context-line">
-        <span className="hub-league-context-kicker">League</span>
-        <span className="hub-league-context-name">{leagueName}</span>
-        <span className="hub-league-context-sep" aria-hidden="true">·</span>
+        {!showSwitcher && (
+          <>
+            <span className="hub-league-context-kicker">League</span>
+            <span className="hub-league-context-name">{leagueName}</span>
+            <span className="hub-league-context-sep" aria-hidden="true">·</span>
+          </>
+        )}
         <span className="hub-league-context-phase">{phaseLabel}</span>
         {roleLabel && (
           <>
@@ -283,23 +305,14 @@ export default function LeagueContextBanner({
           </>
         )}
       </p>
-      {(hasLeagues || inLeague) && onLeagueSwitch && (
-        <LeagueSwitcher
-          memberships={memberships}
-          hubContext={hubContext}
-          onSwitch={onLeagueSwitch}
-          variant="compact"
-          disabled={busy}
-        />
-      )}
     </div>
   );
 
-  const attentionRow = attentionItems.length > 0 ? (
+  const attentionRow = visibleAttentionItems.length > 0 ? (
     <div className="hub-league-context-attention" role="status">
       <span className="hub-league-context-attention-label">Needs attention</span>
       <ul className="hub-league-context-attention-list">
-        {attentionItems.map((item) => (
+        {visibleAttentionItems.map((item) => (
           <li key={item.id} className="hub-league-context-attention-item">
             <span className="hub-league-context-attention-text">{item.label}</span>
             {item.onAction && item.actionLabel && (
