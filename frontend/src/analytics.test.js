@@ -65,6 +65,7 @@ test("pageTitleForPath matches product areas", () => {
   assert.equal(pageTitleForPath("/hub/roster"), "Fantasy · My Team");
   assert.equal(pageTitleForPath("/hub/cap"), "Fantasy · Cap");
   assert.equal(pageTitleForPath("/hub/insights/spend"), "Fantasy · Insights · Spend");
+  assert.equal(pageTitleForPath("/hub/insights/overview"), "Fantasy · Insights · Overview");
   assert.equal(pageTitleForPath("/hub/insights/scoring"), "Fantasy · Insights · Scoring");
   assert.equal(pageTitleForPath("/hub/insights/history"), "Fantasy · Insights · History");
   assert.equal(pageTitleForPath("/hub/office/chat"), "Fantasy · Roster management · Contracts");

@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
@@ -23,6 +24,7 @@ import {
   PositionSpendBoard,
   ScoringRace,
 } from "./insights/InsightsTalk";
+import InsightsOverview from "./insights/InsightsOverview";
 import {
   POS_COLORS,
   featureAwards,
@@ -113,7 +115,7 @@ function InsightsSeasonBar({ value, seasons, historic, onChange, disabled, label
   );
 }
 
-function InsightsTableToolbar({ search, onSearchChange, placeholder, count, total }) {
+function InsightsTableToolbar({ search, onSearchChange, placeholder, count, total, noun = "teams" }) {
   return (
     <div className="hub-insights-table-toolbar">
       <input
@@ -124,7 +126,7 @@ function InsightsTableToolbar({ search, onSearchChange, placeholder, count, tota
         onChange={(e) => onSearchChange(e.target.value)}
       />
       <span className="table-meta hub-insights-table-count">
-        {count === total ? `${count} teams` : `${count} of ${total} teams`}
+        {count === total ? `${count} ${noun}` : `${count} of ${total} ${noun}`}
       </span>
     </div>
   );
@@ -141,6 +143,7 @@ function insightsNextSort(currentKey, currentDir, clickedKey) {
     "efficiency_rank",
     "vs_league_avg_pct",
     "top_position_spend",
+    "pct_committed",
   ]);
   if (String(clickedKey).startsWith("spend_")) descFirst.add(clickedKey);
   if (currentKey === clickedKey) {
@@ -312,20 +315,35 @@ function ChartFallback() {
   return <div className="hub-insights-skeleton-block hub-insights-skeleton-block--chart" aria-hidden />;
 }
 
+function matchOwnershipPlayer(players, rawId) {
+  const id = String(rawId || "");
+  if (!id || !players?.length) return null;
+  return players.find((p) => String(p.player_id) === id)
+    || players.find((p) => String(p.sleeper_player_id) === id)
+    || players.find((p) => {
+      const pid = String(p.player_id || "");
+      return pid && (pid.endsWith(id) || id.endsWith(pid));
+    })
+    || null;
+}
+
 export default function LeagueInsights({
   leagueId,
   hubContext,
   onNavigate,
   activeTab: activeTabProp,
   onActiveTabChange,
+  onWorkspaceSaved,
 }) {
+  const [searchParams] = useSearchParams();
+  const playerFromUrl = searchParams.get("player") || "";
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tabLoading, setTabLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [teamPick, setTeamPick] = useState("");
-  const [activeTabLocal, setActiveTabLocal] = useState("cap");
+  const [activeTabLocal, setActiveTabLocal] = useState("overview");
   const activeTab = normalizeInsightTab(activeTabProp || activeTabLocal);
   const setActiveTab = useCallback(
     (tab) => {
@@ -363,7 +381,9 @@ export default function LeagueInsights({
   const [ownershipError, setOwnershipError] = useState("");
   const [scoringSeason, setScoringSeason] = useState("current");
   const [capSeason, setCapSeason] = useState("current");
-  const [historySeason, setHistorySeason] = useState("current");
+  const [historySeason, setHistorySeason] = useState(
+    () => (searchParams.get("player") ? "all" : "current"),
+  );
   const [chartHiddenTeams, setChartHiddenTeams] = useState(() => new Set());
   const [chartHoveredTeam, setChartHoveredTeam] = useState("");
   const [positionFocus, setPositionFocus] = useState("");
@@ -387,7 +407,8 @@ export default function LeagueInsights({
   const chartXTick = mobileLayout
     ? { fontSize: 10, angle: -35, textAnchor: "end" }
     : { fontSize: 11 };
-  const prevTabRef = React.useRef("cap");
+  const ownershipGenRef = React.useRef(0);
+  const prevTabRef = React.useRef(activeTab);
   const activeTabRef = React.useRef(activeTab);
   const latestScoringSeasonRef = React.useRef("");
   const dataRef = React.useRef(null);
@@ -395,18 +416,20 @@ export default function LeagueInsights({
   const historySeasonRef = React.useRef(historySeason);
   const scoringSeasonRef = React.useRef(scoringSeason);
   const hubContextRef = React.useRef(hubContext);
+  const selectedPlayerIdRef = React.useRef(selectedPlayerId);
   activeTabRef.current = activeTab;
   capSeasonRef.current = capSeason;
   historySeasonRef.current = historySeason;
   scoringSeasonRef.current = scoringSeason;
   hubContextRef.current = hubContext;
   dataRef.current = data;
+  selectedPlayerIdRef.current = selectedPlayerId;
 
   const insightsRefs = useMemo(
     () => ({ capSeasonRef, scoringSeasonRef, historySeasonRef }),
     [],
   );
-  const { load: loadInsights, loadCacheRef, prefetchScoring } = useInsightsData(leagueId, insightsRefs);
+  const { load: loadInsights, loadCacheRef, prefetchScoring, resetCache } = useInsightsData(leagueId, insightsRefs);
   const insightsHandlers = useMemo(() => ({
     setData,
     setLoading,
@@ -436,13 +459,18 @@ export default function LeagueInsights({
   useEffect(() => {
     if (!leagueId) return;
     loadCacheRef.current.clear();
-    load({ activeTab: "cap", sections: "cap" });
+    const tab = activeTabRef.current || "overview";
+    if (tab === "ownership") {
+      setLoading(false);
+      return;
+    }
+    const sections = INSIGHTS_TAB_SECTIONS[tab];
+    load({ activeTab: tab, sections });
   }, [leagueId, load, loadCacheRef]);
 
-  // Warm Scoring after Spend paints, but only when the browser is idle so the
-  // talking-points view is not competing with a second payload.
+  // Warm Scoring after the landing view paints.
   useEffect(() => {
-    if (!leagueId || loading || tabLoading || !data?.analytics) return;
+    if (!leagueId || loading || tabLoading || !data) return;
     if (String(data?.hub_context?.league_id || "") !== String(leagueId)) return;
     let idleId;
     let timeoutId;
@@ -462,7 +490,6 @@ export default function LeagueInsights({
     leagueId,
     loading,
     tabLoading,
-    data?.analytics,
     data?.hub_context?.league_id,
     prefetchScoring,
     insightsHandlers,
@@ -471,6 +498,7 @@ export default function LeagueInsights({
   const loadOwnershipHistory = useCallback(async (opts = {}) => {
     if (!leagueId) return null;
     const isSeasonRefresh = Boolean(opts.refresh);
+    const generation = ++ownershipGenRef.current;
     if (isSeasonRefresh) {
       setOwnershipSeasonLoading(true);
     } else {
@@ -497,25 +525,31 @@ export default function LeagueInsights({
       }
       if (!res.ok) throw new Error(await parseApiError(res));
       const payload = await res.json();
+      if (generation !== ownershipGenRef.current) return null;
       const normalized = normalizeOwnershipPayload(payload);
       if (normalized) {
         setOwnershipData(normalized);
         if (!opts.keepSelection) {
-          setSelectedPlayerId((prev) => prev || normalized.players?.[0]?.player_id || "");
+          setSelectedPlayerId((prev) => {
+            const fromUrl = matchOwnershipPlayer(normalized.players, playerFromUrl);
+            return fromUrl?.player_id || prev || normalized.players?.[0]?.player_id || "";
+          });
         }
       }
       return normalized;
     } catch (e) {
+      if (generation !== ownershipGenRef.current) return null;
       setOwnershipError(connectionErrorMessage(e));
       return null;
     } finally {
+      if (generation !== ownershipGenRef.current) return;
       if (isSeasonRefresh) {
         setOwnershipSeasonLoading(false);
       } else {
         setOwnershipLoading(false);
       }
     }
-  }, [leagueId, historySeason]);
+  }, [leagueId, historySeason, playerFromUrl]);
 
   const ownership = useMemo(
     () => pickOwnershipBlock(ownershipData, data),
@@ -541,7 +575,9 @@ export default function LeagueInsights({
 
   useEffect(() => {
     if (activeTab !== "ownership" || !leagueId) return;
-    loadOwnershipHistory({ keepSelection: true });
+    loadOwnershipHistory({
+      keepSelection: Boolean(playerFromUrl) || Boolean(selectedPlayerIdRef.current),
+    });
   }, [activeTab, leagueId, historySeason, loadOwnershipHistory]);
 
   const toggleAwardGroup = useCallback((key) => {
@@ -579,9 +615,11 @@ export default function LeagueInsights({
     [positions, visiblePositions],
   );
 
+  const spendViewMetric = capSeason === "all" ? "pct" : spendMetric;
+
   const barData = useMemo(() => {
     const teams = data?.analytics?.teams || [];
-    const mode = spendMetric === "pct" ? "pct" : "dollars";
+    const mode = spendViewMetric === "pct" ? "pct" : "dollars";
     const yearSpecific = capSeason === "all" ? false : capSeason !== "current" && /^\d+$/.test(String(capSeason));
     const owners = data?.owner_map || {};
     return teams.map((t) => {
@@ -590,11 +628,11 @@ export default function LeagueInsights({
         unspent: mode === "pct" ? t.pct_unspent : t.unspent,
       };
       for (const p of activePositions) {
-        row[p] = metricValue(t, p, mode === "pct" ? "pct" : "dollars");
+        row[p] = metricValue(t, p, mode);
       }
       return row;
     });
-  }, [data, activePositions, spendMetric, capSeason]);
+  }, [data, activePositions, spendViewMetric, capSeason]);
 
   const pieData = useMemo(() => {
     const teams = data?.analytics?.teams || [];
@@ -602,7 +640,7 @@ export default function LeagueInsights({
       (t) => String(t.team_id) === String(teamPick) || String(t.team_name) === String(teamPick),
     );
     if (!team) return [];
-    const mode = spendMetric === "pct" ? "pct" : "dollars";
+    const mode = spendViewMetric === "pct" ? "pct" : "dollars";
     const slices = activePositions.map((p) => ({
       name: p,
       value: metricValue(team, p, mode === "pct" ? "pct" : "dollars"),
@@ -611,7 +649,7 @@ export default function LeagueInsights({
     const dead = mode === "pct" ? team.pct_dead_cap : team.dead_cap;
     if (dead > 0) slices.push({ name: "Dead cap", value: dead, fill: "#ef4444" });
     return slices;
-  }, [data, teamPick, activePositions, spendMetric]);
+  }, [data, teamPick, activePositions, spendViewMetric]);
 
   const scoringLineData = useMemo(() => {
     const weeks = data?.scoring?.weeks || [];
@@ -689,9 +727,25 @@ export default function LeagueInsights({
   }, [ownership, playerSearch, historySeason]);
 
   const selectedPlayer = useMemo(
-    () => (ownership?.players || []).find((p) => p.player_id === selectedPlayerId),
+    () => matchOwnershipPlayer(ownership?.players, selectedPlayerId)
+      || (ownership?.players || []).find((p) => p.player_id === selectedPlayerId),
     [ownership, selectedPlayerId],
   );
+
+  useEffect(() => {
+    if (!playerFromUrl) return;
+    setHistorySeason("all");
+    const hit = matchOwnershipPlayer(ownership?.players, playerFromUrl);
+    if (hit?.player_id) setSelectedPlayerId(hit.player_id);
+    else setSelectedPlayerId(playerFromUrl);
+  }, [playerFromUrl, ownership]);
+
+  useEffect(() => {
+    if (capSeason === "all") {
+      setSpendMetric("pct");
+      setCapSortKey("pct_committed");
+    }
+  }, [capSeason]);
 
   const ownershipPlayerIds = useMemo(() => {
     const ids = new Set();
@@ -738,14 +792,16 @@ export default function LeagueInsights({
   const capHistoryYear = capHistoryMode === "year" ? Number(capSeason) : null;
   const capHistoryLabel = historySeasonLabel(capHistoryMode, capHistoryYear);
   const capYearSpecific = capHistoryMode === "year";
+  const allTimeCap = capHistoryMode === "all";
+  const spendMetricLocked = allTimeCap ? "pct" : spendMetric;
   const capTeamsRaw = data?.analytics?.teams || [];
   const spendLeaders = useMemo(
     () => positionSpendLeaders(capTeamsRaw, positions, {
-      metric: spendMetric === "pct" ? "pct" : "dollars",
+      metric: spendMetricLocked === "pct" ? "pct" : "dollars",
       ownerMap,
       yearSpecific: capYearSpecific,
     }),
-    [capTeamsRaw, positions, spendMetric, ownerMap, capYearSpecific],
+    [capTeamsRaw, positions, spendMetricLocked, ownerMap, capYearSpecific],
   );
   const discussablePos = useMemo(
     () => pickDiscussablePosition(spendLeaders),
@@ -755,16 +811,17 @@ export default function LeagueInsights({
     ? positionFocus
     : discussablePos;
   const capPosGetters = useMemo(() => {
-    const mode = spendMetric === "pct" ? "pct" : "dollars";
+    const mode = spendMetricLocked === "pct" ? "pct" : "dollars";
     const getters = {
-      committed: (t) => t.committed,
-      unspent: (t) => t.unspent,
+      committed: (t) => (mode === "pct" ? (t.pct_committed ?? t.committed) : t.committed),
+      unspent: (t) => (mode === "pct" ? t.pct_unspent : t.unspent),
+      pct_committed: (t) => t.pct_committed ?? Object.values(t.pct_by_position || {}).reduce((s, n) => s + Number(n || 0), 0),
     };
     for (const p of activePositions) {
       getters[`spend_${p}`] = (t) => metricValue(t, p, mode);
     }
     return getters;
-  }, [activePositions, spendMetric]);
+  }, [activePositions, spendMetricLocked]);
   const filteredCapTeams = useMemo(
     () => filterSortTeams(capTeamsRaw, {
       filter: capTeamFilter,
@@ -882,7 +939,7 @@ export default function LeagueInsights({
     );
   }
 
-  const tableMode = spendMetric === "pct" ? "pct" : "dollars";
+  const tableMode = spendViewMetric === "pct" ? "pct" : "dollars";
   const showCapBarChart = activeTab === "cap" && barData.length > 0;
   const showScoringCharts = activeTab === "scoring" && !tabLoading && data?.scoring?.available;
   const capSeasonBusy = activeTab === "cap" && tabLoading;
@@ -911,12 +968,29 @@ export default function LeagueInsights({
 
       {error && <div className="error">{error}</div>}
 
+      {activeTab === "overview" && (
+        <InsightsOverview
+          landing={data?.landing}
+          ownerMap={ownerMap}
+          loading={loading || tabLoading}
+          onOpenTab={setActiveTab}
+          isCommissioner={isCommissioner}
+          awardCatalog={data?.award_catalog || data?.landing?.award_catalog}
+          currentRules={hubContext?.rules}
+          onRulesSaved={(updated) => {
+            resetCache();
+            onWorkspaceSaved?.(updated);
+            load({ activeTab: "overview", sections: "overview", refresh: true });
+          }}
+        />
+      )}
+
       {activeTab === "cap" && (
         <HubPage className="hub-spend-page hub-experience-page hub-insights-page">
           <HubExperienceHero
             eyebrow="Insights"
-            heading="Ammunition for the group chat."
-            support="Who overspent, who stole, and who is out of room. Awards and outliers first — charts wait until you want them."
+            heading="Who spent the cap."
+            support="Positional spend, outliers, and who is out of room. Awards first — charts wait until you want them."
             chip={capHistoryLabel}
           >
             {insightsHeroStatus(spendAwardSplit.featured) ? (
@@ -934,6 +1008,7 @@ export default function LeagueInsights({
               label="Cap season"
               className="hub-insights-season-bar--spend"
             />
+            {!allTimeCap && (
             <div className="hub-insights-controls">
               <span className="hub-filter-label">Show as</span>
               <div className="hub-insights-metric-filters">
@@ -951,6 +1026,12 @@ export default function LeagueInsights({
                 </HubFilterChip>
               </div>
             </div>
+            )}
+            {allTimeCap && (
+              <p className="hub-insights-alltime-note">
+                All-time view is managers, not franchise names. Spend is the average share of each season’s cap.
+              </p>
+            )}
           </div>
 
           {capSeasonBusy && !barData.length && <InsightsSkeleton />}
@@ -959,22 +1040,23 @@ export default function LeagueInsights({
             awards={spendAwardSplit.featured}
             ownerMap={ownerMap}
             yearSpecific={capYearSpecific}
-            subtitle={`${usingHistoricCap ? capHistoryLabel : "Current rosters"} · built to screenshot`}
+            subtitle={`${usingHistoricCap ? capHistoryLabel : "Current rosters"}${allTimeCap ? " · avg % of cap" : ""}`}
           />
 
           <PositionSpendBoard
             leaders={spendLeaders}
             focusedPos={focusedPos}
             onFocus={setPositionFocus}
-            metric={spendMetric}
+            metric={spendViewMetric}
             mineId={hubContext?.team_id}
             mineName={hubContext?.team_name}
+            allTime={allTimeCap}
           />
 
           {spendAwardSplit.rest.length > 0 && (
             <InsightsDisclosure
               summary={`More awards (${spendAwardSplit.rest.length})`}
-              meta="The rest of the crime report"
+              meta="The rest of the list"
             >
               <MoreAwards
                 awards={spendAwardSplit.rest}
@@ -1017,7 +1099,7 @@ export default function LeagueInsights({
                     teamPick={teamPick}
                     onTeamPick={setTeamPick}
                     activePositions={activePositions}
-                    spendMetric={spendMetric}
+                    spendMetric={spendViewMetric}
                     capSeason={capSeason}
                     chartXTick={chartXTick}
                     chartBottomMargin={chartBottomMargin}
@@ -1030,36 +1112,43 @@ export default function LeagueInsights({
 
           <InsightsDisclosure
             summary="Full league table"
-            meta={`${capTeamsRaw.length} team${capTeamsRaw.length === 1 ? "" : "s"} · optional detail`}
+            meta={`${capTeamsRaw.length} ${allTimeCap ? "manager" : "team"}${capTeamsRaw.length === 1 ? "" : "s"} · optional detail`}
           >
             <div className="hub-table-card hub-insights-table-wrap">
-              <h3 className="hub-panel-subtitle hub-insights-table-title">Team breakdown</h3>
+              <h3 className="hub-panel-subtitle hub-insights-table-title">
+                {allTimeCap ? "Manager breakdown" : "Team breakdown"}
+              </h3>
               <InsightsTableToolbar
                 search={capTeamFilter}
                 onSearchChange={setCapTeamFilter}
-                placeholder="Filter teams…"
+                placeholder={allTimeCap ? "Filter managers…" : "Filter teams…"}
                 count={filteredCapTeams.length}
                 total={capTeamsRaw.length}
+                noun={allTimeCap ? "managers" : "teams"}
               />
               {mobileLayout ? (
                 <MobileDataList>
                   {filteredCapTeams.map((t) => (
                     <MobilePlayerCard
                       key={t.team_id}
-                      name={t.team_name}
-                      meta={`${fmtSal(t.unspent)} unspent`}
-                      heroValue={fmtSal(t.committed)}
-                      heroLabel="committed"
+                      name={teamDisplayName(t, ownerMap, capYearSpecific)}
+                      meta={allTimeCap
+                        ? `${t.seasons_tracked || 0} seasons`
+                        : `${fmtSal(t.unspent)} unspent`}
+                      heroValue={allTimeCap
+                        ? formatSpendValue(t.pct_committed ?? 0, "pct")
+                        : fmtSal(t.committed)}
+                      heroLabel={allTimeCap ? "avg cap" : "committed"}
                       expanded={(
                         <div className="mobile-stat-grid">
                           {activePositions.map((p) => (
                             <MobileStat
                               key={p}
-                              label={`${p} ${spendMetric === "pct" ? "%" : "$"}`}
+                              label={`${p} ${tableMode === "pct" ? "%" : "$"}`}
                               value={(
                                 <>
                                   {formatSpendValue(metricValue(t, p, tableMode), tableMode)}
-                                  {spendMetric === "dollars" && t.pct_by_position?.[p] != null && (
+                                  {tableMode === "dollars" && t.pct_by_position?.[p] != null && (
                                     <span className="table-meta"> ({t.pct_by_position[p]}%)</span>
                                   )}
                                 </>
@@ -1076,19 +1165,28 @@ export default function LeagueInsights({
                   <table className="data-table hub-table">
                     <thead>
                       <tr>
-                        <SortTh label="Team" col="team" sortKey={capSortKey} sortDir={capSortDir} onSort={onCapSort} />
+                        <SortTh label={allTimeCap ? "Manager" : "Team"} col="team" sortKey={capSortKey} sortDir={capSortDir} onSort={onCapSort} />
                         {activePositions.map((p) => (
                           <SortTh
                             key={p}
-                            label={`${p} ${spendMetric === "pct" ? "%" : "$"}`}
+                            label={`${p} ${tableMode === "pct" ? "%" : "$"}`}
                             col={`spend_${p}`}
                             sortKey={capSortKey}
                             sortDir={capSortDir}
                             onSort={onCapSort}
                           />
                         ))}
-                        <SortTh label="Committed" col="committed" sortKey={capSortKey} sortDir={capSortDir} onSort={onCapSort} />
-                        <SortTh label="Unspent" col="unspent" sortKey={capSortKey} sortDir={capSortDir} onSort={onCapSort} />
+                        {allTimeCap ? (
+                          <>
+                            <SortTh label="Avg cap %" col="pct_committed" sortKey={capSortKey} sortDir={capSortDir} onSort={onCapSort} />
+                            <SortTh label="Avg leftover" col="unspent" sortKey={capSortKey} sortDir={capSortDir} onSort={onCapSort} />
+                          </>
+                        ) : (
+                          <>
+                            <SortTh label="Committed" col="committed" sortKey={capSortKey} sortDir={capSortDir} onSort={onCapSort} />
+                            <SortTh label="Unspent" col="unspent" sortKey={capSortKey} sortDir={capSortDir} onSort={onCapSort} />
+                          </>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -1098,13 +1196,22 @@ export default function LeagueInsights({
                           {activePositions.map((p) => (
                             <td key={p}>
                               {formatSpendValue(metricValue(t, p, tableMode), tableMode)}
-                              {spendMetric === "dollars" && t.pct_by_position?.[p] != null && (
+                              {tableMode === "dollars" && t.pct_by_position?.[p] != null && (
                                 <span className="table-meta"> ({t.pct_by_position[p]}%)</span>
                               )}
                             </td>
                           ))}
-                          <td>{fmtSal(t.committed)}</td>
-                          <td>{fmtSal(t.unspent)}</td>
+                          {allTimeCap ? (
+                            <>
+                              <td>{formatSpendValue(t.pct_committed ?? 0, "pct")}</td>
+                              <td>{formatSpendValue(t.pct_unspent ?? 0, "pct")}</td>
+                            </>
+                          ) : (
+                            <>
+                              <td>{fmtSal(t.committed)}</td>
+                              <td>{fmtSal(t.unspent)}</td>
+                            </>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -1194,7 +1301,7 @@ export default function LeagueInsights({
                 ownerMap={ownerMap}
                 yearSpecific={scoringYearSpecific}
                 title="Scoring awards"
-                subtitle={`${scoringSeasonLabel} · roast-ready`}
+                subtitle={scoringSeasonLabel}
               />
               {scoringAwardSplit.rest.length > 0 && (
                 <InsightsDisclosure
@@ -1540,7 +1647,12 @@ export default function LeagueInsights({
               </ul>
             </div>
             <div className="hub-insights-ownership-detail hub-player-history-detail">
-              {!selectedPlayer && (
+              {!selectedPlayer && playerFromUrl && (
+                <p className="chart-note">
+                  No contract history for this player in the selected seasons.
+                </p>
+              )}
+              {!selectedPlayer && !playerFromUrl && (
                 <p className="chart-note">Pick a player to see teams and timeline.</p>
               )}
               {selectedPlayer && (

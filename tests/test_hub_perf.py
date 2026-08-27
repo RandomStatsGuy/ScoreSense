@@ -363,3 +363,31 @@ def test_insights_cached_scoring_section_under_budget(hub_client, hub_db, monkey
     assert res.status_code == 200
     assert res.json()["scoring"]["available"] is True
     assert elapsed_ms < 5000, f"cached scoring insights too slow: {elapsed_ms:.0f}ms"
+
+
+def test_insights_overview_skips_roster_rebuild(hub_client, hub_db, monkeypatch):
+    monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
+
+    def _boom(*_a, **_k):
+        raise AssertionError("league_roster_overview should not run on overview")
+
+    monkeypatch.setattr("src.draft_hub.storage.league_roster_overview", _boom)
+    monkeypatch.setattr(
+        "src.draft_hub.league_history.build_insights_landing",
+        lambda *_a, **_k: {
+            "available": True,
+            "champions": [{"season": "2024", "team_name": "Champs"}],
+            "record_leaders": [],
+            "scoring_leaders": [],
+            "award_catalog": [],
+        },
+    )
+    from src.draft_hub import storage
+
+    league = storage.create_league("dev", "Overview League", 2026, LeagueRules())
+    res = hub_client.get(f"/api/hub/league/{league['id']}/insights/overview")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["landing"]["champions"][0]["team_name"] == "Champs"
+    assert body["scoring"]["reason"] == "not_loaded"
+    assert "owner_map" in body

@@ -6,6 +6,7 @@ import { formatRiskScore, isRiskToleranceActive, riskScoreTooltip } from "../ris
 import { fmtSal, formatStatusLabel } from "./valueSheetUtils";
 import RaavBidCell from "./RaavBidCell";
 import { riskBand, riskBandTooltip, suggestedBidCaption } from "./draftLiveConsole";
+import ContractHistoryLink from "./ContractHistoryLink";
 
 function ValueSheetPlayerRow({
   row,
@@ -51,6 +52,7 @@ function ValueSheetPlayerRow({
   showSalaryBounds = false,
   actionCol = true,
   needPositions = [],
+  onOpenContractHistory,
 }) {
   const handleRowClick = useCallback(() => {
     if (onSelectPlayer) onSelectPlayer(row);
@@ -130,6 +132,12 @@ function ValueSheetPlayerRow({
           />
         </div>
           {row.is_rookie && <span className="hub-sleeper-badge">Rookie est.</span>}
+          <ContractHistoryLink
+            playerId={row.player_id}
+            playerName={row.player || row.player_name}
+            onOpen={onOpenContractHistory}
+            className="btn-link btn-sm hub-contract-history-link"
+          />
         </td>
       {showTeam && <td className="hub-col-team" title={row.team}>{row.team}</td>}
       {showPosCol && <td className="hub-col-pos">{row.position}</td>}
@@ -293,6 +301,7 @@ function propsAreEqual(prev, next) {
     && prev.canNominate === next.canNominate
     && prev.actionsDisabled === next.actionsDisabled
     && prev.draftConsole === next.draftConsole
+    && prev.onOpenContractHistory === next.onOpenContractHistory
     && prev.onWatchPlayer === next.onWatchPlayer
     && prev.watchIds === next.watchIds
   );

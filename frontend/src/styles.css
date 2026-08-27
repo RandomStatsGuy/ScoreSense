@@ -9329,6 +9329,136 @@ td.col-rank.col-rank-top {
   line-height: 1;
 }
 
+.hub-insights-talk-tone {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.7);
+  flex-shrink: 0;
+}
+
+.hub-insights-talk-tone--gold {
+  background: #eab308;
+}
+
+.hub-insights-talk-tone--good {
+  background: #22c55e;
+}
+
+.hub-insights-talk-tone--bad {
+  background: #f87171;
+}
+
+.hub-insights-alltime-note {
+  margin: 0;
+  max-width: 28rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.hub-insights-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.hub-insights-overview-panel {
+  padding: 1rem 1.1rem 1.15rem;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.hub-insights-champions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.hub-insights-champions li {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  gap: 0.2rem 0.75rem;
+  align-items: baseline;
+}
+
+.hub-insights-champions-year {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.hub-insights-champions strong {
+  font-size: 0.98rem;
+}
+
+.hub-insights-champions .chart-note {
+  grid-column: 2;
+  margin: 0;
+}
+
+.hub-insights-overview-panel .btn-link {
+  margin-top: 0.75rem;
+}
+
+.hub-insights-award-editor {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.hub-insights-award-editor-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.hub-insights-award-editor fieldset {
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 12px;
+}
+
+.hub-insights-award-editor legend {
+  padding: 0 0.35rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.hub-insights-award-editor label {
+  display: grid;
+  gap: 0.2rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.hub-insights-award-editor input {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(2, 6, 23, 0.55);
+  color: inherit;
+  padding: 0.35rem 0.5rem;
+}
+
+.hub-insights-award-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.hub-contract-history-link {
+  display: inline-block;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+}
+
 .hub-insights-talk-kicker {
   font-size: 0.7rem;
   font-weight: 700;
@@ -9594,6 +9724,11 @@ td.col-rank.col-rank-top {
 @media (max-width: 1200px) {
   .hub-insights-talk-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hub-insights-overview-grid,
+  .hub-insights-award-editor-grid {
+    grid-template-columns: 1fr;
   }
 }
 

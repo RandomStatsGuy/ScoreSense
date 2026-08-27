@@ -20,7 +20,7 @@ export default function useAppNavigation() {
       seasonMode: "live",
       toolsTab: "dfs",
       hubSubView: "home",
-      insightTab: "cap",
+      insightTab: "overview",
       officeTab: "current",
       adminTab: "overview",
     },
@@ -107,7 +107,7 @@ export default function useAppNavigation() {
       navigateTo({
         view: "hub",
         hubSubView: subView,
-        insightTab: subView === "insights" ? (insightOrOfficeTab || route.insightTab || "cap") : null,
+        insightTab: subView === "insights" ? (insightOrOfficeTab || route.insightTab || "overview") : null,
         officeTab: subView === "office" ? (insightOrOfficeTab || route.officeTab || "current") : null,
       });
     },
@@ -115,12 +115,34 @@ export default function useAppNavigation() {
   );
 
   const setInsightTab = useCallback(
-    (tab) => navigateTo({
-      view: "hub",
-      hubSubView: "insights",
-      insightTab: tab,
-      officeTab: null,
-    }),
+    (tab) => navigateTo(
+      {
+        view: "hub",
+        hubSubView: "insights",
+        insightTab: tab,
+        officeTab: null,
+      },
+      { filterUpdates: tab === "ownership" ? null : { player: "" } },
+    ),
+    [navigateTo],
+  );
+
+  const openPlayerContractHistory = useCallback(
+    (player) => {
+      const playerId = typeof player === "string"
+        ? player
+        : (player?.playerId || player?.player_id || "");
+      if (!playerId) return;
+      navigateTo(
+        {
+          view: "hub",
+          hubSubView: "insights",
+          insightTab: "ownership",
+          officeTab: null,
+        },
+        { filterUpdates: { player: String(playerId) } },
+      );
+    },
     [navigateTo],
   );
 
@@ -162,6 +184,7 @@ export default function useAppNavigation() {
     setToolsTab,
     setHubSubView,
     setInsightTab,
+    openPlayerContractHistory,
     setOfficeTab,
     setAdminTab,
     navigateTo,

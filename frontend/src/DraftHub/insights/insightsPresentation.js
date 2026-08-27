@@ -155,7 +155,7 @@ export function scoringRaceRows(standings, { ownerMap, yearSpecific = false } = 
 export function insightsHeroStatus(featured) {
   const top = featured?.[0];
   if (!top) return "";
-  const title = top.title ? String(top.title) : "Talking point";
+  const title = top.title ? String(top.title) : "Award";
   const headline = top.headline ? String(top.headline) : "";
   return headline ? `${title} · ${headline}` : title;
 }

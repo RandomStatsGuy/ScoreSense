@@ -82,6 +82,7 @@ const HUB_PAGE_LABELS = {
 };
 
 const INSIGHT_PAGE_LABELS = {
+  overview: "Overview",
   cap: "Spend",
   scoring: "Scoring",
   ownership: "History",
@@ -195,7 +196,7 @@ export function pageTitleForPath(pathname) {
 
   if (parsed.view === "hub") {
     if (parsed.hubSubView === "insights") {
-      const insight = INSIGHT_PAGE_LABELS[parsed.insightTab] || "Spend";
+      const insight = INSIGHT_PAGE_LABELS[parsed.insightTab] || "Overview";
       return `Fantasy · Insights · ${insight}`;
     }
     if (parsed.hubSubView === "office") {

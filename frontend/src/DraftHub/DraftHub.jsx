@@ -51,7 +51,7 @@ const TABS_NEED_CAP_SHEET = new Set(["planner", "roster", "rosters"]);
 /** Tabs that read the hub roster ("value" marks my players via rosterIds). */
 const TABS_NEED_ROSTER = new Set(["home", "setup", "value", "available", "roster", "rosters", "planner", "room", "trades"]);
 
-export default function DraftHub({ subView, onSubViewChange, onHubContextChange, insightTab, onInsightTabChange, officeTab, onOfficeTabChange }) {
+export default function DraftHub({ subView, onSubViewChange, onHubContextChange, insightTab, onInsightTabChange, officeTab, onOfficeTabChange, onOpenContractHistory }) {
   const { authenticated, refreshAuth, hubAuthRequired, hubDemo, ready: authReady, user, termsUrl, privacyUrl, patreonConfigured } = useAuth();
   const [demoMode, setDemoMode] = useState(() => {
     try {
@@ -742,6 +742,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           pickDraft={isPickDraft(effectiveCtx?.rules || workspace?.rules)}
           acquisitionWindow={effectiveCtx?.acquisition_window}
           inLeague={effectiveCtx?.mode === "league"}
+          onOpenContractHistory={onOpenContractHistory}
           showAdd={subView === "available"}
           onWatchPlayer={toggleWatch}
           watchIds={watchIds}
@@ -774,6 +775,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           capSheet={capSheet}
           readOnly={effectiveCtx?.mode === "league" && !effectiveCtx?.can_edit_salaries}
           onEditInOffice={goToRosterManagement}
+          onOpenContractHistory={onOpenContractHistory}
         />
       )}
 
@@ -783,6 +785,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
             leagueId={effectiveCtx.league_id}
             hubContext={effectiveCtx}
             onNavigateTrade={() => setSubView("trades")}
+            onOpenContractHistory={onOpenContractHistory}
           />
         ) : (
           <HubPage>
@@ -832,6 +835,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
               onNavigate={setSubView}
               activeTab={insightTab}
               onActiveTabChange={onInsightTabChange}
+              onWorkspaceSaved={onWorkspaceSaved}
             />
           </Suspense>
         </div>

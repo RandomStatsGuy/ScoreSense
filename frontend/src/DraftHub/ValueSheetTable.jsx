@@ -20,6 +20,7 @@ import {
 import { HubPage, HubTableCard, HubFilterMenu, HubFilterChip, SortTh, HubAlert } from "./HubUILayout";
 import { HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import ValueSheetPlayerRow from "./ValueSheetPlayerRow";
+import ContractHistoryLink from "./ContractHistoryLink";
 import { columnsForDraftMode, positionalRanks, sortLabelForKey } from "./valueSheetColumns";
 import {
   playersTabAddLabel,
@@ -134,6 +135,7 @@ export default function ValueSheetTable({
   pickDraft: pickDraftProp,
   acquisitionWindow = null,
   inLeague = false,
+  onOpenContractHistory,
 }) {
   const pickDraft = pickDraftProp != null
     ? Boolean(pickDraftProp)
@@ -831,6 +833,16 @@ export default function ValueSheetTable({
                 </button>,
               );
             }
+            if (inLeague && !draftConsole && r.player_id && onOpenContractHistory) {
+              actions.push(
+                <ContractHistoryLink
+                  key="history"
+                  playerId={r.player_id}
+                  playerName={r.player || r.player_name}
+                  onOpen={onOpenContractHistory}
+                />,
+              );
+            }
 
             return (
               <MobilePlayerCard
@@ -1072,6 +1084,7 @@ export default function ValueSheetTable({
                   showSalaryBounds={showSalaryBounds}
                   actionCol={actionCol}
                   needPositions={needPositions}
+                  onOpenContractHistory={inLeague && !draftConsole ? onOpenContractHistory : undefined}
                   key={r.player_id || `row-${idx}`}
                   row={r}
                   showAdvanced={showAdvanced}

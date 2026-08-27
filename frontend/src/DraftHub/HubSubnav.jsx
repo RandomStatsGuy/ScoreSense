@@ -22,7 +22,7 @@ export const HUB_SUBVIEWS = [
     hint: "League-wide contracts and access",
     group: "office",
   },
-  { id: "insights", label: "Insights", shortLabel: "Insights", leagueOnly: true, hint: "Talking points", group: "office" },
+  { id: "insights", label: "Insights", shortLabel: "Insights", leagueOnly: true, hint: "League history", group: "office" },
 ];
 
 const GROUP_LABELS = { home: "", prep: "Draft", season: "Team", office: "League" };
