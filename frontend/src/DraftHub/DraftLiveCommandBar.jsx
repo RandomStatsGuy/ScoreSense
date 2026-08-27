@@ -2,9 +2,12 @@ import React from "react";
 import DraftDeadlineClock from "./DraftDeadlineClock";
 import { fmtSal } from "./rosterFormat";
 import {
+  bidAmountInputLocked,
+  bidAmountSubmitLocked,
   bidRelation,
   bidRelationLabel,
   connectionStatusLabel,
+  sanitizeBidAmountInput,
 } from "./draftLiveConsole";
 
 function playerShortName(nominee) {
@@ -59,10 +62,24 @@ export default function DraftLiveCommandBar({
     : session?.nomination_deadline;
   const nextBid = suggestedBid ?? (highBid + Number(minBid || 1));
   const connLabel = connectionStatusLabel(connectionStatus);
+  const inputLocked = bidAmountInputLocked({
+    controlsLocked: bidDisabled,
+    positionBlocked: false,
+  });
+  const submitLocked = bidAmountSubmitLocked({
+    controlsLocked: bidDisabled,
+    amount: bidAmount,
+    minBid: nextBid,
+  });
 
   const submitBid = (event) => {
     event.preventDefault();
-    if (!bidDisabled) onBid?.();
+    if (!submitLocked) onBid?.();
+  };
+
+  const changeBidAmount = (event) => {
+    const next = sanitizeBidAmountInput(event.target.value);
+    if (next != null) onBidAmountChange?.(next);
   };
 
   return (
@@ -124,20 +141,24 @@ export default function DraftLiveCommandBar({
             <label className="sr-only" htmlFor="hub-live-bid-amount">Bid amount</label>
             <input
               id="hub-live-bid-amount"
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               className="hub-bid-input"
               value={bidAmount}
-              min={nextBid}
-              step={minBid || 1}
-              disabled={bidDisabled}
+              aria-invalid={submitLocked && !inputLocked}
+              disabled={inputLocked}
               onFocus={onBidAmountFocus}
               onBlur={onBidAmountBlur}
-              onChange={(e) => onBidAmountChange?.(e.target.value)}
+              onChange={changeBidAmount}
             />
             <button
               type="submit"
               className="btn-primary"
-              disabled={bidDisabled}
+              disabled={submitLocked}
             >
               {pendingAction === "bid" ? "Bidding…" : `Bid ${fmtSal(bidAmount || nextBid)}`}
             </button>

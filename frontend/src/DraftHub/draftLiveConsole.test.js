@@ -4,6 +4,10 @@ import {
   viewerIsCommissioner,
   bidRelation,
   bidRelationLabel,
+  bidAmountInputLocked,
+  bidAmountSubmitLocked,
+  displayedBidAmount,
+  sanitizeBidAmountInput,
   riskBand,
   suggestedBidSource,
   nextNominator,
@@ -37,6 +41,51 @@ test("bidRelation is viewer-relative", () => {
   assert.equal(bidRelation({ myTeamId: "a", highBidderTeamId: null }), "watching");
   assert.equal(bidRelationLabel("winning"), "You're winning");
   assert.equal(bidRelationLabel("outbid"), "You've been outbid");
+});
+
+test("bid amount field stays enabled when a rival bid makes the typed amount stale", () => {
+  assert.equal(bidAmountInputLocked({ controlsLocked: false }), false);
+  assert.equal(bidAmountInputLocked({ controlsLocked: true }), true);
+  assert.equal(bidAmountInputLocked({ positionBlocked: true }), true);
+  assert.equal(
+    bidAmountSubmitLocked({ amount: "5", minBid: 6 }),
+    true,
+  );
+  assert.equal(
+    bidAmountSubmitLocked({ amount: "7", minBid: 6 }),
+    false,
+  );
+});
+
+test("displayedBidAmount keeps a focused edit and snaps invalid unfocused amounts", () => {
+  assert.equal(
+    displayedBidAmount({ currentAmount: "12", suggestedBid: 8, focused: true, touched: true }),
+    "12",
+  );
+  assert.equal(
+    displayedBidAmount({ currentAmount: "5", suggestedBid: 8, focused: true, touched: true }),
+    "5",
+  );
+  assert.equal(
+    displayedBidAmount({ currentAmount: "5", suggestedBid: 8, focused: false, touched: true }),
+    "8",
+  );
+  assert.equal(
+    displayedBidAmount({ currentAmount: "12", suggestedBid: 8, focused: false, touched: true }),
+    "12",
+  );
+  assert.equal(
+    displayedBidAmount({ currentAmount: "12", suggestedBid: 8, focused: false, touched: false }),
+    "8",
+  );
+});
+
+test("sanitizeBidAmountInput accepts integer dollars only", () => {
+  assert.equal(sanitizeBidAmountInput(""), "");
+  assert.equal(sanitizeBidAmountInput("42"), "42");
+  assert.equal(sanitizeBidAmountInput("04"), "04");
+  assert.equal(sanitizeBidAmountInput("12.5"), null);
+  assert.equal(sanitizeBidAmountInput("e"), null);
 });
 
 test("riskBand maps z-scores to Stable / Balanced / Volatile", () => {

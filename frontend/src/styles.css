@@ -10386,6 +10386,8 @@ td.col-rank.col-rank-top {
 .hub-action-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 .hub-draft-select { min-width: 220px; flex: 1; max-width: 360px; padding: 0.45rem 0.55rem; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-base); color: var(--text-primary); }
 .hub-bid-input { width: 88px; padding: 0.45rem 0.55rem; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-base); color: var(--text-primary); font-size: 1rem; font-weight: 600; }
+.hub-bid-input::-webkit-outer-spin-button,
+.hub-bid-input::-webkit-inner-spin-button { appearance: none; margin: 0; }
 .hub-bid-hint { margin: 0.45rem 0 0; font-size: 0.82rem; color: var(--tone-caution-text); }
 .hub-event-panel { margin-top: 0.25rem; }
 .hub-event-log { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow: auto; display: flex; flex-direction: column; gap: 0.35rem; }
@@ -15739,8 +15741,9 @@ th.sortable-header {
 
 .hub-draft-player-rail-wrap {
   grid-area: players;
-  position: sticky;
-  top: 5.75rem;
+  /* Stay in normal document flow. Sticky overlay covered My team / league room. */
+  position: static;
+  top: auto;
   min-width: 0;
 }
 
@@ -16307,7 +16310,7 @@ th.sortable-header {
       "players"
       "activity";
   }
-  .hub-draft-player-rail-wrap { position: static; }
+  .hub-draft-player-rail-wrap { position: static; top: auto; }
   .hub-draft-player-list { max-height: 34rem; }
   .hub-teams-list--dock { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
