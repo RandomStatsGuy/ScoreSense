@@ -231,8 +231,9 @@ export function useInsightsData(leagueId, refs) {
     scoringPrefetchRef.current = true;
     const prefetchFor = leagueId;
     try {
+      const root = handlers.hubContextRef?.current?.demo ? "/api/hub/demo" : "/api/hub";
       const res = await apiFetch(
-        `/api/hub/league/${encodeURIComponent(prefetchFor)}/insights/status`,
+        `${root}/league/${encodeURIComponent(prefetchFor)}/insights/status`,
       );
       if (res.ok) {
         const status = await res.json();
