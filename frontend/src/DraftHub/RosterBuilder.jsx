@@ -883,13 +883,13 @@ export default function RosterBuilder({
           <table className="data-table hub-table hub-roster-table">
           <thead>
             <tr>
-              <th>Player</th>
-              {showManagerTeam && <th>Manager</th>}
-              <th>Pos</th>
-              <th>Cap hit ({season})</th>
-              <th>Years</th>
-              <th>Status</th>
-              <th aria-label="Contract" />
+              <th className="hub-roster-col-player">Player</th>
+              {showManagerTeam && <th className="hub-roster-col-manager">Manager</th>}
+              <th className="hub-roster-col-pos">Pos</th>
+              <th className="num hub-roster-col-cap">Cap hit ({season})</th>
+              <th className="num hub-roster-col-years">Years</th>
+              <th className="hub-roster-col-status">Status</th>
+              <th className="hub-roster-actions" aria-label="Contract" />
             </tr>
           </thead>
           <tbody>
@@ -905,7 +905,7 @@ export default function RosterBuilder({
                   key={r.player_id}
                   className={`${isSleeperPlayer(r) ? "hub-sleeper-row" : ""}${isCut ? " hub-cut-row" : ""}${selected ? " hub-roster-row--selected" : ""}`}
                 >
-                  <td>
+                  <td className="hub-roster-col-player">
                     <button
                       type="button"
                       className="hub-roster-player-open"
@@ -938,11 +938,11 @@ export default function RosterBuilder({
                       </div>
                     </button>
                   </td>
-                  {showManagerTeam && <td>{r.manager_team || "—"}</td>}
-                  <td><span className="hub-roster-pos-tag">{normalizeHubPosition(r.position) || r.position || "—"}</span></td>
-                  <td>{fmtSal(vm.edit.salary)}</td>
-                  <td>{vm.edit.years}</td>
-                  <td>
+                  {showManagerTeam && <td className="hub-roster-col-manager">{r.manager_team || "—"}</td>}
+                  <td className="hub-roster-col-pos"><span className="hub-roster-pos-tag">{normalizeHubPosition(r.position) || r.position || "—"}</span></td>
+                  <td className="num hub-roster-col-cap">{fmtSal(vm.edit.salary)}</td>
+                  <td className="num hub-roster-col-years">{vm.edit.years}</td>
+                  <td className="hub-roster-col-status">
                     <span className={`hub-roster-status hub-roster-status--${vm.status.tone}`}>
                       {vm.status.label}
                     </span>

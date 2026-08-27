@@ -7236,8 +7236,10 @@ td.col-rank.col-rank-top {
   background: rgba(248, 113, 113, 0.08);
 }
 .hub-roster-player-open {
-  display: block;
+  display: flex;
+  align-items: center;
   width: 100%;
+  min-height: 2.25rem;
   padding: 0;
   border: 0;
   background: transparent;
@@ -8545,7 +8547,56 @@ td.col-rank.col-rank-top {
 .hub-roster-add summary { cursor: pointer; user-select: none; margin-bottom: 0.35rem; }
 .hub-roster-add-row { margin-top: 0.35rem; }
 .hub-roster-table-wrap { margin-top: 0.25rem; }
-.hub-roster-table td { vertical-align: middle; }
+.hub-roster-table th,
+.hub-roster-table td {
+  vertical-align: middle;
+}
+/* Keep action cells as table-cells. An unscoped flex display on
+   .hub-roster-actions (draft list rows) otherwise breaks header/body
+   column geometry on My Team and commissioner roster tables. */
+.hub-roster-table .hub-roster-actions {
+  display: table-cell;
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+  vertical-align: middle;
+}
+.hub-roster-table .hub-roster-actions .btn-ghost,
+.hub-roster-table .hub-roster-actions .btn-primary {
+  vertical-align: middle;
+}
+.hub-roster-table .hub-roster-actions > * + * {
+  margin-left: 0.4rem;
+}
+.hub-roster-builder .hub-roster-table {
+  table-layout: fixed;
+  width: 100%;
+}
+.hub-roster-builder .hub-roster-col-player {
+  width: auto;
+  min-width: 12rem;
+}
+.hub-roster-builder .hub-roster-col-manager {
+  width: 8rem;
+  white-space: nowrap;
+}
+.hub-roster-builder .hub-roster-col-pos {
+  width: 3.75rem;
+  text-align: center;
+  white-space: nowrap;
+}
+.hub-roster-builder .hub-roster-col-cap {
+  width: 8.25rem;
+  white-space: nowrap;
+}
+.hub-roster-builder .hub-roster-col-years {
+  width: 4.75rem;
+  white-space: nowrap;
+}
+.hub-roster-builder .hub-roster-col-status {
+  width: 10rem;
+  white-space: nowrap;
+}
 .hub-roster-player-cell { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
 .hub-roster-player-thumb {
   width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
@@ -8553,14 +8604,21 @@ td.col-rank.col-rank-top {
 }
 .hub-roster-player-thumb-empty { display: inline-block; }
 .hub-roster-player-text { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
-.hub-roster-player-name { font-weight: 600; line-height: 1.2; }
+.hub-roster-player-name {
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .hub-roster-player-team {
   display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap;
   font-size: 0.75rem; color: var(--text-muted);
 }
 .hub-roster-inline-logo { width: 14px; height: 14px; object-fit: contain; }
 .hub-roster-pos-tag {
-  display: inline-block; padding: 0.15rem 0.4rem; border-radius: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0.15rem 0.4rem; border-radius: 4px;
   font-size: 0.72rem; font-weight: 700; background: rgba(255,255,255,0.06);
 }
 .hub-roster-edit-input {
@@ -9354,7 +9412,7 @@ td.col-rank.col-rank-top {
 .hub-roster-name .player-cell,
 .hub-roster-name { white-space: nowrap; text-overflow: ellipsis; }
 .hub-roster-sal { grid-area: sal; font-variant-numeric: tabular-nums; opacity: 0.85; font-size: 0.78rem; }
-.hub-roster-actions {
+.hub-roster-row .hub-roster-actions {
   grid-area: actions;
   display: flex;
   align-items: center;
