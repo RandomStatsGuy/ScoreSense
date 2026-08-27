@@ -25,3 +25,18 @@ test("mergePlayerMedia prefers enrichment headshots", () => {
   );
   assert.equal(merged.a.headshot_url, "https://img/a.png");
 });
+
+test("enrichment hints include sleeper ids when present", () => {
+  const hints = enrichmentPlayerHints([
+    { player_id: "a", player: "Alpha", team: "KC", sleeper_player_id: "123" },
+  ]);
+  assert.equal(hints[0].sleeper_id, "123");
+});
+
+test("mergePlayerMedia stringifies ids and keeps espn fallbacks", () => {
+  const merged = mergePlayerMedia(
+    { 1: { team: "KC" } },
+    { 1: { espn_headshot_url: "https://img/espn.png", team: "KC" } },
+  );
+  assert.equal(merged["1"].espn_headshot_url, "https://img/espn.png");
+});

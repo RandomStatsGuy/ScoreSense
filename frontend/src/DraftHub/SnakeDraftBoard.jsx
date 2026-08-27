@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { teamLogoUrl, playerInitials } from "./draftMedia";
+import { teamLogoUrl, playerInitials, lookupPlayerMedia, headshotCandidates } from "./draftMedia";
 import {
   buildDraftBoard,
   formatPickLabel,
@@ -41,8 +41,9 @@ function BoardGrid({ board, rows, mediaByPlayerId, scrollerRef, activeRef, modal
               {row.reverses ? <span className="hub-pick-board-rev" aria-label="snake reverse">↩</span> : null}
             </div>
             {row.cells.map((cell) => {
-              const media = mediaByPlayerId?.[cell.pick?.player_id] || {};
+              const media = lookupPlayerMedia(mediaByPlayerId, cell.pick?.player_id) || {};
               const nfl = cell.pick?.nfl_team || "";
+              const shot = headshotCandidates(media)[0];
               const classes = [
                 "hub-pick-board-cell",
                 cell.filled ? "is-filled" : "is-empty",
@@ -69,8 +70,8 @@ function BoardGrid({ board, rows, mediaByPlayerId, scrollerRef, activeRef, modal
                   ) : cell.filled ? (
                     <>
                       <span className="hub-pick-board-player">
-                        {media.headshot_url ? (
-                          <img className="hub-pick-board-shot" src={media.headshot_url} alt="" />
+                        {shot ? (
+                          <img className="hub-pick-board-shot" src={shot} alt="" />
                         ) : (
                           <CellMark nflTeam={nfl} playerName={cell.pick.player_name} />
                         )}

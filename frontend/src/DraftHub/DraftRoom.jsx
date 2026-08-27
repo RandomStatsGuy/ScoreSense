@@ -35,7 +35,8 @@ import {
 } from "./draftLiveConsole";
 import { isPickDraft } from "./draftEntryStatus";
 import { HubPage } from "./HubUILayout";
-import { enrichmentPlayerHints } from "./draftRoomEnrichment";
+import { usePlayerMedia } from "../PlayerCell";
+import { enrichmentPlayerHints, mergePlayerMedia } from "./draftRoomEnrichment";
 import { isRowAvailable } from "./valueSheetUtils";
 import {
   buildRosterCapacity,
@@ -313,7 +314,26 @@ export default function DraftRoom({
   );
 
   const sentimentByPlayerId = enrichment?.sentiment_by_player_id || {};
-  const mediaByPlayerId = enrichment?.media_by_player_id || {};
+  const rosteredPlayers = useMemo(() => {
+    const rows = [];
+    Object.values(roomState?.rosters || {}).forEach((list) => {
+      (list || []).forEach((row) => rows.push(row));
+    });
+    return rows;
+  }, [roomState?.rosters]);
+  const liveMediaIds = useMemo(() => {
+    const ids = [];
+    if (nominee?.player_id) ids.push(nominee.player_id);
+    rosteredPlayers.forEach((row) => {
+      if (row?.player_id) ids.push(row.player_id);
+    });
+    return ids;
+  }, [nominee?.player_id, rosteredPlayers]);
+  const fetchedLiveMedia = usePlayerMedia(liveMediaIds);
+  const mediaByPlayerId = useMemo(
+    () => mergePlayerMedia(fetchedLiveMedia, enrichment?.media_by_player_id || {}),
+    [fetchedLiveMedia, enrichment],
+  );
   const sentimentMeta = enrichment
     ? {
         season: enrichment.season,
@@ -331,18 +351,21 @@ export default function DraftRoom({
         return {
           sentiment: null,
           headshotUrl: null,
+          espnHeadshotUrl: null,
           teamLogoUrl: null,
           fantasyMediaDigest: null,
         };
       }
-      const media = mediaByPlayerId[playerId] || {};
-      const sentiment = sentimentByPlayerId[playerId] || null;
+      const key = String(playerId);
+      const media = mediaByPlayerId[key] || mediaByPlayerId[playerId] || {};
+      const sentiment = sentimentByPlayerId[key] || sentimentByPlayerId[playerId] || null;
       return {
         sentiment,
         headshotUrl: media.headshot_url || null,
+        espnHeadshotUrl: media.espn_headshot_url || null,
         teamLogoUrl: media.team_logo_url || null,
         fantasyMediaDigest:
-          fantasyMediaDigests[playerId] || pickFantasyMediaDigest(sentiment) || null,
+          fantasyMediaDigests[key] || fantasyMediaDigests[playerId] || pickFantasyMediaDigest(sentiment) || null,
       };
     },
     [mediaByPlayerId, sentimentByPlayerId, fantasyMediaDigests],
@@ -351,8 +374,8 @@ export default function DraftRoom({
   // Prefer the on-screen pool (value sheet or nomination-pool fallback) so mock
   // drafts still get headshots when valueRows is empty.
   const enrichmentPlayers = useMemo(
-    () => enrichmentPlayerHints(availableRows, [nominee, ...(myRoster || [])]),
-    [availableRows, nominee, myRoster],
+    () => enrichmentPlayerHints(availableRows, [nominee, ...rosteredPlayers]),
+    [availableRows, nominee, rosteredPlayers],
   );
   const enrichmentIdsKey = useMemo(
     () => enrichmentPlayers.map((row) => row.player_id).join(","),
@@ -1766,6 +1789,7 @@ export default function DraftRoom({
               onOpenInbox={() => setTradeModal({ seed: null, view: "inbox" })}
               pickDraft={pickDraft}
               variant="band"
+              mediaByPlayerId={mediaByPlayerId}
             />
           </section>
 
@@ -1815,6 +1839,7 @@ export default function DraftRoom({
                         pickDraft={pickDraft}
                         allowTrades={tradesActive && !draftControlsLocked}
                         onTradePlayer={(seed) => setTradeModal({ seed, view: "builder" })}
+                        mediaByPlayerId={mediaByPlayerId}
                       />
                     ))}
                   </div>
@@ -1873,6 +1898,7 @@ export default function DraftRoom({
               maxBid={Number.isFinite(myBudget) ? myMaxBid : null}
               ended
               pickDraft={pickDraft}
+              mediaByPlayerId={mediaByPlayerId}
             />
             {events.length > 0 && (
               <details className="hub-draft-log hub-draft-log-sidebar">
@@ -1908,6 +1934,7 @@ export default function DraftRoom({
                       rosterLimits={roomState?.roster_limits}
                       draftCompleted
                       pickDraft={pickDraft}
+                      mediaByPlayerId={mediaByPlayerId}
                     />
                   ))}
                 </div>
