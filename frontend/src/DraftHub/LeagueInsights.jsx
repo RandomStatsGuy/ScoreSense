@@ -1639,7 +1639,12 @@ export default function LeagueInsights({
               </ul>
             </div>
             <div className="hub-insights-ownership-detail hub-player-history-detail">
-              {!selectedPlayer && (
+              {!selectedPlayer && playerFromUrl && (
+                <p className="chart-note">
+                  No contract history for this player in the selected seasons.
+                </p>
+              )}
+              {!selectedPlayer && !playerFromUrl && (
                 <p className="chart-note">Pick a player to see teams and timeline.</p>
               )}
               {selectedPlayer && (
