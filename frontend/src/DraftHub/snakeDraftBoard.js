@@ -121,6 +121,16 @@ export function configuredRounds(rules, { pickCount, currentOverall, eventMaxRou
   return Math.max(1, configured, inferred);
 }
 
+export function visibleRoundWindow(rows, focusRound, windowSize = 3) {
+  const list = Array.isArray(rows) ? rows : [];
+  if (!list.length) return [];
+  const count = Math.max(1, Math.min(list.length, Number(windowSize) || 3));
+  const focusIndex = Math.max(0, Math.min(list.length - 1, (Number(focusRound) || 1) - 1));
+  let start = Math.max(0, focusIndex - Math.floor(count / 2));
+  start = Math.min(start, Math.max(0, list.length - count));
+  return list.slice(start, start + count);
+}
+
 export function viewerNextPick({
   order,
   viewerTeamId,
@@ -183,7 +193,14 @@ export function buildDraftBoard({
       eventMaxRound,
     }),
   );
-  const current = Math.max(0, Number(currentOverall) || 0);
+  const rawCurrent = Math.max(0, Number(currentOverall) || 0);
+  const maxOverall = rounds * Math.max(1, n);
+  const current = rawCurrent > 0 && rawCurrent <= maxOverall ? rawCurrent : 0;
+  const currentRound = rawCurrent > maxOverall
+    ? rounds
+    : current && n
+      ? Math.ceil(current / n)
+      : 1;
   const viewer = viewerTeamId != null ? String(viewerTeamId) : "";
 
   const columns = order.map((teamId, columnIndex) => {
@@ -233,7 +250,7 @@ export function buildDraftBoard({
   const next = viewerNextPick({
     order,
     viewerTeamId: viewer,
-    currentOverall: current || 1,
+    currentOverall: rawCurrent > maxOverall ? maxOverall + 1 : (current || 1),
     draftType: type,
     totalRounds: rounds,
   });
@@ -243,7 +260,7 @@ export function buildDraftBoard({
     teamCount: n,
     totalRounds: rounds,
     currentOverall: current,
-    currentRound: current && n ? Math.ceil(current / n) : 1,
+    currentRound,
     columns,
     rows,
     viewerTeamId: viewer,

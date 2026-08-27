@@ -268,3 +268,30 @@ export function shouldScheduleWsReconnect({
 } = {}) {
   return Boolean(roomStillMounted && closedSocketIsCurrent);
 }
+
+/**
+ * Prime result notifications from hydrated room history without replaying the
+ * latest historical pick/win. Once primed, return only genuinely new results.
+ */
+export function draftResultTransition({
+  events = [],
+  roomHydrated = false,
+  initialized = false,
+  lastEventId = null,
+} = {}) {
+  const results = (Array.isArray(events) ? events : [])
+    .filter((event) => event?.event_type === "win" || event?.event_type === "pick");
+  const latest = results[results.length - 1] || null;
+  const latestId = latest?.id == null ? null : String(latest.id);
+
+  if (!roomHydrated) {
+    return { initialized, lastEventId, event: null };
+  }
+  if (!initialized) {
+    return { initialized: true, lastEventId: latestId, event: null };
+  }
+  if (!latest || !latestId || latestId === String(lastEventId || "")) {
+    return { initialized: true, lastEventId, event: null };
+  }
+  return { initialized: true, lastEventId: latestId, event: latest };
+}
