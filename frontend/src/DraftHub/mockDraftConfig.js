@@ -142,20 +142,41 @@ export function mockDraftLaunchSummary({
 }
 
 export function readStoredMockLeagueId(storage) {
-  const store = storage ?? (typeof sessionStorage === "undefined" ? null : sessionStorage);
+  if (storage) {
+    try {
+      return storage.getItem(MOCK_DRAFT_STORAGE_KEY) || "";
+    } catch {
+      return "";
+    }
+  }
   try {
-    return store?.getItem(MOCK_DRAFT_STORAGE_KEY) || "";
+    const session = typeof sessionStorage === "undefined"
+      ? ""
+      : (sessionStorage.getItem(MOCK_DRAFT_STORAGE_KEY) || "");
+    if (session) return session;
+    return typeof localStorage === "undefined"
+      ? ""
+      : (localStorage.getItem(MOCK_DRAFT_STORAGE_KEY) || "");
   } catch {
     return "";
   }
 }
 
 export function writeStoredMockLeagueId(leagueId, storage) {
-  const store = storage ?? (typeof sessionStorage === "undefined" ? null : sessionStorage);
-  try {
-    if (!leagueId) store?.removeItem(MOCK_DRAFT_STORAGE_KEY);
-    else store?.setItem(MOCK_DRAFT_STORAGE_KEY, String(leagueId));
-  } catch {
-    /* ignore quota / private mode */
+  const value = leagueId ? String(leagueId) : "";
+  const apply = (store) => {
+    if (!store) return;
+    try {
+      if (!value) store.removeItem(MOCK_DRAFT_STORAGE_KEY);
+      else store.setItem(MOCK_DRAFT_STORAGE_KEY, value);
+    } catch {
+      /* ignore quota / private mode */
+    }
+  };
+  if (storage) {
+    apply(storage);
+    return;
   }
+  apply(typeof sessionStorage === "undefined" ? null : sessionStorage);
+  apply(typeof localStorage === "undefined" ? null : localStorage);
 }

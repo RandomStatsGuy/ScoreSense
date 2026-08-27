@@ -7,7 +7,14 @@ import pytest
 from src.draft_hub import storage
 from src.draft_hub.draft_pool import build_nomination_pool
 from src.draft_hub.draft_recap import build_draft_recap
-from src.draft_hub.draft_state import award_nominee, end_draft, get_room_state, nominate, place_bid
+from src.draft_hub.draft_state import (
+    award_nominee,
+    check_timers,
+    end_draft,
+    get_room_state,
+    nominate,
+    place_bid,
+)
 from src.draft_hub.mock_draft import start_mock_draft
 from src.draft_hub.presets import load_preset
 from src.draft_hub.schemas import LeagueRules
@@ -402,5 +409,121 @@ def test_http_simulate_with_nan_pool_serializes(hub_db, monkeypatch):
         body = sim.json()
         json.dumps(body, allow_nan=False)
         assert body["state"]["session"]["status"] == "completed"
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_unsaved_mocks_are_pruned_when_starting_another(hub_db):
+    first = start_mock_draft("mock-user", mode="quick_bots", bot_count=2, auto_start=False)
+    second = start_mock_draft("mock-user", mode="quick_bots", bot_count=2, auto_start=False)
+    third = start_mock_draft("mock-user", mode="quick_bots", bot_count=2, auto_start=False)
+    rooms = storage.list_mock_drafts_for_sub("mock-user")
+    ids = {r["league_id"] for r in rooms}
+    assert first["league_id"] not in ids
+    assert second["league_id"] not in ids
+    assert third["league_id"] in ids
+    assert storage.get_league(first["league_id"]) is None
+    assert storage.get_league(third["league_id"]) is not None
+
+
+def test_saved_mock_survives_new_unsaved_rooms(hub_db):
+    kept = start_mock_draft("mock-user", mode="quick_bots", bot_count=2, auto_start=False)
+    storage.set_mock_saved(kept["league_id"], True)
+    later = start_mock_draft("mock-user", mode="quick_bots", bot_count=2, auto_start=False)
+    rooms = {r["league_id"]: r for r in storage.list_mock_drafts_for_sub("mock-user")}
+    assert kept["league_id"] in rooms
+    assert later["league_id"] in rooms
+    assert rooms[kept["league_id"]]["saved"] is True
+    assert rooms[later["league_id"]]["saved"] is False
+
+
+def test_list_prunes_extra_unsaved_in_progress(hub_db):
+    first = start_mock_draft("mock-user", mode="quick_bots", bot_count=2, auto_start=False)
+    rules = LeagueRules.model_validate(storage.get_league(first["league_id"])["rules"])
+    extras = []
+    for i in range(3):
+        league = storage.create_league(
+            "mock-user",
+            f"Extra mock {i}",
+            2026,
+            rules,
+            team_count=4,
+            test_mode=True,
+        )
+        extras.append(league["id"])
+    rooms = storage.list_mock_drafts_for_sub("mock-user")
+    ids = {r["league_id"] for r in rooms if not r.get("saved")}
+    assert extras[-1] in ids
+    assert first["league_id"] not in ids
+    assert extras[0] not in ids
+    assert extras[1] not in ids
+
+
+def test_saved_mock_cap(hub_db):
+    ids = []
+    for _ in range(storage.MAX_SAVED_MOCKS):
+        out = start_mock_draft("mock-user", mode="quick_bots", bot_count=2, auto_start=False)
+        storage.set_mock_saved(out["league_id"], True)
+        ids.append(out["league_id"])
+    extra = start_mock_draft("mock-user", mode="quick_bots", bot_count=2, auto_start=False)
+    with pytest.raises(ValueError, match="favorite mocks"):
+        storage.set_mock_saved(extra["league_id"], True)
+    assert storage.get_league(ids[0]) is not None
+
+
+def test_refresh_does_not_reset_in_progress_mock(hub_db, monkeypatch):
+    monkeypatch.setattr("src.draft_hub.draft_state._bot_delay_elapsed", lambda *a, **k: False)
+    out = start_mock_draft("mock-user", mode="quick_bots", bot_count=2, auto_start=True)
+    league_id = out["league_id"]
+    player = {
+        "player_id": "p-refresh",
+        "player_name": "Refresh WR",
+        "team": "KC",
+        "position": "WR",
+        "fair_value": 24,
+        "season_proj": 200,
+        "per_game_proj": 12,
+    }
+    _stub_pool_player(monkeypatch, player)
+    nominate(league_id, "mock-user", player)
+    place_bid(league_id, "mock-user", 5)
+    before = get_room_state(league_id, "mock-user")
+    after = check_timers(league_id, "mock-user")
+    again = check_timers(league_id, "mock-user")
+    assert after["session"]["status"] == "bidding"
+    assert after["session"]["high_bid"] == before["session"]["high_bid"]
+    assert after["session"]["high_bidder_team_id"] == before["session"]["high_bidder_team_id"]
+    assert again["session"]["high_bid"] == before["session"]["high_bid"]
+    assert again["league"]["id"] == league_id
+    assert len(again["picks"]) == len(before["picks"])
+
+
+def test_http_keep_mock_and_list_saved_flag(hub_db):
+    from fastapi.testclient import TestClient
+
+    from app.api import app
+    from app.auth import require_hub_user
+
+    app.dependency_overrides[require_hub_user] = lambda: {"sub": "http-keep", "auth_type": "dev"}
+    client = TestClient(app)
+    try:
+        started = client.post(
+            "/api/hub/mock-draft/start",
+            json={"mode": "quick_bots", "team_count": 4, "bot_count": 3, "auto_start": False},
+        )
+        assert started.status_code == 200, started.text
+        league_id = started.json()["league_id"]
+        kept = client.put(f"/api/hub/mock-draft/{league_id}/keep", json={"saved": True})
+        assert kept.status_code == 200, kept.text
+        assert kept.json()["saved"] is True
+        listed = client.get("/api/hub/mock-drafts")
+        assert listed.status_code == 200
+        rooms = listed.json()["rooms"]
+        match = next(r for r in rooms if r["league_id"] == league_id)
+        assert match["saved"] is True
+        reload = client.get(f"/api/hub/league/{league_id}")
+        assert reload.status_code == 200
+        assert reload.json()["league"]["id"] == league_id
+        assert reload.json()["league"]["mock_saved"] is True
     finally:
         app.dependency_overrides.pop(require_hub_user, None)

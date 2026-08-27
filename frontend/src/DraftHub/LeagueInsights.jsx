@@ -2,6 +2,8 @@ import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
+import useSlowThink from "../hooks/useSlowThink";
+import ThinkingScrim from "../ui/ThinkingScrim";
 import MobileDataList, { MobileStat } from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
 import DraftRecapPanel from "./DraftRecapPanel";
@@ -320,6 +322,7 @@ export default function LeagueInsights({
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tabLoading, setTabLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [teamPick, setTeamPick] = useState("");
   const [activeTabLocal, setActiveTabLocal] = useState("cap");
@@ -408,6 +411,7 @@ export default function LeagueInsights({
     setData,
     setLoading,
     setTabLoading,
+    setRefreshing,
     setError,
     setVisiblePositions,
     setScoringSeason,
@@ -861,9 +865,12 @@ export default function LeagueInsights({
     });
   };
 
+  const showThink = useSlowThink(Boolean((loading && !data) || refreshing));
+
   if (loading && !data) {
     return (
       <div className="hub-insights">
+        <ThinkingScrim show={showThink} scene="insights" />
         <div className="hub-insights-sticky">
           <HubSegmentNav tabs={insightsTabs} active={activeTab} onChange={setActiveTab} ariaLabel="Insights" />
           <InsightsProgress active />
@@ -882,6 +889,7 @@ export default function LeagueInsights({
 
   return (
     <div className="hub-insights">
+      <ThinkingScrim show={showThink} scene="insights" />
       {data?.draft_recap && (
         <DraftRecapPanel recap={data.draft_recap} />
       )}
