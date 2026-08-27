@@ -1219,7 +1219,7 @@ export default function App() {
                     ariaLabel="Projection type"
                   />
                 ) : (
-                <nav className="app-section-subnav" aria-label="Projection type">
+                <nav className="app-section-subnav app-section-subnav--compact" aria-label="Projection type">
                   {PROJECTIONS_TABS.map((tab) => (
                     <button
                       key={tab.id}
@@ -1245,7 +1245,7 @@ export default function App() {
                   ariaLabel="Tools"
                 />
               ) : (
-              <nav className="app-section-subnav" aria-label="Tools">
+              <nav className="app-section-subnav app-section-subnav--compact" aria-label="Tools">
                 {TOOLS_TABS.map((tab) => (
                   <button
                     key={tab.id}

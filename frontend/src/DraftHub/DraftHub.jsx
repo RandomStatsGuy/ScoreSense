@@ -651,6 +651,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           syncMessage={leagueSyncMessage}
           syncError={leagueSyncError}
           switchBusy={leagueSwitchBusy}
+          showAttention={subView !== "home"}
+          currentView={subView}
           onProjectionsRefresh={async () => {
             clearHubDataCache();
             await refreshValueSheet(
