@@ -32,6 +32,8 @@ class ContractRules(BaseModel):
     cut_refund_pct: float = 0.5
     extension_step_up: float = 5.0
     rookie_years: int = 2
+    veteran_years: int = 2
+    rookie_salary_static: bool = True
     allow_veteran_renewal: bool = False
     one_renewal_after_rookie: bool = True
 

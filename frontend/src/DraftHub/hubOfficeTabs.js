@@ -1,11 +1,10 @@
-/** Commissioner workspace sub-tab config — Chat for all members; admin panes for commissioners. */
+/** League-wide roster-management tabs. Persistent chat lives outside this workspace. */
 
 export const OFFICE_TABS = [
-  { id: "chat", label: "Chat", group: "chat", roles: ["owner", "commissioner"] },
-  { id: "current", label: "Contracts", group: "contracts", roles: ["commissioner"] },
-  { id: "historic", label: "Sheets", group: "contracts", roles: ["commissioner"] },
-  { id: "members", label: "Members", group: "membership", roles: ["commissioner"] },
-  { id: "access", label: "Access", group: "access", roles: ["commissioner"] },
+  { id: "current", label: "Contracts", group: "rosters", roles: ["commissioner"] },
+  { id: "historic", label: "Salary sheets", group: "records", roles: ["commissioner"] },
+  { id: "members", label: "Members", group: "league", roles: ["commissioner"] },
+  { id: "access", label: "Access & imports", group: "league", roles: ["commissioner"] },
 ];
 
 /** Legacy Insights desk URLs → Commissioner panes. */
@@ -34,5 +33,5 @@ export function visibleOfficeTabs(isCommissioner) {
 }
 
 export function defaultOfficeTab(isCommissioner) {
-  return isCommissioner ? "current" : "chat";
+  return "current";
 }

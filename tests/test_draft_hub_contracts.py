@@ -1,10 +1,12 @@
 """Contract step-up and renewal tests."""
 
 from src.draft_hub.contracts import (
+    apply_rookie_extension_command,
     auction_win_is_rookie,
     build_auction_win_contract,
     build_extension_contract,
     build_rookie_contract,
+    can_renew,
     renew_player_contract,
 )
 from src.draft_hub.presets import load_preset
@@ -23,6 +25,85 @@ def test_auction_win_contracts_rookie_flat_vet_steps():
     assert vet["years_remaining"] == 2
     assert [y["salary"] for y in vet["schedule"]] == [39, 44]
     assert float(vet.get("step_up_per_year") or 0) == 5
+
+
+def test_auction_win_contracts_follow_commissioner_term_and_rookie_salary_rules():
+    rules = load_preset("salary_cap_auction_v1")
+    rules = rules.model_copy(update={
+        "contracts": rules.contracts.model_copy(update={
+            "max_years": 4,
+            "rookie_years": 3,
+            "veteran_years": 4,
+            "rookie_salary_static": False,
+            "extension_step_up": 3,
+        }),
+    })
+
+    rook = build_auction_win_contract(rules, 10, is_rookie=True)
+    assert rook["years_remaining"] == 3
+    assert rook["rookie_salary_static"] is False
+    assert [year["salary"] for year in rook["schedule"]] == [10, 13, 16]
+
+    vet = build_auction_win_contract(rules, 10, is_rookie=False)
+    assert vet["years_remaining"] == 4
+    assert [year["salary"] for year in vet["schedule"]] == [10, 13, 16, 19]
+
+
+def test_contract_renewal_permissions_follow_league_rules():
+    rules = load_preset("salary_cap_auction_v1")
+    rookie = {
+        "contract": {
+            **build_rookie_contract(10, 1),
+            "years_remaining": 1,
+        },
+    }
+    veteran = {
+        "contract": {
+            "contract_type": "veteran",
+            "current_salary": 10,
+            "years_remaining": 1,
+            "renewal_used": False,
+        },
+    }
+
+    disabled_rookie_rules = rules.model_copy(update={
+        "contracts": rules.contracts.model_copy(update={"one_renewal_after_rookie": False}),
+    })
+    assert can_renew(rookie, disabled_rookie_rules) == (
+        False,
+        "Rookie extensions are disabled by league rules.",
+    )
+
+    veteran_rules = rules.model_copy(update={
+        "contracts": rules.contracts.model_copy(update={"allow_veteran_renewal": True}),
+    })
+    assert can_renew(veteran, veteran_rules)[0] is True
+
+
+def test_manager_can_queue_veteran_extension_when_league_allows_it():
+    rules = load_preset("salary_cap_auction_v1")
+    rules = rules.model_copy(update={
+        "contracts": rules.contracts.model_copy(update={"allow_veteran_renewal": True}),
+    })
+    veteran = {
+        "salary": 10,
+        "contract": {
+            "contract_type": "veteran",
+            "current_salary": 10,
+            "years_remaining": 1,
+            "renewal_used": False,
+        },
+    }
+
+    queued, already_applied = apply_rookie_extension_command(
+        veteran,
+        rules,
+        extension_years=2,
+    )
+
+    assert already_applied is False
+    assert queued["pending_extension"]["years"] == 2
+    assert queued["pending_extension"]["start_salary"] == 15
 
 
 def test_auction_win_is_rookie_from_flag_and_years_exp():

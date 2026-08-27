@@ -23,5 +23,7 @@ contracts:
   cut_refund_pct: 0.5
   extension_step_up: 5
   rookie_years: 2
+  veteran_years: 2
+  rookie_salary_static: true
   one_renewal_after_rookie: true
   allow_veteran_renewal: false

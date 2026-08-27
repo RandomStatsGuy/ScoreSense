@@ -6,7 +6,6 @@ import HubTabIntro from "./HubTabIntro";
 import CommissionerLeagueRosters from "./CommissionerLeagueRosters";
 import TeamSalarySheets from "./TeamSalarySheets";
 import LeagueContractHistory from "./LeagueContractHistory";
-import LeagueChat from "./LeagueChat";
 import LeagueInvites from "./LeagueInvites";
 import LeagueSleeperConnect from "./LeagueSleeperConnect";
 import CapSheetImport from "./CapSheetImport";
@@ -328,7 +327,7 @@ export default function LeagueOffice({
   }, [season]);
 
   useEffect(() => {
-    // Keep URL in sync only while Commissioner is the visible hub tab. This pane stays
+    // Keep URL in sync only while Roster management is the visible Fantasy tab. This pane stays
     // mounted (display:none) after first visit — syncing when inactive yanks
     // navigation back to /hub/office whenever officeTab is cleared.
     if (!active) return;
@@ -349,7 +348,7 @@ export default function LeagueOffice({
 
       {isCommissioner && (
         <p className="hub-office-admin-boundary" role="note">
-          Admin tools — edits here apply league-wide. Day-to-day roster and cap work stays on My Roster and Cap.
+          Changes here apply league-wide. Day-to-day roster and cap decisions stay on My team and Cap.
         </p>
       )}
 
@@ -372,12 +371,6 @@ export default function LeagueOffice({
           ))}
         </HubFilterScroll>
       </div>
-
-      {activeTab === "chat" && (
-        <HubPage>
-          <LeagueChat leagueId={leagueId} hubContext={hubContext} />
-        </HubPage>
-      )}
 
       {activeTab === "current" && isCommissioner && (
         <HubPage>

@@ -70,6 +70,7 @@ const STANDALONE_TITLES = {
 const HUB_PAGE_LABELS = {
   home: "Home",
   setup: "Setup",
+  rules: "Rules",
   value: "Available players",
   week: "Week",
   roster: "Roster",
@@ -86,9 +87,9 @@ const INSIGHT_PAGE_LABELS = {
 };
 
 const OFFICE_PAGE_LABELS = {
-  chat: "Chat",
-  current: "Current",
-  historic: "Historic",
+  chat: "Contracts",
+  current: "Contracts",
+  historic: "Salary sheets",
   members: "Members",
   access: "Access",
 };
@@ -194,14 +195,14 @@ export function pageTitleForPath(pathname) {
   if (parsed.view === "hub") {
     if (parsed.hubSubView === "insights") {
       const insight = INSIGHT_PAGE_LABELS[parsed.insightTab] || "Spend";
-      return `League · Insights · ${insight}`;
+      return `Fantasy · Insights · ${insight}`;
     }
     if (parsed.hubSubView === "office") {
-      const office = OFFICE_PAGE_LABELS[parsed.officeTab] || "Chat";
-      return `League · Office · ${office}`;
+      const office = OFFICE_PAGE_LABELS[parsed.officeTab] || "Contracts";
+      return `Fantasy · Roster management · ${office}`;
     }
     const hub = HUB_PAGE_LABELS[parsed.hubSubView] || "Home";
-    return `League · ${hub}`;
+    return `Fantasy · ${hub}`;
   }
 
   if (parsed.view === "tools") {

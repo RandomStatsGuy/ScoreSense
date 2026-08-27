@@ -65,6 +65,8 @@ function ContractRulesDisclosure({
   isCommissioner,
   officeLink,
   defaultStepUp,
+  maxYears,
+  rules,
   season,
   draftCompleted,
 }) {
@@ -75,19 +77,19 @@ function ContractRulesDisclosure({
         {contractsReadOnly && isLeague ? (
           <>
             <p>
-              Salary, years, and type are edited in Commissioner → Contracts only
+              Salary, years, and type are edited in Roster management → Contracts only
               {isCommissioner
-                ? <> — {officeLink || "use Commissioner → Contracts to edit"}.</>
-                : ". Commissioners edit those fields in Commissioner."}
+                ? <> — {officeLink || "use Roster management → Contracts to edit"}.</>
+                : ". Commissioners edit those fields in Roster management."}
             </p>
             <p>
-              Before draft, final-year rookies can queue one 1–3 year extension
+              Before draft, eligible final-year contracts can queue one 1–{Math.max(1, Number(maxYears) || 3)} year extension
               (start salary = current + ${defaultStepUp}).
             </p>
           </>
         ) : (
           <p title={seasonCapYearHint(season)}>
-            {contractScheduleHint(defaultStepUp)}
+            {contractScheduleHint(defaultStepUp, rules)}
             {!draftCompleted && " · Final-year deals expire before draft (rookies can extend once)"}
           </p>
         )}
@@ -247,9 +249,9 @@ function ContractSidePanelBody({
                 }))}
                 aria-label={`Extension years for ${r.player_name}`}
               >
-                <option value={1}>1 yr</option>
-                <option value={2}>2 yr</option>
-                <option value={3}>3 yr</option>
+                {Array.from({ length: maxYears }, (_, index) => index + 1).map((years) => (
+                  <option key={years} value={years}>{years} yr</option>
+                ))}
               </select>
             </label>
             <button
@@ -316,7 +318,7 @@ export default function RosterBuilder({
   const [extendYearsById, setExtendYearsById] = useState({});
 
   const mobileLayout = useMobileLayout();
-  const maxYears = Number(workspace?.rules?.contracts?.max_years ?? 3);
+  const maxYears = Math.max(1, Number(workspace?.rules?.contracts?.max_years ?? 3) || 3);
   const defaultStepUp = leagueStepUp(workspace?.rules);
   const salaryCap = Number(workspace?.rules?.salary_cap ?? 200);
   const season = workspace?.season ?? new Date().getFullYear();
@@ -326,7 +328,7 @@ export default function RosterBuilder({
   const teamName = sleeper?.sleeper_team_name;
   const isLeague = hubContext?.mode === "league";
   const isCommissioner = Boolean(hubContext?.is_commissioner || hubContext?.can_edit_salaries);
-  // SCORE-41: league My Team never edits salary/years/type — Commissioner → Contracts is the only arbitrary editor.
+  // SCORE-41: league My Team never edits salary/years/type — Roster management is the arbitrary editor.
   // SCORE-42: managers may still queue a server-calculated rookie extension for their own eligible rookies.
   const contractsReadOnly = isLeague || readOnly;
   const canEditType = !contractsReadOnly;
@@ -471,15 +473,15 @@ export default function RosterBuilder({
   const extendYearsFor = useCallback((r) => {
     const raw = extendYearsById[r.player_id];
     const n = Number(raw);
-    if (Number.isFinite(n) && n >= 1 && n <= 3) return n;
+    if (Number.isFinite(n) && n >= 1 && n <= maxYears) return n;
     return 1;
-  }, [extendYearsById]);
+  }, [extendYearsById, maxYears]);
 
   const queueRookieExtend = useCallback(async (r) => {
     setSavingId(r.player_id);
     setError("");
     try {
-      const data = await postRookieExtend(r.player_id, extendYearsFor(r));
+      const data = await postRookieExtend(r.player_id, extendYearsFor(r), maxYears);
       setError(rookieExtendSuccessMessage(data));
       setTimeout(() => setError(""), 4000);
       onChanged?.();
@@ -488,7 +490,7 @@ export default function RosterBuilder({
     } finally {
       setSavingId(null);
     }
-  }, [extendYearsFor, onChanged]);
+  }, [extendYearsFor, maxYears, onChanged]);
 
   const saveRow = useCallback(async (r) => {
     if (hubContext?.mode === "league") return;
@@ -609,7 +611,7 @@ export default function RosterBuilder({
 
   const officeLink = isCommissioner && onEditInOffice ? (
     <button type="button" className="btn-link" onClick={onEditInOffice}>
-      Edit in Commissioner
+      Edit in roster management
     </button>
   ) : null;
 
@@ -621,9 +623,15 @@ export default function RosterBuilder({
     const storedSchedule = scheduleText(r, workspace?.rules);
     const livePreview = contractsReadOnly
       ? storedSchedule
-      : (previewSchedule(edit.salary, edit.years, defaultStepUp, ctype) || storedSchedule);
+      : (previewSchedule(
+        edit.salary,
+        edit.years,
+        defaultStepUp,
+        ctype,
+        workspace?.rules?.contracts?.rookie_salary_static !== false,
+      ) || storedSchedule);
     const status = rosterStatusInfo(r, { draftCompleted, ctype, pendingType, pendingExt });
-    const extendEligible = canManagerRookieExtend(r, { draftCompleted }).ok;
+    const extendEligible = canManagerRookieExtend(r, { draftCompleted, rules: workspace?.rules }).ok;
     const extendStart = extendEligible
       ? previewRookieExtendStartSalary(r, workspace?.rules)
       : null;
@@ -698,7 +706,7 @@ export default function RosterBuilder({
             ? (
               <p>
                 {isLeague
-                  ? "Salary, years, and type are edited in Commissioner → Contracts only. Final-year rookies can still queue one extension here."
+                  ? "Salary, years, and type are edited in Roster management → Contracts only. Eligible final-year contracts can still queue one extension here."
                   : "Read-only — ask commish to edit."}
                 {officeLink ? <> {officeLink}</> : null}
               </p>
@@ -753,6 +761,8 @@ export default function RosterBuilder({
         isCommissioner={isCommissioner}
         officeLink={officeLink}
         defaultStepUp={defaultStepUp}
+        maxYears={maxYears}
+        rules={workspace?.rules}
         season={season}
         draftCompleted={draftCompleted}
       />

@@ -10,6 +10,7 @@ import { ValueSheetTableSkeleton } from "../TableSkeleton";
 import AccountAuth from "../AccountAuth";
 import VerifyEmailBanner from "../VerifyEmailBanner";
 import HubSetup from "./HubSetup";
+import RulesWizard from "./RulesWizard";
 import ValueSheetTable from "./ValueSheetTable";
 import RosterBuilder from "./RosterBuilder";
 import DraftRoom from "./DraftRoom";
@@ -22,6 +23,7 @@ import LeagueContextBanner from "./LeagueContextBanner";
 import HubDemoBanner from "./HubDemoBanner";
 import WeeklyCommandCenter from "./WeeklyCommandCenter";
 import LeagueHome from "./LeagueHome";
+import FantasyChatDock from "./FantasyChatDock";
 import { defaultInsightTab, isInsightTabAllowed } from "./hubInsightsTabs";
 import { defaultOfficeTab, isOfficeTabAllowed } from "./hubOfficeTabs";
 import {
@@ -99,7 +101,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     }
   }, [subView, setSubView, onInsightTabChange, onOfficeTabChange]);
 
-  const goToCommissionerDesk = useCallback(() => {
+  const goToRosterManagement = useCallback(() => {
     setSubView("office");
     onOfficeTabChange?.("current");
   }, [setSubView, onOfficeTabChange]);
@@ -553,10 +555,14 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   useEffect(() => {
     if (subView !== "office" || !effectiveCtx) return;
     const isCommish = Boolean(effectiveCtx.is_commissioner);
+    if (!isCommish) {
+      setSubView("rules");
+      return;
+    }
     if (!isOfficeTabAllowed(officeTab, isCommish)) {
       onOfficeTabChange?.(defaultOfficeTab(isCommish));
     }
-  }, [subView, officeTab, effectiveCtx, onOfficeTabChange]);
+  }, [subView, officeTab, effectiveCtx, onOfficeTabChange, setSubView]);
 
   if (authReady && !authenticated && hubAuthRequired !== false && !demoMode) {
     return (
@@ -612,7 +618,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     return (
       <div className="draft-hub">
         <HubPage>
-          <h2 className="hub-tab-intro-title">League</h2>
+          <h2 className="hub-tab-intro-title">Fantasy</h2>
           <ValueSheetTableSkeleton rows={12} colSpan={12} />
         </HubPage>
       </div>
@@ -644,8 +650,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           capSheet={capSheet}
           onNavigate={setSubView}
           onLeagueSwitch={onLeagueSwitch}
-          onNavigateSetup={() => setSubView("setup")}
-          onNavigateManage={goToCommissionerDesk}
+          onNavigateSetup={() => setSubView(effectiveCtx?.is_commissioner ? "rules" : "setup")}
+          onNavigateManage={goToRosterManagement}
           onLeagueSync={onLeagueSleeperSync}
           syncing={leagueSyncing}
           syncMessage={leagueSyncMessage}
@@ -672,7 +678,17 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           hubContext={effectiveCtx}
           reloadToken={weekReloadToken}
           onNavigate={setSubView}
-          onNavigateSetup={() => setSubView("setup")}
+          onNavigateSetup={() => setSubView(effectiveCtx?.is_commissioner ? "rules" : "setup")}
+        />
+      )}
+
+      {subView === "rules" && !demoMode && (
+        <RulesWizard
+          workspace={workspace}
+          hubContext={effectiveCtx}
+          presets={presets}
+          onSaved={onWorkspaceSaved}
+          readOnlyRules={effectiveCtx?.mode === "league" && !effectiveCtx?.is_commissioner}
         />
       )}
 
@@ -743,7 +759,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           hubContext={effectiveCtx}
           capSheet={capSheet}
           readOnly={effectiveCtx?.mode === "league" && !effectiveCtx?.can_edit_salaries}
-          onEditInOffice={goToCommissionerDesk}
+          onEditInOffice={goToRosterManagement}
         />
       )}
 
@@ -827,6 +843,14 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           season={valueSheet?.season || workspace?.season}
           hubContext={effectiveCtx}
           onNavigate={setSubView}
+        />
+      )}
+
+      {!demoMode && effectiveCtx?.mode === "league" && (
+        <FantasyChatDock
+          leagueId={leagueId || effectiveCtx?.league_id || ""}
+          hubContext={effectiveCtx}
+          hidden={subView === "room"}
         />
       )}
     </div>

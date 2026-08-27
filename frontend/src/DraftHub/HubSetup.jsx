@@ -1,12 +1,11 @@
 import React from "react";
 import SleeperLink from "./SleeperLink";
-import RulesWizard from "./RulesWizard";
 import SalaryRangeImport from "./SalaryRangeImport";
 import LeagueSheetImport from "./LeagueSheetImport";
 import CapSheetImport from "./CapSheetImport";
 import LeagueInvites from "./LeagueInvites";
 import LeagueSetup from "./LeagueSetup";
-import HubSetupChecklist, { hasRules, hasSleeper } from "./HubSetupChecklist";
+import HubSetupChecklist, { hasSleeper } from "./HubSetupChecklist";
 import useMobileLayout from "../useMobileLayout";
 import { effectiveHubContext } from "./hubContext";
 
@@ -66,7 +65,6 @@ export default function HubSetup({
   const inLeague = ctx?.mode === "league";
   const isCommissioner = ctx?.is_commissioner;
   const sleeperLinked = hasSleeper(workspace, ctx);
-  const rulesConfigured = hasRules(workspace);
 
   return (
     <div className={`hub-setup hub-setup-compact${mobileLayout ? " hub-setup--mobile" : ""}`}>
@@ -76,10 +74,15 @@ export default function HubSetup({
             ← League Home
           </button>
         ) : null}
-        <h2 className="hub-tab-intro-title">League settings</h2>
+        <h2 className="hub-tab-intro-title">League connections</h2>
         <p className="chart-note hub-setup-lead">
-          Rules, Sleeper link, and imports. Day-to-day actions live on League Home.
+          League access, Sleeper, and imports. Rules now have their own focused workspace.
         </p>
+        {onNavigate && (
+          <button type="button" className="btn-primary btn-sm" onClick={() => onNavigate("rules")}>
+            {inLeague && !isCommissioner ? "View league rules" : "Open league rules"}
+          </button>
+        )}
       </div>
       <HubSetupChecklist
         workspace={workspace}
@@ -130,26 +133,9 @@ export default function HubSetup({
         )}
       </SetupSection>
 
-      <SetupSection
-        title="League rules"
-        hint={rulesConfigured ? "Configured" : "Needs setup"}
-        defaultOpen={!rulesConfigured}
-        mobileLayout={mobileLayout}
-        className="hub-setup-panel hub-setup-panel--rules"
-      >
-        <RulesWizard
-          workspace={workspace}
-          hubContext={ctx}
-          presets={presets}
-          onSaved={onWorkspaceSaved}
-          embedded
-          readOnlyRules={inLeague && !isCommissioner}
-        />
-      </SetupSection>
-
       {inLeague && isCommissioner && (
         <SetupSection
-          title="Commissioner tools"
+          title="League access & imports"
           hint="Invites · imports"
           mobileLayout={mobileLayout}
           className="hub-setup-panel hub-setup-alt"

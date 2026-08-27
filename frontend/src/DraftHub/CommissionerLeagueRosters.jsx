@@ -564,7 +564,7 @@ function TeamRosterBlock({
           <div className="hub-roster-contract-rules-body chart-note">
             <p title={seasonCapYearHint(season)}>
               Cap hit is for the {season} season (after the {season} draft).{" "}
-              {contractScheduleHint(stepUp)}.
+              {contractScheduleHint(stepUp, rules)}.
             </p>
             <p>{YEARS_LEFT_HINT}</p>
           </div>
@@ -605,7 +605,7 @@ function TeamRosterBlock({
               ? String(r.contract.inferred_from).replace("nfl_yr_", "NFL yr ")
               : null;
             const storedSchedule = scheduleText(r, rules);
-            const livePreview = previewSchedule(edit.salary, edit.years, stepUp, ctype) || storedSchedule;
+            const livePreview = previewSchedule(edit.salary, edit.years, stepUp, ctype, rules?.contracts?.rookie_salary_static !== false) || storedSchedule;
             const expiringBadge = !draftCompleted && yrsLeft <= 1 && !isCut
               ? (ctype === "rookie" ? "Extend to keep" : "Expires — FA")
               : null;
@@ -741,7 +741,7 @@ function TeamRosterBlock({
                 ? String(r.contract.inferred_from).replace("nfl_yr_", "NFL yr ")
                 : null;
               const storedSchedule = scheduleText(r, rules);
-              const livePreview = previewSchedule(edit.salary, edit.years, stepUp, ctype) || storedSchedule;
+              const livePreview = previewSchedule(edit.salary, edit.years, stepUp, ctype, rules?.contracts?.rookie_salary_static !== false) || storedSchedule;
               const expiringBadge = !draftCompleted && yrsLeft <= 1 && !isCut
                 ? (ctype === "rookie" ? "Extend to keep" : "Expires — FA")
                 : null;

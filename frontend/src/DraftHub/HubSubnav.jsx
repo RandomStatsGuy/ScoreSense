@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import MobileBottomSheet from "../layout/MobileBottomSheet";
 
-/** group: "home" | "prep" (draft prep) | "season" (in-season) | "office" (league office). */
+/** group: "home" | "prep" (draft prep) | "season" (in-season) | "office" (league-wide). */
 export const HUB_SUBVIEWS = [
   { id: "home", label: "Home", shortLabel: "Home", hint: "Action center", group: "home" },
   { id: "value", label: "Players", shortLabel: "Players", hint: "Prices", group: "prep" },
@@ -11,15 +11,17 @@ export const HUB_SUBVIEWS = [
   { id: "rosters", label: "Rosters", shortLabel: "Rosters", leagueOnly: true, hint: "All teams", group: "season" },
   { id: "planner", label: "Cap", shortLabel: "Cap", hint: "Cap & cuts", group: "season" },
   { id: "trades", label: "Trades", shortLabel: "Trades", leagueOnly: true, hint: "Propose & accept", group: "season" },
-  { id: "insights", label: "Insights", shortLabel: "Insights", leagueOnly: true, hint: "Spend & scoring", group: "office" },
+  { id: "rules", label: "Rules", shortLabel: "Rules", hint: "League policy", group: "office" },
   {
     id: "office",
-    label: "Commissioner",
-    shortLabel: "Commish",
+    label: "Roster management",
+    shortLabel: "Manage",
     leagueOnly: true,
-    hint: "Admin: chat, contracts, sheets",
+    commissionerOnly: true,
+    hint: "League-wide contracts and access",
     group: "office",
   },
+  { id: "insights", label: "Insights", shortLabel: "Insights", leagueOnly: true, hint: "Spend & scoring", group: "office" },
 ];
 
 const GROUP_LABELS = { home: "", prep: "Draft", season: "Team", office: "League" };
@@ -77,7 +79,7 @@ export default function HubSubnav({ subView, hubContext, onNavigate, mobileLayou
           ref={navRef}
           className="app-section-subnav app-section-subnav--hub"
           role="tablist"
-          aria-label="League"
+          aria-label="Fantasy"
         >
           {mobileLayout
             ? visible.map(tabButton)
@@ -96,7 +98,7 @@ export default function HubSubnav({ subView, hubContext, onNavigate, mobileLayou
           <button
             type="button"
             className="hub-subnav-picker-btn"
-            aria-label="All league tabs"
+            aria-label="All Fantasy tabs"
             onClick={() => setPickerOpen(true)}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -112,7 +114,7 @@ export default function HubSubnav({ subView, hubContext, onNavigate, mobileLayou
       <MobileBottomSheet
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
-        title="League sections"
+        title="Fantasy sections"
         className="app-mobile-sheet-hub-tabs"
       >
         <div className="app-mobile-sheet-list">
