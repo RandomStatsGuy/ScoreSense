@@ -222,37 +222,44 @@ export default function AccountSettingsPage() {
         </section>
 
         {isNative && (
-          <section className="account-settings-section account-settings-danger">
-            <h3 className="hub-panel-subtitle">Delete account</h3>
-            <p className="chart-note">
-              Removes your login credentials. League data and rosters linked to your account may
-              still exist until manually cleaned up.
-            </p>
-            <form className="account-auth-form" onSubmit={submitDelete}>
-              <label>
-                <span className="hub-field-label">Password</span>
-                <input
-                  type="password"
-                  value={deletePassword}
-                  onChange={(e) => setDeletePassword(e.target.value)}
-                  autoComplete="current-password"
-                  required
-                />
-              </label>
-              <label className="legal-terms-checkbox hub-toggle-row">
-                <input
-                  type="checkbox"
-                  checked={deleteConfirm}
-                  onChange={(e) => setDeleteConfirm(e.target.checked)}
-                />
-                <span>I understand my login will be removed and league data may remain.</span>
-              </label>
-              <button type="submit" className="btn-ghost btn-sm account-delete-btn" disabled={deleteBusy}>
-                {deleteBusy ? "Deleting…" : "Delete account"}
-              </button>
-              {deleteErr && <div className="error">{deleteErr}</div>}
-            </form>
-          </section>
+          <details className="account-settings-section account-settings-danger">
+            <summary>
+              <span>
+                <strong>Delete account</strong>
+                <small>Permanently remove your login</small>
+              </span>
+            </summary>
+            <div className="account-settings-danger-body">
+              <p className="chart-note">
+                Removes your login credentials. League data and rosters linked to your account may
+                still exist until manually cleaned up.
+              </p>
+              <form className="account-auth-form" onSubmit={submitDelete}>
+                <label>
+                  <span className="hub-field-label">Password</span>
+                  <input
+                    type="password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    autoComplete="current-password"
+                    required
+                  />
+                </label>
+                <label className="legal-terms-checkbox hub-toggle-row">
+                  <input
+                    type="checkbox"
+                    checked={deleteConfirm}
+                    onChange={(e) => setDeleteConfirm(e.target.checked)}
+                  />
+                  <span>I understand my login will be removed and league data may remain.</span>
+                </label>
+                <button type="submit" className="btn-ghost btn-sm account-delete-btn" disabled={deleteBusy}>
+                  {deleteBusy ? "Deleting…" : "Delete account"}
+                </button>
+                {deleteErr && <div className="error">{deleteErr}</div>}
+              </form>
+            </div>
+          </details>
         )}
 
         <p className="hub-toolbar auth-panel-back-desktop">

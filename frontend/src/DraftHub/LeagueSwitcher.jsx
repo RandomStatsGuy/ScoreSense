@@ -143,8 +143,7 @@ export default function LeagueSwitcher({
         >
           {leagues.map((m) => (
             <option key={m.league_id} value={m.league_id}>
-              {membershipLabel(m)}
-              {m.room_code ? ` · ${m.room_code}` : ""}
+              {m.league_name || membershipLabel(m)}
             </option>
           ))}
           <option value={SOLO_VALUE}>{mobileLayout ? "Solo prep" : "Personal prep (just me)"}</option>
