@@ -55,6 +55,8 @@ class LeagueRules(BaseModel):
     relax_salary_roster_limits: bool = False
     # Fantasy regular-season games used for pick-draft record projections.
     regular_season_games: int = 14
+    # Commissioner overrides for Insights award titles (award_id -> label).
+    insight_award_titles: dict[str, str] = Field(default_factory=dict)
 
 
 class WorkspaceUpdate(BaseModel):

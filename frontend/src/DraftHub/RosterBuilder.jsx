@@ -26,7 +26,7 @@ import {
   previewRookieExtendStartSalary,
   rookieExtendSuccessMessage,
 } from "./rookieExtend";
-import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
+import ContractHistoryLink from "./ContractHistoryLink";
 
 const TEAM_LOGO_ALIASES = { JAX: "jax", JAC: "jax", LA: "lar", LAR: "lar", WSH: "wsh", WAS: "wsh" };
 
@@ -129,6 +129,7 @@ function ContractSidePanelBody({
   remove,
   maxYears,
   status,
+  onOpenContractHistory,
 }) {
   const isCut = r.roster_status === "cut_before_draft";
 
@@ -285,6 +286,11 @@ function ContractSidePanelBody({
             Remove
           </button>
         )}
+        <ContractHistoryLink
+          playerId={r.player_id}
+          playerName={r.player_name}
+          onOpen={onOpenContractHistory}
+        />
       </div>
     </div>
   );
@@ -301,6 +307,7 @@ export default function RosterBuilder({
   readOnly = false,
   showManagerTeam = false,
   onEditInOffice,
+  onOpenContractHistory,
 }) {
   const [playerId, setPlayerId] = useState("");
   const [salary, setSalary] = useState("");
@@ -693,6 +700,7 @@ export default function RosterBuilder({
       remove,
       maxYears,
       status: vm.status,
+      onOpenContractHistory,
     };
   })() : null;
 
@@ -873,6 +881,11 @@ export default function RosterBuilder({
                     >
                       Contract
                     </button>
+                    <ContractHistoryLink
+                      playerId={r.player_id}
+                      playerName={r.player_name}
+                      onOpen={onOpenContractHistory}
+                    />
                   )}
                 />
               );
@@ -955,6 +968,11 @@ export default function RosterBuilder({
                     >
                       Contract
                     </button>
+                    <ContractHistoryLink
+                      playerId={r.player_id}
+                      playerName={r.player_name}
+                      onOpen={onOpenContractHistory}
+                    />
                   </td>
                 </tr>
               );

@@ -48,6 +48,9 @@ def test_build_scoring_awards_includes_core_ids():
     assert "margin_massacre" in ids
     assert awards[0]["display_name"] == "Alpha"
     assert awards[0]["team_name"] is None
+    king = next(a for a in awards if a["id"] == "points_king")
+    assert king["title"] == "Most points"
+    assert king.get("roast") in (None, "")
 
 
 def test_build_scoring_awards_uses_owner_map():

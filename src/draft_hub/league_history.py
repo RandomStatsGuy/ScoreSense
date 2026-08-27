@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import time
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -147,6 +148,279 @@ def _fetch_json(url: str, timeout: int = 25) -> Any:
     return resp.json()
 
 
+def compute_regular_season_records(weeks: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
+    """roster_id → wins/losses/ties from paired matchup_id rows (regular season only)."""
+    out: dict[str, dict[str, int]] = {}
+
+    def bucket(rid: str) -> dict[str, int]:
+        return out.setdefault(str(rid), {"wins": 0, "losses": 0, "ties": 0})
+
+    for wk in weeks or []:
+        if wk.get("is_playoff"):
+            continue
+        by_mid: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for row in wk.get("teams") or []:
+            mid = row.get("matchup_id")
+            rid = row.get("roster_id")
+            if mid is None or rid is None or str(mid) == "":
+                continue
+            by_mid[str(mid)].append(row)
+        for pair in by_mid.values():
+            if len(pair) != 2:
+                continue
+            a, b = pair
+            pa = float(a.get("points") or 0)
+            pb = float(b.get("points") or 0)
+            ra = str(a.get("roster_id"))
+            rb = str(b.get("roster_id"))
+            if pa > pb:
+                bucket(ra)["wins"] += 1
+                bucket(rb)["losses"] += 1
+            elif pb > pa:
+                bucket(rb)["wins"] += 1
+                bucket(ra)["losses"] += 1
+            else:
+                bucket(ra)["ties"] += 1
+                bucket(rb)["ties"] += 1
+    return out
+
+
+def champion_from_winners_bracket(
+    bracket: Any,
+    roster_labels: dict[str, str],
+    roster_meta: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any] | None:
+    """First-place match from a Sleeper winners_bracket payload."""
+    if not isinstance(bracket, list) or not bracket:
+        return None
+    championship = next((m for m in bracket if m and m.get("p") == 1), None)
+    if championship is None:
+        scored = [m for m in bracket if m and m.get("w") not in (None, 0, "0", "")]
+        if not scored:
+            return None
+        championship = max(scored, key=lambda m: int(m.get("r") or 0))
+    winner_rid = str(championship.get("w") or "")
+    if not winner_rid:
+        return None
+    loser_rid = str(championship.get("l") or "")
+    meta = roster_meta or {}
+
+    def _label(rid: str) -> str:
+        return roster_labels.get(str(rid)) or f"Roster {rid}"
+
+    def _owner(rid: str) -> str:
+        return str((meta.get(str(rid)) or {}).get("owner_id") or "")
+
+    return {
+        "champion_roster_id": winner_rid,
+        "champion_team_name": _label(winner_rid),
+        "champion_owner_id": _owner(winner_rid),
+        "runner_up_roster_id": loser_rid or None,
+        "runner_up_team_name": _label(loser_rid) if loser_rid else None,
+        "runner_up_owner_id": _owner(loser_rid) if loser_rid else None,
+    }
+
+
+def _playoff_from_sleeper(
+    sleeper_league_id: str,
+    roster_labels: dict[str, str],
+    roster_meta: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any] | None:
+    try:
+        bracket = _fetch_json(f"{SLEEPER_API}/league/{sleeper_league_id}/winners_bracket")
+    except Exception:
+        return None
+    return champion_from_winners_bracket(bracket, roster_labels, roster_meta)
+
+
+def ensure_playoff_on_scoring_payload(
+    sleeper_league_id: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    """Fill champion metadata on a cached scoring payload when the bracket is missing."""
+    if not payload.get("available") or payload.get("playoff"):
+        return payload
+    labels = {
+        str(row.get("roster_id") or ""): str(row.get("team_name") or "")
+        for row in payload.get("standings") or []
+        if row.get("roster_id")
+    }
+    meta = {
+        str(row.get("roster_id") or ""): {"owner_id": row.get("owner_id") or ""}
+        for row in payload.get("standings") or []
+        if row.get("roster_id")
+    }
+    playoff = _playoff_from_sleeper(sleeper_league_id, labels, meta)
+    if not playoff:
+        return payload
+    updated = {**payload, "playoff": playoff}
+    try:
+        storage.upsert_sleeper_scoring_cache(sleeper_league_id, updated)
+    except Exception:
+        pass
+    return updated
+
+
+def _win_pct(wins: int, losses: int, ties: int) -> float:
+    games = wins + losses + ties
+    if games <= 0:
+        return 0.0
+    return round((wins + 0.5 * ties) / games, 4)
+
+
+def build_insights_landing(
+    sleeper_league_id: str,
+    *,
+    hub_teams: list[dict[str, Any]] | None = None,
+    refresh: bool = False,
+    award_titles: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """High-level league story: champions, records, and scoring leaders."""
+    from src.draft_hub.insight_awards import award_catalog
+
+    if not sleeper_league_id:
+        return {
+            "available": False,
+            "reason": "no_sleeper_league",
+            "hint": "Link a Sleeper league to see champions, records, and scoring leaders.",
+            "award_catalog": award_catalog(award_titles),
+        }
+
+    chain = sleeper_league_season_chain(sleeper_league_id)
+    if not chain:
+        return {
+            "available": False,
+            "reason": "no_chain",
+            "hint": "Could not load Sleeper league history.",
+            "award_catalog": award_catalog(award_titles),
+        }
+
+    champions: list[dict[str, Any]] = []
+    buckets: dict[str, dict[str, Any]] = {}
+    seasons_included: list[str] = []
+
+    for entry in sorted(chain, key=lambda c: int(c.get("season") or 0)):
+        season = str(entry.get("season") or "")
+        if not season:
+            continue
+        payload = get_sleeper_scoring_history(
+            sleeper_league_id,
+            hub_teams=hub_teams,
+            refresh=refresh,
+            scoring_season=season,
+        )
+        if not payload.get("available"):
+            continue
+        seasons_included.append(season)
+        season_lid = str(entry.get("league_id") or payload.get("sleeper_league_id") or sleeper_league_id)
+        if not payload.get("preseason"):
+            payload = ensure_playoff_on_scoring_payload(season_lid, payload)
+
+        playoff = payload.get("playoff") or {}
+        champ_name = playoff.get("champion_team_name")
+        if champ_name and not payload.get("preseason"):
+            champions.append(
+                {
+                    "season": season,
+                    "team_name": champ_name,
+                    "owner_id": playoff.get("champion_owner_id") or "",
+                    "roster_id": playoff.get("champion_roster_id") or "",
+                    "runner_up": playoff.get("runner_up_team_name"),
+                    "runner_up_owner_id": playoff.get("runner_up_owner_id") or "",
+                }
+            )
+
+        for row in payload.get("standings") or []:
+            owner_id = str(row.get("owner_id") or "")
+            key = owner_id or str(row.get("team_name") or row.get("roster_id") or "")
+            if not key:
+                continue
+            bucket = buckets.setdefault(
+                key,
+                {
+                    "owner_id": owner_id,
+                    "team_name": row.get("team_name") or "Team",
+                    "wins": 0,
+                    "losses": 0,
+                    "ties": 0,
+                    "total_points": 0.0,
+                    "weeks_scored": 0,
+                    "seasons_played": 0,
+                },
+            )
+            bucket["wins"] += int(row.get("wins") or 0)
+            bucket["losses"] += int(row.get("losses") or 0)
+            bucket["ties"] += int(row.get("ties") or 0)
+            bucket["total_points"] += float(row.get("total_points") or 0)
+            bucket["weeks_scored"] += int(row.get("weeks_scored") or 0)
+            bucket["seasons_played"] += 1
+            if row.get("team_name"):
+                bucket["team_name"] = row.get("team_name")
+
+    title_counts: dict[str, int] = defaultdict(int)
+    title_labels: dict[str, str] = {}
+    for champ in champions:
+        key = str(champ.get("owner_id") or champ.get("team_name") or "")
+        if not key:
+            continue
+        title_counts[key] += 1
+        title_labels[key] = champ.get("team_name") or key
+
+    most_titles = None
+    if title_counts:
+        key, count = max(title_counts.items(), key=lambda kv: (kv[1], kv[0]))
+        sample = next(
+            (c for c in champions if str(c.get("owner_id") or c.get("team_name") or "") == key),
+            None,
+        )
+        most_titles = {
+            "team_name": (sample or {}).get("team_name") or title_labels.get(key) or key,
+            "owner_id": (sample or {}).get("owner_id") or "",
+            "titles": count,
+        }
+
+    record_leaders = []
+    scoring_leaders = []
+    for bucket in buckets.values():
+        wins = int(bucket["wins"])
+        losses = int(bucket["losses"])
+        ties = int(bucket["ties"])
+        weeks = max(int(bucket["weeks_scored"]) or 0, 1)
+        row = {
+            **bucket,
+            "total_points": round(float(bucket["total_points"]), 2),
+            "avg_points": round(float(bucket["total_points"]) / weeks, 2),
+            "win_pct": _win_pct(wins, losses, ties),
+            "games": wins + losses + ties,
+        }
+        record_leaders.append(row)
+        scoring_leaders.append(row)
+
+    record_leaders.sort(key=lambda r: (r["win_pct"], r["wins"], r["total_points"]), reverse=True)
+    scoring_leaders.sort(key=lambda r: (r["total_points"], r["avg_points"]), reverse=True)
+    has_records = any(r["games"] > 0 for r in record_leaders)
+
+    available = bool(champions or scoring_leaders)
+    return {
+        "available": available,
+        "reason": None if available else "no_scoring_data",
+        "hint": (
+            None
+            if available
+            else "Scoring history is empty. Link Sleeper or refresh Insights after games are played."
+        ),
+        "champions": list(reversed(champions)),
+        "record_leaders": record_leaders[:12],
+        "scoring_leaders": scoring_leaders[:12],
+        "most_titles": most_titles,
+        "seasons": [str(c.get("season") or "") for c in chain if c.get("season")],
+        "seasons_included": seasons_included,
+        "has_records": has_records,
+        "has_champions": bool(champions),
+        "award_catalog": award_catalog(award_titles),
+    }
+
+
 def build_sleeper_scoring_history(
     sleeper_league_id: str,
     *,
@@ -243,6 +517,7 @@ def build_sleeper_scoring_history(
                 "owner_id": owner_id,
                 "team_name": label,
                 "points": round(pts, 2),
+                "matchup_id": m.get("matchup_id"),
             })
             team_totals[rid] = team_totals.get(rid, 0.0) + pts
             team_weeks.setdefault(rid, []).append(pts)
@@ -287,10 +562,12 @@ def build_sleeper_scoring_history(
         for wk in weekly
     )
 
+    records = compute_regular_season_records(weekly)
     standings = []
     for rid, total in sorted(team_totals.items(), key=lambda x: -x[1]):
         label = roster_to_label.get(rid) or f"Roster {rid}"
         pts = team_weeks.get(rid) or []
+        rec = records.get(str(rid)) or {}
         standings.append(
             {
                 "roster_id": rid,
@@ -299,8 +576,17 @@ def build_sleeper_scoring_history(
                 "total_points": round(total, 2),
                 "avg_points": round(total / max(len(pts), 1), 2),
                 "weeks_scored": len(pts),
+                "wins": int(rec.get("wins") or 0),
+                "losses": int(rec.get("losses") or 0),
+                "ties": int(rec.get("ties") or 0),
             }
         )
+
+    playoff = _playoff_from_sleeper(
+        sleeper_league_id,
+        roster_to_label,
+        roster_meta,
+    )
 
     payload = {
         "available": True,
@@ -309,6 +595,7 @@ def build_sleeper_scoring_history(
         "status": status,
         "weeks": weekly,
         "standings": standings,
+        "playoff": playoff,
         "preseason": all_zero or status in ("pre_draft", "drafting"),
         "hint": (
             "Season hasn't started — weekly points will fill in after games are played."
@@ -397,11 +684,17 @@ def build_scoring_all_time(
                     "total_points": 0.0,
                     "weeks_scored": 0,
                     "seasons_played": 0,
+                    "wins": 0,
+                    "losses": 0,
+                    "ties": 0,
                 },
             )
             bucket["total_points"] += pts
             bucket["weeks_scored"] += weeks
             bucket["seasons_played"] += 1
+            bucket["wins"] += int(row.get("wins") or 0)
+            bucket["losses"] += int(row.get("losses") or 0)
+            bucket["ties"] += int(row.get("ties") or 0)
             if label:
                 bucket["team_name"] = label
 
@@ -417,6 +710,9 @@ def build_scoring_all_time(
     for bucket in agg.values():
         weeks = max(int(bucket.get("weeks_scored") or 0), 1)
         total = float(bucket.get("total_points") or 0)
+        wins = int(bucket.get("wins") or 0)
+        losses = int(bucket.get("losses") or 0)
+        ties = int(bucket.get("ties") or 0)
         standings.append(
             {
                 "team_id": bucket.get("owner_id"),
@@ -425,6 +721,10 @@ def build_scoring_all_time(
                 "avg_points": round(total / weeks, 2),
                 "weeks_scored": int(bucket.get("weeks_scored") or 0),
                 "seasons_played": int(bucket.get("seasons_played") or 0),
+                "wins": wins,
+                "losses": losses,
+                "ties": ties,
+                "win_pct": _win_pct(wins, losses, ties),
             }
         )
     standings.sort(key=lambda r: -float(r.get("total_points") or 0))
