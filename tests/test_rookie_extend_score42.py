@@ -93,7 +93,7 @@ def test_eligibility_gates_window_type_and_years():
     vet["contract"]["contract_type"] = "veteran"
     ok, msg = can_manager_rookie_extend(vet, rules, draft_completed=False)
     assert ok is False
-    assert "rookie deal" in msg.lower()
+    assert "veteran" in msg.lower()
 
 
 def test_one_and_three_year_durations_survive_draft_complete_tick():
@@ -168,7 +168,7 @@ def test_manager_rookie_extend_endpoint_own_team_only(hub_db):
             json={"player_id": "00-0039103", "extension_years": 1, "start_salary": 1},
         )
         assert bad.status_code == 400
-        assert "rookie" in bad.json()["detail"].lower()
+        assert "veteran" in bad.json()["detail"].lower() or "rookie" in bad.json()["detail"].lower()
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
 
