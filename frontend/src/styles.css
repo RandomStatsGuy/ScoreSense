@@ -15,16 +15,14 @@ html {
 
 body {
   margin: 0;
-  background:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(37, 99, 235, 0.12), transparent),
-    linear-gradient(180deg, var(--bg-base) 0%, #111827 100%);
+  background: linear-gradient(180deg, var(--bg-base) 0%, #09111d 100%);
   min-height: 100vh;
 }
 
 .app {
-  max-width: 1280px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 1.75rem 1.25rem 3rem;
+  padding: 1.5rem 1.4rem 3rem;
 }
 
 .app-view-pane-hidden {
@@ -15259,6 +15257,293 @@ td.col-rank.col-rank-top {
   .hub-pick-board-grid { grid-template-columns: 2.1rem repeat(var(--pick-cols, 12), minmax(6.4rem, 1fr)); }
   .hub-pick-board-cell { min-height: 3.8rem; }
   .hub-table--pick-draft .hub-col-actions { position: sticky; }
+}
+
+/* Site-wide matte foundation + table legibility pass. The product keeps its
+   dark navy identity while replacing glassy/neon chrome with quieter layers. */
+.app-header-shell,
+.panel,
+.controls,
+.projections-filter-bar,
+.hub-toolbar-form,
+.hub-table-card {
+  backdrop-filter: none;
+}
+
+.app-header-shell,
+.panel {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+  box-shadow: var(--shadow-panel);
+}
+
+.app-header-nav,
+.app-section-subnav,
+.season-mode-tabs,
+.hub-segment-nav,
+.controls {
+  background: #0a1320;
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.panel-inset,
+.summary-card,
+.sentiment-player-card,
+.admin-stat-card,
+.hub-insights-standing-card,
+.hub-insights-chart-panel {
+  background: var(--bg-subtle);
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.btn.primary,
+.btn-primary {
+  border: 1px solid transparent;
+  background: #4f7fda;
+  box-shadow: none;
+}
+
+.btn.primary:hover:not(:disabled),
+.btn-primary:hover:not(:disabled) {
+  background: #5c8fe9;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-ghost,
+.btn-export-csv {
+  border-color: var(--border-strong);
+  background: #101a28;
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+
+.btn-ghost:hover:not(:disabled),
+.btn-export-csv:hover:not(:disabled) {
+  border-color: #4b607f;
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  box-shadow: none;
+}
+
+.tab.active,
+.app-section-subnav-btn.active,
+.season-mode-tab.active,
+.hub-segment-nav-btn.active,
+.filter-chip--active {
+  border-color: #35517a;
+  background: #1a3151;
+  color: #dbe7ff;
+  box-shadow: none;
+}
+
+.tab:hover:not(.active),
+.app-section-subnav-btn:hover:not(.active),
+.season-mode-tab:hover:not(.active),
+.hub-segment-nav-btn:hover:not(.active) {
+  transform: none;
+  box-shadow: none;
+}
+
+:where(
+  input[type="text"],
+  input[type="search"],
+  input[type="email"],
+  input[type="number"],
+  input[type="password"],
+  input[type="url"],
+  input[type="date"],
+  input[type="time"],
+  select,
+  textarea
+) {
+  min-height: var(--control-height);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background-color: #101a28;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.control-select,
+.search-input,
+.header-context-control,
+.hub-toolbar-form select,
+.hub-toolbar-form input[type="number"],
+.hub-toolbar-form input[type="text"],
+.admin-form input[type="text"],
+.admin-form input[type="email"],
+.admin-form input[type="number"],
+.admin-delete-row input {
+  border-color: var(--border-strong);
+  background-color: #101a28;
+  color: var(--text-primary);
+  box-shadow: none;
+}
+
+option {
+  background: #101a28;
+  color: var(--text-primary);
+}
+
+:where(
+  input[type="text"],
+  input[type="search"],
+  input[type="email"],
+  input[type="number"],
+  input[type="password"],
+  input[type="url"],
+  input[type="date"],
+  input[type="time"],
+  select,
+  textarea
+):focus {
+  border-color: #5d82bb;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(115, 165, 255, 0.12);
+}
+
+::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+.table-wrap,
+.admin-table-wrap,
+.hub-league-table-wrap,
+.hub-insights-table-wrap,
+.hub-salary-matrix-wrap,
+.hub-table-card .table-wrap {
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.table-wrap {
+  border-color: var(--border);
+  border-radius: var(--radius-md);
+  background: #0a1320;
+}
+
+table {
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+th,
+td {
+  padding: 0.7rem 0.65rem;
+  border-bottom-color: var(--border);
+}
+
+thead th {
+  background: #101a29;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.045em;
+}
+
+th.sortable-header {
+  display: table-cell;
+}
+
+.table-sticky thead th,
+.hub-table-card .hub-table th {
+  background: #101a29;
+}
+
+.table-sticky tbody td.col-player,
+.table-sticky tbody td.col-rank {
+  background: var(--bg-elevated);
+}
+
+.table-sticky tbody tr:nth-child(even) td.col-player,
+.table-sticky tbody tr:nth-child(even) td.col-rank {
+  background: #111c2c;
+}
+
+.table-sticky tbody tr:hover td.col-player,
+.table-sticky tbody tr:hover td.col-rank {
+  background: #17263c;
+}
+
+.data-table.compact th,
+.data-table.compact td,
+.admin-nested-table th,
+.admin-nested-table td {
+  padding: 0.5rem 0.55rem;
+  font-size: 0.8rem;
+}
+
+.hub-table .col-player,
+.hub-table th.col-player {
+  min-width: 13.5rem;
+}
+
+.hub-table .hub-col-actions {
+  width: 8.5rem;
+  min-width: 8.5rem;
+  text-align: right;
+}
+
+.hub-table:has(.hub-col-actions) {
+  min-width: 46rem;
+}
+
+.hub-table-card {
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+}
+
+.hub-table-card .hub-table td {
+  font-size: 0.875rem;
+}
+
+.hub-salary-matrix-table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.hub-salary-sheet-table {
+  min-width: 44rem;
+}
+
+.admin-table {
+  min-width: 56rem;
+}
+
+.num,
+[class*="-amount"],
+[class*="-salary"],
+[class*="-points"] {
+  font-variant-numeric: tabular-nums;
+}
+
+.account-settings-page {
+  max-width: 48rem;
+}
+
+@media (max-width: 768px) {
+  .app {
+    padding-inline: 0.75rem;
+  }
+
+  .panel {
+    padding-inline: 0.85rem;
+  }
+
+  th,
+  td {
+    padding: 0.56rem 0.5rem;
+  }
+
+  .data-table.compact th,
+  .data-table.compact td {
+    padding: 0.46rem 0.45rem;
+  }
 }
 
 /* Board-first live draft experience. Matte surfaces keep the existing navy
