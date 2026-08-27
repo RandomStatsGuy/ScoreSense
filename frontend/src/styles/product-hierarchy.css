@@ -2054,6 +2054,18 @@
   margin-bottom: 0;
 }
 
+.hub-insights > .hub-page.hub-experience-page {
+  padding: 0;
+  overflow: visible;
+  border: 1px solid var(--experience-rule);
+  background: var(--experience-canvas);
+  box-shadow: none;
+}
+
+.hub-insights-page .hub-experience-hero {
+  margin: 0;
+}
+
 @media (max-width: 1080px) {
   .hub-experience-layout {
     grid-template-columns: minmax(0, 1fr) 17rem;
