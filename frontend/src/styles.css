@@ -15704,6 +15704,38 @@ td.col-rank.col-rank-top {
 .hub-draft-live-rail-tab.is-active { background: var(--accent-soft, rgba(96,165,250,.2)); color: var(--text-primary); }
 .hub-draft-rail-hidden { display: none; }
 .hub-draft-row-actions { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+
+.hub-player-cell-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.hub-star-btn {
+  flex: 0 0 auto;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted, #8b93a7);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 0.3rem;
+}
+
+.hub-star-btn:hover,
+.hub-star-btn:focus-visible {
+  color: var(--tone-caution-text, #f5c84c);
+  outline: none;
+  background: rgba(245, 200, 76, 0.12);
+}
+
+.hub-star-btn.is-starred {
+  color: var(--tone-caution-text, #f5c84c);
+}
 .hub-draft-layout--ended .hub-roster-list { max-height: none; overflow: visible; }
 .hub-pick-recap { top: 5.75rem; right: 1.25rem; bottom: auto; }
 .player-cell-meta { display: block; font-size: 0.72rem; color: var(--text-muted, #94a3b8); }

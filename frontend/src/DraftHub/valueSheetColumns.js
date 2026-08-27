@@ -15,7 +15,7 @@ export const AUCTION_SORT_OPTIONS = [
   { id: "season_proj", label: "Projected points" },
   { id: "season_spread", label: "Season spread" },
   { id: "upside_skew", label: "Upside skew" },
-  { id: "value_delta", label: "Value vs cost" },
+  { id: "value_delta", label: "Vs cost" },
   { id: "player", label: "Name" },
 ];
 
@@ -43,7 +43,7 @@ const COL = {
   valueRange: { id: "value_range", label: "Value", className: "hub-col-value" },
   fairValue: { id: "fair_value", label: "Suggested bid", className: "hub-col-fv" },
   risk: { id: "risk_score", label: "Risk", className: "hub-col-risk" },
-  delta: { id: "value_delta", label: "Value vs cost", className: "hub-col-delta" },
+  delta: { id: "value_delta", label: "Vs cost", className: "hub-col-delta" },
   posRank: { id: "pos_rank", label: "Pos rank", className: "hub-col-posrank" },
   need: { id: "need", label: "Fit", className: "hub-col-need" },
   tier: { id: "tier", label: "Tier", className: "hub-col-tier" },

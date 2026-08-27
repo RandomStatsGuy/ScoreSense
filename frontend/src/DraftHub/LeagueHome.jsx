@@ -18,6 +18,7 @@ const HUB_ACTION_VIEWS = new Set([
   "roster",
   "week",
   "office",
+  "available",
   "value",
   "room",
   "rosters",

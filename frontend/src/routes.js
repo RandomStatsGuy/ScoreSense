@@ -3,7 +3,11 @@ export const HUB_SLUG_TO_ID = {
   home: "home",
   setup: "setup",
   rules: "rules",
+  strategy: "value",
   players: "value",
+  "free-agents": "available",
+  fa: "available",
+  available: "available",
   week: "week",
   roster: "roster",
   rosters: "rosters",
@@ -19,7 +23,8 @@ export const HUB_ID_TO_SLUG = {
   home: "home",
   setup: "setup",
   rules: "rules",
-  value: "players",
+  value: "strategy",
+  available: "free-agents",
   week: "week",
   roster: "roster",
   rosters: "rosters",
@@ -267,7 +272,7 @@ export function buildAppPath({
       const slug = OFFICE_ID_TO_SLUG[officeTab] || "current";
       return `/hub/office/${slug}`;
     }
-    const slug = HUB_ID_TO_SLUG[hubSubView] || "players";
+    const slug = HUB_ID_TO_SLUG[hubSubView] || "strategy";
     return `/hub/${slug}`;
   }
   if (view === "tools") {

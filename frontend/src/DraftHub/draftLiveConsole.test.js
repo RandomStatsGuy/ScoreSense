@@ -25,6 +25,9 @@ import {
   isLiveAuctionStatus,
   draftInteractionState,
   draftResultTransition,
+  loadWatchIds,
+  saveWatchIds,
+  toggleWatchId,
 } from "./draftLiveConsole.js";
 
 test("viewerIsCommissioner uses only the viewer's staff flag", () => {
@@ -302,4 +305,25 @@ test("draftResultTransition primes room history and announces only new results",
   });
   assert.equal(announced.event, next);
   assert.equal(announced.lastEventId, "pick-13");
+});
+
+test("watch list persists to localStorage", () => {
+  const store = new Map();
+  const fake = {
+    getItem: (k) => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => { store.set(k, String(v)); },
+    removeItem: (k) => { store.delete(k); },
+  };
+  const prevLocal = globalThis.localStorage;
+  const prevSess = globalThis.sessionStorage;
+  globalThis.localStorage = fake;
+  globalThis.sessionStorage = fake;
+  try {
+    saveWatchIds("lg-watch", ["p1"]);
+    assert.deepEqual(loadWatchIds("lg-watch"), ["p1"]);
+    assert.deepEqual(toggleWatchId("lg-watch", "p2"), ["p1", "p2"]);
+  } finally {
+    globalThis.localStorage = prevLocal;
+    globalThis.sessionStorage = prevSess;
+  }
 });
