@@ -15723,8 +15723,8 @@ th.sortable-header {
   grid-template-columns: minmax(0, 1fr) 20.5rem;
   grid-template-areas:
     "stage players"
-    "team team"
-    "activity activity";
+    "team players"
+    "activity players";
   gap: 0.9rem;
   align-items: start;
 }
@@ -15741,9 +15741,10 @@ th.sortable-header {
 
 .hub-draft-player-rail-wrap {
   grid-area: players;
-  /* Stay in normal document flow. Sticky overlay covered My team / league room. */
+  /* Own column only — never overlay My team / league room. Do not stick to the viewport. */
   position: static;
   top: auto;
+  align-self: start;
   min-width: 0;
 }
 
