@@ -77,6 +77,8 @@ export default function DraftRoom({
   toolMode = false,
   toolLabel = "",
   onExitRoom,
+  watchIds: watchIdsProp,
+  onWatchPlayer: onWatchPlayerProp,
 }) {
   const [roomState, setRoomState] = useState(null);
   const [roomLoading, setRoomLoading] = useState(false);
@@ -101,7 +103,7 @@ export default function DraftRoom({
   const mobileLayout = useMobileLayout();
   const [connectionStatus, setConnectionStatus] = useState("connecting");
   const [activityTab, setActivityTab] = useState("");
-  const [watchIds, setWatchIds] = useState([]);
+  const [watchIdsLocal, setWatchIds] = useState([]);
   const [soundEnabled, setSoundEnabled] = useState(() => loadDraftSoundPreference());
   const wsAliveRef = useRef(false);
   const wsGenRef = useRef(0);
@@ -716,13 +718,20 @@ export default function DraftRoom({
   }, [leagueId, connectWs, clearWsReconnectTimer, teardownSocket]);
 
   useEffect(() => {
+    if (watchIdsProp) return;
     if (leagueId) setWatchIds(loadWatchIds(leagueId));
-  }, [leagueId]);
+  }, [leagueId, watchIdsProp]);
 
   const toggleWatch = useCallback((row) => {
+    if (onWatchPlayerProp) {
+      onWatchPlayerProp(row);
+      return;
+    }
     if (!leagueId || !row?.player_id) return;
     setWatchIds(toggleWatchId(leagueId, row.player_id));
-  }, [leagueId]);
+  }, [leagueId, onWatchPlayerProp]);
+
+  const watchIds = watchIdsProp || watchIdsLocal;
 
   const queuePlayer = useCallback(async (row) => {
     const pid = String(row?.player_id || "");

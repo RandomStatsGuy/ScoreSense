@@ -212,22 +212,42 @@ export function watchStorageKey(leagueId) {
 }
 
 export function loadWatchIds(leagueId) {
-  if (!leagueId || typeof sessionStorage === "undefined") return [];
+  if (!leagueId) return [];
+  const key = watchStorageKey(leagueId);
   try {
-    const parsed = JSON.parse(sessionStorage.getItem(watchStorageKey(leagueId)) || "[]");
-    return Array.isArray(parsed) ? parsed.map(String) : [];
+    if (typeof localStorage !== "undefined") {
+      const local = localStorage.getItem(key);
+      if (local) {
+        const parsed = JSON.parse(local);
+        return Array.isArray(parsed) ? parsed.map(String) : [];
+      }
+    }
+    if (typeof sessionStorage !== "undefined") {
+      const sess = sessionStorage.getItem(key);
+      if (!sess) return [];
+      const parsed = JSON.parse(sess);
+      const ids = Array.isArray(parsed) ? parsed.map(String) : [];
+      if (ids.length && typeof localStorage !== "undefined") {
+        localStorage.setItem(key, JSON.stringify(ids));
+      }
+      return ids;
+    }
   } catch {
     return [];
   }
+  return [];
 }
 
 export function saveWatchIds(leagueId, ids) {
-  if (!leagueId || typeof sessionStorage === "undefined") return;
+  if (!leagueId) return;
+  const payload = JSON.stringify([...new Set((ids || []).map(String))]);
   try {
-    sessionStorage.setItem(
-      watchStorageKey(leagueId),
-      JSON.stringify([...new Set((ids || []).map(String))]),
-    );
+    if (typeof localStorage !== "undefined") localStorage.setItem(watchStorageKey(leagueId), payload);
+  } catch {
+    /* ignore quota / private mode */
+  }
+  try {
+    if (typeof sessionStorage !== "undefined") sessionStorage.setItem(watchStorageKey(leagueId), payload);
   } catch {
     /* ignore quota / private mode */
   }

@@ -256,8 +256,8 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
               <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("roster")}>
                 Review roster
               </button>
-              <button type="button" className="btn-link" onClick={() => onNavigate("value")}>
-                Browse players
+              <button type="button" className="btn-link" onClick={() => onNavigate("available")}>
+                Browse free agents
               </button>
             </div>
           )}
@@ -300,8 +300,8 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
               variant={rosterAlertVariant(e)}
               action={
                 onNavigate && /RB|WR|TE|QB|K|DEF/i.test(e) ? (
-                  <button type="button" className="btn-link" onClick={() => onNavigate("value")}>
-                    Browse players
+                  <button type="button" className="btn-link" onClick={() => onNavigate("available")}>
+                    Browse free agents
                   </button>
                 ) : null
               }
