@@ -874,18 +874,20 @@ export default function RosterBuilder({
                     </div>
                   )}
                   actions={(
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm"
-                      onClick={() => setSelectedPlayerId(r.player_id)}
-                    >
-                      Contract
-                    </button>
-                    <ContractHistoryLink
-                      playerId={r.player_id}
-                      playerName={r.player_name}
-                      onOpen={onOpenContractHistory}
-                    />
+                    <>
+                      <button
+                        type="button"
+                        className="btn-ghost btn-sm"
+                        onClick={() => setSelectedPlayerId(r.player_id)}
+                      >
+                        Contract
+                      </button>
+                      <ContractHistoryLink
+                        playerId={r.player_id}
+                        playerName={r.player_name}
+                        onOpen={onOpenContractHistory}
+                      />
+                    </>
                   )}
                 />
               );
