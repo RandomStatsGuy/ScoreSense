@@ -454,7 +454,7 @@ export default function LeagueContextBanner({
           <div className="hub-league-context-sync-links">
             {onNavigateSetup && (
               <button type="button" className="btn-link" onClick={() => { setSyncOpen(false); onNavigateSetup(); }}>
-                League settings
+                {isCommish ? "League rules" : "League settings"}
               </button>
             )}
             {isCommish && onNavigateManage && (
@@ -463,7 +463,7 @@ export default function LeagueContextBanner({
                   <span className="hub-league-context-sync-link-sep" aria-hidden="true">·</span>
                 ) : null}
                 <button type="button" className="btn-link" onClick={() => { setSyncOpen(false); onNavigateManage(); }}>
-                  Commissioner desk
+                  Roster management
                 </button>
               </>
             )}
@@ -475,7 +475,7 @@ export default function LeagueContextBanner({
     <div className="hub-league-context-sync">
       {onNavigateSetup && (
         <button type="button" className="btn-ghost btn-sm" onClick={onNavigateSetup}>
-          League settings
+          {isCommish ? "League rules" : "League settings"}
         </button>
       )}
     </div>

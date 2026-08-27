@@ -12,15 +12,13 @@ import {
 
 test("commissionerIntro marks admin boundary for staff", () => {
   const staff = commissionerIntro(true);
-  assert.match(staff.purpose, /Admin workspace/i);
-  assert.match(staff.purpose, /separate/i);
-  assert.equal(staff.title, "Commissioner");
+  assert.match(staff.purpose, /League-wide contracts/i);
+  assert.equal(staff.title, "Roster management");
 });
 
-test("commissionerIntro keeps members on chat-only framing", () => {
+test("commissionerIntro keeps the member framing read-only", () => {
   const member = commissionerIntro(false);
-  assert.match(member.purpose, /League chat/i);
-  assert.doesNotMatch(member.purpose, /Admin workspace/i);
+  assert.match(member.purpose, /stay with commissioners/i);
 });
 
 test("sheetsGuideCopy keeps caveat out of default hint", () => {
@@ -42,15 +40,14 @@ test("sheets guide first-use uses localStorage flag", () => {
   assert.equal(shouldAutoOpenSheetsGuide(storage), false);
 });
 
-test("tabsWithGroupLabels inserts Contracts & sheets and Admin access labels", () => {
+test("tabsWithGroupLabels inserts roster, records, and league-operation labels", () => {
   const items = tabsWithGroupLabels([
-    { id: "chat", label: "Chat", group: "chat" },
-    { id: "current", label: "Contracts", group: "contracts" },
-    { id: "historic", label: "Sheets", group: "contracts" },
-    { id: "members", label: "Members", group: "membership" },
-    { id: "access", label: "Access", group: "access" },
+    { id: "current", label: "Contracts", group: "rosters" },
+    { id: "historic", label: "Salary sheets", group: "records" },
+    { id: "members", label: "Members", group: "league" },
+    { id: "access", label: "Access & imports", group: "league" },
   ]);
   const labels = items.filter((x) => x.type === "label").map((x) => x.label);
-  assert.deepEqual(labels, ["Contracts & sheets", "League", "Admin access"]);
-  assert.equal(items.filter((x) => x.type === "tab").length, 5);
+  assert.deepEqual(labels, ["Rosters", "Records", "League operations"]);
+  assert.equal(items.filter((x) => x.type === "tab").length, 4);
 });

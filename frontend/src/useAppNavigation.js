@@ -21,7 +21,7 @@ export default function useAppNavigation() {
       toolsTab: "dfs",
       hubSubView: "home",
       insightTab: "cap",
-      officeTab: "chat",
+      officeTab: "current",
       adminTab: "overview",
     },
     [location.pathname],
@@ -108,7 +108,7 @@ export default function useAppNavigation() {
         view: "hub",
         hubSubView: subView,
         insightTab: subView === "insights" ? (insightOrOfficeTab || route.insightTab || "cap") : null,
-        officeTab: subView === "office" ? (insightOrOfficeTab || route.officeTab || "chat") : null,
+        officeTab: subView === "office" ? (insightOrOfficeTab || route.officeTab || "current") : null,
       });
     },
     [navigateTo, route.insightTab, route.officeTab],

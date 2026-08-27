@@ -13,17 +13,23 @@ export function hasPendingExtension(rowOrContract) {
 }
 
 /** Manager-facing eligibility (own-team enforced server-side). */
-export function canManagerRookieExtend(row, { draftCompleted = false } = {}) {
+export function canManagerRookieExtend(row, { draftCompleted = false, rules = null } = {}) {
   if (draftCompleted) {
-    return { ok: false, reason: "Rookie extensions are only available before the draft is marked complete." };
+    return { ok: false, reason: "Contract extensions are only available before the draft is marked complete." };
   }
   if (!row || row.roster_status === "cut_before_draft") {
     return { ok: false, reason: "Player is not active on roster." };
   }
   const contract = row.contract || {};
   const ctype = String(contract.contract_type || "veteran");
-  if (ctype !== "rookie") {
-    return { ok: false, reason: "Only players on a rookie deal can use this extension." };
+  if (ctype === "extension") {
+    return { ok: false, reason: "Already on an extension — expires to free agency." };
+  }
+  if (ctype === "veteran" && rules?.contracts?.allow_veteran_renewal !== true) {
+    return { ok: false, reason: "Veteran extensions are disabled by league rules." };
+  }
+  if (ctype !== "rookie" && ctype !== "veteran") {
+    return { ok: false, reason: "This contract type cannot be extended." };
   }
   const yrs = Number(contract.years_remaining ?? row.contract_years ?? 1);
   if (!Number.isFinite(yrs) || yrs > 1) {
@@ -35,7 +41,11 @@ export function canManagerRookieExtend(row, { draftCompleted = false } = {}) {
   if (contract.renewal_used) {
     return { ok: false, reason: "Renewal already used — player becomes a free agent." };
   }
-  return { ok: true, reason: "Eligible for one post-rookie extension (1–3 years)." };
+  if (ctype === "rookie" && rules?.contracts?.one_renewal_after_rookie === false) {
+    return { ok: false, reason: "Rookie extensions are disabled by league rules." };
+  }
+  const maxYears = Math.max(1, Number(rules?.contracts?.max_years ?? 3));
+  return { ok: true, reason: `Eligible for one extension (1–${maxYears} years).` };
 }
 
 /** Preview of server start salary: current + league extension_step_up. */
@@ -49,11 +59,12 @@ export function previewRookieExtendStartSalary(row, rules) {
  * POST /api/hub/contract/rookie-extend — server calculates salary; client sends years only.
  * @returns {Promise<object>} API payload
  */
-export async function postRookieExtend(playerId, extensionYears) {
+export async function postRookieExtend(playerId, extensionYears, maxYears = 3) {
   const years = Number(extensionYears);
+  const max = Math.max(1, Number(maxYears) || 3);
   if (!playerId) throw new Error("Pick a player to extend.");
-  if (!Number.isFinite(years) || years < 1 || years > 3) {
-    throw new Error("Extension years must be 1, 2, or 3.");
+  if (!Number.isFinite(years) || years < 1 || years > max) {
+    throw new Error(`Extension years must be between 1 and ${max}.`);
   }
   const res = await apiFetch("/api/hub/contract/rookie-extend", {
     method: "POST",

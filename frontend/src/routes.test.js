@@ -13,3 +13,14 @@ test("tools mock-draft tab round-trips", () => {
   );
   assert.equal(buildAppPath({ view: "tools", toolsTab: "dfs" }), "/tools/dfs");
 });
+
+test("Fantasy rules and roster management routes round-trip", () => {
+  assert.equal(parseAppPath("/hub/rules").hubSubView, "rules");
+  assert.equal(buildAppPath({ view: "hub", hubSubView: "rules" }), "/hub/rules");
+  assert.equal(parseAppPath("/hub/office").officeTab, "current");
+  assert.equal(parseAppPath("/hub/office/chat").officeTab, "current");
+  assert.equal(
+    buildAppPath({ view: "hub", hubSubView: "office", officeTab: "current" }),
+    "/hub/office/current",
+  );
+});

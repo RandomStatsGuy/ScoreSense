@@ -18,17 +18,36 @@ def contract_rules(rules: LeagueRules) -> ContractRules:
     return rules.contracts
 
 
-def build_rookie_contract(base_salary: float, years: int = 2) -> dict[str, Any]:
-    yrs = max(1, min(years, 2))
-    schedule = [{"year_offset": i, "salary": round(float(base_salary), 2)} for i in range(yrs)]
+def build_rookie_contract(
+    base_salary: float,
+    years: int = 2,
+    *,
+    static: bool = True,
+    step_up: float = 0.0,
+) -> dict[str, Any]:
+    """Build a rookie deal using the league's flat-or-stepped salary policy.
+
+    ``static`` defaults to the legacy flat-rookie behavior. Rules-aware callers
+    pass the league setting explicitly and store it on the contract so read-path
+    repairs do not rewrite intentionally stepped rookie schedules.
+    """
+    yrs = max(1, int(years))
+    base = round(float(base_salary), 2)
+    step = 0.0 if static else float(step_up or 0)
+    schedule = [
+        {"year_offset": i, "salary": round(base + step * i, 2)}
+        for i in range(yrs)
+    ]
     return {
         "contract_type": "rookie",
-        "base_salary": round(float(base_salary), 2),
+        "base_salary": base,
         "years_total": yrs,
         "years_remaining": yrs,
         "renewal_used": False,
+        "rookie_salary_static": bool(static),
+        "step_up_per_year": step,
         "schedule": schedule,
-        "current_salary": round(float(base_salary), 2),
+        "current_salary": base,
     }
 
 
@@ -57,7 +76,7 @@ def build_extension_contract(
 
 
 def auction_win_is_rookie(rules: LeagueRules, nominee: dict[str, Any] | None) -> bool:
-    """True when an auction award should land a flat 2-year rookie deal."""
+    """True when an auction award should use the league's rookie contract rules."""
     row = nominee or {}
     if row.get("is_rookie") is True:
         return True
@@ -89,19 +108,25 @@ def build_auction_win_contract(
     *,
     is_rookie: bool,
 ) -> dict[str, Any]:
-    """Fixed auction terms: rookies 2y flat at sale price; vets 2y with step-up.
+    """Build auction terms from the league's rookie and veteran defaults.
 
     Owners do not choose years here — that only happens in the pre-draft
     rookie-extension window.
     """
-    years = max(2, int(contract_rules(rules).rookie_years or 2))
+    cr = contract_rules(rules)
     sal = round(float(amount), 2)
     if is_rookie:
-        contract = build_rookie_contract(sal, min(years, 2))
+        years = max(1, min(int(cr.rookie_years or 1), int(cr.max_years)))
+        contract = build_rookie_contract(
+            sal,
+            years,
+            static=bool(cr.rookie_salary_static),
+            step_up=float(cr.extension_step_up),
+        )
         contract["source"] = "draft"
         return contract
-    step = float(contract_rules(rules).extension_step_up)
-    contract = build_veteran_contract(sal, 2, step_up=step)
+    years = max(1, min(int(cr.veteran_years or 1), int(cr.max_years)))
+    contract = build_veteran_contract(sal, years, step_up=float(cr.extension_step_up))
     contract["source"] = "draft"
     return contract
 
@@ -181,14 +206,11 @@ def _schedule_step_for_type(
     step_up: float | None,
     cr: ContractRules,
 ) -> float:
-    """Rookie deals are flat; veteran deals and rookie extensions step (+$5 by default).
-
-    Callers often pass the league extension step for every edit — ignore it for rookies.
-    """
+    """Return the league-approved annual salary step for a contract type."""
     kind = str(ctype or "veteran")
-    if kind == "rookie":
+    if kind == "rookie" and cr.rookie_salary_static:
         return 0.0
-    if kind not in ("extension", "veteran"):
+    if kind not in ("rookie", "extension", "veteran"):
         return 0.0
     if step_up is not None:
         return float(step_up)
@@ -200,7 +222,7 @@ def repair_flat_deal_schedule(
     *,
     default_step: float = 5.0,
 ) -> dict[str, Any] | None:
-    """Read-path schedule repair: flatten rookies; ensure multi-year vets/extensions step.
+    """Repair legacy schedules while preserving explicitly stepped rookie deals.
 
     ``default_step`` should be the league's ``extension_step_up`` when known.
     """
@@ -213,6 +235,34 @@ def repair_flat_deal_schedule(
     base = float(contract.get("current_salary") or contract.get("base_salary") or 0)
     schedule = contract.get("schedule") or []
     league_step = float(default_step) if float(default_step or 0) > 0 else 5.0
+
+    if ctype == "rookie" and contract.get("rookie_salary_static") is False:
+        actual: list[float] = []
+        for i in range(yrs):
+            sal = salary_for_year(contract, i)
+            if sal <= 0 and i < len(schedule):
+                sal = float(schedule[i].get("salary") or 0)
+            actual.append(round(float(sal or 0), 2))
+        stored_step = float(contract.get("step_up_per_year") or 0)
+        complete = len(actual) >= yrs and all(v > 0 for v in actual[:yrs])
+        is_stepped = complete and any(abs(v - base) > 0.001 for v in actual[1:yrs])
+        if is_stepped:
+            if stored_step > 0:
+                return contract
+            out = dict(contract)
+            out["step_up_per_year"] = (
+                round(actual[1] - actual[0], 2) if len(actual) > 1 else league_step
+            )
+            return out
+        step = stored_step if stored_step > 0 else league_step
+        out = dict(contract)
+        out["schedule"] = [
+            {"year_offset": i, "salary": round(base + step * i, 2)}
+            for i in range(yrs)
+        ]
+        out["step_up_per_year"] = step
+        out["current_salary"] = round(base, 2)
+        return out
 
     if ctype == "rookie":
         needs_repair = float(contract.get("step_up_per_year") or 0) != 0
@@ -282,8 +332,7 @@ def build_contract_from_roster_edit(
     step = _schedule_step_for_type(str(ctype), step_up=step_up, cr=cr)
 
     if ctype == "rookie":
-        # Rookie deals stay flat for the full term; +$5 only happens on extension.
-        amounts = [base for _ in range(yrs)]
+        amounts = [round(base + step * i, 2) for i in range(yrs)]
     elif salary_schedule:
         amounts = [round(float(s), 2) for s in salary_schedule if s is not None][:yrs]
         if not amounts:
@@ -314,6 +363,8 @@ def build_contract_from_roster_edit(
         "schedule": schedule,
         "current_salary": schedule[0]["salary"],
     }
+    if ctype == "rookie":
+        out["rookie_salary_static"] = bool(cr.rookie_salary_static)
     # Preserve typing / approval metadata across salary & years edits.
     for key in (
         "contract_type_manual",
@@ -353,7 +404,9 @@ def can_renew(row: dict[str, Any], rules: LeagueRules) -> tuple[bool, str]:
         return False, "Renewal already used — player becomes a free agent."
     cr = contract_rules(rules)
     if ctype == "rookie":
-        return True, "Eligible for one post-rookie extension (1–3 years)."
+        if not cr.one_renewal_after_rookie:
+            return False, "Rookie extensions are disabled by league rules."
+        return True, f"Eligible for one post-rookie extension (1–{int(cr.max_years)} years)."
     if ctype == "extension":
         return False, "Already on an extension — expires to free agency."
     if cr.allow_veteran_renewal:
@@ -362,7 +415,7 @@ def can_renew(row: dict[str, Any], rules: LeagueRules) -> tuple[bool, str]:
 
 
 def extension_window_open(*, draft_completed: bool) -> bool:
-    """Managers may only queue rookie extensions before draft is marked complete."""
+    """Managers may only queue contract extensions before the draft is complete."""
     return not bool(draft_completed)
 
 
@@ -380,13 +433,17 @@ def can_manager_rookie_extend(
     *,
     draft_completed: bool = False,
 ) -> tuple[bool, str]:
-    """Eligibility for the manager rookie-extension command (own-team checks are route-level)."""
+    """Eligibility for a manager extension command (own-team checks are route-level)."""
     if not extension_window_open(draft_completed=draft_completed):
-        return False, "Rookie extensions are only available before the draft is marked complete."
+        return False, "Contract extensions are only available before the draft is marked complete."
     contract = row.get("contract") or {}
     ctype = str(contract.get("contract_type") or "veteran")
-    if ctype != "rookie":
-        return False, "Only players on a rookie deal can use this extension."
+    if ctype == "extension":
+        return False, "Already on an extension — expires to free agency."
+    if ctype == "veteran" and not rules.contracts.allow_veteran_renewal:
+        return False, "Veteran extensions are disabled by league rules."
+    if ctype not in ("rookie", "veteran"):
+        return False, "This contract type cannot be extended."
     return can_renew(row, rules)
 
 
@@ -498,15 +555,15 @@ def apply_rookie_extension_command(
     extension_years: int,
     draft_completed: bool = False,
 ) -> tuple[dict[str, Any], bool]:
-    """Idempotent manager rookie-extension: queue pending terms for post-draft activation.
+    """Idempotent manager extension: queue pending terms for post-draft activation.
 
     Returns ``(contract_json, already_applied)``. Re-submitting the same years is a no-op
-    success. Outside the pre-draft window, non-rookies, final-year failures, or a conflicting
+    success. Outside the pre-draft window, ineligible deals, final-year failures, or a conflicting
     queued duration raise ``ValueError``.
     """
     years = _normalize_extension_years(rules, extension_years)
     if not extension_window_open(draft_completed=draft_completed):
-        raise ValueError("Rookie extensions are only available before the draft is marked complete.")
+        raise ValueError("Contract extensions are only available before the draft is marked complete.")
 
     contract = dict(row.get("contract") or {})
     if has_pending_extension(contract):
@@ -583,7 +640,12 @@ def roster_row_from_import(
         raise ValueError(f"Invalid player id for {player_name}: {player_id}")
     rules = rules or LeagueRules()
     if contract_type == "rookie":
-        contract = build_rookie_contract(salary, years)
+        contract = build_rookie_contract(
+            salary,
+            years,
+            static=bool(rules.contracts.rookie_salary_static),
+            step_up=float(rules.contracts.extension_step_up),
+        )
     elif contract_type == "extension":
         contract = build_extension_contract(rules, start_salary=salary, years=years, step_up=step_up)
     else:

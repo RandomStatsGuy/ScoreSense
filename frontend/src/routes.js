@@ -2,6 +2,7 @@
 export const HUB_SLUG_TO_ID = {
   home: "home",
   setup: "setup",
+  rules: "rules",
   players: "value",
   week: "week",
   roster: "roster",
@@ -17,6 +18,7 @@ export const HUB_SLUG_TO_ID = {
 export const HUB_ID_TO_SLUG = {
   home: "home",
   setup: "setup",
+  rules: "rules",
   value: "players",
   week: "week",
   roster: "roster",
@@ -41,14 +43,19 @@ export const INSIGHT_ID_TO_SLUG = Object.fromEntries(
 
 /** Commissioner (/hub/office) URL slug ↔ internal tab id */
 export const OFFICE_SLUG_TO_ID = {
-  chat: "chat",
+  chat: "current",
   current: "current",
   historic: "historic",
   members: "members",
   access: "access",
 };
 
-export const OFFICE_ID_TO_SLUG = { ...OFFICE_SLUG_TO_ID };
+export const OFFICE_ID_TO_SLUG = {
+  current: "current",
+  historic: "historic",
+  members: "members",
+  access: "access",
+};
 
 /** Legacy Insights desk tabs → Office pane */
 export const LEGACY_DESK_TO_OFFICE = {
@@ -131,8 +138,8 @@ export function parseAppPath(pathname) {
       };
     }
     if (parts[1] === "office") {
-      const officeSlug = parts[2] || "chat";
-      const officeTab = OFFICE_SLUG_TO_ID[officeSlug] || "chat";
+      const officeSlug = parts[2] || "current";
+      const officeTab = OFFICE_SLUG_TO_ID[officeSlug] || "current";
       return {
         view: "hub",
         projectionsTab: null,
@@ -178,7 +185,7 @@ export function parseAppPath(pathname) {
       toolsTab: null,
       hubSubView,
       insightTab: hubSubView === "insights" ? "cap" : null,
-      officeTab: hubSubView === "office" ? "chat" : null,
+      officeTab: hubSubView === "office" ? "current" : null,
     };
   }
 
@@ -233,7 +240,7 @@ export function buildAppPath({
   toolsTab = "dfs",
   hubSubView = "home",
   insightTab = "cap",
-  officeTab = "chat",
+  officeTab = "current",
   adminTab = "overview",
 }) {
   if (view === "projections") {
@@ -257,7 +264,7 @@ export function buildAppPath({
       return `/hub/insights/${slug}`;
     }
     if (hubSubView === "office") {
-      const slug = OFFICE_ID_TO_SLUG[officeTab] || "chat";
+      const slug = OFFICE_ID_TO_SLUG[officeTab] || "current";
       return `/hub/office/${slug}`;
     }
     const slug = HUB_ID_TO_SLUG[hubSubView] || "players";

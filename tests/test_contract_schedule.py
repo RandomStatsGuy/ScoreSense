@@ -111,6 +111,25 @@ def test_repair_flat_deal_schedule_fixes_mistyped_rookie():
     assert float(fixed.get("step_up_per_year") or 0) == 0
 
 
+def test_repair_preserves_explicitly_stepped_rookie_schedule():
+    from src.draft_hub.contracts import repair_flat_deal_schedule
+
+    stepped = {
+        "contract_type": "rookie",
+        "current_salary": 10,
+        "years_remaining": 3,
+        "rookie_salary_static": False,
+        "step_up_per_year": 3,
+        "schedule": [
+            {"year_offset": 0, "salary": 10},
+            {"year_offset": 1, "salary": 13},
+            {"year_offset": 2, "salary": 16},
+        ],
+    }
+    fixed = repair_flat_deal_schedule(stepped, default_step=3)
+    assert fixed == stepped
+
+
 def test_repair_applies_step_to_flat_multi_year_veteran():
     from src.draft_hub.contracts import repair_flat_deal_schedule
 
