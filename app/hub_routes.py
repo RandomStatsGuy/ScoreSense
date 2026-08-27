@@ -88,6 +88,7 @@ from src.draft_hub.schemas import (
     ChatMessageCreateRequest,
     TeamCoCommissionerRequest,
     WorkspaceUpdate,
+    FaBidRequest,
 )
 from src.draft_hub.contracts import (
     apply_rookie_extension_command,
@@ -97,6 +98,13 @@ from src.draft_hub.contracts import (
 )
 from src.draft_hub.contract_typing import CONTRACT_TYPES, apply_type_to_contract
 from src.draft_hub.hub_context import list_roster_for_context, resolve_hub_context, roster_scope
+from src.draft_hub.fa_market import (
+    ensure_bidding_window,
+    list_market,
+    place_fa_bid,
+    process_due_windows,
+    process_window,
+)
 from src.draft_hub.league_permissions import can_edit_roster, require_commissioner, require_primary_commissioner
 from src.draft_hub.league_analytics import build_league_analytics
 from src.draft_hub.league_invites import build_invite_url, create_invite
@@ -653,6 +661,19 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
     ctx = _ctx(sub)
     if ctx.get("mode") == "league" and not can_edit_roster(ctx):
         raise HTTPException(status_code=403, detail="Join a league team to edit your roster")
+    window = ctx.get("acquisition_window") or {}
+    if ctx.get("mode") == "league":
+        lid = str(ctx.get("league_id") or "")
+        if lid:
+            process_due_windows(lid, window.get("window_id"))
+        staff_edit = bool(body.staff_edit)
+        if staff_edit and not ctx.get("is_commissioner"):
+            raise HTTPException(status_code=403, detail="Only commissioners can make roster-management edits")
+        if not staff_edit and not window.get("can_instant_add"):
+            raise HTTPException(
+                status_code=403,
+                detail=window.get("message") or "Adding players is not open right now",
+            )
     ws_id, _own_team_id = roster_scope(ctx)
     team_id, dest_label = _resolve_roster_add_team(ctx, body.team_id)
     existing = storage.get_roster_slot(ws_id, body.player_id)
@@ -733,12 +754,82 @@ def hub_remove_roster(body: RosterRemoveRequest, _user=Depends(require_hub_user)
     ctx = _ctx(sub)
     if ctx.get("mode") == "league" and not can_edit_roster(ctx):
         raise HTTPException(status_code=403, detail="Join a league team to edit your roster")
+    window = ctx.get("acquisition_window") or {}
+    if ctx.get("mode") == "league" and window.get("roster_locked") and not ctx.get("is_commissioner"):
+        raise HTTPException(
+            status_code=403,
+            detail=window.get("message") or "Rosters are locked",
+        )
     ws_id, _team_id = roster_scope(ctx)
     ok = storage.remove_roster_slot(ws_id, body.player_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Player not on roster")
     _invalidate_league_rosters_from_ctx(ctx)
     return {"removed": body.player_id}
+
+
+@router.get("/fa-market")
+def hub_fa_market(_user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx(sub)
+    if ctx.get("mode") != "league" or not ctx.get("league_id"):
+        raise HTTPException(status_code=400, detail="Join a league to use FA bidding")
+    window = ctx.get("acquisition_window") or {}
+    lid = str(ctx["league_id"])
+    processed = process_due_windows(lid, window.get("window_id"))
+    market = list_market(lid, window_id=window.get("window_id"), team_id=ctx.get("team_id"))
+    return {
+        "window": window,
+        "market": market,
+        "processed": processed,
+        "hub_context": ctx,
+    }
+
+
+@router.post("/fa-market/bid")
+def hub_fa_market_bid(body: FaBidRequest, _user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx(sub)
+    if ctx.get("mode") != "league" or not ctx.get("league_id") or not ctx.get("team_id"):
+        raise HTTPException(status_code=403, detail="Join a league team to bid")
+    try:
+        window = ensure_bidding_window(ctx)
+        lid = str(ctx["league_id"])
+        process_due_windows(lid, window.get("window_id"))
+        result = place_fa_bid(
+            league_id=lid,
+            team_id=str(ctx["team_id"]),
+            player_id=body.player_id,
+            player_name=body.player_name,
+            team=body.team,
+            position=body.position,
+            bid_amount=body.bid_amount,
+            window_id=str(window["window_id"]),
+            user_sub=sub,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {**result, "window": window, "hub_context": ctx}
+
+
+@router.post("/fa-market/process")
+def hub_fa_market_process(_user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx(sub)
+    require_commissioner(ctx)
+    if ctx.get("mode") != "league" or not ctx.get("league_id"):
+        raise HTTPException(status_code=400, detail="Join a league first")
+    window = ctx.get("acquisition_window") or {}
+    wid = window.get("window_id")
+    if not wid:
+        processed = process_due_windows(str(ctx["league_id"]), None)
+        return {"processed": processed, "window": window, "hub_context": ctx}
+    try:
+        result = process_window(str(ctx["league_id"]), str(wid))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _invalidate_league_rosters_from_ctx(ctx)
+    return {**result, "window": window, "hub_context": ctx}
 
 
 @router.post("/roster/contract-type")
@@ -1093,6 +1184,7 @@ def hub_draft_room_enrichment_post(body: DraftEnrichmentRequest, _user=Depends(r
             week=body.week,
             players=players or None,
             llm_player_ids=body.llm_player_ids,
+            media_only=bool(body.media_only),
         )
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -4256,7 +4348,7 @@ def hub_players_media(
     from src.draft_hub.draft_enrichment import build_player_media_batch
 
     player_ids = [p.strip() for p in ids.split(",") if p.strip()]
-    hints = [{"player_id": pid} for pid in player_ids[:80]]
+    hints = [{"player_id": pid} for pid in player_ids[:200]]
     media = build_player_media_batch(hints)
     return {"media": media}
 

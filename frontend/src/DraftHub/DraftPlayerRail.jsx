@@ -9,6 +9,7 @@ import {
   defaultDraftPlayerRailSort,
   draftPlayerRailRows,
 } from "./draftPlayerRail.js";
+import { mergePlayerMedia } from "./draftRoomEnrichment";
 
 const PICK_SORTS = [
   ["season_proj", "Projection"],
@@ -42,6 +43,7 @@ export default function DraftPlayerRail({
   pickDraft = false,
   needPositions = [],
   selectedPlayerId = "",
+  mediaByPlayerId = null,
   onSelectPlayer,
   onDraftPlayer,
   onQueuePlayer,
@@ -70,7 +72,11 @@ export default function DraftPlayerRail({
     }),
     [rows, pickDraft, position, search, sortKey, needsOnly, needPositions],
   );
-  const media = usePlayerMedia(visibleRows.map((row) => row.player_id).filter(Boolean));
+  const fetchedMedia = usePlayerMedia(visibleRows.map((row) => row.player_id).filter(Boolean));
+  const media = useMemo(
+    () => mergePlayerMedia(fetchedMedia, mediaByPlayerId),
+    [fetchedMedia, mediaByPlayerId],
+  );
   const watched = useMemo(() => new Set((watchIds || []).map(String)), [watchIds]);
   const needs = useMemo(
     () => new Set((needPositions || []).map(normalizeHubPosition)),

@@ -11,15 +11,15 @@ import {
   formatRankMove,
   rowMovementTone,
 } from "../projectionMovement";
-import HubTabIntro from "./HubTabIntro";
 import {
   HubAlert,
   HubAlertStack,
+  HubExperienceHero,
+  HubExperienceLayout,
+  HubExperienceSummary,
   HubPage,
   HubPageMeta,
   HubSection,
-  HubStatCard,
-  HubStatGrid,
   HubTableCard,
   HubToolbar,
 } from "./HubUILayout";
@@ -311,24 +311,50 @@ export default function WeeklyCommandCenter({
   const coveragePct = Math.round(projectionCoverageRatio(counts) * 100);
 
   return (
-    <HubPage className="hub-wcc">
-      <HubTabIntro
-        title="This Week"
-        purpose="Lineup help for this week based on your latest synced roster and current projections."
-        audience={teamLabel || leagueLabel || "You"}
-        learnMore={(
-          <>
-            <p>
-              Recommendations use your latest synced roster. We estimate starters from
-              league roster rules and contract salary when weekly lineup slots are not stored.
-            </p>
-            <p>
-              We flag moves only when a bench player meaningfully outprojects the starter.
-              Projection changes highlight notable moves on your roster since the last refresh.
-            </p>
-          </>
-        )}
+    <HubPage className="hub-wcc hub-experience-page">
+      <HubExperienceHero
+        eyebrow="This week"
+        heading="Make the lineup call with the board in front of you."
+        support="Recommendations use your latest synced roster and current projections. We flag a swap only when a bench player meaningfully outprojects the starter."
+        chip={weekLabel}
       />
+
+      <HubExperienceLayout
+        summaryLabel="This week snapshot"
+        summary={(
+          <HubExperienceSummary
+            title={teamLabel || leagueLabel || "Your team"}
+            subtitle={weekLabel + (meta.season != null ? ` · ${meta.season}` : "")}
+            items={[
+              {
+                id: "decisions",
+                label: "Decisions",
+                value: poorCoverage ? "—" : String(counts.decisions ?? "—"),
+              },
+              { id: "starters", label: "Starters", value: String(counts.starters ?? "—") },
+              { id: "bench", label: "Bench", value: String(counts.bench ?? "—") },
+              { id: "bye", label: "On bye", value: String(counts.on_bye ?? 0) },
+              { id: "injured", label: "Injured", value: String(counts.injured ?? 0) },
+              { id: "ranges", label: "Wide ranges", value: String(counts.wide_ranges ?? "—") },
+            ]}
+            note={
+              poorCoverage
+                ? "Waiting on projection coverage before lineup advice is useful."
+                : (summary.headline || syncedLabel)
+            }
+            action={(
+              <button
+                type="button"
+                className="btn-primary hub-experience-summary-action"
+                onClick={() => load()}
+                disabled={loading || syncing}
+              >
+                {loading ? "Refreshing…" : "Refresh projections"}
+              </button>
+            )}
+          />
+        )}
+      >
 
       <HubToolbar className="hub-wcc-toolbar">
         <label>
@@ -503,26 +529,6 @@ export default function WeeklyCommandCenter({
         )}
       </HubSection>
 
-      <HubStatGrid>
-        <HubStatCard
-          label="Decisions"
-          value={poorCoverage ? "—" : (counts.decisions ?? "—")}
-          sub={
-            poorCoverage
-              ? "Waiting on projection coverage"
-              : (summary.headline || "—")
-          }
-          tone={!poorCoverage && (counts.decisions || 0) > 0 ? "accent" : "default"}
-        />
-        <HubStatCard label="Starters" value={counts.starters ?? "—"} />
-        <HubStatCard label="Bench" value={counts.bench ?? "—"} />
-        <HubStatCard
-          label="Wide ranges"
-          value={counts.wide_ranges ?? "—"}
-          tone={(counts.wide_ranges || 0) > 0 ? "danger" : "default"}
-        />
-      </HubStatGrid>
-
       <HubSection
         title="Wide projection ranges"
         hint="Players with an unusually wide floor-to-ceiling spread this week."
@@ -611,6 +617,7 @@ export default function WeeklyCommandCenter({
           </HubSection>
         </>
       )}
+      </HubExperienceLayout>
     </HubPage>
   );
 }

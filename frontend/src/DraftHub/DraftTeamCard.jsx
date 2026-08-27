@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from "react";
+import PlayerCell, { usePlayerMedia } from "../PlayerCell";
+import { mergePlayerMedia } from "./draftRoomEnrichment";
 import { HUB_POS_ORDER, normalizeHubPosition } from "./hubPositions";
 import { isRetainedThroughDraft } from "./draftRoomHelpers";
 import { fmtSal } from "./rosterFormat";
@@ -18,6 +20,7 @@ export default function DraftTeamCard({
   allowTrades = false,
   onTradePlayer,
   pickDraft = false,
+  mediaByPlayerId = null,
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const spent = cap - Number(team.budget_remaining ?? cap);
@@ -25,6 +28,12 @@ export default function DraftTeamCard({
   const occupying = useMemo(
     () => (roster || []).filter((row) => isRetainedThroughDraft(row, draftCompleted)),
     [roster, draftCompleted],
+  );
+
+  const fetchedMedia = usePlayerMedia((roster || []).map((row) => row.player_id).filter(Boolean));
+  const media = useMemo(
+    () => mergePlayerMedia(fetchedMedia, mediaByPlayerId),
+    [fetchedMedia, mediaByPlayerId],
   );
 
   const grouped = useMemo(() => {
@@ -125,7 +134,18 @@ export default function DraftTeamCard({
               {orderedRoster.map((row) => (
                 <li key={row.player_id} className="hub-roster-row">
                   <span className="hub-roster-pos">{row.position}</span>
-                  <span className="hub-roster-name">{row.player_name}</span>
+                  <span className="hub-roster-name">
+                    <PlayerCell
+                      name={row.player_name}
+                      team={row.team || row.nfl_team}
+                      position={normalizeHubPosition(row.position)}
+                      playerId={row.player_id}
+                      media={media}
+                      size="sm"
+                      showTeam={false}
+                      narrativeScope="season"
+                    />
+                  </span>
                   {!pickDraft && <span className="hub-roster-sal">{fmtSal(row.salary)}</span>}
                   {allowTrades && onTradePlayer && !isViewer && (
                     <span className="hub-roster-actions">

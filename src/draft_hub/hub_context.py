@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.draft_hub import storage
+from src.draft_hub.acquisition_window import attach_acquisition_window
 from src.draft_hub.schemas import LeagueRules
 
 _MAX_TEAM_ROSTER_BEFORE_RECONCILE = 28
@@ -160,7 +161,7 @@ def _with_permissions(ctx: dict[str, Any]) -> dict[str, Any]:
     ctx["can_invite_members"] = in_league and is_comm
     ctx["can_manage_roster"] = (not in_league) or is_comm
     ctx.setdefault("is_primary_commissioner", is_comm and not in_league)
-    return ctx
+    return attach_acquisition_window(ctx)
 
 
 def list_roster_for_context(

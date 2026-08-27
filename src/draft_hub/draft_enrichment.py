@@ -20,6 +20,7 @@ ESPN_TEAM_LOGO = "https://a.espncdn.com/i/teamlogos/nfl/500/{team}.png"
 _GSIS_RE = re.compile(r"^00-\d{7}$")
 
 _SLEEPER_LOOKUP: dict[str, Any] | None = None
+_GSIS_IDENTITY_CACHE: tuple[float, dict[str, tuple[str, str]]] | None = None
 
 _TEAM_LOGO_ALIASES = {
     "JAX": "jax",
@@ -28,6 +29,16 @@ _TEAM_LOGO_ALIASES = {
     "LAR": "lar",
     "WSH": "wsh",
     "WAS": "wsh",
+}
+
+# nflverse/pool often uses LA/JAC/WAS; Sleeper uses LAR/JAX/WSH.
+_TEAM_LOOKUP_ALIASES = {
+    "LA": ("LA", "LAR"),
+    "LAR": ("LAR", "LA"),
+    "JAC": ("JAC", "JAX"),
+    "JAX": ("JAX", "JAC"),
+    "WAS": ("WAS", "WSH"),
+    "WSH": ("WSH", "WAS"),
 }
 
 
@@ -39,12 +50,83 @@ def team_logo_url(team: str | None) -> str | None:
     return ESPN_TEAM_LOGO.format(team=slug)
 
 
+def _clean_ext_id(val: Any) -> str | None:
+    if val is None:
+        return None
+    if isinstance(val, float):
+        if pd.isna(val):
+            return None
+        if val.is_integer():
+            return str(int(val))
+        text = str(val).strip()
+    elif isinstance(val, int):
+        return str(val)
+    else:
+        text = str(val).strip()
+    if not text or text.lower() in {"nan", "none"}:
+        return None
+    if text.endswith(".0") and text[:-2].isdigit():
+        return text[:-2]
+    return text
+
+
 def headshot_url(sleeper_id: str | None, espn_id: str | None = None) -> str | None:
-    if sleeper_id:
-        return SLEEPER_HEADSHOT.format(sleeper_id=str(sleeper_id))
-    if espn_id:
-        return ESPN_HEADSHOT.format(espn_id=str(espn_id))
+    sid = _clean_ext_id(sleeper_id)
+    if sid:
+        return SLEEPER_HEADSHOT.format(sleeper_id=sid)
+    eid = _clean_ext_id(espn_id)
+    if eid:
+        return ESPN_HEADSHOT.format(espn_id=eid)
     return None
+
+
+def espn_headshot_url(espn_id: str | None) -> str | None:
+    eid = _clean_ext_id(espn_id)
+    if not eid:
+        return None
+    return ESPN_HEADSHOT.format(espn_id=eid)
+
+
+def _team_lookup_keys(team: str | None) -> tuple[str, ...]:
+    abbr = str(team or "").strip().upper()
+    if not abbr:
+        return ()
+    return _TEAM_LOOKUP_ALIASES.get(abbr, (abbr,))
+
+
+def _gsis_identity_map() -> dict[str, tuple[str, str]]:
+    """GSIS → (name, team) from draft-pool artifacts so ID-only media lookups still resolve."""
+    global _GSIS_IDENTITY_CACHE
+    try:
+        from src.config import DRAFT_POOL_DIR
+
+        paths = sorted(DRAFT_POOL_DIR.glob("pool_*.parquet"))
+    except Exception:
+        paths = []
+    stamp = 0.0
+    for path in paths:
+        try:
+            stamp += path.stat().st_mtime
+        except OSError:
+            pass
+    if _GSIS_IDENTITY_CACHE is not None and _GSIS_IDENTITY_CACHE[0] == stamp:
+        return _GSIS_IDENTITY_CACHE[1]
+    out: dict[str, tuple[str, str]] = {}
+    for path in paths:
+        try:
+            frame = pd.read_parquet(path, columns=["player_id", "Player", "Team"])
+        except Exception:
+            continue
+        for rec in frame.itertuples(index=False):
+            pid = str(getattr(rec, "player_id", "") or "").strip()
+            if not _GSIS_RE.match(pid) or pid in out:
+                continue
+            out[pid] = (
+                str(getattr(rec, "Player", "") or "").strip(),
+                str(getattr(rec, "Team", "") or "").strip().upper(),
+            )
+    _GSIS_IDENTITY_CACHE = (stamp, out)
+    return out
 
 
 def _resolve_draft_week(season: int | None, week: int | None) -> tuple[int, int]:
@@ -62,6 +144,8 @@ def _sleeper_row_for_hint(
     by_gsis: dict[str, pd.Series],
     by_name_team: dict[tuple[str, str], pd.Series],
     by_sleeper_id: dict[str, pd.Series],
+    by_name: dict[str, list[pd.Series]] | None = None,
+    sleeper_id: str | None = None,
 ) -> pd.Series | None:
     pid = str(player_id or "").strip()
     if _GSIS_RE.match(pid) and pid in by_gsis:
@@ -73,47 +157,89 @@ def _sleeper_row_for_hint(
             return by_sleeper_id[sid]
     if pid.isdigit() and pid in by_sleeper_id:
         return by_sleeper_id[pid]
+    extra_sid = _clean_ext_id(sleeper_id) or ""
+    if extra_sid.startswith("sleeper-"):
+        extra_sid = extra_sid.removeprefix("sleeper-")
+    if extra_sid and extra_sid in by_sleeper_id:
+        return by_sleeper_id[extra_sid]
+
     name = str(player_name or "").strip()
     tm = str(team or "").strip().upper()
-    if name and tm:
-        hit = by_name_team.get((_normalize_name(name), tm))
-        if hit is not None:
-            return hit
-    if name:
-        for (nkey, tkey), row in by_name_team.items():
-            if nkey == _normalize_name(name) and (not tm or tkey == tm):
-                return row
+    if (not name or not tm) and _GSIS_RE.match(pid):
+        ident = _gsis_identity_map().get(pid)
+        if ident:
+            name = name or ident[0]
+            tm = tm or ident[1]
+
+    nkey = _normalize_name(name) if name else ""
+    if nkey:
+        for alias in _team_lookup_keys(tm):
+            hit = by_name_team.get((nkey, alias))
+            if hit is not None:
+                return hit
+        named = (by_name or {}).get(nkey) or []
+        if not named:
+            named = [row for (nk, _tk), row in by_name_team.items() if nk == nkey]
+        if len(named) == 1:
+            return named[0]
+        if tm:
+            aliases = set(_team_lookup_keys(tm))
+            for row in named:
+                row_team = str(row.get("team") or "").strip().upper()
+                if row_team in aliases:
+                    return row
+        if named:
+            return named[0]
     return None
 
 
-def _sleeper_lookup_tables() -> tuple[pd.DataFrame, dict[str, pd.Series], dict[str, pd.Series], dict[tuple[str, str], pd.Series]]:
+def _sleeper_lookup_tables() -> tuple[
+    pd.DataFrame,
+    dict[str, pd.Series],
+    dict[str, pd.Series],
+    dict[tuple[str, str], pd.Series],
+    dict[str, list[pd.Series]],
+]:
     global _SLEEPER_LOOKUP
     if _SLEEPER_LOOKUP is not None:
         cached = _SLEEPER_LOOKUP
-        return cached["df"], cached["by_gsis"], cached["by_sleeper_id"], cached["by_name_team"]
+        if "by_name" not in cached:
+            _SLEEPER_LOOKUP = None
+        else:
+            return (
+                cached["df"],
+                cached["by_gsis"],
+                cached["by_sleeper_id"],
+                cached["by_name_team"],
+                cached["by_name"],
+            )
 
     df = players_dataframe()
     by_gsis: dict[str, pd.Series] = {}
     by_sleeper_id: dict[str, pd.Series] = {}
     by_name_team: dict[tuple[str, str], pd.Series] = {}
+    by_name: dict[str, list[pd.Series]] = {}
     for _, row in df.iterrows():
-        sid = str(row.get("sleeper_id") or "")
+        sid = _clean_ext_id(row.get("sleeper_id")) or ""
         if sid:
             by_sleeper_id[sid] = row
         gsis = str(row.get("gsis_id") or "").strip()
         if _GSIS_RE.match(gsis):
             by_gsis[gsis] = row
         name = str(row.get("full_name") or "").strip()
-        team = str(row.get("team") or "").upper()
+        team = str(row.get("team") or "").strip().upper()
         if name:
-            by_name_team[(_normalize_name(name), team)] = row
+            nkey = _normalize_name(name)
+            by_name_team[(nkey, team)] = row
+            by_name.setdefault(nkey, []).append(row)
     _SLEEPER_LOOKUP = {
         "df": df,
         "by_gsis": by_gsis,
         "by_sleeper_id": by_sleeper_id,
         "by_name_team": by_name_team,
+        "by_name": by_name,
     }
-    return df, by_gsis, by_sleeper_id, by_name_team
+    return df, by_gsis, by_sleeper_id, by_name_team, by_name
 
 
 def _media_for_players(
@@ -122,11 +248,11 @@ def _media_for_players(
     if not players:
         return {}
 
-    df, by_gsis, by_sleeper_id, by_name_team = _sleeper_lookup_tables()
+    df, by_gsis, by_sleeper_id, by_name_team, by_name = _sleeper_lookup_tables()
 
     out: dict[str, dict[str, str | None]] = {}
     for hint in players:
-        pid = str(hint.get("player_id") or "")
+        pid = str(hint.get("player_id") or "").strip()
         if not pid:
             continue
         row = _sleeper_row_for_hint(
@@ -137,18 +263,24 @@ def _media_for_players(
             by_gsis=by_gsis,
             by_name_team=by_name_team,
             by_sleeper_id=by_sleeper_id,
+            by_name=by_name,
+            sleeper_id=hint.get("sleeper_id") or hint.get("sleeper_player_id"),
         )
         team = str(hint.get("team") or (row.get("team") if row is not None else "") or "").upper()
         if row is not None:
+            sleeper_id = _clean_ext_id(row.get("sleeper_id"))
+            espn_id = _clean_ext_id(row.get("espn_id"))
             out[pid] = {
-                "headshot_url": headshot_url(str(row.get("sleeper_id") or ""), row.get("espn_id")),
+                "headshot_url": headshot_url(sleeper_id, espn_id),
+                "espn_headshot_url": espn_headshot_url(espn_id),
                 "team_logo_url": team_logo_url(team),
                 "team": team,
-                "sleeper_id": str(row.get("sleeper_id") or "") or None,
+                "sleeper_id": sleeper_id,
             }
         else:
             out[pid] = {
                 "headshot_url": None,
+                "espn_headshot_url": None,
                 "team_logo_url": team_logo_url(team) if team else None,
                 "team": team or None,
                 "sleeper_id": None,
@@ -201,11 +333,33 @@ def build_draft_room_enrichment(
     week: int | None = None,
     players: list[dict[str, Any]] | None = None,
     llm_player_ids: list[str] | None = None,
+    media_only: bool = False,
 ) -> dict[str, Any]:
-    resolved_season, resolved_week = _resolve_draft_week(season, week)
-    sentiment = build_fantasy_index(resolved_season, resolved_week)
     hints = players or []
     media = _media_for_players(hints)
+    teams: dict[str, str] = {}
+    for info in media.values():
+        team = info.get("team")
+        if team:
+            url = team_logo_url(str(team))
+            if url:
+                teams[str(team).upper()] = url
+    if media_only:
+        return {
+            "season": season,
+            "week": week,
+            "requested_season": season,
+            "requested_week": week,
+            "context_fallback": False,
+            "media_context": None,
+            "sentiment_by_player_id": {},
+            "media_by_player_id": media,
+            "team_logo_by_team": teams,
+            "llm_available": False,
+        }
+
+    resolved_season, resolved_week = _resolve_draft_week(season, week)
+    sentiment = build_fantasy_index(resolved_season, resolved_week)
     llm_set = set(str(p) for p in (llm_player_ids or []))
 
     sentiment_players = _attach_digests(
@@ -215,14 +369,6 @@ def build_draft_room_enrichment(
         week=sentiment["week"],
         llm_player_ids=llm_set,
     )
-
-    teams: dict[str, str] = {}
-    for info in media.values():
-        team = info.get("team")
-        if team:
-            url = team_logo_url(str(team))
-            if url:
-                teams[str(team).upper()] = url
 
     return {
         "season": sentiment["season"],

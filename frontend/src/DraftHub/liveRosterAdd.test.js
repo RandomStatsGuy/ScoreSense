@@ -39,6 +39,7 @@ test("buildLiveRosterAddBody maps suggestion onto POST /roster payload", () => {
   assert.equal(body.team_id, "team-1");
   assert.equal(body.sleeper_player_id, "4039");
   assert.equal(body.force, true);
+  assert.equal(body.staff_edit, true);
 });
 
 test("buildLiveRosterAddBody returns null without a player id or name", () => {

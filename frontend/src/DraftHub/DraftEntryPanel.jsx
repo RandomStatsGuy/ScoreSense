@@ -14,6 +14,7 @@ import {
 } from "./draftEntryStatus";
 import { fmtSal } from "./rosterFormat";
 import { secondsUntil } from "./draftRoomHelpers";
+import { HubExperienceHero, HubExperienceLayout, HubExperienceSummary } from "./HubUILayout";
 
 /**
  * Draft room idle entry: live-draft CTA, with mock drafts in Tools.
@@ -94,59 +95,70 @@ export default function DraftEntryPanel({
   };
 
   return (
-    <div className="hub-draft-entry">
-      <section className="hub-draft-status-card" aria-label="Draft status">
-        <div className="hub-draft-status-card-head">
-          <h3 className="hub-draft-status-card-title">Draft status</h3>
-          <span className={`hub-home-phase-badge hub-home-phase-badge--${phase.id === "practice" ? "live_draft" : (phase.id === "solo" ? "offseason" : phase.id)}`}>
-            {phase.label}
-          </span>
-        </div>
-        <dl className="hub-draft-status-grid">
-          <div className="hub-draft-status-item">
-            <dt>Format</dt>
-            <dd>{formatLabel}</dd>
-          </div>
-          {!pickDraft && (
-          <div className="hub-draft-status-item">
-            <dt>Budget</dt>
-            <dd>{fmtSal(budget)}</dd>
-          </div>
-          )}
-          <div className="hub-draft-status-item">
-            <dt>Participants</dt>
-            <dd>
-              {participants.label}
-              <span className="hub-draft-status-detail chart-note">{participants.detail}</span>
-            </dd>
-          </div>
-          <div className="hub-draft-status-item">
-            <dt>Phase</dt>
-            <dd>{phase.label}</dd>
-          </div>
-          <div className="hub-draft-status-item">
-            <dt>Draft night</dt>
-            <dd>
-              {scheduledLabel || "Not scheduled"}
-              {waitSecs != null && waitSecs > 0 && (
-                <span className="hub-draft-status-detail chart-note">
-                  {formatDraftWait(waitSecs)}
-                </span>
-              )}
-            </dd>
-          </div>
-        </dl>
-      </section>
+    <div className="hub-draft-entry hub-experience-stack">
+      <HubExperienceHero
+        eyebrow="Draft"
+        heading={testMode ? "Practice the night before it counts." : "Run draft night like a real league."}
+        support={
+          usingHubLeague || leagueId
+            ? `Set the clock, confirm the format, then start the live ${pickDraft ? "pick" : "auction"} for ${leagueName}. Mock drafts stay in Tools and never touch contracts.`
+            : "Create or join a league to go live. Mock drafts in Tools let you practice the board without changing keepers or contracts."
+        }
+        chip={phase.label}
+        chipTone={phase.id === "live_draft" || canStartLive ? "active" : "readonly"}
+      />
 
-      <div className="hub-draft-entry-split">
+      <HubExperienceLayout
+        summaryLabel="Draft snapshot"
+        summary={(
+          <HubExperienceSummary
+            title={leagueName}
+            subtitle={formatLabel}
+            items={[
+              { id: "format", label: "Format", value: formatLabel },
+              ...(!pickDraft ? [{ id: "budget", label: "Salary cap", value: fmtSal(budget) }] : []),
+              { id: "participants", label: "Participants", value: participants.label },
+              { id: "phase", label: "Phase", value: phase.label },
+              {
+                id: "night",
+                label: "Draft night",
+                value: scheduledLabel
+                  ? (waitSecs != null && waitSecs > 0
+                    ? `${scheduledLabel} · ${formatDraftWait(waitSecs)}`
+                    : scheduledLabel)
+                  : "Not scheduled",
+              },
+            ]}
+            note={participants.detail}
+            action={
+              canStartLive ? (
+                <button
+                  type="button"
+                  className="btn-primary hub-experience-summary-action"
+                  disabled={busy}
+                  onClick={onStartLiveDraft}
+                >
+                  {busy
+                    ? "Starting…"
+                    : startsAt && waitSecs > 0
+                      ? "Start now"
+                      : "Start live draft"}
+                </button>
+              ) : waitingForCommish ? (
+                <p className="hub-experience-summary-note">Waiting for the commissioner to start.</p>
+              ) : null
+            }
+          />
+        )}
+      >
         <article
-          className={`hub-draft-entry-card hub-draft-entry-card--live${liveEmphasis ? " is-emphasized" : ""}`}
+          className={`hub-experience-section hub-draft-entry-card hub-draft-entry-card--live${liveEmphasis ? " is-emphasized" : ""}`}
         >
           <header className="hub-draft-entry-card-head">
             <h3>Start live draft</h3>
             <p className="chart-note">
               {usingHubLeague || leagueId
-                ? `Begin the real auction for ${leagueName}. Keepers and contracts apply.`
+                ? `Begin the real ${pickDraft ? "pick draft" : "auction"} for ${leagueName}. Keepers and contracts apply.`
                 : "Create or join a league first — live draft is for your real room."}
             </p>
           </header>
@@ -234,7 +246,7 @@ export default function DraftEntryPanel({
           )}
         </article>
 
-        <article className={`hub-draft-entry-card hub-draft-entry-card--practice${!liveEmphasis ? " is-emphasized" : ""}`}>
+        <article className={`hub-experience-section hub-draft-entry-card hub-draft-entry-card--practice${!liveEmphasis ? " is-emphasized" : ""}`}>
           <header className="hub-draft-entry-card-head">
             <h3>Mock draft</h3>
             <p className="chart-note">
@@ -251,84 +263,84 @@ export default function DraftEntryPanel({
             </button>
           </div>
         </article>
-      </div>
 
-      {usingHubLeague && isCommissioner && expirePreview && (
-        <p className="chart-note hub-draft-expire-preview">
-          Keepers: {expirePreview.retained_count} retained · {expirePreview.expire_count} expire before draft
-          (nominatable). Real league unchanged in a keeper sandbox.
-        </p>
-      )}
-      {testMode && mockModeLabel === "Keeper sandbox" && inDraftSetup && (
-        <p className="chart-note hub-draft-expire-preview">
-          Sandbox copy of keepers — inspect Commissioner/Roster expire badges, then Start live draft.
-          Delete sandbox when finished.
-          {rules?.relax_salary_roster_limits
-            ? " Salary cap and position limits are off."
-            : ""}
-        </p>
-      )}
+        {usingHubLeague && isCommissioner && expirePreview && (
+          <p className="chart-note hub-draft-expire-preview">
+            Keepers: {expirePreview.retained_count} retained · {expirePreview.expire_count} expire before draft
+            (nominatable). Real league unchanged in a keeper sandbox.
+          </p>
+        )}
+        {testMode && mockModeLabel === "Keeper sandbox" && inDraftSetup && (
+          <p className="chart-note hub-draft-expire-preview">
+            Sandbox copy of keepers — inspect Commissioner/Roster expire badges, then Start live draft.
+            Delete sandbox when finished.
+            {rules?.relax_salary_roster_limits
+              ? " Salary cap and position limits are off."
+              : ""}
+          </p>
+        )}
 
-      <details className="hub-draft-more">
-        <summary>More options</summary>
-        <div className="hub-draft-more-body">
-          {usingHubLeague && isCommissioner ? (
-            <div className="hub-sandbox-relax-check">
+        <details className="hub-experience-section hub-draft-more">
+          <summary>More options</summary>
+          <div className="hub-draft-more-body">
+            {usingHubLeague && isCommissioner ? (
+              <div className="hub-sandbox-relax-check">
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  disabled={busy}
+                  onClick={() => onStartKeeperSandbox?.({ relaxSalaryRosterLimits: relaxSandboxLimits })}
+                  title="Copy keepers into a practice room to test expire / year tick"
+                >
+                  Keeper sandbox
+                </button>
+                <label className="hub-toggle-row hub-toggle-row-compact">
+                  <input
+                    type="checkbox"
+                    checked={relaxSandboxLimits}
+                    onChange={(e) => setRelaxSandboxLimits(e.target.checked)}
+                    disabled={busy}
+                  />
+                  Ignore salary cap and position limits
+                </label>
+                <span className="chart-note">
+                  Use when keeper salaries aren’t updated yet. Practice room only — live draft still enforces cap and roster limits.
+                </span>
+              </div>
+            ) : (
+              <p className="chart-note">
+                Mock drafts and full simulations live in{" "}
+                <button type="button" className="btn-link" onClick={() => navigate("/tools/mock-draft")}>
+                  Tools → Mock draft
+                </button>
+                .
+              </p>
+            )}
+            {testMode && isCommissioner && inDraftSetup && (
               <button
                 type="button"
                 className="btn-ghost btn-sm"
                 disabled={busy}
-                onClick={() => onStartKeeperSandbox?.({ relaxSalaryRosterLimits: relaxSandboxLimits })}
-                title="Copy keepers into a practice room to test expire / year tick"
+                onClick={() => onDeleteSandbox?.()}
               >
-                Keeper sandbox
+                Delete sandbox
               </button>
-              <label className="hub-toggle-row hub-toggle-row-compact">
-                <input
-                  type="checkbox"
-                  checked={relaxSandboxLimits}
-                  onChange={(e) => setRelaxSandboxLimits(e.target.checked)}
-                  disabled={busy}
-                />
-                Ignore salary cap and position limits
-              </label>
-              <span className="chart-note">
-                Use when keeper salaries aren’t updated yet. Practice room only — live draft still enforces cap and roster limits.
-              </span>
-            </div>
-          ) : (
-            <p className="chart-note">
-              Mock drafts and full simulations live in{" "}
-              <button type="button" className="btn-link" onClick={() => navigate("/tools/mock-draft")}>
-                Tools → Mock draft
-              </button>
-              .
-            </p>
-          )}
-          {testMode && isCommissioner && inDraftSetup && (
-            <button
-              type="button"
-              className="btn-ghost btn-sm"
-              disabled={busy}
-              onClick={() => onDeleteSandbox?.()}
-            >
-              Delete sandbox
-            </button>
-          )}
-          {leagueId && inDraftSetup && !roomLoading && isCommissioner && onCommissionerUpdated && (
-            <DraftCommissionerSettings
-              leagueId={leagueId}
-              rules={rules}
-              teams={teams}
-              nominationOrder={session?.nomination_order}
-              poolMode={poolMode}
-              testMode={testMode}
-              disabled={busy}
-              onUpdated={onCommissionerUpdated}
-            />
-          )}
-        </div>
-      </details>
+            )}
+            {leagueId && inDraftSetup && !roomLoading && isCommissioner && onCommissionerUpdated && (
+              <DraftCommissionerSettings
+                leagueId={leagueId}
+                rules={rules}
+                teams={teams}
+                nominationOrder={session?.nomination_order}
+                poolMode={poolMode}
+                testMode={testMode}
+                disabled={busy}
+                onUpdated={onCommissionerUpdated}
+              />
+            )}
+          </div>
+        </details>
+      </HubExperienceLayout>
     </div>
   );
 }

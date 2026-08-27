@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
+import { mergePlayerMedia } from "./draftRoomEnrichment";
 import { HUB_POS_ORDER, normalizeHubPosition } from "./hubPositions";
 import { fmtSal } from "./rosterFormat";
 
@@ -62,6 +63,7 @@ export default function DraftRosterPanel({
   onOpenInbox,
   pickDraft = false,
   variant = "panel",
+  mediaByPlayerId = null,
 }) {
   const roster = viewer?.roster || [];
   const capacity = viewer?.capacity?.by_position || {};
@@ -71,7 +73,11 @@ export default function DraftRosterPanel({
     () => roster.map((r) => r.player_id).filter(Boolean),
     [roster],
   );
-  const playerMedia = usePlayerMedia(playerIds);
+  const fetchedMedia = usePlayerMedia(playerIds);
+  const playerMedia = useMemo(
+    () => mergePlayerMedia(fetchedMedia, mediaByPlayerId),
+    [fetchedMedia, mediaByPlayerId],
+  );
 
   const grouped = useMemo(() => {
     const map = {};

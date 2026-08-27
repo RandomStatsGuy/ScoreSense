@@ -71,9 +71,9 @@ const HUB_PAGE_LABELS = {
   home: "Home",
   setup: "Setup",
   rules: "Rules",
-  value: "Available players",
-  week: "Week",
-  roster: "Roster",
+  value: "Players",
+  week: "This Week",
+  roster: "My Team",
   rosters: "Rosters",
   room: "Draft",
   planner: "Cap",
@@ -164,7 +164,7 @@ export function shouldSkipPageView(pathname) {
 export function pageGroupForPath(pathname) {
   const root = String(pathname || "").split("/").filter(Boolean)[0] || "";
   if (root === "projections") return "projections";
-  if (root === "hub") return "hub";
+  if (root === "hub") return "fantasy";
   if (root === "tools") return "tools";
   if (root === "model") return "model";
   if (root === "admin") return "admin";
