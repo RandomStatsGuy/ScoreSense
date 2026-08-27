@@ -3,7 +3,11 @@ export const HUB_SLUG_TO_ID = {
   home: "home",
   setup: "setup",
   rules: "rules",
+  strategy: "value",
   players: "value",
+  "free-agents": "available",
+  fa: "available",
+  available: "available",
   week: "week",
   roster: "roster",
   rosters: "rosters",
@@ -19,7 +23,8 @@ export const HUB_ID_TO_SLUG = {
   home: "home",
   setup: "setup",
   rules: "rules",
-  value: "players",
+  value: "strategy",
+  available: "free-agents",
   week: "week",
   roster: "roster",
   rosters: "rosters",
@@ -32,6 +37,7 @@ export const HUB_ID_TO_SLUG = {
 
 /** Insights URL slug ↔ internal tab id */
 export const INSIGHT_SLUG_TO_ID = {
+  overview: "overview",
   spend: "cap",
   scoring: "scoring",
   history: "ownership",
@@ -124,8 +130,8 @@ export function parseAppPath(pathname) {
         };
       }
       const insightTab = insightSlug
-        ? (INSIGHT_SLUG_TO_ID[insightSlug] || "cap")
-        : "cap";
+        ? (INSIGHT_SLUG_TO_ID[insightSlug] || "overview")
+        : "overview";
       return {
         view: "hub",
         projectionsTab: null,
@@ -184,7 +190,7 @@ export function parseAppPath(pathname) {
       seasonMode: null,
       toolsTab: null,
       hubSubView,
-      insightTab: hubSubView === "insights" ? "cap" : null,
+      insightTab: hubSubView === "insights" ? "overview" : null,
       officeTab: hubSubView === "office" ? "current" : null,
     };
   }
@@ -239,7 +245,7 @@ export function buildAppPath({
   seasonMobilePanel = "projections",
   toolsTab = "dfs",
   hubSubView = "home",
-  insightTab = "cap",
+  insightTab = "overview",
   officeTab = "current",
   adminTab = "overview",
 }) {
@@ -260,14 +266,14 @@ export function buildAppPath({
   }
   if (view === "hub") {
     if (hubSubView === "insights") {
-      const slug = INSIGHT_ID_TO_SLUG[insightTab] || "spend";
+      const slug = INSIGHT_ID_TO_SLUG[insightTab] || "overview";
       return `/hub/insights/${slug}`;
     }
     if (hubSubView === "office") {
       const slug = OFFICE_ID_TO_SLUG[officeTab] || "current";
       return `/hub/office/${slug}`;
     }
-    const slug = HUB_ID_TO_SLUG[hubSubView] || "players";
+    const slug = HUB_ID_TO_SLUG[hubSubView] || "strategy";
     return `/hub/${slug}`;
   }
   if (view === "tools") {
@@ -331,6 +337,7 @@ export function parseFilterParams(searchParams) {
     rosFromWeek: fromWeek != null && fromWeek !== "" ? Number(fromWeek) : null,
     rosSeason: rosSeason != null && rosSeason !== "" ? Number(rosSeason) : null,
     search: search != null && search !== "" ? search : null,
+    player: searchParams.get("player") || null,
     compareIds: compareIds.length ? compareIds : null,
     /** Open state for the comparison panel (`cmp=1` deep-link, SCORE-4). */
     compareView,
@@ -348,6 +355,7 @@ export function buildFilterSearchParams({
   rosSeason,
   rosFromWeek,
   search,
+  player,
   compareIds,
   compareView,
   movementFilter,
@@ -382,6 +390,12 @@ export function buildFilterSearchParams({
     params.set("q", String(search).trim());
   } else {
     params.delete("q");
+  }
+
+  if (player !== undefined) {
+    const pid = String(player || "").trim();
+    if (pid) params.set("player", pid);
+    else params.delete("player");
   }
 
   // Only touch compare / cmp when callers pass them explicitly so unrelated

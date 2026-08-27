@@ -31,10 +31,13 @@ export default function AppRouter() {
       <Route path="/hub/insights/contracts" element={<Navigate to="/hub/office/historic" replace />} />
       <Route path="/hub/live" element={<Navigate to="/hub/insights/scoring" replace />} />
       <Route path="/hub/teams" element={<Navigate to="/hub/office/current" replace />} />
+      <Route path="/hub/players" element={<Navigate to="/hub/strategy" replace />} />
+      <Route path="/hub/available" element={<Navigate to="/hub/free-agents" replace />} />
+      <Route path="/hub/fa" element={<Navigate to="/hub/free-agents" replace />} />
       <Route path="/hub/office/:officeTab" element={<App />} />
       <Route path="/hub/office" element={<Navigate to="/hub/office/current" replace />} />
       <Route path="/hub/insights/:insightTab" element={<App />} />
-      <Route path="/hub/insights" element={<Navigate to="/hub/insights/spend" replace />} />
+      <Route path="/hub/insights" element={<Navigate to="/hub/insights/overview" replace />} />
       <Route path="/hub/:tab" element={<App />} />
       <Route path="/hub" element={<Navigate to="/hub/home" replace />} />
       <Route path="/tools/:tab" element={<App />} />

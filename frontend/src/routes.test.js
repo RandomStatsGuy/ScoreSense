@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildAppPath, parseAppPath } from "./routes.js";
+import { buildAppPath, buildFilterSearchParams, parseAppPath, parseFilterParams } from "./routes.js";
 
 test("tools mock-draft tab round-trips", () => {
   assert.deepEqual(parseAppPath("/tools/mock-draft").view, "tools");
@@ -14,6 +14,17 @@ test("tools mock-draft tab round-trips", () => {
   assert.equal(buildAppPath({ view: "tools", toolsTab: "dfs" }), "/tools/dfs");
 });
 
+test("Insights overview is the default Insights route", () => {
+  assert.equal(parseAppPath("/hub/insights/overview").insightTab, "overview");
+  assert.equal(
+    buildAppPath({ view: "hub", hubSubView: "insights", insightTab: "overview" }),
+    "/hub/insights/overview",
+  );
+  assert.equal(parseAppPath("/hub/insights").insightTab, "overview");
+  assert.equal(parseAppPath("/hub/insights/spend").insightTab, "cap");
+  assert.equal(parseAppPath("/hub/insights/history").insightTab, "ownership");
+});
+
 test("Fantasy rules and roster management routes round-trip", () => {
   assert.equal(parseAppPath("/hub/rules").hubSubView, "rules");
   assert.equal(buildAppPath({ view: "hub", hubSubView: "rules" }), "/hub/rules");
@@ -23,4 +34,23 @@ test("Fantasy rules and roster management routes round-trip", () => {
     buildAppPath({ view: "hub", hubSubView: "office", officeTab: "current" }),
     "/hub/office/current",
   );
+});
+
+test("Contract history deep-link keeps the player query", () => {
+  const params = buildFilterSearchParams({ player: "sleeper-4034" });
+  assert.equal(params.get("player"), "sleeper-4034");
+  const parsed = parseFilterParams(params);
+  assert.equal(parsed.player, "sleeper-4034");
+  const cleared = buildFilterSearchParams({ player: "", preserveParams: params });
+  assert.equal(cleared.get("player"), null);
+});
+
+test("strategy and free-agent hub tabs round-trip, with legacy players alias", () => {
+  assert.equal(parseAppPath("/hub/strategy").hubSubView, "value");
+  assert.equal(parseAppPath("/hub/players").hubSubView, "value");
+  assert.equal(buildAppPath({ view: "hub", hubSubView: "value" }), "/hub/strategy");
+  assert.equal(parseAppPath("/hub/free-agents").hubSubView, "available");
+  assert.equal(parseAppPath("/hub/fa").hubSubView, "available");
+  assert.equal(parseAppPath("/hub/available").hubSubView, "available");
+  assert.equal(buildAppPath({ view: "hub", hubSubView: "available" }), "/hub/free-agents");
 });

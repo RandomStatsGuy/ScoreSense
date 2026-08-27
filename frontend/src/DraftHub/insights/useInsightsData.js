@@ -8,6 +8,7 @@ import {
 } from "../hubDataCache";
 
 export const INSIGHTS_TAB_SECTIONS = {
+  overview: "overview",
   cap: "cap",
   scoring: "scoring",
   ownership: null,
@@ -39,6 +40,7 @@ export function insightsLoadCacheKey(tab, opts, refs) {
     const h = opts.capSeason ?? refs.capSeasonRef.current ?? "current";
     return `cap:${h}`;
   }
+  if (tab === "overview") return "overview";
   return tab;
 }
 
@@ -64,6 +66,10 @@ export function mergeInsightsPayload(prev, next, opts = {}) {
       ? next.efficiency
       : ((prev.efficiency?.teams || []).length ? prev.efficiency : next.efficiency),
     ownership: (next.ownership?.players || []).length ? next.ownership : prev.ownership,
+    landing: next.landing?.available || (next.landing?.champions || []).length
+      ? next.landing
+      : (next.landing?.award_catalog ? next.landing : prev.landing),
+    award_catalog: next.award_catalog || prev.award_catalog,
     draft_recap: next.draft_recap ?? prev.draft_recap,
   };
 }
@@ -101,6 +107,7 @@ export function useInsightsData(leagueId, refs) {
       setData,
       setLoading,
       setTabLoading,
+      setRefreshing,
       setError,
       setVisiblePositions,
       setScoringSeason,
@@ -112,7 +119,7 @@ export function useInsightsData(leagueId, refs) {
       resolveDefaultTeamPick,
       hubContextRef,
     } = handlers;
-    const tab = opts.activeTab ?? activeTabRef?.current ?? "cap";
+    const tab = opts.activeTab ?? activeTabRef?.current ?? "overview";
     const sections = opts.sections ?? INSIGHTS_TAB_SECTIONS[tab];
     const cacheKey = sections ? insightsLoadCacheKey(tab, opts, refs) : null;
     const seasonKey = cacheKey?.split(":").slice(1).join(":") || "current";
@@ -125,6 +132,7 @@ export function useInsightsData(leagueId, refs) {
       }
       setLoading?.(false);
       setTabLoading?.(false);
+      setRefreshing?.(false);
       return;
     }
 
@@ -154,6 +162,8 @@ export function useInsightsData(leagueId, refs) {
       setTabLoading?.(false);
     }
     setError?.("");
+    const foregroundStale = Boolean(hasStale && !opts.background);
+    if (foregroundStale) setRefreshing?.(true);
 
     try {
       const params = new URLSearchParams();
@@ -172,10 +182,17 @@ export function useInsightsData(leagueId, refs) {
       }
       const capOnly = sections === "cap";
       const scoringOnly = sections === "scoring";
-      if (sections && !capOnly && !scoringOnly) params.set("sections", sections);
+      const overviewOnly = sections === "overview";
+      if (sections && !capOnly && !scoringOnly && !overviewOnly) params.set("sections", sections);
       const q = params.toString() ? `?${params.toString()}` : "";
       const root = hubContextRef?.current?.demo ? "/api/hub/demo" : "/api/hub";
-      const insightsRoute = capOnly ? "insights/cap" : scoringOnly ? "insights/scoring" : "insights";
+      const insightsRoute = capOnly
+        ? "insights/cap"
+        : scoringOnly
+          ? "insights/scoring"
+          : overviewOnly
+            ? "insights/overview"
+            : "insights";
       const res = await apiFetch(`${root}/league/${encodeURIComponent(leagueId)}/${insightsRoute}${q}`);
       if (!res.ok) throw new Error(await parseApiError(res));
       const payload = await res.json();
@@ -215,6 +232,7 @@ export function useInsightsData(leagueId, refs) {
         : msg);
     } finally {
       if (generation !== loadGenerationRef.current) return;
+      setRefreshing?.(false);
       if (background) setTabLoading?.(false);
       else setLoading?.(false);
     }

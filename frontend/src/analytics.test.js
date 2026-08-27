@@ -57,12 +57,15 @@ test("pageTitleForPath matches product areas", () => {
   assert.equal(pageTitleForPath("/projections/season/live"), "Projections · Season · Live");
   assert.equal(pageTitleForPath("/hub/home"), "Fantasy · Home");
   assert.equal(pageTitleForPath("/hub/rules"), "Fantasy · Rules");
-  assert.equal(pageTitleForPath("/hub/players"), "Fantasy · Players");
+  assert.equal(pageTitleForPath("/hub/players"), "Fantasy · Strategy");
+  assert.equal(pageTitleForPath("/hub/strategy"), "Fantasy · Strategy");
+  assert.equal(pageTitleForPath("/hub/free-agents"), "Fantasy · Free agents");
   assert.equal(pageTitleForPath("/hub/draft"), "Fantasy · Draft");
   assert.equal(pageTitleForPath("/hub/week"), "Fantasy · This Week");
   assert.equal(pageTitleForPath("/hub/roster"), "Fantasy · My Team");
   assert.equal(pageTitleForPath("/hub/cap"), "Fantasy · Cap");
   assert.equal(pageTitleForPath("/hub/insights/spend"), "Fantasy · Insights · Spend");
+  assert.equal(pageTitleForPath("/hub/insights/overview"), "Fantasy · Insights · Overview");
   assert.equal(pageTitleForPath("/hub/insights/scoring"), "Fantasy · Insights · Scoring");
   assert.equal(pageTitleForPath("/hub/insights/history"), "Fantasy · Insights · History");
   assert.equal(pageTitleForPath("/hub/office/chat"), "Fantasy · Roster management · Contracts");

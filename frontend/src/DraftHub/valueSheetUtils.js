@@ -43,6 +43,23 @@ export function isRowAvailable(row) {
   return status === "available" || status === "pass" || status === "target" || status === "sleeper";
 }
 
+/** Already on a roster (keepers, mine, or drafted). */
+export function isRowRostered(row) {
+  const status = row?.status;
+  return status === "taken" || status === "mine" || status === "rostered";
+}
+
+export function pinWatchedPlayers(list, watchIds) {
+  if (!watchIds?.length) return list;
+  const watched = new Set((watchIds || []).map(String));
+  const starred = [];
+  const rest = [];
+  for (const row of list || []) {
+    (watched.has(String(row.player_id)) ? starred : rest).push(row);
+  }
+  return [...starred, ...rest];
+}
+
 export function compareRows(a, b, sortKey, sortDir) {
   const av = sortValue(a, sortKey);
   const bv = sortValue(b, sortKey);
@@ -128,6 +145,7 @@ export function filterAndSortRows(rows, {
   search = "",
   sortKey = "fair_value",
   sortDir = "desc",
+  watchIds = [],
 }) {
   let list = [...(rows || [])];
   if (pool === "available") {
@@ -142,7 +160,10 @@ export function filterAndSortRows(rows, {
   if (statusFilter === "AVAILABLE") {
     list = list.filter(isRowAvailable);
   } else if (statusFilter === "TAKEN") {
-    list = list.filter((r) => r.status === "taken");
+    list = list.filter(isRowRostered);
+  } else if (statusFilter === "STARRED") {
+    const watched = new Set((watchIds || []).map(String));
+    list = list.filter((r) => watched.has(String(r.player_id)));
   } else if (statusFilter === "MINE") {
     list = list.filter((r) => r.status === "mine" || r.status === "rostered" || r.status === "sleeper");
   } else if (statusFilter === "SLEEPER") {

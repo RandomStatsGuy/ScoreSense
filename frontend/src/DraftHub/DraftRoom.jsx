@@ -19,6 +19,8 @@ import SnakeDraftBoard from "./SnakeDraftBoard.jsx";
 import { confirmDialog } from "../ui/confirm";
 import DraftLiveCommandBar from "./DraftLiveCommandBar";
 import DraftOverflowMenu from "./DraftOverflowMenu";
+import ThinkingScrim from "../ui/ThinkingScrim";
+import useSlowThink from "../hooks/useSlowThink";
 import {
   viewerIsCommissioner,
   nextNominator,
@@ -77,6 +79,8 @@ export default function DraftRoom({
   toolMode = false,
   toolLabel = "",
   onExitRoom,
+  watchIds: watchIdsProp,
+  onWatchPlayer: onWatchPlayerProp,
 }) {
   const [roomState, setRoomState] = useState(null);
   const [roomLoading, setRoomLoading] = useState(false);
@@ -101,7 +105,7 @@ export default function DraftRoom({
   const mobileLayout = useMobileLayout();
   const [connectionStatus, setConnectionStatus] = useState("connecting");
   const [activityTab, setActivityTab] = useState("");
-  const [watchIds, setWatchIds] = useState([]);
+  const [watchIdsLocal, setWatchIds] = useState([]);
   const [soundEnabled, setSoundEnabled] = useState(() => loadDraftSoundPreference());
   const wsAliveRef = useRef(false);
   const wsGenRef = useRef(0);
@@ -693,6 +697,11 @@ export default function DraftRoom({
       const res = await apiFetch(`/api/hub/league/${leagueId}`);
       if (gen !== roomFetchGenRef.current) return;
       if (!res.ok) {
+        if (res.status === 404 && (toolMode || testMode)) {
+          onLeagueIdChange?.("");
+          onExitRoom?.();
+          return;
+        }
         throw new Error(await parseApiError(res));
       }
       applyState(await res.json());
@@ -702,7 +711,7 @@ export default function DraftRoom({
     } finally {
       if (gen === roomFetchGenRef.current) setRoomLoading(false);
     }
-  }, [leagueId, applyState]);
+  }, [leagueId, applyState, toolMode, testMode, onLeagueIdChange, onExitRoom]);
 
   useEffect(() => {
     if (leagueId) connectWs(leagueId);
@@ -716,13 +725,20 @@ export default function DraftRoom({
   }, [leagueId, connectWs, clearWsReconnectTimer, teardownSocket]);
 
   useEffect(() => {
+    if (watchIdsProp) return;
     if (leagueId) setWatchIds(loadWatchIds(leagueId));
-  }, [leagueId]);
+  }, [leagueId, watchIdsProp]);
 
   const toggleWatch = useCallback((row) => {
+    if (onWatchPlayerProp) {
+      onWatchPlayerProp(row);
+      return;
+    }
     if (!leagueId || !row?.player_id) return;
     setWatchIds(toggleWatchId(leagueId, row.player_id));
-  }, [leagueId]);
+  }, [leagueId, onWatchPlayerProp]);
+
+  const watchIds = watchIdsProp || watchIdsLocal;
 
   const queuePlayer = useCallback(async (row) => {
     const pid = String(row?.player_id || "");
@@ -904,6 +920,24 @@ export default function DraftRoom({
         onLeagueIdChange(backId);
       } else {
         onLeagueIdChange("");
+      }
+    });
+  };
+
+  const toggleSaveMock = async () => {
+    if (!leagueId || !testMode) return;
+    await runAction(async () => {
+      const res = await apiFetch(`/api/hub/mock-draft/${leagueId}/keep`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ saved: !league?.mock_saved }),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const data = await res.json();
+      if (data.league) {
+        setRoomState((prev) => (
+          prev ? { ...prev, league: { ...prev.league, ...data.league } } : prev
+        ));
       }
     });
   };
@@ -1380,8 +1414,10 @@ export default function DraftRoom({
   const myMaxBid = Number.isFinite(myBudget)
     ? Math.max(0, relaxLimits ? myBudget : myBudget - Math.max(0, openSlotsTotal - 1) * minBidUnit)
     : null;
+  const showDraftThink = useSlowThink(Boolean(roomLoading && !session));
   return (
     <HubPage className={`hub-draft-room${draftCompleted ? " hub-draft-room--ended" : ""}${showDraftEntry ? " hub-experience-page" : ""}`}>
+      <ThinkingScrim show={showDraftThink} scene="draft" />
       {!inLiveDraft && !draftCompleted && !toolMode && !showDraftEntry && (
         <header className="hub-draft-idle-header">
           <h2 className="hub-draft-idle-title">Draft room</h2>
@@ -1591,6 +1627,17 @@ export default function DraftRoom({
                   {!testMode && (
                     <button type="button" role="menuitem" className="btn-ghost btn-sm" disabled={busy} onClick={resetLiveDraft}>
                       Reset
+                    </button>
+                  )}
+                  {testMode && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="btn-ghost btn-sm"
+                      disabled={busy}
+                      onClick={toggleSaveMock}
+                    >
+                      {league?.mock_saved ? "Unpin mock" : "Save this mock"}
                     </button>
                   )}
                   {testMode && (

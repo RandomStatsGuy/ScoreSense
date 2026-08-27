@@ -1,13 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import DraftDeadlineClock from "./DraftDeadlineClock";
 import { fmtSal } from "./rosterFormat";
 import {
+  bidAmountAriaInvalid,
   bidAmountInputLocked,
   bidAmountSubmitLocked,
   bidRelation,
   bidRelationLabel,
   connectionStatusLabel,
   sanitizeBidAmountInput,
+  shouldSwallowBidDeleteKey,
 } from "./draftLiveConsole";
 
 function playerShortName(nominee) {
@@ -62,13 +64,20 @@ export default function DraftLiveCommandBar({
     : session?.nomination_deadline;
   const nextBid = suggestedBid ?? (highBid + Number(minBid || 1));
   const connLabel = connectionStatusLabel(connectionStatus);
+  const [focusedDraft, setFocusedDraft] = useState(null);
+  const fieldValue = focusedDraft != null ? focusedDraft : bidAmount;
   const inputLocked = bidAmountInputLocked({
     controlsLocked: bidDisabled,
     positionBlocked: false,
   });
   const submitLocked = bidAmountSubmitLocked({
     controlsLocked: bidDisabled,
-    amount: bidAmount,
+    amount: fieldValue,
+    minBid: nextBid,
+  });
+  const amountInvalid = bidAmountAriaInvalid({
+    inputLocked,
+    amount: fieldValue,
     minBid: nextBid,
   });
 
@@ -79,7 +88,25 @@ export default function DraftLiveCommandBar({
 
   const changeBidAmount = (event) => {
     const next = sanitizeBidAmountInput(event.target.value);
-    if (next != null) onBidAmountChange?.(next);
+    if (next == null) return;
+    if (focusedDraft != null) setFocusedDraft(next);
+    onBidAmountChange?.(next);
+  };
+
+  const onAmountKeyDown = (event) => {
+    if (!shouldSwallowBidDeleteKey({ key: event.key, amount: fieldValue })) return;
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const onAmountFocus = (event) => {
+    setFocusedDraft(event.target.value ?? "");
+    onBidAmountFocus?.(event);
+  };
+
+  const onAmountBlur = (event) => {
+    setFocusedDraft(null);
+    onBidAmountBlur?.(event);
   };
 
   return (
@@ -143,17 +170,17 @@ export default function DraftLiveCommandBar({
               id="hub-live-bid-amount"
               type="text"
               inputMode="numeric"
-              pattern="[0-9]*"
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
               className="hub-bid-input"
-              value={bidAmount}
-              aria-invalid={submitLocked && !inputLocked}
+              value={fieldValue}
+              aria-invalid={amountInvalid}
               disabled={inputLocked}
-              onFocus={onBidAmountFocus}
-              onBlur={onBidAmountBlur}
+              onFocus={onAmountFocus}
+              onBlur={onAmountBlur}
               onChange={changeBidAmount}
+              onKeyDown={onAmountKeyDown}
             />
             <button
               type="submit"

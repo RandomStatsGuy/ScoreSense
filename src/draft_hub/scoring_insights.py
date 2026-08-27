@@ -1,10 +1,12 @@
-"""Fun scoring superlatives from Sleeper weekly matchups."""
+"""Scoring superlatives from Sleeper weekly matchups."""
 
 from __future__ import annotations
 
 import statistics
 from collections import defaultdict
 from typing import Any
+
+from src.draft_hub.insight_awards import award_title
 
 
 def _award(
@@ -86,9 +88,8 @@ def build_scoring_awards(
     awards.append(
         _award(
             "points_king",
-            title="Point Hoarder",
-            headline=f"{leader['total_points']} pts — league-high output",
-            roast="The rest of the league is filing a complaint.",
+            title=award_title("points_king"),
+            headline=f"{leader['total_points']} pts — league high",
             team_name=leader["team_name"],
             owner_id=leader.get("owner_id"),
             amount=leader["total_points"],
@@ -106,13 +107,12 @@ def build_scoring_awards(
         awards.append(
             _award(
                 "basement",
-                title="Tank Commander",
+                title=award_title("basement"),
                 headline=f"{gap} pts behind 1st place",
-                roast="The rebuild is going great. Trust the process.",
                 team_name=basement["team_name"],
                 owner_id=basement.get("owner_id"),
                 amount=basement["total_points"],
-                detail=f"{basement['total_points']} total pts · dead last",
+                detail=f"{basement['total_points']} total pts · fewest in the league",
                 tone="bad",
                 owner_map=owner_map,
                 sleeper_owner_map=sleeper_owner_map,
@@ -161,9 +161,8 @@ def build_scoring_awards(
         awards.append(
             _award(
                 "weekly_nuke",
-                title="Nuclear Week",
+                title=award_title("weekly_nuke"),
                 headline=f"{boom_pts} pts in week {boom_week}",
-                roast="That wasn't a lineup. That was a war crime.",
                 team_name=boom_team,
                 owner_id=boom_oid or None,
                 amount=boom_pts,
@@ -178,9 +177,8 @@ def build_scoring_awards(
         awards.append(
             _award(
                 "weekly_disaster",
-                title="Postmortem Week",
+                title=award_title("weekly_disaster"),
                 headline=f"{bust_pts} pts in week {bust_week}",
-                roast="Commissioner should've sent a wellness check.",
                 team_name=bust_team,
                 owner_id=bust_oid or None,
                 amount=bust_pts,
@@ -197,9 +195,8 @@ def build_scoring_awards(
         awards.append(
             _award(
                 "margin_massacre",
-                title="Public Humiliation",
+                title=award_title("margin_massacre"),
                 headline=f"+{margin:.1f} pts in week {week_num}",
-                roast="Second place wasn't close. It was theoretical.",
                 team_name=winner,
                 owner_id=winner_oid or None,
                 amount=margin,
@@ -214,9 +211,8 @@ def build_scoring_awards(
         awards.append(
             _award(
                 "nail_biter",
-                title="Photo Finish",
+                title=award_title("nail_biter"),
                 headline=f"Won week {nail_week} by {nail:.1f} pts",
-                roast="One bad snap away from group chat chaos.",
                 team_name=nail_winner,
                 owner_id=nail_oid or None,
                 amount=nail,
@@ -237,9 +233,8 @@ def build_scoring_awards(
             awards.append(
                 _award(
                     "always_runner_up",
-                    title="Permanent Bridesmaid",
+                    title=award_title("always_runner_up"),
                     headline=f"{bridesmaid_count} weeks in 2nd",
-                    roast="Always bridesmaid, never the weekly bully.",
                     team_name=bridesmaid_team,
                     owner_id=team_to_owner_id.get(bridesmaid_team) or None,
                     amount=float(bridesmaid_count),
@@ -267,9 +262,8 @@ def build_scoring_awards(
         awards.append(
             _award(
                 "steady_eddie",
-                title="Robot Manager",
+                title=award_title("steady_eddie"),
                 headline=f"{avg:.1f} avg · σ {stdev:.1f}",
-                roast="No spikes. No soul. Just points.",
                 team_name=name,
                 owner_id=team_to_owner_id.get(name) or None,
                 amount=avg,
@@ -284,9 +278,8 @@ def build_scoring_awards(
         awards.append(
             _award(
                 "rollercoaster",
-                title="Chaos Merchant",
+                title=award_title("rollercoaster"),
                 headline=f"{avg:.1f} avg · σ {stdev:.1f}",
-                roast="Your league chat never knows which version shows up.",
                 team_name=name,
                 owner_id=team_to_owner_id.get(name) or None,
                 amount=stdev,
@@ -307,9 +300,8 @@ def build_scoring_awards(
         awards.append(
             _award(
                 "floor_collapse",
-                title="Jekyll & Hyde",
+                title=award_title("floor_collapse"),
                 headline=f"{swing:.1f} pt spread · {peak:.0f} peak / {floor:.0f} floor",
-                roast="Same manager. Completely different team.",
                 team_name=name,
                 owner_id=team_to_owner_id.get(name) or None,
                 amount=swing,
@@ -329,9 +321,8 @@ def build_scoring_awards(
         awards.append(
             _award(
                 "participation_trophy",
-                title="Statistically Mid",
+                title=award_title("participation_trophy"),
                 headline=f"{mid_team.get('avg_points', 0)} avg · league avg {league_avg:.1f}",
-                roast="Not bad. Not good. Just… there.",
                 team_name=mid_team["team_name"],
                 owner_id=mid_team.get("owner_id"),
                 amount=float(mid_team.get("avg_points") or 0),
@@ -361,9 +352,8 @@ def build_scoring_awards(
         awards.append(
             _award(
                 "wire_to_wire",
-                title="Weekly Dictator",
+                title=award_title("wire_to_wire"),
                 headline=f"{wire_count} week{'s' if wire_count != 1 else ''} on top",
-                roast="Owned the scoreboard like it owed them money.",
                 team_name=wire_team,
                 owner_id=week_win_owner.get(wire_team) or team_to_owner_id.get(wire_team) or None,
                 amount=float(wire_count),
@@ -384,9 +374,8 @@ def build_scoring_awards(
                 awards.append(
                     _award(
                         "cap_efficiency_goat",
-                        title="Cap Criminal (Legal)",
+                        title=award_title("cap_efficiency_goat"),
                         headline=f"{best['points_per_dollar']} pts/$",
-                        roast="Paid like a genius. Scored like one too.",
                         team_name=best["team_name"],
                         amount=best.get("points_per_dollar"),
                         detail=f"{best.get('total_points', 0)} pts on {best.get('committed', 0)} committed",
@@ -400,9 +389,8 @@ def build_scoring_awards(
                 awards.append(
                     _award(
                         "cap_efficiency_fraud",
-                        title="Cap Malpractice",
+                        title=award_title("cap_efficiency_fraud"),
                         headline=f"{worst['points_per_dollar']} pts/$",
-                        roast="All that salary cap. For THIS output?",
                         team_name=worst["team_name"],
                         amount=worst.get("points_per_dollar"),
                         detail="Lowest points per committed dollar",

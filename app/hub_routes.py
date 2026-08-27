@@ -79,6 +79,7 @@ from src.draft_hub.schemas import (
     SleeperSyncRequest,
     DraftContractsRequest,
     MockDraftStartRequest,
+    MockKeepRequest,
     SimulateDraftRequest,
     TestDraftSetupRequest,
     TradeSwapRequest,
@@ -390,6 +391,13 @@ def hub_put_workspace(body: WorkspaceUpdate, _user=Depends(require_hub_user)) ->
             storage.update_league_name(league_id, body.name)
         if rules_to_apply:
             storage.update_league_rules(league_id, rules_to_apply)
+            _clear_insights_response_cache(league_id)
+            try:
+                from src.draft_hub.insights_cache import invalidate_cap_cache
+
+                invalidate_cap_cache(league_id)
+            except Exception:
+                pass
     ctx = _ctx(sub)
     if ctx.get("mode") == "league":
         team = storage.get_team(str(ctx["team_id"])) if ctx.get("team_id") else None
@@ -1459,6 +1467,19 @@ def _parse_history_season(value: str | None) -> tuple[str, int | None]:
         return "current", None
 
 
+def _league_award_titles(league: dict | None) -> dict[str, str]:
+    from src.draft_hub.insight_awards import normalize_award_titles
+
+    rules = (league or {}).get("rules") or {}
+    return normalize_award_titles(rules.get("insight_award_titles"))
+
+
+def _with_award_titles(awards: list | None, league: dict | None) -> list:
+    from src.draft_hub.insight_awards import apply_award_titles
+
+    return apply_award_titles(awards or [], _league_award_titles(league))
+
+
 def _parse_insights_sections(value: str | None) -> set[str] | None:
     """None = full payload; otherwise only build listed sections."""
     if not value or not str(value).strip():
@@ -1528,6 +1549,8 @@ def _enrich_cap_analytics(
 ) -> dict:
     from src.draft_hub.owner_display import enrich_team_row, team_owner_map_for_league
 
+    if analytics.get("identity") == "owner":
+        return {**analytics, "teams": analytics.get("teams") or []}
     owner_map = team_owner_map_for_league(league_id, season_year=season_year)
     teams = [
         enrich_team_row(t, owner_map, year_specific=year_specific)
@@ -1583,7 +1606,7 @@ def _historic_insights_block(
             if mode == "current"
             else []
         )
-        return {**meta, "mode": mode, "season": season_year, "awards": awards}
+        return {**meta, "mode": mode, "season": season_year, "awards": _with_award_titles(awards, league)}
 
     view = _contract_view_for_season(league, season_year if mode == "year" else None)
 
@@ -1608,7 +1631,7 @@ def _historic_insights_block(
         "season": season_year,
         "contract_view": view,
         "analytics": analytics,
-        "awards": awards,
+        "awards": _with_award_titles(awards, league),
     }
 
 
@@ -1823,7 +1846,7 @@ def hub_league_insights(
     ),
     sections: Optional[str] = Query(
         None,
-        description="Comma-separated blocks: cap,scoring,trades,ownership (default all)",
+        description="Comma-separated blocks: overview,cap,scoring,trades,ownership (default all except overview)",
     ),
     ownership_only: bool = Query(False, description="Return Sleeper ownership history only"),
     _user=Depends(require_hub_user),
@@ -1869,6 +1892,12 @@ def hub_league_insights(
             analytics_hit = (cached_cap or {}).get("analytics") or {}
             if cached_cap and (analytics_hit.get("teams") or []):
                 league = storage.get_league(league_id) or {}
+                historic_hit = cached_cap.get("historic") or {"available": False, "awards": []}
+                if historic_hit.get("awards"):
+                    historic_hit = {
+                        **historic_hit,
+                        "awards": _with_award_titles(historic_hit.get("awards"), league),
+                    }
                 payload = {
                     "analytics": analytics_hit,
                     "trade": {
@@ -1883,11 +1912,58 @@ def hub_league_insights(
                     "scoring_awards": [],
                     "efficiency": {"available": False, "teams": []},
                     "ownership": {"players": [], "player_count": 0},
-                    "historic": cached_cap.get("historic") or {"available": False, "awards": []},
+                    "historic": historic_hit,
                     "owner_map": team_owner_map_for_league(league_id),
                     "planning_season": planning_season_for_user(sub, league),
                     "hub_context": ctx,
                     "cache_status": {"cap": "hit"},
+                    "timing_ms": round(sum(timer.phases.values()), 1) if timer.phases else None,
+                }
+                if cache_key:
+                    _INSIGHTS_RESPONSE_CACHE[cache_key] = (time.time(), payload)
+                return payload
+
+        # Overview landing: champions / records / scoring leaders without roster rebuild.
+        if (
+            not refresh
+            and not ownership_only
+            and wanted_sections == {"overview"}
+        ):
+            from src.draft_hub.insight_awards import award_catalog
+            from src.draft_hub.league_history import build_insights_landing
+            from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
+            from src.draft_hub.owner_display import planning_season_for_user, team_owner_map_for_league
+
+            with timer.phase("landing"):
+                league = storage.get_league(league_id) or {}
+                sleeper_lid = resolve_sleeper_league_id(league_id) or ""
+                landing = build_insights_landing(
+                    str(sleeper_lid),
+                    hub_teams=_hub_teams_for_scoring(league_id),
+                    refresh=False,
+                    award_titles=_league_award_titles(league),
+                )
+                payload = {
+                    "analytics": {"teams": [], "positions": []},
+                    "trade": {
+                        "my_team_id": str(team_id or ctx.get("team_id") or ""),
+                        "balance": {},
+                        "actionable_needs": [],
+                        "partners": [],
+                        "suggestions": [],
+                    },
+                    "draft_recap": None,
+                    "scoring": {"available": False, "reason": "not_loaded"},
+                    "scoring_awards": [],
+                    "efficiency": {"available": False, "teams": []},
+                    "ownership": {"players": [], "player_count": 0},
+                    "historic": {"available": False, "awards": []},
+                    "landing": landing,
+                    "award_catalog": landing.get("award_catalog") or award_catalog(_league_award_titles(league)),
+                    "owner_map": team_owner_map_for_league(league_id),
+                    "planning_season": planning_season_for_user(sub, league),
+                    "hub_context": ctx,
+                    "cache_status": {"overview": "hit" if landing.get("available") else "miss"},
                     "timing_ms": round(sum(timer.phases.values()), 1) if timer.phases else None,
                 }
                 if cache_key:
@@ -2203,6 +2279,26 @@ def hub_league_insights(
                     }
         from src.draft_hub.owner_display import planning_season_for_user, team_owner_map_for_league
 
+    landing = None
+    if wanted_sections and "overview" in wanted_sections:
+        from src.draft_hub.insight_awards import award_catalog
+        from src.draft_hub.league_history import build_insights_landing
+        from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
+
+        with timer.phase("landing"):
+            sleeper_lid = resolve_sleeper_league_id(league_id) or ""
+            landing = build_insights_landing(
+                str(sleeper_lid),
+                hub_teams=_hub_teams_for_scoring(league_id),
+                refresh=refresh,
+                award_titles=_league_award_titles(league),
+            )
+
+    if scoring.get("awards"):
+        scoring = {**scoring, "awards": _with_award_titles(scoring.get("awards"), league)}
+    if historic.get("awards"):
+        historic = {**historic, "awards": _with_award_titles(historic.get("awards"), league)}
+
     payload = {
         "analytics": analytics,
         "trade": trade,
@@ -2212,6 +2308,8 @@ def hub_league_insights(
         "efficiency": efficiency,
         "ownership": ownership,
         "historic": historic,
+        "landing": landing,
+        "award_catalog": (landing or {}).get("award_catalog"),
         "owner_map": team_owner_map_for_league(league_id),
         "planning_season": planning_season_for_user(sub, league),
         "hub_context": ctx,
@@ -2246,6 +2344,23 @@ def hub_league_insights_status(
         "planning_season": str(league.get("season") or ""),
         "available_scoring_seasons": chain_seasons,
     }
+
+
+@router.get("/league/{league_id}/insights/overview")
+def hub_league_insights_overview(
+    response: Response,
+    league_id: str,
+    refresh: bool = Query(False),
+    _user=Depends(require_hub_user),
+) -> dict:
+    return hub_league_insights(
+        response=response,
+        league_id=league_id,
+        refresh=refresh,
+        sections="overview",
+        ownership_only=False,
+        _user=_user,
+    )
 
 
 @router.get("/league/{league_id}/insights/cap")
@@ -2382,12 +2497,15 @@ def hub_league_scoring_awards(
                     sleeper_league_id=scoring.get("sleeper_league_id") or str(sleeper_lid or ""),
                 )
                 planning_season = planning_season_for_user(sub, league)
-                awards = build_scoring_awards(
-                    scoring,
-                    efficiency=efficiency,
-                    owner_map=owner_map,
-                    sleeper_owner_map=sleeper_owner_map,
-                    planning_season=planning_season,
+                awards = _with_award_titles(
+                    build_scoring_awards(
+                        scoring,
+                        efficiency=efficiency,
+                        owner_map=owner_map,
+                        sleeper_owner_map=sleeper_owner_map,
+                        planning_season=planning_season,
+                    ),
+                    league,
                 )
     return {
         "available": bool(scoring.get("available")) if isinstance(scoring, dict) else False,
@@ -4155,9 +4273,31 @@ async def hub_league_sheet_import(
 
 @router.get("/mock-drafts")
 def hub_list_mock_drafts(_user=Depends(require_hub_user)) -> dict:
-    """Recent practice rooms for the Tools → Mock draft launcher."""
+    """Saved favorites plus the latest unsaved practice rooms."""
     sub = _sub(_user)
-    return {"rooms": storage.list_mock_drafts_for_sub(sub)}
+    return {"rooms": storage.list_mock_drafts_for_sub(sub), "max_saved": storage.MAX_SAVED_MOCKS}
+
+
+@router.put("/mock-draft/{league_id}/keep")
+def hub_keep_mock_draft(
+    league_id: str,
+    body: MockKeepRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Pin a practice room as a favorite, or unpin it."""
+    sub = _sub(_user)
+    league = storage.get_league(league_id)
+    if not league:
+        raise HTTPException(status_code=404, detail="League not found")
+    if not league.get("test_mode"):
+        raise HTTPException(status_code=400, detail="Only practice rooms can be saved")
+    if league.get("commissioner_sub") != sub:
+        raise HTTPException(status_code=403, detail="Only the commissioner can save this mock")
+    try:
+        updated = storage.set_mock_saved(league_id, body.saved)
+        return {"league": updated, "saved": bool(updated.get("mock_saved"))}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/mock-draft/start")
@@ -4686,6 +4826,13 @@ def hub_demo_league_insights_status(league_id: str) -> dict:
 
     assert_demo_league(league_id)
     return {"cap": "hit", "scoring": "miss", "fair_values": "miss"}
+
+
+@router.get("/demo/league/{league_id}/insights/overview")
+def hub_demo_league_insights_overview(league_id: str) -> dict:
+    from src.draft_hub.hub_demo import build_demo_insights
+
+    return build_demo_insights(league_id, sections="overview")
 
 
 @router.get("/demo/league/{league_id}/insights/cap")

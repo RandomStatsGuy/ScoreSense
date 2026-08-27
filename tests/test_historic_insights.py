@@ -168,3 +168,30 @@ def test_build_contract_awards_season(league_with_contracts):
     assert "most_overpaid" in ids
     highest = next(a for a in awards if a["id"] == "highest_paid")
     assert highest["amount"] == 27
+    assert highest["title"] == "Highest salary"
+    assert highest.get("roast") in (None, "")
+
+
+def test_all_time_analytics_groups_owners_and_averages_cap_pct(league_with_contracts):
+    lid = league_with_contracts
+    storage.upsert_season_salary_cap(lid, 2024, 100)
+    storage.upsert_season_salary_cap(lid, 2025, 200)
+    out = build_contract_analytics(lid, season_year=None, salary_cap=200)
+    assert out is not None
+    assert out["mode"] == "all_time"
+    assert out["value_mode"] == "avg_pct"
+    assert out["identity"] == "owner"
+    teams = {t["team_name"]: t for t in out["teams"]}
+    assert "Aaron D" in teams
+    assert "Caleb K" in teams
+    assert "Thanks noob noob" not in teams
+    assert "White Supremacists" not in teams
+    aaron = teams["Aaron D"]
+    # 2024: $17 / $100 = 17%. 2025: $20 / $200 = 10%. Avg committed = 13.5%.
+    assert aaron["pct_committed"] == 13.5
+    assert aaron["pct_by_position"]["QB"] == 13.5
+    assert aaron["spend_by_position"]["QB"] == 0.0
+    caleb = teams["Caleb K"]
+    # 2024: $27 / $100 = 27%. 2025: $32 / $200 = 16%. Avg = 21.5%.
+    assert caleb["pct_committed"] == 21.5
+    assert caleb["pct_by_position"]["RB"] == 21.5

@@ -4,10 +4,11 @@ import MobileBottomSheet from "../layout/MobileBottomSheet";
 /** group: "home" | "prep" (draft prep) | "season" (in-season) | "office" (league-wide). */
 export const HUB_SUBVIEWS = [
   { id: "home", label: "Home", shortLabel: "Home", hint: "Action center", group: "home" },
-  { id: "value", label: "Players", shortLabel: "Players", hint: "Prices", group: "prep" },
+  { id: "value", label: "Strategy", shortLabel: "Strategy", hint: "Star targets & prices", group: "prep" },
   { id: "room", label: "Draft", shortLabel: "Draft", hint: "Live auction", group: "prep" },
   { id: "week", label: "This Week", shortLabel: "Week", hint: "Lineup decisions", group: "season" },
   { id: "roster", label: "My team", shortLabel: "My team", hint: "Your contracts", group: "season" },
+  { id: "available", label: "Free agents", shortLabel: "FA", hint: "Pickup board", group: "season" },
   { id: "rosters", label: "Rosters", shortLabel: "Rosters", leagueOnly: true, hint: "All teams", group: "season" },
   { id: "planner", label: "Cap", shortLabel: "Cap", hint: "Cap & cuts", group: "season" },
   { id: "trades", label: "Trades", shortLabel: "Trades", leagueOnly: true, hint: "Propose & accept", group: "season" },
@@ -21,7 +22,7 @@ export const HUB_SUBVIEWS = [
     hint: "League-wide contracts and access",
     group: "office",
   },
-  { id: "insights", label: "Insights", shortLabel: "Insights", leagueOnly: true, hint: "Talking points", group: "office" },
+  { id: "insights", label: "Insights", shortLabel: "Insights", leagueOnly: true, hint: "League history", group: "office" },
 ];
 
 const GROUP_LABELS = { home: "", prep: "Draft", season: "Team", office: "League" };

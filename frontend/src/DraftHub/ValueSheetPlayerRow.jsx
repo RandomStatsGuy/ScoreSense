@@ -6,6 +6,7 @@ import { formatRiskScore, isRiskToleranceActive, riskScoreTooltip } from "../ris
 import { fmtSal, formatStatusLabel } from "./valueSheetUtils";
 import RaavBidCell from "./RaavBidCell";
 import { riskBand, riskBandTooltip, suggestedBidCaption } from "./draftLiveConsole";
+import ContractHistoryLink from "./ContractHistoryLink";
 
 function ValueSheetPlayerRow({
   row,
@@ -51,6 +52,7 @@ function ValueSheetPlayerRow({
   showSalaryBounds = false,
   actionCol = true,
   needPositions = [],
+  onOpenContractHistory,
 }) {
   const handleRowClick = useCallback(() => {
     if (onSelectPlayer) onSelectPlayer(row);
@@ -101,18 +103,41 @@ function ValueSheetPlayerRow({
       aria-disabled={actionsDisabled && onRowDoubleClick ? "true" : undefined}
     >
       <td className="col-player">
-        <PlayerCell
-          name={row.player}
-          team={row.team}
-          playerId={row.player_id}
-          media={playerMedia}
-          size="sm"
-          showTeam={Boolean(!draftConsole)}
-          position={draftConsole ? row.position : undefined}
-          clickable={Boolean(row.player_id)}
-          narrativeScope={narrativeScope}
-        />
+        <div className="hub-player-cell-row">
+          {onWatchPlayer ? (
+            <button
+              type="button"
+              className={`hub-star-btn${(watchIds || []).map(String).includes(String(row.player_id)) ? " is-starred" : ""}`}
+              aria-label={(watchIds || []).map(String).includes(String(row.player_id)) ? "Remove star" : "Star for draft"}
+              aria-pressed={(watchIds || []).map(String).includes(String(row.player_id))}
+              title={(watchIds || []).map(String).includes(String(row.player_id)) ? "Starred" : "Star to take"}
+              onClick={(event) => {
+                event.stopPropagation();
+                onWatchPlayer(row);
+              }}
+            >
+              {(watchIds || []).map(String).includes(String(row.player_id)) ? "★" : "☆"}
+            </button>
+          ) : null}
+          <PlayerCell
+            name={row.player}
+            team={row.team}
+            playerId={row.player_id}
+            media={playerMedia}
+            size="sm"
+            showTeam={Boolean(!draftConsole)}
+            position={draftConsole ? row.position : undefined}
+            clickable={Boolean(row.player_id)}
+            narrativeScope={narrativeScope}
+          />
+        </div>
           {row.is_rookie && <span className="hub-sleeper-badge">Rookie est.</span>}
+          <ContractHistoryLink
+            playerId={row.player_id}
+            playerName={row.player || row.player_name}
+            onOpen={onOpenContractHistory}
+            className="btn-link btn-sm hub-contract-history-link"
+          />
         </td>
       {showTeam && <td className="hub-col-team" title={row.team}>{row.team}</td>}
       {showPosCol && <td className="hub-col-pos">{row.position}</td>}
@@ -213,14 +238,6 @@ function ValueSheetPlayerRow({
             >
               Queue
             </button>
-            <button
-              type="button"
-              className="btn-ghost btn-sm"
-              aria-pressed={(watchIds || []).map(String).includes(String(row.player_id))}
-              onClick={() => onWatchPlayer?.(row)}
-            >
-              {(watchIds || []).map(String).includes(String(row.player_id)) ? "★" : "☆"}
-            </button>
           </div>
         )}
         {showSelect && (
@@ -284,6 +301,9 @@ function propsAreEqual(prev, next) {
     && prev.canNominate === next.canNominate
     && prev.actionsDisabled === next.actionsDisabled
     && prev.draftConsole === next.draftConsole
+    && prev.onOpenContractHistory === next.onOpenContractHistory
+    && prev.onWatchPlayer === next.onWatchPlayer
+    && prev.watchIds === next.watchIds
   );
 }
 

@@ -6,8 +6,10 @@ import {
   bidRelationLabel,
   bidAmountInputLocked,
   bidAmountSubmitLocked,
+  bidAmountAriaInvalid,
   displayedBidAmount,
   sanitizeBidAmountInput,
+  shouldSwallowBidDeleteKey,
   riskBand,
   suggestedBidSource,
   nextNominator,
@@ -23,6 +25,9 @@ import {
   isLiveAuctionStatus,
   draftInteractionState,
   draftResultTransition,
+  loadWatchIds,
+  saveWatchIds,
+  toggleWatchId,
 } from "./draftLiveConsole.js";
 
 test("viewerIsCommissioner uses only the viewer's staff flag", () => {
@@ -75,9 +80,32 @@ test("displayedBidAmount keeps a focused edit and snaps invalid unfocused amount
     "12",
   );
   assert.equal(
+    displayedBidAmount({ currentAmount: "", suggestedBid: 8, focused: true, touched: true }),
+    "",
+  );
+  assert.equal(
+    displayedBidAmount({ currentAmount: "", suggestedBid: 8, focused: false, touched: true }),
+    "8",
+  );
+  assert.equal(
     displayedBidAmount({ currentAmount: "12", suggestedBid: 8, focused: false, touched: false }),
     "8",
   );
+});
+
+test("empty bid amount is not aria-invalid; Delete on empty is swallowed", () => {
+  assert.equal(
+    bidAmountAriaInvalid({ amount: "", minBid: 6 }),
+    false,
+  );
+  assert.equal(
+    bidAmountAriaInvalid({ amount: "5", minBid: 6 }),
+    true,
+  );
+  assert.equal(shouldSwallowBidDeleteKey({ key: "Backspace", amount: "" }), true);
+  assert.equal(shouldSwallowBidDeleteKey({ key: "Delete", amount: "" }), true);
+  assert.equal(shouldSwallowBidDeleteKey({ key: "Backspace", amount: "12" }), false);
+  assert.equal(shouldSwallowBidDeleteKey({ key: "a", amount: "" }), false);
 });
 
 test("sanitizeBidAmountInput accepts integer dollars only", () => {
@@ -277,4 +305,25 @@ test("draftResultTransition primes room history and announces only new results",
   });
   assert.equal(announced.event, next);
   assert.equal(announced.lastEventId, "pick-13");
+});
+
+test("watch list persists to localStorage", () => {
+  const store = new Map();
+  const fake = {
+    getItem: (k) => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => { store.set(k, String(v)); },
+    removeItem: (k) => { store.delete(k); },
+  };
+  const prevLocal = globalThis.localStorage;
+  const prevSess = globalThis.sessionStorage;
+  globalThis.localStorage = fake;
+  globalThis.sessionStorage = fake;
+  try {
+    saveWatchIds("lg-watch", ["p1"]);
+    assert.deepEqual(loadWatchIds("lg-watch"), ["p1"]);
+    assert.deepEqual(toggleWatchId("lg-watch", "p2"), ["p1", "p2"]);
+  } finally {
+    globalThis.localStorage = prevLocal;
+    globalThis.sessionStorage = prevSess;
+  }
 });

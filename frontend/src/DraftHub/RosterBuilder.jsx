@@ -26,6 +26,7 @@ import {
   previewRookieExtendStartSalary,
   rookieExtendSuccessMessage,
 } from "./rookieExtend";
+import ContractHistoryLink from "./ContractHistoryLink";
 import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 
 const TEAM_LOGO_ALIASES = { JAX: "jax", JAC: "jax", LA: "lar", LAR: "lar", WSH: "wsh", WAS: "wsh" };
@@ -129,6 +130,7 @@ function ContractSidePanelBody({
   remove,
   maxYears,
   status,
+  onOpenContractHistory,
 }) {
   const isCut = r.roster_status === "cut_before_draft";
 
@@ -285,6 +287,11 @@ function ContractSidePanelBody({
             Remove
           </button>
         )}
+        <ContractHistoryLink
+          playerId={r.player_id}
+          playerName={r.player_name}
+          onOpen={onOpenContractHistory}
+        />
       </div>
     </div>
   );
@@ -301,6 +308,7 @@ export default function RosterBuilder({
   readOnly = false,
   showManagerTeam = false,
   onEditInOffice,
+  onOpenContractHistory,
 }) {
   const [playerId, setPlayerId] = useState("");
   const [salary, setSalary] = useState("");
@@ -693,6 +701,7 @@ export default function RosterBuilder({
       remove,
       maxYears,
       status: vm.status,
+      onOpenContractHistory,
     };
   })() : null;
 
@@ -832,7 +841,7 @@ export default function RosterBuilder({
               !filteredRoster.length
                 ? (sortedRoster.length
                   ? "No players match these filters."
-                  : "No players. Link Sleeper or add from Players.")
+                  : "No players. Link Sleeper or add from Free agents.")
                 : null
             }
           >
@@ -866,13 +875,20 @@ export default function RosterBuilder({
                     </div>
                   )}
                   actions={(
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm"
-                      onClick={() => setSelectedPlayerId(r.player_id)}
-                    >
-                      Contract
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        className="btn-ghost btn-sm"
+                        onClick={() => setSelectedPlayerId(r.player_id)}
+                      >
+                        Contract
+                      </button>
+                      <ContractHistoryLink
+                        playerId={r.player_id}
+                        playerName={r.player_name}
+                        onOpen={onOpenContractHistory}
+                      />
+                    </>
                   )}
                 />
               );
@@ -955,6 +971,11 @@ export default function RosterBuilder({
                     >
                       Contract
                     </button>
+                    <ContractHistoryLink
+                      playerId={r.player_id}
+                      playerName={r.player_name}
+                      onOpen={onOpenContractHistory}
+                    />
                   </td>
                 </tr>
               );
@@ -962,7 +983,7 @@ export default function RosterBuilder({
             {!sortedRoster.length && (
               <tr>
                 <td colSpan={colSpan} className="chart-note hub-roster-empty">
-                  No players yet. Link Sleeper in Setup or add from Values.
+                  No players yet. Link Sleeper in Setup or add from Free agents.
                 </td>
               </tr>
             )}

@@ -39,8 +39,8 @@ test("featureAwards mixes gold, shame, and bargain first", () => {
   const awards = [
     { id: "other", tone: "neutral", title: "Nomad" },
     { id: "bargain", tone: "good", title: "Steal" },
-    { id: "overpay", tone: "bad", title: "Donated" },
-    { id: "king", tone: "gold", title: "Bag Chaser" },
+    { id: "overpay", tone: "bad", title: "Most over market" },
+    { id: "king", tone: "gold", title: "Highest salary" },
     { id: "extra", tone: "good", title: "Also good" },
   ];
   const { featured, rest } = featureAwards(awards, 4);
@@ -83,8 +83,8 @@ test("formatSpendValue and hero status stay screenshot-ready", () => {
   assert.equal(formatSpendValue(42.2, "dollars"), "$42");
   assert.equal(formatSpendValue(12.34, "pct"), "12.3%");
   assert.equal(
-    insightsHeroStatus([{ title: "Bag Chaser", headline: "$85 on roster right now" }]),
-    "Bag Chaser · $85 on roster right now",
+    insightsHeroStatus([{ title: "Highest salary", headline: "$85 on roster right now" }]),
+    "Highest salary · $85 on roster right now",
   );
   assert.equal(teamDisplayName({ team_name: "Air Raid" }), "Air Raid");
 });
