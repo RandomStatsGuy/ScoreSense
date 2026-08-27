@@ -21,6 +21,53 @@ export function bidRelationLabel(relation) {
   return "Watching";
 }
 
+/** Lock the amount field for pause/sim/position — never because a rival bid just landed. */
+export function bidAmountInputLocked({
+  controlsLocked = false,
+  positionBlocked = false,
+} = {}) {
+  return Boolean(controlsLocked || positionBlocked);
+}
+
+export function bidAmountSubmitLocked({
+  controlsLocked = false,
+  positionBlocked = false,
+  amount,
+  minBid,
+} = {}) {
+  if (controlsLocked || positionBlocked) return true;
+  if (amount === "" || amount == null) return true;
+  const n = Number(amount);
+  const min = Number(minBid);
+  return !Number.isFinite(n) || (Number.isFinite(min) && n < min);
+}
+
+/**
+ * Keep a focused (or still-legal) edit when the high bid changes.
+ * Unfocused invalid amounts snap to the new minimum so the field cannot stick.
+ */
+export function displayedBidAmount({
+  currentAmount,
+  suggestedBid,
+  focused = false,
+  touched = false,
+} = {}) {
+  const next = suggestedBid == null || suggestedBid === "" ? "" : String(suggestedBid);
+  if (focused) return currentAmount == null ? next : String(currentAmount);
+  if (!touched) return next;
+  const n = Number(currentAmount);
+  if (!Number.isFinite(n) || (next !== "" && n < Number(next))) return next;
+  return String(currentAmount);
+}
+
+/** Integer dollars only — avoids type=number spinner / min fights mid-edit. */
+export function sanitizeBidAmountInput(raw) {
+  const text = String(raw ?? "");
+  if (text === "") return "";
+  if (/^\d{0,7}$/.test(text)) return text;
+  return null;
+}
+
 export function riskBand(score) {
   if (score == null || score === "") {
     return { label: "—", band: "unknown", z: null };
