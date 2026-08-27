@@ -3477,6 +3477,7 @@ def list_memberships_for_sub(user_sub: str) -> list[dict[str, Any]]:
 
 MAX_SAVED_MOCKS = 6
 MAX_UNSAVED_COMPLETED_MOCKS = 1
+MAX_UNSAVED_IN_PROGRESS_MOCKS = 1
 
 
 def _mock_session_is_complete(draft_completed: bool, session_status: str | None, league_status: str | None) -> bool:
@@ -3495,7 +3496,8 @@ def prune_unsaved_mock_drafts(
     """Drop throwaway practice rooms so SQL does not keep every mock.
 
     Saved favorites are never deleted here. Unsaved completed rooms keep the
-    newest recap. Starting a new mock also drops other unsaved in-progress rooms.
+    newest recap. Extra unsaved in-progress rooms are dropped, keeping one
+    current throwaway. Starting a new mock drops other unsaved in-progress rooms.
     """
     sub = str(user_sub or "").strip()
     if not sub:
@@ -3530,6 +3532,8 @@ def prune_unsaved_mock_drafts(
     to_delete = completed[MAX_UNSAVED_COMPLETED_MOCKS:]
     if drop_stale_in_progress:
         to_delete.extend(in_progress)
+    else:
+        to_delete.extend(in_progress[MAX_UNSAVED_IN_PROGRESS_MOCKS:])
     deleted: list[str] = []
     for league_id in to_delete:
         try:

@@ -437,6 +437,28 @@ def test_saved_mock_survives_new_unsaved_rooms(hub_db):
     assert rooms[later["league_id"]]["saved"] is False
 
 
+def test_list_prunes_extra_unsaved_in_progress(hub_db):
+    first = start_mock_draft("mock-user", mode="quick_bots", bot_count=2, auto_start=False)
+    rules = LeagueRules.model_validate(storage.get_league(first["league_id"])["rules"])
+    extras = []
+    for i in range(3):
+        league = storage.create_league(
+            "mock-user",
+            f"Extra mock {i}",
+            2026,
+            rules,
+            team_count=4,
+            test_mode=True,
+        )
+        extras.append(league["id"])
+    rooms = storage.list_mock_drafts_for_sub("mock-user")
+    ids = {r["league_id"] for r in rooms if not r.get("saved")}
+    assert extras[-1] in ids
+    assert first["league_id"] not in ids
+    assert extras[0] not in ids
+    assert extras[1] not in ids
+
+
 def test_saved_mock_cap(hub_db):
     ids = []
     for _ in range(storage.MAX_SAVED_MOCKS):
