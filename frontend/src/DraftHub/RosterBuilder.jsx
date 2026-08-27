@@ -889,7 +889,7 @@ export default function RosterBuilder({
               <th className="num hub-roster-col-cap">Cap hit ({season})</th>
               <th className="num hub-roster-col-years">Years</th>
               <th className="hub-roster-col-status">Status</th>
-              <th className="hub-roster-actions" aria-label="Contract" />
+              <th className="hub-roster-actions">Contract</th>
             </tr>
           </thead>
           <tbody>

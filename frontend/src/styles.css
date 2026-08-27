@@ -8551,6 +8551,9 @@ td.col-rank.col-rank-top {
 .hub-roster-table td {
   vertical-align: middle;
 }
+.hub-roster-builder .hub-roster-table tbody td {
+  line-height: 1.2;
+}
 /* Keep action cells as table-cells. An unscoped flex display on
    .hub-roster-actions (draft list rows) otherwise breaks header/body
    column geometry on My Team and commissioner roster tables. */
@@ -8573,29 +8576,32 @@ td.col-rank.col-rank-top {
   width: 100%;
 }
 .hub-roster-builder .hub-roster-col-player {
-  width: auto;
-  min-width: 12rem;
+  width: 38%;
+  min-width: 11rem;
 }
 .hub-roster-builder .hub-roster-col-manager {
-  width: 8rem;
+  width: 12%;
   white-space: nowrap;
 }
 .hub-roster-builder .hub-roster-col-pos {
-  width: 3.75rem;
+  width: 8%;
   text-align: center;
   white-space: nowrap;
 }
 .hub-roster-builder .hub-roster-col-cap {
-  width: 8.25rem;
+  width: 14%;
   white-space: nowrap;
 }
 .hub-roster-builder .hub-roster-col-years {
-  width: 4.75rem;
+  width: 10%;
   white-space: nowrap;
 }
 .hub-roster-builder .hub-roster-col-status {
-  width: 10rem;
+  width: 18%;
   white-space: nowrap;
+}
+.hub-roster-builder .hub-roster-table .hub-roster-actions {
+  width: 12%;
 }
 .hub-roster-player-cell { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
 .hub-roster-player-thumb {
