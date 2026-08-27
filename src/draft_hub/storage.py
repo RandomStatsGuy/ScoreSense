@@ -221,6 +221,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
     _safe_add_column(conn, "league", "live_roster_revision", "INTEGER NOT NULL DEFAULT 0")
     _safe_add_column(conn, "league", "historic_snapshot_revision", "INTEGER NOT NULL DEFAULT 0")
     _safe_add_column(conn, "league", "sandbox_baseline_json", "TEXT")
+    _safe_add_column(conn, "league", "mock_saved", "INTEGER NOT NULL DEFAULT 0")
 
     roster_cols = {row[1] for row in conn.execute("PRAGMA table_info(roster_slot)").fetchall()}
     if "roster_status" not in roster_cols:
@@ -2257,6 +2258,7 @@ def _league_dict(row: sqlite3.Row) -> dict[str, Any]:
         if "historic_snapshot_revision" in keys
         else 0,
         "created_at": row["created_at"],
+        "mock_saved": bool(row["mock_saved"]) if "mock_saved" in keys else False,
     }
 
 
@@ -3473,19 +3475,124 @@ def list_memberships_for_sub(user_sub: str) -> list[dict[str, Any]]:
     return out
 
 
+MAX_SAVED_MOCKS = 6
+MAX_UNSAVED_COMPLETED_MOCKS = 1
+
+
+def _mock_session_is_complete(draft_completed: bool, session_status: str | None, league_status: str | None) -> bool:
+    if draft_completed:
+        return True
+    status = str(session_status or league_status or "").lower()
+    return status in ("complete", "completed")
+
+
+def prune_unsaved_mock_drafts(
+    user_sub: str,
+    keep_league_id: str | None = None,
+    *,
+    drop_stale_in_progress: bool = False,
+) -> list[str]:
+    """Drop throwaway practice rooms so SQL does not keep every mock.
+
+    Saved favorites are never deleted here. Unsaved completed rooms keep the
+    newest recap. Starting a new mock also drops other unsaved in-progress rooms.
+    """
+    sub = str(user_sub or "").strip()
+    if not sub:
+        return []
+    keep = {str(keep_league_id)} if keep_league_id else set()
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT l.id, COALESCE(l.draft_completed, 0) AS draft_completed,
+                      l.status AS league_status, s.status AS session_status
+               FROM league l
+               LEFT JOIN draft_session s ON s.league_id = l.id
+               WHERE COALESCE(l.test_mode, 0) = 1
+                 AND l.commissioner_sub = ?
+                 AND COALESCE(l.mock_saved, 0) = 0
+               ORDER BY l.created_at DESC""",
+            (sub,),
+        ).fetchall()
+    completed: list[str] = []
+    in_progress: list[str] = []
+    for row in rows:
+        league_id = str(row["id"])
+        if league_id in keep:
+            continue
+        if _mock_session_is_complete(
+            bool(row["draft_completed"]),
+            row["session_status"],
+            row["league_status"],
+        ):
+            completed.append(league_id)
+        else:
+            in_progress.append(league_id)
+    to_delete = completed[MAX_UNSAVED_COMPLETED_MOCKS:]
+    if drop_stale_in_progress:
+        to_delete.extend(in_progress)
+    deleted: list[str] = []
+    for league_id in to_delete:
+        try:
+            delete_league(league_id)
+            deleted.append(league_id)
+        except ValueError:
+            continue
+    return deleted
+
+
+def count_saved_mocks_for_sub(user_sub: str) -> int:
+    sub = str(user_sub or "").strip()
+    if not sub:
+        return 0
+    with get_conn() as conn:
+        row = conn.execute(
+            """SELECT COUNT(*) AS n FROM league
+               WHERE commissioner_sub = ?
+                 AND COALESCE(test_mode, 0) = 1
+                 AND COALESCE(mock_saved, 0) = 1""",
+            (sub,),
+        ).fetchone()
+    return int(row["n"] if row else 0)
+
+
+def set_mock_saved(league_id: str, saved: bool) -> dict[str, Any]:
+    league = get_league(league_id)
+    if not league:
+        raise ValueError("League not found")
+    if not league.get("test_mode"):
+        raise ValueError("Only practice rooms can be saved")
+    want = bool(saved)
+    if want and not league.get("mock_saved"):
+        n = count_saved_mocks_for_sub(str(league.get("commissioner_sub") or ""))
+        if n >= MAX_SAVED_MOCKS:
+            raise ValueError(
+                f"You can keep up to {MAX_SAVED_MOCKS} favorite mocks. Unpin one first."
+            )
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE league SET mock_saved = ? WHERE id = ?",
+            (1 if want else 0, league_id),
+        )
+    updated = get_league(league_id)
+    if not updated:
+        raise ValueError("League not found")
+    return updated
+
+
 def list_mock_drafts_for_sub(user_sub: str, limit: int = 8) -> list[dict[str, Any]]:
-    """Recent practice / mock rooms the user owns a seat in (newest first)."""
+    """Saved favorites plus the latest unsaved practice rooms (newest first)."""
+    prune_unsaved_mock_drafts(user_sub, drop_stale_in_progress=False)
     cap = max(1, min(int(limit), 24))
     with get_conn() as conn:
         rows = conn.execute(
             """SELECT l.id, l.name, l.season, l.status, l.draft_completed, l.team_count,
-                      l.created_at, l.rules_json
+                      l.created_at, l.rules_json, COALESCE(l.mock_saved, 0) AS mock_saved
                FROM league l
                JOIN team t ON t.league_id = l.id
                WHERE t.user_sub = ?
                  AND COALESCE(l.test_mode, 0) = 1
                  AND (t.is_bot IS NULL OR t.is_bot = 0)
-               ORDER BY l.created_at DESC
+               ORDER BY COALESCE(l.mock_saved, 0) DESC, l.created_at DESC
                LIMIT ?""",
             (user_sub, cap),
         ).fetchall()
@@ -3509,6 +3616,7 @@ def list_mock_drafts_for_sub(user_sub: str, limit: int = 8) -> list[dict[str, An
                 "team_count": row["team_count"],
                 "created_at": row["created_at"],
                 "draft_type": str(rules.get("draft_type") or "auction"),
+                "saved": bool(row["mock_saved"]),
             }
         )
     return out

@@ -42,6 +42,23 @@ export function bidAmountSubmitLocked({
   return !Number.isFinite(n) || (Number.isFinite(min) && n < min);
 }
 
+/** Empty is a mid-edit, not an invalid bid — do not flag the field. */
+export function bidAmountAriaInvalid({
+  inputLocked = false,
+  amount,
+  minBid,
+} = {}) {
+  if (inputLocked) return false;
+  if (amount === "" || amount == null) return false;
+  return bidAmountSubmitLocked({ amount, minBid });
+}
+
+/** Backspace/Delete on an empty bid field must not leave the page (browser Back). */
+export function shouldSwallowBidDeleteKey({ key, amount } = {}) {
+  if (key !== "Backspace" && key !== "Delete") return false;
+  return amount === "" || amount == null;
+}
+
 /**
  * Keep a focused (or still-legal) edit when the high bid changes.
  * Unfocused invalid amounts snap to the new minimum so the field cannot stick.

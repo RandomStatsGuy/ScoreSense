@@ -7,6 +7,8 @@ import VerifyEmailBanner from "../VerifyEmailBanner";
 import Button from "../ui/Button";
 import { HubAlert, HubFilterChip, HubPage } from "./HubUILayout";
 import DraftRoom from "./DraftRoom";
+import ThinkingScrim from "../ui/ThinkingScrim";
+import useSlowThink from "../hooks/useSlowThink";
 import {
   MOCK_DRAFT_PRESETS,
   MOCK_TEAM_SIZES,
@@ -53,6 +55,7 @@ export default function MockDraftTool({ projMeta = null }) {
   const [busy, setBusy] = useState(false);
   const [busyKind, setBusyKind] = useState("");
   const [error, setError] = useState("");
+  const showThink = useSlowThink(busy);
 
   const needsAuth = hubAuthRequired !== false && !authenticated;
   const needsVerify = Boolean(
@@ -191,6 +194,26 @@ export default function MockDraftTool({ projMeta = null }) {
       .catch(() => {});
   }, [loadRecent, persistLeague]);
 
+  const toggleKeep = async (room, saved) => {
+    setBusy(true);
+    setBusyKind("keep");
+    setError("");
+    try {
+      const res = await apiFetch(`/api/hub/mock-draft/${room.league_id}/keep`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ saved }),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      setRecent(await loadRecent());
+    } catch (e) {
+      setError(connectionErrorMessage(e, "Could not update saved mocks"));
+    } finally {
+      setBusy(false);
+      setBusyKind("");
+    }
+  };
+
   const selectedPreset = useMemo(
     () => MOCK_DRAFT_PRESETS.find((p) => p.id === presetId) || MOCK_DRAFT_PRESETS[0],
     [presetId],
@@ -240,6 +263,14 @@ export default function MockDraftTool({ projMeta = null }) {
 
   return (
     <HubPage className="mock-draft-tool">
+      <ThinkingScrim
+        show={showThink}
+        scene="mock"
+        title={busyKind === "simulate" ? "Running the whole draft" : undefined}
+        steps={busyKind === "simulate"
+          ? ["Seating the bots", "Playing out every pick", "Building the recap"]
+          : undefined}
+      />
       <header className="mock-draft-hero">
         <div>
           <p className="hub-experience-kicker">Draft lab</p>
@@ -418,8 +449,11 @@ export default function MockDraftTool({ projMeta = null }) {
       </div>
 
       {recent.length > 0 && (
-        <details className="mock-draft-recent" aria-label="Recent mock drafts">
-          <summary>Recent mocks <span>{recent.length}</span></summary>
+        <details className="mock-draft-recent" aria-label="Saved and recent mock drafts">
+          <summary>Practice rooms <span>{recent.length}</span></summary>
+          <p className="chart-note mock-draft-recent-note">
+            Throwaway mocks are cleaned up automatically. Save up to 6 favorites to keep them.
+          </p>
           <ul>
             {recent.map((room) => {
               const phase = mockRoomPhaseKey(room);
@@ -433,11 +467,24 @@ export default function MockDraftTool({ projMeta = null }) {
                       </span>
                       <span>{mockDraftFormatLabel(room.draft_type)}</span>
                       {room.team_count ? <span>{room.team_count}-team</span> : null}
+                      {room.saved ? <span className="mock-draft-saved-flag">Saved</span> : null}
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" disabled={busy} onClick={() => resumeRoom(room.league_id, room.name || "Mock draft")}>
-                    {mockRoomResumeLabel(room)}
-                  </Button>
+                  <div className="mock-draft-recent-actions">
+                    <button
+                      type="button"
+                      className={`mock-draft-keep${room.saved ? " is-saved" : ""}`}
+                      disabled={busy}
+                      aria-pressed={Boolean(room.saved)}
+                      aria-label={room.saved ? "Unpin this mock" : "Save this mock"}
+                      onClick={() => toggleKeep(room, !room.saved)}
+                    >
+                      {room.saved ? "★" : "☆"}
+                    </button>
+                    <Button variant="ghost" size="sm" disabled={busy} onClick={() => resumeRoom(room.league_id, room.name || "Mock draft")}>
+                      {mockRoomResumeLabel(room)}
+                    </Button>
+                  </div>
                 </li>
               );
             })}

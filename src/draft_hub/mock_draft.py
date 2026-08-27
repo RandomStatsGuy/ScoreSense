@@ -149,6 +149,16 @@ def _clone_keeper_sandbox(
     if auto_start:
         start_draft(league_id, commissioner_sub)
 
+    try:
+        storage.set_mock_saved(league_id, True)
+    except ValueError:
+        pass
+    storage.prune_unsaved_mock_drafts(
+        commissioner_sub,
+        keep_league_id=league_id,
+        drop_stale_in_progress=True,
+    )
+
     return {
         "mock_mode": "keeper_sandbox",
         "league_id": league_id,
@@ -266,6 +276,12 @@ def start_mock_draft(
 
     if auto_start:
         start_draft(league_id, commissioner_sub)
+
+    storage.prune_unsaved_mock_drafts(
+        commissioner_sub,
+        keep_league_id=league_id,
+        drop_stale_in_progress=True,
+    )
 
     return {
         "mock_mode": mode,
