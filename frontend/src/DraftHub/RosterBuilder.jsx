@@ -841,7 +841,7 @@ export default function RosterBuilder({
               !filteredRoster.length
                 ? (sortedRoster.length
                   ? "No players match these filters."
-                  : "No players. Link Sleeper or add from Players.")
+                  : "No players. Link Sleeper or add from Free agents.")
                 : null
             }
           >
@@ -983,7 +983,7 @@ export default function RosterBuilder({
             {!sortedRoster.length && (
               <tr>
                 <td colSpan={colSpan} className="chart-note hub-roster-empty">
-                  No players yet. Link Sleeper in Setup or add from Values.
+                  No players yet. Link Sleeper in Setup or add from Free agents.
                 </td>
               </tr>
             )}

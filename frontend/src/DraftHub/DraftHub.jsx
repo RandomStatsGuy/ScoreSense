@@ -38,17 +38,18 @@ import {
 import { effectiveHubContext } from "./hubContext";
 import { fetchHubMemberships, setHubFocus, effectiveMemberships } from "./hubLeagues";
 import { isPickDraft } from "./draftEntryStatus";
+import { loadWatchIds, toggleWatchId } from "./draftLiveConsole";
 
 const LeagueInsights = lazy(() => import("./LeagueInsights"));
 
 const EMPTY_VALUE_ROWS = [];
 
 /** Tabs that need the heavy value-sheet / draft-pool payload. */
-const TABS_NEED_VALUE_SHEET = new Set(["value", "room", "rosters", "trades"]);
+const TABS_NEED_VALUE_SHEET = new Set(["value", "available", "room", "rosters", "trades"]);
 /** Tabs that need cap-sheet (also hits roster on the server). */
 const TABS_NEED_CAP_SHEET = new Set(["planner", "roster", "rosters"]);
 /** Tabs that read the hub roster ("value" marks my players via rosterIds). */
-const TABS_NEED_ROSTER = new Set(["home", "setup", "value", "roster", "rosters", "planner", "room", "trades"]);
+const TABS_NEED_ROSTER = new Set(["home", "setup", "value", "available", "roster", "rosters", "planner", "room", "trades"]);
 
 export default function DraftHub({ subView, onSubViewChange, onHubContextChange, insightTab, onInsightTabChange, officeTab, onOfficeTabChange, onOpenContractHistory }) {
   const { authenticated, refreshAuth, hubAuthRequired, hubDemo, ready: authReady, user, termsUrl, privacyUrl, patreonConfigured } = useAuth();
@@ -81,6 +82,15 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const [rosterLoading, setRosterLoading] = useState(false);
   const [memberships, setMemberships] = useState([]);
   const [leagueSwitchBusy, setLeagueSwitchBusy] = useState(false);
+  const watchLeagueKey = leagueId || hubContext?.league_id || workspace?.league_id || "solo";
+  const [watchIds, setWatchIds] = useState([]);
+  useEffect(() => {
+    setWatchIds(loadWatchIds(watchLeagueKey));
+  }, [watchLeagueKey]);
+  const toggleWatch = useCallback((row) => {
+    if (!row?.player_id) return;
+    setWatchIds(toggleWatchId(watchLeagueKey, row.player_id));
+  }, [watchLeagueKey]);
 
   const setSubView = onSubViewChange;
   const applyHubContext = useCallback((ctx) => {
@@ -89,9 +99,10 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     onHubContextChange?.(ctx);
   }, [onHubContextChange]);
 
-  useEffect(() => {
-    if (subView === "available") setSubView("value");
-  }, [subView, setSubView]);
+  const goToRosterManagement = useCallback(() => {
+    setSubView("office");
+    onOfficeTabChange?.("current");
+  }, [setSubView, onOfficeTabChange]);
 
   useEffect(() => {
     if (subView === "live") {
@@ -102,11 +113,6 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       onOfficeTabChange?.("current");
     }
   }, [subView, setSubView, onInsightTabChange, onOfficeTabChange]);
-
-  const goToRosterManagement = useCallback(() => {
-    setSubView("office");
-    onOfficeTabChange?.("current");
-  }, [setSubView, onOfficeTabChange]);
 
   // Insights/Trades stay mounted (display:none) after first visit so revisits
   // skip refetch + chart remount. Heavy tabs (value sheet, draft room) still unmount.
@@ -716,9 +722,10 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         />
       )}
 
-      {subView === "value" && (
+      {(subView === "value" || subView === "available") && (
         <ValueSheetTable
-          mode="all"
+          mode={subView === "available" ? "available" : "all"}
+          title={subView === "available" ? "Free agents" : "Strategy"}
           rows={valueRows}
           season={valueSheet?.season || workspace?.season}
           onAddToRoster={onRosterChanged}
@@ -736,6 +743,9 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           acquisitionWindow={effectiveCtx?.acquisition_window}
           inLeague={effectiveCtx?.mode === "league"}
           onOpenContractHistory={onOpenContractHistory}
+          showAdd={subView === "available"}
+          onWatchPlayer={toggleWatch}
+          watchIds={watchIds}
         />
       )}
 
@@ -853,6 +863,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           season={valueSheet?.season || workspace?.season}
           hubContext={effectiveCtx}
           onNavigate={setSubView}
+          watchIds={watchIds}
+          onWatchPlayer={toggleWatch}
         />
       )}
 

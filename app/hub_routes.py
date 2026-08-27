@@ -79,6 +79,7 @@ from src.draft_hub.schemas import (
     SleeperSyncRequest,
     DraftContractsRequest,
     MockDraftStartRequest,
+    MockKeepRequest,
     SimulateDraftRequest,
     TestDraftSetupRequest,
     TradeSwapRequest,
@@ -4272,9 +4273,31 @@ async def hub_league_sheet_import(
 
 @router.get("/mock-drafts")
 def hub_list_mock_drafts(_user=Depends(require_hub_user)) -> dict:
-    """Recent practice rooms for the Tools → Mock draft launcher."""
+    """Saved favorites plus the latest unsaved practice rooms."""
     sub = _sub(_user)
-    return {"rooms": storage.list_mock_drafts_for_sub(sub)}
+    return {"rooms": storage.list_mock_drafts_for_sub(sub), "max_saved": storage.MAX_SAVED_MOCKS}
+
+
+@router.put("/mock-draft/{league_id}/keep")
+def hub_keep_mock_draft(
+    league_id: str,
+    body: MockKeepRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Pin a practice room as a favorite, or unpin it."""
+    sub = _sub(_user)
+    league = storage.get_league(league_id)
+    if not league:
+        raise HTTPException(status_code=404, detail="League not found")
+    if not league.get("test_mode"):
+        raise HTTPException(status_code=400, detail="Only practice rooms can be saved")
+    if league.get("commissioner_sub") != sub:
+        raise HTTPException(status_code=403, detail="Only the commissioner can save this mock")
+    try:
+        updated = storage.set_mock_saved(league_id, body.saved)
+        return {"league": updated, "saved": bool(updated.get("mock_saved"))}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/mock-draft/start")

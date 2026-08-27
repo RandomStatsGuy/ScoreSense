@@ -318,6 +318,10 @@ class MockDraftStartRequest(BaseModel):
     preset_id: Optional[str] = None
 
 
+class MockKeepRequest(BaseModel):
+    saved: bool = True
+
+
 class SleeperImportRequest(BaseModel):
     sleeper_league_id: str
     team_id: Optional[str] = None

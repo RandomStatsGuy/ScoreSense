@@ -44,3 +44,13 @@ test("Contract history deep-link keeps the player query", () => {
   const cleared = buildFilterSearchParams({ player: "", preserveParams: params });
   assert.equal(cleared.get("player"), null);
 });
+
+test("strategy and free-agent hub tabs round-trip, with legacy players alias", () => {
+  assert.equal(parseAppPath("/hub/strategy").hubSubView, "value");
+  assert.equal(parseAppPath("/hub/players").hubSubView, "value");
+  assert.equal(buildAppPath({ view: "hub", hubSubView: "value" }), "/hub/strategy");
+  assert.equal(parseAppPath("/hub/free-agents").hubSubView, "available");
+  assert.equal(parseAppPath("/hub/fa").hubSubView, "available");
+  assert.equal(parseAppPath("/hub/available").hubSubView, "available");
+  assert.equal(buildAppPath({ view: "hub", hubSubView: "available" }), "/hub/free-agents");
+});

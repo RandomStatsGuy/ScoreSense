@@ -15,6 +15,7 @@ import {
   fmtSal,
   formatStatusLabel,
   nextSortState,
+  pinWatchedPlayers,
 } from "./valueSheetUtils";
 import { HubPage, HubTableCard, HubFilterMenu, HubFilterChip, SortTh, HubAlert } from "./HubUILayout";
 import { HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
@@ -48,8 +49,9 @@ const TIERS = ["ALL", "Elite", "Tier 1", "Tier 2", "Tier 3", "Depth"];
 const POSITIONS = HUB_POSITION_FILTERS;
 const AVAILABILITY_FILTERS = [
   { id: "ALL", label: "All" },
-  { id: "AVAILABLE", label: "Available" },
-  { id: "TAKEN", label: "Taken" },
+  { id: "AVAILABLE", label: "Free agents" },
+  { id: "TAKEN", label: "Rostered" },
+  { id: "STARRED", label: "Starred" },
   { id: "MINE", label: "Mine" },
   { id: "SLEEPER", label: "Targets" },
 ];
@@ -223,14 +225,18 @@ export default function ValueSheetTable({
       search,
       sortKey,
       sortDir,
+      watchIds,
     });
     const pins = [...new Set((needPositions || []).map((p) => String(p || "").toUpperCase()).filter(Boolean))];
     if (needsOnly && pins.length) {
       const pinSet = new Set(pins);
       list = list.filter((r) => pinSet.has(normalizeHubPosition(r.position)));
     }
+    if (!isAvailableView && statusFilter !== "STARRED") {
+      list = pinWatchedPlayers(list, watchIds);
+    }
     return pinNeedPositions(list, pins, maxRows);
-  }, [rankedRows, isAvailableView, posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, maxRows, needPositions, needsOnly]);
+  }, [rankedRows, isAvailableView, posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, maxRows, needPositions, needsOnly, watchIds]);
 
   const seasonScaleMax = useMemo(() => {
     let max = 0;
@@ -426,11 +432,15 @@ export default function ValueSheetTable({
 
   const mobileLayout = useMobileLayout();
 
-  const panelTitle = title || (isAvailableView ? "Available" : "Players");
+  const panelTitle = title || (isAvailableView ? "Free agents" : "Strategy");
   const panelSub = subtitle || (
     isAvailableView
       ? `${sorted.length} available${totalAvailable !== sorted.length ? ` of ${totalAvailable}` : ""}`
-      : `${sorted.length} shown · ${totalAvailable} available`
+      : statusFilter === "TAKEN"
+        ? `${sorted.length} rostered · ${totalAvailable} still free agents`
+        : statusFilter === "STARRED"
+          ? `${sorted.length} starred`
+          : `${sorted.length} shown · ${totalAvailable} free agents`
   );
 
   const availabilityFilters = useMemo(() => {
@@ -483,9 +493,22 @@ export default function ValueSheetTable({
     || showAdvancedLocal,
   );
   const activeSortLabel = sortLabelForKey(sortMenuOptions, sortKey);
-  const emptyMessage = boardDirty
-    ? "No players match these filters."
-    : "No players available.";
+  const emptyMessage = (() => {
+    const extraFilters = posFilter !== defaultPosFilter
+      || (showTierFilters && tierFilter !== "ALL")
+      || riskProfile !== "ALL"
+      || search.trim()
+      || needsOnly;
+    if (statusFilter === "STARRED" && !extraFilters) {
+      return "Star players you want before the draft. They stay here and in the live room.";
+    }
+    if (statusFilter === "TAKEN" && !extraFilters) {
+      return "No one is rostered in the sheet yet. Until keepers are imported, everyone still looks like a free agent.";
+    }
+    if (boardDirty) return "No players match these filters.";
+    if (isAvailableView) return "No players available.";
+    return "No players in the pool.";
+  })();
 
   const showSkeleton = loading && sorted.length === 0;
 
@@ -510,11 +533,22 @@ export default function ValueSheetTable({
         <HubTabIntro
           title={panelTitle}
           compact={compact}
-          learnMore={(showCostDelta || activeRisk) && !compact && !mobileLayout ? (
+          purpose={purpose || (compact ? null : (
+            isAvailableView
+              ? "Players not under contract. Bid or add when the window is open; before the draft, pickups go through the live room."
+              : "Star players you want, compare suggested bids, and see who is already rostered."
+          ))}
+          audience={audience}
+          learnMore={(showCostDelta || activeRisk || onWatchPlayer) && !compact && !mobileLayout ? (
             <>
+              {onWatchPlayer ? (
+                <p>
+                  Star players you want to take. Stars persist into the live draft room.
+                </p>
+              ) : null}
               {showCostDelta && (
                 <p>
-                  Value vs cost = contract salary minus suggested bid (negative = good value).
+                  Vs cost = contract salary minus suggested bid (negative = good value).
                 </p>
               )}
               {activeRisk && (
@@ -532,6 +566,15 @@ export default function ValueSheetTable({
           <strong>{playersBanner.label}.</strong>
           {" "}
           {playersBanner.text}
+        </HubAlert>
+      ) : null}
+      {!draftConsole && !isAvailableView && statusFilter === "TAKEN" ? (
+        <HubAlert variant="info">
+          <strong>Rostered now.</strong>
+          {" "}
+          These are keepers and players already under contract. Everyone else stays a free agent
+          until they&apos;re drafted. A short list usually means the rest of the league has not
+          been imported yet.
         </HubAlert>
       ) : null}
 
@@ -745,6 +788,20 @@ export default function ValueSheetTable({
                 </button>,
               );
             }
+            if (onWatchPlayer) {
+              const watching = (watchIds || []).map(String).includes(String(r.player_id));
+              actions.push(
+                <button
+                  key="watch"
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  aria-pressed={watching}
+                  onClick={() => onWatchPlayer(r)}
+                >
+                  {watching ? (draftConsole ? "Watching" : "Starred") : (draftConsole ? "Watch" : "Star")}
+                </button>,
+              );
+            }
             if (draftConsole) {
               actions.push(
                 <button
@@ -755,17 +812,6 @@ export default function ValueSheetTable({
                   onClick={() => onQueuePlayer?.(r)}
                 >
                   Queue
-                </button>,
-              );
-              actions.push(
-                <button
-                  key="watch"
-                  type="button"
-                  className="btn-ghost btn-sm"
-                  aria-pressed={(watchIds || []).map(String).includes(String(r.player_id))}
-                  onClick={() => onWatchPlayer?.(r)}
-                >
-                  {(watchIds || []).map(String).includes(String(r.player_id)) ? "Watching" : "Watch"}
                 </button>,
               );
             }
@@ -980,7 +1026,7 @@ export default function ValueSheetTable({
               )}
               {showCostDelta && (
                 <SortTh
-                  label="Value vs cost"
+                  label="Vs cost"
                   col="value_delta"
                   sortKey={sortKey}
                   sortDir={sortDir}

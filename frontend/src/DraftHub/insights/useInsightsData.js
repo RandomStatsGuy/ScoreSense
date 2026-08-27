@@ -107,6 +107,7 @@ export function useInsightsData(leagueId, refs) {
       setData,
       setLoading,
       setTabLoading,
+      setRefreshing,
       setError,
       setVisiblePositions,
       setScoringSeason,
@@ -131,6 +132,7 @@ export function useInsightsData(leagueId, refs) {
       }
       setLoading?.(false);
       setTabLoading?.(false);
+      setRefreshing?.(false);
       return;
     }
 
@@ -160,6 +162,8 @@ export function useInsightsData(leagueId, refs) {
       setTabLoading?.(false);
     }
     setError?.("");
+    const foregroundStale = Boolean(hasStale && !opts.background);
+    if (foregroundStale) setRefreshing?.(true);
 
     try {
       const params = new URLSearchParams();
@@ -228,6 +232,7 @@ export function useInsightsData(leagueId, refs) {
         : msg);
     } finally {
       if (generation !== loadGenerationRef.current) return;
+      setRefreshing?.(false);
       if (background) setTabLoading?.(false);
       else setLoading?.(false);
     }
