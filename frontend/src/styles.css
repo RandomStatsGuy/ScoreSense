@@ -5753,6 +5753,14 @@ td.col-rank.col-rank-top {
   min-height: 220px;
 }
 
+.hub-insights-skeleton-block--card {
+  min-height: 8.5rem;
+}
+
+.hub-insights-skeleton-block--board {
+  height: 16rem;
+}
+
 .hub-insights-skeleton-block--table {
   height: 180px;
 }
@@ -5763,8 +5771,22 @@ td.col-rank.col-rank-top {
   gap: 0.85rem;
 }
 
+.hub-insights-skeleton-row--talk {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .hub-insights-skeleton-row--talk {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .hub-insights-skeleton-row {
+    grid-template-columns: 1fr;
+  }
+
+  .hub-insights-skeleton-row--talk {
     grid-template-columns: 1fr;
   }
 }
@@ -7236,8 +7258,10 @@ td.col-rank.col-rank-top {
   background: rgba(248, 113, 113, 0.08);
 }
 .hub-roster-player-open {
-  display: block;
+  display: flex;
+  align-items: center;
   width: 100%;
+  min-height: 2.25rem;
   padding: 0;
   border: 0;
   background: transparent;
@@ -8545,7 +8569,62 @@ td.col-rank.col-rank-top {
 .hub-roster-add summary { cursor: pointer; user-select: none; margin-bottom: 0.35rem; }
 .hub-roster-add-row { margin-top: 0.35rem; }
 .hub-roster-table-wrap { margin-top: 0.25rem; }
-.hub-roster-table td { vertical-align: middle; }
+.hub-roster-table th,
+.hub-roster-table td {
+  vertical-align: middle;
+}
+.hub-roster-builder .hub-roster-table tbody td {
+  line-height: 1.2;
+}
+/* Keep action cells as table-cells. An unscoped flex display on
+   .hub-roster-actions (draft list rows) otherwise breaks header/body
+   column geometry on My Team and commissioner roster tables. */
+.hub-roster-table .hub-roster-actions {
+  display: table-cell;
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+  vertical-align: middle;
+}
+.hub-roster-table .hub-roster-actions .btn-ghost,
+.hub-roster-table .hub-roster-actions .btn-primary {
+  vertical-align: middle;
+}
+.hub-roster-table .hub-roster-actions > * + * {
+  margin-left: 0.4rem;
+}
+.hub-roster-builder .hub-roster-table {
+  table-layout: fixed;
+  width: 100%;
+}
+.hub-roster-builder .hub-roster-col-player {
+  width: 38%;
+  min-width: 11rem;
+}
+.hub-roster-builder .hub-roster-col-manager {
+  width: 12%;
+  white-space: nowrap;
+}
+.hub-roster-builder .hub-roster-col-pos {
+  width: 8%;
+  text-align: center;
+  white-space: nowrap;
+}
+.hub-roster-builder .hub-roster-col-cap {
+  width: 14%;
+  white-space: nowrap;
+}
+.hub-roster-builder .hub-roster-col-years {
+  width: 10%;
+  white-space: nowrap;
+}
+.hub-roster-builder .hub-roster-col-status {
+  width: 18%;
+  white-space: nowrap;
+}
+.hub-roster-builder .hub-roster-table .hub-roster-actions {
+  width: 12%;
+}
 .hub-roster-player-cell { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
 .hub-roster-player-thumb {
   width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
@@ -8553,14 +8632,21 @@ td.col-rank.col-rank-top {
 }
 .hub-roster-player-thumb-empty { display: inline-block; }
 .hub-roster-player-text { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
-.hub-roster-player-name { font-weight: 600; line-height: 1.2; }
+.hub-roster-player-name {
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .hub-roster-player-team {
   display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap;
   font-size: 0.75rem; color: var(--text-muted);
 }
 .hub-roster-inline-logo { width: 14px; height: 14px; object-fit: contain; }
 .hub-roster-pos-tag {
-  display: inline-block; padding: 0.15rem 0.4rem; border-radius: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0.15rem 0.4rem; border-radius: 4px;
   font-size: 0.72rem; font-weight: 700; background: rgba(255,255,255,0.06);
 }
 .hub-roster-edit-input {
@@ -9119,6 +9205,427 @@ td.col-rank.col-rank-top {
 .hub-insights-secondary-table .hub-insights-table-wrap {
   margin-top: 0.45rem;
 }
+
+.hub-insights-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  padding-bottom: 1.6rem;
+}
+
+.hub-insights-page > *:not(.hub-experience-hero) {
+  margin-left: 1.5rem;
+  margin-right: 1.5rem;
+}
+
+.hub-insights-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+}
+
+.hub-insights-toolbar .hub-insights-season-bar {
+  flex: 1 1 16rem;
+  margin: 0;
+}
+
+.hub-insights-page .hub-insights-season-bar--spend,
+.hub-insights-page .hub-insights-season-bar--scoring {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+.hub-insights-talk-head {
+  margin-bottom: 0.75rem;
+}
+
+.hub-insights-talk-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.hub-insights-talk-head p {
+  margin: 0.28rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.hub-insights-talk-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.hub-insights-talk-grid--compact {
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+}
+
+.hub-insights-talk-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+  min-height: 8.25rem;
+  padding: 0.95rem 1rem 1rem 1.15rem;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(22, 34, 52, 0.94), rgba(12, 20, 33, 0.94));
+  box-shadow: 0 12px 28px rgba(4, 8, 16, 0.18);
+  overflow: hidden;
+}
+
+.hub-insights-talk-card::before {
+  content: "";
+  position: absolute;
+  top: 0.9rem;
+  bottom: 0.9rem;
+  left: 0;
+  width: 3px;
+  border-radius: 999px;
+  background: #64748b;
+}
+
+.hub-insights-talk-card.is-featured {
+  min-height: 9.25rem;
+}
+
+.hub-insights-talk-card--gold {
+  background: linear-gradient(165deg, rgba(245, 158, 11, 0.1), rgba(12, 20, 33, 0.94));
+}
+
+.hub-insights-talk-card--gold::before {
+  background: #f59e0b;
+}
+
+.hub-insights-talk-card--good {
+  background: linear-gradient(165deg, rgba(34, 197, 94, 0.1), rgba(12, 20, 33, 0.94));
+}
+
+.hub-insights-talk-card--good::before {
+  background: #22c55e;
+}
+
+.hub-insights-talk-card--bad {
+  background: linear-gradient(165deg, rgba(239, 68, 68, 0.1), rgba(12, 20, 33, 0.94));
+}
+
+.hub-insights-talk-card--bad::before {
+  background: #ef4444;
+}
+
+.hub-insights-talk-card-top {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.hub-insights-talk-emoji {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.hub-insights-talk-kicker {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.hub-insights-talk-headline {
+  font-size: 1.08rem;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.hub-insights-talk-roast {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.88);
+  font-size: 0.86rem;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.hub-insights-talk-who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0.1rem 0 0;
+  font-size: 0.86rem;
+}
+
+.hub-insights-talk-player {
+  font-weight: 650;
+}
+
+.hub-insights-talk-team,
+.hub-insights-talk-sep,
+.hub-insights-talk-detail {
+  color: var(--text-secondary);
+}
+
+.hub-insights-talk-detail {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.hub-insights-talk-pos {
+  margin-left: 0.1rem;
+  padding: 0.08rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+}
+
+.hub-insights-board {
+  padding: 1rem 1.05rem 1.1rem;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 1rem;
+  background: rgba(14, 22, 36, 0.55);
+}
+
+.hub-insights-pos-kings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.55rem;
+  margin-bottom: 0.9rem;
+}
+
+.hub-insights-pos-king {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-height: 4.5rem;
+  min-width: 44px;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 0.85rem;
+  background: rgba(8, 14, 24, 0.45);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: inset 3px 0 0 var(--pos-accent, #64748b);
+}
+
+.hub-insights-pos-king strong {
+  font-size: 0.92rem;
+  line-height: 1.25;
+}
+
+.hub-insights-pos-king-pos {
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.hub-insights-pos-king-val {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hub-insights-pos-king.is-selected,
+.hub-insights-pos-king[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--pos-accent, #64748b) 45%, transparent);
+  background: color-mix(in srgb, var(--pos-accent, #64748b) 12%, rgba(8, 14, 24, 0.55));
+}
+
+.hub-insights-rank-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hub-insights-rank-row {
+  display: grid;
+  grid-template-columns: 1.6rem minmax(6rem, 11rem) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem 0.7rem;
+  padding: 0.28rem 0.15rem;
+}
+
+.hub-insights-rank-row--button {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 0.55rem;
+}
+
+.hub-insights-rank-row.is-mine,
+.hub-insights-rank-row--button.is-mine {
+  background: rgba(91, 143, 232, 0.1);
+  border-radius: 0.55rem;
+}
+
+.hub-insights-rank-row--button.is-hovered {
+  background: rgba(91, 143, 232, 0.14);
+}
+
+.hub-insights-rank-row--button.is-hidden {
+  opacity: 0.42;
+}
+
+.hub-insights-rank-place {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hub-insights-rank-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.hub-insights-rank-track {
+  height: 0.55rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.14);
+  overflow: hidden;
+}
+
+.hub-insights-rank-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #60a5fa;
+  transition: width 160ms ease;
+}
+
+.hub-insights-rank-value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.84rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hub-insights-rank-gap {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
+.hub-insights-disclosure {
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  padding-top: 0.15rem;
+}
+
+.hub-insights-disclosure-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.75rem;
+  padding: 0.55rem 0;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: var(--text-secondary);
+}
+
+.hub-insights-disclosure-summary::-webkit-details-marker {
+  display: none;
+}
+
+.hub-insights-disclosure-summary::before {
+  content: "▸";
+  color: var(--text-muted);
+  transition: transform 160ms ease;
+}
+
+.hub-insights-disclosure[open] > .hub-insights-disclosure-summary::before {
+  transform: rotate(90deg);
+}
+
+.hub-insights-disclosure-body {
+  padding: 0.15rem 0 0.65rem;
+}
+
+.hub-insights-more-awards-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  margin-bottom: 0.75rem;
+}
+
+.hub-insights-more-awards-label {
+  display: inline-block;
+  margin-bottom: 0.45rem;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hub-insights-more-awards-label--bad {
+  color: #f87171;
+}
+
+.hub-insights-more-awards-label--good {
+  color: #4ade80;
+}
+
+.hub-insights-more-awards-block + .hub-insights-more-awards-block {
+  margin-top: 0.85rem;
+}
+
+@media (max-width: 1200px) {
+  .hub-insights-talk-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .hub-insights-page > *:not(.hub-experience-hero) {
+    margin-left: 1rem;
+    margin-right: 1rem;
+  }
+
+  .hub-insights-talk-grid,
+  .hub-insights-talk-grid--compact {
+    grid-template-columns: 1fr;
+  }
+
+  .hub-insights-rank-row,
+  .hub-insights-rank-row--button {
+    grid-template-columns: 1.4rem minmax(0, 1fr) auto;
+  }
+
+  .hub-insights-rank-track {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-insights-talk-card,
+  .hub-insights-rank-fill,
+  .hub-insights-disclosure-summary::before,
+  .hub-insights-pos-king {
+    transition: none;
+  }
+}
 .hub-insights-balance { display: flex; flex-direction: column; gap: 0.55rem; margin-bottom: 0.85rem; }
 .hub-insights-balance-group { display: flex; flex-direction: column; gap: 0.28rem; }
 .hub-insights-balance-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
@@ -9354,7 +9861,7 @@ td.col-rank.col-rank-top {
 .hub-roster-name .player-cell,
 .hub-roster-name { white-space: nowrap; text-overflow: ellipsis; }
 .hub-roster-sal { grid-area: sal; font-variant-numeric: tabular-nums; opacity: 0.85; font-size: 0.78rem; }
-.hub-roster-actions {
+.hub-roster-row .hub-roster-actions {
   grid-area: actions;
   display: flex;
   align-items: center;
@@ -10386,6 +10893,8 @@ td.col-rank.col-rank-top {
 .hub-action-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 .hub-draft-select { min-width: 220px; flex: 1; max-width: 360px; padding: 0.45rem 0.55rem; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-base); color: var(--text-primary); }
 .hub-bid-input { width: 88px; padding: 0.45rem 0.55rem; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-base); color: var(--text-primary); font-size: 1rem; font-weight: 600; }
+.hub-bid-input::-webkit-outer-spin-button,
+.hub-bid-input::-webkit-inner-spin-button { appearance: none; margin: 0; }
 .hub-bid-hint { margin: 0.45rem 0 0; font-size: 0.82rem; color: var(--tone-caution-text); }
 .hub-event-panel { margin-top: 0.25rem; }
 .hub-event-log { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow: auto; display: flex; flex-direction: column; gap: 0.35rem; }
@@ -15721,8 +16230,8 @@ th.sortable-header {
   grid-template-columns: minmax(0, 1fr) 20.5rem;
   grid-template-areas:
     "stage players"
-    "team team"
-    "activity activity";
+    "team players"
+    "activity players";
   gap: 0.9rem;
   align-items: start;
 }
@@ -15739,8 +16248,10 @@ th.sortable-header {
 
 .hub-draft-player-rail-wrap {
   grid-area: players;
-  position: sticky;
-  top: 5.75rem;
+  /* Own column only — never overlay My team / league room. Do not stick to the viewport. */
+  position: static;
+  top: auto;
+  align-self: start;
   min-width: 0;
 }
 
@@ -16307,7 +16818,7 @@ th.sortable-header {
       "players"
       "activity";
   }
-  .hub-draft-player-rail-wrap { position: static; }
+  .hub-draft-player-rail-wrap { position: static; top: auto; }
   .hub-draft-player-list { max-height: 34rem; }
   .hub-teams-list--dock { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

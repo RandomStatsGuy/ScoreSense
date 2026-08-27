@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { useAuth } from "../AuthContext";
 import { connectionErrorMessage, parseApiError } from "../format";
@@ -15,7 +15,7 @@ import ValueSheetTable from "./ValueSheetTable";
 import RosterBuilder from "./RosterBuilder";
 import DraftRoom from "./DraftRoom";
 import CapPlanner from "./CapPlanner";
-import LeagueInsights from "./LeagueInsights";
+import InsightsFallback from "./insights/InsightsChrome";
 import LeagueOffice from "./LeagueOffice";
 import LeagueTrades from "./LeagueTrades";
 import LeagueRostersBrowser from "./LeagueRostersBrowser";
@@ -38,6 +38,8 @@ import {
 import { effectiveHubContext } from "./hubContext";
 import { fetchHubMemberships, setHubFocus, effectiveMemberships } from "./hubLeagues";
 import { isPickDraft } from "./draftEntryStatus";
+
+const LeagueInsights = lazy(() => import("./LeagueInsights"));
 
 const EMPTY_VALUE_ROWS = [];
 
@@ -813,13 +815,15 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
 
       {(subView === "insights" || visitedTabs.has("insights")) && effectiveCtx?.mode === "league" && (
         <div className={subView === "insights" ? undefined : "app-view-pane-hidden"}>
-          <LeagueInsights
-            leagueId={effectiveCtx.league_id}
-            hubContext={effectiveCtx}
-            onNavigate={setSubView}
-            activeTab={insightTab}
-            onActiveTabChange={onInsightTabChange}
-          />
+          <Suspense fallback={<InsightsFallback />}>
+            <LeagueInsights
+              leagueId={effectiveCtx.league_id}
+              hubContext={effectiveCtx}
+              onNavigate={setSubView}
+              activeTab={insightTab}
+              onActiveTabChange={onInsightTabChange}
+            />
+          </Suspense>
         </div>
       )}
 

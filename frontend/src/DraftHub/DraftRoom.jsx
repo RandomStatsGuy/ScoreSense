@@ -32,6 +32,7 @@ import {
   shouldScheduleWsReconnect,
   draftInteractionState,
   draftResultTransition,
+  displayedBidAmount,
 } from "./draftLiveConsole";
 import { isPickDraft } from "./draftEntryStatus";
 import { HubPage } from "./HubUILayout";
@@ -769,24 +770,27 @@ export default function DraftRoom({
     setBidAmount(raw);
   }, []);
 
-  // Auto-fill next bid when high bid changes (unless user is editing)
+  // Auto-fill next bid when high bid changes, but never clobber a focused edit.
+  // A rival bid used to disable this field (amount now < min) while focused,
+  // which left the input stuck and froze the command bar.
   useEffect(() => {
     if (session?.status !== "bidding") return;
-    if (!bidTouched.current && !bidFocused.current) {
-      setBidAmount(String(suggestedBid));
-    }
+    setBidAmount((current) => displayedBidAmount({
+      currentAmount: current,
+      suggestedBid,
+      focused: bidFocused.current,
+      touched: bidTouched.current,
+    }));
   }, [session?.status, session?.high_bid, suggestedBid]);
 
   // Reset manual bid edits when a new player opens for bidding.
-  // Guarded by ref: suggestedBid changes on every bot bid and must not wipe
-  // the user's typed amount mid-auction.
   const lastNomineeIdRef = useRef(null);
   useEffect(() => {
     const nomineeId = nominee?.player_id ?? null;
     if (nomineeId === lastNomineeIdRef.current) return;
     lastNomineeIdRef.current = nomineeId;
     bidTouched.current = false;
-    if (session?.status === "bidding" && !bidFocused.current) {
+    if (session?.status === "bidding") {
       setBidAmount(String(suggestedBid));
     }
   }, [nominee?.player_id, session?.status, suggestedBid]);
@@ -1513,9 +1517,17 @@ export default function DraftRoom({
           bidAmount={bidAmount}
           onBidAmountChange={applyBidAmount}
           onBidAmountFocus={() => { bidFocused.current = true; }}
-          onBidAmountBlur={() => { bidFocused.current = false; }}
+          onBidAmountBlur={() => {
+            bidFocused.current = false;
+            setBidAmount((current) => displayedBidAmount({
+              currentAmount: current,
+              suggestedBid,
+              focused: false,
+              touched: bidTouched.current,
+            }));
+          }}
           onBid={() => bid()}
-          bidDisabled={draftControlsLocked || bidInvalid || nomineePosBlocked}
+          bidDisabled={draftControlsLocked || nomineePosBlocked}
           pendingAction={pendingAction}
           isCommissioner={isCommissioner}
           onAward={award}

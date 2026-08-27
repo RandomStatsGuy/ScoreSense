@@ -94,12 +94,33 @@ def build_demo_insights(league_id: str, *, sections: str = "cap,scoring,trades")
     }
     if "cap" in wanted:
         payload["analytics"] = analytics
-        payload["historic"] = {"available": False, "awards": []}
+        historic = {"available": False, "awards": [], "seasons": []}
+        try:
+            from src.draft_hub.historic_insights import build_current_spend_awards
+
+            awards = build_current_spend_awards(overview, analytics=analytics)
+            historic = {
+                "available": bool(awards),
+                "awards": awards,
+                "seasons": [],
+            }
+        except Exception:
+            pass
+        payload["historic"] = historic
     if "scoring" in wanted:
-        payload["scoring"] = get_sleeper_scoring_history(
+        scoring = get_sleeper_scoring_history(
             str(league.get("sleeper_league_id") or ""),
             hub_teams=teams,
         )
+        try:
+            from src.draft_hub.scoring_insights import build_scoring_awards
+
+            awards = build_scoring_awards(scoring)
+            scoring = {**scoring, "awards": awards}
+            payload["scoring_awards"] = awards
+        except Exception:
+            payload["scoring_awards"] = []
+        payload["scoring"] = scoring
     if "trades" in wanted:
         from src.draft_hub.insights_cache import read_fair_values
 

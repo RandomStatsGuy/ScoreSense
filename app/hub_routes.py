@@ -4680,6 +4680,28 @@ def hub_demo_workspace() -> dict:
     return build_demo_workspace()
 
 
+@router.get("/demo/league/{league_id}/insights/status")
+def hub_demo_league_insights_status(league_id: str) -> dict:
+    from src.draft_hub.hub_demo import assert_demo_league
+
+    assert_demo_league(league_id)
+    return {"cap": "hit", "scoring": "miss", "fair_values": "miss"}
+
+
+@router.get("/demo/league/{league_id}/insights/cap")
+def hub_demo_league_insights_cap(league_id: str) -> dict:
+    from src.draft_hub.hub_demo import build_demo_insights
+
+    return build_demo_insights(league_id, sections="cap")
+
+
+@router.get("/demo/league/{league_id}/insights/scoring")
+def hub_demo_league_insights_scoring(league_id: str) -> dict:
+    from src.draft_hub.hub_demo import build_demo_insights
+
+    return build_demo_insights(league_id, sections="scoring")
+
+
 @router.get("/demo/league/{league_id}/insights")
 def hub_demo_league_insights(
     league_id: str,

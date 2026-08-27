@@ -71,20 +71,32 @@ def _deadline(seconds: int) -> str:
     return (datetime.now(timezone.utc) + timedelta(seconds=seconds)).isoformat()
 
 
+def _parse_bid_deadline(value: Any, fallback: datetime) -> datetime:
+    if not value:
+        return fallback
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return fallback
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
 def _extend_bid_deadline(session: dict[str, Any], rules: LeagueRules) -> str:
-    """Add a few seconds to the bid clock on each new bid (do not reset to full timer)."""
-    ext = int(getattr(rules.auction, "bid_extension_sec", 5) or 5)
+    """Add a few seconds on each bid, never above the opening bid clock.
+
+    Rapid bids used to stack `bid_extension_sec` onto remaining time and the
+    displayed clock could shoot past `bid_timer_sec`. Soft-cap at that opening
+    length instead of resetting all the way back to a full timer on every bid.
+    """
+    ext = max(0, int(getattr(rules.auction, "bid_extension_sec", 5) or 0))
+    cap = max(1, int(getattr(rules.auction, "bid_timer_sec", 30) or 30))
     now = datetime.now(timezone.utc)
-    current = session.get("bid_deadline")
-    if current:
-        try:
-            deadline = datetime.fromisoformat(str(current))
-        except ValueError:
-            deadline = now
-        base = max(deadline, now)
-    else:
-        base = now
-    return (base + timedelta(seconds=ext)).isoformat()
+    deadline = _parse_bid_deadline(session.get("bid_deadline"), now)
+    remaining = max(0.0, (deadline - now).total_seconds())
+    new_remaining = min(float(cap), remaining + ext)
+    return (now + timedelta(seconds=new_remaining)).isoformat()
 
 
 def _build_nomination_order(teams: list[dict[str, Any]]) -> list[str]:
