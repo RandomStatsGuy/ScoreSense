@@ -1350,6 +1350,7 @@ export default function App() {
               onHubContextChange={setHubContext}
               insightTab={insightTab}
               onInsightTabChange={nav.setInsightTab}
+              onOpenContractHistory={nav.openPlayerContractHistory}
               officeTab={nav.officeTab}
               onOfficeTabChange={nav.setOfficeTab}
             />

@@ -1,6 +1,7 @@
 /** Insights sub-tab config — analytics only (Desk moved to Office). */
 
 export const INSIGHTS_TABS = [
+  { id: "overview", label: "Overview", roles: ["owner", "commissioner"] },
   { id: "cap", label: "Spend", roles: ["owner", "commissioner"] },
   { id: "scoring", label: "Scoring", roles: ["owner", "commissioner"] },
   { id: "ownership", label: "History", roles: ["owner", "commissioner"] },
@@ -29,5 +30,5 @@ export function visibleInsightsTabs(isCommissioner) {
 }
 
 export function defaultInsightTab(isCommissioner) {
-  return visibleInsightsTabs(isCommissioner)[0]?.id || "cap";
+  return visibleInsightsTabs(isCommissioner)[0]?.id || "overview";
 }

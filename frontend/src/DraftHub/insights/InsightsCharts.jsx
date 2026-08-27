@@ -36,7 +36,7 @@ export function CapSpendCharts({
   return (
     <div className="hub-insights-grid">
       <div className="hub-insights-chart-panel">
-        <h3>Stacked spend</h3>
+        <h3>{capSeason === "all" ? "Average share of cap" : "Stacked spend"}</h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart
             key={`${capSeason}-${barData.length}-${activePositions.join(",")}`}
@@ -69,7 +69,7 @@ export function CapSpendCharts({
           <h3>Team breakdown</h3>
           <select className="search-input" value={teamPick} onChange={(e) => onTeamPick(e.target.value)}>
             {(teams || []).map((t) => (
-              <option key={t.team_id} value={t.team_id}>{t.team_name}</option>
+              <option key={t.team_id} value={t.team_id}>{t.display_name || t.team_name}</option>
             ))}
           </select>
           <ResponsiveContainer width="100%" height={260}>

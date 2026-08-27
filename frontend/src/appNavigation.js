@@ -48,7 +48,7 @@ export const SECTION_SUBTITLES = {
     room: "Live auction",
     planner: "Cap & cuts",
     trades: "Propose & accept",
-    insights: "Talking points for the group chat",
+    insights: "League history and awards",
     office: "League-wide roster operations",
     live: "This week's matchup",
     "league-rosters": "All rosters",

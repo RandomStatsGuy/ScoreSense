@@ -6,49 +6,17 @@ import {
   managerLabel,
 } from "./insightsPresentation";
 
-const AWARD_EMOJI = {
-  highest_paid: "👑",
-  most_overpaid: "🔥",
-  worst_contract: "💀",
-  best_bargain: "💎",
-  waiver_king: "🛒",
-  cap_hog: "🦣",
-  payroll_king: "🏦",
-  dead_cap_disaster: "⚰️",
-  nomad: "✈️",
-  loyalty: "💍",
-  career_earnings: "🤑",
-  biggest_raise: "📈",
-  cap_crunch: "😬",
-  points_king: "👑",
-  basement: "🕳️",
-  weekly_nuke: "💥",
-  weekly_disaster: "📉",
-  steady_eddie: "🎯",
-  rollercoaster: "🎢",
-  wire_to_wire: "📡",
-  cap_efficiency_goat: "🐐",
-  cap_efficiency_fraud: "🎭",
-  margin_massacre: "☢️",
-  nail_biter: "📸",
-  always_runner_up: "🥈",
-  floor_collapse: "🌗",
-  participation_trophy: "🎖️",
-};
-
 export function InsightsAwardCard({ award, ownerMap, yearSpecific, featured = false }) {
-  const emoji = AWARD_EMOJI[award.id] || "🏷️";
   const who = managerLabel(award, ownerMap, yearSpecific);
   return (
     <article
       className={`hub-insights-talk-card hub-insights-talk-card--${award.tone || "neutral"}${featured ? " is-featured" : ""}`}
     >
       <div className="hub-insights-talk-card-top">
-        <span className="hub-insights-talk-emoji" aria-hidden>{emoji}</span>
+        <span className={`hub-insights-talk-tone hub-insights-talk-tone--${award.tone || "neutral"}`} aria-hidden />
         <span className="hub-insights-talk-kicker">{award.title}</span>
       </div>
       <strong className="hub-insights-talk-headline">{award.headline}</strong>
-      {award.roast && <p className="hub-insights-talk-roast">{award.roast}</p>}
       {(award.player_name || who) && (
         <p className="hub-insights-talk-who">
           {award.player_name && <span className="hub-insights-talk-player">{award.player_name}</span>}
@@ -66,7 +34,7 @@ export function FeaturedAwards({
   awards,
   ownerMap,
   yearSpecific,
-  title = "Talking points",
+  title = "Awards",
   subtitle,
 }) {
   if (!awards?.length) return null;
@@ -189,18 +157,21 @@ export function PositionSpendBoard({
   metric,
   mineId,
   mineName,
+  allTime = false,
 }) {
   if (!leaders?.length) return null;
   const active = leaders.find((row) => row.position === focusedPos) || leaders[0];
   const mode = metric === "pct" ? "pct" : "dollars";
   return (
-    <section className="hub-insights-board" aria-label="Position spend kings">
+    <section className="hub-insights-board" aria-label="Position spend">
       <div className="hub-insights-talk-head">
-        <h3>Who went heavy?</h3>
+        <h3>{allTime ? "Who spends the cap?" : "Who went heavy?"}</h3>
         <p>
           {active?.leader
             ? `${active.leader.label} leads ${active.position} by ${formatSpendValue(active.gap, mode)}.`
-            : "Tap a position to see the spend race."}
+            : allTime
+              ? "Average share of each season's cap."
+              : "Tap a position to see the spend race."}
         </p>
       </div>
       <div className="hub-insights-pos-kings" role="list">

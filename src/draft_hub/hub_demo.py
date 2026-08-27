@@ -99,6 +99,12 @@ def build_demo_insights(league_id: str, *, sections: str = "cap,scoring,trades")
             from src.draft_hub.historic_insights import build_current_spend_awards
 
             awards = build_current_spend_awards(overview, analytics=analytics)
+            from src.draft_hub.insight_awards import apply_award_titles
+
+            awards = apply_award_titles(
+                awards,
+                (league.get("rules") or {}).get("insight_award_titles"),
+            )
             historic = {
                 "available": bool(awards),
                 "awards": awards,
@@ -113,14 +119,38 @@ def build_demo_insights(league_id: str, *, sections: str = "cap,scoring,trades")
             hub_teams=teams,
         )
         try:
+            from src.draft_hub.insight_awards import apply_award_titles
             from src.draft_hub.scoring_insights import build_scoring_awards
 
-            awards = build_scoring_awards(scoring)
+            awards = apply_award_titles(
+                build_scoring_awards(scoring),
+                (league.get("rules") or {}).get("insight_award_titles"),
+            )
             scoring = {**scoring, "awards": awards}
             payload["scoring_awards"] = awards
         except Exception:
             payload["scoring_awards"] = []
         payload["scoring"] = scoring
+    if "overview" in wanted:
+        from src.draft_hub.insight_awards import award_catalog
+        from src.draft_hub.league_history import build_insights_landing
+
+        titles = (league.get("rules") or {}).get("insight_award_titles")
+        hub_teams = [
+            {
+                "id": (block.get("team") or {}).get("id"),
+                "name": (block.get("team") or {}).get("name"),
+                "sleeper_roster_id": (block.get("team") or {}).get("sleeper_roster_id"),
+            }
+            for block in teams
+        ]
+        landing = build_insights_landing(
+            str(league.get("sleeper_league_id") or ""),
+            hub_teams=hub_teams,
+            award_titles=titles,
+        )
+        payload["landing"] = landing
+        payload["award_catalog"] = landing.get("award_catalog") or award_catalog(titles)
     if "trades" in wanted:
         from src.draft_hub.insights_cache import read_fair_values
 

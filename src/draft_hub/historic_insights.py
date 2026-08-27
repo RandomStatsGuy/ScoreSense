@@ -17,6 +17,7 @@ from src.draft_hub.player_name_match import (
     names_likely_same,
     pick_canonical_name,
 )
+from src.draft_hub.insight_awards import award_title
 from src.draft_hub.rules_engine import normalize_position
 
 ANALYTICS_POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"]
@@ -31,6 +32,43 @@ def _row_team_name(league_id: str, row: dict[str, Any]) -> str:
         if mapped:
             return mapped
     return str(row.get("hub_team_name") or owner or "Unknown")
+
+
+def _row_owner_key(row: dict[str, Any]) -> str:
+    """Stable manager identity — team names change, owners should not."""
+    owner = str(row.get("owner_label") or "").strip()
+    if owner:
+        return owner
+    return str(row.get("hub_team_name") or "Unknown")
+
+
+def _positional_spend_for_rows(
+    rows: list[dict[str, Any]],
+    *,
+    salary_cap: float,
+) -> dict[str, Any]:
+    spend = {p: 0.0 for p in ANALYTICS_POSITIONS}
+    counts = {p: 0 for p in ANALYTICS_POSITIONS}
+    for row in rows:
+        pos = _row_position(row)
+        if not pos:
+            continue
+        sal = float(row.get("cap_hit") or row.get("base_salary") or 0)
+        spend[pos] += sal
+        counts[pos] += 1
+    committed = round(sum(spend.values()), 2)
+    unspent = round(max(0.0, float(salary_cap) - committed), 2)
+    cap = float(salary_cap) if salary_cap else 0.0
+    pct = {p: round((spend[p] / cap) * 100, 1) if cap else 0.0 for p in ANALYTICS_POSITIONS}
+    return {
+        "spend": {p: round(spend[p], 2) for p in ANALYTICS_POSITIONS},
+        "counts": counts,
+        "committed": committed,
+        "unspent": unspent,
+        "pct": pct,
+        "pct_committed": round((committed / cap) * 100, 1) if cap else 0.0,
+        "pct_unspent": round((unspent / cap) * 100, 1) if cap else 0.0,
+    }
 
 
 def _name_key(name: str) -> str:
@@ -96,55 +134,59 @@ def build_contract_analytics(
             cut_rows=cut_rows,
         )
 
-    team_season_rows: dict[str, dict[int, list[dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
+    owner_season_rows: dict[str, dict[int, list[dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
     for yr in seasons:
         for row in _active_contract_rows(league_id, yr, view=view):
-            team = _row_team_name(league_id, row)
-            team_season_rows[team][yr].append(row)
+            owner_season_rows[_row_owner_key(row)][yr].append(row)
 
     teams_out: list[dict[str, Any]] = []
-    all_spend: dict[str, list[float]] = {p: [] for p in ANALYTICS_POSITIONS}
-    all_counts: dict[str, list[int]] = {p: [] for p in ANALYTICS_POSITIONS}
+    all_pct: dict[str, list[float]] = {p: [] for p in ANALYTICS_POSITIONS}
+    all_counts: dict[str, list[float]] = {p: [] for p in ANALYTICS_POSITIONS}
+    all_pct_committed: list[float] = []
+    all_pct_unspent: list[float] = []
 
-    for team_name, season_map in sorted(team_season_rows.items()):
-        season_snapshots: list[dict[str, Any]] = []
+    for owner_name, season_map in sorted(owner_season_rows.items()):
+        season_snaps: list[dict[str, Any]] = []
         for yr, rows in season_map.items():
             yr_cap = storage.resolve_salary_cap_for_season(league_id, int(yr), salary_cap)
-            snap = _analytics_snapshot(rows, salary_cap=yr_cap, label=str(yr), league_id=league_id)
-            if snap["teams"]:
-                season_snapshots.append(snap["teams"][0])
-
-        if not season_snapshots:
+            season_snaps.append(_positional_spend_for_rows(rows, salary_cap=yr_cap))
+        if not season_snaps:
             continue
 
-        n = len(season_snapshots)
-        spend = {
-            p: round(sum(s["spend_by_position"][p] for s in season_snapshots) / n, 2)
+        n = len(season_snaps)
+        pct = {
+            p: round(sum(s["pct"][p] for s in season_snaps) / n, 1)
             for p in ANALYTICS_POSITIONS
         }
         counts = {
-            p: round(sum(s["count_by_position"][p] for s in season_snapshots) / n, 1)
+            p: round(sum(s["counts"][p] for s in season_snaps) / n, 1)
             for p in ANALYTICS_POSITIONS
         }
-        committed = round(sum(spend.values()), 2)
-        unspent = round(max(0.0, salary_cap - committed), 2)
-        pct = {p: round((spend[p] / salary_cap) * 100, 1) if salary_cap else 0.0 for p in ANALYTICS_POSITIONS}
-        pct_unspent = round((unspent / salary_cap) * 100, 1) if salary_cap else 0.0
+        pct_committed = round(sum(s["pct_committed"] for s in season_snaps) / n, 1)
+        pct_unspent = round(sum(s["pct_unspent"] for s in season_snaps) / n, 1)
+        avg_committed = round(sum(s["committed"] for s in season_snaps) / n, 2)
 
         for p in ANALYTICS_POSITIONS:
-            all_spend[p].append(spend[p])
+            all_pct[p].append(pct[p])
             all_counts[p].append(counts[p])
+        all_pct_committed.append(pct_committed)
+        all_pct_unspent.append(pct_unspent)
 
         teams_out.append(
             {
-                "team_id": team_name,
-                "team_name": team_name,
-                "spend_by_position": spend,
+                "team_id": owner_name,
+                "team_name": owner_name,
+                "owner_label": owner_name,
+                "display_name": owner_name,
+                "identity": "owner",
+                "value_mode": "avg_pct",
+                "spend_by_position": {p: 0.0 for p in ANALYTICS_POSITIONS},
                 "count_by_position": {p: int(round(counts[p])) for p in ANALYTICS_POSITIONS},
                 "pct_by_position": pct,
-                "committed": committed,
+                "committed": avg_committed,
+                "pct_committed": pct_committed,
                 "dead_cap": 0.0,
-                "unspent": unspent,
+                "unspent": 0.0,
                 "pct_unspent": pct_unspent,
                 "pct_dead_cap": 0.0,
                 "player_count": int(round(sum(counts.values()))),
@@ -159,16 +201,21 @@ def build_contract_analytics(
         "positions": list(ANALYTICS_POSITIONS),
         "teams": teams_out,
         "league_avg": {
-            "spend_by_position": {
-                p: round(sum(all_spend[p]) / n_teams, 2) for p in ANALYTICS_POSITIONS
-            },
+            "spend_by_position": {p: 0.0 for p in ANALYTICS_POSITIONS},
             "count_by_position": {
                 p: round(sum(all_counts[p]) / n_teams, 1) for p in ANALYTICS_POSITIONS
             },
+            "pct_by_position": {
+                p: round(sum(all_pct[p]) / n_teams, 1) for p in ANALYTICS_POSITIONS
+            },
+            "pct_committed": round(sum(all_pct_committed) / n_teams, 1) if all_pct_committed else 0.0,
+            "pct_unspent": round(sum(all_pct_unspent) / n_teams, 1) if all_pct_unspent else 0.0,
         },
         "draft_completed": True,
         "source": "contract_history",
         "mode": "all_time",
+        "value_mode": "avg_pct",
+        "identity": "owner",
         "seasons_tracked": len(seasons),
     }
 
@@ -632,9 +679,8 @@ def build_contract_awards(
     awards.append(
         ae(
             "highest_paid",
-            title="Bag Chaser",
-            headline=f"{fmt_sal_short(top_cap)} — touch it, you bought it",
-            roast="Commissioner said yes and God said nothing.",
+            title=award_title("highest_paid"),
+            headline=f"{fmt_sal_short(top_cap)} league-high cap hit",
             player_name=top.get("player_name"),
             team_name=_row_team_name(league_id, top),
             owner_label=top.get("owner_label"),
@@ -660,9 +706,8 @@ def build_contract_awards(
         awards.append(
             ae(
                 "most_overpaid",
-                title="Donated to the cause",
+                title=award_title("most_overpaid"),
                 headline=f"+{fmt_sal_short(premium)} over {row.get('position')} market",
-                roast="Could've rostered two guys. Chose hubris.",
                 player_name=row.get("player_name"),
                 **_team_award_fields(league_id, row, year_specific=year_specific),
                 position=_row_position(row),
@@ -684,9 +729,8 @@ def build_contract_awards(
         awards.append(
             ae(
                 "worst_contract",
-                title="Financial war crime",
-                headline=f"{ratio:.1f}× what peers cost",
-                roast="The spreadsheet cried. You didn't.",
+                title=award_title("worst_contract"),
+                headline=f"{ratio:.1f}× positional average",
                 player_name=row.get("player_name"),
                 **_team_award_fields(league_id, row, year_specific=year_specific),
                 position=_row_position(row),
@@ -711,9 +755,8 @@ def build_contract_awards(
         awards.append(
             ae(
                 "best_bargain",
-                title="Actually competent",
+                title=award_title("best_bargain"),
                 headline=f"{fmt_sal_short(discount)} below market",
-                roast="Rare W. Don't get used to it.",
                 player_name=row.get("player_name"),
                 **_team_award_fields(league_id, row, year_specific=year_specific),
                 position=_row_position(row),
@@ -734,9 +777,8 @@ def build_contract_awards(
         awards.append(
             ae(
                 "waiver_king",
-                title="Dollar Store GM",
+                title=award_title("waiver_king"),
                 headline=f"{len(entries)} season{'s' if len(entries) != 1 else ''} at $1",
-                roast="Rent-a-player speedrun any%",
                 player_name=sample.get("player_name"),
                 **_team_award_fields(league_id, sample, year_specific=year_specific),
                 position=_row_position(sample),
@@ -747,27 +789,37 @@ def build_contract_awards(
             )
         )
 
-    cap_hog = max(
-        rows,
-        key=lambda r: float(r.get("cap_hit") or 0) / salary_cap if salary_cap else 0,
-    )
-    hog_cap = float(cap_hog.get("cap_hit") or 0)
-    hog_pct = round((hog_cap / salary_cap) * 100, 1) if salary_cap else 0
-    awards.append(
-        ae(
-            "cap_hog",
-            title="Team? Never heard of her",
-            headline=f"{hog_pct}% of the cap on one guy",
-            roast="Depth is for other leagues.",
-            player_name=cap_hog.get("player_name"),
-            **_team_award_fields(league_id, cap_hog, year_specific=year_specific),
-            position=_row_position(cap_hog),
-            amount=hog_cap,
-            detail=f"{fmt_sal_short(hog_cap)} · eats the budget",
-            season_year=int(cap_hog["season_year"]),
-            tone="neutral",
+    hog_row = None
+    hog_pct = 0.0
+    hog_cap_hit = 0.0
+    for row in rows:
+        yr = int(row.get("season_year") or 0)
+        row_cap = (
+            storage.resolve_salary_cap_for_season(league_id, yr, salary_cap)
+            if league_id and yr
+            else salary_cap
         )
-    )
+        hit = float(row.get("cap_hit") or 0)
+        pct = (hit / row_cap) * 100 if row_cap else 0.0
+        if pct >= hog_pct:
+            hog_pct = round(pct, 1)
+            hog_row = row
+            hog_cap_hit = hit
+    if hog_row:
+        awards.append(
+            ae(
+                "cap_hog",
+                title=award_title("cap_hog"),
+                headline=f"{hog_pct}% of that season's cap",
+                player_name=hog_row.get("player_name"),
+                **_team_award_fields(league_id, hog_row, year_specific=year_specific),
+                position=_row_position(hog_row),
+                amount=hog_cap_hit,
+                detail=f"{fmt_sal_short(hog_cap_hit)} · largest single-player cap share",
+                season_year=int(hog_row["season_year"]),
+                tone="neutral",
+            )
+        )
 
     if season_year is not None:
         by_team: dict[str, float] = defaultdict(float)
@@ -787,9 +839,8 @@ def build_contract_awards(
             awards.append(
                 ae(
                     "payroll_king",
-                    title="Spent it all",
+                    title=award_title("payroll_king"),
                     headline=f"{fmt_sal_short(committed)} committed",
-                    roast="Future you is gonna hate this.",
                     team_name=team_name,
                     owner_label=owner_label,
                     amount=committed,
@@ -807,14 +858,13 @@ def build_contract_awards(
         awards.append(
             ae(
                 "dead_cap_disaster",
-                title="RIP cap space",
-                headline=f"{fmt_sal_short(dead_amt)} rotting on the bench",
-                roast="Cut him. Keep paying him. Cry.",
+                title=award_title("dead_cap_disaster"),
+                headline=f"{fmt_sal_short(dead_amt)} dead cap",
                 player_name=dead.get("player_name"),
                 **_team_award_fields(league_id, dead, year_specific=year_specific),
                 position=_row_position(dead),
                 amount=dead_amt,
-                detail="Ugliest dead-money hit in this view",
+                detail="Largest dead-cap charge in this view",
                 season_year=int(dead["season_year"]),
                 tone="bad",
             )
@@ -828,9 +878,8 @@ def build_contract_awards(
                 awards.append(
                     ae(
                         "nomad",
-                        title="Can't sit still",
+                        title=award_title("nomad"),
                         headline=f"{nomad['team_count']} franchises",
-                        roast="Commitment issues loading…",
                         player_name=nomad.get("player_name"),
                         position=nomad.get("position"),
                         amount=nomad.get("avg_cap"),
@@ -856,9 +905,8 @@ def build_contract_awards(
                 awards.append(
                     ae(
                         "loyalty",
-                        title="Ride or die",
+                        title=award_title("loyalty"),
                         headline=f"{count} years · {format_manager_label(loyalty_team, owner_label=loyalty_team, year_specific=False)}",
-                        roast="Built different. Or stuck. Hard to tell.",
                         player_name=prof.get("player_name"),
                         team_name=loyalty_team,
                         owner_label=loyalty_team,
@@ -874,9 +922,8 @@ def build_contract_awards(
                 awards.append(
                     ae(
                         "career_earnings",
-                        title="Paid in full",
-                        headline=f"{fmt_sal_short(career['total_cap'])} lifetime",
-                        roast="Generational wealth. Generational regret TBD.",
+                        title=award_title("career_earnings"),
+                        headline=f"{fmt_sal_short(career['total_cap'])} lifetime cap",
                         player_name=career.get("player_name"),
                         position=career.get("position"),
                         amount=career.get("total_cap"),
@@ -899,9 +946,8 @@ def build_contract_awards(
             awards.append(
                 ae(
                     "biggest_raise",
-                    title="Agent won",
+                    title=award_title("biggest_raise"),
                     headline=f"+{fmt_sal_short(bump)} year-over-year",
-                    roast="Extension szn hit different.",
                     player_name=curr.get("player_name"),
                     **_team_award_fields(league_id, curr, year_specific=False),
                     position=_row_position(curr),
@@ -975,9 +1021,8 @@ def build_current_spend_awards(
     awards.append(
         ae(
             "highest_paid",
-            title="Bag Chaser",
+            title=award_title("highest_paid"),
             headline=f"{fmt_sal_short(float(top['cap_hit']))} on roster right now",
-            roast="Your money, their problem.",
             player_name=top.get("player_name"),
             team_name=top.get("hub_team_name"),
             owner_label=top.get("owner_label"),
@@ -1000,9 +1045,8 @@ def build_current_spend_awards(
         awards.append(
             ae(
                 "most_overpaid",
-                title="Donated to the cause",
+                title=award_title("most_overpaid"),
                 headline=f"+{fmt_sal_short(premium)} over {row.get('position')} market",
-                roast="The group chat is laughing. Quietly.",
                 player_name=row.get("player_name"),
                 **_team_award_fields(league_id, row, year_specific=False),
                 position=_row_position(row),
@@ -1025,9 +1069,8 @@ def build_current_spend_awards(
         awards.append(
             ae(
                 "best_bargain",
-                title="Actually competent",
+                title=award_title("best_bargain"),
                 headline=f"{fmt_sal_short(discount)} below market",
-                roast="Steals still exist. Barely.",
                 player_name=row.get("player_name"),
                 **_team_award_fields(league_id, row, year_specific=False),
                 position=_row_position(row),
@@ -1043,9 +1086,8 @@ def build_current_spend_awards(
         awards.append(
             ae(
                 "payroll_king",
-                title="Spent it all",
+                title=award_title("payroll_king"),
                 headline=f"{fmt_sal_short(float(payroll.get('committed') or 0))} committed",
-                roast="Window shopping is over.",
                 team_name=pt,
                 owner_label=lookup_owner_label(pt, owner_map),
                 amount=float(payroll.get("committed") or 0),
@@ -1060,9 +1102,8 @@ def build_current_spend_awards(
         awards.append(
             ae(
                 "cap_crunch",
-                title="Broke boys",
+                title=award_title("cap_crunch"),
                 headline=f"{fmt_sal_short(float(tightest.get('unspent') or 0))} cap left",
-                roast="One injury away from panic.",
                 team_name=tightest.get("team_name"),
                 owner_label=lookup_owner_label(tightest.get("team_name"), owner_map),
                 amount=float(tightest.get("unspent") or 0),

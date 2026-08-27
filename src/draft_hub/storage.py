@@ -3189,7 +3189,7 @@ def insights_source_version(league_id: str) -> str:
             (str(league_id),),
         ).fetchone()["rev"]
     raw = (
-        f"live={live_rev}:hist={hist_rev}:"
+        f"formula=owner_avg_pct_v1:live={live_rev}:hist={hist_rev}:"
         f"{roster_slots}:{contract_rows}:{manual_rows}:{import_rev}:{import_fp}:{osm}"
     )
     return hashlib.sha256(raw.encode()).hexdigest()[:16]

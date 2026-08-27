@@ -9,6 +9,7 @@ import { HubPage, HubTableCard } from "./HubUILayout";
 import HubTabIntro from "./HubTabIntro";
 import { fmtSal } from "./rosterFormat";
 import { seedTradeFromPlayer } from "./tradeSeed";
+import ContractHistoryLink from "./ContractHistoryLink";
 
 function gradeLabel(grade) {
   if (grade === "good") return "Good value";
@@ -53,6 +54,7 @@ export default function LeagueRostersBrowser({
   leagueId,
   hubContext,
   onNavigateTrade,
+  onOpenContractHistory,
 }) {
   const mobileLayout = useMobileLayout();
   const [overview, setOverview] = useState(null);
@@ -195,6 +197,12 @@ export default function LeagueRostersBrowser({
                         >
                           {tradeLabel}
                         </button>,
+                        <ContractHistoryLink
+                          key="history"
+                          playerId={r.player_id}
+                          playerName={r.player_name}
+                          onOpen={onOpenContractHistory}
+                        />,
                       ]
                     : null;
                   return (
@@ -315,6 +323,7 @@ export default function LeagueRostersBrowser({
                           <td className="num">{r.fp_per_dollar ?? "—"}</td>
                           <td>
                             {r.player_id && (
+                              <>
                               <button
                                 type="button"
                                 className="btn-ghost btn-sm"
@@ -322,6 +331,12 @@ export default function LeagueRostersBrowser({
                               >
                                 {tradeLabel}
                               </button>
+                              <ContractHistoryLink
+                                playerId={r.player_id}
+                                playerName={r.player_name}
+                                onOpen={onOpenContractHistory}
+                              />
+                              </>
                             )}
                           </td>
                         </tr>
