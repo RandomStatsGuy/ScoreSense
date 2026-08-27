@@ -731,6 +731,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           }
           rules={effectiveCtx?.rules || workspace?.rules || null}
           pickDraft={isPickDraft(effectiveCtx?.rules || workspace?.rules)}
+          acquisitionWindow={effectiveCtx?.acquisition_window}
+          inLeague={effectiveCtx?.mode === "league"}
         />
       )}
 

@@ -258,3 +258,73 @@ export function HubSegmentNav({ tabs, active, onChange, ariaLabel = "Sections" }
     </nav>
   );
 }
+
+export function HubExperienceHero({
+  eyebrow,
+  heading,
+  support,
+  chip,
+  chipTone = "active",
+  children,
+}) {
+  return (
+    <header className="hub-experience-hero">
+      <div>
+        {eyebrow ? <span className="hub-experience-eyebrow">{eyebrow}</span> : null}
+        {heading ? <h2>{heading}</h2> : null}
+        {support ? <p>{support}</p> : null}
+        {children}
+      </div>
+      {chip ? (
+        <span className={`hub-experience-chip${chipTone === "readonly" ? " is-readonly" : ""}`}>
+          {chip}
+        </span>
+      ) : null}
+    </header>
+  );
+}
+
+export function HubExperienceLayout({ children, summary, summaryLabel = "At a glance" }) {
+  return (
+    <div className="hub-experience-layout">
+      <div className="hub-experience-main">{children}</div>
+      {summary ? (
+        <aside className="hub-experience-summary" aria-label={summaryLabel}>
+          {summary}
+        </aside>
+      ) : null}
+    </div>
+  );
+}
+
+export function HubExperienceSummary({
+  title,
+  subtitle,
+  items = [],
+  note,
+  action,
+  status,
+}) {
+  return (
+    <>
+      <div>
+        <span className="hub-experience-eyebrow">At a glance</span>
+        {title ? <h3>{title}</h3> : null}
+        {subtitle ? <p>{subtitle}</p> : null}
+      </div>
+      {items.length > 0 && (
+        <dl>
+          {items.map((item) => (
+            <div key={item.id || item.label}>
+              <dt>{item.label}</dt>
+              <dd>{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {note ? <p className="hub-experience-summary-note">{note}</p> : null}
+      {action}
+      {status}
+    </>
+  );
+}

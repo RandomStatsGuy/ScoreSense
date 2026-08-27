@@ -22,3 +22,16 @@ export function playerInitials(name) {
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
+
+export function lookupPlayerMedia(media, playerId) {
+  if (!media || playerId == null || playerId === "") return null;
+  return media[playerId] || media[String(playerId)] || null;
+}
+
+export function headshotCandidates(media = {}, extraUrls = []) {
+  return [
+    media?.headshot_url,
+    media?.espn_headshot_url,
+    ...extraUrls,
+  ].filter(Boolean);
+}

@@ -1,11 +1,16 @@
 """Adding a player already on another roster requires commissioner confirm."""
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from fastapi.testclient import TestClient
 
 from app.api import app
 from app.auth import require_hub_user
 from src.draft_hub import storage
 from src.draft_hub.schemas import LeagueRules
+
+ET = ZoneInfo("America/New_York")
 
 
 def _client_for(sub: str) -> TestClient:
@@ -26,9 +31,22 @@ def _payload(**overrides):
     return body
 
 
-def test_member_cannot_add_taken_player(hub_db):
+def _open_fa(monkeypatch, league):
+    storage.update_league_settings(league["id"], draft_completed=True)
+    monkeypatch.setattr(
+        "src.draft_hub.acquisition_window.get_nfl_state",
+        lambda use_cache=True: {"season_type": "regular", "week": 4, "season": 2026},
+    )
+    monkeypatch.setattr(
+        "src.draft_hub.acquisition_window._now_et",
+        lambda now=None: datetime(2026, 9, 24, 15, 0, tzinfo=ET),
+    )
+
+
+def test_member_cannot_add_taken_player(hub_db, monkeypatch):
     rules = LeagueRules()
     league = storage.create_league("comm-taken", "Taken League", 2026, rules, team_count=10)
+    _open_fa(monkeypatch, league)
     owner = storage.join_league("owner-taken", league["room_code"], "Owner Team")
     storage.join_league("member-taken", league["room_code"], "Member Team")
     ws_id = storage.roster_workspace_for_league(league)
@@ -55,9 +73,10 @@ def test_member_cannot_add_taken_player(hub_db):
         app.dependency_overrides.pop(require_hub_user, None)
 
 
-def test_commissioner_needs_force_then_can_reassign(hub_db):
+def test_commissioner_needs_force_then_can_reassign(hub_db, monkeypatch):
     rules = LeagueRules()
     league = storage.create_league("comm-reassign", "Reassign League", 2026, rules, team_count=10)
+    _open_fa(monkeypatch, league)
     owner = storage.join_league("owner-reassign", league["room_code"], "Alpha")
     ws_id = storage.roster_workspace_for_league(league)
     storage.add_roster_slot(
@@ -88,9 +107,10 @@ def test_commissioner_needs_force_then_can_reassign(hub_db):
         app.dependency_overrides.pop(require_hub_user, None)
 
 
-def test_already_on_own_roster_rejected(hub_db):
+def test_already_on_own_roster_rejected(hub_db, monkeypatch):
     rules = LeagueRules()
     league = storage.create_league("comm-own", "Own Roster League", 2026, rules, team_count=8)
+    _open_fa(monkeypatch, league)
     team = storage.get_team_by_user(league["id"], "comm-own")
     ws_id = storage.roster_workspace_for_league(league)
     storage.add_roster_slot(
@@ -115,9 +135,10 @@ def test_already_on_own_roster_rejected(hub_db):
         app.dependency_overrides.pop(require_hub_user, None)
 
 
-def test_commissioner_can_add_player_to_another_team(hub_db):
+def test_commissioner_can_add_player_to_another_team(hub_db, monkeypatch):
     rules = LeagueRules()
     league = storage.create_league("comm-add-other", "Add Other League", 2026, rules, team_count=10)
+    _open_fa(monkeypatch, league)
     owner = storage.join_league("owner-add-other", league["room_code"], "Disappointment")
     storage.join_league("member-add-other", league["room_code"], "Member Team")
     ws_id = storage.roster_workspace_for_league(league)
@@ -167,9 +188,10 @@ def test_commissioner_can_add_player_to_another_team(hub_db):
         app.dependency_overrides.pop(require_hub_user, None)
 
 
-def test_commissioner_force_reassigns_to_requested_team(hub_db):
+def test_commissioner_force_reassigns_to_requested_team(hub_db, monkeypatch):
     rules = LeagueRules()
     league = storage.create_league("comm-force-target", "Force Target League", 2026, rules, team_count=10)
+    _open_fa(monkeypatch, league)
     owner = storage.join_league("owner-force-target", league["room_code"], "Alpha")
     dest = storage.join_league("dest-force-target", league["room_code"], "Disappointment")
     ws_id = storage.roster_workspace_for_league(league)

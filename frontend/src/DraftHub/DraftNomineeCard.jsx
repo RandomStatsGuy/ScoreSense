@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import SentimentBadge from "../SentimentBadge";
 import Chip, { sentimentChipTone } from "../Chip";
 import { mentionCountLabel } from "../format";
@@ -8,7 +8,7 @@ import {
   pickHistoricalWeek,
 } from "../mediaContext";
 import { pickFantasyMediaDigest } from "../fantasyMediaDigest";
-import { playerInitials, teamLogoUrl } from "./draftMedia";
+import { playerInitials, teamLogoUrl, headshotCandidates } from "./draftMedia";
 import DraftDeadlineClock from "./DraftDeadlineClock";
 import { fmtSal } from "./rosterFormat";
 
@@ -53,22 +53,36 @@ function NomineeStats({ stats }) {
   );
 }
 
-function PlayerAvatar({ name, headshotUrl, team, teamLogoUrl: logoOverride, size = "lg" }) {
-  const [imgFailed, setImgFailed] = useState(false);
+function PlayerAvatar({
+  name,
+  headshotUrl,
+  espnHeadshotUrl,
+  team,
+  teamLogoUrl: logoOverride,
+  size = "lg",
+}) {
+  const [shotIndex, setShotIndex] = useState(0);
   const [logoFailed, setLogoFailed] = useState(false);
+  const shots = headshotCandidates({ headshot_url: headshotUrl, espn_headshot_url: espnHeadshotUrl });
+  const headshot = shots[shotIndex] || null;
   const logo = logoOverride || teamLogoUrl(team);
-  const showHeadshot = headshotUrl && !imgFailed;
+  const showHeadshot = Boolean(headshot);
   const logoAsMain = !showHeadshot && logo && !logoFailed;
+
+  useEffect(() => {
+    setShotIndex(0);
+    setLogoFailed(false);
+  }, [headshotUrl, espnHeadshotUrl, name]);
 
   return (
     <div className={`hub-draft-avatar-wrap hub-draft-avatar-${size}`}>
       {showHeadshot ? (
         <img
           className="hub-draft-headshot"
-          src={headshotUrl}
+          src={headshot}
           alt=""
           loading="lazy"
-          onError={() => setImgFailed(true)}
+          onError={() => setShotIndex((index) => index + 1)}
         />
       ) : logoAsMain ? (
         <img
@@ -95,6 +109,7 @@ export default function DraftNomineeCard({
   position,
   team,
   headshotUrl,
+  espnHeadshotUrl,
   teamLogoUrl: logoOverride,
   sentiment,
   fantasyMediaDigest,
@@ -153,6 +168,7 @@ export default function DraftNomineeCard({
         <PlayerAvatar
           name={playerName}
           headshotUrl={headshotUrl}
+          espnHeadshotUrl={espnHeadshotUrl}
           team={team}
           teamLogoUrl={logoOverride}
           size={compact ? "md" : "lg"}

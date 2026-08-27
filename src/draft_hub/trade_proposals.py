@@ -295,6 +295,33 @@ def validate_trade_package(
             seen.add(pid)
 
     sim = simulate_rosters(league_id, norm, assignments, rules=rules)
+    from src.draft_hub.acquisition_window import resolve_acquisition_window, trade_lock_reason
+
+    window = resolve_acquisition_window(
+        {
+            "mode": "league",
+            "draft_completed": bool(league.get("draft_completed")),
+            "league_status": league.get("status"),
+            "season": league.get("season"),
+        }
+    )
+    if window.get("trade_scope") == "surviving_contracts":
+        by_team = storage.list_league_rosters_by_team(league_id)
+        owned: dict[str, dict[str, Any]] = {}
+        for rows in by_team.values():
+            for row in rows:
+                pid = str(row.get("player_id") or "")
+                if pid:
+                    owned[pid] = row
+        lock_errors: list[str] = []
+        for party in norm:
+            for send in party["sends"]:
+                reason = trade_lock_reason(owned.get(str(send["player_id"])), window)
+                if reason:
+                    lock_errors.append(reason)
+        if lock_errors:
+            raise ValueError("; ".join(dict.fromkeys(lock_errors)))
+
     team_names = {
         str(t["id"]): str(t.get("name") or t["id"])
         for t in storage.list_league_teams(league_id)

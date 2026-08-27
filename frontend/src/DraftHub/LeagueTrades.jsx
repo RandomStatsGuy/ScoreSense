@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
-import { HubFilterChip, HubFilterScroll, HubPage } from "./HubUILayout";
+import { HubFilterChip, HubFilterScroll, HubAlert, HubPage } from "./HubUILayout";
 import HubTabIntro from "./HubTabIntro";
 import { getInsightsSection, setInsightsSection } from "./hubDataCache";
 import { confirmDialog } from "../ui/confirm";
@@ -10,11 +10,8 @@ import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hub
 import { fmtSal } from "./rosterFormat";
 import { clearTradeSeed, readTradeSeed } from "./tradeSeed";
 import { formatStatDelta, projectTeamTradeStats } from "./tradeProjection";
-import {
-  formatIdeaCapNet,
-  ideaCapImpact,
-  whyThisHelpsText,
-} from "./tradeIdeaHelpers";
+import { formatIdeaCapNet, ideaCapImpact, whyThisHelpsText } from "./tradeIdeaHelpers";
+import { playerTradeableInWindow, tradesWindowBanner } from "./acquisitionWindow";
 
 const MAX_PARTIES = 4;
 
@@ -131,6 +128,7 @@ function TradePlayerRow({
   canSend,
   onSend,
   onDrop,
+  tradeLocked = false,
 }) {
   const grade = gradeLabel(row.contract_grade);
   const yrs = row.years_remaining ?? row.contract_years;
@@ -189,9 +187,13 @@ function TradePlayerRow({
         <button
           type="button"
           className={`btn-ghost btn-sm${sending ? " active" : ""}`}
-          disabled={!canSend}
+          disabled={!canSend || tradeLocked}
           onClick={onSend}
-          title={canSend ? "Include in outgoing package" : "Select another team first"}
+          title={
+            tradeLocked
+              ? "Offseason trades are limited to contracts that continue beyond the upcoming draft"
+              : canSend ? "Include in outgoing package" : "Select another team first"
+          }
         >
           Send
         </button>
@@ -226,6 +228,8 @@ export default function LeagueTrades({ leagueId, hubContext }) {
   const myTeamId = hubContext?.team_id || "";
   const isCommissioner = Boolean(hubContext?.is_commissioner);
   const rules = hubContext?.rules || null;
+  const acquisitionWindow = hubContext?.acquisition_window || null;
+  const tradeBanner = tradesWindowBanner(acquisitionWindow);
   const teams = useMemo(
     () => (rosters || []).map((b) => b.team).filter(Boolean),
     [rosters],
@@ -758,6 +762,7 @@ export default function LeagueTrades({ leagueId, hubContext }) {
                     sending={sending}
                     dropping={dropping}
                     canSend={Boolean(defaultTo)}
+                    tradeLocked={!playerTradeableInWindow(r, acquisitionWindow)}
                     onSend={() => toggleSend(idx, r.player_id, defaultTo)}
                     onDrop={() => toggleDrop(idx, r.player_id)}
                   />
@@ -971,6 +976,13 @@ export default function LeagueTrades({ leagueId, hubContext }) {
         title="Trades"
         purpose="Build a trade—we'll calculate cap impact and track approvals."
       />
+      {tradeBanner ? (
+        <HubAlert variant={tradeBanner.variant}>
+          <strong>{tradeBanner.label}.</strong>
+          {" "}
+          {tradeBanner.text}
+        </HubAlert>
+      ) : null}
 
       <div className="hub-filter-bar hub-trade-tabs">
         {[

@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "./auth";
-import { playerInitials, teamLogoUrl } from "./DraftHub/draftMedia";
+import { headshotCandidates, lookupPlayerMedia, playerInitials, teamLogoUrl } from "./DraftHub/draftMedia";
 import { usePlayerCardOptional } from "./PlayerCardContext";
 
 const mediaCache = new Map();
 
 export function usePlayerMedia(playerIds) {
   const key = useMemo(
-    () => [...new Set((playerIds || []).filter(Boolean))].sort().join(","),
+    () => [...new Set((playerIds || []).map((id) => String(id || "").trim()).filter(Boolean))].sort().join(","),
     [playerIds],
   );
   const [media, setMedia] = useState(() => {
@@ -75,12 +75,17 @@ export default function PlayerCell({
   narrativeScope = "weekly",
   onPlayerClick,
 }) {
-  const [imgFailed, setImgFailed] = useState(false);
+  const [shotIndex, setShotIndex] = useState(0);
   const playerCard = usePlayerCardOptional();
-  const row = playerId && media ? media[playerId] : null;
+  const row = lookupPlayerMedia(media, playerId);
   const teamAbbr = (row?.team || team || "").toUpperCase();
-  const headshot = row?.headshot_url || null;
+  const shots = headshotCandidates(row);
+  const headshot = shots[shotIndex] || null;
   const logo = row?.team_logo_url || teamLogoUrl(teamAbbr);
+
+  useEffect(() => {
+    setShotIndex(0);
+  }, [playerId, row?.headshot_url, row?.espn_headshot_url]);
 
   const canOpen = Boolean(clickable && playerId && (onPlayerClick || playerCard));
   const handleOpen = (event) => {
@@ -102,13 +107,13 @@ export default function PlayerCell({
   const inner = (
     <>
       <span className="player-cell-avatar" aria-hidden>
-        {headshot && !imgFailed ? (
+        {headshot ? (
           <img
             className="player-cell-headshot"
             src={headshot}
             alt=""
             loading="lazy"
-            onError={() => setImgFailed(true)}
+            onError={() => setShotIndex((index) => index + 1)}
           />
         ) : logo ? (
           <img className="player-cell-team-logo" src={logo} alt="" loading="lazy" />

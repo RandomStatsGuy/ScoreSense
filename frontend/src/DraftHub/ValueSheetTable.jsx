@@ -16,10 +16,15 @@ import {
   formatStatusLabel,
   nextSortState,
 } from "./valueSheetUtils";
-import { HubPage, HubTableCard, HubFilterMenu, HubFilterChip, SortTh } from "./HubUILayout";
+import { HubPage, HubTableCard, HubFilterMenu, HubFilterChip, SortTh, HubAlert } from "./HubUILayout";
 import { HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import ValueSheetPlayerRow from "./ValueSheetPlayerRow";
 import { columnsForDraftMode, positionalRanks, sortLabelForKey } from "./valueSheetColumns";
+import {
+  playersTabAddLabel,
+  playersTabAddMode,
+  playersTabBanner,
+} from "./acquisitionWindow";
 import {
   formatSeasonPts,
   isScheduleAwareMethod,
@@ -125,6 +130,8 @@ export default function ValueSheetTable({
   minBid = 1,
   actionLabel,
   pickDraft: pickDraftProp,
+  acquisitionWindow = null,
+  inLeague = false,
 }) {
   const pickDraft = pickDraftProp != null
     ? Boolean(pickDraftProp)
@@ -133,6 +140,9 @@ export default function ValueSheetTable({
     || (draftConsole
       ? (pickDraft ? "Pick" : `Nominate for $${Number(minBid || 1)}`)
       : "Nominate");
+  const addMode = playersTabAddMode(acquisitionWindow, { inLeague, draftConsole });
+  const addEnabled = showAdd && addMode !== "hidden" && addMode !== "locked";
+  const playersBanner = !draftConsole && inLeague ? playersTabBanner(acquisitionWindow) : null;
   const valueColLabel = "Suggested bid";
   const isAvailableView = mode === "available";
   const [sortKey, setSortKey] = useState(() => defaultSortKeyForBoard(pickDraft));
@@ -162,11 +172,11 @@ export default function ValueSheetTable({
       draftConsole,
       showDelta,
       showStatus,
-      showAdd,
+      showAdd: addEnabled,
       showSelect: Boolean(onSelectPlayer),
       riskActive: activeRisk,
     }),
-    [pickDraft, compact, showAdvanced, draftConsole, showDelta, showStatus, showAdd, onSelectPlayer, activeRisk],
+    [pickDraft, compact, showAdvanced, draftConsole, showDelta, showStatus, addEnabled, onSelectPlayer, activeRisk],
   );
   const showRiskScore = schema.showRiskScore;
   const showPosCol = schema.showPosCol;
@@ -332,9 +342,60 @@ export default function ValueSheetTable({
     if (!res.ok) throw new Error(await parseApiError(res));
   }, [riskTolerance, rules]);
 
+  const postBid = useCallback(async (row) => {
+    const sal = effectiveAuctionBid(row, riskTolerance, rules)
+      ?? row.fair_value
+      ?? row.model_bid_hint
+      ?? row.min_sal
+      ?? 1;
+    const res = await apiFetch("/api/hub/fa-market/bid", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        player_id: row.player_id,
+        player_name: row.player,
+        team: row.team,
+        position: row.position,
+        bid_amount: sal,
+      }),
+    });
+    if (!res.ok) throw new Error(await parseApiError(res));
+    return res.json();
+  }, [riskTolerance, rules]);
+
   const addPlayer = useCallback(async (row) => {
     const taken = row.status === "taken";
     setAddError("");
+    if (addMode === "bid") {
+      const sal = effectiveAuctionBid(row, riskTolerance, rules)
+        ?? row.fair_value
+        ?? row.model_bid_hint
+        ?? 1;
+      const ok = await confirmDialog({
+        title: "Place FA bid",
+        message:
+          `Bid ${fmtSal(sal)} on ${row.player || "this player"}? `
+          + "The highest bid wins when this window processes — same as post-draft FA.",
+        confirmLabel: "Place bid",
+      });
+      if (!ok) return;
+      setAddingId(row.player_id);
+      try {
+        const result = await postBid(row);
+        const high = result?.high_bid?.high_bid;
+        setAddError(
+          high != null
+            ? `Bid in. High bid on ${row.player || "this player"} is $${Number(high).toFixed(0)}.`
+            : `Bid in on ${row.player || "this player"}.`,
+        );
+        onAddToRoster?.();
+      } catch (e) {
+        setAddError(e.message || "Could not place bid");
+      } finally {
+        setAddingId(null);
+      }
+      return;
+    }
     if (taken && !isCommissioner) {
       setAddError(`${row.player || "Player"} is already on another roster.`);
       return;
@@ -359,7 +420,7 @@ export default function ValueSheetTable({
     } finally {
       setAddingId(null);
     }
-  }, [isCommissioner, onAddToRoster, postAddPlayer]);
+  }, [addMode, isCommissioner, onAddToRoster, postAddPlayer, postBid, riskTolerance, rules]);
 
   const mobileLayout = useMobileLayout();
 
@@ -464,6 +525,13 @@ export default function ValueSheetTable({
           ) : null}
         />
       )}
+      {playersBanner ? (
+        <HubAlert variant={playersBanner.variant}>
+          <strong>{playersBanner.label}.</strong>
+          {" "}
+          {playersBanner.text}
+        </HubAlert>
+      ) : null}
 
       {!hideHeader && (
         <div className="hub-page-meta">
@@ -699,18 +767,21 @@ export default function ValueSheetTable({
                 </button>,
               );
             }
-            if (showAdd && !inRoster && !showSelect) {
+            if (addEnabled && !inRoster && !showSelect) {
               const taken = r.status === "taken";
+              const label = addingId === r.player_id
+                ? (addMode === "bid" ? "Bidding…" : "Adding…")
+                : playersTabAddLabel(addMode, { taken, isCommissioner });
               actions.push(
                 <button
                   key="add"
                   type="button"
                   className="btn-ghost btn-sm"
                   disabled={actionsDisabled || addingId === r.player_id}
-                  title={taken && !isCommissioner ? "Already on another roster" : undefined}
+                  title={taken && !isCommissioner && addMode !== "bid" ? "Already on another roster" : undefined}
                   onClick={() => addPlayer(r)}
                 >
-                  {addingId === r.player_id ? "Adding…" : taken && isCommissioner ? "Reassign" : "Add"}
+                  {label}
                 </button>,
               );
             }
@@ -960,7 +1031,8 @@ export default function ValueSheetTable({
                   showAdvanced={showAdvanced}
                   showDelta={showCostDelta}
                   showStatus={showStatus}
-                  showAdd={showAdd}
+                  showAdd={addEnabled}
+                  addMode={addMode}
                   showSelect={showSelect}
                   showRiskScore={showRiskScore}
                   riskTolerance={riskTolerance}
