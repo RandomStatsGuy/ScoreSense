@@ -9,6 +9,7 @@ import {
   pickIndexForCell,
   picksByOverall,
   slotInRound,
+  visibleRoundWindow,
   viewerNextPick,
 } from "./snakeDraftBoard.js";
 
@@ -185,4 +186,32 @@ test("pickIndexForCell is inverse of overall for snake and linear", () => {
       }
     }
   }
+});
+
+test("live board window keeps the current round between adjacent rounds", () => {
+  const rows = Array.from({ length: 8 }, (_, index) => ({ round: index + 1 }));
+  assert.deepEqual(visibleRoundWindow(rows, 1).map((row) => row.round), [1, 2, 3]);
+  assert.deepEqual(visibleRoundWindow(rows, 4).map((row) => row.round), [3, 4, 5]);
+  assert.deepEqual(visibleRoundWindow(rows, 8).map((row) => row.round), [6, 7, 8]);
+});
+
+test("completed boards do not invent an extra on-the-clock round", () => {
+  const board = buildDraftBoard({
+    nominationOrder: ["a", "b"],
+    teams: [{ id: "a", name: "A" }, { id: "b", name: "B" }],
+    events: eventsForOveralls([
+      [1, "a", "One"],
+      [2, "b", "Two"],
+      [3, "b", "Three"],
+      [4, "a", "Four"],
+    ]),
+    draftType: "snake",
+    currentOverall: 5,
+    viewerTeamId: "a",
+    totalRounds: 2,
+  });
+  assert.equal(board.currentRound, 2);
+  assert.equal(board.currentOverall, 0);
+  assert.equal(board.nextPick, null);
+  assert.equal(board.rows.flatMap((row) => row.cells).some((cell) => cell.isActive), false);
 });

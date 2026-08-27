@@ -11,6 +11,7 @@ export default function DraftNominationQueue({
   playerNames = {},
   disabled = false,
   pickDraft = false,
+  embedded = false,
   onUpdated,
 }) {
   const [saving, setSaving] = useState(false);
@@ -57,16 +58,9 @@ export default function DraftNominationQueue({
     save(next, autodraft);
   };
 
-  return (
-    <details className="hub-nom-queue">
-      <summary>
-        {pickDraft ? "Pick queue" : "Nomination queue"}
-        <span className="chart-note">
-          {" · "}
-          {queue.length ? `${queue.length} queued` : "optional"}
-          {autodraft ? " · autodraft on" : ""}
-        </span>
-      </summary>
+  const label = pickDraft ? "Pick queue" : "Nomination queue";
+  const body = (
+    <>
       <p className="chart-note">
         {pickDraft
           ? "If you go AFK, the room picks from this list (then best available that fills a min)."
@@ -110,6 +104,35 @@ export default function DraftNominationQueue({
         {selectedPlayerName ? `Queue ${selectedPlayerName}` : "Queue selected player"}
       </button>
       {error && <div className="error">{error}</div>}
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <section className="hub-nom-queue hub-nom-queue--embedded">
+        <header className="hub-nom-queue-head">
+          <strong>{label}</strong>
+          <span className="chart-note">
+            {queue.length ? `${queue.length} queued` : "Optional"}
+            {autodraft ? " · autodraft on" : ""}
+          </span>
+        </header>
+        {body}
+      </section>
+    );
+  }
+
+  return (
+    <details className="hub-nom-queue">
+      <summary>
+        {label}
+        <span className="chart-note">
+          {" · "}
+          {queue.length ? `${queue.length} queued` : "optional"}
+          {autodraft ? " · autodraft on" : ""}
+        </span>
+      </summary>
+      {body}
     </details>
   );
 }

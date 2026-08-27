@@ -61,9 +61,11 @@ export default function DraftRosterPanel({
   pendingTradeCount = 0,
   onOpenInbox,
   pickDraft = false,
+  variant = "panel",
 }) {
   const roster = viewer?.roster || [];
   const capacity = viewer?.capacity?.by_position || {};
+  const band = variant === "band";
 
   const playerIds = useMemo(
     () => roster.map((r) => r.player_id).filter(Boolean),
@@ -96,7 +98,7 @@ export default function DraftRosterPanel({
 
   if (!viewer) {
     return (
-      <div className="hub-roster-panel">
+      <div className={`hub-roster-panel${band ? " hub-roster-panel--band" : ""}`}>
         <h3 className="hub-section-title">My roster</h3>
         <p className="chart-note">Join the league to track your draft roster here.</p>
       </div>
@@ -106,19 +108,33 @@ export default function DraftRosterPanel({
   const liveActions = !ended && (allowMidDraftCuts || allowTrades);
 
   return (
-    <div className="hub-roster-panel">
+    <div className={`hub-roster-panel${band ? " hub-roster-panel--band" : ""}`}>
       <div className="hub-roster-panel-head">
-        <h3 className="hub-section-title">{viewer.team_name || "Your team"}</h3>
-        {isNominator && <span className="hub-team-tag hub-team-tag-nom">{pickDraft ? "On the clock" : "Nominates"}</span>}
-        {!pickDraft && isHighBidder && <span className="hub-team-tag hub-team-tag-lead">High bid</span>}
+        <div className="hub-roster-panel-title">
+          {band && <span className="hub-draft-experience-kicker">My team</span>}
+          <h3 className="hub-section-title">{viewer.team_name || "Your team"}</h3>
+          {isNominator && <span className="hub-team-tag hub-team-tag-nom">{pickDraft ? "On the clock" : "Nominates"}</span>}
+          {!pickDraft && isHighBidder && <span className="hub-team-tag hub-team-tag-lead">High bid</span>}
+        </div>
+        {band && (
+          <div className="hub-roster-panel-summary">
+            <span><strong>{roster.length}</strong> players</span>
+            {!pickDraft && budgetRemaining != null && (
+              <span>
+                <strong>{fmtSal(budgetRemaining)}</strong> left
+                {maxBid != null && <> · max {fmtSal(maxBid)}</>}
+              </span>
+            )}
+          </div>
+        )}
       </div>
-      {!ended && !pickDraft && budgetRemaining != null && (
+      {!band && !ended && !pickDraft && budgetRemaining != null && (
         <p className="chart-note hub-roster-panel-budget">
           <strong>{fmtSal(budgetRemaining)}</strong> left
           {maxBid != null && <> · max bid <strong>{fmtSal(maxBid)}</strong></>}
         </p>
       )}
-      {liveActions && (
+      {liveActions && !band && (
         <p className="chart-note hub-draft-cut-banner">
           {allowMidDraftCuts && allowTrades
             ? "Drop returns a player to the pool. Trade opens a two-team offer."

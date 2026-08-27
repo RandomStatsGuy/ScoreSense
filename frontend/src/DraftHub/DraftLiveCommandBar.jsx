@@ -43,6 +43,9 @@ export default function DraftLiveCommandBar({
   nominateLabel,
   pickDraft = false,
   pickClock = null,
+  modeLabel = "",
+  leagueLabel = "",
+  utilityActions = null,
 }) {
   const status = session?.status;
   const picking = pickDraft || status === "picking";
@@ -65,46 +68,54 @@ export default function DraftLiveCommandBar({
   return (
     <div className="hub-draft-live-command" role="region" aria-label={picking ? "Live pick command bar" : "Live auction command bar"}>
       <div className="hub-draft-live-command-main">
-        <span
-          className={`hub-draft-conn hub-draft-conn--${connectionStatus}`}
-          title={connectionStatus === "live" ? "Realtime connection is up" : "Draft updates may be delayed"}
-        >
-          {connLabel}
-        </span>
-        {status === "bidding" && nominee ? (
-          <>
-            <strong className="hub-draft-live-command-player">{playerShortName(nominee)}</strong>
-            <span className="hub-draft-live-command-price">
-              Current {fmtSal(highBid || minBid || 1)}
-            </span>
-            <span className={`hub-draft-live-command-rel hub-draft-live-command-rel--${relation}`}>
-              {bidRelationLabel(relation)}
-            </span>
-          </>
-        ) : (
-          <>
-            <strong className="hub-draft-live-command-player">
-              {picking
-                ? (isMyNominationTurn ? "Your pick" : `On the clock: ${nominatorTeam?.name || "a team"}`)
-                : (isMyNominationTurn ? "Your turn to nominate" : `Waiting for ${nominatorTeam?.name || "nominator"}`)}
-            </strong>
-            {picking && pickClock?.round ? (
-              <span className="hub-draft-live-command-next">
-                Round {pickClock.round} · Pick {pickClock.overall}
-              </span>
-            ) : nextNominatorTeam?.name ? (
-              <span className="hub-draft-live-command-next">
-                Next {nextNominatorTeam.name}
-              </span>
-            ) : null}
-          </>
+        {(modeLabel || leagueLabel) && (
+          <div className="hub-draft-live-command-context">
+            {modeLabel && <span className="hub-draft-experience-kicker">{modeLabel}</span>}
+            {leagueLabel && <span>{leagueLabel}</span>}
+          </div>
         )}
-        <DraftDeadlineClock
-          deadline={deadline}
-          paused={paused}
-          pausedLabel={pausedLabel}
-          className="hub-draft-live-command-clock"
-        />
+        <div className="hub-draft-live-command-status">
+          <span
+            className={`hub-draft-conn hub-draft-conn--${connectionStatus}`}
+            title={connectionStatus === "live" ? "Realtime connection is up" : "Draft updates may be delayed"}
+          >
+            {connLabel}
+          </span>
+          {status === "bidding" && nominee ? (
+            <>
+              <strong className="hub-draft-live-command-player">{playerShortName(nominee)}</strong>
+              <span className="hub-draft-live-command-price">
+                Current {fmtSal(highBid || minBid || 1)}
+              </span>
+              <span className={`hub-draft-live-command-rel hub-draft-live-command-rel--${relation}`}>
+                {bidRelationLabel(relation)}
+              </span>
+            </>
+          ) : (
+            <>
+              <strong className="hub-draft-live-command-player">
+                {picking
+                  ? (isMyNominationTurn ? "Your pick" : `On the clock: ${nominatorTeam?.name || "a team"}`)
+                  : (isMyNominationTurn ? "Your turn to nominate" : `Waiting for ${nominatorTeam?.name || "nominator"}`)}
+              </strong>
+              {picking && pickClock?.round ? (
+                <span className="hub-draft-live-command-next">
+                  Round {pickClock.round} · Pick {pickClock.overall}
+                </span>
+              ) : nextNominatorTeam?.name ? (
+                <span className="hub-draft-live-command-next">
+                  Next {nextNominatorTeam.name}
+                </span>
+              ) : null}
+            </>
+          )}
+          <DraftDeadlineClock
+            deadline={deadline}
+            paused={paused}
+            pausedLabel={pausedLabel}
+            className="hub-draft-live-command-clock"
+          />
+        </div>
       </div>
 
       <div className="hub-draft-live-command-actions">
@@ -153,6 +164,7 @@ export default function DraftLiveCommandBar({
             Award now {fmtSal(highBid)}
           </button>
         )}
+        {utilityActions}
       </div>
     </div>
   );

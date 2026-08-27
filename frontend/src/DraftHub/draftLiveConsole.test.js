@@ -18,6 +18,7 @@ import {
   shouldScheduleWsReconnect,
   isLiveAuctionStatus,
   draftInteractionState,
+  draftResultTransition,
 } from "./draftLiveConsole.js";
 
 test("viewerIsCommissioner uses only the viewer's staff flag", () => {
@@ -195,4 +196,36 @@ test("shouldScheduleWsReconnect ignores closes from a replaced socket", () => {
     shouldScheduleWsReconnect({ roomStillMounted: true, closedSocketIsCurrent: true }),
     true,
   );
+});
+
+test("draftResultTransition primes room history and announces only new results", () => {
+  const historical = { id: "pick-12", event_type: "pick", payload: { overall: 12 } };
+  const next = { id: "pick-13", event_type: "pick", payload: { overall: 13 } };
+
+  assert.deepEqual(
+    draftResultTransition({ events: [historical], roomHydrated: false }),
+    { initialized: false, lastEventId: null, event: null },
+  );
+
+  const primed = draftResultTransition({ events: [historical], roomHydrated: true });
+  assert.deepEqual(primed, { initialized: true, lastEventId: "pick-12", event: null });
+
+  assert.equal(
+    draftResultTransition({
+      events: [historical],
+      roomHydrated: true,
+      initialized: primed.initialized,
+      lastEventId: primed.lastEventId,
+    }).event,
+    null,
+  );
+
+  const announced = draftResultTransition({
+    events: [historical, next],
+    roomHydrated: true,
+    initialized: primed.initialized,
+    lastEventId: primed.lastEventId,
+  });
+  assert.equal(announced.event, next);
+  assert.equal(announced.lastEventId, "pick-13");
 });
