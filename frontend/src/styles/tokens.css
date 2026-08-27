@@ -1,35 +1,35 @@
 :root {
   color-scheme: dark;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  background: #0b1220;
-  color: #e8eef7;
+  background: #070d17;
+  color: #eef3fb;
 
   /* Layout breakpoints */
   --bp-mobile-shell: 768px;
   --bp-mobile-dense: 768px;
 
   /* Surfaces */
-  --bg-base: #0b1220;
-  --bg-elevated: rgba(15, 23, 42, 0.92);
-  --bg-subtle: rgba(30, 41, 59, 0.55);
-  --border: rgba(51, 65, 85, 0.65);
-  --border-strong: rgba(71, 85, 105, 0.8);
+  --bg-base: #070d17;
+  --bg-elevated: #0d1624;
+  --bg-subtle: #121d2d;
+  --border: #243249;
+  --border-strong: #33435d;
 
   /* Typography */
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #7889a0;
+  --text-primary: #eef3fb;
+  --text-secondary: #a8b5c7;
+  --text-muted: #7f8fa5;
 
   /* Empty / no-data (offseason, missing narrative) — neutral, not warning */
-  --state-empty-text: #7889a0;
-  --state-empty-bg: rgba(51, 65, 85, 0.28);
-  --state-empty-border: rgba(71, 85, 105, 0.45);
+  --state-empty-text: #7f8fa5;
+  --state-empty-bg: #101a28;
+  --state-empty-border: #243249;
 
   /* Primary accent — projections, links, focus (one cool hue) */
-  --accent: #3b82f6;
-  --accent-soft: rgba(59, 130, 246, 0.14);
-  --accent-muted: #60a5fa;
-  --accent-glow: rgba(96, 165, 250, 0.35);
+  --accent: #4f7fda;
+  --accent-soft: rgba(115, 165, 255, 0.13);
+  --accent-muted: #73a5ff;
+  --accent-glow: rgba(115, 165, 255, 0.18);
 
   /* Semantic — sentiment & injury (muted, not neon) */
   --tone-positive: #34d399;
@@ -47,18 +47,18 @@
   --tone-neutral-soft: rgba(148, 163, 184, 0.12);
 
   /* Tooltips — elevated dark cards (match UI, not stark white) */
-  --tooltip-bg: #1e293b;
-  --tooltip-border: rgba(148, 163, 184, 0.28);
-  --tooltip-text: #f8fafc;
-  --tooltip-muted: #94a3b8;
-  --tooltip-accent: #93c5fd;
+  --tooltip-bg: #172437;
+  --tooltip-border: #33435d;
+  --tooltip-text: #f7faff;
+  --tooltip-muted: #a8b5c7;
+  --tooltip-accent: #9bbcff;
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
   --radius-pill: 999px;
-  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 8px 32px rgba(0, 0, 0, 0.28);
-  --shadow-popover: 0 12px 40px rgba(0, 0, 0, 0.45);
+  --shadow-panel: 0 12px 30px rgba(0, 0, 0, 0.2);
+  --shadow-popover: 0 20px 48px rgba(0, 0, 0, 0.48);
   --space-xs: 0.35rem;
   --space-sm: 0.55rem;
   --space-md: 0.85rem;
@@ -67,22 +67,22 @@
 
   /* Slate scale — structural surfaces, borders, muted text.
      Use these instead of one-off #hex values scattered through styles.css. */
-  --slate-950: #0b1220;
-  --slate-900: #0f172a;
-  --slate-800: #1e293b;
-  --slate-700: #334155;
-  --slate-600: #475569;
-  --slate-500: #64748b;
-  --slate-400: #94a3b8;
-  --slate-300: #cbd5e1;
-  --slate-200: #e2e8f0;
-  --slate-100: #f1f5f9;
+  --slate-950: #070d17;
+  --slate-900: #0d1624;
+  --slate-800: #172437;
+  --slate-700: #243249;
+  --slate-600: #42536e;
+  --slate-500: #687a94;
+  --slate-400: #95a4b8;
+  --slate-300: #c5cfdd;
+  --slate-200: #dce4ee;
+  --slate-100: #eef3fb;
 
   /* Legacy aliases referenced across styles.css (now defined, not fallbacks) */
   --bg: var(--bg-base);
-  --panel-bg: var(--slate-900);
-  --surface-raised: #111827;
-  --muted: #9aa3b2;
+  --panel-bg: var(--bg-elevated);
+  --surface-raised: #172437;
+  --muted: #95a4b8;
 
   /* Typography scale */
   --text-xs: 0.72rem;
@@ -137,7 +137,7 @@
   --hub-col-num-width: 3.5rem;
   --hub-col-delta-width: 5.25rem;
   --hub-col-status-width: 6.5rem;
-  --row-hover-bg: rgba(64, 106, 191, 0.16);
+  --row-hover-bg: rgba(115, 165, 255, 0.1);
   --control-height: 2.25rem;
   --control-height-sm: 1.85rem;
   --touch-target: 2.75rem;
