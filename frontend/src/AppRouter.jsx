@@ -32,7 +32,7 @@ export default function AppRouter() {
       <Route path="/hub/live" element={<Navigate to="/hub/insights/scoring" replace />} />
       <Route path="/hub/teams" element={<Navigate to="/hub/office/current" replace />} />
       <Route path="/hub/office/:officeTab" element={<App />} />
-      <Route path="/hub/office" element={<Navigate to="/hub/office/chat" replace />} />
+      <Route path="/hub/office" element={<Navigate to="/hub/office/current" replace />} />
       <Route path="/hub/insights/:insightTab" element={<App />} />
       <Route path="/hub/insights" element={<Navigate to="/hub/insights/spend" replace />} />
       <Route path="/hub/:tab" element={<App />} />

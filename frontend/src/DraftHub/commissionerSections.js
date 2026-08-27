@@ -1,29 +1,28 @@
 /**
- * Commissioner workspace section helpers (SCORE-21).
+ * Roster-management section helpers (SCORE-21).
  * Groups admin tools and owns Sheets first-use / explanation copy.
  */
 
 export const SHEETS_GUIDE_STORAGE_KEY = "hub.commissioner.sheetsGuide.dismissed";
 
-/** Tab chip groups shown to commissioners (Chat stays ungrouped for all roles). */
+/** Tab chip groups shown to commissioners. */
 export const COMMISSIONER_TAB_GROUPS = [
-  { id: "chat", label: null },
-  { id: "contracts", label: "Contracts & sheets" },
-  { id: "membership", label: "League" },
-  { id: "access", label: "Admin access" },
+  { id: "rosters", label: "Rosters" },
+  { id: "records", label: "Records" },
+  { id: "league", label: "League operations" },
 ];
 
 export function commissionerIntro(isCommissioner) {
   if (isCommissioner) {
     return {
-      title: "Commissioner",
-      purpose: "Admin workspace for this league — separate from My Roster, Cap, and Insights.",
+      title: "Roster management",
+      purpose: "League-wide contracts, salary sheets, members, and data access in one operational workspace.",
       audience: "Commissioners and co-commissioners",
     };
   }
   return {
-    title: "Commissioner",
-    purpose: "League chat — talk with every team. Admin tools stay with commissioners.",
+    title: "Roster management",
+    purpose: "League-wide roster operations stay with commissioners.",
     audience: null,
   };
 }

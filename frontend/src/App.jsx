@@ -832,7 +832,7 @@ export default function App() {
   const currentViewLabel = useMemo(() => {
     if (view === "hub") {
       if (hubNeedsSignIn) return "Sign in";
-      return "League";
+      return "Fantasy";
     }
     if (view === "admin") return "Admin";
     return resolveSectionLabel(view, { projectionsTab, toolsTab });
@@ -988,13 +988,13 @@ export default function App() {
     if (view === "hub") {
       if (hubNeedsSignIn) return "Sign in";
       const tab = HUB_SUBVIEWS.find((v) => v.id === hubSubView);
-      const tabLabel = tab ? (tab.shortLabel || tab.label) : "League";
+      const tabLabel = tab ? (tab.shortLabel || tab.label) : "Fantasy";
       if (mobileLayout && hubContext?.league_name) {
         const name = hubContext.league_name;
         const leagueShort = name.length > 18 ? `${name.slice(0, 16)}…` : name;
         return `${leagueShort} · ${tabLabel}`;
       }
-      return tab ? `League · ${tabLabel}` : "League";
+      return tab ? `Fantasy · ${tabLabel}` : "Fantasy";
     }
     if (view === "admin") return "Admin";
     if (view === "model") return "Model accuracy";

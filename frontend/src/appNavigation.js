@@ -1,6 +1,6 @@
 export const APP_SECTIONS = [
   { id: "projections", label: "Projections", shortLabel: "Proj" },
-  { id: "hub", label: "League", shortLabel: "League" },
+  { id: "hub", label: "Fantasy", shortLabel: "Fantasy" },
   { id: "tools", label: "Tools", shortLabel: "Tools" },
 ];
 
@@ -39,7 +39,8 @@ export const SECTION_SUBTITLES = {
   },
   hub: {
     home: "Phase-aware checklist & action center",
-    setup: "League & rules",
+    setup: "Connections & imports",
+    rules: "League rules everyone can plan around",
     value: "Prices",
     week: "Your lineup decisions this week",
     roster: "Your contracts",
@@ -48,7 +49,7 @@ export const SECTION_SUBTITLES = {
     planner: "Cap & cuts",
     trades: "Propose & accept",
     insights: "Spend & scoring",
-    office: "Chat & contracts",
+    office: "League-wide roster operations",
     live: "This week's matchup",
     "league-rosters": "All rosters",
   },

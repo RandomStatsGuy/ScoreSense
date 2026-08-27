@@ -128,12 +128,20 @@ def apply_type_to_contract(
     )
     ctype = contract_type if contract_type in CONTRACT_TYPES else "veteran"
     if ctype == "rookie":
-        # Always flat — never inherit a stepped schedule from a prior mistype.
-        contract = build_rookie_contract(sal, min(yrs, int(rules.contracts.rookie_years)))
+        contract = build_rookie_contract(
+            sal,
+            min(yrs, int(rules.contracts.rookie_years)),
+            static=bool(rules.contracts.rookie_salary_static),
+            step_up=float(rules.contracts.extension_step_up),
+        )
         contract["years_remaining"] = yrs
-        contract["schedule"] = [{"year_offset": i, "salary": sal} for i in range(yrs)]
+        step = 0.0 if rules.contracts.rookie_salary_static else float(rules.contracts.extension_step_up)
+        contract["schedule"] = [
+            {"year_offset": i, "salary": round(sal + step * i, 2)}
+            for i in range(yrs)
+        ]
         contract["current_salary"] = sal
-        contract["step_up_per_year"] = 0.0
+        contract["step_up_per_year"] = step
     elif ctype == "veteran" and yrs == 1:
         contract = build_veteran_contract(sal, yrs, step_up=0.0)
     else:

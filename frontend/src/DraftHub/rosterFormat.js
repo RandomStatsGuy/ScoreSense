@@ -31,20 +31,20 @@ export const YEARS_LEFT_HINT = (
   + "not when the NFL season ends or the planning season advances."
 );
 
-/** Step applies to Veteran Deal and Rookie Extension; rookies stay flat. */
+/** Step applies to veterans/extensions and to rookies when the league opts out of flat salaries. */
 export function scheduleStepForType(contractType, rules, storedStep) {
   const ctype = String(contractType || "veteran");
-  if (ctype === "rookie") return 0;
+  if (ctype === "rookie" && rules?.contracts?.rookie_salary_static !== false) return 0;
   const stored = Number(storedStep);
   if (Number.isFinite(stored) && stored > 0) return stored;
   return leagueStepUp(rules);
 }
 
-export function previewSchedule(salary, years, stepUp, contractType = "veteran") {
+export function previewSchedule(salary, years, stepUp, contractType = "veteran", rookieStatic = true) {
   const sal = Number(salary);
   const yrs = Number(years);
   const ctype = String(contractType || "veteran");
-  const step = ctype === "rookie"
+  const step = ctype === "rookie" && rookieStatic
     ? 0
     : (Number.isFinite(Number(stepUp)) ? Number(stepUp) : 0);
   if (!Number.isFinite(sal) || !Number.isFinite(yrs) || yrs < 1) return "";
@@ -61,7 +61,10 @@ export function scheduleText(row, rules) {
   const yrs = Number(row?.contract?.years_remaining ?? row?.contract_years ?? 1);
   if (Number.isFinite(sal) && Number.isFinite(yrs) && yrs >= 1) {
     const step = scheduleStepForType(ctype, rules, row?.contract?.step_up_per_year);
-    const fromPreview = previewSchedule(sal, yrs, step, ctype);
+    const rookieStatic = row?.contract?.rookie_salary_static
+      ?? rules?.contracts?.rookie_salary_static
+      ?? true;
+    const fromPreview = previewSchedule(sal, yrs, step, ctype, rookieStatic);
     if (fromPreview) return fromPreview;
   }
   const sched = row?.contract?.schedule;
@@ -73,9 +76,13 @@ export function leagueStepUp(rules) {
   return Number(rules?.contracts?.extension_step_up ?? 5);
 }
 
-export function contractScheduleHint(stepUp) {
+export function contractScheduleHint(stepUp, rules = null) {
   const step = Number.isFinite(Number(stepUp)) ? Number(stepUp) : 5;
-  return `Rookies flat 2 yrs · Veteran Deal / Rookie Extension +$${step}/yr`;
+  const rookieYears = Math.max(1, Number(rules?.contracts?.rookie_years ?? 2));
+  const rookiePolicy = rules?.contracts?.rookie_salary_static === false
+    ? `Rookies ${rookieYears} yrs +$${step}/yr`
+    : `Rookies flat ${rookieYears} yrs`;
+  return `${rookiePolicy} · Veteran Deal / Rookie Extension +$${step}/yr`;
 }
 
 /** Read-only auction award line: "Rookie deal · 2y · $12 → $12" */
@@ -83,12 +90,12 @@ export function auctionAwardContractLabel(pick, stepUp = 5) {
   const ctype = String(pick?.contract_type || "");
   const years = Number(pick?.contract_years || 2);
   const paid = Number(pick?.salary ?? pick?.amount);
-  const step = ctype === "rookie"
+  const step = ctype === "rookie" && pick?.rookie_salary_static !== false
     ? 0
     : Number(pick?.step_up_per_year ?? stepUp);
   const sched = Array.isArray(pick?.salary_schedule) && pick.salary_schedule.length
     ? pick.salary_schedule.map((n) => fmtSal(n)).join(" → ")
-    : previewSchedule(paid, years, step, ctype || "veteran");
+    : previewSchedule(paid, years, step, ctype || "veteran", pick?.rookie_salary_static !== false);
   const kind = ctype === "rookie" ? "Rookie deal" : "Veteran deal";
   const yrs = Number.isFinite(years) ? `${years}y` : "2y";
   return sched ? `${kind} · ${yrs} · ${sched}` : `${kind} · ${yrs}`;
@@ -131,7 +138,9 @@ export function shortAuctionContractLabel(pick, stepUp = 5) {
   const years = Number(pick?.contract_years || 2);
   const ctype = String(pick?.contract_type || "");
   const paid = Number(pick?.salary ?? pick?.amount);
-  const step = ctype === "rookie" ? 0 : Number(pick?.step_up_per_year ?? stepUp);
+  const step = ctype === "rookie" && pick?.rookie_salary_static !== false
+    ? 0
+    : Number(pick?.step_up_per_year ?? stepUp);
   const sched = Array.isArray(pick?.salary_schedule) && pick.salary_schedule.length
     ? pick.salary_schedule
     : null;

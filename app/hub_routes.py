@@ -3797,7 +3797,7 @@ def _hub_rookie_extend(
     extension_years: int,
     ctx: dict[str, Any],
 ) -> dict:
-    """One server-calculated manager rookie-extension command (SCORE-42).
+    """One server-calculated manager extension command (SCORE-42).
 
     Client salaries are ignored. Terms activate after the draft-complete tick.
     """
@@ -3810,9 +3810,9 @@ def _hub_rookie_extend(
         raise HTTPException(status_code=404, detail="Player not on roster")
     if ctx.get("mode") == "league":
         if not team_id:
-            raise HTTPException(status_code=403, detail="Join a league team to extend rookies")
+            raise HTTPException(status_code=403, detail="Join a league team to extend contracts")
         if str(existing.get("team_id") or "") != str(team_id):
-            raise HTTPException(status_code=403, detail="Can only extend rookies on your own team")
+            raise HTTPException(status_code=403, detail="Can only extend contracts on your own team")
 
     try:
         contract, already_applied = apply_rookie_extension_command(
@@ -3856,7 +3856,7 @@ def _hub_rookie_extend(
 
 @router.post("/contract/rookie-extend")
 def hub_rookie_extend(body: RookieExtendRequest, _user=Depends(require_hub_user)) -> dict:
-    """Idempotent manager command: queue a server-calculated post-rookie extension."""
+    """Idempotent manager command: queue a server-calculated contract extension."""
     ctx = _ctx(_sub(_user))
     return _hub_rookie_extend(
         player_id=body.player_id,

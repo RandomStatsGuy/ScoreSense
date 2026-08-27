@@ -50,7 +50,7 @@ export default function HubSetupChecklist({
         id: "rules",
         label: "Configure rules",
         done: hasRules(workspace),
-        action: () => revealSection(".hub-setup-panel--rules"),
+        action: () => onNavigate?.("rules"),
       },
       {
         id: "sleeper",
@@ -66,7 +66,7 @@ export default function HubSetupChecklist({
         action: () => document.querySelector(".hub-league-setup-add-toggle")?.click?.(),
       },
     ].filter((s) => !s.hidden);
-  }, [workspace, hubContext, memberships.length, user]);
+  }, [workspace, hubContext, memberships.length, user, onNavigate]);
 
   const allDone = steps.every((s) => s.done);
   const show = !dismissed && !allDone && (memberships.length === 0 || !hasSleeper(workspace, hubContext));
