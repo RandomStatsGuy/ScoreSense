@@ -7277,6 +7277,12 @@ td.col-rank.col-rank-top {
 .hub-roster-row--selected td {
   background: rgba(110, 168, 254, 0.06);
 }
+.hub-league-roster-table tr.hub-roster-row--selected td {
+  background: rgba(115, 165, 255, 0.18);
+}
+.hub-league-roster-table #live-contract-highlight td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent-muted);
+}
 .hub-roster-side-panel-overlay {
   position: fixed;
   inset: 0;
