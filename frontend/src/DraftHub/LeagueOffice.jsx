@@ -24,6 +24,7 @@ import {
   shouldAutoOpenSheetsGuide,
   tabsWithGroupLabels,
 } from "./commissionerSections";
+import { liveContractsIntroHint } from "./officeCurrentContracts";
 
 /** Mount bulk contract-history tools only after the commissioner opens Advanced. */
 function OfficeAdvancedAudit({ leagueId, hubContext, seasonFilter }) {
@@ -377,7 +378,11 @@ export default function LeagueOffice({
           <header className="hub-section-head">
             <h3 className="hub-section-title">Live contracts</h3>
             <p className="hub-section-hint">
-              Keepers for season {hubContext?.season}. Add missing players here. Use{" "}
+              {liveContractsIntroHint(
+                hubContext?.season,
+                Boolean(hubContext?.draft_completed),
+              )}{" "}
+              Use{" "}
               <button type="button" className="btn-link" onClick={() => onNavigate?.("planner")}>
                 Cap
               </button>
