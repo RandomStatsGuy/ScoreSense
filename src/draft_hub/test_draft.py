@@ -120,7 +120,7 @@ def _pick_nomination_payload(
     session: dict[str, Any],
 ) -> dict[str, Any] | None:
     """Next bot/autodraft player this team can still roster."""
-    from src.draft_hub.bot_strategy import select_pick_draft_player
+    from src.draft_hub.bot_strategy import league_drafted_counts, select_pick_draft_player
     from src.draft_hub.draft_pool import build_nomination_pool
     from src.draft_hub.pick_draft import is_pick_draft
     from src.draft_hub.rules_engine import assert_can_acquire, nomination_sort_key, should_need_bid
@@ -161,6 +161,7 @@ def _pick_nomination_payload(
             session=session,
             team_id=str(team.get("id") or ""),
             team_count=int(league.get("team_count") or 12),
+            drafted_counts=league_drafted_counts(league_id, rules),
         )
         return _payload_from_row(pick) if pick else None
 

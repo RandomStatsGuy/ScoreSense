@@ -40,7 +40,7 @@ ARCHETYPES = (
 
 # 1QB window: elite QBs can come off ~2 rounds earlier than the archetype base.
 _QB_BASE_ROUND = {
-    "balanced": 5,
+    "balanced": 4,
     "hero_rb": 6,
     "zero_rb": 5,
     "wide_receiver": 6,
@@ -96,15 +96,37 @@ def _flex_rule(rules: LeagueRules) -> tuple[int, frozenset[str]]:
     return starter, frozenset(normalize_position(p) for p in eligible)
 
 
+def league_drafted_counts(league_id: str, rules: LeagueRules) -> dict[str, int]:
+    """How many players at each position are already rostered league-wide."""
+    from src.draft_hub import storage
+    from src.draft_hub.draft_budgets import occupying_roster
+
+    counts: dict[str, int] = {}
+    for roster in storage.list_league_rosters_by_team(league_id).values():
+        for row in occupying_roster(rules, roster, draft_completed=False):
+            pos = normalize_position(row.get("position"))
+            if not pos:
+                continue
+            counts[pos] = counts.get(pos, 0) + 1
+    return counts
+
+
 def replacement_projections(
     candidates: list[dict[str, Any]],
     rules: LeagueRules,
     team_count: int,
+    drafted_counts: dict[str, int] | None = None,
 ) -> dict[str, float]:
-    """Replacement-level season points for each position still on the board."""
+    """Replacement-level season points for each position still on the board.
+
+    ``drafted_counts`` keeps replacement anchored to the original startable
+    slot (QB12, RB28, ...) so leftover RBs don't inflate VORP as the board
+    shrinks and push QBs into round 11.
+    """
     limits = roster_limits(rules)
     flex_n, flex_eligible = _flex_rule(rules)
     teams = max(int(team_count or 12), 2)
+    drafted_counts = drafted_counts or {}
     by_pos: dict[str, list[float]] = {}
     for row in candidates:
         pos = normalize_position(row.get("position"))
@@ -125,14 +147,16 @@ def replacement_projections(
         else:
             flex_add = 0.0
         n_relevant = max(1, int(round(teams * (starters + flex_add))))
+        already = int(drafted_counts.get(pos, 0) or 0)
+        slot = max(1, n_relevant - already)
         ranked = list(projs)
-        if pos == "QB" and n_relevant > len(ranked):
+        if pos == "QB" and slot > len(ranked):
             drop = 8.0
             if len(ranked) >= 2:
                 drop = max(4.0, (ranked[0] - ranked[-1]) / max(len(ranked) - 1, 1))
-            while len(ranked) < n_relevant:
+            while len(ranked) < slot:
                 ranked.append(max(0.0, ranked[-1] - drop))
-        out[pos] = ranked[min(n_relevant, len(ranked)) - 1]
+        out[pos] = ranked[min(slot, len(ranked)) - 1]
     return out
 
 
@@ -181,7 +205,7 @@ def _elite_ids(candidates: list[dict[str, Any]], position: str, n: int) -> set[s
 
 
 def _qb_open_round(archetype: str, *, elite: bool, depth_rank: int) -> int:
-    base = int(_QB_BASE_ROUND.get(archetype, 5))
+    base = int(_QB_BASE_ROUND.get(archetype, 4))
     if elite:
         return max(2, base - 2)
     if depth_rank >= 6:
@@ -237,8 +261,11 @@ def _position_allowed(
         return last_two or tight
 
     if pos == "QB" and not superflex:
-        if count >= max(1, int(lim.get("starter") or 1)):
-            return round_n >= max(11, _QB_BASE_ROUND.get(archetype, 5) + 5) or remaining <= len(unmet) + 1
+        starters = max(1, int(lim.get("starter") or 1))
+        if count >= starters + 1:
+            return False
+        if count >= starters:
+            return round_n >= max(11, _QB_BASE_ROUND.get(archetype, 4) + 5) or remaining <= len(unmet) + 1
         open_at = _qb_open_round(
             archetype,
             elite=elite_qb,
@@ -317,6 +344,7 @@ def select_pick_draft_player(
     session: dict[str, Any] | None = None,
     team_id: str | None = None,
     team_count: int = 12,
+    drafted_counts: dict[str, int] | None = None,
 ) -> dict[str, Any] | None:
     """Choose the next snake/linear pick for a bot or autodraft seat."""
     if not candidates:
@@ -329,7 +357,9 @@ def select_pick_draft_player(
     unmet = unmet_minimum_positions(rules, roster)
     superflex = is_superflex(rules)
     archetype = archetype_for_team(team_id)
-    replacements = replacement_projections(candidates, rules, team_count)
+    replacements = replacement_projections(
+        candidates, rules, team_count, drafted_counts=drafted_counts
+    )
     elite_qb_ids = _elite_ids(candidates, "QB", 3)
     elite_te_ids = _elite_ids(candidates, "TE", 2)
 
@@ -374,8 +404,12 @@ def select_pick_draft_player(
         hole = 0.0
         starter_need = _starter_need(pos, rules, counts)
         if starter_need > 0 and pos not in STREAMING_POSITIONS:
-            if pos != "QB" or superflex or round_n >= _QB_BASE_ROUND.get(archetype, 5) - 1:
+            if pos != "QB" or superflex or round_n >= _QB_BASE_ROUND.get(archetype, 4) - 1:
                 hole = 36.0
+            if pos == "QB" and not superflex:
+                open_at = int(_QB_BASE_ROUND.get(archetype, 4))
+                if round_n >= open_at:
+                    hole += 10.0 * (round_n - open_at + 1)
         elif pos in SKILL_POSITIONS and _flex_still_open(rules, counts) > 0:
             hole = 14.0
         if pos in STREAMING_POSITIONS and pos in unmet:

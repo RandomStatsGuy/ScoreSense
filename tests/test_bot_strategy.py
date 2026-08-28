@@ -125,6 +125,49 @@ def test_raw_points_bpa_would_take_qb_but_strategy_does_not():
     assert pick["player_id"] != bpa["player_id"]
 
 
+def test_twelve_team_snake_takes_qb_in_the_middle_not_round_one():
+    from src.draft_hub.pick_draft import pick_clock
+
+    rules = load_preset("snake_draft_v1")
+    pool = list(_one_qb_pool())
+    drafted: dict[str, int] = {}
+    order = [f"team-{i}" for i in range(12)]
+    rosters = {tid: [] for tid in order}
+    round1: list[str] = []
+    qb_overall: list[int] = []
+    for overall in range(12 * 8):
+        session = {
+            "status": "picking",
+            "nomination_order": order,
+            "nominator_index": overall,
+        }
+        clock = pick_clock(session, rules)
+        team_id = str(clock["team_id"])
+        pick = select_pick_draft_player(
+            rules,
+            rosters[team_id],
+            pool,
+            session=session,
+            team_id=team_id,
+            team_count=12,
+            drafted_counts=drafted,
+        )
+        assert pick is not None, overall
+        pos = pick["position"]
+        if int(clock["round"]) == 1:
+            round1.append(pos)
+        if pos == "QB":
+            qb_overall.append(int(clock["overall"]))
+        rosters[team_id].append(pick)
+        drafted[pos] = drafted.get(pos, 0) + 1
+        pool = [row for row in pool if row["player_id"] != pick["player_id"]]
+    assert all(p in {"RB", "WR", "TE"} for p in round1), round1
+    assert "QB" not in round1
+    assert qb_overall, "no QBs in the first 8 rounds"
+    assert min(qb_overall) >= 13
+    assert min(qb_overall) <= 84
+
+
 def test_starting_qb_is_prioritized_once_the_window_opens():
     rules = load_preset("snake_draft_v1")
     roster = [
