@@ -97,6 +97,21 @@ def _team_sub(team: dict[str, Any]) -> str | None:
     return team.get("user_sub")
 
 
+def _payload_from_row(pick: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "player_id": pick["player_id"],
+        "player_name": pick.get("player") or pick.get("player_name"),
+        "team": pick.get("team", ""),
+        "position": pick.get("position"),
+        "fair_value": pick.get("fair_value"),
+        "season_proj": pick.get("season_proj"),
+        "per_game_proj": pick.get("per_game_proj"),
+        "season_p10": pick.get("season_p10"),
+        "season_p50": pick.get("season_p50"),
+        "season_p90": pick.get("season_p90"),
+    }
+
+
 def _pick_nomination_payload(
     league_id: str,
     league: dict[str, Any],
@@ -104,8 +119,10 @@ def _pick_nomination_payload(
     team: dict[str, Any],
     session: dict[str, Any],
 ) -> dict[str, Any] | None:
-    """Best available player this team can still roster, as a nominate() payload."""
+    """Next bot/autodraft player this team can still roster."""
+    from src.draft_hub.bot_strategy import select_pick_draft_player
     from src.draft_hub.draft_pool import build_nomination_pool
+    from src.draft_hub.pick_draft import is_pick_draft
     from src.draft_hub.rules_engine import assert_can_acquire, nomination_sort_key, should_need_bid
 
     ws = storage.roster_workspace_for_league(league)
@@ -127,29 +144,31 @@ def _pick_nomination_payload(
     if not candidates:
         return None
 
-    need_fill = [r for r in candidates if should_need_bid(rules, roster, r.get("position"))]
-    if need_fill:
-        candidates = need_fill
     queue_ids = [str(pid) for pid in (team.get("nomination_queue") or []) if pid]
     if queue_ids:
         by_id = {str(r.get("player_id")): r for r in candidates}
         queued = [by_id[pid] for pid in queue_ids if pid in by_id]
         if queued:
+            if is_pick_draft(rules):
+                return _payload_from_row(queued[0])
             candidates = queued
+
+    if is_pick_draft(rules):
+        pick = select_pick_draft_player(
+            rules,
+            roster,
+            candidates,
+            session=session,
+            team_id=str(team.get("id") or ""),
+            team_count=int(league.get("team_count") or 12),
+        )
+        return _payload_from_row(pick) if pick else None
+
+    need_fill = [r for r in candidates if should_need_bid(rules, roster, r.get("position"))]
+    if need_fill:
+        candidates = need_fill
     candidates.sort(key=lambda r: nomination_sort_key(rules, roster, r))
-    pick = candidates[0]
-    return {
-        "player_id": pick["player_id"],
-        "player_name": pick.get("player") or pick.get("player_name"),
-        "team": pick.get("team", ""),
-        "position": pick.get("position"),
-        "fair_value": pick.get("fair_value"),
-        "season_proj": pick.get("season_proj"),
-        "per_game_proj": pick.get("per_game_proj"),
-        "season_p10": pick.get("season_p10"),
-        "season_p50": pick.get("season_p50"),
-        "season_p90": pick.get("season_p90"),
-    }
+    return _payload_from_row(candidates[0])
 
 
 def maybe_bot_nominate(league_id: str) -> dict[str, Any] | None:
@@ -184,7 +203,7 @@ def maybe_bot_nominate(league_id: str) -> dict[str, Any] | None:
 
 
 def maybe_autodraft_nominate(league_id: str) -> dict[str, Any] | None:
-    """On-clock human with autodraft enabled — queue then need-aware BPA."""
+    """On-clock human with autodraft enabled — queue, then format-aware pick."""
     from src.draft_hub.draft_state import _current_nominator_team_id, nominate
 
     state = get_room_state(league_id)
@@ -214,7 +233,7 @@ def maybe_autodraft_nominate(league_id: str) -> dict[str, Any] | None:
 
 
 def maybe_bot_pick(league_id: str) -> dict[str, Any] | None:
-    """When a bot is on the clock in a pick draft, take BPA (test mode only)."""
+    """When a bot is on the clock in a pick draft, take a human-like pick."""
     from src.draft_hub.draft_state import _current_nominator_team_id, make_pick
 
     if not storage.league_test_mode(league_id):
@@ -243,7 +262,7 @@ def maybe_bot_pick(league_id: str) -> dict[str, Any] | None:
 
 
 def maybe_autodraft_pick(league_id: str) -> dict[str, Any] | None:
-    """On-clock human with autodraft enabled — queue then need-aware BPA."""
+    """On-clock human with autodraft enabled — queue, then format-aware pick."""
     from src.draft_hub.draft_state import _current_nominator_team_id, make_pick
 
     state = get_room_state(league_id)
@@ -270,8 +289,6 @@ def maybe_autodraft_pick(league_id: str) -> dict[str, Any] | None:
         return make_pick(league_id, sub, payload, from_pool=True)
     except ValueError:
         return None
-
-
 
 
 def bot_max_price(bot_id: str, nominee: dict[str, Any], min_bid: float) -> float:
