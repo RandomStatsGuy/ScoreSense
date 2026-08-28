@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
@@ -20,9 +21,13 @@ import {
   preDraftCutDeadCap,
   previewSchedule,
   scheduleText,
-  seasonCapYearHint,
   YEARS_LEFT_HINT,
 } from "./rosterFormat";
+import {
+  findLiveContractTarget,
+  liveContractStage,
+  matchLiveRosterPlayer,
+} from "./officeCurrentContracts";
 import { confirmDialog } from "../ui/confirm";
 import { promptDialog } from "../ui/prompt";
 import {
@@ -58,7 +63,36 @@ function teamCapStats(block, salaryCap, rules) {
   };
 }
 
-function AddPlayerForm({ leagueId, season, teamId, teamName, maxYears, onSaved, onError, onNotice }) {
+function StageColHead({ label, sub }) {
+  return (
+    <span className="hub-col-head">
+      <span>{label}</span>
+      {sub ? <span className="hub-col-sub">{sub}</span> : null}
+    </span>
+  );
+}
+
+function LiveContractStageBanner({ stage }) {
+  if (!stage) return null;
+  return (
+    <aside
+      className={`hub-live-contract-stage hub-live-contract-stage--${stage.phase}`}
+      role="status"
+      aria-label={`${stage.yearLabel}, ${stage.phaseLabel}. ${stage.headline}`}
+    >
+      <div className="hub-live-contract-stage-kicker">
+        <span className="hub-live-contract-chip hub-live-contract-chip--year">{stage.yearLabel}</span>
+        <span className="hub-live-contract-chip hub-live-contract-chip--phase">{stage.phaseLabel}</span>
+      </div>
+      <p className="hub-live-contract-stage-headline">{stage.headline}</p>
+      <p className="hub-live-contract-stage-draft">
+        <strong>Draft impact:</strong> {stage.draftImpact}
+      </p>
+    </aside>
+  );
+}
+
+function AddPlayerForm({ leagueId, season, teamId, teamName, maxYears, stage, onSaved, onError, onNotice }) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -245,7 +279,7 @@ function AddPlayerForm({ leagueId, season, teamId, teamName, maxYears, onSaved, 
           </select>
         </label>
         <label>
-          <span>{season ? `${season} $` : "Salary"}</span>
+          <span>{stage?.salaryFieldLabel || (season ? `${season} $` : "Salary")}</span>
           <input
             type="number"
             className="hub-roster-edit-input"
@@ -256,7 +290,7 @@ function AddPlayerForm({ leagueId, season, teamId, teamName, maxYears, onSaved, 
           />
         </label>
         <label>
-          <span>Yrs left</span>
+          <span>{stage?.yearsFieldLabel || "Yrs left"}</span>
           <input
             type="number"
             className="hub-roster-edit-input hub-roster-edit-input-sm"
@@ -296,7 +330,9 @@ function TeamRosterBlock({
   salaryCap,
   rules,
   draftCompleted,
+  stage,
   defaultOpen,
+  highlightPlayerId,
   onSaved,
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -315,6 +351,13 @@ function TeamRosterBlock({
     setEdits({});
     setTypeOverrides({});
   }, [block.team.id, block.roster]);
+
+  useEffect(() => {
+    if (!highlightPlayerId || !open) return undefined;
+    const el = document.getElementById("live-contract-highlight");
+    el?.scrollIntoView({ block: "center", behavior: "smooth" });
+    return undefined;
+  }, [highlightPlayerId, open, block.roster]);
 
   const sorted = useMemo(
     () => [...(block.roster || [])].sort(
@@ -560,13 +603,13 @@ function TeamRosterBlock({
 
       {open && (
         <details className="hub-roster-contract-rules hub-roster-contract-help">
-          <summary>How this works</summary>
+          <summary>{stage?.helpSummary || "How this works"}</summary>
           <div className="hub-roster-contract-rules-body chart-note">
-            <p title={seasonCapYearHint(season)}>
-              Cap hit is for the {season} season (after the {season} draft).{" "}
+            <p title={stage?.capHint}>
+              {stage?.howItWorks}{" "}
               {contractScheduleHint(stepUp, rules)}.
             </p>
-            <p>{YEARS_LEFT_HINT}</p>
+            <p>{stage?.yearsHint || YEARS_LEFT_HINT}</p>
           </div>
         </details>
       )}
@@ -578,6 +621,7 @@ function TeamRosterBlock({
           teamId={team.id}
           teamName={hubTeamLabel(team)}
           maxYears={maxYears}
+          stage={stage}
           onSaved={onSaved}
           onError={setError}
           onNotice={(msg) => {
@@ -596,6 +640,9 @@ function TeamRosterBlock({
             const edit = getEdit(r);
             const saving = savingId === r.player_id;
             const isCut = r.roster_status === "cut_before_draft";
+            const isHighlight = Boolean(
+              highlightPlayerId && matchLiveRosterPlayer(r, highlightPlayerId),
+            );
             const yrsLeft = Number(r.contract?.years_remaining ?? r.contract_years ?? 1);
             const ctype = String(
               typeOverrides[r.player_id] || r.contract?.contract_type || "veteran",
@@ -635,13 +682,18 @@ function TeamRosterBlock({
               </button>,
             );
             return (
-              <MobilePlayerCard
+              <div
                 key={r.player_id}
+                id={isHighlight ? "live-contract-highlight" : undefined}
+              >
+              <MobilePlayerCard
                 className={isCut ? "hub-cut-row" : ""}
+                selected={isHighlight}
+                defaultOpen={isHighlight}
                 name={r.player_name}
                 meta={[r.team, r.position].filter(Boolean).join(" · ") || "—"}
                 heroValue={fmtSal(edit.salary)}
-                heroLabel={`${season} $`}
+                heroLabel={stage?.salaryFieldLabel || `${season} $`}
                 badge={(
                   <>
                     <span className={contractTypeBadgeClass(ctype)}>{contractTypeLabel(ctype)}</span>
@@ -667,8 +719,8 @@ function TeamRosterBlock({
                       </select>
                     </label>
                     <label className="hub-roster-mobile-field">
-                      <span className="mobile-stat-label" title={seasonCapYearHint(season)}>
-                        Cap hit ({season} season)
+                      <span className="mobile-stat-label" title={stage?.capHint}>
+                        {stage?.salaryFieldLabel || `Cap hit (${season} season)`}
                       </span>
                       <input
                         type="number"
@@ -685,7 +737,9 @@ function TeamRosterBlock({
                       />
                     </label>
                     <label className="hub-roster-mobile-field">
-                      <span className="mobile-stat-label" title={YEARS_LEFT_HINT}>Yrs left</span>
+                      <span className="mobile-stat-label" title={stage?.yearsHint || YEARS_LEFT_HINT}>
+                        {stage?.yearsFieldLabel || "Yrs left"}
+                      </span>
                       <input
                         type="number"
                         className="hub-roster-edit-input hub-roster-edit-input-sm"
@@ -710,6 +764,7 @@ function TeamRosterBlock({
                 )}
                 actions={actions}
               />
+              </div>
             );
           })}
         </MobileDataList>
@@ -721,8 +776,12 @@ function TeamRosterBlock({
               <th>Player</th>
               <th>Pos</th>
               <th>Type</th>
-              <th title={seasonCapYearHint(season)}>{season} season $</th>
-              <th title={YEARS_LEFT_HINT}>Yrs left</th>
+              <th title={stage?.capHint}>
+                <StageColHead label={stage?.capColumn || `${season} $`} sub={stage?.capColumnSub} />
+              </th>
+              <th title={stage?.yearsHint || YEARS_LEFT_HINT}>
+                <StageColHead label={stage?.yearsColumn || "Yrs"} sub={stage?.yearsColumnSub} />
+              </th>
               <th>Schedule</th>
               <th aria-label="Actions" />
             </tr>
@@ -732,6 +791,9 @@ function TeamRosterBlock({
               const edit = getEdit(r);
               const saving = savingId === r.player_id;
               const isCut = r.roster_status === "cut_before_draft";
+              const isHighlight = Boolean(
+                highlightPlayerId && matchLiveRosterPlayer(r, highlightPlayerId),
+              );
               const yrsLeft = Number(r.contract?.years_remaining ?? r.contract_years ?? 1);
               const ctype = String(
                 typeOverrides[r.player_id] || r.contract?.contract_type || "veteran",
@@ -746,7 +808,11 @@ function TeamRosterBlock({
                 ? (ctype === "rookie" ? "Extend to keep" : "Expires — FA")
                 : null;
               return (
-                <tr key={r.player_id} className={isCut ? "hub-cut-row" : ""}>
+                <tr
+                  key={r.player_id}
+                  id={isHighlight ? "live-contract-highlight" : undefined}
+                  className={`${isCut ? "hub-cut-row" : ""}${isHighlight ? " hub-roster-row--selected" : ""}`.trim()}
+                >
                   <td>
                     <div className="hub-league-player-cell">
                       <span className="hub-roster-player-name">{r.player_name}</span>
@@ -788,7 +854,7 @@ function TeamRosterBlock({
                       }))}
                       onBlur={() => saveRow(r, { syncHub: false })}
                       onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-                      title={seasonCapYearHint(season)}
+                      title={stage?.capHint}
                     />
                   </td>
                   <td>
@@ -805,7 +871,7 @@ function TeamRosterBlock({
                       }))}
                       onBlur={() => saveRow(r, { syncHub: false })}
                       onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-                      title={YEARS_LEFT_HINT}
+                      title={stage?.yearsHint || YEARS_LEFT_HINT}
                     />
                   </td>
                   <td className="chart-note hub-schedule-preview">{livePreview}</td>
@@ -867,13 +933,17 @@ function LeagueRostersSkeleton() {
 }
 
 export default function CommissionerLeagueRosters({ leagueId, season, workspace, hubContext, onChanged, reloadNonce = 0 }) {
+  const [searchParams] = useSearchParams();
+  const playerFromUrl = (searchParams.get("player") || "").trim();
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
+  const [playerLinkNotice, setPlayerLinkNotice] = useState("");
   const loadGenRef = React.useRef(0);
   const overviewRef = React.useRef(null);
+  const appliedPlayerRef = React.useRef("");
   overviewRef.current = overview;
 
   const load = useCallback(async (opts = {}) => {
@@ -912,6 +982,29 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
     load({ refresh: Boolean(reloadNonce) });
   }, [leagueId, reloadNonce]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (!playerFromUrl) {
+      appliedPlayerRef.current = "";
+      setPlayerLinkNotice("");
+      return;
+    }
+    if (!overview?.teams?.length) return;
+    const hit = findLiveContractTarget(overview.teams, playerFromUrl);
+    if (hit?.teamId) {
+      if (appliedPlayerRef.current !== playerFromUrl) {
+        setTeamFilter(hit.teamId);
+        appliedPlayerRef.current = playerFromUrl;
+      }
+      setPlayerLinkNotice(
+        `Opened ${hit.row.player_name || "player"} on ${hubTeamLabel(hit.block.team)}.`,
+      );
+      return;
+    }
+    setPlayerLinkNotice(
+      "No live contract for this player. Add them here, or open History for year-book records.",
+    );
+  }, [overview, playerFromUrl]);
+
   const maxYears = Number(
     workspace?.rules?.contracts?.max_years
     ?? overview?.league?.rules?.contracts?.max_years
@@ -919,6 +1012,10 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
   );
   const targetSeason = season || overview?.league?.season || workspace?.season;
   const draftCompleted = Boolean(hubContext?.draft_completed);
+  const stage = liveContractStage(targetSeason, {
+    draftCompleted,
+    leagueStatus: hubContext?.league_status,
+  });
 
   const handleSaved = useCallback(async (opts = {}) => {
     await load({ background: Boolean(overviewRef.current), refresh: true });
@@ -976,11 +1073,13 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
 
   return (
     <section className="hub-page hub-league-rosters panel wide">
+      <LiveContractStageBanner stage={stage} />
       <header className="hub-league-rosters-head">
         <div className="hub-league-rosters-intro">
           <h2>League rosters</h2>
           <p className="hub-league-rosters-lead hub-league-rosters-lead--desktop">
-            Pick a team to edit · add players · Type / {targetSeason || "season"} season $ / Yrs left · cut = refund · drop = remove
+            Pick a team to edit {stage.capColumn} and {stage.yearsColumn} · add players
+            {" "}· cut = refund · drop = remove
           </p>
         </div>
         <div className="hub-league-rosters-summary" aria-label="League totals">
@@ -1003,6 +1102,9 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
       </header>
 
       {error && overview && <div className="error hub-league-inline-error">{error}</div>}
+      {playerLinkNotice && (
+        <p className="chart-note" role="status">{playerLinkNotice}</p>
+      )}
 
       {overview && (
         <LeagueSleeperConnect
@@ -1070,7 +1172,9 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
                 salaryCap={salaryCap}
                 rules={leagueRules}
                 draftCompleted={draftCompleted}
+                stage={stage}
                 defaultOpen={Boolean(teamFilter) || Boolean(search.trim())}
+                highlightPlayerId={playerFromUrl}
                 onSaved={handleSaved}
               />
             ))}
