@@ -7277,6 +7277,12 @@ td.col-rank.col-rank-top {
 .hub-roster-row--selected td {
   background: rgba(110, 168, 254, 0.06);
 }
+.hub-league-roster-table tr.hub-roster-row--selected td {
+  background: rgba(115, 165, 255, 0.18);
+}
+.hub-league-roster-table #live-contract-highlight td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent-muted);
+}
 .hub-roster-side-panel-overlay {
   position: fixed;
   inset: 0;
@@ -7376,6 +7382,83 @@ td.col-rank.col-rank-top {
   font-size: 0.9rem;
   line-height: 1.55;
   color: var(--text-secondary);
+}
+
+.hub-live-contract-stage {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+}
+.hub-live-contract-stage--pre_draft {
+  border-left: 3px solid var(--accent-muted);
+}
+.hub-live-contract-stage--live_draft {
+  border-left: 3px solid var(--tone-caution);
+  background: var(--tone-caution-soft);
+}
+.hub-live-contract-stage--after_draft {
+  border-left: 3px solid var(--slate-500);
+}
+.hub-live-contract-stage-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.4rem;
+}
+.hub-live-contract-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.hub-live-contract-chip--year {
+  color: var(--accent-muted);
+  border-color: rgba(115, 165, 255, 0.35);
+}
+.hub-live-contract-chip--phase {
+  color: var(--text-primary);
+}
+.hub-live-contract-stage-headline {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.hub-live-contract-stage-draft {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+.hub-live-contract-stage-draft strong {
+  color: var(--text-primary);
+  font-weight: 650;
+}
+
+.hub-col-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.hub-col-sub {
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 .hub-league-team-list { display: flex; flex-direction: column; gap: 0.85rem; }
@@ -7584,6 +7667,13 @@ td.col-rank.col-rank-top {
   background: rgba(0, 0, 0, 0.12);
 }
 .hub-league-roster-table td { vertical-align: middle; }
+.hub-league-roster-table th {
+  vertical-align: bottom;
+}
+.hub-league-roster-table .hub-roster-type-select {
+  min-width: 10.25rem;
+  max-width: 12.5rem;
+}
 .hub-league-player-cell { display: flex; flex-direction: column; gap: 0.1rem; }
 .hub-league-player-meta {
   display: flex;
