@@ -7,7 +7,9 @@ import hmac
 import os
 import secrets
 import urllib.parse
+import uuid
 import base64
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -39,6 +41,22 @@ from src.email.smtp import smtp_configured
 PATREON_API = "https://www.patreon.com/api/oauth2/v2"
 
 _NATIVE_SUB_PREFIX = "ss:"
+_GUEST_SUB_PREFIX = "guest:"
+_GUEST_JWT_DAYS = 7
+_GUEST_LEAGUE_PATH = re.compile(r"^/api/hub/league/([^/]+)(.*)$")
+_GUEST_WS_PATH = re.compile(r"^/api/hub/ws/([^/]+)")
+_GUEST_LEAGUE_RESTS = {
+    "",
+    "/nomination-pool",
+    "/nomination-queue",
+    "/bid",
+    "/nominate",
+    "/pick",
+    "/draft-recap",
+    "/lobby/slot",
+    "/lobby/name",
+    "/trades",
+}
 
 
 def auth_enabled() -> bool:
@@ -312,6 +330,57 @@ def is_native_sub(sub: str) -> bool:
     return str(sub).startswith(_NATIVE_SUB_PREFIX)
 
 
+def is_guest_sub(sub: str | None) -> bool:
+    return str(sub or "").startswith(_GUEST_SUB_PREFIX)
+
+
+def is_guest_user(user: dict[str, Any] | None) -> bool:
+    if not user:
+        return False
+    return user.get("auth_type") == "guest" or is_guest_sub(user.get("sub"))
+
+
+def create_guest_access_token(
+    *,
+    league_id: str,
+    team_id: str,
+    name: str,
+    guest_id: str | None = None,
+) -> tuple[str, str]:
+    """Return (jwt, guest_sub) scoped to one draft room."""
+    gid = str(guest_id or uuid.uuid4())
+    sub = f"{_GUEST_SUB_PREFIX}{gid}"
+    exp = datetime.now(timezone.utc) + timedelta(days=_GUEST_JWT_DAYS)
+    payload = {
+        "sub": sub,
+        "auth_type": "guest",
+        "name": name,
+        "league_id": str(league_id),
+        "team_id": str(team_id),
+        "exp": exp,
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM), sub
+
+
+def guest_request_allowed(request: Request, user: dict[str, Any]) -> bool:
+    """Guests may only touch the room they joined — not the rest of Draft Hub."""
+    path = str(getattr(request.url, "path", "") or "")
+    league_id = str(user.get("league_id") or "")
+    if path.startswith("/api/hub/lobby/"):
+        return True
+    if path.startswith("/api/hub/draft-room/"):
+        return True
+    ws = _GUEST_WS_PATH.match(path)
+    if ws:
+        return not league_id or ws.group(1) == league_id
+    match = _GUEST_LEAGUE_PATH.match(path)
+    if not match:
+        return False
+    if league_id and match.group(1) != league_id:
+        return False
+    return (match.group(2) or "") in _GUEST_LEAGUE_RESTS
+
+
 def patreon_authorize_url(state: str | None = None) -> str:
     state = state or secrets.token_urlsafe(16)
     params = {
@@ -465,6 +534,11 @@ def require_hub_user(request: Request) -> dict[str, Any]:
     if not hub_auth_enabled():
         user = optional_user(request)
         if user:
+            if is_guest_user(user) and not guest_request_allowed(request, user):
+                raise HTTPException(
+                    status_code=403,
+                    detail="Guest sessions can only use the draft room they joined.",
+                )
             return user
         return {"sub": "dev", "auth_type": "dev", "name": "Dev"}
     token = token_from_request(request)
@@ -474,6 +548,13 @@ def require_hub_user(request: Request) -> dict[str, Any]:
             detail="Sign in or create a ScoreSense account to use Draft Hub",
         )
     user = decode_access_token(token)
+    if is_guest_user(user):
+        if not guest_request_allowed(request, user):
+            raise HTTPException(
+                status_code=403,
+                detail="Guest sessions can only use the draft room they joined.",
+            )
+        return user
     if user.get("auth_type") == "native" and not native_email_verified(user):
         raise HTTPException(
             status_code=403,

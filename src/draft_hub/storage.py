@@ -132,6 +132,26 @@ def _utcnow() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+GUEST_SUB_PREFIX = "guest:"
+
+
+def is_guest_sub(user_sub: str | None) -> bool:
+    return str(user_sub or "").startswith(GUEST_SUB_PREFIX)
+
+
+def _is_guest_sub(user_sub: str | None) -> bool:
+    return is_guest_sub(user_sub)
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def user_sub_from_patron(patron: dict | None) -> str:
     """Stable identity key for Draft Hub — Patreon id or ss:{uuid} for native accounts."""
     if patron and patron.get("sub"):
@@ -239,6 +259,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
     _safe_add_column(conn, "draft_session", "paused_at", "TEXT")
     _safe_add_column(conn, "team", "nomination_queue_json", "TEXT")
     _safe_add_column(conn, "team", "autodraft", "INTEGER NOT NULL DEFAULT 0")
+    _safe_add_column(conn, "team", "draft_slot", "INTEGER")
+    _safe_add_column(conn, "league", "lobby_notified_at", "TEXT")
 
     conn.execute(
         """CREATE TABLE IF NOT EXISTS league_invite (
@@ -1797,6 +1819,8 @@ def _team_dict(row: sqlite3.Row) -> dict[str, Any]:
         "sleeper_synced_at": row["sleeper_synced_at"] if "sleeper_synced_at" in keys else None,
         "nomination_queue": _nomination_queue_from_row(row, keys),
         "autodraft": bool(int(row["autodraft"] or 0)) if "autodraft" in keys else False,
+        "draft_slot": _optional_int(row["draft_slot"]) if "draft_slot" in keys else None,
+        "is_guest": _is_guest_sub(row["user_sub"] if "user_sub" in keys else None),
     }
 
 
@@ -2059,6 +2083,79 @@ def update_team_display_name(team_id: str, name: str) -> dict[str, Any]:
         return _team_dict(row) if row else {}
 
 
+def add_unclaimed_team(league_id: str, name: str, budget: float) -> dict[str, Any]:
+    """Create an open human seat that a guest or member can claim later."""
+    clean = str(name or "").strip() or "Open seat"
+    team_id = str(uuid.uuid4())
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO team (id, league_id, user_sub, name, budget_remaining, is_commissioner, is_bot, joined_at)
+               VALUES (?, ?, NULL, ?, ?, 0, 0, NULL)""",
+            (team_id, league_id, clean, float(budget)),
+        )
+        row = conn.execute("SELECT * FROM team WHERE id = ?", (team_id,)).fetchone()
+        return _team_dict(row) if row else {}
+
+
+def assign_team_user(
+    team_id: str,
+    user_sub: str,
+    *,
+    name: str | None = None,
+) -> dict[str, Any]:
+    """Claim an existing seat for a user. Sets joined_at if it was empty."""
+    clean_sub = str(user_sub or "").strip()
+    if not clean_sub:
+        raise ValueError("User is required")
+    now = _utcnow()
+    with get_conn() as conn:
+        row = conn.execute("SELECT * FROM team WHERE id = ?", (team_id,)).fetchone()
+        if not row:
+            raise ValueError("Team not found")
+        clean_name = str(name or row["name"] or "").strip() or str(row["name"] or "Manager")
+        joined = row["joined_at"] or now
+        conn.execute(
+            """UPDATE team SET user_sub = ?, name = ?, joined_at = ?
+               WHERE id = ?""",
+            (clean_sub, clean_name, joined, team_id),
+        )
+        updated = conn.execute("SELECT * FROM team WHERE id = ?", (team_id,)).fetchone()
+        return _team_dict(updated) if updated else {}
+
+
+def set_team_draft_slot(team_id: str, slot: int | None) -> dict[str, Any]:
+    value = None if slot is None else int(slot)
+    with get_conn() as conn:
+        conn.execute("UPDATE team SET draft_slot = ? WHERE id = ?", (value, team_id))
+        row = conn.execute("SELECT * FROM team WHERE id = ?", (team_id,)).fetchone()
+        return _team_dict(row) if row else {}
+
+
+def draft_slot_taken(league_id: str, slot: int, *, except_team_id: str | None = None) -> bool:
+    with get_conn() as conn:
+        if except_team_id:
+            row = conn.execute(
+                """SELECT id FROM team
+                   WHERE league_id = ? AND draft_slot = ? AND id != ?""",
+                (league_id, int(slot), except_team_id),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT id FROM team WHERE league_id = ? AND draft_slot = ?",
+                (league_id, int(slot)),
+            ).fetchone()
+        return bool(row)
+
+
+def set_lobby_notified_at(league_id: str, when: str | None = None) -> None:
+    stamp = when or _utcnow()
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE league SET lobby_notified_at = ? WHERE id = ?",
+            (stamp, league_id),
+        )
+
+
 def update_league_sleeper_id(league_id: str, sleeper_league_id: str) -> None:
     with get_conn() as conn:
         conn.execute(
@@ -2259,6 +2356,7 @@ def _league_dict(row: sqlite3.Row) -> dict[str, Any]:
         else 0,
         "created_at": row["created_at"],
         "mock_saved": bool(row["mock_saved"]) if "mock_saved" in keys else False,
+        "lobby_notified_at": row["lobby_notified_at"] if "lobby_notified_at" in keys else None,
     }
 
 
@@ -2384,13 +2482,23 @@ def import_roster_snapshot(
     return count
 
 
-def add_bot_team(league_id: str, team_id: str, name: str, budget: float) -> None:
+def add_bot_team(
+    league_id: str,
+    team_id: str,
+    name: str,
+    budget: float,
+    *,
+    draft_slot: int | None = None,
+) -> None:
     now = _utcnow()
     with get_conn() as conn:
         conn.execute(
-            """INSERT INTO team (id, league_id, user_sub, name, budget_remaining, is_commissioner, is_bot, joined_at)
-               VALUES (?, ?, ?, ?, ?, 0, 1, ?)""",
-            (team_id, league_id, f"bot:{team_id}", name, budget, now),
+            """INSERT INTO team (
+                   id, league_id, user_sub, name, budget_remaining,
+                   is_commissioner, is_bot, joined_at, draft_slot
+               )
+               VALUES (?, ?, ?, ?, ?, 0, 1, ?, ?)""",
+            (team_id, league_id, f"bot:{team_id}", name, budget, now, draft_slot),
         )
 
 
@@ -3590,7 +3698,8 @@ def list_mock_drafts_for_sub(user_sub: str, limit: int = 8) -> list[dict[str, An
     with get_conn() as conn:
         rows = conn.execute(
             """SELECT l.id, l.name, l.season, l.status, l.draft_completed, l.team_count,
-                      l.created_at, l.rules_json, COALESCE(l.mock_saved, 0) AS mock_saved
+                      l.created_at, l.rules_json, l.room_code,
+                      COALESCE(l.mock_saved, 0) AS mock_saved
                FROM league l
                JOIN team t ON t.league_id = l.id
                WHERE t.user_sub = ?
@@ -3621,6 +3730,7 @@ def list_mock_drafts_for_sub(user_sub: str, limit: int = 8) -> list[dict[str, An
                 "created_at": row["created_at"],
                 "draft_type": str(rules.get("draft_type") or "auction"),
                 "saved": bool(row["mock_saved"]),
+                "room_code": row["room_code"] if "room_code" in row.keys() else None,
             }
         )
     return out
