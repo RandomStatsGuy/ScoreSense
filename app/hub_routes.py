@@ -4350,15 +4350,15 @@ async def hub_lobby_rename(
 
 
 @router.post("/league/{league_id}/lobby/notify")
-def hub_lobby_notify(league_id: str, force: bool = Query(False), _user=Depends(require_hub_user)) -> dict:
+async def hub_lobby_notify(league_id: str, force: bool = Query(False), _user=Depends(require_hub_user)) -> dict:
+    from fastapi.concurrency import run_in_threadpool
     from src.draft_hub.lobby import notify_managers_draft_open
 
     sub = _sub(_user)
     try:
-        return notify_managers_draft_open(league_id, sub, force=force)
+        return await run_in_threadpool(notify_managers_draft_open, league_id, sub, force=force)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-
 
 @router.get("/mock-drafts")
 def hub_list_mock_drafts(_user=Depends(require_hub_user)) -> dict:
