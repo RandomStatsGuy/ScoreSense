@@ -6,10 +6,10 @@ import logging
 import time
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
-from app.auth import hub_auth_enabled, require_hub_user, ws_user_from_token
+from app.auth import hub_auth_enabled, optional_user, require_hub_user, ws_user_from_token
 from src.draft_hub import storage
 from src.draft_hub.draft_enrichment import build_draft_room_enrichment, fantasy_media_digest_single
 from src.draft_hub.draft_state import (
@@ -31,7 +31,6 @@ from src.draft_hub.draft_state import (
     set_draft_schedule,
     set_nomination_queue,
     skip_nomination,
-    start_draft,
     update_auction_rules,
 )
 from src.draft_hub.draft_pool import build_nomination_pool
@@ -62,6 +61,9 @@ from src.draft_hub.schemas import (
     LeagueInviteAcceptRequest,
     LeagueInviteCreateRequest,
     LeagueJoinRequest,
+    LobbyJoinRequest,
+    LobbyNameRequest,
+    LobbySlotRequest,
     LeagueSettingsUpdate,
     NominationOrderUpdate,
     NominationQueueUpdate,
@@ -3797,11 +3799,23 @@ async def hub_start_draft(
         False,
         description="Start even if some seats are still unclaimed (live rooms only)",
     ),
+    fill_bots: bool = Query(
+        False,
+        description="Fill leftover mock seats with bots before starting",
+    ),
     _user=Depends(require_hub_user),
 ) -> dict:
     sub = _sub(_user)
     try:
-        state = start_draft(league_id, sub, force=force, allow_empty=allow_empty)
+        from src.draft_hub.lobby import start_from_lobby
+
+        state = start_from_lobby(
+            league_id,
+            sub,
+            force=force,
+            allow_empty=allow_empty,
+            fill_bots=fill_bots,
+        )
         await broadcast_room(league_id)
         return state
     except ValueError as exc:
@@ -4271,6 +4285,81 @@ async def hub_league_sheet_import(
     }
 
 
+@router.get("/lobby/{room_code}")
+def hub_lobby_preview(room_code: str) -> dict:
+    """Public lobby card — no account required."""
+    from src.draft_hub.lobby import build_lobby_preview
+
+    try:
+        return build_lobby_preview(room_code)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/lobby/{room_code}/join")
+async def hub_lobby_join(room_code: str, body: LobbyJoinRequest, request: Request) -> dict:
+    """Claim a seat with a display name. Guests get a room-scoped token."""
+    from src.draft_hub.lobby import join_lobby
+
+    user = optional_user(request)
+    try:
+        result = join_lobby(room_code, body.display_name, user=user)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await broadcast_room(result["league_id"])
+    return result
+
+
+@router.post("/league/{league_id}/lobby/slot")
+async def hub_lobby_claim_slot(
+    league_id: str,
+    body: LobbySlotRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    from src.draft_hub.lobby import claim_draft_slot
+
+    sub = _sub(_user)
+    try:
+        state = claim_draft_slot(
+            league_id,
+            sub,
+            body.slot,
+            team_id=body.team_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await broadcast_room(league_id)
+    return state
+
+
+@router.post("/league/{league_id}/lobby/name")
+async def hub_lobby_rename(
+    league_id: str,
+    body: LobbyNameRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    from src.draft_hub.lobby import rename_lobby_team
+
+    sub = _sub(_user)
+    try:
+        state = rename_lobby_team(league_id, sub, body.name)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await broadcast_room(league_id)
+    return state
+
+
+@router.post("/league/{league_id}/lobby/notify")
+async def hub_lobby_notify(league_id: str, force: bool = Query(False), _user=Depends(require_hub_user)) -> dict:
+    from fastapi.concurrency import run_in_threadpool
+    from src.draft_hub.lobby import notify_managers_draft_open
+
+    sub = _sub(_user)
+    try:
+        return await run_in_threadpool(notify_managers_draft_open, league_id, sub, force=force)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
 @router.get("/mock-drafts")
 def hub_list_mock_drafts(_user=Depends(require_hub_user)) -> dict:
     """Saved favorites plus the latest unsaved practice rooms."""
@@ -4324,6 +4413,7 @@ async def hub_mock_draft_start(body: MockDraftStartRequest, _user=Depends(requir
             name=body.name,
             relax_salary_roster_limits=body.relax_salary_roster_limits,
             preset_id=body.preset_id,
+            lobby=bool(body.lobby),
         )
         await broadcast_room(result["league_id"])
         result["hub_context"] = _ctx(sub)

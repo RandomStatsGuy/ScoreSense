@@ -148,6 +148,7 @@ export default function MockDraftTool({ projMeta = null }) {
         useLeagueRules,
         useLeagueManagers,
         name,
+        lobby: launchMode === "together",
       });
       const res = await apiFetch("/api/hub/mock-draft/start", {
         method: "POST",
@@ -276,12 +277,12 @@ export default function MockDraftTool({ projMeta = null }) {
           <p className="hub-experience-kicker">Draft lab</p>
           <h2>Build a room worth entering.</h2>
           <p>
-            Pick the format, take one seat, and see how your decisions hold up against a full room of bots.
+            Pick the format, take a seat, and invite friends — or run it yourself against bots.
           </p>
         </div>
         <div className="mock-draft-hero-note" role="note">
-          <strong>Practice stays private.</strong>
-          <span>Nothing here changes your real league.</span>
+          <strong>Practice stays off the books.</strong>
+          <span>Friends can sit in without a ScoreSense account. Real keepers stay put.</span>
         </div>
       </header>
       {error ? <HubAlert variant="danger">{error}</HubAlert> : null}
@@ -329,7 +330,7 @@ export default function MockDraftTool({ projMeta = null }) {
               <span>2</span>
               <div>
                 <h3 id="mock-field-title">Set the field</h3>
-                <p>You take one seat. ScoreSense runs the rest.</p>
+                <p>Set the size. Invite friends or leave the rest to bots.</p>
               </div>
             </header>
             <fieldset className="mock-draft-teams" disabled={busy}>
@@ -402,12 +403,21 @@ export default function MockDraftTool({ projMeta = null }) {
           <div className="mock-draft-experience-toggle" role="group" aria-label="Draft experience">
             <button
               type="button"
+              className={launchMode === "together" ? "is-active" : ""}
+              aria-pressed={launchMode === "together"}
+              onClick={() => setLaunchMode("together")}
+            >
+              Invite friends
+              <small>Open a lobby</small>
+            </button>
+            <button
+              type="button"
               className={launchMode === "live" ? "is-active" : ""}
               aria-pressed={launchMode === "live"}
               onClick={() => setLaunchMode("live")}
             >
-              Draft live
-              <small>Make every decision</small>
+              Solo vs bots
+              <small>Start now</small>
             </button>
             <button
               type="button"
@@ -421,11 +431,19 @@ export default function MockDraftTool({ projMeta = null }) {
           </div>
 
           <div className="mock-draft-launch-copy">
-            <h3>{launchMode === "live" ? "Take the clock." : "See the outcome."}</h3>
+            <h3>
+              {launchMode === "together"
+                ? "Open the lobby."
+                : launchMode === "live"
+                  ? "Take the clock."
+                  : "See the outcome."}
+            </h3>
             <p>
-              {launchMode === "live"
-                ? `You ${presetId === "salary_cap_auction_v1" ? "nominate and bid" : "make the picks"}; bots keep the room moving.`
-                : `Bots run all ${launchSummary.teams} teams, then open a complete recap.`}
+              {launchMode === "together"
+                ? "Share a link. Friends join with a name and pick a snake seat. No signup."
+                : launchMode === "live"
+                  ? `You ${presetId === "salary_cap_auction_v1" ? "nominate and bid" : "make the picks"}; bots keep the room moving.`
+                  : `Bots run all ${launchSummary.teams} teams, then open a complete recap.`}
             </p>
           </div>
 
@@ -442,9 +460,17 @@ export default function MockDraftTool({ projMeta = null }) {
           >
             {busy
               ? (busyKind === "simulate" ? "Simulating…" : "Opening room…")
-              : (launchMode === "simulate" ? "Simulate this draft" : "Enter the draft room")}
+              : launchMode === "simulate"
+                ? "Simulate this draft"
+                : launchMode === "together"
+                  ? "Open the lobby"
+                  : "Enter the draft room"}
           </Button>
-          <p className="mock-draft-launch-foot">1 human · {botCount} bots · private practice</p>
+          <p className="mock-draft-launch-foot">
+            {launchMode === "together"
+              ? `You host · ${teamCount - 1} open seats · shareable link`
+              : `1 human · ${botCount} bots · private practice`}
+          </p>
         </aside>
       </div>
 
