@@ -767,7 +767,7 @@
 
 .mock-draft-experience-toggle {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 0.35rem;
   padding: 0.3rem;
   border-radius: 14px;
@@ -2100,8 +2100,211 @@
   .hub-experience-hero,
   .hub-rules-summary,
   .hub-rules-policy,
-  .fantasy-chat-drawer {
+  .fantasy-chat-drawer,
+  .draft-lobby-slot,
+  .draft-lobby-seat {
     transition: none;
+  }
+}
+
+/* Shared mock / live draft lobby — editorial, matte, not neon. */
+.draft-lobby-page {
+  min-height: 100vh;
+  padding: 1.5rem clamp(1rem, 3vw, 2.5rem) 2.5rem;
+  background: var(--bg-base);
+}
+
+.draft-lobby-join-brand {
+  margin-bottom: 1.25rem;
+}
+
+.draft-lobby-join-brand a {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.draft-lobby-join-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.draft-lobby-join-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  max-width: 24rem;
+}
+
+.draft-lobby-join-form label,
+.draft-lobby-link label,
+.draft-lobby-rename label {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.draft-lobby-join-form input,
+.draft-lobby-link input,
+.draft-lobby-rename input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.draft-lobby-join-meta dl,
+.draft-lobby-rail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.draft-lobby-join-meta dt {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+.draft-lobby-join-meta dd {
+  margin: 0.15rem 0 0;
+  color: var(--text-primary);
+  font-weight: 650;
+}
+
+.draft-lobby-error {
+  margin: 0 1rem;
+}
+
+.draft-lobby-link-row {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.draft-lobby-seat-list,
+.draft-lobby-slots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.draft-lobby-seat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.draft-lobby-seat {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+.draft-lobby-seat.is-you {
+  background: var(--accent-soft);
+}
+
+.draft-lobby-seat.is-open {
+  background: transparent;
+  box-shadow: none;
+  border: 1px dashed var(--border);
+}
+
+.draft-lobby-seat-name {
+  font-weight: 650;
+}
+
+.draft-lobby-seat-meta {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.draft-lobby-rename {
+  margin-top: 0.85rem;
+}
+
+.draft-lobby-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.45rem;
+}
+
+.draft-lobby-slot {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  text-align: left;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.draft-lobby-slot:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.draft-lobby-slot.is-open {
+  border-color: var(--border);
+  background: transparent;
+}
+
+.draft-lobby-slot.is-you {
+  border-color: rgba(52, 211, 153, 0.35);
+  background: var(--tone-positive-soft);
+}
+
+.draft-lobby-slot.is-taken {
+  color: var(--text-muted);
+}
+
+.draft-lobby-slot-num {
+  flex: 0 0 auto;
+  color: var(--accent-muted);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.draft-lobby-slot-who {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.draft-lobby-slot-action {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+}
+
+.draft-lobby-schedule {
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 1024px) {
+  .draft-lobby-join-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mock-draft-experience-toggle {
+    grid-template-columns: 1fr;
   }
 }
 
