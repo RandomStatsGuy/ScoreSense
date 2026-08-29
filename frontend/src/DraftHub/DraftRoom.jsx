@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useMobileLayout from "../useMobileLayout";
-import { apiFetch, getToken } from "../auth";
+import { apiFetch, getRoomAuthToken } from "../auth";
 import { parseApiError } from "../format";
 import { pickFantasyMediaDigest } from "../fantasyMediaDigest";
 import DraftNomineeCard from "./DraftNomineeCard";
@@ -77,6 +77,7 @@ export default function DraftRoom({
   hubContext = null,
   onNavigate,
   toolMode = false,
+  guestMode = false,
   toolLabel = "",
   onExitRoom,
   watchIds: watchIdsProp,
@@ -295,7 +296,7 @@ export default function DraftRoom({
     : teams.length > 0;
   const linkedHubLeagueId = hubContext?.league_id || "";
   const usingHubLeague = Boolean(leagueId && linkedHubLeagueId && leagueId === linkedHubLeagueId);
-  const showDraftEntry = !toolMode && !inLiveDraft && !draftCompleted;
+  const showDraftEntry = !inLiveDraft && !draftCompleted && (!toolMode || inDraftSetup);
   const nominatorTeamId = roomState?.nominator_team_id;
   const nominatorTeam = useMemo(
     () => teams.find((t) => String(t.id) === String(nominatorTeamId)),
@@ -656,7 +657,7 @@ export default function DraftRoom({
     wsRef.current = null;
     teardownSocket(prev);
     const proto = window.location.protocol === "https:" ? "wss" : "ws";
-    const token = getToken();
+    const token = getRoomAuthToken(`/api/hub/ws/${id}`);
     const qs = token ? `?token=${encodeURIComponent(token)}` : "";
     setConnectionStatus((cur) => (cur === "live" ? "reconnecting" : "connecting"));
     const ws = new WebSocket(`${proto}://${window.location.host}/api/hub/ws/${id}${qs}`);
@@ -981,7 +982,7 @@ export default function DraftRoom({
     }
   };
 
-  const startDraft = async () => {
+  const startDraft = async ({ fillBots = false } = {}) => {
     const startsAt = league?.draft_starts_at;
     const scheduledFuture = startsAt && new Date(startsAt).getTime() > Date.now();
     let force = false;
@@ -1002,6 +1003,7 @@ export default function DraftRoom({
         const q = new URLSearchParams();
         if (force) q.set("force", "true");
         if (allowEmpty) q.set("allow_empty", "true");
+        if (fillBots) q.set("fill_bots", "true");
         const qs = q.toString() ? `?${q}` : "";
         return apiFetch(`/api/hub/league/${leagueId}/start${qs}`, { method: "POST" });
       };
@@ -1436,7 +1438,7 @@ export default function DraftRoom({
             className="btn-ghost btn-sm"
             onClick={() => onExitRoom?.()}
           >
-            Back to setup
+            {guestMode ? "Leave room" : "Back to setup"}
           </button>
           {league?.name ? (
             <span className="chart-note">{league.name}</span>
@@ -1700,6 +1702,9 @@ export default function DraftRoom({
           expirePreview={expirePreview}
           emptySeats={Number(roomState?.empty_seats) || 0}
           claimedHumans={Number(roomState?.claimed_humans) || 0}
+          viewer={roomState?.viewer}
+          guestMode={guestMode}
+          onUpdated={applyState}
         />
       )}
 
