@@ -146,7 +146,7 @@ def _claim_or_create_seat(
             (team_id, league_id, user_sub, display_name, float(rules.salary_cap), now),
         )
         row = conn.execute("SELECT * FROM team WHERE id = ?", (team_id,)).fetchone()
-    return storage._team_dict(row)
+    return storage.get_team(team_id)
 
 
 def join_lobby(
