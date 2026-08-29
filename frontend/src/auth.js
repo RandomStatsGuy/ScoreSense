@@ -53,7 +53,7 @@ export function getRoomAuthToken(url) {
     return guest.token;
   }
   const leagueId = String(guest.league_id || "");
-  if (leagueId && path.includes(leagueId)) return guest.token;
+  if (leagueId && path.split("/").includes(leagueId)) return guest.token;
   return null;
 }
 
