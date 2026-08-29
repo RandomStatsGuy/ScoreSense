@@ -2112,6 +2112,8 @@ def assign_team_user(
         row = conn.execute("SELECT * FROM team WHERE id = ?", (team_id,)).fetchone()
         if not row:
             raise ValueError("Team not found")
+        if row["user_sub"] and row["user_sub"] != clean_sub:
+            raise ValueError("Team is already claimed by another user")
         clean_name = str(name or row["name"] or "").strip() or str(row["name"] or "Manager")
         joined = row["joined_at"] or now
         conn.execute(
