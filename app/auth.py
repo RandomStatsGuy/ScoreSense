@@ -366,19 +366,19 @@ def guest_request_allowed(request: Request, user: dict[str, Any]) -> bool:
     """Guests may only touch the room they joined — not the rest of Draft Hub."""
     path = str(getattr(request.url, "path", "") or "")
     league_id = str(user.get("league_id") or "")
-    if not league_id:
-        return False
     if path.startswith("/api/hub/lobby/"):
         return True
     if path.startswith("/api/hub/draft-room/"):
         return True
     ws = _GUEST_WS_PATH.match(path)
     if ws:
-        return ws.group(1) == league_id
+        return bool(league_id) and ws.group(1) == league_id
     match = _GUEST_LEAGUE_PATH.match(path)
     if not match:
         return False
-    if match.group(1) != league_id:
+    if not league_id or match.group(1) != league_id:
+        return False
+    return (match.group(2) or "") in _GUEST_LEAGUE_RESTS
         return False
     return (match.group(2) or "") in _GUEST_LEAGUE_RESTS
 
