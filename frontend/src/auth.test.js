@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { apiFetch, setToken } from "./auth.js";
+import { apiFetch, clearGuestSession, setGuestSession, setToken } from "./auth.js";
 
 const mem = {};
 globalThis.localStorage = {
@@ -34,6 +34,28 @@ test("apiFetch does not force JSON content-type for FormData uploads", async () 
     assert.ok(init.body instanceof FormData);
   } finally {
     globalThis.fetch = orig;
+  }
+});
+
+test("apiFetch uses a guest token only on hub URLs", async () => {
+  setToken(null);
+  setGuestSession({ token: "guest-tok", leagueId: "lg-1", roomCode: "ABC123" });
+  let hubInit;
+  let meInit;
+  const orig = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    if (String(url).includes("/api/hub")) hubInit = options;
+    else meInit = options;
+    return new Response("{}", { status: 200 });
+  };
+  try {
+    await apiFetch("/api/hub/league/lg-1");
+    await apiFetch("/api/auth/me");
+    assert.equal(hubInit.headers.Authorization, "Bearer guest-tok");
+    assert.equal(meInit.headers.Authorization, undefined);
+  } finally {
+    globalThis.fetch = orig;
+    clearGuestSession();
   }
 });
 

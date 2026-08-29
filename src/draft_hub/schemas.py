@@ -316,6 +316,20 @@ class MockDraftStartRequest(BaseModel):
     name: Optional[str] = None
     relax_salary_roster_limits: bool = False
     preset_id: Optional[str] = None
+    lobby: bool = False
+
+
+class LobbyJoinRequest(BaseModel):
+    display_name: str = Field(..., min_length=1, max_length=40)
+
+
+class LobbySlotRequest(BaseModel):
+    slot: Optional[int] = None
+    team_id: Optional[str] = None
+
+
+class LobbyNameRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=40)
 
 
 class MockKeepRequest(BaseModel):

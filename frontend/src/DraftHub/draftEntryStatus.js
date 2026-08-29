@@ -94,7 +94,7 @@ export function draftEntryPhase({
     return { id: "practice", label: "Practice room" };
   }
   if (leagueId && inDraftSetup) {
-    return { id: "pre_draft", label: "Pre-draft · ready" };
+    return { id: "pre_draft", label: "Lobby open" };
   }
   if (usingHubLeague || hubContext?.mode === "league") {
     return { id: "pre_draft", label: "Pre-draft" };

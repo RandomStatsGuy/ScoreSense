@@ -34,6 +34,7 @@ test("buildMockDraftStartBody uses preset when no league overlay", () => {
   assert.equal(body.preset_id, "snake_draft_v1");
   assert.equal(body.source_league_id, undefined);
   assert.equal(body.auto_start, true);
+  assert.equal(body.lobby, false);
   assert.equal(body.season, 2026);
 });
 
@@ -55,6 +56,17 @@ test("buildMockDraftStartBody copies league rules or manager names", () => {
   assert.equal(mirror.source_league_id, "lg-1");
 });
 
+test("buildMockDraftStartBody opens a lobby without auto-start", () => {
+  const body = buildMockDraftStartBody({
+    presetId: "snake_draft_v1",
+    teamCount: 10,
+    lobby: true,
+  });
+  assert.equal(body.lobby, true);
+  assert.equal(body.auto_start, false);
+  assert.equal(body.bot_count, 0);
+});
+
 test("mock labels cover format and room phase", () => {
   assert.equal(mockDraftDisplayName({ presetId: "snake_draft_v1" }), "Snake mock draft");
   assert.equal(
@@ -66,7 +78,8 @@ test("mock labels cover format and room phase", () => {
     MOCK_DRAFT_PRESETS.find((p) => p.id === "snake_draft_v1").hint,
     /no salary cap/i,
   );
-  assert.equal(mockRoomPhaseLabel({ status: "setup" }), "Ready");
+  assert.equal(mockRoomPhaseLabel({ status: "setup" }), "Lobby");
+  assert.equal(mockRoomResumeLabel({ status: "setup" }), "Open lobby");
   assert.equal(mockRoomPhaseLabel({ draft_completed: true }), "Completed");
   assert.equal(mockRoomPhaseLabel({ status: "completed" }), "Completed");
   assert.equal(mockRoomPhaseLabel({ status: "nominating" }), "In progress");
