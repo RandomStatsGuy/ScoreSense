@@ -45,8 +45,15 @@ export function clearGuestSession() {
 export function getRoomAuthToken(url) {
   const account = getToken();
   if (account) return account;
+  const guest = getGuestSession();
+  if (!guest?.token) return null;
   const path = String(url || "");
-  if (!path || path.includes("/api/hub")) return getGuestToken();
+  if (!path.includes("/api/hub")) return null;
+  if (path.includes("/api/hub/lobby/") || path.includes("/api/hub/draft-room/")) {
+    return guest.token;
+  }
+  const leagueId = String(guest.league_id || "");
+  if (leagueId && path.includes(leagueId)) return guest.token;
   return null;
 }
 

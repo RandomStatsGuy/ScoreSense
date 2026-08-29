@@ -40,18 +40,23 @@ test("apiFetch does not force JSON content-type for FormData uploads", async () 
 test("apiFetch uses a guest token only on hub URLs", async () => {
   setToken(null);
   setGuestSession({ token: "guest-tok", leagueId: "lg-1", roomCode: "ABC123" });
-  let hubInit;
+  let leagueInit;
+  let contextInit;
   let meInit;
   const orig = globalThis.fetch;
   globalThis.fetch = async (url, options) => {
-    if (String(url).includes("/api/hub")) hubInit = options;
+    const href = String(url);
+    if (href.includes("/league/")) leagueInit = options;
+    else if (href.includes("/context")) contextInit = options;
     else meInit = options;
     return new Response("{}", { status: 200 });
   };
   try {
     await apiFetch("/api/hub/league/lg-1");
+    await apiFetch("/api/hub/context");
     await apiFetch("/api/auth/me");
-    assert.equal(hubInit.headers.Authorization, "Bearer guest-tok");
+    assert.equal(leagueInit.headers.Authorization, "Bearer guest-tok");
+    assert.equal(contextInit.headers.Authorization, undefined);
     assert.equal(meInit.headers.Authorization, undefined);
   } finally {
     globalThis.fetch = orig;

@@ -39,10 +39,17 @@ export default function LobbyJoinPage() {
         setPreview(data);
         const guest = getGuestSession();
         const alreadyGuest = guest?.league_id && guest.league_id === data.league_id;
-        if (alreadyGuest || getToken()) {
-          const room = await apiFetch(`/api/hub/league/${data.league_id}`);
+        if (alreadyGuest) {
+          setLeagueId(data.league_id);
+        } else {
+          const token = getToken();
+          const room = await fetch(`/api/hub/league/${data.league_id}`, {
+            credentials: "include",
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
           if (room.ok) {
-            setLeagueId(data.league_id);
+            const state = await room.json();
+            if (state?.viewer?.team_id) setLeagueId(data.league_id);
           }
         }
       } catch (e) {
