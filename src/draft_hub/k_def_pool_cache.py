@@ -33,6 +33,11 @@ def invalidate_k_def_cache() -> None:
         _PROJ_INDEX = None
 
 
+def _has_nfl_team(series: pd.Series) -> pd.Series:
+    """True when a Sleeper team code is present. NaN/None must not count as rostered."""
+    return series.fillna("").astype(str).str.strip().astype(bool)
+
+
 def _cache_key(rules: LeagueRules, team_count: int, k_on: bool, def_on: bool) -> str:
     cap = float(rules.salary_cap)
     min_bid = float(rules.auction.min_bid)
@@ -141,7 +146,7 @@ def build_k_def_projection_index(df: pd.DataFrame, *, games: int = GAMES_PER_SEA
     if "position" not in work.columns:
         return {}
     work["_pos"] = work["position"].map(normalize_position)
-    work = work[work["_pos"].isin(_PROJ_CURVE) & work["team"].astype(bool)]
+    work = work[work["_pos"].isin(_PROJ_CURVE) & _has_nfl_team(work["team"])]
     if work.empty:
         return {}
     rows: list[dict[str, Any]] = []
@@ -176,7 +181,7 @@ def k_def_projection_index(*, allow_fetch: bool = False) -> dict[str, dict[str, 
     """Lookup of K/DEF quantiles. Prefers in-process pool rows, then Sleeper cache."""
     global _PROJ_INDEX
     with _LOCK:
-        if _PROJ_INDEX:
+        if _PROJ_INDEX is not None:
             return dict(_PROJ_INDEX)
         for _key, (_ts, rows) in _CACHE.items():
             built = _index_from_rows(rows)
@@ -259,7 +264,7 @@ def load_k_def_rows(
 
     pos_series = df["position"].map(normalize_position) if "position" in df.columns else None
     if k_on:
-        kickers = df[(pos_series == "K") & df["team"].astype(bool)].copy()
+        kickers = df[(pos_series == "K") & _has_nfl_team(df["team"])].copy()
         kickers = kickers.sort_values(["search_rank", "full_name"], na_position="last")
         n_rel = auction_relevant_count("K", team_count, rules)
         for rank, (_, p) in enumerate(kickers.iterrows()):
@@ -289,7 +294,7 @@ def load_k_def_rows(
             )
 
     if def_on:
-        defs = df[(pos_series == "DEF") & df["team"].astype(bool)].copy()
+        defs = df[(pos_series == "DEF") & _has_nfl_team(df["team"])].copy()
         defs = defs.sort_values(["search_rank", "team"], na_position="last")
         n_rel = auction_relevant_count("DEF", team_count, rules)
         for rank, (_, p) in enumerate(defs.iterrows()):

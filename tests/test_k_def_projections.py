@@ -7,7 +7,9 @@ import pandas as pd
 from src.draft_hub.draft_recap import build_owner_draft_report
 from src.draft_hub.k_def_pool_cache import (
     K_DEF_QUANTILE_METHOD,
+    build_k_def_projection_index,
     invalidate_k_def_cache,
+    k_def_projection_index,
     k_def_season_bands,
     load_k_def_rows,
     overlay_k_def_projections,
@@ -47,6 +49,36 @@ def test_load_k_def_rows_sets_projections(monkeypatch):
     assert kickers[0]["season_p10"] < kickers[0]["season_p50"] < kickers[0]["season_p90"]
     assert defs[0]["season_proj"] > defs[1]["season_proj"] > 70
     assert all(r["season_quantile_method"] == K_DEF_QUANTILE_METHOD for r in rows)
+
+
+def test_k_def_rows_skip_free_agents_with_nan_team(monkeypatch):
+    df = pd.DataFrame(
+        [
+            {"sleeper_id": "k-fa", "full_name": "FA Kicker", "team": pd.NA, "position": "K", "search_rank": 10},
+            {"sleeper_id": "k1", "full_name": "Justin Tucker", "team": "BAL", "position": "K", "search_rank": 150},
+            {"sleeper_id": "d-fa", "full_name": "FA DEF", "team": None, "position": "DEF", "search_rank": 20},
+            {"sleeper_id": "d1", "full_name": "Ravens", "team": "BAL", "position": "DEF", "search_rank": 180},
+        ]
+    )
+    monkeypatch.setattr("src.integrations.sleeper.players_dataframe", lambda force_refresh=False: df)
+    invalidate_k_def_cache()
+    rows = load_k_def_rows(load_preset("snake_draft_v1"), [], team_count=12)
+    assert {r["player_id"] for r in rows} == {"k1", "d1"}
+    index = build_k_def_projection_index(df)
+    assert set(index) == {"k1", "d1"}
+
+
+def test_empty_projection_index_is_cached(monkeypatch):
+    import src.draft_hub.k_def_pool_cache as kdef
+
+    invalidate_k_def_cache()
+    kdef._PROJ_INDEX = {}
+    monkeypatch.setattr(
+        kdef,
+        "_sleeper_players_df",
+        lambda allow_fetch=False: (_ for _ in ()).throw(AssertionError("should use empty cache")),
+    )
+    assert k_def_projection_index() == {}
 
 
 def test_overlay_k_def_projections_fills_zeros(monkeypatch):
