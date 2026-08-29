@@ -313,7 +313,7 @@ def start_from_lobby(
 def _manager_emails(league_id: str, *, exclude_sub: str | None = None) -> list[str]:
     found: set[str] = set()
     for invite in storage.list_league_invites(league_id):
-        if str(invite.get("status") or "") in ("revoked",):
+        if str(invite.get("status") or "") != "pending":
             continue
         email = normalize_email(invite.get("email") or "")
         if email:
