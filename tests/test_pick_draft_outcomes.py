@@ -6,6 +6,7 @@ from src.draft_hub.pick_draft_outcomes import (
     fill_starters,
     inverse_quantile_sample,
     pick_draft_awards,
+    players_for_team,
     rotating_opponent,
     simulate_pick_draft_outcomes,
     starter_points,
@@ -142,3 +143,61 @@ def test_pick_awards_have_no_auction_language():
     for banned in ("cap hoarder", "empty wallet", "amount spent", "fair salary", "auction wins", "notable sales", "$"):
         assert banned not in blob
     assert any(a["id"] == "best_lineup" for a in awards)
+
+
+def _full_skill(prefix: str, p50: float):
+    return [_player(f"{prefix}-{pos}{i}", pos, p50 * 0.8, p50, p50 * 1.2) for i, pos in enumerate(("QB", "RB", "RB", "WR", "WR", "TE"))]
+
+
+def test_biggest_need_follows_standings_not_empty_kicker():
+    """A stacked team that skipped K/DEF is not the neediest when standings say otherwise."""
+    rules = load_preset("snake_draft_v1")
+    strong = _full_skill("alpha", 120)
+    weak = _full_skill("gamma", 12) + [
+        _player("gk", "K", 6, 8, 10),
+        _player("gdef", "DEF", 5, 7, 9),
+    ]
+    teams = [
+        {"team_id": "a", "team_name": "Alpha", "players": strong},
+        {"team_id": "c", "team_name": "Gamma", "players": weak},
+    ]
+    standings = [
+        {"team_id": "a", "team_name": "Alpha", "expected_wins": 10.4, "points_p50": 1610.0, "rank": 1},
+        {"team_id": "c", "team_name": "Gamma", "expected_wins": 3.1, "points_p50": 820.0, "rank": 2},
+    ]
+    awards = pick_draft_awards(teams, rules, standings, draft_type="snake")
+    need = next(a for a in awards if a["id"] == "biggest_need")
+    assert need["team_id"] == "c"
+    assert "3.1 expected wins" in need["detail"]
+    assert "820 median pts" in need["detail"]
+    assert "standings" in need["blurb"]
+
+
+def test_players_for_team_overlays_zero_k_def_projections():
+    picks = [
+        {
+            "team_id": "t1",
+            "player_id": "k1",
+            "player_name": "Justin Tucker",
+            "position": "K",
+            "season_proj": 0.0,
+            "overall": 150,
+        },
+        {
+            "team_id": "t1",
+            "player_id": "d1",
+            "player_name": "Ravens",
+            "position": "DEF",
+            "season_proj": 0,
+            "overall": 151,
+        },
+    ]
+    index = {
+        "k1": {"p10": 120.0, "p50": 140.0, "p90": 158.0, "season_proj": 140.0, "position": "K", "player_name": "Justin Tucker", "team": "BAL"},
+        "d1": {"p10": 90.0, "p50": 128.0, "p90": 160.0, "season_proj": 128.0, "position": "DEF", "player_name": "Ravens", "team": "BAL"},
+    }
+    players = players_for_team("t1", "Alpha", picks, [], index)
+    by_id = {p["player_id"]: p for p in players}
+    assert by_id["k1"]["p50"] == 140.0
+    assert by_id["k1"]["p10"] == 120.0
+    assert by_id["d1"]["p50"] == 128.0

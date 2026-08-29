@@ -231,7 +231,7 @@ export default function DraftRecapPanel({
                 <span>
                   {pick.team_name} · {pick.player_name} ({pick.position})
                   {!pickDraft && <> — {fmtSal(pick.amount)}{pick.fair_value != null ? ` · fair ${fmtSal(pick.fair_value)}` : ""}</>}
-                  {pickDraft && pick.season_proj != null && <> · {Number(pick.season_proj).toFixed(0)} pts</>}
+                  {pickDraft && Number(pick.season_proj) > 0 && <> · {Number(pick.season_proj).toFixed(0)} pts</>}
                 </span>
               </li>
             ))}
