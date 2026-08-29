@@ -12,7 +12,7 @@ import LegalLinks from "./LegalLinks";
 import { AuthContext } from "./AuthContext";
 import { PRODUCT_NAME, STUDIO_NAME } from "./brand";
 
-const PUBLIC_PATH_PREFIXES = ["/terms", "/privacy", "/auth/", "/lobby"];
+const PUBLIC_PATH_PREFIXES = ["/terms", "/privacy", "/auth/"];
 
 function isPublicAuthPath(pathname, search) {
   if (PUBLIC_PATH_PREFIXES.some((p) => pathname === p || pathname.startsWith(p))) {

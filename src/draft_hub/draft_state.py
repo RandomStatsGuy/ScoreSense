@@ -108,53 +108,6 @@ def _build_nomination_order(teams: list[dict[str, Any]]) -> list[str]:
     return [str(t["id"]) for t in humans + bots]
 
 
-def nomination_order_for_start(
-    league: dict[str, Any],
-    teams: list[dict[str, Any]],
-    session: dict[str, Any] | None = None,
-) -> list[str]:
-    """Honor claimed draft slots, then any saved order, then the default seating."""
-    team_ids = {str(t["id"]) for t in teams}
-    team_count = int(league.get("team_count") or 0) or len(teams)
-    slotted: dict[int, str] = {}
-    for team in teams:
-        raw = team.get("draft_slot")
-        if raw is None:
-            continue
-        try:
-            slot = int(raw)
-        except (TypeError, ValueError):
-            continue
-        tid = str(team["id"])
-        if 1 <= slot <= max(team_count, len(teams)) and tid not in slotted.values():
-            slotted.setdefault(slot, tid)
-    existing = [
-        str(tid)
-        for tid in ((session or {}).get("nomination_order") or [])
-        if str(tid) in team_ids
-    ]
-    leftover_source = existing or _build_nomination_order(teams)
-    used = set(slotted.values())
-    leftover = [tid for tid in leftover_source if tid not in used]
-    leftover += [str(t["id"]) for t in teams if str(t["id"]) not in used and str(t["id"]) not in leftover]
-    if not slotted:
-        return leftover if leftover else _build_nomination_order(teams)
-    order: list[str] = []
-    leftover_i = 0
-    span = max(team_count, len(teams), max(slotted) if slotted else 0)
-    for index in range(1, span + 1):
-        if index in slotted:
-            order.append(slotted[index])
-        elif leftover_i < len(leftover):
-            order.append(leftover[leftover_i])
-            leftover_i += 1
-    while leftover_i < len(leftover):
-        if leftover[leftover_i] not in order:
-            order.append(leftover[leftover_i])
-        leftover_i += 1
-    return order
-
-
 def _current_nominator_team_id(
     session: dict[str, Any],
     rules: LeagueRules | None = None,
@@ -417,7 +370,6 @@ def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any
                     str(league.get("commissioner_sub") or "") == str(user_sub)
                     or bool(team.get("is_commissioner"))
                 ),
-                "is_guest": storage.is_guest_sub(user_sub),
                 **finance,
             }
     return json_safe(out)
@@ -542,7 +494,7 @@ def start_draft(
 
     sync_league_auction_budgets(league_id)
     teams = storage.list_league_teams(league_id)
-    order = nomination_order_for_start(league, teams, session)
+    order = _build_nomination_order(teams)
     storage.update_league_status(league_id, "live")
     status = "picking" if is_pick_draft(rules) else "nominating"
     storage.update_draft_session(

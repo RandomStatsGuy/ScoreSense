@@ -1,5 +1,4 @@
 const TOKEN_KEY = "scoresense_token";
-const GUEST_KEY = "ss_draft_guest";
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -10,53 +9,6 @@ export function setToken(token) {
   else localStorage.removeItem(TOKEN_KEY);
 }
 
-export function getGuestSession() {
-  try {
-    const raw = localStorage.getItem(GUEST_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed?.token) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-export function getGuestToken() {
-  return getGuestSession()?.token || null;
-}
-
-export function setGuestSession({ token, leagueId, roomCode } = {}) {
-  if (!token) {
-    localStorage.removeItem(GUEST_KEY);
-    return;
-  }
-  localStorage.setItem(GUEST_KEY, JSON.stringify({
-    token,
-    league_id: leagueId || "",
-    room_code: roomCode || "",
-  }));
-}
-
-export function clearGuestSession() {
-  localStorage.removeItem(GUEST_KEY);
-}
-
-export function getRoomAuthToken(url) {
-  const account = getToken();
-  if (account) return account;
-  const guest = getGuestSession();
-  if (!guest?.token) return null;
-  const path = String(url || "");
-  if (!path.includes("/api/hub")) return null;
-  if (path.includes("/api/hub/lobby/") || path.includes("/api/hub/draft-room/")) {
-    return guest.token;
-  }
-  const leagueId = String(guest.league_id || "");
-  if (leagueId && path.split("/").includes(leagueId)) return guest.token;
-  return null;
-}
-
 export function notifyAuthChanged() {
   window.dispatchEvent(new CustomEvent("scoresense-auth-changed"));
 }
@@ -65,8 +17,8 @@ function isFormDataBody(body) {
   return typeof FormData !== "undefined" && body instanceof FormData;
 }
 
-export function authHeaders({ json = true, url } = {}) {
-  const token = url != null ? getRoomAuthToken(url) : getToken();
+export function authHeaders({ json = true } = {}) {
+  const token = getToken();
   const headers = {};
   if (json) headers["Content-Type"] = "application/json";
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -76,7 +28,7 @@ export function authHeaders({ json = true, url } = {}) {
 export async function apiFetch(url, options = {}) {
   const { signal, headers, ...rest } = options;
   const form = isFormDataBody(rest.body);
-  const merged = { ...authHeaders({ json: !form, url }), ...(headers || {}) };
+  const merged = { ...authHeaders({ json: !form }), ...(headers || {}) };
   if (form) {
     // Browser must set multipart boundary; a JSON content-type drops the file.
     delete merged["Content-Type"];
