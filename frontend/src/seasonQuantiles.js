@@ -112,6 +112,13 @@ export function formatSeasonPts(value, digits = 0) {
   return n.toFixed(digits);
 }
 
+/** Draft-result / recap cells: treat missing or zero as no projection. */
+export function formatListedProj(value, digits = 0) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  return n.toFixed(digits);
+}
+
 export function matchesRiskProfile(band, profile) {
   if (!profile || profile === "ALL") return true;
   const skew = band?.skew;
