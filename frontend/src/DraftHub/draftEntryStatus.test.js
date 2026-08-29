@@ -24,7 +24,7 @@ test("draftEntryPhase maps season and practice states", () => {
   assert.equal(draftEntryPhase({ testMode: true }).id, "practice");
   assert.equal(
     draftEntryPhase({ leagueId: "abc", inDraftSetup: true }).label,
-    "Lobby open",
+    "Pre-draft · ready",
   );
   assert.equal(draftEntryPhase({ usingHubLeague: true }).id, "pre_draft");
   assert.equal(draftEntryPhase({}).label, "Solo prep");

@@ -10,13 +10,11 @@ import {
 } from "./AuthPages";
 import PrivacyPage from "./legal/PrivacyPage";
 import TermsPage from "./legal/TermsPage";
-import LobbyJoinPage from "./DraftHub/LobbyJoinPage";
 
 export default function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/projections/weekly" replace />} />
-      <Route path="/lobby/:roomCode" element={<LobbyJoinPage />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route path="/auth/verify" element={<AuthVerifyPage />} />
       <Route path="/auth/reset-password" element={<AuthResetPasswordPage />} />

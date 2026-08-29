@@ -54,20 +54,17 @@ export function buildMockDraftStartBody({
   useLeagueRules = false,
   useLeagueManagers = false,
   name = null,
-  lobby = false,
 } = {}) {
   const teams = MOCK_TEAM_SIZES.includes(Number(teamCount)) ? Number(teamCount) : 12;
   const hasSource = Boolean(sourceLeagueId);
   const mode = useLeagueManagers && hasSource ? "league_mirror" : "quick_bots";
   const resolvedSeason = resolveMockDraftSeason(season);
-  const together = Boolean(lobby);
   const body = {
     mode,
     season: resolvedSeason ?? 2026,
     team_count: teams,
-    bot_count: together ? 0 : botCountForTeams(teams),
-    auto_start: !together,
-    lobby: together,
+    bot_count: botCountForTeams(teams),
+    auto_start: true,
   };
   if (name) body.name = name;
   if (mode === "league_mirror" || (useLeagueRules && hasSource)) {
@@ -97,22 +94,19 @@ export function mockRoomPhaseLabel(room) {
   if (!room) return "";
   if (room.draft_completed || room.status === "completed") return "Completed";
   const status = String(room.status || "setup").toLowerCase();
-  if (status === "setup") return "Lobby";
+  if (status === "setup") return "Ready";
   return "In progress";
 }
 
 export function mockRoomPhaseKey(room) {
   const label = mockRoomPhaseLabel(room);
   if (label === "Completed") return "completed";
-  if (label === "Ready" || label === "Lobby") return "ready";
+  if (label === "Ready") return "ready";
   return "live";
 }
 
 export function mockRoomResumeLabel(room) {
-  const phase = mockRoomPhaseKey(room);
-  if (phase === "completed") return "View recap";
-  if (phase === "ready") return "Open lobby";
-  return "Resume";
+  return mockRoomPhaseKey(room) === "completed" ? "View recap" : "Resume";
 }
 
 export function mockDraftFormatLabel(draftType) {

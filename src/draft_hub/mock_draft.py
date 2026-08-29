@@ -192,11 +192,8 @@ def start_mock_draft(
     name: str | None = None,
     relax_salary_roster_limits: bool = False,
     preset_id: str | None = None,
-    lobby: bool = False,
 ) -> dict[str, Any]:
     """Create a sandbox mock draft and optionally start the auction immediately."""
-    if lobby:
-        auto_start = False
     if mode == "keeper_sandbox":
         if not source_league_id:
             raise ValueError("source_league_id required for keeper_sandbox")
@@ -263,24 +260,19 @@ def start_mock_draft(
         for label in mirror_names:
             if added >= team_count - 1:
                 break
-            if lobby:
-                storage.add_unclaimed_team(league_id, label, budget)
-            else:
-                bot_id = str(uuid.uuid4())
-                storage.add_bot_team(league_id, bot_id, label, budget)
+            bot_id = str(uuid.uuid4())
+            storage.add_bot_team(league_id, bot_id, label, budget)
             added += 1
-        if added == 0 and not lobby:
+        if added == 0:
             setup_test_draft(league_id, commissioner_sub, bot_count=min(bot_count, team_count - 1))
         else:
             storage.update_league_test_mode(league_id, True)
-    elif not lobby:
+    else:
         setup_test_draft(
             league_id,
             commissioner_sub,
             bot_count=min(bot_count, team_count - 1),
         )
-    else:
-        storage.update_league_test_mode(league_id, True)
 
     if auto_start:
         start_draft(league_id, commissioner_sub)
@@ -291,15 +283,9 @@ def start_mock_draft(
         drop_stale_in_progress=True,
     )
 
-    from src.draft_hub.lobby import build_lobby_url
-
-    league_row = storage.get_league(league_id) or {}
     return {
         "mock_mode": mode,
         "league_id": league_id,
-        "auto_started": bool(auto_start),
-        "lobby": bool(lobby),
-        "room_code": league_row.get("room_code"),
-        "lobby_url": build_lobby_url(str(league_row.get("room_code") or "")),
+        "auto_started": auto_start,
         "state": get_room_state(league_id, commissioner_sub),
     }
