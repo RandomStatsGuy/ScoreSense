@@ -389,3 +389,27 @@ class FaBidRequest(BaseModel):
     team: str = ""
     position: str = ""
     bid_amount: float
+
+
+class AtmospherePrefsUpdate(BaseModel):
+    atmosphere: Optional[str] = None
+
+
+class TeamIdentityUpdate(BaseModel):
+    photo_preset: Optional[str] = None
+    banner_preset: Optional[str] = None
+    photo_media_id: Optional[str] = None
+    banner_media_id: Optional[str] = None
+    room_theme: Optional[str] = None
+    locker_player_ids: Optional[list[str]] = None
+
+
+class WeekPollVoteRequest(BaseModel):
+    nominee_team_id: str
+
+
+class VictoryEmoteRequest(BaseModel):
+    to_team_id: str
+    emote_key: str
+    week: Optional[int] = None
+    season: Optional[int] = None

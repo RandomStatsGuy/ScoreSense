@@ -6,6 +6,8 @@ import { isRetainedThroughDraft } from "./draftRoomHelpers";
 import { fmtSal } from "./rosterFormat";
 import { teamBudgetLine, teamRosterLine } from "./draftLiveConsole";
 import { hubTeamLabel } from "./hubTeamLabel";
+import TeamIdentityMark from "./TeamIdentityMark";
+import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 
 export default function DraftTeamCard({
   team,
@@ -22,6 +24,7 @@ export default function DraftTeamCard({
   pickDraft = false,
   mediaByPlayerId = null,
 }) {
+  const { identities } = useTeamIdentities();
   const [open, setOpen] = useState(defaultOpen);
   const spent = cap - Number(team.budget_remaining ?? cap);
 
@@ -82,7 +85,14 @@ export default function DraftTeamCard({
     >
       <button type="button" className="hub-team-card-toggle" onClick={() => setOpen((v) => !v)}>
         <div className="hub-team-card-head">
-          <strong className="hub-team-card-name">{hubTeamLabel(team)}</strong>
+          <strong className="hub-team-card-name">
+            <TeamIdentityMark
+              team={team}
+              identity={identityFor(identities, team)}
+              size="sm"
+            />
+            {hubTeamLabel(team)}
+          </strong>
           <span className="hub-team-card-tags">
             {isNominator ? <span className="hub-team-tag hub-team-tag-nom">{pickDraft ? "On the clock" : "Nominate"}</span> : null}
             {!pickDraft && isLeader ? <span className="hub-team-tag hub-team-tag-lead">High bid</span> : null}

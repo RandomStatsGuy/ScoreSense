@@ -7,6 +7,7 @@ import time
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from app.auth import hub_auth_enabled, optional_user, require_hub_user, ws_user_from_token
@@ -92,6 +93,10 @@ from src.draft_hub.schemas import (
     TeamCoCommissionerRequest,
     WorkspaceUpdate,
     FaBidRequest,
+    AtmospherePrefsUpdate,
+    TeamIdentityUpdate,
+    WeekPollVoteRequest,
+    VictoryEmoteRequest,
 )
 from src.draft_hub.contracts import (
     apply_rookie_extension_command,
@@ -618,6 +623,321 @@ def hub_weekly_command_center(
                 bench_over_starter_threshold=bench_over_starter_threshold,
             )
     return jsonable_encoder(payload)
+
+
+@router.get("/atmosphere-catalog")
+def hub_atmosphere_catalog(_user=Depends(require_hub_user)) -> dict:
+    from src.draft_hub.league_atmosphere import atmosphere_catalog
+
+    return atmosphere_catalog()
+
+
+@router.get("/prefs")
+def hub_get_prefs(_user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    prefs = storage.get_workspace_prefs(sub)
+    return {"prefs": prefs, "hub_context": _ctx(sub)}
+
+
+@router.patch("/prefs")
+def hub_patch_prefs(body: AtmospherePrefsUpdate, _user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    prefs = storage.update_workspace_prefs(sub, body.model_dump(exclude_none=True))
+    return {"prefs": prefs, "hub_context": _ctx(sub)}
+
+
+def _viewer_can_edit_team(ctx: dict[str, Any], team: dict[str, Any]) -> bool:
+    if not team:
+        return False
+    if str(team.get("id") or "") == str(ctx.get("team_id") or ""):
+        return True
+    return bool(ctx.get("is_commissioner"))
+
+
+def _identity_payload(identity: dict[str, Any]) -> dict[str, Any]:
+    photo_id = identity.get("photo_media_id")
+    banner_id = identity.get("banner_media_id")
+    return {
+        **identity,
+        "photo_url": f"/api/hub/media/{photo_id}" if photo_id else None,
+        "banner_url": f"/api/hub/media/{banner_id}" if banner_id else None,
+    }
+
+
+@router.get("/league/{league_id}/identities")
+def hub_league_identities(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    identities = {
+        team_id: _identity_payload(identity)
+        for team_id, identity in storage.list_league_identities(league_id).items()
+    }
+    return {
+        "identities": identities,
+        "catalog": __import__("src.draft_hub.league_atmosphere", fromlist=["atmosphere_catalog"]).atmosphere_catalog(),
+        "hub_context": ctx,
+    }
+
+
+@router.patch("/league/{league_id}/teams/{team_id}/identity")
+def hub_patch_team_identity(
+    league_id: str,
+    team_id: str,
+    body: TeamIdentityUpdate,
+    _user=Depends(require_hub_user),
+) -> dict:
+    from src.draft_hub.league_atmosphere import locker_players_from_roster
+
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    team = storage.get_team(team_id)
+    if not team or str(team.get("league_id")) != str(league_id):
+        raise HTTPException(status_code=404, detail="Team not found")
+    if not _viewer_can_edit_team(ctx, team):
+        raise HTTPException(status_code=403, detail="You can only customize your own team look")
+    identity = storage.update_team_identity(team_id, body.model_dump(exclude_none=True))
+    ws_id, _team_id = roster_scope(ctx)
+    roster = storage.list_roster(ws_id, team_id) if ws_id else []
+    return {
+        "identity": _identity_payload(identity),
+        "lockers": locker_players_from_roster(identity, roster),
+        "hub_context": _ctx(sub),
+    }
+
+
+@router.post("/league/{league_id}/teams/{team_id}/identity/media")
+async def hub_upload_team_identity_media(
+    league_id: str,
+    team_id: str,
+    kind: str = Query("photo"),
+    file: UploadFile = File(...),
+    _user=Depends(require_hub_user),
+) -> dict:
+    from src.draft_hub.league_atmosphere import MAX_MEDIA_BYTES, detect_image_type
+
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    team = storage.get_team(team_id)
+    if not team or str(team.get("league_id")) != str(league_id):
+        raise HTTPException(status_code=404, detail="Team not found")
+    if not _viewer_can_edit_team(ctx, team):
+        raise HTTPException(status_code=403, detail="You can only customize your own team look")
+    kind_clean = str(kind or "photo").strip().lower()
+    if kind_clean not in {"photo", "banner"}:
+        raise HTTPException(status_code=400, detail="Upload a photo or a banner")
+    payload = await file.read(MAX_MEDIA_BYTES + 1)
+    if len(payload) > MAX_MEDIA_BYTES:
+        raise HTTPException(status_code=400, detail="Keep the image under 2 MB")
+    content_type = detect_image_type(payload, file.content_type)
+    if not content_type:
+        raise HTTPException(status_code=400, detail="Use a JPEG, PNG, or WebP image")
+    media = storage.store_hub_media(
+        owner_sub=sub,
+        league_id=league_id,
+        team_id=team_id,
+        kind=kind_clean,
+        content_type=content_type,
+        payload=payload,
+    )
+    field = "photo_media_id" if kind_clean == "photo" else "banner_media_id"
+    identity = storage.update_team_identity(team_id, {field: media["id"]})
+    return {
+        "media": media,
+        "identity": _identity_payload(identity),
+        "hub_context": _ctx(sub),
+    }
+
+
+@router.get("/media/{media_id}")
+def hub_get_media(media_id: str, _user=Depends(require_hub_user)):
+    media = storage.get_hub_media(media_id)
+    if not media:
+        raise HTTPException(status_code=404, detail="Image not found")
+    if media.get("league_id"):
+        _assert_league_access(str(media["league_id"]), _sub(_user))
+    return FileResponse(media["path"], media_type=media["content_type"])
+
+
+def _week_culture_matchup(league_id: str, ctx: dict[str, Any], week: int | None) -> dict[str, Any]:
+    from src.draft_hub.league_live_scoring import get_sleeper_live_week
+    from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
+
+    sleeper_lid = resolve_sleeper_league_id(league_id) or ctx.get("sleeper_league_id") or ""
+    if not sleeper_lid:
+        return {"available": False, "matchups": [], "week": week}
+    return get_sleeper_live_week(
+        str(sleeper_lid),
+        hub_teams=_hub_teams_for_scoring(league_id),
+        week=week,
+        viewer_roster_id=str(ctx.get("sleeper_roster_id") or "") or None,
+        refresh=False,
+    )
+
+
+def _normalize_scoring_matchups(
+    scoring: dict[str, Any],
+    hub_teams: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    by_sleeper = {
+        str(team.get("sleeper_roster_id") or ""): str(team.get("id") or "")
+        for team in (hub_teams or [])
+        if team.get("sleeper_roster_id") and team.get("id")
+    }
+    out = []
+    for matchup in scoring.get("matchups") or []:
+        teams = []
+        for team in matchup.get("teams") or []:
+            hub_id = (
+                team.get("hub_team_id")
+                or team.get("team_id")
+                or by_sleeper.get(str(team.get("roster_id") or ""))
+                or team.get("id")
+            )
+            teams.append({**team, "hub_team_id": hub_id, "id": hub_id})
+        out.append({**matchup, "teams": teams})
+    return out
+
+
+@router.get("/league/{league_id}/week-culture")
+def hub_week_culture(
+    league_id: str,
+    week: Optional[int] = Query(None),
+    season: Optional[int] = Query(None),
+    _user=Depends(require_hub_user),
+) -> dict:
+    from src.draft_hub.league_atmosphere import (
+        TROPHY_POLLS,
+        can_send_victory_emote,
+        locker_players_from_roster,
+        tally_poll_votes,
+        viewer_matchup,
+    )
+
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    league = storage.get_league(league_id) or {}
+    resolved_season = int(season or league.get("season") or ctx.get("season") or 0)
+    scoring = _week_culture_matchup(league_id, ctx, week)
+    resolved_week = int(week or scoring.get("week") or 1)
+    teams = storage.list_league_teams(league_id)
+    polls = storage.ensure_week_trophy_polls(league_id, resolved_season, resolved_week)
+    poll_payload = []
+    for poll in polls:
+        votes = storage.list_week_poll_votes(str(poll["id"]))
+        tally = tally_poll_votes(votes, teams, viewer_team_id=ctx.get("team_id"))
+        meta = TROPHY_POLLS.get(str(poll["poll_key"]), {})
+        poll_payload.append(
+            {
+                "id": poll["id"],
+                "key": poll["poll_key"],
+                "title": poll.get("title") or meta.get("title"),
+                "support": meta.get("support"),
+                **tally,
+            }
+        )
+    matchups = _normalize_scoring_matchups(scoring, teams)
+    mine = viewer_matchup(matchups, ctx.get("team_id"))
+    opponent = None
+    if mine:
+        for team in mine.get("teams") or []:
+            if str(team.get("hub_team_id") or team.get("id") or "") != str(ctx.get("team_id") or ""):
+                opponent = team
+                break
+    emotes = storage.list_week_emotes(league_id, resolved_season, resolved_week)
+    can_react = can_send_victory_emote(
+        from_team_id=ctx.get("team_id"),
+        to_team_id=str((opponent or {}).get("hub_team_id") or (opponent or {}).get("id") or "") or None,
+        matchup=mine,
+    )
+    identities = {
+        team_id: _identity_payload(identity)
+        for team_id, identity in storage.list_league_identities(league_id).items()
+    }
+    ws_id, team_id = roster_scope(ctx)
+    roster = storage.list_roster(ws_id, team_id) if ws_id and team_id else []
+    viewer_identity = identities.get(str(ctx.get("team_id") or ""), {})
+    return {
+        "season": resolved_season,
+        "week": resolved_week,
+        "polls": poll_payload,
+        "emotes": emotes,
+        "matchup": mine,
+        "opponent": opponent,
+        "can_react": can_react,
+        "scoring_available": bool(scoring.get("available")),
+        "identities": identities,
+        "lockers": locker_players_from_roster(viewer_identity, roster),
+        "hub_context": ctx,
+    }
+
+
+@router.post("/league/{league_id}/week-culture/polls/{poll_id}/vote")
+def hub_week_poll_vote(
+    league_id: str,
+    poll_id: str,
+    body: WeekPollVoteRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    if ctx.get("mode") != "league" or not ctx.get("team_id"):
+        raise HTTPException(status_code=400, detail="Join a league team to vote")
+    poll = storage.get_week_poll(poll_id)
+    if not poll or str(poll.get("league_id")) != str(league_id):
+        raise HTTPException(status_code=404, detail="Poll not found")
+    nominee = storage.get_team(body.nominee_team_id)
+    if not nominee or str(nominee.get("league_id")) != str(league_id):
+        raise HTTPException(status_code=400, detail="Vote for a team in this league")
+    try:
+        storage.cast_week_poll_vote(poll_id, str(ctx["team_id"]), str(nominee["id"]))
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return hub_week_culture(
+        league_id,
+        week=int(poll["week"]),
+        season=int(poll["season"]),
+        _user=_user,
+    )
+
+
+@router.post("/league/{league_id}/week-culture/emotes")
+def hub_week_emote(
+    league_id: str,
+    body: VictoryEmoteRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    from src.draft_hub.league_atmosphere import VICTORY_EMOTES, can_send_victory_emote, viewer_matchup
+
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    if ctx.get("mode") != "league" or not ctx.get("team_id"):
+        raise HTTPException(status_code=400, detail="Join a league team to send a reaction")
+    emote_key = str(body.emote_key or "").strip().lower()
+    if emote_key not in VICTORY_EMOTES:
+        raise HTTPException(status_code=400, detail="Choose a reaction from the catalog")
+    league = storage.get_league(league_id) or {}
+    scoring = _week_culture_matchup(league_id, ctx, body.week)
+    week = int(body.week or scoring.get("week") or 1)
+    season = int(body.season or league.get("season") or ctx.get("season") or 0)
+    matchup = viewer_matchup(
+        _normalize_scoring_matchups(scoring, storage.list_league_teams(league_id)),
+        ctx.get("team_id"),
+    )
+    if not can_send_victory_emote(
+        from_team_id=ctx.get("team_id"),
+        to_team_id=body.to_team_id,
+        matchup=matchup,
+    ):
+        raise HTTPException(status_code=400, detail="Reactions unlock after you win the matchup")
+    storage.upsert_matchup_emote(
+        league_id=league_id,
+        season=season,
+        week=week,
+        from_team_id=str(ctx["team_id"]),
+        to_team_id=str(body.to_team_id),
+        emote_key=emote_key,
+    )
+    return hub_week_culture(league_id, week=week, season=season, _user=_user)
 
 
 @router.get("/home")

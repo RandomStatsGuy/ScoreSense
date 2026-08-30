@@ -40,6 +40,9 @@ import { effectiveHubContext } from "./hubContext";
 import { fetchHubMemberships, setHubFocus, effectiveMemberships } from "./hubLeagues";
 import { isPickDraft } from "./draftEntryStatus";
 import { loadWatchIds, toggleWatchId } from "./draftLiveConsole";
+import AtmosphereLayer from "./AtmosphereLayer";
+import { TeamIdentityProvider } from "./TeamIdentityContext";
+import { mergeAtmospherePrefs } from "./atmosphereCatalog";
 
 const LeagueInsights = lazy(() => import("./LeagueInsights"));
 
@@ -639,8 +642,14 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     );
   }
 
+  const atmosphere = mergeAtmospherePrefs(
+    workspace?.prefs || { atmosphere: effectiveCtx?.atmosphere },
+  ).atmosphere;
+
   return (
     <div className="draft-hub">
+      <AtmosphereLayer theme={atmosphere} liveDraft={subView === "room"} />
+      <TeamIdentityProvider leagueId={effectiveCtx?.mode === "league" ? effectiveCtx?.league_id : ""}>
       {demoMode && (
         <HubDemoBanner
           leagueName={effectiveCtx?.league_name}
@@ -882,7 +891,6 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           hidden={subView === "room"}
         />
       )}
-
       {!demoMode && (
         <LeagueCreateJoinDialog
           open={createLeagueOpen}
@@ -892,6 +900,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           onCreated={onLeagueChanged}
         />
       )}
+      </TeamIdentityProvider>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import LegalLinks from "./LegalLinks";
 import VerifyEmailBanner from "./VerifyEmailBanner";
 import StandalonePageShell from "./layout/StandalonePageShell";
 import {
+  apiFetch,
   changePassword,
   deleteAccount,
   logout,
@@ -13,6 +14,8 @@ import {
   updateProfile,
 } from "./auth";
 import { PRODUCT_NAME, STUDIO_NAME } from "./brand";
+import { parseApiError } from "./format";
+import { ATMOSPHERE_COPY, ATMOSPHERE_THEMES, mergeAtmospherePrefs } from "./DraftHub/atmosphereCatalog";
 
 export default function AccountSettingsPage() {
   const { ready, authenticated, user, termsUrl, privacyUrl, refreshAuth, openSignIn } = useAuth();
@@ -36,9 +39,55 @@ export default function AccountSettingsPage() {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteErr, setDeleteErr] = useState("");
 
+  const [atmosphere, setAtmosphere] = useState("none");
+  const [atmosphereBusy, setAtmosphereBusy] = useState(false);
+  const [atmosphereMsg, setAtmosphereMsg] = useState("");
+  const [atmosphereErr, setAtmosphereErr] = useState("");
+
   React.useEffect(() => {
     if (user?.name) setDisplayName(user.name);
   }, [user?.name]);
+
+  React.useEffect(() => {
+    if (!authenticated) return undefined;
+    const ctrl = new AbortController();
+    (async () => {
+      try {
+        const res = await apiFetch("/api/hub/prefs", { signal: ctrl.signal });
+        if (!res.ok) return;
+        const data = await res.json();
+        setAtmosphere(mergeAtmospherePrefs(data.prefs).atmosphere);
+      } catch {
+        /* keep default off */
+      }
+    })();
+    return () => ctrl.abort();
+  }, [authenticated]);
+
+  const saveAtmosphere = async (theme) => {
+    setAtmosphereBusy(true);
+    setAtmosphereMsg("");
+    setAtmosphereErr("");
+    try {
+      const res = await apiFetch("/api/hub/prefs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ atmosphere: theme }),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const data = await res.json();
+      setAtmosphere(mergeAtmospherePrefs(data.prefs).atmosphere);
+      setAtmosphereMsg(
+        theme === "none"
+          ? "Seasonal atmosphere is off."
+          : "Seasonal atmosphere saved. It stays behind Fantasy pages."
+      );
+    } catch (err) {
+      setAtmosphereErr(err.message || "Could not save atmosphere");
+    } finally {
+      setAtmosphereBusy(false);
+    }
+  };
 
   if (!ready) {
     return <div className="panel muted">Loading…</div>;
@@ -162,6 +211,30 @@ export default function AccountSettingsPage() {
               Name and email come from Patreon. Update them in your Patreon profile.
             </p>
           )}
+        </section>
+
+        <section className="account-settings-section">
+          <h3 className="hub-panel-subtitle">Fantasy atmosphere</h3>
+          <p className="chart-note">
+            A faint seasonal layer behind Fantasy. Off unless you turn it on. Live draft rooms stay clear.
+          </p>
+          <div className="hub-identity-room-toggle" role="radiogroup" aria-label="Seasonal atmosphere">
+            {ATMOSPHERE_THEMES.map((theme) => (
+              <button
+                key={theme}
+                type="button"
+                className={`filter-chip${atmosphere === theme ? " filter-chip--active" : ""}`}
+                aria-pressed={atmosphere === theme}
+                disabled={atmosphereBusy}
+                onClick={() => saveAtmosphere(theme)}
+              >
+                {ATMOSPHERE_COPY[theme].title}
+              </button>
+            ))}
+          </div>
+          <p className="chart-note">{ATMOSPHERE_COPY[atmosphere].support}</p>
+          {atmosphereMsg && <p className="chart-note">{atmosphereMsg}</p>}
+          {atmosphereErr && <div className="error">{atmosphereErr}</div>}
         </section>
 
         <section className="account-settings-section">

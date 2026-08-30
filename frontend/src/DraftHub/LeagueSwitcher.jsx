@@ -6,6 +6,8 @@ import {
   isSoloContext,
   membershipLabel,
 } from "./hubLeagues";
+import TeamIdentityMark from "./TeamIdentityMark";
+import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 import { CREATE_LEAGUE_VALUE, SOLO_VALUE, interpretLeagueSwitcherValue } from "./leagueAccessCopy";
 
 const LIST_SCROLL_THRESHOLD = 4;
@@ -43,7 +45,7 @@ function LeagueRow({
   );
 }
 
-function ActiveContextHero({ hubContext, soloActive, mobileLayout }) {
+function ActiveContextHero({ hubContext, soloActive, mobileLayout, identity }) {
   if (soloActive) {
     return (
       <div className="hub-league-active-hero hub-league-active-hero--solo">
@@ -58,7 +60,14 @@ function ActiveContextHero({ hubContext, soloActive, mobileLayout }) {
   return (
     <div className="hub-league-active-hero">
       {!mobileLayout && <p className="hub-league-active-kicker">Active now</p>}
-      <h3 className="hub-league-active-title">{hubContext.league_name || "League"}</h3>
+      <h3 className="hub-league-active-title">
+        <TeamIdentityMark
+          team={{ id: hubContext.team_id, name: hubContext.team_name }}
+          identity={identity}
+          size="sm"
+        />
+        {hubContext.league_name || "League"}
+      </h3>
       <p className="hub-league-active-meta">
         {[
           hubContext.team_name,
@@ -82,6 +91,7 @@ export default function LeagueSwitcher({
 }) {
   const selectId = useId();
   const searchId = useId();
+  const { identities } = useTeamIdentities();
   const [busy, setBusy] = useState(false);
   const [switchError, setSwitchError] = useState("");
   const [filter, setFilter] = useState("");
@@ -184,7 +194,12 @@ export default function LeagueSwitcher({
   return (
     <div className="hub-league-picker" aria-busy={busy}>
       {!hideActiveHero && (
-        <ActiveContextHero hubContext={hubContext} soloActive={soloActive} mobileLayout={mobileLayout} />
+        <ActiveContextHero
+          hubContext={hubContext}
+          soloActive={soloActive}
+          mobileLayout={mobileLayout}
+          identity={identityFor(identities, { id: hubContext?.team_id, identity: hubContext?.team_identity })}
+        />
       )}
 
       <div className="hub-league-pick-panel">

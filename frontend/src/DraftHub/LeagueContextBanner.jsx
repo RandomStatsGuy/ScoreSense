@@ -11,6 +11,8 @@ import {
   setFreshnessCache,
 } from "./hubDataCache";
 import { fmtSal } from "./rosterFormat";
+import TeamIdentityMark from "./TeamIdentityMark";
+import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 
 function ageShort(at) {
   if (!at) return null;
@@ -57,6 +59,7 @@ export default function LeagueContextBanner({
   showAttention = true,
   currentView = null,
 }) {
+  const { identities } = useTeamIdentities();
   const leagues = useMemo(
     () => effectiveMemberships(memberships, hubContext),
     [memberships, hubContext],
@@ -320,6 +323,11 @@ export default function LeagueContextBanner({
           && (
           <>
             <span className="hub-league-context-sep" aria-hidden="true">·</span>
+            <TeamIdentityMark
+              team={{ id: hubContext.team_id, name: hubContext.team_name }}
+              identity={identityFor(identities, { id: hubContext.team_id, identity: hubContext.team_identity })}
+              size="sm"
+            />
             <span className="hub-league-context-team">{hubContext.team_name}</span>
           </>
         )}
