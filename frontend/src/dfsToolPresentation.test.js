@@ -77,6 +77,10 @@ test("salarySpend and capMeterTone describe leftover cap", () => {
     [{ player_id: "a", salary: 8000 }, { player_id: "b", salary: 5000 }],
     ["a"],
   ), 8000);
+  assert.equal(lockedSalaryTotal(
+    [{ player_id: "a", salary: 8000 }, { player_id: "b", salary: 5000 }],
+    new Set(["b"]),
+  ), 5000);
 });
 
 test("dfsSummaryItems lists consequence-first fields", () => {

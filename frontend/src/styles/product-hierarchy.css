@@ -1317,6 +1317,14 @@
 }
 
 @media (max-width: 1100px) and (min-width: 769px) {
+  .dfs-tool .mock-draft-formats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dfs-tool .mock-draft-format-card {
+    min-height: 0;
+  }
+
   .dfs-goal-toggle.is-dfs {
     grid-template-columns: 1fr 1fr;
   }

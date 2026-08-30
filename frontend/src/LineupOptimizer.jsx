@@ -463,7 +463,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
   });
   const previewSalary = lineup.length
     ? Number(totalSalary)
-    : lockedSalaryTotal(pool, locked);
+    : lockedSalaryTotal(pool, [...locked]);
   const spend = salarySpend({
     totalSalary: previewSalary,
     salaryCap,

@@ -134,7 +134,8 @@ export function salarySpend({ totalSalary, salaryCap, salaryRemaining } = {}) {
 }
 
 export function lockedSalaryTotal(pool = [], lockedIds = []) {
-  const locked = new Set((lockedIds || []).map((id) => String(id)));
+  const ids = lockedIds instanceof Set ? [...lockedIds] : [...(lockedIds || [])];
+  const locked = new Set(ids.map((id) => String(id)));
   return (pool || []).reduce((sum, row) => {
     if (!locked.has(String(row.player_id))) return sum;
     const salary = Number(row.salary);
