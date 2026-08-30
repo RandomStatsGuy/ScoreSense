@@ -4,7 +4,7 @@ import {
   FALLBACK_LEAGUE_PRESETS,
   leaguePresetOptions,
   parseLeagueTeamCount,
-} from "./LeagueCreateJoinForm.jsx";
+} from "./leagueCreateJoin.js";
 
 test("empty or missing presets fall back to the default formats", () => {
   assert.deepEqual(leaguePresetOptions(undefined), FALLBACK_LEAGUE_PRESETS);
