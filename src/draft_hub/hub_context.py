@@ -134,6 +134,8 @@ def resolve_hub_context(user_sub: str) -> dict[str, Any]:
             "sleeper_league_id": league.get("sleeper_league_id"),
             "sleeper_roster_id": team.get("sleeper_roster_id"),
             "sleeper_team_name": team.get("sleeper_team_name"),
+            "atmosphere": (ws.get("prefs") or {}).get("atmosphere") or "none",
+            "team_identity": team.get("identity") or {},
         })
     rules = LeagueRules.model_validate(ws["rules"])
     link = storage.sleeper_link_from_workspace(ws)
@@ -148,6 +150,8 @@ def resolve_hub_context(user_sub: str) -> dict[str, Any]:
         "draft_completed": False,
         "rules": rules.model_dump(),
         "season": int(ws["season"]),
+        "atmosphere": (ws.get("prefs") or {}).get("atmosphere") or "none",
+        "team_identity": {},
         **link,
     })
 

@@ -10,6 +10,8 @@ import HubTabIntro from "./HubTabIntro";
 import { fmtSal } from "./rosterFormat";
 import { seedTradeFromPlayer } from "./tradeSeed";
 import ContractHistoryLink from "./ContractHistoryLink";
+import TeamIdentityMark from "./TeamIdentityMark";
+import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 
 function gradeLabel(grade) {
   if (grade === "good") return "Good value";
@@ -56,6 +58,7 @@ export default function LeagueRostersBrowser({
   onNavigateTrade,
   onOpenContractHistory,
 }) {
+  const { identities } = useTeamIdentities();
   const mobileLayout = useMobileLayout();
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -148,6 +151,14 @@ export default function LeagueRostersBrowser({
                 ))}
               </select>
             </label>
+            {block?.team && (
+              <TeamIdentityMark
+                team={block.team}
+                identity={identityFor(identities, block.team)}
+                size="md"
+                showName
+              />
+            )}
             <button
               type="button"
               className="btn-ghost btn-sm hub-roster-browser-refresh"

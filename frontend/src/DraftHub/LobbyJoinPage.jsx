@@ -7,17 +7,23 @@ import {
   setGuestSession,
 } from "../auth";
 import { useAuth } from "../AuthContext";
+import AccountAuth from "../AccountAuth";
 import { PRODUCT_NAME } from "../brand";
 import { parseApiError } from "../format";
 import Button from "../ui/Button";
 import { draftFormatLabel } from "./draftEntryStatus";
 import { lobbyChipLabel } from "./draftLobby";
+import {
+  draftJoinAccountNote,
+  draftJoinSupport,
+  liveDraftMembersOnlyMessage,
+} from "./leagueAccessCopy";
 import DraftRoom from "./DraftRoom";
 import { HubExperienceHero } from "./HubUILayout";
 
 export default function LobbyJoinPage() {
   const { roomCode } = useParams();
-  const { authenticated } = useAuth();
+  const { authenticated, termsUrl, privacyUrl, patreonConfigured } = useAuth();
   const [preview, setPreview] = useState(null);
   const [leagueId, setLeagueId] = useState("");
   const [name, setName] = useState("");
@@ -25,6 +31,8 @@ export default function LobbyJoinPage() {
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const code = String(roomCode || "").trim().toUpperCase();
+  const membersOnly = Boolean(preview && !preview.test_mode);
+  const canWalkIn = Boolean(preview?.test_mode && (preview.can_walk_in ?? preview.can_join));
 
   useEffect(() => {
     let cancelled = false;
@@ -39,7 +47,7 @@ export default function LobbyJoinPage() {
         setPreview(data);
         const guest = getGuestSession();
         const alreadyGuest = guest?.league_id && guest.league_id === data.league_id;
-        if (alreadyGuest) {
+        if (alreadyGuest && data.test_mode) {
           setLeagueId(data.league_id);
         } else {
           const token = getToken();
@@ -49,7 +57,11 @@ export default function LobbyJoinPage() {
           });
           if (room.ok) {
             const state = await room.json();
-            if (state?.viewer?.team_id) setLeagueId(data.league_id);
+            if (state?.viewer?.team_id && !state?.viewer?.is_guest) {
+              setLeagueId(data.league_id);
+            } else if (state?.viewer?.team_id && data.test_mode) {
+              setLeagueId(data.league_id);
+            }
           }
         }
       } catch (e) {
@@ -59,7 +71,7 @@ export default function LobbyJoinPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [code]);
+  }, [code, authenticated]);
 
   const join = async (event) => {
     event?.preventDefault();
@@ -94,7 +106,7 @@ export default function LobbyJoinPage() {
         <DraftRoom
           leagueId={leagueId}
           toolMode
-          guestMode={!authenticated}
+          guestMode={!authenticated && Boolean(preview?.test_mode)}
           toolLabel={preview?.test_mode ? "Mock lobby" : "Draft lobby"}
           onExitRoom={() => setLeagueId("")}
           valueRows={[]}
@@ -120,13 +132,14 @@ export default function LobbyJoinPage() {
       ) : (
         <>
           <HubExperienceHero
-            eyebrow={preview?.test_mode ? "Mock lobby" : "Draft lobby"}
-            heading={preview?.name || "Join the room"}
-            support={
-              preview?.can_join
-                ? "Enter a name and take a seat. No ScoreSense account required."
-                : "This draft is already underway."
-            }
+            eyebrow={preview?.test_mode ? "Practice draft" : "League draft"}
+            heading={preview?.name || (membersOnly ? "Members only" : "Join this league")}
+            support={draftJoinSupport({
+              canJoin: preview?.can_join,
+              leagueName: preview?.name,
+              testMode: preview?.test_mode,
+              membersOnly,
+            })}
             chip={lobbyChipLabel({
               claimed: preview?.claimed,
               teamCount: preview?.team_count,
@@ -136,26 +149,50 @@ export default function LobbyJoinPage() {
           {error ? <p className="hub-alert hub-alert--danger" role="alert">{error}</p> : null}
           <div className="draft-lobby-join-grid">
             <section className="hub-experience-section">
-              {preview?.can_join ? (
-                <form onSubmit={join} className="draft-lobby-join-form">
-                  <label htmlFor="lobby-join-name">Your name in this room</label>
-                  <input
-                    id="lobby-join-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    maxLength={24}
-                    autoComplete="nickname"
-                    required
-                  />
-                  <Button type="submit" disabled={joining || !name.trim()}>
-                    {joining ? "Joining…" : "Take a seat"}
-                  </Button>
-                  <p className="chart-note">
-                    {authenticated
-                      ? "You are signed in — this seat stays on your account."
-                      : "Guests stay in this room only. You can create an account later."}
-                  </p>
-                </form>
+              {canWalkIn ? (
+                <>
+                  <form onSubmit={join} className="draft-lobby-join-form">
+                    <label htmlFor="lobby-join-name">Your name in this room</label>
+                    <input
+                      id="lobby-join-name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      maxLength={24}
+                      autoComplete="nickname"
+                      required
+                    />
+                    <Button type="submit" disabled={joining || !name.trim()}>
+                      {joining ? "Joining…" : "Take a seat"}
+                    </Button>
+                    <p className="chart-note">{draftJoinAccountNote({ authenticated })}</p>
+                  </form>
+                </>
+              ) : membersOnly ? (
+                <div className="draft-lobby-join-form">
+                  <p className="chart-note">{liveDraftMembersOnlyMessage()}</p>
+                  <p className="chart-note">{draftJoinAccountNote({ authenticated, membersOnly: true })}</p>
+                  {!authenticated ? (
+                    <AccountAuth
+                      compact
+                      mode="login"
+                      title="Sign in to enter the draft"
+                      subtitle="Use the account that already has a team in this league."
+                      termsUrl={termsUrl}
+                      privacyUrl={privacyUrl}
+                      patreonConfigured={patreonConfigured}
+                      patreonNext={`/lobby/${code}`}
+                      onAuthed={() => window.dispatchEvent(new Event("scoresense-auth-changed"))}
+                    />
+                  ) : (
+                    <p className="chart-note">
+                      This account is not on the league yet.
+                      {" "}
+                      <Link to="/hub/setup">Open league connections</Link>
+                      {" "}
+                      to join with a room code, or ask your commissioner for an email invite.
+                    </p>
+                  )}
+                </div>
               ) : (
                 <p className="chart-note">Ask the host for a new link if you still need a seat.</p>
               )}

@@ -618,6 +618,63 @@ def _migrate(conn: sqlite3.Connection) -> None:
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_fa_bid_window ON fa_bid(league_id, window_id, status)"
     )
+    _safe_add_column(conn, "hub_workspace", "prefs_json", "TEXT")
+    _safe_add_column(conn, "team", "identity_json", "TEXT")
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS hub_media (
+            id TEXT PRIMARY KEY,
+            owner_sub TEXT NOT NULL,
+            league_id TEXT,
+            team_id TEXT,
+            kind TEXT NOT NULL,
+            content_type TEXT NOT NULL,
+            filename TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_hub_media_team ON hub_media(team_id, kind)"
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS week_poll (
+            id TEXT PRIMARY KEY,
+            league_id TEXT NOT NULL,
+            season INTEGER NOT NULL,
+            week INTEGER NOT NULL,
+            poll_key TEXT NOT NULL,
+            title TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            UNIQUE(league_id, season, week, poll_key)
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_week_poll_league ON week_poll(league_id, season, week)"
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS week_poll_vote (
+            poll_id TEXT NOT NULL,
+            voter_team_id TEXT NOT NULL,
+            nominee_team_id TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY (poll_id, voter_team_id)
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS matchup_emote (
+            id TEXT PRIMARY KEY,
+            league_id TEXT NOT NULL,
+            season INTEGER NOT NULL,
+            week INTEGER NOT NULL,
+            from_team_id TEXT NOT NULL,
+            to_team_id TEXT NOT NULL,
+            emote_key TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            UNIQUE(league_id, season, week, from_team_id, to_team_id)
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_matchup_emote_week ON matchup_emote(league_id, season, week)"
+    )
 
 
 _DB_INITIALIZED = False
@@ -801,6 +858,7 @@ def _workspace_dict(row: sqlite3.Row) -> dict[str, Any]:
         "sleeper_mapping": mapping,
         "sleeper_synced_at": row["sleeper_synced_at"] if "sleeper_synced_at" in keys else None,
         "active_league_id": row["active_league_id"] if "active_league_id" in keys else None,
+        "prefs": _prefs_from_row(row, keys),
     }
 
 
@@ -1795,6 +1853,30 @@ def update_trade_proposal(
         return _proposal_dict(updated)
 
 
+def _prefs_from_row(row: sqlite3.Row, keys: Any) -> dict[str, Any]:
+    from src.draft_hub.league_atmosphere import merge_atmosphere_prefs
+
+    raw = row["prefs_json"] if "prefs_json" in keys else None
+    if not raw:
+        return merge_atmosphere_prefs(None)
+    try:
+        return merge_atmosphere_prefs(json.loads(raw))
+    except (TypeError, json.JSONDecodeError):
+        return merge_atmosphere_prefs(None)
+
+
+def _identity_from_row(row: sqlite3.Row, keys: Any) -> dict[str, Any]:
+    from src.draft_hub.league_atmosphere import merge_team_identity
+
+    raw = row["identity_json"] if "identity_json" in keys else None
+    if not raw:
+        return merge_team_identity(None)
+    try:
+        return merge_team_identity(json.loads(raw))
+    except (TypeError, json.JSONDecodeError):
+        return merge_team_identity(None)
+
+
 def _team_dict(row: sqlite3.Row) -> dict[str, Any]:
     keys = row.keys()
     player_ids: list[str] = []
@@ -1821,6 +1903,7 @@ def _team_dict(row: sqlite3.Row) -> dict[str, Any]:
         "autodraft": bool(int(row["autodraft"] or 0)) if "autodraft" in keys else False,
         "draft_slot": _optional_int(row["draft_slot"]) if "draft_slot" in keys else None,
         "is_guest": _is_guest_sub(row["user_sub"] if "user_sub" in keys else None),
+        "identity": _identity_from_row(row, keys),
     }
 
 
@@ -2081,6 +2164,206 @@ def update_team_display_name(team_id: str, name: str) -> dict[str, Any]:
         conn.execute("UPDATE team SET name = ? WHERE id = ?", (clean, team_id))
         row = conn.execute("SELECT * FROM team WHERE id = ?", (team_id,)).fetchone()
         return _team_dict(row) if row else {}
+
+
+def get_workspace_prefs(user_sub: str) -> dict[str, Any]:
+    ws = get_or_create_workspace(user_sub)
+    return ws.get("prefs") or {}
+
+
+def update_workspace_prefs(user_sub: str, prefs: dict[str, Any]) -> dict[str, Any]:
+    from src.draft_hub.league_atmosphere import merge_atmosphere_prefs
+
+    ws = get_or_create_workspace(user_sub)
+    merged = merge_atmosphere_prefs(prefs)
+    now = _utcnow()
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE hub_workspace SET prefs_json = ?, updated_at = ? WHERE id = ?",
+            (json.dumps(merged), now, ws["id"]),
+        )
+    return merged
+
+
+def list_league_identities(league_id: str) -> dict[str, dict[str, Any]]:
+    return {str(team["id"]): team.get("identity") or {} for team in list_league_teams(league_id)}
+
+
+def update_team_identity(team_id: str, identity: dict[str, Any]) -> dict[str, Any]:
+    from src.draft_hub.league_atmosphere import merge_team_identity
+
+    team = get_team(team_id)
+    if not team:
+        raise ValueError("Team not found")
+    merged = merge_team_identity({**(team.get("identity") or {}), **(identity or {})})
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE team SET identity_json = ? WHERE id = ?",
+            (json.dumps(merged), team_id),
+        )
+    updated = get_team(team_id) or {}
+    return updated.get("identity") or merged
+
+
+def _media_dir() -> Path:
+    path = DRAFT_HUB_DIR / "media"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def store_hub_media(
+    *,
+    owner_sub: str,
+    league_id: str | None,
+    team_id: str | None,
+    kind: str,
+    content_type: str,
+    payload: bytes,
+) -> dict[str, Any]:
+    media_id = str(uuid.uuid4())
+    filename = f"{media_id}.bin"
+    dest = _media_dir() / filename
+    dest.write_bytes(payload)
+    now = _utcnow()
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO hub_media (
+                   id, owner_sub, league_id, team_id, kind, content_type, filename, created_at
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (media_id, owner_sub, league_id, team_id, kind, content_type, filename, now),
+        )
+    return {
+        "id": media_id,
+        "owner_sub": owner_sub,
+        "league_id": league_id,
+        "team_id": team_id,
+        "kind": kind,
+        "content_type": content_type,
+        "url": f"/api/hub/media/{media_id}",
+        "created_at": now,
+    }
+
+
+def get_hub_media(media_id: str) -> dict[str, Any] | None:
+    with get_conn() as conn:
+        row = conn.execute("SELECT * FROM hub_media WHERE id = ?", (media_id,)).fetchone()
+    if not row:
+        return None
+    path = _media_dir() / str(row["filename"])
+    if not path.exists():
+        return None
+    return {
+        "id": row["id"],
+        "owner_sub": row["owner_sub"],
+        "league_id": row["league_id"],
+        "team_id": row["team_id"],
+        "kind": row["kind"],
+        "content_type": row["content_type"],
+        "path": path,
+        "created_at": row["created_at"],
+    }
+
+
+def ensure_week_trophy_polls(league_id: str, season: int, week: int) -> list[dict[str, Any]]:
+    from src.draft_hub.league_atmosphere import TROPHY_POLLS
+
+    now = _utcnow()
+    with get_conn() as conn:
+        existing = conn.execute(
+            """SELECT * FROM week_poll
+               WHERE league_id = ? AND season = ? AND week = ?
+               ORDER BY poll_key""",
+            (league_id, int(season), int(week)),
+        ).fetchall()
+        have = {str(row["poll_key"]) for row in existing}
+        for key, meta in TROPHY_POLLS.items():
+            if key in have:
+                continue
+            conn.execute(
+                """INSERT OR IGNORE INTO week_poll (id, league_id, season, week, poll_key, title, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (str(uuid.uuid4()), league_id, int(season), int(week), key, meta["title"], now),
+            )
+        rows = conn.execute(
+            """SELECT * FROM week_poll
+               WHERE league_id = ? AND season = ? AND week = ?
+               ORDER BY poll_key""",
+            (league_id, int(season), int(week)),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def get_week_poll(poll_id: str) -> dict[str, Any] | None:
+    with get_conn() as conn:
+        row = conn.execute("SELECT * FROM week_poll WHERE id = ?", (poll_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def list_week_poll_votes(poll_id: str) -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM week_poll_vote WHERE poll_id = ?",
+            (poll_id,),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def cast_week_poll_vote(poll_id: str, voter_team_id: str, nominee_team_id: str) -> dict[str, Any]:
+    now = _utcnow()
+    with get_conn() as conn:
+        poll = conn.execute("SELECT * FROM week_poll WHERE id = ?", (poll_id,)).fetchone()
+        if not poll:
+            raise ValueError("Poll not found")
+        conn.execute(
+            """INSERT INTO week_poll_vote (poll_id, voter_team_id, nominee_team_id, created_at)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(poll_id, voter_team_id) DO UPDATE SET
+                   nominee_team_id = excluded.nominee_team_id,
+                   created_at = excluded.created_at""",
+            (poll_id, voter_team_id, nominee_team_id, now),
+        )
+    return {"poll_id": poll_id, "voter_team_id": voter_team_id, "nominee_team_id": nominee_team_id}
+
+
+def list_week_emotes(league_id: str, season: int, week: int) -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT * FROM matchup_emote
+               WHERE league_id = ? AND season = ? AND week = ?
+               ORDER BY created_at""",
+            (league_id, int(season), int(week)),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def upsert_matchup_emote(
+    *,
+    league_id: str,
+    season: int,
+    week: int,
+    from_team_id: str,
+    to_team_id: str,
+    emote_key: str,
+) -> dict[str, Any]:
+    now = _utcnow()
+    emote_id = str(uuid.uuid4())
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO matchup_emote (
+                   id, league_id, season, week, from_team_id, to_team_id, emote_key, created_at
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(league_id, season, week, from_team_id, to_team_id) DO UPDATE SET
+                   emote_key = excluded.emote_key,
+                   created_at = excluded.created_at""",
+            (emote_id, league_id, int(season), int(week), from_team_id, to_team_id, emote_key, now),
+        )
+        row = conn.execute(
+            """SELECT * FROM matchup_emote
+               WHERE league_id = ? AND season = ? AND week = ?
+                 AND from_team_id = ? AND to_team_id = ?""",
+            (league_id, int(season), int(week), from_team_id, to_team_id),
+        ).fetchone()
+    return dict(row) if row else {}
 
 
 def add_unclaimed_team(league_id: str, name: str, budget: float) -> dict[str, Any]:

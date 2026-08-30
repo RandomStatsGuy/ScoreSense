@@ -6,8 +6,10 @@ import {
   isSoloContext,
   membershipLabel,
 } from "./hubLeagues";
+import TeamIdentityMark from "./TeamIdentityMark";
+import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
+import { CREATE_LEAGUE_VALUE, SOLO_VALUE, interpretLeagueSwitcherValue } from "./leagueAccessCopy";
 
-const SOLO_VALUE = "__solo__";
 const LIST_SCROLL_THRESHOLD = 4;
 
 function currentValue(hubContext) {
@@ -43,7 +45,7 @@ function LeagueRow({
   );
 }
 
-function ActiveContextHero({ hubContext, soloActive, mobileLayout }) {
+function ActiveContextHero({ hubContext, soloActive, mobileLayout, identity }) {
   if (soloActive) {
     return (
       <div className="hub-league-active-hero hub-league-active-hero--solo">
@@ -58,7 +60,14 @@ function ActiveContextHero({ hubContext, soloActive, mobileLayout }) {
   return (
     <div className="hub-league-active-hero">
       {!mobileLayout && <p className="hub-league-active-kicker">Active now</p>}
-      <h3 className="hub-league-active-title">{hubContext.league_name || "League"}</h3>
+      <h3 className="hub-league-active-title">
+        <TeamIdentityMark
+          team={{ id: hubContext.team_id, name: hubContext.team_name }}
+          identity={identity}
+          size="sm"
+        />
+        {hubContext.league_name || "League"}
+      </h3>
       <p className="hub-league-active-meta">
         {[
           hubContext.team_name,
@@ -75,12 +84,14 @@ export default function LeagueSwitcher({
   memberships = [],
   hubContext,
   onSwitch,
+  onCreateLeague,
   variant = "panel",
   disabled = false,
   hideActiveHero = false,
 }) {
   const selectId = useId();
   const searchId = useId();
+  const { identities } = useTeamIdentities();
   const [busy, setBusy] = useState(false);
   const [switchError, setSwitchError] = useState("");
   const [filter, setFilter] = useState("");
@@ -110,14 +121,19 @@ export default function LeagueSwitcher({
   if (!showPanel && leagues.length === 0 && !soloActive) return null;
 
   const switchTo = async (next) => {
-    if (next === value || busy || disabled) return;
+    const choice = interpretLeagueSwitcherValue(next, value);
+    if (choice.action === "create") {
+      onCreateLeague?.();
+      return;
+    }
+    if (choice.action === "noop" || busy || disabled) return;
     setBusy(true);
     setSwitchError("");
     try {
-      if (next === SOLO_VALUE) {
+      if (choice.action === "solo") {
         await onSwitch?.({ solo: true });
       } else {
-        await onSwitch?.({ leagueId: next });
+        await onSwitch?.({ leagueId: choice.leagueId });
       }
     } catch (e) {
       setSwitchError(e.message || "Could not switch league");
@@ -127,27 +143,46 @@ export default function LeagueSwitcher({
   };
 
   if (variant === "compact") {
-    if (leagues.length === 0 && soloActive) return null;
+    if (leagues.length === 0 && soloActive && !onCreateLeague) return null;
     return (
       <div className="hub-league-switcher hub-league-switcher--compact">
         <label htmlFor={selectId} className="hub-league-switcher-label">
           {mobileLayout ? "League" : "Switch league"}
         </label>
-        <select
-          id={selectId}
-          className="hub-league-switcher-select"
-          value={value}
-          onChange={(e) => switchTo(e.target.value)}
-          disabled={busy || disabled}
-          aria-busy={busy}
-        >
-          {leagues.map((m) => (
-            <option key={m.league_id} value={m.league_id}>
-              {m.league_name || membershipLabel(m)}
-            </option>
-          ))}
-          <option value={SOLO_VALUE}>{mobileLayout ? "Solo prep" : "Personal prep (just me)"}</option>
-        </select>
+        <div className="hub-league-switcher-compact-row">
+          {leagues.length > 0 || !soloActive ? (
+            <select
+              id={selectId}
+              className="hub-league-switcher-select"
+              value={value}
+              onChange={(e) => switchTo(e.target.value)}
+              disabled={busy || disabled}
+              aria-busy={busy}
+            >
+              {leagues.map((m) => (
+                <option key={m.league_id} value={m.league_id}>
+                  {m.league_name || membershipLabel(m)}
+                </option>
+              ))}
+              <option value={SOLO_VALUE}>{mobileLayout ? "Solo prep" : "Personal prep (just me)"}</option>
+              {onCreateLeague ? (
+                <option value={CREATE_LEAGUE_VALUE}>+ Create or join a league…</option>
+              ) : null}
+            </select>
+          ) : (
+            <span id={selectId} className="hub-league-context-name">Solo prep</span>
+          )}
+          {onCreateLeague ? (
+            <button
+              type="button"
+              className="btn-primary btn-sm hub-league-switcher-create"
+              disabled={busy || disabled}
+              onClick={() => onCreateLeague()}
+            >
+              New league
+            </button>
+          ) : null}
+        </div>
         {switchError && <div className="error hub-league-picker-error">{switchError}</div>}
       </div>
     );
@@ -159,7 +194,12 @@ export default function LeagueSwitcher({
   return (
     <div className="hub-league-picker" aria-busy={busy}>
       {!hideActiveHero && (
-        <ActiveContextHero hubContext={hubContext} soloActive={soloActive} mobileLayout={mobileLayout} />
+        <ActiveContextHero
+          hubContext={hubContext}
+          soloActive={soloActive}
+          mobileLayout={mobileLayout}
+          identity={identityFor(identities, { id: hubContext?.team_id, identity: hubContext?.team_identity })}
+        />
       )}
 
       <div className="hub-league-pick-panel">
@@ -217,6 +257,18 @@ export default function LeagueSwitcher({
             onClick={() => switchTo(SOLO_VALUE)}
           />
         </div>
+        {onCreateLeague ? (
+          <div className="hub-league-pick-create">
+            <button
+              type="button"
+              className="btn-primary btn-sm"
+              disabled={busy || disabled}
+              onClick={() => onCreateLeague()}
+            >
+              Create or join a league
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {busy && <p className="chart-note hub-league-picker-busy">Switching league…</p>}

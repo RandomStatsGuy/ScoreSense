@@ -12,6 +12,13 @@ import {
   utcIsoToWall,
 } from "./draftEntryStatus";
 import { lobbyAbsoluteUrl, lobbyChipLabel, slotHint, slotLabel } from "./draftLobby";
+import {
+  draftInviteLabel,
+  draftInviteExplainer,
+  draftInviteWhatHappens,
+  draftLobbyHeroSupport,
+  emailManagersHint,
+} from "./leagueAccessCopy";
 import { HubExperienceHero, HubExperienceLayout, HubExperienceSummary } from "./HubUILayout";
 import { secondsUntil } from "./draftRoomHelpers";
 import { fmtSal } from "./rosterFormat";
@@ -162,9 +169,7 @@ export default function DraftLobby({
   };
 
   const heading = testMode ? "The practice room is open." : "Draft night starts here.";
-  const support = testMode
-    ? "Send the link. Friends sit down with a name — no ScoreSense account."
-    : "Managers can walk in from the link, take a seat, and wait for the clock.";
+  const support = draftLobbyHeroSupport({ testMode });
 
   return (
     <div className="draft-lobby hub-experience-stack">
@@ -211,19 +216,28 @@ export default function DraftLobby({
               <div className="draft-lobby-rail-actions">
                 {inviteUrl ? (
                   <div className="draft-lobby-link">
-                    <label htmlFor="draft-lobby-url">Invite link</label>
+                    <label htmlFor="draft-lobby-url">{draftInviteLabel({ testMode })}</label>
+                    <p className="chart-note draft-lobby-invite-copy">
+                      {draftInviteExplainer({ testMode })}
+                    </p>
                     <div className="draft-lobby-link-row">
                       <input id="draft-lobby-url" readOnly value={inviteUrl} />
                       <Button variant="ghost" size="sm" onClick={copyLink}>
                         {copied ? "Copied" : "Copy"}
                       </Button>
                     </div>
+                    <p className="chart-note draft-lobby-invite-copy">
+                      {draftInviteWhatHappens({ testMode })}
+                    </p>
                   </div>
                 ) : null}
                 {isCommissioner && !testMode ? (
-                  <Button variant="ghost" disabled={slotBusy || busy} onClick={notifyManagers}>
-                    Email managers
-                  </Button>
+                  <>
+                    <Button variant="ghost" disabled={slotBusy || busy} onClick={notifyManagers}>
+                      Email managers already in the league
+                    </Button>
+                    <p className="chart-note draft-lobby-invite-copy">{emailManagersHint()}</p>
+                  </>
                 ) : null}
                 {notifyState ? <p className="hub-experience-summary-note">{notifyState}</p> : null}
                 {isCommissioner && testMode ? (
@@ -257,8 +271,10 @@ export default function DraftLobby({
             <h3>Who is in</h3>
             <p className="chart-note">
               {guestMode
-                ? "You are in as a guest. The host starts when the room feels right."
-                : "Claimed seats stay with this room. Open seats wait for the link."}
+                ? "You are in as a guest. The host starts when the room feels right. Create an account later if you want this team to stay."
+                : testMode
+                  ? "Claimed seats stay with this practice room. Open seats wait for the practice link."
+                  : "Claimed seats stay with this league. Open seats wait for invited managers — not a public walk-in."}
             </p>
           </header>
           <ul className="draft-lobby-seat-list">
@@ -278,7 +294,9 @@ export default function DraftLobby({
             {Array.from({ length: Math.max(0, teamCount - humans.length) }, (_, i) => (
               <li key={`open-${i}`} className="draft-lobby-seat is-open">
                 <span className="draft-lobby-seat-name">Open seat</span>
-                <span className="draft-lobby-seat-meta">Waiting on the link</span>
+                <span className="draft-lobby-seat-meta">
+                  {testMode ? "Waiting on the practice link" : "Waiting for an invited member"}
+                </span>
               </li>
             ))}
           </ul>
