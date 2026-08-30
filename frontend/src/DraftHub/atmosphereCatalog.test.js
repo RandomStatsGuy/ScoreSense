@@ -6,6 +6,7 @@ import test from "node:test";
 import {
   lockerNameplate,
   mergeAtmospherePrefs,
+  mergeFocus,
   mergeTeamIdentity,
   shouldShowAtmosphere,
 } from "./atmosphereCatalog.js";
@@ -37,4 +38,19 @@ test("atmosphere stays off in live draft and reduced motion", () => {
 test("lockerNameplate uses the last name", () => {
   assert.equal(lockerNameplate("Josh Allen"), "Allen");
   assert.equal(lockerNameplate("Amon-Ra St. Brown"), "Brown");
+});
+
+test("mergeFocus clamps pan and zoom", () => {
+  assert.deepEqual(mergeFocus({ x: -10, y: 140, zoom: 8 }), { x: 0, y: 100, zoom: 2.5 });
+  assert.deepEqual(mergeFocus({ x: "25", y: "n/a", zoom: 1.2 }), { x: 25, y: 50, zoom: 1.2 });
+});
+
+test("mergeTeamIdentity keeps crop focus", () => {
+  const merged = mergeTeamIdentity({
+    photo_focus: { x: 12, y: 88, zoom: 1.4 },
+    banner_focus: { x: 90 },
+  });
+  assert.deepEqual(merged.photo_focus, { x: 12, y: 88, zoom: 1.4 });
+  assert.equal(merged.banner_focus.x, 90);
+  assert.equal(merged.banner_focus.y, 50);
 });

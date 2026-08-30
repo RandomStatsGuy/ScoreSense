@@ -83,12 +83,18 @@ def merge_atmosphere_prefs(raw: Any) -> dict[str, Any]:
     return base
 
 
+def default_focus() -> dict[str, float]:
+    return {"x": 50.0, "y": 50.0, "zoom": 1.0}
+
+
 def default_team_identity() -> dict[str, Any]:
     return {
         "photo_preset": "gridiron",
         "banner_preset": "navy_stripe",
         "photo_media_id": None,
         "banner_media_id": None,
+        "photo_focus": default_focus(),
+        "banner_focus": default_focus(),
         "room_theme": "none",
         "locker_player_ids": [],
     }
@@ -101,6 +107,27 @@ def _clean_media_id(value: Any) -> str | None:
     if any(ch in text for ch in ("/", "\\", "..")):
         return None
     return text
+
+
+def _clamp_focus_num(value: Any, lo: float, hi: float, fallback: float) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return fallback
+    if number != number:  # NaN
+        return fallback
+    return max(lo, min(hi, number))
+
+
+def clean_focus(raw: Any) -> dict[str, float]:
+    base = default_focus()
+    if not isinstance(raw, dict):
+        return base
+    return {
+        "x": _clamp_focus_num(raw.get("x"), 0.0, 100.0, base["x"]),
+        "y": _clamp_focus_num(raw.get("y"), 0.0, 100.0, base["y"]),
+        "zoom": _clamp_focus_num(raw.get("zoom"), 1.0, 2.5, base["zoom"]),
+    }
 
 
 def merge_team_identity(raw: Any) -> dict[str, Any]:
@@ -132,6 +159,8 @@ def merge_team_identity(raw: Any) -> dict[str, Any]:
             "banner_preset": banner,
             "photo_media_id": _clean_media_id(raw.get("photo_media_id")),
             "banner_media_id": _clean_media_id(raw.get("banner_media_id")),
+            "photo_focus": clean_focus(raw.get("photo_focus")),
+            "banner_focus": clean_focus(raw.get("banner_focus")),
             "room_theme": room,
             "locker_player_ids": ids,
         }

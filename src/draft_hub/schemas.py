@@ -395,11 +395,19 @@ class AtmospherePrefsUpdate(BaseModel):
     atmosphere: Optional[str] = None
 
 
+class IdentityFocus(BaseModel):
+    x: Optional[float] = Field(default=None, ge=0, le=100)
+    y: Optional[float] = Field(default=None, ge=0, le=100)
+    zoom: Optional[float] = Field(default=None, ge=1, le=2.5)
+
+
 class TeamIdentityUpdate(BaseModel):
     photo_preset: Optional[str] = None
     banner_preset: Optional[str] = None
     photo_media_id: Optional[str] = None
     banner_media_id: Optional[str] = None
+    photo_focus: Optional[IdentityFocus] = None
+    banner_focus: Optional[IdentityFocus] = None
     room_theme: Optional[str] = None
     locker_player_ids: Optional[list[str]] = None
 

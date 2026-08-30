@@ -2195,7 +2195,13 @@ def update_team_identity(team_id: str, identity: dict[str, Any]) -> dict[str, An
     team = get_team(team_id)
     if not team:
         raise ValueError("Team not found")
-    merged = merge_team_identity({**(team.get("identity") or {}), **(identity or {})})
+    current = team.get("identity") or {}
+    incoming = dict(identity or {})
+    for key in ("photo_focus", "banner_focus"):
+        if isinstance(incoming.get(key), dict):
+            prior = current.get(key) if isinstance(current.get(key), dict) else {}
+            incoming[key] = {**prior, **incoming[key]}
+    merged = merge_team_identity({**current, **incoming})
     with get_conn() as conn:
         conn.execute(
             "UPDATE team SET identity_json = ? WHERE id = ?",
