@@ -695,7 +695,7 @@ def hub_patch_team_identity(
         raise HTTPException(status_code=404, detail="Team not found")
     if not _viewer_can_edit_team(ctx, team):
         raise HTTPException(status_code=403, detail="You can only customize your own team look")
-    identity = storage.update_team_identity(team_id, body.model_dump(exclude_none=True))
+    identity = storage.update_team_identity(team_id, body.model_dump(exclude_unset=True))
     ws_id, _team_id = roster_scope(ctx)
     roster = storage.list_roster(ws_id, team_id) if ws_id else []
     return {
@@ -710,6 +710,7 @@ async def hub_upload_team_identity_media(
     league_id: str,
     team_id: str,
     kind: str = Query("photo"),
+    attach: bool = Query(True),
     file: UploadFile = File(...),
     _user=Depends(require_hub_user),
 ) -> dict:
@@ -739,8 +740,11 @@ async def hub_upload_team_identity_media(
         content_type=content_type,
         payload=payload,
     )
-    field = "photo_media_id" if kind_clean == "photo" else "banner_media_id"
-    identity = storage.update_team_identity(team_id, {field: media["id"]})
+    if attach:
+        field = "photo_media_id" if kind_clean == "photo" else "banner_media_id"
+        identity = storage.update_team_identity(team_id, {field: media["id"]})
+    else:
+        identity = team.get("identity") or {}
     return {
         "media": media,
         "identity": _identity_payload(identity),

@@ -33,8 +33,23 @@ def test_merge_team_identity_caps_lockers_and_presets():
     assert merged["banner_preset"] == "navy_stripe"
     assert merged["room_theme"] == "locker"
     assert merged["photo_media_id"] is None
+    assert merged["photo_focus"] == {"x": 50.0, "y": 50.0, "zoom": 1.0}
+    assert merged["banner_focus"] == {"x": 50.0, "y": 50.0, "zoom": 1.0}
     assert len(merged["locker_player_ids"]) == 8
     assert merged["locker_player_ids"][0] == "p0"
+
+
+def test_merge_team_identity_clamps_focus():
+    merged = merge_team_identity(
+        {
+            "photo_focus": {"x": -20, "y": 140, "zoom": 9},
+            "banner_focus": {"x": "40", "y": "bad", "zoom": 1.4},
+        }
+    )
+    assert merged["photo_focus"] == {"x": 0.0, "y": 100.0, "zoom": 2.5}
+    assert merged["banner_focus"]["x"] == 40.0
+    assert merged["banner_focus"]["y"] == 50.0
+    assert merged["banner_focus"]["zoom"] == 1.4
 
 
 def test_locker_players_skip_missing_and_cut_rows():

@@ -29,8 +29,8 @@ import {
 import ContractHistoryLink from "./ContractHistoryLink";
 import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import LockerRoomScene from "./LockerRoomScene";
-import TeamIdentityMark from "./TeamIdentityMark";
 import TeamIdentityStudio from "./TeamIdentityStudio";
+import TeamStadiumHero from "./TeamStadiumHero";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 import { hubTeamLabel } from "./hubTeamLabel";
 
@@ -326,6 +326,7 @@ export default function RosterBuilder({
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState("ALL");
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
+  const [lookOpen, setLookOpen] = useState(false);
 
   const [typeOverrides, setTypeOverrides] = useState({});
   const [extendYearsById, setExtendYearsById] = useState({});
@@ -734,46 +735,30 @@ export default function RosterBuilder({
             )
             : (
               <p>
-                Personal roster decisions live here. A photo and banner travel with your team on other Fantasy pages.
+                Personal roster decisions live here. Edit look sets a wide banner on this page and a photo that travels with your team.
               </p>
             )
         }
       />
 
-      <LockerRoomScene identity={teamIdentity} roster={roster} />
-
-      {isLeague && hubContext?.league_id && hubContext?.team_id && (
-        <TeamIdentityStudio
-          leagueId={hubContext.league_id}
-          teamId={hubContext.team_id}
-          identity={teamIdentity}
-          roster={roster}
-          onSaved={(next) => {
-            setIdentities?.((prev) => ({ ...prev, [hubContext.team_id]: next }));
-          }}
-        />
-      )}
-
-      <div className={`hub-roster-hero hub-team-banner--${teamIdentity?.banner_preset || "navy_stripe"}`}>
-        <div className="hub-roster-hero-top">
-          {teamName && (
-            <div className="hub-roster-team-banner">
-              <TeamIdentityMark
-                team={{ id: hubContext?.team_id, name: teamName, sleeper_team_name: sleeper?.sleeper_team_name }}
-                identity={teamIdentity}
-                size="lg"
-              />
-              <div>
-                <div className="hub-roster-team-name">{teamName}</div>
-                <div className="hub-roster-team-meta">
-                  {roster.length} players
-                  {roster.filter(isSleeperPlayer).length > 0
-                    ? ` · ${roster.filter(isSleeperPlayer).length} from Sleeper`
-                    : ""}
-                </div>
-              </div>
-            </div>
-          )}
+      <TeamStadiumHero
+        team={{ id: hubContext?.team_id, name: teamName, sleeper_team_name: sleeper?.sleeper_team_name }}
+        identity={teamIdentity}
+        meta={
+          teamName
+            ? `${roster.length} players${
+              roster.filter(isSleeperPlayer).length > 0
+                ? ` · ${roster.filter(isSleeperPlayer).length} from Sleeper`
+                : ""
+            }`
+            : null
+        }
+        onEdit={
+          isLeague && hubContext?.league_id && hubContext?.team_id
+            ? () => setLookOpen(true)
+            : null
+        }
+        cap={(
           <div className="hub-stat-card hub-stat-card--accent" style={{ minWidth: "9rem" }}>
             <span className="hub-stat-label">Cap ({season})</span>
             <strong className="hub-stat-value">
@@ -786,15 +771,34 @@ export default function RosterBuilder({
               </span>
             )}
           </div>
-        </div>
-        <div className="hub-chip-row">
-          {HUB_POS_ORDER.filter((p) => posCounts[p]).map((pos) => (
-            <span key={pos} className="hub-pos-chip">
-              {pos} <strong>{posCounts[pos]}</strong>
-            </span>
-          ))}
-        </div>
-      </div>
+        )}
+        chips={(
+          <div className="hub-chip-row">
+            {HUB_POS_ORDER.filter((p) => posCounts[p]).map((pos) => (
+              <span key={pos} className="hub-pos-chip">
+                {pos} <strong>{posCounts[pos]}</strong>
+              </span>
+            ))}
+          </div>
+        )}
+      />
+
+      <LockerRoomScene identity={teamIdentity} roster={roster} />
+
+      {isLeague && hubContext?.league_id && hubContext?.team_id && (
+        <TeamIdentityStudio
+          open={lookOpen}
+          onClose={() => setLookOpen(false)}
+          leagueId={hubContext.league_id}
+          teamId={hubContext.team_id}
+          team={{ id: hubContext.team_id, name: teamName, sleeper_team_name: sleeper?.sleeper_team_name }}
+          identity={teamIdentity}
+          roster={roster}
+          onSaved={(next) => {
+            setIdentities?.((prev) => ({ ...prev, [hubContext.team_id]: next }));
+          }}
+        />
+      )}
 
       <ContractRulesDisclosure
         contractsReadOnly={contractsReadOnly}
