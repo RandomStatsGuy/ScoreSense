@@ -146,6 +146,8 @@ def test_live_notify_emails_managers(hub_db, auth_db, monkeypatch):
     assert sent[0][0] == "mgr@example.com"
     assert "draft is open" in sent[0][1].lower()
     assert "/lobby/" in sent[0][2]
+    assert "same league" in sent[0][2].lower()
+    assert "account is optional" in sent[0][2].lower()
 
     again = notify_managers_draft_open(league["id"], comm_sub, force=False)
     assert again["skipped"] is True

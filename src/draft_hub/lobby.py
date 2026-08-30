@@ -349,7 +349,10 @@ def send_draft_open_email(
         [
             f"The {format_label} for {league_name} is open.{when}",
             "",
-            "Join the lobby (a ScoreSense account is optional for this room):",
+            f"This link seats you in {league_name} — the same league, not a separate draft room.",
+            "Open it, pick a team name, and take a seat. A ScoreSense account is optional for draft night.",
+            "If you already have an account (or create one on that page), the seat becomes your team in the league.",
+            "",
             lobby_url,
             "",
             "If you already have a seat, that link puts you back in the room.",

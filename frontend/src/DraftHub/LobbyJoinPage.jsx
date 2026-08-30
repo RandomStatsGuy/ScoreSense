@@ -7,17 +7,19 @@ import {
   setGuestSession,
 } from "../auth";
 import { useAuth } from "../AuthContext";
+import AccountAuth from "../AccountAuth";
 import { PRODUCT_NAME } from "../brand";
 import { parseApiError } from "../format";
 import Button from "../ui/Button";
 import { draftFormatLabel } from "./draftEntryStatus";
 import { lobbyChipLabel } from "./draftLobby";
+import { draftJoinAccountNote, draftJoinSupport } from "./leagueAccessCopy";
 import DraftRoom from "./DraftRoom";
 import { HubExperienceHero } from "./HubUILayout";
 
 export default function LobbyJoinPage() {
   const { roomCode } = useParams();
-  const { authenticated } = useAuth();
+  const { authenticated, termsUrl, privacyUrl, patreonConfigured } = useAuth();
   const [preview, setPreview] = useState(null);
   const [leagueId, setLeagueId] = useState("");
   const [name, setName] = useState("");
@@ -120,13 +122,13 @@ export default function LobbyJoinPage() {
       ) : (
         <>
           <HubExperienceHero
-            eyebrow={preview?.test_mode ? "Mock lobby" : "Draft lobby"}
-            heading={preview?.name || "Join the room"}
-            support={
-              preview?.can_join
-                ? "Enter a name and take a seat. No ScoreSense account required."
-                : "This draft is already underway."
-            }
+            eyebrow={preview?.test_mode ? "Practice draft" : "League draft"}
+            heading={preview?.name || "Join this league"}
+            support={draftJoinSupport({
+              canJoin: preview?.can_join,
+              leagueName: preview?.name,
+              testMode: preview?.test_mode,
+            })}
             chip={lobbyChipLabel({
               claimed: preview?.claimed,
               teamCount: preview?.team_count,
@@ -138,7 +140,7 @@ export default function LobbyJoinPage() {
             <section className="hub-experience-section">
               {preview?.can_join ? (
                 <form onSubmit={join} className="draft-lobby-join-form">
-                  <label htmlFor="lobby-join-name">Your name in this room</label>
+                  <label htmlFor="lobby-join-name">Team name in this league</label>
                   <input
                     id="lobby-join-name"
                     value={name}
@@ -148,14 +150,30 @@ export default function LobbyJoinPage() {
                     required
                   />
                   <Button type="submit" disabled={joining || !name.trim()}>
-                    {joining ? "Joining…" : "Take a seat"}
+                    {joining ? "Joining…" : "Join this league's draft"}
                   </Button>
-                  <p className="chart-note">
-                    {authenticated
-                      ? "You are signed in — this seat stays on your account."
-                      : "Guests stay in this room only. You can create an account later."}
-                  </p>
+                  <p className="chart-note">{draftJoinAccountNote({ authenticated })}</p>
                 </form>
+                {!authenticated ? (
+                  <details className="draft-lobby-join-account">
+                    <summary>Create an account to keep this team after the draft</summary>
+                    <p className="chart-note">
+                      Optional. You can sit down now and make an account later.
+                      Signing in first attaches this seat to your ScoreSense account.
+                    </p>
+                    <AccountAuth
+                      compact
+                      mode="register"
+                      title="Create a ScoreSense account"
+                      subtitle="Then join the draft with the name above."
+                      termsUrl={termsUrl}
+                      privacyUrl={privacyUrl}
+                      patreonConfigured={patreonConfigured}
+                      patreonNext={`/lobby/${code}`}
+                      onAuthed={() => window.dispatchEvent(new Event("scoresense-auth-changed"))}
+                    />
+                  </details>
+                ) : null}
               ) : (
                 <p className="chart-note">Ask the host for a new link if you still need a seat.</p>
               )}

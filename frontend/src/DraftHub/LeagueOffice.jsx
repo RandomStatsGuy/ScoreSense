@@ -244,7 +244,9 @@ function OfficeAccess({ leagueId, hubContext, workspace, onChanged }) {
       <section className="hub-office-access-section">
         <header className="hub-section-head">
           <h3 className="hub-section-title">Invites</h3>
-          <p className="hub-section-hint">Email invites can include co-commissioner access.</p>
+          <p className="hub-section-hint">
+            Email invites assign a named team and full league access. The draft lobby link is a walk-in seat for draft night.
+          </p>
         </header>
         <LeagueInvites
           leagueId={leagueId}

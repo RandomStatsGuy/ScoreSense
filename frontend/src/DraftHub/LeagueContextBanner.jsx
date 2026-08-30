@@ -44,6 +44,7 @@ export default function LeagueContextBanner({
   memberships = [],
   onLeagueSwitch,
   onNavigateSetup,
+  onCreateLeague,
   onNavigateManage,
   onLeagueSync,
   syncing,
@@ -177,7 +178,24 @@ export default function LeagueContextBanner({
     await loadFreshness(undefined);
   }, [leagueId, onLeagueSync, loadFreshness]);
 
-  if (!inLeague && !hasLeagues) return null;
+  if (!inLeague && !hasLeagues) {
+    return (
+      <section className="hub-league-context-bar" role="status">
+        <div className="hub-league-context-top">
+          <p className="hub-league-context-line">
+            <span className="hub-league-context-name">Solo prep</span>
+            <span className="hub-league-context-sep" aria-hidden="true">·</span>
+            <span className="hub-league-context-phase">No shared league yet</span>
+          </p>
+          {onCreateLeague ? (
+            <button type="button" className="btn-primary btn-sm" onClick={onCreateLeague}>
+              Create or join a league
+            </button>
+          ) : null}
+        </div>
+      </section>
+    );
+  }
 
   const phaseLabel = inLeague
     ? (hubContext.draft_completed ? "In season" : "Pre-draft")
@@ -275,6 +293,7 @@ export default function LeagueContextBanner({
           memberships={memberships}
           hubContext={hubContext}
           onSwitch={onLeagueSwitch}
+          onCreateLeague={onCreateLeague}
           variant="compact"
           disabled={busy}
         />

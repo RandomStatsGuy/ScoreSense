@@ -88,6 +88,7 @@ export default function LeagueHome({
   reloadToken = 0,
   onNavigate,
   onNavigateSetup,
+  onCreateLeague,
 }) {
   const mobileLayout = useMobileLayout();
   const [data, setData] = useState(null);
@@ -158,11 +159,18 @@ export default function LeagueHome({
           <p className="hub-experience-kicker">League command center</p>
           <h2>Make the next decision count.</h2>
         </div>
-        {goSetup ? (
-          <button type="button" className="btn-ghost btn-sm" onClick={goSetup}>
-            Settings
-          </button>
-        ) : null}
+        <div className="hub-home-heading-actions">
+          {onCreateLeague ? (
+            <button type="button" className="btn-primary btn-sm" onClick={onCreateLeague}>
+              New league
+            </button>
+          ) : null}
+          {goSetup ? (
+            <button type="button" className="btn-ghost btn-sm" onClick={goSetup}>
+              Settings
+            </button>
+          ) : null}
+        </div>
       </header>
 
       <nav className="hub-home-phase-track" aria-label="League season stage">
