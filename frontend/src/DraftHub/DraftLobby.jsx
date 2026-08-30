@@ -272,7 +272,9 @@ export default function DraftLobby({
             <p className="chart-note">
               {guestMode
                 ? "You are in as a guest. The host starts when the room feels right. Create an account later if you want this team to stay."
-                : "Claimed seats stay with this league. Open seats wait for someone to open the league draft link."}
+                : testMode
+                  ? "Claimed seats stay with this practice room. Open seats wait for the practice link."
+                  : "Claimed seats stay with this league. Open seats wait for invited managers — not a public walk-in."}
             </p>
           </header>
           <ul className="draft-lobby-seat-list">
@@ -292,7 +294,9 @@ export default function DraftLobby({
             {Array.from({ length: Math.max(0, teamCount - humans.length) }, (_, i) => (
               <li key={`open-${i}`} className="draft-lobby-seat is-open">
                 <span className="draft-lobby-seat-name">Open seat</span>
-                <span className="draft-lobby-seat-meta">Waiting for a manager</span>
+                <span className="draft-lobby-seat-meta">
+                  {testMode ? "Waiting on the practice link" : "Waiting for an invited member"}
+                </span>
               </li>
             ))}
           </ul>

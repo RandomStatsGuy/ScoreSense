@@ -4298,7 +4298,7 @@ def hub_lobby_preview(room_code: str) -> dict:
 
 @router.post("/lobby/{room_code}/join")
 async def hub_lobby_join(room_code: str, body: LobbyJoinRequest, request: Request) -> dict:
-    """Claim a seat with a display name. Guests get a room-scoped token."""
+    """Claim a practice seat, or re-enter a live room as a league member."""
     from src.draft_hub.lobby import join_lobby
 
     user = optional_user(request)
