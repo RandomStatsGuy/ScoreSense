@@ -141,3 +141,41 @@ def test_identity_media_upload_rejects_non_image(hub_db):
         files={"file": ("huge.jpg", b"\xff\xd8\xff" + b"\x00" * MAX_MEDIA_BYTES, "image/jpeg")},
     )
     assert too_big.status_code == 400
+
+
+def test_identity_media_can_stage_then_crop_and_clear(hub_db):
+    comm, _member, league = _seed_league(hub_db)
+    comm_team = storage.get_team_by_user(league["id"], comm)
+    client = _client_for(comm)
+    jpeg = b"\xff\xd8\xff\xe0" + b"\x00" * 32
+    staged = client.post(
+        f"/api/hub/league/{league['id']}/teams/{comm_team['id']}/identity/media?kind=photo&attach=false",
+        files={"file": ("team.jpg", jpeg, "image/jpeg")},
+    )
+    assert staged.status_code == 200
+    media_id = staged.json()["media"]["id"]
+    assert staged.json()["identity"]["photo_media_id"] is None
+
+    saved = client.patch(
+        f"/api/hub/league/{league['id']}/teams/{comm_team['id']}/identity",
+        json={
+            "photo_media_id": media_id,
+            "photo_focus": {"x": 22, "y": 70, "zoom": 1.5},
+            "banner_focus": {"x": 80},
+        },
+    )
+    assert saved.status_code == 200
+    identity = saved.json()["identity"]
+    assert identity["photo_media_id"] == media_id
+    assert identity["photo_focus"] == {"x": 22.0, "y": 70.0, "zoom": 1.5}
+    assert identity["banner_focus"]["x"] == 80.0
+    assert identity["banner_focus"]["y"] == 50.0
+
+    cleared = client.patch(
+        f"/api/hub/league/{league['id']}/teams/{comm_team['id']}/identity",
+        json={"photo_media_id": None, "photo_focus": {"x": 10}},
+    )
+    assert cleared.status_code == 200
+    assert cleared.json()["identity"]["photo_media_id"] is None
+    assert cleared.json()["identity"]["photo_focus"]["x"] == 10.0
+    assert cleared.json()["identity"]["photo_focus"]["y"] == 70.0

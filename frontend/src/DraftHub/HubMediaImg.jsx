@@ -39,8 +39,8 @@ export function useHubMediaUrl(src) {
   return url;
 }
 
-export default function HubMediaImg({ src, alt = "", className = "" }) {
+export default function HubMediaImg({ src, alt = "", className = "", style }) {
   const url = useHubMediaUrl(src);
   if (!url) return null;
-  return <img src={url} alt={alt} className={className} />;
+  return <img src={url} alt={alt} className={className} style={style} />;
 }
