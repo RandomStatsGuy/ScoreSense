@@ -1,5 +1,6 @@
 """API coverage for Fantasy atmosphere, team identity, and week trophies."""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.api import app
@@ -8,7 +9,14 @@ from src.draft_hub import storage
 from src.draft_hub.presets import load_preset
 
 
+@pytest.fixture(autouse=True)
+def _clear_hub_auth_override():
+    yield
+    app.dependency_overrides.pop(require_hub_user, None)
+
+
 def _client_for(sub: str) -> TestClient:
+    """Bind hub auth for this request. Shared TestClient overrides are process-global."""
     app.dependency_overrides[require_hub_user] = lambda: {"sub": sub, "auth_type": "dev"}
     return TestClient(app)
 
@@ -39,28 +47,26 @@ def test_team_identity_owner_can_edit_member_cannot(hub_db):
     comm, member, league = _seed_league(hub_db)
     comm_team = storage.get_team_by_user(league["id"], comm)
     member_team = storage.get_team_by_user(league["id"], member)
-    comm_client = _client_for(comm)
-    member_client = _client_for(member)
 
-    ok = comm_client.patch(
+    ok = _client_for(comm).patch(
         f"/api/hub/league/{league['id']}/teams/{comm_team['id']}/identity",
         json={"photo_preset": "storm", "room_theme": "locker"},
     )
     assert ok.status_code == 200
     assert ok.json()["identity"]["photo_preset"] == "storm"
 
-    blocked = member_client.patch(
+    blocked = _client_for(member).patch(
         f"/api/hub/league/{league['id']}/teams/{comm_team['id']}/identity",
         json={"photo_preset": "night"},
     )
     assert blocked.status_code == 403
 
-    own = member_client.patch(
+    own = _client_for(member).patch(
         f"/api/hub/league/{league['id']}/teams/{member_team['id']}/identity",
         json={"banner_preset": "amber_edge"},
     )
     assert own.status_code == 200
-    listed = member_client.get(f"/api/hub/league/{league['id']}/identities")
+    listed = _client_for(member).get(f"/api/hub/league/{league['id']}/identities")
     assert listed.status_code == 200
     assert listed.json()["identities"][member_team["id"]]["banner_preset"] == "amber_edge"
 

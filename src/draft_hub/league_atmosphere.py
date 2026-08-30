@@ -226,7 +226,7 @@ def tally_poll_votes(
     teams: list[dict[str, Any]],
     *,
     viewer_team_id: str | None = None,
-) -> list[dict[str, Any]]:
+) -> dict[str, Any]:
     counts: dict[str, int] = {}
     viewer_vote = None
     for vote in votes or []:
