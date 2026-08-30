@@ -725,7 +725,7 @@ async def hub_upload_team_identity_media(
     kind_clean = str(kind or "photo").strip().lower()
     if kind_clean not in {"photo", "banner"}:
         raise HTTPException(status_code=400, detail="Upload a photo or a banner")
-    payload = await file.read()
+    payload = await file.read(MAX_MEDIA_BYTES + 1)
     if len(payload) > MAX_MEDIA_BYTES:
         raise HTTPException(status_code=400, detail="Keep the image under 2 MB")
     content_type = detect_image_type(payload, file.content_type)
@@ -882,6 +882,9 @@ def hub_week_poll_vote(
     ctx = _ctx_for_league(sub, league_id)
     if ctx.get("mode") != "league" or not ctx.get("team_id"):
         raise HTTPException(status_code=400, detail="Join a league team to vote")
+    poll = storage.get_week_poll(poll_id)
+    if not poll or str(poll.get("league_id")) != str(league_id):
+        raise HTTPException(status_code=404, detail="Poll not found")
     nominee = storage.get_team(body.nominee_team_id)
     if not nominee or str(nominee.get("league_id")) != str(league_id):
         raise HTTPException(status_code=400, detail="Vote for a team in this league")
@@ -889,11 +892,10 @@ def hub_week_poll_vote(
         storage.cast_week_poll_vote(poll_id, str(ctx["team_id"]), str(nominee["id"]))
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    poll = storage.get_week_poll(poll_id)
     return hub_week_culture(
         league_id,
-        week=int(poll["week"]) if poll else None,
-        season=int(poll["season"]) if poll else None,
+        week=int(poll["week"]),
+        season=int(poll["season"]),
         _user=_user,
     )
 

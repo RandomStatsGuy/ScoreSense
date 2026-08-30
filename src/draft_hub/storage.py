@@ -2280,7 +2280,7 @@ def ensure_week_trophy_polls(league_id: str, season: int, week: int) -> list[dic
             if key in have:
                 continue
             conn.execute(
-                """INSERT INTO week_poll (id, league_id, season, week, poll_key, title, created_at)
+                """INSERT OR IGNORE INTO week_poll (id, league_id, season, week, poll_key, title, created_at)
                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (str(uuid.uuid4()), league_id, int(season), int(week), key, meta["title"], now),
             )

@@ -47,6 +47,12 @@ def test_locker_players_skip_missing_and_cut_rows():
     assert [row["player_id"] for row in lockers] == ["a"]
     assert lockers[0]["nameplate"] == "Allen"
 
+    blank = locker_players_from_roster(
+        {"locker_player_ids": ["a"]},
+        [{"player_id": "a", "player_name": "   ", "position": "QB", "roster_status": "active"}],
+    )
+    assert blank[0]["nameplate"] == "a"
+
 
 def test_detect_image_type_accepts_jpeg_and_rejects_empty():
     assert detect_image_type(b"\xff\xd8\xff\xe0rest") == "image/jpeg"

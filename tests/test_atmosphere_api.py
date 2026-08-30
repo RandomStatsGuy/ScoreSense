@@ -97,6 +97,22 @@ def test_week_trophy_vote_and_emote_requires_win(hub_db):
     assert denied.status_code == 400
 
 
+def test_week_trophy_vote_rejects_foreign_poll(hub_db):
+    comm, member, league_a = _seed_league(hub_db)
+    rules = load_preset("salary_cap_auction_v1")
+    other = storage.create_league("atm-other-comm", "Other League", 2026, rules)
+    other_polls = storage.ensure_week_trophy_polls(other["id"], 2026, 2)
+    foreign_poll_id = other_polls[0]["id"]
+    member_team = storage.get_team_by_user(league_a["id"], member)
+
+    blocked = _client_for(comm).post(
+        f"/api/hub/league/{league_a['id']}/week-culture/polls/{foreign_poll_id}/vote",
+        json={"nominee_team_id": member_team["id"]},
+    )
+    assert blocked.status_code == 404
+    assert storage.list_week_poll_votes(foreign_poll_id) == []
+
+
 def test_identity_media_upload_rejects_non_image(hub_db):
     comm, _member, league = _seed_league(hub_db)
     comm_team = storage.get_team_by_user(league["id"], comm)
@@ -117,3 +133,11 @@ def test_identity_media_upload_rejects_non_image(hub_db):
     fetched = client.get(f"/api/hub/media/{media_id}")
     assert fetched.status_code == 200
     assert fetched.content[:3] == b"\xff\xd8\xff"
+
+    from src.draft_hub.league_atmosphere import MAX_MEDIA_BYTES
+
+    too_big = client.post(
+        f"/api/hub/league/{league['id']}/teams/{comm_team['id']}/identity/media?kind=photo",
+        files={"file": ("huge.jpg", b"\xff\xd8\xff" + b"\x00" * MAX_MEDIA_BYTES, "image/jpeg")},
+    )
+    assert too_big.status_code == 400

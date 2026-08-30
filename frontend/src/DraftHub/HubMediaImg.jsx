@@ -16,21 +16,23 @@ export function useHubMediaUrl(src) {
       return undefined;
     }
     let cancelled = false;
-    let objectUrl = "";
+    const ctrl = new AbortController();
     (async () => {
       try {
-        const res = await apiFetch(src);
-        if (!res.ok) return;
+        const res = await apiFetch(src, { signal: ctrl.signal });
+        if (cancelled || !res.ok) return;
         const blob = await res.blob();
-        objectUrl = URL.createObjectURL(blob);
+        if (cancelled) return;
+        const objectUrl = URL.createObjectURL(blob);
         cache.set(src, objectUrl);
-        if (!cancelled) setUrl(objectUrl);
+        setUrl(objectUrl);
       } catch {
         if (!cancelled) setUrl("");
       }
     })();
     return () => {
       cancelled = true;
+      ctrl.abort();
     };
   }, [src]);
 

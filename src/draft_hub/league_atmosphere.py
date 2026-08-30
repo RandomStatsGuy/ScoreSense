@@ -157,7 +157,8 @@ def locker_players_from_roster(
         if not row:
             continue
         name = str(row.get("player_name") or "").strip()
-        last = name.split()[-1] if name else pid
+        parts = name.split()
+        last = parts[-1] if parts else pid
         out.append(
             {
                 "player_id": pid,

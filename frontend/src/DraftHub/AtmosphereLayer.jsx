@@ -51,7 +51,7 @@ export default function AtmosphereLayer({ theme = "none", liveDraft = false }) {
     const ctrl = new AbortController();
     load(ctrl.signal);
     const onVis = () => {
-      if (document.visibilityState === "visible") load();
+      if (document.visibilityState === "visible") load(ctrl.signal);
     };
     document.addEventListener("visibilitychange", onVis);
     return () => {
