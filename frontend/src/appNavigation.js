@@ -55,7 +55,7 @@ export const SECTION_SUBTITLES = {
     "league-rosters": "All rosters",
   },
   tools: {
-    dfs: "DFS lineups & stacks",
+    dfs: "Classic slates, stacks, and salary-aware lineups",
     "mock-draft": "Practice vs bots, or simulate a full draft",
   },
   model: "How we validate projections before you use them",
