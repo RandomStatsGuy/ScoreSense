@@ -2,6 +2,24 @@ import React, { useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 
+export const FALLBACK_LEAGUE_PRESETS = [
+  { id: "salary_cap_auction_v1", label: "Salary cap auction" },
+  { id: "snake_draft_v1", label: "Snake draft" },
+  { id: "linear_draft_v1", label: "Linear draft" },
+];
+
+export function leaguePresetOptions(presets) {
+  return Array.isArray(presets) && presets.length > 0 ? presets : FALLBACK_LEAGUE_PRESETS;
+}
+
+export function parseLeagueTeamCount(value) {
+  const count = Number(value);
+  if (!Number.isInteger(count) || count < 2 || count > 20) {
+    return { ok: false, error: "Team count must be between 2 and 20." };
+  }
+  return { ok: true, count };
+}
+
 export default function LeagueCreateJoinForm({
   season,
   presets,
@@ -20,8 +38,9 @@ export default function LeagueCreateJoinForm({
   const [presetId, setPresetId] = useState("salary_cap_auction_v1");
 
   const busy = busyExternal || busyLocal;
-  const presetLabel = presets?.find((p) => p.id === presetId)?.label
-    || presets?.find((p) => p.id === "salary_cap_auction_v1")?.label
+  const formatOptions = leaguePresetOptions(presets);
+  const presetLabel = formatOptions.find((p) => p.id === presetId)?.label
+    || formatOptions.find((p) => p.id === "salary_cap_auction_v1")?.label
     || "Salary cap auction";
 
   const setBusy = (next) => {
@@ -29,11 +48,19 @@ export default function LeagueCreateJoinForm({
     onBusy?.(next);
   };
 
+  const fail = (msg) => {
+    setError(msg);
+    onError?.(msg);
+  };
+
   const createLeague = async () => {
     if (!leagueName.trim()) {
-      const msg = "Enter a league name.";
-      setError(msg);
-      onError?.(msg);
+      fail("Enter a league name.");
+      return;
+    }
+    const parsed = parseLeagueTeamCount(teamCount);
+    if (!parsed.ok) {
+      fail(parsed.error);
       return;
     }
     setBusy(true);
@@ -46,7 +73,7 @@ export default function LeagueCreateJoinForm({
         body: JSON.stringify({
           name: leagueName.trim(),
           season,
-          team_count: Number(teamCount) || 12,
+          team_count: parsed.count,
           commissioner_team_name: teamName.trim() || "Commissioner",
           preset_id: presetId,
         }),
@@ -57,9 +84,7 @@ export default function LeagueCreateJoinForm({
       setTeamName("");
       onSuccess?.(data, `Created "${data.name}". Room code: ${data.room_code}. Switched to this league.`);
     } catch (e) {
-      const msg = e.message || "Could not create league";
-      setError(msg);
-      onError?.(msg);
+      fail(e.message || "Could not create league");
     } finally {
       setBusy(false);
     }
@@ -67,9 +92,7 @@ export default function LeagueCreateJoinForm({
 
   const joinLeague = async () => {
     if (!roomCode.trim() || !joinTeamName.trim()) {
-      const msg = "Room code and team name are required to join.";
-      setError(msg);
-      onError?.(msg);
+      fail("Room code and team name are required to join.");
       return;
     }
     setBusy(true);
@@ -90,9 +113,7 @@ export default function LeagueCreateJoinForm({
       setJoinTeamName("");
       onSuccess?.(data, `Joined as ${joinTeamName.trim()}. Switched to this league.`);
     } catch (e) {
-      const msg = e.message || "Could not join league";
-      setError(msg);
-      onError?.(msg);
+      fail(e.message || "Could not join league");
     } finally {
       setBusy(false);
     }
@@ -101,83 +122,95 @@ export default function LeagueCreateJoinForm({
   return (
     <>
       <div className="hub-league-setup-grid">
-      <div className="hub-league-setup-card">
-        <h3>Create a new league</h3>
-        <p className="chart-note">
-          You become commissioner and get a room code. Format: {presetLabel}.
-        </p>
-        <div className="hub-form-col">
-          <label>
-            League name
-            <input
-              value={leagueName}
-              onChange={(e) => setLeagueName(e.target.value)}
-              placeholder="Sunday Night Cap League"
-            />
-          </label>
-          <label>
-            Your team name
-            <input
-              value={teamName}
-              onChange={(e) => setTeamName(e.target.value)}
-              placeholder="My Team"
-            />
-          </label>
-          <label>
-            Draft format
-            <select value={presetId} onChange={(e) => setPresetId(e.target.value)}>
-              {(presets || [
-                { id: "salary_cap_auction_v1", label: "Salary cap auction" },
-                { id: "snake_draft_v1", label: "Snake draft" },
-                { id: "linear_draft_v1", label: "Linear draft" },
-              ]).map((p) => (
-                <option key={p.id} value={p.id}>{p.label}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Teams
-            <input
-              type="number"
-              min={2}
-              max={20}
-              value={teamCount}
-              onChange={(e) => setTeamCount(e.target.value)}
-            />
-          </label>
-          <button type="button" className="btn-primary" disabled={busy} onClick={createLeague}>
-            {busy ? "Creating…" : "Create league"}
-          </button>
-        </div>
-      </div>
+        <form
+          className="hub-league-setup-card"
+          onSubmit={(e) => {
+            e.preventDefault();
+            createLeague();
+          }}
+        >
+          <h3>Create a new league</h3>
+          <p className="chart-note">
+            You become commissioner and get a room code. Format: {presetLabel}.
+          </p>
+          <div className="hub-form-col">
+            <label>
+              League name
+              <input
+                value={leagueName}
+                onChange={(e) => setLeagueName(e.target.value)}
+                placeholder="Sunday Night Cap League"
+                required
+              />
+            </label>
+            <label>
+              Your team name
+              <input
+                value={teamName}
+                onChange={(e) => setTeamName(e.target.value)}
+                placeholder="My Team"
+              />
+            </label>
+            <label>
+              Draft format
+              <select value={presetId} onChange={(e) => setPresetId(e.target.value)}>
+                {formatOptions.map((p) => (
+                  <option key={p.id} value={p.id}>{p.label}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Teams
+              <input
+                type="number"
+                min={2}
+                max={20}
+                value={teamCount}
+                onChange={(e) => setTeamCount(e.target.value)}
+                required
+              />
+            </label>
+            <button type="submit" className="btn-primary" disabled={busy}>
+              {busy ? "Creating…" : "Create league"}
+            </button>
+          </div>
+        </form>
 
-      <div className="hub-league-setup-card">
-        <h3>Join with a room code</h3>
-        <p className="chart-note">
-          Use the room code and team name your commissioner shared. This is full league access, not just draft night.
-        </p>
-        <div className="hub-form-col">
-          <label>
-            Room code
-            <input
-              value={roomCode}
-              onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-              placeholder="ABC123"
-            />
-          </label>
-          <label>
-            Team name
-            <input
-              value={joinTeamName}
-              onChange={(e) => setJoinTeamName(e.target.value)}
-              placeholder="As listed by commissioner"
-            />
-          </label>
-          <button type="button" className="btn-ghost" disabled={busy} onClick={joinLeague}>
-            Join league
-          </button>
-        </div>
-      </div>
+        <form
+          className="hub-league-setup-card"
+          onSubmit={(e) => {
+            e.preventDefault();
+            joinLeague();
+          }}
+        >
+          <h3>Join with a room code</h3>
+          <p className="chart-note">
+            Use the room code and team name your commissioner shared. This is full league access, not just draft night.
+          </p>
+          <div className="hub-form-col">
+            <label>
+              Room code
+              <input
+                value={roomCode}
+                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                placeholder="ABC123"
+                required
+              />
+            </label>
+            <label>
+              Team name
+              <input
+                value={joinTeamName}
+                onChange={(e) => setJoinTeamName(e.target.value)}
+                placeholder="As listed by commissioner"
+                required
+              />
+            </label>
+            <button type="submit" className="btn-ghost" disabled={busy}>
+              Join league
+            </button>
+          </div>
+        </form>
       </div>
       {error && <div className="error hub-league-create-form-error">{error}</div>}
     </>

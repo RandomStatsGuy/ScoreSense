@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import LeagueCreateJoinForm from "./LeagueCreateJoinForm";
 
 export default function LeagueCreateJoinDialog({
@@ -8,10 +8,15 @@ export default function LeagueCreateJoinDialog({
   presets,
   onCreated,
 }) {
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (event) => {
-      if (event.key === "Escape") onClose?.();
+      if (event.key === "Escape") onCloseRef.current?.();
     };
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
@@ -20,7 +25,7 @@ export default function LeagueCreateJoinDialog({
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
@@ -31,7 +36,7 @@ export default function LeagueCreateJoinDialog({
       aria-modal="true"
       aria-labelledby="league-create-title"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose?.();
+        if (event.target === event.currentTarget) onCloseRef.current?.();
       }}
     >
       <div className="invite-modal league-create-modal panel">
@@ -45,10 +50,10 @@ export default function LeagueCreateJoinDialog({
           presets={presets}
           onSuccess={(data) => {
             onCreated?.(data);
-            onClose?.();
+            onCloseRef.current?.();
           }}
         />
-        <button type="button" className="btn-ghost btn-sm invite-dismiss" onClick={onClose}>
+        <button type="button" className="btn-ghost btn-sm invite-dismiss" onClick={() => onCloseRef.current?.()}>
           Cancel
         </button>
       </div>
