@@ -23,6 +23,7 @@ import LeagueContextBanner from "./LeagueContextBanner";
 import HubDemoBanner from "./HubDemoBanner";
 import WeeklyCommandCenter from "./WeeklyCommandCenter";
 import LeagueHome from "./LeagueHome";
+import LeagueCreateJoinDialog from "./LeagueCreateJoinDialog";
 import FantasyChatDock from "./FantasyChatDock";
 import { defaultInsightTab, isInsightTabAllowed } from "./hubInsightsTabs";
 import { defaultOfficeTab, isOfficeTabAllowed } from "./hubOfficeTabs";
@@ -85,6 +86,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const [rosterLoading, setRosterLoading] = useState(false);
   const [memberships, setMemberships] = useState([]);
   const [leagueSwitchBusy, setLeagueSwitchBusy] = useState(false);
+  const [createLeagueOpen, setCreateLeagueOpen] = useState(false);
   const watchLeagueKey = leagueId || hubContext?.league_id || workspace?.league_id || "solo";
   const [watchIds, setWatchIds] = useState([]);
   useEffect(() => {
@@ -106,6 +108,10 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     setSubView("office");
     onOfficeTabChange?.("current");
   }, [setSubView, onOfficeTabChange]);
+
+  const goCreateLeague = useCallback(() => {
+    setCreateLeagueOpen(true);
+  }, []);
 
   useEffect(() => {
     if (subView === "live") {
@@ -658,15 +664,14 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           mobileLayout
         />
       )}
-      {(memberships.length > 0 || effectiveCtx?.mode === "league")
-        && subView !== "room"
-        && subView !== "setup" && (
+      {subView !== "room" && subView !== "setup" && !demoMode && (
         <LeagueContextBanner
           hubContext={effectiveCtx}
           memberships={memberships}
           capSheet={capSheet}
           onNavigate={setSubView}
           onLeagueSwitch={onLeagueSwitch}
+          onCreateLeague={goCreateLeague}
           onNavigateSetup={() => setSubView(effectiveCtx?.is_commissioner ? "rules" : "setup")}
           onNavigateManage={goToRosterManagement}
           onLeagueSync={onLeagueSleeperSync}
@@ -696,6 +701,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           reloadToken={weekReloadToken}
           onNavigate={setSubView}
           onNavigateSetup={() => setSubView(effectiveCtx?.is_commissioner ? "rules" : "setup")}
+          onCreateLeague={goCreateLeague}
         />
       )}
 
@@ -723,6 +729,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           onRangesUpdated={onRangesUpdated}
           onLeagueChanged={onLeagueChanged}
           onLeagueSwitch={onLeagueSwitch}
+          onCreateLeague={goCreateLeague}
           onNavigate={setSubView}
           onLeagueSync={onLeagueSleeperSync}
           leagueSyncing={leagueSyncing}
@@ -882,6 +889,15 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           leagueId={leagueId || effectiveCtx?.league_id || ""}
           hubContext={effectiveCtx}
           hidden={subView === "room"}
+        />
+      )}
+      {!demoMode && (
+        <LeagueCreateJoinDialog
+          open={createLeagueOpen}
+          onClose={() => setCreateLeagueOpen(false)}
+          season={workspace?.season ?? new Date().getFullYear()}
+          presets={presets}
+          onCreated={onLeagueChanged}
         />
       )}
       </TeamIdentityProvider>

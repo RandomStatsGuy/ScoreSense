@@ -7,6 +7,7 @@ from src.auth import user_store
 from src.draft_hub import storage
 from src.draft_hub.draft_state import get_room_state, start_draft
 from src.draft_hub.lobby import (
+    LIVE_MEMBERS_ONLY_MESSAGE,
     build_lobby_preview,
     build_lobby_url,
     claim_draft_slot,
@@ -41,6 +42,8 @@ def test_mock_lobby_leaves_seats_open(hub_db):
     assert len(teams) == 1
     preview = build_lobby_preview(league["room_code"])
     assert preview["can_join"] is True
+    assert preview["can_walk_in"] is True
+    assert preview["members_only"] is False
     assert preview["open_seats"] == 7
     assert preview["pick_draft"] is True
 
@@ -146,6 +149,8 @@ def test_live_notify_emails_managers(hub_db, auth_db, monkeypatch):
     assert sent[0][0] == "mgr@example.com"
     assert "draft is open" in sent[0][1].lower()
     assert "/lobby/" in sent[0][2]
+    assert "members only" in sent[0][2].lower()
+    assert "guests cannot" in sent[0][2].lower()
 
     again = notify_managers_draft_open(league["id"], comm_sub, force=False)
     assert again["skipped"] is True
@@ -200,6 +205,74 @@ def test_guest_token_round_trip():
     assert payload["auth_type"] == "guest"
     assert payload["league_id"] == "lg-1"
     assert create_access_token({"id": "x", "display_name": "N", "email": "n@e.com"}, auth_type="native")
+
+
+def test_live_lobby_rejects_guest_walk_in(hub_db):
+    rules = load_preset("salary_cap_auction_v1")
+    league = storage.create_league("live-comm", "Harbor", 2026, rules, team_count=8)
+    preview = build_lobby_preview(league["room_code"])
+    assert preview["members_only"] is True
+    assert preview["can_walk_in"] is False
+    try:
+        join_lobby(league["room_code"], "Walk In")
+        raise AssertionError("expected members-only rejection")
+    except ValueError as exc:
+        assert "members" in str(exc).lower()
+        assert str(exc) == LIVE_MEMBERS_ONLY_MESSAGE
+
+
+def test_live_lobby_rejects_signed_in_non_member(hub_db, auth_db):
+    user = user_store.create_user("stranger@example.com", "pbkdf2_sha256$120000$00$00", "Pat")
+    from app.auth import native_user_sub
+
+    stranger = native_user_sub(user["id"])
+    rules = load_preset("snake_draft_v1")
+    league = storage.create_league("live-comm", "Sunday", 2026, rules, team_count=4)
+    try:
+        join_lobby(
+            league["room_code"],
+            "Pat",
+            user={"sub": stranger, "auth_type": "native"},
+        )
+        raise AssertionError("expected members-only rejection")
+    except ValueError as exc:
+        assert "members" in str(exc).lower()
+    teams = storage.list_league_teams(league["id"])
+    assert all(t.get("user_sub") != stranger for t in teams)
+
+
+def test_live_lobby_member_can_reenter(hub_db, auth_db):
+    comm = user_store.create_user("comm2@example.com", "pbkdf2_sha256$120000$00$00", "Comm")
+    mgr = user_store.create_user("mgr2@example.com", "pbkdf2_sha256$120000$00$00", "Mgr")
+    from app.auth import native_user_sub
+
+    comm_sub = native_user_sub(comm["id"])
+    mgr_sub = native_user_sub(mgr["id"])
+    rules = load_preset("snake_draft_v1")
+    league = storage.create_league(comm_sub, "Member Night", 2026, rules, team_count=4)
+    storage.join_league(mgr_sub, league["room_code"], "The Mgrs")
+    joined = join_lobby(
+        league["room_code"],
+        "The Mgrs",
+        user={"sub": mgr_sub, "auth_type": "native"},
+    )
+    assert joined["token"] is None
+    assert joined["team"]["user_sub"] == mgr_sub
+    assert joined["team"]["name"] == "The Mgrs"
+
+
+def test_live_lobby_http_rejects_anonymous_join(hub_db):
+    from app.api import app
+
+    rules = load_preset("salary_cap_auction_v1")
+    league = storage.create_league("live-http", "Cap Night", 2026, rules, team_count=6)
+    client = TestClient(app)
+    res = client.post(
+        f"/api/hub/lobby/{league['room_code']}/join",
+        json={"display_name": "Walk In"},
+    )
+    assert res.status_code == 400, res.text
+    assert "members" in res.json()["detail"].lower()
 
 
 def test_get_room_state_includes_slots(hub_db):

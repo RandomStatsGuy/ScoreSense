@@ -29,6 +29,7 @@ export default function HubSetupChecklist({
   hubContext,
   memberships = [],
   onNavigate,
+  onCreateLeague,
 }) {
   const { user, refreshAuth } = useAuth();
   const [dismissed, setDismissed] = useState(
@@ -63,10 +64,16 @@ export default function HubSetupChecklist({
         label: inLeague ? "League active" : "Create or join a league (optional)",
         done: inLeague || memberships.length > 0,
         optional: !inLeague,
-        action: () => document.querySelector(".hub-league-setup-add-toggle")?.click?.(),
+        action: () => {
+          if (onCreateLeague) {
+            onCreateLeague();
+            return;
+          }
+          document.querySelector(".hub-league-setup-add-toggle")?.click?.();
+        },
       },
     ].filter((s) => !s.hidden);
-  }, [workspace, hubContext, memberships.length, user, onNavigate]);
+  }, [workspace, hubContext, memberships.length, user, onNavigate, onCreateLeague]);
 
   const allDone = steps.every((s) => s.done);
   const show = !dismissed && !allDone && (memberships.length === 0 || !hasSleeper(workspace, hubContext));

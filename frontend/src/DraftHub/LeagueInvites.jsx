@@ -4,6 +4,7 @@ import { connectionErrorMessage, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
 import MobileDataList from "../MobileDataList";
 import { hubTeamLabel } from "./hubTeamLabel";
+import { memberInviteExplainer } from "./leagueAccessCopy";
 
 export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
   const mobileLayout = useMobileLayout();
@@ -139,7 +140,9 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
     <section className={`panel hub-panel hub-panel-embedded${mobileLayout ? " hub-invites--mobile" : ""}`}>
       <h3>Invite league members</h3>
       <p className="chart-note">
-        Sends an email with a join link when SMTP is configured on the server; otherwise copy the link below.
+        {memberInviteExplainer()}
+        {" "}
+        Sends an email with a join link when SMTP is configured; otherwise copy the link below.
       </p>
 
       <label className="hub-lock-claims">
@@ -191,7 +194,7 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
             <p className="chart-note">Email not configured — copy this link and send it yourself:</p>
           )}
           {lastEmailSent == null && (
-            <span className="chart-note">Invite link (share if email is not configured):</span>
+            <span className="chart-note">League membership link (share if email is not configured):</span>
           )}
           <div className="hub-toolbar">
             <code className="hub-invite-url">{lastInviteUrl}</code>
