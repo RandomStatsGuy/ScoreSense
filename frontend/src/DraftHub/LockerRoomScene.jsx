@@ -9,7 +9,7 @@ export default function LockerRoomScene({
 }) {
   const look = mergeTeamIdentity(identity);
   if (look.room_theme !== "locker") {
-    return children;
+    return children || null;
   }
 
   const byId = Object.fromEntries((roster || []).map((row) => [row.player_id, row]));
@@ -37,9 +37,7 @@ export default function LockerRoomScene({
           </div>
         ))}
       </div>
-      <div className="hub-locker-room-content">
-        {children}
-      </div>
+      {children ? <div className="hub-locker-room-content">{children}</div> : null}
     </div>
   );
 }

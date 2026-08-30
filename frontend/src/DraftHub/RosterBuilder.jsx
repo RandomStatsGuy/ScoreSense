@@ -740,6 +740,8 @@ export default function RosterBuilder({
         }
       />
 
+      <LockerRoomScene identity={teamIdentity} roster={roster} />
+
       {isLeague && hubContext?.league_id && hubContext?.team_id && (
         <TeamIdentityStudio
           leagueId={hubContext.league_id}
@@ -1071,9 +1073,5 @@ export default function RosterBuilder({
     </HubPage>
   );
 
-  return (
-    <LockerRoomScene identity={teamIdentity} roster={roster}>
-      {rosterPage}
-    </LockerRoomScene>
-  );
+  return rosterPage;
 }
