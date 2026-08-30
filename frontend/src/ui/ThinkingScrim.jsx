@@ -26,6 +26,14 @@ export const THINK_SCENES = {
       "Restoring your seat",
     ],
   },
+  dfs: {
+    title: "Loading the slate",
+    steps: [
+      "Pulling salaries",
+      "Matching projections",
+      "Opening the pool",
+    ],
+  },
 };
 
 export default function ThinkingScrim({
