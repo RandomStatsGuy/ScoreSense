@@ -59,6 +59,8 @@ export default function HubSetup({
   leagueSyncing = false,
   leagueSyncMessage,
   leagueSyncError,
+  startCreateOpen = false,
+  onCreateLeague,
 }) {
   const mobileLayout = useMobileLayout();
   const ctx = effectiveHubContext(hubContext, workspace);
@@ -76,7 +78,7 @@ export default function HubSetup({
         ) : null}
         <h2 className="hub-tab-intro-title">League connections</h2>
         <p className="chart-note hub-setup-lead">
-          League access, Sleeper, and imports. Rules now have their own focused workspace.
+          Create or join a league, then connect Sleeper and imports. Rules have their own workspace.
         </p>
         {onNavigate && (
           <button type="button" className="btn-primary btn-sm" onClick={() => onNavigate("rules")}>
@@ -89,6 +91,7 @@ export default function HubSetup({
         hubContext={ctx}
         memberships={memberships}
         onNavigate={onNavigate}
+        onCreateLeague={onCreateLeague}
       />
       <SetupSection
         flat
@@ -102,12 +105,14 @@ export default function HubSetup({
           presets={presets}
           onLeagueCreated={onLeagueChanged}
           onLeagueSwitch={onLeagueSwitch}
+          onCreateLeague={onCreateLeague}
           onNavigate={onNavigate}
           onLeagueSync={onLeagueSync}
           leagueSyncing={leagueSyncing}
           leagueSyncMessage={leagueSyncMessage}
           leagueSyncError={leagueSyncError}
           hideActiveHero={mobileLayout}
+          startCreateOpen={startCreateOpen}
         />
       </SetupSection>
 

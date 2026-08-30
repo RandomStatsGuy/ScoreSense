@@ -379,8 +379,6 @@ def guest_request_allowed(request: Request, user: dict[str, Any]) -> bool:
     if not league_id or match.group(1) != league_id:
         return False
     return (match.group(2) or "") in _GUEST_LEAGUE_RESTS
-        return False
-    return (match.group(2) or "") in _GUEST_LEAGUE_RESTS
 
 
 def patreon_authorize_url(state: str | None = None) -> str:

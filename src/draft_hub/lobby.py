@@ -22,6 +22,10 @@ from src.email.smtp import send_email
 
 
 MAX_DISPLAY_NAME = 24
+LIVE_MEMBERS_ONLY_MESSAGE = (
+    "This live draft is for league members. "
+    "Ask your commissioner for a league invite or room code first."
+)
 
 
 def build_lobby_url(room_code: str) -> str:
@@ -82,6 +86,10 @@ def lobby_is_joinable(league: dict[str, Any] | None) -> bool:
     return True
 
 
+def is_live_league(league: dict[str, Any] | None) -> bool:
+    return bool(league) and not bool(league.get("test_mode"))
+
+
 def build_lobby_preview(room_code: str) -> dict[str, Any]:
     league = storage.get_league_by_room_code(room_code)
     if not league:
@@ -91,6 +99,10 @@ def build_lobby_preview(room_code: str) -> dict[str, Any]:
     humans = [t for t in teams if not t.get("is_bot") and t.get("user_sub")]
     team_count = int(league.get("team_count") or 12)
     draft_type = draft_type_of(rules)
+    test_mode = bool(league.get("test_mode"))
+    members_only = not test_mode
+    joinable = lobby_is_joinable(league)
+    open_seats = max(0, team_count - len(humans))
     return {
         "room_code": league.get("room_code"),
         "league_id": league["id"],
@@ -100,13 +112,15 @@ def build_lobby_preview(room_code: str) -> dict[str, Any]:
         "pick_draft": is_pick_draft(rules),
         "team_count": team_count,
         "status": league.get("status") or "setup",
-        "test_mode": bool(league.get("test_mode")),
+        "test_mode": test_mode,
+        "members_only": members_only,
         "draft_starts_at": league.get("draft_starts_at"),
         "draft_timezone": league.get("draft_timezone"),
-        "can_join": lobby_is_joinable(league) and len(humans) < team_count,
+        "can_join": joinable and (members_only or open_seats > 0),
+        "can_walk_in": (not members_only) and joinable and open_seats > 0,
         "lobby_url": build_lobby_url(str(league.get("room_code") or "")),
         "claimed": len(humans),
-        "open_seats": max(0, team_count - len(humans)),
+        "open_seats": open_seats,
         "seats": [_public_seat(t) for t in teams if not t.get("is_bot")],
         "slots": _slot_board(teams, team_count),
         "lobby_notified_at": league.get("lobby_notified_at"),
@@ -124,6 +138,8 @@ def _claim_or_create_seat(
         if display_name and display_name != existing.get("name"):
             return storage.update_team_display_name(existing["id"], display_name)
         return existing
+    if is_live_league(league):
+        raise ValueError(LIVE_MEMBERS_ONLY_MESSAGE)
     if not lobby_is_joinable(league):
         raise ValueError("This draft is already underway")
     teams = storage.list_league_teams(league_id)
@@ -155,7 +171,7 @@ def join_lobby(
     *,
     user: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Seat a signed-in member or create a guest seat. Returns token when guest."""
+    """Seat a practice guest, or let a live-league member re-enter the room."""
     from app.auth import create_guest_access_token, is_guest_user
     from src.draft_hub.storage import user_sub_from_patron
 
@@ -164,6 +180,25 @@ def join_lobby(
         raise ValueError("Lobby not found")
     name = clean_display_name(display_name)
     guest_token = None
+    if is_live_league(league):
+        if not user or is_guest_user(user):
+            raise ValueError(LIVE_MEMBERS_ONLY_MESSAGE)
+        sub = user_sub_from_patron(user)
+        team = storage.get_team_by_user(str(league["id"]), sub)
+        if not team:
+            raise ValueError(LIVE_MEMBERS_ONLY_MESSAGE)
+        if name and name != team.get("name"):
+            team = storage.update_team_display_name(str(team["id"]), name)
+        preview = build_lobby_preview(str(league.get("room_code") or room_code))
+        return {
+            "token": None,
+            "auth_type": user.get("auth_type") or "native",
+            "league_id": league["id"],
+            "room_code": league.get("room_code"),
+            "team": team,
+            "lobby": preview,
+            "state": get_room_state(league["id"], sub),
+        }
     if user and is_guest_user(user) and str(user.get("league_id") or "") == str(league["id"]):
         sub = str(user.get("sub") or "")
         team = _claim_or_create_seat(league, sub, name)
@@ -349,7 +384,10 @@ def send_draft_open_email(
         [
             f"The {format_label} for {league_name} is open.{when}",
             "",
-            "Join the lobby (a ScoreSense account is optional for this room):",
+            f"This link opens {league_name}'s draft room. Live draft night is for league members only.",
+            "Sign in with the account that already has your team. Guests cannot take a seat.",
+            "If you do not have a team yet, ask your commissioner for a league invite or room code first.",
+            "",
             lobby_url,
             "",
             "If you already have a seat, that link puts you back in the room.",

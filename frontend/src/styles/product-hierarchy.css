@@ -223,6 +223,19 @@
   min-width: 0;
 }
 
+.hub-league-switcher-compact-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.5rem;
+  min-width: 0;
+}
+
+.hub-league-switcher-create {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .hub-league-context-identity .hub-league-switcher-select {
   max-width: 23rem;
   min-width: 15rem;
@@ -263,6 +276,13 @@
   justify-content: space-between;
   gap: 1rem;
   margin: 0 0 0.8rem;
+}
+
+.hub-home-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
 }
 
 .hub-home-heading h2 {
@@ -994,7 +1014,8 @@
   }
 
   .hub-league-context-identity .hub-league-switcher--compact,
-  .hub-league-context-identity .hub-league-switcher-select {
+  .hub-league-context-identity .hub-league-switcher-select,
+  .hub-league-switcher-compact-row {
     width: 100%;
     max-width: none;
   }
@@ -2132,6 +2153,29 @@
   grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
   gap: 1rem;
   padding: 1rem;
+}
+
+.draft-lobby-invite-copy {
+  margin: 0.35rem 0 0;
+  max-width: 28rem;
+  line-height: 1.45;
+}
+
+.draft-lobby-join-account {
+  margin-top: 1rem;
+  max-width: 24rem;
+}
+
+.draft-lobby-join-account summary {
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.league-create-overlay .league-create-modal {
+  max-width: min(44rem, calc(100vw - 1.5rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
 }
 
 .draft-lobby-join-form {
