@@ -31,11 +31,33 @@ import {
   launchCopy,
   lockedSalaryTotal,
   optimizeButtonLabel,
-  parseSalaryCap,
   rosterHint,
   salarySpend,
   slateLoadCopy,
 } from "./dfsToolPresentation";
+
+function DfsPinRow({ playerId, locked, excluded, onLock, onSkip }) {
+  return (
+    <div className="dfs-pin-row">
+      <button
+        type="button"
+        className={`dfs-pin${locked ? " is-lock" : ""}`}
+        aria-pressed={locked}
+        onClick={() => onLock(playerId)}
+      >
+        Lock
+      </button>
+      <button
+        type="button"
+        className={`dfs-pin${excluded ? " is-skip" : ""}`}
+        aria-pressed={excluded}
+        onClick={() => onSkip(playerId)}
+      >
+        Skip
+      </button>
+    </div>
+  );
+}
 
 export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
   const [localMeta, setLocalMeta] = useState(null);
@@ -463,13 +485,11 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
   });
   const previewSalary = lineup.length
     ? Number(totalSalary)
-    : lockedSalaryTotal(pool, [...locked]);
+    : lockedSalaryTotal(pool, locked);
   const spend = salarySpend({
     totalSalary: previewSalary,
     salaryCap,
-    salaryRemaining: lineup.length ? salaryRemaining : (parseSalaryCap(salaryCap) != null
-      ? parseSalaryCap(salaryCap) - previewSalary
-      : null),
+    salaryRemaining: lineup.length ? salaryRemaining : undefined,
   });
   const meterTone = capMeterTone({ remaining: spend.remaining, cap: spend.cap });
   const summaryItems = dfsSummaryItems({
@@ -487,30 +507,6 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
   const launch = launchCopy({ isDfs, hasLineup: lineup.length > 0, siteLabel: siteConfig.label });
   const canOptimize = !optimizing && !busy && pool.length > 0 && !(isDfs && !slateSalaries?.length);
   const optimizeLabel = optimizeButtonLabel({ optimizing, lineupCount });
-
-  const lockSkipControls = (row) => {
-    const pid = String(row.player_id || "");
-    return (
-      <div className="dfs-pin-row">
-        <button
-          type="button"
-          className={`dfs-pin${locked.has(pid) ? " is-lock" : ""}`}
-          aria-pressed={locked.has(pid)}
-          onClick={() => toggleLock(pid)}
-        >
-          Lock
-        </button>
-        <button
-          type="button"
-          className={`dfs-pin${excluded.has(pid) ? " is-skip" : ""}`}
-          aria-pressed={excluded.has(pid)}
-          onClick={() => toggleExclude(pid)}
-        >
-          Skip
-        </button>
-      </div>
-    );
-  };
 
   return (
     <HubPage className={`dfs-tool lineup-layout${mobileLayout ? " lineup-layout--mobile" : ""}`}>
@@ -984,7 +980,15 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                       const out = isPlayerUnavailable(row["Injury Status"]);
                       return (
                         <tr key={pid} className={out ? "lineup-row-out" : ""}>
-                          <td>{lockSkipControls(row)}</td>
+                          <td>
+                            <DfsPinRow
+                              playerId={pid}
+                              locked={locked.has(pid)}
+                              excluded={excluded.has(pid)}
+                              onLock={toggleLock}
+                              onSkip={toggleExclude}
+                            />
+                          </td>
                           <td>
                             <PlayerCell
                               name={row.Player}

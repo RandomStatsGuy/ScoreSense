@@ -70,6 +70,10 @@ test("salarySpend and capMeterTone describe leftover cap", () => {
   assert.equal(spend.used, 49200);
   assert.equal(spend.remaining, 800);
   assert.ok(spend.pct > 98);
+  const spendNull = salarySpend({ totalSalary: 49200, salaryCap: 50000, salaryRemaining: null });
+  assert.equal(spendNull.remaining, 800);
+  const spendMissing = salarySpend({ totalSalary: 49200, salaryCap: 50000 });
+  assert.equal(spendMissing.remaining, 800);
   assert.equal(capMeterTone({ remaining: 800, cap: 50000 }), "tight");
   assert.equal(capMeterTone({ remaining: -200, cap: 50000 }), "over");
   assert.equal(capMeterTone({ remaining: 12000, cap: 50000 }), "healthy");

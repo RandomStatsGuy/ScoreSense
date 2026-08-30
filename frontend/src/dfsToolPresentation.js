@@ -126,7 +126,11 @@ export function salarySpend({ totalSalary, salaryCap, salaryRemaining } = {}) {
   if (cap == null) {
     return { pct: 0, used, remaining: null, over: false, cap: null };
   }
-  const remaining = Number.isFinite(Number(salaryRemaining))
+  const remaining = (
+    salaryRemaining != null
+    && salaryRemaining !== ""
+    && Number.isFinite(Number(salaryRemaining))
+  )
     ? Number(salaryRemaining)
     : cap - used;
   const pct = Math.min(100, Math.max(0, (used / cap) * 100));
@@ -134,8 +138,7 @@ export function salarySpend({ totalSalary, salaryCap, salaryRemaining } = {}) {
 }
 
 export function lockedSalaryTotal(pool = [], lockedIds = []) {
-  const ids = lockedIds instanceof Set ? [...lockedIds] : [...(lockedIds || [])];
-  const locked = new Set(ids.map((id) => String(id)));
+  const locked = new Set(Array.from(lockedIds || [], (id) => String(id)));
   return (pool || []).reduce((sum, row) => {
     if (!locked.has(String(row.player_id))) return sum;
     const salary = Number(row.salary);
