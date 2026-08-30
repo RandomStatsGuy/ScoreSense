@@ -17375,27 +17375,21 @@ th.sortable-header {
 
 .hub-banner-fill--navy_stripe {
   background: linear-gradient(180deg, #1e3a5f 0%, #0d1524 78%);
-  box-shadow: inset 0 -4px 0 #4f7fda;
 }
 .hub-banner-fill--teal_fade {
   background: linear-gradient(120deg, #0d2a28 0%, #123044 55%, #0c1520 100%);
-  box-shadow: inset 0 -4px 0 #34d399;
 }
 .hub-banner-fill--amber_edge {
   background: linear-gradient(160deg, #3a2a14 0%, #15110d 72%);
-  box-shadow: inset 0 -4px 0 #fbbf24;
 }
 .hub-banner-fill--home_white {
   background: linear-gradient(180deg, #3a4558 0%, #1a2230 70%);
-  box-shadow: inset 0 -4px 0 #eef3fb;
 }
 .hub-banner-fill--away_slate {
   background: linear-gradient(180deg, #2a3344 0%, #121820 74%);
-  box-shadow: inset 0 -4px 0 #687a94;
 }
 .hub-banner-fill--championship {
   background: linear-gradient(135deg, #3a2e16 0%, #1a140c 68%);
-  box-shadow: inset 0 -4px 0 #f3c27a;
 }
 
 .hub-crop-img {
@@ -17489,7 +17483,7 @@ th.sortable-header {
 .hub-stadium-hero--preview {
   margin: 0;
 }
-.hub-stadium-hero--preview .hub-stadium-hero-banner { height: 4.25rem; }
+.hub-stadium-hero--preview .hub-stadium-hero-banner { height: 6rem; }
 .hub-stadium-hero--preview .hub-stadium-hero-photo {
   width: 2.6rem;
   height: 2.6rem;
