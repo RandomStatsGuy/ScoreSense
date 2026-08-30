@@ -328,6 +328,10 @@ def build_owner_draft_report(
         rules = None
     pick_draft = bool(rules and is_pick_draft(rules))
     dtype = draft_type_of(rules) if rules else "auction"
+    if pick_draft:
+        from src.draft_hub.k_def_pool_cache import overlay_k_def_projections
+
+        overlay_k_def_projections(rows)
     return {
         "team_id": str(team_id),
         "pick_count": len(rows),

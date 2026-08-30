@@ -3,7 +3,7 @@ import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import { auctionAwardContractLabel, shortAuctionContractLabel, fmtSal } from "./rosterFormat";
 import { formatPickSlot } from "./draftRoomHelpers";
-import { formatSeasonPts } from "../seasonQuantiles";
+import { formatListedProj } from "../seasonQuantiles";
 
 const GRADE_LABEL = {
   steal: "Steal",
@@ -115,7 +115,7 @@ export default function DraftOwnerReport({
                       <strong>{p.player_name}</strong>
                       <span className="chart-note"> · {p.position}</span>
                     </td>
-                    <td>{p.season_proj != null ? formatSeasonPts(p.season_proj, 0) : "—"}</td>
+                    <td>{formatListedProj(p.season_proj, 0)}</td>
                   </>
                 ) : (
                   <>

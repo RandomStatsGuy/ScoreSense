@@ -181,6 +181,19 @@ def fill_starters(
     return starters, bench
 
 
+def _positive_proj(*values: Any) -> float | None:
+    for value in values:
+        if value is None:
+            continue
+        try:
+            num = float(value)
+        except (TypeError, ValueError):
+            continue
+        if num > 0:
+            return num
+    return None
+
+
 def starter_points(starters: list[dict[str, Any]], key: str) -> float:
     total = 0.0
     for row in starters or []:
@@ -522,27 +535,55 @@ def pick_draft_awards(
             f"{info['count']} early {info['position']}s",
             "Stacked one position with early-round picks.",
         )
-    neediest = max(scored, key=lambda r: (r["unfilled"], -r["starter_p50"]))
-    if neediest["unfilled"] > 0:
+    # Follow the projected-standings table when it exists. Empty K/DEF slots
+    # used to win this award even when they contributed 0 points and the table
+    # had a different last-place team.
+    standing_need = _standings_need_row(standings, best_lineup.get("team_id"))
+    if standing_need:
+        scored_need = next((r for r in scored if str(r.get("team_id")) == str(standing_need.get("team_id"))), None)
+        holes = _unfilled_labels(scored_need["starters"], rules) if scored_need else []
+        wins = standing_need.get("expected_wins")
+        median = standing_need.get("points_p50")
+        bits = []
+        if wins is not None:
+            bits.append(f"{float(wins):.1f} expected wins")
+        if median is not None:
+            bits.append(f"{float(median):.0f} median pts")
+        if holes:
+            bits.append("needs " + ", ".join(holes))
         _add(
             "biggest_need",
             "Biggest roster need",
             "🚧",
-            neediest,
-            f"{neediest['unfilled']} starter slot{'' if neediest['unfilled'] == 1 else 's'} empty",
-            "Ended the draft with unfilled starting spots.",
+            scored_need or {
+                "team_id": standing_need.get("team_id"),
+                "team_name": standing_need.get("team_name"),
+            },
+            " · ".join(bits) or "Weakest projected finish",
+            "The weakest projected finish in the standings.",
         )
     else:
-        weakest = min(scored, key=lambda r: (r["starter_p50"], r["starter_p10"]))
-        if weakest["team_id"] != best_lineup["team_id"]:
+        neediest = max(scored, key=lambda r: (r["unfilled"], -r["starter_p50"]))
+        if neediest["unfilled"] > 0:
             _add(
                 "biggest_need",
                 "Biggest roster need",
                 "🚧",
-                weakest,
-                f"{weakest['starter_p50']:.0f} starter pts (median)",
-                "The thinnest projected starting lineup in the league.",
+                neediest,
+                f"{neediest['unfilled']} starter slot{'' if neediest['unfilled'] == 1 else 's'} empty",
+                "Ended the draft with unfilled starting spots.",
             )
+        else:
+            weakest = min(scored, key=lambda r: (r["starter_p50"], r["starter_p10"]))
+            if weakest["team_id"] != best_lineup["team_id"]:
+                _add(
+                    "biggest_need",
+                    "Biggest roster need",
+                    "🚧",
+                    weakest,
+                    f"{weakest['starter_p50']:.0f} starter pts (median)",
+                    "The thinnest projected starting lineup in the league.",
+                )
 
     balance = _best_balance(scored)
     if balance:
@@ -564,6 +605,62 @@ def pick_draft_awards(
         seen.add(award["id"])
         out.append(award)
     return out[:10]
+
+
+def _standings_need_row(
+    standings: list[dict[str, Any]],
+    best_lineup_team_id: Any,
+) -> dict[str, Any] | None:
+    rows = [r for r in (standings or []) if r.get("team_id")]
+    if len({str(r.get("team_id")) for r in rows}) < 2:
+        return None
+
+    def _key(row: dict[str, Any]) -> tuple:
+        try:
+            wins = float(row.get("expected_wins") or 0)
+        except (TypeError, ValueError):
+            wins = 0.0
+        try:
+            pts = float(row.get("points_p50") or 0)
+        except (TypeError, ValueError):
+            pts = 0.0
+        try:
+            rank = -int(row.get("rank") or 0)
+        except (TypeError, ValueError):
+            rank = 0
+        return (wins, pts, rank, str(row.get("team_name") or ""))
+
+    last = min(rows, key=_key)
+    if str(last.get("team_id")) == str(best_lineup_team_id or ""):
+        return None
+    return last
+
+
+def _unfilled_labels(starters: list[dict[str, Any]] | None, rules: LeagueRules) -> list[str]:
+    filled: dict[str, int] = {}
+    for row in starters or []:
+        pos = normalize_position(row.get("position"))
+        if pos:
+            filled[pos] = filled.get(pos, 0) + 1
+    limits = roster_limits(rules)
+    holes: list[str] = []
+    for pos in STARTER_FILL_ORDER:
+        need = int((limits.get(pos.lower()) or {}).get("starter") or 0)
+        have = int(filled.get(pos, 0))
+        missing = max(0, need - have)
+        if missing == 1:
+            holes.append(pos)
+        elif missing > 1:
+            holes.append(f"{pos}×{missing}")
+    flex_n, flex_eligible = _flex_rule(rules)
+    if flex_n > 0:
+        extras = 0
+        for pos in flex_eligible:
+            need = int((limits.get(pos.lower()) or {}).get("starter") or 0)
+            extras += max(0, int(filled.get(pos, 0)) - need)
+        if extras < flex_n:
+            holes.append("FLEX")
+    return holes
 
 
 def _best_late_round_value(players: list[dict[str, Any]]) -> dict[str, Any] | None:
@@ -828,6 +925,14 @@ def projection_index_from_pool(season: int) -> tuple[dict[str, dict[str, Any]], 
             "player_name": str(p.get("Player") or ""),
             "team": str(p.get("Team") or ""),
         }
+    try:
+        from src.draft_hub.k_def_pool_cache import k_def_projection_index
+
+        for pid, row in k_def_projection_index(allow_fetch=False).items():
+            if pid not in index:
+                index[pid] = row
+    except Exception:
+        pass
     return index, nfl_games
 
 
@@ -847,11 +952,9 @@ def players_for_team(
         if not pid:
             continue
         pool = proj_index.get(pid) or {}
-        p50 = p.get("season_p50") if p.get("season_p50") is not None else p.get("season_proj")
-        if p50 is None:
-            p50 = pool.get("p50")
-        p10 = p.get("season_p10") if p.get("season_p10") is not None else pool.get("p10")
-        p90 = p.get("season_p90") if p.get("season_p90") is not None else pool.get("p90")
+        p50 = _positive_proj(p.get("season_p50"), p.get("season_proj"), pool.get("p50"), pool.get("season_proj"))
+        p10 = _positive_proj(p.get("season_p10"), pool.get("p10"))
+        p90 = _positive_proj(p.get("season_p90"), pool.get("p90"))
         by_id[pid] = {
             "player_id": pid,
             "player_name": p.get("player_name") or pool.get("player_name") or "Player",

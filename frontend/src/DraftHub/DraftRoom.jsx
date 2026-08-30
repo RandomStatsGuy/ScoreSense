@@ -1331,7 +1331,7 @@ export default function DraftRoom({
     if (!lastAward) return;
     const p = lastAward.payload || {};
     const isPick = lastAward.event_type === "pick" || pickDraft;
-    const proj = p.season_proj != null && Number.isFinite(Number(p.season_proj))
+    const proj = p.season_proj != null && Number.isFinite(Number(p.season_proj)) && Number(p.season_proj) > 0
       ? `${Number(p.season_proj).toFixed(0)} proj pts`
       : "";
     setPickRecap({

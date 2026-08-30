@@ -64,6 +64,24 @@ test("apiFetch uses a guest token only on hub URLs", async () => {
   }
 });
 
+test("guest token does not match a league id substring in the path", async () => {
+  setToken(null);
+  setGuestSession({ token: "guest-tok", leagueId: "lg-1", roomCode: "ABC123" });
+  let init;
+  const orig = globalThis.fetch;
+  globalThis.fetch = async (_url, options) => {
+    init = options;
+    return new Response("{}", { status: 200 });
+  };
+  try {
+    await apiFetch("/api/hub/league/lg-12");
+    assert.equal(init.headers.Authorization, undefined);
+  } finally {
+    globalThis.fetch = orig;
+    clearGuestSession();
+  }
+});
+
 test("apiFetch sets JSON content-type for JSON bodies", async () => {
   setToken("tok");
   let init;

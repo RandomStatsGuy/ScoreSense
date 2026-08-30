@@ -207,6 +207,30 @@ def test_guest_token_round_trip():
     assert create_access_token({"id": "x", "display_name": "N", "email": "n@e.com"}, auth_type="native")
 
 
+def test_guest_request_allowed_scopes_to_joined_room():
+    from types import SimpleNamespace
+
+    from app.auth import guest_request_allowed
+
+    user = {"sub": "guest:abc", "auth_type": "guest", "league_id": "lg-1"}
+
+    def req(path: str):
+        return SimpleNamespace(url=SimpleNamespace(path=path))
+
+    assert guest_request_allowed(req("/api/hub/lobby/ABCD"), user) is True
+    assert guest_request_allowed(req("/api/hub/draft-room/lg-1"), user) is True
+    assert guest_request_allowed(req("/api/hub/league/lg-1"), user) is True
+    assert guest_request_allowed(req("/api/hub/league/lg-1/pick"), user) is True
+    assert guest_request_allowed(req("/api/hub/ws/lg-1"), user) is True
+    assert guest_request_allowed(req("/api/hub/league/other"), user) is False
+    assert guest_request_allowed(req("/api/hub/ws/other"), user) is False
+    assert guest_request_allowed(req("/api/hub/mock-drafts"), user) is False
+    # Lobby join stays reachable even if the token is missing league_id.
+    bare = {"sub": "guest:abc", "auth_type": "guest"}
+    assert guest_request_allowed(req("/api/hub/lobby/ABCD"), bare) is True
+    assert guest_request_allowed(req("/api/hub/league/lg-1"), bare) is False
+
+
 def test_live_lobby_rejects_guest_walk_in(hub_db):
     rules = load_preset("salary_cap_auction_v1")
     league = storage.create_league("live-comm", "Harbor", 2026, rules, team_count=8)
