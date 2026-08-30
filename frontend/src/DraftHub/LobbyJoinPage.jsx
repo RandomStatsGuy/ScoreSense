@@ -139,6 +139,7 @@ export default function LobbyJoinPage() {
           <div className="draft-lobby-join-grid">
             <section className="hub-experience-section">
               {preview?.can_join ? (
+                <>
                 <form onSubmit={join} className="draft-lobby-join-form">
                   <label htmlFor="lobby-join-name">Team name in this league</label>
                   <input
@@ -174,6 +175,7 @@ export default function LobbyJoinPage() {
                     />
                   </details>
                 ) : null}
+                </>
               ) : (
                 <p className="chart-note">Ask the host for a new link if you still need a seat.</p>
               )}
