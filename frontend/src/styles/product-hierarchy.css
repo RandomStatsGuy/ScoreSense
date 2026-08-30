@@ -1316,6 +1316,17 @@
   font-size: 0.78rem;
 }
 
+.dfs-launch-error {
+  margin: 0 0 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  border-radius: 12px;
+  background: rgba(248, 113, 113, 0.08);
+  color: #fecaca;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
 @media (max-width: 1100px) and (min-width: 769px) {
   .dfs-tool .mock-draft-formats {
     grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -1107,7 +1107,9 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
           ) : (
             <ol className="dfs-slot-list">
               {lineup.length === 0 && (
-                <li className="dfs-slot-empty">{emptyLineupCopy({ optimizing, isDfs })}</li>
+                <li className="dfs-slot-empty">
+                  {error || emptyLineupCopy({ optimizing, isDfs })}
+                </li>
               )}
               {lineup.map((row) => (
                 <li key={`${row.slot}-${row.player_id}`} className="dfs-slot-row">
@@ -1130,6 +1132,9 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
             </ol>
           )}
           {optimizeNote && <p className="chart-note lineup-result-note">{optimizeNote}</p>}
+          {error ? (
+            <p className="dfs-launch-error" role="alert">{error}</p>
+          ) : null}
 
           <Button
             className="mock-draft-launch-button"
