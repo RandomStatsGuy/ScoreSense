@@ -27,6 +27,12 @@ function revokeUrl(entry) {
   if (entry?.url) URL.revokeObjectURL(entry.url);
 }
 
+function replacePending(ref, setter, entry) {
+  revokeUrl(ref.current);
+  ref.current = entry;
+  setter(entry);
+}
+
 function FocusSliders({ label, focus, onChange, disabled }) {
   const next = mergeFocus(focus);
   const set = (key, value) => onChange(mergeFocus({ ...next, [key]: Number(value) }));
@@ -93,8 +99,9 @@ export default function TeamIdentityStudio({
   const [pendingBanner, setPendingBanner] = useState(null);
   const [clearPhoto, setClearPhoto] = useState(false);
   const [clearBanner, setClearBanner] = useState(false);
-  const photoInputRef = useRef(null);
-  const bannerInputRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const pendingPhotoRef = useRef(null);
+  const pendingBannerRef = useRef(null);
   const titleRef = useRef(null);
   const requestCloseRef = useRef(null);
   const promptingRef = useRef(false);
@@ -107,14 +114,8 @@ export default function TeamIdentityStudio({
     setError("");
     setClearPhoto(false);
     setClearBanner(false);
-    setPendingPhoto((prev) => {
-      revokeUrl(prev);
-      return null;
-    });
-    setPendingBanner((prev) => {
-      revokeUrl(prev);
-      return null;
-    });
+    replacePending(pendingPhotoRef, setPendingPhoto, null);
+    replacePending(pendingBannerRef, setPendingBanner, null);
     const onKey = (event) => {
       if (event.key === "Escape") requestCloseRef.current?.();
     };
@@ -126,6 +127,10 @@ export default function TeamIdentityStudio({
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
       window.cancelAnimationFrame(frame);
+      revokeUrl(pendingPhotoRef.current);
+      pendingPhotoRef.current = null;
+      revokeUrl(pendingBannerRef.current);
+      pendingBannerRef.current = null;
     };
   }, [open]); // identity is captured when the editor opens
 
@@ -173,20 +178,13 @@ export default function TeamIdentityStudio({
 
   const stageFile = (kind, file) => {
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    const entry = { file, url };
+    const entry = { file, url: URL.createObjectURL(file) };
     if (kind === "photo") {
-      setPendingPhoto((prev) => {
-        revokeUrl(prev);
-        return entry;
-      });
+      replacePending(pendingPhotoRef, setPendingPhoto, entry);
       setClearPhoto(false);
       setDraft((prev) => ({ ...prev, photo_focus: mergeFocus({ x: 50, y: 50, zoom: 1 }) }));
     } else {
-      setPendingBanner((prev) => {
-        revokeUrl(prev);
-        return entry;
-      });
+      replacePending(pendingBannerRef, setPendingBanner, entry);
       setClearBanner(false);
       setDraft((prev) => ({ ...prev, banner_focus: mergeFocus({ x: 50, y: 50, zoom: 1 }) }));
     }
@@ -194,16 +192,10 @@ export default function TeamIdentityStudio({
 
   const removeUpload = (kind) => {
     if (kind === "photo") {
-      setPendingPhoto((prev) => {
-        revokeUrl(prev);
-        return null;
-      });
+      replacePending(pendingPhotoRef, setPendingPhoto, null);
       setClearPhoto(true);
     } else {
-      setPendingBanner((prev) => {
-        revokeUrl(prev);
-        return null;
-      });
+      replacePending(pendingBannerRef, setPendingBanner, null);
       setClearBanner(true);
     }
   };
@@ -256,14 +248,8 @@ export default function TeamIdentityStudio({
       const data = await res.json();
       const next = mergeTeamIdentity(data.identity);
       setDraft(next);
-      setPendingPhoto((prev) => {
-        revokeUrl(prev);
-        return null;
-      });
-      setPendingBanner((prev) => {
-        revokeUrl(prev);
-        return null;
-      });
+      replacePending(pendingPhotoRef, setPendingPhoto, null);
+      replacePending(pendingBannerRef, setPendingBanner, null);
       setClearPhoto(false);
       setClearBanner(false);
       onSaved?.(next);
@@ -276,10 +262,12 @@ export default function TeamIdentityStudio({
   };
 
   const toggleLocker = (playerId) => {
-    const next = new Set(selected);
-    if (next.has(playerId)) next.delete(playerId);
-    else if (next.size < MAX_LOCKER_PLAYERS) next.add(playerId);
-    setDraft((prev) => ({ ...prev, locker_player_ids: Array.from(next) }));
+    setDraft((prev) => {
+      const next = new Set(prev.locker_player_ids || []);
+      if (next.has(playerId)) next.delete(playerId);
+      else if (next.size < MAX_LOCKER_PLAYERS) next.add(playerId);
+      return { ...prev, locker_player_ids: Array.from(next) };
+    });
   };
 
   if (!open || !leagueId || !teamId) return null;
@@ -465,7 +453,7 @@ export default function TeamIdentityStudio({
 
               <div className="hub-look-upload-row">
                 <input
-                  ref={cropKind === "banner" ? bannerInputRef : photoInputRef}
+                  ref={fileInputRef}
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   className="sr-only"
@@ -478,7 +466,7 @@ export default function TeamIdentityStudio({
                   type="button"
                   className="btn-ghost"
                   disabled={busy}
-                  onClick={() => (cropKind === "banner" ? bannerInputRef : photoInputRef).current?.click()}
+                  onClick={() => fileInputRef.current?.click()}
                 >
                   {cropKind === "banner" ? "Upload banner" : "Upload photo"}
                 </button>
