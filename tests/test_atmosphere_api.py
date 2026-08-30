@@ -1,0 +1,113 @@
+"""API coverage for Fantasy atmosphere, team identity, and week trophies."""
+
+from fastapi.testclient import TestClient
+
+from app.api import app
+from app.auth import require_hub_user
+from src.draft_hub import storage
+from src.draft_hub.presets import load_preset
+
+
+def _client_for(sub: str) -> TestClient:
+    app.dependency_overrides[require_hub_user] = lambda: {"sub": sub, "auth_type": "dev"}
+    return TestClient(app)
+
+
+def _seed_league(hub_db):
+    comm = "atm-api-comm"
+    member = "atm-api-member"
+    ws = storage.get_or_create_workspace(comm, season=2026)
+    rules = load_preset("salary_cap_auction_v1")
+    league = storage.create_league(comm, "Culture League", 2026, rules, workspace_id=ws["id"])
+    storage.join_league(member, league["room_code"], "Visitor")
+    return comm, member, league
+
+
+def test_prefs_round_trip(hub_db):
+    client = _client_for("atm-pref-user")
+    empty = client.get("/api/hub/prefs")
+    assert empty.status_code == 200
+    assert empty.json()["prefs"]["atmosphere"] == "none"
+
+    saved = client.patch("/api/hub/prefs", json={"atmosphere": "snow"})
+    assert saved.status_code == 200
+    assert saved.json()["prefs"]["atmosphere"] == "snow"
+    assert client.get("/api/hub/prefs").json()["prefs"]["atmosphere"] == "snow"
+
+
+def test_team_identity_owner_can_edit_member_cannot(hub_db):
+    comm, member, league = _seed_league(hub_db)
+    comm_team = storage.get_team_by_user(league["id"], comm)
+    member_team = storage.get_team_by_user(league["id"], member)
+    comm_client = _client_for(comm)
+    member_client = _client_for(member)
+
+    ok = comm_client.patch(
+        f"/api/hub/league/{league['id']}/teams/{comm_team['id']}/identity",
+        json={"photo_preset": "storm", "room_theme": "locker"},
+    )
+    assert ok.status_code == 200
+    assert ok.json()["identity"]["photo_preset"] == "storm"
+
+    blocked = member_client.patch(
+        f"/api/hub/league/{league['id']}/teams/{comm_team['id']}/identity",
+        json={"photo_preset": "night"},
+    )
+    assert blocked.status_code == 403
+
+    own = member_client.patch(
+        f"/api/hub/league/{league['id']}/teams/{member_team['id']}/identity",
+        json={"banner_preset": "amber_edge"},
+    )
+    assert own.status_code == 200
+    listed = member_client.get(f"/api/hub/league/{league['id']}/identities")
+    assert listed.status_code == 200
+    assert listed.json()["identities"][member_team["id"]]["banner_preset"] == "amber_edge"
+
+
+def test_week_trophy_vote_and_emote_requires_win(hub_db):
+    comm, member, league = _seed_league(hub_db)
+    member_team = storage.get_team_by_user(league["id"], member)
+    client = _client_for(comm)
+    culture = client.get(f"/api/hub/league/{league['id']}/week-culture?week=2&season=2026")
+    assert culture.status_code == 200
+    payload = culture.json()
+    assert len(payload["polls"]) == 4
+    poll_id = payload["polls"][0]["id"]
+
+    voted = client.post(
+        f"/api/hub/league/{league['id']}/week-culture/polls/{poll_id}/vote",
+        json={"nominee_team_id": member_team["id"]},
+    )
+    assert voted.status_code == 200
+    first = next(p for p in voted.json()["polls"] if p["id"] == poll_id)
+    assert first["viewer_vote"] == member_team["id"]
+    assert first["total_votes"] == 1
+
+    denied = client.post(
+        f"/api/hub/league/{league['id']}/week-culture/emotes",
+        json={"to_team_id": member_team["id"], "emote_key": "flex", "week": 2, "season": 2026},
+    )
+    assert denied.status_code == 400
+
+
+def test_identity_media_upload_rejects_non_image(hub_db):
+    comm, _member, league = _seed_league(hub_db)
+    comm_team = storage.get_team_by_user(league["id"], comm)
+    client = _client_for(comm)
+    bad = client.post(
+        f"/api/hub/league/{league['id']}/teams/{comm_team['id']}/identity/media?kind=photo",
+        files={"file": ("note.txt", b"not-an-image", "text/plain")},
+    )
+    assert bad.status_code == 400
+
+    jpeg = b"\xff\xd8\xff\xe0" + b"\x00" * 32
+    ok = client.post(
+        f"/api/hub/league/{league['id']}/teams/{comm_team['id']}/identity/media?kind=photo",
+        files={"file": ("team.jpg", jpeg, "image/jpeg")},
+    )
+    assert ok.status_code == 200
+    media_id = ok.json()["media"]["id"]
+    fetched = client.get(f"/api/hub/media/{media_id}")
+    assert fetched.status_code == 200
+    assert fetched.content[:3] == b"\xff\xd8\xff"

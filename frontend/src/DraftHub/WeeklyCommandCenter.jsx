@@ -27,6 +27,7 @@ import {
   isPoorProjectionCoverage,
   projectionCoverageRatio,
 } from "./projectionCoverage";
+import WeekCulturePanel from "./WeekCulturePanel";
 
 function fmtPts(value) {
   return fmtNum(value, 1);
@@ -528,6 +529,8 @@ export default function WeeklyCommandCenter({
           </ul>
         )}
       </HubSection>
+
+      <WeekCulturePanel hubContext={hubContext} week={weekOverride || meta.week} />
 
       <HubSection
         title="Wide projection ranges"

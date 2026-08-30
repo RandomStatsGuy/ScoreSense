@@ -28,6 +28,11 @@ import {
 } from "./rookieExtend";
 import ContractHistoryLink from "./ContractHistoryLink";
 import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
+import LockerRoomScene from "./LockerRoomScene";
+import TeamIdentityMark from "./TeamIdentityMark";
+import TeamIdentityStudio from "./TeamIdentityStudio";
+import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
+import { hubTeamLabel } from "./hubTeamLabel";
 
 const TEAM_LOGO_ALIASES = { JAX: "jax", JAC: "jax", LA: "lar", LAR: "lar", WSH: "wsh", WAS: "wsh" };
 
@@ -325,6 +330,7 @@ export default function RosterBuilder({
   const [typeOverrides, setTypeOverrides] = useState({});
   const [extendYearsById, setExtendYearsById] = useState({});
 
+  const { identities, setIdentities } = useTeamIdentities();
   const mobileLayout = useMobileLayout();
   const maxYears = Math.max(1, Number(workspace?.rules?.contracts?.max_years ?? 3) || 3);
   const defaultStepUp = leagueStepUp(workspace?.rules);
@@ -332,8 +338,14 @@ export default function RosterBuilder({
   const season = workspace?.season ?? new Date().getFullYear();
   const draftCompleted = Boolean(hubContext?.draft_completed);
   const preDraft = !draftCompleted ? capSheet?.pre_draft : null;
-  const linked = Boolean(sleeper?.sleeper_league_id && sleeper?.sleeper_roster_id);
-  const teamName = sleeper?.sleeper_team_name;
+  const teamName = hubTeamLabel({
+    name: hubContext?.team_name,
+    sleeper_team_name: sleeper?.sleeper_team_name || hubContext?.sleeper_team_name,
+  }) || sleeper?.sleeper_team_name || hubContext?.team_name;
+  const teamIdentity = identityFor(identities, {
+    id: hubContext?.team_id,
+    identity: hubContext?.team_identity,
+  });
   const isLeague = hubContext?.mode === "league";
   const isCommissioner = Boolean(hubContext?.is_commissioner || hubContext?.can_edit_salaries);
   // SCORE-41: league My Team never edits salary/years/type — Roster management is the arbitrary editor.
@@ -705,10 +717,10 @@ export default function RosterBuilder({
     };
   })() : null;
 
-  return (
+  const rosterPage = (
     <HubPage className="hub-roster-builder">
       <HubTabIntro
-        title="Roster"
+        title="My team"
         compact
         learnMore={
           contractsReadOnly
@@ -720,17 +732,35 @@ export default function RosterBuilder({
                 {officeLink ? <> {officeLink}</> : null}
               </p>
             )
-            : null
+            : (
+              <p>
+                Personal roster decisions live here. A photo and banner travel with your team on other Fantasy pages.
+              </p>
+            )
         }
       />
 
-      <div className="hub-roster-hero">
+      {isLeague && hubContext?.league_id && hubContext?.team_id && (
+        <TeamIdentityStudio
+          leagueId={hubContext.league_id}
+          teamId={hubContext.team_id}
+          identity={teamIdentity}
+          roster={roster}
+          onSaved={(next) => {
+            setIdentities?.((prev) => ({ ...prev, [hubContext.team_id]: next }));
+          }}
+        />
+      )}
+
+      <div className={`hub-roster-hero hub-team-banner--${teamIdentity?.banner_preset || "navy_stripe"}`}>
         <div className="hub-roster-hero-top">
-          {linked && teamName && (
+          {teamName && (
             <div className="hub-roster-team-banner">
-              <span className="hub-roster-team-avatar" aria-hidden="true">
-                {teamName.slice(0, 2).toUpperCase()}
-              </span>
+              <TeamIdentityMark
+                team={{ id: hubContext?.team_id, name: teamName, sleeper_team_name: sleeper?.sleeper_team_name }}
+                identity={teamIdentity}
+                size="lg"
+              />
               <div>
                 <div className="hub-roster-team-name">{teamName}</div>
                 <div className="hub-roster-team-meta">
@@ -1039,5 +1069,11 @@ export default function RosterBuilder({
         </div>
       )}
     </HubPage>
+  );
+
+  return (
+    <LockerRoomScene identity={teamIdentity} roster={roster}>
+      {rosterPage}
+    </LockerRoomScene>
   );
 }
