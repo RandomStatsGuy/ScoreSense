@@ -276,6 +276,8 @@ def _media_for_players(
                 "team_logo_url": team_logo_url(team),
                 "team": team,
                 "sleeper_id": sleeper_id,
+                # Locker-room jerseys and player chrome read this when present.
+                "jersey_number": _clean_ext_id(row.get("number")),
             }
         else:
             out[pid] = {
@@ -284,6 +286,7 @@ def _media_for_players(
                 "team_logo_url": team_logo_url(team) if team else None,
                 "team": team or None,
                 "sleeper_id": None,
+                "jersey_number": None,
             }
     return out
 

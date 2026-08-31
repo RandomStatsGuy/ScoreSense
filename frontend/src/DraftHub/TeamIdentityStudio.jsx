@@ -13,6 +13,7 @@ import {
   mergeTeamIdentity,
 } from "./atmosphereCatalog";
 import IdentityCropMedia from "./IdentityCropMedia";
+import LockerRoomScene from "./LockerRoomScene";
 import TeamIdentityMark from "./TeamIdentityMark";
 import TeamStadiumHero from "./TeamStadiumHero";
 import { normalizeHubPosition } from "./hubPositions";
@@ -89,6 +90,7 @@ export default function TeamIdentityStudio({
   team,
   identity,
   roster = [],
+  mediaById = {},
   onSaved,
 }) {
   const [draft, setDraft] = useState(() => mergeTeamIdentity(identity));
@@ -344,7 +346,8 @@ export default function TeamIdentityStudio({
             {draft.room_theme === "locker" && (
               <>
                 <p className="chart-note" id="hub-locker-help">
-                  Choose up to {MAX_LOCKER_PLAYERS} players for locker nameplates.
+                  Choose up to {MAX_LOCKER_PLAYERS} players for locker nameplates. Lockers hang
+                  in the order you pick them.
                 </p>
                 <div className="hub-identity-lockers" role="group" aria-describedby="hub-locker-help">
                   {activeRoster.map((row) => {
@@ -367,6 +370,17 @@ export default function TeamIdentityStudio({
                     <p className="chart-note">Add players before assigning lockers.</p>
                   )}
                 </div>
+                {(draft.locker_player_ids || []).length > 0 && (
+                  <div className="hub-look-room-preview">
+                    <p className="hub-look-side-label">Wall preview</p>
+                    <LockerRoomScene
+                      identity={draft}
+                      roster={activeRoster}
+                      mediaById={mediaById}
+                      preview
+                    />
+                  </div>
+                )}
               </>
             )}
           </div>

@@ -759,15 +759,32 @@ export default function RosterBuilder({
             : null
         }
         cap={(
-          <div className="hub-stat-card hub-stat-card--accent" style={{ minWidth: "9rem" }}>
+          <div className="hub-stat-card hub-stat-card--accent hub-stadium-cap-card">
             <span className="hub-stat-label">Cap ({season})</span>
             <strong className="hub-stat-value">
               ${totalSalary.toFixed(0)}
               <span className="hub-stat-value-note"> / ${salaryCap}</span>
             </strong>
+            {salaryCap > 0 && (
+              <span className="hub-stadium-cap-bar" aria-hidden="true">
+                <span
+                  className="hub-stadium-cap-bar-committed"
+                  style={{ width: `${Math.min(100, Math.max(0, (totalSalary / salaryCap) * 100))}%` }}
+                />
+                {Number(capSheet?.summary?.dead_cap) > 0 && (
+                  <span
+                    className="hub-stadium-cap-bar-dead"
+                    style={{ width: `${Math.min(100, (Number(capSheet.summary.dead_cap) / salaryCap) * 100)}%` }}
+                  />
+                )}
+              </span>
+            )}
             {preDraft && (
               <span className="hub-stat-sub">
                 ${preDraft.draft_budget_available?.toFixed(0)} for draft
+                {Number(capSheet?.summary?.dead_cap) > 0
+                  ? ` · $${Number(capSheet.summary.dead_cap).toFixed(0)} dead`
+                  : ""}
               </span>
             )}
           </div>
@@ -783,7 +800,7 @@ export default function RosterBuilder({
         )}
       />
 
-      <LockerRoomScene identity={teamIdentity} roster={roster} />
+      <LockerRoomScene identity={teamIdentity} roster={roster} mediaById={mediaById} />
 
       {isLeague && hubContext?.league_id && hubContext?.team_id && (
         <TeamIdentityStudio
@@ -794,6 +811,7 @@ export default function RosterBuilder({
           team={{ id: hubContext.team_id, name: teamName, sleeper_team_name: sleeper?.sleeper_team_name }}
           identity={teamIdentity}
           roster={roster}
+          mediaById={mediaById}
           onSaved={(next) => {
             setIdentities?.((prev) => ({ ...prev, [hubContext.team_id]: next }));
           }}

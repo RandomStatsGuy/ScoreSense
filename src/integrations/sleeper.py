@@ -247,6 +247,7 @@ def players_dataframe(force_refresh: bool = False) -> pd.DataFrame:
                 "gsis_id": info.get("gsis_id") or "",
                 "espn_id": info.get("espn_id") or "",
                 "years_exp": info.get("years_exp"),
+                "number": info.get("number"),
                 "depth_chart_order": info.get("depth_chart_order"),
                 "depth_chart_position": info.get("depth_chart_position") or "",
                 "search_rank": info.get("search_rank"),
