@@ -78,7 +78,10 @@ export function gameStateLabel(payload) {
   if (payload?.preseason) return "Preseason";
   const week = payload?.week;
   const current = payload?.current_week;
-  if (week != null && current != null && Number(week) < Number(current)) return "Final";
+  if (week != null && current != null) {
+    if (Number(week) < Number(current)) return "Final";
+    if (Number(week) > Number(current)) return "Upcoming";
+  }
   return "Live";
 }
 
@@ -106,3 +109,33 @@ export const GAME_CENTER_COPY = {
   trophiesTitle: "After the whistle",
   trophiesSupport: "Reactions and week trophies — winners land in Insights.",
 };
+
+/** Empty-state copy when Game center cannot show the viewer's duel. */
+export function gameCenterEmptyState(payload, { matchup, viewer, opponent } = {}) {
+  if (!payload) return null;
+  if (payload.reason === "no_sleeper_league") {
+    return {
+      title: "No Sleeper league linked",
+      body: GAME_CENTER_COPY.emptyNoSleeper,
+      action: "setup",
+      actionLabel: "Open Setup",
+    };
+  }
+  if (!payload.available || payload.preseason || !(payload.matchups || []).length) {
+    return {
+      title: "No matchups yet",
+      body: payload.hint || GAME_CENTER_COPY.emptyPreseason,
+      action: "room",
+      actionLabel: "Go to Draft",
+    };
+  }
+  if (!(matchup && viewer && opponent)) {
+    return {
+      title: "No matchup this week",
+      body: GAME_CENTER_COPY.emptySolo,
+      action: "setup",
+      actionLabel: "Open Setup",
+    };
+  }
+  return null;
+}

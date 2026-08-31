@@ -7,6 +7,7 @@ import {
   duelRows,
   findViewerMatchup,
   formatWinProb,
+  gameCenterEmptyState,
   gameStateLabel,
   matchupStoryline,
   matchupTeams,
@@ -80,8 +81,25 @@ test("storyline names the lead and who is still to play", () => {
   assert.match(final, /^Final: Daddio takes it by 2.7/);
 });
 
-test("game state label distinguishes past weeks and preseason", () => {
+test("game state label distinguishes past, current, and future weeks", () => {
   assert.equal(gameStateLabel({ preseason: true }), "Preseason");
   assert.equal(gameStateLabel({ week: 10, current_week: 12 }), "Final");
   assert.equal(gameStateLabel({ week: 12, current_week: 12 }), "Live");
+  assert.equal(gameStateLabel({ week: 14, current_week: 12 }), "Upcoming");
+});
+
+test("empty state covers missing viewer matchup when the week has games", () => {
+  const payload = {
+    available: true,
+    preseason: false,
+    viewer_matchup_id: null,
+    matchups: [{ matchup_id: "4", teams: [{ roster_id: "1" }, { roster_id: "2" }] }],
+  };
+  const empty = gameCenterEmptyState(payload, { matchup: null, viewer: null, opponent: null });
+  assert.equal(empty.title, "No matchup this week");
+  assert.match(empty.body, /head-to-head matchup/);
+  assert.equal(empty.action, "setup");
+  assert.equal(gameCenterEmptyState({ reason: "no_sleeper_league" })?.action, "setup");
+  assert.equal(gameCenterEmptyState({ available: true, preseason: true, matchups: [] })?.title, "No matchups yet");
+  assert.equal(gameCenterEmptyState(payload, { matchup: MATCHUP, viewer: MATCHUP.teams[0], opponent: MATCHUP.teams[1] }), null);
 });

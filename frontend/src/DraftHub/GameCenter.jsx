@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
@@ -14,6 +14,7 @@ import {
   findViewerMatchup,
   formatSyncedAgo,
   formatWinProb,
+  gameCenterEmptyState,
   gameStateLabel,
   matchupStoryline,
   matchupTeams,
@@ -66,9 +67,12 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [week, setWeek] = useState(null); // null = current NFL week
+  const weekRef = useRef(week);
+  weekRef.current = week;
 
   const load = useCallback(async (signal, { refresh = false } = {}) => {
     if (!leagueId) return;
+    const requestedWeek = week;
     setError("");
     try {
       const params = new URLSearchParams();
@@ -81,12 +85,13 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
       );
       if (!res.ok) throw new Error(await parseApiError(res));
       const payload = await res.json();
-      if (!signal?.aborted) setData(payload);
+      if (signal?.aborted || weekRef.current !== requestedWeek) return;
+      setData(payload);
     } catch (e) {
-      if (isAbortError(e) || signal?.aborted) return;
+      if (isAbortError(e) || signal?.aborted || weekRef.current !== requestedWeek) return;
       setError(connectionErrorMessage(e));
     } finally {
-      if (!signal?.aborted) setLoading(false);
+      if (!signal?.aborted && weekRef.current === requestedWeek) setLoading(false);
     }
   }, [leagueId, week]);
 
@@ -102,11 +107,15 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
   /** Live weeks re-pull on the server cache cadence while the tab is visible. */
   useEffect(() => {
     if (!isLiveWeek) return undefined;
+    const ctrl = new AbortController();
     const tick = () => {
-      if (document.visibilityState === "visible") load();
+      if (document.visibilityState === "visible") load(ctrl.signal);
     };
     const id = window.setInterval(tick, REFRESH_MS);
-    return () => window.clearInterval(id);
+    return () => {
+      ctrl.abort();
+      window.clearInterval(id);
+    };
   }, [isLiveWeek, load]);
 
   const matchup = useMemo(() => findViewerMatchup(data), [data]);
@@ -149,7 +158,7 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
     ? `${stateLabel} · ${formatSyncedAgo(data.synced_at) || ""}`
     : stateLabel;
 
-  const notReady = !loading && data && (!data.available || data.preseason || !(data.matchups || []).length);
+  const emptyState = !loading ? gameCenterEmptyState(data, { matchup, viewer, opponent }) : null;
 
   return (
     <HubPage className="hub-game-center">
@@ -184,21 +193,17 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
       {error && <div className="error">{error}</div>}
       {loading && !data && <p className="chart-note">Loading matchups…</p>}
 
-      {notReady && (
+      {emptyState && (
         <section className="hub-gc-empty panel">
-          <h3>{data?.reason === "no_sleeper_league" ? "No Sleeper league linked" : "No matchups yet"}</h3>
-          <p className="chart-note">
-            {data?.reason === "no_sleeper_league"
-              ? GAME_CENTER_COPY.emptyNoSleeper
-              : (data?.hint || GAME_CENTER_COPY.emptyPreseason)}
-          </p>
+          <h3>{emptyState.title}</h3>
+          <p className="chart-note">{emptyState.body}</p>
           {onNavigate ? (
             <button
               type="button"
               className="btn-ghost btn-sm"
-              onClick={() => onNavigate(data?.reason === "no_sleeper_league" ? "setup" : "room")}
+              onClick={() => onNavigate(emptyState.action)}
             >
-              {data?.reason === "no_sleeper_league" ? "Open Setup" : "Go to Draft"}
+              {emptyState.actionLabel}
             </button>
           ) : null}
         </section>
