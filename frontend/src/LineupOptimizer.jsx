@@ -277,7 +277,13 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
       const data = await res.json();
       const nextSlates = data.slates || [];
       setSlates(nextSlates);
-      const defaultId = data.default_slate_id || nextSlates[0]?.slate_id || "";
+      // Only trust the server default when it belongs to the filtered list.
+      const defaultInList = nextSlates.some(
+        (s) => String(s.slate_id) === String(data.default_slate_id)
+      );
+      const defaultId = defaultInList
+        ? data.default_slate_id
+        : nextSlates[0]?.slate_id || "";
       const keepCurrent = nextSlates.some((s) => String(s.slate_id) === String(currentSlateId));
       const slateId = keepCurrent ? String(currentSlateId) : String(defaultId || "");
       setSelectedSlateId(slateId);

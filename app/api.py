@@ -1800,7 +1800,12 @@ def lineup_slates(
         slates = list_slates(site=site, category=category, sport=sport)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
-    default_slate = pick_default_slate(site, category="main") or (slates[0] if slates else None)
+    # Default within the requested category — a showdown filter must not
+    # fall back to the main classic slate.
+    default_category = "main" if category in ("all", "main") else category
+    default_slate = pick_default_slate(site, category=default_category) or (
+        slates[0] if slates else None
+    )
     return {
         "site": site,
         "category": category,
