@@ -185,23 +185,43 @@ export function dfsSummaryItems({
   return items;
 }
 
+export function formatSlateOption(slate = {}) {
+  const name = slate.name || slate.slate_id || "Slate";
+  const games = Number(slate.game_count);
+  const players = Number(slate.player_count);
+  const extras = [];
+  if (Number.isFinite(games) && games > 0 && !String(name).includes("game")) {
+    extras.push(`${games}g`);
+  }
+  if (Number.isFinite(players) && players > 0) extras.push(`${players} players`);
+  return extras.length ? `${name} (${extras.join(" · ")})` : name;
+}
+
 export function slateLoadCopy({
   site,
   formats = DEFAULT_FORMATS,
   importStats = null,
   loadingSalaries = false,
   slateMeta = null,
+  slateCount = null,
 } = {}) {
   const cfg = formats[site] || DEFAULT_FORMATS[site] || DEFAULT_FORMATS.seasonal;
   const roster = rosterHint(site, formats);
   if (loadingSalaries) return `${cfg.label} — loading live salaries…`;
-  if (!importStats) return `${cfg.label} — ${roster}. Pick a slate or import a CSV.`;
+  const sparse = Number.isFinite(Number(slateCount)) && Number(slateCount) > 0 && Number(slateCount) <= 2;
+  if (!importStats) {
+    if (sparse) {
+      return `${cfg.label} — ${roster}. DraftKings has posted ${slateCount} NFL slate${Number(slateCount) === 1 ? "" : "s"} so far; more weekend slates appear here as they go live.`;
+    }
+    return `${cfg.label} — ${roster}. Pick a slate or import a CSV.`;
+  }
   const bits = [`${importStats.matched} matched`];
   if (importStats.dst_added) bits.push(`${importStats.dst_added} DST`);
   if (importStats.pool_without_salary) {
     bits.push(`${importStats.pool_without_salary} without salary`);
   }
   if (slateMeta?.offseason_placeholder) bits.push("offseason/test slate");
+  if (sparse) bits.push(`${slateCount} slate${Number(slateCount) === 1 ? "" : "s"} posted`);
   return `${cfg.label} — ${roster}. Slate loaded: ${bits.join(" · ")}`;
 }
 

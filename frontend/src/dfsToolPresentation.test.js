@@ -21,6 +21,7 @@ import {
   rosterHint,
   salarySpend,
   slateLoadCopy,
+  formatSlateOption,
 } from "./dfsToolPresentation.js";
 
 test("formatSalary and parseSalaryCap handle empty and numeric values", () => {
@@ -128,4 +129,23 @@ test("slate and empty-state copy explain what happens next", () => {
   assert.equal(optimizeButtonLabel({ optimizing: true }), "Optimizing…");
   assert.match(launchCopy({ isDfs: true, hasLineup: false }).title, /Fill the nine/);
   assert.match(launchCopy({ hasLineup: true }).title, /field/);
+});
+
+test("formatSlateOption and sparse lobby copy explain few DK slates", () => {
+  assert.equal(
+    formatSlateOption({ name: "Classic · 12 games", slate_id: "1" }),
+    "Classic · 12 games",
+  );
+  assert.match(
+    formatSlateOption({ name: "Classic", game_count: 12, player_count: 400 }),
+    /12g/,
+  );
+  assert.match(
+    slateLoadCopy({
+      site: "draftkings",
+      formats: DEFAULT_FORMATS,
+      slateCount: 2,
+    }),
+    /2 NFL slates so far/i,
+  );
 });

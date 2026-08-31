@@ -33,6 +33,7 @@ import {
   optimizeButtonLabel,
   rosterHint,
   salarySpend,
+  formatSlateOption,
   slateLoadCopy,
 } from "./dfsToolPresentation";
 
@@ -69,7 +70,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
   const [season, setSeason] = useState(null);
   const [week, setWeek] = useState(null);
   const [site, setSite] = useState("seasonal");
-  const [slateCategory, setSlateCategory] = useState("main");
+  const [slateCategory, setSlateCategory] = useState("all");
   const [slates, setSlates] = useState([]);
   const [selectedSlateId, setSelectedSlateId] = useState("");
   const [slateMeta, setSlateMeta] = useState(null);
@@ -696,8 +697,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                     {!slates.length && <option value="">No slates found</option>}
                     {slates.map((s) => (
                       <option key={s.slate_id} value={s.slate_id}>
-                        {s.name || s.slate_id}
-                        {s.player_count ? ` (${s.player_count})` : ""}
+                        {formatSlateOption(s)}
                       </option>
                     ))}
                   </select>
@@ -709,6 +709,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                     importStats,
                     loadingSalaries,
                     slateMeta,
+                    slateCount: slates.length,
                   })}
                 </p>
               </>

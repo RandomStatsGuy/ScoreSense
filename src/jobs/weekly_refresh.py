@@ -116,6 +116,7 @@ def _run_weekly_refresh(
     weekly_prewarm = prewarm_weekly_predictions(
         season,
         week,
+        force=True,
     )
     # Movement artifacts are written inside save_weekly_artifact during prewarm.
     projection_movement_status = None

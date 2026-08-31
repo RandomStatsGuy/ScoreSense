@@ -27,4 +27,4 @@ def test_weekly_rb_depth_chart_meta():
     depth = response["meta"].get("depth_chart") or {}
     if response["meta"].get("preseason_mode"):
         assert depth.get("applied") is True
-        assert depth.get("keep_per_team") == 2
+        assert depth.get("keep_per_team") == 3

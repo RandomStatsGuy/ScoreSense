@@ -61,19 +61,29 @@ def _cache_meta_path(site: str, slate_id: str) -> Any:
     return DFS_CACHE_DIR / f"{site.lower()}_{slate_id}_meta.json"
 
 
-def _classify_dk_group(game_type: str, name: str) -> str:
+def _classify_dk_group(
+    game_type: str,
+    name: str,
+    *,
+    game_count: int = 0,
+    suffix: str = "",
+) -> str:
     gt = (game_type or "").lower()
-    label = (name or "").lower()
-    if "best ball" in gt:
+    label = f"{name or ''} {suffix or ''}".lower()
+    if "best ball" in gt or "snake" in gt:
         return "skip"
-    if any(k in gt for k in _CATEGORY_KEYWORDS["showdown"]):
+    if "madden" in gt or "madden" in label:
+        return "madden"
+    if any(k in gt for k in _CATEGORY_KEYWORDS["showdown"]) or "showdown" in label:
         return "showdown"
     if any(k in label for k in _CATEGORY_KEYWORDS["primetime"]):
         return "primetime"
-    if "classic" in gt:
+    if game_count and game_count <= 3 and "classic" in gt:
+        return "primetime"
+    if "classic" in gt or (game_count and game_count >= 8):
         return "main"
-    if "showdown" in label:
-        return "showdown"
+    if "classic" in label:
+        return "main"
     return "other"
 
 
@@ -81,6 +91,149 @@ def _is_madden(game_type: str, name: str) -> bool:
     gt = (game_type or "").lower()
     label = (name or "").lower()
     return "madden" in gt or "madden" in label
+
+
+def _dk_game_type_names(payload: dict) -> dict[int, str]:
+    out: dict[int, str] = {}
+    for entry in payload.get("GameTypes") or []:
+        if not isinstance(entry, dict):
+            continue
+        gid = entry.get("GameTypeId")
+        name = str(entry.get("Name") or "")
+        if gid is None or not name:
+            continue
+        try:
+            out[int(gid)] = name
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
+def _dk_slate_label(game_type: str, game_count: int, suffix: str) -> str:
+    base = (game_type or "Classic").strip() or "Classic"
+    if game_count > 0:
+        games = f"{game_count} game" if game_count == 1 else f"{game_count} games"
+        label = f"{base} · {games}"
+    else:
+        label = base
+    extra = (suffix or "").strip()
+    if extra:
+        if not extra.startswith("(") and not extra.startswith("·"):
+            extra = extra if extra.startswith("(") else extra
+        label = f"{label} {extra}".strip()
+    return label
+
+
+def parse_dk_lobby_slates(payload: dict, category: str = "all") -> list[dict]:
+    """Turn a DraftKings lobby JSON payload into ScoreSense slate rows.
+
+    DraftGroups is the source of truth (game count, start suffix, type id).
+    Contests fill contest_count. Salaries are not fetched here.
+    """
+    type_names = _dk_game_type_names(payload)
+    contests = payload.get("Contests") or []
+    contest_by_dg: dict[str, dict] = {}
+    for contest in contests:
+        if not isinstance(contest, dict):
+            continue
+        draft_group_id = str(contest.get("dg") or "")
+        if not draft_group_id:
+            continue
+        game_type = str(contest.get("gameType") or "")
+        name = str(contest.get("n") or "")
+        entry = contest_by_dg.setdefault(
+            draft_group_id,
+            {
+                "name": name,
+                "game_type": game_type,
+                "contest_count": 0,
+            },
+        )
+        entry["contest_count"] += 1
+        if len(name) > len(entry.get("name") or ""):
+            entry["name"] = name
+        if game_type and not entry.get("game_type"):
+            entry["game_type"] = game_type
+
+    grouped: dict[str, dict] = {}
+    for group in payload.get("DraftGroups") or []:
+        if not isinstance(group, dict):
+            continue
+        draft_group_id = str(group.get("DraftGroupId") or "")
+        if not draft_group_id:
+            continue
+        game_type_id = group.get("GameTypeId") or group.get("ContestTypeId")
+        try:
+            game_type_id_i = int(game_type_id) if game_type_id is not None else 0
+        except (TypeError, ValueError):
+            game_type_id_i = 0
+        game_type = type_names.get(game_type_id_i) or str(group.get("GameType") or "")
+        contest_meta = contest_by_dg.get(draft_group_id) or {}
+        if not game_type:
+            game_type = str(contest_meta.get("game_type") or "")
+        suffix = str(group.get("ContestStartTimeSuffix") or "")
+        try:
+            game_count = int(group.get("GameCount") or 0)
+        except (TypeError, ValueError):
+            game_count = 0
+        contest_name = str(contest_meta.get("name") or "")
+        slate_category = _classify_dk_group(
+            game_type,
+            contest_name,
+            game_count=game_count,
+            suffix=suffix,
+        )
+        if slate_category in {"skip", "madden"}:
+            continue
+        grouped[draft_group_id] = {
+            "slate_id": draft_group_id,
+            "site": "draftkings",
+            "name": _dk_slate_label(game_type, game_count, suffix),
+            "game_type": game_type or contest_name,
+            "category": slate_category,
+            "contest_count": int(contest_meta.get("contest_count") or 0),
+            "game_count": game_count,
+            "start_suffix": suffix.strip() or None,
+            "is_madden": False,
+            "offseason_placeholder": False,
+        }
+
+    # Contest groups that never appeared in DraftGroups (older lobby shapes).
+    for draft_group_id, contest_meta in contest_by_dg.items():
+        if draft_group_id in grouped:
+            continue
+        game_type = str(contest_meta.get("game_type") or "")
+        name = str(contest_meta.get("name") or "")
+        slate_category = _classify_dk_group(game_type, name)
+        if slate_category in {"skip", "madden"}:
+            continue
+        grouped[draft_group_id] = {
+            "slate_id": draft_group_id,
+            "site": "draftkings",
+            "name": name or game_type or draft_group_id,
+            "game_type": game_type,
+            "category": slate_category,
+            "contest_count": int(contest_meta.get("contest_count") or 0),
+            "game_count": 0,
+            "start_suffix": None,
+            "is_madden": _is_madden(game_type, name),
+            "offseason_placeholder": _is_madden(game_type, name),
+        }
+
+    nfl_slates = [s for s in grouped.values() if not s.get("is_madden")]
+    if category != "all":
+        nfl_slates = [s for s in nfl_slates if s["category"] == category]
+        if not nfl_slates and category == "main":
+            nfl_slates = [s for s in grouped.values() if s.get("category") in {"main", "other"}]
+
+    nfl_slates.sort(
+        key=lambda s: (
+            int(s.get("game_count") or 0),
+            int(s.get("contest_count") or 0),
+        ),
+        reverse=True,
+    )
+    return nfl_slates
 
 
 def _dk_get(url: str, params: dict | None = None) -> dict:
@@ -198,58 +351,9 @@ def _classify_fd_slate(fixture: dict) -> str:
 
 def list_dk_slates(category: str = "all", sport: str = "NFL") -> list[dict]:
     payload = _dk_get(DK_LOBBY_URL, params={"sport": sport})
-    contests = payload.get("Contests") or []
-
-    grouped: dict[str, dict] = {}
-    for contest in contests:
-        if not isinstance(contest, dict):
-            continue
-        draft_group_id = str(contest.get("dg") or "")
-        if not draft_group_id:
-            continue
-        game_type = str(contest.get("gameType") or "")
-        name = str(contest.get("n") or "")
-        slate_category = _classify_dk_group(game_type, name)
-        if slate_category == "skip":
-            continue
-
-        madden = _is_madden(game_type, name)
-        entry = grouped.setdefault(
-            draft_group_id,
-            {
-                "slate_id": draft_group_id,
-                "site": "draftkings",
-                "name": name,
-                "game_type": game_type,
-                "category": slate_category,
-                "contest_count": 0,
-                "is_madden": madden,
-            },
-        )
-        entry["contest_count"] += 1
-        if len(name) > len(entry.get("name") or ""):
-            entry["name"] = name
-
-    slates = list(grouped.values())
-    nfl_slates = [s for s in slates if not s["is_madden"]]
-    if not nfl_slates:
-        nfl_slates = [s for s in slates if s["category"] == "main" or "classic" in s["game_type"].lower()]
-    if not nfl_slates:
-        nfl_slates = slates
-
-    for slate in nfl_slates:
-        try:
-            salaries = fetch_dk_salaries(slate["slate_id"], use_cache=True)
-            slate["player_count"] = len(salaries)
-        except Exception:
-            slate["player_count"] = 0
-        slate["offseason_placeholder"] = bool(slate.get("is_madden"))
-
-    if category != "all":
-        nfl_slates = [s for s in nfl_slates if s["category"] == category]
-
-    nfl_slates.sort(key=lambda s: (s.get("player_count", 0), s.get("contest_count", 0)), reverse=True)
-    return nfl_slates
+    if not isinstance(payload, dict):
+        raise ValueError(f"Unexpected DraftKings payload type: {type(payload)}")
+    return parse_dk_lobby_slates(payload, category=category)
 
 
 def list_fd_slates(category: str = "all") -> list[dict]:
