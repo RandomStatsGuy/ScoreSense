@@ -64,7 +64,9 @@ export function fillStarterSlots(plan = [], starters = []) {
   const used = new Set();
 
   const take = (pred) => {
-    const hit = remaining.find((player) => !used.has(player.player_id) && pred(player));
+    const hit = remaining.find((player) => (
+      Boolean(player?.player_id) && !used.has(player.player_id) && pred(player)
+    ));
     if (!hit) return null;
     used.add(hit.player_id);
     return hit;
@@ -98,8 +100,8 @@ export function indexByPlayerId(rows = []) {
 export function decisionForStarter(slot, decisions = []) {
   const pid = slot?.player?.player_id;
   return decisions.find((decision) => (
-    (pid && String(decision.starter_player_id) === String(pid))
-    || decision.starter_slot === slot.slot
+    (pid && String(decision?.starter_player_id || "") === String(pid))
+    || (decision?.starter_slot && decision.starter_slot === slot?.slot)
   )) || null;
 }
 
@@ -214,4 +216,13 @@ export function trophyStripCopy({ boardReady = true, loading = false } = {}) {
 
 export function boardTitle(weekLabel) {
   return weekLabel ? `${weekLabel} board` : "This week board";
+}
+
+export function swapBenchIdSet(decisions = []) {
+  return new Set(
+    decisions
+      .map((decision) => decision?.bench_player_id)
+      .filter((id) => id != null && String(id) !== "")
+      .map(String),
+  );
 }

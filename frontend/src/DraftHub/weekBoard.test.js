@@ -6,6 +6,7 @@ import {
   decisionForStarter,
   fillStarterSlots,
   slotTone,
+  swapBenchIdSet,
   trophyStripCopy,
   weekHeroCopy,
   weekPrimaryAction,
@@ -44,6 +45,31 @@ test("buildStarterSlotPlan omits flex when roster has no flex rule", () => {
     roster: { qb: { starter: 1 }, rb: { starter: 2 }, wr: { starter: 3 } },
   });
   assert.deepEqual(plan.map((s) => s.slot), ["QB", "RB1", "RB2", "WR1", "WR2", "WR3"]);
+});
+
+test("fillStarterSlots skips starters without a player_id", () => {
+  const plan = buildStarterSlotPlan({ roster: { qb: { starter: 1 } } });
+  const filled = fillStarterSlots(plan, [
+    { player_name: "Ghost", position: "QB", slot: "QB" },
+    { player_id: "qb1", player_name: "A", position: "QB", slot: "QB" },
+  ]);
+  assert.equal(filled[0].player.player_id, "qb1");
+});
+
+test("decisionForStarter ignores null decisions", () => {
+  const slot = { slot: "QB", player: { player_id: "qb1" } };
+  assert.equal(decisionForStarter(slot, [null, { starter_player_id: "qb1", bench_player_name: "B" }]).bench_player_name, "B");
+  assert.equal(decisionForStarter(slot, [undefined]), null);
+});
+
+test("swapBenchIdSet drops empty ids", () => {
+  const ids = swapBenchIdSet([
+    { bench_player_id: "bn-1" },
+    { bench_player_id: "" },
+    null,
+    { bench_player_id: 12 },
+  ]);
+  assert.deepEqual([...ids].sort(), ["12", "bn-1"]);
 });
 
 test("fillStarterSlots matches by slot label and leaves unused waiting", () => {

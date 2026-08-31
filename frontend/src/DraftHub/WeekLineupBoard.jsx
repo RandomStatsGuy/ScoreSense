@@ -6,10 +6,11 @@ import {
   decisionForStarter,
   indexByPlayerId,
   slotTone,
+  swapBenchIdSet,
 } from "./weekBoard";
 
 function fmtPts(value) {
-  return fmtNum(value, 1);
+  return value == null || value === "" ? "—" : fmtNum(value, 1);
 }
 
 function playerMeta(player) {
@@ -73,7 +74,7 @@ function SlotCard({ slot, decision, wide, movement }) {
       ) : (
         <>
           <div className="hub-wcc-slot-player">
-            <strong>{player.player_name || player.player_id}</strong>
+            <strong>{player?.player_name || player?.player_id}</strong>
             <span className="chart-note">{playerMeta(player)}</span>
           </div>
           <div className="hub-wcc-slot-proj">
@@ -106,11 +107,11 @@ function BenchChip({ player, highlighted }) {
     <li className={`hub-wcc-bench-chip${highlighted ? " is-swap" : ""}`}>
       <span className="hub-wcc-slot-pos">BN</span>
       <span className="hub-wcc-bench-chip-main">
-        <strong>{player.player_name || player.player_id}</strong>
+        <strong>{player?.player_name || player?.player_id}</strong>
         <span className="chart-note">{playerMeta(player)}</span>
       </span>
       <span className="hub-wcc-slot-p50">
-        {player.has_projection === false ? "—" : fmtPts(player.p50)}
+        {player?.has_projection === false ? "—" : fmtPts(player?.p50)}
       </span>
       <PlayerFlags player={player} />
     </li>
@@ -139,7 +140,7 @@ export default function WeekLineupBoard({
 }) {
   const wideById = indexByPlayerId(wideRanges);
   const moveById = indexByPlayerId(projectionChanges);
-  const swapBenchIds = new Set(decisions.map((d) => String(d.bench_player_id)));
+  const swapBenchIds = swapBenchIdSet(decisions);
   const showOverlay = emptyRoster || (loading && !slots.some((s) => s.player));
 
   return (
@@ -217,7 +218,7 @@ export default function WeekLineupBoard({
         <div className="hub-wcc-bench">
           <h4>Bench</h4>
           <ul className="hub-wcc-bench-list">
-            {bench.map((player) => (
+            {bench.filter((player) => player?.player_id).map((player) => (
               <BenchChip
                 key={player.player_id}
                 player={player}

@@ -113,8 +113,8 @@ export default function WeekCulturePanel({ hubContext, week, boardReady = true }
   const polls = data?.polls || [];
   const previewTeams = [];
   for (const poll of polls) {
-    for (const option of poll.options || []) {
-      if (!previewTeams.some((t) => String(t.id) === String(option.team_id))) {
+    for (const option of poll?.options || []) {
+      if (option?.team_id && !previewTeams.some((t) => String(t.id) === String(option.team_id))) {
         previewTeams.push({ id: option.team_id, name: option.team_name });
       }
     }
