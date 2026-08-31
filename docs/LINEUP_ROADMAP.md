@@ -1,6 +1,10 @@
-# Lineup & competition roadmap
+# Tools roadmap (DFS, mock draft, later modes)
 
-ScoreSense lineup tools today: **season-long PPR** and **DFS classic** (DraftKings / FanDuel) with salary CSV import, cap constraints, and value optimization.
+Shipped **Tools** tabs: **DFS** and **Mock draft**. Product names and chrome: [PRODUCT.md](./PRODUCT.md).
+
+DFS today: **season-long PPR** and **classic** (DraftKings / FanDuel) with salary CSV / slate import, cap constraints, stacks, multi-lineup counts, and Showdown categories in the UI. Do not describe those as unbuilt.
+
+Props and best ball are backlog — not top-level nav. Do not add them as a fourth product area.
 
 ## Current (v1)
 

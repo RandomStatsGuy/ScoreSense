@@ -1,5 +1,8 @@
 # ScoreSense Case Study
 
+> 2024 portfolio write-up of the projection pipeline. **Not** current product IA.  
+> Product, brand, and design: [PRODUCT.md](./PRODUCT.md). Canonical metrics: [EVALUATION.md](./EVALUATION.md).
+
 ## Problem
 
 Fantasy football managers need reliable weekly player projections. Most public projections are opaque black boxes. ScoreSense is an open, reproducible system that predicts PPR fantasy points for QBs, RBs, and WR/TE using public NFL data.

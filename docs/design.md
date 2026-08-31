@@ -1,5 +1,9 @@
 # ScoreSense Fantasy Rules Center and League Administration Redesign
 
+> **Product constitution:** [PRODUCT.md](./PRODUCT.md) wins if this spec and the live app disagree.  
+> This file is the Rules Center / Fantasy admin **implementation spec** (layout, states, acceptance).  
+> Visual language, IA, and copy rules are summarized in `PRODUCT.md` so new features do not need this whole document.
+
 ## Design and implementation specification
 
 ### Project context

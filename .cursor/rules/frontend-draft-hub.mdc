@@ -1,0 +1,45 @@
+---
+description: Fantasy UI — chrome, copy, chat, and league behavior.
+globs: frontend/src/DraftHub/**/*.{js,jsx,css}, frontend/src/styles/product-hierarchy.css, frontend/src/appNavigation.js, frontend/src/LineupOptimizer.jsx, frontend/src/dfsToolPresentation.js
+alwaysApply: false
+---
+
+# Fantasy / Tools UI
+
+Read `docs/PRODUCT.md` first. User-facing name is **Fantasy**, not Draft Hub.
+
+## Layout
+
+- Pages: `HubPage` with `hub-experience-page` when the surface is a decision page.
+- Hero + sticky summary: `HubExperienceHero`, `HubExperienceLayout`, `HubExperienceSummary` in `HubUILayout.jsx`.
+- Sections: `HubSection`, `HubTableCard`, `HubToolbar`, `HubAlert` / `HubAlertStack`.
+- Intro copy: `HubTabIntro` only when the page is not already using the experience hero.
+- Live draft (`DraftRoom` while a draft is running): keep the board-first layout. Do not add the two-column settings chrome.
+- Do not create a second hero, chip, or summary component. Extend the existing ones.
+
+## Copy and data
+
+- User-visible strings belong in `*Presentation.js` (`rulesPresentation.js`, `leagueHomePresentation.js`, `dfsToolPresentation.js`, `insightsPresentation.js`, `leagueAccessCopy.js`).
+- Rules preview, validation, and summary: `mergeLeagueRules`, `validateLeagueSettings`, `contractSchedule`, `rulesSummary`.
+- Free-agent button/banner copy: `acquisitionWindow.js`.
+- Home next-action voice: `leagueHomePresentation.js`.
+
+## Chat
+
+- Use `FantasyChatDock` on shared Fantasy pages when a real league is selected.
+- Hide for solo / unconnected contexts.
+- Hide in a live draft room that already has integrated chat.
+- Do not add a Chat tab under Roster management.
+
+## League behavior
+
+- Rules are readable by members (`Commissioner managed`). Roster management is commissioner/co-commissioner only.
+- Old `/hub/office` and commissioner routes must keep working; redirect, do not break bookmarks.
+- Players-tab adds follow the calendar. Offseason trades: surviving contracts only.
+- Headshots must match roster photos (`HubMediaImg` / existing media helpers).
+
+## Visual
+
+- Tokens from `tokens.css` and `product-hierarchy.css`. No one-off neon, no new accent color.
+- Laptop: summary rail may drop under the hero. No horizontal page scroll at 1024 / 1280 / 1440.
+- Primary save/action stays visible. Disabled controls explain why.
