@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Fantasy · My team v2 (hero + locker room)</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  /* ---------- Stadium hero v2 ---------- */
+  .hero2 {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 1.3rem;
+    background: var(--bg-elevated);
+  }
+  .hero2-banner {
+    position: relative;
+    height: 150px;
+    background:
+      radial-gradient(90% 170% at 12% -30%, rgba(115, 165, 255, 0.35), transparent 55%),
+      radial-gradient(70% 150% at 88% -20%, rgba(52, 211, 153, 0.16), transparent 60%),
+      linear-gradient(115deg, #16294b 0%, #0e1a30 46%, #0a1424 100%);
+  }
+  /* subtle field-yardline texture instead of a flat band */
+  .hero2-banner::before {
+    content: "";
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(105deg, rgba(238, 243, 251, 0.05) 0 2px, transparent 2px 112px);
+    mask-image: linear-gradient(180deg, transparent 8%, #000 65%);
+  }
+  .hero2-banner::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(65% 120% at 50% 135%, rgba(7, 13, 23, 0.9), transparent 70%);
+  }
+  .hero2-edit {
+    position: absolute; top: 0.85rem; right: 0.9rem; z-index: 2;
+    font-size: 0.72rem; font-weight: 600; color: var(--text-secondary);
+    border: 1px solid rgba(238, 243, 251, 0.22); border-radius: var(--radius-pill);
+    background: rgba(7, 13, 23, 0.55); padding: 0.3rem 0.75rem; cursor: pointer;
+  }
+  .hero2-banner .wordmark {
+    position: absolute; left: 1.6rem; top: 1.1rem;
+    font-size: 0.62rem; letter-spacing: 0.22em; text-transform: uppercase;
+    color: rgba(238, 243, 251, 0.5); font-weight: 700;
+  }
+  .hero2-body {
+    display: flex; align-items: flex-end; gap: 1.1rem;
+    padding: 0 1.5rem 1.15rem; margin-top: -3.1rem; position: relative; z-index: 1;
+  }
+  .hero2-photo {
+    width: 5.4rem; height: 5.4rem; border-radius: 20px; flex: none;
+    background: linear-gradient(150deg, #2f5aa8, #14294d);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255,255,255,0.14);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; font-weight: 800; color: #cfe0ff;
+  }
+  .hero2-id { flex: 1; min-width: 0; padding-bottom: 0.2rem; }
+  .hero2-name { font-size: 1.55rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
+  .hero2-meta { display: flex; gap: 0.45rem; flex-wrap: wrap; margin-top: 0.5rem; }
+  .id-chip {
+    font-size: 0.7rem; font-weight: 600; color: var(--text-secondary);
+    background: var(--bg-subtle); border: 1px solid var(--border);
+    padding: 0.22rem 0.6rem; border-radius: var(--radius-pill);
+  }
+  .id-chip strong { color: var(--text-primary); }
+  .id-chip--hot { color: var(--tone-positive); border-color: rgba(52, 211, 153, 0.35); background: var(--tone-positive-soft); }
+  .hero2-cap {
+    flex: none; width: 15.5rem; padding: 0.85rem 1rem 0.95rem;
+    background: rgba(13, 22, 36, 0.92); border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md); box-shadow: var(--shadow-panel);
+  }
+  .hero2-cap .lbl { font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+  .hero2-cap .val { font-size: 1.35rem; font-weight: 800; margin-top: 0.2rem; }
+  .hero2-cap .val span { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+  .capbar { height: 0.4rem; border-radius: var(--radius-pill); background: var(--bg-subtle); margin-top: 0.5rem; overflow: hidden; display: flex; }
+  .capbar .committed { width: 62%; background: linear-gradient(90deg, #4f7fda, #73a5ff); }
+  .capbar .dead { width: 4%; background: #a1523a; }
+  .hero2-cap .sub { font-size: 0.68rem; color: var(--text-muted); margin-top: 0.4rem; }
+  .hero2-cap .sub em { color: var(--tone-caution); font-style: normal; font-weight: 700; }
+
+  /* ---------- Locker room v2 ---------- */
+  .locker-scene {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 1.3rem;
+    background: linear-gradient(180deg, #10161f 0%, #0b1119 58%, #131a24 100%);
+    padding: 1.35rem 1.4rem 0;
+  }
+  /* overhead light cones */
+  .locker-scene::before {
+    content: "";
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(34% 55% at 22% -8%, rgba(255, 244, 214, 0.09), transparent 70%),
+      radial-gradient(34% 55% at 50% -8%, rgba(255, 244, 214, 0.08), transparent 70%),
+      radial-gradient(34% 55% at 78% -8%, rgba(255, 244, 214, 0.09), transparent 70%);
+  }
+  .locker-scene-head {
+    display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1rem;
+    position: relative; z-index: 1;
+  }
+  .locker-scene-head h3 { margin: 0; font-size: 1rem; letter-spacing: -0.01em; }
+  .locker-scene-head .note { color: var(--text-muted); font-size: 0.75rem; }
+  .locker-scene-head a { color: var(--accent-muted); text-decoration: none; font-size: 0.78rem; font-weight: 600; }
+
+  .locker-wall {
+    display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.55rem;
+    position: relative; z-index: 1;
+  }
+  .locker {
+    position: relative;
+    border-radius: 12px 12px 6px 6px;
+    background: linear-gradient(180deg, #232f42 0%, #1b2536 55%, #16202f 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 -14px 22px rgba(0, 0, 0, 0.4),
+      0 6px 16px rgba(0, 0, 0, 0.35);
+    padding: 0 0.4rem 0.55rem;
+    min-height: 13.2rem;
+    display: flex; flex-direction: column; align-items: center;
+    transition: transform 0.16s var(--ease-standard);
+  }
+  .locker:hover { transform: translateY(-3px); }
+  .locker-nameplate {
+    width: calc(100% - 0.5rem);
+    margin-top: 0.45rem;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 0.64rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 0.3rem 0.2rem;
+    color: #fff;
+    box-shadow: inset 0 -2px 4px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.18);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .locker-vent {
+    width: 58%; height: 0.5rem; margin-top: 0.4rem;
+    background: repeating-linear-gradient(90deg, rgba(0,0,0,0.5) 0 5px, transparent 5px 9px);
+    border-radius: 2px; opacity: 0.7;
+  }
+  .locker-inner {
+    position: relative;
+    width: 100%;
+    flex: 1;
+    margin-top: 0.4rem;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #0c1320 0%, #0a101b 100%);
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.65);
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    padding-top: 0.5rem;
+    overflow: hidden;
+  }
+  .locker-rail { width: 78%; height: 2px; background: rgba(238, 243, 251, 0.18); border-radius: 2px; margin-bottom: 0.15rem; }
+  .locker-jersey { width: 72%; margin-top: -2px; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.5)); }
+  .locker-pos {
+    position: absolute; bottom: 0.4rem;
+    font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em;
+    color: var(--text-muted); background: rgba(7, 13, 23, 0.7);
+    border: 1px solid var(--border); padding: 0.12rem 0.45rem; border-radius: var(--radius-pill);
+  }
+  .locker-headshot {
+    position: absolute; top: 0.55rem; right: 0.45rem;
+    width: 1.7rem; height: 1.7rem; border-radius: 50%; object-fit: cover; object-position: top;
+    box-shadow: 0 0 0 2px rgba(238, 243, 251, 0.25), 0 3px 6px rgba(0,0,0,0.5);
+    background: var(--bg-subtle);
+  }
+
+  /* Open locker (hover preview state) */
+  .locker--open .locker-inner { background: linear-gradient(180deg, #101a2c, #0c1424); }
+  .locker-stats {
+    position: absolute; inset: auto 0.35rem 0.35rem;
+    background: rgba(13, 22, 36, 0.95);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 0.4rem 0.45rem;
+    font-size: 0.6rem; color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .locker-stats b { color: var(--text-primary); font-size: 0.66rem; }
+  .locker-stats .pos-line { color: var(--tone-positive); font-weight: 700; }
+  .locker--open .locker-pos { display: none; }
+  .locker-open-tag {
+    position: absolute; top: -0.55rem; left: 50%; transform: translateX(-50%);
+    font-size: 0.52rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 800;
+    background: var(--accent); color: #fff; border-radius: var(--radius-pill);
+    padding: 0.12rem 0.5rem; white-space: nowrap; z-index: 2;
+  }
+
+  /* bench + floor */
+  .locker-floor {
+    position: relative;
+    height: 4.4rem;
+    margin: 0 -1.4rem;
+    background: linear-gradient(180deg, #1c2431 0%, #232c3b 100%);
+  }
+  .locker-floor::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(60% 120% at 50% 0%, rgba(0, 0, 0, 0.5), transparent 75%);
+  }
+  .locker-bench {
+    position: absolute; left: 10%; right: 10%; top: 0.9rem; height: 0.85rem;
+    background: linear-gradient(180deg, #8a6134, #6b4a26 70%, #55391c);
+    border-radius: 4px;
+    box-shadow: 0 8px 14px rgba(0, 0, 0, 0.45);
+  }
+  .locker-bench::before, .locker-bench::after {
+    content: ""; position: absolute; top: 0.85rem; width: 0.5rem; height: 1.7rem;
+    background: linear-gradient(180deg, #3d4657, #262e3c);
+    border-radius: 0 0 3px 3px;
+  }
+  .locker-bench::before { left: 8%; }
+  .locker-bench::after { right: 8%; }
+
+  /* ---------- Roster table teaser ---------- */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+  .tbl th {
+    text-align: left; font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-muted); font-weight: 700; padding: 0.45rem 0.6rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .tbl td { padding: 0.55rem 0.6rem; border-bottom: 1px solid rgba(36, 50, 73, 0.5); }
+  .tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .tbl .pcell { display: flex; align-items: center; gap: 0.55rem; }
+  .tbl .pcell img { width: 1.8rem; height: 1.8rem; border-radius: 50%; object-fit: cover; object-position: top; background: var(--bg-subtle); }
+  .tbl .pcell .nm { font-weight: 600; }
+  .tbl .pcell .sub { display: block; font-size: 0.68rem; color: var(--text-muted); }
+  .status {
+    font-size: 0.66rem; font-weight: 700; border-radius: var(--radius-pill); padding: 0.16rem 0.55rem;
+  }
+  .status--ok { color: var(--tone-positive); background: var(--tone-positive-soft); }
+  .status--warn { color: var(--tone-caution); background: var(--tone-caution-soft); }
+</style>
+</head>
+<body>
+<div class="mock-viewport">
+
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div><span class="mock-brand-name">ScoreSense</span><span class="mock-brand-sub">4th Down Labs</span></div>
+      <nav class="mock-topnav"><span>Projections</span><span class="active">Fantasy</span><span>Tools</span></nav>
+    </div>
+    <span class="mock-account"><span class="dot">C</span> Commissioner</span>
+  </header>
+
+  <nav class="mock-subnav">
+    <div class="mock-subnav-group"><span class="mock-tab">Home</span></div>
+    <div class="mock-subnav-group">
+      <span class="mock-subnav-group-label">Draft</span>
+      <span class="mock-tab">Strategy</span><span class="mock-tab">Draft</span>
+    </div>
+    <div class="mock-subnav-group">
+      <span class="mock-subnav-group-label">Team</span>
+      <span class="mock-tab">This Week</span>
+      <span class="mock-tab">Game center</span>
+      <span class="mock-tab active">My team</span>
+      <span class="mock-tab">Free agents</span>
+      <span class="mock-tab">Rosters</span>
+      <span class="mock-tab">Cap</span>
+      <span class="mock-tab">Trades</span>
+    </div>
+    <div class="mock-subnav-group">
+      <span class="mock-subnav-group-label">League</span>
+      <span class="mock-tab">Rules</span><span class="mock-tab">Roster management</span><span class="mock-tab">Insights</span>
+    </div>
+  </nav>
+
+  <div class="mock-league-strip">
+    <span class="lg-name">Bottom to Top: Dominate Your Panda</span>
+    <span>In season · Week 10</span>
+    <span class="mock-team-mark"><span class="tm" style="background:#274b86;color:#bcd4ff;">PC</span> Panda Command</span>
+    <span class="spacer"></span>
+    <span>Sync league ▾</span>
+  </div>
+
+  <!-- Stadium hero v2 -->
+  <section class="hero2">
+    <div class="hero2-banner">
+      <span class="wordmark">Est. 2021 · Bottom to Top</span>
+      <button class="hero2-edit">Edit look</button>
+    </div>
+    <div class="hero2-body">
+      <div class="hero2-photo">PC</div>
+      <div class="hero2-id">
+        <div class="hero2-name">Panda Command</div>
+        <div class="hero2-meta">
+          <span class="id-chip"><strong>6–3</strong> · 3rd place</span>
+          <span class="id-chip id-chip--hot">W3 streak</span>
+          <span class="id-chip"><strong>16</strong> players · 16 from Sleeper</span>
+          <span class="id-chip">Next: Daddio of the Pandio</span>
+        </div>
+      </div>
+      <div class="hero2-cap">
+        <span class="lbl">Cap · 2026</span>
+        <div class="val">$124 <span>committed / $200</span></div>
+        <div class="capbar"><span class="committed"></span><span class="dead"></span></div>
+        <p class="sub">$68 free · <em>$8 dead</em> · 3 contracts expire at draft</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Locker room v2 -->
+  <section class="locker-scene">
+    <div class="locker-scene-head">
+      <div>
+        <h3>Locker room</h3>
+        <span class="note">Your eight featured players. Hover a locker to open it.</span>
+      </div>
+      <a href="#">Rearrange lockers →</a>
+    </div>
+
+    <div class="locker-wall" id="lockerWall"></div>
+    <div class="locker-floor"><div class="locker-bench"></div></div>
+  </section>
+
+  <!-- Contract table (kept, teaser) -->
+  <section class="card">
+    <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:0.5rem;">
+      <div>
+        <h3>Contracts</h3>
+        <p class="note">Same table as today — search, position chips, and the contract side panel stay.</p>
+      </div>
+      <span class="mock-pill mock-pill--warn">8 expire → FA</span>
+    </div>
+    <table class="tbl">
+      <thead>
+        <tr><th>Player</th><th>Pos</th><th class="num">Cap hit (2026)</th><th class="num">Years</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="pcell"><img src="https://sleepercdn.com/content/nfl/players/thumb/11566.jpg" alt=""/><span><span class="nm">Jayden Daniels</span><span class="sub">WAS · Sleeper</span></span></span></td>
+          <td>QB</td><td class="num">$11</td><td class="num">1</td>
+          <td><span class="status status--warn">Expires — FA</span></td>
+        </tr>
+        <tr>
+          <td><span class="pcell"><img src="https://sleepercdn.com/content/nfl/players/thumb/6813.jpg" alt=""/><span><span class="nm">Jonathan Taylor</span><span class="sub">IND · Sleeper</span></span></span></td>
+          <td>RB</td><td class="num">$35</td><td class="num">1</td>
+          <td><span class="status status--warn">Expires — FA</span></td>
+        </tr>
+        <tr>
+          <td><span class="pcell"><img src="https://sleepercdn.com/content/nfl/players/thumb/8148.jpg" alt=""/><span><span class="nm">Jameson Williams</span><span class="sub">DET · Sleeper</span></span></span></td>
+          <td>WR</td><td class="num">$17</td><td class="num">2</td>
+          <td><span class="status status--ok">Active</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <p class="footnote">Design mockup — Fantasy · My team v2. Hero gains record/streak context and a cap bar; the locker room becomes a lit scene with team-color jerseys, headshots, and an openable locker.</p>
+</div>
+
+<script>
+  const LOCKERS = [
+    { last: "Daniels",  pos: "QB",  num: 5,  team: "WAS", c1: "#7a1f2b", c2: "#4a1119", plate: "#8f2433", photo: "https://sleepercdn.com/content/nfl/players/thumb/11566.jpg", open: false },
+    { last: "Taylor",   pos: "RB",  num: 28, team: "IND", c1: "#1c4e8c", c2: "#0e2a52", plate: "#205a9e", photo: "https://sleepercdn.com/content/nfl/players/thumb/6813.jpg",  open: false },
+    { last: "Nabers",   pos: "WR",  num: 1,  team: "NYG", c1: "#1b3f8f", c2: "#0d2050", plate: "#2148a3", photo: "https://sleepercdn.com/content/nfl/players/thumb/11632.jpg", open: true,
+      stats: { line: "WR12 · 16.2 proj", detail: "$12 · 1 yr · Expires — FA" } },
+    { last: "Metcalf",  pos: "WR",  num: 4,  team: "PIT", c1: "#2b2b2e", c2: "#151517", plate: "#c9971f", photo: "https://sleepercdn.com/content/nfl/players/thumb/5846.jpg",  open: false },
+    { last: "Williams", pos: "WR",  num: 9,  team: "DET", c1: "#1466a0", c2: "#0a3a60", plate: "#1a76b8", photo: "https://sleepercdn.com/content/nfl/players/thumb/8148.jpg",  open: false },
+    { last: "Dobbins",  pos: "RB",  num: 27, team: "DEN", c1: "#c2531c", c2: "#732e0d", plate: "#d55e20", photo: "https://sleepercdn.com/content/nfl/players/thumb/6806.jpg",  open: false },
+    { last: "Corum",    pos: "RB",  num: 22, team: "LAR", c1: "#1b3f8f", c2: "#0d2050", plate: "#b09018", photo: "https://sleepercdn.com/content/nfl/players/thumb/11586.jpg", open: false },
+    { last: "Meyers",   pos: "WR",  num: 16, team: "JAX", c1: "#0d6b6e", c2: "#063a3c", plate: "#0f7e82", photo: "https://sleepercdn.com/content/nfl/players/thumb/10222.jpg", open: false },
+  ];
+
+  function jerseySvg(p) {
+    return `
+    <svg class="locker-jersey" viewBox="0 0 120 96" aria-hidden="true">
+      <defs>
+        <linearGradient id="jg-${p.last}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="${p.c1}"/>
+          <stop offset="1" stop-color="${p.c2}"/>
+        </linearGradient>
+      </defs>
+      <!-- hanger -->
+      <path d="M60 2 q0 6 -7 8 l-1 2 h16 l-1 -2 q-7 -2 -7 -8" fill="none" stroke="rgba(238,243,251,0.4)" stroke-width="2.4"/>
+      <!-- jersey -->
+      <path d="M42 14 L52 10 Q60 16 68 10 L78 14 L98 26 L90 44 L82 38 L82 88 Q60 94 38 88 L38 38 L30 44 L22 26 Z"
+            fill="url(#jg-${p.last})" stroke="rgba(0,0,0,0.35)" stroke-width="1.4"/>
+      <!-- sleeve stripes -->
+      <path d="M22 26 L30 44 L34 41 L26 24 Z" fill="rgba(255,255,255,0.22)"/>
+      <path d="M98 26 L90 44 L86 41 L94 24 Z" fill="rgba(255,255,255,0.22)"/>
+      <!-- collar -->
+      <path d="M52 10 Q60 16 68 10 L66 14 Q60 19 54 14 Z" fill="rgba(0,0,0,0.4)"/>
+      <text x="60" y="60" text-anchor="middle" font-family="system-ui, sans-serif"
+            font-size="30" font-weight="800" fill="rgba(255,255,255,0.92)"
+            style="paint-order: stroke; stroke: rgba(0,0,0,0.35); stroke-width: 2px;">${p.num}</text>
+    </svg>`;
+  }
+
+  const wall = document.getElementById("lockerWall");
+  wall.innerHTML = LOCKERS.map((p) => `
+    <div class="locker${p.open ? " locker--open" : ""}">
+      ${p.open ? '<span class="locker-open-tag">Hover preview</span>' : ""}
+      <div class="locker-nameplate" style="background: linear-gradient(180deg, ${p.plate}, ${p.c2});">${p.last}</div>
+      <div class="locker-vent"></div>
+      <div class="locker-inner">
+        <span class="locker-rail"></span>
+        ${jerseySvg(p)}
+        <img class="locker-headshot" src="${p.photo}" alt="" loading="lazy"/>
+        ${p.open && p.stats ? `
+          <div class="locker-stats">
+            <b>${p.last} · #${p.num}</b><br/>
+            <span class="pos-line">${p.stats.line}</span><br/>
+            ${p.stats.detail}
+          </div>` : `<span class="locker-pos">${p.pos}</span>`}
+      </div>
+    </div>
+  `).join("");
+</script>
+</body>
+</html>
