@@ -17554,13 +17554,18 @@ th.sortable-header {
 }
 
 /* League atmosphere, team identity, locker room, trophies, reactions */
+/* Atmosphere v2 — inline-SVG particles (atmosphereArt.js) on three parallax
+   layers. Outer span falls, .hub-atmosphere-sway oscillates sideways,
+   .hub-atmosphere-spin tumbles, .hub-atmosphere-push takes the cursor-drift
+   offset from AtmosphereLayer's rAF loop. Layer stays pointer-events: none —
+   ambience never intercepts clicks. */
 .hub-atmosphere {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
   overflow: hidden;
-  opacity: 0.18;
+  opacity: 0.28;
 }
 .draft-hub > *:not(.hub-atmosphere) {
   position: relative;
@@ -17568,27 +17573,53 @@ th.sortable-header {
 }
 .hub-atmosphere-particle {
   position: absolute;
-  top: -8%;
-  border-radius: 50%;
-  background: rgba(238, 243, 251, 0.7);
-  animation-name: hub-atm-fall;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
+  top: -12%;
+  will-change: transform;
+  animation: hub-atm-fall var(--atm-fall-dur, 12s) linear infinite;
+  animation-delay: var(--atm-fall-delay, 0s);
 }
-.hub-atmosphere--leaves .hub-atmosphere-particle {
-  border-radius: 40% 60% 45% 55%;
-  background: color-mix(in srgb, #c45c26 70%, #f3c27a);
-  transform: rotate(20deg);
+.hub-atmosphere-particle--far {
+  filter: blur(1.6px);
+  opacity: 0.5;
 }
-.hub-atmosphere--footballs .hub-atmosphere-particle {
-  border-radius: 45%;
-  background:
-    linear-gradient(90deg, transparent 46%, #1b2433 46%, #1b2433 54%, transparent 54%),
-    color-mix(in srgb, #8b5a2b 80%, #d4a574);
+.hub-atmosphere-particle--mid {
+  filter: blur(0.4px);
+  opacity: 0.75;
+}
+.hub-atmosphere-particle--near {
+  opacity: 0.95;
+}
+.hub-atmosphere-push {
+  display: block;
+  transition: transform 0.25s ease-out;
+}
+.hub-atmosphere-sway {
+  display: block;
+  animation: hub-atm-sway var(--atm-sway-dur, 3.4s) ease-in-out infinite alternate;
+}
+.hub-atmosphere-spin {
+  display: block;
+  transform-origin: 50% 45%;
+  animation: hub-atm-spin var(--atm-spin-dur, 7s) linear infinite;
+}
+.hub-atmosphere-particle--rock .hub-atmosphere-spin {
+  animation: hub-atm-rock var(--atm-spin-dur, 4.2s) ease-in-out infinite alternate;
 }
 @keyframes hub-atm-fall {
-  from { transform: translate3d(0, -10vh, 0); }
-  to { transform: translate3d(var(--hub-atm-drift, 12px), 110vh, 0); }
+  from { transform: translate3d(0, -12vh, 0); }
+  to { transform: translate3d(var(--atm-drift, 12px), 118vh, 0); }
+}
+@keyframes hub-atm-sway {
+  from { transform: translateX(calc(var(--atm-sway, 14px) * -1)); }
+  to { transform: translateX(var(--atm-sway, 14px)); }
+}
+@keyframes hub-atm-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes hub-atm-rock {
+  from { transform: rotate(-24deg); }
+  to { transform: rotate(24deg); }
 }
 
 .hub-team-mark {
@@ -18344,7 +18375,10 @@ th.sortable-header {
 
 @media (prefers-reduced-motion: reduce) {
   .hub-atmosphere-particle,
+  .hub-atmosphere-sway,
+  .hub-atmosphere-spin,
   .hub-emote-figure--walkoff { animation: none !important; }
+  .hub-atmosphere-push { transition: none !important; }
 }
 
 /* ---------- Game center ---------- */
