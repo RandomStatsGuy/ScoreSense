@@ -460,6 +460,9 @@ def test_build_command_center_payload(hub_db):
     ), patch(
         "src.draft_hub.weekly_command_center.resolve_week_context",
         return_value=(2026, 1),
+    ), patch(
+        "src.projections.projection_movement.build_projection_movement_payload",
+        return_value={"available": False, "changes": [], "meta": {}},
     ):
         payload = build_weekly_command_center(ctx, season=2026, week=1)
 
