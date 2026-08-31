@@ -23,6 +23,8 @@ import {
   weekRailNote,
 } from "./weekBoard";
 
+const EMPTY_ARRAY = [];
+
 export default function WeeklyCommandCenter({
   hubContext,
   onSynced,
@@ -103,10 +105,10 @@ export default function WeeklyCommandCenter({
   const sync = data?.sync || {};
   const counts = data?.counts || {};
   const summary = data?.summary || {};
-  const decisions = data?.decisions || [];
-  const wideRanges = data?.wide_ranges || [];
-  const starters = data?.roster?.starters || [];
-  const bench = data?.roster?.bench || [];
+  const decisions = data?.decisions || EMPTY_ARRAY;
+  const wideRanges = data?.wide_ranges || EMPTY_ARRAY;
+  const starters = data?.roster?.starters || EMPTY_ARRAY;
+  const bench = data?.roster?.bench || EMPTY_ARRAY;
   const projectionChanges = data?.projection_changes || { available: false, items: [] };
   const materialMoves = (projectionChanges.items || []).filter(
     (item) => item.material === true || item.movement_material === true,
