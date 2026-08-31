@@ -56,6 +56,31 @@ def test_name_lookup_aliases_la_to_lar(monkeypatch):
     assert media["00-0039075"]["espn_headshot_url"]
 
 
+def test_media_includes_jersey_number_when_known(monkeypatch):
+    puka = pd.Series(
+        {
+            "sleeper_id": "9493",
+            "espn_id": "4362628",
+            "full_name": "Puka Nacua",
+            "team": "LAR",
+            "gsis_id": "",
+            "number": 17.0,
+        }
+    )
+    monkeypatch.setattr(de, "_sleeper_lookup_tables", lambda: _fake_sleeper_tables(puka))
+    monkeypatch.setattr(de, "_gsis_identity_map", lambda: {})
+    media = de.build_player_media_batch(
+        [{"player_id": "00-0039075", "player_name": "Puka Nacua", "team": "LAR"}]
+    )
+    # 17.0 (pandas float) normalizes to "17" for locker-room jerseys.
+    assert media["00-0039075"]["jersey_number"] == "17"
+    # Unmatched players still return the field, as None.
+    missing = de.build_player_media_batch(
+        [{"player_id": "sleeper-000000", "player_name": "Nobody Real", "team": "ZZZ"}]
+    )
+    assert missing["sleeper-000000"]["jersey_number"] is None
+
+
 def test_gsis_only_uses_pool_identity_when_sleeper_gsis_missing(monkeypatch):
     puka = pd.Series(
         {

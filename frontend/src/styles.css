@@ -17688,6 +17688,25 @@ th.sortable-header {
   height: clamp(7.25rem, 20vw, 11rem);
   overflow: hidden;
 }
+/* Preset banners get quiet yard-line texture + a grounding fade so the band
+   doesn't read as empty. Custom uploads (img present) keep the photo clean. */
+.hub-stadium-hero-banner:not(:has(img))::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    105deg,
+    rgba(238, 243, 251, 0.05) 0 2px,
+    transparent 2px 112px
+  );
+  mask-image: linear-gradient(180deg, transparent 8%, #000 65%);
+}
+.hub-stadium-hero-banner:not(:has(img))::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(65% 120% at 50% 135%, rgba(7, 13, 23, 0.85), transparent 70%);
+}
 .hub-stadium-hero-banner-img,
 .hub-stadium-hero-banner .hub-crop-img {
   position: absolute;
@@ -17750,6 +17769,21 @@ th.sortable-header {
 }
 .hub-stadium-hero-cap { margin-left: auto; }
 .hub-stadium-hero-chips { padding: 0 1rem 0.85rem; }
+.hub-stadium-cap-card { min-width: 11rem; }
+.hub-stadium-cap-bar {
+  display: flex;
+  height: 0.4rem;
+  margin-top: 0.4rem;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--bg-base);
+}
+.hub-stadium-cap-bar-committed {
+  background: linear-gradient(90deg, var(--accent), var(--accent-muted));
+}
+.hub-stadium-cap-bar-dead {
+  background: #a1523a;
+}
 .hub-stadium-hero--preview {
   margin: 0;
 }
@@ -17933,6 +17967,14 @@ th.sortable-header {
   .hub-look-slider { grid-template-columns: 1fr; }
 }
 
+.hub-look-room-preview {
+  margin-top: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.hub-look-room-preview .hub-locker-room { margin-bottom: 0; }
+
 .hub-identity-fieldset {
   border: 0;
   margin: 0;
@@ -17983,54 +18025,208 @@ th.sortable-header {
 }
 .hub-identity-locker-pick span { color: var(--text-muted); font-size: 0.75rem; }
 
-.hub-locker-room { position: relative; }
+/* Locker room v2 — a lit scene: team-color nameplates, hanging SVG jerseys,
+   headshot medallions, bench + floor. Lockers open on hover/focus to show the
+   contract line. Decorative only; the contract table stays authoritative. */
+.hub-locker-room { position: relative; margin-bottom: 0.85rem; }
+.hub-locker-room-scene {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, #10161f 0%, #0b1119 58%, #131a24 100%);
+  padding: 1rem 1rem 0;
+}
+/* overhead light cones */
+.hub-locker-room-scene::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(34% 55% at 22% -8%, rgba(255, 244, 214, 0.09), transparent 70%),
+    radial-gradient(34% 55% at 50% -8%, rgba(255, 244, 214, 0.08), transparent 70%),
+    radial-gradient(34% 55% at 78% -8%, rgba(255, 244, 214, 0.09), transparent 70%);
+}
 .hub-locker-room-wall {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
-  gap: 0.45rem;
-  margin-bottom: 0.85rem;
-  padding: 0.75rem;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(180deg, #1a140f, #0e1218);
+  grid-template-columns: repeat(auto-fit, minmax(6.2rem, 1fr));
+  gap: 0.55rem;
+  position: relative;
+  z-index: 1;
 }
 .hub-locker {
   position: relative;
-  min-height: 6.2rem;
-  border-radius: 10px;
-  background: linear-gradient(180deg, #2a241c, #17140f);
-  border: 1px solid #3a3228;
+  min-height: 12.4rem;
+  border-radius: 12px 12px 6px 6px;
+  background: linear-gradient(180deg, #232f42 0%, #1b2536 55%, #16202f 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -14px 22px rgba(0, 0, 0, 0.4),
+    0 6px 16px rgba(0, 0, 0, 0.35);
+  padding: 0 0.4rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform var(--duration-fast) var(--ease-standard);
+  outline: none;
 }
+.hub-locker:hover,
+.hub-locker:focus-visible { transform: translateY(-3px); }
+.hub-locker:focus-visible { box-shadow: 0 0 0 2px var(--accent), inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+.hub-locker--empty { opacity: 0.55; }
+.hub-locker-nameplate {
+  width: calc(100% - 0.5rem);
+  margin-top: 0.45rem;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.28rem 0.2rem;
+  color: #fff;
+  background: linear-gradient(180deg, #42536e, #243249);
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hub-locker-nameplate--empty { opacity: 0.4; }
 .hub-locker-vent {
   display: block;
-  height: 0.55rem;
-  margin: 0.45rem 0.55rem 0;
-  background: repeating-linear-gradient(90deg, #4a4034 0 6px, transparent 6px 10px);
-  opacity: 0.55;
+  width: 58%;
+  height: 0.45rem;
+  margin-top: 0.35rem;
+  background: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.5) 0 5px, transparent 5px 9px);
+  border-radius: 2px;
+  opacity: 0.7;
 }
-.hub-locker-handle {
-  position: absolute;
-  right: 0.55rem;
-  top: 2.1rem;
-  width: 0.35rem;
-  height: 1.1rem;
-  border-radius: 3px;
-  background: #c9b48a;
+.hub-locker-inner {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  margin-top: 0.35rem;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #0c1320 0%, #0a101b 100%);
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.65);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 0.45rem;
+  overflow: hidden;
 }
-.hub-locker-nameplate {
+.hub-locker-rail {
+  width: 78%;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(238, 243, 251, 0.18);
+  margin-bottom: 0.1rem;
+}
+.hub-locker-jersey {
+  width: 74%;
+  margin-top: -2px;
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.5));
+}
+.hub-locker-headshot {
   position: absolute;
-  left: 0.45rem;
-  right: 0.9rem;
-  bottom: 0.5rem;
-  padding: 0.2rem 0.35rem;
-  border-radius: 4px;
-  background: #efe6d2;
-  color: #1b140c;
-  font-size: 0.72rem;
+  top: 0.5rem;
+  right: 0.4rem;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+  background: var(--bg-subtle);
+  box-shadow: 0 0 0 2px rgba(238, 243, 251, 0.25), 0 3px 6px rgba(0, 0, 0, 0.5);
+}
+.hub-locker-pos {
+  position: absolute;
+  bottom: 0.4rem;
+  font-size: 0.58rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-align: center;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  background: rgba(7, 13, 23, 0.7);
+  border: 1px solid var(--border);
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-pill);
 }
-.hub-locker-nameplate--empty { opacity: 0.35; }
+/* Contract line slides up when the locker opens (hover / keyboard focus). */
+.hub-locker-stats {
+  position: absolute;
+  left: 0.3rem;
+  right: 0.3rem;
+  bottom: 0.3rem;
+  background: rgba(13, 22, 36, 0.95);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 0.35rem 0.45rem;
+  font-size: 0.6rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity var(--duration-normal) var(--ease-standard), transform var(--duration-normal) var(--ease-standard);
+  pointer-events: none;
+}
+.hub-locker-stats strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 0.64rem;
+}
+.hub-locker:hover .hub-locker-stats,
+.hub-locker:focus-visible .hub-locker-stats,
+.hub-locker:focus-within .hub-locker-stats {
+  opacity: 1;
+  transform: translateY(0);
+}
+.hub-locker:hover .hub-locker-pos,
+.hub-locker:focus-visible .hub-locker-pos { opacity: 0; }
+.hub-locker-floor {
+  position: relative;
+  height: 3.6rem;
+  margin: 0 -1rem;
+  background: linear-gradient(180deg, #1c2431 0%, #232c3b 100%);
+}
+.hub-locker-floor::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(60% 120% at 50% 0%, rgba(0, 0, 0, 0.5), transparent 75%);
+}
+.hub-locker-bench {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 0.8rem;
+  height: 0.75rem;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #8a6134, #6b4a26 70%, #55391c);
+  box-shadow: 0 8px 14px rgba(0, 0, 0, 0.45);
+}
+.hub-locker-bench::before,
+.hub-locker-bench::after {
+  content: "";
+  position: absolute;
+  top: 0.75rem;
+  width: 0.45rem;
+  height: 1.4rem;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(180deg, #3d4657, #262e3c);
+}
+.hub-locker-bench::before { left: 8%; }
+.hub-locker-bench::after { right: 8%; }
+/* Compact variant for the Team look studio preview. */
+.hub-locker-room--preview .hub-locker-room-scene { padding: 0.6rem 0.6rem 0; }
+.hub-locker-room--preview .hub-locker { min-height: 8.6rem; }
+.hub-locker-room--preview .hub-locker-floor { height: 2rem; margin: 0 -0.6rem; }
+.hub-locker-room--preview .hub-locker-headshot { width: 1.3rem; height: 1.3rem; }
+.hub-locker-room--preview .hub-locker-room-wall { grid-template-columns: repeat(auto-fit, minmax(4.6rem, 1fr)); }
+@media (prefers-reduced-motion: reduce) {
+  .hub-locker,
+  .hub-locker-stats { transition: none; }
+}
 
 .hub-week-culture { display: flex; flex-direction: column; gap: 0.85rem; }
 .hub-week-culture-strip-head h3 {
