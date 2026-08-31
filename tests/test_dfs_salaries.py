@@ -95,6 +95,46 @@ def test_collapse_captain_rows_from_salary_ratio_pairs():
     assert pd.isna(solo["cpt_salary"])
 
 
+def test_collapse_dedupes_roster_slot_duplicates():
+    """DK classic draftables list one row per roster slot (RB + FLEX) at the same salary."""
+    raw = pd.DataFrame(
+        [
+            {"dfs_id": "101", "player_name": "Jahmyr Gibbs", "name_key": "jahmyr gibbs", "position": "RB", "team": "DET", "salary": 8000, "site": "draftkings"},
+            {"dfs_id": "102", "player_name": "Jahmyr Gibbs", "name_key": "jahmyr gibbs", "position": "RB", "team": "DET", "salary": 8000, "site": "draftkings"},
+        ]
+    )
+    collapsed = collapse_captain_rows(raw)
+    assert len(collapsed) == 1
+    assert collapsed.iloc[0]["dfs_id"] == "101"
+    assert pd.isna(collapsed.iloc[0]["cpt_salary"])
+
+
+def test_attached_dst_rows_are_not_on_bye():
+    pool = pd.DataFrame(
+        [
+            {
+                "player_id": "p1",
+                "Player": "Patrick Mahomes",
+                "Team": "KC",
+                "Position": "QB",
+                "Projected Points": 22.0,
+                "Low (P10)": 15.0,
+                "High (P90)": 28.0,
+                "on_bye": False,
+            }
+        ]
+    )
+    salaries = parse_salary_csv(DK_SAMPLE.encode())
+    merged, _stats = attach_salaries_to_pool(pool, salaries)
+    dst = merged[merged["Position"] == "DST"].iloc[0]
+    assert dst["on_bye"] == False  # noqa: E712 — NaN would silently read as truthy
+
+    from src.products.lineup_optimizer import _players_from_pool
+
+    players = _players_from_pool(merged, require_salary=True, block_bye_weeks=True)
+    assert any(p.position == "DST" for p in players)
+
+
 def test_attach_salaries_carries_captain_columns():
     pool = pd.DataFrame(
         [

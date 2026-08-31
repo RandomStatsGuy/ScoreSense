@@ -524,11 +524,15 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
 
   const filteredPool = useMemo(() => {
     let list = pool || [];
+    // Once a slate is loaded, players without a salary cannot be rostered.
+    if (isDfs && slateSalaries?.length) {
+      list = list.filter((r) => r.salary != null && r.salary !== "");
+    }
     const q = search.trim().toLowerCase();
     if (q) list = list.filter((r) => String(r.Player || "").toLowerCase().includes(q));
     if (posFilter !== "ALL") list = list.filter((r) => r.Position === posFilter);
     return list;
-  }, [pool, search, posFilter]);
+  }, [pool, search, posFilter, isDfs, slateSalaries]);
 
   const narrativePlayerIds = useMemo(() => {
     const ids = new Set();

@@ -161,6 +161,9 @@ def collapse_captain_rows(salaries: pd.DataFrame) -> pd.DataFrame:
         out["cpt_salary"] = np.nan
     if "cpt_dfs_id" not in out.columns:
         out["cpt_dfs_id"] = ""
+    # Live lobbies list one draftable per roster slot (RB + FLEX, …) at the
+    # same salary — keep one row per player so the pool join stays 1:1.
+    out = out.drop_duplicates(subset=["name_key", "team", "position", "salary"], keep="first")
     roster_pos = (
         out["roster_position"].fillna("").astype(str)
         if "roster_position" in out.columns
@@ -290,6 +293,8 @@ def attach_salaries_to_pool(
                     "cpt_dfs_id": row.get("cpt_dfs_id", ""),
                     "name_key": row["name_key"],
                     "team_upper": team,
+                    # A slate only lists teams that play, so DSTs are never on bye.
+                    "on_bye": False,
                 }
             )
         dst_added = len(dst_frames)

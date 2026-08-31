@@ -83,6 +83,10 @@ def build_lineup_pool(
     data_dir = data_dir or PROCESSED_DATA_DIR
     model_dir = model_dir or MODEL_DIR
     site_cfg = get_site_config(site)
+    if site_cfg["roster"].get("cpt"):
+        # Single-game slates draw from two teams — a league-wide top-N cut
+        # would leave almost nobody, so keep the full projection pool.
+        top_per_position = 0
 
     path = data_dir / "qb_mlready.parquet"
     if not path.exists():
@@ -175,7 +179,8 @@ def _players_from_pool(
         )
 
         injury = str(row.get("Injury Status") or "")
-        on_bye = bool(row.get("on_bye"))
+        on_bye_raw = row.get("on_bye")
+        on_bye = bool(on_bye_raw) and bool(pd.notna(on_bye_raw))
         if on_bye and block_bye_weeks and pid not in locked_player_ids:
             continue
         if injury and LineupPlayer("", "", "", pos, 0, 0, 0, injury).unavailable:
