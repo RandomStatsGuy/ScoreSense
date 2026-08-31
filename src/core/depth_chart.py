@@ -28,11 +28,30 @@ MIN_FEATURE_GAMES_ALWAYS_KEEP = 1
 _NAME_COLS = ("player_display_name", "player_name", "Player")
 
 
+def _safe_player_id(val: object) -> str:
+    """Stringify a player_id. Pandas NA/NaN become '' instead of the literal 'nan'."""
+    if val is None:
+        return ""
+    try:
+        if pd.isna(val):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    text = str(val).strip()
+    if not text or text.lower() in {"nan", "none", "<na>"}:
+        return ""
+    return text
+
+
 def _games_played(mlready_df: pd.DataFrame, feature_season: int) -> dict[str, int]:
     scoped = mlready_df[mlready_df["season"] == feature_season]
     if scoped.empty:
         return {}
-    counts = scoped.groupby(scoped["player_id"].astype(str))["week"].nunique()
+    pids = scoped["player_id"].map(_safe_player_id)
+    scoped = scoped.loc[pids.ne("")]
+    if scoped.empty:
+        return {}
+    counts = scoped.groupby(pids.loc[scoped.index])["week"].nunique()
     return {str(pid): int(n) for pid, n in counts.items()}
 
 
@@ -62,7 +81,9 @@ def _sleeper_depth_sort_key(row: pd.Series) -> tuple[int, int]:
 def _is_established_vet(row: pd.Series, games_played: dict[str, int]) -> bool:
     if bool(row.get("_rookie_estimate", False)):
         return False
-    pid = str(row.get("player_id") or "")
+    pid = _safe_player_id(row.get("player_id"))
+    if not pid:
+        return False
     return int(games_played.get(pid, 0)) >= MIN_FEATURE_GAMES_ALWAYS_KEEP
 
 
@@ -82,7 +103,7 @@ def _starter_signal(row: pd.Series, games_played: dict[str, int]) -> int:
 
 
 def _qb_starter_key(row: pd.Series, games_played: dict[str, int]) -> tuple:
-    pid = str(row.get("player_id") or "")
+    pid = _safe_player_id(row.get("player_id"))
     gp = int(games_played.get(pid, 0))
     has_dc, dc_pri = _sleeper_depth_sort_key(row)
     return (
@@ -97,7 +118,7 @@ def _qb_starter_key(row: pd.Series, games_played: dict[str, int]) -> tuple:
 
 
 def _rb_starter_key(row: pd.Series, games_played: dict[str, int]) -> tuple:
-    pid = str(row.get("player_id") or "")
+    pid = _safe_player_id(row.get("player_id"))
     gp = int(games_played.get(pid, 0))
     has_dc, dc_pri = _sleeper_depth_sort_key(row)
     return (
@@ -113,7 +134,7 @@ def _rb_starter_key(row: pd.Series, games_played: dict[str, int]) -> tuple:
 
 
 def _wr_starter_key(row: pd.Series, games_played: dict[str, int]) -> tuple:
-    pid = str(row.get("player_id") or "")
+    pid = _safe_player_id(row.get("player_id"))
     gp = int(games_played.get(pid, 0))
     has_dc, dc_pri = _sleeper_depth_sort_key(row)
     return (
@@ -132,7 +153,7 @@ def _player_label(row: pd.Series, columns: pd.Index) -> str:
     name_col = next((c for c in _NAME_COLS if c in columns), None)
     if name_col:
         return str(row[name_col])
-    return str(row.get("player_id") or "")
+    return _safe_player_id(row.get("player_id"))
 
 
 def _sole_rookie_qb_group(group: pd.DataFrame, games_played: dict[str, int]) -> bool:
@@ -140,7 +161,7 @@ def _sole_rookie_qb_group(group: pd.DataFrame, games_played: dict[str, int]) -> 
     if group.empty:
         return False
     for _, row in group.iterrows():
-        pid = str(row.get("player_id") or "")
+        pid = _safe_player_id(row.get("player_id"))
         if int(games_played.get(pid, 0)) > 0:
             return False
         if not bool(row.get("_rookie_estimate", False)):

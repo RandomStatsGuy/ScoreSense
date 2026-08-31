@@ -692,6 +692,56 @@ def test_name_fallback_joins_sleeper_prefixed_roster_ids(hub_db):
     assert payload["counts"]["missing_projections"] == 0
 
 
+def test_unique_name_fallback_does_not_cross_teams():
+    from src.draft_hub.weekly_command_center import _lookup_projection
+
+    allen = {
+        "player_id": "00-0034857",
+        "player_name": "Josh Allen",
+        "team": "BUF",
+        "p50": 22.1,
+        "has_projection": True,
+    }
+    index = {allen["player_id"]: allen}
+    by_name_team = {"joshallen|BUF": allen}
+    by_name = {"joshallen": [allen]}
+
+    jax_db = {
+        "player_id": "sleeper-999",
+        "sleeper_player_id": "999",
+        "player_name": "Josh Allen",
+        "team": "JAX",
+    }
+    assert _lookup_projection(jax_db, index, by_name_team, by_name) == {}
+
+    no_team = {
+        "player_id": "sleeper-999",
+        "player_name": "Josh Allen",
+        "team": "",
+    }
+    hit = _lookup_projection(no_team, index, by_name_team, by_name)
+    assert hit["p50"] == 22.1
+
+    wsh_alias = {
+        "player_id": "sleeper-11566",
+        "player_name": "Jayden Daniels",
+        "team": "WSH",
+    }
+    daniels = {
+        "player_id": "00-0039910",
+        "player_name": "Jayden Daniels",
+        "team": "WAS",
+        "p50": 18.2,
+        "has_projection": True,
+    }
+    d_index = {daniels["player_id"]: daniels}
+    d_by_team = {"jaydendaniels|WAS": daniels}
+    d_by_name = {"jaydendaniels": [daniels]}
+    assert _lookup_projection(wsh_alias, d_index, d_by_team, d_by_name)["p50"] == 18.2
+    # Unique-name path (no name|team index) still allows WAS/WSH aliases.
+    assert _lookup_projection(wsh_alias, d_index, {}, d_by_name)["p50"] == 18.2
+
+
 def test_api_hub_week_refresh_rebuilds(hub_db):
     league, team, ws, comm = _seed_league_roster(hub_db)
     client = _client_for(comm)
@@ -712,6 +762,10 @@ def test_api_hub_week_refresh_rebuilds(hub_db):
             return _Fut({"wr:inj1": 4, "qb:inj1": 2, "rb:inj1": 3})
 
     executor = _Ex()
+    from src.projections.weekly_cache import _WEEKLY_CACHE
+
+    stale_key = "qb:2026:w1:inj1"
+    _WEEKLY_CACHE[stale_key] = ("deadbeefdeadbeef", pd.DataFrame({"Player": ["STALE"]}))
     try:
         with patch(
             "src.draft_hub.weekly_command_center.load_weekly_prediction",
@@ -730,5 +784,9 @@ def test_api_hub_week_refresh_rebuilds(hub_db):
             assert data["meta"]["rebuild_counts"]["wr:inj1"] == 4
             assert data["hub_context"]["league_id"] == league["id"]
             assert executor.calls
+            assert stale_key not in _WEEKLY_CACHE
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
+        from src.projections.weekly_cache import invalidate_weekly_cache
+
+        invalidate_weekly_cache()

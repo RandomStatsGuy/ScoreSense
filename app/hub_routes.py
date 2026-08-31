@@ -668,6 +668,11 @@ def hub_refresh_weekly_command_center(
                     status_code=503,
                     detail=f"Failed to rebuild weekly projections: {exc}",
                 ) from exc
+            # Worker invalidate() only clears that process. Fingerprint does not
+            # change on rebuild, so the parent would keep serving stale frames.
+            from src.projections.weekly_cache import invalidate_weekly_cache
+
+            invalidate_weekly_cache()
         with timer.phase("build"):
             payload = build_weekly_command_center(
                 ctx,

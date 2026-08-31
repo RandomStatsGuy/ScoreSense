@@ -37,6 +37,17 @@ _TEAM_LOOKUP_ALIASES = {
     "WSH": ("WSH", "WAS"),
 }
 
+
+def _teams_compatible(roster_team: str, proj_team: str) -> bool:
+    """True when roster team is unknown, or the projection team is the same club."""
+    if not roster_team:
+        return True
+    if not proj_team:
+        return False
+    if proj_team == roster_team:
+        return True
+    return proj_team in _TEAM_LOOKUP_ALIASES.get(roster_team, ())
+
 # Positions with weekly GBM artifacts today.
 ARTIFACT_POSITIONS = ("qb", "rb", "wr")
 STARTER_FILL_ORDER = ("QB", "RB", "WR", "TE", "K", "DEF")
@@ -235,7 +246,11 @@ def _lookup_projection(
     if nk:
         hits = by_name.get(nk) or []
         if len(hits) == 1:
-            return hits[0]
+            proj_team = str(hits[0].get("team") or "").strip().upper()
+            # Unique-name fallback is for sheets with no team, not a different
+            # NFL club (Josh Allen JAX must not inherit BUF QB projections).
+            if _teams_compatible(team, proj_team):
+                return hits[0]
     return {}
 
 

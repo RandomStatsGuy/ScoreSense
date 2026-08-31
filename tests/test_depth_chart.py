@@ -324,6 +324,52 @@ def test_established_vet_kept_beyond_keep_n():
     assert meta.get("keep_per_team") == 2
 
 
+def test_nan_player_ids_are_not_established_vets():
+    import numpy as np
+
+    from src.core.depth_chart import (
+        _games_played,
+        _is_established_vet,
+        filter_depth_chart_starters,
+    )
+
+    mlready = pd.DataFrame(
+        {
+            "player_id": [np.nan, np.nan, "qb1"],
+            "player_display_name": ["Ghost A", "Ghost B", "Real Vet"],
+            "season": [2025, 2025, 2025],
+            "week": [1, 2, 1],
+            "team": ["KC", "KC", "KC"],
+        }
+    )
+    gp = _games_played(mlready, 2025)
+    assert "nan" not in gp
+    assert gp.get("qb1") == 1
+    ghost = pd.Series({"player_id": np.nan, "_rookie_estimate": False})
+    assert _is_established_vet(ghost, gp) is False
+    assert _is_established_vet(pd.Series({"player_id": "qb1"}), gp) is True
+
+    roster = pd.DataFrame(
+        {
+            "player_id": [np.nan, np.nan, np.nan, "qb1"],
+            "player_display_name": ["Ghost A", "Ghost B", "Ghost C", "Real Vet"],
+            "team": ["KC"] * 4,
+            "season": [2026] * 4,
+            "week": [1] * 4,
+            "pass_attmpt_avg": [1.0, 1.0, 1.0, 32.0],
+            "passing_yards_avg": [10.0, 10.0, 10.0, 250.0],
+            "_sleeper_depth_order": [pd.NA, pd.NA, pd.NA, 1],
+            "_rookie_estimate": [False, False, False, False],
+        }
+    )
+    filtered, _ = filter_depth_chart_starters(roster, "qb", mlready, 2025)
+    names = set(filtered["player_display_name"])
+    assert "Real Vet" in names
+    # Missing ids must not share a "nan" games-played bucket and all get always-kept.
+    assert len(filtered) <= 2
+    assert len(names & {"Ghost A", "Ghost B", "Ghost C"}) <= 1
+
+
 def test_build_inference_roster_applies_qb_depth_chart_preseason():
     path = __import__("src.config", fromlist=["PROCESSED_DATA_DIR"]).PROCESSED_DATA_DIR / "qb_mlready.parquet"
     if not path.exists():
