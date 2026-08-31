@@ -1,12 +1,21 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
 import useMobileLayout from "../useMobileLayout";
 import { HubPage } from "./HubUILayout";
+import TeamIdentityMark from "./TeamIdentityMark";
+import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
+import {
+  findViewerMatchup,
+  formatWinProb,
+  matchupTeams,
+  winProbFor,
+} from "./gameCenterPresentation";
 import {
   actionLabel,
   phaseTrackState,
+  pulseEventLine,
   resolveLeagueHomeFocus,
   supportingLeagueHomeActions,
 } from "./leagueHomePresentation";
@@ -91,9 +100,44 @@ export default function LeagueHome({
   onCreateLeague,
 }) {
   const mobileLayout = useMobileLayout();
+  const { identities } = useTeamIdentities();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [scoring, setScoring] = useState(null);
+  const [pulse, setPulse] = useState(null);
+
+  const leagueId = hubContext?.mode === "league" ? hubContext?.league_id : null;
+
+  /** Deck data (matchup / standings / pulse) is additive — it must never block
+   *  or error the action center, so failures just leave the cards hidden. */
+  useEffect(() => {
+    if (!leagueId) {
+      setScoring(null);
+      setPulse(null);
+      return undefined;
+    }
+    const ctrl = new AbortController();
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/api/hub/league/${encodeURIComponent(leagueId)}/live-scoring`,
+          { signal: ctrl.signal },
+        );
+        if (res.ok) setScoring(await res.json());
+      } catch { /* deck card stays hidden */ }
+    })();
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/api/hub/league/${encodeURIComponent(leagueId)}/pulse`,
+          { signal: ctrl.signal },
+        );
+        if (res.ok) setPulse(await res.json());
+      } catch { /* deck card stays hidden */ }
+    })();
+    return () => ctrl.abort();
+  }, [leagueId, reloadToken]);
 
   const load = useCallback(async (signal) => {
     setLoading(true);
@@ -150,6 +194,37 @@ export default function LeagueHome({
   const draftDate = formatDraftDate(data?.draft_schedule);
 
   const goSetup = onNavigateSetup || (onNavigate ? () => onNavigate("setup") : null);
+
+  const matchup = useMemo(() => findViewerMatchup(scoring), [scoring]);
+  const { viewer: matchViewer, opponent: matchOpponent } = useMemo(
+    () => matchupTeams(matchup),
+    [matchup],
+  );
+  const matchProb = matchup && matchViewer ? winProbFor(matchup, matchViewer) : null;
+  const standings = scoring?.standings || [];
+  const lastSeasonScoring = Boolean(
+    scoring?.season
+    && hubContext?.season
+    && String(scoring.season) !== String(hubContext.season),
+  );
+  const standingRows = useMemo(() => {
+    if (!standings.length) return [];
+    const top = standings.slice(0, 5);
+    const mine = standings.find(
+      (row) => row.hub_team_id && String(row.hub_team_id) === String(hubContext?.team_id),
+    );
+    if (mine && !top.includes(mine)) {
+      return [...top.slice(0, 4), mine];
+    }
+    return top;
+  }, [standings, hubContext?.team_id]);
+  const pulseEvents = (pulse?.events || []).slice(0, 4);
+  const showDeck = Boolean(leagueId && (matchup || standingRows.length || pulseEvents.length));
+
+  const identityTeam = (team) => ({
+    id: team?.hub_team_id || team?.roster_id,
+    name: team?.team_name,
+  });
 
   return (
     <HubPage className={`hub-league-home${mobileLayout ? " hub-league-home--mobile" : ""}`}>
@@ -240,6 +315,101 @@ export default function LeagueHome({
           </dl>
         </aside>
       </div>
+
+      {showDeck && (
+        <div className="hub-home-deck">
+          {matchup && matchViewer && matchOpponent && (
+            <section className="hub-home-deck-card" aria-label="Your matchup">
+              <header className="hub-home-deck-head">
+                <h3>Your matchup</h3>
+                <span className="chart-note">
+                  {scoring?.week != null ? `Week ${scoring.week}` : ""}
+                  {lastSeasonScoring ? " · last season" : ""}
+                </span>
+              </header>
+              {[matchViewer, matchOpponent].map((team) => (
+                <div className="hub-home-mu-row" key={team.roster_id}>
+                  <TeamIdentityMark
+                    team={identityTeam(team)}
+                    identity={identityFor(identities, identityTeam(team))}
+                    size="sm"
+                  />
+                  <span className="hub-home-mu-name">{team.team_name}</span>
+                  <span className="hub-home-mu-score">
+                    {Number(team.points || 0) > 0 || team.proj_total == null
+                      ? Number(team.points || 0).toFixed(1)
+                      : `proj ${Number(team.est_final).toFixed(1)}`}
+                  </span>
+                </div>
+              ))}
+              {matchProb != null && (
+                <>
+                  <div className="hub-home-mu-bar" aria-hidden="true">
+                    <span style={{ width: `${Math.round(matchProb * 100)}%` }} />
+                  </div>
+                  <p className="chart-note">{formatWinProb(matchProb)} win probability</p>
+                </>
+              )}
+              {onNavigate ? (
+                <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("game")}>
+                  Open Game center →
+                </button>
+              ) : null}
+            </section>
+          )}
+
+          {pulseEvents.length > 0 && (
+            <section className="hub-home-deck-card" aria-label="League pulse">
+              <header className="hub-home-deck-head">
+                <h3>League pulse</h3>
+                <span className="chart-note">What changed lately</span>
+              </header>
+              <ul className="hub-home-pulse">
+                {pulseEvents.map((event, idx) => {
+                  const line = pulseEventLine(event);
+                  return (
+                    <li key={`${event.kind}-${event.at || idx}`}>
+                      <span className="hub-home-pulse-ico" aria-hidden="true">{line.icon}</span>
+                      <span className="hub-home-pulse-text">
+                        {line.text}
+                        {event.at ? <time>{formatRelativeTime(event.at)}</time> : null}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+
+          {standingRows.length > 0 && (
+            <section className="hub-home-deck-card" aria-label="Standings">
+              <header className="hub-home-deck-head">
+                <h3>Standings</h3>
+                <span className="chart-note">{lastSeasonScoring ? "Final · last season" : "Season to date"}</span>
+              </header>
+              <ol className="hub-home-standings">
+                {standingRows.map((row) => (
+                  <li
+                    key={row.roster_id}
+                    className={row.hub_team_id && String(row.hub_team_id) === String(hubContext?.team_id) ? "is-you" : ""}
+                  >
+                    <span className="hub-home-standing-rank">{row.rank}</span>
+                    <span className="hub-home-standing-name">{row.team_name}</span>
+                    <span className="hub-home-standing-rec">
+                      {row.wins}–{row.losses}{row.ties ? `–${row.ties}` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+              {onNavigate ? (
+                <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("insights")}>
+                  Full standings → Insights
+                </button>
+              ) : null}
+            </section>
+          )}
+        </div>
+      )}
 
       {supportingActions.length > 0 ? (
         <section className="hub-home-supporting" aria-labelledby="hub-home-supporting-title">

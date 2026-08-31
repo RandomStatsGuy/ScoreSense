@@ -484,6 +484,181 @@
   text-align: right;
 }
 
+/* Home deck — matchup / pulse / standings cards under the priority stage. */
+.hub-home-deck {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin-top: 1.1rem;
+}
+
+.hub-home-deck-card {
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--experience-surface);
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.hub-home-deck-card > .btn-ghost {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+.hub-home-deck-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.hub-home-deck-head h3 {
+  margin: 0;
+  font-size: 0.98rem;
+  letter-spacing: -0.01em;
+}
+
+.hub-home-deck-head .chart-note {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.hub-home-mu-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.hub-home-mu-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 650;
+  font-size: 0.85rem;
+}
+
+.hub-home-mu-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.hub-home-mu-bar {
+  display: flex;
+  height: 0.4rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bg-subtle, #121d2d);
+  margin-top: 0.2rem;
+}
+
+.hub-home-mu-bar span {
+  background: linear-gradient(90deg, var(--accent), var(--accent-muted));
+}
+
+.hub-home-pulse {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.hub-home-pulse li {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--experience-rule);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.hub-home-pulse li:last-child {
+  border-bottom: 0;
+}
+
+.hub-home-pulse-ico {
+  flex: none;
+  width: 1.4rem;
+  height: 1.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle, #121d2d);
+  font-size: 0.72rem;
+  color: var(--text-primary);
+}
+
+.hub-home-pulse-text {
+  min-width: 0;
+}
+
+.hub-home-pulse-text time {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  margin-top: 0.1rem;
+}
+
+.hub-home-standings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hub-home-standings li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  padding: 0.42rem 0.3rem;
+  font-size: 0.8rem;
+  border-bottom: 1px solid var(--experience-rule);
+}
+
+.hub-home-standings li:last-child {
+  border-bottom: 0;
+}
+
+.hub-home-standings li.is-you {
+  background: var(--accent-soft);
+  border-radius: 8px;
+}
+
+.hub-home-standing-rank {
+  color: var(--text-muted);
+  width: 1.3rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hub-home-standing-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+.hub-home-standing-rec {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 980px) {
+  .hub-home-deck {
+    grid-template-columns: 1fr;
+  }
+}
+
 .hub-home-supporting {
   margin-top: 1.5rem;
 }

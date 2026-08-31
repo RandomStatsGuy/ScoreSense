@@ -4,9 +4,37 @@ import test from "node:test";
 import {
   actionLabel,
   phaseTrackState,
+  pulseEventLine,
   resolveLeagueHomeFocus,
   supportingLeagueHomeActions,
 } from "./leagueHomePresentation.js";
+
+test("pulse events read as human league activity", () => {
+  assert.deepEqual(
+    pulseEventLine({ kind: "cut", player_name: "S. Tucker", from_owner: "Stephen P", dead_cap: 1 }),
+    { icon: "−", text: "Stephen P cut S. Tucker ($1 dead)." },
+  );
+  assert.deepEqual(
+    pulseEventLine({ kind: "waiver", player_name: "Rico Dowdle", to_owner: "Disappointment", salary: 7 }),
+    { icon: "+", text: "Disappointment won Rico Dowdle on waivers at $7." },
+  );
+  assert.deepEqual(
+    pulseEventLine({
+      kind: "trade",
+      team_a: "Panda Fraud",
+      team_b: "Thanks noob noob",
+      players_a: ["Breece Hall"],
+      players_b: ["Jayden Reed"],
+    }),
+    { icon: "⇄", text: "Panda Fraud ⇄ Thanks noob noob completed a trade — Breece Hall, Jayden Reed." },
+  );
+  assert.equal(
+    pulseEventLine({ kind: "trade_in", player_name: "DK Metcalf", to_owner: "Panda Command", from_owner: "Daddio" }).text,
+    "DK Metcalf moved from Daddio to Panda Command by trade.",
+  );
+  // Unknown kinds degrade to a neutral line instead of crashing the feed.
+  assert.equal(pulseEventLine({ kind: "mystery", player_name: "X" }).icon, "•");
+});
 
 const validViews = new Set(["planner", "roster", "room", "week", "value"]);
 
