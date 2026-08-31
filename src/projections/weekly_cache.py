@@ -32,8 +32,11 @@ def _artifact_paths(position: str, season: int, week: int, apply_injury: bool) -
     )
 
 
+WEEKLY_POOL_POLICY = "v2-keep-established"
+
+
 def weekly_fingerprint() -> str:
-    parts: list[str] = []
+    parts: list[str] = [f"pool:{WEEKLY_POOL_POLICY}"]
     for pos in ("qb", "rb", "wr"):
         feat = PROCESSED_DATA_DIR / f"{pos}_mlready.parquet"
         if feat.exists():
@@ -113,6 +116,7 @@ def compute_weekly_artifact(
     season: int,
     week: int,
     apply_injury_adjustments: bool = True,
+    force: bool = False,
 ) -> int:
     """Process-pool worker: compute and persist a weekly artifact.
 
@@ -124,6 +128,7 @@ def compute_weekly_artifact(
         season=season,
         week=week,
         apply_injury_adjustments=apply_injury_adjustments,
+        force=force,
     )
     return int(len(df))
 
@@ -234,4 +239,22 @@ def prewarm_weekly_predictions(
             )
             counts[f"{pos}:inj{int(apply_injury)}"] = int(len(df))
     return counts
+
+
+def rebuild_weekly_predictions(
+    season: int,
+    week: int,
+    *,
+    positions: tuple[str, ...] = ("qb", "rb", "wr"),
+    injury_variants: tuple[bool, ...] = (True, False),
+) -> dict[str, int]:
+    """Force-rebuild weekly artifacts (Hub Refresh projections / jobs)."""
+    invalidate_weekly_cache()
+    return prewarm_weekly_predictions(
+        int(season),
+        int(week),
+        positions=positions,
+        injury_variants=injury_variants,
+        force=True,
+    )
 

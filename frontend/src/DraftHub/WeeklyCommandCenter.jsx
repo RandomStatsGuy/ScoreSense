@@ -40,21 +40,22 @@ export default function WeeklyCommandCenter({
   const [syncError, setSyncError] = useState("");
   const [weekOverride, setWeekOverride] = useState("");
 
-  const load = useCallback(async (signal) => {
+  const load = useCallback(async (signal, { rebuild = false } = {}) => {
     setLoading(true);
     setError("");
     try {
       const params = new URLSearchParams();
       if (weekOverride !== "") params.set("week", String(weekOverride));
       const q = params.toString();
-      const res = await apiFetch(`/api/hub/week${q ? `?${q}` : ""}`, { signal });
+      const path = rebuild ? `/api/hub/week/refresh${q ? `?${q}` : ""}` : `/api/hub/week${q ? `?${q}` : ""}`;
+      const res = await apiFetch(path, { signal, ...(rebuild ? { method: "POST" } : {}) });
       if (!res.ok) throw new Error(await parseApiError(res));
       const payload = await res.json();
       if (!signal?.aborted) setData(payload);
     } catch (e) {
       if (isAbortError(e) || signal?.aborted) return;
       setError(connectionErrorMessage(e));
-      setData(null);
+      if (!rebuild) setData(null);
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
@@ -160,6 +161,7 @@ export default function WeeklyCommandCenter({
     if (primary.kind === "sync") return runSync();
     if (primary.kind === "setup") return onNavigateSetup?.();
     if (primary.kind === "roster") return onNavigate?.("roster");
+    if (primary.kind === "refresh") return load(undefined, { rebuild: true });
     return load();
   };
 
@@ -193,7 +195,7 @@ export default function WeeklyCommandCenter({
     body: status.projections_missing
       ? "Weekly projections are not available for this week yet, so lineup recommendations would not be reliable."
       : `Only ${coveredCount} of ${rosterCount} roster players have weekly projections (${coveragePct}% coverage)${missingCount > 0 ? ` — ${missingCount} missing` : ""}. Lineup advice would mostly be noise until coverage improves.`,
-    hint: "Recommendations use your latest synced roster. Refresh projections after a sync, or sync your league roster if it looks out of date.",
+    hint: "Refresh projections rebuilds this week's model artifacts. Sync the league roster if names look out of date.",
   } : null;
 
   const coverageActions = (
@@ -201,7 +203,7 @@ export default function WeeklyCommandCenter({
       <button
         type="button"
         className="btn-primary btn-sm"
-        onClick={() => load()}
+        onClick={() => load(undefined, { rebuild: true })}
         disabled={loading || syncing}
       >
         {loading ? "Refreshing…" : "Refresh projections"}

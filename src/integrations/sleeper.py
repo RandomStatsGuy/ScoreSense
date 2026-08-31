@@ -618,6 +618,13 @@ def _rookie_stub_from_template(
     stub["season"] = season
     stub["week"] = target_week
     stub["_rookie_estimate"] = True
+    dc_raw = sleeper_row.get("depth_chart_order")
+    try:
+        dc_val = int(dc_raw) if dc_raw is not None and not (isinstance(dc_raw, float) and pd.isna(dc_raw)) else None
+    except (TypeError, ValueError):
+        dc_val = None
+    if dc_val is not None and dc_val > 0:
+        stub["_sleeper_depth_order"] = dc_val
 
     mult, role_label = compute_rookie_role(skill_pos, sleeper_row, season=season)
     stub["_rookie_role_mult"] = mult
