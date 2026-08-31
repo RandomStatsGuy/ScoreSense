@@ -39,7 +39,7 @@
   @keyframes rock { from { transform: rotate(-24deg); } to { transform: rotate(24deg); } }
 
   .p--football { pointer-events: auto; cursor: pointer; }
-  .p--football.popped { animation: none; }
+  .p--football.popped { animation-play-state: paused; }
   .p--football.popped .spin { animation: pop 0.55s var(--ease-standard) forwards; }
   @keyframes pop {
     30% { transform: rotate(140deg) scale(1.35); opacity: 1; }

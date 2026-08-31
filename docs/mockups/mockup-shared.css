@@ -166,14 +166,14 @@ body {
 .card h3 { margin: 0 0 0.25rem; font-size: 1.02rem; letter-spacing: -0.02em; }
 .card .note { color: var(--text-muted); font-size: 0.78rem; margin: 0; }
 
-.mock-rail .facts { display: flex; flex-direction: column; gap: 0; margin-top: 0.35rem; }
-.mock-rail .fact {
+.facts { display: flex; flex-direction: column; gap: 0; margin-top: 0.35rem; }
+.fact {
   display: flex; justify-content: space-between; align-items: baseline;
   padding: 0.5rem 0; border-bottom: 1px solid rgba(36, 50, 73, 0.6);
   font-size: 0.8rem; color: var(--text-muted);
 }
-.mock-rail .fact:last-child { border-bottom: 0; }
-.mock-rail .fact strong { color: var(--text-primary); font-size: 0.88rem; }
+.fact:last-child { border-bottom: 0; }
+.fact strong { color: var(--text-primary); font-size: 0.88rem; }
 
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
