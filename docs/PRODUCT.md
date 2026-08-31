@@ -83,6 +83,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 | Strategy | `value` | Auction targets and prices |
 | Draft | `room` | Idle entry + live room |
 | This Week | `week` | Lineup decisions |
+| Game center | `game` | Your matchup live, league scoreboard, week trophies |
 | My team | `roster` | Personal contracts |
 | Free agents | `available` | Add / bid / locked by calendar |
 | Rosters | `rosters` | League-wide roster reference |

@@ -10,9 +10,13 @@ from src.draft_hub import storage
 from src.draft_hub.league_live_scoring import (
     LIVE_SCORING_MAX_AGE_SECONDS,
     _live_cache_is_fresh,
+    attach_matchup_analytics,
     build_sleeper_live_week,
+    estimate_team_final,
     get_sleeper_live_week,
+    starting_slots,
     week_picker_meta,
+    win_probability,
 )
 from src.draft_hub.schemas import LeagueRules
 
@@ -23,7 +27,8 @@ SAMPLE_MATCHUPS = [
         "matchup_id": 3,
         "points": 84.2,
         "starters": ["p1", "p2"],
-        "players_points": {"p1": 12.4, "p2": 8.0},
+        "players": ["p1", "p2", "b1", "b2"],
+        "players_points": {"p1": 12.4, "p2": 8.0, "b1": 18.4, "b2": 3.1},
     },
     {
         "roster_id": 2,
@@ -48,21 +53,39 @@ SAMPLE_MATCHUPS = [
     },
 ]
 
-SAMPLE_LEAGUE = {"season": "2025", "status": "in_season"}
+SAMPLE_LEAGUE = {
+    "season": "2025",
+    "status": "in_season",
+    "roster_positions": ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "BN", "BN", "IR"],
+}
+
+SAMPLE_ROSTERS = [
+    {"roster_id": 1, "settings": {"wins": 6, "losses": 3, "fpts": 1104, "fpts_decimal": 60}},
+    {"roster_id": 2, "settings": {"wins": 7, "losses": 2, "fpts": 1032, "fpts_decimal": 5}},
+    {"roster_id": 3, "settings": {"wins": 7, "losses": 2, "fpts": 1200}},
+    {"roster_id": 4, "settings": {"wins": 2, "losses": 7, "fpts": 803}},
+]
+
+
+def _fake_fetch(url):
+    if "/matchups/" in url:
+        return SAMPLE_MATCHUPS
+    if url.endswith("/rosters"):
+        return SAMPLE_ROSTERS
+    return SAMPLE_LEAGUE
 SAMPLE_PLAYERS = {
     "p1": {"full_name": "Alpha QB", "position": "QB", "team": "KC", "gsis_id": "00-0001"},
     "p2": {"full_name": "Alpha RB", "position": "RB", "team": "KC"},
     "p3": {"full_name": "Beta WR", "position": "WR", "team": "BUF", "gsis_id": "00-0002"},
     "p4": {"full_name": "Gamma TE", "position": "TE", "team": "SF"},
     "p5": {"full_name": "Delta RB", "position": "RB", "team": "DAL"},
+    "b1": {"full_name": "Bench Star", "position": "WR", "team": "GB"},
+    "b2": {"full_name": "Bench Two", "position": "RB", "team": "CHI"},
 }
 
 
 def test_build_sleeper_live_week_pairs_matchups(monkeypatch):
-    monkeypatch.setattr(
-        "src.draft_hub.league_live_scoring._fetch_json",
-        lambda url: SAMPLE_LEAGUE if "/league/" in url and "/matchups/" not in url else SAMPLE_MATCHUPS,
-    )
+    monkeypatch.setattr("src.draft_hub.league_live_scoring._fetch_json", _fake_fetch)
     monkeypatch.setattr(
         "src.draft_hub.league_live_scoring.load_sleeper_players",
         lambda: SAMPLE_PLAYERS,
@@ -70,6 +93,10 @@ def test_build_sleeper_live_week_pairs_matchups(monkeypatch):
     monkeypatch.setattr(
         "src.draft_hub.league_live_scoring.get_nfl_state",
         lambda **_: {"week": 5, "season": "2025", "season_type": "regular"},
+    )
+    monkeypatch.setattr(
+        "src.draft_hub.league_live_scoring._load_projection_lookup",
+        lambda _season, _week: {},
     )
 
     hub_teams = [
@@ -94,6 +121,104 @@ def test_build_sleeper_live_week_pairs_matchups(monkeypatch):
     assert viewer["starters"][0]["points"] == 12.4
     assert out["current_week"] == 5
     assert out["max_week"] >= 18
+
+    # Game center additions ride the same payload.
+    assert out["starting_slots"] == ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX"]
+    assert [row["roster_id"] for row in out["standings"]] == ["3", "2", "1", "4"]
+    assert out["standings"][0]["rank"] == 1
+    assert out["standings"][2]["team_name"] == "Hub One"
+    assert out["standings"][2]["points_for"] == 1104.6
+    # Bench summary comes from players − starters on the matchup row.
+    assert viewer["bench"] == {
+        "points": 21.5,
+        "count": 2,
+        "top_name": "Bench Star",
+        "top_points": 18.4,
+    }
+    # No projections mocked in → est_final equals live points.
+    assert viewer["est_final"] == 84.2
+    assert viewer_match["win_prob_by_roster"]["1"] == 1.0
+
+
+def test_starting_slots_filters_hidden_and_normalizes_flex():
+    assert starting_slots(["QB", "RB", "WRRB_FLEX", "SUPER_FLEX", "BN", "IR", "TAXI", "DEF"]) == [
+        "QB",
+        "RB",
+        "FLEX",
+        "FLEX",
+        "DEF",
+    ]
+    assert starting_slots(None) == []
+
+
+def test_estimate_and_win_probability_with_pending_projections():
+    viewer = {
+        "points": 60.0,
+        "starters": [
+            {"points": 20.0, "proj": 18.0},
+            {"points": 0.0, "proj": 15.0},  # yet to play → pending
+        ],
+    }
+    opponent = {
+        "points": 70.0,
+        "starters": [
+            {"points": 30.0, "proj": 22.0},
+            {"points": 0.0, "proj": 2.0},
+        ],
+    }
+    estimate_team_final(viewer)
+    estimate_team_final(opponent)
+    assert viewer["points_pending"] == 15.0
+    assert viewer["est_final"] == 75.0
+    assert opponent["est_final"] == 72.0
+    prob = win_probability(viewer, opponent)
+    assert 0.5 < prob < 0.7, "small projected edge → modest favorite"
+    # Once nothing is pending, the current leader is a lock.
+    final_a = {"points": 101.2, "starters": [], "points_pending": 0, "est_final": 101.2}
+    final_b = {"points": 88.0, "starters": [], "points_pending": 0, "est_final": 88.0}
+    assert win_probability(final_a, final_b) == 1.0
+    assert win_probability(final_b, final_a) == 0.0
+
+
+def test_attach_matchup_analytics_joins_projection_index():
+    matchups = [
+        {
+            "matchup_id": "3",
+            "teams": [
+                {
+                    "roster_id": "1",
+                    "points": 10.0,
+                    "starters": [
+                        {"player_id": "00-0001", "sleeper_player_id": "p1", "points": 10.0},
+                        {"player_id": "sleeper-p2", "sleeper_player_id": "p2", "points": 0.0},
+                    ],
+                },
+                {
+                    "roster_id": "2",
+                    "points": 0.0,
+                    "starters": [
+                        {"player_id": "", "sleeper_player_id": "p3", "points": 0.0},
+                    ],
+                },
+            ],
+        },
+    ]
+    index = {
+        "00-0001": {"p50": 14.0},
+        "sleeper-p2": {"p50": 9.5},
+        "p3": {"p50": 11.0},
+    }
+    attach_matchup_analytics(matchups, index)
+    team_a, team_b = matchups[0]["teams"]
+    assert team_a["starters"][0]["proj"] == 14.0
+    assert team_a["starters"][1]["proj"] == 9.5
+    # Fallback lookup by bare sleeper id works for gsis-less players.
+    assert team_b["starters"][0]["proj"] == 11.0
+    assert team_a["est_final"] == 19.5
+    assert team_b["est_final"] == 11.0
+    probs = matchups[0]["win_prob_by_roster"]
+    assert probs["1"] > 0.5
+    assert probs["1"] + probs["2"] == 1.0
 
 
 def test_live_cache_ttl_skips_rebuild(monkeypatch, hub_db):
