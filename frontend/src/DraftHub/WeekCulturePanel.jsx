@@ -2,11 +2,11 @@ import React, { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
-import { HubSection } from "./HubUILayout";
 import TeamIdentityMark from "./TeamIdentityMark";
 import { EMOTE_COPY, emoteTitle } from "./atmosphereCatalog";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 import { hubTeamLabel } from "./hubTeamLabel";
+import { trophyStripCopy } from "./weekBoard";
 
 function EmoteFigure({ emoteKey }) {
   return (
@@ -17,7 +17,7 @@ function EmoteFigure({ emoteKey }) {
   );
 }
 
-export default function WeekCulturePanel({ hubContext, week }) {
+export default function WeekCulturePanel({ hubContext, week, boardReady = true }) {
   const leagueId = hubContext?.league_id;
   const { identities } = useTeamIdentities();
   const [data, setData] = useState(null);
@@ -110,14 +110,22 @@ export default function WeekCulturePanel({ hubContext, week }) {
   const opponentName = data?.opponent?.team_name || "your opponent";
   const myEmote = (data?.emotes || []).find((row) => String(row.from_team_id) === String(hubContext?.team_id));
   const incoming = (data?.emotes || []).filter((row) => String(row.to_team_id) === String(hubContext?.team_id));
+  const polls = data?.polls || [];
+  const previewTeams = [];
+  for (const poll of polls) {
+    for (const option of poll?.options || []) {
+      if (option?.team_id && !previewTeams.some((t) => String(t.id) === String(option.team_id))) {
+        previewTeams.push({ id: option.team_id, name: option.team_name });
+      }
+    }
+  }
 
   return (
-    <HubSection
-      title="This week's trophies"
-      hint="Optional league votes. One vote per trophy. Reactions unlock after you win the matchup."
-      className="hub-week-culture"
-    >
-      {loading && !data && <p className="chart-note">Loading league trophies…</p>}
+    <section className="hub-week-culture hub-week-culture-strip" aria-label="This week's trophies">
+      <header className="hub-week-culture-strip-head">
+        <h3>This week's trophies</h3>
+        <p className="chart-note">{trophyStripCopy({ boardReady, loading: loading && !data })}</p>
+      </header>
       {error && <div className="error">{error}</div>}
 
       {incoming.length > 0 && (
@@ -131,7 +139,7 @@ export default function WeekCulturePanel({ hubContext, week }) {
         </div>
       )}
 
-      {data?.can_react && (
+      {boardReady && data?.can_react && (
         <div className="hub-emote-dock">
           <p className="hub-emote-dock-copy">
             You beat {opponentName}. Send one reaction — they will see it here.
@@ -156,19 +164,25 @@ export default function WeekCulturePanel({ hubContext, week }) {
         </div>
       )}
 
-      {!data?.can_react && data && (
-        <p className="chart-note">
-          {data.scoring_available
-            ? "Reactions unlock after you win the matchup."
-            : "Link Sleeper scoring to unlock victory reactions after a win."}
-        </p>
-      )}
+      {!boardReady && previewTeams.length > 0 ? (
+        <ul className="hub-week-culture-marks">
+          {previewTeams.slice(0, 6).map((team) => (
+            <li key={team.id}>
+              <TeamIdentityMark
+                team={team}
+                identity={identityFor(identities, team)}
+                size="sm"
+                showName
+              />
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
-      {(data?.polls || []).map((poll) => (
-        <article key={poll.id} className="hub-week-poll">
+      {boardReady && polls.map((poll) => (
+        <article key={poll.id} className="hub-week-poll hub-week-poll--strip">
           <header className="hub-week-poll-head">
             <h4>{poll.title}</h4>
-            <p className="chart-note">{poll.support}</p>
           </header>
           <div className="hub-week-poll-options">
             {(poll.options || []).map((option) => {
@@ -200,6 +214,6 @@ export default function WeekCulturePanel({ hubContext, week }) {
           </div>
         </article>
       ))}
-    </HubSection>
+    </section>
   );
 }
