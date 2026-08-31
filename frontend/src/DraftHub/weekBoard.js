@@ -119,10 +119,12 @@ export function weekHeroCopy({
   decisionCount = 0,
   weekLabel = "This week",
 } = {}) {
-  if (emptyRoster || unlinked) {
+  if (emptyRoster) {
     return {
       heading: "Set the board.",
-      support: "Sync the league and the empty slots fill with this week's starters.",
+      support: unlinked
+        ? "Link Sleeper, then sync, and the empty slots fill with this week's starters."
+        : "Sync the league and the empty slots fill with this week's starters.",
       chip: weekLabel || "Needs sync",
       chipTone: "readonly",
     };
@@ -159,7 +161,7 @@ export function weekRailItems({
   poorCoverage = false,
   counts = {},
 } = {}) {
-  if (emptyRoster || unlinked) {
+  if (emptyRoster) {
     return [
       { id: "board", label: "Board", value: "Empty", tone: "warn" },
       { id: "decisions", label: "Decisions", value: "Locked" },
@@ -184,8 +186,9 @@ export function weekRailNote({
   headline = "",
   syncedLabel = "",
 } = {}) {
-  if (unlinked) return "Link Sleeper, then sync to fill the board.";
+  if (emptyRoster && unlinked) return "Link Sleeper, then sync to fill the board.";
   if (emptyRoster) return "Sync from Sleeper to load this week's board.";
+  if (unlinked) return "Sleeper is not linked. The board is using Hub contracts.";
   if (poorCoverage) return "Waiting on projection coverage before lineup advice is useful.";
   return headline || syncedLabel || "";
 }
@@ -195,10 +198,10 @@ export function weekPrimaryAction({
   unlinked = false,
   canSync = false,
 } = {}) {
-  if ((emptyRoster || unlinked) && canSync) {
+  if (emptyRoster && canSync) {
     return { kind: "sync", label: "Sync league" };
   }
-  if (unlinked) return { kind: "setup", label: "League settings" };
+  if (emptyRoster && unlinked) return { kind: "setup", label: "League settings" };
   if (emptyRoster) return { kind: "roster", label: "Add contracts" };
   return { kind: "refresh", label: "Refresh projections" };
 }

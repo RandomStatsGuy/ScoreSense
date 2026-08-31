@@ -140,7 +140,7 @@ export default function WeekLineupBoard({
   const wideById = indexByPlayerId(wideRanges);
   const moveById = indexByPlayerId(projectionChanges);
   const swapBenchIds = new Set(decisions.map((d) => String(d.bench_player_id)));
-  const showOverlay = emptyRoster || unlinked || (loading && !slots.some((s) => s.player));
+  const showOverlay = emptyRoster || (loading && !slots.some((s) => s.player));
 
   return (
     <section className="hub-wcc-board" aria-label={boardTitle(weekLabel)}>

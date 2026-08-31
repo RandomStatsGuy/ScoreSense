@@ -130,7 +130,7 @@ export default function WeeklyCommandCenter({
   const missingCount = Number(counts.missing_projections) || 0;
   const coveredCount = Math.max(0, rosterCount - missingCount);
   const coveragePct = Math.round(projectionCoverageRatio(counts) * 100);
-  const boardReady = !emptyRoster && !unlinked;
+  const boardReady = !emptyRoster;
 
   const slots = useMemo(() => {
     const plan = buildStarterSlotPlan(hubContext?.rules);

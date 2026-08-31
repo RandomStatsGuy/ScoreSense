@@ -95,6 +95,15 @@ test("populated week hero reports lineup calls", () => {
   assert.equal(clean.heading, "The board is set.");
 });
 
+test("unlinked with a roster still treats the board as live", () => {
+  const hero = weekHeroCopy({ emptyRoster: false, unlinked: true, weekLabel: "Week 1" });
+  assert.equal(hero.heading, "The board is set.");
+  const items = weekRailItems({ emptyRoster: false, unlinked: true, counts: { decisions: 0 } });
+  assert.equal(items[0].label, "Decisions");
+  assert.match(weekRailNote({ emptyRoster: false, unlinked: true }), /hub contracts/i);
+  assert.equal(weekPrimaryAction({ emptyRoster: false, unlinked: true }).kind, "refresh");
+});
+
 test("trophy strip copy waits until the board is live", () => {
   assert.match(trophyStripCopy({ boardReady: false }), /after the board is live/i);
   assert.match(trophyStripCopy({ boardReady: true }), /one vote per trophy/i);
