@@ -27,6 +27,7 @@ export const SEASON_MODES = [
 export const TOOLS_TABS = [
   { id: "dfs", label: "DFS" },
   { id: "mock-draft", label: "Mock draft" },
+  { id: "best-ball", label: "Best ball" },
 ];
 
 export const SECTION_SUBTITLES = {
@@ -44,6 +45,7 @@ export const SECTION_SUBTITLES = {
     value: "Star targets and compare auction prices",
     available: "Players you can still add",
     week: "Your lineup decisions this week",
+    game: "Your matchup, live",
     roster: "Your contracts",
     rosters: "All teams",
     room: "Live auction",
@@ -51,12 +53,12 @@ export const SECTION_SUBTITLES = {
     trades: "Propose & accept",
     insights: "League history and awards",
     office: "League-wide roster operations",
-    live: "This week's matchup",
     "league-rosters": "All rosters",
   },
   tools: {
-    dfs: "Classic slates, stacks, and salary-aware lineups",
+    dfs: "Slates, stacks, exposure, and site-ready exports",
     "mock-draft": "Practice vs bots, or simulate a full draft",
+    "best-ball": "Season ranks vs ADP for draft-day edges",
   },
   model: "How we validate projections before you use them",
   admin: "League and account management",

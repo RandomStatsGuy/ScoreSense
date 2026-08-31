@@ -6,7 +6,7 @@
 > File-specific: `.cursor/rules/frontend-draft-hub.mdc`, `.cursor/rules/draft-hub-performance.mdc`, `.cursor/rules/ml-projections.mdc`.
 > Doc index: [`docs/README.md`](docs/README.md).
 
-ScoreSense (4th Down Labs) is a fantasy football product: **Projections** (weekly/season quantile GBM), **Fantasy** (salary-cap leagues, auction/pick draft, contracts, cap, trades), and **Tools** (DFS, mock draft). Sentiment is a readout on projections. Props and best-ball exist as research/backlog, not top-level nav.
+ScoreSense (4th Down Labs) is a fantasy football product: **Projections** (weekly/season quantile GBM), **Fantasy** (salary-cap leagues, auction/pick draft, contracts, cap, trades), and **Tools** (DFS, mock draft, best ball board). Sentiment is a readout on projections. Props exist as research/backlog, not top-level nav.
 
 Internal code may say “Draft Hub.” User-facing copy says **Fantasy**. Do not invent a fourth top-level area or a new visual language.
 

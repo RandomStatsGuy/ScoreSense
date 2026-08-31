@@ -17,7 +17,13 @@ function EmoteFigure({ emoteKey }) {
   );
 }
 
-export default function WeekCulturePanel({ hubContext, week, boardReady = true }) {
+export default function WeekCulturePanel({
+  hubContext,
+  week,
+  boardReady = true,
+  title = "This week's trophies",
+  support,
+}) {
   const leagueId = hubContext?.league_id;
   const { identities } = useTeamIdentities();
   const [data, setData] = useState(null);
@@ -121,10 +127,10 @@ export default function WeekCulturePanel({ hubContext, week, boardReady = true }
   }
 
   return (
-    <section className="hub-week-culture hub-week-culture-strip" aria-label="This week's trophies">
+    <section className="hub-week-culture hub-week-culture-strip" aria-label={title}>
       <header className="hub-week-culture-strip-head">
-        <h3>This week's trophies</h3>
-        <p className="chart-note">{trophyStripCopy({ boardReady, loading: loading && !data })}</p>
+        <h3>{title}</h3>
+        <p className="chart-note">{support || trophyStripCopy({ boardReady, loading: loading && !data })}</p>
       </header>
       {error && <div className="error">{error}</div>}
 
@@ -179,41 +185,58 @@ export default function WeekCulturePanel({ hubContext, week, boardReady = true }
         </ul>
       ) : null}
 
-      {boardReady && polls.map((poll) => (
-        <article key={poll.id} className="hub-week-poll hub-week-poll--strip">
-          <header className="hub-week-poll-head">
-            <h4>{poll.title}</h4>
-          </header>
-          <div className="hub-week-poll-options">
-            {(poll.options || []).map((option) => {
-              const team = { id: option.team_id, name: option.team_name };
-              const selected = poll.viewer_vote === option.team_id;
-              return (
-                <button
-                  key={option.team_id}
-                  type="button"
-                  className={`hub-week-poll-option${selected ? " is-active" : ""}`}
-                  aria-pressed={selected}
-                  disabled={Boolean(busy)}
-                  onClick={() => vote(poll.id, option.team_id)}
-                >
-                  <TeamIdentityMark
-                    team={team}
-                    identity={identityFor(identities, team)}
-                    size="sm"
-                  />
-                  <span className="hub-week-poll-option-main">
-                    <strong>{option.team_name}</strong>
-                    <span className="chart-note">
-                      {option.votes} vote{option.votes === 1 ? "" : "s"}
+      {boardReady && polls.map((poll) => {
+        const options = poll.options || [];
+        const leader = options.reduce(
+          (best, option) => (Number(option.votes || 0) > Number(best?.votes || 0) ? option : best),
+          null,
+        );
+        const viewerPick = options.find((option) => poll.viewer_vote === option.team_id);
+        return (
+          <details key={poll.id} className="hub-week-poll hub-week-poll--compact">
+            <summary>
+              <span className="hub-week-poll-summary-title">{poll.title}</span>
+              <span className="hub-week-poll-summary-state chart-note">
+                {leader && Number(leader.votes) > 0
+                  ? `${leader.team_name} leads · ${leader.votes} vote${Number(leader.votes) === 1 ? "" : "s"}`
+                  : "No votes yet"}
+                {viewerPick ? " · you voted" : ""}
+              </span>
+              <span className="hub-week-poll-summary-cta" aria-hidden="true">
+                {viewerPick ? "Change vote" : "Vote"}
+              </span>
+            </summary>
+            <div className="hub-week-poll-options">
+              {options.map((option) => {
+                const team = { id: option.team_id, name: option.team_name };
+                const selected = poll.viewer_vote === option.team_id;
+                return (
+                  <button
+                    key={option.team_id}
+                    type="button"
+                    className={`hub-week-poll-option${selected ? " is-active" : ""}`}
+                    aria-pressed={selected}
+                    disabled={Boolean(busy)}
+                    onClick={() => vote(poll.id, option.team_id)}
+                  >
+                    <TeamIdentityMark
+                      team={team}
+                      identity={identityFor(identities, team)}
+                      size="sm"
+                    />
+                    <span className="hub-week-poll-option-main">
+                      <strong>{option.team_name}</strong>
+                      <span className="chart-note">
+                        {option.votes} vote{option.votes === 1 ? "" : "s"}
+                      </span>
                     </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </article>
-      ))}
+                  </button>
+                );
+              })}
+            </div>
+          </details>
+        );
+      })}
     </section>
   );
 }

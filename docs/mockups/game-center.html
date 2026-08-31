@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Fantasy · Game center (new page)</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  /* ---- Matchup billboard ---- */
+  .gc-billboard {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 1.15rem;
+  }
+  .gc-side { display: flex; align-items: center; gap: 0.9rem; min-width: 0; }
+  .gc-side--away { flex-direction: row-reverse; text-align: right; }
+  .gc-avatar {
+    width: 3.6rem; height: 3.6rem; border-radius: 16px; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; font-weight: 800; letter-spacing: 0.02em;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.09);
+  }
+  .gc-avatar--home { background: linear-gradient(150deg, #274b86, #142543); color: #bcd4ff; }
+  .gc-avatar--away { background: linear-gradient(150deg, #7a4a1c, #3a2410); color: #ffd9a8; }
+  .gc-team-name { font-size: 1.06rem; font-weight: 700; letter-spacing: -0.01em; }
+  .gc-team-meta { font-size: 0.74rem; color: var(--text-muted); margin-top: 2px; }
+  .gc-score {
+    font-size: 2.9rem; font-weight: 800; letter-spacing: -0.04em; line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .gc-score small { display: block; font-size: 0.68rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 0.4rem; }
+  .gc-vs {
+    display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+    color: var(--text-muted); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .gc-vs .divider { width: 1px; height: 2.2rem; background: var(--border-strong); }
+
+  /* Win probability */
+  .gc-winprob { margin-top: 1.5rem; }
+  .gc-winprob-labels {
+    display: flex; justify-content: space-between; font-size: 0.76rem;
+    color: var(--text-secondary); margin-bottom: 0.4rem;
+  }
+  .gc-winprob-labels strong { color: var(--text-primary); }
+  .gc-winprob-bar {
+    height: 0.55rem; border-radius: var(--radius-pill); overflow: hidden;
+    display: flex; background: var(--bg-subtle);
+  }
+  .gc-winprob-bar .home { background: linear-gradient(90deg, #4f7fda, #73a5ff); width: 58%; }
+  .gc-winprob-bar .away { background: linear-gradient(90deg, #b97724, #8a5417); flex: 1; }
+  .gc-storyline {
+    margin: 0.85rem 0 0; font-size: 0.85rem; color: var(--text-secondary);
+  }
+  .gc-storyline strong { color: var(--tone-caution); }
+
+  /* ---- Starter duel ---- */
+  .duel-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 4.6rem 3.4rem 4.6rem minmax(0, 1fr);
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid rgba(36, 50, 73, 0.55);
+  }
+  .duel-row:last-child { border-bottom: 0; }
+  .duel-player { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+  .duel-player--away { flex-direction: row-reverse; text-align: right; }
+  .duel-headshot {
+    width: 2.15rem; height: 2.15rem; border-radius: 50%; flex: none;
+    object-fit: cover; object-position: top;
+    background: var(--bg-subtle);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .duel-name { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .duel-sub { font-size: 0.69rem; color: var(--text-muted); white-space: nowrap; }
+  .duel-sub .live { color: var(--tone-positive); font-weight: 700; }
+  .duel-sub .upcoming { color: var(--accent-muted); }
+  .duel-pts {
+    font-size: 1.02rem; font-weight: 700; font-variant-numeric: tabular-nums; text-align: center;
+  }
+  .duel-pts .proj { display: block; font-size: 0.64rem; font-weight: 500; color: var(--text-muted); }
+  .duel-pts--leading { color: var(--text-primary); }
+  .duel-pts--trailing { color: var(--text-muted); }
+  .duel-slot {
+    text-align: center; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.1em;
+    color: var(--text-muted); text-transform: uppercase;
+    background: var(--bg-subtle); border-radius: var(--radius-pill); padding: 0.28rem 0;
+  }
+  .duel-head {
+    display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.5rem;
+  }
+  .duel-head .note a { color: var(--accent-muted); text-decoration: none; }
+
+  /* Swing chips */
+  .swing-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.9rem; }
+  .swing-chip {
+    font-size: 0.72rem; padding: 0.3rem 0.7rem; border-radius: var(--radius-pill);
+    border: 1px solid var(--border); color: var(--text-secondary); background: var(--bg-subtle);
+  }
+  .swing-chip strong { color: var(--tone-caution); }
+  .swing-chip.pos strong { color: var(--tone-positive); }
+
+  /* Bench watch */
+  .bench-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; margin-top: 0.75rem; }
+  .bench-cell {
+    background: var(--bg-subtle); border-radius: var(--radius-md); padding: 0.7rem 0.85rem;
+    font-size: 0.78rem; color: var(--text-secondary);
+  }
+  .bench-cell strong { color: var(--text-primary); display: block; font-size: 0.86rem; margin-bottom: 0.15rem; }
+
+  /* ---- Rail: league scoreboard ---- */
+  .mini-match {
+    display: flex; flex-direction: column; gap: 0.3rem;
+    padding: 0.6rem 0; border-bottom: 1px solid rgba(36, 50, 73, 0.55);
+  }
+  .mini-match:last-of-type { border-bottom: 0; }
+  .mini-line { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; }
+  .mini-line .tm {
+    width: 1.35rem; height: 1.35rem; border-radius: 7px; flex: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.55rem; font-weight: 800;
+  }
+  .mini-line .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary); }
+  .mini-line .sc { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .mini-line.leading .nm, .mini-line.leading .sc { color: var(--text-primary); }
+  .mini-state { font-size: 0.64rem; color: var(--text-muted); }
+  .mini-state .live { color: var(--tone-positive); font-weight: 700; }
+
+  /* ---- Trash talk dock ---- */
+  .emote-row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.7rem; }
+  .emote {
+    border: 1px solid var(--border); background: var(--bg-subtle); color: var(--text-secondary);
+    font-size: 0.72rem; font-weight: 600; border-radius: var(--radius-pill);
+    padding: 0.32rem 0.7rem; cursor: pointer;
+  }
+  .emote:hover { border-color: var(--accent); color: var(--text-primary); }
+  .chat-preview {
+    margin-top: 0.8rem; background: var(--bg-subtle); border-radius: var(--radius-md);
+    padding: 0.6rem 0.75rem; font-size: 0.76rem; color: var(--text-secondary);
+  }
+  .chat-preview b { color: var(--text-primary); font-weight: 600; }
+
+  /* ---- After the whistle (trophies) ---- */
+  .trophy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.9rem; margin-top: 0.9rem; }
+  .trophy-card {
+    background: var(--bg-subtle); border: 1px solid var(--border);
+    border-radius: var(--radius-md); padding: 0.85rem 0.95rem;
+  }
+  .trophy-card .t-label {
+    font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700;
+    color: var(--gold); display: flex; align-items: center; gap: 0.35rem;
+  }
+  .trophy-card .lead { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.55rem; }
+  .trophy-card .lead .tm {
+    width: 1.6rem; height: 1.6rem; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 800;
+  }
+  .trophy-card .lead strong { font-size: 0.84rem; }
+  .trophy-card .lead span { display: block; font-size: 0.68rem; color: var(--text-muted); }
+  .trophy-card .t-action { margin-top: 0.65rem; }
+</style>
+</head>
+<body>
+<div class="mock-viewport">
+
+  <!-- App chrome -->
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div><span class="mock-brand-name">ScoreSense</span><span class="mock-brand-sub">4th Down Labs</span></div>
+      <nav class="mock-topnav"><span>Projections</span><span class="active">Fantasy</span><span>Tools</span></nav>
+    </div>
+    <span class="mock-account"><span class="dot">C</span> Commissioner</span>
+  </header>
+
+  <nav class="mock-subnav">
+    <div class="mock-subnav-group"><span class="mock-tab">Home</span></div>
+    <div class="mock-subnav-group">
+      <span class="mock-subnav-group-label">Draft</span>
+      <span class="mock-tab">Strategy</span><span class="mock-tab">Draft</span>
+    </div>
+    <div class="mock-subnav-group">
+      <span class="mock-subnav-group-label">Team</span>
+      <span class="mock-tab">This Week</span>
+      <span class="mock-tab active is-new">Game center</span>
+      <span class="mock-tab">My team</span>
+      <span class="mock-tab">Free agents</span>
+      <span class="mock-tab">Rosters</span>
+      <span class="mock-tab">Cap</span>
+      <span class="mock-tab">Trades</span>
+    </div>
+    <div class="mock-subnav-group">
+      <span class="mock-subnav-group-label">League</span>
+      <span class="mock-tab">Rules</span><span class="mock-tab">Roster management</span><span class="mock-tab">Insights</span>
+    </div>
+  </nav>
+
+  <div class="mock-league-strip">
+    <span class="lg-name">Bottom to Top: Dominate Your Panda</span>
+    <span>In season · Week 10</span>
+    <span class="mock-team-mark"><span class="tm" style="background:#274b86;color:#bcd4ff;">PC</span> Panda Command</span>
+    <span class="spacer"></span>
+    <span>Sync league ▾</span>
+  </div>
+
+  <!-- Hero = matchup billboard -->
+  <section class="mock-hero">
+    <p class="mock-kicker">Game center · Week 10</p>
+    <span class="mock-hero-chip mock-pill mock-pill--live">Live · Sun 4:37 PM</span>
+
+    <div class="gc-billboard">
+      <div class="gc-side">
+        <span class="gc-avatar gc-avatar--home">PC</span>
+        <div>
+          <div class="gc-team-name">Panda Command</div>
+          <div class="gc-team-meta">6–3 · 3rd · You</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:2.2rem;">
+        <div class="gc-score">87.3<small>proj 92.8</small></div>
+        <div class="gc-vs"><span>Wk 10</span><span class="divider"></span><span>H2H</span></div>
+        <div class="gc-score" style="color:var(--text-secondary);">74.2<small>proj 96.4</small></div>
+      </div>
+      <div class="gc-side gc-side--away">
+        <span class="gc-avatar gc-avatar--away">DP</span>
+        <div>
+          <div class="gc-team-name">Daddio of the Pandio</div>
+          <div class="gc-team-meta">7–2 · 1st · Season series 0–1</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="gc-winprob">
+      <div class="gc-winprob-labels">
+        <span><strong>58%</strong> win probability</span>
+        <span>42%</span>
+      </div>
+      <div class="gc-winprob-bar"><span class="home"></span><span class="away"></span></div>
+      <p class="gc-storyline">
+        You lead by 13.1 with one starter left. <strong>Josh Allen plays tonight</strong> — projections
+        say this one comes down to the 4th quarter.
+      </p>
+    </div>
+  </section>
+
+  <div class="mock-cols">
+    <main style="display:flex; flex-direction:column; gap:1.3rem;">
+
+      <!-- Starter duel -->
+      <section class="card">
+        <div class="duel-head">
+          <div>
+            <h3>Starter duel</h3>
+            <p class="note">Slot by slot, live points against your opponent. Updated 40 seconds ago.</p>
+          </div>
+          <p class="note"><a href="#">Set lineup →</a></p>
+        </div>
+
+        <div class="duel-row">
+          <div class="duel-player">
+            <img class="duel-headshot" src="https://sleepercdn.com/content/nfl/players/thumb/11566.jpg" alt="" />
+            <div><div class="duel-name">Jayden Daniels</div><div class="duel-sub">WAS · Final</div></div>
+          </div>
+          <div class="duel-pts duel-pts--leading">24.7<span class="proj">proj 22.4</span></div>
+          <div class="duel-slot">QB</div>
+          <div class="duel-pts duel-pts--trailing">0.0<span class="proj">proj 21.9</span></div>
+          <div class="duel-player duel-player--away">
+            <img class="duel-headshot" src="https://sleepercdn.com/content/nfl/players/thumb/4984.jpg" alt="" />
+            <div><div class="duel-name">Josh Allen</div><div class="duel-sub"><span class="upcoming">BUF · Sun 8:20</span></div></div>
+          </div>
+        </div>
+
+        <div class="duel-row">
+          <div class="duel-player">
+            <img class="duel-headshot" src="https://sleepercdn.com/content/nfl/players/thumb/6813.jpg" alt="" />
+            <div><div class="duel-name">Jonathan Taylor</div><div class="duel-sub">IND · <span class="live">Q3 6:12</span></div></div>
+          </div>
+          <div class="duel-pts duel-pts--leading">18.2<span class="proj">proj 19.6</span></div>
+          <div class="duel-slot">RB</div>
+          <div class="duel-pts duel-pts--trailing">22.4<span class="proj">proj 17.8</span></div>
+          <div class="duel-player duel-player--away">
+            <img class="duel-headshot" src="https://sleepercdn.com/content/nfl/players/thumb/9509.jpg" alt="" />
+            <div><div class="duel-name">Bijan Robinson</div><div class="duel-sub">ATL · Final</div></div>
+          </div>
+        </div>
+
+        <div class="duel-row">
+          <div class="duel-player">
+            <img class="duel-headshot" src="https://sleepercdn.com/content/nfl/players/thumb/6806.jpg" alt="" />
+            <div><div class="duel-name">J.K. Dobbins</div><div class="duel-sub">DEN · Final</div></div>
+          </div>
+          <div class="duel-pts duel-pts--leading">9.4<span class="proj">proj 12.1</span></div>
+          <div class="duel-slot">RB</div>
+          <div class="duel-pts duel-pts--trailing">7.1<span class="proj">proj 13.4</span></div>
+          <div class="duel-player duel-player--away">
+            <img class="duel-headshot" src="https://sleepercdn.com/content/nfl/players/thumb/8155.jpg" alt="" />
+            <div><div class="duel-name">Breece Hall</div><div class="duel-sub">NYJ · Final</div></div>
+          </div>
+        </div>
+
+        <div class="duel-row">
+          <div class="duel-player">
+            <img class="duel-headshot" src="https://sleepercdn.com/content/nfl/players/thumb/11632.jpg" alt="" />
+            <div><div class="duel-name">Malik Nabers</div><div class="duel-sub">NYG · <span class="live">Q3 6:12</span></div></div>
+          </div>
+          <div class="duel-pts duel-pts--leading">15.1<span class="proj">proj 16.2</span></div>
+          <div class="duel-slot">WR</div>
+          <div class="duel-pts duel-pts--trailing">19.6<span class="proj">proj 18.9</span></div>
+          <div class="duel-player duel-player--away">
+            <img class="duel-headshot" src="https://sleepercdn.com/content/nfl/players/thumb/9226.jpg" alt="" />
+            <div><div class="duel-name">Puka Nacua</div><div class="duel-sub">LAR · <span class="live">Q2 0:48</span></div></div>
+          </div>
+        </div>
+
+        <div class="duel-row">
+          <div class="duel-player">
+            <img class="duel-headshot" src="https://sleepercdn.com/content/nfl/players/thumb/5846.jpg" alt="" />
+            <div><div class="duel-name">DK Metcalf</div><div class="duel-sub">PIT · Final</div></div>
+          </div>
+          <div class="duel-pts duel-pts--leading">6.8<span class="proj">proj 13.7</span></div>
+          <div class="duel-slot">WR</div>
+          <div class="duel-pts duel-pts--trailing">11.2<span class="proj">proj 15.3</span></div>
+          <div class="duel-player duel-player--away">
+            <img class="duel-headshot" src="https://sleepercdn.com/content/nfl/players/thumb/6786.jpg" alt="" />
+            <div><div class="duel-name">CeeDee Lamb</div><div class="duel-sub">DAL · Final</div></div>
+          </div>
+        </div>
+
+        <div class="duel-row">
+          <div class="duel-player">
+            <img class="duel-headshot" src="https://sleepercdn.com/content/nfl/players/thumb/5859.jpg" alt="" />
+            <div><div class="duel-name">Kyle Pitts</div><div class="duel-sub"><span class="upcoming">ATL · Mon 8:15</span></div></div>
+          </div>
+          <div class="duel-pts duel-pts--leading">0.0<span class="proj">proj 9.8</span></div>
+          <div class="duel-slot">TE</div>
+          <div class="duel-pts duel-pts--trailing">8.3<span class="proj">proj 10.6</span></div>
+          <div class="duel-player duel-player--away">
+            <img class="duel-headshot" src="https://sleepercdn.com/content/nfl/players/thumb/11604.jpg" alt="" />
+            <div><div class="duel-name">Brock Bowers</div><div class="duel-sub">LV · Final</div></div>
+          </div>
+        </div>
+
+        <div class="duel-row">
+          <div class="duel-player">
+            <img class="duel-headshot" src="https://sleepercdn.com/content/nfl/players/thumb/8148.jpg" alt="" />
+            <div><div class="duel-name">Jameson Williams</div><div class="duel-sub">DET · Final</div></div>
+          </div>
+          <div class="duel-pts duel-pts--leading">13.1<span class="proj">proj 11.4</span></div>
+          <div class="duel-slot">Flex</div>
+          <div class="duel-pts duel-pts--trailing">5.6<span class="proj">proj 14.1</span></div>
+          <div class="duel-player duel-player--away">
+            <img class="duel-headshot" src="https://sleepercdn.com/content/nfl/players/thumb/7564.jpg" alt="" />
+            <div><div class="duel-name">Ja'Marr Chase</div><div class="duel-sub">CIN · <span class="live">Q2 0:48</span></div></div>
+          </div>
+        </div>
+
+        <div class="swing-row">
+          <span class="swing-chip">Biggest swing left: <strong>QB — Allen proj 21.9</strong></span>
+          <span class="swing-chip pos">Your TE edge Monday night: <strong>Pitts proj 9.8</strong></span>
+          <span class="swing-chip pos">Nabers on pace to beat projection <strong>+3.4</strong></span>
+        </div>
+      </section>
+
+      <!-- Bench watch -->
+      <section class="card">
+        <h3>Bench watch</h3>
+        <p class="note">What your bench is doing while the starters decide it.</p>
+        <div class="bench-grid">
+          <div class="bench-cell">
+            <strong>Jayden Reed · 18.4 pts</strong>
+            Best bench score. Would have out-pointed DK Metcalf by 11.6 this week.
+          </div>
+          <div class="bench-cell">
+            <strong>Bench totals: you 31.2 · them 44.8</strong>
+            Their bench outscored yours — but benches don't win weeks.
+          </div>
+        </div>
+      </section>
+
+      <!-- After the whistle -->
+      <section class="card">
+        <h3>After the whistle</h3>
+        <p class="note">Week trophies open when the last game goes final. One vote each — winners land in Insights.</p>
+        <div class="trophy-grid">
+          <div class="trophy-card">
+            <span class="t-label">◆ Week MVP</span>
+            <div class="lead">
+              <span class="tm" style="background:#274b86;color:#bcd4ff;">PF</span>
+              <div><strong>Panda Fraud</strong><span>leading · 3 votes</span></div>
+            </div>
+            <button class="btn btn-ghost btn-sm t-action">Vote</button>
+          </div>
+          <div class="trophy-card">
+            <span class="t-label">◆ Got away with it</span>
+            <div class="lead">
+              <span class="tm" style="background:#3f2f68;color:#cbb8ff;">SB</span>
+              <div><strong>She Bo on my Nix…</strong><span>leading · 2 votes</span></div>
+            </div>
+            <button class="btn btn-ghost btn-sm t-action">Vote</button>
+          </div>
+          <div class="trophy-card">
+            <span class="t-label">◆ Loser in our hearts</span>
+            <div class="lead">
+              <span class="tm" style="background:#5b2430;color:#ffb8c4;">DI</span>
+              <div><strong>Disappointment</strong><span>leading · 4 votes</span></div>
+            </div>
+            <button class="btn btn-ghost btn-sm t-action">Vote</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Rail -->
+    <aside class="mock-rail">
+      <section class="card">
+        <p class="mock-kicker" style="margin-bottom:0.15rem;">At a glance</p>
+        <h3 style="font-size:0.95rem;">Panda Command</h3>
+        <div class="facts">
+          <span class="fact">Record <strong>6–3</strong></span>
+          <span class="fact">Streak <strong>W3</strong></span>
+          <span class="fact">Points for <strong>1,104.6</strong></span>
+          <span class="fact">All-play this week <strong>7–2</strong></span>
+          <span class="fact">Playoff odds <strong>84%</strong></span>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Around the league</h3>
+        <p class="note">Live scores refresh every 60 seconds.</p>
+        <div style="margin-top:0.4rem;">
+          <div class="mini-match">
+            <div class="mini-line leading"><span class="tm" style="background:#274b86;color:#bcd4ff;">PF</span><span class="nm">Panda Fraud</span><span class="sc">101.8</span></div>
+            <div class="mini-line"><span class="tm" style="background:#5b2430;color:#ffb8c4;">DI</span><span class="nm">Disappointment</span><span class="sc">64.3</span></div>
+            <span class="mini-state">Final Sunday early</span>
+          </div>
+          <div class="mini-match">
+            <div class="mini-line leading"><span class="tm" style="background:#3f2f68;color:#cbb8ff;">SB</span><span class="nm">She Bo on my Nix til I TD</span><span class="sc">88.0</span></div>
+            <div class="mini-line"><span class="tm" style="background:#173f34;color:#9ff0cf;">TN</span><span class="nm">Thanks noob noob</span><span class="sc">85.9</span></div>
+            <span class="mini-state"><span class="live">Live</span> · 3 players on the field</span>
+          </div>
+          <div class="mini-match">
+            <div class="mini-line"><span class="tm" style="background:#403a17;color:#f0e29f;">TD</span><span class="nm">The Deported Panda</span><span class="sc">71.5</span></div>
+            <div class="mini-line leading"><span class="tm" style="background:#173a4a;color:#a4ddf5;">HB</span><span class="nm">Hurts when I Brown</span><span class="sc">79.2</span></div>
+            <span class="mini-state"><span class="live">Live</span> · 1 player on the field</span>
+          </div>
+          <div class="mini-match">
+            <div class="mini-line"><span class="tm" style="background:#37272d;color:#e7b8c8;">LD</span><span class="nm">Lincoler's Dual Ethics</span><span class="sc">55.4</span></div>
+            <div class="mini-line leading"><span class="tm" style="background:#2c3a20;color:#c9edaa;">51</span><span class="nm">516-74-3927</span><span class="sc">60.1</span></div>
+            <span class="mini-state">Waiting on Monday night</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Trash talk</h3>
+        <p class="note">Reactions land on your opponent's Game center.</p>
+        <div class="emote-row">
+          <button class="emote">Walk-off</button>
+          <button class="emote">Salute</button>
+          <button class="emote">Flex</button>
+          <button class="emote">Bow</button>
+          <button class="emote">Point</button>
+          <button class="emote">Mic drop</button>
+        </div>
+        <div class="chat-preview">
+          <b>Daddio of the Pandio:</b> Allen drops 30 tonight, book it.
+        </div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:0.7rem;">Open league chat</button>
+      </section>
+    </aside>
+  </div>
+
+  <p class="footnote">Design mockup — Fantasy · Game center (proposed new destination, Team group). Data shown is illustrative.</p>
+</div>
+</body>
+</html>

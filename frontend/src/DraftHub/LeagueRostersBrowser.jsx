@@ -236,10 +236,10 @@ export default function LeagueRostersBrowser({
                             </span>
                           )}
                           {r.expire_chip === "extend" && (
-                            <span className="hub-sleeper-badge">Extend</span>
+                            <span className="hub-expire-chip hub-expire-chip--extend">Extend?</span>
                           )}
                           {r.expire_chip === "fa" && (
-                            <span className="hub-sleeper-badge">Expires FA</span>
+                            <span className="hub-expire-chip">Expires — FA</span>
                           )}
                         </>
                       )}
@@ -309,10 +309,10 @@ export default function LeagueRostersBrowser({
                               narrativeScope="season"
                             />
                             {r.expire_chip === "extend" && (
-                              <span className="hub-sleeper-badge">Extend</span>
+                              <span className="hub-expire-chip hub-expire-chip--extend">Extend?</span>
                             )}
                             {r.expire_chip === "fa" && (
-                              <span className="hub-sleeper-badge">Expires FA</span>
+                              <span className="hub-expire-chip">Expires — FA</span>
                             )}
                           </td>
                           <td>{r.position}</td>

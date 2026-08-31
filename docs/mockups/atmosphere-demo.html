@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Atmosphere v2 (interactive SVG particles)</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  body { overflow: hidden; height: 100vh; }
+
+  /* ---------- particle layer ---------- */
+  .atmo {
+    position: fixed; inset: -6% -4%;
+    pointer-events: none;
+    z-index: 0;
+    transform: rotate(calc(var(--wind, 0) * 5deg)) scale(1.08);
+    transition: transform 0.8s var(--ease-standard);
+  }
+  .p { position: absolute; top: -10%; will-change: transform; }
+  .p .push { display: block; transition: transform 0.25s ease-out; }
+  .p .sway { display: block; animation: sway var(--sway-dur, 3.4s) ease-in-out infinite alternate; }
+  .p .spin { display: block; animation: spin var(--spin-dur, 7s) linear infinite; transform-origin: 50% 45%; }
+  .p.fall { animation: fall var(--fall-dur, 12s) linear infinite; animation-delay: var(--fall-delay, 0s); }
+  .p.rock .spin { animation: rock var(--spin-dur, 4.2s) ease-in-out infinite alternate; }
+
+  .layer-far  { filter: blur(1.6px); opacity: 0.42; }
+  .layer-mid  { filter: blur(0.4px); opacity: 0.7; }
+  .layer-near { opacity: 0.95; }
+
+  @keyframes fall {
+    from { transform: translate3d(0, -12vh, 0); }
+    to   { transform: translate3d(var(--drift, 20px), 118vh, 0); }
+  }
+  @keyframes sway {
+    from { transform: translateX(calc(var(--sway-amp, 14px) * -1)); }
+    to   { transform: translateX(var(--sway-amp, 14px)); }
+  }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes rock { from { transform: rotate(-24deg); } to { transform: rotate(24deg); } }
+
+  .p--football { pointer-events: auto; cursor: pointer; }
+  .p--football.popped { animation: none; }
+  .p--football.popped .spin { animation: pop 0.55s var(--ease-standard) forwards; }
+  @keyframes pop {
+    30% { transform: rotate(140deg) scale(1.35); opacity: 1; }
+    100% { transform: rotate(420deg) scale(0.2) translateY(-60px); opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .p, .p .sway, .p .spin { animation: none !important; }
+    .atmo { display: none; }
+  }
+
+  /* ---------- demo page content ---------- */
+  .demo-wrap { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 0 1.5rem; }
+  .demo-card {
+    max-width: 46rem; margin: 1.2rem auto 0;
+    background: rgba(13, 22, 36, 0.88);
+    backdrop-filter: blur(2px);
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    padding: 1.5rem 1.75rem;
+    box-shadow: var(--shadow-panel);
+  }
+  .demo-card h1 { margin: 0.35rem 0 0.4rem; font-size: 1.55rem; letter-spacing: -0.03em; }
+  .demo-card > p { color: var(--text-secondary); font-size: 0.88rem; margin: 0 0 1.1rem; }
+
+  .controls { display: flex; flex-direction: column; gap: 0.9rem; }
+  .control-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+  .control-row .lbl {
+    width: 6.5rem; flex: none; font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-muted); font-weight: 700;
+  }
+  .theme-chip {
+    border: 1px solid var(--border-strong); background: var(--bg-subtle); color: var(--text-secondary);
+    font-size: 0.8rem; font-weight: 600; padding: 0.42rem 0.95rem; border-radius: var(--radius-pill);
+    cursor: pointer;
+  }
+  .theme-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  input[type="range"] { accent-color: var(--accent); width: 11rem; }
+  .toggle { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; color: var(--text-secondary); cursor: pointer; }
+  .toggle input { accent-color: var(--accent); width: 1rem; height: 1rem; }
+  .hint { font-size: 0.74rem; color: var(--text-muted); margin: 0.9rem 0 0; line-height: 1.6; }
+  .hint b { color: var(--text-primary); }
+  .range-val { font-size: 0.74rem; color: var(--text-secondary); min-width: 3.2rem; }
+</style>
+</head>
+<body>
+<div class="atmo" id="atmo" aria-hidden="true"></div>
+
+<div class="demo-wrap">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div><span class="mock-brand-name">ScoreSense</span><span class="mock-brand-sub">4th Down Labs</span></div>
+      <nav class="mock-topnav"><span>Projections</span><span class="active">Fantasy</span><span>Tools</span></nav>
+    </div>
+    <span class="mock-account"><span class="dot">C</span> Commissioner</span>
+  </header>
+
+  <div class="demo-card">
+    <p class="mock-kicker">Atmosphere v2 — working demo</p>
+    <h1>Snow, leaves, and footballs that feel real.</h1>
+    <p>
+      Hand-drawn inline SVG particles on three depth layers, with independent fall, sway, and tumble
+      motion. No image files needed. Move your cursor through the near layer — particles drift away.
+      Click a football to pop it.
+    </p>
+
+    <div class="controls">
+      <div class="control-row" id="themeRow">
+        <span class="lbl">Theme</span>
+        <button class="theme-chip" data-theme="none">Off</button>
+        <button class="theme-chip" data-theme="snow">Snow</button>
+        <button class="theme-chip active" data-theme="leaves">Fall leaves</button>
+        <button class="theme-chip" data-theme="footballs">Footballs</button>
+      </div>
+      <div class="control-row">
+        <span class="lbl">Wind</span>
+        <input type="range" id="wind" min="-100" max="100" value="18" />
+        <span class="range-val" id="windVal">→ 0.18</span>
+      </div>
+      <div class="control-row">
+        <span class="lbl">Density</span>
+        <input type="range" id="density" min="10" max="70" value="34" />
+        <span class="range-val" id="densityVal">34</span>
+      </div>
+      <div class="control-row">
+        <span class="lbl">Extras</span>
+        <label class="toggle"><input type="checkbox" id="cursorToggle" checked /> Cursor interaction</label>
+        <label class="toggle"><input type="checkbox" id="shippedToggle" /> Compare: shipped renderer (flat dots)</label>
+      </div>
+    </div>
+
+    <p class="hint">
+      <b>In product:</b> layer opacity drops to ~0.25, density to ~24, and everything honors
+      <b>prefers-reduced-motion</b> and stays out of live draft rooms — same rules as today.
+      Optional seasonal auto-theme: leaves in Sep–Nov, snow in Dec–Feb, footballs on game day.
+    </p>
+  </div>
+</div>
+
+<script>
+(() => {
+  const atmo = document.getElementById("atmo");
+  const urlTheme = new URLSearchParams(location.search).get("theme");
+  const state = {
+    theme: ["none", "snow", "leaves", "footballs"].includes(urlTheme) ? urlTheme : "leaves",
+    density: 34, wind: 0.18, cursor: true, shipped: false,
+  };
+  document.querySelectorAll(".theme-chip").forEach((b) => b.classList.toggle("active", b.dataset.theme === state.theme));
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  let uid = 0;
+
+  /* ---------- SVG particle artwork ---------- */
+  const LEAF_COLORS = [
+    ["#d98a2b", "#a04a17"], ["#c45c26", "#8a3312"], ["#e0b04e", "#b07020"],
+    ["#a83c1e", "#6f2410"], ["#b9702a", "#7d4415"],
+  ];
+  function leafSvg(size) {
+    const [c1, c2] = pick(LEAF_COLORS);
+    const id = "lg" + (++uid);
+    const variant = Math.random();
+    if (variant < 0.5) {
+      // simple pointed autumn leaf with stem + veins (reads clearly at small sizes)
+      return `<svg width="${size}" height="${size}" viewBox="0 0 100 110">
+        <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/>
+        </linearGradient></defs>
+        <path d="M50 6 C76 20 86 50 64 80 C58 87 53 90 50 92 C47 90 42 87 36 80 C14 50 24 20 50 6 Z"
+              fill="url(#${id})" stroke="rgba(0,0,0,0.3)" stroke-width="2"/>
+        <path d="M50 92 L50 106" stroke="${c2}" stroke-width="4" stroke-linecap="round" fill="none"/>
+        <path d="M50 14 L50 88 M50 34 L66 24 M50 34 L34 24 M50 54 L70 42 M50 54 L30 42 M50 72 L64 62 M50 72 L36 62"
+              stroke="rgba(0,0,0,0.28)" stroke-width="2" fill="none"/>
+      </svg>`;
+    }
+    // maple leaf: five articulated lobes + stem
+    return `<svg width="${size}" height="${size}" viewBox="0 0 100 110">
+      <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/>
+      </linearGradient></defs>
+      <path d="M50 4 L58 20 L70 10 L68 28 L90 22 L80 40 L96 48 L76 54 L84 72 L62 64 L58 78 L50 70 L42 78 L38 64 L16 72 L24 54 L4 48 L20 40 L10 22 L32 28 L30 10 L42 20 Z"
+            fill="url(#${id})" stroke="rgba(0,0,0,0.3)" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M50 70 L50 104" stroke="${c2}" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+      <path d="M50 12 L50 66 M50 44 L74 30 M50 44 L26 30 M50 58 L70 52 M50 58 L30 52"
+            stroke="rgba(0,0,0,0.26)" stroke-width="2" fill="none"/>
+    </svg>`;
+  }
+
+  function snowSvg(size) {
+    const detailed = Math.random() < 0.55;
+    if (!detailed) {
+      const id = "sg" + (++uid);
+      return `<svg width="${size}" height="${size}" viewBox="0 0 100 100">
+        <defs><radialGradient id="${id}"><stop offset="0" stop-color="rgba(240,246,255,0.95)"/>
+        <stop offset="1" stop-color="rgba(240,246,255,0)"/></radialGradient></defs>
+        <circle cx="50" cy="50" r="44" fill="url(#${id})"/></svg>`;
+    }
+    const arm = `M50 50 L50 10 M50 18 L42 10 M50 18 L58 10 M50 30 L41 22 M50 30 L59 22`;
+    let arms = "";
+    for (let a = 0; a < 360; a += 60) arms += `<g transform="rotate(${a} 50 50)"><path d="${arm}"/></g>`;
+    return `<svg width="${size}" height="${size}" viewBox="0 0 100 100"
+      style="stroke:rgba(233,241,255,0.92); stroke-width:4.5; stroke-linecap:round; fill:none;">
+      ${arms}<circle cx="50" cy="50" r="5" fill="rgba(233,241,255,0.92)" stroke="none"/></svg>`;
+  }
+
+  function footballSvg(size) {
+    const id = "fg" + (++uid);
+    return `<svg width="${size}" height="${size * 0.62}" viewBox="0 0 120 74">
+      <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#a5622e"/><stop offset="0.5" stop-color="#7d4517"/><stop offset="1" stop-color="#5b300e"/>
+      </linearGradient></defs>
+      <ellipse cx="60" cy="37" rx="56" ry="30" fill="url(#${id})" stroke="rgba(0,0,0,0.4)" stroke-width="2"/>
+      <path d="M14 22 Q60 2 106 22" stroke="rgba(255,255,255,0.18)" stroke-width="5" fill="none"/>
+      <path d="M18 37 Q60 32 102 37" stroke="#f3efe6" stroke-width="3" fill="none"/>
+      ${[38, 49, 60, 71, 82].map((x) => `<path d="M${x} 30 L${x} 44" stroke="#f3efe6" stroke-width="3.4" stroke-linecap="round"/>`).join("")}
+      <path d="M13 26 Q10 37 13 48" stroke="#f3efe6" stroke-width="3" fill="none"/>
+      <path d="M107 26 Q110 37 107 48" stroke="#f3efe6" stroke-width="3" fill="none"/>
+    </svg>`;
+  }
+
+  /* shipped comparison: current product renderer (plain CSS blobs) */
+  function shippedSvg(theme, size) {
+    if (theme === "leaves") {
+      return `<div style="width:${size}px;height:${size}px;border-radius:40% 60% 45% 55%;background:#cf7f45;transform:rotate(20deg);"></div>`;
+    }
+    if (theme === "footballs") {
+      return `<div style="width:${size}px;height:${size}px;border-radius:45%;background:linear-gradient(90deg,transparent 46%,#1b2433 46%,#1b2433 54%,transparent 54%),#9c6a3a;"></div>`;
+    }
+    return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:rgba(238,243,251,0.7);"></div>`;
+  }
+
+  /* ---------- layer + spawn logic ---------- */
+  const LAYERS = [
+    { cls: "layer-far",  scale: [10, 16], durMul: 1.55, count: 0.3 },
+    { cls: "layer-mid",  scale: [16, 24], durMul: 1.2,  count: 0.4 },
+    { cls: "layer-near", scale: [24, 38], durMul: 0.85, count: 0.3 },
+  ];
+  let particles = [];
+
+  function spawn() {
+    atmo.innerHTML = "";
+    particles = [];
+    if (state.theme === "none") return;
+    const total = state.density;
+    LAYERS.forEach((layer, li) => {
+      const n = Math.max(2, Math.round(total * layer.count));
+      for (let i = 0; i < n; i++) {
+        const el = document.createElement("span");
+        const sizeMul = state.theme === "footballs" ? 1.5 : state.theme === "leaves" ? 1.35 : 1;
+        const size = rand(layer.scale[0], layer.scale[1]) * sizeMul;
+        const isFootball = state.theme === "footballs";
+        el.className = `p fall ${layer.cls}${isFootball ? " p--football" : ""}${isFootball && Math.random() < 0.5 ? " rock" : ""}`;
+        const windPush = state.wind * 260;
+        el.style.left = rand(-4, 102) + "%";
+        el.style.setProperty("--fall-dur", rand(9, 17) * layer.durMul * (isFootball ? 1.15 : 1) + "s");
+        el.style.setProperty("--fall-delay", rand(-17, 0) + "s");
+        el.style.setProperty("--drift", rand(-30, 30) + windPush + "px");
+        el.style.setProperty("--sway-amp", rand(8, state.theme === "snow" ? 26 : 40) * (1 + Math.abs(state.wind)) + "px");
+        el.style.setProperty("--sway-dur", rand(2.4, 4.6) + "s");
+        el.style.setProperty("--spin-dur", rand(state.theme === "snow" ? 10 : 4, state.theme === "snow" ? 18 : 9) + "s");
+
+        const art = state.shipped
+          ? shippedSvg(state.theme, size * 0.55)
+          : state.theme === "snow" ? snowSvg(size)
+          : state.theme === "leaves" ? leafSvg(size)
+          : footballSvg(size);
+        el.innerHTML = `<span class="push"><span class="sway"><span class="spin">${art}</span></span></span>`;
+
+        if (isFootball) {
+          el.addEventListener("click", () => {
+            el.classList.add("popped");
+            setTimeout(() => { el.remove(); }, 600);
+          });
+        }
+        atmo.appendChild(el);
+        particles.push({ el, push: el.firstChild, layer: li, ox: 0, oy: 0 });
+      }
+    });
+  }
+
+  /* ---------- cursor interaction (near + mid layers) ---------- */
+  const mouse = { x: -9999, y: -9999 };
+  window.addEventListener("pointermove", (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
+  window.addEventListener("pointerleave", () => { mouse.x = -9999; mouse.y = -9999; });
+
+  function tick() {
+    if (state.cursor && state.theme !== "none") {
+      const R = 150;
+      for (const p of particles) {
+        if (p.layer === 0) continue;
+        const r = p.el.getBoundingClientRect();
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        const dx = cx - mouse.x, dy = cy - mouse.y;
+        const d = Math.hypot(dx, dy);
+        let tx = 0, ty = 0;
+        if (d < R && d > 0.01) {
+          const f = ((R - d) / R) * 46;
+          tx = (dx / d) * f; ty = (dy / d) * f;
+        }
+        p.ox += (tx - p.ox) * 0.14;
+        p.oy += (ty - p.oy) * 0.14;
+        if (Math.abs(p.ox) > 0.2 || Math.abs(p.oy) > 0.2) {
+          p.push.style.transform = `translate(${p.ox.toFixed(1)}px, ${p.oy.toFixed(1)}px)`;
+        }
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  /* ---------- controls ---------- */
+  document.getElementById("themeRow").addEventListener("click", (e) => {
+    const btn = e.target.closest(".theme-chip");
+    if (!btn) return;
+    document.querySelectorAll(".theme-chip").forEach((b) => b.classList.toggle("active", b === btn));
+    state.theme = btn.dataset.theme;
+    spawn();
+  });
+  const windInput = document.getElementById("wind");
+  windInput.addEventListener("input", () => {
+    state.wind = Number(windInput.value) / 100;
+    document.getElementById("windVal").textContent = (state.wind < 0 ? "← " : "→ ") + Math.abs(state.wind).toFixed(2);
+    document.documentElement.style.setProperty("--wind", state.wind);
+    atmo.style.setProperty("--wind", state.wind);
+    spawn();
+  });
+  const densityInput = document.getElementById("density");
+  densityInput.addEventListener("input", () => {
+    state.density = Number(densityInput.value);
+    document.getElementById("densityVal").textContent = state.density;
+    spawn();
+  });
+  document.getElementById("cursorToggle").addEventListener("change", (e) => { state.cursor = e.target.checked; });
+  document.getElementById("shippedToggle").addEventListener("change", (e) => { state.shipped = e.target.checked; spawn(); });
+
+  atmo.style.setProperty("--wind", state.wind);
+  spawn();
+})();
+</script>
+</body>
+</html>

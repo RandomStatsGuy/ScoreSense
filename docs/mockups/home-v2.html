@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Fantasy · Home v2 (league command center)</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .home-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 1rem; }
+  .home-head h1 { margin: 0.2rem 0 0; font-size: 1.7rem; letter-spacing: -0.03em; }
+  .home-head-actions { display: flex; gap: 0.5rem; }
+
+  /* Phase track (kept from today) */
+  .phase-track { display: flex; align-items: center; gap: 0; margin-bottom: 1.2rem; }
+  .phase-step {
+    display: flex; align-items: center; gap: 0.45rem; font-size: 0.72rem; color: var(--text-muted);
+    padding: 0 1.1rem;
+  }
+  .phase-step:first-child { padding-left: 0; }
+  .phase-step .dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--border-strong); }
+  .phase-step.done .dot { background: var(--tone-positive); }
+  .phase-step.current { color: var(--text-primary); font-weight: 700; }
+  .phase-step.current .dot { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .phase-line { flex: 1; height: 1px; background: var(--border); }
+
+  /* Priority stage */
+  .stage { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 1.3rem; align-items: stretch; margin-bottom: 1.3rem; }
+  .priority {
+    position: relative; overflow: hidden;
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    background:
+      radial-gradient(110% 170% at 90% -30%, rgba(79, 127, 218, 0.2), transparent 55%),
+      linear-gradient(180deg, #0c1524, #0a121f);
+    padding: 1.4rem 1.6rem;
+    display: flex; flex-direction: column;
+  }
+  .priority h2 { margin: 0.45rem 0 0.35rem; font-size: 1.55rem; letter-spacing: -0.03em; }
+  .priority p { margin: 0; color: var(--text-secondary); font-size: 0.88rem; max-width: 34rem; }
+  .priority-actions { display: flex; gap: 0.7rem; align-items: center; margin-top: 1.1rem; }
+  .priority-countdown {
+    position: absolute; right: 1.5rem; top: 1.3rem; text-align: right;
+  }
+  .priority-countdown .t { font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .priority-countdown .l { font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+
+  /* deck row */
+  .deck { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.3rem; margin-bottom: 1.3rem; }
+
+  /* Matchup card */
+  .mu-row { display: flex; align-items: center; justify-content: space-between; margin-top: 0.8rem; }
+  .mu-team { display: flex; align-items: center; gap: 0.55rem; min-width: 0; }
+  .mu-team .tm {
+    width: 2.1rem; height: 2.1rem; border-radius: 10px; flex: none;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800;
+  }
+  .mu-team .nm { font-size: 0.82rem; font-weight: 700; line-height: 1.2; }
+  .mu-team .rec { display: block; font-size: 0.66rem; color: var(--text-muted); font-weight: 500; }
+  .mu-proj { text-align: center; font-size: 0.72rem; color: var(--text-muted); }
+  .mu-proj strong { display: block; font-size: 1rem; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .mu-bar { height: 0.4rem; border-radius: var(--radius-pill); overflow: hidden; display: flex; background: var(--bg-subtle); margin-top: 0.9rem; }
+  .mu-bar .me { width: 58%; background: linear-gradient(90deg, #4f7fda, #73a5ff); }
+  .mu-bar .them { flex: 1; background: #6b4a26; }
+  .mu-note { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.5rem; }
+
+  /* Pulse feed */
+  .pulse { list-style: none; margin: 0.7rem 0 0; padding: 0; display: flex; flex-direction: column; }
+  .pulse li {
+    display: flex; gap: 0.6rem; padding: 0.5rem 0; font-size: 0.78rem; color: var(--text-secondary);
+    border-bottom: 1px solid rgba(36, 50, 73, 0.5);
+  }
+  .pulse li:last-child { border-bottom: 0; }
+  .pulse .ico {
+    width: 1.5rem; height: 1.5rem; flex: none; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem;
+    background: var(--bg-subtle); border: 1px solid var(--border);
+  }
+  .pulse b { color: var(--text-primary); font-weight: 600; }
+  .pulse time { display: block; font-size: 0.64rem; color: var(--text-muted); margin-top: 1px; }
+
+  /* Standings mini */
+  .stand { width: 100%; border-collapse: collapse; margin-top: 0.6rem; font-size: 0.78rem; }
+  .stand td { padding: 0.42rem 0.2rem; border-bottom: 1px solid rgba(36, 50, 73, 0.5); }
+  .stand tr:last-child td { border-bottom: 0; }
+  .stand .rk { color: var(--text-muted); width: 1.4rem; font-variant-numeric: tabular-nums; }
+  .stand .tm-nm { display: flex; align-items: center; gap: 0.45rem; font-weight: 600; }
+  .stand .tm-nm .tm { width: 1.35rem; height: 1.35rem; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.55rem; font-weight: 800; }
+  .stand .rec { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+  .stand tr.you td { background: var(--accent-soft); }
+  .stand tr.you .tm-nm { color: var(--accent-muted); }
+
+  /* After that */
+  .after { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-elevated); padding: 1.05rem 1.25rem; }
+  .after-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.4rem; }
+  .after-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.55rem 0; border-bottom: 1px solid rgba(36, 50, 73, 0.5); font-size: 0.84rem;
+  }
+  .after-item:last-child { border-bottom: 0; }
+  .after-item .meta { color: var(--text-muted); font-size: 0.7rem; margin-left: 0.6rem; }
+  .after-item a { color: var(--accent-muted); text-decoration: none; font-size: 0.78rem; font-weight: 600; }
+  .sev { display: inline-block; width: 0.5rem; height: 0.5rem; border-radius: 50%; margin-right: 0.55rem; }
+  .sev--warn { background: var(--tone-caution); }
+  .sev--info { background: var(--accent); }
+</style>
+</head>
+<body>
+<div class="mock-viewport">
+
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div><span class="mock-brand-name">ScoreSense</span><span class="mock-brand-sub">4th Down Labs</span></div>
+      <nav class="mock-topnav"><span>Projections</span><span class="active">Fantasy</span><span>Tools</span></nav>
+    </div>
+    <span class="mock-account"><span class="dot">C</span> Commissioner</span>
+  </header>
+
+  <nav class="mock-subnav">
+    <div class="mock-subnav-group"><span class="mock-tab active">Home</span></div>
+    <div class="mock-subnav-group">
+      <span class="mock-subnav-group-label">Draft</span>
+      <span class="mock-tab">Strategy</span><span class="mock-tab">Draft</span>
+    </div>
+    <div class="mock-subnav-group">
+      <span class="mock-subnav-group-label">Team</span>
+      <span class="mock-tab">This Week</span>
+      <span class="mock-tab">Game center</span>
+      <span class="mock-tab">My team</span>
+      <span class="mock-tab">Free agents</span>
+      <span class="mock-tab">Rosters</span>
+      <span class="mock-tab">Cap</span>
+      <span class="mock-tab">Trades</span>
+    </div>
+    <div class="mock-subnav-group">
+      <span class="mock-subnav-group-label">League</span>
+      <span class="mock-tab">Rules</span><span class="mock-tab">Roster management</span><span class="mock-tab">Insights</span>
+    </div>
+  </nav>
+
+  <div class="mock-league-strip">
+    <span class="lg-name">Bottom to Top: Dominate Your Panda</span>
+    <span>In season · Week 10</span>
+    <span class="mock-team-mark"><span class="tm" style="background:#274b86;color:#bcd4ff;">PC</span> Panda Command</span>
+    <span class="spacer"></span>
+    <span>Sync league ▾</span>
+  </div>
+
+  <div class="home-head">
+    <div>
+      <p class="mock-kicker">League command center</p>
+      <h1>Make the next decision count.</h1>
+    </div>
+    <div class="home-head-actions">
+      <button class="btn btn-primary btn-sm">New league</button>
+      <button class="btn btn-ghost btn-sm">Settings</button>
+    </div>
+  </div>
+
+  <div class="phase-track">
+    <span class="phase-step done"><span class="dot"></span>Build</span><span class="phase-line"></span>
+    <span class="phase-step done"><span class="dot"></span>Prepare</span><span class="phase-line"></span>
+    <span class="phase-step done"><span class="dot"></span>Draft</span><span class="phase-line"></span>
+    <span class="phase-step current"><span class="dot"></span>Compete · Week 10</span>
+  </div>
+
+  <div class="stage">
+    <section class="priority">
+      <p class="mock-kicker">Right now</p>
+      <div class="priority-countdown"><div class="t">2d 14h</div><div class="l">to kickoff</div></div>
+      <h2>Two lineup calls before Sunday.</h2>
+      <p>Jayden Reed is projected 4.1 over DK Metcalf, and Kyle Pitts draws the league's softest TE matchup. Decide both before Sunday 1:00 PM.</p>
+      <div class="priority-actions">
+        <button class="btn btn-primary">Review lineup →</button>
+        <a href="#" style="color:var(--accent-muted); font-size:0.82rem; text-decoration:none;">See the full week</a>
+      </div>
+    </section>
+
+    <aside class="card">
+      <p class="mock-kicker" style="margin-bottom:0.15rem;">At a glance</p>
+      <h3 style="font-size:0.95rem;">Panda Command</h3>
+      <div class="facts">
+        <span class="fact">Record <strong>6–3 · W3</strong></span>
+        <span class="fact">Cap room <strong>$68</strong></span>
+        <span class="fact">Waivers <strong>Open Tue 12:00 AM</strong></span>
+        <span class="fact">Projections <strong>Updated 2h ago</strong></span>
+      </div>
+    </aside>
+  </div>
+
+  <div class="deck">
+    <section class="card">
+      <h3>Your matchup</h3>
+      <p class="note">Week 10 · head to head</p>
+      <div class="mu-row">
+        <div class="mu-team">
+          <span class="tm" style="background:#274b86;color:#bcd4ff;">PC</span>
+          <span><span class="nm">Panda Command</span><span class="rec">6–3 · 3rd</span></span>
+        </div>
+        <div class="mu-proj">proj<strong>92.8</strong></div>
+      </div>
+      <div class="mu-row">
+        <div class="mu-team">
+          <span class="tm" style="background:#7a4a1c;color:#ffd9a8;">DP</span>
+          <span><span class="nm">Daddio of the Pandio</span><span class="rec">7–2 · 1st</span></span>
+        </div>
+        <div class="mu-proj">proj<strong>96.4</strong></div>
+      </div>
+      <div class="mu-bar"><span class="me"></span><span class="them"></span></div>
+      <p class="mu-note">58% win probability · first place on the line</p>
+      <button class="btn btn-ghost btn-sm" style="margin-top:0.8rem;">Open Game center →</button>
+    </section>
+
+    <section class="card">
+      <h3>League pulse</h3>
+      <p class="note">What changed since you were here.</p>
+      <ul class="pulse">
+        <li><span class="ico">⇄</span><span><b>Panda Fraud</b> accepted a trade with <b>Thanks noob noob</b> — Hall for Reed + $6.<time>2h ago</time></span></li>
+        <li><span class="ico">＋</span><span><b>Disappointment</b> won the Rico Dowdle bid at <b>$7</b>.<time>Yesterday</time></span></li>
+        <li><span class="ico">◆</span><span><b>She Bo on my Nix til I TD</b> leads Week 9 MVP voting.<time>Yesterday</time></span></li>
+        <li><span class="ico">💬</span><span><b>Daddio:</b> "Allen drops 30 tonight, book it." <a href="#" style="color:var(--accent-muted);text-decoration:none;">Reply</a><time>3h ago</time></span></li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3>Standings</h3>
+      <p class="note">Through Week 9.</p>
+      <table class="stand">
+        <tr><td class="rk">1</td><td><span class="tm-nm"><span class="tm" style="background:#7a4a1c;color:#ffd9a8;">DP</span>Daddio of the Pandio</span></td><td class="rec">7–2</td></tr>
+        <tr><td class="rk">2</td><td><span class="tm-nm"><span class="tm" style="background:#274b86;color:#bcd4ff;">PF</span>Panda Fraud</span></td><td class="rec">7–2</td></tr>
+        <tr class="you"><td class="rk">3</td><td><span class="tm-nm"><span class="tm" style="background:#274b86;color:#bcd4ff;">PC</span>Panda Command</span></td><td class="rec">6–3</td></tr>
+        <tr><td class="rk">4</td><td><span class="tm-nm"><span class="tm" style="background:#173f34;color:#9ff0cf;">TN</span>Thanks noob noob</span></td><td class="rec">5–4</td></tr>
+        <tr><td class="rk">5</td><td><span class="tm-nm"><span class="tm" style="background:#3f2f68;color:#cbb8ff;">SB</span>She Bo on my Nix til I TD</span></td><td class="rec">5–4</td></tr>
+      </table>
+      <button class="btn btn-ghost btn-sm" style="margin-top:0.8rem;">Full standings → Insights</button>
+    </section>
+  </div>
+
+  <section class="after">
+    <div class="after-head">
+      <div>
+        <p class="mock-kicker" style="margin-bottom:0.1rem;">After that</p>
+        <h3 style="margin:0; font-size:1rem;">Keep the league moving</h3>
+      </div>
+      <span class="note">2 more</span>
+    </div>
+    <div class="after-item">
+      <span><span class="sev sev--warn"></span>Review 8 expiring contracts before draft planning<span class="meta">8 items</span></span>
+      <a href="#">Review contracts →</a>
+    </div>
+    <div class="after-item">
+      <span><span class="sev sev--info"></span>Two trade offers waiting in your inbox<span class="meta">2 items</span></span>
+      <a href="#">Open trades →</a>
+    </div>
+  </section>
+
+  <p class="footnote">Design mockup — Fantasy · Home v2. Keeps the phase track and priority card; adds matchup, league pulse, and standings so the canvas earns its space in season.</p>
+</div>
+</body>
+</html>

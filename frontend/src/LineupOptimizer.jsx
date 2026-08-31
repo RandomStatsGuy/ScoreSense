@@ -17,25 +17,46 @@ import {
 } from "./DraftHub/HubUILayout";
 import {
   DEFAULT_FORMATS,
+  EXPOSURE_OPTIONS,
   LINEUP_COUNTS,
+  MIN_SPEND_OPTIONS,
+  RANDOMNESS_OPTIONS,
   SLATE_CATEGORIES,
+  STACK_OPTIONS,
+  TEAM_LIMIT_OPTIONS,
   capMeterTone,
+  constructionSummary,
+  defaultSlateCategory,
   dfsHeroCopy,
   dfsHeroNote,
   dfsStatusChip,
   dfsSummaryItems,
   emptyLineupCopy,
+  exposureListCopy,
   filterObjectives,
   formatPersonality,
   formatSalary,
+  highestTotalGameId,
+  isCaptainFormat,
   launchCopy,
   lockedSalaryTotal,
   optimizeButtonLabel,
   rosterHint,
   salarySpend,
+  teamMatchupHint,
+  vegasImplied,
+  vegasKickoffLabel,
+  vegasSpreadLabel,
+  vegasTotalLabel,
   formatSlateOption,
   slateLoadCopy,
 } from "./dfsToolPresentation";
+import {
+  buildLineupDetailCsv,
+  buildSiteLineupCsv,
+  siteExportDisabledReason,
+} from "./dfsExport";
+import { downloadCsv } from "./table";
 
 function DfsPinRow({ playerId, locked, excluded, onLock, onSkip }) {
   return (
@@ -85,9 +106,16 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
   const [lineup, setLineup] = useState([]);
   const [lineups, setLineups] = useState([]);
   const [activeLineupIdx, setActiveLineupIdx] = useState(0);
-  const [requireQbStack, setRequireQbStack] = useState(false);
+  const [qbStackCount, setQbStackCount] = useState(0);
+  const [bringBack, setBringBack] = useState(false);
+  const [maxPerTeam, setMaxPerTeam] = useState(0);
+  const [minSpendLeft, setMinSpendLeft] = useState(0);
   const [lineupCount, setLineupCount] = useState(1);
   const [maxOverlap, setMaxOverlap] = useState(4);
+  const [maxExposure, setMaxExposure] = useState(0);
+  const [randomness, setRandomness] = useState(0);
+  const [exposure, setExposure] = useState([]);
+  const [vegas, setVegas] = useState(null);
   const [blockByeWeeks, setBlockByeWeeks] = useState(true);
   const [optimizeNote, setOptimizeNote] = useState("");
   const [totalPoints, setTotalPoints] = useState(null);
@@ -102,6 +130,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
   const fileInputRef = useRef(null);
 
   const isDfs = site !== "seasonal";
+  const isCaptain = isCaptainFormat(site, formats);
   const mobileLayout = useMobileLayout();
   const [mobileStep, setMobileStep] = useState("setup");
   const resultRef = useRef(null);
@@ -170,7 +199,27 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
     setSlates([]);
     setSelectedSlateId("");
     setSlateMeta(null);
-  }, [site, siteConfig.salary_cap]);
+    setSlateCategory(defaultSlateCategory(site, formats));
+    setExposure([]);
+  }, [site, siteConfig.salary_cap, formats]);
+
+  useEffect(() => {
+    if (season == null || week == null) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch(`/api/lineup/vegas?season=${season}&week=${week}`);
+        if (!cancelled && res.ok) {
+          setVegas(await res.json());
+        }
+      } catch {
+        if (!cancelled) setVegas(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [season, week]);
 
   useEffect(() => {
     if (site === "seasonal" && objective === "value") setObjective("median");
@@ -205,6 +254,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
         setSlateMeta(data.slate || null);
         setLineup([]);
         setLineups([]);
+        setExposure([]);
         setTotalPoints(null);
         setTotalSalary(null);
         setSalaryRemaining(null);
@@ -227,7 +277,13 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
       const data = await res.json();
       const nextSlates = data.slates || [];
       setSlates(nextSlates);
-      const defaultId = data.default_slate_id || nextSlates[0]?.slate_id || "";
+      // Only trust the server default when it belongs to the filtered list.
+      const defaultInList = nextSlates.some(
+        (s) => String(s.slate_id) === String(data.default_slate_id)
+      );
+      const defaultId = defaultInList
+        ? data.default_slate_id
+        : nextSlates[0]?.slate_id || "";
       const keepCurrent = nextSlates.some((s) => String(s.slate_id) === String(currentSlateId));
       const slateId = keepCurrent ? String(currentSlateId) : String(defaultId || "");
       setSelectedSlateId(slateId);
@@ -317,6 +373,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
       setImportStats(data.stats || null);
       setLineup([]);
       setLineups([]);
+      setExposure([]);
       setTotalPoints(null);
       setTotalSalary(null);
       setSalaryRemaining(null);
@@ -365,6 +422,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
     setError("");
     try {
       const cap = salaryCap.trim() ? Number(salaryCap) : null;
+      const minSalary = isDfs && cap && minSpendLeft > 0 ? Math.max(0, cap - minSpendLeft) : null;
       const res = await apiFetch("/api/lineup/optimize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -378,9 +436,14 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
           locked_player_ids: [...locked],
           excluded_player_ids: [...excluded],
           apply_injury_adjustments: isLiveContext,
-          require_qb_stack: requireQbStack,
+          qb_stack_count: isCaptain ? 0 : qbStackCount,
+          stack_bring_back: !isCaptain && qbStackCount > 0 && bringBack,
+          max_per_team: maxPerTeam > 0 ? maxPerTeam : null,
+          min_salary: minSalary,
           lineup_count: lineupCount,
           max_overlap: maxOverlap,
+          max_exposure: lineupCount > 1 && maxExposure > 0 ? maxExposure : null,
+          randomness: randomness > 0 ? randomness : null,
           block_bye_weeks: blockByeWeeks,
         }),
       });
@@ -390,6 +453,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
         setLineup([]);
         setLineups([]);
         setActiveLineupIdx(0);
+        setExposure([]);
         setTotalPoints(null);
         setTotalSalary(null);
         setSalaryRemaining(null);
@@ -399,6 +463,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
       if (data.lineups?.length) {
         setLineups(data.lineups);
         setActiveLineupIdx(0);
+        setExposure(data.exposure || []);
         const first = data.lineups[0];
         setLineup(first?.lineup || []);
         setTotalPoints(first?.total_points);
@@ -407,6 +472,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
       } else {
         setLineups([]);
         setActiveLineupIdx(0);
+        setExposure([]);
         setLineup(data.lineup || []);
         setTotalPoints(data.total_points);
         setTotalSalary(data.total_salary);
@@ -422,6 +488,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
     } catch (err) {
       setLineup([]);
       setLineups([]);
+      setExposure([]);
       setTotalPoints(null);
       setTotalSalary(null);
       setSalaryRemaining(null);
@@ -431,13 +498,47 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
     }
   };
 
+  const exportLineups = useMemo(() => {
+    if (lineups.length) return lineups;
+    if (lineup.length) return [{ lineup }];
+    return [];
+  }, [lineups, lineup]);
+
+  const siteExportReason = siteExportDisabledReason(site, exportLineups);
+
+  const handleSiteExport = () => {
+    const result = buildSiteLineupCsv(site, exportLineups);
+    if (result.ok) downloadCsv(result.filename, result.lines);
+    else setError(result.reason);
+  };
+
+  const handleDetailExport = () => {
+    const result = buildLineupDetailCsv(exportLineups, { isDfs });
+    if (result.ok) downloadCsv(result.filename, result.lines);
+    else setError(result.reason);
+  };
+
+  const selectLineup = (idx) => {
+    const entry = lineups[idx];
+    if (!entry) return;
+    setActiveLineupIdx(idx);
+    setLineup(entry.lineup || []);
+    setTotalPoints(entry.total_points);
+    setTotalSalary(entry.total_salary);
+    setSalaryRemaining(entry.salary_remaining);
+  };
+
   const filteredPool = useMemo(() => {
     let list = pool || [];
+    // Once a slate is loaded, players without a salary cannot be rostered.
+    if (isDfs && slateSalaries?.length) {
+      list = list.filter((r) => r.salary != null && r.salary !== "");
+    }
     const q = search.trim().toLowerCase();
     if (q) list = list.filter((r) => String(r.Player || "").toLowerCase().includes(q));
     if (posFilter !== "ALL") list = list.filter((r) => r.Position === posFilter);
     return list;
-  }, [pool, search, posFilter]);
+  }, [pool, search, posFilter, isDfs, slateSalaries]);
 
   const narrativePlayerIds = useMemo(() => {
     const ids = new Set();
@@ -504,7 +605,23 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
     excludedCount: excluded.size,
     objectiveId: objective,
     lineupCount,
+    constructionSummary: constructionSummary({
+      stackCount: isCaptain ? 0 : qbStackCount,
+      bringBack,
+      maxPerTeam,
+      maxExposure,
+      randomness,
+      minSpendLeft: isDfs ? minSpendLeft : 0,
+      isDfs,
+      lineupCount,
+    }),
   });
+  const vegasGames = vegas?.games || [];
+  const vegasTeams = vegas?.teams || {};
+  const hotGameId = highestTotalGameId(vegasGames);
+  const showVegasCol = vegasGames.length > 0;
+  const poolColumns = (isDfs ? 9 : 7) + (showVegasCol ? 1 : 0);
+  const exposureCopy = exposureListCopy({ lineupCount: lineups.length });
   const launch = launchCopy({ isDfs, hasLineup: lineup.length > 0, siteLabel: siteConfig.label });
   const canOptimize = !optimizing && !busy && pool.length > 0 && !(isDfs && !slateSalaries?.length);
   const optimizeLabel = optimizeButtonLabel({ optimizing, lineupCount });
@@ -712,7 +829,51 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                     slateCount: slates.length,
                   })}
                 </p>
+                {isCaptain && (
+                  <p className="chart-note dfs-slate-note">
+                    Kickers appear in site slates but are not modeled — the optimizer fills{" "}
+                    {formats[site]?.captain_label || "CPT"} and FLEX from QB, RB, WR, TE, and DST.
+                  </p>
+                )}
               </>
+            )}
+            {vegasGames.length > 0 && (
+              <div className="dfs-vegas" role="group" aria-label="Vegas lines for this week">
+                <div className="dfs-vegas-head">
+                  <span className="hub-filter-label">Vegas board</span>
+                  <span className="chart-note">{vegas?.note}</span>
+                </div>
+                <ul className="dfs-vegas-grid">
+                  {vegasGames.map((game) => (
+                    <li
+                      key={game.game_id}
+                      className={`dfs-vegas-card${game.game_id === hotGameId ? " is-hot" : ""}`}
+                    >
+                      <div className="dfs-vegas-kick">
+                        <span>{vegasKickoffLabel(game.kickoff_et, game.weekday)}</span>
+                        {game.game_id === hotGameId && (
+                          <span className="dfs-vegas-hot">Highest total</span>
+                        )}
+                      </div>
+                      <div className="dfs-vegas-teams">
+                        <span className={game.favorite === game.away ? "is-favorite" : ""}>
+                          <strong>{game.away}</strong>
+                          <em>{vegasImplied(game.away_implied)}</em>
+                        </span>
+                        <span className="dfs-vegas-at" aria-hidden="true">@</span>
+                        <span className={game.favorite === game.home ? "is-favorite" : ""}>
+                          <strong>{game.home}</strong>
+                          <em>{vegasImplied(game.home_implied)}</em>
+                        </span>
+                      </div>
+                      <div className="dfs-vegas-line">
+                        <span>{vegasSpreadLabel(game)}</span>
+                        <span>{vegasTotalLabel(game)}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </section>
 
@@ -746,19 +907,39 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
               ))}
             </div>
             <div className="dfs-policy">
-              <label className="hub-toggle-row">
-                <input
-                  type="checkbox"
-                  checked={requireQbStack}
-                  onChange={(e) => setRequireQbStack(e.target.checked)}
-                />
-                <span>
-                  Require a QB stack
-                  <span className="hub-toggle-hint">
-                    Pair the quarterback with at least one pass-catcher from the same team.
+              {!isCaptain && (
+                <div className="dfs-stack-row">
+                  <span className="hub-filter-label">QB stack</span>
+                  <div className="mock-draft-team-chips" role="group" aria-label="QB stack rule">
+                    {STACK_OPTIONS.map((opt) => (
+                      <HubFilterChip
+                        key={opt.id}
+                        compact
+                        active={qbStackCount === opt.id}
+                        title={opt.hint}
+                        onClick={() => setQbStackCount(opt.id)}
+                      >
+                        {opt.label}
+                      </HubFilterChip>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {!isCaptain && qbStackCount > 0 && (
+                <label className="hub-toggle-row">
+                  <input
+                    type="checkbox"
+                    checked={bringBack}
+                    onChange={(e) => setBringBack(e.target.checked)}
+                  />
+                  <span>
+                    Add a bring-back
+                    <span className="hub-toggle-hint">
+                      Take at least one opposing skill player from each QB&rsquo;s game.
+                    </span>
                   </span>
-                </span>
-              </label>
+                </label>
+              )}
               <label className="hub-toggle-row">
                 <input
                   type="checkbox"
@@ -807,12 +988,74 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                       />
                     </label>
                   )}
+                  {lineupCount > 1 && (
+                    <label className="control-label" htmlFor="dfs-exposure">
+                      Max exposure
+                      <select
+                        id="dfs-exposure"
+                        className="control-select"
+                        value={maxExposure}
+                        onChange={(e) => setMaxExposure(Number(e.target.value))}
+                      >
+                        {EXPOSURE_OPTIONS.map((opt) => (
+                          <option key={opt.id} value={opt.id}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                 </div>
                 {lineupCount > 1 && (
                   <p id="dfs-overlap-hint" className="chart-note">
                     Later lineups can share at most this many players with an earlier one.
+                    Exposure caps how often any one player repeats across the set.
                   </p>
                 )}
+                <div className="dfs-field-row">
+                  <div>
+                    <span className="hub-filter-label">Randomness</span>
+                    <div className="mock-draft-team-chips" role="group" aria-label="Projection randomness">
+                      {RANDOMNESS_OPTIONS.map((opt) => (
+                        <HubFilterChip
+                          key={opt.id}
+                          compact
+                          active={randomness === opt.id}
+                          title={opt.hint}
+                          onClick={() => setRandomness(opt.id)}
+                        >
+                          {opt.label}
+                        </HubFilterChip>
+                      ))}
+                    </div>
+                  </div>
+                  <label className="control-label" htmlFor="dfs-team-limit">
+                    Team limit
+                    <select
+                      id="dfs-team-limit"
+                      className="control-select"
+                      value={maxPerTeam}
+                      onChange={(e) => setMaxPerTeam(Number(e.target.value))}
+                    >
+                      {TEAM_LIMIT_OPTIONS.map((opt) => (
+                        <option key={opt.id} value={opt.id}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  {isDfs && (
+                    <label className="control-label" htmlFor="dfs-min-spend">
+                      Spend
+                      <select
+                        id="dfs-min-spend"
+                        className="control-select"
+                        value={minSpendLeft}
+                        onChange={(e) => setMinSpendLeft(Number(e.target.value))}
+                      >
+                        {MIN_SPEND_OPTIONS.map((opt) => (
+                          <option key={opt.id} value={opt.id}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                </div>
                 {isDfs && (
                   <div className="dfs-advanced-actions">
                     <input
@@ -919,6 +1162,12 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                           {isDfs && <MobileStat label="Value" value={fmtNum(row.value)} />}
                           <MobileStat label="Floor" value={fmtNum(row["Low (P10)"])} />
                           <MobileStat label="Ceil" value={fmtNum(row["High (P90)"])} />
+                          {showVegasCol && (
+                            <MobileStat
+                              label="Matchup"
+                              value={teamMatchupHint(vegasTeams[row.Team]) || "—"}
+                            />
+                          )}
                         </div>
                       )}
                       actions={[
@@ -954,6 +1203,11 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                       <th>Player</th>
                       <th>Pos</th>
                       <th>Team</th>
+                      {showVegasCol && (
+                        <th className="num" title="Implied team total from the Vegas board">
+                          Imp
+                        </th>
+                      )}
                       {isDfs && <th className="num">Salary</th>}
                       <th className="num">Proj</th>
                       {isDfs && <th className="num">Value</th>}
@@ -964,14 +1218,14 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                   <tbody>
                     {busy && filteredPool.length === 0 && (
                       <tr>
-                        <td colSpan={isDfs ? 9 : 7} className="table-empty-state muted">
+                        <td colSpan={poolColumns} className="table-empty-state muted">
                           Loading player pool…
                         </td>
                       </tr>
                     )}
                     {!busy && filteredPool.length === 0 && (
                       <tr>
-                        <td colSpan={isDfs ? 9 : 7} className="table-empty-state muted">
+                        <td colSpan={poolColumns} className="table-empty-state muted">
                           No players in pool for this week.
                         </td>
                       </tr>
@@ -1005,6 +1259,14 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                           </td>
                           <td>{row.Position}</td>
                           <td>{row.Team || "—"}</td>
+                          {showVegasCol && (
+                            <td
+                              className="num muted"
+                              title={teamMatchupHint(vegasTeams[row.Team])}
+                            >
+                              {vegasImplied(vegasTeams[row.Team]?.implied_total)}
+                            </td>
+                          )}
                           {isDfs && <td className="num">{formatSalary(row.salary)}</td>}
                           <td className="num">{fmtNum(row["Projected Points"])}</td>
                           {isDfs && <td className="num muted">{fmtNum(row.value)}</td>}
@@ -1067,7 +1329,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
             </p>
           )}
 
-          {lineups.length > 1 && (
+          {lineups.length > 1 && lineups.length <= 8 && (
             <div className="lineup-multi-tabs" role="tablist" aria-label="Generated lineups">
               {lineups.map((entry, idx) => (
                 <button
@@ -1076,17 +1338,46 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                   role="tab"
                   aria-selected={activeLineupIdx === idx}
                   className={`tab lineup-pos-tab ${activeLineupIdx === idx ? "active" : ""}`}
-                  onClick={() => {
-                    setActiveLineupIdx(idx);
-                    setLineup(entry.lineup || []);
-                    setTotalPoints(entry.total_points);
-                    setTotalSalary(entry.total_salary);
-                    setSalaryRemaining(entry.salary_remaining);
-                  }}
+                  onClick={() => selectLineup(idx)}
                 >
                   #{idx + 1} · {fmtNum(entry.total_points)}
                 </button>
               ))}
+            </div>
+          )}
+          {lineups.length > 8 && (
+            <div className="lineup-multi-pager" role="group" aria-label="Generated lineups">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => selectLineup(activeLineupIdx - 1)}
+                disabled={activeLineupIdx === 0}
+              >
+                Prev
+              </Button>
+              <label className="control-label" htmlFor="dfs-lineup-pick">
+                <span className="sr-only">Lineup</span>
+                <select
+                  id="dfs-lineup-pick"
+                  className="control-select"
+                  value={activeLineupIdx}
+                  onChange={(e) => selectLineup(Number(e.target.value))}
+                >
+                  {lineups.map((entry, idx) => (
+                    <option key={idx} value={idx}>
+                      Lineup {idx + 1} of {lineups.length} · {fmtNum(entry.total_points)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => selectLineup(activeLineupIdx + 1)}
+                disabled={activeLineupIdx >= lineups.length - 1}
+              >
+                Next
+              </Button>
             </div>
           )}
 
@@ -1136,6 +1427,50 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
               ))}
             </ol>
           )}
+          {exposure.length > 0 && lineups.length > 1 && (
+            <div className="dfs-exposure">
+              <div className="dfs-exposure-head">
+                <span className="hub-filter-label">{exposureCopy.title}</span>
+                <span className="chart-note">{exposureCopy.hint}</span>
+              </div>
+              <ul className="dfs-exposure-list">
+                {exposure.slice(0, 8).map((row) => (
+                  <li key={row.player_id}>
+                    <span className="dfs-exposure-name">{row.player}</span>
+                    <span className="dfs-exposure-meta">
+                      {[row.position, row.team].filter(Boolean).join(" · ")}
+                    </span>
+                    <span className="dfs-exposure-meter" aria-hidden="true">
+                      <span style={{ width: `${Math.min(100, row.pct)}%` }} />
+                    </span>
+                    <strong>{row.pct}%</strong>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {exportLineups.length > 0 && (
+            <div className="dfs-export-row">
+              {isDfs && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSiteExport}
+                  disabled={Boolean(siteExportReason)}
+                >
+                  Export {lineups.length > 1 ? `${lineups.length} lineups` : "lineup"} for upload
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={handleDetailExport}>
+                Export detail CSV
+              </Button>
+            </div>
+          )}
+          {isDfs && exportLineups.length > 0 && siteExportReason ? (
+            <p className="chart-note dfs-export-note">{siteExportReason}</p>
+          ) : null}
+
           {optimizeNote && <p className="chart-note lineup-result-note">{optimizeNote}</p>}
           {error ? (
             <p className="dfs-launch-error" role="alert">{error}</p>

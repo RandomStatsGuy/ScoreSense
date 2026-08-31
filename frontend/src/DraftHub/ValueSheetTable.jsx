@@ -168,19 +168,27 @@ export default function ValueSheetTable({
   const showAdvanced = showAdvancedProp ?? (draftConsole ? false : compact ? true : showAdvancedLocal);
   const activeRisk = isRiskToleranceActive(riskTolerance) && !pickDraft;
   const showAdvancedToggle = !compact && showAdvancedProp == null;
+  // Vs cost is only meaningful once contract costs exist (post-import / in-season).
+  // Pre-draft every row is "—", so drop the column instead of shipping dead ink.
+  const anyCostDelta = useMemo(
+    () => (rows || []).some((r) => r?.value_delta != null),
+    [rows],
+  );
   const schema = useMemo(
     () => columnsForDraftMode({
       pickDraft,
       compact,
       advanced: showAdvanced,
       draftConsole,
-      showDelta,
-      showStatus,
+      showDelta: showDelta && anyCostDelta,
+      // Free agents shows only available players — a Status column of identical
+      // "Free agent" labels is noise there.
+      showStatus: showStatus && !isAvailableView,
       showAdd: addEnabled,
       showSelect: Boolean(onSelectPlayer),
       riskActive: activeRisk,
     }),
-    [pickDraft, compact, showAdvanced, draftConsole, showDelta, showStatus, addEnabled, onSelectPlayer, activeRisk],
+    [pickDraft, compact, showAdvanced, draftConsole, showDelta, anyCostDelta, showStatus, isAvailableView, addEnabled, onSelectPlayer, activeRisk],
   );
   const showRiskScore = schema.showRiskScore;
   const showPosCol = schema.showPosCol;
@@ -917,7 +925,7 @@ export default function ValueSheetTable({
                         title="Contract salary minus suggested bid (negative = good value)"
                       />
                     )}
-                    {showStatus && (
+                    {schema.showStatus && (
                       <MobileStat label="Status" value={statusLabel} />
                     )}
                   </div>
@@ -1038,7 +1046,7 @@ export default function ValueSheetTable({
               {schema.showTier && (
                 <SortTh label="Tier" col="tier" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-tier" />
               )}
-              {showStatus && <SortTh label="Status" col="status" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-status" />}
+              {schema.showStatus && <SortTh label="Status" col="status" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-status" />}
               {actionCol && <th className="hub-col-actions">Actions</th>}
             </tr>
           </thead>
@@ -1089,7 +1097,7 @@ export default function ValueSheetTable({
                   row={r}
                   showAdvanced={showAdvanced}
                   showDelta={showCostDelta}
-                  showStatus={showStatus}
+                  showStatus={schema.showStatus}
                   showAdd={addEnabled}
                   addMode={addMode}
                   showSelect={showSelect}

@@ -9,6 +9,8 @@ export const HUB_SLUG_TO_ID = {
   fa: "available",
   available: "available",
   week: "week",
+  game: "game",
+  "game-center": "game",
   roster: "roster",
   rosters: "rosters",
   draft: "room",
@@ -26,6 +28,7 @@ export const HUB_ID_TO_SLUG = {
   value: "strategy",
   available: "free-agents",
   week: "week",
+  game: "game",
   roster: "roster",
   rosters: "rosters",
   room: "draft",
@@ -76,7 +79,7 @@ export const SEASON_PANELS = new Set(["projections", "narrative"]);
 
 export const SEASON_MODES = new Set(["preseason", "live"]);
 
-export const TOOLS_TABS = new Set(["dfs", "mock-draft"]);
+export const TOOLS_TABS = new Set(["dfs", "mock-draft", "best-ball"]);
 
 export const ADMIN_TABS = new Set(["overview", "users", "leagues"]);
 
@@ -159,14 +162,15 @@ export function parseAppPath(pathname) {
     }
     const slug = parts[1] || "home";
     if (slug === "live") {
+      // Legacy live-scoring URL → Game center owns the matchup now.
       return {
         view: "hub",
         projectionsTab: null,
         projectionsMobilePanel: null,
         seasonMode: null,
         toolsTab: null,
-        hubSubView: "insights",
-        insightTab: "scoring",
+        hubSubView: "game",
+        insightTab: null,
         officeTab: null,
       };
     }
@@ -286,6 +290,29 @@ export function buildAppPath({
     return tab === "overview" ? "/admin" : `/admin/${tab}`;
   }
   return "/projections/weekly";
+}
+
+/** Query params that only mean something on Projections tables. Hub/Tools URLs
+ * should not carry them (filters live in app state and re-sync on return). */
+export const PROJECTION_ONLY_PARAMS = [
+  "pos",
+  "season",
+  "week",
+  "teams",
+  "draftSeason",
+  "fromWeek",
+  "rosSeason",
+  "q",
+  "compare",
+  "cmp",
+  "movers",
+];
+
+/** Drop projections-only params (keeps hub params such as `player`). */
+export function stripProjectionParams(searchParams) {
+  const params = new URLSearchParams(searchParams || undefined);
+  for (const key of PROJECTION_ONLY_PARAMS) params.delete(key);
+  return params;
 }
 
 /** Parse comma-separated compare player IDs (SCORE-4 start/sit), capped at 4. */

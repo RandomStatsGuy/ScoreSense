@@ -99,7 +99,10 @@ export function validateLeagueSettings({ name, season, rules }) {
     (total, pos) => total + Number(merged.roster[pos]?.min || 0),
     0,
   );
-  if (!numberInRange(merged.roster_size_max, Math.max(1, minimumRoster), 100)) {
+  // Explicit null means "no roster cap — position limits bound the roster"
+  // (backend total_roster_slots falls back to the sum of position maxes).
+  if (merged.roster_size_max != null
+    && !numberInRange(merged.roster_size_max, Math.max(1, minimumRoster), 100)) {
     errors.roster_size_max = `Roster size must be at least ${minimumRoster}, the sum of position minimums.`;
   }
   return errors;
@@ -141,6 +144,12 @@ export function rulesSummary(rules) {
       label: "Extensions",
       value: contracts.allow_veteran_renewal ? "Rookies + veterans" : (contracts.one_renewal_after_rookie ? "Rookies only" : "Disabled"),
     },
-    { id: "roster", label: "Roster size", value: `${merged.roster_size_max} players` },
+    {
+      id: "roster",
+      label: "Roster size",
+      value: merged.roster_size_max != null
+        ? `${merged.roster_size_max} players`
+        : "Position limits",
+    },
   ];
 }

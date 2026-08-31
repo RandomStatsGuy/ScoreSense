@@ -72,6 +72,7 @@ test("pageTitleForPath matches product areas", () => {
   assert.equal(pageTitleForPath("/hub/office/members"), "Fantasy · Roster management · Members");
   assert.equal(pageTitleForPath("/tools/dfs"), "Tools · DFS");
   assert.equal(pageTitleForPath("/tools/mock-draft"), "Tools · Mock draft");
+  assert.equal(pageTitleForPath("/tools/best-ball"), "Tools · Best ball");
   assert.equal(pageTitleForPath("/model"), "Model accuracy");
   assert.equal(pageTitleForPath("/admin"), "Admin · Overview");
   assert.equal(pageTitleForPath("/admin/users"), "Admin · Users");
