@@ -317,7 +317,9 @@ export function HubExperienceSummary({
           {items.map((item) => (
             <div key={item.id || item.label}>
               <dt>{item.label}</dt>
-              <dd>{item.value}</dd>
+              <dd className={item.tone ? `hub-experience-summary-value--${item.tone}` : undefined}>
+                {item.value}
+              </dd>
             </div>
           ))}
         </dl>
