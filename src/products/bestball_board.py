@@ -17,6 +17,20 @@ from src.integrations.fantasypros import (
 POSITION_LABELS = {"qb": "QB", "rb": "RB", "wr": "WR/TE"}
 
 
+def _team_bye_map(season: int) -> dict[str, int]:
+    """Bye week per mlready team code; empty when the schedule is unavailable."""
+    try:
+        from src.core.schedule_utils import team_bye_weeks
+        from src.core.team_codes import normalize_team_to_mlready
+
+        return {
+            normalize_team_to_mlready(team): week
+            for team, week in team_bye_weeks(int(season)).items()
+        }
+    except Exception:
+        return {}
+
+
 def _load_adp_proxy(season: int, position: str) -> pd.DataFrame:
     """FantasyPros week-1 ECR as preseason ADP proxy when cached."""
     fp = build_fp_enrichment_frame(season, position, cache_only=True)
@@ -81,7 +95,7 @@ def build_bestball_board(
 
     board = pd.concat(frames, ignore_index=True)
     board = board.sort_values(["value_vs_adp", "Season Proj"], ascending=[False, False], na_position="last")
-    board["bye_note"] = "Bye clustering not modeled in v1."
+    board["bye_week"] = board["team_upper"].map(_team_bye_map(season))
 
     meta = {
         "season": season,

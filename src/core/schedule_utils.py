@@ -111,6 +111,16 @@ def teams_on_bye(season: int, week: int) -> set[str]:
     return all_teams - set(playing)
 
 
+@lru_cache(maxsize=8)
+def team_bye_weeks(season: int) -> dict[str, int]:
+    """Map schedule team code -> bye week for one season (do not mutate)."""
+    byes: dict[str, int] = {}
+    for week in regular_season_weeks(season):
+        for team in teams_on_bye(season, week):
+            byes.setdefault(team, int(week))
+    return byes
+
+
 def attach_bye_flags(pool: pd.DataFrame, season: int, week: int) -> pd.DataFrame:
     out = pool.copy()
     try:

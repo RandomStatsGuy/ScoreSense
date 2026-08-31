@@ -95,9 +95,18 @@ from src.projections.player_compare import (
 from src.projections.projection_explanation import build_projection_explanation
 from src.draft_hub.draft_pool_cache import draft_pool_for_position
 from src.products.bestball_board import build_bestball_board
-from src.products.dfs_config import list_site_configs
-from src.products.dfs_salaries import attach_salaries_to_pool, parse_salary_csv
-from src.products.lineup_optimizer import build_lineup_pool, optimize_from_pool_dataframe
+from src.products.dfs_config import base_site as dfs_base_site, list_site_configs
+from src.products.dfs_salaries import (
+    attach_salaries_to_pool,
+    collapse_captain_rows,
+    parse_salary_csv,
+)
+from src.products.lineup_optimizer import (
+    MAX_LINEUP_COUNT,
+    build_lineup_pool,
+    optimize_from_pool_dataframe,
+)
+from src.products.vegas_lines import build_vegas_board
 from src.products.prop_scan import build_prop_scan, parse_prop_lines_csv
 from src.sentiment.readout import build_sentiment_response
 from src.sentiment.fantasy_readout import build_fantasy_season_response, build_fantasy_weekly_response
@@ -173,8 +182,18 @@ class LineupOptimizeRequest(BaseModel):
     slate_salaries: Optional[list[dict[str, Any]]] = None
     block_bye_weeks: bool = True
     require_qb_stack: bool = False
+    # 0 = off; 1–2 pass catchers required alongside each rostered QB.
+    qb_stack_count: Optional[int] = None
+    stack_bring_back: bool = False
+    max_per_team: Optional[int] = None
+    min_salary: Optional[int] = None
     lineup_count: int = 1
     max_overlap: int = 4
+    # Multi-lineup construction: share of lineups a player may appear in (0–1).
+    max_exposure: Optional[float] = None
+    # Projection jitter between builds (0–1 of a standard deviation).
+    randomness: Optional[float] = None
+    seed: Optional[int] = None
 
 
 def _collect_route_paths(routes) -> set[str]:
@@ -1114,7 +1133,7 @@ def _json_safe_records(df) -> list[dict[str, Any]]:
         for key, value in list(rec.items()):
             if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
                 rec[key] = None
-            elif value is None or (isinstance(value, float) and math.isnan(value)):
+            elif value is None or value is pd.NA or (isinstance(value, float) and math.isnan(value)):
                 rec[key] = None
     return records
 
@@ -1678,6 +1697,51 @@ def lineup_pool(
     }
 
 
+@app.get("/api/lineup/vegas")
+def lineup_vegas(
+    season: Optional[int] = None,
+    week: Optional[int] = None,
+    _user=Depends(require_patron),
+) -> dict:
+    """Vegas board for a week — spread, total, and implied team totals per game."""
+    if season is None or week is None:
+        try:
+            from src.config import PROCESSED_DATA_DIR
+            from src.core.projection_context import resolve_projection_context
+
+            path = PROCESSED_DATA_DIR / "qb_mlready.parquet"
+            if not path.exists():
+                path = PROCESSED_DATA_DIR / "qb_mlready.csv"
+            df = pd.read_parquet(path) if path.suffix == ".parquet" else pd.read_csv(path)
+            season, week = resolve_projection_context(df, season, week)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail="season and week are required") from exc
+
+    try:
+        board = build_vegas_board(int(season), int(week))
+    except Exception:
+        # Lines are a readout, not a dependency — degrade to an empty board.
+        return {
+            "meta": {"season": int(season), "week": int(week)},
+            "count": 0,
+            "games": [],
+            "teams": {},
+            "note": "Vegas lines are unavailable right now. Lineups still build without them.",
+        }
+
+    note = "Lines via nflverse schedules. Implied totals split the game total by the spread."
+    if board["count"] and not board["with_lines"]:
+        note = "Books have not posted lines for this week yet."
+    return {
+        "meta": {"season": board["season"], "week": board["week"]},
+        "count": board["count"],
+        "with_lines": board["with_lines"],
+        "games": board["games"],
+        "teams": board["teams"],
+        "note": note,
+    }
+
+
 def _lineup_salary_response(
     pool: pd.DataFrame,
     meta: dict,
@@ -1705,6 +1769,20 @@ def _lineup_salary_response(
     }
 
 
+def _slate_provider(site: str) -> str:
+    """Map any lineup format id (incl. showdown modes) to its slate provider."""
+    try:
+        provider = dfs_base_site(site)
+    except ValueError:
+        provider = None
+    if provider not in ("draftkings", "fanduel"):
+        raise HTTPException(
+            status_code=400,
+            detail="site must be a DraftKings or FanDuel lineup format",
+        )
+    return provider
+
+
 @app.get("/api/lineup/slates")
 def lineup_slates(
     site: str = "draftkings",
@@ -1712,9 +1790,7 @@ def lineup_slates(
     sport: str = "NFL",
     _user=Depends(require_patron),
 ) -> dict:
-    site = site.lower()
-    if site not in ("draftkings", "fanduel"):
-        raise HTTPException(status_code=400, detail="site must be draftkings or fanduel")
+    site = _slate_provider(site)
     if category not in SLATE_CATEGORIES:
         raise HTTPException(
             status_code=400,
@@ -1755,23 +1831,24 @@ def lineup_load_salaries(
     _user=Depends(require_patron),
 ) -> dict:
     site = site.lower()
-    if site not in ("draftkings", "fanduel"):
-        raise HTTPException(status_code=400, detail="site must be draftkings or fanduel")
+    provider = _slate_provider(site)
     try:
         slate_meta = None
         if not slate_id:
-            slate_meta = pick_default_slate(site, category=category)
+            slate_meta = pick_default_slate(provider, category=category)
             if not slate_meta:
-                raise ValueError(f"No {site} slate found for category '{category}'.")
+                raise ValueError(f"No {provider} slate found for category '{category}'.")
             slate_id = str(slate_meta["slate_id"])
         else:
-            matches = [s for s in list_slates(site, category="all") if str(s["slate_id"]) == str(slate_id)]
-            slate_meta = matches[0] if matches else {"slate_id": slate_id, "site": site}
+            matches = [s for s in list_slates(provider, category="all") if str(s["slate_id"]) == str(slate_id)]
+            slate_meta = matches[0] if matches else {"slate_id": slate_id, "site": provider}
 
-        salaries = fetch_slate_salaries(
-            site,
-            str(slate_id),
-            force_refresh=force_refresh,
+        salaries = collapse_captain_rows(
+            fetch_slate_salaries(
+                provider,
+                str(slate_id),
+                force_refresh=force_refresh,
+            )
         )
         if salaries.empty:
             raise ValueError(f"No salaries returned for slate {slate_id}.")
@@ -1805,11 +1882,11 @@ async def lineup_import_salaries(
     apply_injury_adjustments: bool = True,
     _user=Depends(require_patron),
 ) -> dict:
-    if site not in ("draftkings", "fanduel"):
-        raise HTTPException(status_code=400, detail="site must be draftkings or fanduel")
+    site = site.lower()
+    provider = _slate_provider(site)
     try:
         raw = await file.read()
-        salaries = parse_salary_csv(raw, site=site)
+        salaries = collapse_captain_rows(parse_salary_csv(raw, site=provider))
         pool, meta = build_lineup_pool(
             season=season,
             week=week,
@@ -1858,8 +1935,31 @@ def lineup_optimize(
             salary_cap=request.salary_cap,
             block_bye_weeks=request.block_bye_weeks,
             require_qb_stack=request.require_qb_stack,
-            lineup_count=max(1, min(request.lineup_count, 20)),
+            qb_stack_count=(
+                max(0, min(int(request.qb_stack_count), 3))
+                if request.qb_stack_count is not None
+                else None
+            ),
+            stack_bring_back=request.stack_bring_back,
+            max_per_team=(
+                max(1, int(request.max_per_team)) if request.max_per_team else None
+            ),
+            min_salary=(
+                max(0, int(request.min_salary)) if request.min_salary else None
+            ),
+            lineup_count=max(1, min(request.lineup_count, MAX_LINEUP_COUNT)),
             max_overlap=request.max_overlap,
+            max_exposure=(
+                min(1.0, max(0.0, float(request.max_exposure)))
+                if request.max_exposure is not None
+                else None
+            ),
+            randomness=(
+                min(1.0, max(0.0, float(request.randomness)))
+                if request.randomness is not None
+                else 0.0
+            ),
+            seed=request.seed,
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc

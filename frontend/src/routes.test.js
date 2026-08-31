@@ -7,11 +7,16 @@ test("tools mock-draft tab round-trips", () => {
   assert.equal(parseAppPath("/tools/mock-draft").toolsTab, "mock-draft");
   assert.equal(parseAppPath("/tools/dfs").toolsTab, "dfs");
   assert.equal(parseAppPath("/tools/unknown").toolsTab, "dfs");
+  assert.equal(parseAppPath("/tools/best-ball").toolsTab, "best-ball");
   assert.equal(
     buildAppPath({ view: "tools", toolsTab: "mock-draft" }),
     "/tools/mock-draft",
   );
   assert.equal(buildAppPath({ view: "tools", toolsTab: "dfs" }), "/tools/dfs");
+  assert.equal(
+    buildAppPath({ view: "tools", toolsTab: "best-ball" }),
+    "/tools/best-ball",
+  );
 });
 
 test("Insights overview is the default Insights route", () => {
