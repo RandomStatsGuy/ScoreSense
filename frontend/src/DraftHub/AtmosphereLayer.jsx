@@ -136,7 +136,7 @@ const CURSOR_PUSH = 42;
 
 /** Gently push mid/near particles away from the pointer. rAF only runs while
  * the layer is active, the tab is visible, and the device has a hover pointer. */
-function useCursorDrift(containerRef, active) {
+function useCursorDrift(containerRef, active, particleKey) {
   useEffect(() => {
     if (!active || typeof window === "undefined" || !window.matchMedia) return undefined;
     if (!window.matchMedia("(hover: hover)").matches) return undefined;
@@ -200,7 +200,7 @@ function useCursorDrift(containerRef, active) {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerleave", onLeave);
     };
-  }, [containerRef, active]);
+  }, [containerRef, active, particleKey]);
 }
 
 export default function AtmosphereLayer({ theme = "none", liveDraft = false }) {
@@ -241,7 +241,7 @@ export default function AtmosphereLayer({ theme = "none", liveDraft = false }) {
     [active, savedTheme],
   );
 
-  useCursorDrift(containerRef, active && particles.length > 0);
+  useCursorDrift(containerRef, active && particles.length > 0, savedTheme);
 
   if (!active) return null;
 
