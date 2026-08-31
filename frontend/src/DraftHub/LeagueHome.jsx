@@ -112,9 +112,9 @@ export default function LeagueHome({
   /** Deck data (matchup / standings / pulse) is additive — it must never block
    *  or error the action center, so failures just leave the cards hidden. */
   useEffect(() => {
+    setScoring(null);
+    setPulse(null);
     if (!leagueId) {
-      setScoring(null);
-      setPulse(null);
       return undefined;
     }
     const ctrl = new AbortController();
@@ -124,8 +124,12 @@ export default function LeagueHome({
           `/api/hub/league/${encodeURIComponent(leagueId)}/live-scoring`,
           { signal: ctrl.signal },
         );
-        if (res.ok) setScoring(await res.json());
-      } catch { /* deck card stays hidden */ }
+        if (!res.ok || ctrl.signal.aborted) return;
+        const payload = await res.json();
+        if (!ctrl.signal.aborted) setScoring(payload);
+      } catch (e) {
+        if (isAbortError(e) || ctrl.signal.aborted) return;
+      }
     })();
     (async () => {
       try {
@@ -133,8 +137,12 @@ export default function LeagueHome({
           `/api/hub/league/${encodeURIComponent(leagueId)}/pulse`,
           { signal: ctrl.signal },
         );
-        if (res.ok) setPulse(await res.json());
-      } catch { /* deck card stays hidden */ }
+        if (!res.ok || ctrl.signal.aborted) return;
+        const payload = await res.json();
+        if (!ctrl.signal.aborted) setPulse(payload);
+      } catch (e) {
+        if (isAbortError(e) || ctrl.signal.aborted) return;
+      }
     })();
     return () => ctrl.abort();
   }, [leagueId, reloadToken]);

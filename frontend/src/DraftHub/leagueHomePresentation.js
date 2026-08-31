@@ -94,7 +94,10 @@ export function pulseEventLine(event) {
   const player = event?.player_name || "a player";
   const salary = fmtMoney(event?.salary);
   const dead = fmtMoney(event?.dead_cap);
-  if (kind === "trade") {
+  const executedTrade = Boolean(
+    event?.team_a || event?.team_b || event?.players_a?.length || event?.players_b?.length,
+  );
+  if (kind === "trade" && executedTrade) {
     const sides = [event?.team_a, event?.team_b].filter(Boolean).join(" ⇄ ") || "Two teams";
     const pieces = [...(event?.players_a || []), ...(event?.players_b || [])].filter(Boolean);
     return {
@@ -123,7 +126,7 @@ export function pulseEventLine(event) {
       text: `${owner} added ${player}${salary ? ` at ${salary}` : ""}.`,
     };
   }
-  if (kind === "trade_in" || kind === "trade_out") {
+  if (kind === "trade" || kind === "trade_in" || kind === "trade_out") {
     const to = event?.to_owner;
     const from = event?.from_owner;
     return {

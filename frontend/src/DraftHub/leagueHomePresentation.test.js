@@ -32,6 +32,11 @@ test("pulse events read as human league activity", () => {
     pulseEventLine({ kind: "trade_in", player_name: "DK Metcalf", to_owner: "Panda Command", from_owner: "Daddio" }).text,
     "DK Metcalf moved from Daddio to Panda Command by trade.",
   );
+  // Movement rows also use event_type "trade" — do not use the two-team trade_log line.
+  assert.equal(
+    pulseEventLine({ kind: "trade", player_name: "DK Metcalf", to_owner: "Panda Command", from_owner: "Daddio" }).text,
+    "DK Metcalf moved from Daddio to Panda Command by trade.",
+  );
   // Unknown kinds degrade to a neutral line instead of crashing the feed.
   assert.equal(pulseEventLine({ kind: "mystery", player_name: "X" }).icon, "•");
 });

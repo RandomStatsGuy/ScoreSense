@@ -2953,6 +2953,46 @@ def hub_league_live_scoring(
     }
 
 
+def _pulse_name_by_id(league_id: str) -> dict[str, str]:
+    names: dict[str, str] = {}
+    for rows in storage.list_league_rosters_by_team(league_id).values():
+        for row in rows:
+            pid = str(row.get("player_id") or "")
+            pname = str(row.get("player_name") or "").strip()
+            if pid and pname:
+                names[pid] = pname
+    return names
+
+
+def _pulse_send_items(send_side: Any) -> list[Any]:
+    """Normalize trade_log send_a / send_b to a player list.
+
+    Production `log_league_trade` stores send_a as `{players: [player_id, …]}`
+    and send_b as a bare JSON array of ids.
+    """
+    if isinstance(send_side, list):
+        return send_side
+    if isinstance(send_side, dict):
+        items = send_side.get("players")
+        return items if isinstance(items, list) else []
+    return []
+
+
+def _pulse_trade_player_names(send_side: Any, name_by_id: dict[str, str]) -> list[str]:
+    names: list[str] = []
+    for item in _pulse_send_items(send_side):
+        if isinstance(item, dict):
+            name = item.get("player_name") or item.get("name")
+            pid = str(item.get("player_id") or "")
+            label = str(name or name_by_id.get(pid) or pid).strip()
+        else:
+            pid = str(item or "").strip()
+            label = name_by_id.get(pid) or pid
+        if label:
+            names.append(label)
+    return names
+
+
 @router.get("/league/{league_id}/pulse")
 def hub_league_pulse(
     league_id: str,
@@ -2968,9 +3008,14 @@ def hub_league_pulse(
 
     events: list[dict[str, Any]] = []
     for move in storage.list_recent_league_movements(league_id, limit=limit):
+        kind = str(move.get("event_type") or "move")
+        if kind == "trade":
+            # league_player_movement uses "trade"; trade_log events also use that
+            # kind. Keep movement rows on the player/owner copy path.
+            kind = "trade_in"
         events.append(
             {
-                "kind": str(move.get("event_type") or "move"),
+                "kind": kind,
                 "at": move.get("at"),
                 "player_name": move.get("player_name"),
                 "from_owner": move.get("from_owner"),
@@ -2981,17 +3026,17 @@ def hub_league_pulse(
                 "week": move.get("week"),
             }
         )
-    for trade in storage.list_recent_league_trades(league_id, limit=limit):
-        send_a = trade.get("send_a") or {}
-        send_b = trade.get("send_b") or {}
+    trades = storage.list_recent_league_trades(league_id, limit=limit)
+    name_by_id = _pulse_name_by_id(league_id) if trades else {}
+    for trade in trades:
         events.append(
             {
                 "kind": "trade",
                 "at": trade.get("at"),
                 "team_a": trade.get("team_a_name"),
                 "team_b": trade.get("team_b_name"),
-                "players_a": [p.get("player_name") for p in send_a.get("players") or [] if isinstance(p, dict)],
-                "players_b": [p.get("player_name") for p in send_b.get("players") or [] if isinstance(p, dict)],
+                "players_a": _pulse_trade_player_names(trade.get("send_a"), name_by_id),
+                "players_b": _pulse_trade_player_names(trade.get("send_b"), name_by_id),
             }
         )
     events.sort(key=lambda e: str(e.get("at") or ""), reverse=True)
