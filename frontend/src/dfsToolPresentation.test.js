@@ -6,6 +6,8 @@ import test from "node:test";
 import {
   DEFAULT_FORMATS,
   capMeterTone,
+  constructionSummary,
+  defaultSlateCategory,
   dfsHeroCopy,
   dfsHeroNote,
   dfsStatusChip,
@@ -14,6 +16,8 @@ import {
   filterObjectives,
   formatPersonality,
   formatSalary,
+  highestTotalGameId,
+  isCaptainFormat,
   launchCopy,
   lockedSalaryTotal,
   optimizeButtonLabel,
@@ -21,6 +25,11 @@ import {
   rosterHint,
   salarySpend,
   slateLoadCopy,
+  slateProviderSite,
+  teamMatchupHint,
+  vegasKickoffLabel,
+  vegasSpreadLabel,
+  vegasTotalLabel,
   formatSlateOption,
 } from "./dfsToolPresentation.js";
 
@@ -148,4 +157,72 @@ test("formatSlateOption and sparse lobby copy explain few DK slates", () => {
     }),
     /2 NFL slates so far/i,
   );
+});
+
+test("captain formats are recognized with site-appropriate defaults", () => {
+  assert.equal(isCaptainFormat("draftkings_showdown"), true);
+  assert.equal(isCaptainFormat("fanduel_single"), true);
+  assert.equal(isCaptainFormat("draftkings"), false);
+  assert.equal(defaultSlateCategory("draftkings_showdown"), "showdown");
+  assert.equal(defaultSlateCategory("draftkings"), "all");
+  assert.equal(slateProviderSite("fanduel_single"), "fanduel");
+  assert.equal(slateProviderSite("seasonal"), null);
+  const showdown = formatPersonality("draftkings_showdown");
+  assert.match(showdown.note, /CPT/);
+});
+
+test("vegas labels read like a betting board", () => {
+  const game = {
+    game_id: "g1",
+    away: "NE",
+    home: "SEA",
+    spread_line: 3.5,
+    total_line: 44.5,
+    kickoff_et: "2026-09-09T20:20:00-04:00",
+    weekday: "Wednesday",
+  };
+  assert.equal(vegasSpreadLabel(game), "SEA -3.5");
+  assert.equal(vegasSpreadLabel({ ...game, spread_line: -2.5 }), "NE -2.5");
+  assert.equal(vegasSpreadLabel({ ...game, spread_line: 0 }), "Pick 'em");
+  assert.equal(vegasSpreadLabel({ ...game, spread_line: null }), "No line");
+  assert.equal(vegasTotalLabel(game), "O/U 44.5");
+  assert.equal(vegasTotalLabel({}), "O/U —");
+  assert.match(vegasKickoffLabel(game.kickoff_et, game.weekday), /^Wed/);
+  assert.equal(vegasKickoffLabel(null, "Sunday"), "Sun");
+  assert.equal(
+    highestTotalGameId([game, { game_id: "g2", total_line: 51.5 }]),
+    "g2",
+  );
+});
+
+test("teamMatchupHint compresses opponent and implied total", () => {
+  assert.equal(
+    teamMatchupHint({ opponent: "NE", is_home: true, implied_total: 24 }),
+    "vs NE · 24.0 implied",
+  );
+  assert.equal(
+    teamMatchupHint({ opponent: "SEA", is_home: false, implied_total: null }),
+    "@ SEA",
+  );
+  assert.equal(teamMatchupHint(null), "");
+});
+
+test("constructionSummary compresses active rules", () => {
+  assert.equal(constructionSummary({}), "");
+  const summary = constructionSummary({
+    stackCount: 2,
+    bringBack: true,
+    maxPerTeam: 3,
+    maxExposure: 0.5,
+    randomness: 0.12,
+    minSpendLeft: 500,
+    isDfs: true,
+    lineupCount: 20,
+  });
+  assert.match(summary, /QB \+2/);
+  assert.match(summary, /bring-back/);
+  assert.match(summary, /≤3\/team/);
+  assert.match(summary, /≤50% exposure/);
+  assert.match(summary, /medium randomness/);
+  assert.match(summary, /\$500 unspent/);
 });

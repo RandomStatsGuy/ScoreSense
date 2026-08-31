@@ -6,6 +6,7 @@ import DraftHub from "./DraftHub/DraftHub";
 import HubSubnav, { HUB_SUBVIEWS } from "./DraftHub/HubSubnav";
 import DfsOptimizer from "./LineupOptimizer";
 import MockDraftTool from "./DraftHub/MockDraftTool";
+import BestBallBoard from "./BestBallBoard";
 import SeasonTable from "./SeasonTable";
 import SeasonTransitionState from "./SeasonTransitionState";
 import InjurySidebar from "./InjurySidebar";
@@ -1641,7 +1642,11 @@ export default function App() {
           <MockDraftTool projMeta={projMeta} />
         )}
 
-        {view === "tools" && toolsTab !== "mock-draft" && (
+        {view === "tools" && toolsTab === "best-ball" && (
+          <BestBallBoard />
+        )}
+
+        {view === "tools" && toolsTab !== "mock-draft" && toolsTab !== "best-ball" && (
           <DfsOptimizer projMeta={projMeta} loading={loading} />
         )}
 

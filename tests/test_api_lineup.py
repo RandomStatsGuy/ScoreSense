@@ -12,6 +12,40 @@ def test_lineup_routes_registered():
     paths = {getattr(route, "path", "") for route in app.routes}
     assert "/api/lineup/pool" in paths
     assert "/api/lineup/optimize" in paths
+    assert "/api/lineup/vegas" in paths
+
+
+def test_optimize_request_supports_construction_controls():
+    from app.api import LineupOptimizeRequest
+
+    request = LineupOptimizeRequest(
+        qb_stack_count=2,
+        stack_bring_back=True,
+        max_per_team=3,
+        min_salary=49000,
+        lineup_count=150,
+        max_exposure=0.5,
+        randomness=0.15,
+    )
+    assert request.qb_stack_count == 2
+    assert request.stack_bring_back is True
+    assert request.max_exposure == 0.5
+
+    defaults = LineupOptimizeRequest()
+    assert defaults.qb_stack_count is None
+    assert defaults.max_exposure is None
+    assert defaults.randomness is None
+
+
+def test_showdown_formats_listed():
+    from src.products.dfs_config import list_site_configs
+
+    formats = list_site_configs()
+    assert "draftkings_showdown" in formats
+    assert formats["draftkings_showdown"]["roster"] == {"cpt": 1, "flex": 5}
+    assert formats["draftkings_showdown"]["captain_label"] == "CPT"
+    assert formats["fanduel_single"]["captain_label"] == "MVP"
+    assert formats["fanduel"]["base_site"] == "fanduel"
 
 
 def test_health_payload_includes_lineup_feature():

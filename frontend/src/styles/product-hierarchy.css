@@ -1327,6 +1327,250 @@
   line-height: 1.45;
 }
 
+/* DFS Vegas board */
+
+.dfs-vegas {
+  margin-top: 1rem;
+}
+
+.dfs-vegas-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.dfs-vegas-head .chart-note {
+  margin: 0;
+}
+
+.dfs-vegas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dfs-vegas-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--experience-rule);
+  border-radius: var(--radius-md);
+  background: var(--experience-surface);
+}
+
+.dfs-vegas-card.is-hot {
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+.dfs-vegas-kick {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+}
+
+.dfs-vegas-hot {
+  color: var(--tone-caution, #fbbf24);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dfs-vegas-teams {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+}
+
+.dfs-vegas-teams > span {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.dfs-vegas-teams strong {
+  font-size: 0.86rem;
+  font-weight: 650;
+  color: var(--text-muted);
+}
+
+.dfs-vegas-teams .is-favorite strong {
+  color: var(--text-primary, #e6edf7);
+}
+
+.dfs-vegas-teams em {
+  font-style: normal;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.dfs-vegas-at {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+}
+
+.dfs-vegas-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* DFS construction controls */
+
+.dfs-stack-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* DFS multi-lineup pager + exposure + exports */
+
+.lineup-multi-pager {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.lineup-multi-pager .control-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.lineup-multi-pager .control-select {
+  width: 100%;
+}
+
+.dfs-exposure {
+  margin: 0 0 0.85rem;
+}
+
+.dfs-exposure-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.45rem;
+}
+
+.dfs-exposure-head .chart-note {
+  margin: 0;
+}
+
+.dfs-exposure-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dfs-exposure-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(3rem, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.76rem;
+}
+
+.dfs-exposure-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dfs-exposure-meta {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dfs-exposure-meter {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--experience-rule);
+  overflow: hidden;
+}
+
+.dfs-exposure-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--experience-blue, var(--accent));
+}
+
+.dfs-exposure-list strong {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.74rem;
+}
+
+.dfs-export-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.dfs-export-note {
+  margin: 0 0 0.65rem;
+}
+
+/* Best ball board (Tools) */
+
+.bestball-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 0.9rem;
+}
+
+.bestball-toolbar .search-input {
+  flex: 1;
+  min-width: 12rem;
+  max-width: 18rem;
+}
+
+.bestball-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.bestball-table .table-wrap {
+  max-height: 68vh;
+  overflow: auto;
+}
+
+.bestball-edge {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.bestball-edge.is-positive {
+  color: var(--tone-positive, #4fd1c5);
+}
+
+.bestball-edge.is-caution {
+  color: var(--tone-caution, #fbbf24);
+}
+
 @media (max-width: 1100px) and (min-width: 769px) {
   .dfs-tool .mock-draft-formats {
     grid-template-columns: repeat(3, minmax(0, 1fr));

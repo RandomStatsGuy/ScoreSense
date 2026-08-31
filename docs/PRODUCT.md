@@ -15,7 +15,7 @@ It helps people make decisions, not maintain a database:
 
 1. **Projections** — weekly and season outlooks with floor–ceiling ranges.
 2. **Fantasy** — run a salary-cap (or pick) league: draft, contracts, cap, waivers, trades, rules.
-3. **Tools** — DFS lineups and mock drafts.
+3. **Tools** — DFS lineups, mock drafts, and the best ball board.
 
 Internal code may still say “Draft Hub.” **Users never should.** The product area is **Fantasy**.
 
@@ -41,7 +41,7 @@ Internal code may still say “Draft Hub.” **Users never should.** The product
 | My team | My roster (as the tab name) |
 | This Week | Weekly command center (as the tab name) |
 | Model accuracy | Accuracy tab (as the page title) |
-| Tools · DFS / Mock draft | Lineup tab, Props, Best ball (those are not shipped nav) |
+| Tools · DFS / Mock draft / Best ball | Lineup tab, Props (those are not shipped nav) |
 
 Code identifiers (`hub`, `office`, `value`, `DraftHub`) may stay. User-facing labels must use the table above.
 
@@ -70,7 +70,7 @@ Fun comes from consequence and control, not animation, confetti, or mascots.
 Do not add a fourth top-level item. Do not rename Fantasy to League.
 
 **Projections:** Weekly · Season (Preseason outlook / Live season).  
-**Tools:** DFS · Mock draft.  
+**Tools:** DFS · Mock draft · Best ball.  
 **Account menu (not top-level):** Model accuracy · Admin · Account.
 
 ### Fantasy destinations

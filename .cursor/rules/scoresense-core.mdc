@@ -13,7 +13,7 @@ ScoreSense (4th Down Labs) is a fantasy football product with three top-level ar
 
 - **Projections** — Weekly / Season (Preseason outlook, Live season)
 - **Fantasy** — leagues, draft, contracts, cap, waivers, trades, rules
-- **Tools** — DFS, Mock draft
+- **Tools** — DFS, Mock draft, Best ball
 
 Do not add a fourth top-level area. Do not call Fantasy “League” or “Draft Hub” in UI copy. “Draft Hub” is an internal code name.
 

@@ -209,6 +209,7 @@ export function pageTitleForPath(pathname) {
 
   if (parsed.view === "tools") {
     if (parsed.toolsTab === "mock-draft") return "Tools · Mock draft";
+    if (parsed.toolsTab === "best-ball") return "Tools · Best ball";
     return "Tools · DFS";
   }
   if (parsed.view === "admin") {
