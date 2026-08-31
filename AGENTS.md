@@ -3,7 +3,7 @@
 > **Architecture reference** for humans and AI.
 > **Product, brand, and design:** [`docs/PRODUCT.md`](docs/PRODUCT.md) — read it before any user-facing work. It wins if another doc conflicts.
 > Global AI rules: `.cursor/rules/scoresense-core.mdc` (always applied).
-> File-specific: `.cursor/rules/frontend-draft-hub.mdc`, `draft-hub-performance.mdc`, `ml-projections.mdc`.
+> File-specific: `.cursor/rules/frontend-draft-hub.mdc`, `.cursor/rules/draft-hub-performance.mdc`, `.cursor/rules/ml-projections.mdc`.
 > Doc index: [`docs/README.md`](docs/README.md).
 
 ScoreSense (4th Down Labs) is a fantasy football product: **Projections** (weekly/season quantile GBM), **Fantasy** (salary-cap leagues, auction/pick draft, contracts, cap, trades), and **Tools** (DFS, mock draft). Sentiment is a readout on projections. Props and best-ball exist as research/backlog, not top-level nav.
@@ -48,7 +48,7 @@ $env:PYTHONPATH="."
 | Model cache | `predict.load_model()` in-process, mtime-keyed |
 | CPU offload | `app/process_pool.py` global executor — not per-route pools |
 
-See `.cursor/rules/draft-hub-performance.mdc`, `ml-projections.mdc`, and `frontend-draft-hub.mdc` for constraints. User-facing Fantasy pages follow `docs/PRODUCT.md`.
+See `.cursor/rules/draft-hub-performance.mdc`, `.cursor/rules/ml-projections.mdc`, and `.cursor/rules/frontend-draft-hub.mdc` for constraints. User-facing Fantasy pages follow `docs/PRODUCT.md`.
 
 ## Key files
 
