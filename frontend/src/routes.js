@@ -292,6 +292,29 @@ export function buildAppPath({
   return "/projections/weekly";
 }
 
+/** Query params that only mean something on Projections tables. Hub/Tools URLs
+ * should not carry them (filters live in app state and re-sync on return). */
+export const PROJECTION_ONLY_PARAMS = [
+  "pos",
+  "season",
+  "week",
+  "teams",
+  "draftSeason",
+  "fromWeek",
+  "rosSeason",
+  "q",
+  "compare",
+  "cmp",
+  "movers",
+];
+
+/** Drop projections-only params (keeps hub params such as `player`). */
+export function stripProjectionParams(searchParams) {
+  const params = new URLSearchParams(searchParams || undefined);
+  for (const key of PROJECTION_ONLY_PARAMS) params.delete(key);
+  return params;
+}
+
 /** Parse comma-separated compare player IDs (SCORE-4 start/sit), capped at 4. */
 export function parseCompareIds(raw) {
   if (raw == null || raw === "") return [];

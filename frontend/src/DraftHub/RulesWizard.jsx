@@ -397,16 +397,17 @@ export default function RulesWizard({
               </div>
             </header>
             <label className="hub-rules-roster-cap">
-              <span><strong>Total roster size</strong><small>Maximum active players per team.</small></span>
+              <span><strong>Total roster size</strong><small>Maximum active players per team. Leave empty to let position limits set the cap.</small></span>
               <input
                 type="number"
                 min="1"
                 max="100"
-                value={rules.roster_size_max ?? 27}
+                value={rules.roster_size_max ?? ""}
+                placeholder="No cap"
                 disabled={readOnlyRules}
                 onChange={(event) => updateRules((current) => ({
                   ...current,
-                  roster_size_max: Number(event.target.value),
+                  roster_size_max: event.target.value === "" ? null : Number(event.target.value),
                 }))}
               />
               <RuleError>{errors.roster_size_max}</RuleError>
