@@ -739,13 +739,17 @@ export default function App() {
   );
 
   // Browser back/forward + shared deep-links for start/sit selection.
+  // Apply only when compare/cmp are present — leaving Projections strips those
+  // params, and other filters already keep React state when the URL is empty.
   useEffect(() => {
-    const fromUrl = filtersFromUrl.compareIds || [];
+    const fromUrl = filtersFromUrl.compareIds;
+    if (fromUrl == null && !filtersFromUrl.compareView) return;
+    const ids = fromUrl || [];
     setCompareIds((prev) => {
-      const fromUrlKey = fromUrl.join(",");
-      return fromUrlKey !== prev.join(",") ? fromUrl : prev;
+      const fromUrlKey = ids.join(",");
+      return fromUrlKey !== prev.join(",") ? ids : prev;
     });
-    setCompareViewOpen(Boolean(filtersFromUrl.compareView && fromUrl.length >= 2));
+    setCompareViewOpen(Boolean(filtersFromUrl.compareView && ids.length >= 2));
   }, [filtersFromUrl.compareIds, filtersFromUrl.compareView]);
 
   const handlePositionChange = useCallback(
