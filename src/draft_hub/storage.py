@@ -4904,6 +4904,47 @@ def list_league_movements(
     return out
 
 
+def list_recent_league_movements(league_id: str, *, limit: int = 8) -> list[dict[str, Any]]:
+    """Newest player movement first — feeds the Home league-pulse feed."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT player_name, event_type, from_owner, to_owner, salary, dead_cap,
+                      season_year, week, COALESCE(event_at, created_at) AS at
+               FROM league_player_movement
+               WHERE league_id = ?
+               ORDER BY COALESCE(event_at, created_at) DESC, id DESC
+               LIMIT ?""",
+            (league_id, max(1, int(limit))),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def list_recent_league_trades(league_id: str, *, limit: int = 5) -> list[dict[str, Any]]:
+    """Executed trades (trade_log) with team names, newest first."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT tl.created_at AS at, tl.send_a_json, tl.send_b_json,
+                      ta.name AS team_a_name, tb.name AS team_b_name
+               FROM trade_log tl
+               LEFT JOIN team ta ON ta.id = tl.team_a_id
+               LEFT JOIN team tb ON tb.id = tl.team_b_id
+               WHERE tl.league_id = ?
+               ORDER BY tl.created_at DESC, tl.id DESC
+               LIMIT ?""",
+            (league_id, max(1, int(limit))),
+        ).fetchall()
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        d = dict(r)
+        for key in ("send_a_json", "send_b_json"):
+            try:
+                d[key.removesuffix("_json")] = json.loads(d.pop(key) or "{}")
+            except json.JSONDecodeError:
+                d[key.removesuffix("_json")] = {}
+        out.append(d)
+    return out
+
+
 def _player_name_alias_dict(row: sqlite3.Row | dict[str, Any]) -> dict[str, Any]:
     return dict(row)
 

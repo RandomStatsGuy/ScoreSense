@@ -2953,6 +2953,51 @@ def hub_league_live_scoring(
     }
 
 
+@router.get("/league/{league_id}/pulse")
+def hub_league_pulse(
+    league_id: str,
+    limit: int = Query(8, ge=1, le=25, description="Max events returned"),
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Recent league activity (moves + executed trades) for the Home pulse feed.
+
+    DB-only — no Sleeper calls on this path.
+    """
+    sub = _sub(_user)
+    _ctx_for_league(sub, league_id)
+
+    events: list[dict[str, Any]] = []
+    for move in storage.list_recent_league_movements(league_id, limit=limit):
+        events.append(
+            {
+                "kind": str(move.get("event_type") or "move"),
+                "at": move.get("at"),
+                "player_name": move.get("player_name"),
+                "from_owner": move.get("from_owner"),
+                "to_owner": move.get("to_owner"),
+                "salary": move.get("salary"),
+                "dead_cap": move.get("dead_cap"),
+                "season_year": move.get("season_year"),
+                "week": move.get("week"),
+            }
+        )
+    for trade in storage.list_recent_league_trades(league_id, limit=limit):
+        send_a = trade.get("send_a") or {}
+        send_b = trade.get("send_b") or {}
+        events.append(
+            {
+                "kind": "trade",
+                "at": trade.get("at"),
+                "team_a": trade.get("team_a_name"),
+                "team_b": trade.get("team_b_name"),
+                "players_a": [p.get("player_name") for p in send_a.get("players") or [] if isinstance(p, dict)],
+                "players_b": [p.get("player_name") for p in send_b.get("players") or [] if isinstance(p, dict)],
+            }
+        )
+    events.sort(key=lambda e: str(e.get("at") or ""), reverse=True)
+    return {"events": events[: int(limit)]}
+
+
 @router.get("/league/{league_id}/contract-history")
 def hub_contract_history(
     league_id: str,
