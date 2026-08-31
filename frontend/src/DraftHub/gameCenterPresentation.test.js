@@ -52,6 +52,19 @@ test("viewer matchup + team roles resolve", () => {
   assert.equal(formatWinProb(null), null);
 });
 
+test("viewer matchup prefers hub team id over cached viewer tags", () => {
+  const mine = { matchup_id: "4", teams: [
+    { roster_id: "2", hub_team_id: "team-me", team_name: "Mine", is_viewer: false },
+    { roster_id: "3", hub_team_id: "team-foe", team_name: "Foe", is_opponent: false },
+  ] };
+  const theirs = { ...MATCHUP, teams: MATCHUP.teams.map((t) => ({ ...t, hub_team_id: "other" })) };
+  const payload = { viewer_matchup_id: "5", matchups: [mine, theirs] };
+  assert.equal(findViewerMatchup(payload, "team-me"), mine);
+  const { viewer, opponent } = matchupTeams(mine, "team-me");
+  assert.equal(viewer.team_name, "Mine");
+  assert.equal(opponent.team_name, "Foe");
+});
+
 test("duel rows pair starters by lineup slot", () => {
   const { viewer, opponent } = matchupTeams(MATCHUP);
   const rows = duelRows(viewer, opponent, ["QB", "RB"]);
@@ -84,4 +97,5 @@ test("game state label distinguishes past weeks and preseason", () => {
   assert.equal(gameStateLabel({ preseason: true }), "Preseason");
   assert.equal(gameStateLabel({ week: 10, current_week: 12 }), "Final");
   assert.equal(gameStateLabel({ week: 12, current_week: 12 }), "Live");
+  assert.equal(gameStateLabel({ week: 14, current_week: 12 }), "Upcoming");
 });

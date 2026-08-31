@@ -221,6 +221,71 @@ def test_attach_matchup_analytics_joins_projection_index():
     assert probs["1"] + probs["2"] == 1.0
 
 
+def test_live_cache_retags_viewer_for_this_request(monkeypatch, hub_db):
+    payload = {
+        "available": True,
+        "week": 5,
+        "viewer_matchup_id": "3",
+        "matchups": [
+            {
+                "matchup_id": "3",
+                "teams": [
+                    {"roster_id": "1", "points": 10, "is_viewer": True, "is_opponent": False},
+                    {"roster_id": "2", "points": 8, "is_viewer": False, "is_opponent": True},
+                ],
+            },
+            {
+                "matchup_id": "4",
+                "teams": [
+                    {"roster_id": "3", "points": 12, "is_viewer": False, "is_opponent": False},
+                    {"roster_id": "4", "points": 9, "is_viewer": False, "is_opponent": False},
+                ],
+            },
+        ],
+        "synced_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    }
+    storage.upsert_sleeper_live_scoring_cache("sl-viewer", 5, payload)
+
+    def _boom(*_a, **_k):
+        raise AssertionError("should not rebuild while cache fresh")
+
+    monkeypatch.setattr("src.draft_hub.league_live_scoring.build_sleeper_live_week", _boom)
+    monkeypatch.setattr(
+        "src.draft_hub.league_live_scoring.resolve_current_week",
+        lambda **_: (5, {"week": 5, "season": "2025"}),
+    )
+
+    out = get_sleeper_live_week("sl-viewer", viewer_roster_id="3", refresh=False)
+    assert out["cached"] is True
+    assert out["viewer_matchup_id"] == "4"
+    mine = next(m for m in out["matchups"] if m["matchup_id"] == "4")
+    assert next(t for t in mine["teams"] if t["roster_id"] == "3")["is_viewer"] is True
+    assert next(t for t in mine["teams"] if t["roster_id"] == "4")["is_opponent"] is True
+    stale = next(m for m in out["matchups"] if m["matchup_id"] == "3")
+    assert all(not t["is_viewer"] for t in stale["teams"])
+
+
+def test_build_clears_preseason_when_week_has_points(monkeypatch):
+    monkeypatch.setattr("src.draft_hub.league_live_scoring._fetch_json", _fake_fetch)
+    monkeypatch.setattr(
+        "src.draft_hub.league_live_scoring.load_sleeper_players",
+        lambda: SAMPLE_PLAYERS,
+    )
+    monkeypatch.setattr(
+        "src.draft_hub.league_live_scoring.get_nfl_state",
+        lambda **_: {"week": 2, "season": "2026", "season_type": "pre"},
+    )
+    monkeypatch.setattr(
+        "src.draft_hub.league_live_scoring._load_projection_lookup",
+        lambda _season, _week: {},
+    )
+
+    out = build_sleeper_live_week("sl-1", 5, viewer_roster_id="1")
+    assert out["preseason"] is False
+    assert out["week"] == 5
+    assert out["matchups"]
+
+
 def test_live_cache_ttl_skips_rebuild(monkeypatch, hub_db):
     payload = {
         "available": True,

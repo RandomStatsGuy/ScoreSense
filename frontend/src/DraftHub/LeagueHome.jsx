@@ -195,10 +195,13 @@ export default function LeagueHome({
 
   const goSetup = onNavigateSetup || (onNavigate ? () => onNavigate("setup") : null);
 
-  const matchup = useMemo(() => findViewerMatchup(scoring), [scoring]);
+  const matchup = useMemo(
+    () => findViewerMatchup(scoring, hubContext?.team_id),
+    [scoring, hubContext?.team_id],
+  );
   const { viewer: matchViewer, opponent: matchOpponent } = useMemo(
-    () => matchupTeams(matchup),
-    [matchup],
+    () => matchupTeams(matchup, hubContext?.team_id),
+    [matchup, hubContext?.team_id],
   );
   const matchProb = matchup && matchViewer ? winProbFor(matchup, matchViewer) : null;
   const standings = scoring?.standings || [];

@@ -1,7 +1,19 @@
 /** Game center copy + pure view helpers (no JSX). */
 
-export function findViewerMatchup(payload) {
+function teamBelongsToViewer(team, viewerTeamId) {
+  if (viewerTeamId == null || viewerTeamId === "") return false;
+  const wanted = String(viewerTeamId);
+  return [team?.hub_team_id, team?.team_id, team?.id].some(
+    (id) => id != null && String(id) === wanted,
+  );
+}
+
+export function findViewerMatchup(payload, viewerTeamId) {
   const matchups = payload?.matchups || [];
+  if (viewerTeamId != null && viewerTeamId !== "") {
+    const hit = matchups.find((m) => (m.teams || []).some((t) => teamBelongsToViewer(t, viewerTeamId)));
+    if (hit) return hit;
+  }
   const viewerId = payload?.viewer_matchup_id;
   if (viewerId != null) {
     const hit = matchups.find((m) => String(m.matchup_id) === String(viewerId));
@@ -10,10 +22,12 @@ export function findViewerMatchup(payload) {
   return null;
 }
 
-export function matchupTeams(matchup) {
+export function matchupTeams(matchup, viewerTeamId) {
   const teams = matchup?.teams || [];
   if (teams.length < 2) return { viewer: teams[0] || null, opponent: null };
-  const viewer = teams.find((t) => t.is_viewer) || teams[0];
+  const viewer = teams.find((t) => teamBelongsToViewer(t, viewerTeamId))
+    || teams.find((t) => t.is_viewer)
+    || teams[0];
   const opponent = teams.find((t) => t !== viewer) || null;
   return { viewer, opponent };
 }
@@ -79,6 +93,7 @@ export function gameStateLabel(payload) {
   const week = payload?.week;
   const current = payload?.current_week;
   if (week != null && current != null && Number(week) < Number(current)) return "Final";
+  if (week != null && current != null && Number(week) > Number(current)) return "Upcoming";
   return "Live";
 }
 

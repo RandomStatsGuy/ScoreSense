@@ -109,8 +109,14 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
     return () => window.clearInterval(id);
   }, [isLiveWeek, load]);
 
-  const matchup = useMemo(() => findViewerMatchup(data), [data]);
-  const { viewer, opponent } = useMemo(() => matchupTeams(matchup), [matchup]);
+  const matchup = useMemo(
+    () => findViewerMatchup(data, hubContext?.team_id),
+    [data, hubContext?.team_id],
+  );
+  const { viewer, opponent } = useMemo(
+    () => matchupTeams(matchup, hubContext?.team_id),
+    [matchup, hubContext?.team_id],
+  );
   const rows = useMemo(
     () => duelRows(viewer, opponent, data?.starting_slots || []),
     [viewer, opponent, data?.starting_slots],
@@ -149,7 +155,7 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
     ? `${stateLabel} · ${formatSyncedAgo(data.synced_at) || ""}`
     : stateLabel;
 
-  const notReady = !loading && data && (!data.available || data.preseason || !(data.matchups || []).length);
+  const notReady = !loading && data && (!data.available || !(data.matchups || []).length);
 
   return (
     <HubPage className="hub-game-center">

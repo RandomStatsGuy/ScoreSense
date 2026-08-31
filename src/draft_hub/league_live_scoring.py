@@ -434,7 +434,10 @@ def build_sleeper_live_week(
     attach_matchup_analytics(matchup_payloads, _load_projection_lookup(season, int(week)))
 
     has_points = any(t["points"] > 0 for m in matchup_payloads for t in m["teams"])
-    if preseason or (not has_points and status in ("pre_draft", "drafting")):
+    if has_points:
+        # Requested week already scored — do not inherit live NFL preseason.
+        preseason = False
+    elif status in ("pre_draft", "drafting") or season_type == "pre":
         preseason = True
 
     return {
@@ -483,6 +486,7 @@ def get_sleeper_live_week(
             payload = {**cached["payload"], "synced_at": cached["synced_at"], "cached": True}
             if hub_teams:
                 payload = _attach_hub_team_names(payload, hub_teams)
+            payload = _apply_viewer_tags(payload, viewer_roster_id)
             payload = {**payload, **week_picker_meta(nfl_state)}
             return payload
 
@@ -520,6 +524,34 @@ def refresh_sleeper_live_scoring_cache(
         viewer_roster_id=viewer_roster_id,
         refresh=True,
     )
+
+
+def _apply_viewer_tags(payload: dict[str, Any], viewer_roster_id: str | None) -> dict[str, Any]:
+    """Re-tag viewer_matchup_id / is_viewer / is_opponent for this request.
+
+    The live-scoring cache is shared per Sleeper league + week, so a cache hit
+    must not keep the first caller's identity.
+    """
+    viewer_rid = str(viewer_roster_id or "")
+    viewer_matchup_id: str | None = None
+    matchups: list[dict[str, Any]] = []
+    for matchup in payload.get("matchups") or []:
+        teams = []
+        for team in matchup.get("teams") or []:
+            rid = str(team.get("roster_id") or "")
+            is_viewer = bool(viewer_rid and rid == viewer_rid)
+            teams.append({**team, "is_viewer": is_viewer, "is_opponent": False})
+        if viewer_rid and any(t["is_viewer"] for t in teams):
+            viewer_matchup_id = str(matchup.get("matchup_id") or "") or None
+            teams = [{**t, "is_opponent": not t["is_viewer"]} for t in teams]
+        matchups.append({**matchup, "teams": teams})
+    matchups.sort(
+        key=lambda m: (
+            0 if str(m.get("matchup_id") or "") == str(viewer_matchup_id or "") else 1,
+            -sum(float(t.get("points") or 0) for t in m.get("teams") or []),
+        )
+    )
+    return {**payload, "matchups": matchups, "viewer_matchup_id": viewer_matchup_id}
 
 
 def _attach_hub_team_names(payload: dict[str, Any], hub_teams: list[dict[str, Any]]) -> dict[str, Any]:
