@@ -777,6 +777,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
             await onRosterChanged();
           }}
           onNavigateSetup={() => setSubView("setup")}
+          onNavigate={setSubView}
         />
       )}
 

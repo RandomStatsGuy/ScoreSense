@@ -2302,7 +2302,9 @@
 .hub-experience-page .hub-table-card,
 .hub-experience-page .hub-toolbar,
 .hub-experience-page .hub-alert-stack,
-.hub-experience-page .hub-cap-status-card {
+.hub-experience-page .hub-cap-status-card,
+.hub-experience-page .hub-wcc-board,
+.hub-experience-page .hub-week-culture-strip {
   padding: 1.15rem 1.2rem;
   border: 1px solid var(--experience-rule);
   border-radius: var(--radius-md);
@@ -2364,6 +2366,10 @@
   font-size: 0.76rem;
   font-weight: 700;
   text-align: right;
+}
+
+.hub-experience-summary-value--warn {
+  color: #fbbf24;
 }
 
 .hub-experience-summary-action {
