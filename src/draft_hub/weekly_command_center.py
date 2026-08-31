@@ -24,7 +24,18 @@ from src.projections.player_compare import (
     position_rank_map,
     volatility,
 )
+from src.draft_hub.player_name_match import name_key
 from src.projections.weekly_cache import load_weekly_prediction
+
+# nflverse/mlready uses LA/JAC/WAS; Sleeper rosters often use LAR/JAX/WSH.
+_TEAM_LOOKUP_ALIASES = {
+    "LA": ("LA", "LAR"),
+    "LAR": ("LAR", "LA"),
+    "JAC": ("JAC", "JAX"),
+    "JAX": ("JAX", "JAC"),
+    "WAS": ("WAS", "WSH"),
+    "WSH": ("WSH", "WAS"),
+}
 
 # Positions with weekly GBM artifacts today.
 ARTIFACT_POSITIONS = ("qb", "rb", "wr")
@@ -117,8 +128,10 @@ def _load_projection_index(
     *,
     apply_injury_adjustments: bool,
 ) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
-    """Map player_id -> projection fields from weekly artifacts (no live compute)."""
+    """Map player_id / name → projection fields from weekly artifacts (no live compute)."""
     index: dict[str, dict[str, Any]] = {}
+    by_name_team: dict[str, dict[str, Any]] = {}
+    by_name: dict[str, list[dict[str, Any]]] = {}
     built_ats: list[str] = []
     available_positions: list[str] = []
     missing_positions: list[str] = []
@@ -141,17 +154,17 @@ def _load_projection_index(
         ranks = position_rank_map(preds)
         for _, row in preds.iterrows():
             pid = str(row.get("player_id") or "").strip()
-            if not pid:
-                continue
             p10 = _pick_num(row, _P10_KEYS)
             p50 = _pick_num(row, _P50_KEYS)
             p90 = _pick_num(row, _P90_KEYS)
             opponent = str(row.get("Opponent") or "")
             injury_status = str(row.get("Injury Status") or "")
-            index[pid] = {
+            player_name = str(row.get("Player") or "")
+            team = str(row.get("Team") or "")
+            entry = {
                 "player_id": pid,
-                "player_name": str(row.get("Player") or ""),
-                "team": str(row.get("Team") or ""),
+                "player_name": player_name,
+                "team": team,
                 "position": normalize_position(row.get("Position") or pos),
                 "p10": _round_opt(p10),
                 "p50": _round_opt(p50),
@@ -163,17 +176,67 @@ def _load_projection_index(
                 "opponent": opponent,
                 "injury_status": injury_status,
                 "injury_note": str(row.get("Injury Note") or ""),
-                "position_rank": ranks.get(pid),
+                "position_rank": ranks.get(pid) if pid else None,
                 "has_projection": p50 is not None,
             }
+            if pid:
+                index[pid] = entry
+                if pid.startswith("sleeper-"):
+                    index[pid.removeprefix("sleeper-")] = entry
+            nk = name_key(player_name)
+            team_key = team.strip().upper()
+            if nk and team_key:
+                by_name_team[f"{nk}|{team_key}"] = entry
+            if nk:
+                by_name.setdefault(nk, []).append(entry)
 
     meta = {
         "available": bool(available_positions),
         "available_positions": available_positions,
         "missing_positions": missing_positions,
         "projections_built_at": max(built_ats) if built_ats else None,
+        "_by_name_team": by_name_team,
+        "_by_name": by_name,
     }
     return index, meta
+
+
+def _lookup_projection(
+    slot: dict[str, Any],
+    proj_index: dict[str, dict[str, Any]],
+    by_name_team: dict[str, dict[str, Any]],
+    by_name: dict[str, list[dict[str, Any]]],
+) -> dict[str, Any]:
+    pid = str(slot.get("player_id") or "").strip()
+    if pid and pid in proj_index:
+        return proj_index[pid]
+    if pid.startswith("sleeper-"):
+        raw = pid.removeprefix("sleeper-")
+        if raw in proj_index:
+            return proj_index[raw]
+    elif pid:
+        prefixed_pid = f"sleeper-{pid}"
+        if prefixed_pid in proj_index:
+            return proj_index[prefixed_pid]
+    spid = str(slot.get("sleeper_player_id") or "").strip()
+    if spid:
+        if spid in proj_index:
+            return proj_index[spid]
+        prefixed = f"sleeper-{spid}"
+        if prefixed in proj_index:
+            return proj_index[prefixed]
+    nk = name_key(str(slot.get("player_name") or ""))
+    team = str(slot.get("team") or "").strip().upper()
+    if nk and team:
+        for code in _TEAM_LOOKUP_ALIASES.get(team, (team,)):
+            hit = by_name_team.get(f"{nk}|{code}")
+            if hit:
+                return hit
+    if nk:
+        hits = by_name.get(nk) or []
+        if len(hits) == 1:
+            return hits[0]
+    return {}
 
 
 def _projection_sort_key(card: dict[str, Any]) -> tuple[float, float, str]:
@@ -197,8 +260,12 @@ def _enrich_roster_players(
     proj_index: dict[str, dict[str, Any]],
     *,
     bye_teams: set[str] | None = None,
+    by_name_team: dict[str, dict[str, Any]] | None = None,
+    by_name: dict[str, list[dict[str, Any]]] | None = None,
 ) -> list[dict[str, Any]]:
     cards: list[dict[str, Any]] = []
+    by_name_team = by_name_team or {}
+    by_name = by_name or {}
     for slot in roster:
         if str(slot.get("roster_status") or "active") == "cut_before_draft":
             continue
@@ -206,7 +273,7 @@ def _enrich_roster_players(
         if not pid:
             continue
         pos = normalize_position(slot.get("position"))
-        proj = proj_index.get(pid) or {}
+        proj = _lookup_projection(slot, proj_index, by_name_team, by_name)
         opponent = proj.get("opponent")
         team = str(slot.get("team") or proj.get("team") or "")
         injury_status = str(proj.get("injury_status") or "")
@@ -621,7 +688,12 @@ def build_weekly_command_center(
         resolved_week,
         apply_injury_adjustments=apply_injury_adjustments,
     )
-    players = _enrich_roster_players(roster_rows, proj_index)
+    players = _enrich_roster_players(
+        roster_rows,
+        proj_index,
+        by_name_team=proj_meta.pop("_by_name_team", {}) or {},
+        by_name=proj_meta.pop("_by_name", {}) or {},
+    )
     starters, bench = infer_starters_and_bench(players, rules)
 
     decisions = build_lineup_decisions(

@@ -625,6 +625,63 @@ def hub_weekly_command_center(
     return jsonable_encoder(payload)
 
 
+@router.post("/week/refresh")
+def hub_refresh_weekly_command_center(
+    response: Response,
+    season: Optional[int] = Query(None, description="NFL season (defaults from hub + mlready)"),
+    week: Optional[int] = Query(None, description="NFL week (defaults from mlready context)"),
+    apply_injury_adjustments: bool = Query(True),
+    bench_over_starter_threshold: float = Query(2.0, ge=0.0),
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Force-rebuild weekly projection artifacts, then return the Your Week payload."""
+    from fastapi.encoders import jsonable_encoder
+
+    from app.process_pool import get_process_executor
+    from src.draft_hub.weekly_command_center import (
+        build_weekly_command_center,
+        resolve_week_context,
+    )
+    from src.projections.weekly_cache import rebuild_weekly_predictions
+
+    with HubTimer("week-refresh", response) as timer:
+        with timer.phase("ctx"):
+            sub = _sub(_user)
+            ctx = _ctx(sub)
+            hub_season = int(ctx["season"]) if ctx.get("season") is not None else None
+            try:
+                resolved_season, resolved_week = resolve_week_context(
+                    season, week, hub_season=hub_season
+                )
+            except Exception:
+                resolved_season = int(season or hub_season or 2026)
+                resolved_week = int(week or 1)
+        with timer.phase("rebuild"):
+            try:
+                counts = get_process_executor().submit(
+                    rebuild_weekly_predictions,
+                    int(resolved_season),
+                    int(resolved_week),
+                ).result()
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Failed to rebuild weekly projections: {exc}",
+                ) from exc
+        with timer.phase("build"):
+            payload = build_weekly_command_center(
+                ctx,
+                season=resolved_season,
+                week=resolved_week,
+                apply_injury_adjustments=apply_injury_adjustments,
+                bench_over_starter_threshold=bench_over_starter_threshold,
+            )
+    payload.setdefault("meta", {})
+    payload["meta"]["rebuilt"] = True
+    payload["meta"]["rebuild_counts"] = counts
+    return jsonable_encoder(payload)
+
+
 @router.get("/atmosphere-catalog")
 def hub_atmosphere_catalog(_user=Depends(require_hub_user)) -> dict:
     from src.draft_hub.league_atmosphere import atmosphere_catalog

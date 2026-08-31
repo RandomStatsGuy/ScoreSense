@@ -8,14 +8,22 @@ import pandas as pd
 
 from src.core.team_codes import normalize_team_to_mlready
 
-QB_STARTERS_PER_TEAM = 1
-RB_STARTERS_PER_TEAM = 2
-WR_STARTERS_PER_TEAM = 3
+# Weekly "starter" keep_n is the floor for newcomers (rookies / no GP).
+# Established vets (feature-season games) are always kept on top of this.
+QB_STARTERS_PER_TEAM = 2
+RB_STARTERS_PER_TEAM = 3
+WR_STARTERS_PER_TEAM = 4
+TE_STARTERS_PER_TEAM = 2
 
 # Deeper pools for auction / preseason boards (handcuffs, rookies, rotation pieces)
 DRAFT_QB_PER_TEAM = 2
 DRAFT_RB_PER_TEAM = 4
 DRAFT_WR_PER_TEAM = 6
+DRAFT_TE_PER_TEAM = 3
+
+# Any player who appeared in the feature-season mlready is fantasy-relevant
+# even if Sleeper has no depth_chart_order (injured stars, missing DC).
+MIN_FEATURE_GAMES_ALWAYS_KEEP = 1
 
 _NAME_COLS = ("player_display_name", "player_name", "Player")
 
@@ -32,19 +40,45 @@ def _non_rookie_rank(row: pd.Series) -> int:
     return 0 if bool(row.get("_rookie_estimate", False)) else 1
 
 
-def _sleeper_depth_sort_key(row: pd.Series) -> tuple[int, int]:
-    """Prefer Sleeper depth chart order when present (QB1 before prior-year volume leaders)."""
+def _sleeper_depth_order(row: pd.Series) -> int | None:
     dc = row.get("_sleeper_depth_order")
     try:
         if dc is None or (isinstance(dc, float) and pd.isna(dc)):
-            return (0, 0)
+            return None
         dc_i = int(dc)
     except (TypeError, ValueError):
-        return (0, 0)
-    if dc_i <= 0:
-        return (0, 0)
-    # reverse=True ⇒ (1, -1) beats (1, -2) beats (0, 0)
+        return None
+    return dc_i if dc_i > 0 else None
+
+
+def _sleeper_depth_sort_key(row: pd.Series) -> tuple[int, int]:
+    """Sleeper depth among listed players (QB1 before QB2). Missing sorts last."""
+    dc_i = _sleeper_depth_order(row)
+    if dc_i is None:
+        return (0, -99)
     return (1, -dc_i)
+
+
+def _is_established_vet(row: pd.Series, games_played: dict[str, int]) -> bool:
+    if bool(row.get("_rookie_estimate", False)):
+        return False
+    pid = str(row.get("player_id") or "")
+    return int(games_played.get(pid, 0)) >= MIN_FEATURE_GAMES_ALWAYS_KEEP
+
+
+def _starter_signal(row: pd.Series, games_played: dict[str, int]) -> int:
+    """Keep fantasy-relevant players ahead of camp bodies with a Sleeper DC slot.
+
+    A listed backup (depth_order=1) used to beat an unranked starter because
+    ``has_dc`` was the primary sort key. Established vets and listed QB1/RB1/WR1-2
+    share the top band; everyone else ranks below.
+    """
+    if _is_established_vet(row, games_played):
+        return 1
+    dc_i = _sleeper_depth_order(row)
+    if dc_i is not None and dc_i <= 2:
+        return 1
+    return 0
 
 
 def _qb_starter_key(row: pd.Series, games_played: dict[str, int]) -> tuple:
@@ -52,6 +86,7 @@ def _qb_starter_key(row: pd.Series, games_played: dict[str, int]) -> tuple:
     gp = int(games_played.get(pid, 0))
     has_dc, dc_pri = _sleeper_depth_sort_key(row)
     return (
+        _starter_signal(row, games_played),
         has_dc,
         dc_pri,
         gp,
@@ -66,6 +101,7 @@ def _rb_starter_key(row: pd.Series, games_played: dict[str, int]) -> tuple:
     gp = int(games_played.get(pid, 0))
     has_dc, dc_pri = _sleeper_depth_sort_key(row)
     return (
+        _starter_signal(row, games_played),
         has_dc,
         dc_pri,
         gp,
@@ -81,6 +117,7 @@ def _wr_starter_key(row: pd.Series, games_played: dict[str, int]) -> tuple:
     gp = int(games_played.get(pid, 0))
     has_dc, dc_pri = _sleeper_depth_sort_key(row)
     return (
+        _starter_signal(row, games_played),
         has_dc,
         dc_pri,
         gp,
@@ -120,6 +157,7 @@ def _filter_by_team_rank(
     *,
     sole_rookie_qb: bool = False,
     always_keep_rookie_estimates: bool = False,
+    always_keep_established: bool = False,
 ) -> tuple[pd.DataFrame, dict]:
     if roster.empty or "team" not in roster.columns:
         return roster.copy(), {"applied": False, "removed": 0}
@@ -161,8 +199,19 @@ def _filter_by_team_rank(
                     continue
                 keep_rows.append(row)
                 kept_labels.add(label)
+        if always_keep_established:
+            for _, row in group.iterrows():
+                if not _is_established_vet(row, games_played):
+                    continue
+                label = _player_label(row, group.columns)
+                if label in kept_labels:
+                    continue
+                keep_rows.append(row)
+                kept_labels.add(label)
         for row in ranked[keep_count:]:
             if always_keep_rookie_estimates and bool(row.get("_rookie_estimate", False)):
+                continue
+            if always_keep_established and _is_established_vet(row, games_played):
                 continue
             removed_players.append(_player_label(row, group.columns))
 
@@ -182,8 +231,10 @@ def filter_qb_depth_chart(
     roster: pd.DataFrame,
     mlready_df: pd.DataFrame,
     feature_season: int,
+    *,
+    always_keep_established: bool = False,
 ) -> tuple[pd.DataFrame, dict]:
-    """Keep one QB per team based on recent pass volume and games started."""
+    """Keep starting QBs per team; optionally retain every vet with feature-season games."""
     return _filter_by_team_rank(
         roster,
         mlready_df,
@@ -191,6 +242,7 @@ def filter_qb_depth_chart(
         _qb_starter_key,
         QB_STARTERS_PER_TEAM,
         sole_rookie_qb=True,
+        always_keep_established=always_keep_established,
     )
 
 
@@ -198,6 +250,8 @@ def filter_rb_depth_chart(
     roster: pd.DataFrame,
     mlready_df: pd.DataFrame,
     feature_season: int,
+    *,
+    always_keep_established: bool = False,
 ) -> tuple[pd.DataFrame, dict]:
     """Keep top RBs per team by carry share and rush volume."""
     return _filter_by_team_rank(
@@ -206,22 +260,65 @@ def filter_rb_depth_chart(
         feature_season,
         _rb_starter_key,
         RB_STARTERS_PER_TEAM,
+        always_keep_established=always_keep_established,
     )
+
+
+def _split_wr_te(roster: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    if roster.empty or "position" not in roster.columns:
+        return roster.copy(), roster.iloc[0:0].copy()
+    pos = roster["position"].astype(str).str.upper()
+    te = roster[pos.eq("TE")].copy()
+    wr = roster[~pos.eq("TE")].copy()
+    return wr, te
 
 
 def filter_wr_depth_chart(
     roster: pd.DataFrame,
     mlready_df: pd.DataFrame,
     feature_season: int,
+    *,
+    always_keep_established: bool = False,
+    always_keep_rookie_estimates: bool = False,
+    wr_keep: int | None = None,
+    te_keep: int | None = None,
 ) -> tuple[pd.DataFrame, dict]:
-    """Keep top WR/TE per team by target share."""
-    return _filter_by_team_rank(
-        roster,
+    """Keep top WRs and TEs per team separately so TEs do not crowd out WR2/WR3."""
+    wr_keep = WR_STARTERS_PER_TEAM if wr_keep is None else int(wr_keep)
+    te_keep = TE_STARTERS_PER_TEAM if te_keep is None else int(te_keep)
+    wr_roster, te_roster = _split_wr_te(roster)
+    wr_out, wr_meta = _filter_by_team_rank(
+        wr_roster,
         mlready_df,
         feature_season,
         _wr_starter_key,
-        WR_STARTERS_PER_TEAM,
+        wr_keep,
+        always_keep_established=always_keep_established,
+        always_keep_rookie_estimates=always_keep_rookie_estimates,
     )
+    if te_roster.empty:
+        wr_meta["te_keep_per_team"] = te_keep
+        wr_meta["keep_per_team"] = wr_keep
+        return wr_out, wr_meta
+    te_out, te_meta = _filter_by_team_rank(
+        te_roster,
+        mlready_df,
+        feature_season,
+        _wr_starter_key,
+        te_keep,
+        always_keep_established=always_keep_established,
+        always_keep_rookie_estimates=always_keep_rookie_estimates,
+    )
+    out = pd.concat([wr_out, te_out], ignore_index=True)
+    meta = {
+        "applied": True,
+        "removed": int(wr_meta.get("removed") or 0) + int(te_meta.get("removed") or 0),
+        "removed_players": list(wr_meta.get("removed_players") or [])
+        + list(te_meta.get("removed_players") or []),
+        "keep_per_team": wr_keep,
+        "te_keep_per_team": te_keep,
+    }
+    return out, meta
 
 
 def depth_chart_note_suffix(position: str, depth: dict) -> str:
@@ -232,9 +329,14 @@ def depth_chart_note_suffix(position: str, depth: dict) -> str:
     removed = int(depth["removed"])
     labels = {"qb": "QB", "rb": "RB", "wr": "WR/TE"}
     label = labels.get(position.lower(), position.upper())
+    te_keep = depth.get("te_keep_per_team")
     if keep == 1:
-        return f" One {label} per team for preseason ({removed} backups omitted)."
-    return f" Top {keep} {label} per team for preseason ({removed} omitted)."
+        note = f" One {label} per team for preseason ({removed} backups omitted)."
+    else:
+        note = f" Top {keep} {label} per team for preseason ({removed} omitted)."
+    if te_keep:
+        note = note.replace("WR/TE", f"WR (+ {int(te_keep)} TE)")
+    return note
 
 
 def filter_depth_chart_starters(
@@ -245,28 +347,38 @@ def filter_depth_chart_starters(
     *,
     depth_mode: str = "starter",
 ) -> tuple[pd.DataFrame, dict]:
-    keep_map = {
-        "draft": {"qb": DRAFT_QB_PER_TEAM, "rb": DRAFT_RB_PER_TEAM, "wr": DRAFT_WR_PER_TEAM},
-        "starter": {"qb": QB_STARTERS_PER_TEAM, "rb": RB_STARTERS_PER_TEAM, "wr": WR_STARTERS_PER_TEAM},
-    }
-    keep_n = keep_map.get(depth_mode, keep_map["starter"]).get(position.lower())
-    dispatch = {
-        "qb": (filter_qb_depth_chart, keep_n or QB_STARTERS_PER_TEAM),
-        "rb": (filter_rb_depth_chart, keep_n or RB_STARTERS_PER_TEAM),
-        "wr": (filter_wr_depth_chart, keep_n or WR_STARTERS_PER_TEAM),
-    }
-    entry = dispatch.get(position.lower())
-    if entry is None:
-        return roster, {"applied": False, "removed": 0}
-    fn, n = entry
-    if depth_mode == "draft":
+    draft = depth_mode == "draft"
+    keep_rookies = draft
+    pos = position.lower()
+    if pos == "qb":
         return _filter_by_team_rank(
             roster,
             mlready_df,
             feature_season,
-            {"qb": _qb_starter_key, "rb": _rb_starter_key, "wr": _wr_starter_key}[position.lower()],
-            n,
-            sole_rookie_qb=position.lower() == "qb",
-            always_keep_rookie_estimates=True,
+            _qb_starter_key,
+            DRAFT_QB_PER_TEAM if draft else QB_STARTERS_PER_TEAM,
+            sole_rookie_qb=True,
+            always_keep_rookie_estimates=keep_rookies,
+            always_keep_established=True,
         )
-    return fn(roster, mlready_df, feature_season)
+    if pos == "rb":
+        return _filter_by_team_rank(
+            roster,
+            mlready_df,
+            feature_season,
+            _rb_starter_key,
+            DRAFT_RB_PER_TEAM if draft else RB_STARTERS_PER_TEAM,
+            always_keep_rookie_estimates=keep_rookies,
+            always_keep_established=True,
+        )
+    if pos == "wr":
+        return filter_wr_depth_chart(
+            roster,
+            mlready_df,
+            feature_season,
+            always_keep_established=True,
+            always_keep_rookie_estimates=keep_rookies,
+            wr_keep=DRAFT_WR_PER_TEAM if draft else WR_STARTERS_PER_TEAM,
+            te_keep=DRAFT_TE_PER_TEAM if draft else TE_STARTERS_PER_TEAM,
+        )
+    return roster, {"applied": False, "removed": 0}

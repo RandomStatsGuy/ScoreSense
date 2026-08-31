@@ -584,3 +584,148 @@ def test_list_roster_for_context_not_called_with_live_sleeper(hub_db):
         build_weekly_command_center(ctx, season=2026, week=1)
     roster_fn.assert_called_once()
     assert roster_fn.call_args.kwargs.get("live_sleeper") is False
+
+
+def test_name_fallback_joins_sleeper_prefixed_roster_ids(hub_db):
+    comm = "week-comm-names"
+    ws = storage.get_or_create_workspace(comm, season=2026)
+    rules = load_preset("salary_cap_auction_v1")
+    league = storage.create_league(comm, "Name League", 2026, rules, workspace_id=ws["id"])
+    team = storage.get_team_by_user(league["id"], comm)
+    roster_ws = storage.roster_workspace_for_league(league)
+    storage.add_roster_slot(
+        roster_ws,
+        {
+            "player_id": "sleeper-4881",
+            "player_name": "D.K. Metcalf",
+            "team": "PIT",
+            "position": "WR",
+            "salary": 40,
+            "contract_years": 1,
+            "sleeper_player_id": "4881",
+        },
+        team_id=team["id"],
+    )
+    storage.add_roster_slot(
+        roster_ws,
+        {
+            "player_id": "sleeper-11566",
+            "player_name": "Jayden Daniels",
+            "team": "WSH",
+            "position": "QB",
+            "salary": 55,
+            "contract_years": 1,
+            "sleeper_player_id": "11566",
+        },
+        team_id=team["id"],
+    )
+    from src.draft_hub.hub_context import resolve_hub_context
+
+    wr = pd.DataFrame(
+        [
+            {
+                "Player": "DK Metcalf",
+                "Projected Points": 12.4,
+                "Low (P10)": 5.0,
+                "High (P90)": 22.0,
+                "Team": "PIT",
+                "Opponent": "NYJ",
+                "Week": 1,
+                "Season": 2026,
+                "player_id": "00-0035640",
+                "Position": "WR",
+                "Injury Status": "",
+                "Injury Note": "",
+            }
+        ]
+    )
+    wr.attrs["built_at"] = "2026-08-21T12:00:00+00:00"
+    qb = pd.DataFrame(
+        [
+            {
+                "Player": "Jayden Daniels",
+                "Projected Points": 18.2,
+                "Low (P10)": 8.0,
+                "High (P90)": 32.0,
+                "Team": "WAS",
+                "Opponent": "NYG",
+                "Week": 1,
+                "Season": 2026,
+                "player_id": "00-0039910",
+                "Position": "QB",
+                "Injury Status": "",
+                "Injury Note": "",
+            }
+        ]
+    )
+    qb.attrs["built_at"] = "2026-08-21T12:00:00+00:00"
+
+    def _load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True):
+        assert allow_compute is False
+        pos = str(position).lower()
+        if pos == "wr":
+            return wr.copy()
+        if pos == "qb":
+            return qb.copy()
+        return pd.DataFrame()
+
+    ctx = resolve_hub_context(comm)
+    with patch(
+        "src.draft_hub.weekly_command_center.load_weekly_prediction",
+        side_effect=_load,
+    ), patch(
+        "src.draft_hub.weekly_command_center.resolve_week_context",
+        return_value=(2026, 1),
+    ):
+        payload = build_weekly_command_center(ctx, season=2026, week=1)
+
+    starters = payload["roster"]["starters"] + payload["roster"]["bench"]
+    metcalf = next(p for p in starters if "Metcalf" in str(p.get("player_name")))
+    assert metcalf["has_projection"] is True
+    assert metcalf["p50"] == 12.4
+    daniels = next(p for p in starters if "Daniels" in str(p.get("player_name")))
+    assert daniels["has_projection"] is True
+    assert daniels["p50"] == 18.2
+    assert payload["counts"]["missing_projections"] == 0
+
+
+def test_api_hub_week_refresh_rebuilds(hub_db):
+    league, team, ws, comm = _seed_league_roster(hub_db)
+    client = _client_for(comm)
+
+    class _Fut:
+        def __init__(self, value):
+            self._value = value
+
+        def result(self):
+            return self._value
+
+    class _Ex:
+        def __init__(self):
+            self.calls = []
+
+        def submit(self, fn, *args, **kwargs):
+            self.calls.append((fn, args, kwargs))
+            return _Fut({"wr:inj1": 4, "qb:inj1": 2, "rb:inj1": 3})
+
+    executor = _Ex()
+    try:
+        with patch(
+            "src.draft_hub.weekly_command_center.load_weekly_prediction",
+            side_effect=_fake_load,
+        ), patch(
+            "src.draft_hub.weekly_command_center.resolve_week_context",
+            return_value=(2026, 1),
+        ), patch(
+            "app.process_pool.get_process_executor",
+            return_value=executor,
+        ):
+            res = client.post("/api/hub/week/refresh", params={"season": 2026, "week": 1})
+            assert res.status_code == 200
+            data = res.json()
+            assert data["meta"]["rebuilt"] is True
+            assert data["meta"]["rebuild_counts"]["wr:inj1"] == 4
+            assert data["hub_context"]["league_id"] == league["id"]
+            assert executor.calls
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)

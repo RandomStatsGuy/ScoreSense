@@ -51,3 +51,11 @@ def test_force_reload_updates_built_at(monkeypatch, tmp_path):
         assert calls["n"] == 2
         assert forced.attrs.get("built_at")
         assert forced.attrs.get("built_at") != first_built
+
+
+def test_weekly_fingerprint_includes_pool_policy(monkeypatch, tmp_path):
+    monkeypatch.setattr(wc, "PROCESSED_DATA_DIR", tmp_path)
+    monkeypatch.setattr(wc, "MODEL_DIR", tmp_path)
+    fp = wc.weekly_fingerprint()
+    assert len(fp) == 16
+    assert wc.WEEKLY_POOL_POLICY == "v2-keep-established"

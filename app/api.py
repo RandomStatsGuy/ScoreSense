@@ -1734,7 +1734,11 @@ def lineup_slates(
         "note": (
             "FanDuel slates require FANDUEL_AUTH_TOKEN in .env."
             if site == "fanduel"
-            else "DraftKings slates load from the public lobby API."
+            else (
+                "DraftKings slates load from the public lobby. "
+                "Main/Showdown/Primetime filters hide formats; Week 1 often has "
+                "only a Sunday Classic plus a kickoff Showdown until DK posts the rest."
+            )
         ),
     }
 
