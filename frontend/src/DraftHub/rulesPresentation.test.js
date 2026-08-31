@@ -40,3 +40,26 @@ test("contractSchedule and rulesSummary explain flat versus stepped rookie deals
   }));
   assert.match(summary.find((item) => item.id === "rookie").value, /3 years · Steps up/);
 });
+
+test("explicit null roster size reads as position limits, never 'null players'", () => {
+  const summary = rulesSummary({ roster_size_max: null });
+  const roster = summary.find((item) => item.id === "roster");
+  assert.equal(roster.value, "Position limits");
+  assert.ok(!JSON.stringify(summary).includes("null"));
+  // Legacy leagues without the field still get the default.
+  const withDefault = rulesSummary({});
+  assert.equal(withDefault.find((item) => item.id === "roster").value, "27 players");
+});
+
+test("validateLeagueSettings allows null roster size (no explicit cap)", () => {
+  const rules = mergeLeagueRules({ roster_size_max: null });
+  const errors = validateLeagueSettings({ name: "Cap League", season: 2026, rules });
+  assert.equal(errors.roster_size_max, undefined);
+  // A number below the position minimums is still rejected.
+  const bad = validateLeagueSettings({
+    name: "Cap League",
+    season: 2026,
+    rules: mergeLeagueRules({ roster_size_max: 3 }),
+  });
+  assert.match(bad.roster_size_max, /at least/i);
+});

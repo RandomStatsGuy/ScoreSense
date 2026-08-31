@@ -4463,8 +4463,9 @@ td.col-per-game {
   white-space: nowrap;
 }
 .hub-table .hub-col-fv {
-  width: 5.5rem;
-  max-width: 5.5rem;
+  /* Wide enough for the full "Suggested bid" header + sort caret. */
+  width: 7rem;
+  max-width: 7rem;
   white-space: nowrap;
 }
 .hub-table .hub-col-tier {
@@ -8654,6 +8655,26 @@ td.col-rank.col-rank-top {
   color: #6ee7b7;
 }
 
+/* Contract-window chips on Rosters. Outline + tone instead of a solid green
+   badge — "expires" is caution, not success, and it repeats on most rows. */
+.hub-expire-chip {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.08rem 0.4rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--tone-caution-text);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: transparent;
+}
+.hub-expire-chip--extend {
+  color: var(--accent-muted);
+  border-color: rgba(115, 165, 255, 0.4);
+}
+
 .hub-roster-builder { display: flex; flex-direction: column; gap: 0.85rem; }
 .hub-roster-header {
   display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 0.75rem;
@@ -9564,6 +9585,15 @@ td.col-rank.col-rank-top {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+/* Keep the per-row link out of the resting view — reveal on the row you're on.
+   visibility (not display) preserves row height so the table doesn't shift. */
+.hub-table .hub-contract-history-link { visibility: hidden; }
+.hub-table tr:hover .hub-contract-history-link,
+.hub-table tr:focus-within .hub-contract-history-link { visibility: visible; }
+@media (hover: none) {
+  .hub-table .hub-contract-history-link { visibility: visible; }
 }
 
 .hub-contract-history-link {
