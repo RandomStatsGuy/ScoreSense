@@ -1,0 +1,16 @@
+---
+description: Fantasy / hub performance — caches, no live ML on hot paths.
+globs: src/draft_hub/**/*.py, app/hub_routes.py, frontend/src/DraftHub/hubDataCache.js
+alwaysApply: false
+---
+
+# Fantasy performance
+
+- Prefer materialized caches over live `predict_*` on hub routes: `artifacts/draft_pool/`, `artifacts/weekly_predictions/`.
+- Pool vs overlay: `build_draft_pool_payload()` then `build_value_overlay()` in `value_sheet.py`. Do not recompute the pool per request.
+- Roster/cap reads are DB-only. Sleeper runs on link/sync, or `GET /api/hub/roster?live_sleeper=1` for a one-off pull.
+- Scoring history lives in SQLite `sleeper_scoring_cache`. Refresh on league sync or `GET /api/hub/league/{id}/insights?refresh=1`.
+- CPU-heavy work uses `app/process_pool.py`. Do not start a per-route process pool.
+- Secrets and paths go through `src/config.py`, not raw `os.environ` in routes.
+- `HUB_TIMING=true` logs slow hub routes (>500ms) and may set `X-Hub-Timing-MS`.
+- After mlready or model changes, refresh the draft-pool fingerprint (`preseason_refresh` or `scripts/ops/fix_artifact_fingerprints.py`). Do not leave first-visit Fantasy pages on cold live inference.

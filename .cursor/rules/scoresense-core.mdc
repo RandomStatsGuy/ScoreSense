@@ -1,0 +1,69 @@
+---
+description: ScoreSense product, brand, IA, and design rules. Apply to every feature.
+alwaysApply: true
+---
+
+# ScoreSense — always follow
+
+Before any user-facing work, read `docs/PRODUCT.md`. If another doc conflicts, `docs/PRODUCT.md` wins. Update it in the same change when you add a destination, name, token, or pattern.
+
+## Product
+
+ScoreSense (4th Down Labs) is a fantasy football product with three top-level areas only:
+
+- **Projections** — Weekly / Season (Preseason outlook, Live season)
+- **Fantasy** — leagues, draft, contracts, cap, waivers, trades, rules
+- **Tools** — DFS, Mock draft
+
+Do not add a fourth top-level area. Do not call Fantasy “League” or “Draft Hub” in UI copy. “Draft Hub” is an internal code name.
+
+Account-only destinations: Model accuracy, Admin, Account.
+
+## Canonical user-facing names
+
+Use these labels. Keep internal ids if they already exist.
+
+| UI | Internal id | Never show users |
+|----|-------------|------------------|
+| Fantasy | `hub` | Draft Hub, Hub, League (as the product area) |
+| Strategy | `value` | Value sheet |
+| Draft | `room` | Live auction (as the tab name) |
+| This Week | `week` | Weekly command center |
+| My team | `roster` | My roster |
+| Free agents | `available` | Available players |
+| Cap | `planner` | Cap planner (as the tab name) |
+| Roster management | `office` | Office, Commissioner |
+| Model accuracy | `model` | Accuracy tab |
+
+Roster management panes: Contracts, Salary sheets, Members, Access & imports. Chat is `FantasyChatDock`, not a pane.
+
+Source: `frontend/src/DraftHub/HubSubnav.jsx`, `frontend/src/appNavigation.js`.
+
+## Design (non-negotiable)
+
+Priority: fun → easy → clear → selective → respectful. Fun is consequence and rhythm, not decoration.
+
+- Dark, matte, editorial, layered. No neon-terminal chrome. No casino glow.
+- Tokens only: `frontend/src/styles/tokens.css`, `frontend/src/styles/product-hierarchy.css`.
+- Blue (`--experience-blue` / `--accent`) = current context and the next action. Nothing else.
+- Teal = healthy/saved. Amber = attention. Red = destructive/blocking. Gold = awards only.
+- Hierarchy from surface, type, and spacing — not a border on every box.
+- Editorial pages use `HubExperienceHero` + `HubExperienceLayout` + `HubExperienceSummary` from `frontend/src/DraftHub/HubUILayout.jsx`.
+- Live draft rooms stay board-first. Do not wrap them in settings chrome.
+- Copy lives in `*Presentation.js` (or an existing copy module). Goal + consequence. No “Submit”, no “You do not have permission” (use “Commissioner managed”).
+- Motion 120–200ms. Honor `prefers-reduced-motion`. No sound except opt-in live-draft audio.
+
+## Product rules you may not bypass
+
+- League policy changes apply to **new contracts only** unless a migration exists.
+- Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`). Staff Roster management may override; Players-tab adds may not.
+- Do not invent a parallel rules or contract model. Merge/validate via `rulesPresentation.js`. Backend is authoritative.
+- Same player photos on mock boards, nominee cards, rails, and rosters.
+- New work reuses destinations, chrome, and tokens. Do not start a new aesthetic.
+
+## Docs map
+
+- Constitution: `docs/PRODUCT.md`
+- Index: `docs/README.md`
+- Rules Center spec: `docs/design.md`
+- Contracts playbook: `docs/CONTRACT_SCENARIOS.md`

@@ -1,6 +1,8 @@
 # ScoreSense onboarding & compliance
 
-Persona flows, friction fixes, and production verification for auth email, legal links, and Draft Hub setup.
+Persona flows, friction fixes, and production verification for auth email, legal links, and Fantasy setup.
+
+User-facing product area is **Fantasy** (routes still live under `/hub/*`). Names and chrome: [PRODUCT.md](./PRODUCT.md).
 
 ## Persona happy paths
 
@@ -10,17 +12,17 @@ Persona flows, friction fixes, and production verification for auth email, legal
 |------|--------|
 | 1 | Land on `/projections/weekly` |
 | 2 | Sign in via Patreon (production full-screen gate) |
-| 3 | Browse Weekly / Season / Tools / Model |
-| 4 | Optional: open League → solo workspace auto-created |
+| 3 | Browse Weekly / Season / Tools / Model accuracy |
+| 4 | Optional: open Fantasy → solo workspace auto-created |
 
-No forced Hub redirect.
+No forced Fantasy redirect.
 
 ### Solo drafter
 
 | Step | Action |
 |------|--------|
 | 1 | Register, accept Terms/Privacy, verify email |
-| 2 | League → `/hub/setup` |
+| 2 | Fantasy → `/hub/setup` |
 | 3 | Stay on **Solo prep** |
 | 4 | Configure **Rules** |
 | 5 | Link **Sleeper** (optional) |
