@@ -9,6 +9,8 @@ export const HUB_SLUG_TO_ID = {
   fa: "available",
   available: "available",
   week: "week",
+  game: "game",
+  "game-center": "game",
   roster: "roster",
   rosters: "rosters",
   draft: "room",
@@ -26,6 +28,7 @@ export const HUB_ID_TO_SLUG = {
   value: "strategy",
   available: "free-agents",
   week: "week",
+  game: "game",
   roster: "roster",
   rosters: "rosters",
   room: "draft",
@@ -159,14 +162,15 @@ export function parseAppPath(pathname) {
     }
     const slug = parts[1] || "home";
     if (slug === "live") {
+      // Legacy live-scoring URL → Game center owns the matchup now.
       return {
         view: "hub",
         projectionsTab: null,
         projectionsMobilePanel: null,
         seasonMode: null,
         toolsTab: null,
-        hubSubView: "insights",
-        insightTab: "scoring",
+        hubSubView: "game",
+        insightTab: null,
         officeTab: null,
       };
     }

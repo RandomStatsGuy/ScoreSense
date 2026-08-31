@@ -14,6 +14,18 @@ test("tools mock-draft tab round-trips", () => {
   assert.equal(buildAppPath({ view: "tools", toolsTab: "dfs" }), "/tools/dfs");
 });
 
+test("Game center routes round-trip and legacy live URL redirects there", () => {
+  assert.equal(parseAppPath("/hub/game").hubSubView, "game");
+  assert.equal(parseAppPath("/hub/game-center").hubSubView, "game");
+  assert.equal(
+    buildAppPath({ view: "hub", hubSubView: "game" }),
+    "/hub/game",
+  );
+  const legacy = parseAppPath("/hub/live");
+  assert.equal(legacy.hubSubView, "game");
+  assert.equal(legacy.insightTab, null);
+});
+
 test("Insights overview is the default Insights route", () => {
   assert.equal(parseAppPath("/hub/insights/overview").insightTab, "overview");
   assert.equal(

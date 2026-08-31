@@ -21,6 +21,7 @@ import LeagueTrades from "./LeagueTrades";
 import LeagueRostersBrowser from "./LeagueRostersBrowser";
 import LeagueContextBanner from "./LeagueContextBanner";
 import HubDemoBanner from "./HubDemoBanner";
+import GameCenter from "./GameCenter";
 import WeeklyCommandCenter from "./WeeklyCommandCenter";
 import LeagueHome from "./LeagueHome";
 import LeagueCreateJoinDialog from "./LeagueCreateJoinDialog";
@@ -115,8 +116,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
 
   useEffect(() => {
     if (subView === "live") {
-      setSubView("insights");
-      onInsightTabChange?.("scoring");
+      // Legacy live-scoring view — Game center owns the matchup now.
+      setSubView("game");
     } else if (subView === "league-rosters") {
       setSubView("office");
       onOfficeTabChange?.("current");
@@ -779,6 +780,27 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           onNavigateSetup={() => setSubView("setup")}
           onNavigate={setSubView}
         />
+      )}
+
+      {subView === "game" && (
+        effectiveCtx?.mode === "league" && effectiveCtx?.league_id ? (
+          <GameCenter
+            leagueId={effectiveCtx.league_id}
+            hubContext={effectiveCtx}
+            onNavigate={setSubView}
+          />
+        ) : (
+          <HubPage>
+            <h2 className="hub-tab-intro-title">Game center</h2>
+            <p className="chart-note">
+              Game center follows your head-to-head matchup. Open a shared league to use it.
+              {" "}
+              <button type="button" className="btn-link" onClick={() => setSubView("setup")}>
+                League settings
+              </button>
+            </p>
+          </HubPage>
+        )
       )}
 
       {subView === "roster" && (

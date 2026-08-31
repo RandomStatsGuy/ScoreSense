@@ -12,7 +12,6 @@ import {
   isPoorProjectionCoverage,
   projectionCoverageRatio,
 } from "./projectionCoverage";
-import WeekCulturePanel from "./WeekCulturePanel";
 import WeekLineupBoard from "./WeekLineupBoard";
 import {
   buildStarterSlotPlan,
@@ -133,7 +132,6 @@ export default function WeeklyCommandCenter({
   const missingCount = Number(counts.missing_projections) || 0;
   const coveredCount = Math.max(0, rosterCount - missingCount);
   const coveragePct = Math.round(projectionCoverageRatio(counts) * 100);
-  const boardReady = !emptyRoster;
 
   const slots = useMemo(() => {
     const plan = buildStarterSlotPlan(hubContext?.rules);
@@ -279,11 +277,22 @@ export default function WeeklyCommandCenter({
           coverageActions={coverageActions}
         />
 
-        <WeekCulturePanel
-          hubContext={hubContext}
-          week={weekOverride || meta.week}
-          boardReady={boardReady}
-        />
+        {hubContext?.mode === "league" && (
+          <section className="hub-wcc-gamecenter panel" aria-label="Game center">
+            <div>
+              <h3>The matchup lives in Game center</h3>
+              <p className="chart-note">
+                Live scoring against your opponent, the league scoreboard, week trophies,
+                and reactions.
+              </p>
+            </div>
+            {onNavigate ? (
+              <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("game")}>
+                Open Game center →
+              </button>
+            ) : null}
+          </section>
+        )}
       </HubExperienceLayout>
     </HubPage>
   );
