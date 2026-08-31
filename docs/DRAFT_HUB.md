@@ -15,7 +15,7 @@ Shipped: solo prep, live auction / snake / linear rooms, contracts, cap planner,
 
 ## Storage
 
-SQLite database at `data/leagues/draft_hub.db`, scoped by JWT `sub` from Patreon auth.
+SQLite database at `data/draft_hub/draft_hub.db` (`DRAFT_HUB_DB` in `src/config.py`), scoped by JWT `sub` from Patreon auth.
 
 ## Rules preset
 
