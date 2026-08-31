@@ -190,7 +190,7 @@ export function formatSlateOption(slate = {}) {
   const games = Number(slate.game_count);
   const players = Number(slate.player_count);
   const extras = [];
-  if (Number.isFinite(games) && games > 0 && !String(name).includes("game")) {
+  if (Number.isFinite(games) && games > 0 && !String(name).toLowerCase().includes("game")) {
     extras.push(`${games}g`);
   }
   if (Number.isFinite(players) && players > 0) extras.push(`${players} players`);

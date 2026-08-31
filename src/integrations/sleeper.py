@@ -591,6 +591,17 @@ def _backup_feature_template(
     return template, medians
 
 
+def _parse_depth_chart_order(dc_raw: Any) -> int | None:
+    """Sleeper depth_chart_order → positive int. NaN / NA / junk become None."""
+    try:
+        if dc_raw is None:
+            return None
+        dc_val = int(dc_raw)
+    except (TypeError, ValueError):
+        return None
+    return dc_val if dc_val > 0 else None
+
+
 def _rookie_stub_from_template(
     template: pd.Series,
     sleeper_row: pd.Series,
@@ -618,12 +629,8 @@ def _rookie_stub_from_template(
     stub["season"] = season
     stub["week"] = target_week
     stub["_rookie_estimate"] = True
-    dc_raw = sleeper_row.get("depth_chart_order")
-    try:
-        dc_val = int(dc_raw) if dc_raw is not None and not (isinstance(dc_raw, float) and pd.isna(dc_raw)) else None
-    except (TypeError, ValueError):
-        dc_val = None
-    if dc_val is not None and dc_val > 0:
+    dc_val = _parse_depth_chart_order(sleeper_row.get("depth_chart_order"))
+    if dc_val is not None:
         stub["_sleeper_depth_order"] = dc_val
 
     mult, role_label = compute_rookie_role(skill_pos, sleeper_row, season=season)
@@ -701,12 +708,8 @@ def apply_sleeper_roster_overlay(
             out.at[idx, "team"] = sleeper_team
             teams_updated += 1
 
-        dc_raw = sleeper_row.get("depth_chart_order")
-        try:
-            dc_val = int(dc_raw) if dc_raw is not None and not (isinstance(dc_raw, float) and pd.isna(dc_raw)) else None
-        except (TypeError, ValueError):
-            dc_val = None
-        if dc_val is not None and dc_val > 0:
+        dc_val = _parse_depth_chart_order(sleeper_row.get("depth_chart_order"))
+        if dc_val is not None:
             out.at[idx, "_sleeper_depth_order"] = dc_val
 
         # Tag backup role for post-hoc projection scaling. Do not mutate prior-season

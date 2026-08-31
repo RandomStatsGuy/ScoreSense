@@ -136,6 +136,10 @@ test("formatSlateOption and sparse lobby copy explain few DK slates", () => {
     formatSlateOption({ name: "Classic · 12 games", slate_id: "1" }),
     "Classic · 12 games",
   );
+  assert.equal(
+    formatSlateOption({ name: "Classic · 12 Games", slate_id: "1", game_count: 12 }),
+    "Classic · 12 Games",
+  );
   assert.match(
     formatSlateOption({ name: "Classic", game_count: 12, player_count: 400 }),
     /12g/,

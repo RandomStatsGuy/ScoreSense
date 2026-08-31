@@ -222,9 +222,10 @@ def parse_dk_lobby_slates(payload: dict, category: str = "all") -> list[dict]:
 
     nfl_slates = [s for s in grouped.values() if not s.get("is_madden")]
     if category != "all":
-        nfl_slates = [s for s in nfl_slates if s["category"] == category]
-        if not nfl_slates and category == "main":
-            nfl_slates = [s for s in grouped.values() if s.get("category") in {"main", "other"}]
+        filtered = [s for s in nfl_slates if s["category"] == category]
+        if not filtered and category == "main":
+            filtered = [s for s in nfl_slates if s.get("category") in {"main", "other"}]
+        nfl_slates = filtered
 
     nfl_slates.sort(
         key=lambda s: (

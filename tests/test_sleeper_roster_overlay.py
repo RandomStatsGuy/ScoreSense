@@ -320,3 +320,14 @@ def test_apply_sleeper_roster_overlay_drops_unrostered():
 
     assert stats["removed_unrostered"] == 1
     assert updated.empty
+
+
+def test_parse_depth_chart_order_rejects_nan_and_zero():
+    from src.integrations.sleeper import _parse_depth_chart_order
+
+    assert _parse_depth_chart_order(None) is None
+    assert _parse_depth_chart_order(float("nan")) is None
+    assert _parse_depth_chart_order(pd.NA) is None
+    assert _parse_depth_chart_order(0) is None
+    assert _parse_depth_chart_order(1) == 1
+    assert _parse_depth_chart_order("2") == 2

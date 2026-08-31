@@ -62,7 +62,7 @@ def _non_rookie_rank(row: pd.Series) -> int:
 def _sleeper_depth_order(row: pd.Series) -> int | None:
     dc = row.get("_sleeper_depth_order")
     try:
-        if dc is None or (isinstance(dc, float) and pd.isna(dc)):
+        if dc is None or pd.isna(dc):
             return None
         dc_i = int(dc)
     except (TypeError, ValueError):

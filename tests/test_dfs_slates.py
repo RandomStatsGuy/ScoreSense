@@ -120,3 +120,33 @@ def test_parse_dk_lobby_slates_skips_madden_and_best_ball():
 def test_parse_dk_lobby_slates_main_filter():
     slates = parse_dk_lobby_slates(DK_LOBBY_SAMPLE, category="main")
     assert [s["slate_id"] for s in slates] == ["151307"]
+
+
+def test_parse_dk_lobby_main_falls_back_to_other_not_madden():
+    payload = {
+        "GameTypes": [
+            {"GameTypeId": 50, "Name": "Turbo"},
+            {"GameTypeId": 158, "Name": "Madden Classic"},
+        ],
+        "DraftGroups": [
+            {
+                "DraftGroupId": 1,
+                "GameTypeId": 50,
+                "GameCount": 4,
+                "ContestStartTimeSuffix": None,
+            },
+            {
+                "DraftGroupId": 2,
+                "GameTypeId": 158,
+                "GameCount": 1,
+                "ContestStartTimeSuffix": " (Madden Stream)",
+            },
+        ],
+        "Contests": [
+            {"dg": 1, "gameType": "Turbo", "n": "NFL Turbo $10"},
+            {"dg": 2, "gameType": "Madden Classic", "n": "Madden Stream $6K"},
+        ],
+    }
+    slates = parse_dk_lobby_slates(payload, category="main")
+    assert [s["slate_id"] for s in slates] == ["1"]
+    assert slates[0]["category"] == "other"
