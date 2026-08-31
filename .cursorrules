@@ -1,5 +1,7 @@
 # ScoreSense — Cursor Agent Rules
 
+Product, brand, and design: **`docs/PRODUCT.md`**. Always-applied agent rules: `.cursor/rules/scoresense-core.mdc`. Do not wait for the user to restate them.
+
 ## Git branching (STRICT — non-negotiable)
 
 All future features, fixes, refactors, and agent runs MUST follow this workflow.

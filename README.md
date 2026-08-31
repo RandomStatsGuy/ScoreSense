@@ -1,14 +1,16 @@
 # ScoreSense
 
-NFL fantasy performance prediction with reproducible nflverse data pipelines, walk-forward backtesting, quantile intervals, and a React dashboard.
+Fantasy football product from **4th Down Labs**: weekly and season projections, salary-cap **Fantasy** leagues (draft, contracts, cap, trades), and **Tools** (DFS, mock draft).
+
+Product, brand, and design rules: **[docs/PRODUCT.md](docs/PRODUCT.md)**. Doc index: [docs/README.md](docs/README.md).
 
 ## Highlights
 
-- **Free data stack** — nflverse weekly stats + play-by-play EPA (no paid PFF required)
-- **Prediction intervals** — P10 / P50 / P90 via quantile regression
-- **Sleeper integration** — injury-driven opportunity boosts on live projections
-- **NGS / BDB tracking** — drop BDB 2026 files in `data/raw/ngs/` for real separation features
-- **React dashboard** — FastAPI backend + Vite frontend + weekly cron refresh
+- **Projections** — P10 / P50 / P90 quantile GBM on a free nflverse stack (weekly + season)
+- **Fantasy** — auction or pick drafts, contracts, cap, waivers, trades, league rules
+- **Tools** — DraftKings / FanDuel classic lineups and mock drafts
+- **Sleeper** — league link, injury-driven opportunity adjustment, roster sync
+- **Narrative** — beat-channel sentiment as a readout on the Weekly / Season tables
 
 ## Quick start
 
@@ -75,11 +77,11 @@ ScoreSense/
 | `GET /api/refresh/status` | Last refresh metadata |
 | `GET /api/auth/patreon/login` | Patreon OAuth (when `AUTH_REQUIRED=true`) |
 
-See [docs/DEPLOY.md](docs/DEPLOY.md) for Patreon hosting.
+See [docs/DEPLOY.md](docs/DEPLOY.md) for Patreon hosting and [docs/DEPLOY_CLOUDFLARE_TUNNEL.md](docs/DEPLOY_CLOUDFLARE_TUNNEL.md) for production (`app.fourthdownlabs.com`).
 
-## Portfolio
+## Models and evaluation
 
-See [docs/CASE_STUDY.md](docs/CASE_STUDY.md), [docs/EVALUATION.md](docs/EVALUATION.md), and [docs/MODEL_FEATURES.md](docs/MODEL_FEATURES.md) for production feature definitions by position.
+[docs/EVALUATION.md](docs/EVALUATION.md) owns backtest numbers. [docs/MODEL_FEATURES.md](docs/MODEL_FEATURES.md) owns production columns. [docs/CASE_STUDY.md](docs/CASE_STUDY.md) is a 2024 portfolio write-up, not current product IA.
 
 ## License
 

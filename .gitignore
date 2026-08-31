@@ -25,4 +25,6 @@ data/auth/*.db
 ssh
 .pytest_collect.txt
 .pytest_full_result.txt
-.cursor/
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
