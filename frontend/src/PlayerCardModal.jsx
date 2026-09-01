@@ -108,7 +108,12 @@ function PlayerCardBody({
     </section>
   ) : null;
 
-  if (loading && !data) {
+  const preview = request?.preview || null;
+  const hasPreviewHero = Boolean(
+    preview && [preview.p10, preview.p50, preview.p90].some(Number.isFinite),
+  );
+
+  if (loading && !data && !hasPreviewHero) {
     return (
       <>
         <p className="player-card-loading chart-note">Loading player…</p>
@@ -116,7 +121,7 @@ function PlayerCardBody({
       </>
     );
   }
-  if (error && !data) {
+  if (error && !data && !hasPreviewHero) {
     return (
       <>
         <div className="error">{error}</div>
@@ -124,15 +129,15 @@ function PlayerCardBody({
       </>
     );
   }
-  if (!data) return contextPanel;
+  if (!data && !hasPreviewHero) return contextPanel;
 
-  const weekly = data.weekly_projection;
-  const season = data.season_projection;
-  const narrative = data.narrative;
-  const narrativeMeta = data.narrative_meta || {};
-  const injury = data.injury;
-  const canExplain = Boolean(data.player_id && weekly);
-  const weekLabel = contextLabel(data.meta, request);
+  const weekly = data?.weekly_projection;
+  const season = data?.season_projection;
+  const narrative = data?.narrative;
+  const narrativeMeta = data?.narrative_meta || {};
+  const injury = data?.injury;
+  const canExplain = Boolean((data?.player_id || request?.playerId) && weekly);
+  const weekLabel = contextLabel(data?.meta, request);
   const seasonBand = season
     ? resolveSeasonBand({
       ...season,
@@ -163,11 +168,14 @@ function PlayerCardBody({
     && !includeHistorical
     && typeof onViewOlderCommentary === "function";
 
-  const primary = seasonScope && seasonBand?.p50 != null
+  const previewBand = preview && [preview.p10, preview.p50, preview.p90].some(Number.isFinite)
+    ? preview
+    : null;
+  const primary = seasonScope
     ? {
-      p10: seasonBand.p10,
-      p50: seasonBand.p50,
-      p90: seasonBand.p90,
+      p10: previewBand?.p10 ?? seasonBand?.p10,
+      p50: previewBand?.p50 ?? seasonBand?.p50,
+      p90: previewBand?.p90 ?? seasonBand?.p90,
       floorLabel: "Floor",
       midLabel: "Season P50",
       ceilLabel: "Ceiling",
@@ -175,9 +183,9 @@ function PlayerCardBody({
       title: seasonTip,
     }
     : {
-      p10: weeklyBand.p10,
-      p50: weeklyBand.p50,
-      p90: weeklyBand.p90,
+      p10: previewBand?.p10 ?? weeklyBand.p10,
+      p50: previewBand?.p50 ?? weeklyBand.p50,
+      p90: previewBand?.p90 ?? weeklyBand.p90,
       floorLabel: "Floor",
       midLabel: "P50",
       ceilLabel: "Ceiling",
@@ -185,32 +193,36 @@ function PlayerCardBody({
       title: "Per-game scoring range",
     };
 
-  const scheduleAware = isScheduleAwareMethod(seasonBand?.method || season?.season_quantile_method);
+  const scheduleAware = Boolean(
+    preview?.scheduleAware
+    || isScheduleAwareMethod(preview?.method || seasonBand?.method || season?.season_quantile_method),
+  );
   const seasonMode = request?.seasonMode;
-  const slateRank = request?.rank ?? null;
+  const slateRank = request?.rank ?? preview?.rank ?? null;
   const slatePeers = request?.peers || {};
-  const rangeText = seasonScope
-    ? seasonRead({
-      Player: data.player_name,
-      player_id: data.player_id,
-      "Season Proj": seasonBand?.p50,
-      "Season P10": seasonBand?.p10,
-      "Season P90": seasonBand?.p90,
-      season_quantile_method: seasonBand?.method,
-    }, slatePeers, { rank: slateRank, position: request?.position || data.position })
-    : weeklyWhyNow({
-      Player: data.player_name,
-      "Projected Points": weeklyBand.p50,
-      "Low (P10)": weeklyBand.p10,
-      "High (P90)": weeklyBand.p90,
-      "Injury Status": injury?.injury_status,
-    }, slatePeers, { rank: slateRank, position: request?.position || data.position });
+  const rangeText = preview?.whyNow
+    || (seasonScope
+      ? seasonRead({
+        Player: data?.player_name || fallbackName,
+        player_id: data?.player_id || request?.playerId,
+        "Season Proj": primary.p50,
+        "Season P10": primary.p10,
+        "Season P90": primary.p90,
+        season_quantile_method: preview?.method || seasonBand?.method,
+      }, slatePeers, { rank: slateRank, position: request?.position || data?.position })
+      : weeklyWhyNow({
+        Player: data?.player_name || fallbackName,
+        "Projected Points": primary.p50,
+        "Low (P10)": primary.p10,
+        "High (P90)": primary.p90,
+        "Injury Status": injury?.injury_status,
+      }, slatePeers, { rank: slateRank, position: request?.position || data?.position }));
 
   const role = roleOutlook({
     rank: slateRank,
-    position: request?.position || data.position,
+    position: request?.position || data?.position,
     injuryStatus: injury?.injury_status,
-    rookie: Boolean(season?.["Rookie Est."] || data.rookie),
+    rookie: Boolean(season?.["Rookie Est."] || data?.rookie),
   });
   const range = rangeInsight(rangeText);
   const method = methodInsight({
@@ -225,8 +237,8 @@ function PlayerCardBody({
   });
   const seasonIdentity = seasonMode === "live" ? "season" : "preseason";
   const identityMeta = [
-    positionShort(request?.position || data.position),
-    data.team || request?.team,
+    positionShort(request?.position || data?.position),
+    data?.team || request?.team,
     seasonScope
       ? (request?.season != null ? `${request.season} ${seasonIdentity}` : (seasonMode === "live" ? "Season" : "Preseason"))
       : weekLabel,
@@ -237,13 +249,15 @@ function PlayerCardBody({
       <div className="player-inspector-identity">
         <div>
           <PlayerCell
-            name={data.player_name || fallbackName}
-            team={data.team}
-            playerId={data.player_id}
-            media={data.media ? { [data.player_id]: data.media } : null}
+            name={data?.player_name || fallbackName}
+            team={data?.team || request?.team}
+            playerId={data?.player_id || request?.playerId}
+            media={data?.media && (data.player_id || request?.playerId)
+              ? { [data.player_id || request.playerId]: data.media }
+              : null}
             size="lg"
             showTeam={false}
-            position={positionShort(request?.position || data.position)}
+            position={positionShort(request?.position || data?.position)}
           />
           {identityMeta ? (
             <p className="player-card-context muted" role="status">{identityMeta}</p>
@@ -348,10 +362,10 @@ function PlayerCardBody({
           </button>
           {whyOpen ? (
             <ProjectionExplanationPanel
-              playerId={data.player_id}
+              playerId={data?.player_id || request?.playerId}
               season={request?.season}
               week={request?.week}
-              position={request?.position || data.position}
+              position={request?.position || data?.position}
               applyInjuryAdjustments={applyInjury}
               active
               className="projection-explanation--card"
@@ -441,10 +455,12 @@ export default function PlayerCardModal({
     if (!request?.playerId) {
       setData(null);
       setError("");
+      setLoading(false);
       return undefined;
     }
     const controller = new AbortController();
     (async () => {
+      setData(null);
       setLoading(true);
       setError("");
       try {
@@ -462,13 +478,14 @@ export default function PlayerCardModal({
           { signal: controller.signal },
         );
         if (!res.ok) throw new Error(await parseApiError(res, "Failed to load player card"));
+        if (controller.signal.aborted) return;
         setData(await res.json());
       } catch (err) {
-        if (isAbortError(err)) return;
+        if (isAbortError(err) || controller.signal.aborted) return;
         setData(null);
         setError(connectionErrorMessage(err, "Failed to load player card"));
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     })();
     return () => controller.abort();
@@ -479,12 +496,17 @@ export default function PlayerCardModal({
   const title = data?.player_name || request.playerName || "Player";
   const selectPlayer = (hit) => {
     onSelectPlayer?.({
-      ...request,
       playerId: hit.playerId,
       name: hit.name,
       team: hit.team,
       position: hit.position || request.position,
+      season: request.season,
+      week: request.week,
+      scope: request.scope,
+      applyInjuryAdjustments: request.applyInjuryAdjustments,
+      seasonMode: request.seasonMode,
       rank: hit.rank ?? null,
+      preview: hit.preview || null,
     });
   };
 

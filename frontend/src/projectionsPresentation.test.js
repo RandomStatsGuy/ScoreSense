@@ -15,6 +15,7 @@ import {
   seasonBoardSignals,
   seasonRead,
   starterCutoff,
+  weeklyBoardPreview,
   weeklyBoardSignals,
   weeklyPeerStats,
   weeklyWhyNow,
@@ -37,6 +38,36 @@ test("weekly why-now marks elite medians and wide bands", () => {
   const text = weeklyWhyNow(rows[0], peers, { rank: 1, position: "qb" });
   assert.match(text, /Elite median/i);
   assert.match(text, /wider-than-average|highest-variance/i);
+});
+
+test("weekly why-now reserves elite for the top three starters", () => {
+  const rows = Array.from({ length: 16 }, (_, i) => ({
+    Player: `QB${i + 1}`,
+    player_id: `q${i}`,
+    "Projected Points": 24 - i,
+    "Low (P10)": 14 - i * 0.4,
+    "High (P90)": 26 - i * 0.4,
+  }));
+  const peers = weeklyPeerStats(rows, { position: "qb" });
+  assert.match(weeklyWhyNow(rows[0], peers, { rank: 1, position: "qb" }), /Elite median/i);
+  assert.match(weeklyWhyNow(rows[7], peers, { rank: 8, position: "qb" }), /Expected starter/i);
+  assert.doesNotMatch(weeklyWhyNow(rows[7], peers, { rank: 8, position: "qb" }), /Elite/i);
+  assert.match(weeklyWhyNow(rows[14], peers, { rank: 15, position: "qb" }), /Depth look/i);
+});
+
+test("weekly board preview carries the clicked P10/P50/P90", () => {
+  const row = {
+    Player: "Lamar Jackson",
+    player_id: "lj",
+    "Projected Points": 23.1,
+    "Low (P10)": 10.3,
+    "High (P90)": 32.6,
+  };
+  const preview = weeklyBoardPreview(row, {}, { rank: 1, position: "qb", whyNow: "Elite median" });
+  assert.equal(preview.p10, 10.3);
+  assert.equal(preview.p50, 23.1);
+  assert.equal(preview.p90, 32.6);
+  assert.equal(preview.whyNow, "Elite median");
 });
 
 test("weekly why-now explains suppressed and left-slate rows", () => {

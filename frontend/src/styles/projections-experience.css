@@ -283,7 +283,7 @@
   margin: 0;
   padding: 0;
   border-radius: var(--radius-lg) 0 0 var(--radius-lg);
-  background: #0b1426;
+  background: var(--experience-surface-strong);
   overflow: hidden;
 }
 

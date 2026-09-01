@@ -11,6 +11,7 @@ export function PlayerCardProvider({
   compareIds = [],
   onToggleCompare,
   maxCompare = 4,
+  resetKey,
 }) {
   const [request, setRequest] = useState(null);
 
@@ -31,10 +32,14 @@ export function PlayerCardProvider({
       rank: params.rank ?? candidate?.rank ?? null,
       peers: params.peers || peers,
       seasonMode: params.seasonMode || seasonMode,
+      preview: params.preview || candidate?.preview || null,
+      boardKey: resetKey,
     });
-  }, [candidates, peers, seasonMode]);
+  }, [candidates, peers, seasonMode, resetKey]);
 
   const closePlayerCard = useCallback(() => setRequest(null), []);
+
+  const activeRequest = request && request.boardKey === resetKey ? request : null;
 
   const value = useMemo(
     () => ({
@@ -52,7 +57,7 @@ export function PlayerCardProvider({
     <PlayerCardContext.Provider value={value}>
       {children}
       <PlayerCardModal
-        request={request}
+        request={activeRequest}
         onClose={closePlayerCard}
         candidates={candidates}
         compareIds={compareIds}
