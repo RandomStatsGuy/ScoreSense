@@ -10,6 +10,7 @@ from src.draft_hub import storage
 from src.draft_hub.league_live_scoring import (
     DEFAULT_STARTING_SLOTS,
     LIVE_SCORING_MAX_AGE_SECONDS,
+    _attach_hub_team_names,
     _live_cache_is_fresh,
     attach_matchup_analytics,
     build_hub_placeholder_week,
@@ -17,6 +18,7 @@ from src.draft_hub.league_live_scoring import (
     estimate_team_final,
     get_sleeper_live_week,
     pair_placeholder_teams,
+    refresh_sleeper_live_scoring_cache,
     starting_slots,
     starting_slots_from_rules,
     week_picker_meta,
@@ -356,6 +358,45 @@ def test_starting_slots_from_rules_and_placeholder_week():
     assert payload["hint"] == "Link Sleeper to fill scores."
 
 
+def test_placeholder_week_copies_owner_names():
+    payload = build_hub_placeholder_week(
+        [
+            {"id": "t-b", "name": "Bravo", "owner_name": "Bob"},
+            {"id": "t-a", "name": "Alpha", "owner_name": "Alice"},
+        ],
+        viewer_team_id="t-b",
+        week=1,
+        starting_slots=["QB"],
+        reason="no_sleeper_league",
+        nfl_state={"season": "2026", "week": 1},
+    )
+    owners = {team["team_name"]: team.get("owner_name") for team in payload["matchups"][0]["teams"]}
+    assert owners["Alpha"] == "Alice"
+    assert owners["Bravo"] == "Bob"
+    standing_owners = {row["team_name"]: row.get("owner_name") for row in payload["standings"]}
+    assert standing_owners["Alpha"] == "Alice"
+    assert standing_owners["Bravo"] == "Bob"
+
+
+def test_attach_hub_team_names_repairs_placeholder_owners():
+    payload = build_hub_placeholder_week(
+        [{"id": "t-a", "name": "Alpha"}, {"id": "t-b", "name": "Bravo"}],
+        week=1,
+    )
+    repaired = _attach_hub_team_names(
+        payload,
+        [
+            {"id": "t-a", "name": "Alpha", "owner_name": "Alice"},
+            {"id": "t-b", "name": "Bravo", "owner_name": "Bob"},
+        ],
+    )
+    owners = {team["team_name"]: team.get("owner_name") for team in repaired["matchups"][0]["teams"]}
+    assert owners["Alpha"] == "Alice"
+    assert owners["Bravo"] == "Bob"
+    standing_owners = {row["team_name"]: row.get("owner_name") for row in repaired["standings"]}
+    assert standing_owners["Alpha"] == "Alice"
+
+
 def test_build_sleeper_live_week_empty_matchups_uses_placeholder(monkeypatch):
     def _fake_fetch(url):
         if "/matchups/" in url:
@@ -415,6 +456,71 @@ def test_build_sleeper_live_week_unpaired_rows_use_placeholder(monkeypatch):
     assert out["placeholder"] is True
     assert out["reason"] == "no_matchups"
     assert len(out["matchups"]) == 1
+
+
+def test_placeholder_cache_does_not_pin_viewer(monkeypatch, hub_db):
+    def _fake_fetch(url):
+        if "/matchups/" in url:
+            return []
+        if url.endswith("/rosters"):
+            return SAMPLE_ROSTERS
+        return SAMPLE_LEAGUE
+
+    monkeypatch.setattr("src.draft_hub.league_live_scoring._fetch_json", _fake_fetch)
+    monkeypatch.setattr(
+        "src.draft_hub.league_live_scoring.get_nfl_state",
+        lambda **_: {"week": 5, "season": "2025", "season_type": "regular"},
+    )
+    monkeypatch.setattr(
+        "src.draft_hub.league_live_scoring.resolve_current_week",
+        lambda **_: (5, {"week": 5, "season": "2025", "season_type": "regular"}),
+    )
+    hub_teams = [
+        {"id": "t1", "name": "Alpha", "owner_name": "Alice"},
+        {"id": "t2", "name": "Bravo", "owner_name": "Bob"},
+        {"id": "t3", "name": "Chi", "owner_name": "Cara"},
+        {"id": "t4", "name": "Delta", "owner_name": "Drew"},
+    ]
+    first = get_sleeper_live_week(
+        "sl-shared-viewer",
+        hub_teams=hub_teams,
+        viewer_team_id="t1",
+        refresh=True,
+    )
+    assert first["placeholder"] is True
+    assert first["viewer_matchup_id"] == "hub-1"
+    first_viewer = next(team for team in first["matchups"][0]["teams"] if team["is_viewer"])
+    assert first_viewer["hub_team_id"] == "t1"
+
+    cached = storage.get_sleeper_live_scoring_cache("sl-shared-viewer", 5)
+    assert cached is not None
+    assert cached["payload"].get("viewer_matchup_id") is None
+    assert not any(
+        team.get("is_viewer")
+        for matchup in cached["payload"].get("matchups") or []
+        for team in matchup.get("teams") or []
+    )
+
+    refresh_sleeper_live_scoring_cache("sl-shared-viewer", hub_teams=hub_teams, week=5)
+    warmed = storage.get_sleeper_live_scoring_cache("sl-shared-viewer", 5)
+    assert warmed["payload"].get("viewer_matchup_id") is None
+
+    second = get_sleeper_live_week(
+        "sl-shared-viewer",
+        hub_teams=hub_teams,
+        viewer_team_id="t3",
+        refresh=False,
+    )
+    assert second["cached"] is True
+    assert second["viewer_matchup_id"] == "hub-2"
+    second_viewer = next(
+        team
+        for matchup in second["matchups"]
+        for team in matchup["teams"]
+        if team["is_viewer"]
+    )
+    assert second_viewer["hub_team_id"] == "t3"
+    assert second_viewer["owner_name"] == "Cara"
 
 
 @pytest.fixture()

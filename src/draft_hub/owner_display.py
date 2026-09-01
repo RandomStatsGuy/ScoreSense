@@ -329,14 +329,23 @@ def attach_owner_names_to_teams(
         return teams
     owner_map = team_owner_map_for_league(league_id, season_year=season_year)
     for team in teams:
-        team_name = str(
-            team.get("sleeper_team_name") or team.get("name") or team.get("team_name") or ""
-        ).strip()
-        owner = lookup_owner_label(team_name, owner_map)
+        candidates: list[str] = []
+        for key in ("name", "team_name", "sleeper_team_name"):
+            value = str(team.get(key) or "").strip()
+            if value and value not in candidates:
+                candidates.append(value)
+        owner = None
+        for team_name in candidates:
+            owner = lookup_owner_label(team_name, owner_map)
+            if owner:
+                break
         if not owner:
-            resolved = resolve_owner(team_name, team.get("owner_label") or team.get("owner_name"))
-            if resolved and resolved.lower() != team_name.lower():
-                owner = resolved
+            existing = team.get("owner_label") or team.get("owner_name")
+            for team_name in candidates:
+                resolved = resolve_owner(team_name, existing)
+                if resolved and resolved.lower() != team_name.lower():
+                    owner = resolved
+                    break
         if owner:
             team["owner_name"] = owner
     return teams
