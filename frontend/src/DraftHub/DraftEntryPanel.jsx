@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DraftCommissionerSettings from "./DraftCommissionerSettings";
-import DraftLobby from "./DraftLobby";
+import DraftLobby from "./DraftLobby.jsx";
 import {
   draftEntryPhase,
   draftFormatLabel,
