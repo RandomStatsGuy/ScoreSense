@@ -14,3 +14,5 @@ Before user-facing UI work, do not invent chrome from memory.
 5. New or retargeted destination: update `livingSurfaces.js`, nav, `docs/PRODUCT.md`, and tests in the same change.
 
 Reply at the start of UI work with **Matching:** `{id}` · `{page}`. If lookup fails: **Need a surface:** {which screen?} — then add the row once known.
+
+If the user says that Matching line is wrong, switch to their screen **now**. Then add their distinctive phrase to `SURFACE_ALIASES` in `frontend/src/livingSurfaces.js` (same change) so the next lookup hits. Reply **Captured:** `always` · `fantasy-ui` · `{phrase}` → `{id}`. Do not write a parallel essay.

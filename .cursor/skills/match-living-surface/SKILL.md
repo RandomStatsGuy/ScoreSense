@@ -29,7 +29,7 @@ From the row, read:
 - `SHARED.primitives` and `SHARED.tokens` from the same module
 - `SHARED.media` / `SHARED.ownerLabel` when the screen shows players or people
 
-Then reply **Matching:** `{id}` · `{page}`.
+Then reply **Matching:** `{id}` · `{page}` before you edit. That line is the checkpoint. If it is wrong, the user can override it in one sentence.
 
 ## 3. Change by extending, not replacing
 
@@ -49,3 +49,14 @@ In the **same change** when you:
 Update `LIVING_SURFACES` (and `SURFACE_ALIASES` if they used a new name). Also update `docs/PRODUCT.md` and nav when the change is user-facing.
 
 A chrome correction is a living-surface edit, not a new essay. If you are also running capture-correction: persist `always` / `never` by changing the row; do not clone it into `learned-rules.mdc`.
+
+## 5. Wrong Matching: line
+
+When the user rejects the checkpoint (“not the lobby, the live room”, “Strategy, not Free agents”):
+
+1. Resolve the **right** id. Keep working there this turn.
+2. Take the distinctive phrase they used (or the phrase that sent you to the wrong row). Add it to `SURFACE_ALIASES` pointing at the right id. Longer, specific phrases beat short ones (`nominee card` not `draft` if they meant live).
+3. Add a one-line test in `frontend/src/livingSurfaces.test.js` for that phrase.
+4. Reply **Captured:** `always` · `fantasy-ui` · `{phrase}` → `{id}`.
+
+Do this even if they do not say “make it a rule.” A wrong Matching: pick is a durable alias miss.
