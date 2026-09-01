@@ -226,3 +226,18 @@ export function swapBenchIdSet(decisions = []) {
       .map(String),
   );
 }
+
+export function canEditHubLineup({
+  mode,
+  lineupSource,
+  lineupLocked,
+} = {}) {
+  return mode === "league" && lineupSource === "hub" && !lineupLocked;
+}
+
+export function decisionSwapIds(decision) {
+  const starter = String(decision?.starter_player_id || "");
+  const bench = String(decision?.bench_player_id || "");
+  if (!starter || !bench) return null;
+  return { starter_player_id: starter, bench_player_id: bench };
+}

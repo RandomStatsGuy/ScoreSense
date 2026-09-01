@@ -44,7 +44,7 @@ function PlayerFlags({ player }) {
   );
 }
 
-function SlotCard({ slot, decision, wide, movement }) {
+function SlotCard({ slot, decision, wide, movement, canEdit, selected, onSelect, onApplyDecision }) {
   const player = slot.player;
   const empty = !player;
   const injured = Boolean(player?.injured);
@@ -58,8 +58,9 @@ function SlotCard({ slot, decision, wide, movement }) {
 
   return (
     <article
-      className={`hub-wcc-slot hub-wcc-slot--${tone}${decision ? " is-swap" : ""}${empty ? " is-empty" : ""}`}
+      className={`hub-wcc-slot hub-wcc-slot--${tone}${decision ? " is-swap" : ""}${empty ? " is-empty" : ""}${selected ? " is-target" : ""}${canEdit && !empty ? " is-editable" : ""}`}
       aria-label={label}
+      onClick={canEdit && !empty && onSelect ? () => onSelect(slot) : undefined}
     >
       <header className="hub-wcc-slot-head">
         <span className="hub-wcc-slot-pos">{slot.slot}</span>
@@ -91,20 +92,37 @@ function SlotCard({ slot, decision, wide, movement }) {
         </>
       )}
       {decision ? (
-        <p className="hub-wcc-slot-call">
-          <span>Start {decision.bench_player_name}</span>
-          {decision.delta_p50 != null ? (
-            <span className="hub-wcc-slot-call-delta">+{fmtPts(decision.delta_p50)}</span>
-          ) : null}
-        </p>
+        canEdit && onApplyDecision ? (
+          <button
+            type="button"
+            className="hub-wcc-slot-call is-action"
+            onClick={(event) => {
+              event.stopPropagation();
+              onApplyDecision(decision);
+            }}
+          >
+            <span>Start {decision.bench_player_name}</span>
+            {decision.delta_p50 != null ? (
+              <span className="hub-wcc-slot-call-delta">+{fmtPts(decision.delta_p50)}</span>
+            ) : null}
+          </button>
+        ) : (
+          <p className="hub-wcc-slot-call">
+            <span>Start {decision.bench_player_name}</span>
+            {decision.delta_p50 != null ? (
+              <span className="hub-wcc-slot-call-delta">+{fmtPts(decision.delta_p50)}</span>
+            ) : null}
+          </p>
+        )
       ) : null}
     </article>
   );
 }
 
-function BenchChip({ player, highlighted }) {
-  return (
-    <li className={`hub-wcc-bench-chip${highlighted ? " is-swap" : ""}`}>
+function BenchChip({ player, highlighted, selected, canEdit, onSelect }) {
+  const className = `hub-wcc-bench-chip${highlighted ? " is-swap" : ""}${selected ? " is-selected" : ""}${canEdit ? " is-action" : ""}`;
+  const body = (
+    <>
       <span className="hub-wcc-slot-pos">BN</span>
       <span className="hub-wcc-bench-chip-main">
         <strong>{player?.player_name || player?.player_id}</strong>
@@ -114,6 +132,17 @@ function BenchChip({ player, highlighted }) {
         {player?.has_projection === false ? "—" : fmtPts(player?.p50)}
       </span>
       <PlayerFlags player={player} />
+    </>
+  );
+  return (
+    <li>
+      {canEdit && onSelect ? (
+        <button type="button" className={className} onClick={() => onSelect(player)}>
+          {body}
+        </button>
+      ) : (
+        <div className={className}>{body}</div>
+      )}
     </li>
   );
 }
@@ -137,6 +166,11 @@ export default function WeekLineupBoard({
   onWeekChange,
   overlayActions = null,
   coverageActions = null,
+  canEdit = false,
+  selectedBenchId = "",
+  onSelectBench,
+  onSelectSlot,
+  onApplyDecision,
 }) {
   const wideById = indexByPlayerId(wideRanges);
   const moveById = indexByPlayerId(projectionChanges);
@@ -193,6 +227,10 @@ export default function WeekLineupBoard({
                 decision={decisionForStarter(slot, decisions)}
                 wide={pid ? wideById.get(String(pid)) : null}
                 movement={pid ? moveById.get(String(pid)) : null}
+                canEdit={canEdit}
+                selected={Boolean(canEdit && selectedBenchId && pid)}
+                onSelect={onSelectSlot}
+                onApplyDecision={onApplyDecision}
               />
             );
           })}
@@ -223,6 +261,9 @@ export default function WeekLineupBoard({
                 key={player.player_id}
                 player={player}
                 highlighted={swapBenchIds.has(String(player.player_id))}
+                selected={String(selectedBenchId) === String(player.player_id)}
+                canEdit={canEdit}
+                onSelect={onSelectBench}
               />
             ))}
           </ul>

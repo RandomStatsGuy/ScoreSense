@@ -7,6 +7,8 @@ import {
   fillStarterSlots,
   slotTone,
   swapBenchIdSet,
+  canEditHubLineup,
+  decisionSwapIds,
   trophyStripCopy,
   weekHeroCopy,
   weekPrimaryAction,
@@ -128,6 +130,21 @@ test("unlinked with a roster still treats the board as live", () => {
   assert.equal(items[0].label, "Decisions");
   assert.match(weekRailNote({ emptyRoster: false, unlinked: true }), /hub contracts/i);
   assert.equal(weekPrimaryAction({ emptyRoster: false, unlinked: true }).kind, "refresh");
+});
+
+test("canEditHubLineup is league-only and unlocked", () => {
+  assert.equal(canEditHubLineup({ mode: "league", lineupSource: "hub", lineupLocked: false }), true);
+  assert.equal(canEditHubLineup({ mode: "league", lineupSource: "hub", lineupLocked: true }), false);
+  assert.equal(canEditHubLineup({ mode: "solo", lineupSource: "hub" }), false);
+  assert.equal(canEditHubLineup({ mode: "league", lineupSource: "inferred" }), false);
+});
+
+test("decisionSwapIds requires both player ids", () => {
+  assert.deepEqual(
+    decisionSwapIds({ starter_player_id: "s1", bench_player_id: "b1" }),
+    { starter_player_id: "s1", bench_player_id: "b1" },
+  );
+  assert.equal(decisionSwapIds({ starter_player_id: "s1" }), null);
 });
 
 test("trophy strip copy waits until the board is live", () => {

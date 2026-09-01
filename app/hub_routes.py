@@ -97,6 +97,9 @@ from src.draft_hub.schemas import (
     TeamIdentityUpdate,
     WeekPollVoteRequest,
     VictoryEmoteRequest,
+    LineupSetRequest,
+    LineupSwapRequest,
+    ScoreWeekRequest,
 )
 from src.draft_hub.contracts import (
     apply_rookie_extension_command,
@@ -686,6 +689,167 @@ def hub_refresh_weekly_command_center(
     payload["meta"]["rebuilt"] = True
     payload["meta"]["rebuild_counts"] = counts
     return jsonable_encoder(payload)
+
+
+def _lineup_week_args(ctx: dict[str, Any], week: int | None, season: int | None) -> tuple[int, int]:
+    from src.draft_hub.weekly_command_center import resolve_week_context
+
+    hub_season = int(ctx["season"]) if ctx.get("season") is not None else None
+    try:
+        return resolve_week_context(season, week, hub_season=hub_season)
+    except Exception:
+        return int(season or hub_season or 2026), int(week or 1)
+
+
+def _lineup_target_team(ctx: dict[str, Any], requested_team_id: str | None) -> str:
+    own = str(ctx.get("team_id") or "")
+    requested = str(requested_team_id or "").strip()
+    if requested and requested != own and not ctx.get("is_commissioner"):
+        raise HTTPException(status_code=403, detail="Commissioner managed")
+    team_id = requested or own
+    if not team_id:
+        raise HTTPException(status_code=400, detail="No team on this league")
+    return team_id
+
+
+def _require_hub_hosted_scoring(ctx: dict[str, Any]) -> None:
+    if ctx.get("sleeper_league_id"):
+        raise HTTPException(status_code=409, detail="Lineups and scoring stay in Sleeper")
+
+
+@router.get("/league/{league_id}/lineup")
+def hub_get_lineup(
+    league_id: str,
+    week: Optional[int] = Query(None),
+    season: Optional[int] = Query(None),
+    team_id: Optional[str] = Query(None),
+    _user=Depends(require_hub_user),
+) -> dict:
+    from src.draft_hub.hub_scoring import ensure_team_lineup
+    from src.draft_hub.schemas import LeagueRules
+
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    _require_hub_hosted_scoring(ctx)
+    resolved_season, resolved_week = _lineup_week_args(ctx, week, season)
+    target = _lineup_target_team(ctx, team_id)
+    rules = LeagueRules.model_validate(ctx.get("rules") or {})
+    rows = ensure_team_lineup(league_id, target, resolved_season, resolved_week, rules=rules)
+    return {
+        "league_id": league_id,
+        "team_id": target,
+        "season": resolved_season,
+        "week": resolved_week,
+        "lineup": rows,
+        "locked": any(row.get("locked") for row in rows),
+    }
+
+
+@router.put("/league/{league_id}/lineup")
+def hub_set_lineup(
+    league_id: str,
+    body: LineupSetRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    from src.draft_hub.hub_scoring import LineupError, set_team_starters
+    from src.draft_hub.schemas import LeagueRules
+
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    _require_hub_hosted_scoring(ctx)
+    resolved_season, resolved_week = _lineup_week_args(ctx, body.week, body.season)
+    target = _lineup_target_team(ctx, body.team_id)
+    rules = LeagueRules.model_validate(ctx.get("rules") or {})
+    try:
+        rows = set_team_starters(
+            league_id,
+            target,
+            resolved_season,
+            resolved_week,
+            [item.model_dump() for item in body.starters],
+            rules=rules,
+        )
+    except LineupError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "league_id": league_id,
+        "team_id": target,
+        "season": resolved_season,
+        "week": resolved_week,
+        "lineup": rows,
+        "locked": any(row.get("locked") for row in rows),
+    }
+
+
+@router.post("/league/{league_id}/lineup/swap")
+def hub_swap_lineup(
+    league_id: str,
+    body: LineupSwapRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    from src.draft_hub.hub_scoring import LineupError, swap_lineup_players
+    from src.draft_hub.schemas import LeagueRules
+
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    _require_hub_hosted_scoring(ctx)
+    resolved_season, resolved_week = _lineup_week_args(ctx, body.week, body.season)
+    target = _lineup_target_team(ctx, body.team_id)
+    rules = LeagueRules.model_validate(ctx.get("rules") or {})
+    try:
+        rows = swap_lineup_players(
+            league_id,
+            target,
+            resolved_season,
+            resolved_week,
+            starter_player_id=body.starter_player_id,
+            bench_player_id=body.bench_player_id,
+            rules=rules,
+        )
+    except LineupError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "league_id": league_id,
+        "team_id": target,
+        "season": resolved_season,
+        "week": resolved_week,
+        "lineup": rows,
+        "locked": any(row.get("locked") for row in rows),
+    }
+
+
+@router.get("/league/{league_id}/schedule")
+def hub_get_schedule(
+    league_id: str,
+    season: Optional[int] = Query(None),
+    _user=Depends(require_hub_user),
+) -> dict:
+    from src.draft_hub.hub_scoring import ensure_season_schedule
+    from src.draft_hub.schemas import LeagueRules
+
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    rules = LeagueRules.model_validate(ctx.get("rules") or {})
+    payload = ensure_season_schedule(
+        league_id,
+        season=season or ctx.get("season"),
+        rules=rules,
+    )
+    return payload
+
+
+@router.post("/league/{league_id}/score-week")
+def hub_score_week(
+    league_id: str,
+    body: ScoreWeekRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    from src.draft_hub.hub_scoring import LineupError, apply_week_scores
+
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    _require_hub_hosted_scoring(ctx)
+    resolved_season, resolved_week = _lineup_week_args(ctx, body.week, body.season)
+    try:
+        result = apply_week_scores(league_id, resolved_season, resolved_week)
+    except LineupError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return result
 
 
 @router.get("/atmosphere-catalog")
@@ -2929,15 +3093,26 @@ def hub_league_live_scoring(
         hub_teams = _hub_teams_for_scoring(league_id)
         viewer_rid = ctx.get("sleeper_roster_id")
         with timer.phase("live"):
-            scoring = get_sleeper_live_week(
-                str(sleeper_lid),
-                hub_teams=hub_teams,
-                week=week,
-                viewer_roster_id=str(viewer_rid) if viewer_rid else None,
-                viewer_team_id=str(ctx.get("team_id") or "") or None,
-                rules=ctx.get("rules"),
-                refresh=refresh,
-            )
+            if sleeper_lid:
+                scoring = get_sleeper_live_week(
+                    str(sleeper_lid),
+                    hub_teams=hub_teams,
+                    week=week,
+                    viewer_roster_id=str(viewer_rid) if viewer_rid else None,
+                    viewer_team_id=str(ctx.get("team_id") or "") or None,
+                    rules=ctx.get("rules"),
+                    refresh=refresh,
+                )
+            else:
+                from src.draft_hub.hub_scoring import build_hub_live_week
+
+                scoring = build_hub_live_week(
+                    league_id,
+                    week=week,
+                    viewer_team_id=str(ctx.get("team_id") or "") or None,
+                    rules=ctx.get("rules"),
+                    refresh=refresh,
+                )
     return {
         **scoring,
         "hub_context": {

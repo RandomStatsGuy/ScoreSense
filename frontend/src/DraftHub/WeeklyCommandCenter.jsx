@@ -16,6 +16,8 @@ import WeekLineupBoard from "./WeekLineupBoard";
 import {
   buildStarterSlotPlan,
   fillStarterSlots,
+  canEditHubLineup,
+  decisionSwapIds,
   weekHeroCopy,
   weekPrimaryAction,
   weekRailItems,
@@ -38,6 +40,9 @@ export default function WeeklyCommandCenter({
   const [syncMessage, setSyncMessage] = useState("");
   const [syncError, setSyncError] = useState("");
   const [weekOverride, setWeekOverride] = useState("");
+  const [selectedBenchId, setSelectedBenchId] = useState("");
+  const [lineupBusy, setLineupBusy] = useState(false);
+  const [lineupError, setLineupError] = useState("");
 
   const load = useCallback(async (signal, { rebuild = false } = {}) => {
     setLoading(true);
@@ -154,6 +159,36 @@ export default function WeeklyCommandCenter({
     syncedLabel,
   });
   const primary = weekPrimaryAction({ emptyRoster, unlinked, canSync });
+  const canEdit = canEditHubLineup({
+    mode: data?.hub_context?.mode || hubContext?.mode,
+    lineupSource: meta.lineup_source,
+    lineupLocked: meta.lineup_locked,
+  });
+  const leagueId = data?.hub_context?.league_id || hubContext?.league_id;
+
+  const applySwap = useCallback(async (starterId, benchId) => {
+    if (!leagueId || !starterId || !benchId) return;
+    setLineupBusy(true);
+    setLineupError("");
+    try {
+      const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/lineup/swap`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          starter_player_id: starterId,
+          bench_player_id: benchId,
+          week: weekOverride !== "" ? Number(weekOverride) : (meta.week ?? undefined),
+        }),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      setSelectedBenchId("");
+      await load();
+    } catch (e) {
+      setLineupError(connectionErrorMessage(e));
+    } finally {
+      setLineupBusy(false);
+    }
+  }, [leagueId, load, meta.week, weekOverride]);
 
   const runPrimary = () => {
     if (primary.kind === "sync") return runSync();
@@ -254,6 +289,7 @@ export default function WeeklyCommandCenter({
       >
         {error && <div className="error">{error}</div>}
         {syncError && <div className="error">{syncError}</div>}
+        {lineupError && <div className="error">{lineupError}</div>}
         {syncMessage && <p className="chart-note hub-wcc-sync-msg">{syncMessage}</p>}
 
         <WeekLineupBoard
@@ -275,6 +311,22 @@ export default function WeeklyCommandCenter({
           onWeekChange={(e) => setWeekOverride(e.target.value)}
           overlayActions={loading && !data ? null : overlayActions}
           coverageActions={coverageActions}
+          canEdit={canEdit && !lineupBusy}
+          selectedBenchId={selectedBenchId}
+          onSelectBench={(player) => {
+            const pid = String(player?.player_id || "");
+            setSelectedBenchId((cur) => (cur === pid ? "" : pid));
+          }}
+          onSelectSlot={(slot) => {
+            const starterId = slot?.player?.player_id;
+            if (selectedBenchId && starterId) {
+              applySwap(starterId, selectedBenchId);
+            }
+          }}
+          onApplyDecision={(decision) => {
+            const ids = decisionSwapIds(decision);
+            if (ids) applySwap(ids.starter_player_id, ids.bench_player_id);
+          }}
         />
 
         {hubContext?.mode === "league" && (

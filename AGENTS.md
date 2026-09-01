@@ -55,6 +55,7 @@ See `.cursor/rules/draft-hub-performance.mdc`, `.cursor/rules/ml-projections.mdc
 | Area | Paths |
 |------|-------|
 | Valuations | `src/draft_hub/auction_values.py`, `value_sheet.py` |
+| Hub week scoring | `src/draft_hub/hub_scoring.py` — lineups, H2H schedule, PPR apply for ScoreSense-only leagues |
 | Hub UI | `frontend/src/DraftHub/DraftHub.jsx`, `hubDataCache.js` |
 | Rookie role | `src/projections/rookie_role.py`, `data/projections/rookie_role_overrides.yaml` |
 | Sentiment readout | `src/sentiment/readout.py`, `fantasy_digest.py`, `beat_digest.py` |
