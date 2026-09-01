@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from fastapi.testclient import TestClient
 
 from app.api import app
@@ -15,7 +17,9 @@ from src.draft_hub.hub_scoring import (
     ensure_season_schedule,
     ensure_team_lineup,
     fantasy_points_from_stats,
+    nfl_game_started,
     resolve_week_lineup,
+    set_team_starters,
     slot_accepts_position,
     swap_lineup_players,
 )
@@ -206,7 +210,7 @@ def test_apply_week_scores_and_standings(hub_db, monkeypatch):
         "rb-b1": {"rushing_yards": 40, "fantasy_points": 4.0},
         "wr-b1": {"receptions": 3, "receiving_yards": 30, "fantasy_points": 6.0},
     }
-    result = apply_week_scores(league["id"], 2026, 1, stat_index=stats)
+    result = apply_week_scores(league["id"], 2026, 1, stat_index=stats, slate_complete=True)
     assert result["scored"] is True
     assert result["players_with_stats"] >= 6
     team_scores = {row["team_id"]: row["points"] for row in storage.list_team_week_scores(league["id"], 2026, 1)}
@@ -219,6 +223,12 @@ def test_apply_week_scores_and_standings(hub_db, monkeypatch):
     empty = apply_week_scores(league["id"], 2026, 2, stat_index={})
     assert empty["scored"] is False
     assert empty["reason"] == "no_stats"
+
+    midweek = apply_week_scores(league["id"], 2026, 2, stat_index=stats, slate_complete=False)
+    assert midweek["scored"] is False
+    assert midweek["reason"] == "week_in_progress"
+    assert storage.list_team_week_scores(league["id"], 2026, 2) == []
+    assert not any(row.get("locked") for row in storage.list_team_lineup(league["id"], home["id"], 2026, 2))
 
     payload = build_hub_live_week(
         league["id"],
@@ -272,6 +282,10 @@ def test_lineup_swap_and_score_week_routes(hub_db, monkeypatch):
     )
     assert illegal.status_code == 400
 
+    monkeypatch.setattr(
+        "src.draft_hub.hub_scoring.nfl_week_slate_complete",
+        lambda *_a, **_k: True,
+    )
     monkeypatch.setattr(
         "src.draft_hub.hub_scoring.load_week_stat_index",
         lambda season, week: {
@@ -352,3 +366,105 @@ def test_sleeper_linked_league_stays_inferred_and_rejects_hub_score(hub_db, monk
     assert blocked.status_code == 409
     lineup = client.get(f"/api/hub/league/{league['id']}/lineup?week=1")
     assert lineup.status_code == 409
+
+
+def test_score_week_route_rejects_non_commissioner(hub_db, monkeypatch):
+    monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
+    league, _home, away, _comm = _seed_two_team_league(hub_db)
+    client = _client(away["user_sub"])
+    blocked = client.post(
+        f"/api/hub/league/{league['id']}/score-week",
+        json={"week": 1, "season": 2026},
+    )
+    assert blocked.status_code == 403
+
+
+def test_set_team_starters_cannot_bench_locked_starter(hub_db):
+    league, home, _away, _ = _seed_two_team_league(hub_db)
+    rows = ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    locked_starter = next(row for row in rows if row["player_id"] == "wr-a1")
+    assert locked_starter["lineup_role"] == "starter"
+    starter_slots = [
+        {"player_id": row["player_id"], "slot": row["slot"]}
+        for row in rows
+        if row["lineup_role"] == "starter"
+    ]
+    storage.replace_team_lineup(
+        league["id"],
+        home["id"],
+        2026,
+        1,
+        [{**row, "locked": True} if row["player_id"] == "wr-a1" else row for row in rows],
+    )
+    kept = [item for item in starter_slots if item["player_id"] != "wr-a1"]
+    try:
+        set_team_starters(
+            league["id"],
+            home["id"],
+            2026,
+            1,
+            kept,
+            game_started=lambda _team: False,
+        )
+        raise AssertionError("omitting a locked starter should fail")
+    except LineupError as exc:
+        assert "started" in str(exc)
+    still = {row["player_id"]: row for row in storage.list_team_lineup(league["id"], home["id"], 2026, 1)}
+    assert still["wr-a1"]["lineup_role"] == "starter"
+    assert still["wr-a1"]["slot"] == locked_starter["slot"]
+    replayed = set_team_starters(
+        league["id"],
+        home["id"],
+        2026,
+        1,
+        starter_slots,
+        game_started=lambda _team: False,
+    )
+    by_id = {row["player_id"]: row for row in replayed}
+    assert by_id["wr-a1"]["lineup_role"] == "starter"
+    assert by_id["wr-a1"]["slot"] == locked_starter["slot"]
+
+
+def test_ensure_team_lineup_does_not_drop_locked_players(hub_db):
+    league, home, _away, _ = _seed_two_team_league(hub_db)
+    rows = ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    assert any(row["player_id"] == "wr-a1" for row in rows)
+    storage.lock_week_lineups(league["id"], 2026, 1)
+    ws = storage.roster_workspace_for_league(league)
+    storage.remove_roster_slot(ws, "wr-a1")
+    kept = ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    assert any(row["player_id"] == "wr-a1" for row in kept)
+    for row in storage.list_roster(ws, home["id"]):
+        storage.remove_roster_slot(ws, row["player_id"])
+    frozen = ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    assert frozen
+    assert any(row["player_id"] == "wr-a1" for row in frozen)
+
+
+def test_nfl_game_started_uses_et_kickoff_not_gameday_midnight(monkeypatch):
+    import pandas as pd
+
+    from src.core.schedule_utils import schedule_kickoff_utc
+
+    kick = schedule_kickoff_utc("2026-09-13", "13:00")
+    assert kick == pd.Timestamp("2026-09-13 17:00:00", tz="UTC")
+
+    games = pd.DataFrame(
+        [
+            {
+                "season": 2026,
+                "week": 1,
+                "team": "MIA",
+                "gameday": pd.Timestamp("2026-09-13", tz="UTC"),
+                "kickoff": kick,
+            }
+        ]
+    )
+    monkeypatch.setattr(
+        "src.core.schedule_utils.team_game_kickoffs",
+        lambda season, team: games,
+    )
+    before = datetime(2026, 9, 13, 0, 30, tzinfo=timezone.utc)
+    after = datetime(2026, 9, 13, 17, 30, tzinfo=timezone.utc)
+    assert nfl_game_started("MIA", 2026, 1, now=before) is False
+    assert nfl_game_started("MIA", 2026, 1, now=after) is True

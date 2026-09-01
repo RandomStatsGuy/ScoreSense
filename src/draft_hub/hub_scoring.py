@@ -7,7 +7,7 @@ Sleeper as the scoring host.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
 
 import pandas as pd
@@ -144,7 +144,7 @@ def nfl_game_started(
     *,
     now: datetime | None = None,
 ) -> bool:
-    """True when that club's scheduled gameday for the week is in the past."""
+    """True when that club's scheduled kickoff for the week is in the past."""
     team = normalize_team_to_mlready(str(nfl_team or "").strip().upper())
     if not team:
         return False
@@ -160,7 +160,11 @@ def nfl_game_started(
     row = games[games["week"].astype(int) == week_n]
     if row.empty:
         return False
-    kick = pd.Timestamp(row.iloc[0]["gameday"])
+    raw = row.iloc[0]
+    kick_val = raw["kickoff"] if "kickoff" in raw.index and pd.notna(raw.get("kickoff")) else raw.get("gameday")
+    kick = pd.Timestamp(kick_val)
+    if pd.isna(kick):
+        return False
     if kick.tzinfo is None:
         kick = kick.tz_localize("UTC")
     else:
@@ -169,6 +173,27 @@ def nfl_game_started(
     if stamp.tzinfo is None:
         stamp = stamp.replace(tzinfo=timezone.utc)
     return stamp >= kick
+
+
+def nfl_week_slate_complete(
+    season: int,
+    week: int,
+    *,
+    now: datetime | None = None,
+) -> bool:
+    """True when the week's last scheduled kickoff plus a game-length buffer has passed."""
+    try:
+        from src.core.schedule_utils import week_last_kickoff_et
+
+        last = week_last_kickoff_et(int(season), int(week))
+    except Exception:
+        return False
+    if last is None:
+        return False
+    stamp = now or _utcnow()
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=timezone.utc)
+    return stamp >= last.astimezone(timezone.utc) + timedelta(hours=4)
 
 
 def _lineup_row_locked(
@@ -242,6 +267,8 @@ def ensure_team_lineup(
     roster = roster if roster is not None else _active_roster(ws, team_id)
     cards = _cards_from_roster(roster)
     existing = storage.list_team_lineup(league_id, team_id, season, week)
+    if existing and any(row.get("locked") for row in existing):
+        return existing
     if not cards:
         if existing:
             storage.replace_team_lineup(league_id, team_id, season, week, [])
@@ -403,7 +430,8 @@ def set_team_starters(
             raise LineupError(f"{card['position']} cannot start at {slot}")
         prior = existing_by_id.get(pid) or {}
         if _lineup_row_locked(prior or card, season, week, now=now, game_started=game_started):
-            raise LineupError("That player's game has started")
+            if str(prior.get("lineup_role")) != "starter" or str(prior.get("slot") or "") != slot:
+                raise LineupError("That player's game has started")
         starters.append({**card, "slot": slot, "lineup_role": "starter"})
         seen.add(pid)
 
@@ -413,8 +441,9 @@ def set_team_starters(
             continue
         prior = existing_by_id.get(pid) or {}
         if _lineup_row_locked(prior or card, season, week, now=now, game_started=game_started):
+            if str(prior.get("lineup_role")) == "starter":
+                raise LineupError("That player's game has started")
             # Already-started bench players stay on the bench.
-            pass
         bench.append({**card, "slot": "BN", "lineup_role": "bench"})
 
     locked = any(row.get("locked") for row in existing)
@@ -521,6 +550,8 @@ def apply_week_scores(
     *,
     stat_index: dict[str, dict[str, Any]] | None = None,
     load_stats: Callable[[int, int], dict[str, dict[str, Any]]] | None = None,
+    slate_complete: bool | None = None,
+    now: datetime | None = None,
 ) -> dict[str, Any]:
     """Score every Hub lineup for the week and persist team totals."""
     league = storage.get_league(league_id)
@@ -543,6 +574,16 @@ def apply_week_scores(
         return {
             "scored": False,
             "reason": "no_stats",
+            "season": int(season),
+            "week": int(week),
+            "source": "hub_ppr",
+        }
+    if slate_complete is None:
+        slate_complete = nfl_week_slate_complete(int(season), int(week), now=now)
+    if not slate_complete:
+        return {
+            "scored": False,
+            "reason": "week_in_progress",
             "season": int(season),
             "week": int(week),
             "source": "hub_ppr",

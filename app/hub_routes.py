@@ -844,6 +844,7 @@ def hub_score_week(
 
     ctx = _ctx_for_league(_sub(_user), league_id)
     _require_hub_hosted_scoring(ctx)
+    require_commissioner(ctx)
     resolved_season, resolved_week = _lineup_week_args(ctx, body.week, body.season)
     try:
         result = apply_week_scores(league_id, resolved_season, resolved_week)
