@@ -36,6 +36,7 @@ Start here. **Product, brand, and design rules live in [PRODUCT.md](./PRODUCT.md
 
 | Doc | Use when |
 |-----|----------|
+| [CI.md](./CI.md) | GitHub Actions, Vercel off, draft/bot budget |
 | [DEPLOY.md](./DEPLOY.md) | Patreon, Docker, SMTP overview |
 | [DEPLOY_RENDER.md](./DEPLOY_RENDER.md) | Render Blueprint (`render.yaml`) — Docker web service + persist disk |
 | [DEPLOY_CLOUDFLARE_TUNNEL.md](./DEPLOY_CLOUDFLARE_TUNNEL.md) | Production runbook (`app.fourthdownlabs.com`) |
