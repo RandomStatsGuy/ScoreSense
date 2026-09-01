@@ -42,8 +42,7 @@ export default function LeagueCreateJoinDialog({
       <div className="invite-modal league-create-modal panel">
         <h2 id="league-create-title">Create or join a league</h2>
         <p className="chart-note league-create-modal-lead">
-          Start a new ScoreSense league room, or join one with a room code.
-          You can still keep your current league and switch back anytime.
+          Start a room or join with a code. You can switch back anytime.
         </p>
         <LeagueCreateJoinForm
           season={season}
@@ -53,9 +52,11 @@ export default function LeagueCreateJoinDialog({
             onCloseRef.current?.();
           }}
         />
-        <button type="button" className="btn-ghost btn-sm invite-dismiss" onClick={() => onCloseRef.current?.()}>
-          Cancel
-        </button>
+        <div className="league-create-modal-foot">
+          <button type="button" className="btn-ghost btn-sm" onClick={() => onCloseRef.current?.()}>
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   );

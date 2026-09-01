@@ -273,7 +273,7 @@
 
 .hub-home-heading {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   margin: 0 0 0.8rem;
@@ -2825,9 +2825,32 @@
 }
 
 .league-create-overlay .league-create-modal {
-  max-width: min(44rem, calc(100vw - 1.5rem));
+  max-width: min(46rem, calc(100vw - 1.5rem));
   max-height: calc(100vh - 2rem);
   overflow: auto;
+  padding: 1.15rem 1.2rem 1rem;
+}
+
+.league-create-modal .hub-league-setup-grid {
+  align-items: stretch;
+}
+
+.league-create-modal .hub-league-setup-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.league-create-modal .hub-form-col {
+  flex: 1;
+}
+
+.league-create-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--experience-rule);
 }
 
 .draft-lobby-join-form {

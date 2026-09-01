@@ -209,7 +209,7 @@ export default function LeagueHome({
         </div>
         <div className="hub-home-heading-actions">
           {onCreateLeague ? (
-            <button type="button" className="btn-primary btn-sm" onClick={onCreateLeague}>
+            <button type="button" className="btn-ghost btn-sm" onClick={onCreateLeague}>
               New league
             </button>
           ) : null}
