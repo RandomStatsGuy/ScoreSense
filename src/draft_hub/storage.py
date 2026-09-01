@@ -2175,7 +2175,10 @@ def update_workspace_prefs(user_sub: str, prefs: dict[str, Any]) -> dict[str, An
     from src.draft_hub.league_atmosphere import merge_atmosphere_prefs
 
     ws = get_or_create_workspace(user_sub)
-    merged = merge_atmosphere_prefs(prefs)
+    # Partial PATCH: lay incoming keys over stored prefs so toggling one
+    # option never resets the others.
+    existing = ws.get("prefs") or {}
+    merged = merge_atmosphere_prefs({**existing, **(prefs or {})})
     now = _utcnow()
     with get_conn() as conn:
         conn.execute(

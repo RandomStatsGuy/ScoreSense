@@ -15,8 +15,19 @@ export const ATMOSPHERE_LAYERS = [
 /** Total particles across all layers. Kept low — this is ambience, not confetti. */
 export const ATMOSPHERE_DENSITY = 24;
 
+/** Intensity presets: particle budget + overall layer opacity. */
+export const ATMOSPHERE_INTENSITY_PRESETS = {
+  subtle: { density: 14, opacity: 0.26 },
+  standard: { density: ATMOSPHERE_DENSITY, opacity: 0.36 },
+  lively: { density: 36, opacity: 0.46 },
+};
+
+export function intensityPreset(intensity) {
+  return ATMOSPHERE_INTENSITY_PRESETS[intensity] || ATMOSPHERE_INTENSITY_PRESETS.standard;
+}
+
 /** Theme-level size multipliers (leaves/footballs read poorly at snow sizes). */
-const THEME_SIZE_MUL = { snow: 1, leaves: 1.35, footballs: 1.5 };
+const THEME_SIZE_MUL = { snow: 1.05, leaves: 1.4, footballs: 2.15, cozy: 1.35 };
 
 /** Autumn palette: [bodyTop, bodyBottom] gradient stops per leaf. */
 export const LEAF_COLORS = [
@@ -45,6 +56,29 @@ export const LEAF_VARIANTS = [
 
 /** Snowflake crystal: one arm; the renderer rotates it six times. */
 export const SNOW_ARM_PATH = "M50 50 L50 10 M50 18 L42 10 M50 18 L58 10 M50 30 L41 22 M50 30 L59 22";
+
+/** Ragdoll-coat fur palette: [core, edge] soft cream/grey pairs. */
+export const FUR_COLORS = [
+  ["#efe6d8", "#cbbba6"],
+  ["#e6dacb", "#b8a894"],
+  ["#ded3c6", "#a99a8c"],
+  ["#e9dfd4", "#c1ae9b"],
+];
+
+/** Yarn palette for the cozy den: dusty, warm, never neon. */
+export const YARN_COLORS = [
+  ["#c98a8a", "#8f5a5a"],
+  ["#9ab08f", "#657a5c"],
+  ["#d9c27a", "#a08a4c"],
+  ["#a58ec2", "#6f5c8a"],
+  ["#c7986b", "#8f6a45"],
+];
+
+/** Wispy fur-tuft silhouette (100×100) with a few loose hair strokes. */
+export const FUR_TUFT = {
+  body: "M50 18 C68 14 84 30 80 48 C92 56 86 74 70 74 C64 88 40 90 32 76 C16 76 10 58 22 48 C16 32 34 16 50 18 Z",
+  hairs: "M50 18 C52 8 60 6 64 10 M78 44 C88 40 94 46 92 52 M34 76 C30 86 20 88 16 84 M24 48 C14 44 10 36 14 30",
+};
 
 /** Football geometry in a 120×74 viewBox. */
 export const FOOTBALL = {
@@ -94,8 +128,54 @@ function buildParticle(theme, layer, index, rng) {
   } else if (theme === "snow") {
     /** 0 = soft dot (depth filler), 1 = crystal flake. */
     particle.variant = rng() < 0.45 ? 0 : 1;
+  } else if (theme === "cozy") {
+    /** 0 = dust mote (depth filler), 1 = fur tuft, 2 = yarn ball. */
+    const roll = rng();
+    if (layer.id === "far" || roll < 0.2) {
+      particle.variant = 0;
+    } else if (roll < 0.7) {
+      particle.variant = 1;
+      particle.colors = pick(rng, FUR_COLORS);
+    } else {
+      particle.variant = 2;
+      particle.colors = pick(rng, YARN_COLORS);
+      /** Yarn rolls end-over-end; fur just drifts. */
+      particle.spinMode = "spin";
+      particle.size = Math.round(particle.size * 1.2 * 10) / 10;
+    }
+    if (particle.variant === 1) {
+      /** Fur floats: slower fall, wider sway, lazy rock. */
+      particle.fallDuration = Math.round(particle.fallDuration * 1.3 * 10) / 10;
+      particle.spinMode = "rock";
+    }
   }
   return particle;
+}
+
+/** Ground-pile clusters along the bottom edge: left %, scale, mirrored, variant.
+ * The renderer draws theme-specific mound art per cluster. */
+export function buildPileClusters(theme, { rng = Math.random, count = 9 } = {}) {
+  if (!Object.prototype.hasOwnProperty.call(THEME_SIZE_MUL, theme)) return [];
+  const clusters = [];
+  const n = theme === "footballs" ? Math.min(count, 6) : count;
+  for (let i = 0; i < n; i += 1) {
+    const lane = (i + 0.5) / n;
+    clusters.push({
+      id: `pile-${theme}-${i}`,
+      left: Math.round((lane * 100 + rand(rng, -6, 6)) * 10) / 10,
+      scale: Math.round(rand(rng, 0.65, 1.25) * 100) / 100,
+      flip: rng() < 0.5,
+      variant: Math.floor(rng() * 3),
+      colors: theme === "leaves"
+        ? pick(rng, LEAF_COLORS)
+        : theme === "cozy"
+          ? pick(rng, FUR_COLORS)
+          : null,
+      /** Short stagger so the pile is present immediately, then settles. */
+      growDelay: Math.round(rand(rng, 0, 8)),
+    });
+  }
+  return clusters;
 }
 
 /**
