@@ -68,3 +68,5 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Index: `docs/README.md`
 - Rules Center spec: `docs/design.md`
 - Contracts playbook: `docs/CONTRACT_SCENARIOS.md`
+- Correction capture: `.cursor/rules/correction-capture.mdc` + `.cursor/skills/capture-correction/SKILL.md`
+- Learned rules: `.cursor/rules/learned-rules.mdc`

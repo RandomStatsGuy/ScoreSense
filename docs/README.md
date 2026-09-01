@@ -45,4 +45,5 @@ Start here. **Product, brand, and design rules live in [PRODUCT.md](./PRODUCT.md
 ## Agent entry
 
 Architecture and local commands: `../AGENTS.md`.  
-Git branching: `../.cursorrules`.
+Git branching: `../.cursorrules`.  
+When you correct an agent: `.cursor/rules/correction-capture.mdc` classifies the note (`always` / `never` / `usually` / `rarely`) and writes it. Soft rules live in `.cursor/rules/learned-rules.mdc`. The decision tree is `.cursor/skills/capture-correction/SKILL.md`.

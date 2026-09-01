@@ -28,4 +28,6 @@ ssh
 .cursor/*
 !.cursor/rules/
 !.cursor/rules/**
+!.cursor/skills/
+!.cursor/skills/**
 !.cursor/BUGBOT.md
