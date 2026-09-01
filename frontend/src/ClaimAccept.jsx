@@ -1,32 +1,31 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "./auth";
 import { connectionErrorMessage, parseApiError } from "./format";
 import AccountAuth from "./AccountAuth";
 import { useAuth } from "./AuthContext";
 import { hubTeamLabel } from "./DraftHub/hubTeamLabel";
-
-function claimTokenFromUrl() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("claim")?.trim() || "";
-}
-
-function clearClaimParam() {
-  const url = new URL(window.location.href);
-  url.searchParams.delete("claim");
-  window.history.replaceState({}, "", url.pathname + url.search + url.hash);
-}
+import { claimTokenFromSearch, dropClaimParam } from "./claimSearch";
 
 export default function ClaimAccept({ authenticated, user, onAccepted, onDismiss }) {
   const { termsUrl, privacyUrl, patreonConfigured } = useAuth();
-  const token = claimTokenFromUrl();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const token = claimTokenFromSearch(searchParams);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(Boolean(token));
   const [accepting, setAccepting] = useState(false);
+  const [done, setDone] = useState(false);
   const [newName, setNewName] = useState("");
   const [error, setError] = useState("");
 
+  const finish = useCallback((payload) => {
+    setDone(true);
+    setSearchParams(dropClaimParam(searchParams), { replace: true });
+    onAccepted?.(payload);
+  }, [onAccepted, searchParams, setSearchParams]);
+
   useEffect(() => {
-    if (!token) return undefined;
+    if (!token || done) return undefined;
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -43,10 +42,10 @@ export default function ClaimAccept({ authenticated, user, onAccepted, onDismiss
       }
     })();
     return () => { cancelled = true; };
-  }, [token, authenticated, user?.sub]);
+  }, [token, authenticated, user?.sub, done]);
 
   const acceptClaim = useCallback(async (body) => {
-    if (!token) return;
+    if (!token || done) return;
     setAccepting(true);
     setError("");
     try {
@@ -57,16 +56,15 @@ export default function ClaimAccept({ authenticated, user, onAccepted, onDismiss
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
-      clearClaimParam();
-      onAccepted?.(data);
+      finish(data);
     } catch (e) {
       setError(connectionErrorMessage(e));
     } finally {
       setAccepting(false);
     }
-  }, [token, onAccepted]);
+  }, [token, done, finish]);
 
-  if (!token) return null;
+  if (!token || done) return null;
 
   const open = preview?.status === "open";
   const already = Boolean(preview?.already_member);
@@ -105,7 +103,7 @@ export default function ClaimAccept({ authenticated, user, onAccepted, onDismiss
             termsUrl={termsUrl}
             privacyUrl={privacyUrl}
             patreonConfigured={patreonConfigured}
-            patreonNext={`/?claim=${encodeURIComponent(token)}`}
+            patreonNext={`/hub/draft?claim=${encodeURIComponent(token)}`}
             onAuthed={() => window.dispatchEvent(new Event("scoresense-auth-changed"))}
           />
         )}
@@ -114,10 +112,7 @@ export default function ClaimAccept({ authenticated, user, onAccepted, onDismiss
             <button
               type="button"
               className="btn-primary"
-              onClick={() => {
-                clearClaimParam();
-                onAccepted?.(preview);
-              }}
+              onClick={() => finish(preview)}
             >
               Open Draft
             </button>
@@ -134,7 +129,7 @@ export default function ClaimAccept({ authenticated, user, onAccepted, onDismiss
                 onClick={() => acceptClaim({ team_id: team.id })}
               >
                 <strong>{hubTeamLabel(team)}</strong>
-                <span>Take this seat</span>
+                <span>{accepting ? "Claiming…" : "Take this seat"}</span>
               </button>
             ))}
             {preview?.can_create_seat ? (
@@ -168,7 +163,8 @@ export default function ClaimAccept({ authenticated, user, onAccepted, onDismiss
           type="button"
           className="btn-ghost btn-sm invite-dismiss"
           onClick={() => {
-            clearClaimParam();
+            setDone(true);
+            setSearchParams(dropClaimParam(searchParams), { replace: true });
             onDismiss?.();
           }}
         >
@@ -178,5 +174,3 @@ export default function ClaimAccept({ authenticated, user, onAccepted, onDismiss
     </div>
   );
 }
-
-export { claimTokenFromUrl, clearClaimParam };

@@ -5,6 +5,7 @@ import {
   buildFilterSearchParams,
   parseAppPath,
   parseFilterParams,
+  stripOneShotAuthParams,
   stripProjectionParams,
 } from "./routes.js";
 
@@ -14,6 +15,15 @@ test("stripProjectionParams drops projections filters but keeps hub params", () 
   ));
   assert.equal(params.get("player"), "00-123");
   assert.equal([...params.keys()].length, 1);
+});
+
+test("stripOneShotAuthParams drops claim and invite tokens", () => {
+  const params = stripOneShotAuthParams(new URLSearchParams(
+    "claim=secret&invite=tok&player=00-123",
+  ));
+  assert.equal(params.get("claim"), null);
+  assert.equal(params.get("invite"), null);
+  assert.equal(params.get("player"), "00-123");
 });
 
 test("stripProjectionParams tolerates empty input", () => {
