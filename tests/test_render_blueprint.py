@@ -39,6 +39,8 @@ def test_blueprint_web_service_uses_existing_dockerfile():
     assert web["disk"]["mountPath"] == "/var/data"
     assert web["disk"]["sizeGB"] >= 10
     assert web["plan"] not in {"free", "0.5c-512mb"}
+    # Render rejects maxShutdownDelaySeconds when a disk is attached.
+    assert "maxShutdownDelaySeconds" not in web
 
 
 def test_blueprint_does_not_hardcode_secrets():

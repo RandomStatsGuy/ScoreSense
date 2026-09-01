@@ -52,7 +52,6 @@ services:
     dockerCommand: /bin/sh /app/deploy/render/start.sh
     healthCheckPath: /api/health
     autoDeployTrigger: checksPass
-    maxShutdownDelaySeconds: 120
     disk:
       name: scoresense-runtime
       mountPath: /var/data
