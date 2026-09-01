@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sample — Cozy den theme options (pick a direction)</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg-base: #070d17; --bg-elevated: #0d1624; --bg-subtle: #121d2d;
+    --border: #243249; --border-strong: #33435d;
+    --text-primary: #eef3fb; --text-secondary: #a8b5c7; --text-muted: #7f8fa5;
+    --accent: #4f7fda; --accent-muted: #73a5ff;
+    --radius-md: 14px; --radius-lg: 18px; --radius-pill: 999px;
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg-base); color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-weight: 500; font-size: 15px; overflow: hidden; height: 100vh;
+  }
+
+  .atmo { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+  .wash { position: absolute; inset: 0; transition: opacity 0.6s var(--ease); }
+  .wash--cozy {
+    background:
+      radial-gradient(60% 50% at 18% -8%, rgba(255, 196, 140, 0.5), transparent 65%),
+      radial-gradient(50% 45% at 88% 4%, rgba(233, 170, 150, 0.32), transparent 70%),
+      radial-gradient(85% 45% at 50% 112%, rgba(196, 148, 116, 0.42), transparent 72%);
+  }
+  .p { position: absolute; top: -12%; will-change: transform; animation: fall var(--dur, 13s) linear infinite; animation-delay: var(--delay, 0s); }
+  .p .sway { display: block; animation: sway var(--sway-dur, 3.4s) ease-in-out infinite alternate; }
+  .p .spin { display: block; animation: spin var(--spin-dur, 8s) linear infinite; transform-origin: 50% 45%; }
+  .p.rock .spin { animation: rock var(--spin-dur, 5s) ease-in-out infinite alternate; }
+  .p .push { display: block; transition: transform 0.25s ease-out; }
+  .layer-far { filter: blur(1.6px); opacity: 0.4; }
+  .layer-mid { filter: blur(0.4px); opacity: 0.66; }
+  .layer-near { opacity: 0.9; }
+  @keyframes fall { from { transform: translate3d(0, -12vh, 0); } to { transform: translate3d(var(--drift, 16px), 118vh, 0); } }
+  @keyframes sway { from { transform: translateX(calc(var(--sway-amp, 16px) * -1)); } to { transform: translateX(var(--sway-amp, 16px)); } }
+  @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+  @keyframes rock { from { transform: rotate(-22deg); } to { transform: rotate(22deg); } }
+
+  .pile { position: absolute; left: -2%; right: -2%; bottom: 0; height: 9vh; }
+  .pile-cluster { position: absolute; bottom: 0; width: 17rem; transform: translateX(-50%) scale(var(--s, 1)); transform-origin: 50% 100%; }
+  .pile-cluster svg { display: block; width: 100%; height: auto; transform: translateY(14%); }
+  .pile.is-hidden, .wash.is-hidden { display: none; }
+
+  .cat { position: absolute; bottom: 3.4%; width: 9rem; }
+  .cat svg { display: block; width: 100%; height: auto; }
+  .cat--one { left: 11%; }
+  .cat--two { right: 8%; width: 7.6rem; }
+  .cat.is-hidden { display: none; }
+  .cat-body { transform-origin: 50% 100%; animation: breathe 4.4s ease-in-out infinite; }
+  .cat.is-alert .cat-body { animation-duration: 2.6s; }
+  @keyframes breathe { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.025); } }
+  .cat-head { transform-origin: 128px 60px; transition: transform 0.35s var(--ease); }
+  .cat.is-alert .cat-head { transform: translate(var(--look-x, 0), calc(var(--look-y, 0) * 0.6)) rotate(-2deg); }
+  .cat-ear { transform-origin: 50% 100%; transition: transform 0.3s var(--ease); }
+  .cat.is-alert .cat-ear--l { transform: rotate(-8deg); }
+  .cat.is-alert .cat-ear--r { transform: rotate(8deg); }
+  .eyes-open { opacity: 0; transition: opacity 0.2s var(--ease); }
+  .eyes-closed { opacity: 1; transition: opacity 0.2s var(--ease); }
+  .cat.is-alert .eyes-open { opacity: 1; }
+  .cat.is-alert .eyes-closed { opacity: 0; }
+  .pupils { transform: translate(var(--look-x, 0), var(--look-y, 0)); transition: transform 0.12s linear; }
+  .cat-tail { transform-origin: 30px 80px; }
+  .cat.is-alert .cat-tail { animation: flick 1.8s ease-in-out infinite; }
+  @keyframes flick { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-7deg); } 60% { transform: rotate(3deg); } }
+  .cat-paw { transform-origin: 122px 101px; }
+  .cat.is-batting .cat-paw { animation: bat 0.55s var(--ease); }
+  @keyframes bat { 0% { transform: rotate(0); } 35% { transform: rotate(-58deg) translateY(-6px); } 70% { transform: rotate(-20deg); } 100% { transform: rotate(0); } }
+
+  .card {
+    position: relative; z-index: 1; max-width: 44rem; margin: 2.2rem auto 0;
+    background: rgba(13, 22, 36, 0.9); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 1.4rem 1.6rem;
+  }
+  .kicker { font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-muted); font-weight: 700; margin: 0 0 0.4rem; }
+  h1 { margin: 0 0 0.35rem; font-size: 1.45rem; letter-spacing: -0.03em; }
+  .support { color: var(--text-secondary); font-size: 0.86rem; margin: 0 0 1rem; }
+  .row { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; margin-bottom: 0.7rem; }
+  .row .lbl { width: 7rem; flex: none; font-size: 0.66rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+  .chip {
+    border: 1px solid var(--border-strong); background: var(--bg-subtle); color: var(--text-secondary);
+    font-size: 0.78rem; font-weight: 600; padding: 0.38rem 0.85rem; border-radius: var(--radius-pill); cursor: pointer;
+  }
+  .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  input[type="range"] { accent-color: var(--accent); width: 10rem; }
+  .hint { font-size: 0.74rem; color: var(--text-muted); margin: 0.6rem 0 0; line-height: 1.6; }
+  .hint b { color: var(--text-primary); }
+</style>
+</head>
+<body>
+<div class="atmo" id="atmo">
+  <div class="wash wash--cozy" id="wash"></div>
+  <div id="particles"></div>
+  <div class="pile" id="pile"></div>
+</div>
+
+<div class="card">
+  <p class="kicker">Sample — cozy den options</p>
+  <h1>Pick the cozy mix.</h1>
+  <p class="support">
+    Live sample of the Cozy den theme. Move your cursor near a cat: it wakes, tracks you, and
+    bats if you get close. Every option below is a real switch we can ship as the default.
+  </p>
+  <div class="row" id="mixRow">
+    <span class="lbl">What falls</span>
+    <button class="chip" data-mix="fur">A · Fur only</button>
+    <button class="chip active" data-mix="fur-yarn">B · Fur + yarn</button>
+    <button class="chip" data-mix="fur-yarn-motes">C · Fur + yarn + dust motes</button>
+  </div>
+  <div class="row" id="catRow">
+    <span class="lbl">Ragdolls</span>
+    <button class="chip" data-cats="0">None</button>
+    <button class="chip" data-cats="1">One</button>
+    <button class="chip active" data-cats="2">Two</button>
+  </div>
+  <div class="row">
+    <span class="lbl">Fur pile</span>
+    <label class="chip"><input type="checkbox" id="pileToggle" checked style="accent-color:#4f7fda;"/> Collect at the bottom</label>
+  </div>
+  <div class="row">
+    <span class="lbl">Color wash</span>
+    <input type="range" id="washRange" min="0" max="100" value="55" />
+    <span style="font-size:0.76rem;color:var(--text-secondary);" id="washVal">55%</span>
+  </div>
+  <p class="hint">
+    <b>Shipped default (my pick):</b> B mix with dust motes only on the far depth layer,
+    two ragdolls, pile on, wash on. In product everything sits at ~0.28 opacity and every
+    piece is a separate toggle in Account settings.
+  </p>
+</div>
+
+<script>
+(() => {
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const FUR = [["#efe6d8", "#cbbba6"], ["#e6dacb", "#b8a894"], ["#ded3c6", "#a99a8c"]];
+  const YARN = [["#c98a8a", "#8f5a5a"], ["#9ab08f", "#657a5c"], ["#d9c27a", "#a08a4c"], ["#a58ec2", "#6f5c8a"]];
+  let uid = 0;
+
+  const furSvg = (size) => {
+    const [c1, c2] = pick(FUR); const id = "f" + (++uid);
+    return `<svg width="${size}" height="${size}" viewBox="0 0 100 100">
+      <defs><radialGradient id="${id}" cx="0.4" cy="0.35" r="0.8">
+        <stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></radialGradient></defs>
+      <path d="M50 18 C68 14 84 30 80 48 C92 56 86 74 70 74 C64 88 40 90 32 76 C16 76 10 58 22 48 C16 32 34 16 50 18 Z" fill="url(#${id})" opacity="0.9"/>
+      <path d="M50 18 C52 8 60 6 64 10 M78 44 C88 40 94 46 92 52 M34 76 C30 86 20 88 16 84" stroke="${c2}" stroke-width="2.4" stroke-linecap="round" fill="none" opacity="0.8"/></svg>`;
+  };
+  const yarnSvg = (size) => {
+    const [c1, c2] = pick(YARN); const id = "y" + (++uid);
+    return `<svg width="${size}" height="${size}" viewBox="0 0 100 100">
+      <defs><radialGradient id="${id}" cx="0.35" cy="0.3" r="0.9">
+        <stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></radialGradient></defs>
+      <circle cx="50" cy="46" r="34" fill="url(#${id})" stroke="${c2}" stroke-width="2"/>
+      <path d="M20 36 Q50 20 80 36 M16 48 Q50 34 84 48 M20 60 Q50 48 80 60" stroke="${c2}" stroke-width="2.6" fill="none" opacity="0.85"/>
+      <path d="M78 66 Q94 78 88 92 Q84 98 76 96" stroke="${c1}" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
+  };
+  const moteSvg = (size) => {
+    const id = "m" + (++uid);
+    return `<svg width="${size}" height="${size}" viewBox="0 0 100 100">
+      <defs><radialGradient id="${id}"><stop offset="0" stop-color="rgba(255,236,200,0.9)"/>
+      <stop offset="1" stop-color="rgba(255,236,200,0)"/></radialGradient></defs>
+      <circle cx="50" cy="50" r="44" fill="url(#${id})"/></svg>`;
+  };
+
+  const catSvg = (flip, point, coat) => `
+    <svg viewBox="0 0 170 110" ${flip ? 'style="transform:scaleX(-1)"' : ""}>
+      <path class="cat-tail" d="M28 92 C6 92 2 74 14 66 C20 62 28 64 30 72" fill="none" stroke="${point}" stroke-width="13" stroke-linecap="round"/>
+      <path class="cat-body" d="M24 96 C16 74 34 52 66 50 L118 52 C140 54 152 68 150 82 C148 94 138 100 122 101 L44 101 C34 101 27 100 24 96 Z" fill="${coat}" stroke="rgba(0,0,0,0.18)" stroke-width="2"/>
+      <path d="M34 96 C28 78 40 60 62 55 C48 66 42 82 44 98 Z" fill="${point}" opacity="0.25"/>
+      <g class="cat-head">
+        <path class="cat-ear cat-ear--l" d="M104 38 L110 16 L124 32 Z" fill="${point}"/>
+        <path class="cat-ear cat-ear--r" d="M136 32 L152 20 L152 42 Z" fill="${point}"/>
+        <path d="M108 36 L112 24 L120 32 Z" fill="#d9a3a3" opacity="0.8"/>
+        <path d="M138 32 L148 25 L148 37 Z" fill="#d9a3a3" opacity="0.8"/>
+        <ellipse cx="128" cy="56" rx="30" ry="26" fill="${coat}" stroke="rgba(0,0,0,0.18)" stroke-width="2"/>
+        <path d="M100 48 C104 34 152 34 156 48 C158 42 154 30 146 28 L110 28 C102 30 98 42 100 48 Z" fill="${point}" opacity="0.85"/>
+        <g class="eyes-closed">
+          <path d="M112 56 Q117 60 122 56" stroke="#4a4038" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+          <path d="M134 56 Q139 60 144 56" stroke="#4a4038" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+        </g>
+        <g class="eyes-open">
+          <ellipse cx="117" cy="56" rx="6" ry="6.5" fill="#eef6ff"/><ellipse cx="139" cy="56" rx="6" ry="6.5" fill="#eef6ff"/>
+          <g class="pupils"><circle cx="117" cy="56.5" r="3.4" fill="#3c6ea5"/><circle cx="139" cy="56.5" r="3.4" fill="#3c6ea5"/>
+          <circle cx="118.2" cy="55.2" r="1.1" fill="#fff"/><circle cx="140.2" cy="55.2" r="1.1" fill="#fff"/></g>
+        </g>
+        <path d="M124 64 L128 60 L132 64 L128 67 Z" fill="#d98d8d"/>
+        <path d="M128 67 Q128 72 122 73 M128 67 Q128 72 134 73" stroke="#4a4038" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+        <path d="M108 62 L88 58 M108 66 L90 68 M148 62 L166 58 M148 66 L164 68" stroke="rgba(74,64,56,0.6)" stroke-width="1.4" stroke-linecap="round"/>
+      </g>
+      <path d="M96 101 Q98 92 108 92 Q118 92 119 101 Z" fill="${coat}" stroke="rgba(0,0,0,0.15)" stroke-width="1.6"/>
+      <path class="cat-paw" d="M120 101 Q121 90 132 89 Q143 89 144 101 Z" fill="${coat}" stroke="rgba(0,0,0,0.15)" stroke-width="1.6"/>
+    </svg>`;
+
+  const pileMound = (w) => {
+    const [c1, c2] = pick(FUR); const id = "p" + (++uid);
+    return `<svg viewBox="0 0 200 60" style="width:${w}rem;">
+      <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>
+      <path d="M0 60 Q30 24 70 34 Q100 10 140 30 Q175 22 200 60 Z" fill="url(#${id})"/>
+      <path d="M52 32 C48 24 40 22 36 26 M104 16 C102 8 94 6 90 10 M150 26 C152 18 160 16 164 20" stroke="${c2}" stroke-width="2.4" stroke-linecap="round" fill="none" opacity="0.8"/></svg>`;
+  };
+
+  const state = { mix: "fur-yarn", cats: 2 };
+  const particlesHost = document.getElementById("particles");
+  const pileHost = document.getElementById("pile");
+  const atmo = document.getElementById("atmo");
+
+  function spawn() {
+    particlesHost.innerHTML = "";
+    const layers = [
+      { cls: "layer-far", min: 12, max: 18, mul: 1.5, n: 10 },
+      { cls: "layer-mid", min: 18, max: 27, mul: 1.15, n: 12 },
+      { cls: "layer-near", min: 27, max: 40, mul: 0.85, n: 8 },
+    ];
+    layers.forEach((layer) => {
+      for (let i = 0; i < layer.n; i++) {
+        const el = document.createElement("span");
+        const size = rand(layer.min, layer.max);
+        let art;
+        const roll = Math.random();
+        const allowMotes = state.mix === "fur-yarn-motes";
+        const allowYarn = state.mix !== "fur";
+        if (layer.cls === "layer-far" && allowMotes) art = moteSvg(size);
+        else if (allowYarn && roll > 0.68) art = yarnSvg(size);
+        else art = furSvg(size);
+        const isYarn = art.startsWith("<svg") && art.includes("y" + uid);
+        el.className = `p ${layer.cls}${isYarn ? "" : " rock"}`;
+        el.style.left = rand(-4, 102) + "%";
+        el.style.setProperty("--dur", rand(11, 19) * layer.mul + "s");
+        el.style.setProperty("--delay", rand(-19, 0) + "s");
+        el.style.setProperty("--drift", rand(-26, 26) + "px");
+        el.style.setProperty("--sway-amp", rand(10, 34) + "px");
+        el.style.setProperty("--sway-dur", rand(2.6, 4.6) + "s");
+        el.style.setProperty("--spin-dur", rand(5, 10) + "s");
+        el.innerHTML = `<span class="push"><span class="sway"><span class="spin">${art}</span></span></span>`;
+        particlesHost.appendChild(el);
+      }
+    });
+  }
+
+  function buildPile() {
+    pileHost.innerHTML = "";
+    for (let i = 0; i < 9; i++) {
+      const c = document.createElement("span");
+      c.className = "pile-cluster";
+      c.style.left = ((i + 0.5) / 9) * 100 + rand(-5, 5) + "%";
+      c.style.setProperty("--s", rand(0.6, 1.2).toFixed(2));
+      c.innerHTML = pileMound(17);
+      pileHost.appendChild(c);
+    }
+    const catOne = document.createElement("span");
+    catOne.className = "cat cat--one";
+    catOne.innerHTML = catSvg(false, "#8a7a6e", "#efe6d8");
+    const catTwo = document.createElement("span");
+    catTwo.className = "cat cat--two";
+    catTwo.dataset.flip = "1";
+    catTwo.innerHTML = catSvg(true, "#7e8494", "#e9e2d8");
+    pileHost.appendChild(catOne);
+    pileHost.appendChild(catTwo);
+    applyCats();
+  }
+
+  function applyCats() {
+    const cats = pileHost.querySelectorAll(".cat");
+    cats.forEach((cat, i) => cat.classList.toggle("is-hidden", i >= state.cats));
+  }
+
+  /* cursor life: particle drift + cat reactions */
+  const mouse = { x: -9999, y: -9999 };
+  window.addEventListener("pointermove", (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
+  const catState = new Map();
+  function tick() {
+    const now = performance.now();
+    document.querySelectorAll(".layer-mid.p, .layer-near.p").forEach((el) => {
+      const push = el.firstChild;
+      const r = el.getBoundingClientRect();
+      const dx = r.left + r.width / 2 - mouse.x;
+      const dy = r.top + r.height / 2 - mouse.y;
+      const d = Math.hypot(dx, dy);
+      let tx = 0, ty = 0;
+      if (d < 150 && d > 0.01) { const f = ((150 - d) / 150) * 44; tx = (dx / d) * f; ty = (dy / d) * f; }
+      const prev = el._o || { x: 0, y: 0 };
+      prev.x += (tx - prev.x) * 0.14; prev.y += (ty - prev.y) * 0.14;
+      el._o = prev;
+      push.style.transform = `translate(${prev.x.toFixed(1)}px, ${prev.y.toFixed(1)}px)`;
+    });
+    document.querySelectorAll(".cat:not(.is-hidden)").forEach((cat) => {
+      let s = catState.get(cat);
+      if (!s) { s = { lastNear: 0, lastBat: 0, batUntil: 0 }; catState.set(cat, s); }
+      const r = cat.getBoundingClientRect();
+      const dx = mouse.x - (r.left + r.width / 2);
+      const dy = mouse.y - (r.top + r.height / 2);
+      const d = Math.hypot(dx, dy);
+      if (d < 250) {
+        s.lastNear = now;
+        cat.classList.add("is-alert");
+        const flip = cat.dataset.flip === "1" ? -1 : 1;
+        cat.style.setProperty("--look-x", (Math.max(-1, Math.min(1, dx / 250)) * 2.6 * flip).toFixed(2) + "px");
+        cat.style.setProperty("--look-y", (Math.max(-1, Math.min(1, dy / 250)) * 2).toFixed(2) + "px");
+        if (d < 95 && now - s.lastBat > 1300) { s.lastBat = now; s.batUntil = now + 550; cat.classList.add("is-batting"); }
+      } else if (s.lastNear && now - s.lastNear > 3500) {
+        cat.classList.remove("is-alert");
+        s.lastNear = 0;
+      }
+      if (s.batUntil && now > s.batUntil) { cat.classList.remove("is-batting"); s.batUntil = 0; }
+    });
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  /* controls */
+  document.getElementById("mixRow").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-mix]");
+    if (!btn) return;
+    document.querySelectorAll("#mixRow .chip").forEach((b) => b.classList.toggle("active", b === btn));
+    state.mix = btn.dataset.mix;
+    spawn();
+  });
+  document.getElementById("catRow").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-cats]");
+    if (!btn) return;
+    document.querySelectorAll("#catRow .chip").forEach((b) => b.classList.toggle("active", b === btn));
+    state.cats = Number(btn.dataset.cats);
+    applyCats();
+  });
+  document.getElementById("pileToggle").addEventListener("change", (e) => {
+    pileHost.querySelectorAll(".pile-cluster").forEach((c) => { c.style.display = e.target.checked ? "" : "none"; });
+  });
+  const washRange = document.getElementById("washRange");
+  washRange.addEventListener("input", () => {
+    document.getElementById("wash").style.opacity = Number(washRange.value) / 100;
+    document.getElementById("washVal").textContent = `${washRange.value}%`;
+  });
+
+  document.getElementById("wash").style.opacity = 0.55;
+  spawn();
+  buildPile();
+})();
+</script>
+</body>
+</html>

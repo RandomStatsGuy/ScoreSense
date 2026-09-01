@@ -16,7 +16,31 @@ from src.draft_hub.presets import load_preset
 def test_merge_atmosphere_prefs_defaults_and_rejects_unknown():
     assert merge_atmosphere_prefs(None)["atmosphere"] == "none"
     assert merge_atmosphere_prefs({"atmosphere": "snow"})["atmosphere"] == "snow"
+    assert merge_atmosphere_prefs({"atmosphere": "cozy"})["atmosphere"] == "cozy"
     assert merge_atmosphere_prefs({"atmosphere": "neon-disco"})["atmosphere"] == "none"
+
+
+def test_merge_atmosphere_prefs_tailoring_options():
+    defaults = merge_atmosphere_prefs({"atmosphere": "cozy"})
+    assert defaults["atmosphere_motion"] is True
+    assert defaults["atmosphere_pile"] is True
+    assert defaults["atmosphere_wash"] is True
+    assert defaults["atmosphere_intensity"] == "standard"
+
+    custom = merge_atmosphere_prefs(
+        {
+            "atmosphere": "leaves",
+            "atmosphere_motion": False,
+            "atmosphere_pile": "off",
+            "atmosphere_wash": "true",
+            "atmosphere_intensity": "lively",
+        }
+    )
+    assert custom["atmosphere_motion"] is False
+    assert custom["atmosphere_pile"] is False
+    assert custom["atmosphere_wash"] is True
+    assert custom["atmosphere_intensity"] == "lively"
+    assert merge_atmosphere_prefs({"atmosphere_intensity": "chaos"})["atmosphere_intensity"] == "standard"
 
 
 def test_merge_team_identity_caps_lockers_and_presets():

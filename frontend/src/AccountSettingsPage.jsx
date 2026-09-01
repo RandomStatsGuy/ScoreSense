@@ -15,7 +15,16 @@ import {
 } from "./auth";
 import { PRODUCT_NAME, STUDIO_NAME } from "./brand";
 import { parseApiError } from "./format";
-import { ATMOSPHERE_COPY, ATMOSPHERE_THEMES, mergeAtmospherePrefs } from "./DraftHub/atmosphereCatalog";
+import AtmosphereLayer from "./DraftHub/AtmosphereLayer";
+import {
+  ATMOSPHERE_COPY,
+  ATMOSPHERE_INTENSITIES,
+  ATMOSPHERE_OPTION_COPY,
+  ATMOSPHERE_THEMES,
+  applyAtmospherePatch,
+  mergeAtmospherePrefs,
+  notifyAtmosphereChanged,
+} from "./DraftHub/atmosphereCatalog";
 
 export default function AccountSettingsPage() {
   const { ready, authenticated, user, termsUrl, privacyUrl, refreshAuth, openSignIn } = useAuth();
@@ -39,10 +48,11 @@ export default function AccountSettingsPage() {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteErr, setDeleteErr] = useState("");
 
-  const [atmosphere, setAtmosphere] = useState("none");
+  const [atmoPrefs, setAtmoPrefs] = useState(() => mergeAtmospherePrefs(null));
   const [atmosphereBusy, setAtmosphereBusy] = useState(false);
   const [atmosphereMsg, setAtmosphereMsg] = useState("");
   const [atmosphereErr, setAtmosphereErr] = useState("");
+  const atmosphere = atmoPrefs.atmosphere;
 
   React.useEffect(() => {
     if (user?.name) setDisplayName(user.name);
@@ -56,7 +66,7 @@ export default function AccountSettingsPage() {
         const res = await apiFetch("/api/hub/prefs", { signal: ctrl.signal });
         if (!res.ok) return;
         const data = await res.json();
-        setAtmosphere(mergeAtmospherePrefs(data.prefs).atmosphere);
+        setAtmoPrefs(mergeAtmospherePrefs(data.prefs));
       } catch {
         /* keep default off */
       }
@@ -64,7 +74,9 @@ export default function AccountSettingsPage() {
     return () => ctrl.abort();
   }, [authenticated]);
 
-  const saveAtmosphere = async (theme) => {
+  const saveAtmospherePrefs = async (patch, message) => {
+    const previous = atmoPrefs;
+    setAtmoPrefs((prev) => applyAtmospherePatch(prev, patch));
     setAtmosphereBusy(true);
     setAtmosphereMsg("");
     setAtmosphereErr("");
@@ -72,22 +84,27 @@ export default function AccountSettingsPage() {
       const res = await apiFetch("/api/hub/prefs", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ atmosphere: theme }),
+        body: JSON.stringify(patch),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
-      setAtmosphere(mergeAtmospherePrefs(data.prefs).atmosphere);
-      setAtmosphereMsg(
-        theme === "none"
-          ? "Seasonal atmosphere is off."
-          : "Seasonal atmosphere saved. It stays behind Fantasy pages."
-      );
+      setAtmoPrefs(mergeAtmospherePrefs(data.prefs));
+      notifyAtmosphereChanged();
+      setAtmosphereMsg(message || "Atmosphere saved. It stays behind Fantasy pages.");
     } catch (err) {
+      setAtmoPrefs(previous);
       setAtmosphereErr(err.message || "Could not save atmosphere");
     } finally {
       setAtmosphereBusy(false);
     }
   };
+
+  const saveAtmosphere = (theme) => saveAtmospherePrefs(
+    { atmosphere: theme },
+    theme === "none"
+      ? "Seasonal atmosphere is off."
+      : "Seasonal atmosphere saved. It stays behind Fantasy pages.",
+  );
 
   if (!ready) {
     return <div className="panel muted">Loading…</div>;
@@ -174,6 +191,7 @@ export default function AccountSettingsPage() {
 
   return (
     <StandalonePageShell title="Account settings">
+      <AtmosphereLayer theme={atmosphere} prefsOverride={atmoPrefs} />
       <div className="auth-shell auth-shell-page account-settings-page">
         <div className="panel auth-panel account-settings-panel">
           <h2 className="auth-panel-title-desktop">Account settings</h2>
@@ -216,7 +234,8 @@ export default function AccountSettingsPage() {
         <section className="account-settings-section">
           <h3 className="hub-panel-subtitle">Fantasy atmosphere</h3>
           <p className="chart-note">
-            A faint seasonal layer behind Fantasy. Off unless you turn it on. Live draft rooms stay clear.
+            A faint seasonal layer behind Fantasy. Off unless you turn it on.
+            Live draft rooms stay clear. This page previews the scene as you tailor it.
           </p>
           <div className="hub-identity-room-toggle" role="radiogroup" aria-label="Seasonal atmosphere">
             {ATMOSPHERE_THEMES.map((theme) => (
@@ -233,6 +252,53 @@ export default function AccountSettingsPage() {
             ))}
           </div>
           <p className="chart-note">{ATMOSPHERE_COPY[atmosphere].support}</p>
+
+          {atmosphere !== "none" && (
+            <div className="account-atmosphere-options">
+              {["motion", "pile", "wash"].map((key) => (
+                <label key={key} className="account-atmosphere-toggle">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(atmoPrefs[key])}
+                    disabled={atmosphereBusy}
+                    onChange={(e) => saveAtmospherePrefs(
+                      { [`atmosphere_${key}`]: e.target.checked },
+                      "Atmosphere updated.",
+                    )}
+                  />
+                  <span>
+                    <strong>{ATMOSPHERE_OPTION_COPY[key].title}</strong>
+                    <small>{ATMOSPHERE_OPTION_COPY[key].support}</small>
+                  </span>
+                </label>
+              ))}
+              <div className="account-atmosphere-intensity">
+                <span className="hub-field-label">Intensity</span>
+                <div className="hub-identity-room-toggle" role="radiogroup" aria-label="Atmosphere intensity">
+                  {ATMOSPHERE_INTENSITIES.map((level) => (
+                    <button
+                      key={level}
+                      type="button"
+                      className={`filter-chip${atmoPrefs.intensity === level ? " filter-chip--active" : ""}`}
+                      aria-pressed={atmoPrefs.intensity === level}
+                      disabled={atmosphereBusy}
+                      title={ATMOSPHERE_OPTION_COPY.intensity[level].support}
+                      onClick={() => saveAtmospherePrefs(
+                        { atmosphere_intensity: level },
+                        "Atmosphere updated.",
+                      )}
+                    >
+                      {ATMOSPHERE_OPTION_COPY.intensity[level].title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="chart-note">
+                Turn off Falling animation for a still scene (wash and pile only), or keep
+                just the animation with the other two off. Reduced-motion settings always win.
+              </p>
+            </div>
+          )}
           {atmosphereMsg && <p className="chart-note">{atmosphereMsg}</p>}
           {atmosphereErr && <div className="error">{atmosphereErr}</div>}
         </section>
