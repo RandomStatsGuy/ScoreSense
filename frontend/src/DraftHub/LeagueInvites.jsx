@@ -11,6 +11,7 @@ import {
   managerClaimLabel,
   managerClaimRotateHint,
   managerClaimWhatHappens,
+  shareableAppUrl,
 } from "./leagueAccessCopy";
 
 export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
@@ -131,9 +132,10 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
   };
 
   const copyClaimLink = async () => {
-    if (!claimUrl) return;
+    const url = shareableAppUrl(claimUrl);
+    if (!url) return;
     try {
-      await navigator.clipboard.writeText(claimUrl);
+      await navigator.clipboard.writeText(url);
       setClaimCopied(true);
       window.setTimeout(() => setClaimCopied(false), 2200);
     } catch {
@@ -193,17 +195,19 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
 
   if (!hubContext?.can_invite_members) return null;
 
+  const shareableClaimUrl = shareableAppUrl(claimUrl);
+
   return (
     <section className={`panel hub-panel hub-panel-embedded${mobileLayout ? " hub-invites--mobile" : ""}`}>
       <h3>Invite league members</h3>
       <p className="chart-note">{memberInviteExplainer()}</p>
 
-      {claimUrl ? (
+      {shareableClaimUrl ? (
         <div className="hub-claim-link">
           <label htmlFor="office-claim-url">{managerClaimLabel()}</label>
           <p className="chart-note">{managerClaimExplainer()}</p>
           <div className="hub-toolbar">
-            <code id="office-claim-url" className="hub-invite-url">{claimUrl}</code>
+            <code id="office-claim-url" className="hub-invite-url">{shareableClaimUrl}</code>
             <button type="button" className="btn-ghost btn-sm" onClick={copyClaimLink}>
               {claimCopied ? "Copied" : "Copy link"}
             </button>

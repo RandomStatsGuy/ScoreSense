@@ -19,6 +19,7 @@ import {
   managerClaimExplainer,
   managerClaimLabel,
   managerClaimWhatHappens,
+  shareableAppUrl,
 } from "./leagueAccessCopy.js";
 
 test("league switcher treats create as its own action", () => {
@@ -99,6 +100,10 @@ test("member email invite is how people join the league", () => {
   assert.match(copy, /invite link/i);
   assert.match(copy, /claim a team/i);
   assert.match(managerClaimLabel(), /Invite link/i);
+  assert.equal(
+    shareableAppUrl("https://app.example.com/hub/draft?claim=abc", "http://127.0.0.1:5173"),
+    "http://127.0.0.1:5173/hub/draft?claim=abc",
+  );
   assert.match(managerClaimExplainer(), /text this link/i);
   assert.match(managerClaimWhatHappens(), /claims an open team/i);
   assert.match(emailManagersHint(), /member-only/i);

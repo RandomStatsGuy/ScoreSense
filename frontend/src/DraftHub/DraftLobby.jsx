@@ -25,6 +25,7 @@ import {
   managerClaimLabel,
   managerClaimRotateHint,
   managerClaimWhatHappens,
+  shareableAppUrl,
 } from "./leagueAccessCopy";
 import DraftAvailability from "./DraftAvailability";
 import { HubExperienceHero, HubExperienceLayout, HubExperienceSummary } from "./HubUILayout";
@@ -65,7 +66,7 @@ export default function DraftLobby({
   const teamCount = Number(league?.team_count || 12);
   const roomCode = String(league?.room_code || "").toUpperCase();
   const inviteUrl = roomCode ? lobbyAbsoluteUrl(roomCode) : "";
-  const claimUrl = claimLink || claimAccess?.url || "";
+  const claimUrl = shareableAppUrl(claimLink || claimAccess?.url || "");
   const claimEnabled = claimAccess?.enabled !== false;
   const myTeamId = viewer?.team_id;
   const mySlot = (teams || []).find((t) => String(t.id) === String(myTeamId))?.draft_slot;

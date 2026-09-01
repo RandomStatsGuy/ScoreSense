@@ -106,6 +106,23 @@ export function draftJoinAccountNote({ authenticated = false, membersOnly = fals
   return "No account needed for this practice draft. Guests stay in the room.";
 }
 
+export function shareableAppUrl(url, origin) {
+  const raw = String(url || "").trim();
+  if (!raw) return "";
+  const host = String(
+    origin
+    || (typeof window !== "undefined" && window.location?.origin)
+    || "",
+  ).replace(/\/$/, "");
+  try {
+    const parsed = new URL(raw, host || "http://localhost");
+    if (!host) return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    return `${host}${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return raw;
+  }
+}
+
 export function managerClaimLabel() {
   return "Invite link";
 }
