@@ -12,6 +12,11 @@ SKILLS = (
     "mirror-prod-league",
     "match-living-surface",
     "capture-correction",
+    "add-fantasy-destination",
+    "add-hub-route",
+    "add-ui-copy",
+    "change-league-rules",
+    "refresh-draft-pool",
 )
 
 
@@ -53,6 +58,35 @@ def test_mirror_skill_and_unix_script_agree() -> None:
     assert "import_cap_sheet.py" in sh
     assert "verify_hub_mirror.py" in sh
     assert "0BBESQ" in sh
+
+
+def test_production_skills_name_canonical_files() -> None:
+    dest = _skill("add-fantasy-destination")
+    assert "HubSubnav.jsx" in dest
+    assert "livingSurfaces.js" in dest
+    assert "routes.js" in dest
+    assert "PRODUCT.md" in dest
+
+    route = _skill("add-hub-route")
+    assert "require_hub_user" in route
+    assert "value_sheet.py" in route
+    assert "process_pool" in route
+    assert "predict_*" in route or "predict_" in route
+
+    copy = _skill("add-ui-copy")
+    assert "*Presentation.js" in copy or "Presentation.js" in copy
+    assert "node:test" in copy
+    assert "Commissioner managed" in copy
+
+    rules = _skill("change-league-rules")
+    assert "rulesPresentation.js" in rules
+    assert "new contracts only" in rules
+    assert "rules_engine.py" in rules
+
+    pool = _skill("refresh-draft-pool")
+    assert "preseason_refresh" in pool
+    assert "fix_artifact_fingerprints.py" in pool
+    assert "draft_pool" in pool
 
 
 def test_wrong_matching_updates_aliases() -> None:
