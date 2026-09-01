@@ -3,6 +3,21 @@ name: Deploy to VPS
 on:
   push:
     branches: [master]
+    # Docs, CI config, and agent rules do not change the running image.
+    # A docs-only master merge must not stop the API and rebuild Docker.
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - "tests/**"
+      - "render.yaml"
+      - "vercel.json"
+      - "requirements-ci.txt"
+      - ".cursor/**"
+      - ".cursorrules"
+      - "AGENTS.md"
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/ci-frontend.yml"
+      - ".github/workflows/weekly-refresh.yml"
 
 concurrency:
   group: deploy-production

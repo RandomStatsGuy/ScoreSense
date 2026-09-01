@@ -1,27 +1,18 @@
 name: CI
 
-# Keep unit tests, but avoid burning Actions minutes on every intermediate
-# agent push while a PR is still a draft.
+# Draft PRs are for iteration — do not burn Actions minutes until Ready.
+# No push trigger: a change already paid for CI on the develop PR; merging
+# again to develop/master used to reinstall the world a second and third time.
 on:
-  push:
-    branches: [master, develop]
-    paths:
-      - "app/**"
-      - "src/**"
-      - "frontend/**"
-      - "tests/**"
-      - "requirements.txt"
-      - "pyproject.toml"
-      - ".github/workflows/ci.yml"
   pull_request:
     types: [opened, ready_for_review, reopened, synchronize]
     branches: [develop, master]
     paths:
       - "app/**"
       - "src/**"
-      - "frontend/**"
       - "tests/**"
       - "requirements.txt"
+      - "requirements-ci.txt"
       - "pyproject.toml"
       - ".github/workflows/ci.yml"
 
@@ -31,18 +22,18 @@ concurrency:
 
 jobs:
   test:
-    # Draft PRs are for iteration. Run CI when the PR is ready (or on
-    # push to protected integration branches).
-    if: github.event_name == 'push' || github.event.pull_request.draft == false
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install dependencies
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pytest
+          pip install -r requirements-ci.txt
       - name: Run tests
         run: PYTHONPATH=. python -m pytest tests/ -q
