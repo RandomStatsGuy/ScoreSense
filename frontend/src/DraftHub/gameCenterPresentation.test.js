@@ -8,6 +8,7 @@ import {
   findViewerMatchup,
   formatWinProb,
   GAME_CENTER_COPY,
+  gameCenterTeamLabel,
   gameStateLabel,
   matchupStoryline,
   matchupTeams,
@@ -83,6 +84,20 @@ test("storyline names the lead and who is still to play", () => {
     opponent: { ...opponent, team_name: "Daddio", starters: [{ points: 12 }], points: 90.0 },
   });
   assert.match(final, /^Final: Daddio takes it by 2.7/);
+});
+
+test("game center labels lead with owner and keep the team nickname", () => {
+  assert.equal(
+    gameCenterTeamLabel({ team_name: "White Supremacists", owner_name: "Caleb K" }),
+    "Caleb K · White Supremacists",
+  );
+  const line = matchupStoryline({
+    viewer: { points: 10, starters: [{ points: 10 }] },
+    opponent: { team_name: "Daddio of the Pandio", owner_name: "Colby L", points: 12, starters: [{ points: 12 }] },
+    weekComplete: true,
+  });
+  assert.match(line, /Colby L/);
+  assert.doesNotMatch(line, /^Final: Daddio of the Pandio/);
 });
 
 test("game state label distinguishes past weeks and preseason", () => {

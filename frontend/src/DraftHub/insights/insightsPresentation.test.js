@@ -11,6 +11,7 @@ import {
   pickDiscussablePosition,
   positionSpendLeaders,
   scoringRaceRows,
+  rankShowsTeam,
   teamDisplayName,
 } from "./insightsPresentation.js";
 
@@ -87,4 +88,14 @@ test("formatSpendValue and hero status stay screenshot-ready", () => {
     "Highest salary · $85 on roster right now",
   );
   assert.equal(teamDisplayName({ team_name: "Air Raid" }), "Air Raid");
+  assert.equal(
+    teamDisplayName({ team_name: "White Supremacists" }, { "White Supremacists": "Caleb K" }, false),
+    "Caleb K",
+  );
+  assert.equal(
+    teamDisplayName({ team_name: "White Supremacists" }, { "White Supremacists": "Caleb K" }, true),
+    "Caleb K · White Supremacists",
+  );
+  assert.equal(rankShowsTeam({ label: "Caleb K", teamName: "White Supremacists" }), true);
+  assert.equal(rankShowsTeam({ label: "Caleb K · White Supremacists", teamName: "White Supremacists" }), false);
 });

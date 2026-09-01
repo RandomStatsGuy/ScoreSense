@@ -1,7 +1,7 @@
 import React from "react";
 import IdentityCropMedia from "./IdentityCropMedia";
 import { identityMediaUrl, initialsFromName, mergeTeamIdentity } from "./atmosphereCatalog";
-import { hubTeamLabel } from "./hubTeamLabel";
+import { hubTeamInitialsName, hubTeamLabel } from "./hubTeamLabel";
 
 export default function TeamIdentityMark({
   team,
@@ -12,6 +12,7 @@ export default function TeamIdentityMark({
 }) {
   const look = mergeTeamIdentity(identity || team?.identity);
   const name = hubTeamLabel(team) || team?.name || "Team";
+  const initialsName = hubTeamInitialsName(team) || team?.name || "Team";
   const photoUrl = identityMediaUrl(look, "photo");
 
   return (
@@ -23,7 +24,7 @@ export default function TeamIdentityMark({
         {photoUrl ? (
           <IdentityCropMedia src={photoUrl} focus={look.photo_focus} className="hub-team-mark-img" />
         ) : (
-          <span className="hub-team-mark-initials">{initialsFromName(name)}</span>
+          <span className="hub-team-mark-initials">{initialsFromName(initialsName)}</span>
         )}
       </span>
       {showName ? <span className="hub-team-mark-name">{name}</span> : null}

@@ -112,6 +112,9 @@ def resolve_hub_context(user_sub: str) -> dict[str, Any]:
         rules = LeagueRules.model_validate(league["rules"])
         is_primary = str(league["commissioner_sub"]) == str(user_sub)
         is_staff = is_primary or bool(team.get("is_commissioner"))
+        from src.draft_hub.owner_display import attach_owner_names_to_teams
+
+        attach_owner_names_to_teams(str(league["id"]), [team], season_year=league.get("season"))
         return _with_permissions({
             "mode": "league",
             "hub_focus": hub_focus,
@@ -123,6 +126,7 @@ def resolve_hub_context(user_sub: str) -> dict[str, Any]:
             "league_status": league["status"],
             "team_id": team["id"],
             "team_name": team["name"],
+            "owner_name": team.get("owner_name"),
             "is_commissioner": is_staff,
             "is_primary_commissioner": is_primary,
             "lock_team_claims": bool(league.get("lock_team_claims", True)),

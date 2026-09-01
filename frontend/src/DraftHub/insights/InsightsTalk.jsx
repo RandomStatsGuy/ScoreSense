@@ -4,6 +4,7 @@ import {
   POS_COLORS,
   formatSpendValue,
   managerLabel,
+  rankShowsTeam,
 } from "./insightsPresentation";
 
 export function InsightsAwardCard({ award, ownerMap, yearSpecific, featured = false }) {
@@ -132,7 +133,12 @@ export function RankBars({
             className={`hub-insights-rank-row${mine ? " is-mine" : ""}`}
           >
             <span className="hub-insights-rank-place">{row.rank || ""}</span>
-            <span className="hub-insights-rank-name">{row.label}</span>
+            <span className="hub-insights-rank-name">
+              {row.label}
+              {rankShowsTeam(row) ? (
+                <span className="hub-insights-rank-team">{row.teamName}</span>
+              ) : null}
+            </span>
             <div className="hub-insights-rank-track" aria-hidden>
               <div
                 className="hub-insights-rank-fill"
@@ -245,7 +251,12 @@ export function ScoringRace({
                 onMouseLeave={() => onHover?.("")}
               >
                 <span className="hub-insights-rank-place">#{row.rank}</span>
-                <span className="hub-insights-rank-name">{row.label}</span>
+                <span className="hub-insights-rank-name">
+                  {row.label}
+                  {rankShowsTeam(row) ? (
+                    <span className="hub-insights-rank-team">{row.teamName}</span>
+                  ) : null}
+                </span>
                 <div className="hub-insights-rank-track" aria-hidden>
                   <div
                     className="hub-insights-rank-fill"

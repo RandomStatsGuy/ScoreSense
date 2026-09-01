@@ -1,5 +1,7 @@
 /** Game center copy + pure view helpers (no JSX). */
 
+import { hubTeamLabel, hubTeamParts } from "./hubTeamLabel.js";
+
 export const GAME_CENTER_COPY = {
   eyebrow: "Game center",
   emptySolo: "Game center follows your head-to-head matchup. Open a shared league to use it.",
@@ -15,6 +17,20 @@ export const GAME_CENTER_COPY = {
   trophiesTitle: "After the whistle",
   trophiesSupport: "Reactions and week trophies — winners land in Insights.",
 };
+
+export function gameCenterTeamLabel(team) {
+  return hubTeamLabel({
+    name: team?.team_name,
+    owner_name: team?.owner_name,
+  });
+}
+
+export function gameCenterTeamParts(team) {
+  return hubTeamParts({
+    name: team?.team_name,
+    owner_name: team?.owner_name,
+  });
+}
 
 export function findViewerMatchup(payload) {
   const matchups = payload?.matchups || [];
@@ -97,11 +113,11 @@ export function matchupStoryline({
   const theirPending = startersPending(opponent);
   if (weekComplete || (myPending === 0 && theirPending === 0)) {
     if (margin > 0) return `Final: you win by ${lead}.`;
-    if (margin < 0) return `Final: ${opponent.team_name} takes it by ${lead}.`;
+    if (margin < 0) return `Final: ${gameCenterTeamLabel(opponent)} takes it by ${lead}.`;
     return "Final: a dead tie.";
   }
   const pendingNote = theirPending > 0
-    ? `${opponent.team_name} has ${theirPending} starter${theirPending === 1 ? "" : "s"} left`
+    ? `${gameCenterTeamLabel(opponent)} has ${theirPending} starter${theirPending === 1 ? "" : "s"} left`
     : `you have ${myPending} starter${myPending === 1 ? "" : "s"} left`;
   if (margin > 0) return `You lead by ${lead} — ${pendingNote}.`;
   if (margin < 0) return `You trail by ${lead} — ${pendingNote}.`;

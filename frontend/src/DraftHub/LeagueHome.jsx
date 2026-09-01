@@ -6,7 +6,8 @@ import useMobileLayout from "../useMobileLayout";
 import { HubAlert, HubPage } from "./HubUILayout";
 import TeamIdentityMark from "./TeamIdentityMark";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
-import { findViewerMatchup, matchupTeams } from "./gameCenterPresentation";
+import { findViewerMatchup, gameCenterTeamParts, matchupTeams } from "./gameCenterPresentation";
+import { hubTeamLabel } from "./hubTeamLabel";
 import {
   actionLabel,
   formatHomeScore,
@@ -196,6 +197,7 @@ export default function LeagueHome({
   const identityTeam = (team) => ({
     id: team?.hub_team_id || team?.roster_id,
     name: team?.team_name,
+    owner_name: team?.owner_name,
   });
 
   return (
@@ -258,7 +260,11 @@ export default function LeagueHome({
         <aside className="hub-home-snapshot" aria-label="League snapshot">
           <div className="hub-home-snapshot-head">
             <p className="hub-experience-kicker">At a glance</p>
-            <span>{hubContext?.team_name || "Your team"}</span>
+            <span>{hubTeamLabel({
+              name: hubContext?.team_name,
+              sleeper_team_name: hubContext?.sleeper_team_name,
+              owner_name: hubContext?.owner_name,
+            }) || "Your team"}</span>
           </div>
           <dl className="hub-home-snapshot-list">
             <div>
@@ -303,17 +309,25 @@ export default function LeagueHome({
                 <h3>{HOME_DECK_COPY.matchupTitle}</h3>
                 <span className="chart-note">{matchupNote}</span>
               </header>
-              {[matchViewer, matchOpponent].map((team) => (
+              {[matchViewer, matchOpponent].map((team) => {
+                const parts = gameCenterTeamParts(team);
+                return (
                 <div className="hub-home-mu-row" key={team.roster_id || team.team_name}>
                   <TeamIdentityMark
                     team={identityTeam(team)}
                     identity={identityFor(identities, identityTeam(team))}
                     size="sm"
                   />
-                  <span className="hub-home-mu-name">{team.team_name}</span>
+                  <span className="hub-home-mu-name">
+                    {parts.owner || parts.team || team.team_name}
+                    {parts.owner && parts.team ? (
+                      <span className="hub-gc-team-nick">{parts.team}</span>
+                    ) : null}
+                  </span>
                   <span className="hub-home-mu-score">{formatHomeScore(team, placeholder)}</span>
                 </div>
-              ))}
+                );
+              })}
               {onNavigate ? (
                 <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("game")}>
                   {HOME_DECK_COPY.openGame} <span aria-hidden="true">→</span>
@@ -328,18 +342,26 @@ export default function LeagueHome({
                 <span className="chart-note">{HOME_DECK_COPY.standingsNote}</span>
               </header>
               <ol className="hub-home-standings">
-                {standingRows.map((row) => (
+                {standingRows.map((row) => {
+                  const parts = gameCenterTeamParts(row);
+                  return (
                   <li
                     key={row.roster_id}
                     className={row.hub_team_id && String(row.hub_team_id) === String(hubContext?.team_id) ? "is-you" : ""}
                   >
                     <span className="hub-home-standing-rank">{row.rank}</span>
-                    <span className="hub-home-standing-name">{row.team_name}</span>
+                    <span className="hub-home-standing-name">
+                      {parts.owner || parts.team || row.team_name}
+                      {parts.owner && parts.team ? (
+                        <span className="hub-gc-team-nick">{parts.team}</span>
+                      ) : null}
+                    </span>
                     <span className="hub-home-standing-rec">
                       {row.wins}–{row.losses}{row.ties ? `–${row.ties}` : ""}
                     </span>
                   </li>
-                ))}
+                  );
+                })}
               </ol>
             </section>
           ) : null}

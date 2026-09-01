@@ -183,6 +183,7 @@ def _hub_teams_for_scoring(league_id: str) -> list[dict[str, Any]]:
             "name": t.get("name"),
             "sleeper_roster_id": t.get("sleeper_roster_id"),
             "sleeper_team_name": t.get("sleeper_team_name"),
+            "owner_name": t.get("owner_name"),
         }
         for t in storage.list_league_teams(league_id)
     ]

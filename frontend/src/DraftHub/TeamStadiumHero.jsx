@@ -1,7 +1,7 @@
 import React from "react";
 import IdentityCropMedia from "./IdentityCropMedia";
 import { identityMediaUrl, initialsFromName, mergeTeamIdentity } from "./atmosphereCatalog";
-import { hubTeamLabel } from "./hubTeamLabel";
+import { hubTeamInitialsName, hubTeamLabel } from "./hubTeamLabel";
 
 export default function TeamStadiumHero({
   team,
@@ -15,6 +15,7 @@ export default function TeamStadiumHero({
 }) {
   const look = mergeTeamIdentity(identity);
   const name = hubTeamLabel(team) || team?.name || "Team";
+  const initialsName = hubTeamInitialsName(team) || team?.name || "Team";
   const photoUrl = identityMediaUrl(look, "photo");
   const bannerUrl = identityMediaUrl(look, "banner");
   const preview = size === "preview";
@@ -41,7 +42,7 @@ export default function TeamStadiumHero({
           {photoUrl ? (
             <IdentityCropMedia src={photoUrl} focus={look.photo_focus} />
           ) : (
-            <span className="hub-team-mark-initials">{initialsFromName(name)}</span>
+            <span className="hub-team-mark-initials">{initialsFromName(initialsName)}</span>
           )}
         </div>
         <div className="hub-stadium-hero-id">

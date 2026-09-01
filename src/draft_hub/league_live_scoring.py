@@ -152,11 +152,31 @@ def _bench_summary(
     }
 
 
+def _hub_roster_lookups(hub_teams: list[dict[str, Any]] | None) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
+    labels: dict[str, str] = {}
+    owners: dict[str, str] = {}
+    hub_ids: dict[str, str] = {}
+    for team in hub_teams or []:
+        rid = str(team.get("sleeper_roster_id") or "")
+        if not rid:
+            continue
+        labels[rid] = (
+            team.get("name") or team.get("team_name") or team.get("sleeper_team_name") or "Team"
+        )
+        owner = str(team.get("owner_name") or "").strip()
+        if owner:
+            owners[rid] = owner
+        if team.get("id"):
+            hub_ids[rid] = str(team["id"])
+    return labels, owners, hub_ids
+
+
 def _team_from_matchup_row(
     row: dict[str, Any],
     *,
     roster_to_label: dict[str, str],
     roster_to_hub_id: dict[str, str] | None = None,
+    roster_to_owner: dict[str, str] | None = None,
     raw_players: dict[str, Any],
     viewer_roster_id: str | None,
 ) -> dict[str, Any]:
@@ -171,6 +191,7 @@ def _team_from_matchup_row(
         "roster_id": rid,
         "hub_team_id": (roster_to_hub_id or {}).get(rid),
         "team_name": roster_to_label.get(rid) or f"Roster {rid}",
+        "owner_name": (roster_to_owner or {}).get(rid),
         "points": round(float(row.get("points") or 0), 2),
         "starters": starter_rows,
         "bench": _bench_summary(row, raw_players),
@@ -280,6 +301,7 @@ def _fetch_standings(
     sleeper_league_id: str,
     roster_to_label: dict[str, str],
     roster_to_hub_id: dict[str, str] | None = None,
+    roster_to_owner: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     """League records from Sleeper rosters (wins/losses/points-for), ranked."""
     try:
@@ -300,6 +322,7 @@ def _fetch_standings(
                 "roster_id": rid,
                 "hub_team_id": (roster_to_hub_id or {}).get(rid),
                 "team_name": roster_to_label.get(rid) or f"Roster {rid}",
+                "owner_name": (roster_to_owner or {}).get(rid),
                 "wins": int(settings.get("wins") or 0),
                 "losses": int(settings.get("losses") or 0),
                 "ties": int(settings.get("ties") or 0),
@@ -350,17 +373,7 @@ def build_sleeper_live_week(
     preseason = status in ("pre_draft", "drafting") or season_type == "pre"
     week_meta = week_picker_meta(state, league)
 
-    roster_to_label: dict[str, str] = {}
-    roster_to_hub_id: dict[str, str] = {}
-    if hub_teams:
-        for t in hub_teams:
-            rid = str(t.get("sleeper_roster_id") or "")
-            if rid:
-                roster_to_label[rid] = (
-                    t.get("name") or t.get("team_name") or t.get("sleeper_team_name") or "Team"
-                )
-                if t.get("id"):
-                    roster_to_hub_id[rid] = str(t["id"])
+    roster_to_label, roster_to_owner, roster_to_hub_id = _hub_roster_lookups(hub_teams)
 
     try:
         matchups = _fetch_json(
@@ -419,6 +432,7 @@ def build_sleeper_live_week(
                 row,
                 roster_to_label=roster_to_label,
                 roster_to_hub_id=roster_to_hub_id,
+                roster_to_owner=roster_to_owner,
                 raw_players=raw_players,
                 viewer_roster_id=viewer_roster_id,
             )
@@ -457,7 +471,12 @@ def build_sleeper_live_week(
         "viewer_matchup_id": viewer_matchup_id,
         "matchups": matchup_payloads,
         "starting_slots": starting_slots(league.get("roster_positions")),
-        "standings": _fetch_standings(str(sleeper_league_id), roster_to_label, roster_to_hub_id),
+        "standings": _fetch_standings(
+            str(sleeper_league_id),
+            roster_to_label,
+            roster_to_hub_id,
+            roster_to_owner,
+        ),
         "hint": (
             "Season not started — scores update after Week 1."
             if preseason and not has_points
@@ -726,16 +745,7 @@ def refresh_sleeper_live_scoring_cache(
 
 
 def _attach_hub_team_names(payload: dict[str, Any], hub_teams: list[dict[str, Any]]) -> dict[str, Any]:
-    roster_to_label: dict[str, str] = {}
-    roster_to_hub_id: dict[str, str] = {}
-    for t in hub_teams:
-        rid = str(t.get("sleeper_roster_id") or "")
-        if rid:
-            roster_to_label[rid] = (
-                t.get("name") or t.get("team_name") or t.get("sleeper_team_name") or "Team"
-            )
-            if t.get("id"):
-                roster_to_hub_id[rid] = str(t["id"])
+    roster_to_label, roster_to_owner, roster_to_hub_id = _hub_roster_lookups(hub_teams)
     if not roster_to_label:
         return payload
 
@@ -744,6 +754,7 @@ def _attach_hub_team_names(payload: dict[str, Any], hub_teams: list[dict[str, An
         return {
             **entry,
             "team_name": roster_to_label.get(rid) or entry.get("team_name"),
+            "owner_name": roster_to_owner.get(rid) or entry.get("owner_name"),
             "hub_team_id": entry.get("hub_team_id") or roster_to_hub_id.get(rid),
         }
 

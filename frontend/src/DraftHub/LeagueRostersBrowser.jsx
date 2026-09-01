@@ -5,13 +5,13 @@ import useMobileLayout from "../useMobileLayout";
 import MobileDataList, { MobileStat } from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
-import { HubPage, HubTableCard } from "./HubUILayout";
-import HubTabIntro from "./HubTabIntro";
+import { HubExperienceHero, HubFilterScroll, HubPage, HubTableCard } from "./HubUILayout";
 import { fmtSal } from "./rosterFormat";
 import { seedTradeFromPlayer } from "./tradeSeed";
 import ContractHistoryLink from "./ContractHistoryLink";
 import TeamIdentityMark from "./TeamIdentityMark";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
+import { hubTeamLabel, hubTeamParts } from "./hubTeamLabel";
 
 function gradeLabel(grade) {
   if (grade === "good") return "Good value";
@@ -98,9 +98,17 @@ export default function LeagueRostersBrowser({
     load();
   }, [load]);
 
+  const teamBlocks = useMemo(() => {
+    return [...(overview?.teams || [])].sort((a, b) => {
+      const aLabel = hubTeamLabel(a.team, { includeTeam: false }) || hubTeamLabel(a.team);
+      const bLabel = hubTeamLabel(b.team, { includeTeam: false }) || hubTeamLabel(b.team);
+      return aLabel.localeCompare(bLabel);
+    });
+  }, [overview]);
+
   const block = useMemo(
-    () => (overview?.teams || []).find((b) => b.team?.id === teamId) || null,
-    [overview, teamId],
+    () => teamBlocks.find((b) => b.team?.id === teamId) || null,
+    [teamBlocks, teamId],
   );
   const stats = block?.stats || {};
   const roster = useMemo(
@@ -124,33 +132,70 @@ export default function LeagueRostersBrowser({
 
   const tradeLabel = teamId === myTeamId ? "Add to trade" : "Trade for";
 
+  const ownerRail = (
+    <nav className="hub-roster-owner-rail" aria-label="Managers">
+      <p className="hub-filter-label">Managers</p>
+      {mobileLayout ? (
+        <HubFilterScroll>
+          {teamBlocks.map((b) => {
+            const parts = hubTeamParts(b.team);
+            const selected = b.team.id === teamId;
+            return (
+              <button
+                key={b.team.id}
+                type="button"
+                className={`hub-roster-owner-chip${selected ? " is-selected" : ""}`}
+                aria-pressed={selected}
+                onClick={() => setTeamId(b.team.id)}
+              >
+                <strong>{parts.owner || parts.team || "Manager"}</strong>
+                {parts.owner && parts.team ? <span>{parts.team}</span> : null}
+                {b.team.id === myTeamId ? <span className="table-meta">you</span> : null}
+              </button>
+            );
+          })}
+        </HubFilterScroll>
+      ) : (
+        <ul className="hub-roster-owner-list">
+          {teamBlocks.map((b) => {
+            const parts = hubTeamParts(b.team);
+            const selected = b.team.id === teamId;
+            return (
+              <li key={b.team.id}>
+                <button
+                  type="button"
+                  className={`hub-roster-owner-btn${selected ? " is-selected" : ""}`}
+                  aria-pressed={selected}
+                  onClick={() => setTeamId(b.team.id)}
+                >
+                  <strong>{parts.owner || parts.team || "Manager"}</strong>
+                  {parts.owner && parts.team ? <span>{parts.team}</span> : null}
+                  {b.team.id === myTeamId ? <em>you</em> : null}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </nav>
+  );
+
   return (
-    <HubPage>
-      <HubTabIntro
-        title="Rosters"
-        purpose="Browse every team’s contracts, spot good and bad deals, and start a trade."
+    <HubPage className="hub-experience-page hub-roster-browser-page">
+      <HubExperienceHero
+        eyebrow="Fantasy"
+        heading="League rosters"
+        support="Browse every manager’s contracts, spot good and bad deals, and start a trade."
+        chip={overview?.teams?.length ? `${overview.teams.length} managers` : undefined}
       />
       {error && <div className="error">{error}</div>}
       {loading && !overview && <p className="chart-note">Loading league rosters…</p>}
 
       {overview && (
-        <>
+        <div className="hub-roster-owner-layout">
+          {ownerRail}
+          <div className="hub-roster-owner-main">
           <div className="hub-roster-browser-toolbar">
-            <label className="hub-roster-browser-team">
-              <span className="sr-only">Team</span>
-              <select
-                className="hub-league-switcher-select"
-                value={teamId}
-                onChange={(e) => setTeamId(e.target.value)}
-              >
-                {(overview.teams || []).map((b) => (
-                  <option key={b.team.id} value={b.team.id}>
-                    {b.team.name}
-                    {b.team.id === myTeamId ? " (you)" : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
             {block?.team && (
               <TeamIdentityMark
                 team={block.team}
@@ -358,7 +403,8 @@ export default function LeagueRostersBrowser({
               </div>
             )}
           </HubTableCard>
-        </>
+          </div>
+        </div>
       )}
     </HubPage>
   );
