@@ -46,7 +46,7 @@ No forced Fantasy redirect.
 
 | Step | Action |
 |------|--------|
-| 1 | Open `/?claim={token}` from a text, or `/?invite={token}` from email |
+| 1 | Open `/hub/draft?claim={token}` from a text (`/?claim=` still works), or `/?invite={token}` from email |
 | 2 | Register/sign in (email invites still require the invited address) |
 | 3 | **Claim your team** (or Join league on an email invite) |
 | 4 | **Draft** → mark nights that work when the calendar is open |

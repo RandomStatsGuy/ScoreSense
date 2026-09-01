@@ -32,7 +32,7 @@ def _seed(hub_db, *, sub: str = "claim-comm"):
 
 
 def test_claim_url_uses_query_param():
-    assert build_claim_url("abc123").endswith("/?claim=abc123")
+    assert build_claim_url("abc123").endswith("/hub/draft?claim=abc123")
 
 
 def test_preview_lists_unclaimed_teams(hub_db):

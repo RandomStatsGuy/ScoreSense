@@ -10,7 +10,7 @@ from src.draft_hub import storage
 
 def build_claim_url(token: str) -> str:
     base = FRONTEND_URL.rstrip("/")
-    return f"{base}/?claim={token}"
+    return f"{base}/hub/draft?claim={token}"
 
 
 def ensure_claim_token(league_id: str) -> str:
