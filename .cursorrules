@@ -1,6 +1,7 @@
 # ScoreSense — Cursor Agent Rules
 
 Product, brand, and design: **`docs/PRODUCT.md`**. Always-applied agent rules: `.cursor/rules/scoresense-core.mdc`. Do not wait for the user to restate them.
+User corrections: `.cursor/rules/correction-capture.mdc` (classify + persist). Frequency-scoped catalog: `.cursor/rules/learned-rules.mdc`.
 
 ## Git branching (STRICT — non-negotiable)
 

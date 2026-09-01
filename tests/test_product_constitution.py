@@ -31,6 +31,8 @@ RULE_FILES = (
     "frontend-draft-hub.mdc",
     "draft-hub-performance.mdc",
     "ml-projections.mdc",
+    "correction-capture.mdc",
+    "learned-rules.mdc",
 )
 
 

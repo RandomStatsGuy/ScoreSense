@@ -1,0 +1,26 @@
+---
+description: Frequency-scoped learned rules. Scan before acting. Soft rules live here.
+alwaysApply: true
+---
+
+# Learned rules
+
+Scan this table before acting. Use a row when its **Scope** matches the task (or scope is `agent`).
+
+Hard rules in `docs/PRODUCT.md` and `.cursor/rules/scoresense-core.mdc` beat this table.
+
+## How to apply frequency
+
+| Freq | Meaning |
+|------|---------|
+| `always` | Do this whenever the condition is true. No silent skip. |
+| `never` | Do not do this. No silent exception. |
+| `usually` | Default. If you deviate, say why in the reply. |
+| `rarely` | Do not do this unless the user asked this turn or a hard rule requires it. |
+
+## Catalog
+
+Keep under 30 data rows. Promote `always` / `never` into `docs/PRODUCT.md` or a domain `.mdc` and delete the row. Do not invent rows here except via `.cursor/skills/capture-correction/SKILL.md`.
+
+| Freq | Scope | Rule |
+|------|-------|------|
