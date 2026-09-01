@@ -17,9 +17,9 @@ export const ATMOSPHERE_DENSITY = 24;
 
 /** Intensity presets: particle budget + overall layer opacity. */
 export const ATMOSPHERE_INTENSITY_PRESETS = {
-  subtle: { density: 14, opacity: 0.2 },
-  standard: { density: ATMOSPHERE_DENSITY, opacity: 0.28 },
-  lively: { density: 36, opacity: 0.36 },
+  subtle: { density: 14, opacity: 0.26 },
+  standard: { density: ATMOSPHERE_DENSITY, opacity: 0.36 },
+  lively: { density: 36, opacity: 0.46 },
 };
 
 export function intensityPreset(intensity) {
@@ -27,7 +27,7 @@ export function intensityPreset(intensity) {
 }
 
 /** Theme-level size multipliers (leaves/footballs read poorly at snow sizes). */
-const THEME_SIZE_MUL = { snow: 1, leaves: 1.35, footballs: 1.5, cozy: 1.15 };
+const THEME_SIZE_MUL = { snow: 1.05, leaves: 1.4, footballs: 2.15, cozy: 1.35 };
 
 /** Autumn palette: [bodyTop, bodyBottom] gradient stops per leaf. */
 export const LEAF_COLORS = [
@@ -141,6 +141,7 @@ function buildParticle(theme, layer, index, rng) {
       particle.colors = pick(rng, YARN_COLORS);
       /** Yarn rolls end-over-end; fur just drifts. */
       particle.spinMode = "spin";
+      particle.size = Math.round(particle.size * 1.2 * 10) / 10;
     }
     if (particle.variant === 1) {
       /** Fur floats: slower fall, wider sway, lazy rock. */

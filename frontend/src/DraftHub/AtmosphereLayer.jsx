@@ -242,14 +242,14 @@ function LeafPileMound({ id, colors }) {
 function FootballPileMound({ id, variant = 2 }) {
   const count = Math.max(1, Math.min(3, variant + 1));
   const positions = count === 3
-    ? [{ x: 28, y: 34 }, { x: 96, y: 34 }, { x: 62, y: 6 }]
+    ? [{ x: 16, y: 28 }, { x: 86, y: 30 }, { x: 50, y: 2 }]
     : count === 2
-      ? [{ x: 34, y: 30 }, { x: 92, y: 32 }]
-      : [{ x: 60, y: 30 }];
+      ? [{ x: 24, y: 26 }, { x: 84, y: 28 }]
+      : [{ x: 52, y: 24 }];
   return (
-    <svg viewBox="0 0 200 76" className="hub-atmosphere-pile-svg hub-atmosphere-pile-svg--balls" aria-hidden="true">
+    <svg viewBox="0 0 200 82" className="hub-atmosphere-pile-svg hub-atmosphere-pile-svg--balls" aria-hidden="true">
       {positions.map((pos, i) => (
-        <g key={i} transform={`translate(${pos.x} ${pos.y}) scale(0.62)`}>
+        <g key={i} transform={`translate(${pos.x} ${pos.y}) scale(0.82)`}>
           <FootballPileBall id={`${id}-${i}`} />
         </g>
       ))}
@@ -613,7 +613,7 @@ export default function AtmosphereLayer({ theme = "none", liveDraft = false, pre
         </span>
       ))}
 
-      {(pileClusters.length > 0 || activeTheme === "cozy") && (
+      {pileClusters.length > 0 && (
         <div
           className={`hub-atmosphere-pile${motionOn ? "" : " hub-atmosphere-pile--static"}`}
         >
@@ -631,23 +631,23 @@ export default function AtmosphereLayer({ theme = "none", liveDraft = false, pre
               <PileClusterArt cluster={cluster} theme={activeTheme} />
             </span>
           ))}
-          {activeTheme === "cozy" && (
-            <>
-              <span
-                className="hub-atmosphere-cat hub-atmosphere-cat--left"
-                data-atm-cat="1"
-              >
-                <RagdollCat point="#8a7a6e" coat="#efe6d8" />
-              </span>
-              <span
-                className="hub-atmosphere-cat hub-atmosphere-cat--right"
-                data-atm-cat="1"
-                data-atm-flip="1"
-              >
-                <RagdollCat flip point="#7e8494" coat="#e9e2d8" />
-              </span>
-            </>
-          )}
+        </div>
+      )}
+      {activeTheme === "cozy" && (
+        <div className="hub-atmosphere-cats">
+          <span
+            className="hub-atmosphere-cat hub-atmosphere-cat--left"
+            data-atm-cat="1"
+          >
+            <RagdollCat point="#8a7a6e" coat="#efe6d8" />
+          </span>
+          <span
+            className="hub-atmosphere-cat hub-atmosphere-cat--right"
+            data-atm-cat="1"
+            data-atm-flip="1"
+          >
+            <RagdollCat flip point="#7e8494" coat="#e9e2d8" />
+          </span>
         </div>
       )}
     </div>
