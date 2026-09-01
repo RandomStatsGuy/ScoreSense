@@ -22,7 +22,7 @@ Draft → iterate in Cursor → mark **Ready for review** when you want the paid
 
 ## Why CI is slimmer
 
-`requirements.txt` still installs desktop extras for local/legacy tools (`PyQt5`, `pandasgui`, `streamlit`, matplotlib). Tests never import them. CI installs `requirements-ci.txt` and caches pip so a ready PR is not a 3-minute Qt install.
+`requirements.txt` still installs desktop extras for local/legacy tools (`PyQt5`, `pandasgui`, `streamlit`) and plot libs (`matplotlib`, `seaborn`). CI installs `requirements-ci.txt` without those. Backtest plot helpers import matplotlib only when they draw, so `from app.api import app` no longer requires Qt or pyplot.
 
 ## Bots (Cursor dashboard — not in git)
 

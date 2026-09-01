@@ -35,6 +35,41 @@ def _req_lines(path: Path) -> list[str]:
     ]
 
 
+def test_api_collects_without_matplotlib():
+    """Regression: module-level pyplot in backtest broke CI on requirements-ci.txt."""
+    import os
+    import subprocess
+    import sys
+
+    script = r"""
+import sys
+from importlib.abc import MetaPathFinder
+
+class _BlockPlots(MetaPathFinder):
+    def find_spec(self, fullname, path, target=None):
+        if fullname.split(".", 1)[0] in {"matplotlib", "seaborn"}:
+            raise ModuleNotFoundError(fullname)
+        return None
+
+sys.meta_path.insert(0, _BlockPlots())
+from src.pipeline.backtest import compute_metrics
+from src.products.accuracy_report import load_accuracy_report
+assert callable(compute_metrics)
+assert callable(load_accuracy_report)
+print("ok")
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=ROOT,
+        env={**os.environ, "PYTHONPATH": str(ROOT), "TESTING": "1", "SCORESENSE_TESTING": "1"},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "ok" in result.stdout
+
+
 def test_vercel_disables_all_git_deployments():
     spec = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
     assert spec["git"]["deploymentEnabled"] is False
