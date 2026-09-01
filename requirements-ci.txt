@@ -1,6 +1,6 @@
 # GitHub Actions / pytest only. Same stack as requirements.txt minus desktop
 # and notebook extras (PyQt5, pandasgui, streamlit, matplotlib, seaborn).
-# Those packages are unused by tests/ and make every CI run install Qt.
+# Backtest plots lazy-import matplotlib/seaborn; tests do not need them or Qt.
 pandas>=2.0.0
 numpy>=1.24.0
 scikit-learn==1.6.1

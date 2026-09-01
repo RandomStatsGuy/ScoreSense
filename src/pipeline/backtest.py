@@ -1,4 +1,8 @@
-"""Walk-forward backtesting with baseline comparisons."""
+"""Walk-forward backtesting with baseline comparisons.
+
+Plot helpers lazy-import matplotlib/seaborn so `compute_metrics` /
+`top_n_accuracy` can load in GitHub CI (`requirements-ci.txt` omits them).
+"""
 
 from __future__ import annotations
 
@@ -6,10 +10,8 @@ import argparse
 import json
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from src.config import BACKTEST_DIR, DEFAULT_TEST_SEASONS, PREDICTION_QUANTILES, PROCESSED_DATA_DIR
@@ -145,6 +147,8 @@ def run_backtest(
 
 
 def _plot_weekly_mae(weekly: pd.DataFrame, position: str, output_dir: Path) -> None:
+    import matplotlib.pyplot as plt
+
     plt.figure(figsize=(10, 4))
     weekly["game_index"] = range(len(weekly))
     plt.plot(weekly["game_index"], weekly["model_mae"], label="ScoreSense model")
@@ -159,6 +163,9 @@ def _plot_weekly_mae(weekly: pd.DataFrame, position: str, output_dir: Path) -> N
 
 
 def _plot_mae_comparison(metrics: dict, position: str, output_dir: Path) -> None:
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
     labels = ["Model", "Season Avg", "Last Game"]
     maes = [
         metrics["model"]["mae"],

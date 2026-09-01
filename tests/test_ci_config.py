@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import yaml
@@ -38,6 +41,51 @@ def _req_lines(path: Path) -> list[str]:
 def test_vercel_disables_all_git_deployments():
     spec = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
     assert spec["git"]["deploymentEnabled"] is False
+
+
+def test_backtest_metrics_import_without_plot_libs():
+    """API tests import compute_metrics; CI does not install matplotlib."""
+    script = r"""
+import sys
+
+class _BlockPlotLibs:
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname.split(".", 1)[0] in {"matplotlib", "seaborn"}:
+            raise ModuleNotFoundError(fullname)
+        return None
+
+sys.meta_path.insert(0, _BlockPlotLibs())
+import src.products.accuracy_report  # noqa: F401  — app.api import chain
+from src.pipeline.backtest import compute_metrics, top_n_accuracy
+import pandas as pd
+
+metrics = compute_metrics(pd.Series([1.0, 2.0]), pd.Series([1.0, 2.0]))
+assert metrics["mae"] == 0.0
+hits = top_n_accuracy(
+    pd.DataFrame(
+        {
+            "season": [2024, 2024],
+            "week": [1, 1],
+            "player_id": ["a", "b"],
+            "Fpts": [10.0, 1.0],
+            "pred": [9.0, 2.0],
+        }
+    ),
+    "pred",
+    n=1,
+)
+assert hits == 1.0
+print("ok")
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=ROOT,
+        env={**os.environ, "PYTHONPATH": str(ROOT)},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
 
 
 def test_requirements_ci_omits_desktop_extras_and_tracks_runtime_pins():
