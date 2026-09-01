@@ -1,12 +1,19 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
 import useMobileLayout from "../useMobileLayout";
-import { HubPage } from "./HubUILayout";
+import { HubAlert, HubPage } from "./HubUILayout";
+import TeamIdentityMark from "./TeamIdentityMark";
+import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
+import { findViewerMatchup, gameCenterTeamParts, matchupTeams } from "./gameCenterPresentation";
 import { hubTeamLabel } from "./hubTeamLabel";
 import {
   actionLabel,
+  formatHomeScore,
+  HOME_DECK_COPY,
+  homeDeckStandingRows,
+  homeMatchupNote,
   phaseTrackState,
   resolveLeagueHomeFocus,
   supportingLeagueHomeActions,
@@ -26,6 +33,7 @@ const HUB_ACTION_VIEWS = new Set([
   "trades",
   "insights",
   "home",
+  "game",
 ]);
 
 function severityVariant(severity) {
@@ -82,19 +90,21 @@ function formatDraftDate(schedule) {
 
 /**
  * Phase-aware League Home + action center (SCORE-10).
- * Consumes GET /api/hub/home — no live Sleeper on load.
+ * Action center from GET /api/hub/home. Matchup/standings deck from live-scoring.
  */
 export default function LeagueHome({
   hubContext,
   reloadToken = 0,
   onNavigate,
   onNavigateSetup,
-  onCreateLeague,
 }) {
   const mobileLayout = useMobileLayout();
+  const { identities } = useTeamIdentities();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [scoring, setScoring] = useState(null);
+  const leagueId = hubContext?.mode === "league" ? hubContext?.league_id : null;
 
   const load = useCallback(async (signal) => {
     setLoading(true);
@@ -127,6 +137,26 @@ export default function LeagueHome({
     reloadToken,
   ]);
 
+  useEffect(() => {
+    if (!leagueId) {
+      setScoring(null);
+      return undefined;
+    }
+    const ctrl = new AbortController();
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/api/hub/league/${encodeURIComponent(leagueId)}/live-scoring`,
+          { signal: ctrl.signal },
+        );
+        if (res.ok) setScoring(await res.json());
+      } catch {
+        /* deck stays hidden if scoring cannot load */
+      }
+    })();
+    return () => ctrl.abort();
+  }, [leagueId, reloadToken]);
+
   const phase = data?.phase || {};
   const primaryCta = phase.primary_cta || null;
   const actions = data?.actions || [];
@@ -152,6 +182,24 @@ export default function LeagueHome({
 
   const goSetup = onNavigateSetup || (onNavigate ? () => onNavigate("setup") : null);
 
+  const matchup = useMemo(() => findViewerMatchup(scoring), [scoring]);
+  const { viewer: matchViewer, opponent: matchOpponent } = useMemo(
+    () => matchupTeams(matchup),
+    [matchup],
+  );
+  const standingRows = useMemo(
+    () => homeDeckStandingRows(scoring?.standings || [], hubContext?.team_id),
+    [scoring?.standings, hubContext?.team_id],
+  );
+  const showDeck = Boolean(leagueId && (matchup || standingRows.length));
+  const placeholder = Boolean(scoring?.placeholder);
+  const matchupNote = homeMatchupNote(scoring, matchOpponent);
+  const identityTeam = (team) => ({
+    id: team?.hub_team_id || team?.roster_id,
+    name: team?.team_name,
+    owner_name: team?.owner_name,
+  });
+
   return (
     <HubPage className={`hub-league-home${mobileLayout ? " hub-league-home--mobile" : ""}`}>
       {error && <div className="error">{error}</div>}
@@ -161,11 +209,6 @@ export default function LeagueHome({
           <h2>Make the next decision count.</h2>
         </div>
         <div className="hub-home-heading-actions">
-          {onCreateLeague ? (
-            <button type="button" className="btn-primary btn-sm" onClick={onCreateLeague}>
-              New league
-            </button>
-          ) : null}
           {goSetup ? (
             <button type="button" className="btn-ghost btn-sm" onClick={goSetup}>
               Settings
@@ -245,6 +288,85 @@ export default function LeagueHome({
           </dl>
         </aside>
       </div>
+
+      {showDeck ? (
+        <div className="hub-home-deck">
+          {placeholder ? (
+            <HubAlert
+              variant="info"
+              action={goSetup ? (
+                <button type="button" className="btn-ghost btn-sm" onClick={goSetup}>
+                  Open Setup
+                </button>
+              ) : null}
+            >
+              {scoring?.hint || HOME_DECK_COPY.linkSleeper}
+            </HubAlert>
+          ) : null}
+          {matchup && matchViewer && matchOpponent ? (
+            <section className="hub-home-deck-card" aria-label={HOME_DECK_COPY.matchupTitle}>
+              <header className="hub-home-deck-head">
+                <h3>{HOME_DECK_COPY.matchupTitle}</h3>
+                <span className="chart-note">{matchupNote}</span>
+              </header>
+              {[matchViewer, matchOpponent].map((team) => {
+                const parts = gameCenterTeamParts(team);
+                return (
+                <div className="hub-home-mu-row" key={team.roster_id || team.team_name}>
+                  <TeamIdentityMark
+                    team={identityTeam(team)}
+                    identity={identityFor(identities, identityTeam(team))}
+                    size="sm"
+                  />
+                  <span className="hub-home-mu-name">
+                    {parts.owner || parts.team || team.team_name}
+                    {parts.owner && parts.team ? (
+                      <span className="hub-gc-team-nick">{parts.team}</span>
+                    ) : null}
+                  </span>
+                  <span className="hub-home-mu-score">{formatHomeScore(team, placeholder)}</span>
+                </div>
+                );
+              })}
+              {onNavigate ? (
+                <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("game")}>
+                  {HOME_DECK_COPY.openGame} <span aria-hidden="true">→</span>
+                </button>
+              ) : null}
+            </section>
+          ) : null}
+          {standingRows.length > 0 ? (
+            <section className="hub-home-deck-card" aria-label={HOME_DECK_COPY.standingsTitle}>
+              <header className="hub-home-deck-head">
+                <h3>{HOME_DECK_COPY.standingsTitle}</h3>
+                <span className="chart-note">{HOME_DECK_COPY.standingsNote}</span>
+              </header>
+              <ol className="hub-home-standings">
+                {standingRows.map((row) => {
+                  const parts = gameCenterTeamParts(row);
+                  return (
+                  <li
+                    key={row.roster_id}
+                    className={row.hub_team_id && String(row.hub_team_id) === String(hubContext?.team_id) ? "is-you" : ""}
+                  >
+                    <span className="hub-home-standing-rank">{row.rank}</span>
+                    <span className="hub-home-standing-name">
+                      {parts.owner || parts.team || row.team_name}
+                      {parts.owner && parts.team ? (
+                        <span className="hub-gc-team-nick">{parts.team}</span>
+                      ) : null}
+                    </span>
+                    <span className="hub-home-standing-rec">
+                      {row.wins}–{row.losses}{row.ties ? `–${row.ties}` : ""}
+                    </span>
+                  </li>
+                  );
+                })}
+              </ol>
+            </section>
+          ) : null}
+        </div>
+      ) : null}
 
       {supportingActions.length > 0 ? (
         <section className="hub-home-supporting" aria-labelledby="hub-home-supporting-title">

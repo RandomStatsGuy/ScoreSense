@@ -81,3 +81,45 @@ export function phaseTrackState(phaseId) {
     current: phase.id === phaseId,
   }));
 }
+
+export const HOME_DECK_COPY = {
+  matchupTitle: "Your matchup",
+  standingsTitle: "Standings",
+  standingsNote: "Season to date",
+  openGame: "Open Game center",
+  linkSleeper: "Link Sleeper to fill scores.",
+  opponentTbd: "Opponent TBD",
+};
+
+export function homeDeckStandingRows(standings, viewerTeamId, limit = 5) {
+  if (!standings?.length) return [];
+  const top = standings.slice(0, limit);
+  const mine = standings.find(
+    (row) => row.hub_team_id && String(row.hub_team_id) === String(viewerTeamId),
+  );
+  if (mine && !top.includes(mine)) {
+    return [...top.slice(0, Math.max(0, limit - 1)), mine];
+  }
+  return top;
+}
+
+export function formatHomeScore(team, placeholder = false) {
+  if (placeholder || team == null || team.points == null || Number.isNaN(Number(team.points))) {
+    return "—";
+  }
+  const pts = Number(team.points);
+  if (pts > 0 || team.proj_total == null) return pts.toFixed(1);
+  const est = Number(team.est_final);
+  return Number.isNaN(est) ? "—" : `proj ${est.toFixed(1)}`;
+}
+
+export function homeMatchupNote(scoring, opponent) {
+  if (scoring?.placeholder) {
+    const tbd = !opponent || opponent.roster_id === "tbd" || opponent.team_name === "Opponent TBD";
+    if (tbd && scoring.week != null) return `Week ${scoring.week} opponent TBD`;
+    if (tbd) return HOME_DECK_COPY.opponentTbd;
+    return scoring.hint || HOME_DECK_COPY.linkSleeper;
+  }
+  if (scoring?.week != null) return `Week ${scoring.week}`;
+  return "";
+}
