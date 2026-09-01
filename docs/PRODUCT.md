@@ -247,3 +247,4 @@ Contract-type playbook for imports and keepers: [CONTRACT_SCENARIOS.md](./CONTRA
 | Experience CSS | `frontend/src/styles/product-hierarchy.css` |
 | Nav source | `frontend/src/appNavigation.js`, `DraftHub/HubSubnav.jsx` |
 | Living page to match | `frontend/src/livingSurfaces.js` |
+| Cloud Agent runtime | `.cursor/environment.json` |

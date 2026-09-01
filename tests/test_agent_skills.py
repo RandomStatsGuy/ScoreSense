@@ -10,6 +10,7 @@ SKILLS = (
     "run-tests",
     "verify-fantasy-ui",
     "mirror-prod-league",
+    "start-local-app",
     "match-living-surface",
     "capture-correction",
     "add-fantasy-destination",
@@ -46,6 +47,7 @@ def test_verify_fantasy_ui_skill_uses_living_routes() -> None:
     assert "/hub/free-agents" in text
     assert "/hub/cap" in text
     assert "mirror-prod-league" in text
+    assert "start-local-app" in text
 
 
 def test_mirror_skill_and_unix_script_agree() -> None:
@@ -96,3 +98,53 @@ def test_wrong_matching_updates_aliases() -> None:
     assert "Wrong Matching" in living
     assert "SURFACE_ALIASES" in rule
     assert "Captured:" in rule
+
+
+def test_start_local_app_skill_does_not_remirror() -> None:
+    text = _skill("start-local-app")
+    assert "start_hub_dev.sh" in text
+    assert "127.0.0.1:8000" in text
+    assert "127.0.0.1:5173" in text
+    assert "Do not remirror" in text or "do not remirror" in text.lower()
+    assert "preseason_refresh" in text
+
+
+def test_cloud_environment_json_starts_api_and_vite() -> None:
+    import json
+
+    path = ROOT / ".cursor" / "environment.json"
+    assert path.is_file()
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert data["install"] == "bash scripts/dev/cloud_install.sh"
+    assert data["start"] == "bash scripts/dev/ensure_cloud_env.sh"
+    ports = {row["port"] for row in data["ports"]}
+    assert ports == {8000, 5173}
+    commands = " ".join(row["command"] for row in data["terminals"])
+    assert "run_api.sh" in commands
+    assert "run_vite.sh" in commands
+    blob = path.read_text(encoding="utf-8")
+    assert "mirror" not in blob.lower()
+    assert "preseason_refresh" not in blob
+
+    gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
+    assert "!.cursor/environment.json" in gitignore
+
+    for name in (
+        "cloud_install.sh",
+        "ensure_cloud_env.sh",
+        "run_api.sh",
+        "run_vite.sh",
+        "start_hub_dev.sh",
+        "wait_for_dev.sh",
+    ):
+        script = ROOT / "scripts" / "dev" / name
+        assert script.is_file(), name
+        text = script.read_text(encoding="utf-8")
+        assert "mirror_prod_hub" not in text
+        assert "preseason_refresh" not in text
+
+    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    product = (ROOT / "docs" / "PRODUCT.md").read_text(encoding="utf-8")
+    assert "Cursor Cloud specific instructions" in agents
+    assert ".cursor/environment.json" in product
+    assert "0BBESQ" in agents

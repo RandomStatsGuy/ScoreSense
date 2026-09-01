@@ -30,4 +30,5 @@ ssh
 !.cursor/rules/**
 !.cursor/skills/
 !.cursor/skills/**
+!.cursor/environment.json
 !.cursor/BUGBOT.md
