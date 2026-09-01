@@ -2845,12 +2845,20 @@
   flex: 1;
 }
 
-.league-create-modal-foot {
+.league-create-modal-head {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 0.85rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--experience-rule);
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.35rem;
+}
+
+.league-create-modal-head h2 {
+  margin: 0;
+}
+
+.league-create-modal-lead {
+  margin: 0.35rem 0 0;
 }
 
 .draft-lobby-join-form {

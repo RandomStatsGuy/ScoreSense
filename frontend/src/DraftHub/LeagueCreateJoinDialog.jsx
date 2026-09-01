@@ -40,10 +40,17 @@ export default function LeagueCreateJoinDialog({
       }}
     >
       <div className="invite-modal league-create-modal panel">
-        <h2 id="league-create-title">Create or join a league</h2>
-        <p className="chart-note league-create-modal-lead">
-          Start a room or join with a code. You can switch back anytime.
-        </p>
+        <div className="league-create-modal-head">
+          <div>
+            <h2 id="league-create-title">Create or join a league</h2>
+            <p className="chart-note league-create-modal-lead">
+              Start a room or join with a code. You can switch back anytime.
+            </p>
+          </div>
+          <button type="button" className="btn-ghost btn-sm" onClick={() => onCloseRef.current?.()}>
+            Close
+          </button>
+        </div>
         <LeagueCreateJoinForm
           season={season}
           presets={presets}
@@ -52,11 +59,6 @@ export default function LeagueCreateJoinDialog({
             onCloseRef.current?.();
           }}
         />
-        <div className="league-create-modal-foot">
-          <button type="button" className="btn-ghost btn-sm" onClick={() => onCloseRef.current?.()}>
-            Cancel
-          </button>
-        </div>
       </div>
     </div>
   );

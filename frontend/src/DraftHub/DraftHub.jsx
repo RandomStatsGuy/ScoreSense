@@ -702,7 +702,6 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           reloadToken={weekReloadToken}
           onNavigate={setSubView}
           onNavigateSetup={() => setSubView(effectiveCtx?.is_commissioner ? "rules" : "setup")}
-          onCreateLeague={goCreateLeague}
         />
       )}
 

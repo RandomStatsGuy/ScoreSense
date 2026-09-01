@@ -96,7 +96,6 @@ export default function LeagueHome({
   reloadToken = 0,
   onNavigate,
   onNavigateSetup,
-  onCreateLeague,
 }) {
   const mobileLayout = useMobileLayout();
   const { identities } = useTeamIdentities();
@@ -208,11 +207,6 @@ export default function LeagueHome({
           <h2>Make the next decision count.</h2>
         </div>
         <div className="hub-home-heading-actions">
-          {onCreateLeague ? (
-            <button type="button" className="btn-ghost btn-sm" onClick={onCreateLeague}>
-              New league
-            </button>
-          ) : null}
           {goSetup ? (
             <button type="button" className="btn-ghost btn-sm" onClick={goSetup}>
               Settings
