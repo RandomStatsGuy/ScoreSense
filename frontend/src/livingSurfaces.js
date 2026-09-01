@@ -249,6 +249,7 @@ export const SURFACE_ALIASES = Object.freeze({
   "available players": "hub.available",
   "live auction": "hub.room.live",
   "live draft": "hub.room.live",
+  "live room": "hub.room.live",
   "nominee card": "hub.room.live",
   "draft nominee": "hub.room.live",
   "draft lobby": "hub.room",

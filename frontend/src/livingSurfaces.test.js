@@ -25,6 +25,8 @@ test("text lookup prefers the longest alias and ignores capture vs cap", () => {
   assert.equal(live.chrome, "draft-live");
   const nominee = resolveLivingSurfaceFromText("the nominee card is clipped");
   assert.equal(nominee.page, "frontend/src/DraftHub/DraftRoom.jsx");
+  const liveRoom = resolveLivingSurfaceFromText("not the lobby, the live room");
+  assert.equal(liveRoom.chrome, "draft-live");
   assert.equal(resolveLivingSurfaceFromText("Remember to capture this correction"), null);
   const cap = resolveLivingSurfaceFromText("Cap planner overage");
   assert.equal(cap.label, "Cap");
