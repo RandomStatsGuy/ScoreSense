@@ -385,6 +385,36 @@ def test_build_sleeper_live_week_empty_matchups_uses_placeholder(monkeypatch):
     assert names == {"Hub One", "Hub Two"}
 
 
+def test_build_sleeper_live_week_unpaired_rows_use_placeholder(monkeypatch):
+    def _fake_fetch(url):
+        if "/matchups/" in url:
+            return [
+                {"roster_id": 1, "matchup_id": None, "points": 0, "starters": []},
+                {"roster_id": 2, "matchup_id": None, "points": 0, "starters": []},
+            ]
+        if url.endswith("/rosters"):
+            return SAMPLE_ROSTERS
+        return SAMPLE_LEAGUE
+
+    monkeypatch.setattr("src.draft_hub.league_live_scoring._fetch_json", _fake_fetch)
+    monkeypatch.setattr(
+        "src.draft_hub.league_live_scoring.get_nfl_state",
+        lambda **_: {"week": 18, "season": "2025", "season_type": "regular"},
+    )
+    out = build_sleeper_live_week(
+        "sl-unpaired",
+        18,
+        hub_teams=[
+            {"id": "t1", "name": "Hub One"},
+            {"id": "t2", "name": "Hub Two"},
+        ],
+        viewer_team_id="t1",
+    )
+    assert out["placeholder"] is True
+    assert out["reason"] == "no_matchups"
+    assert len(out["matchups"]) == 1
+
+
 @pytest.fixture()
 def hub_client():
     from fastapi.testclient import TestClient

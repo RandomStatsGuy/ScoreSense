@@ -378,7 +378,7 @@ def build_sleeper_live_week(
             **week_meta,
         }
 
-    if not matchups:
+    def _empty_week() -> dict[str, Any]:
         slots = slot_labels or starting_slots(league.get("roster_positions")) or list(
             DEFAULT_STARTING_SLOTS
         )
@@ -395,6 +395,9 @@ def build_sleeper_live_week(
         payload.update(week_meta)
         return payload
 
+    if not matchups:
+        return _empty_week()
+
     raw_players = load_sleeper_players()
     by_matchup: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in matchups:
@@ -402,6 +405,9 @@ def build_sleeper_live_week(
         if mid is None:
             continue
         by_matchup[str(mid)].append(row)
+
+    if not by_matchup:
+        return _empty_week()
 
     viewer_rid = str(viewer_roster_id or "")
     viewer_matchup_id: str | None = None
