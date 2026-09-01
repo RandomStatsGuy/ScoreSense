@@ -105,6 +105,10 @@ Contracts · Salary sheets · Members · Access & imports.
 
 Chat is **not** a pane here. Chat is `FantasyChatDock` on shared Fantasy pages.
 
+### Manager labels
+
+Fantasy lists people by **owner name**. A team nickname may sit underneath or after a middot. Never show a team nickname as the only identity when an owner is known.
+
 ---
 
 ## Visual language

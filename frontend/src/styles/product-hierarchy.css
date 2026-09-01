@@ -2655,6 +2655,109 @@
   margin: 0;
 }
 
+.hub-roster-browser-page.hub-page {
+  padding: 0;
+  overflow: visible;
+  border: 1px solid var(--experience-rule);
+  background: var(--experience-canvas);
+  box-shadow: none;
+}
+
+.hub-roster-owner-layout {
+  display: grid;
+  grid-template-columns: minmax(13.5rem, 16rem) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+  padding: 0 1rem 1rem;
+}
+
+.hub-roster-owner-rail {
+  position: sticky;
+  top: 1rem;
+  padding: 0.9rem 0.85rem;
+  border: 1px solid rgba(91, 143, 232, 0.22);
+  border-radius: var(--radius-md);
+  background: #132033;
+}
+
+.hub-roster-owner-rail .hub-filter-label {
+  margin: 0 0 0.55rem;
+}
+
+.hub-roster-owner-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hub-roster-owner-btn,
+.hub-roster-owner-chip {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.08rem;
+  padding: 0.48rem 0.62rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.hub-roster-owner-btn strong,
+.hub-roster-owner-chip strong {
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.hub-roster-owner-btn span,
+.hub-roster-owner-chip span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.hub-roster-owner-btn em {
+  color: var(--experience-blue);
+  font-size: 0.68rem;
+  font-style: normal;
+}
+
+.hub-roster-owner-btn:hover,
+.hub-roster-owner-chip:hover {
+  background: rgba(91, 143, 232, 0.1);
+}
+
+.hub-roster-owner-btn.is-selected,
+.hub-roster-owner-chip.is-selected {
+  border-color: var(--experience-blue);
+  background: rgba(91, 143, 232, 0.16);
+}
+
+.hub-roster-owner-main {
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .hub-roster-owner-layout {
+    grid-template-columns: 1fr;
+    padding: 0 0.85rem 0.85rem;
+  }
+
+  .hub-roster-owner-rail {
+    position: static;
+  }
+
+  .hub-roster-owner-chip {
+    width: auto;
+    min-width: 8.5rem;
+  }
+}
+
 @media (max-width: 1080px) {
   .hub-experience-layout {
     grid-template-columns: minmax(0, 1fr) 17rem;

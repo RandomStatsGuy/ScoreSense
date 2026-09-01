@@ -14,12 +14,21 @@ export const POS_COLORS = {
 
 const TONE_PRIORITY = { gold: 0, bad: 1, good: 2 };
 
+function ownerFromMap(team, ownerMap) {
+  if (!team || !ownerMap) return "";
+  const raw = String(team);
+  const trimmed = raw.trim();
+  return ownerMap[trimmed]
+    || ownerMap[trimmed.toLowerCase()]
+    || ownerMap[raw]
+    || ownerMap[raw.toLowerCase()]
+    || "";
+}
+
 export function teamDisplayName(row, ownerMap, yearSpecific) {
   if (row?.display_name) return row.display_name;
-  const team = row?.team_name || row?.name || "";
-  const owner = row?.owner_name
-    || (team && ownerMap ? (ownerMap[team] || ownerMap[team.toLowerCase()]) : null)
-    || "";
+  const team = String(row?.team_name || row?.name || "").trim();
+  const owner = String(row?.owner_name || ownerFromMap(team, ownerMap) || "").trim();
   if (!team) return owner || "—";
   if (!owner || owner.toLowerCase() === team.toLowerCase()) return team;
   if (yearSpecific) return `${owner} · ${team}`;
@@ -28,14 +37,21 @@ export function teamDisplayName(row, ownerMap, yearSpecific) {
 
 export function managerLabel(award, ownerMap, yearSpecific) {
   if (award?.display_name) return award.display_name;
-  const team = award?.team_name || "";
-  const owner = award?.owner_name
-    || (team && ownerMap ? (ownerMap[team] || ownerMap[team.toLowerCase()]) : null)
-    || "";
+  const team = String(award?.team_name || "").trim();
+  const owner = String(award?.owner_name || ownerFromMap(team, ownerMap) || "").trim();
   if (!team && owner) return owner;
   if (!owner || owner.toLowerCase() === team.toLowerCase()) return team || owner;
   if (yearSpecific) return `${owner} · ${team}`;
   return owner;
+}
+
+/** True when the rank label is the owner and the team nickname can sit underneath. */
+export function rankShowsTeam(row) {
+  const label = String(row?.label || "").trim();
+  const team = String(row?.teamName || row?.team_name || "").trim();
+  if (!label || !team) return false;
+  if (label.toLowerCase() === team.toLowerCase()) return false;
+  return !label.toLowerCase().includes(team.toLowerCase());
 }
 
 export function metricValue(team, pos, mode) {

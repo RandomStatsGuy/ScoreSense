@@ -138,6 +138,85 @@ def test_contract_awards_use_owner_season_map(hub_db, monkeypatch):
     assert payroll["display_name"] == "Aaron D · 2025 Aaron Team"
 
 
+def test_scoring_owner_map_contracts_beat_yaml_seed(hub_db):
+    from src.draft_hub.owner_display import scoring_owner_maps_for_league
+
+    league = storage.create_league("yaml-vs-sheet", "Yaml vs Sheet", 2025, LeagueRules())
+    lid = league["id"]
+    storage.replace_league_contract_season(
+        lid,
+        2025,
+        [
+            {
+                "owner_label": "Aaron D",
+                "hub_team_name": "Thanks noob noob",
+                "player_name": "Player A",
+                "position": "QB",
+                "cap_hit": 1.0,
+                "roster_status": "active",
+            },
+            {
+                "owner_label": "Josh C",
+                "hub_team_name": "Disappointment",
+                "player_name": "Player B",
+                "position": "RB",
+                "cap_hit": 1.0,
+                "roster_status": "active",
+            },
+        ],
+    )
+    storage.ensure_owner_season_map_seeded(lid)
+    team_map, _ = scoring_owner_maps_for_league(lid, season_year=2025)
+    assert team_map["Thanks noob noob"] == "Aaron D"
+    assert team_map["Disappointment"] == "Josh C"
+
+
+def test_scoring_owner_map_falls_back_to_latest_sheet_year(hub_db):
+    from src.draft_hub.owner_display import scoring_owner_maps_for_league
+
+    league = storage.create_league("plan-year", "Planning Year", 2026, LeagueRules())
+    lid = league["id"]
+    storage.replace_league_contract_season(
+        lid,
+        2025,
+        [
+            {
+                "owner_label": "Caleb K",
+                "hub_team_name": "White Supremacists",
+                "player_name": "QB One",
+                "position": "QB",
+                "cap_hit": 10.0,
+                "roster_status": "active",
+            },
+        ],
+    )
+    team_map, _ = scoring_owner_maps_for_league(lid, season_year=2026)
+    assert team_map["White Supremacists"] == "Caleb K"
+
+
+def test_list_league_teams_attaches_owner_name(hub_db):
+    league = storage.create_league("owner-teams", "Owner Teams", 2025, LeagueRules())
+    lid = league["id"]
+    storage.replace_league_contract_season(
+        lid,
+        2025,
+        [
+            {
+                "owner_label": "Caleb K",
+                "hub_team_name": "White Supremacists",
+                "player_name": "QB One",
+                "position": "QB",
+                "cap_hit": 10.0,
+                "roster_status": "active",
+            },
+        ],
+    )
+    storage.join_league("ck-owner", league["room_code"], "White Supremacists")
+    teams = storage.list_league_teams(lid)
+    hit = next(t for t in teams if t["name"] == "White Supremacists")
+    assert hit["owner_name"] == "Caleb K"
+
+
 def test_scoring_owner_map_prefers_season_map_over_contract_rows(hub_db):
     from src.draft_hub.owner_display import scoring_owner_maps_for_league
 

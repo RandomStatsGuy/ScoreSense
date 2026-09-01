@@ -1,5 +1,21 @@
 /** Game center copy + pure view helpers (no JSX). */
 
+import { hubTeamLabel, hubTeamParts } from "./hubTeamLabel.js";
+
+export function gameCenterTeamLabel(team) {
+  return hubTeamLabel({
+    name: team?.team_name,
+    owner_name: team?.owner_name,
+  });
+}
+
+export function gameCenterTeamParts(team) {
+  return hubTeamParts({
+    name: team?.team_name,
+    owner_name: team?.owner_name,
+  });
+}
+
 export function findViewerMatchup(payload) {
   const matchups = payload?.matchups || [];
   const viewerId = payload?.viewer_matchup_id;
@@ -63,11 +79,11 @@ export function matchupStoryline({ viewer, opponent, weekComplete = false }) {
   const theirPending = startersPending(opponent);
   if (weekComplete || (myPending === 0 && theirPending === 0)) {
     if (margin > 0) return `Final: you win by ${lead}.`;
-    if (margin < 0) return `Final: ${opponent.team_name} takes it by ${lead}.`;
+    if (margin < 0) return `Final: ${gameCenterTeamLabel(opponent)} takes it by ${lead}.`;
     return "Final: a dead tie.";
   }
   const pendingNote = theirPending > 0
-    ? `${opponent.team_name} has ${theirPending} starter${theirPending === 1 ? "" : "s"} left`
+    ? `${gameCenterTeamLabel(opponent)} has ${theirPending} starter${theirPending === 1 ? "" : "s"} left`
     : `you have ${myPending} starter${myPending === 1 ? "" : "s"} left`;
   if (margin > 0) return `You lead by ${lead} — ${pendingNote}.`;
   if (margin < 0) return `You trail by ${lead} — ${pendingNote}.`;

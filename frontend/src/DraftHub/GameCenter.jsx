@@ -14,6 +14,8 @@ import {
   findViewerMatchup,
   formatSyncedAgo,
   formatWinProb,
+  gameCenterTeamLabel,
+  gameCenterTeamParts,
   gameStateLabel,
   matchupStoryline,
   matchupTeams,
@@ -143,7 +145,18 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
   const identityTeam = (team) => ({
     id: team?.hub_team_id || team?.roster_id,
     name: team?.team_name,
+    owner_name: team?.owner_name,
   });
+
+  const teamTitle = (team) => {
+    const parts = gameCenterTeamParts(team);
+    return (
+      <>
+        <strong>{parts.owner || parts.team || gameCenterTeamLabel(team)}</strong>
+        {parts.owner && parts.team ? <span className="hub-gc-team-nick">{parts.team}</span> : null}
+      </>
+    );
+  };
 
   const heroChip = data?.synced_at && stateLabel === "Live"
     ? `${stateLabel} · ${formatSyncedAgo(data.synced_at) || ""}`
@@ -209,7 +222,7 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
           <div className="hub-gc-bb-side">
             <TeamIdentityMark team={identityTeam(viewer)} identity={identityFor(identities, identityTeam(viewer))} size="lg" />
             <div className="hub-gc-bb-team">
-              <strong>{viewer.team_name}</strong>
+              {teamTitle(viewer)}
               <span>
                 {viewerStanding ? `${viewerStanding.wins}–${viewerStanding.losses} · ${viewerStanding.rank}${["st", "nd", "rd"][viewerStanding.rank - 1] || "th"}` : "You"}
               </span>
@@ -231,7 +244,7 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
           <div className="hub-gc-bb-side hub-gc-bb-side--away">
             <TeamIdentityMark team={identityTeam(opponent)} identity={identityFor(identities, identityTeam(opponent))} size="lg" />
             <div className="hub-gc-bb-team">
-              <strong>{opponent.team_name}</strong>
+              {teamTitle(opponent)}
               <span>
                 {(() => {
                   const row = standings.find((s) => String(s.roster_id) === String(opponent.roster_id));
@@ -259,6 +272,76 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
 
       {matchup && viewer && opponent && (
         <div className="hub-gc-columns">
+          <aside className="hub-gc-rail">
+            <section className="panel hub-gc-around" aria-label={GAME_CENTER_COPY.leagueTitle}>
+              <header className="hub-gc-panel-head">
+                <div>
+                  <h3>{GAME_CENTER_COPY.leagueTitle}</h3>
+                  <p className="chart-note">{GAME_CENTER_COPY.leagueSupport}</p>
+                </div>
+              </header>
+              <div className="hub-gc-mini-list">
+                {otherMatchups.map((m) => (
+                  <div className="hub-gc-mini" key={m.matchup_id}>
+                    {(m.teams || []).map((team) => {
+                      const parts = gameCenterTeamParts(team);
+                      return (
+                      <div
+                        className={`hub-gc-mini-line${Number(team.points) >= Math.max(...(m.teams || []).map((t) => Number(t.points || 0))) ? " is-leading" : ""}`}
+                        key={team.roster_id}
+                      >
+                        <TeamIdentityMark
+                          team={identityTeam(team)}
+                          identity={identityFor(identities, identityTeam(team))}
+                          size="sm"
+                        />
+                        <span className="hub-gc-mini-name">
+                          {parts.owner || parts.team || team.team_name}
+                          {parts.owner && parts.team ? (
+                            <span className="hub-gc-team-nick">{parts.team}</span>
+                          ) : null}
+                        </span>
+                        <span className="hub-gc-mini-score">{fmtPts(team.points)}</span>
+                      </div>
+                      );
+                    })}
+                  </div>
+                ))}
+                {!otherMatchups.length && <p className="chart-note">No other matchups this week.</p>}
+              </div>
+            </section>
+
+            {standings.length > 0 && (
+              <section className="panel hub-gc-standings" aria-label="Standings">
+                <header className="hub-gc-panel-head">
+                  <div>
+                    <h3>Standings</h3>
+                    <p className="chart-note">Season to date.</p>
+                  </div>
+                </header>
+                <ol className="hub-gc-standings-list">
+                  {standings.slice(0, mobileLayout ? 5 : 10).map((row) => {
+                    const parts = gameCenterTeamParts(row);
+                    return (
+                    <li
+                      key={row.roster_id}
+                      className={viewerStanding && row.roster_id === viewerStanding.roster_id ? "is-you" : ""}
+                    >
+                      <span className="hub-gc-standing-rank">{row.rank}</span>
+                      <span className="hub-gc-standing-name">
+                        {parts.owner || parts.team || row.team_name}
+                        {parts.owner && parts.team ? (
+                          <span className="hub-gc-team-nick">{parts.team}</span>
+                        ) : null}
+                      </span>
+                      <span className="hub-gc-standing-rec">{row.wins}–{row.losses}{row.ties ? `–${row.ties}` : ""}</span>
+                    </li>
+                    );
+                  })}
+                </ol>
+              </section>
+            )}
+          </aside>
           <div className="hub-gc-main">
             <section className="panel hub-gc-duel" aria-label={GAME_CENTER_COPY.duelTitle}>
               <header className="hub-gc-panel-head">
@@ -326,61 +409,6 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
               />
             </section>
           </div>
-
-          <aside className="hub-gc-rail">
-            <section className="panel hub-gc-around" aria-label={GAME_CENTER_COPY.leagueTitle}>
-              <header className="hub-gc-panel-head">
-                <div>
-                  <h3>{GAME_CENTER_COPY.leagueTitle}</h3>
-                  <p className="chart-note">{GAME_CENTER_COPY.leagueSupport}</p>
-                </div>
-              </header>
-              <div className="hub-gc-mini-list">
-                {otherMatchups.map((m) => (
-                  <div className="hub-gc-mini" key={m.matchup_id}>
-                    {(m.teams || []).map((team) => (
-                      <div
-                        className={`hub-gc-mini-line${Number(team.points) >= Math.max(...(m.teams || []).map((t) => Number(t.points || 0))) ? " is-leading" : ""}`}
-                        key={team.roster_id}
-                      >
-                        <TeamIdentityMark
-                          team={identityTeam(team)}
-                          identity={identityFor(identities, identityTeam(team))}
-                          size="sm"
-                        />
-                        <span className="hub-gc-mini-name">{team.team_name}</span>
-                        <span className="hub-gc-mini-score">{fmtPts(team.points)}</span>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-                {!otherMatchups.length && <p className="chart-note">No other matchups this week.</p>}
-              </div>
-            </section>
-
-            {standings.length > 0 && (
-              <section className="panel hub-gc-standings" aria-label="Standings">
-                <header className="hub-gc-panel-head">
-                  <div>
-                    <h3>Standings</h3>
-                    <p className="chart-note">Season to date.</p>
-                  </div>
-                </header>
-                <ol className="hub-gc-standings-list">
-                  {standings.slice(0, mobileLayout ? 5 : 10).map((row) => (
-                    <li
-                      key={row.roster_id}
-                      className={viewerStanding && row.roster_id === viewerStanding.roster_id ? "is-you" : ""}
-                    >
-                      <span className="hub-gc-standing-rank">{row.rank}</span>
-                      <span className="hub-gc-standing-name">{row.team_name}</span>
-                      <span className="hub-gc-standing-rec">{row.wins}–{row.losses}{row.ties ? `–${row.ties}` : ""}</span>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-            )}
-          </aside>
         </div>
       )}
     </HubPage>

@@ -4,6 +4,7 @@ import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../fo
 import { isAbortError } from "../fetchAbort";
 import useMobileLayout from "../useMobileLayout";
 import { HubPage } from "./HubUILayout";
+import { hubTeamLabel } from "./hubTeamLabel";
 import {
   actionLabel,
   phaseTrackState,
@@ -216,7 +217,11 @@ export default function LeagueHome({
         <aside className="hub-home-snapshot" aria-label="League snapshot">
           <div className="hub-home-snapshot-head">
             <p className="hub-experience-kicker">At a glance</p>
-            <span>{hubContext?.team_name || "Your team"}</span>
+            <span>{hubTeamLabel({
+              name: hubContext?.team_name,
+              sleeper_team_name: hubContext?.sleeper_team_name,
+              owner_name: hubContext?.owner_name,
+            }) || "Your team"}</span>
           </div>
           <dl className="hub-home-snapshot-list">
             <div>

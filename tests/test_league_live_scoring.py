@@ -100,8 +100,8 @@ def test_build_sleeper_live_week_pairs_matchups(monkeypatch):
     )
 
     hub_teams = [
-        {"sleeper_roster_id": "1", "name": "Hub One"},
-        {"sleeper_roster_id": "2", "name": "Hub Two"},
+        {"sleeper_roster_id": "1", "name": "Hub One", "owner_name": "Alice"},
+        {"sleeper_roster_id": "2", "name": "Hub Two", "owner_name": "Bob"},
     ]
     out = build_sleeper_live_week("sl-1", 5, hub_teams=hub_teams, viewer_roster_id="1")
 
@@ -115,7 +115,9 @@ def test_build_sleeper_live_week_pairs_matchups(monkeypatch):
     viewer = next(t for t in viewer_match["teams"] if t["is_viewer"])
     opponent = next(t for t in viewer_match["teams"] if t["is_opponent"])
     assert viewer["team_name"] == "Hub One"
+    assert viewer["owner_name"] == "Alice"
     assert opponent["team_name"] == "Hub Two"
+    assert opponent["owner_name"] == "Bob"
     assert viewer["points"] == 84.2
     assert viewer["starters"][0]["name"] == "Alpha QB"
     assert viewer["starters"][0]["points"] == 12.4
