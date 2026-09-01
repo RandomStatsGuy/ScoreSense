@@ -17630,6 +17630,10 @@ th.sortable-header {
   position: relative;
   z-index: 1;
 }
+.draft-hub > .invite-overlay {
+  position: fixed;
+  z-index: 1400;
+}
 .hub-atmosphere-particle {
   position: absolute;
   top: -12%;
