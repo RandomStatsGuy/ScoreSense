@@ -134,26 +134,28 @@ export default function LeagueCreateJoinForm({
                 placeholder="My Team"
               />
             </label>
-            <label>
-              Draft format
-              <select value={presetId} onChange={(e) => setPresetId(e.target.value)}>
-                {formatOptions.map((p) => (
-                  <option key={p.id} value={p.id}>{p.label}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Teams
-              <input
-                type="number"
-                min={2}
-                max={20}
-                value={teamCount}
-                onChange={(e) => setTeamCount(e.target.value)}
-                required
-              />
-            </label>
-            <button type="submit" className="btn-primary" disabled={busy}>
+            <div className="hub-league-field-split">
+              <label>
+                Draft format
+                <select value={presetId} onChange={(e) => setPresetId(e.target.value)}>
+                  {formatOptions.map((p) => (
+                    <option key={p.id} value={p.id}>{p.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Teams
+                <input
+                  type="number"
+                  min={2}
+                  max={20}
+                  value={teamCount}
+                  onChange={(e) => setTeamCount(e.target.value)}
+                  required
+                />
+              </label>
+            </div>
+            <button type="submit" className="btn-primary btn-sm" disabled={busy}>
               {busy ? "Creating…" : "Create league"}
             </button>
           </div>
@@ -189,7 +191,7 @@ export default function LeagueCreateJoinForm({
                 required
               />
             </label>
-            <button type="submit" className="btn-ghost" disabled={busy}>
+            <button type="submit" className="btn-ghost btn-sm" disabled={busy}>
               Join league
             </button>
           </div>

@@ -4,7 +4,7 @@ import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
 import { usePlayerMedia } from "../PlayerCell";
 import useMobileLayout from "../useMobileLayout";
-import { HubPage } from "./HubUILayout";
+import { HubAlert, HubPage } from "./HubUILayout";
 import TeamIdentityMark from "./TeamIdentityMark";
 import WeekCulturePanel from "./WeekCulturePanel";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
@@ -14,6 +14,8 @@ import {
   findViewerMatchup,
   formatSyncedAgo,
   formatWinProb,
+  gameCenterTeamLabel,
+  gameCenterTeamParts,
   gameStateLabel,
   matchupStoryline,
   matchupTeams,
@@ -23,8 +25,8 @@ import {
 
 const REFRESH_MS = 60_000;
 
-function fmtPts(value) {
-  if (value == null || Number.isNaN(Number(value))) return "—";
+function fmtPts(value, placeholder = false) {
+  if (placeholder || value == null || Number.isNaN(Number(value))) return "—";
   return Number(value).toFixed(1);
 }
 
@@ -50,11 +52,11 @@ function DuelPlayer({ player, media, away = false }) {
   );
 }
 
-function DuelPoints({ player, leading }) {
+function DuelPoints({ player, leading, placeholder = false }) {
   return (
     <div className={`hub-gc-duel-pts${leading ? " is-leading" : ""}`}>
-      {fmtPts(player?.points)}
-      <span>{player?.proj != null ? `proj ${fmtPts(player.proj)}` : "\u00a0"}</span>
+      {fmtPts(player?.points, placeholder)}
+      <span>{!placeholder && player?.proj != null ? `proj ${fmtPts(player.proj)}` : "\u00a0"}</span>
     </div>
   );
 }
@@ -133,6 +135,22 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
   const viewerProb = matchup && viewer ? winProbFor(matchup, viewer) : null;
   const otherMatchups = (data?.matchups || []).filter((m) => m !== matchup);
   const weekComplete = stateLabel === "Final";
+  const placeholder = Boolean(data?.placeholder);
+  const hasSlate = (data?.matchups || []).length > 0;
+  const fullPageEmpty = !loading && data && !hasSlate;
+  const showBanner = Boolean(
+    !loading && data && (placeholder || data.reason === "no_sleeper_league" || data.reason === "no_matchups"),
+  );
+  const bannerText = data?.hint
+    || (data?.reason === "no_sleeper_league" ? GAME_CENTER_COPY.emptyNoSleeper : GAME_CENTER_COPY.emptyPreseason);
+  const storyline = matchupStoryline({
+    viewer,
+    opponent,
+    weekComplete,
+    placeholder,
+    week: weekNumber,
+    hint: data?.hint,
+  });
 
   const stepWeek = (delta) => {
     const base = Number(weekNumber ?? currentWeek ?? 1);
@@ -143,13 +161,22 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
   const identityTeam = (team) => ({
     id: team?.hub_team_id || team?.roster_id,
     name: team?.team_name,
+    owner_name: team?.owner_name,
   });
+
+  const teamTitle = (team) => {
+    const parts = gameCenterTeamParts(team);
+    return (
+      <>
+        <strong>{parts.owner || parts.team || gameCenterTeamLabel(team)}</strong>
+        {parts.owner && parts.team ? <span className="hub-gc-team-nick">{parts.team}</span> : null}
+      </>
+    );
+  };
 
   const heroChip = data?.synced_at && stateLabel === "Live"
     ? `${stateLabel} · ${formatSyncedAgo(data.synced_at) || ""}`
     : stateLabel;
-
-  const notReady = !loading && data && (!data.available || data.preseason || !(data.matchups || []).length);
 
   return (
     <HubPage className="hub-game-center">
@@ -184,23 +211,23 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
       {error && <div className="error">{error}</div>}
       {loading && !data && <p className="chart-note">Loading matchups…</p>}
 
-      {notReady && (
-        <section className="hub-gc-empty panel">
-          <h3>{data?.reason === "no_sleeper_league" ? "No Sleeper league linked" : "No matchups yet"}</h3>
-          <p className="chart-note">
-            {data?.reason === "no_sleeper_league"
-              ? GAME_CENTER_COPY.emptyNoSleeper
-              : (data?.hint || GAME_CENTER_COPY.emptyPreseason)}
-          </p>
-          {onNavigate ? (
-            <button
-              type="button"
-              className="btn-ghost btn-sm"
-              onClick={() => onNavigate(data?.reason === "no_sleeper_league" ? "setup" : "room")}
-            >
-              {data?.reason === "no_sleeper_league" ? "Open Setup" : "Go to Draft"}
+      {showBanner && (
+        <HubAlert
+          variant="info"
+          action={onNavigate ? (
+            <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("setup")}>
+              {GAME_CENTER_COPY.setupCta}
             </button>
           ) : null}
+        >
+          {bannerText}
+        </HubAlert>
+      )}
+
+      {fullPageEmpty && !placeholder && (
+        <section className="hub-gc-empty panel">
+          <h3>{data?.reason === "fetch_failed" ? "Couldn’t load matchups" : "No matchups yet"}</h3>
+          <p className="chart-note">{data?.hint || GAME_CENTER_COPY.emptyPreseason}</p>
         </section>
       )}
 
@@ -209,31 +236,34 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
           <div className="hub-gc-bb-side">
             <TeamIdentityMark team={identityTeam(viewer)} identity={identityFor(identities, identityTeam(viewer))} size="lg" />
             <div className="hub-gc-bb-team">
-              <strong>{viewer.team_name}</strong>
+              {teamTitle(viewer)}
               <span>
                 {viewerStanding ? `${viewerStanding.wins}–${viewerStanding.losses} · ${viewerStanding.rank}${["st", "nd", "rd"][viewerStanding.rank - 1] || "th"}` : "You"}
               </span>
             </div>
           </div>
           <div className="hub-gc-bb-score">
-            <div className={`hub-gc-bb-points${viewer.points >= opponent.points ? " is-leading" : ""}`}>
-              {fmtPts(viewer.points)}
-              <span>{viewer.proj_total != null ? `proj ${fmtPts(viewer.est_final)}` : "\u00a0"}</span>
+            <div className={`hub-gc-bb-points${!placeholder && viewer.points >= opponent.points ? " is-leading" : ""}`}>
+              {fmtPts(viewer.points, placeholder)}
+              <span>{!placeholder && viewer.proj_total != null ? `proj ${fmtPts(viewer.est_final)}` : "\u00a0"}</span>
             </div>
             <div className="hub-gc-bb-divider" aria-hidden="true">
               <span>Wk {weekNumber}</span>
             </div>
-            <div className={`hub-gc-bb-points${opponent.points > viewer.points ? " is-leading" : ""}`}>
-              {fmtPts(opponent.points)}
-              <span>{opponent.proj_total != null ? `proj ${fmtPts(opponent.est_final)}` : "\u00a0"}</span>
+            <div className={`hub-gc-bb-points${!placeholder && opponent.points > viewer.points ? " is-leading" : ""}`}>
+              {fmtPts(opponent.points, placeholder)}
+              <span>{!placeholder && opponent.proj_total != null ? `proj ${fmtPts(opponent.est_final)}` : "\u00a0"}</span>
             </div>
           </div>
           <div className="hub-gc-bb-side hub-gc-bb-side--away">
             <TeamIdentityMark team={identityTeam(opponent)} identity={identityFor(identities, identityTeam(opponent))} size="lg" />
             <div className="hub-gc-bb-team">
-              <strong>{opponent.team_name}</strong>
+              {teamTitle(opponent)}
               <span>
                 {(() => {
+                  if (opponent.roster_id === "tbd") {
+                    return weekNumber != null ? `Week ${weekNumber} opponent TBD` : "Opponent TBD";
+                  }
                   const row = standings.find((s) => String(s.roster_id) === String(opponent.roster_id));
                   return row ? `${row.wins}–${row.losses} · ${row.rank}${["st", "nd", "rd"][row.rank - 1] || "th"}` : "Opponent";
                 })()}
@@ -241,7 +271,7 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
             </div>
           </div>
 
-          {viewerProb != null && (
+          {viewerProb != null && !placeholder && (
             <div className="hub-gc-winprob">
               <div className="hub-gc-winprob-labels">
                 <span><strong>{formatWinProb(viewerProb)}</strong> win probability{startersPending(viewer) + startersPending(opponent) > 0 ? " (estimate)" : ""}</span>
@@ -251,14 +281,87 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
                 <span className="home" style={{ width: `${Math.round(viewerProb * 100)}%` }} />
                 <span className="away" />
               </div>
-              <p className="hub-gc-storyline">{matchupStoryline({ viewer, opponent, weekComplete })}</p>
+              <p className="hub-gc-storyline">{storyline}</p>
             </div>
           )}
+          {(viewerProb == null || placeholder) && storyline ? (
+            <p className="hub-gc-storyline">{storyline}</p>
+          ) : null}
         </section>
       )}
 
       {matchup && viewer && opponent && (
         <div className="hub-gc-columns">
+          <aside className="hub-gc-rail">
+            <section className="panel hub-gc-around" aria-label={GAME_CENTER_COPY.leagueTitle}>
+              <header className="hub-gc-panel-head">
+                <div>
+                  <h3>{GAME_CENTER_COPY.leagueTitle}</h3>
+                  <p className="chart-note">{GAME_CENTER_COPY.leagueSupport}</p>
+                </div>
+              </header>
+              <div className="hub-gc-mini-list">
+                {otherMatchups.map((m) => (
+                  <div className="hub-gc-mini" key={m.matchup_id}>
+                    {(m.teams || []).map((team) => {
+                      const parts = gameCenterTeamParts(team);
+                      return (
+                      <div
+                        className={`hub-gc-mini-line${Number(team.points) >= Math.max(...(m.teams || []).map((t) => Number(t.points || 0))) ? " is-leading" : ""}`}
+                        key={team.roster_id}
+                      >
+                        <TeamIdentityMark
+                          team={identityTeam(team)}
+                          identity={identityFor(identities, identityTeam(team))}
+                          size="sm"
+                        />
+                        <span className="hub-gc-mini-name">
+                          {parts.owner || parts.team || team.team_name}
+                          {parts.owner && parts.team ? (
+                            <span className="hub-gc-team-nick">{parts.team}</span>
+                          ) : null}
+                        </span>
+                        <span className="hub-gc-mini-score">{fmtPts(team.points, placeholder)}</span>
+                      </div>
+                      );
+                    })}
+                  </div>
+                ))}
+                {!otherMatchups.length && <p className="chart-note">No other matchups this week.</p>}
+              </div>
+            </section>
+
+            {standings.length > 0 && (
+              <section className="panel hub-gc-standings" aria-label="Standings">
+                <header className="hub-gc-panel-head">
+                  <div>
+                    <h3>Standings</h3>
+                    <p className="chart-note">{placeholder ? (data?.hint || GAME_CENTER_COPY.emptyNoSleeper) : "Season to date."}</p>
+                  </div>
+                </header>
+                <ol className="hub-gc-standings-list">
+                  {standings.slice(0, mobileLayout ? 5 : 10).map((row) => {
+                    const parts = gameCenterTeamParts(row);
+                    return (
+                    <li
+                      key={row.roster_id}
+                      className={viewerStanding && row.roster_id === viewerStanding.roster_id ? "is-you" : ""}
+                    >
+                      <span className="hub-gc-standing-rank">{row.rank}</span>
+                      <span className="hub-gc-standing-name">
+                        {parts.owner || parts.team || row.team_name}
+                        {parts.owner && parts.team ? (
+                          <span className="hub-gc-team-nick">{parts.team}</span>
+                        ) : null}
+                      </span>
+                      <span className="hub-gc-standing-rec">{row.wins}–{row.losses}{row.ties ? `–${row.ties}` : ""}</span>
+                    </li>
+                    );
+                  })}
+                </ol>
+              </section>
+            )}
+          </aside>
           <div className="hub-gc-main">
             <section className="panel hub-gc-duel" aria-label={GAME_CENTER_COPY.duelTitle}>
               <header className="hub-gc-panel-head">
@@ -279,9 +382,9 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
                   return (
                     <div className="hub-gc-duel-row" key={row.key}>
                       <DuelPlayer player={row.home} media={media} />
-                      <DuelPoints player={row.home} leading={homePts >= awayPts} />
+                      <DuelPoints player={row.home} leading={!placeholder && homePts >= awayPts} placeholder={placeholder} />
                       <span className="hub-gc-duel-slot">{row.slot}</span>
-                      <DuelPoints player={row.away} leading={awayPts > homePts} />
+                      <DuelPoints player={row.away} leading={!placeholder && awayPts > homePts} placeholder={placeholder} />
                       <DuelPlayer player={row.away} media={media} away />
                     </div>
                   );
@@ -326,61 +429,6 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
               />
             </section>
           </div>
-
-          <aside className="hub-gc-rail">
-            <section className="panel hub-gc-around" aria-label={GAME_CENTER_COPY.leagueTitle}>
-              <header className="hub-gc-panel-head">
-                <div>
-                  <h3>{GAME_CENTER_COPY.leagueTitle}</h3>
-                  <p className="chart-note">{GAME_CENTER_COPY.leagueSupport}</p>
-                </div>
-              </header>
-              <div className="hub-gc-mini-list">
-                {otherMatchups.map((m) => (
-                  <div className="hub-gc-mini" key={m.matchup_id}>
-                    {(m.teams || []).map((team) => (
-                      <div
-                        className={`hub-gc-mini-line${Number(team.points) >= Math.max(...(m.teams || []).map((t) => Number(t.points || 0))) ? " is-leading" : ""}`}
-                        key={team.roster_id}
-                      >
-                        <TeamIdentityMark
-                          team={identityTeam(team)}
-                          identity={identityFor(identities, identityTeam(team))}
-                          size="sm"
-                        />
-                        <span className="hub-gc-mini-name">{team.team_name}</span>
-                        <span className="hub-gc-mini-score">{fmtPts(team.points)}</span>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-                {!otherMatchups.length && <p className="chart-note">No other matchups this week.</p>}
-              </div>
-            </section>
-
-            {standings.length > 0 && (
-              <section className="panel hub-gc-standings" aria-label="Standings">
-                <header className="hub-gc-panel-head">
-                  <div>
-                    <h3>Standings</h3>
-                    <p className="chart-note">Season to date.</p>
-                  </div>
-                </header>
-                <ol className="hub-gc-standings-list">
-                  {standings.slice(0, mobileLayout ? 5 : 10).map((row) => (
-                    <li
-                      key={row.roster_id}
-                      className={viewerStanding && row.roster_id === viewerStanding.roster_id ? "is-you" : ""}
-                    >
-                      <span className="hub-gc-standing-rank">{row.rank}</span>
-                      <span className="hub-gc-standing-name">{row.team_name}</span>
-                      <span className="hub-gc-standing-rec">{row.wins}–{row.losses}{row.ties ? `–${row.ties}` : ""}</span>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-            )}
-          </aside>
         </div>
       )}
     </HubPage>

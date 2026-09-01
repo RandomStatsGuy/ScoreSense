@@ -2370,6 +2370,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
                   >
                     {s.owner_label}
                     <span className="table-meta">
+                      {s.team_name && s.team_name !== s.owner_label ? ` · ${s.team_name}` : ""}
                       {" "}· {fmtSal(
                         s.totals?.against_cap
                           ?? ((Number(s.totals?.committed) || 0) + (Number(s.totals?.dead_cap) || 0)),

@@ -160,19 +160,33 @@ def scoring_owner_maps_for_league(
 
     if yr is not None:
         storage.ensure_owner_season_map_seeded(league_id)
+        apply_yr = yr
+        map_rows = storage.list_owner_season_map(league_id, season_year=yr)
+        contract_rows = storage.list_league_contract_rows(league_id, season_year=yr)
+        if not map_rows and not contract_rows and seasons:
+            prior = [int(s) for s in seasons if int(s) != yr]
+            if prior:
+                apply_yr = max(prior)
+                map_rows = storage.list_owner_season_map(league_id, season_year=apply_yr)
+                contract_rows = storage.list_league_contract_rows(
+                    league_id, season_year=apply_yr
+                )
         owner_season_teams: set[str] = set()
-        for row in storage.list_owner_season_map(league_id, season_year=yr):
+        for row in map_rows:
             owner = str(row.get("owner_label") or "").strip()
             team = str(row.get("hub_team_name") or "").strip()
+            source = str(row.get("source_kind") or "").strip()
             if team and owner:
                 team_map[team] = owner
                 team_map[team.lower()] = owner
-                owner_season_teams.add(team)
-                owner_season_teams.add(team.lower())
+                # yaml_seed is a stale fallback — contract rows may overwrite it.
+                if source != "yaml_seed":
+                    owner_season_teams.add(team)
+                    owner_season_teams.add(team.lower())
             uid = str(row.get("sleeper_user_id") or "").strip()
             if uid and owner:
                 sleeper_map[uid] = owner
-        for row in storage.list_league_contract_rows(league_id, season_year=yr):
+        for row in contract_rows:
             team = str(row.get("hub_team_name") or "").strip()
             owner = str(row.get("owner_label") or "").strip()
             if not team or not owner or owner.lower() == team.lower():
@@ -181,6 +195,7 @@ def scoring_owner_maps_for_league(
                 continue
             team_map[team] = owner
             team_map[team.lower()] = owner
+        yr = apply_yr
 
     if sleeper_league_id:
         try:
@@ -301,3 +316,36 @@ def label_team(
 ) -> str:
     owner_label = lookup_owner_label(team_name, owner_map)
     return format_manager_label(team_name, owner_label=owner_label, year_specific=year_specific)
+
+
+def attach_owner_names_to_teams(
+    league_id: str,
+    teams: list[dict[str, Any]],
+    *,
+    season_year: int | str | None = None,
+) -> list[dict[str, Any]]:
+    """Set owner_name on hub team dicts. Team nicknames stay on name / sleeper_team_name."""
+    if not league_id or not teams:
+        return teams
+    owner_map = team_owner_map_for_league(league_id, season_year=season_year)
+    for team in teams:
+        candidates: list[str] = []
+        for key in ("name", "team_name", "sleeper_team_name"):
+            value = str(team.get(key) or "").strip()
+            if value and value not in candidates:
+                candidates.append(value)
+        owner = None
+        for team_name in candidates:
+            owner = lookup_owner_label(team_name, owner_map)
+            if owner:
+                break
+        if not owner:
+            existing = team.get("owner_label") or team.get("owner_name")
+            for team_name in candidates:
+                resolved = resolve_owner(team_name, existing)
+                if resolved and resolved.lower() != team_name.lower():
+                    owner = resolved
+                    break
+        if owner:
+            team["owner_name"] = owner
+    return teams

@@ -1,4 +1,5 @@
 from src.draft_hub.owner_display import (
+    attach_owner_names_to_teams,
     enrich_award_display,
     enrich_team_row,
     format_manager_label,
@@ -88,3 +89,22 @@ def test_award_entry_year_specific_includes_team():
     )
     assert award["display_name"] == "Nick F · Hurts when I Brown"
     assert award["team_name"] == "Hurts when I Brown"
+
+
+def test_attach_owner_names_falls_back_to_hub_name(monkeypatch):
+    monkeypatch.setattr(
+        "src.draft_hub.owner_display.team_owner_map_for_league",
+        lambda *_a, **_k: {
+            "White Supremacists": "Caleb K",
+            "white supremacists": "Caleb K",
+        },
+    )
+    teams = [
+        {
+            "id": "t1",
+            "name": "White Supremacists",
+            "sleeper_team_name": "Panda Fraud",
+        }
+    ]
+    attach_owner_names_to_teams("lg-1", teams)
+    assert teams[0]["owner_name"] == "Caleb K"

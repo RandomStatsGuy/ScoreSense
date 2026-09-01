@@ -1467,7 +1467,10 @@ def get_league_by_room_code(room_code: str) -> dict[str, Any] | None:
 def list_league_teams(league_id: str) -> list[dict[str, Any]]:
     with get_conn() as conn:
         rows = conn.execute("SELECT * FROM team WHERE league_id = ? ORDER BY joined_at", (league_id,)).fetchall()
-    return [_team_dict(r) for r in rows]
+    teams = [_team_dict(r) for r in rows]
+    from src.draft_hub.owner_display import attach_owner_names_to_teams
+
+    return attach_owner_names_to_teams(league_id, teams)
 
 
 def get_draft_session(league_id: str) -> dict[str, Any] | None:
@@ -1662,7 +1665,12 @@ def list_due_scheduled_drafts(now: datetime | None = None) -> list[tuple[str, st
 def get_team(team_id: str) -> dict[str, Any] | None:
     with get_conn() as conn:
         row = conn.execute("SELECT * FROM team WHERE id = ?", (team_id,)).fetchone()
-        return _team_dict(row) if row else None
+        team = _team_dict(row) if row else None
+    if team and team.get("league_id"):
+        from src.draft_hub.owner_display import attach_owner_names_to_teams
+
+        attach_owner_names_to_teams(str(team["league_id"]), [team])
+    return team
 
 
 def get_team_by_user(league_id: str, user_sub: str) -> dict[str, Any] | None:
@@ -4679,13 +4687,14 @@ def upsert_owner_season_map(
                WHERE league_id = ? AND season_year = ? AND owner_label = ?""",
             (league_id, int(season_year), owner),
         ).fetchone()
-        # yaml_seed bulk inserts should not spam historic revisions.
+        # One-time seeds must not bump historic revisions. Listing teams (or
+        # previewing a correction) can seed the map as a read side-effect.
         changed = prior is None or (
             str(prior["hub_team_name"] or "") != team
             or (sleeper_user_id is not None and str(prior["sleeper_user_id"] or "") != str(sleeper_user_id))
             or str(prior["source_kind"] or "") != str(source_kind)
         )
-        if changed and source_kind != "yaml_seed":
+        if changed and source_kind not in {"yaml_seed", "contract_seed"}:
             _bump_revision_conn(conn, league_id, "historic_snapshot_revision")
     return _owner_season_map_dict(row) if row else {}
 
@@ -4780,7 +4789,7 @@ def resolve_hub_team_name(
 
 
 def ensure_owner_season_map_seeded(league_id: str) -> None:
-    """One-time seed from manager_team_map.yaml for each imported season."""
+    """One-time seed from contract rows, then yaml, for each imported season."""
     with get_conn() as conn:
         count = conn.execute(
             "SELECT COUNT(*) AS n FROM league_owner_season_map WHERE league_id = ?",
@@ -4792,19 +4801,27 @@ def ensure_owner_season_map_seeded(league_id: str) -> None:
 
     yaml_map = load_owner_team_map()
     seasons = list_league_contract_seasons(league_id)
-    if not seasons or not yaml_map:
+    if not seasons:
         return
     for yr in seasons:
-        for owner in TEAM_OWNERS:
-            team = yaml_map.get(owner)
-            if team:
-                upsert_owner_season_map(
-                    league_id,
-                    yr,
-                    owner,
-                    team,
-                    source_kind="yaml_seed",
-                )
+        by_owner: dict[str, str] = {}
+        for row in list_league_contract_rows(league_id, season_year=yr):
+            owner = str(row.get("owner_label") or "").strip()
+            team = str(row.get("hub_team_name") or "").strip()
+            if owner and team:
+                by_owner[owner] = team
+        owners = list(dict.fromkeys([*by_owner.keys(), *TEAM_OWNERS]))
+        for owner in owners:
+            team = by_owner.get(owner) or yaml_map.get(owner)
+            if not team:
+                continue
+            upsert_owner_season_map(
+                league_id,
+                yr,
+                owner,
+                team,
+                source_kind="contract_seed" if owner in by_owner else "yaml_seed",
+            )
 
 
 def replace_league_movements(league_id: str, season_year: int, events: list[dict[str, Any]]) -> int:

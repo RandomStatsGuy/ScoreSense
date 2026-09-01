@@ -6,7 +6,7 @@ import useMobileLayout from "../useMobileLayout";
 import MobileDataList, { MobileStat } from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
 import LeagueSleeperConnect from "./LeagueSleeperConnect";
-import { hubTeamLabel } from "./hubTeamLabel";
+import { hubTeamLabel, hubTeamParts } from "./hubTeamLabel";
 import {
   getAnyLeagueRostersCache,
   setLeagueRostersCache,
@@ -1027,7 +1027,13 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
     onChanged?.();
   }, [load, onChanged]);
 
-  const teams = overview?.teams || [];
+  const teams = useMemo(() => {
+    return [...(overview?.teams || [])].sort((a, b) => {
+      const aLabel = hubTeamLabel(a.team, { includeTeam: false }) || hubTeamLabel(a.team);
+      const bLabel = hubTeamLabel(b.team, { includeTeam: false }) || hubTeamLabel(b.team);
+      return aLabel.localeCompare(bLabel);
+    });
+  }, [overview]);
   const filteredTeams = useMemo(() => {
     const q = search.trim().toLowerCase();
     return teams
@@ -1133,6 +1139,8 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
           <div className="hub-league-team-jump" role="group" aria-label="Filter by team">
             {teams.map((block) => {
               const s = teamCapStats(block, salaryCap, leagueRules);
+              const parts = hubTeamParts(block.team);
+              const ownerLabel = parts.owner || hubTeamLabel(block.team);
               return (
                 <button
                   key={block.team.id}
@@ -1141,8 +1149,11 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
                   onClick={() => setTeamFilter((id) => (id === block.team.id ? "" : block.team.id))}
                   title={`${hubTeamLabel(block.team)} · ${fmtSal(s.committed)} committed`}
                 >
-                  {hubTeamLabel(block.team)}
-                  <span className="hub-league-jump-meta">{fmtSal(s.committed)}</span>
+                  {ownerLabel}
+                  <span className="hub-league-jump-meta">
+                    {parts.owner && parts.team ? `${parts.team} · ` : ""}
+                    {fmtSal(s.committed)}
+                  </span>
                 </button>
               );
             })}
