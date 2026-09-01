@@ -1,5 +1,21 @@
 /** Game center copy + pure view helpers (no JSX). */
 
+export const GAME_CENTER_COPY = {
+  eyebrow: "Game center",
+  emptySolo: "Game center follows your head-to-head matchup. Open a shared league to use it.",
+  emptyNoSleeper: "Link Sleeper to fill scores.",
+  emptyPreseason: "No scored matchups yet. Scores fill in after kickoff.",
+  setupCta: "Open Setup",
+  duelTitle: "Starter duel",
+  duelSupport: "Slot by slot against your opponent.",
+  benchTitle: "Bench watch",
+  benchSupport: "What stayed on the bench while the starters decided it.",
+  leagueTitle: "Around the league",
+  leagueSupport: "Every matchup this week.",
+  trophiesTitle: "After the whistle",
+  trophiesSupport: "Reactions and week trophies — winners land in Insights.",
+};
+
 export function findViewerMatchup(payload) {
   const matchups = payload?.matchups || [];
   const viewerId = payload?.viewer_matchup_id;
@@ -39,7 +55,7 @@ export function startersPending(team) {
 export function duelRows(viewer, opponent, startingSlots = []) {
   const mine = viewer?.starters || [];
   const theirs = opponent?.starters || [];
-  const count = Math.max(mine.length, theirs.length);
+  const count = Math.max(mine.length, theirs.length, startingSlots.length);
   const rows = [];
   for (let i = 0; i < count; i += 1) {
     const home = mine[i] || null;
@@ -55,7 +71,25 @@ export function duelRows(viewer, opponent, startingSlots = []) {
 }
 
 /** One consequence-first sentence under the win probability bar. */
-export function matchupStoryline({ viewer, opponent, weekComplete = false }) {
+export function matchupStoryline({
+  viewer,
+  opponent,
+  weekComplete = false,
+  placeholder = false,
+  week = null,
+  hint = "",
+} = {}) {
+  if (placeholder) {
+    const closer = hint || GAME_CENTER_COPY.emptyNoSleeper;
+    const tbd = !opponent?.team_name || opponent.team_name === "Opponent TBD" || opponent.roster_id === "tbd";
+    if (tbd) {
+      return week != null
+        ? `Week ${week} opponent TBD. ${closer}`
+        : `Opponent TBD. ${closer}`;
+    }
+    const weekBit = week != null ? `Week ${week} vs ${opponent.team_name}` : `vs ${opponent.team_name}`;
+    return `${weekBit}. ${closer}`;
+  }
   if (!viewer || !opponent) return "";
   const margin = Number(viewer.points || 0) - Number(opponent.points || 0);
   const lead = Math.abs(Math.round(margin * 10) / 10);
@@ -75,6 +109,7 @@ export function matchupStoryline({ viewer, opponent, weekComplete = false }) {
 }
 
 export function gameStateLabel(payload) {
+  if (payload?.placeholder) return "Waiting";
   if (payload?.preseason) return "Preseason";
   const week = payload?.week;
   const current = payload?.current_week;
@@ -91,18 +126,3 @@ export function formatSyncedAgo(syncedAt) {
   const minutes = Math.round(seconds / 60);
   return `Updated ${minutes}m ago`;
 }
-
-export const GAME_CENTER_COPY = {
-  eyebrow: "Game center",
-  emptySolo: "Game center follows your head-to-head matchup. Open a shared league to use it.",
-  emptyNoSleeper: "Link your Sleeper league to see live matchup scoring here.",
-  emptyPreseason: "No matchups yet — Game center lights up when the NFL week starts.",
-  duelTitle: "Starter duel",
-  duelSupport: "Slot by slot against your opponent.",
-  benchTitle: "Bench watch",
-  benchSupport: "What stayed on the bench while the starters decided it.",
-  leagueTitle: "Around the league",
-  leagueSupport: "Every matchup this week.",
-  trophiesTitle: "After the whistle",
-  trophiesSupport: "Reactions and week trophies — winners land in Insights.",
-};

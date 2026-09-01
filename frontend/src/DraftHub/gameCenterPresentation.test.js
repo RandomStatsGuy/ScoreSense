@@ -7,6 +7,7 @@ import {
   duelRows,
   findViewerMatchup,
   formatWinProb,
+  GAME_CENTER_COPY,
   gameStateLabel,
   matchupStoryline,
   matchupTeams,
@@ -64,6 +65,10 @@ test("duel rows pair starters by lineup slot", () => {
   const uneven = duelRows({ starters: [{ position: "QB" }] }, { starters: [] }, []);
   assert.equal(uneven.length, 1);
   assert.equal(uneven[0].away, null);
+  const emptySlots = duelRows({ starters: [] }, { starters: [] }, ["QB", "RB", "WR"]);
+  assert.equal(emptySlots.length, 3);
+  assert.equal(emptySlots[0].slot, "QB");
+  assert.equal(emptySlots[2].home, null);
 });
 
 test("storyline names the lead and who is still to play", () => {
@@ -82,6 +87,26 @@ test("storyline names the lead and who is still to play", () => {
 
 test("game state label distinguishes past weeks and preseason", () => {
   assert.equal(gameStateLabel({ preseason: true }), "Preseason");
+  assert.equal(gameStateLabel({ placeholder: true, preseason: true }), "Waiting");
   assert.equal(gameStateLabel({ week: 10, current_week: 12 }), "Final");
   assert.equal(gameStateLabel({ week: 12, current_week: 12 }), "Live");
+});
+
+test("placeholder storyline keeps the slate and names the missing opponent", () => {
+  const line = matchupStoryline({
+    viewer: { team_name: "Commissioner" },
+    opponent: { team_name: "Opponent TBD", roster_id: "tbd" },
+    placeholder: true,
+    week: 2,
+    hint: GAME_CENTER_COPY.emptyNoSleeper,
+  });
+  assert.equal(line, "Week 2 opponent TBD. Link Sleeper to fill scores.");
+  const paired = matchupStoryline({
+    viewer: { team_name: "Alpha" },
+    opponent: { team_name: "Zebra Squad", roster_id: "z" },
+    placeholder: true,
+    week: 1,
+    hint: GAME_CENTER_COPY.emptyPreseason,
+  });
+  assert.equal(paired, "Week 1 vs Zebra Squad. No scored matchups yet. Scores fill in after kickoff.");
 });
