@@ -174,13 +174,14 @@ def test_swap_rejects_illegal_flex_and_locks(hub_db):
         assert "cannot start" in str(exc)
 
     storage.replace_team_lineup(league["id"], home["id"], 2026, 1, rows)
+    wr2 = next(row for row in rows if row["player_id"] == "wr-a2")
     try:
         swap_lineup_players(
             league["id"],
             home["id"],
             2026,
             1,
-            starter_player_id=qb["player_id"],
+            starter_player_id=wr2["player_id"],
             bench_player_id="wr-a3",
             game_started=lambda _team: True,
         )
