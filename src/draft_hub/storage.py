@@ -4687,13 +4687,14 @@ def upsert_owner_season_map(
                WHERE league_id = ? AND season_year = ? AND owner_label = ?""",
             (league_id, int(season_year), owner),
         ).fetchone()
-        # yaml_seed bulk inserts should not spam historic revisions.
+        # One-time seeds must not bump historic revisions. Listing teams (or
+        # previewing a correction) can seed the map as a read side-effect.
         changed = prior is None or (
             str(prior["hub_team_name"] or "") != team
             or (sleeper_user_id is not None and str(prior["sleeper_user_id"] or "") != str(sleeper_user_id))
             or str(prior["source_kind"] or "") != str(source_kind)
         )
-        if changed and source_kind != "yaml_seed":
+        if changed and source_kind not in {"yaml_seed", "contract_seed"}:
             _bump_revision_conn(conn, league_id, "historic_snapshot_revision")
     return _owner_season_map_dict(row) if row else {}
 

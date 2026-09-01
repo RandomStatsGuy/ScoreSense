@@ -21,3 +21,9 @@ export function hubTeamLabel(team, { includeTeam = true } = {}) {
   if (owner && teamName && includeTeam) return `${owner} · ${teamName}`;
   return owner || teamName || "";
 }
+
+/** Avatar initials use the manager, never the combined "Owner · Team" label. */
+export function hubTeamInitialsName(team) {
+  const { owner, team: teamName } = hubTeamParts(team);
+  return owner || teamName || "";
+}

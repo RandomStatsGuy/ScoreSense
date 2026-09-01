@@ -212,9 +212,39 @@ def test_list_league_teams_attaches_owner_name(hub_db):
         ],
     )
     storage.join_league("ck-owner", league["room_code"], "White Supremacists")
+    hist0 = storage.league_cache_revisions(lid)["historic_snapshot_revision"]
     teams = storage.list_league_teams(lid)
     hit = next(t for t in teams if t["name"] == "White Supremacists")
     assert hit["owner_name"] == "Caleb K"
+    # Attaching owner names can seed the map, but seed writes must not bump.
+    assert storage.league_cache_revisions(lid)["historic_snapshot_revision"] == hist0
+
+
+def test_contract_seed_does_not_bump_historic_revision(hub_db):
+    league = storage.create_league("seed-rev", "Seed Rev", 2026, LeagueRules())
+    lid = league["id"]
+    storage.replace_league_contract_season(
+        lid,
+        2025,
+        [
+            {
+                "owner_label": "Team A",
+                "hub_team_name": "Alpha",
+                "player_name": "QB One",
+                "position": "QB",
+                "cap_hit": 10.0,
+                "roster_status": "active",
+            },
+        ],
+    )
+    hist0 = storage.league_cache_revisions(lid)["historic_snapshot_revision"]
+    storage.ensure_owner_season_map_seeded(lid)
+    assert storage.league_cache_revisions(lid)["historic_snapshot_revision"] == hist0
+    rows = storage.list_owner_season_map(lid, season_year=2025)
+    hit = next((r for r in rows if r["owner_label"] == "Team A"), None)
+    assert hit is not None
+    assert hit["source_kind"] == "contract_seed"
+    assert hit["hub_team_name"] == "Alpha"
 
 
 def test_scoring_owner_map_prefers_season_map_over_contract_rows(hub_db):
