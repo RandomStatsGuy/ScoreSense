@@ -27,8 +27,10 @@ import {
   seasonBoardSignals,
   seasonPeerStats,
   weeklyBoardKicker,
+  weeklyBoardPreview,
   weeklyBoardSignals,
   weeklyPeerStats,
+  seasonBoardPreview,
 } from "./projectionsPresentation";
 import { isScheduleAwareMethod } from "./seasonQuantiles";
 import { applyMediaQueryParams } from "./mediaContext";
@@ -602,13 +604,14 @@ export default function App() {
         featureSeason: draftResponseMeta?.feature_season,
         draftSeason,
         scope: "preseason",
+        position,
       }
-      : { scope: "live" }),
-    [seasonSignalRows, draftResponseMeta, draftSeason, isSeasonPreseason],
+      : { scope: "live", position }),
+    [seasonSignalRows, draftResponseMeta, draftSeason, isSeasonPreseason, position],
   );
 
   const inspectorPeers = useMemo(() => {
-    if (isWeeklyProjections) return weeklyPeerStats(tableRows);
+    if (isWeeklyProjections) return weeklyPeerStats(tableRows, { position });
     if (isSeasonPreseason) {
       return seasonPeerStats(draftProjections, {
         method: draftResponseMeta?.season_quantile_method,
@@ -622,6 +625,7 @@ export default function App() {
     draftProjections,
     rosTableRows,
     draftResponseMeta,
+    position,
   ]);
 
   const inspectorCandidates = useMemo(() => {
@@ -646,13 +650,28 @@ export default function App() {
       if (!rankById.has(id)) rankById.set(id, index + 1);
     });
     return (source || [])
-      .map((row) => ({
-        playerId: row.player_id,
-        name: row.Player,
-        team: row.Team,
-        position,
-        rank: row.player_id ? rankById.get(String(row.player_id)) ?? null : null,
-      }))
+      .map((row) => {
+        const rank = row.player_id ? rankById.get(String(row.player_id)) ?? null : null;
+        const preview = isWeeklyProjections
+          ? weeklyBoardPreview(row, inspectorPeers, { rank, position })
+          : seasonBoardPreview(row, inspectorPeers, {
+            rank,
+            position,
+            method: isSeasonPreseason ? draftResponseMeta?.season_quantile_method : null,
+            scheduleAware: Boolean(
+              isSeasonPreseason
+              && isScheduleAwareMethod(draftResponseMeta?.season_quantile_method),
+            ),
+          });
+        return {
+          playerId: row.player_id,
+          name: row.Player,
+          team: row.Team,
+          position,
+          rank,
+          preview,
+        };
+      })
       .filter((row) => row.playerId);
   }, [
     isWeeklyProjections,
@@ -662,6 +681,8 @@ export default function App() {
     rosTableRows,
     position,
     seasonComplete,
+    inspectorPeers,
+    draftResponseMeta,
   ]);
 
   const weeklyInjurySummary = injuryDisclosureSummary({
@@ -1249,6 +1270,7 @@ export default function App() {
       compareIds={compareIds}
       onToggleCompare={handleToggleCompare}
       maxCompare={MAX_COMPARE_PLAYERS}
+      resetKey={`${projectionsTab}:${seasonMode}:${position}`}
     >
     <MobileShell
       section={view}

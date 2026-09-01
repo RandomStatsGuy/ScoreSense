@@ -21,6 +21,8 @@ export function ProjectionBoardSignals({ signals = [], playerParams = null }) {
               playerId: signal.playerId,
               name: signal.name,
               team: signal.row?.Team,
+              rank: signal.rank,
+              preview: signal.preview || null,
             }) : undefined}
           >
             <p className="proj-signal-kicker">{signal.kicker}</p>

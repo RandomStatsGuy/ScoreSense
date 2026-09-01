@@ -91,9 +91,14 @@ export function isBoardAvailable(row) {
   return !isPlayerUnavailable(row["Injury Status"]);
 }
 
-export function weeklyPeerStats(rows) {
+export function weeklyPeerStats(rows, { position } = {}) {
   const available = (rows || []).filter(isBoardAvailable);
-  const bands = available.map(weeklyQuantiles);
+  const ranked = [...available].sort((a, b) => (
+    (weeklyQuantiles(b).p50 || 0) - (weeklyQuantiles(a).p50 || 0)
+  ));
+  const starters = ranked.slice(0, starterCutoff(position));
+  const pool = starters.length >= 4 ? starters : available;
+  const bands = pool.map(weeklyQuantiles);
   const spreads = bands.map((b) => b.spread);
   const p50s = bands.map((b) => b.p50);
   const p10s = bands.map((b) => b.p10);
@@ -128,7 +133,7 @@ export function weeklyWhyNow(row, peers = {}, { rank, position } = {}) {
   const pos = positionShort(position) || "this position";
   const cutoff = starterCutoff(position);
   const starter = rank != null && rank <= cutoff;
-  const elite = (rank != null && rank <= 3) || (peers.p50P90 != null && band.p50 >= peers.p50P90);
+  const elite = rank != null && rank <= 3;
   const wide =
     band.spread != null &&
     peers.medianSpread != null &&
@@ -162,6 +167,54 @@ export function weeklyWhyNow(row, peers = {}, { rank, position } = {}) {
         ? "tighter-than-average outcome band"
         : null;
   return clauseJoin([lead, range]);
+}
+
+export function weeklyBoardPreview(row, peers, { rank, position, whyNow } = {}) {
+  const band = weeklyQuantiles(row);
+  return {
+    p10: band.p10,
+    p50: band.p50,
+    p90: band.p90,
+    rank: rank ?? null,
+    whyNow: whyNow || weeklyWhyNow(row, peers, { rank, position }),
+    method: "weekly",
+  };
+}
+
+export function seasonBoardPreview(row, peers, { rank, position, method, scheduleAware } = {}) {
+  const band = resolveSeasonBand(row, { method });
+  const resolvedMethod = method || row?.season_quantile_method || null;
+  return {
+    p10: band.p10,
+    p50: band.p50,
+    p90: band.p90,
+    rank: rank ?? null,
+    whyNow: seasonRead(row, peers, { rank, position, method: resolvedMethod }),
+    method: resolvedMethod,
+    scheduleAware: Boolean(scheduleAware || isScheduleAwareMethod(resolvedMethod)),
+  };
+}
+
+function rankByScore(rows, score) {
+  const ranked = [...(rows || [])]
+    .map((row) => ({ row, value: Number(score(row)) }))
+    .filter((item) => Number.isFinite(item.value))
+    .sort((a, b) => b.value - a.value);
+  const map = new Map();
+  ranked.forEach((item, index) => {
+    const key = item.row?.player_id != null ? String(item.row.player_id) : playerName(item.row);
+    if (key && !map.has(key)) map.set(key, index + 1);
+  });
+  return map;
+}
+
+function rankForRow(rankMap, row) {
+  if (!row || !rankMap) return null;
+  if (row.player_id != null && rankMap.has(String(row.player_id))) {
+    return rankMap.get(String(row.player_id));
+  }
+  const name = playerName(row);
+  return name ? rankMap.get(name) ?? null : null;
 }
 
 export function seasonPeerStats(rows, { method } = {}) {
@@ -271,6 +324,13 @@ function playerName(row) {
 
 export function weeklyBoardSignals(rows, { attentionItems = [], position } = {}) {
   const available = (rows || []).filter(isBoardAvailable);
+  const peers = weeklyPeerStats(available, { position });
+  const ranks = rankByScore(available, (row) => weeklyQuantiles(row).p50);
+  const withPreview = (row) => {
+    if (!row) return { rank: null, preview: null };
+    const rank = rankForRow(ranks, row);
+    return { rank, preview: weeklyBoardPreview(row, peers, { rank, position }) };
+  };
   const pos = positionShort(position);
   const top = available.reduce((best, row) => {
     const p50 = weeklyQuantiles(row).p50;
@@ -308,6 +368,8 @@ export function weeklyBoardSignals(rows, { attentionItems = [], position } = {})
       value: top ? `${top.value.toFixed(1)} P50` : "—",
       playerId: top?.row?.player_id || null,
       row: top?.row || null,
+      rank: withPreview(top?.row).rank,
+      preview: withPreview(top?.row).preview,
     },
     {
       id: "floor",
@@ -316,6 +378,8 @@ export function weeklyBoardSignals(rows, { attentionItems = [], position } = {})
       value: floor ? `${floor.value.toFixed(1)} P10` : "—",
       playerId: floor?.row?.player_id || null,
       row: floor?.row || null,
+      rank: withPreview(floor?.row).rank,
+      preview: withPreview(floor?.row).preview,
     },
     {
       id: "riser",
@@ -328,6 +392,8 @@ export function weeklyBoardSignals(rows, { attentionItems = [], position } = {})
         : "No material riser",
       playerId: riser?.row?.player_id || null,
       row: riser?.row || null,
+      rank: withPreview(riser?.row).rank,
+      preview: withPreview(riser?.row).preview,
       tone: riser ? "up" : null,
     },
     {
@@ -341,15 +407,31 @@ export function weeklyBoardSignals(rows, { attentionItems = [], position } = {})
         : "Clear",
       playerId: first?.playerId || first?.projectionRow?.player_id || null,
       row: first?.projectionRow || null,
+      rank: withPreview(first?.projectionRow || null).rank,
+      preview: withPreview(first?.projectionRow || null).preview,
       tone: attention.length ? "caution" : "ok",
     },
   ];
 }
 
-export function seasonBoardSignals(rows, { method, featureSeason, draftSeason, scope = "preseason" } = {}) {
+export function seasonBoardSignals(rows, { method, featureSeason, draftSeason, scope = "preseason", position } = {}) {
   const list = rows || [];
   const bandMethod = scope === "live" ? undefined : method;
   const peers = seasonPeerStats(list, { method: bandMethod });
+  const ranks = rankByScore(list, (row) => Number(row["Season Proj"] ?? resolveSeasonBand(row, { method: bandMethod }).p50));
+  const withPreview = (row) => {
+    if (!row) return { rank: null, preview: null };
+    const rank = rankForRow(ranks, row);
+    return {
+      rank,
+      preview: seasonBoardPreview(row, peers, {
+        rank,
+        position,
+        method: bandMethod,
+        scheduleAware: scope !== "live" && isScheduleAwareMethod(method),
+      }),
+    };
+  };
   const top = list.reduce((best, row) => {
     const band = resolveSeasonBand(row, { method: bandMethod });
     if (band.p50 == null) return best;
@@ -387,6 +469,8 @@ export function seasonBoardSignals(rows, { method, featureSeason, draftSeason, s
         : "—",
       playerId: top?.row?.player_id || null,
       row: top?.row || null,
+      rank: withPreview(top?.row).rank,
+      preview: withPreview(top?.row).preview,
     },
     {
       id: "ceiling",
@@ -397,6 +481,8 @@ export function seasonBoardSignals(rows, { method, featureSeason, draftSeason, s
         : "—",
       playerId: ceiling?.row?.player_id || null,
       row: ceiling?.row || null,
+      rank: withPreview(ceiling?.row).rank,
+      preview: withPreview(ceiling?.row).preview,
     },
     {
       id: "tight",
@@ -407,6 +493,8 @@ export function seasonBoardSignals(rows, { method, featureSeason, draftSeason, s
         : "—",
       playerId: tight?.row?.player_id || null,
       row: tight?.row || null,
+      rank: withPreview(tight?.row).rank,
+      preview: withPreview(tight?.row).preview,
     },
     {
       id: "model",
