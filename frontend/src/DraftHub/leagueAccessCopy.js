@@ -32,7 +32,7 @@ export function draftLobbyHeroSupport({ testMode = false } = {}) {
   if (testMode) {
     return "Send the practice link. Friends sit down with a name — no ScoreSense account.";
   }
-  return "Live draft night is for league members. Invite managers to the league first, then share this room link so they can sit down.";
+  return "Text the invite link so managers can claim a team. Share the room link on draft night.";
 }
 
 export function draftInviteRailHint({ testMode = false } = {}) {
@@ -106,8 +106,28 @@ export function draftJoinAccountNote({ authenticated = false, membersOnly = fals
   return "No account needed for this practice draft. Guests stay in the room.";
 }
 
+export function managerClaimLabel() {
+  return "Invite link";
+}
+
+export function managerClaimExplainer() {
+  return "Text this link to the group. They make a ScoreSense account, then pick their team.";
+}
+
+export function managerClaimWhatHappens() {
+  return "Anyone with the link signs in and claims an open team. Assign a specific email only when you need to lock a seat to one person.";
+}
+
+export function managerClaimCopied() {
+  return "Copied — paste it in the text thread.";
+}
+
+export function managerClaimRotateHint() {
+  return "Rotating the link retires the old one. People who already claimed stay in the league.";
+}
+
 export function memberInviteExplainer() {
-  return "Email invite assigns a named team and full league access (Home, roster, trades). The recipient signs in or creates an account with that exact email. The draft lobby link is only for members who already have a team — it does not let anyone walk in.";
+  return "The invite link on Draft is the simple path: text it, they claim a team. Email invite still assigns a named seat to one address when you need that lock.";
 }
 
 export function emailManagersHint() {

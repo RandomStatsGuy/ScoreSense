@@ -132,6 +132,12 @@ def _utcnow() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _new_claim_token() -> str:
+    import secrets
+
+    return secrets.token_urlsafe(24)
+
+
 GUEST_SUB_PREFIX = "guest:"
 
 
@@ -255,6 +261,37 @@ def _migrate(conn: sqlite3.Connection) -> None:
     _safe_add_column(conn, "draft_session", "nomination_order_json", "TEXT")
     _safe_add_column(conn, "league", "draft_starts_at", "TEXT")
     _safe_add_column(conn, "league", "draft_timezone", "TEXT")
+    _safe_add_column(conn, "league", "claim_token", "TEXT")
+    _safe_add_column(conn, "league", "claim_link_enabled", "INTEGER NOT NULL DEFAULT 1")
+    missing_tokens = conn.execute(
+        "SELECT id FROM league WHERE claim_token IS NULL OR TRIM(claim_token) = ''"
+    ).fetchall()
+    for row in missing_tokens:
+        conn.execute(
+            "UPDATE league SET claim_token = ? WHERE id = ?",
+            (_new_claim_token(), row["id"]),
+        )
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_league_claim_token ON league(claim_token)"
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS draft_availability (
+            id TEXT PRIMARY KEY,
+            league_id TEXT NOT NULL,
+            team_id TEXT NOT NULL,
+            user_sub TEXT NOT NULL,
+            slot_date TEXT NOT NULL,
+            slot_hour INTEGER NOT NULL,
+            created_at TEXT NOT NULL,
+            UNIQUE(league_id, team_id, slot_date, slot_hour)
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_draft_avail_league ON draft_availability(league_id)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_draft_avail_team ON draft_availability(team_id)"
+    )
     _safe_add_column(conn, "draft_session", "paused", "INTEGER NOT NULL DEFAULT 0")
     _safe_add_column(conn, "draft_session", "paused_at", "TEXT")
     _safe_add_column(conn, "team", "nomination_queue_json", "TEXT")
@@ -1450,10 +1487,24 @@ def create_league(commissioner_sub: str, name: str, season: int, rules: LeagueRu
         sleeper_league_id = comm_ws.get("sleeper_league_id")
     with get_conn() as conn:
         room_code = _gen_room_code(conn)
+        claim_token = _new_claim_token()
         conn.execute(
-            """INSERT INTO league (id, workspace_id, commissioner_sub, name, season, rules_json, room_code, status, team_count, created_at, sleeper_league_id, test_mode)
-               VALUES (?, ?, ?, ?, ?, ?, ?, 'setup', ?, ?, ?, ?)""",
-            (league_id, workspace_id, commissioner_sub, name, season, _rules_to_json(rules), room_code, team_count, now, sleeper_league_id, 1 if test_mode else 0),
+            """INSERT INTO league (id, workspace_id, commissioner_sub, name, season, rules_json, room_code, status, team_count, created_at, sleeper_league_id, test_mode, claim_token, claim_link_enabled)
+               VALUES (?, ?, ?, ?, ?, ?, ?, 'setup', ?, ?, ?, ?, ?, 1)""",
+            (
+                league_id,
+                workspace_id,
+                commissioner_sub,
+                name,
+                season,
+                _rules_to_json(rules),
+                room_code,
+                team_count,
+                now,
+                sleeper_league_id,
+                1 if test_mode else 0,
+                claim_token,
+            ),
         )
         team_id = str(uuid.uuid4())
         conn.execute(
@@ -1483,6 +1534,9 @@ def create_league(commissioner_sub: str, name: str, season: int, rules: LeagueRu
 
 
 def join_league(user_sub: str, room_code: str, team_name: str) -> dict[str, Any]:
+    clean_name = str(team_name or "").strip()
+    if not clean_name:
+        raise ValueError("Team name is required")
     with get_conn() as conn:
         league = conn.execute(
             "SELECT * FROM league WHERE room_code = ?",
@@ -1498,6 +1552,23 @@ def join_league(user_sub: str, room_code: str, team_name: str) -> dict[str, Any]
         ).fetchone()
         if existing:
             return _team_dict(existing)
+        named = conn.execute(
+            """SELECT * FROM team
+               WHERE league_id = ? AND LOWER(name) = LOWER(?)
+                 AND COALESCE(is_bot, 0) = 0""",
+            (league["id"], clean_name),
+        ).fetchone()
+        if named:
+            if named["user_sub"] and str(named["user_sub"]) != str(user_sub):
+                raise ValueError(f"Team '{named['name']}' is already claimed")
+            now = _utcnow()
+            conn.execute(
+                """UPDATE team SET user_sub = ?, joined_at = COALESCE(joined_at, ?)
+                   WHERE id = ?""",
+                (user_sub, now, named["id"]),
+            )
+            row = conn.execute("SELECT * FROM team WHERE id = ?", (named["id"],)).fetchone()
+            return _team_dict(row)
         team_count = conn.execute(
             "SELECT COUNT(*) AS c FROM team WHERE league_id = ?",
             (league["id"],),
@@ -1510,7 +1581,7 @@ def join_league(user_sub: str, room_code: str, team_name: str) -> dict[str, Any]
         conn.execute(
             """INSERT INTO team (id, league_id, user_sub, name, budget_remaining, is_commissioner, joined_at)
                VALUES (?, ?, ?, ?, ?, 0, ?)""",
-            (team_id, league["id"], user_sub, team_name, rules.salary_cap, now),
+            (team_id, league["id"], user_sub, clean_name, rules.salary_cap, now),
         )
         row = conn.execute("SELECT * FROM team WHERE id = ?", (team_id,)).fetchone()
         return _team_dict(row)
@@ -2138,6 +2209,7 @@ def update_league_settings(
     draft_starts_at: str | None = None,
     draft_timezone: str | None = None,
     clear_draft_start: bool = False,
+    claim_link_enabled: bool | None = None,
 ) -> dict[str, Any] | None:
     if (
         lock_team_claims is None
@@ -2145,6 +2217,7 @@ def update_league_settings(
         and draft_starts_at is None
         and draft_timezone is None
         and not clear_draft_start
+        and claim_link_enabled is None
     ):
         return get_league(league_id)
     with get_conn() as conn:
@@ -2152,6 +2225,11 @@ def update_league_settings(
             conn.execute(
                 "UPDATE league SET lock_team_claims = ? WHERE id = ?",
                 (1 if lock_team_claims else 0, league_id),
+            )
+        if claim_link_enabled is not None:
+            conn.execute(
+                "UPDATE league SET claim_link_enabled = ? WHERE id = ?",
+                (1 if claim_link_enabled else 0, league_id),
             )
         if draft_completed is not None:
             conn.execute(
@@ -2968,6 +3046,7 @@ def _league_dict(row: sqlite3.Row) -> dict[str, Any]:
         "draft_completed": bool(row["draft_completed"]) if "draft_completed" in keys else False,
         "draft_starts_at": row["draft_starts_at"] if "draft_starts_at" in keys else None,
         "draft_timezone": row["draft_timezone"] if "draft_timezone" in keys else None,
+        "claim_link_enabled": bool(row["claim_link_enabled"]) if "claim_link_enabled" in keys else True,
         "live_roster_revision": int(row["live_roster_revision"] or 0)
         if "live_roster_revision" in keys
         else 0,
@@ -3224,6 +3303,107 @@ def _invite_dict(row: sqlite3.Row) -> dict[str, Any]:
         "accepted_at": row["accepted_at"],
         "co_commissioner": bool(row["co_commissioner"]) if "co_commissioner" in keys else False,
     }
+
+
+def get_league_claim_token(league_id: str) -> str | None:
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT claim_token, claim_link_enabled FROM league WHERE id = ?",
+            (league_id,),
+        ).fetchone()
+        if not row:
+            return None
+        token = str(row["claim_token"] or "").strip()
+        if token:
+            return token
+        token = _new_claim_token()
+        conn.execute("UPDATE league SET claim_token = ? WHERE id = ?", (token, league_id))
+        return token
+
+
+def get_league_by_claim_token(token: str) -> dict[str, Any] | None:
+    clean = str(token or "").strip()
+    if not clean:
+        return None
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM league WHERE claim_token = ?",
+            (clean,),
+        ).fetchone()
+    return _league_dict(row) if row else None
+
+
+def rotate_league_claim_token(league_id: str) -> str:
+    if not get_league(league_id):
+        raise ValueError("League not found")
+    token = _new_claim_token()
+    with get_conn() as conn:
+        conn.execute("UPDATE league SET claim_token = ? WHERE id = ?", (token, league_id))
+    return token
+
+
+def _availability_dict(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "league_id": row["league_id"],
+        "team_id": row["team_id"],
+        "user_sub": row["user_sub"],
+        "date": row["slot_date"],
+        "hour": int(row["slot_hour"]),
+        "created_at": row["created_at"],
+    }
+
+
+def list_draft_availability(league_id: str) -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT * FROM draft_availability
+               WHERE league_id = ?
+               ORDER BY slot_date, slot_hour""",
+            (league_id,),
+        ).fetchall()
+    return [_availability_dict(r) for r in rows]
+
+
+def list_team_draft_availability(league_id: str, team_id: str) -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT * FROM draft_availability
+               WHERE league_id = ? AND team_id = ?
+               ORDER BY slot_date, slot_hour""",
+            (league_id, team_id),
+        ).fetchall()
+    return [_availability_dict(r) for r in rows]
+
+
+def replace_team_draft_availability(
+    league_id: str,
+    team_id: str,
+    user_sub: str,
+    slots: list[tuple[str, int]],
+) -> list[dict[str, Any]]:
+    now = _utcnow()
+    unique: list[tuple[str, int]] = []
+    seen: set[tuple[str, int]] = set()
+    for date, hour in slots:
+        key = (str(date), int(hour))
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(key)
+    with get_conn() as conn:
+        conn.execute(
+            "DELETE FROM draft_availability WHERE league_id = ? AND team_id = ?",
+            (league_id, team_id),
+        )
+        for date, hour in unique:
+            conn.execute(
+                """INSERT INTO draft_availability
+                   (id, league_id, team_id, user_sub, slot_date, slot_hour, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (str(uuid.uuid4()), league_id, team_id, user_sub, date, hour, now),
+            )
+    return list_team_draft_availability(league_id, team_id)
 
 
 def get_or_create_league_team_by_name(league_id: str, name: str, budget: float) -> dict[str, Any]:

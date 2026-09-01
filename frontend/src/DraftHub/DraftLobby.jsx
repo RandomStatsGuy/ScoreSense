@@ -20,7 +20,13 @@ import {
   draftLobbyRailHeading,
   draftLobbyReadiness,
   emailManagersHint,
+  managerClaimCopied,
+  managerClaimExplainer,
+  managerClaimLabel,
+  managerClaimRotateHint,
+  managerClaimWhatHappens,
 } from "./leagueAccessCopy";
+import DraftAvailability from "./DraftAvailability";
 import { HubExperienceHero, HubExperienceLayout, HubExperienceSummary } from "./HubUILayout";
 import { secondsUntil } from "./draftRoomHelpers";
 import { fmtSal } from "./rosterFormat";
@@ -40,8 +46,12 @@ export default function DraftLobby({
   onSaveSchedule,
   onUpdated,
   guestMode = false,
+  claimAccess = null,
 }) {
   const [copied, setCopied] = useState(false);
+  const [claimCopied, setClaimCopied] = useState(false);
+  const [claimBusy, setClaimBusy] = useState(false);
+  const [claimLink, setClaimLink] = useState(claimAccess?.url || "");
   const [slotBusy, setSlotBusy] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [nameOpen, setNameOpen] = useState(false);
@@ -55,6 +65,8 @@ export default function DraftLobby({
   const teamCount = Number(league?.team_count || 12);
   const roomCode = String(league?.room_code || "").toUpperCase();
   const inviteUrl = roomCode ? lobbyAbsoluteUrl(roomCode) : "";
+  const claimUrl = claimLink || claimAccess?.url || "";
+  const claimEnabled = claimAccess?.enabled !== false;
   const myTeamId = viewer?.team_id;
   const mySlot = (teams || []).find((t) => String(t.id) === String(myTeamId))?.draft_slot;
   const humans = useMemo(
@@ -99,6 +111,34 @@ export default function DraftLobby({
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
       setError("Could not copy the link. Select it and copy manually.");
+    }
+  };
+
+  const copyClaimLink = async () => {
+    if (!claimUrl) return;
+    try {
+      await navigator.clipboard.writeText(claimUrl);
+      setClaimCopied(true);
+      window.setTimeout(() => setClaimCopied(false), 2200);
+    } catch {
+      setError("Could not copy the invite link. Select it and copy manually.");
+    }
+  };
+
+  const rotateClaimLink = async () => {
+    if (!leagueId || claimBusy) return;
+    setClaimBusy(true);
+    setError("");
+    try {
+      const res = await apiFetch(`/api/hub/league/${leagueId}/claim-link/rotate`, { method: "POST" });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const data = await res.json();
+      setClaimLink(data.claim?.url || "");
+      onUpdated?.(data);
+    } catch (e) {
+      setError(e.message || "Could not rotate the invite link");
+    } finally {
+      setClaimBusy(false);
     }
   };
 
@@ -246,6 +286,37 @@ export default function DraftLobby({
                 ) : (
                   <p className="hub-experience-summary-note">Waiting for the commissioner to start.</p>
                 )}
+                {isCommissioner && !testMode && claimUrl ? (
+                  <div className="draft-lobby-link draft-lobby-claim">
+                    <label htmlFor="draft-claim-url">{managerClaimLabel()}</label>
+                    <p className="chart-note draft-lobby-invite-copy">
+                      {managerClaimExplainer()}
+                    </p>
+                    <div className="draft-lobby-link-row">
+                      <input id="draft-claim-url" readOnly value={claimUrl} />
+                      <Button variant="ghost" size="sm" onClick={copyClaimLink}>
+                        {claimCopied ? "Copied" : "Copy"}
+                      </Button>
+                    </div>
+                    {claimCopied ? <p className="hub-experience-summary-note">{managerClaimCopied()}</p> : null}
+                    {!claimEnabled ? (
+                      <p className="chart-note">This link is turned off in Roster management.</p>
+                    ) : null}
+                    <details className="draft-lobby-invite-details">
+                      <summary>How claiming works</summary>
+                      <p className="chart-note">{managerClaimWhatHappens()}</p>
+                      <button
+                        type="button"
+                        className="btn-link"
+                        disabled={claimBusy}
+                        onClick={rotateClaimLink}
+                      >
+                        {claimBusy ? "Rotating…" : "Rotate link"}
+                      </button>
+                      <p className="chart-note">{managerClaimRotateHint()}</p>
+                    </details>
+                  </div>
+                ) : null}
                 {inviteUrl ? (
                   <div className="draft-lobby-link">
                     <label htmlFor="draft-lobby-url">{draftInviteLabel({ testMode })}</label>
@@ -259,7 +330,7 @@ export default function DraftLobby({
                       </Button>
                     </div>
                     <details className="draft-lobby-invite-details">
-                      <summary>How access works</summary>
+                      <summary>How draft-night access works</summary>
                       <p className="chart-note">{draftInviteWhatHappens({ testMode })}</p>
                       {isCommissioner && !testMode ? (
                         <p className="chart-note">{emailManagersHint()}</p>
@@ -286,7 +357,7 @@ export default function DraftLobby({
                 ? "You are in as a guest. The host starts when the room feels right. Create an account later if you want this team to stay."
                 : testMode
                   ? "Claimed seats stay with this practice room. Open seats wait for the practice link."
-                  : "Claimed seats stay with this league. Open seats wait for invited managers — not a public walk-in."}
+                  : "Claimed seats stay with this league. Open seats wait on the invite link — managers pick their team."}
             </p>
           </header>
           <ul className="draft-lobby-seat-list">
@@ -307,7 +378,7 @@ export default function DraftLobby({
               <li key={`open-${i}`} className="draft-lobby-seat is-open">
                 <span className="draft-lobby-seat-name">Open seat</span>
                 <span className="draft-lobby-seat-meta">
-                  {testMode ? "Waiting on the practice link" : "Waiting for an invited member"}
+                  {testMode ? "Waiting on the practice link" : "Waiting on the invite link"}
                 </span>
               </li>
             ))}
@@ -379,6 +450,10 @@ export default function DraftLobby({
             })}
           </ol>
         </article>
+
+        {!testMode && viewer?.team_id ? (
+          <DraftAvailability leagueId={leagueId} enabled={!guestMode} />
+        ) : null}
 
         {isCommissioner && !testMode && onSaveSchedule ? (
           <details className="hub-experience-section draft-lobby-schedule">

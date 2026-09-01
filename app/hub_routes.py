@@ -61,6 +61,8 @@ from src.draft_hub.schemas import (
     LeagueCreateRequest,
     LeagueInviteAcceptRequest,
     LeagueInviteCreateRequest,
+    LeagueClaimAcceptRequest,
+    DraftAvailabilityUpdate,
     LeagueJoinRequest,
     LobbyJoinRequest,
     LobbyNameRequest,
@@ -119,6 +121,13 @@ from src.draft_hub.fa_market import (
 from src.draft_hub.league_permissions import can_edit_roster, require_commissioner, require_primary_commissioner
 from src.draft_hub.league_analytics import build_league_analytics
 from src.draft_hub.league_invites import build_invite_url, create_invite
+from src.draft_hub.league_claim import (
+    accept_claim_link,
+    build_claim_preview,
+    rotate_claim_link,
+    staff_claim_payload,
+)
+from src.draft_hub.draft_availability import build_availability_payload, save_availability
 from src.draft_hub.league_sleeper_sync import connect_sleeper_league
 from src.draft_hub.league_sheet_import import parse_league_sheet_csv
 from src.draft_hub.mock_draft import start_mock_draft
@@ -1820,12 +1829,15 @@ def hub_league_members(league_id: str, _user=Depends(require_hub_user)) -> dict:
         logger.debug("sleeper display-name refresh skipped", exc_info=True)
     teams = storage.list_league_teams(league_id)
     invites = storage.list_league_invites(league_id) if ctx.get("is_commissioner") else []
-    return {
+    out = {
         "teams": teams,
         "invites": invites,
         "hub_context": ctx,
         "commissioner_sub": league.get("commissioner_sub") if league else None,
     }
+    if ctx.get("can_invite_members") and league:
+        out["claim"] = staff_claim_payload(league)
+    return out
 
 
 @router.get("/league/{league_id}/rosters")
@@ -4064,6 +4076,7 @@ def hub_league_settings(
         league_id,
         lock_team_claims=body.lock_team_claims,
         draft_completed=body.draft_completed,
+        claim_link_enabled=body.claim_link_enabled,
     )
     if body.clear_draft_start or body.draft_starts_at is not None or body.draft_timezone is not None:
         try:
@@ -4246,6 +4259,71 @@ async def hub_clear_chat_messages(
         {"type": "chat_cleared", "kind": kind_norm},
     )
     return result
+
+
+@router.get("/claim/{token}")
+def hub_preview_claim(token: str, request: Request) -> dict:
+    user = optional_user(request)
+    sub = _sub(user) if user else None
+    try:
+        return build_claim_preview(token, sub)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/claim/{token}")
+def hub_accept_claim(token: str, body: LeagueClaimAcceptRequest, user=Depends(require_hub_user)) -> dict:
+    sub = _sub(user)
+    try:
+        result = accept_claim_link(
+            token,
+            sub,
+            team_id=body.team_id,
+            team_name=body.team_name,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {**result, "hub_context": _ctx(sub)}
+
+
+@router.post("/league/{league_id}/claim-link/rotate")
+def hub_rotate_claim_link(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    try:
+        claim = rotate_claim_link(league_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"claim": claim, "hub_context": _ctx(sub)}
+
+
+@router.get("/league/{league_id}/availability")
+def hub_get_availability(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    _ctx_for_league(sub, league_id)
+    try:
+        return build_availability_payload(league_id, sub)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.put("/league/{league_id}/availability")
+def hub_put_availability(
+    league_id: str,
+    body: DraftAvailabilityUpdate,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    _ctx_for_league(sub, league_id)
+    try:
+        return save_availability(
+            league_id,
+            sub,
+            [slot.model_dump() for slot in body.slots],
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/invites/{token}")

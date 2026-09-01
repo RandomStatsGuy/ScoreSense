@@ -7,6 +7,8 @@ const ACTION_LABELS = {
   expiring_contracts: "Review contracts",
   lineup_decisions: "Set lineup",
   cap_sheets_stale: "Sync sheets",
+  invite_managers: "Invite managers",
+  mark_availability: "Mark times",
 };
 
 const ACTION_SUPPORT = {
@@ -18,6 +20,8 @@ const ACTION_SUPPORT = {
   expiring_contracts: "Decide who stays before those deals become free agents.",
   lineup_decisions: "Resolve the choices most likely to change your week.",
   cap_sheets_stale: "Bring the league ledger back in sync.",
+  invite_managers: "Text the invite link so they can claim a team.",
+  mark_availability: "Tell the room which nights you can actually sit.",
 };
 
 export const LEAGUE_PHASES = [

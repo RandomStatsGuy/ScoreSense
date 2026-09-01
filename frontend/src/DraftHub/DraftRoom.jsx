@@ -1704,6 +1704,7 @@ export default function DraftRoom({
           viewer={roomState?.viewer}
           guestMode={guestMode}
           onUpdated={applyState}
+          claimAccess={roomState?.claim || null}
         />
       )}
 
