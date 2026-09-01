@@ -712,6 +712,11 @@ def _lineup_target_team(ctx: dict[str, Any], requested_team_id: str | None) -> s
     return team_id
 
 
+def _require_hub_hosted_scoring(ctx: dict[str, Any]) -> None:
+    if ctx.get("sleeper_league_id"):
+        raise HTTPException(status_code=409, detail="Lineups and scoring stay in Sleeper")
+
+
 @router.get("/league/{league_id}/lineup")
 def hub_get_lineup(
     league_id: str,
@@ -724,6 +729,7 @@ def hub_get_lineup(
     from src.draft_hub.schemas import LeagueRules
 
     ctx = _ctx_for_league(_sub(_user), league_id)
+    _require_hub_hosted_scoring(ctx)
     resolved_season, resolved_week = _lineup_week_args(ctx, week, season)
     target = _lineup_target_team(ctx, team_id)
     rules = LeagueRules.model_validate(ctx.get("rules") or {})
@@ -748,6 +754,7 @@ def hub_set_lineup(
     from src.draft_hub.schemas import LeagueRules
 
     ctx = _ctx_for_league(_sub(_user), league_id)
+    _require_hub_hosted_scoring(ctx)
     resolved_season, resolved_week = _lineup_week_args(ctx, body.week, body.season)
     target = _lineup_target_team(ctx, body.team_id)
     rules = LeagueRules.model_validate(ctx.get("rules") or {})
@@ -782,6 +789,7 @@ def hub_swap_lineup(
     from src.draft_hub.schemas import LeagueRules
 
     ctx = _ctx_for_league(_sub(_user), league_id)
+    _require_hub_hosted_scoring(ctx)
     resolved_season, resolved_week = _lineup_week_args(ctx, body.week, body.season)
     target = _lineup_target_team(ctx, body.team_id)
     rules = LeagueRules.model_validate(ctx.get("rules") or {})
@@ -835,6 +843,7 @@ def hub_score_week(
     from src.draft_hub.hub_scoring import LineupError, apply_week_scores
 
     ctx = _ctx_for_league(_sub(_user), league_id)
+    _require_hub_hosted_scoring(ctx)
     resolved_season, resolved_week = _lineup_week_args(ctx, body.week, body.season)
     try:
         result = apply_week_scores(league_id, resolved_season, resolved_week)

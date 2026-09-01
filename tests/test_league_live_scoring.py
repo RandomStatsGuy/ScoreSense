@@ -556,6 +556,7 @@ def test_live_scoring_route_no_sleeper(hub_client, hub_db, monkeypatch):
     assert body["available"] is True
     assert body["source"] == "hub"
     assert body["placeholder"] is True
+    assert body["preseason"] is False
     assert body["reason"] == "hub_unscored"
     assert "scored" in body["hint"].lower()
     assert body["week"] == 2

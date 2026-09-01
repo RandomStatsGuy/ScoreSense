@@ -36,6 +36,15 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def sleeper_hosts_scoring(league: dict[str, Any] | None, ctx: dict[str, Any] | None = None) -> bool:
+    """True when Sleeper is the lineup/scoring host for this league."""
+    if league and league.get("sleeper_league_id"):
+        return True
+    if ctx and ctx.get("sleeper_league_id"):
+        return True
+    return False
+
+
 def _league_rules(league: dict[str, Any]) -> LeagueRules:
     raw = league.get("rules")
     if isinstance(raw, LeagueRules):
@@ -322,10 +331,20 @@ def resolve_week_lineup(
     season: int,
     week: int,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
-    """Use a persisted Hub lineup in league mode; otherwise salary-fill."""
+    """Use a persisted Hub lineup in ScoreSense-only league mode.
+
+    Linked Sleeper leagues keep inferred (advice-only) starters. Lineups and
+    scoring stay on Sleeper.
+    """
     league_id = str(ctx.get("league_id") or "")
     team_id = str(ctx.get("team_id") or "")
     if ctx.get("mode") != "league" or not league_id or not team_id:
+        from src.draft_hub.weekly_command_center import infer_starters_and_bench
+
+        starters, bench = infer_starters_and_bench(players, rules)
+        return starters, bench, {"lineup_source": "inferred", "lineup_locked": False}
+    league = storage.get_league(league_id)
+    if sleeper_hosts_scoring(league, ctx):
         from src.draft_hub.weekly_command_center import infer_starters_and_bench
 
         starters, bench = infer_starters_and_bench(players, rules)
@@ -507,6 +526,8 @@ def apply_week_scores(
     league = storage.get_league(league_id)
     if not league:
         raise LineupError("League not found")
+    if sleeper_hosts_scoring(league):
+        raise LineupError("Scoring is hosted in Sleeper")
     rules = _league_rules(league)
     ensure_season_schedule(league_id, season=season, rules=rules)
     teams = storage.list_league_teams(league_id)
@@ -728,6 +749,8 @@ def build_hub_live_week(
         for row in storage.list_player_week_scores(league_id, season_n, resolved_week)
     }
     scored = bool(team_scores)
+    season_type = str(state.get("season_type") or "regular").lower()
+    preseason = season_type in ("pre", "preseason")
     lineups_by_team: dict[str, list[dict[str, Any]]] = {}
     for row in lineups:
         lineups_by_team.setdefault(str(row["team_id"]), []).append(row)
@@ -824,7 +847,7 @@ def build_hub_live_week(
         "season": str(season_n),
         "week": int(resolved_week),
         "season_type": str(state.get("season_type") or "regular"),
-        "preseason": not scored,
+        "preseason": preseason,
         "viewer_matchup_id": viewer_matchup_id,
         "matchups": matchup_payloads,
         "starting_slots": list(slots),

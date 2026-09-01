@@ -15,6 +15,7 @@ from src.draft_hub.hub_scoring import (
     ensure_season_schedule,
     ensure_team_lineup,
     fantasy_points_from_stats,
+    resolve_week_lineup,
     slot_accepts_position,
     swap_lineup_players,
 )
@@ -28,7 +29,10 @@ def _client(sub: str) -> TestClient:
 
 
 def _seed_two_team_league(hub_db):
-    rules = load_preset("salary_cap_auction_v1")
+    raw = load_preset("salary_cap_auction_v1").model_dump()
+    raw["roster"]["k"]["starter"] = 0
+    raw["roster"]["def"]["starter"] = 0
+    rules = LeagueRules.model_validate(raw)
     comm = "hub-score-comm"
     ws = storage.get_or_create_workspace(comm, season=2026)
     league = storage.create_league(comm, "Hub Score", 2026, rules, workspace_id=ws["id"])
@@ -42,6 +46,8 @@ def _seed_two_team_league(hub_db):
         ("wr-a1", "WR Ace", "MIA", "WR", 28),
         ("wr-a2", "WR Co", "PHI", "WR", 16),
         ("wr-a3", "WR Bench", "NYJ", "WR", 8),
+        ("wr-a4", "WR Deep", "CLE", "WR", 12),
+        ("rb-a3", "RB Flex", "HOU", "RB", 9),
         ("te-a", "TE Ace", "BAL", "TE", 10),
     ]
     away_players = [
@@ -229,6 +235,8 @@ def test_apply_week_scores_and_standings(hub_db, monkeypatch):
     )
     assert viewer["points"] == team_scores[home["id"]]
     assert any(starter["player_id"] == "wr-a1" for starter in viewer["starters"])
+    assert payload["preseason"] is False
+    assert payload["placeholder"] is False
 
 
 def test_lineup_swap_and_score_week_routes(hub_db, monkeypatch):
@@ -290,4 +298,56 @@ def test_lineup_swap_and_score_week_routes(hub_db, monkeypatch):
     live_body = live.json()
     assert live_body["source"] == "hub"
     assert live_body["placeholder"] is False
+    assert live_body["preseason"] is False
     assert live_body["standings"][0]["wins"] == 1
+
+
+def test_sleeper_linked_league_stays_inferred_and_rejects_hub_score(hub_db, monkeypatch):
+    monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
+    league, home, _away, comm = _seed_two_team_league(hub_db)
+    storage.update_league_sleeper_id(league["id"], "sleeper-hosted-1")
+    rules = LeagueRules.model_validate(league["rules"])
+    players = [
+        {
+            "player_id": "wr-a1",
+            "position": "WR",
+            "salary": 28,
+            "player_name": "WR Ace",
+        },
+        {
+            "player_id": "wr-a3",
+            "position": "WR",
+            "salary": 8,
+            "player_name": "WR Bench",
+        },
+    ]
+    starters, bench, meta = resolve_week_lineup(
+        {
+            "mode": "league",
+            "league_id": league["id"],
+            "team_id": home["id"],
+            "sleeper_league_id": "sleeper-hosted-1",
+        },
+        players,
+        rules,
+        season=2026,
+        week=1,
+    )
+    assert meta["lineup_source"] == "inferred"
+    assert not storage.list_team_lineup(league["id"], home["id"], 2026, 1)
+    assert starters or bench
+
+    try:
+        apply_week_scores(league["id"], 2026, 1, stat_index={"wr-a1": {"fantasy_points": 10}})
+        raise AssertionError("Sleeper-hosted scoring should fail")
+    except LineupError as exc:
+        assert "Sleeper" in str(exc)
+
+    client = _client(comm)
+    blocked = client.post(
+        f"/api/hub/league/{league['id']}/score-week",
+        json={"week": 1, "season": 2026},
+    )
+    assert blocked.status_code == 409
+    lineup = client.get(f"/api/hub/league/{league['id']}/lineup?week=1")
+    assert lineup.status_code == 409

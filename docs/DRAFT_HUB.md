@@ -107,7 +107,7 @@ Player IDs are mapped via Sleeper `gsis_id` → ScoreSense `player_id` when avai
 | GET | `/api/hub/league/{id}/schedule` | Persist / read rotating H2H schedule |
 | POST | `/api/hub/league/{id}/score-week` | Apply Hub PPR from nflverse weekly stats |
 
-Hub-only leagues persist start/sit on **This Week** and score weeks with standard PPR (`FANTASY_SCORING`). Linked Sleeper leagues still read Game center from Sleeper matchups.
+Hub-only leagues persist start/sit on **This Week** and score weeks with standard PPR (`FANTASY_SCORING`). Linked Sleeper leagues keep inferred (advice-only) starters on This Week; lineup writes and `score-week` return 409. Game center still reads Sleeper matchups.
 
 ## Roadmap (historical)
 
