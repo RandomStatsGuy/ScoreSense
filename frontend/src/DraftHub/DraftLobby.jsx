@@ -14,9 +14,11 @@ import {
 import { lobbyAbsoluteUrl, lobbyChipLabel, slotHint, slotLabel } from "./draftLobby";
 import {
   draftInviteLabel,
-  draftInviteExplainer,
+  draftInviteRailHint,
   draftInviteWhatHappens,
   draftLobbyHeroSupport,
+  draftLobbyRailHeading,
+  draftLobbyReadiness,
   emailManagersHint,
 } from "./leagueAccessCopy";
 import { HubExperienceHero, HubExperienceLayout, HubExperienceSummary } from "./HubUILayout";
@@ -33,7 +35,6 @@ export default function DraftLobby({
   isCommissioner = false,
   testMode = false,
   roomLoading = false,
-  emptySeats = 0,
   claimedHumans = 0,
   onStartDraft,
   onSaveSchedule,
@@ -71,6 +72,12 @@ export default function DraftLobby({
   const waitSecs = startsAt ? secondsUntil(startsAt) : null;
   const scheduledLabel = startsAt ? formatDraftScheduleLabel(startsAt, draftTz) : "";
   const tzOptions = DRAFT_TZ_OPTIONS.includes(draftTz) ? DRAFT_TZ_OPTIONS : [draftTz, ...DRAFT_TZ_OPTIONS];
+  const readiness = draftLobbyReadiness({
+    claimed,
+    teamCount,
+    scheduled: Boolean(startsAt),
+    testMode,
+  });
 
   const slots = useMemo(() => {
     const bySlot = new Map();
@@ -184,15 +191,17 @@ export default function DraftLobby({
       {error ? <p className="hub-alert hub-alert--danger draft-lobby-error" role="alert">{error}</p> : null}
 
       <HubExperienceLayout
-        summaryLabel="Lobby"
+        summaryLabel="Draft setup"
         summary={(
           <HubExperienceSummary
+            eyebrow="Draft setup"
             title={league?.name || "Draft room"}
             subtitle={formatLabel}
             items={[
               { id: "format", label: "Format", value: formatLabel },
               ...(!pickDraft ? [{ id: "budget", label: "Salary cap", value: fmtSal(budget) }] : []),
               { id: "seated", label: "Seated", value: `${claimed} / ${teamCount}` },
+              ...(mySlot ? [{ id: "position", label: slotLabel(draftType), value: `#${mySlot}` }] : []),
               {
                 id: "night",
                 label: "Draft night",
@@ -203,43 +212,18 @@ export default function DraftLobby({
                   : "When you start",
               },
             ]}
-            note={
-              roomCode
-                ? (testMode
-                  ? "Bots can fill empty seats when you start."
-                  : emptySeats > 0
-                    ? `${emptySeats} open seat${emptySeats === 1 ? "" : "s"}. Starting asks you to confirm.`
-                    : "Room is full.")
-                : null
-            }
             action={(
               <div className="draft-lobby-rail-actions">
-                {inviteUrl ? (
-                  <div className="draft-lobby-link">
-                    <label htmlFor="draft-lobby-url">{draftInviteLabel({ testMode })}</label>
-                    <p className="chart-note draft-lobby-invite-copy">
-                      {draftInviteExplainer({ testMode })}
-                    </p>
-                    <div className="draft-lobby-link-row">
-                      <input id="draft-lobby-url" readOnly value={inviteUrl} />
-                      <Button variant="ghost" size="sm" onClick={copyLink}>
-                        {copied ? "Copied" : "Copy"}
-                      </Button>
-                    </div>
-                    <p className="chart-note draft-lobby-invite-copy">
-                      {draftInviteWhatHappens({ testMode })}
-                    </p>
-                  </div>
-                ) : null}
-                {isCommissioner && !testMode ? (
-                  <>
-                    <Button variant="ghost" disabled={slotBusy || busy} onClick={notifyManagers}>
-                      Email managers already in the league
-                    </Button>
-                    <p className="chart-note draft-lobby-invite-copy">{emailManagersHint()}</p>
-                  </>
-                ) : null}
-                {notifyState ? <p className="hub-experience-summary-note">{notifyState}</p> : null}
+                <section className="draft-lobby-readiness" aria-labelledby="draft-lobby-ready-heading">
+                  <h4 id="draft-lobby-ready-heading">
+                    {draftLobbyRailHeading({ isCommissioner, testMode })}
+                  </h4>
+                  <ul>
+                    {readiness.map((item) => (
+                      <li key={item.id} className={`is-${item.tone}`}>{item.label}</li>
+                    ))}
+                  </ul>
+                </section>
                 {isCommissioner && testMode ? (
                   <label className="hub-toggle-row hub-toggle-row-compact">
                     <input
@@ -253,6 +237,7 @@ export default function DraftLobby({
                 ) : null}
                 {isCommissioner ? (
                   <Button
+                    className="draft-lobby-primary-action"
                     disabled={busy || roomLoading}
                     onClick={() => onStartDraft?.({ fillBots: testMode && fillBots })}
                   >
@@ -261,6 +246,33 @@ export default function DraftLobby({
                 ) : (
                   <p className="hub-experience-summary-note">Waiting for the commissioner to start.</p>
                 )}
+                {inviteUrl ? (
+                  <div className="draft-lobby-link">
+                    <label htmlFor="draft-lobby-url">{draftInviteLabel({ testMode })}</label>
+                    <p className="chart-note draft-lobby-invite-copy">
+                      {draftInviteRailHint({ testMode })}
+                    </p>
+                    <div className="draft-lobby-link-row">
+                      <input id="draft-lobby-url" readOnly value={inviteUrl} />
+                      <Button variant="ghost" size="sm" onClick={copyLink}>
+                        {copied ? "Copied" : "Copy"}
+                      </Button>
+                    </div>
+                    <details className="draft-lobby-invite-details">
+                      <summary>How access works</summary>
+                      <p className="chart-note">{draftInviteWhatHappens({ testMode })}</p>
+                      {isCommissioner && !testMode ? (
+                        <p className="chart-note">{emailManagersHint()}</p>
+                      ) : null}
+                    </details>
+                  </div>
+                ) : null}
+                {isCommissioner && !testMode ? (
+                  <Button variant="ghost" disabled={slotBusy || busy} onClick={notifyManagers}>
+                    Email managers already in the league
+                  </Button>
+                ) : null}
+                {notifyState ? <p className="hub-experience-summary-note">{notifyState}</p> : null}
               </div>
             )}
           />

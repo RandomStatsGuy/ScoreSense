@@ -364,6 +364,31 @@ class SleeperSyncRequest(BaseModel):
     import_to_hub: bool = False
 
 
+class LineupStarterEntry(BaseModel):
+    player_id: str
+    slot: str
+
+
+class LineupSetRequest(BaseModel):
+    starters: list[LineupStarterEntry]
+    week: Optional[int] = None
+    season: Optional[int] = None
+    team_id: Optional[str] = None
+
+
+class LineupSwapRequest(BaseModel):
+    starter_player_id: str
+    bench_player_id: str
+    week: Optional[int] = None
+    season: Optional[int] = None
+    team_id: Optional[str] = None
+
+
+class ScoreWeekRequest(BaseModel):
+    week: Optional[int] = None
+    season: Optional[int] = None
+
+
 class DraftPlayerHint(BaseModel):
     player_id: str
     player_name: Optional[str] = None

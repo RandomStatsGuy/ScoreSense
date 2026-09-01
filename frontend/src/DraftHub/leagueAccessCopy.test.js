@@ -6,8 +6,11 @@ import {
   interpretLeagueSwitcherValue,
   draftInviteLabel,
   draftInviteExplainer,
+  draftInviteRailHint,
   draftInviteWhatHappens,
   draftLobbyHeroSupport,
+  draftLobbyRailHeading,
+  draftLobbyReadiness,
   draftJoinSupport,
   draftJoinAccountNote,
   memberInviteExplainer,
@@ -40,6 +43,7 @@ test("live draft invite copy is members-only", () => {
   assert.match(live, /does not let strangers/i);
   assert.doesNotMatch(live, /no account is required/i);
   assert.equal(draftInviteLabel(), "Member draft link");
+  assert.match(draftInviteRailHint(), /already belong/i);
   assert.match(draftLobbyHeroSupport(), /for league members/i);
   assert.match(draftInviteWhatHappens(), /already has their team/i);
 });
@@ -49,6 +53,25 @@ test("practice draft invite copy keeps the real league untouched", () => {
   assert.match(mock, /practice/i);
   assert.match(mock, /real league is unchanged/i);
   assert.equal(draftInviteLabel({ testMode: true }), "Practice draft link");
+  assert.match(draftInviteRailHint({ testMode: true }), /practice room/i);
+});
+
+test("draft lobby readiness keeps launch status concise", () => {
+  assert.equal(draftLobbyRailHeading({ isCommissioner: true }), "Ready to start?");
+  assert.equal(
+    draftLobbyRailHeading({ isCommissioner: true, testMode: true }),
+    "Ready to practice?",
+  );
+  assert.equal(draftLobbyRailHeading(), "Waiting on the commissioner");
+
+  const openRoom = draftLobbyReadiness({ claimed: 7, teamCount: 10 });
+  assert.deepEqual(openRoom.map((item) => item.tone), ["attention", "neutral", "ready"]);
+  assert.match(openRoom[0].label, /7 of 10 managers seated/i);
+  assert.match(openRoom[1].label, /commissioner launches/i);
+
+  const readyRoom = draftLobbyReadiness({ claimed: 10, teamCount: 10, scheduled: true });
+  assert.equal(readyRoom[0].label, "Every seat is claimed");
+  assert.equal(readyRoom[1].label, "Draft night scheduled");
 });
 
 test("join page tells live visitors they must already be members", () => {

@@ -328,9 +328,9 @@ def infer_starters_and_bench(
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Fill starter slots from LeagueRules; remainder is bench.
 
-    Hub does not persist Sleeper weekly starters. V1 uses salary-desc fill as a
-    stable "current lineup" heuristic so projection-based swap recommendations
-    can still surface (pure P50 fill would never recommend a bench upgrade).
+    Default fill when a Hub lineup has not been saved. ScoreSense-only leagues
+    persist the result via ``hub_scoring.ensure_team_lineup``. Salary-desc is a
+    stable stand-in so projection-based swap recommendations can still surface.
     """
     limits = roster_limits(rules)
     flex_count, flex_eligible = _flex_rule(rules)
@@ -709,7 +709,15 @@ def build_weekly_command_center(
         by_name_team=proj_meta.pop("_by_name_team", {}) or {},
         by_name=proj_meta.pop("_by_name", {}) or {},
     )
-    starters, bench = infer_starters_and_bench(players, rules)
+    from src.draft_hub.hub_scoring import resolve_week_lineup
+
+    starters, bench, lineup_meta = resolve_week_lineup(
+        ctx,
+        players,
+        rules,
+        season=resolved_season,
+        week=resolved_week,
+    )
 
     decisions = build_lineup_decisions(
         starters,
@@ -757,7 +765,13 @@ def build_weekly_command_center(
             "available_positions": proj_meta.get("available_positions") or [],
             "missing_positions": proj_meta.get("missing_positions") or [],
             "bench_over_starter_threshold": float(bench_over_starter_threshold),
-            "starter_inference": "league_rules_salary",
+            "starter_inference": (
+                "hub_lineup"
+                if lineup_meta.get("lineup_source") == "hub"
+                else "league_rules_salary"
+            ),
+            "lineup_source": lineup_meta.get("lineup_source") or "inferred",
+            "lineup_locked": bool(lineup_meta.get("lineup_locked")),
             "persists_projections": False,
         },
         "sync": sync,

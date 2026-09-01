@@ -1700,7 +1700,6 @@ export default function DraftRoom({
           roomLoading={roomLoading}
           mockModeLabel={mockModeLabel}
           expirePreview={expirePreview}
-          emptySeats={Number(roomState?.empty_seats) || 0}
           claimedHumans={Number(roomState?.claimed_humans) || 0}
           viewer={roomState?.viewer}
           guestMode={guestMode}

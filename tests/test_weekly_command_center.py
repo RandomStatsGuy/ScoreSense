@@ -203,28 +203,29 @@ def _client_for(sub: str) -> TestClient:
     return TestClient(app)
 
 
-def _seed_league_roster(hub_db):
+def _seed_league_roster(hub_db, *, sleeper: bool = True):
     comm = "week-comm"
     ws = storage.get_or_create_workspace(comm, season=2026)
     rules = load_preset("salary_cap_auction_v1")
     league = storage.create_league(comm, "Week League", 2026, rules, workspace_id=ws["id"])
     team = storage.get_team_by_user(league["id"], comm)
-    storage.update_league_sleeper_id(league["id"], "sleeper-league-1")
-    storage.update_team_sleeper_link(
-        team["id"],
-        sleeper_roster_id="1",
-        sleeper_team_name="Comm Team",
-        sleeper_player_ids=[
-            "wr-wilson",
-            "wr-ace",
-            "wr-co",
-            "rb-starter",
-            "rb-two",
-            "rb-flex",
-            "qb-love",
-            "te-none",
-        ],
-    )
+    if sleeper:
+        storage.update_league_sleeper_id(league["id"], "sleeper-league-1")
+        storage.update_team_sleeper_link(
+            team["id"],
+            sleeper_roster_id="1",
+            sleeper_team_name="Comm Team",
+            sleeper_player_ids=[
+                "wr-wilson",
+                "wr-ace",
+                "wr-co",
+                "rb-starter",
+                "rb-two",
+                "rb-flex",
+                "qb-love",
+                "te-none",
+            ],
+        )
     roster_ws = storage.roster_workspace_for_league(league)
     slots = [
         ("wr-ace", "WR Ace", "MIA", "WR", 45),
@@ -470,6 +471,7 @@ def test_build_command_center_payload(hub_db):
     assert payload["meta"]["week"] == 1
     assert payload["meta"]["projections_available"] is True
     assert payload["meta"]["persists_projections"] is False
+    assert payload["meta"]["lineup_source"] == "inferred"
     assert payload["sync"]["linked"] is True
     assert payload["sync"]["sleeper_synced_at"]
     assert payload["sync"]["sync_endpoint"] == f"/api/hub/league/{league['id']}/sleeper/sync"
@@ -494,6 +496,27 @@ def test_build_command_center_payload(hub_db):
     assert any(r["player_id"] == "wr-volatile" for r in payload["wide_ranges"])
     assert payload["projection_changes"]["available"] is False
     assert "lineup decision" in payload["summary"]["headline"]
+
+
+def test_hub_only_week_persists_lineup(hub_db):
+    league, team, _ws, comm = _seed_league_roster(hub_db, sleeper=False)
+    from src.draft_hub.hub_context import resolve_hub_context
+
+    ctx = resolve_hub_context(comm)
+    with patch(
+        "src.draft_hub.weekly_command_center.load_weekly_prediction",
+        side_effect=_fake_load,
+    ), patch(
+        "src.draft_hub.weekly_command_center.resolve_week_context",
+        return_value=(2026, 1),
+    ):
+        payload = build_weekly_command_center(ctx, season=2026, week=1)
+
+    assert payload["meta"]["lineup_source"] == "hub"
+    assert payload["meta"]["starter_inference"] == "hub_lineup"
+    saved = storage.list_team_lineup(league["id"], team["id"], 2026, 1)
+    assert saved
+    assert any(row["lineup_role"] == "starter" for row in saved)
 
 
 def test_missing_artifacts_graceful(hub_db):

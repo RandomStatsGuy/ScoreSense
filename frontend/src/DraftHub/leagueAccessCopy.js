@@ -35,6 +35,48 @@ export function draftLobbyHeroSupport({ testMode = false } = {}) {
   return "Live draft night is for league members. Invite managers to the league first, then share this room link so they can sit down.";
 }
 
+export function draftInviteRailHint({ testMode = false } = {}) {
+  return testMode
+    ? "Share this link with anyone joining the practice room."
+    : "Share this link with managers who already belong to the league.";
+}
+
+export function draftLobbyRailHeading({ isCommissioner = false, testMode = false } = {}) {
+  if (!isCommissioner) return "Waiting on the commissioner";
+  return testMode ? "Ready to practice?" : "Ready to start?";
+}
+
+export function draftLobbyReadiness({
+  claimed = 0,
+  teamCount = 0,
+  scheduled = false,
+  testMode = false,
+} = {}) {
+  const seated = Math.max(0, Number(claimed) || 0);
+  const total = Math.max(0, Number(teamCount) || 0);
+  const roomFull = total > 0 && seated >= total;
+
+  return [
+    {
+      id: "seats",
+      tone: roomFull ? "ready" : "attention",
+      label: roomFull
+        ? "Every seat is claimed"
+        : `${seated} of ${total} ${testMode ? "people" : "managers"} seated`,
+    },
+    {
+      id: "schedule",
+      tone: scheduled ? "ready" : "neutral",
+      label: scheduled ? "Draft night scheduled" : "Starts when the commissioner launches it",
+    },
+    {
+      id: "access",
+      tone: "ready",
+      label: testMode ? "Practice link ready to share" : "Member link ready to share",
+    },
+  ];
+}
+
 export function draftJoinSupport({
   canJoin = true,
   leagueName = "",

@@ -131,6 +131,32 @@ def attach_bye_flags(pool: pd.DataFrame, season: int, week: int) -> pd.DataFrame
     return out
 
 
+def schedule_kickoff_utc(gameday, gametime) -> pd.Timestamp | None:
+    """Combine nflverse gameday (calendar date) + gametime (ET clock) into UTC.
+
+    ``gameday`` is a date, not a kickoff. Localizing it as UTC midnight and
+    treating that as kickoff locks Sunday 1pm ET players on Saturday evening.
+    """
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    et = ZoneInfo("America/New_York")
+    day = pd.Timestamp(gameday)
+    if pd.isna(day):
+        return None
+    # Date-only values must keep their calendar date. A UTC-midnight localize
+    # converted to ET would shift Sunday slates to Saturday evening.
+    if day.tzinfo is None:
+        date_et = day.date()
+    elif day.hour == 0 and day.minute == 0 and day.utcoffset() == pd.Timedelta(0):
+        date_et = day.date()
+    else:
+        date_et = day.tz_convert(et).date()
+    hh, mm = _parse_gametime(gametime)
+    kick = datetime(date_et.year, date_et.month, date_et.day, hh, mm, tzinfo=et)
+    return pd.Timestamp(kick).tz_convert("UTC")
+
+
 def team_game_kickoffs(season: int, team: str) -> pd.DataFrame:
     """Regular-season kickoff times for one team, sorted by week."""
     team = str(team).upper()
@@ -140,12 +166,20 @@ def team_game_kickoffs(season: int, team: str) -> pd.DataFrame:
         & (schedules["week"] <= REGULAR_SEASON_MAX_WEEK)
     ].copy()
     if reg.empty:
-        return pd.DataFrame(columns=["season", "week", "team", "gameday"])
+        return pd.DataFrame(columns=["season", "week", "team", "gameday", "kickoff"])
 
-    home = reg[["season", "week", "home_team", "gameday"]].rename(columns={"home_team": "team"})
-    away = reg[["season", "week", "away_team", "gameday"]].rename(columns={"away_team": "team"})
+    cols = ["season", "week", "gameday"]
+    if "gametime" in reg.columns:
+        cols.append("gametime")
+    home = reg[[*cols, "home_team"]].rename(columns={"home_team": "team"})
+    away = reg[[*cols, "away_team"]].rename(columns={"away_team": "team"})
     games = pd.concat([home, away], ignore_index=True)
     games["team"] = games["team"].astype(str).str.upper()
+    gametimes = games["gametime"] if "gametime" in games.columns else [None] * len(games)
+    games["kickoff"] = [
+        schedule_kickoff_utc(day, gt) or pd.NaT
+        for day, gt in zip(games["gameday"], gametimes)
+    ]
     games["gameday"] = pd.to_datetime(games["gameday"], utc=True)
     games = games[games["team"] == team].sort_values("week").drop_duplicates(subset=["week"], keep="first")
     return games.reset_index(drop=True)

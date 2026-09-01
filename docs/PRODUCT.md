@@ -82,7 +82,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 | Home | `home` | Phase-aware next actions |
 | Strategy | `value` | Auction targets and prices |
 | Draft | `room` | Idle entry + live room |
-| This Week | `week` | Lineup decisions |
+| This Week | `week` | Lineup decisions; Hub-only leagues set start/sit here |
 | Game center | `game` | Your matchup live, league scoreboard, week trophies |
 | My team | `roster` | Personal contracts |
 | Free agents | `available` | Add / bid / locked by calendar |
@@ -203,6 +203,7 @@ Do not invent a parallel rules model. Canonical merge/validate/preview: `fronten
 - Static rookies stay flat; veterans and extensions use the configured step-up.
 - Veteran extensions follow the league toggle on both client and server.
 - Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`): locked pre-draft and in-season off-window; FAAB bid post-draft / waivers; instant add after waivers; offseason trades only for contracts that survive the next draft.
+- ScoreSense-only leagues persist weekly lineups on This Week and score the week with Hub PPR (nflverse). Linked Sleeper leagues still set and score lineups in Sleeper; Game center reads Sleeper.
 - Staff edits in Roster management may override; Players-tab adds never do.
 - Headshots: mock boards, nominee cards, and rails use the same photos as rosters.
 

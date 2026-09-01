@@ -675,6 +675,77 @@ def _migrate(conn: sqlite3.Connection) -> None:
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_matchup_emote_week ON matchup_emote(league_id, season, week)"
     )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS league_week_matchup (
+            league_id TEXT NOT NULL,
+            season INTEGER NOT NULL,
+            week INTEGER NOT NULL,
+            matchup_id TEXT NOT NULL,
+            home_team_id TEXT NOT NULL,
+            away_team_id TEXT,
+            PRIMARY KEY (league_id, season, week, matchup_id)
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_week_matchup_league "
+        "ON league_week_matchup(league_id, season, week)"
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS league_week_lineup (
+            league_id TEXT NOT NULL,
+            team_id TEXT NOT NULL,
+            season INTEGER NOT NULL,
+            week INTEGER NOT NULL,
+            player_id TEXT NOT NULL,
+            slot TEXT NOT NULL,
+            lineup_role TEXT NOT NULL,
+            player_name TEXT,
+            nfl_team TEXT,
+            position TEXT,
+            locked INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (league_id, team_id, season, week, player_id)
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_week_lineup_team "
+        "ON league_week_lineup(league_id, team_id, season, week)"
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS league_player_week_score (
+            league_id TEXT NOT NULL,
+            season INTEGER NOT NULL,
+            week INTEGER NOT NULL,
+            player_id TEXT NOT NULL,
+            team_id TEXT NOT NULL,
+            slot TEXT,
+            lineup_role TEXT,
+            points REAL NOT NULL DEFAULT 0,
+            stats_json TEXT,
+            scored_at TEXT NOT NULL,
+            PRIMARY KEY (league_id, season, week, player_id)
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_player_week_score "
+        "ON league_player_week_score(league_id, season, week)"
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS league_team_week_score (
+            league_id TEXT NOT NULL,
+            season INTEGER NOT NULL,
+            week INTEGER NOT NULL,
+            team_id TEXT NOT NULL,
+            matchup_id TEXT,
+            points REAL NOT NULL DEFAULT 0,
+            scored_at TEXT NOT NULL,
+            PRIMARY KEY (league_id, season, week, team_id)
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_team_week_score "
+        "ON league_team_week_score(league_id, season, week)"
+    )
 
 
 _DB_INITIALIZED = False
@@ -2381,6 +2452,253 @@ def upsert_matchup_emote(
             (league_id, int(season), int(week), from_team_id, to_team_id),
         ).fetchone()
     return dict(row) if row else {}
+
+
+def _lineup_row_dict(row: sqlite3.Row) -> dict[str, Any]:
+    d = dict(row)
+    d["locked"] = bool(int(d.get("locked") or 0))
+    d["season"] = int(d.get("season") or 0)
+    d["week"] = int(d.get("week") or 0)
+    return d
+
+
+def list_week_matchups(league_id: str, season: int, week: int) -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT * FROM league_week_matchup
+               WHERE league_id = ? AND season = ? AND week = ?
+               ORDER BY matchup_id""",
+            (league_id, int(season), int(week)),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def replace_week_matchups(
+    league_id: str,
+    season: int,
+    week: int,
+    pairs: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        conn.execute(
+            """DELETE FROM league_week_matchup
+               WHERE league_id = ? AND season = ? AND week = ?""",
+            (league_id, int(season), int(week)),
+        )
+        for pair in pairs:
+            conn.execute(
+                """INSERT INTO league_week_matchup (
+                       league_id, season, week, matchup_id, home_team_id, away_team_id
+                   ) VALUES (?, ?, ?, ?, ?, ?)""",
+                (
+                    league_id,
+                    int(season),
+                    int(week),
+                    str(pair["matchup_id"]),
+                    str(pair["home_team_id"]),
+                    pair.get("away_team_id"),
+                ),
+            )
+    return list_week_matchups(league_id, season, week)
+
+
+def list_season_matchups(league_id: str, season: int) -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT * FROM league_week_matchup
+               WHERE league_id = ? AND season = ?
+               ORDER BY week, matchup_id""",
+            (league_id, int(season)),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def list_team_lineup(
+    league_id: str,
+    team_id: str,
+    season: int,
+    week: int,
+) -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT * FROM league_week_lineup
+               WHERE league_id = ? AND team_id = ? AND season = ? AND week = ?
+               ORDER BY lineup_role DESC, slot, player_id""",
+            (league_id, team_id, int(season), int(week)),
+        ).fetchall()
+    return [_lineup_row_dict(row) for row in rows]
+
+
+def list_week_lineups(league_id: str, season: int, week: int) -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT * FROM league_week_lineup
+               WHERE league_id = ? AND season = ? AND week = ?
+               ORDER BY team_id, lineup_role DESC, slot, player_id""",
+            (league_id, int(season), int(week)),
+        ).fetchall()
+    return [_lineup_row_dict(row) for row in rows]
+
+
+def replace_team_lineup(
+    league_id: str,
+    team_id: str,
+    season: int,
+    week: int,
+    entries: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    now = _utcnow()
+    with get_conn() as conn:
+        conn.execute(
+            """DELETE FROM league_week_lineup
+               WHERE league_id = ? AND team_id = ? AND season = ? AND week = ?""",
+            (league_id, team_id, int(season), int(week)),
+        )
+        for entry in entries:
+            conn.execute(
+                """INSERT INTO league_week_lineup (
+                       league_id, team_id, season, week, player_id, slot, lineup_role,
+                       player_name, nfl_team, position, locked, updated_at
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    league_id,
+                    team_id,
+                    int(season),
+                    int(week),
+                    str(entry["player_id"]),
+                    str(entry.get("slot") or "BN"),
+                    str(entry.get("lineup_role") or "bench"),
+                    entry.get("player_name"),
+                    entry.get("nfl_team") or entry.get("team"),
+                    entry.get("position"),
+                    1 if entry.get("locked") else 0,
+                    now,
+                ),
+            )
+    return list_team_lineup(league_id, team_id, season, week)
+
+
+def lock_week_lineups(league_id: str, season: int, week: int) -> int:
+    with get_conn() as conn:
+        cur = conn.execute(
+            """UPDATE league_week_lineup SET locked = 1
+               WHERE league_id = ? AND season = ? AND week = ?""",
+            (league_id, int(season), int(week)),
+        )
+        return int(cur.rowcount or 0)
+
+
+def replace_player_week_scores(
+    league_id: str,
+    season: int,
+    week: int,
+    rows: list[dict[str, Any]],
+) -> None:
+    now = _utcnow()
+    with get_conn() as conn:
+        conn.execute(
+            """DELETE FROM league_player_week_score
+               WHERE league_id = ? AND season = ? AND week = ?""",
+            (league_id, int(season), int(week)),
+        )
+        for row in rows:
+            conn.execute(
+                """INSERT INTO league_player_week_score (
+                       league_id, season, week, player_id, team_id, slot, lineup_role,
+                       points, stats_json, scored_at
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    league_id,
+                    int(season),
+                    int(week),
+                    str(row["player_id"]),
+                    str(row["team_id"]),
+                    row.get("slot"),
+                    row.get("lineup_role"),
+                    float(row.get("points") or 0),
+                    json.dumps(row.get("stats") or {}),
+                    now,
+                ),
+            )
+
+
+def list_player_week_scores(league_id: str, season: int, week: int) -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT * FROM league_player_week_score
+               WHERE league_id = ? AND season = ? AND week = ?
+               ORDER BY team_id, player_id""",
+            (league_id, int(season), int(week)),
+        ).fetchall()
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        item = dict(row)
+        raw = item.pop("stats_json", None)
+        try:
+            item["stats"] = json.loads(raw) if raw else {}
+        except json.JSONDecodeError:
+            item["stats"] = {}
+        item["points"] = float(item.get("points") or 0)
+        out.append(item)
+    return out
+
+
+def replace_team_week_scores(
+    league_id: str,
+    season: int,
+    week: int,
+    rows: list[dict[str, Any]],
+) -> None:
+    now = _utcnow()
+    with get_conn() as conn:
+        conn.execute(
+            """DELETE FROM league_team_week_score
+               WHERE league_id = ? AND season = ? AND week = ?""",
+            (league_id, int(season), int(week)),
+        )
+        for row in rows:
+            conn.execute(
+                """INSERT INTO league_team_week_score (
+                       league_id, season, week, team_id, matchup_id, points, scored_at
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    league_id,
+                    int(season),
+                    int(week),
+                    str(row["team_id"]),
+                    row.get("matchup_id"),
+                    float(row.get("points") or 0),
+                    now,
+                ),
+            )
+
+
+def list_team_week_scores(league_id: str, season: int, week: int) -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT * FROM league_team_week_score
+               WHERE league_id = ? AND season = ? AND week = ?
+               ORDER BY team_id""",
+            (league_id, int(season), int(week)),
+        ).fetchall()
+    return [
+        {**dict(row), "points": float(row["points"] or 0)}
+        for row in rows
+    ]
+
+
+def list_season_team_scores(league_id: str, season: int) -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT * FROM league_team_week_score
+               WHERE league_id = ? AND season = ?
+               ORDER BY week, team_id""",
+            (league_id, int(season)),
+        ).fetchall()
+    return [
+        {**dict(row), "points": float(row["points"] or 0), "week": int(row["week"])}
+        for row in rows
+    ]
 
 
 def add_unclaimed_team(league_id: str, name: str, budget: float) -> dict[str, Any]:
