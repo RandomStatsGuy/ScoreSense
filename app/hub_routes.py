@@ -829,13 +829,13 @@ def _week_culture_matchup(league_id: str, ctx: dict[str, Any], week: int | None)
     from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
 
     sleeper_lid = resolve_sleeper_league_id(league_id) or ctx.get("sleeper_league_id") or ""
-    if not sleeper_lid:
-        return {"available": False, "matchups": [], "week": week}
     return get_sleeper_live_week(
         str(sleeper_lid),
         hub_teams=_hub_teams_for_scoring(league_id),
         week=week,
         viewer_roster_id=str(ctx.get("sleeper_roster_id") or "") or None,
+        viewer_team_id=str(ctx.get("team_id") or "") or None,
+        rules=ctx.get("rules"),
         refresh=False,
     )
 
@@ -2928,20 +2928,14 @@ def hub_league_live_scoring(
         hub_teams = _hub_teams_for_scoring(league_id)
         viewer_rid = ctx.get("sleeper_roster_id")
         with timer.phase("live"):
-            scoring = (
-                get_sleeper_live_week(
-                    str(sleeper_lid),
-                    hub_teams=hub_teams,
-                    week=week,
-                    viewer_roster_id=str(viewer_rid) if viewer_rid else None,
-                    refresh=refresh,
-                )
-                if sleeper_lid
-                else {
-                    "available": False,
-                    "reason": "no_sleeper_league",
-                    "hint": "Link your Sleeper league on Setup or All teams to see live scoring.",
-                }
+            scoring = get_sleeper_live_week(
+                str(sleeper_lid),
+                hub_teams=hub_teams,
+                week=week,
+                viewer_roster_id=str(viewer_rid) if viewer_rid else None,
+                viewer_team_id=str(ctx.get("team_id") or "") or None,
+                rules=ctx.get("rules"),
+                refresh=refresh,
             )
     return {
         **scoring,

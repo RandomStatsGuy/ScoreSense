@@ -318,7 +318,9 @@ def build_sleeper_live_week(
     *,
     hub_teams: list[dict[str, Any]] | None = None,
     viewer_roster_id: str | None = None,
+    viewer_team_id: str | None = None,
     nfl_state: dict[str, Any] | None = None,
+    slot_labels: list[str] | None = None,
 ) -> dict[str, Any]:
     """Fetch one week of Sleeper matchups with starter-level points."""
     if not sleeper_league_id:
@@ -377,19 +379,21 @@ def build_sleeper_live_week(
         }
 
     if not matchups:
-        return {
-            "available": True,
-            "season": season,
-            "week": int(week),
-            "season_type": season_type,
-            "preseason": True,
-            "status": status,
-            "matchups": [],
-            "viewer_matchup_id": None,
-            "hint": "No matchups yet — live scoring appears once the NFL week starts.",
-            "synced_at": synced_at,
-            **week_meta,
-        }
+        slots = slot_labels or starting_slots(league.get("roster_positions")) or list(
+            DEFAULT_STARTING_SLOTS
+        )
+        payload = build_hub_placeholder_week(
+            hub_teams,
+            viewer_team_id=viewer_team_id,
+            week=int(week),
+            nfl_state=state,
+            starting_slots=slots,
+            reason="no_matchups",
+            season=season,
+        )
+        payload["status"] = status
+        payload.update(week_meta)
+        return payload
 
     raw_players = load_sleeper_players()
     by_matchup: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -458,44 +462,237 @@ def build_sleeper_live_week(
     }
 
 
+DEFAULT_STARTING_SLOTS = ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "K", "DEF"]
+PLACEHOLDER_HINTS = {
+    "no_sleeper_league": "Link Sleeper to fill scores.",
+    "no_matchups": "No scored matchups yet. Scores fill in after kickoff.",
+}
+
+
+def starting_slots_from_rules(rules: Any) -> list[str]:
+    """Hub league roster rules → Game center slot labels. Falls back to a standard lineup."""
+    raw = rules
+    if isinstance(raw, dict):
+        try:
+            from src.draft_hub.schemas import LeagueRules
+
+            raw = LeagueRules.model_validate(raw)
+        except Exception:
+            raw = None
+    if raw is None:
+        return list(DEFAULT_STARTING_SLOTS)
+    from src.draft_hub.rules_engine import roster_limits
+
+    limits = roster_limits(raw)
+    labels = {"qb": "QB", "rb": "RB", "wr": "WR", "te": "TE", "k": "K", "def": "DEF"}
+    out: list[str] = []
+    for key in ("qb", "rb", "wr", "te"):
+        count = int((limits.get(key) or {}).get("starter") or 0)
+        out.extend([labels[key]] * count)
+    flex = (getattr(raw, "roster", None) or {}).get("flex") or {}
+    flex_n = int(flex.get("starter") or 0) if isinstance(flex, dict) else 0
+    out.extend(["FLEX"] * flex_n)
+    for key in ("k", "def"):
+        count = int((limits.get(key) or {}).get("starter") or 0)
+        out.extend([labels[key]] * count)
+    return out or list(DEFAULT_STARTING_SLOTS)
+
+
+def pair_placeholder_teams(
+    teams: list[dict[str, Any]],
+    week: int,
+) -> list[tuple[dict[str, Any], dict[str, Any] | None]]:
+    """Stable weekly pairing from hub teams. Odd team (or a solo league) gets no opponent."""
+    ordered = sorted(
+        [row for row in teams if str(row.get("id") or "").strip()],
+        key=lambda row: (str(row.get("name") or "").lower(), str(row.get("id") or "")),
+    )
+    if not ordered:
+        return []
+    if len(ordered) == 1:
+        return [(ordered[0], None)]
+    shift = (max(1, int(week)) - 1) % len(ordered)
+    rotated = ordered[shift:] + ordered[:shift]
+    leftover = rotated.pop() if len(rotated) % 2 else None
+    pairs = [(rotated[i], rotated[i + 1]) for i in range(0, len(rotated), 2)]
+    if leftover is not None:
+        pairs.append((leftover, None))
+    return pairs
+
+
+def _placeholder_team(
+    team: dict[str, Any] | None,
+    *,
+    is_viewer: bool = False,
+    is_opponent: bool = False,
+) -> dict[str, Any]:
+    if not team:
+        return {
+            "roster_id": "tbd",
+            "hub_team_id": None,
+            "team_name": "Opponent TBD",
+            "points": 0.0,
+            "starters": [],
+            "bench": None,
+            "is_viewer": False,
+            "is_opponent": True,
+            "proj_total": None,
+            "points_pending": 0.0,
+            "est_final": 0.0,
+        }
+    tid = str(team.get("id") or "")
+    return {
+        "roster_id": tid,
+        "hub_team_id": tid,
+        "team_name": team.get("name") or team.get("sleeper_team_name") or "Team",
+        "points": 0.0,
+        "starters": [],
+        "bench": None,
+        "is_viewer": is_viewer,
+        "is_opponent": is_opponent,
+        "proj_total": None,
+        "points_pending": 0.0,
+        "est_final": 0.0,
+    }
+
+
+def build_hub_placeholder_week(
+    hub_teams: list[dict[str, Any]] | None,
+    *,
+    viewer_team_id: str | None = None,
+    week: int = 1,
+    nfl_state: dict[str, Any] | None = None,
+    starting_slots: list[str] | None = None,
+    reason: str = "no_sleeper_league",
+    season: str | None = None,
+) -> dict[str, Any]:
+    """Fill Game center / Home widgets from hub teams when Sleeper has nothing yet."""
+    state = nfl_state or {}
+    week_n = max(1, int(week or state.get("week") or 1))
+    viewer = str(viewer_team_id or "")
+    teams = list(hub_teams or [])
+    pairs = pair_placeholder_teams(teams, week_n)
+    matchups: list[dict[str, Any]] = []
+    viewer_matchup_id: str | None = None
+    for index, (home, away) in enumerate(pairs, start=1):
+        mid = f"hub-{index}"
+        home_is_viewer = bool(viewer and str(home.get("id") or "") == viewer)
+        away_is_viewer = bool(away and viewer and str(away.get("id") or "") == viewer)
+        sides = [
+            _placeholder_team(home, is_viewer=home_is_viewer, is_opponent=away_is_viewer),
+            _placeholder_team(away, is_viewer=away_is_viewer, is_opponent=home_is_viewer or not away),
+        ]
+        if home_is_viewer or away_is_viewer:
+            viewer_matchup_id = mid
+        matchups.append({"matchup_id": mid, "teams": sides, "win_prob_by_roster": {}})
+    if viewer_matchup_id is None and matchups:
+        matchups[0]["teams"][0]["is_viewer"] = True
+        matchups[0]["teams"][1]["is_opponent"] = True
+        viewer_matchup_id = matchups[0]["matchup_id"]
+
+    standings: list[dict[str, Any]] = []
+    named = sorted(
+        [row for row in teams if str(row.get("id") or "").strip()],
+        key=lambda row: (str(row.get("name") or "").lower(), str(row.get("id") or "")),
+    )
+    for rank, row in enumerate(named, start=1):
+        tid = str(row.get("id") or "")
+        standings.append(
+            {
+                "roster_id": tid,
+                "hub_team_id": tid,
+                "team_name": row.get("name") or row.get("sleeper_team_name") or "Team",
+                "wins": 0,
+                "losses": 0,
+                "ties": 0,
+                "points_for": 0.0,
+                "rank": rank,
+            }
+        )
+
+    return {
+        "available": True,
+        "placeholder": True,
+        "reason": reason,
+        "hint": PLACEHOLDER_HINTS.get(reason, PLACEHOLDER_HINTS["no_sleeper_league"]),
+        "season": str(season or state.get("season") or ""),
+        "week": week_n,
+        "season_type": str(state.get("season_type") or "regular"),
+        "preseason": True,
+        "viewer_matchup_id": viewer_matchup_id,
+        "matchups": matchups,
+        "starting_slots": list(starting_slots or DEFAULT_STARTING_SLOTS),
+        "standings": standings,
+        "synced_at": _utcnow_iso(),
+        **week_picker_meta(state),
+    }
+
+
 def get_sleeper_live_week(
     sleeper_league_id: str,
     *,
     hub_teams: list[dict[str, Any]] | None = None,
     week: int | None = None,
     viewer_roster_id: str | None = None,
+    viewer_team_id: str | None = None,
+    rules: Any = None,
+    starting_slots: list[str] | None = None,
     refresh: bool = False,
 ) -> dict[str, Any]:
     """Read-through cache for live week scoring (60s TTL unless refresh)."""
-    if not sleeper_league_id:
-        return {
-            "available": False,
-            "reason": "no_sleeper_league",
-            "hint": "Link your Sleeper league on Setup or All teams to see live scoring.",
-        }
-
     resolved_week, nfl_state = resolve_current_week(week_override=week)
+    slots = starting_slots or starting_slots_from_rules(rules)
+    lid = str(sleeper_league_id or "").strip()
+    if not lid:
+        payload = build_hub_placeholder_week(
+            hub_teams,
+            viewer_team_id=viewer_team_id,
+            week=resolved_week,
+            nfl_state=nfl_state,
+            starting_slots=slots,
+            reason="no_sleeper_league",
+        )
+        payload["cached"] = False
+        return payload
+
     cache_key_week = int(resolved_week)
 
     if not refresh:
-        cached = storage.get_sleeper_live_scoring_cache(str(sleeper_league_id), cache_key_week)
+        cached = storage.get_sleeper_live_scoring_cache(lid, cache_key_week)
         if cached and _live_cache_is_fresh(cached["synced_at"]):
             payload = {**cached["payload"], "synced_at": cached["synced_at"], "cached": True}
             if hub_teams:
                 payload = _attach_hub_team_names(payload, hub_teams)
             payload = {**payload, **week_picker_meta(nfl_state)}
+            if payload.get("available") and not (payload.get("matchups") or []) and not payload.get(
+                "placeholder"
+            ):
+                overlay = build_hub_placeholder_week(
+                    hub_teams,
+                    viewer_team_id=viewer_team_id,
+                    week=cache_key_week,
+                    nfl_state=nfl_state,
+                    starting_slots=slots,
+                    reason="no_matchups",
+                    season=payload.get("season"),
+                )
+                overlay["cached"] = True
+                overlay["synced_at"] = payload.get("synced_at") or overlay["synced_at"]
+                return overlay
             return payload
 
     payload = build_sleeper_live_week(
-        str(sleeper_league_id),
+        lid,
         cache_key_week,
         hub_teams=hub_teams,
         viewer_roster_id=viewer_roster_id,
+        viewer_team_id=viewer_team_id,
         nfl_state=nfl_state,
+        slot_labels=slots,
     )
     if payload.get("available"):
         storage.upsert_sleeper_live_scoring_cache(
-            str(sleeper_league_id),
+            lid,
             cache_key_week,
             payload,
         )

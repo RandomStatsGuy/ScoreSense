@@ -18667,6 +18667,7 @@ th.sortable-header {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
 }
+.hub-game-center > .hub-alert { margin: 0 0 0.85rem; }
 .hub-gc-empty { padding: 1.1rem 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start; }
 .hub-gc-empty h3 { margin: 0; font-size: 1.02rem; }
 
@@ -18733,6 +18734,7 @@ th.sortable-header {
   background: var(--border-strong);
 }
 .hub-gc-winprob { grid-column: 1 / -1; margin-top: 0.35rem; }
+.hub-gc-billboard > .hub-gc-storyline { grid-column: 1 / -1; }
 .hub-gc-winprob-labels {
   display: flex;
   justify-content: space-between;

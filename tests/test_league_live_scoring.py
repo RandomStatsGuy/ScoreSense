@@ -8,13 +8,17 @@ import pytest
 
 from src.draft_hub import storage
 from src.draft_hub.league_live_scoring import (
+    DEFAULT_STARTING_SLOTS,
     LIVE_SCORING_MAX_AGE_SECONDS,
     _live_cache_is_fresh,
     attach_matchup_analytics,
+    build_hub_placeholder_week,
     build_sleeper_live_week,
     estimate_team_final,
     get_sleeper_live_week,
+    pair_placeholder_teams,
     starting_slots,
+    starting_slots_from_rules,
     week_picker_meta,
     win_probability,
 )
@@ -106,6 +110,7 @@ def test_build_sleeper_live_week_pairs_matchups(monkeypatch):
     out = build_sleeper_live_week("sl-1", 5, hub_teams=hub_teams, viewer_roster_id="1")
 
     assert out["available"] is True
+    assert out.get("placeholder") is not True
     assert out["week"] == 5
     assert out["viewer_matchup_id"] == "3"
     assert len(out["matchups"]) == 2
@@ -287,6 +292,99 @@ def test_week_picker_meta_includes_current_and_max():
     assert meta["max_week"] >= 18
 
 
+def test_pair_placeholder_teams_rotates_and_handles_odd():
+    teams = [
+        {"id": "a", "name": "Alpha"},
+        {"id": "b", "name": "Beta"},
+        {"id": "c", "name": "Chi"},
+    ]
+    week1 = pair_placeholder_teams(teams, 1)
+    assert week1[0][0]["name"] == "Alpha"
+    assert week1[0][1]["name"] == "Beta"
+    assert week1[1][0]["name"] == "Chi"
+    assert week1[1][1] is None
+    week2 = pair_placeholder_teams(teams, 2)
+    assert week2[0][0]["name"] == "Beta"
+    assert week2[0][1]["name"] == "Chi"
+    assert week2[1][0]["name"] == "Alpha"
+    assert pair_placeholder_teams([{"id": "1", "name": "Solo"}], 4) == [
+        ({"id": "1", "name": "Solo"}, None)
+    ]
+    assert pair_placeholder_teams([{"id": "", "name": "Ghost"}], 1) == []
+
+
+def test_starting_slots_from_rules_and_placeholder_week():
+    rules = LeagueRules.model_validate({
+        "roster": {
+            "qb": {"starter": 1},
+            "rb": {"starter": 2},
+            "wr": {"starter": 2},
+            "te": {"starter": 1},
+            "flex": {"starter": 1},
+            "k": {"starter": 1},
+            "def": {"starter": 1},
+        }
+    })
+    assert starting_slots_from_rules(rules) == [
+        "QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "K", "DEF"
+    ]
+    assert starting_slots_from_rules(None) == DEFAULT_STARTING_SLOTS
+
+    payload = build_hub_placeholder_week(
+        [
+            {"id": "t-b", "name": "Bravo"},
+            {"id": "t-a", "name": "Alpha"},
+        ],
+        viewer_team_id="t-b",
+        week=3,
+        starting_slots=["QB", "RB"],
+        reason="no_sleeper_league",
+        nfl_state={"season": "2026", "season_type": "regular", "week": 3},
+    )
+    assert payload["available"] is True
+    assert payload["placeholder"] is True
+    assert payload["viewer_matchup_id"] == "hub-1"
+    names = [team["team_name"] for team in payload["matchups"][0]["teams"]]
+    assert "Alpha" in names and "Bravo" in names
+    viewer = next(team for team in payload["matchups"][0]["teams"] if team["is_viewer"])
+    assert viewer["hub_team_id"] == "t-b"
+    assert payload["standings"][0]["team_name"] == "Alpha"
+    assert payload["standings"][0]["wins"] == 0
+    assert payload["starting_slots"] == ["QB", "RB"]
+    assert payload["hint"] == "Link Sleeper to fill scores."
+
+
+def test_build_sleeper_live_week_empty_matchups_uses_placeholder(monkeypatch):
+    def _fake_fetch(url):
+        if "/matchups/" in url:
+            return []
+        if url.endswith("/rosters"):
+            return SAMPLE_ROSTERS
+        return SAMPLE_LEAGUE
+
+    monkeypatch.setattr("src.draft_hub.league_live_scoring._fetch_json", _fake_fetch)
+    monkeypatch.setattr(
+        "src.draft_hub.league_live_scoring.get_nfl_state",
+        lambda **_: {"week": 5, "season": "2025", "season_type": "regular"},
+    )
+    hub_teams = [
+        {"id": "t1", "sleeper_roster_id": "1", "name": "Hub One"},
+        {"id": "t2", "sleeper_roster_id": "2", "name": "Hub Two"},
+    ]
+    out = build_sleeper_live_week(
+        "sl-empty",
+        5,
+        hub_teams=hub_teams,
+        viewer_team_id="t1",
+    )
+    assert out["available"] is True
+    assert out["placeholder"] is True
+    assert out["reason"] == "no_matchups"
+    assert out["hint"] == "No scored matchups yet. Scores fill in after kickoff."
+    names = {team["team_name"] for team in out["matchups"][0]["teams"]}
+    assert names == {"Hub One", "Hub Two"}
+
+
 @pytest.fixture()
 def hub_client():
     from fastapi.testclient import TestClient
@@ -308,12 +406,45 @@ def hub_client():
 
 def test_live_scoring_route_no_sleeper(hub_client, hub_db, monkeypatch):
     monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
+    monkeypatch.setattr(
+        "src.draft_hub.league_live_scoring.resolve_current_week",
+        lambda **_: (2, {"week": 2, "season": "2026", "season_type": "regular"}),
+    )
     league = storage.create_league("dev", "Live League", 2026, LeagueRules())
+    storage.join_league("other-live", league["room_code"], "Zebra Squad")
     res = hub_client.get(f"/api/hub/league/{league['id']}/live-scoring")
     assert res.status_code == 200
     body = res.json()
-    assert body["available"] is False
+    assert body["available"] is True
+    assert body["placeholder"] is True
     assert body["reason"] == "no_sleeper_league"
+    assert body["hint"] == "Link Sleeper to fill scores."
+    assert body["week"] == 2
+    assert len(body["matchups"]) == 1
+    names = {team["team_name"] for team in body["matchups"][0]["teams"]}
+    assert names == {"Commissioner", "Zebra Squad"}
+    assert all(team["points"] == 0 for team in body["matchups"][0]["teams"])
+    assert [row["team_name"] for row in body["standings"]] == ["Commissioner", "Zebra Squad"]
+    assert all(row["wins"] == 0 and row["losses"] == 0 for row in body["standings"])
+    assert any(team.get("is_viewer") for team in body["matchups"][0]["teams"])
+
+
+def test_live_scoring_route_no_sleeper_solo_team(hub_client, hub_db, monkeypatch):
+    monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
+    monkeypatch.setattr(
+        "src.draft_hub.league_live_scoring.resolve_current_week",
+        lambda **_: (1, {"week": 1, "season": "2026"}),
+    )
+    league = storage.create_league("dev", "Solo Live", 2026, LeagueRules())
+    res = hub_client.get(f"/api/hub/league/{league['id']}/live-scoring")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["placeholder"] is True
+    teams = body["matchups"][0]["teams"]
+    assert teams[0]["team_name"] == "Commissioner"
+    assert teams[1]["team_name"] == "Opponent TBD"
+    assert teams[0]["is_viewer"] is True
+    assert len(body["standings"]) == 1
 
 
 def test_live_scoring_route_serves_cache(hub_client, hub_db, monkeypatch):
