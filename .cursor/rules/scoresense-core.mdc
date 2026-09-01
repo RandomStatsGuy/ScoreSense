@@ -72,3 +72,4 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Correction capture: `.cursor/rules/correction-capture.mdc` + `.cursor/skills/capture-correction/SKILL.md`
 - Learned rules: `.cursor/rules/learned-rules.mdc`
 - Living surfaces: `frontend/src/livingSurfaces.js` + `.cursor/skills/match-living-surface/SKILL.md`
+- Task skills: `.cursor/skills/run-tests/SKILL.md`, `.cursor/skills/verify-fantasy-ui/SKILL.md`, `.cursor/skills/mirror-prod-league/SKILL.md`
