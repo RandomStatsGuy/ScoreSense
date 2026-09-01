@@ -38,6 +38,8 @@ export const BOARD_COPY = {
   analyst: "Analyst context",
   addPlayer: "Add player",
   scheduleAware: "Schedule-aware estimate",
+  preseasonEstimate: "Preseason estimate",
+  liveSeason: "Live season + ROS",
   weeklyModel: "Weekly PPR model",
 };
 
@@ -346,29 +348,30 @@ export function weeklyBoardSignals(rows, { attentionItems = [], position } = {})
 
 export function seasonBoardSignals(rows, { method, featureSeason, draftSeason, scope = "preseason" } = {}) {
   const list = rows || [];
-  const peers = seasonPeerStats(list, { method });
+  const bandMethod = scope === "live" ? undefined : method;
+  const peers = seasonPeerStats(list, { method: bandMethod });
   const top = list.reduce((best, row) => {
-    const band = resolveSeasonBand(row, { method });
+    const band = resolveSeasonBand(row, { method: bandMethod });
     if (band.p50 == null) return best;
     if (!best || band.p50 > best.band.p50) return { row, band };
     return best;
   }, null);
   const ceiling = list.reduce((best, row) => {
-    const band = resolveSeasonBand(row, { method });
+    const band = resolveSeasonBand(row, { method: bandMethod });
     if (band.p90 == null) return best;
     if (!best || band.p90 > best.band.p90) return { row, band };
     return best;
   }, null);
   const tight = peers.tightestTop;
   const perGame = top?.row?.["Per-Game Proj"];
-  const scheduleAware = isScheduleAwareMethod(method);
+  const scheduleAware = scope !== "live" && isScheduleAwareMethod(method);
   const modelValue = scheduleAware
     ? "Schedule-aware"
     : scope === "live"
       ? "Live season + ROS"
       : "Preseason estimate";
   const modelMeta = [
-    featureSeason != null && draftSeason != null && featureSeason < draftSeason
+    scope !== "live" && featureSeason != null && draftSeason != null && featureSeason < draftSeason
       ? `${featureSeason} inputs`
       : null,
     scheduleAware ? "Bye weeks included" : "Calibrated as games are played",
@@ -499,17 +502,24 @@ export function roleOutlook({ rank, position, injuryStatus, rookie } = {}) {
   };
 }
 
-export function methodInsight({ scope, scheduleAware, applyInjuryAdjustments } = {}) {
+export function methodInsight({ scope, scheduleAware, applyInjuryAdjustments, seasonMode } = {}) {
   if (scope === "season") {
-    return scheduleAware
-      ? {
+    if (seasonMode === "live") {
+      return {
+        title: "Live season + ROS",
+        detail: "Points scored plus remaining weeks. Bands update as games land.",
+      };
+    }
+    if (scheduleAware) {
+      return {
         title: "Schedule-aware total",
         detail: "Bye weeks and expected games are included.",
-      }
-      : {
-        title: "Preseason estimate",
-        detail: "Bands tighten as games are played.",
       };
+    }
+    return {
+      title: "Preseason estimate",
+      detail: "Bands tighten as games are played.",
+    };
   }
   return {
     title: applyInjuryAdjustments === false ? "Base weekly model" : "Weekly PPR model",

@@ -25,8 +25,10 @@ import {
   movementBoardFilters,
   seasonBoardKicker,
   seasonBoardSignals,
+  seasonPeerStats,
   weeklyBoardKicker,
   weeklyBoardSignals,
+  weeklyPeerStats,
 } from "./projectionsPresentation";
 import { isScheduleAwareMethod } from "./seasonQuantiles";
 import { applyMediaQueryParams } from "./mediaContext";
@@ -63,7 +65,10 @@ import { isAbortError } from "./fetchAbort";
 import {
   connectionErrorMessage,
   formatRelativeTime,
+  isPlayerUnavailable,
   parseApiError,
+  rosPPG,
+  rosSeasonP50,
 } from "./format";
 import { waitForRefreshComplete } from "./refreshStatus";
 import { leftSlateRowsFromChanges } from "./projectionMovement";
@@ -591,14 +596,33 @@ export default function App() {
 
   const seasonSignalRows = isSeasonPreseason ? draftProjections : rosTableRows;
   const seasonSignals = useMemo(
-    () => seasonBoardSignals(seasonSignalRows, {
-      method: draftResponseMeta?.season_quantile_method,
-      featureSeason: draftResponseMeta?.feature_season,
-      draftSeason,
-      scope: isSeasonPreseason ? "preseason" : "live",
-    }),
+    () => seasonBoardSignals(seasonSignalRows, isSeasonPreseason
+      ? {
+        method: draftResponseMeta?.season_quantile_method,
+        featureSeason: draftResponseMeta?.feature_season,
+        draftSeason,
+        scope: "preseason",
+      }
+      : { scope: "live" }),
     [seasonSignalRows, draftResponseMeta, draftSeason, isSeasonPreseason],
   );
+
+  const inspectorPeers = useMemo(() => {
+    if (isWeeklyProjections) return weeklyPeerStats(tableRows);
+    if (isSeasonPreseason) {
+      return seasonPeerStats(draftProjections, {
+        method: draftResponseMeta?.season_quantile_method,
+      });
+    }
+    return seasonPeerStats(rosTableRows);
+  }, [
+    isWeeklyProjections,
+    isSeasonPreseason,
+    tableRows,
+    draftProjections,
+    rosTableRows,
+    draftResponseMeta,
+  ]);
 
   const inspectorCandidates = useMemo(() => {
     const source = isWeeklyProjections
@@ -606,15 +630,39 @@ export default function App() {
       : isSeasonPreseason
         ? draftProjections
         : rosTableRows;
+    const metric = isWeeklyProjections
+      ? (row) => (isPlayerUnavailable(row["Injury Status"]) ? NaN : Number(row["Projected Points"] ?? NaN))
+      : isSeasonPreseason
+        ? (row) => Number(row["Season Proj"] ?? NaN)
+        : (row) => Number((seasonComplete ? rosPPG(row) : rosSeasonP50(row)) ?? NaN);
+    const ranked = [];
+    for (const row of source || []) {
+      const value = Number(metric(row));
+      if (Number.isFinite(value) && row.player_id) ranked.push([String(row.player_id), value]);
+    }
+    ranked.sort((a, b) => b[1] - a[1]);
+    const rankById = new Map();
+    ranked.forEach(([id], index) => {
+      if (!rankById.has(id)) rankById.set(id, index + 1);
+    });
     return (source || [])
       .map((row) => ({
         playerId: row.player_id,
         name: row.Player,
         team: row.Team,
         position,
+        rank: row.player_id ? rankById.get(String(row.player_id)) ?? null : null,
       }))
       .filter((row) => row.playerId);
-  }, [isWeeklyProjections, isSeasonPreseason, tableRows, draftProjections, rosTableRows, position]);
+  }, [
+    isWeeklyProjections,
+    isSeasonPreseason,
+    tableRows,
+    draftProjections,
+    rosTableRows,
+    position,
+    seasonComplete,
+  ]);
 
   const weeklyInjurySummary = injuryDisclosureSummary({
     count: sidebarInjuries.length,
@@ -1196,6 +1244,8 @@ export default function App() {
   return (
     <PlayerCardProvider
       candidates={inspectorCandidates}
+      peers={inspectorPeers}
+      seasonMode={isSeasonPreseason ? "preseason" : isSeasonLive ? "live" : null}
       compareIds={compareIds}
       onToggleCompare={handleToggleCompare}
       maxCompare={MAX_COMPARE_PLAYERS}
@@ -1661,6 +1711,7 @@ export default function App() {
               season: isSeasonPreseason ? draftSeason : (rosSeason ?? season),
               week: isSeasonPreseason ? undefined : (rosFromWeek ?? week),
               scope: "season",
+              seasonMode: isSeasonPreseason ? "preseason" : "live",
             }}
           />
           <section className="panel wide panel-season proj-board-surface">

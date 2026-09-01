@@ -9,8 +9,10 @@ import {
   injuryDisclosureSummary,
   matchesSeasonBoardFilter,
   median,
+  methodInsight,
   percentile,
   roleOutlook,
+  seasonBoardSignals,
   seasonRead,
   starterCutoff,
   weeklyBoardSignals,
@@ -131,10 +133,51 @@ test("disclosure summaries name the consequence", () => {
 test("role outlook and inspector search stay specific", () => {
   assert.equal(roleOutlook({ rank: 2, position: "qb" }).title, "Locked-in starter");
   assert.equal(roleOutlook({ rank: 20, position: "qb" }).title, "Depth / dart throw");
+  assert.equal(roleOutlook({ position: "qb" }).title, "Depth / dart throw");
   const hits = filterInspectorCandidates([
     { playerId: "1", name: "Matthew Stafford", team: "LAR" },
     { playerId: "2", name: "Josh Allen", team: "BUF" },
   ], "staff");
   assert.equal(hits.length, 1);
   assert.equal(hits[0].name, "Matthew Stafford");
+});
+
+test("method insight distinguishes live season from preseason", () => {
+  assert.equal(methodInsight({ scope: "season", scheduleAware: true }).title, "Schedule-aware total");
+  assert.equal(methodInsight({ scope: "season" }).title, "Preseason estimate");
+  assert.equal(methodInsight({ scope: "season", seasonMode: "live" }).title, "Live season + ROS");
+  assert.equal(
+    methodInsight({ scope: "season", scheduleAware: true, seasonMode: "live" }).title,
+    "Live season + ROS",
+  );
+  assert.equal(methodInsight({ scope: "weekly" }).title, "Weekly PPR model");
+});
+
+test("live season signals ignore schedule-aware draft method metadata", () => {
+  const rows = [
+    {
+      Player: "Josh Allen",
+      player_id: "ja",
+      "Season Proj": 350,
+      "Season P10": 300,
+      "Season P90": 400,
+      "Per-Game Proj": 22,
+    },
+  ];
+  const live = seasonBoardSignals(rows, {
+    scope: "live",
+    method: "mc_schedule_v1",
+    featureSeason: 2025,
+    draftSeason: 2026,
+  });
+  assert.equal(live[3].name, "Live season + ROS");
+  assert.match(live[3].value, /Calibrated as games are played/);
+  const preseason = seasonBoardSignals(rows, {
+    scope: "preseason",
+    method: "mc_schedule_v1",
+    featureSeason: 2025,
+    draftSeason: 2026,
+  });
+  assert.equal(preseason[3].name, "Schedule-aware");
+  assert.match(preseason[3].value, /Bye weeks included/);
 });

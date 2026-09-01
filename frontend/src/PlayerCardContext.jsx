@@ -6,6 +6,8 @@ const PlayerCardContext = createContext(null);
 export function PlayerCardProvider({
   children,
   candidates = [],
+  peers = {},
+  seasonMode = null,
   compareIds = [],
   onToggleCompare,
   maxCompare = 4,
@@ -14,6 +16,9 @@ export function PlayerCardProvider({
 
   const openPlayerCard = useCallback((params) => {
     if (!params?.playerId) return;
+    const candidate = (candidates || []).find(
+      (c) => String(c.playerId) === String(params.playerId),
+    );
     setRequest({
       playerId: params.playerId,
       playerName: params.name || params.playerName,
@@ -23,8 +28,11 @@ export function PlayerCardProvider({
       week: params.week,
       scope: params.scope || "weekly",
       applyInjuryAdjustments: params.applyInjuryAdjustments,
+      rank: params.rank ?? candidate?.rank ?? null,
+      peers: params.peers || peers,
+      seasonMode: params.seasonMode || seasonMode,
     });
-  }, []);
+  }, [candidates, peers, seasonMode]);
 
   const closePlayerCard = useCallback(() => setRequest(null), []);
 

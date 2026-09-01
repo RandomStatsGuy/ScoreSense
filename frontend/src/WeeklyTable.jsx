@@ -231,6 +231,7 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   playerContext,
   contextSlateMeta = null,
   showMovement = false,
+  peerStats = {},
   onOpenPlayer,
 }) {
   const status = row["Injury Status"] || "";
@@ -254,6 +255,8 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
       week,
       applyInjuryAdjustments,
       scope: "weekly",
+      rank,
+      peers: peerStats,
     });
   };
 
@@ -901,6 +904,8 @@ export default function WeeklyTable({
                               week,
                               applyInjuryAdjustments,
                               scope: "weekly",
+                              rank: rankMap.get(rowRankKey(row)) ?? null,
+                              peers: peerStats,
                             })
                           }
                         >
@@ -1112,6 +1117,7 @@ export default function WeeklyTable({
                 playerContext={pid ? playersContext.byId.get(pid) : null}
                 contextSlateMeta={playersContext.meta}
                 showMovement={showMovement}
+                peerStats={peerStats}
                 onOpenPlayer={onOpenPlayer || (playerCard ? playerCard.openPlayerCard : undefined)}
               />
               );

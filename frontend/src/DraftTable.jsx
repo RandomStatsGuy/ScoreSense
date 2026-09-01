@@ -166,6 +166,11 @@ export default function DraftTable({
   );
   const playerMedia = usePlayerMedia(playerIds);
 
+  const handleClearFilters = () => {
+    setBoardFilter("all");
+    onClearFilters?.();
+  };
+
   const openPlayer = (row) => {
     if (!row?.player_id || !playerCard) return;
     playerCard.openPlayerCard({
@@ -175,6 +180,9 @@ export default function DraftTable({
       position,
       season,
       scope: "season",
+      seasonMode: "preseason",
+      rank: rankMap.get(rowRankKey(row)) ?? null,
+      peers: peerStats,
     });
   };
 
@@ -210,7 +218,7 @@ export default function DraftTable({
                 : "No draft projections available."
               : null
           }
-          onEmptyAction={hasFilters && sorted.length === 0 ? onClearFilters : undefined}
+          onEmptyAction={hasFilters && sorted.length === 0 ? handleClearFilters : undefined}
         >
           {sorted.map((row, rowIndex) => {
             const band = resolveSeasonBand(row, { method });
@@ -333,7 +341,7 @@ export default function DraftTable({
                 colSpan={8}
                 message={hasFilters ? "No players match your search." : "No draft projections available."}
                 actionLabel="Clear filters"
-                onAction={hasFilters ? onClearFilters : undefined}
+                onAction={hasFilters ? handleClearFilters : undefined}
               />
             )}
             {sorted.map((row, rowIndex) => {

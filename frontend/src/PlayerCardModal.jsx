@@ -186,6 +186,9 @@ function PlayerCardBody({
     };
 
   const scheduleAware = isScheduleAwareMethod(seasonBand?.method || season?.season_quantile_method);
+  const seasonMode = request?.seasonMode;
+  const slateRank = request?.rank ?? null;
+  const slatePeers = request?.peers || {};
   const rangeText = seasonScope
     ? seasonRead({
       Player: data.player_name,
@@ -194,16 +197,17 @@ function PlayerCardBody({
       "Season P10": seasonBand?.p10,
       "Season P90": seasonBand?.p90,
       season_quantile_method: seasonBand?.method,
-    }, {}, { position: request?.position || data.position })
+    }, slatePeers, { rank: slateRank, position: request?.position || data.position })
     : weeklyWhyNow({
       Player: data.player_name,
       "Projected Points": weeklyBand.p50,
       "Low (P10)": weeklyBand.p10,
       "High (P90)": weeklyBand.p90,
       "Injury Status": injury?.injury_status,
-    }, {}, { position: request?.position || data.position });
+    }, slatePeers, { rank: slateRank, position: request?.position || data.position });
 
   const role = roleOutlook({
+    rank: slateRank,
     position: request?.position || data.position,
     injuryStatus: injury?.injury_status,
     rookie: Boolean(season?.["Rookie Est."] || data.rookie),
@@ -213,16 +217,18 @@ function PlayerCardBody({
     scope: seasonScope ? "season" : "weekly",
     scheduleAware,
     applyInjuryAdjustments: applyInjury,
+    seasonMode,
   });
   const analyst = analystInsight({
     narrative,
     historicalLabel: narrativeFallback ? historicalLabel : null,
   });
+  const seasonIdentity = seasonMode === "live" ? "season" : "preseason";
   const identityMeta = [
     positionShort(request?.position || data.position),
     data.team || request?.team,
     seasonScope
-      ? (request?.season != null ? `${request.season} ${scheduleAware ? "preseason" : "season"}` : "Season")
+      ? (request?.season != null ? `${request.season} ${seasonIdentity}` : (seasonMode === "live" ? "Season" : "Preseason"))
       : weekLabel,
   ].filter(Boolean).join(" · ");
 
@@ -246,9 +252,13 @@ function PlayerCardBody({
         <span className={`player-inspector-chip${injury?.injury_status ? " player-inspector-chip--caution" : ""}`}>
           {injury?.injury_status
             ? injury.injury_status
-            : seasonScope && scheduleAware
-              ? BOARD_COPY.scheduleAware
-              : BOARD_COPY.weeklyModel}
+            : !seasonScope
+              ? BOARD_COPY.weeklyModel
+              : seasonMode === "live"
+                ? BOARD_COPY.liveSeason
+                : scheduleAware
+                  ? BOARD_COPY.scheduleAware
+                  : BOARD_COPY.preseasonEstimate}
         </span>
       </div>
 
@@ -474,6 +484,7 @@ export default function PlayerCardModal({
       name: hit.name,
       team: hit.team,
       position: hit.position || request.position,
+      rank: hit.rank ?? null,
     });
   };
 
