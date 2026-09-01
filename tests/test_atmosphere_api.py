@@ -43,6 +43,25 @@ def test_prefs_round_trip(hub_db):
     assert client.get("/api/hub/prefs").json()["prefs"]["atmosphere"] == "snow"
 
 
+def test_prefs_partial_patch_preserves_other_options(hub_db):
+    """Toggling one tailoring option must not reset the theme or the others."""
+    client = _client_for("atm-pref-tailor")
+    client.patch("/api/hub/prefs", json={"atmosphere": "cozy", "atmosphere_intensity": "lively"})
+
+    toggled = client.patch("/api/hub/prefs", json={"atmosphere_motion": False})
+    assert toggled.status_code == 200
+    prefs = toggled.json()["prefs"]
+    assert prefs["atmosphere"] == "cozy"
+    assert prefs["atmosphere_motion"] is False
+    assert prefs["atmosphere_intensity"] == "lively"
+    assert prefs["atmosphere_pile"] is True
+
+    stored = client.get("/api/hub/prefs").json()["prefs"]
+    assert stored["atmosphere"] == "cozy"
+    assert stored["atmosphere_motion"] is False
+    assert stored["atmosphere_intensity"] == "lively"
+
+
 def test_team_identity_owner_can_edit_member_cannot(hub_db):
     comm, member, league = _seed_league(hub_db)
     comm_team = storage.get_team_by_user(league["id"], comm)

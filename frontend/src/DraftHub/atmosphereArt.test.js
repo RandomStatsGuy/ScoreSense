@@ -6,9 +6,13 @@ import test from "node:test";
 import {
   ATMOSPHERE_DENSITY,
   ATMOSPHERE_LAYERS,
+  FUR_COLORS,
   LEAF_COLORS,
   LEAF_VARIANTS,
+  YARN_COLORS,
   buildAtmosphereParticles,
+  buildPileClusters,
+  intensityPreset,
 } from "./atmosphereArt.js";
 
 /** Deterministic LCG so particle output is reproducible in tests. */
@@ -73,4 +77,48 @@ test("footballs mix end-over-end spins with rocking, and render larger", () => {
   const snow = buildAtmosphereParticles("snow", { rng: seededRng(11) });
   const avg = (list) => list.reduce((sum, p) => sum + p.size, 0) / list.length;
   assert.ok(avg(footballs) > avg(snow), "football size multiplier applies");
+});
+
+test("cozy mixes dust motes, fur tufts, and yarn with the right palettes", () => {
+  const cozy = buildAtmosphereParticles("cozy", { density: 40, rng: seededRng(3) });
+  const variants = new Set(cozy.map((p) => p.variant));
+  assert.ok(variants.has(0) && variants.has(1) && variants.has(2), "all three cozy kinds spawn");
+  for (const p of cozy) {
+    if (p.variant === 1) {
+      assert.ok(FUR_COLORS.some(([a, b]) => a === p.colors[0] && b === p.colors[1]));
+      assert.equal(p.spinMode, "rock", "fur drifts with a lazy rock");
+    }
+    if (p.variant === 2) {
+      assert.ok(YARN_COLORS.some(([a, b]) => a === p.colors[0] && b === p.colors[1]));
+      assert.equal(p.spinMode, "spin", "yarn rolls end-over-end");
+    }
+    if (p.layer === "far") assert.equal(p.variant, 0, "far layer is dust motes only");
+  }
+});
+
+test("intensity presets scale density and opacity", () => {
+  assert.equal(intensityPreset("standard").density, ATMOSPHERE_DENSITY);
+  assert.ok(intensityPreset("subtle").density < intensityPreset("lively").density);
+  assert.ok(intensityPreset("subtle").opacity < intensityPreset("lively").opacity);
+  assert.deepEqual(intensityPreset("nonsense"), intensityPreset("standard"));
+});
+
+test("pile clusters span the bottom edge with bounded transforms", () => {
+  const clusters = buildPileClusters("leaves", { rng: seededRng(5) });
+  assert.ok(clusters.length >= 6);
+  for (const cluster of clusters) {
+    assert.ok(cluster.left >= -10 && cluster.left <= 110);
+    assert.ok(cluster.scale >= 0.6 && cluster.scale <= 1.3);
+    assert.ok(cluster.growDelay >= 0 && cluster.growDelay <= 8);
+    assert.ok(LEAF_COLORS.some(([a]) => a === cluster.colors[0]));
+  }
+  // Footballs pile in fewer, chunkier clusters; unknown themes pile nothing.
+  assert.ok(buildPileClusters("footballs", { rng: seededRng(5) }).length <= 6);
+  assert.deepEqual(buildPileClusters("none"), []);
+  assert.deepEqual(buildPileClusters("casino"), []);
+  const cozyPile = buildPileClusters("cozy", { rng: seededRng(5) });
+  assert.ok(cozyPile.length >= 6);
+  for (const cluster of cozyPile) {
+    assert.ok(FUR_COLORS.some(([a]) => a === cluster.colors[0]));
+  }
 });

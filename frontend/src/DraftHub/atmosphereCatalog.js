@@ -1,4 +1,5 @@
-export const ATMOSPHERE_THEMES = ["none", "snow", "leaves", "footballs"];
+export const ATMOSPHERE_THEMES = ["none", "snow", "leaves", "footballs", "cozy"];
+export const ATMOSPHERE_INTENSITIES = ["subtle", "standard", "lively"];
 export const PHOTO_PRESETS = ["gridiron", "tunnel", "night", "turf", "storm", "locker_lights"];
 export const BANNER_PRESETS = ["navy_stripe", "teal_fade", "amber_edge", "home_white", "away_slate", "championship"];
 export const ROOM_THEMES = ["none", "locker"];
@@ -37,11 +38,26 @@ export const DEFAULT_IDENTITY = {
   locker_player_ids: [],
 };
 
+export const ATMOSPHERE_CHANGED_EVENT = "scoresense-atmosphere-changed";
+
 export const ATMOSPHERE_COPY = {
   none: { title: "Off", support: "Keep Fantasy quiet. Recommended default." },
   snow: { title: "Snow", support: "A faint winter drift behind the page." },
   leaves: { title: "Fall leaves", support: "A light autumn fall, never in front of the board." },
   footballs: { title: "Footballs", support: "Soft footballs drifting in the background." },
+  cozy: { title: "Cozy den", support: "Lamplight, drifting fur and yarn — and ragdolls who notice your cursor." },
+};
+
+/** Copy for the tailoring controls under the theme picker. */
+export const ATMOSPHERE_OPTION_COPY = {
+  motion: { title: "Falling animation", support: "Particles drift down the page and react to your cursor." },
+  pile: { title: "Ground pile", support: "Let it collect along the bottom of the page." },
+  wash: { title: "Color wash", support: "Tint the background to match the theme." },
+  intensity: {
+    subtle: { title: "Subtle", support: "Barely there." },
+    standard: { title: "Standard", support: "The intended look." },
+    lively: { title: "Lively", support: "More of everything." },
+  },
 };
 
 export const EMOTE_COPY = {
@@ -84,9 +100,45 @@ export function identityMediaUrl(identity, kind) {
   return identity.photo_url || (identity.photo_media_id ? `/api/hub/media/${identity.photo_media_id}` : null);
 }
 
+function coerceBool(value, fallback) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return Boolean(value);
+  if (typeof value === "string") {
+    const text = value.trim().toLowerCase();
+    if (["1", "true", "yes", "on"].includes(text)) return true;
+    if (["0", "false", "no", "off"].includes(text)) return false;
+  }
+  return fallback;
+}
+
 export function mergeAtmospherePrefs(raw) {
   const theme = String(raw?.atmosphere || "none").toLowerCase();
-  return { atmosphere: ATMOSPHERE_THEMES.includes(theme) ? theme : "none" };
+  const intensity = String(raw?.atmosphere_intensity || "standard").toLowerCase();
+  return {
+    atmosphere: ATMOSPHERE_THEMES.includes(theme) ? theme : "none",
+    motion: coerceBool(raw?.atmosphere_motion, true),
+    pile: coerceBool(raw?.atmosphere_pile, true),
+    wash: coerceBool(raw?.atmosphere_wash, true),
+    intensity: ATMOSPHERE_INTENSITIES.includes(intensity) ? intensity : "standard",
+  };
+}
+
+/** Lay an API-shaped patch over already-merged prefs (optimistic UI). */
+export function applyAtmospherePatch(prefs, patch) {
+  const current = prefs && typeof prefs === "object" ? prefs : mergeAtmospherePrefs(null);
+  return mergeAtmospherePrefs({
+    atmosphere: current.atmosphere,
+    atmosphere_motion: current.motion,
+    atmosphere_pile: current.pile,
+    atmosphere_wash: current.wash,
+    atmosphere_intensity: current.intensity,
+    ...(patch && typeof patch === "object" ? patch : {}),
+  });
+}
+
+export function notifyAtmosphereChanged() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(ATMOSPHERE_CHANGED_EVENT));
 }
 
 export function mergeTeamIdentity(raw) {
@@ -119,9 +171,11 @@ export function initialsFromName(name) {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
-export function shouldShowAtmosphere(theme, { reducedMotion = false, liveDraft = false } = {}) {
+/** Whether the ambience layer mounts at all. Reduced motion no longer hides
+ * the layer — it only freezes it (static wash/pile, no falling particles or
+ * reactions); that gating lives in the layer itself. */
+export function shouldShowAtmosphere(theme, { liveDraft = false } = {}) {
   if (liveDraft) return false;
-  if (reducedMotion) return false;
   return ATMOSPHERE_THEMES.includes(theme) && theme !== "none";
 }
 
