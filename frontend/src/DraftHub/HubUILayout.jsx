@@ -298,6 +298,7 @@ export function HubExperienceLayout({ children, summary, summaryLabel = "At a gl
 }
 
 export function HubExperienceSummary({
+  eyebrow = "At a glance",
   title,
   subtitle,
   items = [],
@@ -308,7 +309,7 @@ export function HubExperienceSummary({
   return (
     <>
       <div>
-        <span className="hub-experience-eyebrow">At a glance</span>
+        {eyebrow ? <span className="hub-experience-eyebrow">{eyebrow}</span> : null}
         {title ? <h3>{title}</h3> : null}
         {subtitle ? <p>{subtitle}</p> : null}
       </div>
