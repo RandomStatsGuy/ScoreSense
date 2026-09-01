@@ -73,6 +73,7 @@ export default function PlayerCell({
   week,
   applyInjuryAdjustments,
   narrativeScope = "weekly",
+  seasonMode,
   onPlayerClick,
 }) {
   const [shotIndex, setShotIndex] = useState(0);
@@ -99,6 +100,7 @@ export default function PlayerCell({
       week,
       applyInjuryAdjustments,
       scope: narrativeScope,
+      seasonMode,
     };
     if (onPlayerClick) onPlayerClick(payload);
     else playerCard?.openPlayerCard(payload);

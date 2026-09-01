@@ -232,6 +232,7 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   contextSlateMeta = null,
   showMovement = false,
   onOpenPlayer,
+  peers = null,
 }) {
   const status = row["Injury Status"] || "";
   const leftSlate = isLeftSlate(row);
@@ -243,8 +244,9 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   const tone = matchupTone(row["Opp Def Rank"], dvpTeamCount);
   const canSelect = compareEnabled && Boolean(row.player_id) && !unavailable && !leftSlate;
 
+  const canOpen = Boolean(row.player_id && onOpenPlayer);
   const openPlayer = () => {
-    if (!row.player_id || !onOpenPlayer) return;
+    if (!canOpen) return;
     onOpenPlayer({
       playerId: row.player_id,
       name: row.Player,
@@ -254,6 +256,8 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
       week,
       applyInjuryAdjustments,
       scope: "weekly",
+      rank,
+      peers,
     });
   };
 
@@ -268,7 +272,16 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
       ]
         .filter(Boolean)
         .join(" ") || undefined}
+      tabIndex={canOpen ? 0 : undefined}
+      aria-label={canOpen ? `Open ${row.Player} details` : undefined}
       onClick={openPlayer}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openPlayer();
+        }
+      }}
     >
       {compareEnabled ? (
         <td className="col-compare-select" onClick={(event) => event.stopPropagation()}>
@@ -1113,6 +1126,7 @@ export default function WeeklyTable({
                 contextSlateMeta={playersContext.meta}
                 showMovement={showMovement}
                 onOpenPlayer={onOpenPlayer || (playerCard ? playerCard.openPlayerCard : undefined)}
+                peers={peerStats}
               />
               );
             })}

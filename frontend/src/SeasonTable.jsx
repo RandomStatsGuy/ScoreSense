@@ -192,6 +192,7 @@ export default function SeasonTable({
                     showTeam={false}
                     clickable={Boolean(row.player_id)}
                     narrativeScope="season"
+                    seasonMode="live"
                     position={position}
                     season={season}
                     week={week ?? projectionWeek}
@@ -343,6 +344,7 @@ export default function SeasonTable({
                     showTeam={false}
                     clickable={Boolean(row.player_id)}
                     narrativeScope="season"
+                    seasonMode="live"
                     position={position}
                     season={season}
                     week={week ?? projectionWeek}

@@ -9,8 +9,10 @@ import {
   injuryDisclosureSummary,
   matchesSeasonBoardFilter,
   median,
+  methodInsight,
   percentile,
   roleOutlook,
+  seasonBoardSignals,
   seasonRead,
   starterCutoff,
   weeklyBoardSignals,
@@ -80,7 +82,34 @@ test("weekly signals pick top P50, safest floor, and riser", () => {
   assert.equal(signals[1].name, "Matthew Stafford");
   assert.match(signals[2].value, /▲5/);
   assert.equal(signals[3].name, "1 starter");
+  assert.equal(signals[3].playerName, "Patrick Mahomes");
   assert.match(signals[3].value, /Mahomes/);
+});
+
+test("live season signals ignore schedule-aware draft metadata", () => {
+  const signals = seasonBoardSignals([
+    {
+      Player: "Josh Allen",
+      player_id: "ja",
+      "Season Proj": 350,
+      "Season P10": 300,
+      "Season P90": 400,
+    },
+  ], {
+    method: "mc_schedule_v1",
+    featureSeason: 2025,
+    draftSeason: 2026,
+    scope: "live",
+  });
+  const model = signals.find((s) => s.id === "model");
+  assert.equal(model.name, "Live season + ROS");
+  assert.doesNotMatch(model.value, /inputs|Bye weeks/i);
+});
+
+test("method insight distinguishes live season from preseason", () => {
+  assert.equal(methodInsight({ scope: "season", seasonMode: "live" }).title, "Live season + ROS");
+  assert.equal(methodInsight({ scope: "season", scheduleAware: true }).title, "Schedule-aware total");
+  assert.equal(methodInsight({ scope: "season" }).title, "Preseason estimate");
 });
 
 test("season read flags the tightest leading band", () => {

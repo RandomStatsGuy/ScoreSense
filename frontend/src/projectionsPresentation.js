@@ -39,6 +39,8 @@ export const BOARD_COPY = {
   addPlayer: "Add player",
   scheduleAware: "Schedule-aware estimate",
   weeklyModel: "Weekly PPR model",
+  liveSeason: "Live season + ROS",
+  preseasonEstimate: "Preseason estimate",
 };
 
 export function positionShort(position) {
@@ -338,6 +340,7 @@ export function weeklyBoardSignals(rows, { attentionItems = [], position } = {})
         ? `${firstName}${statusShort ? ` · ${statusShort}` : ""}`
         : "Clear",
       playerId: first?.playerId || first?.projectionRow?.player_id || null,
+      playerName: firstName || null,
       row: first?.projectionRow || null,
       tone: attention.length ? "caution" : "ok",
     },
@@ -361,18 +364,21 @@ export function seasonBoardSignals(rows, { method, featureSeason, draftSeason, s
   }, null);
   const tight = peers.tightestTop;
   const perGame = top?.row?.["Per-Game Proj"];
+  const live = scope === "live";
   const scheduleAware = isScheduleAwareMethod(method);
-  const modelValue = scheduleAware
-    ? "Schedule-aware"
-    : scope === "live"
-      ? "Live season + ROS"
+  const modelValue = live
+    ? "Live season + ROS"
+    : scheduleAware
+      ? "Schedule-aware"
       : "Preseason estimate";
-  const modelMeta = [
-    featureSeason != null && draftSeason != null && featureSeason < draftSeason
-      ? `${featureSeason} inputs`
-      : null,
-    scheduleAware ? "Bye weeks included" : "Calibrated as games are played",
-  ].filter(Boolean).join(" · ");
+  const modelMeta = live
+    ? "Remaining weeks plus points already scored"
+    : [
+      featureSeason != null && draftSeason != null && featureSeason < draftSeason
+        ? `${featureSeason} inputs`
+        : null,
+      scheduleAware ? "Bye weeks included" : "Calibrated as games are played",
+    ].filter(Boolean).join(" · ");
 
   return [
     {
@@ -499,8 +505,14 @@ export function roleOutlook({ rank, position, injuryStatus, rookie } = {}) {
   };
 }
 
-export function methodInsight({ scope, scheduleAware, applyInjuryAdjustments } = {}) {
+export function methodInsight({ scope, scheduleAware, applyInjuryAdjustments, seasonMode } = {}) {
   if (scope === "season") {
+    if (seasonMode === "live") {
+      return {
+        title: "Live season + ROS",
+        detail: "Remaining weeks plus points already scored.",
+      };
+    }
     return scheduleAware
       ? {
         title: "Schedule-aware total",

@@ -166,8 +166,14 @@ export default function DraftTable({
   );
   const playerMedia = usePlayerMedia(playerIds);
 
+  const clearFilters = () => {
+    setBoardFilter("all");
+    onClearFilters?.();
+  };
+
   const openPlayer = (row) => {
     if (!row?.player_id || !playerCard) return;
+    const rank = rankMap.get(rowRankKey(row)) ?? null;
     playerCard.openPlayerCard({
       playerId: row.player_id,
       name: row.Player,
@@ -175,6 +181,9 @@ export default function DraftTable({
       position,
       season,
       scope: "season",
+      seasonMode: "preseason",
+      rank,
+      peers: peerStats,
     });
   };
 
@@ -210,7 +219,7 @@ export default function DraftTable({
                 : "No draft projections available."
               : null
           }
-          onEmptyAction={hasFilters && sorted.length === 0 ? onClearFilters : undefined}
+          onEmptyAction={hasFilters && sorted.length === 0 ? clearFilters : undefined}
         >
           {sorted.map((row, rowIndex) => {
             const band = resolveSeasonBand(row, { method });
@@ -333,7 +342,7 @@ export default function DraftTable({
                 colSpan={8}
                 message={hasFilters ? "No players match your search." : "No draft projections available."}
                 actionLabel="Clear filters"
-                onAction={hasFilters ? onClearFilters : undefined}
+                onAction={hasFilters ? clearFilters : undefined}
               />
             )}
             {sorted.map((row, rowIndex) => {
@@ -344,7 +353,16 @@ export default function DraftTable({
                 <tr
                   key={rowRankKey(row)}
                   className="proj-board-row"
+                  tabIndex={row.player_id && playerCard ? 0 : undefined}
+                  aria-label={row.player_id && playerCard ? `Open ${row.Player} details` : undefined}
                   onClick={() => openPlayer(row)}
+                  onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) return;
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openPlayer(row);
+                    }
+                  }}
                 >
                   <td className={`num col-rank${rank != null && rank <= 3 ? " col-rank-top" : ""}`}>
                     {rank ?? "—"}

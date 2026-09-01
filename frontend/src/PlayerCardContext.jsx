@@ -22,7 +22,10 @@ export function PlayerCardProvider({
       season: params.season,
       week: params.week,
       scope: params.scope || "weekly",
+      seasonMode: params.seasonMode,
       applyInjuryAdjustments: params.applyInjuryAdjustments,
+      rank: params.rank,
+      peers: params.peers,
     });
   }, []);
 

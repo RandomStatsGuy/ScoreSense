@@ -19,7 +19,7 @@ export function ProjectionBoardSignals({ signals = [], playerParams = null }) {
             onClick={clickable ? () => card.openPlayerCard({
               ...(playerParams || {}),
               playerId: signal.playerId,
-              name: signal.name,
+              name: signal.row?.Player || signal.row?.player_name || signal.playerName || signal.name,
               team: signal.row?.Team,
             }) : undefined}
           >

@@ -591,12 +591,14 @@ export default function App() {
 
   const seasonSignalRows = isSeasonPreseason ? draftProjections : rosTableRows;
   const seasonSignals = useMemo(
-    () => seasonBoardSignals(seasonSignalRows, {
-      method: draftResponseMeta?.season_quantile_method,
-      featureSeason: draftResponseMeta?.feature_season,
-      draftSeason,
-      scope: isSeasonPreseason ? "preseason" : "live",
-    }),
+    () => seasonBoardSignals(seasonSignalRows, isSeasonPreseason
+      ? {
+        method: draftResponseMeta?.season_quantile_method,
+        featureSeason: draftResponseMeta?.feature_season,
+        draftSeason,
+        scope: "preseason",
+      }
+      : { scope: "live" }),
     [seasonSignalRows, draftResponseMeta, draftSeason, isSeasonPreseason],
   );
 
@@ -612,6 +614,7 @@ export default function App() {
         name: row.Player,
         team: row.Team,
         position,
+        projection: row,
       }))
       .filter((row) => row.playerId);
   }, [isWeeklyProjections, isSeasonPreseason, tableRows, draftProjections, rosTableRows, position]);
@@ -1661,6 +1664,7 @@ export default function App() {
               season: isSeasonPreseason ? draftSeason : (rosSeason ?? season),
               week: isSeasonPreseason ? undefined : (rosFromWeek ?? week),
               scope: "season",
+              seasonMode: isSeasonPreseason ? "preseason" : "live",
             }}
           />
           <section className="panel wide panel-season proj-board-surface">
@@ -1770,7 +1774,7 @@ export default function App() {
                     showShortLabels
                   />
                 )}
-                <div className="grid projections-grid projections-grid--season-live">
+                <div className={mobileLayout ? "grid projections-grid projections-grid--season-live" : undefined}>
                   <div
                     className={`projections-mobile-panel${!seasonMobilePanel || seasonMobilePanel === "projections" ? " is-mobile-active" : ""}`}
                   >
