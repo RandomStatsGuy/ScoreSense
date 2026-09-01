@@ -102,6 +102,12 @@ Player IDs are mapped via Sleeper `gsis_id` → ScoreSense `player_id` when avai
 | WS | `/api/hub/ws/{league_id}` | Realtime updates |
 | POST | `/api/hub/contract/rookie-extend` | Manager rookie extension (server-calculated; aliases: `/extend`, `/renew`) |
 | POST | `/api/hub/sleeper/import` | Sleeper roster snapshot (read-only) |
+| GET/PUT | `/api/hub/league/{id}/lineup` | Hub weekly lineup (ScoreSense-only leagues) |
+| POST | `/api/hub/league/{id}/lineup/swap` | Swap a starter with a bench player |
+| GET | `/api/hub/league/{id}/schedule` | Persist / read rotating H2H schedule |
+| POST | `/api/hub/league/{id}/score-week` | Apply Hub PPR from nflverse weekly stats |
+
+Hub-only leagues persist start/sit on **This Week** and score weeks with standard PPR (`FANTASY_SCORING`). Linked Sleeper leagues still read Game center from Sleeper matchups.
 
 ## Roadmap (historical)
 
