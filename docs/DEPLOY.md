@@ -56,7 +56,8 @@ docker compose exec api python -m src.jobs.weekly_refresh --no-retrain
 
 | Platform | Notes |
 |----------|--------|
-| **Railway / Render / Fly.io** | Deploy Dockerfile; set env vars; attach persistent volume for `data/`, `artifacts/` |
+| **Render** | See **[DEPLOY_RENDER.md](./DEPLOY_RENDER.md)** — repo-root `render.yaml` Blueprint, `deploy/Dockerfile`, disk at `/var/data` |
+| **Railway / Fly.io** | Deploy Dockerfile; set env vars; attach persistent volume for `data/`, `artifacts/` |
 | **VPS + Cloudflare Tunnel** | See **[DEPLOY_CLOUDFLARE_TUNNEL.md](./DEPLOY_CLOUDFLARE_TUNNEL.md)** — `app.fourthdownlabs.com` → `localhost:8000` |
 | **VPS (nginx / A record)** | See **[DEPLOY_VPS.md](./DEPLOY_VPS.md)** — `deploy/docker-compose.prod.yml`, nginx/Caddy, Patreon, `/root/scoresense` |
 | **Local Docker (dev-like)** | `docker compose -f deploy/docker-compose.yml up -d` (bind-mounts source for hot reload) |
