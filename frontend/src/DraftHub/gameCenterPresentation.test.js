@@ -124,4 +124,12 @@ test("placeholder storyline keeps the slate and names the missing opponent", () 
     hint: GAME_CENTER_COPY.emptyPreseason,
   });
   assert.equal(paired, "Week 1 vs Zebra Squad. No scored matchups yet. Scores fill in after kickoff.");
+  const named = matchupStoryline({
+    viewer: { team_name: "Alpha", owner_name: "Avery A" },
+    opponent: { team_name: "White Supremacists", owner_name: "Caleb K", roster_id: "z" },
+    placeholder: true,
+    week: 1,
+    hint: GAME_CENTER_COPY.emptyPreseason,
+  });
+  assert.equal(named, "Week 1 vs Caleb K · White Supremacists. No scored matchups yet. Scores fill in after kickoff.");
 });
