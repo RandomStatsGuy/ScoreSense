@@ -220,6 +220,39 @@ def test_list_league_teams_attaches_owner_name(hub_db):
     assert storage.league_cache_revisions(lid)["historic_snapshot_revision"] == hist0
 
 
+def test_attach_owner_names_uses_hub_name_when_sleeper_nickname_differs(hub_db):
+    from src.draft_hub.owner_display import attach_owner_names_to_teams
+
+    league = storage.create_league("nick-owner", "Nick Owner", 2025, LeagueRules())
+    lid = league["id"]
+    storage.replace_league_contract_season(
+        lid,
+        2025,
+        [
+            {
+                "owner_label": "Caleb K",
+                "hub_team_name": "White Supremacists",
+                "player_name": "QB One",
+                "position": "QB",
+                "cap_hit": 10.0,
+                "roster_status": "active",
+            },
+        ],
+    )
+    teams = attach_owner_names_to_teams(
+        lid,
+        [
+            {
+                "id": "t1",
+                "name": "White Supremacists",
+                "sleeper_team_name": "CK Live Nick",
+            }
+        ],
+        season_year=2025,
+    )
+    assert teams[0]["owner_name"] == "Caleb K"
+
+
 def test_contract_seed_does_not_bump_historic_revision(hub_db):
     league = storage.create_league("seed-rev", "Seed Rev", 2026, LeagueRules())
     lid = league["id"]
