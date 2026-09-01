@@ -5,6 +5,8 @@
 > Global AI rules: `.cursor/rules/scoresense-core.mdc` (always applied).
 > File-specific: `.cursor/rules/frontend-draft-hub.mdc`, `.cursor/rules/draft-hub-performance.mdc`, `.cursor/rules/ml-projections.mdc`.
 > Corrections: `.cursor/rules/correction-capture.mdc` + `.cursor/skills/capture-correction/SKILL.md`. Catalog: `.cursor/rules/learned-rules.mdc`.
+> Living UI: `frontend/src/livingSurfaces.js` + `.cursor/rules/living-surfaces.mdc` + `.cursor/skills/match-living-surface/SKILL.md`.
+> Repo skills: `.cursor/skills/run-tests/SKILL.md`, `.cursor/skills/verify-fantasy-ui/SKILL.md`, `.cursor/skills/mirror-prod-league/SKILL.md`, `.cursor/skills/add-fantasy-destination/SKILL.md`, `.cursor/skills/add-hub-route/SKILL.md`, `.cursor/skills/add-ui-copy/SKILL.md`, `.cursor/skills/change-league-rules/SKILL.md`, `.cursor/skills/refresh-draft-pool/SKILL.md`.
 > Doc index: [`docs/README.md`](docs/README.md).
 
 ScoreSense (4th Down Labs) is a fantasy football product: **Projections** (weekly/season quantile GBM), **Fantasy** (salary-cap leagues, auction/pick draft, contracts, cap, trades), and **Tools** (DFS, mock draft, best ball board). Sentiment is a readout on projections. Props exist as research/backlog, not top-level nav.
