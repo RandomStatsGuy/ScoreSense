@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  applyAtmospherePatch,
   lockerNameplate,
   mergeAtmospherePrefs,
   mergeFocus,
@@ -14,7 +15,46 @@ import {
 test("mergeAtmospherePrefs stays off unless a known theme is chosen", () => {
   assert.equal(mergeAtmospherePrefs(null).atmosphere, "none");
   assert.equal(mergeAtmospherePrefs({ atmosphere: "snow" }).atmosphere, "snow");
+  assert.equal(mergeAtmospherePrefs({ atmosphere: "cozy" }).atmosphere, "cozy");
   assert.equal(mergeAtmospherePrefs({ atmosphere: "casino" }).atmosphere, "none");
+});
+
+test("mergeAtmospherePrefs normalizes the tailoring options", () => {
+  const defaults = mergeAtmospherePrefs({ atmosphere: "cozy" });
+  assert.deepEqual(
+    { motion: defaults.motion, pile: defaults.pile, wash: defaults.wash, intensity: defaults.intensity },
+    { motion: true, pile: true, wash: true, intensity: "standard" },
+  );
+  const custom = mergeAtmospherePrefs({
+    atmosphere: "cozy",
+    atmosphere_motion: false,
+    atmosphere_pile: "off",
+    atmosphere_wash: "true",
+    atmosphere_intensity: "lively",
+  });
+  assert.equal(custom.motion, false);
+  assert.equal(custom.pile, false);
+  assert.equal(custom.wash, true);
+  assert.equal(custom.intensity, "lively");
+  assert.equal(mergeAtmospherePrefs({ atmosphere_intensity: "chaos" }).intensity, "standard");
+});
+
+test("applyAtmospherePatch overlays one option without resetting the rest", () => {
+  const next = applyAtmospherePatch(
+    {
+      atmosphere: "cozy",
+      motion: true,
+      pile: true,
+      wash: true,
+      intensity: "lively",
+    },
+    { atmosphere_motion: false },
+  );
+  assert.equal(next.atmosphere, "cozy");
+  assert.equal(next.motion, false);
+  assert.equal(next.pile, true);
+  assert.equal(next.wash, true);
+  assert.equal(next.intensity, "lively");
 });
 
 test("mergeTeamIdentity keeps locker picks short and valid", () => {
@@ -28,10 +68,13 @@ test("mergeTeamIdentity keeps locker picks short and valid", () => {
   assert.deepEqual(merged.locker_player_ids, ["a", "b", "c", "d", "e", "f", "g", "h"]);
 });
 
-test("atmosphere stays off in live draft and reduced motion", () => {
+test("atmosphere stays off in live draft; reduced motion only freezes it", () => {
   assert.equal(shouldShowAtmosphere("snow"), true);
+  assert.equal(shouldShowAtmosphere("cozy"), true);
   assert.equal(shouldShowAtmosphere("snow", { liveDraft: true }), false);
-  assert.equal(shouldShowAtmosphere("snow", { reducedMotion: true }), false);
+  // Reduced motion keeps the static wash/pile visible; the layer itself
+  // disables falling particles and reactions.
+  assert.equal(shouldShowAtmosphere("snow", { reducedMotion: true }), true);
   assert.equal(shouldShowAtmosphere("none"), false);
 });
 

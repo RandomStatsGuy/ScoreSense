@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from typing import Any
 
-ATMOSPHERE_THEMES = ("none", "snow", "leaves", "footballs")
+ATMOSPHERE_THEMES = ("none", "snow", "leaves", "footballs", "cozy")
+
+ATMOSPHERE_INTENSITIES = ("subtle", "standard", "lively")
 
 PHOTO_PRESETS = (
     "gridiron",
@@ -69,7 +71,29 @@ VICTORY_EMOTES: dict[str, dict[str, str]] = {
 
 
 def default_atmosphere_prefs() -> dict[str, Any]:
-    return {"atmosphere": "none"}
+    return {
+        "atmosphere": "none",
+        # Independent layers so the experience can be tailored:
+        # falling particles / ground pile / background color wash.
+        "atmosphere_motion": True,
+        "atmosphere_pile": True,
+        "atmosphere_wash": True,
+        "atmosphere_intensity": "standard",
+    }
+
+
+def _coerce_bool(value: Any, fallback: bool) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in ("1", "true", "yes", "on"):
+            return True
+        if text in ("0", "false", "no", "off"):
+            return False
+    return fallback
 
 
 def merge_atmosphere_prefs(raw: Any) -> dict[str, Any]:
@@ -80,6 +104,12 @@ def merge_atmosphere_prefs(raw: Any) -> dict[str, Any]:
     if theme not in ATMOSPHERE_THEMES:
         theme = "none"
     base["atmosphere"] = theme
+    for key in ("atmosphere_motion", "atmosphere_pile", "atmosphere_wash"):
+        if key in raw:
+            base[key] = _coerce_bool(raw.get(key), base[key])
+    intensity = str(raw.get("atmosphere_intensity") or "").strip().lower()
+    if intensity in ATMOSPHERE_INTENSITIES:
+        base["atmosphere_intensity"] = intensity
     return base
 
 
@@ -221,6 +251,7 @@ def atmosphere_catalog() -> dict[str, Any]:
             {"id": "snow", "title": "Snow", "support": "A faint winter drift behind the page."},
             {"id": "leaves", "title": "Fall leaves", "support": "A light autumn fall, never in front of the board."},
             {"id": "footballs", "title": "Footballs", "support": "Soft footballs drifting in the background."},
+            {"id": "cozy", "title": "Cozy den", "support": "Lamplight, drifting fur and yarn — and ragdolls who notice your cursor."},
         ],
         "photos": [
             {"id": "gridiron", "title": "Gridiron"},
