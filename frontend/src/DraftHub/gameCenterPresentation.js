@@ -103,7 +103,8 @@ export function matchupStoryline({
         ? `Week ${week} opponent TBD. ${closer}`
         : `Opponent TBD. ${closer}`;
     }
-    const weekBit = week != null ? `Week ${week} vs ${opponent.team_name}` : `vs ${opponent.team_name}`;
+    const opponentLabel = gameCenterTeamLabel(opponent) || opponent.team_name;
+    const weekBit = week != null ? `Week ${week} vs ${opponentLabel}` : `vs ${opponentLabel}`;
     return `${weekBit}. ${closer}`;
   }
   if (!viewer || !opponent) return "";

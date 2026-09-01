@@ -11,6 +11,7 @@ from src.draft_hub.league_live_scoring import (
     DEFAULT_STARTING_SLOTS,
     LIVE_SCORING_MAX_AGE_SECONDS,
     _live_cache_is_fresh,
+    apply_live_viewer,
     attach_matchup_analytics,
     build_hub_placeholder_week,
     build_sleeper_live_week,
@@ -334,8 +335,8 @@ def test_starting_slots_from_rules_and_placeholder_week():
 
     payload = build_hub_placeholder_week(
         [
-            {"id": "t-b", "name": "Bravo"},
-            {"id": "t-a", "name": "Alpha"},
+            {"id": "t-b", "name": "Bravo", "owner_name": "Blake B"},
+            {"id": "t-a", "name": "Alpha", "owner_name": "Avery A"},
         ],
         viewer_team_id="t-b",
         week=3,
@@ -350,10 +351,84 @@ def test_starting_slots_from_rules_and_placeholder_week():
     assert "Alpha" in names and "Bravo" in names
     viewer = next(team for team in payload["matchups"][0]["teams"] if team["is_viewer"])
     assert viewer["hub_team_id"] == "t-b"
+    assert viewer["owner_name"] == "Blake B"
+    assert {row["team_name"]: row["owner_name"] for row in payload["standings"]} == {
+        "Alpha": "Avery A",
+        "Bravo": "Blake B",
+    }
     assert payload["standings"][0]["team_name"] == "Alpha"
     assert payload["standings"][0]["wins"] == 0
     assert payload["starting_slots"] == ["QB", "RB"]
     assert payload["hint"] == "Link Sleeper to fill scores."
+
+
+def test_cached_placeholder_reassigns_viewer_per_request(hub_db, monkeypatch):
+    monkeypatch.setattr(
+        "src.draft_hub.league_live_scoring.resolve_current_week",
+        lambda **_: (1, {"week": 1, "season": "2026", "season_type": "regular"}),
+    )
+    hub_teams = [
+        {"id": "t-a", "name": "Alpha", "owner_name": "Avery A"},
+        {"id": "t-b", "name": "Bravo", "owner_name": "Blake B"},
+    ]
+
+    def _build(_lid, _week, **kwargs):
+        return build_hub_placeholder_week(
+            hub_teams,
+            viewer_team_id=kwargs.get("viewer_team_id"),
+            week=1,
+            reason="no_matchups",
+            nfl_state={"week": 1, "season": "2026", "season_type": "regular"},
+        )
+
+    monkeypatch.setattr("src.draft_hub.league_live_scoring.build_sleeper_live_week", _build)
+    first = get_sleeper_live_week(
+        "sl-shared-placeholder",
+        hub_teams=hub_teams,
+        viewer_team_id="t-a",
+        refresh=True,
+    )
+    assert first["placeholder"] is True
+    first_viewer = next(team for team in first["matchups"][0]["teams"] if team["is_viewer"])
+    assert first_viewer["hub_team_id"] == "t-a"
+
+    cached = storage.get_sleeper_live_scoring_cache("sl-shared-placeholder", 1)
+    assert cached is not None
+    assert cached["payload"].get("viewer_matchup_id") is None
+    assert all(
+        not team.get("is_viewer")
+        for matchup in cached["payload"].get("matchups") or []
+        for team in matchup.get("teams") or []
+    )
+
+    second = get_sleeper_live_week(
+        "sl-shared-placeholder",
+        hub_teams=hub_teams,
+        viewer_team_id="t-b",
+    )
+    assert second.get("cached") is True
+    second_viewer = next(team for team in second["matchups"][0]["teams"] if team["is_viewer"])
+    assert second_viewer["hub_team_id"] == "t-b"
+    assert second_viewer["owner_name"] == "Blake B"
+
+
+def test_apply_live_viewer_matches_hub_team_id():
+    payload = {
+        "matchups": [
+            {
+                "matchup_id": "hub-1",
+                "teams": [
+                    {"roster_id": "t-a", "hub_team_id": "t-a", "team_name": "Alpha"},
+                    {"roster_id": "t-b", "hub_team_id": "t-b", "team_name": "Bravo"},
+                ],
+            }
+        ]
+    }
+    stamped = apply_live_viewer(payload, viewer_team_id="t-b")
+    assert stamped["viewer_matchup_id"] == "hub-1"
+    assert stamped["matchups"][0]["teams"][0]["is_viewer"] is False
+    assert stamped["matchups"][0]["teams"][1]["is_viewer"] is True
+    assert stamped["matchups"][0]["teams"][0]["is_opponent"] is True
 
 
 def test_build_sleeper_live_week_empty_matchups_uses_placeholder(monkeypatch):
