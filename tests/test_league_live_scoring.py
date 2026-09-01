@@ -17,6 +17,7 @@ from src.draft_hub.league_live_scoring import (
     estimate_team_final,
     get_sleeper_live_week,
     pair_placeholder_teams,
+    refresh_sleeper_live_scoring_cache,
     starting_slots,
     starting_slots_from_rules,
     week_picker_meta,
@@ -277,6 +278,92 @@ def test_live_cache_stale_triggers_rebuild(monkeypatch, hub_db):
     out = get_sleeper_live_week("sl-stale", refresh=False)
     assert calls == ["build"]
     assert out["cached"] is False
+
+
+def test_live_cache_rebinds_placeholder_viewer(monkeypatch, hub_db):
+    """Shared cache must not lock the first team's 'you' flag onto every member."""
+    hub_teams = [
+        {"id": "t1", "name": "Hub One", "sleeper_roster_id": "1"},
+        {"id": "t2", "name": "Hub Two", "sleeper_roster_id": "2"},
+    ]
+    locked = build_hub_placeholder_week(
+        hub_teams,
+        week=5,
+        reason="no_matchups",
+        nfl_state={"week": 5, "season": "2025"},
+    )
+    assert locked["matchups"][0]["teams"][0]["is_viewer"] is True
+    assert locked["matchups"][0]["teams"][0]["hub_team_id"] == "t1"
+    storage.upsert_sleeper_live_scoring_cache("sl-ph-viewer", 5, locked)
+
+    monkeypatch.setattr(
+        "src.draft_hub.league_live_scoring.resolve_current_week",
+        lambda **_: (5, {"week": 5, "season": "2025"}),
+    )
+
+    def _boom(*_a, **_k):
+        raise AssertionError("should serve cache, not rebuild")
+
+    monkeypatch.setattr("src.draft_hub.league_live_scoring.build_sleeper_live_week", _boom)
+
+    out = get_sleeper_live_week(
+        "sl-ph-viewer",
+        hub_teams=hub_teams,
+        viewer_team_id="t2",
+        refresh=False,
+    )
+    assert out["cached"] is True
+    viewer = next(team for team in out["matchups"][0]["teams"] if team["is_viewer"])
+    opponent = next(team for team in out["matchups"][0]["teams"] if team["is_opponent"])
+    assert viewer["hub_team_id"] == "t2"
+    assert opponent["hub_team_id"] == "t1"
+    assert out["viewer_matchup_id"] == out["matchups"][0]["matchup_id"]
+
+
+def test_refresh_cache_does_not_persist_viewer(monkeypatch, hub_db):
+    """Sleeper sync refresh has no viewer_team_id; later reads must rebind."""
+    hub_teams = [
+        {"id": "t1", "name": "Hub One"},
+        {"id": "t2", "name": "Hub Two"},
+    ]
+
+    def _placeholder(*_a, **kwargs):
+        return build_hub_placeholder_week(
+            hub_teams,
+            viewer_team_id=kwargs.get("viewer_team_id"),
+            week=5,
+            reason="no_matchups",
+            nfl_state={"week": 5, "season": "2025"},
+        )
+
+    monkeypatch.setattr(
+        "src.draft_hub.league_live_scoring.resolve_current_week",
+        lambda **_: (5, {"week": 5, "season": "2025"}),
+    )
+    monkeypatch.setattr("src.draft_hub.league_live_scoring.build_sleeper_live_week", _placeholder)
+
+    refresh_sleeper_live_scoring_cache("sl-ph-refresh", hub_teams=hub_teams, week=5)
+    cached = storage.get_sleeper_live_scoring_cache("sl-ph-refresh", 5)
+    assert cached is not None
+    assert "viewer_matchup_id" not in cached["payload"]
+    assert all(
+        not team.get("is_viewer")
+        for matchup in cached["payload"].get("matchups") or []
+        for team in matchup.get("teams") or []
+    )
+
+    monkeypatch.setattr(
+        "src.draft_hub.league_live_scoring.build_sleeper_live_week",
+        lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("fresh cache must not rebuild")),
+    )
+    out = get_sleeper_live_week(
+        "sl-ph-refresh",
+        hub_teams=hub_teams,
+        viewer_team_id="t2",
+        refresh=False,
+    )
+    viewer = next(team for team in out["matchups"][0]["teams"] if team["is_viewer"])
+    assert viewer["hub_team_id"] == "t2"
 
 
 def test_live_cache_is_fresh_boundary():

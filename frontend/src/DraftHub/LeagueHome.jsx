@@ -137,8 +137,8 @@ export default function LeagueHome({
   ]);
 
   useEffect(() => {
+    setScoring(null);
     if (!leagueId) {
-      setScoring(null);
       return undefined;
     }
     const ctrl = new AbortController();
@@ -148,9 +148,15 @@ export default function LeagueHome({
           `/api/hub/league/${encodeURIComponent(leagueId)}/live-scoring`,
           { signal: ctrl.signal },
         );
-        if (res.ok) setScoring(await res.json());
-      } catch {
-        /* deck stays hidden if scoring cannot load */
+        if (!res.ok) {
+          if (!ctrl.signal.aborted) setScoring(null);
+          return;
+        }
+        const payload = await res.json();
+        if (!ctrl.signal.aborted) setScoring(payload);
+      } catch (e) {
+        if (isAbortError(e) || ctrl.signal.aborted) return;
+        setScoring(null);
       }
     })();
     return () => ctrl.abort();

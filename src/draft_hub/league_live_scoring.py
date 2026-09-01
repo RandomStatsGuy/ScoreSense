@@ -634,6 +634,76 @@ def build_hub_placeholder_week(
     }
 
 
+def _team_is_viewer(
+    team: dict[str, Any],
+    *,
+    viewer_team_id: str,
+    viewer_roster_id: str,
+) -> bool:
+    hub_id = str(team.get("hub_team_id") or "")
+    rid = str(team.get("roster_id") or "")
+    return bool(
+        (viewer_team_id and hub_id and hub_id == viewer_team_id)
+        or (viewer_roster_id and rid and rid == viewer_roster_id)
+    )
+
+
+def _strip_cached_viewer_identity(payload: dict[str, Any]) -> dict[str, Any]:
+    """League-shared cache must not persist per-request viewer flags."""
+    out = {**payload}
+    out.pop("viewer_matchup_id", None)
+    out["matchups"] = [
+        {
+            **matchup,
+            "teams": [
+                {**team, "is_viewer": False, "is_opponent": False}
+                for team in (matchup.get("teams") or [])
+            ],
+        }
+        for matchup in (out.get("matchups") or [])
+    ]
+    return out
+
+
+def _bind_live_scoring_viewer(
+    payload: dict[str, Any],
+    *,
+    viewer_team_id: str | None = None,
+    viewer_roster_id: str | None = None,
+) -> dict[str, Any]:
+    """Stamp this request's viewer onto a shared slate (cache-safe)."""
+    viewer_tid = str(viewer_team_id or "")
+    viewer_rid = str(viewer_roster_id or "")
+    out = {**payload}
+    matchups: list[dict[str, Any]] = []
+    viewer_matchup_id: str | None = None
+    for matchup in out.get("matchups") or []:
+        teams = []
+        hit = False
+        for team in matchup.get("teams") or []:
+            row = {**team, "is_viewer": False, "is_opponent": False}
+            if _team_is_viewer(row, viewer_team_id=viewer_tid, viewer_roster_id=viewer_rid):
+                row["is_viewer"] = True
+                hit = True
+            teams.append(row)
+        if hit:
+            viewer_matchup_id = matchup.get("matchup_id")
+            teams = [{**team, "is_opponent": (not team.get("is_viewer"))} for team in teams]
+        matchups.append({**matchup, "teams": teams})
+    if viewer_matchup_id is None and matchups and out.get("placeholder"):
+        first = matchups[0]
+        teams = list(first.get("teams") or [])
+        if teams:
+            teams[0] = {**teams[0], "is_viewer": True, "is_opponent": False}
+            if len(teams) > 1:
+                teams[1] = {**teams[1], "is_viewer": False, "is_opponent": True}
+            matchups[0] = {**first, "teams": teams}
+            viewer_matchup_id = first.get("matchup_id")
+    out["matchups"] = matchups
+    out["viewer_matchup_id"] = viewer_matchup_id
+    return out
+
+
 def get_sleeper_live_week(
     sleeper_league_id: str,
     *,
@@ -649,6 +719,14 @@ def get_sleeper_live_week(
     resolved_week, nfl_state = resolve_current_week(week_override=week)
     slots = starting_slots or starting_slots_from_rules(rules)
     lid = str(sleeper_league_id or "").strip()
+
+    def _serve(payload: dict[str, Any]) -> dict[str, Any]:
+        return _bind_live_scoring_viewer(
+            payload,
+            viewer_team_id=viewer_team_id,
+            viewer_roster_id=viewer_roster_id,
+        )
+
     if not lid:
         payload = build_hub_placeholder_week(
             hub_teams,
@@ -659,7 +737,7 @@ def get_sleeper_live_week(
             reason="no_sleeper_league",
         )
         payload["cached"] = False
-        return payload
+        return _serve(payload)
 
     cache_key_week = int(resolved_week)
 
@@ -684,8 +762,8 @@ def get_sleeper_live_week(
                 )
                 overlay["cached"] = True
                 overlay["synced_at"] = payload.get("synced_at") or overlay["synced_at"]
-                return overlay
-            return payload
+                return _serve(overlay)
+            return _serve(payload)
 
     payload = build_sleeper_live_week(
         lid,
@@ -700,12 +778,12 @@ def get_sleeper_live_week(
         storage.upsert_sleeper_live_scoring_cache(
             lid,
             cache_key_week,
-            payload,
+            _strip_cached_viewer_identity(payload),
         )
     payload["cached"] = False
     if "current_week" not in payload:
         payload = {**payload, **week_picker_meta(nfl_state)}
-    return payload
+    return _serve(payload)
 
 
 def refresh_sleeper_live_scoring_cache(
