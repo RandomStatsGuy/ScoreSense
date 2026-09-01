@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "./auth";
 import { isAbortError } from "./fetchAbort";
-import Chip, { injuryChipTone } from "./Chip";
 import PlayerCell from "./PlayerCell";
 import SentimentBadge from "./SentimentBadge";
 import ProjectionExplanationPanel from "./ProjectionExplanationPanel";
@@ -12,6 +11,7 @@ import useMobileLayout from "./useMobileLayout";
 import MobileBottomSheet from "./layout/MobileBottomSheet";
 import {
   formatSeasonPts,
+  isScheduleAwareMethod,
   resolveSeasonBand,
   seasonRangeTooltip,
 } from "./seasonQuantiles";
@@ -27,21 +27,19 @@ import {
   setIncludeHistoricalParam,
 } from "./mediaContext";
 import { fantasyMediaNarrative } from "./fantasyMediaDigest";
+import {
+  BOARD_COPY,
+  analystInsight,
+  filterInspectorCandidates,
+  methodInsight,
+  positionShort,
+  rangeInsight,
+  roleOutlook,
+  weeklyQuantiles,
+  weeklyWhyNow,
+  seasonRead,
+} from "./projectionsPresentation";
 
-function ProjStat({ label, value, emphasis = false }) {
-  return (
-    <div className={`player-card-stat${emphasis ? " player-card-stat--primary" : ""}`}>
-      <span className="player-card-stat-label">{label}</span>
-      <span className="player-card-stat-value">{value ?? "—"}</span>
-    </div>
-  );
-}
-
-/**
- * Range bar scaled with headroom so the P10–P90 band renders proportionally
- * (QuantileBar's scaleMax defaults to 1, which pins everything to the right),
- * with floor/ceiling end labels so the bar reads without hovering.
- */
 function ScaledRangeBar({ p10, p50, p90, title, subtitle, formatValue }) {
   if (![p10, p50, p90].every(Number.isFinite)) return null;
   const scaleMax = p90 > 0 ? p90 * 1.12 : 1;
@@ -55,7 +53,7 @@ function ScaledRangeBar({ p10, p50, p90, title, subtitle, formatValue }) {
       </div>
       <div className="range-scale-legend" aria-hidden="true">
         <span>Floor</span>
-        <span>Projection</span>
+        <span>Median</span>
         <span>Ceiling</span>
       </div>
     </div>
@@ -69,6 +67,16 @@ function contextLabel(meta, request) {
   return `${season} · Wk ${week}`;
 }
 
+function InspectorTile({ kicker, title, detail }) {
+  return (
+    <div className="player-inspector-tile">
+      <p className="player-inspector-tile-kicker">{kicker}</p>
+      <p className="player-inspector-tile-title">{title}</p>
+      {detail ? <p className="player-inspector-tile-detail">{detail}</p> : null}
+    </div>
+  );
+}
+
 function PlayerCardBody({
   data,
   loading,
@@ -80,11 +88,13 @@ function PlayerCardBody({
 }) {
   const [whyOpen, setWhyOpen] = useState(false);
   const explainPlayerId = data?.player_id || request?.playerId || "";
-  const applyInjury = request?.applyInjuryAdjustments ?? true;
 
   useEffect(() => {
     setWhyOpen(false);
   }, [explainPlayerId]);
+
+  const applyInjury = request?.applyInjuryAdjustments ?? true;
+  const seasonScope = request?.scope === "season";
 
   const contextPanel = explainPlayerId ? (
     <section className="player-card-section player-card-section--context">
@@ -135,9 +145,11 @@ function PlayerCardBody({
   const seasonTip = seasonBand
     ? seasonRangeTooltip(seasonBand.method, { preliminary: seasonBand.preliminary })
     : null;
-  const weeklyP10 = weekly ? Number(weekly["Low (P10)"]) : null;
-  const weeklyP50 = weekly ? Number(weekly["Projected Points"]) : null;
-  const weeklyP90 = weekly ? Number(weekly["High (P90)"]) : null;
+  const weeklyBand = weekly ? weeklyQuantiles({
+    "Low (P10)": weekly["Low (P10)"],
+    "Projected Points": weekly["Projected Points"],
+    "High (P90)": weekly["High (P90)"],
+  }) : { p10: null, p50: null, p90: null };
   const narrativeFallback = Boolean(narrativeMeta.context_fallback);
   const media = narrativeMeta.media_context;
   const historical = pickHistoricalWeek(media);
@@ -151,95 +163,134 @@ function PlayerCardBody({
     && !includeHistorical
     && typeof onViewOlderCommentary === "function";
 
+  const primary = seasonScope && seasonBand?.p50 != null
+    ? {
+      p10: seasonBand.p10,
+      p50: seasonBand.p50,
+      p90: seasonBand.p90,
+      floorLabel: "Floor",
+      midLabel: "Season P50",
+      ceilLabel: "Ceiling",
+      format: (v) => formatSeasonPts(v, 0),
+      title: seasonTip,
+    }
+    : {
+      p10: weeklyBand.p10,
+      p50: weeklyBand.p50,
+      p90: weeklyBand.p90,
+      floorLabel: "Floor",
+      midLabel: "P50",
+      ceilLabel: "Ceiling",
+      format: (v) => Number.isFinite(v) ? v.toFixed(1) : "—",
+      title: "Per-game scoring range",
+    };
+
+  const scheduleAware = isScheduleAwareMethod(seasonBand?.method || season?.season_quantile_method);
+  const rangeText = seasonScope
+    ? seasonRead({
+      Player: data.player_name,
+      player_id: data.player_id,
+      "Season Proj": seasonBand?.p50,
+      "Season P10": seasonBand?.p10,
+      "Season P90": seasonBand?.p90,
+      season_quantile_method: seasonBand?.method,
+    }, {}, { position: request?.position || data.position })
+    : weeklyWhyNow({
+      Player: data.player_name,
+      "Projected Points": weeklyBand.p50,
+      "Low (P10)": weeklyBand.p10,
+      "High (P90)": weeklyBand.p90,
+      "Injury Status": injury?.injury_status,
+    }, {}, { position: request?.position || data.position });
+
+  const role = roleOutlook({
+    position: request?.position || data.position,
+    injuryStatus: injury?.injury_status,
+    rookie: Boolean(season?.["Rookie Est."] || data.rookie),
+  });
+  const range = rangeInsight(rangeText);
+  const method = methodInsight({
+    scope: seasonScope ? "season" : "weekly",
+    scheduleAware,
+    applyInjuryAdjustments: applyInjury,
+  });
+  const analyst = analystInsight({
+    narrative,
+    historicalLabel: narrativeFallback ? historicalLabel : null,
+  });
+  const identityMeta = [
+    positionShort(request?.position || data.position),
+    data.team || request?.team,
+    seasonScope
+      ? (request?.season != null ? `${request.season} ${scheduleAware ? "preseason" : "season"}` : "Season")
+      : weekLabel,
+  ].filter(Boolean).join(" · ");
+
   return (
-    <div className="player-card-body">
-      <div className="player-card-head">
-        <PlayerCell
-          name={data.player_name || fallbackName}
-          team={data.team}
-          playerId={data.player_id}
-          media={data.media ? { [data.player_id]: data.media } : null}
-          size="lg"
-        />
-        {injury?.injury_status ? (
-          <Chip tone={injuryChipTone(injury.injury_status)}>{injury.injury_status}</Chip>
-        ) : null}
-      </div>
-      {weekLabel ? (
-        <p className="player-card-context muted" role="status">
-          {weekLabel}
-          {data.meta?.apply_injury_adjustments === false || !applyInjury
-            ? " · base projections (no live opportunity adjustments)"
-            : " · live injury adjustments"}
-        </p>
-      ) : null}
-
-      {weekly ? (
-        <section className="player-card-section">
-          <h3>Weekly projection{weekLabel ? ` · ${weekLabel}` : ""}</h3>
-          <div className="player-card-stats">
-            <ProjStat label="Proj" value={Number(weekly["Projected Points"]).toFixed(1)} emphasis />
-            <ProjStat label="Floor" value={Number(weekly["Low (P10)"]).toFixed(1)} />
-            <ProjStat label="Ceiling" value={Number(weekly["High (P90)"]).toFixed(1)} />
-            {pickOpportunityAdjustment(weekly) ? (
-              <ProjStat
-                label="Opportunity adjustment"
-                value={formatOpportunityAdjustmentPct(weekly)}
-              />
-            ) : null}
-          </div>
-          <ScaledRangeBar
-            p10={weeklyP10}
-            p50={weeklyP50}
-            p90={weeklyP90}
-            title="Per-game scoring range"
+    <div className="player-card-body player-inspector-body">
+      <div className="player-inspector-identity">
+        <div>
+          <PlayerCell
+            name={data.player_name || fallbackName}
+            team={data.team}
+            playerId={data.player_id}
+            media={data.media ? { [data.player_id]: data.media } : null}
+            size="lg"
+            showTeam={false}
+            position={positionShort(request?.position || data.position)}
           />
-        </section>
-      ) : null}
-
-      {season ? (
-        <section className="player-card-section">
-          <h3>Season outlook</h3>
-          <div className="player-card-stats">
-            <ProjStat
-              label="Season P50"
-              value={formatSeasonPts(seasonBand?.p50 ?? season["Season Proj"] ?? season["Season P50"], 1)}
-              emphasis
-            />
-            <ProjStat
-              label="Floor"
-              value={seasonBand?.p10 != null ? formatSeasonPts(seasonBand.p10, 1) : "—"}
-            />
-            <ProjStat
-              label="Ceiling"
-              value={seasonBand?.p90 != null ? formatSeasonPts(seasonBand.p90, 1) : "—"}
-            />
-            <ProjStat
-              label="ROS"
-              value={Number(season["ROS Proj"] ?? season["ROS P50"]).toFixed(1)}
-            />
-          </div>
-          {seasonBand?.p10 != null && seasonBand?.p50 != null && seasonBand?.p90 != null ? (
-            <div className="player-card-uncertainty">
-              <div className="player-card-uncertainty-label">
-                Season total
-                {seasonBand.preliminary ? (
-                  <span className="season-range-prelim-note" title={seasonTip}>
-                    Preseason estimate
-                  </span>
-                ) : null}
-              </div>
-              <ScaledRangeBar
-                p10={seasonBand.p10}
-                p50={seasonBand.p50}
-                p90={seasonBand.p90}
-                title={seasonTip}
-                subtitle={`${formatSeasonPts(seasonBand.p10, 1)} · ${formatSeasonPts(seasonBand.p50, 1)} · ${formatSeasonPts(seasonBand.p90, 1)}`}
-                formatValue={(v) => formatSeasonPts(v, 0)}
-              />
-            </div>
+          {identityMeta ? (
+            <p className="player-card-context muted" role="status">{identityMeta}</p>
           ) : null}
-        </section>
+        </div>
+        <span className={`player-inspector-chip${injury?.injury_status ? " player-inspector-chip--caution" : ""}`}>
+          {injury?.injury_status
+            ? injury.injury_status
+            : seasonScope && scheduleAware
+              ? BOARD_COPY.scheduleAware
+              : BOARD_COPY.weeklyModel}
+        </span>
+      </div>
+
+      <div className="player-inspector-stats">
+        <div className="player-inspector-stat">
+          <span className="player-inspector-stat-label">{primary.floorLabel}</span>
+          <span className="player-inspector-stat-value">
+            {primary.p10 != null ? primary.format(primary.p10) : "—"}
+          </span>
+        </div>
+        <div className="player-inspector-stat player-inspector-stat--primary">
+          <span className="player-inspector-stat-label">{primary.midLabel}</span>
+          <span className="player-inspector-stat-value">
+            {primary.p50 != null ? primary.format(primary.p50) : "—"}
+          </span>
+        </div>
+        <div className="player-inspector-stat">
+          <span className="player-inspector-stat-label">{primary.ceilLabel}</span>
+          <span className="player-inspector-stat-value">
+            {primary.p90 != null ? primary.format(primary.p90) : "—"}
+          </span>
+        </div>
+      </div>
+      <ScaledRangeBar
+        p10={primary.p10}
+        p50={primary.p50}
+        p90={primary.p90}
+        title={primary.title}
+        formatValue={primary.format}
+      />
+
+      <div className="player-inspector-grid">
+        <InspectorTile kicker="Role outlook" title={role.title} detail={role.detail} />
+        <InspectorTile kicker="Range read" title={range.title} detail={range.detail} />
+        <InspectorTile kicker="Method" title={method.title} detail={method.detail} />
+        <InspectorTile kicker="Analyst desk" title={analyst.title} detail={analyst.detail} />
+      </div>
+
+      {!seasonScope && weekly && pickOpportunityAdjustment(weekly) ? (
+        <p className="chart-note">
+          Opportunity adjustment {formatOpportunityAdjustmentPct(weekly)}
+        </p>
       ) : null}
 
       {contextPanel}
@@ -302,14 +353,67 @@ function PlayerCardBody({
   );
 }
 
-export default function PlayerCardModal({ request, onClose }) {
+function InspectorSearch({ request, onSelect, candidates = [] }) {
+  const [query, setQuery] = useState("");
+  const matches = useMemo(
+    () => (query.trim() ? filterInspectorCandidates(candidates, query) : []),
+    [candidates, query],
+  );
+
+  useEffect(() => {
+    setQuery("");
+  }, [request?.playerId]);
+
+  return (
+    <div className="player-inspector-search">
+      <label className="sr-only" htmlFor="player-inspector-search">
+        {BOARD_COPY.searchInspector}
+      </label>
+      <input
+        id="player-inspector-search"
+        type="search"
+        className="search-input"
+        placeholder={BOARD_COPY.searchInspector}
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+      />
+      {matches.length ? (
+        <ul className="player-inspector-search-list">
+          {matches.map((hit) => (
+            <li key={hit.playerId}>
+              <button
+                type="button"
+                onClick={() => {
+                  onSelect?.(hit);
+                  setQuery("");
+                }}
+              >
+                {hit.name}
+                {hit.team ? ` · ${hit.team}` : ""}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+export default function PlayerCardModal({
+  request,
+  onClose,
+  candidates = [],
+  compareIds = [],
+  onToggleCompare,
+  maxCompare = 4,
+  onSelectPlayer,
+}) {
   const mobileLayout = useMobileLayout();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [includeHistorical, setIncludeHistorical] = useState(false);
 
-  // Escape closes the desktop dialog (the mobile sheet handles its own).
   useEffect(() => {
     if (!request || mobileLayout) return undefined;
     const onKey = (event) => {
@@ -363,16 +467,61 @@ export default function PlayerCardModal({ request, onClose }) {
   if (!request) return null;
 
   const title = data?.player_name || request.playerName || "Player";
+  const selectPlayer = (hit) => {
+    onSelectPlayer?.({
+      ...request,
+      playerId: hit.playerId,
+      name: hit.name,
+      team: hit.team,
+      position: hit.position || request.position,
+    });
+  };
+
+  const selectedSet = (compareIds || []).map(String);
+  const selected = selectedSet.includes(String(request.playerId));
+  const canAdd = Boolean(onToggleCompare) && (!selected ? selectedSet.length < maxCompare : true);
+
   const body = (
-    <PlayerCardBody
-      data={data}
-      loading={loading}
-      error={error}
-      fallbackName={request.playerName}
-      request={request}
-      includeHistorical={includeHistorical}
-      onViewOlderCommentary={() => setIncludeHistorical(true)}
-    />
+    <div className="player-inspector">
+      <div className="player-inspector-toolbar">
+        <InspectorSearch request={request} onSelect={selectPlayer} candidates={candidates} />
+        <button type="button" className="btn-ghost player-inspector-close" onClick={onClose} aria-label="Close">
+          Close
+        </button>
+      </div>
+      <div className="player-inspector-scroll">
+        <PlayerCardBody
+          data={data}
+          loading={loading}
+          error={error}
+          fallbackName={request.playerName}
+          request={request}
+          includeHistorical={includeHistorical}
+          onViewOlderCommentary={() => setIncludeHistorical(true)}
+        />
+      </div>
+      <div className="player-inspector-footer">
+        <span className="player-inspector-chip-player">
+          {title}
+          <button type="button" className="btn-ghost" onClick={onClose} aria-label={`Close ${title}`}>
+            ×
+          </button>
+        </span>
+        {canAdd ? (
+          <button
+            type="button"
+            className="player-inspector-add"
+            onClick={() => onToggleCompare({
+              player_id: request.playerId,
+              Player: title,
+              Team: request.team,
+            })}
+          >
+            {selected ? "Remove from compare" : `+ ${BOARD_COPY.addPlayer}`}
+          </button>
+        ) : null}
+      </div>
+    </div>
   );
 
   if (mobileLayout) {
@@ -384,18 +533,13 @@ export default function PlayerCardModal({ request, onClose }) {
   }
 
   return (
-    <div className="player-card-overlay" role="presentation" onClick={onClose}>
+    <div className="player-card-overlay player-card-overlay--drawer" role="presentation" onClick={onClose}>
       <div
-        className="player-card-dialog panel"
+        className="player-card-dialog player-card-drawer panel"
         role="dialog"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Player identity in the body doubles as the dialog heading. */}
-        <button type="button" className="btn-ghost player-card-close" onClick={onClose} aria-label="Close">
-          Close
-        </button>
-        {loading && !data ? <h2 className="player-card-dialog-title">{title}</h2> : null}
         {body}
       </div>
     </div>

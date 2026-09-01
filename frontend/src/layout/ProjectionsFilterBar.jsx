@@ -105,7 +105,7 @@ export function ProjectionsFilterControls({
                 <input
                   type="search"
                   className="search-input"
-                  placeholder="Player or team…"
+                  placeholder="Search the board"
                   value={searchQuery || ""}
                   onChange={(e) => onSearchChange?.(e.target.value)}
                   aria-label="Search player or team"
@@ -117,7 +117,7 @@ export function ProjectionsFilterControls({
                 <input
                   type="search"
                   className="search-input header-context-control"
-                  placeholder="Player or team…"
+                  placeholder="Search the board"
                   value={searchQuery || ""}
                   onChange={(e) => onSearchChange?.(e.target.value)}
                   aria-label="Search player or team"

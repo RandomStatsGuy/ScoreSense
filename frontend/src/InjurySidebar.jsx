@@ -200,6 +200,7 @@ export default function InjurySidebar({
   mediaMode = null,
   onCompareReplacements,
   className = "",
+  embedded = false,
 }) {
   const [allSearch, setAllSearch] = useState("");
   const context = usePlayersContext(season ?? defaultSeason, week ?? defaultWeek, {
@@ -251,10 +252,12 @@ export default function InjurySidebar({
   if (!isLiveContext) {
     const weekLabel = defaultWeek != null ? `Week ${defaultWeek}` : "the live week";
     return (
-      <section className={`panel injury-sidebar projections-mobile-panel ${className}`.trim()}>
+      <section className={`${embedded ? "" : "panel "}injury-sidebar projections-mobile-panel ${className}`.trim()}>
+        {embedded ? null : (
         <div className="injury-sidebar-head">
           <h2>Injuries</h2>
         </div>
+        )}
         <div className="state-empty-callout sidebar-empty-callout" role="status">
           No injury data is available for this week. View {weekLabel} data for current designations.
         </div>
@@ -263,13 +266,15 @@ export default function InjurySidebar({
   }
 
   return (
-    <section className={`panel injury-sidebar projections-mobile-panel ${className}`.trim()}>
+    <section className={`${embedded ? "" : "panel "}injury-sidebar projections-mobile-panel ${className}`.trim()}>
+      {embedded ? null : (
       <div className="injury-sidebar-head">
         <div>
           <h2>Injuries</h2>
           <p className="panel-subtitle">{headerLine}</p>
         </div>
       </div>
+      )}
 
       <div className="injury-list-scroll">
         <section className="injury-section" aria-labelledby="injury-attention-heading">

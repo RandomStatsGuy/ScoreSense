@@ -3,7 +3,13 @@ import PlayerCardModal from "./PlayerCardModal";
 
 const PlayerCardContext = createContext(null);
 
-export function PlayerCardProvider({ children }) {
+export function PlayerCardProvider({
+  children,
+  candidates = [],
+  compareIds = [],
+  onToggleCompare,
+  maxCompare = 4,
+}) {
   const [request, setRequest] = useState(null);
 
   const openPlayerCard = useCallback((params) => {
@@ -23,14 +29,29 @@ export function PlayerCardProvider({ children }) {
   const closePlayerCard = useCallback(() => setRequest(null), []);
 
   const value = useMemo(
-    () => ({ openPlayerCard, closePlayerCard }),
-    [openPlayerCard, closePlayerCard],
+    () => ({
+      openPlayerCard,
+      closePlayerCard,
+      candidates,
+      compareIds,
+      onToggleCompare,
+      maxCompare,
+    }),
+    [openPlayerCard, closePlayerCard, candidates, compareIds, onToggleCompare, maxCompare],
   );
 
   return (
     <PlayerCardContext.Provider value={value}>
       {children}
-      <PlayerCardModal request={request} onClose={closePlayerCard} />
+      <PlayerCardModal
+        request={request}
+        onClose={closePlayerCard}
+        candidates={candidates}
+        compareIds={compareIds}
+        onToggleCompare={onToggleCompare}
+        maxCompare={maxCompare}
+        onSelectPlayer={openPlayerCard}
+      />
     </PlayerCardContext.Provider>
   );
 }

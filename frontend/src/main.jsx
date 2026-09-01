@@ -6,6 +6,7 @@ import AppRouter from "./AppRouter";
 import AuthGate from "./AuthGate";
 import "./styles.css";
 import "./styles/product-hierarchy.css";
+import "./styles/projections-experience.css";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
