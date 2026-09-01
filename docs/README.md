@@ -46,4 +46,7 @@ Start here. **Product, brand, and design rules live in [PRODUCT.md](./PRODUCT.md
 
 Architecture and local commands: `../AGENTS.md`.  
 Git branching: `../.cursorrules`.  
-When you correct an agent: `.cursor/rules/correction-capture.mdc` classifies the note (`always` / `never` / `usually` / `rarely`) and writes it. Soft rules live in `.cursor/rules/learned-rules.mdc`. The decision tree is `.cursor/skills/capture-correction/SKILL.md`.
+When you correct an agent: `.cursor/rules/correction-capture.mdc` classifies the note (`always` / `never` / `usually` / `rarely`) and writes it. Soft rules live in `.cursor/rules/learned-rules.mdc`. The decision tree is `.cursor/skills/capture-correction/SKILL.md`.  
+Before UI work: look up `frontend/src/livingSurfaces.js` and match that `page` / `copy`. Skill: `.cursor/skills/match-living-surface/SKILL.md`.  
+Task skills (not more architecture pages): `.cursor/skills/run-tests/SKILL.md`, `.cursor/skills/verify-fantasy-ui/SKILL.md`, `.cursor/skills/mirror-prod-league/SKILL.md`.  
+Production checklists: `.cursor/skills/add-fantasy-destination/SKILL.md`, `.cursor/skills/add-hub-route/SKILL.md`, `.cursor/skills/add-ui-copy/SKILL.md`, `.cursor/skills/change-league-rules/SKILL.md`, `.cursor/skills/refresh-draft-pool/SKILL.md`.

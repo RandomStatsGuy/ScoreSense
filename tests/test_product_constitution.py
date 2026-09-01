@@ -33,6 +33,7 @@ RULE_FILES = (
     "ml-projections.mdc",
     "correction-capture.mdc",
     "learned-rules.mdc",
+    "living-surfaces.mdc",
 )
 
 

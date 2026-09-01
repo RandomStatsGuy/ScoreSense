@@ -95,7 +95,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 
 Groups in the subnav: **Draft** (Strategy, Draft) · **Team** (This Week through Trades) · **League** (Rules, Roster management, Insights).
 
-If you add or rename a Fantasy destination, update `HubSubnav.jsx`, `appNavigation.js` subtitles, routes, this table, and tests in the same change.
+If you add or rename a Fantasy destination, update `HubSubnav.jsx`, `appNavigation.js` subtitles, routes, `frontend/src/livingSurfaces.js`, this table, and tests in the same change.
 
 ### Roster management panes
 
@@ -145,6 +145,8 @@ Editorial Fantasy and Tools pages use the shared experience stack:
 `HubExperienceSummary` — “At a glance” facts + primary action
 
 Reuse `frontend/src/DraftHub/HubUILayout.jsx`. Do not fork a second hero/summary system.
+
+Which file to open for a given destination: `frontend/src/livingSurfaces.js`. Resolve the row, then match its `page` and `copy`. That registry is the living style guide — keep it current when you add or retarget a screen.
 
 **Use this chrome for:** Rules, Draft (idle/lobby), This Week, Cap, Insights, DFS, and new decision pages.
 
@@ -226,7 +228,7 @@ Contract-type playbook for imports and keepers: [CONTRACT_SCENARIOS.md](./CONTRA
 2. Use existing chrome, tokens, and presentation helpers. New CSS only for a new interaction, not a new aesthetic.
 3. Match copy to the tables in this file.
 4. Cover empty, loading, error, readonly, and unsaved states.
-5. If you introduce a user-facing name or destination, update this file and the nav/source module in the same change.
+5. If you introduce a user-facing name or destination, update this file, the nav/source module, and `frontend/src/livingSurfaces.js` in the same change.
 6. Verify the other surfaces that read the same state. Do not ship a page that looks right in isolation and lies on Cap, My team, or Rules.
 
 ---
@@ -244,3 +246,4 @@ Contract-type playbook for imports and keepers: [CONTRACT_SCENARIOS.md](./CONTRA
 | Tokens | `frontend/src/styles/tokens.css` |
 | Experience CSS | `frontend/src/styles/product-hierarchy.css` |
 | Nav source | `frontend/src/appNavigation.js`, `DraftHub/HubSubnav.jsx` |
+| Living page to match | `frontend/src/livingSurfaces.js` |
