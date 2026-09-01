@@ -318,20 +318,6 @@ def label_team(
     return format_manager_label(team_name, owner_label=owner_label, year_specific=year_specific)
 
 
-def _team_lookup_names(team: dict[str, Any]) -> list[str]:
-    """Hub / cap-sheet names first; live Sleeper nicknames are a fallback."""
-    names: list[str] = []
-    seen: set[str] = set()
-    for key in ("name", "team_name", "sleeper_team_name"):
-        value = str(team.get(key) or "").strip()
-        lower = value.lower()
-        if not value or lower in seen:
-            continue
-        seen.add(lower)
-        names.append(value)
-    return names
-
-
 def attach_owner_names_to_teams(
     league_id: str,
     teams: list[dict[str, Any]],
@@ -343,17 +329,23 @@ def attach_owner_names_to_teams(
         return teams
     owner_map = team_owner_map_for_league(league_id, season_year=season_year)
     for team in teams:
-        names = _team_lookup_names(team)
+        candidates: list[str] = []
+        for key in ("name", "team_name", "sleeper_team_name"):
+            value = str(team.get(key) or "").strip()
+            if value and value not in candidates:
+                candidates.append(value)
         owner = None
-        for team_name in names:
+        for team_name in candidates:
             owner = lookup_owner_label(team_name, owner_map)
             if owner:
                 break
         if not owner:
-            primary = names[0] if names else ""
-            resolved = resolve_owner(primary, team.get("owner_label") or team.get("owner_name"))
-            if resolved and resolved.lower() != primary.lower():
-                owner = resolved
+            existing = team.get("owner_label") or team.get("owner_name")
+            for team_name in candidates:
+                resolved = resolve_owner(team_name, existing)
+                if resolved and resolved.lower() != team_name.lower():
+                    owner = resolved
+                    break
         if owner:
             team["owner_name"] = owner
     return teams

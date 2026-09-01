@@ -157,15 +157,20 @@ def _hub_roster_lookups(hub_teams: list[dict[str, Any]] | None) -> tuple[dict[st
     owners: dict[str, str] = {}
     hub_ids: dict[str, str] = {}
     for team in hub_teams or []:
-        hid = str(team.get("id") or "").strip()
-        rid = str(team.get("sleeper_roster_id") or "").strip()
-        keys = [key for key in (rid, hid) if key]
+        keys: list[str] = []
+        rid = str(team.get("sleeper_roster_id") or "")
+        tid = str(team.get("id") or "")
+        if rid:
+            keys.append(rid)
+        if tid and tid not in keys:
+            keys.append(tid)
         if not keys:
             continue
         label = (
             team.get("name") or team.get("team_name") or team.get("sleeper_team_name") or "Team"
         )
         owner = str(team.get("owner_name") or "").strip()
+        hid = tid or None
         for key in keys:
             labels[key] = label
             if owner:
@@ -639,25 +644,22 @@ def build_hub_placeholder_week(
             }
         )
 
-    return apply_live_viewer(
-        {
-            "available": True,
-            "placeholder": True,
-            "reason": reason,
-            "hint": PLACEHOLDER_HINTS.get(reason, PLACEHOLDER_HINTS["no_sleeper_league"]),
-            "season": str(season or state.get("season") or ""),
-            "week": week_n,
-            "season_type": str(state.get("season_type") or "regular"),
-            "preseason": True,
-            "viewer_matchup_id": viewer_matchup_id,
-            "matchups": matchups,
-            "starting_slots": list(starting_slots or DEFAULT_STARTING_SLOTS),
-            "standings": standings,
-            "synced_at": _utcnow_iso(),
-            **week_picker_meta(state),
-        },
-        viewer_team_id=viewer,
-    )
+    return {
+        "available": True,
+        "placeholder": True,
+        "reason": reason,
+        "hint": PLACEHOLDER_HINTS.get(reason, PLACEHOLDER_HINTS["no_sleeper_league"]),
+        "season": str(season or state.get("season") or ""),
+        "week": week_n,
+        "season_type": str(state.get("season_type") or "regular"),
+        "preseason": True,
+        "viewer_matchup_id": viewer_matchup_id,
+        "matchups": matchups,
+        "starting_slots": list(starting_slots or DEFAULT_STARTING_SLOTS),
+        "standings": standings,
+        "synced_at": _utcnow_iso(),
+        **week_picker_meta(state),
+    }
 
 
 def get_sleeper_live_week(
@@ -695,11 +697,7 @@ def get_sleeper_live_week(
             payload = {**cached["payload"], "synced_at": cached["synced_at"], "cached": True}
             if hub_teams:
                 payload = _attach_hub_team_names(payload, hub_teams)
-            payload = apply_live_viewer(
-                {**payload, **week_picker_meta(nfl_state)},
-                viewer_roster_id=viewer_roster_id,
-                viewer_team_id=viewer_team_id,
-            )
+            payload = {**payload, **week_picker_meta(nfl_state)}
             if payload.get("available") and not (payload.get("matchups") or []) and not payload.get(
                 "placeholder"
             ):
@@ -715,7 +713,11 @@ def get_sleeper_live_week(
                 overlay["cached"] = True
                 overlay["synced_at"] = payload.get("synced_at") or overlay["synced_at"]
                 return overlay
-            return payload
+            return _apply_live_viewer(
+                payload,
+                viewer_team_id=viewer_team_id,
+                viewer_roster_id=viewer_roster_id,
+            )
 
     payload = build_sleeper_live_week(
         lid,
@@ -726,16 +728,11 @@ def get_sleeper_live_week(
         nfl_state=nfl_state,
         slot_labels=slots,
     )
-    payload = apply_live_viewer(
-        payload,
-        viewer_roster_id=viewer_roster_id,
-        viewer_team_id=viewer_team_id,
-    )
     if payload.get("available"):
         storage.upsert_sleeper_live_scoring_cache(
             lid,
             cache_key_week,
-            _payload_for_cache(payload),
+            _shared_live_cache_payload(payload),
         )
     payload["cached"] = False
     if "current_week" not in payload:
@@ -762,61 +759,53 @@ def refresh_sleeper_live_scoring_cache(
     )
 
 
-def _payload_for_cache(payload: dict[str, Any]) -> dict[str, Any]:
-    """League-wide cache must not store one manager's viewer pairing."""
-    out = dict(payload)
-    out.pop("cached", None)
-    matchups = []
-    for matchup in out.get("matchups") or []:
-        teams = [
-            {**team, "is_viewer": False, "is_opponent": False}
-            for team in matchup.get("teams") or []
-        ]
-        matchups.append({**matchup, "teams": teams})
-    out["matchups"] = matchups
-    out["viewer_matchup_id"] = None
-    return out
+def _team_is_viewer(
+    team: dict[str, Any],
+    viewer_team_id: str,
+    viewer_roster_id: str,
+) -> bool:
+    if viewer_roster_id and str(team.get("roster_id") or "") == viewer_roster_id:
+        return True
+    if viewer_team_id:
+        if str(team.get("hub_team_id") or "") == viewer_team_id:
+            return True
+        if str(team.get("roster_id") or "") == viewer_team_id:
+            return True
+    return False
 
 
-def apply_live_viewer(
+def _apply_live_viewer(
     payload: dict[str, Any],
     *,
-    viewer_roster_id: str | None = None,
     viewer_team_id: str | None = None,
+    viewer_roster_id: str | None = None,
 ) -> dict[str, Any]:
-    """Stamp this request's viewer onto a shared live-scoring payload."""
-    out = dict(payload)
-    viewer_roster = str(viewer_roster_id or "")
-    viewer_team = str(viewer_team_id or "")
+    """Stamp the current request's viewer onto a league-wide scoring payload."""
+    viewer_tid = str(viewer_team_id or "")
+    viewer_rid = str(viewer_roster_id or "")
+    viewer_matchup_id: str | None = None
     matchups: list[dict[str, Any]] = []
-    viewer_mid: str | None = None
-    for matchup in out.get("matchups") or []:
-        teams: list[dict[str, Any]] = []
-        hit = False
-        for team in matchup.get("teams") or []:
-            is_viewer = bool(
-                (viewer_roster and str(team.get("roster_id") or "") == viewer_roster)
-                or (viewer_team and str(team.get("hub_team_id") or "") == viewer_team)
-            )
-            if is_viewer:
-                hit = True
-            teams.append({**team, "is_viewer": is_viewer, "is_opponent": False})
+    for matchup in payload.get("matchups") or []:
+        teams = list(matchup.get("teams") or [])
+        hit = any(_team_is_viewer(team, viewer_tid, viewer_rid) for team in teams)
         if hit:
-            viewer_mid = str(matchup.get("matchup_id") or "") or None
-            teams = [{**team, "is_opponent": not team["is_viewer"]} for team in teams]
-        matchups.append({**matchup, "teams": teams})
-    if viewer_mid is None and matchups:
-        first = matchups[0]
-        teams = list(first.get("teams") or [])
-        if teams:
-            teams[0] = {**teams[0], "is_viewer": True}
-            if len(teams) > 1:
-                teams[1] = {**teams[1], "is_opponent": True}
-            matchups[0] = {**first, "teams": teams}
-            viewer_mid = str(first.get("matchup_id") or "") or None
-    out["matchups"] = matchups
-    out["viewer_matchup_id"] = viewer_mid
-    return out
+            viewer_matchup_id = matchup.get("matchup_id")
+        relabeled: list[dict[str, Any]] = []
+        for team in teams:
+            is_viewer = _team_is_viewer(team, viewer_tid, viewer_rid)
+            is_tbd = str(team.get("roster_id") or "") == "tbd"
+            relabeled.append({
+                **team,
+                "is_viewer": is_viewer,
+                "is_opponent": (hit and not is_viewer) or is_tbd,
+            })
+        matchups.append({**matchup, "teams": relabeled})
+    return {**payload, "matchups": matchups, "viewer_matchup_id": viewer_matchup_id}
+
+
+def _shared_live_cache_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """Drop per-viewer assignment before writing the league-wide cache."""
+    return _apply_live_viewer(payload)
 
 
 def _attach_hub_team_names(payload: dict[str, Any], hub_teams: list[dict[str, Any]]) -> dict[str, Any]:
@@ -826,11 +815,13 @@ def _attach_hub_team_names(payload: dict[str, Any], hub_teams: list[dict[str, An
 
     def _relabel(entry: dict[str, Any]) -> dict[str, Any]:
         rid = str(entry.get("roster_id") or "")
+        hid = str(entry.get("hub_team_id") or "")
+        key = rid if rid in roster_to_label or rid in roster_to_owner else hid
         return {
             **entry,
-            "team_name": roster_to_label.get(rid) or entry.get("team_name"),
-            "owner_name": roster_to_owner.get(rid) or entry.get("owner_name"),
-            "hub_team_id": entry.get("hub_team_id") or roster_to_hub_id.get(rid),
+            "team_name": roster_to_label.get(key) or roster_to_label.get(hid) or entry.get("team_name"),
+            "owner_name": roster_to_owner.get(key) or roster_to_owner.get(hid) or entry.get("owner_name"),
+            "hub_team_id": entry.get("hub_team_id") or roster_to_hub_id.get(key) or roster_to_hub_id.get(hid),
         }
 
     out = {**payload}
