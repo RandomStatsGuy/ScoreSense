@@ -166,6 +166,7 @@ export default function SentimentPanel({
   mediaMode: mediaModeProp,
   onMediaModeChange,
   className = "",
+  embedded = false,
 }) {
   const mobileLayout = useMobileLayout();
   const [playersLocal, setPlayersLocal] = useState([]);
@@ -176,7 +177,7 @@ export default function SentimentPanel({
   // Collapsed by default in the desktop sidebar; on mobile the panel IS the
   // "Analyst" tab the user tapped, so it must render its content directly.
   const [openState, setOpenState] = useState(null);
-  const open = openState ?? mobileLayout;
+  const open = embedded ? true : (openState ?? mobileLayout);
   const setOpen = setOpenState;
   const [view, setView] = useState("list");
   const [filter, setFilter] = useState("");
@@ -337,8 +338,9 @@ export default function SentimentPanel({
   }, [meta, optedIntoOlder, media, historicalLabel]);
   return (
     <section
-      className={`panel wide sentiment-panel projections-mobile-panel${open ? " sentiment-panel--open" : " sentiment-panel--collapsed"}${className ? ` ${className}` : ""}`.trim()}
+      className={`${embedded ? "" : "panel wide "}sentiment-panel projections-mobile-panel${open ? " sentiment-panel--open" : " sentiment-panel--collapsed"}${className ? ` ${className}` : ""}`.trim()}
     >
+      {embedded ? null : (
       <div className="sentiment-panel-head">
         <div className="sentiment-panel-title-block">
           <h2>{panelTitle}</h2>
@@ -381,6 +383,7 @@ export default function SentimentPanel({
           )}
         </div>
       </div>
+      )}
 
       {open && summary && <p className="sentiment-panel-meta-line">{summary}</p>}
       {open && showModeToggle ? (
