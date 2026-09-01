@@ -44,6 +44,7 @@ import {
 } from "./opportunityAdjustment";
 import {
   positionShort,
+  weeklyBoardPreview,
   weeklyPeerStats,
   weeklyWhyNow,
 } from "./projectionsPresentation";
@@ -254,6 +255,8 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
       week,
       applyInjuryAdjustments,
       scope: "weekly",
+      rank,
+      preview: weeklyBoardPreview(row, {}, { rank, position, whyNow }),
     });
   };
 
@@ -298,11 +301,12 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
             media={playerMedia}
             size="sm"
             showTeam={false}
-            clickable={Boolean(row.player_id && !onOpenPlayer)}
+            clickable={Boolean(row.player_id && onOpenPlayer)}
             position={positionShort(position)}
             season={season}
             week={week}
             applyInjuryAdjustments={applyInjuryAdjustments}
+            onPlayerClick={openPlayer}
           />
           <InjuryStatusTag status={unavailable ? "" : status} />
           {leftSlate ? (
@@ -521,7 +525,7 @@ export default function WeeklyTable({
   );
 
   const showBoost = useMemo(() => slateHasOpportunityAdjustment(rows), [rows]);
-  const peerStats = useMemo(() => weeklyPeerStats(rows), [rows]);
+  const peerStats = useMemo(() => weeklyPeerStats(rows, { position }), [rows, position]);
 
   // Compare, Rank, Player, Opp?, Why now, P10, P50, P90, Range, Opp adj?
   const emptyColSpan =
@@ -891,7 +895,8 @@ export default function WeeklyTable({
                         <button
                           type="button"
                           className="btn-ghost btn-sm"
-                          onClick={() =>
+                          onClick={() => {
+                            const rank = rankMap.get(rowRankKey(row)) ?? null;
                             playerCard.openPlayerCard({
                               playerId: pid,
                               name: row.Player,
@@ -901,8 +906,13 @@ export default function WeeklyTable({
                               week,
                               applyInjuryAdjustments,
                               scope: "weekly",
-                            })
-                          }
+                              rank,
+                              preview: weeklyBoardPreview(row, peerStats, {
+                                rank,
+                                position,
+                              }),
+                            });
+                          }}
                         >
                           Details
                         </button>

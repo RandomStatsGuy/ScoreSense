@@ -28,6 +28,7 @@ import {
   matchesSeasonBoardFilter,
   positionShort,
   seasonBoardFilters,
+  seasonBoardPreview,
   seasonPeerStats,
   seasonRead,
 } from "./projectionsPresentation";
@@ -168,6 +169,7 @@ export default function DraftTable({
 
   const openPlayer = (row) => {
     if (!row?.player_id || !playerCard) return;
+    const rank = rankMap.get(rowRankKey(row)) ?? null;
     playerCard.openPlayerCard({
       playerId: row.player_id,
       name: row.Player,
@@ -175,6 +177,13 @@ export default function DraftTable({
       position,
       season,
       scope: "season",
+      rank,
+      preview: seasonBoardPreview(row, peerStats, {
+        rank,
+        position,
+        method,
+        scheduleAware,
+      }),
     });
   };
 
@@ -241,6 +250,7 @@ export default function DraftTable({
                     narrativeScope="season"
                     position={position}
                     season={season}
+                    onPlayerClick={() => openPlayer(row)}
                   />
                 )}
                 meta={row.Team || "—"}
@@ -357,10 +367,11 @@ export default function DraftTable({
                       media={playerMedia}
                       size="sm"
                       showTeam={false}
-                      clickable={false}
+                      clickable={Boolean(row.player_id)}
                       narrativeScope="season"
                       position={positionShort(position)}
                       season={season}
+                      onPlayerClick={() => openPlayer(row)}
                     />
                     {row["Rookie Est."] ? (
                       <span

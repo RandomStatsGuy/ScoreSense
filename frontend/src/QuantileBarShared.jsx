@@ -63,7 +63,6 @@ export default function QuantileBar({
     (event) => {
       if (!coarse) return;
       event.preventDefault();
-      event.stopPropagation();
       setTip((current) => {
         if (current) return null;
         const rect = barRef.current?.getBoundingClientRect();

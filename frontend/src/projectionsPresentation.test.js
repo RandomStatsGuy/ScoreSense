@@ -14,6 +14,7 @@ import {
   seasonRead,
   starterCutoff,
   weeklyBoardSignals,
+  weeklyInspectorCandidates,
   weeklyPeerStats,
   weeklyWhyNow,
 } from "./projectionsPresentation.js";
@@ -35,6 +36,38 @@ test("weekly why-now marks elite medians and wide bands", () => {
   const text = weeklyWhyNow(rows[0], peers, { rank: 1, position: "qb" });
   assert.match(text, /Elite median/i);
   assert.match(text, /wider-than-average|highest-variance/i);
+});
+
+test("weekly why-now reserves elite for the top three starters", () => {
+  const rows = Array.from({ length: 16 }, (_, i) => ({
+    Player: `QB${i + 1}`,
+    player_id: `q${i}`,
+    "Projected Points": 24 - i,
+    "Low (P10)": 14 - i * 0.4,
+    "High (P90)": 26 - i * 0.4,
+  }));
+  const peers = weeklyPeerStats(rows, { position: "qb" });
+  assert.match(weeklyWhyNow(rows[0], peers, { rank: 1, position: "qb" }), /Elite median/i);
+  assert.match(weeklyWhyNow(rows[7], peers, { rank: 8, position: "qb" }), /Expected starter/i);
+  assert.doesNotMatch(weeklyWhyNow(rows[7], peers, { rank: 8, position: "qb" }), /Elite/i);
+  assert.match(weeklyWhyNow(rows[14], peers, { rank: 15, position: "qb" }), /Depth look/i);
+});
+
+test("weekly inspector candidates carry board preview numbers", () => {
+  const rows = Array.from({ length: 16 }, (_, i) => ({
+    Player: i === 0 ? "Lamar Jackson" : `QB${i + 1}`,
+    player_id: i === 0 ? "lj" : `q${i}`,
+    Team: i === 0 ? "BAL" : "FA",
+    "Projected Points": 23.1 - i,
+    "Low (P10)": 10.3 - i * 0.3,
+    "High (P90)": 32.6 - i,
+  }));
+  const candidates = weeklyInspectorCandidates(rows, { position: "qb" });
+  assert.equal(candidates[0].rank, 1);
+  assert.equal(candidates[0].preview.p50, 23.1);
+  assert.match(candidates[0].preview.whyNow, /Elite median/i);
+  assert.equal(candidates[15].rank, 16);
+  assert.match(candidates[15].preview.whyNow, /Depth look/i);
 });
 
 test("weekly why-now explains suppressed and left-slate rows", () => {

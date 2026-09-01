@@ -27,6 +27,8 @@ import {
   seasonBoardSignals,
   weeklyBoardKicker,
   weeklyBoardSignals,
+  weeklyInspectorCandidates,
+  seasonInspectorCandidates,
 } from "./projectionsPresentation";
 import { isScheduleAwareMethod } from "./seasonQuantiles";
 import { applyMediaQueryParams } from "./mediaContext";
@@ -596,25 +598,31 @@ export default function App() {
       featureSeason: draftResponseMeta?.feature_season,
       draftSeason,
       scope: isSeasonPreseason ? "preseason" : "live",
+      position,
     }),
-    [seasonSignalRows, draftResponseMeta, draftSeason, isSeasonPreseason],
+    [seasonSignalRows, draftResponseMeta, draftSeason, isSeasonPreseason, position],
   );
 
   const inspectorCandidates = useMemo(() => {
-    const source = isWeeklyProjections
-      ? tableRows
-      : isSeasonPreseason
-        ? draftProjections
-        : rosTableRows;
-    return (source || [])
-      .map((row) => ({
-        playerId: row.player_id,
-        name: row.Player,
-        team: row.Team,
+    if (isWeeklyProjections) {
+      return weeklyInspectorCandidates(tableRows, { position });
+    }
+    return seasonInspectorCandidates(
+      isSeasonPreseason ? draftProjections : rosTableRows,
+      {
         position,
-      }))
-      .filter((row) => row.playerId);
-  }, [isWeeklyProjections, isSeasonPreseason, tableRows, draftProjections, rosTableRows, position]);
+        method: isSeasonPreseason ? draftResponseMeta?.season_quantile_method : null,
+      },
+    );
+  }, [
+    isWeeklyProjections,
+    isSeasonPreseason,
+    tableRows,
+    draftProjections,
+    rosTableRows,
+    position,
+    draftResponseMeta,
+  ]);
 
   const weeklyInjurySummary = injuryDisclosureSummary({
     count: sidebarInjuries.length,
@@ -1199,6 +1207,7 @@ export default function App() {
       compareIds={compareIds}
       onToggleCompare={handleToggleCompare}
       maxCompare={MAX_COMPARE_PLAYERS}
+      resetKey={`${projectionsTab}:${seasonMode}:${position}`}
     >
     <MobileShell
       section={view}
