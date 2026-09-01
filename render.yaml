@@ -1,0 +1,83 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+#
+# ScoreSense on Render (Blueprint).
+# Apply: Dashboard → New → Blueprint → this repo.
+# Runbook: docs/DEPLOY_RENDER.md
+#
+# One web service (FastAPI + built React). Persistent disk keeps SQLite
+# Fantasy state and projection artifacts across deploys. Cron jobs cannot
+# share that disk — weekly refresh stays GitHub Actions or Admin → Refresh.
+#
+# Secrets use sync: false so the first Blueprint apply prompts in the
+# dashboard and later syncs do not overwrite what you typed.
+
+previews:
+  generation: "off"
+
+envVarGroups:
+  - name: scoresense-secrets
+    envVars:
+      - key: PATREON_CLIENT_ID
+        sync: false
+      - key: PATREON_CLIENT_SECRET
+        sync: false
+      - key: PATREON_CAMPAIGN_ID
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: FANTASYPROS_API_KEY
+        sync: false
+      - key: ODDS_API_KEY
+        sync: false
+      - key: YOUTUBE_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+
+services:
+  - type: web
+    name: scoresense
+    runtime: docker
+    plan: 2c-4g
+    dockerfilePath: ./deploy/Dockerfile
+    dockerContext: .
+    dockerCommand: /bin/sh /app/deploy/render/start.sh
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 120
+    disk:
+      name: scoresense-runtime
+      mountPath: /var/data
+      sizeGB: 10
+    envVars:
+      - fromGroup: scoresense-secrets
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PYTHONPATH
+        value: /app
+      - key: AUTH_REQUIRED
+        value: "true"
+      - key: HUB_AUTH_REQUIRED
+        value: "true"
+      - key: PATREON_MIN_CENTS
+        value: "100"
+      - key: JWT_DAYS
+        value: "14"
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_TLS
+        value: "true"
+      - key: TERMS_VERSION
+        value: "2026-06"
+      - key: FANTASYPROS_USE_AS_FEATURE
+        value: "false"
+      - key: SCORESENSE_PERSIST_DIR
+        value: /var/data
