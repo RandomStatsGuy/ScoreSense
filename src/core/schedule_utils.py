@@ -250,6 +250,43 @@ def week_last_kickoff_et(season: int, week: int) -> datetime | None:
     return latest
 
 
+def team_week_kickoff_et(season: int, week: int, team: str) -> datetime | None:
+    """Kickoff (America/New_York) for one club in a regular-season week."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    sched_team = normalize_team_to_schedule(str(team or "").strip())
+    if not sched_team:
+        return None
+    et = ZoneInfo("America/New_York")
+    schedules = _load_schedules([season])
+    games = schedules[
+        (schedules["season"] == season)
+        & (schedules["week"] == int(week))
+        & (schedules["week"] <= REGULAR_SEASON_MAX_WEEK)
+    ]
+    if games.empty:
+        return None
+    for _, row in games.iterrows():
+        home = normalize_team_to_schedule(str(row.get("home_team") or ""))
+        away = normalize_team_to_schedule(str(row.get("away_team") or ""))
+        if sched_team not in {home, away}:
+            continue
+        day = pd.Timestamp(row["gameday"])
+        if pd.isna(day):
+            continue
+        if day.tzinfo is not None:
+            date_et = day.tz_convert(et).date()
+        else:
+            date_et = day.date()
+        raw_time = row.get("gametime")
+        hh, mm = _parse_gametime(raw_time)
+        if hh == 0 and mm == 0 and not str(raw_time or "").strip():
+            hh, mm = 13, 0
+        return datetime(date_et.year, date_et.month, date_et.day, hh, mm, tzinfo=et)
+    return None
+
+
 def week_rollover_at_et(season: int, week: int) -> datetime | None:
     """
     When the projection board advances past this week.

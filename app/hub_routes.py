@@ -713,7 +713,11 @@ def _lineup_target_team(ctx: dict[str, Any], requested_team_id: str | None) -> s
 
 
 def _require_hub_hosted_scoring(ctx: dict[str, Any]) -> None:
-    if ctx.get("sleeper_league_id"):
+    from src.draft_hub.hub_scoring import sleeper_hosts_scoring
+
+    league_id = str(ctx.get("league_id") or "")
+    league = storage.get_league(league_id) if league_id else None
+    if sleeper_hosts_scoring(league):
         raise HTTPException(status_code=409, detail="Lineups and scoring stay in Sleeper")
 
 
@@ -3083,13 +3087,9 @@ def hub_league_live_scoring(
             sub = _sub(_user)
             ctx = _ctx_for_league(sub, league_id)
         from src.draft_hub.league_live_scoring import get_sleeper_live_week
-        from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
 
-        sleeper_lid = (
-            resolve_sleeper_league_id(league_id)
-            or ctx.get("sleeper_league_id")
-            or ""
-        )
+        league = storage.get_league(league_id) or {}
+        sleeper_lid = str(league.get("sleeper_league_id") or "")
         hub_teams = _hub_teams_for_scoring(league_id)
         viewer_rid = ctx.get("sleeper_roster_id")
         with timer.phase("live"):

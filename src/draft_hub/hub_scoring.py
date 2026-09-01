@@ -7,7 +7,7 @@ Sleeper as the scoring host.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
 
 import pandas as pd
@@ -18,7 +18,6 @@ from src.core.team_codes import normalize_team_to_mlready
 from src.draft_hub import storage
 from src.draft_hub.league_live_scoring import (
     attach_matchup_analytics,
-    pair_placeholder_teams,
     starting_slots_from_rules,
     week_picker_meta,
 )
@@ -91,6 +90,55 @@ def schedule_week_count(rules: LeagueRules) -> int:
     return max(1, int(getattr(rules, "regular_season_games", None) or 14))
 
 
+def pair_season_teams(
+    teams: list[dict[str, Any]],
+    week: int,
+) -> list[tuple[dict[str, Any], dict[str, Any] | None]]:
+    """Circle-method H2H pairs so even-N leagues meet more than two opponents."""
+    ordered = sorted(
+        [row for row in teams if str(row.get("id") or "").strip()],
+        key=lambda row: (str(row.get("name") or "").lower(), str(row.get("id") or "")),
+    )
+    if not ordered:
+        return []
+    if len(ordered) == 1:
+        return [(ordered[0], None)]
+    slots: list[dict[str, Any] | None] = list(ordered)
+    if len(slots) % 2 == 1:
+        slots.append(None)
+    round_idx = (max(1, int(week)) - 1) % (len(slots) - 1)
+    rotating = slots[1:]
+    rotated = rotating[round_idx:] + rotating[:round_idx]
+    circle = [slots[0], *rotated]
+    pairs: list[tuple[dict[str, Any], dict[str, Any] | None]] = []
+    half = len(circle) // 2
+    for index in range(half):
+        home, away = circle[index], circle[-(index + 1)]
+        if home is None:
+            pairs.append((away, None))
+        elif away is None:
+            pairs.append((home, None))
+        else:
+            pairs.append((home, away))
+    return pairs
+
+
+def _matchup_team_ids(rows: list[dict[str, Any]]) -> set[str]:
+    ids: set[str] = set()
+    for row in rows:
+        home = str(row.get("home_team_id") or "").strip()
+        away = str(row.get("away_team_id") or "").strip()
+        if home:
+            ids.add(home)
+        if away:
+            ids.add(away)
+    return ids
+
+
+def _week_has_team_scores(league_id: str, season: int, week: int) -> bool:
+    return bool(storage.list_team_week_scores(league_id, season, week))
+
+
 def ensure_season_schedule(
     league_id: str,
     *,
@@ -105,6 +153,7 @@ def ensure_season_schedule(
     season_n = int(season or league.get("season") or 2026)
     rules = rules or _league_rules(league)
     teams = storage.list_league_teams(league_id)
+    current_ids = {str(row["id"]) for row in teams if str(row.get("id") or "").strip()}
     weeks = schedule_week_count(rules)
     existing = storage.list_season_matchups(league_id, season_n)
     by_week: dict[int, list[dict[str, Any]]] = {}
@@ -113,9 +162,13 @@ def ensure_season_schedule(
 
     created = 0
     for week in range(1, weeks + 1):
-        if by_week.get(week) and not force:
-            continue
-        pairs = pair_placeholder_teams(teams, week)
+        existing_week = by_week.get(week) or []
+        if existing_week and not force:
+            if _week_has_team_scores(league_id, season_n, week):
+                continue
+            if _matchup_team_ids(existing_week) == current_ids:
+                continue
+        pairs = pair_season_teams(teams, week)
         payload = []
         for index, (home, away) in enumerate(pairs, start=1):
             payload.append(
@@ -144,31 +197,44 @@ def nfl_game_started(
     *,
     now: datetime | None = None,
 ) -> bool:
-    """True when that club's scheduled gameday for the week is in the past."""
+    """True when that club's scheduled kickoff for the week is in the past."""
     team = normalize_team_to_mlready(str(nfl_team or "").strip().upper())
     if not team:
         return False
     try:
-        from src.core.schedule_utils import team_game_kickoffs
+        from src.core.schedule_utils import team_week_kickoff_et
 
-        games = team_game_kickoffs(int(season), team)
+        kick_et = team_week_kickoff_et(int(season), int(week), team)
     except Exception:
         return False
-    if games is None or getattr(games, "empty", True):
+    if kick_et is None:
         return False
-    week_n = int(week)
-    row = games[games["week"].astype(int) == week_n]
-    if row.empty:
-        return False
-    kick = pd.Timestamp(row.iloc[0]["gameday"])
-    if kick.tzinfo is None:
-        kick = kick.tz_localize("UTC")
-    else:
-        kick = kick.tz_convert("UTC")
+    kick = kick_et.astimezone(timezone.utc)
     stamp = now or _utcnow()
     if stamp.tzinfo is None:
         stamp = stamp.replace(tzinfo=timezone.utc)
     return stamp >= kick
+
+
+def week_ready_to_score(
+    season: int,
+    week: int,
+    *,
+    now: datetime | None = None,
+) -> bool:
+    """True after the week's last kickoff plus a game-length buffer."""
+    try:
+        from src.core.schedule_utils import week_last_kickoff_et
+
+        last = week_last_kickoff_et(int(season), int(week))
+    except Exception:
+        return False
+    if last is None:
+        return False
+    stamp = now or _utcnow()
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=timezone.utc)
+    return stamp >= last.astimezone(timezone.utc) + timedelta(hours=4)
 
 
 def _lineup_row_locked(
@@ -412,9 +478,11 @@ def set_team_starters(
         if pid in seen:
             continue
         prior = existing_by_id.get(pid) or {}
-        if _lineup_row_locked(prior or card, season, week, now=now, game_started=game_started):
-            # Already-started bench players stay on the bench.
-            pass
+        if (
+            _lineup_row_locked(prior or card, season, week, now=now, game_started=game_started)
+            and str(prior.get("lineup_role")) == "starter"
+        ):
+            raise LineupError("That player's game has started")
         bench.append({**card, "slot": "BN", "lineup_role": "bench"})
 
     locked = any(row.get("locked") for row in existing)
@@ -535,6 +603,7 @@ def apply_week_scores(
     for team in teams:
         ensure_team_lineup(league_id, str(team["id"]), season, week, rules=rules)
 
+    live_stats = stat_index is None
     lookup = stat_index
     if lookup is None:
         loader = load_stats or load_week_stat_index
@@ -543,6 +612,14 @@ def apply_week_scores(
         return {
             "scored": False,
             "reason": "no_stats",
+            "season": int(season),
+            "week": int(week),
+            "source": "hub_ppr",
+        }
+    if live_stats and not week_ready_to_score(int(season), int(week)):
+        return {
+            "scored": False,
+            "reason": "week_in_progress",
             "season": int(season),
             "week": int(week),
             "source": "hub_ppr",
