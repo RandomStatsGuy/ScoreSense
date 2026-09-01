@@ -22,7 +22,7 @@ $env:PYTHONPATH="."
 - Always set `PYTHONPATH=.` when running Python from the repo root.
 - API dev serves `/api/*`; Vite dev proxies to port 8000.
 - Production: `cd frontend && npm run build`, then uvicorn serves `frontend/dist`.
-- Tests: `.venv\Scripts\python -m pytest tests/ -q`
+- Tests: `.venv\Scripts\python -m pytest tests/ -q` (CI uses `requirements-ci.txt`)
 - **Mirror prod Draft Hub data locally:** `.\scripts\dev\mirror_prod_hub.ps1` (imports cap sheet into league room `0BBESQ` by default)
 
 ## Architecture
@@ -83,5 +83,8 @@ First visit to **Available players** or **Live draft** is slow locally when `art
 | VPS | `104.207.158.4` → `/root/scoresense` |
 | Tunnel | Cloudflare (`pricebot`) → `127.0.0.1:8000` |
 | Deploy | `.\deploy.ps1` from repo root |
+| Vercel | Off (`vercel.json` `deploymentEnabled: false`) — not production |
 
 Full runbook: `docs/DEPLOY_CLOUDFLARE_TUNNEL.md`. Server `.env` is **not** deployed — edit on VPS only.
+
+CI, Vercel, and review-bot budget: [`docs/CI.md`](docs/CI.md). Keep PRs **draft** until you want paid checks. Cloud agents must not mark a PR ready unless the user asks.

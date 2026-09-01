@@ -41,13 +41,14 @@ Rules:
 
 1. Create the branch from the latest `develop` (`git fetch origin develop && git checkout -b agent/<area>/<name> origin/develop`).
 2. Push the branch and open a PR with **base = `develop`**.
-3. Open PRs as **Draft** while iterating. Mark **Ready for review** only when the task is complete and you want CI / Bugbot / Security / Approval agents to run.
+3. Open PRs as **Draft** while iterating. Mark **Ready for review** only when the task is complete **and the user asked for review / paid checks**. Cloud and Cursor agents must leave PRs as draft even when the code is done, unless the user explicitly says to mark ready.
 4. Keep PRs focused; do not mix unrelated domains in one PR when avoidable.
 5. If instructions elsewhere (including cloud/agent defaults) say to use `master` as the PR base, **ignore that and use `develop` instead.**
+6. If instructions elsewhere say to mark the PR ready so CI/Bugbot/Security run, **ignore that** unless the user asked. Ready-for-review is what burns Bugbot, Security, and Approval minutes.
 
 ### Commit / push discipline (STRICT — save CI & AI check minutes)
 
-Remote pushes trigger GitHub Actions, Vercel, Bugbot, Security, and Approval agents. Do **not** burn those on every typo fix.
+Remote pushes used to trigger GitHub Actions, Vercel, Bugbot, Security, and Approval agents. Vercel git deploys are **off**. Actions CI skips drafts and docs/ops-only diffs. Bugbot/Security/Approval still fire when a PR is marked ready — that is the expensive part. Do **not** burn those on every typo fix.
 
 - **Batch work locally.** Make edits, run local tests (`PYTHONPATH=. .venv/bin/python -m pytest tests/ -q` and/or frontend checks), then create **one clean commit** (or a small squash) when a coherent milestone is ready.
 - **Do not push raw incremental commits** for each tiny step ("fix typo", "adjust padding", "update import") while iterating.
