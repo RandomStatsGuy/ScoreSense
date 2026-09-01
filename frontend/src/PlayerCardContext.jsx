@@ -3,11 +3,22 @@ import PlayerCardModal from "./PlayerCardModal";
 
 const PlayerCardContext = createContext(null);
 
-export function PlayerCardProvider({ children }) {
+export function PlayerCardProvider({
+  children,
+  candidates = [],
+  peers = {},
+  seasonMode = null,
+  compareIds = [],
+  onToggleCompare,
+  maxCompare = 4,
+}) {
   const [request, setRequest] = useState(null);
 
   const openPlayerCard = useCallback((params) => {
     if (!params?.playerId) return;
+    const candidate = (candidates || []).find(
+      (c) => String(c.playerId) === String(params.playerId),
+    );
     setRequest({
       playerId: params.playerId,
       playerName: params.name || params.playerName,
@@ -17,20 +28,38 @@ export function PlayerCardProvider({ children }) {
       week: params.week,
       scope: params.scope || "weekly",
       applyInjuryAdjustments: params.applyInjuryAdjustments,
+      rank: params.rank ?? candidate?.rank ?? null,
+      peers: params.peers || peers,
+      seasonMode: params.seasonMode || seasonMode,
     });
-  }, []);
+  }, [candidates, peers, seasonMode]);
 
   const closePlayerCard = useCallback(() => setRequest(null), []);
 
   const value = useMemo(
-    () => ({ openPlayerCard, closePlayerCard }),
-    [openPlayerCard, closePlayerCard],
+    () => ({
+      openPlayerCard,
+      closePlayerCard,
+      candidates,
+      compareIds,
+      onToggleCompare,
+      maxCompare,
+    }),
+    [openPlayerCard, closePlayerCard, candidates, compareIds, onToggleCompare, maxCompare],
   );
 
   return (
     <PlayerCardContext.Provider value={value}>
       {children}
-      <PlayerCardModal request={request} onClose={closePlayerCard} />
+      <PlayerCardModal
+        request={request}
+        onClose={closePlayerCard}
+        candidates={candidates}
+        compareIds={compareIds}
+        onToggleCompare={onToggleCompare}
+        maxCompare={maxCompare}
+        onSelectPlayer={openPlayerCard}
+      />
     </PlayerCardContext.Provider>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import QuantileBar from "./QuantileBarShared";
 import SeasonRangeCell from "./SeasonRangeCell";
 import { TableSkeleton } from "./TableSkeleton";
@@ -6,7 +6,6 @@ import useMobileLayout from "./useMobileLayout";
 import MobileDataList, { MobileStat } from "./MobileDataList";
 import MobilePlayerCard from "./MobilePlayerCard";
 import PlayerCell, { usePlayerMedia } from "./PlayerCell";
-import Chip from "./Chip";
 import { fmtNum } from "./format";
 import {
   SortHeader,
@@ -24,6 +23,15 @@ import {
   resolveSeasonBand,
   seasonRangeTooltip,
 } from "./seasonQuantiles";
+import { usePlayerCardOptional } from "./PlayerCardContext";
+import {
+  matchesSeasonBoardFilter,
+  positionShort,
+  seasonBoardFilters,
+  seasonPeerStats,
+  seasonRead,
+} from "./projectionsPresentation";
+import { ProjectionBoardHeader } from "./ProjectionBoardChrome";
 
 const SORT_KEYS = {
   Player: "Player",
@@ -80,11 +88,17 @@ export default function DraftTable({
   season,
   seasonQuantileMethod,
   onClearFilters,
+  hideBoardHeader = false,
+  boardKicker,
+  boardTitle,
+  boardSupport,
 }) {
   const [sort, toggleSort] = useTableSort({ column: "Proj", dir: "desc" });
+  const [boardFilter, setBoardFilter] = useState("all");
   const mobileLayout = useMobileLayout();
+  const playerCard = usePlayerCardOptional();
   const rankMap = useRankMap(rows, rankBySeasonProj);
-  const hasFilters = Boolean((search || "").trim());
+  const hasFilters = Boolean((search || "").trim() || boardFilter !== "all");
   const method = seasonQuantileMethod
     || rows?.find((r) => r.season_quantile_method)?.season_quantile_method
     || null;
@@ -113,10 +127,27 @@ export default function DraftTable({
     return max > 0 ? max : 1;
   }, [rows, method]);
 
+  const peerStats = useMemo(() => seasonPeerStats(rows, { method }), [rows, method]);
+  const boardFilters = useMemo(() => seasonBoardFilters((rows || []).length), [rows]);
+
+  const boardFiltered = useMemo(() => {
+    if (boardFilter === "all") return filtered;
+    return filtered.filter((row) => {
+      const rank = rankMap.get(rowRankKey(row)) ?? null;
+      const band = resolveSeasonBand(row, { method });
+      return matchesSeasonBoardFilter(boardFilter, {
+        rank,
+        spread: band.spread,
+        peers: peerStats,
+        position,
+      });
+    });
+  }, [filtered, boardFilter, rankMap, method, peerStats, position]);
+
   const sorted = useMemo(() => {
     const key = SORT_KEYS[sort.column] || sort.column;
     const dir = sort.dir === "asc" ? 1 : -1;
-    return [...filtered].sort((a, b) => {
+    return [...boardFiltered].sort((a, b) => {
       if (key === "Player" || key === "Team") {
         return dir * String(a[key] || "").localeCompare(String(b[key] || ""));
       }
@@ -127,7 +158,7 @@ export default function DraftTable({
       }
       return dir * ((Number(a[key]) || 0) - (Number(b[key]) || 0));
     });
-  }, [filtered, sort, method]);
+  }, [boardFiltered, sort, method]);
 
   const playerIds = useMemo(
     () => sorted.map((r) => r.player_id).filter(Boolean),
@@ -135,8 +166,38 @@ export default function DraftTable({
   );
   const playerMedia = usePlayerMedia(playerIds);
 
+  const handleClearFilters = () => {
+    setBoardFilter("all");
+    onClearFilters?.();
+  };
+
+  const openPlayer = (row) => {
+    if (!row?.player_id || !playerCard) return;
+    playerCard.openPlayerCard({
+      playerId: row.player_id,
+      name: row.Player,
+      team: row.Team,
+      position,
+      season,
+      scope: "season",
+      seasonMode: "preseason",
+      rank: rankMap.get(rowRankKey(row)) ?? null,
+      peers: peerStats,
+    });
+  };
+
   return (
     <>
+      {!hideBoardHeader ? (
+        <ProjectionBoardHeader
+          kicker={boardKicker}
+          title={boardTitle}
+          support={boardSupport}
+          filters={boardFilters}
+          activeFilter={boardFilter}
+          onFilterChange={setBoardFilter}
+        />
+      ) : null}
       <div className="table-controls">
         {searchSlot}
         {!mobileLayout && (
@@ -157,7 +218,7 @@ export default function DraftTable({
                 : "No draft projections available."
               : null
           }
-          onEmptyAction={hasFilters && sorted.length === 0 ? onClearFilters : undefined}
+          onEmptyAction={hasFilters && sorted.length === 0 ? handleClearFilters : undefined}
         >
           {sorted.map((row, rowIndex) => {
             const band = resolveSeasonBand(row, { method });
@@ -234,18 +295,8 @@ export default function DraftTable({
             <tr>
               <th className="num col-rank" title="Position rank by projected season total">#</th>
               <SortHeader label="Player" sortKey="Player" sort={sort} onSort={toggleSort} className="col-player" />
-              <SortHeader label="Team" sortKey="Team" sort={sort} onSort={toggleSort} className="col-team" />
               <SortHeader
-                label="Season"
-                sortKey="Proj"
-                sort={sort}
-                onSort={toggleSort}
-                className="col-proj"
-                tip={seasonTip}
-              />
-              <th className="col-range" title={seasonTip}>Season range</th>
-              <SortHeader
-                label="Floor"
+                label="P10"
                 sortKey="Floor"
                 sort={sort}
                 onSort={toggleSort}
@@ -253,7 +304,15 @@ export default function DraftTable({
                 tip={scheduleAware ? "Season P10 (schedule-aware)" : "Season floor (preliminary)"}
               />
               <SortHeader
-                label="Ceiling"
+                label="P50"
+                sortKey="Proj"
+                sort={sort}
+                onSort={toggleSort}
+                className="col-proj"
+                tip={seasonTip}
+              />
+              <SortHeader
+                label="P90"
                 sortKey="Ceiling"
                 sort={sort}
                 onSort={toggleSort}
@@ -261,13 +320,15 @@ export default function DraftTable({
                 tip={scheduleAware ? "Season P90 (schedule-aware)" : "Season ceiling (preliminary)"}
               />
               <SortHeader
-                label="Per-game"
+                label="Per game"
                 sortKey="PerGame"
                 sort={sort}
                 onSort={toggleSort}
                 className="col-per-game"
                 tip="Season projection divided by expected games"
               />
+              <th className="col-range" title={seasonTip}>Season range</th>
+              <th className="proj-read" title="Short range and role read">Read</th>
             </tr>
           </thead>
           <tbody>
@@ -280,7 +341,7 @@ export default function DraftTable({
                 colSpan={8}
                 message={hasFilters ? "No players match your search." : "No draft projections available."}
                 actionLabel="Clear filters"
-                onAction={hasFilters ? onClearFilters : undefined}
+                onAction={hasFilters ? handleClearFilters : undefined}
               />
             )}
             {sorted.map((row, rowIndex) => {
@@ -288,7 +349,11 @@ export default function DraftTable({
               const seasonP50 = band.p50 ?? (Number(row["Season Proj"]) || 0);
               const rank = rankMap.get(rowRankKey(row)) ?? null;
               return (
-                <tr key={rowRankKey(row)}>
+                <tr
+                  key={rowRankKey(row)}
+                  className="proj-board-row"
+                  onClick={() => openPlayer(row)}
+                >
                   <td className={`num col-rank${rank != null && rank <= 3 ? " col-rank-top" : ""}`}>
                     {rank ?? "—"}
                   </td>
@@ -300,9 +365,9 @@ export default function DraftTable({
                       media={playerMedia}
                       size="sm"
                       showTeam={false}
-                      clickable={Boolean(row.player_id)}
+                      clickable={false}
                       narrativeScope="season"
-                      position={position}
+                      position={positionShort(position)}
                       season={season}
                     />
                     {row["Rookie Est."] ? (
@@ -314,8 +379,10 @@ export default function DraftTable({
                       </span>
                     ) : null}
                   </td>
-                  <td className="col-team">{row.Team ? <Chip tone="team">{row.Team}</Chip> : "—"}</td>
-                  <td className="num num-proj">
+                  <td className="num num-quantile col-floor-ceiling">
+                    {formatSeasonPts(band.p10 ?? row["Season Floor"], 0)}
+                  </td>
+                  <td className="num num-proj num-p50">
                     <SeasonRangeCell
                       row={row}
                       method={method}
@@ -325,6 +392,10 @@ export default function DraftTable({
                       showBar={false}
                     />
                   </td>
+                  <td className="num num-quantile col-floor-ceiling">
+                    {formatSeasonPts(band.p90 ?? row["Season Ceiling"], 0)}
+                  </td>
+                  <td className="num col-per-game">{fmtNum(row["Per-Game Proj"], 1)}</td>
                   <td className="range-cell">
                     <QuantileBar
                       p10={band.p10 ?? 0}
@@ -336,13 +407,9 @@ export default function DraftTable({
                       subtitle={`${formatSeasonPts(band.p10, 0)} – ${formatSeasonPts(band.p90, 0)} season pts`}
                     />
                   </td>
-                  <td className="num num-secondary col-floor-ceiling">
-                    {formatSeasonPts(band.p10 ?? row["Season Floor"], 0)}
+                  <td className="proj-read">
+                    {seasonRead(row, peerStats, { rank, position, method })}
                   </td>
-                  <td className="num num-secondary col-floor-ceiling">
-                    {formatSeasonPts(band.p90 ?? row["Season Ceiling"], 0)}
-                  </td>
-                  <td className="num col-per-game">{fmtNum(row["Per-Game Proj"], 1)}</td>
                 </tr>
               );
             })}

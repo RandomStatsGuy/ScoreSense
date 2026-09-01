@@ -42,6 +42,11 @@ import {
   pickOpportunityAdjustment,
   slateHasOpportunityAdjustment,
 } from "./opportunityAdjustment";
+import {
+  positionShort,
+  weeklyPeerStats,
+  weeklyWhyNow,
+} from "./projectionsPresentation";
 
 const SORT_KEYS = {
   Player: "Player",
@@ -209,7 +214,6 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   rowIndex,
   rank,
   showOpponent,
-  hasSentiment,
   showBoost,
   unavailableColSpan,
   scaleMax,
@@ -222,17 +226,13 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   selected,
   selectDisabled,
   onToggleSelect,
-  whyExpanded,
-  onToggleWhy,
-  whyColSpan,
+  whyNow,
   applyInjuryAdjustments,
   playerContext,
   contextSlateMeta = null,
-  contextExpanded,
-  onToggleContext,
   showMovement = false,
-  mediaMode = null,
-  onMediaModeChange,
+  peerStats = {},
+  onOpenPlayer,
 }) {
   const status = row["Injury Status"] || "";
   const leftSlate = isLeftSlate(row);
@@ -243,25 +243,38 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   const tag = unavailableLabel(status);
   const tone = matchupTone(row["Opp Def Rank"], dvpTeamCount);
   const canSelect = compareEnabled && Boolean(row.player_id) && !unavailable && !leftSlate;
-  const canExplain = Boolean(row.player_id) && !leftSlate;
-  // SCORE-30: hide Ctx when compact list says there is nothing to lazy-load.
-  const canContext = Boolean(row.player_id) && !leftSlate && isDetailAvailable(playerContext);
+
+  const openPlayer = () => {
+    if (!row.player_id || !onOpenPlayer) return;
+    onOpenPlayer({
+      playerId: row.player_id,
+      name: row.Player,
+      team: row.Team,
+      position,
+      season,
+      week,
+      applyInjuryAdjustments,
+      scope: "weekly",
+      rank,
+      peers: peerStats,
+    });
+  };
 
   return (
     <>
     <tr
       className={[
+        "proj-board-row",
         unavailable ? "row-unavailable" : "",
         leftSlate ? "row-left-slate" : "",
-        selected ? "row-compare-selected" : "",
-        whyExpanded ? "row-why-open" : "",
-        contextExpanded ? "row-context-open" : "",
+        selected ? "row-compare-selected is-selected" : "",
       ]
         .filter(Boolean)
         .join(" ") || undefined}
+      onClick={openPlayer}
     >
       {compareEnabled ? (
-        <td className="col-compare-select">
+        <td className="col-compare-select" onClick={(event) => event.stopPropagation()}>
           <label className="compare-select-label">
             <input
               type="checkbox"
@@ -288,8 +301,8 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
             media={playerMedia}
             size="sm"
             showTeam={false}
-            clickable={Boolean(row.player_id)}
-            position={position}
+            clickable={Boolean(row.player_id && !onOpenPlayer)}
+            position={positionShort(position)}
             season={season}
             week={week}
             applyInjuryAdjustments={applyInjuryAdjustments}
@@ -309,42 +322,9 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
           />
         ) : null}
         <span className="col-player-mobile-meta">
-          {row.Team || "—"}
+          {[row.Team, positionShort(position)].filter(Boolean).join(" · ") || "—"}
           {showOpponent && row.Opponent ? ` · ${row.Opponent}` : ""}
         </span>
-      </td>
-      <td className="col-why">
-        {canExplain || canContext ? (
-          <span className="col-why-actions">
-            {canExplain ? (
-              <WhyToggleButton
-                playerName={row.Player}
-                expanded={whyExpanded}
-                onToggle={onToggleWhy}
-              />
-            ) : null}
-            {canContext ? (
-              <button
-                type="button"
-                className={`btn-ghost btn-sm ctx-toggle${contextExpanded ? " ctx-toggle--open" : ""}`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onToggleContext?.();
-                }}
-                aria-expanded={Boolean(contextExpanded)}
-                aria-label={`Cached week context for ${row.Player || "player"}`}
-                title="Cached week context"
-              >
-                Ctx
-              </button>
-            ) : null}
-          </span>
-        ) : (
-          <span className="muted">—</span>
-        )}
-      </td>
-      <td className="col-team">
-        {row.Team ? <Chip tone="team">{row.Team}</Chip> : "—"}
       </td>
       {showOpponent && (
         <td
@@ -364,11 +344,7 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
           ) : null}
         </td>
       )}
-      {hasSentiment && (
-        <td className="col-narrative">
-          <SentimentBadge sentiment={row.sentiment} compact table />
-        </td>
-      )}
+      <td className="proj-why-now">{whyNow || "—"}</td>
       {unavailable || leftSlate ? (
         <td colSpan={unavailableColSpan} className="out-tag-cell">
           {leftSlate ? (
@@ -385,15 +361,14 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
         </td>
       ) : (
         <>
-          <td className="num num-proj">
+          <td className="num num-quantile">{fmtNum(row["Low (P10)"], 1)}</td>
+          <td className="num num-proj num-p50">
             <span className="col-proj-stack">
               <span className="col-proj-value">{fmtNum(row["Projected Points"], 1)}</span>
               {showMovement ? <P50MoveInline row={row} /> : null}
             </span>
-            <span className="col-proj-mobile-range">
-              {fmtNum(row["Low (P10)"], 1)}–{fmtNum(row["High (P90)"], 1)}
-            </span>
           </td>
+          <td className="num num-quantile">{fmtNum(row["High (P90)"], 1)}</td>
           <td className="range-cell">
             <QuantileBar
               p10={p10}
@@ -412,35 +387,6 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
         </>
       )}
     </tr>
-    {whyExpanded && canExplain ? (
-      <tr className="row-why-panel">
-        <td colSpan={whyColSpan}>
-          <ProjectionExplanationPanel
-            playerId={row.player_id}
-            season={season}
-            week={week}
-            position={position}
-            applyInjuryAdjustments={applyInjuryAdjustments}
-            active
-          />
-        </td>
-      </tr>
-    ) : null}
-    {contextExpanded && canContext ? (
-      <tr className="row-context-panel">
-        <td colSpan={whyColSpan}>
-          <PlayerContextPanel
-            playerId={row.player_id}
-            season={season}
-            week={week}
-            active
-            mediaMode={mediaMode}
-            onMediaModeChange={onMediaModeChange}
-            className="player-context-panel--table"
-          />
-        </td>
-      </tr>
-    ) : null}
     </>
   );
 });
@@ -520,6 +466,8 @@ export default function WeeklyTable({
   movementNote = null,
   /** Left-slate rows from `/changes` (not soft-joined onto current projections). */
   leftSlateRows = null,
+  hideMovementFilters = false,
+  onOpenPlayer,
 }) {
   const [sort, toggleSort] = useTableSort({ column: "P50", dir: "desc" });
   const [whyPlayerId, setWhyPlayerId] = useState(null);
@@ -576,16 +524,15 @@ export default function WeeklyTable({
   );
 
   const showBoost = useMemo(() => slateHasOpportunityAdjustment(rows), [rows]);
+  const peerStats = useMemo(() => weeklyPeerStats(rows), [rows]);
 
-  // Select, Rank, Player, Why, Team, Proj, Range are base; Opp/Signal/Opp adj are conditional.
-  const baseColCount =
-    6 +
+  // Compare, Rank, Player, Opp?, Why now, P10, P50, P90, Range, Opp adj?
+  const emptyColSpan =
+    7 +
     (compareEnabled ? 1 : 0) +
     (showOpponent ? 1 : 0) +
-    (hasSentiment ? 1 : 0) +
     (showBoost ? 1 : 0);
-  const emptyColSpan = baseColCount;
-  const unavailableColSpan = 2 + (showBoost ? 1 : 0);
+  const unavailableColSpan = 4 + (showBoost ? 1 : 0);
 
   const filtered = useMemo(() => {
     let list = rows || [];
@@ -721,7 +668,7 @@ export default function WeeklyTable({
           <ExportCsvButton onExport={() => exportCsv(sorted)} disabled={!sorted.length} />
         )}
       </div>
-      {showFilters ? (
+      {showFilters && !hideMovementFilters ? (
         <div
           className="proj-move-filter"
           role="group"
@@ -957,6 +904,8 @@ export default function WeeklyTable({
                               week,
                               applyInjuryAdjustments,
                               scope: "weekly",
+                              rank: rankMap.get(rowRankKey(row)) ?? null,
+                              peers: peerStats,
                             })
                           }
                         >
@@ -1072,10 +1021,6 @@ export default function WeeklyTable({
                 #
               </th>
               <SortHeader label="Player" sortKey="Player" sort={sort} onSort={toggleSort} className="col-player" />
-              <th className="col-why" title="Why this projection? / Cached week context">
-                <span className="sr-only">Why / Context</span>
-              </th>
-              <SortHeader label="Team" sortKey="Team" sort={sort} onSort={toggleSort} className="col-team" />
               {showOpponent && (
                 <SortHeader
                   label="Opp"
@@ -1086,18 +1031,19 @@ export default function WeeklyTable({
                   className="col-opp"
                 />
               )}
-              {hasSentiment && (
-                <SortHeader
-                  label="Signal"
-                  sortKey="Narrative"
-                  sort={sort}
-                  onSort={toggleSort}
-                  tip="Analyst signal — hover a tag for recency and digest preview"
-                  className="col-narrative"
-                />
-              )}
+              <th className="proj-why-now" title="Short range and role read for this week">
+                Why now
+              </th>
               <SortHeader
-                label="Proj"
+                label="P10"
+                sortKey="P10"
+                sort={sort}
+                onSort={toggleSort}
+                tip="Floor — 10th percentile outcome"
+                className="col-floor-ceiling"
+              />
+              <SortHeader
+                label="P50"
                 sortKey="P50"
                 sort={sort}
                 onSort={toggleSort}
@@ -1105,13 +1051,19 @@ export default function WeeklyTable({
                 className="col-proj"
               />
               <SortHeader
-                label="Range"
+                label="P90"
                 sortKey="P90"
                 sort={sort}
                 onSort={toggleSort}
-                tip="Floor / Projection / Ceiling (P10 · P50 · P90). Sorts by ceiling. White tick = projected score; amber = boom/bust spread."
-                className="col-range"
+                tip="Ceiling — 90th percentile outcome"
+                className="col-floor-ceiling"
               />
+              <th
+                className="col-range"
+                title="Floor / Projection / Ceiling (P10 · P50 · P90). White tick = projected score."
+              >
+                Range
+              </th>
               {showBoost && (
                 <SortHeader
                   label="Opp adj"
@@ -1145,7 +1097,6 @@ export default function WeeklyTable({
                 rowIndex={rowIndex}
                 rank={rankMap.get(rowRankKey(row)) ?? null}
                 showOpponent={showOpponent}
-                hasSentiment={hasSentiment}
                 showBoost={showBoost}
                 unavailableColSpan={unavailableColSpan}
                 scaleMax={scaleMax}
@@ -1158,17 +1109,16 @@ export default function WeeklyTable({
                 selected={pid ? selectedSet.has(pid) : false}
                 selectDisabled={selectDisabled}
                 onToggleSelect={onToggleCompare}
-                whyExpanded={Boolean(pid && whyPlayerId === pid)}
-                onToggleWhy={() => toggleWhy(pid)}
-                whyColSpan={emptyColSpan}
+                whyNow={weeklyWhyNow(row, peerStats, {
+                  rank: rankMap.get(rowRankKey(row)) ?? null,
+                  position,
+                })}
                 applyInjuryAdjustments={applyInjuryAdjustments}
                 playerContext={pid ? playersContext.byId.get(pid) : null}
                 contextSlateMeta={playersContext.meta}
-                contextExpanded={Boolean(pid && contextPlayerId === pid)}
-                onToggleContext={() => toggleContext(pid)}
                 showMovement={showMovement}
-                mediaMode={mediaMode}
-                onMediaModeChange={onMediaModeChange}
+                peerStats={peerStats}
+                onOpenPlayer={onOpenPlayer || (playerCard ? playerCard.openPlayerCard : undefined)}
               />
               );
             })}

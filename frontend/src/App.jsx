@@ -10,9 +10,27 @@ import BestBallBoard from "./BestBallBoard";
 import SeasonTable from "./SeasonTable";
 import SeasonTransitionState from "./SeasonTransitionState";
 import InjurySidebar from "./InjurySidebar";
-import { pickReplacementCandidates } from "./injuryExperience";
+import { buildAttentionItems, pickReplacementCandidates } from "./injuryExperience";
 import SentimentPanel from "./SentimentPanel";
 import WeeklyTable from "./WeeklyTable";
+import {
+  ProjectionBoardDisclosure,
+  ProjectionBoardHeader,
+  ProjectionBoardSignals,
+} from "./ProjectionBoardChrome";
+import {
+  BOARD_COPY,
+  analystDisclosureSummary,
+  injuryDisclosureSummary,
+  movementBoardFilters,
+  seasonBoardKicker,
+  seasonBoardSignals,
+  seasonPeerStats,
+  weeklyBoardKicker,
+  weeklyBoardSignals,
+  weeklyPeerStats,
+} from "./projectionsPresentation";
+import { isScheduleAwareMethod } from "./seasonQuantiles";
 import { applyMediaQueryParams } from "./mediaContext";
 import PlayerCompare, { MAX_COMPARE as MAX_COMPARE_PLAYERS } from "./PlayerCompare";
 import useAccuracyRebuildPoll from "./useAccuracyRebuildPoll";
@@ -47,7 +65,10 @@ import { isAbortError } from "./fetchAbort";
 import {
   connectionErrorMessage,
   formatRelativeTime,
+  isPlayerUnavailable,
   parseApiError,
+  rosPPG,
+  rosSeasonP50,
 } from "./format";
 import { waitForRefreshComplete } from "./refreshStatus";
 import { leftSlateRowsFromChanges } from "./projectionMovement";
@@ -562,6 +583,104 @@ export default function App() {
     })),
     [rosProjections, seasonSentimentByPlayer],
   );
+
+  const weeklyAttention = useMemo(
+    () => buildAttentionItems({ injuries: sidebarInjuries, projections: tableRows }),
+    [sidebarInjuries, tableRows],
+  );
+
+  const weeklySignals = useMemo(
+    () => weeklyBoardSignals(tableRows, { attentionItems: weeklyAttention, position }),
+    [tableRows, weeklyAttention, position],
+  );
+
+  const seasonSignalRows = isSeasonPreseason ? draftProjections : rosTableRows;
+  const seasonSignals = useMemo(
+    () => seasonBoardSignals(seasonSignalRows, isSeasonPreseason
+      ? {
+        method: draftResponseMeta?.season_quantile_method,
+        featureSeason: draftResponseMeta?.feature_season,
+        draftSeason,
+        scope: "preseason",
+      }
+      : { scope: "live" }),
+    [seasonSignalRows, draftResponseMeta, draftSeason, isSeasonPreseason],
+  );
+
+  const inspectorPeers = useMemo(() => {
+    if (isWeeklyProjections) return weeklyPeerStats(tableRows);
+    if (isSeasonPreseason) {
+      return seasonPeerStats(draftProjections, {
+        method: draftResponseMeta?.season_quantile_method,
+      });
+    }
+    return seasonPeerStats(rosTableRows);
+  }, [
+    isWeeklyProjections,
+    isSeasonPreseason,
+    tableRows,
+    draftProjections,
+    rosTableRows,
+    draftResponseMeta,
+  ]);
+
+  const inspectorCandidates = useMemo(() => {
+    const source = isWeeklyProjections
+      ? tableRows
+      : isSeasonPreseason
+        ? draftProjections
+        : rosTableRows;
+    const metric = isWeeklyProjections
+      ? (row) => (isPlayerUnavailable(row["Injury Status"]) ? NaN : Number(row["Projected Points"] ?? NaN))
+      : isSeasonPreseason
+        ? (row) => Number(row["Season Proj"] ?? NaN)
+        : (row) => Number((seasonComplete ? rosPPG(row) : rosSeasonP50(row)) ?? NaN);
+    const ranked = [];
+    for (const row of source || []) {
+      const value = Number(metric(row));
+      if (Number.isFinite(value) && row.player_id) ranked.push([String(row.player_id), value]);
+    }
+    ranked.sort((a, b) => b[1] - a[1]);
+    const rankById = new Map();
+    ranked.forEach(([id], index) => {
+      if (!rankById.has(id)) rankById.set(id, index + 1);
+    });
+    return (source || [])
+      .map((row) => ({
+        playerId: row.player_id,
+        name: row.Player,
+        team: row.Team,
+        position,
+        rank: row.player_id ? rankById.get(String(row.player_id)) ?? null : null,
+      }))
+      .filter((row) => row.playerId);
+  }, [
+    isWeeklyProjections,
+    isSeasonPreseason,
+    tableRows,
+    draftProjections,
+    rosTableRows,
+    position,
+    seasonComplete,
+  ]);
+
+  const weeklyInjurySummary = injuryDisclosureSummary({
+    count: sidebarInjuries.length,
+    attentionCount: weeklyAttention.length,
+    name: weeklyAttention[0]?.injury?.full_name,
+    status: weeklyAttention[0]?.status,
+  });
+  const weeklyAnalystSummary = analystDisclosureSummary({
+    count: sentimentPlayers.length,
+    week,
+    historicalAvailable: Boolean(sentimentMeta?.media_context),
+    loading: sentimentLoading,
+  });
+  const seasonAnalystSummary = analystDisclosureSummary({
+    count: seasonSentimentPlayers.length,
+    week: rosFromWeek ?? week,
+    loading: seasonSentimentLoading,
+  });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -1123,7 +1242,14 @@ export default function App() {
   );
 
   return (
-    <PlayerCardProvider>
+    <PlayerCardProvider
+      candidates={inspectorCandidates}
+      peers={inspectorPeers}
+      seasonMode={isSeasonPreseason ? "preseason" : isSeasonLive ? "live" : null}
+      compareIds={compareIds}
+      onToggleCompare={handleToggleCompare}
+      maxCompare={MAX_COMPARE_PLAYERS}
+    >
     <MobileShell
       section={view}
       onSectionChange={goToSection}
@@ -1382,23 +1508,44 @@ export default function App() {
                 showShortLabels
               />
             )}
-            <div className="grid projections-grid">
-            <section className={`panel wide panel-projections projections-mobile-panel${projectionsMobilePanel === "projections" ? " is-mobile-active" : ""}`}>
-              <div className="panel-head panel-head-mobile-compact">
-                <div>
-                  <h2>Weekly projections</h2>
-                  {season != null && week != null ? (
-                    <p className="panel-subtitle">
-                      {season} · Wk {week}
-                      {pipelineRefreshing
-                        ? " · Rebuilding projections…"
-                        : meta?.built_at && formatRelativeTime(meta.built_at)
-                          ? ` · Projections ${String(formatRelativeTime(meta.built_at)).replace(/^Updated /i, "").toLowerCase()}`
-                          : ""}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
+            <div className={`projections-board${mobileLayout ? " grid projections-grid" : ""}`}>
+            {!mobileLayout ? (
+              <ProjectionBoardSignals
+                signals={weeklySignals}
+                playerParams={{
+                  position,
+                  season,
+                  week,
+                  applyInjuryAdjustments: isLiveContext,
+                  scope: "weekly",
+                }}
+              />
+            ) : null}
+            <section className={`panel wide panel-projections proj-board-surface projections-mobile-panel${projectionsMobilePanel === "projections" ? " is-mobile-active" : ""}`}>
+              {mobileLayout ? (
+                <ProjectionBoardSignals
+                  signals={weeklySignals}
+                  playerParams={{
+                    position,
+                    season,
+                    week,
+                    applyInjuryAdjustments: isLiveContext,
+                    scope: "weekly",
+                  }}
+                />
+              ) : null}
+              <ProjectionBoardHeader
+                kicker={weeklyBoardKicker({ week })}
+                title={BOARD_COPY.weeklyBoard}
+                support={BOARD_COPY.weeklySupport}
+                filters={
+                  meta?.projection_movement != null
+                    ? movementBoardFilters(tableRows.length)
+                    : []
+                }
+                activeFilter={movementFilter}
+                onFilterChange={handleMovementFilterChange}
+              />
               {!isLiveContext && projMeta && !meta?.preseason_mode && (
                 <div className="info-callout info-callout-compact" role="status">
                   Showing base projections for this week (live opportunity adjustments apply to Wk {projMeta.default_week} only).
@@ -1435,21 +1582,78 @@ export default function App() {
                 onClearCompare={handleClearCompare}
                 onRemoveCompare={handleRemoveComparePlayer}
                 compareSelectionMeta={compareSelectionMeta}
+                hideMovementFilters
                 searchSlot={
                   !mobileLayout ? null : (
                   <input
                     type="search"
                     className="search-input"
-                    placeholder="Player or team…"
+                    placeholder={BOARD_COPY.searchBoard}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    aria-label="Search player or team"
+                    aria-label="Search the board"
                   />
                   )
                 }
               />
+              {!mobileLayout ? (
+                <div className="proj-disclosures">
+                  <ProjectionBoardDisclosure
+                    title={BOARD_COPY.injuries}
+                    summary={weeklyInjurySummary}
+                    tone={weeklyAttention.length ? "caution" : undefined}
+                  >
+                    <InjurySidebar
+                      embedded
+                      players={sidebarInjuries}
+                      projections={tableRows}
+                      position={position}
+                      selectedTeams={selectedTeams}
+                      searchQuery={searchQuery}
+                      isLiveContext={isLiveContext}
+                      defaultSeason={projMeta?.default_season}
+                      defaultWeek={projMeta?.default_week}
+                      season={season}
+                      week={week}
+                      mediaMode={weeklyMediaMode}
+                      onCompareReplacements={handleCompareReplacements}
+                    />
+                  </ProjectionBoardDisclosure>
+                  <ProjectionBoardDisclosure
+                    title={BOARD_COPY.analyst}
+                    summary={weeklyAnalystSummary}
+                  >
+                    <SentimentPanel
+                      embedded
+                      position={position}
+                      season={season}
+                      week={week}
+                      scope="weekly"
+                      players={sentimentPlayers}
+                      meta={sentimentMeta}
+                      loading={sentimentLoading}
+                      error={sentimentError}
+                      mediaMode={weeklyMediaMode}
+                      includeHistorical={includeHistoricalSentiment}
+                      onMediaModeChange={(mode) => {
+                        if (!weeklySentimentSlateKey) return;
+                        setWeeklyMediaModeOptIn({ key: weeklySentimentSlateKey, mode });
+                      }}
+                      onIncludeHistorical={() => {
+                        if (!weeklySentimentSlateKey) return;
+                        setWeeklyMediaModeOptIn({
+                          key: weeklySentimentSlateKey,
+                          mode: "older",
+                        });
+                      }}
+                    />
+                  </ProjectionBoardDisclosure>
+                </div>
+              ) : null}
             </section>
 
+            {mobileLayout ? (
+              <>
             <InjurySidebar
               className={`projections-mobile-panel${projectionsMobilePanel === "injuries" ? " is-mobile-active" : ""}`}
               players={sidebarInjuries}
@@ -1490,6 +1694,8 @@ export default function App() {
                 });
               }}
             />
+              </>
+            ) : null}
           </div>
               </>
             )}
@@ -1497,7 +1703,18 @@ export default function App() {
         )}
 
         {view === "projections" && projectionsTab === "season" && (
-          <section className="panel wide panel-season">
+          <div className="projections-board">
+          <ProjectionBoardSignals
+            signals={seasonSignals}
+            playerParams={{
+              position,
+              season: isSeasonPreseason ? draftSeason : (rosSeason ?? season),
+              week: isSeasonPreseason ? undefined : (rosFromWeek ?? week),
+              scope: "season",
+              seasonMode: isSeasonPreseason ? "preseason" : "live",
+            }}
+          />
+          <section className="panel wide panel-season proj-board-surface">
             {/* Desktop already exposes this switch in the filter bar. */}
             {mobileLayout && (
               <nav className="season-mode-tabs" role="tablist" aria-label="Season mode">
@@ -1521,6 +1738,7 @@ export default function App() {
             )}
 
             {seasonMode === "preseason" ? (
+              <>
               <DraftTable
                   rows={draftProjections}
                   search={searchQuery}
@@ -1528,14 +1746,21 @@ export default function App() {
                   position={position}
                   season={draftSeason}
                   onClearFilters={clearTableFilters}
+                  boardKicker={seasonBoardKicker({
+                    season: draftSeason,
+                    mode: "preseason",
+                    scheduleAware: isScheduleAwareMethod(draftResponseMeta?.season_quantile_method),
+                  })}
+                  boardTitle={BOARD_COPY.seasonBoard}
+                  boardSupport={BOARD_COPY.seasonSupport}
                   searchSlot={
                     <input
                       type="search"
                       className="search-input"
-                      placeholder="Player or team…"
+                      placeholder={BOARD_COPY.searchBoard}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      aria-label="Search player or team"
+                      aria-label="Search the board"
                     />
                   }
                   metaLine={
@@ -1556,6 +1781,24 @@ export default function App() {
                   }
                   seasonQuantileMethod={draftResponseMeta?.season_quantile_method}
                 />
+                {!mobileLayout ? (
+                  <div className="proj-disclosures">
+                    <ProjectionBoardDisclosure
+                      title="How to read the season range"
+                      summary={
+                        isScheduleAwareMethod(draftResponseMeta?.season_quantile_method)
+                          ? "Schedule-aware P10–P90. Bye weeks and expected games are included."
+                          : "Preliminary season bands. They tighten as games are played."
+                      }
+                    >
+                      <p className="chart-note">
+                        P50 is the season median. The bar is the P10–P90 outcome band, not a promise.
+                        Click a player for role, method, and analyst notes.
+                      </p>
+                    </ProjectionBoardDisclosure>
+                  </div>
+                ) : null}
+              </>
             ) : seasonLoading ? (
               <div className="season-refresh-banner" role="status" aria-live="polite">
                 <span className="season-transition-spinner season-transition-spinner-sm" aria-hidden="true" />
@@ -1621,6 +1864,7 @@ export default function App() {
                     />
                   </div>
 
+                  {mobileLayout ? (
                   <SentimentPanel
                     className={seasonMobilePanel === "narrative" ? "is-mobile-active" : ""}
                     position={position}
@@ -1632,10 +1876,31 @@ export default function App() {
                     loading={seasonSentimentLoading}
                     error={seasonSentimentError}
                   />
+                  ) : (
+                    <div className="proj-disclosures">
+                      <ProjectionBoardDisclosure
+                        title={BOARD_COPY.analyst}
+                        summary={seasonAnalystSummary}
+                      >
+                        <SentimentPanel
+                          embedded
+                          position={position}
+                          season={rosSeason ?? season}
+                          week={rosFromWeek ?? week}
+                          scope="season"
+                          players={seasonSentimentPlayers}
+                          meta={seasonSentimentMeta}
+                          loading={seasonSentimentLoading}
+                          error={seasonSentimentError}
+                        />
+                      </ProjectionBoardDisclosure>
+                    </div>
+                  )}
                 </div>
               </>
             )}
           </section>
+          </div>
         )}
 
         {view === "tools" && toolsTab === "mock-draft" && (
