@@ -39,7 +39,7 @@ There is **no** Render cron. Cron jobs cannot attach a disk, so a scheduled `wee
 
 WebSockets for live draft (`/api/hub/ws/{league_id}`) go through Render’s proxy; no extra nginx upgrade block.
 
-A service with a disk cannot scale past one instance. Redeploys attach the disk to the new instance, so you get a short cutover rather than overlapping zero-downtime copies.
+A service with a disk cannot scale past one instance, and Render does not allow `maxShutdownDelaySeconds` on disk-backed services. Redeploys attach the disk to the new instance, so you get a short cutover rather than overlapping zero-downtime copies.
 
 ## Plans and cost
 
