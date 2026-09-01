@@ -10,6 +10,7 @@ Read `docs/PRODUCT.md` first. User-facing name is **Fantasy**, not Draft Hub.
 
 ## Layout
 
+- Resolve the screen in `frontend/src/livingSurfaces.js` and open that `page` / `copy` before changing chrome.
 - Pages: `HubPage` with `hub-experience-page` when the surface is a decision page.
 - Hero + sticky summary: `HubExperienceHero`, `HubExperienceLayout`, `HubExperienceSummary` in `HubUILayout.jsx`.
 - Sections: `HubSection`, `HubTableCard`, `HubToolbar`, `HubAlert` / `HubAlertStack`.

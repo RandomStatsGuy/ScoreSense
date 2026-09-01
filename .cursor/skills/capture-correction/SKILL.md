@@ -73,6 +73,7 @@ Write **one line**. Same change as the fix when you are already editing.
 | Persist when | Write to |
 |--------------|----------|
 | `always` / `never` + `product` (new name, token, destination, pattern) | `docs/PRODUCT.md` and the compressed line in `.cursor/rules/scoresense-core.mdc` |
+| Chrome / “match this page” / living component | `frontend/src/livingSurfaces.js` (update the row). Follow `.cursor/skills/match-living-surface/SKILL.md` |
 | `always` / `never` + `fantasy-ui` | `.cursor/rules/frontend-draft-hub.mdc` |
 | `always` / `never` + `projections` | `.cursor/rules/ml-projections.mdc` |
 | `always` / `never` + `perf` | `.cursor/rules/draft-hub-performance.mdc` |
