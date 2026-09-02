@@ -109,7 +109,7 @@ def validate_slots(
         except (TypeError, ValueError):
             raise ValueError("Each time needs a date and hour") from None
         if day not in allowed_dates:
-            raise ValueError("That day is outside the draft calendar")
+            continue
         if hour not in allowed_hours:
             raise ValueError("That hour is not on the calendar")
         key = (day, hour)
@@ -144,7 +144,12 @@ def build_availability_payload(
     humans = [t for t in teams if not t.get("is_bot")]
     team_by_id = {str(t["id"]): t for t in humans}
     viewer = storage.get_team_by_user(league_id, user_sub)
-    rows = storage.list_draft_availability(league_id)
+    allowed = set(window["dates"])
+    rows = [
+        row
+        for row in storage.list_draft_availability(league_id)
+        if row["date"] in allowed
+    ]
     by_slot: dict[tuple[str, int], list[dict[str, Any]]] = defaultdict(list)
     submitted: set[str] = set()
     for row in rows:

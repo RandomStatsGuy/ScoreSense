@@ -70,11 +70,12 @@ def test_validate_slots_rejects_outside_window():
     )
     cleaned = validate_slots([{"date": "2026-08-15", "hour": 20}], window)
     assert cleaned == [("2026-08-15", 20)]
-    try:
-        validate_slots([{"date": "2026-09-10", "hour": 20}], window)
-        raise AssertionError("kickoff day should be closed")
-    except ValueError as exc:
-        assert "outside" in str(exc)
+    assert validate_slots([{"date": "2026-09-10", "hour": 20}], window) == []
+    kept = validate_slots(
+        [{"date": "2026-07-01", "hour": 20}, {"date": "2026-08-15", "hour": 20}],
+        window,
+    )
+    assert kept == [("2026-08-15", 20)]
     try:
         validate_slots([{"date": "2026-08-15", "hour": 3}], window)
         raise AssertionError("overnight hour should reject")
@@ -138,3 +139,36 @@ def test_overlap_counts_and_api(hub_db):
     body = res.json()
     assert "window" in body
     assert "heat" in body
+
+
+def test_stale_slots_do_not_block_save_or_count_as_marked(hub_db):
+    comm = "avail-stale"
+    ws = storage.get_or_create_workspace(comm, season=2026)
+    rules = load_preset("salary_cap_auction_v1")
+    league = storage.create_league(comm, "Stale Calendar", 2026, rules, workspace_id=ws["id"])
+    team = storage.get_team_by_user(league["id"], comm)
+    later = datetime(2026, 9, 10, 20, 20, tzinfo=timezone.utc)
+    now = datetime(2026, 8, 20, 15, 0, tzinfo=timezone.utc)
+    storage.replace_team_draft_availability(
+        league["id"],
+        str(team["id"]),
+        comm,
+        [("2026-08-06", 20)],
+    )
+    payload = build_availability_payload(
+        league["id"],
+        comm,
+        now=now,
+        first_kickoff=later,
+    )
+    assert payload["mine"] == []
+    assert payload["submitted"] == 0
+    saved = save_availability(
+        league["id"],
+        comm,
+        [{"date": "2026-08-06", "hour": 20}, {"date": "2026-08-22", "hour": 19}],
+        now=now,
+        first_kickoff=later,
+    )
+    assert saved["mine"] == [{"date": "2026-08-22", "hour": 19}]
+    assert saved["submitted"] == 1

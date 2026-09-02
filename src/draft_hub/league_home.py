@@ -497,17 +497,24 @@ def build_league_home(
         humans = [t for t in teams if not t.get("is_bot") and t.get("user_sub")]
         team_count = int(league_row.get("team_count") or 12)
         open_seats = max(0, team_count - len(humans))
+        availability_dates: set[str] = set()
         try:
             from src.draft_hub.draft_availability import window_for_league
 
-            availability_state = window_for_league(league_row, now=now).get("state")
+            window = window_for_league(league_row, now=now)
+            availability_state = window.get("state")
+            availability_dates = set(window.get("dates") or [])
         except Exception:
             availability_state = None
         team_id = ctx.get("team_id")
         if team_id:
-            availability_marked = bool(
-                storage.list_team_draft_availability(str(league_id), str(team_id))
-            )
+            slots = storage.list_team_draft_availability(str(league_id), str(team_id))
+            if availability_dates:
+                availability_marked = any(
+                    str(row.get("date") or "") in availability_dates for row in slots
+                )
+            else:
+                availability_marked = bool(slots)
     actions = _build_actions(
         phase=phase,
         freshness=freshness,

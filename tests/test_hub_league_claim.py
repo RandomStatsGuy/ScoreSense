@@ -6,6 +6,7 @@ from app.api import app
 from app.auth import require_hub_user
 from src.draft_hub import storage
 from src.draft_hub.league_claim import accept_claim_link, build_claim_preview, build_claim_url
+from src.draft_hub.league_invites import create_invite
 from src.draft_hub.presets import load_preset
 
 
@@ -117,3 +118,24 @@ def test_claim_api_preview_and_accept(hub_db):
     assert "claim=" in new_url
     stale = client.get(f"/api/hub/claim/{token}")
     assert stale.status_code == 404
+
+
+def test_claim_link_skips_seats_with_pending_invite(hub_db):
+    league, token, comm = _seed(hub_db)
+    night = next(t for t in storage.list_league_teams(league["id"]) if t["name"] == "The Night Owls")
+    create_invite(league["id"], "owl@example.com", "The Night Owls", comm)
+    preview = build_claim_preview(token)
+    names = {t["name"] for t in preview["unclaimed_teams"]}
+    assert names == {"Sunday Club"}
+    try:
+        accept_claim_link(token, "ss:thief", team_id=night["id"])
+        raise AssertionError("expected reserved seat to reject")
+    except ValueError as exc:
+        assert "reserved" in str(exc).lower()
+    still = storage.get_team(night["id"])
+    assert not still.get("user_sub")
+    try:
+        accept_claim_link(token, "ss:thief", team_name="The Night Owls")
+        raise AssertionError("expected reserved name to reject")
+    except ValueError as exc:
+        assert "reserved" in str(exc).lower()

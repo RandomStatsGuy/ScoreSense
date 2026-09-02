@@ -50,15 +50,34 @@ def _human_teams(teams: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [t for t in teams if not t.get("is_bot")]
 
 
+def _pending_invite_team_ids(league_id: str, teams: list[dict[str, Any]]) -> set[str]:
+    pending_names = {
+        str(invite.get("team_name") or "").strip().lower()
+        for invite in storage.list_league_invites(league_id)
+        if str(invite.get("status") or "") == "pending"
+    }
+    return {
+        str(team["id"])
+        for team in teams
+        if str(team.get("name") or "").strip().lower() in pending_names
+    }
+
+
+def _seat_reserved(league_id: str, team: dict[str, Any]) -> bool:
+    return bool(storage.get_pending_invite_for_team(league_id, str(team.get("id") or "")))
+
+
 def build_claim_preview(token: str, user_sub: str | None = None) -> dict[str, Any]:
     league = storage.get_league_by_claim_token(token)
     if not league:
         raise ValueError("Invite link is not valid")
     teams = _human_teams(storage.list_league_teams(league["id"]))
+    reserved = _pending_invite_team_ids(league["id"], teams)
     claimed = [t for t in teams if t.get("user_sub")]
-    unclaimed = [t for t in teams if not t.get("user_sub")]
+    unclaimed = [t for t in teams if not t.get("user_sub") and str(t["id"]) not in reserved]
     team_count = int(league.get("team_count") or 12)
     open_create = max(0, team_count - len(teams))
+    reserved_count = len(reserved)
     enabled = bool(league.get("claim_link_enabled", True))
     live = str(league.get("status") or "setup") == "live"
     completed = bool(league.get("draft_completed"))
@@ -83,7 +102,7 @@ def build_claim_preview(token: str, user_sub: str | None = None) -> dict[str, An
         "league_season": league.get("season"),
         "team_count": team_count,
         "claimed": len(claimed),
-        "open_seats": max(0, team_count - len(claimed)),
+        "open_seats": max(0, team_count - len(claimed) - reserved_count),
         "can_create_seat": status == "open" and open_create > 0,
         "unclaimed_teams": [_public_team(t) for t in unclaimed],
         "claim_link_enabled": enabled,
@@ -129,6 +148,8 @@ def accept_claim_link(
             raise ValueError("That seat is a bot")
         if team.get("user_sub") and str(team["user_sub"]) != str(user_sub):
             raise ValueError("That team is already claimed")
+        if _seat_reserved(league_id, team):
+            raise ValueError("That seat is reserved for an invited manager")
         claimed = storage.assign_team_user(chosen_id, user_sub)
         storage.set_hub_focus(user_sub, league_id=league_id)
         return {
@@ -138,6 +159,16 @@ def accept_claim_link(
         }
 
     if chosen_name:
+        named = next(
+            (
+                team
+                for team in storage.list_league_teams(league_id)
+                if str(team.get("name") or "").strip().lower() == chosen_name.lower()
+            ),
+            None,
+        )
+        if named and _seat_reserved(league_id, named):
+            raise ValueError("That seat is reserved for an invited manager")
         claimed = storage.join_league(user_sub, str(league.get("room_code") or ""), chosen_name)
         storage.set_hub_focus(user_sub, league_id=league_id)
         return {
