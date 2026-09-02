@@ -11857,6 +11857,19 @@ td.col-rank.col-rank-top {
     color: var(--accent-muted);
   }
 
+  .app-mobile-sheet-item--dest {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.12rem;
+    min-height: 3rem;
+  }
+
+  .app-mobile-sheet-item--dest .chart-note {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
   .app-mobile-sheet-user {
     display: flex;
     flex-direction: column;
@@ -12241,8 +12254,14 @@ td.col-rank.col-rank-top {
     margin-bottom: 0.4rem;
   }
 
-  .hub-league-context-bar--compact .hub-league-context-top {
-    align-items: center;
+  .hub-league-context-bar--compact .hub-league-switcher-label {
+    display: none;
+  }
+
+  .hub-league-context-bar--compact .hub-league-switcher-select {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
   }
 
   .hub-league-context-top {

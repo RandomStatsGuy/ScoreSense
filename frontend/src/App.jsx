@@ -64,7 +64,6 @@ import UserMenu from "./layout/UserMenu";
 import {
   APP_SECTIONS,
   PROJECTIONS_TABS,
-  SEASON_MODES,
   SECTION_SUBTITLES,
   TOOLS_TABS,
   defaultSeasonMode,
@@ -1218,6 +1217,11 @@ export default function App() {
       },
       searchQuery,
       onSearchChange: setSearchQuery,
+      movementFilters: isWeeklyProjections && meta?.projection_movement != null
+        ? movementBoardFilters(tableRows.length)
+        : [],
+      movementFilter,
+      onMovementFilterChange: handleMovementFilterChange,
     }),
     [
       projectionsTab,
@@ -1241,6 +1245,10 @@ export default function App() {
       rosWeekOptions,
       handleRosSeasonChange,
       searchQuery,
+      meta?.projection_movement,
+      tableRows.length,
+      movementFilter,
+      handleMovementFilterChange,
     ],
   );
 
@@ -1556,9 +1564,11 @@ export default function App() {
                 title={BOARD_COPY.weeklyBoard}
                 support={BOARD_COPY.weeklySupport}
                 filters={
-                  meta?.projection_movement != null
-                    ? movementBoardFilters(tableRows.length)
-                    : []
+                  mobileLayout
+                    ? []
+                    : (meta?.projection_movement != null
+                      ? movementBoardFilters(tableRows.length)
+                      : [])
                 }
                 activeFilter={movementFilter}
                 onFilterChange={handleMovementFilterChange}
@@ -1732,28 +1742,6 @@ export default function App() {
             }}
           />
           <section className="panel wide panel-season proj-board-surface">
-            {/* Desktop already exposes this switch in the filter bar. */}
-            {mobileLayout && (
-              <nav className="season-mode-tabs" role="tablist" aria-label="Season mode">
-                {SEASON_MODES.map((mode) => (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={seasonMode === mode.id}
-                    title={mode.hint}
-                    className={`season-mode-tab${seasonMode === mode.id ? " active" : ""}`}
-                    onClick={() => {
-                      seasonModeUserPicked.current = true;
-                      setSeasonMode(mode.id);
-                    }}
-                  >
-                    <span className="season-mode-tab-label">{mode.shortLabel}</span>
-                  </button>
-                ))}
-              </nav>
-            )}
-
             {seasonMode === "preseason" ? (
               <>
               <DraftTable

@@ -25,7 +25,7 @@ export default function MobileDestinationSheet({
               <button
                 key={item.id}
                 type="button"
-                className={`app-mobile-sheet-item app-mobile-sheet-item-subdued${active === item.id ? " active" : ""}`}
+                className={`app-mobile-sheet-item app-mobile-sheet-item-subdued app-mobile-sheet-item--dest${active === item.id ? " active" : ""}`}
                 onClick={() => onSelect?.(item.id)}
               >
                 <span>{item.label}</span>
