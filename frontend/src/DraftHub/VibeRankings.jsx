@@ -214,6 +214,7 @@ export default function VibeRankings({
               </button>
             </div>
             <p className="hub-vibes-progress">{VIBE_COPY.deckProgress(index, players.length)}</p>
+            <p className="hub-vibes-hint">{VIBE_COPY.swipeHint}</p>
             <p className="hub-vibes-keys">{VIBE_COPY.keyboardHint}</p>
           </div>
         ) : (

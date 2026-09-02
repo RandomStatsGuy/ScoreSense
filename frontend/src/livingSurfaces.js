@@ -92,9 +92,10 @@ export const LIVING_SURFACES = Object.freeze({
     also: [
       "frontend/src/DraftHub/VibeSwipeDeck.jsx",
       "frontend/src/DraftHub/vibeAura.js",
+      "frontend/src/DraftHub/vibeProfile.js",
       "frontend/src/styles/vibe-rankings.css",
     ],
-    doNot: "Reuse HubExperience*. Aura is a personal start weight, not a new accent or award gold.",
+    doNot: "Reuse HubExperience*. Aura is a personal start weight, not a new accent or award gold. Profile facts come from Sleeper plus a composed bio — do not scrape Wikipedia.",
   }),
   "hub.game": S({
     label: "Game center",
@@ -300,6 +301,8 @@ export const SURFACE_ALIASES = Object.freeze({
   "command center": "hub.week",
   "vibe rankings": "hub.vibes",
   "vibe ranking": "hub.vibes",
+  "tinder profile": "hub.vibes",
+  "fun facts about the player": "hub.vibes",
   vibes: "hub.vibes",
   aura: "hub.vibes",
   "game center": "hub.game",

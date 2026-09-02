@@ -40,24 +40,25 @@
     width: min(100%, 24.5rem);
     height: 28rem;
     margin: 0 auto;
-    touch-action: none;
+    touch-action: pan-y;
     user-select: none;
   }
   body.is-phone .deck-wrap { width: 100%; height: 26.5rem; }
 
   .vibe-card {
     position: absolute; inset: 0;
-    display: flex; flex-direction: column;
-    overflow: hidden;
+    overflow-x: hidden; overflow-y: auto;
+    overscroll-behavior: contain;
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     background: #142133;
     box-shadow: 0 18px 44px rgba(0,0,0,0.32);
+    touch-action: pan-y;
   }
   .vibe-card.is-front { cursor: grab; z-index: 3; }
-  .vibe-card.is-front.is-drag { cursor: grabbing; }
+  .vibe-card.is-front.is-drag { cursor: grabbing; overflow-y: hidden; }
   .vibe-photo {
-    position: relative; flex: 1;
+    position: relative; height: 62%; min-height: 14.5rem;
     background: radial-gradient(circle at 50% 20%, rgba(91,143,232,0.16), transparent 44%), #101a28;
   }
   .vibe-photo img, .vibe-fallback {
@@ -79,9 +80,19 @@
   }
   .stamp-start { left: 1rem; color: var(--tone-positive); transform: rotate(-12deg); }
   .stamp-sit { right: 1rem; color: var(--tone-caution); transform: rotate(12deg); }
-  .vibe-id { padding: 0.95rem 1.05rem 1.1rem; }
+  .vibe-id { padding: 0.95rem 1.05rem 0.65rem; }
   .vibe-id h3 { margin: 0; font-size: 1.4rem; letter-spacing: -0.03em; }
-  .vibe-id p { margin: 0.3rem 0 0.55rem; color: var(--text-secondary); font-size: 0.8rem; }
+  .vibe-id .meta { margin: 0.3rem 0 0.55rem; color: var(--text-secondary); font-size: 0.8rem; }
+  .scroll-hint, .about {
+    margin: 0.55rem 0 0; color: var(--text-muted); font-size: 0.64rem;
+    font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .vibe-profile { padding: 0 1.05rem 1.3rem; }
+  .facts-dl { display: flex; flex-direction: column; gap: 0.42rem; margin: 0.45rem 0 0.7rem; }
+  .fact-row { display: grid; grid-template-columns: 5.1rem minmax(0,1fr); gap: 0.4rem; }
+  .fact-row dt { color: var(--text-muted); font-size: 0.64rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+  .fact-row dd { margin: 0; font-size: 0.88rem; }
+  .bio { margin: 0; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.45; }
   .vibe-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
   .vibe-stats span { display: block; color: var(--text-muted); font-size: 0.64rem; }
   .vibe-stats strong { font-size: 0.92rem; font-variant-numeric: tabular-nums; }
@@ -167,7 +178,7 @@
   <section class="mock-hero">
     <p class="mock-kicker">Vibe rankings</p>
     <h1 id="hero-heading">Who feels startable this week.</h1>
-    <p class="support" id="hero-support">Swipe your roster. Start energy raises aura. Sit energy lowers it. The slate updates as you go.</p>
+    <p class="support" id="hero-support">Swipe your roster. Scroll the card for hometown, college, and a first-person bio. Start energy raises aura. Sit energy lowers it. The slate updates as you go.</p>
     <span class="mock-hero-chip mock-pill mock-pill--ok">Your read</span>
   </section>
 
@@ -181,6 +192,7 @@
           <button type="button" class="vote-start" id="btn-start">Start</button>
         </div>
         <p class="progress" id="progress">1 of 10</p>
+        <p class="progress">Swipe to rate. Scroll the card for the profile.</p>
         <p class="progress keys">← sit · → start · Backspace undo</p>
       </div>
       <div id="results" class="results-banner" hidden>
@@ -217,21 +229,21 @@
     </aside>
   </div>
 
-  <p class="footnote">Design mockup — Fantasy · Vibes. Swipe or use the buttons. Desktop also accepts arrow keys. Data is illustrative.</p>
+  <p class="footnote">Design mockup — Fantasy · Vibes. Swipe to rate, scroll the card for the profile. Desktop also accepts arrow keys. Bios are composed, not Wikipedia.</p>
 </div>
 
 <script>
 const PLAYERS = [
-  { id: "allen", name: "Josh Allen", pos: "QB", team: "BUF", opp: "vs MIA", p50: 23.1, espn: 3918298 },
-  { id: "bijan", name: "Bijan Robinson", pos: "RB", team: "ATL", opp: "vs TB", p50: 17.6, espn: 4430807 },
-  { id: "gibbs", name: "Jahmyr Gibbs", pos: "RB", team: "DET", opp: "@ GB", p50: 16.4, espn: 4429795 },
-  { id: "jefferson", name: "Justin Jefferson", pos: "WR", team: "MIN", opp: "vs CHI", p50: 16.9, espn: 4262921 },
-  { id: "puka", name: "Puka Nacua", pos: "WR", team: "LAR", opp: "@ SEA", p50: 15.8, espn: 4688813 },
-  { id: "cd", name: "CeeDee Lamb", pos: "WR", team: "DAL", opp: "vs NYG", p50: 14.2, espn: 4241389 },
-  { id: "bowers", name: "Brock Bowers", pos: "TE", team: "LV", opp: "@ DEN", p50: 12.4, espn: 4431458 },
-  { id: "kittle", name: "George Kittle", pos: "TE", team: "SF", opp: "vs ARI", p50: 11.1, espn: 3040151 },
-  { id: "saquon", name: "Saquon Barkley", pos: "RB", team: "PHI", opp: "vs WAS", p50: 15.1, espn: 3929630 },
-  { id: "sun", name: "Amon-Ra St. Brown", pos: "WR", team: "DET", opp: "@ GB", p50: 14.8, espn: 4374302 },
+  { id: "allen", name: "Josh Allen", pos: "QB", team: "BUF", opp: "vs MIA", p50: 23.1, espn: 3918298, from: "Firebaugh, CA", college: "Wyoming", job: "Quarterback for the Bills", age: 30, bio: "Firebaugh kid, Wyoming walk-on energy, now I launch footballs in Orchard Park. If you sit me you're the one explaining it in the group chat." },
+  { id: "bijan", name: "Bijan Robinson", pos: "RB", team: "ATL", opp: "vs TB", p50: 17.6, espn: 4430807, from: "Tucson, AZ", college: "Texas", job: "Running back for the Falcons", age: 24, bio: "Tucson to Austin to Atlanta. I want the rock on early downs and the last five minutes. Swipe right if you draft backs to use them." },
+  { id: "gibbs", name: "Jahmyr Gibbs", pos: "RB", team: "DET", opp: "@ GB", p50: 16.4, espn: 4429795, from: "Dalton, GA", college: "Alabama", job: "Running back for the Lions", age: 24, bio: "Dalton, then Tuscaloosa, now Detroit. I score in bunches and I do not love a timeshare. Start me when the lights are on." },
+  { id: "jefferson", name: "Justin Jefferson", pos: "WR", team: "MIN", opp: "vs CHI", p50: 16.9, espn: 4262921, from: "Destrehan, LA", college: "LSU", job: "Receiver for the Vikings", age: 27, bio: "Destrehan, LSU, Minnesota. I run past corners for a living. If your vibe is 'wait for a safer floor,' that's a you problem." },
+  { id: "puka", name: "Puka Nacua", pos: "WR", team: "LAR", opp: "@ SEA", p50: 15.8, espn: 4688813, from: "Orem, UT", college: "BYU", job: "Receiver for the Rams", age: 25, bio: "Orem kid who showed up on a late-round card and refused to leave. I work the middle of the field. Don't make me a secret." },
+  { id: "cd", name: "CeeDee Lamb", pos: "WR", team: "DAL", opp: "vs NYG", p50: 14.2, espn: 4241389, from: "Richmond, TX", college: "Oklahoma", job: "Receiver for the Cowboys", age: 27, bio: "Foster High, then Norman, now Dallas. I want targets and I want them early. Sit me and I'll still be open." },
+  { id: "bowers", name: "Brock Bowers", pos: "TE", team: "LV", opp: "@ DEN", p50: 12.4, espn: 4431458, from: "Napa, CA", college: "Georgia", job: "Tight end for the Raiders", age: 23, bio: "Napa to Athens to Vegas. I play tight end like a receiver who grew extra size. If you're waiting on 'the safe TE,' that's not this card." },
+  { id: "kittle", name: "George Kittle", pos: "TE", team: "SF", opp: "vs ARI", p50: 11.1, espn: 3040151, from: "Norman, OK", college: "Iowa", job: "Tight end for the 49ers", age: 32, bio: "Norman, Iowa, then every yard after contact in Santa Clara. I block, I YAC, I talk. Start me or hear about it." },
+  { id: "saquon", name: "Saquon Barkley", pos: "RB", team: "PHI", opp: "vs WAS", p50: 15.1, espn: 3929630, from: "Whitehall, PA", college: "Penn State", job: "Running back for the Eagles", age: 29, bio: "Whitehall to Happy Valley to Philly. I still bounce it outside and I still want the goal line. Year nine. Don't overthink it." },
+  { id: "sun", name: "Amon-Ra St. Brown", pos: "WR", team: "DET", opp: "@ GB", p50: 14.8, espn: 4374302, from: "Santa Ana, CA", college: "USC", job: "Receiver for the Lions", age: 26, bio: "Mater Dei, USC, Detroit. Slot, boundary, third down — I live there. If you need a 'vibe' to start me, the vibe is volume." },
 ];
 const SLOTS = [
   { slot: "QB", pos: "QB" }, { slot: "RB1", pos: "RB" }, { slot: "RB2", pos: "RB" },
@@ -281,13 +293,24 @@ function cardHTML(p, overlay) {
     </div>
     <div class="vibe-id">
       <h3>${p.name}</h3>
-      <p>${p.pos} · ${p.team} · ${p.opp}</p>
+      <p class="meta">${p.pos} · ${p.team} · ${p.opp}</p>
       <div class="vibe-stats">
         <div><span>Week</span><strong>${p.p50.toFixed(1)}</strong></div>
         <div><span>Vibe week</span><strong>${vibeScore(p).toFixed(1)}</strong></div>
         <div><span>Aura</span><strong class="${t}">${Math.round(a)}</strong></div>
       </div>
       <div class="aura-bar ${t}"><i style="width:${a}%"></i></div>
+      <p class="scroll-hint">Scroll for the profile</p>
+    </div>
+    <div class="vibe-profile">
+      <p class="about">About</p>
+      <dl class="facts-dl">
+        <div class="fact-row"><dt>From</dt><dd>${p.from}</dd></div>
+        <div class="fact-row"><dt>College</dt><dd>${p.college}</dd></div>
+        <div class="fact-row"><dt>Job</dt><dd>${p.job}</dd></div>
+        <div class="fact-row"><dt>Age</dt><dd>${p.age}</dd></div>
+      </dl>
+      <p class="bio">${p.bio}</p>
     </div>`;
 }
 
@@ -322,9 +345,9 @@ function renderDeck() {
 }
 
 function bindFront(el) {
-  let startX = 0, lastX = 0, lastT = 0, vx = 0, active = false;
-  const move = (x, t) => {
-    const dx = x - startX;
+  let originX = 0, originY = 0, lastX = 0, lastY = 0, lastT = 0, vx = 0, axis = null, tracking = false;
+  const swipe = (x, t) => {
+    const dx = x - originX;
     vx = (x - lastX) / Math.max(1, t - lastT);
     lastX = x; lastT = t; state.dx = dx;
     el.style.transform = `translateX(${dx}px) rotate(${dx * 0.045}deg)`;
@@ -334,9 +357,12 @@ function bindFront(el) {
     el.querySelector(".stamp-sit").style.opacity = sit;
   };
   const end = () => {
-    if (!active) return;
-    active = false;
+    if (!tracking) return;
+    const swiping = axis === "x";
+    tracking = false;
+    axis = null;
     el.classList.remove("is-drag");
+    if (!swiping) { state.dx = 0; return; }
     const flick = Math.abs(vx) > 0.55 && Math.abs(state.dx) > 36;
     if (state.dx > 96 || (flick && state.dx > 0)) return commit("start");
     if (state.dx < -96 || (flick && state.dx < 0)) return commit("sit");
@@ -347,12 +373,29 @@ function bindFront(el) {
     setTimeout(() => { el.style.transition = "none"; }, 200);
   };
   el.addEventListener("pointerdown", (e) => {
-    active = true; startX = lastX = e.clientX; lastT = e.timeStamp; vx = 0;
-    el.setPointerCapture(e.pointerId);
-    el.classList.add("is-drag");
-    el.style.transition = "none";
+    tracking = true; axis = null;
+    originX = lastX = e.clientX; originY = lastY = e.clientY;
+    lastT = e.timeStamp; vx = 0; state.dx = 0;
   });
-  el.addEventListener("pointermove", (e) => { if (active) move(e.clientX, e.timeStamp); });
+  el.addEventListener("pointermove", (e) => {
+    if (!tracking) return;
+    if (axis === "y") {
+      if (e.pointerType !== "touch") el.scrollTop -= e.clientY - lastY;
+      lastY = e.clientY;
+      return;
+    }
+    const dx = e.clientX - originX;
+    const dy = e.clientY - originY;
+    if (axis == null) {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      if (Math.abs(dy) > Math.abs(dx)) { axis = "y"; return; }
+      axis = "x";
+      el.setPointerCapture(e.pointerId);
+      el.classList.add("is-drag");
+      el.style.transition = "none";
+    }
+    if (axis === "x") swipe(e.clientX, e.timeStamp);
+  });
   el.addEventListener("pointerup", end);
   el.addEventListener("pointercancel", end);
 }

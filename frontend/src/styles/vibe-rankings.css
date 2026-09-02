@@ -16,20 +16,21 @@
   width: min(100%, 26.5rem);
   height: 28.5rem;
   margin: 0 auto;
-  touch-action: none;
+  touch-action: pan-y;
   user-select: none;
 }
 
 .hub-vibes-card {
   position: absolute;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--experience-rule);
   border-radius: var(--radius-lg);
   background: var(--experience-surface-strong);
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.32);
+  touch-action: pan-y;
   will-change: transform;
 }
 
@@ -38,13 +39,13 @@
   z-index: 3;
 }
 
-.hub-vibes-card.is-front img,
-.hub-vibes-card.is-front * {
+.hub-vibes-card.is-front img {
   pointer-events: none;
 }
 
 .hub-vibes-card.is-front.is-dragging {
   cursor: grabbing;
+  overflow-y: hidden;
 }
 
 .hub-vibes-card.is-stack-1,
@@ -54,8 +55,8 @@
 
 .hub-vibes-photo {
   position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
+  height: 62%;
+  min-height: 14.5rem;
   background:
     radial-gradient(circle at 50% 20%, rgba(91, 143, 232, 0.14), transparent 42%),
     var(--experience-surface);
@@ -118,7 +119,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  padding: 0.95rem 1.05rem 1.1rem;
+  padding: 0.95rem 1.05rem 0.7rem;
 }
 
 .hub-vibes-name {
@@ -217,7 +218,61 @@
   color: #a7f3d0;
 }
 
+.hub-vibes-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0 1.05rem 1.35rem;
+}
+
+.hub-vibes-about,
+.hub-vibes-scroll-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hub-vibes-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.48rem;
+  margin: 0;
+}
+
+.hub-vibes-fact {
+  display: grid;
+  grid-template-columns: 5.1rem minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: baseline;
+}
+
+.hub-vibes-fact dt {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.hub-vibes-fact dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.hub-vibes-bio {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.94rem;
+  line-height: 1.45;
+}
+
 .hub-vibes-progress,
+.hub-vibes-hint,
 .hub-vibes-keys {
   margin: 0;
   color: var(--text-muted);

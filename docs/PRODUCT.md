@@ -85,7 +85,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 | Strategy | `value` | Auction targets and prices |
 | Draft | `room` | Idle entry + live room. Email and text invite links open here. Members mark **current and future** draft-night times on one calendar (opens 31 days before the first NFL game, closes the day before). Commissioners lock a promising overlap as draft night. |
 | This Week | `week` | Lineup decisions; Hub-only leagues set start/sit here |
-| Vibes | `vibes` | Swipe your roster; personal aura scales the week and suggests a start slate |
+| Vibes | `vibes` | Swipe your roster; scroll the card for hometown, college, and a first-person bio; personal aura scales the week and suggests a start slate |
 | Game center | `game` | Your matchup live, league scoreboard, week trophies |
 | My team | `roster` | Personal contracts |
 | Free agents | `available` | Add / bid / locked by calendar |

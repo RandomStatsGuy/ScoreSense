@@ -11,7 +11,8 @@ import {
 test("vibe copy names the goal and never says Draft Hub or Submit", () => {
   assert.match(VIBE_COPY.heading, /startable/i);
   assert.match(VIBE_COPY.support, /aura/i);
-  assert.doesNotMatch(JSON.stringify(VIBE_COPY), /Draft Hub|Submit|permission/i);
+  assert.match(VIBE_COPY.swipeHint, /scroll/i);
+  assert.doesNotMatch(JSON.stringify(VIBE_COPY), /Draft Hub|Submit|permission|Tinder|Wikipedia/i);
 });
 
 test("empty and done heroes keep consequence copy", () => {

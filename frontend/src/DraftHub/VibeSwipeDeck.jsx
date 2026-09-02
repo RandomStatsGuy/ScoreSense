@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { headshotCandidates, playerInitials, teamLogoUrl } from "./draftMedia";
 import { espnHeadshotUrl, opponentLabel, VIBE_COPY } from "./vibeRankingsPresentation";
 import { auraTone, formatAura, formatPts, readAura, vibeScore } from "./vibeAura";
+import { buildVibeProfile } from "./vibeProfile";
 
 const COMMIT_PX = 88;
+const LOCK_PX = 10;
 const MAX_ROTATE = 14;
 const FLY_MS = 200;
 
@@ -19,6 +21,7 @@ function VibeCardFace({ player, media, aura, overlay }) {
   const logo = teamLogoUrl(player.team);
   const tone = auraTone(aura);
   const vibePts = vibeScore(player, aura);
+  const profile = buildVibeProfile(player, media);
 
   useEffect(() => {
     setShotIndex(0);
@@ -81,6 +84,21 @@ function VibeCardFace({ player, media, aura, overlay }) {
         <div className={`hub-vibes-aura-bar is-${tone}`} aria-hidden="true">
           <i style={{ width: `${aura}%` }} />
         </div>
+        <p className="hub-vibes-scroll-hint">{VIBE_COPY.profileScroll}</p>
+      </div>
+      <div className="hub-vibes-profile">
+        <p className="hub-vibes-about">{VIBE_COPY.profileAbout}</p>
+        {profile.facts.length ? (
+          <dl className="hub-vibes-facts">
+            {profile.facts.map((row) => (
+              <div key={row.id} className="hub-vibes-fact">
+                <dt>{row.label}</dt>
+                <dd>{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+        {profile.bio ? <p className="hub-vibes-bio">{profile.bio}</p> : null}
       </div>
     </>
   );
@@ -119,23 +137,52 @@ export default function VibeSwipeDeck({
   const onPointerDown = (event) => {
     if (disabled || !front || dragRef.current?.locked) return;
     if (event.button != null && event.button !== 0) return;
-    event.preventDefault();
-    event.currentTarget.setPointerCapture?.(event.pointerId);
     dragRef.current = {
       x: event.clientX,
+      y: event.clientY,
       lastX: event.clientX,
+      lastY: event.clientY,
       lastT: event.timeStamp,
       vx: 0,
       dx: 0,
+      axis: null,
+      pointerId: event.pointerId,
+      target: event.currentTarget,
       locked: false,
     };
-    setDrag({ dx: 0, active: true, leaving: null });
   };
 
   const onPointerMove = (event) => {
     const start = dragRef.current;
     if (!start || start.locked) return;
+
+    if (start.axis === "y") {
+      if (event.pointerType !== "touch") {
+        start.target.scrollTop -= event.clientY - start.lastY;
+        start.lastY = event.clientY;
+      }
+      return;
+    }
+
     const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+
+    if (start.axis == null) {
+      if (Math.abs(dx) < LOCK_PX && Math.abs(dy) < LOCK_PX) return;
+      if (Math.abs(dy) > Math.abs(dx)) {
+        start.axis = "y";
+        return;
+      }
+      start.axis = "x";
+      try {
+        start.target.setPointerCapture?.(start.pointerId);
+      } catch {
+        /* already released */
+      }
+    }
+
+    if (start.axis !== "x") return;
+
     const dt = Math.max(1, event.timeStamp - start.lastT);
     start.vx = (event.clientX - start.lastX) / dt;
     start.lastX = event.clientX;
@@ -147,15 +194,22 @@ export default function VibeSwipeDeck({
   const onPointerUp = () => {
     const start = dragRef.current;
     if (!start || start.locked) return;
-    const dx = start.dx;
-    const flick = Math.abs(start.vx) > 0.45 && Math.abs(dx) > 28;
-    if (dx > COMMIT_PX || (flick && dx > 0)) {
-      finish("start", dx);
-      return;
-    }
-    if (dx < -COMMIT_PX || (flick && dx < 0)) {
-      finish("sit", dx);
-      return;
+    if (start.axis === "x") {
+      try {
+        start.target.releasePointerCapture?.(start.pointerId);
+      } catch {
+        /* already released */
+      }
+      const dx = start.dx;
+      const flick = Math.abs(start.vx) > 0.45 && Math.abs(dx) > 28;
+      if (dx > COMMIT_PX || (flick && dx > 0)) {
+        finish("start", dx);
+        return;
+      }
+      if (dx < -COMMIT_PX || (flick && dx < 0)) {
+        finish("sit", dx);
+        return;
+      }
     }
     dragRef.current = null;
     setDrag({ dx: 0, active: false, leaving: null });

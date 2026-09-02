@@ -252,6 +252,13 @@ def players_dataframe(force_refresh: bool = False) -> pd.DataFrame:
                 "depth_chart_position": info.get("depth_chart_position") or "",
                 "search_rank": info.get("search_rank"),
                 "college": info.get("college") or "",
+                "high_school": info.get("high_school") or "",
+                "age": info.get("age"),
+                "birth_date": info.get("birth_date") or "",
+                "birth_city": info.get("birth_city") or "",
+                "birth_state": info.get("birth_state") or "",
+                "height": info.get("height"),
+                "weight": info.get("weight"),
             }
         )
     df = pd.DataFrame(rows)
