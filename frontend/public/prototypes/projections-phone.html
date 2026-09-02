@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ScoreSense · Phone board direction</title>
+  <style>
+    :root {
+      --bg-base: #070d17;
+      --experience-canvas: #09111d;
+      --experience-surface: #101a28;
+      --experience-surface-strong: #142133;
+      --experience-blue: #5b8fe8;
+      --experience-blue-soft: rgba(91, 143, 232, 0.13);
+      --text-primary: #eef3fb;
+      --text-secondary: #a8b5c7;
+      --text-muted: #7f8fa5;
+      --tone-positive: #34d399;
+      --tone-caution-text: #fde68a;
+      --tone-caution-soft: rgba(251, 191, 36, 0.14);
+      --tone-negative: #f87171;
+      --radius-md: 14px;
+      --radius-pill: 999px;
+      --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #02060c; color: var(--text-primary); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    body { min-height: 100vh; display: flex; justify-content: center; padding: 1.25rem 0.75rem 2rem; }
+    .stage { width: 390px; }
+    .kicker { margin: 0 0 0.55rem; color: var(--text-muted); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+    .intro { margin: 0 0 1rem; color: var(--text-secondary); font-size: 0.88rem; line-height: 1.4; }
+    .intro strong { color: var(--text-primary); font-weight: 650; }
+    .phones { display: flex; flex-direction: column; gap: 1.75rem; }
+    .phone {
+      width: 390px;
+      height: 844px;
+      border-radius: 28px;
+      overflow: hidden;
+      background: var(--bg-base);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+      position: relative;
+    }
+    .phone-label {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      z-index: 5;
+      padding: 0.15rem 0.45rem;
+      border-radius: var(--radius-pill);
+      background: rgba(7, 13, 23, 0.72);
+      color: var(--text-muted);
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .status { height: 44px; padding: 14px 22px 0; display: flex; justify-content: space-between; color: var(--text-secondary); font-size: 0.78rem; font-weight: 650; }
+    .app { height: calc(100% - 44px); display: flex; flex-direction: column; }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.2rem 0.95rem 0.45rem;
+    }
+    .header-title { font-size: 1.35rem; font-weight: 700; }
+    .header-title span { color: var(--text-muted); font-size: 0.85rem; margin-left: 0.2rem; }
+    .icon-btn {
+      width: 36px; height: 36px; border: 0; border-radius: 50%;
+      background: var(--experience-surface); color: var(--text-secondary);
+    }
+    .pos {
+      display: flex; gap: 0.35rem; padding: 0 0.95rem 0.45rem;
+    }
+    .pos button, .tabs button, .compare-btn, .bar-btn {
+      border: 0; font: inherit; cursor: default;
+    }
+    .pos button {
+      min-height: 2.15rem; padding: 0 0.85rem; border-radius: var(--radius-pill);
+      background: transparent; color: var(--text-secondary); font-weight: 650; font-size: 0.88rem;
+    }
+    .pos button.is-on { background: var(--experience-blue); color: #fff; }
+    .tabs {
+      display: flex; gap: 0.15rem; margin: 0 0.95rem 0.55rem; padding: 0.2rem;
+      border-radius: 12px; background: rgba(16, 26, 40, 0.9);
+    }
+    .tabs button {
+      flex: 1; min-height: 2rem; border-radius: 10px; background: transparent;
+      color: var(--text-secondary); font-size: 0.78rem; font-weight: 650;
+    }
+    .tabs button.is-on { background: var(--experience-blue-soft); color: var(--text-primary); box-shadow: inset 0 0 0 1px var(--experience-blue); }
+    .badge { margin-left: 0.2rem; color: var(--tone-caution-text); font-size: 0.68rem; }
+    .signals {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.35rem; padding: 0 0.95rem 0.5rem;
+    }
+    .signal {
+      min-width: 0; padding: 0.4rem 0.45rem 0.45rem; border-radius: 10px;
+      background: var(--experience-surface);
+    }
+    .signal b { display: block; color: var(--text-muted); font-size: 0.58rem; letter-spacing: 0.06em; text-transform: uppercase; }
+    .signal strong { display: block; margin-top: 0.18rem; font-size: 0.78rem; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .signal em { display: block; margin-top: 0.08rem; font-style: normal; color: var(--text-secondary); font-size: 0.68rem; font-variant-numeric: tabular-nums; }
+    .signal.is-up em { color: var(--tone-positive); }
+    .signal.is-q em { color: var(--tone-caution-text); }
+    .toolbar {
+      display: flex; align-items: center; gap: 0.45rem; padding: 0 0.95rem 0.4rem;
+    }
+    .search {
+      flex: 1; min-height: 2.25rem; padding: 0 0.75rem; border: 0; border-radius: 12px;
+      background: var(--experience-surface); color: var(--text-muted); font-size: 0.82rem;
+    }
+    .compare-btn {
+      min-height: 2.25rem; padding: 0 0.8rem; border-radius: var(--radius-pill);
+      background: var(--experience-surface); color: var(--text-secondary); font-size: 0.78rem; font-weight: 700;
+    }
+    .compare-btn.is-on { background: var(--experience-blue-soft); color: var(--text-primary); box-shadow: inset 0 0 0 1px var(--experience-blue); }
+    .hint { margin: 0 0.95rem 0.35rem; color: var(--text-secondary); font-size: 0.72rem; }
+    .meta { margin: 0 0.95rem 0.25rem; color: var(--text-muted); font-size: 0.72rem; }
+    .list { flex: 1; overflow: hidden; padding: 0 0.35rem 4.6rem; }
+    .row {
+      display: grid;
+      grid-template-columns: 1.35rem 2rem minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 0.45rem;
+      min-height: 3.15rem;
+      padding: 0.35rem 0.6rem;
+      border-radius: 10px;
+    }
+    .row.is-on { background: var(--experience-blue-soft); box-shadow: inset 3px 0 0 var(--experience-blue); }
+    .rank { color: var(--text-muted); font-size: 0.72rem; font-weight: 700; text-align: center; }
+    .face {
+      width: 2rem; height: 2rem; border-radius: 50%;
+      background: #1b2838; color: #c5d0de; display: grid; place-items: center;
+      font-size: 0.62rem; font-weight: 700;
+    }
+    .who { min-width: 0; }
+    .who b { display: block; font-size: 0.9rem; font-weight: 700; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .who span { display: block; color: var(--text-muted); font-size: 0.68rem; }
+    .q {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 1.05rem; height: 1.05rem; margin-left: 0.25rem; padding: 0 0.28rem;
+      border-radius: 999px; background: var(--tone-caution-soft); color: var(--tone-caution-text);
+      font-size: 0.58rem; font-weight: 800;
+    }
+    .num { text-align: right; }
+    .num b { display: block; font-size: 1.05rem; font-variant-numeric: tabular-nums; line-height: 1.05; }
+    .num span { display: block; color: var(--text-muted); font-size: 0.62rem; font-variant-numeric: tabular-nums; }
+    .num .down { color: var(--tone-negative); }
+    .num .up { color: var(--tone-positive); }
+    .nav {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      height: 3.55rem; padding-bottom: 0.35rem;
+      background: rgba(9, 17, 29, 0.96); border-top: 1px solid rgba(149, 164, 184, 0.12);
+    }
+    .nav span { display: grid; place-items: end center; padding-bottom: 0.45rem; color: var(--text-muted); font-size: 0.62rem; font-weight: 650; }
+    .nav span.is-on { color: var(--experience-blue); box-shadow: inset 0 2px 0 var(--experience-blue); }
+    .dock {
+      position: absolute; left: 0.65rem; right: 0.65rem; bottom: 3.85rem;
+      display: flex; align-items: center; gap: 0.45rem;
+      padding: 0.45rem 0.55rem; border-radius: 14px;
+      background: var(--experience-surface-strong);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+    }
+    .dock p { flex: 1; margin: 0; font-size: 0.75rem; color: var(--text-secondary); }
+    .dock p b { color: var(--text-primary); }
+    .bar-btn {
+      min-height: 2rem; padding: 0 0.75rem; border-radius: var(--radius-pill);
+      background: var(--experience-blue); color: #fff; font-size: 0.75rem; font-weight: 700;
+    }
+    .caption { margin: 0.55rem 0 0; color: var(--text-muted); font-size: 0.78rem; line-height: 1.35; }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <p class="kicker">Phone direction · not shipped</p>
+    <p class="intro">Same board as desktop: <strong>rank, face, name, the number</strong>. Compare lives in the toolbar. The name still opens details.</p>
+
+    <div class="phones">
+      <div>
+        <div class="phone" id="weekly">
+          <span class="phone-label">Weekly</span>
+          <div class="status"><span>9:41</span><span>5G</span></div>
+          <div class="app">
+            <div class="header"><div class="header-title">Weekly <span>▾</span></div><button class="icon-btn" aria-label="Filters">≡</button></div>
+            <div class="pos"><button class="is-on">QB</button><button>RB</button><button>WR/TE</button></div>
+            <div class="tabs"><button class="is-on">Projections</button><button>Injuries <span class="badge">12</span></button><button>Analyst</button></div>
+            <div class="signals">
+              <div class="signal"><b>Top</b><strong>Lamar</strong><em>23.1</em></div>
+              <div class="signal"><b>Floor</b><strong>Stafford</strong><em>14.1</em></div>
+              <div class="signal is-up"><b>Riser</b><strong>Stafford</strong><em>▲5</em></div>
+              <div class="signal is-q"><b>Watch</b><strong>Mahomes</strong><em>Q</em></div>
+            </div>
+            <div class="toolbar">
+              <div class="search">Search the board</div>
+              <button class="compare-btn">Compare</button>
+            </div>
+            <p class="meta">32 · PPR</p>
+            <div class="list">
+              <div class="row"><span class="rank">1</span><span class="face">LJ</span><div class="who"><b>Lamar Jackson</b><span>BAL · IND</span></div><div class="num"><b>23.1</b><span class="down">10.3–32.6</span></div></div>
+              <div class="row"><span class="rank">2</span><span class="face">MS</span><div class="who"><b>Matthew Stafford</b><span>LAR · SF ▲</span></div><div class="num"><b>22.0</b><span class="up">QB7 → QB2</span></div></div>
+              <div class="row"><span class="rank">3</span><span class="face">BM</span><div class="who"><b>Baker Mayfield</b><span>TB · CIN ▲</span></div><div class="num"><b>20.6</b><span>15.8–26.1</span></div></div>
+              <div class="row"><span class="rank">4</span><span class="face">MP</span><div class="who"><b>Michael Penix Jr.</b><span>ATL · PIT</span></div><div class="num"><b>19.0</b><span>12.4–25.8</span></div></div>
+              <div class="row"><span class="rank">5</span><span class="face">JD</span><div class="who"><b>Jaxson Dart</b><span>NYG · DAL ▲</span></div><div class="num"><b>18.7</b><span>11.2–26.4</span></div></div>
+              <div class="row"><span class="rank">6</span><span class="face">JG</span><div class="who"><b>Jared Goff</b><span>DET · NO</span></div><div class="num"><b>18.6</b><span>14.1–23.2</span></div></div>
+              <div class="row"><span class="rank">7</span><span class="face">JA</span><div class="who"><b>Josh Allen</b><span>BUF · HOU ▼</span></div><div class="num"><b>17.9</b><span>11.6–25.0</span></div></div>
+              <div class="row"><span class="rank">8</span><span class="face">PM</span><div class="who"><b>Patrick Mahomes <i class="q">Q</i></b><span>KC · LAC</span></div><div class="num"><b>17.4</b><span>9.8–24.6</span></div></div>
+            </div>
+            <div class="nav"><span class="is-on">Proj</span><span>Fantasy</span><span>Tools</span><span>More</span></div>
+          </div>
+        </div>
+        <p class="caption">Scan six or seven names. The number is the decision. Compare is one control, not a column of boxes.</p>
+      </div>
+
+      <div>
+        <div class="phone" id="compare">
+          <span class="phone-label">Weekly · Compare</span>
+          <div class="status"><span>9:41</span><span>5G</span></div>
+          <div class="app">
+            <div class="header"><div class="header-title">Weekly <span>▾</span></div><button class="icon-btn" aria-label="Filters">≡</button></div>
+            <div class="pos"><button class="is-on">QB</button><button>RB</button><button>WR/TE</button></div>
+            <div class="tabs"><button class="is-on">Projections</button><button>Injuries <span class="badge">12</span></button><button>Analyst</button></div>
+            <div class="signals">
+              <div class="signal"><b>Top</b><strong>Lamar</strong><em>23.1</em></div>
+              <div class="signal"><b>Floor</b><strong>Stafford</strong><em>14.1</em></div>
+              <div class="signal is-up"><b>Riser</b><strong>Stafford</strong><em>▲5</em></div>
+              <div class="signal is-q"><b>Watch</b><strong>Mahomes</strong><em>Q</em></div>
+            </div>
+            <div class="toolbar">
+              <div class="search">Search the board</div>
+              <button class="compare-btn is-on">Done</button>
+            </div>
+            <p class="hint">Tap a row to add them. The name still opens details.</p>
+            <div class="list" style="padding-bottom: 7.4rem;">
+              <div class="row is-on"><span class="rank">1</span><span class="face">LJ</span><div class="who"><b>Lamar Jackson</b><span>BAL · IND</span></div><div class="num"><b>23.1</b><span>10.3–32.6</span></div></div>
+              <div class="row is-on"><span class="rank">2</span><span class="face">MS</span><div class="who"><b>Matthew Stafford</b><span>LAR · SF ▲</span></div><div class="num"><b>22.0</b><span class="up">QB7 → QB2</span></div></div>
+              <div class="row"><span class="rank">3</span><span class="face">BM</span><div class="who"><b>Baker Mayfield</b><span>TB · CIN ▲</span></div><div class="num"><b>20.6</b><span>15.8–26.1</span></div></div>
+              <div class="row"><span class="rank">4</span><span class="face">MP</span><div class="who"><b>Michael Penix Jr.</b><span>ATL · PIT</span></div><div class="num"><b>19.0</b><span>12.4–25.8</span></div></div>
+              <div class="row"><span class="rank">5</span><span class="face">JD</span><div class="who"><b>Jaxson Dart</b><span>NYG · DAL ▲</span></div><div class="num"><b>18.7</b><span>11.2–26.4</span></div></div>
+              <div class="row"><span class="rank">6</span><span class="face">JG</span><div class="who"><b>Jared Goff</b><span>DET · NO</span></div><div class="num"><b>18.6</b><span>14.1–23.2</span></div></div>
+            </div>
+            <div class="dock"><p><b>2 selected</b> · Lamar · Stafford</p><button class="bar-btn">Compare</button></div>
+            <div class="nav"><span class="is-on">Proj</span><span>Fantasy</span><span>Tools</span><span>More</span></div>
+          </div>
+        </div>
+        <p class="caption">Hit Compare, then tap the row. Highlight only. No boxes. The name still opens the inspector.</p>
+      </div>
+
+      <div>
+        <div class="phone" id="season">
+          <span class="phone-label">Season</span>
+          <div class="status"><span>9:41</span><span>5G</span></div>
+          <div class="app">
+            <div class="header"><div class="header-title">Season <span>▾</span></div><button class="icon-btn" aria-label="Filters">≡</button></div>
+            <div class="pos"><button class="is-on">QB</button><button>RB</button><button>WR/TE</button></div>
+            <div class="signals">
+              <div class="signal"><b>Top P50</b><strong>Stafford</strong><em>358</em></div>
+              <div class="signal"><b>Ceiling</b><strong>Allen</strong><em>389</em></div>
+              <div class="signal"><b>Tightest</b><strong>Stafford</strong><em>327–388</em></div>
+              <div class="signal"><b>Method</b><strong>Schedule</strong><em>Byes in</em></div>
+            </div>
+            <div class="toolbar">
+              <div class="search">Search the board</div>
+            </div>
+            <p class="meta">81 · 2026 preseason</p>
+            <div class="list">
+              <div class="row"><span class="rank">1</span><span class="face">MS</span><div class="who"><b>Matthew Stafford</b><span>QB · LAR</span></div><div class="num"><b>358</b><span>21.0 /gm</span></div></div>
+              <div class="row"><span class="rank">2</span><span class="face">JA</span><div class="who"><b>Josh Allen</b><span>QB · BUF</span></div><div class="num"><b>350</b><span>20.6 /gm</span></div></div>
+              <div class="row"><span class="rank">3</span><span class="face">TL</span><div class="who"><b>Trevor Lawrence</b><span>QB · JAX</span></div><div class="num"><b>332</b><span>19.5 /gm</span></div></div>
+              <div class="row"><span class="rank">4</span><span class="face">JG</span><div class="who"><b>Jared Goff</b><span>QB · DET</span></div><div class="num"><b>328</b><span>19.3 /gm</span></div></div>
+              <div class="row"><span class="rank">5</span><span class="face">LJ</span><div class="who"><b>Lamar Jackson</b><span>QB · BAL</span></div><div class="num"><b>324</b><span>19.1 /gm</span></div></div>
+              <div class="row"><span class="rank">6</span><span class="face">JH</span><div class="who"><b>Jalen Hurts</b><span>QB · PHI</span></div><div class="num"><b>319</b><span>18.8 /gm</span></div></div>
+              <div class="row"><span class="rank">7</span><span class="face">JD</span><div class="who"><b>Justin Herbert</b><span>QB · LAC</span></div><div class="num"><b>311</b><span>18.3 /gm</span></div></div>
+              <div class="row"><span class="rank">8</span><span class="face">PM</span><div class="who"><b>Patrick Mahomes</b><span>QB · KC</span></div><div class="num"><b>308</b><span>18.1 /gm</span></div></div>
+            </div>
+            <div class="nav"><span class="is-on">Proj</span><span>Fantasy</span><span>Tools</span><span>More</span></div>
+          </div>
+        </div>
+        <p class="caption">Season uses the same row. Season total is the number. Per-game sits underneath. No extra card chrome.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

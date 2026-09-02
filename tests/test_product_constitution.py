@@ -124,3 +124,5 @@ def test_constitution_covers_weekly_board_chrome() -> None:
         assert "compare" in text.lower()
         assert "compact Q" in text or "compact Q / D / P" in text
         assert "inspector" in text.lower()
+    assert "dense ranking rows" in product
+    assert "checkbox on every card" in product
