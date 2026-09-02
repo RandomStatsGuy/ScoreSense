@@ -1,6 +1,7 @@
 """This-week notes prefer locker-room facts over YouTube scraps."""
 
 from src.draft_hub.player_latest import (
+    build_player_latest,
     compose_latest,
     compose_projection_line,
     compose_this_week,
@@ -61,6 +62,26 @@ def test_real_digest_sentence_is_kept_when_locker_is_quiet():
     )
     assert latest["kind"] == "digest"
     assert "Higgins" in latest["detail"]
+
+
+def test_build_player_latest_reads_unstripped_research_snippet(monkeypatch):
+    useful = (
+        "Higgins is the clear WR1 this week after the Tee Higgins rest rumor cooled off Friday."
+    )
+
+    def fake_get_player_context(player_id, **kwargs):
+        assert kwargs.get("stamp_this_week") is False
+        return {"media_context": {"state": "current", "summary": useful, "excerpt": useful}}
+
+    monkeypatch.setattr(
+        "src.projections.player_context.get_player_context", fake_get_player_context
+    )
+    monkeypatch.setattr(
+        "src.draft_hub.player_latest._sleeper_row", lambda *args, **kwargs: None
+    )
+    out = build_player_latest("wr-higgins", season=2026, week=1)
+    assert out["latest"]["kind"] == "digest"
+    assert "Higgins" in out["latest"]["detail"]
 
 
 def test_this_week_does_not_use_research_snippet_by_default():

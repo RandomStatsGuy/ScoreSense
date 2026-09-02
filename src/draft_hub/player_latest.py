@@ -248,7 +248,9 @@ def build_player_latest(
     try:
         from src.projections.player_context import get_player_context
 
-        context = get_player_context(player_id, season=season, week=week)
+        context = get_player_context(
+            player_id, season=season, week=week, stamp_this_week=False
+        )
     except (FileNotFoundError, ValueError, OSError):
         context = None
     latest = compose_latest(sleeper=sleeper, context=context)

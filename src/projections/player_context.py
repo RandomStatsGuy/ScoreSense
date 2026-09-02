@@ -1035,6 +1035,7 @@ def get_player_context(
     week: int | None = None,
     include_historical: bool = False,
     media_mode: str | None = None,
+    stamp_this_week: bool = True,
 ) -> dict[str, Any]:
     """Serve a single player's full cached context payload (lazy-load detail)."""
     pid = str(player_id or "").strip()
@@ -1054,7 +1055,10 @@ def get_player_context(
         include_historical=include_historical,
         media_mode=mode,
     )
-    payload = attach_this_week(payload, media_mode=mode)
+    # Page views strip current-week YouTube bodies. /latest needs the raw
+    # excerpt so compose_latest can keep a useful research sentence.
+    if stamp_this_week:
+        payload = attach_this_week(payload, media_mode=mode)
     # Ensure detail keys exist even on older v2 artifacts.
     media = payload.get("media_context")
     if isinstance(media, dict):
