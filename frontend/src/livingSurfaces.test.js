@@ -60,6 +60,8 @@ test("login and create account resolve to the session pages", () => {
   assert.equal(privacy.page, "frontend/src/legal/PrivacyPage.jsx");
   const terms = resolveLivingSurfaceFromText("terms of service must name Twilio");
   assert.equal(terms.page, "frontend/src/legal/TermsPage.jsx");
+  const sms = resolveLivingSurfaceFromText("build the SMS opt-in web form");
+  assert.equal(sms.page, "frontend/src/legal/SmsAlertsPage.jsx");
 });
 
 test("shared mobile chrome resolves from the header files", () => {

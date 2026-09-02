@@ -10,6 +10,7 @@ import {
 } from "./AuthPages";
 import AuthSessionPage from "./AuthSessionPage";
 import PrivacyPage from "./legal/PrivacyPage";
+import SmsAlertsPage from "./legal/SmsAlertsPage";
 import TermsPage from "./legal/TermsPage";
 import LobbyJoinPage from "./DraftHub/LobbyJoinPage";
 import { joinLandingPath, joinLandingSearch, withLocationSearch } from "./redirectSearch";
@@ -45,6 +46,7 @@ export default function AppRouter() {
       <Route path="/auth/forgot-password" element={<AuthForgotPasswordPage />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/sms-alerts" element={<SmsAlertsPage />} />
       <Route path="/account" element={<AccountSettingsPage />} />
       <Route path="/projections/weekly" element={<App />} />
       <Route path="/projections/weekly/:panel" element={<App />} />

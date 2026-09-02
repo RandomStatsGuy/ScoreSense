@@ -281,6 +281,14 @@ export const LIVING_SURFACES = Object.freeze({
     copy: "frontend/src/legal/legalPresentation.js",
     doNot: "Standalone legal page. Do not wrap in Fantasy experience chrome.",
   }),
+  "account.sms-alerts": S({
+    label: "Draft alert texts",
+    chrome: "account",
+    page: "frontend/src/legal/SmsAlertsPage.jsx",
+    copy: "frontend/src/legal/legalPresentation.js",
+    also: ["frontend/src/legal/SmsOptInCard.jsx", "frontend/src/AccountSettingsPage.jsx"],
+    doNot: "Public A2P opt-in card. Content first. Do not wrap in Fantasy experience chrome.",
+  }),
 });
 
 /** Longer aliases win so "mock draft" beats "draft". */
@@ -342,6 +350,9 @@ export const SURFACE_ALIASES = Object.freeze({
   privacy: "account.privacy",
   "terms of service": "account.terms",
   terms: "account.terms",
+  "draft alert texts": "account.sms-alerts",
+  "sms opt-in": "account.sms-alerts",
+  "web form opt-in": "account.sms-alerts",
 });
 
 export function getLivingSurface(id) {

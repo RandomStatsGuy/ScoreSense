@@ -19,3 +19,24 @@ export const LEGAL_TERMS = Object.freeze({
   smsBody:
     "Draft alert texts are optional. They are not required to use ScoreSense or to hold a draft seat. If you opt in, you agree to receive SMS from ScoreSense about your league draft (lobby open, 15 minutes before start, and draft is live). Message frequency varies. Message and data rates may apply. Reply STOP to cancel, HELP for help. We send texts through Twilio.",
 });
+
+/** Public / Account opt-in card. Content matches A2P web-form requirements. */
+export const SMS_OPT_IN = Object.freeze({
+  title: "Draft alert texts",
+  support:
+    "Optional texts when your league draft is about to start. Not required to keep your seat.",
+  phoneLabel: "Mobile phone number",
+  phonePlaceholder: "(555) 123-4567",
+  consent:
+    "Yes, I want ScoreSense to send automated texts about my league draft: lobby open, 15 minutes before start, and when the draft goes live. I understand I will receive up to 3 messages per draft. Consent is not required to use ScoreSense or keep a draft seat.",
+  frequency:
+    "Message frequency: up to 3 messages per league draft (lobby open, 15 minutes before start, and draft is live).",
+  rates: "Message and data rates may apply.",
+  helpStop: "Reply HELP for help or STOP to cancel any time.",
+  termsLabel: "Terms of Service",
+  privacyLabel: "Privacy Policy",
+  submit: "Yes, text me",
+  needPhone: "Enter a mobile number.",
+  needConsent: "Check the box to opt in. It starts empty on purpose.",
+  saved: "You will get draft alert texts at this number. Reply STOP to cancel.",
+});
