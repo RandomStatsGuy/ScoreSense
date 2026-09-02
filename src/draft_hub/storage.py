@@ -2793,6 +2793,56 @@ def add_unclaimed_team(league_id: str, name: str, budget: float) -> dict[str, An
         return _team_dict(row) if row else {}
 
 
+def update_league_team_count(league_id: str, team_count: int) -> dict[str, Any] | None:
+    """Set configured seat count. Does not create or delete team rows."""
+    n = int(team_count)
+    if n < 2 or n > 20:
+        raise ValueError("Team count must be between 2 and 20")
+    with get_conn() as conn:
+        conn.execute("UPDATE league SET team_count = ? WHERE id = ?", (n, league_id))
+        row = conn.execute("SELECT * FROM league WHERE id = ?", (league_id,)).fetchone()
+        return _league_dict(row) if row else None
+
+
+def team_has_week_scores(league_id: str, team_id: str) -> bool:
+    with get_conn() as conn:
+        row = conn.execute(
+            """SELECT 1 FROM league_team_week_score
+               WHERE league_id = ? AND team_id = ? LIMIT 1""",
+            (league_id, team_id),
+        ).fetchone()
+        return bool(row)
+
+
+def cancel_open_fa_bids_for_team(league_id: str, team_id: str) -> int:
+    with get_conn() as conn:
+        cur = conn.execute(
+            """UPDATE fa_bid SET status = 'cancelled'
+               WHERE league_id = ? AND team_id = ? AND status = 'open'""",
+            (league_id, team_id),
+        )
+        return int(cur.rowcount or 0)
+
+
+def delete_league_team(league_id: str, team_id: str) -> dict[str, Any]:
+    """Remove a franchise row and its current roster slots. Historic scores stay."""
+    team = get_team(team_id)
+    if not team or str(team.get("league_id")) != str(league_id):
+        raise ValueError("Team not found in this league")
+    league = get_league(league_id)
+    if not league:
+        raise ValueError("League not found")
+    ws = roster_workspace_for_league(league)
+    with get_conn() as conn:
+        conn.execute(
+            "DELETE FROM roster_slot WHERE workspace_id = ? AND team_id = ?",
+            (ws, team_id),
+        )
+        _bump_live_for_workspace_conn(conn, ws)
+        conn.execute("DELETE FROM team WHERE id = ? AND league_id = ?", (team_id, league_id))
+    return {"deleted_team_id": team_id, "league_id": league_id}
+
+
 def assign_team_user(
     team_id: str,
     user_sub: str,

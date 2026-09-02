@@ -9,6 +9,7 @@ Start here. **Product, brand, and design rules live in [PRODUCT.md](./PRODUCT.md
 | [PRODUCT.md](./PRODUCT.md) | Any user-facing feature — names, IA, visual language, copy, chrome |
 | [design.md](./design.md) | Rules Center / Fantasy admin implementation detail |
 | [CONTRACT_SCENARIOS.md](./CONTRACT_SCENARIOS.md) | Contract type, years left, keeper / import cases |
+| [LEAGUE_RESIZE.md](./LEAGUE_RESIZE.md) | Add / remove auction franchises (Members) |
 
 ## Product operations
 

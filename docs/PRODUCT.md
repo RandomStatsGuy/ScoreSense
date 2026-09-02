@@ -104,6 +104,8 @@ Source of truth: `frontend/src/DraftHub/hubOfficeTabs.js`.
 
 Contracts · Salary sheets · Members · Access & imports.
 
+Members is where staff add or remove a franchise before the next auction. Existing contracts stay on their clubs; the new seat starts empty with a full cap.
+
 Chat is **not** a pane here. Chat is `FantasyChatDock` on shared Fantasy pages.
 
 ### Manager labels

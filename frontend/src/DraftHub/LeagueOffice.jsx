@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
-import { HubFilterChip, HubFilterScroll, HubPage } from "./HubUILayout";
+import { HubAlert, HubFilterChip, HubFilterScroll, HubPage } from "./HubUILayout";
 import HubTabIntro from "./HubTabIntro";
 import CommissionerLeagueRosters from "./CommissionerLeagueRosters";
 import TeamSalarySheets from "./TeamSalarySheets";
@@ -10,6 +10,15 @@ import LeagueInvites from "./LeagueInvites";
 import LeagueSleeperConnect from "./LeagueSleeperConnect";
 import CapSheetImport from "./CapSheetImport";
 import { hubTeamLabel } from "./hubTeamLabel";
+import {
+  addFranchiseLabel,
+  addFranchiseSupport,
+  franchiseResizeHint,
+  franchiseSeatSummary,
+  removeFranchiseBlocked,
+  removeFranchiseConfirm,
+  removeFranchiseLabel,
+} from "./leagueAccessCopy";
 import LeagueSheetImport from "./LeagueSheetImport";
 import {
   defaultOfficeTab,
@@ -78,6 +87,8 @@ function SheetsYearGuide({ year }) {
 function OfficeMembers({ leagueId, hubContext, onChanged }) {
   const [teams, setTeams] = useState([]);
   const [commissionerSub, setCommissionerSub] = useState("");
+  const [resize, setResize] = useState(null);
+  const [franchiseName, setFranchiseName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
@@ -93,6 +104,7 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
       const data = await res.json();
       setTeams(data.teams || []);
       setCommissionerSub(data.commissioner_sub || "");
+      setResize(data.resize || null);
     } catch (e) {
       setError(connectionErrorMessage(e));
     } finally {
@@ -106,6 +118,11 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
 
   const claimed = teams.filter((t) => t.user_sub).length;
   const sleeperLinked = teams.filter((t) => t.sleeper_roster_id).length;
+  const addPreview = resize?.add || null;
+  const removals = useMemo(() => {
+    const byId = new Map((resize?.removals || []).map((row) => [String(row.team_id), row]));
+    return byId;
+  }, [resize]);
 
   const toggleCoCommish = async (teamId, enabled) => {
     setBusy(teamId);
@@ -130,6 +147,58 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
     }
   };
 
+  const addFranchise = async (e) => {
+    e.preventDefault();
+    const name = franchiseName.trim();
+    if (!name) return;
+    setBusy("add");
+    setError("");
+    try {
+      const res = await apiFetch(
+        `/api/hub/league/${encodeURIComponent(leagueId)}/franchises`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        },
+      );
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const data = await res.json();
+      setFranchiseName("");
+      setResize(data.resize || null);
+      await load();
+      onChanged?.(data.hub_context);
+    } catch (err) {
+      setError(connectionErrorMessage(err));
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const removeFranchise = async (teamId, teamName) => {
+    const label = teamName || "this franchise";
+    if (!window.confirm(removeFranchiseConfirm(label))) {
+      return;
+    }
+    setBusy(teamId);
+    setError("");
+    try {
+      const res = await apiFetch(
+        `/api/hub/league/${encodeURIComponent(leagueId)}/franchises/${encodeURIComponent(teamId)}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const data = await res.json();
+      setResize(data.resize || null);
+      await load();
+      onChanged?.(data.hub_context);
+    } catch (err) {
+      setError(connectionErrorMessage(err));
+    } finally {
+      setBusy("");
+    }
+  };
+
   return (
     <div className="hub-office-members">
       <header className="hub-section-head">
@@ -142,7 +211,49 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
       <div className="hub-roster-team-stats" aria-label="Membership summary">
         <span><strong>{claimed}</strong> / {teams.length} claimed</span>
         <span><strong>{sleeperLinked}</strong> / {teams.length} Sleeper-linked</span>
+        <span>
+          {franchiseSeatSummary({
+            configured: resize?.team_count,
+            actual: resize?.actual_teams ?? teams.length,
+          })}
+        </span>
       </div>
+
+      <section className="hub-office-franchises" aria-label="Franchises">
+        <header className="hub-section-head">
+          <h3 className="hub-section-title">Franchises</h3>
+          <p className="hub-section-hint">{franchiseResizeHint()}</p>
+        </header>
+        {addPreview?.blocker ? (
+          <HubAlert variant="warn">{addPreview.blocker}</HubAlert>
+        ) : (
+          <p className="chart-note">
+            {addFranchiseSupport({
+              nextCount: addPreview?.next_team_count,
+              cap: addPreview?.salary_cap,
+            })}
+          </p>
+        )}
+        <form className="hub-form-row" onSubmit={addFranchise}>
+          <label>
+            New franchise
+            <input
+              type="text"
+              value={franchiseName}
+              onChange={(e) => setFranchiseName(e.target.value)}
+              maxLength={80}
+              disabled={!addPreview?.ok || busy === "add"}
+            />
+          </label>
+          <button
+            type="submit"
+            className="btn-primary btn-sm"
+            disabled={!addPreview?.ok || !franchiseName.trim() || busy === "add"}
+          >
+            {busy === "add" ? "Adding…" : addFranchiseLabel()}
+          </button>
+        </form>
+      </section>
 
       {error && <div className="error">{error}</div>}
       {loading && <p className="chart-note">Loading members…</p>}
@@ -156,7 +267,7 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
               <th>Sleeper</th>
               <th>Role</th>
               <th>Sync</th>
-              {isPrimary && <th />}
+              <th />
             </tr>
           </thead>
           <tbody>
@@ -167,6 +278,7 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
               const role = isPrimaryTeam
                 ? "Primary"
                 : (t.is_commissioner ? "Co-commish" : "Member");
+              const removal = removals.get(String(t.id));
               return (
                 <tr key={t.id}>
                   <td>{hubTeamLabel(t)}</td>
@@ -182,20 +294,32 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
                       ? new Date(t.sleeper_synced_at).toLocaleString()
                       : "—"}
                   </td>
-                  {isPrimary && (
-                    <td>
-                      {t.user_sub && !isPrimaryTeam && (
-                        <button
-                          type="button"
-                          className="btn-ghost btn-sm"
-                          disabled={busy === t.id}
-                          onClick={() => toggleCoCommish(t.id, !t.is_commissioner)}
-                        >
-                          {t.is_commissioner ? "Remove co-commish" : "Make co-commish"}
-                        </button>
-                      )}
-                    </td>
-                  )}
+                  <td>
+                    {isPrimary && t.user_sub && !isPrimaryTeam && (
+                      <button
+                        type="button"
+                        className="btn-ghost btn-sm"
+                        disabled={busy === t.id}
+                        onClick={() => toggleCoCommish(t.id, !t.is_commissioner)}
+                      >
+                        {t.is_commissioner ? "Remove co-commish" : "Make co-commish"}
+                      </button>
+                    )}
+                    {removal?.ok ? (
+                      <button
+                        type="button"
+                        className="btn-ghost btn-sm"
+                        disabled={busy === t.id}
+                        onClick={() => removeFranchise(t.id, t.name)}
+                      >
+                        {busy === t.id ? "Removing…" : removeFranchiseLabel()}
+                      </button>
+                    ) : (
+                      removal?.blocker && !isPrimaryTeam ? (
+                        <span className="table-meta">{removeFranchiseBlocked(removal.blocker)}</span>
+                      ) : null
+                    )}
+                  </td>
                 </tr>
               );
             })}
