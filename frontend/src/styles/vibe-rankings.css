@@ -38,6 +38,11 @@
   z-index: 3;
 }
 
+.hub-vibes-card.is-front img,
+.hub-vibes-card.is-front * {
+  pointer-events: none;
+}
+
 .hub-vibes-card.is-front.is-dragging {
   cursor: grabbing;
 }
@@ -85,10 +90,11 @@
 .hub-vibes-stamp {
   position: absolute;
   top: 1.15rem;
-  padding: 0.28rem 0.7rem;
-  border: 2px solid currentColor;
+  padding: 0.32rem 0.78rem;
+  border: 3px solid currentColor;
   border-radius: var(--radius-sm);
-  font-size: 1.05rem;
+  background: rgba(9, 17, 29, 0.55);
+  font-size: 1.2rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;

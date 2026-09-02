@@ -3,7 +3,7 @@ import { headshotCandidates, playerInitials, teamLogoUrl } from "./draftMedia";
 import { espnHeadshotUrl, opponentLabel, VIBE_COPY } from "./vibeRankingsPresentation";
 import { auraTone, formatAura, formatPts, readAura, vibeScore } from "./vibeAura";
 
-const COMMIT_PX = 96;
+const COMMIT_PX = 88;
 const MAX_ROTATE = 14;
 const FLY_MS = 200;
 
@@ -103,46 +103,52 @@ export default function VibeSwipeDeck({
   const stacked = players.slice(index, index + 3);
 
   const finish = useCallback((vibe, fromDx) => {
-    if (!front || disabled) return;
+    if (!front || disabled || dragRef.current?.locked) return;
+    if (dragRef.current) dragRef.current.locked = true;
     const dir = vibe === "start" ? 1 : -1;
     const width = wrapRef.current?.offsetWidth || 320;
     setDrag({ dx: fromDx, active: false, leaving: { vibe, x: dir * (width + 80) } });
     if (flyTimer.current) window.clearTimeout(flyTimer.current);
     flyTimer.current = window.setTimeout(() => {
+      dragRef.current = null;
       setDrag({ dx: 0, active: false, leaving: null });
       onSwipe?.(vibe, front);
     }, FLY_MS);
   }, [disabled, front, onSwipe]);
 
   const onPointerDown = (event) => {
-    if (disabled || !front || drag.leaving) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
+    if (disabled || !front || dragRef.current?.locked) return;
+    if (event.button != null && event.button !== 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
     dragRef.current = {
       x: event.clientX,
       lastX: event.clientX,
       lastT: event.timeStamp,
       vx: 0,
+      dx: 0,
+      locked: false,
     };
     setDrag({ dx: 0, active: true, leaving: null });
   };
 
   const onPointerMove = (event) => {
     const start = dragRef.current;
-    if (!start || !drag.active) return;
+    if (!start || start.locked) return;
     const dx = event.clientX - start.x;
     const dt = Math.max(1, event.timeStamp - start.lastT);
     start.vx = (event.clientX - start.lastX) / dt;
     start.lastX = event.clientX;
     start.lastT = event.timeStamp;
+    start.dx = dx;
     setDrag({ dx, active: true, leaving: null });
   };
 
   const onPointerUp = () => {
     const start = dragRef.current;
-    dragRef.current = null;
-    if (!start) return;
-    const dx = drag.dx;
-    const flick = Math.abs(start.vx) > 0.55 && Math.abs(dx) > 36;
+    if (!start || start.locked) return;
+    const dx = start.dx;
+    const flick = Math.abs(start.vx) > 0.45 && Math.abs(dx) > 28;
     if (dx > COMMIT_PX || (flick && dx > 0)) {
       finish("start", dx);
       return;
@@ -151,12 +157,13 @@ export default function VibeSwipeDeck({
       finish("sit", dx);
       return;
     }
+    dragRef.current = null;
     setDrag({ dx: 0, active: false, leaving: null });
   };
 
   useEffect(() => {
     const onKey = (event) => {
-      if (disabled || !front || drag.leaving) return;
+      if (disabled || !front || dragRef.current?.locked) return;
       if (event.key === "ArrowRight") {
         event.preventDefault();
         finish("start", 0);
@@ -170,7 +177,7 @@ export default function VibeSwipeDeck({
       window.removeEventListener("keydown", onKey);
       if (flyTimer.current) window.clearTimeout(flyTimer.current);
     };
-  }, [disabled, drag.leaving, finish, front]);
+  }, [disabled, finish, front]);
 
   if (!front) return null;
 

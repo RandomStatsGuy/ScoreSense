@@ -22,7 +22,6 @@ import {
   saveAura,
   storageKey,
   vibeDivergences,
-  vibeScore,
   vibeStarts,
 } from "./vibeAura";
 import {
@@ -250,7 +249,7 @@ export default function VibeRankings({
             <div key={player.player_id} className="hub-vibes-leader">
               <span className={`hub-vibes-leader-aura hub-vibes-stat--${auraTone(aura)}`}>{formatAura(aura)}</span>
               <span className="hub-vibes-leader-name">{player.player_name}</span>
-              <span className="hub-vibes-leader-pts">{formatPts(vibeScore(player, aura))}</span>
+              <span className="hub-vibes-leader-pts">{VIBE_COPY.auraLabel}</span>
             </div>
           ))}
         </section>
