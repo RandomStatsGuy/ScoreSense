@@ -235,6 +235,13 @@ def test_build_player_context_schema(_load, _save_snap, _sent, _digest, tmp_path
     assert "summary" not in quiet_row["media_context"]
     assert "drivers" not in quiet_row["opportunity_adjustment"]
     assert "projection" not in quiet_row
+    assert quiet_row["this_week"]["kind"] == "practice"
+    assert quiet_row["this_week"]["has_note"] is True
+
+    payload = get_player_context("wr-higgins", season=2026, week=1)
+    assert payload["this_week"]["projection_line"] == "Week is 2.1 above the healthy slate."
+    assert payload["media_context"]["summary"] is None
+    assert payload["media_context"]["excerpt"] is None
 
 
 @patch("app.api.get_player_context")
@@ -292,6 +299,7 @@ def test_player_context_api_shape(mock_get, client):
 def test_player_context_routes_registered():
     paths = {getattr(route, "path", "") for route in app.routes}
     assert "/api/player/{player_id}/context" in paths
+    assert "/api/player/{player_id}/latest" in paths
     assert "/api/players/context" in paths
 
 
@@ -602,9 +610,11 @@ def test_list_compact_omits_heavy_bodies_detail_keeps_them(tmp_path, monkeypatch
 
         detail = get_player_context("wr-higgins", season=2026, week=1)
         assert detail["meta"]["view"] == "detail"
-        assert detail["media_context"]["summary"].startswith("Role trending")
-        assert detail["media_context"]["excerpt"].startswith("Higgins sees")
-        assert len(detail["media_context"]["sources"]) == 2
+        assert detail["media_context"]["summary"] is None
+        assert detail["media_context"]["excerpt"] is None
+        assert detail["media_context"]["sources"] == []
+        assert detail["this_week"]["kind"] == "practice"
+        assert detail["this_week"]["projection_line"] == "Week is 2.1 above the healthy slate."
         assert detail["opportunity_adjustment"]["drivers"] == ["00-0036322"]
         assert detail["projection"]["final"] == 16.8
         assert detail["detail_available"] is True

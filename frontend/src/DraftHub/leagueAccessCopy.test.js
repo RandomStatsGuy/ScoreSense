@@ -19,6 +19,9 @@ import {
   managerClaimExplainer,
   managerClaimLabel,
   managerClaimWhatHappens,
+  managerClaimTextBody,
+  managerClaimCopyTextLabel,
+  managerClaimTextCopied,
   shareableAppUrl,
   draftNightEmpty,
   draftNightHeading,
@@ -115,9 +118,30 @@ test("member email invite is how people join the league", () => {
     "http://127.0.0.1:5173/hub/draft?claim=abc",
   );
   assert.match(managerClaimExplainer(), /text this link/i);
+  assert.match(managerClaimExplainer(), /mark nights/i);
   assert.match(managerClaimWhatHappens(), /claims an open team/i);
+  assert.match(managerClaimWhatHappens(), /mark nights/i);
   assert.match(emailManagersHint(), /member-only/i);
   assert.match(liveDraftMembersOnlyMessage(), /league members/i);
+});
+
+test("claim text is a paste-ready group message", () => {
+  const body = managerClaimTextBody({
+    leagueName: "Sunday Cap",
+    url: "https://app.example.com/hub/draft?claim=abc",
+  });
+  assert.match(body, /Sunday Cap/);
+  assert.match(body, /claim your team/i);
+  assert.match(body, /mark nights that work/i);
+  assert.match(body, /hub\/draft\?claim=abc/);
+  assert.doesNotMatch(body, /Draft Hub|Submit|permission/i);
+  assert.equal(managerClaimCopyTextLabel({}), "Copy text");
+  assert.equal(managerClaimCopyTextLabel({ copied: true }), "Text copied");
+  assert.match(managerClaimTextCopied(), /group text/i);
+  assert.match(
+    managerClaimTextBody({ url: "https://app.example.com/hub/draft?claim=x" }),
+    /the league/,
+  );
 });
 
 test("draft night copy names the lock time", () => {

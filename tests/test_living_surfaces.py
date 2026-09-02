@@ -83,7 +83,7 @@ def test_tools_projections_office_and_account_are_registered() -> None:
         assert f"hub.office.{tab}" in ids, f"missing hub.office.{tab}"
     assert "projections.inspector" in ids
     assert "tools.mock-draft.live" in ids
-    for account in ("model", "admin", "account", "login", "register"):
+    for account in ("model", "admin", "account", "login", "register", "privacy", "terms", "sms-alerts"):
         assert f"account.{account}" in ids
 
 

@@ -104,3 +104,13 @@ def test_constitution_covers_phone_chrome() -> None:
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
     assert "On phone, the header is the current destination" in product
     assert "destination title" in core_rule.lower()
+
+
+def test_constitution_covers_chat_chrome() -> None:
+    product = _read("docs", "PRODUCT.md")
+    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    assert "FantasyChatDock" in product
+    assert "edge launcher" in product
+    assert "centered conversation" in product
+    assert "FantasyChatDock" in core_rule
+    assert "edge launcher" in core_rule

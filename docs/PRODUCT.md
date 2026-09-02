@@ -73,7 +73,8 @@ Do not add a fourth top-level item. Do not rename Fantasy to League.
 **Projections:** Weekly · Season (Preseason outlook / Live season).  
 **Tools:** DFS · Mock draft · Best ball.  
 **Account menu (not top-level):** Model accuracy · Admin · Account.  
-**Account session (not top-level):** Sign in · Create account (`/login`, `/register`). Mobile-first session pages. Google is the lead social option; email is secondary. Do not wrap these in Fantasy experience chrome.
+**Account session (not top-level):** Sign in · Create account (`/login`, `/register`). Mobile-first session pages. Google is the lead social option; email is secondary. Do not wrap these in Fantasy experience chrome.  
+**Public legal (not top-level):** Terms · Privacy · Draft alert texts (`/sms-alerts`). The SMS card is content for A2P consent, not a new product area.
 
 ### Fantasy destinations
 
@@ -108,7 +109,7 @@ Contracts · Salary sheets · Members · Access & imports.
 
 Members is where staff add or remove a franchise before the next auction. Existing contracts stay on their clubs; the new seat starts empty with a full cap.
 
-Chat is **not** a pane here. Chat is `FantasyChatDock` on shared Fantasy pages.
+Chat is **not** a pane here. Chat is `FantasyChatDock` on shared Fantasy pages: a viewport-fixed edge launcher (not locked to the bottom of the page). Opening fills a centered conversation. Closing returns to the launcher. The launcher can be hidden for the session.
 
 ### Manager labels
 
@@ -163,14 +164,15 @@ Weekly and Season projections are a **board**, not a Fantasy decision page.
 
 - Four slate/season signals sit above a full-width ranking table.
 - Injuries and analyst context are disclosures under the board (phone: existing panel tabs).
-- Clicking a player opens the **player inspector**: floor / P50 / ceiling, range read, method, and analyst notes. Desktop is a right-hand drawer; phones keep the bottom sheet.
+- Clicking a player opens the **player inspector**: floor / P50 / ceiling, range read, method, and this-week notes. Desktop is a right-hand drawer; phones keep the bottom sheet.
+- **This-week notes** are one Sleeper locker or practice sentence plus an optional projection-delta line. Do not bake YouTube show descriptions as current-week narrative. Sentiment stays a research candidate until a raw snippet passes the Latest usefulness filter.
 - Copy for signals, board reads, and inspector tiles lives in `frontend/src/projectionsPresentation.js`.
 
 On laptop widths (~1024px), move the summary below the hero or into a compact sticky footer. Do not squeeze the form into multi-line control rows. Do not destroy desktop hierarchy to fake a phone layout.
 
 ### Phone chrome
 
-On phone, the header is the current destination. Destination switching uses one picker, not a scrolling tab strip. Tapping a destination — including the one already open — closes the picker so the page is not left inert. Account lives in More. Do not stack ScoreSense, a context label, section tabs, and page tabs. Filters stay as one icon when the board has filters. Live draft stays board-first.
+On phone, the header is the current destination. Destination switching uses one picker, not a scrolling tab strip. Tapping a destination — including the one already open — closes the picker so the page is not left inert. Account lives in More. Do not stack ScoreSense, a context label, section tabs, and page tabs. Filters stay as one icon when the board has filters. Live draft stays board-first. League chat is an edge launcher, not a header control and not a control locked to the bottom of the page.
 
 ---
 
@@ -211,8 +213,9 @@ Hero pattern: eyebrow (`League rules`) + sentence heading (`Rules everyone can p
 - No sound except live-draft audio, and only as an opt-in.
 - Labels on every field. Errors associated with controls. WCAG AA contrast.
 - Touch targets ≥ 44px where a laptop or phone can tap them (`--touch-target`).
-- Chat: `aria-expanded` / `aria-controls`, Escape closes, focus returns to the trigger.
+- Chat: viewport-fixed edge launcher unless dismissed; opening fills the center of the screen. `aria-expanded` / `aria-controls`, Escape and backdrop close the conversation, focus returns to the launcher.
 - Draft availability shows current and future times only. Commissioners lock a promising overlap as the official night.
+- Transactional SMS (draft alerts) is opt-in only. The checkbox starts empty. Phone lives on the account. SMS is never a league invite. The public opt-in card is `/sms-alerts` (also on Account). Privacy and Terms must name the SMS vendor, say mobile numbers are not shared for marketing, note message frequency, and include “message and data rates may apply.”
 
 ---
 
@@ -251,6 +254,7 @@ Contract-type playbook for imports and keepers: [CONTRACT_SCENARIOS.md](./CONTRA
 | Rules Center layout spec | [design.md](./design.md) |
 | Contract type / years-left cases | [CONTRACT_SCENARIOS.md](./CONTRACT_SCENARIOS.md) |
 | Auth / invites / legal | [ONBOARDING.md](./ONBOARDING.md) |
+| Text invite → claim → draft nights | [INVITE_FLOW.md](./INVITE_FLOW.md) |
 | Hub API and storage | [DRAFT_HUB.md](./DRAFT_HUB.md) |
 | DFS / mock backlog | [LINEUP_ROADMAP.md](./LINEUP_ROADMAP.md) |
 | Tokens | `frontend/src/styles/tokens.css` |

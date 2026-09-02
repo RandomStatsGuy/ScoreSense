@@ -1511,6 +1511,7 @@ export default function App() {
               onOpenContractHistory={nav.openPlayerContractHistory}
               officeTab={nav.officeTab}
               onOfficeTabChange={nav.setOfficeTab}
+              active={view === "hub"}
             />
           </div>
         )}

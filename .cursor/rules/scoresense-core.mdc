@@ -36,7 +36,7 @@ Use these labels. Keep internal ids if they already exist.
 | Roster management | `office` | Office, Commissioner |
 | Model accuracy | `model` | Accuracy tab |
 
-Roster management panes: Contracts, Salary sheets, Members, Access & imports. Members is where staff add or remove a franchise before the next auction. Chat is `FantasyChatDock`, not a pane.
+Roster management panes: Contracts, Salary sheets, Members, Access & imports. Members is where staff add or remove a franchise before the next auction. Chat is `FantasyChatDock`: a viewport-fixed edge launcher that opens a centered conversation. Not a pane.
 
 Source: `frontend/src/DraftHub/HubSubnav.jsx`, `frontend/src/appNavigation.js`.
 
@@ -64,7 +64,9 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Same player photos on mock boards, nominee cards, rails, and rosters.
 - New work reuses destinations, chrome, and tokens. Do not start a new aesthetic.
 - Fantasy lists people by **owner name**. Team nicknames may sit underneath or after a middot. Never show a team nickname as the only identity when an owner is known.
+- This-week player notes are Sleeper locker or practice plus an optional projection delta. Do not bake YouTube show copy as current-week narrative.
 - Draft availability shows current and future times only. Commissioners lock a promising overlap as draft night.
+- Transactional SMS is opt-in only. Phone lives on the account. SMS is never a league invite. Privacy and Terms must name the vendor, non-sharing of mobile numbers, frequency, and “message and data rates may apply.”
 
 ## Docs map
 

@@ -55,6 +55,7 @@ from app.auth import (
     session_user_public,
     sign_oauth_state,
     update_native_profile,
+    update_native_sms_opt_in,
     upsert_google_user,
     user_terms_current,
     verify_email_token,
@@ -336,7 +337,7 @@ def player_latest_get(
     team: Optional[str] = None,
     _user=Depends(require_patron),
 ) -> dict:
-    """One latest note. Locker-room cache first; never 503s when context is cold."""
+    """One this-week note. Locker / practice first; never 503s when context is cold."""
     from fastapi.encoders import jsonable_encoder
     from src.draft_hub.player_latest import build_player_latest
 
@@ -484,6 +485,11 @@ class UpdateProfileRequest(BaseModel):
     display_name: str
 
 
+class SmsOptInRequest(BaseModel):
+    phone: str
+    consent: bool
+
+
 class DeleteAccountRequest(BaseModel):
     password: str = ""
     confirm_email: Optional[str] = None
@@ -578,6 +584,8 @@ def _auth_user_payload(user: dict, auth_type: str = "native") -> dict:
         "terms_version": user.get("terms_version") if auth_type == "native" else None,
         "has_password": user_store.has_usable_password(user) if auth_type == "native" else False,
         "google_linked": bool(user.get("google_sub")) if auth_type == "native" else False,
+        "phone": user.get("phone") if auth_type == "native" else None,
+        "sms_opted_in": bool(user.get("sms_opted_in_at")) if auth_type == "native" else False,
     }
 
 
@@ -759,6 +767,15 @@ def auth_change_password(body: ChangePasswordRequest, request: Request, response
 def auth_update_profile(body: UpdateProfileRequest, request: Request) -> dict:
     _, user_id = _require_native_user(request)
     updated = update_native_profile(user_id, body.display_name)
+    return {"user": _auth_user_payload(updated, "native")}
+
+
+@app.post("/api/auth/sms-opt-in")
+def auth_sms_opt_in(body: SmsOptInRequest, request: Request) -> dict:
+    _, user_id = _require_native_user(request)
+    if not body.consent:
+        raise HTTPException(status_code=400, detail="Check the box to opt in. It starts empty on purpose.")
+    updated = update_native_sms_opt_in(user_id, body.phone)
     return {"user": _auth_user_payload(updated, "native")}
 
 

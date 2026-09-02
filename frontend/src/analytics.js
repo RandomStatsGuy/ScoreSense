@@ -62,6 +62,7 @@ export const SKIP_PATHS = new Set([
 const STANDALONE_TITLES = {
   "/privacy": "Privacy",
   "/terms": "Terms",
+  "/sms-alerts": "Draft alert texts",
   "/account": "Account",
   "/login": "Sign in",
   "/register": "Create account",
@@ -179,7 +180,7 @@ export function pageGroupForPath(pathname) {
   if (root === "admin") return "admin";
   if (root === "account") return "account";
   if (root === "login" || root === "register" || root === "signup") return "auth";
-  if (root === "terms" || root === "privacy") return "legal";
+  if (root === "terms" || root === "privacy" || root === "sms-alerts") return "legal";
   if (root === "auth") return "auth";
   return "other";
 }

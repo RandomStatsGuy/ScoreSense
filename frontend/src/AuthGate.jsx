@@ -13,6 +13,7 @@ import { safeAuthNext } from "./authPresentation";
 const PUBLIC_PATH_PREFIXES = [
   "/terms",
   "/privacy",
+  "/sms-alerts",
   "/auth/",
   "/lobby",
   "/login",

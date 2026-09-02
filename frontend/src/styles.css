@@ -13731,23 +13731,115 @@ td.col-rank.col-rank-top {
   margin: 0;
 }
 
+.hub-experience-page .hub-roster-browser-table-wrap.hub-table-card {
+  padding: 0;
+}
+
+.hub-roster-browser-table-wrap .table-wrap {
+  background: transparent;
+  border: none;
+}
+
+.hub-roster-browser-page .hub-roster-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.hub-roster-browser-page .hub-roster-col-player {
+  width: 24%;
+  min-width: 11rem;
+}
+
+.hub-roster-browser-page .hub-roster-col-pos {
+  width: 3.4rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.hub-roster-browser-page .hub-roster-col-cap,
+.hub-roster-browser-page .hub-roster-col-years,
+.hub-roster-browser-page .hub-roster-col-pts {
+  width: 4.35rem;
+  white-space: nowrap;
+}
+
+.hub-roster-browser-page .hub-roster-col-type {
+  width: 5.75rem;
+  white-space: nowrap;
+}
+
+.hub-roster-browser-page .hub-roster-col-contract {
+  width: 22%;
+}
+
+.hub-roster-browser-page .hub-roster-table .hub-roster-actions {
+  width: 13.25rem;
+}
+
+.hub-roster-browser-page .hub-roster-table th,
+.hub-roster-browser-page .hub-roster-table td {
+  padding: 0.48rem 0.5rem;
+}
+
+.hub-roster-player-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.hub-roster-player-line .player-cell {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.hub-roster-player-line .hub-expire-chip {
+  margin-left: 0;
+  flex: 0 0 auto;
+}
+
+.hub-roster-action-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  white-space: nowrap;
+}
+
 .hub-roster-grade-chip {
   display: inline-block;
-  padding: 0.08rem 0.4rem;
-  border-radius: 4px;
+  max-width: 100%;
+  padding: 0.12rem 0.45rem;
+  border-radius: var(--radius-sm);
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.01em;
-  background: rgba(148, 163, 184, 0.12);
-  white-space: nowrap;
+  line-height: 1.25;
+  background: var(--tone-neutral-soft);
+  white-space: normal;
+}
+
+.hub-roster-grade-chip.hub-value-delta-pos {
+  background: var(--tone-positive-soft);
+  color: var(--tone-positive);
+}
+
+.hub-roster-grade-chip.hub-value-delta-neg {
+  background: var(--tone-negative-soft);
+  color: var(--tone-negative);
+}
+
+.hub-roster-grade-chip.hub-value-delta-fair {
+  background: var(--tone-neutral-soft);
+  color: var(--text-muted);
 }
 
 .hub-roster-browser-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  margin: 0.15rem 0 0.65rem;
+  gap: 0.65rem;
+  margin: 0 0 0.75rem;
 }
 .hub-roster-browser-team {
   display: flex;
@@ -13763,17 +13855,41 @@ td.col-rank.col-rank-top {
 .hub-roster-browser-refresh {
   flex: 0 0 auto;
   align-self: center;
+  margin-left: auto;
   min-height: 2.15rem;
   padding-inline: 0.75rem;
 }
 .hub-roster-team-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 0.85rem;
+  gap: 0.55rem 1rem;
   align-items: center;
   margin: 0 0 0.85rem;
   font-size: 0.85rem;
   color: var(--text-muted);
+}
+.hub-roster-team-stats-facts,
+.hub-roster-team-stats-pos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.hub-roster-team-stats-facts {
+  gap: 0.35rem 0.9rem;
+}
+.hub-roster-team-stats-pos {
+  gap: 0.35rem;
+}
+.hub-roster-pos-spend {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.16rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--tone-neutral-soft);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 .hub-roster-team-stats strong { color: var(--text); font-weight: 600; }
 .hub-value-delta-fair { color: var(--text-muted); font-weight: 500; }
@@ -17699,7 +17815,7 @@ th.sortable-header {
      own share so the cats can stay more present than the drifting bits. */
   --atm-alpha: 0.28;
 }
-.draft-hub > *:not(.hub-atmosphere) {
+.draft-hub > *:not(.hub-atmosphere):not(.fantasy-chat-dock) {
   position: relative;
   z-index: 1;
 }

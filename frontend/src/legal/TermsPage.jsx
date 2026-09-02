@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import StandalonePageShell from "../layout/StandalonePageShell";
 import { PRODUCT_NAME, STUDIO_NAME } from "../brand";
+import { LEGAL_TERMS } from "./legalPresentation";
 
 function LegalShell({ title, children }) {
   return (
@@ -27,7 +28,7 @@ function LegalShell({ title, children }) {
 export default function TermsPage() {
   return (
     <LegalShell title="Terms of Service">
-      <p className="chart-note">Last updated: June 2026</p>
+      <p className="chart-note">Last updated: {LEGAL_TERMS.lastUpdated}</p>
       <section>
         <h2 className="hub-panel-subtitle">1. Service</h2>
         <p>
@@ -52,35 +53,39 @@ export default function TermsPage() {
         </p>
       </section>
       <section>
-        <h2 className="hub-panel-subtitle">4. Acceptable use</h2>
+        <h2 className="hub-panel-subtitle">4. {LEGAL_TERMS.smsTitle}</h2>
+        <p>{LEGAL_TERMS.smsBody}</p>
+      </section>
+      <section>
+        <h2 className="hub-panel-subtitle">5. Acceptable use</h2>
         <p>
           Do not abuse the service, attempt unauthorized access, scrape at scale, or use the app in
           ways that harm other users or our infrastructure.
         </p>
       </section>
       <section>
-        <h2 className="hub-panel-subtitle">5. Disclaimer of warranties</h2>
+        <h2 className="hub-panel-subtitle">6. Disclaimer of warranties</h2>
         <p>
           The service is provided &quot;as is&quot; without warranties of accuracy, uptime, or fitness for a
           particular purpose. Model outputs may be wrong; roster and league data may be incomplete.
         </p>
       </section>
       <section>
-        <h2 className="hub-panel-subtitle">6. Limitation of liability</h2>
+        <h2 className="hub-panel-subtitle">7. Limitation of liability</h2>
         <p>
           To the fullest extent permitted by law, {STUDIO_NAME} is not liable for indirect,
           incidental, or consequential damages arising from use of {PRODUCT_NAME}.
         </p>
       </section>
       <section>
-        <h2 className="hub-panel-subtitle">7. Changes</h2>
+        <h2 className="hub-panel-subtitle">8. Changes</h2>
         <p>
           We may update these terms. Material changes may require you to accept an updated version
           when signing in. Continued use after notice constitutes acceptance where permitted by law.
         </p>
       </section>
       <section>
-        <h2 className="hub-panel-subtitle">8. Contact</h2>
+        <h2 className="hub-panel-subtitle">9. Contact</h2>
         <p>
           Questions: <a href="mailto:fourthdownlabs@gmail.com">fourthdownlabs@gmail.com</a>
         </p>

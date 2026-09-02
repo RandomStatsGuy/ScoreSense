@@ -25,7 +25,10 @@ export const SHARED = Object.freeze({
   primitives: "frontend/src/DraftHub/HubUILayout.jsx",
   media: "frontend/src/DraftHub/HubMediaImg.jsx",
   ownerLabel: "frontend/src/DraftHub/hubTeamLabel.js",
-  chat: "frontend/src/DraftHub/FantasyChatDock.jsx",
+  chat: [
+    "frontend/src/DraftHub/FantasyChatDock.jsx",
+    "frontend/src/DraftHub/fantasyChatPresentation.js",
+  ],
   mobile: [
     "frontend/src/layout/MobileShell.jsx",
     "frontend/src/layout/MobileHeader.jsx",
@@ -142,7 +145,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "office",
     page: "frontend/src/DraftHub/LeagueOffice.jsx",
     also: ["frontend/src/DraftHub/hubOfficeTabs.js"],
-    doNot: "Chat is FantasyChatDock, not an office pane. Do not add a Chat tab.",
+    doNot: "Chat is FantasyChatDock: a viewport-fixed edge launcher that opens a centered conversation. Not an office pane. Do not add a Chat tab.",
   }),
   "hub.office.current": S({
     label: "Contracts",
@@ -240,8 +243,11 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "board",
     page: "frontend/src/PlayerCardModal.jsx",
     copy: "frontend/src/projectionsPresentation.js",
-    also: ["frontend/src/ProjectionExplanationPanel.jsx"],
-    doNot: "Desktop inspector is a right drawer. Do not invent a second player card.",
+    also: [
+      "frontend/src/PlayerContextPanel.jsx",
+      "frontend/src/ProjectionExplanationPanel.jsx",
+    ],
+    doNot: "Desktop inspector is a right drawer. Do not invent a second player card. This-week notes are locker or practice plus an optional projection delta. Do not show YouTube show copy as current week.",
   }),
   "account.model": S({
     label: "Model accuracy",
@@ -277,6 +283,28 @@ export const LIVING_SURFACES = Object.freeze({
     copy: "frontend/src/authPresentation.js",
     also: ["frontend/src/AccountAuth.jsx", "frontend/src/styles/auth-session.css"],
     doNot: "Account-only session page. Do not wrap in Fantasy experience chrome.",
+  }),
+  "account.privacy": S({
+    label: "Privacy",
+    chrome: "account",
+    page: "frontend/src/legal/PrivacyPage.jsx",
+    copy: "frontend/src/legal/legalPresentation.js",
+    doNot: "Standalone legal page. Do not wrap in Fantasy experience chrome.",
+  }),
+  "account.terms": S({
+    label: "Terms",
+    chrome: "account",
+    page: "frontend/src/legal/TermsPage.jsx",
+    copy: "frontend/src/legal/legalPresentation.js",
+    doNot: "Standalone legal page. Do not wrap in Fantasy experience chrome.",
+  }),
+  "account.sms-alerts": S({
+    label: "Draft alert texts",
+    chrome: "account",
+    page: "frontend/src/legal/SmsAlertsPage.jsx",
+    copy: "frontend/src/legal/legalPresentation.js",
+    also: ["frontend/src/legal/SmsOptInCard.jsx", "frontend/src/AccountSettingsPage.jsx"],
+    doNot: "Public A2P opt-in card. Content first. Do not wrap in Fantasy experience chrome.",
   }),
 });
 
@@ -320,6 +348,8 @@ export const SURFACE_ALIASES = Object.freeze({
   "mock draft": "tools.mock-draft",
   "best ball": "tools.best-ball",
   "player inspector": "projections.inspector",
+  "this-week notes": "projections.inspector",
+  "locker note": "projections.inspector",
   "player card": "projections.inspector",
   "model accuracy": "account.model",
   "preseason outlook": "projections.season",
@@ -345,6 +375,13 @@ export const SURFACE_ALIASES = Object.freeze({
   "create account": "account.register",
   register: "account.register",
   signup: "account.register",
+  "privacy policy": "account.privacy",
+  privacy: "account.privacy",
+  "terms of service": "account.terms",
+  terms: "account.terms",
+  "draft alert texts": "account.sms-alerts",
+  "sms opt-in": "account.sms-alerts",
+  "web form opt-in": "account.sms-alerts",
 });
 
 export function getLivingSurface(id) {

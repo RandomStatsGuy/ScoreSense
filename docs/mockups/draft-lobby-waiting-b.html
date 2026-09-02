@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Draft waiting · B War room</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .war-cols { grid-template-columns: minmax(0, 1fr) 340px; }
+  .board-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; }
+  .board-head h3 { font-size: 1.15rem; }
+  .pos { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+  .pos span {
+    padding: 0.18rem 0.5rem; border-radius: var(--radius-pill);
+    border: 1px solid var(--border); font-size: 0.68rem; color: var(--text-secondary);
+  }
+  .pos .on { background: var(--accent); color: #fff; border-color: transparent; }
+  .pool {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; margin-top: 0.75rem;
+  }
+  .pool button {
+    text-align: left; border: 1px solid var(--border); background: var(--bg-subtle);
+    border-radius: 12px; padding: 0.5rem 0.6rem; color: inherit; cursor: pointer;
+  }
+  .pool .nm { font-size: 0.8rem; font-weight: 650; }
+  .pool .meta { font-size: 0.66rem; color: var(--text-muted); }
+  .thin-hero { padding: 1.15rem 1.4rem; }
+  .thin-hero h1 { font-size: 1.35rem; }
+  .presence-compact { margin-top: 0.7rem; }
+  .queue-list li { grid-template-columns: 0.7rem 1.4rem 2.1rem minmax(0, 1fr) auto; }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>B · War room</strong> <span>· queue first · prep during the hour</span></div>
+  <nav class="concept-nav">
+    <a href="draft-lobby-waiting.html">Chooser</a>
+    <a href="draft-lobby-today.html">Today</a>
+    <a href="draft-lobby-waiting-a.html">A · The Hour</a>
+    <a class="is-on" href="draft-lobby-waiting-b.html">B · War room</a>
+    <a href="draft-lobby-waiting-c.html">C · Check-in</a>
+    <a href="draft-alerts-sms.html">SMS &amp; invites</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span class="active">Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+
+  <nav class="mock-subnav">
+    <span class="mock-tab">Strategy</span>
+    <span class="mock-tab active">Draft</span>
+    <span class="mock-tab">This Week</span>
+    <span class="mock-tab">My team</span>
+  </nav>
+
+  <div class="mock-league-strip">
+    <span class="lg-name">Bottom to Top: Dominate Your Panda</span>
+    <span>Lobby open</span>
+    <span class="spacer"></span>
+    <span class="clock-cap" style="margin-right:0.4rem;">Starts in</span>
+    <strong class="clock clock-md">47:12</strong>
+  </div>
+
+  <section class="mock-hero thin-hero">
+    <p class="mock-kicker">Draft lobby · war room</p>
+    <h1>Set the names you’ll throw out.</h1>
+    <p class="support">The hour is for your board. Chat and who’s here stay on the rail. When Chris starts, this queue is what you nominate from.</p>
+    <div class="presence-row presence-compact">
+      <span class="presence-chip is-here is-you"><span class="av" style="background:#1a3358;color:#bcd4ff;">MC</span> You <span class="st"></span></span>
+      <span class="presence-chip is-here"><span class="av" style="background:#173a34;color:#9ff0cf;">CP</span> Chris <span class="st"></span></span>
+      <span class="presence-chip is-here"><span class="av" style="background:#5b2430;color:#ffb8c4;">Sam</span> <span class="st"></span></span>
+      <span class="presence-chip is-late"><span class="av" style="background:#3a2a14;color:#fde68a;">Alex</span> <span class="st"></span></span>
+      <span class="presence-chip"><span class="av" style="background:#121d2d;color:#7f8fa5;">+5 here</span></span>
+    </div>
+  </section>
+
+  <div class="mock-cols war-cols">
+    <main>
+      <section class="card">
+        <div class="board-head">
+          <div>
+            <h3>Your nomination queue</h3>
+            <p class="note">Drag to reorder. Values are the same prices as Strategy.</p>
+          </div>
+          <div class="pos">
+            <span class="on">All</span><span>QB</span><span>RB</span><span>WR</span><span>TE</span>
+          </div>
+        </div>
+        <ol class="queue-list">
+          <li>
+            <span aria-hidden="true" style="color:var(--text-muted);letter-spacing:-0.08em;">⋮⋮</span>
+            <span class="n">1</span>
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11563.jpg" />
+            <div><div class="nm">Ashton Jeanty</div><div class="meta">RB · LV · P50 18.4</div></div>
+            <span class="val">$41</span>
+          </li>
+          <li>
+            <span aria-hidden="true" style="color:var(--text-muted);letter-spacing:-0.08em;">⋮⋮</span>
+            <span class="n">2</span>
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11632.jpg" />
+            <div><div class="nm">Malik Nabers</div><div class="meta">WR · NYG · P50 16.9</div></div>
+            <span class="val">$38</span>
+          </li>
+          <li>
+            <span aria-hidden="true" style="color:var(--text-muted);letter-spacing:-0.08em;">⋮⋮</span>
+            <span class="n">3</span>
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/8155.jpg" />
+            <div><div class="nm">Breece Hall</div><div class="meta">RB · NYJ · P50 16.1</div></div>
+            <span class="val">$36</span>
+          </li>
+          <li>
+            <span aria-hidden="true" style="color:var(--text-muted);letter-spacing:-0.08em;">⋮⋮</span>
+            <span class="n">4</span>
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/9226.jpg" />
+            <div><div class="nm">Puka Nacua</div><div class="meta">WR · LAR · P50 15.8</div></div>
+            <span class="val">$35</span>
+          </li>
+          <li>
+            <span aria-hidden="true" style="color:var(--text-muted);letter-spacing:-0.08em;">⋮⋮</span>
+            <span class="n">5</span>
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11604.jpg" />
+            <div><div class="nm">Brock Bowers</div><div class="meta">TE · LV · P50 13.2</div></div>
+            <span class="val">$28</span>
+          </li>
+        </ol>
+        <p class="note" style="margin-top:0.7rem;">Add from the pool. This list is only yours — the room cannot see it.</p>
+        <div class="pool">
+          <button type="button"><div class="nm">Ja'Marr Chase</div><div class="meta">WR · CIN · $52</div></button>
+          <button type="button"><div class="nm">Jayden Daniels</div><div class="meta">QB · WAS · $24</div></button>
+          <button type="button"><div class="nm">Trey McBride</div><div class="meta">TE · ARI · $22</div></button>
+          <button type="button"><div class="nm">Omarion Hampton</div><div class="meta">RB · LAC · $31</div></button>
+        </div>
+      </section>
+    </main>
+
+    <aside class="mock-rail">
+      <section class="card">
+        <div class="clock-cap">Draft night</div>
+        <div class="clock clock-md" style="margin:0.25rem 0 0.15rem;">47:12</div>
+        <p class="note">Sun 7:00 p.m. ET · 9 of 12 here</p>
+        <button class="btn btn-primary" style="width:100%; margin-top:0.8rem;">Start live draft</button>
+        <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:0.45rem;">Ping the room</button>
+      </section>
+
+      <section class="card">
+        <h3>Room chat</h3>
+        <p class="note">Same league conversation as the dock.</p>
+        <div class="chat-log">
+          <div class="chat-msg">
+            <span class="av" style="background:#5b2430;color:#ffb8c4;">SR</span>
+            <div>
+              <div><span class="who">Sam Ruiz</span><span class="when">6:13</span></div>
+              <p>Jeanty going early, calling it.</p>
+            </div>
+          </div>
+          <div class="chat-msg">
+            <span class="av" style="background:#1a3358;color:#bcd4ff;">MC</span>
+            <div>
+              <div><span class="who">Maya Chen</span><span class="when">6:14</span></div>
+              <p>Queue is set. Food run — back before first nom.</p>
+            </div>
+          </div>
+        </div>
+        <div class="chat-compose">
+          <input placeholder="Message the room" readonly />
+          <button class="btn btn-primary btn-sm">Send</button>
+        </div>
+      </section>
+
+      <section class="sms-card">
+        <h3 style="margin:0 0 0.25rem; font-size:0.95rem;">Text me for this draft</h3>
+        <p class="note">Opt-in. Number links to your account.</p>
+        <label class="consent">
+          <input type="checkbox" />
+          <span>Lobby open, 15-minute warning, and draft start. STOP to quit.</span>
+        </label>
+        <button class="btn btn-ghost btn-sm">Add number</button>
+      </section>
+    </aside>
+  </div>
+
+  <p class="footnote">Concept B — the hour is a private board. Social is secondary. Same T–60 open as A.</p>
+</div>
+</body>
+</html>
