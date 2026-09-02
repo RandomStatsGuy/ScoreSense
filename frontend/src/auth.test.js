@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { apiFetch, clearGuestSession, setGuestSession, setToken } from "./auth.js";
+import { apiFetch, clearGuestSession, loginWithGoogle, setGuestSession, setToken } from "./auth.js";
 
 const mem = {};
 globalThis.localStorage = {
@@ -79,6 +79,41 @@ test("guest token does not match a league id substring in the path", async () =>
   } finally {
     globalThis.fetch = orig;
     clearGuestSession();
+  }
+});
+
+test("loginWithGoogle reads the authorize URL and redirects", async () => {
+  const origFetch = globalThis.fetch;
+  const origWindow = globalThis.window;
+  const loc = { pathname: "/login", search: "", href: "" };
+  globalThis.window = { location: loc };
+  globalThis.fetch = async (url) => {
+    assert.match(String(url), /\/api\/auth\/google\/login\?next=/);
+    return new Response(JSON.stringify({ url: "https://accounts.google.com/o/oauth2/v2/auth?x=1" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  try {
+    await loginWithGoogle("/hub/home");
+    assert.equal(loc.href, "https://accounts.google.com/o/oauth2/v2/auth?x=1");
+  } finally {
+    globalThis.fetch = origFetch;
+    globalThis.window = origWindow;
+  }
+});
+
+test("loginWithGoogle surfaces a 503 detail", async () => {
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(JSON.stringify({ detail: "Google sign-in isn't set up on this server yet." }), {
+      status: 503,
+      headers: { "Content-Type": "application/json" },
+    });
+  try {
+    await assert.rejects(() => loginWithGoogle("/hub/home"), /Google sign-in isn't set up/);
+  } finally {
+    globalThis.fetch = origFetch;
   }
 });
 

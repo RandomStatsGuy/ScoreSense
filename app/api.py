@@ -33,8 +33,12 @@ from app.auth import (
     change_native_password,
     create_access_token,
     delete_native_account,
+    exchange_google_code,
     exchange_patreon_code,
+    fetch_google_identity,
     fetch_patron_identity,
+    google_authorize_url,
+    google_configured,
     hub_auth_enabled,
     native_user_id_from_sub,
     optional_user,
@@ -51,6 +55,7 @@ from app.auth import (
     session_user_public,
     sign_oauth_state,
     update_native_profile,
+    upsert_google_user,
     user_terms_current,
     verify_email_token,
     verify_oauth_state,
@@ -217,6 +222,7 @@ def health() -> dict:
         "version": app.version,
         "auth_required": auth_enabled(),
         "patreon_configured": patreon_configured(),
+        "google_configured": google_configured(),
         "features": {
             "lineup": "/api/lineup/pool" in route_paths,
             "draft": "/api/draft/{position}" in route_paths,
@@ -408,6 +414,7 @@ def auth_config() -> dict:
         "auth_required": auth_enabled(),
         "hub_auth_required": hub_auth_enabled(),
         "patreon_configured": patreon_configured(),
+        "google_configured": google_configured(),
         "accounts_enabled": True,
         "admin_configured": admin_configured(),
         "hub_demo": demo_config(),
@@ -450,7 +457,8 @@ class UpdateProfileRequest(BaseModel):
 
 
 class DeleteAccountRequest(BaseModel):
-    password: str
+    password: str = ""
+    confirm_email: Optional[str] = None
 
 
 def _rate_limit_auth_credentials(request: Request, email: str | None, *, action: str) -> None:
@@ -540,6 +548,8 @@ def _auth_user_payload(user: dict, auth_type: str = "native") -> dict:
         "email_verified": verified,
         "terms_current": terms_current,
         "terms_version": user.get("terms_version") if auth_type == "native" else None,
+        "has_password": user_store.has_usable_password(user) if auth_type == "native" else False,
+        "google_linked": bool(user.get("google_sub")) if auth_type == "native" else False,
     }
 
 
@@ -595,6 +605,36 @@ def patreon_login(next: Optional[str] = None) -> dict:
     return_path = next or "/projections/weekly"
     state = sign_oauth_state(return_path)
     return {"url": patreon_authorize_url(state)}
+
+
+@app.get("/api/auth/google/login")
+def google_login(next: Optional[str] = None) -> dict:
+    if not google_configured():
+        raise HTTPException(status_code=503, detail="Google sign-in isn't set up on this server yet.")
+    return_path = next or "/projections/weekly"
+    state = sign_oauth_state(return_path)
+    return {"url": google_authorize_url(state)}
+
+
+@app.get("/api/auth/google/callback")
+def google_callback(code: str, response: Response, state: Optional[str] = None) -> RedirectResponse:
+    if not google_configured():
+        raise HTTPException(status_code=503, detail="Google sign-in isn't set up on this server yet.")
+    access_token = exchange_google_code(code)
+    identity = fetch_google_identity(access_token)
+    user = upsert_google_user(identity)
+    token = create_access_token(user, auth_type="native")
+    next_path = verify_oauth_state(state)
+    next_q = urllib.parse.quote(next_path, safe="")
+    redirect = RedirectResponse(url=f"{FRONTEND_URL}/auth/callback?token={token}&next={next_q}")
+    redirect.set_cookie(
+        key="scoresense_token",
+        value=token,
+        httponly=True,
+        samesite="lax",
+        max_age=60 * 60 * 24 * 14,
+    )
+    return redirect
 
 
 @app.get("/api/auth/patreon/callback")
@@ -711,7 +751,7 @@ def auth_accept_terms(request: Request) -> dict:
 @app.post("/api/auth/delete-account")
 def auth_delete_account(body: DeleteAccountRequest, request: Request, response: Response) -> dict:
     _, user_id = _require_native_user(request)
-    delete_native_account(user_id, body.password)
+    delete_native_account(user_id, body.password, confirm_email=body.confirm_email)
     response.delete_cookie("scoresense_token")
     return {"status": "deleted", "message": "Your account was deleted. Draft Hub league data may still exist."}
 

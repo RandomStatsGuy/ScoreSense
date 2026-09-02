@@ -242,6 +242,22 @@ export const LIVING_SURFACES = Object.freeze({
     also: ["frontend/src/AccountAuth.jsx"],
     doNot: "Account-only. Do not add Account to top-level nav.",
   }),
+  "account.login": S({
+    label: "Sign in",
+    chrome: "account",
+    page: "frontend/src/AuthSessionPage.jsx",
+    copy: "frontend/src/authPresentation.js",
+    also: ["frontend/src/AccountAuth.jsx", "frontend/src/styles/auth-session.css"],
+    doNot: "Account-only session page. Do not wrap in Fantasy experience chrome.",
+  }),
+  "account.register": S({
+    label: "Create account",
+    chrome: "account",
+    page: "frontend/src/AuthSessionPage.jsx",
+    copy: "frontend/src/authPresentation.js",
+    also: ["frontend/src/AccountAuth.jsx", "frontend/src/styles/auth-session.css"],
+    doNot: "Account-only session page. Do not wrap in Fantasy experience chrome.",
+  }),
 });
 
 /** Longer aliases win so "mock draft" beats "draft". */
@@ -291,6 +307,11 @@ export const SURFACE_ALIASES = Object.freeze({
   lineup: "tools.dfs",
   admin: "account.admin",
   account: "account.account",
+  login: "account.login",
+  "sign in": "account.login",
+  "create account": "account.register",
+  register: "account.register",
+  signup: "account.register",
 });
 
 export function getLivingSurface(id) {

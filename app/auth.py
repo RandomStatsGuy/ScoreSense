@@ -22,6 +22,9 @@ from src.auth.email_flow import send_password_reset_email, send_verification_ema
 from src.config import (
     AUTH_REQUIRED,
     FRONTEND_URL,
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    GOOGLE_REDIRECT_URI,
     HUB_AUTH_REQUIRED,
     JWT_ALGORITHM,
     JWT_DAYS,
@@ -71,6 +74,10 @@ def hub_auth_enabled() -> bool:
 
 def patreon_configured() -> bool:
     return bool(PATREON_CLIENT_ID and PATREON_CLIENT_SECRET)
+
+
+def google_configured() -> bool:
+    return bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
 
 
 def admin_configured() -> bool:
@@ -223,13 +230,23 @@ def accept_native_terms(user_id: str) -> dict[str, Any]:
     return updated
 
 
-def delete_native_account(user_id: str, password: str) -> None:
+def delete_native_account(
+    user_id: str,
+    password: str = "",
+    *,
+    confirm_email: str | None = None,
+) -> None:
     row = user_store.get_user_by_id(user_id)
     if not row:
         raise HTTPException(status_code=404, detail="Account not found")
     full = user_store.get_user_by_email(row["email"])
-    if not full or not _verify_password(password, full["password_hash"]):
-        raise HTTPException(status_code=400, detail="Password is incorrect")
+    if not full:
+        raise HTTPException(status_code=404, detail="Account not found")
+    if user_store.has_usable_password(full):
+        if not _verify_password(password, full["password_hash"]):
+            raise HTTPException(status_code=400, detail="Password is incorrect")
+    elif user_store.normalize_email(confirm_email or "") != full["email"]:
+        raise HTTPException(status_code=400, detail="Type your account email to confirm")
     if not user_store.delete_user(user_id):
         raise HTTPException(status_code=404, detail="Account not found")
 
@@ -313,7 +330,14 @@ def verify_oauth_state(state: str | None) -> str:
 
 def authenticate_native_user(email: str, password: str) -> dict[str, Any]:
     row = user_store.get_user_by_email(email)
-    if not row or not _verify_password(password, row["password_hash"]):
+    if not row:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    if not user_store.has_usable_password(row):
+        raise HTTPException(
+            status_code=401,
+            detail="This account uses Google. Continue with Google, or set a password from Forgot password.",
+        )
+    if not _verify_password(password, row["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     return {
         "id": row["id"],
@@ -379,6 +403,86 @@ def guest_request_allowed(request: Request, user: dict[str, Any]) -> bool:
     if not league_id or match.group(1) != league_id:
         return False
     return (match.group(2) or "") in _GUEST_LEAGUE_RESTS
+
+
+def google_authorize_url(state: str | None = None) -> str:
+    state = state or secrets.token_urlsafe(16)
+    params = {
+        "response_type": "code",
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "scope": "openid email profile",
+        "state": state,
+        "access_type": "online",
+        "include_granted_scopes": "true",
+        "prompt": "select_account",
+    }
+    return f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
+
+
+def exchange_google_code(code: str) -> str:
+    response = requests.post(
+        "https://oauth2.googleapis.com/token",
+        data={
+            "code": code,
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "redirect_uri": GOOGLE_REDIRECT_URI,
+            "grant_type": "authorization_code",
+        },
+        timeout=30,
+    )
+    response.raise_for_status()
+    return response.json()["access_token"]
+
+
+def fetch_google_identity(access_token: str) -> dict[str, Any]:
+    response = requests.get(
+        "https://openidconnect.googleapis.com/v1/userinfo",
+        headers={"Authorization": f"Bearer {access_token}"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    data = response.json() or {}
+    email = str(data.get("email") or "").strip()
+    if not email:
+        raise HTTPException(status_code=400, detail="Google did not return an email address")
+    if data.get("email_verified") is False:
+        raise HTTPException(status_code=400, detail="Verify your Google email, then try again")
+    return {
+        "id": str(data.get("sub") or ""),
+        "email": email,
+        "name": data.get("name") or data.get("given_name") or email.split("@")[0],
+    }
+
+
+def upsert_google_user(identity: dict[str, Any]) -> dict[str, Any]:
+    """Find or create a native account for a verified Google identity."""
+    google_sub = str(identity.get("id") or "").strip()
+    email = str(identity.get("email") or "").strip()
+    if not google_sub:
+        raise HTTPException(status_code=400, detail="Google account is missing an id")
+    existing = user_store.get_user_by_google_sub(google_sub)
+    if existing:
+        return existing
+    by_email = user_store.get_user_by_email(email)
+    if by_email:
+        try:
+            linked = user_store.link_google_sub(by_email["id"], google_sub)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return linked or by_email
+    dummy = _hash_password(secrets.token_urlsafe(24))
+    try:
+        return user_store.create_google_user(
+            email,
+            dummy,
+            identity.get("name") or "",
+            google_sub,
+            terms_version=TERMS_VERSION,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 def patreon_authorize_url(state: str | None = None) -> str:
@@ -582,6 +686,8 @@ def session_user_public(user: dict[str, Any] | None) -> dict[str, Any] | None:
         "account_found": native_row is not None if user.get("auth_type") == "native" else True,
         "terms_current": terms_current,
         "terms_version": terms_version,
+        "has_password": user_store.has_usable_password(native_row) if native_row else False,
+        "google_linked": bool(native_row.get("google_sub")) if native_row else False,
     }
 
 
