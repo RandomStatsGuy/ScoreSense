@@ -4,6 +4,7 @@ import { connectionErrorMessage, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
 import MobileDataList from "../MobileDataList";
 import { hubTeamLabel } from "./hubTeamLabel";
+import { leagueInvitePath } from "../routes";
 import {
   memberInviteExplainer,
   managerClaimCopied,
@@ -351,7 +352,7 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
                   <button
                     type="button"
                     className="btn-ghost btn-sm"
-                    onClick={() => copyLink(`${window.location.origin}/?invite=${inv.token}`)}
+                    onClick={() => copyLink(`${window.location.origin}${leagueInvitePath(inv.token)}`)}
                   >
                     Copy link
                   </button>

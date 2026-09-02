@@ -1,8 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  availabilityBestHeading,
   availabilityChip,
+  availabilityEmptyBest,
   availabilityHeading,
+  availabilityHoursHint,
   availabilitySaveLabel,
   availabilityStateNote,
   availabilitySupport,
@@ -17,6 +20,9 @@ import {
 
 test("availability copy names the calendar consequence", () => {
   assert.equal(availabilityHeading(), "When can you draft?");
+  assert.equal(availabilityBestHeading(), "Nights that already overlap");
+  assert.match(availabilityEmptyBest(), /starting point/i);
+  assert.match(availabilityHoursHint({ canEdit: true }), /Tap the hours/i);
   assert.match(availabilitySupport({ state: "open" }), /same calendar/i);
   assert.match(availabilitySupport({ state: "upcoming" }), /31 days/i);
   assert.match(availabilitySupport({ state: "closed" }), /day before kickoff/i);

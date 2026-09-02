@@ -4,6 +4,7 @@ import { apiFetch } from "./auth";
 import { connectionErrorMessage, parseApiError } from "./format";
 import AccountAuth from "./AccountAuth";
 import { useAuth } from "./AuthContext";
+import { leagueInvitePath } from "./routes";
 
 export default function InviteAccept({ authenticated, user, onAccepted, onDismiss }) {
   const { termsUrl, privacyUrl, patreonConfigured } = useAuth();
@@ -90,13 +91,14 @@ export default function InviteAccept({ authenticated, user, onAccepted, onDismis
         )}
         {!authenticated && preview?.status === "pending" && (
           <AccountAuth
+            compact
             title="Sign in to join your league"
             subtitle={`Sign in with ${preview.email}`}
             defaultEmail={preview.email}
             termsUrl={termsUrl}
             privacyUrl={privacyUrl}
             patreonConfigured={patreonConfigured}
-            patreonNext={`/?invite=${encodeURIComponent(token)}`}
+            patreonNext={leagueInvitePath(token)}
             onAuthed={() => window.dispatchEvent(new Event("scoresense-auth-changed"))}
           />
         )}

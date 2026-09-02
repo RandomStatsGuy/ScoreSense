@@ -37,6 +37,19 @@ export function utcIsoToWall(iso, timeZone) {
   return `${get("year")}-${get("month")}-${get("day")}T${hour}:${get("minute")}`;
 }
 
+export function splitWallDateTime(wall) {
+  const raw = String(wall || "");
+  const [date, time = ""] = raw.split("T");
+  return { date: date || "", time: time.slice(0, 5) };
+}
+
+export function joinWallDateTime(date, time) {
+  const day = String(date || "").trim();
+  const clock = String(time || "").trim().slice(0, 5);
+  if (!day || !clock) return "";
+  return `${day}T${clock}`;
+}
+
 export function formatDraftScheduleLabel(iso, timeZone) {
   if (!iso) return "";
   const d = new Date(iso);

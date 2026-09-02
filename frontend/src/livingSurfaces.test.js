@@ -27,6 +27,10 @@ test("text lookup prefers the longest alias and ignores capture vs cap", () => {
   assert.equal(nominee.page, "frontend/src/DraftHub/DraftRoom.jsx");
   const liveRoom = resolveLivingSurfaceFromText("not the lobby, the live room");
   assert.equal(liveRoom.chrome, "draft-live");
+  const calendar = resolveLivingSurfaceFromText("make the draft calendar more prominent");
+  assert.equal(calendar.page, "frontend/src/DraftHub/DraftLobby.jsx");
+  const invite = resolveLivingSurfaceFromText("league invite lands on draft");
+  assert.equal(invite.label, "Draft");
   assert.equal(resolveLivingSurfaceFromText("Remember to capture this correction"), null);
   const cap = resolveLivingSurfaceFromText("Cap planner overage");
   assert.equal(cap.label, "Cap");
@@ -41,6 +45,17 @@ test("every registered chrome is in the CHROME list", () => {
   for (const row of Object.values(LIVING_SURFACES)) {
     assert.ok(CHROME.includes(row.chrome), row.chrome);
   }
+});
+
+test("login and create account resolve to the session pages", () => {
+  const login = resolveLivingSurfaceFromText("mock up a better login page");
+  assert.equal(login.label, "Sign in");
+  assert.equal(login.page, "frontend/src/AuthSessionPage.jsx");
+  const create = resolveLivingSurfaceFromText("create account page with google auth");
+  assert.equal(create.label, "Create account");
+  assert.equal(create.copy, "frontend/src/authPresentation.js");
+  const signIn = resolveLivingSurfaceFromText("especially the sign in screen on mobile");
+  assert.equal(signIn.label, "Sign in");
 });
 
 test("shared mobile chrome resolves from the header files", () => {

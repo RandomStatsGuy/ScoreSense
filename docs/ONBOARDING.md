@@ -46,7 +46,7 @@ No forced Fantasy redirect.
 
 | Step | Action |
 |------|--------|
-| 1 | Open `/hub/draft?claim={token}` from a text (`/?claim=` still works), or `/?invite={token}` from email |
+| 1 | Open `/hub/draft?invite={token}` from email (`/?invite=` still works), or `/hub/draft?claim={token}` from a text |
 | 2 | Register/sign in (email invites still require the invited address) |
 | 3 | **Claim your team** (or Join league on an email invite) |
 | 4 | **Draft** → mark nights that work when the calendar is open |
@@ -75,7 +75,7 @@ No forced Fantasy redirect.
 3. **Forgot password** — `/auth/forgot-password` or AccountAuth link → reset email → `/auth/reset-password?token=`.
 4. **Account settings** — `/account` while signed in: change password, update display name, resend verification, delete test account (league data may remain).
 5. **Legal pages** — `/terms` and `/privacy` load without login (also reachable from register checkbox).
-6. **Invite + Patreon** — open `/?invite=token` or `/?claim=token`, Patreon login, return to the join modal with the token intact.
+6. **Invite + Patreon** — open `/hub/draft?invite=token` or `/hub/draft?claim=token`, Patreon login, return to the join modal on Draft with the token intact.
 7. **Disclaimers** — visible on projections subtitle, Props, DFS, Best Ball.
 8. **Unverified native user** — projections OK when `AUTH_REQUIRED=false` locally; Hub shows verify banner / blocks API until verified.
 9. **Terms version bump** — set `TERMS_VERSION` on server; native users see re-accept banner until they accept.
@@ -86,6 +86,7 @@ No forced Fantasy redirect.
 See `.env.example` and `deploy/env.production.example`:
 
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_TLS`
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` (optional — Continue with Google)
 - `TERMS_URL`, `PRIVACY_URL` (optional — default to in-app pages via `FRONTEND_URL`)
 - `TERMS_VERSION`
 - `FRONTEND_URL` (must match public app URL for email links)
@@ -103,7 +104,9 @@ See `.env.example` and `deploy/env.production.example`:
 | `POST /api/auth/accept-terms` | Re-accept after `TERMS_VERSION` bump |
 | `POST /api/auth/delete-account` | Delete native login (Hub data may remain) |
 | `GET /api/auth/patreon/login?next=` | OAuth with return path in signed state |
+| `GET /api/auth/google/login?next=` | Google OAuth with return path in signed state |
+| `GET /api/auth/google/callback` | Google OAuth callback → `/auth/callback` |
 
 Register body requires `accept_terms: true`.
 
-Frontend routes: `/terms`, `/privacy`, `/account`, `/auth/forgot-password`, `/auth/reset-password`.
+Frontend routes: `/login`, `/register`, `/signup`, `/terms`, `/privacy`, `/account`, `/auth/forgot-password`, `/auth/reset-password`.

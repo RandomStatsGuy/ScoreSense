@@ -22,7 +22,9 @@ CREATE TABLE IF NOT EXISTS app_user (
     password_hash TEXT NOT NULL,
     display_name TEXT NOT NULL,
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    google_sub TEXT,
+    has_password INTEGER NOT NULL DEFAULT 1
 );
 CREATE INDEX IF NOT EXISTS idx_app_user_email ON app_user(email);
 
@@ -70,6 +72,14 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE app_user ADD COLUMN terms_accepted_at TEXT")
     if not _column_exists(conn, "app_user", "terms_version"):
         conn.execute("ALTER TABLE app_user ADD COLUMN terms_version TEXT")
+    if not _column_exists(conn, "app_user", "google_sub"):
+        conn.execute("ALTER TABLE app_user ADD COLUMN google_sub TEXT")
+    if not _column_exists(conn, "app_user", "has_password"):
+        conn.execute("ALTER TABLE app_user ADD COLUMN has_password INTEGER NOT NULL DEFAULT 1")
+    conn.execute(
+        """CREATE UNIQUE INDEX IF NOT EXISTS idx_app_user_google_sub
+           ON app_user(google_sub) WHERE google_sub IS NOT NULL"""
+    )
     if added_verified_col:
         conn.execute(
             "UPDATE app_user SET email_verified_at = created_at WHERE email_verified_at IS NULL"
@@ -100,6 +110,8 @@ def _user_dict(row: sqlite3.Row) -> dict[str, Any]:
         "email_verified_at": row["email_verified_at"] if "email_verified_at" in row.keys() else None,
         "terms_accepted_at": row["terms_accepted_at"] if "terms_accepted_at" in row.keys() else None,
         "terms_version": row["terms_version"] if "terms_version" in row.keys() else None,
+        "google_sub": row["google_sub"] if "google_sub" in row.keys() else None,
+        "has_password": bool(row["has_password"]) if "has_password" in row.keys() else True,
     }
 
 
@@ -107,6 +119,12 @@ def is_email_verified(user: dict[str, Any] | None) -> bool:
     if not user:
         return False
     return bool(user.get("email_verified_at"))
+
+
+def has_usable_password(user: dict[str, Any] | None) -> bool:
+    if not user:
+        return False
+    return bool(user.get("has_password"))
 
 
 def create_user(
@@ -153,7 +171,7 @@ def update_password(user_id: str, password_hash: str) -> None:
     now = _utcnow()
     with get_conn() as conn:
         conn.execute(
-            "UPDATE app_user SET password_hash = ?, updated_at = ? WHERE id = ?",
+            "UPDATE app_user SET password_hash = ?, has_password = 1, updated_at = ? WHERE id = ?",
             (password_hash, now, user_id),
         )
 
@@ -228,6 +246,92 @@ def consume_email_token(token: str, purpose: str) -> dict[str, Any] | None:
         )
         user = _user_dict(conn.execute("SELECT * FROM app_user WHERE id = ?", (row["user_id"],)).fetchone())
         return user
+
+
+def create_google_user(
+    email: str,
+    password_hash: str,
+    display_name: str,
+    google_sub: str,
+    *,
+    terms_version: str | None = None,
+) -> dict[str, Any]:
+    """Create a Google-linked account. Email is already verified by Google."""
+    validate_email(email)
+    email_norm = normalize_email(email)
+    sub = str(google_sub or "").strip()
+    if not sub:
+        raise ValueError("Google account is missing an id")
+    name = str(display_name or "").strip() or email_norm.split("@")[0]
+    user_id = str(uuid.uuid4())
+    now = _utcnow()
+    terms_ver = terms_version or TERMS_VERSION
+    with get_conn() as conn:
+        try:
+            conn.execute(
+                """INSERT INTO app_user (
+                       id, email, password_hash, display_name,
+                       created_at, updated_at,
+                       email_verified_at, terms_accepted_at, terms_version,
+                       google_sub, has_password
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)""",
+                (user_id, email_norm, password_hash, name, now, now, now, now, terms_ver, sub),
+            )
+        except sqlite3.IntegrityError as exc:
+            raise ValueError("An account with that email already exists") from exc
+        row = conn.execute("SELECT * FROM app_user WHERE id = ?", (user_id,)).fetchone()
+        return _user_dict(row)
+
+
+def link_google_sub(
+    user_id: str,
+    google_sub: str,
+    *,
+    disable_password: bool = False,
+) -> dict[str, Any] | None:
+    sub = str(google_sub or "").strip()
+    if not sub:
+        raise ValueError("Google account is missing an id")
+    now = _utcnow()
+    with get_conn() as conn:
+        try:
+            if disable_password:
+                conn.execute(
+                    """UPDATE app_user
+                       SET google_sub = ?,
+                           email_verified_at = COALESCE(email_verified_at, ?),
+                           password_hash = ?,
+                           has_password = 0,
+                           updated_at = ?
+                       WHERE id = ?""",
+                    (sub, now, secrets.token_urlsafe(32), now, user_id),
+                )
+            else:
+                conn.execute(
+                    """UPDATE app_user
+                       SET google_sub = ?,
+                           email_verified_at = COALESCE(email_verified_at, ?),
+                           updated_at = ?
+                       WHERE id = ?""",
+                    (sub, now, now, user_id),
+                )
+        except sqlite3.IntegrityError as exc:
+            raise ValueError("That Google account is already linked") from exc
+        row = conn.execute("SELECT * FROM app_user WHERE id = ?", (user_id,)).fetchone()
+        return _user_dict(row) if row else None
+
+
+def get_user_by_google_sub(google_sub: str) -> dict[str, Any] | None:
+    sub = str(google_sub or "").strip()
+    if not sub:
+        return None
+    with get_conn() as conn:
+        row = conn.execute("SELECT * FROM app_user WHERE google_sub = ?", (sub,)).fetchone()
+        if not row:
+            return None
+        d = _user_dict(row)
+        d["password_hash"] = row["password_hash"]
+        return d
 
 
 def get_user_by_email(email: str) -> dict[str, Any] | None:

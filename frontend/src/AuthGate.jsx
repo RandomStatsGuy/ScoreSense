@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import {
   fetchAuthConfig,
   fetchMe,
@@ -7,19 +7,27 @@ import {
   logout,
   notifyAuthChanged,
 } from "./auth";
-import AccountAuth from "./AccountAuth";
-import LegalLinks from "./LegalLinks";
 import { AuthContext } from "./AuthContext";
-import { PRODUCT_NAME, STUDIO_NAME } from "./brand";
+import { safeAuthNext } from "./authPresentation";
 
-const PUBLIC_PATH_PREFIXES = ["/terms", "/privacy", "/auth/", "/lobby"];
+const PUBLIC_PATH_PREFIXES = [
+  "/terms",
+  "/privacy",
+  "/auth/",
+  "/lobby",
+  "/login",
+  "/register",
+  "/signup",
+];
 
 function isPublicAuthPath(pathname, search) {
+  if (pathname === "/login" || pathname === "/register" || pathname === "/signup") {
+    return true;
+  }
   if (PUBLIC_PATH_PREFIXES.some((p) => pathname === p || pathname.startsWith(p))) {
     return true;
   }
-  const params = new URLSearchParams(search);
-  if (params.has("invite") || params.has("claim")) {
+  if (new URLSearchParams(search).has("invite")) {
     return true;
   }
   return false;
@@ -27,16 +35,17 @@ function isPublicAuthPath(pathname, search) {
 
 export default function AuthGate({ children }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [authRequired, setAuthRequired] = useState(false);
   const [hubAuthRequired, setHubAuthRequired] = useState(true);
   const [patreonConfigured, setPatreonConfigured] = useState(false);
+  const [googleConfigured, setGoogleConfigured] = useState(false);
   const [termsUrl, setTermsUrl] = useState("");
   const [privacyUrl, setPrivacyUrl] = useState("");
   const [authenticated, setAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
-  const [signInOpen, setSignInOpen] = useState(false);
   const [hubDemo, setHubDemo] = useState({ available: false });
 
   const refreshMe = useCallback(async () => {
@@ -54,6 +63,7 @@ export default function AuthGate({ children }) {
         setAuthRequired(config.auth_required);
         setHubAuthRequired(config.hub_auth_required !== false);
         setPatreonConfigured(config.patreon_configured);
+        setGoogleConfigured(Boolean(config.google_configured));
         setTermsUrl(config.terms_url || "");
         setPrivacyUrl(config.privacy_url || "");
         setHubDemo(config.hub_demo || { available: false });
@@ -74,11 +84,11 @@ export default function AuthGate({ children }) {
     return () => window.removeEventListener("scoresense-auth-changed", onAuthChanged);
   }, [refreshMe]);
 
-  const onAuthed = async () => {
-    setSignInOpen(false);
-    await refreshMe();
-    notifyAuthChanged();
-  };
+  const openSignIn = useCallback((mode = "login") => {
+    const next = `${location.pathname}${location.search}`;
+    const path = mode === "register" ? "/register" : "/login";
+    navigate(`${path}?next=${encodeURIComponent(safeAuthNext(next))}`);
+  }, [location.pathname, location.search, navigate]);
 
   const onLogout = async () => {
     await logout();
@@ -96,14 +106,29 @@ export default function AuthGate({ children }) {
       termsUrl,
       privacyUrl,
       patreonConfigured,
+      googleConfigured,
       hubDemo,
-      signInOpen,
-      openSignIn: () => setSignInOpen(true),
-      closeSignIn: () => setSignInOpen(false),
+      signInOpen: false,
+      openSignIn,
+      closeSignIn: () => {},
       refreshAuth: refreshMe,
       logout: onLogout,
+      error,
     }),
-    [ready, authenticated, user, hubAuthRequired, termsUrl, privacyUrl, patreonConfigured, hubDemo, signInOpen, refreshMe],
+    [
+      ready,
+      authenticated,
+      user,
+      hubAuthRequired,
+      termsUrl,
+      privacyUrl,
+      patreonConfigured,
+      googleConfigured,
+      hubDemo,
+      openSignIn,
+      refreshMe,
+      error,
+    ],
   );
 
   if (!ready) {
@@ -113,49 +138,17 @@ export default function AuthGate({ children }) {
   const allowPublic = isPublicAuthPath(location.pathname, location.search);
 
   if (authRequired && !authenticated && !allowPublic) {
+    const next = `${location.pathname}${location.search}`;
     return (
-      <div className="auth-shell">
-        <AccountAuth
-          onAuthed={onAuthed}
-          title={`Sign in to ${PRODUCT_NAME}`}
-          subtitle="Create a free account, or continue with Patreon."
-          termsUrl={termsUrl}
-          privacyUrl={privacyUrl}
-          patreonConfigured={patreonConfigured}
-        />
-        {error && <div className="error">{error}</div>}
-        <LegalLinks termsUrl={termsUrl} privacyUrl={privacyUrl} className="auth-legal-footer" />
-        <p className="app-studio-credit">
-          {PRODUCT_NAME} · {STUDIO_NAME}
-        </p>
-      </div>
+      <Navigate
+        to={`/login?next=${encodeURIComponent(safeAuthNext(next))}`}
+        replace
+      />
     );
   }
 
   return (
     <AuthContext.Provider value={ctx}>
-      {signInOpen && !authenticated && (
-        <div className="auth-modal-overlay" role="dialog" aria-modal="true" aria-label="Sign in">
-          <div className="auth-modal-card">
-            <button
-              type="button"
-              className="auth-modal-close btn-ghost btn-sm"
-              onClick={() => setSignInOpen(false)}
-              aria-label="Close"
-            >
-              ✕
-            </button>
-            <AccountAuth
-              onAuthed={onAuthed}
-              title={`Sign in to ${PRODUCT_NAME}`}
-              subtitle="Saves league, Sleeper link, and contracts."
-              termsUrl={termsUrl}
-              privacyUrl={privacyUrl}
-              patreonConfigured={patreonConfigured}
-            />
-          </div>
-        </div>
-      )}
       {children}
     </AuthContext.Provider>
   );

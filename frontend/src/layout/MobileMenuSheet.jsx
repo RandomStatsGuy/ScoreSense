@@ -32,16 +32,28 @@ export default function MobileMenuSheet({
     >
       <div className="app-mobile-sheet-list">
         {authReady && !authenticated ? (
-          <button
-            type="button"
-            className="app-mobile-sheet-item app-mobile-sheet-item-action"
-            onClick={() => {
-              onClose();
-              openSignIn();
-            }}
-          >
-            Sign in
-          </button>
+          <>
+            <button
+              type="button"
+              className="app-mobile-sheet-item app-mobile-sheet-item-action"
+              onClick={() => {
+                onClose();
+                openSignIn();
+              }}
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              className="app-mobile-sheet-item"
+              onClick={() => {
+                onClose();
+                openSignIn("register");
+              }}
+            >
+              Create account
+            </button>
+          </>
         ) : null}
         {authReady && authenticated ? (
           <>

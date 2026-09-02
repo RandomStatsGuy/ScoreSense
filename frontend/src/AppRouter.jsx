@@ -8,20 +8,36 @@ import {
   AuthResetPasswordPage,
   AuthVerifyPage,
 } from "./AuthPages";
+import AuthSessionPage from "./AuthSessionPage";
 import PrivacyPage from "./legal/PrivacyPage";
 import TermsPage from "./legal/TermsPage";
 import LobbyJoinPage from "./DraftHub/LobbyJoinPage";
-import { withLocationSearch } from "./redirectSearch";
+import { joinLandingPath, joinLandingSearch, withLocationSearch } from "./redirectSearch";
 
 function RedirectKeepSearch({ to }) {
   const location = useLocation();
   return <Navigate to={withLocationSearch(to, location.search, location.hash)} replace />;
 }
 
+function RootRedirect() {
+  const location = useLocation();
+  const dest = joinLandingPath(location.search);
+  const search = dest === "/hub/draft" ? joinLandingSearch(location.search) : location.search;
+  return (
+    <Navigate
+      to={withLocationSearch(dest, search, location.hash)}
+      replace
+    />
+  );
+}
+
 export default function AppRouter() {
   return (
     <Routes>
-      <Route path="/" element={<RedirectKeepSearch to="/projections/weekly" />} />
+      <Route path="/" element={<RootRedirect />} />
+      <Route path="/login" element={<AuthSessionPage mode="login" />} />
+      <Route path="/register" element={<AuthSessionPage mode="register" />} />
+      <Route path="/signup" element={<RedirectKeepSearch to="/register" />} />
       <Route path="/lobby/:roomCode" element={<LobbyJoinPage />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route path="/auth/verify" element={<AuthVerifyPage />} />
@@ -52,7 +68,7 @@ export default function AppRouter() {
       <Route path="/tools" element={<Navigate to="/tools/dfs" replace />} />
       <Route path="/model" element={<App />} />
       <Route path="/admin/:adminTab?" element={<App />} />
-      <Route path="*" element={<RedirectKeepSearch to="/projections/weekly" />} />
+      <Route path="*" element={<RootRedirect />} />
     </Routes>
   );
 }

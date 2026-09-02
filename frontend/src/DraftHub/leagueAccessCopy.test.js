@@ -20,6 +20,9 @@ import {
   managerClaimLabel,
   managerClaimWhatHappens,
   shareableAppUrl,
+  draftNightEmpty,
+  draftNightHeading,
+  draftNightSupport,
 } from "./leagueAccessCopy.js";
 
 test("league switcher treats create as its own action", () => {
@@ -108,4 +111,11 @@ test("member email invite is how people join the league", () => {
   assert.match(managerClaimWhatHappens(), /claims an open team/i);
   assert.match(emailManagersHint(), /member-only/i);
   assert.match(liveDraftMembersOnlyMessage(), /league members/i);
+});
+
+test("draft night copy names the lock time", () => {
+  assert.equal(draftNightHeading(), "Draft night");
+  assert.equal(draftNightEmpty(), "Not scheduled yet");
+  assert.match(draftNightSupport({ scheduled: false }), /shared calendar/i);
+  assert.match(draftNightSupport({ scheduled: true }), /start earlier/i);
 });

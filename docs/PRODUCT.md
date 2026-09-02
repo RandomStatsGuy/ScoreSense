@@ -71,7 +71,8 @@ Do not add a fourth top-level item. Do not rename Fantasy to League.
 
 **Projections:** Weekly · Season (Preseason outlook / Live season).  
 **Tools:** DFS · Mock draft · Best ball.  
-**Account menu (not top-level):** Model accuracy · Admin · Account.
+**Account menu (not top-level):** Model accuracy · Admin · Account.  
+**Account session (not top-level):** Sign in · Create account (`/login`, `/register`). Mobile-first session pages. Google is the lead social option; email is secondary. Do not wrap these in Fantasy experience chrome.
 
 ### Fantasy destinations
 
@@ -81,7 +82,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 |-------|-------------|---------|
 | Home | `home` | Phase-aware next actions |
 | Strategy | `value` | Auction targets and prices |
-| Draft | `room` | Idle entry + live room. Commissioners text an invite link so managers claim a team. Members mark draft-night availability on one calendar (opens 31 days before the first NFL game, closes the day before). |
+| Draft | `room` | Idle entry + live room. Email and text invite links open here. Members mark draft-night availability on one calendar (opens 31 days before the first NFL game, closes the day before). |
 | This Week | `week` | Lineup decisions; Hub-only leagues set start/sit here |
 | Game center | `game` | Your matchup live, league scoreboard, week trophies |
 | My team | `roster` | Personal contracts |

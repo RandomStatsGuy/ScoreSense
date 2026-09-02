@@ -62,7 +62,13 @@ export const LIVING_SURFACES = Object.freeze({
     label: "Draft",
     chrome: "experience",
     page: "frontend/src/DraftHub/DraftLobby.jsx",
-    also: ["frontend/src/DraftHub/DraftEntryPanel.jsx"],
+    copy: "frontend/src/DraftHub/draftAvailabilityPresentation.js",
+    also: [
+      "frontend/src/DraftHub/DraftEntryPanel.jsx",
+      "frontend/src/DraftHub/DraftAvailability.jsx",
+      "frontend/src/DraftHub/DraftNightSchedule.jsx",
+      "frontend/src/DraftHub/leagueAccessCopy.js",
+    ],
     doNot: "Idle Draft uses experience chrome. Live rooms do not.",
   }),
   "hub.room.live": S({
@@ -242,6 +248,22 @@ export const LIVING_SURFACES = Object.freeze({
     also: ["frontend/src/AccountAuth.jsx"],
     doNot: "Account-only. Do not add Account to top-level nav.",
   }),
+  "account.login": S({
+    label: "Sign in",
+    chrome: "account",
+    page: "frontend/src/AuthSessionPage.jsx",
+    copy: "frontend/src/authPresentation.js",
+    also: ["frontend/src/AccountAuth.jsx", "frontend/src/styles/auth-session.css"],
+    doNot: "Account-only session page. Do not wrap in Fantasy experience chrome.",
+  }),
+  "account.register": S({
+    label: "Create account",
+    chrome: "account",
+    page: "frontend/src/AuthSessionPage.jsx",
+    copy: "frontend/src/authPresentation.js",
+    also: ["frontend/src/AccountAuth.jsx", "frontend/src/styles/auth-session.css"],
+    doNot: "Account-only session page. Do not wrap in Fantasy experience chrome.",
+  }),
 });
 
 /** Longer aliases win so "mock draft" beats "draft". */
@@ -259,6 +281,9 @@ export const SURFACE_ALIASES = Object.freeze({
   "nominee card": "hub.room.live",
   "draft nominee": "hub.room.live",
   "draft lobby": "hub.room",
+  "draft calendar": "hub.room",
+  "draft night": "hub.room",
+  "league invite": "hub.room",
   "this week": "hub.week",
   "command center": "hub.week",
   "game center": "hub.game",
@@ -291,6 +316,11 @@ export const SURFACE_ALIASES = Object.freeze({
   lineup: "tools.dfs",
   admin: "account.admin",
   account: "account.account",
+  login: "account.login",
+  "sign in": "account.login",
+  "create account": "account.register",
+  register: "account.register",
+  signup: "account.register",
 });
 
 export function getLivingSurface(id) {

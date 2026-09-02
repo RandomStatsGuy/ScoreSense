@@ -46,6 +46,24 @@ export function availabilitySaveLabel({ dirty = false, saving = false } = {}) {
   return dirty ? "Save times" : "Times saved";
 }
 
+export function availabilityBestHeading() {
+  return "Nights that already overlap";
+}
+
+export function availabilityEmptyBest() {
+  return "No overlapping nights yet. Mark yours so the room has a starting point.";
+}
+
+export function availabilityHoursHint({ canEdit = false } = {}) {
+  return canEdit
+    ? "Tap the hours you can sit. Save when the night looks right."
+    : "Hours other managers marked for this day.";
+}
+
+export function availabilityLoading() {
+  return "Loading the calendar…";
+}
+
 export function formatHourLabel(hour) {
   const value = Number(hour);
   if (!Number.isFinite(value)) return "";
