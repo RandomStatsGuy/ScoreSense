@@ -6,6 +6,7 @@ export const AuthContext = createContext({
   user: null,
   hubAuthRequired: true,
   patreonConfigured: false,
+  googleConfigured: false,
   termsUrl: "",
   privacyUrl: "",
   openSignIn: () => {},

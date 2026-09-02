@@ -1,27 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { notifyAuthChanged, resetPassword, setToken } from "./auth";
 import AccountAuth from "./AccountAuth";
-import LegalLinks from "./LegalLinks";
-import StandalonePageShell from "./layout/StandalonePageShell";
-import { PRODUCT_NAME, STUDIO_NAME } from "./brand";
-
-function AuthShell({ children, title }) {
-  return (
-    <StandalonePageShell title={title}>
-      <div className="auth-shell auth-shell-page">
-        <div className="panel auth-panel">
-          {!title ? null : <h2 className="auth-panel-title-desktop">{title}</h2>}
-          {children}
-        </div>
-        <LegalLinks className="auth-legal-footer" />
-        <p className="app-studio-credit">
-          {PRODUCT_NAME} · {STUDIO_NAME}
-        </p>
-      </div>
-    </StandalonePageShell>
-  );
-}
+import { AuthSessionChrome } from "./AuthSessionPage";
+import { AUTH_COPY, safeAuthNext } from "./authPresentation";
 
 export function AuthCallbackPage() {
   const navigate = useNavigate();
@@ -33,9 +15,8 @@ export function AuthCallbackPage() {
       setToken(token);
       notifyAuthChanged();
     }
-    const next = params.get("next") || "/projections/weekly";
-    const safeNext = next.startsWith("/") ? next : "/projections/weekly";
-    navigate(safeNext, { replace: true });
+    const next = safeAuthNext(params.get("next"));
+    navigate(next, { replace: true });
   }, [navigate, params]);
 
   return <div className="panel muted">Signing you in…</div>;
@@ -48,7 +29,6 @@ export function AuthVerifyPage() {
   const token = params.get("token");
   const confirming = token && !success && !error;
 
-  // Hooks must run unconditionally on every render (Rules of Hooks).
   useEffect(() => {
     if (confirming) {
       window.location.replace(
@@ -65,38 +45,39 @@ export function AuthVerifyPage() {
 
   if (confirming) {
     return (
-      <AuthShell title="Email verification">
-        <p className="chart-note">Confirming your email…</p>
-      </AuthShell>
+      <AuthSessionChrome
+        eyebrow={AUTH_COPY.verify.eyebrow}
+        heading={AUTH_COPY.verify.heading}
+        support={AUTH_COPY.verify.confirming}
+      >
+        <p className="chart-note">{AUTH_COPY.verify.confirming}</p>
+      </AuthSessionChrome>
     );
   }
 
   return (
-    <AuthShell title={success ? "Email verified" : "Email verification"}>
-      {success && (
-        <p className="chart-note">
-          Your email is verified. You can use your League and all saved features.
-        </p>
-      )}
-      {error && <p className="error">This verification link is invalid or expired.</p>}
-      {!success && !error && (
-        <p className="chart-note">Check your inbox for a verification link.</p>
-      )}
+    <AuthSessionChrome
+      eyebrow={AUTH_COPY.verify.eyebrow}
+      heading={success ? AUTH_COPY.verify.heading : AUTH_COPY.verify.heading}
+      support={success ? AUTH_COPY.verify.success : error ? AUTH_COPY.verify.error : AUTH_COPY.verify.waiting}
+    >
+      {error ? <p className="error">{AUTH_COPY.verify.error}</p> : null}
       <p className="hub-toolbar">
-        <a className="btn-primary btn-sm" href="/hub/home">
-          Open League
-        </a>
-        <a className="btn-ghost btn-sm" href="/projections/weekly">
-          Browse projections
-        </a>
+        <Link className="btn-primary account-auth-submit" to="/hub/home">
+          {AUTH_COPY.verify.openFantasy}
+        </Link>
+        <Link className="btn-ghost account-auth-patreon" to="/projections/weekly">
+          {AUTH_COPY.verify.browse}
+        </Link>
       </p>
-    </AuthShell>
+    </AuthSessionChrome>
   );
 }
 
 export function AuthResetPasswordPage() {
   const [params] = useSearchParams();
   const token = params.get("token") || "";
+  const next = safeAuthNext(params.get("next"), "/login");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -123,25 +104,35 @@ export function AuthResetPasswordPage() {
 
   if (!token) {
     return (
-      <AuthShell title="Reset password">
-        <p className="error">Missing reset token. Request a new link from the sign-in page.</p>
-      </AuthShell>
+      <AuthSessionChrome
+        eyebrow={AUTH_COPY.reset.eyebrow}
+        heading={AUTH_COPY.reset.heading}
+        support={AUTH_COPY.reset.missing}
+        backTo="/login"
+      >
+        <p className="error">{AUTH_COPY.reset.missing}</p>
+        <Link className="btn-primary account-auth-submit" to="/login">
+          {AUTH_COPY.login.submit}
+        </Link>
+      </AuthSessionChrome>
     );
   }
 
   return (
-    <AuthShell title={done ? "Password updated" : "Choose a new password"}>
+    <AuthSessionChrome
+      eyebrow={AUTH_COPY.reset.eyebrow}
+      heading={done ? AUTH_COPY.login.heading : AUTH_COPY.reset.heading}
+      support={done ? AUTH_COPY.reset.done : AUTH_COPY.reset.support}
+      backTo="/login"
+    >
       {done ? (
-        <>
-          <p className="chart-note">Your password was updated. Sign in to continue.</p>
-          <a className="btn-primary" href="/projections/weekly">
-            Sign in
-          </a>
-        </>
+        <Link className="btn-primary account-auth-submit" to={next.startsWith("/login") ? next : "/login"}>
+          {AUTH_COPY.login.submit}
+        </Link>
       ) : (
         <form className="account-auth-form" onSubmit={submit}>
           <label>
-            <span className="hub-field-label">New password</span>
+            <span className="hub-field-label">{AUTH_COPY.newPassword}</span>
             <input
               type="password"
               value={password}
@@ -152,7 +143,7 @@ export function AuthResetPasswordPage() {
             />
           </label>
           <label>
-            <span className="hub-field-label">Confirm password</span>
+            <span className="hub-field-label">{AUTH_COPY.confirmPassword}</span>
             <input
               type="password"
               value={confirm}
@@ -162,20 +153,34 @@ export function AuthResetPasswordPage() {
               autoComplete="new-password"
             />
           </label>
-          <button type="submit" className="btn-primary" disabled={busy}>
-            {busy ? "Saving…" : "Update password"}
+          <button type="submit" className="btn-primary account-auth-submit" disabled={busy}>
+            {busy ? AUTH_COPY.reset.submitBusy : AUTH_COPY.reset.submit}
           </button>
           {error && <div className="error">{error}</div>}
         </form>
       )}
-    </AuthShell>
+    </AuthSessionChrome>
   );
 }
 
 export function AuthForgotPasswordPage() {
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const next = safeAuthNext(params.get("next"), "/login");
+  const loginHref = `/login?next=${encodeURIComponent(next)}`;
   return (
-    <AuthShell title="Reset password">
-      <AccountAuth mode="forgot" title="" subtitle="" />
-    </AuthShell>
+    <AuthSessionChrome
+      eyebrow={AUTH_COPY.forgot.eyebrow}
+      heading={AUTH_COPY.forgot.heading}
+      support={AUTH_COPY.forgot.support}
+      backTo={loginHref}
+    >
+      <AccountAuth
+        layout="session"
+        mode="forgot"
+        nextPath={next}
+        onForgotPassword={() => navigate(loginHref)}
+      />
+    </AuthSessionChrome>
   );
 }

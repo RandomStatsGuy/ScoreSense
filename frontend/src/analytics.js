@@ -46,6 +46,7 @@ export const KEEP_QUERY_KEYS = new Set([
 export const SKIP_PATHS = new Set([
   "/",
   "/auth/callback",
+  "/signup",
   "/hub",
   "/hub/office",
   "/hub/insights",
@@ -62,6 +63,9 @@ const STANDALONE_TITLES = {
   "/privacy": "Privacy",
   "/terms": "Terms",
   "/account": "Account",
+  "/login": "Sign in",
+  "/register": "Create account",
+  "/signup": "Create account",
   "/auth/verify": "Auth · Verify email",
   "/auth/reset-password": "Auth · Reset password",
   "/auth/forgot-password": "Auth · Forgot password",
@@ -172,6 +176,7 @@ export function pageGroupForPath(pathname) {
   if (root === "model") return "model";
   if (root === "admin") return "admin";
   if (root === "account") return "account";
+  if (root === "login" || root === "register" || root === "signup") return "auth";
   if (root === "terms" || root === "privacy") return "legal";
   if (root === "auth") return "auth";
   return "other";

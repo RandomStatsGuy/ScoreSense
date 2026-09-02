@@ -63,7 +63,9 @@ docker compose exec api python -m src.jobs.weekly_refresh --no-retrain
 | **Local Docker (dev-like)** | `docker compose -f deploy/docker-compose.yml up -d` (bind-mounts source for hot reload) |
 | **Same machine** | Port 8000; point domain to server |
 
-Use HTTPS in production so Patreon OAuth and JWT cookies are secure.
+Use HTTPS in production so Patreon / Google OAuth and JWT cookies are secure.
+
+Google sign-in (optional): create an OAuth client in Google Cloud, set redirect URI to `https://yourdomain.com/api/auth/google/callback`, and add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI` to server `.env`.
 
 ## 5. Subscriber flow
 
@@ -78,6 +80,7 @@ Use HTTPS in production so Patreon OAuth and JWT cookies are secure.
 |----------|-------------|
 | `GET /api/ros/{position}` | Season + rest-of-season projections |
 | `GET /api/auth/patreon/login` | Start Patreon OAuth |
+| `GET /api/auth/google/login` | Start Google OAuth |
 | `GET /api/auth/me` | Current session |
 | `POST /api/auth/logout` | Clear session |
 

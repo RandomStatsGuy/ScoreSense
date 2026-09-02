@@ -56,6 +56,12 @@ PATREON_REDIRECT_URI = os.getenv(
     "PATREON_REDIRECT_URI",
     "http://127.0.0.1:8000/api/auth/patreon/callback",
 )
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_REDIRECT_URI = os.getenv(
+    "GOOGLE_REDIRECT_URI",
+    "http://127.0.0.1:8000/api/auth/google/callback",
+)
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 PATREON_CAMPAIGN_ID = os.getenv("PATREON_CAMPAIGN_ID", "")
 JWT_SECRET = _resolve_jwt_secret()

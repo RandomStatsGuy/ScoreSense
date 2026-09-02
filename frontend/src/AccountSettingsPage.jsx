@@ -27,9 +27,11 @@ import {
 } from "./DraftHub/atmosphereCatalog";
 
 export default function AccountSettingsPage() {
-  const { ready, authenticated, user, termsUrl, privacyUrl, refreshAuth, openSignIn } = useAuth();
+  const { ready, authenticated, user, termsUrl, privacyUrl, refreshAuth } = useAuth();
   const navigate = useNavigate();
   const isNative = user?.auth_type === "native";
+  const hasPassword = user?.has_password !== false && isNative;
+  const googleLinked = Boolean(user?.google_linked);
 
   const [displayName, setDisplayName] = useState("");
   const [profileBusy, setProfileBusy] = useState(false);
@@ -44,6 +46,7 @@ export default function AccountSettingsPage() {
   const [pwErr, setPwErr] = useState("");
 
   const [deletePassword, setDeletePassword] = useState("");
+  const [deleteEmail, setDeleteEmail] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteErr, setDeleteErr] = useState("");
@@ -117,9 +120,12 @@ export default function AccountSettingsPage() {
           <div className="panel auth-panel">
             <h2 className="auth-panel-title-desktop">Account settings</h2>
             <p className="chart-note">Sign in to manage your account.</p>
-            <button type="button" className="btn-primary" onClick={openSignIn}>
+            <Link className="btn-primary" to="/login?next=/account">
               Sign in
-            </button>
+            </Link>
+            <p className="chart-note">
+              <Link to="/register?next=/account">Create account</Link>
+            </p>
           </div>
         </div>
       </StandalonePageShell>
@@ -178,7 +184,10 @@ export default function AccountSettingsPage() {
     setDeleteBusy(true);
     setDeleteErr("");
     try {
-      await deleteAccount({ password: deletePassword });
+      await deleteAccount({
+        password: hasPassword ? deletePassword : "",
+        confirmEmail: hasPassword ? undefined : deleteEmail,
+      });
       await logout();
       notifyAuthChanged();
       navigate("/projections/weekly", { replace: true });
@@ -196,7 +205,12 @@ export default function AccountSettingsPage() {
         <div className="panel auth-panel account-settings-panel">
           <h2 className="auth-panel-title-desktop">Account settings</h2>
         <p className="chart-note">
-          {isNative ? "Email account" : "Patreon account"} · {user?.email || user?.name}
+          {isNative
+            ? googleLinked
+              ? "Google account"
+              : "Email account"
+            : "Patreon account"}{" "}
+          · {user?.email || user?.name}
         </p>
 
         <VerifyEmailBanner user={user} onVerified={refreshAuth} />
@@ -305,7 +319,7 @@ export default function AccountSettingsPage() {
 
         <section className="account-settings-section">
           <h3 className="hub-panel-subtitle">Security</h3>
-          {isNative ? (
+          {isNative && hasPassword ? (
             <form className="account-auth-form" onSubmit={submitPassword}>
               <label>
                 <span className="hub-field-label">Current password</span>
@@ -345,6 +359,11 @@ export default function AccountSettingsPage() {
               {pwMsg && <p className="chart-note">{pwMsg}</p>}
               {pwErr && <div className="error">{pwErr}</div>}
             </form>
+          ) : isNative ? (
+            <p className="chart-note">
+              Signed in with Google. Set a password from Forgot password if you also want email
+              sign-in.
+            </p>
           ) : (
             <p className="chart-note">Password is managed by Patreon.</p>
           )}
@@ -374,16 +393,29 @@ export default function AccountSettingsPage() {
                 still exist until manually cleaned up.
               </p>
               <form className="account-auth-form" onSubmit={submitDelete}>
-                <label>
-                  <span className="hub-field-label">Password</span>
-                  <input
-                    type="password"
-                    value={deletePassword}
-                    onChange={(e) => setDeletePassword(e.target.value)}
-                    autoComplete="current-password"
-                    required
-                  />
-                </label>
+                {hasPassword ? (
+                  <label>
+                    <span className="hub-field-label">Password</span>
+                    <input
+                      type="password"
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                      autoComplete="current-password"
+                      required
+                    />
+                  </label>
+                ) : (
+                  <label>
+                    <span className="hub-field-label">Type your account email</span>
+                    <input
+                      type="email"
+                      value={deleteEmail}
+                      onChange={(e) => setDeleteEmail(e.target.value)}
+                      autoComplete="email"
+                      required
+                    />
+                  </label>
+                )}
                 <label className="legal-terms-checkbox hub-toggle-row">
                   <input
                     type="checkbox"

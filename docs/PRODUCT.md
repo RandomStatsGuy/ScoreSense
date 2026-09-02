@@ -71,7 +71,8 @@ Do not add a fourth top-level item. Do not rename Fantasy to League.
 
 **Projections:** Weekly · Season (Preseason outlook / Live season).  
 **Tools:** DFS · Mock draft · Best ball.  
-**Account menu (not top-level):** Model accuracy · Admin · Account.
+**Account menu (not top-level):** Model accuracy · Admin · Account.  
+**Account session (not top-level):** Sign in · Create account (`/login`, `/register`). Mobile-first session pages. Google is the lead social option; email is secondary. Do not wrap these in Fantasy experience chrome.
 
 ### Fantasy destinations
 

@@ -91,6 +91,7 @@ export default function InviteAccept({ authenticated, user, onAccepted, onDismis
         )}
         {!authenticated && preview?.status === "pending" && (
           <AccountAuth
+            compact
             title="Sign in to join your league"
             subtitle={`Sign in with ${preview.email}`}
             defaultEmail={preview.email}
