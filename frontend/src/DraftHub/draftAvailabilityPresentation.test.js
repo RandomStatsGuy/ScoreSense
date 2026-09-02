@@ -24,6 +24,7 @@ import {
   slotsEqual,
   visibleHoursForDate,
   wallToSlot,
+  availabilityTimezone,
 } from "./draftAvailabilityPresentation.js";
 
 test("availability copy names the calendar consequence", () => {
@@ -86,5 +87,8 @@ test("calendar keeps only current and future hours", () => {
   assert.equal(preferDateStrip(Array.from({ length: 20 }, (_, i) => `2026-08-${String(i + 10).padStart(2, "0")}`)), false);
   assert.equal(slotToWall("2026-09-02", 19), "2026-09-02T19:00");
   assert.deepEqual(wallToSlot("2026-09-02T19:00"), { date: "2026-09-02", hour: 19 });
+  assert.equal(availabilityTimezone(""), "America/New_York");
+  assert.equal(availabilityTimezone(null), "America/New_York");
+  assert.equal(availabilityTimezone("America/Los_Angeles"), "America/Los_Angeles");
   assert.match(calendarTodayIso(new Date("2026-09-02T20:00:00Z"), "UTC"), /2026-09-02/);
 });

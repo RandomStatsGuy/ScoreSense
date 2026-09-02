@@ -222,6 +222,13 @@ export function calendarTodayIso(now = new Date(), timeZone) {
   return year && month && day ? `${year}-${month}-${day}` : "";
 }
 
+export const AVAILABILITY_TIMEZONE = "America/New_York";
+
+export function availabilityTimezone(name) {
+  const tz = String(name || "").trim();
+  return tz || AVAILABILITY_TIMEZONE;
+}
+
 export function slotToWall(date, hour) {
   const day = String(date || "").slice(0, 10);
   const clock = Number(hour);

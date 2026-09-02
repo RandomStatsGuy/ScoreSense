@@ -4,14 +4,13 @@ import { parseApiError } from "../format";
 import Button from "../ui/Button";
 import {
   DRAFT_TZ_OPTIONS,
-  browserTimeZone,
   draftFormatLabel,
   formatDraftScheduleLabel,
   formatDraftWait,
   isPickDraft,
   utcIsoToWall,
 } from "./draftEntryStatus";
-import { calendarTodayIso, slotToWall, wallToSlot } from "./draftAvailabilityPresentation";
+import { availabilityTimezone, calendarTodayIso, slotToWall, wallToSlot } from "./draftAvailabilityPresentation";
 import { lobbyAbsoluteUrl, lobbyChipLabel, slotHint, slotLabel } from "./draftLobby";
 import {
   draftInviteLabel,
@@ -79,7 +78,7 @@ export default function DraftLobby({
   const claimed = claimedHumans || humans.filter((t) => t.user_sub).length;
   const budget = Number((rules || league?.rules)?.salary_cap ?? 200);
 
-  const tzDefault = league?.draft_timezone || browserTimeZone();
+  const tzDefault = availabilityTimezone(league?.draft_timezone);
   const [draftTz, setDraftTz] = useState(tzDefault);
   const [draftWall, setDraftWall] = useState(() => utcIsoToWall(league?.draft_starts_at, tzDefault));
   const [scheduleBusy, setScheduleBusy] = useState(false);
@@ -92,7 +91,7 @@ export default function DraftLobby({
   );
 
   useEffect(() => {
-    const tz = league?.draft_timezone || browserTimeZone();
+    const tz = availabilityTimezone(league?.draft_timezone);
     setDraftTz(tz);
     setDraftWall(utcIsoToWall(league?.draft_starts_at, tz));
   }, [league?.draft_starts_at, league?.draft_timezone]);
@@ -239,8 +238,10 @@ export default function DraftLobby({
   const lockAvailabilitySlot = async (slot) => {
     const wall = slotToWall(slot?.date, slot?.hour);
     if (!wall) return;
+    const timezone = availabilityTimezone(league?.draft_timezone);
     setDraftWall(wall);
-    await saveSchedule(false, { wall, timezone: draftTz });
+    setDraftTz(timezone);
+    await saveSchedule(false, { wall, timezone });
   };
 
   const heading = testMode ? "The practice room is open." : "Draft night starts here.";
