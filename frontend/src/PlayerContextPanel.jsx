@@ -115,9 +115,6 @@ export default function PlayerContextPanel({
             const latest = await latestRes.json();
             setData({
               this_week: latest.this_week || latest.latest,
-              projection: null,
-              availability: null,
-              opportunity_adjustment: null,
               media_context: { state: "none", affects_projection: false },
               meta: latest.meta || {},
             });
@@ -301,6 +298,7 @@ export default function PlayerContextPanel({
             )}
           </div>
 
+          {proj ? (
           <div className="player-context-block">
             <h4 className="player-context-block-title">Projection</h4>
             <div className="player-context-stats">
@@ -317,7 +315,9 @@ export default function PlayerContextPanel({
               />
             </div>
           </div>
+          ) : null}
 
+          {avail ? (
           <div className="player-context-block">
             <h4 className="player-context-block-title">Availability</h4>
             {avail?.status || avail?.practice ? (
@@ -352,7 +352,9 @@ export default function PlayerContextPanel({
               <p className="chart-note">{formatInjuryAgeHours(avail.age_hours)} old</p>
             ) : null}
           </div>
+          ) : null}
 
+          {opp ? (
           <div className="player-context-block">
             <h4 className="player-context-block-title">Opportunity</h4>
             {opp?.included ? (
@@ -385,6 +387,7 @@ export default function PlayerContextPanel({
               </p>
             )}
           </div>
+          ) : null}
 
           <div className="player-context-block player-context-block--media">
             <div className="player-context-media-head">
