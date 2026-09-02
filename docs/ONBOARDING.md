@@ -37,19 +37,21 @@ No forced Fantasy redirect.
 | 3 | Setup → **+ Create / join** → create league |
 | 4 | Rules + pre/post-draft toggle |
 | 5 | Sleeper + **Sync Sleeper** |
-| 6 | **Invites & imports** → email managers |
-| 7 | Import cap/league sheets if needed |
-| 8 | **Draft** tab for live auction |
+| 6 | **Draft** → copy the invite link and text the group |
+| 7 | Optional: **Roster management → Access** for email-to-one-team invites |
+| 8 | Import cap/league sheets if needed |
+| 9 | **Draft** tab for availability + live auction |
 
 ### Invited member
 
 | Step | Action |
 |------|--------|
-| 1 | Open `/?invite={token}` from email |
-| 2 | Register/sign in with **exact invited email** + verify if new |
-| 3 | **Join league** |
-| 4 | Setup → link Sleeper roster |
-| 5 | Roster / Cap / Draft tabs |
+| 1 | Open `/hub/draft?claim={token}` from a text (`/?claim=` still works), or `/?invite={token}` from email |
+| 2 | Register/sign in (email invites still require the invited address) |
+| 3 | **Claim your team** (or Join league on an email invite) |
+| 4 | **Draft** → mark nights that work when the calendar is open |
+| 5 | Setup → link Sleeper roster |
+| 6 | Roster / Cap / Draft tabs |
 
 ## Friction matrix (before → after)
 
@@ -73,7 +75,7 @@ No forced Fantasy redirect.
 3. **Forgot password** — `/auth/forgot-password` or AccountAuth link → reset email → `/auth/reset-password?token=`.
 4. **Account settings** — `/account` while signed in: change password, update display name, resend verification, delete test account (league data may remain).
 5. **Legal pages** — `/terms` and `/privacy` load without login (also reachable from register checkbox).
-6. **Invite + Patreon** — open `/?invite=token`, Patreon login, return to invite modal with token intact.
+6. **Invite + Patreon** — open `/?invite=token` or `/?claim=token`, Patreon login, return to the join modal with the token intact.
 7. **Disclaimers** — visible on projections subtitle, Props, DFS, Best Ball.
 8. **Unverified native user** — projections OK when `AUTH_REQUIRED=false` locally; Hub shows verify banner / blocks API until verified.
 9. **Terms version bump** — set `TERMS_VERSION` on server; native users see re-accept banner until they accept.

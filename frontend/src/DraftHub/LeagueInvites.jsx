@@ -4,7 +4,15 @@ import { connectionErrorMessage, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
 import MobileDataList from "../MobileDataList";
 import { hubTeamLabel } from "./hubTeamLabel";
-import { memberInviteExplainer } from "./leagueAccessCopy";
+import {
+  memberInviteExplainer,
+  managerClaimCopied,
+  managerClaimExplainer,
+  managerClaimLabel,
+  managerClaimRotateHint,
+  managerClaimWhatHappens,
+  shareableAppUrl,
+} from "./leagueAccessCopy";
 
 export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
   const mobileLayout = useMobileLayout();
@@ -20,6 +28,10 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
   const [error, setError] = useState("");
   const [lastInviteUrl, setLastInviteUrl] = useState("");
   const [lastEmailSent, setLastEmailSent] = useState(null);
+  const [claimUrl, setClaimUrl] = useState("");
+  const [claimEnabled, setClaimEnabled] = useState(true);
+  const [claimCopied, setClaimCopied] = useState(false);
+  const [claimBusy, setClaimBusy] = useState(false);
 
   const loadMembers = useCallback(async () => {
     if (!leagueId) return;
@@ -33,6 +45,8 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
       setInvites(data.invites || []);
       setCommissionerSub(data.commissioner_sub || "");
       setLockClaims(data.hub_context?.lock_team_claims !== false);
+      setClaimUrl(data.claim?.url || "");
+      setClaimEnabled(data.claim?.enabled !== false);
     } catch (e) {
       setError(connectionErrorMessage(e));
     } finally {
@@ -117,6 +131,51 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
     }
   };
 
+  const copyClaimLink = async () => {
+    const url = shareableAppUrl(claimUrl);
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setClaimCopied(true);
+      window.setTimeout(() => setClaimCopied(false), 2200);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const rotateClaimLink = async () => {
+    setClaimBusy(true);
+    setError("");
+    try {
+      const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/claim-link/rotate`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const data = await res.json();
+      setClaimUrl(data.claim?.url || "");
+    } catch (err) {
+      setError(connectionErrorMessage(err));
+    } finally {
+      setClaimBusy(false);
+    }
+  };
+
+  const toggleClaimLink = async () => {
+    const next = !claimEnabled;
+    setError("");
+    try {
+      const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/settings`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ claim_link_enabled: next }),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      setClaimEnabled(next);
+    } catch (err) {
+      setError(connectionErrorMessage(err));
+    }
+  };
+
   const toggleLockClaims = async () => {
     const next = !lockClaims;
     setError("");
@@ -136,14 +195,35 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
 
   if (!hubContext?.can_invite_members) return null;
 
+  const shareableClaimUrl = shareableAppUrl(claimUrl);
+
   return (
     <section className={`panel hub-panel hub-panel-embedded${mobileLayout ? " hub-invites--mobile" : ""}`}>
       <h3>Invite league members</h3>
-      <p className="chart-note">
-        {memberInviteExplainer()}
-        {" "}
-        Sends an email with a join link when SMTP is configured; otherwise copy the link below.
-      </p>
+      <p className="chart-note">{memberInviteExplainer()}</p>
+
+      {shareableClaimUrl ? (
+        <div className="hub-claim-link">
+          <label htmlFor="office-claim-url">{managerClaimLabel()}</label>
+          <p className="chart-note">{managerClaimExplainer()}</p>
+          <div className="hub-toolbar">
+            <code id="office-claim-url" className="hub-invite-url">{shareableClaimUrl}</code>
+            <button type="button" className="btn-ghost btn-sm" onClick={copyClaimLink}>
+              {claimCopied ? "Copied" : "Copy link"}
+            </button>
+          </div>
+          {claimCopied ? <p className="chart-note hub-invite-success">{managerClaimCopied()}</p> : null}
+          <label className="hub-lock-claims">
+            <input type="checkbox" checked={claimEnabled} onChange={toggleClaimLink} />
+            Allow text-link claims
+          </label>
+          <button type="button" className="btn-ghost btn-sm" disabled={claimBusy} onClick={rotateClaimLink}>
+            {claimBusy ? "Rotating…" : "Rotate link"}
+          </button>
+          <p className="chart-note">{managerClaimWhatHappens()}</p>
+          <p className="chart-note">{managerClaimRotateHint()}</p>
+        </div>
+      ) : null}
 
       <label className="hub-lock-claims">
         <input type="checkbox" checked={lockClaims} onChange={toggleLockClaims} />

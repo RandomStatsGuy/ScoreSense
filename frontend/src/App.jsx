@@ -40,6 +40,7 @@ import useAppNavigation from "./useAppNavigation";
 import useMobileLayout from "./useMobileLayout";
 import useProjectionsMeta from "./hooks/useProjectionsMeta";
 import InviteAccept from "./InviteAccept";
+import ClaimAccept from "./ClaimAccept";
 import VerifyEmailBanner from "./VerifyEmailBanner";
 import InstallPrompt from "./InstallPrompt";
 import TermsReacceptBanner from "./TermsReacceptBanner";
@@ -1283,6 +1284,15 @@ export default function App() {
           onAccepted={() => {
             goToHub();
             setHubSubView("home");
+            window.dispatchEvent(new Event("scoresense-auth-changed"));
+          }}
+        />
+        <ClaimAccept
+          authenticated={authenticated}
+          user={user}
+          onAccepted={() => {
+            goToHub();
+            setHubSubView("room");
             window.dispatchEvent(new Event("scoresense-auth-changed"));
           }}
         />

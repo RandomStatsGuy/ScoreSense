@@ -41,6 +41,7 @@ export default function DraftEntryPanel({
   viewer = null,
   guestMode = false,
   onUpdated,
+  claimAccess = null,
 }) {
   const navigate = useNavigate();
   const [relaxSandboxLimits, setRelaxSandboxLimits] = useState(false);
@@ -84,6 +85,7 @@ export default function DraftEntryPanel({
           onStartDraft={onStartLiveDraft}
           onSaveSchedule={onSaveSchedule}
           onUpdated={onUpdated || onCommissionerUpdated}
+          claimAccess={claimAccess}
         />
         {usingHubLeague && isCommissioner && expirePreview && (
           <p className="chart-note hub-draft-expire-preview">

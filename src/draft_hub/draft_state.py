@@ -398,6 +398,13 @@ def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any
     }
     if user_sub:
         team = storage.get_team_by_user(league_id, user_sub)
+        is_staff = str(league.get("commissioner_sub") or "") == str(user_sub) or bool(
+            team and team.get("is_commissioner")
+        )
+        if is_staff and not league.get("test_mode"):
+            from src.draft_hub.league_claim import staff_claim_payload
+
+            out["claim"] = staff_claim_payload(league)
         if team:
             team_roster = rosters.get(team["id"]) or []
             finance = team_auction_finance(

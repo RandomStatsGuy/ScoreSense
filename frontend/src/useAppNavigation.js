@@ -5,6 +5,7 @@ import {
   buildFilterSearchParams,
   parseAppPath,
   parseFilterParams,
+  stripOneShotAuthParams,
   stripProjectionParams,
 } from "./routes";
 
@@ -52,6 +53,10 @@ export default function useAppNavigation() {
         const qs = stripProjectionParams(searchParams).toString();
         search = qs ? `?${qs}` : "";
       }
+      const cleaned = stripOneShotAuthParams(
+        search.startsWith("?") ? search.slice(1) : search,
+      ).toString();
+      search = cleaned ? `?${cleaned}` : "";
       navigate({ pathname: path, search }, { replace });
     },
     [navigate, route, location.search, searchParams],

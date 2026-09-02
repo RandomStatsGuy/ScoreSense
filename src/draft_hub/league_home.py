@@ -40,6 +40,8 @@ _PRIMARY_CTA = {
 _ACTION_PRIORITY = {
     "cap_overage": 10,
     "draft_night": 12,
+    "invite_managers": 14,
+    "mark_availability": 16,
     "sync_league": 20,
     "projections_stale": 30,
     "projections_missing": 35,
@@ -182,6 +184,10 @@ def _build_actions(
     week_summary: dict[str, Any],
     sleeper_linked: bool,
     draft_schedule: dict[str, Any] | None = None,
+    open_seats: int = 0,
+    availability_state: str | None = None,
+    availability_marked: bool = False,
+    is_commissioner: bool = False,
 ) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
     phase_id = phase["id"]
@@ -196,6 +202,29 @@ def _build_actions(
                 message=f"Resolve ${overage:.0f} cap overage",
                 href="planner",
                 amount=overage,
+            )
+        )
+
+    if phase_id == PHASE_PRE_DRAFT and is_commissioner and open_seats > 0:
+        actions.append(
+            _action(
+                "invite_managers",
+                severity="medium",
+                message=(
+                    f"Invite {open_seats} manager{'s' if open_seats != 1 else ''} to claim a team"
+                ),
+                href="room",
+                count=open_seats,
+            )
+        )
+
+    if phase_id == PHASE_PRE_DRAFT and availability_state == "open" and not availability_marked:
+        actions.append(
+            _action(
+                "mark_availability",
+                severity="medium",
+                message="Mark when you can draft",
+                href="room",
             )
         )
 
@@ -329,6 +358,11 @@ def _attention_line(actions: list[dict[str, Any]], freshness: dict[str, Any]) ->
             parts.append(f"{n} lineup decision{'s' if n != 1 else ''}")
         elif aid == "draft_night":
             parts.append("draft night upcoming")
+        elif aid == "invite_managers":
+            n = item.get("count") or 0
+            parts.append(f"{n} manager{'s' if n != 1 else ''} still need to claim")
+        elif aid == "mark_availability":
+            parts.append("draft times still open")
         elif aid == "sync_league":
             parts.append("league not linked")
         elif aid == "cap_sheets_stale":
@@ -455,6 +489,25 @@ def build_league_home(
 
     week_summary = _week_summary_for_home(ctx, phase, include_week=include_week)
     draft_schedule = build_draft_schedule(league_row, now=now)
+    open_seats = 0
+    availability_state = None
+    availability_marked = False
+    if league_id and league_row:
+        teams = storage.list_league_teams(str(league_id))
+        humans = [t for t in teams if not t.get("is_bot") and t.get("user_sub")]
+        team_count = int(league_row.get("team_count") or 12)
+        open_seats = max(0, team_count - len(humans))
+        try:
+            from src.draft_hub.draft_availability import window_for_league
+
+            availability_state = window_for_league(league_row, now=now).get("state")
+        except Exception:
+            availability_state = None
+        team_id = ctx.get("team_id")
+        if team_id:
+            availability_marked = bool(
+                storage.list_team_draft_availability(str(league_id), str(team_id))
+            )
     actions = _build_actions(
         phase=phase,
         freshness=freshness,
@@ -463,6 +516,10 @@ def build_league_home(
         week_summary=week_summary,
         sleeper_linked=sleeper_linked,
         draft_schedule=draft_schedule,
+        open_seats=open_seats,
+        availability_state=availability_state,
+        availability_marked=availability_marked,
+        is_commissioner=bool(ctx.get("is_commissioner")),
     )
     attention_line = _attention_line(actions, freshness)
 

@@ -16,6 +16,10 @@ import {
   memberInviteExplainer,
   emailManagersHint,
   liveDraftMembersOnlyMessage,
+  managerClaimExplainer,
+  managerClaimLabel,
+  managerClaimWhatHappens,
+  shareableAppUrl,
 } from "./leagueAccessCopy.js";
 
 test("league switcher treats create as its own action", () => {
@@ -44,7 +48,7 @@ test("live draft invite copy is members-only", () => {
   assert.doesNotMatch(live, /no account is required/i);
   assert.equal(draftInviteLabel(), "Member draft link");
   assert.match(draftInviteRailHint(), /already belong/i);
-  assert.match(draftLobbyHeroSupport(), /for league members/i);
+  assert.match(draftLobbyHeroSupport(), /invite link/i);
   assert.match(draftInviteWhatHappens(), /already has their team/i);
 });
 
@@ -93,9 +97,15 @@ test("join account note blocks guests on live drafts", () => {
 
 test("member email invite is how people join the league", () => {
   const copy = memberInviteExplainer();
-  assert.match(copy, /named team/i);
-  assert.match(copy, /creates an account/i);
-  assert.match(copy, /does not let anyone walk in/i);
+  assert.match(copy, /invite link/i);
+  assert.match(copy, /claim a team/i);
+  assert.match(managerClaimLabel(), /Invite link/i);
+  assert.equal(
+    shareableAppUrl("https://app.example.com/hub/draft?claim=abc", "http://127.0.0.1:5173"),
+    "http://127.0.0.1:5173/hub/draft?claim=abc",
+  );
+  assert.match(managerClaimExplainer(), /text this link/i);
+  assert.match(managerClaimWhatHappens(), /claims an open team/i);
   assert.match(emailManagersHint(), /member-only/i);
   assert.match(liveDraftMembersOnlyMessage(), /league members/i);
 });

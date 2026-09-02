@@ -315,6 +315,15 @@ export function stripProjectionParams(searchParams) {
   return params;
 }
 
+/** One-shot join tokens. In-app navigation must not put these back. */
+export const ONE_SHOT_AUTH_PARAMS = ["claim", "invite"];
+
+export function stripOneShotAuthParams(searchParams) {
+  const params = new URLSearchParams(searchParams || undefined);
+  for (const key of ONE_SHOT_AUTH_PARAMS) params.delete(key);
+  return params;
+}
+
 /** Parse comma-separated compare player IDs (SCORE-4 start/sit), capped at 4. */
 export function parseCompareIds(raw) {
   if (raw == null || raw === "") return [];

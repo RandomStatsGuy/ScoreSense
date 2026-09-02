@@ -97,7 +97,11 @@ Player IDs are mapped via Sleeper `gsis_id` → ScoreSense `player_id` when avai
 | GET/POST/DELETE | `/api/hub/roster` | Manual roster |
 | GET | `/api/hub/cap-sheet` | Cap summary + validation |
 | POST | `/api/hub/league` | Create live league (Phase B) |
-| POST | `/api/hub/league/join` | Join by room code |
+| POST | `/api/hub/league/join` | Join by room code (also claims an unclaimed team of the same name) |
+| GET | `/api/hub/claim/{token}` | Public preview of the text invite / claim link |
+| POST | `/api/hub/claim/{token}` | Sign-in required: claim a team from that link |
+| POST | `/api/hub/league/{id}/claim-link/rotate` | Commissioner: retire the old invite URL |
+| GET/PUT | `/api/hub/league/{id}/availability` | Shared draft-night calendar (opens 31 days before week 1) |
 | GET | `/api/hub/league/{id}` | Room state |
 | WS | `/api/hub/ws/{league_id}` | Realtime updates |
 | POST | `/api/hub/contract/rookie-extend` | Manager rookie extension (server-calculated; aliases: `/extend`, `/renew`) |

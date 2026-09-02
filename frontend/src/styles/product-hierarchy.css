@@ -3217,6 +3217,241 @@
   margin-top: 0.25rem;
 }
 
+.claim-modal {
+  max-width: 32rem;
+}
+
+.claim-team-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+.claim-team-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: var(--touch-target);
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--experience-surface);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.claim-team-btn span {
+  color: var(--experience-blue);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.claim-team-btn:hover,
+.claim-team-btn:focus-visible {
+  border-color: var(--experience-blue);
+}
+
+.claim-open-seat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.claim-open-seat label {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.hub-claim-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.draft-availability {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.draft-availability .hub-draft-entry-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.draft-availability-window {
+  margin: 0;
+}
+
+.draft-availability-best {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.draft-availability-best-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--experience-surface);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.draft-availability-best-btn span {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.draft-availability-month h4,
+.draft-availability-hours h4 {
+  margin: 0 0 0.45rem;
+  font-size: 0.88rem;
+}
+
+.draft-availability-dow,
+.draft-availability-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.draft-availability-dow {
+  margin-bottom: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+.draft-availability-day {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  min-height: 3.4rem;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--experience-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.draft-availability-day.is-pad {
+  visibility: hidden;
+}
+
+.draft-availability-day.is-empty {
+  color: var(--text-muted);
+}
+
+.draft-availability-day.is-some {
+  background: var(--tone-caution-soft, rgba(245, 180, 80, 0.12));
+}
+
+.draft-availability-day.is-strong,
+.draft-availability-day.is-best {
+  background: var(--tone-positive-soft);
+}
+
+.draft-availability-day.is-selected {
+  border-color: var(--experience-blue);
+}
+
+.draft-availability-day.is-mine {
+  box-shadow: inset 0 0 0 1px var(--experience-blue);
+}
+
+.draft-availability-day-dow {
+  color: var(--text-muted);
+  font-size: 0.62rem;
+}
+
+.draft-availability-day-num {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.draft-availability-day-heat {
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+}
+
+.draft-availability-hour-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.draft-availability-hour {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: var(--touch-target);
+  min-width: 5.5rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.draft-availability-hour.has-people {
+  background: var(--tone-positive-soft);
+}
+
+.draft-availability-hour.is-mine {
+  border-color: var(--experience-blue);
+}
+
+.draft-availability-hour span {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+}
+
+.draft-availability-people {
+  margin: 0.55rem 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.draft-availability-save {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .claim-team-btn,
+  .draft-availability-day,
+  .draft-availability-hour,
+  .draft-availability-best-btn {
+    transition: none;
+  }
+}
+
 @media (max-width: 1024px) {
   .draft-lobby-join-grid {
     grid-template-columns: 1fr;

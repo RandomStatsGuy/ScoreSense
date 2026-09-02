@@ -30,6 +30,7 @@ test("sanitizeSearch drops secrets and keeps filters", () => {
     "?pos=wr&week=1",
   );
   assert.equal(sanitizeSearch("?invite=abc&code=oauth"), "");
+  assert.equal(sanitizeSearch("?claim=secret-token"), "");
   assert.equal(
     sanitizeSearch("?season=2026&teams=KC,BUF&movers=risers&draftSeason=2026"),
     "?season=2026&teams=KC%2CBUF&movers=risers&draftSeason=2026",
