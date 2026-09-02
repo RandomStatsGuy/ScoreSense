@@ -215,22 +215,26 @@ export default function LeagueRostersBrowser({
 
           {block && (
             <div className="hub-roster-team-stats" aria-label="Team summary">
-              <span><strong>{fmtSal(stats.committed)}</strong> committed</span>
-              <span><strong>{fmtSal(stats.dead_cap)}</strong> dead</span>
-              <span><strong>{fmtSal(stats.unspent)}</strong> free</span>
-              {stats.fp_per_dollar != null && (
-                <span title="Projected fair-value fantasy points per dollar of salary">
-                  <strong>{stats.fp_per_dollar}</strong> pts /$
-                </span>
-              )}
-              {Object.entries(stats.by_position_spend || {}).map(([pos, amt]) => (
-                <span key={pos} className="hub-insights-chip">
-                  {pos} {fmtSal(amt)}
-                  {stats.by_position_count?.[pos] != null
-                    ? ` · ${stats.by_position_count[pos]}`
-                    : ""}
-                </span>
-              ))}
+              <div className="hub-roster-team-stats-facts">
+                <span><strong>{fmtSal(stats.committed)}</strong> committed</span>
+                <span><strong>{fmtSal(stats.dead_cap)}</strong> dead</span>
+                <span><strong>{fmtSal(stats.unspent)}</strong> free</span>
+                {stats.fp_per_dollar != null && (
+                  <span title="Projected fair-value fantasy points per dollar of salary">
+                    <strong>{stats.fp_per_dollar}</strong> pts /$
+                  </span>
+                )}
+              </div>
+              <div className="hub-roster-team-stats-pos">
+                {Object.entries(stats.by_position_spend || {}).map(([pos, amt]) => (
+                  <span key={pos} className="hub-roster-pos-spend">
+                    {pos} {fmtSal(amt)}
+                    {stats.by_position_count?.[pos] != null
+                      ? ` · ${stats.by_position_count[pos]}`
+                      : ""}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 
@@ -315,19 +319,19 @@ export default function LeagueRostersBrowser({
                 <table className="data-table hub-table hub-roster-table">
                   <thead>
                     <tr>
-                      <th>Player</th>
-                      <th>Pos</th>
-                      <th className="num">Cap</th>
-                      <th className="num">Yrs</th>
-                      <th>Type</th>
-                      <th>Contract</th>
+                      <th className="hub-roster-col-player">Player</th>
+                      <th className="hub-roster-col-pos">Pos</th>
+                      <th className="num hub-roster-col-cap">Cap</th>
+                      <th className="num hub-roster-col-years">Yrs</th>
+                      <th className="hub-roster-col-type">Type</th>
+                      <th className="hub-roster-col-contract">Contract</th>
                       <th
-                        className="num"
+                        className="num hub-roster-col-pts"
                         title="Projected fair-value fantasy points per dollar of salary"
                       >
                         Pts /$
                       </th>
-                      <th />
+                      <th className="hub-roster-actions" aria-label="Actions" />
                     </tr>
                   </thead>
                   <tbody>
@@ -343,31 +347,33 @@ export default function LeagueRostersBrowser({
                           key={r.player_id}
                           className={r.overpay ? "hub-overpay" : ""}
                         >
-                          <td className="col-player">
-                            <PlayerCell
-                              name={r.player_name}
-                              team={r.team}
-                              playerId={r.player_id}
-                              media={media}
-                              size="sm"
-                              showTeam={false}
-                              narrativeScope="season"
-                            />
-                            {r.expire_chip === "extend" && (
-                              <span className="hub-expire-chip hub-expire-chip--extend">Extend?</span>
-                            )}
-                            {r.expire_chip === "fa" && (
-                              <span className="hub-expire-chip">Expires — FA</span>
-                            )}
+                          <td className="hub-roster-col-player">
+                            <div className="hub-roster-player-line">
+                              <PlayerCell
+                                name={r.player_name}
+                                team={r.team}
+                                playerId={r.player_id}
+                                media={media}
+                                size="sm"
+                                showTeam={false}
+                                narrativeScope="season"
+                              />
+                              {r.expire_chip === "extend" && (
+                                <span className="hub-expire-chip hub-expire-chip--extend">Extend?</span>
+                              )}
+                              {r.expire_chip === "fa" && (
+                                <span className="hub-expire-chip">Expires — FA</span>
+                              )}
+                            </div>
                           </td>
-                          <td>{r.position}</td>
-                          <td className="num">{fmtSal(r.salary)}</td>
-                          <td className="num">{r.years_remaining ?? r.contract_years ?? "—"}</td>
-                          <td>{r.contract_type || "—"}</td>
-                          <td>
+                          <td className="hub-roster-col-pos">{r.position}</td>
+                          <td className="num hub-roster-col-cap">{fmtSal(r.salary)}</td>
+                          <td className="num hub-roster-col-years">{r.years_remaining ?? r.contract_years ?? "—"}</td>
+                          <td className="hub-roster-col-type">{r.contract_type || "—"}</td>
+                          <td className="hub-roster-col-contract">
                             {gradeText ? (
                               <span
-                                className={gradeClass(r.contract_grade)}
+                                className={`hub-roster-grade-chip ${gradeClass(r.contract_grade)}`}
                                 title={r.fair_value != null ? `Model fair auction value ${fmtSal(r.fair_value)}` : undefined}
                               >
                                 {gradeText}
@@ -376,23 +382,23 @@ export default function LeagueRostersBrowser({
                               "—"
                             )}
                           </td>
-                          <td className="num">{r.fp_per_dollar ?? "—"}</td>
-                          <td>
+                          <td className="num hub-roster-col-pts">{r.fp_per_dollar ?? "—"}</td>
+                          <td className="hub-roster-actions">
                             {r.player_id && (
-                              <>
-                              <button
-                                type="button"
-                                className="btn-ghost btn-sm"
-                                onClick={() => addToTrade(r)}
-                              >
-                                {tradeLabel}
-                              </button>
-                              <ContractHistoryLink
-                                playerId={r.player_id}
-                                playerName={r.player_name}
-                                onOpen={onOpenContractHistory}
-                              />
-                              </>
+                              <span className="hub-roster-action-group">
+                                <button
+                                  type="button"
+                                  className="btn-ghost btn-sm"
+                                  onClick={() => addToTrade(r)}
+                                >
+                                  {tradeLabel}
+                                </button>
+                                <ContractHistoryLink
+                                  playerId={r.player_id}
+                                  playerName={r.player_name}
+                                  onOpen={onOpenContractHistory}
+                                />
+                              </span>
                             )}
                           </td>
                         </tr>
