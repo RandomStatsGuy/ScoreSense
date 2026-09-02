@@ -32,9 +32,20 @@ export default function FantasyChatDock({ leagueId, hubContext, hidden = false }
 
   const closeConversation = () => {
     setOpen(false);
+  };
+
+  useEffect(() => {
+    if (hidden) setOpen(false);
+  }, [hidden]);
+
+  const wasOpenRef = useRef(false);
+  useEffect(() => {
+    const wasOpen = wasOpenRef.current;
+    wasOpenRef.current = open;
+    if (!wasOpen || open || hidden) return;
     const focusTarget = dismissed ? restoreRef.current : triggerRef.current;
     focusTarget?.focus();
-  };
+  }, [open, dismissed, hidden]);
 
   const dismissLauncher = () => {
     setOpen(false);

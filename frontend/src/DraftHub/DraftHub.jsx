@@ -54,7 +54,7 @@ const TABS_NEED_CAP_SHEET = new Set(["planner", "roster", "rosters"]);
 /** Tabs that read the hub roster ("value" marks my players via rosterIds). */
 const TABS_NEED_ROSTER = new Set(["home", "setup", "value", "available", "roster", "rosters", "planner", "room", "trades"]);
 
-export default function DraftHub({ subView, onSubViewChange, onHubContextChange, insightTab, onInsightTabChange, officeTab, onOfficeTabChange, onOpenContractHistory }) {
+export default function DraftHub({ subView, onSubViewChange, onHubContextChange, insightTab, onInsightTabChange, officeTab, onOfficeTabChange, onOpenContractHistory, active = true }) {
   const { authenticated, refreshAuth, hubAuthRequired, hubDemo, ready: authReady, user, termsUrl, privacyUrl, patreonConfigured } = useAuth();
   const [demoMode, setDemoMode] = useState(() => {
     try {
@@ -899,7 +899,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         <FantasyChatDock
           leagueId={leagueId || effectiveCtx?.league_id || ""}
           hubContext={effectiveCtx}
-          hidden={subView === "room"}
+          hidden={!active || subView === "room"}
         />
       )}
       {!demoMode && (
