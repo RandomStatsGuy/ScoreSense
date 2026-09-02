@@ -13,6 +13,11 @@ test("vibe copy names the goal and never says Draft Hub or Submit", () => {
   assert.match(VIBE_COPY.support, /aura/i);
   assert.match(VIBE_COPY.swipeHint, /arrow/i);
   assert.match(VIBE_COPY.support, /matchup/i);
+  assert.equal(VIBE_COPY.railTitle, "Vibe ranking");
+  assert.equal(VIBE_COPY.slateTitle, "VA-projections");
+  assert.match(VIBE_COPY.slateHint, /vibe-adjusted/i);
+  assert.doesNotMatch(VIBE_COPY.railTitle, /Your aura/i);
+  assert.doesNotMatch(VIBE_COPY.slateTitle, /Vibe slate/i);
   assert.doesNotMatch(JSON.stringify(VIBE_COPY), /Draft Hub|Submit|permission|Tinder|Wikipedia/i);
 });
 

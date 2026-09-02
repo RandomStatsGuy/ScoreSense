@@ -43,6 +43,8 @@ test("text lookup prefers the longest alias and ignores capture vs cap", () => {
   const more = resolveLivingSurfaceFromText("see more on the card with the info arrow");
   assert.equal(more.label, "Vibes");
   assert.ok(more.also.includes("frontend/src/DraftHub/vibeMatchup.js"));
+  const va = resolveLivingSurfaceFromText("rename the table to vibe adjusted projections");
+  assert.equal(va.label, "Vibes");
 });
 
 test("file lookup returns the surfaces that own a page", () => {

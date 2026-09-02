@@ -306,6 +306,8 @@ export const SURFACE_ALIASES = Object.freeze({
   "fun facts about the player": "hub.vibes",
   "info arrow": "hub.vibes",
   "see more on the card": "hub.vibes",
+  "va-projections": "hub.vibes",
+  "vibe adjusted projections": "hub.vibes",
   vibes: "hub.vibes",
   aura: "hub.vibes",
   "game center": "hub.game",
