@@ -13743,59 +13743,65 @@ td.col-rank.col-rank-top {
 .hub-roster-browser-page .hub-roster-table {
   table-layout: fixed;
   width: 100%;
-  min-width: 56rem;
+  min-width: 52rem;
 }
 
 .hub-roster-browser-page .hub-roster-col-player {
-  width: 30%;
-  min-width: 15rem;
+  width: 13.5rem;
 }
 
 .hub-roster-browser-page .hub-roster-col-pos {
-  width: 3.4rem;
+  width: 3.25rem;
   text-align: center;
   white-space: nowrap;
 }
 
 .hub-roster-browser-page .hub-roster-col-cap,
-.hub-roster-browser-page .hub-roster-col-years,
+.hub-roster-browser-page .hub-roster-col-years {
+  width: 3.75rem;
+  white-space: nowrap;
+}
+
 .hub-roster-browser-page .hub-roster-col-pts {
-  width: 4.35rem;
+  width: 4.25rem;
   white-space: nowrap;
 }
 
 .hub-roster-browser-page .hub-roster-col-type {
-  width: 5.75rem;
+  width: 6.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .hub-roster-browser-page .hub-roster-col-contract {
-  width: 20%;
+  width: auto;
 }
 
 .hub-roster-browser-page .hub-roster-table .hub-roster-actions {
-  width: 13.5rem;
+  width: 12.75rem;
 }
 
 .hub-roster-browser-page .hub-roster-table th,
 .hub-roster-browser-page .hub-roster-table td {
-  padding: 0.48rem 0.5rem;
+  padding: 0.48rem 0.6rem;
 }
 
 .hub-roster-player-line {
   display: flex;
-  align-items: center;
-  gap: 0.6rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.28rem;
   min-width: 0;
 }
 
 .hub-roster-player-line .player-cell {
+  max-width: 100%;
   min-width: 0;
-  overflow: hidden;
 }
 
 .hub-roster-player-line .hub-expire-chip {
-  margin-left: 0;
+  margin-left: 2.15rem;
   flex: 0 0 auto;
 }
 
