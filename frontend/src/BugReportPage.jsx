@@ -180,9 +180,15 @@ export default function BugReportPage() {
                   </label>
                 ) : null}
               </div>
-              <button type="submit" className="btn-primary btn-sm" disabled={!reportSendEnabled(boardOpen, busy)}>
-                {busy ? BUG_REPORT_COPY.sending : BUG_REPORT_COPY.send}
-              </button>
+              {reportSendEnabled(boardOpen, busy) ? (
+                <button type="submit" className="btn-primary btn-sm">
+                  {BUG_REPORT_COPY.send}
+                </button>
+              ) : boardOpen === true && busy ? (
+                <button type="submit" className="btn-primary btn-sm" disabled>
+                  {BUG_REPORT_COPY.sending}
+                </button>
+              ) : null}
               {error ? <div className="error">{error}</div> : null}
             </form>
           )}
