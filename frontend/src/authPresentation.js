@@ -52,7 +52,7 @@ export const AUTH_COPY = Object.freeze({
   patreon: "Continue with Patreon",
   patreonNote: "For active patrons.",
   emailDivider: "or use email",
-  socialTerms: "By continuing you agree to the Terms of Service and Privacy Policy.",
+  socialTerms: "Google and Patreon continue under the Terms and Privacy Policy.",
   forgotLink: "Forgot password?",
   displayName: "Display name",
   email: "Email",

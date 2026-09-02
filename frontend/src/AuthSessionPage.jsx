@@ -20,15 +20,17 @@ export function AuthSessionChrome({
         <Link className="auth-session-back" to={backTo}>
           ← {backLabel}
         </Link>
-        <p className="auth-session-brand">{PRODUCT_NAME}</p>
-        <p className="auth-session-studio">{STUDIO_NAME}</p>
+        <p className="auth-session-brand">
+          {PRODUCT_NAME}
+          <span className="auth-session-studio"> · {STUDIO_NAME}</span>
+        </p>
         <header className="auth-session-hero">
           {eyebrow ? <p className="auth-session-eyebrow">{eyebrow}</p> : null}
           {heading ? <h1 className="auth-session-heading">{heading}</h1> : null}
           {support ? <p className="auth-session-support">{support}</p> : null}
         </header>
         <div className="auth-session-card">{children}</div>
-        <LegalLinks className="auth-session-legal" />
+        <LegalLinks className="auth-session-legal" compact />
       </div>
     </div>
   );
