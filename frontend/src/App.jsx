@@ -193,6 +193,13 @@ export default function App() {
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [mobileDestOpen, setMobileDestOpen] = useState(false);
   const [hubMounted, setHubMounted] = useState(false);
+  const [hubDemoMode, setHubDemoMode] = useState(() => {
+    try {
+      return sessionStorage.getItem("ss_hub_demo") === "1";
+    } catch {
+      return false;
+    }
+  });
   const rosFetchGen = useRef(0);
   const seasonModeUserPicked = useRef(false);
 
@@ -976,7 +983,7 @@ export default function App() {
     return () => document.removeEventListener("keydown", onKey);
   }, [mobileMenuOpen]);
 
-  const hubNeedsSignIn = hubAuthRequired !== false && !authenticated;
+  const hubNeedsSignIn = hubAuthRequired !== false && !authenticated && !hubDemoMode;
   const isAdmin = Boolean(user?.is_admin);
   const showDataRefresh = isProjectionsDataView;
   const dataRefreshLoading = pipelineRefreshing || (isSeasonPreseason
@@ -1500,6 +1507,7 @@ export default function App() {
               subView={hubSubView}
               onSubViewChange={setHubSubView}
               onHubContextChange={setHubContext}
+              onDemoModeChange={setHubDemoMode}
               insightTab={insightTab}
               onInsightTabChange={nav.setInsightTab}
               onOpenContractHistory={nav.openPlayerContractHistory}

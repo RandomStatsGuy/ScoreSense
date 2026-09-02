@@ -15,6 +15,8 @@ test("phone header names the destination, not the product area", () => {
   assert.equal(resolveMobileDestination({ view: "hub", hubTitle: "This Week" }).title, "This Week");
   assert.equal(resolveMobileDestination({ view: "hub", hubNeedsSignIn: true }).title, "Sign in");
   assert.equal(resolveMobileDestination({ view: "hub", hubNeedsSignIn: true }).picker, null);
+  assert.equal(resolveMobileDestination({ view: "hub", hubTitle: "Insights", hubNeedsSignIn: false }).title, "Insights");
+  assert.equal(resolveMobileDestination({ view: "hub", hubTitle: "Insights", hubNeedsSignIn: false }).picker, "hub");
   assert.equal(resolveMobileDestination({ view: "model" }).title, "Model accuracy");
 });
 
