@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import Button from "../ui/Button";
@@ -28,6 +28,7 @@ import {
   shareableAppUrl,
 } from "./leagueAccessCopy";
 import DraftAvailability from "./DraftAvailability";
+import DraftNightSchedule from "./DraftNightSchedule";
 import { HubExperienceHero, HubExperienceLayout, HubExperienceSummary } from "./HubUILayout";
 import { secondsUntil } from "./draftRoomHelpers";
 import { fmtSal } from "./rosterFormat";
@@ -81,6 +82,8 @@ export default function DraftLobby({
   const [draftTz, setDraftTz] = useState(tzDefault);
   const [draftWall, setDraftWall] = useState(() => utcIsoToWall(league?.draft_starts_at, tzDefault));
   const [scheduleBusy, setScheduleBusy] = useState(false);
+  const [bestOverlap, setBestOverlap] = useState("");
+  const onAvailHighlight = useCallback((label) => setBestOverlap(label || ""), []);
   const startsAt = league?.draft_starts_at;
   const waitSecs = startsAt ? secondsUntil(startsAt) : null;
   const scheduledLabel = startsAt ? formatDraftScheduleLabel(startsAt, draftTz) : "";
@@ -239,10 +242,6 @@ export default function DraftLobby({
             title={league?.name || "Draft room"}
             subtitle={formatLabel}
             items={[
-              { id: "format", label: "Format", value: formatLabel },
-              ...(!pickDraft ? [{ id: "budget", label: "Salary cap", value: fmtSal(budget) }] : []),
-              { id: "seated", label: "Seated", value: `${claimed} / ${teamCount}` },
-              ...(mySlot ? [{ id: "position", label: slotLabel(draftType), value: `#${mySlot}` }] : []),
               {
                 id: "night",
                 label: "Draft night",
@@ -252,6 +251,11 @@ export default function DraftLobby({
                     : scheduledLabel)
                   : "When you start",
               },
+              ...(bestOverlap ? [{ id: "overlap", label: "Best overlap", value: bestOverlap }] : []),
+              { id: "format", label: "Format", value: formatLabel },
+              ...(!pickDraft ? [{ id: "budget", label: "Salary cap", value: fmtSal(budget) }] : []),
+              { id: "seated", label: "Seated", value: `${claimed} / ${teamCount}` },
+              ...(mySlot ? [{ id: "position", label: slotLabel(draftType), value: `#${mySlot}` }] : []),
             ]}
             action={(
               <div className="draft-lobby-rail-actions">
@@ -350,6 +354,36 @@ export default function DraftLobby({
           />
         )}
       >
+        {!testMode && viewer?.team_id ? (
+          <DraftAvailability
+            leagueId={leagueId}
+            enabled={!guestMode}
+            onHighlight={onAvailHighlight}
+          />
+        ) : null}
+
+        {isCommissioner && !testMode && onSaveSchedule ? (
+          <DraftNightSchedule
+            startsAt={startsAt}
+            timezone={draftTz}
+            wall={draftWall}
+            onWallChange={setDraftWall}
+            onTimezoneChange={setDraftTz}
+            tzOptions={tzOptions}
+            canEdit
+            busy={scheduleBusy || busy}
+            waitSecs={waitSecs}
+            onSave={() => saveSchedule(false)}
+            onClear={() => saveSchedule(true)}
+          />
+        ) : !testMode && startsAt ? (
+          <DraftNightSchedule
+            startsAt={startsAt}
+            timezone={draftTz}
+            waitSecs={waitSecs}
+          />
+        ) : null}
+
         <article className="hub-experience-section draft-lobby-seats">
           <header className="hub-draft-entry-card-head">
             <h3>Who is in</h3>
@@ -452,58 +486,6 @@ export default function DraftLobby({
           </ol>
         </article>
 
-        {!testMode && viewer?.team_id ? (
-          <DraftAvailability leagueId={leagueId} enabled={!guestMode} />
-        ) : null}
-
-        {isCommissioner && !testMode && onSaveSchedule ? (
-          <details className="hub-experience-section draft-lobby-schedule">
-            <summary>Schedule draft night</summary>
-            <div className="hub-draft-schedule">
-              <label>
-                Date & time
-                <input
-                  type="datetime-local"
-                  value={draftWall}
-                  onChange={(e) => setDraftWall(e.target.value)}
-                  disabled={scheduleBusy || busy}
-                />
-              </label>
-              <label>
-                Timezone
-                <select
-                  value={draftTz}
-                  onChange={(e) => setDraftTz(e.target.value)}
-                  disabled={scheduleBusy || busy}
-                >
-                  {tzOptions.map((tz) => (
-                    <option key={tz} value={tz}>{tz.replace(/_/g, " ")}</option>
-                  ))}
-                </select>
-              </label>
-              <div className="hub-draft-schedule-actions">
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm"
-                  disabled={scheduleBusy || busy || !draftWall}
-                  onClick={() => saveSchedule(false)}
-                >
-                  {scheduleBusy ? "Saving…" : "Save draft time"}
-                </button>
-                {startsAt ? (
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm"
-                    disabled={scheduleBusy || busy}
-                    onClick={() => saveSchedule(true)}
-                  >
-                    Clear
-                  </button>
-                ) : null}
-              </div>
-            </div>
-          </details>
-        ) : null}
       </HubExperienceLayout>
     </div>
   );

@@ -4,6 +4,7 @@ import { apiFetch } from "./auth";
 import { connectionErrorMessage, parseApiError } from "./format";
 import AccountAuth from "./AccountAuth";
 import { useAuth } from "./AuthContext";
+import { leagueInvitePath } from "./routes";
 
 export default function InviteAccept({ authenticated, user, onAccepted, onDismiss }) {
   const { termsUrl, privacyUrl, patreonConfigured } = useAuth();
@@ -97,7 +98,7 @@ export default function InviteAccept({ authenticated, user, onAccepted, onDismis
             termsUrl={termsUrl}
             privacyUrl={privacyUrl}
             patreonConfigured={patreonConfigured}
-            patreonNext={`/?invite=${encodeURIComponent(token)}`}
+            patreonNext={leagueInvitePath(token)}
             onAuthed={() => window.dispatchEvent(new Event("scoresense-auth-changed"))}
           />
         )}

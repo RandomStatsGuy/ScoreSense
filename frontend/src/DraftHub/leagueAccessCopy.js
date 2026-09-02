@@ -154,3 +154,17 @@ export function emailManagersHint() {
 export function liveDraftMembersOnlyMessage() {
   return "This live draft is for league members. Ask your commissioner for a league invite or room code first.";
 }
+
+export function draftNightHeading() {
+  return "Draft night";
+}
+
+export function draftNightSupport({ scheduled = false } = {}) {
+  return scheduled
+    ? "Managers already see this time. You can still start earlier from the lobby."
+    : "Pick the night after you see the shared calendar. The room can auto-start then.";
+}
+
+export function draftNightEmpty() {
+  return "Not scheduled yet";
+}

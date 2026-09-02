@@ -17,7 +17,7 @@ def invite_expires_at(days: int = 14) -> str:
 
 def build_invite_url(token: str) -> str:
     base = FRONTEND_URL.rstrip("/")
-    return f"{base}/?invite={token}"
+    return f"{base}/hub/draft?invite={token}"
 
 
 def create_invite(
