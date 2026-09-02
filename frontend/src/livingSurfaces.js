@@ -259,7 +259,8 @@ export const LIVING_SURFACES = Object.freeze({
     label: "Admin",
     chrome: "account",
     page: "frontend/src/AdminPortal.jsx",
-    doNot: "Account-only. Do not add Admin to top-level nav.",
+    copy: "frontend/src/adminPresentation.js",
+    doNot: "Account-only. Do not add Admin to top-level nav. Owner-to-team attach after signup lives here until a Fantasy flow exists.",
   }),
   "account.account": S({
     label: "Account",
