@@ -36,6 +36,34 @@ def _parse_date(value: str) -> date:
     return date.fromisoformat(str(value).strip()[:10])
 
 
+def _local_now(timezone_name: str | None, now: datetime | None = None) -> datetime:
+    tz = _as_tz(timezone_name)
+    ref = now or datetime.now(timezone.utc)
+    if ref.tzinfo is None:
+        ref = ref.replace(tzinfo=timezone.utc)
+    return ref.astimezone(tz)
+
+
+def hour_still_open(day_iso: str, hour: int, window: dict[str, Any]) -> bool:
+    today = str(window.get("today") or "")
+    if not today:
+        return True
+    day = str(day_iso)[:10]
+    if day > today:
+        return True
+    if day < today:
+        return False
+    current = window.get("current_hour")
+    if current is None or current == "":
+        return True
+    return int(hour) >= int(current)
+
+
+def open_hours_for_date(day_iso: str, window: dict[str, Any]) -> list[int]:
+    hours = [int(h) for h in (window.get("hours") or SLOT_HOURS)]
+    return [hour for hour in hours if hour_still_open(day_iso, hour, window)]
+
+
 def availability_window(
     season: int,
     *,
@@ -50,10 +78,8 @@ def availability_window(
     first_game = kick.astimezone(tz).date()
     last_day = first_game - timedelta(days=1)
     first_day = first_game - timedelta(days=OPEN_DAYS_BEFORE)
-    ref = now or datetime.now(timezone.utc)
-    if ref.tzinfo is None:
-        ref = ref.replace(tzinfo=timezone.utc)
-    today = ref.astimezone(tz).date()
+    now_local = _local_now(timezone_name, now)
+    today = now_local.date()
     if today < first_day:
         state = "upcoming"
     elif today > last_day:
@@ -61,7 +87,8 @@ def availability_window(
     else:
         state = "open"
     span = (last_day - first_day).days
-    dates = [(first_day + timedelta(days=i)).isoformat() for i in range(span + 1)]
+    span_dates = [(first_day + timedelta(days=i)).isoformat() for i in range(span + 1)]
+    dates = [day for day in span_dates if day >= today.isoformat()]
     return {
         "state": state,
         "season": int(season),
@@ -71,6 +98,8 @@ def availability_window(
         "closes_on": last_day.isoformat(),
         "hours": list(SLOT_HOURS),
         "dates": dates,
+        "today": today.isoformat(),
+        "current_hour": now_local.hour,
     }
 
 
@@ -112,6 +141,8 @@ def validate_slots(
             continue
         if hour not in allowed_hours:
             raise ValueError("That hour is not on the calendar")
+        if not hour_still_open(day, hour, window):
+            continue
         key = (day, hour)
         if key in seen:
             continue
@@ -148,7 +179,7 @@ def build_availability_payload(
     rows = [
         row
         for row in storage.list_draft_availability(league_id)
-        if row["date"] in allowed
+        if row["date"] in allowed and hour_still_open(row["date"], int(row["hour"]), window)
     ]
     by_slot: dict[tuple[str, int], list[dict[str, Any]]] = defaultdict(list)
     submitted: set[str] = set()
@@ -166,7 +197,7 @@ def build_availability_payload(
 
     heat: list[dict[str, Any]] = []
     for day in window["dates"]:
-        for hour in window["hours"]:
+        for hour in open_hours_for_date(day, window):
             people = by_slot.get((day, int(hour))) or []
             heat.append(
                 {
