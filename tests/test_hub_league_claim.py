@@ -1,11 +1,14 @@
 """Shareable league claim links — pick an unclaimed team without a matching email."""
 
+import threading
+
 from fastapi.testclient import TestClient
 
 from app.api import app
 from app.auth import require_hub_user
 from src.draft_hub import storage
 from src.draft_hub.league_claim import accept_claim_link, build_claim_preview, build_claim_url
+from src.draft_hub.league_invites import create_invite
 from src.draft_hub.presets import load_preset
 
 
@@ -69,6 +72,66 @@ def test_accept_claim_rejects_taken_team(hub_db):
         raise AssertionError("expected claimed team to reject")
     except ValueError as exc:
         assert "already claimed" in str(exc)
+
+
+def test_email_reserved_seat_hidden_and_blocked(hub_db):
+    league, token, comm = _seed(hub_db)
+    night = next(t for t in storage.list_league_teams(league["id"]) if t["name"] == "The Night Owls")
+    create_invite(league["id"], "owl@example.com", "The Night Owls", comm)
+
+    preview = build_claim_preview(token)
+    names = {t["name"] for t in preview["unclaimed_teams"]}
+    assert names == {"Sunday Club"}
+
+    try:
+        accept_claim_link(token, "ss:thief", team_id=night["id"])
+        raise AssertionError("expected reserved team_id claim to reject")
+    except ValueError as exc:
+        assert "reserved" in str(exc).lower()
+
+    try:
+        storage.join_league("ss:thief", league["room_code"], "The Night Owls")
+        raise AssertionError("expected reserved name join to reject")
+    except ValueError as exc:
+        assert "reserved" in str(exc).lower()
+
+    result = storage.accept_league_invite(
+        storage.list_league_invites(league["id"])[0]["token"],
+        "ss:owl",
+        "owl@example.com",
+    )
+    assert result["team"]["user_sub"] == "ss:owl"
+
+
+def test_concurrent_assign_only_one_wins(hub_db):
+    league, _token, _comm = _seed(hub_db)
+    night = next(t for t in storage.list_league_teams(league["id"]) if t["name"] == "The Night Owls")
+    barrier = threading.Barrier(2)
+    results: list[dict] = []
+    errors: list[str] = []
+
+    def claim(sub: str) -> None:
+        try:
+            barrier.wait()
+            results.append(storage.assign_team_user(night["id"], sub))
+        except ValueError as exc:
+            errors.append(str(exc))
+
+    threads = [
+        threading.Thread(target=claim, args=("ss:a",)),
+        threading.Thread(target=claim, args=("ss:b",)),
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert len(results) == 1
+    assert len(errors) == 1
+    owner = storage.get_team(night["id"])["user_sub"]
+    assert owner in {"ss:a", "ss:b"}
+    assert results[0]["user_sub"] == owner
+    assert "already claimed" in errors[0]
 
 
 def test_join_league_claims_existing_name(hub_db):

@@ -1561,12 +1561,16 @@ def join_league(user_sub: str, room_code: str, team_name: str) -> dict[str, Any]
         if named:
             if named["user_sub"] and str(named["user_sub"]) != str(user_sub):
                 raise ValueError(f"Team '{named['name']}' is already claimed")
+            if not named["user_sub"] and _pending_invite_for_team_name(conn, league["id"], named["name"]):
+                raise ValueError(f"Team '{named['name']}' is reserved for an invited manager")
             now = _utcnow()
-            conn.execute(
+            cur = conn.execute(
                 """UPDATE team SET user_sub = ?, joined_at = COALESCE(joined_at, ?)
-                   WHERE id = ?""",
-                (user_sub, now, named["id"]),
+                   WHERE id = ? AND (user_sub IS NULL OR user_sub = ?)""",
+                (user_sub, now, named["id"], user_sub),
             )
+            if cur.rowcount != 1:
+                raise ValueError(f"Team '{named['name']}' is already claimed")
             row = conn.execute("SELECT * FROM team WHERE id = ?", (named["id"],)).fetchone()
             return _team_dict(row)
         team_count = conn.execute(
@@ -2810,14 +2814,20 @@ def assign_team_user(
             raise ValueError("Team not found")
         if row["user_sub"] and row["user_sub"] != clean_sub:
             raise ValueError("Team is already claimed by another user")
+        if not row["user_sub"] and _pending_invite_for_team_name(conn, row["league_id"], row["name"]):
+            raise ValueError(f"Team '{row['name']}' is reserved for an invited manager")
         clean_name = str(name or row["name"] or "").strip() or str(row["name"] or "Manager")
         joined = row["joined_at"] or now
-        conn.execute(
+        cur = conn.execute(
             """UPDATE team SET user_sub = ?, name = ?, joined_at = ?
-               WHERE id = ?""",
-            (clean_sub, clean_name, joined, team_id),
+               WHERE id = ? AND (user_sub IS NULL OR user_sub = ?)""",
+            (clean_sub, clean_name, joined, team_id, clean_sub),
         )
         updated = conn.execute("SELECT * FROM team WHERE id = ?", (team_id,)).fetchone()
+        if cur.rowcount != 1:
+            if updated and updated["user_sub"] == clean_sub:
+                return _team_dict(updated)
+            raise ValueError("Team is already claimed by another user")
         return _team_dict(updated) if updated else {}
 
 
@@ -3473,6 +3483,14 @@ def create_league_invite(
         invite = _invite_dict(row)
         invite["team_id"] = team["id"]
         return invite
+
+
+def _pending_invite_for_team_name(conn: sqlite3.Connection, league_id: str, team_name: str):
+    return conn.execute(
+        """SELECT id FROM league_invite
+           WHERE league_id = ? AND status = 'pending' AND LOWER(team_name) = LOWER(?)""",
+        (league_id, team_name),
+    ).fetchone()
 
 
 def get_pending_invite_for_team(league_id: str, team_id: str) -> dict[str, Any] | None:

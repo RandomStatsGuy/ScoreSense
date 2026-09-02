@@ -55,8 +55,17 @@ def build_claim_preview(token: str, user_sub: str | None = None) -> dict[str, An
     if not league:
         raise ValueError("Invite link is not valid")
     teams = _human_teams(storage.list_league_teams(league["id"]))
+    reserved = {
+        str(inv.get("team_name") or "").strip().lower()
+        for inv in storage.list_league_invites(league["id"])
+        if inv.get("status") == "pending"
+    }
     claimed = [t for t in teams if t.get("user_sub")]
-    unclaimed = [t for t in teams if not t.get("user_sub")]
+    unclaimed = [
+        t
+        for t in teams
+        if not t.get("user_sub") and str(t.get("name") or "").strip().lower() not in reserved
+    ]
     team_count = int(league.get("team_count") or 12)
     open_create = max(0, team_count - len(teams))
     enabled = bool(league.get("claim_link_enabled", True))
