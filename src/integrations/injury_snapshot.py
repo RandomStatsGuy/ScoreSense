@@ -398,6 +398,8 @@ def index_availability_by_player_id(snapshot: dict[str, Any]) -> dict[str, dict[
         avail = {
             "status": row.get("status"),
             "practice": row.get("practice"),
+            "injury_notes": row.get("injury_notes"),
+            "injury_body_part": row.get("injury_body_part"),
             "updated_at": row.get("updated_at"),
         }
         for key in ("gsis_id", "sleeper_id"):

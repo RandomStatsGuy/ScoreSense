@@ -229,8 +229,11 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "board",
     page: "frontend/src/PlayerCardModal.jsx",
     copy: "frontend/src/projectionsPresentation.js",
-    also: ["frontend/src/ProjectionExplanationPanel.jsx"],
-    doNot: "Desktop inspector is a right drawer. Do not invent a second player card.",
+    also: [
+      "frontend/src/PlayerContextPanel.jsx",
+      "frontend/src/ProjectionExplanationPanel.jsx",
+    ],
+    doNot: "Desktop inspector is a right drawer. Do not invent a second player card. This-week notes are locker or practice plus an optional projection delta. Do not show YouTube show copy as current week.",
   }),
   "account.model": S({
     label: "Model accuracy",
@@ -321,6 +324,8 @@ export const SURFACE_ALIASES = Object.freeze({
   "mock draft": "tools.mock-draft",
   "best ball": "tools.best-ball",
   "player inspector": "projections.inspector",
+  "this-week notes": "projections.inspector",
+  "locker note": "projections.inspector",
   "player card": "projections.inspector",
   "model accuracy": "account.model",
   "preseason outlook": "projections.season",

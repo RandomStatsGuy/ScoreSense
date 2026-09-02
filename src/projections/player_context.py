@@ -31,6 +31,11 @@ from src.config import (
     PROCESSED_DATA_DIR,
     SENTIMENT_FEATURES_PATH,
 )
+from src.draft_hub.player_latest import (
+    attach_this_week,
+    compose_this_week,
+    is_useful_sentence,
+)
 from src.core.projection_context import resolve_projection_context
 from src.integrations.injury_snapshot import (
     build_injury_snapshot,
@@ -196,11 +201,12 @@ def _media_source_count(row: dict[str, Any] | None) -> int:
 
 
 def _media_excerpt(row: dict[str, Any] | None) -> str | None:
+    """Raw snippet only when it survives the Latest usefulness filter."""
     if not row:
         return None
     for key in ("yt_top_snippet", "top_sentence", "yt_top_sentence", "snippet"):
         text = str(row.get(key) or "").strip()
-        if text:
+        if is_useful_sentence(text):
             return text
     return None
 
@@ -310,6 +316,9 @@ def detail_available_for_payload(payload: dict[str, Any]) -> bool:
     )
     avail = payload.get("availability") if isinstance(payload.get("availability"), dict) else {}
 
+    this_week = payload.get("this_week") if isinstance(payload.get("this_week"), dict) else {}
+    if this_week.get("detail") or this_week.get("headline") or this_week.get("projection_line"):
+        return True
     if media.get("summary") or media.get("excerpt"):
         return True
     if media.get("sources"):
@@ -320,7 +329,7 @@ def detail_available_for_payload(payload: dict[str, Any]) -> bool:
         return True
     if opp.get("included") or (opp.get("drivers") or []):
         return True
-    if avail.get("status") or avail.get("practice"):
+    if avail.get("status") or avail.get("practice") or avail.get("injury_notes"):
         return True
     return False
 
@@ -375,6 +384,22 @@ def compact_player_context(
             "included": bool(opp.get("included")),
         },
         "media_context": compact_media,
+        "this_week": {
+            "kind": (payload.get("this_week") or {}).get("kind")
+            if isinstance(payload.get("this_week"), dict)
+            else "none",
+            "has_note": bool(
+                isinstance(payload.get("this_week"), dict)
+                and (
+                    payload["this_week"].get("detail")
+                    or payload["this_week"].get("headline")
+                )
+            ),
+            "has_delta": bool(
+                isinstance(payload.get("this_week"), dict)
+                and payload["this_week"].get("projection_line")
+            ),
+        },
         "detail_available": detail_available_for_payload(payload),
         "meta": {
             "season": meta.get("season"),
@@ -438,18 +463,17 @@ def _narrative_media_from_sentiment(
     signal = _media_signal(sent)
     excerpt = _media_excerpt(sent)
     sources = _media_sources(sent)
-    summary, media_updated = _cached_digest_summary(
-        pid, player_name, season, week, sent
-    )
-    if sent and not media_updated and SENTIMENT_FEATURES_PATH.exists():
+    media_updated = None
+    if sent and SENTIMENT_FEATURES_PATH.exists():
         media_updated = datetime.fromtimestamp(
             SENTIMENT_FEATURES_PATH.stat().st_mtime, tz=timezone.utc
         ).isoformat()
+    # Research candidate only — never an extractive / LLM show recap.
     return {
         "state": MEDIA_STATE_CURRENT,
         "signal": signal,
         "source_count": source_count,
-        "summary": summary,
+        "summary": None,
         "excerpt": excerpt,
         "sources": sources,
         "updated_at": media_updated,
@@ -473,24 +497,21 @@ def _build_media_context_for_player(
     sent = sentiment_index.get(pid)
     signal = _media_signal(sent)
     source_count = _media_source_count(sent)
-    excerpt = _media_excerpt(sent)
-    sources = _media_sources(sent)
-    summary, media_updated = _cached_digest_summary(
-        pid, player_name, season, week, sent
-    )
-    if sent and not media_updated and SENTIMENT_FEATURES_PATH.exists():
+    media_updated = None
+    if sent and SENTIMENT_FEATURES_PATH.exists():
         media_updated = datetime.fromtimestamp(
             SENTIMENT_FEATURES_PATH.stat().st_mtime, tz=timezone.utc
         ).isoformat()
 
     if sent and source_count > 0:
+        # This-week story is locker / delta. Do not bake show copy here.
         media_context: dict[str, Any] = {
-            "state": MEDIA_STATE_CURRENT,
+            "state": MEDIA_STATE_NONE,
             "signal": signal,
             "source_count": source_count,
-            "summary": summary,
-            "excerpt": excerpt,
-            "sources": sources,
+            "summary": None,
+            "excerpt": None,
+            "sources": [],
             "updated_at": media_updated,
             "historical": None,
             "affects_projection": False,
@@ -506,10 +527,9 @@ def _build_media_context_for_player(
             hist_count = _media_source_count(hist_dict)
             hist_excerpt = _media_excerpt(hist_dict)
             hist_sources = _media_sources(hist_dict)
-            hist_summary, hist_updated = _cached_digest_summary(
-                pid, player_name, hist_season, hist_week, hist_dict
-            )
-            if hist_dict and not hist_updated and SENTIMENT_FEATURES_PATH.exists():
+            hist_summary = None
+            hist_updated = None
+            if hist_dict and SENTIMENT_FEATURES_PATH.exists():
                 hist_updated = datetime.fromtimestamp(
                     SENTIMENT_FEATURES_PATH.stat().st_mtime, tz=timezone.utc
                 ).isoformat()
@@ -750,6 +770,8 @@ def build_player_context_rows(
         avail = avail_index.get(pid) or {
             "status": None,
             "practice": None,
+            "injury_notes": None,
+            "injury_body_part": None,
             "updated_at": None,
         }
         # Prefer projection Injury Status when snapshot has no status.
@@ -784,6 +806,8 @@ def build_player_context_rows(
             "availability": {
                 "status": avail.get("status"),
                 "practice": avail.get("practice"),
+                "injury_notes": avail.get("injury_notes"),
+                "injury_body_part": avail.get("injury_body_part"),
                 "updated_at": avail.get("updated_at"),
             },
             "opportunity_adjustment": {
@@ -800,6 +824,11 @@ def build_player_context_rows(
                 "schema_version": SCHEMA_VERSION,
             },
         }
+        payload["this_week"] = compose_this_week(
+            availability=payload["availability"],
+            projection=payload["projection"],
+            allow_research_snippet=False,
+        )
         rows.append(payload)
 
     meta = {
@@ -1025,6 +1054,7 @@ def get_player_context(
         include_historical=include_historical,
         media_mode=mode,
     )
+    payload = attach_this_week(payload, media_mode=mode)
     # Ensure detail keys exist even on older v2 artifacts.
     media = payload.get("media_context")
     if isinstance(media, dict):
@@ -1079,9 +1109,12 @@ def list_player_context(
         wanted = {str(p).strip() for p in player_ids if str(p).strip()}
         players = [p for p in players if str(p.get("player_id")) in wanted]
     players = [
-        _finalize_media_context(
-            p,
-            include_historical=include_historical,
+        attach_this_week(
+            _finalize_media_context(
+                p,
+                include_historical=include_historical,
+                media_mode=mode,
+            ),
             media_mode=mode,
         )
         for p in players
