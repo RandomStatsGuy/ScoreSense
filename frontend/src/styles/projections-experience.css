@@ -158,8 +158,38 @@
   background: var(--row-hover-bg);
 }
 
+.proj-board-row--selecting {
+  cursor: pointer;
+}
+
 .proj-board-row.is-selected {
   box-shadow: inset 3px 0 0 var(--experience-blue);
+  background: var(--experience-blue-soft);
+}
+
+.proj-board-surface .table-toolbar {
+  align-items: center;
+}
+
+.compare-mode-toggle {
+  margin-left: auto;
+}
+
+.compare-mode-hint {
+  margin: -0.25rem 0 0.65rem;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.player-inspector-callout {
+  margin: 0.75rem 0 0.35rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: var(--radius-md);
+  background: var(--tone-positive-soft);
+}
+
+.player-inspector-callout .player-inspector-tile-title {
+  color: var(--tone-positive);
 }
 
 .proj-why-now,
@@ -486,8 +516,7 @@
     display: none;
   }
 
-  .table-toolbar .table-meta-movement,
-  .table-toolbar .table-meta-compare-hint {
+  .table-toolbar .table-meta-movement {
     display: none;
   }
 

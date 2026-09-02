@@ -114,3 +114,13 @@ def test_constitution_covers_chat_chrome() -> None:
     assert "centered conversation" in product
     assert "FantasyChatDock" in core_rule
     assert "edge launcher" in core_rule
+
+
+def test_constitution_covers_weekly_board_chrome() -> None:
+    product = _read("docs", "PRODUCT.md")
+    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    for text in (product, core_rule):
+        assert "always-on" in text.lower()
+        assert "compare" in text.lower()
+        assert "compact Q" in text or "compact Q / D / P" in text
+        assert "inspector" in text.lower()

@@ -15793,6 +15793,12 @@ button.hub-wcc-bench-chip {
   min-width: 0;
 }
 
+.player-context-block--highlight {
+  padding: 0.65rem 0.7rem;
+  border-radius: var(--radius-md);
+  background: var(--tone-positive-soft);
+}
+
 .player-context-block-title {
   margin: 0;
   font-size: 0.72rem;

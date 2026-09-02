@@ -355,8 +355,8 @@ export default function PlayerContextPanel({
           ) : null}
 
           {opp ? (
-          <div className="player-context-block">
-            <h4 className="player-context-block-title">Opportunity</h4>
+          <div className={`player-context-block${opp.included ? " player-context-block--highlight" : ""}`}>
+            <h4 className="player-context-block-title">{CONTEXT_COPY.opportunityTitle}</h4>
             {opp?.included ? (
               <div className="player-context-opp-stack">
                 <div className="player-context-stats">
@@ -383,7 +383,7 @@ export default function PlayerContextPanel({
               </div>
             ) : (
               <p className="state-empty-text player-context-empty">
-                No opportunity adjustment this week.
+                {CONTEXT_COPY.opportunityEmpty}
               </p>
             )}
           </div>
