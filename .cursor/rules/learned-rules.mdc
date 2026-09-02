@@ -25,4 +25,4 @@ Keep under 30 data rows. Promote `always` / `never` into `docs/PRODUCT.md` or a 
 | Freq | Scope | Rule |
 |------|-------|------|
 | usually | agent | Propose fun Fantasy ideas that also change a start/sit, bid, or cut decision, then file them on the SCORE Jira board. |
-| usually | fantasy-ui | Vibes cards scroll like a dating profile with hometown, college, job, and a first-person bio. |
+| usually | fantasy-ui | Vibes front card is the matchup only. Bio and latest news open behind the info arrow. |

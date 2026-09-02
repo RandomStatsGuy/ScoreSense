@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { headshotCandidates, playerInitials, teamLogoUrl } from "./draftMedia";
 import { espnHeadshotUrl, opponentLabel, VIBE_COPY } from "./vibeRankingsPresentation";
 import { auraTone, formatAura, formatPts, readAura, vibeScore } from "./vibeAura";
+import { buildVibeLatest, buildVibeMatchup } from "./vibeMatchup";
 import { buildVibeProfile } from "./vibeProfile";
 
 const COMMIT_PX = 88;
@@ -14,7 +15,30 @@ function cardMedia(player, media) {
   return headshotCandidates(row, [espnHeadshotUrl(player.espn_id)]);
 }
 
-function VibeCardFace({ player, media, aura, overlay }) {
+function MoreArrow({ open }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d={open
+          ? "M7.4 8.4 12 13l4.6-4.6L18 9.8l-6 6-6-6Z"
+          : "M7.4 15.6 6 14.2 12 8.2l6 6-1.4 1.4L12 11Z"}
+      />
+    </svg>
+  );
+}
+
+function VibeCardFace({
+  player,
+  media,
+  aura,
+  overlay,
+  matchup,
+  latest,
+  open,
+  onToggleOpen,
+  showMore,
+}) {
   const [shotIndex, setShotIndex] = useState(0);
   const shots = cardMedia(player, media);
   const headshot = shots[shotIndex] || null;
@@ -22,6 +46,7 @@ function VibeCardFace({ player, media, aura, overlay }) {
   const tone = auraTone(aura);
   const vibePts = vibeScore(player, aura);
   const profile = buildVibeProfile(player, media);
+  const news = buildVibeLatest(player, latest);
 
   useEffect(() => {
     setShotIndex(0);
@@ -34,6 +59,10 @@ function VibeCardFace({ player, media, aura, overlay }) {
     player.on_bye ? VIBE_COPY.onBye : null,
     player.injured ? VIBE_COPY.injured : null,
   ].filter(Boolean);
+
+  const stopCardGesture = (event) => {
+    event.stopPropagation();
+  };
 
   return (
     <>
@@ -63,6 +92,23 @@ function VibeCardFace({ player, media, aura, overlay }) {
         >
           {VIBE_COPY.stampSit}
         </span>
+        {showMore ? (
+          <button
+            type="button"
+            className={`hub-vibes-more${open ? " is-open" : ""}`}
+            aria-expanded={open}
+            aria-label={open ? VIBE_COPY.closeMore : VIBE_COPY.openMore}
+            onPointerDown={stopCardGesture}
+            onPointerMove={stopCardGesture}
+            onPointerUp={stopCardGesture}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleOpen?.();
+            }}
+          >
+            <MoreArrow open={open} />
+          </button>
+        ) : null}
       </div>
       <div className="hub-vibes-identity">
         <h3 className="hub-vibes-name">{player.player_name}</h3>
@@ -84,22 +130,45 @@ function VibeCardFace({ player, media, aura, overlay }) {
         <div className={`hub-vibes-aura-bar is-${tone}`} aria-hidden="true">
           <i style={{ width: `${aura}%` }} />
         </div>
-        <p className="hub-vibes-scroll-hint">{VIBE_COPY.profileScroll}</p>
-      </div>
-      <div className="hub-vibes-profile">
-        <p className="hub-vibes-about">{VIBE_COPY.profileAbout}</p>
-        {profile.facts.length ? (
-          <dl className="hub-vibes-facts">
-            {profile.facts.map((row) => (
-              <div key={row.id} className="hub-vibes-fact">
+        {matchup.facts.length ? (
+          <dl className="hub-vibes-matchup">
+            {matchup.facts.map((row) => (
+              <div key={row.id} className="hub-vibes-stat">
                 <dt>{row.label}</dt>
-                <dd>{row.value}</dd>
+                <dd><strong>{row.value}</strong></dd>
               </div>
             ))}
           </dl>
         ) : null}
-        {profile.bio ? <p className="hub-vibes-bio">{profile.bio}</p> : null}
       </div>
+      {open ? (
+        <div className="hub-vibes-profile">
+          <p className="hub-vibes-about">{VIBE_COPY.profileAbout}</p>
+          {profile.facts.length ? (
+            <dl className="hub-vibes-facts">
+              {profile.facts.map((row) => (
+                <div key={row.id} className="hub-vibes-fact">
+                  <dt>{row.label}</dt>
+                  <dd>{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+          {profile.bio ? <p className="hub-vibes-bio">{profile.bio}</p> : null}
+          <div className="hub-vibes-news">
+            <p className="hub-vibes-about">{VIBE_COPY.profileLatest}</p>
+            {news?.headline || news?.detail ? (
+              <>
+                {news.headline ? <p className="hub-vibes-news-head">{news.headline}</p> : null}
+                {news.detail ? <p className="hub-vibes-bio">{news.detail}</p> : null}
+                {news.source ? <p className="hub-vibes-news-source">{news.source}</p> : null}
+              </>
+            ) : (
+              <p className="hub-vibes-bio">{VIBE_COPY.profileEmptyNews}</p>
+            )}
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }
@@ -109,6 +178,9 @@ export default function VibeSwipeDeck({
   index,
   auraById,
   media,
+  vegasTeams,
+  latestById,
+  onProfileOpen,
   onSwipe,
   disabled = false,
 }) {
@@ -116,15 +188,21 @@ export default function VibeSwipeDeck({
   const dragRef = useRef(null);
   const flyTimer = useRef(null);
   const [drag, setDrag] = useState({ dx: 0, active: false, leaving: null });
+  const [open, setOpen] = useState(false);
 
   const front = players[index] || null;
   const stacked = players.slice(index, index + 3);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [front?.player_id]);
 
   const finish = useCallback((vibe, fromDx) => {
     if (!front || disabled || dragRef.current?.locked) return;
     if (dragRef.current) dragRef.current.locked = true;
     const dir = vibe === "start" ? 1 : -1;
     const width = wrapRef.current?.offsetWidth || 320;
+    setOpen(false);
     setDrag({ dx: fromDx, active: false, leaving: { vibe, x: dir * (width + 80) } });
     if (flyTimer.current) window.clearTimeout(flyTimer.current);
     flyTimer.current = window.setTimeout(() => {
@@ -137,6 +215,7 @@ export default function VibeSwipeDeck({
   const onPointerDown = (event) => {
     if (disabled || !front || dragRef.current?.locked) return;
     if (event.button != null && event.button !== 0) return;
+    if (event.target?.closest?.(".hub-vibes-more")) return;
     dragRef.current = {
       x: event.clientX,
       y: event.clientY,
@@ -264,7 +343,7 @@ export default function VibeSwipeDeck({
         return (
           <article
             key={player.player_id}
-            className={`hub-vibes-card${isFront ? " is-front" : ""}${drag.active && isFront ? " is-dragging" : ""}${depth ? ` is-stack-${depth}` : ""}`}
+            className={`hub-vibes-card${isFront ? " is-front" : ""}${drag.active && isFront ? " is-dragging" : ""}${open && isFront ? " is-open" : ""}${depth ? ` is-stack-${depth}` : ""}`}
             style={{
               transform,
               transition: isFront ? transition : "transform 160ms var(--ease-standard)",
@@ -280,6 +359,17 @@ export default function VibeSwipeDeck({
               media={media}
               aura={readAura(auraById, player.player_id)}
               overlay={isFront ? { start: startOpacity, sit: sitOpacity } : { start: 0, sit: 0 }}
+              matchup={buildVibeMatchup(player, vegasTeams)}
+              latest={latestById?.[player.player_id]}
+              open={open && isFront}
+              onToggleOpen={isFront ? () => {
+                setOpen((cur) => {
+                  const next = !cur;
+                  if (next) onProfileOpen?.(player);
+                  return next;
+                });
+              } : undefined}
+              showMore={isFront}
             />
           </article>
         );

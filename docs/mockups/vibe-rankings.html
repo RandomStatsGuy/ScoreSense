@@ -47,7 +47,7 @@
 
   .vibe-card {
     position: absolute; inset: 0;
-    overflow-x: hidden; overflow-y: auto;
+    overflow-x: hidden; overflow-y: hidden;
     overscroll-behavior: contain;
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
@@ -55,11 +55,18 @@
     box-shadow: 0 18px 44px rgba(0,0,0,0.32);
     touch-action: pan-y;
   }
+  .vibe-card.is-open { overflow-y: auto; }
   .vibe-card.is-front { cursor: grab; z-index: 3; }
   .vibe-card.is-front.is-drag { cursor: grabbing; overflow-y: hidden; }
   .vibe-photo {
-    position: relative; height: 50%; min-height: 12.5rem;
+    position: relative; height: 52%; min-height: 12.5rem;
     background: radial-gradient(circle at 50% 20%, rgba(91,143,232,0.16), transparent 44%), #101a28;
+  }
+  .vibe-card.is-open .vibe-photo { height: 34%; min-height: 9rem; }
+  .more-btn {
+    position: absolute; right: 0.85rem; bottom: 0.85rem; z-index: 2;
+    width: 2.4rem; height: 2.4rem; border: 0; border-radius: 999px;
+    background: var(--accent); color: #fff; cursor: pointer; font-size: 1.1rem;
   }
   .vibe-photo img, .vibe-fallback {
     width: 100%; height: 100%; object-fit: cover; object-position: top center;
@@ -83,10 +90,15 @@
   .vibe-id { padding: 0.95rem 1.05rem 0.65rem; }
   .vibe-id h3 { margin: 0; font-size: 1.4rem; letter-spacing: -0.03em; }
   .vibe-id .meta { margin: 0.3rem 0 0.55rem; color: var(--text-secondary); font-size: 0.8rem; }
-  .scroll-hint, .about {
+  .about {
     margin: 0.55rem 0 0; color: var(--text-muted); font-size: 0.64rem;
     font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
   }
+  .matchup { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; margin-top: 0.55rem; }
+  .matchup span { display: block; color: var(--text-muted); font-size: 0.62rem; }
+  .matchup strong { display: block; font-size: 0.76rem; font-weight: 650; line-height: 1.25; }
+  .news-head { margin: 0.35rem 0 0; font-size: 0.92rem; font-weight: 650; }
+  .news-src { margin: 0.25rem 0 0; color: var(--text-muted); font-size: 0.64rem; }
   .vibe-profile { padding: 0 1.05rem 1.3rem; }
   .facts-dl { display: flex; flex-direction: column; gap: 0.42rem; margin: 0.45rem 0 0.7rem; }
   .fact-row { display: grid; grid-template-columns: 5.1rem minmax(0,1fr); gap: 0.4rem; }
@@ -178,7 +190,7 @@
   <section class="mock-hero">
     <p class="mock-kicker">Vibe rankings</p>
     <h1 id="hero-heading">Who feels startable this week.</h1>
-    <p class="support" id="hero-support">Swipe your roster. Scroll the card for hometown, college, and a first-person bio. Start energy raises aura. Sit energy lowers it. The slate updates as you go.</p>
+    <p class="support" id="hero-support">Swipe your roster. The card is the matchup. The arrow opens the bio and latest note. Start energy raises aura. Sit energy lowers it. The slate updates as you go.</p>
     <span class="mock-hero-chip mock-pill mock-pill--ok">Your read</span>
   </section>
 
@@ -192,7 +204,7 @@
           <button type="button" class="vote-start" id="btn-start">Start</button>
         </div>
         <p class="progress" id="progress">1 of 10</p>
-        <p class="progress">Swipe to rate. Scroll the card for the profile.</p>
+        <p class="progress">Swipe to rate. The arrow opens the profile.</p>
         <p class="progress keys">← sit · → start · Backspace undo</p>
       </div>
       <div id="results" class="results-banner" hidden>
@@ -229,7 +241,7 @@
     </aside>
   </div>
 
-  <p class="footnote">Design mockup — Fantasy · Vibes. Swipe to rate, scroll the card for the profile. Desktop also accepts arrow keys. Bios are composed, not Wikipedia.</p>
+  <p class="footnote">Design mockup — Fantasy · Vibes. Front card is the matchup. Arrow opens bio and latest note. Desktop also accepts arrow keys.</p>
 </div>
 
 <script>
@@ -252,7 +264,31 @@ const SLOTS = [
 ];
 const FLEX = new Set(["RB", "WR", "TE"]);
 
-const state = { index: 0, aura: {}, history: [], dx: 0, dragging: false };
+const MATCHUPS = {
+  allen: { site: "Home vs MIA", weather: "78° · 9 mph", line: "BUF -6.5 · O/U 50.5" },
+  bijan: { site: "Home vs TB", weather: "Dome", line: "ATL -3.0 · O/U 46.5" },
+  gibbs: { site: "Away @ GB", weather: "54° · 14 mph", line: "GB -2.5 · O/U 48.0" },
+  jefferson: { site: "Home vs CHI", weather: "Dome", line: "MIN -4.5 · O/U 44.5" },
+  puka: { site: "Away @ SEA", weather: "61° · 8 mph", line: "SEA -3.5 · O/U 44.5" },
+  cd: { site: "Home vs NYG", weather: "Dome", line: "DAL -7.0 · O/U 47.5" },
+  bowers: { site: "Away @ DEN", weather: "68° · 7 mph", line: "DEN -5.5 · O/U 41.5" },
+  kittle: { site: "Home vs ARI", weather: "Dome", line: "SF -6.0 · O/U 47.0" },
+  saquon: { site: "Home vs WAS", weather: "72° · 6 mph", line: "PHI -4.0 · O/U 45.5" },
+  sun: { site: "Away @ GB", weather: "54° · 14 mph", line: "GB -2.5 · O/U 48.0" },
+};
+const NEWS = {
+  allen: { head: "Full practice Wednesday", detail: "No designation. Miami's the stack people want.", src: "Practice report" },
+  bijan: { head: "Feature back, no committee talk", detail: "Atlanta's treating this as a workhorse week.", src: "Week context" },
+  gibbs: { head: "Limited Tuesday · ankle", detail: "Moved around fine on Wednesday. Still wants the passing downs.", src: "Locker room" },
+  jefferson: { head: "Full go", detail: "Chicago's corners are the story. Volume does not care.", src: "Practice report" },
+  puka: { head: "No designation in Seattle", detail: "Thursday night, outdoors. He lives in the middle of the field.", src: "Availability" },
+  cd: { head: "Questionable · hip", detail: "Limited Wednesday. If he's out, that slot gets loud.", src: "Locker room" },
+  bowers: { head: "Every-down tight end", detail: "Denver's the tougher matchup. The seams still matter.", src: "Week context" },
+  kittle: { head: "Full practice, no tag", detail: "Arizona in Santa Clara.", src: "Practice report" },
+  saquon: { head: "Expected to handle early downs", detail: "Washington at home. Goal-line work is the argument.", src: "Week context" },
+  sun: { head: "No injury tag", detail: "Same Green Bay game as Gibbs. Slot volume is the start case.", src: "Availability" },
+};
+const state = { index: 0, aura: {}, history: [], dx: 0, dragging: false, open: false };
 
 function auraOf(id) { return state.aura[id] ?? 50; }
 function vibeScore(p) { return p.p50 * (0.6 + 0.4 * (auraOf(p.id) / 50)); }
@@ -280,9 +316,26 @@ function initials(name) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function cardHTML(p, overlay) {
+function cardHTML(p, overlay, open) {
   const a = auraOf(p.id);
   const t = tone(a);
+  const m = MATCHUPS[p.id] || { site: p.opp, weather: "—", line: "—" };
+  const n = NEWS[p.id] || { head: "No new note this week.", detail: "", src: "" };
+  const profile = open ? `
+    <div class="vibe-profile">
+      <p class="about">About</p>
+      <dl class="facts-dl">
+        <div class="fact-row"><dt>From</dt><dd>${p.from}</dd></div>
+        <div class="fact-row"><dt>College</dt><dd>${p.college}</dd></div>
+        <div class="fact-row"><dt>Job</dt><dd>${p.job}</dd></div>
+        <div class="fact-row"><dt>Age</dt><dd>${p.age}</dd></div>
+      </dl>
+      <p class="bio">${p.bio}</p>
+      <p class="about">Latest</p>
+      <p class="news-head">${n.head}</p>
+      ${n.detail ? `<p class="bio">${n.detail}</p>` : ""}
+      ${n.src ? `<p class="news-src">${n.src}</p>` : ""}
+    </div>` : "";
   return `
     <div class="vibe-photo">
       <img src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.espn}.png" alt="" draggable="false"
@@ -290,6 +343,7 @@ function cardHTML(p, overlay) {
       <div class="vibe-fade"></div>
       <span class="stamp stamp-start" style="opacity:${overlay.start || 0}">Start</span>
       <span class="stamp stamp-sit" style="opacity:${overlay.sit || 0}">Sit</span>
+      <button type="button" class="more-btn" aria-expanded="${open ? "true" : "false"}">${open ? "▾" : "▴"}</button>
     </div>
     <div class="vibe-id">
       <h3>${p.name}</h3>
@@ -300,18 +354,13 @@ function cardHTML(p, overlay) {
         <div><span>Aura</span><strong class="${t}">${Math.round(a)}</strong></div>
       </div>
       <div class="aura-bar ${t}"><i style="width:${a}%"></i></div>
-      <p class="scroll-hint">Scroll for the profile</p>
+      <div class="matchup">
+        <div><span>Site</span><strong>${m.site}</strong></div>
+        <div><span>Weather</span><strong>${m.weather}</strong></div>
+        <div><span>Line</span><strong>${m.line}</strong></div>
+      </div>
     </div>
-    <div class="vibe-profile">
-      <p class="about">About</p>
-      <dl class="facts-dl">
-        <div class="fact-row"><dt>From</dt><dd>${p.from}</dd></div>
-        <div class="fact-row"><dt>College</dt><dd>${p.college}</dd></div>
-        <div class="fact-row"><dt>Job</dt><dd>${p.job}</dd></div>
-        <div class="fact-row"><dt>Age</dt><dd>${p.age}</dd></div>
-      </dl>
-      <p class="bio">${p.bio}</p>
-    </div>`;
+    ${profile}`;
 }
 
 function renderDeck() {
@@ -330,13 +379,13 @@ function renderDeck() {
   deck.innerHTML = "";
   slice.forEach((p, i) => {
     const el = document.createElement("article");
-    el.className = "vibe-card" + (i === 0 ? " is-front" : "");
+    el.className = "vibe-card" + (i === 0 ? " is-front" : "") + (i === 0 && state.open ? " is-open" : "");
     el.dataset.id = p.id;
     const scale = 1 - i * 0.045;
     const lift = i * 10;
     el.style.transform = i === 0 ? "translateX(0)" : `translateY(${lift}px) scale(${scale})`;
     el.style.zIndex = String(5 - i);
-    el.innerHTML = cardHTML(p, { start: 0, sit: 0 });
+    el.innerHTML = cardHTML(p, { start: 0, sit: 0 }, i === 0 && state.open);
     if (i === 0) bindFront(el);
     deck.appendChild(el);
   });
@@ -373,10 +422,19 @@ function bindFront(el) {
     setTimeout(() => { el.style.transition = "none"; }, 200);
   };
   el.addEventListener("pointerdown", (e) => {
+    if (e.target.closest(".more-btn")) return;
     tracking = true; axis = null;
     originX = lastX = e.clientX; originY = lastY = e.clientY;
     lastT = e.timeStamp; vx = 0; state.dx = 0;
   });
+  const more = el.querySelector(".more-btn");
+  if (more) {
+    more.addEventListener("click", (e) => {
+      e.stopPropagation();
+      state.open = !state.open;
+      renderDeck();
+    });
+  }
   el.addEventListener("pointermove", (e) => {
     if (!tracking) return;
     if (axis === "y") {
@@ -403,6 +461,7 @@ function bindFront(el) {
 function commit(vibe) {
   const p = PLAYERS[state.index];
   if (!p) return;
+  state.open = false;
   apply(p.id, vibe);
   state.history.push({ id: p.id, vibe, index: state.index });
   const front = document.querySelector(".vibe-card.is-front");

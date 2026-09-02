@@ -40,6 +40,9 @@ test("text lookup prefers the longest alias and ignores capture vs cap", () => {
   const profile = resolveLivingSurfaceFromText("fun facts about the player like a real tinder profile");
   assert.equal(profile.label, "Vibes");
   assert.ok(profile.also.includes("frontend/src/DraftHub/vibeProfile.js"));
+  const more = resolveLivingSurfaceFromText("see more on the card with the info arrow");
+  assert.equal(more.label, "Vibes");
+  assert.ok(more.also.includes("frontend/src/DraftHub/vibeMatchup.js"));
 });
 
 test("file lookup returns the surfaces that own a page", () => {

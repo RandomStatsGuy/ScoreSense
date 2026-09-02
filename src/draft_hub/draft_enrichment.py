@@ -299,6 +299,9 @@ def _media_for_players(
                 "birth_state": str(row.get("birth_state") or "").strip() or None,
                 "height": str(row.get("height") or "").strip() or None,
                 "weight": str(row.get("weight") or "").strip() or None,
+                "injury_status": str(row.get("injury_status") or "").strip() or None,
+                "injury_notes": str(row.get("injury_notes") or "").strip() or None,
+                "practice_description": str(row.get("practice_description") or "").strip() or None,
             }
         else:
             out[pid] = {

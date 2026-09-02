@@ -62,6 +62,8 @@ export default function VibeRankings({
   const [index, setIndex] = useState(0);
   const [history, setHistory] = useState([]);
   const [auraById, setAuraById] = useState({});
+  const [vegasTeams, setVegasTeams] = useState({});
+  const [latestById, setLatestById] = useState({});
 
   const load = useCallback(async (signal) => {
     setLoading(true);
@@ -92,7 +94,49 @@ export default function VibeRankings({
   const playerIds = useMemo(() => players.map((row) => row.player_id), [players]);
   const media = usePlayerMedia(usingDemo ? [] : playerIds);
 
-  const weekLabel = data?.meta?.week != null ? `Week ${data.meta.week}` : "This week";
+  const season = data?.meta?.season;
+  const week = data?.meta?.week;
+  const weekLabel = week != null ? `Week ${week}` : "This week";
+
+  useEffect(() => {
+    if (usingDemo || season == null || week == null) {
+      setVegasTeams({});
+      return undefined;
+    }
+    const ctrl = new AbortController();
+    (async () => {
+      try {
+        const res = await apiFetch(`/api/lineup/vegas?season=${season}&week=${week}`, { signal: ctrl.signal });
+        if (!res.ok) return;
+        const board = await res.json();
+        if (!ctrl.signal.aborted) setVegasTeams(board.teams || {});
+      } catch (e) {
+        if (isAbortError(e) || ctrl.signal.aborted) return;
+        setVegasTeams({});
+      }
+    })();
+    return () => ctrl.abort();
+  }, [season, usingDemo, week]);
+
+  const loadLatest = (player) => {
+    if (usingDemo || !player?.player_id || latestById[player.player_id]) return;
+    const params = new URLSearchParams();
+    if (season != null) params.set("season", String(season));
+    if (week != null) params.set("week", String(week));
+    if (player.player_name) params.set("player_name", player.player_name);
+    if (player.team) params.set("team", player.team);
+    const q = params.toString() ? `?${params.toString()}` : "";
+    (async () => {
+      try {
+        const res = await apiFetch(`/api/player/${encodeURIComponent(player.player_id)}/latest${q}`);
+        if (!res.ok) return;
+        const payload = await res.json();
+        setLatestById((cur) => ({ ...cur, [player.player_id]: payload }));
+      } catch {
+        /* latest is optional */
+      }
+    })();
+  };
   const key = storageKey({
     leagueId: data?.hub_context?.league_id || hubContext?.league_id,
     season: data?.meta?.season,
@@ -199,6 +243,9 @@ export default function VibeRankings({
               index={index}
               auraById={auraById}
               media={media}
+              vegasTeams={vegasTeams}
+              latestById={latestById}
+              onProfileOpen={loadLatest}
               onSwipe={commit}
               disabled={loading && !players.length}
             />

@@ -24,7 +24,7 @@
   position: absolute;
   inset: 0;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: hidden;
   overscroll-behavior: contain;
   border: 1px solid var(--experience-rule);
   border-radius: var(--radius-lg);
@@ -32,6 +32,10 @@
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.32);
   touch-action: pan-y;
   will-change: transform;
+}
+
+.hub-vibes-card.is-open {
+  overflow-y: auto;
 }
 
 .hub-vibes-card.is-front {
@@ -55,11 +59,16 @@
 
 .hub-vibes-photo {
   position: relative;
-  height: 52%;
-  min-height: 13rem;
+  height: 54%;
+  min-height: 12.5rem;
   background:
     radial-gradient(circle at 50% 20%, rgba(91, 143, 232, 0.14), transparent 42%),
     var(--experience-surface);
+}
+
+.hub-vibes-card.is-open .hub-vibes-photo {
+  height: 34%;
+  min-height: 9.2rem;
 }
 
 .hub-vibes-photo img,
@@ -113,6 +122,28 @@
   right: 1rem;
   color: var(--tone-caution);
   transform: rotate(12deg);
+}
+
+.hub-vibes-more {
+  position: absolute;
+  right: 0.85rem;
+  bottom: 0.85rem;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 2.45rem;
+  height: 2.45rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--experience-blue);
+  color: #fff;
+  cursor: pointer;
+}
+
+.hub-vibes-more svg {
+  width: 1.1rem;
+  height: 1.1rem;
 }
 
 .hub-vibes-identity {
@@ -189,6 +220,31 @@
 
 .hub-vibes-aura-bar.is-cold > i {
   background: var(--tone-caution);
+}
+
+.hub-vibes-matchup {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0.2rem 0 0;
+}
+
+.hub-vibes-matchup dt {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.66rem;
+}
+
+.hub-vibes-matchup dd {
+  margin: 0;
+}
+
+.hub-vibes-matchup strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.25;
 }
 
 .hub-vibes-actions {
@@ -269,6 +325,26 @@
   color: var(--text-secondary);
   font-size: 0.94rem;
   line-height: 1.45;
+}
+
+.hub-vibes-news {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-top: 0.15rem;
+}
+
+.hub-vibes-news-head {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.hub-vibes-news-source {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.66rem;
 }
 
 .hub-vibes-progress,
@@ -373,8 +449,13 @@
   }
 
   .hub-vibes-photo {
-    height: 46%;
-    min-height: 10.5rem;
+    height: 44%;
+    min-height: 9.8rem;
+  }
+
+  .hub-vibes-card.is-open .hub-vibes-photo {
+    height: 30%;
+    min-height: 8rem;
   }
 
   .hub-vibes-name {
