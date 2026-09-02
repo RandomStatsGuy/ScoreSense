@@ -46,6 +46,7 @@ test("My Team roster columns declare a shared header/body layout", () => {
 test("League Rosters columns declare a shared header/body layout", () => {
   const table = block(".hub-roster-browser-page .hub-roster-table");
   assert.match(table, /table-layout:\s*fixed/);
+  assert.match(table, /width:\s*58rem/);
   assert.match(table, /min-width:\s*58rem/);
 
   for (const cls of [
