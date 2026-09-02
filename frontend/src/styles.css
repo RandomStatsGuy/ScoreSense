@@ -13738,11 +13738,13 @@ td.col-rank.col-rank-top {
 .hub-roster-browser-table-wrap .table-wrap {
   background: transparent;
   border: none;
+  overflow-x: auto;
 }
 
 .hub-roster-browser-page .hub-roster-table {
   table-layout: fixed;
   width: 100%;
+  min-width: 74rem;
 }
 
 .hub-roster-browser-page .hub-roster-col-player {
@@ -13773,7 +13775,7 @@ td.col-rank.col-rank-top {
 }
 
 .hub-roster-browser-page .hub-roster-table .hub-roster-actions {
-  width: 13.25rem;
+  width: 18rem;
 }
 
 .hub-roster-browser-page .hub-roster-table th,
