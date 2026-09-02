@@ -3,7 +3,7 @@
 export const VIBE_COPY = Object.freeze({
   eyebrow: "Vibe rankings",
   heading: "Who feels startable this week.",
-  support: "Swipe your roster. The card is the matchup. The arrow opens the bio and latest note. Start energy raises aura. Sit energy lowers it. The slate updates as you go.",
+  support: "One read per player today. The card is the matchup. The arrow opens the bio and latest note. Start energy raises aura. Sit energy lowers it.",
   chip: "Your read",
   chipDemo: "Demo slate",
   sit: "Sit",
@@ -13,7 +13,7 @@ export const VIBE_COPY = Object.freeze({
   clearAura: "Clear aura",
   deckProgress: (index, total) => `${Math.min(index + 1, total)} of ${total}`,
   deckDoneHeading: "Aura is in.",
-  deckDoneSupport: "Your vibes scaled the week. Review the slate, then take it to This Week.",
+  deckDoneSupport: "Your vibes scaled the week. Come back tomorrow to nudge again, or take it to This Week.",
   emptyHeading: "Need a roster to read.",
   emptySupport: "Add contracts or sync the league, then come back to swipe the week.",
   loading: "Loading this week's roster…",
@@ -31,15 +31,17 @@ export const VIBE_COPY = Object.freeze({
   railTitle: "Vibe ranking",
   railSubtitle: (weekLabel) => weekLabel || "This week",
   cardsLeft: "Cards left",
-  rated: "Rated",
-  hottest: "Hottest aura",
+  rated: "Today",
+  hottest: "Hottest",
   nextAction: "Review on This Week",
-  nextActionDisabled: "Finish the deck to lock VA-projections.",
+  nextActionDisabled: "Rate someone today to lock VA-projections.",
   slateTitle: "VA-projections",
-  slateHint: "Vibe-adjusted projections. Week × aura. Bye and injured stay out.",
-  vsModel: "Where you disagree",
-  vsModelEmpty: "Your vibes match the model slate so far.",
-  vsModelLine: (start, sit) => `${start} over ${sit}`,
+  slateHint: "Vibe-adjusted week. Aura scales the number. Bye and injured stay out.",
+  vsModel: "Vibe vs the board",
+  vsModelEmpty: "Your vibes have not moved a start yet.",
+  vsModelLine: (start, sit) => `Your vibe starts ${start}. The board starts ${sit}.`,
+  emptyK: "No kicker rostered",
+  emptyDef: "No defense rostered",
   auraLabel: "Aura",
   weekProj: "Week",
   vibeProj: "Vibe week",
@@ -51,6 +53,7 @@ export const VIBE_COPY = Object.freeze({
   stampSit: "Sit",
   resultsCta: "Review on This Week",
   resultsAgain: "Swipe again",
+  lockedToday: "You've read this roster today. Come back tomorrow to nudge again.",
 });
 
 export const DEMO_VIBE_SLATE = Object.freeze([
@@ -184,6 +187,32 @@ export const DEMO_VIBE_SLATE = Object.freeze([
     lineup_role: "starter",
     slot: "FLEX",
   },
+  {
+    player_id: "demo-bates",
+    player_name: "Jake Bates",
+    position: "K",
+    team: "DET",
+    opponent: "GB",
+    p10: 6.8,
+    p50: 8.4,
+    p90: 10.6,
+    espn_id: 4875680,
+    lineup_role: "starter",
+    slot: "K",
+  },
+  {
+    player_id: "demo-lions-def",
+    player_name: "Lions",
+    position: "DEF",
+    team: "DET",
+    opponent: "GB",
+    p10: 5.1,
+    p50: 7.6,
+    p90: 11.8,
+    espn_id: null,
+    lineup_role: "starter",
+    slot: "DEF",
+  },
 ]);
 
 export function espnHeadshotUrl(espnId) {
@@ -224,7 +253,7 @@ export function heroCopy({ demo = false, empty = false, done = false } = {}) {
   };
 }
 
-/** Starter plan for the demo slate — skill positions only, no K/DEF. */
+/** Starter plan for the demo slate — includes K/DEF so VA-projections is a full week. */
 export const DEMO_VIBE_RULES = Object.freeze({
   roster: {
     qb: { starter: 1 },
@@ -232,10 +261,17 @@ export const DEMO_VIBE_RULES = Object.freeze({
     wr: { starter: 2 },
     te: { starter: 1 },
     flex: { starter: 1 },
-    k: { starter: 0 },
-    def: { starter: 0 },
+    k: { starter: 1 },
+    def: { starter: 1 },
   },
 });
+
+export function emptySlotName(position) {
+  const pos = String(position || "").toUpperCase();
+  if (pos === "K") return VIBE_COPY.emptyK;
+  if (pos === "DEF") return VIBE_COPY.emptyDef;
+  return "—";
+}
 
 export function opponentLabel(player) {
   const opp = String(player?.opponent || "").replace(/^@/, "").trim();

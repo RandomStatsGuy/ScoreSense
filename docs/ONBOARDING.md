@@ -50,7 +50,7 @@ Screen-by-screen for the group text (claim link → pick a team → mark nights)
 |------|--------|
 | 1 | Open `/hub/draft?invite={token}` from email (`/?invite=` still works), or `/hub/draft?claim={token}` from a text |
 | 2 | Register/sign in (email invites still require the invited address) |
-| 3 | **Claim your team** (or Join league on an email invite) |
+| 3 | **Claim your team** (or Join league on an email invite). If they created an account and skipped this, staff can attach the login in **Admin → Leagues → Link existing account**. |
 | 4 | **Draft** → mark nights that work when the calendar is open |
 | 5 | Setup → link Sleeper roster |
 | 6 | Roster / Cap / Draft tabs |

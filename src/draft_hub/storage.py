@@ -4656,6 +4656,34 @@ def admin_transfer_commissioner(league_id: str, new_commissioner_sub: str) -> di
     }
 
 
+def admin_assign_team_user(league_id: str, team_id: str, user_sub: str) -> dict[str, Any]:
+    """Attach an existing account to a franchise. Bypasses claim-link and draft-status gates."""
+    team = get_team(team_id)
+    if not team or str(team.get("league_id")) != str(league_id):
+        raise ValueError("Team not found in this league")
+    if team.get("is_bot"):
+        raise ValueError("Cannot link a bot seat")
+    clean_sub = str(user_sub or "").strip()
+    if not clean_sub:
+        raise ValueError("User is required")
+    existing_owner = str(team.get("user_sub") or "").strip()
+    if existing_owner and existing_owner != clean_sub:
+        raise ValueError("Team is already claimed by another account")
+    other = get_team_by_user(league_id, clean_sub)
+    if other and str(other.get("id")) != str(team_id):
+        other_name = str(other.get("name") or "another team")
+        raise ValueError(f"That account already owns {other_name} in this league")
+    if existing_owner == clean_sub:
+        set_hub_focus(clean_sub, league_id=league_id)
+        return {"team": get_team(team_id) or team, "already_member": True}
+    claimed = assign_team_user(team_id, clean_sub)
+    pending = get_pending_invite_for_team(league_id, team_id)
+    if pending:
+        revoke_league_invite(league_id, str(pending["id"]))
+    set_hub_focus(clean_sub, league_id=league_id)
+    return {"team": get_team(team_id) or claimed, "already_member": False}
+
+
 def admin_release_team_claim(league_id: str, team_id: str, *, allow_commissioner: bool = False) -> dict[str, Any]:
     team = get_team(team_id)
     if not team or team["league_id"] != league_id:

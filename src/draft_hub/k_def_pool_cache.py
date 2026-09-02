@@ -115,11 +115,15 @@ def _index_from_rows(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
         p50 = _positive(row.get("season_p50")) or _positive(row.get("season_proj"))
         if not pid or p50 is None:
             continue
+        per_game = _positive(row.get("per_game_proj"))
+        if per_game is None:
+            per_game = round(p50 / max(1, int(GAMES_PER_SEASON)), 1)
         index[pid] = {
             "p10": _positive(row.get("season_p10")),
             "p50": p50,
             "p90": _positive(row.get("season_p90")),
             "season_proj": p50,
+            "per_game": per_game,
             "position": normalize_position(row.get("position")),
             "player_name": str(row.get("player") or row.get("player_name") or ""),
             "team": str(row.get("team") or ""),
@@ -195,6 +199,66 @@ def k_def_projection_index(*, allow_fetch: bool = False) -> dict[str, dict[str, 
         with _LOCK:
             _PROJ_INDEX = built
     return dict(built)
+
+
+def k_def_week_bands(
+    hit: dict[str, Any],
+    *,
+    games: int = GAMES_PER_SEASON,
+) -> dict[str, Any]:
+    """Weekly P10/P50/P90 from a season rank-curve row."""
+    pos = normalize_position(hit.get("position"))
+    curve = _PROJ_CURVE.get(pos)
+    season = _positive(hit.get("p50")) or _positive(hit.get("season_proj"))
+    week = _positive(hit.get("per_game")) or _positive(hit.get("per_game_proj"))
+    games_n = max(1, int(games or GAMES_PER_SEASON))
+    if week is None and season is not None:
+        week = round(season / games_n, 1)
+    if week is None:
+        return {}
+    lo_mult, hi_mult = (curve[3], curve[4]) if curve else (0.86, 1.12)
+    return {
+        "p10": round(week * lo_mult, 1),
+        "p50": week,
+        "p90": round(week * hi_mult, 1),
+        "has_projection": True,
+        "projection_missing": False,
+    }
+
+
+def overlay_k_def_week_projections(
+    cards: list[dict[str, Any]],
+    *,
+    games: int = GAMES_PER_SEASON,
+) -> list[dict[str, Any]]:
+    """Fill missing weekly K/DEF P50 from the rank-curve per-game number."""
+    if not cards:
+        return cards
+    need = [
+        card
+        for card in cards
+        if normalize_position(card.get("position")) in _PROJ_CURVE
+        and _positive(card.get("p50")) is None
+    ]
+    if not need:
+        return cards
+    index = k_def_projection_index(allow_fetch=False)
+    if not index:
+        return cards
+    games_n = max(1, int(games or GAMES_PER_SEASON))
+    for card in cards:
+        if normalize_position(card.get("position")) not in _PROJ_CURVE:
+            continue
+        if _positive(card.get("p50")) is not None:
+            continue
+        hit = index.get(str(card.get("player_id") or ""))
+        if not hit:
+            continue
+        bands = k_def_week_bands(hit, games=games_n)
+        if not bands:
+            continue
+        card.update(bands)
+    return cards
 
 
 def overlay_k_def_projections(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:

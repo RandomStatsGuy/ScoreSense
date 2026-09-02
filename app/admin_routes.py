@@ -78,6 +78,11 @@ class AdminLeagueInviteRequest(BaseModel):
     team_name: str
 
 
+class AdminLinkTeamRequest(BaseModel):
+    email: Optional[str] = None
+    user_sub: Optional[str] = None
+
+
 class AdminLeagueCreateRequest(BaseModel):
     name: str
     season: int = Field(ge=2015, le=2035)
@@ -89,7 +94,12 @@ class AdminLeagueCreateRequest(BaseModel):
     test_mode: bool = False
 
 
-def _resolve_commissioner_sub(email: str | None, sub: str | None) -> str:
+def _resolve_account_sub(
+    email: str | None,
+    sub: str | None,
+    *,
+    required: str = "email or user_sub required",
+) -> str:
     if sub and str(sub).strip():
         return str(sub).strip()
     if email and str(email).strip():
@@ -97,7 +107,15 @@ def _resolve_commissioner_sub(email: str | None, sub: str | None) -> str:
         if not user:
             raise HTTPException(status_code=400, detail=f"No account for email {email}")
         return native_user_sub(user["id"])
-    raise HTTPException(status_code=400, detail="commissioner_email or commissioner_sub required")
+    raise HTTPException(status_code=400, detail=required)
+
+
+def _resolve_commissioner_sub(email: str | None, sub: str | None) -> str:
+    return _resolve_account_sub(
+        email,
+        sub,
+        required="commissioner_email or commissioner_sub required",
+    )
 
 
 def _email_for_sub(user_sub: str) -> str | None:
@@ -237,6 +255,25 @@ def admin_delete_league(
         return storage.delete_league(league_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/leagues/{league_id}/teams/{team_id}/link")
+def admin_link_team(
+    league_id: str,
+    team_id: str,
+    body: AdminLinkTeamRequest,
+    _admin=Depends(require_admin),
+) -> dict:
+    user_sub = _resolve_account_sub(body.email, body.user_sub)
+    try:
+        result = storage.admin_assign_team_user(league_id, team_id, user_sub)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    team = result.get("team") or {}
+    if team.get("user_sub"):
+        team["user_email"] = _email_for_sub(str(team["user_sub"]))
+    result["team"] = team
+    return result
 
 
 @router.post("/leagues/{league_id}/teams/{team_id}/unlink")

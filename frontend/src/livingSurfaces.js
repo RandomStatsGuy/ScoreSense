@@ -99,7 +99,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/vibeMatchup.js",
       "frontend/src/styles/vibe-rankings.css",
     ],
-    doNot: "Reuse HubExperience*. Aura is a personal start weight, not a new accent or award gold. Front card is matchup only. Bio and latest news stay behind the info arrow. Do not scrape Wikipedia.",
+    doNot: "Reuse HubExperience*. Aura is a personal start weight, not a new accent or award gold. Front card is matchup only. Bio and latest news stay behind the info arrow. One swipe per player per calendar day. VA-projections show vibe week, including K and DEF. Do not scrape Wikipedia.",
   }),
   "hub.game": S({
     label: "Game center",
@@ -259,7 +259,8 @@ export const LIVING_SURFACES = Object.freeze({
     label: "Admin",
     chrome: "account",
     page: "frontend/src/AdminPortal.jsx",
-    doNot: "Account-only. Do not add Admin to top-level nav.",
+    copy: "frontend/src/adminPresentation.js",
+    doNot: "Account-only. Do not add Admin to top-level nav. Owner-to-team attach after signup lives here until a Fantasy flow exists.",
   }),
   "account.account": S({
     label: "Account",

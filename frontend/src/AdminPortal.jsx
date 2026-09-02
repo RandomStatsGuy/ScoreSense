@@ -4,6 +4,12 @@ import { parseApiError } from "./format";
 import useMobileLayout from "./useMobileLayout";
 import MobileDataList from "./MobileDataList";
 import MobilePlayerCard from "./MobilePlayerCard";
+import {
+  ADMIN_COPY,
+  adminLinkAccountRef,
+  adminLinkSuccess,
+  openAdminFranchises,
+} from "./adminPresentation";
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -71,6 +77,48 @@ function normalizeUsersPayload(payload, { showTestAccounts, showTestMemberships 
   return { accounts, systemSubs };
 }
 
+function LinkExistingAccountForm({ leagueId, teams, form, onFormChange, onLink }) {
+  const openTeams = openAdminFranchises(teams);
+  return (
+    <div className="admin-inline-form">
+      <strong>{ADMIN_COPY.linkExisting.title}</strong>
+      {openTeams.length === 0 ? (
+        <span className="admin-muted">{ADMIN_COPY.linkExisting.emptySeats}</span>
+      ) : (
+        <>
+          <input
+            type="text"
+            autoComplete="off"
+            placeholder={ADMIN_COPY.linkExisting.emailPlaceholder}
+            value={form?.email || ""}
+            onChange={(e) => onFormChange({ ...(form || {}), email: e.target.value })}
+            aria-label={ADMIN_COPY.linkExisting.emailPlaceholder}
+          />
+          <select
+            value={form?.team_id || ""}
+            onChange={(e) => onFormChange({ ...(form || {}), team_id: e.target.value })}
+            aria-label={ADMIN_COPY.linkExisting.teamPlaceholder}
+          >
+            <option value="">{ADMIN_COPY.linkExisting.teamPlaceholder}</option>
+            {openTeams.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="btn-primary btn-sm"
+            onClick={() => onLink(leagueId)}
+          >
+            {ADMIN_COPY.linkExisting.action}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 function MembershipList({ memberships, testHidden = 0 }) {
   if (!memberships?.length && !testHidden) {
     return <span className="admin-muted">No league memberships</span>;
@@ -125,6 +173,7 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
   const [deleteConfirm, setDeleteConfirm] = useState({});
   const [transferEmail, setTransferEmail] = useState({});
   const [inviteForms, setInviteForms] = useState({});
+  const [linkForms, setLinkForms] = useState({});
   const [showTestLeagues, setShowTestLeagues] = useState(false);
   const [showTestMemberships, setShowTestMemberships] = useState(false);
   const [showTestAccounts, setShowTestAccounts] = useState(false);
@@ -241,13 +290,13 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
         { method: "POST" },
       );
       if (!res.ok) throw new Error(await parseApiError(res));
-      setActionMsg("Team unlinked from account");
+      setActionMsg(ADMIN_COPY.unlinkSuccess);
       await loadLeagues();
       if (expandedLeagueId === leagueId) await loadLeagueDetail(leagueId);
       await loadUsers();
       await loadOverview();
     } catch (err) {
-      setActionErr(err.message || "Unlink failed");
+      setActionErr(err.message || ADMIN_COPY.unlinkFailed);
     }
   };
 
@@ -302,6 +351,47 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
       await loadUsers();
     } catch (err) {
       setActionErr(err.message || "Transfer failed");
+    }
+  };
+
+  const handleLinkAccount = async (leagueId) => {
+    const form = linkForms[leagueId] || {};
+    const accountRef = adminLinkAccountRef(form.email);
+    const teamId = String(form.team_id || "").trim();
+    const openTeams = openAdminFranchises(leagueDetail?.id === leagueId ? leagueDetail.teams : []);
+    const selected = openTeams.find((t) => String(t.id) === teamId);
+    if (!accountRef.email && !accountRef.user_sub) {
+      setActionErr(ADMIN_COPY.linkExisting.needEmail);
+      return;
+    }
+    if (!teamId || !selected) {
+      setActionErr(ADMIN_COPY.linkExisting.needTeam);
+      return;
+    }
+    setActionMsg("");
+    setActionErr("");
+    try {
+      const res = await apiFetch(
+        `/api/admin/leagues/${leagueId}/teams/${encodeURIComponent(teamId)}/link`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(accountRef),
+        },
+      );
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const body = await res.json();
+      setActionMsg(adminLinkSuccess({
+        email: body.team?.user_email || accountRef.email || accountRef.user_sub,
+        team: body.team?.name || selected.name,
+      }));
+      setLinkForms((f) => ({ ...f, [leagueId]: { email: "", team_id: "" } }));
+      await loadLeagues();
+      await loadLeagueDetail(leagueId);
+      await loadUsers();
+      await loadOverview();
+    } catch (err) {
+      setActionErr(err.message || ADMIN_COPY.linkExisting.failed);
     }
   };
 
@@ -664,6 +754,16 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
                                       Transfer
                                     </button>
                                   </div>
+                                  <LinkExistingAccountForm
+                                    leagueId={lg.id}
+                                    teams={leagueDetail.teams}
+                                    form={linkForms[lg.id]}
+                                    onFormChange={(next) =>
+                                      setLinkForms((f) => ({ ...f, [lg.id]: next }))
+                                    }
+                                    onLink={handleLinkAccount}
+                                  />
+                                  <p className="admin-muted admin-link-hint">{ADMIN_COPY.linkExisting.hint}</p>
                                   <div className="admin-inline-form">
                                     <strong>Invite to team</strong>
                                     <input
@@ -806,6 +906,15 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
                         <p className="chart-note">
                           Commissioner: {lg.commissioner_email || lg.commissioner_sub}
                         </p>
+                        <LinkExistingAccountForm
+                          leagueId={lg.id}
+                          teams={leagueDetail.teams}
+                          form={linkForms[lg.id]}
+                          onFormChange={(next) =>
+                            setLinkForms((f) => ({ ...f, [lg.id]: next }))
+                          }
+                          onLink={handleLinkAccount}
+                        />
                         <div className="admin-delete-row">
                           <input
                             type="text"
