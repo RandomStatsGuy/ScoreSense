@@ -293,6 +293,7 @@ def link_google_sub(user_id: str, google_sub: str) -> dict[str, Any] | None:
             conn.execute(
                 """UPDATE app_user
                    SET google_sub = ?,
+                       has_password = CASE WHEN email_verified_at IS NULL THEN 0 ELSE has_password END,
                        email_verified_at = COALESCE(email_verified_at, ?),
                        updated_at = ?
                    WHERE id = ?""",

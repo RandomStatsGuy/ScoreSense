@@ -64,6 +64,7 @@ def test_google_same_sub_returns_same_account(auth_db):
 def test_google_links_existing_email_account(auth_db, monkeypatch):
     monkeypatch.setattr("app.auth.send_verification_email", lambda *a, **k: True)
     native = register_native_user("caleb@gmail.com", "password12", "Caleb", accept_terms=True)
+    user_store.mark_email_verified(native["id"])
     linked = upsert_google_user(_identity())
     assert linked["id"] == native["id"]
     row = user_store.get_user_by_email("caleb@gmail.com")
@@ -71,6 +72,20 @@ def test_google_links_existing_email_account(auth_db, monkeypatch):
     assert user_store.has_usable_password(row)
     again = authenticate_native_user("caleb@gmail.com", "password12")
     assert again["id"] == native["id"]
+
+
+def test_google_claim_strips_unverified_password(auth_db, monkeypatch):
+    monkeypatch.setattr("app.auth.send_verification_email", lambda *a, **k: True)
+    squat = register_native_user("caleb@gmail.com", "password12", "Squat", accept_terms=True)
+    linked = upsert_google_user(_identity())
+    assert linked["id"] == squat["id"]
+    row = user_store.get_user_by_email("caleb@gmail.com")
+    assert row["google_sub"] == "google-sub-1"
+    assert user_store.is_email_verified(row)
+    assert not user_store.has_usable_password(row)
+    with pytest.raises(HTTPException) as exc:
+        authenticate_native_user("caleb@gmail.com", "password12")
+    assert exc.value.status_code == 401
 
 
 def test_google_only_delete_requires_email(auth_db):
@@ -140,6 +155,18 @@ def test_google_callback_issues_native_token(api_client, auth_db, monkeypatch):
     assert user["google_linked"] is True
     assert user["has_password"] is False
     assert user["email_verified"] is True
+
+
+def test_google_callback_cancel_returns_to_login(api_client, monkeypatch):
+    monkeypatch.setattr("app.api.google_configured", lambda: True)
+    monkeypatch.setattr("app.api.verify_oauth_state", lambda state: "/hub/home")
+    monkeypatch.setattr("app.api.FRONTEND_URL", "http://localhost:5173")
+    res = api_client.get(
+        "/api/auth/google/callback?error=access_denied&state=x",
+        follow_redirects=False,
+    )
+    assert res.status_code in (302, 307)
+    assert res.headers["location"] == "http://localhost:5173/login?next=%2Fhub%2Fhome"
 
 
 def test_auth_config_includes_google_flag(api_client, monkeypatch):

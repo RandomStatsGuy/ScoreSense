@@ -617,7 +617,16 @@ def google_login(next: Optional[str] = None) -> dict:
 
 
 @app.get("/api/auth/google/callback")
-def google_callback(code: str, response: Response, state: Optional[str] = None) -> RedirectResponse:
+def google_callback(
+    response: Response,
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+) -> RedirectResponse:
+    if error or not code:
+        next_path = verify_oauth_state(state)
+        next_q = urllib.parse.quote(next_path, safe="")
+        return RedirectResponse(url=f"{FRONTEND_URL}/login?next={next_q}")
     if not google_configured():
         raise HTTPException(status_code=503, detail="Google sign-in isn't set up on this server yet.")
     access_token = exchange_google_code(code)
