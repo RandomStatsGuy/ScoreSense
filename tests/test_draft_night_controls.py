@@ -53,6 +53,20 @@ def test_future_schedule_blocks_start_until_force(hub_db):
     assert state["session"]["status"] == "nominating"
 
 
+def test_clear_schedule_keeps_draft_timezone(hub_db):
+    league = _league()
+    set_draft_schedule(
+        league["id"],
+        "night-comm",
+        starts_at="2026-09-01T20:00",
+        timezone_name="America/Chicago",
+    )
+    set_draft_schedule(league["id"], "night-comm", clear=True)
+    saved = storage.get_league(league["id"])
+    assert saved["draft_starts_at"] is None
+    assert saved["draft_timezone"] == "America/Chicago"
+
+
 def test_naive_wall_clock_uses_league_timezone(hub_db):
     league = _league()
     set_draft_schedule(

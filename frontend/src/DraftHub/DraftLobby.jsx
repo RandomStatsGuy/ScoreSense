@@ -1,16 +1,16 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import Button from "../ui/Button";
 import {
   DRAFT_TZ_OPTIONS,
-  browserTimeZone,
   draftFormatLabel,
   formatDraftScheduleLabel,
   formatDraftWait,
   isPickDraft,
   utcIsoToWall,
 } from "./draftEntryStatus";
+import { availabilityTimezone, calendarTodayIso, slotToWall, wallToSlot } from "./draftAvailabilityPresentation";
 import { lobbyAbsoluteUrl, lobbyChipLabel, slotHint, slotLabel } from "./draftLobby";
 import {
   draftInviteLabel,
@@ -78,13 +78,23 @@ export default function DraftLobby({
   const claimed = claimedHumans || humans.filter((t) => t.user_sub).length;
   const budget = Number((rules || league?.rules)?.salary_cap ?? 200);
 
-  const tzDefault = league?.draft_timezone || browserTimeZone();
+  const tzDefault = availabilityTimezone(league?.draft_timezone);
   const [draftTz, setDraftTz] = useState(tzDefault);
   const [draftWall, setDraftWall] = useState(() => utcIsoToWall(league?.draft_starts_at, tzDefault));
   const [scheduleBusy, setScheduleBusy] = useState(false);
   const [bestOverlap, setBestOverlap] = useState("");
   const onAvailHighlight = useCallback((label) => setBestOverlap(label || ""), []);
   const startsAt = league?.draft_starts_at;
+  const lockedSlot = useMemo(
+    () => (startsAt ? wallToSlot(utcIsoToWall(startsAt, draftTz)) : null),
+    [draftTz, startsAt],
+  );
+
+  useEffect(() => {
+    const tz = availabilityTimezone(league?.draft_timezone);
+    setDraftTz(tz);
+    setDraftWall(utcIsoToWall(league?.draft_starts_at, tz));
+  }, [league?.draft_starts_at, league?.draft_timezone]);
   const waitSecs = startsAt ? secondsUntil(startsAt) : null;
   const scheduledLabel = startsAt ? formatDraftScheduleLabel(startsAt, draftTz) : "";
   const tzOptions = DRAFT_TZ_OPTIONS.includes(draftTz) ? DRAFT_TZ_OPTIONS : [draftTz, ...DRAFT_TZ_OPTIONS];
@@ -209,14 +219,29 @@ export default function DraftLobby({
     }
   };
 
-  const saveSchedule = async (clear = false) => {
+  const saveSchedule = async (clear = false, override = null) => {
     if (!onSaveSchedule) return;
     setScheduleBusy(true);
     try {
-      await onSaveSchedule(clear ? { clear: true } : { wall: draftWall, timezone: draftTz });
+      if (clear) {
+        await onSaveSchedule({ clear: true });
+        return;
+      }
+      const wall = override?.wall || draftWall;
+      const timezone = override?.timezone || draftTz;
+      await onSaveSchedule({ wall, timezone });
     } finally {
       setScheduleBusy(false);
     }
+  };
+
+  const lockAvailabilitySlot = async (slot) => {
+    const wall = slotToWall(slot?.date, slot?.hour);
+    if (!wall) return;
+    const timezone = availabilityTimezone(league?.draft_timezone);
+    setDraftWall(wall);
+    setDraftTz(timezone);
+    await saveSchedule(false, { wall, timezone });
   };
 
   const heading = testMode ? "The practice room is open." : "Draft night starts here.";
@@ -244,7 +269,7 @@ export default function DraftLobby({
             items={[
               {
                 id: "night",
-                label: "Draft night",
+                label: startsAt ? "Locked night" : "Draft night",
                 value: scheduledLabel
                   ? (waitSecs != null && waitSecs > 0
                     ? `${scheduledLabel} · ${formatDraftWait(waitSecs)}`
@@ -358,7 +383,11 @@ export default function DraftLobby({
           <DraftAvailability
             leagueId={leagueId}
             enabled={!guestMode}
+            canLock={isCommissioner && Boolean(onSaveSchedule)}
+            lockedSlot={lockedSlot}
+            lockBusy={scheduleBusy || busy}
             onHighlight={onAvailHighlight}
+            onLockSlot={lockAvailabilitySlot}
           />
         ) : null}
 
@@ -373,6 +402,7 @@ export default function DraftLobby({
             canEdit
             busy={scheduleBusy || busy}
             waitSecs={waitSecs}
+            minDate={calendarTodayIso(undefined, draftTz)}
             onSave={() => saveSchedule(false)}
             onClear={() => saveSchedule(true)}
           />

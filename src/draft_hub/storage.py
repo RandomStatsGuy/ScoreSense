@@ -2238,7 +2238,7 @@ def update_league_settings(
             )
         if clear_draft_start:
             conn.execute(
-                "UPDATE league SET draft_starts_at = NULL, draft_timezone = NULL WHERE id = ?",
+                "UPDATE league SET draft_starts_at = NULL WHERE id = ?",
                 (league_id,),
             )
         else:
