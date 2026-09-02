@@ -189,6 +189,15 @@ export async function updateProfile({ displayName }) {
   return res.json();
 }
 
+export async function updateSmsOptIn({ phone, consent }) {
+  const res = await apiFetch("/api/auth/sms-opt-in", {
+    method: "POST",
+    body: JSON.stringify({ phone, consent }),
+  });
+  if (!res.ok) await parseAuthError(res, "Could not save this number");
+  return res.json();
+}
+
 export async function acceptTerms() {
   const res = await apiFetch("/api/auth/accept-terms", { method: "POST", body: "{}" });
   if (!res.ok) await parseAuthError(res, "Could not accept terms");

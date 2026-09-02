@@ -91,7 +91,7 @@ SMTP_TLS = os.getenv("SMTP_TLS", "true").lower() in ("1", "true", "yes")
 # Legal — linked from auth UI and register consent (defaults to in-app pages)
 TERMS_URL = os.getenv("TERMS_URL", f"{FRONTEND_URL.rstrip('/')}/terms").strip()
 PRIVACY_URL = os.getenv("PRIVACY_URL", f"{FRONTEND_URL.rstrip('/')}/privacy").strip()
-TERMS_VERSION = os.getenv("TERMS_VERSION", "2026-06").strip()
+TERMS_VERSION = os.getenv("TERMS_VERSION", "2026-09").strip()
 
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"

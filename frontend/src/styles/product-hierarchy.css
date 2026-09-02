@@ -3214,6 +3214,7 @@
 
 .draft-lobby-link-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.45rem;
   align-items: center;
 }

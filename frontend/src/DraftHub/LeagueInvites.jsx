@@ -8,9 +8,12 @@ import { leagueInvitePath } from "../routes";
 import {
   memberInviteExplainer,
   managerClaimCopied,
+  managerClaimCopyTextLabel,
   managerClaimExplainer,
   managerClaimLabel,
   managerClaimRotateHint,
+  managerClaimTextBody,
+  managerClaimTextCopied,
   managerClaimWhatHappens,
   shareableAppUrl,
 } from "./leagueAccessCopy";
@@ -32,6 +35,7 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
   const [claimUrl, setClaimUrl] = useState("");
   const [claimEnabled, setClaimEnabled] = useState(true);
   const [claimCopied, setClaimCopied] = useState(false);
+  const [claimTextCopied, setClaimTextCopied] = useState(false);
   const [claimBusy, setClaimBusy] = useState(false);
 
   const loadMembers = useCallback(async () => {
@@ -138,7 +142,25 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
     try {
       await navigator.clipboard.writeText(url);
       setClaimCopied(true);
+      setClaimTextCopied(false);
       window.setTimeout(() => setClaimCopied(false), 2200);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const copyClaimText = async () => {
+    const url = shareableAppUrl(claimUrl);
+    if (!url) return;
+    const body = managerClaimTextBody({
+      leagueName: hubContext?.league_name,
+      url,
+    });
+    try {
+      await navigator.clipboard.writeText(body);
+      setClaimTextCopied(true);
+      setClaimCopied(false);
+      window.setTimeout(() => setClaimTextCopied(false), 2200);
     } catch {
       /* ignore */
     }
@@ -212,8 +234,12 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
             <button type="button" className="btn-ghost btn-sm" onClick={copyClaimLink}>
               {claimCopied ? "Copied" : "Copy link"}
             </button>
+            <button type="button" className="btn-ghost btn-sm" onClick={copyClaimText}>
+              {managerClaimCopyTextLabel({ copied: claimTextCopied })}
+            </button>
           </div>
           {claimCopied ? <p className="chart-note hub-invite-success">{managerClaimCopied()}</p> : null}
+          {claimTextCopied ? <p className="chart-note hub-invite-success">{managerClaimTextCopied()}</p> : null}
           <label className="hub-lock-claims">
             <input type="checkbox" checked={claimEnabled} onChange={toggleClaimLink} />
             Allow text-link claims

@@ -32,7 +32,7 @@ export function draftLobbyHeroSupport({ testMode = false } = {}) {
   if (testMode) {
     return "Send the practice link. Friends sit down with a name — no ScoreSense account.";
   }
-  return "Text the invite link so managers can claim a team. Share the room link on draft night.";
+  return "Text the invite link so managers can claim a team and mark nights that work. Share the room link on draft night.";
 }
 
 export function draftInviteRailHint({ testMode = false } = {}) {
@@ -128,15 +128,34 @@ export function managerClaimLabel() {
 }
 
 export function managerClaimExplainer() {
-  return "Text this link to the group. They make a ScoreSense account, then pick their team.";
+  return "Text this link to the group. They make a ScoreSense account, pick their team, then mark nights that work.";
 }
 
 export function managerClaimWhatHappens() {
-  return "Anyone with the link signs in and claims an open team. Assign a specific email only when you need to lock a seat to one person.";
+  return "Anyone with the link signs in and claims an open team. After they claim, Draft asks them to mark nights that work. Assign a specific email only when you need to lock a seat to one person.";
 }
 
 export function managerClaimCopied() {
   return "Copied — paste it in the text thread.";
+}
+
+export function managerClaimTextBody({ leagueName, url } = {}) {
+  const league = String(leagueName || "").trim() || "the league";
+  const link = String(url || "").trim();
+  const lines = [
+    `You're in ${league} on ScoreSense.`,
+    "Open this, claim your team, then mark nights that work.",
+  ];
+  if (link) lines.push("", link);
+  return lines.join("\n");
+}
+
+export function managerClaimCopyTextLabel({ copied = false } = {}) {
+  return copied ? "Text copied" : "Copy text";
+}
+
+export function managerClaimTextCopied() {
+  return "Copied the message — paste it in the group text.";
 }
 
 export function managerClaimRotateHint() {
@@ -144,7 +163,7 @@ export function managerClaimRotateHint() {
 }
 
 export function memberInviteExplainer() {
-  return "The invite link on Draft is the simple path: text it, they claim a team. Email invite still assigns a named seat to one address when you need that lock.";
+  return "The invite link on Draft is the simple path: text it, they claim a team and mark nights that work. Email invite still assigns a named seat to one address when you need that lock.";
 }
 
 export function emailManagersHint() {

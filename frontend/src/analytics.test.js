@@ -80,6 +80,7 @@ test("pageTitleForPath matches product areas", () => {
   assert.equal(pageTitleForPath("/admin"), "Admin · Overview");
   assert.equal(pageTitleForPath("/admin/users"), "Admin · Users");
   assert.equal(pageTitleForPath("/privacy"), "Privacy");
+  assert.equal(pageTitleForPath("/sms-alerts"), "Draft alert texts");
   assert.equal(pageTitleForPath("/login"), "Sign in");
   assert.equal(pageTitleForPath("/register"), "Create account");
 });
@@ -90,6 +91,7 @@ test("pageGroupForPath buckets by top-level area", () => {
   assert.equal(pageGroupForPath("/tools/dfs"), "tools");
   assert.equal(pageGroupForPath("/tools/mock-draft"), "tools");
   assert.equal(pageGroupForPath("/privacy"), "legal");
+  assert.equal(pageGroupForPath("/sms-alerts"), "legal");
   assert.equal(pageGroupForPath("/auth/verify"), "auth");
   assert.equal(pageGroupForPath("/login"), "auth");
   assert.equal(pageGroupForPath("/register"), "auth");

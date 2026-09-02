@@ -24,7 +24,9 @@ CREATE TABLE IF NOT EXISTS app_user (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     google_sub TEXT,
-    has_password INTEGER NOT NULL DEFAULT 1
+    has_password INTEGER NOT NULL DEFAULT 1,
+    phone TEXT,
+    sms_opted_in_at TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_app_user_email ON app_user(email);
 
@@ -76,6 +78,10 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE app_user ADD COLUMN google_sub TEXT")
     if not _column_exists(conn, "app_user", "has_password"):
         conn.execute("ALTER TABLE app_user ADD COLUMN has_password INTEGER NOT NULL DEFAULT 1")
+    if not _column_exists(conn, "app_user", "phone"):
+        conn.execute("ALTER TABLE app_user ADD COLUMN phone TEXT")
+    if not _column_exists(conn, "app_user", "sms_opted_in_at"):
+        conn.execute("ALTER TABLE app_user ADD COLUMN sms_opted_in_at TEXT")
     conn.execute(
         """CREATE UNIQUE INDEX IF NOT EXISTS idx_app_user_google_sub
            ON app_user(google_sub) WHERE google_sub IS NOT NULL"""
@@ -112,6 +118,8 @@ def _user_dict(row: sqlite3.Row) -> dict[str, Any]:
         "terms_version": row["terms_version"] if "terms_version" in row.keys() else None,
         "google_sub": row["google_sub"] if "google_sub" in row.keys() else None,
         "has_password": bool(row["has_password"]) if "has_password" in row.keys() else True,
+        "phone": row["phone"] if "phone" in row.keys() else None,
+        "sms_opted_in_at": row["sms_opted_in_at"] if "sms_opted_in_at" in row.keys() else None,
     }
 
 
@@ -174,6 +182,25 @@ def update_password(user_id: str, password_hash: str) -> None:
             "UPDATE app_user SET password_hash = ?, has_password = 1, updated_at = ? WHERE id = ?",
             (password_hash, now, user_id),
         )
+
+
+def normalize_phone(phone: str) -> str:
+    digits = re.sub(r"\D", "", str(phone or ""))
+    if len(digits) < 10:
+        raise ValueError("Enter a mobile number.")
+    return digits
+
+
+def update_sms_opt_in(user_id: str, phone: str) -> dict[str, Any] | None:
+    digits = normalize_phone(phone)
+    now = _utcnow()
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE app_user SET phone = ?, sms_opted_in_at = ?, updated_at = ? WHERE id = ?",
+            (digits, now, now, user_id),
+        )
+        row = conn.execute("SELECT * FROM app_user WHERE id = ?", (user_id,)).fetchone()
+        return _user_dict(row) if row else None
 
 
 def update_display_name(user_id: str, display_name: str) -> dict[str, Any] | None:
