@@ -1,10 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
+import useMobileLayout from "../useMobileLayout";
 import Button from "../ui/Button";
 import {
+  availabilityBestHeading,
   availabilityChip,
+  availabilityEmptyBest,
   availabilityHeading,
+  availabilityHoursHint,
+  availabilityLoading,
   availabilitySaveLabel,
   availabilityStateNote,
   availabilitySupport,
@@ -34,10 +39,12 @@ function monthGrid(dates) {
   return cells;
 }
 
-export default function DraftAvailability({ leagueId, enabled = true, onSaved }) {
+export default function DraftAvailability({ leagueId, enabled = true, onSaved, onHighlight }) {
+  const mobileLayout = useMobileLayout();
   const [payload, setPayload] = useState(null);
   const [mine, setMine] = useState([]);
   const [selectedDate, setSelectedDate] = useState("");
+  const [activeMonth, setActiveMonth] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -73,12 +80,29 @@ export default function DraftAvailability({ leagueId, enabled = true, onSaved })
     [heat],
   );
   const months = useMemo(() => groupDatesByMonth(availWindow.dates || []), [availWindow.dates]);
+  const visibleMonths = useMemo(() => {
+    if (!mobileLayout || months.length <= 1) return months;
+    const match = months.find((month) => month.id === activeMonth);
+    return match ? [match] : months.slice(0, 1);
+  }, [activeMonth, mobileLayout, months]);
   const selectedHours = useMemo(
     () => new Set(mine.filter((slot) => slot.date === selectedDate).map((slot) => Number(slot.hour))),
     [mine, selectedDate],
   );
   const selectedDaySlots = dayHeat(heat, selectedDate);
   const best = bestSlotLines(payload?.best || []);
+  const bestLabel = best[0]?.label || "";
+
+  useEffect(() => {
+    if (!months.length) return;
+    setActiveMonth((current) => (
+      months.some((month) => month.id === current) ? current : months[0].id
+    ));
+  }, [months]);
+
+  useEffect(() => {
+    onHighlight?.(bestLabel);
+  }, [bestLabel, onHighlight]);
 
   const toggleHour = (hour) => {
     if (!payload?.can_edit || !selectedDate) return;
@@ -115,7 +139,7 @@ export default function DraftAvailability({ leagueId, enabled = true, onSaved })
   if (!enabled) return null;
 
   return (
-    <article className="hub-experience-section draft-availability">
+    <article className="hub-experience-section draft-availability is-featured">
       <header className="hub-draft-entry-card-head">
         <div>
           <h3>{availabilityHeading()}</h3>
@@ -130,7 +154,7 @@ export default function DraftAvailability({ leagueId, enabled = true, onSaved })
         </span>
       </header>
 
-      {loading && !payload ? <p className="chart-note">Loading the calendar…</p> : null}
+      {loading && !payload ? <p className="chart-note">{availabilityLoading()}</p> : null}
       {error ? <p className="hub-alert hub-alert--danger" role="alert">{error}</p> : null}
 
       {payload ? (
@@ -138,27 +162,47 @@ export default function DraftAvailability({ leagueId, enabled = true, onSaved })
           <p className="chart-note draft-availability-window">{availabilityStateNote(availWindow)}</p>
 
           {best.length > 0 ? (
-            <ul className="draft-availability-best">
-              {best.map((slot) => (
-                <li key={slot.id}>
-                  <button
-                    type="button"
-                    className="draft-availability-best-btn"
-                    onClick={() => setSelectedDate(slot.date)}
-                  >
-                    <strong>{slot.label}</strong>
-                    <span>{slot.count} free · {peopleLine(slot.people)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <section className="draft-availability-best-wrap" aria-labelledby="draft-availability-best-heading">
+              <h4 id="draft-availability-best-heading">{availabilityBestHeading()}</h4>
+              <ul className="draft-availability-best">
+                {best.map((slot, idx) => (
+                  <li key={slot.id}>
+                    <button
+                      type="button"
+                      className={`draft-availability-best-btn${idx === 0 ? " is-top" : ""}`}
+                      onClick={() => setSelectedDate(slot.date)}
+                    >
+                      <strong>{slot.label}</strong>
+                      <span>{slot.count} free · {peopleLine(slot.people)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ) : (
-            <p className="chart-note">No overlapping nights yet. Mark yours so the room has a starting point.</p>
+            <p className="chart-note">{availabilityEmptyBest()}</p>
           )}
 
-          {months.map((month) => (
+          {mobileLayout && months.length > 1 ? (
+            <div className="draft-availability-month-nav" role="tablist" aria-label="Calendar month">
+              {months.map((month) => (
+                <button
+                  key={month.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={month.id === (activeMonth || months[0].id)}
+                  className={`draft-availability-month-tab${month.id === (activeMonth || months[0].id) ? " is-active" : ""}`}
+                  onClick={() => setActiveMonth(month.id)}
+                >
+                  {month.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {visibleMonths.map((month) => (
             <section key={month.id} className="draft-availability-month">
-              <h4>{month.label}</h4>
+              {mobileLayout && months.length > 1 ? null : <h4>{month.label}</h4>}
               <div className="draft-availability-dow" aria-hidden="true">
                 {["S", "M", "T", "W", "T", "F", "S"].map((letter, idx) => (
                   <span key={`${letter}-${idx}`}>{letter}</span>
@@ -194,11 +238,7 @@ export default function DraftAvailability({ leagueId, enabled = true, onSaved })
           {selectedDate ? (
             <div className="draft-availability-hours">
               <h4>{formatCalendarDay(selectedDate)}</h4>
-              <p className="chart-note">
-                {payload.can_edit
-                  ? "Tap the hours you can sit. Save when the night looks right."
-                  : "Hours other managers marked for this day."}
-              </p>
+              <p className="chart-note">{availabilityHoursHint({ canEdit: payload.can_edit })}</p>
               <div className="draft-availability-hour-row">
                 {(availWindow.hours || []).map((hour) => {
                   const slot = selectedDaySlots.find((item) => Number(item.hour) === Number(hour));

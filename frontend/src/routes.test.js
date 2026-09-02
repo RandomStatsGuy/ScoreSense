@@ -3,11 +3,17 @@ import assert from "node:assert/strict";
 import {
   buildAppPath,
   buildFilterSearchParams,
+  leagueInvitePath,
   parseAppPath,
   parseFilterParams,
   stripOneShotAuthParams,
   stripProjectionParams,
 } from "./routes.js";
+
+test("league invite path opens Draft with the token", () => {
+  assert.equal(leagueInvitePath("abc123"), "/hub/draft?invite=abc123");
+  assert.equal(leagueInvitePath(""), "/hub/draft");
+});
 
 test("stripProjectionParams drops projections filters but keeps hub params", () => {
   const params = stripProjectionParams(new URLSearchParams(

@@ -8,9 +8,9 @@ import { effectiveMemberships, isSoloContext } from "./hubLeagues";
 import {
   DRAFT_TZ_OPTIONS,
   browserTimeZone,
-  formatDraftScheduleLabel,
   utcIsoToWall,
 } from "./draftEntryStatus";
+import DraftNightSchedule from "./DraftNightSchedule";
 import LeagueCreateJoinForm from "./LeagueCreateJoinForm";
 
 const TYPE_LABEL = { rookie: "Rookie deal", veteran: "Veteran Deal", extension: "Rookie Extension" };
@@ -220,50 +220,20 @@ export default function LeagueSetup({
       )}
 
       {inLeague && isCommissioner && !draftCompleted && (
-        <div className="hub-draft-schedule hub-draft-schedule--setup">
-          <h3 className="hub-pending-types-title">Draft night</h3>
-          <p className="chart-note">
-            {ctx?.draft_starts_at
-              ? formatDraftScheduleLabel(ctx.draft_starts_at, draftTz)
-              : "Set a date so managers can plan. The room auto-starts at that time."}
-          </p>
-          <label>
-            Date & time
-            <input
-              type="datetime-local"
-              value={draftWall}
-              onChange={(e) => setDraftWall(e.target.value)}
-              disabled={busy}
-            />
-          </label>
-          <label>
-            Timezone
-            <select value={draftTz} onChange={(e) => setDraftTz(e.target.value)} disabled={busy}>
-              {(DRAFT_TZ_OPTIONS.includes(draftTz) ? DRAFT_TZ_OPTIONS : [draftTz, ...DRAFT_TZ_OPTIONS]).map((tz) => (
-                <option key={tz} value={tz}>{tz.replace(/_/g, " ")}</option>
-              ))}
-            </select>
-          </label>
-          <div className="hub-draft-schedule-actions">
-            <button
-              type="button"
-              className="btn-ghost btn-sm"
-              disabled={busy || !draftWall}
-              onClick={() => saveDraftNight(false)}
-            >
-              Save draft time
-            </button>
-            {ctx?.draft_starts_at && (
-              <button
-                type="button"
-                className="btn-ghost btn-sm"
-                disabled={busy}
-                onClick={() => saveDraftNight(true)}
-              >
-                Clear
-              </button>
-            )}
-          </div>
+        <div className="hub-draft-schedule--setup">
+          <DraftNightSchedule
+            variant="setup"
+            startsAt={ctx?.draft_starts_at}
+            timezone={draftTz}
+            wall={draftWall}
+            onWallChange={setDraftWall}
+            onTimezoneChange={setDraftTz}
+            tzOptions={DRAFT_TZ_OPTIONS.includes(draftTz) ? DRAFT_TZ_OPTIONS : [draftTz, ...DRAFT_TZ_OPTIONS]}
+            canEdit
+            busy={busy}
+            onSave={() => saveDraftNight(false)}
+            onClear={() => saveDraftNight(true)}
+          />
         </div>
       )}
 

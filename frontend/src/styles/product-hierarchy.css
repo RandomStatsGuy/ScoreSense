@@ -3305,15 +3305,56 @@
   gap: 0.85rem;
 }
 
-.draft-availability .hub-draft-entry-card-head {
+.draft-availability.is-featured,
+.draft-night-schedule {
+  border-color: color-mix(in srgb, var(--experience-blue) 42%, var(--experience-rule));
+  background: color-mix(in srgb, var(--experience-blue) 8%, var(--experience-surface));
+}
+
+.draft-availability .hub-draft-entry-card-head,
+.draft-night-schedule .hub-draft-entry-card-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
 }
 
+.draft-night-when {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.draft-night-when-time {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: clamp(1.35rem, 3.6vw, 1.85rem);
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.draft-night-when-wait {
+  margin: 0;
+  color: var(--experience-blue);
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.draft-night-when-empty {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
 .draft-availability-window {
   margin: 0;
+}
+
+.draft-availability-best-wrap h4 {
+  margin: 0 0 0.45rem;
+  font-size: 0.88rem;
 }
 
 .draft-availability-best {
@@ -3339,6 +3380,35 @@
   color: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.draft-availability-best-btn.is-top {
+  border-color: color-mix(in srgb, var(--experience-blue) 50%, var(--border));
+  background: color-mix(in srgb, var(--experience-blue) 10%, var(--experience-surface));
+}
+
+.draft-availability-month-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.draft-availability-month-tab {
+  min-height: var(--touch-target);
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--experience-rule);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.draft-availability-month-tab.is-active {
+  border-color: var(--experience-blue);
+  background: var(--experience-blue-soft);
+  color: var(--text-primary);
 }
 
 .draft-availability-best-btn span {
@@ -3484,6 +3554,64 @@
 
   .mock-draft-experience-toggle {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .draft-availability .hub-draft-entry-card-head,
+  .draft-night-schedule .hub-draft-entry-card-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .draft-availability-day-dow {
+    display: none;
+  }
+
+  .draft-availability-day {
+    align-items: center;
+    min-height: var(--touch-target);
+    padding: 0.28rem 0.12rem;
+  }
+
+  .draft-availability-day-num {
+    font-size: 0.95rem;
+  }
+
+  .draft-availability-hour-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .draft-availability-hour {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .draft-availability-save {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .draft-availability-save .btn-primary,
+  .draft-availability-save button {
+    width: 100%;
+    min-height: var(--touch-target);
+  }
+
+  .hub-draft-schedule-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .hub-draft-schedule-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hub-draft-schedule-actions .btn-ghost,
+  .hub-draft-schedule-actions button {
+    width: 100%;
+    min-height: var(--touch-target);
   }
 }
 

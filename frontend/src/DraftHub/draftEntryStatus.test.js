@@ -6,6 +6,8 @@ import {
   draftParticipantSummary,
   formatDraftWait,
   isPickDraft,
+  joinWallDateTime,
+  splitWallDateTime,
   utcIsoToWall,
 } from "./draftEntryStatus.js";
 
@@ -68,4 +70,6 @@ test("formatDraftWait and utcIsoToWall", () => {
   assert.match(formatDraftWait(3700), /1h/);
   const wall = utcIsoToWall("2026-09-01T00:00:00.000Z", "UTC");
   assert.equal(wall, "2026-09-01T00:00");
+  assert.deepEqual(splitWallDateTime(wall), { date: "2026-09-01", time: "00:00" });
+  assert.equal(joinWallDateTime("2026-09-06", "19:00"), "2026-09-06T19:00");
 });

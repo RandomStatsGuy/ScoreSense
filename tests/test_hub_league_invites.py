@@ -27,6 +27,7 @@ def test_create_and_accept_invite(hub_db):
     assert invite["email"] == "owner@example.com"
     assert invite["team_name"] == "Team Alpha"
     assert invite["token"]
+    assert "/hub/draft?invite=" in build_invite_url(invite["token"])
     assert build_invite_url(invite["token"]).endswith(invite["token"])
 
     with pytest.raises(ValueError, match="email"):

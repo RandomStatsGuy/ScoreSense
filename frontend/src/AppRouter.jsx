@@ -11,17 +11,22 @@ import {
 import PrivacyPage from "./legal/PrivacyPage";
 import TermsPage from "./legal/TermsPage";
 import LobbyJoinPage from "./DraftHub/LobbyJoinPage";
-import { withLocationSearch } from "./redirectSearch";
+import { joinLandingPath, withLocationSearch } from "./redirectSearch";
 
-function RedirectKeepSearch({ to }) {
+function RootRedirect() {
   const location = useLocation();
-  return <Navigate to={withLocationSearch(to, location.search, location.hash)} replace />;
+  return (
+    <Navigate
+      to={withLocationSearch(joinLandingPath(location.search), location.search, location.hash)}
+      replace
+    />
+  );
 }
 
 export default function AppRouter() {
   return (
     <Routes>
-      <Route path="/" element={<RedirectKeepSearch to="/projections/weekly" />} />
+      <Route path="/" element={<RootRedirect />} />
       <Route path="/lobby/:roomCode" element={<LobbyJoinPage />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route path="/auth/verify" element={<AuthVerifyPage />} />
@@ -52,7 +57,7 @@ export default function AppRouter() {
       <Route path="/tools" element={<Navigate to="/tools/dfs" replace />} />
       <Route path="/model" element={<App />} />
       <Route path="/admin/:adminTab?" element={<App />} />
-      <Route path="*" element={<RedirectKeepSearch to="/projections/weekly" />} />
+      <Route path="*" element={<RootRedirect />} />
     </Routes>
   );
 }

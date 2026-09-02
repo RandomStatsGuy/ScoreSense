@@ -27,6 +27,10 @@ test("text lookup prefers the longest alias and ignores capture vs cap", () => {
   assert.equal(nominee.page, "frontend/src/DraftHub/DraftRoom.jsx");
   const liveRoom = resolveLivingSurfaceFromText("not the lobby, the live room");
   assert.equal(liveRoom.chrome, "draft-live");
+  const calendar = resolveLivingSurfaceFromText("make the draft calendar more prominent");
+  assert.equal(calendar.page, "frontend/src/DraftHub/DraftLobby.jsx");
+  const invite = resolveLivingSurfaceFromText("league invite lands on draft");
+  assert.equal(invite.label, "Draft");
   assert.equal(resolveLivingSurfaceFromText("Remember to capture this correction"), null);
   const cap = resolveLivingSurfaceFromText("Cap planner overage");
   assert.equal(cap.label, "Cap");

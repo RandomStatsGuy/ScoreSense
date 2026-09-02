@@ -318,6 +318,11 @@ export function stripProjectionParams(searchParams) {
 /** One-shot join tokens. In-app navigation must not put these back. */
 export const ONE_SHOT_AUTH_PARAMS = ["claim", "invite"];
 
+export function leagueInvitePath(token) {
+  const value = String(token || "").trim();
+  return value ? `/hub/draft?invite=${encodeURIComponent(value)}` : "/hub/draft";
+}
+
 export function stripOneShotAuthParams(searchParams) {
   const params = new URLSearchParams(searchParams || undefined);
   for (const key of ONE_SHOT_AUTH_PARAMS) params.delete(key);
