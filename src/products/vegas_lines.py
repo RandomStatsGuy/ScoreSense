@@ -79,6 +79,8 @@ def build_vegas_board(
         if spread is not None and spread != 0:
             favorite = home if spread > 0 else away
 
+        roof = str(row.get("roof") or "").strip() or None
+        stadium = str(row.get("stadium") or "").strip() or None
         game = {
             "game_id": str(row.get("game_id") or f"{season}_{week}_{away}_{home}"),
             "kickoff_et": _kickoff_et(row.get("gameday"), row.get("gametime")),
@@ -92,6 +94,10 @@ def build_vegas_board(
             "home_implied": home_implied,
             "away_implied": away_implied,
             "favorite": favorite,
+            "roof": roof,
+            "stadium": stadium,
+            "temp": _to_float(row.get("temp")),
+            "wind": _to_float(row.get("wind")),
         }
         games.append(game)
 
@@ -110,6 +116,11 @@ def build_vegas_board(
                 # Team-relative line as a book would quote it (negative = favored).
                 "spread": team_spread,
                 "kickoff_et": game["kickoff_et"],
+                "weekday": game["weekday"],
+                "roof": game["roof"],
+                "stadium": game["stadium"],
+                "temp": game["temp"],
+                "wind": game["wind"],
             }
 
     games.sort(key=lambda g: (g["kickoff_et"] or "9999", g["game_id"]))

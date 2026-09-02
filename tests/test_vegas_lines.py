@@ -21,6 +21,10 @@ def _schedule_frame() -> pd.DataFrame:
                 "total_line": 44.5,
                 "away_moneyline": 150.0,
                 "home_moneyline": -180.0,
+                "roof": "outdoors",
+                "stadium": "Lumen Field",
+                "temp": 61,
+                "wind": 8,
             },
             {
                 "game_id": "2026_01_CHI_CAR",
@@ -103,6 +107,9 @@ def test_vegas_board_team_context_is_team_relative():
     assert teams["NE"]["implied_total"] == 20.5
     assert teams["GB"]["implied_total"] is None
     assert teams["GB"]["opponent"] == "MIN"
+    assert teams["SEA"]["roof"] == "outdoors"
+    assert teams["SEA"]["temp"] == 61
+    assert teams["SEA"]["wind"] == 8
 
 
 def test_vegas_board_handles_missing_lines():

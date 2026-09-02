@@ -220,6 +220,11 @@ export default function WeeklyCommandCenter({
           Add contracts
         </button>
       ) : null}
+      {onNavigate ? (
+        <button type="button" className="btn-link" onClick={() => onNavigate("vibes")}>
+          Rate vibes
+        </button>
+      ) : null}
     </div>
   );
 

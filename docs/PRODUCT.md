@@ -40,6 +40,7 @@ Internal code may still say “Draft Hub.” **Users never should.** The product
 | Free agents | Available players |
 | My team | My roster (as the tab name) |
 | This Week | Weekly command center (as the tab name) |
+| Vibes | Vibe rankings, aura farm (as the tab name) |
 | Model accuracy | Accuracy tab (as the page title) |
 | Tools · DFS / Mock draft / Best ball | Lineup tab, Props (those are not shipped nav) |
 
@@ -85,6 +86,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 | Strategy | `value` | Auction targets and prices |
 | Draft | `room` | Idle entry + live room. Email and text invite links open here. Members mark **current and future** draft-night times on one calendar (opens 31 days before the first NFL game, closes the day before). Commissioners lock a promising overlap as draft night. |
 | This Week | `week` | Lineup decisions; Hub-only leagues set start/sit here |
+| Vibes | `vibes` | Swipe your roster; front card is the matchup; info arrow opens bio and latest news; Vibe ranking on the rail; VA-projections (vibe-adjusted) as the table |
 | Game center | `game` | Your matchup live, league scoreboard, week trophies |
 | My team | `roster` | Personal contracts |
 | Free agents | `available` | Add / bid / locked by calendar |
@@ -95,7 +97,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 | Roster management | `office` | Staff-only contracts, sheets, members, access |
 | Insights | `insights` | League history and awards |
 
-Groups in the subnav: **Draft** (Strategy, Draft) · **Team** (This Week through Trades) · **League** (Rules, Roster management, Insights).
+Groups in the subnav: **Draft** (Strategy, Draft) · **Team** (This Week through Trades, including Vibes) · **League** (Rules, Roster management, Insights).
 
 If you add or rename a Fantasy destination, update `HubSubnav.jsx`, `appNavigation.js` subtitles, routes, `frontend/src/livingSurfaces.js`, this table, and tests in the same change.
 
@@ -152,7 +154,7 @@ Reuse `frontend/src/DraftHub/HubUILayout.jsx`. Do not fork a second hero/summary
 
 Which file to open for a given destination: `frontend/src/livingSurfaces.js`. Resolve the row, then match its `page` and `copy`. That registry is the living style guide — keep it current when you add or retarget a screen.
 
-**Use this chrome for:** Rules, Draft (idle/lobby), This Week, Cap, Insights, DFS, and new decision pages.
+**Use this chrome for:** Rules, Draft (idle/lobby), This Week, Vibes, Cap, Insights, DFS, and new decision pages.
 
 **Do not use this chrome for:** the live draft board (board-first, existing live-room layout), **Projections** (board-first table), or other dense data tables that are not a decision surface.
 

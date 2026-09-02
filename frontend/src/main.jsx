@@ -8,6 +8,7 @@ import "./styles.css";
 import "./styles/product-hierarchy.css";
 import "./styles/projections-experience.css";
 import "./styles/auth-session.css";
+import "./styles/vibe-rankings.css";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>

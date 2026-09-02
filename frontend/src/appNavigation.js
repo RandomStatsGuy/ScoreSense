@@ -45,6 +45,7 @@ export const SECTION_SUBTITLES = {
     value: "Star targets and compare auction prices",
     available: "Players you can still add",
     week: "Your lineup decisions this week",
+    vibes: "Swipe your roster; aura sets a start slate",
     game: "Your matchup, live",
     roster: "Your contracts",
     rosters: "All teams",
