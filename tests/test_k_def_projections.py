@@ -11,8 +11,10 @@ from src.draft_hub.k_def_pool_cache import (
     invalidate_k_def_cache,
     k_def_projection_index,
     k_def_season_bands,
+    k_def_week_bands,
     load_k_def_rows,
     overlay_k_def_projections,
+    overlay_k_def_week_projections,
 )
 from src.draft_hub.presets import load_preset
 from src.draft_hub import storage
@@ -105,6 +107,36 @@ def test_overlay_k_def_projections_fills_zeros(monkeypatch):
     assert rows[0]["season_proj"] == 141.0
     assert rows[0]["season_p50"] == 141.0
     assert rows[1]["season_proj"] == 280.0
+
+
+def test_overlay_k_def_week_projections_uses_per_game(monkeypatch):
+    index = {
+        "k1": {
+            "p10": 120.0,
+            "p50": 141.0,
+            "p90": 158.0,
+            "season_proj": 141.0,
+            "per_game": 8.3,
+            "position": "K",
+            "player_name": "Tucker",
+            "team": "BAL",
+        }
+    }
+    monkeypatch.setattr(
+        "src.draft_hub.k_def_pool_cache.k_def_projection_index",
+        lambda allow_fetch=False: index,
+    )
+    cards = [
+        {"player_id": "k1", "position": "K", "player_name": "Tucker", "p50": None},
+        {"player_id": "wr1", "position": "WR", "player_name": "Puka", "p50": 16.2},
+    ]
+    overlay_k_def_week_projections(cards)
+    assert cards[0]["p50"] == 8.3
+    assert cards[0]["has_projection"] is True
+    assert cards[0]["projection_missing"] is False
+    assert cards[1]["p50"] == 16.2
+    bands = k_def_week_bands({"position": "K", "p50": 141.0}, games=17)
+    assert bands["p50"] == 8.3
 
 
 def test_owner_report_overlays_kicker_projection(tmp_path, monkeypatch):

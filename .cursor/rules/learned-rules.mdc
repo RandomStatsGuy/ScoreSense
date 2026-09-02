@@ -27,3 +27,6 @@ Keep under 30 data rows. Promote `always` / `never` into `docs/PRODUCT.md` or a 
 | usually | agent | Propose fun Fantasy ideas that also change a start/sit, bid, or cut decision, then file them on the SCORE Jira board. |
 | usually | fantasy-ui | Vibes front card is the matchup only. Bio and latest news open behind the info arrow. |
 | usually | fantasy-ui | Vibes rail title is Vibe ranking. The table is VA-projections, not Your aura or Vibe slate. |
+| usually | fantasy-ui | One vibe swipe per player per calendar day. Do not let reshuffle farm aura on the same card. |
+| usually | fantasy-ui | The Vibe ranking rail is the hottest read plus today's count only. |
+| usually | projections | When GBM weekly is missing for K or DEF, fill the week from the rank-curve per-game number. |

@@ -14,14 +14,22 @@ import {
   applyVibe,
   auraLeaders,
   auraTone,
+  clearDayVote,
+  dayStorageKey,
   formatAura,
   formatPts,
   loadAura,
+  loadDayVotes,
+  playersLeftToday,
   projectionStarts,
-  ratedCount,
+  readAura,
+  recordDayVote,
   saveAura,
+  saveDayVotes,
   storageKey,
+  todayRatedCount,
   vibeDivergences,
+  vibeScore,
   vibeStarts,
 } from "./vibeAura";
 import {
@@ -29,21 +37,27 @@ import {
   DEMO_VIBE_SLATE,
   VIBE_COPY,
   deckPlayers,
+  emptySlotName,
   heroCopy,
 } from "./vibeRankingsPresentation";
 
-function SlateList({ title, hint, slots }) {
+function SlateList({ title, hint, slots, auraById }) {
   return (
     <section className="hub-vibes-slate" aria-label={title}>
       <h3>{title}</h3>
       {hint ? <p>{hint}</p> : null}
       {(slots || []).map((slot) => {
         const player = slot.player;
+        const pts = player
+          ? formatPts(vibeScore(player, readAura(auraById, player.player_id)))
+          : "";
         return (
           <div key={slot.key || slot.slot} className="hub-vibes-slot">
             <span className="hub-vibes-slot-pos">{slot.slot}</span>
-            <span className="hub-vibes-slot-name">{player?.player_name || "—"}</span>
-            <span className="hub-vibes-slot-pts">{player ? formatPts(player.p50) : ""}</span>
+            <span className="hub-vibes-slot-name">
+              {player?.player_name || emptySlotName(slot.position)}
+            </span>
+            <span className="hub-vibes-slot-pts">{pts}</span>
           </div>
         );
       })}
@@ -59,9 +73,9 @@ export default function VibeRankings({
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [index, setIndex] = useState(0);
   const [history, setHistory] = useState([]);
   const [auraById, setAuraById] = useState({});
+  const [dayVotes, setDayVotes] = useState(() => loadDayVotes(""));
   const [vegasTeams, setVegasTeams] = useState({});
   const [latestById, setLatestById] = useState({});
 
@@ -142,31 +156,50 @@ export default function VibeRankings({
     season: data?.meta?.season,
     week: data?.meta?.week,
   });
+  const dayKey = dayStorageKey({
+    leagueId: data?.hub_context?.league_id || hubContext?.league_id,
+    season: data?.meta?.season,
+    week: data?.meta?.week,
+  });
 
   useEffect(() => {
     setAuraById(loadAura(key));
-    setIndex(0);
+    setDayVotes(loadDayVotes(dayKey));
     setHistory([]);
-  }, [key]);
+  }, [dayKey, key]);
 
   useEffect(() => {
     saveAura(key, auraById);
   }, [auraById, key]);
 
+  useEffect(() => {
+    saveDayVotes(dayKey, dayVotes);
+  }, [dayKey, dayVotes]);
+
   const rules = usingDemo ? DEMO_VIBE_RULES : hubContext?.rules;
   const projSlots = useMemo(() => projectionStarts(players, rules), [players, rules]);
   const vibeSlots = useMemo(() => vibeStarts(players, auraById, rules), [auraById, players, rules]);
   const splits = useMemo(() => vibeDivergences(projSlots, vibeSlots), [projSlots, vibeSlots]);
-  const leaders = useMemo(() => auraLeaders(players, auraById, 3), [auraById, players]);
-  const rated = ratedCount(players, auraById);
-  const done = rosterReady && players.length > 0 && index >= players.length;
+  const openPlayers = useMemo(
+    () => playersLeftToday(players, dayVotes.votes),
+    [dayVotes.votes, players],
+  );
+  const ratedPlayers = useMemo(
+    () => players.filter((player) => Object.prototype.hasOwnProperty.call(auraById, player.player_id)),
+    [auraById, players],
+  );
+  const leaders = useMemo(() => auraLeaders(ratedPlayers, auraById, 1), [auraById, ratedPlayers]);
+  const ratedToday = todayRatedCount(players, dayVotes.votes);
+  const done = rosterReady && players.length > 0 && openPlayers.length === 0;
   const empty = rosterReady && !usingDemo && rosterPlayers.length === 0;
   const hero = heroCopy({ demo: usingDemo && !loading, empty, done });
+  const current = openPlayers[0];
 
   const commit = (vibe, player) => {
+    if (!player?.player_id) return;
     setAuraById((cur) => applyVibe(cur, player.player_id, vibe));
-    setHistory((cur) => [...cur, { playerId: player.player_id, vibe, index }]);
-    setIndex((cur) => cur + 1);
+    setDayVotes((cur) => recordDayVote(cur, player.player_id, vibe));
+    setHistory((cur) => [...cur, { playerId: player.player_id, vibe }]);
   };
 
   const undo = () => {
@@ -174,31 +207,19 @@ export default function VibeRankings({
     if (!last) return;
     const reverse = last.vibe === "start" ? "sit" : "start";
     setAuraById((cur) => applyVibe(cur, last.playerId, reverse));
+    setDayVotes((cur) => clearDayVote(cur, last.playerId));
     setHistory((cur) => cur.slice(0, -1));
-    setIndex(last.index);
-  };
-
-  const reshuffle = () => {
-    setIndex(0);
-    setHistory([]);
-  };
-
-  const clearAura = () => {
-    setAuraById({});
-    setHistory([]);
-    setIndex(0);
   };
 
   const hottest = leaders[0];
   const railItems = [
-    { id: "left", label: VIBE_COPY.cardsLeft, value: String(Math.max(0, players.length - index)) },
-    { id: "rated", label: VIBE_COPY.rated, value: `${rated}/${players.length}` },
     {
       id: "hot",
       label: VIBE_COPY.hottest,
       value: hottest ? `${hottest.player.player_name} · ${formatAura(hottest.aura)}` : "—",
       tone: hottest && auraTone(hottest.aura) === "cold" ? "warn" : undefined,
     },
+    { id: "rated", label: VIBE_COPY.rated, value: `${ratedToday}/${players.length}` },
   ];
 
   return (
@@ -215,17 +236,17 @@ export default function VibeRankings({
         summaryLabel={VIBE_COPY.railTitle}
         summary={(
           <HubExperienceSummary
+            eyebrow=""
             title={VIBE_COPY.railTitle}
             subtitle={VIBE_COPY.railSubtitle(weekLabel)}
             items={railItems}
-            note={usingDemo && !loading ? VIBE_COPY.demoNote : undefined}
             action={(
               <button
                 type="button"
                 className="btn-primary hub-experience-summary-action"
                 onClick={() => onNavigate?.("week")}
-                disabled={!done && rated === 0}
-                title={!done && rated === 0 ? VIBE_COPY.nextActionDisabled : undefined}
+                disabled={!done && ratedToday === 0}
+                title={!done && ratedToday === 0 ? VIBE_COPY.nextActionDisabled : undefined}
               >
                 {VIBE_COPY.nextAction}
               </button>
@@ -239,36 +260,35 @@ export default function VibeRankings({
         {!done ? (
           <div className="hub-vibes-stage">
             <VibeSwipeDeck
-              players={players}
-              index={index}
+              players={openPlayers}
+              index={0}
               auraById={auraById}
               media={media}
               vegasTeams={vegasTeams}
               latestById={latestById}
               onProfileOpen={loadLatest}
               onSwipe={commit}
-              disabled={loading && !players.length}
+              disabled={loading && !openPlayers.length}
             />
             <div className="hub-vibes-actions">
-              <button type="button" className="hub-vibes-vote hub-vibes-vote--sit" onClick={() => players[index] && commit("sit", players[index])}>
+              <button type="button" className="hub-vibes-vote hub-vibes-vote--sit" onClick={() => current && commit("sit", current)}>
                 {VIBE_COPY.sit}
               </button>
               <button type="button" className="btn-ghost" onClick={undo} disabled={!history.length}>
                 {VIBE_COPY.undo}
               </button>
-              <button type="button" className="hub-vibes-vote hub-vibes-vote--start" onClick={() => players[index] && commit("start", players[index])}>
+              <button type="button" className="hub-vibes-vote hub-vibes-vote--start" onClick={() => current && commit("start", current)}>
                 {VIBE_COPY.start}
               </button>
             </div>
-            <p className="hub-vibes-progress">{VIBE_COPY.deckProgress(index, players.length)}</p>
+            <p className="hub-vibes-progress">{VIBE_COPY.deckProgress(ratedToday, players.length)}</p>
             <p className="hub-vibes-hint">{VIBE_COPY.swipeHint}</p>
             <p className="hub-vibes-keys">{VIBE_COPY.keyboardHint}</p>
           </div>
         ) : (
           <div className="hub-vibes-results">
+            <p className="hub-vibes-hint">{VIBE_COPY.lockedToday}</p>
             <div className="hub-vibes-actions">
-              <button type="button" className="btn-ghost" onClick={reshuffle}>{VIBE_COPY.resultsAgain}</button>
-              <button type="button" className="btn-ghost" onClick={clearAura}>{VIBE_COPY.clearAura}</button>
               <button type="button" className="btn-primary" onClick={() => onNavigate?.("week")}>
                 {VIBE_COPY.resultsCta}
               </button>
@@ -276,29 +296,21 @@ export default function VibeRankings({
           </div>
         )}
 
-        <SlateList title={VIBE_COPY.slateTitle} hint={VIBE_COPY.slateHint} slots={vibeSlots} />
+        <SlateList
+          title={VIBE_COPY.slateTitle}
+          hint={VIBE_COPY.slateHint}
+          slots={vibeSlots}
+          auraById={auraById}
+        />
 
         <section className="hub-vibes-splits" aria-label={VIBE_COPY.vsModel}>
           <h3>{VIBE_COPY.vsModel}</h3>
           {splits.pairs.length === 0 ? (
             <p>{VIBE_COPY.vsModelEmpty}</p>
           ) : splits.pairs.map((pair) => (
-            <div key={`${pair.start.player_id}-${pair.sit.player_id}`} className="hub-vibes-split">
-              <span className="hub-vibes-split-name">{pair.start.player_name}</span>
-              <span className="hub-vibes-split-over">over</span>
-              <span className="hub-vibes-split-name">{pair.sit.player_name}</span>
-            </div>
-          ))}
-        </section>
-
-        <section className="hub-vibes-leaders" aria-label={VIBE_COPY.hottest}>
-          <h3>{VIBE_COPY.hottest}</h3>
-          {leaders.map(({ player, aura }) => (
-            <div key={player.player_id} className="hub-vibes-leader">
-              <span className={`hub-vibes-leader-aura hub-vibes-stat--${auraTone(aura)}`}>{formatAura(aura)}</span>
-              <span className="hub-vibes-leader-name">{player.player_name}</span>
-              <span className="hub-vibes-leader-pts">{VIBE_COPY.auraLabel}</span>
-            </div>
+            <p key={`${pair.start.player_id}-${pair.sit.player_id}`} className="hub-vibes-split-line">
+              {VIBE_COPY.vsModelLine(pair.start.player_name, pair.sit.player_name)}
+            </p>
           ))}
         </section>
       </HubExperienceLayout>
