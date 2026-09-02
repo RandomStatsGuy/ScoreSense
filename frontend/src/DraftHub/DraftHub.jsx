@@ -908,7 +908,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         <FantasyChatDock
           leagueId={leagueId || effectiveCtx?.league_id || ""}
           hubContext={effectiveCtx}
-          hidden={!active || subView === "room"}
+          hidden={!active || subView === "room" || createLeagueOpen}
         />
       )}
       {!demoMode && (

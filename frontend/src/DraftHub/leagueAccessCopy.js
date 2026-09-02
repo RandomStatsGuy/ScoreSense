@@ -3,6 +3,15 @@
 export const CREATE_LEAGUE_VALUE = "__create__";
 export const SOLO_VALUE = "__solo__";
 
+/** Create/join is a real button. Never put this value in a native <select>. */
+export const LEAGUE_CREATE_COPY = {
+  newLeague: "New league",
+  createOrJoin: "Create or join a league",
+  title: "Create or join a league",
+  lead: "Start a room or join with a code. You can switch back anytime.",
+  close: "Close",
+};
+
 export function interpretLeagueSwitcherValue(next, current) {
   if (next === CREATE_LEAGUE_VALUE) return { action: "create" };
   if (!next || next === current) return { action: "noop" };

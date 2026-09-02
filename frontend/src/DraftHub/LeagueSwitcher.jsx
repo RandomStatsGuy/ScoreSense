@@ -8,7 +8,7 @@ import {
 } from "./hubLeagues";
 import TeamIdentityMark from "./TeamIdentityMark";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
-import { CREATE_LEAGUE_VALUE, SOLO_VALUE, interpretLeagueSwitcherValue } from "./leagueAccessCopy";
+import { LEAGUE_CREATE_COPY, SOLO_VALUE, interpretLeagueSwitcherValue } from "./leagueAccessCopy";
 
 const LIST_SCROLL_THRESHOLD = 4;
 
@@ -165,21 +165,18 @@ export default function LeagueSwitcher({
                 </option>
               ))}
               <option value={SOLO_VALUE}>{mobileLayout ? "Solo prep" : "Personal prep (just me)"}</option>
-              {onCreateLeague ? (
-                <option value={CREATE_LEAGUE_VALUE}>+ Create or join a league…</option>
-              ) : null}
             </select>
           ) : (
             <span id={selectId} className="hub-league-context-name">Solo prep</span>
           )}
-          {onCreateLeague && !mobileLayout ? (
+          {onCreateLeague ? (
             <button
               type="button"
               className="btn-ghost btn-sm hub-league-switcher-create"
               disabled={busy || disabled}
               onClick={() => onCreateLeague()}
             >
-              New league
+              {LEAGUE_CREATE_COPY.newLeague}
             </button>
           ) : null}
         </div>
@@ -265,7 +262,7 @@ export default function LeagueSwitcher({
               disabled={busy || disabled}
               onClick={() => onCreateLeague()}
             >
-              Create or join a league
+              {LEAGUE_CREATE_COPY.createOrJoin}
             </button>
           </div>
         ) : null}

@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   CREATE_LEAGUE_VALUE,
+  LEAGUE_CREATE_COPY,
   SOLO_VALUE,
   interpretLeagueSwitcherValue,
   draftInviteLabel,
@@ -34,6 +35,16 @@ import {
   removeFranchiseLabel,
   franchiseSeatSummary,
 } from "./leagueAccessCopy.js";
+
+test("create-league copy stays a button label, not a select option", () => {
+  assert.equal(LEAGUE_CREATE_COPY.newLeague, "New league");
+  assert.match(LEAGUE_CREATE_COPY.createOrJoin, /create or join/i);
+  assert.match(LEAGUE_CREATE_COPY.lead, /switch back/i);
+  assert.doesNotMatch(
+    `${LEAGUE_CREATE_COPY.newLeague} ${LEAGUE_CREATE_COPY.title} ${LEAGUE_CREATE_COPY.lead}`,
+    /Draft Hub|Submit|permission/i,
+  );
+});
 
 test("league switcher treats create as its own action", () => {
   assert.deepEqual(

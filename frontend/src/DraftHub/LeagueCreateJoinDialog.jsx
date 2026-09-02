@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import LeagueCreateJoinForm from "./LeagueCreateJoinForm";
+import { LEAGUE_CREATE_COPY } from "./leagueAccessCopy";
 
 export default function LeagueCreateJoinDialog({
   open,
@@ -19,17 +21,22 @@ export default function LeagueCreateJoinDialog({
       if (event.key === "Escape") onCloseRef.current?.();
     };
     document.addEventListener("keydown", onKey);
+    const root = document.getElementById("root");
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    // Portal lives on document.body. Lock #root so a leftover sheet, chat
+    // backdrop, or native select popup cannot keep eating pointer events.
+    root?.setAttribute("inert", "");
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
+      root?.removeAttribute("inert");
     };
   }, [open]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div
       className="invite-overlay league-create-overlay"
       role="dialog"
@@ -42,13 +49,13 @@ export default function LeagueCreateJoinDialog({
       <div className="invite-modal league-create-modal panel">
         <div className="league-create-modal-head">
           <div>
-            <h2 id="league-create-title">Create or join a league</h2>
+            <h2 id="league-create-title">{LEAGUE_CREATE_COPY.title}</h2>
             <p className="chart-note league-create-modal-lead">
-              Start a room or join with a code. You can switch back anytime.
+              {LEAGUE_CREATE_COPY.lead}
             </p>
           </div>
           <button type="button" className="btn-ghost btn-sm" onClick={() => onCloseRef.current?.()}>
-            Close
+            {LEAGUE_CREATE_COPY.close}
           </button>
         </div>
         <LeagueCreateJoinForm
@@ -60,6 +67,7 @@ export default function LeagueCreateJoinDialog({
           }}
         />
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
