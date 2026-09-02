@@ -34,12 +34,7 @@ Follow `.cursor/skills/match-living-surface/SKILL.md`. Lead with **Matching:** `
 
 ## 2. App up
 
-API `http://127.0.0.1:8000`, Vite `http://127.0.0.1:5173` (proxies `/api`). If neither is running:
-
-```bash
-PYTHONPATH=. .venv/bin/python -m uvicorn app.api:app --reload --port 8000
-# other terminal: cd frontend && npm run dev
-```
+API `http://127.0.0.1:8000`, Vite `http://127.0.0.1:5173` (proxies `/api`). If neither is running, follow `.cursor/skills/start-local-app/SKILL.md`.
 
 Need real rosters / cap / trades? `.cursor/skills/mirror-prod-league/SKILL.md` (room `0BBESQ`).
 
