@@ -80,6 +80,14 @@ ADMIN_EMAILS = frozenset(
     e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "").split(",") if e.strip()
 )
 
+# User bug reports → SCORE Jira (server-side token; never expose to the browser)
+JIRA_SITE = os.getenv("JIRA_SITE", "https://scoresenseapp.atlassian.net").strip().rstrip("/")
+JIRA_CLOUD_ID = os.getenv("JIRA_CLOUD_ID", "3ca7af20-a021-4266-911e-860fd82cc42c").strip()
+JIRA_EMAIL = os.getenv("JIRA_EMAIL", "").strip()
+JIRA_API_TOKEN = os.getenv("JIRA_API_TOKEN", "").strip()
+JIRA_PROJECT_KEY = os.getenv("JIRA_PROJECT_KEY", "SCORE").strip() or "SCORE"
+JIRA_BUG_ISSUE_TYPE = os.getenv("JIRA_BUG_ISSUE_TYPE", "Bug").strip() or "Bug"
+
 # Transactional email (invites, verification, password reset)
 SMTP_HOST = os.getenv("SMTP_HOST", "").strip()
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))

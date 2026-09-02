@@ -58,6 +58,15 @@ def test_constitution_and_rules_exist() -> None:
     assert (ROOT / "docs" / "README.md").is_file()
 
 
+def test_constitution_covers_account_report() -> None:
+    product = _read("docs", "PRODUCT.md")
+    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    assert "Report a bug" in product
+    assert "user-reported" in product
+    assert "Report a bug" in core_rule
+    assert '"/report"' in _read("frontend", "src", "AppRouter.jsx")
+
+
 def test_constitution_covers_shipped_top_level_nav() -> None:
     product = _read("docs", "PRODUCT.md")
     app_nav = _read("frontend", "src", "appNavigation.js")

@@ -2,9 +2,9 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 /**
- * Desktop account dropdown. Consolidates Account, Model accuracy, Admin,
- * data-refresh status, and Log out into a single menu so the header stays to
- * one row of actions.
+ * Desktop account dropdown. Consolidates Account, Report a bug, Model accuracy,
+ * Admin, data-refresh status, and Log out into a single menu so the header
+ * stays to one row of actions.
  *
  * Popover is portaled to document.body with position:fixed so it is not trapped
  * by the header shell's backdrop-filter stacking context (which otherwise loses
@@ -18,6 +18,7 @@ export default function UserMenu({
   view,
   openSignIn,
   onAccount,
+  onGoToReport,
   onGoToModel,
   onGoToAdmin,
   onLogout,
@@ -121,6 +122,13 @@ export default function UserMenu({
         </button>
         <button
           type="button"
+          className="app-header-info-link"
+          onClick={onGoToReport}
+        >
+          Report a bug
+        </button>
+        <button
+          type="button"
           className={`app-header-info-link${view === "model" ? " active" : ""}`}
           onClick={onGoToModel}
         >
@@ -146,6 +154,9 @@ export default function UserMenu({
         >
           <button type="button" role="menuitem" className="user-menu-item" onClick={run(onAccount)}>
             Account settings
+          </button>
+          <button type="button" role="menuitem" className="user-menu-item" onClick={run(onGoToReport)}>
+            Report a bug
           </button>
           <button
             type="button"
