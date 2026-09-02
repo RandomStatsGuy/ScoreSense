@@ -6,16 +6,24 @@ import {
   availabilityEmptyBest,
   availabilityHeading,
   availabilityHoursHint,
+  availabilityLockLabel,
   availabilitySaveLabel,
   availabilityStateNote,
   availabilitySupport,
   bestSlotLines,
+  calendarTodayIso,
+  firstSelectableDate,
   formatHourLabel,
   groupDatesByMonth,
   heatTone,
+  isSlotCurrentOrFuture,
   peopleLine,
+  preferDateStrip,
   slotKey,
+  slotToWall,
   slotsEqual,
+  visibleHoursForDate,
+  wallToSlot,
 } from "./draftAvailabilityPresentation.js";
 
 test("availability copy names the calendar consequence", () => {
@@ -26,7 +34,11 @@ test("availability copy names the calendar consequence", () => {
   assert.match(availabilitySupport({ state: "open" }), /same calendar/i);
   assert.match(availabilitySupport({ state: "upcoming" }), /31 days/i);
   assert.match(availabilitySupport({ state: "closed" }), /day before kickoff/i);
+  assert.match(availabilitySupport({ locked: true }), /locked/i);
   assert.equal(availabilityChip({ state: "open", submitted: 3, teamCount: 12 }), "3 marked");
+  assert.equal(availabilityChip({ locked: true, submitted: 3, teamCount: 12 }), "Night locked");
+  assert.equal(availabilityLockLabel({}), "Lock this night");
+  assert.equal(availabilityLockLabel({ locked: true }), "Locked in");
   assert.match(availabilityStateNote({
     state: "open",
     opens_on: "2026-08-10",
@@ -58,4 +70,21 @@ test("dates group by month for one calendar", () => {
   assert.match(groups[0].label, /August/i);
   assert.equal(groups[0].dates.length, 2);
   assert.match(groups[1].label, /September/i);
+});
+
+test("calendar keeps only current and future hours", () => {
+  assert.equal(isSlotCurrentOrFuture("2026-09-01", 18, "2026-09-02", 16), false);
+  assert.equal(isSlotCurrentOrFuture("2026-09-02", 14, "2026-09-02", 16), false);
+  assert.equal(isSlotCurrentOrFuture("2026-09-02", 16, "2026-09-02", 16), true);
+  assert.equal(isSlotCurrentOrFuture("2026-09-03", 12, "2026-09-02", 22), true);
+  assert.deepEqual(
+    visibleHoursForDate("2026-09-02", [12, 14, 16, 18, 22], "2026-09-02", 16),
+    [16, 18, 22],
+  );
+  assert.equal(firstSelectableDate(["2026-09-02", "2026-09-03"], [12, 18], "2026-09-02", 20), "2026-09-03");
+  assert.equal(preferDateStrip(["2026-09-02", "2026-09-03"]), true);
+  assert.equal(preferDateStrip(Array.from({ length: 20 }, (_, i) => `2026-08-${String(i + 10).padStart(2, "0")}`)), false);
+  assert.equal(slotToWall("2026-09-02", 19), "2026-09-02T19:00");
+  assert.deepEqual(wallToSlot("2026-09-02T19:00"), { date: "2026-09-02", hour: 19 });
+  assert.match(calendarTodayIso(new Date("2026-09-02T20:00:00Z"), "UTC"), /2026-09-02/);
 });

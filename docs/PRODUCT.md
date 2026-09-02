@@ -82,7 +82,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 |-------|-------------|---------|
 | Home | `home` | Phase-aware next actions |
 | Strategy | `value` | Auction targets and prices |
-| Draft | `room` | Idle entry + live room. Email and text invite links open here. Members mark draft-night availability on one calendar (opens 31 days before the first NFL game, closes the day before). |
+| Draft | `room` | Idle entry + live room. Email and text invite links open here. Members mark **current and future** draft-night times on one calendar (opens 31 days before the first NFL game, closes the day before). Commissioners lock a promising overlap as draft night. |
 | This Week | `week` | Lineup decisions; Hub-only leagues set start/sit here |
 | Game center | `game` | Your matchup live, league scoreboard, week trophies |
 | My team | `roster` | Personal contracts |
@@ -210,6 +210,7 @@ Hero pattern: eyebrow (`League rules`) + sentence heading (`Rules everyone can p
 - Labels on every field. Errors associated with controls. WCAG AA contrast.
 - Touch targets ≥ 44px where a laptop or phone can tap them (`--touch-target`).
 - Chat: `aria-expanded` / `aria-controls`, Escape closes, focus returns to the trigger.
+- Draft availability shows current and future times only. Commissioners lock a promising overlap as the official night.
 
 ---
 

@@ -22,7 +22,9 @@ import {
   shareableAppUrl,
   draftNightEmpty,
   draftNightHeading,
+  draftNightLockAction,
   draftNightSupport,
+  draftNightUnlockAction,
   franchiseResizeHint,
   addFranchiseLabel,
   addFranchiseSupport,
@@ -83,7 +85,7 @@ test("draft lobby readiness keeps launch status concise", () => {
 
   const readyRoom = draftLobbyReadiness({ claimed: 10, teamCount: 10, scheduled: true });
   assert.equal(readyRoom[0].label, "Every seat is claimed");
-  assert.equal(readyRoom[1].label, "Draft night scheduled");
+  assert.equal(readyRoom[1].label, "Draft night locked");
 });
 
 test("join page tells live visitors they must already be members", () => {
@@ -120,9 +122,11 @@ test("member email invite is how people join the league", () => {
 
 test("draft night copy names the lock time", () => {
   assert.equal(draftNightHeading(), "Draft night");
-  assert.equal(draftNightEmpty(), "Not scheduled yet");
-  assert.match(draftNightSupport({ scheduled: false }), /shared calendar/i);
-  assert.match(draftNightSupport({ scheduled: true }), /start earlier/i);
+  assert.equal(draftNightEmpty(), "Not locked yet");
+  assert.match(draftNightSupport({ scheduled: false }), /overlaps/i);
+  assert.match(draftNightSupport({ scheduled: true }), /locked/i);
+  assert.equal(draftNightLockAction({}), "Lock this night");
+  assert.equal(draftNightUnlockAction(), "Unlock");
 });
 
 test("franchise resize copy names the next auction consequence", () => {
