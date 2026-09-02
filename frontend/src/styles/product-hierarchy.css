@@ -2523,6 +2523,31 @@
   .fantasy-chat-trigger {
     min-width: 0;
   }
+
+  .fantasy-chat-trigger--icon {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto;
+    place-items: center;
+    width: 2.75rem;
+    min-width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border-radius: 50%;
+  }
+
+  .fantasy-chat-trigger--icon .fantasy-chat-pulse {
+    position: absolute;
+    width: 0.45rem;
+    height: 0.45rem;
+    margin: 0;
+    transform: translate(0.85rem, -0.85rem);
+  }
+
+  .hub-league-home--mobile .hub-home-heading,
+  .hub-league-home--mobile .hub-home-phase-track {
+    display: none;
+  }
 }
 
 /* Shared Fantasy experience layout (Draft idle, This Week, Cap) ------------ */

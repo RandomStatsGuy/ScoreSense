@@ -50,18 +50,23 @@ import AdminPortal from "./AdminPortal";
 import MobileShell from "./layout/MobileShell";
 import MobileHeader from "./layout/MobileHeader";
 import MobileSubnav from "./layout/MobileSubnav";
+import MobileDestinationSheet from "./layout/MobileDestinationSheet";
 import MobileFilterSheet from "./layout/MobileFilterSheet";
 import ProjectionsFilterBar, { PROJECTION_POSITIONS } from "./layout/ProjectionsFilterBar";
 import MobileMenuSheet from "./layout/MobileMenuSheet";
+import {
+  MOBILE_CHROME_COPY,
+  projectionDestinationItems,
+  resolveMobileDestination,
+  toolDestinationItems,
+} from "./layout/mobileChromePresentation";
 import UserMenu from "./layout/UserMenu";
 import {
   APP_SECTIONS,
   PROJECTIONS_TABS,
-  SEASON_MODES,
   SECTION_SUBTITLES,
   TOOLS_TABS,
   defaultSeasonMode,
-  resolveSectionLabel,
 } from "./appNavigation";
 import { apiFetch } from "./auth";
 import { isAbortError } from "./fetchAbort";
@@ -186,6 +191,7 @@ export default function App() {
   const [seasonSentimentError, setSeasonSentimentError] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [mobileDestOpen, setMobileDestOpen] = useState(false);
   const [hubMounted, setHubMounted] = useState(false);
   const rosFetchGen = useRef(0);
   const seasonModeUserPicked = useRef(false);
@@ -958,6 +964,7 @@ export default function App() {
   useEffect(() => {
     setMobileMenuOpen(false);
     setMobileFilterOpen(false);
+    setMobileDestOpen(false);
   }, [view, projectionsTab, toolsTab, hubSubView]);
 
   useEffect(() => {
@@ -971,15 +978,6 @@ export default function App() {
 
   const hubNeedsSignIn = hubAuthRequired !== false && !authenticated;
   const isAdmin = Boolean(user?.is_admin);
-  const currentViewLabel = useMemo(() => {
-    if (view === "hub") {
-      if (hubNeedsSignIn) return "Sign in";
-      return "Fantasy";
-    }
-    if (view === "admin") return "Admin";
-    return resolveSectionLabel(view, { projectionsTab, toolsTab });
-  }, [view, hubNeedsSignIn, projectionsTab, toolsTab]);
-
   const showDataRefresh = isProjectionsDataView;
   const dataRefreshLoading = pipelineRefreshing || (isSeasonPreseason
     ? draftLoading
@@ -1126,34 +1124,16 @@ export default function App() {
     }
   };
 
-  const mobileContextLabel = useMemo(() => {
-    if (view === "hub") {
-      if (hubNeedsSignIn) return "Sign in";
-      const tab = HUB_SUBVIEWS.find((v) => v.id === hubSubView);
-      const tabLabel = tab ? (tab.shortLabel || tab.label) : "Fantasy";
-      if (mobileLayout && hubContext?.league_name) {
-        const name = hubContext.league_name;
-        const leagueShort = name.length > 18 ? `${name.slice(0, 16)}…` : name;
-        return `${leagueShort} · ${tabLabel}`;
-      }
-      return tab ? `Fantasy · ${tabLabel}` : "Fantasy";
-    }
-    if (view === "admin") return "Admin";
-    if (view === "model") return "Model accuracy";
-    if (view === "projections") {
-      const posLabel = POSITIONS.find((p) => p.id === position)?.label || "";
-      if (projectionsTab === "weekly") {
-        const weekLabel = week != null ? `W${week}` : "Weekly";
-        return posLabel ? `${weekLabel} · ${posLabel}` : weekLabel;
-      }
-      return posLabel ? `Season · ${posLabel}` : "Season";
-    }
-    if (view === "tools") {
-      const tab = TOOLS_TABS.find((t) => t.id === toolsTab);
-      return tab ? `Tools · ${tab.label}` : "Tools";
-    }
-    return currentViewLabel;
-  }, [view, hubNeedsSignIn, hubSubView, hubContext, mobileLayout, projectionsTab, position, week, toolsTab, currentViewLabel]);
+  const mobileDestination = useMemo(() => {
+    const hubTab = HUB_SUBVIEWS.find((item) => item.id === hubSubView);
+    return resolveMobileDestination({
+      view,
+      projectionsTab,
+      toolsTab,
+      hubTitle: hubTab?.label,
+      hubNeedsSignIn,
+    });
+  }, [view, projectionsTab, toolsTab, hubSubView, hubNeedsSignIn]);
 
   const weeklyMobileTabs = useMemo(
     () => [
@@ -1237,6 +1217,11 @@ export default function App() {
       },
       searchQuery,
       onSearchChange: setSearchQuery,
+      movementFilters: isWeeklyProjections && meta?.projection_movement != null
+        ? movementBoardFilters(tableRows.length)
+        : [],
+      movementFilter,
+      onMovementFilterChange: handleMovementFilterChange,
     }),
     [
       projectionsTab,
@@ -1260,6 +1245,10 @@ export default function App() {
       rosWeekOptions,
       handleRosSeasonChange,
       searchQuery,
+      meta?.projection_movement,
+      tableRows.length,
+      movementFilter,
+      handleMovementFilterChange,
     ],
   );
 
@@ -1314,14 +1303,12 @@ export default function App() {
         <header className={`app-header${view === "hub" ? " app-header--hub" : ""}${view === "hub" && hubNeedsSignIn ? " app-header--hub-guest" : ""}`}>
           <div className={`app-header-shell${view === "hub" ? " app-header-shell--hub" : ""}`}>
             <MobileHeader
-              contextLabel={mobileContextLabel}
-              showDataRefresh={showDataRefresh}
-              dataRefreshLoading={dataRefreshLoading}
-              onRefresh={triggerRefresh}
-              onMenuOpen={() => setMobileMenuOpen(true)}
+              title={mobileDestination.title}
+              hasMenu={Boolean(mobileDestination.picker)}
+              menuOpen={mobileDestOpen}
+              onTitleClick={() => setMobileDestOpen(true)}
               onFilterOpen={() => setMobileFilterOpen(true)}
               showFilter={view === "projections" && mobileLayout}
-              mobileMenuOpen={mobileMenuOpen}
             />
 
             <div className="app-header-row app-header-row-primary app-header-desktop-only">
@@ -1368,16 +1355,8 @@ export default function App() {
               </div>
             </div>
 
-            {view === "projections" && (
+            {view === "projections" && !mobileLayout && (
               <div className="app-header-projections-toolbar">
-                {mobileLayout ? (
-                  <MobileSubnav
-                    tabs={PROJECTIONS_TABS}
-                    active={projectionsTab}
-                    onChange={setProjectionsTab}
-                    ariaLabel="Projection type"
-                  />
-                ) : (
                 <nav className="app-section-subnav app-section-subnav--compact" aria-label="Projection type">
                   {PROJECTIONS_TABS.map((tab) => (
                     <button
@@ -1390,20 +1369,10 @@ export default function App() {
                     </button>
                   ))}
                 </nav>
-                )}
-
               </div>
             )}
 
-            {view === "tools" && TOOLS_TABS.length > 1 && (
-              mobileLayout ? (
-                <MobileSubnav
-                  tabs={TOOLS_TABS}
-                  active={toolsTab}
-                  onChange={setToolsTab}
-                  ariaLabel="Tools"
-                />
-              ) : (
+            {view === "tools" && TOOLS_TABS.length > 1 && !mobileLayout && (
               <nav className="app-section-subnav app-section-subnav--compact" aria-label="Tools">
                 {TOOLS_TABS.map((tab) => (
                   <button
@@ -1416,7 +1385,6 @@ export default function App() {
                   </button>
                 ))}
               </nav>
-              )
             )}
 
             {view === "hub" && !hubNeedsSignIn && !mobileLayout && (
@@ -1429,7 +1397,7 @@ export default function App() {
             )}
           </div>
 
-          {!(view === "projections" && projectionsTab === "weekly") && view !== "hub" && (
+          {!mobileLayout && !(view === "projections" && projectionsTab === "weekly") && view !== "hub" && (
             <div className="subtitle-slot">
               <p className={`subtitle ${subtitleFading ? "subtitle-fading" : ""}`}>{subtitleDisplay}</p>
               {view === "projections" && (
@@ -1471,6 +1439,37 @@ export default function App() {
           filterProps={projectionsFilterProps}
         />
 
+        {mobileLayout && view === "hub" && !hubNeedsSignIn && (
+          <HubSubnav
+            pickerOnly
+            pickerOpen={mobileDestOpen}
+            onPickerOpenChange={setMobileDestOpen}
+            subView={hubSubView}
+            hubContext={hubContext}
+            onNavigate={setHubSubView}
+          />
+        )}
+        {mobileLayout && view === "projections" && (
+          <MobileDestinationSheet
+            open={mobileDestOpen}
+            onClose={() => setMobileDestOpen(false)}
+            title={MOBILE_CHROME_COPY.projectionsSheet}
+            groups={[{ id: "projections", items: projectionDestinationItems() }]}
+            active={projectionsTab}
+            onSelect={(id) => setProjectionsTab(id)}
+          />
+        )}
+        {mobileLayout && view === "tools" && (
+          <MobileDestinationSheet
+            open={mobileDestOpen}
+            onClose={() => setMobileDestOpen(false)}
+            title={MOBILE_CHROME_COPY.toolsSheet}
+            groups={[{ id: "tools", items: toolDestinationItems() }]}
+            active={toolsTab}
+            onSelect={(id) => setToolsTab(id)}
+          />
+        )}
+
         {error && isProjectionsDataView && (
           <div className="error">{error}</div>
         )}
@@ -1489,12 +1488,6 @@ export default function App() {
                 </button>
               ))}
             </div>
-            <span
-              className="projections-mobile-scoring-chip"
-              title="ScoreSense weekly model is trained on PPR scoring"
-            >
-              PPR
-            </span>
           </div>
         )}
 
@@ -1571,9 +1564,11 @@ export default function App() {
                 title={BOARD_COPY.weeklyBoard}
                 support={BOARD_COPY.weeklySupport}
                 filters={
-                  meta?.projection_movement != null
-                    ? movementBoardFilters(tableRows.length)
-                    : []
+                  mobileLayout
+                    ? []
+                    : (meta?.projection_movement != null
+                      ? movementBoardFilters(tableRows.length)
+                      : [])
                 }
                 activeFilter={movementFilter}
                 onFilterChange={handleMovementFilterChange}
@@ -1747,28 +1742,6 @@ export default function App() {
             }}
           />
           <section className="panel wide panel-season proj-board-surface">
-            {/* Desktop already exposes this switch in the filter bar. */}
-            {mobileLayout && (
-              <nav className="season-mode-tabs" role="tablist" aria-label="Season mode">
-                {SEASON_MODES.map((mode) => (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={seasonMode === mode.id}
-                    title={mode.hint}
-                    className={`season-mode-tab${seasonMode === mode.id ? " active" : ""}`}
-                    onClick={() => {
-                      seasonModeUserPicked.current = true;
-                      setSeasonMode(mode.id);
-                    }}
-                  >
-                    <span className="season-mode-tab-label">{mode.shortLabel}</span>
-                  </button>
-                ))}
-              </nav>
-            )}
-
             {seasonMode === "preseason" ? (
               <>
               <DraftTable

@@ -96,3 +96,10 @@ def test_design_spec_defers_to_constitution() -> None:
     design = _read("docs", "design.md")
     assert "PRODUCT.md" in design
     assert "wins" in design.lower()
+
+
+def test_constitution_covers_phone_chrome() -> None:
+    product = _read("docs", "PRODUCT.md")
+    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    assert "On phone, the header is the current destination" in product
+    assert "destination title" in core_rule.lower()

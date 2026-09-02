@@ -301,6 +301,7 @@ export default function LeagueContextBanner({
           disabled={busy}
         />
       )}
+      {(!showSwitcher || !mobileLayout) && (
       <p className="hub-league-context-line">
         {!showSwitcher && (
           <>
@@ -332,6 +333,7 @@ export default function LeagueContextBanner({
           </>
         )}
       </p>
+      )}
     </div>
   );
 
@@ -510,7 +512,7 @@ export default function LeagueContextBanner({
 
   return (
     <section
-      className="hub-league-context-bar"
+      className={`hub-league-context-bar${mobileLayout ? " hub-league-context-bar--compact" : ""}`}
       role="status"
       aria-busy={busy || freshnessLoading}
     >

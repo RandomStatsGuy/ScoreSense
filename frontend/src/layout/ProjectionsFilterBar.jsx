@@ -37,6 +37,9 @@ export function ProjectionsFilterControls({
   onSeasonModeChange,
   searchQuery,
   onSearchChange,
+  movementFilters = [],
+  movementFilter,
+  onMovementFilterChange,
 }) {
   const isSheet = layout === "sheet";
   const weekIdx = week != null && weekOptions ? weekOptions.indexOf(week) : -1;
@@ -60,6 +63,24 @@ export function ProjectionsFilterControls({
           ))}
         </div>
       </div>
+
+      {isSheet && isWeeklyProjections && movementFilters.length ? (
+        <div className="mobile-filter-group">
+          <span className="mobile-filter-label">What changed</span>
+          <div className="header-segment mobile-filter-segment" role="group" aria-label="Board filters">
+            {movementFilters.map((filter) => (
+              <button
+                key={filter.id}
+                type="button"
+                className={`tab header-segment-tab ${movementFilter === filter.id ? "active" : ""}`}
+                onClick={() => onMovementFilterChange?.(filter.id)}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {projectionsTab === "season" ? (
         <div className={isSheet ? "mobile-filter-group" : "projections-filter-season-mode"}>
