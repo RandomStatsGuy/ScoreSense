@@ -11,13 +11,15 @@ import {
 import PrivacyPage from "./legal/PrivacyPage";
 import TermsPage from "./legal/TermsPage";
 import LobbyJoinPage from "./DraftHub/LobbyJoinPage";
-import { joinLandingPath, withLocationSearch } from "./redirectSearch";
+import { joinLandingPath, joinLandingSearch, withLocationSearch } from "./redirectSearch";
 
 function RootRedirect() {
   const location = useLocation();
+  const dest = joinLandingPath(location.search);
+  const search = dest === "/hub/draft" ? joinLandingSearch(location.search) : location.search;
   return (
     <Navigate
-      to={withLocationSearch(joinLandingPath(location.search), location.search, location.hash)}
+      to={withLocationSearch(dest, search, location.hash)}
       replace
     />
   );

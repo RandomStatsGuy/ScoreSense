@@ -3358,8 +3358,8 @@
 }
 
 .draft-availability-best {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.4rem;
   margin: 0;
   padding: 0;
@@ -3558,6 +3558,10 @@
 }
 
 @media (max-width: 768px) {
+  .draft-availability-best {
+    grid-template-columns: 1fr;
+  }
+
   .draft-availability .hub-draft-entry-card-head,
   .draft-night-schedule .hub-draft-entry-card-head {
     flex-direction: column;

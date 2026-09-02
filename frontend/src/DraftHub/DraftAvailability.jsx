@@ -90,7 +90,7 @@ export default function DraftAvailability({ leagueId, enabled = true, onSaved, o
     [mine, selectedDate],
   );
   const selectedDaySlots = dayHeat(heat, selectedDate);
-  const best = bestSlotLines(payload?.best || []);
+  const best = bestSlotLines(payload?.best || [], mobileLayout ? 2 : 4);
   const bestLabel = best[0]?.label || "";
 
   useEffect(() => {
@@ -160,28 +160,6 @@ export default function DraftAvailability({ leagueId, enabled = true, onSaved, o
       {payload ? (
         <>
           <p className="chart-note draft-availability-window">{availabilityStateNote(availWindow)}</p>
-
-          {best.length > 0 ? (
-            <section className="draft-availability-best-wrap" aria-labelledby="draft-availability-best-heading">
-              <h4 id="draft-availability-best-heading">{availabilityBestHeading()}</h4>
-              <ul className="draft-availability-best">
-                {best.map((slot, idx) => (
-                  <li key={slot.id}>
-                    <button
-                      type="button"
-                      className={`draft-availability-best-btn${idx === 0 ? " is-top" : ""}`}
-                      onClick={() => setSelectedDate(slot.date)}
-                    >
-                      <strong>{slot.label}</strong>
-                      <span>{slot.count} free · {peopleLine(slot.people)}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : (
-            <p className="chart-note">{availabilityEmptyBest()}</p>
-          )}
 
           {mobileLayout && months.length > 1 ? (
             <div className="draft-availability-month-nav" role="tablist" aria-label="Calendar month">
@@ -271,6 +249,28 @@ export default function DraftAvailability({ leagueId, enabled = true, onSaved, o
               ) : null}
             </div>
           ) : null}
+
+          {best.length > 0 ? (
+            <section className="draft-availability-best-wrap" aria-labelledby="draft-availability-best-heading">
+              <h4 id="draft-availability-best-heading">{availabilityBestHeading()}</h4>
+              <ul className="draft-availability-best">
+                {best.map((slot, idx) => (
+                  <li key={slot.id}>
+                    <button
+                      type="button"
+                      className={`draft-availability-best-btn${idx === 0 ? " is-top" : ""}`}
+                      onClick={() => setSelectedDate(slot.date)}
+                    >
+                      <strong>{slot.label}</strong>
+                      <span>{slot.count} free · {peopleLine(slot.people)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : (
+            <p className="chart-note">{availabilityEmptyBest()}</p>
+          )}
 
           {payload.can_edit ? (
             <div className="draft-availability-save">
