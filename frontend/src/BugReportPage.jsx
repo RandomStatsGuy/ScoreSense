@@ -126,10 +126,11 @@ export default function BugReportPage() {
             </>
           ) : filedKey ? (
             <p className="chart-note">{reportSuccess(filedKey)}</p>
-          ) : !boardOpen ? (
-            <p className="chart-note">{BUG_REPORT_COPY.boardClosed}</p>
           ) : (
             <form className="account-auth-form" onSubmit={sendReport}>
+              {!boardOpen ? (
+                <p className="chart-note">{BUG_REPORT_COPY.boardClosed}</p>
+              ) : null}
               <label>
                 <span className="hub-field-label">{BUG_REPORT_COPY.titleLabel}</span>
                 <input
@@ -175,7 +176,7 @@ export default function BugReportPage() {
                   </label>
                 ) : null}
               </div>
-              <button type="submit" className="btn-primary btn-sm" disabled={busy}>
+              <button type="submit" className="btn-primary btn-sm" disabled={busy || !boardOpen}>
                 {busy ? BUG_REPORT_COPY.sending : BUG_REPORT_COPY.send}
               </button>
               {error ? <div className="error">{error}</div> : null}

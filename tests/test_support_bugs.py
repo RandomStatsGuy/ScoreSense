@@ -58,14 +58,14 @@ def test_build_bug_description_names_reporter():
         reporter_email="pat@example.com",
         reporter_sub="ss:abc",
     )
-    texts = [
+    texts = " ".join(
         node["content"][0]["text"]
         for node in doc["content"]
         if node.get("content")
-    ]
+    )
     assert "Create league sits at the bottom" in texts
     assert "Fantasy · /hub/setup" in texts
-    assert "pat@example.com" in " ".join(texts)
+    assert "pat@example.com" in texts
 
 
 def test_status_disabled_without_token(client):
