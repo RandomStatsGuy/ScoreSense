@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import LeagueChat from "./LeagueChat";
 import useMobileLayout from "../useMobileLayout";
@@ -29,11 +29,11 @@ export default function FantasyChatDock({ leagueId, hubContext, hidden = false }
   const triggerRef = useRef(null);
   const closeRef = useRef(null);
   const restoreRef = useRef(null);
+  const restoreFocusRef = useRef(false);
 
   const closeConversation = () => {
+    restoreFocusRef.current = true;
     setOpen(false);
-    const focusTarget = dismissed ? restoreRef.current : triggerRef.current;
-    focusTarget?.focus();
   };
 
   const dismissLauncher = () => {
@@ -46,6 +46,20 @@ export default function FantasyChatDock({ leagueId, hubContext, hidden = false }
     setDismissed(false);
     writeChatLauncherDismissed(false);
   };
+
+  useEffect(() => {
+    if (hidden) {
+      restoreFocusRef.current = false;
+      setOpen(false);
+    }
+  }, [hidden]);
+
+  useLayoutEffect(() => {
+    if (open || hidden || !restoreFocusRef.current) return;
+    restoreFocusRef.current = false;
+    const focusTarget = dismissed ? restoreRef.current : triggerRef.current;
+    focusTarget?.focus();
+  }, [open, dismissed, hidden]);
 
   useEffect(() => {
     if (!open || hidden) return undefined;
