@@ -33,6 +33,10 @@ EXCLUDED_SLEEPER_STATUSES = {"Inactive", "Retired"}
 # Prior-season starters who are now clear backups still carry starter feature rows.
 # Scale those features down using Sleeper depth so draft/weekly boards don't treat
 # QB2/QB3 volume as starting jobs (e.g. Spencer Rattler, Anthony Richardson).
+# Blank depth is *not* a starter — practice-squad vets (Nick Mullens) have no
+# slot. Unlisted vets on a team that already has a listed starter use the
+# deepest backup tier. Missing depth alone stays 1.0 so an injured star whose
+# Sleeper DC dropped is not crushed when they still outrank the listed backup.
 _VET_BACKUP_MULT: dict[str, dict[int, float]] = {
     "qb": {2: 0.32, 3: 0.15},
     "rb": {2: 0.70, 3: 0.40},
@@ -41,19 +45,37 @@ _VET_BACKUP_MULT: dict[str, dict[int, float]] = {
 }
 
 
-def sleeper_vet_backup_mult(position: str, depth_order: Any) -> tuple[float, str]:
-    """Feature multiplier for veterans who are not QB1/RB1/WR1 on Sleeper."""
+def _optional_int(val: Any) -> int | None:
     try:
-        if depth_order is None or (isinstance(depth_order, float) and pd.isna(depth_order)):
-            return 1.0, ""
-        dc = int(depth_order)
+        if val is None or (isinstance(val, float) and pd.isna(val)):
+            return None
+        return int(val)
     except (TypeError, ValueError):
-        return 1.0, ""
-    if dc <= 1:
-        return 1.0, ""
+        return None
+
+
+def _optional_positive_int(val: Any) -> int | None:
+    parsed = _optional_int(val)
+    return parsed if parsed is not None and parsed > 0 else None
+
+
+def _skill_pos(position: Any) -> str:
     pos = str(position or "").lower()
     if pos == "fb":
-        pos = "rb"
+        return "rb"
+    return pos
+
+
+def sleeper_vet_backup_mult(position: str, depth_order: Any) -> tuple[float, str]:
+    """Feature multiplier for veterans who are not QB1/RB1/WR1 on Sleeper.
+
+    Missing / non-positive depth stays 1.0. Call ``unlisted_vet_backup_mult``
+    when a teammate already holds the listed starter slot.
+    """
+    dc = _optional_positive_int(depth_order)
+    if dc is None or dc <= 1:
+        return 1.0, ""
+    pos = _skill_pos(position)
     table = _VET_BACKUP_MULT.get(pos) or _VET_BACKUP_MULT.get("wr", {})
     # Use exact tier or the deepest defined tier for dc >= max key
     if dc in table:
@@ -65,6 +87,97 @@ def sleeper_vet_backup_mult(position: str, depth_order: Any) -> tuple[float, str
         return 1.0, ""
     label = f"{pos}{dc}-backup" if pos == "qb" else f"{pos}-depth{dc}"
     return mult, label
+
+
+def unlisted_vet_backup_mult(position: str) -> tuple[float, str]:
+    """Deepest backup tier for a vet with no Sleeper depth slot."""
+    pos = _skill_pos(position)
+    table = _VET_BACKUP_MULT.get(pos) or _VET_BACKUP_MULT.get("wr", {})
+    if not table:
+        return 1.0, ""
+    mult, _ = sleeper_vet_backup_mult(pos, max(table))
+    if mult >= 0.999:
+        return 1.0, ""
+    return mult, f"{pos}-unlisted"
+
+
+def apply_unlisted_vet_backup_scale(
+    roster: pd.DataFrame,
+    position: str,
+) -> tuple[pd.DataFrame, int]:
+    """Scale unlisted vets when a teammate is already the listed starter.
+
+    Practice-squad / blank-depth vets (high or missing search_rank) get the
+    deepest backup multiplier. A more-searched unlisted vet than the listed
+    starter is left alone — typical injured-star missing-DC case.
+    """
+    if roster.empty or "_sleeper_unlisted" not in roster.columns:
+        return roster, 0
+
+    out = roster.copy()
+    out["_sleeper_unlisted"] = out["_sleeper_unlisted"].fillna(False).astype(bool)
+    if "_vet_backup_mult" not in out.columns:
+        out["_vet_backup_mult"] = 1.0
+    if "_vet_backup_label" not in out.columns:
+        out["_vet_backup_label"] = ""
+
+    scaled = 0
+    default_pos = _skill_pos(position) or "qb"
+
+    def _row_pos(row: pd.Series) -> str:
+        raw = row.get("position")
+        try:
+            if raw is None or pd.isna(raw):
+                return default_pos
+        except (TypeError, ValueError):
+            return default_pos
+        return _skill_pos(raw) or default_pos
+
+    teams = out.get("team")
+    if teams is None:
+        return out, 0
+
+    for team, group in out.groupby(teams.astype(str).str.upper(), sort=False):
+        if not str(team).strip():
+            continue
+        for skill_pos, pos_group in group.groupby(group.apply(_row_pos, axis=1), sort=False):
+            starter_ranks: list[int] = []
+            has_listed_starter = False
+            for _, row in pos_group.iterrows():
+                dc = _optional_positive_int(row.get("_sleeper_depth_order"))
+                if dc == 1:
+                    has_listed_starter = True
+                    rank = _optional_int(row.get("_sleeper_search_rank"))
+                    if rank is not None:
+                        starter_ranks.append(rank)
+            if not has_listed_starter:
+                continue
+            starter_rank = min(starter_ranks) if starter_ranks else None
+            for idx, row in pos_group.iterrows():
+                if not bool(row.get("_sleeper_unlisted", False)):
+                    continue
+                if bool(row.get("_rookie_estimate", False)):
+                    continue
+                try:
+                    current_mult = float(row.get("_vet_backup_mult") or 1.0)
+                except (TypeError, ValueError):
+                    current_mult = 1.0
+                if current_mult < 0.999:
+                    continue
+                their_rank = _optional_int(row.get("_sleeper_search_rank"))
+                if (
+                    their_rank is not None
+                    and starter_rank is not None
+                    and their_rank <= starter_rank
+                ):
+                    continue
+                mult, label = unlisted_vet_backup_mult(skill_pos)
+                if mult >= 0.999:
+                    continue
+                out.at[idx, "_vet_backup_mult"] = mult
+                out.at[idx, "_vet_backup_label"] = label
+                scaled += 1
+    return out, scaled
 
 
 def _scale_numeric_features(row: pd.Series, mult: float) -> pd.Series:
@@ -80,6 +193,7 @@ def _scale_numeric_features(row: pd.Series, mult: float) -> pd.Series:
         "_rookie_role_mult",
         "_sleeper_depth_order",
         "_sleeper_search_rank",
+        "_sleeper_unlisted",
         "_vet_backup_mult",
     }
     for col in out.index:
@@ -671,6 +785,10 @@ def apply_sleeper_roster_overlay(
         out["_rookie_estimate"] = False
     if "_sleeper_depth_order" not in out.columns:
         out["_sleeper_depth_order"] = pd.NA
+    if "_sleeper_search_rank" not in out.columns:
+        out["_sleeper_search_rank"] = pd.NA
+    if "_sleeper_unlisted" not in out.columns:
+        out["_sleeper_unlisted"] = False
     if "_vet_backup_mult" not in out.columns:
         out["_vet_backup_mult"] = 1.0
     if "_vet_backup_label" not in out.columns:
@@ -709,13 +827,14 @@ def apply_sleeper_roster_overlay(
             out.at[idx, "team"] = sleeper_team
             teams_updated += 1
 
-        dc_raw = sleeper_row.get("depth_chart_order")
-        try:
-            dc_val = int(dc_raw) if dc_raw is not None and not (isinstance(dc_raw, float) and pd.isna(dc_raw)) else None
-        except (TypeError, ValueError):
-            dc_val = None
-        if dc_val is not None and dc_val > 0:
+        dc_val = _optional_positive_int(sleeper_row.get("depth_chart_order"))
+        if dc_val is not None:
             out.at[idx, "_sleeper_depth_order"] = dc_val
+        elif not bool(row.get("_rookie_estimate", False)):
+            out.at[idx, "_sleeper_unlisted"] = True
+        search_rank = _optional_int(sleeper_row.get("search_rank"))
+        if search_rank is not None:
+            out.at[idx, "_sleeper_search_rank"] = search_rank
 
         # Tag backup role for post-hoc projection scaling. Do not mutate prior-season
         # feature rows here — the GBM is non-linear and under-reacts to feature shrinks.
@@ -787,6 +906,11 @@ def apply_sleeper_roster_overlay(
 
         if extra_rows:
             out = pd.concat([out, pd.DataFrame(extra_rows)], ignore_index=True)
+            if "_sleeper_unlisted" in out.columns:
+                out["_sleeper_unlisted"] = out["_sleeper_unlisted"].fillna(False)
+
+    out, unlisted_scaled = apply_unlisted_vet_backup_scale(out, position)
+    backups_scaled += unlisted_scaled
 
     stats = {
         "applied": True,
