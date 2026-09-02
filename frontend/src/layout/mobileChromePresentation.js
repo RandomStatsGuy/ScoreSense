@@ -1,11 +1,12 @@
 import { PROJECTIONS_TABS, TOOLS_TABS } from "../appNavigation.js";
+import { FANTASY_CHAT_COPY } from "../DraftHub/fantasyChatPresentation.js";
 
 export const MOBILE_CHROME_COPY = {
   goTo: "Go to",
   filters: "Filters",
-  leagueChat: "League chat",
-  openChat: "Open league chat",
-  closeChat: "Close league chat",
+  leagueChat: FANTASY_CHAT_COPY.leagueChat,
+  openChat: FANTASY_CHAT_COPY.openChat,
+  closeChat: FANTASY_CHAT_COPY.closeChat,
   projectionsSheet: "Projections",
   toolsSheet: "Tools",
   fantasySheet: "Go to",

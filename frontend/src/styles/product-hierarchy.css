@@ -2350,35 +2350,63 @@
 .hub-rules-status.is-ok { color: #a7f3d0; }
 .hub-rules-status.is-error { color: #fca5a5; }
 
-/* Persistent Fantasy chat ------------------------------------------------ */
+/* Persistent Fantasy chat ------------------------------------------------
+   Portaled to document.body. Closed: right-edge launcher, mid-viewport.
+   Open: centered stage. Atmosphere stacking must never pin this to the
+   document flow — see .draft-hub > *:not(.hub-atmosphere). */
 
 .fantasy-chat-dock {
   position: fixed;
-  right: 1.35rem;
-  bottom: 1.2rem;
-  z-index: calc(var(--z-bottom-nav) - 10);
+  top: 50%;
+  right: 0;
+  z-index: var(--z-dropdown-portal);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.6rem;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.fantasy-chat-dock.is-open {
+  inset: 0;
+  top: auto;
+  right: auto;
+  z-index: var(--z-sheet);
+  transform: none;
+}
+
+.fantasy-chat-launcher,
+.fantasy-chat-restore {
+  pointer-events: auto;
+}
+
+.fantasy-chat-launcher {
+  display: flex;
+  align-items: stretch;
+  margin-right: 1rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--experience-blue) 42%, var(--experience-rule));
+  border-radius: var(--radius-md);
+  background: var(--experience-surface-strong);
+  box-shadow: var(--shadow-popover);
 }
 
 .fantasy-chat-trigger {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 0.65rem;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  gap: 0.55rem;
   align-items: center;
-  min-width: 12.5rem;
-  padding: 0.65rem 0.75rem;
-  border: 1px solid rgba(91, 143, 232, 0.35);
-  border-radius: 13px;
-  background: #142133;
+  min-width: 11.5rem;
+  min-height: var(--touch-target);
+  padding: 0.6rem 0.7rem;
+  border: 0;
+  background: transparent;
   color: var(--text-primary);
-  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.38);
   text-align: left;
+  cursor: pointer;
 }
 
-.fantasy-chat-trigger > span:nth-child(2) {
+.fantasy-chat-trigger > span:nth-child(3) {
   display: flex;
   flex-direction: column;
   line-height: 1.2;
@@ -2390,6 +2418,36 @@
   font-size: 0.63rem;
 }
 
+.fantasy-chat-dismiss {
+  display: grid;
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  place-items: center;
+  border: 0;
+  border-left: 1px solid var(--experience-rule);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1.15rem;
+  cursor: pointer;
+}
+
+.fantasy-chat-restore {
+  display: grid;
+  position: relative;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: var(--touch-target);
+  margin-right: 0.85rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--experience-blue) 42%, var(--experience-rule));
+  border-radius: var(--radius-pill);
+  background: var(--experience-surface-strong);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-popover);
+  cursor: pointer;
+}
+
 .fantasy-chat-pulse {
   width: 0.55rem;
   height: 0.55rem;
@@ -2398,48 +2456,74 @@
   box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.1);
 }
 
-.fantasy-chat-drawer {
-  width: min(25rem, calc(100vw - 2rem));
-  max-height: min(42rem, calc(100vh - 7rem));
-  padding: 0.85rem;
+.fantasy-chat-restore .fantasy-chat-pulse {
+  position: absolute;
+  top: 0.28rem;
+  right: 0.28rem;
+  width: 0.42rem;
+  height: 0.42rem;
+  margin: 0;
+}
+
+.fantasy-chat-backdrop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  inset: 0;
+  padding: 1.25rem;
+  background: rgba(0, 0, 0, 0.62);
+  pointer-events: auto;
+}
+
+.fantasy-chat-stage {
+  display: flex;
+  flex-direction: column;
+  width: min(40rem, calc(100vw - 2rem));
+  height: min(42rem, calc(100dvh - 3rem));
+  max-height: calc(100dvh - 3rem);
+  padding: 0.95rem 1rem 1rem;
   overflow: hidden;
-  border: 1px solid rgba(91, 143, 232, 0.26);
-  border-radius: var(--radius-md);
-  background: #101a28;
+  border: 1px solid color-mix(in srgb, var(--experience-blue) 26%, var(--experience-rule));
+  border-radius: var(--radius-lg);
+  background: var(--experience-surface);
   box-shadow: var(--shadow-popover);
 }
 
-.fantasy-chat-drawer > header {
+.fantasy-chat-stage > header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.8rem;
 }
 
-.fantasy-chat-drawer > header span {
-  color: #8fb4f2;
+.fantasy-chat-stage > header span {
+  color: var(--accent-muted);
   font-size: 0.63rem;
   font-weight: 750;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-.fantasy-chat-drawer > header h2 {
+.fantasy-chat-stage > header h2 {
   margin: 0.2rem 0 0;
   color: var(--text-primary);
-  font-size: 1rem;
+  font-size: 1.05rem;
 }
 
 .fantasy-chat-close {
   display: grid;
-  width: 2rem;
-  height: 2rem;
+  width: 2.2rem;
+  height: 2.2rem;
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
   place-items: center;
   border: 1px solid var(--experience-rule);
   border-radius: 50%;
   background: transparent;
   color: var(--text-secondary);
   font-size: 1.2rem;
+  cursor: pointer;
 }
 
 .fantasy-chat-context {
@@ -2448,12 +2532,18 @@
   font-size: 0.69rem;
 }
 
-.fantasy-chat-drawer .hub-league-chat-list {
-  min-height: 12rem;
-  max-height: min(42vh, 22rem);
+.fantasy-chat-stage .hub-league-chat {
+  flex: 1;
+  min-height: 0;
 }
 
-.fantasy-chat-drawer .hub-league-chat-channels {
+.fantasy-chat-stage .hub-league-chat-list {
+  flex: 1;
+  min-height: 10rem;
+  max-height: none;
+}
+
+.fantasy-chat-stage .hub-league-chat-channels {
   margin-top: 0;
 }
 
@@ -2515,9 +2605,13 @@
     grid-column: auto;
   }
 
-  .fantasy-chat-dock {
-    right: 0.75rem;
-    bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  .fantasy-chat-dock:not(.is-open) {
+    top: calc(50% - 2.25rem);
+    transform: none;
+  }
+
+  .fantasy-chat-launcher {
+    margin-right: 0.7rem;
   }
 
   .fantasy-chat-trigger {
@@ -2532,16 +2626,28 @@
     width: 2.75rem;
     min-width: 2.75rem;
     height: 2.75rem;
+    min-height: var(--touch-target);
     padding: 0;
-    border-radius: 50%;
   }
 
   .fantasy-chat-trigger--icon .fantasy-chat-pulse {
     position: absolute;
-    width: 0.45rem;
-    height: 0.45rem;
+    top: 0.28rem;
+    right: 0.22rem;
+    width: 0.42rem;
+    height: 0.42rem;
     margin: 0;
-    transform: translate(0.85rem, -0.85rem);
+  }
+
+  .fantasy-chat-backdrop {
+    padding: 0.75rem;
+    padding-bottom: max(0.75rem, calc(0.35rem + env(safe-area-inset-bottom)));
+  }
+
+  .fantasy-chat-stage {
+    width: min(100%, calc(100vw - 1.25rem));
+    height: min(85dvh, calc(100dvh - 5.75rem - env(safe-area-inset-bottom)));
+    max-height: calc(100dvh - 5.75rem - env(safe-area-inset-bottom));
   }
 
   .hub-league-home--mobile .hub-home-heading,
@@ -2901,7 +3007,8 @@
   .hub-experience-hero,
   .hub-rules-summary,
   .hub-rules-policy,
-  .fantasy-chat-drawer,
+  .fantasy-chat-stage,
+  .fantasy-chat-dock,
   .draft-lobby-slot,
   .draft-lobby-seat {
     transition: none;

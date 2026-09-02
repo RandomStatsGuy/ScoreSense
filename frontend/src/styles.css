@@ -17699,7 +17699,7 @@ th.sortable-header {
      own share so the cats can stay more present than the drifting bits. */
   --atm-alpha: 0.28;
 }
-.draft-hub > *:not(.hub-atmosphere) {
+.draft-hub > *:not(.hub-atmosphere):not(.fantasy-chat-dock) {
   position: relative;
   z-index: 1;
 }

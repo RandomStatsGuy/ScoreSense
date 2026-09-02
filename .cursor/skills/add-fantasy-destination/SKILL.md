@@ -14,7 +14,7 @@ Do not add a fourth top-level area. Place the work under Projections, Fantasy, o
 3. **Living surface** — row + aliases in `frontend/src/livingSurfaces.js`. `page` / `copy` must exist. Chrome from the existing enum. Test in `frontend/src/livingSurfaces.test.js` and `tests/test_living_surfaces.py`.
 4. **Constitution** — `docs/PRODUCT.md` destination table (and roster panes if office). `tests/test_product_constitution.py` labels must match.
 5. **Page** — implement by extending the living `page`, not a new chrome system. Copy in a `*Presentation.js` (`.cursor/skills/add-ui-copy/SKILL.md`).
-6. **Chat / office** — Chat is `FantasyChatDock`, not a Roster management pane.
+6. **Chat / office** — Chat is `FantasyChatDock` (edge launcher, centered conversation), not a Roster management pane.
 
 ## After
 

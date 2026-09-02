@@ -106,7 +106,7 @@ Contracts · Salary sheets · Members · Access & imports.
 
 Members is where staff add or remove a franchise before the next auction. Existing contracts stay on their clubs; the new seat starts empty with a full cap.
 
-Chat is **not** a pane here. Chat is `FantasyChatDock` on shared Fantasy pages.
+Chat is **not** a pane here. Chat is `FantasyChatDock` on shared Fantasy pages: a viewport-fixed edge launcher (not locked to the bottom of the page). Opening fills a centered conversation. Closing returns to the launcher. The launcher can be hidden for the session.
 
 ### Manager labels
 
@@ -168,7 +168,7 @@ On laptop widths (~1024px), move the summary below the hero or into a compact st
 
 ### Phone chrome
 
-On phone, the header is the current destination. Destination switching uses one picker, not a scrolling tab strip. Tapping a destination — including the one already open — closes the picker so the page is not left inert. Account lives in More. Do not stack ScoreSense, a context label, section tabs, and page tabs. Filters stay as one icon when the board has filters. Live draft stays board-first.
+On phone, the header is the current destination. Destination switching uses one picker, not a scrolling tab strip. Tapping a destination — including the one already open — closes the picker so the page is not left inert. Account lives in More. Do not stack ScoreSense, a context label, section tabs, and page tabs. Filters stay as one icon when the board has filters. Live draft stays board-first. League chat is an edge launcher, not a header control and not a control locked to the bottom of the page.
 
 ---
 
@@ -209,7 +209,7 @@ Hero pattern: eyebrow (`League rules`) + sentence heading (`Rules everyone can p
 - No sound except live-draft audio, and only as an opt-in.
 - Labels on every field. Errors associated with controls. WCAG AA contrast.
 - Touch targets ≥ 44px where a laptop or phone can tap them (`--touch-target`).
-- Chat: `aria-expanded` / `aria-controls`, Escape closes, focus returns to the trigger.
+- Chat: viewport-fixed edge launcher unless dismissed; opening fills the center of the screen. `aria-expanded` / `aria-controls`, Escape and backdrop close the conversation, focus returns to the launcher.
 - Draft availability shows current and future times only. Commissioners lock a promising overlap as the official night.
 
 ---
