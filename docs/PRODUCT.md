@@ -165,7 +165,7 @@ On laptop widths (~1024px), move the summary below the hero or into a compact st
 
 ### Phone chrome
 
-On phone, the header is the current destination. Destination switching uses one picker, not a scrolling tab strip. Account lives in More. Do not stack ScoreSense, a context label, section tabs, and page tabs. Filters stay as one icon when the board has filters. Live draft stays board-first.
+On phone, the header is the current destination. Destination switching uses one picker, not a scrolling tab strip. Tapping a destination — including the one already open — closes the picker so the page is not left inert. Account lives in More. Do not stack ScoreSense, a context label, section tabs, and page tabs. Filters stay as one icon when the board has filters. Live draft stays board-first.
 
 ---
 

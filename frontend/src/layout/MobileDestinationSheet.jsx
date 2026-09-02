@@ -1,5 +1,6 @@
 import React from "react";
 import MobileBottomSheet from "./MobileBottomSheet";
+import { selectAndDismissDestination } from "./mobileChromePresentation";
 
 export default function MobileDestinationSheet({
   open,
@@ -26,7 +27,7 @@ export default function MobileDestinationSheet({
                 key={item.id}
                 type="button"
                 className={`app-mobile-sheet-item app-mobile-sheet-item-subdued app-mobile-sheet-item--dest${active === item.id ? " active" : ""}`}
-                onClick={() => onSelect?.(item.id)}
+                onClick={() => selectAndDismissDestination(item.id, onSelect, onClose)}
               >
                 <span>{item.label}</span>
                 {item.hint ? <span className="chart-note">{item.hint}</span> : null}

@@ -1456,7 +1456,10 @@ export default function App() {
             title={MOBILE_CHROME_COPY.projectionsSheet}
             groups={[{ id: "projections", items: projectionDestinationItems() }]}
             active={projectionsTab}
-            onSelect={(id) => setProjectionsTab(id)}
+            onSelect={(id) => {
+              setProjectionsTab(id);
+              setMobileDestOpen(false);
+            }}
           />
         )}
         {mobileLayout && view === "tools" && (
@@ -1466,7 +1469,10 @@ export default function App() {
             title={MOBILE_CHROME_COPY.toolsSheet}
             groups={[{ id: "tools", items: toolDestinationItems() }]}
             active={toolsTab}
-            onSelect={(id) => setToolsTab(id)}
+            onSelect={(id) => {
+              setToolsTab(id);
+              setMobileDestOpen(false);
+            }}
           />
         )}
 

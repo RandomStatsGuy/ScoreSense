@@ -5,6 +5,7 @@ import {
   chooseDestinationLabel,
   projectionDestinationItems,
   resolveMobileDestination,
+  selectAndDismissDestination,
   toolDestinationItems,
 } from "./mobileChromePresentation.js";
 
@@ -23,4 +24,10 @@ test("destination picker copy names the goal, not Draft Hub", () => {
   assert.doesNotMatch(MOBILE_CHROME_COPY.fantasySheet, /Draft Hub|Submit|permission/i);
   assert.equal(projectionDestinationItems()[0].hint, MOBILE_CHROME_COPY.weeklyHint);
   assert.equal(toolDestinationItems().length, 3);
+});
+
+test("tapping the current destination still dismisses the picker", () => {
+  const calls = [];
+  selectAndDismissDestination("weekly", (id) => calls.push(`select:${id}`), () => calls.push("close"));
+  assert.deepEqual(calls, ["select:weekly", "close"]);
 });
