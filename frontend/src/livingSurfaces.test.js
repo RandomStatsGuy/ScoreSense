@@ -60,6 +60,13 @@ test("every registered chrome is in the CHROME list", () => {
   }
 });
 
+test("admin portal resolves with staff copy", () => {
+  const admin = resolveLivingSurface({ section: "admin" });
+  assert.equal(admin.label, "Admin");
+  assert.equal(admin.page, "frontend/src/AdminPortal.jsx");
+  assert.equal(admin.copy, "frontend/src/adminPresentation.js");
+});
+
 test("login and create account resolve to the session pages", () => {
   const login = resolveLivingSurfaceFromText("mock up a better login page");
   assert.equal(login.label, "Sign in");

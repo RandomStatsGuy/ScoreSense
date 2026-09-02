@@ -13047,6 +13047,10 @@ td.col-rank.col-rank-top {
   font-size: 0.88rem;
 }
 
+.admin-link-hint {
+  margin: -0.35rem 0 0;
+}
+
 .admin-inline-form input,
 .admin-inline-form select {
   padding: 0.35rem 0.5rem;

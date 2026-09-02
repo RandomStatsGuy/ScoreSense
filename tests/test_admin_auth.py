@@ -55,6 +55,166 @@ def test_admin_overview_for_allowlisted(admin_client):
     assert "league_count" in body
 
 
+def _open_franchise(league_id: str, name: str = "Night Owls") -> dict:
+    return storage.get_or_create_league_team_by_name(league_id, name, LeagueRules().salary_cap)
+
+
+def test_admin_link_team_by_email(admin_client):
+    comm = register_native_user("link.comm@mail.com", "longpassword1", "Comm", accept_terms=True)
+    user_store.mark_email_verified(comm["id"])
+    league = storage.create_league(f"ss:{comm['id']}", "Link League", 2026, LeagueRules(), team_count=10)
+    open_team = _open_franchise(league["id"])
+    player = register_native_user("missed.claim@mail.com", "longpassword1", "Missed", accept_terms=True)
+    user_store.mark_email_verified(player["id"])
+
+    res = admin_client.post(
+        f"/api/admin/leagues/{league['id']}/teams/{open_team['id']}/link",
+        headers=_auth_headers(),
+        json={"email": "missed.claim@mail.com"},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["already_member"] is False
+    assert body["team"]["user_email"] == "missed.claim@mail.com"
+    updated = storage.get_team(open_team["id"])
+    assert updated["user_sub"] == f"ss:{player['id']}"
+    assert storage.get_hub_focus_league_id(f"ss:{player['id']}") == league["id"]
+
+
+def test_admin_link_team_by_user_sub(admin_client):
+    comm = register_native_user("link.sub.comm@mail.com", "longpassword1", "Comm", accept_terms=True)
+    league = storage.create_league(f"ss:{comm['id']}", "Link Sub League", 2026, LeagueRules(), team_count=10)
+    open_team = _open_franchise(league["id"], "Sunday Club")
+    player = register_native_user("link.sub.player@mail.com", "longpassword1", "Player", accept_terms=True)
+    player_sub = f"ss:{player['id']}"
+
+    res = admin_client.post(
+        f"/api/admin/leagues/{league['id']}/teams/{open_team['id']}/link",
+        headers=_auth_headers(),
+        json={"user_sub": player_sub},
+    )
+    assert res.status_code == 200
+    assert storage.get_team(open_team["id"])["user_sub"] == player_sub
+
+
+def test_admin_link_team_unknown_email(admin_client):
+    comm = register_native_user("link.miss.comm@mail.com", "longpassword1", "Comm", accept_terms=True)
+    league = storage.create_league(f"ss:{comm['id']}", "Missing Email League", 2026, LeagueRules(), team_count=10)
+    open_team = _open_franchise(league["id"])
+
+    res = admin_client.post(
+        f"/api/admin/leagues/{league['id']}/teams/{open_team['id']}/link",
+        headers=_auth_headers(),
+        json={"email": "nobody@mail.com"},
+    )
+    assert res.status_code == 400
+    assert "No account" in res.json()["detail"]
+
+
+def test_admin_link_team_rejects_taken_seat(admin_client):
+    comm = register_native_user("link.taken.comm@mail.com", "longpassword1", "Comm", accept_terms=True)
+    league = storage.create_league(f"ss:{comm['id']}", "Taken Seat League", 2026, LeagueRules(), team_count=10)
+    owner = register_native_user("link.taken.owner@mail.com", "longpassword1", "Owner", accept_terms=True)
+    claimed = storage.join_league(f"ss:{owner['id']}", league["room_code"], "Taken Club")
+    other = register_native_user("link.taken.other@mail.com", "longpassword1", "Other", accept_terms=True)
+
+    res = admin_client.post(
+        f"/api/admin/leagues/{league['id']}/teams/{claimed['id']}/link",
+        headers=_auth_headers(),
+        json={"email": "link.taken.other@mail.com"},
+    )
+    assert res.status_code == 400
+    assert "already claimed" in res.json()["detail"].lower()
+
+
+def test_admin_link_team_rejects_existing_membership(admin_client):
+    comm = register_native_user("link.dup.comm@mail.com", "longpassword1", "Comm", accept_terms=True)
+    league = storage.create_league(f"ss:{comm['id']}", "Dup Seat League", 2026, LeagueRules(), team_count=10)
+    open_team = _open_franchise(league["id"], "Open Club")
+    player = register_native_user("link.dup.player@mail.com", "longpassword1", "Player", accept_terms=True)
+    storage.join_league(f"ss:{player['id']}", league["room_code"], "Wrong Club")
+
+    res = admin_client.post(
+        f"/api/admin/leagues/{league['id']}/teams/{open_team['id']}/link",
+        headers=_auth_headers(),
+        json={"email": "link.dup.player@mail.com"},
+    )
+    assert res.status_code == 400
+    assert "already owns" in res.json()["detail"].lower()
+
+
+def test_admin_link_team_idempotent(admin_client):
+    comm = register_native_user("link.again.comm@mail.com", "longpassword1", "Comm", accept_terms=True)
+    league = storage.create_league(f"ss:{comm['id']}", "Again League", 2026, LeagueRules(), team_count=10)
+    open_team = _open_franchise(league["id"])
+    player = register_native_user("link.again.player@mail.com", "longpassword1", "Player", accept_terms=True)
+
+    headers = _auth_headers()
+    first = admin_client.post(
+        f"/api/admin/leagues/{league['id']}/teams/{open_team['id']}/link",
+        headers=headers,
+        json={"email": "link.again.player@mail.com"},
+    )
+    again = admin_client.post(
+        f"/api/admin/leagues/{league['id']}/teams/{open_team['id']}/link",
+        headers=headers,
+        json={"email": "link.again.player@mail.com"},
+    )
+    assert first.status_code == 200
+    assert again.status_code == 200
+    assert again.json()["already_member"] is True
+    assert storage.get_team(open_team["id"])["user_sub"] == f"ss:{player['id']}"
+
+
+def test_admin_link_team_revokes_pending_invite(admin_client):
+    from src.draft_hub.league_invites import create_invite
+
+    comm = register_native_user("link.inv.comm@mail.com", "longpassword1", "Comm", accept_terms=True)
+    comm_sub = f"ss:{comm['id']}"
+    league = storage.create_league(comm_sub, "Invite Revoke League", 2026, LeagueRules(), team_count=10)
+    open_team = _open_franchise(league["id"], "Reserved Club")
+    invite = create_invite(league["id"], "pending.owner@mail.com", "Reserved Club", comm_sub)
+    player = register_native_user("link.inv.player@mail.com", "longpassword1", "Player", accept_terms=True)
+
+    res = admin_client.post(
+        f"/api/admin/leagues/{league['id']}/teams/{open_team['id']}/link",
+        headers=_auth_headers(),
+        json={"email": "link.inv.player@mail.com"},
+    )
+    assert res.status_code == 200
+    stored = storage.get_invite_by_token(invite["token"])
+    assert stored["status"] == "revoked"
+
+
+def test_admin_link_team_works_after_draft_started(admin_client):
+    comm = register_native_user("link.live.comm@mail.com", "longpassword1", "Comm", accept_terms=True)
+    league = storage.create_league(f"ss:{comm['id']}", "Live Link League", 2026, LeagueRules(), team_count=10)
+    open_team = _open_franchise(league["id"])
+    storage.update_league_status(league["id"], "live")
+    player = register_native_user("link.live.player@mail.com", "longpassword1", "Player", accept_terms=True)
+
+    res = admin_client.post(
+        f"/api/admin/leagues/{league['id']}/teams/{open_team['id']}/link",
+        headers=_auth_headers(),
+        json={"email": "link.live.player@mail.com"},
+    )
+    assert res.status_code == 200
+    assert storage.get_team(open_team["id"])["user_sub"] == f"ss:{player['id']}"
+
+
+def test_admin_link_forbidden_for_non_allowlisted(admin_client):
+    comm = register_native_user("link.forbid.comm@mail.com", "longpassword1", "Comm", accept_terms=True)
+    league = storage.create_league(f"ss:{comm['id']}", "Forbid Link League", 2026, LeagueRules(), team_count=10)
+    open_team = _open_franchise(league["id"])
+
+    res = admin_client.post(
+        f"/api/admin/leagues/{league['id']}/teams/{open_team['id']}/link",
+        headers=_auth_headers("other@example.com"),
+        json={"email": "anyone@mail.com"},
+    )
+    assert res.status_code == 403
+
+
 def test_admin_unlink_team(admin_client):
     comm = register_native_user("comm@example.com", "longpassword1", "Comm", accept_terms=True)
     user_store.mark_email_verified(comm["id"])

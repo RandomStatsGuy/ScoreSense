@@ -113,6 +113,15 @@ Player IDs are mapped via Sleeper `gsis_id` → ScoreSense `player_id` when avai
 
 Hub-only leagues persist start/sit on **This Week** and score weeks with standard PPR (`FANTASY_SCORING`). Linked Sleeper leagues keep inferred (advice-only) starters on This Week; lineup writes and `score-week` return 409. Game center still reads Sleeper matchups.
 
+## Site admin
+
+Allowlisted `ADMIN_EMAILS`. Portal: Account → Admin. Use this to attach a login that missed claiming a franchise.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/admin/leagues/{id}/teams/{team_id}/link` | Attach an existing account (`email` or `user_sub`) to an unclaimed franchise |
+| POST | `/api/admin/leagues/{id}/teams/{team_id}/unlink` | Clear the account on a franchise |
+
 ## Roadmap (historical)
 
 Phase A (solo prep), B (live room), and C (contracts, cap, Sleeper) are **shipped**. New Fantasy work follows [PRODUCT.md](./PRODUCT.md), not a new phase letter.
