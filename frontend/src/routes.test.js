@@ -54,6 +54,12 @@ test("tools mock-draft tab round-trips", () => {
   );
 });
 
+test("Vibes routes round-trip including the long slug", () => {
+  assert.equal(parseAppPath("/hub/vibes").hubSubView, "vibes");
+  assert.equal(parseAppPath("/hub/vibe-rankings").hubSubView, "vibes");
+  assert.equal(buildAppPath({ view: "hub", hubSubView: "vibes" }), "/hub/vibes");
+});
+
 test("Game center routes round-trip and legacy live URL redirects there", () => {
   assert.equal(parseAppPath("/hub/game").hubSubView, "game");
   assert.equal(parseAppPath("/hub/game-center").hubSubView, "game");

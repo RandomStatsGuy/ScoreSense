@@ -12,6 +12,7 @@ FANTASY_LABELS = [
     "Strategy",
     "Draft",
     "This Week",
+    "Vibes",
     "Game center",
     "My team",
     "Free agents",

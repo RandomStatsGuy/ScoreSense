@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Fantasy · Vibes</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .view-toggle {
+    display: flex; gap: 0.4rem; margin: 0 0 1rem;
+  }
+  .view-toggle button {
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: var(--radius-pill);
+    padding: 0.35rem 0.8rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .view-toggle button.is-on {
+    background: var(--accent);
+    border-color: transparent;
+    color: #fff;
+  }
+
+  body.is-phone .mock-viewport { max-width: 430px; padding: 0 0.85rem 3rem; }
+  body.is-phone .mock-topnav,
+  body.is-phone .mock-subnav,
+  body.is-phone .mock-account { display: none; }
+  body.is-phone .mock-header { padding-bottom: 0.2rem; }
+  body.is-phone .mock-cols { grid-template-columns: 1fr; }
+  body.is-phone .mock-rail { position: static; }
+  body.is-phone .mock-hero h1 { font-size: 1.55rem; }
+  body.is-phone .mock-hero-chip { position: static; display: inline-flex; margin-top: 0.8rem; }
+
+  .deck-wrap {
+    position: relative;
+    width: min(100%, 24.5rem);
+    height: 28rem;
+    margin: 0 auto;
+    touch-action: none;
+    user-select: none;
+  }
+  body.is-phone .deck-wrap { width: 100%; height: 26.5rem; }
+
+  .vibe-card {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: #142133;
+    box-shadow: 0 18px 44px rgba(0,0,0,0.32);
+  }
+  .vibe-card.is-front { cursor: grab; z-index: 3; }
+  .vibe-card.is-front.is-drag { cursor: grabbing; }
+  .vibe-photo {
+    position: relative; flex: 1;
+    background: radial-gradient(circle at 50% 20%, rgba(91,143,232,0.16), transparent 44%), #101a28;
+  }
+  .vibe-photo img, .vibe-fallback {
+    width: 100%; height: 100%; object-fit: cover; object-position: top center;
+  }
+  .vibe-fallback {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-secondary); font-size: 3rem; font-weight: 800;
+  }
+  .vibe-fade {
+    position: absolute; inset: auto 0 0; height: 46%;
+    background: linear-gradient(180deg, transparent, rgba(9,17,29,0.92) 70%);
+  }
+  .stamp {
+    position: absolute; top: 1.1rem; padding: 0.25rem 0.65rem;
+    border: 2px solid currentColor; border-radius: 10px;
+    font-size: 1rem; font-weight: 800; letter-spacing: 0.08em;
+    text-transform: uppercase; opacity: 0; pointer-events: none;
+  }
+  .stamp-start { left: 1rem; color: var(--tone-positive); transform: rotate(-12deg); }
+  .stamp-sit { right: 1rem; color: var(--tone-caution); transform: rotate(12deg); }
+  .vibe-id { padding: 0.95rem 1.05rem 1.1rem; }
+  .vibe-id h3 { margin: 0; font-size: 1.4rem; letter-spacing: -0.03em; }
+  .vibe-id p { margin: 0.3rem 0 0.55rem; color: var(--text-secondary); font-size: 0.8rem; }
+  .vibe-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
+  .vibe-stats span { display: block; color: var(--text-muted); font-size: 0.64rem; }
+  .vibe-stats strong { font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+  .aura-bar { height: 0.28rem; margin-top: 0.55rem; border-radius: 999px; background: rgba(149,164,184,0.16); overflow: hidden; }
+  .aura-bar i { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
+  .aura-bar.hot i { background: var(--tone-positive); }
+  .aura-bar.cold i { background: var(--tone-caution); }
+
+  .vote-row { display: flex; justify-content: center; gap: 0.6rem; margin-top: 0.9rem; }
+  .vote-sit, .vote-start {
+    min-width: 5.6rem; min-height: 2.75rem; border-radius: 999px; font-weight: 700; cursor: pointer;
+  }
+  .vote-sit { border: 1px solid rgba(251,191,36,0.28); background: var(--tone-caution-soft); color: #fde68a; }
+  .vote-start { border: 1px solid rgba(52,211,153,0.28); background: var(--tone-positive-soft); color: #a7f3d0; }
+  .progress { text-align: center; color: var(--text-muted); font-size: 0.72rem; margin: 0.55rem 0 0; }
+  body.is-phone .keys { display: none; }
+
+  .slot, .leader, .split {
+    display: grid; grid-template-columns: 2.4rem minmax(0,1fr) auto;
+    gap: 0.5rem; align-items: center; padding: 0.38rem 0;
+    border-bottom: 1px solid rgba(36,50,73,0.45);
+    font-size: 0.8rem;
+  }
+  .slot:last-child, .leader:last-child, .split:last-child { border-bottom: 0; }
+  .pos { color: var(--text-muted); font-size: 0.68rem; font-weight: 700; }
+  .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pts { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .split { grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); }
+  .over { color: var(--accent-muted); font-size: 0.6rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+  .hot { color: var(--tone-positive); }
+  .cold { color: #fde68a; }
+
+  .results-banner {
+    padding: 1rem 1.1rem; border: 1px solid var(--border); border-radius: var(--radius-md);
+    background: var(--bg-elevated);
+  }
+  .results-banner h3 { margin: 0 0 0.3rem; }
+</style>
+</head>
+<body>
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div><span class="mock-brand-name">ScoreSense</span><span class="mock-brand-sub">4th Down Labs</span></div>
+      <nav class="mock-topnav"><span>Projections</span><span class="active">Fantasy</span><span>Tools</span></nav>
+    </div>
+    <span class="mock-account"><span class="dot">C</span> Commissioner</span>
+  </header>
+
+  <nav class="mock-subnav">
+    <div class="mock-subnav-group"><span class="mock-tab">Home</span></div>
+    <div class="mock-subnav-group">
+      <span class="mock-subnav-group-label">Draft</span>
+      <span class="mock-tab">Strategy</span><span class="mock-tab">Draft</span>
+    </div>
+    <div class="mock-subnav-group">
+      <span class="mock-subnav-group-label">Team</span>
+      <span class="mock-tab">This Week</span>
+      <span class="mock-tab active is-new">Vibes</span>
+      <span class="mock-tab">Game center</span>
+      <span class="mock-tab">My team</span>
+      <span class="mock-tab">Free agents</span>
+    </div>
+    <div class="mock-subnav-group">
+      <span class="mock-subnav-group-label">League</span>
+      <span class="mock-tab">Rules</span><span class="mock-tab">Insights</span>
+    </div>
+  </nav>
+
+  <div class="mock-league-strip">
+    <span class="lg-name">Bottom to Top: Dominate Your Panda</span>
+    <span>In season · Week 10</span>
+    <span class="mock-team-mark"><span class="tm" style="background:#274b86;color:#bcd4ff;">PC</span> Panda Command</span>
+    <span class="spacer"></span>
+    <span>Your read</span>
+  </div>
+
+  <div class="view-toggle" role="group" aria-label="Viewport">
+    <button type="button" id="btn-desktop" class="is-on">Desktop</button>
+    <button type="button" id="btn-phone">Phone</button>
+  </div>
+
+  <section class="mock-hero">
+    <p class="mock-kicker">Vibe rankings</p>
+    <h1 id="hero-heading">Who feels startable this week.</h1>
+    <p class="support" id="hero-support">Swipe your roster. Start energy raises aura. Sit energy lowers it. The slate updates as you go.</p>
+    <span class="mock-hero-chip mock-pill mock-pill--ok">Your read</span>
+  </section>
+
+  <div class="mock-cols">
+    <main>
+      <div id="deck-stage">
+        <div class="deck-wrap" id="deck"></div>
+        <div class="vote-row">
+          <button type="button" class="vote-sit" id="btn-sit">Sit</button>
+          <button type="button" class="btn btn-ghost" id="btn-undo">Undo</button>
+          <button type="button" class="vote-start" id="btn-start">Start</button>
+        </div>
+        <p class="progress" id="progress">1 of 10</p>
+        <p class="progress keys">← sit · → start · Backspace undo</p>
+      </div>
+      <div id="results" class="results-banner" hidden>
+        <h3>Aura is in.</h3>
+        <p class="note">Your vibes scaled the week. Review the slate, then take it to This Week.</p>
+        <div class="vote-row">
+          <button type="button" class="btn btn-ghost" id="btn-again">Swipe again</button>
+          <button type="button" class="btn btn-primary">Review on This Week</button>
+        </div>
+      </div>
+    </main>
+
+    <aside class="mock-rail">
+      <section class="card">
+        <p class="mock-kicker" style="margin-bottom:0.15rem;">At a glance</p>
+        <h3>Your aura</h3>
+        <p class="note">Week 10</p>
+        <div class="facts">
+          <span class="fact">Cards left <strong id="fact-left">10</strong></span>
+          <span class="fact">Rated <strong id="fact-rated">0/10</strong></span>
+          <span class="fact">Hottest aura <strong id="fact-hot">—</strong></span>
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:0.8rem;">Review on This Week</button>
+      </section>
+      <section class="card">
+        <h3>Vibe slate</h3>
+        <p class="note">Projection × your aura. Bye and injured stay out.</p>
+        <div id="slate"></div>
+      </section>
+      <section class="card">
+        <h3>Where you disagree</h3>
+        <div id="splits"><p class="note">Your vibes match the model slate so far.</p></div>
+      </section>
+    </aside>
+  </div>
+
+  <p class="footnote">Design mockup — Fantasy · Vibes. Swipe or use the buttons. Desktop also accepts arrow keys. Data is illustrative.</p>
+</div>
+
+<script>
+const PLAYERS = [
+  { id: "allen", name: "Josh Allen", pos: "QB", team: "BUF", opp: "vs MIA", p50: 23.1, espn: 3918298 },
+  { id: "bijan", name: "Bijan Robinson", pos: "RB", team: "ATL", opp: "vs TB", p50: 17.6, espn: 4430807 },
+  { id: "gibbs", name: "Jahmyr Gibbs", pos: "RB", team: "DET", opp: "@ GB", p50: 16.4, espn: 4429795 },
+  { id: "jefferson", name: "Justin Jefferson", pos: "WR", team: "MIN", opp: "vs CHI", p50: 16.9, espn: 4262921 },
+  { id: "puka", name: "Puka Nacua", pos: "WR", team: "LAR", opp: "@ SEA", p50: 15.8, espn: 4688813 },
+  { id: "cd", name: "CeeDee Lamb", pos: "WR", team: "DAL", opp: "vs NYG", p50: 14.2, espn: 4241389 },
+  { id: "bowers", name: "Brock Bowers", pos: "TE", team: "LV", opp: "@ DEN", p50: 12.4, espn: 4431458 },
+  { id: "kittle", name: "George Kittle", pos: "TE", team: "SF", opp: "vs ARI", p50: 11.1, espn: 3040151 },
+  { id: "saquon", name: "Saquon Barkley", pos: "RB", team: "PHI", opp: "vs WAS", p50: 15.1, espn: 3929630 },
+  { id: "sun", name: "Amon-Ra St. Brown", pos: "WR", team: "DET", opp: "@ GB", p50: 14.8, espn: 4374302 },
+];
+const SLOTS = [
+  { slot: "QB", pos: "QB" }, { slot: "RB1", pos: "RB" }, { slot: "RB2", pos: "RB" },
+  { slot: "WR1", pos: "WR" }, { slot: "WR2", pos: "WR" }, { slot: "TE", pos: "TE" },
+  { slot: "FLEX", pos: "FLEX" },
+];
+const FLEX = new Set(["RB", "WR", "TE"]);
+
+const state = { index: 0, aura: {}, history: [], dx: 0, dragging: false };
+
+function auraOf(id) { return state.aura[id] ?? 50; }
+function vibeScore(p) { return p.p50 * (0.6 + 0.4 * (auraOf(p.id) / 50)); }
+function tone(a) { return a >= 70 ? "hot" : a <= 35 ? "cold" : "even"; }
+function apply(id, vibe) {
+  const next = Math.min(99, Math.max(0, auraOf(id) + (vibe === "start" ? 14 : -14)));
+  state.aura = { ...state.aura, [id]: next };
+}
+function fill(scoreOf) {
+  const used = new Set();
+  const ranked = [...PLAYERS].sort((a, b) => scoreOf(b) - scoreOf(a));
+  const take = (pred) => {
+    const hit = ranked.find((p) => !used.has(p.id) && pred(p));
+    if (hit) used.add(hit.id);
+    return hit || null;
+  };
+  return SLOTS.map((s) => ({
+    ...s,
+    player: take((p) => s.pos === "FLEX" ? FLEX.has(p.pos) : p.pos === s.pos),
+  }));
+}
+
+function initials(name) {
+  const parts = name.split(" ");
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function cardHTML(p, overlay) {
+  const a = auraOf(p.id);
+  const t = tone(a);
+  return `
+    <div class="vibe-photo">
+      <img src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.espn}.png" alt="" draggable="false"
+        onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'vibe-fallback',textContent:'${initials(p.name)}'}))" />
+      <div class="vibe-fade"></div>
+      <span class="stamp stamp-start" style="opacity:${overlay.start || 0}">Start</span>
+      <span class="stamp stamp-sit" style="opacity:${overlay.sit || 0}">Sit</span>
+    </div>
+    <div class="vibe-id">
+      <h3>${p.name}</h3>
+      <p>${p.pos} · ${p.team} · ${p.opp}</p>
+      <div class="vibe-stats">
+        <div><span>Week</span><strong>${p.p50.toFixed(1)}</strong></div>
+        <div><span>Vibe week</span><strong>${vibeScore(p).toFixed(1)}</strong></div>
+        <div><span>Aura</span><strong class="${t}">${Math.round(a)}</strong></div>
+      </div>
+      <div class="aura-bar ${t}"><i style="width:${a}%"></i></div>
+    </div>`;
+}
+
+function renderDeck() {
+  const deck = document.getElementById("deck");
+  const done = state.index >= PLAYERS.length;
+  document.getElementById("deck-stage").hidden = done;
+  document.getElementById("results").hidden = !done;
+  if (done) {
+    document.getElementById("hero-heading").textContent = "Aura is in.";
+    document.getElementById("hero-support").textContent = "Your vibes scaled the week. Review the slate, then take it to This Week.";
+    renderRail();
+    return;
+  }
+  document.getElementById("hero-heading").textContent = "Who feels startable this week.";
+  const slice = PLAYERS.slice(state.index, state.index + 3);
+  deck.innerHTML = "";
+  slice.forEach((p, i) => {
+    const el = document.createElement("article");
+    el.className = "vibe-card" + (i === 0 ? " is-front" : "");
+    el.dataset.id = p.id;
+    const scale = 1 - i * 0.045;
+    const lift = i * 10;
+    el.style.transform = i === 0 ? "translateX(0)" : `translateY(${lift}px) scale(${scale})`;
+    el.style.zIndex = String(5 - i);
+    el.innerHTML = cardHTML(p, { start: 0, sit: 0 });
+    if (i === 0) bindFront(el);
+    deck.appendChild(el);
+  });
+  document.getElementById("progress").textContent = `${state.index + 1} of ${PLAYERS.length}`;
+  renderRail();
+}
+
+function bindFront(el) {
+  let startX = 0, lastX = 0, lastT = 0, vx = 0, active = false;
+  const move = (x, t) => {
+    const dx = x - startX;
+    vx = (x - lastX) / Math.max(1, t - lastT);
+    lastX = x; lastT = t; state.dx = dx;
+    el.style.transform = `translateX(${dx}px) rotate(${dx * 0.045}deg)`;
+    const start = Math.max(0, Math.min(1, dx / 96));
+    const sit = Math.max(0, Math.min(1, -dx / 96));
+    el.querySelector(".stamp-start").style.opacity = start;
+    el.querySelector(".stamp-sit").style.opacity = sit;
+  };
+  const end = () => {
+    if (!active) return;
+    active = false;
+    el.classList.remove("is-drag");
+    const flick = Math.abs(vx) > 0.55 && Math.abs(state.dx) > 36;
+    if (state.dx > 96 || (flick && state.dx > 0)) return commit("start");
+    if (state.dx < -96 || (flick && state.dx < 0)) return commit("sit");
+    el.style.transition = "transform 200ms cubic-bezier(0.4,0,0.2,1)";
+    el.style.transform = "translateX(0)";
+    el.querySelector(".stamp-start").style.opacity = 0;
+    el.querySelector(".stamp-sit").style.opacity = 0;
+    setTimeout(() => { el.style.transition = "none"; }, 200);
+  };
+  el.addEventListener("pointerdown", (e) => {
+    active = true; startX = lastX = e.clientX; lastT = e.timeStamp; vx = 0;
+    el.setPointerCapture(e.pointerId);
+    el.classList.add("is-drag");
+    el.style.transition = "none";
+  });
+  el.addEventListener("pointermove", (e) => { if (active) move(e.clientX, e.timeStamp); });
+  el.addEventListener("pointerup", end);
+  el.addEventListener("pointercancel", end);
+}
+
+function commit(vibe) {
+  const p = PLAYERS[state.index];
+  if (!p) return;
+  apply(p.id, vibe);
+  state.history.push({ id: p.id, vibe, index: state.index });
+  const front = document.querySelector(".vibe-card.is-front");
+  if (front) {
+    const dir = vibe === "start" ? 1 : -1;
+    front.style.transition = "transform 200ms cubic-bezier(0.4,0,0.2,1)";
+    front.style.transform = `translateX(${dir * 420}px) rotate(${dir * 14}deg)`;
+  }
+  setTimeout(() => {
+    state.index += 1;
+    state.dx = 0;
+    renderDeck();
+  }, 200);
+}
+
+function undo() {
+  const last = state.history.pop();
+  if (!last) return;
+  apply(last.id, last.vibe === "start" ? "sit" : "start");
+  state.index = last.index;
+  renderDeck();
+}
+
+function renderRail() {
+  document.getElementById("fact-left").textContent = String(Math.max(0, PLAYERS.length - state.index));
+  const rated = Object.keys(state.aura).length;
+  document.getElementById("fact-rated").textContent = `${rated}/${PLAYERS.length}`;
+  const leaders = [...PLAYERS].map((p) => ({ p, a: auraOf(p.id) })).sort((x, y) => y.a - x.a);
+  document.getElementById("fact-hot").textContent = `${leaders[0].p.name} · ${Math.round(leaders[0].a)}`;
+
+  const vibeSlots = fill((p) => vibeScore(p));
+  const projSlots = fill((p) => p.p50);
+  document.getElementById("slate").innerHTML = vibeSlots.map((s) => `
+    <div class="slot"><span class="pos">${s.slot}</span><span class="nm">${s.player ? s.player.name : "—"}</span>
+    <span class="pts">${s.player ? vibeScore(s.player).toFixed(1) : ""}</span></div>`).join("");
+
+  const vibeIds = new Set(vibeSlots.map((s) => s.player && s.player.id));
+  const projIds = new Set(projSlots.map((s) => s.player && s.player.id));
+  const ins = vibeSlots.map((s) => s.player).filter((p) => p && !projIds.has(p.id));
+  const outs = projSlots.map((s) => s.player).filter((p) => p && !vibeIds.has(p.id));
+  const box = document.getElementById("splits");
+  if (!ins.length) {
+    box.innerHTML = `<p class="note">Your vibes match the model slate so far.</p>`;
+  } else {
+    box.innerHTML = ins.map((p, i) => `
+      <div class="split"><span class="nm">${p.name}</span><span class="over">over</span>
+      <span class="nm">${outs[i] ? outs[i].name : "bench"}</span></div>`).join("");
+  }
+}
+
+document.getElementById("btn-sit").onclick = () => commit("sit");
+document.getElementById("btn-start").onclick = () => commit("start");
+document.getElementById("btn-undo").onclick = undo;
+document.getElementById("btn-again").onclick = () => { state.index = 0; state.history = []; renderDeck(); };
+document.getElementById("btn-desktop").onclick = () => {
+  document.body.classList.remove("is-phone");
+  document.getElementById("btn-desktop").classList.add("is-on");
+  document.getElementById("btn-phone").classList.remove("is-on");
+};
+document.getElementById("btn-phone").onclick = () => {
+  document.body.classList.add("is-phone");
+  document.getElementById("btn-phone").classList.add("is-on");
+  document.getElementById("btn-desktop").classList.remove("is-on");
+};
+window.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowRight") { e.preventDefault(); commit("start"); }
+  if (e.key === "ArrowLeft") { e.preventDefault(); commit("sit"); }
+  if (e.key === "Backspace") { e.preventDefault(); undo(); }
+});
+renderDeck();
+</script>
+</body>
+</html>

@@ -10,6 +10,7 @@ directly in a browser — no build step. They reuse the token values from
 | `my-team-v2.html` | **My team hero + locker room v2.** Banner gains yard-line texture, record/streak/next-opponent chips, and a cap bar. Locker room becomes a lit scene: team-color nameplates, hanging SVG jerseys with numbers, headshot medallions, position tags, bench + overhead light. One locker is shown “open” to illustrate the hover interaction (quick stats). Contract table below is unchanged. |
 | `home-v2.html` | **Home v2 (in-season).** Keeps the phase track and priority card; adds a kickoff countdown, and a three-card deck — Your matchup (links Game center), League pulse (trades/bids/poll/chat activity), Standings mini — so the canvas earns its space during the season. |
 | `atmosphere-demo.html` | **Working atmosphere v2 demo** (interactive). Hand-drawn inline SVG leaves / snowflakes / footballs on three parallax depth layers with independent fall + sway + tumble animation, wind control, cursor repulsion, click-to-pop footballs, and a “shipped renderer” comparison toggle. `?theme=snow|leaves|footballs` picks the theme on load. No PNG/SVG asset files required — everything is generated inline. |
+| `vibe-rankings.html` | **Proposed Team destination: Vibes.** Tinder-style start/sit swipe (mouse, touch, arrows). Each vote raises or lowers personal **aura**, which scales the week projection and rebuilds a start slate live. Desktop/phone toggle. Interactive — open in a browser. Shipped in-app at `/hub/vibes`. |
 
 ## Decisions to make
 
@@ -20,3 +21,5 @@ directly in a browser — no build step. They reuse the token values from
 - [ ] Home: adopt in-season deck (matchup / pulse / standings)?
 - [ ] Atmosphere: adopt SVG particle system (parallax + sway + tumble)? Cursor interaction on/off by default?
 - [ ] Atmosphere: seasonal auto-theme default (leaves Sep–Nov, snow Dec–Feb) with per-user override?
+- [ ] Vibes: keep as its own Team destination, or fold the deck into This Week?
+- [ ] Vibes: persist aura server-side and apply the slate as a Hub lineup write?

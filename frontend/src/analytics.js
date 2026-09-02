@@ -79,6 +79,8 @@ const HUB_PAGE_LABELS = {
   value: "Strategy",
   available: "Free agents",
   week: "This Week",
+  vibes: "Vibes",
+  game: "Game center",
   roster: "My Team",
   rosters: "Rosters",
   room: "Draft",

@@ -34,6 +34,9 @@ test("text lookup prefers the longest alias and ignores capture vs cap", () => {
   assert.equal(resolveLivingSurfaceFromText("Remember to capture this correction"), null);
   const cap = resolveLivingSurfaceFromText("Cap planner overage");
   assert.equal(cap.label, "Cap");
+  const vibes = resolveLivingSurfaceFromText("mock up vibe rankings with swipe");
+  assert.equal(vibes.label, "Vibes");
+  assert.equal(vibes.page, "frontend/src/DraftHub/VibeRankings.jsx");
 });
 
 test("file lookup returns the surfaces that own a page", () => {

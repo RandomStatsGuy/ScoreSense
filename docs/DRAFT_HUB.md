@@ -11,7 +11,7 @@ Shipped: solo prep, live auction / snake / linear rooms, contracts, cap planner,
 | Area | Purpose |
 |-----|---------|
 | **Projections · Season** | Season totals and floor–ceiling (`GET /api/draft/{position}` and season caches) |
-| **Fantasy** | Home, Strategy, Draft, This Week, My team, Free agents, Rosters, Cap, Trades, Rules, Roster management, Insights |
+| **Fantasy** | Home, Strategy, Draft, This Week, Vibes, Game center, My team, Free agents, Rosters, Cap, Trades, Rules, Roster management, Insights |
 
 ## Storage
 

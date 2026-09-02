@@ -18,6 +18,7 @@ Follow `.cursor/skills/match-living-surface/SKILL.md`. Lead with **Matching:** `
 | `hub.available` | `/hub/free-agents` |
 | `hub.room` | `/hub/draft` |
 | `hub.week` | `/hub/week` |
+| `hub.vibes` | `/hub/vibes` |
 | `hub.game` | `/hub/game` |
 | `hub.roster` | `/hub/roster` |
 | `hub.rosters` | `/hub/rosters` |

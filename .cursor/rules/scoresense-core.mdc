@@ -29,6 +29,7 @@ Use these labels. Keep internal ids if they already exist.
 | Strategy | `value` | Value sheet |
 | Draft | `room` | Live auction (as the tab name) |
 | This Week | `week` | Weekly command center |
+| Vibes | `vibes` | Vibe rankings, aura farm |
 | My team | `roster` | My roster |
 | Free agents | `available` | Available players |
 | Cap | `planner` | Cap planner (as the tab name) |
@@ -74,6 +75,6 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Correction capture: `.cursor/rules/correction-capture.mdc` + `.cursor/skills/capture-correction/SKILL.md`
 - Learned rules: `.cursor/rules/learned-rules.mdc`
 - Living surfaces: `frontend/src/livingSurfaces.js` + `.cursor/skills/match-living-surface/SKILL.md`
-- Task skills: `.cursor/skills/run-tests/SKILL.md`, `.cursor/skills/verify-fantasy-ui/SKILL.md`, `.cursor/skills/mirror-prod-league/SKILL.md`, `.cursor/skills/start-local-app/SKILL.md`
+- Task skills: `.cursor/skills/run-tests/SKILL.md`, `.cursor/skills/verify-fantasy-ui/SKILL.md`, `.cursor/skills/mirror-prod-league/SKILL.md`, `.cursor/skills/start-local-app/SKILL.md`, `.cursor/skills/file-fun-ux-idea/SKILL.md`
 - Production skills: `.cursor/skills/add-fantasy-destination/SKILL.md`, `.cursor/skills/add-hub-route/SKILL.md`, `.cursor/skills/add-ui-copy/SKILL.md`, `.cursor/skills/change-league-rules/SKILL.md`, `.cursor/skills/refresh-draft-pool/SKILL.md`
 - Cloud runtime: `.cursor/environment.json`
