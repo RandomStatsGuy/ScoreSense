@@ -231,6 +231,7 @@ def health() -> dict:
             "player_compare": "/api/predict/compare" in route_paths,
             "projection_explanation": "/api/player/{player_id}/explanation" in route_paths,
             "player_context": "/api/player/{player_id}/context" in route_paths,
+            "player_latest": "/api/player/{player_id}/latest" in route_paths,
             "injury_overlays": "/api/injury-overlays" in route_paths,
             "injury_poll": "/api/injuries/poll" in route_paths,
             "weekly_command_center": "/api/hub/week" in route_paths,
@@ -324,6 +325,33 @@ def player_context_get(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.get("/api/player/{player_id}/latest")
+def player_latest_get(
+    player_id: str,
+    season: Optional[int] = None,
+    week: Optional[int] = None,
+    player_name: Optional[str] = None,
+    team: Optional[str] = None,
+    _user=Depends(require_patron),
+) -> dict:
+    """One this-week note. Locker / practice first; never 503s when context is cold."""
+    from fastapi.encoders import jsonable_encoder
+    from src.draft_hub.player_latest import build_player_latest
+
+    try:
+        return jsonable_encoder(
+            build_player_latest(
+                player_id,
+                player_name=player_name,
+                team=team,
+                season=season,
+                week=week,
+            )
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.get("/api/players/context")

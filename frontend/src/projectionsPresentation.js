@@ -43,6 +43,19 @@ export const BOARD_COPY = {
   weeklyModel: "Weekly PPR model",
 };
 
+/** Inspector this-week note — locker / practice, not a show recap. */
+export const CONTEXT_COPY = {
+  title: "This week",
+  support: "Locker note and the week delta. Not a show recap.",
+  empty: "No locker note this week.",
+  projection: "Week vs healthy",
+  media: "Older notes",
+  mediaEmpty: "Show notes stay off this week until a snippet is usable.",
+  loading: "Loading this week's note…",
+  cold: "No locker note yet. The week number is unchanged.",
+  missing: "No cached note for this player.",
+};
+
 export function positionShort(position) {
   const key = String(position || "").trim().toLowerCase();
   if (POSITION_SHORT[key]) return POSITION_SHORT[key];

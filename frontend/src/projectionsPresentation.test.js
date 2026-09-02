@@ -4,6 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  CONTEXT_COPY,
   analystDisclosureSummary,
   filterInspectorCandidates,
   injuryDisclosureSummary,
@@ -148,6 +149,12 @@ test("season board filters use starter cutoff and upside spread", () => {
   assert.equal(matchesSeasonBoardFilter("starters", { rank: 20, position: "qb" }), false);
   assert.equal(matchesSeasonBoardFilter("upside", { spread: 90, peers: { spreadP75: 80 } }), true);
   assert.equal(matchesSeasonBoardFilter("upside", { spread: 40, peers: { spreadP75: 80 } }), false);
+});
+
+test("this-week inspector copy is locker plus delta, not a show recap", () => {
+  assert.equal(CONTEXT_COPY.title, "This week");
+  assert.match(CONTEXT_COPY.support, /locker note/i);
+  assert.doesNotMatch(JSON.stringify(CONTEXT_COPY), /YouTube|Draft Hub|Submit/i);
 });
 
 test("disclosure summaries name the consequence", () => {

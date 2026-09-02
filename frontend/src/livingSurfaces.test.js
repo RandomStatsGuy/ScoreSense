@@ -34,6 +34,8 @@ test("text lookup prefers the longest alias and ignores capture vs cap", () => {
   assert.equal(resolveLivingSurfaceFromText("Remember to capture this correction"), null);
   const cap = resolveLivingSurfaceFromText("Cap planner overage");
   assert.equal(cap.label, "Cap");
+  const locker = resolveLivingSurfaceFromText("tighten the locker note on the inspector");
+  assert.equal(locker.label, "Player inspector");
 });
 
 test("file lookup returns the surfaces that own a page", () => {
