@@ -74,6 +74,7 @@ from src.draft_hub.schemas import (
     LeagueSheetImportRequest,
     ContractTypeDecisionRequest,
     ContractTypeUpdateRequest,
+    FranchiseAddRequest,
     RosterAddRequest,
     RosterRemoveRequest,
     RosterUpdateRequest,
@@ -119,6 +120,12 @@ from src.draft_hub.fa_market import (
     process_window,
 )
 from src.draft_hub.league_permissions import can_edit_roster, require_commissioner, require_primary_commissioner
+from src.draft_hub.league_resize import (
+    LeagueResizeError,
+    apply_add_franchise,
+    apply_remove_franchise,
+    league_resize_snapshot,
+)
 from src.draft_hub.league_analytics import build_league_analytics
 from src.draft_hub.league_invites import build_invite_url, create_invite
 from src.draft_hub.league_claim import (
@@ -1837,6 +1844,11 @@ def hub_league_members(league_id: str, _user=Depends(require_hub_user)) -> dict:
     }
     if ctx.get("can_invite_members") and league:
         out["claim"] = staff_claim_payload(league)
+    if ctx.get("is_commissioner") and league:
+        try:
+            out["resize"] = league_resize_snapshot(league_id)
+        except LeagueResizeError:
+            out["resize"] = None
     return out
 
 
@@ -4113,6 +4125,42 @@ def hub_release_team_claim(league_id: str, team_id: str, _user=Depends(require_h
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"team": team, "hub_context": _ctx(sub)}
+
+
+@router.post("/league/{league_id}/franchises")
+def hub_add_franchise(
+    league_id: str,
+    body: FranchiseAddRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    try:
+        result = apply_add_franchise(league_id, body.name)
+    except LeagueResizeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    result["hub_context"] = _ctx(sub)
+    result["resize"] = league_resize_snapshot(league_id)
+    return result
+
+
+@router.delete("/league/{league_id}/franchises/{team_id}")
+def hub_remove_franchise(
+    league_id: str,
+    team_id: str,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    try:
+        result = apply_remove_franchise(league_id, team_id, actor_sub=sub)
+    except LeagueResizeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    result["hub_context"] = _ctx(sub)
+    result["resize"] = league_resize_snapshot(league_id)
+    return result
 
 
 @router.post("/league/{league_id}/invites")

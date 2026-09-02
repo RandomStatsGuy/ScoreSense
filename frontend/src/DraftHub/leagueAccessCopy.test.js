@@ -23,6 +23,11 @@ import {
   draftNightEmpty,
   draftNightHeading,
   draftNightSupport,
+  franchiseResizeHint,
+  addFranchiseLabel,
+  addFranchiseSupport,
+  removeFranchiseLabel,
+  franchiseSeatSummary,
 } from "./leagueAccessCopy.js";
 
 test("league switcher treats create as its own action", () => {
@@ -118,4 +123,15 @@ test("draft night copy names the lock time", () => {
   assert.equal(draftNightEmpty(), "Not scheduled yet");
   assert.match(draftNightSupport({ scheduled: false }), /shared calendar/i);
   assert.match(draftNightSupport({ scheduled: true }), /start earlier/i);
+});
+
+test("franchise resize copy names the next auction consequence", () => {
+  assert.equal(addFranchiseLabel(), "Add franchise");
+  assert.equal(removeFranchiseLabel(), "Remove franchise");
+  assert.match(franchiseResizeHint(), /next auction/i);
+  assert.doesNotMatch(franchiseResizeHint(), /Submit|Draft Hub|permission/i);
+  assert.match(addFranchiseSupport({ nextCount: 11, cap: 200 }), /11 teams/);
+  assert.match(addFranchiseSupport({ nextCount: 11, cap: 200 }), /\$200/);
+  assert.equal(franchiseSeatSummary({ configured: 12, actual: 10 }), "10 franchises · 12 seats");
+  assert.equal(franchiseSeatSummary({ configured: 10, actual: 10 }), "10 franchises");
 });

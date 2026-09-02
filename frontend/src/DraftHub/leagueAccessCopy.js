@@ -155,6 +155,47 @@ export function liveDraftMembersOnlyMessage() {
   return "This live draft is for league members. Ask your commissioner for a league invite or room code first.";
 }
 
+export function franchiseResizeHint() {
+  return "Add an empty seat with a full cap before the next auction. Existing contracts stay put. Invite the manager after the seat exists.";
+}
+
+export function addFranchiseLabel() {
+  return "Add franchise";
+}
+
+export function addFranchiseSupport({ nextCount, cap } = {}) {
+  const seats = Number(nextCount);
+  const salary = Number(cap);
+  const seatBit = Number.isFinite(seats) && seats > 0 ? `League becomes ${seats} teams.` : "Adds one seat.";
+  const capBit = Number.isFinite(salary) && salary > 0
+    ? ` The new club starts at $${salary} with no keepers.`
+    : " The new club starts with a full cap and no keepers.";
+  return `${seatBit}${capBit}`;
+}
+
+export function removeFranchiseLabel() {
+  return "Remove franchise";
+}
+
+export function removeFranchiseConfirm(name) {
+  const label = String(name || "").trim() || "this franchise";
+  return `Remove ${label}? The seat closes. Contracts must already be gone.`;
+}
+
+export function removeFranchiseBlocked(reason) {
+  return String(reason || "This franchise stays.");
+}
+
+export function franchiseSeatSummary({ configured, actual } = {}) {
+  const seats = Number(configured);
+  const clubs = Number(actual);
+  if (!Number.isFinite(clubs) || clubs < 0) return "Franchises";
+  if (Number.isFinite(seats) && seats > 0 && seats !== clubs) {
+    return `${clubs} franchises · ${seats} seats`;
+  }
+  return `${clubs} franchise${clubs === 1 ? "" : "s"}`;
+}
+
 export function draftNightHeading() {
   return "Draft night";
 }
