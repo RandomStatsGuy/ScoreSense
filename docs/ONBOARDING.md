@@ -44,6 +44,8 @@ No forced Fantasy redirect.
 
 ### Invited member
 
+Screen-by-screen for the group text (claim link → pick a team → mark nights): [INVITE_FLOW.md](./INVITE_FLOW.md).
+
 | Step | Action |
 |------|--------|
 | 1 | Open `/hub/draft?invite={token}` from email (`/?invite=` still works), or `/hub/draft?claim={token}` from a text |
