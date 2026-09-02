@@ -1,7 +1,10 @@
 """Staff add/remove franchise for salary-cap auction leagues."""
 
 import pytest
+from fastapi.testclient import TestClient
 
+from app.api import app
+from app.auth import require_hub_user
 from src.draft_hub import storage
 from src.draft_hub.league_resize import (
     LeagueResizeError,
@@ -21,6 +24,19 @@ def hub_db(tmp_path, monkeypatch):
     monkeypatch.setattr(storage, "DRAFT_HUB_DB", tmp_path / "draft_hub.db")
     monkeypatch.setattr(storage, "DRAFT_HUB_DIR", tmp_path)
     return tmp_path
+
+
+def _client_for(sub: str) -> TestClient:
+    app.dependency_overrides[require_hub_user] = lambda: {
+        "sub": sub,
+        "auth_type": "native",
+        "email": f"{sub}@example.com",
+    }
+    return TestClient(app)
+
+
+def teardown_function() -> None:
+    app.dependency_overrides.pop(require_hub_user, None)
 
 
 def _league(comm="resize-comm", *, team_count=8, name="Resize League"):
@@ -157,3 +173,42 @@ def test_invite_after_add_claims_same_seat(hub_db):
     assert snap["team_count"] == 8
     assert snap["actual_teams"] == 2
     assert snap["add"]["ok"] is True
+
+
+def test_franchise_http_add_and_remove(hub_db):
+    comm = "http-resize-comm"
+    league = _league(comm, team_count=8)
+    client = _client_for(comm)
+    members = client.get(f"/api/hub/league/{league['id']}/members")
+    assert members.status_code == 200
+    assert members.json()["resize"]["add"]["ok"] is True
+
+    added = client.post(
+        f"/api/hub/league/{league['id']}/franchises",
+        json={"name": "Harbor"},
+    )
+    assert added.status_code == 200
+    body = added.json()
+    assert body["team"]["name"] == "Harbor"
+    team_id = body["team"]["id"]
+
+    member = client.get(f"/api/hub/league/{league['id']}/members")
+    removal = next(r for r in member.json()["resize"]["removals"] if r["team_id"] == team_id)
+    assert removal["ok"] is True
+
+    gone = client.delete(f"/api/hub/league/{league['id']}/franchises/{team_id}")
+    assert gone.status_code == 200
+    names = [t["name"] for t in storage.list_league_teams(league["id"])]
+    assert "Harbor" not in names
+
+
+def test_franchise_http_member_cannot_resize(hub_db):
+    comm = "http-resize-staff"
+    league = _league(comm, team_count=8)
+    storage.join_league("http-resize-member", league["room_code"], "Other")
+    client = _client_for("http-resize-member")
+    res = client.post(
+        f"/api/hub/league/{league['id']}/franchises",
+        json={"name": "Nope"},
+    )
+    assert res.status_code == 403
