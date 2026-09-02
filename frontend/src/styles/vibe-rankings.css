@@ -430,6 +430,13 @@
   text-transform: uppercase;
 }
 
+.hub-vibes-split-line {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
 .hub-vibes-results {
   display: flex;
   flex-direction: column;

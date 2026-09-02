@@ -63,6 +63,18 @@ export const DEMO_VIBE_MATCHUPS = Object.freeze({
     line: "GB -2.5 · O/U 48.0",
     kickoff: "Sun 4:25 PM",
   },
+  "demo-bates": {
+    site: "Away @ GB",
+    weather: "54° · 14 mph",
+    line: "GB -2.5 · O/U 48.0",
+    kickoff: "Sun 4:25 PM",
+  },
+  "demo-lions-def": {
+    site: "Away @ GB",
+    weather: "54° · 14 mph",
+    line: "GB -2.5 · O/U 48.0",
+    kickoff: "Sun 4:25 PM",
+  },
 });
 
 export const DEMO_VIBE_NEWS = Object.freeze({
@@ -123,6 +135,18 @@ export const DEMO_VIBE_NEWS = Object.freeze({
   "demo-sun-god": {
     headline: "No injury tag",
     detail: "Same Green Bay game as Gibbs. Slot volume is the start case, not a vibe.",
+    kind: "status",
+    source: "Availability",
+  },
+  "demo-bates": {
+    headline: "No designation",
+    detail: "Lambeau wind is the only story. If they keep it close, I still get the red-zone looks.",
+    kind: "status",
+    source: "Availability",
+  },
+  "demo-lions-def": {
+    headline: "Full unit, no tags",
+    detail: "Green Bay at home for them. Pressure on Love is the week — not a streaming dart.",
     kind: "status",
     source: "Availability",
   },

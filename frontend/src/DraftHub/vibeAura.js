@@ -177,3 +177,73 @@ export function saveAura(key, auraById) {
     /* ignore quota */
   }
 }
+
+export function calendarDay(now = new Date()) {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+export function dayStorageKey(opts) {
+  return storageKey(opts).replace("ss_vibe_aura_", "ss_vibe_day_");
+}
+
+export function emptyDayVotes(now = new Date()) {
+  return { date: calendarDay(now), votes: {} };
+}
+
+export function normalizeDayVotes(raw, now = new Date()) {
+  const today = calendarDay(now);
+  if (!raw || typeof raw !== "object" || raw.date !== today) {
+    return emptyDayVotes(now);
+  }
+  const votes = raw.votes && typeof raw.votes === "object" ? raw.votes : {};
+  return { date: today, votes: { ...votes } };
+}
+
+export function loadDayVotes(key, now = new Date()) {
+  if (typeof window === "undefined" || !key) return emptyDayVotes(now);
+  try {
+    const raw = window.localStorage.getItem(key);
+    return normalizeDayVotes(raw ? JSON.parse(raw) : null, now);
+  } catch {
+    return emptyDayVotes(now);
+  }
+}
+
+export function saveDayVotes(key, state) {
+  if (typeof window === "undefined" || !key) return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(state || emptyDayVotes()));
+  } catch {
+    /* ignore quota */
+  }
+}
+
+export function recordDayVote(state, playerId, vibe, now = new Date()) {
+  const date = calendarDay(now);
+  const prior = state?.date === date ? state.votes : {};
+  const id = String(playerId || "");
+  if (!id || !VIBE_DELTA[vibe]) return { date, votes: { ...prior } };
+  return { date, votes: { ...prior, [id]: vibe } };
+}
+
+export function clearDayVote(state, playerId, now = new Date()) {
+  const date = calendarDay(now);
+  const votes = { ...((state?.date === date && state.votes) || {}) };
+  delete votes[String(playerId || "")];
+  return { date, votes };
+}
+
+export function playersLeftToday(players, votes) {
+  const rated = votes && typeof votes === "object" ? votes : {};
+  return (players || []).filter((player) => {
+    const id = playerKey(player);
+    return Boolean(id) && !Object.prototype.hasOwnProperty.call(rated, id);
+  });
+}
+
+export function todayRatedCount(players, votes) {
+  return (players || []).length - playersLeftToday(players, votes).length;
+}
