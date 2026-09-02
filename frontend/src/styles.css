@@ -13743,11 +13743,11 @@ td.col-rank.col-rank-top {
 .hub-roster-browser-page .hub-roster-table {
   table-layout: fixed;
   width: 100%;
-  min-width: 52rem;
+  min-width: 58rem;
 }
 
 .hub-roster-browser-page .hub-roster-col-player {
-  width: 13.5rem;
+  width: 12.75rem;
 }
 
 .hub-roster-browser-page .hub-roster-col-pos {
@@ -13757,29 +13757,25 @@ td.col-rank.col-rank-top {
 }
 
 .hub-roster-browser-page .hub-roster-col-cap,
-.hub-roster-browser-page .hub-roster-col-years {
-  width: 3.75rem;
-  white-space: nowrap;
-}
-
+.hub-roster-browser-page .hub-roster-col-years,
 .hub-roster-browser-page .hub-roster-col-pts {
-  width: 4.25rem;
+  width: 3.6rem;
   white-space: nowrap;
 }
 
 .hub-roster-browser-page .hub-roster-col-type {
-  width: 6.75rem;
+  width: 6.25rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .hub-roster-browser-page .hub-roster-col-contract {
-  width: auto;
+  width: 13rem;
 }
 
 .hub-roster-browser-page .hub-roster-table .hub-roster-actions {
-  width: 12.75rem;
+  width: 12.5rem;
 }
 
 .hub-roster-browser-page .hub-roster-table th,
@@ -13791,7 +13787,7 @@ td.col-rank.col-rank-top {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.28rem;
+  gap: 0.34rem;
   min-width: 0;
 }
 
@@ -13821,9 +13817,9 @@ td.col-rank.col-rank-top {
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.01em;
-  line-height: 1.25;
+  line-height: 1.3;
   background: var(--tone-neutral-soft);
-  white-space: normal;
+  white-space: nowrap;
 }
 
 .hub-roster-grade-chip.hub-value-delta-pos {
@@ -13882,7 +13878,7 @@ td.col-rank.col-rank-top {
   align-items: center;
 }
 .hub-roster-team-stats-facts {
-  gap: 0.35rem 0.9rem;
+  gap: 0.35rem 1.05rem;
 }
 .hub-roster-team-stats-pos {
   gap: 0.35rem;

@@ -46,7 +46,7 @@ test("My Team roster columns declare a shared header/body layout", () => {
 test("League Rosters columns declare a shared header/body layout", () => {
   const table = block(".hub-roster-browser-page .hub-roster-table");
   assert.match(table, /table-layout:\s*fixed/);
-  assert.match(table, /min-width:\s*52rem/);
+  assert.match(table, /min-width:\s*58rem/);
 
   for (const cls of [
     "hub-roster-col-player",
@@ -68,7 +68,7 @@ test("League Rosters player and action cells keep a measured gap", () => {
   const playerLine = block(".hub-roster-player-line");
   assert.match(playerLine, /display:\s*flex/);
   assert.match(playerLine, /flex-direction:\s*column/);
-  assert.match(playerLine, /gap:\s*0\.28rem/);
+  assert.match(playerLine, /gap:\s*0\.34rem/);
 
   const expire = block(".hub-roster-player-line .hub-expire-chip");
   assert.match(expire, /margin-left:\s*2\.15rem/);
