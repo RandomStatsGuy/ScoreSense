@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import MobileDestinationSheet from "../layout/MobileDestinationSheet";
-import { MOBILE_CHROME_COPY } from "../layout/mobileChromePresentation";
+import { MOBILE_CHROME_COPY, selectAndDismissDestination } from "../layout/mobileChromePresentation";
 
 /** group: "home" | "prep" (draft prep) | "season" (in-season) | "office" (league-wide). */
 export const HUB_SUBVIEWS = [
@@ -102,10 +102,7 @@ export default function HubSubnav({
       className="app-mobile-sheet-hub-tabs"
       groups={groups}
       active={subView}
-      onSelect={(id) => {
-        onNavigate(id);
-        setPickerOpen(false);
-      }}
+      onSelect={(id) => selectAndDismissDestination(id, onNavigate, () => setPickerOpen(false))}
     />
   );
 

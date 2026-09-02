@@ -20,6 +20,12 @@ export function chooseDestinationLabel(title) {
   return `${title}, choose destination`;
 }
 
+/** Always dismiss the picker, including when the active destination is tapped again. */
+export function selectAndDismissDestination(id, onSelect, onClose) {
+  onSelect?.(id);
+  onClose?.();
+}
+
 export function resolveMobileDestination({
   view,
   projectionsTab,
