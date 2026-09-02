@@ -3,8 +3,6 @@ import { apiFetch } from "../auth";
 import { useAuth } from "../AuthContext";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
-import HubSubnav from "./HubSubnav";
-import useMobileLayout from "../useMobileLayout";
 import { HubPage } from "./HubUILayout";
 import { ValueSheetTableSkeleton } from "../TableSkeleton";
 import AccountAuth from "../AccountAuth";
@@ -78,7 +76,6 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const [leagueSyncMessage, setLeagueSyncMessage] = useState("");
   const [leagueSyncError, setLeagueSyncError] = useState("");
   const [weekReloadToken, setWeekReloadToken] = useState(0);
-  const mobileLayout = useMobileLayout();
   const [valueSheetLoading, setValueSheetLoading] = useState(false);
   const subViewRef = React.useRef(subView);
   subViewRef.current = subView;
@@ -655,14 +652,6 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         <HubDemoBanner
           leagueName={effectiveCtx?.league_name}
           onExit={exitDemo}
-        />
-      )}
-      {mobileLayout && (
-        <HubSubnav
-          subView={subView}
-          hubContext={effectiveCtx}
-          onNavigate={setSubView}
-          mobileLayout
         />
       )}
       {subView !== "room" && subView !== "setup" && !demoMode && (

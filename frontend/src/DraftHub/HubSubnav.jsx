@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
-import MobileBottomSheet from "../layout/MobileBottomSheet";
+import MobileDestinationSheet from "../layout/MobileDestinationSheet";
+import { MOBILE_CHROME_COPY } from "../layout/mobileChromePresentation";
 
 /** group: "home" | "prep" (draft prep) | "season" (in-season) | "office" (league-wide). */
 export const HUB_SUBVIEWS = [
@@ -26,9 +27,9 @@ export const HUB_SUBVIEWS = [
   { id: "insights", label: "Insights", shortLabel: "Insights", leagueOnly: true, hint: "League history", group: "office" },
 ];
 
-const GROUP_LABELS = { home: "", prep: "Draft", season: "Team", office: "League" };
+export const HUB_GROUP_LABELS = { home: "Home", prep: "Draft", season: "Team", office: "League" };
 
-function filterSubviews(hubContext) {
+export function filterHubSubviews(hubContext) {
   const inLeague = hubContext?.mode === "league" || Boolean(hubContext?.league_id);
   return HUB_SUBVIEWS.filter((v) => {
     if (v.commissionerOnly && !hubContext?.is_commissioner) return false;
@@ -37,27 +38,46 @@ function filterSubviews(hubContext) {
   });
 }
 
-export default function HubSubnav({ subView, hubContext, onNavigate, mobileLayout = false }) {
+export function hubDestinationGroups(hubContext) {
+  const visible = filterHubSubviews(hubContext);
+  const out = [];
+  visible.forEach((item) => {
+    let group = out.find((entry) => entry.id === item.group);
+    if (!group) {
+      group = { id: item.group, label: HUB_GROUP_LABELS[item.group], items: [] };
+      out.push(group);
+    }
+    group.items.push(item);
+  });
+  return out;
+}
+
+export default function HubSubnav({
+  subView,
+  hubContext,
+  onNavigate,
+  mobileLayout = false,
+  pickerOnly = false,
+  pickerOpen: pickerOpenProp,
+  onPickerOpenChange,
+}) {
   const navRef = useRef(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const visible = useMemo(() => filterSubviews(hubContext), [hubContext]);
-  const groups = useMemo(() => {
-    const out = [];
-    visible.forEach((item) => {
-      let group = out.find((entry) => entry.id === item.group);
-      if (!group) {
-        group = { id: item.group, label: GROUP_LABELS[item.group], items: [] };
-        out.push(group);
-      }
-      group.items.push(item);
-    });
-    return out;
-  }, [visible]);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const controlled = pickerOpenProp != null;
+  const pickerOpen = controlled ? pickerOpenProp : internalOpen;
+  const setPickerOpen = (next) => {
+    if (!controlled) setInternalOpen(next);
+    onPickerOpenChange?.(next);
+  };
+  const visible = useMemo(() => filterHubSubviews(hubContext), [hubContext]);
+  const groups = useMemo(() => hubDestinationGroups(hubContext), [hubContext]);
 
   React.useEffect(() => {
+    if (pickerOnly) return undefined;
     const active = navRef.current?.querySelector(".app-section-subnav-btn.active");
     active?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
-  }, [subView, visible.length]);
+    return undefined;
+  }, [subView, visible.length, pickerOnly]);
 
   const tabButton = (v) => (
     <button
@@ -74,6 +94,23 @@ export default function HubSubnav({ subView, hubContext, onNavigate, mobileLayou
     </button>
   );
 
+  const sheet = (
+    <MobileDestinationSheet
+      open={pickerOpen}
+      onClose={() => setPickerOpen(false)}
+      title={MOBILE_CHROME_COPY.fantasySheet}
+      className="app-mobile-sheet-hub-tabs"
+      groups={groups}
+      active={subView}
+      onSelect={(id) => {
+        onNavigate(id);
+        setPickerOpen(false);
+      }}
+    />
+  );
+
+  if (pickerOnly) return sheet;
+
   return (
     <>
       <div className="hub-subnav-row">
@@ -87,7 +124,7 @@ export default function HubSubnav({ subView, hubContext, onNavigate, mobileLayou
             ? visible.map(tabButton)
             : groups.map((group) => (
               <div className={`hub-subnav-group hub-subnav-group--${group.id}`} key={group.id} role="presentation">
-                {group.label && (
+                {group.id !== "home" && group.label && (
                   <span className="hub-subnav-group-label" aria-hidden="true">{group.label}</span>
                 )}
                 <span className="hub-subnav-group-tabs" role="presentation">
@@ -100,7 +137,7 @@ export default function HubSubnav({ subView, hubContext, onNavigate, mobileLayou
           <button
             type="button"
             className="hub-subnav-picker-btn"
-            aria-label="All Fantasy tabs"
+            aria-label={MOBILE_CHROME_COPY.goTo}
             onClick={() => setPickerOpen(true)}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -112,37 +149,7 @@ export default function HubSubnav({ subView, hubContext, onNavigate, mobileLayou
           </button>
         ) : null}
       </div>
-
-      <MobileBottomSheet
-        open={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        title="Fantasy sections"
-        className="app-mobile-sheet-hub-tabs"
-      >
-        <div className="app-mobile-sheet-list">
-          {visible.map((v, i) => {
-            const newGroup = i === 0 || visible[i - 1].group !== v.group;
-            return (
-              <React.Fragment key={v.id}>
-                {newGroup && (
-                  <p className="app-mobile-sheet-group">{GROUP_LABELS[v.group] || "Home"}</p>
-                )}
-                <button
-                  type="button"
-                  className={`app-mobile-sheet-item app-mobile-sheet-item-subdued${subView === v.id ? " active" : ""}`}
-                  onClick={() => {
-                    onNavigate(v.id);
-                    setPickerOpen(false);
-                  }}
-                >
-                  <span>{v.label}</span>
-                  <span className="chart-note">{v.hint}</span>
-                </button>
-              </React.Fragment>
-            );
-          })}
-        </div>
-      </MobileBottomSheet>
+      {sheet}
     </>
   );
 }

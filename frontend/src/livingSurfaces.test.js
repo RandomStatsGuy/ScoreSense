@@ -42,3 +42,8 @@ test("every registered chrome is in the CHROME list", () => {
     assert.ok(CHROME.includes(row.chrome), row.chrome);
   }
 });
+
+test("shared mobile chrome resolves from the header files", () => {
+  const hits = surfacesForFile("frontend/src/layout/MobileHeader.jsx");
+  assert.equal(hits[0].id, "shared");
+});

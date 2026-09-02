@@ -26,6 +26,12 @@ export const SHARED = Object.freeze({
   media: "frontend/src/DraftHub/HubMediaImg.jsx",
   ownerLabel: "frontend/src/DraftHub/hubTeamLabel.js",
   chat: "frontend/src/DraftHub/FantasyChatDock.jsx",
+  mobile: [
+    "frontend/src/layout/MobileShell.jsx",
+    "frontend/src/layout/MobileHeader.jsx",
+    "frontend/src/layout/MobileDestinationSheet.jsx",
+    "frontend/src/layout/mobileChromePresentation.js",
+  ],
 });
 
 const S = (row) => Object.freeze(row);
