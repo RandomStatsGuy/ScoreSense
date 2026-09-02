@@ -14306,6 +14306,13 @@ td.col-rank.col-rank-top {
   margin-bottom: 0.5rem;
 }
 .hub-office-members { display: flex; flex-direction: column; gap: 1rem; }
+.hub-office-franchises {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0 0;
+  border-top: 1px solid var(--border);
+}
 .hub-league-chat {
   display: flex;
   flex-direction: column;

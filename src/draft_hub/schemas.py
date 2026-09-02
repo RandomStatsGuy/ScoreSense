@@ -212,6 +212,10 @@ class TeamCoCommissionerRequest(BaseModel):
     enabled: bool
 
 
+class FranchiseAddRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=80)
+
+
 class ChatMessageCreateRequest(BaseModel):
     body: str = Field(..., min_length=1, max_length=2000)
 
