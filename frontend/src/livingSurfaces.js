@@ -225,7 +225,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/ProjectionBoardChrome.jsx",
       "frontend/src/styles/projections-experience.css",
     ],
-    doNot: "Projections are a board. Do not wrap them in HubExperienceLayout. Weekly compare is a mode — no always-on checkboxes. Weekly rows match QB/WR/TE: no opportunity/role/commentary chips on the board. One compact injury chip only.",
+    doNot: "Projections are a board. Do not wrap them in HubExperienceLayout. Weekly compare is a mode — no always-on checkboxes. Weekly rows match QB/WR/TE: no opportunity/role/commentary chips on the board. One compact injury chip only. Phone rows are dense ranking rows; Compare is one toolbar control, never a per-card checkbox.",
   }),
   "projections.season": S({
     label: "Season",
@@ -236,7 +236,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/ProjectionBoardChrome.jsx",
       "frontend/src/styles/projections-experience.css",
     ],
-    doNot: "Season is a board, not a Fantasy decision page.",
+    doNot: "Season is a board, not a Fantasy decision page. Phone rows match weekly density: rank, face, name, P50. Do not invent tall season cards.",
   }),
   "projections.inspector": S({
     label: "Player inspector",
@@ -356,6 +356,8 @@ export const SURFACE_ALIASES = Object.freeze({
   "live season": "projections.season",
   "weekly compare": "projections.weekly",
   "running back weekly": "projections.weekly",
+  "mobile weekly": "projections.weekly",
+  "phone projections": "projections.weekly",
   weekly: "projections.weekly",
   season: "projections.season",
   rosters: "hub.rosters",
