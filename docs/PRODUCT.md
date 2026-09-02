@@ -161,7 +161,11 @@ Weekly and Season projections are a **board**, not a Fantasy decision page.
 - Clicking a player opens the **player inspector**: floor / P50 / ceiling, range read, method, and analyst notes. Desktop is a right-hand drawer; phones keep the bottom sheet.
 - Copy for signals, board reads, and inspector tiles lives in `frontend/src/projectionsPresentation.js`.
 
-On laptop widths (~1024px), move the summary below the hero or into a compact sticky footer. Do not squeeze the form into multi-line control rows. Mobile is a later pass for new chrome; do not destroy desktop hierarchy to fake a phone layout.
+On laptop widths (~1024px), move the summary below the hero or into a compact sticky footer. Do not squeeze the form into multi-line control rows. Do not destroy desktop hierarchy to fake a phone layout.
+
+### Phone chrome
+
+On phone, the header is the current destination. Destination switching uses one picker, not a scrolling tab strip. Account lives in More. Do not stack ScoreSense, a context label, section tabs, and page tabs. Filters stay as one icon when the board has filters. Live draft stays board-first.
 
 ---
 
