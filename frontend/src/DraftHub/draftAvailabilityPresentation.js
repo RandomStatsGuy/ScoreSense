@@ -6,10 +6,7 @@ export function availabilityHeading() {
   return "When can you draft?";
 }
 
-export function availabilitySupport({ state = "open", locked = false } = {}) {
-  if (locked) {
-    return "Draft night is locked. Mark other times only if it has to move.";
-  }
+export function availabilitySupport({ state = "open" } = {}) {
   if (state === "upcoming") {
     return "The shared calendar opens 31 days before the first NFL game. One place to mark nights that work.";
   }
@@ -19,8 +16,7 @@ export function availabilitySupport({ state = "open", locked = false } = {}) {
   return "Mark the evenings that work. Everyone sees the same calendar, so the room can pick a night that actually fills.";
 }
 
-export function availabilityChip({ state = "open", submitted = 0, teamCount = 0, locked = false } = {}) {
-  if (locked) return "Night locked";
+export function availabilityChip({ state = "open", submitted = 0, teamCount = 0 } = {}) {
   if (state === "upcoming") return "Opens soon";
   if (state === "closed") return "Closed";
   if (teamCount > 0 && submitted >= teamCount) return "Everyone marked";
@@ -62,20 +58,6 @@ export function availabilityHoursHint({ canEdit = false } = {}) {
   return canEdit
     ? "Tap the hours you can sit. Save when the night looks right."
     : "Hours other managers marked for this day.";
-}
-
-export function availabilityHoursGone() {
-  return "Tonight's hours have passed. Pick another night.";
-}
-
-export function availabilityLockLabel({ locked = false, locking = false } = {}) {
-  if (locking) return "Locking…";
-  if (locked) return "Locked in";
-  return "Lock this night";
-}
-
-export function availabilityLockHint() {
-  return "Lock the night that already has the room.";
 }
 
 export function availabilityLoading() {
@@ -178,66 +160,4 @@ export function peopleLine(people = []) {
   if (names.length === 1) return names[0];
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
   return `${names[0]}, ${names[1]}, and ${names.length - 2} more`;
-}
-
-export const DATE_STRIP_LIMIT = 14;
-
-export function preferDateStrip(dates = []) {
-  return Array.isArray(dates) && dates.length > 0 && dates.length <= DATE_STRIP_LIMIT;
-}
-
-export function isSlotCurrentOrFuture(date, hour, today, currentHour) {
-  const day = String(date || "");
-  const nowDay = String(today || "");
-  if (!day) return false;
-  if (!nowDay) return true;
-  if (day > nowDay) return true;
-  if (day < nowDay) return false;
-  if (currentHour == null || currentHour === "") return true;
-  return Number(hour) >= Number(currentHour);
-}
-
-export function visibleHoursForDate(date, hours = [], today, currentHour) {
-  return (hours || []).filter((hour) => isSlotCurrentOrFuture(date, hour, today, currentHour));
-}
-
-export function firstSelectableDate(dates = [], hours = [], today, currentHour) {
-  for (const iso of dates || []) {
-    if (visibleHoursForDate(iso, hours, today, currentHour).length) return iso;
-  }
-  return "";
-}
-
-export function calendarTodayIso(now = new Date(), timeZone) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timeZone || "UTC",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(now);
-  const get = (type) => parts.find((p) => p.type === type)?.value || "";
-  const year = get("year");
-  const month = get("month");
-  const day = get("day");
-  return year && month && day ? `${year}-${month}-${day}` : "";
-}
-
-export function slotToWall(date, hour) {
-  const day = String(date || "").slice(0, 10);
-  const clock = Number(hour);
-  if (!day || !Number.isFinite(clock)) return "";
-  return `${day}T${String(clock).padStart(2, "0")}:00`;
-}
-
-export function wallToSlot(wall) {
-  const raw = String(wall || "");
-  const [date, time = ""] = raw.split("T");
-  const hour = Number(String(time).slice(0, 2));
-  if (!date || !Number.isFinite(hour)) return null;
-  return { date, hour };
-}
-
-export function isSameSlot(left, right) {
-  if (!left || !right) return false;
-  return String(left.date) === String(right.date) && Number(left.hour) === Number(right.hour);
 }

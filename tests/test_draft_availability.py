@@ -42,9 +42,7 @@ def test_window_opens_31_days_before_and_closes_day_before():
     assert window["opens_on"] == "2026-08-10"
     assert window["closes_on"] == "2026-09-09"
     assert OPEN_DAYS_BEFORE == 31
-    assert window["today"] == "2026-08-20"
-    assert "2026-08-10" not in window["dates"]
-    assert "2026-08-20" in window["dates"]
+    assert "2026-08-10" in window["dates"]
     assert "2026-09-09" in window["dates"]
     assert "2026-09-10" not in window["dates"]
 
@@ -70,16 +68,16 @@ def test_validate_slots_rejects_outside_window():
         now=datetime(2026, 8, 20, 15, 0, tzinfo=timezone.utc),
         first_kickoff=_kickoff(),
     )
-    cleaned = validate_slots([{"date": "2026-08-22", "hour": 20}], window)
-    assert cleaned == [("2026-08-22", 20)]
+    cleaned = validate_slots([{"date": "2026-08-15", "hour": 20}], window)
+    assert cleaned == [("2026-08-15", 20)]
     assert validate_slots([{"date": "2026-09-10", "hour": 20}], window) == []
     kept = validate_slots(
-        [{"date": "2026-07-01", "hour": 20}, {"date": "2026-08-22", "hour": 20}],
+        [{"date": "2026-07-01", "hour": 20}, {"date": "2026-08-15", "hour": 20}],
         window,
     )
-    assert kept == [("2026-08-22", 20)]
+    assert kept == [("2026-08-15", 20)]
     try:
-        validate_slots([{"date": "2026-08-22", "hour": 3}], window)
+        validate_slots([{"date": "2026-08-15", "hour": 3}], window)
         raise AssertionError("overnight hour should reject")
     except ValueError as exc:
         assert "hour" in str(exc)
@@ -174,19 +172,3 @@ def test_stale_slots_do_not_block_save_or_count_as_marked(hub_db):
     )
     assert saved["mine"] == [{"date": "2026-08-22", "hour": 19}]
     assert saved["submitted"] == 1
-
-
-def test_window_hides_past_hours_on_today():
-    window = availability_window(
-        2026,
-        timezone_name="America/New_York",
-        now=datetime(2026, 8, 20, 22, 30, tzinfo=timezone.utc),
-        first_kickoff=_kickoff(),
-    )
-    assert window["today"] == "2026-08-20"
-    assert window["current_hour"] == 18
-    assert validate_slots([{"date": "2026-08-20", "hour": 16}], window) == []
-    assert validate_slots([{"date": "2026-08-20", "hour": 18}], window) == [("2026-08-20", 18)]
-    assert validate_slots([{"date": "2026-08-20", "hour": 12}, {"date": "2026-08-21", "hour": 12}], window) == [
-        ("2026-08-21", 12)
-    ]

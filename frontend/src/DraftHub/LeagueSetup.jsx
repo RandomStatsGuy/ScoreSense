@@ -10,7 +10,6 @@ import {
   browserTimeZone,
   utcIsoToWall,
 } from "./draftEntryStatus";
-import { calendarTodayIso } from "./draftAvailabilityPresentation";
 import DraftNightSchedule from "./DraftNightSchedule";
 import LeagueCreateJoinForm from "./LeagueCreateJoinForm";
 
@@ -232,7 +231,6 @@ export default function LeagueSetup({
             tzOptions={DRAFT_TZ_OPTIONS.includes(draftTz) ? DRAFT_TZ_OPTIONS : [draftTz, ...DRAFT_TZ_OPTIONS]}
             canEdit
             busy={busy}
-            minDate={calendarTodayIso(undefined, draftTz)}
             onSave={() => saveDraftNight(false)}
             onClear={() => saveDraftNight(true)}
           />

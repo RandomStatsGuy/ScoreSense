@@ -67,7 +67,7 @@ export function draftLobbyReadiness({
     {
       id: "schedule",
       tone: scheduled ? "ready" : "neutral",
-      label: scheduled ? "Draft night locked" : "Starts when the commissioner launches it",
+      label: scheduled ? "Draft night scheduled" : "Starts when the commissioner launches it",
     },
     {
       id: "access",
@@ -202,27 +202,10 @@ export function draftNightHeading() {
 
 export function draftNightSupport({ scheduled = false } = {}) {
   return scheduled
-    ? "This night is locked. The room can auto-start then. Unlock only if it has to move."
-    : "Lock a night from the overlaps, or set one here. The room can auto-start then.";
+    ? "Managers already see this time. You can still start earlier from the lobby."
+    : "Pick the night after you see the shared calendar. The room can auto-start then.";
 }
 
 export function draftNightEmpty() {
-  return "Not locked yet";
-}
-
-export function draftNightLockAction({ scheduled = false, busy = false } = {}) {
-  if (busy) return "Locking…";
-  return scheduled ? "Update locked night" : "Lock this night";
-}
-
-export function draftNightUnlockAction() {
-  return "Unlock";
-}
-
-export function draftNightChangeSummary() {
-  return "Change the locked night";
-}
-
-export function draftNightLockedChip() {
-  return "Locked";
+  return "Not scheduled yet";
 }

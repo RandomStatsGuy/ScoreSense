@@ -69,7 +69,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/DraftNightSchedule.jsx",
       "frontend/src/DraftHub/leagueAccessCopy.js",
     ],
-    doNot: "Idle Draft uses experience chrome. Live rooms do not. Calendar shows current and future times only. Lock draft night from an overlap; do not invent a second scheduler.",
+    doNot: "Idle Draft uses experience chrome. Live rooms do not.",
   }),
   "hub.room.live": S({
     label: "Draft (live)",
