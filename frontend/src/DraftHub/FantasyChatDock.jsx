@@ -1,7 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import LeagueChat from "./LeagueChat";
 import useMobileLayout from "../useMobileLayout";
-import { MOBILE_CHROME_COPY } from "../layout/mobileChromePresentation";
+import {
+  FANTASY_CHAT_COPY,
+  fantasyChatDockClass,
+  readChatLauncherDismissed,
+  writeChatLauncherDismissed,
+} from "./fantasyChatPresentation";
 
 function ChatIcon() {
   return (
@@ -19,77 +25,146 @@ function ChatIcon() {
 export default function FantasyChatDock({ leagueId, hubContext, hidden = false }) {
   const mobileLayout = useMobileLayout();
   const [open, setOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(readChatLauncherDismissed);
   const triggerRef = useRef(null);
   const closeRef = useRef(null);
+  const restoreRef = useRef(null);
+
+  const closeConversation = () => {
+    setOpen(false);
+  };
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (hidden) setOpen(false);
+  }, [hidden]);
+
+  const wasOpenRef = useRef(false);
+  useEffect(() => {
+    const wasOpen = wasOpenRef.current;
+    wasOpenRef.current = open;
+    if (!wasOpen || open || hidden) return;
+    const focusTarget = dismissed ? restoreRef.current : triggerRef.current;
+    focusTarget?.focus();
+  }, [open, dismissed, hidden]);
+
+  const dismissLauncher = () => {
+    setOpen(false);
+    setDismissed(true);
+    writeChatLauncherDismissed(true);
+  };
+
+  const restoreLauncher = () => {
+    setDismissed(false);
+    writeChatLauncherDismissed(false);
+  };
+
+  useEffect(() => {
+    if (!open || hidden) return undefined;
     const onKeyDown = (event) => {
       if (event.key !== "Escape") return;
-      setOpen(false);
-      triggerRef.current?.focus();
+      closeConversation();
     };
     document.addEventListener("keydown", onKeyDown);
     closeRef.current?.focus();
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open]);
 
-  if (!leagueId || hidden) return null;
+    const root = document.getElementById("root");
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    root?.setAttribute("inert", "");
 
-  return (
-    <div className={`fantasy-chat-dock${open ? " is-open" : ""}`}>
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = prevOverflow;
+      root?.removeAttribute("inert");
+    };
+  }, [open, dismissed, hidden]);
+
+  if (!leagueId || hidden || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className={fantasyChatDockClass({ open, dismissed })}>
       {open && (
-        <aside
-          id="fantasy-chat-drawer"
-          className="fantasy-chat-drawer"
-          role="dialog"
-          aria-modal="false"
-          aria-labelledby="fantasy-chat-title"
+        <div
+          className="fantasy-chat-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeConversation();
+          }}
         >
-          <header>
-            <div>
-              <span>League conversation</span>
-              <h2 id="fantasy-chat-title">{hubContext?.league_name || "League chat"}</h2>
-            </div>
-            <button
-              ref={closeRef}
-              type="button"
-              className="fantasy-chat-close"
-              aria-label="Close league chat"
-              onClick={() => {
-                setOpen(false);
-                triggerRef.current?.focus();
-              }}
-            >
-              ×
-            </button>
-          </header>
-          <p className="fantasy-chat-context">Stays with you while you move through Fantasy.</p>
-          <LeagueChat leagueId={leagueId} hubContext={hubContext} />
-        </aside>
+          <aside
+            id="fantasy-chat-stage"
+            className="fantasy-chat-stage"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="fantasy-chat-title"
+          >
+            <header>
+              <div>
+                <span>{FANTASY_CHAT_COPY.eyebrow}</span>
+                <h2 id="fantasy-chat-title">{hubContext?.league_name || FANTASY_CHAT_COPY.titleFallback}</h2>
+              </div>
+              <button
+                ref={closeRef}
+                type="button"
+                className="fantasy-chat-close"
+                aria-label={FANTASY_CHAT_COPY.closeChat}
+                onClick={closeConversation}
+              >
+                ×
+              </button>
+            </header>
+            <p className="fantasy-chat-context">{FANTASY_CHAT_COPY.context}</p>
+            <LeagueChat leagueId={leagueId} hubContext={hubContext} />
+          </aside>
+        </div>
       )}
-      <button
-        ref={triggerRef}
-        type="button"
-        className={`fantasy-chat-trigger${mobileLayout ? " fantasy-chat-trigger--icon" : ""}`}
-        aria-expanded={open}
-        aria-controls="fantasy-chat-drawer"
-        aria-label={open ? MOBILE_CHROME_COPY.closeChat : MOBILE_CHROME_COPY.openChat}
-        onClick={() => setOpen((current) => !current)}
-      >
-        <span className="fantasy-chat-pulse" aria-hidden="true" />
-        {mobileLayout ? (
+      {!open && dismissed && (
+        <button
+          ref={restoreRef}
+          type="button"
+          className="fantasy-chat-restore"
+          aria-label={FANTASY_CHAT_COPY.restoreLauncher}
+          onClick={restoreLauncher}
+        >
+          <span className="fantasy-chat-pulse" aria-hidden="true" />
           <ChatIcon />
-        ) : (
-          <>
-            <span>
-              <strong>{MOBILE_CHROME_COPY.leagueChat}</strong>
-              <small>{open ? "Close conversation" : "Open conversation"}</small>
-            </span>
-            <span aria-hidden="true">{open ? "↓" : "↑"}</span>
-          </>
-        )}
-      </button>
-    </div>
+        </button>
+      )}
+      {!open && !dismissed && (
+        <div className="fantasy-chat-launcher">
+          <button
+            ref={triggerRef}
+            type="button"
+            className={`fantasy-chat-trigger${mobileLayout ? " fantasy-chat-trigger--icon" : ""}`}
+            aria-expanded={open}
+            aria-controls="fantasy-chat-stage"
+            aria-label={FANTASY_CHAT_COPY.openChat}
+            onClick={() => setOpen(true)}
+          >
+            <span className="fantasy-chat-pulse" aria-hidden="true" />
+            {mobileLayout ? (
+              <ChatIcon />
+            ) : (
+              <>
+                <ChatIcon />
+                <span>
+                  <strong>{FANTASY_CHAT_COPY.leagueChat}</strong>
+                  <small>{FANTASY_CHAT_COPY.openConversation}</small>
+                </span>
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            className="fantasy-chat-dismiss"
+            aria-label={FANTASY_CHAT_COPY.dismissLauncher}
+            onClick={dismissLauncher}
+          >
+            ×
+          </button>
+        </div>
+      )}
+    </div>,
+    document.body,
   );
 }

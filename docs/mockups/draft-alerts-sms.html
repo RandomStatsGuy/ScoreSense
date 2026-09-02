@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Draft alerts · SMS opt-in and invites</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .flow {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.65rem; margin-top: 0.9rem;
+  }
+  .flow article {
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: var(--radius-md); padding: 0.75rem 0.8rem;
+  }
+  .flow .n { font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-muted); font-weight: 700; }
+  .flow h3 { margin: 0.2rem 0 0.25rem; font-size: 0.88rem; }
+  .flow p { margin: 0; font-size: 0.74rem; color: var(--text-muted); }
+  .two { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 1.2rem; }
+  .phones { display: flex; flex-direction: column; gap: 0.7rem; }
+  .toggle {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.55rem 0; border-bottom: 1px solid rgba(36,50,73,0.5);
+    font-size: 0.82rem;
+  }
+  .toggle:last-child { border-bottom: 0; }
+  .sw {
+    width: 2.1rem; height: 1.2rem; border-radius: 999px; background: #243249; position: relative;
+  }
+  .sw.on { background: #2f5d46; }
+  .sw::after {
+    content: ""; position: absolute; top: 0.14rem; left: 0.14rem;
+    width: 0.92rem; height: 0.92rem; border-radius: 50%; background: #eef3fb;
+  }
+  .sw.on::after { left: auto; right: 0.14rem; background: var(--tone-positive); }
+  .dont {
+    margin: 0.4rem 0 0; padding: 0; list-style: none;
+  }
+  .dont li {
+    padding: 0.45rem 0; border-bottom: 1px solid rgba(36,50,73,0.45);
+    font-size: 0.82rem; color: var(--text-secondary);
+  }
+  .dont b { color: var(--text-primary); }
+  .phone-frame {
+    width: 280px; margin: 0 auto;
+    background: #05080f; border: 1px solid var(--border-strong);
+    border-radius: 28px; padding: 0.85rem 0.75rem 1.1rem;
+  }
+  .phone-frame .notch {
+    width: 5.5rem; height: 0.35rem; border-radius: 999px; background: #1a2434; margin: 0 auto 0.7rem;
+  }
+  @media (max-width: 860px) {
+    .flow, .two { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>SMS &amp; invites</strong> <span>· works with A, B, or C</span></div>
+  <nav class="concept-nav">
+    <a href="draft-lobby-waiting.html">Chooser</a>
+    <a href="draft-lobby-today.html">Today</a>
+    <a href="draft-lobby-waiting-a.html">A · The Hour</a>
+    <a href="draft-lobby-waiting-b.html">B · War room</a>
+    <a href="draft-lobby-waiting-c.html">C · Check-in</a>
+    <a class="is-on" href="draft-alerts-sms.html">SMS &amp; invites</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span class="active">Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+
+  <section class="mock-hero">
+    <p class="mock-kicker">Draft · alerts</p>
+    <h1>Invites get people a team. Texts only go to people who asked.</h1>
+    <p class="support">
+      Keep the claim link in the group text. Add SMS as an account opt-in on Draft — never as a required field on the invite.
+      The checkbox starts empty. The number lives on the account, so every league you sit in can reuse it.
+    </p>
+    <div class="flow">
+      <article>
+        <div class="n">1 · Join</div>
+        <h3>Invite link</h3>
+        <p>Commissioner texts the claim URL. They make an account and pick a team. Email invite still locks one seat to one address.</p>
+      </article>
+      <article>
+        <div class="n">2 · Opt in</div>
+        <h3>Draft page</h3>
+        <p>After they have a seat, Draft offers texts. Unchecked consent. Number + timestamp stored on the account.</p>
+      </article>
+      <article>
+        <div class="n">3 · Hour</div>
+        <h3>Lobby opens</h3>
+        <p>At T–60, or when the commissioner taps Open lobby: email everyone, SMS only opted-in numbers, link lands on Draft.</p>
+      </article>
+      <article>
+        <div class="n">4 · Night</div>
+        <h3>Start</h3>
+        <p>T–15 and “the auction is live” to the same opted-in set. Your-turn texts wait until live room v2.</p>
+      </article>
+    </div>
+  </section>
+
+  <div class="two">
+    <div style="display:flex; flex-direction:column; gap:1.15rem;">
+      <section class="card">
+        <h3>On Draft — member view</h3>
+        <p class="note">Same card as the waiting-state rail. First time tonight, or from Account later.</p>
+        <div class="sms-card" style="margin-top:0.85rem;">
+          <h3 style="margin:0 0 0.25rem; font-size:1rem;">Text me for this draft</h3>
+          <p class="note">We will not text you unless this box is checked. You can turn it off here or on Account.</p>
+          <label style="display:block; font-size:0.72rem; color:var(--text-muted); margin:0.55rem 0 0.25rem;">Mobile number</label>
+          <input type="tel" placeholder="(555) 014-8821" />
+          <label class="consent">
+            <input type="checkbox" />
+            <span>I want ScoreSense to text this number when the lobby opens, 15 minutes before the scheduled start, and when the draft goes live. Message and data rates may apply. Reply STOP to cancel, HELP for help. Consent is not required to keep my seat.</span>
+          </label>
+          <div class="toggle"><span>Lobby opens (about an hour before)</span><span class="sw"></span></div>
+          <div class="toggle"><span>15 minutes before start</span><span class="sw"></span></div>
+          <div class="toggle"><span>Draft is live</span><span class="sw"></span></div>
+          <div class="toggle"><span>My turn to nominate <span style="color:var(--text-muted);">(later)</span></span><span class="sw"></span></div>
+          <button class="btn btn-primary btn-sm" style="margin-top:0.7rem;">Save alerts</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>What already exists vs what is new</h3>
+        <ul class="dont">
+          <li><b>Keep · Invite link.</b> Text it. They claim a team. This is how people join.</li>
+          <li><b>Keep · Member draft link.</b> For people already on the league. Walk into the room.</li>
+          <li><b>Keep · Email invite.</b> Locks one seat to one address when you need that.</li>
+          <li><b>Keep · Email managers.</b> Becomes “Ping the room” — email plus SMS to opted-in people.</li>
+          <li><b>New · Account phone.</b> Not in the product today. Needs Privacy + Terms lines.</li>
+          <li><b>Never · Phone on the invite form.</b> That looks like forced consent and mixes join with alerts.</li>
+          <li><b>Never · Text people who only have email.</b> No implied opt-in from a league invite.</li>
+        </ul>
+      </section>
+    </div>
+
+    <div class="phones">
+      <section class="card">
+        <h3>The texts</h3>
+        <p class="note">Short. Named league. Link to Draft. ScoreSense, not Draft Hub.</p>
+        <div class="bubble" style="margin-top:0.75rem;">
+          <div class="from">ScoreSense</div>
+          Bottom to Top lobby is open. Draft in 60 min.<br />
+          <a>app.fourthdownlabs.com/hub/draft</a><br />
+          Reply STOP to quit.
+        </div>
+        <div class="bubble">
+          <div class="from">ScoreSense</div>
+          Bottom to Top starts in 15 min. Same link.
+        </div>
+        <div class="bubble">
+          <div class="from">ScoreSense</div>
+          The auction is live.
+        </div>
+      </section>
+
+      <div class="phone-frame">
+        <div class="notch"></div>
+        <p class="clock-cap">Account · alerts</p>
+        <h3 style="margin:0.25rem 0 0.4rem; font-size:1.05rem;">Draft texts</h3>
+        <p class="note">Linked to Maya Chen · ••••8821</p>
+        <div class="toggle">On for this account <span class="sw on"></span></div>
+        <div class="toggle">Lobby open <span class="sw on"></span></div>
+        <div class="toggle">15-minute warning <span class="sw on"></span></div>
+        <div class="toggle">Draft is live <span class="sw on"></span></div>
+        <p class="note" style="margin-top:0.7rem;">Applies to every league you sit in. Turn a league off from that Draft page.</p>
+        <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:0.55rem;">Remove number</button>
+      </div>
+    </div>
+  </div>
+
+  <section class="card" style="margin-top:1.2rem;">
+    <h3>If we do SMS, do it this way</h3>
+    <p class="note" style="max-width:46rem;">
+      Express written consent (unchecked box + the sentence they agreed to + timestamp).
+      Store the number on the account, not the team.
+      Commissioner “Ping the room” never invents numbers from a spreadsheet.
+      Open the waiting lobby at T–60 automatically when a night is scheduled; otherwise only when the commissioner opens it.
+      Late joiners still use the invite link during the hour.
+      Privacy policy must name phone number and SMS vendor before this ships.
+    </p>
+  </section>
+
+  <p class="footnote">Alerts mockup — not a new destination. Lives on Draft + Account. No SMS in the repo today.</p>
+</div>
+</body>
+</html>

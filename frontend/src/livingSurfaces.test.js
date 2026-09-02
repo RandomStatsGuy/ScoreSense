@@ -62,3 +62,8 @@ test("shared mobile chrome resolves from the header files", () => {
   const hits = surfacesForFile("frontend/src/layout/MobileHeader.jsx");
   assert.equal(hits[0].id, "shared");
 });
+
+test("shared chat chrome resolves from the dock and copy module", () => {
+  assert.equal(surfacesForFile("frontend/src/DraftHub/FantasyChatDock.jsx")[0].id, "shared");
+  assert.equal(surfacesForFile("frontend/src/DraftHub/fantasyChatPresentation.js")[0].id, "shared");
+});

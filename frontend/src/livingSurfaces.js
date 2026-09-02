@@ -25,7 +25,10 @@ export const SHARED = Object.freeze({
   primitives: "frontend/src/DraftHub/HubUILayout.jsx",
   media: "frontend/src/DraftHub/HubMediaImg.jsx",
   ownerLabel: "frontend/src/DraftHub/hubTeamLabel.js",
-  chat: "frontend/src/DraftHub/FantasyChatDock.jsx",
+  chat: [
+    "frontend/src/DraftHub/FantasyChatDock.jsx",
+    "frontend/src/DraftHub/fantasyChatPresentation.js",
+  ],
   mobile: [
     "frontend/src/layout/MobileShell.jsx",
     "frontend/src/layout/MobileHeader.jsx",
@@ -128,7 +131,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "office",
     page: "frontend/src/DraftHub/LeagueOffice.jsx",
     also: ["frontend/src/DraftHub/hubOfficeTabs.js"],
-    doNot: "Chat is FantasyChatDock, not an office pane. Do not add a Chat tab.",
+    doNot: "Chat is FantasyChatDock: a viewport-fixed edge launcher that opens a centered conversation. Not an office pane. Do not add a Chat tab.",
   }),
   "hub.office.current": S({
     label: "Contracts",

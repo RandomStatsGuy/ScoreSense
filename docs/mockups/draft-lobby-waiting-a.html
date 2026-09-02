@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Draft waiting · A The Hour</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .hour-hero { padding-bottom: 1.7rem; }
+  .hour-top {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1.5rem; align-items: end;
+  }
+  .here-line { margin: 1.15rem 0 0; font-size: 0.82rem; color: var(--text-secondary); }
+  .here-line b { color: var(--text-primary); }
+  .hour-clock { text-align: right; }
+  .hour-clock .clock { color: var(--text-primary); }
+  .main-stack { display: flex; flex-direction: column; gap: 1.15rem; }
+  .order-strip { display: flex; gap: 0.4rem; overflow-x: auto; margin-top: 0.7rem; padding-bottom: 0.15rem; }
+  .order-pill {
+    min-width: 7.4rem; border-radius: 12px; padding: 0.45rem 0.55rem;
+    background: var(--bg-subtle); border: 1px solid var(--border); font-size: 0.72rem;
+  }
+  .order-pill .n { color: var(--text-muted); font-size: 0.62rem; }
+  .order-pill.is-you { border-color: var(--accent); background: var(--accent-soft); }
+  .order-pill.is-open { opacity: 0.55; }
+  .queue-mini li { grid-template-columns: 1.2rem 1.8rem minmax(0,1fr) auto; }
+  .you-are {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 0.8rem; font-size: 0.8rem; color: var(--text-secondary);
+  }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>A · The Hour</strong> <span>· hangout first · recommended default</span></div>
+  <nav class="concept-nav">
+    <a href="draft-lobby-waiting.html">Chooser</a>
+    <a href="draft-lobby-today.html">Today</a>
+    <a class="is-on" href="draft-lobby-waiting-a.html">A · The Hour</a>
+    <a href="draft-lobby-waiting-b.html">B · War room</a>
+    <a href="draft-lobby-waiting-c.html">C · Check-in</a>
+    <a href="draft-alerts-sms.html">SMS &amp; invites</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span class="active">Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+
+  <nav class="mock-subnav">
+    <span class="mock-subnav-group-label">Draft</span>
+    <span class="mock-tab">Strategy</span>
+    <span class="mock-tab active">Draft</span>
+    <span class="mock-subnav-group-label">Team</span>
+    <span class="mock-tab">This Week</span>
+    <span class="mock-tab">My team</span>
+  </nav>
+
+  <div class="mock-league-strip">
+    <span class="lg-name">Bottom to Top: Dominate Your Panda</span>
+    <span>Lobby open · auction</span>
+    <span class="mock-team-mark"><span class="tm" style="background:#274b86;color:#bcd4ff;">MC</span> Maya Chen</span>
+    <span class="spacer"></span>
+    <span class="mock-pill mock-pill--ok">9 here</span>
+  </div>
+
+  <section class="mock-hero hour-hero">
+    <p class="mock-kicker">Draft lobby · the hour</p>
+    <span class="mock-hero-chip mock-pill mock-pill--accent">Lobby open</span>
+    <div class="hour-top">
+      <div>
+        <h1>The room is open. Draft in 47 minutes.</h1>
+        <p class="support">Hang out. Talk. Line up three names if you want. Chris can still start early.</p>
+      </div>
+      <div class="hour-clock">
+        <div class="clock-cap">Starts</div>
+        <div class="clock clock-lg">47:12</div>
+        <div class="note" style="margin-top:0.35rem;">Sun 7:00 p.m. ET</div>
+      </div>
+    </div>
+    <p class="here-line"><b>9 of 12 here.</b> Alex is late. Two seats still open.</p>
+    <div class="presence-row" style="margin-top:0.75rem;">
+      <span class="presence-chip is-here is-you"><span class="av" style="background:#1a3358;color:#bcd4ff;">MC</span> Maya Chen <span class="st"></span></span>
+      <span class="presence-chip is-here"><span class="av" style="background:#173a34;color:#9ff0cf;">CP</span> Chris Patel <span class="st"></span></span>
+      <span class="presence-chip is-here"><span class="av" style="background:#3f2f68;color:#cbb8ff;">JH</span> Jordan Hale <span class="st"></span></span>
+      <span class="presence-chip is-here"><span class="av" style="background:#5b2430;color:#ffb8c4;">SR</span> Sam Ruiz <span class="st"></span></span>
+      <span class="presence-chip is-late"><span class="av" style="background:#3a2a14;color:#fde68a;">AK</span> Alex Kim <span class="st"></span></span>
+      <span class="presence-chip is-here"><span class="av" style="background:#173a4a;color:#a4ddf5;">RB</span> Riley Brooks <span class="st"></span></span>
+      <span class="presence-chip is-here"><span class="av" style="background:#2c3a20;color:#c9edaa;">DN</span> Drew Nguyen <span class="st"></span></span>
+      <span class="presence-chip is-here"><span class="av" style="background:#37272d;color:#e7b8c8;">PS</span> Priya Shah <span class="st"></span></span>
+      <span class="presence-chip"><span class="av" style="background:#121d2d;color:#7f8fa5;">MW</span> Marcus Webb <span class="st"></span></span>
+      <span class="presence-chip is-here"><span class="av" style="background:#274b86;color:#bcd4ff;">TQ</span> Taylor Quinn <span class="st"></span></span>
+      <span class="presence-chip is-open"><span class="av" style="background:#121d2d;color:#7f8fa5;">—</span> Open</span>
+      <span class="presence-chip is-open"><span class="av" style="background:#121d2d;color:#7f8fa5;">—</span> Open</span>
+    </div>
+  </section>
+
+  <div class="mock-cols">
+    <main class="main-stack">
+      <section class="card">
+        <h3>Room chat</h3>
+        <p class="note">This is the hangout. League chat stays with you after the draft too.</p>
+        <div class="chat-log">
+          <div class="chat-msg">
+            <span class="av" style="background:#173a34;color:#9ff0cf;">CP</span>
+            <div>
+              <div><span class="who">Chris Patel</span><span class="when">6:11 p.m.</span></div>
+              <p>Lobby’s open. I’m not starting until 7 unless we’re all here and bored.</p>
+            </div>
+          </div>
+          <div class="chat-msg">
+            <span class="av" style="background:#5b2430;color:#ffb8c4;">SR</span>
+            <div>
+              <div><span class="who">Sam Ruiz</span><span class="when">6:13 p.m.</span></div>
+              <p>Jeanty going early, calling it. Don’t @ me.</p>
+            </div>
+          </div>
+          <div class="chat-msg">
+            <span class="av" style="background:#1a3358;color:#bcd4ff;">MC</span>
+            <div>
+              <div><span class="who">Maya Chen</span><span class="when">6:14 p.m.</span></div>
+              <p>Queue is three deep. Grabbing food — back before first nom.</p>
+            </div>
+          </div>
+          <div class="chat-msg">
+            <span class="av" style="background:#3f2f68;color:#cbb8ff;">JH</span>
+            <div>
+              <div><span class="who">Jordan Hale</span><span class="when">6:16 p.m.</span></div>
+              <p>Alex said 6:40. Leave the two opens — invite’s in the group text.</p>
+            </div>
+          </div>
+        </div>
+        <div class="chat-compose">
+          <input value="Save me a late TE…" readonly />
+          <button class="btn btn-primary btn-sm">Send</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Nomination order</h3>
+        <p class="note">Who nominates first. Claim a spot or leave it open — same rule as today.</p>
+        <div class="order-strip">
+          <div class="order-pill"><div class="n">1</div>Sam Ruiz</div>
+          <div class="order-pill"><div class="n">2</div>Chris Patel</div>
+          <div class="order-pill is-you"><div class="n">3</div>Maya Chen · You</div>
+          <div class="order-pill"><div class="n">4</div>Jordan Hale</div>
+          <div class="order-pill is-open"><div class="n">5</div>Open</div>
+          <div class="order-pill"><div class="n">6</div>Riley Brooks</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Your first three noms</h3>
+        <p class="note">Optional. When the room starts, this is the order you nominate from.</p>
+        <ol class="queue-list queue-mini">
+          <li>
+            <span class="n">1</span>
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11563.jpg" />
+            <div><div class="nm">Ashton Jeanty</div><div class="meta">RB · LV</div></div>
+            <span class="val">$41</span>
+          </li>
+          <li>
+            <span class="n">2</span>
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11632.jpg" />
+            <div><div class="nm">Malik Nabers</div><div class="meta">WR · NYG</div></div>
+            <span class="val">$38</span>
+          </li>
+          <li>
+            <span class="n">3</span>
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/8155.jpg" />
+            <div><div class="nm">Breece Hall</div><div class="meta">RB · NYJ</div></div>
+            <span class="val">$36</span>
+          </li>
+        </ol>
+        <p class="note" style="margin-top:0.65rem;"><a href="draft-lobby-waiting-b.html" style="color:var(--accent-muted);">Open the full board →</a></p>
+      </section>
+    </main>
+
+    <aside class="mock-rail">
+      <section class="card">
+        <p class="clock-cap">At a glance</p>
+        <h3>Bottom to Top</h3>
+        <div class="facts">
+          <div class="fact">Here now <strong>9 / 12</strong></div>
+          <div class="fact">Your nom <strong>#3</strong></div>
+          <div class="fact">Cap <strong>$200</strong></div>
+          <div class="fact">Format <strong>Auction</strong></div>
+        </div>
+        <div class="you-are"><span>You are checked in.</span><span style="color:var(--tone-positive); font-weight:700;">Here</span></div>
+        <button class="btn btn-primary" style="width:100%; margin-top:0.85rem;">Start live draft</button>
+        <p class="note" style="margin-top:0.45rem;">Commissioner only. The room is not full — starting now leaves two opens.</p>
+        <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:0.5rem;">Ping the room</button>
+      </section>
+
+      <section class="sms-card">
+        <h3 style="margin:0 0 0.25rem; font-size:0.95rem;">Text me for this draft</h3>
+        <p class="note">Number stays on your account. Unchecked until you say yes.</p>
+        <input type="tel" placeholder="Mobile number" value="" />
+        <label class="consent">
+          <input type="checkbox" />
+          <span>Text me when the lobby opens, 15 minutes before start, and when the auction goes live. Reply STOP to quit. Message and data rates may apply.</span>
+        </label>
+        <button class="btn btn-ghost btn-sm">Save alerts</button>
+      </section>
+    </aside>
+  </div>
+
+  <p class="footnote">Concept A — presence and chat carry the hour. Queue is optional. Setup calendar is gone once the lobby opens.</p>
+</div>
+</body>
+</html>

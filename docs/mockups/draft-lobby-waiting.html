@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Draft waiting state · choose an experience</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .chooser-hero h1 { font-size: 2.1rem; }
+  .phase {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem;
+    margin: 1.2rem 0 0;
+  }
+  .phase article {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 0.95rem;
+  }
+  .phase .when { font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-muted); font-weight: 700; }
+  .phase h3 { margin: 0.25rem 0 0.2rem; font-size: 0.95rem; }
+  .phase p { margin: 0; font-size: 0.76rem; color: var(--text-muted); }
+  .phase .is-new { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .concepts { display: grid; grid-template-columns: 1fr; gap: 1.1rem; }
+  .concept {
+    display: grid; grid-template-columns: minmax(11rem, 16rem) minmax(0, 1fr) auto;
+    gap: 1.1rem; align-items: center;
+    text-decoration: none; color: inherit;
+    padding: 1.1rem 1.2rem;
+  }
+  .concept:hover { border-color: var(--border-strong); }
+  .concept-thumb {
+    width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: top;
+    border-radius: 12px; border: 1px solid var(--border);
+    background: var(--bg-subtle);
+  }
+  .letter {
+    width: 100%; aspect-ratio: 16 / 10; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; font-weight: 800; letter-spacing: -0.03em;
+  }
+  .letter-a { background: linear-gradient(150deg, #1a3358, #122033); color: #bcd4ff; }
+  .letter-b { background: linear-gradient(150deg, #173a34, #102028); color: #9ff0cf; }
+  .letter-c { background: linear-gradient(150deg, #3a2a14, #1c1710); color: #fde68a; }
+  .letter-s { background: linear-gradient(150deg, #274b86, #142543); color: #bcd4ff; }
+  .letter-t { background: var(--bg-subtle); color: var(--text-muted); border: 1px dashed var(--border-strong); }
+  .concept h3 { margin: 0 0 0.2rem; font-size: 1.08rem; }
+  .concept p { margin: 0; color: var(--text-secondary); font-size: 0.84rem; }
+  .concept .fit { margin-top: 0.4rem; font-size: 0.72rem; color: var(--text-muted); }
+  .pick { color: var(--accent-muted); font-size: 0.8rem; font-weight: 650; white-space: nowrap; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  .rule { margin: 0.55rem 0 0; padding: 0; list-style: none; }
+  .rule li {
+    padding: 0.45rem 0; border-bottom: 1px solid rgba(36,50,73,0.5);
+    font-size: 0.82rem; color: var(--text-secondary);
+  }
+  .rule li:last-child { border-bottom: 0; }
+  .rule b { color: var(--text-primary); }
+  @media (max-width: 760px) {
+    .phase, .split { grid-template-columns: 1fr; }
+    .concept { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>Draft waiting state</strong> <span>· design review · not shipped</span></div>
+  <nav class="concept-nav">
+    <a class="is-on" href="draft-lobby-waiting.html">Chooser</a>
+    <a href="draft-lobby-today.html">Today</a>
+    <a href="draft-lobby-waiting-a.html">A · The Hour</a>
+    <a href="draft-lobby-waiting-b.html">B · War room</a>
+    <a href="draft-lobby-waiting-c.html">C · Check-in</a>
+    <a href="draft-alerts-sms.html">SMS &amp; invites</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span class="active">Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+
+  <section class="mock-hero chooser-hero">
+    <p class="mock-kicker">Design review · Draft</p>
+    <h1>Make the hour before the draft worth sitting in.</h1>
+    <p class="support">
+      Today Draft is a setup page: calendar, invite links, seats. That still matters weeks out.
+      The missing state is the hangout — chat, presence, and lining up your board — once the night is real.
+      Pick the room that feels like ScoreSense. SMS is a separate opt-in, not the invite.
+    </p>
+    <div class="phase">
+      <article>
+        <div class="when">Until T–60</div>
+        <h3>Setup · keep</h3>
+        <p>Availability calendar, schedule the night, claim seats, text the invite link. What Draft is now.</p>
+      </article>
+      <article class="is-new">
+        <div class="when">T–60 → start</div>
+        <h3>Waiting · new</h3>
+        <p>Lobby opens. People show up, talk, order their board. Commissioner can still start early.</p>
+      </article>
+      <article>
+        <div class="when">Live</div>
+        <h3>Draft room · keep</h3>
+        <p>Board-first auction or snake. Do not wrap this in setup chrome.</p>
+      </article>
+    </div>
+  </section>
+
+  <div class="concepts">
+    <a class="card concept" href="draft-lobby-today.html">
+      <div class="letter letter-t">Now</div>
+      <div>
+        <h3>Today’s lobby</h3>
+        <p>Experience chrome: calendar, draft night, who is in, nomination order, invite rail. Useful for staffing the league. Dead as a hangout.</p>
+        <p class="fit">Baseline — not a candidate.</p>
+      </div>
+      <span class="pick">Open →</span>
+    </a>
+
+    <a class="card concept" href="draft-lobby-waiting-a.html">
+      <img class="concept-thumb" alt="Concept A frame" src="frames/draft-lobby-concept-a-hour.png" />
+      <div>
+        <h3>The Hour</h3>
+        <p>Countdown and who’s here lead. Chat is on the page, not only in the dock. Nomination order stays a thin strip. Queue three names if you want — the room is the point.</p>
+        <p class="fit">Best if the night is social first. Closest to “fun to hang out.”</p>
+      </div>
+      <span class="pick">Open →</span>
+    </a>
+
+    <a class="card concept" href="draft-lobby-waiting-b.html">
+      <img class="concept-thumb" alt="Concept B frame" src="frames/draft-lobby-concept-b-war-room.png" />
+      <div>
+        <h3>War room</h3>
+        <p>Your nomination queue is the canvas. Drag players, see values, leave chat and presence on the rail. Same hour window, more control.</p>
+        <p class="fit">Best if people already talk in the group text and want to use the hour to set a board.</p>
+      </div>
+      <span class="pick">Open →</span>
+    </a>
+
+    <a class="card concept" href="draft-lobby-waiting-c.html">
+      <img class="concept-thumb" alt="Concept C frame" src="frames/draft-lobby-concept-c-checkin.png" />
+      <div>
+        <h3>Check-in</h3>
+        <p>Arrival is the ritual. “I’m here” is the next action. First-run SMS sits on the page. The room fills as people tap in. Chat and a short queue follow.</p>
+        <p class="fit">Best if late arrivals are the pain, and you want alerts to land on a clear moment.</p>
+      </div>
+      <span class="pick">Open →</span>
+    </a>
+
+    <a class="card concept" href="draft-alerts-sms.html">
+      <img class="concept-thumb" alt="SMS alerts frame" src="frames/draft-alerts-sms-optin.png" />
+      <div>
+        <h3>Invites, alerts, and SMS opt-in</h3>
+        <p>How the claim link, member room link, email ping, and a new account-linked text stay separate. Unchecked consent. Number lives on the account.</p>
+        <p class="fit">Works with A, B, or C. Do not ship texts without this.</p>
+      </div>
+      <span class="pick">Open →</span>
+    </a>
+  </div>
+
+  <div class="split" style="margin-top:1.4rem;">
+    <section class="card">
+      <h3>What I would ship</h3>
+      <p class="note">Recommendation if you want one default.</p>
+      <p style="margin:0.7rem 0 0; font-size:0.88rem; color:var(--text-secondary);">
+        <b style="color:var(--text-primary);">A · The Hour</b> as the waiting surface,
+        with B’s queue as a section you can open (not the whole page),
+        and C’s “I’m here” plus SMS card in the rail.
+        Setup stays the Draft page until T–60 or the commissioner taps Open lobby.
+      </p>
+    </section>
+    <section class="card">
+      <h3>Hard lines</h3>
+      <ul class="rule">
+        <li><b>SMS is never an invite.</b> People still claim a team with the link.</li>
+        <li><b>Opt-in is unchecked.</b> Number links to the account, not the league.</li>
+        <li><b>Live draft stays board-first.</b> The hangout ends when the room starts.</li>
+        <li><b>Owner names lead.</b> Team nicknames sit underneath.</li>
+      </ul>
+    </section>
+  </div>
+
+  <p class="footnote">Design mockups — Fantasy · Draft waiting state. Tokens only. Nothing here ships.</p>
+</div>
+</body>
+</html>

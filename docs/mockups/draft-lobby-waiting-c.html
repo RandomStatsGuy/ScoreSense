@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Draft waiting · C Check-in</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .check-hero { padding-bottom: 1.6rem; }
+  .check-grid {
+    display: grid; grid-template-columns: minmax(0, 1.2fr) 280px;
+    gap: 1.4rem; align-items: center; margin-top: 0.4rem;
+  }
+  .arrive {
+    display: flex; flex-direction: column; gap: 0.7rem;
+    padding: 1rem 1.05rem;
+    border-radius: var(--radius-lg);
+    background: rgba(8,14,24,0.45);
+    border: 1px solid var(--border);
+  }
+  .seats-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin-top: 0.75rem;
+  }
+  .seat {
+    display: flex; align-items: center; gap: 0.55rem;
+    padding: 0.5rem 0.55rem; border-radius: 12px;
+    background: var(--bg-subtle); border: 1px solid var(--border);
+  }
+  .seat .av {
+    width: 2rem; height: 2rem; border-radius: 10px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.68rem; font-weight: 800;
+  }
+  .seat .nm { font-size: 0.8rem; font-weight: 650; }
+  .seat .meta { font-size: 0.66rem; color: var(--text-muted); }
+  .seat.is-you { border-color: var(--accent); background: var(--accent-soft); }
+  .seat.is-late { border-color: rgba(251,191,36,0.35); }
+  .seat.is-open { opacity: 0.55; }
+  .dot-here { color: var(--tone-positive); font-weight: 700; }
+  .dot-late { color: var(--tone-caution); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>C · Check-in</strong> <span>· arrival ritual · alerts land here</span></div>
+  <nav class="concept-nav">
+    <a href="draft-lobby-waiting.html">Chooser</a>
+    <a href="draft-lobby-today.html">Today</a>
+    <a href="draft-lobby-waiting-a.html">A · The Hour</a>
+    <a href="draft-lobby-waiting-b.html">B · War room</a>
+    <a class="is-on" href="draft-lobby-waiting-c.html">C · Check-in</a>
+    <a href="draft-alerts-sms.html">SMS &amp; invites</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span class="active">Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+
+  <nav class="mock-subnav">
+    <span class="mock-tab">Strategy</span>
+    <span class="mock-tab active">Draft</span>
+    <span class="mock-tab">This Week</span>
+    <span class="mock-tab">My team</span>
+  </nav>
+
+  <div class="mock-league-strip">
+    <span class="lg-name">Bottom to Top: Dominate Your Panda</span>
+    <span>Lobby just opened</span>
+    <span class="spacer"></span>
+    <span class="mock-pill mock-pill--accent">T–60</span>
+  </div>
+
+  <section class="mock-hero check-hero">
+    <p class="mock-kicker">Draft lobby · check-in</p>
+    <div class="check-grid">
+      <div>
+        <h1>The lobby opened. Tell the room you’re sitting down.</h1>
+        <p class="support">Chris scheduled 7:00. The hour starts now. Check in so late people aren’t guessing who’s actually here.</p>
+      </div>
+      <div class="arrive">
+        <div class="clock-cap">Starts in</div>
+        <div class="clock clock-md">59:08</div>
+        <button class="btn btn-primary">I’m here</button>
+        <p class="note">You are signed in as Maya Chen. This is not a seat claim — you already have a team.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="mock-cols">
+    <main style="display:flex; flex-direction:column; gap:1.15rem;">
+      <section class="card">
+        <h3>Who has sat down</h3>
+        <p class="note">Owner names. A tap on I’m here is the only status that counts as present.</p>
+        <div class="seats-grid">
+          <div class="seat"><span class="av" style="background:#173a34;color:#9ff0cf;">CP</span><div><div class="nm">Chris Patel</div><div class="meta"><span class="dot-here">Here</span> · Host</div></div></div>
+          <div class="seat is-you"><span class="av" style="background:#274b86;color:#bcd4ff;">MC</span><div><div class="nm">Maya Chen</div><div class="meta">You · not checked in</div></div></div>
+          <div class="seat"><span class="av" style="background:#5b2430;color:#ffb8c4;">SR</span><div><div class="nm">Sam Ruiz</div><div class="meta"><span class="dot-here">Here</span> · Nom 1</div></div></div>
+          <div class="seat"><span class="av" style="background:#3f2f68;color:#cbb8ff;">JH</span><div><div class="nm">Jordan Hale</div><div class="meta"><span class="dot-here">Here</span></div></div></div>
+          <div class="seat is-late"><span class="av" style="background:#3a2a14;color:#fde68a;">AK</span><div><div class="nm">Alex Kim</div><div class="meta"><span class="dot-late">Said 6:40</span></div></div></div>
+          <div class="seat"><span class="av" style="background:#173a4a;color:#a4ddf5;">RB</span><div><div class="nm">Riley Brooks</div><div class="meta"><span class="dot-here">Here</span></div></div></div>
+          <div class="seat is-open"><span class="av">—</span><div><div class="nm">Open seat</div><div class="meta">Invite still out</div></div></div>
+          <div class="seat is-open"><span class="av">—</span><div><div class="nm">Open seat</div><div class="meta">Invite still out</div></div></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Room chat</h3>
+        <div class="chat-log">
+          <div class="chat-msg">
+            <span class="av" style="background:#173a34;color:#9ff0cf;">CP</span>
+            <div>
+              <div><span class="who">Chris Patel</span><span class="when">6:00 p.m.</span></div>
+              <p>Lobby ping just went out. Check in when you’re at a keyboard.</p>
+            </div>
+          </div>
+          <div class="chat-msg">
+            <span class="av" style="background:#5b2430;color:#ffb8c4;">SR</span>
+            <div>
+              <div><span class="who">Sam Ruiz</span><span class="when">6:02 p.m.</span></div>
+              <p>Here. Beer’s open.</p>
+            </div>
+          </div>
+        </div>
+        <div class="chat-compose">
+          <input placeholder="Message the room" readonly />
+          <button class="btn btn-ghost btn-sm">Send</button>
+        </div>
+      </section>
+    </main>
+
+    <aside class="mock-rail">
+      <section class="sms-card">
+        <p class="clock-cap">First visit tonight</p>
+        <h3 style="margin:0.25rem 0;">Get a text next time</h3>
+        <p class="note">This is why you got the email. Texts only if you ask. Number links to your ScoreSense account — every league you sit in can use it.</p>
+        <input type="tel" placeholder="(555) 014-8821" />
+        <label class="consent">
+          <input type="checkbox" />
+          <span>Text me when this league’s lobby opens, 15 minutes before the scheduled start, and when the draft goes live. I can turn this off on Draft or Account. Reply STOP to quit. Message and data rates may apply.</span>
+        </label>
+        <div style="display:flex; gap:0.4rem;">
+          <button class="btn btn-primary btn-sm">Turn on texts</button>
+          <button class="btn btn-ghost btn-sm">Not now</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Draft setup</h3>
+        <div class="facts">
+          <div class="fact">Checked in <strong>5 / 12</strong></div>
+          <div class="fact">Seated <strong>10 / 12</strong></div>
+          <div class="fact">Night <strong>Sun 7:00 p.m.</strong></div>
+        </div>
+        <button class="btn btn-ghost" style="width:100%; margin-top:0.8rem;">Start live draft</button>
+        <p class="note" style="margin-top:0.4rem;">Chris can start early. Start stays secondary until people have checked in.</p>
+      </section>
+    </aside>
+  </div>
+
+  <p class="footnote">Concept C — the first minute is a check-in. SMS consent is on the page, not buried. After you’re here, this can become A or B.</p>
+</div>
+</body>
+</html>

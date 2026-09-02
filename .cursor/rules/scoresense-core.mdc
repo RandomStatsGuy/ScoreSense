@@ -35,7 +35,7 @@ Use these labels. Keep internal ids if they already exist.
 | Roster management | `office` | Office, Commissioner |
 | Model accuracy | `model` | Accuracy tab |
 
-Roster management panes: Contracts, Salary sheets, Members, Access & imports. Members is where staff add or remove a franchise before the next auction. Chat is `FantasyChatDock`, not a pane.
+Roster management panes: Contracts, Salary sheets, Members, Access & imports. Members is where staff add or remove a franchise before the next auction. Chat is `FantasyChatDock`: a viewport-fixed edge launcher that opens a centered conversation. Not a pane.
 
 Source: `frontend/src/DraftHub/HubSubnav.jsx`, `frontend/src/appNavigation.js`.
 
