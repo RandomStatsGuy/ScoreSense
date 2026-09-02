@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Draft lobby · today (setup)</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.35rem; margin-top: 0.8rem; }
+  .cal b { font-size: 0.62rem; color: var(--text-muted); text-align: center; font-weight: 600; }
+  .day {
+    height: 2.1rem; border-radius: 8px; background: var(--bg-subtle);
+    border: 1px solid var(--border); font-size: 0.7rem; color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .day.hot { background: rgba(52,211,153,0.16); color: var(--tone-positive); border-color: rgba(52,211,153,0.35); }
+  .day.pick { background: var(--accent-soft); color: var(--accent-muted); border-color: var(--accent); }
+  .seats { list-style: none; margin: 0.7rem 0 0; padding: 0; }
+  .seats li {
+    display: flex; justify-content: space-between; padding: 0.48rem 0;
+    border-bottom: 1px solid rgba(36,50,73,0.5); font-size: 0.84rem;
+  }
+  .seats .meta { color: var(--text-muted); font-size: 0.72rem; }
+  .slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.45rem; margin-top: 0.7rem; }
+  .slot {
+    border: 1px solid var(--border); border-radius: 12px; padding: 0.45rem 0.5rem;
+    background: var(--bg-subtle); font-size: 0.72rem;
+  }
+  .slot .n { color: var(--text-muted); font-size: 0.64rem; }
+  .ready li { font-size: 0.8rem; color: var(--text-secondary); margin: 0.35rem 0; }
+  .ready li::before { content: ""; display: inline-block; width: 0.4rem; height: 0.4rem; border-radius: 50%; margin-right: 0.45rem; background: var(--tone-caution); }
+  .linkrow { display: flex; gap: 0.4rem; margin-top: 0.4rem; }
+  .linkrow input {
+    flex: 1; border-radius: 10px; border: 1px solid var(--border-strong);
+    background: var(--bg-base); color: var(--text-secondary); padding: 0.4rem 0.6rem; font-size: 0.74rem;
+  }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>Today</strong> <span>· setup lobby · baseline</span></div>
+  <nav class="concept-nav">
+    <a href="draft-lobby-waiting.html">Chooser</a>
+    <a class="is-on" href="draft-lobby-today.html">Today</a>
+    <a href="draft-lobby-waiting-a.html">A · The Hour</a>
+    <a href="draft-lobby-waiting-b.html">B · War room</a>
+    <a href="draft-lobby-waiting-c.html">C · Check-in</a>
+    <a href="draft-alerts-sms.html">SMS &amp; invites</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span class="active">Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+
+  <nav class="mock-subnav">
+    <span class="mock-subnav-group-label">Draft</span>
+    <span class="mock-tab">Strategy</span>
+    <span class="mock-tab active">Draft</span>
+    <span class="mock-subnav-group-label">Team</span>
+    <span class="mock-tab">This Week</span>
+    <span class="mock-tab">My team</span>
+    <span class="mock-tab">Free agents</span>
+  </nav>
+
+  <div class="mock-league-strip">
+    <span class="lg-name">Bottom to Top: Dominate Your Panda</span>
+    <span>Pre-draft · 2026</span>
+    <span class="spacer"></span>
+    <span class="mock-pill mock-pill--warn">9 of 12 seated</span>
+  </div>
+
+  <section class="mock-hero">
+    <p class="mock-kicker">Draft lobby</p>
+    <span class="mock-hero-chip mock-pill mock-pill--ok">9 of 12 seated</span>
+    <h1>Draft night starts here.</h1>
+    <p class="support">Text the invite link so managers can claim a team. Share the room link on draft night.</p>
+  </section>
+
+  <div class="mock-cols">
+    <main style="display:flex; flex-direction:column; gap:1.15rem;">
+      <section class="card">
+        <h3>When can you draft?</h3>
+        <p class="note">Mark the evenings that work. Everyone sees the same calendar.</p>
+        <div class="cal">
+          <b>S</b><b>M</b><b>T</b><b>W</b><b>T</b><b>F</b><b>S</b>
+          <div class="day">24</div><div class="day">25</div><div class="day">26</div><div class="day">27</div>
+          <div class="day hot">28</div><div class="day">29</div><div class="day pick">30</div>
+          <div class="day hot">31</div><div class="day">1</div><div class="day">2</div><div class="day">3</div>
+          <div class="day">4</div><div class="day">5</div><div class="day">6</div>
+        </div>
+        <p class="note" style="margin-top:0.7rem;">Nights that already overlap: Sat Aug 30 · 7 p.m. · 8 marked</p>
+      </section>
+
+      <section class="card">
+        <h3>Draft night</h3>
+        <p class="note">Managers already see this time. You can still start earlier from the lobby.</p>
+        <p style="margin:0.7rem 0 0; font-size:1.05rem; font-weight:700;">Sun Aug 31 · 7:00 p.m. ET</p>
+      </section>
+
+      <section class="card">
+        <h3>Who is in</h3>
+        <p class="note">Claimed seats stay with this league. Open seats wait on the invite link.</p>
+        <ul class="seats">
+          <li><span>Chris Patel</span><span class="meta">Host · You</span></li>
+          <li><span>Maya Chen</span><span class="meta">Manager · Pick 3</span></li>
+          <li><span>Jordan Hale</span><span class="meta">Manager</span></li>
+          <li><span>Sam Ruiz</span><span class="meta">Manager · Pick 1</span></li>
+          <li><span>Open seat</span><span class="meta">Waiting on the invite link</span></li>
+          <li><span>Open seat</span><span class="meta">Waiting on the invite link</span></li>
+          <li><span>Open seat</span><span class="meta">Waiting on the invite link</span></li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h3>Nomination order</h3>
+        <p class="note">Who nominates first. Claim a spot or leave it open.</p>
+        <div class="slots">
+          <div class="slot"><div class="n">1</div>Sam Ruiz</div>
+          <div class="slot"><div class="n">2</div>Open</div>
+          <div class="slot"><div class="n">3</div>Maya Chen</div>
+          <div class="slot"><div class="n">4</div>Open</div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="mock-rail">
+      <section class="card">
+        <p class="note" style="letter-spacing:0.12em; text-transform:uppercase; font-size:0.62rem;">Draft setup</p>
+        <h3>Bottom to Top</h3>
+        <p class="note">Auction</p>
+        <div class="facts">
+          <div class="fact">Draft night <strong>Sun 7:00 p.m.</strong></div>
+          <div class="fact">Format <strong>Auction</strong></div>
+          <div class="fact">Salary cap <strong>$200</strong></div>
+          <div class="fact">Seated <strong>9 / 12</strong></div>
+        </div>
+        <h4 style="margin:1rem 0 0.3rem; font-size:0.82rem;">Ready to start?</h4>
+        <ul class="ready">
+          <li>9 of 12 managers seated</li>
+          <li style="color:var(--tone-positive);">Draft night scheduled</li>
+          <li style="color:var(--tone-positive);">Member link ready to share</li>
+        </ul>
+        <button class="btn btn-primary" style="width:100%; margin-top:0.6rem;">Start live draft</button>
+        <p class="note" style="margin-top:0.7rem;">Invite link</p>
+        <p class="note">Text this link to the group. They make a ScoreSense account, then pick their team.</p>
+        <div class="linkrow">
+          <input readonly value="app.fourthdownlabs.com/hub/draft?claim=…" />
+          <button class="btn btn-ghost btn-sm">Copy</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:0.6rem;">Email managers already in the league</button>
+      </section>
+    </aside>
+  </div>
+
+  <p class="footnote">Shipped Draft lobby — setup and staffing. No presence, no hangout chat, no SMS, no T–60 phase.</p>
+</div>
+</body>
+</html>
