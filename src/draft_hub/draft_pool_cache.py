@@ -36,7 +36,7 @@ def pool_fingerprint() -> str:
     """Hash of feature + model + rookie-override mtimes — invalidates artifacts when inputs change."""
     parts: list[str] = [
         # Bump when projection post-processing changes (e.g. vet backup scaling).
-        "proj_logic:vet_backup_v1",
+        "proj_logic:vet_backup_v2",
         # SCORE-2: schedule-aware MC season P10/P50/P90 aggregator vs legacy x17 scale.
         f"season_quantile_method:{SEASON_QUANTILE_METHOD}",
         # SCORE-3: risk-adjusted auction value weight / scoring logic version.
