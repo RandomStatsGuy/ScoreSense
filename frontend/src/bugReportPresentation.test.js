@@ -4,6 +4,7 @@ import {
   BUG_REPORT_COPY,
   inferReportArea,
   reportHref,
+  reportSendEnabled,
   reportSuccess,
   safeReportFrom,
 } from "./bugReportPresentation.js";
@@ -31,6 +32,13 @@ test("safeReportFrom keeps in-app pages and drops secrets", () => {
   assert.equal(safeReportFrom("https://evil.example/phish"), "");
   assert.equal(safeReportFrom("//evil.example"), "");
   assert.equal(reportHref("/hub/setup"), "/report?from=%2Fhub%2Fsetup");
+});
+
+test("send stays off until the board is confirmed open", () => {
+  assert.equal(reportSendEnabled(null, false), false);
+  assert.equal(reportSendEnabled(false, false), false);
+  assert.equal(reportSendEnabled(true, true), false);
+  assert.equal(reportSendEnabled(true, false), true);
 });
 
 test("success names the ticket key", () => {

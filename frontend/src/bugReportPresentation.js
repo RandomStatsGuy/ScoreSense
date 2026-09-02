@@ -68,6 +68,10 @@ export function reportSuccess(key) {
   return `It's on the pickup board as ${id}. Someone will take it.`;
 }
 
+export function reportSendEnabled(boardOpen, busy) {
+  return boardOpen === true && !busy;
+}
+
 export function reportHref(fromPath) {
   const from = safeReportFrom(fromPath);
   return from ? `/report?from=${encodeURIComponent(from)}` : "/report";
