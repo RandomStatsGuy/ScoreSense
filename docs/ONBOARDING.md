@@ -76,7 +76,7 @@ Screen-by-screen for the group text (claim link → pick a team → mark nights)
 2. **Register** — checkbox required; verification email arrives; link hits `/api/auth/verify-email` → `/auth/verify?success=1`; welcome email sent.
 3. **Forgot password** — `/auth/forgot-password` or AccountAuth link → reset email → `/auth/reset-password?token=`.
 4. **Account settings** — `/account` while signed in: change password, update display name, resend verification, delete test account (league data may remain).
-5. **Legal pages** — `/terms` and `/privacy` load without login (also reachable from register checkbox).
+5. **Legal pages** — `/terms`, `/privacy`, and `/sms-alerts` load without login (also reachable from register checkbox). Privacy must name Twilio, say mobile numbers are not shared for marketing, note message frequency, and include “message and data rates may apply.” `/sms-alerts` is the public A2P opt-in card.
 6. **Invite + Patreon** — open `/hub/draft?invite=token` or `/hub/draft?claim=token`, Patreon login, return to the join modal on Draft with the token intact.
 7. **Disclaimers** — visible on projections subtitle, Props, DFS, Best Ball.
 8. **Unverified native user** — projections OK when `AUTH_REQUIRED=false` locally; Hub shows verify banner / blocks API until verified.

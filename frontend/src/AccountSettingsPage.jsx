@@ -15,6 +15,7 @@ import {
 } from "./auth";
 import { PRODUCT_NAME, STUDIO_NAME } from "./brand";
 import { parseApiError } from "./format";
+import SmsOptInCard from "./legal/SmsOptInCard";
 import AtmosphereLayer from "./DraftHub/AtmosphereLayer";
 import {
   ATMOSPHERE_COPY,
@@ -243,6 +244,10 @@ export default function AccountSettingsPage() {
               Name and email come from Patreon. Update them in your Patreon profile.
             </p>
           )}
+        </section>
+
+        <section className="account-settings-section">
+          <SmsOptInCard termsUrl={termsUrl} privacyUrl={privacyUrl} />
         </section>
 
         <section className="account-settings-section">

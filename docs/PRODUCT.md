@@ -72,7 +72,8 @@ Do not add a fourth top-level item. Do not rename Fantasy to League.
 **Projections:** Weekly · Season (Preseason outlook / Live season).  
 **Tools:** DFS · Mock draft · Best ball.  
 **Account menu (not top-level):** Model accuracy · Admin · Account.  
-**Account session (not top-level):** Sign in · Create account (`/login`, `/register`). Mobile-first session pages. Google is the lead social option; email is secondary. Do not wrap these in Fantasy experience chrome.
+**Account session (not top-level):** Sign in · Create account (`/login`, `/register`). Mobile-first session pages. Google is the lead social option; email is secondary. Do not wrap these in Fantasy experience chrome.  
+**Public legal (not top-level):** Terms · Privacy · Draft alert texts (`/sms-alerts`). The SMS card is content for A2P consent, not a new product area.
 
 ### Fantasy destinations
 
@@ -211,6 +212,7 @@ Hero pattern: eyebrow (`League rules`) + sentence heading (`Rules everyone can p
 - Touch targets ≥ 44px where a laptop or phone can tap them (`--touch-target`).
 - Chat: viewport-fixed edge launcher unless dismissed; opening fills the center of the screen. `aria-expanded` / `aria-controls`, Escape and backdrop close the conversation, focus returns to the launcher.
 - Draft availability shows current and future times only. Commissioners lock a promising overlap as the official night.
+- Transactional SMS (draft alerts) is opt-in only. The checkbox starts empty. Phone lives on the account. SMS is never a league invite. The public opt-in card is `/sms-alerts` (also on Account). Privacy and Terms must name the SMS vendor, say mobile numbers are not shared for marketing, note message frequency, and include “message and data rates may apply.”
 
 ---
 

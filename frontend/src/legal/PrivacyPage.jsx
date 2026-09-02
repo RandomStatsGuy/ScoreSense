@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import StandalonePageShell from "../layout/StandalonePageShell";
 import { PRODUCT_NAME, STUDIO_NAME } from "../brand";
+import { LEGAL_PRIVACY } from "./legalPresentation";
 
 function LegalShell({ title, children }) {
   return (
@@ -27,7 +28,7 @@ function LegalShell({ title, children }) {
 export default function PrivacyPage() {
   return (
     <LegalShell title="Privacy Policy">
-      <p className="chart-note">Last updated: August 2026</p>
+      <p className="chart-note">Last updated: {LEGAL_PRIVACY.lastUpdated}</p>
       <section>
         <h2 className="hub-panel-subtitle">1. Who we are</h2>
         <p>
@@ -50,7 +51,10 @@ export default function PrivacyPage() {
             choose Continue with Google). We treat that email as verified.
           </li>
           <li>
-            <strong>Draft Hub:</strong> league settings, rosters, cap sheets, Sleeper links, and
+            <strong>Mobile number:</strong> {LEGAL_PRIVACY.phoneCollect}
+          </li>
+          <li>
+            <strong>Fantasy:</strong> league settings, rosters, cap sheets, Sleeper links, and
             related league data you save in the app.
           </li>
           <li>
@@ -63,8 +67,8 @@ export default function PrivacyPage() {
         <h2 className="hub-panel-subtitle">3. How we use it</h2>
         <p>
           To authenticate you, send account emails (verification, password reset, league invites),
-          store your league workspace, and understand how the product is used so we can improve it.
-          We do not sell your personal information.
+          send draft alert texts you opted into, store your league workspace, and understand how the
+          product is used so we can improve it. We do not sell your personal information.
         </p>
       </section>
       <section>
@@ -77,8 +81,9 @@ export default function PrivacyPage() {
       <section>
         <h2 className="hub-panel-subtitle">5. Third parties</h2>
         <p>
-          Google (OAuth), Patreon (OAuth), Sleeper (when you link a league), and email delivery providers process
-          data according to their policies when you use those features. We use Google Analytics 4
+          Google (OAuth), Patreon (OAuth), Sleeper (when you link a league), Twilio (when you opt in
+          to draft alert texts), and email delivery providers process data according to their
+          policies when you use those features. {LEGAL_PRIVACY.twilioThirdParty} We use Google Analytics 4
           on app.fourthdownlabs.com to measure which pages are used. Google receives the page path,
           a human-readable page title, and truncated query filters (for example position or week).
           We do not send login tokens, invite codes, search text, or player-compare IDs to Google.
@@ -90,15 +95,19 @@ export default function PrivacyPage() {
         </p>
       </section>
       <section>
-        <h2 className="hub-panel-subtitle">6. Your choices</h2>
+        <h2 className="hub-panel-subtitle">6. {LEGAL_PRIVACY.smsTitle}</h2>
+        <p>{LEGAL_PRIVACY.smsBody}</p>
+      </section>
+      <section>
+        <h2 className="hub-panel-subtitle">7. Your choices</h2>
         <p>
-          You may delete your email account from Account settings (login credentials are removed;
-          Draft Hub league data may remain until manually cleaned up). Contact us to request
-          information about data we hold.
+          {LEGAL_PRIVACY.smsChoice} You may delete your email account from Account settings (login
+          credentials are removed; Fantasy league data may remain until manually cleaned up).
+          Contact us to request information about data we hold.
         </p>
       </section>
       <section>
-        <h2 className="hub-panel-subtitle">7. Contact</h2>
+        <h2 className="hub-panel-subtitle">8. Contact</h2>
         <p>
           Privacy questions:{" "}
           <a href="mailto:fourthdownlabs@gmail.com">fourthdownlabs@gmail.com</a>

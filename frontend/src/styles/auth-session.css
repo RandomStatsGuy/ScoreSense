@@ -154,7 +154,8 @@
 
 .account-auth-form input[type="email"],
 .account-auth-form input[type="password"],
-.account-auth-form input[type="text"] {
+.account-auth-form input[type="text"],
+.account-auth-form input[type="tel"] {
   min-height: var(--touch-target);
   width: 100%;
   box-sizing: border-box;
