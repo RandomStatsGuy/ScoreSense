@@ -103,6 +103,28 @@ export default function PlayerContextPanel({
           { signal: controller.signal },
         );
         if (res.status === 503) {
+          const latestParams = new URLSearchParams();
+          if (season != null) latestParams.set("season", String(season));
+          if (week != null) latestParams.set("week", String(week));
+          const latestQ = latestParams.toString() ? `?${latestParams.toString()}` : "";
+          const latestRes = await apiFetch(
+            `/api/player/${encodeURIComponent(playerId)}/latest${latestQ}`,
+            { signal: controller.signal },
+          );
+          if (latestRes.ok) {
+            const latest = await latestRes.json();
+            setData({
+              this_week: latest.this_week || latest.latest,
+              projection: null,
+              availability: null,
+              opportunity_adjustment: null,
+              media_context: { state: "none", affects_projection: false },
+              meta: latest.meta || {},
+            });
+            setCold(false);
+            setError("");
+            return;
+          }
           setData(null);
           setCold(true);
           setError("");
