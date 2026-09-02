@@ -37,6 +37,7 @@ New Cloud agents should find API `:8000` and Vite `:5173` already starting (`.cu
 - League room `0BBESQ` is already in the snapshot SQLite DB. Do **not** remirror on boot.
 - If a server is down: `.cursor/skills/start-local-app/SKILL.md` / `bash scripts/dev/start_hub_dev.sh`
 - Do not start a second API or Vite on another port.
+- Cloud install uses `requirements-ci.txt` (no desktop extras).
 
 ## Architecture
 

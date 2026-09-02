@@ -143,6 +143,11 @@ def test_cloud_environment_json_starts_api_and_vite() -> None:
         assert "mirror_prod_hub" not in text
         assert "preseason_refresh" not in text
 
+    install = (ROOT / "scripts" / "dev" / "cloud_install.sh").read_text(encoding="utf-8")
+    assert "requirements-ci.txt" in install
+    assert "import uvicorn" in install
+    assert "-r requirements.txt" not in install
+
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     product = (ROOT / "docs" / "PRODUCT.md").read_text(encoding="utf-8")
     assert "Cursor Cloud specific instructions" in agents
