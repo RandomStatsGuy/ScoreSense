@@ -147,6 +147,8 @@ def test_cloud_environment_json_starts_api_and_vite() -> None:
     assert "requirements-ci.txt" in install
     assert "import uvicorn" in install
     assert "-r requirements.txt" not in install
+    assert "python3-venv" in install
+    assert "ensurepip" in install
 
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     product = (ROOT / "docs" / "PRODUCT.md").read_text(encoding="utf-8")
