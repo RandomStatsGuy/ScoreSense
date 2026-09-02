@@ -92,6 +92,46 @@ See `.env.example` and `deploy/env.production.example`:
 - `TERMS_URL`, `PRIVACY_URL` (optional — default to in-app pages via `FRONTEND_URL`)
 - `TERMS_VERSION`
 - `FRONTEND_URL` (must match public app URL for email links)
+- `JIRA_EMAIL`, `JIRA_API_TOKEN` (optional — Account → Report a bug files a SCORE Bug; without them the form says the board is closed)
+
+## Outside collaborators (GitHub + Jira)
+
+Give a pickup person **just enough** to take `user-reported` tickets. Do not share the VPS, `.env`, or the Jira API token the app uses.
+
+### Jira (`scoresenseapp.atlassian.net`, project SCORE)
+
+SCORE is a team-managed software project. Invite them as a **site User** with **Jira** product access, then add them to SCORE as a **Member**.
+
+They need:
+
+- Browse the SCORE board
+- See issues (including `labels = user-reported`)
+- Assign a ticket to themselves
+- Transition Backlog → In Progress → Done
+- Comment
+
+They should **not** have: Organization admin, Jira product admin, SCORE Administrator, delete issues, or the `JIRA_API_TOKEN` that files reports.
+
+Pickup JQL:
+
+`project = SCORE AND labels = user-reported AND statusCategory != Done ORDER BY created DESC`
+
+Board URL: `https://scoresenseapp.atlassian.net/jira/software/c/projects/SCORE/issues/?jql=project%20%3D%20SCORE%20AND%20labels%20%3D%20user-reported%20AND%20statusCategory%20!%3D%20Done%20ORDER%20BY%20created%20DESC`
+
+### GitHub (`RandomStatsGuy/ScoreSense`)
+
+The repo is public. A fork + PR works with **no** GitHub permission.
+
+For a trusted friend, invite them as a **collaborator with Write**:
+
+- Push a branch and open a PR
+- Be assigned a GitHub issue if you still use those
+
+They should **not** have: Admin, Maintain, Actions secrets, deploy keys, or merge to `master`. PRs target **`develop`**. You review.
+
+### What they should read first
+
+`docs/PRODUCT.md` — user-facing name is Fantasy, not Draft Hub. Copy lives in `*Presentation.js`. Do not add a fourth top-level area.
 
 ## API routes added
 
@@ -108,6 +148,8 @@ See `.env.example` and `deploy/env.production.example`:
 | `GET /api/auth/patreon/login?next=` | OAuth with return path in signed state |
 | `GET /api/auth/google/login?next=` | Google OAuth with return path in signed state |
 | `GET /api/auth/google/callback` | Google OAuth callback → `/auth/callback` |
+| `GET /api/support/bugs/status` | Whether Report a bug can file to SCORE |
+| `POST /api/support/bugs` | Signed-in user report → SCORE Bug (`user-reported`, `pickup`) |
 
 Register body requires `accept_terms: true`.
 

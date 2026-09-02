@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { reportHref } from "./bugReportPresentation";
 import { useAuth } from "./AuthContext";
 import DraftTable from "./DraftTable";
 import DraftHub from "./DraftHub/DraftHub";
@@ -103,6 +104,8 @@ export default function App() {
   const mobileLayout = useMobileLayout();
   const nav = useAppNavigation();
   const routerNavigate = useNavigate();
+  const location = useLocation();
+  const goToReport = () => routerNavigate(reportHref(location.pathname));
   const {
     view,
     projectionsTab,
@@ -1347,6 +1350,7 @@ export default function App() {
                   view={view}
                   openSignIn={openSignIn}
                   onAccount={() => routerNavigate("/account")}
+                  onGoToReport={goToReport}
                   onGoToModel={() => goToSection("model")}
                   onGoToAdmin={() => goToSection("admin")}
                   onLogout={authLogout}
@@ -1428,6 +1432,7 @@ export default function App() {
           onGoToModel={() => goToSection("model")}
           onGoToAdmin={() => goToSection("admin")}
           onGoToAccount={() => routerNavigate("/account")}
+          onGoToReport={goToReport}
           termsUrl={termsUrl}
           privacyUrl={privacyUrl}
         />

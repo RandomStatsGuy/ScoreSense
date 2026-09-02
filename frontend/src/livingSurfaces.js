@@ -269,6 +269,17 @@ export const LIVING_SURFACES = Object.freeze({
     also: ["frontend/src/AccountAuth.jsx"],
     doNot: "Account-only. Do not add Account to top-level nav.",
   }),
+  "account.report": S({
+    label: "Report a bug",
+    chrome: "account",
+    page: "frontend/src/BugReportPage.jsx",
+    copy: "frontend/src/bugReportPresentation.js",
+    also: [
+      "frontend/src/layout/UserMenu.jsx",
+      "frontend/src/layout/MobileMenuSheet.jsx",
+    ],
+    doNot: "Account-only side option. Do not add Report a bug to top-level nav or invent a fourth product area. Tickets land on SCORE Jira with labels user-reported and pickup.",
+  }),
   "account.login": S({
     label: "Sign in",
     chrome: "account",
@@ -375,6 +386,10 @@ export const SURFACE_ALIASES = Object.freeze({
   lineup: "tools.dfs",
   admin: "account.admin",
   account: "account.account",
+  "report a bug": "account.report",
+  "bug report": "account.report",
+  "pickup board": "account.report",
+  "send a report": "account.report",
   login: "account.login",
   "sign in": "account.login",
   "create account": "account.register",
@@ -422,6 +437,7 @@ export function resolveLivingSurface({
   if (section === "model") return getLivingSurface("account.model");
   if (section === "admin") return getLivingSurface("account.admin");
   if (section === "account") return getLivingSurface("account.account");
+  if (section === "report") return getLivingSurface("account.report");
   return null;
 }
 

@@ -20,6 +20,7 @@ export default function MobileMenuSheet({
   onGoToModel,
   onGoToAdmin,
   onGoToAccount,
+  onGoToReport,
   termsUrl,
   privacyUrl,
 }) {
@@ -101,6 +102,16 @@ export default function MobileMenuSheet({
           </p>
         ) : null}
         <p className="app-mobile-sheet-group">Info</p>
+        <button
+          type="button"
+          className="app-mobile-sheet-item app-mobile-sheet-item-subdued"
+          onClick={() => {
+            onClose();
+            onGoToReport();
+          }}
+        >
+          Report a bug
+        </button>
         <button
           type="button"
           className={`app-mobile-sheet-item app-mobile-sheet-item-subdued${view === "model" ? " active" : ""}`}

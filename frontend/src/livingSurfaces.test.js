@@ -90,6 +90,10 @@ test("login and create account resolve to the session pages", () => {
   assert.equal(terms.page, "frontend/src/legal/TermsPage.jsx");
   const sms = resolveLivingSurfaceFromText("build the SMS opt-in web form");
   assert.equal(sms.page, "frontend/src/legal/SmsAlertsPage.jsx");
+  const report = resolveLivingSurfaceFromText("add a bug report page for the pickup board");
+  assert.equal(report.label, "Report a bug");
+  assert.equal(report.page, "frontend/src/BugReportPage.jsx");
+  assert.equal(report.copy, "frontend/src/bugReportPresentation.js");
 });
 
 test("shared mobile chrome resolves from the header files", () => {

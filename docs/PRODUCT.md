@@ -72,8 +72,9 @@ Do not add a fourth top-level item. Do not rename Fantasy to League.
 
 **Projections:** Weekly · Season (Preseason outlook / Live season).  
 **Tools:** DFS · Mock draft · Best ball.  
-**Account menu (not top-level):** Model accuracy · Admin · Account.  
+**Account menu (not top-level):** Model accuracy · Admin · Account · Report a bug.  
 **Account session (not top-level):** Sign in · Create account (`/login`, `/register`). Mobile-first session pages. Google is the lead social option; email is secondary. Do not wrap these in Fantasy experience chrome.  
+**Report a bug** (`/report`) is a side option in the account / More menu. Signed-in reports become SCORE Jira Bugs with labels `user-reported` and `pickup`. Do not add it to top-level nav.  
 **Public legal (not top-level):** Terms · Privacy · Draft alert texts (`/sms-alerts`). The SMS card is content for A2P consent, not a new product area.
 
 ### Fantasy destinations

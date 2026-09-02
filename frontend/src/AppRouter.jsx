@@ -2,6 +2,7 @@ import React from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import App from "./App";
 import AccountSettingsPage from "./AccountSettingsPage";
+import BugReportPage from "./BugReportPage";
 import {
   AuthCallbackPage,
   AuthForgotPasswordPage,
@@ -48,6 +49,7 @@ export default function AppRouter() {
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/sms-alerts" element={<SmsAlertsPage />} />
       <Route path="/account" element={<AccountSettingsPage />} />
+      <Route path="/report" element={<BugReportPage />} />
       <Route path="/projections/weekly" element={<App />} />
       <Route path="/projections/weekly/:panel" element={<App />} />
       <Route path="/projections/season/:mode" element={<App />} />

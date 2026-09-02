@@ -64,6 +64,7 @@ const STANDALONE_TITLES = {
   "/terms": "Terms",
   "/sms-alerts": "Draft alert texts",
   "/account": "Account",
+  "/report": "Report a bug",
   "/login": "Sign in",
   "/register": "Create account",
   "/signup": "Create account",
@@ -178,7 +179,7 @@ export function pageGroupForPath(pathname) {
   if (root === "tools") return "tools";
   if (root === "model") return "model";
   if (root === "admin") return "admin";
-  if (root === "account") return "account";
+  if (root === "account" || root === "report") return "account";
   if (root === "login" || root === "register" || root === "signup") return "auth";
   if (root === "terms" || root === "privacy" || root === "sms-alerts") return "legal";
   if (root === "auth") return "auth";

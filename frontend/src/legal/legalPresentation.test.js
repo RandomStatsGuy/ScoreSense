@@ -2,6 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { LEGAL_PRIVACY, LEGAL_TERMS, SMS_OPT_IN } from "./legalPresentation.js";
 
+test("privacy names Atlassian for optional bug reports", () => {
+  assert.match(LEGAL_PRIVACY.jiraThirdParty, /Atlassian Jira/);
+  assert.match(LEGAL_PRIVACY.jiraThirdParty, /email/);
+  assert.doesNotMatch(LEGAL_PRIVACY.jiraThirdParty, /Draft Hub|Submit|permission/i);
+});
+
 test("privacy names Twilio and the A2P required disclosures", () => {
   assert.match(LEGAL_PRIVACY.smsBody, /Twilio/);
   assert.match(LEGAL_PRIVACY.smsBody, /do not share mobile numbers/i);
