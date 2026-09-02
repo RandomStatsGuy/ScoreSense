@@ -236,11 +236,13 @@ export default function DraftLobby({
     }
   };
 
-  const lockAvailabilitySlot = async (slot) => {
+  const lockAvailabilitySlot = async (slot, timezone) => {
     const wall = slotToWall(slot?.date, slot?.hour);
     if (!wall) return;
+    const lockTz = timezone || league?.draft_timezone || "America/New_York";
     setDraftWall(wall);
-    await saveSchedule(false, { wall, timezone: draftTz });
+    setDraftTz(lockTz);
+    await saveSchedule(false, { wall, timezone: lockTz });
   };
 
   const heading = testMode ? "The practice room is open." : "Draft night starts here.";

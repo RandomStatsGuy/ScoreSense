@@ -3555,7 +3555,8 @@
   border-color: var(--experience-blue);
 }
 
-.draft-availability-day.is-mine {
+.draft-availability-day.is-mine,
+.draft-availability-strip-day.is-mine {
   box-shadow: inset 0 0 0 1px var(--experience-blue);
 }
 

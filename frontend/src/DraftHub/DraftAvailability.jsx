@@ -349,7 +349,7 @@ export default function DraftAvailability({
                               size="sm"
                               variant={slotLocked ? "ghost" : "primary"}
                               disabled={lockBusy || slotLocked}
-                              onClick={() => onLockSlot?.(slot)}
+                              onClick={() => onLockSlot?.(slot, availWindow.timezone)}
                             >
                               {availabilityLockLabel({ locked: slotLocked, locking: lockBusy && !slotLocked })}
                             </Button>
