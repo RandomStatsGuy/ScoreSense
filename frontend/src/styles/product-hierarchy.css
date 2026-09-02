@@ -2641,14 +2641,15 @@
   }
 
   .fantasy-chat-backdrop {
-    padding: 0.75rem;
-    padding-bottom: max(0.75rem, calc(0.35rem + env(safe-area-inset-bottom)));
+    padding: 0.85rem 0.75rem;
+    padding-bottom: calc(5.25rem + env(safe-area-inset-bottom));
+    align-items: center;
   }
 
   .fantasy-chat-stage {
     width: min(100%, calc(100vw - 1.25rem));
-    height: min(85dvh, calc(100dvh - 5.75rem - env(safe-area-inset-bottom)));
-    max-height: calc(100dvh - 5.75rem - env(safe-area-inset-bottom));
+    height: min(36rem, calc(100dvh - 9rem - env(safe-area-inset-bottom)));
+    max-height: calc(100dvh - 9rem - env(safe-area-inset-bottom));
   }
 
   .hub-league-home--mobile .hub-home-heading,
