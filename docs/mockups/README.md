@@ -11,6 +11,29 @@ directly in a browser — no build step. They reuse the token values from
 | `home-v2.html` | **Home v2 (in-season).** Keeps the phase track and priority card; adds a kickoff countdown, and a three-card deck — Your matchup (links Game center), League pulse (trades/bids/poll/chat activity), Standings mini — so the canvas earns its space during the season. |
 | `atmosphere-demo.html` | **Working atmosphere v2 demo** (interactive). Hand-drawn inline SVG leaves / snowflakes / footballs on three parallax depth layers with independent fall + sway + tumble animation, wind control, cursor repulsion, click-to-pop footballs, and a “shipped renderer” comparison toggle. `?theme=snow|leaves|footballs` picks the theme on load. No PNG/SVG asset files required — everything is generated inline. |
 
+## Draft waiting state (Sep 2026)
+
+Open **[draft-lobby-waiting.html](./draft-lobby-waiting.html)** first. Same token chrome as the files above; not product code.
+
+| File | Shows |
+|------|-------|
+| `draft-lobby-waiting.html` | Chooser: phase model (setup → hour → live) and the three concepts. |
+| `draft-lobby-today.html` | Shipped Draft lobby — calendar, seats, invite rail. Baseline. |
+| `draft-lobby-waiting-a.html` | **A · The Hour.** Countdown, presence, on-page chat, thin order, optional first-three noms, SMS rail. |
+| `draft-lobby-waiting-b.html` | **B · War room.** Private nomination queue as the canvas; chat and presence on the rail. |
+| `draft-lobby-waiting-c.html` | **C · Check-in.** “I’m here” as the next action; first-run SMS on the page. |
+| `draft-alerts-sms.html` | Invites vs alerts, Draft opt-in card, Account phone, sample texts. |
+| `draft-lobby-waiting.md` | Phase rules, invite/SMS constraints, recommendation. |
+
+Recommendation in the chooser: ship A as the waiting page, keep B’s queue as a section, put C’s check-in + SMS in the rail. SMS is never an invite.
+
+### Decisions to make (waiting state)
+
+- [ ] Waiting surface: A / B / C / hybrid (A + B queue + C check-in)?
+- [ ] Auto-open lobby at T–60 when a night is scheduled?
+- [ ] SMS opt-in on Draft + Account (unchecked, account-linked number)?
+- [ ] First SMS set: lobby open, T–15, draft live — hold “your nomination”?
+
 ## Decisions to make
 
 - [ ] Game center: adopt as a new Fantasy destination? (nav id proposal: `game`, slug `/hub/game`)
