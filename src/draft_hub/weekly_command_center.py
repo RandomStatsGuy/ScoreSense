@@ -709,6 +709,9 @@ def build_weekly_command_center(
         by_name_team=proj_meta.pop("_by_name_team", {}) or {},
         by_name=proj_meta.pop("_by_name", {}) or {},
     )
+    from src.draft_hub.k_def_pool_cache import overlay_k_def_week_projections
+
+    overlay_k_def_week_projections(players)
     from src.draft_hub.hub_scoring import resolve_week_lineup
 
     starters, bench, lineup_meta = resolve_week_lineup(

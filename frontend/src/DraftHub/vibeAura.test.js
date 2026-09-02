@@ -4,9 +4,15 @@ import {
   AURA_BASE,
   applyVibe,
   auraTone,
+  calendarDay,
+  clearDayVote,
   fillSlotsByScore,
   formatAura,
+  normalizeDayVotes,
+  playersLeftToday,
   readAura,
+  recordDayVote,
+  todayRatedCount,
   vibeDivergences,
   vibeScore,
 } from "./vibeAura.js";
@@ -60,4 +66,22 @@ test("copy helpers stay numeric and never mention Draft Hub", () => {
   assert.equal(formatAura(72.4), "72");
   assert.equal(auraTone(80), "hot");
   assert.equal(auraTone(20), "cold");
+});
+
+test("one swipe per player per calendar day, then the card leaves the deck", () => {
+  const now = new Date("2026-09-02T15:00:00");
+  const later = new Date("2026-09-02T22:00:00");
+  const tomorrow = new Date("2026-09-03T09:00:00");
+  let day = recordDayVote(null, "bijan", "start", now);
+  assert.equal(day.date, "2026-09-02");
+  assert.equal(day.votes.bijan, "start");
+  day = recordDayVote(day, "puka", "sit", later);
+  const left = playersLeftToday([bijan, puka, saquon], day.votes);
+  assert.deepEqual(left.map((row) => row.player_id), ["saquon"]);
+  assert.equal(todayRatedCount([bijan, puka, saquon], day.votes), 2);
+  day = clearDayVote(day, "puka", later);
+  assert.equal(playersLeftToday([bijan, puka], day.votes).length, 1);
+  const nextDay = normalizeDayVotes(day, tomorrow);
+  assert.equal(nextDay.date, calendarDay(tomorrow));
+  assert.deepEqual(nextDay.votes, {});
 });

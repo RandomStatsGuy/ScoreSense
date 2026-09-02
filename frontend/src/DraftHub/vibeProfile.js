@@ -121,6 +121,20 @@ export const DEMO_VIBE_PROFILES = Object.freeze({
     age: 26,
     bio: "Mater Dei, USC, Detroit. Slot, boundary, third down — I live there. If you need a 'vibe' to start me, the vibe is volume.",
   },
+  "demo-bates": {
+    hometown: "Tomball, TX",
+    college: "Arkansas",
+    job: "Kicker for the Lions",
+    age: 26,
+    bio: "Tomball to Fayetteville to Detroit. I hit from distance and I do not need a speech. If the wind is honest, so am I.",
+  },
+  "demo-lions-def": {
+    hometown: "Detroit, MI",
+    college: "",
+    job: "Defense for the Lions",
+    age: null,
+    bio: "Ford Field energy on the road. We chase the quarterback and we take the ball. Sit a defense and you're streaming feelings.",
+  },
 });
 
 const HS_TOWN = /^(.+?)\s*\(([A-Za-z]{2})\)\s*$/;
