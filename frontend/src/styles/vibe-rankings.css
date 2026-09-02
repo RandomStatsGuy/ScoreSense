@@ -1,0 +1,476 @@
+/* Vibe rankings — swipe deck. Tokens only; new CSS is the interaction. */
+
+.hub-vibes.hub-experience-page {
+  overflow: hidden;
+}
+
+.hub-vibes-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.hub-vibes-deck-wrap {
+  position: relative;
+  width: min(100%, 26.5rem);
+  height: 28.5rem;
+  margin: 0 auto;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.hub-vibes-card {
+  position: absolute;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  overscroll-behavior: contain;
+  border: 1px solid var(--experience-rule);
+  border-radius: var(--radius-lg);
+  background: var(--experience-surface-strong);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.32);
+  touch-action: pan-y;
+  will-change: transform;
+}
+
+.hub-vibes-card.is-open {
+  overflow-y: auto;
+}
+
+.hub-vibes-card.is-front {
+  cursor: grab;
+  z-index: 3;
+}
+
+.hub-vibes-card.is-front img {
+  pointer-events: none;
+}
+
+.hub-vibes-card.is-front.is-dragging {
+  cursor: grabbing;
+  overflow-y: hidden;
+}
+
+.hub-vibes-card.is-stack-1,
+.hub-vibes-card.is-stack-2 {
+  pointer-events: none;
+}
+
+.hub-vibes-photo {
+  position: relative;
+  height: 54%;
+  min-height: 12.5rem;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(91, 143, 232, 0.14), transparent 42%),
+    var(--experience-surface);
+}
+
+.hub-vibes-card.is-open .hub-vibes-photo {
+  height: 34%;
+  min-height: 9.2rem;
+}
+
+.hub-vibes-photo img,
+.hub-vibes-photo-fallback {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+
+.hub-vibes-photo-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 3.2rem;
+  font-weight: 750;
+  letter-spacing: -0.04em;
+}
+
+.hub-vibes-photo-fade {
+  position: absolute;
+  inset: auto 0 0;
+  height: 46%;
+  background: linear-gradient(180deg, transparent, rgba(9, 17, 29, 0.92) 70%);
+  pointer-events: none;
+}
+
+.hub-vibes-stamp {
+  position: absolute;
+  top: 1.15rem;
+  padding: 0.32rem 0.78rem;
+  border: 3px solid currentColor;
+  border-radius: var(--radius-sm);
+  background: rgba(9, 17, 29, 0.55);
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hub-vibes-stamp--start {
+  left: 1rem;
+  color: var(--tone-positive);
+  transform: rotate(-12deg);
+}
+
+.hub-vibes-stamp--sit {
+  right: 1rem;
+  color: var(--tone-caution);
+  transform: rotate(12deg);
+}
+
+.hub-vibes-more {
+  position: absolute;
+  right: 0.85rem;
+  bottom: 0.85rem;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 2.45rem;
+  height: 2.45rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--experience-blue);
+  color: #fff;
+  cursor: pointer;
+}
+
+.hub-vibes-more svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.hub-vibes-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.95rem 1.05rem 0.7rem;
+}
+
+.hub-vibes-name {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.45rem;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.hub-vibes-meta {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.hub-vibes-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.hub-vibes-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.hub-vibes-stat span {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+}
+
+.hub-vibes-stat strong {
+  color: var(--text-primary);
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hub-vibes-stat--hot strong {
+  color: var(--tone-positive);
+}
+
+.hub-vibes-stat--cold strong {
+  color: var(--tone-caution-text);
+}
+
+.hub-vibes-aura-bar {
+  height: 0.28rem;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: rgba(149, 164, 184, 0.16);
+}
+
+.hub-vibes-aura-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--experience-blue);
+}
+
+.hub-vibes-aura-bar.is-hot > i {
+  background: var(--tone-positive);
+}
+
+.hub-vibes-aura-bar.is-cold > i {
+  background: var(--tone-caution);
+}
+
+.hub-vibes-matchup {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0.2rem 0 0;
+}
+
+.hub-vibes-matchup dt {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.66rem;
+}
+
+.hub-vibes-matchup dd {
+  margin: 0;
+}
+
+.hub-vibes-matchup strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.hub-vibes-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+}
+
+.hub-vibes-vote {
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  padding: 0.55rem 1.2rem;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+}
+
+.hub-vibes-vote--sit {
+  border: 1px solid var(--tone-caution-soft);
+  background: var(--tone-caution-soft);
+  color: var(--tone-caution-text);
+}
+
+.hub-vibes-vote--start {
+  border: 1px solid rgba(52, 211, 153, 0.28);
+  background: var(--tone-positive-soft);
+  color: #a7f3d0;
+}
+
+.hub-vibes-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0 1.05rem 1.35rem;
+}
+
+.hub-vibes-about,
+.hub-vibes-scroll-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hub-vibes-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.48rem;
+  margin: 0;
+}
+
+.hub-vibes-fact {
+  display: grid;
+  grid-template-columns: 5.1rem minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: baseline;
+}
+
+.hub-vibes-fact dt {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.hub-vibes-fact dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.hub-vibes-bio {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.94rem;
+  line-height: 1.45;
+}
+
+.hub-vibes-news {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-top: 0.15rem;
+}
+
+.hub-vibes-news-head {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.hub-vibes-news-source {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.66rem;
+}
+
+.hub-vibes-progress,
+.hub-vibes-hint,
+.hub-vibes-keys {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.hub-vibes-slate,
+.hub-vibes-leaders,
+.hub-vibes-splits {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--experience-rule);
+  border-radius: var(--radius-md);
+  background: var(--experience-surface);
+}
+
+.hub-vibes-slate h3,
+.hub-vibes-leaders h3,
+.hub-vibes-splits h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  letter-spacing: -0.02em;
+}
+
+.hub-vibes-slate p,
+.hub-vibes-splits p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.hub-vibes-slot,
+.hub-vibes-leader,
+.hub-vibes-split {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr) auto;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.hub-vibes-slot-pos,
+.hub-vibes-leader-aura {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.hub-vibes-slot-name,
+.hub-vibes-leader-name,
+.hub-vibes-split-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hub-vibes-slot-pts,
+.hub-vibes-leader-pts {
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hub-vibes-split {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+
+.hub-vibes-split-over {
+  color: var(--experience-blue);
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hub-vibes-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.hub-vibes-empty {
+  padding: 1.2rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .hub-vibes-deck-wrap {
+    width: 100%;
+    height: min(56dvh, 24.5rem);
+  }
+
+  .hub-vibes-photo {
+    height: 44%;
+    min-height: 9.8rem;
+  }
+
+  .hub-vibes-card.is-open .hub-vibes-photo {
+    height: 30%;
+    min-height: 8rem;
+  }
+
+  .hub-vibes-name {
+    font-size: 1.28rem;
+  }
+
+  .hub-vibes-keys {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-vibes-card,
+  .hub-vibes-stamp,
+  .hub-vibes-aura-bar > i {
+    transition: none !important;
+  }
+}

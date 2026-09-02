@@ -21,6 +21,7 @@ import LeagueContextBanner from "./LeagueContextBanner";
 import HubDemoBanner from "./HubDemoBanner";
 import GameCenter from "./GameCenter";
 import WeeklyCommandCenter from "./WeeklyCommandCenter";
+import VibeRankings from "./VibeRankings";
 import LeagueHome from "./LeagueHome";
 import LeagueCreateJoinDialog from "./LeagueCreateJoinDialog";
 import FantasyChatDock from "./FantasyChatDock";
@@ -766,6 +767,14 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
             await onRosterChanged();
           }}
           onNavigateSetup={() => setSubView("setup")}
+          onNavigate={setSubView}
+        />
+      )}
+
+      {subView === "vibes" && (
+        <VibeRankings
+          hubContext={effectiveCtx}
+          reloadToken={weekReloadToken}
           onNavigate={setSubView}
         />
       )}

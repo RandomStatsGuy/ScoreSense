@@ -70,6 +70,18 @@ def _clean_ext_id(val: Any) -> str | None:
     return text
 
 
+def _json_int(val: Any) -> int | None:
+    if val is None:
+        return None
+    try:
+        if isinstance(val, float) and pd.isna(val):
+            return None
+        n = int(val)
+    except (TypeError, ValueError):
+        return None
+    return n
+
+
 def headshot_url(sleeper_id: str | None, espn_id: str | None = None) -> str | None:
     sid = _clean_ext_id(sleeper_id)
     if sid:
@@ -244,7 +256,7 @@ def _sleeper_lookup_tables() -> tuple[
 
 def _media_for_players(
     players: list[dict[str, Any]] | None,
-) -> dict[str, dict[str, str | None]]:
+) -> dict[str, dict[str, Any]]:
     if not players:
         return {}
 
@@ -278,6 +290,18 @@ def _media_for_players(
                 "sleeper_id": sleeper_id,
                 # Locker-room jerseys and player chrome read this when present.
                 "jersey_number": _clean_ext_id(row.get("number")),
+                "college": str(row.get("college") or "").strip() or None,
+                "high_school": str(row.get("high_school") or "").strip() or None,
+                "age": _json_int(row.get("age")),
+                "years_exp": _json_int(row.get("years_exp")),
+                "birth_date": str(row.get("birth_date") or "").strip() or None,
+                "birth_city": str(row.get("birth_city") or "").strip() or None,
+                "birth_state": str(row.get("birth_state") or "").strip() or None,
+                "height": str(row.get("height") or "").strip() or None,
+                "weight": str(row.get("weight") or "").strip() or None,
+                "injury_status": str(row.get("injury_status") or "").strip() or None,
+                "injury_notes": str(row.get("injury_notes") or "").strip() or None,
+                "practice_description": str(row.get("practice_description") or "").strip() or None,
             }
         else:
             out[pid] = {
@@ -291,7 +315,7 @@ def _media_for_players(
     return out
 
 
-def build_player_media_batch(players: list[dict[str, Any]]) -> dict[str, dict[str, str | None]]:
+def build_player_media_batch(players: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     """Public batch headshot/team logo lookup for hub UI."""
     return _media_for_players(players)
 

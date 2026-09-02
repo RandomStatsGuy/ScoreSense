@@ -8,6 +8,7 @@ export const HUB_SUBVIEWS = [
   { id: "value", label: "Strategy", shortLabel: "Strategy", hint: "Star targets & prices", group: "prep" },
   { id: "room", label: "Draft", shortLabel: "Draft", hint: "Invite, schedule, live room", group: "prep" },
   { id: "week", label: "This Week", shortLabel: "Week", hint: "Lineup decisions", group: "season" },
+  { id: "vibes", label: "Vibes", shortLabel: "Vibes", hint: "Personal start energy", group: "season" },
   { id: "game", label: "Game center", shortLabel: "Game", leagueOnly: true, hint: "Your matchup, live", group: "season" },
   { id: "roster", label: "My team", shortLabel: "My team", hint: "Your contracts", group: "season" },
   { id: "available", label: "Free agents", shortLabel: "FA", hint: "Pickup board", group: "season" },

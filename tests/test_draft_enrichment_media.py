@@ -81,6 +81,36 @@ def test_media_includes_jersey_number_when_known(monkeypatch):
     assert missing["sleeper-000000"]["jersey_number"] is None
 
 
+def test_media_includes_profile_facts(monkeypatch):
+    puka = pd.Series(
+        {
+            "sleeper_id": "9493",
+            "espn_id": "4362628",
+            "full_name": "Puka Nacua",
+            "team": "LAR",
+            "gsis_id": "",
+            "college": "BYU",
+            "high_school": "Orem (UT)",
+            "age": 25,
+            "years_exp": 3,
+            "height": 74,
+            "weight": 212,
+        }
+    )
+    monkeypatch.setattr(de, "_sleeper_lookup_tables", lambda: _fake_sleeper_tables(puka))
+    monkeypatch.setattr(de, "_gsis_identity_map", lambda: {})
+    media = de.build_player_media_batch(
+        [{"player_id": "00-0039075", "player_name": "Puka Nacua", "team": "LAR"}]
+    )
+    row = media["00-0039075"]
+    assert row["college"] == "BYU"
+    assert row["high_school"] == "Orem (UT)"
+    assert row["age"] == 25
+    assert row["years_exp"] == 3
+    assert row["height"] == "74"
+    assert row["weight"] == "212"
+
+
 def test_gsis_only_uses_pool_identity_when_sleeper_gsis_missing(monkeypatch):
     puka = pd.Series(
         {
