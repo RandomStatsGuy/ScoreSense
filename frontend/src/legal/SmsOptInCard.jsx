@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { useAuth } from "../AuthContext";
+import { updateSmsOptIn } from "../auth";
+import { LegalAnchor } from "../LegalLinks";
 import { SMS_OPT_IN } from "./legalPresentation";
 
 function hasMobileNumber(value) {
@@ -7,12 +9,21 @@ function hasMobileNumber(value) {
 }
 
 export default function SmsOptInCard({ termsUrl = "/terms", privacyUrl = "/privacy" }) {
+  const { user, refreshAuth } = useAuth();
   const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const terms = termsUrl || "/terms";
+  const privacy = privacyUrl || "/privacy";
 
-  const onSubmit = (event) => {
+  React.useEffect(() => {
+    if (user?.phone) setPhone(user.phone);
+    if (user?.sms_opted_in && user?.phone) setSaved(true);
+  }, [user?.phone, user?.sms_opted_in]);
+
+  const onSubmit = async (event) => {
     event.preventDefault();
     setSaved(false);
     if (!hasMobileNumber(phone)) {
@@ -24,7 +35,21 @@ export default function SmsOptInCard({ termsUrl = "/terms", privacyUrl = "/priva
       return;
     }
     setError("");
-    setSaved(true);
+    setBusy(true);
+    try {
+      await updateSmsOptIn({ phone, consent: true });
+      if (refreshAuth) await refreshAuth();
+      setSaved(true);
+    } catch (err) {
+      const message = String(err?.message || "");
+      if (/login required|email accounts|sign in/i.test(message)) {
+        setError(SMS_OPT_IN.needAccount);
+      } else {
+        setError(message || SMS_OPT_IN.saveFailed);
+      }
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -55,11 +80,11 @@ export default function SmsOptInCard({ termsUrl = "/terms", privacyUrl = "/priva
       <p className="chart-note">{SMS_OPT_IN.rates}</p>
       <p className="chart-note">{SMS_OPT_IN.helpStop}</p>
       <p className="chart-note">
-        <Link to={termsUrl}>{SMS_OPT_IN.termsLabel}</Link>
+        <LegalAnchor href={terms}>{SMS_OPT_IN.termsLabel}</LegalAnchor>
         {" · "}
-        <Link to={privacyUrl}>{SMS_OPT_IN.privacyLabel}</Link>
+        <LegalAnchor href={privacy}>{SMS_OPT_IN.privacyLabel}</LegalAnchor>
       </p>
-      <button type="submit" className="btn-primary btn-sm">
+      <button type="submit" className="btn-primary btn-sm" disabled={busy}>
         {SMS_OPT_IN.submit}
       </button>
       {error && <div className="error">{error}</div>}

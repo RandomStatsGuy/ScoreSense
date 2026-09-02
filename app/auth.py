@@ -223,6 +223,16 @@ def update_native_profile(user_id: str, display_name: str) -> dict[str, Any]:
     return updated
 
 
+def update_native_sms_opt_in(user_id: str, phone: str) -> dict[str, Any]:
+    try:
+        updated = user_store.update_sms_opt_in(user_id, phone)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not updated:
+        raise HTTPException(status_code=404, detail="Account not found")
+    return updated
+
+
 def accept_native_terms(user_id: str) -> dict[str, Any]:
     updated = user_store.accept_terms(user_id, TERMS_VERSION)
     if not updated:
@@ -695,6 +705,8 @@ def session_user_public(user: dict[str, Any] | None) -> dict[str, Any] | None:
         "terms_version": terms_version,
         "has_password": user_store.has_usable_password(native_row) if native_row else False,
         "google_linked": bool(native_row.get("google_sub")) if native_row else False,
+        "phone": native_row.get("phone") if native_row else None,
+        "sms_opted_in": bool(native_row.get("sms_opted_in_at")) if native_row else False,
     }
 
 

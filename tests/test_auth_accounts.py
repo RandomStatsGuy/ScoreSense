@@ -194,6 +194,44 @@ def test_api_update_profile(api_client, mock_send):
     assert res.json()["user"]["name"] == "Updated Name"
 
 
+def test_api_sms_opt_in_persists_phone(api_client, mock_send):
+    denied = api_client.post(
+        "/api/auth/sms-opt-in",
+        json={"phone": "5551234567", "consent": True},
+    )
+    assert denied.status_code == 401
+    token = _register_and_token(api_client, email="sms@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+    bad = api_client.post(
+        "/api/auth/sms-opt-in",
+        headers=headers,
+        json={"phone": "5551234567", "consent": False},
+    )
+    assert bad.status_code == 400
+    short = api_client.post(
+        "/api/auth/sms-opt-in",
+        headers=headers,
+        json={"phone": "555", "consent": True},
+    )
+    assert short.status_code == 400
+    res = api_client.post(
+        "/api/auth/sms-opt-in",
+        headers=headers,
+        json={"phone": "(555) 123-4567", "consent": True},
+    )
+    assert res.status_code == 200
+    body = res.json()["user"]
+    assert body["phone"] == "5551234567"
+    assert body["sms_opted_in"] is True
+    me = api_client.get("/api/auth/me", headers=headers)
+    assert me.status_code == 200
+    assert me.json()["user"]["phone"] == "5551234567"
+    assert me.json()["user"]["sms_opted_in"] is True
+    row = user_store.get_user_by_email("sms@example.com")
+    assert row["phone"] == "5551234567"
+    assert row["sms_opted_in_at"]
+
+
 def test_api_accept_terms_and_me(api_client, mock_send, monkeypatch):
     token = _register_and_token(api_client, email="terms@example.com")
     row = user_store.get_user_by_email("terms@example.com")

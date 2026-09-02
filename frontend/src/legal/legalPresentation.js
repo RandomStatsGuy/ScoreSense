@@ -38,5 +38,7 @@ export const SMS_OPT_IN = Object.freeze({
   submit: "Yes, text me",
   needPhone: "Enter a mobile number.",
   needConsent: "Check the box to opt in. It starts empty on purpose.",
+  needAccount: "Sign in to save this number on your account.",
+  saveFailed: "Could not save this number. Try again.",
   saved: "You will get draft alert texts at this number. Reply STOP to cancel.",
 });
