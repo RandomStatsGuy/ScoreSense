@@ -249,6 +249,7 @@ Contract-type playbook for imports and keepers: [CONTRACT_SCENARIOS.md](./CONTRA
 | Rules Center layout spec | [design.md](./design.md) |
 | Contract type / years-left cases | [CONTRACT_SCENARIOS.md](./CONTRACT_SCENARIOS.md) |
 | Auth / invites / legal | [ONBOARDING.md](./ONBOARDING.md) |
+| Text invite → claim → draft nights | [INVITE_FLOW.md](./INVITE_FLOW.md) |
 | Hub API and storage | [DRAFT_HUB.md](./DRAFT_HUB.md) |
 | DFS / mock backlog | [LINEUP_ROADMAP.md](./LINEUP_ROADMAP.md) |
 | Tokens | `frontend/src/styles/tokens.css` |

@@ -21,9 +21,12 @@ import {
   draftLobbyReadiness,
   emailManagersHint,
   managerClaimCopied,
+  managerClaimCopyTextLabel,
   managerClaimExplainer,
   managerClaimLabel,
   managerClaimRotateHint,
+  managerClaimTextBody,
+  managerClaimTextCopied,
   managerClaimWhatHappens,
   shareableAppUrl,
 } from "./leagueAccessCopy";
@@ -52,6 +55,7 @@ export default function DraftLobby({
 }) {
   const [copied, setCopied] = useState(false);
   const [claimCopied, setClaimCopied] = useState(false);
+  const [claimTextCopied, setClaimTextCopied] = useState(false);
   const [claimBusy, setClaimBusy] = useState(false);
   const [claimLink, setClaimLink] = useState(claimAccess?.url || "");
   const [slotBusy, setSlotBusy] = useState(false);
@@ -133,9 +137,23 @@ export default function DraftLobby({
     try {
       await navigator.clipboard.writeText(claimUrl);
       setClaimCopied(true);
+      setClaimTextCopied(false);
       window.setTimeout(() => setClaimCopied(false), 2200);
     } catch {
       setError("Could not copy the invite link. Select it and copy manually.");
+    }
+  };
+
+  const copyClaimText = async () => {
+    const body = managerClaimTextBody({ leagueName: league?.name, url: claimUrl });
+    if (!claimUrl) return;
+    try {
+      await navigator.clipboard.writeText(body);
+      setClaimTextCopied(true);
+      setClaimCopied(false);
+      window.setTimeout(() => setClaimTextCopied(false), 2200);
+    } catch {
+      setError("Could not copy the invite text. Select the link and send it yourself.");
     }
   };
 
@@ -327,8 +345,12 @@ export default function DraftLobby({
                       <Button variant="ghost" size="sm" onClick={copyClaimLink}>
                         {claimCopied ? "Copied" : "Copy"}
                       </Button>
+                      <Button variant="ghost" size="sm" onClick={copyClaimText}>
+                        {managerClaimCopyTextLabel({ copied: claimTextCopied })}
+                      </Button>
                     </div>
                     {claimCopied ? <p className="hub-experience-summary-note">{managerClaimCopied()}</p> : null}
+                    {claimTextCopied ? <p className="hub-experience-summary-note">{managerClaimTextCopied()}</p> : null}
                     {!claimEnabled ? (
                       <p className="chart-note">This link is turned off in Roster management.</p>
                     ) : null}
