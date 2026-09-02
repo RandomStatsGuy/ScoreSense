@@ -743,7 +743,7 @@ Keep UI concerns separate from contract calculations. The backend remains author
 
 ## 20. Definition of done
 
-This redesign is complete when a commissioner can open Fantasy → Rules, understand the league model without prior instruction, adjust contract and roster policy with immediate examples, save valid settings confidently, and see those settings reflected in real contract behavior. A regular manager can inspect the same model without administrative access. Roster operations have a clear home, Insights remain analytical, and league chat follows the user without taking over the page.
+This redesign is complete when a commissioner can open Fantasy → Rules, understand the league model without prior instruction, adjust contract and roster policy with immediate examples, save valid settings confidently, and see those settings reflected in real contract behavior. A regular manager can inspect the same model without administrative access. Roster operations have a clear home, Insights remain analytical, and league chat follows the user as an edge launcher, filling the center only while the conversation is open.
 
 Draft, This Week, and Cap should feel like the same product as Rules: editorial, matte, and consequence-first. Players-tab adds should follow the league calendar. Mock drafts should show the same player photos as rosters.
 
