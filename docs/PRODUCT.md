@@ -162,7 +162,8 @@ Weekly and Season projections are a **board**, not a Fantasy decision page.
 
 - Four slate/season signals sit above a full-width ranking table.
 - Injuries and analyst context are disclosures under the board (phone: existing panel tabs).
-- Clicking a player opens the **player inspector**: floor / P50 / ceiling, range read, method, and analyst notes. Desktop is a right-hand drawer; phones keep the bottom sheet.
+- Clicking a player opens the **player inspector**: floor / P50 / ceiling, range read, method, and this-week notes. Desktop is a right-hand drawer; phones keep the bottom sheet.
+- **This-week notes** are one Sleeper locker or practice sentence plus an optional projection-delta line. Do not bake YouTube show descriptions as current-week narrative. Sentiment stays a research candidate until a raw snippet passes the Latest usefulness filter.
 - Copy for signals, board reads, and inspector tiles lives in `frontend/src/projectionsPresentation.js`.
 
 On laptop widths (~1024px), move the summary below the hero or into a compact sticky footer. Do not squeeze the form into multi-line control rows. Do not destroy desktop hierarchy to fake a phone layout.

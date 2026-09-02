@@ -15,6 +15,7 @@ import {
   mediaSignalTone,
   shouldShowProjectionAssumesActive,
 } from "./playerContextDisplay";
+import { CONTEXT_COPY } from "./projectionsPresentation";
 import {
   MEDIA_MODE,
   applyMediaQueryParams,
@@ -102,6 +103,28 @@ export default function PlayerContextPanel({
           { signal: controller.signal },
         );
         if (res.status === 503) {
+          const latestParams = new URLSearchParams();
+          if (season != null) latestParams.set("season", String(season));
+          if (week != null) latestParams.set("week", String(week));
+          const latestQ = latestParams.toString() ? `?${latestParams.toString()}` : "";
+          const latestRes = await apiFetch(
+            `/api/player/${encodeURIComponent(playerId)}/latest${latestQ}`,
+            { signal: controller.signal },
+          );
+          if (latestRes.ok) {
+            const latest = await latestRes.json();
+            setData({
+              this_week: latest.this_week || latest.latest,
+              projection: null,
+              availability: null,
+              opportunity_adjustment: null,
+              media_context: { state: "none", affects_projection: false },
+              meta: latest.meta || {},
+            });
+            setCold(false);
+            setError("");
+            return;
+          }
           setData(null);
           setCold(true);
           setError("");
@@ -110,7 +133,7 @@ export default function PlayerContextPanel({
         if (res.status === 404) {
           setData(null);
           setCold(false);
-          setError("No cached context for this player.");
+          setError(CONTEXT_COPY.missing);
           return;
         }
         if (!res.ok) {
@@ -152,9 +175,10 @@ export default function PlayerContextPanel({
   const showAssumesActive = data ? shouldShowProjectionAssumesActive(data) : false;
   const historical = pickHistoricalWeek(media);
   const historicalLabel = formatHistoricalWeekLabel(historical);
+  const thisWeek = data?.this_week;
   const mediaBody = media?.summary || media?.excerpt;
   const optedIntoOlder = isOlderMediaMode(mediaMode);
-  const showCurrentMedia = isCurrentMedia(media) && (mediaLabel || mediaBody);
+  const showCurrentMedia = Boolean(mediaMode) && isCurrentMedia(media) && (mediaLabel || mediaBody);
   const showHistoricalOptIn =
     isHistoricalAvailable(media) && !optedIntoOlder && !mediaBody;
   const showHistoricalContent =
@@ -212,17 +236,17 @@ export default function PlayerContextPanel({
   return (
     <section
       className={`player-context-panel ${className}`.trim()}
-      aria-label="Cached player context"
+      aria-label={CONTEXT_COPY.title}
     >
       <header className="player-context-panel-head">
         <div className="player-context-panel-title-row">
-          <h3 className="player-context-panel-title">Week context</h3>
+          <h3 className="player-context-panel-title">{CONTEXT_COPY.title}</h3>
           {weekLabel ? (
             <span className="player-context-panel-week muted">{weekLabel}</span>
           ) : null}
         </div>
         <p className="player-context-panel-sub muted">
-          Cached read model — no live YouTube, LLM, or projection recompute
+          {CONTEXT_COPY.support}
         </p>
         {meta?.stale ? (
           <p className="player-context-stale-banner" role="status">
@@ -241,13 +265,13 @@ export default function PlayerContextPanel({
 
       {loading && !data ? (
         <p className="chart-note" role="status">
-          Loading cached context…
+          {CONTEXT_COPY.loading}
         </p>
       ) : null}
 
       {cold ? (
         <p className="state-empty-text player-context-empty" role="status">
-          Injury and news context is still loading for this slate. Projections are unchanged.
+          {CONTEXT_COPY.cold}
         </p>
       ) : null}
 
@@ -255,6 +279,28 @@ export default function PlayerContextPanel({
 
       {data ? (
         <div className="player-context-grid">
+          <div className="player-context-block">
+            <h4 className="player-context-block-title">{CONTEXT_COPY.title}</h4>
+            {thisWeek?.headline || thisWeek?.detail || thisWeek?.projection_line ? (
+              <div className="player-context-this-week">
+                {thisWeek.headline ? (
+                  <p className="player-context-media-news-head">{thisWeek.headline}</p>
+                ) : null}
+                {thisWeek.detail ? (
+                  <p className="player-context-media-summary">{thisWeek.detail}</p>
+                ) : null}
+                {thisWeek.projection_line ? (
+                  <p className="player-context-stat-hint">{thisWeek.projection_line}</p>
+                ) : null}
+                {thisWeek.source ? (
+                  <p className="chart-note">{thisWeek.source}</p>
+                ) : null}
+              </div>
+            ) : (
+              <p className="state-empty-text player-context-empty">{CONTEXT_COPY.empty}</p>
+            )}
+          </div>
+
           <div className="player-context-block">
             <h4 className="player-context-block-title">Projection</h4>
             <div className="player-context-stats">
@@ -342,7 +388,7 @@ export default function PlayerContextPanel({
 
           <div className="player-context-block player-context-block--media">
             <div className="player-context-media-head">
-              <h4 className="player-context-block-title">Media context</h4>
+              <h4 className="player-context-block-title">{CONTEXT_COPY.media}</h4>
               {showCurrentMedia || showHistoricalContent ? (
                 <ProjectionTrustLabel kind="commentary" />
               ) : null}
@@ -386,7 +432,7 @@ export default function PlayerContextPanel({
               </>
             ) : (
               <p className="state-empty-text player-context-empty">
-                No media context for this player yet.
+                {CONTEXT_COPY.mediaEmpty}
               </p>
             )}
           </div>

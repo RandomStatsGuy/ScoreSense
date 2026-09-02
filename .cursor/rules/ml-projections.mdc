@@ -10,7 +10,7 @@ alwaysApply: false
 - Features: `docs/MODEL_FEATURES.md`. Candidates stay out of production until `docs/FEATURE_SCREENING.md` promotion rules pass.
 - Inference on hot paths reads `artifacts/weekly_predictions/` or the draft-pool artifact. `predict.load_model()` is in-process and mtime-keyed.
 - Season floor/ceiling use schedule-aware Monte Carlo (`season_quantiles.py`, `mc_schedule_v1`). Do not multiply weekly P10/P90 by 17.
-- Sentiment (`yt_*`) is readout/UI unless screening promotes it. Do not silently blend narrative into live projections.
+- Sentiment (`yt_*`) is a research candidate. Do not bake YouTube show descriptions into this-week notes or blend narrative into live projections. This-week copy is Sleeper locker or practice plus an optional projection delta. A raw snippet may appear only after it passes the Latest usefulness filter.
 - Injury return windows are heuristics (`docs/INJURY_TIMELINE.md`). Label them as estimates.
 - Evaluation numbers live in `docs/EVALUATION.md` and `artifacts/`. Do not reprint stale MAE tables in new product copy.
 - Config and paths: `src/config.py`. Training presets: `src/ml/training_config.py`.

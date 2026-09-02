@@ -290,10 +290,12 @@ def test_player_context_media_mode_serve(tmp_path, monkeypatch):
     assert older["media_context"]["summary"] == "Older summary"
     assert older["media_context"]["state"] == MEDIA_STATE_HISTORICAL_AVAILABLE
 
-    # Default must not auto-show older narrative body.
+    # Default this-week view is locker / delta — not a YouTube show recap.
     default = pc.get_player_context("p1", season=2026, week=1)
-    assert default["media_context"]["summary"] == "Default week1"
+    assert default["media_context"]["summary"] is None
+    assert default["media_context"]["excerpt"] is None
     assert default["media_context"]["mode"] is None
+    assert default["this_week"]["kind"] in {"none", "locker", "practice", "status"}
 
 
 def test_fantasy_weekly_media_mode_outlook(monkeypatch):
