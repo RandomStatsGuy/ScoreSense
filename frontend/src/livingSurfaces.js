@@ -225,7 +225,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/ProjectionBoardChrome.jsx",
       "frontend/src/styles/projections-experience.css",
     ],
-    doNot: "Projections are a board. Do not wrap them in HubExperienceLayout.",
+    doNot: "Projections are a board. Do not wrap them in HubExperienceLayout. Weekly compare is a mode — no always-on checkboxes. Weekly rows match QB/WR/TE: no opportunity/role/commentary chips on the board. One compact injury chip only.",
   }),
   "projections.season": S({
     label: "Season",
@@ -354,6 +354,8 @@ export const SURFACE_ALIASES = Object.freeze({
   "model accuracy": "account.model",
   "preseason outlook": "projections.season",
   "live season": "projections.season",
+  "weekly compare": "projections.weekly",
+  "running back weekly": "projections.weekly",
   weekly: "projections.weekly",
   season: "projections.season",
   rosters: "hub.rosters",

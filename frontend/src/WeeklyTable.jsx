@@ -14,7 +14,6 @@ import {
 import QuantileBar from "./QuantileBarShared";
 import SentimentBadge from "./SentimentBadge";
 import ProjectionExplanationPanel from "./ProjectionExplanationPanel";
-import PlayerContextBadges from "./PlayerContextBadges";
 import PlayerContextPanel from "./PlayerContextPanel";
 import { isDetailAvailable } from "./playerContextDisplay";
 import { TableSkeleton } from "./TableSkeleton";
@@ -38,14 +37,14 @@ import {
 } from "./projectionMovement";
 import {
   formatOpportunityAdjustmentPct,
-  opportunityAdjustmentClass,
   pickOpportunityAdjustment,
-  slateHasOpportunityAdjustment,
 } from "./opportunityAdjustment";
 import {
+  BOARD_COPY,
   positionShort,
   weeklyBoardPreview,
   weeklyPeerStats,
+  weeklyRowClickIntent,
   weeklyWhyNow,
 } from "./projectionsPresentation";
 
@@ -215,7 +214,6 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   rowIndex,
   rank,
   showOpponent,
-  showBoost,
   unavailableColSpan,
   scaleMax,
   playerMedia,
@@ -223,14 +221,12 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   season,
   week,
   dvpTeamCount,
-  compareEnabled,
+  compareSelecting,
   selected,
   selectDisabled,
   onToggleSelect,
   whyNow,
   applyInjuryAdjustments,
-  playerContext,
-  contextSlateMeta = null,
   showMovement = false,
   peerStats = {},
   onOpenPlayer,
@@ -243,7 +239,8 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
   const p90 = Number(row["High (P90)"]) || 0;
   const tag = unavailableLabel(status);
   const tone = matchupTone(row["Opp Def Rank"], dvpTeamCount);
-  const canSelect = compareEnabled && Boolean(row.player_id) && !unavailable && !leftSlate;
+  const canSelect = compareSelecting && Boolean(row.player_id) && !unavailable && !leftSlate
+    && (!selectDisabled || selected);
 
   const openPlayer = () => {
     if (!row.player_id || !onOpenPlayer) return;
@@ -262,32 +259,29 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
     });
   };
 
+  const handleRowClick = () => {
+    if (weeklyRowClickIntent({ compareSelecting, fromName: false }) === "select" && canSelect) {
+      onToggleSelect?.(row);
+      return;
+    }
+    openPlayer();
+  };
+
   return (
     <>
     <tr
       className={[
         "proj-board-row",
+        canSelect ? "proj-board-row--selecting" : "",
         unavailable ? "row-unavailable" : "",
         leftSlate ? "row-left-slate" : "",
         selected ? "row-compare-selected is-selected" : "",
       ]
         .filter(Boolean)
         .join(" ") || undefined}
-      onClick={openPlayer}
+      onClick={handleRowClick}
+      aria-selected={compareSelecting ? selected : undefined}
     >
-      {compareEnabled ? (
-        <td className="col-compare-select" onClick={(event) => event.stopPropagation()}>
-          <label className="compare-select-label">
-            <input
-              type="checkbox"
-              checked={selected}
-              disabled={!canSelect || (selectDisabled && !selected)}
-              onChange={() => onToggleSelect?.(row)}
-              aria-label={`Select ${row.Player || "player"} for compare`}
-            />
-          </label>
-        </td>
-      ) : null}
       <td className={`num col-rank${rank != null && rank <= 3 ? " col-rank-top" : ""}`}>
         <span className="col-rank-stack">
           <span className="col-rank-value">{rank ?? "—"}</span>
@@ -317,13 +311,6 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
             </Chip>
           ) : null}
         </span>
-        {playerContext ? (
-          <PlayerContextBadges
-            context={playerContext}
-            slateMeta={contextSlateMeta}
-            className="player-context-badges--table"
-          />
-        ) : null}
         <span className="col-player-mobile-meta">
           {[row.Team, positionShort(position)].filter(Boolean).join(" · ") || "—"}
           {showOpponent && row.Opponent ? ` · ${row.Opponent}` : ""}
@@ -382,11 +369,6 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
               showVolatility
             />
           </td>
-          {showBoost && (
-            <td className={`num ${opportunityAdjustmentClass(pickOpportunityAdjustment(row))}`}>
-              {formatOpportunityAdjustmentPct(row) || "—"}
-            </td>
-          )}
         </>
       )}
     </tr>
@@ -475,6 +457,7 @@ export default function WeeklyTable({
   const [sort, toggleSort] = useTableSort({ column: "P50", dir: "desc" });
   const [whyPlayerId, setWhyPlayerId] = useState(null);
   const [contextPlayerId, setContextPlayerId] = useState(null);
+  const [compareSelecting, setCompareSelecting] = useState(false);
   const mobileLayout = useMobileLayout();
   const playerCard = usePlayerCardOptional();
   const playersContext = usePlayersContext(season, week, {
@@ -506,6 +489,7 @@ export default function WeeklyTable({
   useEffect(() => {
     setWhyPlayerId(null);
     setContextPlayerId(null);
+    setCompareSelecting(false);
   }, [position, season, week, applyInjuryAdjustments]);
 
   // When switching into a movers filter, prefer biggest-move sort.
@@ -526,16 +510,11 @@ export default function WeeklyTable({
     [rows, showSentiment]
   );
 
-  const showBoost = useMemo(() => slateHasOpportunityAdjustment(rows), [rows]);
   const peerStats = useMemo(() => weeklyPeerStats(rows, { position }), [rows, position]);
 
-  // Compare, Rank, Player, Opp?, Why now, P10, P50, P90, Range, Opp adj?
-  const emptyColSpan =
-    7 +
-    (compareEnabled ? 1 : 0) +
-    (showOpponent ? 1 : 0) +
-    (showBoost ? 1 : 0);
-  const unavailableColSpan = 4 + (showBoost ? 1 : 0);
+  // Rank, Player, Opp?, Why now, P10, P50, P90, Range
+  const emptyColSpan = 7 + (showOpponent ? 1 : 0);
+  const unavailableColSpan = 4;
 
   const filtered = useMemo(() => {
     let list = rows || [];
@@ -719,11 +698,21 @@ export default function WeeklyTable({
           </span>
         ) : null}
         {compareEnabled ? (
-          <span className="table-meta table-meta-compare-hint">
-            Compare 2–{maxCompare} players
-          </span>
+          <button
+            type="button"
+            className={`proj-board-filter compare-mode-toggle${compareSelecting ? " is-active" : ""}`}
+            aria-pressed={compareSelecting}
+            onClick={() => setCompareSelecting((on) => !on)}
+          >
+            {compareSelecting ? BOARD_COPY.compareDone : BOARD_COPY.compare}
+          </button>
         ) : null}
       </div>
+      {compareEnabled && compareSelecting ? (
+        <p className="compare-mode-hint" role="status">
+          {BOARD_COPY.compareHint}
+        </p>
+      ) : null}
       {compareEnabled && selectedCount > 0 ? (
         <div className="compare-selection-bar" role="region" aria-label="Compare selection">
           <div className="compare-selection-count">
@@ -735,7 +724,7 @@ export default function WeeklyTable({
                 ? ` · pick ${2 - selectedCount} more`
                 : selectedCount >= maxCompare
                   ? ` · max ${maxCompare}`
-                  : ` · up to ${maxCompare}`}
+                  : ` · ${BOARD_COPY.comparePick}`}
             </span>
           </div>
           {compareSelectionMeta?.length ? (
@@ -773,7 +762,7 @@ export default function WeeklyTable({
               disabled={selectedCount < 2}
               onClick={onOpenCompare}
             >
-              Compare
+              {BOARD_COPY.compareOpen}
             </button>
           </div>
         </div>
@@ -795,7 +784,8 @@ export default function WeeklyTable({
             const tone = matchupTone(row["Opp Def Rank"], dvpTeamCount);
             const pid = row.player_id ? String(row.player_id) : "";
             const selected = pid ? selectedSet.has(pid) : false;
-            const canSelect = compareEnabled && Boolean(pid) && !unavailable && !leftSlate;
+            const canSelect = compareSelecting && Boolean(pid) && !unavailable && !leftSlate
+              && (!selectDisabled || selected);
             const playerCtx = pid ? playersContext.byId.get(pid) : null;
             const canContext = Boolean(pid) && !leftSlate && isDetailAvailable(playerCtx);
             const metaNode = (
@@ -831,6 +821,8 @@ export default function WeeklyTable({
                 name={row.Player}
                 rank={rankMap.get(rowRankKey(row)) ?? null}
                 selected={selected}
+                selecting={compareSelecting}
+                onSelect={canSelect ? () => onToggleCompare?.(row) : undefined}
                 titleNode={(
                   <PlayerCell
                     name={row.Player}
@@ -848,7 +840,7 @@ export default function WeeklyTable({
                       Left slate
                     </Chip>
                   ) : unavailable ? null : (
-                    <InjuryStatusTag status={status} verbose />
+                    <InjuryStatusTag status={status} />
                   )
                 }
                 meta={metaNode}
@@ -877,23 +869,38 @@ export default function WeeklyTable({
                 heroMuted={unavailable || leftSlate}
                 unavailable={unavailable || leftSlate}
                 aside={
-                  compareEnabled ? (
-                    <label className={`compare-select-label compare-select-label--card${selected ? " is-selected" : ""}`}>
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        disabled={!canSelect || (selectDisabled && !selected)}
-                        onChange={() => onToggleCompare?.(row)}
-                        aria-label={`Select ${row.Player || "player"} for compare`}
-                      />
-                      <span>{selected ? "Selected" : "Compare"}</span>
-                    </label>
+                  compareSelecting && playerCard ? (
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm"
+                      onClick={() => {
+                        const rank = rankMap.get(rowRankKey(row)) ?? null;
+                        playerCard.openPlayerCard({
+                          playerId: pid,
+                          name: row.Player,
+                          team: row.Team,
+                          position,
+                          season,
+                          week,
+                          applyInjuryAdjustments,
+                          scope: "weekly",
+                          rank,
+                          peers: peerStats,
+                          preview: weeklyBoardPreview(row, peerStats, {
+                            rank,
+                            position,
+                          }),
+                        });
+                      }}
+                    >
+                      Details
+                    </button>
                   ) : null
                 }
                 actions={
                   pid ? (
                     <div className="mobile-player-card-action-row">
-                      {playerCard ? (
+                      {playerCard && !compareSelecting ? (
                         <button
                           type="button"
                           className="btn-ghost btn-sm"
@@ -959,22 +966,9 @@ export default function WeeklyTable({
                         <div className="mobile-stat-grid">
                           <MobileStat label="Floor" value={fmtNum(row["Low (P10)"], 1)} />
                           <MobileStat label="Ceiling" value={fmtNum(row["High (P90)"], 1)} />
-                          {showBoost && formatOpportunityAdjustmentPct(row) ? (
-                            <MobileStat
-                              label="Opportunity adjustment"
-                              value={formatOpportunityAdjustmentPct(row)}
-                            />
-                          ) : null}
                         </div>
                       </>
                     )}
-                    {pid ? (
-                      <PlayerContextBadges
-                        context={playerCtx}
-                        slateMeta={playersContext.meta}
-                        className="player-context-badges--mobile"
-                      />
-                    ) : null}
                     {hasSentiment ? (
                       <div className="mobile-player-card-sentiment">
                         <SentimentBadge sentiment={row.sentiment} compact />
@@ -1009,15 +1003,10 @@ export default function WeeklyTable({
           })}
         </MobileDataList>
       ) : (
-      <div className={`table-wrap table-sticky table-has-rank${compareEnabled ? " table-has-compare" : ""}${showFilters ? " table-has-movement" : ""}`}>
+      <div className={`table-wrap table-sticky table-has-rank${compareSelecting ? " table-is-comparing" : ""}${showFilters ? " table-has-movement" : ""}`}>
         <table>
           <thead>
             <tr>
-              {compareEnabled ? (
-                <th className="col-compare-select" title="Select players to compare (2–4)">
-                  <span className="sr-only">Compare</span>
-                </th>
-              ) : null}
               <th
                 className="num col-rank"
                 title={
@@ -1072,15 +1061,6 @@ export default function WeeklyTable({
               >
                 Range
               </th>
-              {showBoost && (
-                <SortHeader
-                  label="Opp adj"
-                  sortKey="Opportunity"
-                  sort={sort}
-                  onSort={toggleSort}
-                  tip="Opportunity adjustment when teammates are unavailable. +15% means the projection was raised 15%."
-                />
-              )}
             </tr>
           </thead>
           <tbody>
@@ -1105,7 +1085,6 @@ export default function WeeklyTable({
                 rowIndex={rowIndex}
                 rank={rankMap.get(rowRankKey(row)) ?? null}
                 showOpponent={showOpponent}
-                showBoost={showBoost}
                 unavailableColSpan={unavailableColSpan}
                 scaleMax={scaleMax}
                 playerMedia={playerMedia}
@@ -1113,7 +1092,7 @@ export default function WeeklyTable({
                 season={season}
                 week={week}
                 dvpTeamCount={dvpTeamCount}
-                compareEnabled={compareEnabled}
+                compareSelecting={compareSelecting}
                 selected={pid ? selectedSet.has(pid) : false}
                 selectDisabled={selectDisabled}
                 onToggleSelect={onToggleCompare}
@@ -1122,8 +1101,6 @@ export default function WeeklyTable({
                   position,
                 })}
                 applyInjuryAdjustments={applyInjuryAdjustments}
-                playerContext={pid ? playersContext.byId.get(pid) : null}
-                contextSlateMeta={playersContext.meta}
                 showMovement={showMovement}
                 peerStats={peerStats}
                 onOpenPlayer={onOpenPlayer || (playerCard ? playerCard.openPlayerCard : undefined)}

@@ -165,6 +165,9 @@ Weekly and Season projections are a **board**, not a Fantasy decision page.
 - Four slate/season signals sit above a full-width ranking table.
 - Injuries and analyst context are disclosures under the board (phone: existing panel tabs).
 - Clicking a player opens the **player inspector**: floor / P50 / ceiling, range read, method, and this-week notes. Desktop is a right-hand drawer; phones keep the bottom sheet.
+- **Weekly compare** is a mode. Enter Compare, then tap a row (not the name) to add them. The name still opens the inspector. Never show always-on compare checkboxes.
+- Weekly board rows match across positions (QB / RB / WR/TE). Opportunity, role-up, and commentary live in the inspector, not as extra table chips or columns.
+- One injury mark per weekly row: the compact Q / D / P chip. Do not add a second status pill under the name.
 - **This-week notes** are one Sleeper locker or practice sentence plus an optional projection-delta line. Do not bake YouTube show descriptions as current-week narrative. Sentiment stays a research candidate until a raw snippet passes the Latest usefulness filter.
 - Copy for signals, board reads, and inspector tiles lives in `frontend/src/projectionsPresentation.js`.
 

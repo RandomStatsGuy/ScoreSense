@@ -47,6 +47,10 @@ test("text lookup prefers the longest alias and ignores capture vs cap", () => {
   assert.equal(va.label, "Vibes");
   const locker = resolveLivingSurfaceFromText("tighten the locker note on the inspector");
   assert.equal(locker.label, "Player inspector");
+  const weeklyCompare = resolveLivingSurfaceFromText("weekly compare checkboxes on the board");
+  assert.equal(weeklyCompare.page, "frontend/src/WeeklyTable.jsx");
+  const rbWeekly = resolveLivingSurfaceFromText("running back weekly table chips");
+  assert.equal(rbWeekly.page, "frontend/src/WeeklyTable.jsx");
 });
 
 test("file lookup returns the surfaces that own a page", () => {

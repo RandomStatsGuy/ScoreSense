@@ -4,6 +4,7 @@
  */
 
 import { isPlayerUnavailable } from "./format.js";
+import { formatOpportunityAdjustmentPct } from "./opportunityAdjustment.js";
 import { isLeftSlate } from "./projectionMovement.js";
 import { isScheduleAwareMethod, resolveSeasonBand, upsideSkew } from "./seasonQuantiles.js";
 
@@ -37,10 +38,16 @@ export const BOARD_COPY = {
   injuries: "Injuries",
   analyst: "Analyst context",
   addPlayer: "Add player",
+  compare: "Compare",
+  compareDone: "Done",
+  compareHint: "Tap a row to add them. The name still opens details.",
+  comparePick: "Compare 2–4 players",
+  compareOpen: "Compare",
   scheduleAware: "Schedule-aware estimate",
   preseasonEstimate: "Preseason estimate",
   liveSeason: "Live season + ROS",
   weeklyModel: "Weekly PPR model",
+  opportunity: "Opportunity",
 };
 
 /** Inspector this-week note — locker / practice, not a show recap. */
@@ -54,7 +61,25 @@ export const CONTEXT_COPY = {
   loading: "Loading this week's note…",
   cold: "No locker note yet. The week number is unchanged.",
   missing: "No cached note for this player.",
+  opportunityTitle: "Opportunity",
+  opportunity: "Teammate availability moved this week's median.",
+  opportunityEmpty: "No opportunity adjustment this week.",
 };
+
+/** Weekly row click: name always inspects. Compare mode uses the rest of the row. */
+export function weeklyRowClickIntent({ compareSelecting = false, fromName = false } = {}) {
+  if (compareSelecting && !fromName) return "select";
+  return "inspect";
+}
+
+export function opportunityInsight(row) {
+  const pct = formatOpportunityAdjustmentPct(row);
+  if (!pct) return null;
+  return {
+    title: pct,
+    detail: CONTEXT_COPY.opportunity,
+  };
+}
 
 export function positionShort(position) {
   const key = String(position || "").trim().toLowerCase();

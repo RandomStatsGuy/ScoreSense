@@ -4,6 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  BOARD_COPY,
   CONTEXT_COPY,
   analystDisclosureSummary,
   filterInspectorCandidates,
@@ -11,6 +12,7 @@ import {
   matchesSeasonBoardFilter,
   median,
   methodInsight,
+  opportunityInsight,
   percentile,
   roleOutlook,
   seasonBoardSignals,
@@ -19,6 +21,7 @@ import {
   weeklyBoardPreview,
   weeklyBoardSignals,
   weeklyPeerStats,
+  weeklyRowClickIntent,
   weeklyWhyNow,
 } from "./projectionsPresentation.js";
 
@@ -155,6 +158,22 @@ test("this-week inspector copy is locker plus delta, not a show recap", () => {
   assert.equal(CONTEXT_COPY.title, "This week");
   assert.match(CONTEXT_COPY.support, /locker note/i);
   assert.doesNotMatch(JSON.stringify(CONTEXT_COPY), /YouTube|Draft Hub|Submit/i);
+});
+
+test("weekly compare is a mode and the name still opens details", () => {
+  assert.equal(weeklyRowClickIntent({ compareSelecting: false, fromName: false }), "inspect");
+  assert.equal(weeklyRowClickIntent({ compareSelecting: false, fromName: true }), "inspect");
+  assert.equal(weeklyRowClickIntent({ compareSelecting: true, fromName: true }), "inspect");
+  assert.equal(weeklyRowClickIntent({ compareSelecting: true, fromName: false }), "select");
+  assert.match(BOARD_COPY.compareHint, /name still opens details/i);
+  assert.doesNotMatch(JSON.stringify(BOARD_COPY), /checkbox|Submit|Draft Hub/i);
+});
+
+test("opportunity insight stays out of the board and names the week move", () => {
+  assert.equal(opportunityInsight({ "Opportunity Adjustment": 0 }), null);
+  const hit = opportunityInsight({ "Opportunity Adjustment": 0.15 });
+  assert.equal(hit.title, "+15%");
+  assert.match(hit.detail, /teammate availability/i);
 });
 
 test("disclosure summaries name the consequence", () => {
