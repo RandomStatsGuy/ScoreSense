@@ -2369,10 +2369,9 @@
 
 .fantasy-chat-dock.is-open {
   inset: 0;
-  top: auto;
-  right: auto;
   z-index: var(--z-sheet);
   transform: none;
+  align-items: stretch;
 }
 
 .fantasy-chat-launcher,
@@ -2469,7 +2468,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  position: absolute;
+  position: fixed;
   inset: 0;
   padding: 1.25rem;
   background: rgba(0, 0, 0, 0.62);
@@ -2479,7 +2478,9 @@
 .fantasy-chat-stage {
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   width: min(40rem, calc(100vw - 2rem));
+  min-width: min(22rem, calc(100vw - 2rem));
   height: min(42rem, calc(100dvh - 3rem));
   max-height: calc(100dvh - 3rem);
   padding: 0.95rem 1rem 1rem;
