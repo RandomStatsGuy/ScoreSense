@@ -86,6 +86,7 @@ No forced Fantasy redirect.
 See `.env.example` and `deploy/env.production.example`:
 
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_TLS`
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` (optional — Continue with Google)
 - `TERMS_URL`, `PRIVACY_URL` (optional — default to in-app pages via `FRONTEND_URL`)
 - `TERMS_VERSION`
 - `FRONTEND_URL` (must match public app URL for email links)
@@ -103,7 +104,9 @@ See `.env.example` and `deploy/env.production.example`:
 | `POST /api/auth/accept-terms` | Re-accept after `TERMS_VERSION` bump |
 | `POST /api/auth/delete-account` | Delete native login (Hub data may remain) |
 | `GET /api/auth/patreon/login?next=` | OAuth with return path in signed state |
+| `GET /api/auth/google/login?next=` | Google OAuth with return path in signed state |
+| `GET /api/auth/google/callback` | Google OAuth callback → `/auth/callback` |
 
 Register body requires `accept_terms: true`.
 
-Frontend routes: `/terms`, `/privacy`, `/account`, `/auth/forgot-password`, `/auth/reset-password`.
+Frontend routes: `/login`, `/register`, `/signup`, `/terms`, `/privacy`, `/account`, `/auth/forgot-password`, `/auth/reset-password`.

@@ -43,6 +43,17 @@ test("every registered chrome is in the CHROME list", () => {
   }
 });
 
+test("login and create account resolve to the session pages", () => {
+  const login = resolveLivingSurfaceFromText("mock up a better login page");
+  assert.equal(login.label, "Sign in");
+  assert.equal(login.page, "frontend/src/AuthSessionPage.jsx");
+  const create = resolveLivingSurfaceFromText("create account page with google auth");
+  assert.equal(create.label, "Create account");
+  assert.equal(create.copy, "frontend/src/authPresentation.js");
+  const signIn = resolveLivingSurfaceFromText("especially the sign in screen on mobile");
+  assert.equal(signIn.label, "Sign in");
+});
+
 test("shared mobile chrome resolves from the header files", () => {
   const hits = surfacesForFile("frontend/src/layout/MobileHeader.jsx");
   assert.equal(hits[0].id, "shared");

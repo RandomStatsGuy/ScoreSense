@@ -46,6 +46,10 @@ export default function PrivacyPage() {
             choose Patreon login).
           </li>
           <li>
+            <strong>Google sign-in:</strong> Google user id, name, and email from OAuth (when you
+            choose Continue with Google). We treat that email as verified.
+          </li>
+          <li>
             <strong>Draft Hub:</strong> league settings, rosters, cap sheets, Sleeper links, and
             related league data you save in the app.
           </li>
@@ -73,7 +77,7 @@ export default function PrivacyPage() {
       <section>
         <h2 className="hub-panel-subtitle">5. Third parties</h2>
         <p>
-          Patreon (OAuth), Sleeper (when you link a league), and email delivery providers process
+          Google (OAuth), Patreon (OAuth), Sleeper (when you link a league), and email delivery providers process
           data according to their policies when you use those features. We use Google Analytics 4
           on app.fourthdownlabs.com to measure which pages are used. Google receives the page path,
           a human-readable page title, and truncated query filters (for example position or week).

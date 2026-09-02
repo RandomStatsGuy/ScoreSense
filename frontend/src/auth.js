@@ -96,7 +96,7 @@ export async function apiFetch(url, options = {}) {
 
 export async function fetchAuthConfig() {
   const res = await fetch("/api/auth/config");
-  if (!res.ok) return { auth_required: false, patreon_configured: false };
+  if (!res.ok) return { auth_required: false, patreon_configured: false, google_configured: false };
   return res.json();
 }
 
@@ -195,10 +195,13 @@ export async function acceptTerms() {
   return res.json();
 }
 
-export async function deleteAccount({ password }) {
+export async function deleteAccount({ password, confirmEmail } = {}) {
   const res = await apiFetch("/api/auth/delete-account", {
     method: "POST",
-    body: JSON.stringify({ password }),
+    body: JSON.stringify({
+      password: password || "",
+      confirm_email: confirmEmail || undefined,
+    }),
   });
   if (!res.ok) await parseAuthError(res, "Could not delete account");
   return res.json();
@@ -209,6 +212,15 @@ export async function loginWithPatreon(nextPath) {
   const q = encodeURIComponent(next);
   const res = await fetch(`/api/auth/patreon/login?next=${q}`);
   if (!res.ok) throw new Error(await res.text());
+  const { url } = await res.json();
+  window.location.href = url;
+}
+
+export async function loginWithGoogle(nextPath) {
+  const next = nextPath || `${window.location.pathname}${window.location.search}`;
+  const q = encodeURIComponent(next);
+  const res = await fetch(`/api/auth/google/login?next=${q}`);
+  if (!res.ok) await parseAuthError(res, "Google sign-in isn't set up on this server yet.");
   const { url } = await res.json();
   window.location.href = url;
 }

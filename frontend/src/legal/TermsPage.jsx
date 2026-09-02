@@ -47,7 +47,8 @@ export default function TermsPage() {
         <h2 className="hub-panel-subtitle">3. Accounts</h2>
         <p>
           You are responsible for keeping your login credentials secure. Email accounts require a
-          verified address to use Draft Hub. Patreon subscribers sign in through Patreon OAuth.
+          verified address to use Fantasy. You may also sign in with Google or, for active patrons,
+          through Patreon.
         </p>
       </section>
       <section>

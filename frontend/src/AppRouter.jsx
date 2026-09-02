@@ -8,6 +8,7 @@ import {
   AuthResetPasswordPage,
   AuthVerifyPage,
 } from "./AuthPages";
+import AuthSessionPage from "./AuthSessionPage";
 import PrivacyPage from "./legal/PrivacyPage";
 import TermsPage from "./legal/TermsPage";
 import LobbyJoinPage from "./DraftHub/LobbyJoinPage";
@@ -22,6 +23,9 @@ export default function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<RedirectKeepSearch to="/projections/weekly" />} />
+      <Route path="/login" element={<AuthSessionPage mode="login" />} />
+      <Route path="/register" element={<AuthSessionPage mode="register" />} />
+      <Route path="/signup" element={<RedirectKeepSearch to="/register" />} />
       <Route path="/lobby/:roomCode" element={<LobbyJoinPage />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route path="/auth/verify" element={<AuthVerifyPage />} />

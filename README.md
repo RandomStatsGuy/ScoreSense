@@ -76,6 +76,7 @@ ScoreSense/
 | `POST /api/refresh` | Run weekly ETL + predict |
 | `GET /api/refresh/status` | Last refresh metadata |
 | `GET /api/auth/patreon/login` | Patreon OAuth (when `AUTH_REQUIRED=true`) |
+| `GET /api/auth/google/login` | Google OAuth (when `GOOGLE_CLIENT_ID` is set) |
 
 See [docs/DEPLOY.md](docs/DEPLOY.md) for Patreon hosting and [docs/DEPLOY_CLOUDFLARE_TUNNEL.md](docs/DEPLOY_CLOUDFLARE_TUNNEL.md) for production (`app.fourthdownlabs.com`).
 
