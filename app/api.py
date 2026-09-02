@@ -52,8 +52,10 @@ from app.auth import (
     resend_verification_email,
     reset_password_with_token,
     resolve_native_user_id,
+    is_guest_user,
     session_user_public,
     sign_oauth_state,
+    sms_fields_for_session,
     update_native_profile,
     upsert_google_user,
     user_terms_current,
@@ -456,6 +458,11 @@ class UpdateProfileRequest(BaseModel):
     display_name: str
 
 
+class SmsOptInRequest(BaseModel):
+    phone: str
+    consent: bool = False
+
+
 class DeleteAccountRequest(BaseModel):
     password: str = ""
     confirm_email: Optional[str] = None
@@ -550,6 +557,7 @@ def _auth_user_payload(user: dict, auth_type: str = "native") -> dict:
         "terms_version": user.get("terms_version") if auth_type == "native" else None,
         "has_password": user_store.has_usable_password(user) if auth_type == "native" else False,
         "google_linked": bool(user.get("google_sub")) if auth_type == "native" else False,
+        **sms_fields_for_session({**user, "auth_type": auth_type}),
     }
 
 
@@ -732,6 +740,25 @@ def auth_update_profile(body: UpdateProfileRequest, request: Request) -> dict:
     _, user_id = _require_native_user(request)
     updated = update_native_profile(user_id, body.display_name)
     return {"user": _auth_user_payload(updated, "native")}
+
+
+@app.post("/api/auth/sms-opt-in")
+def auth_sms_opt_in(body: SmsOptInRequest, request: Request) -> dict:
+    user = optional_user(request)
+    if not user or is_guest_user(user):
+        raise HTTPException(status_code=401, detail="Sign in so we can save this number on your account")
+    if not body.consent:
+        raise HTTPException(status_code=400, detail="Check the box to opt in. It starts empty on purpose.")
+    native_id = resolve_native_user_id(user) if user.get("auth_type") == "native" else None
+    try:
+        account_key = user_store.sms_account_key(
+            native_user_id=native_id,
+            user_sub=None if native_id else user.get("sub"),
+        )
+        saved = user_store.upsert_sms_opt_in(account_key, body.phone)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"user": {**(session_user_public(user) or {}), **saved}}
 
 
 @app.post("/api/auth/accept-terms")

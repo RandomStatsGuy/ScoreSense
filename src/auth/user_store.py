@@ -37,6 +37,14 @@ CREATE TABLE IF NOT EXISTS auth_email_token (
     FOREIGN KEY (user_id) REFERENCES app_user(id)
 );
 CREATE INDEX IF NOT EXISTS idx_auth_email_token_user ON auth_email_token(user_id, purpose);
+
+CREATE TABLE IF NOT EXISTS account_sms (
+    account_key TEXT PRIMARY KEY,
+    phone TEXT NOT NULL,
+    opted_in INTEGER NOT NULL DEFAULT 0,
+    opted_in_at TEXT,
+    updated_at TEXT NOT NULL
+);
 """
 
 
@@ -84,6 +92,15 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
         conn.execute(
             "UPDATE app_user SET email_verified_at = created_at WHERE email_verified_at IS NULL"
         )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS account_sms (
+            account_key TEXT PRIMARY KEY,
+            phone TEXT NOT NULL,
+            opted_in INTEGER NOT NULL DEFAULT 0,
+            opted_in_at TEXT,
+            updated_at TEXT NOT NULL
+        )"""
+    )
 
 
 @contextmanager
@@ -206,8 +223,69 @@ def accept_terms(user_id: str, terms_version: str | None = None) -> dict[str, An
 def delete_user(user_id: str) -> bool:
     with get_conn() as conn:
         conn.execute("DELETE FROM auth_email_token WHERE user_id = ?", (user_id,))
+        conn.execute("DELETE FROM account_sms WHERE account_key = ?", (f"native:{user_id}",))
         cur = conn.execute("DELETE FROM app_user WHERE id = ?", (user_id,))
         return cur.rowcount > 0
+
+
+def normalize_mobile(value: str) -> str:
+    digits = re.sub(r"\D", "", str(value or ""))
+    if len(digits) == 11 and digits.startswith("1"):
+        digits = digits[1:]
+    if len(digits) < 10 or len(digits) > 15:
+        raise ValueError("Enter a mobile number")
+    return digits
+
+
+def sms_account_key(*, native_user_id: str | None = None, user_sub: str | None = None) -> str:
+    if native_user_id:
+        return f"native:{native_user_id}"
+    if user_sub:
+        return f"sub:{user_sub}"
+    raise ValueError("Sign in so we can save this number on your account")
+
+
+def get_sms_opt_in(account_key: str | None) -> dict[str, Any] | None:
+    if not account_key:
+        return None
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM account_sms WHERE account_key = ?",
+            (account_key,),
+        ).fetchone()
+    if not row:
+        return None
+    return {
+        "account_key": row["account_key"],
+        "phone": row["phone"],
+        "opted_in": bool(row["opted_in"]),
+        "opted_in_at": row["opted_in_at"],
+        "updated_at": row["updated_at"],
+    }
+
+
+def sms_public_fields(account_key: str | None) -> dict[str, Any]:
+    row = get_sms_opt_in(account_key)
+    if not row or not row.get("opted_in"):
+        return {"phone": None, "sms_opt_in": False}
+    return {"phone": row["phone"], "sms_opt_in": True}
+
+
+def upsert_sms_opt_in(account_key: str, phone: str) -> dict[str, Any]:
+    normalized = normalize_mobile(phone)
+    now = _utcnow()
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO account_sms (account_key, phone, opted_in, opted_in_at, updated_at)
+               VALUES (?, ?, 1, ?, ?)
+               ON CONFLICT(account_key) DO UPDATE SET
+                 phone = excluded.phone,
+                 opted_in = 1,
+                 opted_in_at = excluded.opted_in_at,
+                 updated_at = excluded.updated_at""",
+            (account_key, normalized, now, now),
+        )
+    return sms_public_fields(account_key)
 
 
 def create_email_token(user_id: str, purpose: str, *, hours: int = 24) -> str:

@@ -11,7 +11,7 @@ function isSameOrigin(url) {
   }
 }
 
-function LegalAnchor({ href, children }) {
+export function LegalAnchor({ href, children }) {
   if (href.startsWith("/")) {
     return (
       <Link to={href}>

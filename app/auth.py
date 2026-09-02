@@ -674,6 +674,16 @@ def require_hub_user(request: Request) -> dict[str, Any]:
     return user
 
 
+def sms_fields_for_session(user: dict[str, Any] | None, native_row: dict[str, Any] | None = None) -> dict[str, Any]:
+    if native_row and native_row.get("id"):
+        return user_store.sms_public_fields(f"native:{native_row['id']}")
+    if user and user.get("id") and user.get("auth_type") == "native":
+        return user_store.sms_public_fields(f"native:{user['id']}")
+    if user and user.get("sub"):
+        return user_store.sms_public_fields(f"sub:{user.get('sub')}")
+    return user_store.sms_public_fields(None)
+
+
 def session_user_public(user: dict[str, Any] | None) -> dict[str, Any] | None:
     if not user:
         return None
@@ -695,6 +705,7 @@ def session_user_public(user: dict[str, Any] | None) -> dict[str, Any] | None:
         "terms_version": terms_version,
         "has_password": user_store.has_usable_password(native_row) if native_row else False,
         "google_linked": bool(native_row.get("google_sub")) if native_row else False,
+        **sms_fields_for_session(user, native_row),
     }
 
 

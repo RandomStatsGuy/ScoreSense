@@ -23,6 +23,9 @@ test("SMS opt-in card has every A2P web-form line", () => {
   assert.match(SMS_OPT_IN.submit, /Yes, text me/);
   assert.doesNotMatch(SMS_OPT_IN.submit, /Submit|Draft Hub/i);
   assert.match(SMS_OPT_IN.needConsent, /starts empty/);
+  assert.match(SMS_OPT_IN.needAccount, /Sign in/);
+  assert.match(SMS_OPT_IN.needAccount, /account/);
+  assert.doesNotMatch(SMS_OPT_IN.needAccount, /Submit|Draft Hub|permission/i);
 });
 
 test("terms say SMS is optional and name the vendor", () => {
