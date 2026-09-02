@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const css = readFileSync(join(here, "../styles.css"), "utf8");
 const rosterBuilder = readFileSync(join(here, "RosterBuilder.jsx"), "utf8");
+const rosterBrowser = readFileSync(join(here, "LeagueRostersBrowser.jsx"), "utf8");
 
 function block(selector) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -40,4 +41,38 @@ test("My Team roster columns declare a shared header/body layout", () => {
     assert.match(rosterBuilder, new RegExp(`<td[^>]*className="${cls}"`));
   }
   assert.match(rosterBuilder, /<th className="hub-roster-actions">Contract<\/th>/);
+});
+
+test("League Rosters columns declare a shared header/body layout", () => {
+  const table = block(".hub-roster-browser-page .hub-roster-table");
+  assert.match(table, /table-layout:\s*fixed/);
+
+  for (const cls of [
+    "hub-roster-col-player",
+    "hub-roster-col-pos",
+    "num hub-roster-col-cap",
+    "num hub-roster-col-years",
+    "hub-roster-col-type",
+    "hub-roster-col-contract",
+    "hub-roster-actions",
+  ]) {
+    assert.match(rosterBrowser, new RegExp(`<th[^>]*className="${cls}"`));
+    assert.match(rosterBrowser, new RegExp(`<td[^>]*className="${cls}"`));
+  }
+  assert.match(rosterBrowser, /<th[^>]*className="num hub-roster-col-pts"/);
+  assert.match(rosterBrowser, /<td className="num hub-roster-col-pts">/);
+});
+
+test("League Rosters player and action cells keep a measured gap", () => {
+  const playerLine = block(".hub-roster-player-line");
+  assert.match(playerLine, /display:\s*flex/);
+  assert.match(playerLine, /gap:\s*0\.5rem/);
+
+  const expire = block(".hub-roster-player-line .hub-expire-chip");
+  assert.match(expire, /margin-left:\s*0/);
+
+  const actions = block(".hub-roster-action-group");
+  assert.match(actions, /display:\s*inline-flex/);
+  assert.match(actions, /gap:\s*0\.55rem/);
+  assert.match(rosterBrowser, /className="hub-roster-action-group"/);
 });

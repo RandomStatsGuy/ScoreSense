@@ -2883,9 +2883,9 @@
 .hub-roster-owner-layout {
   display: grid;
   grid-template-columns: minmax(13.5rem, 16rem) minmax(0, 1fr);
-  gap: 1rem;
+  gap: 1.15rem;
   align-items: start;
-  padding: 0 1rem 1rem;
+  padding: 1rem 2.15rem 1.5rem;
 }
 
 .hub-roster-owner-rail {
@@ -2916,8 +2916,9 @@
   width: 100%;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.08rem;
-  padding: 0.48rem 0.62rem;
+  justify-content: center;
+  gap: 0.18rem;
+  padding: 0.52rem 0.65rem;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   background: transparent;
@@ -2962,7 +2963,7 @@
 @media (max-width: 860px) {
   .hub-roster-owner-layout {
     grid-template-columns: 1fr;
-    padding: 0 0.85rem 0.85rem;
+    padding: 0.85rem 1.25rem 1.25rem;
   }
 
   .hub-roster-owner-rail {
