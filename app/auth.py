@@ -467,8 +467,15 @@ def upsert_google_user(identity: dict[str, Any]) -> dict[str, Any]:
         return existing
     by_email = user_store.get_user_by_email(email)
     if by_email:
+        # Unverified email+password rows can be squatters. Google proves the
+        # mailbox, so take the row but drop the password they never owned.
+        disable_password = not user_store.is_email_verified(by_email)
         try:
-            linked = user_store.link_google_sub(by_email["id"], google_sub)
+            linked = user_store.link_google_sub(
+                by_email["id"],
+                google_sub,
+                disable_password=disable_password,
+            )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return linked or by_email

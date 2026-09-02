@@ -68,6 +68,21 @@ def test_google_links_existing_email_account(auth_db, monkeypatch):
     assert linked["id"] == native["id"]
     row = user_store.get_user_by_email("caleb@gmail.com")
     assert row["google_sub"] == "google-sub-1"
+    assert not user_store.has_usable_password(row)
+    with pytest.raises(HTTPException) as exc:
+        authenticate_native_user("caleb@gmail.com", "password12")
+    assert exc.value.status_code == 401
+    assert "Google" in exc.value.detail
+
+
+def test_google_keeps_password_on_verified_email_account(auth_db, monkeypatch):
+    monkeypatch.setattr("app.auth.send_verification_email", lambda *a, **k: True)
+    native = register_native_user("caleb@gmail.com", "password12", "Caleb", accept_terms=True)
+    user_store.mark_email_verified(native["id"])
+    linked = upsert_google_user(_identity())
+    assert linked["id"] == native["id"]
+    row = user_store.get_user_by_email("caleb@gmail.com")
+    assert row["google_sub"] == "google-sub-1"
     assert user_store.has_usable_password(row)
     again = authenticate_native_user("caleb@gmail.com", "password12")
     assert again["id"] == native["id"]

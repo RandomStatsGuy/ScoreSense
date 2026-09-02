@@ -24,20 +24,23 @@ function GoogleMark() {
   );
 }
 
-function SocialOptions({ oauthNext, onError, showPatreon }) {
+function SocialOptions({ oauthNext, onError, showGoogle, showPatreon }) {
   const startGoogle = () => {
     loginWithGoogle(oauthNext).catch((e) => onError?.(e.message || AUTH_COPY.googleUnavailable));
   };
   const startPatreon = () => {
     loginWithPatreon(oauthNext).catch((e) => onError?.(e.message));
   };
+  if (!showGoogle && !showPatreon) return null;
 
   return (
     <div className="account-auth-social">
-      <button type="button" className="account-auth-google" onClick={startGoogle}>
-        <GoogleMark />
-        <span>{AUTH_COPY.google}</span>
-      </button>
+      {showGoogle ? (
+        <button type="button" className="account-auth-google" onClick={startGoogle}>
+          <GoogleMark />
+          <span>{AUTH_COPY.google}</span>
+        </button>
+      ) : null}
       {showPatreon ? (
         <>
           <button type="button" className="btn-ghost account-auth-patreon" onClick={startPatreon}>
@@ -87,12 +90,14 @@ export default function AccountAuth({
   privacyUrl,
   onForgotPassword,
   patreonConfigured: patreonProp,
+  googleConfigured: googleProp,
   patreonNext,
   nextPath,
 }) {
   const auth = useAuth();
   const session = layout === "session" || (!compact && !title);
   const patreonConfigured = patreonProp ?? auth.patreonConfigured;
+  const googleConfigured = googleProp ?? auth.googleConfigured;
   const [mode, setMode] = useState(initialMode);
   const [email, setEmail] = useState(defaultEmail);
   const [password, setPassword] = useState("");
@@ -201,12 +206,15 @@ export default function AccountAuth({
       <SocialOptions
         oauthNext={oauthNext}
         onError={setError}
+        showGoogle={Boolean(googleConfigured)}
         showPatreon={Boolean(patreonConfigured)}
       />
 
-      <div className="account-auth-divider">
-        <span>{AUTH_COPY.emailDivider}</span>
-      </div>
+      {googleConfigured || patreonConfigured ? (
+        <div className="account-auth-divider">
+          <span>{AUTH_COPY.emailDivider}</span>
+        </div>
+      ) : null}
 
       <form className="account-auth-form" onSubmit={submit}>
         {mode === "register" && (

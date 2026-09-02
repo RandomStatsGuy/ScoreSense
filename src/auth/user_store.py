@@ -283,21 +283,38 @@ def create_google_user(
         return _user_dict(row)
 
 
-def link_google_sub(user_id: str, google_sub: str) -> dict[str, Any] | None:
+def link_google_sub(
+    user_id: str,
+    google_sub: str,
+    *,
+    disable_password: bool = False,
+) -> dict[str, Any] | None:
     sub = str(google_sub or "").strip()
     if not sub:
         raise ValueError("Google account is missing an id")
     now = _utcnow()
     with get_conn() as conn:
         try:
-            conn.execute(
-                """UPDATE app_user
-                   SET google_sub = ?,
-                       email_verified_at = COALESCE(email_verified_at, ?),
-                       updated_at = ?
-                   WHERE id = ?""",
-                (sub, now, now, user_id),
-            )
+            if disable_password:
+                conn.execute(
+                    """UPDATE app_user
+                       SET google_sub = ?,
+                           email_verified_at = COALESCE(email_verified_at, ?),
+                           password_hash = ?,
+                           has_password = 0,
+                           updated_at = ?
+                       WHERE id = ?""",
+                    (sub, now, secrets.token_urlsafe(32), now, user_id),
+                )
+            else:
+                conn.execute(
+                    """UPDATE app_user
+                       SET google_sub = ?,
+                           email_verified_at = COALESCE(email_verified_at, ?),
+                           updated_at = ?
+                       WHERE id = ?""",
+                    (sub, now, now, user_id),
+                )
         except sqlite3.IntegrityError as exc:
             raise ValueError("That Google account is already linked") from exc
         row = conn.execute("SELECT * FROM app_user WHERE id = ?", (user_id,)).fetchone()
