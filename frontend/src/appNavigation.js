@@ -48,7 +48,7 @@ export const SECTION_SUBTITLES = {
     game: "Your matchup, live",
     roster: "Your contracts",
     rosters: "All teams",
-    room: "Live auction",
+    room: "Invite, schedule, live room",
     planner: "Cap & cuts",
     trades: "Propose & accept",
     insights: "League history and awards",

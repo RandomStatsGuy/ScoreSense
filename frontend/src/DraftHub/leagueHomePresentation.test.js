@@ -62,6 +62,8 @@ test("phase track marks exactly one current phase", () => {
 test("known action labels use concrete verbs", () => {
   assert.equal(actionLabel({ id: "cap_overage" }), "Fix cap");
   assert.equal(actionLabel({ id: "lineup_decisions" }), "Set lineup");
+  assert.equal(actionLabel({ id: "invite_managers" }), "Invite managers");
+  assert.equal(actionLabel({ id: "mark_availability" }), "Mark times");
 });
 
 test("home deck helpers format empty scores and keep the viewer in standings", () => {

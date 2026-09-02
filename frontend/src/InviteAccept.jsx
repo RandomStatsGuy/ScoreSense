@@ -1,27 +1,25 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "./auth";
 import { connectionErrorMessage, parseApiError } from "./format";
 import AccountAuth from "./AccountAuth";
 import { useAuth } from "./AuthContext";
 
-function inviteTokenFromUrl() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("invite")?.trim() || "";
-}
-
-function clearInviteParam() {
-  const url = new URL(window.location.href);
-  url.searchParams.delete("invite");
-  window.history.replaceState({}, "", url.pathname + url.search + url.hash);
-}
-
 export default function InviteAccept({ authenticated, user, onAccepted, onDismiss }) {
   const { termsUrl, privacyUrl, patreonConfigured } = useAuth();
-  const token = inviteTokenFromUrl();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const token = searchParams.get("invite")?.trim() || "";
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(Boolean(token));
   const [accepting, setAccepting] = useState(false);
+  const [done, setDone] = useState(false);
   const [error, setError] = useState("");
+
+  const dropInvite = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("invite");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!token) return;
@@ -55,16 +53,17 @@ export default function InviteAccept({ authenticated, user, onAccepted, onDismis
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
-      clearInviteParam();
+      setDone(true);
+      dropInvite();
       onAccepted?.(data);
     } catch (e) {
       setError(connectionErrorMessage(e));
     } finally {
       setAccepting(false);
     }
-  }, [token, onAccepted]);
+  }, [token, onAccepted, dropInvite]);
 
-  if (!token) return null;
+  if (!token || done) return null;
 
   const emailMatches = preview?.email
     && user?.email
@@ -114,12 +113,18 @@ export default function InviteAccept({ authenticated, user, onAccepted, onDismis
           </div>
         )}
         {error && <div className="error">{error}</div>}
-        <button type="button" className="btn-ghost btn-sm invite-dismiss" onClick={() => { clearInviteParam(); onDismiss?.(); }}>
+        <button
+          type="button"
+          className="btn-ghost btn-sm invite-dismiss"
+          onClick={() => {
+            setDone(true);
+            dropInvite();
+            onDismiss?.();
+          }}
+        >
           Dismiss
         </button>
       </div>
     </div>
   );
 }
-
-export { inviteTokenFromUrl, clearInviteParam };

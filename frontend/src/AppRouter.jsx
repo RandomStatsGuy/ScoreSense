@@ -1,5 +1,5 @@
 import React from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import App from "./App";
 import AccountSettingsPage from "./AccountSettingsPage";
 import {
@@ -11,11 +11,17 @@ import {
 import PrivacyPage from "./legal/PrivacyPage";
 import TermsPage from "./legal/TermsPage";
 import LobbyJoinPage from "./DraftHub/LobbyJoinPage";
+import { withLocationSearch } from "./redirectSearch";
+
+function RedirectKeepSearch({ to }) {
+  const location = useLocation();
+  return <Navigate to={withLocationSearch(to, location.search, location.hash)} replace />;
+}
 
 export default function AppRouter() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/projections/weekly" replace />} />
+      <Route path="/" element={<RedirectKeepSearch to="/projections/weekly" />} />
       <Route path="/lobby/:roomCode" element={<LobbyJoinPage />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route path="/auth/verify" element={<AuthVerifyPage />} />
@@ -46,7 +52,7 @@ export default function AppRouter() {
       <Route path="/tools" element={<Navigate to="/tools/dfs" replace />} />
       <Route path="/model" element={<App />} />
       <Route path="/admin/:adminTab?" element={<App />} />
-      <Route path="*" element={<Navigate to="/projections/weekly" replace />} />
+      <Route path="*" element={<RedirectKeepSearch to="/projections/weekly" />} />
     </Routes>
   );
 }

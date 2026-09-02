@@ -81,7 +81,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 |-------|-------------|---------|
 | Home | `home` | Phase-aware next actions |
 | Strategy | `value` | Auction targets and prices |
-| Draft | `room` | Idle entry + live room |
+| Draft | `room` | Idle entry + live room. Commissioners text an invite link so managers claim a team. Members mark draft-night availability on one calendar (opens 31 days before the first NFL game, closes the day before). |
 | This Week | `week` | Lineup decisions; Hub-only leagues set start/sit here |
 | Game center | `game` | Your matchup live, league scoreboard, week trophies |
 | My team | `roster` | Personal contracts |
@@ -247,3 +247,4 @@ Contract-type playbook for imports and keepers: [CONTRACT_SCENARIOS.md](./CONTRA
 | Experience CSS | `frontend/src/styles/product-hierarchy.css` |
 | Nav source | `frontend/src/appNavigation.js`, `DraftHub/HubSubnav.jsx` |
 | Living page to match | `frontend/src/livingSurfaces.js` |
+| Cloud Agent runtime | `.cursor/environment.json` |

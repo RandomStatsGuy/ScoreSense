@@ -28,6 +28,10 @@ def _client_for(sub: str) -> TestClient:
     return TestClient(app)
 
 
+def teardown_function() -> None:
+    app.dependency_overrides.pop(require_hub_user, None)
+
+
 def _seed_league(hub_db, *, sub: str = "home-comm", draft_completed: bool = False):
     ws = storage.get_or_create_workspace(sub, season=2026)
     rules = load_preset("salary_cap_auction_v1")
@@ -187,6 +191,7 @@ def test_league_home_pre_draft_actions(hub_db):
     assert payload["pre_draft"] is not None
     assert payload["pre_draft"]["expiring_before_draft_count"] >= 1
     assert payload["week_summary"]["available"] is False
+    assert any(a["id"] == "invite_managers" for a in payload["actions"])
 
 
 def test_league_home_in_season_lineup_action(hub_db):

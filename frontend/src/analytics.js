@@ -22,6 +22,7 @@ export const DROP_QUERY_KEYS = new Set([
   "token",
   "code",
   "invite",
+  "claim",
   "q",
   "compare",
   "cmp",

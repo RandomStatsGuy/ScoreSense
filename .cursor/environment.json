@@ -1,0 +1,27 @@
+{
+  "name": "ScoreSense",
+  "install": "bash scripts/dev/cloud_install.sh",
+  "start": "bash scripts/dev/ensure_cloud_env.sh",
+  "ports": [
+    {
+      "name": "API",
+      "port": 8000
+    },
+    {
+      "name": "Vite",
+      "port": 5173
+    }
+  ],
+  "terminals": [
+    {
+      "name": "API",
+      "description": "FastAPI on http://127.0.0.1:8000. Health: GET /api/health.",
+      "command": "bash scripts/dev/run_api.sh"
+    },
+    {
+      "name": "Vite",
+      "description": "Vite on http://127.0.0.1:5173. Proxies /api to :8000. Open the app here.",
+      "command": "bash scripts/dev/run_vite.sh"
+    }
+  ]
+}

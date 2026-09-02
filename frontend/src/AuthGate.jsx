@@ -18,7 +18,8 @@ function isPublicAuthPath(pathname, search) {
   if (PUBLIC_PATH_PREFIXES.some((p) => pathname === p || pathname.startsWith(p))) {
     return true;
   }
-  if (new URLSearchParams(search).has("invite")) {
+  const params = new URLSearchParams(search);
+  if (params.has("invite") || params.has("claim")) {
     return true;
   }
   return false;

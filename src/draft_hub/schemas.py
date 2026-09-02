@@ -142,6 +142,7 @@ class LeagueSettingsUpdate(BaseModel):
     draft_starts_at: Optional[str] = None
     draft_timezone: Optional[str] = None
     clear_draft_start: Optional[bool] = None
+    claim_link_enabled: Optional[bool] = None
 
 
 class NominationQueueUpdate(BaseModel):
@@ -191,6 +192,20 @@ class LeagueInviteCreateRequest(BaseModel):
 
 class LeagueInviteAcceptRequest(BaseModel):
     token: str
+
+
+class LeagueClaimAcceptRequest(BaseModel):
+    team_id: Optional[str] = None
+    team_name: Optional[str] = None
+
+
+class DraftAvailabilitySlot(BaseModel):
+    date: str
+    hour: int
+
+
+class DraftAvailabilityUpdate(BaseModel):
+    slots: list[DraftAvailabilitySlot] = Field(default_factory=list)
 
 
 class TeamCoCommissionerRequest(BaseModel):
