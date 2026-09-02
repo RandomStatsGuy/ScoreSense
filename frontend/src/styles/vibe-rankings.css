@@ -55,8 +55,8 @@
 
 .hub-vibes-photo {
   position: relative;
-  height: 62%;
-  min-height: 14.5rem;
+  height: 52%;
+  min-height: 13rem;
   background:
     radial-gradient(circle at 50% 20%, rgba(91, 143, 232, 0.14), transparent 42%),
     var(--experience-surface);
@@ -369,7 +369,12 @@
 @media (max-width: 768px) {
   .hub-vibes-deck-wrap {
     width: 100%;
-    height: min(70vh, 30rem);
+    height: min(56dvh, 24.5rem);
+  }
+
+  .hub-vibes-photo {
+    height: 46%;
+    min-height: 10.5rem;
   }
 
   .hub-vibes-name {
