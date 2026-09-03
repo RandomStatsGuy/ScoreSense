@@ -48,7 +48,7 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Tokens only: `frontend/src/styles/tokens.css`, `frontend/src/styles/product-hierarchy.css`.
 - Blue (`--experience-blue` / `--accent`) = current context and the next action. Nothing else.
 - Teal = healthy/saved. Amber = attention. Red = destructive/blocking. Gold = awards only.
-- Hierarchy from surface, type, and spacing — not a border on every box.
+- Hierarchy from surface, type, and spacing — not a border on every box. Compact tiles keep token padding and even gutters; use the token type scale, not flush chips or micro type.
 - Editorial pages use `HubExperienceHero` + `HubExperienceLayout` + `HubExperienceSummary` from `frontend/src/DraftHub/HubUILayout.jsx`.
 - Before UI work, resolve `frontend/src/livingSurfaces.js` and match that row’s `page` and `copy`. Do not invent chrome.
 - Live draft rooms stay board-first. Do not wrap them in settings chrome.

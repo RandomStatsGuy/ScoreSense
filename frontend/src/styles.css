@@ -4,6 +4,16 @@
 
 html {
   scrollbar-gutter: stable;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
 /* Keyboard focus baseline — visible ring on any interactive element that

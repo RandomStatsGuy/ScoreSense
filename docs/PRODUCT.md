@@ -136,6 +136,7 @@ Rules:
 
 - Prefer tokens in `frontend/src/styles/tokens.css` and `product-hierarchy.css`. Do not invent a new hue for a new page.
 - Hierarchy comes from surface lift, type size/weight, and spacing — not outlines on every box.
+- Compact tiles and chips keep token padding and even gutters. Labels are not flush to the border. Type uses `--text-*` and `--font-weight-*` — no sub-token micro type, no intermediate weights like 750.
 - Medium-to-large radii (`--radius-md` / `--radius-lg`). Soft shadows on sticky or floating chrome only.
 - No neon glow on ordinary cards. No all-caps except sparse eyebrows.
 - Blue is not “make this pretty.” If everything is blue, nothing is.

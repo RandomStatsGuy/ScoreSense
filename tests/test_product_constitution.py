@@ -125,6 +125,18 @@ def test_constitution_covers_chat_chrome() -> None:
     assert "edge launcher" in core_rule
 
 
+def test_constitution_covers_compact_tile_spacing() -> None:
+    product = _read("docs", "PRODUCT.md")
+    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    hub_rule = _read(".cursor", "rules", "frontend-draft-hub.mdc")
+    assert "token padding" in product
+    assert "even gutters" in product
+    assert "micro type" in product
+    assert "token padding" in core_rule
+    assert "micro type" in core_rule
+    assert "token padding" in hub_rule
+
+
 def test_constitution_covers_weekly_board_chrome() -> None:
     product = _read("docs", "PRODUCT.md")
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
