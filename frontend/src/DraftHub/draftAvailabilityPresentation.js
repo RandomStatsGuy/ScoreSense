@@ -50,6 +50,10 @@ export function availabilitySaveLabel({ dirty = false, saving = false } = {}) {
   return dirty ? "Save times" : "Times saved";
 }
 
+export function availabilityUnsavedHint() {
+  return "Unsaved until you save.";
+}
+
 export function availabilityBestHeading() {
   return "Nights that already overlap";
 }

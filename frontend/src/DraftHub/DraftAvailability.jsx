@@ -14,6 +14,7 @@ import {
   availabilityLockLabel,
   availabilitySaveLabel,
   availabilitySupport,
+  availabilityUnsavedHint,
   bestSlotLines,
   dayHeat,
   dayMaxCount,
@@ -341,7 +342,7 @@ export default function DraftAvailability({
                             <strong>{slot.label}</strong>
                             <span>{slot.count} free · {peopleLine(slot.people)}</span>
                           </button>
-                          {canLock && idx === 0 ? (
+                          {canLock ? (
                             <Button
                               size="sm"
                               variant={slotLocked ? "ghost" : "primary"}
@@ -367,7 +368,7 @@ export default function DraftAvailability({
               <Button disabled={saving || !dirty} onClick={save}>
                 {availabilitySaveLabel({ dirty, saving })}
               </Button>
-              {dirty ? <p className="chart-note">Unsaved until you save.</p> : null}
+              {dirty ? <p className="chart-note">{availabilityUnsavedHint()}</p> : null}
             </div>
           ) : null}
         </>

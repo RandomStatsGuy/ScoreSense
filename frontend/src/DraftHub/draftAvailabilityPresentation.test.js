@@ -9,6 +9,7 @@ import {
   availabilityLockLabel,
   availabilitySaveLabel,
   availabilityStateNote,
+  availabilityUnsavedHint,
   availabilitySupport,
   bestSlotLines,
   calendarTodayIso,
@@ -63,6 +64,8 @@ test("hour and overlap helpers stay compact", () => {
   assert.match(lines[0].label, /8 p.m./);
   assert.equal(peopleLine(["Ada", "Bea"]), "Ada and Bea");
   assert.equal(availabilitySaveLabel({ dirty: true }), "Save times");
+  assert.equal(availabilityUnsavedHint(), "Unsaved until you save.");
+  assert.doesNotMatch(availabilityUnsavedHint(), /Submit|Draft Hub|permission/i);
 });
 
 test("dates group by month for one calendar", () => {

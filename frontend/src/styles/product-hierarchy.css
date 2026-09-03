@@ -3790,10 +3790,6 @@
 }
 
 @media (max-width: 768px) {
-  .draft-availability-board {
-    grid-template-columns: 1fr;
-  }
-
   .draft-availability-best-item .btn-primary,
   .draft-availability-best-item .btn-ghost {
     width: 100%;
