@@ -126,6 +126,7 @@ from src.core.schedule_utils import teams_on_bye
 from src.projections.ros_cache import load_ros_prediction
 from app.hub_routes import router as hub_router
 from app.admin_routes import router as admin_router
+from app.support_routes import router as support_router
 from app.auth import admin_configured
 
 
@@ -163,6 +164,7 @@ app.add_middleware(
 
 app.include_router(hub_router)
 app.include_router(admin_router)
+app.include_router(support_router)
 
 
 class ProjectionRequest(BaseModel):

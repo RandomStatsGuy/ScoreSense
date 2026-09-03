@@ -58,6 +58,15 @@ def test_constitution_and_rules_exist() -> None:
     assert (ROOT / "docs" / "README.md").is_file()
 
 
+def test_constitution_covers_account_report() -> None:
+    product = _read("docs", "PRODUCT.md")
+    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    assert "Report a bug" in product
+    assert "user-reported" in product
+    assert "Report a bug" in core_rule
+    assert '"/report"' in _read("frontend", "src", "AppRouter.jsx")
+
+
 def test_constitution_covers_shipped_top_level_nav() -> None:
     product = _read("docs", "PRODUCT.md")
     app_nav = _read("frontend", "src", "appNavigation.js")
@@ -114,3 +123,15 @@ def test_constitution_covers_chat_chrome() -> None:
     assert "centered conversation" in product
     assert "FantasyChatDock" in core_rule
     assert "edge launcher" in core_rule
+
+
+def test_constitution_covers_weekly_board_chrome() -> None:
+    product = _read("docs", "PRODUCT.md")
+    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    for text in (product, core_rule):
+        assert "always-on" in text.lower()
+        assert "compare" in text.lower()
+        assert "compact Q" in text or "compact Q / D / P" in text
+        assert "inspector" in text.lower()
+    assert "dense ranking rows" in product
+    assert "checkbox on every card" in product

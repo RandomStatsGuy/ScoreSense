@@ -3062,6 +3062,12 @@
   font-weight: 600;
 }
 
+/* Portaled to body. Sit at confirm so a closed chat dock or mobile sheet
+   cannot stay above this dialog and keep capturing taps. */
+.league-create-overlay {
+  z-index: var(--z-confirm);
+}
+
 .league-create-overlay .league-create-modal {
   max-width: min(46rem, calc(100vw - 1.5rem));
   max-height: calc(100vh - 2rem);

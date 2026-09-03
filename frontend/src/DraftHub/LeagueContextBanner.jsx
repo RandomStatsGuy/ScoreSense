@@ -4,6 +4,7 @@ import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../fo
 import useMobileLayout from "../useMobileLayout";
 import LeagueSwitcher from "./LeagueSwitcher";
 import { effectiveMemberships, isSoloContext } from "./hubLeagues";
+import { LEAGUE_CREATE_COPY } from "./leagueAccessCopy";
 import {
   getFreshnessCache,
   invalidateFreshnessCache,
@@ -192,7 +193,7 @@ export default function LeagueContextBanner({
           </p>
           {onCreateLeague ? (
             <button type="button" className="btn-primary btn-sm" onClick={onCreateLeague}>
-              Create or join a league
+              {LEAGUE_CREATE_COPY.createOrJoin}
             </button>
           ) : null}
         </div>

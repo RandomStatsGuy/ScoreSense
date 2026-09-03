@@ -224,14 +224,18 @@ def test_te_rookie_keeps_te_position():
 
 
 def test_vet_backup_scaling_rattler_and_richardson():
-    from src.integrations.sleeper import sleeper_vet_backup_mult
+    from src.integrations.sleeper import sleeper_vet_backup_mult, unlisted_vet_backup_mult
 
     assert sleeper_vet_backup_mult("qb", 1) == (1.0, "")
+    assert sleeper_vet_backup_mult("qb", None) == (1.0, "")
     r_mult, r_label = sleeper_vet_backup_mult("qb", 2)
     assert r_mult < 0.5
     assert "backup" in r_label
     a_mult, _ = sleeper_vet_backup_mult("qb", 3)
     assert a_mult < r_mult
+    u_mult, u_label = unlisted_vet_backup_mult("qb")
+    assert u_mult == a_mult
+    assert u_label == "qb-unlisted"
 
 
 def test_overlay_scales_qb2_features():
@@ -320,3 +324,164 @@ def test_apply_sleeper_roster_overlay_drops_unrostered():
 
     assert stats["removed_unrostered"] == 1
     assert updated.empty
+
+
+def test_overlay_scales_unlisted_practice_squad_when_teammate_is_qb1():
+    """Blank Sleeper depth + a listed QB1 (Mullens behind Lawrence) is a backup."""
+    sleeper = pd.DataFrame(
+        [
+            {
+                "sleeper_id": "s1",
+                "full_name": "Trevor Lawrence",
+                "team": "JAX",
+                "position": "QB",
+                "status": "Active",
+                "gsis_id": "00-0036971",
+                "years_exp": 5,
+                "depth_chart_order": 1,
+                "search_rank": 39,
+            },
+            {
+                "sleeper_id": "s2",
+                "full_name": "Nick Mullens",
+                "team": "JAX",
+                "position": "QB",
+                "status": "Active",
+                "gsis_id": "00-0033319",
+                "years_exp": 9,
+                "depth_chart_order": None,
+                "search_rank": 570,
+            },
+        ]
+    )
+    roster = pd.DataFrame(
+        [
+            {
+                "player_id": "00-0036971",
+                "player_display_name": "Trevor Lawrence",
+                "team": "JAX",
+                "season": 2026,
+                "week": 1,
+                "pass_attmpt_avg": 34.0,
+                "passing_yards_avg": 240.0,
+            },
+            {
+                "player_id": "00-0033319",
+                "player_display_name": "Nick Mullens",
+                "team": "JAX",
+                "season": 2026,
+                "week": 1,
+                "pass_attmpt_avg": 28.0,
+                "passing_yards_avg": 200.0,
+            },
+        ]
+    )
+    updated, stats = apply_sleeper_roster_overlay(
+        roster, "qb", season=2026, sleeper_df=sleeper, add_rookies=False
+    )
+    lawrence = updated[updated["player_display_name"] == "Trevor Lawrence"].iloc[0]
+    mullens = updated[updated["player_display_name"] == "Nick Mullens"].iloc[0]
+    assert float(lawrence.get("_vet_backup_mult", 1.0) or 1.0) >= 0.999
+    assert float(mullens["_vet_backup_mult"]) < 0.2
+    assert mullens["_vet_backup_label"] == "qb-unlisted"
+    assert bool(mullens["_sleeper_unlisted"]) is True
+    assert stats["backups_scaled"] >= 1
+    # Prior-season features stay intact; projection scale is applied post-model.
+    assert float(mullens["pass_attmpt_avg"]) == 28.0
+
+
+def test_overlay_keeps_unlisted_injured_star_above_listed_backup():
+    """Missing DC on a more-searched vet is not treated as practice-squad."""
+    sleeper = pd.DataFrame(
+        [
+            {
+                "sleeper_id": "s1",
+                "full_name": "Joe Burrow",
+                "team": "CIN",
+                "position": "QB",
+                "status": "Active",
+                "gsis_id": "00-0036430",
+                "years_exp": 6,
+                "depth_chart_order": None,
+                "search_rank": 8,
+            },
+            {
+                "sleeper_id": "s2",
+                "full_name": "Joe Flacco",
+                "team": "CIN",
+                "position": "QB",
+                "status": "Active",
+                "gsis_id": "00-0026143",
+                "years_exp": 18,
+                "depth_chart_order": 1,
+                "search_rank": 400,
+            },
+        ]
+    )
+    roster = pd.DataFrame(
+        [
+            {
+                "player_id": "00-0036430",
+                "player_display_name": "Joe Burrow",
+                "team": "CIN",
+                "season": 2026,
+                "week": 1,
+                "pass_attmpt_avg": 36.0,
+                "passing_yards_avg": 260.0,
+            },
+            {
+                "player_id": "00-0026143",
+                "player_display_name": "Joe Flacco",
+                "team": "CIN",
+                "season": 2026,
+                "week": 1,
+                "pass_attmpt_avg": 22.0,
+                "passing_yards_avg": 160.0,
+            },
+        ]
+    )
+    updated, _stats = apply_sleeper_roster_overlay(
+        roster, "qb", season=2026, sleeper_df=sleeper, add_rookies=False
+    )
+    burrow = updated[updated["player_display_name"] == "Joe Burrow"].iloc[0]
+    flacco = updated[updated["player_display_name"] == "Joe Flacco"].iloc[0]
+    assert float(burrow.get("_vet_backup_mult", 1.0) or 1.0) >= 0.999
+    assert float(flacco.get("_vet_backup_mult", 1.0) or 1.0) >= 0.999
+    assert bool(burrow["_sleeper_unlisted"]) is True
+
+
+def test_overlay_does_not_scale_unlisted_vet_without_listed_starter():
+    sleeper = pd.DataFrame(
+        [
+            {
+                "sleeper_id": "s1",
+                "full_name": "Nick Mullens",
+                "team": "JAX",
+                "position": "QB",
+                "status": "Active",
+                "gsis_id": "00-0033319",
+                "years_exp": 9,
+                "depth_chart_order": None,
+                "search_rank": 570,
+            },
+        ]
+    )
+    roster = pd.DataFrame(
+        [
+            {
+                "player_id": "00-0033319",
+                "player_display_name": "Nick Mullens",
+                "team": "JAX",
+                "season": 2026,
+                "week": 1,
+                "pass_attmpt_avg": 28.0,
+                "passing_yards_avg": 200.0,
+            },
+        ]
+    )
+    updated, stats = apply_sleeper_roster_overlay(
+        roster, "qb", season=2026, sleeper_df=sleeper, add_rookies=False
+    )
+    mullens = updated[updated["player_display_name"] == "Nick Mullens"].iloc[0]
+    assert float(mullens.get("_vet_backup_mult", 1.0) or 1.0) >= 0.999
+    assert stats["backups_scaled"] == 0

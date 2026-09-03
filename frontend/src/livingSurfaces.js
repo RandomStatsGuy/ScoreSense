@@ -225,7 +225,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/ProjectionBoardChrome.jsx",
       "frontend/src/styles/projections-experience.css",
     ],
-    doNot: "Projections are a board. Do not wrap them in HubExperienceLayout.",
+    doNot: "Projections are a board. Do not wrap them in HubExperienceLayout. Weekly compare is a mode — no always-on checkboxes. Weekly rows match QB/WR/TE: no opportunity/role/commentary chips on the board. One compact injury chip only. Phone rows are dense ranking rows; Compare is one toolbar control, never a per-card checkbox.",
   }),
   "projections.season": S({
     label: "Season",
@@ -236,7 +236,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/ProjectionBoardChrome.jsx",
       "frontend/src/styles/projections-experience.css",
     ],
-    doNot: "Season is a board, not a Fantasy decision page.",
+    doNot: "Season is a board, not a Fantasy decision page. Phone rows match weekly density: rank, face, name, P50. Do not invent tall season cards.",
   }),
   "projections.inspector": S({
     label: "Player inspector",
@@ -268,6 +268,17 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/AccountSettingsPage.jsx",
     also: ["frontend/src/AccountAuth.jsx"],
     doNot: "Account-only. Do not add Account to top-level nav.",
+  }),
+  "account.report": S({
+    label: "Report a bug",
+    chrome: "account",
+    page: "frontend/src/BugReportPage.jsx",
+    copy: "frontend/src/bugReportPresentation.js",
+    also: [
+      "frontend/src/layout/UserMenu.jsx",
+      "frontend/src/layout/MobileMenuSheet.jsx",
+    ],
+    doNot: "Account-only side option. Do not add Report a bug to top-level nav or invent a fourth product area. Tickets land on SCORE Jira with labels user-reported and pickup.",
   }),
   "account.login": S({
     label: "Sign in",
@@ -355,6 +366,10 @@ export const SURFACE_ALIASES = Object.freeze({
   "model accuracy": "account.model",
   "preseason outlook": "projections.season",
   "live season": "projections.season",
+  "weekly compare": "projections.weekly",
+  "running back weekly": "projections.weekly",
+  "mobile weekly": "projections.weekly",
+  "phone projections": "projections.weekly",
   weekly: "projections.weekly",
   season: "projections.season",
   rosters: "hub.rosters",
@@ -371,6 +386,10 @@ export const SURFACE_ALIASES = Object.freeze({
   lineup: "tools.dfs",
   admin: "account.admin",
   account: "account.account",
+  "report a bug": "account.report",
+  "bug report": "account.report",
+  "pickup board": "account.report",
+  "send a report": "account.report",
   login: "account.login",
   "sign in": "account.login",
   "create account": "account.register",
@@ -418,6 +437,7 @@ export function resolveLivingSurface({
   if (section === "model") return getLivingSurface("account.model");
   if (section === "admin") return getLivingSurface("account.admin");
   if (section === "account") return getLivingSurface("account.account");
+  if (section === "report") return getLivingSurface("account.report");
   return null;
 }
 

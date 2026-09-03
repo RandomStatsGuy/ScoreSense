@@ -72,8 +72,9 @@ Do not add a fourth top-level item. Do not rename Fantasy to League.
 
 **Projections:** Weekly · Season (Preseason outlook / Live season).  
 **Tools:** DFS · Mock draft · Best ball.  
-**Account menu (not top-level):** Model accuracy · Admin · Account.  
+**Account menu (not top-level):** Model accuracy · Admin · Account · Report a bug.  
 **Account session (not top-level):** Sign in · Create account (`/login`, `/register`). Mobile-first session pages. Google is the lead social option; email is secondary. Do not wrap these in Fantasy experience chrome.  
+**Report a bug** (`/report`) is a side option in the account / More menu. Signed-in reports become SCORE Jira Bugs with labels `user-reported` and `pickup`. Do not add it to top-level nav.  
 **Public legal (not top-level):** Terms · Privacy · Draft alert texts (`/sms-alerts`). The SMS card is content for A2P consent, not a new product area.
 
 ### Fantasy destinations
@@ -165,6 +166,9 @@ Weekly and Season projections are a **board**, not a Fantasy decision page.
 - Four slate/season signals sit above a full-width ranking table.
 - Injuries and analyst context are disclosures under the board (phone: existing panel tabs).
 - Clicking a player opens the **player inspector**: floor / P50 / ceiling, range read, method, and this-week notes. Desktop is a right-hand drawer; phones keep the bottom sheet.
+- **Weekly compare** is a mode. Enter Compare, then tap a row (not the name) to add them. The name still opens the inspector. Never show always-on compare checkboxes.
+- Weekly board rows match across positions (QB / RB / WR/TE). Opportunity, role-up, and commentary live in the inspector, not as extra table chips or columns.
+- One injury mark per weekly row: the compact Q / D / P chip. Do not add a second status pill under the name.
 - **This-week notes** are one Sleeper locker or practice sentence plus an optional projection-delta line. Do not bake YouTube show descriptions as current-week narrative. Sentiment stays a research candidate until a raw snippet passes the Latest usefulness filter.
 - Copy for signals, board reads, and inspector tiles lives in `frontend/src/projectionsPresentation.js`.
 
@@ -173,6 +177,8 @@ On laptop widths (~1024px), move the summary below the hero or into a compact st
 ### Phone chrome
 
 On phone, the header is the current destination. Destination switching uses one picker, not a scrolling tab strip. Tapping a destination — including the one already open — closes the picker so the page is not left inert. Account lives in More. Do not stack ScoreSense, a context label, section tabs, and page tabs. Filters stay as one icon when the board has filters. Live draft stays board-first. League chat is an edge launcher, not a header control and not a control locked to the bottom of the page.
+
+On phone, weekly and season boards are **dense ranking rows** (rank, face, name, P50). Compare is one toolbar control. Never a Compare checkbox on every card. Signals stay a compact strip, not a second page of chrome.
 
 ---
 

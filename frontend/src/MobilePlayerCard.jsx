@@ -2,8 +2,8 @@ import React, { useId, useState } from "react";
 
 /**
  * Mobile projection card.
- * Header expands details; optional `aside` (e.g. Compare) stays outside that
- * button so selection is visible while collapsed and never nests interactives.
+ * Header expands details unless `selecting` is on, then it toggles compare.
+ * Optional `aside` stays outside that button so Details stays reachable.
  */
 export default function MobilePlayerCard({
   name,
@@ -20,6 +20,7 @@ export default function MobilePlayerCard({
   selected = false,
   className = "",
   unavailable = false,
+  selecting = false,
   onSelect,
   aside = null,
   actions,
@@ -33,6 +34,10 @@ export default function MobilePlayerCard({
   };
 
   const handleHeaderClick = () => {
+    if (selecting && onSelect) {
+      onSelect();
+      return;
+    }
     onSelect?.();
     toggle();
   };

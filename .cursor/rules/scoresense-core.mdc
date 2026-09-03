@@ -17,7 +17,7 @@ ScoreSense (4th Down Labs) is a fantasy football product with three top-level ar
 
 Do not add a fourth top-level area. Do not call Fantasy “League” or “Draft Hub” in UI copy. “Draft Hub” is an internal code name.
 
-Account-only destinations: Model accuracy, Admin, Account, Sign in, Create account.
+Account-only destinations: Model accuracy, Admin, Account, Report a bug, Sign in, Create account.
 
 ## Canonical user-facing names
 
@@ -52,7 +52,7 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Editorial pages use `HubExperienceHero` + `HubExperienceLayout` + `HubExperienceSummary` from `frontend/src/DraftHub/HubUILayout.jsx`.
 - Before UI work, resolve `frontend/src/livingSurfaces.js` and match that row’s `page` and `copy`. Do not invent chrome.
 - Live draft rooms stay board-first. Do not wrap them in settings chrome.
-- On phone: destination title + one overflow. No stacked brand, context, or tab strips.
+- On phone: destination title + one overflow. No stacked brand, context, or tab strips. Weekly and season boards are dense ranking rows. Compare is one toolbar control, never a checkbox on every card.
 - Copy lives in `*Presentation.js` (or an existing copy module). Goal + consequence. No “Submit”, no “You do not have permission” (use “Commissioner managed”).
 - Motion 120–200ms. Honor `prefers-reduced-motion`. No sound except opt-in live-draft audio.
 
@@ -65,6 +65,9 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - New work reuses destinations, chrome, and tokens. Do not start a new aesthetic.
 - Fantasy lists people by **owner name**. Team nicknames may sit underneath or after a middot. Never show a team nickname as the only identity when an owner is known.
 - This-week player notes are Sleeper locker or practice plus an optional projection delta. Do not bake YouTube show copy as current-week narrative.
+- Weekly compare is a mode: enter Compare, then row clicks (not the name) select. Never always-on checkboxes.
+- Weekly board rows match across positions. Opportunity, role-up, and commentary live in the inspector, not extra table chips.
+- One injury mark per weekly row (compact Q / D / P). Never a second status pill under the name.
 - Draft availability shows current and future times only. Commissioners lock a promising overlap as draft night.
 - Transactional SMS is opt-in only. Phone lives on the account. SMS is never a league invite. Privacy and Terms must name the vendor, non-sharing of mobile numbers, frequency, and “message and data rates may apply.”
 

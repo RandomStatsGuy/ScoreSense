@@ -13389,6 +13389,10 @@ td.col-rank.col-rank-top {
 .legal-page-list { padding-left: 1.25rem; }
 .account-settings-page { max-width: 36rem; }
 .account-settings-section { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); }
+.account-auth-form textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
 .account-settings-danger .account-delete-btn { color: #f87171; }
 .terms-reaccept-banner { margin: 0.75rem 1rem 0; max-width: 48rem; }
 .app-legal-footer { margin: 1.5rem auto 0.5rem; max-width: 48rem; padding: 0 1rem; }
@@ -15791,6 +15795,12 @@ button.hub-wcc-bench-chip {
   flex-direction: column;
   gap: 0.4rem;
   min-width: 0;
+}
+
+.player-context-block--highlight {
+  padding: 0.65rem 0.7rem;
+  border-radius: var(--radius-md);
+  background: var(--tone-positive-soft);
 }
 
 .player-context-block-title {

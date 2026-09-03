@@ -9,6 +9,8 @@ export const LEGAL_PRIVACY = Object.freeze({
     "If you opt in, we store your mobile number on your ScoreSense account and use it only to send draft alerts: lobby open, 15 minutes before the draft, and draft is live. Message frequency varies and is typically a few texts around your league draft. Message and data rates may apply. We do not share mobile numbers with third parties or affiliates for marketing or promotional purposes. Texts are sent through Twilio. You can turn SMS off in Account or reply STOP.",
   twilioThirdParty:
     "Twilio processes your mobile number when you opt in to draft alert texts, only to deliver those messages.",
+  jiraThirdParty:
+    "Atlassian Jira receives a bug report you send (title, what happened, optional expected result, page path, and your account email/name) so we can fix the product. We do not send passwords, tokens, or invite codes.",
   smsChoice:
     "Draft alert texts are optional. Turn them off in Account or reply STOP. The app and your draft seat still work.",
 });

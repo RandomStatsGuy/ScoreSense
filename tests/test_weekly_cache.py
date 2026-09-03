@@ -58,4 +58,4 @@ def test_weekly_fingerprint_includes_pool_policy(monkeypatch, tmp_path):
     monkeypatch.setattr(wc, "MODEL_DIR", tmp_path)
     fp = wc.weekly_fingerprint()
     assert len(fp) == 16
-    assert wc.WEEKLY_POOL_POLICY == "v2-keep-established"
+    assert wc.WEEKLY_POOL_POLICY == "v3-unlisted-backup"

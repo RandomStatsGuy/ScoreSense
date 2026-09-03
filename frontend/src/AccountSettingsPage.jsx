@@ -16,6 +16,7 @@ import {
 import { PRODUCT_NAME, STUDIO_NAME } from "./brand";
 import { parseApiError } from "./format";
 import SmsOptInCard from "./legal/SmsOptInCard";
+import { BUG_REPORT_COPY } from "./bugReportPresentation";
 import AtmosphereLayer from "./DraftHub/AtmosphereLayer";
 import {
   ATMOSPHERE_COPY,
@@ -377,6 +378,16 @@ export default function AccountSettingsPage() {
               <Link to="/auth/forgot-password">Forgot password?</Link> — send a reset link to your email.
             </p>
           )}
+        </section>
+
+        <section className="account-settings-section">
+          <h3 className="hub-panel-subtitle">{BUG_REPORT_COPY.eyebrow}</h3>
+          <p className="chart-note">{BUG_REPORT_COPY.accountLink}</p>
+          <p className="hub-toolbar">
+            <Link className="btn-ghost btn-sm" to="/report?from=%2Faccount">
+              {BUG_REPORT_COPY.accountAction}
+            </Link>
+          </p>
         </section>
 
         <section className="account-settings-section">

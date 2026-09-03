@@ -15,10 +15,6 @@ import {
   resolveSeasonBand,
   seasonRangeTooltip,
 } from "./seasonQuantiles";
-import {
-  formatOpportunityAdjustmentPct,
-  pickOpportunityAdjustment,
-} from "./opportunityAdjustment";
 import HistoricalMediaOptIn from "./HistoricalMediaOptIn";
 import {
   formatHistoricalWeekLabel,
@@ -32,6 +28,7 @@ import {
   analystInsight,
   filterInspectorCandidates,
   methodInsight,
+  opportunityInsight,
   positionShort,
   rangeInsight,
   roleOutlook,
@@ -235,6 +232,7 @@ function PlayerCardBody({
     narrative,
     historicalLabel: narrativeFallback ? historicalLabel : null,
   });
+  const opportunity = !seasonScope && weekly ? opportunityInsight(weekly) : null;
   const seasonIdentity = seasonMode === "live" ? "season" : "preseason";
   const identityMeta = [
     positionShort(request?.position || data?.position),
@@ -311,10 +309,12 @@ function PlayerCardBody({
         <InspectorTile kicker="Analyst desk" title={analyst.title} detail={analyst.detail} />
       </div>
 
-      {!seasonScope && weekly && pickOpportunityAdjustment(weekly) ? (
-        <p className="chart-note">
-          Opportunity adjustment {formatOpportunityAdjustmentPct(weekly)}
-        </p>
+      {opportunity ? (
+        <div className="player-inspector-callout" role="status">
+          <p className="player-inspector-tile-kicker">{BOARD_COPY.opportunity}</p>
+          <p className="player-inspector-tile-title">{opportunity.title}</p>
+          <p className="player-inspector-tile-detail">{opportunity.detail}</p>
+        </div>
       ) : null}
 
       {contextPanel}

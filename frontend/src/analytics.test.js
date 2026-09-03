@@ -47,6 +47,7 @@ test("shouldSkipPageView skips redirects, callback, and unknown paths", () => {
   assert.equal(shouldSkipPageView("/projections/weekly"), false);
   assert.equal(shouldSkipPageView("/hub/draft"), false);
   assert.equal(shouldSkipPageView("/privacy"), false);
+  assert.equal(shouldSkipPageView("/report"), false);
   assert.equal(shouldSkipPageView("/auth/verify"), false);
   assert.equal(shouldSkipPageView("/login"), false);
   assert.equal(shouldSkipPageView("/register"), false);
@@ -85,6 +86,7 @@ test("pageTitleForPath matches product areas", () => {
   assert.equal(pageTitleForPath("/sms-alerts"), "Draft alert texts");
   assert.equal(pageTitleForPath("/login"), "Sign in");
   assert.equal(pageTitleForPath("/register"), "Create account");
+  assert.equal(pageTitleForPath("/report"), "Report a bug");
 });
 
 test("pageGroupForPath buckets by top-level area", () => {
@@ -97,6 +99,7 @@ test("pageGroupForPath buckets by top-level area", () => {
   assert.equal(pageGroupForPath("/auth/verify"), "auth");
   assert.equal(pageGroupForPath("/login"), "auth");
   assert.equal(pageGroupForPath("/register"), "auth");
+  assert.equal(pageGroupForPath("/report"), "account");
 });
 
 test("buildPageViewPayload sanitizes location and sets title/group", () => {

@@ -32,7 +32,7 @@ def _artifact_paths(position: str, season: int, week: int, apply_injury: bool) -
     )
 
 
-WEEKLY_POOL_POLICY = "v2-keep-established"
+WEEKLY_POOL_POLICY = "v3-unlisted-backup"
 
 
 def weekly_fingerprint() -> str:
