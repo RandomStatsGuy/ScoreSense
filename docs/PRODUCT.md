@@ -134,8 +134,9 @@ Dark mode only. Matte, editorial, layered. Sports-product energy without casino 
 
 Rules:
 
-- Prefer tokens in `frontend/src/styles/tokens.css` and `product-hierarchy.css`. Do not invent a new hue for a new page.
+- Prefer tokens in `frontend/src/styles/tokens.css`, `product-hierarchy.css`, and `product-rhythm.css`. Do not invent a new hue for a new page.
 - Hierarchy comes from surface lift, type size/weight, and spacing — not outlines on every box.
+- Every destination, mobile and desktop, uses the same spacing rhythm (`--inset-chip`, `--inset-tile`, `--inset-section`, `--gutter`). Text is never flush against a border, rule, or chip edge. Type never drops below `--text-xs`. Use `--text-*` and `--font-weight-*` — no intermediate weights like 750.
 - Medium-to-large radii (`--radius-md` / `--radius-lg`). Soft shadows on sticky or floating chrome only.
 - No neon glow on ordinary cards. No all-caps except sparse eyebrows.
 - Blue is not “make this pretty.” If everything is blue, nothing is.
@@ -265,6 +266,7 @@ Contract-type playbook for imports and keepers: [CONTRACT_SCENARIOS.md](./CONTRA
 | DFS / mock backlog | [LINEUP_ROADMAP.md](./LINEUP_ROADMAP.md) |
 | Tokens | `frontend/src/styles/tokens.css` |
 | Experience CSS | `frontend/src/styles/product-hierarchy.css` |
+| Spacing rhythm | `frontend/src/styles/product-rhythm.css` |
 | Nav source | `frontend/src/appNavigation.js`, `DraftHub/HubSubnav.jsx` |
 | Living page to match | `frontend/src/livingSurfaces.js` |
 | Redesign / first-design options | [mockups/](./mockups/) · `.cursor/skills/fast-ui-mock/SKILL.md` |

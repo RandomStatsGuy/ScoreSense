@@ -21,6 +21,7 @@ export const SHARED = Object.freeze({
   tokens: [
     "frontend/src/styles/tokens.css",
     "frontend/src/styles/product-hierarchy.css",
+    "frontend/src/styles/product-rhythm.css",
   ],
   primitives: "frontend/src/DraftHub/HubUILayout.jsx",
   media: "frontend/src/DraftHub/HubMediaImg.jsx",
@@ -72,7 +73,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/DraftNightSchedule.jsx",
       "frontend/src/DraftHub/leagueAccessCopy.js",
     ],
-    doNot: "Idle Draft uses experience chrome and one featured job: the shared calendar. Live rooms do not. Calendar shows current and future times only. Lock draft night from any shown overlap. Keep the date/time form, invite essays, and a second seat list collapsed.",
+    doNot: "Idle Draft uses experience chrome and one featured job: the shared calendar. Live rooms do not. Calendar shows current and future times only. Lock draft night from any shown overlap. Keep the date/time form, invite essays, and a second seat list collapsed. Room seat tiles keep token padding and product type — do not pack Take flush to the chip.",
   }),
   "hub.room.live": S({
     label: "Draft (live)",
@@ -338,6 +339,9 @@ export const SURFACE_ALIASES = Object.freeze({
   "draft calendar": "hub.room",
   "draft night": "hub.room",
   "league invite": "hub.room",
+  "the room": "hub.room",
+  "open seats": "hub.room",
+  "take a pick": "hub.room",
   "this week": "hub.week",
   "command center": "hub.week",
   "vibe rankings": "hub.vibes",

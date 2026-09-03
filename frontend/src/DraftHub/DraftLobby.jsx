@@ -435,7 +435,7 @@ export default function DraftLobby({
             <h3>{roomHeading()}</h3>
             <p className="chart-note">{roomSupport({ guestMode, testMode })}</p>
           </header>
-          <ol className="draft-lobby-slots" aria-label={slotLabel(draftType)}>
+          <ol className="hub-pick-grid draft-lobby-slots" aria-label={slotLabel(draftType)}>
             {slots.map(({ slot, team }) => {
               const mine = team && String(team.id) === String(myTeamId);
               const taken = Boolean(team) && !mine;
@@ -443,7 +443,7 @@ export default function DraftLobby({
                 <li key={slot}>
                   <button
                     type="button"
-                    className={`draft-lobby-slot${mine ? " is-you" : ""}${taken ? " is-taken" : ""}${!team ? " is-open" : ""}`}
+                    className={`hub-pick-tile draft-lobby-slot${mine ? " is-you" : ""}${taken ? " is-taken" : ""}${!team ? " is-open" : ""}`}
                     disabled={slotBusy || busy || taken || !myTeamId}
                     aria-pressed={Boolean(mine)}
                     onClick={() => claimSlot(slot)}

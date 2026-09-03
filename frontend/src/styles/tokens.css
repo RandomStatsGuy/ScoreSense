@@ -65,6 +65,15 @@
   --space-lg: 1.25rem;
   --space-xl: 1.75rem;
 
+  /* Product rhythm — every destination, mobile and desktop.
+     Text is never flush to a line. Type never drops below --text-xs. */
+  --inset-chip: 0.4rem 0.7rem;
+  --inset-tile: 0.72rem 0.9rem;
+  --inset-section: 1.15rem 1.2rem;
+  --inset-cell: 0.55rem 0.7rem;
+  --gutter: var(--space-sm);
+  --gutter-section: var(--space-md);
+
   /* Slate scale — structural surfaces, borders, muted text.
      Use these instead of one-off #hex values scattered through styles.css. */
   --slate-950: #070d17;
@@ -86,6 +95,7 @@
 
   /* Typography scale */
   --text-xs: 0.72rem;
+  --text-min: var(--text-xs);
   --text-sm: 0.82rem;
   --text-md: 0.9rem;
   --text-lg: 1.05rem;
