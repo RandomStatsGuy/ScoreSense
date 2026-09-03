@@ -72,7 +72,7 @@ test("live draft invite copy is members-only", () => {
   assert.doesNotMatch(live, /no account is required/i);
   assert.equal(draftInviteLabel(), "Member draft link");
   assert.match(draftInviteRailHint(), /already belong/i);
-  assert.match(draftLobbyHeroSupport(), /invite link/i);
+  assert.match(draftLobbyHeroSupport(), /locks the overlap/i);
   assert.match(draftInviteWhatHappens(), /already has their team/i);
 });
 
@@ -160,6 +160,7 @@ test("draft night copy names the lock time", () => {
   assert.equal(draftNightEmpty(), "Not locked yet");
   assert.match(draftNightSupport({ scheduled: false }), /overlaps/i);
   assert.match(draftNightSupport({ scheduled: true }), /locked/i);
+  assert.match(draftNightSupport({ compact: true }), /overlap is wrong/i);
   assert.equal(draftNightLockAction({}), "Lock this night");
   assert.equal(draftNightUnlockAction(), "Unlock");
 });

@@ -31,8 +31,8 @@ test("availability copy names the calendar consequence", () => {
   assert.equal(availabilityHeading(), "When can you draft?");
   assert.equal(availabilityBestHeading(), "Nights that already overlap");
   assert.match(availabilityEmptyBest(), /starting point/i);
-  assert.match(availabilityHoursHint({ canEdit: true }), /Tap the hours/i);
-  assert.match(availabilitySupport({ state: "open" }), /same calendar/i);
+  assert.match(availabilityHoursHint({ canEdit: true }), /Tap hours/i);
+  assert.match(availabilitySupport({ state: "open" }), /same nights/i);
   assert.match(availabilitySupport({ state: "upcoming" }), /31 days/i);
   assert.match(availabilitySupport({ state: "closed" }), /day before kickoff/i);
   assert.match(availabilitySupport({ locked: true }), /locked/i);

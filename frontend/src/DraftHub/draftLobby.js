@@ -28,6 +28,20 @@ export function slotHint(draftType) {
   return "Who nominates first. Claim a spot or leave it open.";
 }
 
+export function roomHeading() {
+  return "The room";
+}
+
+export function roomSupport({ guestMode = false, testMode = false } = {}) {
+  if (guestMode) return "You are in as a guest. Take a pick or leave it open.";
+  if (testMode) return "Take a pick. Open seats wait on the practice link.";
+  return "Take a pick. Open seats wait on the invite.";
+}
+
+export function altLockSummary({ locked = false } = {}) {
+  return locked ? "Move the locked night off the calendar" : "Lock a night that is not on the calendar";
+}
+
 export function lobbyChipLabel({ claimed = 0, teamCount = 12, live = false } = {}) {
   const target = Math.max(1, Number(teamCount) || 12);
   const seated = Math.max(0, Number(claimed) || 0);

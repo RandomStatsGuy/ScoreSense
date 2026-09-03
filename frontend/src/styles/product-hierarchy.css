@@ -3422,10 +3422,37 @@
   gap: 0.75rem;
 }
 
-.draft-availability.is-featured,
-.draft-night-schedule {
+.draft-availability.is-featured {
   border-color: color-mix(in srgb, var(--experience-blue) 42%, var(--experience-rule));
   background: color-mix(in srgb, var(--experience-blue) 8%, var(--experience-surface));
+}
+
+.draft-night-schedule--featured {
+  border-color: color-mix(in srgb, var(--experience-blue) 42%, var(--experience-rule));
+  background: color-mix(in srgb, var(--experience-blue) 8%, var(--experience-surface));
+}
+
+.draft-night-schedule--compact {
+  margin: 0.65rem 0 0;
+  padding: 0.85rem 0.95rem;
+  border-color: var(--experience-rule);
+  background: var(--experience-surface);
+}
+
+.draft-lobby-alt-lock {
+  margin: 0.15rem 0 0;
+  padding: 0.15rem 0.1rem;
+}
+
+.draft-lobby-alt-lock > summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.draft-lobby-alt-lock .draft-night-when-time {
+  font-size: 1.15rem;
 }
 
 .draft-availability .hub-draft-entry-card-head,
@@ -3470,10 +3497,9 @@
 }
 
 .draft-availability-board {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(16rem, 0.9fr);
-  gap: 1rem;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
 }
 
 .draft-availability-calendar,

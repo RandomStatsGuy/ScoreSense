@@ -11,7 +11,7 @@ import {
   utcIsoToWall,
 } from "./draftEntryStatus";
 import { availabilityTimezone, calendarTodayIso, slotToWall, wallToSlot } from "./draftAvailabilityPresentation";
-import { lobbyAbsoluteUrl, lobbyChipLabel, slotHint, slotLabel } from "./draftLobby";
+import { altLockSummary, lobbyAbsoluteUrl, lobbyChipLabel, roomHeading, roomSupport, slotLabel } from "./draftLobby";
 import {
   draftInviteLabel,
   draftInviteRailHint,
@@ -337,9 +337,6 @@ export default function DraftLobby({
                 {isCommissioner && !testMode && claimUrl ? (
                   <div className="draft-lobby-link draft-lobby-claim">
                     <label htmlFor="draft-claim-url">{managerClaimLabel()}</label>
-                    <p className="chart-note draft-lobby-invite-copy">
-                      {managerClaimExplainer()}
-                    </p>
                     <div className="draft-lobby-link-row">
                       <input id="draft-claim-url" readOnly value={claimUrl} />
                       <Button variant="ghost" size="sm" onClick={copyClaimLink}>
@@ -356,6 +353,7 @@ export default function DraftLobby({
                     ) : null}
                     <details className="draft-lobby-invite-details">
                       <summary>How claiming works</summary>
+                      <p className="chart-note">{managerClaimExplainer()}</p>
                       <p className="chart-note">{managerClaimWhatHappens()}</p>
                       <button
                         type="button"
@@ -372,9 +370,6 @@ export default function DraftLobby({
                 {inviteUrl ? (
                   <div className="draft-lobby-link">
                     <label htmlFor="draft-lobby-url">{draftInviteLabel({ testMode })}</label>
-                    <p className="chart-note draft-lobby-invite-copy">
-                      {draftInviteRailHint({ testMode })}
-                    </p>
                     <div className="draft-lobby-link-row">
                       <input id="draft-lobby-url" readOnly value={inviteUrl} />
                       <Button variant="ghost" size="sm" onClick={copyLink}>
@@ -383,6 +378,7 @@ export default function DraftLobby({
                     </div>
                     <details className="draft-lobby-invite-details">
                       <summary>How draft-night access works</summary>
+                      <p className="chart-note">{draftInviteRailHint({ testMode })}</p>
                       <p className="chart-note">{draftInviteWhatHappens({ testMode })}</p>
                       {isCommissioner && !testMode ? (
                         <p className="chart-note">{emailManagersHint()}</p>
@@ -414,62 +410,54 @@ export default function DraftLobby({
         ) : null}
 
         {isCommissioner && !testMode && onSaveSchedule ? (
-          <DraftNightSchedule
-            startsAt={startsAt}
-            timezone={draftTz}
-            wall={draftWall}
-            onWallChange={setDraftWall}
-            onTimezoneChange={setDraftTz}
-            tzOptions={tzOptions}
-            canEdit
-            busy={scheduleBusy || busy}
-            waitSecs={waitSecs}
-            minDate={calendarTodayIso(undefined, draftTz)}
-            onSave={() => saveSchedule(false)}
-            onClear={() => saveSchedule(true)}
-          />
-        ) : !testMode && startsAt ? (
-          <DraftNightSchedule
-            startsAt={startsAt}
-            timezone={draftTz}
-            waitSecs={waitSecs}
-          />
+          <details className="draft-lobby-alt-lock">
+            <summary>{altLockSummary({ locked: Boolean(startsAt) })}</summary>
+            <DraftNightSchedule
+              variant="compact"
+              startsAt={startsAt}
+              timezone={draftTz}
+              wall={draftWall}
+              onWallChange={setDraftWall}
+              onTimezoneChange={setDraftTz}
+              tzOptions={tzOptions}
+              canEdit
+              busy={scheduleBusy || busy}
+              waitSecs={waitSecs}
+              minDate={calendarTodayIso(undefined, draftTz)}
+              onSave={() => saveSchedule(false)}
+              onClear={() => saveSchedule(true)}
+            />
+          </details>
         ) : null}
 
-        <article className="hub-experience-section draft-lobby-seats">
+        <article className="hub-experience-section draft-lobby-room">
           <header className="hub-draft-entry-card-head">
-            <h3>Who is in</h3>
-            <p className="chart-note">
-              {guestMode
-                ? "You are in as a guest. The host starts when the room feels right. Create an account later if you want this team to stay."
-                : testMode
-                  ? "Claimed seats stay with this practice room. Open seats wait for the practice link."
-                  : "Claimed seats stay with this league. Open seats wait on the invite link — managers pick their team."}
-            </p>
+            <h3>{roomHeading()}</h3>
+            <p className="chart-note">{roomSupport({ guestMode, testMode })}</p>
           </header>
-          <ul className="draft-lobby-seat-list">
-            {humans.map((team) => {
-              const mine = String(team.id) === String(myTeamId);
+          <ol className="draft-lobby-slots" aria-label={slotLabel(draftType)}>
+            {slots.map(({ slot, team }) => {
+              const mine = team && String(team.id) === String(myTeamId);
+              const taken = Boolean(team) && !mine;
               return (
-                <li key={team.id} className={`draft-lobby-seat${mine ? " is-you" : ""}${team.user_sub ? " is-claimed" : ""}`}>
-                  <span className="draft-lobby-seat-name">{team.name}</span>
-                  <span className="draft-lobby-seat-meta">
-                    {team.is_commissioner ? "Host" : team.is_guest ? "Guest" : team.user_sub ? "Manager" : "Open"}
-                    {team.draft_slot ? ` · Pick ${team.draft_slot}` : ""}
-                    {mine ? " · You" : ""}
-                  </span>
+                <li key={slot}>
+                  <button
+                    type="button"
+                    className={`draft-lobby-slot${mine ? " is-you" : ""}${taken ? " is-taken" : ""}${!team ? " is-open" : ""}`}
+                    disabled={slotBusy || busy || taken || !myTeamId}
+                    aria-pressed={Boolean(mine)}
+                    onClick={() => claimSlot(slot)}
+                  >
+                    <span className="draft-lobby-slot-num">{slot}</span>
+                    <span className="draft-lobby-slot-who">{team?.name || "Open"}</span>
+                    <span className="draft-lobby-slot-action">
+                      {mine ? "Yours" : taken ? "Taken" : "Take"}
+                    </span>
+                  </button>
                 </li>
               );
             })}
-            {Array.from({ length: Math.max(0, teamCount - humans.length) }, (_, i) => (
-              <li key={`open-${i}`} className="draft-lobby-seat is-open">
-                <span className="draft-lobby-seat-name">Open seat</span>
-                <span className="draft-lobby-seat-meta">
-                  {testMode ? "Waiting on the practice link" : "Waiting on the invite link"}
-                </span>
-              </li>
-            ))}
-          </ul>
+          </ol>
           {myTeamId ? (
             <div className="draft-lobby-rename">
               {nameOpen ? (
@@ -506,36 +494,6 @@ export default function DraftLobby({
               )}
             </div>
           ) : null}
-        </article>
-
-        <article className="hub-experience-section draft-lobby-order">
-          <header className="hub-draft-entry-card-head">
-            <h3>{slotLabel(draftType)}</h3>
-            <p className="chart-note">{slotHint(draftType)}</p>
-          </header>
-          <ol className="draft-lobby-slots" aria-label={slotLabel(draftType)}>
-            {slots.map(({ slot, team }) => {
-              const mine = team && String(team.id) === String(myTeamId);
-              const taken = Boolean(team) && !mine;
-              return (
-                <li key={slot}>
-                  <button
-                    type="button"
-                    className={`draft-lobby-slot${mine ? " is-you" : ""}${taken ? " is-taken" : ""}${!team ? " is-open" : ""}`}
-                    disabled={slotBusy || taken || !myTeamId}
-                    aria-pressed={Boolean(mine)}
-                    onClick={() => claimSlot(slot)}
-                  >
-                    <span className="draft-lobby-slot-num">{slot}</span>
-                    <span className="draft-lobby-slot-who">{team?.name || "Open"}</span>
-                    <span className="draft-lobby-slot-action">
-                      {mine ? "Yours" : taken ? "Taken" : "Take"}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
         </article>
 
       </HubExperienceLayout>

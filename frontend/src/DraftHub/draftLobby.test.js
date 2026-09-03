@@ -1,9 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  altLockSummary,
   lobbyAbsoluteUrl,
   lobbyChipLabel,
   lobbyPath,
+  roomHeading,
+  roomSupport,
   slotHint,
   slotLabel,
 } from "./draftLobby.js";
@@ -21,6 +24,14 @@ test("slot copy depends on draft type", () => {
   assert.equal(slotLabel("snake"), "Draft position");
   assert.equal(slotLabel("auction"), "Nomination order");
   assert.match(slotHint("snake"), /snakes/i);
+});
+
+test("room strip copy stays one line", () => {
+  assert.equal(roomHeading(), "The room");
+  assert.match(roomSupport({}), /Take a pick/);
+  assert.doesNotMatch(roomSupport({}), /Draft Hub|Submit|permission/i);
+  assert.equal(altLockSummary({}), "Lock a night that is not on the calendar");
+  assert.match(altLockSummary({ locked: true }), /Move the locked night/i);
 });
 
 test("lobbyChipLabel counts seated managers", () => {

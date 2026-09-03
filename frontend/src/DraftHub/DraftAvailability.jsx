@@ -13,7 +13,6 @@ import {
   availabilityLockHint,
   availabilityLockLabel,
   availabilitySaveLabel,
-  availabilityStateNote,
   availabilitySupport,
   bestSlotLines,
   dayHeat,
@@ -125,7 +124,7 @@ export default function DraftAvailability({
     [availWindow.current_hour, availWindow.hours, availWindow.today, selectedDate],
   );
   const selectedDaySlots = dayHeat(heat, selectedDate);
-  const best = bestSlotLines(payload?.best || [], canLock ? 4 : 3);
+  const best = bestSlotLines(payload?.best || [], 2);
   const bestLabel = best[0]?.label || "";
   const locked = Boolean(lockedSlot?.date);
 
@@ -244,8 +243,6 @@ export default function DraftAvailability({
 
       {payload ? (
         <>
-          <p className="chart-note draft-availability-window">{availabilityStateNote(availWindow)}</p>
-
           <div className="draft-availability-board">
             <div className="draft-availability-calendar">
               {useStrip ? (
@@ -344,7 +341,7 @@ export default function DraftAvailability({
                             <strong>{slot.label}</strong>
                             <span>{slot.count} free · {peopleLine(slot.people)}</span>
                           </button>
-                          {canLock ? (
+                          {canLock && idx === 0 ? (
                             <Button
                               size="sm"
                               variant={slotLocked ? "ghost" : "primary"}
@@ -370,9 +367,7 @@ export default function DraftAvailability({
               <Button disabled={saving || !dirty} onClick={save}>
                 {availabilitySaveLabel({ dirty, saving })}
               </Button>
-              {!dirty ? <p className="chart-note">Your times are on the shared calendar.</p> : (
-                <p className="chart-note">Unsaved changes stay on this device until you save.</p>
-              )}
+              {dirty ? <p className="chart-note">Unsaved until you save.</p> : null}
             </div>
           ) : null}
         </>
