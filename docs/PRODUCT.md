@@ -85,7 +85,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 |-------|-------------|---------|
 | Home | `home` | Phase-aware next actions |
 | Strategy | `value` | Auction targets and prices |
-| Draft | `room` | Idle entry + live room. Email and text invite links open here. Members mark **current and future** draft-night times on one calendar (opens 31 days before the first NFL game, closes the day before). Commissioners lock a promising overlap as draft night. Idle Draft is that calendar plus a compact room strip — do not stack a second date/time card and a Who is in list on the same scroll. |
+| Draft | `room` | Idle entry + live room. Email and text invite links open here. Members mark **current and future** draft-night times on one calendar (opens 31 days before the first NFL game, closes the day before). Commissioners lock any shown overlap as draft night. Idle Draft is that calendar plus a compact room strip — do not stack a second date/time card and a Who is in list on the same scroll. |
 | This Week | `week` | Lineup decisions; Hub-only leagues set start/sit here |
 | Vibes | `vibes` | Swipe each roster player once a day; front card is the matchup; info arrow opens bio and latest news; lean Vibe ranking rail; VA-projections (vibe-adjusted week, including K and DEF) as the table |
 | Game center | `game` | Your matchup live, league scoreboard, week trophies |
@@ -220,7 +220,7 @@ Hero pattern: eyebrow (`League rules`) + sentence heading (`Rules everyone can p
 - Labels on every field. Errors associated with controls. WCAG AA contrast.
 - Touch targets ≥ 44px where a laptop or phone can tap them (`--touch-target`).
 - Chat: viewport-fixed edge launcher unless dismissed; opening fills the center of the screen. `aria-expanded` / `aria-controls`, Escape and backdrop close the conversation, focus returns to the launcher.
-- Draft availability shows current and future times only. Commissioners lock a promising overlap as the official night. Idle Draft shows that calendar as the one featured job; the date/time form stays a collapsed fallback.
+- Draft availability shows current and future times only. Commissioners lock any shown overlap as the official night. Idle Draft shows that calendar as the one featured job; the date/time form stays a collapsed fallback.
 - Transactional SMS (draft alerts) is opt-in only. The checkbox starts empty. Phone lives on the account. SMS is never a league invite. The public opt-in card is `/sms-alerts` (also on Account). Privacy and Terms must name the SMS vendor, say mobile numbers are not shared for marketing, note message frequency, and include “message and data rates may apply.”
 
 ---
@@ -267,4 +267,5 @@ Contract-type playbook for imports and keepers: [CONTRACT_SCENARIOS.md](./CONTRA
 | Experience CSS | `frontend/src/styles/product-hierarchy.css` |
 | Nav source | `frontend/src/appNavigation.js`, `DraftHub/HubSubnav.jsx` |
 | Living page to match | `frontend/src/livingSurfaces.js` |
+| Redesign / first-design options | [mockups/](./mockups/) · `.cursor/skills/fast-ui-mock/SKILL.md` |
 | Cloud Agent runtime | `.cursor/environment.json` |
