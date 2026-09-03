@@ -694,13 +694,35 @@ export function rangeInsight(text) {
   };
 }
 
+function titleLooksLikeStarter(text) {
+  return /\bstarter\b/i.test(String(text || ""));
+}
+
+function joinHeroDetails(details) {
+  return details
+    .map((part) => String(part).trim())
+    .filter(Boolean)
+    .map((part, index, list) => {
+      if (index === list.length - 1) return part;
+      return /[.!?]$/.test(part) ? part : `${part}.`;
+    })
+    .join(" ");
+}
+
 /** Hero-first inspector: one range + role sentence instead of a 2×2 tile grid. */
 export function heroRead({ role, range } = {}) {
-  const titles = [range?.title, role?.title].filter(Boolean);
+  const rangeTitle = range?.title;
+  const roleTitle = role?.title;
+  const titles = [];
+  if (rangeTitle && roleTitle && titleLooksLikeStarter(rangeTitle) && titleLooksLikeStarter(roleTitle)) {
+    titles.push(roleTitle);
+  } else {
+    titles.push(...[rangeTitle, roleTitle].filter(Boolean));
+  }
   const details = [...new Set([range?.detail, role?.detail].filter(Boolean))];
   return {
     title: titles.join(" · ") || "Range pending",
-    detail: details.join(" "),
+    detail: joinHeroDetails(details),
   };
 }
 
