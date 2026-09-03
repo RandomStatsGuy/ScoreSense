@@ -444,7 +444,7 @@ export default function DraftLobby({
                   <button
                     type="button"
                     className={`draft-lobby-slot${mine ? " is-you" : ""}${taken ? " is-taken" : ""}${!team ? " is-open" : ""}`}
-                    disabled={slotBusy || taken || !myTeamId}
+                    disabled={slotBusy || busy || taken || !myTeamId}
                     aria-pressed={Boolean(mine)}
                     onClick={() => claimSlot(slot)}
                   >
