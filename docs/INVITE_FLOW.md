@@ -138,7 +138,7 @@ Co-commissioner is a checkbox on that email invite (primary commissioner only).
 
 1. **Draft** → copy **Copy text** (or **Copy** for the URL only).
 2. Paste in the group thread. Tell people which franchise is theirs if names are not obvious.
-3. Watch **Who is in** on Draft as seats fill.
+3. Watch **The room** on Draft as seats fill.
 4. When overlaps appear, **Lock this night**.
 5. On draft night, share the **member draft link**, not a new claim link.
 
