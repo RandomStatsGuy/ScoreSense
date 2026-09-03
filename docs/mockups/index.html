@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockups — ScoreSense design options</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16.5rem, 1fr)); gap: 0.9rem; }
+  .grid a {
+    text-decoration: none; color: inherit;
+    display: flex; flex-direction: column; gap: 0.35rem;
+    min-height: 8.5rem;
+  }
+  .grid a:hover { border-color: var(--border-strong); }
+  .grid .k { font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-muted); font-weight: 700; }
+  .grid h3 { margin: 0; font-size: 1rem; }
+  .grid p { margin: 0; font-size: 0.78rem; color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>Design options</strong> <span>· static HTML · not shipped</span></div>
+  <nav class="concept-nav">
+    <a class="is-on" href="index.html">All mocks</a>
+    <a href="draft-lobby-waiting.html">Draft waiting</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <section class="mock-hero">
+    <p class="mock-kicker">Fast mock</p>
+    <h1>Pick a letter. Then we ship it.</h1>
+    <p class="support">
+      These files reuse token colors. They are not the app. Open an option, reply A / B / C.
+      Do not wait on screenshots.
+    </p>
+  </section>
+
+  <h2 style="font-size:0.78rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); margin:0 0 0.7rem;">Active reviews</h2>
+  <div class="grid" style="margin-bottom:1.6rem;">
+    <a class="card" href="draft-lobby-waiting.html">
+      <span class="k">Draft</span>
+      <h3>Waiting state chooser</h3>
+      <p>A Hour · B War room · C Check-in. SMS is not the invite.</p>
+    </a>
+    <a class="card" href="draft-lobby-waiting-a.html">
+      <span class="k">A</span>
+      <h3>The Hour</h3>
+      <p>Countdown, presence, on-page chat.</p>
+    </a>
+    <a class="card" href="draft-lobby-waiting-b.html">
+      <span class="k">B</span>
+      <h3>War room</h3>
+      <p>Nomination queue as the canvas.</p>
+    </a>
+    <a class="card" href="draft-lobby-waiting-c.html">
+      <span class="k">C</span>
+      <h3>Check-in</h3>
+      <p>I’m here as the next action.</p>
+    </a>
+  </div>
+
+  <h2 style="font-size:0.78rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); margin:0 0 0.7rem;">Earlier reviews</h2>
+  <div class="grid">
+    <a class="card" href="game-center.html">
+      <span class="k">Fantasy</span>
+      <h3>Game center</h3>
+      <p>Matchup billboard and starter duels.</p>
+    </a>
+    <a class="card" href="my-team-v2.html">
+      <span class="k">My team</span>
+      <h3>Hero + locker v2</h3>
+      <p>Record chips, cap bar, lockers.</p>
+    </a>
+    <a class="card" href="home-v2.html">
+      <span class="k">Home</span>
+      <h3>In-season deck</h3>
+      <p>Matchup, pulse, standings.</p>
+    </a>
+    <a class="card" href="vibe-rankings.html">
+      <span class="k">Vibes</span>
+      <h3>Swipe + aura</h3>
+      <p>Shipped at /hub/vibes.</p>
+    </a>
+    <a class="card" href="atmosphere-demo.html">
+      <span class="k">Chrome</span>
+      <h3>Atmosphere</h3>
+      <p>Leaves / snow / footballs.</p>
+    </a>
+    <a class="card" href="draft-alerts-sms.html">
+      <span class="k">Account</span>
+      <h3>SMS alerts</h3>
+      <p>Opt-in texts. Never an invite.</p>
+    </a>
+    <a class="card" href="draft-lobby-today.html">
+      <span class="k">Draft</span>
+      <h3>Lobby today</h3>
+      <p>Shipped setup baseline.</p>
+    </a>
+    <a class="card" href="cozy-theme-options.html">
+      <span class="k">Theme</span>
+      <h3>Cozy options</h3>
+      <p>Earlier atmosphere forks.</p>
+    </a>
+  </div>
+
+  <p class="footnote">Serve with <code>bash scripts/dev/serve_mockups.sh</code> · http://127.0.0.1:5174/</p>
+</div>
+</body>
+</html>

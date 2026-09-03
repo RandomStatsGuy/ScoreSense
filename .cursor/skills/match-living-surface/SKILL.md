@@ -31,6 +31,8 @@ From the row, read:
 
 Then reply **Matching:** `{id}` · `{page}` before you edit. That line is the checkpoint. If it is wrong, the user can override it in one sentence.
 
+If this is a redesign or first design and they have not picked an option, follow `.cursor/skills/fast-ui-mock/SKILL.md` and **stop**. Do not edit product React on that pass.
+
 ## 3. Change by extending, not replacing
 
 - Keep `chrome`. `experience` uses `HubExperienceHero` / `Layout` / `Summary`. `board` stays a projections board. `draft-live` stays board-first. `action-center` stays the Home deck.
