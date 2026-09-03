@@ -41,7 +41,7 @@ export function draftLobbyHeroSupport({ testMode = false } = {}) {
   if (testMode) {
     return "Send the practice link. Friends sit down with a name — no ScoreSense account.";
   }
-  return "Text the invite link so managers can claim a team and mark nights that work. Share the room link on draft night.";
+  return "Mark nights that work. The commissioner locks the overlap.";
 }
 
 export function draftInviteRailHint({ testMode = false } = {}) {
@@ -228,7 +228,12 @@ export function draftNightHeading() {
   return "Draft night";
 }
 
-export function draftNightSupport({ scheduled = false } = {}) {
+export function draftNightSupport({ scheduled = false, compact = false } = {}) {
+  if (compact) {
+    return scheduled
+      ? "Only if the locked night has to move off the calendar."
+      : "Only if the overlap is wrong.";
+  }
   return scheduled
     ? "This night is locked. The room can auto-start then. Unlock only if it has to move."
     : "Lock a night from the overlaps, or set one here. The room can auto-start then.";

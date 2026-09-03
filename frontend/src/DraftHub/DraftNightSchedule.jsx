@@ -48,7 +48,7 @@ export default function DraftNightSchedule({
       <header className="hub-draft-entry-card-head">
         <div>
           <h3>{draftNightHeading()}</h3>
-          <p className="chart-note">{draftNightSupport({ scheduled: locked })}</p>
+          <p className="chart-note">{draftNightSupport({ scheduled: locked, compact: variant === "compact" })}</p>
         </div>
         {locked ? (
           <span className="hub-experience-chip">{draftNightLockedChip()}</span>

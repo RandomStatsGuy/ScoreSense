@@ -16,7 +16,7 @@ export function availabilitySupport({ state = "open", locked = false } = {}) {
   if (state === "closed") {
     return "The calendar closed the day before kickoff. Draft night is the commissioner's call from here.";
   }
-  return "Mark the evenings that work. Everyone sees the same calendar, so the room can pick a night that actually fills.";
+  return "Mark evenings that work. Everyone sees the same nights.";
 }
 
 export function availabilityChip({ state = "open", submitted = 0, teamCount = 0, locked = false } = {}) {
@@ -60,8 +60,8 @@ export function availabilityEmptyBest() {
 
 export function availabilityHoursHint({ canEdit = false } = {}) {
   return canEdit
-    ? "Tap the hours you can sit. Save when the night looks right."
-    : "Hours other managers marked for this day.";
+    ? "Tap hours you can sit."
+    : "Hours other managers marked.";
 }
 
 export function availabilityHoursGone() {
@@ -161,7 +161,7 @@ export function heatTone(count, maxCount = 0) {
   return "some";
 }
 
-export function bestSlotLines(best = [], limit = 4) {
+export function bestSlotLines(best = [], limit = 2) {
   return (best || []).slice(0, limit).map((slot) => ({
     id: slotKey(slot.date, slot.hour),
     date: slot.date,
