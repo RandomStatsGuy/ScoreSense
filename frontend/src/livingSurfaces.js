@@ -247,7 +247,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/PlayerContextPanel.jsx",
       "frontend/src/ProjectionExplanationPanel.jsx",
     ],
-    doNot: "Desktop inspector is a right drawer. Do not invent a second player card. This-week notes are locker or practice plus an optional projection delta. Do not show YouTube show copy as current week.",
+    doNot: "Desktop inspector is a right drawer. Hero-first: one P50, floor/ceiling inline, one read strip. Do not restore the 2×2 insight grid. Do not invent a second player card. This-week notes are locker or practice plus an optional projection delta. Do not show YouTube show copy as current week.",
   }),
   "account.model": S({
     label: "Model accuracy",
