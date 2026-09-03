@@ -118,10 +118,19 @@ def test_cloud_environment_json_starts_api_and_vite() -> None:
     assert data["install"] == "bash scripts/dev/cloud_install.sh"
     assert data["start"] == "bash scripts/dev/ensure_cloud_env.sh"
     ports = {row["port"] for row in data["ports"]}
-    assert ports == {8000, 5173}
+    assert {8000, 5173} <= ports
+    assert ports <= {8000, 5173, 5174}
+    by_name = {row["name"]: row["port"] for row in data["ports"]}
+    assert by_name["API"] == 8000
+    assert by_name["Vite"] == 5173
     commands = " ".join(row["command"] for row in data["terminals"])
     assert "run_api.sh" in commands
     assert "run_vite.sh" in commands
+    mockup_cmds = [row["command"] for row in data["terminals"] if row.get("name") == "Mockups"]
+    if mockup_cmds:
+        assert by_name.get("Mockups") == 5174
+        assert "run_vite.sh" not in mockup_cmds[0]
+        assert "http.server" in mockup_cmds[0] or "serve_mockups.sh" in mockup_cmds[0]
     blob = path.read_text(encoding="utf-8")
     assert "mirror" not in blob.lower()
     assert "preseason_refresh" not in blob
