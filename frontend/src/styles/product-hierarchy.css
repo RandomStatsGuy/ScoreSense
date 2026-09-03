@@ -319,7 +319,7 @@
   gap: 0.28rem;
   color: #687a94;
   font-size: var(--text-xs);
-  font-weight: 650;
+  font-weight: var(--font-weight-medium);
 }
 
 .hub-home-phase-dot {

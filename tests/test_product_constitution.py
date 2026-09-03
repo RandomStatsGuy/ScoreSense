@@ -141,7 +141,8 @@ def test_constitution_covers_compact_tile_spacing() -> None:
 def test_css_type_never_drops_below_text_xs() -> None:
     import re
 
-    pat = re.compile(r"font-size:\s*(0\.\d+)rem")
+    pat = re.compile(r"font-size:\s*(0?\.\d+)rem")
+    assert pat.search("font-size: .68rem")
     offenders = []
     for path in (ROOT / "frontend" / "src").rglob("*.css"):
         for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):

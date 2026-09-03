@@ -7514,7 +7514,7 @@ td.col-rank.col-rank-top {
 }
 .hub-col-sub {
   font-size: var(--text-xs);
-  font-weight: 650;
+  font-weight: var(--font-weight-medium);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -16621,7 +16621,7 @@ button.hub-wcc-bench-chip {
 }
 .hub-pick-board-meta { color: var(--text-muted, #94a3b8); font-size: var(--text-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hub-pick-board-mark, .hub-pick-board-shot {
-  width: 1.05rem; height: 1.05rem; border-radius: 999px; object-fit: cover; flex: 0 0 auto;
+  width: 1.35rem; height: 1.35rem; border-radius: 999px; object-fit: cover; flex: 0 0 auto;
 }
 .hub-pick-board-initials {
   width: 1.35rem; height: 1.35rem; border-radius: 999px;
