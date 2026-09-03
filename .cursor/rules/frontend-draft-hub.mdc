@@ -1,6 +1,6 @@
 ---
 description: Fantasy UI — chrome, copy, chat, and league behavior.
-globs: frontend/src/DraftHub/**/*.{js,jsx,css}, frontend/src/styles/product-hierarchy.css, frontend/src/appNavigation.js, frontend/src/LineupOptimizer.jsx, frontend/src/dfsToolPresentation.js
+globs: frontend/src/DraftHub/**/*.{js,jsx,css}, frontend/src/styles/product-hierarchy.css, frontend/src/styles/product-rhythm.css, frontend/src/appNavigation.js, frontend/src/LineupOptimizer.jsx, frontend/src/dfsToolPresentation.js
 alwaysApply: false
 ---
 
@@ -46,7 +46,7 @@ Read `docs/PRODUCT.md` first. User-facing name is **Fantasy**, not Draft Hub.
 
 ## Visual
 
-- Tokens from `tokens.css` and `product-hierarchy.css`. No one-off neon, no new accent color.
-- Compact pick tiles and chips use token padding and even gutters. Do not pack seat or chip labels flush to the border or drop below `--text-xs`.
+- Tokens from `tokens.css`, `product-hierarchy.css`, and `product-rhythm.css`. No one-off neon, no new accent color.
+- Every Fantasy, Tools, and Projections surface uses token padding and even gutters on mobile and desktop. Do not pack labels flush to a border or rule, or drop type below `--text-xs`.
 - Laptop: summary rail may drop under the hero. No horizontal page scroll at 1024 / 1280 / 1440.
 - Primary save/action stays visible. Disabled controls explain why.

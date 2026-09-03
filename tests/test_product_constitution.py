@@ -129,12 +129,30 @@ def test_constitution_covers_compact_tile_spacing() -> None:
     product = _read("docs", "PRODUCT.md")
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
     hub_rule = _read(".cursor", "rules", "frontend-draft-hub.mdc")
-    assert "token padding" in product
-    assert "even gutters" in product
-    assert "micro type" in product
-    assert "token padding" in core_rule
-    assert "micro type" in core_rule
+    assert "spacing rhythm" in product
+    assert "never flush" in product
+    assert "--text-xs" in product
+    assert "never flush" in core_rule
+    assert "--text-xs" in core_rule
     assert "token padding" in hub_rule
+    assert "--text-xs" in hub_rule
+
+
+def test_css_type_never_drops_below_text_xs() -> None:
+    import re
+
+    pat = re.compile(r"font-size:\s*(0\.\d+)rem")
+    offenders = []
+    for path in (ROOT / "frontend" / "src").rglob("*.css"):
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            match = pat.search(line)
+            if match and float(match.group(1)) < 0.72:
+                offenders.append(f"{path.relative_to(ROOT)}:{lineno}:{match.group(1)}")
+    assert not offenders, "type below --text-xs (0.72rem):\n" + "\n".join(offenders[:30])
+    rhythm = _read("frontend", "src", "styles", "product-rhythm.css")
+    main = _read("frontend", "src", "main.jsx")
+    assert "--inset-chip" in rhythm
+    assert "product-rhythm.css" in main
 
 
 def test_constitution_covers_weekly_board_chrome() -> None:

@@ -45,10 +45,10 @@ Source: `frontend/src/DraftHub/HubSubnav.jsx`, `frontend/src/appNavigation.js`.
 Priority: fun → easy → clear → selective → respectful. Fun is consequence and rhythm, not decoration.
 
 - Dark, matte, editorial, layered. No neon-terminal chrome. No casino glow.
-- Tokens only: `frontend/src/styles/tokens.css`, `frontend/src/styles/product-hierarchy.css`.
+- Tokens only: `frontend/src/styles/tokens.css`, `frontend/src/styles/product-hierarchy.css`, `frontend/src/styles/product-rhythm.css`.
 - Blue (`--experience-blue` / `--accent`) = current context and the next action. Nothing else.
 - Teal = healthy/saved. Amber = attention. Red = destructive/blocking. Gold = awards only.
-- Hierarchy from surface, type, and spacing — not a border on every box. Compact tiles keep token padding and even gutters; use the token type scale, not flush chips or micro type.
+- Hierarchy from surface, type, and spacing — not a border on every box. Every page, mobile and desktop, uses token insets and gutters; text is never flush to a line and never smaller than `--text-xs`.
 - Editorial pages use `HubExperienceHero` + `HubExperienceLayout` + `HubExperienceSummary` from `frontend/src/DraftHub/HubUILayout.jsx`.
 - Before UI work, resolve `frontend/src/livingSurfaces.js` and match that row’s `page` and `copy`. Do not invent chrome.
 - Live draft rooms stay board-first. Do not wrap them in settings chrome.

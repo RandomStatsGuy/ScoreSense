@@ -1,0 +1,89 @@
+/* Product rhythm — every destination, mobile and desktop.
+   Text never sits flush on a border or rule. Type never drops below --text-xs. */
+
+.chip,
+.team-chip,
+.filter-chip,
+.hub-experience-chip,
+.header-context-chip,
+.header-status-chip,
+.hub-pos-chip,
+.hub-cap-chip,
+.hub-insights-chip,
+.hub-need-chip,
+.hub-expire-chip,
+.hub-freshness-chip,
+.hub-season-status-chip,
+.hub-league-hero-phase-chip,
+.hub-live-contract-chip,
+.hub-player-alias-chip,
+.hub-contract-audit-chip,
+.hub-roster-grade-chip,
+.hub-roster-owner-chip,
+.compare-selection-chip,
+.player-status-chip,
+.injury-status-chip,
+.injury-return-chip,
+.injury-card .chip,
+.sentiment-source-chip,
+.player-inspector-chip,
+.player-context-driver-chip,
+.player-context-overlay-chip,
+.player-context-source-chip,
+.proj-left-slate-chip,
+.projection-explanation-overlay-chip,
+.projections-mobile-scoring-chip,
+.hub-filter-bar .filter-chip {
+  padding: var(--inset-chip);
+  line-height: var(--line-normal);
+}
+
+.hub-pick-grid {
+  gap: var(--gutter);
+}
+
+.hub-pick-tile {
+  padding: var(--inset-tile);
+  gap: var(--gutter);
+  font-size: var(--text-sm);
+}
+
+.hub-experience-section,
+.hub-table-card,
+.hub-section,
+.auth-session-card,
+.hub-experience-summary {
+  padding: var(--inset-section);
+}
+
+.hub-experience-main,
+.hub-experience-stack {
+  gap: var(--gutter-section);
+}
+
+th,
+td {
+  padding: var(--inset-cell);
+}
+
+.hub-experience-kicker,
+.auth-session-eyebrow,
+small {
+  font-size: var(--text-xs);
+  line-height: var(--line-normal);
+}
+
+.btn-sm,
+.btn-ghost.btn-sm,
+button.btn-sm {
+  min-height: 2.25rem;
+  padding: 0.45rem 0.75rem;
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 768px) {
+  :root {
+    --inset-cell: 0.45rem 0.6rem;
+    --inset-section: 1rem 1.05rem;
+  }
+}

@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   CHROME,
   LIVING_SURFACES,
+  SHARED,
   resolveLivingSurface,
   resolveLivingSurfaceFromText,
   surfacesForFile,
@@ -98,6 +99,11 @@ test("login and create account resolve to the session pages", () => {
   assert.equal(report.label, "Report a bug");
   assert.equal(report.page, "frontend/src/BugReportPage.jsx");
   assert.equal(report.copy, "frontend/src/bugReportPresentation.js");
+});
+
+test("shared tokens include the product spacing rhythm", () => {
+  assert.ok(SHARED.tokens.includes("frontend/src/styles/product-rhythm.css"));
+  assert.ok(SHARED.tokens.includes("frontend/src/styles/tokens.css"));
 });
 
 test("shared mobile chrome resolves from the header files", () => {
