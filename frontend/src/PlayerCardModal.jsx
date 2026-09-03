@@ -27,6 +27,7 @@ import {
   BOARD_COPY,
   analystInsight,
   filterInspectorCandidates,
+  heroRead,
   methodInsight,
   opportunityInsight,
   positionShort,
@@ -64,16 +65,6 @@ function contextLabel(meta, request) {
   return `${season} · Wk ${week}`;
 }
 
-function InspectorTile({ kicker, title, detail }) {
-  return (
-    <div className="player-inspector-tile">
-      <p className="player-inspector-tile-kicker">{kicker}</p>
-      <p className="player-inspector-tile-title">{title}</p>
-      {detail ? <p className="player-inspector-tile-detail">{detail}</p> : null}
-    </div>
-  );
-}
-
 function PlayerCardBody({
   data,
   loading,
@@ -100,7 +91,8 @@ function PlayerCardBody({
         season={request?.season}
         week={request?.week}
         active
-        className="player-context-panel--card"
+        variant="hero"
+        className="player-context-panel--card player-context-panel--hero"
       />
     </section>
   ) : null;
@@ -173,9 +165,9 @@ function PlayerCardBody({
       p10: previewBand?.p10 ?? seasonBand?.p10,
       p50: previewBand?.p50 ?? seasonBand?.p50,
       p90: previewBand?.p90 ?? seasonBand?.p90,
-      floorLabel: "Floor",
-      midLabel: "Season P50",
-      ceilLabel: "Ceiling",
+      floorLabel: BOARD_COPY.floor,
+      midLabel: BOARD_COPY.seasonP50,
+      ceilLabel: BOARD_COPY.ceiling,
       format: (v) => formatSeasonPts(v, 0),
       title: seasonTip,
     }
@@ -183,9 +175,9 @@ function PlayerCardBody({
       p10: previewBand?.p10 ?? weeklyBand.p10,
       p50: previewBand?.p50 ?? weeklyBand.p50,
       p90: previewBand?.p90 ?? weeklyBand.p90,
-      floorLabel: "Floor",
-      midLabel: "P50",
-      ceilLabel: "Ceiling",
+      floorLabel: BOARD_COPY.floor,
+      midLabel: BOARD_COPY.weekP50,
+      ceilLabel: BOARD_COPY.ceiling,
       format: (v) => Number.isFinite(v) ? v.toFixed(1) : "—",
       title: "Per-game scoring range",
     };
@@ -233,6 +225,7 @@ function PlayerCardBody({
     historicalLabel: narrativeFallback ? historicalLabel : null,
   });
   const opportunity = !seasonScope && weekly ? opportunityInsight(weekly) : null;
+  const hero = heroRead({ role, range });
   const seasonIdentity = seasonMode === "live" ? "season" : "preseason";
   const identityMeta = [
     positionShort(request?.position || data?.position),
@@ -243,7 +236,7 @@ function PlayerCardBody({
   ].filter(Boolean).join(" · ");
 
   return (
-    <div className="player-card-body player-inspector-body">
+    <div className="player-card-body player-inspector-body player-inspector-body--hero">
       <div className="player-inspector-identity">
         <div>
           <PlayerCell
@@ -274,23 +267,21 @@ function PlayerCardBody({
         </span>
       </div>
 
-      <div className="player-inspector-stats">
-        <div className="player-inspector-stat">
-          <span className="player-inspector-stat-label">{primary.floorLabel}</span>
-          <span className="player-inspector-stat-value">
-            {primary.p10 != null ? primary.format(primary.p10) : "—"}
+      <div className="player-inspector-hero">
+        <span className="player-inspector-hero-label">{primary.midLabel}</span>
+        <p className="player-inspector-hero-value">
+          {primary.p50 != null ? primary.format(primary.p50) : "—"}
+        </p>
+        <div className="player-inspector-hero-band">
+          <span>
+            {primary.floorLabel}
+            {" "}
+            <strong>{primary.p10 != null ? primary.format(primary.p10) : "—"}</strong>
           </span>
-        </div>
-        <div className="player-inspector-stat player-inspector-stat--primary">
-          <span className="player-inspector-stat-label">{primary.midLabel}</span>
-          <span className="player-inspector-stat-value">
-            {primary.p50 != null ? primary.format(primary.p50) : "—"}
-          </span>
-        </div>
-        <div className="player-inspector-stat">
-          <span className="player-inspector-stat-label">{primary.ceilLabel}</span>
-          <span className="player-inspector-stat-value">
-            {primary.p90 != null ? primary.format(primary.p90) : "—"}
+          <span>
+            {primary.ceilLabel}
+            {" "}
+            <strong>{primary.p90 != null ? primary.format(primary.p90) : "—"}</strong>
           </span>
         </div>
       </div>
@@ -302,25 +293,29 @@ function PlayerCardBody({
         formatValue={primary.format}
       />
 
-      <div className="player-inspector-grid">
-        <InspectorTile kicker="Role outlook" title={role.title} detail={role.detail} />
-        <InspectorTile kicker="Range read" title={range.title} detail={range.detail} />
-        <InspectorTile kicker="Method" title={method.title} detail={method.detail} />
-        <InspectorTile kicker="Analyst desk" title={analyst.title} detail={analyst.detail} />
+      <div className="player-inspector-read">
+        <p className="player-inspector-read-title">{hero.title}</p>
+        {hero.detail ? (
+          <p className="player-inspector-read-detail">{hero.detail}</p>
+        ) : null}
+      </div>
+      <div className="player-inspector-pills">
+        <span className="player-inspector-pill">{method.title}</span>
+        <span className="player-inspector-pill">{analyst.title}</span>
       </div>
 
       {opportunity ? (
-        <div className="player-inspector-callout" role="status">
-          <p className="player-inspector-tile-kicker">{BOARD_COPY.opportunity}</p>
-          <p className="player-inspector-tile-title">{opportunity.title}</p>
-          <p className="player-inspector-tile-detail">{opportunity.detail}</p>
-        </div>
+        <p className="player-inspector-opp-line" role="status">
+          {opportunity.title}
+          {" · "}
+          {opportunity.detail}
+        </p>
       ) : null}
 
       {contextPanel}
 
       <section className="player-card-section">
-        <h3>Analyst context</h3>
+        <h3>{BOARD_COPY.analyst}</h3>
         {(narrativeFallback || (narrative && isHistoricalAvailable(media))) && historicalLabel ? (
           <div className="sentiment-fallback-banner player-card-narrative-fallback" role="status">
             Older commentary from <strong>{historicalLabel}</strong>

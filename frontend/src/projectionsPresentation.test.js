@@ -11,8 +11,11 @@ import {
   injuryDisclosureSummary,
   matchesSeasonBoardFilter,
   median,
+  heroRead,
+  heroWeekStatusLine,
   methodInsight,
   opportunityInsight,
+  rangeInsight,
   percentile,
   roleOutlook,
   seasonBoardSignals,
@@ -185,6 +188,25 @@ test("disclosure summaries name the consequence", () => {
     analystDisclosureSummary({ count: 0, week: 1, historicalAvailable: true }),
     /older coverage available/i,
   );
+});
+
+test("hero read collapses range and role into one strip", () => {
+  const range = rangeInsight("Best ceiling; meaningfully wider band");
+  const role = roleOutlook({ rank: 1, position: "qb" });
+  const hero = heroRead({ range, role });
+  assert.equal(hero.title, "Best ceiling · Locked-in starter");
+  assert.match(hero.detail, /wider band/i);
+  assert.match(hero.detail, /Volume and availability/i);
+  assert.doesNotMatch(hero.title, /Role outlook|Range read/i);
+});
+
+test("hero week status line stays compact", () => {
+  assert.equal(
+    heroWeekStatusLine({}),
+    `${CONTEXT_COPY.availabilityEmpty} · ${CONTEXT_COPY.opportunityEmptyCompact}`,
+  );
+  assert.equal(heroWeekStatusLine({ availability: "Q", opportunity: "+1.2" }), "Q · +1.2");
+  assert.doesNotMatch(CONTEXT_COPY.staleInline, /Submit|Draft Hub|permission/i);
 });
 
 test("role outlook and inspector search stay specific", () => {
