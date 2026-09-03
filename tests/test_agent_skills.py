@@ -118,7 +118,7 @@ def test_cloud_environment_json_starts_api_and_vite() -> None:
     assert data["install"] == "bash scripts/dev/cloud_install.sh"
     assert data["start"] == "bash scripts/dev/ensure_cloud_env.sh"
     ports = {row["port"] for row in data["ports"]}
-    assert ports == {8000, 5173}
+    assert ports == {8000, 5173, 5174}
     commands = " ".join(row["command"] for row in data["terminals"])
     assert "run_api.sh" in commands
     assert "run_vite.sh" in commands
