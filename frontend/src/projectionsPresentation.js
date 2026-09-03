@@ -48,6 +48,10 @@ export const BOARD_COPY = {
   liveSeason: "Live season + ROS",
   weeklyModel: "Weekly PPR model",
   opportunity: "Opportunity",
+  seasonP50: "Season P50",
+  weekP50: "Week P50",
+  floor: "Floor",
+  ceiling: "Ceiling",
 };
 
 /** Inspector this-week note — locker / practice, not a show recap. */
@@ -64,6 +68,13 @@ export const CONTEXT_COPY = {
   opportunityTitle: "Opportunity",
   opportunity: "Teammate availability moved this week's median.",
   opportunityEmpty: "No opportunity adjustment this week.",
+  opportunityEmptyCompact: "No opportunity adj",
+  availabilityEmpty: "No availability flags",
+  stale: "Snapshot may be stale relative to newer weekly inputs.",
+  staleInline: "May be stale vs newer weekly inputs",
+  base: "Base",
+  final: "Final",
+  injuryDelta: "Injury Δ",
 };
 
 /** Weekly row click: name always inspects. Compare mode uses the rest of the row. */
@@ -681,6 +692,45 @@ export function rangeInsight(text) {
     title: title || "Range read",
     detail: rest.join(" ") || "P10–P90 is the outcome band, not a guarantee.",
   };
+}
+
+function titleLooksLikeStarter(text) {
+  return /\bstarter\b/i.test(String(text || ""));
+}
+
+function joinHeroDetails(details) {
+  return details
+    .map((part) => String(part).trim())
+    .filter(Boolean)
+    .map((part, index, list) => {
+      if (index === list.length - 1) return part;
+      return /[.!?]$/.test(part) ? part : `${part}.`;
+    })
+    .join(" ");
+}
+
+/** Hero-first inspector: one range + role sentence instead of a 2×2 tile grid. */
+export function heroRead({ role, range } = {}) {
+  const rangeTitle = range?.title;
+  const roleTitle = role?.title;
+  const titles = [];
+  if (rangeTitle && roleTitle && titleLooksLikeStarter(rangeTitle) && titleLooksLikeStarter(roleTitle)) {
+    titles.push(roleTitle);
+  } else {
+    titles.push(...[rangeTitle, roleTitle].filter(Boolean));
+  }
+  const details = [...new Set([range?.detail, role?.detail].filter(Boolean))];
+  return {
+    title: titles.join(" · ") || "Range pending",
+    detail: joinHeroDetails(details),
+  };
+}
+
+export function heroWeekStatusLine({ availability, opportunity } = {}) {
+  return [
+    availability || CONTEXT_COPY.availabilityEmpty,
+    opportunity || CONTEXT_COPY.opportunityEmptyCompact,
+  ].join(" · ");
 }
 
 export function filterInspectorCandidates(candidates, query, { limit = 8 } = {}) {

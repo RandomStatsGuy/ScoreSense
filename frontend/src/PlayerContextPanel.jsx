@@ -15,7 +15,7 @@ import {
   mediaSignalTone,
   shouldShowProjectionAssumesActive,
 } from "./playerContextDisplay";
-import { CONTEXT_COPY } from "./projectionsPresentation";
+import { CONTEXT_COPY, heroWeekStatusLine } from "./projectionsPresentation";
 import {
   MEDIA_MODE,
   applyMediaQueryParams,
@@ -51,6 +51,7 @@ export default function PlayerContextPanel({
   season,
   week,
   active = true,
+  variant = "default",
   mediaMode: mediaModeProp,
   onMediaModeChange,
   className = "",
@@ -185,6 +186,16 @@ export default function PlayerContextPanel({
     media,
     week: meta?.week ?? week,
   });
+  const hero = variant === "hero";
+  const availLabel = avail?.status
+    ? (avail.practice ? `${avail.status} · ${avail.practice}` : avail.status)
+    : CONTEXT_COPY.availabilityEmpty;
+  const oppLabel = opp?.included && oppPts ? oppPts : CONTEXT_COPY.opportunityEmptyCompact;
+  const weekStatusLine = heroWeekStatusLine({
+    availability: availLabel,
+    opportunity: oppLabel,
+  });
+  const lockerNote = Boolean(thisWeek?.headline || thisWeek?.detail || thisWeek?.projection_line);
 
   function renderMediaBody(bodyMedia, { emptyNote = "Signal present; no digest summary." } = {}) {
     const label = mediaSignalLabel(bodyMedia?.signal);
@@ -230,9 +241,64 @@ export default function PlayerContextPanel({
     );
   }
 
+  function renderMediaNotes() {
+    return (
+      <div className="player-context-block player-context-block--media">
+        <div className="player-context-media-head">
+          <h4 className="player-context-block-title">{CONTEXT_COPY.media}</h4>
+          {showCurrentMedia || showHistoricalContent ? (
+            <ProjectionTrustLabel kind="commentary" />
+          ) : null}
+          {showModeToggle ? (
+            <div className="player-context-media-mode-row">
+              <PreseasonMediaModeToggle
+                value={mediaMode}
+                media={media}
+                week={meta?.week ?? week}
+                disabled={loading}
+                onChange={(mode) => setMediaMode(mode)}
+              />
+              {modeBannerLabel && !isOlderMediaMode(mediaMode) ? (
+                <span className="player-context-media-mode-label muted">
+                  {modeBannerLabel}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+        {showCurrentMedia ? (
+          renderMediaBody(media)
+        ) : showHistoricalOptIn ? (
+          <HistoricalMediaOptIn
+            requestedWeek={meta?.week ?? week}
+            media={media}
+            loading={loading}
+            onViewOlder={() => setMediaMode(MEDIA_MODE.OLDER)}
+          />
+        ) : showHistoricalContent ? (
+          <>
+            {historicalLabel ? (
+              <p className="sentiment-fallback-banner player-context-historical-banner" role="status">
+                Older commentary from <strong>{historicalLabel}</strong>
+                {" — not current-week coverage."}
+              </p>
+            ) : null}
+            {renderMediaBody(media, {
+              emptyNote: "Older coverage present; no digest summary.",
+            })}
+          </>
+        ) : (
+          <p className="state-empty-text player-context-empty">
+            {CONTEXT_COPY.mediaEmpty}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <section
-      className={`player-context-panel ${className}`.trim()}
+      className={`player-context-panel ${hero ? "player-context-panel--hero" : ""} ${className}`.trim()}
       aria-label={CONTEXT_COPY.title}
     >
       <header className="player-context-panel-head">
@@ -241,16 +307,27 @@ export default function PlayerContextPanel({
           {weekLabel ? (
             <span className="player-context-panel-week muted">{weekLabel}</span>
           ) : null}
+          {hero && builtAt ? (
+            <span className="player-context-built muted" role="status">{builtAt}</span>
+          ) : null}
         </div>
-        <p className="player-context-panel-sub muted">
-          {CONTEXT_COPY.support}
-        </p>
-        {meta?.stale ? (
-          <p className="player-context-stale-banner" role="status">
-            Snapshot may be stale relative to newer weekly inputs.
+        {hero ? null : (
+          <p className="player-context-panel-sub muted">
+            {CONTEXT_COPY.support}
           </p>
+        )}
+        {meta?.stale ? (
+          hero ? (
+            <p className="player-context-stale-inline" role="status">
+              {CONTEXT_COPY.staleInline}
+            </p>
+          ) : (
+            <p className="player-context-stale-banner" role="status">
+              {CONTEXT_COPY.stale}
+            </p>
+          )
         ) : null}
-        {builtAt ? (
+        {!hero && builtAt ? (
           <p className="player-context-built muted" role="status">
             {builtAt}
             {meta?.injury_snapshot_id
@@ -274,11 +351,52 @@ export default function PlayerContextPanel({
 
       {error ? <div className="error">{error}</div> : null}
 
-      {data ? (
+      {data && hero ? (
+        <div className="player-context-hero-body">
+          {lockerNote ? (
+            <div className="player-context-this-week">
+              {thisWeek.headline ? (
+                <p className="player-context-media-news-head">{thisWeek.headline}</p>
+              ) : null}
+              {thisWeek.detail ? (
+                <p className="player-context-media-summary">{thisWeek.detail}</p>
+              ) : null}
+              {thisWeek.projection_line ? (
+                <p className="player-context-stat-hint">{thisWeek.projection_line}</p>
+              ) : null}
+              {thisWeek.source ? (
+                <p className="chart-note">{thisWeek.source}</p>
+              ) : null}
+            </div>
+          ) : null}
+          {proj ? (
+            <div className="player-context-stats player-context-stats--hero">
+              <ContextStat label={CONTEXT_COPY.base} value={formatProjPts(proj?.base)} />
+              <ContextStat
+                label={CONTEXT_COPY.final}
+                value={formatProjPts(proj?.final)}
+                emphasis
+              />
+              <ContextStat
+                label={CONTEXT_COPY.injuryDelta}
+                value={deltaLabel || "0.0"}
+              />
+            </div>
+          ) : null}
+          <p className="player-context-hero-status">{weekStatusLine}</p>
+          {showAssumesActive || showIncluded ? (
+            <div className="player-context-hero-trust">
+              {showAssumesActive ? <ProjectionTrustLabel kind="assumes_active" /> : null}
+              {showIncluded ? <ProjectionTrustLabel kind="included" /> : null}
+            </div>
+          ) : null}
+          {renderMediaNotes()}
+        </div>
+      ) : data ? (
         <div className="player-context-grid">
           <div className="player-context-block">
             <h4 className="player-context-block-title">{CONTEXT_COPY.title}</h4>
-            {thisWeek?.headline || thisWeek?.detail || thisWeek?.projection_line ? (
+            {lockerNote ? (
               <div className="player-context-this-week">
                 {thisWeek.headline ? (
                   <p className="player-context-media-news-head">{thisWeek.headline}</p>
@@ -302,15 +420,15 @@ export default function PlayerContextPanel({
           <div className="player-context-block">
             <h4 className="player-context-block-title">Projection</h4>
             <div className="player-context-stats">
-              <ContextStat label="Base" value={formatProjPts(proj?.base)} />
+              <ContextStat label={CONTEXT_COPY.base} value={formatProjPts(proj?.base)} />
               <ContextStat
-                label="Final"
+                label={CONTEXT_COPY.final}
                 value={formatProjPts(proj?.final)}
                 emphasis
                 hint={deltaLabel ? `${deltaLabel} vs base` : null}
               />
               <ContextStat
-                label="Injury Δ"
+                label={CONTEXT_COPY.injuryDelta}
                 value={deltaLabel || "0.0"}
               />
             </div>
@@ -339,7 +457,7 @@ export default function PlayerContextPanel({
                 ) : null}
               </div>
             ) : (
-              <p className="state-empty-text player-context-empty">No availability flags.</p>
+              <p className="state-empty-text player-context-empty">{CONTEXT_COPY.availabilityEmpty}.</p>
             )}
             {availUpdated ? (
               <p className="chart-note">
@@ -389,56 +507,7 @@ export default function PlayerContextPanel({
           </div>
           ) : null}
 
-          <div className="player-context-block player-context-block--media">
-            <div className="player-context-media-head">
-              <h4 className="player-context-block-title">{CONTEXT_COPY.media}</h4>
-              {showCurrentMedia || showHistoricalContent ? (
-                <ProjectionTrustLabel kind="commentary" />
-              ) : null}
-              {showModeToggle ? (
-                <div className="player-context-media-mode-row">
-                  <PreseasonMediaModeToggle
-                    value={mediaMode}
-                    media={media}
-                    week={meta?.week ?? week}
-                    disabled={loading}
-                    onChange={(mode) => setMediaMode(mode)}
-                  />
-                  {modeBannerLabel && !isOlderMediaMode(mediaMode) ? (
-                    <span className="player-context-media-mode-label muted">
-                      {modeBannerLabel}
-                    </span>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-            {showCurrentMedia ? (
-              renderMediaBody(media)
-            ) : showHistoricalOptIn ? (
-              <HistoricalMediaOptIn
-                requestedWeek={meta?.week ?? week}
-                media={media}
-                loading={loading}
-                onViewOlder={() => setMediaMode(MEDIA_MODE.OLDER)}
-              />
-            ) : showHistoricalContent ? (
-              <>
-                {historicalLabel ? (
-                  <p className="sentiment-fallback-banner player-context-historical-banner" role="status">
-                    Older commentary from <strong>{historicalLabel}</strong>
-                    {" — not current-week coverage."}
-                  </p>
-                ) : null}
-                {renderMediaBody(media, {
-                  emptyNote: "Older coverage present; no digest summary.",
-                })}
-              </>
-            ) : (
-              <p className="state-empty-text player-context-empty">
-                {CONTEXT_COPY.mediaEmpty}
-              </p>
-            )}
-          </div>
+          {renderMediaNotes()}
         </div>
       ) : null}
     </section>
