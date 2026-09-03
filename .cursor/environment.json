@@ -10,6 +10,10 @@
     {
       "name": "Vite",
       "port": 5173
+    },
+    {
+      "name": "Mockups",
+      "port": 5174
     }
   ],
   "terminals": [
@@ -22,6 +26,11 @@
       "name": "Vite",
       "description": "Vite on http://127.0.0.1:5173. Proxies /api to :8000. Open the app here.",
       "command": "bash scripts/dev/run_vite.sh"
+    },
+    {
+      "name": "Mockups",
+      "description": "Static design options on http://127.0.0.1:5174/. Not the product app.",
+      "command": "python3 -m http.server 5174 --bind 127.0.0.1 --directory docs/mockups"
     }
   ]
 }

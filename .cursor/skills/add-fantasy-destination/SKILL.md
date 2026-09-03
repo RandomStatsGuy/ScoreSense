@@ -5,7 +5,7 @@ description: Add or rename a Fantasy, Tools, or Projections tab without missing 
 
 # Add or rename a destination
 
-Do not add a fourth top-level area. Place the work under Projections, Fantasy, or Tools. Follow `.cursor/skills/match-living-surface/SKILL.md` first.
+Do not add a fourth top-level area. Place the work under Projections, Fantasy, or Tools. Follow `.cursor/skills/match-living-surface/SKILL.md` first. New destination with no picked layout: `.cursor/skills/fast-ui-mock/SKILL.md` before product React.
 
 ## Same-change checklist
 

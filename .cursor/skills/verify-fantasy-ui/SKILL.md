@@ -5,7 +5,7 @@ description: Verify a Fantasy or Tools UI change in the running app. Use after c
 
 # Verify Fantasy UI
 
-Do this after the code change. A screenshot of one render is not enough.
+Do this after the product code change. A screenshot of one render is not enough. Do not run this on the HTML mock pass (`.cursor/skills/fast-ui-mock/SKILL.md`).
 
 ## 1. Name the living surface
 

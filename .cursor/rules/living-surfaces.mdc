@@ -12,6 +12,7 @@ Before user-facing UI work, do not invent chrome from memory.
 3. Open that row’s `page` and `copy` (plus `SHARED.primitives` / tokens) **before** editing.
 4. Match those files. Do not fork a second hero, table, board, or presentation module.
 5. New or retargeted destination: update `livingSurfaces.js`, nav, `docs/PRODUCT.md`, and tests in the same change.
+6. Redesign or first design with no picked option: `.cursor/skills/fast-ui-mock/SKILL.md` before product React. Skip for a one-control fix.
 
 Reply at the start of UI work with **Matching:** `{id}` · `{page}`. If lookup fails: **Need a surface:** {which screen?} — then add the row once known.
 

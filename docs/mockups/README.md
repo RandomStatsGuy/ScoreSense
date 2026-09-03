@@ -1,8 +1,14 @@
-# Fantasy design review mockups (Aug 2026)
+# Fantasy design review mockups
 
-Static, self-contained HTML mockups from the Fantasy section design review. Open any file
-directly in a browser — no build step. They reuse the token values from
-`frontend/src/styles/tokens.css` but are **not product code**; nothing here ships.
+Static HTML options. Not product code. Agents: `.cursor/skills/fast-ui-mock/SKILL.md`.
+
+Serve and click: `bash scripts/dev/serve_mockups.sh` → [http://127.0.0.1:5174/](http://127.0.0.1:5174/). Or open [index.html](./index.html).
+
+Copy [`_starter.html`](./_starter.html) for a new A/B pass. Do not screenshot the mock pass.
+
+## Inventory (Aug–Sep 2026)
+
+They reuse token values from `frontend/src/styles/tokens.css` but are **not product code**; nothing here ships.
 
 | File | Shows |
 |------|-------|
