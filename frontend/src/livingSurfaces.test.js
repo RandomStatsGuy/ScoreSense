@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   CHROME,
   LIVING_SURFACES,
+  SHARED,
   resolveLivingSurface,
   resolveLivingSurfaceFromText,
   surfacesForFile,
@@ -31,6 +32,10 @@ test("text lookup prefers the longest alias and ignores capture vs cap", () => {
   assert.equal(calendar.page, "frontend/src/DraftHub/DraftLobby.jsx");
   const invite = resolveLivingSurfaceFromText("league invite lands on draft");
   assert.equal(invite.label, "Draft");
+  const roomSeats = resolveLivingSurfaceFromText("The room open seats look cramped");
+  assert.equal(roomSeats.page, "frontend/src/DraftHub/DraftLobby.jsx");
+  const takeAPick = resolveLivingSurfaceFromText("Take a pick spacing on the seat tiles");
+  assert.equal(takeAPick.page, "frontend/src/DraftHub/DraftLobby.jsx");
   assert.equal(resolveLivingSurfaceFromText("Remember to capture this correction"), null);
   const cap = resolveLivingSurfaceFromText("Cap planner overage");
   assert.equal(cap.label, "Cap");
@@ -94,6 +99,11 @@ test("login and create account resolve to the session pages", () => {
   assert.equal(report.label, "Report a bug");
   assert.equal(report.page, "frontend/src/BugReportPage.jsx");
   assert.equal(report.copy, "frontend/src/bugReportPresentation.js");
+});
+
+test("shared tokens include the product spacing rhythm", () => {
+  assert.ok(SHARED.tokens.includes("frontend/src/styles/product-rhythm.css"));
+  assert.ok(SHARED.tokens.includes("frontend/src/styles/tokens.css"));
 });
 
 test("shared mobile chrome resolves from the header files", () => {
