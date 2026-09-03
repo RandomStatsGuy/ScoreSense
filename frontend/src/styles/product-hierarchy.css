@@ -2793,9 +2793,6 @@
   letter-spacing: -0.01em;
   text-align: left;
   cursor: pointer;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 .hub-experience-page .hub-section,
@@ -3363,7 +3360,14 @@
 .draft-lobby-slot {
   transition: background var(--duration-fast) var(--ease-standard),
     border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
     transform var(--duration-fast) var(--ease-standard);
+}
+
+.draft-lobby-slot-num,
+.draft-lobby-slot-who,
+.draft-lobby-slot-action {
+  transition: color var(--duration-fast) var(--ease-standard);
 }
 
 .draft-lobby-slot:hover:not(:disabled) {
