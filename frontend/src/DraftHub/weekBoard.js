@@ -123,18 +123,18 @@ export function weekHeroCopy({
 } = {}) {
   if (emptyRoster) {
     return {
-      heading: "Set the board.",
+      heading: "Need a roster to set a lineup.",
       support: unlinked
-        ? "Link Sleeper, then sync, and the empty slots fill with this week's starters."
-        : "Sync the league and the empty slots fill with this week's starters.",
+        ? "Link Sleeper, then sync, or the slots stay empty and you cannot start anyone."
+        : "Sync the league or the slots stay empty and you cannot start anyone.",
       chip: weekLabel || "Needs sync",
       chipTone: "readonly",
     };
   }
   if (poorCoverage) {
     return {
-      heading: "Projections aren't ready to call the week.",
-      support: "The board still loads from your roster. Lineup calls wait until coverage improves.",
+      heading: "Cannot trust a swap yet.",
+      support: "The roster still shows. Sit/start calls wait until projections cover the week.",
       chip: weekLabel,
       chipTone: "readonly",
     };
@@ -144,14 +144,14 @@ export function weekHeroCopy({
       heading: decisionCount === 1
         ? "One lineup call on the board."
         : `${decisionCount} lineup calls on the board.`,
-      support: "A swap is flagged only when a bench player meaningfully outprojects the starter.",
+      support: "A flagged bench player outprojects the starter. Sit the wrong one and you leave those points.",
       chip: weekLabel,
       chipTone: "active",
     };
   }
   return {
-    heading: "The board is set.",
-    support: "No high-value swaps this week. Check bye and injury flags on the slots.",
+    heading: "No swap worth making.",
+    support: "Bye and injury still sit people. Check those before lock.",
     chip: weekLabel,
     chipTone: "active",
   };

@@ -9,14 +9,14 @@ import {
 } from "./vibeRankingsPresentation.js";
 
 test("vibe copy names the goal and never says Draft Hub or Submit", () => {
-  assert.match(VIBE_COPY.heading, /startable/i);
+  assert.match(VIBE_COPY.heading, /start or sit/i);
   assert.match(VIBE_COPY.support, /aura/i);
   assert.match(VIBE_COPY.swipeHint, /arrow/i);
-  assert.match(VIBE_COPY.support, /matchup/i);
+  assert.match(VIBE_COPY.support, /week number/i);
   assert.equal(VIBE_COPY.railTitle, "Vibe ranking");
   assert.equal(VIBE_COPY.slateTitle, "VA-projections");
   assert.match(VIBE_COPY.slateHint, /vibe-adjusted/i);
-  assert.match(VIBE_COPY.support, /one read per player today/i);
+  assert.match(VIBE_COPY.heading, /once today/i);
   assert.match(VIBE_COPY.vsModelLine("Addison", "Metcalf"), /your vibe starts Addison/i);
   assert.match(VIBE_COPY.vsModelLine("Addison", "Metcalf"), /the board starts Metcalf/i);
   assert.doesNotMatch(VIBE_COPY.vsModelLine("Addison", "Metcalf"), /\bover\b/i);
@@ -29,7 +29,7 @@ test("empty and done heroes keep consequence copy", () => {
   const empty = heroCopy({ empty: true });
   assert.match(empty.heading, /roster/i);
   const done = heroCopy({ done: true });
-  assert.match(done.heading, /Aura/i);
+  assert.match(done.heading, /reads are in/i);
   assert.match(done.support, /This Week/);
 });
 

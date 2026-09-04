@@ -29,6 +29,7 @@ import {
   POS_COLORS,
   featureAwards,
   formatSpendValue,
+  INSIGHTS_COPY,
   insightsHeroStatus,
   metricValue,
   pickDiscussablePosition,
@@ -988,9 +989,9 @@ export default function LeagueInsights({
       {activeTab === "cap" && (
         <HubPage className="hub-spend-page hub-experience-page hub-insights-page">
           <HubExperienceHero
-            eyebrow="Insights"
-            heading="Who spent the cap."
-            support="Positional spend, outliers, and who is out of room. Awards first — charts wait until you want them."
+            eyebrow={INSIGHTS_COPY.spend.eyebrow}
+            heading={INSIGHTS_COPY.spend.heading}
+            support={INSIGHTS_COPY.spend.support}
             chip={capHistoryLabel}
           >
             {insightsHeroStatus(spendAwardSplit.featured) ? (
@@ -1229,9 +1230,9 @@ export default function LeagueInsights({
       {activeTab === "scoring" && (
         <HubPage className="hub-insights-scoring hub-spend-page hub-experience-page hub-insights-page">
           <HubExperienceHero
-            eyebrow="Scoring"
-            heading="Who’s actually scoring."
-            support="Superlatives and the points race first. The weekly chart stays out of the way until you open it."
+            eyebrow={INSIGHTS_COPY.scoring.eyebrow}
+            heading={INSIGHTS_COPY.scoring.heading}
+            support={INSIGHTS_COPY.scoring.support}
             chip={data?.scoring?.available ? scoringSeasonLabel : "Sleeper"}
           >
             {insightsHeroStatus(scoringAwardSplit.featured) ? (
@@ -1554,9 +1555,9 @@ export default function LeagueInsights({
       {activeTab === "ownership" && (
         <HubPage className="hub-player-history-page hub-experience-page hub-insights-page">
           <HubExperienceHero
-            eyebrow="History"
-            heading="Follow a player through the league."
-            support="Contracts, owners, and the timeline that started the argument."
+            eyebrow={INSIGHTS_COPY.history.eyebrow}
+            heading={INSIGHTS_COPY.history.heading}
+            support={INSIGHTS_COPY.history.support}
             chip={historyLabel}
           />
           <header className="hub-section-head hub-section-head--row">

@@ -36,3 +36,4 @@ Keep under 30 data rows. Promote `always` / `never` into `docs/PRODUCT.md` or a 
 | usually | fantasy-ui | League chat uses the locker-rail layout: full thread on Home, flush edge chip elsewhere. |
 | usually | fantasy-ui | Strategy face-off is full-page cards. Site-vs-mine rankings open from View my rankings. |
 | usually | projections | When GBM weekly is missing for K or DEF, fill the week from the rank-curve per-game number. |
+| usually | fantasy-ui | Page copy states the decision and the cost of getting it wrong; no slogan that could sit on another app. |

@@ -22,6 +22,16 @@ export const MOCK_DRAFT_PRESETS = [
 
 export const MOCK_TEAM_SIZES = [8, 10, 12];
 
+export function mockDraftHeroCopy() {
+  return {
+    kicker: "Mock draft",
+    heading: "Practice a draft that cannot touch keepers.",
+    support: "Pick the format, sit, invite friends, or run it against bots. This room does not write your real contracts.",
+    noteTitle: "Practice stays off the books.",
+    noteBody: "Friends can sit in without a ScoreSense account. Real keepers stay put.",
+  };
+}
+
 export function botCountForTeams(teamCount) {
   const n = Math.max(2, Math.min(Number(teamCount) || 12, 12));
   return n - 1;

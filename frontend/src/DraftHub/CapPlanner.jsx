@@ -14,6 +14,7 @@ import {
   HubToolbar,
   rosterAlertVariant,
 } from "./HubUILayout";
+import { capHeroCopy } from "./capPlannerPresentation";
 import { buildCapStatusCard } from "./capStatusCard";
 import { fmtSal, leagueStepUp, scheduleText } from "./rosterFormat";
 import {
@@ -169,9 +170,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
     return (
       <HubPage className="hub-experience-page">
         <HubExperienceHero
-          eyebrow="Cap"
-          heading="See the next three seasons before you spend."
-          support="Add contracts on My Team or Roster management to plan cuts, extensions, and leftover cap."
+          {...capHeroCopy({ empty: true })}
           chip="No cap data"
           chipTone="readonly"
         />
@@ -196,14 +195,8 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
 
   return (
     <HubPage className="hub-experience-page">
-      <HubExperienceHero
-        eyebrow="Cap"
-        heading="See the next three seasons before you spend."
-        support={
-          preDraft
-            ? "Final-year deals leave before draft unless extended. Use this board to keep leftover cap honest."
-            : "Committed salary, dead cap, and leftover room for the seasons that still matter."
-        }
+        <HubExperienceHero
+        {...capHeroCopy({ preDraft: Boolean(preDraft) })}
         chip={statusCard?.label || "Cap plan"}
         chipTone={statusCard?.tone === "over" ? "readonly" : "active"}
       >

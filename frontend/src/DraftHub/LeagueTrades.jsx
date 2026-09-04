@@ -12,6 +12,7 @@ import { clearTradeSeed, readTradeSeed } from "./tradeSeed";
 import { formatStatDelta, projectTeamTradeStats } from "./tradeProjection";
 import { formatIdeaCapNet, ideaCapImpact, whyThisHelpsText } from "./tradeIdeaHelpers";
 import { playerTradeableInWindow, tradesWindowBanner } from "./acquisitionWindow";
+import { TRADES_COPY } from "./leagueTradesPresentation";
 
 const MAX_PARTIES = 4;
 
@@ -973,8 +974,8 @@ export default function LeagueTrades({ leagueId, hubContext }) {
   return (
     <HubPage>
       <HubTabIntro
-        title="Trades"
-        purpose="Build a trade—we'll calculate cap impact and track approvals."
+        title={TRADES_COPY.title}
+        purpose={TRADES_COPY.purpose}
       />
       {tradeBanner ? (
         <HubAlert variant={tradeBanner.variant}>

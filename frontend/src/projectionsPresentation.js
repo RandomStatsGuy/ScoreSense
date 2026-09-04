@@ -28,9 +28,9 @@ export const SEASON_BOARD_FILTERS = [
 
 export const BOARD_COPY = {
   weeklyBoard: "The board",
-  weeklySupport: "One dense surface for ranking, matchup, range, and comparison.",
+  weeklySupport: "Rank the week, then open a player. Sit the wrong name and you leave the P50 on the bench.",
   seasonBoard: "The season board",
-  seasonSupport: "Scan the full pool, then open a player for floor, ceiling, and method.",
+  seasonSupport: "Season P50 with floor and ceiling. Draft the wrong tier and you pay for a name the board already priced.",
   searchBoard: "Search the board",
   searchInspector: "Find a player",
   whyNow: "Why now",

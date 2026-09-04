@@ -13,6 +13,7 @@ import {
   DEFAULT_RULES,
   mergeLeagueRules,
   ROSTER_LIMIT_KEYS,
+  RULES_COPY,
   rulesSummary,
   validateLeagueSettings,
 } from "./rulesPresentation";
@@ -198,12 +199,9 @@ export default function RulesWizard({
     <HubPage className="hub-rules-center">
       <header className="hub-rules-hero">
         <div>
-          <span className="hub-rules-eyebrow">League governance</span>
-          <h2>Rules everyone can plan around.</h2>
-          <p>
-            Set the structure once, see how the policies work together, and give every manager
-            a clear source of truth.
-          </p>
+          <span className="hub-rules-eyebrow">{RULES_COPY.eyebrow}</span>
+          <h2>{RULES_COPY.heading}</h2>
+          <p>{RULES_COPY.support}</p>
         </div>
         <span className={`hub-rules-access${readOnlyRules ? " is-readonly" : ""}`}>
           {readOnlyRules ? "Commissioner managed" : "You can edit"}

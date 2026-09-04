@@ -543,8 +543,8 @@ export default function ValueSheetTable({
           compact={compact}
           purpose={purpose || (compact ? null : (
             isAvailableView
-              ? "Players not under contract. Bid or add when the window is open; before the draft, pickups go through the live room."
-              : "Star players you want, compare suggested bids, and see who is already rostered."
+              ? "Players not under contract. Bid or add when the window is open. Before the draft, pickups go through the live room or you miss them."
+              : "Star names you want first. Compare suggested bids so you do not overpay a rostered player."
           ))}
           audience={audience}
           learnMore={(showCostDelta || activeRisk || onWatchPlayer) && !compact && !mobileLayout ? (
