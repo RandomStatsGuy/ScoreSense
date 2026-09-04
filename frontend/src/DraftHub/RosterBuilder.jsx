@@ -6,6 +6,7 @@ import MobileDataList, { MobileStat } from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
 import MobileBottomSheet from "../layout/MobileBottomSheet";
 import HubTabIntro from "./HubTabIntro";
+import { MY_TEAM_COPY } from "./rosterPresentation";
 import { HubFilterChip, HubFilterScroll, HubPage, HubTableCard } from "./HubUILayout";
 import {
   CONTRACT_TYPE_OPTIONS,
@@ -721,21 +722,21 @@ export default function RosterBuilder({
   const rosterPage = (
     <HubPage className="hub-roster-builder">
       <HubTabIntro
-        title="My team"
+        title={MY_TEAM_COPY.title}
         compact
         learnMore={
           contractsReadOnly
             ? (
               <p>
                 {isLeague
-                  ? "Salary, years, and type are edited in Roster management → Contracts only. Eligible final-year contracts can still queue one extension here."
-                  : "Read-only — ask commish to edit."}
+                  ? MY_TEAM_COPY.learnMoreReadonlyLeague
+                  : MY_TEAM_COPY.learnMoreReadonlySolo}
                 {officeLink ? <> {officeLink}</> : null}
               </p>
             )
             : (
               <p>
-                Personal roster decisions live here. Edit look sets a wide banner on this page and a photo that travels with your team.
+                {MY_TEAM_COPY.learnMoreEdit}
               </p>
             )
         }

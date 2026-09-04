@@ -16,6 +16,7 @@ import {
   draftInviteLabel,
   draftInviteRailHint,
   draftInviteWhatHappens,
+  draftLobbyHeroHeading,
   draftLobbyHeroSupport,
   draftLobbyRailHeading,
   draftLobbyReadiness,
@@ -262,7 +263,7 @@ export default function DraftLobby({
     await saveSchedule(false, { wall, timezone });
   };
 
-  const heading = testMode ? "The practice room is open." : "Draft night starts here.";
+  const heading = draftLobbyHeroHeading({ testMode });
   const support = draftLobbyHeroSupport({ testMode });
 
   return (

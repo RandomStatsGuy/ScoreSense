@@ -10,11 +10,11 @@ export const MOBILE_CHROME_COPY = {
   projectionsSheet: "Projections",
   toolsSheet: "Tools",
   fantasySheet: "Go to",
-  weeklyHint: "This week's floor–ceiling",
-  seasonHint: "Season outlook and rest-of-season",
-  dfsHint: "Slates, stacks, and exports",
-  mockHint: "Practice vs bots",
-  bestBallHint: "Season ranks vs ADP",
+  weeklyHint: "Who to start this week",
+  seasonHint: "Who to draft, or rest of season",
+  dfsHint: "Build a lineup under the cap",
+  mockHint: "Practice without touching keepers",
+  bestBallHint: "Who the model wants earlier than ADP",
 };
 
 export function chooseDestinationLabel(title) {

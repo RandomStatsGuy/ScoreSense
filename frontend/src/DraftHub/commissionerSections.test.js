@@ -12,13 +12,13 @@ import {
 
 test("commissionerIntro marks admin boundary for staff", () => {
   const staff = commissionerIntro(true);
-  assert.match(staff.purpose, /League-wide contracts/i);
+  assert.match(staff.purpose, /wrong cut/i);
   assert.equal(staff.title, "Roster management");
 });
 
 test("commissionerIntro keeps the member framing read-only", () => {
   const member = commissionerIntro(false);
-  assert.match(member.purpose, /stay with commissioners/i);
+  assert.match(member.purpose, /Commissioner managed/i);
 });
 
 test("sheetsGuideCopy keeps caveat out of default hint", () => {

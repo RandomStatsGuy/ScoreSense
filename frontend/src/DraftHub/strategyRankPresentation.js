@@ -4,10 +4,10 @@ import { scoringLabel } from "./strategyRank.js";
 
 export const STRATEGY_RANK_COPY = Object.freeze({
   eyebrow: "Strategy",
-  heading: "Put them in the order you will take them.",
-  support: "Site board is this league's context. Pick between two close names. Your order can fill the draft queue.",
-  rankingsHeading: "Which board hits the clock?",
-  rankingsSupport: "Mine writes the first 40 into the draft queue. Site keeps the model order.",
+  heading: "Take the name you want first.",
+  support: "Same position only. The loser waits. Your order can fill the draft queue so you do not nominate the other guy.",
+  rankingsHeading: "Which board nominates first?",
+  rankingsSupport: "Mine writes the first 40 into the draft queue. Site keeps the model order. The wrong board wastes a nomination.",
   viewRankings: "View my rankings",
   backToCalls: "Back to close calls",
   useMine: "Use my board in Draft",

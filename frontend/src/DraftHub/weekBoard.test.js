@@ -105,8 +105,8 @@ test("decisionForStarter attaches the swap to the challenged slot", () => {
 
 test("empty week hero and rail name the missing board, not zeros", () => {
   const hero = weekHeroCopy({ emptyRoster: true, weekLabel: "Week 1" });
-  assert.equal(hero.heading, "Set the board.");
-  assert.match(hero.support, /empty slots fill/i);
+  assert.equal(hero.heading, "Need a roster to set a lineup.");
+  assert.match(hero.support, /cannot start anyone/i);
   assert.equal(hero.chipTone, "readonly");
 
   const items = weekRailItems({ emptyRoster: true });
@@ -120,12 +120,12 @@ test("populated week hero reports lineup calls", () => {
   const hero = weekHeroCopy({ decisionCount: 2, weekLabel: "Week 1" });
   assert.equal(hero.heading, "2 lineup calls on the board.");
   const clean = weekHeroCopy({ decisionCount: 0, weekLabel: "Week 1" });
-  assert.equal(clean.heading, "The board is set.");
+  assert.equal(clean.heading, "No swap worth making.");
 });
 
 test("unlinked with a roster still treats the board as live", () => {
   const hero = weekHeroCopy({ emptyRoster: false, unlinked: true, weekLabel: "Week 1" });
-  assert.equal(hero.heading, "The board is set.");
+  assert.equal(hero.heading, "No swap worth making.");
   const items = weekRailItems({ emptyRoster: false, unlinked: true, counts: { decisions: 0 } });
   assert.equal(items[0].label, "Decisions");
   assert.match(weekRailNote({ emptyRoster: false, unlinked: true }), /hub contracts/i);

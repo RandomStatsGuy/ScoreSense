@@ -11,11 +11,11 @@ export const GAME_CENTER_COPY = {
   duelTitle: "Starter duel",
   duelSupport: "Slot by slot against your opponent.",
   benchTitle: "Bench watch",
-  benchSupport: "What stayed on the bench while the starters decided it.",
+  benchSupport: "Points you left on the bench.",
   leagueTitle: "Around the league",
   leagueSupport: "Every matchup this week.",
-  trophiesTitle: "After the whistle",
-  trophiesSupport: "Reactions and week trophies — winners land in Insights.",
+  trophiesTitle: "Week trophies",
+  trophiesSupport: "High score and low score land in Insights.",
 };
 
 export function gameCenterTeamLabel(team) {

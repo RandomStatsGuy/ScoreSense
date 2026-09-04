@@ -152,14 +152,14 @@ export function dfsHeroCopy({ isDfs = true, siteLabel = "DraftKings Classic" } =
   if (isDfs) {
     return {
       eyebrow: "DFS",
-      heading: "Spend the cap. Keep the upside.",
-      support: `Pick a ${siteLabel} slate, lock the players you want, then let the optimizer fill a valid lineup.`,
+      heading: "Fill a valid lineup under the cap.",
+      support: `Pick a ${siteLabel} slate, lock names you need, then build. Leave salary on the table and you lose to someone who spent it.`,
     };
   }
   return {
     eyebrow: "Lineups",
-    heading: "A startable week, without the spreadsheet.",
-    support: "Best-effort PPR from weekly projections. Lock or skip players, then optimize.",
+    heading: "Build this week's PPR lineup.",
+    support: "Lock or skip names, then optimize. A wasted flex is points you left in the pool.",
   };
 }
 
@@ -417,20 +417,20 @@ export function exposureListCopy({ lineupCount = 0 } = {}) {
 export function launchCopy({ isDfs = true, hasLineup = false, siteLabel = "DraftKings Classic" } = {}) {
   if (hasLineup) {
     return {
-      title: "Here’s the field.",
+      title: "Lineup is built.",
       body: isDfs
-        ? "Salary and projection sit side by side. Swap locks and rebuild if the room changes."
-        : "Projected points by slot. Swap locks and rebuild if your week changes.",
+        ? "Salary and projection sit together. Swap a lock if the news moved."
+        : "Projected points by slot. Swap a lock if your week changed.",
     };
   }
   if (isDfs) {
     return {
-      title: "Fill the nine.",
-      body: `A ${siteLabel} lineup that spends the cap without wasting a slot.`,
+      title: "Nine spots, one cap.",
+      body: `A ${siteLabel} lineup. Go over the cap and it will not submit.`,
     };
   }
   return {
-    title: "Set the week.",
-    body: "A best-effort PPR lineup from this week’s projections.",
+    title: "Set the lineup.",
+    body: "Best-effort PPR from this week's projections.",
   };
 }

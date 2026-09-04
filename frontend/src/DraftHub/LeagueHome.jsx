@@ -13,6 +13,7 @@ import {
   actionLabel,
   formatHomeScore,
   HOME_DECK_COPY,
+  HOME_PAGE_COPY,
   homeDeckStandingRows,
   homeMatchupNote,
   phaseTrackState,
@@ -206,8 +207,8 @@ export default function LeagueHome({
       {error && <div className="error">{error}</div>}
       <header className="hub-home-heading">
         <div>
-          <p className="hub-experience-kicker">League command center</p>
-          <h2>Make the next decision count.</h2>
+          <p className="hub-experience-kicker">{HOME_PAGE_COPY.kicker}</p>
+          <h2>{HOME_PAGE_COPY.heading}</h2>
         </div>
         <div className="hub-home-heading-actions">
           {goSetup ? (
@@ -376,7 +377,7 @@ export default function LeagueHome({
           <header>
             <div>
               <p className="hub-experience-kicker">After that</p>
-              <h3 id="hub-home-supporting-title">Keep the league moving</h3>
+              <h3 id="hub-home-supporting-title">{HOME_PAGE_COPY.supportingTitle}</h3>
             </div>
             <span>{supportingActions.length} more</span>
           </header>

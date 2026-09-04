@@ -189,14 +189,17 @@ Put user-facing strings in `*Presentation.js` (or an existing copy module). Keep
 
 Voice:
 
-- Name the **user goal**, not the system.
-- Explain **consequence**, not implementation.
+- Name the **decision** this page is for, not the system.
+- Name the **cost of getting it wrong**, not a slogan.
 - Short labels. Specific support text.
+- No slogan that could sit on another sports app (“own the week,” “stay ahead,” “smarter way”).
 - No unexplained abbreviations on configuration pages.
 - No vague verbs (“Manage”) when a destination already has a name.
 
 | Prefer | Avoid |
 |--------|--------|
+| Sit the wrong RB and you leave points on the bench | Own the week / stay ahead of the board |
+| Can you afford this bid after the cut? | See the next three seasons before you spend |
 | Maximum extension | Max yrs |
 | Annual salary step-up | Step |
 | Keep rookie salary static | Static rookies |
@@ -205,7 +208,7 @@ Voice:
 | Commissioner managed | You do not have permission |
 | Bid / Add / Locked | “FA lottery” in player-facing buttons |
 
-Hero pattern: eyebrow (`League rules`) + sentence heading (`Rules everyone can plan around.`) + one support line. See `RulesWizard.jsx` and `dfsToolPresentation.js`.
+Hero pattern: eyebrow (`League rules`) + sentence heading that is the job (`What a new contract will cost.`) + one support line that is the consequence. See `RulesWizard.jsx` and `dfsToolPresentation.js`.
 
 ---
 

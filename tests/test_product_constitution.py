@@ -156,6 +156,16 @@ def test_css_type_never_drops_below_text_xs() -> None:
     assert "product-rhythm.css" in main
 
 
+def test_constitution_covers_copy_voice() -> None:
+    product = _read("docs", "PRODUCT.md")
+    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    learned = _read(".cursor", "rules", "learned-rules.mdc")
+    assert "cost of getting it wrong" in product
+    assert "slogan that could sit on another" in product
+    assert "cost of getting it wrong" in core_rule
+    assert "slogan that could sit on another app" in learned
+
+
 def test_constitution_covers_weekly_board_chrome() -> None:
     product = _read("docs", "PRODUCT.md")
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")

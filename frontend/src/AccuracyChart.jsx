@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { ACCURACY_COPY } from "./accuracyPresentation";
 import useMobileLayout from "./useMobileLayout";
 import {
   Bar,
@@ -145,48 +146,39 @@ function TrustHero({ position, summary, upsideSummary, seasonRange }) {
     <div className="trust-hero panel">
       <div className="panel-head">
         <div>
-          <h2>Why trust ScoreSense?</h2>
-          <p className="panel-subtitle">
-            Plain-language proof from past NFL seasons ({seasonRange})
-          </p>
+          <h2>{ACCURACY_COPY.heading}</h2>
+          <p className="panel-subtitle">{ACCURACY_COPY.support(seasonRange)}</p>
         </div>
       </div>
 
-      <p className="trust-hero-lead">
-        ScoreSense is built for fantasy football decisions — who to start, who to target, and where the upside is.
-        You shouldn&apos;t have to take our word for it: we replay past seasons week by week, using only information
-        that would have been available before kickoff, and compare our numbers to simpler guesses.
-      </p>
+      <p className="trust-hero-lead">{ACCURACY_COPY.lead}</p>
 
       <ul className="trust-points">
         <li>
-          <strong>More accurate than a quick guess.</strong> Our typical miss for {posLabel} was about{" "}
-          {miss} fantasy points per week — tighter than blending a player&apos;s season average with their last game
-          ({guessMiss}). We beat that simple guess in {beats} of {total} tested seasons.
+          <strong>{ACCURACY_COPY.moreAccurate}</strong>{" "}
+          {ACCURACY_COPY.moreAccurateBody(posLabel, miss, guessMiss, beats, total)}
         </li>
         {boomPct && (
           <li>
-            <strong>Better at flagging big weeks.</strong> When a player pops off for a huge fantasy score, our
-            high-end projection had them on the radar beforehand about {boomPct} of the time.
+            <strong>{ACCURACY_COPY.boomTitle}</strong> {ACCURACY_COPY.boomBody(boomPct)}
           </li>
         )}
         <li>
-          <strong>No peeking at the future.</strong> Each projection uses only prior weeks in that season — the same
-          way you&apos;d use the app on Sunday morning.
+          <strong>{ACCURACY_COPY.noPeek}</strong> {ACCURACY_COPY.noPeekBody}
         </li>
       </ul>
 
       <div className="accuracy-hero-grid trust-stats">
-        <HeroStat label="Typical weekly miss" value={miss} sub="Closer to actual = better" accent />
-        <HeroStat label="Beat the simple guess" value={`${beats} / ${total}`} sub="Seasons we were closer" />
+        <HeroStat label={ACCURACY_COPY.missLabel} value={miss} sub={ACCURACY_COPY.missSub} accent />
+        <HeroStat label={ACCURACY_COPY.beatLabel} value={`${beats} / ${total}`} sub={ACCURACY_COPY.beatSub} />
         {boomPct && (
-          <HeroStat label="Big games flagged early" value={boomPct} sub="Before the breakout happened" />
+          <HeroStat label={ACCURACY_COPY.boomLabel} value={boomPct} sub={ACCURACY_COPY.boomSub} />
         )}
       </div>
 
       {total > 0 && beats === total && (
         <p className="accuracy-verdict-inline" role="status">
-          ScoreSense beat the simple baseline every season we tested ({total}).
+          {ACCURACY_COPY.allSeasons(total)}
         </p>
       )}
     </div>
@@ -205,8 +197,8 @@ function AccuracyHero({ position, summary, upsideSummary, seasonRange, report })
     <div className="accuracy-hero panel">
       <div className="panel-head">
         <div>
-          <h2>Backtest results</h2>
-          <p className="panel-subtitle">{seasonRange} · pre-kickoff weekly projections</p>
+          <h2>{ACCURACY_COPY.resultsHeading}</h2>
+          <p className="panel-subtitle">{ACCURACY_COPY.resultsSupport(seasonRange)}</p>
         </div>
       </div>
 

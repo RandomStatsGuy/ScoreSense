@@ -12,6 +12,7 @@ import ContractHistoryLink from "./ContractHistoryLink";
 import TeamIdentityMark from "./TeamIdentityMark";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 import { hubTeamLabel, hubTeamParts } from "./hubTeamLabel";
+import { ROSTERS_COPY } from "./leagueRostersPresentation";
 
 function gradeLabel(grade) {
   if (grade === "good") return "Good value";
@@ -183,9 +184,9 @@ export default function LeagueRostersBrowser({
   return (
     <HubPage className="hub-experience-page hub-roster-browser-page">
       <HubExperienceHero
-        eyebrow="Fantasy"
-        heading="League rosters"
-        support="Browse every manager’s contracts, spot good and bad deals, and start a trade."
+        eyebrow={ROSTERS_COPY.eyebrow}
+        heading={ROSTERS_COPY.heading}
+        support={ROSTERS_COPY.support}
         chip={overview?.teams?.length ? `${overview.teams.length} managers` : undefined}
       />
       {error && <div className="error">{error}</div>}

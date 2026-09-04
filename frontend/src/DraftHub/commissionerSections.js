@@ -16,13 +16,13 @@ export function commissionerIntro(isCommissioner) {
   if (isCommissioner) {
     return {
       title: "Roster management",
-      purpose: "League-wide contracts, salary sheets, members, and data access in one operational workspace.",
+      purpose: "Add or cut contracts, edit sheets, and seat managers. A wrong cut here hits every team's cap.",
       audience: "Commissioners and co-commissioners",
     };
   }
   return {
     title: "Roster management",
-    purpose: "League-wide roster operations stay with commissioners.",
+    purpose: "Commissioner managed. Members cannot edit contracts or seats here.",
     audience: null,
   };
 }

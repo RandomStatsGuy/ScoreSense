@@ -60,11 +60,11 @@ test("filterObjectives hides value unless the site is DFS", () => {
 test("dfsHeroCopy names the user goal instead of the internal tool", () => {
   const dfs = dfsHeroCopy({ isDfs: true, siteLabel: "FanDuel Classic" });
   assert.equal(dfs.eyebrow, "DFS");
-  assert.match(dfs.heading, /Spend the cap/i);
+  assert.match(dfs.heading, /under the cap/i);
   assert.match(dfs.support, /FanDuel Classic/);
   const seasonal = dfsHeroCopy({ isDfs: false });
   assert.equal(seasonal.eyebrow, "Lineups");
-  assert.match(seasonal.heading, /startable week/i);
+  assert.match(seasonal.heading, /this week's PPR lineup/i);
 });
 
 test("dfsHeroNote and status chip stay calm about slate state", () => {
@@ -136,8 +136,8 @@ test("slate and empty-state copy explain what happens next", () => {
   assert.match(emptyLineupCopy({ isDfs: true }), /under the cap/);
   assert.equal(optimizeButtonLabel({ lineupCount: 5 }), "Build 5 lineups");
   assert.equal(optimizeButtonLabel({ optimizing: true }), "Optimizing…");
-  assert.match(launchCopy({ isDfs: true, hasLineup: false }).title, /Fill the nine/);
-  assert.match(launchCopy({ hasLineup: true }).title, /field/);
+  assert.match(launchCopy({ isDfs: true, hasLineup: false }).title, /Nine spots/);
+  assert.match(launchCopy({ hasLineup: true }).title, /built/);
 });
 
 test("formatSlateOption and sparse lobby copy explain few DK slates", () => {

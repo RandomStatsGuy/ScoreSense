@@ -1,9 +1,9 @@
 /** User-facing copy and demo slate for Fantasy → Vibes. */
 
 export const VIBE_COPY = Object.freeze({
-  eyebrow: "Vibe rankings",
-  heading: "Who feels startable this week.",
-  support: "One read per player today. The card is the matchup. The arrow opens the bio and latest note. Start energy raises aura. Sit energy lowers it.",
+  eyebrow: "Vibes",
+  heading: "Start or sit each name once today.",
+  support: "Start raises aura and the week number. Sit lowers it. Skip a card and VA-projections stay the site board.",
   chip: "Your read",
   chipDemo: "Demo slate",
   sit: "Sit",
@@ -12,10 +12,10 @@ export const VIBE_COPY = Object.freeze({
   resetDeck: "Reshuffle",
   clearAura: "Clear aura",
   deckProgress: (index, total) => `${Math.min(index + 1, total)} of ${total}`,
-  deckDoneHeading: "Aura is in.",
-  deckDoneSupport: "Your vibes scaled the week. Come back tomorrow to nudge again, or take it to This Week.",
+  deckDoneHeading: "Today's reads are in.",
+  deckDoneSupport: "Aura already moved the week numbers. Come back tomorrow or set the lineup on This Week.",
   emptyHeading: "Need a roster to read.",
-  emptySupport: "Add contracts or sync the league, then come back to swipe the week.",
+  emptySupport: "Add contracts or sync the league. Without a roster there is no start/sit to lock.",
   loading: "Loading this week's roster…",
   error: "Could not load the week. Try again from This Week.",
   keyboardHint: "← sit · → start · Backspace undo",
