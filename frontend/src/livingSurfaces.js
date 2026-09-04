@@ -46,7 +46,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "action-center",
     page: "frontend/src/DraftHub/LeagueHome.jsx",
     copy: "frontend/src/DraftHub/leagueHomePresentation.js",
-    doNot: "Do not wrap Home in HubExperienceLayout. Extend the action deck.",
+    doNot: "Do not wrap Home in HubExperienceLayout. Extend the action deck. House the league thread in the locker rail. Do not show the edge launcher on Home. Do not add a Chat destination.",
   }),
   "hub.value": S({
     label: "Strategy",
@@ -146,7 +146,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "office",
     page: "frontend/src/DraftHub/LeagueOffice.jsx",
     also: ["frontend/src/DraftHub/hubOfficeTabs.js"],
-    doNot: "Chat is FantasyChatDock: a viewport-fixed edge launcher that opens a centered conversation. Not an office pane. Do not add a Chat tab.",
+    doNot: "Chat is FantasyChatDock plus the Home thread. Not an office pane. Do not add a Chat tab.",
   }),
   "hub.office.current": S({
     label: "Contracts",
@@ -326,6 +326,10 @@ export const SURFACE_ALIASES = Object.freeze({
   "fantasy home": "hub.home",
   "action center": "hub.home",
   "league home": "hub.home",
+  "league chat button": "hub.home",
+  "move the league chat": "hub.home",
+  "league chat": "hub.home",
+  "chat bubble": "hub.home",
   "value sheet": "hub.value",
   strategy: "hub.value",
   "free agents": "hub.available",

@@ -4,6 +4,25 @@ Static HTML options. Not product code. Agents: `.cursor/skills/fast-ui-mock/SKIL
 
 Serve and click: `bash scripts/dev/serve_mockups.sh` → [http://127.0.0.1:5174/](http://127.0.0.1:5174/). Or open [index.html](./index.html).
 
+## League chat (Sep 2026)
+
+Open **[league-chat.html](./league-chat.html)** first. No new Fantasy destination — Home houses the thread.
+
+| File | Shows |
+|------|-------|
+| `league-chat.html` | Chooser: stuck-today vs Home house vs drag-to-park. |
+| `league-chat-a.html` | **A · Corner card.** Home deck card is the archive. Chip snaps to four corners. Overlay stays centered. |
+| `league-chat-b.html` | **B · Locker rail.** Home right rail is the live table. Elsewhere a flush chip on the board opens a side drawer. |
+| `league-chat-c.html` | **C · Table talk.** Home shout strip. Bubble drags anywhere and magnets to an edge. Bottom table with player chips. |
+
+Recommendation in the chooser: ship C, keep B’s edge-park, use A’s card if the strip is too thin.
+
+### Decisions to make (league chat)
+
+- [ ] House + open pattern: A / B / C / hybrid?
+- [ ] Launcher: corner snap, edge tab, or free magnetic drag?
+- [ ] Player chips in messages jump to This Week / Free agents?
+
 Copy [`_starter.html`](./_starter.html) for a new A/B pass. Do not screenshot the mock pass.
 
 ## Inventory (Aug–Sep 2026)

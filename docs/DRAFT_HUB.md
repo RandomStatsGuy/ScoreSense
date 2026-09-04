@@ -43,7 +43,7 @@ Real-world cases → Contract type / Years left / Cap Planner badges: [CONTRACT_
 Staff-only. UI label is **Roster management**, not Office.
 
 - Panes: **Contracts**, **Salary sheets**, **Members**, **Access & imports** (`hubOfficeTabs.js`).
-- **Chat** is `FantasyChatDock` on shared Fantasy pages: viewport-fixed edge launcher, centered conversation when open (league channel for members; staff channel for primary + co-commissioners). Not a Roster management tab.
+- **Chat** lives on Home as a locker rail. Other Fantasy pages use `FantasyChatDock`: flush edge launcher, side drawer when open (league channel for members; staff channel for primary + co-commissioners). Not a Roster management tab.
 - **Contracts**: live multi-team contract edit (same store as My team / Cap).
 - **Salary sheets**: season-gated (prefer Sleeper week-1, else pre-draft rosters, else Excel; $ seeded from prior year). Commissioner **Build pre-draft sheet** (`POST .../build-pre-draft?season=Y`) before the draft; **Build week-1 sheet** (`POST .../build-week1?season=Y`) once week-1 matchups exist. **FA lottery** = post-draft FA win (real $); **FA contract** = always $1 and expires before the next draft (skipped as keepers on pre-draft seed). Contract-history row audit under Advanced.
 - **Members**: claim vs Sleeper link status, add/remove franchise (pre-draft only), invites with optional co-commissioner, promote/demote co-commish (primary only). Franchise resize: `POST/DELETE /api/hub/league/{id}/franchises`. See [LEAGUE_RESIZE.md](./LEAGUE_RESIZE.md).

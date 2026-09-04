@@ -25,6 +25,7 @@ import VibeRankings from "./VibeRankings";
 import LeagueHome from "./LeagueHome";
 import LeagueCreateJoinDialog from "./LeagueCreateJoinDialog";
 import FantasyChatDock from "./FantasyChatDock";
+import { hideFantasyChatDock } from "./fantasyChatPresentation";
 import { defaultInsightTab, isInsightTabAllowed } from "./hubInsightsTabs";
 import { defaultOfficeTab, isOfficeTabAllowed } from "./hubOfficeTabs";
 import {
@@ -908,7 +909,10 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         <FantasyChatDock
           leagueId={leagueId || effectiveCtx?.league_id || ""}
           hubContext={effectiveCtx}
-          hidden={!active || subView === "room" || createLeagueOpen}
+          hidden={hideFantasyChatDock({
+            hidden: !active || subView === "room" || createLeagueOpen,
+            house: subView === "home",
+          })}
         />
       )}
       {!demoMode && (
