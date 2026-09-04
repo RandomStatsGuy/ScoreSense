@@ -5,7 +5,7 @@ description: Write 2-3 static HTML design options, then stop for a pick. Use whe
 
 # Fast UI mock
 
-Triggered by `.cursor/rules/living-surfaces.mdc` when the job is a **redesign or first design** and there is no picked option.
+Triggered by `.cursor/rules/scoresense-core.mdc` (Matching checkpoint) when the job is a **redesign or first design** and there is no picked option.
 
 This pass is for **options**. It is not documentation and not a ship.
 
@@ -30,7 +30,7 @@ This pass is for **options**. It is not documentation and not a ship.
 3. Copy the starter into `docs/mockups/{slug}-a.html` and `{slug}-b.html`. Add `-c` only when the third fork is a real layout, not decoration.
 4. Keep mock chrome (header, subnav, hero). Tokens from `mockup-shared.css` only. Each option must change a decision or a layout beat.
 5. Add a chooser row on `docs/mockups/index.html` (and a `{slug}.html` chooser if A/B/C need a sentence each).
-6. Start `bash scripts/dev/serve_mockups.sh`. Give `http://127.0.0.1:5174/{slug}.html`.
+6. Start `bash scripts/dev/serve_mockups.sh`. Local: give `http://127.0.0.1:5174/{slug}.html`. Cloud: give the `docs/mockups/{slug}-*.html` paths on the branch — a web viewer cannot open `127.0.0.1` — and still no screenshots.
 7. **Stop.** One line per option. Wait for the pick.
 
 ## After they pick

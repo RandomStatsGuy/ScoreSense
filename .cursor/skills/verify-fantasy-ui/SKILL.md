@@ -26,18 +26,28 @@ Follow `.cursor/skills/match-living-surface/SKILL.md`. Lead with **Matching:** `
 | `hub.trades` | `/hub/trades` |
 | `hub.rules` | `/hub/rules` |
 | `hub.office` | `/hub/office/current` |
+| `hub.office.historic` | `/hub/office/historic` |
+| `hub.office.members` | `/hub/office/members` |
+| `hub.office.access` | `/hub/office/access` |
 | `hub.insights` | `/hub/insights` |
+| `hub.setup` | `/hub/setup` |
 | `tools.dfs` | `/tools/dfs` |
 | `tools.mock-draft` | `/tools/mock-draft` |
 | `tools.best-ball` | `/tools/best-ball` |
 | `projections.weekly` | `/projections/weekly` |
 | `projections.season` | `/projections/season` |
+| `account.model` | `/model` |
+| `account.admin` | `/admin` |
+| `account.account` | `/account` |
+| `account.report` | `/report` |
+| `account.login` | `/login` |
+| `account.register` | `/register` |
 
 ## 2. App up
 
 API `http://127.0.0.1:8000`, Vite `http://127.0.0.1:5173` (proxies `/api`). If neither is running, follow `.cursor/skills/start-local-app/SKILL.md`.
 
-Need real rosters / cap / trades? `.cursor/skills/mirror-prod-league/SKILL.md` (room `0BBESQ`).
+Need real rosters / cap / trades? `.cursor/skills/mirror-prod-league/SKILL.md` (room `0BBESQ`). Confirm the open league is that snapshot room (My Auction), not a leftover sandbox.
 
 ## 3. Click the change
 

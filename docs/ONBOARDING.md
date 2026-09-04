@@ -94,6 +94,10 @@ See `.env.example` and `deploy/env.production.example`:
 - `FRONTEND_URL` (must match public app URL for email links)
 - `JIRA_EMAIL`, `JIRA_API_TOKEN` (optional — Account → Report a bug files a SCORE Bug; without them the form says the board is closed)
 
+## Report a bug
+
+`/report` is an account-menu side option, not a product area. Signed-in reports become SCORE Jira Bugs with labels `user-reported` and `pickup`. Board access and pickup JQL are below.
+
 ## Outside collaborators (GitHub + Jira)
 
 Give a pickup person **just enough** to take `user-reported` tickets. Do not share the VPS, `.env`, or the Jira API token the app uses.
