@@ -57,7 +57,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/strategyRank.js",
       "frontend/src/styles/strategy-board.css",
     ],
-    doNot: "Do not add HubExperience hero chrome. Face-off is the Strategy page (full-page cards). View my rankings opens site vs mine. Not a leftover-cap spreadsheet and not a Vibes clone.",
+    doNot: "Do not add HubExperience hero chrome. Face-off is the Strategy page (full-page cards). Pairs are the same position only. View my rankings opens site vs mine. Not a leftover-cap spreadsheet and not a Vibes clone.",
   }),
   "hub.available": S({
     label: "Free agents",

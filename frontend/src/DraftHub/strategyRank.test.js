@@ -94,12 +94,20 @@ test("pick is a no-op when the winner is already above", () => {
   assert.deepEqual(stayed.order, order);
 });
 
-test("all-filter pairs same position or FLEX, not QB versus RB", () => {
+test("face-off pairs the same position only", () => {
   const qb = { ...chase, player_id: "q", player: "Lamar Jackson", position: "QB", fair_value: 34, season_p50: 390 };
-  const board = buildSiteBoard([qb, jeanty, bijan], { draftType: "auction" });
-  const pair = nextPair(board, { ctx: { draftType: "auction" }, posFilter: "ALL" });
-  assert.ok(pair);
-  assert.deepEqual([pair.a.position, pair.b.position].sort(), ["RB", "RB"]);
+  const board = buildSiteBoard([qb, jeanty, bijan, chase], { draftType: "auction" });
+  const all = nextPair(board, { ctx: { draftType: "auction" }, posFilter: "ALL" });
+  assert.ok(all);
+  assert.equal(all.a.position, all.b.position);
+  assert.deepEqual([all.a.player_id, all.b.player_id].sort(), ["b", "j"]);
+  const flex = nextPair(board, { ctx: { draftType: "auction" }, posFilter: "FLEX" });
+  assert.ok(flex);
+  assert.equal(flex.a.position, flex.b.position);
+  const wrOnly = { ...chase, player_id: "w2", player: "Puka Nacua", fair_value: 36, season_p50: 250 };
+  const wrBoard = buildSiteBoard([chase, wrOnly, jeanty], { draftType: "auction" });
+  const wrs = nextPair(wrBoard, { ctx: { draftType: "auction" }, posFilter: "ALL" });
+  assert.deepEqual([wrs.a.position, wrs.b.position], ["WR", "WR"]);
 });
 
 test("next pair prefers personal-board neighbors inside the similarity band", () => {

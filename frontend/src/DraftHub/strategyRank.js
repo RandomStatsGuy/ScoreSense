@@ -7,6 +7,7 @@
  *
  * Not Vibes: no aura, no weekly P50 scale, no one-swipe-per-day lock.
  * Not a second valuation: suggested bid stays model fair_value.
+ * Face-off pairs are the same position only.
  */
 
 export const BOARD_SIZE = 80;
@@ -137,21 +138,18 @@ export function pairKey(aId, bId) {
   return [String(aId), String(bId)].sort().join(":");
 }
 
-function samePosOrFlex(a, b, posFilter) {
+function samePosition(a, b, posFilter) {
   const pa = posOf(a);
   const pb = posOf(b);
-  if (posFilter === "FLEX") {
-    return FLEX_ELIGIBLE.includes(pa) && FLEX_ELIGIBLE.includes(pb);
-  }
-  if (posFilter && posFilter !== "ALL") {
-    return pa === posFilter && pb === posFilter;
-  }
-  return pa === pb || (FLEX_ELIGIBLE.includes(pa) && FLEX_ELIGIBLE.includes(pb));
+  if (!pa || pa !== pb) return false;
+  if (posFilter === "FLEX") return FLEX_ELIGIBLE.includes(pa);
+  if (posFilter && posFilter !== "ALL") return pa === posFilter;
+  return true;
 }
 
 /**
- * Next toss-up: neighbors on the personal board first, then a wider window.
- * Skip pairs already seen (pick, skip, or too close).
+ * Next toss-up: same position, neighbors on the personal board first,
+ * then a wider window. Skip pairs already seen (pick, skip, or too close).
  */
 export function nextPair(board, {
   seenKeys = [],
@@ -165,7 +163,7 @@ export function nextPair(board, {
     for (let i = 0; i < ordered.length - gap; i += 1) {
       const a = ordered[i];
       const b = ordered[i + gap];
-      if (!samePosOrFlex(a, b, posFilter)) continue;
+      if (!samePosition(a, b, posFilter)) continue;
       if (!similarEnough(a, b, ctx)) continue;
       const key = pairKey(a.player_id, b.player_id);
       if (seen.has(key)) continue;
