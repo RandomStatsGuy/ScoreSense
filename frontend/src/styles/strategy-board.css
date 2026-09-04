@@ -129,7 +129,7 @@
   z-index: 1;
   object-fit: contain;
   object-position: bottom center;
-  transform: scale(1.32);
+  transform: scale(1.18);
   transform-origin: bottom center;
 }
 
@@ -406,7 +406,11 @@
 
   .hub-strategy-photo--hero {
     aspect-ratio: 4 / 5;
-    max-height: 16.5rem;
+    max-height: 17rem;
+  }
+
+  .hub-strategy-photo-player {
+    transform: none;
   }
 
   .hub-strategy-stats,
