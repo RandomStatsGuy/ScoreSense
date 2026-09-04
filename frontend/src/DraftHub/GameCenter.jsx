@@ -213,9 +213,9 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
 
       {showBanner && (
         <HubAlert
-          variant="info"
+          variant="warn"
           action={onNavigate ? (
-            <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("setup")}>
+            <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("office-access")}>
               {GAME_CENTER_COPY.setupCta}
             </button>
           ) : null}

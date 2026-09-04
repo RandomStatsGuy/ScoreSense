@@ -30,7 +30,7 @@ export const BOARD_COPY = {
   weeklyBoard: "The board",
   weeklySupport: "Rank the week, then open a player. Sit the wrong name and you leave the P50 on the bench.",
   seasonBoard: "The season board",
-  seasonSupport: "Season P50 with floor and ceiling. Draft the wrong tier and you pay for a name the board already priced.",
+  seasonSupport: "Season P50 with floor and ceiling. Draft the wrong tier and your keeper price is set for three years.",
   searchBoard: "Search the board",
   searchInspector: "Find a player",
   whyNow: "Why now",
@@ -61,7 +61,7 @@ export const CONTEXT_COPY = {
   empty: "No locker note this week.",
   projection: "Week vs healthy",
   media: "Older notes",
-  mediaEmpty: "Show notes stay off this week until a snippet is usable.",
+  mediaEmpty: "No usable note this week.",
   loading: "Loading this week's note…",
   cold: "No locker note yet. The week number is unchanged.",
   missing: "No cached note for this player.",
@@ -357,6 +357,7 @@ export function movementBoardFilters(count) {
     { id: "movers", label: "Movers" },
     { id: "risers", label: "Risers" },
     { id: "fallers", label: "Fallers" },
+    { id: "attention", label: "Attention" },
   ];
 }
 
@@ -618,13 +619,13 @@ export function roleOutlook({ rank, position, injuryStatus, rookie } = {}) {
   if (rank != null && rank <= Math.min(3, cutoff)) {
     return {
       title: "Locked-in starter",
-      detail: "Volume and availability assumptions remain visible.",
+      detail: "The model still assumes this role if they play.",
     };
   }
   if (rank != null && rank <= cutoff) {
     return {
       title: "Expected starter",
-      detail: "Volume and availability assumptions remain visible.",
+      detail: "The model still assumes this role if they play.",
     };
   }
   if (rookie) {

@@ -54,6 +54,7 @@ export default function DraftAvailability({
   onSaved,
   onHighlight,
   onLockSlot,
+  onWindowChange,
 }) {
   const [payload, setPayload] = useState(null);
   const [mine, setMine] = useState([]);
@@ -128,6 +129,10 @@ export default function DraftAvailability({
   const best = bestSlotLines(payload?.best || [], 2);
   const bestLabel = best[0]?.label || "";
   const locked = Boolean(lockedSlot?.date);
+
+  useEffect(() => {
+    onWindowChange?.(availWindow.state || "open");
+  }, [availWindow.state, onWindowChange]);
 
   useEffect(() => {
     if (!months.length) return;
@@ -358,7 +363,7 @@ export default function DraftAvailability({
                   </ul>
                 </section>
               ) : (
-                <p className="chart-note">{availabilityEmptyBest()}</p>
+                <p className="chart-note">{availabilityEmptyBest({ state: availWindow.state })}</p>
               )}
             </div>
           </div>

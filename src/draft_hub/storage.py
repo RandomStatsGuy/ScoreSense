@@ -809,7 +809,17 @@ def _rules_from_json(raw: str) -> LeagueRules:
     return LeagueRules.model_validate(json.loads(raw))
 
 
-def get_or_create_workspace(user_sub: str, season: int = 2025) -> dict[str, Any]:
+def current_nfl_season(now: datetime | None = None) -> int:
+    """Calendar year of the regular season. Jan–Feb stay on the previous year."""
+    dt = now or datetime.now(timezone.utc)
+    if dt.month < 3:
+        return dt.year - 1
+    return dt.year
+
+
+def get_or_create_workspace(user_sub: str, season: int | None = None) -> dict[str, Any]:
+    if season is None:
+        season = current_nfl_season()
     with get_conn() as conn:
         row = conn.execute(
             "SELECT * FROM hub_workspace WHERE user_sub = ? ORDER BY updated_at DESC LIMIT 1",
@@ -837,7 +847,7 @@ def get_workspace_by_id(workspace_id: str) -> dict[str, Any] | None:
 
 def update_workspace(user_sub: str, *, name: str | None = None, season: int | None = None,
                      rules: LeagueRules | None = None, preset_id: str | None = None) -> dict[str, Any]:
-    ws = get_or_create_workspace(user_sub, season or 2025)
+    ws = get_or_create_workspace(user_sub, season if season is not None else current_nfl_season())
     if preset_id:
         rules = load_preset(preset_id)
     updates: list[str] = []

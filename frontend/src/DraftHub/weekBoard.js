@@ -1,5 +1,7 @@
 /** Command-board layout for Fantasy → This Week. */
 
+import { leagueBoardEmpty } from "./leagueBoardEmpty.js";
+
 export const DEFAULT_STARTER_COUNTS = {
   QB: 1,
   RB: 2,
@@ -117,17 +119,21 @@ export function slotTone(slot, { decision, wide, injured, onBye } = {}) {
 export function weekHeroCopy({
   emptyRoster = false,
   unlinked = false,
+  draftCompleted = false,
   poorCoverage = false,
   decisionCount = 0,
   weekLabel = "This week",
 } = {}) {
   if (emptyRoster) {
+    const empty = leagueBoardEmpty({
+      emptyRoster: true,
+      sleeperLinked: !unlinked,
+      draftCompleted,
+    });
     return {
-      heading: "Need a roster to set a lineup.",
-      support: unlinked
-        ? "Link Sleeper, then sync, or the slots stay empty and you cannot start anyone."
-        : "Sync the league or the slots stay empty and you cannot start anyone.",
-      chip: weekLabel || "Needs sync",
+      heading: empty?.heading || "Need a roster to set a lineup.",
+      support: empty?.support || "Lock a night so seats fill. Empty seats draft as bots.",
+      chip: weekLabel || "Waiting on roster",
       chipTone: "readonly",
     };
   }
@@ -166,7 +172,7 @@ export function weekRailItems({
   if (emptyRoster) {
     return [
       { id: "board", label: "Board", value: "Empty", tone: "warn" },
-      { id: "decisions", label: "Decisions", value: "Locked" },
+      { id: "decisions", label: "Decisions", value: "Waiting on roster" },
     ];
   }
   return [
@@ -184,13 +190,20 @@ export function weekRailItems({
 export function weekRailNote({
   emptyRoster = false,
   unlinked = false,
+  draftCompleted = false,
   poorCoverage = false,
   headline = "",
   syncedLabel = "",
 } = {}) {
-  if (emptyRoster && unlinked) return "Link Sleeper, then sync to fill the board.";
-  if (emptyRoster) return "Sync from Sleeper to load this week's board.";
-  if (unlinked) return "Sleeper is not linked. The board is using Hub contracts.";
+  if (emptyRoster) {
+    const empty = leagueBoardEmpty({
+      emptyRoster: true,
+      sleeperLinked: !unlinked,
+      draftCompleted,
+    });
+    return empty?.note || "Lock a night on Draft. Empty seats draft as bots.";
+  }
+  if (unlinked) return "Sleeper is not linked. The board is using league contracts.";
   if (poorCoverage) return "Waiting on projection coverage before lineup advice is useful.";
   return headline || syncedLabel || "";
 }
@@ -199,12 +212,18 @@ export function weekPrimaryAction({
   emptyRoster = false,
   unlinked = false,
   canSync = false,
+  draftCompleted = false,
+  sleeperStale = false,
 } = {}) {
-  if (emptyRoster && canSync) {
-    return { kind: "sync", label: "Sync league" };
+  if (emptyRoster) {
+    const empty = leagueBoardEmpty({
+      emptyRoster: true,
+      sleeperLinked: !unlinked,
+      draftCompleted,
+      sleeperStale: sleeperStale || canSync,
+    });
+    return empty?.action || { kind: "room", label: "Lock a night" };
   }
-  if (emptyRoster && unlinked) return { kind: "setup", label: "League settings" };
-  if (emptyRoster) return { kind: "roster", label: "Add contracts" };
   return { kind: "refresh", label: "Refresh projections" };
 }
 

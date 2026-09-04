@@ -13,6 +13,7 @@ import { hubTeamLabel } from "./hubTeamLabel";
 import {
   addFranchiseLabel,
   addFranchiseSupport,
+  canAddSeat,
   franchiseResizeHint,
   franchiseSeatSummary,
   removeFranchiseBlocked,
@@ -176,7 +177,7 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
   };
 
   const removeFranchise = async (teamId, teamName) => {
-    const label = teamName || "this franchise";
+    const label = teamName || "this seat";
     if (!window.confirm(removeFranchiseConfirm(label))) {
       return;
     }
@@ -219,11 +220,16 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
         </span>
       </div>
 
-      <section className="hub-office-franchises" aria-label="Franchises">
+      <section className="hub-office-franchises" aria-label="Seats">
         <header className="hub-section-head">
-          <h3 className="hub-section-title">Franchises</h3>
+          <h3 className="hub-section-title">Seats</h3>
           <p className="hub-section-hint">{franchiseResizeHint()}</p>
         </header>
+        {canAddSeat({
+          configured: resize?.team_count,
+          actual: resize?.actual_teams ?? teams.length,
+        }) ? (
+          <>
         {addPreview?.blocker ? (
           <HubAlert variant="warn">{addPreview.blocker}</HubAlert>
         ) : (
@@ -236,7 +242,7 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
         )}
         <form className="hub-form-row" onSubmit={addFranchise}>
           <label>
-            New franchise
+            New seat
             <input
               type="text"
               value={franchiseName}
@@ -253,6 +259,10 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
             {busy === "add" ? "Adding…" : addFranchiseLabel()}
           </button>
         </form>
+          </>
+        ) : (
+          <p className="chart-note">{franchiseResizeHint()}</p>
+        )}
       </section>
 
       {error && <div className="error">{error}</div>}
@@ -369,7 +379,7 @@ function OfficeAccess({ leagueId, hubContext, workspace, onChanged }) {
         <header className="hub-section-head">
           <h3 className="hub-section-title">Invites</h3>
           <p className="hub-section-hint">
-            Text the invite link from Draft so managers can claim a team. Email still assigns one seat to one address.
+            Assign a named email to one seat. The invite link lives on Draft.
           </p>
         </header>
         <LeagueInvites
@@ -382,7 +392,7 @@ function OfficeAccess({ leagueId, hubContext, workspace, onChanged }) {
       <section className="hub-office-access-section">
         <header className="hub-section-head">
           <h3 className="hub-section-title">Sleeper mapping</h3>
-          <p className="hub-section-hint">Connect hub teams to Sleeper rosters.</p>
+          <p className="hub-section-hint">Connect each seat to a Sleeper roster.</p>
         </header>
         {error && <div className="error">{error}</div>}
         {loading && <p className="chart-note">Loading teams…</p>}

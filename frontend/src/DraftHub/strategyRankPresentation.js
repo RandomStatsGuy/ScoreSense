@@ -25,7 +25,7 @@ export const STRATEGY_RANK_COPY = Object.freeze({
   resetSeen: "Reset close calls",
   emptyBoard: "Need available players to rank. Keepers and rostered names stay off this board.",
   loading: "Loading the site board…",
-  scoringFallback: "Ranks use Hub PPR until Rules names another scoring profile.",
+  scoringFallback: "Ranks use PPR until Rules names another scoring profile.",
   feedSaved: "Draft will nominate from your board first.",
   feedSite: "Draft stays on the site order.",
   feedLocal: "Board is ready for Draft on this device.",
@@ -49,11 +49,9 @@ export const STRATEGY_RANK_COPY = Object.freeze({
 
 export function contextLine(ctx = {}) {
   const scoring = scoringLabel(ctx.scoringProfile);
-  const draft = ctx.draftType === "snake" || ctx.draftType === "linear"
-    ? ctx.draftType
-    : "auction";
-  const teams = Number(ctx.teamCount) || 12;
-  return `${scoring} · ${draft} · ${teams}`;
+  const name = String(ctx.leagueName || "").trim();
+  if (name) return `${name} · ${scoring}`;
+  return scoring;
 }
 
 export function takeLabel(row) {

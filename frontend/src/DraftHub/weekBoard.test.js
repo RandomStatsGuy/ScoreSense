@@ -104,16 +104,20 @@ test("decisionForStarter attaches the swap to the challenged slot", () => {
 });
 
 test("empty week hero and rail name the missing board, not zeros", () => {
-  const hero = weekHeroCopy({ emptyRoster: true, weekLabel: "Week 1" });
+  const hero = weekHeroCopy({ emptyRoster: true, unlinked: true, weekLabel: "Week 1" });
   assert.equal(hero.heading, "Need a roster to set a lineup.");
-  assert.match(hero.support, /cannot start anyone/i);
+  assert.match(hero.support, /Lock a night|Empty seats/i);
   assert.equal(hero.chipTone, "readonly");
 
   const items = weekRailItems({ emptyRoster: true });
-  assert.deepEqual(items.map((i) => i.value), ["Empty", "Locked"]);
-  assert.equal(weekRailNote({ emptyRoster: true }), "Sync from Sleeper to load this week's board.");
-  assert.equal(weekPrimaryAction({ emptyRoster: true, canSync: true }).kind, "sync");
-  assert.equal(weekPrimaryAction({ emptyRoster: true, unlinked: true }).kind, "setup");
+  assert.deepEqual(items.map((i) => i.value), ["Empty", "Waiting on roster"]);
+  assert.match(weekRailNote({ emptyRoster: true, unlinked: true }), /Lock a night|Draft/);
+  assert.equal(weekPrimaryAction({ emptyRoster: true, unlinked: true, draftCompleted: false }).kind, "room");
+  assert.equal(weekPrimaryAction({ emptyRoster: true, unlinked: true, draftCompleted: true }).kind, "office-access");
+  assert.match(
+    weekHeroCopy({ emptyRoster: true, unlinked: false }).support,
+    /Sync league/i,
+  );
 });
 
 test("populated week hero reports lineup calls", () => {
@@ -128,7 +132,7 @@ test("unlinked with a roster still treats the board as live", () => {
   assert.equal(hero.heading, "No swap worth making.");
   const items = weekRailItems({ emptyRoster: false, unlinked: true, counts: { decisions: 0 } });
   assert.equal(items[0].label, "Decisions");
-  assert.match(weekRailNote({ emptyRoster: false, unlinked: true }), /hub contracts/i);
+  assert.match(weekRailNote({ emptyRoster: false, unlinked: true }), /league contracts/i);
   assert.equal(weekPrimaryAction({ emptyRoster: false, unlinked: true }).kind, "refresh");
 });
 

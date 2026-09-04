@@ -57,12 +57,12 @@ export const SECTION_SUBTITLES = {
     "league-rosters": "Every team's contracts",
   },
   tools: {
-    dfs: "Build a lineup under the salary cap",
-    "mock-draft": "Practice a draft without touching keepers",
-    "best-ball": "Who the model wants earlier than ADP",
+    dfs: "",
+    "mock-draft": "",
+    "best-ball": "",
   },
   model: "Where the weekly model misses",
-  admin: "Link accounts to franchises",
+  admin: "Link accounts to seats",
 };
 
 export function resolveSectionLabel(section, { projectionsTab, toolsTab } = {}) {

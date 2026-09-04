@@ -20,7 +20,11 @@ test("Strategy copy is draft-night and names the two pages", () => {
 test("context line and take label stay short", () => {
   assert.equal(
     contextLine({ scoringProfile: "hub_ppr", draftType: "auction", teamCount: 12 }),
-    "Hub PPR · auction · 12",
+    "PPR",
+  );
+  assert.equal(
+    contextLine({ scoringProfile: "hub_ppr", leagueName: "Sunday Cap" }),
+    "Sunday Cap · PPR",
   );
   assert.equal(takeLabel({ player: "Ashton Jeanty" }), "Take Jeanty");
   assert.equal(STRATEGY_RANK_COPY.moved(1), "1 name moved");

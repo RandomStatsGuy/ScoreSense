@@ -11,6 +11,7 @@ export default function HubTabIntro({
   purpose,
   audience,
   learnMore,
+  learnMoreLabel = "Learn more",
   children,
   className = "",
   compact = false,
@@ -34,7 +35,7 @@ export default function HubTabIntro({
       )}
       {learnMore && (
         <details className="hub-tab-intro-learn">
-          <summary>Learn more</summary>
+          <summary>{learnMoreLabel}</summary>
           <div className="hub-tab-intro-learn-body">{learnMore}</div>
         </details>
       )}

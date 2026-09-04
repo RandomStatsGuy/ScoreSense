@@ -85,15 +85,15 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 |-------|-------------|---------|
 | Home | `home` | Phase-aware next actions |
 | Strategy | `value` | Full-page pairwise face-off from a league-context site board, same position only. View my rankings opens site vs mine. Optionally write that order into the draft queue. |
-| Draft | `room` | Idle entry + live room. Email and text invite links open here. Members mark **current and future** draft-night times on one calendar (opens 31 days before the first NFL game, closes the day before). Commissioners lock any shown overlap as draft night. Idle Draft is that calendar plus a compact room strip — do not stack a second date/time card and a Who is in list on the same scroll. |
+| Draft | `room` | Idle entry + live room. Email and text invite links open here. Members mark **current and future** draft-night times on one calendar (opens 31 days before the first NFL game, closes the day before). Commissioners lock any shown overlap as draft night. When the calendar is Closed and no night is locked, the off-calendar lock is the card's primary — do not leave "Mark yours" on a closed board. Start live draft stays secondary until a night is locked or every seat is filled. The seating pill is amber below a full room and teal only at 12/12. Home's "Not scheduled" links here. Setup shows draft-night status only. |
 | This Week | `week` | Lineup decisions; Hub-only leagues set start/sit here |
 | Vibes | `vibes` | Swipe each roster player once a day; front card is the matchup; info arrow opens bio and latest news; lean Vibe ranking rail; VA-projections (vibe-adjusted week, including K and DEF) as the table |
 | Game center | `game` | Your matchup live, league scoreboard, week trophies |
 | My team | `roster` | Personal contracts |
 | Free agents | `available` | Add / bid / locked by calendar |
 | Rosters | `rosters` | League-wide roster reference |
-| Cap | `planner` | Cap and cuts |
-| Trades | `trades` | Propose and accept |
+| Cap | `planner` | Cap leftover after a cut or bid. The move input sits above the fold; hero and At a glance keep the current leftover. |
+| Trades | `trades` | Propose and accept. Experience hero names the cap-bust cost. Rosters franchise headers deep-link here with the partner preselected. Zero partners → Invite managers on Members. |
 | Rules | `rules` | League model (read for members, edit for staff) |
 | Roster management | `office` | Staff-only contracts, sheets, members, access |
 | Insights | `insights` | League history and awards |
@@ -108,9 +108,13 @@ Source of truth: `frontend/src/DraftHub/hubOfficeTabs.js`.
 
 Contracts · Salary sheets · Members · Access & imports.
 
-Members is where staff add or remove a franchise before the next auction. Existing contracts stay on their clubs; the new seat starts empty with a full cap.
+Members is where staff expand or shrink the seat count. A seat is the slot; a manager is the person. Do not say club, franchise, or team for that object. Add a seat only when expanding past the current seat count — empty seats are claimed from Draft's invite link. Access & imports assigns a named email to one seat; it does not copy the Draft invite link.
 
-Chat is **not** a pane or a Fantasy destination. The full thread lives on **Home** as a locker rail. Do not show the edge launcher on Home. Other Fantasy pages keep `FantasyChatDock`: a flush edge launcher you can drag to a new edge (horizontal type, not rotated, not hide-only). Opening is a side drawer. Live draft rooms that already have integrated chat stay board-first.
+Sleeper: Access & imports is the one link. The league strip's Sync league is the one sync. Every other "Sync Sleeper" / "League settings" / "Import Sleeper" control deep-links to those. The sync confirm names what it overwrites.
+
+Mark draft complete lives on Contracts as a red confirm. It burns one year on every contract and cannot be undone. Setup shows the status only.
+
+Chat is **not** a pane or a Fantasy destination. The full thread lives on **Home** as a locker rail. Do not show the edge launcher on Home. Other Fantasy pages keep `FantasyChatDock`: a flush edge launcher (parked on an edge, expands on hover) you can drag to a new edge (horizontal type, not rotated, not hide-only). Opening is a side drawer. Live draft rooms that already have integrated chat stay board-first. Clear chat is staff-only, red, and confirms.
 
 ### Manager labels
 
@@ -127,10 +131,10 @@ Dark mode only. Matte, editorial, layered. Sports-product energy without casino 
 | Page canvas | `--experience-canvas` / `--bg-base` (`#09111d` / `#070d17`) | Page background |
 | Surface | `--experience-surface` / `--bg-elevated` | Cards and sections |
 | Primary action / current context | `--experience-blue` / `--accent` | One cool blue. Reserved for *now* and *next* |
-| Healthy / saved | teal (`--tone-positive`) | Active, success, legal |
-| Attention | amber (`--tone-caution`) | Warnings, unsaved, bids |
-| Destructive | red (`--danger`) | Errors, cuts, blocking validation |
-| Gold accent | `--experience-gold` | Awards and featured callouts only |
+| Healthy / saved | teal (`--tone-positive`) | Only when the state is actually healthy: 12/12 seated, synced, or saved |
+| Attention | amber (`--tone-caution`) | Warnings, unsaved, bids, incomplete seating, info that needs a move |
+| Destructive | red (`--danger`) | Errors, cuts, blocking validation, league-wide destructive actions — never a projection delta |
+| Gold accent | `--experience-gold` | Awards only |
 
 Rules:
 
@@ -156,7 +160,9 @@ Reuse `frontend/src/DraftHub/HubUILayout.jsx`. Do not fork a second hero/summary
 
 Which file to open for a given destination: `frontend/src/livingSurfaces.js`. Resolve the row, then match its `page` and `copy`. That registry is the living style guide — keep it current when you add or retarget a screen.
 
-**Use this chrome for:** Rules, Draft (idle/lobby), This Week, Vibes, Cap, Insights, DFS, and new decision pages.
+**Use this chrome for:** Rules, Draft (idle/lobby), This Week, Vibes, Cap, Trades, Insights, DFS, and new decision pages.
+
+Empty This Week / My team / Game center boards share one empty-state block, branched on league state: native pre-draft → Lock a night (Draft); Sleeper not linked → Link Sleeper (Access & imports); linked but stale → the strip's Sync league. Do not send those boards to Setup. "Live" on Game center renders only inside a game window.
 
 **Do not use this chrome for:** the live draft board (board-first, existing live-room layout), **Projections** (board-first table), **Strategy** (full-page face-off; View my rankings is site vs mine), or other dense data tables that are not a decision surface.
 
@@ -224,7 +230,9 @@ Hero pattern: eyebrow (`League rules`) + sentence heading that is the job (`What
 - Labels on every field. Errors associated with controls. WCAG AA contrast.
 - Touch targets ≥ 44px where a laptop or phone can tap them (`--touch-target`).
 - Chat: viewport-fixed edge launcher unless dismissed; opening fills the center of the screen. `aria-expanded` / `aria-controls`, Escape and backdrop close the conversation, focus returns to the launcher.
-- Draft availability shows current and future times only. Commissioners lock any shown overlap as the official night. Idle Draft shows that calendar as the one featured job; the date/time form stays a collapsed fallback.
+- Draft availability shows current and future times only. Commissioners lock any shown overlap as the official night. Idle Draft shows that calendar as the one featured job; the date/time form stays a collapsed fallback unless the calendar is Closed and no night is locked — then the off-calendar lock is open as the primary.
+- Suggested bid columns name the scoring and risk posture from Rules (`PPR · Balanced`). Never show "Hub" in user copy. League context is `<league name> · <scoring>`.
+- Count nouns use one helper: `1 manager`, `1 seat`, `1 team` — never `1 managers`.
 - Transactional SMS (draft alerts) is opt-in only. The checkbox starts empty. Phone lives on the account. SMS is never a league invite. The public opt-in card is `/sms-alerts` (also on Account). Privacy and Terms must name the SMS vendor, say mobile numbers are not shared for marketing, note message frequency, and include “message and data rates may apply.”
 
 ---

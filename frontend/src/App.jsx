@@ -1556,6 +1556,9 @@ export default function App() {
                   applyInjuryAdjustments: isLiveContext,
                   scope: "weekly",
                 }}
+                onActivate={(signal) => {
+                  if (signal.id === "attention") handleMovementFilterChange("attention");
+                }}
               />
             ) : null}
             <section className={`panel wide panel-projections proj-board-surface projections-mobile-panel${projectionsMobilePanel === "projections" ? " is-mobile-active" : ""}`}>
@@ -1568,6 +1571,9 @@ export default function App() {
                     week,
                     applyInjuryAdjustments: isLiveContext,
                     scope: "weekly",
+                  }}
+                  onActivate={(signal) => {
+                    if (signal.id === "attention") handleMovementFilterChange("attention");
                   }}
                 />
               ) : null}
@@ -1613,6 +1619,7 @@ export default function App() {
                 movementEmptyReason={meta?.projection_movement?.empty_reason || null}
                 movementNote={meta?.projection_movement?.note || null}
                 leftSlateRows={leftSlateRows}
+                attentionPlayerIds={new Set(weeklyAttention.map((item) => String(item.playerId || item.player_id || item.injury?.player_id || "")).filter(Boolean))}
                 compareEnabled
                 selectedCompareIds={compareIds}
                 maxCompare={MAX_COMPARE_PLAYERS}

@@ -33,9 +33,9 @@ export function roomHeading() {
 }
 
 export function roomSupport({ guestMode = false, testMode = false } = {}) {
-  if (guestMode) return "You are in as a guest. Take a pick or leave it open.";
-  if (testMode) return "Take a pick. Open seats wait on the practice link.";
-  return "Take a pick. Open seats wait on the invite.";
+  if (guestMode) return "You are in as a guest. Take a seat or leave it open.";
+  if (testMode) return "Take a seat. Open seats draft as bots.";
+  return "Take a seat. Open seats draft as bots.";
 }
 
 export function altLockSummary({ locked = false } = {}) {
@@ -48,4 +48,16 @@ export function lobbyChipLabel({ claimed = 0, teamCount = 12, live = false } = {
   if (live) return "Drafting";
   if (seated >= target) return "Room full";
   return `${seated} of ${target} seated`;
+}
+
+export function lobbyChipTone({ claimed = 0, teamCount = 12 } = {}) {
+  const target = Math.max(1, Number(teamCount) || 12);
+  const seated = Math.max(0, Number(claimed) || 0);
+  return seated >= target ? "ready" : "caution";
+}
+
+export function startDraftIsPrimary({ scheduled = false, claimed = 0, teamCount = 12 } = {}) {
+  const target = Math.max(1, Number(teamCount) || 12);
+  const seated = Math.max(0, Number(claimed) || 0);
+  return Boolean(scheduled) || seated >= target;
 }

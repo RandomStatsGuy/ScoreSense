@@ -169,7 +169,11 @@ function TrustHero({ position, summary, upsideSummary, seasonRange }) {
       </ul>
 
       <div className="accuracy-hero-grid trust-stats">
-        <HeroStat label={ACCURACY_COPY.missLabel} value={miss} sub={ACCURACY_COPY.missSub} accent />
+        <HeroStat
+          label={`${ACCURACY_COPY.missLabel} · ${String(position || "QB").toUpperCase()}`}
+          value={miss}
+          sub={ACCURACY_COPY.missSub}
+        />
         <HeroStat label={ACCURACY_COPY.beatLabel} value={`${beats} / ${total}`} sub={ACCURACY_COPY.beatSub} />
         {boomPct && (
           <HeroStat label={ACCURACY_COPY.boomLabel} value={boomPct} sub={ACCURACY_COPY.boomSub} />
@@ -204,10 +208,9 @@ function AccuracyHero({ position, summary, upsideSummary, seasonRange, report })
 
       <div className="accuracy-hero-grid">
         <HeroStat
-          label="ScoreSense avg. miss"
+          label={`ScoreSense avg. miss · ${String(position || "QB").toUpperCase()}`}
           value={formatMiss(summary?.scoresense_avg_mae)}
           sub="Lower is better"
-          accent
         />
         <HeroStat
           label="Simple guess"

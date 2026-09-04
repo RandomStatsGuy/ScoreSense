@@ -9,6 +9,7 @@ import { promptDialog } from "../ui/prompt";
 import { historicCorrectionDialog } from "./HistoricCorrectionDialog";
 import { salaryFieldUpdates } from "./historicCorrections";
 import { fmtSal, seasonCapYearHint } from "./rosterFormat";
+import { sheetsDefaultHint } from "./commissionerSections";
 
 async function resolveHistoricRowId(leagueId, seasonYear, row, ownerLabel) {
   const direct = row?.row_id ?? row?.id;
@@ -1981,7 +1982,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
         <div>
           <h2 className="hub-tab-intro-title">Team salary sheets</h2>
           <p className="hub-section-hint">
-            Year sheets from Sleeper (pre-draft or week-1) or Excel. Edit Pos, $, Status, and Acquired on the table.
+            {sheetsDefaultHint()}
           </p>
         </div>
         )}

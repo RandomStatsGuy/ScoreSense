@@ -2,6 +2,19 @@
 
 const KEY = "ss_hub_trade_seed";
 
+export function seedTradePartner(teamId) {
+  try {
+    const existing = readTradeSeed() || { players: [] };
+    sessionStorage.setItem(KEY, JSON.stringify({
+      ...existing,
+      partnerTeamId: teamId,
+      at: Date.now(),
+    }));
+  } catch {
+    /* ignore */
+  }
+}
+
 export function seedTradeFromPlayer(player) {
   try {
     const existing = readTradeSeed() || { players: [] };

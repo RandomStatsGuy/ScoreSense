@@ -29,6 +29,7 @@ import {
   matchLiveRosterPlayer,
 } from "./officeCurrentContracts";
 import { confirmDialog } from "../ui/confirm";
+import { markDraftComplete, MARK_DRAFT_COMPLETE_COPY } from "./markDraftComplete";
 import { promptDialog } from "../ui/prompt";
 import {
   buildLiveRosterAddBody,
@@ -1089,9 +1090,27 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
           </p>
         </div>
         <div className="hub-league-rosters-summary" aria-label="League totals">
+          {hubContext?.is_commissioner && !draftCompleted ? (
+            <button
+              type="button"
+              className="btn-danger btn-sm"
+              onClick={async () => {
+                try {
+                  const data = await markDraftComplete(leagueId);
+                  if (data) onChanged?.();
+                } catch (e) {
+                  setError(e.message || "Could not mark draft complete");
+                }
+              }}
+            >
+              {MARK_DRAFT_COMPLETE_COPY.action}
+            </button>
+          ) : hubContext?.is_commissioner && draftCompleted ? (
+            <span className="chart-note">{MARK_DRAFT_COMPLETE_COPY.done}</span>
+          ) : null}
           {refreshing && <span className="hub-league-refresh-badge">Updating…</span>}
           <span className="hub-league-summary-stat">
-            <strong>{leagueTotals.teams || "—"}</strong> teams
+            <strong>{leagueTotals.teams || "—"}</strong> {Number(leagueTotals.teams) === 1 ? "team" : "teams"}
           </span>
           <span className="hub-league-summary-stat">
             <strong>{leagueTotals.players || "—"}</strong> players

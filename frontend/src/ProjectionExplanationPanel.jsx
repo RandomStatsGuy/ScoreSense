@@ -10,6 +10,7 @@ import {
   pickHistoricalWeek,
   setIncludeHistoricalParam,
 } from "./mediaContext";
+import { typicalMissLine } from "./accuracyPresentation";
 
 function directionGlyph(direction) {
   if (direction === "up") return "↑";
@@ -57,10 +58,39 @@ export default function ProjectionExplanationPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [includeHistorical, setIncludeHistorical] = useState(false);
+  const [typicalMiss, setTypicalMiss] = useState("");
 
   useEffect(() => {
     setIncludeHistorical(false);
   }, [playerId, season, week]);
+
+  useEffect(() => {
+    const pos = String(position || "").trim().toLowerCase();
+    if (!active || !pos || !["qb", "rb", "wr", "te"].includes(pos)) {
+      setTypicalMiss("");
+      return undefined;
+    }
+    const queryPos = pos === "te" ? "wr" : pos;
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/api/accuracy?position=${encodeURIComponent(queryPos)}`,
+          { signal: controller.signal },
+        );
+        if (!res.ok) return;
+        const report = await res.json();
+        const miss = report?.summary?.scoresense_avg_mae;
+        if (!controller.signal.aborted) {
+          setTypicalMiss(typicalMissLine({ position: pos, miss }));
+        }
+      } catch (err) {
+        if (isAbortError(err) || controller.signal.aborted) return;
+        setTypicalMiss("");
+      }
+    })();
+    return () => controller.abort();
+  }, [active, position]);
 
   useEffect(() => {
     if (!active || !playerId) {
@@ -125,6 +155,9 @@ export default function ProjectionExplanationPanel({
         <h3 className="projection-explanation-title">Why this projection?</h3>
         {data?.note ? (
           <p className="projection-explanation-note muted">{data.note}</p>
+        ) : null}
+        {typicalMiss ? (
+          <p className="projection-explanation-note muted">{typicalMiss}</p>
         ) : null}
       </header>
 

@@ -6,6 +6,7 @@ import test from "node:test";
 import {
   bestBallBoardNote,
   bestBallCsvLines,
+  bestBallSorts,
   bestBallStatusChip,
   bestBallSummaryItems,
   byeLabel,
@@ -55,12 +56,12 @@ test("edge formatting and tones flag discounts and reaches", () => {
   assert.equal(formatRank(12.0), "12");
 });
 
-test("status chip and note explain missing ADP", () => {
+test("status chip and note explain missing ECR without offering ADP-edge sort", () => {
   assert.equal(bestBallStatusChip({ loading: true }).tone, "readonly");
   const noAdp = bestBallStatusChip({ count: 100, withAdp: 0 });
-  assert.match(noAdp.label, /no ADP/i);
-  assert.match(bestBallBoardNote({ count: 100, withAdp: 0 }), /model ranks only/i);
-  assert.match(bestBallBoardNote({ count: 100, withAdp: 80 }), /Edge = ADP minus model rank/);
+  assert.match(noAdp.label, /no ECR/i);
+  assert.equal(bestBallBoardNote({ count: 100, withAdp: 0 }), "");
+  assert.deepEqual(bestBallSorts({ ecrOnly: true }).map((s) => s.id), ["model", "adp"]);
 });
 
 test("summary items and csv rows cover the board", () => {

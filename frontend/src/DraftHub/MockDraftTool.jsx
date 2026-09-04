@@ -383,7 +383,7 @@ export default function MockDraftTool({ projMeta = null }) {
                   </div>
                 ) : (
                   <p className="chart-note">
-                    Join a league in League settings to use its scoring and manager names.
+                    Join a league in Setup to use its scoring and manager names.
                   </p>
                 )}
               </div>

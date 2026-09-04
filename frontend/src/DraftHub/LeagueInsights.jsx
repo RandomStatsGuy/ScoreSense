@@ -54,6 +54,7 @@ import {
   shouldShowScoringTables,
 } from "./insightsEmptyStates";
 import { fmtSal } from "./rosterFormat";
+import { formatCount } from "../formatCount";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 
 const InsightsCharts = lazy(() => import("./insights/InsightsCharts"));
@@ -1043,6 +1044,9 @@ export default function LeagueInsights({
             yearSpecific={capYearSpecific}
             subtitle={`${usingHistoricCap ? capHistoryLabel : "Current rosters"}${allTimeCap ? " · avg % of cap" : ""}`}
           />
+          {!allTimeCap && capTeamsRaw.every((t) => !Number(t.committed)) ? (
+            <p className="chart-note">{INSIGHTS_COPY.spend.empty}</p>
+          ) : null}
 
           <PositionSpendBoard
             leaders={spendLeaders}
@@ -1113,7 +1117,8 @@ export default function LeagueInsights({
 
           <InsightsDisclosure
             summary="Full league table"
-            meta={`${capTeamsRaw.length} ${allTimeCap ? "manager" : "team"}${capTeamsRaw.length === 1 ? "" : "s"} · optional detail`}
+            open
+            meta={formatCount(capTeamsRaw.length, allTimeCap ? "manager" : "team")}
           >
             <div className="hub-table-card hub-insights-table-wrap">
               <h3 className="hub-panel-subtitle hub-insights-table-title">
@@ -1274,7 +1279,7 @@ export default function LeagueInsights({
                   }}
                   disabled={loading || tabLoading}
                 >
-                  {tabLoading ? "Refreshing…" : "Refresh from Sleeper"}
+                  {tabLoading ? "Refreshing…" : "Refresh scoring"}
                 </button>
               </div>
             </div>
@@ -1323,7 +1328,7 @@ export default function LeagueInsights({
 
           {data?.scoring?.available && !data?.scoring?.preseason && scoringAwards.length === 0 && showScoringTables && (
             <p className="chart-note hub-insights-callout">
-              {tabLoading ? "Loading awards…" : "Awards still loading — tap Refresh from Sleeper."}
+              {tabLoading ? "Loading awards…" : "Awards still loading — tap Refresh scoring."}
             </p>
           )}
 

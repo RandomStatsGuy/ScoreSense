@@ -110,6 +110,18 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     onOfficeTabChange?.("current");
   }, [setSubView, onOfficeTabChange]);
 
+  const goToOfficeTab = useCallback((tab) => {
+    setSubView("office");
+    onOfficeTabChange?.(tab);
+  }, [setSubView, onOfficeTabChange]);
+
+  const goHubView = useCallback((view) => {
+    if (view === "office-access") return goToOfficeTab("access");
+    if (view === "office-members") return goToOfficeTab("members");
+    if (view === "office") return goToOfficeTab("current");
+    return setSubView(view);
+  }, [goToOfficeTab, setSubView]);
+
   const goCreateLeague = useCallback(() => {
     setCreateLeagueOpen(true);
   }, []);
@@ -692,7 +704,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         <LeagueHome
           hubContext={effectiveCtx}
           reloadToken={weekReloadToken}
-          onNavigate={setSubView}
+          onNavigate={goHubView}
           onNavigateSetup={() => setSubView(effectiveCtx?.is_commissioner ? "rules" : "setup")}
         />
       )}
@@ -722,7 +734,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           onLeagueChanged={onLeagueChanged}
           onLeagueSwitch={onLeagueSwitch}
           onCreateLeague={goCreateLeague}
-          onNavigate={setSubView}
+          onNavigate={goHubView}
           onLeagueSync={onLeagueSleeperSync}
           leagueSyncing={leagueSyncing}
           leagueSyncMessage={leagueSyncMessage}
@@ -740,6 +752,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           pickDraft={isPickDraft(effectiveCtx?.rules || workspace?.rules)}
           leagueId={effectiveCtx?.league_id || leagueId}
           inLeague={effectiveCtx?.mode === "league"}
+          leagueName={effectiveCtx?.league_name || ""}
         />
       )}
 
@@ -781,8 +794,12 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
             clearHubDataCache();
             await onRosterChanged();
           }}
-          onNavigateSetup={() => setSubView("setup")}
-          onNavigate={setSubView}
+          onNavigateSetup={() => goToOfficeTab("access")}
+          onNavigate={(view) => {
+            if (view === "office-access") return goToOfficeTab("access");
+            if (view === "office-members") return goToOfficeTab("members");
+            return setSubView(view);
+          }}
         />
       )}
 
@@ -799,7 +816,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           <GameCenter
             leagueId={effectiveCtx.league_id}
             hubContext={effectiveCtx}
-            onNavigate={setSubView}
+            onNavigate={goHubView}
           />
         ) : (
           <HubPage>
@@ -807,8 +824,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
             <p className="chart-note">
               Game center follows your head-to-head matchup. Open a shared league to use it.
               {" "}
-              <button type="button" className="btn-link" onClick={() => setSubView("setup")}>
-                League settings
+              <button type="button" className="btn-link" onClick={() => goToOfficeTab("access")}>
+                Link Sleeper
               </button>
             </p>
           </HubPage>
@@ -827,6 +844,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           readOnly={effectiveCtx?.mode === "league" && !effectiveCtx?.can_edit_salaries}
           onEditInOffice={goToRosterManagement}
           onOpenContractHistory={onOpenContractHistory}
+          onNavigate={goHubView}
         />
       )}
 
@@ -844,8 +862,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
             <p className="chart-note">
               Open a shared league to browse every team&apos;s contracts.
               {" "}
-              <button type="button" className="btn-link" onClick={() => setSubView("setup")}>
-                League settings
+              <button type="button" className="btn-link" onClick={() => goToOfficeTab("access")}>
+                Link Sleeper
               </button>
             </p>
           </HubPage>
@@ -857,6 +875,10 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           <LeagueTrades
             leagueId={effectiveCtx.league_id}
             hubContext={effectiveCtx}
+            onNavigate={(view) => {
+              if (view === "office-members") return goToOfficeTab("members");
+              return setSubView(view);
+            }}
           />
         </div>
       )}

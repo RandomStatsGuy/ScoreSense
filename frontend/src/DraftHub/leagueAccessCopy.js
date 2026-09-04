@@ -184,7 +184,7 @@ export function managerClaimRotateHint() {
 }
 
 export function memberInviteExplainer() {
-  return "The invite link on Draft is the simple path: text it, they claim a team and mark nights that work. Email invite still assigns a named seat to one address when you need that lock.";
+  return "Assign a named email to one seat. The invite link lives on Draft — this page does not copy it.";
 }
 
 export function emailManagersHint() {
@@ -196,44 +196,52 @@ export function liveDraftMembersOnlyMessage() {
 }
 
 export function franchiseResizeHint() {
-  return "Add an empty seat with a full cap before the next auction. Existing contracts stay put. Invite the manager after the seat exists.";
+  return "Add a seat only when you need more than the current seat count. Empty seats are claimed from Draft.";
 }
 
 export function addFranchiseLabel() {
-  return "Add franchise";
+  return "Add seat";
 }
 
 export function addFranchiseSupport({ nextCount, cap } = {}) {
   const seats = Number(nextCount);
   const salary = Number(cap);
-  const seatBit = Number.isFinite(seats) && seats > 0 ? `League becomes ${seats} teams.` : "Adds one seat.";
+  const seatBit = Number.isFinite(seats) && seats > 0 ? `League becomes ${seats} seats.` : "Adds one seat.";
   const capBit = Number.isFinite(salary) && salary > 0
-    ? ` The new club starts at $${salary} with no keepers.`
-    : " The new club starts with a full cap and no keepers.";
+    ? ` The new seat starts at $${salary} with no keepers.`
+    : " The new seat starts with a full cap and no keepers.";
   return `${seatBit}${capBit}`;
 }
 
+export function canAddSeat({ configured, actual } = {}) {
+  const seats = Number(configured);
+  const filled = Number(actual);
+  if (!Number.isFinite(seats) || !Number.isFinite(filled)) return true;
+  return filled >= seats;
+}
+
 export function removeFranchiseLabel() {
-  return "Remove franchise";
+  return "Remove seat";
 }
 
 export function removeFranchiseConfirm(name) {
-  const label = String(name || "").trim() || "this franchise";
+  const label = String(name || "").trim() || "this seat";
   return `Remove ${label}? The seat closes. Contracts must already be gone.`;
 }
 
 export function removeFranchiseBlocked(reason) {
-  return String(reason || "This franchise stays.");
+  return String(reason || "This seat stays.");
 }
 
 export function franchiseSeatSummary({ configured, actual } = {}) {
   const seats = Number(configured);
-  const clubs = Number(actual);
-  if (!Number.isFinite(clubs) || clubs < 0) return "Franchises";
-  if (Number.isFinite(seats) && seats > 0 && seats !== clubs) {
-    return `${clubs} franchises · ${seats} seats`;
+  const filled = Number(actual);
+  if (!Number.isFinite(filled) || filled < 0) return "Seats";
+  if (Number.isFinite(seats) && seats > 0 && seats !== filled) {
+    return `${filled} of ${seats} seats filled`;
   }
-  return `${clubs} franchise${clubs === 1 ? "" : "s"}`;
+  if (filled === 1) return "1 seat";
+  return `${filled} seats`;
 }
 
 export function draftNightHeading() {

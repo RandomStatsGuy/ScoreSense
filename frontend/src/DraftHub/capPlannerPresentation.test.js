@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { capHeroCopy } from "./capPlannerPresentation.js";
+import { capHeroCopy, leftoverAfterMoveYears } from "./capPlannerPresentation.js";
 
 test("Cap hero asks if you can afford the bid", () => {
   const live = capHeroCopy();
@@ -11,4 +11,18 @@ test("Cap hero asks if you can afford the bid", () => {
   const pre = capHeroCopy({ preDraft: true });
   assert.match(pre.support, /dead cap/i);
   assert.doesNotMatch(JSON.stringify(live), /three seasons before you spend|Draft Hub|Submit/i);
+});
+
+test("leftoverAfterMoveYears applies the bid and cut refund to year one", () => {
+  const next = leftoverAfterMoveYears({
+    years: [
+      { year: 2026, cap_remaining: 200 },
+      { year: 2027, cap_remaining: 180 },
+    ],
+    cutHits: [40, 40],
+    cutRefundPct: 0.5,
+    bid: 10,
+  });
+  assert.equal(next[0].cap_remaining, 210);
+  assert.equal(next[1].cap_remaining, 220);
 });

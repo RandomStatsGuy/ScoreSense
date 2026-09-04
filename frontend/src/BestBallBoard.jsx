@@ -14,8 +14,8 @@ import {
 import { ExportCsvButton, csvQuote, downloadCsv } from "./table";
 import {
   BB_POSITION_FILTERS,
-  BB_SORTS,
   bestBallBoardNote,
+  bestBallSorts,
   bestBallCsvLines,
   bestBallHeroCopy,
   bestBallStatusChip,
@@ -28,6 +28,7 @@ import {
   formatSeasonPoints,
   sortBoardRows,
 } from "./bestBallPresentation";
+import { displayNflTeam } from "./nflTeamAbbrev";
 
 export default function BestBallBoard() {
   const [players, setPlayers] = useState([]);
@@ -138,7 +139,7 @@ export default function BestBallBoard() {
             ))}
           </div>
           <div className="bestball-chip-row" role="group" aria-label="Sort order">
-            {BB_SORTS.map((entry) => (
+            {bestBallSorts({ ecrOnly: true, withAdp: meta?.with_adp || 0 }).map((entry) => (
               <HubFilterChip
                 key={entry.id}
                 compact
@@ -157,14 +158,14 @@ export default function BestBallBoard() {
             <table>
               <thead>
                 <tr>
-                  <th className="num">Model</th>
+                  <th className="num" title="ScoreSense positional rank from season projections">Pos rank</th>
                   <th>Player</th>
                   <th>Pos</th>
                   <th>Team</th>
                   <th>Bye</th>
                   <th className="num">Season proj</th>
-                  <th className="num">ADP</th>
-                  <th className="num" title="ADP minus model rank — positive means the market lets him fall">
+                  <th className="num" title="FantasyPros positional ECR until a real ADP feed exists">Pos ECR</th>
+                  <th className="num" title="ECR minus pos rank when both exist. Hidden as a sort while the source is ECR-only.">
                     Edge
                   </th>
                 </tr>
@@ -192,7 +193,7 @@ export default function BestBallBoard() {
                         <td className="num">{formatRank(row.model_rank)}</td>
                         <td>{row.Player}</td>
                         <td>{row.Position}</td>
-                        <td>{row.Team || "—"}</td>
+                        <td>{displayNflTeam(row.Team)}</td>
                         <td className="muted">{byeLabel(row.bye_week)}</td>
                         <td className="num">{formatSeasonPoints(row["Season Proj"])}</td>
                         <td className="num muted">{formatRank(row.adp_rank)}</td>

@@ -3,7 +3,7 @@
 export const VIBE_COPY = Object.freeze({
   eyebrow: "Vibes",
   heading: "Start or sit each name once today.",
-  support: "Start raises aura and the week number. Sit lowers it. Skip a card and VA-projections stay the site board.",
+  support: "Start raises a name's aura; sit lowers it. Skip a card and its rank stays the site board.",
   chip: "Your read",
   chipDemo: "Demo slate",
   sit: "Sit",
@@ -48,7 +48,7 @@ export const VIBE_COPY = Object.freeze({
   opponent: "Opp",
   onBye: "Bye",
   injured: "Out",
-  demoNote: "Demo slate so you can feel the swipe. Sync a roster to rate your team.",
+  demoNote: "",
   stampStart: "Start",
   stampSit: "Sit",
   resultsCta: "Review on This Week",
@@ -247,7 +247,7 @@ export function heroCopy({ demo = false, empty = false, done = false } = {}) {
   }
   return {
     heading: VIBE_COPY.heading,
-    support: demo ? `${VIBE_COPY.support} ${VIBE_COPY.demoNote}` : VIBE_COPY.support,
+    support: VIBE_COPY.support,
     chip: demo ? VIBE_COPY.chipDemo : VIBE_COPY.chip,
     chipTone: demo ? "readonly" : "active",
   };

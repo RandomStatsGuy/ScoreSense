@@ -58,8 +58,9 @@ export function availabilityBestHeading() {
   return "Nights that already overlap";
 }
 
-export function availabilityEmptyBest() {
-  return "No overlapping nights yet. Mark yours so the room has a starting point.";
+export function availabilityEmptyBest({ state = "open" } = {}) {
+  if (state === "closed") return "The calendar is closed. Lock a night below.";
+  return "No overlapping nights yet. Mark evenings that still work.";
 }
 
 export function availabilityHoursHint({ canEdit = false } = {}) {

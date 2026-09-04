@@ -82,7 +82,7 @@ test("scoringRaceRows sorts by points and measures the gap from first", () => {
 });
 
 test("insights heroes name the argument, not a recap slogan", () => {
-  assert.match(INSIGHTS_COPY.overview.heading, /arguing/i);
+  assert.match(INSIGHTS_COPY.overview.heading, /overpays/i);
   assert.match(INSIGHTS_COPY.spend.support, /overspend|thin/i);
   assert.match(INSIGHTS_COPY.history.support, /paper trail|trade/i);
   assert.doesNotMatch(INSIGHTS_COPY.overview.heading, /league so far|Draft Hub|Submit/i);
@@ -94,6 +94,15 @@ test("formatSpendValue and hero status stay screenshot-ready", () => {
   assert.equal(
     insightsHeroStatus([{ title: "Highest salary", headline: "$85 on roster right now" }]),
     "Highest salary · $85 on roster right now",
+  );
+  assert.equal(
+    insightsHeroStatus([{
+      title: "Titles",
+      owner_name: "Stephen P",
+      team_name: "The Deported Panda",
+      title_count: 3,
+    }]),
+    "Stephen P · The Deported Panda · 3 titles",
   );
   assert.equal(teamDisplayName({ team_name: "Air Raid" }), "Air Raid");
   assert.equal(

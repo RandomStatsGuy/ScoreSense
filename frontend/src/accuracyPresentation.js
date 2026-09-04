@@ -28,3 +28,10 @@ export const ACCURACY_COPY = {
   resultsHeading: "Backtest results",
   resultsSupport: (seasonRange) => `${seasonRange} · pre-kickoff weekly projections`,
 };
+
+export function typicalMissLine({ position, miss } = {}) {
+  const pts = Number(miss);
+  if (!Number.isFinite(pts)) return "";
+  const pos = String(position || "QB").trim().toUpperCase() || "QB";
+  return `${pos} typical miss · ${pts.toFixed(1)} pts`;
+}
