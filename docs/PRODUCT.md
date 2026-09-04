@@ -84,7 +84,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 | Label | Internal id | Purpose |
 |-------|-------------|---------|
 | Home | `home` | Phase-aware next actions |
-| Strategy | `value` | Personal draft ranking from a league-context site board. Pairwise picks move names. Optionally write that order into the draft queue. |
+| Strategy | `value` | Full-page pairwise face-off from a league-context site board. View my rankings opens site vs mine. Optionally write that order into the draft queue. |
 | Draft | `room` | Idle entry + live room. Email and text invite links open here. Members mark **current and future** draft-night times on one calendar (opens 31 days before the first NFL game, closes the day before). Commissioners lock any shown overlap as draft night. Idle Draft is that calendar plus a compact room strip — do not stack a second date/time card and a Who is in list on the same scroll. |
 | This Week | `week` | Lineup decisions; Hub-only leagues set start/sit here |
 | Vibes | `vibes` | Swipe each roster player once a day; front card is the matchup; info arrow opens bio and latest news; lean Vibe ranking rail; VA-projections (vibe-adjusted week, including K and DEF) as the table |
@@ -158,7 +158,7 @@ Which file to open for a given destination: `frontend/src/livingSurfaces.js`. Re
 
 **Use this chrome for:** Rules, Draft (idle/lobby), This Week, Vibes, Cap, Insights, DFS, and new decision pages.
 
-**Do not use this chrome for:** the live draft board (board-first, existing live-room layout), **Projections** (board-first table), or other dense data tables that are not a decision surface.
+**Do not use this chrome for:** the live draft board (board-first, existing live-room layout), **Projections** (board-first table), **Strategy** (full-page face-off; View my rankings is site vs mine), or other dense data tables that are not a decision surface.
 
 ### Projections board
 

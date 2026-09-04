@@ -50,10 +50,14 @@ export const LIVING_SURFACES = Object.freeze({
   }),
   "hub.value": S({
     label: "Strategy",
-    chrome: "table",
-    page: "frontend/src/DraftHub/ValueSheetTable.jsx",
-    also: ["frontend/src/DraftHub/valueSheetColumns.js", "frontend/src/DraftHub/strategyRank.js"],
-    doNot: "Do not add decision-page hero chrome. Strategy is a rank board plus pairwise compare, not a leftover-cap spreadsheet and not a Vibes clone.",
+    chrome: "board",
+    page: "frontend/src/DraftHub/StrategyBoard.jsx",
+    copy: "frontend/src/DraftHub/strategyRankPresentation.js",
+    also: [
+      "frontend/src/DraftHub/strategyRank.js",
+      "frontend/src/styles/strategy-board.css",
+    ],
+    doNot: "Do not add HubExperience hero chrome. Face-off is the Strategy page (full-page cards). View my rankings opens site vs mine. Not a leftover-cap spreadsheet and not a Vibes clone.",
   }),
   "hub.available": S({
     label: "Free agents",
@@ -334,6 +338,9 @@ export const SURFACE_ALIASES = Object.freeze({
   strategy: "hub.value",
   "draft strategy": "hub.value",
   "draft strategy page": "hub.value",
+  "view my rankings": "hub.value",
+  "strategy face-off": "hub.value",
+  "site vs mine": "hub.value",
   "free agents": "hub.available",
   "available players": "hub.available",
   "live auction": "hub.room.live",

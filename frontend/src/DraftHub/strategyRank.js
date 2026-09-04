@@ -196,18 +196,82 @@ export function queueFromOrder(order, { cap = QUEUE_CAP } = {}) {
   return (order || []).map(String).filter(Boolean).slice(0, cap);
 }
 
-export const STRATEGY_RANK_COPY = Object.freeze({
-  eyebrow: "Strategy",
-  heading: "Put them in the order you will take them.",
-  support: "Site board is this league's context. Pick between two close names. Your order can fill the draft queue.",
-  useMine: "Use my board in Draft",
-  useSite: "Use site board",
-  take: "Take",
-  skip: "Skip",
-  tooClose: "Too close",
-  undo: "Undo",
-  site: "Site",
-  mine: "Mine",
-  emptyPair: "No close calls left in this filter. Open All or reset seen pairs.",
-  scoringFallback: "Ranks use Hub PPR until Rules names another scoring profile.",
-});
+/** Keep remaining personal ranks; drop taken names; append new site names. */
+export function mergeOrder(siteIds, savedOrder) {
+  const site = (siteIds || []).map(String).filter(Boolean);
+  const siteSet = new Set(site);
+  const kept = (savedOrder || []).map(String).filter((id) => siteSet.has(id));
+  const keptSet = new Set(kept);
+  return [...kept, ...site.filter((id) => !keptSet.has(id))];
+}
+
+export function playerName(row) {
+  return String(row?.player || row?.player_name || "").trim();
+}
+
+export function lastName(row) {
+  const name = playerName(row);
+  if (!name) return "";
+  const parts = name.split(/\s+/).filter(Boolean);
+  return parts[parts.length - 1] || name;
+}
+
+export function formatRankMove(delta) {
+  const n = Number(delta);
+  if (!Number.isFinite(n) || n === 0) return null;
+  return n > 0 ? `▲${n}` : `▼${Math.abs(n)}`;
+}
+
+export function draftTypeFromRules(rules, pickDraft = false) {
+  const t = String(rules?.draft_type || "").toLowerCase();
+  if (t === "snake" || t === "linear") return t;
+  if (pickDraft) return "snake";
+  return "auction";
+}
+
+export function suggestedBid(row) {
+  const bid = Number(row?.risk_adjusted_value ?? row?.fair_value ?? row?.model_bid_hint);
+  return Number.isFinite(bid) && bid > 0 ? bid : null;
+}
+
+export const STORAGE_PREFIX = "ss.strategy-rank.v1";
+
+export function rankStorageKey(leagueId, fingerprint) {
+  return `${STORAGE_PREFIX}:${leagueId || "solo"}:${fingerprint}`;
+}
+
+export function emptyRankState() {
+  return { order: [], seenKeys: [], feedMine: false };
+}
+
+export function loadRankState(leagueId, fingerprint, storage) {
+  const store = storage || (typeof globalThis !== "undefined" ? globalThis.localStorage : null);
+  try {
+    const raw = store?.getItem(rankStorageKey(leagueId, fingerprint));
+    if (!raw) return emptyRankState();
+    const parsed = JSON.parse(raw);
+    return {
+      order: Array.isArray(parsed.order) ? parsed.order.map(String) : [],
+      seenKeys: Array.isArray(parsed.seenKeys) ? parsed.seenKeys.map(String) : [],
+      feedMine: Boolean(parsed.feedMine),
+    };
+  } catch {
+    return emptyRankState();
+  }
+}
+
+export function saveRankState(leagueId, fingerprint, state, storage) {
+  const store = storage || (typeof globalThis !== "undefined" ? globalThis.localStorage : null);
+  try {
+    store?.setItem(
+      rankStorageKey(leagueId, fingerprint),
+      JSON.stringify({
+        order: (state?.order || []).map(String),
+        seenKeys: (state?.seenKeys || []).map(String),
+        feedMine: Boolean(state?.feedMine),
+      }),
+    );
+  } catch {
+    /* quota / private mode */
+  }
+}

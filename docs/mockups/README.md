@@ -6,7 +6,7 @@ Serve and click: `bash scripts/dev/serve_mockups.sh` → [http://127.0.0.1:5174/
 
 ## Strategy rank (Sep 2026)
 
-Open **[strategy-rank.html](./strategy-rank.html)** first. Living surface stays a board (`hub.value`). Logic: `frontend/src/DraftHub/strategyRank.js`.
+Shipped pick is **B + C**: full-page face-off, then View my rankings. Living surface: `hub.value` → `StrategyBoard.jsx`. Logic: `frontend/src/DraftHub/strategyRank.js`.
 
 | File | Shows |
 |------|-------|

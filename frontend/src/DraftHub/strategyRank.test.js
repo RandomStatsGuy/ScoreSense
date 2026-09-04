@@ -3,17 +3,22 @@ import test from "node:test";
 import {
   BOARD_SIZE,
   QUEUE_CAP,
-  STRATEGY_RANK_COPY,
   applyOrder,
   applyPick,
   boardContext,
   buildSiteBoard,
   contextFingerprint,
+  formatRankMove,
+  lastName,
+  loadRankState,
+  mergeOrder,
   nextPair,
   orderFromBoard,
   pairKey,
   queueFromOrder,
   rankDelta,
+  rankStorageKey,
+  saveRankState,
   scoringIsSupported,
   scoringLabel,
   similarEnough,
@@ -126,10 +131,32 @@ test("context fingerprint changes when scoring or draft type changes", () => {
   assert.equal(scoringLabel("hub_ppr"), "Hub PPR");
 });
 
-test("rank delta is site minus mine and copy stays draft-night", () => {
+test("rank delta is site minus mine", () => {
   assert.equal(rankDelta({ site_rank: 6, personal_rank: 2 }), 4);
-  assert.match(STRATEGY_RANK_COPY.useMine, /Draft/);
-  assert.doesNotMatch(Object.values(STRATEGY_RANK_COPY).join(" "), /Draft Hub|Submit|Tinder/);
+  assert.equal(formatRankMove(2), "▲2");
+  assert.equal(formatRankMove(-1), "▼1");
+  assert.equal(lastName({ player: "Ja'Marr Chase" }), "Chase");
   const board = buildSiteBoard([chase, jeanty, bijan], { draftType: "auction" });
   assert.deepEqual(orderFromBoard(board), ["c", "j", "b"]);
+});
+
+test("mergeOrder keeps personal ranks and drops taken names", () => {
+  assert.deepEqual(mergeOrder(["c", "j", "b"], ["b", "c"]), ["b", "c", "j"]);
+  assert.deepEqual(mergeOrder(["c", "j"], ["c", "k", "j"]), ["c", "j"]);
+});
+
+test("rank state persists per league fingerprint", () => {
+  const store = new Map();
+  const storage = {
+    getItem: (key) => store.get(key) ?? null,
+    setItem: (key, value) => store.set(key, value),
+  };
+  const fp = contextFingerprint(boardContext({ season: 2026, draftType: "auction" }));
+  saveRankState("0BBESQ", fp, { order: ["c", "j"], seenKeys: [pairKey("j", "b")], feedMine: true }, storage);
+  const loaded = loadRankState("0BBESQ", fp, storage);
+  assert.deepEqual(loaded.order, ["c", "j"]);
+  assert.equal(loaded.feedMine, true);
+  assert.match(rankStorageKey("0BBESQ", fp), /ss\.strategy-rank/);
+  const other = loadRankState("0BBESQ", "other", storage);
+  assert.deepEqual(other.order, []);
 });
