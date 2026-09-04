@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
   CHAT_LAUNCHER_DISMISS_KEY,
@@ -55,6 +58,10 @@ test("dock classes mark the open stage, dismissed launcher, and parked edge", ()
     fantasyChatDockClass({ edge: "left" }),
     "fantasy-chat-dock is-edge-left",
   );
+  assert.equal(
+    fantasyChatDockClass({ dragging: true }),
+    "fantasy-chat-dock is-dragging is-edge-right",
+  );
 });
 
 test("nearest edge parks from the pointer, not a magic offset", () => {
@@ -79,6 +86,14 @@ test("edge placement persists for the session", () => {
   assert.equal(writeChatLauncherEdge("left", storage), "left");
   assert.equal(storage.getItem(CHAT_LAUNCHER_EDGE_KEY), "left");
   assert.equal(writeChatLauncherEdge("nope", storage), "right");
+});
+
+test("dragging dock drops parent transform so the launcher stays viewport-fixed", () => {
+  const css = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "../styles/product-hierarchy.css"),
+    "utf8",
+  );
+  assert.match(css, /\.fantasy-chat-dock\.is-dragging\s*\{[^}]*transform:\s*none/s);
 });
 
 test("Home hides the edge launcher because the locker is the house", () => {

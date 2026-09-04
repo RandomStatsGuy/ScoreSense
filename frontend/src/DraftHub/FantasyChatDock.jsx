@@ -35,6 +35,7 @@ export default function FantasyChatDock({ leagueId, hubContext, hidden = false }
   const closeRef = useRef(null);
   const restoreRef = useRef(null);
   const launcherRef = useRef(null);
+  const dockRef = useRef(null);
   const dragRef = useRef(null);
   const skipClickRef = useRef(false);
 
@@ -96,6 +97,7 @@ export default function FantasyChatDock({ leagueId, hubContext, hidden = false }
   const onLauncherPointerDown = (event) => {
     if (event.button != null && event.button !== 0) return;
     if (event.target.closest(".fantasy-chat-dismiss")) return;
+    skipClickRef.current = false;
     const node = launcherRef.current;
     if (!node) return;
     dragRef.current = {
@@ -104,6 +106,7 @@ export default function FantasyChatDock({ leagueId, hubContext, hidden = false }
       origLeft: node.getBoundingClientRect().left,
       origTop: node.getBoundingClientRect().top,
       moved: false,
+      armed: false,
       pointerId: event.pointerId,
     };
     node.setPointerCapture?.(event.pointerId);
@@ -116,7 +119,11 @@ export default function FantasyChatDock({ leagueId, hubContext, hidden = false }
     const dy = event.clientY - drag.startY;
     if (Math.abs(dx) + Math.abs(dy) > 6) drag.moved = true;
     if (!drag.moved) return;
-    setDragging(true);
+    if (!drag.armed) {
+      drag.armed = true;
+      dockRef.current?.classList.add("is-dragging");
+      setDragging(true);
+    }
     const node = launcherRef.current;
     if (!node) return;
     node.style.left = `${drag.origLeft + dx}px`;
@@ -132,6 +139,8 @@ export default function FantasyChatDock({ leagueId, hubContext, hidden = false }
     dragRef.current = null;
     if (!drag) return;
     node?.releasePointerCapture?.(drag.pointerId);
+    const dropRect = node?.getBoundingClientRect();
+    dockRef.current?.classList.remove("is-dragging");
     if (node) {
       node.style.left = "";
       node.style.top = "";
@@ -142,9 +151,8 @@ export default function FantasyChatDock({ leagueId, hubContext, hidden = false }
     setDragging(false);
     if (drag.moved) {
       skipClickRef.current = true;
-      const rect = node?.getBoundingClientRect();
-      const x = (rect?.left ?? event.clientX) + (rect?.width ?? 0) / 2;
-      const y = (rect?.top ?? event.clientY) + (rect?.height ?? 0) / 2;
+      const x = (dropRect?.left ?? event.clientX) + (dropRect?.width ?? 0) / 2;
+      const y = (dropRect?.top ?? event.clientY) + (dropRect?.height ?? 0) / 2;
       parkEdge(nearestChatEdge(x, y, window.innerWidth, window.innerHeight));
       return;
     }
@@ -155,15 +163,10 @@ export default function FantasyChatDock({ leagueId, hubContext, hidden = false }
 
   if (!leagueId || hidden || typeof document === "undefined") return null;
 
-  const dockClass = [
-    fantasyChatDockClass({ open, dismissed, edge }),
-    dragging ? "is-dragging" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const dockClass = fantasyChatDockClass({ open, dismissed, edge, dragging });
 
   return createPortal(
-    <div className={dockClass}>
+    <div ref={dockRef} className={dockClass}>
       {open && (
         <div
           className="fantasy-chat-backdrop"

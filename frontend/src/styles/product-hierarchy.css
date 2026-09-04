@@ -2494,6 +2494,11 @@
   border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
+.fantasy-chat-dock.is-dragging {
+  /* Parent transform would become the containing block for the fixed launcher. */
+  transform: none !important;
+}
+
 .fantasy-chat-dock.is-dragging .fantasy-chat-launcher {
   position: fixed;
   z-index: var(--z-dropdown-portal);

@@ -80,11 +80,17 @@ export function hideFantasyChatDock({ hidden = false, house = false } = {}) {
   return Boolean(hidden || house);
 }
 
-export function fantasyChatDockClass({ open = false, dismissed = false, edge = "right" } = {}) {
+export function fantasyChatDockClass({
+  open = false,
+  dismissed = false,
+  edge = "right",
+  dragging = false,
+} = {}) {
   return [
     "fantasy-chat-dock",
     open ? "is-open" : "",
     dismissed && !open ? "is-dismissed" : "",
+    dragging ? "is-dragging" : "",
     `is-edge-${normalizeChatLauncherEdge(edge)}`,
   ]
     .filter(Boolean)
