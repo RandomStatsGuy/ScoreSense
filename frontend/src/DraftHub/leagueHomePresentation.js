@@ -90,6 +90,9 @@ export const HOME_PAGE_COPY = {
   kicker: "Home",
   heading: "Do the next league move.",
   supportingTitle: "Also due",
+  loadingKicker: "Reading your league",
+  loadingHeading: "Checking what is due…",
+  loadingSupport: "Cap, lineup, and draft night.",
 };
 
 export const HOME_DECK_COPY = {

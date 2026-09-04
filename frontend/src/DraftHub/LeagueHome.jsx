@@ -237,12 +237,12 @@ export default function LeagueHome({
       <div className="hub-home-stage">
         <section className={`hub-home-priority hub-home-priority--${focus.kind}`} aria-busy={loading}>
           <p className="hub-home-priority-kicker">
-            {loading && !data ? "Reading your league" : (phase.label || "Right now")}
+            {loading && !data ? HOME_PAGE_COPY.loadingKicker : (phase.label || "Right now")}
           </p>
-          <h3>{loading && !data ? "Finding the move that matters…" : focus.title}</h3>
+          <h3>{loading && !data ? HOME_PAGE_COPY.loadingHeading : focus.title}</h3>
           <p className="hub-home-priority-copy">
             {loading && !data
-              ? "Checking deadlines, contracts, cap, and lineup signals."
+              ? HOME_PAGE_COPY.loadingSupport
               : focus.detail}
           </p>
           {!loading && (

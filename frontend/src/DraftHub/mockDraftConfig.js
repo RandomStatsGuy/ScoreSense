@@ -29,6 +29,8 @@ export function mockDraftHeroCopy() {
     support: "Pick the format, sit, invite friends, or run it against bots. This room does not write your real contracts.",
     noteTitle: "Practice stays off the books.",
     noteBody: "Friends can sit in without a ScoreSense account. Real keepers stay put.",
+    formatTitle: "Choose the room",
+    formatSupport: "Auction, snake, or linear. The wrong room writes the wrong recap.",
   };
 }
 

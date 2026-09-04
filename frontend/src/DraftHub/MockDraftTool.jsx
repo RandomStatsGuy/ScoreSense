@@ -294,8 +294,8 @@ export default function MockDraftTool({ projMeta = null }) {
             <header className="mock-draft-step-head">
               <span>1</span>
               <div>
-                <h3 id="mock-format-title">Choose the room</h3>
-                <p>Three formats, three different kinds of pressure.</p>
+                <h3 id="mock-format-title">{mockHero.formatTitle}</h3>
+                <p>{mockHero.formatSupport}</p>
               </div>
             </header>
             <div className="mock-draft-formats" aria-label="Draft format">

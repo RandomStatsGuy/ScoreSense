@@ -148,6 +148,11 @@ export function objectiveLabel(objectiveId, isDfs = true) {
   return match?.label || "Proj (P50)";
 }
 
+export const DFS_STEP_COPY = {
+  formatTitle: "Choose the format",
+  formatSupport: "Cap, captain, or season-long. Pick the one you are entering.",
+};
+
 export function dfsHeroCopy({ isDfs = true, siteLabel = "DraftKings Classic" } = {}) {
   if (isDfs) {
     return {
