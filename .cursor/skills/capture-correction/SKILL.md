@@ -17,7 +17,7 @@ Examples:
 |-----------|------------|
 | “Don’t call it Draft Hub” | Never show users the name Draft Hub |
 | “For this card, tighter gap is fine” | Use a tighter gap on this card |
-| “We usually keep PRs draft until I say ready” | Usually leave PRs draft until the user asks to mark ready |
+| “Use tables in PR descriptions, not prose” | Usually format PR descriptions as tables |
 
 ## 2. Persist, skip, or ask
 
@@ -100,4 +100,12 @@ Allowed `Scope` values: `product`, `fantasy-ui`, `projections`, `perf`, `ops`, `
 
 ## 7. Apply it now
 
-After classifying, follow the frequency table in `.cursor/rules/learned-rules.mdc` for the rest of this turn. Then reply with **Captured**, **Not a rule**, or **Need a call** as required by `.cursor/rules/correction-capture.mdc`.
+After classifying, follow the frequency table in `.cursor/rules/learned-rules.mdc` for the rest of this turn.
+
+Reply with one of:
+
+- **Captured:** `{freq}` · `{scope}` · {one-line rule}
+- **Not a rule:** {why} — applied this turn only
+- **Need a call:** {one question}
+
+Do not add a rule that duplicates `docs/PRODUCT.md` or an existing `.mdc` line. Strengthen or retarget the existing line instead.

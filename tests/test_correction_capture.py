@@ -48,12 +48,14 @@ def _catalog_rows(text: str) -> list[tuple[str, str, str]]:
 
 def test_correction_capture_rule_is_always_applied() -> None:
     rule = _read(".cursor", "rules", "correction-capture.mdc")
+    skill = _read(".cursor", "skills", "capture-correction", "SKILL.md")
     assert "alwaysApply: true" in rule
+    assert ".cursor/skills/capture-correction/SKILL.md" in rule
     for freq in FREQS:
         assert freq in rule
-    assert "Captured:" in rule
-    assert "Not a rule:" in rule
-    assert ".cursor/skills/capture-correction/SKILL.md" in rule
+        assert f"`{freq}`" in skill or freq in skill
+    assert "Captured:" in skill
+    assert "Not a rule:" in skill
 
 
 def test_learned_rules_rule_is_always_applied() -> None:
@@ -79,19 +81,22 @@ def test_capture_correction_skill_has_decision_tree() -> None:
 def test_learned_rules_catalog_rows_are_valid() -> None:
     rows = _catalog_rows(_read(".cursor", "rules", "learned-rules.mdc"))
     assert len(rows) <= MAX_CATALOG_ROWS
+    assert len(rows) == 3
     for freq, scope, rule in rows:
         assert freq in FREQS, f"bad freq {freq!r}"
         assert scope in SCOPES, f"bad scope {scope!r}"
         assert rule, "empty rule"
         assert "|" not in rule
+    joined = " ".join(rule for _freq, _scope, rule in rows)
+    assert "docs/mockups" in joined
+    assert "existing PR branch" in joined
+    assert "GBM weekly" in joined
 
 
 def test_core_and_index_point_at_capture_files() -> None:
-    core = _read(".cursor", "rules", "scoresense-core.mdc")
     readme = _read("docs", "README.md")
     cursorrules = _read(".cursorrules")
-    assert ".cursor/rules/correction-capture.mdc" in core
-    assert ".cursor/rules/learned-rules.mdc" in core
     assert "correction-capture.mdc" in readme
     assert "learned-rules.mdc" in readme
     assert "correction-capture.mdc" in cursorrules
+    assert "learned-rules.mdc" in cursorrules

@@ -74,7 +74,7 @@ Do not add a fourth top-level item. Do not rename Fantasy to League.
 **Tools:** DFS · Mock draft · Best ball.  
 **Account menu (not top-level):** Model accuracy · Admin · Account · Report a bug.  
 **Account session (not top-level):** Sign in · Create account (`/login`, `/register`). Mobile-first session pages. Google is the lead social option; email is secondary. Do not wrap these in Fantasy experience chrome.  
-**Report a bug** (`/report`) is a side option in the account / More menu. Signed-in reports become SCORE Jira Bugs with labels `user-reported` and `pickup`. Do not add it to top-level nav.  
+**Report a bug** (`/report`) is a side option in the account / More menu. Signed-in filing and SCORE labels live in [ONBOARDING.md](./ONBOARDING.md). Do not add it to top-level nav.  
 **Public legal (not top-level):** Terms · Privacy · Draft alert texts (`/sms-alerts`). The SMS card is content for A2P consent, not a new product area.
 
 ### Fantasy destinations
@@ -85,8 +85,8 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 |-------|-------------|---------|
 | Home | `home` | Phase-aware next actions |
 | Strategy | `value` | Full-page pairwise face-off from a league-context site board, same position only. View my rankings opens site vs mine. Optionally write that order into the draft queue. |
-| Draft | `room` | Idle entry + live room. Email and text invite links open here. Members mark **current and future** draft-night times on one calendar (opens 31 days before the first NFL game, closes the day before). Commissioners lock any shown overlap as draft night. Idle Draft is that calendar plus a compact room strip — do not stack a second date/time card and a Who is in list on the same scroll. |
-| This Week | `week` | Lineup decisions; Hub-only leagues set start/sit here |
+| Draft | `room` | Idle entry + live room. Email and text invite links open here. Members mark **current and future** draft-night times on one calendar (opens 31 days before the first NFL game, closes the day before). Commissioners lock any shown overlap as draft night. Idle Draft is that calendar plus a compact room strip — do not stack a second date/time card and a Who is in list on the same scroll. When the calendar is closed and no night is locked, the date/time form is the card primary. |
+| This Week | `week` | Lineup decisions; ScoreSense-only leagues set start/sit here |
 | Vibes | `vibes` | Swipe each roster player once a day; front card is the matchup; info arrow opens bio and latest news; lean Vibe ranking rail; VA-projections (vibe-adjusted week, including K and DEF) as the table |
 | Game center | `game` | Your matchup live, league scoreboard, week trophies |
 | My team | `roster` | Personal contracts |
@@ -156,7 +156,7 @@ Reuse `frontend/src/DraftHub/HubUILayout.jsx`. Do not fork a second hero/summary
 
 Which file to open for a given destination: `frontend/src/livingSurfaces.js`. Resolve the row, then match its `page` and `copy`. That registry is the living style guide — keep it current when you add or retarget a screen.
 
-**Use this chrome for:** Rules, Draft (idle/lobby), This Week, Vibes, Cap, Insights, DFS, and new decision pages.
+**Use this chrome for:** every row whose chrome is `experience` in `frontend/src/livingSurfaces.js` — the registry decides, not a list here.
 
 **Do not use this chrome for:** the live draft board (board-first, existing live-room layout), **Projections** (board-first table), **Strategy** (full-page face-off; View my rankings is site vs mine), or other dense data tables that are not a decision surface.
 
@@ -164,7 +164,7 @@ Which file to open for a given destination: `frontend/src/livingSurfaces.js`. Re
 
 Weekly and Season projections are a **board**, not a Fantasy decision page.
 
-- Four slate/season signals sit above a full-width ranking table.
+- Four slate/season signals sit above a full-width ranking table; each tile filters the board to the rows it counts, and a missing prior rank renders as New, never 0.
 - Injuries and analyst context are disclosures under the board (phone: existing panel tabs).
 - Clicking a player opens the **player inspector**: a hero P50 with floor–ceiling inline, one range/role read, method pills, and a compact this-week card. Desktop is a right-hand drawer; phones keep the bottom sheet.
 - **Weekly compare** is a mode. Enter Compare, then tap a row (not the name) to add them. The name still opens the inspector. Never show always-on compare checkboxes.
@@ -223,8 +223,8 @@ Hero pattern: eyebrow (`League rules`) + sentence heading that is the job (`What
 - No sound except live-draft audio, and only as an opt-in.
 - Labels on every field. Errors associated with controls. WCAG AA contrast.
 - Touch targets ≥ 44px where a laptop or phone can tap them (`--touch-target`).
-- Chat: viewport-fixed edge launcher unless dismissed; opening fills the center of the screen. `aria-expanded` / `aria-controls`, Escape and backdrop close the conversation, focus returns to the launcher.
-- Draft availability shows current and future times only. Commissioners lock any shown overlap as the official night. Idle Draft shows that calendar as the one featured job; the date/time form stays a collapsed fallback.
+- Chat: viewport-fixed flush edge launcher unless dismissed; opening is a side drawer. `aria-expanded` / `aria-controls`, Escape and backdrop close the drawer, focus returns to the launcher.
+- Draft availability shows current and future times only. Commissioners lock any shown overlap as the official night. Idle Draft shows that calendar as the one featured job; while the calendar is open the date/time form stays a collapsed fallback — when it is closed and no night is locked, that form is the card's primary and Start live draft drops to secondary.
 - Transactional SMS (draft alerts) is opt-in only. The checkbox starts empty. Phone lives on the account. SMS is never a league invite. The public opt-in card is `/sms-alerts` (also on Account). Privacy and Terms must name the SMS vendor, say mobile numbers are not shared for marketing, note message frequency, and include “message and data rates may apply.”
 
 ---
@@ -237,7 +237,7 @@ Do not invent a parallel rules model. Canonical merge/validate/preview: `fronten
 - Static rookies stay flat; veterans and extensions use the configured step-up.
 - Veteran extensions follow the league toggle on both client and server.
 - Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`): locked pre-draft and in-season off-window; FAAB bid post-draft / waivers; instant add after waivers; offseason trades only for contracts that survive the next draft.
-- ScoreSense-only leagues persist weekly lineups on This Week and score the week with Hub PPR (nflverse). Linked Sleeper leagues still set and score lineups in Sleeper; Game center reads Sleeper.
+- ScoreSense-only leagues persist weekly lineups on This Week and score the week with ScoreSense PPR (nflverse; internal id `hub_ppr` — the string "Hub PPR" never reaches UI). Linked Sleeper leagues still set and score lineups in Sleeper; Game center reads Sleeper.
 - Staff edits in Roster management may override; Players-tab adds never do.
 - Headshots: mock boards, nominee cards, and rails use the same photos as rosters.
 
@@ -250,7 +250,7 @@ Contract-type playbook for imports and keepers: [CONTRACT_SCENARIOS.md](./CONTRA
 1. Place it in Projections, Fantasy, or Tools. Reuse a destination if one already owns the job.
 2. Use existing chrome, tokens, and presentation helpers. New CSS only for a new interaction, not a new aesthetic.
 3. Match copy to the tables in this file.
-4. Cover empty, loading, error, readonly, and unsaved states.
+4. Cover empty, loading, error, readonly, disabled, and unsaved states; each says why and links the destination that clears it (Draft, Members, Roster management · Access & imports) — never a label like League settings that is not a destination.
 5. If you introduce a user-facing name or destination, update this file, the nav/source module, and `frontend/src/livingSurfaces.js` in the same change.
 6. Verify the other surfaces that read the same state. Do not ship a page that looks right in isolation and lies on Cap, My team, or Rules.
 

@@ -46,6 +46,9 @@ def test_verify_fantasy_ui_skill_uses_living_routes() -> None:
     assert "Matching:" in text
     assert "/hub/free-agents" in text
     assert "/hub/cap" in text
+    assert "/hub/setup" in text
+    assert "/hub/office/members" in text
+    assert "/report" in text
     assert "mirror-prod-league" in text
     assert "start-local-app" in text
 
@@ -93,11 +96,12 @@ def test_production_skills_name_canonical_files() -> None:
 
 def test_wrong_matching_updates_aliases() -> None:
     living = _skill("match-living-surface")
-    rule = (ROOT / ".cursor" / "rules" / "living-surfaces.mdc").read_text(encoding="utf-8")
+    core = (ROOT / ".cursor" / "rules" / "scoresense-core.mdc").read_text(encoding="utf-8")
     assert "SURFACE_ALIASES" in living
     assert "Wrong Matching" in living
-    assert "SURFACE_ALIASES" in rule
-    assert "Captured:" in rule
+    assert "second" in living.lower()
+    assert "Matching:" in core
+    assert "Captured:" in living
 
 
 def test_start_local_app_skill_does_not_remirror() -> None:
