@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Strategy · B Night slate</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .slate-cols { grid-template-columns: minmax(0, 1fr) 300px; }
+  .thin-hero { padding: 1.2rem 1.4rem 1.15rem; margin-bottom: 1.1rem; }
+  .thin-hero h1 { font-size: 1.45rem; }
+  .money-row {
+    display: flex; align-items: baseline; gap: 1.2rem; margin-top: 0.85rem;
+  }
+  .left-num {
+    font-size: 2.4rem; font-weight: 800; letter-spacing: -0.05em; line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .money-row .sub { color: var(--text-muted); font-size: 0.76rem; }
+  .slate-head {
+    display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem;
+    margin-bottom: 0.35rem;
+  }
+  .slate-head h3 { margin: 0; }
+  .walk { color: var(--text-muted); font-size: 0.7rem; }
+  .slate { list-style: none; margin: 0.55rem 0 0; padding: 0; }
+  .slate li {
+    display: grid;
+    grid-template-columns: 0.7rem 1.35rem 2.35rem minmax(0, 1fr) 4.2rem auto;
+    align-items: center; gap: 0.65rem;
+    padding: 0.62rem 0.15rem;
+    border-bottom: 1px solid rgba(36, 50, 73, 0.5);
+  }
+  .slate li:last-child { border-bottom: 0; }
+  .slate .grip { color: var(--text-muted); letter-spacing: -0.08em; font-size: 0.85rem; }
+  .slate .n { color: var(--text-muted); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+  .slate img {
+    width: 2.35rem; height: 2.35rem; border-radius: 50%; object-fit: cover; object-position: top;
+    background: var(--bg-subtle);
+  }
+  .nm { font-size: 0.88rem; font-weight: 700; }
+  .meta { font-size: 0.68rem; color: var(--text-muted); }
+  .walk-n {
+    font-size: 1.05rem; font-weight: 800; letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums; text-align: right;
+  }
+  .fair { display: block; font-size: 0.62rem; color: var(--text-muted); font-weight: 600; }
+  .first {
+    border: 0; background: var(--accent); color: #fff;
+    border-radius: var(--radius-pill); padding: 0.32rem 0.7rem;
+    font-size: 0.68rem; font-weight: 700;
+  }
+  .ghost {
+    border: 1px solid var(--border-strong); background: transparent; color: var(--text-secondary);
+    border-radius: var(--radius-pill); padding: 0.32rem 0.7rem;
+    font-size: 0.68rem; font-weight: 700;
+  }
+  .pool { display: grid; gap: 0.45rem; margin-top: 0.7rem; }
+  .pool button {
+    display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto;
+    gap: 0.5rem; align-items: center; text-align: left;
+    border: 1px solid var(--border); background: var(--bg-subtle);
+    border-radius: 12px; padding: 0.45rem 0.55rem; color: inherit; cursor: pointer;
+  }
+  .pool img {
+    width: 2rem; height: 2rem; border-radius: 50%; object-fit: cover; object-position: top;
+  }
+  .pool .nm { font-size: 0.78rem; }
+  .pool .val { font-size: 0.78rem; font-weight: 700; color: var(--accent-muted); }
+  .over { color: #fde68a; }
+  .cta { margin-top: 1rem; width: 100%; }
+  @media (max-width: 860px) {
+    .slate-cols { grid-template-columns: 1fr; }
+    .slate li { grid-template-columns: 1.2rem 2.1rem minmax(0, 1fr) auto; }
+    .slate .grip, .slate .n { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>B · Night slate</strong> <span>· walk-away order is the plan</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a href="strategy.html">Chooser</a>
+    <a href="strategy-a.html">A · Bid board</a>
+    <a class="is-on" href="strategy-b.html">B · Night slate</a>
+    <a href="strategy-c.html">C · Spend map</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span class="active">Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+
+  <nav class="mock-subnav">
+    <span class="mock-subnav-group-label">Draft</span>
+    <span class="mock-tab active">Strategy</span>
+    <span class="mock-tab">Draft</span>
+    <span class="mock-subnav-group-label">Team</span>
+    <span class="mock-tab">This Week</span>
+    <span class="mock-tab">My team</span>
+  </nav>
+
+  <div class="mock-league-strip">
+    <span class="lg-name">Bottom to Top: Dominate Your Panda</span>
+    <span>Prepare · auction</span>
+    <span class="spacer"></span>
+    <span class="mock-pill mock-pill--accent">Draft Friday</span>
+  </div>
+
+  <section class="mock-hero thin-hero">
+    <p class="mock-kicker">Strategy · your night</p>
+    <h1>Name the six you will actually bid on.</h1>
+    <p class="support">Walk-away is the number you will not cross. Suggested bid sits under it. This queue is what you nominate from.</p>
+    <div class="money-row">
+      <div class="left-num">$23</div>
+      <div class="sub">left if every walk-away hits · $168 leftover now · $145 planned</div>
+    </div>
+  </section>
+
+  <div class="mock-cols slate-cols">
+    <main>
+      <section class="card">
+        <div class="slate-head">
+          <div>
+            <h3>Bid these</h3>
+            <p class="note">Drag to set nomination order. First name is who you throw out.</p>
+          </div>
+          <span class="walk">Walk-away / fair</span>
+        </div>
+        <ol class="slate">
+          <li>
+            <span class="grip" aria-hidden="true">⋮⋮</span>
+            <span class="n">1</span>
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11563.jpg" />
+            <div><div class="nm">Ashton Jeanty</div><div class="meta">RB · LV · fills your RB hole</div></div>
+            <div><span class="walk-n">$48</span><span class="fair">fair $41</span></div>
+            <button type="button" class="first">Nominate first</button>
+          </li>
+          <li>
+            <span class="grip" aria-hidden="true">⋮⋮</span>
+            <span class="n">2</span>
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/7564.jpg" />
+            <div><div class="nm">Ja'Marr Chase</div><div class="meta">WR · CIN · 312 P50</div></div>
+            <div><span class="walk-n">$46</span><span class="fair">fair $42</span></div>
+            <button type="button" class="ghost">Pass</button>
+          </li>
+          <li>
+            <span class="grip" aria-hidden="true">⋮⋮</span>
+            <span class="n">3</span>
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11632.jpg" />
+            <div><div class="nm">Malik Nabers</div><div class="meta">WR · NYG · if Chase walks</div></div>
+            <div><span class="walk-n">$40</span><span class="fair">fair $36</span></div>
+            <button type="button" class="ghost">Pass</button>
+          </li>
+          <li>
+            <span class="grip" aria-hidden="true">⋮⋮</span>
+            <span class="n">4</span>
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11635.jpg" />
+            <div><div class="nm">Brock Bowers</div><div class="meta">TE · LV · only TE you will chase</div></div>
+            <div><span class="walk-n">$28</span><span class="fair">fair $26</span></div>
+            <button type="button" class="ghost">Pass</button>
+          </li>
+          <li>
+            <span class="grip" aria-hidden="true">⋮⋮</span>
+            <span class="n">5</span>
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/9221.jpg" />
+            <div><div class="nm">Jahmyr Gibbs</div><div class="meta">RB · DET · if Jeanty goes long</div></div>
+            <div><span class="walk-n">$32</span><span class="fair">fair $28</span></div>
+            <button type="button" class="ghost">Pass</button>
+          </li>
+          <li>
+            <span class="grip" aria-hidden="true">⋮⋮</span>
+            <span class="n">6</span>
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/8167.jpg" />
+            <div><div class="nm">Puka Nacua</div><div class="meta">WR · LAR · last WR you will pay for</div></div>
+            <div><span class="walk-n">$26</span><span class="fair">fair $24</span></div>
+            <button type="button" class="ghost">Pass</button>
+          </li>
+        </ol>
+        <p class="note" style="margin-top:0.85rem;">If Jeanty and Chase both hit walk-away, leftover is $74 and Gibbs/Puka no longer fit.</p>
+      </section>
+    </main>
+    <aside class="mock-rail">
+      <section class="card">
+        <h3>Add a name</h3>
+        <p class="note">Suggested bid only. Walk-away is set on the slate.</p>
+        <div class="pool">
+          <button type="button">
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/9509.jpg" />
+            <div><div class="nm">Bijan Robinson</div><div class="meta">RB · $38</div></div>
+            <span class="val over">+$15 over</span>
+          </button>
+          <button type="button">
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/7547.jpg" />
+            <div><div class="nm">Amon-Ra St. Brown</div><div class="meta">WR · $26</div></div>
+            <span class="val">fits</span>
+          </button>
+          <button type="button">
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/8110.jpg" />
+            <div><div class="nm">Trey McBride</div><div class="meta">TE · $11</div></div>
+            <span class="val">fits</span>
+          </button>
+        </div>
+        <a class="btn btn-primary cta" href="#">Take this into Draft</a>
+      </section>
+    </aside>
+  </div>
+
+  <p class="footnote">Same prices as the value sheet. The consequence is the $23 that survives if you hold every line.</p>
+</div>
+</body>
+</html>

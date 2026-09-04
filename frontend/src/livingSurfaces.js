@@ -53,7 +53,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "table",
     page: "frontend/src/DraftHub/ValueSheetTable.jsx",
     also: ["frontend/src/DraftHub/valueSheetColumns.js"],
-    doNot: "Do not add decision-page hero chrome to the Strategy board.",
+    doNot: "Do not add decision-page hero chrome to the Strategy board. Keep it a visual bid board, leftover-first — not a spreadsheet dump.",
   }),
   "hub.available": S({
     label: "Free agents",
@@ -332,6 +332,8 @@ export const SURFACE_ALIASES = Object.freeze({
   "chat bubble": "hub.home",
   "value sheet": "hub.value",
   strategy: "hub.value",
+  "draft strategy": "hub.value",
+  "draft strategy page": "hub.value",
   "free agents": "hub.available",
   "available players": "hub.available",
   "live auction": "hub.room.live",

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Strategy · C Spend map</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .board-bar {
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem;
+    padding: 0.1rem 0 1rem; margin-bottom: 1.05rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .left-num {
+    font-size: 2.6rem; font-weight: 800; letter-spacing: -0.05em; line-height: 0.95;
+    font-variant-numeric: tabular-nums;
+  }
+  .left-num small {
+    display: block; margin-top: 0.35rem;
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+  .split-note { color: var(--text-secondary); font-size: 0.82rem; max-width: 22rem; text-align: right; }
+  .map { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.7rem; }
+  .col {
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 0.85rem 0.75rem 0.75rem;
+    min-height: 26rem;
+  }
+  .col.is-over { border-color: rgba(251, 191, 36, 0.45); box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.12); }
+  .col.is-ok { border-color: rgba(52, 211, 153, 0.28); }
+  .col-top { display: flex; justify-content: space-between; align-items: baseline; gap: 0.4rem; }
+  .col h3 { margin: 0; font-size: 0.92rem; }
+  .budget {
+    font-size: 1.2rem; font-weight: 800; letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .remain { margin: 0.15rem 0 0.75rem; font-size: 0.68rem; color: var(--text-muted); }
+  .remain.hot { color: #fde68a; }
+  .remain.ok { color: var(--tone-positive); }
+  .name {
+    display: grid; grid-template-columns: 2.2rem minmax(0, 1fr) auto;
+    gap: 0.45rem; align-items: center;
+    padding: 0.5rem 0; border-top: 1px solid rgba(36, 50, 73, 0.48);
+  }
+  .name:first-of-type { border-top: 0; }
+  .name img {
+    width: 2.2rem; height: 2.2rem; border-radius: 50%; object-fit: cover; object-position: top;
+    background: var(--bg-subtle);
+  }
+  .nm { font-size: 0.8rem; font-weight: 700; }
+  .meta { font-size: 0.64rem; color: var(--text-muted); }
+  .val { font-size: 0.88rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .empty {
+    margin-top: 0.4rem; padding: 0.7rem 0.55rem;
+    border: 1px dashed var(--border-strong); border-radius: 12px;
+    color: var(--text-muted); font-size: 0.74rem; text-align: center;
+  }
+  .fit {
+    margin-top: 1.15rem;
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.55rem;
+  }
+  .fit .card { padding: 0.8rem 0.85rem; }
+  .fit h3 { font-size: 0.88rem; }
+  .fit-row {
+    display: flex; align-items: center; gap: 0.5rem; margin-top: 0.55rem;
+  }
+  .fit-row img {
+    width: 1.85rem; height: 1.85rem; border-radius: 50%; object-fit: cover; object-position: top;
+  }
+  .fit-row .nm { font-size: 0.78rem; }
+  .fit-row .val { margin-left: auto; color: var(--accent-muted); }
+  @media (max-width: 900px) {
+    .map, .fit { grid-template-columns: 1fr 1fr; }
+    .board-bar { flex-direction: column; align-items: flex-start; }
+    .split-note { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>C · Spend map</strong> <span>· leftover split across holes</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a href="strategy.html">Chooser</a>
+    <a href="strategy-a.html">A · Bid board</a>
+    <a href="strategy-b.html">B · Night slate</a>
+    <a class="is-on" href="strategy-c.html">C · Spend map</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span class="active">Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+
+  <nav class="mock-subnav">
+    <span class="mock-subnav-group-label">Draft</span>
+    <span class="mock-tab active">Strategy</span>
+    <span class="mock-tab">Draft</span>
+    <span class="mock-subnav-group-label">Team</span>
+    <span class="mock-tab">This Week</span>
+    <span class="mock-tab">My team</span>
+  </nav>
+
+  <div class="mock-league-strip">
+    <span class="lg-name">Bottom to Top: Dominate Your Panda</span>
+    <span>Prepare · auction</span>
+    <span class="spacer"></span>
+    <span class="mock-pill mock-pill--accent">Draft Friday</span>
+  </div>
+
+  <div class="board-bar">
+    <div class="left-num">$168<small>To spend across holes</small></div>
+    <p class="split-note">Move a name between columns. Amber means that hole no longer fits leftover.</p>
+  </div>
+
+  <div class="map">
+    <section class="col is-ok">
+      <div class="col-top"><h3>QB</h3><span class="budget">$34</span></div>
+      <p class="remain ok">$0 left · hole filled</p>
+      <article class="name">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/4881.jpg" />
+        <div><div class="nm">Lamar Jackson</div><div class="meta">Keeper · 390 P50</div></div>
+        <span class="val">$32</span>
+      </article>
+      <div class="empty">No second QB unless you cut $34 somewhere else</div>
+    </section>
+
+    <section class="col">
+      <div class="col-top"><h3>RB</h3><span class="budget">$72</span></div>
+      <p class="remain">$3 left in this hole</p>
+      <article class="name">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11563.jpg" />
+        <div><div class="nm">Ashton Jeanty</div><div class="meta">Need · 18.4 /g</div></div>
+        <span class="val">$41</span>
+      </article>
+      <article class="name">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/9221.jpg" />
+        <div><div class="nm">Jahmyr Gibbs</div><div class="meta">RB2</div></div>
+        <span class="val">$28</span>
+      </article>
+      <div class="empty">Bijan at $38 does not fit this column</div>
+    </section>
+
+    <section class="col is-over">
+      <div class="col-top"><h3>WR</h3><span class="budget">$58</span></div>
+      <p class="remain hot">$20 over · drop Nabers or raise WR spend</p>
+      <article class="name">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/7564.jpg" />
+        <div><div class="nm">Ja'Marr Chase</div><div class="meta">WR1</div></div>
+        <span class="val">$42</span>
+      </article>
+      <article class="name">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11632.jpg" />
+        <div><div class="nm">Malik Nabers</div><div class="meta">WR2</div></div>
+        <span class="val">$36</span>
+      </article>
+    </section>
+
+    <section class="col">
+      <div class="col-top"><h3>TE</h3><span class="budget">$18</span></div>
+      <p class="remain">$7 left if you take McBride</p>
+      <article class="name">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/8110.jpg" />
+        <div><div class="nm">Trey McBride</div><div class="meta">Fits the $18</div></div>
+        <span class="val">$11</span>
+      </article>
+      <div class="empty">Bowers $26 needs $8 from WR or RB</div>
+    </section>
+  </div>
+
+  <div class="fit">
+    <section class="card">
+      <h3>Still fits leftover</h3>
+      <p class="note">One name per hole that keeps the map legal.</p>
+      <div class="fit-row">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/8167.jpg" />
+        <div class="nm">Puka for Nabers</div>
+        <span class="val">$24</span>
+      </div>
+    </section>
+    <section class="card">
+      <h3>If you want Bowers</h3>
+      <p class="note">Steal $8 from WR. Chase stays. Nabers goes.</p>
+      <div class="fit-row">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11635.jpg" />
+        <div class="nm">Bowers becomes the TE</div>
+        <span class="val">$26</span>
+      </div>
+    </section>
+    <section class="card">
+      <h3>Ones after the stars</h3>
+      <p class="note">$3 RB + $7 TE leftover buys depth, not another chase.</p>
+      <div class="fit-row">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/6804.jpg" />
+        <div class="nm">Stevenson as RB3</div>
+        <span class="val">$6</span>
+      </div>
+    </section>
+  </div>
+
+  <p class="footnote">Chase + Nabers is the illegal board. The map makes that obvious before Friday.</p>
+</div>
+</body>
+</html>

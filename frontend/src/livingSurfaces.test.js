@@ -50,6 +50,8 @@ test("text lookup prefers the longest alias and ignores capture vs cap", () => {
   assert.ok(more.also.includes("frontend/src/DraftHub/vibeMatchup.js"));
   const va = resolveLivingSurfaceFromText("rename the table to vibe adjusted projections");
   assert.equal(va.label, "Vibes");
+  const draftStrategy = resolveLivingSurfaceFromText("the draft strategy page should feel like a bid board");
+  assert.equal(draftStrategy.label, "Strategy");
   const locker = resolveLivingSurfaceFromText("tighten the locker note on the inspector");
   assert.equal(locker.label, "Player inspector");
   const weeklyCompare = resolveLivingSurfaceFromText("weekly compare checkboxes on the board");

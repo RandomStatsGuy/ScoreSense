@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Strategy · choose a board</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .chooser-hero h1 { font-size: 2.05rem; }
+  .concepts { display: grid; grid-template-columns: 1fr; gap: 1.1rem; }
+  .concept {
+    display: grid; grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr) auto;
+    gap: 1.1rem; align-items: center;
+    text-decoration: none; color: inherit;
+    padding: 1.1rem 1.2rem;
+  }
+  .concept:hover { border-color: var(--border-strong); }
+  .letter {
+    width: 100%; aspect-ratio: 16 / 10; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; font-weight: 800; letter-spacing: -0.03em;
+  }
+  .letter-a { background: linear-gradient(150deg, #1a3358, #122033); color: #bcd4ff; }
+  .letter-b { background: linear-gradient(150deg, #173a34, #102028); color: #9ff0cf; }
+  .letter-c { background: linear-gradient(150deg, #3a2a14, #1c1710); color: #fde68a; }
+  .concept h3 { margin: 0 0 0.2rem; font-size: 1.08rem; }
+  .concept p { margin: 0; color: var(--text-secondary); font-size: 0.84rem; }
+  .concept .fit { margin-top: 0.4rem; font-size: 0.72rem; color: var(--text-muted); }
+  .pick { color: var(--accent-muted); font-size: 0.8rem; font-weight: 650; white-space: nowrap; }
+  .now {
+    margin: 0 0 1.4rem; padding: 0.9rem 1.05rem;
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    background: var(--bg-elevated);
+  }
+  .now p { margin: 0; font-size: 0.82rem; color: var(--text-secondary); }
+  .now b { color: var(--text-primary); }
+  @media (max-width: 760px) {
+    .concept { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>Strategy</strong> <span>· draft-night bid plan · not shipped</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a class="is-on" href="strategy.html">Chooser</a>
+    <a href="strategy-a.html">A · Bid board</a>
+    <a href="strategy-b.html">B · Night slate</a>
+    <a href="strategy-c.html">C · Spend map</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <section class="mock-hero chooser-hero">
+    <p class="mock-kicker">Fantasy · Strategy</p>
+    <h1>Pick the board you take into draft night.</h1>
+    <p class="support">Same prices as today. The job is who you will bid on, and whether leftover cap can pay for it.</p>
+  </section>
+
+  <div class="now">
+    <p><b>Shipped today.</b> A 599-row value sheet (same table as Free agents) sorted by suggested bid. Star pins a name. Leftover cap never appears. Pre-draft, “vs cost” is empty.</p>
+  </div>
+
+  <div class="concepts">
+    <a class="card concept" href="strategy-a.html">
+      <div class="letter letter-a">A</div>
+      <div>
+        <h3>Bid board</h3>
+        <p>Price lanes on the wall. Lock a bid and leftover drops.</p>
+        <p class="fit">Decision: who is worth this dollar lane.</p>
+      </div>
+      <span class="pick">Open A →</span>
+    </a>
+    <a class="card concept" href="strategy-b.html">
+      <div class="letter letter-b">B</div>
+      <div>
+        <h3>Night slate</h3>
+        <p>Your ordered walk-aways are the canvas. The pool is secondary.</p>
+        <p class="fit">Decision: nominate order and the number you will not cross.</p>
+      </div>
+      <span class="pick">Open B →</span>
+    </a>
+    <a class="card concept" href="strategy-c.html">
+      <div class="letter letter-c">C</div>
+      <div>
+        <h3>Spend map</h3>
+        <p>Split leftover across holes. Names that overflow go amber.</p>
+        <p class="fit">Decision: how the $168 is split before you chase a name.</p>
+      </div>
+      <span class="pick">Open C →</span>
+    </a>
+  </div>
+
+  <p class="footnote">Static mock · tokens only · reply A / B / C · living surface stays a board, not HubExperience hero chrome</p>
+</div>
+</body>
+</html>

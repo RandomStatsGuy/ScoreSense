@@ -4,6 +4,19 @@ Static HTML options. Not product code. Agents: `.cursor/skills/fast-ui-mock/SKIL
 
 Serve and click: `bash scripts/dev/serve_mockups.sh` → [http://127.0.0.1:5174/](http://127.0.0.1:5174/). Or open [index.html](./index.html).
 
+## Strategy (Sep 2026)
+
+Open **[strategy.html](./strategy.html)** first. Living surface stays a board (`hub.value`). No HubExperience hero.
+
+| File | Shows |
+|------|-------|
+| `strategy.html` | Chooser. Shipped page is a 599-row value sheet. |
+| `strategy-a.html` | **A · Bid board.** Price lanes. Lock a bid, leftover drops. |
+| `strategy-b.html` | **B · Night slate.** Walk-away queue is the canvas. |
+| `strategy-c.html` | **C · Spend map.** Split leftover across holes. Amber when a column overflows. |
+
+Reply A / B / C. Do not screenshot the mock pass.
+
 ## League chat (Sep 2026)
 
 Open **[league-chat.html](./league-chat.html)** first. No new Fantasy destination — Home houses the thread.
