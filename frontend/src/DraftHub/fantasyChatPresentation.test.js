@@ -3,10 +3,15 @@ import test from "node:test";
 
 import {
   CHAT_LAUNCHER_DISMISS_KEY,
+  CHAT_LAUNCHER_EDGE_KEY,
   FANTASY_CHAT_COPY,
   fantasyChatDockClass,
+  hideFantasyChatDock,
+  nearestChatEdge,
   readChatLauncherDismissed,
+  readChatLauncherEdge,
   writeChatLauncherDismissed,
+  writeChatLauncherEdge,
 } from "./fantasyChatPresentation.js";
 
 test("chat copy names the conversation, not Draft Hub", () => {
@@ -35,15 +40,49 @@ test("launcher dismiss persists only while the session says so", () => {
   assert.equal(readChatLauncherDismissed(storage), false);
 });
 
-test("dock classes mark the open stage and the dismissed launcher", () => {
-  assert.equal(fantasyChatDockClass(), "fantasy-chat-dock");
-  assert.equal(fantasyChatDockClass({ open: true }), "fantasy-chat-dock is-open");
+test("dock classes mark the open stage, dismissed launcher, and parked edge", () => {
+  assert.equal(fantasyChatDockClass(), "fantasy-chat-dock is-edge-right");
+  assert.equal(fantasyChatDockClass({ open: true }), "fantasy-chat-dock is-open is-edge-right");
   assert.equal(
     fantasyChatDockClass({ dismissed: true }),
-    "fantasy-chat-dock is-dismissed",
+    "fantasy-chat-dock is-dismissed is-edge-right",
   );
   assert.equal(
     fantasyChatDockClass({ open: true, dismissed: true }),
-    "fantasy-chat-dock is-open",
+    "fantasy-chat-dock is-open is-edge-right",
   );
+  assert.equal(
+    fantasyChatDockClass({ edge: "left" }),
+    "fantasy-chat-dock is-edge-left",
+  );
+});
+
+test("nearest edge parks from the pointer, not a magic offset", () => {
+  assert.equal(nearestChatEdge(10, 200, 800, 600), "left");
+  assert.equal(nearestChatEdge(790, 200, 800, 600), "right");
+  assert.equal(nearestChatEdge(400, 10, 800, 600), "top");
+  assert.equal(nearestChatEdge(400, 590, 800, 600), "bottom");
+});
+
+test("edge placement persists for the session", () => {
+  const store = new Map();
+  const storage = {
+    getItem: (key) => (store.has(key) ? store.get(key) : null),
+    setItem: (key, value) => {
+      store.set(key, String(value));
+    },
+    removeItem: (key) => {
+      store.delete(key);
+    },
+  };
+  assert.equal(readChatLauncherEdge(storage), "right");
+  assert.equal(writeChatLauncherEdge("left", storage), "left");
+  assert.equal(storage.getItem(CHAT_LAUNCHER_EDGE_KEY), "left");
+  assert.equal(writeChatLauncherEdge("nope", storage), "right");
+});
+
+test("Home hides the edge launcher because the locker is the house", () => {
+  assert.equal(hideFantasyChatDock({ house: true }), true);
+  assert.equal(hideFantasyChatDock({ hidden: true }), true);
+  assert.equal(hideFantasyChatDock({}), false);
 });

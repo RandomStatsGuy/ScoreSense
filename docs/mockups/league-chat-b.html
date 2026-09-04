@@ -65,11 +65,13 @@
   }
   .player-chip img { width: 1.15rem; height: 1.15rem; border-radius: 50%; object-fit: cover; object-position: top; }
   .elsewhere {
+    position: relative;
     margin-top: 1.6rem;
     border: 1px dashed var(--border-strong);
     border-radius: var(--radius-lg);
-    padding: 1rem 1.1rem 1.15rem;
+    padding: 1rem 1.1rem 1.15rem 3.6rem;
     background: var(--bg-subtle);
+    overflow: visible;
   }
   .week-board { display: grid; gap: 0.45rem; margin-top: 0.7rem; }
   .week-row {
@@ -81,35 +83,35 @@
   }
   .week-row b { font-size: 0.72rem; color: var(--text-muted); }
   .tab {
-    position: fixed; z-index: 30; top: 42%; left: 0;
-    display: flex; align-items: center; gap: 0.45rem;
-    padding: 0.7rem 0.55rem;
+    position: absolute; z-index: 2; top: 50%; left: 0;
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.45rem 0.7rem 0.45rem 0.55rem;
     border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border));
     border-left: 0;
     border-radius: 0 var(--radius-md) var(--radius-md) 0;
     background: var(--bg-elevated);
     box-shadow: var(--shadow-panel);
     cursor: grab; touch-action: none; color: inherit; font: inherit;
-    writing-mode: vertical-rl; transform: rotate(180deg);
+    transform: translateY(-50%);
   }
   .tab[data-edge="right"] {
     left: auto; right: 0;
     border-left: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border));
     border-right: 0;
     border-radius: var(--radius-md) 0 0 var(--radius-md);
-    writing-mode: vertical-rl; transform: none;
-  }
-  .tab[data-edge="top"], .tab[data-edge="bottom"] {
-    writing-mode: horizontal-tb; transform: none;
-    left: 50%; translate: -50% 0;
+    transform: translateY(-50%);
   }
   .tab[data-edge="top"] {
-    top: 0; border-top: 0;
+    top: 0; left: 50%; right: auto; bottom: auto;
+    border-top: 0; border-left: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border));
     border-radius: 0 0 var(--radius-md) var(--radius-md);
+    transform: translateX(-50%);
   }
   .tab[data-edge="bottom"] {
-    top: auto; bottom: 0; border-bottom: 0;
+    top: auto; bottom: 0; left: 50%; right: auto;
+    border-bottom: 0; border-left: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border));
     border-radius: var(--radius-md) var(--radius-md) 0 0;
+    transform: translateX(-50%);
   }
   .tab.is-dragging { cursor: grabbing; opacity: 0.9; }
   .tab .pulse {
@@ -282,21 +284,20 @@
   <section class="elsewhere">
     <p class="mock-kicker">Elsewhere · This Week</p>
     <h3 style="margin:0.15rem 0 0.25rem; font-size:1.02rem;">The board stays the board.</h3>
-    <p class="note">On This Week the locker becomes a slim edge tab. Drag it to any edge. Tap opens a side drawer so the slate stays readable.</p>
+    <p class="note">On This Week the locker becomes a flush chip on this board — not a rotated tab on the window. Drag it to any edge of this card. Tap opens a side drawer so the slate stays readable.</p>
     <div class="week-board">
       <div class="week-row"><b>RB</b><span>Ashton Jeanty · Q</span><span>11.4</span></div>
       <div class="week-row"><b>FLEX</b><span>Jayden Reed</span><span>12.8</span></div>
       <div class="week-row"><b>TE</b><span>Kyle Pitts</span><span>9.6</span></div>
     </div>
+    <button class="tab" id="tab" type="button" data-edge="left" title="Drag to another edge">
+      <span class="pulse" aria-hidden="true"></span>
+      League chat
+    </button>
   </section>
 
   <p class="footnote">B · Home rail is the house. Drag the edge tab — it parks. Drawer keeps the slate.</p>
 </div>
-
-<button class="tab" id="tab" type="button" data-edge="left" title="Drag to another edge">
-  <span class="pulse" aria-hidden="true"></span>
-  League chat
-</button>
 
 <div class="drawer" id="drawer">
   <aside class="drawer-panel" role="dialog" aria-labelledby="drawer-title">
@@ -331,11 +332,13 @@
 (function () {
   const tab = document.getElementById("tab");
   const drawer = document.getElementById("drawer");
+  const board = tab.closest(".elsewhere");
   let drag = null;
 
   function edgeFor(x, y) {
-    const r = x / window.innerWidth;
-    const b = y / window.innerHeight;
+    const box = board.getBoundingClientRect();
+    const r = (x - box.left) / box.width;
+    const b = (y - box.top) / box.height;
     const dist = [
       ["left", r],
       ["right", 1 - r],
@@ -347,15 +350,12 @@
 
   function park(edge) {
     tab.dataset.edge = edge;
+    tab.style.position = "";
     tab.style.top = "";
     tab.style.left = "";
     tab.style.right = "";
     tab.style.bottom = "";
-    tab.style.translate = "";
-    if (edge === "left") { tab.style.top = "42%"; tab.style.left = "0"; }
-    if (edge === "right") { tab.style.top = "42%"; tab.style.right = "0"; }
-    if (edge === "top") { tab.style.top = "0"; tab.style.left = "50%"; tab.style.translate = "-50% 0"; }
-    if (edge === "bottom") { tab.style.bottom = "0"; tab.style.left = "50%"; tab.style.translate = "-50% 0"; }
+    tab.style.transform = "";
   }
 
   tab.addEventListener("pointerdown", (event) => {
@@ -367,7 +367,8 @@
     if (!drag) return;
     if (Math.abs(event.clientX - drag.startX) + Math.abs(event.clientY - drag.startY) > 8) drag.moved = true;
     if (!drag.moved) return;
-    tab.style.translate = "0 0";
+    tab.style.position = "fixed";
+    tab.style.transform = "none";
     tab.style.left = event.clientX - (tab.offsetWidth / 2) + "px";
     tab.style.top = event.clientY - (tab.offsetHeight / 2) + "px";
     tab.style.right = "auto";

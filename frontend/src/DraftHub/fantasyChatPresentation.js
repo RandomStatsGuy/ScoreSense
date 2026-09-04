@@ -1,9 +1,9 @@
 export const FANTASY_CHAT_COPY = {
   eyebrow: "League conversation",
   titleFallback: "League chat",
-  context: "Stays with you while you move through Fantasy.",
+  context: "Same thread as Home. Drag the chip to an edge.",
   leagueChat: "League chat",
-  openConversation: "Open conversation",
+  openConversation: "Drag to park",
   closeConversation: "Close conversation",
   openChat: "Open league chat",
   closeChat: "Close league chat",
@@ -12,6 +12,8 @@ export const FANTASY_CHAT_COPY = {
 };
 
 export const CHAT_LAUNCHER_DISMISS_KEY = "ss_fantasy_chat_dismissed";
+export const CHAT_LAUNCHER_EDGE_KEY = "ss_fantasy_chat_edge";
+export const CHAT_EDGES = ["left", "right", "top", "bottom"];
 
 function defaultSessionStorage() {
   try {
@@ -41,11 +43,49 @@ export function writeChatLauncherDismissed(dismissed, storage = defaultSessionSt
   return hidden;
 }
 
-export function fantasyChatDockClass({ open = false, dismissed = false } = {}) {
+export function normalizeChatLauncherEdge(edge) {
+  return CHAT_EDGES.includes(edge) ? edge : "right";
+}
+
+export function readChatLauncherEdge(storage = defaultSessionStorage()) {
+  try {
+    return normalizeChatLauncherEdge(storage?.getItem(CHAT_LAUNCHER_EDGE_KEY));
+  } catch {
+    return "right";
+  }
+}
+
+export function writeChatLauncherEdge(edge, storage = defaultSessionStorage()) {
+  const next = normalizeChatLauncherEdge(edge);
+  try {
+    storage?.setItem(CHAT_LAUNCHER_EDGE_KEY, next);
+  } catch {
+    /* private mode / blocked storage */
+  }
+  return next;
+}
+
+export function nearestChatEdge(x, y, width, height) {
+  const w = Number(width) || 1;
+  const h = Number(height) || 1;
+  return [
+    ["left", Number(x) / w],
+    ["right", 1 - Number(x) / w],
+    ["top", Number(y) / h],
+    ["bottom", 1 - Number(y) / h],
+  ].sort((a, b) => a[1] - b[1])[0][0];
+}
+
+export function hideFantasyChatDock({ hidden = false, house = false } = {}) {
+  return Boolean(hidden || house);
+}
+
+export function fantasyChatDockClass({ open = false, dismissed = false, edge = "right" } = {}) {
   return [
     "fantasy-chat-dock",
     open ? "is-open" : "",
     dismissed && !open ? "is-dismissed" : "",
+    `is-edge-${normalizeChatLauncherEdge(edge)}`,
   ]
     .filter(Boolean)
     .join(" ");

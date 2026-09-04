@@ -120,7 +120,8 @@ def test_constitution_covers_chat_chrome() -> None:
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
     assert "FantasyChatDock" in product
     assert "edge launcher" in product
-    assert "centered conversation" in product
+    assert "side drawer" in product
+    assert "locker rail" in product
     assert "FantasyChatDock" in core_rule
     assert "edge launcher" in core_rule
 

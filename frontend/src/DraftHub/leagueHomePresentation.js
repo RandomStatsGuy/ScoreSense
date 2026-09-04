@@ -93,6 +93,9 @@ export const HOME_DECK_COPY = {
   openGame: "Open Game center",
   linkSleeper: "Link Sleeper to fill scores.",
   opponentTbd: "Opponent TBD",
+  lockerKicker: "League table",
+  lockerTitle: "Who is in the locker",
+  lockerNote: "Talk here. Other Fantasy pages open the same thread from an edge.",
 };
 
 export function homeDeckStandingRows(standings, viewerTeamId, limit = 5) {

@@ -46,7 +46,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "action-center",
     page: "frontend/src/DraftHub/LeagueHome.jsx",
     copy: "frontend/src/DraftHub/leagueHomePresentation.js",
-    doNot: "Do not wrap Home in HubExperienceLayout. Extend the action deck. House the league thread here. Do not add a Chat destination.",
+    doNot: "Do not wrap Home in HubExperienceLayout. Extend the action deck. House the league thread in the locker rail. Do not show the edge launcher on Home. Do not add a Chat destination.",
   }),
   "hub.value": S({
     label: "Strategy",

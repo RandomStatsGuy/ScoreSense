@@ -12,7 +12,7 @@ Open **[league-chat.html](./league-chat.html)** first. No new Fantasy destinatio
 |------|-------|
 | `league-chat.html` | Chooser: stuck-today vs Home house vs drag-to-park. |
 | `league-chat-a.html` | **A · Corner card.** Home deck card is the archive. Chip snaps to four corners. Overlay stays centered. |
-| `league-chat-b.html` | **B · Locker rail.** Home right rail is the live table. Elsewhere an edge tab opens a side drawer. |
+| `league-chat-b.html` | **B · Locker rail.** Home right rail is the live table. Elsewhere a flush chip on the board opens a side drawer. |
 | `league-chat-c.html` | **C · Table talk.** Home shout strip. Bubble drags anywhere and magnets to an edge. Bottom table with player chips. |
 
 Recommendation in the chooser: ship C, keep B’s edge-park, use A’s card if the strip is too thin.

@@ -88,4 +88,7 @@ test("home deck helpers format empty scores and keep the viewer in standings", (
     "Week 3 opponent TBD",
   );
   assert.equal(HOME_DECK_COPY.linkSleeper, "Link Sleeper to fill scores.");
+  assert.equal(HOME_DECK_COPY.lockerTitle, "Who is in the locker");
+  assert.match(HOME_DECK_COPY.lockerNote, /edge/i);
+  assert.doesNotMatch(HOME_DECK_COPY.lockerNote, /Draft Hub|Submit|permission/i);
 });
