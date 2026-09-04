@@ -2405,9 +2405,9 @@
 .hub-rules-status.is-error { color: #fca5a5; }
 
 /* Persistent Fantasy chat ------------------------------------------------
-   Portaled to document.body. Closed: right-edge launcher, mid-viewport.
-   Open: centered stage. Atmosphere stacking must never pin this to the
-   document flow — see .draft-hub > *:not(.hub-atmosphere). */
+   Portaled to document.body. Closed: flush edge chip. Open: side drawer.
+   Hidden on Home (locker rail is the house). Atmosphere stacking must
+   never pin this to document flow — see .draft-hub > *:not(.hub-atmosphere). */
 
 .fantasy-chat-dock {
   position: fixed;
