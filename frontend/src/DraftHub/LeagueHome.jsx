@@ -4,6 +4,7 @@ import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../fo
 import { isAbortError } from "../fetchAbort";
 import useMobileLayout from "../useMobileLayout";
 import { HubAlert, HubPage } from "./HubUILayout";
+import LeagueChat from "./LeagueChat";
 import TeamIdentityMark from "./TeamIdentityMark";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 import { findViewerMatchup, gameCenterTeamParts, matchupTeams } from "./gameCenterPresentation";
@@ -230,6 +231,8 @@ export default function LeagueHome({
         ))}
       </nav>
 
+      <div className="hub-home-club">
+      <div className="hub-home-club-main">
       <div className="hub-home-stage">
         <section className={`hub-home-priority hub-home-priority--${focus.kind}`} aria-busy={loading}>
           <p className="hub-home-priority-kicker">
@@ -384,6 +387,18 @@ export default function LeagueHome({
           </ol>
         </section>
       ) : null}
+      </div>
+      {leagueId ? (
+        <aside className="hub-home-locker" aria-label={HOME_DECK_COPY.lockerTitle}>
+          <header className="hub-home-locker-head">
+            <p className="hub-experience-kicker">{HOME_DECK_COPY.lockerKicker}</p>
+            <h3>{HOME_DECK_COPY.lockerTitle}</h3>
+            <p className="chart-note">{HOME_DECK_COPY.lockerNote}</p>
+          </header>
+          <LeagueChat leagueId={leagueId} hubContext={hubContext} />
+        </aside>
+      ) : null}
+      </div>
     </HubPage>
   );
 }

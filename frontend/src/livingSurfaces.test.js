@@ -115,3 +115,10 @@ test("shared chat chrome resolves from the dock and copy module", () => {
   assert.equal(surfacesForFile("frontend/src/DraftHub/FantasyChatDock.jsx")[0].id, "shared");
   assert.equal(surfacesForFile("frontend/src/DraftHub/fantasyChatPresentation.js")[0].id, "shared");
 });
+
+test("league chat phrases resolve to Home", () => {
+  const moved = resolveLivingSurfaceFromText("move the league chat button around");
+  assert.equal(moved.label, "Home");
+  const bubble = resolveLivingSurfaceFromText("the chat bubble should be draggable");
+  assert.equal(bubble.label, "Home");
+});
