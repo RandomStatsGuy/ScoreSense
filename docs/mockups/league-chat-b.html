@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — League chat · B Locker rail</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .home-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 1rem; }
+  .home-head h1 { margin: 0.2rem 0 0; font-size: 1.7rem; letter-spacing: -0.03em; }
+  .phase-track { display: flex; align-items: center; gap: 0; margin-bottom: 1.2rem; }
+  .phase-step {
+    display: flex; align-items: center; gap: 0.45rem; font-size: 0.72rem; color: var(--text-muted);
+    padding: 0 1.1rem;
+  }
+  .phase-step:first-child { padding-left: 0; }
+  .phase-step .dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--border-strong); }
+  .phase-step.done .dot { background: var(--tone-positive); }
+  .phase-step.current { color: var(--text-primary); font-weight: 700; }
+  .phase-step.current .dot { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .phase-line { flex: 1; height: 1px; background: var(--border); }
+  .club { display: grid; grid-template-columns: minmax(0, 1fr) 22rem; gap: 1.3rem; align-items: start; }
+  .priority {
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    background:
+      radial-gradient(110% 170% at 90% -30%, rgba(79, 127, 218, 0.2), transparent 55%),
+      linear-gradient(180deg, #0c1524, #0a121f);
+    padding: 1.4rem 1.6rem;
+    margin-bottom: 1.3rem;
+  }
+  .priority h2 { margin: 0.45rem 0 0.35rem; font-size: 1.45rem; letter-spacing: -0.03em; }
+  .priority p { margin: 0; color: var(--text-secondary); font-size: 0.88rem; max-width: 34rem; }
+  .deck { display: grid; grid-template-columns: 1fr 1fr; gap: 1.3rem; }
+  .mu-row { display: flex; align-items: center; justify-content: space-between; margin-top: 0.8rem; }
+  .mu-team { display: flex; align-items: center; gap: 0.55rem; }
+  .mu-team .tm {
+    width: 2.1rem; height: 2.1rem; border-radius: 10px;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800;
+  }
+  .mu-team .nm { font-size: 0.82rem; font-weight: 700; }
+  .mu-team .rec { display: block; font-size: 0.66rem; color: var(--text-muted); }
+  .locker {
+    position: sticky; top: 3.4rem;
+    display: flex; flex-direction: column;
+    min-height: 32rem;
+    background:
+      linear-gradient(180deg, rgba(52, 211, 153, 0.06), transparent 28%),
+      var(--bg-elevated);
+  }
+  .locker .who-row { display: flex; gap: 0.35rem; margin: 0.55rem 0 0.15rem; }
+  .locker .who-row span {
+    width: 1.55rem; height: 1.55rem; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.58rem; font-weight: 800;
+  }
+  .locker .chat-log { flex: 1; }
+  .player-chip {
+    display: inline-flex; align-items: center; gap: 0.28rem;
+    margin: 0 0.1rem; padding: 0.08rem 0.42rem 0.08rem 0.08rem;
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+    color: var(--accent-muted);
+    font-size: 0.72rem; font-weight: 650; text-decoration: none; vertical-align: middle;
+  }
+  .player-chip img { width: 1.15rem; height: 1.15rem; border-radius: 50%; object-fit: cover; object-position: top; }
+  .elsewhere {
+    margin-top: 1.6rem;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.1rem 1.15rem;
+    background: var(--bg-subtle);
+  }
+  .week-board { display: grid; gap: 0.45rem; margin-top: 0.7rem; }
+  .week-row {
+    display: grid; grid-template-columns: 2.4rem minmax(0, 1fr) 3.2rem;
+    gap: 0.6rem; align-items: center;
+    padding: 0.45rem 0.55rem;
+    border-radius: 10px; background: var(--bg-elevated); border: 1px solid var(--border);
+    font-size: 0.8rem;
+  }
+  .week-row b { font-size: 0.72rem; color: var(--text-muted); }
+  .tab {
+    position: fixed; z-index: 30; top: 42%; left: 0;
+    display: flex; align-items: center; gap: 0.45rem;
+    padding: 0.7rem 0.55rem;
+    border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border));
+    border-left: 0;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    background: var(--bg-elevated);
+    box-shadow: var(--shadow-panel);
+    cursor: grab; touch-action: none; color: inherit; font: inherit;
+    writing-mode: vertical-rl; transform: rotate(180deg);
+  }
+  .tab[data-edge="right"] {
+    left: auto; right: 0;
+    border-left: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border));
+    border-right: 0;
+    border-radius: var(--radius-md) 0 0 var(--radius-md);
+    writing-mode: vertical-rl; transform: none;
+  }
+  .tab[data-edge="top"], .tab[data-edge="bottom"] {
+    writing-mode: horizontal-tb; transform: none;
+    left: 50%; translate: -50% 0;
+  }
+  .tab[data-edge="top"] {
+    top: 0; border-top: 0;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+  }
+  .tab[data-edge="bottom"] {
+    top: auto; bottom: 0; border-bottom: 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+  }
+  .tab.is-dragging { cursor: grabbing; opacity: 0.9; }
+  .tab .pulse {
+    width: 0.42rem; height: 0.42rem; border-radius: 50%; background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .drawer {
+    display: none; position: fixed; inset: 0; z-index: 40;
+    background: rgba(7, 13, 23, 0.45);
+  }
+  .drawer.is-open { display: block; }
+  .drawer-panel {
+    position: absolute; top: 0; right: 0; bottom: 0; width: min(24rem, 92vw);
+    background: var(--bg-elevated);
+    border-left: 1px solid var(--border-strong);
+    padding: 1.1rem 1.15rem;
+    display: flex; flex-direction: column;
+    box-shadow: var(--shadow-panel);
+  }
+  .drawer-panel header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .drawer-panel header span {
+    font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent-muted); font-weight: 700;
+  }
+  @media (max-width: 900px) {
+    .club, .deck { grid-template-columns: 1fr; }
+    .locker { position: static; min-height: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>B · Locker rail</strong> <span>· Home is the clubhouse · edge tab elsewhere</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a href="league-chat.html">Chooser</a>
+    <a href="league-chat-a.html">A · Corner card</a>
+    <a class="is-on" href="league-chat-b.html">B · Locker rail</a>
+    <a href="league-chat-c.html">C · Table talk</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span class="active">Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+
+  <nav class="mock-subnav">
+    <span class="mock-tab active">Home</span>
+    <span class="mock-subnav-group-label">Draft</span>
+    <span class="mock-tab">Strategy</span>
+    <span class="mock-tab">Draft</span>
+    <span class="mock-subnav-group-label">Team</span>
+    <span class="mock-tab">This Week</span>
+    <span class="mock-tab">My team</span>
+  </nav>
+
+  <div class="mock-league-strip">
+    <span class="lg-name">Bottom to Top: Dominate Your Panda</span>
+    <span>Week 10 · 2026</span>
+    <span class="mock-team-mark"><span class="tm" style="background:#274b86;color:#bcd4ff;">MC</span> Maya Chen</span>
+    <span class="spacer"></span>
+    <span class="mock-pill mock-pill--ok">3 talking</span>
+  </div>
+
+  <div class="home-head">
+    <div>
+      <p class="mock-kicker">League command center</p>
+      <h1>The locker is open. Make the next call.</h1>
+    </div>
+  </div>
+
+  <div class="phase-track">
+    <span class="phase-step done"><span class="dot"></span>Build</span><span class="phase-line"></span>
+    <span class="phase-step done"><span class="dot"></span>Prepare</span><span class="phase-line"></span>
+    <span class="phase-step done"><span class="dot"></span>Draft</span><span class="phase-line"></span>
+    <span class="phase-step current"><span class="dot"></span>Compete</span>
+  </div>
+
+  <div class="club">
+    <div>
+      <section class="priority">
+        <p class="mock-kicker">Right now</p>
+        <h2>Two lineup calls before Sunday.</h2>
+        <p>The rail is already arguing Jeanty. Set the lineup from here — you do not need a second page to hear the table.</p>
+        <button class="btn btn-primary" style="margin-top:1.1rem;">Review lineup →</button>
+      </section>
+      <div class="deck">
+        <section class="card">
+          <h3>Your matchup</h3>
+          <p class="note">Week 10</p>
+          <div class="mu-row">
+            <div class="mu-team">
+              <span class="tm" style="background:#274b86;color:#bcd4ff;">MC</span>
+              <span><span class="nm">Maya Chen</span><span class="rec">Panda Command · 6–3</span></span>
+            </div>
+            <strong>92.8</strong>
+          </div>
+          <div class="mu-row">
+            <div class="mu-team">
+              <span class="tm" style="background:#7a4a1c;color:#ffd9a8;">CP</span>
+              <span><span class="nm">Chris Patel</span><span class="rec">Daddio · 7–2</span></span>
+            </div>
+            <strong>96.4</strong>
+          </div>
+        </section>
+        <section class="card">
+          <h3>Standings</h3>
+          <p class="note">Through Week 9</p>
+          <p class="note" style="margin-top:0.7rem;"><b style="color:var(--text-primary);">1</b> Chris Patel · 7–2</p>
+          <p class="note"><b style="color:var(--text-primary);">2</b> Jordan Hale · 7–2</p>
+          <p class="note"><b style="color:var(--accent-muted);">3</b> Maya Chen · 6–3</p>
+        </section>
+      </div>
+    </div>
+
+    <aside class="card locker">
+      <p class="mock-kicker">League table</p>
+      <h3>Who is in the locker</h3>
+      <p class="note">Always on Home. No bubble needed here.</p>
+      <div class="who-row" aria-hidden="true">
+        <span style="background:#173a34;color:#9ff0cf;">CP</span>
+        <span style="background:#5b2430;color:#ffb8c4;">SR</span>
+        <span style="background:#1a3358;color:#bcd4ff;">MC</span>
+      </div>
+      <div class="chat-log">
+        <div class="chat-msg">
+          <span class="av" style="background:#173a34;color:#9ff0cf;">CP</span>
+          <div>
+            <div><span class="who">Chris Patel</span><span class="when">12m</span></div>
+            <p>Sit
+              <a class="player-chip" href="#jeanty"><img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11563.jpg" />Jeanty</a>
+              — ankle still limited. That’s your flex.
+            </p>
+          </div>
+        </div>
+        <div class="chat-msg">
+          <span class="av" style="background:#5b2430;color:#ffb8c4;">SR</span>
+          <div>
+            <div><span class="who">Sam Ruiz</span><span class="when">8m</span></div>
+            <p>$8 on Dowdle before Tuesday. I’m not blinking.</p>
+          </div>
+        </div>
+        <div class="chat-msg">
+          <span class="av" style="background:#1a3358;color:#bcd4ff;">MC</span>
+          <div>
+            <div><span class="who">Maya Chen</span><span class="when">3m</span></div>
+            <p>If he sits, Reed is in. Checking This Week now.</p>
+          </div>
+        </div>
+      </div>
+      <div class="chat-compose">
+        <input value="Reed it is…" readonly />
+        <button class="btn btn-primary btn-sm">Send</button>
+      </div>
+    </aside>
+  </div>
+
+  <section class="elsewhere">
+    <p class="mock-kicker">Elsewhere · This Week</p>
+    <h3 style="margin:0.15rem 0 0.25rem; font-size:1.02rem;">The board stays the board.</h3>
+    <p class="note">On This Week the locker becomes a slim edge tab. Drag it to any edge. Tap opens a side drawer so the slate stays readable.</p>
+    <div class="week-board">
+      <div class="week-row"><b>RB</b><span>Ashton Jeanty · Q</span><span>11.4</span></div>
+      <div class="week-row"><b>FLEX</b><span>Jayden Reed</span><span>12.8</span></div>
+      <div class="week-row"><b>TE</b><span>Kyle Pitts</span><span>9.6</span></div>
+    </div>
+  </section>
+
+  <p class="footnote">B · Home rail is the house. Drag the edge tab — it parks. Drawer keeps the slate.</p>
+</div>
+
+<button class="tab" id="tab" type="button" data-edge="left" title="Drag to another edge">
+  <span class="pulse" aria-hidden="true"></span>
+  League chat
+</button>
+
+<div class="drawer" id="drawer">
+  <aside class="drawer-panel" role="dialog" aria-labelledby="drawer-title">
+    <header>
+      <div>
+        <span>League conversation</span>
+        <h2 id="drawer-title" style="margin:0.15rem 0 0; font-size:1.1rem;">Same locker</h2>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="closeDrawer" type="button">Close</button>
+    </header>
+    <p class="note" style="margin:0.45rem 0 0;">You parked the tab and opened the drawer. Home still holds the full thread.</p>
+    <div class="chat-log">
+      <div class="chat-msg">
+        <span class="av" style="background:#173a34;color:#9ff0cf;">CP</span>
+        <div>
+          <div><span class="who">Chris Patel</span><span class="when">12m</span></div>
+          <p>Sit
+            <a class="player-chip" href="#jeanty"><img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11563.jpg" />Jeanty</a>
+            if the ankle is still limited.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="chat-compose">
+      <input value="Sitting him. Reed in." readonly />
+      <button class="btn btn-primary btn-sm">Send</button>
+    </div>
+  </aside>
+</div>
+
+<script>
+(function () {
+  const tab = document.getElementById("tab");
+  const drawer = document.getElementById("drawer");
+  let drag = null;
+
+  function edgeFor(x, y) {
+    const r = x / window.innerWidth;
+    const b = y / window.innerHeight;
+    const dist = [
+      ["left", r],
+      ["right", 1 - r],
+      ["top", b],
+      ["bottom", 1 - b],
+    ].sort((a, c) => a[1] - c[1])[0][0];
+    return dist;
+  }
+
+  function park(edge) {
+    tab.dataset.edge = edge;
+    tab.style.top = "";
+    tab.style.left = "";
+    tab.style.right = "";
+    tab.style.bottom = "";
+    tab.style.translate = "";
+    if (edge === "left") { tab.style.top = "42%"; tab.style.left = "0"; }
+    if (edge === "right") { tab.style.top = "42%"; tab.style.right = "0"; }
+    if (edge === "top") { tab.style.top = "0"; tab.style.left = "50%"; tab.style.translate = "-50% 0"; }
+    if (edge === "bottom") { tab.style.bottom = "0"; tab.style.left = "50%"; tab.style.translate = "-50% 0"; }
+  }
+
+  tab.addEventListener("pointerdown", (event) => {
+    drag = { startX: event.clientX, startY: event.clientY, moved: false };
+    tab.setPointerCapture(event.pointerId);
+    tab.classList.add("is-dragging");
+  });
+  tab.addEventListener("pointermove", (event) => {
+    if (!drag) return;
+    if (Math.abs(event.clientX - drag.startX) + Math.abs(event.clientY - drag.startY) > 8) drag.moved = true;
+    if (!drag.moved) return;
+    tab.style.translate = "0 0";
+    tab.style.left = event.clientX - 18 + "px";
+    tab.style.top = event.clientY - 18 + "px";
+    tab.style.right = "auto";
+    tab.style.bottom = "auto";
+  });
+  function endDrag() {
+    if (!drag) return;
+    const moved = drag.moved;
+    const x = tab.getBoundingClientRect().left + 20;
+    const y = tab.getBoundingClientRect().top + 20;
+    tab.classList.remove("is-dragging");
+    if (moved) park(edgeFor(x, y));
+    else drawer.classList.add("is-open");
+    drag = null;
+  }
+  tab.addEventListener("pointerup", endDrag);
+  tab.addEventListener("pointercancel", endDrag);
+  document.getElementById("closeDrawer").addEventListener("click", () => drawer.classList.remove("is-open"));
+  drawer.addEventListener("mousedown", (event) => {
+    if (event.target === drawer) drawer.classList.remove("is-open");
+  });
+})();
+</script>
+</body>
+</html>

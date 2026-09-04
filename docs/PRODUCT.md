@@ -110,7 +110,7 @@ Contracts · Salary sheets · Members · Access & imports.
 
 Members is where staff add or remove a franchise before the next auction. Existing contracts stay on their clubs; the new seat starts empty with a full cap.
 
-Chat is **not** a pane here. Chat is `FantasyChatDock` on shared Fantasy pages: a viewport-fixed edge launcher (not locked to the bottom of the page). Opening fills a centered conversation. Closing returns to the launcher. The launcher can be hidden for the session.
+Chat is **not** a pane or a Fantasy destination. The full thread lives on **Home**. Other Fantasy pages keep `FantasyChatDock`: a viewport-fixed edge launcher you can drag to a new corner (not locked to the bottom, not hide-only). Opening fills a centered conversation. Closing returns to the launcher. Live draft rooms that already have integrated chat stay board-first.
 
 ### Manager labels
 

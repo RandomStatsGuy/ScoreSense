@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — League chat · A Corner card</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .home-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 1rem; }
+  .home-head h1 { margin: 0.2rem 0 0; font-size: 1.7rem; letter-spacing: -0.03em; }
+  .phase-track { display: flex; align-items: center; gap: 0; margin-bottom: 1.2rem; }
+  .phase-step {
+    display: flex; align-items: center; gap: 0.45rem; font-size: 0.72rem; color: var(--text-muted);
+    padding: 0 1.1rem;
+  }
+  .phase-step:first-child { padding-left: 0; }
+  .phase-step .dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--border-strong); }
+  .phase-step.done .dot { background: var(--tone-positive); }
+  .phase-step.current { color: var(--text-primary); font-weight: 700; }
+  .phase-step.current .dot { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .phase-line { flex: 1; height: 1px; background: var(--border); }
+  .stage { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 1.3rem; margin-bottom: 1.3rem; }
+  .priority {
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    background:
+      radial-gradient(110% 170% at 90% -30%, rgba(79, 127, 218, 0.2), transparent 55%),
+      linear-gradient(180deg, #0c1524, #0a121f);
+    padding: 1.4rem 1.6rem;
+  }
+  .priority h2 { margin: 0.45rem 0 0.35rem; font-size: 1.45rem; letter-spacing: -0.03em; }
+  .priority p { margin: 0; color: var(--text-secondary); font-size: 0.88rem; max-width: 34rem; }
+  .priority-actions { display: flex; gap: 0.7rem; align-items: center; margin-top: 1.1rem; }
+  .deck { display: grid; grid-template-columns: 1fr 1.15fr; gap: 1.3rem; margin-bottom: 1.3rem; }
+  .mu-row { display: flex; align-items: center; justify-content: space-between; margin-top: 0.8rem; }
+  .mu-team { display: flex; align-items: center; gap: 0.55rem; min-width: 0; }
+  .mu-team .tm {
+    width: 2.1rem; height: 2.1rem; border-radius: 10px; flex: none;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800;
+  }
+  .mu-team .nm { font-size: 0.82rem; font-weight: 700; line-height: 1.2; }
+  .mu-team .rec { display: block; font-size: 0.66rem; color: var(--text-muted); font-weight: 500; }
+  .thread-card { display: flex; flex-direction: column; min-height: 22rem; }
+  .thread-card .chat-log { flex: 1; }
+  .player-chip {
+    display: inline-flex; align-items: center; gap: 0.28rem;
+    margin: 0 0.1rem; padding: 0.08rem 0.42rem 0.08rem 0.08rem;
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+    color: var(--accent-muted);
+    font-size: 0.72rem; font-weight: 650; text-decoration: none; vertical-align: middle;
+  }
+  .player-chip img { width: 1.15rem; height: 1.15rem; border-radius: 50%; object-fit: cover; object-position: top; }
+  .dock {
+    position: fixed; z-index: 30; top: 5.2rem; left: 1.1rem;
+    display: flex; align-items: stretch;
+    border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border));
+    border-radius: var(--radius-md);
+    background: var(--bg-elevated);
+    box-shadow: var(--shadow-panel);
+    cursor: grab; touch-action: none; user-select: none;
+  }
+  .dock.is-dragging { cursor: grabbing; }
+  .dock-open {
+    display: grid; grid-template-columns: auto auto minmax(0, 1fr);
+    gap: 0.5rem; align-items: center;
+    padding: 0.55rem 0.7rem; border: 0; background: transparent; color: inherit;
+    text-align: left; cursor: inherit; font: inherit;
+  }
+  .dock-open strong { display: block; font-size: 0.8rem; }
+  .dock-open small { display: block; margin-top: 0.12rem; color: var(--text-muted); font-size: 0.68rem; }
+  .dock-hide {
+    min-width: 2.4rem; border: 0; border-left: 1px solid var(--border);
+    background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 1.1rem;
+  }
+  .pulse {
+    width: 0.48rem; height: 0.48rem; border-radius: 50%; background: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft);
+  }
+  .hint {
+    position: fixed; z-index: 29; top: 9.4rem; left: 1.1rem;
+    font-size: 0.68rem; color: var(--text-muted); max-width: 11rem;
+  }
+  .overlay {
+    display: none; position: fixed; inset: 0; z-index: 40;
+    background: rgba(7, 13, 23, 0.62);
+    place-items: center; padding: 1.5rem;
+  }
+  .overlay.is-open { display: grid; }
+  .stage-card {
+    width: min(34rem, 100%);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    padding: 1.1rem 1.2rem 1.15rem;
+    box-shadow: var(--shadow-panel);
+  }
+  .stage-card header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .stage-card header span {
+    font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent-muted); font-weight: 700;
+  }
+  .stage-card h2 { margin: 0.2rem 0 0; font-size: 1.15rem; }
+  @media (max-width: 860px) {
+    .stage, .deck { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>A · Corner card</strong> <span>· Home thread + snap-to-corner chip</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a href="league-chat.html">Chooser</a>
+    <a class="is-on" href="league-chat-a.html">A · Corner card</a>
+    <a href="league-chat-b.html">B · Locker rail</a>
+    <a href="league-chat-c.html">C · Table talk</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span class="active">Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+
+  <nav class="mock-subnav">
+    <span class="mock-tab active">Home</span>
+    <span class="mock-subnav-group-label">Draft</span>
+    <span class="mock-tab">Strategy</span>
+    <span class="mock-tab">Draft</span>
+    <span class="mock-subnav-group-label">Team</span>
+    <span class="mock-tab">This Week</span>
+    <span class="mock-tab">Game center</span>
+    <span class="mock-tab">My team</span>
+  </nav>
+
+  <div class="mock-league-strip">
+    <span class="lg-name">Bottom to Top: Dominate Your Panda</span>
+    <span>Week 10 · 2026</span>
+    <span class="mock-team-mark"><span class="tm" style="background:#274b86;color:#bcd4ff;">MC</span> Maya Chen</span>
+    <span class="spacer"></span>
+    <span class="mock-pill mock-pill--accent">2 lineup calls</span>
+  </div>
+
+  <div class="home-head">
+    <div>
+      <p class="mock-kicker">League command center</p>
+      <h1>Make the next decision count.</h1>
+    </div>
+  </div>
+
+  <div class="phase-track">
+    <span class="phase-step done"><span class="dot"></span>Build</span><span class="phase-line"></span>
+    <span class="phase-step done"><span class="dot"></span>Prepare</span><span class="phase-line"></span>
+    <span class="phase-step done"><span class="dot"></span>Draft</span><span class="phase-line"></span>
+    <span class="phase-step current"><span class="dot"></span>Compete</span>
+  </div>
+
+  <div class="stage">
+    <section class="priority">
+      <p class="mock-kicker">Right now</p>
+      <h2>Two lineup calls before Sunday.</h2>
+      <p>Chris just tagged Jeanty in the table. If you sit him, Reed is the replacement — decide both before 1:00.</p>
+      <div class="priority-actions">
+        <button class="btn btn-primary">Review lineup →</button>
+      </div>
+    </section>
+    <aside class="card">
+      <p class="mock-kicker">At a glance</p>
+      <h3>Maya Chen</h3>
+      <p class="note">Panda Command</p>
+      <div class="facts">
+        <div class="fact">Cap left <strong>$68</strong></div>
+        <div class="fact">Week 10 <strong>2 calls</strong></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="deck">
+    <section class="card">
+      <h3>Your matchup</h3>
+      <p class="note">Week 10 · first place on the line</p>
+      <div class="mu-row">
+        <div class="mu-team">
+          <span class="tm" style="background:#274b86;color:#bcd4ff;">MC</span>
+          <span><span class="nm">Maya Chen</span><span class="rec">Panda Command · 6–3</span></span>
+        </div>
+        <strong>92.8</strong>
+      </div>
+      <div class="mu-row">
+        <div class="mu-team">
+          <span class="tm" style="background:#7a4a1c;color:#ffd9a8;">CP</span>
+          <span><span class="nm">Chris Patel</span><span class="rec">Daddio · 7–2</span></span>
+        </div>
+        <strong>96.4</strong>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:0.9rem;">Open Game center →</button>
+    </section>
+
+    <section class="card thread-card">
+      <h3>League table</h3>
+      <p class="note">This is the house. The bubble on other pages opens this same thread.</p>
+      <div class="chat-log">
+        <div class="chat-msg">
+          <span class="av" style="background:#173a34;color:#9ff0cf;">CP</span>
+          <div>
+            <div><span class="who">Chris Patel</span><span class="when">12m</span></div>
+            <p>Sit
+              <a class="player-chip" href="#jeanty"><img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11563.jpg" />Jeanty</a>
+              if the ankle is still limited. That’s the week.
+            </p>
+          </div>
+        </div>
+        <div class="chat-msg">
+          <span class="av" style="background:#5b2430;color:#ffb8c4;">SR</span>
+          <div>
+            <div><span class="who">Sam Ruiz</span><span class="when">8m</span></div>
+            <p>I’m still going $8 on Dowdle before Tuesday. Don’t sleep.</p>
+          </div>
+        </div>
+        <div class="chat-msg">
+          <span class="av" style="background:#1a3358;color:#bcd4ff;">MC</span>
+          <div>
+            <div><span class="who">Maya Chen</span><span class="when">3m</span></div>
+            <p>Starting Pitts into that matchup. If Jeanty sits I need Reed in the flex.</p>
+          </div>
+        </div>
+      </div>
+      <div class="chat-compose">
+        <input value="Reed or Metcalf if Jeanty is out…" readonly />
+        <button class="btn btn-primary btn-sm">Send</button>
+      </div>
+    </section>
+  </div>
+
+  <p class="footnote">A · Home card is the archive. Chip snaps to corners. Overlay stays centered on other pages.</p>
+</div>
+
+<div class="dock" id="dock" title="Drag to a corner">
+  <button class="dock-open" id="openDock" type="button">
+    <span class="pulse" aria-hidden="true"></span>
+    <span>
+      <strong>League chat</strong>
+      <small>Drag to a corner</small>
+    </span>
+  </button>
+  <button class="dock-hide" type="button" aria-label="Hide league chat">×</button>
+</div>
+<p class="hint" id="hint">Not stuck mid-right. Drag — it snaps to a corner.</p>
+
+<div class="overlay" id="overlay">
+  <div class="stage-card" role="dialog" aria-labelledby="overlay-title">
+    <header>
+      <div>
+        <span>League conversation</span>
+        <h2 id="overlay-title">Bottom to Top</h2>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="closeOverlay" type="button">Close</button>
+    </header>
+    <p class="note" style="margin:0.45rem 0 0;">Same thread as the Home card. You opened it from the chip.</p>
+    <div class="chat-log">
+      <div class="chat-msg">
+        <span class="av" style="background:#173a34;color:#9ff0cf;">CP</span>
+        <div>
+          <div><span class="who">Chris Patel</span><span class="when">12m</span></div>
+          <p>Sit
+            <a class="player-chip" href="#jeanty"><img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11563.jpg" />Jeanty</a>
+            if the ankle is still limited.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="chat-compose">
+      <input value="Got it — checking This Week…" readonly />
+      <button class="btn btn-primary btn-sm">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const dock = document.getElementById("dock");
+  const hint = document.getElementById("hint");
+  const overlay = document.getElementById("overlay");
+  const pad = 18;
+  let drag = null;
+
+  function corners() {
+    const w = dock.offsetWidth;
+    const h = dock.offsetHeight;
+    return [
+      { top: pad, left: pad },
+      { top: pad, left: window.innerWidth - w - pad },
+      { top: window.innerHeight - h - pad, left: pad },
+      { top: window.innerHeight - h - pad, left: window.innerWidth - w - pad },
+    ];
+  }
+
+  function nearest(x, y) {
+    let best = corners()[0];
+    let bestD = Infinity;
+    for (const c of corners()) {
+      const d = (c.left - x) ** 2 + (c.top - y) ** 2;
+      if (d < bestD) { bestD = d; best = c; }
+    }
+    return best;
+  }
+
+  function place(pos) {
+    dock.style.top = pos.top + "px";
+    dock.style.left = pos.left + "px";
+    dock.style.right = "auto";
+    dock.style.bottom = "auto";
+    hint.style.top = pos.top + dock.offsetHeight + 8 + "px";
+    hint.style.left = pos.left + "px";
+  }
+
+  dock.addEventListener("pointerdown", (event) => {
+    if (event.target.closest(".dock-hide")) return;
+    if (event.target.closest("#openDock") && !event.shiftKey && event.detail === 1) {
+      /* allow click-to-open unless we move */
+    }
+    drag = {
+      startX: event.clientX,
+      startY: event.clientY,
+      origTop: dock.offsetTop,
+      origLeft: dock.offsetLeft,
+      moved: false,
+    };
+    dock.setPointerCapture(event.pointerId);
+    dock.classList.add("is-dragging");
+  });
+
+  dock.addEventListener("pointermove", (event) => {
+    if (!drag) return;
+    const dx = event.clientX - drag.startX;
+    const dy = event.clientY - drag.startY;
+    if (Math.abs(dx) + Math.abs(dy) > 6) drag.moved = true;
+    if (!drag.moved) return;
+    dock.style.top = drag.origTop + dy + "px";
+    dock.style.left = drag.origLeft + dx + "px";
+  });
+
+  function endDrag(event) {
+    if (!drag) return;
+    const moved = drag.moved;
+    dock.classList.remove("is-dragging");
+    if (moved) place(nearest(dock.offsetLeft, dock.offsetTop));
+    drag = null;
+    if (!moved && event.target.closest("#openDock")) overlay.classList.add("is-open");
+  }
+
+  dock.addEventListener("pointerup", endDrag);
+  dock.addEventListener("pointercancel", endDrag);
+  document.getElementById("closeOverlay").addEventListener("click", () => overlay.classList.remove("is-open"));
+  overlay.addEventListener("mousedown", (event) => {
+    if (event.target === overlay) overlay.classList.remove("is-open");
+  });
+})();
+</script>
+</body>
+</html>

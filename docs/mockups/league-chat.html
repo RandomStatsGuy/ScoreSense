@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — League chat · choose a layout</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .chooser-hero h1 { font-size: 2.1rem; }
+  .phase {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem;
+    margin: 1.2rem 0 0;
+  }
+  .phase article {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 0.95rem;
+  }
+  .phase .when { font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-muted); font-weight: 700; }
+  .phase h3 { margin: 0.25rem 0 0.2rem; font-size: 0.95rem; }
+  .phase p { margin: 0; font-size: 0.76rem; color: var(--text-muted); }
+  .phase .is-new { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .concepts { display: grid; grid-template-columns: 1fr; gap: 1.1rem; }
+  .concept {
+    display: grid; grid-template-columns: minmax(11rem, 16rem) minmax(0, 1fr) auto;
+    gap: 1.1rem; align-items: center;
+    text-decoration: none; color: inherit;
+    padding: 1.1rem 1.2rem;
+  }
+  .concept:hover { border-color: var(--border-strong); }
+  .letter {
+    width: 100%; aspect-ratio: 16 / 10; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; font-weight: 800; letter-spacing: -0.03em;
+  }
+  .letter-t { background: var(--bg-subtle); color: var(--text-muted); border: 1px dashed var(--border-strong); }
+  .letter-a { background: linear-gradient(150deg, #1a3358, #122033); color: #bcd4ff; }
+  .letter-b { background: linear-gradient(150deg, #173a34, #102028); color: #9ff0cf; }
+  .letter-c { background: linear-gradient(150deg, #3a2a14, #1c1710); color: #fde68a; }
+  .concept h3 { margin: 0 0 0.2rem; font-size: 1.08rem; }
+  .concept p { margin: 0; color: var(--text-secondary); font-size: 0.84rem; }
+  .concept .fit { margin-top: 0.4rem; font-size: 0.72rem; color: var(--text-muted); }
+  .pick { color: var(--accent-muted); font-size: 0.8rem; font-weight: 650; white-space: nowrap; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  .rule { margin: 0.55rem 0 0; padding: 0; list-style: none; }
+  .rule li {
+    padding: 0.45rem 0; border-bottom: 1px solid rgba(36,50,73,0.5);
+    font-size: 0.82rem; color: var(--text-secondary);
+  }
+  .rule li:last-child { border-bottom: 0; }
+  .rule b { color: var(--text-primary); }
+  @media (max-width: 760px) {
+    .phase, .split { grid-template-columns: 1fr; }
+    .concept { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>League chat</strong> <span>· design review · not shipped</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a class="is-on" href="league-chat.html">Chooser</a>
+    <a href="league-chat-a.html">A · Corner card</a>
+    <a href="league-chat-b.html">B · Locker rail</a>
+    <a href="league-chat-c.html">C · Table talk</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span class="active">Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+
+  <section class="mock-hero chooser-hero">
+    <p class="mock-kicker">Design review · Fantasy chat</p>
+    <h1>Move the bubble. Read the table on Home.</h1>
+    <p class="support">
+      Today the launcher is stuck mid-right. You can hide it, not park it. The conversation only lives in that overlay — there is no page that owns the thread.
+      Pick how Home holds chat, and how the bubble moves on every other Fantasy screen. No new destination.
+    </p>
+    <div class="phase">
+      <article>
+        <div class="when">Today</div>
+        <h3>Stuck + hide</h3>
+        <p>Mid-right chip. Close it and it stays there. Overlay only. Home does not keep the thread.</p>
+      </article>
+      <article class="is-new">
+        <div class="when">Keep</div>
+        <h3>Home is the house</h3>
+        <p>Full thread lives on Home. The bubble opens the same conversation from Strategy, This Week, Cap — anywhere in the league.</p>
+      </article>
+      <article class="is-new">
+        <div class="when">New</div>
+        <h3>Drag to park</h3>
+        <p>Move the launcher out of the board. Hide is still there. Placement is yours.</p>
+      </article>
+    </div>
+  </section>
+
+  <div class="concepts">
+    <a class="card concept" href="league-chat-a.html">
+      <div class="letter letter-a">A</div>
+      <div>
+        <h3>Corner card</h3>
+        <p>Home gets a league-thread deck card next to your matchup. Elsewhere the chip snaps to four corners. Tap still opens the centered conversation.</p>
+        <p class="fit">Closest to today. Best if you want the overlay and a Home archive.</p>
+      </div>
+      <span class="pick">Open →</span>
+    </a>
+
+    <a class="card concept" href="league-chat-b.html">
+      <div class="letter letter-b">B</div>
+      <div>
+        <h3>Locker rail</h3>
+        <p>Home’s right rail is the live table. Elsewhere the launcher parks as a slim edge tab and opens a side drawer — the board stays readable.</p>
+        <p class="fit">Best if Home should feel like the clubhouse and This Week should not lose the slate.</p>
+      </div>
+      <span class="pick">Open →</span>
+    </a>
+
+    <a class="card concept" href="league-chat-c.html">
+      <div class="letter letter-c">C</div>
+      <div>
+        <h3>Table talk</h3>
+        <p>Home keeps the action deck. A shout strip holds the last take. The bubble drags anywhere and magnets to an edge. Open is a bottom table with player chips that jump to This Week.</p>
+        <p class="fit">Most fun. Best if talk should change a start/sit without leaving the conversation.</p>
+      </div>
+      <span class="pick">Open →</span>
+    </a>
+  </div>
+
+  <div class="split" style="margin-top:1.4rem;">
+    <section class="card">
+      <h3>Hard lines</h3>
+      <ul class="rule">
+        <li><b>No Chat tab.</b> Home already exists. Do not add a destination.</li>
+        <li><b>Owner names lead.</b> Team nicknames sit underneath.</li>
+        <li><b>Fun is a decision.</b> Player chips open This Week or Free agents — not confetti.</li>
+        <li><b>Live draft stays board-first.</b> Rooms that already have chat keep it.</li>
+      </ul>
+    </section>
+    <section class="card">
+      <h3>What I would ship</h3>
+      <p class="note">Recommendation if you want one default.</p>
+      <p style="margin:0.7rem 0 0; font-size:0.88rem; color:var(--text-secondary);">
+        <b style="color:var(--text-primary);">C · Table talk</b> for the hangout,
+        with B’s edge-park so the bubble can get off a dense board,
+        and A’s Home card if the strip feels too thin.
+        Reply A, B, C, or a hybrid.
+      </p>
+    </section>
+  </div>
+
+  <p class="footnote">Static mock · tokens only · not product code. Drag the launchers on A / B / C.</p>
+</div>
+</body>
+</html>
