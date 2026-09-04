@@ -83,7 +83,7 @@
 
 .hub-strategy-photo--hero {
   aspect-ratio: 4 / 5;
-  max-height: 22rem;
+  max-height: 24rem;
   background:
     linear-gradient(
       180deg,
@@ -113,15 +113,14 @@
 
 .hub-strategy-photo-team {
   position: absolute;
-  inset: 12%;
+  inset: 8%;
   width: auto;
   height: auto;
-  max-width: 68%;
-  max-height: 68%;
+  max-width: 78%;
+  max-height: 78%;
   margin: auto;
   object-fit: contain;
-  opacity: 0.2;
-  filter: grayscale(0.2);
+  opacity: 0.28;
   pointer-events: none;
 }
 
@@ -130,6 +129,8 @@
   z-index: 1;
   object-fit: contain;
   object-position: bottom center;
+  transform: scale(1.32);
+  transform-origin: bottom center;
 }
 
 .hub-strategy-photo-fallback {
