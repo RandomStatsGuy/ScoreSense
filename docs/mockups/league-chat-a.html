@@ -328,9 +328,6 @@
 
   dock.addEventListener("pointerdown", (event) => {
     if (event.target.closest(".dock-hide")) return;
-    if (event.target.closest("#openDock") && !event.shiftKey && event.detail === 1) {
-      /* allow click-to-open unless we move */
-    }
     drag = {
       startX: event.clientX,
       startY: event.clientY,
@@ -363,6 +360,10 @@
 
   dock.addEventListener("pointerup", endDrag);
   dock.addEventListener("pointercancel", endDrag);
+  window.addEventListener("resize", () => {
+    if (drag) return;
+    place(nearest(dock.offsetLeft, dock.offsetTop));
+  });
   document.getElementById("closeOverlay").addEventListener("click", () => overlay.classList.remove("is-open"));
   overlay.addEventListener("mousedown", (event) => {
     if (event.target === overlay) overlay.classList.remove("is-open");

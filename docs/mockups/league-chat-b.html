@@ -368,16 +368,17 @@
     if (Math.abs(event.clientX - drag.startX) + Math.abs(event.clientY - drag.startY) > 8) drag.moved = true;
     if (!drag.moved) return;
     tab.style.translate = "0 0";
-    tab.style.left = event.clientX - 18 + "px";
-    tab.style.top = event.clientY - 18 + "px";
+    tab.style.left = event.clientX - (tab.offsetWidth / 2) + "px";
+    tab.style.top = event.clientY - (tab.offsetHeight / 2) + "px";
     tab.style.right = "auto";
     tab.style.bottom = "auto";
   });
   function endDrag() {
     if (!drag) return;
     const moved = drag.moved;
-    const x = tab.getBoundingClientRect().left + 20;
-    const y = tab.getBoundingClientRect().top + 20;
+    const rect = tab.getBoundingClientRect();
+    const x = rect.left + (rect.width / 2);
+    const y = rect.top + (rect.height / 2);
     tab.classList.remove("is-dragging");
     if (moved) park(edgeFor(x, y));
     else drawer.classList.add("is-open");

@@ -28,6 +28,7 @@ Keep under 30 data rows. Promote `always` / `never` into `docs/PRODUCT.md` or a 
 | usually | agent | Improve UI quality against the local API+Vite app and living surfaces, not Vercel previews or Figma file creation. |
 | usually | agent | For a redesign or new page, write 2-3 static HTML mock options in docs/mockups, then implement the pick. Skip screenshots and design essays on the mock pass. |
 | usually | agent | When sharing Cloud mockup URLs, use a markdown localhost link and attach screenshots. Web viewers cannot open 127.0.0.1 in a normal browser. |
+| usually | agent | Address review comments on the existing PR branch. Do not open a new branch for the same review. |
 | usually | fantasy-ui | Vibes front card is the matchup only. Bio and latest news open behind the info arrow. |
 | usually | fantasy-ui | Vibes rail title is Vibe ranking. The table is VA-projections, not Your aura or Vibe slate. |
 | usually | fantasy-ui | One vibe swipe per player per calendar day. Do not let reshuffle farm aura on the same card. |

@@ -376,6 +376,11 @@
   }
   bubble.addEventListener("pointerup", endDrag);
   bubble.addEventListener("pointercancel", endDrag);
+  window.addEventListener("resize", () => {
+    if (drag) return;
+    const rect = bubble.getBoundingClientRect();
+    place(magnet(rect.left, rect.top));
+  });
   document.getElementById("openTable").addEventListener("click", () => toggleTable(true));
   document.getElementById("closeTable").addEventListener("click", () => toggleTable(false));
   toggleTable(true);
