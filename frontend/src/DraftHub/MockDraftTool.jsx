@@ -15,6 +15,7 @@ import {
   botCountForTeams,
   buildMockDraftStartBody,
   mockDraftDisplayName,
+  mockDraftHeroCopy,
   mockDraftFormatLabel,
   mockDraftLaunchSummary,
   mockRoomPhaseKey,
@@ -27,7 +28,7 @@ import {
 
 const EMPTY_ROWS = [];
 const FORMAT_PERSONALITY = {
-  salary_cap_auction_v1: { icon: "$", note: "Read the room. Spend with conviction." },
+  salary_cap_auction_v1: { icon: "$", note: "Nominate and bid. Overspend and you miss later names." },
   snake_draft_v1: { icon: "S", note: "Plan the turns. Let the board come to you." },
   linear_draft_v1: { icon: "L", note: "Same seat every round. Make position count." },
 };
@@ -262,6 +263,8 @@ export default function MockDraftTool({ projMeta = null }) {
     );
   }
 
+  const mockHero = mockDraftHeroCopy();
+
   return (
     <HubPage className="mock-draft-tool">
       <ThinkingScrim
@@ -274,15 +277,13 @@ export default function MockDraftTool({ projMeta = null }) {
       />
       <header className="mock-draft-hero">
         <div>
-          <p className="hub-experience-kicker">Draft lab</p>
-          <h2>Build a room worth entering.</h2>
-          <p>
-            Pick the format, take a seat, and invite friends — or run it yourself against bots.
-          </p>
+          <p className="hub-experience-kicker">{mockHero.kicker}</p>
+          <h2>{mockHero.heading}</h2>
+          <p>{mockHero.support}</p>
         </div>
         <div className="mock-draft-hero-note" role="note">
-          <strong>Practice stays off the books.</strong>
-          <span>Friends can sit in without a ScoreSense account. Real keepers stay put.</span>
+          <strong>{mockHero.noteTitle}</strong>
+          <span>{mockHero.noteBody}</span>
         </div>
       </header>
       {error ? <HubAlert variant="danger">{error}</HubAlert> : null}
@@ -293,8 +294,8 @@ export default function MockDraftTool({ projMeta = null }) {
             <header className="mock-draft-step-head">
               <span>1</span>
               <div>
-                <h3 id="mock-format-title">Choose the room</h3>
-                <p>Three formats, three different kinds of pressure.</p>
+                <h3 id="mock-format-title">{mockHero.formatTitle}</h3>
+                <p>{mockHero.formatSupport}</p>
               </div>
             </header>
             <div className="mock-draft-formats" aria-label="Draft format">

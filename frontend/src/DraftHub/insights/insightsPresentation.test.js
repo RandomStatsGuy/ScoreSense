@@ -7,6 +7,7 @@ import test from "node:test";
 import {
   featureAwards,
   formatSpendValue,
+  INSIGHTS_COPY,
   insightsHeroStatus,
   pickDiscussablePosition,
   positionSpendLeaders,
@@ -78,6 +79,13 @@ test("scoringRaceRows sorts by points and measures the gap from first", () => {
   assert.deepEqual(rows.map((r) => r.label), ["First", "Second", "Third"]);
   assert.equal(rows[1].gapFromFirst, 300);
   assert.equal(rows[0].pctOfLeader, 100);
+});
+
+test("insights heroes name the argument, not a recap slogan", () => {
+  assert.match(INSIGHTS_COPY.overview.heading, /arguing/i);
+  assert.match(INSIGHTS_COPY.spend.support, /overspend|thin/i);
+  assert.match(INSIGHTS_COPY.history.support, /paper trail|trade/i);
+  assert.doesNotMatch(INSIGHTS_COPY.overview.heading, /league so far|Draft Hub|Submit/i);
 });
 
 test("formatSpendValue and hero status stay screenshot-ready", () => {

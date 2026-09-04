@@ -168,6 +168,29 @@ export function scoringRaceRows(standings, { ownerMap, yearSpecific = false } = 
   });
 }
 
+export const INSIGHTS_COPY = {
+  overview: {
+    eyebrow: "Insights",
+    heading: "Who you are arguing about.",
+    support: "Titles, records, and top scorers. Spend and scoring tabs are for the fights those start.",
+  },
+  spend: {
+    eyebrow: "Insights",
+    heading: "Who burned the cap.",
+    support: "Positional spend and who is out of room. Overspend at RB and you draft thin everywhere else.",
+  },
+  scoring: {
+    eyebrow: "Scoring",
+    heading: "Who put up the points.",
+    support: "The points race and week trophies. High score with a losing record is the argument.",
+  },
+  history: {
+    eyebrow: "History",
+    heading: "Follow one player across owners.",
+    support: "Contracts and the timeline. Use it when a trade or keeper fight needs the paper trail.",
+  },
+};
+
 export function insightsHeroStatus(featured) {
   const top = featured?.[0];
   if (!top) return "";

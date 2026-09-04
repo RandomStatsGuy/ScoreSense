@@ -3,7 +3,7 @@ import { apiFetch } from "../../auth";
 import { parseApiError } from "../../format";
 import { HubExperienceHero, HubPage } from "../HubUILayout";
 import { InsightsDisclosure, RankBars } from "./InsightsTalk";
-import { teamDisplayName } from "./insightsPresentation";
+import { INSIGHTS_COPY, teamDisplayName } from "./insightsPresentation";
 
 function formatRecord(row) {
   const wins = Number(row.wins) || 0;
@@ -69,9 +69,9 @@ export default function InsightsOverview({
   return (
     <HubPage className="hub-spend-page hub-experience-page hub-insights-page">
       <HubExperienceHero
-        eyebrow="Insights"
-        heading="The league so far."
-        support="Champions, records, and who has scored the most. Spend, scoring, and contracts sit one tab over."
+        eyebrow={INSIGHTS_COPY.overview.eyebrow}
+        heading={INSIGHTS_COPY.overview.heading}
+        support={INSIGHTS_COPY.overview.support}
         chip={landing?.seasons_included?.length ? `${landing.seasons_included.length} seasons` : "League history"}
       >
         {landing?.most_titles?.titles > 1 ? (

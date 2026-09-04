@@ -1,5 +1,11 @@
 import { isPickDraft } from "./draftEntryStatus.js";
 
+export const RULES_COPY = {
+  eyebrow: "League rules",
+  heading: "What a new contract will cost.",
+  support: "New deals follow these numbers. Old deals keep their schedules unless you run a migration. A silent change after the draft strands managers.",
+};
+
 export const ROSTER_LIMIT_KEYS = ["qb", "rb", "wr", "te", "k", "def"];
 
 export const DEFAULT_RULES = {

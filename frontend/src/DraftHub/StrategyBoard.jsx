@@ -36,30 +36,43 @@ import {
   takeLabel,
 } from "./strategyRankPresentation.js";
 import { headshotCandidates, lookupPlayerMedia, playerInitials, teamLogoUrl } from "./draftMedia";
+import { nflTeamColors } from "./nflTeamColors";
 
 const POS_FILTERS = ["ALL", "QB", "RB", "WR", "TE", "FLEX", "K", "DEF"];
 
-function StrategyPhoto({ row, media, className = "" }) {
+function StrategyPhoto({ row, media, className = "", hero = false }) {
   const [shotIndex, setShotIndex] = useState(0);
   const mediaRow = lookupPlayerMedia(media, row?.player_id);
   const shots = headshotCandidates(mediaRow);
   const headshot = shots[shotIndex] || null;
   const logo = mediaRow?.team_logo_url || teamLogoUrl(row?.team);
   const name = playerName(row);
+  const colors = nflTeamColors(row?.team);
 
   useEffect(() => {
     setShotIndex(0);
   }, [row?.player_id, mediaRow?.headshot_url, mediaRow?.espn_headshot_url]);
 
   return (
-    <div className={`hub-strategy-photo ${className}`.trim()} aria-hidden>
+    <div
+      className={`hub-strategy-photo${hero ? " hub-strategy-photo--hero" : ""} ${className}`.trim()}
+      style={hero ? {
+        "--strategy-team-top": colors.jersey[0],
+        "--strategy-team-bot": colors.jersey[1],
+      } : undefined}
+      aria-hidden
+    >
+      {hero && logo ? (
+        <img className="hub-strategy-photo-team" src={logo} alt="" />
+      ) : null}
       {headshot ? (
         <img
+          className={hero ? "hub-strategy-photo-player" : undefined}
           src={headshot}
           alt=""
           onError={() => setShotIndex((n) => n + 1)}
         />
-      ) : logo ? (
+      ) : !hero && logo ? (
         <img src={logo} alt="" />
       ) : (
         <div className="hub-strategy-photo-fallback">{playerInitials(name)}</div>
@@ -81,7 +94,7 @@ function FaceCard({ row, media, pickDraft, ctx, onTake }) {
   );
   return (
     <article className="hub-strategy-card">
-      <StrategyPhoto row={row} media={media} />
+      <StrategyPhoto row={row} media={media} hero />
       <div className="hub-strategy-pad">
         <div className="hub-strategy-identity">
           <h3 className="hub-strategy-name">{playerName(row)}</h3>

@@ -13,14 +13,14 @@ const ACTION_LABELS = {
 
 const ACTION_SUPPORT = {
   cap_overage: "Get legal before the next roster move.",
-  draft_night: "The room is ready when you are.",
-  sync_league: "Bring in the league state ScoreSense needs to help.",
-  projections_missing: "Restore the player pool before making draft decisions.",
-  projections_stale: "Use the latest outlook before committing to a move.",
+  draft_night: "The room is open. Miss it and you draft late or not at all.",
+  sync_league: "Without Sleeper, scores and rosters stay empty.",
+  projections_missing: "You cannot price a bid until the player pool is back.",
+  projections_stale: "A stale board prices last week's player.",
   expiring_contracts: "Decide who stays before those deals become free agents.",
-  lineup_decisions: "Resolve the choices most likely to change your week.",
+  lineup_decisions: "A wrong start sits points on the bench.",
   cap_sheets_stale: "Bring the league ledger back in sync.",
-  invite_managers: "Text the invite link so they can claim a team.",
+  invite_managers: "Empty seats mean bots or a delayed draft.",
   mark_availability: "Tell the room which nights you can actually sit.",
 };
 
@@ -41,8 +41,8 @@ export function actionLabel(action) {
 }
 
 export function actionSupport(action) {
-  if (!action) return "Your league is clear. Keep building from the next phase step.";
-  return ACTION_SUPPORT[action.id] || "Take care of this next, then keep moving.";
+  if (!action) return "Cap is legal and the next phase is not waiting on you.";
+  return ACTION_SUPPORT[action.id] || "Handle this before the next roster move.";
 }
 
 export function resolveLeagueHomeFocus({ actions = [], primaryCta, defaultView, validViews }) {
@@ -66,7 +66,7 @@ export function resolveLeagueHomeFocus({ actions = [], primaryCta, defaultView, 
   return {
     kind: "phase",
     id: "clear",
-    title: "You’re clear for now",
+    title: "Nothing is due.",
     detail: actionSupport(null),
     label: primaryCta?.label || "Continue",
     view: ctaView,
@@ -86,6 +86,15 @@ export function phaseTrackState(phaseId) {
   }));
 }
 
+export const HOME_PAGE_COPY = {
+  kicker: "Home",
+  heading: "Do the next league move.",
+  supportingTitle: "Also due",
+  loadingKicker: "Reading your league",
+  loadingHeading: "Checking what is due…",
+  loadingSupport: "Cap, lineup, and draft night.",
+};
+
 export const HOME_DECK_COPY = {
   matchupTitle: "Your matchup",
   standingsTitle: "Standings",
@@ -93,8 +102,8 @@ export const HOME_DECK_COPY = {
   openGame: "Open Game center",
   linkSleeper: "Link Sleeper to fill scores.",
   opponentTbd: "Opponent TBD",
-  lockerKicker: "League table",
-  lockerTitle: "Who is in the locker",
+  lockerKicker: "Chat",
+  lockerTitle: "League chat",
   lockerNote: "Talk here. Other Fantasy pages open the same thread from an edge.",
 };
 

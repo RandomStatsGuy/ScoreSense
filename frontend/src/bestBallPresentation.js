@@ -16,9 +16,9 @@ export const BB_SORTS = [
 export function bestBallHeroCopy() {
   return {
     eyebrow: "Tools · Best ball",
-    heading: "Draft the gap between model and market.",
+    heading: "Take the name ADP is missing.",
     support:
-      "Season projections ranked against ADP. A positive edge means the model wants the player earlier than drafters are taking him.",
+      "Positive edge means the model wants him earlier than the room. Reach the other way and you pay extra for a name the board already priced.",
   };
 }
 

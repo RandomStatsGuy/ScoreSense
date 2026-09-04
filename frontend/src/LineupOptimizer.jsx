@@ -27,6 +27,7 @@ import {
   capMeterTone,
   constructionSummary,
   defaultSlateCategory,
+  DFS_STEP_COPY,
   dfsHeroCopy,
   dfsHeroNote,
   dfsStatusChip,
@@ -690,8 +691,8 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
             <header className="mock-draft-step-head">
               <span>1</span>
               <div>
-                <h3 id="dfs-format-title">Choose the format</h3>
-                <p>Three formats, three different kinds of pressure.</p>
+                <h3 id="dfs-format-title">{DFS_STEP_COPY.formatTitle}</h3>
+                <p>{DFS_STEP_COPY.formatSupport}</p>
               </div>
             </header>
             <div className="mock-draft-formats" aria-label="Lineup format">

@@ -5,6 +5,7 @@ import {
   actionLabel,
   formatHomeScore,
   HOME_DECK_COPY,
+  HOME_PAGE_COPY,
   homeDeckStandingRows,
   homeMatchupNote,
   phaseTrackState,
@@ -40,7 +41,7 @@ test("league home falls back to the phase CTA when there is nothing urgent", () 
   });
 
   assert.equal(focus.kind, "phase");
-  assert.equal(focus.title, "You’re clear for now");
+  assert.equal(focus.title, "Nothing is due.");
   assert.equal(focus.label, "Draft plan");
   assert.equal(focus.view, "value");
 });
@@ -57,6 +58,12 @@ test("phase track marks exactly one current phase", () => {
   const track = phaseTrackState("live_draft");
   assert.equal(track.filter((item) => item.current).length, 1);
   assert.equal(track.find((item) => item.current)?.label, "Draft");
+});
+
+test("home heading names the next move, not a command-center slogan", () => {
+  assert.equal(HOME_PAGE_COPY.heading, "Do the next league move.");
+  assert.equal(HOME_PAGE_COPY.supportingTitle, "Also due");
+  assert.doesNotMatch(HOME_PAGE_COPY.heading, /command center|decision count/i);
 });
 
 test("known action labels use concrete verbs", () => {
@@ -88,7 +95,7 @@ test("home deck helpers format empty scores and keep the viewer in standings", (
     "Week 3 opponent TBD",
   );
   assert.equal(HOME_DECK_COPY.linkSleeper, "Link Sleeper to fill scores.");
-  assert.equal(HOME_DECK_COPY.lockerTitle, "Who is in the locker");
+  assert.equal(HOME_DECK_COPY.lockerTitle, "League chat");
   assert.match(HOME_DECK_COPY.lockerNote, /edge/i);
   assert.doesNotMatch(HOME_DECK_COPY.lockerNote, /Draft Hub|Submit|permission/i);
 });

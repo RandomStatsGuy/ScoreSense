@@ -9,7 +9,7 @@ description: Put user-visible strings in the living Presentation module and test
 
 1. Resolve the surface (`.cursor/skills/match-living-surface/SKILL.md`).
 2. Write the string in that row’s `copy` module. If `copy` is missing, add a `*Presentation.js` next to the page and point the living-surface row at it — do not leave a new sentence in the JSX except as a call into that module.
-3. Existing modules: `rulesPresentation.js`, `leagueHomePresentation.js`, `gameCenterPresentation.js`, `insightsPresentation.js`, `leagueAccessCopy.js`, `dfsToolPresentation.js`, `bestBallPresentation.js`, `projectionsPresentation.js`, `acquisitionWindow.js`, `vibeRankingsPresentation.js`, `bugReportPresentation.js`.
+3. Existing modules: `rulesPresentation.js`, `leagueHomePresentation.js`, `gameCenterPresentation.js`, `insightsPresentation.js`, `leagueAccessCopy.js`, `dfsToolPresentation.js`, `bestBallPresentation.js`, `projectionsPresentation.js`, `acquisitionWindow.js`, `vibeRankingsPresentation.js`, `bugReportPresentation.js`, `capPlannerPresentation.js`, `leagueRostersPresentation.js`, `leagueTradesPresentation.js`, `rosterPresentation.js`, `accuracyPresentation.js`.
 
 ## Voice
 

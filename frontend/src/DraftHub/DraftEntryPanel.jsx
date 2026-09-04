@@ -9,6 +9,7 @@ import {
   isPickDraft,
 } from "./draftEntryStatus";
 import { fmtSal } from "./rosterFormat";
+import { DRAFT_ENTRY_COPY } from "./leagueAccessCopy";
 import { HubExperienceHero, HubExperienceLayout, HubExperienceSummary } from "./HubUILayout";
 
 /**
@@ -162,9 +163,9 @@ export default function DraftEntryPanel({
   return (
     <div className="hub-draft-entry hub-experience-stack">
       <HubExperienceHero
-        eyebrow="Draft"
-        heading="Run draft night like a real league."
-        support="Create or join a league to open a lobby. Mock drafts in Tools let friends sit in without an account."
+        eyebrow={DRAFT_ENTRY_COPY.eyebrow}
+        heading={DRAFT_ENTRY_COPY.heading}
+        support={DRAFT_ENTRY_COPY.support}
         chip={phase.label}
         chipTone="readonly"
       />
@@ -186,8 +187,8 @@ export default function DraftEntryPanel({
       >
         <article className="hub-experience-section hub-draft-entry-card hub-draft-entry-card--live is-emphasized">
           <header className="hub-draft-entry-card-head">
-            <h3>Open a live lobby</h3>
-            <p className="chart-note">Live draft is for your real room. Keepers and contracts apply.</p>
+            <h3>{DRAFT_ENTRY_COPY.liveTitle}</h3>
+            <p className="chart-note">{DRAFT_ENTRY_COPY.liveSupport}</p>
           </header>
           <div className="hub-draft-entry-card-actions">
             {leagueId && roomLoading ? (

@@ -1,5 +1,5 @@
 export const FANTASY_CHAT_COPY = {
-  eyebrow: "League conversation",
+  eyebrow: "League chat",
   titleFallback: "League chat",
   context: "Same thread as Home. Drag the chip to an edge.",
   leagueChat: "League chat",

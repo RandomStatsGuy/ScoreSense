@@ -37,12 +37,24 @@ export function draftInviteWhatHappens({ testMode = false } = {}) {
   return "Members land in the lobby with the account that already has their team. Add managers first with a room code or email invite.";
 }
 
+export function draftLobbyHeroHeading({ testMode = false } = {}) {
+  return testMode ? "Practice here. Keepers stay put." : "Lock a night, then start the draft.";
+}
+
 export function draftLobbyHeroSupport({ testMode = false } = {}) {
   if (testMode) {
-    return "Send the practice link. Friends sit down with a name — no ScoreSense account.";
+    return "Send the practice link. Friends sit down with a name — no ScoreSense account. This room does not write real contracts.";
   }
-  return "Mark nights that work. The commissioner locks the overlap.";
+  return "Mark nights that work. The commissioner locks the overlap. Miss the night and you draft late or not at all.";
 }
+
+export const DRAFT_ENTRY_COPY = {
+  eyebrow: "Draft",
+  heading: "Open your league's draft room.",
+  support: "Live draft writes keepers and contracts. A mock in Tools does not.",
+  liveTitle: "Open a live lobby",
+  liveSupport: "Live draft is for your real room. Keepers and contracts apply.",
+};
 
 export function draftInviteRailHint({ testMode = false } = {}) {
   return testMode
