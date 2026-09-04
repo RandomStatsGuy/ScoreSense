@@ -8,7 +8,7 @@ import test from "node:test";
 import { ACCURACY_COPY } from "./accuracyPresentation.js";
 import { AUTH_COPY } from "./authPresentation.js";
 import { bestBallHeroCopy } from "./bestBallPresentation.js";
-import { dfsHeroCopy, launchCopy } from "./dfsToolPresentation.js";
+import { DFS_STEP_COPY, dfsHeroCopy, launchCopy } from "./dfsToolPresentation.js";
 import { HOME_PAGE_COPY } from "./DraftHub/leagueHomePresentation.js";
 import { capHeroCopy } from "./DraftHub/capPlannerPresentation.js";
 import { DRAFT_ENTRY_COPY, draftLobbyHeroHeading } from "./DraftHub/leagueAccessCopy.js";
@@ -22,7 +22,7 @@ import { weekHeroCopy } from "./DraftHub/weekBoard.js";
 import { mockDraftHeroCopy } from "./DraftHub/mockDraftConfig.js";
 import { SECTION_SUBTITLES } from "./appNavigation.js";
 
-const SLOGAN = /stay ahead|smarter way|own the week|without the spreadsheet|like a real league|command center|phase-aware|draft lab|why trust|make the next decision count|see the next three seasons|the league so far|spend the cap|keep the upside|who feels startable|draft the gap|aura is in|fill the nine|here[’']s the field|operational workspace|star targets/i;
+const SLOGAN = /stay ahead|smarter way|own the week|without the spreadsheet|like a real league|command center|phase-aware|draft lab|why trust|make the next decision count|see the next three seasons|the league so far|spend the cap|keep the upside|who feels startable|draft the gap|aura is in|fill the nine|here[’']s the field|operational workspace|star targets|kinds of pressure|move that matters/i;
 
 function flatten(value) {
   if (typeof value === "string") return [value];
@@ -71,6 +71,9 @@ test("page heroes name a decision, not a slogan", () => {
     mockDraftHeroCopy().support,
     ACCURACY_COPY.heading,
     ACCURACY_COPY.lead,
+    DFS_STEP_COPY.formatSupport,
+    mockDraftHeroCopy().formatSupport,
+    HOME_PAGE_COPY.loadingHeading,
     SECTION_SUBTITLES.hub.home,
     SECTION_SUBTITLES.hub.value,
     SECTION_SUBTITLES.hub.planner,
