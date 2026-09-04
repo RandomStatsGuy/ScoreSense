@@ -224,6 +224,12 @@
   font-weight: var(--font-weight-bold);
 }
 
+.hub-strategy-rank-focus {
+  display: none;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
 .hub-strategy-split {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -296,6 +302,15 @@
   .hub-strategy-split,
   .hub-strategy-vote {
     grid-template-columns: 1fr;
+  }
+
+  .hub-strategy-rank-focus {
+    display: flex;
+  }
+
+  .hub-strategy-split[data-focus="mine"] .hub-strategy-col:not(.is-mine),
+  .hub-strategy-split[data-focus="site"] .hub-strategy-col.is-mine {
+    display: none;
   }
 
   .hub-strategy-feed,

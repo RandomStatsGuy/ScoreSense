@@ -140,11 +140,13 @@ export function pairKey(aId, bId) {
 function samePosOrFlex(a, b, posFilter) {
   const pa = posOf(a);
   const pb = posOf(b);
-  if (!posFilter || posFilter === "ALL") return true;
   if (posFilter === "FLEX") {
     return FLEX_ELIGIBLE.includes(pa) && FLEX_ELIGIBLE.includes(pb);
   }
-  return pa === posFilter && pb === posFilter;
+  if (posFilter && posFilter !== "ALL") {
+    return pa === posFilter && pb === posFilter;
+  }
+  return pa === pb || (FLEX_ELIGIBLE.includes(pa) && FLEX_ELIGIBLE.includes(pb));
 }
 
 /**

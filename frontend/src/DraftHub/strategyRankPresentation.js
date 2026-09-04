@@ -38,7 +38,10 @@ export const STRATEGY_RANK_COPY = Object.freeze({
   compared: (n) => `${n} compared`,
   moved: (n) => (n === 1 ? "1 name moved" : `${n} names moved`),
   siteRank: (n) => (n ? `site ${n}` : "site"),
-  rankingsMineHint: (n) => (n ? `After ${n} close calls.` : "Same as site until you take a side."),
+  rankingsMineHint: (n) => {
+    if (!n) return "Same as site until you take a side.";
+    return n === 1 ? "After 1 close call." : `After ${n} close calls.`;
+  },
   rankingsSiteHint: (line) => line || "Suggested bid · this league",
   filterAll: "All",
   filterFlex: "FLEX",

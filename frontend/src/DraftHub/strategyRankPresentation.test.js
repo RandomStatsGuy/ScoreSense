@@ -24,4 +24,6 @@ test("context line and take label stay short", () => {
   );
   assert.equal(takeLabel({ player: "Ashton Jeanty" }), "Take Jeanty");
   assert.equal(STRATEGY_RANK_COPY.moved(1), "1 name moved");
+  assert.equal(STRATEGY_RANK_COPY.rankingsMineHint(1), "After 1 close call.");
+  assert.equal(STRATEGY_RANK_COPY.rankingsMineHint(2), "After 2 close calls.");
 });

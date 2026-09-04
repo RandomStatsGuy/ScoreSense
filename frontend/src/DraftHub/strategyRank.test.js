@@ -94,6 +94,14 @@ test("pick is a no-op when the winner is already above", () => {
   assert.deepEqual(stayed.order, order);
 });
 
+test("all-filter pairs same position or FLEX, not QB versus RB", () => {
+  const qb = { ...chase, player_id: "q", player: "Lamar Jackson", position: "QB", fair_value: 34, season_p50: 390 };
+  const board = buildSiteBoard([qb, jeanty, bijan], { draftType: "auction" });
+  const pair = nextPair(board, { ctx: { draftType: "auction" }, posFilter: "ALL" });
+  assert.ok(pair);
+  assert.deepEqual([pair.a.position, pair.b.position].sort(), ["RB", "RB"]);
+});
+
 test("next pair prefers personal-board neighbors inside the similarity band", () => {
   const board = applyOrder(
     buildSiteBoard([chase, jeanty, bijan], { draftType: "auction" }),

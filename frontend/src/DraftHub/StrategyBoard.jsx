@@ -137,6 +137,7 @@ export default function StrategyBoard({
 }) {
   const [page, setPage] = useState("faceoff");
   const [posFilter, setPosFilter] = useState("ALL");
+  const [rankFocus, setRankFocus] = useState("mine");
   const [order, setOrder] = useState([]);
   const [seenKeys, setSeenKeys] = useState([]);
   const [feedMine, setFeedMine] = useState(false);
@@ -162,9 +163,10 @@ export default function StrategyBoard({
     () => siteBoard.map((row) => String(row.player_id)).join("|"),
     [siteBoard],
   );
+  const skipHydrate = !siteKey && loading;
 
   useEffect(() => {
-    if (!siteKey && loading) return;
+    if (skipHydrate) return;
     const siteIds = siteKey ? siteKey.split("|") : [];
     const saved = loadRankState(leagueId, fingerprint);
     setOrder(mergeOrder(siteIds, saved.order.length ? saved.order : siteIds));
@@ -172,7 +174,7 @@ export default function StrategyBoard({
     setFeedMine(saved.feedMine);
     setHistory([]);
     setHydrated(fingerprint);
-  }, [leagueId, fingerprint, siteKey, loading]);
+  }, [leagueId, fingerprint, siteKey, skipHydrate]);
 
   useEffect(() => {
     if (hydrated !== fingerprint) return;
@@ -367,6 +369,14 @@ export default function StrategyBoard({
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPage("faceoff")}>
               {COPY.backToCalls}
             </button>
+            <div className="hub-strategy-rank-focus" role="group" aria-label={COPY.viewRankings}>
+              <HubFilterChip compact active={rankFocus === "site"} onClick={() => setRankFocus("site")}>
+                {COPY.site}
+              </HubFilterChip>
+              <HubFilterChip compact active={rankFocus === "mine"} onClick={() => setRankFocus("mine")}>
+                {COPY.mine}
+              </HubFilterChip>
+            </div>
             <span className="hub-strategy-progress">
               {COPY.moved(movedCount)}
               {seenKeys.length ? ` · ${COPY.compared(seenKeys.length)}` : ""}
@@ -375,7 +385,7 @@ export default function StrategyBoard({
           {!siteBoard.length ? (
             <p className="hub-strategy-empty">{COPY.emptyBoard}</p>
           ) : (
-            <div className="hub-strategy-split">
+            <div className="hub-strategy-split" data-focus={rankFocus}>
               <section className="hub-strategy-col" aria-label={COPY.site}>
                 <h3>{COPY.site}</h3>
                 <p className="hub-strategy-col-hint">{COPY.rankingsSiteHint(line)}</p>
@@ -399,7 +409,9 @@ export default function StrategyBoard({
             <div>
               <p className="hub-strategy-kicker">
                 {pair
-                  ? `${COPY.closeCall}${pair.a?.position ? ` · ${pair.a.position}` : ""}`
+                  ? (pair.a?.position && pair.b?.position && pair.a.position !== pair.b.position
+                    ? `${COPY.closeCall} · ${pair.a.position} vs ${pair.b.position}`
+                    : `${COPY.closeCall}${pair.a?.position ? ` · ${pair.a.position}` : ""}`)
                   : COPY.eyebrow}
               </p>
               <p className="hub-strategy-context">{line}</p>
