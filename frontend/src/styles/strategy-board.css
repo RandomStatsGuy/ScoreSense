@@ -54,7 +54,7 @@
 }
 
 .hub-strategy-filters {
-  margin-top: calc(-1 * var(--space-xs));
+  margin-top: 0;
 }
 
 .hub-strategy-duel {
@@ -302,6 +302,15 @@
   .hub-strategy-split,
   .hub-strategy-vote {
     grid-template-columns: 1fr;
+  }
+
+  .hub-strategy-toolbar-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .hub-strategy-toolbar-actions .btn {
+    flex: 1 1 auto;
   }
 
   .hub-strategy-rank-focus {
