@@ -68,39 +68,38 @@ function StrategyPhoto({ row, media, className = "" }) {
   );
 }
 
-function FaceCard({ row, media, pickDraft, ctx }) {
+function FaceCard({ row, media, pickDraft, ctx, onTake }) {
   const bid = suggestedBid(row);
-  const p50 = formatSeasonPts(row?.season_p50 ?? row?.season_proj);
-  const floor = formatSeasonPts(row?.season_p10);
-  const ceiling = formatSeasonPts(row?.season_p90);
+  const stats = [];
+  if (!pickDraft && ctx.draftType === "auction") {
+    stats.push({ label: COPY.bid, value: bid != null ? fmtSal(bid) : "—" });
+  }
+  stats.push(
+    { label: COPY.p50, value: formatSeasonPts(row?.season_p50 ?? row?.season_proj) },
+    { label: COPY.floor, value: formatSeasonPts(row?.season_p10) },
+    { label: COPY.ceiling, value: formatSeasonPts(row?.season_p90) },
+  );
   return (
     <article className="hub-strategy-card">
       <StrategyPhoto row={row} media={media} />
       <div className="hub-strategy-pad">
-        <h3 className="hub-strategy-name">{playerName(row)}</h3>
-        <p className="hub-strategy-meta">
-          {[row.position, row.team, COPY.siteRank(row.site_rank)].filter(Boolean).join(" · ")}
-        </p>
-        <div className="hub-strategy-stats">
-          {!pickDraft && ctx.draftType === "auction" ? (
-            <div>
-              <span>{COPY.bid}</span>
-              <strong>{bid != null ? fmtSal(bid) : "—"}</strong>
-            </div>
-          ) : null}
-          <div>
-            <span>{COPY.p50}</span>
-            <strong>{p50}</strong>
-          </div>
-          <div>
-            <span>{COPY.floor}</span>
-            <strong>{floor}</strong>
-          </div>
-          <div>
-            <span>{COPY.ceiling}</span>
-            <strong>{ceiling}</strong>
-          </div>
+        <div className="hub-strategy-identity">
+          <h3 className="hub-strategy-name">{playerName(row)}</h3>
+          <p className="hub-strategy-meta">
+            {[row.position, row.team, COPY.siteRank(row.site_rank)].filter(Boolean).join(" · ")}
+          </p>
         </div>
+        <div className="hub-strategy-stats" data-count={stats.length}>
+          {stats.map((stat) => (
+            <div key={stat.label} className="hub-strategy-stat">
+              <span>{stat.label}</span>
+              <strong>{stat.value}</strong>
+            </div>
+          ))}
+        </div>
+        <button type="button" className="btn btn-primary" onClick={onTake}>
+          {takeLabel(row)}
+        </button>
       </div>
     </article>
   );
@@ -440,32 +439,28 @@ export default function StrategyBoard({
           ) : pair ? (
             <>
               <div className="hub-strategy-duel">
-                <FaceCard row={pair.a} media={media} pickDraft={pickDraft} ctx={ctx} />
+                <FaceCard
+                  row={pair.a}
+                  media={media}
+                  pickDraft={pickDraft}
+                  ctx={ctx}
+                  onTake={() => take(pair.a, pair.b)}
+                />
                 <div className="hub-strategy-or" aria-hidden>{COPY.vs}</div>
-                <FaceCard row={pair.b} media={media} pickDraft={pickDraft} ctx={ctx} />
+                <FaceCard
+                  row={pair.b}
+                  media={media}
+                  pickDraft={pickDraft}
+                  ctx={ctx}
+                  onTake={() => take(pair.b, pair.a)}
+                />
               </div>
               <div className="hub-strategy-vote">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => take(pair.a, pair.b)}
-                >
-                  {takeLabel(pair.a)}
+                <button type="button" className="btn btn-ghost btn-sm" onClick={skipPair}>
+                  {COPY.tooClose}
                 </button>
-                <div className="hub-strategy-vote-mid">
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={skipPair}>
-                    {COPY.tooClose}
-                  </button>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={skipPair}>
-                    {COPY.skip}
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => take(pair.b, pair.a)}
-                >
-                  {takeLabel(pair.b)}
+                <button type="button" className="btn btn-ghost btn-sm" onClick={skipPair}>
+                  {COPY.skip}
                 </button>
               </div>
               <p className="hub-strategy-progress">
