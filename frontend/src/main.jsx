@@ -9,6 +9,7 @@ import "./styles/product-hierarchy.css";
 import "./styles/projections-experience.css";
 import "./styles/auth-session.css";
 import "./styles/vibe-rankings.css";
+import "./styles/strategy-board.css";
 import "./styles/product-rhythm.css";
 
 createRoot(document.getElementById("root")).render(

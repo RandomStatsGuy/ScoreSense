@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Strategy · C Site vs mine</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .feed-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 0.85rem 1rem; margin-bottom: 1.1rem;
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    background: var(--bg-elevated);
+  }
+  .feed-bar h1 { margin: 0; font-size: 1.2rem; letter-spacing: -0.02em; }
+  .toggle { display: flex; gap: 0.35rem; }
+  .toggle span {
+    padding: 0.38rem 0.75rem; border-radius: var(--radius-pill);
+    border: 1px solid var(--border); font-size: 0.76rem; color: var(--text-secondary);
+  }
+  .toggle .on { background: var(--accent); border-color: transparent; color: #fff; font-weight: 700; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
+  .col { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 0.9rem 0.95rem; }
+  .col.mine { box-shadow: inset 0 0 0 1px rgba(79,127,218,0.22); }
+  .col h3 { margin: 0 0 0.15rem; }
+  .row {
+    display: grid; grid-template-columns: 1.35rem 1.9rem minmax(0, 1fr) auto;
+    gap: 0.45rem; align-items: center;
+    padding: 0.42rem 0; border-bottom: 1px solid rgba(36,50,73,0.45);
+  }
+  .row:last-child { border-bottom: 0; }
+  .row img { width: 1.9rem; height: 1.9rem; border-radius: 50%; object-fit: cover; object-position: top; }
+  .nm { font-size: 0.8rem; font-weight: 700; }
+  .n { color: var(--text-muted); font-size: 0.7rem; font-variant-numeric: tabular-nums; }
+  .moved { color: var(--tone-positive); font-size: 0.66rem; font-weight: 700; }
+  .pair {
+    margin-top: 1rem; padding: 0.85rem 0.95rem;
+    border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-elevated);
+  }
+  .pair-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.7rem; align-items: center; }
+  .who { display: flex; align-items: center; gap: 0.55rem; }
+  .who img { width: 2.4rem; height: 2.4rem; border-radius: 50%; object-fit: cover; object-position: top; }
+  @media (max-width: 800px) { .split, .pair-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>C · Site vs mine</strong> <span>· feed the queue or keep site ranks</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a href="strategy-rank.html">Chooser</a>
+    <a href="strategy-rank-a.html">A · Board + pair</a>
+    <a href="strategy-rank-b.html">B · Face-off</a>
+    <a class="is-on" href="strategy-rank-c.html">C · Site vs mine</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav"><span>Projections</span><span class="active">Fantasy</span><span>Tools</span></nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+  <nav class="mock-subnav">
+    <span class="mock-subnav-group-label">Draft</span>
+    <span class="mock-tab active">Strategy</span>
+    <span class="mock-tab">Draft</span>
+    <span class="mock-subnav-group-label">Team</span>
+    <span class="mock-tab">This Week</span>
+    <span class="mock-tab">My team</span>
+  </nav>
+  <div class="mock-league-strip">
+    <span class="lg-name">Bottom to Top: Dominate Your Panda</span>
+    <span>Hub PPR · auction · 12</span>
+    <span class="spacer"></span>
+    <span>Draft Friday</span>
+  </div>
+
+  <div class="feed-bar">
+    <div>
+      <h1>Which board hits the clock?</h1>
+      <p class="note" style="margin:0.2rem 0 0;">Mine writes the first 40 into the draft queue. Site keeps the model order.</p>
+    </div>
+    <div class="toggle">
+      <span>Site board</span>
+      <span class="on">Use my board in Draft</span>
+    </div>
+  </div>
+
+  <div class="split">
+    <section class="col">
+      <h3>Site</h3>
+      <p class="note">Suggested bid · Hub PPR · 12-team auction</p>
+      <div class="row"><span class="n">1</span><img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/7564.jpg" /><div class="nm">Ja'Marr Chase</div><span>$42</span></div>
+      <div class="row"><span class="n">2</span><img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11563.jpg" /><div class="nm">Ashton Jeanty</div><span>$41</span></div>
+      <div class="row"><span class="n">3</span><img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/9509.jpg" /><div class="nm">Bijan Robinson</div><span>$38</span></div>
+      <div class="row"><span class="n">4</span><img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/9221.jpg" /><div class="nm">Jahmyr Gibbs</div><span>$36</span></div>
+      <div class="row"><span class="n">5</span><img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11632.jpg" /><div class="nm">Malik Nabers</div><span>$36</span></div>
+      <div class="row"><span class="n">6</span><img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11635.jpg" /><div class="nm">Brock Bowers</div><span>$26</span></div>
+    </section>
+    <section class="col mine">
+      <h3>Mine</h3>
+      <p class="note">After 12 close calls. Jeanty above Bijan. Nabers above Gibbs.</p>
+      <div class="row"><span class="n">1</span><img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/7564.jpg" /><div class="nm">Ja'Marr Chase</div><span>site 1</span></div>
+      <div class="row"><span class="n">2</span><img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11563.jpg" /><div class="nm">Ashton Jeanty</div><span class="moved">▲0</span></div>
+      <div class="row"><span class="n">3</span><img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11632.jpg" /><div class="nm">Malik Nabers</div><span class="moved">▲2</span></div>
+      <div class="row"><span class="n">4</span><img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/9509.jpg" /><div class="nm">Bijan Robinson</div><span>▼1</span></div>
+      <div class="row"><span class="n">5</span><img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/9221.jpg" /><div class="nm">Jahmyr Gibbs</div><span>▼1</span></div>
+      <div class="row"><span class="n">6</span><img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11635.jpg" /><div class="nm">Brock Bowers</div><span>site 6</span></div>
+    </section>
+  </div>
+
+  <section class="pair">
+    <p class="mock-kicker">Compare mode</p>
+    <div class="pair-grid">
+      <div class="who">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11635.jpg" />
+        <div><div class="nm">Brock Bowers · $26</div><div class="note">TE · site 6</div></div>
+      </div>
+      <button type="button" class="btn btn-primary btn-sm">Take Bowers</button>
+      <div class="who">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/8110.jpg" />
+        <div><div class="nm">Trey McBride · $11</div><div class="note">TE · site 14 · close at TE</div></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:0.7rem;">Too close and Skip stay. Taking Bowers leaves McBride at 14. Site column does not move.</p>
+  </section>
+
+  <p class="footnote">The toggle is the feed. Autodraft already pops this queue first.</p>
+</div>
+</body>
+</html>

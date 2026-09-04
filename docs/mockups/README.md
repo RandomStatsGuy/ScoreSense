@@ -4,6 +4,28 @@ Static HTML options. Not product code. Agents: `.cursor/skills/fast-ui-mock/SKIL
 
 Serve and click: `bash scripts/dev/serve_mockups.sh` → [http://127.0.0.1:5174/](http://127.0.0.1:5174/). Or open [index.html](./index.html).
 
+## Strategy rank (Sep 2026)
+
+Shipped pick is **B + C**: full-page face-off, then View my rankings. Living surface: `hub.value` → `StrategyBoard.jsx`. Logic: `frontend/src/DraftHub/strategyRank.js`.
+
+| File | Shows |
+|------|-------|
+| `strategy-rank.html` | Chooser + how the board is built. |
+| `strategy-rank-a.html` | **A · Board + pair.** Ranked list is the canvas. |
+| `strategy-rank-b.html` | **B · Face-off.** Two profiles. Board on the rail. |
+| `strategy-rank-c.html` | **C · Site vs mine.** Feed the queue or keep site ranks. |
+
+Earlier leftover-first lanes: [strategy.html](./strategy.html). Reply A / B / C on the rank set.
+
+## Strategy leftover lanes (parked)
+
+| File | Shows |
+|------|-------|
+| `strategy.html` | Earlier leftover-first chooser. |
+| `strategy-a.html` | Bid board lanes. |
+| `strategy-b.html` | Night slate. |
+| `strategy-c.html` | Spend map. |
+
 ## League chat (Sep 2026)
 
 Open **[league-chat.html](./league-chat.html)** first. No new Fantasy destination — Home houses the thread.

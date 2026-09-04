@@ -10,6 +10,7 @@ import VerifyEmailBanner from "../VerifyEmailBanner";
 import HubSetup from "./HubSetup";
 import RulesWizard from "./RulesWizard";
 import ValueSheetTable from "./ValueSheetTable";
+import StrategyBoard from "./StrategyBoard";
 import RosterBuilder from "./RosterBuilder";
 import DraftRoom from "./DraftRoom";
 import CapPlanner from "./CapPlanner";
@@ -729,10 +730,23 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         />
       )}
 
-      {(subView === "value" || subView === "available") && (
+      {subView === "value" && (
+        <StrategyBoard
+          rows={valueRows}
+          season={valueSheet?.season || workspace?.season}
+          teamCount={valueSheet?.team_count || workspace?.team_count || effectiveCtx?.team_count || 12}
+          loading={valueSheetLoading}
+          rules={effectiveCtx?.rules || workspace?.rules || null}
+          pickDraft={isPickDraft(effectiveCtx?.rules || workspace?.rules)}
+          leagueId={effectiveCtx?.league_id || leagueId}
+          inLeague={effectiveCtx?.mode === "league"}
+        />
+      )}
+
+      {subView === "available" && (
         <ValueSheetTable
-          mode={subView === "available" ? "available" : "all"}
-          title={subView === "available" ? "Free agents" : "Strategy"}
+          mode="available"
+          title="Free agents"
           rows={valueRows}
           season={valueSheet?.season || workspace?.season}
           onAddToRoster={onRosterChanged}
@@ -750,7 +764,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           acquisitionWindow={effectiveCtx?.acquisition_window}
           inLeague={effectiveCtx?.mode === "league"}
           onOpenContractHistory={onOpenContractHistory}
-          showAdd={subView === "available"}
+          showAdd
           onWatchPlayer={toggleWatch}
           watchIds={watchIds}
         />

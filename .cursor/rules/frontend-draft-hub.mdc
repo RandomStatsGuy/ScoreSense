@@ -21,7 +21,7 @@ Read `docs/PRODUCT.md` first. User-facing name is **Fantasy**, not Draft Hub.
 
 ## Copy and data
 
-- User-visible strings belong in `*Presentation.js` (`rulesPresentation.js`, `leagueHomePresentation.js`, `dfsToolPresentation.js`, `insightsPresentation.js`, `leagueAccessCopy.js`, `vibeRankingsPresentation.js`).
+- User-visible strings belong in `*Presentation.js` (`rulesPresentation.js`, `leagueHomePresentation.js`, `dfsToolPresentation.js`, `insightsPresentation.js`, `leagueAccessCopy.js`, `vibeRankingsPresentation.js`, `strategyRankPresentation.js`).
 - Rules preview, validation, and summary: `mergeLeagueRules`, `validateLeagueSettings`, `contractSchedule`, `rulesSummary`.
 - Free-agent button/banner copy: `acquisitionWindow.js`.
 - Home next-action voice: `leagueHomePresentation.js`.
@@ -44,6 +44,7 @@ Read `docs/PRODUCT.md` first. User-facing name is **Fantasy**, not Draft Hub.
 - Draft availability shows current and future times only. Commissioners lock a promising overlap as draft night from the shared calendar.
 - Idle Draft is one featured job: the shared calendar plus a compact room strip. The date/time form, invite essays, and a second Who is in list stay collapsed.
 - Headshots must match roster photos (`HubMediaImg` / existing media helpers).
+- Strategy face-off pairs the same position only. Do not pair RB vs WR as a FLEX toss-up.
 
 ## Visual
 
