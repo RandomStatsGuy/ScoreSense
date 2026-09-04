@@ -81,6 +81,17 @@
   background: var(--bg-subtle);
 }
 
+.hub-strategy-photo--hero {
+  aspect-ratio: 4 / 5;
+  max-height: 22rem;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--strategy-team-top, var(--bg-subtle)) 46%, var(--bg-elevated)),
+      color-mix(in srgb, var(--strategy-team-bot, var(--bg-subtle)) 58%, var(--bg-elevated))
+    );
+}
+
 .hub-strategy-photo::after {
   content: "";
   position: absolute;
@@ -88,6 +99,7 @@
   height: 2.4rem;
   background: linear-gradient(180deg, transparent, var(--bg-elevated));
   pointer-events: none;
+  z-index: 2;
 }
 
 .hub-strategy-photo img,
@@ -97,6 +109,27 @@
   object-fit: cover;
   object-position: top center;
   display: block;
+}
+
+.hub-strategy-photo-team {
+  position: absolute;
+  inset: 12%;
+  width: auto;
+  height: auto;
+  max-width: 68%;
+  max-height: 68%;
+  margin: auto;
+  object-fit: contain;
+  opacity: 0.2;
+  filter: grayscale(0.2);
+  pointer-events: none;
+}
+
+.hub-strategy-photo-player {
+  position: relative;
+  z-index: 1;
+  object-fit: contain;
+  object-position: bottom center;
 }
 
 .hub-strategy-photo-fallback {
@@ -370,9 +403,9 @@
     margin: 0 auto;
   }
 
-  .hub-strategy-photo {
-    aspect-ratio: 16 / 10;
-    max-height: 9.5rem;
+  .hub-strategy-photo--hero {
+    aspect-ratio: 4 / 5;
+    max-height: 16.5rem;
   }
 
   .hub-strategy-stats,
