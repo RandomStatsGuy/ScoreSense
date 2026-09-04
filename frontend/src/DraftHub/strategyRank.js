@@ -236,6 +236,15 @@ export function suggestedBid(row) {
 
 export const STORAGE_PREFIX = "ss.strategy-rank.v1";
 
+export function getLocalStorage(root = globalThis) {
+  try {
+    if (typeof root === "undefined") return null;
+    return root.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function rankStorageKey(leagueId, fingerprint) {
   return `${STORAGE_PREFIX}:${leagueId || "solo"}:${fingerprint}`;
 }
@@ -245,7 +254,7 @@ export function emptyRankState() {
 }
 
 export function loadRankState(leagueId, fingerprint, storage) {
-  const store = storage || (typeof globalThis !== "undefined" ? globalThis.localStorage : null);
+  const store = storage || getLocalStorage();
   try {
     const raw = store?.getItem(rankStorageKey(leagueId, fingerprint));
     if (!raw) return emptyRankState();
@@ -261,7 +270,7 @@ export function loadRankState(leagueId, fingerprint, storage) {
 }
 
 export function saveRankState(leagueId, fingerprint, state, storage) {
-  const store = storage || (typeof globalThis !== "undefined" ? globalThis.localStorage : null);
+  const store = storage || getLocalStorage();
   try {
     store?.setItem(
       rankStorageKey(leagueId, fingerprint),

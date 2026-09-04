@@ -230,14 +230,19 @@ export default function StrategyBoard({
   useEffect(() => {
     if (hydrated !== fingerprint) return;
     if (!feedMine) return;
+    let active = true;
     const ids = queueFromOrder(order);
     const timer = setTimeout(() => {
       writeQueue(ids).then((result) => {
+        if (!active) return;
         if (!result?.ok || result.skipped) return;
         setFeedNote(result.local ? COPY.feedLocal : COPY.feedSaved);
       });
     }, 350);
-    return () => clearTimeout(timer);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, [feedMine, order, hydrated, fingerprint, writeQueue]);
 
   const setFeed = useCallback(async (next) => {
@@ -272,14 +277,12 @@ export default function StrategyBoard({
   }, [pair, pushHistory]);
 
   const undo = useCallback(() => {
-    setHistory((prev) => {
-      if (!prev.length) return prev;
-      const last = prev[prev.length - 1];
-      setOrder(last.order);
-      setSeenKeys(last.seenKeys);
-      return prev.slice(0, -1);
-    });
-  }, []);
+    if (!history.length) return;
+    const last = history[history.length - 1];
+    setOrder(last.order);
+    setSeenKeys(last.seenKeys);
+    setHistory((prev) => prev.slice(0, -1));
+  }, [history]);
 
   const resetSeen = useCallback(() => {
     pushHistory();
@@ -289,7 +292,7 @@ export default function StrategyBoard({
   useEffect(() => {
     if (page !== "faceoff") return undefined;
     const onKey = (event) => {
-      if (event.target?.closest?.("input, textarea, select")) return;
+      if (event.target?.closest?.("input, textarea, select") || event.target?.isContentEditable) return;
       if (event.key === "ArrowLeft" && pair?.a) {
         event.preventDefault();
         take(pair.a, pair.b);

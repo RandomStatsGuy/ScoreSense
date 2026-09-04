@@ -8,7 +8,9 @@ import {
   boardContext,
   buildSiteBoard,
   contextFingerprint,
+  emptyRankState,
   formatRankMove,
+  getLocalStorage,
   lastName,
   loadRankState,
   mergeOrder,
@@ -175,4 +177,16 @@ test("rank state persists per league fingerprint", () => {
   assert.match(rankStorageKey("0BBESQ", fp), /ss\.strategy-rank/);
   const other = loadRankState("0BBESQ", "other", storage);
   assert.deepEqual(other.order, []);
+});
+
+test("blocked localStorage does not throw when reading or writing ranks", () => {
+  const blocked = {};
+  Object.defineProperty(blocked, "localStorage", {
+    get() {
+      throw new Error("SecurityError");
+    },
+  });
+  assert.equal(getLocalStorage(blocked), null);
+  assert.deepEqual(loadRankState("0BBESQ", "fp", getLocalStorage(blocked)), emptyRankState());
+  assert.doesNotThrow(() => saveRankState("0BBESQ", "fp", { order: ["c"] }, getLocalStorage(blocked)));
 });
