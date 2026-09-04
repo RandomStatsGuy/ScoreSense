@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Strategy · A Bid board</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .board-bar {
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem;
+    padding: 0.15rem 0 1.05rem; margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .left-num {
+    font-size: 2.7rem; font-weight: 800; letter-spacing: -0.05em; line-height: 0.95;
+    font-variant-numeric: tabular-nums;
+  }
+  .left-num small {
+    display: block; margin-top: 0.35rem;
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+  .holes { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: flex-end; }
+  .holes span {
+    padding: 0.28rem 0.6rem; border-radius: var(--radius-pill);
+    border: 1px solid var(--border); font-size: 0.72rem; color: var(--text-secondary);
+  }
+  .holes .need { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-muted); }
+  .cap-track {
+    height: 0.38rem; border-radius: 999px; background: var(--bg-subtle);
+    overflow: hidden; margin: 0 0 1.15rem;
+  }
+  .cap-track i {
+    display: block; width: 84%; height: 100%;
+    background: linear-gradient(90deg, #4f7fda, #73a5ff);
+    border-radius: inherit;
+  }
+  .night {
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.55rem;
+    margin-bottom: 1.2rem;
+  }
+  .chip {
+    display: flex; align-items: center; gap: 0.55rem;
+    padding: 0.5rem 0.6rem; border-radius: 14px;
+    background: var(--bg-elevated); border: 1px solid var(--border);
+  }
+  .chip img {
+    width: 2.2rem; height: 2.2rem; border-radius: 50%; object-fit: cover; object-position: top;
+    background: var(--bg-subtle);
+  }
+  .chip .nm { font-size: 0.78rem; font-weight: 700; }
+  .chip .meta { font-size: 0.64rem; color: var(--text-muted); }
+  .chip .val { margin-left: auto; font-weight: 800; color: var(--accent-muted); font-variant-numeric: tabular-nums; }
+  .lanes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; }
+  .lane {
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 0.85rem 0.8rem 0.7rem;
+    min-height: 22rem;
+  }
+  .lane h3 { margin: 0; font-size: 0.92rem; }
+  .lane .note { margin: 0.15rem 0 0.7rem; }
+  .card-p {
+    display: grid; grid-template-columns: 2.55rem minmax(0, 1fr) auto;
+    gap: 0.55rem; align-items: center;
+    padding: 0.55rem 0.15rem; border-top: 1px solid rgba(36, 50, 73, 0.5);
+  }
+  .card-p:first-of-type { border-top: 0; }
+  .card-p img {
+    width: 2.55rem; height: 2.55rem; border-radius: 50%; object-fit: cover; object-position: top;
+    background: var(--bg-subtle);
+  }
+  .nm { font-size: 0.84rem; font-weight: 700; letter-spacing: -0.01em; }
+  .meta { font-size: 0.66rem; color: var(--text-muted); }
+  .bid {
+    font-size: 1.15rem; font-weight: 800; letter-spacing: -0.03em;
+    color: var(--text-primary); font-variant-numeric: tabular-nums; text-align: right;
+  }
+  .lock {
+    display: block; margin-top: 0.2rem;
+    font-size: 0.64rem; font-weight: 700; color: var(--accent-muted); text-align: right;
+  }
+  .bar { height: 0.22rem; margin-top: 0.35rem; border-radius: 999px; background: rgba(149,164,184,0.16); overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
+  .lane-chase { box-shadow: inset 0 0 0 1px rgba(79, 127, 218, 0.18); }
+  @media (max-width: 860px) {
+    .night, .lanes { grid-template-columns: 1fr; }
+    .board-bar { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>A · Bid board</strong> <span>· leftover drops when you lock a lane</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a href="strategy.html">Chooser</a>
+    <a class="is-on" href="strategy-a.html">A · Bid board</a>
+    <a href="strategy-b.html">B · Night slate</a>
+    <a href="strategy-c.html">C · Spend map</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span class="active">Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+
+  <nav class="mock-subnav">
+    <span class="mock-subnav-group-label">Draft</span>
+    <span class="mock-tab active">Strategy</span>
+    <span class="mock-tab">Draft</span>
+    <span class="mock-subnav-group-label">Team</span>
+    <span class="mock-tab">This Week</span>
+    <span class="mock-tab">My team</span>
+  </nav>
+
+  <div class="mock-league-strip">
+    <span class="lg-name">Bottom to Top: Dominate Your Panda</span>
+    <span>Prepare · auction</span>
+    <span class="spacer"></span>
+    <span class="mock-pill mock-pill--accent">Draft Friday</span>
+  </div>
+
+  <div class="board-bar">
+    <div class="left-num">$168<small>Leftover after keepers</small></div>
+    <div class="holes">
+      <span class="need">Need RB</span>
+      <span class="need">Need WR</span>
+      <span class="need">Need TE</span>
+      <span>QB set</span>
+    </div>
+  </div>
+  <div class="cap-track" title="$32 keepers of $200"><i></i></div>
+
+  <p class="note" style="margin:0 0 0.55rem; color:var(--text-muted); font-size:0.74rem;">Your night · $145 locked. Pass one to free money.</p>
+  <div class="night">
+    <div class="chip">
+      <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11563.jpg" />
+      <div><div class="nm">Jeanty</div><div class="meta">RB · LV</div></div>
+      <span class="val">$41</span>
+    </div>
+    <div class="chip">
+      <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/7564.jpg" />
+      <div><div class="nm">Chase</div><div class="meta">WR · CIN</div></div>
+      <span class="val">$42</span>
+    </div>
+    <div class="chip">
+      <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11632.jpg" />
+      <div><div class="nm">Nabers</div><div class="meta">WR · NYG</div></div>
+      <span class="val">$36</span>
+    </div>
+    <div class="chip">
+      <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11635.jpg" />
+      <div><div class="nm">Bowers</div><div class="meta">TE · LV</div></div>
+      <span class="val">$26</span>
+    </div>
+  </div>
+
+  <div class="lanes">
+    <section class="lane lane-chase">
+      <h3>Chase</h3>
+      <p class="note">$35 and up · stars you will fight for</p>
+      <article class="card-p">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/7564.jpg" />
+        <div>
+          <div class="nm">Ja'Marr Chase</div>
+          <div class="meta">WR · 312 P50</div>
+          <div class="bar"><i style="width:92%"></i></div>
+        </div>
+        <div><div class="bid">$42</div><span class="lock">Locked</span></div>
+      </article>
+      <article class="card-p">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11563.jpg" />
+        <div>
+          <div class="nm">Ashton Jeanty</div>
+          <div class="meta">RB · need</div>
+          <div class="bar"><i style="width:78%"></i></div>
+        </div>
+        <div><div class="bid">$41</div><span class="lock">Locked</span></div>
+      </article>
+      <article class="card-p">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/9509.jpg" />
+        <div>
+          <div class="nm">Bijan Robinson</div>
+          <div class="meta">RB · 268 P50</div>
+          <div class="bar"><i style="width:80%"></i></div>
+        </div>
+        <div><div class="bid">$38</div><span class="lock">Lock bid</span></div>
+      </article>
+      <article class="card-p">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11632.jpg" />
+        <div>
+          <div class="nm">Malik Nabers</div>
+          <div class="meta">WR · need</div>
+          <div class="bar"><i style="width:74%"></i></div>
+        </div>
+        <div><div class="bid">$36</div><span class="lock">Locked</span></div>
+      </article>
+    </section>
+
+    <section class="lane">
+      <h3>Fit</h3>
+      <p class="note">$12–34 · still fits leftover if a chase slips</p>
+      <article class="card-p">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/9221.jpg" />
+        <div>
+          <div class="nm">Jahmyr Gibbs</div>
+          <div class="meta">RB · 244 P50</div>
+          <div class="bar"><i style="width:70%"></i></div>
+        </div>
+        <div><div class="bid">$28</div><span class="lock">Lock bid</span></div>
+      </article>
+      <article class="card-p">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/7547.jpg" />
+        <div>
+          <div class="nm">Amon-Ra St. Brown</div>
+          <div class="meta">WR · 238 P50</div>
+          <div class="bar"><i style="width:68%"></i></div>
+        </div>
+        <div><div class="bid">$26</div><span class="lock">Lock bid</span></div>
+      </article>
+      <article class="card-p">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/8167.jpg" />
+        <div>
+          <div class="nm">Puka Nacua</div>
+          <div class="meta">WR · 221 P50</div>
+          <div class="bar"><i style="width:62%"></i></div>
+        </div>
+        <div><div class="bid">$24</div><span class="lock">Lock bid</span></div>
+      </article>
+      <article class="card-p">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11635.jpg" />
+        <div>
+          <div class="nm">Brock Bowers</div>
+          <div class="meta">TE · need</div>
+          <div class="bar"><i style="width:58%"></i></div>
+        </div>
+        <div><div class="bid">$26</div><span class="lock">Locked</span></div>
+      </article>
+    </section>
+
+    <section class="lane">
+      <h3>Ones</h3>
+      <p class="note">$1–11 · fill holes after the room spends</p>
+      <article class="card-p">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/8110.jpg" />
+        <div>
+          <div class="nm">Trey McBride</div>
+          <div class="meta">TE · backup plan</div>
+          <div class="bar"><i style="width:44%"></i></div>
+        </div>
+        <div><div class="bid">$11</div><span class="lock">Lock bid</span></div>
+      </article>
+      <article class="card-p">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/4035.jpg" />
+        <div>
+          <div class="nm">Courtland Sutton</div>
+          <div class="meta">WR · 168 P50</div>
+          <div class="bar"><i style="width:40%"></i></div>
+        </div>
+        <div><div class="bid">$8</div><span class="lock">Lock bid</span></div>
+      </article>
+      <article class="card-p">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/6804.jpg" />
+        <div>
+          <div class="nm">Rhamondre Stevenson</div>
+          <div class="meta">RB · depth</div>
+          <div class="bar"><i style="width:32%"></i></div>
+        </div>
+        <div><div class="bid">$6</div><span class="lock">Lock bid</span></div>
+      </article>
+      <article class="card-p">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/4984.jpg" />
+        <div>
+          <div class="nm">Josh Allen</div>
+          <div class="meta">QB · you already have Lamar</div>
+          <div class="bar"><i style="width:88%"></i></div>
+        </div>
+        <div><div class="bid">$34</div><span class="lock" style="color:var(--tone-caution);">Pass</span></div>
+      </article>
+    </section>
+  </div>
+
+  <p class="footnote">Locking Bijan at $38 would leave $130 — Chase lane stays, Ones get thinner</p>
+</div>
+</body>
+</html>

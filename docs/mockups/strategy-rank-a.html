@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Strategy · A Board + pair</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .thin-hero { padding: 1.15rem 1.4rem 1.1rem; }
+  .thin-hero h1 { font-size: 1.4rem; }
+  .ctx { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; }
+  .ctx span {
+    padding: 0.22rem 0.55rem; border-radius: var(--radius-pill);
+    border: 1px solid var(--border); font-size: 0.68rem; color: var(--text-secondary);
+  }
+  .rank-cols { grid-template-columns: minmax(0, 1fr) 320px; }
+  .row {
+    display: grid; grid-template-columns: 1.6rem 2.15rem minmax(0, 1fr) 3.2rem 2.4rem;
+    gap: 0.55rem; align-items: center;
+    padding: 0.48rem 0; border-bottom: 1px solid rgba(36,50,73,0.45);
+  }
+  .row:last-child { border-bottom: 0; }
+  .row.is-pair { background: var(--accent-soft); margin: 0 -0.7rem; padding-left: 0.7rem; padding-right: 0.7rem; border-radius: 10px; border-bottom-color: transparent; }
+  .row.is-moved { box-shadow: inset 3px 0 0 var(--accent); }
+  .n { color: var(--text-muted); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+  .row img { width: 2.15rem; height: 2.15rem; border-radius: 50%; object-fit: cover; object-position: top; }
+  .nm { font-size: 0.84rem; font-weight: 700; }
+  .meta { font-size: 0.66rem; color: var(--text-muted); }
+  .bid { font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+  .delta { font-size: 0.68rem; font-weight: 700; text-align: right; }
+  .up { color: var(--tone-positive); }
+  .face {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.65rem;
+  }
+  .face article {
+    border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--bg-subtle);
+  }
+  .face img { width: 100%; height: 7.2rem; object-fit: cover; object-position: top; display: block; }
+  .face .pad { padding: 0.55rem 0.6rem 0.7rem; }
+  .face .nm { font-size: 0.88rem; }
+  .face .bid { text-align: left; margin-top: 0.25rem; font-size: 1.05rem; }
+  .take { width: 100%; margin-top: 0.5rem; }
+  .actions { display: flex; gap: 0.4rem; margin-top: 0.75rem; }
+  @media (max-width: 860px) { .rank-cols { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>A · Board + pair</strong> <span>· the list jumps when you take one</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a href="strategy-rank.html">Chooser</a>
+    <a class="is-on" href="strategy-rank-a.html">A · Board + pair</a>
+    <a href="strategy-rank-b.html">B · Face-off</a>
+    <a href="strategy-rank-c.html">C · Site vs mine</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav"><span>Projections</span><span class="active">Fantasy</span><span>Tools</span></nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+  <nav class="mock-subnav">
+    <span class="mock-subnav-group-label">Draft</span>
+    <span class="mock-tab active">Strategy</span>
+    <span class="mock-tab">Draft</span>
+    <span class="mock-subnav-group-label">Team</span>
+    <span class="mock-tab">This Week</span>
+    <span class="mock-tab">My team</span>
+  </nav>
+  <div class="mock-league-strip">
+    <span class="lg-name">Bottom to Top: Dominate Your Panda</span>
+    <span>Prepare · auction</span>
+    <span class="spacer"></span>
+    <span class="mock-pill mock-pill--accent">Use my board in Draft</span>
+  </div>
+
+  <section class="mock-hero thin-hero">
+    <p class="mock-kicker">Strategy</p>
+    <h1>Put them in the order you will take them.</h1>
+    <p class="support">Take Jeanty over Bijan and he jumps to 2. That order fills the draft queue.</p>
+    <div class="ctx">
+      <span>Hub PPR</span><span>Auction · 12 teams</span><span>80 on the board</span><span>4 close calls left at RB</span>
+    </div>
+  </section>
+
+  <div class="mock-cols rank-cols">
+    <main>
+      <section class="card">
+        <h3>Your board</h3>
+        <p class="note">Site rank in the last column. Green is how far you moved them.</p>
+        <div class="row">
+          <span class="n">1</span>
+          <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/7564.jpg" />
+          <div><div class="nm">Ja'Marr Chase</div><div class="meta">WR · CIN</div></div>
+          <span class="bid">$42</span>
+          <span class="delta">site 1</span>
+        </div>
+        <div class="row is-moved">
+          <span class="n">2</span>
+          <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11563.jpg" />
+          <div><div class="nm">Ashton Jeanty</div><div class="meta">RB · was 3</div></div>
+          <span class="bid">$41</span>
+          <span class="delta up">▲1</span>
+        </div>
+        <div class="row is-pair">
+          <span class="n">3</span>
+          <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/9509.jpg" />
+          <div><div class="nm">Bijan Robinson</div><div class="meta">RB · toss-up</div></div>
+          <span class="bid">$38</span>
+          <span class="delta">site 3</span>
+        </div>
+        <div class="row is-pair">
+          <span class="n">4</span>
+          <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/9221.jpg" />
+          <div><div class="nm">Jahmyr Gibbs</div><div class="meta">RB · toss-up</div></div>
+          <span class="bid">$36</span>
+          <span class="delta">site 4</span>
+        </div>
+        <div class="row">
+          <span class="n">5</span>
+          <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11632.jpg" />
+          <div><div class="nm">Malik Nabers</div><div class="meta">WR · NYG</div></div>
+          <span class="bid">$36</span>
+          <span class="delta">site 5</span>
+        </div>
+        <div class="row">
+          <span class="n">6</span>
+          <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11635.jpg" />
+          <div><div class="nm">Brock Bowers</div><div class="meta">TE · LV</div></div>
+          <span class="bid">$26</span>
+          <span class="delta">site 6</span>
+        </div>
+      </section>
+    </main>
+    <aside class="mock-rail">
+      <section class="card">
+        <h3>Close call</h3>
+        <p class="note">Same band. Neighbors on your board.</p>
+        <div class="face">
+          <article>
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/9509.jpg" />
+            <div class="pad">
+              <div class="nm">Bijan</div>
+              <div class="meta">RB · 235 P50</div>
+              <div class="bid">$38</div>
+              <button type="button" class="btn btn-primary btn-sm take">Take</button>
+            </div>
+          </article>
+          <article>
+            <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/9221.jpg" />
+            <div class="pad">
+              <div class="nm">Gibbs</div>
+              <div class="meta">RB · 228 P50</div>
+              <div class="bid">$36</div>
+              <button type="button" class="btn btn-primary btn-sm take">Take</button>
+            </div>
+          </article>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn btn-ghost btn-sm">Too close</button>
+          <button type="button" class="btn btn-ghost btn-sm">Skip</button>
+          <button type="button" class="btn btn-ghost btn-sm">Undo</button>
+        </div>
+      </section>
+    </aside>
+  </div>
+  <p class="footnote">Take Bijan and he jumps above Gibbs. Queue writes the first 40.</p>
+</div>
+</body>
+</html>

@@ -50,6 +50,12 @@ test("text lookup prefers the longest alias and ignores capture vs cap", () => {
   assert.ok(more.also.includes("frontend/src/DraftHub/vibeMatchup.js"));
   const va = resolveLivingSurfaceFromText("rename the table to vibe adjusted projections");
   assert.equal(va.label, "Vibes");
+  const draftStrategy = resolveLivingSurfaceFromText("the draft strategy page should feel like a bid board");
+  assert.equal(draftStrategy.label, "Strategy");
+  const rankings = resolveLivingSurfaceFromText("View my rankings should look like site vs mine");
+  assert.equal(rankings.label, "Strategy");
+  const faceoff = resolveLivingSurfaceFromText("strategy face-off cards are a whole page");
+  assert.equal(faceoff.page, "frontend/src/DraftHub/StrategyBoard.jsx");
   const locker = resolveLivingSurfaceFromText("tighten the locker note on the inspector");
   assert.equal(locker.label, "Player inspector");
   const weeklyCompare = resolveLivingSurfaceFromText("weekly compare checkboxes on the board");
@@ -64,7 +70,12 @@ test("text lookup prefers the longest alias and ignores capture vs cap", () => {
 
 test("file lookup returns the surfaces that own a page", () => {
   const hits = surfacesForFile("frontend/src/DraftHub/ValueSheetTable.jsx");
-  assert.deepEqual(hits.map((row) => row.id).sort(), ["hub.available", "hub.value"]);
+  assert.deepEqual(hits.map((row) => row.id), ["hub.available"]);
+  const strategy = surfacesForFile("frontend/src/DraftHub/StrategyBoard.jsx");
+  assert.equal(strategy[0].id, "hub.value");
+  const rank = surfacesForFile("frontend/src/DraftHub/strategyRank.js");
+  assert.equal(rank[0].id, "hub.value");
+  assert.equal(LIVING_SURFACES["hub.value"].copy, "frontend/src/DraftHub/strategyRankPresentation.js");
 });
 
 test("every registered chrome is in the CHROME list", () => {
