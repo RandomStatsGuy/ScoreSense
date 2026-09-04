@@ -52,8 +52,8 @@ export const LIVING_SURFACES = Object.freeze({
     label: "Strategy",
     chrome: "table",
     page: "frontend/src/DraftHub/ValueSheetTable.jsx",
-    also: ["frontend/src/DraftHub/valueSheetColumns.js"],
-    doNot: "Do not add decision-page hero chrome to the Strategy board. Keep it a visual bid board, leftover-first — not a spreadsheet dump.",
+    also: ["frontend/src/DraftHub/valueSheetColumns.js", "frontend/src/DraftHub/strategyRank.js"],
+    doNot: "Do not add decision-page hero chrome. Strategy is a rank board plus pairwise compare, not a leftover-cap spreadsheet and not a Vibes clone.",
   }),
   "hub.available": S({
     label: "Free agents",

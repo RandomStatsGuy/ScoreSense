@@ -67,6 +67,8 @@ test("text lookup prefers the longest alias and ignores capture vs cap", () => {
 test("file lookup returns the surfaces that own a page", () => {
   const hits = surfacesForFile("frontend/src/DraftHub/ValueSheetTable.jsx");
   assert.deepEqual(hits.map((row) => row.id).sort(), ["hub.available", "hub.value"]);
+  const rank = surfacesForFile("frontend/src/DraftHub/strategyRank.js");
+  assert.equal(rank[0].id, "hub.value");
 });
 
 test("every registered chrome is in the CHROME list", () => {

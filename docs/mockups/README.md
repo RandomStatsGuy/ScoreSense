@@ -4,18 +4,27 @@ Static HTML options. Not product code. Agents: `.cursor/skills/fast-ui-mock/SKIL
 
 Serve and click: `bash scripts/dev/serve_mockups.sh` → [http://127.0.0.1:5174/](http://127.0.0.1:5174/). Or open [index.html](./index.html).
 
-## Strategy (Sep 2026)
+## Strategy rank (Sep 2026)
 
-Open **[strategy.html](./strategy.html)** first. Living surface stays a board (`hub.value`). No HubExperience hero.
+Open **[strategy-rank.html](./strategy-rank.html)** first. Living surface stays a board (`hub.value`). Logic: `frontend/src/DraftHub/strategyRank.js`.
 
 | File | Shows |
 |------|-------|
-| `strategy.html` | Chooser. Shipped page is a 599-row value sheet. |
-| `strategy-a.html` | **A · Bid board.** Price lanes. Lock a bid, leftover drops. |
-| `strategy-b.html` | **B · Night slate.** Walk-away queue is the canvas. |
-| `strategy-c.html` | **C · Spend map.** Split leftover across holes. Amber when a column overflows. |
+| `strategy-rank.html` | Chooser + how the board is built. |
+| `strategy-rank-a.html` | **A · Board + pair.** Ranked list is the canvas. |
+| `strategy-rank-b.html` | **B · Face-off.** Two profiles. Board on the rail. |
+| `strategy-rank-c.html` | **C · Site vs mine.** Feed the queue or keep site ranks. |
 
-Reply A / B / C. Do not screenshot the mock pass.
+Earlier leftover-first lanes: [strategy.html](./strategy.html). Reply A / B / C on the rank set.
+
+## Strategy leftover lanes (parked)
+
+| File | Shows |
+|------|-------|
+| `strategy.html` | Earlier leftover-first chooser. |
+| `strategy-a.html` | Bid board lanes. |
+| `strategy-b.html` | Night slate. |
+| `strategy-c.html` | Spend map. |
 
 ## League chat (Sep 2026)
 

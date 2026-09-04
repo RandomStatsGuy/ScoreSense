@@ -84,7 +84,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 | Label | Internal id | Purpose |
 |-------|-------------|---------|
 | Home | `home` | Phase-aware next actions |
-| Strategy | `value` | Draft-night bid plan — who to chase and at what price. Visual and leftover-first, not a research spreadsheet. |
+| Strategy | `value` | Personal draft ranking from a league-context site board. Pairwise picks move names. Optionally write that order into the draft queue. |
 | Draft | `room` | Idle entry + live room. Email and text invite links open here. Members mark **current and future** draft-night times on one calendar (opens 31 days before the first NFL game, closes the day before). Commissioners lock any shown overlap as draft night. Idle Draft is that calendar plus a compact room strip — do not stack a second date/time card and a Who is in list on the same scroll. |
 | This Week | `week` | Lineup decisions; Hub-only leagues set start/sit here |
 | Vibes | `vibes` | Swipe each roster player once a day; front card is the matchup; info arrow opens bio and latest news; lean Vibe ranking rail; VA-projections (vibe-adjusted week, including K and DEF) as the table |
