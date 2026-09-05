@@ -170,9 +170,12 @@ function SlotCard({
       </header>
       {empty ? (
         onFillSlot ? (
-          <button type="button" className="btn-link hub-wcc-slot-fill" onClick={onFillSlot}>
-            {WEEK_BOARD_COPY.emptySlot(slot.slot)}
-          </button>
+          <>
+            <p className="hub-wcc-slot-empty-label">Empty</p>
+            <button type="button" className="btn-link hub-wcc-slot-fill" onClick={onFillSlot}>
+              {WEEK_BOARD_COPY.emptySlot(slot.slot)}
+            </button>
+          </>
         ) : (
           <p className="hub-wcc-slot-waiting">Empty</p>
         )
@@ -183,7 +186,7 @@ function SlotCard({
             <span className="chart-note">{playerMeta(player)}</span>
           </div>
           <div className="hub-wcc-slot-proj">
-            <span className="hub-wcc-slot-p50">
+            <span className={`hub-wcc-slot-p50${missing ? " is-quiet" : ""}`}>
               {missing ? WEEK_BOARD_COPY.noProjection : (
                 <>
                   {fmtPts(player.p50)}
@@ -403,14 +406,6 @@ export default function WeekLineupBoard({
 
           {!hideSlots && !emptyRoster ? (
             <p className="hub-wcc-vibe-note">{WEEK_BOARD_COPY.vibeNote}</p>
-          ) : null}
-
-          {!hideSlots && specialists.length > 0 && onNavigate ? (
-            <p className="hub-wcc-specialist-note">
-              <button type="button" className="btn-link" onClick={() => onNavigate("available")}>
-                {WEEK_BOARD_COPY.findSpecialists}
-              </button>
-            </p>
           ) : null}
 
           {poorCoverage && !emptyRoster && coverageCopy ? (

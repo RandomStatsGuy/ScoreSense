@@ -3,7 +3,7 @@ import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
 import { usePlayerMedia } from "../PlayerCell";
-import { HubAlert, HubLoadingSkeleton, HubPage } from "./HubUILayout";
+import { HubAlert, HubExperienceHero, HubLoadingSkeleton, HubPage } from "./HubUILayout";
 import { PAINT_WIDTH, paintMediaUrl } from "./draftMedia";
 import TeamIdentityMark from "./TeamIdentityMark";
 import WeekCulturePanel from "./WeekCulturePanel";
@@ -27,7 +27,6 @@ import {
   interpretStandings,
   scoresArePlaceholder,
   lineupIsEmpty,
-  matchupStoryline,
   matchupTeams,
   shouldShowNextWeek,
   shouldShowPrevWeek,
@@ -187,14 +186,6 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
     viewer,
     opponent,
   });
-  const storyline = matchupStoryline({
-    viewer,
-    opponent,
-    weekComplete,
-    placeholder,
-    week: weekNumber,
-    hint: data?.hint,
-  });
   const viewerScore = formatMatchupScore(viewer?.points, {
     placeholder,
     proj: viewer?.est_final ?? viewer?.proj_total,
@@ -248,43 +239,39 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
   })();
 
   return (
-    <HubPage className="hub-game-center">
-      <header className="hub-gc-head">
-        <div>
-          <p className="hub-experience-kicker">{GAME_CENTER_COPY.eyebrow}</p>
-          <h1 className="hub-tab-intro-title">
-            {hero.heading}
-          </h1>
-          {hero.support ? <p className="hub-gc-hero-support">{hero.support}</p> : null}
-        </div>
-        <div className="hub-gc-week-toolbar">
-          {heroChip ? <span className={`hub-gc-state${stateLabel === "Live" ? " is-live" : ""}`}>{heroChip}</span> : null}
-          {(showPrev || showNext) ? (
-            <div className="hub-gc-week-nav" role="group" aria-label="Week">
-              {showPrev ? (
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm"
-                  disabled={loading}
-                  onClick={() => stepWeek(-1)}
-                >
-                  ← Week {Math.max(1, Number(weekNumber ?? 1) - 1)}
-                </button>
-              ) : null}
-              {showNext ? (
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm"
-                  disabled={loading}
-                  onClick={() => stepWeek(1)}
-                >
-                  Week {Math.min(Number(maxWeek), Number(weekNumber ?? 1) + 1)} →
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-      </header>
+    <HubPage className="hub-game-center hub-experience-page">
+      <HubExperienceHero
+        eyebrow={GAME_CENTER_COPY.eyebrow}
+        heading={hero.heading}
+        support={hero.support}
+        chip={heroChip || undefined}
+        chipTone={stateLabel === "Live" ? "active" : "readonly"}
+      >
+        {(showPrev || showNext) ? (
+          <div className="hub-gc-week-nav" role="group" aria-label="Week">
+            {showPrev ? (
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                disabled={loading}
+                onClick={() => stepWeek(-1)}
+              >
+                ← Week {Math.max(1, Number(weekNumber ?? 1) - 1)}
+              </button>
+            ) : null}
+            {showNext ? (
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                disabled={loading}
+                onClick={() => stepWeek(1)}
+              >
+                Week {Math.min(Number(maxWeek), Number(weekNumber ?? 1) + 1)} →
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </HubExperienceHero>
 
       {error && <div className="error">{error}</div>}
       {loading && !data && <HubLoadingSkeleton label="Loading matchups" rows={3} />}
@@ -353,12 +340,8 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
                 <span className="home" style={{ width: `${Math.round(viewerProb * 100)}%` }} />
                 <span className="away" />
               </div>
-              <p className="hub-gc-storyline">{storyline}</p>
             </div>
           )}
-          {(viewerProb == null || placeholder) && storyline ? (
-            <p className="hub-gc-storyline">{storyline}</p>
-          ) : null}
         </section>
       )}
 

@@ -38,6 +38,7 @@ test("hero copy does not promise seat picks or stack a second reassurance", () =
   assert.equal(copy.modeLiveSub(9), "You vs 9 bots");
   assert.equal(copy.modeSimSub, "Skip to the results");
   assert.equal(copy.recentTitle, "Recent mocks");
+  assert.equal(copy.recentEmpty, "No mocks yet");
   assert.match(mockDraftFormatNote("salary_cap_auction_v1"), /Overspend/);
 });
 

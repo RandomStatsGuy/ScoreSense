@@ -159,13 +159,37 @@ export function leftoverMoveReadout({ current, after } = {}) {
   };
 }
 
+const INACTIVE_ROSTER_STATUSES = new Set([
+  "cut",
+  "cut_before_draft",
+  "waived",
+  "traded",
+  "expired",
+]);
+
+function normalizeNeedPosition(position) {
+  const pos = String(position || "").toUpperCase();
+  if (pos === "DST") return "DEF";
+  return pos;
+}
+
+function isActiveNeedRow(row) {
+  const status = String(row?.roster_status || "active").toLowerCase();
+  return !INACTIVE_ROSTER_STATUSES.has(status);
+}
+
 export function parseNeedErrors(errors = []) {
   const needs = [];
   const other = [];
   for (const error of errors) {
     const match = String(error).match(/Need\s+(\d+)\s+more\s+([A-Z]+)/i);
     if (match) {
-      needs.push({ count: Number(match[1]), position: match[2].toUpperCase() });
+      const minMatch = String(error).match(/min\s+(\d+)/i);
+      needs.push({
+        count: Number(match[1]),
+        position: match[2].toUpperCase(),
+        min: minMatch ? Number(minMatch[1]) : undefined,
+      });
     } else {
       other.push(error);
     }
@@ -173,11 +197,38 @@ export function parseNeedErrors(errors = []) {
   return { needs, other };
 }
 
-export function rosterNeedLine(needs = []) {
+/** Per-position shortfall against the current roster, not the floor. */
+export function rosterPositionNeeds({ roster = [], limits = {} } = {}) {
+  const counts = {};
+  for (const row of roster || []) {
+    if (!row || !isActiveNeedRow(row)) continue;
+    const pos = normalizeNeedPosition(row.position);
+    if (!pos) continue;
+    counts[pos] = (counts[pos] || 0) + 1;
+  }
+  const needs = [];
+  let minimumTotal = 0;
+  for (const [key, lim] of Object.entries(limits || {})) {
+    const pos = normalizeNeedPosition(key);
+    const min = Number(lim?.min) || 0;
+    minimumTotal += min;
+    const have = counts[pos] || 0;
+    if (min > 0 && have < min) {
+      needs.push({ count: min - have, position: pos, min });
+    }
+  }
+  return { needs, minimumTotal };
+}
+
+export function rosterNeedLine(needs = [], { minimumTotal } = {}) {
   if (!needs.length) return "";
-  const total = needs.reduce((sum, row) => sum + row.count, 0);
-  const parts = needs.map((row) => `${row.count} ${row.position}`).join(", ");
-  return `You need ${total} more player${total === 1 ? "" : "s"} (${parts})`;
+  const total = needs.reduce((sum, row) => sum + Number(row.count || 0), 0);
+  const parts = needs.map((row) => `${row.count} ${row.position}`).join(" · ");
+  const floor = Number(minimumTotal);
+  if (Number.isFinite(floor) && floor > 0) {
+    return `You need ${total} more to reach the ${floor}-player minimum: ${parts}`;
+  }
+  return `You need ${total} more player${total === 1 ? "" : "s"}: ${parts}`;
 }
 
 export function capSheetYearOffsets({ roster = [], yearCount = 0, hitFor } = {}) {
@@ -201,7 +252,8 @@ export function capRailPrimary({ pendingCut = null, remaining = 0 } = {}) {
     const roomBit = Number.isFinite(salary) ? `−$${Math.round(salary)} room` : "−$0 room";
     return {
       kind: "undo-cut",
-      label: `Undo cut · ${pendingCut.player_name} (${deadBit}, ${roomBit})`,
+      label: `Undo cut · ${pendingCut.player_name}`,
+      detail: `${deadBit}, ${roomBit}`,
       playerId: pendingCut.player_id,
     };
   }

@@ -353,12 +353,6 @@ export default function StrategyBoard({
         <p className="hub-page-meta">{COPY.loading}</p>
       ) : null}
 
-      <HubAlertStack>
-        {!ctx.scoringSupported ? <HubAlert variant="info">{COPY.scoringFallback}</HubAlert> : null}
-        {feedError ? <HubAlert variant="danger">{feedError}</HubAlert> : null}
-        {feedNote && !feedError ? <HubAlert variant="info">{feedNote}</HubAlert> : null}
-      </HubAlertStack>
-
       {page === "rankings" ? (
         <>
           <div className="hub-strategy-feed">
@@ -388,6 +382,11 @@ export default function StrategyBoard({
               </button>
             </div>
           </div>
+          <HubAlertStack>
+            {!ctx.scoringSupported ? <HubAlert variant="info">{COPY.scoringFallback}</HubAlert> : null}
+            {feedError ? <HubAlert variant="danger">{feedError}</HubAlert> : null}
+            {feedNote && !feedError ? <HubAlert variant="info">{feedNote}</HubAlert> : null}
+          </HubAlertStack>
           <div className="hub-strategy-toolbar">
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPage("faceoff")}>
               {COPY.backToCalls}
@@ -457,6 +456,11 @@ export default function StrategyBoard({
               </button>
             </div>
           </div>
+          <HubAlertStack>
+            {!ctx.scoringSupported ? <HubAlert variant="info">{COPY.scoringFallback}</HubAlert> : null}
+            {feedError ? <HubAlert variant="danger">{feedError}</HubAlert> : null}
+            {feedNote && !feedError ? <HubAlert variant="info">{feedNote}</HubAlert> : null}
+          </HubAlertStack>
           {filters}
           {!siteBoard.length && !loading ? (
             <p className="hub-strategy-empty">{COPY.emptyBoard}</p>

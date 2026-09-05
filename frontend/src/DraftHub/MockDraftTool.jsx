@@ -444,7 +444,7 @@ export default function MockDraftTool({ projMeta = null }) {
               aria-pressed={launchMode === "together"}
               onClick={() => setLaunchMode("together")}
             >
-              Invite friends
+              Invite
               <small>{mockHero.modeTogetherSub}</small>
             </button>
             <button
@@ -509,9 +509,9 @@ export default function MockDraftTool({ projMeta = null }) {
               : `1 human · ${botCount} bots · private practice`}
           </p>
 
-          {railRecent.length > 0 ? (
-            <div className="mock-draft-rail-recent">
-              <h3 className="mock-draft-rail-recent-title">{mockHero.recentTitle}</h3>
+          <div className="mock-draft-rail-recent">
+            <h3 className="mock-draft-rail-recent-title">{mockHero.recentTitle}</h3>
+            {railRecent.length > 0 ? (
               <ul>
                 {railRecent.map((room) => {
                   const when = formatMockRoomWhen(room.created_at);
@@ -534,8 +534,10 @@ export default function MockDraftTool({ projMeta = null }) {
                   );
                 })}
               </ul>
-            </div>
-          ) : null}
+            ) : (
+              <p className="chart-note">{mockHero.recentEmpty}</p>
+            )}
+          </div>
         </aside>
       </div>
 

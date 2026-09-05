@@ -28,6 +28,7 @@ import {
   fmtCapMoney,
   parseNeedErrors,
   rosterNeedLine,
+  rosterPositionNeeds,
   CAP_DRAFT_COPY,
   CAP_EXTEND_COPY,
   CAP_FIGURE_COPY,
@@ -318,8 +319,13 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
     ? contractDeadCapStory(selectedCapRow, workspace?.rules)
     : null;
 
-  const { needs, other: otherErrors } = parseNeedErrors(errors);
-  const needLine = rosterNeedLine(needs);
+  const computedNeeds = rosterPositionNeeds({
+    roster,
+    limits: workspace?.rules?.roster || {},
+  });
+  const { needs: parsedNeeds, other: otherErrors } = parseNeedErrors(errors);
+  const needs = computedNeeds.needs.length ? computedNeeds.needs : parsedNeeds;
+  const needLine = rosterNeedLine(needs, { minimumTotal: computedNeeds.minimumTotal });
   const futureYearOffsets = capSheetYearOffsets({
     roster: roster || [],
     yearCount: yearLabels.length,
@@ -393,14 +399,19 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
             action={(
               <div className="hub-cap-rail-actions">
                 {railPrimary.kind === "undo-cut" ? (
-                  <button
-                    type="button"
-                    className="btn-primary hub-experience-summary-action"
-                    disabled={Boolean(cutBusyId)}
-                    onClick={() => undoCut(railPrimary.playerId)}
-                  >
-                    {railPrimary.label}
-                  </button>
+                  <div className="hub-cap-undo-cut">
+                    <button
+                      type="button"
+                      className="btn-ghost hub-experience-summary-action"
+                      disabled={Boolean(cutBusyId)}
+                      onClick={() => undoCut(railPrimary.playerId)}
+                    >
+                      {railPrimary.label}
+                    </button>
+                    {railPrimary.detail ? (
+                      <p className="chart-note">{railPrimary.detail}</p>
+                    ) : null}
+                  </div>
                 ) : onNavigate ? (
                   <button
                     type="button"
@@ -675,21 +686,20 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
           {mustExtend.length === 0 && droppingAtDraft.length === 0 && (
             <p className="chart-note">No deals end at this draft.</p>
           )}
+          {!draftCompleted && isCommissioner ? (
+            <p className="chart-note hub-pre-draft-note">
+              {onNavigate ? (
+                <button type="button" className="btn-link" onClick={() => onNavigate("office")}>
+                  {CAP_DRAFT_COPY.markComplete}
+                </button>
+              ) : (
+                <strong>{CAP_DRAFT_COPY.markComplete}</strong>
+              )}
+              {" "}
+              {CAP_DRAFT_COPY.markCompleteRest}
+            </p>
+          ) : null}
         </HubSection>
-      )}
-
-      {!draftCompleted && isCommissioner && (
-        <p className="chart-note hub-pre-draft-note">
-          {onNavigate ? (
-            <button type="button" className="btn-link" onClick={() => onNavigate("office")}>
-              {CAP_DRAFT_COPY.markComplete}
-            </button>
-          ) : (
-            <strong>{CAP_DRAFT_COPY.markComplete}</strong>
-          )}
-          {" "}
-          {CAP_DRAFT_COPY.markCompleteRest}
-        </p>
       )}
 
       {!hasRoster && onNavigate && (

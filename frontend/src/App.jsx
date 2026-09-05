@@ -1032,7 +1032,7 @@ export default function App() {
 
   const hubNeedsSignIn = hubAuthRequired !== false && !authenticated;
   const isAdmin = Boolean(user?.is_admin);
-  const showDataRefresh = isProjectionsDataView;
+  const showDataRefresh = isProjectionsDataView && !isWeeklyProjections;
   const dataRefreshLoading = pipelineRefreshing || (isSeasonPreseason
     ? draftLoading
     : isWeeklyProjections

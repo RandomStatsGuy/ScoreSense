@@ -84,6 +84,7 @@ export default function DraftRoom({
   onExitRoom,
   watchIds: watchIdsProp,
   onWatchPlayer: onWatchPlayerProp,
+  onLiveDraftChange,
 }) {
   const [roomState, setRoomState] = useState(null);
   const [roomLoading, setRoomLoading] = useState(false);
@@ -272,6 +273,10 @@ export default function DraftRoom({
   const inDraftSetup = draftStatus === "setup";
   const draftCompleted = draftStatus === "completed" || Boolean(league?.draft_completed);
   const inLiveDraft = isLiveAuctionStatus(draftStatus);
+  useEffect(() => {
+    onLiveDraftChange?.(inLiveDraft);
+    return () => onLiveDraftChange?.(false);
+  }, [inLiveDraft, onLiveDraftChange]);
   const onClock = draftStatus === "nominating" || draftStatus === "picking";
   const {
     locked: draftControlsLocked,

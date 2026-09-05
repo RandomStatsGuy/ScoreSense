@@ -40,6 +40,7 @@ export function mockDraftHeroCopy() {
     modeLiveSub: (bots) => `You vs ${bots} bots`,
     modeSimSub: "Skip to the results",
     recentTitle: "Recent mocks",
+    recentEmpty: "No mocks yet",
     recentMore: "All practice rooms",
   };
 }

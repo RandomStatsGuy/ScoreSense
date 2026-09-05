@@ -1064,7 +1064,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
         compact
         chip={tab === "builder" ? (hasPartner ? TRADES_COPY.partnerPicked : TRADES_COPY.partnerNeeded) : null}
         chipAs="status"
-        chipTone={hasPartner ? "ready" : "caution"}
+        chipTone={hasPartner ? "ready" : "readonly"}
       />
       {tradeBanner ? (
         <HubAlert variant={tradeBanner.variant}>

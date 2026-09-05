@@ -2467,8 +2467,8 @@ input[type="search"].search-input {
 
 .hub-table.hub-table--available {
   table-layout: fixed;
-  width: 60rem;
-  max-width: 100%;
+  width: 100%;
+  max-width: none;
 }
 
 .hub-table.hub-table--available .col-player,
@@ -4503,6 +4503,12 @@ h2 {
   border: 1px solid var(--border);
 }
 
+.table-wrap.hub-page-board,
+.hub-roster-browser-table-wrap .table-wrap {
+  max-height: none;
+  overflow-y: visible;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -6271,11 +6277,12 @@ td.col-rank.col-rank-top {
 }
 .hub-league-context-attention {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 0.35rem 0.65rem;
-  margin-top: 0.4rem;
-  padding-top: 0.4rem;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem 0.65rem;
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  padding-bottom: 0;
   border-top: 1px solid rgba(148, 163, 184, 0.18);
 }
 .hub-league-context-attention-label {
@@ -6285,7 +6292,8 @@ td.col-rank.col-rank-top {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--tone-caution-text, #fbbf24);
-  padding-top: 0.15rem;
+  padding-top: 0;
+  line-height: 1.2;
 }
 .hub-league-context-attention-list {
   list-style: none;
@@ -7627,6 +7635,19 @@ td.col-rank.col-rank-top {
   border: 1px solid var(--border);
   background: var(--bg-subtle);
 }
+.hub-live-contract-stage > summary {
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.hub-live-contract-stage > summary::-webkit-details-marker {
+  display: none;
+}
+.hub-live-contract-stage[open] > summary {
+  margin-bottom: 0.35rem;
+}
 .hub-live-contract-stage--pre_draft {
   border-left: 3px solid var(--accent-muted);
 }
@@ -8023,16 +8044,17 @@ td.col-rank.col-rank-top {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .hub-league-team-jump {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
   gap: 0.4rem;
-  align-items: center;
+  align-items: stretch;
 }
 .hub-league-jump-pill {
   display: inline-flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.08rem;
+  min-width: 0;
   padding: 0.42rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
@@ -8607,9 +8629,19 @@ td.col-rank.col-rank-top {
   min-width: 0;
 }
 
+.hub-filter-bar-meta {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
 .hub-filter-menu {
   position: relative;
   flex: 0 0 auto;
+}
+.hub-filter-menu.is-disabled .hub-filter-menu-trigger {
+  opacity: 0.55;
+  cursor: default;
 }
 
 .hub-filter-menu-trigger {
@@ -9046,8 +9078,8 @@ td.col-rank.col-rank-top {
   border-radius: var(--radius-pill);
   font-size: var(--text-xs);
   font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: var(--tone-caution-text);
   border: 1px solid rgba(251, 191, 36, 0.35);
   background: transparent;
@@ -9143,11 +9175,11 @@ td.col-rank.col-rank-top {
   margin-left: 0.4rem;
 }
 .hub-roster-builder .hub-roster-table {
-  table-layout: fixed;
+  table-layout: auto;
   width: 100%;
 }
 .hub-roster-builder .hub-roster-col-player {
-  width: 38%;
+  width: auto;
   min-width: 11rem;
 }
 .hub-roster-builder .hub-roster-col-manager {
@@ -9218,7 +9250,7 @@ td.col-rank.col-rank-top {
 .hub-roster-save-hint { font-size: 0.72rem; color: var(--text-muted); margin-right: 0.35rem; }
 .hub-roster-save-ok { color: #6ee7b7; }
 .hub-roster-empty { padding: 1.5rem !important; text-align: center; }
-.hub-overpay { background: var(--tone-negative-soft); }
+.hub-overpay { background: transparent; }
 .hub-value-delta-pos { color: var(--tone-positive, #16a34a); font-weight: 600; }
 .hub-value-delta-neg { color: var(--tone-negative, #dc2626); font-weight: 600; }
 
@@ -14793,7 +14825,7 @@ td.col-rank.col-rank-top {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr));
   gap: 0.55rem;
   align-items: stretch;
 }
@@ -15107,8 +15139,12 @@ td.col-rank.col-rank-top {
 .hub-trade-builder-actions {
   margin-top: 0.25rem;
   align-items: center;
+  justify-content: flex-end;
   flex-wrap: wrap;
   gap: 0.5rem;
+  border: 0;
+  background: transparent;
+  padding: 0;
 }
 .hub-trade-verdict-slot {
   flex: 1 1 16rem;
@@ -16535,6 +16571,18 @@ td.col-rank.col-rank-top {
   font-weight: var(--font-weight-bold);
 }
 
+.hub-wcc-slot-p50.is-quiet {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.hub-wcc-slot-empty-label {
+  margin: 0.2rem 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
 .hub-wcc-slot-unit {
   margin-left: 0.28rem;
   color: var(--text-muted);
@@ -16673,7 +16721,7 @@ td.col-rank.col-rank-top {
 }
 
 .hub-experience-footer .hub-wcc-bench-grid {
-  grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(16.5rem, 1fr));
 }
 
 .hub-wcc-bench-list {
@@ -17179,10 +17227,27 @@ button.hub-wcc-bench-chip {
   align-items: flex-end;
   gap: 0.12rem;
   min-width: 0;
+  white-space: nowrap;
 }
 
 .col-rank-value {
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.col-rank-move {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-regular, 400);
+}
+.col-rank-move .proj-move {
+  flex-wrap: nowrap;
+  max-width: none;
+  font-weight: inherit;
 }
 
 .proj-move {
@@ -19406,6 +19471,12 @@ th.sortable-header {
   gap: 0.75rem 1rem;
   padding: 0 1rem 0.9rem;
 }
+.hub-stadium-hero--my-team .hub-stadium-hero-body {
+  align-items: center;
+}
+.hub-stadium-hero--my-team .hub-stadium-hero-photo {
+  margin-top: 0;
+}
 .hub-stadium-hero-photo {
   display: flex;
   align-items: center;
@@ -19723,6 +19794,8 @@ th.sortable-header {
   gap: 0.55rem;
   position: relative;
   z-index: 1;
+  overflow-x: auto;
+  scrollbar-color: var(--border-strong, rgba(148, 163, 184, 0.35)) transparent;
 }
 .hub-locker {
   position: relative;
@@ -19948,8 +20021,9 @@ button.hub-locker {
 .hub-week-poll-summary-state {
   flex: 1;
   min-width: 0;
-  white-space: normal;
-  overflow: visible;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .hub-week-poll-summary-cta {
   flex: none;

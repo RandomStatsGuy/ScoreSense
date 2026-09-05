@@ -7,9 +7,8 @@ import MobilePlayerCard from "../MobilePlayerCard";
 import MobileBottomSheet from "../layout/MobileBottomSheet";
 import confirmDialog from "../ui/confirm";
 import HoverTip from "../HoverTip";
-import HubTabIntro from "./HubTabIntro";
 import { MY_TEAM_COPY, rosterStatusInfo } from "./rosterPresentation";
-import { HubFilterChip, HubFilterScroll, HubPage, HubPageSticky, HubTableCard, SortTh } from "./HubUILayout";
+import { HubExperienceHero, HubFilterChip, HubFilterScroll, HubPage, HubPageSticky, HubTableCard, SortTh } from "./HubUILayout";
 import {
   CONTRACT_TYPE_OPTIONS,
   contractDeadCapStory,
@@ -798,9 +797,11 @@ export default function RosterBuilder({
   })() : null;
 
   const rosterPage = (
-    <HubPage className="hub-roster-builder">
-      <HubTabIntro
-        title={MY_TEAM_COPY.title}
+    <HubPage className="hub-roster-builder hub-experience-page">
+      <HubExperienceHero
+        eyebrow="My team"
+        heading={MY_TEAM_COPY.title}
+        support={MY_TEAM_COPY.purpose}
         compact
       />
 
@@ -1040,7 +1041,6 @@ export default function RosterBuilder({
                   heroLabel="cap"
                   badge={(
                     <>
-                      {isSleeperPlayer(r) && <span className="hub-sleeper-badge">Sleeper</span>}
                       <span className={`hub-roster-status hub-roster-status--${vm.status.tone}`}>
                         {vm.status.label}
                       </span>
@@ -1134,7 +1134,6 @@ export default function RosterBuilder({
                               <img className="hub-roster-inline-logo" src={logo} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                             )}
                             {r.team || "—"}
-                            {isSleeperPlayer(r) && <span className="hub-sleeper-badge">Sleeper</span>}
                           </span>
                         </div>
                       </div>

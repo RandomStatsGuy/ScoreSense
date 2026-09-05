@@ -76,12 +76,11 @@ function LiveContractStageBanner({ stage }) {
   if (!stage) return null;
   const rules = stage.draftRules?.length ? stage.draftRules : [stage.draftImpact].filter(Boolean);
   return (
-    <aside
+    <details
       className={`hub-live-contract-stage hub-live-contract-stage--${stage.phase}`}
-      role="status"
       aria-label={stage.headline}
     >
-      <p className="hub-live-contract-stage-headline">{stage.headline}</p>
+      <summary>{stage.headline}</summary>
       {rules.length > 0 && (
         <ul className="hub-live-contract-rules">
           {rules.map((rule) => (
@@ -89,7 +88,7 @@ function LiveContractStageBanner({ stage }) {
           ))}
         </ul>
       )}
-    </aside>
+    </details>
   );
 }
 
@@ -1077,14 +1076,14 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
 
   if (error && !overview) {
     return (
-      <section className="hub-page hub-league-rosters panel wide">
+      <div className="hub-league-rosters">
         <div className="error">{error}</div>
-      </section>
+      </div>
     );
   }
 
   return (
-    <section className="hub-page hub-league-rosters panel wide">
+    <div className="hub-league-rosters">
       <LiveContractStageBanner stage={stage} />
       <header className="hub-league-rosters-head">
         <div className="hub-league-rosters-intro">
@@ -1281,7 +1280,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
           </button>
         </div>
       ) : null}
-    </section>
+    </div>
   );
 }
 

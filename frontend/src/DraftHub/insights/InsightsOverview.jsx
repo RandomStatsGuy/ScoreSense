@@ -18,6 +18,7 @@ export default function InsightsOverview({
   ownerMap,
   loading,
   onOpenTab,
+  nav = null,
 }) {
   const copy = INSIGHTS_COPY.overview;
   const champions = landing?.champions || [];
@@ -44,6 +45,7 @@ export default function InsightsOverview({
             : copy.support
         }
       />
+      {nav}
 
       {loading && !hasLanding && <InsightsOverviewSkeleton />}
 

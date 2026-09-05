@@ -17,9 +17,12 @@ export function lockerWallPlayers(roster, lockerPlayerIds, { limit = LOCKER_WALL
   const curated = (lockerPlayerIds || []).map((id) => byId[id]).filter(Boolean);
   if (curated.length) {
     const players = curated.slice(0, LOCKER_WALL_MAX);
+    const cut = (roster || []).length - active.length;
     return {
       players,
-      caption: `Your lockers · ${players.length} of ${active.length}`,
+      caption: cut > 0
+        ? `Your lockers · ${players.length} of ${active.length} active`
+        : `Your lockers · ${players.length} of ${active.length}`,
       curated: true,
     };
   }
