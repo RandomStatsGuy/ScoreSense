@@ -802,7 +802,7 @@ export default function ValueSheetTable({
                 </button>,
               );
             }
-            if (onWatchPlayer && !(isAvailableView && addMode === "locked")) {
+            if (onWatchPlayer) {
               const watching = (watchIds || []).map(String).includes(String(r.player_id));
               actions.push(
                 <button
