@@ -215,6 +215,9 @@ test("trophy strip copy waits until the board is live", () => {
   assert.equal(boardTitle("Week 1"), "Week 1 board");
   assert.equal(WEEK_BOARD_COPY.seeCalls, "See lineup calls");
   assert.equal(WEEK_BOARD_COPY.emptySlot("K"), "Find K");
+  assert.equal(WEEK_BOARD_COPY.emptySlotName, "Empty");
+  assert.match(WEEK_BOARD_COPY.lineupSource, /board number/i);
+  assert.match(WEEK_BOARD_COPY.lineupSource, /VA-projections/i);
   assert.equal(WEEK_BOARD_COPY.ptsUnit, "wk");
   assert.match(WEEK_BOARD_COPY.refreshProjections, /Refresh projections/);
   assert.doesNotMatch(WEEK_BOARD_COPY.legendNote, /Draft Hub|Submit/i);

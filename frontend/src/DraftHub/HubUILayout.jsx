@@ -389,6 +389,7 @@ export function HubExperienceSummary({
   items = [],
   groups,
   note,
+  children,
   action,
   actionFirst = false,
   status,
@@ -416,6 +417,7 @@ export function HubExperienceSummary({
         </div>
       ))}
       {note ? <p className="hub-experience-summary-note">{note}</p> : null}
+      {children}
       {!actionFirst ? actionNode : null}
       {status}
     </>

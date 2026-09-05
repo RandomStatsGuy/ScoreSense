@@ -17,6 +17,8 @@ export const BOARD_SLOT_ORDER = ["QB", "RB", "WR", "TE", "FLEX", "K", "DEF"];
 export const WEEK_BOARD_COPY = {
   seeCalls: "See lineup calls",
   emptySlot: (slot) => `Find ${slot}`,
+  emptySlotName: "Empty",
+  lineupSource: "Lineup calls use the board number. Vibes only scale VA-projections.",
   ptsUnit: "wk",
   emptySlotHint: "Open Free agents",
   noProjection: "No projection",

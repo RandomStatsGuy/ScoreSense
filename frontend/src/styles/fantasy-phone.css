@@ -564,15 +564,10 @@
     top: 0.75rem;
     bottom: auto;
     right: 0.75rem;
-    width: var(--touch-target);
-    height: var(--touch-target);
-    background: var(--experience-surface-strong);
-    color: var(--text-primary);
-    border: 1px solid var(--experience-rule);
   }
 
   .hub-vibes-stage {
-    padding-bottom: 5.75rem;
+    padding-bottom: 7.25rem;
   }
 
   .hub-vibes-keys {
@@ -585,9 +580,13 @@
     right: 0;
     bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
     z-index: var(--z-sticky);
-    padding: 0.55rem 0.85rem 0.65rem;
+    padding: 0.45rem 0.85rem 0.55rem;
     background: var(--bg-base);
     border-top: 1px solid var(--border);
+  }
+
+  .hub-vibes-votes {
+    width: 100%;
   }
 
   .hub-vibes-compare {
