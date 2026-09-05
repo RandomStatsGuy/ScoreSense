@@ -74,9 +74,12 @@ import {
   APP_SECTIONS,
   PROJECTIONS_TABS,
   SECTION_SUBTITLES,
+  SKIP_TO_CONTENT,
   TOOLS_TABS,
   defaultSeasonMode,
 } from "./appNavigation";
+import { interceptAppNav } from "./appNavLink";
+import { buildAppPath } from "./routes";
 import { apiFetch } from "./auth";
 import { isAbortError } from "./fetchAbort";
 import {
@@ -1324,7 +1327,15 @@ export default function App() {
       section={view}
       onSectionChange={goToSection}
       onMoreOpen={() => setMobileMenuOpen(true)}
+      hrefForSection={(id) => buildAppPath({
+        view: id,
+        hubSubView,
+        projectionsTab,
+        seasonMode,
+        toolsTab,
+      })}
     >
+        <a href="#app-main" className="skip-link">{SKIP_TO_CONTENT}</a>
         <InviteAccept
           authenticated={authenticated}
           user={user}
@@ -1376,14 +1387,21 @@ export default function App() {
               </div>
               <nav className="app-header-nav" aria-label="Sections">
                 {APP_SECTIONS.map((item) => (
-                  <button
+                  <a
                     key={item.id}
-                    type="button"
+                    href={buildAppPath({
+                      view: item.id,
+                      hubSubView,
+                      projectionsTab,
+                      seasonMode,
+                      toolsTab,
+                    })}
                     className={`tab view-tab ${view === item.id ? "active" : ""}`}
-                    onClick={() => goToSection(item.id)}
+                    aria-current={view === item.id ? "page" : undefined}
+                    onClick={(event) => interceptAppNav(event, () => goToSection(item.id))}
                   >
                     {item.label}
-                  </button>
+                  </a>
                 ))}
               </nav>
               <div className="app-header-actions">
@@ -1418,14 +1436,15 @@ export default function App() {
               <div className="app-header-projections-toolbar">
                 <nav className="app-section-subnav app-section-subnav--compact" aria-label="Projection type">
                   {PROJECTIONS_TABS.map((tab) => (
-                    <button
+                    <a
                       key={tab.id}
-                      type="button"
+                      href={buildAppPath({ view: "projections", projectionsTab: tab.id, seasonMode })}
                       className={`app-section-subnav-btn${projectionsTab === tab.id ? " active" : ""}`}
-                      onClick={() => setProjectionsTab(tab.id)}
+                      aria-current={projectionsTab === tab.id ? "page" : undefined}
+                      onClick={(event) => interceptAppNav(event, () => setProjectionsTab(tab.id))}
                     >
                       {tab.label}
-                    </button>
+                    </a>
                   ))}
                 </nav>
               </div>
@@ -1434,14 +1453,15 @@ export default function App() {
             {view === "tools" && TOOLS_TABS.length > 1 && !mobileLayout && (
               <nav className="app-section-subnav app-section-subnav--compact" aria-label="Tools">
                 {TOOLS_TABS.map((tab) => (
-                  <button
+                  <a
                     key={tab.id}
-                    type="button"
+                    href={buildAppPath({ view: "tools", toolsTab: tab.id })}
                     className={`app-section-subnav-btn${toolsTab === tab.id ? " active" : ""}`}
-                    onClick={() => setToolsTab(tab.id)}
+                    aria-current={toolsTab === tab.id ? "page" : undefined}
+                    onClick={(event) => interceptAppNav(event, () => setToolsTab(tab.id))}
                   >
                     {tab.label}
-                  </button>
+                  </a>
                 ))}
               </nav>
             )}
@@ -1539,6 +1559,7 @@ export default function App() {
           />
         )}
 
+        <main id="app-main" tabIndex={-1}>
         {error && isProjectionsDataView && (
           <div className="error">{error}</div>
         )}
@@ -2058,6 +2079,7 @@ export default function App() {
         {view === "admin" && isAdmin && (
           <AdminPortal adminTab={adminTab || "overview"} onAdminTabChange={setAdminTab} />
         )}
+        </main>
         {!mobileLayout && (
           <LegalLinks termsUrl={termsUrl} privacyUrl={privacyUrl} className="app-legal-footer" compact />
         )}

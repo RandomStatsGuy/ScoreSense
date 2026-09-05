@@ -1,3 +1,5 @@
+export const SKIP_TO_CONTENT = "Skip to content";
+
 export const APP_SECTIONS = [
   { id: "projections", label: "Projections", shortLabel: "Projections" },
   { id: "hub", label: "Fantasy", shortLabel: "Fantasy" },

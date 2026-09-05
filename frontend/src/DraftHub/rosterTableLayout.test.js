@@ -32,12 +32,17 @@ test("My Team roster columns declare a shared header/body layout", () => {
   for (const cls of [
     "hub-roster-col-player",
     "hub-roster-col-pos",
-    "num hub-roster-col-cap",
-    "num hub-roster-col-years",
-    "hub-roster-col-status",
     "hub-roster-actions",
   ]) {
     assert.match(rosterBuilder, new RegExp(`<th[^>]*className="${cls}"`));
+    assert.match(rosterBuilder, new RegExp(`<td[^>]*className="${cls}"`));
+  }
+  for (const cls of [
+    "num hub-roster-col-cap",
+    "num hub-roster-col-years",
+    "hub-roster-col-status",
+  ]) {
+    assert.match(rosterBuilder, new RegExp(`<SortTh[^>]*className="${cls}"`));
     assert.match(rosterBuilder, new RegExp(`<td[^>]*className="${cls}"`));
   }
   assert.match(rosterBuilder, /<th className="hub-roster-actions">Contract<\/th>/);

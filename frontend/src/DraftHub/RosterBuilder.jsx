@@ -1,13 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
 import MobileDataList from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
 import MobileBottomSheet from "../layout/MobileBottomSheet";
+import confirmDialog from "../ui/confirm";
+import HoverTip from "../HoverTip";
 import HubTabIntro from "./HubTabIntro";
-import { MY_TEAM_COPY } from "./rosterPresentation";
-import { HubFilterChip, HubFilterScroll, HubPage, HubPageSticky, HubTableCard } from "./HubUILayout";
+import { MY_TEAM_COPY, rosterStatusInfo } from "./rosterPresentation";
+import { HubFilterChip, HubFilterScroll, HubPage, HubPageSticky, HubTableCard, SortTh } from "./HubUILayout";
 import {
   CONTRACT_TYPE_OPTIONS,
   contractDeadCapStory,
@@ -31,6 +33,8 @@ import {
 import ContractHistoryLink from "./ContractHistoryLink";
 import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import LockerRoomScene from "./LockerRoomScene";
+import { lockerWallPlayers } from "./lockerWall";
+import { mergeTeamIdentity } from "./atmosphereCatalog";
 import TeamIdentityStudio from "./TeamIdentityStudio";
 import TeamStadiumHero from "./TeamStadiumHero";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
@@ -49,22 +53,6 @@ function posSortKey(position) {
   const pos = normalizeHubPosition(position);
   const idx = HUB_POS_ORDER.indexOf(pos);
   return idx >= 0 ? idx : HUB_POS_ORDER.length;
-}
-
-function rosterStatusInfo(r, { draftCompleted, ctype, pendingType, pendingExt }) {
-  if (r.roster_status === "cut_before_draft") {
-    return { label: "Cut before draft", tone: "cut" };
-  }
-  if (pendingExt) return { label: "Extension queued", tone: "pending" };
-  if (pendingType) return { label: "Pending type", tone: "pending" };
-  const yrsLeft = Number(r.contract?.years_remaining ?? r.contract_years ?? 1);
-  if (!draftCompleted && yrsLeft <= 1) {
-    return ctype === "rookie"
-      ? { label: "Extend?", tone: "warn" }
-      : { label: "Expires — FA", tone: "warn" };
-  }
-  if (yrsLeft === 1) return { label: "Final year", tone: "warn" };
-  return { label: "Active", tone: "ok" };
 }
 
 function ContractRulesDisclosure({
@@ -116,7 +104,6 @@ function ContractSidePanelBody({
   contractsReadOnly,
   canEditType,
   draftCompleted,
-  readOnly,
   edit,
   setEdit,
   ctype,
@@ -135,6 +122,7 @@ function ContractSidePanelBody({
   queueRookieExtend,
   toggleCut,
   remove,
+  canRemove,
   maxYears,
   status,
   onOpenContractHistory,
@@ -258,7 +246,7 @@ function ContractSidePanelBody({
 
       <div className="hub-roster-contract-panel-actions">
         {extendEligible && (
-          <>
+          <div className="hub-roster-contract-panel-primary">
             <label className="hub-roster-extend-years">
               <span className="sr-only">Extension years</span>
               <select
@@ -285,30 +273,31 @@ function ContractSidePanelBody({
             >
               Queue extension
             </button>
-          </>
+          </div>
         )}
-        {!draftCompleted && (
-          <button
-            type="button"
-            className={`btn-ghost btn-sm${isCut ? " hub-uncut-btn" : ""}`}
-            disabled={isSaving}
-            onClick={() => toggleCut(r, !isCut)}
-          >
-            {isCut ? "Undo cut" : "Cut pre-draft"}
-            {isCut ? <span className="hub-btn-support">{deadStory.undoSupport}</span> : null}
-          </button>
-        )}
-        {!readOnly && (
-          <button
-            type="button"
-            className="btn-ghost btn-sm hub-btn-danger"
-            disabled={isSaving}
-            onClick={() => remove(r.player_id)}
-          >
-            Remove
-            <span className="hub-btn-support">{MY_TEAM_COPY.removeSupport}</span>
-          </button>
-        )}
+        <div className="hub-roster-contract-panel-danger">
+          {!draftCompleted && (
+            <button
+              type="button"
+              className={`btn-ghost btn-sm${isCut ? " hub-uncut-btn" : ""}`}
+              disabled={isSaving}
+              onClick={() => toggleCut(r, !isCut)}
+            >
+              {isCut ? "Undo cut" : "Cut pre-draft"}
+              {isCut ? <span className="hub-btn-support">{deadStory.undoSupport}</span> : null}
+            </button>
+          )}
+          {canRemove && (
+            <button
+              type="button"
+              className="btn-ghost btn-sm hub-btn-danger"
+              disabled={isSaving}
+              onClick={() => remove(r.player_id)}
+            >
+              Remove
+            </button>
+          )}
+        </div>
         <ContractHistoryLink
           playerId={r.player_id}
           playerName={r.player_name}
@@ -332,6 +321,8 @@ export default function RosterBuilder({
   onEditInOffice,
   onOpenContractHistory,
   onNavigate,
+  focusFilter = null,
+  onFocusConsumed,
 }) {
   const [playerId, setPlayerId] = useState("");
   const [salary, setSalary] = useState("");
@@ -343,8 +334,13 @@ export default function RosterBuilder({
   const [savedId, setSavedId] = useState(null);
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState("ALL");
+  const [statusFocus, setStatusFocus] = useState(null);
+  const [sortKey, setSortKey] = useState(null);
+  const [sortDir, setSortDir] = useState("desc");
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
   const [lookOpen, setLookOpen] = useState(false);
+  const panelTitleRef = useRef(null);
+  const restoreFocusRef = useRef(null);
 
   const [typeOverrides, setTypeOverrides] = useState({});
   const [extendYearsById, setExtendYearsById] = useState({});
@@ -371,6 +367,12 @@ export default function RosterBuilder({
   // SCORE-42: managers may still queue a server-calculated rookie extension for their own eligible rookies.
   const contractsReadOnly = isLeague || readOnly;
   const canEditType = !contractsReadOnly;
+  const canRemove = !isLeague || isCommissioner;
+  const teamLook = useMemo(() => mergeTeamIdentity(teamIdentity), [teamIdentity]);
+  const lockerWall = useMemo(
+    () => lockerWallPlayers(roster, teamLook.locker_player_ids),
+    [roster, teamLook.locker_player_ids],
+  );
 
   const isSleeperPlayer = (r) => r.source === "sleeper" || Boolean(r.sleeper_player_id);
   const lookup = valueRows?.find((r) => r.player_id === playerId);
@@ -387,18 +389,23 @@ export default function RosterBuilder({
     const q = search.trim().toLowerCase();
     return sortedRoster.filter((r) => {
       if (posFilter !== "ALL" && normalizeHubPosition(r.position) !== posFilter) return false;
+      if (statusFocus === "extend") {
+        const extend = canManagerRookieExtend(r, { draftCompleted, rules: workspace?.rules }).ok;
+        if (!extend) return false;
+      }
       if (!q) return true;
       const name = String(r.player_name || "").toLowerCase();
       const team = String(r.team || "").toLowerCase();
       const pos = String(r.position || "").toLowerCase();
       return name.includes(q) || team.includes(q) || pos.includes(q);
     });
-  }, [search, posFilter, sortedRoster]);
+  }, [search, posFilter, statusFocus, sortedRoster, draftCompleted, workspace?.rules]);
 
   const posCounts = useMemo(() => {
-    const counts = {};
+    const counts = { ALL: (roster || []).length };
     for (const row of roster || []) {
-      const pos = String(row.position || "?").toUpperCase();
+      const pos = normalizeHubPosition(row.position);
+      if (!pos) continue;
       counts[pos] = (counts[pos] || 0) + 1;
     }
     return counts;
@@ -414,7 +421,17 @@ export default function RosterBuilder({
     [roster, selectedPlayerId],
   );
 
-  const closeContractPanel = useCallback(() => setSelectedPlayerId(null), []);
+  const openContractPanel = useCallback((playerId, fromEl) => {
+    restoreFocusRef.current = fromEl || document.activeElement;
+    setSelectedPlayerId(playerId);
+  }, []);
+
+  const closeContractPanel = useCallback(() => {
+    setSelectedPlayerId(null);
+    const restore = restoreFocusRef.current;
+    restoreFocusRef.current = null;
+    queueMicrotask(() => restore?.focus?.());
+  }, []);
 
   const toggleCut = useCallback(async (r, cut) => {
     setSavingId(r.player_id);
@@ -482,12 +499,21 @@ export default function RosterBuilder({
 
   useEffect(() => {
     if (!selectedRow || mobileLayout) return undefined;
+    panelTitleRef.current?.focus();
     const onKey = (event) => {
       if (event.key === "Escape") closeContractPanel();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [selectedRow, mobileLayout, closeContractPanel]);
+
+  useEffect(() => {
+    if (focusFilter === "extend") {
+      setStatusFocus("extend");
+      setPosFilter("ALL");
+      onFocusConsumed?.();
+    }
+  }, [focusFilter, onFocusConsumed]);
 
   const getEdit = useCallback((r) => {
     const d = draftEdits[r.player_id];
@@ -608,6 +634,13 @@ export default function RosterBuilder({
   }, [onChanged, hubContext?.mode]);
 
   const remove = async (pid) => {
+    const ok = await confirmDialog({
+      title: MY_TEAM_COPY.removeTitle,
+      message: MY_TEAM_COPY.removeConfirm,
+      confirmLabel: MY_TEAM_COPY.removeConfirmLabel,
+      danger: true,
+    });
+    if (!ok) return;
     const res = await apiFetch("/api/hub/roster", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -653,6 +686,46 @@ export default function RosterBuilder({
       Edit in roster management
     </button>
   ) : null;
+
+  const onSort = (col) => {
+    if (sortKey === col) {
+      setSortDir((dir) => (dir === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortKey(col);
+    setSortDir(col === "years" ? "asc" : "desc");
+  };
+
+  const displayedRoster = useMemo(() => {
+    if (!sortKey) return filteredRoster;
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...filteredRoster].sort((a, b) => {
+      if (sortKey === "cap") {
+        return (Number(a.salary || 0) - Number(b.salary || 0)) * dir;
+      }
+      if (sortKey === "years") {
+        const ya = Number(a.contract?.years_remaining ?? a.contract_years ?? 1);
+        const yb = Number(b.contract?.years_remaining ?? b.contract_years ?? 1);
+        return (ya - yb) * dir;
+      }
+      if (sortKey === "status") {
+        const sa = rosterStatusInfo(a, {
+          draftCompleted,
+          ctype: String(a.contract?.contract_type || "veteran"),
+          pendingType: a.contract?.pending_type,
+          pendingExt: hasPendingExtension(a),
+        });
+        const sb = rosterStatusInfo(b, {
+          draftCompleted,
+          ctype: String(b.contract?.contract_type || "veteran"),
+          pendingType: b.contract?.pending_type,
+          pendingExt: hasPendingExtension(b),
+        });
+        return sa.label.localeCompare(sb.label) * dir;
+      }
+      return 0;
+    });
+  }, [filteredRoster, sortKey, sortDir, draftCompleted]);
 
   const rowViewModel = useCallback((r) => {
     const edit = getEdit(r);
@@ -711,7 +784,6 @@ export default function RosterBuilder({
       contractsReadOnly,
       canEditType,
       draftCompleted,
-      readOnly,
       edit: vm.edit,
       setEdit,
       ctype: vm.ctype,
@@ -730,6 +802,7 @@ export default function RosterBuilder({
       queueRookieExtend,
       toggleCut,
       remove,
+      canRemove,
       maxYears,
       status: vm.status,
       onOpenContractHistory,
@@ -742,37 +815,18 @@ export default function RosterBuilder({
       <HubTabIntro
         title={MY_TEAM_COPY.title}
         compact
-        learnMoreLabel={MY_TEAM_COPY.learnMoreLabel}
-        learnMore={
-          contractsReadOnly
-            ? (
-              <p>
-                {isLeague
-                  ? MY_TEAM_COPY.learnMoreReadonlyLeague
-                  : MY_TEAM_COPY.learnMoreReadonlySolo}
-                {officeLink ? <> {officeLink}</> : null}
-              </p>
-            )
-            : (
-              <p>
-                {MY_TEAM_COPY.learnMoreEdit}
-              </p>
-            )
-        }
       />
 
       <TeamStadiumHero
+        className="hub-stadium-hero--my-team"
+        hideName
         team={{ id: hubContext?.team_id, name: teamName, sleeper_team_name: sleeper?.sleeper_team_name }}
         identity={teamIdentity}
-        meta={
-          teamName
-            ? `${roster.length} players${
-              roster.filter(isSleeperPlayer).length > 0
-                ? ` · ${roster.filter(isSleeperPlayer).length} from Sleeper`
-                : ""
-            }`
-            : null
-        }
+        meta={`${roster.length} player${roster.length === 1 ? "" : "s"}${
+          roster.filter(isSleeperPlayer).length > 0
+            ? ` · ${roster.filter(isSleeperPlayer).length} from Sleeper`
+            : ""
+        }`}
         onEdit={
           isLeague && hubContext?.league_id && hubContext?.team_id
             ? () => setLookOpen(true)
@@ -780,46 +834,52 @@ export default function RosterBuilder({
         }
         cap={(
           <div className="hub-stat-card hub-stat-card--accent hub-stadium-cap-card">
-            <span className="hub-stat-label">Cap ({season})</span>
+            <span className="hub-stat-label">{preDraft ? MY_TEAM_COPY.capForDraft : `Cap (${season})`}</span>
             <strong className="hub-stat-value">
-              ${totalSalary.toFixed(0)}
-              <span className="hub-stat-value-note"> / ${salaryCap}</span>
+              {preDraft
+                ? fmtSal(preDraft.draft_budget_available)
+                : (
+                  <>
+                    ${totalSalary.toFixed(0)}
+                    <span className="hub-stat-value-note"> / ${salaryCap}</span>
+                  </>
+                )}
             </strong>
             {salaryCap > 0 && (
-              <>
+              <span
+                className="hub-stadium-cap-bar"
+                role="img"
+                aria-label={`${MY_TEAM_COPY.capCommitted(fmtSal(totalSalary), fmtSal(salaryCap))}${
+                  Number(capSheet?.summary?.dead_cap) > 0
+                    ? `, ${MY_TEAM_COPY.deadCapInline(fmtSal(Number(capSheet.summary.dead_cap)))}`
+                    : ""
+                }`}
+              >
                 <span
-                  className="hub-stadium-cap-bar"
-                  role="img"
-                  aria-label={`$${totalSalary.toFixed(0)} of $${salaryCap} committed${
-                    Number(capSheet?.summary?.dead_cap) > 0
-                      ? `, $${Number(capSheet.summary.dead_cap).toFixed(0)} dead cap`
-                      : ""
-                  }`}
-                >
+                  className="hub-stadium-cap-bar-committed"
+                  style={{ width: `${Math.min(100, Math.max(0, (totalSalary / salaryCap) * 100))}%` }}
+                />
+                {Number(capSheet?.summary?.dead_cap) > 0 && (
                   <span
-                    className="hub-stadium-cap-bar-committed"
-                    style={{ width: `${Math.min(100, Math.max(0, (totalSalary / salaryCap) * 100))}%` }}
+                    className="hub-stadium-cap-bar-dead"
+                    style={{ width: `${Math.min(100, (Number(capSheet.summary.dead_cap) / salaryCap) * 100)}%` }}
                   />
-                  {Number(capSheet?.summary?.dead_cap) > 0 && (
-                    <span
-                      className="hub-stadium-cap-bar-dead"
-                      style={{ width: `${Math.min(100, (Number(capSheet.summary.dead_cap) / salaryCap) * 100)}%` }}
-                    />
-                  )}
-                </span>
-                {Number(capSheet?.summary?.dead_cap) > 0 ? (
-                  <span className="hub-stadium-cap-legend">{MY_TEAM_COPY.deadCapLegend}</span>
-                ) : null}
-              </>
-            )}
-            {preDraft && (
-              <span className="hub-stat-sub">
-                ${preDraft.draft_budget_available?.toFixed(0)} for draft
-                {Number(capSheet?.summary?.dead_cap) > 0
-                  ? ` · $${Number(capSheet.summary.dead_cap).toFixed(0)} dead`
-                  : ""}
+                )}
               </span>
             )}
+            <span className="hub-stat-sub">
+              {preDraft
+                ? MY_TEAM_COPY.capCommitted(fmtSal(totalSalary), fmtSal(salaryCap))
+                : null}
+              {Number(capSheet?.summary?.dead_cap) > 0 ? (
+                <>
+                  {preDraft ? " · " : null}
+                  <HoverTip content={MY_TEAM_COPY.deadCapLegend}>
+                    <span className="hub-stadium-cap-dead">{MY_TEAM_COPY.deadCapInline(fmtSal(Number(capSheet.summary.dead_cap)))}</span>
+                  </HoverTip>
+                </>
+              ) : null}
+            </span>
           </div>
         )}
         chips={(
@@ -833,8 +893,20 @@ export default function RosterBuilder({
         )}
       />
 
-      {!mobileLayout ? (
-        <LockerRoomScene identity={teamIdentity} roster={roster} mediaById={mediaById} />
+      {!mobileLayout && teamLook.room_theme === "locker" ? (
+        <section className="hub-roster-lockers" aria-labelledby="hub-roster-lockers-heading">
+          <h3 id="hub-roster-lockers-heading" className="hub-roster-section-title">
+            {MY_TEAM_COPY.lockerHeading}
+            <span className="hub-roster-section-caption">{lockerWall.caption}</span>
+          </h3>
+          <LockerRoomScene
+            identity={teamIdentity}
+            roster={roster}
+            mediaById={mediaById}
+            wall={lockerWall}
+            onSelectPlayer={(playerId, event) => openContractPanel(playerId, event?.currentTarget)}
+          />
+        </section>
       ) : null}
 
       {isLeague && hubContext?.league_id && hubContext?.team_id && (
@@ -931,32 +1003,45 @@ export default function RosterBuilder({
           onChange={(e) => setSearch(e.target.value)}
           aria-label="Search roster"
         />
+        <p className="hub-roster-result-count" role="status">
+          {MY_TEAM_COPY.showingCount(displayedRoster.length, sortedRoster.length)}
+          {statusFocus === "extend" ? ` · ${MY_TEAM_COPY.statusExtend}` : ""}
+        </p>
         <HubFilterScroll>
-          {HUB_POSITION_FILTERS.map((p) => (
-            <HubFilterChip
-              key={p}
-              active={posFilter === p}
-              onClick={() => setPosFilter(p)}
-            >
-              {p === "ALL" ? "All" : p}
-            </HubFilterChip>
-          ))}
+          {HUB_POSITION_FILTERS.map((p) => {
+            const count = p === "ALL" ? (posCounts.ALL || 0) : (posCounts[p] || 0);
+            return (
+              <HubFilterChip
+                key={p}
+                active={posFilter === p}
+                disabled={p !== "ALL" && count === 0}
+                onClick={() => {
+                  setPosFilter(p);
+                  if (p !== "ALL") setStatusFocus(null);
+                }}
+              >
+                {p === "ALL" ? "All" : p}
+                <span className="hub-filter-count">{count}</span>
+              </HubFilterChip>
+            );
+          })}
         </HubFilterScroll>
       </div>
       </HubPageSticky>
 
       <HubTableCard className="hub-roster-table-wrap">
+        <h3 className="hub-roster-section-title">{MY_TEAM_COPY.rosterHeading}</h3>
         {mobileLayout ? (
           <MobileDataList
             emptyMessage={
-              !filteredRoster.length
+              !displayedRoster.length
                 ? (sortedRoster.length
                   ? "No players match these filters."
                   : "No players. Link Sleeper or add from Free agents.")
                 : null
             }
           >
-            {filteredRoster.map((r) => {
+            {displayedRoster.map((r) => {
               const vm = rowViewModel(r);
               return (
                 <MobilePlayerCard
@@ -978,7 +1063,7 @@ export default function RosterBuilder({
                     <button
                       type="button"
                       className="btn-ghost btn-sm"
-                      onClick={() => setSelectedPlayerId(r.player_id)}
+                      onClick={(event) => openContractPanel(r.player_id, event.currentTarget)}
                     >
                       Contract
                     </button>
@@ -995,14 +1080,35 @@ export default function RosterBuilder({
               <th className="hub-roster-col-player">Player</th>
               {showManagerTeam && <th className="hub-roster-col-manager">Manager</th>}
               <th className="hub-roster-col-pos">Pos</th>
-              <th className="num hub-roster-col-cap">Cap hit ({season})</th>
-              <th className="num hub-roster-col-years">Years</th>
-              <th className="hub-roster-col-status">Status</th>
+              <SortTh
+                label={`Cap hit (${season})`}
+                col="cap"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+                className="num hub-roster-col-cap"
+              />
+              <SortTh
+                label="Years"
+                col="years"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+                className="num hub-roster-col-years"
+              />
+              <SortTh
+                label="Status"
+                col="status"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+                className="hub-roster-col-status"
+              />
               <th className="hub-roster-actions">Contract</th>
             </tr>
           </thead>
           <tbody>
-            {filteredRoster.map((r) => {
+            {displayedRoster.map((r) => {
               const media = mediaById[r.player_id] || {};
               const logo = media.team_logo_url || teamLogoUrl(r.team);
               const thumb = media.headshot_url || logo;
@@ -1018,7 +1124,7 @@ export default function RosterBuilder({
                     <button
                       type="button"
                       className="hub-roster-player-open"
-                      onClick={() => setSelectedPlayerId(r.player_id)}
+                      onClick={(event) => openContractPanel(r.player_id, event.currentTarget)}
                     >
                       <div className="hub-roster-player-cell">
                         {thumb ? (
@@ -1060,7 +1166,7 @@ export default function RosterBuilder({
                     <button
                       type="button"
                       className="btn-ghost btn-sm"
-                      onClick={() => setSelectedPlayerId(r.player_id)}
+                      onClick={(event) => openContractPanel(r.player_id, event.currentTarget)}
                     >
                       Contract
                     </button>
@@ -1075,7 +1181,7 @@ export default function RosterBuilder({
                 </td>
               </tr>
             )}
-            {Boolean(sortedRoster.length) && !filteredRoster.length && (
+            {Boolean(sortedRoster.length) && !displayedRoster.length && (
               <tr>
                 <td colSpan={colSpan} className="chart-note hub-roster-empty">
                   No players match these filters.
@@ -1110,11 +1216,19 @@ export default function RosterBuilder({
           <aside
             className="hub-roster-side-panel panel"
             role="dialog"
-            aria-label={`Contract for ${selectedRow.player_name}`}
+            aria-modal="true"
+            aria-labelledby="hub-roster-contract-title"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="hub-roster-side-panel-head">
-              <h3 className="hub-roster-side-panel-title">Contract</h3>
+              <h3
+                id="hub-roster-contract-title"
+                className="hub-roster-side-panel-title"
+                tabIndex={-1}
+                ref={panelTitleRef}
+              >
+                Contract
+              </h3>
               <button
                 type="button"
                 className="btn-ghost btn-sm"

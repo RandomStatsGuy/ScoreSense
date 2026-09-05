@@ -1,6 +1,8 @@
 import React, { useMemo, useRef, useState } from "react";
 import MobileDestinationSheet from "../layout/MobileDestinationSheet";
 import { MOBILE_CHROME_COPY, selectAndDismissDestination } from "../layout/mobileChromePresentation";
+import { interceptAppNav } from "../appNavLink";
+import { buildAppPath } from "../routes";
 import LeagueOverflowLead from "./LeagueOverflowLead";
 
 /** group: "home" | "prep" (draft prep) | "season" (in-season) | "office" (league-wide). */
@@ -75,24 +77,25 @@ export default function HubSubnav({
   const groups = useMemo(() => hubDestinationGroups(hubContext), [hubContext]);
   React.useEffect(() => {
     if (pickerOnly) return undefined;
-    const active = navRef.current?.querySelector(".app-section-subnav-btn.active");
+    const active = navRef.current?.querySelector(".app-section-subnav-btn.active, .app-section-subnav-btn[aria-current='page']");
     active?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
     return undefined;
   }, [subView, visible.length, pickerOnly]);
 
   const tabButton = (v) => (
-    <button
+    <a
       key={v.id}
-      type="button"
-      role="tab"
-      aria-selected={subView === v.id}
+      href={buildAppPath({ view: "hub", hubSubView: v.id })}
       className={`app-section-subnav-btn${subView === v.id ? " active" : ""}`}
-      onClick={() => onNavigate(v.id)}
+      aria-current={subView === v.id ? "page" : undefined}
+      aria-label={v.label}
       title={v.hint}
+      aria-description={v.hint}
+      onClick={(event) => interceptAppNav(event, () => onNavigate(v.id))}
     >
       <span className="app-section-subnav-label">{v.label}</span>
-      <span className="app-section-subnav-label-short">{v.shortLabel || v.label}</span>
-    </button>
+      <span className="app-section-subnav-label-short" aria-hidden="true">{v.shortLabel || v.label}</span>
+    </a>
   );
 
   const sheet = (
@@ -122,7 +125,6 @@ export default function HubSubnav({
         <nav
           ref={navRef}
           className="app-section-subnav app-section-subnav--hub"
-          role="tablist"
           aria-label="Fantasy"
         >
           {mobileLayout

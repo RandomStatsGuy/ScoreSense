@@ -35,6 +35,29 @@ body {
   padding: 1.5rem 1.4rem 3rem;
 }
 
+.skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: 0.75rem;
+  z-index: 400;
+  padding: 0.45rem 0.75rem;
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  transform: translateY(-160%);
+}
+.skip-link:focus {
+  transform: none;
+}
+
+#app-main:focus {
+  outline: none;
+}
+
 .app-view-pane-hidden {
   display: none !important;
 }
@@ -132,6 +155,14 @@ body {
 .view-tab {
   padding: 0.38rem 0.72rem;
   font-size: 0.82rem;
+}
+
+a.view-tab,
+a.app-section-subnav-btn,
+a.app-bottom-nav-item {
+  text-decoration: none;
+  color: inherit;
+  box-sizing: border-box;
 }
 
 .view-tab-label-short {
@@ -3938,7 +3969,8 @@ code {
   color: var(--accent, #6ea8fe);
   cursor: pointer;
   text-decoration: underline;
-  padding: 0;
+  padding: 0.25rem 0.15rem;
+  min-height: 1.5rem;
   font: inherit;
 }
 .auth-bar-signin { margin-left: 0.5rem; }
@@ -5909,6 +5941,8 @@ td.col-rank.col-rank-top {
 
 .hub-roster-table-wrap .table-wrap {
   overflow-x: auto;
+  overflow-y: visible;
+  max-height: none;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -6166,6 +6200,8 @@ td.col-rank.col-rank-top {
 }
 .hub-league-context-attention-action {
   font-size: 0.78rem;
+  min-height: 1.5rem;
+  padding: 0.2rem 0.35rem;
 }
 .hub-league-context-sync {
   position: relative;
@@ -7302,7 +7338,7 @@ td.col-rank.col-rank-top {
   padding: 0.12rem 0.45rem;
   border-radius: var(--radius-sm, 0.3rem);
   border: 1px solid var(--border);
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -7310,10 +7346,16 @@ td.col-rank.col-rank-top {
   color: var(--text-secondary);
   background: rgba(148, 163, 184, 0.1);
 }
-.hub-roster-status--warn {
-  color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.35);
-  background: rgba(251, 191, 36, 0.08);
+.hub-roster-status--warn,
+.hub-roster-status--expire {
+  color: var(--tone-caution-text);
+  border-color: var(--tone-caution-border, rgba(251, 191, 36, 0.35));
+  background: var(--tone-caution-soft);
+}
+.hub-roster-status--extend {
+  color: var(--accent-muted);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: var(--accent-soft);
 }
 .hub-roster-status--pending {
   color: #93c5fd;
@@ -7417,9 +7459,20 @@ td.col-rank.col-rank-top {
 }
 .hub-roster-contract-panel-actions {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.65rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--border);
+}
+.hub-roster-contract-panel-primary,
+.hub-roster-contract-panel-danger {
+  display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
   align-items: center;
+}
+.hub-roster-contract-panel-danger {
   padding-top: 0.35rem;
   border-top: 1px solid var(--border);
 }
@@ -8747,6 +8800,39 @@ td.col-rank.col-rank-top {
 .hub-roster-add summary { cursor: pointer; user-select: none; margin-bottom: 0.35rem; }
 .hub-roster-add-row { margin-top: 0.35rem; }
 .hub-roster-table-wrap { margin-top: 0.25rem; }
+.hub-roster-section-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem 0.75rem;
+  margin: 0 0 0.55rem;
+  font-size: var(--text-md);
+  font-weight: 700;
+}
+.hub-roster-table-wrap .hub-roster-section-title {
+  padding: 0.75rem 0.85rem 0;
+}
+.hub-roster-section-caption {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.hub-roster-result-count {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.hub-filter-count {
+  margin-left: 0.3rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+.hub-stadium-cap-dead {
+  text-decoration: underline dotted;
+  text-underline-offset: 0.15em;
+  cursor: help;
+}
 .hub-roster-table th,
 .hub-roster-table td {
   vertical-align: middle;
@@ -13533,7 +13619,14 @@ td.col-rank.col-rank-top {
 /* --- Legal, auth pages, onboarding checklist --- */
 .legal-links { display: grid; gap: 0.35rem; text-align: center; font-size: 0.78rem; }
 .legal-links-nav { display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: center; align-items: center; }
-.legal-links-nav a { color: var(--muted, #9aa3b2); text-decoration: underline; }
+.legal-links-nav a {
+  color: var(--muted, #9aa3b2);
+  text-decoration: underline;
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding: 0.2rem 0.35rem;
+}
 .legal-links-sep { opacity: 0.5; }
 .legal-links-disclaimer { margin: 0; max-width: 36rem; margin-inline: auto; }
 .legal-links-compact .legal-links-disclaimer { display: none; }
@@ -18503,6 +18596,9 @@ th.sortable-header {
   height: clamp(7.25rem, 20vw, 11rem);
   overflow: hidden;
 }
+.hub-stadium-hero--my-team .hub-stadium-hero-banner {
+  height: clamp(3.5rem, 10vw, 5.5rem);
+}
 /* Preset banners get quiet yard-line texture + a grounding fade so the band
    doesn't read as empty. Custom uploads (img present) keep the photo clean. */
 .hub-stadium-hero-banner:not(:has(img))::before {
@@ -18885,6 +18981,14 @@ th.sortable-header {
   align-items: center;
   transition: transform var(--duration-fast) var(--ease-standard);
   outline: none;
+  width: 100%;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+button.hub-locker {
+  cursor: pointer;
 }
 .hub-locker:hover,
 .hub-locker:focus-visible { transform: translateY(-3px); }
@@ -18929,6 +19033,7 @@ th.sortable-header {
   flex-direction: column;
   align-items: center;
   padding-top: 0.45rem;
+  padding-bottom: 3.1rem;
   overflow: hidden;
 }
 .hub-locker-rail {
@@ -18967,7 +19072,7 @@ th.sortable-header {
   padding: 0.1rem 0.45rem;
   border-radius: var(--radius-pill);
 }
-/* Contract line slides up when the locker opens (hover / keyboard focus). */
+/* Contract line stays on the locker face so touch and keyboard can read it. */
 .hub-locker-stats {
   position: absolute;
   left: 0.3rem;
@@ -18980,24 +19085,15 @@ th.sortable-header {
   font-size: var(--text-xs);
   line-height: 1.5;
   color: var(--text-secondary);
-  opacity: 0;
-  transform: translateY(6px);
-  transition: opacity var(--duration-normal) var(--ease-standard), transform var(--duration-normal) var(--ease-standard);
-  pointer-events: none;
 }
 .hub-locker-stats strong {
   display: block;
   color: var(--text-primary);
   font-size: var(--text-xs);
 }
-.hub-locker:hover .hub-locker-stats,
-.hub-locker:focus-visible .hub-locker-stats,
-.hub-locker:focus-within .hub-locker-stats {
-  opacity: 1;
-  transform: translateY(0);
+.hub-locker-pos {
+  bottom: 2.55rem;
 }
-.hub-locker:hover .hub-locker-pos,
-.hub-locker:focus-visible .hub-locker-pos { opacity: 0; }
 .hub-locker-floor {
   position: relative;
   height: 3.6rem;

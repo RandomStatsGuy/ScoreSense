@@ -18,14 +18,15 @@ test("league identity is name · phase · role, never Hub", () => {
   assert.equal(leagueDisplayName(ctx, { inLeague: false }), "Solo prep");
 });
 
-test("Needs attention names Cap, not Cap planner", () => {
+test("Needs attention names Cap for over-cap and Review extensions for extend", () => {
   const items = buildLeagueAttentionItems({
     inLeague: true,
     overCapLabel: "$12",
     mustExtendCount: 2,
   });
   assert.equal(items.find((item) => item.id === "over-cap")?.actionLabel, "Cap");
-  assert.equal(items.find((item) => item.id === "extend")?.actionLabel, "Cap");
+  assert.equal(items.find((item) => item.id === "extend")?.actionLabel, "Review extensions");
+  assert.equal(items.find((item) => item.id === "extend")?.action, "roster-extend");
 });
 
 test("Needs attention names the stale sheet and the sync", () => {
@@ -49,6 +50,11 @@ test("attention for the open view stays off the overflow list", () => {
   const items = [{ id: "over-cap", action: "planner", label: "Over cap $12" }];
   assert.equal(filterAttentionForView(items, "planner").length, 0);
   assert.equal(filterAttentionForView(items, "home").length, 1);
+});
+
+test("Review extensions stays visible on My team so it can filter the table", () => {
+  const items = [{ id: "extend", action: "roster-extend", label: "2 need extension" }];
+  assert.equal(filterAttentionForView(items, "roster").length, 1);
 });
 
 test("overflow keeps chrome attention until freshness computes items", () => {
