@@ -16048,6 +16048,14 @@ td.col-rank.col-rank-top {
   margin: 0;
 }
 
+.hub-experience-footer .hub-wcc-bench {
+  margin-top: 0;
+}
+
+.hub-experience-footer .hub-wcc-bench-grid {
+  grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
+}
+
 .hub-wcc-bench-list {
   display: flex;
   flex-wrap: wrap;

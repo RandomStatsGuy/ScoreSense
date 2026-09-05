@@ -310,15 +310,16 @@ export function HubExperienceHero({
   );
 }
 
-export function HubExperienceLayout({ children, summary, summaryLabel = "At a glance" }) {
+export function HubExperienceLayout({ children, summary, summaryLabel = "At a glance", footer }) {
   return (
-    <div className="hub-experience-layout">
+    <div className={`hub-experience-layout${footer ? " has-footer" : ""}`}>
       <div className="hub-experience-main">{children}</div>
       {summary ? (
         <aside className="hub-experience-summary" aria-label={summaryLabel}>
           {summary}
         </aside>
       ) : null}
+      {footer ? <div className="hub-experience-footer">{footer}</div> : null}
     </div>
   );
 }

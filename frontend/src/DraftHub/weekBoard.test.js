@@ -219,6 +219,11 @@ test("trophy strip copy waits until the board is live", () => {
   assert.doesNotMatch(WEEK_BOARD_COPY.legendNote, /Draft Hub|Submit/i);
 });
 
+test("week board names the Vibes number instead of staying silent", () => {
+  assert.match(WEEK_BOARD_COPY.vibeNote, /Vibes/i);
+  assert.match(WEEK_BOARD_COPY.vibeNote, /model/i);
+});
+
 test("start button uses a short surname and a real action", () => {
   assert.equal(startSurname("J.K. Dobbins"), "Dobbins");
   assert.equal(startSurname("Malik Nabers"), "Nabers");

@@ -281,6 +281,9 @@ export default function WeekLineupBoard({
   onSelectSlot,
   onApplyDecision,
   onNavigate,
+  includeChrome = true,
+  includeStarters = true,
+  includeBench = true,
 }) {
   const wideById = indexByPlayerId(wideRanges);
   const moveById = indexByPlayerId(projectionChanges);
@@ -301,11 +304,6 @@ export default function WeekLineupBoard({
     weekLabel: projectionsBuiltAt ? formatRelativeTime(projectionsBuiltAt) : "",
   });
   const specialists = emptySpecialistSlots(slots);
-  const hasVibeDelta = (slots || []).concat(bench || []).some((row) => {
-    const player = row?.player || row;
-    const id = String(player?.player_id || "");
-    return id && showVibePts(player, vibeById[id]);
-  });
 
   const renderCard = (slot, { onSelect, selected, highlighted = false, showCall = true } = {}) => {
     const player = slot.player;
@@ -329,111 +327,123 @@ export default function WeekLineupBoard({
     );
   };
 
+  const benchBlock = !emptyRoster && bench.length > 0 ? (
+    <div className="hub-wcc-bench">
+      <h4>Bench</h4>
+      <div className="hub-wcc-board-grid hub-wcc-bench-grid">
+        {bench.filter((player) => player?.player_id).map((player) => (
+          renderCard(
+            {
+              key: `bn-${player.player_id}`,
+              slot: "BN",
+              position: player.position,
+              player,
+            },
+            {
+              onSelect: onSelectBench
+                ? () => onSelectBench(player)
+                : undefined,
+              selected: String(selectedBenchId) === String(player.player_id),
+              highlighted: swapBenchIds.has(String(player.player_id)),
+              showCall: false,
+            },
+          )
+        ))}
+      </div>
+    </div>
+  ) : null;
+
+  if (!includeChrome && !includeStarters) {
+    return benchBlock;
+  }
+
   return (
     <section className="hub-wcc-board" aria-label={boardTitle(weekLabel)}>
-      <header className="hub-wcc-board-head">
-        <div>
-          <h3>{boardTitle(weekLabel)}</h3>
-          <p className="hub-wcc-board-meta">
-            {freshness.roster ? (
-              <span className={freshness.rosterStale ? "is-stale" : undefined}>{freshness.roster}</span>
-            ) : null}
-            {freshness.roster && freshness.weekBoard ? (
-              <span aria-hidden="true"> · </span>
-            ) : null}
-            {freshness.weekBoard ? <span>{freshness.weekBoard}</span> : null}
-            {refreshAction ? (
-              <button
-                type="button"
-                className="btn-link hub-wcc-freshness-refresh"
-                onClick={refreshAction}
-                disabled={refreshing}
-              >
-                {refreshing ? WEEK_BOARD_COPY.refreshing : WEEK_BOARD_COPY.refreshProjections}
-              </button>
-            ) : null}
-          </p>
-        </div>
-        <WeekStepper
-          weekValue={weekValue}
-          weekPlaceholder={weekPlaceholder}
-          onWeekChange={onWeekChange}
-        />
-      </header>
-
-      <p className="hub-wcc-legend" aria-label="Board states">
-        <span className="hub-wcc-legend-item is-swap">{WEEK_BOARD_COPY.legendSwap}</span>
-        <span className="hub-wcc-legend-item is-wide">{WEEK_BOARD_COPY.legendWide}</span>
-      </p>
-
-      {hasVibeDelta ? (
-        <p className="hub-wcc-vibe-note">{WEEK_BOARD_COPY.vibeNote}</p>
-      ) : null}
-
-      {!hideSlots && specialists.length > 0 && onNavigate ? (
-        <p className="hub-wcc-specialist-note">
-          <button type="button" className="btn-link" onClick={() => onNavigate("available")}>
-            {WEEK_BOARD_COPY.findSpecialists}
-          </button>
-        </p>
-      ) : null}
-
-      {poorCoverage && !emptyRoster && coverageCopy ? (
-        <div className="hub-wcc-coverage-block" role="status">
-          <h4 className="hub-wcc-coverage-title">{coverageCopy.title}</h4>
-          <p className="hub-wcc-coverage-body">{coverageCopy.body}</p>
-          {coverageCopy.hint ? (
-            <p className="hub-wcc-coverage-hint">{coverageCopy.hint}</p>
-          ) : null}
-          {coverageActions ? (
-            <div className="hub-wcc-coverage-actions">{coverageActions}</div>
-          ) : null}
-        </div>
-      ) : null}
-
-      <div className="hub-wcc-board-stage">
-        <div className="hub-wcc-board-grid" id="hub-wcc-calls">
-          {hideSlots ? null : slots.map((slot) => renderCard(slot, {
-            onSelect: onSelectSlot,
-            selected: Boolean(canEdit && selectedBenchId && slot.player?.player_id),
-          }))}
-        </div>
-        {showOverlay ? (
-          <div className="hub-wcc-board-overlay">
-            <div className="hub-wcc-board-overlay-card" role="status">
-              <h4>{overlayCopy.title}</h4>
-              <p>{overlayCopy.body}</p>
-              {overlayActions}
+      {includeChrome ? (
+        <>
+          <header className="hub-wcc-board-head">
+            <div>
+              <h3>{boardTitle(weekLabel)}</h3>
+              <p className="hub-wcc-board-meta">
+                {freshness.roster ? (
+                  <span className={freshness.rosterStale ? "is-stale" : undefined}>{freshness.roster}</span>
+                ) : null}
+                {freshness.roster && freshness.weekBoard ? (
+                  <span aria-hidden="true"> · </span>
+                ) : null}
+                {freshness.weekBoard ? <span>{freshness.weekBoard}</span> : null}
+                {refreshAction ? (
+                  <button
+                    type="button"
+                    className="btn-link hub-wcc-freshness-refresh"
+                    onClick={refreshAction}
+                    disabled={refreshing}
+                  >
+                    {refreshing ? WEEK_BOARD_COPY.refreshing : WEEK_BOARD_COPY.refreshProjections}
+                  </button>
+                ) : null}
+              </p>
             </div>
-          </div>
-        ) : null}
-      </div>
+            <WeekStepper
+              weekValue={weekValue}
+              weekPlaceholder={weekPlaceholder}
+              onWeekChange={onWeekChange}
+            />
+          </header>
 
-      {!emptyRoster && bench.length > 0 ? (
-        <div className="hub-wcc-bench">
-          <h4>Bench</h4>
-          <div className="hub-wcc-board-grid hub-wcc-bench-grid">
-            {bench.filter((player) => player?.player_id).map((player) => (
-              renderCard(
-                {
-                  key: `bn-${player.player_id}`,
-                  slot: "BN",
-                  position: player.position,
-                  player,
-                },
-                {
-                  onSelect: onSelectBench
-                    ? () => onSelectBench(player)
-                    : undefined,
-                  selected: String(selectedBenchId) === String(player.player_id),
-                  highlighted: swapBenchIds.has(String(player.player_id)),
-                  showCall: false,
-                },
-              )
-            ))}
+          <p className="hub-wcc-legend" aria-label="Board states">
+            <span className="hub-wcc-legend-item is-swap">{WEEK_BOARD_COPY.legendSwap}</span>
+            <span className="hub-wcc-legend-item is-wide">{WEEK_BOARD_COPY.legendWide}</span>
+          </p>
+
+          {!hideSlots && !emptyRoster ? (
+            <p className="hub-wcc-vibe-note">{WEEK_BOARD_COPY.vibeNote}</p>
+          ) : null}
+
+          {!hideSlots && specialists.length > 0 && onNavigate ? (
+            <p className="hub-wcc-specialist-note">
+              <button type="button" className="btn-link" onClick={() => onNavigate("available")}>
+                {WEEK_BOARD_COPY.findSpecialists}
+              </button>
+            </p>
+          ) : null}
+
+          {poorCoverage && !emptyRoster && coverageCopy ? (
+            <div className="hub-wcc-coverage-block" role="status">
+              <h4 className="hub-wcc-coverage-title">{coverageCopy.title}</h4>
+              <p className="hub-wcc-coverage-body">{coverageCopy.body}</p>
+              {coverageCopy.hint ? (
+                <p className="hub-wcc-coverage-hint">{coverageCopy.hint}</p>
+              ) : null}
+              {coverageActions ? (
+                <div className="hub-wcc-coverage-actions">{coverageActions}</div>
+              ) : null}
+            </div>
+          ) : null}
+        </>
+      ) : null}
+
+      {includeStarters ? (
+        <div className="hub-wcc-board-stage">
+          <div className="hub-wcc-board-grid" id="hub-wcc-calls">
+            {hideSlots ? null : slots.map((slot) => renderCard(slot, {
+              onSelect: onSelectSlot,
+              selected: Boolean(canEdit && selectedBenchId && slot.player?.player_id),
+            }))}
           </div>
+          {showOverlay ? (
+            <div className="hub-wcc-board-overlay">
+              <div className="hub-wcc-board-overlay-card" role="status">
+                <h4>{overlayCopy.title}</h4>
+                <p>{overlayCopy.body}</p>
+                {overlayActions}
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
+
+      {includeBench ? benchBlock : null}
     </section>
   );
 }

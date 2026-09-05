@@ -319,6 +319,52 @@ export default function WeeklyCommandCenter({
     </>
   );
 
+  const boardProps = {
+    weekLabel,
+    slots,
+    bench,
+    decisions: poorCoverage ? [] : decisions,
+    wideRanges,
+    projectionChanges: projectionChangeItems,
+    emptyRoster,
+    loadFailed,
+    unlinked,
+    poorCoverage,
+    loading: loading && !data,
+    error: Boolean(error) && !data,
+    coverageCopy,
+    syncedLabel,
+    projectionsBuiltAt: meta.projections_built_at,
+    rosterSyncedAt: sync.sleeper_synced_at,
+    vibeById,
+    weekValue: weekOverride,
+    weekPlaceholder: meta.week != null ? String(meta.week) : "auto",
+    onWeekChange: (week) => setWeekOverride(String(week)),
+    overlayActions: loading && !data ? null : overlayActions,
+    coverageActions,
+    refreshAction: () => load(undefined, { rebuild: true }),
+    refreshing: loading,
+    canEdit: canEdit && !lineupBusy,
+    lineupLocked: Boolean(meta.lineup_locked),
+    sleeperLeagueId,
+    selectedBenchId,
+    onSelectBench: (player) => {
+      const pid = String(player?.player_id || "");
+      setSelectedBenchId((cur) => (cur === pid ? "" : pid));
+    },
+    onSelectSlot: (slot) => {
+      const starterId = slot?.player?.player_id;
+      if (selectedBenchId && starterId) {
+        applySwap(starterId, selectedBenchId);
+      }
+    },
+    onNavigate,
+    onApplyDecision: (decision) => {
+      const ids = decisionSwapIds(decision);
+      if (ids) applySwap(ids.starter_player_id, ids.bench_player_id);
+    },
+  };
+
   return (
     <HubPage className="hub-wcc hub-experience-page">
       <HubExperienceHero
@@ -358,57 +404,16 @@ export default function WeeklyCommandCenter({
             ) : null}
           />
         )}
+        footer={!emptyRoster && bench.length > 0 ? (
+          <WeekLineupBoard {...boardProps} includeChrome={false} includeStarters={false} />
+        ) : null}
       >
         {error && <div className="error">{error}</div>}
         {syncError && <div className="error">{syncError}</div>}
         {lineupError && <div className="error">{lineupError}</div>}
         {syncMessage && <p className="chart-note hub-wcc-sync-msg">{syncMessage}</p>}
 
-        <WeekLineupBoard
-          weekLabel={weekLabel}
-          slots={slots}
-          bench={bench}
-          decisions={poorCoverage ? [] : decisions}
-          wideRanges={wideRanges}
-          projectionChanges={projectionChangeItems}
-          emptyRoster={emptyRoster}
-          loadFailed={loadFailed}
-          unlinked={unlinked}
-          poorCoverage={poorCoverage}
-          loading={loading && !data}
-          error={Boolean(error) && !data}
-          coverageCopy={coverageCopy}
-          syncedLabel={syncedLabel}
-          projectionsBuiltAt={meta.projections_built_at}
-          rosterSyncedAt={sync.sleeper_synced_at}
-          vibeById={vibeById}
-          weekValue={weekOverride}
-          weekPlaceholder={meta.week != null ? String(meta.week) : "auto"}
-          onWeekChange={(week) => setWeekOverride(String(week))}
-          overlayActions={loading && !data ? null : overlayActions}
-          coverageActions={coverageActions}
-          refreshAction={() => load(undefined, { rebuild: true })}
-          refreshing={loading}
-          canEdit={canEdit && !lineupBusy}
-          lineupLocked={Boolean(meta.lineup_locked)}
-          sleeperLeagueId={sleeperLeagueId}
-          selectedBenchId={selectedBenchId}
-          onSelectBench={(player) => {
-            const pid = String(player?.player_id || "");
-            setSelectedBenchId((cur) => (cur === pid ? "" : pid));
-          }}
-          onSelectSlot={(slot) => {
-            const starterId = slot?.player?.player_id;
-            if (selectedBenchId && starterId) {
-              applySwap(starterId, selectedBenchId);
-            }
-          }}
-          onNavigate={onNavigate}
-          onApplyDecision={(decision) => {
-            const ids = decisionSwapIds(decision);
-            if (ids) applySwap(ids.starter_player_id, ids.bench_player_id);
-          }}
-        />
+        <WeekLineupBoard {...boardProps} includeBench={false} />
 
       </HubExperienceLayout>
     </HubPage>
