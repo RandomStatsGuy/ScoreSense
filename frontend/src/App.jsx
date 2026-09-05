@@ -79,6 +79,7 @@ import {
   defaultSeasonMode,
 } from "./appNavigation";
 import { interceptAppNav } from "./appNavLink";
+import { pageTitleForPath } from "./analytics";
 import { buildAppPath } from "./routes";
 import { apiFetch } from "./auth";
 import { isAbortError } from "./fetchAbort";
@@ -1053,6 +1054,10 @@ export default function App() {
   useEffect(() => {
     if (view === "hub") setHubMounted(true);
   }, [view]);
+
+  useEffect(() => {
+    document.title = pageTitleForPath(location.pathname);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (headerSubtitle === subtitleDisplay) return undefined;

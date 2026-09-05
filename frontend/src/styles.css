@@ -5941,7 +5941,7 @@ td.col-rank.col-rank-top {
 
 .hub-roster-table-wrap .table-wrap {
   overflow-x: auto;
-  overflow-y: visible;
+  overflow-y: clip;
   max-height: none;
   -webkit-overflow-scrolling: touch;
 }
@@ -18681,6 +18681,7 @@ th.sortable-header {
 .hub-stadium-hero-cap { margin-left: auto; }
 .hub-stadium-hero-chips { padding: 0 1rem 0.85rem; }
 .hub-stadium-cap-card { min-width: 11rem; }
+.hub-stadium-cap-card .hub-stat-value { font-size: 1.5rem; }
 .hub-stadium-cap-bar {
   display: flex;
   height: 0.4rem;
