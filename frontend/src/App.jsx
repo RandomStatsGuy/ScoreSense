@@ -1565,7 +1565,6 @@ export default function App() {
           />
         )}
 
-        <main id="app-main" tabIndex={-1}>
         {error && isProjectionsDataView && (
           <div className="error">{error}</div>
         )}
