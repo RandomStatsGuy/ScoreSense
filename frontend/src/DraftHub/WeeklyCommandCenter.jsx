@@ -19,6 +19,7 @@ import {
   canEditHubLineup,
   decisionSwapIds,
   formatDraftNightShort,
+  WEEK_BOARD_COPY,
   weekHeroCopy,
   weekPrimaryAction,
   weekRailItems,
@@ -301,7 +302,11 @@ export default function WeeklyCommandCenter({
         support={hero.support}
         chip={hero.chip}
         chipTone={hero.chipTone}
-      />
+      >
+        {decisions.length > 0 && !poorCoverage ? (
+          <a href="#hub-wcc-calls" className="btn-link">{WEEK_BOARD_COPY.seeCalls}</a>
+        ) : null}
+      </HubExperienceHero>
 
       <HubExperienceLayout
         summaryLabel="This week snapshot"
@@ -366,6 +371,7 @@ export default function WeeklyCommandCenter({
               applySwap(starterId, selectedBenchId);
             }
           }}
+          onNavigate={onNavigate}
           onApplyDecision={(decision) => {
             const ids = decisionSwapIds(decision);
             if (ids) applySwap(ids.starter_player_id, ids.bench_player_id);

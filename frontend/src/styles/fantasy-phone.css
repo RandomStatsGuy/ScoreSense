@@ -1,0 +1,535 @@
+/* Fantasy phone floor (≤768px). Tokens only. One pass for every destination. */
+
+.hub-rules-sticky-save {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .hub-page,
+  .hub-experience-page,
+  .hub-league-home,
+  .hub-insights,
+  .hub-vibes,
+  .hub-strategy-board,
+  .hub-rules-center,
+  .hub-league-office,
+  .hub-gc,
+  .hub-wcc {
+    --text-xs: 0.74rem; /* 11.84px — same phone floor as Projections meta */
+  }
+
+  .hub-page .chart-note,
+  .hub-experience-page .chart-note,
+  .hub-league-home .chart-note,
+  .hub-insights .chart-note,
+  .hub-page .table-meta,
+  .hub-page small,
+  .hub-experience-page small,
+  .hub-league-home small,
+  .hub-filter-label,
+  .hub-page-meta,
+  .hub-stat-label,
+  .hub-status,
+  .hub-experience-kicker,
+  .hub-experience-eyebrow,
+  .hub-experience-chip,
+  .hub-experience-summary dt,
+  .hub-experience-summary-note,
+  .hub-home-priority-kicker,
+  .hub-home-snapshot-list dt,
+  .hub-home-snapshot-head > span,
+  .hub-home-snapshot-list span,
+  .mobile-player-card-hero-label,
+  .mobile-player-card-floor-ceil-label,
+  .mobile-stat-label,
+  .filter-chip--compact,
+  .chip-filter.chip-tier {
+    font-size: max(var(--text-xs), 0.74rem);
+  }
+
+  .filter-chip,
+  .chip-filter,
+  .hub-filter-bar .filter-chip,
+  .hub-filter-bar .filter-chip--compact,
+  .hub-pos-chip,
+  .hub-roster-owner-chip,
+  .hub-segment-nav-btn,
+  .btn-link,
+  .hub-tab-intro-learn summary,
+  .hub-roster-contract-rules summary {
+    min-height: var(--touch-target);
+    min-width: var(--touch-target);
+    padding-block: 0.55rem;
+    box-sizing: border-box;
+  }
+
+  .btn-link {
+    display: inline-flex;
+    align-items: center;
+    padding-inline: 0.55rem;
+    font-size: var(--text-sm);
+  }
+
+  .hub-filter-summary-bar {
+    display: none;
+  }
+
+  .hub-page-sticky {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+    background: var(--bg-base);
+    padding-bottom: 0.35rem;
+    margin-bottom: 0.35rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hub-filter-scroll {
+    padding-inline-end: 1.4rem;
+    scroll-padding-inline: 0.35rem 1.4rem;
+    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 1.15rem), transparent);
+    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 1.15rem), transparent);
+  }
+
+  .hub-experience-summary dl > div,
+  .hub-rules-summary dl > div {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
+
+  .hub-experience-summary dd,
+  .hub-rules-summary dd {
+    text-align: left;
+  }
+
+  .hub-home-snapshot-list > div {
+    grid-template-columns: 1fr;
+  }
+
+  .hub-home-snapshot-list dd,
+  .hub-home-snapshot-list span {
+    text-align: left;
+  }
+
+  .hub-home-deck-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
+
+  .hub-section-head--row,
+  .hub-section-head {
+    flex-wrap: wrap;
+  }
+
+  .hub-home-priority {
+    overflow-x: clip;
+    overflow-y: visible;
+    min-height: 0;
+    padding: 1.05rem;
+  }
+
+  .hub-home-priority h3 {
+    max-width: none;
+    font-size: 1.65rem;
+  }
+
+  .hub-home-priority-actions .btn-link {
+    min-height: var(--touch-target);
+  }
+
+  .hub-home-standing-break {
+    list-style: none;
+    padding: 0.15rem 0;
+    color: var(--text-muted);
+    letter-spacing: 0.18em;
+  }
+
+  .hub-roster-owner-layout {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 0.75rem 0.85rem 1rem;
+    overflow: visible;
+  }
+
+  .hub-roster-owner-rail,
+  .hub-roster-owner-main,
+  .hub-roster-browser-table-wrap,
+  .hub-roster-team-stats {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .hub-roster-team-stats,
+  .hub-roster-team-stats-facts,
+  .hub-roster-team-stats-pos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.7rem;
+  }
+
+  .hub-roster-team-stats span,
+  .hub-roster-pos-spend {
+    white-space: normal;
+  }
+
+  .hub-roster-owner-chip {
+    min-width: 0;
+    flex: 0 0 auto;
+  }
+
+  .mobile-player-card-header {
+    align-items: center;
+  }
+
+  .mobile-player-card-hero {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.35rem;
+  }
+
+  .mobile-player-card-hero-label {
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 600;
+  }
+
+  .mobile-player-card-chevron {
+    margin-left: 0.25rem;
+    font-size: var(--text-sm);
+  }
+
+  .fantasy-chat-launcher,
+  .fantasy-chat-launcher--phone {
+    position: relative;
+    overflow: visible;
+    max-width: 2.75rem;
+  }
+
+  .fantasy-chat-dismiss,
+  .fantasy-chat-dismiss--on-bubble {
+    position: absolute;
+    top: -0.45rem;
+    left: -0.45rem;
+    min-width: 1.75rem;
+    min-height: 1.75rem;
+    border: 1px solid var(--experience-rule);
+    border-left: 1px solid var(--experience-rule);
+    border-radius: 50%;
+    background: var(--experience-surface-strong);
+    z-index: 1;
+  }
+
+  .fantasy-chat-dock.is-edge-left .fantasy-chat-dismiss,
+  .fantasy-chat-dock.is-edge-left .fantasy-chat-dismiss--on-bubble {
+    left: auto;
+    right: -0.45rem;
+  }
+
+  .fantasy-chat-dock:not(.is-open):hover .fantasy-chat-launcher,
+  .fantasy-chat-dock:not(.is-open):focus-within .fantasy-chat-launcher {
+    max-width: 2.75rem;
+  }
+
+  .fantasy-chat-dock.is-edge-right:not(.is-open),
+  .fantasy-chat-dock.is-edge-bottom:not(.is-open) {
+    right: 0.85rem;
+    /* Sit above the tab bar and any fixed page action (Vibes / Rules save). */
+    bottom: calc(8.85rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .hub-loading-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    width: 100%;
+    padding: 0.35rem 0;
+  }
+
+  .hub-loading-skeleton-block {
+    height: 2.75rem;
+    border-radius: var(--radius-md);
+    background: linear-gradient(
+      90deg,
+      rgba(148, 163, 184, 0.08) 0%,
+      rgba(148, 163, 184, 0.16) 45%,
+      rgba(148, 163, 184, 0.08) 90%
+    );
+    background-size: 200% 100%;
+    animation: season-shimmer 1.4s ease-in-out infinite;
+  }
+
+  .hub-trade-tabs.hub-filter-bar {
+    flex-direction: row;
+    flex-wrap: nowrap;
+  }
+
+  .hub-trade-tabs .filter-chip {
+    flex: 1 1 0;
+  }
+
+  .hub-office-tab-bar .hub-office-tab-group {
+    display: none;
+  }
+
+  .hub-league-office .hub-tab-intro-title {
+    display: none;
+  }
+
+  .hub-rules-sticky-save {
+    position: sticky;
+    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    z-index: var(--z-sticky);
+    display: flex;
+    padding: 0.55rem 0 0.2rem;
+    background: linear-gradient(180deg, transparent, var(--bg-base) 28%);
+  }
+
+  .hub-rules-sticky-save .btn-primary {
+    width: 100%;
+    min-height: var(--touch-target);
+  }
+
+  .hub-rules-risk-options button,
+  .hub-rules-roster-row input,
+  .hub-rules-field-grid input,
+  .hub-rules-field-grid select {
+    min-height: var(--touch-target);
+  }
+
+  .hub-wcc-board-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hub-wcc-slot-player strong {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  .hub-wcc-slot-call {
+    min-height: var(--touch-target);
+    font-size: var(--text-sm);
+  }
+
+  .hub-wcc-week-stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .hub-wcc-week-stepper button {
+    min-width: var(--touch-target);
+    min-height: var(--touch-target);
+  }
+
+  .hub-wcc-week-stepper output {
+    min-width: 3.5rem;
+    text-align: center;
+    font-weight: 700;
+  }
+
+  .hub-wcc-bench-chip {
+    min-height: 4.6rem;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .hub-gc-week-nav {
+    flex-wrap: wrap;
+  }
+
+  .hub-gc-week-nav .hub-gc-state {
+    width: 100%;
+    text-align: center;
+    order: -1;
+  }
+
+  .hub-gc-week-nav button {
+    min-height: var(--touch-target);
+    white-space: nowrap;
+  }
+
+  .hub-gc-panel-head .btn-link {
+    white-space: nowrap;
+  }
+
+  .hub-week-poll-summary-cta {
+    font-size: var(--text-sm);
+    min-height: var(--touch-target);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .hub-insights-rank-row,
+  .hub-insights-rank-row--button {
+    grid-template-columns: 1.4rem minmax(0, 1fr);
+    min-height: var(--touch-target);
+  }
+
+  .hub-insights-rank-track,
+  .hub-insights-rank-value {
+    grid-column: 1 / -1;
+  }
+
+  .hub-insights-rank-value {
+    white-space: normal;
+    text-align: right;
+    justify-content: flex-end;
+    font-size: var(--text-xs);
+  }
+
+  .hub-stadium-hero-edit {
+    min-height: var(--touch-target);
+    min-width: var(--touch-target);
+    padding: 0.45rem 0.75rem;
+  }
+
+  .hub-alert-text {
+    overflow-wrap: anywhere;
+  }
+
+  .hub-rules-summary .hub-rules-save {
+    display: none;
+  }
+
+  .hub-league-chat-staff {
+    display: flex;
+    justify-content: flex-start;
+    padding: 0.35rem 0;
+  }
+
+  .hub-office-contract-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .hub-office-draft-complete {
+    margin-top: 1rem;
+  }
+
+  .hub-office-draft-complete .btn-danger {
+    width: 100%;
+    min-height: var(--touch-target);
+  }
+
+  .hub-gc-week-toolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.45rem;
+  }
+
+  .hub-gc-week-nav {
+    display: flex;
+    gap: 0.45rem;
+  }
+
+  .hub-gc-week-nav button {
+    flex: 1 1 0;
+  }
+
+  .hub-gc-duel-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.75rem 0;
+  }
+
+  .hub-stadium-cap-legend {
+    display: block;
+    margin-top: 0.35rem;
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+  }
+
+  .hub-vibes-more {
+    top: 0.75rem;
+    bottom: auto;
+    right: 0.75rem;
+    width: var(--touch-target);
+    height: var(--touch-target);
+    background: var(--experience-surface-strong);
+    color: var(--text-primary);
+    border: 1px solid var(--experience-rule);
+  }
+
+  .hub-vibes-stage {
+    padding-bottom: 5.75rem;
+  }
+
+  .hub-vibes-keys {
+    display: none;
+  }
+
+  .hub-vibes-actions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    z-index: var(--z-sticky);
+    padding: 0.55rem 0.85rem 0.65rem;
+    background: var(--bg-base);
+    border-top: 1px solid var(--border);
+  }
+
+  .hub-vibes-compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+  }
+
+  .hub-vibes-compare span {
+    display: block;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+  }
+
+  .hub-vibes-compare strong {
+    display: block;
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    overflow-wrap: anywhere;
+  }
+
+  .hub-strategy-photo--hero {
+    max-height: 11rem;
+  }
+
+  .hub-strategy-empty-wrap {
+    min-height: 0;
+  }
+
+  .hub-segment-nav {
+    display: flex;
+    flex-wrap: nowrap;
+  }
+
+  .hub-segment-nav-btn {
+    flex: 1 1 0;
+    min-height: var(--touch-target);
+  }
+
+  .hub-experience-chip.is-readonly {
+    pointer-events: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .hub-wcc-board-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-loading-skeleton-block {
+    animation: none;
+  }
+}

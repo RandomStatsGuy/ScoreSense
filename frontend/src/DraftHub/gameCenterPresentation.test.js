@@ -63,13 +63,11 @@ test("duel rows pair starters by lineup slot", () => {
   assert.equal(rows[0].away.points, 0);
   assert.equal(rows[1].slot, "RB");
   // Uneven lineups still render every slot.
-  const uneven = duelRows({ starters: [{ position: "QB" }] }, { starters: [] }, []);
+  const uneven = duelRows({ starters: [{ name: "Mahomes", position: "QB" }] }, { starters: [] }, []);
   assert.equal(uneven.length, 1);
   assert.equal(uneven[0].away, null);
   const emptySlots = duelRows({ starters: [] }, { starters: [] }, ["QB", "RB", "WR"]);
-  assert.equal(emptySlots.length, 3);
-  assert.equal(emptySlots[0].slot, "QB");
-  assert.equal(emptySlots[2].home, null);
+  assert.equal(emptySlots.length, 0);
 });
 
 test("storyline names the lead and who is still to play", () => {
@@ -116,6 +114,12 @@ test("game state label distinguishes past weeks and preseason", () => {
   );
 });
 
+test("empty duel copy names This Week", () => {
+  assert.match(GAME_CENTER_COPY.emptyDuel, /This Week|lineup/i);
+  assert.equal(GAME_CENTER_COPY.setLineup, "Set lineup");
+  assert.doesNotMatch(GAME_CENTER_COPY.emptyDuel, /Draft Hub|Submit/i);
+});
+
 test("placeholder storyline keeps the slate and names the missing opponent", () => {
   const line = matchupStoryline({
     viewer: { team_name: "Commissioner" },
@@ -124,7 +128,7 @@ test("placeholder storyline keeps the slate and names the missing opponent", () 
     week: 2,
     hint: GAME_CENTER_COPY.emptyNoSleeper,
   });
-  assert.equal(line, "Week 2 opponent TBD. Link Sleeper to fill scores.");
+  assert.equal(line, "Week 2 opponent TBD");
   const paired = matchupStoryline({
     viewer: { team_name: "Alpha" },
     opponent: { team_name: "Zebra Squad", roster_id: "z" },
@@ -132,7 +136,7 @@ test("placeholder storyline keeps the slate and names the missing opponent", () 
     week: 1,
     hint: GAME_CENTER_COPY.emptyPreseason,
   });
-  assert.equal(paired, "Week 1 vs Zebra Squad. No scored matchups yet. Scores fill in after kickoff.");
+  assert.equal(paired, "Week 1 vs Zebra Squad");
   const named = matchupStoryline({
     viewer: { team_name: "Alpha", owner_name: "Avery A" },
     opponent: { team_name: "White Supremacists", owner_name: "Caleb K", roster_id: "z" },
@@ -140,5 +144,5 @@ test("placeholder storyline keeps the slate and names the missing opponent", () 
     week: 1,
     hint: GAME_CENTER_COPY.emptyPreseason,
   });
-  assert.equal(named, "Week 1 vs Caleb K · White Supremacists. No scored matchups yet. Scores fill in after kickoff.");
+  assert.equal(named, "Week 1 vs Caleb K · White Supremacists");
 });

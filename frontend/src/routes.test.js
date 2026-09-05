@@ -88,9 +88,12 @@ test("Fantasy rules and roster management routes round-trip", () => {
   assert.equal(buildAppPath({ view: "hub", hubSubView: "rules" }), "/hub/rules");
   assert.equal(parseAppPath("/hub/office").officeTab, "current");
   assert.equal(parseAppPath("/hub/office/chat").officeTab, "current");
+  assert.equal(parseAppPath("/hub/roster-management").hubSubView, "office");
+  assert.equal(parseAppPath("/hub/roster-management/contracts").officeTab, "current");
+  assert.equal(parseAppPath("/hub/roster-management/sheets").officeTab, "historic");
   assert.equal(
     buildAppPath({ view: "hub", hubSubView: "office", officeTab: "current" }),
-    "/hub/office/current",
+    "/hub/roster-management/contracts",
   );
 });
 

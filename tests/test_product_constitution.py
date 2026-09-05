@@ -113,10 +113,18 @@ def test_design_spec_defers_to_constitution() -> None:
 def test_constitution_covers_phone_chrome() -> None:
     product = _read("docs", "PRODUCT.md")
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    hub_rule = _read(".cursor", "rules", "frontend-draft-hub.mdc")
     assert "On phone, the header is the current destination" in product
     assert "one-row league strip" in product
+    assert "hub-page-sticky" in product
+    assert "/hub/roster-management" in product
+    assert "sits on the bubble" in product
     assert "destination title" in core_rule.lower()
     assert "one-row league strip" in core_rule.lower()
+    assert "hub-page-sticky" in core_rule
+    assert "sits on the bubble" in core_rule
+    assert "sits on the bubble" in hub_rule
+    assert "hub-page-sticky" in hub_rule
 
 
 def test_constitution_covers_chat_chrome() -> None:

@@ -221,7 +221,7 @@ export default function FantasyChatDock({ leagueId, hubContext, hidden = false }
       {!open && !dismissed && (
         <div
           ref={launcherRef}
-          className="fantasy-chat-launcher"
+          className={`fantasy-chat-launcher${mobileLayout ? " fantasy-chat-launcher--phone" : ""}`}
           onPointerDown={onLauncherPointerDown}
           onPointerMove={onLauncherPointerMove}
           onPointerUp={onLauncherPointerUp}
@@ -257,7 +257,7 @@ export default function FantasyChatDock({ leagueId, hubContext, hidden = false }
           </button>
           <button
             type="button"
-            className="fantasy-chat-dismiss"
+            className={`fantasy-chat-dismiss${mobileLayout ? " fantasy-chat-dismiss--on-bubble" : ""}`}
             aria-label={FANTASY_CHAT_COPY.dismissLauncher}
             onClick={dismissLauncher}
           >

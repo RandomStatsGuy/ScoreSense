@@ -11,6 +11,7 @@ import "./styles/auth-session.css";
 import "./styles/vibe-rankings.css";
 import "./styles/strategy-board.css";
 import "./styles/product-rhythm.css";
+import "./styles/fantasy-phone.css";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
