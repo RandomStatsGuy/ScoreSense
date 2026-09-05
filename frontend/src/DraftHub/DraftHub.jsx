@@ -32,8 +32,10 @@ import {
   invalidateFreshnessCache,
   mergePoolAndOverlay,
   poolPayloadFromSheet,
+  runValueSheetRequest,
   setCachedOverlay,
   setCachedPool,
+  valueSheetRequestKey,
 } from "./hubDataCache";
 import { effectiveHubContext } from "./hubContext";
 import { fetchHubMemberships, setHubFocus, effectiveMemberships } from "./hubLeagues";
@@ -56,7 +58,7 @@ const TABS_NEED_VALUE_SHEET = new Set(["value", "available", "room", "rosters", 
 /** Tabs that need cap-sheet (also hits roster on the server). */
 const TABS_NEED_CAP_SHEET = new Set(["planner", "roster", "rosters"]);
 /** Tabs that read the hub roster ("value" marks my players via rosterIds). */
-const TABS_NEED_ROSTER = new Set(["home", "setup", "value", "available", "roster", "rosters", "planner", "room", "trades"]);
+const TABS_NEED_ROSTER = new Set(["home", "setup", "value", "available", "roster", "rosters", "planner", "room", "trades", "rules"]);
 
 export default function DraftHub({ subView, onSubViewChange, onHubContextChange, insightTab, onInsightTabChange, officeTab, onOfficeTabChange, onOpenContractHistory, active = true }) {
   const [searchParams] = useSearchParams();
@@ -91,6 +93,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const [memberships, setMemberships] = useState([]);
   const [leagueSwitchBusy, setLeagueSwitchBusy] = useState(false);
   const [createLeagueOpen, setCreateLeagueOpen] = useState(false);
+  const [rosterFocus, setRosterFocus] = useState(null);
   const watchLeagueKey = leagueId || hubContext?.league_id || workspace?.league_id || "solo";
   const [watchIds, setWatchIds] = useState([]);
   useEffect(() => {
@@ -140,18 +143,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     }
   }, [subView, setSubView, onInsightTabChange, onOfficeTabChange]);
 
-  // Trades/Office stay mounted (display:none) after first visit so revisits
-  // skip refetch. Insights unmounts on leave so Free agents clicks are not ignored.
-  const [visitedTabs, setVisitedTabs] = useState(() => new Set());
-  useEffect(() => {
-    if (subView !== "trades" && subView !== "office") return;
-    setVisitedTabs((prev) => {
-      if (prev.has(subView)) return prev;
-      const next = new Set(prev);
-      next.add(subView);
-      return next;
-    });
-  }, [subView]);
+  // Trades and Roster management unmount when you leave so their headings
+  // do not leak onto Game center, Tools, or any other destination.
 
   const rosterIds = useMemo(
     () => new Set(roster.map((r) => r.player_id)),
@@ -215,37 +208,38 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
 
   const refreshValueSheet = useCallback(async (season, rules, { forcePool = false, signal } = {}) => {
     setValueSheetLoading(true);
+    const key = valueSheetRequestKey(season, rules, { forcePool });
     try {
-      const cachedPool = !forcePool ? getCachedPool(season, rules) : null;
-      if (cachedPool) {
-        const overlay = await loadValueOverlay(season, signal);
-        if (signal?.aborted) return null;
-        const sheet = mergePoolAndOverlay(cachedPool, overlay);
-        sheet.sleeper = overlay.sleeper;
-        if (overlay.hub_context) applyHubContext(overlay.hub_context);
-        setValueSheet(sheet);
-        return sheet;
-      }
-
-      const q = season ? `?season=${season}` : "";
-      const res = await apiFetch(`/api/hub/value-sheet${q}`, { signal });
-      if (!res.ok) throw new Error(await parseApiError(res));
-      const sheet = await res.json();
-      if (signal?.aborted) return null;
-      setCachedPool(season, rules, poolPayloadFromSheet(sheet));
-      setCachedOverlay(season, sheet);
-      if (sheet.hub_context) applyHubContext(sheet.hub_context);
+      const sheet = await runValueSheetRequest(key, async () => {
+        const cachedPool = !forcePool ? getCachedPool(season, rules) : null;
+        if (cachedPool) {
+          const overlay = await loadValueOverlay(season);
+          const merged = mergePoolAndOverlay(cachedPool, overlay);
+          merged.sleeper = overlay.sleeper;
+          if (overlay.hub_context) applyHubContext(overlay.hub_context);
+          return merged;
+        }
+        const q = season ? `?season=${season}` : "";
+        const res = await apiFetch(`/api/hub/value-sheet${q}`);
+        if (!res.ok) throw new Error(await parseApiError(res));
+        const next = await res.json();
+        setCachedPool(season, rules, poolPayloadFromSheet(next));
+        setCachedOverlay(season, next);
+        if (next.hub_context) applyHubContext(next.hub_context);
+        return next;
+      });
+      if (signal?.aborted) return sheet;
       setValueSheet(sheet);
       return sheet;
     } catch (e) {
-      if (isAbortError(e)) return null;
+      if (isAbortError(e) || signal?.aborted) return null;
       const msg = connectionErrorMessage(e);
       if (!/sign in|login required|401/i.test(msg)) {
         setError(msg);
       }
       return null;
     } finally {
-      setValueSheetLoading(false);
+      if (!signal?.aborted) setValueSheetLoading(false);
     }
   }, [loadValueOverlay, applyHubContext]);
 
@@ -385,31 +379,25 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     return () => controller.abort();
   }, [subView, workspace, loading, refreshRoster]);
 
-  /** Load cap sheet for league mode (season banner) and cap/roster tabs; value sheet per tab. */
+  /** Load cap sheet for league mode (season banner) and cap/roster tabs. */
   useEffect(() => {
     if (!workspace || loading) return undefined;
     const controller = new AbortController();
-    const { signal } = controller;
     const inLeague = effectiveHubContext(hubContext, workspace)?.mode === "league";
-
     if (!capSheet && (inLeague || TABS_NEED_CAP_SHEET.has(subView))) {
-      ensureCapSheet(signal);
+      ensureCapSheet(controller.signal);
     }
-    if (TABS_NEED_VALUE_SHEET.has(subView) && !valueSheet) {
-      refreshValueSheet(workspace.season, workspace.rules, { signal });
-    }
-
     return () => controller.abort();
-  }, [
-    subView,
-    workspace,
-    loading,
-    hubContext,
-    capSheet,
-    valueSheet,
-    ensureCapSheet,
-    refreshValueSheet,
-  ]);
+  }, [subView, workspace, loading, hubContext, capSheet, ensureCapSheet]);
+
+  /** Value sheet is one shared GET. Cap-sheet updates must not abort it. */
+  useEffect(() => {
+    if (!workspace || loading) return undefined;
+    if (!TABS_NEED_VALUE_SHEET.has(subView) || valueSheet) return undefined;
+    const controller = new AbortController();
+    refreshValueSheet(workspace.season, workspace.rules, { signal: controller.signal });
+    return () => controller.abort();
+  }, [subView, workspace, loading, valueSheet, refreshValueSheet]);
 
   useEffect(() => {
     if (!authReady) return undefined;
@@ -690,6 +678,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           switchBusy={leagueSwitchBusy}
           showAttention={subView !== "home"}
           currentView={subView}
+          onRosterFocus={setRosterFocus}
           onProjectionsRefresh={async () => {
             clearHubDataCache();
             await refreshValueSheet(
@@ -719,6 +708,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           workspace={workspace}
           hubContext={effectiveCtx}
           presets={presets}
+          roster={roster}
           onSaved={onWorkspaceSaved}
           readOnlyRules={effectiveCtx?.mode === "league" && !effectiveCtx?.is_commissioner}
         />
@@ -859,6 +849,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           onEditInOffice={goToRosterManagement}
           onOpenContractHistory={onOpenContractHistory}
           onNavigate={goHubView}
+          focusFilter={rosterFocus}
+          onFocusConsumed={() => setRosterFocus(null)}
         />
       )}
 
@@ -884,48 +876,42 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         )
       )}
 
-      {(subView === "trades" || visitedTabs.has("trades")) && effectiveCtx?.mode === "league" && (
-        <div className={subView === "trades" ? undefined : "app-view-pane-hidden"}>
-          <LeagueTrades
-            leagueId={effectiveCtx.league_id}
-            hubContext={effectiveCtx}
-            onNavigate={(view) => {
-              if (view === "office-members") return goToOfficeTab("members");
-              return setSubView(view);
-            }}
-          />
-        </div>
+      {subView === "trades" && effectiveCtx?.mode === "league" && (
+        <LeagueTrades
+          leagueId={effectiveCtx.league_id}
+          hubContext={effectiveCtx}
+          onNavigate={(view) => {
+            if (view === "office-members") return goToOfficeTab("members");
+            return setSubView(view);
+          }}
+        />
       )}
 
-
-      {(subView === "office" || visitedTabs.has("office")) && effectiveCtx?.mode === "league" && (
-        <div className={subView === "office" ? undefined : "app-view-pane-hidden"}>
-          <LeagueOffice
-            leagueId={effectiveCtx.league_id}
-            hubContext={effectiveCtx}
-            workspace={workspace}
-            officeTab={officeTab}
-            onOfficeTabChange={onOfficeTabChange}
-            onChanged={onOfficeChanged}
-            onNavigate={setSubView}
-            active={subView === "office"}
-          />
-        </div>
+      {subView === "office" && effectiveCtx?.mode === "league" && (
+        <LeagueOffice
+          leagueId={effectiveCtx.league_id}
+          hubContext={effectiveCtx}
+          workspace={workspace}
+          officeTab={officeTab}
+          onOfficeTabChange={onOfficeTabChange}
+          onChanged={onOfficeChanged}
+          onNavigate={setSubView}
+          onWorkspaceSaved={onWorkspaceSaved}
+          active
+        />
       )}
 
       {subView === "insights" && effectiveCtx?.mode === "league" && (
-        <div className={subView === "insights" ? undefined : "app-view-pane-hidden"}>
-          <Suspense fallback={<InsightsFallback />}>
-            <LeagueInsights
-              leagueId={effectiveCtx.league_id}
-              hubContext={effectiveCtx}
-              onNavigate={setSubView}
-              activeTab={insightTab}
-              onActiveTabChange={onInsightTabChange}
-              onWorkspaceSaved={onWorkspaceSaved}
-            />
-          </Suspense>
-        </div>
+        <Suspense fallback={<InsightsFallback />}>
+          <LeagueInsights
+            leagueId={effectiveCtx.league_id}
+            hubContext={effectiveCtx}
+            onNavigate={setSubView}
+            activeTab={insightTab}
+            onActiveTabChange={onInsightTabChange}
+            onWorkspaceSaved={onWorkspaceSaved}
+          />
+        </Suspense>
       )}
 
       {subView === "planner" && (
@@ -935,7 +921,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           workspace={workspace}
           hubContext={effectiveCtx}
           onChanged={onCapChanged}
-          onNavigate={setSubView}
+          onNavigate={goHubView}
         />
       )}
 

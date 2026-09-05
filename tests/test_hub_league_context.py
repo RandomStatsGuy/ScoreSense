@@ -27,6 +27,7 @@ def test_league_membership_uses_shared_workspace(hub_db):
     assert ctx["mode"] == "league"
     assert ctx["workspace_id"] == ws["id"]
     assert ctx["team_name"] == "Member Team"
+    assert ctx["team_count"] == 12
     assert ctx["rules"]["salary_cap"] == rules.salary_cap
 
     ws_id, team_id = roster_scope(ctx)
@@ -60,6 +61,7 @@ def test_league_without_workspace_id_shares_commissioner_roster(hub_db):
 
     member_ctx = resolve_hub_context(member)
     assert member_ctx["workspace_id"] == comm_ws["id"]
+    assert member_ctx["team_count"] == 10
     roster = list_roster_for_context(member_ctx)
     assert len(roster) == 1
     assert roster[0]["player_name"] == "Test Player"

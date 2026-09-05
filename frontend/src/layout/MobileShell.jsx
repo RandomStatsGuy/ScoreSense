@@ -7,16 +7,19 @@ export default function MobileShell({
   section,
   onSectionChange,
   onMoreOpen,
+  hrefForSection,
   className = "",
 }) {
   const mobileLayout = useMobileLayout();
   return (
     <div className={`app${mobileLayout ? " app-with-bottom-nav" : ""} ${className}`.trim()}>
+      <a className="skip-link" href="#main-content">Skip to content</a>
       {children}
       <AppBottomNav
         section={section}
         onSectionChange={onSectionChange}
         onMoreOpen={onMoreOpen}
+        hrefForSection={hrefForSection}
       />
     </div>
   );

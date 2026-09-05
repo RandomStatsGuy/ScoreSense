@@ -3,9 +3,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { reportHref } from "./bugReportPresentation";
 import { useAuth } from "./AuthContext";
 import DraftTable from "./DraftTable";
-import DraftHub from "./DraftHub/DraftHub";
 import HubSubnav, { HUB_SUBVIEWS } from "./DraftHub/HubSubnav";
 import { LeagueChromeProvider } from "./DraftHub/leagueChromeContext";
+const DraftHub = lazy(() => import("./DraftHub/DraftHub"));
 const DfsOptimizer = lazy(() => import("./LineupOptimizer"));
 const MockDraftTool = lazy(() => import("./DraftHub/MockDraftTool"));
 import BestBallBoard from "./BestBallBoard";
@@ -74,9 +74,13 @@ import {
   APP_SECTIONS,
   PROJECTIONS_TABS,
   SECTION_SUBTITLES,
+  SKIP_TO_CONTENT,
   TOOLS_TABS,
   defaultSeasonMode,
 } from "./appNavigation";
+import { interceptAppNav } from "./appNavLink";
+import { pageTitleForPath } from "./analytics";
+import { buildAppPath } from "./routes";
 import { apiFetch } from "./auth";
 import { isAbortError } from "./fetchAbort";
 import {
@@ -1052,6 +1056,10 @@ export default function App() {
   }, [view]);
 
   useEffect(() => {
+    document.title = pageTitleForPath(location.pathname);
+  }, [location.pathname]);
+
+  useEffect(() => {
     if (headerSubtitle === subtitleDisplay) return undefined;
     setSubtitleFading(true);
     const timer = window.setTimeout(() => {
@@ -1324,7 +1332,15 @@ export default function App() {
       section={view}
       onSectionChange={goToSection}
       onMoreOpen={() => setMobileMenuOpen(true)}
+      hrefForSection={(id) => buildAppPath({
+        view: id,
+        hubSubView,
+        projectionsTab,
+        seasonMode,
+        toolsTab,
+      })}
     >
+        <a className="app-skip-link" href="#main-content">{SKIP_TO_CONTENT}</a>
         <InviteAccept
           authenticated={authenticated}
           user={user}
@@ -1371,19 +1387,26 @@ export default function App() {
 
             <div className="app-header-row app-header-row-primary app-header-desktop-only">
               <div className="app-header-brand">
-                <h1 className="app-title">{PRODUCT_NAME}</h1>
+                <p className="app-title">{PRODUCT_NAME}</p>
                 <span className="app-header-studio">{STUDIO_NAME}</span>
               </div>
               <nav className="app-header-nav" aria-label="Sections">
                 {APP_SECTIONS.map((item) => (
-                  <button
+                  <a
                     key={item.id}
-                    type="button"
+                    href={buildAppPath({
+                      view: item.id,
+                      hubSubView,
+                      projectionsTab,
+                      seasonMode,
+                      toolsTab,
+                    })}
                     className={`tab view-tab ${view === item.id ? "active" : ""}`}
-                    onClick={() => goToSection(item.id)}
+                    aria-current={view === item.id ? "page" : undefined}
+                    onClick={(event) => interceptAppNav(event, () => goToSection(item.id))}
                   >
                     {item.label}
-                  </button>
+                  </a>
                 ))}
               </nav>
               <div className="app-header-actions">
@@ -1416,32 +1439,34 @@ export default function App() {
 
             {view === "projections" && !mobileLayout && (
               <div className="app-header-projections-toolbar">
-                <nav className="app-section-subnav app-section-subnav--compact" aria-label="Projection type">
+                <nav className="app-section-subnav app-section-subnav--compact" aria-label="Projection type" role="tablist">
                   {PROJECTIONS_TABS.map((tab) => (
-                    <button
+                    <a
                       key={tab.id}
-                      type="button"
+                      href={buildAppPath({ view: "projections", projectionsTab: tab.id, seasonMode })}
                       className={`app-section-subnav-btn${projectionsTab === tab.id ? " active" : ""}`}
-                      onClick={() => setProjectionsTab(tab.id)}
+                      aria-current={projectionsTab === tab.id ? "page" : undefined}
+                      onClick={(event) => interceptAppNav(event, () => setProjectionsTab(tab.id))}
                     >
                       {tab.label}
-                    </button>
+                    </a>
                   ))}
                 </nav>
               </div>
             )}
 
             {view === "tools" && TOOLS_TABS.length > 1 && !mobileLayout && (
-              <nav className="app-section-subnav app-section-subnav--compact" aria-label="Tools">
+              <nav className="app-section-subnav app-section-subnav--compact" aria-label="Tools" role="tablist">
                 {TOOLS_TABS.map((tab) => (
-                  <button
+                  <a
                     key={tab.id}
-                    type="button"
+                    href={buildAppPath({ view: "tools", toolsTab: tab.id })}
                     className={`app-section-subnav-btn${toolsTab === tab.id ? " active" : ""}`}
-                    onClick={() => setToolsTab(tab.id)}
+                    aria-current={toolsTab === tab.id ? "page" : undefined}
+                    onClick={(event) => interceptAppNav(event, () => setToolsTab(tab.id))}
                   >
                     {tab.label}
-                  </button>
+                  </a>
                 ))}
               </nav>
             )}
@@ -1466,6 +1491,7 @@ export default function App() {
           )}
         </header>
 
+        <main id="main-content" className="app-main" tabIndex={-1}>
         {view === "projections" && !mobileLayout && (
           <ProjectionsFilterBar {...projectionsFilterProps} />
         )}
@@ -1539,6 +1565,7 @@ export default function App() {
           />
         )}
 
+        <main id="app-main" tabIndex={-1}>
         {error && isProjectionsDataView && (
           <div className="error">{error}</div>
         )}
@@ -1586,19 +1613,23 @@ export default function App() {
         {hubMounted && (
           <div
             className={view === "hub" ? "app-view-pane" : "app-view-pane app-view-pane-hidden"}
+            hidden={view !== "hub" || undefined}
+            {...(view !== "hub" ? { inert: "" } : {})}
             aria-hidden={view !== "hub"}
           >
-            <DraftHub
-              subView={hubSubView}
-              onSubViewChange={setHubSubView}
-              onHubContextChange={setHubContext}
-              insightTab={insightTab}
-              onInsightTabChange={nav.setInsightTab}
-              onOpenContractHistory={nav.openPlayerContractHistory}
-              officeTab={nav.officeTab}
-              onOfficeTabChange={nav.setOfficeTab}
-              active={view === "hub"}
-            />
+            <Suspense fallback={<p className="chart-note">Loading Fantasy…</p>}>
+              <DraftHub
+                subView={hubSubView}
+                onSubViewChange={setHubSubView}
+                onHubContextChange={setHubContext}
+                insightTab={insightTab}
+                onInsightTabChange={nav.setInsightTab}
+                onOpenContractHistory={nav.openPlayerContractHistory}
+                officeTab={nav.officeTab}
+                onOfficeTabChange={nav.setOfficeTab}
+                active={view === "hub"}
+              />
+            </Suspense>
           </div>
         )}
 
@@ -2058,6 +2089,7 @@ export default function App() {
         {view === "admin" && isAdmin && (
           <AdminPortal adminTab={adminTab || "overview"} onAdminTabChange={setAdminTab} />
         )}
+        </main>
         {!mobileLayout && (
           <LegalLinks termsUrl={termsUrl} privacyUrl={privacyUrl} className="app-legal-footer" compact />
         )}

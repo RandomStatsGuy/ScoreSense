@@ -4,6 +4,7 @@ import { connectionErrorMessage, parseApiError } from "../format";
 import { confirmDialog } from "../ui/confirm";
 import { HubFilterChip } from "./HubUILayout";
 import { HOME_DECK_COPY } from "./leagueHomePresentation";
+import { chatPollMs } from "./fantasyChatPresentation";
 
 function formatTime(iso) {
   if (!iso) return "";
@@ -68,17 +69,34 @@ export default function LeagueChat({ leagueId, hubContext, compact = false, lock
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, kind]);
 
-  // Poll + optional WS for live updates
+  // Poll + optional WS for live updates. Hidden tabs back off so battery and
+  // "network quiet" are not a 12s loop on every Fantasy page.
   useEffect(() => {
     if (!leagueId) return undefined;
-    const timer = setInterval(() => {
+    let timer;
+    const tick = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       load();
-    }, compact ? 4000 : 12000);
+    };
+    const arm = () => {
+      if (timer) clearInterval(timer);
+      const hidden = typeof document !== "undefined" && document.hidden;
+      timer = setInterval(tick, chatPollMs({ compact, hidden }));
+    };
+    const onVisibility = () => {
+      if (typeof document !== "undefined" && !document.hidden) load();
+      arm();
+    };
+    arm();
+    document.addEventListener("visibilitychange", onVisibility);
 
     if (compact) {
       // Live draft already holds /api/hub/ws/{id}. A second socket to the same
       // path makes proxies drop the room connection and the UI flickers.
-      return () => clearInterval(timer);
+      return () => {
+        clearInterval(timer);
+        document.removeEventListener("visibilitychange", onVisibility);
+      };
     }
 
     let ws;
@@ -110,6 +128,7 @@ export default function LeagueChat({ leagueId, hubContext, compact = false, lock
 
     return () => {
       clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
       try {
         ws?.close();
       } catch {

@@ -21,21 +21,74 @@ export const MOCK_DRAFT_PRESETS = [
 ];
 
 export const MOCK_TEAM_SIZES = [8, 10, 12];
+export const RECENT_MOCKS_RAIL_LIMIT = 3;
 
 export function mockDraftHeroCopy() {
   return {
     kicker: "Mock draft",
     heading: "Practice a draft that cannot touch keepers.",
-    support: "Pick the format, sit, invite friends, or run it against bots. This room does not write your real contracts.",
-    noteTitle: "Practice stays off the books.",
-    noteBody: "Friends can sit in without a ScoreSense account. Real keepers stay put.",
+    support: "Pick the format, invite friends, or run it against bots. This room does not write your real contracts.",
     formatTitle: "Choose the room",
     formatSupport: "Auction, snake, or linear. The wrong room writes the wrong recap.",
+    fieldTitle: "Set the field",
+    fieldSupport: "Set the size. Invite friends or leave the rest to bots.",
+    matchTitle: "Match a real league",
+    matchSupport: "Optional. Copy scoring and names, not keepers.",
+    seatFact: (teams) => `${teams} seats · you draft from seat 1`,
+    fieldLockedNote: (leagueName) => `Field size follows ${leagueName || "your league"}.`,
+    modeTogetherSub: "Share a link",
+    modeLiveSub: (bots) => `You vs ${bots} bots`,
+    modeSimSub: "Skip to the results",
+    recentTitle: "Recent mocks",
+    recentMore: "All practice rooms",
   };
 }
 
+export function mockDraftFormatNote(presetId) {
+  if (presetId === "snake_draft_v1") return "Plan the turns. Let the board come to you.";
+  if (presetId === "linear_draft_v1") return "Same seat every round. Make position count.";
+  return "Nominate and bid. Overspend and you miss later names.";
+}
+
+/** League overlay locks field size to that league, even when it is not 8 / 10 / 12. */
+export function resolveMockTeamCount({
+  teamCount = 12,
+  leagueTeamCount = null,
+  followLeague = false,
+} = {}) {
+  if (followLeague) {
+    const n = Number(leagueTeamCount);
+    if (Number.isFinite(n) && n >= 2 && n <= 24) return n;
+  }
+  const n = Number(teamCount);
+  return MOCK_TEAM_SIZES.includes(n) ? n : 12;
+}
+
+export function mockTeamSizeOptions(leagueTeamCount, followLeague = false) {
+  const locked = followLeague ? Number(leagueTeamCount) : NaN;
+  if (Number.isFinite(locked) && locked >= 2 && locked <= 24 && !MOCK_TEAM_SIZES.includes(locked)) {
+    return [...MOCK_TEAM_SIZES, locked].sort((a, b) => a - b);
+  }
+  return MOCK_TEAM_SIZES;
+}
+
+export function recentMocksForRail(rooms, limit = RECENT_MOCKS_RAIL_LIMIT) {
+  return (Array.isArray(rooms) ? rooms : []).slice(0, Math.max(0, limit));
+}
+
+export function formatMockRoomWhen(value, now = Date.now()) {
+  if (value == null || value === "") return "";
+  const ms = typeof value === "number" ? value : Date.parse(value);
+  if (!Number.isFinite(ms)) return "";
+  const diffSec = Math.round((now - ms) / 1000);
+  if (diffSec < 60) return "Just now";
+  if (diffSec < 3600) return `${Math.max(1, Math.round(diffSec / 60))}m ago`;
+  if (diffSec < 172800) return `${Math.max(1, Math.round(diffSec / 3600))}h ago`;
+  return new Date(ms).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
 export function botCountForTeams(teamCount) {
-  const n = Math.max(2, Math.min(Number(teamCount) || 12, 12));
+  const n = Math.max(2, Math.min(Number(teamCount) || 12, 24));
   return n - 1;
 }
 
@@ -61,6 +114,7 @@ function presetById(presetId) {
 export function buildMockDraftStartBody({
   presetId = "salary_cap_auction_v1",
   teamCount = 12,
+  leagueTeamCount = null,
   season,
   sourceLeagueId = null,
   useLeagueRules = false,
@@ -68,7 +122,12 @@ export function buildMockDraftStartBody({
   name = null,
   lobby = false,
 } = {}) {
-  const teams = MOCK_TEAM_SIZES.includes(Number(teamCount)) ? Number(teamCount) : 12;
+  const followLeague = Boolean(sourceLeagueId && (useLeagueRules || useLeagueManagers));
+  const teams = resolveMockTeamCount({
+    teamCount,
+    leagueTeamCount,
+    followLeague,
+  });
   const hasSource = Boolean(sourceLeagueId);
   const mode = useLeagueManagers && hasSource ? "league_mirror" : "quick_bots";
   const resolvedSeason = resolveMockDraftSeason(season);
@@ -137,6 +196,7 @@ export function mockDraftFormatLabel(draftType) {
 export function mockDraftLaunchSummary({
   presetId = "salary_cap_auction_v1",
   teamCount = 12,
+  leagueTeamCount = null,
   season = null,
   useLeagueRules = false,
   useLeagueManagers = false,
@@ -144,7 +204,8 @@ export function mockDraftLaunchSummary({
   leagueName = "",
 } = {}) {
   const preset = presetById(presetId);
-  const teams = MOCK_TEAM_SIZES.includes(Number(teamCount)) ? Number(teamCount) : 12;
+  const followLeague = Boolean(hasLeague && (useLeagueRules || useLeagueManagers));
+  const teams = resolveMockTeamCount({ teamCount, leagueTeamCount, followLeague });
   const league = String(leagueName || "").trim() || "your league";
   const copiesLeagueRules = Boolean(hasLeague && (useLeagueRules || useLeagueManagers));
   const resolvedSeason = resolveMockDraftSeason(season);

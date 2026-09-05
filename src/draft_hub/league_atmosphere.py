@@ -306,6 +306,7 @@ def tally_poll_votes(
             {
                 "team_id": tid,
                 "team_name": team.get("name") or team.get("sleeper_team_name") or "Team",
+                "owner_name": str(team.get("owner_name") or "").strip() or None,
                 "votes": int(counts.get(tid, 0)),
             }
         )

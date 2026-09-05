@@ -78,7 +78,27 @@ test("loading/empty colCount matches populated schema", () => {
   assert.equal(live.colCount, empty.colCount);
 });
 
+test("available board folds tier and hides empty vs-cost", () => {
+  const schema = columnsForDraftMode({
+    pickDraft: false,
+    compact: false,
+    advanced: false,
+    draftConsole: false,
+    showDelta: false,
+    showStatus: false,
+    showAdd: true,
+    foldTier: true,
+  });
+  assert.equal(schema.showTier, false);
+  assert.equal(schema.showCostDelta, false);
+  assert.equal(schema.actionCol, true);
+  assert.ok(!schema.ids.includes("tier"));
+  assert.ok(!schema.ids.includes("value_delta"));
+  assert.ok(schema.ids.includes("actions"));
+  assert.equal(schema.columns.find((c) => c.id === "season_proj")?.label, "Season pts");
+});
+
 test("sort labels stay human-readable in compact and mobile summaries", () => {
-  assert.equal(sortLabelForKey(PICK_DRAFT_SORT_OPTIONS, "season_proj"), "Projected points");
+  assert.equal(sortLabelForKey(PICK_DRAFT_SORT_OPTIONS, "season_proj"), "Season points");
   assert.equal(sortLabelForKey([], "season_spread"), "Season Spread");
 });

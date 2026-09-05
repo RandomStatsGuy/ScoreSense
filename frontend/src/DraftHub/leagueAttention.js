@@ -63,8 +63,8 @@ export function buildLeagueAttentionItems({
     items.push({
       id: "extend",
       label: `${mustExtendCount} need extension`,
-      actionLabel: "Cap",
-      action: "planner",
+      actionLabel: "Review extensions",
+      action: "roster-extend",
     });
   } else if (droppingCount > 0) {
     items.push({

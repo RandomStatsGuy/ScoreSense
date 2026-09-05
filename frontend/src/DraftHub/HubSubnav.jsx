@@ -1,6 +1,8 @@
 import React, { useMemo, useRef, useState } from "react";
 import MobileDestinationSheet from "../layout/MobileDestinationSheet";
 import { MOBILE_CHROME_COPY, selectAndDismissDestination } from "../layout/mobileChromePresentation";
+import { interceptAppNav } from "../appNavLink";
+import { buildAppPath } from "../routes";
 import LeagueOverflowLead from "./LeagueOverflowLead";
 
 /** group: "home" | "prep" (draft prep) | "season" (in-season) | "office" (league-wide). */
@@ -13,7 +15,7 @@ export const HUB_SUBVIEWS = [
   { id: "game", label: "Game center", shortLabel: "Game", leagueOnly: true, hint: "Your matchup, live", group: "season" },
   { id: "roster", label: "My team", shortLabel: "My team", hint: "Your contracts", group: "season" },
   { id: "available", label: "Free agents", shortLabel: "FA", hint: "Who you can still add", group: "season" },
-  { id: "rosters", label: "Rosters", shortLabel: "Rosters", leagueOnly: true, hint: "Every team's contracts", group: "season" },
+  { id: "rosters", label: "Rosters", shortLabel: "Rosters", leagueOnly: true, hint: "Overpays and cheap years across the league", group: "season" },
   { id: "planner", label: "Cap", shortLabel: "Cap", hint: "Bids, cuts, leftover cap", group: "season" },
   { id: "trades", label: "Trades", shortLabel: "Trades", leagueOnly: true, hint: "Cap-checked deals", group: "season" },
   { id: "rules", label: "Rules", shortLabel: "Rules", hint: "What new contracts cost", group: "office" },
@@ -75,24 +77,25 @@ export default function HubSubnav({
   const groups = useMemo(() => hubDestinationGroups(hubContext), [hubContext]);
   React.useEffect(() => {
     if (pickerOnly) return undefined;
-    const active = navRef.current?.querySelector(".app-section-subnav-btn.active");
+    const active = navRef.current?.querySelector(".app-section-subnav-btn.active, .app-section-subnav-btn[aria-current='page']");
     active?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
     return undefined;
   }, [subView, visible.length, pickerOnly]);
 
   const tabButton = (v) => (
-    <button
+    <a
       key={v.id}
-      type="button"
-      role="tab"
-      aria-selected={subView === v.id}
+      href={buildAppPath({ view: "hub", hubSubView: v.id })}
       className={`app-section-subnav-btn${subView === v.id ? " active" : ""}`}
-      onClick={() => onNavigate(v.id)}
+      aria-current={subView === v.id ? "page" : undefined}
+      aria-label={v.label}
       title={v.hint}
+      aria-description={v.hint}
+      onClick={(event) => interceptAppNav(event, () => onNavigate(v.id))}
     >
       <span className="app-section-subnav-label">{v.label}</span>
-      <span className="app-section-subnav-label-short">{v.shortLabel || v.label}</span>
-    </button>
+      <span className="app-section-subnav-label-short" aria-hidden="true">{v.shortLabel || v.label}</span>
+    </a>
   );
 
   const sheet = (
@@ -122,7 +125,6 @@ export default function HubSubnav({
         <nav
           ref={navRef}
           className="app-section-subnav app-section-subnav--hub"
-          role="tablist"
           aria-label="Fantasy"
         >
           {mobileLayout

@@ -3,11 +3,16 @@ import PlayerCell from "../PlayerCell";
 import SeasonRangeCell from "../SeasonRangeCell";
 import { formatSeasonPts } from "../seasonQuantiles";
 import { formatRiskScore, isRiskToleranceActive, riskScoreTooltip } from "../riskAdjustedValue";
-import { fmtSal, formatStatusLabel } from "./valueSheetUtils";
+import { fmtSal, formatStatusLabel, tierChipClass } from "./valueSheetUtils";
 import RaavBidCell from "./RaavBidCell";
 import { riskBand, riskBandTooltip, suggestedBidCaption } from "./draftLiveConsole";
 import ContractHistoryLink from "./ContractHistoryLink";
-import { playersTabLockedChip } from "./acquisitionWindow";
+import {
+  PLAYERS_TAB_COPY,
+  playersTabAddDisabledReason,
+  playersTabAddLabel,
+  playersTabStarCopy,
+} from "./acquisitionWindow";
 import { vsCostCell } from "./capPlannerPresentation";
 
 function ValueSheetPlayerRow({
@@ -44,6 +49,8 @@ function ValueSheetPlayerRow({
   showValueRange,
   showFairValue = true,
   showTier = true,
+  foldTier = false,
+  inlinePts = false,
   showPosRank = false,
   showNeed = false,
   showP10 = false,
@@ -84,11 +91,15 @@ function ValueSheetPlayerRow({
 
   const statusLabel = formatStatusLabel(row.status);
   const taken = row.status === "taken";
+  const locked = addMode === "locked";
   const addLabel = isAdding
     ? (addMode === "bid" ? "Bidding…" : "Adding…")
-    : addMode === "bid"
-      ? "Bid"
-      : (taken && isCommissioner ? "Reassign" : "Add");
+    : playersTabAddLabel(addMode, { taken, isCommissioner });
+  const addReason = locked
+    ? playersTabAddDisabledReason(addMode)
+    : (taken && !isCommissioner && addMode !== "bid" ? "Already on another roster" : undefined);
+  const watching = (watchIds || []).map(String).includes(String(row.player_id));
+  const starLabel = playersTabStarCopy(watching);
   const spreadLabel = useMemo(
     () => (row.season_spread != null ? formatSeasonPts(row.season_spread, 0) : "—"),
     [row.season_spread],
@@ -117,44 +128,39 @@ function ValueSheetPlayerRow({
           {onWatchPlayer ? (
             <button
               type="button"
-              className={`hub-star-btn${(watchIds || []).map(String).includes(String(row.player_id)) ? " is-starred" : ""}`}
-              aria-label={(watchIds || []).map(String).includes(String(row.player_id)) ? "Remove star" : "Star for draft"}
-              aria-pressed={(watchIds || []).map(String).includes(String(row.player_id))}
-              title={(watchIds || []).map(String).includes(String(row.player_id)) ? "Starred" : "Star to take"}
+              className={`hub-star-btn${watching ? " is-starred" : ""}`}
+              aria-label={starLabel}
+              aria-pressed={watching}
+              title={starLabel}
               onClick={(event) => {
                 event.stopPropagation();
                 onWatchPlayer(row);
               }}
             >
-              {(watchIds || []).map(String).includes(String(row.player_id)) ? "★" : "☆"}
+              <span aria-hidden="true">{watching ? "★" : "☆"}</span>
             </button>
           ) : null}
-          <PlayerCell
-            name={row.player}
-            team={row.team}
-            playerId={row.player_id}
-            media={playerMedia}
-            size="sm"
-            showTeam={Boolean(!draftConsole)}
-            position={draftConsole ? row.position : undefined}
-            clickable={Boolean(row.player_id)}
-            narrativeScope={narrativeScope}
-          />
+          <div className="hub-player-cell-main">
+            <PlayerCell
+              name={row.player}
+              team={row.team}
+              playerId={row.player_id}
+              media={playerMedia}
+              size="sm"
+              showTeam={Boolean(!draftConsole)}
+              position={draftConsole ? row.position : undefined}
+              clickable={Boolean(row.player_id)}
+              narrativeScope={narrativeScope}
+            />
+            <div className="hub-player-cell-flags">
+              {foldTier && row.tier ? (
+                <span className={tierChipClass(row.tier)}>{row.tier}</span>
+              ) : null}
+              {row.is_rookie ? <span className="hub-sleeper-badge">Rookie est.</span> : null}
+            </div>
+          </div>
         </div>
-          {row.is_rookie && <span className="hub-sleeper-badge">Rookie est.</span>}
-          {addMode === "locked" ? (
-            <details className="hub-fa-locked" onClick={(e) => e.stopPropagation()}>
-              <summary className="hub-fa-locked-chip">{playersTabLockedChip().label}</summary>
-              <p className="hub-fa-locked-pop">{playersTabLockedChip().popover}</p>
-            </details>
-          ) : null}
-          <ContractHistoryLink
-            playerId={row.player_id}
-            playerName={row.player || row.player_name}
-            onOpen={onOpenContractHistory}
-            className="btn-link btn-sm hub-contract-history-link"
-          />
-        </td>
+      </td>
       {showTeam && <td className="hub-col-team" title={row.team}>{row.team}</td>}
       {showPosCol && <td className="hub-col-pos">{row.position}</td>}
       <td className="num hub-col-proj">
@@ -163,6 +169,8 @@ function ValueSheetPlayerRow({
           scaleMax={seasonScaleMax}
           rowIndex={rowIndex}
           digits={0}
+          showBar={!inlinePts}
+          showRangeText={inlinePts}
         />
         {draftConsole && row.per_game_proj != null && (
           <div className="chart-note">{row.per_game_proj}/g</div>
@@ -226,7 +234,7 @@ function ValueSheetPlayerRow({
           ) : costCell}
         </td>
       )}
-      {showTier && <td className="hub-col-tier">{row.tier}</td>}
+      {showTier && !foldTier && <td className="hub-col-tier">{row.tier}</td>}
       {showStatus && (
         <td className="hub-col-status">
           <span className={`hub-status hub-status-${row.status}`} title={row.status}>{statusLabel}</span>
@@ -265,13 +273,23 @@ function ValueSheetPlayerRow({
           <button
             type="button"
             className="btn-ghost btn-sm"
-            disabled={actionsDisabled || isAdding}
-            title={taken && !isCommissioner ? "Already on another roster" : undefined}
-            onClick={handleAddClick}
+            disabled={actionsDisabled || isAdding || locked}
+            title={addReason}
+            onClick={locked ? undefined : handleAddClick}
           >
             {addLabel}
           </button>
         )}
+        {onOpenContractHistory && row.player_id ? (
+          <ContractHistoryLink
+            playerId={row.player_id}
+            playerName={row.player || row.player_name}
+            onOpen={onOpenContractHistory}
+            className="btn-link btn-sm"
+          >
+            {PLAYERS_TAB_COPY.history}
+          </ContractHistoryLink>
+        ) : null}
       </td>
       )}
     </tr>
@@ -304,6 +322,8 @@ function propsAreEqual(prev, next) {
     && prev.showValueRange === next.showValueRange
     && prev.showFairValue === next.showFairValue
     && prev.showTier === next.showTier
+    && prev.foldTier === next.foldTier
+    && prev.inlinePts === next.inlinePts
     && prev.showPosRank === next.showPosRank
     && prev.showNeed === next.showNeed
     && prev.showP10 === next.showP10

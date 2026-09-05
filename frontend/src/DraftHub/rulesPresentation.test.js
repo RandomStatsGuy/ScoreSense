@@ -2,8 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   contractSchedule,
+  glanceEyebrow,
+  isRulesFormDirty,
   mergeLeagueRules,
+  presetRulesFromList,
+  RULES_COPY,
+  rulesFormWarnings,
+  rulesSaveDisabledReason,
   rulesSummary,
+  snapshotRulesForm,
+  templateConfirmMessage,
+  templateImpact,
   validateLeagueSettings,
 } from "./rulesPresentation.js";
 
@@ -62,4 +71,85 @@ test("validateLeagueSettings allows null roster size (no explicit cap)", () => {
     rules: mergeLeagueRules({ roster_size_max: 3 }),
   });
   assert.match(bad.roster_size_max, /at least/i);
+});
+
+test("rules copy names the silent-change cost and keeps the caveat next to Save", () => {
+  assert.match(RULES_COPY.support, /strands/i);
+  assert.doesNotMatch(RULES_COPY.support, /migration/i);
+  assert.match(RULES_COPY.saveFootnote, /does not rewrite existing/i);
+  assert.match(RULES_COPY.templatesHelp, /does not save|unsaved until you press Save/i);
+  assert.doesNotMatch(JSON.stringify(RULES_COPY), /Submit|Draft Hub|permission/i);
+});
+
+test("dirty snapshot ignores equivalent number formatting", () => {
+  const saved = { name: "My Auction", season: 2026, rules: mergeLeagueRules({}) };
+  const current = {
+    name: "My Auction",
+    season: 2026,
+    rules: mergeLeagueRules({ salary_cap: 200 }),
+  };
+  assert.equal(isRulesFormDirty(current, saved), false);
+  assert.equal(snapshotRulesForm(current), snapshotRulesForm(saved));
+  assert.equal(
+    isRulesFormDirty({ ...current, rules: mergeLeagueRules({ salary_cap: 180 }) }, saved),
+    true,
+  );
+});
+
+test("save stays off until the form is dirty and valid", () => {
+  assert.equal(rulesSaveDisabledReason({ dirty: false, errorCount: 0 }), RULES_COPY.noChanges);
+  assert.equal(rulesSaveDisabledReason({ dirty: true, errorCount: 2 }), RULES_COPY.fixBeforeSave);
+  assert.equal(rulesSaveDisabledReason({ dirty: true, errorCount: 0 }), "");
+  assert.equal(glanceEyebrow(true), RULES_COPY.glancePreview);
+  assert.equal(glanceEyebrow(false), RULES_COPY.glanceSaved);
+});
+
+test("warnings name a fixed-point range and a short live roster", () => {
+  const rules = mergeLeagueRules({
+    roster: {
+      qb: { min: 4, max: 4 },
+      rb: { min: 8, max: 8 },
+      wr: { min: 8, max: 8 },
+      te: { min: 3, max: 3 },
+      k: { min: 2, max: 2 },
+      def: { min: 2, max: 2 },
+    },
+    roster_size_max: 28,
+  });
+  const warnings = rulesFormWarnings({
+    rules,
+    roster: [
+      { position: "QB", roster_status: "active" },
+      { position: "RB", roster_status: "active" },
+    ],
+  });
+  assert.match(warnings.fixed_point, /fixed 27-player demand/);
+  assert.match(warnings.live_roster, /require 27 players. This roster has 2/);
+  assert.match(warnings.live_positions, /QB, RB, WR, TE, K, DEF/i);
+});
+
+test("template impact names format, cap, and roster changes and does not save", () => {
+  const current = mergeLeagueRules({});
+  const snake = mergeLeagueRules({
+    draft_type: "snake",
+    salary_cap: 0,
+    roster_size_max: 16,
+    roster: {
+      qb: { min: 1, max: 3 },
+      rb: { min: 2, max: 8 },
+      wr: { min: 2, max: 8 },
+      te: { min: 1, max: 3 },
+      k: { min: 1, max: 2 },
+      def: { min: 1, max: 2 },
+    },
+  });
+  const impact = templateImpact(current, snake);
+  assert.ok(impact.some((line) => /Snake/i.test(line)));
+  assert.ok(impact.some((line) => /none/i.test(line)));
+  assert.ok(impact.some((line) => /16/.test(line)));
+  const message = templateConfirmMessage({ label: "Snake draft", rules: snake }, current);
+  assert.match(message, /does not save/i);
+  assert.match(message, /Snake draft/);
+  assert.ok(presetRulesFromList({ rules: snake }));
+  assert.equal(presetRulesFromList({ label: "Snake draft" }), null);
 });

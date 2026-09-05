@@ -127,7 +127,7 @@ test("auctionAwardContractLabel describes locked rookie and vet deals", () => {
       salary: 39,
       salary_schedule: [39, 39],
     }),
-    "Rookie deal · 2y · $39 → $39",
+    "Rookie deal · 2y · $39",
   );
   assert.equal(
     auctionAwardContractLabel({

@@ -2,13 +2,22 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   boardTitle,
+  boardFreshnessLine,
   buildStarterSlotPlan,
   decisionForStarter,
   fillStarterSlots,
   slotTone,
+  startCallLabel,
+  startSurname,
+  sleeperLineupUrl,
+  lineupCallAction,
   swapBenchIdSet,
   canEditHubLineup,
+  clampWeek,
   decisionSwapIds,
+  emptySpecialistSlots,
+  projectionMissing,
+  showVibePts,
   trophyStripCopy,
   formatDraftNightShort,
   WEEK_BOARD_COPY,
@@ -119,6 +128,7 @@ test("empty week hero and rail name the missing board, not zeros", () => {
 
   const items = weekRailItems({ emptyRoster: true });
   assert.deepEqual(items.map((i) => i.value), ["Empty", "Waiting on roster"]);
+  assert.equal(items.some((i) => i.id === "decisions"), false);
   assert.match(weekRailNote({ emptyRoster: true, unlinked: true }), /Lock a night|Draft/);
   assert.equal(weekPrimaryAction({ emptyRoster: true, unlinked: true, draftCompleted: false }).kind, "room");
   assert.equal(weekPrimaryAction({ emptyRoster: true, unlinked: true, draftCompleted: true }).kind, "office-access");
@@ -136,6 +146,7 @@ test("failed load names the miss and a real next destination", () => {
   assert.equal(weekPrimaryAction({ loadFailed: true }).kind, "retry");
   assert.equal(weekPrimaryAction({ loadFailed: true }).label, "Retry");
   assert.deepEqual(weekRailItems({ loadFailed: true }).map((i) => i.value), ["Did not load", "Retry"]);
+  assert.equal(weekRailItems({ loadFailed: true }).some((i) => i.label === "Decisions"), false);
   assert.match(weekRailNote({ loadFailed: true }), /Retry/i);
   const overlay = weekBoardOverlayCopy({ loadFailed: true });
   assert.match(overlay.title, /did not load/i);
@@ -168,10 +179,19 @@ test("populated week hero reports lineup calls", () => {
 test("unlinked with a roster still treats the board as live", () => {
   const hero = weekHeroCopy({ emptyRoster: false, unlinked: true, weekLabel: "Week 1" });
   assert.equal(hero.heading, "No swap worth making.");
-  const items = weekRailItems({ emptyRoster: false, unlinked: true, counts: { decisions: 0 } });
-  assert.equal(items[0].label, "Decisions");
+  const items = weekRailItems({
+    emptyRoster: false,
+    unlinked: true,
+    counts: { decisions: 2, on_bye: 0, injured: 0, wide_ranges: 12 },
+  });
+  assert.equal(items.some((i) => i.id === "decisions"), false);
+  assert.equal(items.find((i) => i.id === "ranges").value, "12");
+  assert.equal(items.find((i) => i.id === "bye").muted, true);
+  assert.match(items.find((i) => i.id === "ranges").hint, /not a start\/sit/i);
   assert.match(weekRailNote({ emptyRoster: false, unlinked: true }), /league contracts/i);
-  assert.equal(weekPrimaryAction({ emptyRoster: false, unlinked: true }).kind, "refresh");
+  assert.match(weekRailNote({ emptyRoster: false, unlinked: false }), /Amber is a start\/sit/i);
+  assert.equal(weekPrimaryAction({ emptyRoster: false, unlinked: true }).kind, "none");
+  assert.equal(weekPrimaryAction({ emptyRoster: false, showGameCenter: true }).kind, "game");
 });
 
 test("canEditHubLineup is league-only and unlocked", () => {
@@ -198,4 +218,50 @@ test("trophy strip copy waits until the board is live", () => {
   assert.equal(WEEK_BOARD_COPY.emptySlotName, "Empty");
   assert.match(WEEK_BOARD_COPY.lineupSource, /board number/i);
   assert.match(WEEK_BOARD_COPY.lineupSource, /VA-projections/i);
+  assert.equal(WEEK_BOARD_COPY.ptsUnit, "wk");
+  assert.match(WEEK_BOARD_COPY.refreshProjections, /Refresh projections/);
+  assert.doesNotMatch(WEEK_BOARD_COPY.legendNote, /Draft Hub|Submit/i);
+});
+
+test("week board names the Vibes number instead of staying silent", () => {
+  assert.match(WEEK_BOARD_COPY.vibeNote, /Vibes/i);
+  assert.match(WEEK_BOARD_COPY.vibeNote, /model/i);
+});
+
+test("start button uses a short surname and a real action", () => {
+  assert.equal(startSurname("J.K. Dobbins"), "Dobbins");
+  assert.equal(startSurname("Malik Nabers"), "Nabers");
+  assert.equal(startSurname("Amon-Ra St. Brown"), "St. Brown");
+  assert.equal(startCallLabel({ bench_player_name: "J.K. Dobbins" }), "Start Dobbins");
+  assert.equal(lineupCallAction({ canEdit: true }).kind, "apply");
+  assert.equal(lineupCallAction({ lineupLocked: true }).kind, "locked");
+  assert.equal(sleeperLineupUrl("12345"), "https://sleeper.com/leagues/12345");
+  assert.equal(lineupCallAction({ sleeperLeagueId: "12345" }).kind, "sleeper");
+  assert.equal(lineupCallAction({}).kind, "external");
+});
+
+test("freshness line drops mid-sentence Updated and flags a stale roster", () => {
+  const stale = boardFreshnessLine({
+    rosterAt: Date.now() - 12 * 24 * 3600 * 1000,
+    rosterLabel: "Updated 12d ago",
+    weekLabel: "Updated 24h ago",
+  });
+  assert.equal(stale.roster, "Roster 12d ago");
+  assert.equal(stale.weekBoard, "Week board 24h ago");
+  assert.equal(stale.rosterStale, true);
+  assert.equal(clampWeek(0), 1);
+  assert.equal(clampWeek(99), 22);
+});
+
+test("empty K/DEF slots and a missing projection are single states", () => {
+  const missing = emptySpecialistSlots([
+    { position: "K", player: null },
+    { position: "DEF", player: null },
+    { position: "QB", player: { player_id: "q" } },
+  ]);
+  assert.equal(missing.length, 2);
+  assert.equal(projectionMissing({ has_projection: false }), true);
+  assert.equal(projectionMissing({ p50: 8.3 }), false);
+  assert.equal(showVibePts({ p50: 6.0 }, 8.3), true);
+  assert.equal(showVibePts({ p50: 6.0 }, 6.1), false);
 });

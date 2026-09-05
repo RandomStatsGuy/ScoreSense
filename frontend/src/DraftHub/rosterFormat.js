@@ -40,6 +40,14 @@ export function scheduleStepForType(contractType, rules, storedStep) {
   return leagueStepUp(rules);
 }
 
+/** Join year salaries. A flat run ("$4 → $4") renders as one figure. */
+export function joinSalarySchedule(parts) {
+  const clean = (parts || []).map((p) => String(p)).filter(Boolean);
+  if (!clean.length) return "";
+  if (clean.every((p) => p === clean[0])) return clean[0];
+  return clean.join(" → ");
+}
+
 export function previewSchedule(salary, years, stepUp, contractType = "veteran", rookieStatic = true) {
   const sal = Number(salary);
   const yrs = Number(years);
@@ -52,7 +60,7 @@ export function previewSchedule(salary, years, stepUp, contractType = "veteran",
   for (let i = 0; i < yrs; i += 1) {
     parts.push(`$${Math.round(sal + step * i)}`);
   }
-  return parts.join(" → ");
+  return joinSalarySchedule(parts);
 }
 
 export function scheduleText(row, rules) {
@@ -68,7 +76,7 @@ export function scheduleText(row, rules) {
     if (fromPreview) return fromPreview;
   }
   const sched = row?.contract?.schedule;
-  if (sched?.length) return sched.map((y) => `$${y.salary}`).join(" → ");
+  if (sched?.length) return joinSalarySchedule(sched.map((y) => `$${y.salary}`));
   return fmtSal(row?.salary);
 }
 
@@ -85,7 +93,7 @@ export function contractScheduleHint(stepUp, rules = null) {
   return `${rookiePolicy} · Veteran Deal / Rookie Extension +$${step}/yr`;
 }
 
-/** Read-only auction award line: "Rookie deal · 2y · $12 → $12" */
+/** Read-only auction award line: "Rookie deal · 2y · $12" */
 export function auctionAwardContractLabel(pick, stepUp = 5) {
   const ctype = String(pick?.contract_type || "");
   const years = Number(pick?.contract_years || 2);
@@ -94,7 +102,7 @@ export function auctionAwardContractLabel(pick, stepUp = 5) {
     ? 0
     : Number(pick?.step_up_per_year ?? stepUp);
   const sched = Array.isArray(pick?.salary_schedule) && pick.salary_schedule.length
-    ? pick.salary_schedule.map((n) => fmtSal(n)).join(" → ")
+    ? joinSalarySchedule(pick.salary_schedule.map((n) => fmtSal(n)))
     : previewSchedule(paid, years, step, ctype || "veteran", pick?.rookie_salary_static !== false);
   const kind = ctype === "rookie" ? "Rookie deal" : "Veteran deal";
   const yrs = Number.isFinite(years) ? `${years}y` : "2y";
@@ -148,8 +156,8 @@ export function contractDeadCapStory(row, rules) {
     freed,
     isCut,
     ifUndoneRoom,
-    deadLabel: `DEAD CAP ${fmtSal(dead)}`,
-    ifUndoneLabel: `IF UNDONE: room −${fmtSal(Math.abs(ifUndoneRoom || salary))}`,
+    deadLabel: fmtSal(dead),
+    ifUndoneLabel: isCut ? `room −${fmtSal(Math.abs(ifUndoneRoom || salary))}` : "—",
     cutBullet: `frees ${fmtSal(freed)}, dead ${fmtSal(dead)}`,
     railCut: `(+${fmtSal(dead)} dead, −${fmtSal(Math.round(salary))} room)`,
     undoSupport: `+${fmtSal(Math.round(salary))} room this season, ${fmtSal(dead)} dead cleared.`,
@@ -169,5 +177,6 @@ export function shortAuctionContractLabel(pick, stepUp = 5) {
   const first = sched ? Number(sched[0]) : paid;
   const last = sched ? Number(sched[sched.length - 1]) : (Number.isFinite(paid) ? paid + step * Math.max(0, years - 1) : paid);
   if (!Number.isFinite(first)) return `${Number.isFinite(years) ? years : 2} yrs`;
-  return `${Number.isFinite(years) ? years : 2} yrs · $${Math.round(first)} → $${Math.round(last)}`;
+  const range = joinSalarySchedule([`$${Math.round(first)}`, `$${Math.round(last)}`]);
+  return `${Number.isFinite(years) ? years : 2} yrs · ${range}`;
 }
