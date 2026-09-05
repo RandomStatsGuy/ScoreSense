@@ -140,18 +140,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     }
   }, [subView, setSubView, onInsightTabChange, onOfficeTabChange]);
 
-  // Trades/Office stay mounted (display:none) after first visit so revisits
-  // skip refetch. Insights unmounts on leave so Free agents clicks are not ignored.
-  const [visitedTabs, setVisitedTabs] = useState(() => new Set());
-  useEffect(() => {
-    if (subView !== "trades" && subView !== "office") return;
-    setVisitedTabs((prev) => {
-      if (prev.has(subView)) return prev;
-      const next = new Set(prev);
-      next.add(subView);
-      return next;
-    });
-  }, [subView]);
+  // Trades and Roster management unmount when you leave so their headings
+  // do not leak onto Game center, Tools, or any other destination.
 
   const rosterIds = useMemo(
     () => new Set(roster.map((r) => r.player_id)),
@@ -884,48 +874,41 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         )
       )}
 
-      {(subView === "trades" || visitedTabs.has("trades")) && effectiveCtx?.mode === "league" && (
-        <div className={subView === "trades" ? undefined : "app-view-pane-hidden"}>
-          <LeagueTrades
-            leagueId={effectiveCtx.league_id}
-            hubContext={effectiveCtx}
-            onNavigate={(view) => {
-              if (view === "office-members") return goToOfficeTab("members");
-              return setSubView(view);
-            }}
-          />
-        </div>
+      {subView === "trades" && effectiveCtx?.mode === "league" && (
+        <LeagueTrades
+          leagueId={effectiveCtx.league_id}
+          hubContext={effectiveCtx}
+          onNavigate={(view) => {
+            if (view === "office-members") return goToOfficeTab("members");
+            return setSubView(view);
+          }}
+        />
       )}
 
-
-      {(subView === "office" || visitedTabs.has("office")) && effectiveCtx?.mode === "league" && (
-        <div className={subView === "office" ? undefined : "app-view-pane-hidden"}>
-          <LeagueOffice
-            leagueId={effectiveCtx.league_id}
-            hubContext={effectiveCtx}
-            workspace={workspace}
-            officeTab={officeTab}
-            onOfficeTabChange={onOfficeTabChange}
-            onChanged={onOfficeChanged}
-            onNavigate={setSubView}
-            active={subView === "office"}
-          />
-        </div>
+      {subView === "office" && effectiveCtx?.mode === "league" && (
+        <LeagueOffice
+          leagueId={effectiveCtx.league_id}
+          hubContext={effectiveCtx}
+          workspace={workspace}
+          officeTab={officeTab}
+          onOfficeTabChange={onOfficeTabChange}
+          onChanged={onOfficeChanged}
+          onNavigate={setSubView}
+          active
+        />
       )}
 
       {subView === "insights" && effectiveCtx?.mode === "league" && (
-        <div className={subView === "insights" ? undefined : "app-view-pane-hidden"}>
-          <Suspense fallback={<InsightsFallback />}>
-            <LeagueInsights
-              leagueId={effectiveCtx.league_id}
-              hubContext={effectiveCtx}
-              onNavigate={setSubView}
-              activeTab={insightTab}
-              onActiveTabChange={onInsightTabChange}
-              onWorkspaceSaved={onWorkspaceSaved}
-            />
-          </Suspense>
-        </div>
+        <Suspense fallback={<InsightsFallback />}>
+          <LeagueInsights
+            leagueId={effectiveCtx.league_id}
+            hubContext={effectiveCtx}
+            onNavigate={setSubView}
+            activeTab={insightTab}
+            onActiveTabChange={onInsightTabChange}
+            onWorkspaceSaved={onWorkspaceSaved}
+          />
+        </Suspense>
       )}
 
       {subView === "planner" && (

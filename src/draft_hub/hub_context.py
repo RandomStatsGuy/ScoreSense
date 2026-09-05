@@ -124,6 +124,7 @@ def resolve_hub_context(user_sub: str) -> dict[str, Any]:
             "league_name": league["name"],
             "league_room_code": league["room_code"],
             "league_status": league["status"],
+            "team_count": int(league.get("team_count") or 12),
             "team_id": team["id"],
             "team_name": team["name"],
             "owner_name": team.get("owner_name"),

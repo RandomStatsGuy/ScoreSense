@@ -220,7 +220,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/DraftSeat.jsx",
       "frontend/src/DraftHub/draftSeat.js",
     ],
-    doNot: "Idle mock uses this launch page. A running mock uses DraftRoom. Seats use DraftSeat (YOU / 2 / 3), the same component as idle Draft.",
+    doNot: "Idle mock uses this launch page. A running mock uses DraftRoom. Seats use DraftSeat (YOU / 2 / 3), the same component as idle Draft. Number every visible step or drop the numerals. Disclosure summaries show a caret. Mode cards describe; the primary carries the verb. Seat marks that are not selectable are labeled as a fact — do not promise sit. One reassurance in the first viewport. When matching league rules, field size follows that league. Recent mocks (last 3) sit on the launch rail.",
   }),
   "tools.mock-draft.live": S({
     label: "Mock draft (live)",
