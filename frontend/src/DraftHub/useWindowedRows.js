@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export const DEFAULT_ROW_HEIGHT = 44;
 export const DEFAULT_OVERSCAN = 12;
@@ -41,4 +41,54 @@ export function useWindowedRows(count, {
   }, [count, rowHeight, overscan, enabled, scroller]);
 
   return { scrollerRef, range };
+}
+
+/** Window rows against the page scroll so a nested table scroller is not needed. */
+export function usePageWindowedRows(count, {
+  rowHeight = DEFAULT_ROW_HEIGHT,
+  overscan = DEFAULT_OVERSCAN,
+  enabled = true,
+} = {}) {
+  const rootRef = useRef(null);
+  const [range, setRange] = useState({ start: 0, end: Math.min(count, WINDOW_AFTER) });
+
+  useEffect(() => {
+    if (!enabled) {
+      setRange({ start: 0, end: count });
+      return undefined;
+    }
+    let frame = 0;
+    const measure = () => {
+      const root = rootRef.current;
+      if (!root) return;
+      const rect = root.getBoundingClientRect();
+      const next = windowRange(
+        count,
+        Math.max(0, -rect.top),
+        window.innerHeight,
+        rowHeight,
+        overscan,
+      );
+      setRange((prev) => (
+        prev.start === next.start && prev.end === next.end ? prev : next
+      ));
+    };
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        measure();
+      });
+    };
+    measure();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [count, rowHeight, overscan, enabled]);
+
+  return { rootRef, range };
 }

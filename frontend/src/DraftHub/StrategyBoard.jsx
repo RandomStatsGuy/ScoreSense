@@ -35,7 +35,7 @@ import {
   contextLine,
   takeLabel,
 } from "./strategyRankPresentation.js";
-import { headshotCandidates, lookupPlayerMedia, playerInitials, teamLogoUrl } from "./draftMedia";
+import { PAINT_WIDTH, headshotCandidates, lookupPlayerMedia, paintMediaUrl, playerInitials, teamLogoUrl } from "./draftMedia";
 import { nflTeamColors } from "./nflTeamColors";
 import { suggestedBidSubLabel } from "./suggestedBidLabel.js";
 
@@ -44,9 +44,10 @@ const POS_FILTERS = ["ALL", "QB", "RB", "WR", "TE", "FLEX", "K", "DEF"];
 function StrategyPhoto({ row, media, className = "", hero = false }) {
   const [shotIndex, setShotIndex] = useState(0);
   const mediaRow = lookupPlayerMedia(media, row?.player_id);
-  const shots = headshotCandidates(mediaRow);
+  const paintWidth = hero ? PAINT_WIDTH.hero : PAINT_WIDTH.mark;
+  const shots = headshotCandidates(mediaRow, [], { width: paintWidth });
   const headshot = shots[shotIndex] || null;
-  const logo = mediaRow?.team_logo_url || teamLogoUrl(row?.team);
+  const logo = paintMediaUrl(mediaRow?.team_logo_url, paintWidth) || teamLogoUrl(row?.team, { width: paintWidth });
   const name = playerName(row);
   const colors = nflTeamColors(row?.team);
 

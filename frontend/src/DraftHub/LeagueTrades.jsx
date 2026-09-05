@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
@@ -15,11 +15,20 @@ import { getInsightsSection, setInsightsSection } from "./hubDataCache";
 import { confirmDialog } from "../ui/confirm";
 import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import { fmtSal } from "./rosterFormat";
+import { hubTeamLabel } from "./hubTeamLabel";
 import { clearTradeSeed, readTradeSeed, resolveTradePartnerId } from "./tradeSeed";
 import { formatStatDelta, projectTeamTradeStats } from "./tradeProjection";
 import { formatIdeaCapNet, ideaCapImpact, whyThisHelpsText } from "./tradeIdeaHelpers";
 import { playerTradeableInWindow, tradesWindowBanner } from "./acquisitionWindow";
-import { TRADES_COPY } from "./leagueTradesPresentation";
+import { stepBlockedReason, TRADES_COPY, tradesFreeLabel } from "./leagueTradesPresentation";
+import {
+  notifyPartnerNames,
+  packageFingerprint,
+  packageLegFlow,
+  partnerCardMeta,
+  sendGetCopy,
+  validationBanner,
+} from "./tradeBuilderHelpers";
 
 const MAX_PARTIES = 4;
 
@@ -83,20 +92,20 @@ function TeamCapStrip({ projected, salaryCap }) {
   return (
     <div
       className={`hub-trade-team-stats${dirty ? " is-projected" : ""}`}
-      aria-label={dirty ? "Projected post-trade cap" : "Team cap summary"}
+      aria-label={dirty ? "Projected post-trade current roster" : "Current roster salary"}
     >
       {dirty && <span className="hub-trade-preview-tag">Projected</span>}
       {committed != null && (
         <StatWithDelta
           value={committed}
-          label="committed"
+          label={TRADES_COPY.currentRoster}
           delta={dirty ? formatStatDelta(base?.committed, committed) : null}
         />
       )}
       {(dead > 0 || (dirty && base?.dead_cap > 0)) && (
         <StatWithDelta
           value={dead}
-          label="dead"
+          label={TRADES_COPY.dead}
           delta={dirty ? formatStatDelta(base?.dead_cap, dead) : null}
           warn={dirty && dead > (base?.dead_cap || 0)}
         />
@@ -104,7 +113,7 @@ function TeamCapStrip({ projected, salaryCap }) {
       {unspent != null && (
         <StatWithDelta
           value={unspent}
-          label={salaryCap != null ? `free / ${fmtSal(salaryCap)}` : "free"}
+          label={tradesFreeLabel(salaryCap, fmtSal)}
           delta={dirty ? formatStatDelta(base?.unspent, unspent) : null}
           warn={unspent < 0}
         />
@@ -128,6 +137,20 @@ function TeamCapStrip({ projected, salaryCap }) {
   );
 }
 
+function TradeVerdict({ status, errors, message }) {
+  const banner = validationBanner(status, errors, message);
+  if (!banner) {
+    return <div className="hub-trade-verdict-slot" aria-hidden="true" />;
+  }
+  return (
+    <div className="hub-trade-verdict-slot">
+      <HubAlert variant={banner.variant} role={banner.role} live={banner.live}>
+        {banner.text}
+      </HubAlert>
+    </div>
+  );
+}
+
 function TradePlayerRow({
   row,
   media,
@@ -137,9 +160,19 @@ function TradePlayerRow({
   onSend,
   onDrop,
   tradeLocked = false,
+  isYours,
+  destName,
+  srcName,
 }) {
   const grade = gradeLabel(row.contract_grade);
   const yrs = row.years_remaining ?? row.contract_years;
+  const sendCopy = sendGetCopy({
+    isYours,
+    playerName: row.player_name || row.player_id,
+    destName,
+    srcName,
+  });
+  const cutLabel = TRADES_COPY.cutPlayer(row.player_name || row.player_id);
   return (
     <li
       className={[
@@ -166,10 +199,10 @@ function TradePlayerRow({
             {yrs != null && <span>{yrs}y</span>}
             {row.contract_type && <span>{row.contract_type}</span>}
             {row.expire_chip === "extend" && (
-              <span className="hub-sleeper-badge">Extend</span>
+              <span className="hub-expire-chip hub-expire-chip--extend">Extend?</span>
             )}
             {row.expire_chip === "fa" && (
-              <span className="hub-sleeper-badge">Expires FA</span>
+              <span className="hub-expire-chip">Expires — FA</span>
             )}
             {grade && (
               <span className={gradeClass(row.contract_grade)}>
@@ -180,10 +213,7 @@ function TradePlayerRow({
               </span>
             )}
             {row.fp_per_dollar != null && (
-              <span
-                className="hub-trade-fpd"
-                title="Projected fair-value fantasy points per dollar of salary"
-              >
+              <span className="hub-trade-fpd">
                 {row.fp_per_dollar} pts /$
               </span>
             )}
@@ -197,21 +227,25 @@ function TradePlayerRow({
           className={`btn-ghost btn-sm${sending ? " active" : ""}`}
           disabled={!canSend || tradeLocked}
           onClick={onSend}
+          aria-pressed={sending}
+          aria-label={sendCopy.aria}
           title={
             tradeLocked
               ? "Offseason trades are limited to contracts that continue beyond the upcoming draft"
-              : canSend ? "Include in outgoing package" : "Select another team first"
+              : canSend ? sendCopy.aria : "Select another team first"
           }
         >
-          Send
+          {sendCopy.button}
         </button>
         <button
           type="button"
-          className={`btn-ghost btn-sm${dropping ? " active" : ""}`}
+          className={`btn-ghost btn-sm hub-trade-cut-btn${dropping ? " active" : ""}`}
           onClick={onDrop}
-          title="Cut for roster space; assign dead cap below"
+          aria-pressed={dropping}
+          aria-label={cutLabel}
+          title={TRADES_COPY.cutHint}
         >
-          Drop
+          {TRADES_COPY.cutVerb}
         </button>
       </div>
     </li>
@@ -229,9 +263,14 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState("");
+  const [validationStatus, setValidationStatus] = useState("idle");
   const [validationErrors, setValidationErrors] = useState([]);
+  const [validationMessage, setValidationMessage] = useState("");
+  const [proposeNote, setProposeNote] = useState("");
   const [posFilter, setPosFilter] = useState("ALL");
   const [search, setSearch] = useState("");
+  const validateSeq = useRef(0);
+  const payloadRef = useRef(null);
 
   const myTeamId = hubContext?.team_id || "";
   const isCommissioner = Boolean(hubContext?.is_commissioner);
@@ -377,7 +416,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
   }, [parties, rosterByTeam, proposals, trade.suggestions]);
   const media = usePlayerMedia(allPlayerIds);
 
-  const teamName = (tid) => teams.find((t) => t.id === tid)?.name || tid || "—";
+  const teamName = (tid) => hubTeamLabel(teams.find((t) => t.id === tid)) || tid || "—";
 
   const playerLabel = (tid, pid) => {
     const row = rowByPlayer[pid] || (rosterByTeam[tid] || []).find((r) => r.player_id === pid);
@@ -472,12 +511,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
     });
   };
 
-  const clearValidation = () => {
-    setValidationErrors([]);
-  };
-
   const toggleSend = (idx, playerId, toTeamId) => {
-    clearValidation();
     setParties((prev) => {
       const next = prev.map((p, i) => {
         if (i !== idx) return p;
@@ -494,7 +528,6 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
   };
 
   const toggleDrop = (idx, playerId) => {
-    clearValidation();
     setParties((prev) => {
       const next = prev.map((p, i) => {
         if (i !== idx) return p;
@@ -509,7 +542,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
     });
   };
 
-  const buildPayload = () => ({
+  const buildPayload = useCallback(() => ({
     parties: parties
       .filter((p) => p.team_id)
       .map((p) => ({
@@ -520,40 +553,79 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
     dead_cap_assignments: deadCapAssignments.filter((a) =>
       parties.some((p) => p.team_id === a.from_team_id && p.drops.includes(a.player_id)),
     ),
-  });
+  }), [parties, deadCapAssignments]);
 
-  const validate = async () => {
-    setBusy("validate");
-    setValidationErrors([]);
-    setMsg("");
-    setError("");
-    try {
-      const body = { ...buildPayload(), validate_only: true };
-      const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/trades`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || await parseApiError(res));
-      if (data.salary_cap != null) setSalaryCap(data.salary_cap);
-      if (data.ok) {
-        setMsg("Trade looks valid — cap and roster limits pass.");
-        setValidationErrors([]);
-      } else {
-        setValidationErrors(data.errors || ["Invalid trade"]);
-      }
-      if (data.dead_cap_assignments) {
-        setDeadCapAssignments(data.dead_cap_assignments);
-      }
-    } catch (e) {
-      setValidationErrors([e.message || "Validation failed"]);
-    } finally {
-      setBusy("");
+  const partnerTeamIds = useMemo(
+    () => parties.slice(1).map((p) => p.team_id).filter(Boolean),
+    [parties],
+  );
+
+  const hasPartner = partnerTeamIds.length > 0;
+  const hasPackage = packageLegs.length > 0;
+  const packageKey = useMemo(
+    () => packageFingerprint(parties, deadCapAssignments),
+    [parties, deadCapAssignments],
+  );
+  payloadRef.current = buildPayload;
+
+  useEffect(() => {
+    if (!leagueId || !hasPartner || !hasPackage) {
+      validateSeq.current += 1;
+      setValidationStatus("idle");
+      setValidationErrors([]);
+      setValidationMessage("");
+      return undefined;
     }
-  };
+    const seq = ++validateSeq.current;
+    setValidationStatus("pending");
+    setValidationErrors([]);
+    const timer = setTimeout(async () => {
+      try {
+        const body = { ...(payloadRef.current?.() || {}), validate_only: true };
+        const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/trades`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (seq !== validateSeq.current) return;
+        if (!res.ok) {
+          const detail = typeof data.detail === "string"
+            ? data.detail
+            : Array.isArray(data.detail)
+              ? data.detail.map((d) => d.msg || d.detail || "").filter(Boolean).join(" ")
+              : "";
+          throw new Error(detail || TRADES_COPY.invalidFallback);
+        }
+        if (data.salary_cap != null) setSalaryCap(data.salary_cap);
+        if (data.ok) {
+          setValidationStatus("valid");
+          setValidationErrors([]);
+          setValidationMessage(TRADES_COPY.valid);
+        } else {
+          setValidationStatus("invalid");
+          setValidationErrors(data.errors || [TRADES_COPY.invalidFallback]);
+          setValidationMessage("");
+        }
+        if (data.dead_cap_assignments?.length) {
+          setDeadCapAssignments((prev) => prev.map((a) => {
+            const hit = data.dead_cap_assignments.find(
+              (x) => x.player_id === a.player_id && x.from_team_id === a.from_team_id,
+            );
+            return hit?.amount != null ? { ...a, amount: hit.amount } : a;
+          }));
+        }
+      } catch (e) {
+        if (seq !== validateSeq.current) return;
+        setValidationStatus("invalid");
+        setValidationErrors([e.message || TRADES_COPY.invalidFallback]);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [leagueId, hasPartner, hasPackage, packageKey]);
 
   const propose = async () => {
+    if (validationStatus !== "valid" || !hasPackage) return;
     setBusy("propose");
     setError("");
     setMsg("");
@@ -561,12 +633,18 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
       const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/trades`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildPayload()),
+        body: JSON.stringify({
+          ...buildPayload(),
+          note: proposeNote.trim() || undefined,
+        }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
-      setMsg("Proposal sent — waiting for acceptances.");
+      setMsg(TRADES_COPY.proposalSent);
       setTab("inbox");
       setBuilderStep("partner");
+      setProposeNote("");
+      setParties([emptyParty(myTeamId), emptyParty("")]);
+      setDeadCapAssignments([]);
       await loadProposals();
     } catch (e) {
       setError(e.message || "Could not propose");
@@ -660,19 +738,11 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
     ];
     setParties(next);
     setDeadCapAssignments([]);
-    clearValidation();
     setTab("builder");
     setBuilderStep("players");
-    setMsg("Loaded package into builder.");
+    setMsg(TRADES_COPY.loadedPackage);
   };
 
-  const partnerTeamIds = useMemo(
-    () => parties.slice(1).map((p) => p.team_id).filter(Boolean),
-    [parties],
-  );
-
-  const hasPartner = partnerTeamIds.length > 0;
-  const hasPackage = packageLegs.length > 0;
   const activeParties = useMemo(
     () => parties.map((p, idx) => ({ ...p, idx })).filter((p) => p.team_id),
     [parties],
@@ -680,7 +750,6 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
 
   const togglePartner = (teamId) => {
     if (!teamId || teamId === myTeamId) return;
-    clearValidation();
     setParties((prev) => {
       const mine = {
         ...(prev[0] || emptyParty(myTeamId)),
@@ -703,8 +772,6 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
   };
 
   const goBuilderStep = (stepId) => {
-    clearValidation();
-    setMsg("");
     setBuilderStep(stepId);
   };
 
@@ -725,10 +792,10 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
     });
   };
 
-  const bannerErrors = validationErrors;
-  const bannerError = error;
   const stepIdx = builderStepIndex(builderStep);
   const capLimit = salaryCap ?? rules?.salary_cap;
+  const canPropose = validationStatus === "valid" && hasPackage && !busy;
+  const partnerNames = notifyPartnerNames(teams, partnerTeamIds, myTeamId);
 
   const renderPartyPlayerColumns = () => (
     <div className={`hub-trade-parties hub-trade-parties-${Math.min(Math.max(activeParties.length, 2), 4)}`}>
@@ -739,12 +806,13 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
         const rows = filterRows(rosterByTeam[party.team_id] || []);
         const incoming = receivingFor(party.team_id);
         const teamProjected = party.team_id ? projectedByTeam[party.team_id] : null;
+        const isYours = party.team_id === myTeamId;
         return (
           <div key={idx} className="hub-trade-party-col panel">
             <div className="hub-trade-party-head">
               <strong className="hub-trade-party-name">
                 {teamName(party.team_id)}
-                {party.team_id === myTeamId ? " (you)" : ""}
+                {isYours ? " (you)" : ""}
               </strong>
             </div>
 
@@ -768,6 +836,9 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                     sending={sending}
                     dropping={dropping}
                     canSend={Boolean(defaultTo)}
+                    isYours={isYours}
+                    destName={teamName(defaultTo)}
+                    srcName={teamName(party.team_id)}
                     tradeLocked={!playerTradeableInWindow(r, acquisitionWindow)}
                     onSend={() => toggleSend(idx, r.player_id, defaultTo)}
                     onDrop={() => toggleDrop(idx, r.player_id)}
@@ -778,7 +849,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
 
             {incoming.length > 0 && (
               <div className="hub-trade-legs hub-trade-receiving">
-                <strong>Receiving</strong>
+                <strong>{TRADES_COPY.getVerb}</strong>
                 {incoming.map((s) => (
                   <div key={s.player_id} className="hub-trade-leg-row">
                     <span className="hub-roster-pos-tag">{s.row?.position || "?"}</span>
@@ -800,7 +871,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
 
             {party.sends.length > 0 && (
               <div className="hub-trade-legs">
-                <strong>Sending</strong>
+                <strong>{TRADES_COPY.sendVerb}</strong>
                 {party.sends.map((s) => {
                   const row = rowByPlayer[s.player_id];
                   return (
@@ -813,7 +884,6 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                         <select
                           value={s.to_team_id}
                           onChange={(e) => {
-                            clearValidation();
                             const to = e.target.value;
                             setParties((prev) => prev.map((p, i) => {
                               if (i !== idx) return p;
@@ -841,7 +911,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
 
             {party.drops.length > 0 && (
               <div className="hub-trade-legs">
-                <strong>Drops · dead cap assignee</strong>
+                <strong>{TRADES_COPY.cutVerb} · dead cap assignee</strong>
                 {party.drops.map((pid) => {
                   const a = deadCapAssignments.find(
                     (x) => x.player_id === pid && x.from_team_id === party.team_id,
@@ -856,7 +926,6 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                         <select
                           value={a.assigned_to_team_id}
                           onChange={(e) => {
-                            clearValidation();
                             const assigned = e.target.value;
                             setDeadCapAssignments((prev) => {
                               const rest = prev.filter(
@@ -895,27 +964,23 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
   );
 
   const renderPackageSummary = () => (
-    packageLegs.length > 0 && (
-      <div className="hub-trade-package" aria-label="Package summary">
-        <div className="hub-trade-package-title">Package</div>
+    <div className="hub-trade-package" aria-label="Package summary">
+      <div className="hub-trade-package-title">{TRADES_COPY.packageTitle}</div>
+      {packageLegs.length > 0 ? (
         <ul className="hub-trade-package-list">
           {packageLegs.map((leg) => (
-            <li key={`${leg.drop ? "drop" : "send"}-${leg.from}-${leg.player_id}`}>
+            <li key={`${leg.drop ? "cut" : "send"}-${leg.from}-${leg.player_id}`}>
               <span className="hub-roster-pos-tag">{leg.position || "?"}</span>
               <strong>{leg.name}</strong>
               <span className="hub-trade-salary-inline">{fmtSal(leg.salary)}</span>
-              {leg.drop ? (
-                <span className="hub-trade-leg-flow">drop from {teamName(leg.from)}</span>
-              ) : (
-                <span className="hub-trade-leg-flow">
-                  {teamName(leg.from)} → {teamName(leg.to)}
-                </span>
-              )}
+              <span className="hub-trade-leg-flow">{packageLegFlow(leg, teamName)}</span>
             </li>
           ))}
         </ul>
-      </div>
-    )
+      ) : (
+        <p className="chart-note">{TRADES_COPY.noPackageYet}</p>
+      )}
+    </div>
   );
 
   const renderCapReview = () => (
@@ -936,7 +1001,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
             <div className="hub-trade-cap-review-legs">
               {receivingFor(party.team_id).map((s) => (
                 <div key={`in-${s.player_id}`} className="hub-trade-leg-row">
-                  <span className="table-meta">In</span>
+                  <span className="table-meta">{TRADES_COPY.getVerb}</span>
                   <span className="hub-roster-pos-tag">{s.row?.position || "?"}</span>
                   <span>{s.row?.player_name || s.player_id}</span>
                   <span className="hub-trade-salary-inline">{fmtSal(s.row?.salary)}</span>
@@ -946,7 +1011,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                 const row = rowByPlayer[s.player_id];
                 return (
                   <div key={`out-${s.player_id}`} className="hub-trade-leg-row">
-                    <span className="table-meta">Out</span>
+                    <span className="table-meta">{TRADES_COPY.sendVerb}</span>
                     <span className="hub-roster-pos-tag">{row?.position || "?"}</span>
                     <span>{playerLabel(party.team_id, s.player_id)}</span>
                     <span className="hub-trade-salary-inline">{fmtSal(row?.salary)}</span>
@@ -960,7 +1025,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                 );
                 return (
                   <div key={`drop-${pid}`} className="hub-trade-leg-row">
-                    <span className="table-meta">Drop</span>
+                    <span className="table-meta">{TRADES_COPY.cutVerb}</span>
                     <span className="hub-roster-pos-tag">{row?.position || "?"}</span>
                     <span>{playerLabel(party.team_id, pid)}</span>
                     {a?.assigned_to_team_id && (
@@ -976,13 +1041,29 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
     </div>
   );
 
+  const renderStepActions = ({ back, primary, showVerdict = false }) => (
+    <div className="hub-toolbar hub-trade-builder-actions">
+      {back}
+      {showVerdict ? (
+        <TradeVerdict
+          status={validationStatus}
+          errors={validationErrors}
+          message={validationMessage}
+        />
+      ) : null}
+      {primary}
+    </div>
+  );
+
   return (
     <HubPage className="hub-experience-page">
       <HubExperienceHero
         eyebrow={TRADES_COPY.eyebrow}
         heading={TRADES_COPY.heading}
         support={TRADES_COPY.support}
-        chip={hasPartner ? "Partner picked" : "Need a partner"}
+        compact
+        chip={tab === "builder" ? (hasPartner ? TRADES_COPY.partnerPicked : TRADES_COPY.partnerNeeded) : null}
+        chipAs="status"
         chipTone={hasPartner ? "ready" : "caution"}
       />
       {tradeBanner ? (
@@ -1004,24 +1085,24 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
         ]}
       />
 
-      {(bannerError || bannerErrors.length > 0) && (
+      {error && (
         <div className="error hub-trade-alerts" role="alert">
-          {bannerError && <div>{bannerError}</div>}
-          {bannerErrors.map((e) => (
-            <div key={e}>{e}</div>
-          ))}
+          {error}
         </div>
       )}
-      {msg && <p className="chart-note hub-trade-msg">{msg}</p>}
+      {msg && tab !== "builder" && (
+        <HubAlert variant="ready">{msg}</HubAlert>
+      )}
       {loading && <HubLoadingSkeleton label="Loading trades" rows={4} />}
 
       {tab === "builder" && !loading && (
-        <div className="hub-trade-builder">
+        <div className="hub-trade-builder" id="trades-panel-builder">
           <nav className="hub-trade-flow-steps" aria-label="Trade builder steps">
             {BUILDER_STEPS.map((s, i) => {
               const reachable = canEnterStep(s.id);
               const isActive = builderStep === s.id;
               const isDone = i < stepIdx;
+              const blocked = stepBlockedReason(s.id, { hasPartner, hasPackage });
               return (
                 <button
                   key={s.id}
@@ -1030,13 +1111,19 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                     "hub-trade-flow-step",
                     isActive ? "is-active" : "",
                     isDone ? "is-done" : "",
+                    !reachable && !isActive ? "is-blocked" : "",
                   ].filter(Boolean).join(" ")}
-                  disabled={!reachable && !isActive}
-                  onClick={() => reachable && goBuilderStep(s.id)}
+                  aria-disabled={!reachable && !isActive ? "true" : undefined}
                   aria-current={isActive ? "step" : undefined}
+                  title={!reachable && !isActive ? blocked : undefined}
+                  aria-describedby={!reachable && !isActive && blocked ? `trade-step-why-${s.id}` : undefined}
+                  onClick={() => reachable && goBuilderStep(s.id)}
                 >
                   <span className="hub-trade-flow-step-num">{i + 1}</span>
                   <span className="hub-trade-flow-step-label">{s.label}</span>
+                  {!reachable && !isActive && blocked ? (
+                    <span id={`trade-step-why-${s.id}`} className="sr-only">{blocked}</span>
+                  ) : null}
                 </button>
               );
             })}
@@ -1045,19 +1132,24 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
           {builderStep === "partner" && (
             <div className="hub-trade-step hub-trade-step-partner">
               <div className="hub-trade-step-copy">
-                <h3 className="hub-trade-step-title">Pick a trade partner</h3>
-                <p className="chart-note">
-                  Choose who you want to trade with. Player selection comes next.
-                </p>
+                <h2 className="hub-trade-step-title">{TRADES_COPY.pickPartnerTitle}</h2>
+                <p className="chart-note">{TRADES_COPY.pickPartnerSupport}</p>
               </div>
               {myTeamId && (
                 <p className="hub-trade-you-line">
-                  You: <strong>{teamName(myTeamId)}</strong>
+                  {TRADES_COPY.youPrefix}{" "}
+                  <strong>{teamName(myTeamId)}</strong>
                 </p>
               )}
               <ul className="hub-trade-partner-grid">
                 {teams.filter((t) => t.id && t.id !== myTeamId).map((t) => {
                   const selected = partnerTeamIds.includes(t.id);
+                  const insight = (trade.partners || []).find((p) => p.team_id === t.id);
+                  const meta = partnerCardMeta({
+                    stats: statsByTeam[t.id],
+                    insight,
+                    byPos: statsByTeam[t.id]?.by_position_count,
+                  });
                   return (
                     <li key={t.id}>
                       <button
@@ -1066,9 +1158,12 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                         onClick={() => togglePartner(t.id)}
                         aria-pressed={selected}
                       >
-                        <strong>{t.name}</strong>
+                        <strong>{hubTeamLabel(t) || t.name}</strong>
+                        <span className="hub-trade-partner-meta">
+                          {meta || "No cap snapshot yet"}
+                        </span>
                         <span className="table-meta">
-                          {selected ? "Selected" : "Tap to select"}
+                          {selected ? TRADES_COPY.selectedPartner : TRADES_COPY.selectPartner}
                         </span>
                       </button>
                     </li>
@@ -1079,12 +1174,11 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                 <p className="chart-note">{TRADES_COPY.noPartners}</p>
               )}
               {partnerTeamIds.length > 1 && (
-                <p className="chart-note">
-                  Multi-team trade · {partnerTeamIds.length} partners
-                </p>
+                <p className="chart-note">{TRADES_COPY.multiPartner(partnerTeamIds.length)}</p>
               )}
-              <div className="hub-toolbar hub-trade-builder-actions">
-                {teams.filter((t) => t.id && t.id !== myTeamId).length === 0 ? (
+              {renderStepActions({
+                back: null,
+                primary: teams.filter((t) => t.id && t.id !== myTeamId).length === 0 ? (
                   <button
                     type="button"
                     className="btn-primary btn-sm"
@@ -1099,30 +1193,27 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                     disabled={!hasPartner}
                     onClick={() => goBuilderStep("players")}
                   >
-                    Continue to players
+                    {TRADES_COPY.continuePlayers}
                   </button>
-                )}
-              </div>
+                ),
+              })}
             </div>
           )}
 
           {builderStep === "players" && (
             <div className="hub-trade-step hub-trade-step-players">
               <div className="hub-trade-step-copy">
-                <h3 className="hub-trade-step-title">Choose players</h3>
-                <p className="chart-note">
-                  Mark who each side sends or drops. Cap impact is reviewed next.
-                </p>
+                <h2 className="hub-trade-step-title">{TRADES_COPY.choosePlayersTitle}</h2>
+                <p className="chart-note">{TRADES_COPY.choosePlayersSupport}</p>
               </div>
-              {renderPackageSummary()}
               <div className="hub-trade-filters hub-filter-bar">
                 <input
                   type="search"
                   className="search-input hub-filter-search"
-                  placeholder="Search players…"
+                  placeholder="Search both rosters…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  aria-label="Filter roster players"
+                  aria-label="Filter both rosters"
                 />
                 <HubFilterScroll className="hub-trade-pos-filters">
                   {HUB_POSITION_FILTERS.map((p) => (
@@ -1136,120 +1227,136 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                   ))}
                 </HubFilterScroll>
               </div>
+              <p className="chart-note hub-trade-filter-hint">{TRADES_COPY.filterBoth}</p>
+              <p className="chart-note hub-trade-meta-key">{TRADES_COPY.playerMetaKey}</p>
               {renderPartyPlayerColumns()}
-              <div className="hub-toolbar hub-trade-builder-actions">
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm"
-                  onClick={() => goBuilderStep("partner")}
-                >
-                  Back
-                </button>
-                {activeParties.length < MAX_PARTIES && (
+              {renderPackageSummary()}
+              {renderStepActions({
+                back: (
+                  <>
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm"
+                      onClick={() => goBuilderStep("partner")}
+                    >
+                      Back
+                    </button>
+                    {activeParties.length < MAX_PARTIES && (
+                      <button
+                        type="button"
+                        className="btn-ghost btn-sm"
+                        onClick={() => goBuilderStep("partner")}
+                      >
+                        Add / change partners
+                      </button>
+                    )}
+                  </>
+                ),
+                showVerdict: hasPackage,
+                primary: (
                   <button
                     type="button"
-                    className="btn-ghost btn-sm"
-                    onClick={() => goBuilderStep("partner")}
+                    className="btn-primary btn-sm hub-trade-primary"
+                    disabled={!hasPackage}
+                    onClick={() => goBuilderStep("review")}
                   >
-                    Add / change partners
+                    Review cap impact
                   </button>
-                )}
-                <button
-                  type="button"
-                  className="btn-primary btn-sm"
-                  disabled={!hasPackage}
-                  onClick={() => goBuilderStep("review")}
-                >
-                  Review cap impact
-                </button>
-              </div>
+                ),
+              })}
             </div>
           )}
 
           {builderStep === "review" && (
             <div className="hub-trade-step hub-trade-step-review">
               <div className="hub-trade-step-copy">
-                <h3 className="hub-trade-step-title">Review cap impact</h3>
-                <p className="chart-note">
-                  Confirm projected committed salary, free cap, and roster counts before proposing.
-                </p>
+                <h2 className="hub-trade-step-title">{TRADES_COPY.reviewTitle}</h2>
+                <p className="chart-note">{TRADES_COPY.reviewSupport}</p>
               </div>
-              {renderPackageSummary()}
               {renderCapReview()}
-              <div className="hub-toolbar hub-trade-builder-actions">
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm"
-                  onClick={() => goBuilderStep("players")}
-                >
-                  Back
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm"
-                  disabled={Boolean(busy)}
-                  onClick={validate}
-                >
-                  {busy === "validate" ? "Checking…" : "Check constraints"}
-                </button>
-                <button
-                  type="button"
-                  className="btn-primary btn-sm"
-                  disabled={!hasPackage}
-                  onClick={() => goBuilderStep("propose")}
-                >
-                  Continue to propose
-                </button>
-              </div>
+              {renderPackageSummary()}
+              {renderStepActions({
+                back: (
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm"
+                    onClick={() => goBuilderStep("players")}
+                  >
+                    Back
+                  </button>
+                ),
+                showVerdict: true,
+                primary: (
+                  <button
+                    type="button"
+                    className="btn-primary btn-sm hub-trade-primary"
+                    disabled={!hasPackage}
+                    onClick={() => goBuilderStep("propose")}
+                  >
+                    {TRADES_COPY.continuePropose}
+                  </button>
+                ),
+              })}
             </div>
           )}
 
           {builderStep === "propose" && (
             <div className="hub-trade-step hub-trade-step-propose">
               <div className="hub-trade-step-copy">
-                <h3 className="hub-trade-step-title">Propose trade</h3>
-                <p className="chart-note">
-                  Send the package for partner approval. Every team in the trade must accept.
-                </p>
+                <h2 className="hub-trade-step-title">{TRADES_COPY.proposeTitle}</h2>
+                <p className="chart-note">{TRADES_COPY.notifyLine(partnerNames)}</p>
+                <p className="chart-note">{TRADES_COPY.whatsNext}</p>
               </div>
               {renderPackageSummary()}
-              {renderCapReview()}
-              <div className="hub-toolbar hub-trade-builder-actions">
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm"
-                  onClick={() => goBuilderStep("review")}
-                >
-                  Back
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm"
-                  disabled={Boolean(busy)}
-                  onClick={validate}
-                >
-                  {busy === "validate" ? "Checking…" : "Check constraints"}
-                </button>
-                <button
-                  type="button"
-                  className="btn-primary btn-sm"
-                  disabled={Boolean(busy) || !hasPackage}
-                  onClick={propose}
-                >
-                  {busy === "propose" ? "Sending…" : "Propose trade"}
-                </button>
-              </div>
+              <TeamCapStrip
+                projected={projectedByTeam[myTeamId]}
+                salaryCap={capLimit}
+              />
+              <label className="hub-trade-note-label" htmlFor="trade-propose-note">
+                {TRADES_COPY.proposeNoteLabel}
+              </label>
+              <textarea
+                id="trade-propose-note"
+                className="hub-trade-note"
+                rows={3}
+                value={proposeNote}
+                onChange={(e) => setProposeNote(e.target.value)}
+                placeholder={TRADES_COPY.proposeNotePlaceholder}
+              />
+              {renderStepActions({
+                back: (
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm"
+                    onClick={() => goBuilderStep("review")}
+                  >
+                    Back
+                  </button>
+                ),
+                showVerdict: true,
+                primary: (
+                  <button
+                    type="button"
+                    className="btn-primary btn-sm hub-trade-primary"
+                    disabled={!canPropose}
+                    title={!canPropose && validationStatus !== "valid" ? TRADES_COPY.invalidFallback : undefined}
+                    onClick={propose}
+                  >
+                    {busy === "propose" ? TRADES_COPY.proposing : TRADES_COPY.proposeTrade}
+                  </button>
+                ),
+              })}
             </div>
           )}
         </div>
       )}
 
       {tab === "inbox" && (
-        <div className="hub-trade-inbox">
+        <div className="hub-trade-inbox" id="trades-panel-inbox">
           {proposals.length === 0 && (
             <div className="hub-insights-empty-state">
-              <h3>No pending proposals</h3>
-              <p>Build a package and propose it — every team must accept.</p>
+              <h3>{TRADES_COPY.inboxEmptyHeading}</h3>
+              <p>{TRADES_COPY.inboxEmpty}</p>
             </div>
           )}
           {proposals.map((p) => (
@@ -1293,7 +1400,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                   )}
                   {(party.drops || []).length > 0 && (
                     <p className="table-meta">
-                      Drops: {(party.drops || []).map((pid) => playerLabel(party.team_id, pid)).join(", ")}
+                      {TRADES_COPY.cutVerb}: {(party.drops || []).map((pid) => playerLabel(party.team_id, pid)).join(", ")}
                     </p>
                   )}
                 </div>
@@ -1346,16 +1453,13 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
       )}
 
       {tab === "ideas" && (
-        <div className="hub-trade-ideas">
-          <p className="chart-note hub-trade-ideas-blurb">
-            Suggestions use your surplus and roster needs — packages send depth you can spare and target
-            positions where you are thin.
-          </p>
+        <div className="hub-trade-ideas" id="trades-panel-ideas">
+          <p className="chart-note hub-trade-ideas-blurb">{TRADES_COPY.ideasBlurb}</p>
           {((trade.balance?.surplus || []).length > 0 || (trade.balance?.need || []).length > 0) && (
             <div className="hub-insights-chips hub-trade-ideas-balance">
               {(trade.balance?.surplus || []).length > 0 && (
                 <div className="hub-insights-balance-group">
-                  <span className="table-meta">Your surplus</span>
+                  <span className="table-meta">{TRADES_COPY.ideasSurplus}</span>
                   <div className="hub-insights-balance-chips">
                     {(trade.balance.surplus || []).map((s) => (
                       <Chip key={`surplus-${s}`} label={`${s} extra`} tone="surplus" />
@@ -1365,10 +1469,10 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
               )}
               {(trade.balance?.need || []).length > 0 && (
                 <div className="hub-insights-balance-group">
-                  <span className="table-meta">Your needs</span>
+                  <span className="table-meta">{TRADES_COPY.ideasNeeds}</span>
                   <div className="hub-insights-balance-chips">
                     {(trade.balance.need || []).map((n) => (
-                      <Chip key={`need-${n}`} label={`${n} need`} tone="need" />
+                      <Chip key={`need-${n}`} label={`${n} thin`} tone="need" />
                     ))}
                   </div>
                 </div>
@@ -1449,7 +1553,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                     <p className="hub-trade-idea-cap-line">
                       Send {fmtSal(cap.sendSal)}
                       <span className="hub-trade-idea-cap-sep">·</span>
-                      Receive {fmtSal(cap.recvSal)}
+                      Get {fmtSal(cap.recvSal)}
                       <span className="hub-trade-idea-cap-sep">·</span>
                       <span className={netFmt.tone || undefined}>{netFmt.text}</span>
                     </p>
@@ -1466,7 +1570,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
             })
           ) : (
             <div className="hub-insights-empty-state">
-              <h3>No packages yet</h3>
+              <h3>{TRADES_COPY.ideasEmptyHeading}</h3>
               <p>{trade.empty_reason || "Use the builder to craft a custom trade."}</p>
             </div>
           )}

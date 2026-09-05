@@ -35,6 +35,7 @@ from src.draft_hub.draft_state import (
     update_auction_rules,
 )
 from src.draft_hub.draft_pool import build_nomination_pool
+from src.draft_hub.hub_media import resolve_hub_media_file
 from src.draft_hub.draft_recap import build_draft_recap
 from src.draft_hub.presets import list_presets, load_preset
 from src.draft_hub.pre_draft_cap import (
@@ -997,13 +998,22 @@ async def hub_upload_team_identity_media(
 
 
 @router.get("/media/{media_id}")
-def hub_get_media(media_id: str, _user=Depends(require_hub_user)):
+def hub_get_media(
+    media_id: str,
+    w: int | None = Query(None),
+    _user=Depends(require_hub_user),
+):
     media = storage.get_hub_media(media_id)
     if not media:
         raise HTTPException(status_code=404, detail="Image not found")
     if media.get("league_id"):
         _assert_league_access(str(media["league_id"]), _sub(_user))
-    return FileResponse(media["path"], media_type=media["content_type"])
+    path, content_type = resolve_hub_media_file(media, w)
+    return FileResponse(
+        path,
+        media_type=content_type,
+        headers={"Cache-Control": "private, max-age=86400"},
+    )
 
 
 def _week_culture_matchup(league_id: str, ctx: dict[str, Any], week: int | None) -> dict[str, Any]:

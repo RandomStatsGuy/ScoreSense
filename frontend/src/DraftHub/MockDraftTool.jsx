@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { useAuth } from "../AuthContext";
 import { connectionErrorMessage, parseApiError } from "../format";
@@ -7,7 +7,6 @@ import VerifyEmailBanner from "../VerifyEmailBanner";
 import Button from "../ui/Button";
 import { HubAlert, HubFilterChip, HubPage } from "./HubUILayout";
 import DraftSeat from "./DraftSeat";
-import DraftRoom from "./DraftRoom";
 import ThinkingScrim from "../ui/ThinkingScrim";
 import useSlowThink from "../hooks/useSlowThink";
 import {
@@ -26,6 +25,8 @@ import {
   resolveMockDraftSeason,
   writeStoredMockLeagueId,
 } from "./mockDraftConfig";
+
+const DraftRoom = lazy(() => import("./DraftRoom"));
 
 const EMPTY_ROWS = [];
 const FORMAT_PERSONALITY = {
@@ -248,19 +249,21 @@ export default function MockDraftTool({ projMeta = null }) {
 
   if (leagueId) {
     return (
-      <DraftRoom
-        leagueId={leagueId}
-        onLeagueIdChange={(id) => {
-          if (!id) exitRoom();
-          else persistLeague(id);
-        }}
-        onExitRoom={exitRoom}
-        valueRows={EMPTY_ROWS}
-        season={season}
-        hubContext={hubContext}
-        toolMode
-        toolLabel={toolLabel}
-      />
+      <Suspense fallback={<p className="chart-note">Loading draft room…</p>}>
+        <DraftRoom
+          leagueId={leagueId}
+          onLeagueIdChange={(id) => {
+            if (!id) exitRoom();
+            else persistLeague(id);
+          }}
+          onExitRoom={exitRoom}
+          valueRows={EMPTY_ROWS}
+          season={season}
+          hubContext={hubContext}
+          toolMode
+          toolLabel={toolLabel}
+        />
+      </Suspense>
     );
   }
 

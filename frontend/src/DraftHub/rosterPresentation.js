@@ -15,4 +15,5 @@ export const MY_TEAM_COPY = {
   emptyActionLink: "Link Sleeper",
   removeSupport: "Deletes the contract from the league. Staff only. Does not refund cap.",
   deadCapLegend: "Orange is dead cap — already spent on cuts.",
+  committedLabel: (season) => `${season} committed`,
 };

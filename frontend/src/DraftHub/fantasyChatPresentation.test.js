@@ -10,6 +10,8 @@ import {
   FANTASY_CHAT_COPY,
   fantasyChatDockClass,
   hideFantasyChatDock,
+  chatPollMs,
+  CHAT_POLL_HIDDEN_MS,
   nearestChatEdge,
   readChatLauncherDismissed,
   readChatLauncherEdge,
@@ -113,4 +115,11 @@ test("Home hides the edge launcher because the locker is the house", () => {
   assert.equal(hideFantasyChatDock({ house: true }), true);
   assert.equal(hideFantasyChatDock({ hidden: true }), true);
   assert.equal(hideFantasyChatDock({}), false);
+});
+
+test("chat poll backs off when the tab is hidden", () => {
+  assert.equal(chatPollMs({}), 12_000);
+  assert.equal(chatPollMs({ compact: true }), 4_000);
+  assert.equal(chatPollMs({ hidden: true }), CHAT_POLL_HIDDEN_MS);
+  assert.equal(chatPollMs({ compact: true, hidden: true }), CHAT_POLL_HIDDEN_MS);
 });
