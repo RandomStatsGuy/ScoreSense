@@ -8,6 +8,7 @@ import {
 } from "./hubLeagues";
 import TeamIdentityMark from "./TeamIdentityMark";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
+import { HubFilterMenu } from "./HubUILayout";
 import { LEAGUE_CREATE_COPY, SOLO_VALUE, interpretLeagueSwitcherValue } from "./leagueAccessCopy";
 
 const LIST_SCROLL_THRESHOLD = 4;
@@ -146,27 +147,23 @@ export default function LeagueSwitcher({
   if (variant === "compact") {
     if (leagues.length === 0 && soloActive && !onCreateLeague) return null;
     return (
-      <div className="hub-league-switcher hub-league-switcher--compact">
-        <label htmlFor={selectId} className="hub-league-switcher-label">
-          {mobileLayout ? "League" : "Switch league"}
-        </label>
+      <div className="hub-league-switcher hub-league-switcher--compact" aria-busy={busy}>
         <div className="hub-league-switcher-compact-row">
           {leagues.length > 0 || !soloActive ? (
-            <select
-              id={selectId}
-              className="hub-league-switcher-select"
+            <HubFilterMenu
+              label={mobileLayout ? "League" : "Switch league"}
               value={value}
-              onChange={(e) => switchTo(e.target.value)}
+              options={[
+                ...leagues.map((m) => ({
+                  id: m.league_id,
+                  label: m.league_name || membershipLabel(m),
+                })),
+                { id: SOLO_VALUE, label: mobileLayout ? "Solo prep" : "Personal prep (just me)" },
+              ]}
+              onChange={switchTo}
               disabled={busy || disabled}
-              aria-busy={busy}
-            >
-              {leagues.map((m) => (
-                <option key={m.league_id} value={m.league_id}>
-                  {m.league_name || membershipLabel(m)}
-                </option>
-              ))}
-              <option value={SOLO_VALUE}>{mobileLayout ? "Solo prep" : "Personal prep (just me)"}</option>
-            </select>
+              className="hub-league-switcher-menu"
+            />
           ) : (
             <span id={selectId} className="hub-league-context-name">Solo prep</span>
           )}

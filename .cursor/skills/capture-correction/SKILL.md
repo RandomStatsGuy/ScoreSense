@@ -21,6 +21,13 @@ Examples:
 
 ## 2. Persist, skip, or ask
 
+If the correction is about spacing, alignment, sizing, wrapping, or a control looking wrong:
+it is NOT a rule row. It is a primitive bug. Find the shared class/component, fix it there,
+add an assertion to `scripts/dev/layout_audit.mjs` that would have caught it, and run the
+audit on every consumer. Reply **Fixed primitive:** `{selector}` · `{routes re-audited}`.
+Only persist a rule row if the fix required a product decision (e.g. "bench cards are
+the same size as starters"), and then put it in the living-surface row, not learned-rules.
+
 **Skip** (apply this turn only) when:
 
 - It is a typo, one-off number, or “just this PR / this screen / this once”
@@ -75,7 +82,8 @@ Write **one line**. Same change as the fix when you are already editing.
 | `always` / `never` + `product` (new name, token, destination, pattern) | `docs/PRODUCT.md` and the compressed line in `.cursor/rules/scoresense-core.mdc` |
 | Chrome / “match this page” / living component | `frontend/src/livingSurfaces.js` (update the row). Follow `.cursor/skills/match-living-surface/SKILL.md` |
 | Wrong **Matching:** row | Add their phrase to `SURFACE_ALIASES` in `frontend/src/livingSurfaces.js`. Same skill, section 5 |
-| `always` / `never` + `fantasy-ui` | `.cursor/rules/frontend-draft-hub.mdc` |
+| Layout craft (spacing, align, wrap, targets) | Fix the primitive + `scripts/dev/layout_audit.mjs`. Do not add a learned-rules row. |
+| `always` / `never` + `fantasy-ui` (product decision) | The matching `doNot` on the living-surface row, or `.cursor/rules/frontend-draft-hub.mdc` if it is cross-page behavior |
 | `always` / `never` + `projections` | `.cursor/rules/ml-projections.mdc` |
 | `always` / `never` + `perf` | `.cursor/rules/draft-hub-performance.mdc` |
 | `always` / `never` + `ops` (git/PR) | `.cursorrules` |

@@ -4,6 +4,7 @@ import {
   CHROME,
   LIVING_SURFACES,
   SHARED,
+  livingSurfaceRoutes,
   resolveLivingSurface,
   resolveLivingSurfaceFromText,
   surfacesForFile,
@@ -81,6 +82,12 @@ test("contracts pane owns the pending-write copy module", () => {
   assert.match(row.doNot, /pending-changes tray/);
 });
 
+test("approved primaries keep one fill on Home, Cap, and Trades", () => {
+  assert.match(LIVING_SURFACES["hub.home"].doNot, /Chat Send is ghost/);
+  assert.match(LIVING_SURFACES["hub.planner"].doNot, /Undo cut is ghost/);
+  assert.match(LIVING_SURFACES["hub.trades"].doNot, /Continue \(or Propose on the last step\) is the only primary/);
+});
+
 test("file lookup returns the surfaces that own a page", () => {
   const hits = surfacesForFile("frontend/src/DraftHub/ValueSheetTable.jsx");
   assert.deepEqual(hits.map((row) => row.id), ["hub.available"]);
@@ -123,6 +130,18 @@ test("login and create account resolve to the session pages", () => {
   assert.equal(report.label, "Report a bug");
   assert.equal(report.page, "frontend/src/BugReportPage.jsx");
   assert.equal(report.copy, "frontend/src/bugReportPresentation.js");
+});
+
+test("audit routes come from the registry and skip overlays", () => {
+  const routes = livingSurfaceRoutes();
+  const paths = routes.map((row) => row.route);
+  assert.ok(paths.includes("/hub/free-agents"));
+  assert.ok(paths.includes("/hub/insights/overview"));
+  assert.ok(paths.includes("/projections/weekly"));
+  assert.ok(!paths.includes("/hub/insights"));
+  assert.equal(new Set(paths).size, paths.length);
+  assert.equal(LIVING_SURFACES["hub.room.live"].overlay, true);
+  assert.equal(LIVING_SURFACES["projections.inspector"].overlay, true);
 });
 
 test("shared tokens include the product spacing rhythm", () => {

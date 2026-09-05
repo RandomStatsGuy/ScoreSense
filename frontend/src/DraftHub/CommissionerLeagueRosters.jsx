@@ -5,6 +5,7 @@ import { connectionErrorMessage, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
 import MobileDataList, { MobileStat } from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
+import { HubFilterMenu } from "./HubUILayout";
 import LeagueSleeperConnect from "./LeagueSleeperConnect";
 import { hubTeamLabel, hubTeamParts } from "./hubTeamLabel";
 import {
@@ -302,19 +303,13 @@ function AddPlayerForm({
             </ul>
           )}
         </label>
-        <label>
-          <span>Type</span>
-          <select
-            className="hub-roster-edit-input hub-roster-type-select"
-            value={contractType}
-            disabled={adding}
-            onChange={(e) => setContractType(e.target.value)}
-          >
-            {CONTRACT_TYPE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-        </label>
+        <HubFilterMenu
+          label="Type"
+          value={contractType}
+          options={CONTRACT_TYPE_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
+          onChange={setContractType}
+          disabled={adding}
+        />
         <label>
           <span>{stage?.salaryFieldLabel || (season ? `${season} $` : "Salary")}</span>
           <input
@@ -611,19 +606,13 @@ function TeamRosterBlock({
                 heroLabel={stage?.salaryFieldLabel || `${season} $`}
                 expanded={(
                   <div className="mobile-stat-grid hub-roster-mobile-grid">
-                    <label className="hub-roster-mobile-field">
-                      <span className="mobile-stat-label">Contract type</span>
-                      <select
-                        className="hub-roster-edit-input"
-                        value={vm.pendingType || vm.ctype}
-                        disabled={vm.locked}
-                        onChange={(e) => onQueue(r, { contractType: e.target.value })}
-                      >
-                        {CONTRACT_TYPE_OPTIONS.map((o) => (
-                          <option key={o.value} value={o.value}>{o.label}</option>
-                        ))}
-                      </select>
-                    </label>
+                    <HubFilterMenu
+                      label="Contract type"
+                      value={vm.pendingType || vm.ctype}
+                      options={CONTRACT_TYPE_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
+                      onChange={(id) => onQueue(r, { contractType: id })}
+                      disabled={vm.locked}
+                    />
                     <label className="hub-roster-mobile-field">
                       <span className="mobile-stat-label">
                         {stage?.salaryFieldLabel || `Cap hit (${season} season)`}
@@ -722,20 +711,13 @@ function TeamRosterBlock({
                   </td>
                   <td><span className="hub-roster-pos-tag">{r.position}</span></td>
                   <td>
-                    <label className="hub-roster-field">
-                      <span className="sr-only">Contract type for {r.player_name}</span>
-                      <select
-                        className="hub-roster-edit-input hub-roster-type-select"
-                        value={vm.pendingType || vm.ctype}
-                        disabled={vm.locked}
-                        aria-label={`Contract type for ${r.player_name}`}
-                        onChange={(e) => onQueue(r, { contractType: e.target.value })}
-                      >
-                        {CONTRACT_TYPE_OPTIONS.map((o) => (
-                          <option key={o.value} value={o.value}>{o.label}</option>
-                        ))}
-                      </select>
-                    </label>
+                    <HubFilterMenu
+                      label="Type"
+                      value={vm.pendingType || vm.ctype}
+                      options={CONTRACT_TYPE_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
+                      onChange={(id) => onQueue(r, { contractType: id })}
+                      disabled={vm.locked}
+                    />
                   </td>
                   <td>
                     <label className="hub-roster-field">
@@ -1144,24 +1126,21 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
             />
           </label>
           {mobileLayout ? (
-            <label className="hub-league-team-select">
-              <span className="hub-field-label">{OFFICE_CONTRACTS_COPY.teamPicker}</span>
-              <select
-                value={teamFilter}
-                onChange={(e) => setTeamFilter(e.target.value)}
-              >
-                <option value="">{OFFICE_CONTRACTS_COPY.showAll}</option>
-                {teams.map((block) => {
+            <HubFilterMenu
+              label={OFFICE_CONTRACTS_COPY.teamPicker}
+              value={teamFilter}
+              options={[
+                { id: "", label: OFFICE_CONTRACTS_COPY.showAll },
+                ...teams.map((block) => {
                   const parts = hubTeamParts(block.team);
-                  const ownerLabel = parts.owner || hubTeamLabel(block.team);
-                  return (
-                    <option key={block.team.id} value={block.team.id}>
-                      {ownerLabel}
-                    </option>
-                  );
-                })}
-              </select>
-            </label>
+                  return {
+                    id: block.team.id,
+                    label: parts.owner || hubTeamLabel(block.team),
+                  };
+                }),
+              ]}
+              onChange={setTeamFilter}
+            />
           ) : (
             <>
               <div className="hub-league-team-jump" role="group" aria-label="Filter by team">

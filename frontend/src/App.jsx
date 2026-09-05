@@ -53,7 +53,6 @@ import VerifyEmailBanner from "./VerifyEmailBanner";
 import InstallPrompt from "./InstallPrompt";
 import TermsReacceptBanner from "./TermsReacceptBanner";
 import LegalLinks from "./LegalLinks";
-import { PRODUCT_DISCLAIMER } from "./auth";
 import AdminPortal from "./AdminPortal";
 import MobileShell from "./layout/MobileShell";
 import MobileHeader from "./layout/MobileHeader";
@@ -1484,9 +1483,6 @@ export default function App() {
           {!mobileLayout && !(view === "projections" && projectionsTab === "weekly") && view !== "hub" && (
             <div className="subtitle-slot">
               <p className={`subtitle ${subtitleFading ? "subtitle-fading" : ""}`}>{subtitleDisplay}</p>
-              {view === "projections" && (
-                <p className="chart-note app-product-disclaimer">{PRODUCT_DISCLAIMER}</p>
-              )}
             </div>
           )}
         </header>

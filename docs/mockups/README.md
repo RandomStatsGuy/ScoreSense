@@ -2,6 +2,8 @@
 
 Static HTML options. Not product code. Agents: `.cursor/skills/fast-ui-mock/SKILL.md`.
 
+Mock pages must pass `scripts/dev/layout_audit.mjs` (same bar, table, and collision rules as the app). Do not pick an option that would ship a known craft fail.
+
 Serve and click: `bash scripts/dev/serve_mockups.sh` → [http://127.0.0.1:5174/](http://127.0.0.1:5174/). Or open [index.html](./index.html).
 
 ## Strategy rank (Sep 2026)

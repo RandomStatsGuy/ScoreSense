@@ -8,7 +8,7 @@ import MobileBottomSheet from "../layout/MobileBottomSheet";
 import confirmDialog from "../ui/confirm";
 import HoverTip from "../HoverTip";
 import { MY_TEAM_COPY, rosterStatusInfo } from "./rosterPresentation";
-import { HubExperienceHero, HubFilterChip, HubFilterScroll, HubPage, HubPageSticky, HubTableCard, SortTh } from "./HubUILayout";
+import { HubExperienceHero, HubFilterChip, HubFilterMenu, HubFilterScroll, HubPage, HubPageSticky, HubTableCard, SortTh } from "./HubUILayout";
 import {
   CONTRACT_TYPE_OPTIONS,
   contractDeadCapStory,
@@ -137,19 +137,15 @@ function ContractSidePanelBody({
 
       <div className="hub-roster-contract-panel-grid">
         {canEditType ? (
-          <label className="hub-roster-mobile-field">
-            <span className="mobile-stat-label">Contract type</span>
-            <select
-              className="hub-roster-edit-input"
+          <div className="hub-roster-mobile-field">
+            <HubFilterMenu
+              label="Contract type"
               value={pendingType || ctype}
+              options={CONTRACT_TYPE_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
+              onChange={(id) => saveContractType(r, id)}
               disabled={isSaving}
-              onChange={(e) => saveContractType(r, e.target.value)}
-            >
-              {CONTRACT_TYPE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </label>
+            />
+          </div>
         ) : (
           <div className="hub-roster-contract-panel-stat">
             <span className="mobile-stat-label">Contract type</span>
@@ -239,23 +235,19 @@ function ContractSidePanelBody({
       <div className="hub-roster-contract-panel-actions">
         {extendEligible && (
           <div className="hub-roster-contract-panel-primary">
-            <label className="hub-roster-extend-years">
-              <span className="sr-only">Extension years</span>
-              <select
-                className="hub-roster-edit-input hub-roster-edit-input-sm"
-                value={extendYearsFor(r)}
-                disabled={isSaving}
-                onChange={(e) => setExtendYearsById((prev) => ({
-                  ...prev,
-                  [r.player_id]: e.target.value,
-                }))}
-                aria-label={`Extension years for ${r.player_name}`}
-              >
-                {Array.from({ length: maxYears }, (_, index) => index + 1).map((years) => (
-                  <option key={years} value={years}>{years} yr</option>
-                ))}
-              </select>
-            </label>
+            <HubFilterMenu
+              label="Extension years"
+              value={extendYearsFor(r)}
+              options={Array.from({ length: maxYears }, (_, index) => index + 1).map((years) => ({
+                id: years,
+                label: `${years} yr`,
+              }))}
+              onChange={(id) => setExtendYearsById((prev) => ({
+                ...prev,
+                [r.player_id]: id,
+              }))}
+              disabled={isSaving}
+            />
             <button
               type="button"
               className="btn-primary btn-sm"
@@ -929,15 +921,18 @@ export default function RosterBuilder({
       <details className="hub-roster-add">
         <summary>Add player manually</summary>
         <div className="hub-form-row hub-roster-add-row">
-          <label>
-            Player
-            <select value={playerId} onChange={(e) => setPlayerId(e.target.value)}>
-              <option value="">Select…</option>
-              {(valueRows || []).slice(0, 300).map((r) => (
-                <option key={r.player_id} value={r.player_id}>{r.player} ({r.position})</option>
-              ))}
-            </select>
-          </label>
+          <HubFilterMenu
+            label="Player"
+            value={playerId}
+            options={[
+              { id: "", label: "Select…" },
+              ...(valueRows || []).slice(0, 300).map((r) => ({
+                id: r.player_id,
+                label: `${r.player} (${r.position})`,
+              })),
+            ]}
+            onChange={setPlayerId}
+          />
           <label>
             Cap hit ($)
             <input type="number" min={0} value={salary} onChange={(e) => setSalary(e.target.value)} placeholder={lookup?.model_bid_hint || "1"} />

@@ -29,6 +29,7 @@ TOP_LEVEL = ["Projections", "Fantasy", "Tools"]
 ROSTER_MGMT_PANES = ["Contracts", "Salary sheets", "Members", "Access & imports"]
 
 RULE_FILES = (
+    "frontend-craft.mdc",
     "frontend-draft-hub.mdc",
     "draft-hub-performance.mdc",
     "ml-projections.mdc",
@@ -105,50 +106,56 @@ def test_constitution_forbids_stale_product_names() -> None:
 
 
 def test_design_spec_defers_to_constitution() -> None:
-    design = _read("docs", "design.md")
+    design = _read("docs", "specs", "rules-center-2026-08.md")
+    assert "Historical spec" in design
     assert "PRODUCT.md" in design
+    assert "frontend-craft.mdc" in design
     assert "wins" in design.lower()
+    assert "| Players |" not in design
+    assert "| Free agents |" in design
+    assert "## 10. Visual design language" not in design
+    assert not (ROOT / "docs" / "design.md").exists()
 
 
 def test_constitution_covers_phone_chrome() -> None:
     product = _read("docs", "PRODUCT.md")
-    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
-    hub_rule = _read(".cursor", "rules", "frontend-draft-hub.mdc")
+    phone_css = _read("frontend", "src", "styles", "fantasy-phone.css")
+    craft = _read(".cursor", "rules", "frontend-craft.mdc")
     assert "On phone, the header is the current destination" in product
     assert "one-row league strip" in product
     assert "hub-page-sticky" in product
     assert "/hub/roster-management" in product
     assert "sits on the bubble" in product
-    assert "destination title" in core_rule.lower()
-    assert "one-row league strip" in core_rule.lower()
-    assert "hub-page-sticky" in core_rule
-    assert "sits on the bubble" in core_rule
-    assert "sits on the bubble" in hub_rule
-    assert "hub-page-sticky" in hub_rule
+    assert "destination title" in phone_css
+    assert "one-row league strip" in phone_css
+    assert "hub-page-sticky" in phone_css
+    assert "equal" in craft and "padding" in craft
 
 
 def test_constitution_covers_chat_chrome() -> None:
     product = _read("docs", "PRODUCT.md")
-    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    dock = _read("frontend", "src", "DraftHub", "FantasyChatDock.jsx")
     assert "FantasyChatDock" in product
     assert "edge launcher" in product
     assert "side drawer" in product
     assert "locker rail" in product
-    assert "FantasyChatDock" in core_rule
-    assert "edge launcher" in core_rule
+    assert "flush edge launcher" in dock
+    assert "Do not show this launcher on Home" in dock
 
 
 def test_constitution_covers_compact_tile_spacing() -> None:
     product = _read("docs", "PRODUCT.md")
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
-    hub_rule = _read(".cursor", "rules", "frontend-draft-hub.mdc")
+    craft = _read(".cursor", "rules", "frontend-craft.mdc")
     assert "spacing rhythm" in product
     assert "never flush" in product
     assert "--text-xs" in product
     assert "never flush" in core_rule
     assert "--text-xs" in core_rule
-    assert "token padding" in hub_rule
-    assert "--text-xs" in hub_rule
+    assert "Fix the primitive" in core_rule
+    assert "frontend-craft.mdc" in core_rule
+    assert "--space-1" in craft
+    assert "hub-page-sticky" in craft
 
 
 def test_css_type_never_drops_below_text_xs() -> None:
@@ -159,12 +166,12 @@ def test_css_type_never_drops_below_text_xs() -> None:
     for path in (ROOT / "frontend" / "src").rglob("*.css"):
         for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             match = pat.search(line)
-            if match and float(match.group(1)) < 0.72:
+            if match and float(match.group(1)) < 0.75:
                 offenders.append(f"{path.relative_to(ROOT)}:{lineno}:{match.group(1)}")
-    assert not offenders, "type below previous --text-xs floor (0.72rem):\n" + "\n".join(offenders[:30])
+    assert not offenders, "type below --text-xs floor (0.75rem / 12px):\n" + "\n".join(offenders[:30])
     tokens = _read("frontend", "src", "styles", "tokens.css")
-    assert "--text-xs: 0.75rem" in tokens
-    assert "12px" in _read("docs", "PRODUCT.md")
+    assert "--text-xs: 12px" in tokens
+    assert "12px computed" in _read("docs", "PRODUCT.md")
     rhythm = _read("frontend", "src", "styles", "product-rhythm.css")
     main = _read("frontend", "src", "main.jsx")
     assert "--inset-chip" in rhythm
@@ -181,27 +188,26 @@ def test_constitution_covers_copy_voice() -> None:
 
 def test_constitution_covers_best_ball_board() -> None:
     product = _read("docs", "PRODUCT.md")
-    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    living = _read("frontend", "src", "livingSurfaces.js")
     hub_rule = _read(".cursor", "rules", "frontend-draft-hub.mdc")
     assert "Tools · Best ball" in product
     assert "No ECR" in product
     assert "Scoring: PPR" in product
     assert "labeled Pos / Sort" in product
-    assert "No ECR" in core_rule
-    assert "Scoring: PPR" in core_rule
-    assert "labeled Pos / Sort" in hub_rule
+    assert "No ECR" in living
+    assert "Scoring: PPR" in living
     assert "table-wrap" in hub_rule
 
 
 def test_constitution_covers_weekly_board_chrome() -> None:
     product = _read("docs", "PRODUCT.md")
-    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    living = _read("frontend", "src", "livingSurfaces.js")
     assert "always-on" in product.lower()
     assert "compare" in product.lower()
     assert "compact Q" in product or "compact Q / D / P" in product
     assert "inspector" in product.lower()
     assert "New, never 0" in product
-    assert "compare" in core_rule.lower()
+    assert "Weekly compare" in living
     assert "dense ranking rows" in product
     assert "checkbox on every card" in product
     assert "swipeable" in product
@@ -223,7 +229,8 @@ def test_constitution_covers_landmarks_and_exclusive_choices() -> None:
     assert "list-item" in product
     assert "13px" in product
     assert "best-in-set" in product
-    assert "radiogroup" in core_rule
+    assert "main-content" in core_rule
+    assert "radiogroup" in hub_rule
     assert "aria-live" in hub_rule
     assert "list-item" in hub_rule
 
@@ -232,12 +239,10 @@ def test_constitution_covers_painted_media() -> None:
     product = _read("docs", "PRODUCT.md")
     perf = _read(".cursor", "rules", "draft-hub-performance.mdc")
     hub = _read(".cursor", "rules", "frontend-draft-hub.mdc")
-    core = _read(".cursor", "rules", "scoresense-core.mdc")
     assert "?w=48" in product
     assert "studio original" in product
     assert "?w=" in perf
     assert "painted size" in hub
-    assert "?w=48/96/256" in core
 
 
 def test_constitution_empty_states_name_a_destination() -> None:

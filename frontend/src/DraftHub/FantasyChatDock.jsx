@@ -1,3 +1,11 @@
+/**
+ * League chat: flush edge launcher (parked on an edge, expands on hover) that
+ * opens a side drawer. Drag parks it on a new edge — horizontal type, not rotated.
+ * Do not show this launcher on Home (Home houses the full thread as a locker rail).
+ * Do not add a Chat destination. On phone default to the bottom-right above the
+ * tab bar; the dismiss control sits on the bubble. Clear chat is staff-only, red,
+ * and confirms. See docs/PRODUCT.md · Chat.
+ */
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import LeagueChat from "./LeagueChat";

@@ -22,7 +22,7 @@ From the repo root:
 bash scripts/dev/start_hub_dev.sh
 ```
 
-That script is idempotent. It writes `.env` only when missing (`AUTH_REQUIRED=false`, `HUB_AUTH_REQUIRED=false`), starts API `:8000` and Vite `:5173` if they are down, then waits.
+That script is idempotent. It writes `.env` only when missing (`AUTH_REQUIRED=false`, `HUB_AUTH_REQUIRED=false`), starts API `:8000` and Vite `:5173` if they are down, then waits. The API uses `.venv/bin/python` when that interpreter has uvicorn, otherwise PATH `python3` / `python` (GitHub Actions).
 
 Open the app at `http://127.0.0.1:5173`. Vite proxies `/api` to `:8000`.
 

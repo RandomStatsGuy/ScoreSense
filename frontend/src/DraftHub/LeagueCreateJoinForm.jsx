@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
+import { HubFilterMenu } from "./HubUILayout";
 import { leaguePresetOptions, parseLeagueTeamCount } from "./leagueCreateJoin";
 
 export default function LeagueCreateJoinForm({
@@ -135,14 +136,12 @@ export default function LeagueCreateJoinForm({
               />
             </label>
             <div className="hub-league-field-split">
-              <label>
-                Draft format
-                <select value={presetId} onChange={(e) => setPresetId(e.target.value)}>
-                  {formatOptions.map((p) => (
-                    <option key={p.id} value={p.id}>{p.label}</option>
-                  ))}
-                </select>
-              </label>
+              <HubFilterMenu
+                label="Draft format"
+                value={presetId}
+                options={formatOptions.map((p) => ({ id: p.id, label: p.label }))}
+                onChange={setPresetId}
+              />
               <label>
                 Teams
                 <input

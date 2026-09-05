@@ -5,6 +5,7 @@ import StandalonePageShell from "./layout/StandalonePageShell";
 import { apiFetch } from "./auth";
 import { PRODUCT_NAME, STUDIO_NAME } from "./brand";
 import { parseApiError } from "./format";
+import { HubFilterMenu } from "./DraftHub/HubUILayout";
 import {
   BUG_REPORT_COPY,
   REPORT_AREAS,
@@ -165,14 +166,12 @@ export default function BugReportPage() {
                 />
               </label>
               <div className="hub-league-field-split">
-                <label>
-                  <span className="hub-field-label">{BUG_REPORT_COPY.areaLabel}</span>
-                  <select value={area} onChange={(e) => setArea(e.target.value)}>
-                    {REPORT_AREAS.map((option) => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                </label>
+                <HubFilterMenu
+                  label={BUG_REPORT_COPY.areaLabel}
+                  value={area}
+                  options={REPORT_AREAS.map((option) => ({ id: option, label: option }))}
+                  onChange={setArea}
+                />
                 {pagePath ? (
                   <label>
                     <span className="hub-field-label">{BUG_REPORT_COPY.pathLabel}</span>

@@ -28,7 +28,7 @@ This pass is for **options**. It is not documentation and not a ship.
 1. Resolve the living surface (`.cursor/skills/match-living-surface/SKILL.md`). Reply **Matching:** `{id}` · `{page}`.
 2. Read that `page` / `copy`, `docs/mockups/mockup-shared.css`, and `docs/mockups/_starter.html`.
 3. Copy the starter into `docs/mockups/{slug}-a.html` and `{slug}-b.html`. Add `-c` only when the third fork is a real layout, not decoration.
-4. Keep mock chrome (header, subnav, hero). Tokens from `mockup-shared.css` only. Each option must change a decision or a layout beat.
+4. Keep mock chrome (header, subnav, hero). Tokens from `mockup-shared.css` only. Each option must change a decision or a layout beat. Mock pages must pass `layout_audit` too — otherwise the picked option ships the same bar / table / header bugs.
 5. Add a chooser row on `docs/mockups/index.html` (and a `{slug}.html` chooser if A/B/C need a sentence each).
 6. Start `bash scripts/dev/serve_mockups.sh`. Local: give `http://127.0.0.1:5174/{slug}.html`. Cloud: give the `docs/mockups/{slug}-*.html` paths on the branch — a web viewer cannot open `127.0.0.1` — and still no screenshots.
 7. **Stop.** One line per option. Wait for the pick.
