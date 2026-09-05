@@ -255,6 +255,7 @@ a.app-bottom-nav-item {
   color: var(--text-secondary);
   font-size: 0.82rem;
   font-weight: 600;
+  text-align: center;
   cursor: pointer;
   white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
@@ -1077,9 +1078,11 @@ a.app-bottom-nav-item {
 
 .subtitle-slot {
   min-height: 1.5rem;
-  margin-top: 0.4rem;
+  margin-top: var(--space-2);
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
+  gap: var(--space-2);
 }
 
 .subtitle {
@@ -2466,32 +2469,25 @@ input[type="search"].search-input {
 }
 
 .hub-table.hub-table--available {
-  table-layout: fixed;
+  table-layout: auto;
   width: 100%;
   max-width: none;
 }
 
 .hub-table.hub-table--available .col-player,
 .hub-table.hub-table--available thead th.col-player {
-  width: 20rem;
-  min-width: 16rem;
-  max-width: 20rem;
-}
-
-.hub-table.hub-table--available .hub-col-fv {
-  width: 16rem;
-  min-width: 14rem;
-  max-width: 16rem;
-}
-
-.hub-table.hub-table--available .hub-col-proj {
-  width: 9rem;
-  max-width: 9rem;
-}
-
-.hub-table.hub-table--available .hub-col-actions {
-  width: 9rem;
+  width: auto;
   min-width: 8rem;
+  max-width: none;
+}
+
+.hub-table.hub-table--available .hub-col-fv,
+.hub-table.hub-table--available .hub-col-proj,
+.hub-table.hub-table--available .hub-col-actions {
+  width: min-content;
+  min-width: 0;
+  max-width: none;
+  white-space: nowrap;
 }
 
 .hub-table.hub-table--available td,
@@ -4593,6 +4589,26 @@ td.col-per-game {
   text-align: center;
   white-space: nowrap;
 }
+.hub-table .hub-col-proj,
+.hub-table .hub-col-pg,
+.hub-table .hub-col-spread,
+.hub-table .hub-col-min,
+.hub-table .hub-col-max,
+.hub-table .hub-col-delta,
+.hub-table .hub-col-fv {
+  text-align: right;
+}
+
+.hub-table th.hub-col-proj .sortable-header-stack,
+.hub-table th.hub-col-pg .sortable-header-stack,
+.hub-table th.hub-col-spread .sortable-header-stack,
+.hub-table th.hub-col-min .sortable-header-stack,
+.hub-table th.hub-col-max .sortable-header-stack,
+.hub-table th.hub-col-delta .sortable-header-stack,
+.hub-table th.hub-col-fv .sortable-header-stack {
+  align-items: flex-end;
+}
+
 .hub-table .hub-col-proj {
   width: var(--hub-col-proj-width);
   max-width: 7.5rem;
@@ -5850,8 +5866,8 @@ td.col-rank.col-rank-top {
   top: 0;
   z-index: var(--z-sticky);
   background: var(--bg-base);
-  padding-bottom: 0.35rem;
-  margin-bottom: 0.35rem;
+  padding-block: var(--space-2);
+  margin-bottom: var(--space-2);
   border-bottom: 1px solid var(--border);
 }
 
@@ -5860,8 +5876,14 @@ td.col-rank.col-rank-top {
   top: 0;
   z-index: var(--z-sticky);
   background: var(--bg-elevated);
-  padding-bottom: 0.35rem;
-  margin-bottom: 0.35rem;
+  padding-block: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.hub-page-sticky > *,
+.hub-insights-sticky > * {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .hub-commissioner-desk {
@@ -8595,7 +8617,12 @@ td.col-rank.col-rank-top {
   color: var(--text-secondary);
   border-color: rgba(51, 65, 85, 0.45);
 }
-.hub-toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; }
+.hub-toolbar { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin-bottom: var(--space-3); }
+.hub-page-sticky .hub-toolbar,
+.hub-page-sticky .hub-filter-bar,
+.hub-page-sticky .hub-filter-bar--compact {
+  margin-bottom: 0;
+}
 .hub-toolbar-filters {
   flex-direction: column;
   align-items: stretch;

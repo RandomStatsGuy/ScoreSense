@@ -313,7 +313,8 @@ Contract-type playbook for imports and keepers: [CONTRACT_SCENARIOS.md](./CONTRA
 | Need | Read |
 |------|------|
 | This constitution | `docs/PRODUCT.md` (this file) |
-| Rules Center layout spec | [design.md](./design.md) |
+| Layout craft (measurable) | `.cursor/rules/frontend-craft.mdc` · `scripts/dev/layout_audit.mjs` |
+| Rules Center layout spec (historical) | [specs/rules-center-2026-08.md](./specs/rules-center-2026-08.md) |
 | Contract type / years-left cases | [CONTRACT_SCENARIOS.md](./CONTRACT_SCENARIOS.md) |
 | Auth / invites / legal | [ONBOARDING.md](./ONBOARDING.md) |
 | Text invite → claim → draft nights | [INVITE_FLOW.md](./INVITE_FLOW.md) |

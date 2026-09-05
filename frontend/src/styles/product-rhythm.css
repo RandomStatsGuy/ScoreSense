@@ -56,6 +56,17 @@
   padding: var(--inset-section);
 }
 
+.hub-page-sticky,
+.hub-insights-sticky,
+.hub-toolbar {
+  padding-block: var(--space-2);
+}
+
+.hub-page-sticky > *,
+.hub-insights-sticky > * {
+  margin-block: 0;
+}
+
 .hub-experience-main,
 .hub-experience-stack {
   gap: var(--gutter-section);

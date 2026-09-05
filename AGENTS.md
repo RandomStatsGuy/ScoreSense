@@ -3,7 +3,7 @@
 > **Architecture reference** for humans and AI.
 > **Product, brand, and design:** [`docs/PRODUCT.md`](docs/PRODUCT.md) — read it before any user-facing work. It wins if another doc conflicts.
 > Global AI rules: `.cursor/rules/scoresense-core.mdc` (always applied).
-> File-specific: `.cursor/rules/frontend-draft-hub.mdc`, `.cursor/rules/draft-hub-performance.mdc`, `.cursor/rules/ml-projections.mdc`.
+> File-specific: `.cursor/rules/frontend-craft.mdc`, `.cursor/rules/frontend-draft-hub.mdc`, `.cursor/rules/draft-hub-performance.mdc`, `.cursor/rules/ml-projections.mdc`.
 > Corrections: `.cursor/rules/correction-capture.mdc` + `.cursor/skills/capture-correction/SKILL.md`. Catalog: `.cursor/rules/learned-rules.mdc`.
 > Living UI: `frontend/src/livingSurfaces.js` + `.cursor/skills/match-living-surface/SKILL.md`. Reply **Matching:** `{id}` · `{page}` before UI edits.
 > Repo skills: `.cursor/skills/run-tests/SKILL.md`, `.cursor/skills/fast-ui-mock/SKILL.md`, `.cursor/skills/verify-fantasy-ui/SKILL.md`, `.cursor/skills/mirror-prod-league/SKILL.md`, `.cursor/skills/start-local-app/SKILL.md`, `.cursor/skills/file-fun-ux-idea/SKILL.md`, `.cursor/skills/add-fantasy-destination/SKILL.md`, `.cursor/skills/add-hub-route/SKILL.md`, `.cursor/skills/add-ui-copy/SKILL.md`, `.cursor/skills/change-league-rules/SKILL.md`, `.cursor/skills/refresh-draft-pool/SKILL.md`.
@@ -38,6 +38,7 @@ New Cloud agents should find API `:8000` and Vite `:5173` already starting (`.cu
 - If a server is down: `.cursor/skills/start-local-app/SKILL.md` / `bash scripts/dev/start_hub_dev.sh`
 - Do not start a second API or Vite on another port.
 - Cloud install uses `requirements-ci.txt` (no desktop extras). `scripts/dev/cloud_install.sh` installs `python3-venv` when the image lacks `ensurepip`.
+- Cloud agents cannot screenshot. After UI work, run `cd frontend && npm run audit:layout -- <route>` at 1280 and 390 and paste the PASS/FAIL table. Write **not visually verified** in the PR body when you cannot attach shots. Do not say verified.
 
 ## Architecture
 
@@ -62,7 +63,7 @@ New Cloud agents should find API `:8000` and Vite `:5173` already starting (`.cu
 | Model cache | `predict.load_model()` in-process, mtime-keyed |
 | CPU offload | `app/process_pool.py` global executor — not per-route pools |
 
-See `.cursor/rules/draft-hub-performance.mdc`, `.cursor/rules/ml-projections.mdc`, and `.cursor/rules/frontend-draft-hub.mdc` for constraints. User-facing Fantasy pages follow `docs/PRODUCT.md`.
+See `.cursor/rules/frontend-craft.mdc`, `.cursor/rules/frontend-draft-hub.mdc`, `.cursor/rules/draft-hub-performance.mdc`, and `.cursor/rules/ml-projections.mdc` for constraints. User-facing Fantasy pages follow `docs/PRODUCT.md`.
 
 ## Key files
 

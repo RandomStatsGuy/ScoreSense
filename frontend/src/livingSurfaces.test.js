@@ -4,6 +4,7 @@ import {
   CHROME,
   LIVING_SURFACES,
   SHARED,
+  livingSurfaceRoutes,
   resolveLivingSurface,
   resolveLivingSurfaceFromText,
   surfacesForFile,
@@ -123,6 +124,18 @@ test("login and create account resolve to the session pages", () => {
   assert.equal(report.label, "Report a bug");
   assert.equal(report.page, "frontend/src/BugReportPage.jsx");
   assert.equal(report.copy, "frontend/src/bugReportPresentation.js");
+});
+
+test("audit routes come from the registry and skip overlays", () => {
+  const routes = livingSurfaceRoutes();
+  const paths = routes.map((row) => row.route);
+  assert.ok(paths.includes("/hub/free-agents"));
+  assert.ok(paths.includes("/hub/insights/overview"));
+  assert.ok(paths.includes("/projections/weekly"));
+  assert.ok(!paths.includes("/hub/insights"));
+  assert.equal(new Set(paths).size, paths.length);
+  assert.equal(LIVING_SURFACES["hub.room.live"].overlay, true);
+  assert.equal(LIVING_SURFACES["projections.inspector"].overlay, true);
 });
 
 test("shared tokens include the product spacing rhythm", () => {

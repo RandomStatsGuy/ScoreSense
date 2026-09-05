@@ -1,4 +1,10 @@
-/* Fantasy phone floor (≤768px). Tokens only. One pass for every destination. */
+/* Fantasy phone floor (≤768px). Tokens only. One pass for every destination.
+   Header is destination title + one overflow. A one-row league strip (name + caret;
+   New league / Sync in the caret; Needs attention one line) sits under the picker
+   so heroes stay above the fold. No stacked brand, context, or tab strips.
+   Filter / tab / sort bars use .hub-page-sticky with equal block padding.
+   Weekly and season boards are dense ranking rows. Compare is one toolbar control.
+   Bottom nav says Projections. Idle Draft and Mock share DraftSeat. */
 
 .hub-rules-sticky-save {
   display: none;
@@ -79,9 +85,14 @@
     top: 0;
     z-index: var(--z-sticky);
     background: var(--bg-base);
-    padding-bottom: 0.35rem;
-    margin-bottom: 0.35rem;
+    padding-block: var(--space-2);
+    margin-bottom: var(--space-2);
     border-bottom: 1px solid var(--border);
+  }
+
+  .hub-page-sticky > * {
+    margin-top: 0;
+    margin-bottom: 0;
   }
 
   .hub-filter-scroll {

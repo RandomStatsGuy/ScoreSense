@@ -1,8 +1,8 @@
 # ScoreSense Fantasy Rules Center and League Administration Redesign
 
-> **Product constitution:** [PRODUCT.md](./PRODUCT.md) wins if this spec and the live app disagree.  
-> This file is the Rules Center / Fantasy admin **implementation spec** (layout, states, acceptance).  
-> Visual language, IA, and copy rules are summarized in `PRODUCT.md` so new features do not need this whole document.
+> **Historical spec.** `docs/PRODUCT.md` and `.cursor/rules/frontend-craft.mdc` win. PRODUCT.md wins if this file and the live app disagree.  
+> This file is the Rules Center / Fantasy admin **implementation spec** from August 2026 (layout, states, acceptance).  
+> Visual language, IA, and copy rules live only in `PRODUCT.md`.
 
 ## Design and implementation specification
 
@@ -67,7 +67,8 @@ Organize the Fantasy navigation around user intent:
 | Destination | Purpose | Audience |
 |---|---|---|
 | Home | Current league state and next actions | Everyone |
-| Players | League-aware player exploration | Everyone |
+| Strategy | Pairwise face-off from a league-context board | Everyone |
+| Free agents | Add / bid / locked by the acquisition calendar | Everyone |
 | Draft | Live and pre-draft work | Everyone |
 | This Week | Weekly decisions | Everyone |
 | My Team | Personal roster decisions | Everyone |
@@ -356,57 +357,6 @@ The landing tab should be Contracts, not an empty dashboard or chat room.
 Use plain-language boundaries in the introduction:
 
 > League-wide roster operations live here. Personal lineup, trade, and cap decisions stay in My Team, Trades, and Cap.
-
----
-
-## 10. Visual design language
-
-The site remains dark mode, but the redesign should move away from sharp, thin-line, neon-heavy “terminal” styling.
-
-### Desired character
-
-- Matte rather than glossy
-- Editorial rather than technical
-- Layered rather than outlined everywhere
-- Confident rather than loud
-- Sports-product energy without casino aesthetics
-
-### Surfaces
-
-- Use a deep navy page background.
-- Build hierarchy through slightly lighter matte surfaces.
-- Reserve borders for grouping and interactive state; do not outline every nested element equally.
-- Use medium-to-large corner radii consistently.
-- Use restrained, soft shadows to lift sticky or floating elements.
-
-### Color
-
-- Keep the site's blue as the primary action color.
-- Use teal/green for healthy, active, or saved states.
-- Use amber for attention and validation warnings.
-- Use red only for destructive actions and blocking errors.
-- Avoid neon glows on ordinary cards and controls.
-
-### Typography
-
-- Preserve the existing brand type system unless a broader typography project is authorized.
-- Create hierarchy through size, weight, spacing, and contrast rather than all-caps labels everywhere.
-- Use compact uppercase eyebrow labels sparingly.
-- Keep explanatory text readable; do not reduce it to faint microcopy.
-
-### Spacing
-
-- Prefer fewer, larger groups over many small bordered boxes.
-- Use consistent section padding and clear vertical rhythm.
-- Keep labels close to their controls and explanatory copy subordinate but readable.
-
-### Interaction
-
-- Use subtle 120–200 ms transitions for drawers, toggles, hover lift, and schedule-preview updates.
-- Respect `prefers-reduced-motion`.
-- Do not add sound to settings or navigation. Audio may be appropriate in live draft experiences, but only as an explicit opt-in preference.
-
-This visual language also applies to Fantasy **Draft** (idle entry), **This Week**, and **Cap**. Live draft rooms keep a board-first layout and do not inherit the two-column settings chrome.
 
 ---
 

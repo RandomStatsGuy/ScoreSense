@@ -43,14 +43,23 @@ def test_run_tests_skill_has_commands() -> None:
 
 def test_verify_fantasy_ui_skill_uses_living_routes() -> None:
     text = _skill("verify-fantasy-ui")
+    living = (ROOT / "frontend" / "src" / "livingSurfaces.js").read_text(encoding="utf-8")
     assert "Matching:" in text
-    assert "/hub/free-agents" in text
-    assert "/hub/cap" in text
-    assert "/hub/setup" in text
-    assert "/hub/roster-management/members" in text
-    assert "/report" in text
+    assert "livingSurfaces.js" in text
+    assert "livingSurfaceRoutes" in text
+    assert "audit:layout" in text
+    assert "not visually verified" in text
     assert "mirror-prod-league" in text
     assert "start-local-app" in text
+    for route in (
+        "/hub/free-agents",
+        "/hub/cap",
+        "/hub/setup",
+        "/hub/roster-management/members",
+        "/hub/insights/overview",
+        "/report",
+    ):
+        assert f'route: "{route}"' in living
 
 
 def test_mirror_skill_and_unix_script_agree() -> None:
