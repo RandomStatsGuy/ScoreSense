@@ -338,11 +338,43 @@ export function HubExperienceLayout({ children, summary, summaryLabel = "At a gl
   );
 }
 
+function SummaryItems({ items = [] }) {
+  if (!Array.isArray(items) || !items.length) return null;
+  return (
+    <dl>
+      {items.map((item) => {
+        const valueClass = [
+          item.tone ? `hub-experience-summary-value--${item.tone}` : "",
+          item.muted ? "is-quiet" : "",
+        ].filter(Boolean).join(" ");
+        const value = item.href ? (
+          <a className="btn-link" href={item.href}>{item.value}</a>
+        ) : item.onClick ? (
+          <button type="button" className="btn-link" onClick={item.onClick}>{item.value}</button>
+        ) : item.value;
+        return (
+          <div
+            key={item.id || item.label}
+            className={item.muted ? "is-quiet" : undefined}
+          >
+            <dt>{item.label}</dt>
+            <dd className={valueClass || undefined}>{value}</dd>
+            {item.hint ? (
+              <p className="hub-experience-summary-hint">{item.hint}</p>
+            ) : null}
+          </div>
+        );
+      })}
+    </dl>
+  );
+}
+
 export function HubExperienceSummary({
   eyebrow = "At a glance",
   title,
   subtitle,
   items = [],
+  groups,
   note,
   action,
   actionFirst = false,
@@ -351,6 +383,9 @@ export function HubExperienceSummary({
   const actionNode = action && actionFirst ? (
     <div className="hub-experience-summary-action is-first">{action}</div>
   ) : action;
+  const blocks = Array.isArray(groups) && groups.length
+    ? groups
+    : (items.length ? [{ id: "main", items }] : []);
   return (
     <>
       {actionFirst ? actionNode : null}
@@ -359,33 +394,14 @@ export function HubExperienceSummary({
         {title ? <h3>{title}</h3> : null}
         {subtitle ? <p>{subtitle}</p> : null}
       </div>
-      {items.length > 0 && (
-        <dl>
-          {items.map((item) => {
-            const valueClass = [
-              item.tone ? `hub-experience-summary-value--${item.tone}` : "",
-              item.muted ? "is-quiet" : "",
-            ].filter(Boolean).join(" ");
-            const value = item.href ? (
-              <a className="btn-link" href={item.href}>{item.value}</a>
-            ) : item.onClick ? (
-              <button type="button" className="btn-link" onClick={item.onClick}>{item.value}</button>
-            ) : item.value;
-            return (
-              <div
-                key={item.id || item.label}
-                className={item.muted ? "is-quiet" : undefined}
-              >
-                <dt>{item.label}</dt>
-                <dd className={valueClass || undefined}>{value}</dd>
-                {item.hint ? (
-                  <p className="hub-experience-summary-hint">{item.hint}</p>
-                ) : null}
-              </div>
-            );
-          })}
-        </dl>
-      )}
+      {blocks.map((block) => (
+        <div key={block.id || block.heading || "main"} className="hub-experience-summary-block">
+          {block.heading ? (
+            <p className="hub-experience-summary-group">{block.heading}</p>
+          ) : null}
+          <SummaryItems items={block.items} />
+        </div>
+      ))}
       {note ? <p className="hub-experience-summary-note">{note}</p> : null}
       {!actionFirst ? actionNode : null}
       {status}

@@ -933,7 +933,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           workspace={workspace}
           hubContext={effectiveCtx}
           onChanged={onCapChanged}
-          onNavigate={setSubView}
+          onNavigate={goHubView}
         />
       )}
 

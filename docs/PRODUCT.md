@@ -92,7 +92,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 | My team | `roster` | Personal contracts |
 | Free agents | `available` | Add / bid / locked by calendar |
 | Rosters | `rosters` | League-wide roster reference |
-| Cap | `planner` | Cap leftover after a cut or bid. The move input sits above the fold; hero and At a glance keep the current leftover. |
+| Cap | `planner` | Cap leftover after a cut or bid. The move input sits above the fold and shows leftover after the move next to the controls. Hero and At a glance keep the current leftover. Every figure names what it counts; leftover plus against-cap (salary + dead) equals the cap. Roster counts say on this sheet vs keep past this draft. Roster-min needs are one sentence and one Free agents CTA. Expires uses amber; extend-to-keep uses blue. |
 | Trades | `trades` | Propose and accept. Experience hero names the cap-bust cost. Rosters franchise headers deep-link here with the partner preselected. Zero partners → Invite managers on Members. Cap line is **current roster** salary (active contracts this season, including expiring). My team **{season} committed** is draft-surviving salary — same $200 cap, different base; do not use one word for both. Auto-check every package change and gate Propose on a pass. The verdict is a colored live status banner next to the primary, not grey chart-note. Ideas need chips mark starter-thin positions only — a 6-RB roster is extra depth, not a need. |
 | Rules | `rules` | League model (read for members, edit for staff) |
 | Roster management | `office` | Staff-only contracts, sheets, members, access |

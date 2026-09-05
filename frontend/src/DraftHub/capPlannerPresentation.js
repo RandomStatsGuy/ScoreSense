@@ -1,11 +1,61 @@
 /** User-facing copy for Fantasy → Cap. */
 
+import { fmtSal } from "./rosterFormat.js";
+
 export const CAP_MOVE_COPY = {
   title: "After this move",
-  hint: "Choose a name to cut, or enter a bid. The leftover below updates.",
+  hint: "Cut a name or enter a bid. The leftover here updates.",
   cutLabel: "Cut",
   bidLabel: "Bid",
   none: "No cut",
+  reset: "Reset",
+  now: "Now",
+  after: "After",
+  leftoverWord: "leftover",
+  over: (amount) => `This bid puts you ${amount} over. Cut more or bid less.`,
+};
+
+export const CAP_EXTEND_COPY = {
+  title: "Extend contract",
+  playerLabel: "Player",
+  yearsLabel: "Years",
+  selectPlayer: "Select player",
+  queue: "Queue extension",
+};
+
+export const CAP_FIGURE_COPY = {
+  leftover: "Leftover",
+  againstCap: "Against this cap",
+  againstCapHint: "Salary plus dead cap",
+  salary: "Salary",
+  deadCap: "Dead cap",
+  keepPastDraft: "Keep past this draft",
+  onThisSheet: "On this sheet",
+  rulesHeading: "League rules",
+  stepUp: "Annual step-up",
+  cutRefund: "Cut refund",
+  leagueSpend: "League spend",
+  seasonAgainst: "against cap",
+  seasonLeftover: "leftover",
+};
+
+export const CAP_NEED_COPY = {
+  browseFreeAgents: "Browse free agents",
+};
+
+export const CAP_MODEL_COPY = {
+  years: "Years left include this season and drop when the draft is marked complete.",
+  summary: "How cap years work",
+};
+
+export const CAP_DRAFT_COPY = {
+  markComplete: "Mark draft complete",
+  markCompleteRest: "on Roster management · Contracts when the auction ends.",
+};
+
+export const CAP_SHEET_COPY = {
+  title: "Cap sheet",
+  hint: "Cap hit by season. Years with no hits are hidden.",
 };
 
 export function leftoverAfterMove({ remaining = 0, cutSalary = 0, cutRefundPct = 0.5, bid = 0 } = {}) {
@@ -23,14 +73,80 @@ export function leftoverAfterMoveYears({
   cutRefundPct = 0.5,
   bid = 0,
 } = {}) {
+  const refund = Number.isFinite(Number(cutRefundPct)) ? Number(cutRefundPct) : 0.5;
+  const spend = Number(bid) || 0;
   return years.map((year, idx) => {
     const remaining = Number(year.cap_remaining) || 0;
+    const committed = Number(year.total_committed) || 0;
     const hit = Number(cutHits[idx] || 0);
-    const next = idx === 0
-      ? remaining + hit * (Number(cutRefundPct) || 0) - (Number(bid) || 0)
+    const nextRemaining = idx === 0
+      ? remaining + hit * refund - spend
       : remaining + hit;
-    return { ...year, cap_remaining: next };
+    const nextCommitted = idx === 0
+      ? committed - hit * refund + spend
+      : committed - hit;
+    return { ...year, cap_remaining: nextRemaining, total_committed: nextCommitted };
   });
+}
+
+export function againstCap({ spent = 0, deadCap = 0 } = {}) {
+  return (Number(spent) || 0) + (Number(deadCap) || 0);
+}
+
+export function capEquationNote({ against, leftover, salaryCap } = {}) {
+  const rem = Number(leftover);
+  const leftoverBit = Number.isFinite(rem) && rem < -0.005
+    ? `${fmtSal(Math.abs(rem))} over`
+    : `${fmtSal(leftover)} leftover`;
+  return `${fmtSal(against)} of ${fmtSal(salaryCap)} against cap · ${leftoverBit}`;
+}
+
+export function leftoverMoveReadout({ current, after } = {}) {
+  const now = Number(current);
+  const next = Number(after);
+  if (!Number.isFinite(now) || !Number.isFinite(next)) return null;
+  const over = next < -0.005;
+  return {
+    current: now,
+    after: next,
+    over,
+    overBy: over ? Math.abs(next) : 0,
+    changed: Math.abs(next - now) > 0.005,
+  };
+}
+
+export function parseNeedErrors(errors = []) {
+  const needs = [];
+  const other = [];
+  for (const error of errors) {
+    const match = String(error).match(/Need\s+(\d+)\s+more\s+([A-Z]+)/i);
+    if (match) {
+      needs.push({ count: Number(match[1]), position: match[2].toUpperCase() });
+    } else {
+      other.push(error);
+    }
+  }
+  return { needs, other };
+}
+
+export function rosterNeedLine(needs = []) {
+  if (!needs.length) return "";
+  const total = needs.reduce((sum, row) => sum + row.count, 0);
+  const parts = needs.map((row) => `${row.count} ${row.position}`).join(", ");
+  return `You need ${total} more player${total === 1 ? "" : "s"} (${parts})`;
+}
+
+export function capSheetYearOffsets({ roster = [], yearCount = 0, hitFor } = {}) {
+  const offsets = [];
+  const getter = typeof hitFor === "function" ? hitFor : () => null;
+  for (let offset = 1; offset < yearCount; offset += 1) {
+    const any = roster.some((row) => {
+      const hit = getter(row, offset);
+      return hit != null && Number.isFinite(Number(hit));
+    });
+    if (any) offsets.push(offset);
+  }
+  return offsets;
 }
 
 export function capRailPrimary({ pendingCut = null, remaining = 0 } = {}) {
@@ -63,10 +179,6 @@ export function formatNeedError(error) {
     .replace(/\s*\(min\s+(\d+)\s*\/\s*max\s+(\d+)\)/i, " · min $1, max $2")
     .replace(/\s*\(min\s+(\d+)\)/i, " · min $1");
 }
-
-export const CAP_NEED_COPY = {
-  browseFreeAgents: "Browse free agents",
-};
 
 export function roomAfterBid({ remaining, bid } = {}) {
   const rem = Number(remaining);
@@ -101,6 +213,6 @@ export function capHeroCopy({ empty = false, preDraft = false } = {}) {
     heading: "Can you afford the bid after the cut?",
     support: preDraft
       ? "Final-year deals leave unless you extend. Cut the wrong name and you eat dead cap into the draft."
-      : "Committed salary and dead cap are already spent. Leftover is what you can still bid.",
+      : "Against this cap is salary plus dead cap. Leftover is what you can still bid.",
   };
 }
