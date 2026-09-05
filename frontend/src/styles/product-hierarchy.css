@@ -3276,6 +3276,26 @@ button.btn-link.hub-league-switcher-create:hover {
   margin: 0;
 }
 
+.hub-insights-page--overview .hub-experience-hero {
+  padding: 0.85rem 1.5rem 0.75rem;
+  gap: 1rem;
+}
+
+.hub-insights-page--overview .hub-experience-hero h2 {
+  max-width: 28rem;
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+}
+
+.hub-insights-page--overview .hub-experience-hero p {
+  margin-top: 0.32rem;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.hub-insights-page--overview .hub-experience-eyebrow {
+  margin-bottom: 0.32rem;
+}
+
 .hub-roster-browser-page.hub-page {
   padding: 0;
   overflow: visible;

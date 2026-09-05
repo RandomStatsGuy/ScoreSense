@@ -370,17 +370,17 @@
 
   .hub-insights-rank-row,
   .hub-insights-rank-row--button {
-    grid-template-columns: 1.4rem minmax(0, 1fr);
+    grid-template-columns: 1.4rem minmax(0, 1fr) 5.5rem;
     min-height: var(--touch-target);
   }
 
-  .hub-insights-rank-track,
-  .hub-insights-rank-value {
+  .hub-insights-rank-track {
     grid-column: 1 / -1;
+    width: 100%;
   }
 
   .hub-insights-rank-value {
-    white-space: normal;
+    white-space: nowrap;
     text-align: right;
     justify-content: flex-end;
     font-size: var(--text-xs);

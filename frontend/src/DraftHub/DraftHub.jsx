@@ -906,6 +906,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
             onOfficeTabChange={onOfficeTabChange}
             onChanged={onOfficeChanged}
             onNavigate={setSubView}
+            onWorkspaceSaved={onWorkspaceSaved}
             active={subView === "office"}
           />
         </div>

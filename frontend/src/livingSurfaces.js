@@ -160,14 +160,18 @@ export const LIVING_SURFACES = Object.freeze({
     label: "Roster management",
     chrome: "office",
     page: "frontend/src/DraftHub/LeagueOffice.jsx",
-    also: ["frontend/src/DraftHub/hubOfficeTabs.js"],
+    also: [
+      "frontend/src/DraftHub/hubOfficeTabs.js",
+      "frontend/src/DraftHub/insights/AwardTitlesEditor.jsx",
+    ],
     doNot: "Chat is FantasyChatDock plus the Home thread. Not an office pane. Do not add a Chat tab.",
   }),
   "hub.office.current": S({
     label: "Contracts",
     chrome: "office",
     page: "frontend/src/DraftHub/CommissionerLeagueRosters.jsx",
-    doNot: "Staff may override. Players-tab adds may not. Mark draft complete is a red confirm here — not an unlabeled Setup checkbox.",
+    also: ["frontend/src/DraftHub/insights/AwardTitlesEditor.jsx"],
+    doNot: "Staff may override. Players-tab adds may not. Mark draft complete is a red confirm here — not an unlabeled Setup checkbox. Award names is a Roster management control, not an Insights disclosure.",
   }),
   "hub.office.historic": S({
     label: "Salary sheets",
@@ -195,7 +199,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/LeagueInsights.jsx",
     copy: "frontend/src/DraftHub/insights/insightsPresentation.js",
     also: ["frontend/src/DraftHub/insights/InsightsOverview.jsx"],
-    doNot: "Gold is for awards only. Extend InsightsOverview / LeagueInsights. Spend expands the league table by default. Empty spend names when committed dollars appear.",
+    doNot: "Gold is for awards only. Overview sells titles, records, and scoring — not Spend. Rank bars share a fixed track and a field scale, not a zero baseline or the value-label width. Season counts are meta, not chips. Keep the tab strip live and skeleton the three cards — no think scrim. Award names live on Roster management.",
   }),
   "hub.setup": S({
     label: "Setup",
