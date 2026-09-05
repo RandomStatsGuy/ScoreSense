@@ -315,6 +315,7 @@ export default function RosterBuilder({
   showManagerTeam = false,
   onEditInOffice,
   onOpenContractHistory,
+  onNavigate,
 }) {
   const [playerId, setPlayerId] = useState("");
   const [salary, setSalary] = useState("");
@@ -724,6 +725,7 @@ export default function RosterBuilder({
       <HubTabIntro
         title={MY_TEAM_COPY.title}
         compact
+        learnMoreLabel={MY_TEAM_COPY.learnMoreLabel}
         learnMore={
           contractsReadOnly
             ? (
@@ -867,6 +869,26 @@ export default function RosterBuilder({
         </div>
       )}
 
+      {!sortedRoster.length ? (
+        <div className="hub-roster-empty-block" role="status">
+          <h3>{MY_TEAM_COPY.emptyHeading}</h3>
+          <p className="chart-note">{MY_TEAM_COPY.emptySupport}</p>
+          {onNavigate ? (
+            <div className="hub-toolbar">
+              {!draftCompleted ? (
+                <button type="button" className="btn-primary btn-sm" onClick={() => onNavigate("room")}>
+                  {MY_TEAM_COPY.emptyAction}
+                </button>
+              ) : (
+                <button type="button" className="btn-primary btn-sm" onClick={() => onNavigate("office-access")}>
+                  {MY_TEAM_COPY.emptyActionLink}
+                </button>
+              )}
+            </div>
+          ) : null}
+        </div>
+      ) : (
+      <>
       <div className="hub-filter-bar hub-roster-pos-bar">
         <input
           type="search"
@@ -1054,6 +1076,8 @@ export default function RosterBuilder({
         </div>
         )}
       </HubTableCard>
+      </>
+      )}
 
       {panelProps && mobileLayout && (
         <MobileBottomSheet

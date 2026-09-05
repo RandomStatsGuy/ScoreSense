@@ -15,6 +15,8 @@ import {
   HOME_DECK_COPY,
   HOME_PAGE_COPY,
   homeDeckStandingRows,
+  homeHeroHeading,
+  homeHeroSupport,
   homeMatchupNote,
   phaseTrackState,
   resolveLeagueHomeFocus,
@@ -208,7 +210,10 @@ export default function LeagueHome({
       <header className="hub-home-heading">
         <div>
           <p className="hub-experience-kicker">{HOME_PAGE_COPY.kicker}</p>
-          <h2>{HOME_PAGE_COPY.heading}</h2>
+          <h2>{loading && !data ? HOME_PAGE_COPY.heading : homeHeroHeading(data)}</h2>
+          {!loading && data ? (
+            <p className="chart-note">{homeHeroSupport(data)}</p>
+          ) : null}
         </div>
         <div className="hub-home-heading-actions">
           {goSetup ? (
@@ -278,7 +283,21 @@ export default function LeagueHome({
             </div>
             <div>
               <dt>{weekSummary.available ? `Week ${weekSummary.week}` : "Draft night"}</dt>
-              <dd>{weekSummary.available ? (weekSummary.headline || "Ready") : (draftDate || "Not scheduled")}</dd>
+              <dd>
+                {weekSummary.available
+                  ? (weekSummary.headline || "Ready")
+                  : (draftDate || (
+                    onNavigate ? (
+                      <button
+                        type="button"
+                        className="btn-link"
+                        onClick={() => onNavigate("room")}
+                      >
+                        {HOME_PAGE_COPY.notScheduled}
+                      </button>
+                    ) : HOME_PAGE_COPY.notScheduled
+                  ))}
+              </dd>
             </div>
             <div>
               <dt>Projections</dt>

@@ -7,7 +7,8 @@ export const GAME_CENTER_COPY = {
   emptySolo: "Game center follows your head-to-head matchup. Open a shared league to use it.",
   emptyNoSleeper: "Link Sleeper to fill scores.",
   emptyPreseason: "No scored matchups yet. Scores fill in after kickoff.",
-  setupCta: "Open Setup",
+  setupCta: "Link Sleeper",
+  nextGames: "Next games Thu",
   duelTitle: "Starter duel",
   duelSupport: "Slot by slot against your opponent.",
   benchTitle: "Bench watch",
@@ -125,13 +126,21 @@ export function matchupStoryline({
   return `All square — ${pendingNote}.`;
 }
 
+export function matchupsHavePoints(payload) {
+  return (payload?.matchups || []).some((matchup) => (
+    (matchup?.teams || []).some((team) => Number(team?.points) > 0)
+  ));
+}
+
 export function gameStateLabel(payload) {
   if (payload?.placeholder) return "Waiting";
   if (payload?.preseason) return "Preseason";
   const week = payload?.week;
   const current = payload?.current_week;
   if (week != null && current != null && Number(week) < Number(current)) return "Final";
-  return "Live";
+  const liveFlag = payload?.live === true || payload?.has_live_games === true;
+  if (liveFlag) return "Live";
+  return "Next games Thu";
 }
 
 export function formatSyncedAgo(syncedAt) {

@@ -28,7 +28,7 @@ export function playerTradeableInWindow(row, window) {
 export function playersTabBanner(window) {
   if (!window) return null;
   return {
-    variant: window.add_mode === "locked" ? "info" : window.add_mode === "bid" ? "warn" : "info",
+    variant: window.add_mode === "locked" ? "warn" : window.add_mode === "bid" ? "warn" : "info",
     text: window.message || window.label,
     label: window.label,
   };

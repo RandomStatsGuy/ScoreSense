@@ -7,12 +7,13 @@ import MobilePlayerCard from "../MobilePlayerCard";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 import { HubExperienceHero, HubFilterScroll, HubPage, HubTableCard } from "./HubUILayout";
 import { fmtSal } from "./rosterFormat";
-import { seedTradeFromPlayer } from "./tradeSeed";
+import { seedTradeFromPlayer, seedTradePartner } from "./tradeSeed";
 import ContractHistoryLink from "./ContractHistoryLink";
 import TeamIdentityMark from "./TeamIdentityMark";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 import { hubTeamLabel, hubTeamParts } from "./hubTeamLabel";
 import { ROSTERS_COPY } from "./leagueRostersPresentation";
+import { formatCount } from "../formatCount";
 
 function gradeLabel(grade) {
   if (grade === "good") return "Good value";
@@ -187,7 +188,7 @@ export default function LeagueRostersBrowser({
         eyebrow={ROSTERS_COPY.eyebrow}
         heading={ROSTERS_COPY.heading}
         support={ROSTERS_COPY.support}
-        chip={overview?.teams?.length ? `${overview.teams.length} managers` : undefined}
+        chip={overview?.teams?.length ? formatCount(overview.teams.length, "manager") : undefined}
       />
       {error && <div className="error">{error}</div>}
       {loading && !overview && <p className="chart-note">Loading league rosters…</p>}
@@ -205,6 +206,18 @@ export default function LeagueRostersBrowser({
                 showName
               />
             )}
+            {teamId && teamId !== myTeamId && onNavigateTrade ? (
+              <button
+                type="button"
+                className="btn-primary btn-sm"
+                onClick={() => {
+                  seedTradePartner(teamId);
+                  onNavigateTrade();
+                }}
+              >
+                {ROSTERS_COPY.proposeTrade}
+              </button>
+            ) : null}
             <button
               type="button"
               className="btn-ghost btn-sm hub-roster-browser-refresh"

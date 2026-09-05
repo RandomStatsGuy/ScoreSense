@@ -88,12 +88,35 @@ export function phaseTrackState(phaseId) {
 
 export const HOME_PAGE_COPY = {
   kicker: "Home",
-  heading: "Do the next league move.",
+  heading: "Fill the seats, then lock a night.",
   supportingTitle: "Also due",
   loadingKicker: "Reading your league",
   loadingHeading: "Checking what is due…",
   loadingSupport: "Cap, lineup, and draft night.",
+  emptySeatsCost: "Empty seats draft as bots.",
+  notScheduled: "Not scheduled",
 };
+
+export function homeHeroHeading(data) {
+  const top = data?.actions?.[0] || data?.attention?.items?.[0];
+  const open = Number(data?.seating?.open_seats ?? top?.count);
+  if (top?.id === "invite_managers" && Number.isFinite(open) && open > 0) {
+    return `Fill ${open} seats, then lock a night.`;
+  }
+  if (top?.id === "draft_night") return "Lock a night.";
+  if (Number.isFinite(open) && open > 0) {
+    return `Fill ${open} seats, then lock a night.`;
+  }
+  return HOME_PAGE_COPY.heading;
+}
+
+export function homeHeroSupport(data) {
+  const top = data?.actions?.[0] || data?.attention?.items?.[0];
+  if (top?.id === "invite_managers" || Number(data?.seating?.open_seats) > 0) {
+    return HOME_PAGE_COPY.emptySeatsCost;
+  }
+  return actionSupport(top);
+}
 
 export const HOME_DECK_COPY = {
   matchupTitle: "Your matchup",
@@ -104,7 +127,7 @@ export const HOME_DECK_COPY = {
   opponentTbd: "Opponent TBD",
   lockerKicker: "Chat",
   lockerTitle: "League chat",
-  lockerNote: "Talk here. Other Fantasy pages open the same thread from an edge.",
+  lockerNote: "One thread for the whole league. It follows you on every Fantasy page.",
 };
 
 export function homeDeckStandingRows(standings, viewerTeamId, limit = 5) {

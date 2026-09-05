@@ -5,6 +5,7 @@ export const MOVEMENT_FILTERS = [
   { id: "movers", label: "Biggest movers" },
   { id: "risers", label: "Risers" },
   { id: "fallers", label: "Fallers" },
+  { id: "attention", label: "Attention" },
 ];
 
 export const MOVEMENT_FILTER_IDS = new Set(MOVEMENT_FILTERS.map((f) => f.id));
@@ -26,6 +27,7 @@ export function parseMoversParam(raw) {
   if (v === "1" || v === "true" || v === "material" || v === "movers") return "movers";
   if (v === "risers" || v === "riser" || v === "up") return "risers";
   if (v === "fallers" || v === "faller" || v === "down") return "fallers";
+  if (v === "attention" || v === "attn") return "attention";
   if (v === "all" || v === "0" || v === "false") return "all";
   return MOVEMENT_FILTER_IDS.has(v) ? v : "all";
 }
@@ -119,6 +121,7 @@ export function formatRankMove({
   position,
   slateStatus: status,
 } = {}) {
+  const prevMissing = previousRank == null || previousRank === "" || Number(previousRank) <= 0;
   const prev = Number(previousRank);
   const curr = Number(currentRank);
   const delta = Number(rankDelta);
@@ -126,7 +129,7 @@ export function formatRankMove({
   const left = String(status || "").trim().toLowerCase() === SLATE_LEFT;
 
   if (left) {
-    if (!Number.isFinite(prev)) return null;
+    if (prevMissing || !Number.isFinite(prev)) return null;
     const leftLabel = pos ? `${pos}${prev}` : String(prev);
     if (isNonZeroRankDelta(delta)) {
       return `${leftLabel} → — ▼${Math.abs(delta)}`;
@@ -134,7 +137,12 @@ export function formatRankMove({
     return `${leftLabel} → —`;
   }
 
-  if (!Number.isFinite(prev) || !Number.isFinite(curr)) return null;
+  if (!Number.isFinite(curr)) return null;
+  if (prevMissing) {
+    const right = pos ? `${pos}${curr}` : String(curr);
+    return `New → ${right}`;
+  }
+  if (!Number.isFinite(prev)) return null;
   if (prev === curr && !isNonZeroRankDelta(delta)) return null;
   const leftLabel = pos ? `${pos}${prev}` : String(prev);
   const right = pos ? `${pos}${curr}` : String(curr);
@@ -197,11 +205,15 @@ export function isFaller(row) {
   return Number.isFinite(p50) && p50 < 0;
 }
 
-export function matchesMovementFilter(row, filterId) {
+export function matchesMovementFilter(row, filterId, { attentionIds } = {}) {
   if (!filterId || filterId === "all") return true;
   if (filterId === "movers") return isMaterialMover(row);
   if (filterId === "risers") return isRiser(row);
   if (filterId === "fallers") return isFaller(row);
+  if (filterId === "attention") {
+    const id = String(row?.player_id || row?.playerId || "");
+    return Boolean(id && attentionIds?.has(id));
+  }
   return true;
 }
 

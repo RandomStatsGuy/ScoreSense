@@ -884,11 +884,17 @@
   pointer-events: none;
 }
 
-.mock-draft-field {
+.mock-draft-field,
+.draft-seat-row {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 0.38rem;
   margin: 0.7rem 0 0.8rem;
+}
+
+.hub-teams-list--dock .draft-seat-row {
+  grid-template-columns: repeat(auto-fill, minmax(2.4rem, 1fr));
+  margin: 0 0 0.75rem;
 }
 
 .mock-draft-seat {
@@ -904,9 +910,9 @@
 }
 
 .mock-draft-seat.is-human {
-  border-color: var(--experience-gold);
-  background: rgba(214, 170, 97, 0.13);
-  color: #f1d7a9;
+  border-color: color-mix(in srgb, var(--experience-blue) 55%, transparent);
+  background: color-mix(in srgb, var(--experience-blue) 14%, transparent);
+  color: var(--experience-blue);
 }
 
 .mock-draft-experience-toggle {
@@ -1786,10 +1792,10 @@
 .hub-rules-access {
   flex: none;
   padding: 0.45rem 0.72rem;
-  border: 1px solid rgba(52, 211, 153, 0.3);
+  border: 1px solid color-mix(in srgb, var(--experience-blue) 42%, transparent);
   border-radius: var(--radius-pill);
-  background: rgba(52, 211, 153, 0.08);
-  color: #a7f3d0;
+  background: color-mix(in srgb, var(--experience-blue) 12%, transparent);
+  color: var(--experience-blue);
   font-size: 0.72rem;
   font-weight: 700;
 }
@@ -2461,11 +2467,18 @@
   display: flex;
   align-items: stretch;
   overflow: hidden;
+  max-width: 2.75rem;
   border: 1px solid color-mix(in srgb, var(--experience-blue) 42%, var(--experience-rule));
   background: var(--experience-surface-strong);
-  box-shadow: var(--shadow-popover);
+  box-shadow: none;
   touch-action: none;
   user-select: none;
+  transition: max-width 160ms var(--ease-standard);
+}
+
+.fantasy-chat-dock:not(.is-open):hover .fantasy-chat-launcher,
+.fantasy-chat-dock:not(.is-open):focus-within .fantasy-chat-launcher {
+  max-width: 16rem;
 }
 
 .fantasy-chat-dock.is-edge-right .fantasy-chat-launcher,
@@ -2511,7 +2524,7 @@
   grid-template-columns: auto auto minmax(0, 1fr);
   gap: 0.55rem;
   align-items: center;
-  min-width: 11.5rem;
+  min-width: 0;
   min-height: var(--touch-target);
   padding: 0.6rem 0.7rem;
   border: 0;
@@ -2842,12 +2855,24 @@
 .hub-experience-chip {
   flex: none;
   padding: 0.45rem 0.72rem;
-  border: 1px solid rgba(52, 211, 153, 0.3);
+  border: 1px solid color-mix(in srgb, var(--experience-blue) 42%, transparent);
   border-radius: var(--radius-pill);
-  background: rgba(52, 211, 153, 0.08);
-  color: #a7f3d0;
+  background: color-mix(in srgb, var(--experience-blue) 12%, transparent);
+  color: var(--experience-blue);
   font-size: 0.72rem;
   font-weight: 700;
+}
+
+.hub-experience-chip.is-ready {
+  border-color: rgba(52, 211, 153, 0.3);
+  background: rgba(52, 211, 153, 0.08);
+  color: #a7f3d0;
+}
+
+.hub-experience-chip.is-caution {
+  border-color: color-mix(in srgb, var(--tone-caution) 45%, transparent);
+  background: color-mix(in srgb, var(--tone-caution) 12%, transparent);
+  color: var(--tone-caution);
 }
 
 .hub-experience-chip.is-readonly {

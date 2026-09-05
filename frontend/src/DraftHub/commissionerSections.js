@@ -42,7 +42,7 @@ export function sheetsGuideCopy(year) {
     paragraphs: [
       `${y} sheet = keepers / after-draft roster for ${y} — not a live mid-season snapshot.`,
       "Use Contracts for live keepers and Cap for extend / FA. Sheets reconcile historic year books.",
-      "Edit Pos, $, Status, and Acquired on the table. Seed from Sleeper (pre-draft or week-1) or Excel when empty.",
+      "Use Sync league in the strip, or Excel when empty.",
     ],
   };
 }

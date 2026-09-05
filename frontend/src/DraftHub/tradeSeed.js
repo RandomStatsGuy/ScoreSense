@@ -2,6 +2,19 @@
 
 const KEY = "ss_hub_trade_seed";
 
+export function seedTradePartner(teamId) {
+  try {
+    const existing = readTradeSeed() || { players: [] };
+    sessionStorage.setItem(KEY, JSON.stringify({
+      ...existing,
+      partnerTeamId: teamId,
+      at: Date.now(),
+    }));
+  } catch {
+    /* ignore */
+  }
+}
+
 export function seedTradeFromPlayer(player) {
   try {
     const existing = readTradeSeed() || { players: [] };
@@ -13,6 +26,17 @@ export function seedTradeFromPlayer(player) {
   } catch {
     /* ignore */
   }
+}
+
+export function resolveTradePartnerId(seed, myId, teamBlocks = []) {
+  const mine = myId || "";
+  const fromSeed = seed?.partnerTeamId && String(seed.partnerTeamId) !== String(mine)
+    ? seed.partnerTeamId
+    : null;
+  return fromSeed
+    || seed?.players?.find((p) => p.team_id && String(p.team_id) !== String(mine))?.team_id
+    || (teamBlocks || []).map((b) => b.team?.id).find((id) => id && String(id) !== String(mine))
+    || "";
 }
 
 export function readTradeSeed() {

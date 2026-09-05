@@ -2,13 +2,13 @@ import React from "react";
 import { BOARD_COPY } from "./projectionsPresentation";
 import { usePlayerCardOptional } from "./PlayerCardContext";
 
-export function ProjectionBoardSignals({ signals = [], playerParams = null }) {
+export function ProjectionBoardSignals({ signals = [], playerParams = null, onActivate }) {
   const card = usePlayerCardOptional();
   if (!signals.length) return null;
   return (
     <div className="proj-signals" role="list" aria-label="Board signals">
       {signals.map((signal) => {
-        const clickable = Boolean(signal.playerId && card);
+        const clickable = Boolean(onActivate || (signal.playerId && card));
         const Tag = clickable ? "button" : "div";
         return (
           <Tag
@@ -16,14 +16,20 @@ export function ProjectionBoardSignals({ signals = [], playerParams = null }) {
             type={clickable ? "button" : undefined}
             role="listitem"
             className={`proj-signal${signal.tone ? ` proj-signal--${signal.tone}` : ""}${clickable ? " proj-signal--open" : ""}`}
-            onClick={clickable ? () => card.openPlayerCard({
+            onClick={clickable ? () => {
+              if (onActivate) {
+                onActivate(signal);
+                return;
+              }
+              card.openPlayerCard({
               ...(playerParams || {}),
               playerId: signal.playerId,
               name: signal.name,
               team: signal.row?.Team,
               rank: signal.rank,
               preview: signal.preview || null,
-            }) : undefined}
+            });
+            } : undefined}
           >
             <p className="proj-signal-kicker">{signal.kicker}</p>
             <p className="proj-signal-name">{signal.name}</p>

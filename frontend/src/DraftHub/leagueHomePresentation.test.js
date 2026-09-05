@@ -7,6 +7,8 @@ import {
   HOME_DECK_COPY,
   HOME_PAGE_COPY,
   homeDeckStandingRows,
+  homeHeroHeading,
+  homeHeroSupport,
   homeMatchupNote,
   phaseTrackState,
   resolveLeagueHomeFocus,
@@ -61,9 +63,15 @@ test("phase track marks exactly one current phase", () => {
 });
 
 test("home heading names the next move, not a command-center slogan", () => {
-  assert.equal(HOME_PAGE_COPY.heading, "Do the next league move.");
+  assert.match(HOME_PAGE_COPY.heading, /seats|lock a night/i);
   assert.equal(HOME_PAGE_COPY.supportingTitle, "Also due");
-  assert.doesNotMatch(HOME_PAGE_COPY.heading, /command center|decision count/i);
+  assert.equal(HOME_PAGE_COPY.notScheduled, "Not scheduled");
+  assert.doesNotMatch(HOME_PAGE_COPY.heading, /command center|decision count|Do the next league move/i);
+  assert.equal(
+    homeHeroHeading({ actions: [{ id: "invite_managers" }], seating: { open_seats: 11 } }),
+    "Fill 11 seats, then lock a night.",
+  );
+  assert.equal(homeHeroSupport({ seating: { open_seats: 11 } }), HOME_PAGE_COPY.emptySeatsCost);
 });
 
 test("known action labels use concrete verbs", () => {
@@ -96,6 +104,6 @@ test("home deck helpers format empty scores and keep the viewer in standings", (
   );
   assert.equal(HOME_DECK_COPY.linkSleeper, "Link Sleeper to fill scores.");
   assert.equal(HOME_DECK_COPY.lockerTitle, "League chat");
-  assert.match(HOME_DECK_COPY.lockerNote, /edge/i);
+  assert.match(HOME_DECK_COPY.lockerNote, /follows you/i);
   assert.doesNotMatch(HOME_DECK_COPY.lockerNote, /Draft Hub|Submit|permission/i);
 });

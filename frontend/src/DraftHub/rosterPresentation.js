@@ -8,4 +8,9 @@ export const MY_TEAM_COPY = {
   learnMoreReadonlySolo: "Read-only — ask commish to edit.",
   learnMoreEdit:
     "Personal roster decisions live here. Edit look sets a wide banner on this page and a photo that travels with your team.",
+  learnMoreLabel: "Contract rules",
+  emptyHeading: "Need a roster to manage contracts.",
+  emptySupport: "Lock a night on Draft, or link Sleeper on Access & imports.",
+  emptyAction: "Lock a night",
+  emptyActionLink: "Link Sleeper",
 };

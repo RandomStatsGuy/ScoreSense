@@ -171,18 +171,19 @@ export function scoringRaceRows(standings, { ownerMap, yearSpecific = false } = 
 export const INSIGHTS_COPY = {
   overview: {
     eyebrow: "Insights",
-    heading: "Who you are arguing about.",
-    support: "Titles, records, and top scorers. Spend and scoring tabs are for the fights those start.",
+    heading: "Who this room overpays for.",
+    support: "Titles here. Spend shows who is out of cap before you bid against them.",
   },
   spend: {
     eyebrow: "Insights",
     heading: "Who burned the cap.",
     support: "Positional spend and who is out of room. Overspend at RB and you draft thin everywhere else.",
+    empty: "Spend appears after the draft writes contracts. $0 committed means nobody has a deal yet.",
   },
   scoring: {
     eyebrow: "Scoring",
-    heading: "Who put up the points.",
-    support: "The points race and week trophies. High score with a losing record is the argument.",
+    heading: "Find the team that scores but loses.",
+    support: "That manager sells high scorers cheap. The standings hide it.",
   },
   history: {
     eyebrow: "History",
@@ -191,10 +192,15 @@ export const INSIGHTS_COPY = {
   },
 };
 
-export function insightsHeroStatus(featured) {
+export function insightsHeroStatus(featured, { ownerName, teamName } = {}) {
   const top = featured?.[0];
   if (!top) return "";
   const title = top.title ? String(top.title) : "Award";
   const headline = top.headline ? String(top.headline) : "";
+  const owner = String(ownerName || top.owner_name || "").trim();
+  const club = String(teamName || top.team_name || headline).trim();
+  const titles = top.title_count != null ? `${top.title_count} titles` : "";
+  if (owner && club && titles) return `${owner} · ${club} · ${titles}`;
+  if (owner && headline) return `${owner} · ${headline}`;
   return headline ? `${title} · ${headline}` : title;
 }

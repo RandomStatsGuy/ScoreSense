@@ -30,6 +30,7 @@ import {
   DFS_STEP_COPY,
   dfsHeroCopy,
   dfsHeroNote,
+  dfsRailTitle,
   dfsStatusChip,
   dfsSummaryItems,
   emptyLineupCopy,
@@ -1288,7 +1289,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
           aria-label="Lineup summary"
           ref={resultRef}
         >
-          <p className="hub-experience-kicker">Your lineup</p>
+          <p className="hub-experience-kicker">{dfsRailTitle({ locked: locked.size, skipped: excluded.size })}</p>
           <div className="dfs-launch-copy">
             <h3>{launch.title}</h3>
             <p>{launch.body}</p>

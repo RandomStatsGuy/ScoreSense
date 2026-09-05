@@ -44,6 +44,7 @@ import {
   riskToleranceLabel,
 } from "../riskAdjustedValue";
 import RaavBidCell from "./RaavBidCell";
+import { suggestedBidSubLabel } from "./suggestedBidLabel.js";
 
 const TIERS = ["ALL", "Elite", "Tier 1", "Tier 2", "Tier 3", "Depth"];
 const POSITIONS = HUB_POSITION_FILTERS;
@@ -541,6 +542,7 @@ export default function ValueSheetTable({
         <HubTabIntro
           title={panelTitle}
           compact={compact}
+          learnMoreLabel={isAvailableView ? "How adds work" : "Contract rules"}
           purpose={purpose || (compact ? null : (
             isAvailableView
               ? "Players not under contract. Bid or add when the window is open. Before the draft, pickups go through the live room or you miss them."
@@ -1011,6 +1013,10 @@ export default function ValueSheetTable({
               {showFairValue && (
               <SortTh
                 label={valueColLabel}
+                sub={suggestedBidSubLabel({
+                  scoringProfile: rules?.scoring_profile || rules?.scoring || "hub_ppr",
+                  riskTolerance,
+                })}
                 col="fair_value"
                 sortKey={sortKey}
                 sortDir={sortDir}

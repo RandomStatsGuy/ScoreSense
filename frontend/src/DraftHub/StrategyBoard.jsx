@@ -37,6 +37,7 @@ import {
 } from "./strategyRankPresentation.js";
 import { headshotCandidates, lookupPlayerMedia, playerInitials, teamLogoUrl } from "./draftMedia";
 import { nflTeamColors } from "./nflTeamColors";
+import { suggestedBidSubLabel } from "./suggestedBidLabel.js";
 
 const POS_FILTERS = ["ALL", "QB", "RB", "WR", "TE", "FLEX", "K", "DEF"];
 
@@ -81,11 +82,15 @@ function StrategyPhoto({ row, media, className = "", hero = false }) {
   );
 }
 
-function FaceCard({ row, media, pickDraft, ctx, onTake }) {
+function FaceCard({ row, media, pickDraft, ctx, riskTolerance, onTake }) {
   const bid = suggestedBid(row);
   const stats = [];
   if (!pickDraft && ctx.draftType === "auction") {
-    stats.push({ label: COPY.bid, value: bid != null ? fmtSal(bid) : "—" });
+    stats.push({
+      label: COPY.bid,
+      sub: suggestedBidSubLabel({ scoringProfile: ctx.scoringProfile, riskTolerance }),
+      value: bid != null ? fmtSal(bid) : "—",
+    });
   }
   stats.push(
     { label: COPY.p50, value: formatSeasonPts(row?.season_p50 ?? row?.season_proj) },
@@ -105,7 +110,7 @@ function FaceCard({ row, media, pickDraft, ctx, onTake }) {
         <div className="hub-strategy-stats" data-count={stats.length}>
           {stats.map((stat) => (
             <div key={stat.label} className="hub-strategy-stat">
-              <span>{stat.label}</span>
+              <span>{stat.label}{stat.sub ? <small> {stat.sub}</small> : null}</span>
               <strong>{stat.value}</strong>
             </div>
           ))}
@@ -146,6 +151,8 @@ export default function StrategyBoard({
   pickDraft = false,
   leagueId = "",
   inLeague = false,
+  leagueName = "",
+  riskTolerance = 0,
 }) {
   const [page, setPage] = useState("faceoff");
   const [posFilter, setPosFilter] = useState("ALL");
@@ -212,7 +219,7 @@ export default function StrategyBoard({
     () => board.filter((row) => rankDelta(row) !== 0).length,
     [board],
   );
-  const line = contextLine(ctx);
+  const line = contextLine({ ...ctx, leagueName });
 
   const writeQueue = useCallback(async (playerIds) => {
     if (!inLeague || !leagueId) {
@@ -460,6 +467,7 @@ export default function StrategyBoard({
                   media={media}
                   pickDraft={pickDraft}
                   ctx={ctx}
+                  riskTolerance={riskTolerance}
                   onTake={() => take(pair.a, pair.b)}
                 />
                 <div className="hub-strategy-or" aria-hidden>{COPY.vs}</div>
@@ -468,6 +476,7 @@ export default function StrategyBoard({
                   media={media}
                   pickDraft={pickDraft}
                   ctx={ctx}
+                  riskTolerance={riskTolerance}
                   onTake={() => take(pair.b, pair.a)}
                 />
               </div>

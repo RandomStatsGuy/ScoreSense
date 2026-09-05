@@ -14,7 +14,7 @@ import {
   HubToolbar,
   rosterAlertVariant,
 } from "./HubUILayout";
-import { capHeroCopy } from "./capPlannerPresentation";
+import { capHeroCopy, leftoverAfterMoveYears, CAP_MOVE_COPY } from "./capPlannerPresentation";
 import { buildCapStatusCard } from "./capStatusCard";
 import { fmtSal, leagueStepUp, scheduleText } from "./rosterFormat";
 import {
@@ -65,6 +65,8 @@ function capHitForRow(row, offset = 0, rules) {
 export default function CapPlanner({ capSheet, roster, workspace, hubContext, onChanged, onNavigate }) {
   const [extendPlayer, setExtendPlayer] = useState("");
   const [extendYears, setExtendYears] = useState(1);
+  const [cutPlayer, setCutPlayer] = useState("");
+  const [bidAmount, setBidAmount] = useState("");
   const [msg, setMsg] = useState("");
 
   const summary = capSheet?.summary;
@@ -192,13 +194,23 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
     preDraft: Boolean(preDraft),
   });
   const seasonPlan = yearLabels.slice(0, 3);
+  const cutRow = (roster || []).find((row) => String(row.player_id) === String(cutPlayer));
+  const cutHits = seasonPlan.map((_, idx) => (
+    cutRow ? Number(capHitForRow(cutRow, idx, workspace?.rules) || 0) : 0
+  ));
+  const movedPlan = leftoverAfterMoveYears({
+    years: seasonPlan,
+    cutHits,
+    cutRefundPct: workspace?.rules?.contracts?.cut_refund_pct ?? 0.5,
+    bid: Number(bidAmount) || 0,
+  });
 
   return (
     <HubPage className="hub-experience-page">
         <HubExperienceHero
         {...capHeroCopy({ preDraft: Boolean(preDraft) })}
         chip={statusCard?.label || "Cap plan"}
-        chipTone={statusCard?.tone === "over" ? "readonly" : "active"}
+        chipTone={statusCard?.tone === "over" ? "caution" : "readonly"}
       >
         {statusCard ? (
           <p className="hub-experience-hero-status">{statusCard.headline}</p>
@@ -234,37 +246,44 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
           />
         )}
       >
-      {statusCard && (
-        <article
-          className={`hub-cap-status-card hub-cap-status-card--${statusCard.tone}`}
-          aria-label={statusCard.label}
-        >
-          <p className="hub-cap-status-eyebrow">{statusCard.label}</p>
-          <p className="hub-cap-status-headline">{statusCard.headline}</p>
-          {statusCard.meta ? (
-            <p className="hub-cap-status-meta">{statusCard.meta}</p>
-          ) : null}
-          {statusCard.tone === "over" && onNavigate && (
-            <div className="hub-cap-status-actions">
-              <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("roster")}>
-                Review roster
-              </button>
-              <button type="button" className="btn-link" onClick={() => onNavigate("available")}>
-                Browse free agents
-              </button>
-            </div>
-          )}
-        </article>
-      )}
+      <HubSection
+        title={CAP_MOVE_COPY.title}
+        hint={CAP_MOVE_COPY.hint}
+        className="hub-cap-move-section"
+      >
+        <HubToolbar>
+          <label>
+            {CAP_MOVE_COPY.cutLabel}
+            <select value={cutPlayer} onChange={(e) => setCutPlayer(e.target.value)}>
+              <option value="">{CAP_MOVE_COPY.none}</option>
+              {(roster || []).map((row) => (
+                <option key={row.player_id} value={row.player_id}>
+                  {row.player_name || row.player_id} · {fmtSal(row.salary)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            {CAP_MOVE_COPY.bidLabel}
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={bidAmount}
+              onChange={(e) => setBidAmount(e.target.value)}
+            />
+          </label>
+        </HubToolbar>
+      </HubSection>
 
-      {seasonPlan.length > 0 && (
+      {movedPlan.length > 0 && (
         <HubSection
           title="By season"
           hint="Committed vs free under the same cap each year."
           className="hub-cap-season-section"
         >
           <ul className="hub-cap-season-list" aria-label="Season-by-season cap">
-            {seasonPlan.map((year) => {
+            {movedPlan.map((year) => {
               const free = Number(year.cap_remaining);
               const freeOver = Number.isFinite(free) && free < 0;
               return (
@@ -372,7 +391,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
 
       {!draftCompleted && isCommissioner && (
         <p className="chart-note hub-pre-draft-note">
-          Mark <strong>Draft completed</strong> in Setup when the auction ends.
+          Mark <strong>Draft complete</strong> on Roster management · Contracts when the auction ends.
         </p>
       )}
 

@@ -8,6 +8,7 @@ import {
   isFaller,
   isLeftSlate,
   leftSlateRowsFromChanges,
+  matchesMovementFilter,
   mergeRowsForMovementFilter,
   movementEmptyMessage,
   EMPTY_NO_MATERIAL,
@@ -44,6 +45,25 @@ test("formatRankMove hides unchanged ranks", () => {
       position: "QB",
     }),
     null,
+  );
+});
+
+test("formatRankMove labels a missing prior rank as New", () => {
+  assert.equal(
+    formatRankMove({
+      previousRank: null,
+      currentRank: 4,
+      position: "QB",
+    }),
+    "New → QB4",
+  );
+  assert.equal(
+    formatRankMove({
+      previousRank: 0,
+      currentRank: 4,
+      position: "QB",
+    }),
+    "New → QB4",
   );
 });
 
@@ -110,6 +130,13 @@ test("movementEmptyMessage maps empty_reason codes", () => {
     movementEmptyMessage(EMPTY_NO_MATERIAL, "Custom note from API"),
     "Custom note from API",
   );
+});
+
+test("attention filter matches player_id or playerId", () => {
+  const ids = new Set(["abc"]);
+  assert.equal(matchesMovementFilter({ player_id: "abc" }, "attention", { attentionIds: ids }), true);
+  assert.equal(matchesMovementFilter({ playerId: "abc" }, "attention", { attentionIds: ids }), true);
+  assert.equal(matchesMovementFilter({ player_id: "nope" }, "attention", { attentionIds: ids }), false);
 });
 
 test("left slate rows merge into movers/fallers only", () => {

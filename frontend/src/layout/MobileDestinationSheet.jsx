@@ -6,6 +6,7 @@ export default function MobileDestinationSheet({
   open,
   onClose,
   title,
+  lead = null,
   groups = [],
   active,
   onSelect,
@@ -18,6 +19,7 @@ export default function MobileDestinationSheet({
       title={title}
       className={`app-mobile-sheet-destinations ${className}`.trim()}
     >
+      {lead}
       <div className="app-mobile-sheet-list">
         {groups.map((group) => (
           <React.Fragment key={group.id || group.label || "group"}>

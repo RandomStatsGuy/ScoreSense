@@ -9,6 +9,8 @@ test("privacy names Atlassian for optional bug reports", () => {
 });
 
 test("privacy names Twilio and the A2P required disclosures", () => {
+  assert.match(LEGAL_PRIVACY.phoneCollect, /Twilio/);
+  assert.match(LEGAL_PRIVACY.phoneCollect, /do not share mobile numbers/i);
   assert.match(LEGAL_PRIVACY.smsBody, /Twilio/);
   assert.match(LEGAL_PRIVACY.smsBody, /do not share mobile numbers/i);
   assert.match(LEGAL_PRIVACY.smsBody, /Message frequency varies/);

@@ -78,7 +78,7 @@ export default function HubSetup({
         ) : null}
         <h2 className="hub-tab-intro-title">League connections</h2>
         <p className="chart-note hub-setup-lead">
-          Create or join a league, then connect Sleeper and imports. Rules have their own workspace.
+          Create or join a league, then connect Sleeper and imports. Contract rules live on Rules.
         </p>
         {onNavigate && (
           <button type="button" className="btn-primary btn-sm" onClick={() => onNavigate("rules")}>

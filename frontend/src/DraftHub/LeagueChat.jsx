@@ -193,7 +193,7 @@ export default function LeagueChat({ leagueId, hubContext, compact = false, lock
         {isPrimary && (
           <button
             type="button"
-            className="btn-ghost btn-sm"
+            className="btn-danger btn-sm"
             onClick={clearChat}
             disabled={clearing || loading}
             title="Delete all messages in this channel"

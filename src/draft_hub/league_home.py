@@ -599,6 +599,10 @@ def build_league_home(
             else None
         ),
         "week_summary": week_summary,
+        "seating": {
+            "open_seats": open_seats,
+            "team_count": int((league_row or {}).get("team_count") or 12) if league_row else None,
+        },
         "counts": {
             "actions": len(actions),
             "roster": len(roster),

@@ -3,7 +3,7 @@ import { apiFetch } from "../../auth";
 import { parseApiError } from "../../format";
 import { HubExperienceHero, HubPage } from "../HubUILayout";
 import { InsightsDisclosure, RankBars } from "./InsightsTalk";
-import { INSIGHTS_COPY, teamDisplayName } from "./insightsPresentation";
+import { INSIGHTS_COPY, insightsHeroStatus, teamDisplayName } from "./insightsPresentation";
 
 function formatRecord(row) {
   const wins = Number(row.wins) || 0;
@@ -76,7 +76,14 @@ export default function InsightsOverview({
       >
         {landing?.most_titles?.titles > 1 ? (
           <p className="hub-experience-hero-status">
-            {teamDisplayName(landing.most_titles, ownerMap, false)} · {landing.most_titles.titles} titles
+            {insightsHeroStatus([{
+              title: "Titles",
+              owner_name: landing.most_titles.owner_name
+                || ownerMap?.[landing.most_titles.team_name]
+                || ownerMap?.[String(landing.most_titles.team_name || "").toLowerCase()],
+              team_name: landing.most_titles.team_name,
+              title_count: landing.most_titles.titles,
+            }])}
           </p>
         ) : null}
       </HubExperienceHero>
@@ -131,7 +138,7 @@ export default function InsightsOverview({
             {recordRows.length ? (
               <RankBars
                 rows={recordRows}
-                color="#6366f1"
+                color="#8b9bb0"
                 formatValue={(row) => `${formatRecord(row)} · ${formatWinPct(row)}`}
               />
             ) : (
