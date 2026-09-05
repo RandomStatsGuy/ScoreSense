@@ -8,24 +8,19 @@ import {
   leagueDisplayName,
   leaguePhaseLabel,
   leagueRoleLabel,
+  resolveOverflowAttentionItems,
 } from "./leagueAttention";
 import { useLeagueChrome } from "./leagueChromeContext";
 import { isSoloContext } from "./hubLeagues";
 
-export default function LeagueOverflowLead({
-  hubContext,
-  onNavigate,
-  onAfterAction,
-}) {
-  const { chrome } = useLeagueChrome();
-  const leagueId = hubContext?.league_id;
-  const inLeague = Boolean(leagueId) && !isSoloContext(hubContext);
+/** Warm the freshness cache while Fantasy is open — the sheet unmounts when closed. */
+export function useLeagueFreshness(leagueId, enabled) {
   const [freshness, setFreshness] = useState(
     () => getFreshnessCache(leagueId)?.data || null,
   );
 
   useEffect(() => {
-    if (!leagueId || !inLeague) {
+    if (!leagueId || !enabled) {
       setFreshness(null);
       return undefined;
     }
@@ -47,21 +42,37 @@ export default function LeagueOverflowLead({
       }
     })();
     return () => ctrl.abort();
-  }, [leagueId, inLeague]);
+  }, [leagueId, enabled]);
+
+  return freshness;
+}
+
+export default function LeagueOverflowLead({
+  hubContext,
+  onNavigate,
+  onAfterAction,
+}) {
+  const { chrome } = useLeagueChrome();
+  const leagueId = hubContext?.league_id;
+  const inLeague = Boolean(leagueId) && !isSoloContext(hubContext);
+  const freshness = useLeagueFreshness(leagueId, inLeague);
 
   const leagueName = chrome?.leagueName || leagueDisplayName(hubContext, { inLeague });
   const phaseLabel = chrome?.phaseLabel || leaguePhaseLabel(hubContext, { inLeague });
   const roleLabel = chrome?.roleLabel || leagueRoleLabel(hubContext, { inLeague });
   const poolStale = Boolean(freshness?.projections?.stale)
     || (freshness && freshness.projections?.available === false);
-  const items = buildLeagueAttentionItems({
-    inLeague,
-    poolStale,
-    projectionsAvailable: freshness?.projections?.available,
-    projAge: ageShort(freshness?.projections?.built_at),
-    capSheetsStale: Boolean(freshness?.cap_sheets?.stale),
-    isCommish: Boolean(hubContext?.is_commissioner),
-  });
+  const items = resolveOverflowAttentionItems(
+    buildLeagueAttentionItems({
+      inLeague,
+      poolStale,
+      projectionsAvailable: freshness?.projections?.available,
+      projAge: ageShort(freshness?.projections?.built_at),
+      capSheetsStale: Boolean(freshness?.cap_sheets?.stale),
+      isCommish: Boolean(hubContext?.is_commissioner),
+    }),
+    chrome?.attentionItems,
+  );
 
   if (!leagueName) return null;
 

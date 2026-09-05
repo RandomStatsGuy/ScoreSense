@@ -88,3 +88,10 @@ export function buildLeagueAttentionItems({
 export function filterAttentionForView(items, currentView) {
   return (items || []).filter((item) => item.target !== currentView && item.action !== currentView);
 }
+
+/** Sheet mounts only when the overflow is open — use chrome items until freshness lands. */
+export function resolveOverflowAttentionItems(computed, chromeItems) {
+  if (Array.isArray(computed) && computed.length) return computed;
+  if (Array.isArray(chromeItems) && chromeItems.length) return chromeItems;
+  return [];
+}

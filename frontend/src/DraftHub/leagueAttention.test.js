@@ -7,6 +7,7 @@ import {
   leagueDisplayName,
   leaguePhaseLabel,
   leagueRoleLabel,
+  resolveOverflowAttentionItems,
 } from "./leagueAttention.js";
 
 test("league identity is name · phase · role, never Hub", () => {
@@ -38,4 +39,12 @@ test("attention for the open view stays off the overflow list", () => {
   const items = [{ id: "over-cap", action: "planner", label: "Over cap $12" }];
   assert.equal(filterAttentionForView(items, "planner").length, 0);
   assert.equal(filterAttentionForView(items, "home").length, 1);
+});
+
+test("overflow keeps chrome attention until freshness computes items", () => {
+  const chromeItems = [{ id: "cap-sheets", label: "Cap sheets stale", actionLabel: "Sync sheets" }];
+  assert.deepEqual(resolveOverflowAttentionItems([], chromeItems), chromeItems);
+  const computed = [{ id: "projections", label: "Projections stale" }];
+  assert.deepEqual(resolveOverflowAttentionItems(computed, chromeItems), computed);
+  assert.deepEqual(resolveOverflowAttentionItems([], null), []);
 });
