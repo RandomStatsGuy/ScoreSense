@@ -59,7 +59,7 @@ export default function WeeklyCommandCenter({
       if (!signal?.aborted) setData(payload);
     } catch (e) {
       if (isAbortError(e) || signal?.aborted) return;
-      setError(connectionErrorMessage(e) || "Server did not respond — Retry");
+      setError(connectionErrorMessage(e, "Server did not respond — Retry"));
       if (!rebuild) setData(null);
     } finally {
       if (!signal?.aborted) setLoading(false);
