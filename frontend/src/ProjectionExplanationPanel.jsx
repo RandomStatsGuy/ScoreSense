@@ -85,7 +85,7 @@ export default function ProjectionExplanationPanel({
           setTypicalMiss(typicalMissLine({ position: pos, miss }));
         }
       } catch (err) {
-        if (isAbortError(err) || controller.signal.aborted) return;
+        if (err.name === "AbortError" || controller.signal.aborted) return;
         setTypicalMiss("");
       }
     })();
