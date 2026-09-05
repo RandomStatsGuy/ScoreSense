@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
+import { HubFilterMenu } from "./HubUILayout";
 import { isPickDraft } from "./draftEntryStatus";
 
 export default function DraftCommissionerSettings({
@@ -118,13 +119,16 @@ export default function DraftCommissionerSettings({
           <input type="number" min={2} max={30} value={botDelay} disabled={disabled || saving} onChange={(e) => setBotDelay(e.target.value)} />
         </label>
       </div>
-      <label className="hub-draft-pool-setting">
-        {pickDraft ? "Who can be drafted" : "Who can be nominated"}
-        <select value={nomPool} disabled={disabled || saving} onChange={(e) => setNomPool(e.target.value)}>
-          <option value="full">Any undrafted NFL player</option>
-          <option value="roster_plus_rookies">Keeper league — keepers off, FA and expirees in</option>
-        </select>
-      </label>
+      <HubFilterMenu
+        label={pickDraft ? "Who can be drafted" : "Who can be nominated"}
+        value={nomPool}
+        options={[
+          { id: "full", label: "Any undrafted NFL player" },
+          { id: "roster_plus_rookies", label: "Keeper league — keepers off, FA and expirees in" },
+        ]}
+        onChange={setNomPool}
+        disabled={disabled || saving}
+      />
       <p className="chart-note hub-draft-pool-hint">
         Keeper mode hides players retained through the draft. Expirees, cuts, and undrafted rookies stay nominatable.
       </p>

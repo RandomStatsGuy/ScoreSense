@@ -1,4 +1,5 @@
 import React from "react";
+import { HubFilterMenu } from "./HubUILayout";
 import { fmtNum, formatRelativeTime } from "../format";
 import { formatP50Move, rowMovementTone } from "../projectionMovement";
 import {
@@ -231,18 +232,12 @@ function WeekStepper({ weekValue, weekPlaceholder, onWeekChange }) {
       >
         ‹
       </button>
-      <label className="hub-wcc-week-select">
-        <span className="sr-only">{WEEK_BOARD_COPY.weekLabel}</span>
-        <select
-          className="header-select header-context-control"
-          value={current}
-          onChange={(event) => onWeekChange?.(Number(event.target.value))}
-        >
-          {options.map((week) => (
-            <option key={week} value={week}>{week}</option>
-          ))}
-        </select>
-      </label>
+      <HubFilterMenu
+        label={WEEK_BOARD_COPY.weekLabel}
+        value={current}
+        options={options.map((week) => ({ id: week, label: String(week) }))}
+        onChange={(id) => onWeekChange?.(Number(id))}
+      />
       <button
         type="button"
         className="week-step-btn"

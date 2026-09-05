@@ -4,6 +4,7 @@ import { parseApiError } from "./format";
 import useMobileLayout from "./useMobileLayout";
 import MobileDataList from "./MobileDataList";
 import MobilePlayerCard from "./MobilePlayerCard";
+import { HubFilterMenu } from "./DraftHub/HubUILayout";
 import {
   ADMIN_COPY,
   adminLinkAccountRef,
@@ -94,18 +95,15 @@ function LinkExistingAccountForm({ leagueId, teams, form, onFormChange, onLink }
             onChange={(e) => onFormChange({ ...(form || {}), email: e.target.value })}
             aria-label={ADMIN_COPY.linkExisting.emailPlaceholder}
           />
-          <select
+          <HubFilterMenu
+            label={ADMIN_COPY.linkExisting.teamPlaceholder}
             value={form?.team_id || ""}
-            onChange={(e) => onFormChange({ ...(form || {}), team_id: e.target.value })}
-            aria-label={ADMIN_COPY.linkExisting.teamPlaceholder}
-          >
-            <option value="">{ADMIN_COPY.linkExisting.teamPlaceholder}</option>
-            {openTeams.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+            options={[
+              { id: "", label: ADMIN_COPY.linkExisting.teamPlaceholder },
+              ...openTeams.map((t) => ({ id: t.id, label: t.name })),
+            ]}
+            onChange={(id) => onFormChange({ ...(form || {}), team_id: id })}
+          />
           <button
             type="button"
             className="btn-primary btn-sm"
@@ -780,27 +778,25 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
                                         }))
                                       }
                                     />
-                                    <select
+                                    <HubFilterMenu
+                                      label="Team"
                                       value={inviteForms[lg.id]?.team_name || ""}
-                                      onChange={(e) =>
+                                      options={[
+                                        { id: "", label: "Select team…" },
+                                        ...(leagueDetail.teams || [])
+                                          .filter((t) => !t.user_sub && !t.is_bot)
+                                          .map((t) => ({ id: t.name, label: t.name })),
+                                      ]}
+                                      onChange={(id) =>
                                         setInviteForms((f) => ({
                                           ...f,
                                           [lg.id]: {
                                             ...(f[lg.id] || {}),
-                                            team_name: e.target.value,
+                                            team_name: id,
                                           },
                                         }))
                                       }
-                                    >
-                                      <option value="">Select team…</option>
-                                      {(leagueDetail.teams || [])
-                                        .filter((t) => !t.user_sub && !t.is_bot)
-                                        .map((t) => (
-                                          <option key={t.id} value={t.name}>
-                                            {t.name}
-                                          </option>
-                                        ))}
-                                    </select>
+                                    />
                                     <button
                                       type="button"
                                       className="btn-primary btn-sm"

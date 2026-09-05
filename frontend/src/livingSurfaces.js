@@ -48,13 +48,15 @@ export const LIVING_SURFACES = Object.freeze({
   "hub.home": S({
     label: "Home",
     chrome: "action-center",
+    route: "/hub/home",
     page: "frontend/src/DraftHub/LeagueHome.jsx",
     copy: "frontend/src/DraftHub/leagueHomePresentation.js",
-    doNot: "Do not wrap Home in HubExperienceLayout. The page hero is eyebrow + stepper only — the heading stays in the Pre-draft card. Also due uses the same extend/expiring nouns as My team and Cap (2 to extend · 5 expiring). Extend the action deck. House the league thread in the locker rail. Do not show the edge launcher on Home. Do not add a Chat destination. Draft night · Not scheduled links to Draft. Clear chat is staff-only, red, confirms, and disables when the thread is empty. Home names the roster hole over a commissioner invite. Hide Your matchup / Standings when pre-draft with no scored week. Gate the hero on load — never Fill the seats over unresolved data. After 3s of loading, the action deck names the Sleeper sync. Also due does not style a count like a link. The shared league strip (and Needs attention) shows on Home. On phone, a one-row league strip (name + caret) sits under the picker — do not restack a second league card in the overflow.",
+    doNot: "Do not wrap Home in HubExperienceLayout. The page hero is eyebrow + stepper only — the heading stays in the Pre-draft card. Also due uses the same extend/expiring nouns as My team and Cap (2 to extend · 5 expiring). Extend the action deck. The deck action is the only page primary. Chat Send is ghost. House the league thread in the locker rail. Do not show the edge launcher on Home. Do not add a Chat destination. Draft night · Not scheduled links to Draft. Clear chat is staff-only, red, confirms, and disables when the thread is empty. Home names the roster hole over a commissioner invite. Hide Your matchup / Standings when pre-draft with no scored week. Gate the hero on load — never Fill the seats over unresolved data. After 3s of loading, the action deck names the Sleeper sync. Also due does not style a count like a link. The shared league strip (and Needs attention) shows on Home. On phone, a one-row league strip (name + caret) sits under the picker — do not restack a second league card in the overflow.",
   }),
   "hub.value": S({
     label: "Strategy",
     chrome: "board",
+    route: "/hub/strategy",
     page: "frontend/src/DraftHub/StrategyBoard.jsx",
     copy: "frontend/src/DraftHub/strategyRankPresentation.js",
     also: [
@@ -66,6 +68,7 @@ export const LIVING_SURFACES = Object.freeze({
   "hub.available": S({
     label: "Free agents",
     chrome: "table",
+    route: "/hub/free-agents",
     page: "frontend/src/DraftHub/ValueSheetTable.jsx",
     copy: "frontend/src/DraftHub/acquisitionWindow.js",
     doNot: "Do not add a second pickup board. Players-tab adds follow the calendar. Suggested bid names scoring and Rules risk posture. Never show Hub in user copy. Rows always show Bid or Add; when locked, disable with Adds open after the draft — do not omit the action. Star is Star for draft with a visible starred state. Hide Vs cost until a contract cost exists. Fold tier into the player cell. Desktop virtualizes on page scroll — no nested table scroller. Season pts use a number plus text range. How adds work lives in the acquisition banner. Mobile still shows the disabled Add beside the muted SUGGESTED bid.",
@@ -73,6 +76,7 @@ export const LIVING_SURFACES = Object.freeze({
   "hub.room": S({
     label: "Draft",
     chrome: "experience",
+    route: "/hub/draft",
     page: "frontend/src/DraftHub/DraftLobby.jsx",
     copy: "frontend/src/DraftHub/draftAvailabilityPresentation.js",
     also: [
@@ -88,12 +92,15 @@ export const LIVING_SURFACES = Object.freeze({
   "hub.room.live": S({
     label: "Draft (live)",
     chrome: "draft-live",
+    route: "/hub/draft",
+    overlay: true,
     page: "frontend/src/DraftHub/DraftRoom.jsx",
     doNot: "Do not wrap a live draft in HubExperience two-column settings chrome. Seats inherit DraftSeat from idle Draft and Mock.",
   }),
   "hub.week": S({
     label: "This Week",
     chrome: "experience",
+    route: "/hub/week",
     page: "frontend/src/DraftHub/WeeklyCommandCenter.jsx",
     copy: "frontend/src/DraftHub/weekBoard.js",
     also: ["frontend/src/DraftHub/WeekLineupBoard.jsx"],
@@ -102,6 +109,7 @@ export const LIVING_SURFACES = Object.freeze({
   "hub.vibes": S({
     label: "Vibes",
     chrome: "experience",
+    route: "/hub/vibes",
     page: "frontend/src/DraftHub/VibeRankings.jsx",
     copy: "frontend/src/DraftHub/vibeRankingsPresentation.js",
     also: [
@@ -116,6 +124,7 @@ export const LIVING_SURFACES = Object.freeze({
   "hub.game": S({
     label: "Game center",
     chrome: "matchup",
+    route: "/hub/game",
     page: "frontend/src/DraftHub/GameCenter.jsx",
     copy: "frontend/src/DraftHub/gameCenterPresentation.js",
     doNot: "Game center is a matchup board, not an editorial settings page. Live renders only inside a game window. Hero names the job (empty lineup cost, then the live score). Pre-draft empty copy is one draft-night sentence to Open draft room — not Link Sleeper or a kickoff wait. Standings share Home's last-season records and stay unranked until a game is played. Do not play last year's Sleeper week as this week's scores. Include the viewer on mobile. Gold only on a claimed trophy. Unscored placeholder chip is No scores yet — never Waiting. Loading uses a skeleton or Loading chip.",
@@ -123,42 +132,48 @@ export const LIVING_SURFACES = Object.freeze({
   "hub.roster": S({
     label: "My team",
     chrome: "table",
+    route: "/hub/roster",
     page: "frontend/src/DraftHub/RosterBuilder.jsx",
     copy: "frontend/src/DraftHub/rosterPresentation.js",
     also: ["frontend/src/DraftHub/rosterFormat.js"],
-    doNot: "Do not invent a second my-team chrome. List people by owner name. At zero players hide search and position chips and show the shared empty-state. One Contract control per row — history lives in the drawer. Dead cap and if-undone room use rosterFormat.js and never repeat their field labels. The roster table uses page scroll, not an inner max-height. Cap card leads with leftover for draft. Dead cap is a tooltip or inline · $N dead. Staff-only Remove is gated, confirmed, and separated from Queue extension. Contract dialog moves focus to the heading. Filter chips show counts and disable zeros. Extension eligible vs Expiring use different hues. Locker cards are named controls that open the contract panel. Mobile cards do not expand a repeated POS/CAP/YRS/STATUS grid.",
+    doNot: "Do not invent a second my-team chrome. List people by owner name. At zero players hide search and position chips and show the shared empty-state. One Contract control per row — history lives in the drawer. Dead cap and if-undone room use rosterFormat.js and never repeat their field labels. The roster table uses page scroll, not an inner max-height. Cap card leads with leftover for draft. Dead cap is a tooltip or inline · $N dead. Staff-only Remove is gated, confirmed, and separated from Queue extension. Contract dialog moves focus to the heading. Filter chips show counts and disable zeros. Extension eligible vs Expiring use different hues. Locker cards are named controls that open the contract panel. Lockers default to top 6 by cap hit unless the owner picked a wall, and they open the contract panel. Player names are the last column to truncate. Mobile cards do not expand a repeated POS/CAP/YRS/STATUS grid.",
   }),
   "hub.rosters": S({
     label: "Rosters",
     chrome: "experience",
+    route: "/hub/rosters",
     page: "frontend/src/DraftHub/LeagueRostersBrowser.jsx",
     copy: "frontend/src/DraftHub/leagueRostersPresentation.js",
-    doNot: "Reuse HubExperienceHero + HubExperienceLayout + HubExperienceSummary + HubTableCard. Default is the league-wide Overpay/Bargain list; the manager rail is the drill-down and shows free cap, expiring count, and worst overpay. Ten managers is a picker, not a swipe strip. Franchise headers get Propose trade into Trades · Builder with the partner preselected. Contract judgment is the word alone when the dollar delta is zero. Expire chips say Extendable, never a question. Expire chips are sentence case. Overpay rows stay a neutral background — only the delta chip is red. Desktop virtualizes on page scroll — no nested table scroller. Do not offer Add to trade on contracts that will not survive the next draft. Mobile cards expand into the judgment and actions, not a repeated years/pts grid.",
+    doNot: "Reuse HubExperienceHero + HubExperienceLayout + HubExperienceSummary + HubTableCard. Default is the league-wide Overpay/Bargain list; the manager rail is the drill-down and shows free cap, expiring count, and worst overpay. Ten managers is a picker, not a swipe strip. Franchise headers get Propose trade into Trades · Builder with the partner preselected. Contract judgment is the word alone when the dollar delta is zero. Expire chips say Extendable, never a question. Expire chips are sentence case. Overpay rows stay a neutral background — only the delta chip is red. Desktop virtualizes on page scroll — no nested table scroller. Do not offer Add to trade on contracts that will not survive the next draft. Refresh labels name the scope (Refresh league), never sit beside a single manager as if they refresh that roster. Mobile cards expand into the judgment and actions, not a repeated years/pts grid.",
   }),
   "hub.planner": S({
     label: "Cap",
     chrome: "experience",
+    route: "/hub/cap",
     page: "frontend/src/DraftHub/CapPlanner.jsx",
     copy: "frontend/src/DraftHub/capPlannerPresentation.js",
-    doNot: "Extend CapPlanner and HubExperience*. Do not start a new cap aesthetic. Every leftover, against-cap, and roster figure names what it counts; against-cap is salary plus dead cap and leftover plus against-cap equals the cap. The move leftover (before/after) sits next to the cut and bid controls — do not leave the consequence in the rail only. The summary-rail primary is the move — undo a cut or open the room to spend leftover; League spend is a text link. Hero and At a glance keep the current leftover (drop the hero leftover on phone). Do not use native select; use HubFilterMenu. Roster-min needs are one sentence and one Free agents CTA, not six attention rows. Expires uses amber; extend-to-keep uses the blue option chip. Hide empty future-year columns; do not duplicate next year in a Schedule column. Pending-cut and expiring bullets get Undo cut / Contract. Cap sheet rows open the contract drawer or stay flat. Phone spend and sheet are dense vertical rows — no contract carousels. Need-N-more links carry the POS filter to Free agents.",
+    doNot: "Extend CapPlanner and HubExperience*. Do not start a new cap aesthetic. Every leftover, against-cap, and roster figure names what it counts; against-cap is salary plus dead cap and leftover plus against-cap equals the cap. The move leftover (before/after) sits next to the cut and bid controls — do not leave the consequence in the rail only. The summary-rail primary is leftover / open the room. Undo cut is ghost — never a second blue fill. League spend is a text link. Hero and At a glance keep the current leftover (drop the hero leftover on phone). Do not use native select; use HubFilterMenu. Roster-min needs are one sentence and one Free agents CTA, not six attention rows. Expires uses amber; extend-to-keep uses the blue option chip. Hide empty future-year columns; do not duplicate next year in a Schedule column. Pending-cut and expiring bullets get Undo cut / Contract. Cap sheet rows open the contract drawer or stay flat. Phone spend and sheet are dense vertical rows — no contract carousels. Need-N-more links carry the POS filter to Free agents.",
   }),
   "hub.trades": S({
     label: "Trades",
     chrome: "experience",
+    route: "/hub/trades",
     page: "frontend/src/DraftHub/LeagueTrades.jsx",
     copy: "frontend/src/DraftHub/leagueTradesPresentation.js",
-    doNot: "Wrap Trades in HubExperienceHero. Zero partners swaps the primary to Invite managers on Members. Do not invent a second hero system. Need a partner is status text, never amber. Partner cards use the Rosters manager-rail min-width with Select pinned to the card bottom. The Continue bar right-aligns and drops the extra card chrome. Trades cap line is current roster salary, not My team's {season} committed. Auto-check the package and gate Propose on a pass; put the verdict beside the primary as a live status banner. Partner status is hero text, not a chip CTA. Ideas need chips are starter-thin only.",
+    doNot: "Wrap Trades in HubExperienceHero. Zero partners swaps the primary to Invite managers on Members. Continue (or Propose on the last step) is the only primary in the viewport. Accept and Load into builder are ghost. Do not invent a second hero system. Need a partner is status text, never amber. Partner cards use the Rosters manager-rail min-width with Select pinned to the card bottom. The Continue bar right-aligns and drops the extra card chrome. Trades cap line is current roster salary, not My team's {season} committed. Auto-check the package and gate Propose on a pass; put the verdict beside the primary as a live status banner. Partner status is hero text, not a chip CTA. Ideas need chips are starter-thin only.",
   }),
   "hub.rules": S({
     label: "Rules",
     chrome: "rules-center",
+    route: "/hub/rules",
     page: "frontend/src/DraftHub/RulesWizard.jsx",
     copy: "frontend/src/DraftHub/rulesPresentation.js",
-    doNot: "Do not invent a parallel rules model. Merge via rulesPresentation.js. Templates confirm and fill the form — they do not save. Draft behavior stays an open section. At a glance names saved vs preview.",
+    doNot: "Do not invent a parallel rules model. Merge via rulesPresentation.js. Templates confirm and fill the form — they do not save. Draft behavior stays an open section. At a glance names saved vs preview. Hero chips are status, not the page primary. Do not put You can edit where Save belongs.",
   }),
   "hub.office": S({
     label: "Roster management",
     chrome: "office",
+    route: "/hub/roster-management/contracts",
     page: "frontend/src/DraftHub/LeagueOffice.jsx",
     also: [
       "frontend/src/DraftHub/hubOfficeTabs.js",
@@ -169,6 +184,7 @@ export const LIVING_SURFACES = Object.freeze({
   "hub.office.current": S({
     label: "Contracts",
     chrome: "office",
+    route: "/hub/roster-management/contracts",
     page: "frontend/src/DraftHub/CommissionerLeagueRosters.jsx",
     copy: "frontend/src/DraftHub/officeContractsPresentation.js",
     also: ["frontend/src/DraftHub/insights/AwardTitlesEditor.jsx"],
@@ -177,12 +193,14 @@ export const LIVING_SURFACES = Object.freeze({
   "hub.office.historic": S({
     label: "Salary sheets",
     chrome: "office",
+    route: "/hub/roster-management/sheets",
     page: "frontend/src/DraftHub/TeamSalarySheets.jsx",
     doNot: "Keep sheets inside Roster management. Do not add a top-level destination.",
   }),
   "hub.office.members": S({
     label: "Members",
     chrome: "office",
+    route: "/hub/roster-management/members",
     page: "frontend/src/DraftHub/LeagueOffice.jsx",
     copy: "frontend/src/DraftHub/leagueAccessCopy.js",
     doNot: "List people by owner name. Do not show a nickname as the only identity. Seat is the slot; manager is the person. Add a seat only past the seat count.",
@@ -190,6 +208,7 @@ export const LIVING_SURFACES = Object.freeze({
   "hub.office.access": S({
     label: "Access & imports",
     chrome: "office",
+    route: "/hub/roster-management/access",
     page: "frontend/src/DraftHub/LeagueOffice.jsx",
     copy: "frontend/src/DraftHub/leagueAccessCopy.js",
     doNot: "Do not invent a second invite or import chrome. Access & imports is the Sleeper link and email-assign only. It does not copy the Draft invite link. The strip owns Sync league. Collapse the Sleeper league ID form once the league is linked.",
@@ -197,14 +216,16 @@ export const LIVING_SURFACES = Object.freeze({
   "hub.insights": S({
     label: "Insights",
     chrome: "experience",
+    route: "/hub/insights/overview",
     page: "frontend/src/DraftHub/LeagueInsights.jsx",
     copy: "frontend/src/DraftHub/insights/insightsPresentation.js",
     also: ["frontend/src/DraftHub/insights/InsightsOverview.jsx"],
-    doNot: "Gold is for awards only. Overview sells titles, records, and scoring — not Spend. Rank bars share a fixed track and a field scale, not a zero baseline or the value-label width. Scoring gaps from first; the leader reads Leader. Season counts are meta, not chips. Keep the tab strip live and below the hero band — never above it. Skeleton the three cards — no think scrim. Award names live on Roster management.",
+    doNot: "Gold is for awards only. Overview sells titles, records, and scoring — not Spend. Rank bars share a fixed track and a field scale, not a zero baseline or the value-label width. Scoring gaps from first; the leader reads Leader. Season counts are meta, not chips. Keep the tab strip live and below the hero band — never above it. Skeleton the three cards — no think scrim. Award names live on Roster management. Overview is a three-card page that should sit above the fold; do not stretch unequal panels to a shared bottom.",
   }),
   "hub.setup": S({
     label: "Setup",
     chrome: "office",
+    route: "/hub/setup",
     page: "frontend/src/DraftHub/HubSetup.jsx",
     also: ["frontend/src/DraftHub/LeagueSetup.jsx"],
     copy: "frontend/src/DraftHub/leagueAccessCopy.js",
@@ -213,6 +234,7 @@ export const LIVING_SURFACES = Object.freeze({
   "tools.dfs": S({
     label: "DFS",
     chrome: "experience",
+    route: "/tools/dfs",
     page: "frontend/src/LineupOptimizer.jsx",
     copy: "frontend/src/dfsToolPresentation.js",
     doNot: "Reuse experience classes and dfsToolPresentation.js. Do not fork a DFS hero. Hero only — do not restate the hero as a sub-nav tagline. Rail is Your lineup · locked · skipped. Pool table lets the page own vertical scroll and sticks the header. Announce a built lineup and highlight those rows. Exclusive format/goal/stack choices use radiogroup. Season and Week use HubFilterMenu, not a native select. Format cards are 5-up at desktop width. Highest is a corner tag, not a wrapping HIGHEST TOTAL line. Lock/Skip use the same ghost height as Free agents History. Amber never marks Highest.",
@@ -220,23 +242,27 @@ export const LIVING_SURFACES = Object.freeze({
   "tools.mock-draft": S({
     label: "Mock draft",
     chrome: "experience",
+    route: "/tools/mock-draft",
     page: "frontend/src/DraftHub/MockDraftTool.jsx",
     copy: "frontend/src/DraftHub/mockDraftConfig.js",
     also: [
       "frontend/src/DraftHub/DraftSeat.jsx",
       "frontend/src/DraftHub/draftSeat.js",
     ],
-    doNot: "Idle mock uses this launch page. A running mock uses DraftRoom. Seats use DraftSeat (YOU / 2 / 3), the same component as idle Draft. Number every visible step or drop the numerals. Disclosure summaries show caret, badge, and heading on one row. Mode cards describe; the primary carries the verb. Seat marks that are not selectable are labeled as a fact — do not promise sit. One reassurance in the first viewport. When matching league rules, field size follows that league. Recent mocks (last 3) sit on the launch rail; empty rail says No mocks yet.",
+    doNot: "Idle mock uses this launch page. A running mock uses DraftRoom. Seats use DraftSeat (YOU / 2 / 3), the same component as idle Draft. Number every visible step or drop the numerals. Disclosure summaries show caret, badge, and heading on one row. Mode-select cards describe; the primary button carries the verb. Seat marks that are not selectable are labeled as a fact — do not promise sit. One reassurance in the first viewport — do not stack the same reassurance twice. When matching league rules, field size follows that league. Recent mocks (last 3) sit on the launch rail; empty rail says No mocks yet.",
   }),
   "tools.mock-draft.live": S({
     label: "Mock draft (live)",
     chrome: "draft-live",
+    route: "/tools/mock-draft",
+    overlay: true,
     page: "frontend/src/DraftHub/DraftRoom.jsx",
     doNot: "A live mock is board-first. Same photos as rosters.",
   }),
   "tools.best-ball": S({
     label: "Best ball",
     chrome: "experience",
+    route: "/tools/best-ball",
     page: "frontend/src/BestBallBoard.jsx",
     copy: "frontend/src/bestBallPresentation.js",
     doNot: "Reuse HubExperience*. Do not invent a fourth top-level area. Leftmost # is monotonic; Pos rank is within position and groups under position headers on that sort. Missing ECR is a No ECR chip and ECR filter, never a dash. Show the No ECR chip in Edge too when ECR is missing. Edge names the ±10 threshold in copy; discount is teal, reach is --tone-negative, never amber. Pos / ECR / Sort are labeled menus. Export lives in the filter bar. The rail H3 is This board, not Board at a glance. Loading uses skeletons, not a text line. Page owns scroll and the list is windowed. Headers name the data (Pos rank, Pos ECR as FantasyPros consensus); ECR or ADP by its real name, never one labeled as the other. Hide Edge sort when the source is ECR-only. Show Scoring: PPR. No roadmap notes in user copy. Team abbreviations match Weekly (LAR, not LA).",
@@ -244,6 +270,7 @@ export const LIVING_SURFACES = Object.freeze({
   "projections.weekly": S({
     label: "Weekly",
     chrome: "board",
+    route: "/projections/weekly",
     page: "frontend/src/WeeklyTable.jsx",
     copy: "frontend/src/projectionsPresentation.js",
     also: [
@@ -255,6 +282,7 @@ export const LIVING_SURFACES = Object.freeze({
   "projections.season": S({
     label: "Season",
     chrome: "board",
+    route: "/projections/season",
     page: "frontend/src/DraftTable.jsx",
     copy: "frontend/src/projectionsPresentation.js",
     also: [
@@ -266,6 +294,7 @@ export const LIVING_SURFACES = Object.freeze({
   "projections.inspector": S({
     label: "Player inspector",
     chrome: "board",
+    overlay: true,
     page: "frontend/src/PlayerCardModal.jsx",
     copy: "frontend/src/projectionsPresentation.js",
     also: [
@@ -277,6 +306,7 @@ export const LIVING_SURFACES = Object.freeze({
   "account.model": S({
     label: "Model accuracy",
     chrome: "account",
+    route: "/model",
     page: "frontend/src/AccuracyChart.jsx",
     copy: "frontend/src/accuracyPresentation.js",
     doNot: "Account-only. Do not add Model accuracy to top-level nav. Tiles name the position. Hide empty season charts. First stat tile is a neutral surface, not accent blue.",
@@ -284,6 +314,7 @@ export const LIVING_SURFACES = Object.freeze({
   "account.admin": S({
     label: "Admin",
     chrome: "account",
+    route: "/admin",
     page: "frontend/src/AdminPortal.jsx",
     copy: "frontend/src/adminPresentation.js",
     doNot: "Account-only. Do not add Admin to top-level nav. Owner-to-team attach after signup lives here until a Fantasy flow exists.",
@@ -291,6 +322,7 @@ export const LIVING_SURFACES = Object.freeze({
   "account.account": S({
     label: "Account",
     chrome: "account",
+    route: "/account",
     page: "frontend/src/AccountSettingsPage.jsx",
     also: ["frontend/src/AccountAuth.jsx"],
     doNot: "Account-only. Do not add Account to top-level nav.",
@@ -298,6 +330,7 @@ export const LIVING_SURFACES = Object.freeze({
   "account.report": S({
     label: "Report a bug",
     chrome: "account",
+    route: "/report",
     page: "frontend/src/BugReportPage.jsx",
     copy: "frontend/src/bugReportPresentation.js",
     also: [
@@ -309,6 +342,7 @@ export const LIVING_SURFACES = Object.freeze({
   "account.login": S({
     label: "Sign in",
     chrome: "account",
+    route: "/login",
     page: "frontend/src/AuthSessionPage.jsx",
     copy: "frontend/src/authPresentation.js",
     also: ["frontend/src/AccountAuth.jsx", "frontend/src/styles/auth-session.css"],
@@ -317,6 +351,7 @@ export const LIVING_SURFACES = Object.freeze({
   "account.register": S({
     label: "Create account",
     chrome: "account",
+    route: "/register",
     page: "frontend/src/AuthSessionPage.jsx",
     copy: "frontend/src/authPresentation.js",
     also: ["frontend/src/AccountAuth.jsx", "frontend/src/styles/auth-session.css"],
@@ -325,6 +360,7 @@ export const LIVING_SURFACES = Object.freeze({
   "account.privacy": S({
     label: "Privacy",
     chrome: "account",
+    route: "/privacy",
     page: "frontend/src/legal/PrivacyPage.jsx",
     copy: "frontend/src/legal/legalPresentation.js",
     doNot: "Standalone legal page. Do not wrap in Fantasy experience chrome. Privacy names the SMS vendor and that mobile numbers are not shared, including in the early sections.",
@@ -332,6 +368,7 @@ export const LIVING_SURFACES = Object.freeze({
   "account.terms": S({
     label: "Terms",
     chrome: "account",
+    route: "/terms",
     page: "frontend/src/legal/TermsPage.jsx",
     copy: "frontend/src/legal/legalPresentation.js",
     doNot: "Standalone legal page. Do not wrap in Fantasy experience chrome.",
@@ -339,6 +376,7 @@ export const LIVING_SURFACES = Object.freeze({
   "account.sms-alerts": S({
     label: "Draft alert texts",
     chrome: "account",
+    route: "/sms-alerts",
     page: "frontend/src/legal/SmsAlertsPage.jsx",
     copy: "frontend/src/legal/legalPresentation.js",
     also: ["frontend/src/legal/SmsOptInCard.jsx", "frontend/src/AccountSettingsPage.jsx"],
@@ -521,4 +559,17 @@ export function surfacesForFile(repoPath) {
     return [{ id: "shared", label: "Shared chrome", chrome: "experience", page: path }];
   }
   return [];
+}
+
+/** Unique audit/verify URLs. Overlay rows (live draft, inspector) are skipped. */
+export function livingSurfaceRoutes() {
+  const seen = new Set();
+  const rows = [];
+  for (const [id, row] of Object.entries(LIVING_SURFACES)) {
+    if (!row?.route || row.overlay) continue;
+    if (seen.has(row.route)) continue;
+    seen.add(row.route);
+    rows.push({ id, route: row.route, label: row.label });
+  }
+  return rows;
 }

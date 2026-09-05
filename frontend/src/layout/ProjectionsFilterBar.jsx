@@ -1,4 +1,5 @@
 import React from "react";
+import { HubFilterMenu } from "../DraftHub/HubUILayout";
 import TeamFilter from "../TeamFilter";
 import { SEASON_MODES } from "../appNavigation";
 
@@ -145,19 +146,15 @@ export function ProjectionsFilterControls({
                 />
               </label>
             )}
-            <label className={isSheet ? "mobile-filter-field" : "header-inline-field header-context-field"}>
-              <span className={isSheet ? "mobile-filter-label" : "header-field-label"}>Season</span>
-              <select
-                className="header-select header-context-control"
+            <div className={isSheet ? "mobile-filter-field" : "header-inline-field header-context-field"}>
+              <HubFilterMenu
+                label="Season"
                 value={season}
-                onChange={(e) => onSeasonChange(e.target.value)}
-              >
-                {(projMeta?.seasons || []).map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </label>
-            <label className={isSheet ? "mobile-filter-field" : "header-inline-field header-context-field"}>
+                options={(projMeta?.seasons || []).map((s) => ({ id: s, label: String(s) }))}
+                onChange={onSeasonChange}
+              />
+            </div>
+            <div className={isSheet ? "mobile-filter-field" : "header-inline-field header-context-field"}>
               <span className={isSheet ? "mobile-filter-label" : "header-field-label"}>Week</span>
               <div className="week-stepper">
                 <button
@@ -169,15 +166,12 @@ export function ProjectionsFilterControls({
                 >
                   ‹
                 </button>
-                <select
-                  className="header-select header-context-control"
+                <HubFilterMenu
+                  label="Week"
                   value={week ?? ""}
-                  onChange={(e) => onWeekChange(Number(e.target.value))}
-                >
-                  {weekOptions.map((w) => (
-                    <option key={w} value={w}>{w}</option>
-                  ))}
-                </select>
+                  options={weekOptions.map((w) => ({ id: w, label: String(w) }))}
+                  onChange={(id) => onWeekChange(Number(id))}
+                />
                 <button
                   type="button"
                   className="week-step-btn"
@@ -188,7 +182,7 @@ export function ProjectionsFilterControls({
                   ›
                 </button>
               </div>
-            </label>
+            </div>
             <TeamFilter
               className={isSheet ? "mobile-filter-team" : "header-context-field header-context-field--team"}
               teams={projMeta?.teams || []}
@@ -200,46 +194,34 @@ export function ProjectionsFilterControls({
         ) : null}
 
         {isSeasonPreseason && draftMeta?.seasons?.length > 0 ? (
-          <label className={isSheet ? "mobile-filter-field" : "header-inline-field header-context-field"}>
-            <span className={isSheet ? "mobile-filter-label" : "header-field-label"}>Draft</span>
-            <select
-              className="header-select header-context-control"
+          <div className={isSheet ? "mobile-filter-field" : "header-inline-field header-context-field"}>
+            <HubFilterMenu
+              label="Draft"
               value={draftSeason ?? ""}
-              onChange={(e) => onDraftSeasonChange(Number(e.target.value))}
-            >
-              {draftMeta.seasons.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </label>
+              options={draftMeta.seasons.map((s) => ({ id: s, label: String(s) }))}
+              onChange={(id) => onDraftSeasonChange(Number(id))}
+            />
+          </div>
         ) : null}
 
         {isSeasonLive && rosSeason != null ? (
           <>
-            <label className={isSheet ? "mobile-filter-field" : "header-inline-field header-context-field"}>
-              <span className={isSheet ? "mobile-filter-label" : "header-field-label"}>Season</span>
-              <select
-                className="header-select header-context-control"
+            <div className={isSheet ? "mobile-filter-field" : "header-inline-field header-context-field"}>
+              <HubFilterMenu
+                label="Season"
                 value={rosSeason}
-                onChange={(e) => onRosSeasonChange(e.target.value)}
-              >
-                {(projMeta?.seasons || []).map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </label>
-            <label className={isSheet ? "mobile-filter-field" : "header-inline-field header-context-field"}>
-              <span className={isSheet ? "mobile-filter-label" : "header-field-label"}>As of</span>
-              <select
-                className="header-select header-context-control"
+                options={(projMeta?.seasons || []).map((s) => ({ id: s, label: String(s) }))}
+                onChange={onRosSeasonChange}
+              />
+            </div>
+            <div className={isSheet ? "mobile-filter-field" : "header-inline-field header-context-field"}>
+              <HubFilterMenu
+                label="As of"
                 value={rosFromWeek ?? ""}
-                onChange={(e) => onRosFromWeekChange(Number(e.target.value))}
-              >
-                {rosWeekOptions.map((w) => (
-                  <option key={w} value={w}>{w}</option>
-                ))}
-              </select>
-            </label>
+                options={rosWeekOptions.map((w) => ({ id: w, label: String(w) }))}
+                onChange={(id) => onRosFromWeekChange(Number(id))}
+              />
+            </div>
           </>
         ) : null}
       </div>

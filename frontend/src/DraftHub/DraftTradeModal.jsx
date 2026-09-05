@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import { HUB_POS_ORDER, normalizeHubPosition } from "./hubPositions";
+import { HubFilterMenu } from "./HubUILayout";
 import { fmtSal } from "./rosterFormat";
 
 function sortRoster(rows) {
@@ -233,22 +234,20 @@ export default function DraftTradeModal({
 
         {view === "builder" && (
           <>
-            <label className="hub-draft-trade-partner">
-              <span>With</span>
-              <select
-                value={partnerId}
-                onChange={(e) => {
-                  setPartnerId(e.target.value);
-                  setSendTheirs(new Set());
-                  setError("");
-                }}
-              >
-                {partners.length === 0 && <option value="">No human partners</option>}
-                {partners.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-            </label>
+            <HubFilterMenu
+              label="With"
+              value={partnerId}
+              options={
+                partners.length === 0
+                  ? [{ id: "", label: "No human partners" }]
+                  : partners.map((t) => ({ id: t.id, label: t.name }))
+              }
+              onChange={(id) => {
+                setPartnerId(id);
+                setSendTheirs(new Set());
+                setError("");
+              }}
+            />
             <div className="hub-draft-trade-grid">
               <CompactRoster
                 title="You send"

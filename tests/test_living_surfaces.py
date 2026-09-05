@@ -105,7 +105,9 @@ def test_registry_donots_name_concrete_jobs() -> None:
     text = _read("frontend", "src", "livingSurfaces.js")
     assert "ECR or ADP by its real name" in text
     assert "writes no league state" in text
-    assert "summary-rail primary is the move" in text
+    assert "summary-rail primary is leftover / open the room" in text
+    assert "Chat Send is ghost" in text
+    assert "Continue (or Propose on the last step) is the only primary" in text
     hub = _read(".cursor", "rules", "frontend-draft-hub.mdc")
     assert "Rules risk posture" in hub
 
@@ -114,8 +116,31 @@ def test_constitution_and_core_point_at_living_surfaces() -> None:
     product = _read("docs", "PRODUCT.md")
     core = _read(".cursor", "rules", "scoresense-core.mdc")
     readme = _read("docs", "README.md")
+    craft = _read(".cursor", "rules", "frontend-craft.mdc")
     assert "livingSurfaces.js" in product
     assert "livingSurfaces.js" in core
     assert "Matching:" in core
+    assert "frontend-craft.mdc" in core
     assert "livingSurfaces.js" in readme
+    assert "layout_audit.mjs" in craft
     assert "living-surfaces.mdc" not in _read("AGENTS.md")
+
+
+def test_layout_audit_helpers() -> None:
+    import subprocess
+
+    result = subprocess.run(
+        ["node", "--test", "scripts/dev/layout_audit.test.mjs"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_living_surfaces_declare_audit_routes() -> None:
+    text = _read("frontend", "src", "livingSurfaces.js")
+    assert 'route: "/hub/insights/overview"' in text
+    assert 'route: "/hub/free-agents"' in text
+    assert "export function livingSurfaceRoutes" in text

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { invalidateInsightsAfterCapSync } from "./hubDataCache";
-import { HubFilterChip, HubFilterScroll, HubPage, SortTh } from "./HubUILayout";
+import { HubFilterChip, HubFilterMenu, HubFilterScroll, HubPage, SortTh } from "./HubUILayout";
 import PlayerNameAliasPanel from "./PlayerNameAliasPanel";
 import { confirmDialog } from "../ui/confirm";
 import { promptDialog } from "../ui/prompt";
@@ -306,18 +306,12 @@ function AddPlayerToSheetForm({
             autoFocus
           />
         </label>
-        <label>
-          <span className="hub-filter-label">Pos</span>
-          <select
-            className="search-input"
-            value={form.position}
-            onChange={(e) => setField("position", e.target.value)}
-          >
-            {POSITIONS.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-        </label>
+        <HubFilterMenu
+          label="Pos"
+          value={form.position}
+          options={POSITIONS.map((p) => ({ id: p, label: p }))}
+          onChange={(id) => setField("position", id)}
+        />
         <label>
           <span className="hub-filter-label">$</span>
           <input
@@ -338,48 +332,27 @@ function AddPlayerToSheetForm({
             placeholder="Optional"
           />
         </label>
-        <label>
-          <span className="hub-filter-label">Status</span>
-          <select
-            className="search-input"
-            value={form.roster_status}
-            onChange={(e) => setField("roster_status", e.target.value)}
-          >
-            {STATUS_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span className="hub-filter-label">Acquired</span>
-          <select
-            className="search-input"
-            value={form.acquisition_type}
-            onChange={(e) => {
-              const next = e.target.value;
-              setField("acquisition_type", next);
-              // FA contract is always $1 and expires before the next draft.
-              if (next === "fa_contract") setField("cap_hit", "1");
-            }}
-            title="FA contract = $1 deal that leaves before the draft (not a keeper)"
-          >
-            {ACQUISITION_OPTIONS.map((o) => (
-              <option key={o.value || "none"} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span className="hub-filter-label">Phase</span>
-          <select
-            className="search-input"
-            value={form.contract_phase}
-            onChange={(e) => setField("contract_phase", e.target.value)}
-          >
-            {CONTRACT_PHASE_OPTIONS.map((o) => (
-              <option key={o.value || "none"} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-        </label>
+        <HubFilterMenu
+          label="Status"
+          value={form.roster_status}
+          options={STATUS_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
+          onChange={(id) => setField("roster_status", id)}
+        />
+        <HubFilterMenu
+          label="Acquired"
+          value={form.acquisition_type}
+          options={ACQUISITION_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
+          onChange={(next) => {
+            setField("acquisition_type", next);
+            if (next === "fa_contract") setField("cap_hit", "1");
+          }}
+        />
+        <HubFilterMenu
+          label="Phase"
+          value={form.contract_phase}
+          options={CONTRACT_PHASE_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
+          onChange={(id) => setField("contract_phase", id)}
+        />
         <label>
           <span className="hub-filter-label">Draft yr</span>
           <input
@@ -526,18 +499,12 @@ function MissingPlayersPanel({
                 <td className="col-player">
                   {item.player_name}
                   {isCommissioner ? (
-                    <label className="hub-salary-missing-pos">
-                      <span className="table-meta">Pos </span>
-                      <select
-                        className="search-input hub-salary-pos-pick"
-                        value={pos}
-                        onChange={(e) => setPositions((prev) => ({ ...prev, [item.player_name]: e.target.value }))}
-                      >
-                        {POSITIONS.map((p) => (
-                          <option key={p} value={p}>{p}</option>
-                        ))}
-                      </select>
-                    </label>
+                    <HubFilterMenu
+                      label="Pos"
+                      value={pos}
+                      options={POSITIONS.map((p) => ({ id: p, label: p }))}
+                      onChange={(id) => setPositions((prev) => ({ ...prev, [item.player_name]: id }))}
+                    />
                   ) : item.position ? (
                     <span className="table-meta"> · {item.position}</span>
                   ) : null}
@@ -563,15 +530,12 @@ function MissingPlayersPanel({
                 </td>
                 {isCommissioner && (
                   <td className="hub-salary-missing-actions">
-                    <select
-                      className="search-input hub-salary-owner-pick"
+                    <HubFilterMenu
+                      label="Owner"
                       value={targetOwner}
-                      onChange={(e) => setTargets((prev) => ({ ...prev, [item.player_name]: e.target.value }))}
-                    >
-                      {rowOwnerOptions.map((o) => (
-                        <option key={o} value={o}>{o}</option>
-                      ))}
-                    </select>
+                      options={rowOwnerOptions.map((o) => ({ id: o, label: o }))}
+                      onChange={(id) => setTargets((prev) => ({ ...prev, [item.player_name]: id }))}
+                    />
                     <button
                       type="button"
                       className="btn-ghost btn-sm"
@@ -608,23 +572,19 @@ function PositionEditCell({
 
   return (
     <td className="hub-salary-pos-cell">
-      <select
-        className="search-input hub-salary-pos-pick"
+      <HubFilterMenu
+        label="Pos"
         value={selectValue}
+        options={[
+          ...(!selectValue ? [{ id: "", label: "—" }] : []),
+          ...POSITIONS.map((p) => ({ id: p, label: p })),
+        ]}
         disabled={isBusy}
-        title="Change position"
-        aria-label="Position"
-        onChange={(e) => {
-          const next = e.target.value;
+        onChange={(next) => {
           if (!next || next === pos) return;
           onSave?.(next);
         }}
-      >
-        {!selectValue ? <option value="">—</option> : null}
-        {POSITIONS.map((p) => (
-          <option key={p} value={p}>{p}</option>
-        ))}
-      </select>
+      />
     </td>
   );
 }
@@ -646,22 +606,16 @@ function StatusEditCell({
 
   return (
     <td className="hub-salary-meta-cell">
-      <select
-        className="search-input hub-salary-meta-pick"
+      <HubFilterMenu
+        label="Status"
         value={selectValue}
+        options={STATUS_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
         disabled={isBusy}
-        title="Active = on this year’s sheet after the draft. Cut = dead money only."
-        aria-label="Status"
-        onChange={(e) => {
-          const next = e.target.value;
+        onChange={(next) => {
           if (!next || next === selectValue) return;
           onSave?.(next);
         }}
-      >
-        {STATUS_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
+      />
     </td>
   );
 }
@@ -685,22 +639,16 @@ function AcquisitionEditCell({
 
   return (
     <td className="hub-salary-meta-cell">
-      <select
-        className="search-input hub-salary-meta-pick"
+      <HubFilterMenu
+        label="Acquired"
         value={selectValue}
+        options={ACQUISITION_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
         disabled={isBusy}
-        title="How they joined this team in this year (blank for keepers)"
-        aria-label="Acquired"
-        onChange={(e) => {
-          const next = e.target.value;
+        onChange={(next) => {
           if (next === selectValue) return;
           onSave?.(next);
         }}
-      >
-        {ACQUISITION_OPTIONS.map((o) => (
-          <option key={o.value || "none"} value={o.value}>{o.label}</option>
-        ))}
-      </select>
+      />
     </td>
   );
 }
@@ -1987,20 +1935,16 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
         </div>
         )}
         {seasons.length > 0 && !parentSeason && (
-          <label className="hub-insights-season-picker">
-            <span className="hub-filter-label">Sheet season</span>
-            <select
-              className="search-input"
-              value={season || ""}
-              onChange={(e) => onSeasonChange(e.target.value)}
-              disabled={loading}
-              title={seasonCapYearHint(season)}
-            >
-              {seasons.slice().sort((a, b) => b - a).map((y) => (
-                <option key={y} value={y}>{y} season (week-1 sheet)</option>
-              ))}
-            </select>
-          </label>
+          <HubFilterMenu
+            label="Sheet season"
+            value={season || ""}
+            options={seasons.slice().sort((a, b) => b - a).map((y) => ({
+              id: y,
+              label: `${y} season (week-1 sheet)`,
+            }))}
+            onChange={onSeasonChange}
+            disabled={loading}
+          />
         )}
       </header>
       )}

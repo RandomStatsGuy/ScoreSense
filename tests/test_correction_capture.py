@@ -56,6 +56,8 @@ def test_correction_capture_rule_is_always_applied() -> None:
         assert f"`{freq}`" in skill or freq in skill
     assert "Captured:" in skill
     assert "Not a rule:" in skill
+    assert "Fixed primitive:" in skill
+    assert "layout_audit.mjs" in skill
 
 
 def test_learned_rules_rule_is_always_applied() -> None:

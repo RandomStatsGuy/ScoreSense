@@ -9,6 +9,7 @@ import {
   defaultDraftPlayerRailSort,
   draftPlayerRailRows,
 } from "./draftPlayerRail.js";
+import { HubFilterMenu } from "./HubUILayout";
 import { mergePlayerMedia } from "./draftRoomEnrichment";
 
 const PICK_SORTS = [
@@ -128,12 +129,12 @@ export default function DraftPlayerRail({
         >
           {needPositions.length ? `Needs · ${needPositions.join(" ")}` : "Needs filled"}
         </button>
-        <label>
-          <span className="sr-only">Sort available players</span>
-          <select value={sortKey} onChange={(event) => setSortKey(event.target.value)}>
-            {sorts.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-          </select>
-        </label>
+        <HubFilterMenu
+          label="Sort"
+          value={sortKey}
+          options={sorts.map(([id, label]) => ({ id, label }))}
+          onChange={setSortKey}
+        />
       </div>
 
       <div className="hub-draft-player-list" role="list" aria-label="Draftable players">

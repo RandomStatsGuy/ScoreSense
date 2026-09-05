@@ -9,6 +9,7 @@ Production is **Vultr + Cloudflare Tunnel** (`app.fourthdownlabs.com`). Vercel i
 | Draft PR | Nothing required | Actions CI, frontend build |
 | Ready PR touching `app/`, `src/`, `tests/`, requirements | `CI` (pytest via `requirements-ci.txt`) | Vercel, VPS deploy |
 | Ready PR touching `frontend/` | `Frontend` (`npm ci` + `vite build`) | Vercel |
+| Ready PR touching `frontend/src/styles/**`, `HubUILayout.jsx`, `livingSurfaces.js`, or `layout_audit.mjs` | `Layout audit` (Playwright at 1280 and 390 on every `livingSurfaceRoutes()` URL). Starts the app with `start_hub_dev.sh` — API uses `.venv` when present, otherwise PATH Python from `pip install -r requirements-ci.txt`. The check **gates** `type`, `selects`, `collisions`, `grids`. Other rules stay in the JSON. | Draft PRs |
 | Ready PR that is only docs / `render.yaml` / `vercel.json` | No Actions workflow | Vercel, pytest, npm |
 | Merge to `develop` | Nothing extra (already paid on the PR) | Second full pytest |
 | Push to `master` with app/image changes | `Deploy to VPS` | Docs-only master merges |
@@ -42,6 +43,16 @@ Set on [cursor.com/dashboard](https://cursor.com/dashboard):
 $env:PYTHONPATH="."
 .venv\Scripts\python -m pytest tests/ -q
 cd frontend; npm run build
+```
+
+Layout craft (local, no GitHub wait):
+
+```bash
+cd frontend
+npm run audit:layout -- /hub/roster --width 1280
+npm run audit:layout -- --all --width 390
+# GitHub Actions equivalent (exit 0 unless a gated rule or a page load fails):
+npm run audit:layout -- --all --width 1280 --gate type,selects,collisions,grids
 ```
 
 If those pass, the VPS image will build. Mark the PR ready only when you want a second machine to say the same thing.

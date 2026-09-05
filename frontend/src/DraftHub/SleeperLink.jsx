@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../auth";
 import { formatRelativeTime, parseApiError } from "../format";
+import { HubFilterMenu } from "./HubUILayout";
 import useMobileLayout from "../useMobileLayout";
 
 export default function SleeperLink({ workspace, hubContext, onLinked, onRosterChanged }) {
@@ -392,17 +393,18 @@ export default function SleeperLink({ workspace, hubContext, onLinked, onRosterC
             )}
             {teams.length > 0 && (
               <li>
-                <label>
-                  <span className="hub-field-label">Your team</span>
-                  <select value={rosterId} onChange={(e) => setRosterId(e.target.value)}>
-                    <option value="">Select your team…</option>
-                    {teams.map((t) => (
-                      <option key={t.roster_id} value={t.roster_id}>
-                        {t.team_name} ({t.player_count} players{t.owner_name ? ` · ${t.owner_name}` : ""})
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <HubFilterMenu
+                  label="Your team"
+                  value={rosterId}
+                  options={[
+                    { id: "", label: "Select your team…" },
+                    ...teams.map((t) => ({
+                      id: t.roster_id,
+                      label: `${t.team_name} (${t.player_count} players${t.owner_name ? ` · ${t.owner_name}` : ""})`,
+                    })),
+                  ]}
+                  onChange={setRosterId}
+                />
               </li>
             )}
           </ol>
