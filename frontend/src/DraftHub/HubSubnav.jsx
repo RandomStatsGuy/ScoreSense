@@ -102,7 +102,13 @@ export default function HubSubnav({
       onClose={() => setPickerOpen(false)}
       title={MOBILE_CHROME_COPY.fantasySheet}
       className="app-mobile-sheet-hub-tabs"
-      lead={<LeagueOverflowLead onAfterAction={() => setPickerOpen(false)} />}
+      lead={(
+        <LeagueOverflowLead
+          hubContext={hubContext}
+          onNavigate={onNavigate}
+          onAfterAction={() => setPickerOpen(false)}
+        />
+      )}
       groups={groups}
       active={subView}
       onSelect={(id) => selectAndDismissDestination(id, onNavigate, () => setPickerOpen(false))}

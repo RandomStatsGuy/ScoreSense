@@ -1,17 +1,82 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { apiFetch } from "../auth";
 import { MOBILE_CHROME_COPY } from "../layout/mobileChromePresentation";
+import { getFreshnessCache, setFreshnessCache } from "./hubDataCache";
+import {
+  ageShort,
+  buildLeagueAttentionItems,
+  leagueDisplayName,
+  leaguePhaseLabel,
+  leagueRoleLabel,
+} from "./leagueAttention";
 import { useLeagueChrome } from "./leagueChromeContext";
+import { isSoloContext } from "./hubLeagues";
 
-export default function LeagueOverflowLead({ onAfterAction }) {
+export default function LeagueOverflowLead({
+  hubContext,
+  onNavigate,
+  onAfterAction,
+}) {
   const { chrome } = useLeagueChrome();
-  if (!chrome?.leagueName) return null;
-  const items = chrome.attentionItems || [];
+  const leagueId = hubContext?.league_id;
+  const inLeague = Boolean(leagueId) && !isSoloContext(hubContext);
+  const [freshness, setFreshness] = useState(
+    () => getFreshnessCache(leagueId)?.data || null,
+  );
+
+  useEffect(() => {
+    if (!leagueId || !inLeague) {
+      setFreshness(null);
+      return undefined;
+    }
+    const cached = getFreshnessCache(leagueId);
+    if (cached?.data) setFreshness(cached.data);
+    const ctrl = new AbortController();
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/api/hub/league/${encodeURIComponent(leagueId)}/freshness`,
+          { signal: ctrl.signal },
+        );
+        if (!res.ok) return;
+        const payload = await res.json();
+        setFreshnessCache(leagueId, payload);
+        setFreshness(payload);
+      } catch {
+        /* keep cached */
+      }
+    })();
+    return () => ctrl.abort();
+  }, [leagueId, inLeague]);
+
+  const leagueName = chrome?.leagueName || leagueDisplayName(hubContext, { inLeague });
+  const phaseLabel = chrome?.phaseLabel || leaguePhaseLabel(hubContext, { inLeague });
+  const roleLabel = chrome?.roleLabel || leagueRoleLabel(hubContext, { inLeague });
+  const poolStale = Boolean(freshness?.projections?.stale)
+    || (freshness && freshness.projections?.available === false);
+  const items = buildLeagueAttentionItems({
+    inLeague,
+    poolStale,
+    projectionsAvailable: freshness?.projections?.available,
+    projAge: ageShort(freshness?.projections?.built_at),
+    capSheetsStale: Boolean(freshness?.cap_sheets?.stale),
+    isCommish: Boolean(hubContext?.is_commissioner),
+  });
+
+  if (!leagueName) return null;
+
+  const runAction = (action) => {
+    if (action === "planner") onNavigate?.("planner");
+    if (action === "sheets" || action === "projections") onNavigate?.("office");
+    onAfterAction?.();
+  };
+
   return (
     <div className="app-mobile-sheet-league">
       <p className="app-mobile-sheet-league-line">
-        <strong>{chrome.leagueName}</strong>
-        {chrome.phaseLabel ? ` · ${chrome.phaseLabel}` : ""}
-        {chrome.roleLabel ? ` · ${chrome.roleLabel}` : ""}
+        <strong>{leagueName}</strong>
+        {phaseLabel ? ` · ${phaseLabel}` : ""}
+        {roleLabel ? ` · ${roleLabel}` : ""}
       </p>
       {items.length > 0 ? (
         <div className="app-mobile-sheet-attention" role="status">
@@ -20,14 +85,11 @@ export default function LeagueOverflowLead({ onAfterAction }) {
             {items.map((item) => (
               <li key={item.id} className="app-mobile-sheet-attention-item">
                 <span>{item.label}</span>
-                {item.onAction && item.actionLabel ? (
+                {item.actionLabel ? (
                   <button
                     type="button"
                     className="btn-link"
-                    onClick={() => {
-                      item.onAction();
-                      onAfterAction?.();
-                    }}
+                    onClick={() => runAction(item.action)}
                   >
                     {item.actionLabel}
                   </button>

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  ageShort,
   buildLeagueAttentionItems,
   filterAttentionForView,
   leagueDisplayName,
@@ -26,6 +27,11 @@ test("Needs attention names the stale sheet and the sync", () => {
   assert.equal(items[0].label, "Cap sheets stale");
   assert.equal(items[0].actionLabel, "Sync sheets");
   assert.equal(items[0].action, "sheets");
+});
+
+test("ageShort formats minutes for a recent stamp", () => {
+  const at = new Date(Date.now() - 33 * 60 * 1000).toISOString();
+  assert.equal(ageShort(at), "33m");
 });
 
 test("attention for the open view stays off the overflow list", () => {

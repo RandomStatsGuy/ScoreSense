@@ -1,5 +1,18 @@
 /** League strip / phone overflow — phase, role, and Needs attention items. */
 
+export function ageShort(at) {
+  if (!at) return null;
+  const ms = typeof at === "number" ? at : Date.parse(at);
+  if (!Number.isFinite(ms)) return null;
+  const diffSec = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (diffSec < 60) return "just now";
+  const diffMin = Math.round(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 48) return `${diffHr}h`;
+  return `${Math.round(diffHr / 24)}d`;
+}
+
 export function leaguePhaseLabel(hubContext, { inLeague } = {}) {
   if (!inLeague) return "Solo";
   return hubContext?.draft_completed ? "In season" : "Pre-draft";
