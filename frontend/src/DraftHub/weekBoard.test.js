@@ -10,6 +10,7 @@ import {
   canEditHubLineup,
   decisionSwapIds,
   trophyStripCopy,
+  formatDraftNightShort,
   weekHeroCopy,
   weekBoardOverlayCopy,
   weekPrimaryAction,
@@ -105,9 +106,14 @@ test("decisionForStarter attaches the swap to the challenged slot", () => {
 });
 
 test("empty week hero and rail name the missing board, not zeros", () => {
-  const hero = weekHeroCopy({ emptyRoster: true, unlinked: true, weekLabel: "Week 1" });
+  const hero = weekHeroCopy({
+    emptyRoster: true,
+    unlinked: true,
+    draftCompleted: true,
+    weekLabel: "Week 1",
+  });
   assert.equal(hero.heading, "Need a roster to set a lineup.");
-  assert.match(hero.support, /Lock a night|Empty seats/i);
+  assert.match(hero.support, /Lock a night|Empty seats|Link Sleeper/i);
   assert.equal(hero.chipTone, "readonly");
 
   const items = weekRailItems({ emptyRoster: true });
@@ -116,23 +122,39 @@ test("empty week hero and rail name the missing board, not zeros", () => {
   assert.equal(weekPrimaryAction({ emptyRoster: true, unlinked: true, draftCompleted: false }).kind, "room");
   assert.equal(weekPrimaryAction({ emptyRoster: true, unlinked: true, draftCompleted: true }).kind, "office-access");
   assert.match(
-    weekHeroCopy({ emptyRoster: true, unlinked: false }).support,
-    /Sync league/i,
+    weekHeroCopy({ emptyRoster: true, unlinked: false, draftCompleted: true }).support,
+    /Sync league|Link Sleeper/i,
   );
 });
 
 test("failed load names the miss and a real next destination", () => {
   const hero = weekHeroCopy({ loadFailed: true, weekLabel: "Week 1" });
-  assert.equal(hero.heading, "Could not load this week's board.");
-  assert.match(hero.support, /Reload this week|open Draft/i);
+  assert.equal(hero.heading, "Lineup did not load. Retry.");
+  assert.match(hero.support, /Retry/i);
   assert.doesNotMatch(hero.support, /Recent mocks|League settings|No swap/i);
   assert.equal(weekPrimaryAction({ loadFailed: true }).kind, "retry");
-  assert.equal(weekPrimaryAction({ loadFailed: true }).label, "Reload this week");
-  assert.deepEqual(weekRailItems({ loadFailed: true }).map((i) => i.value), ["Failed", "Locked"]);
-  assert.match(weekRailNote({ loadFailed: true }), /open Draft/i);
+  assert.equal(weekPrimaryAction({ loadFailed: true }).label, "Retry");
+  assert.deepEqual(weekRailItems({ loadFailed: true }).map((i) => i.value), ["Did not load", "Retry"]);
+  assert.match(weekRailNote({ loadFailed: true }), /Retry/i);
   const overlay = weekBoardOverlayCopy({ loadFailed: true });
   assert.match(overlay.title, /did not load/i);
   assert.doesNotMatch(overlay.body, /Recent mocks|League settings/i);
+});
+
+test("week hero follows board state instead of a false swap", () => {
+  assert.equal(weekHeroCopy({ loading: true }).heading, "Reading your lineup…");
+  assert.equal(weekHeroCopy({ error: true }).heading, "Lineup did not load. Retry.");
+  assert.equal(weekPrimaryAction({ error: true }).kind, "retry");
+  const pre = weekHeroCopy({
+    emptyRoster: true,
+    draftCompleted: false,
+    draftNightLabel: "Sat 7 p.m.",
+  });
+  assert.match(pre.heading, /Lineups open after the draft/);
+  assert.match(pre.heading, /Sat 7 p\.m\./);
+  assert.notEqual(weekHeroCopy({ loading: true }).heading, "No swap worth making.");
+  assert.notEqual(weekHeroCopy({ error: true }).heading, "No swap worth making.");
+  assert.match(formatDraftNightShort("2026-09-05T23:00:00.000Z"), /Sat|Sep/);
 });
 
 test("populated week hero reports lineup calls", () => {

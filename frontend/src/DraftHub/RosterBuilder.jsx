@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
-import MobileDataList, { MobileStat } from "../MobileDataList";
+import MobileDataList from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
 import MobileBottomSheet from "../layout/MobileBottomSheet";
 import HubTabIntro from "./HubTabIntro";
@@ -10,6 +10,7 @@ import { MY_TEAM_COPY } from "./rosterPresentation";
 import { HubFilterChip, HubFilterScroll, HubPage, HubTableCard } from "./HubUILayout";
 import {
   CONTRACT_TYPE_OPTIONS,
+  contractDeadCapStory,
   contractTypeBadgeClass,
   contractTypeLabel,
   fmtSal,
@@ -137,8 +138,10 @@ function ContractSidePanelBody({
   maxYears,
   status,
   onOpenContractHistory,
+  rules,
 }) {
   const isCut = r.roster_status === "cut_before_draft";
+  const deadStory = contractDeadCapStory(r, rules);
 
   return (
     <div className="hub-roster-contract-panel-body">
@@ -226,6 +229,17 @@ function ContractSidePanelBody({
         <strong className="hub-schedule-preview">{livePreview || "—"}</strong>
       </div>
 
+      <div className="hub-roster-contract-panel-grid">
+        <div className="hub-roster-contract-panel-stat">
+          <span className="mobile-stat-label">Dead cap</span>
+          <strong>{deadStory.deadLabel}</strong>
+        </div>
+        <div className="hub-roster-contract-panel-stat">
+          <span className="mobile-stat-label">If undone</span>
+          <strong>{deadStory.ifUndoneLabel}</strong>
+        </div>
+      </div>
+
       {(pendingType || pendingExt) && (
         <p className="chart-note">
           {pendingType ? "Type change pending commissioner approval. " : ""}
@@ -281,16 +295,18 @@ function ContractSidePanelBody({
             onClick={() => toggleCut(r, !isCut)}
           >
             {isCut ? "Undo cut" : "Cut pre-draft"}
+            {isCut ? <span className="hub-btn-support">{deadStory.undoSupport}</span> : null}
           </button>
         )}
         {!readOnly && (
           <button
             type="button"
-            className="btn-ghost btn-sm"
+            className="btn-ghost btn-sm hub-btn-danger"
             disabled={isSaving}
             onClick={() => remove(r.player_id)}
           >
             Remove
+            <span className="hub-btn-support">{MY_TEAM_COPY.removeSupport}</span>
           </button>
         )}
         <ContractHistoryLink
@@ -717,6 +733,7 @@ export default function RosterBuilder({
       maxYears,
       status: vm.status,
       onOpenContractHistory,
+      rules: workspace?.rules,
     };
   })() : null;
 
@@ -940,32 +957,14 @@ export default function RosterBuilder({
                       </span>
                     </>
                   )}
-                  expanded={(
-                    <div className="mobile-stat-grid hub-roster-mobile-grid">
-                      <MobileStat label="Pos" value={normalizeHubPosition(r.position) || r.position || "—"} />
-                      <MobileStat label={`Cap hit (${season})`} value={fmtSal(vm.edit.salary)} />
-                      <MobileStat label="Yrs left" value={vm.edit.years} />
-                      <MobileStat label="Status" value={vm.status.label} />
-                      {showManagerTeam && (
-                        <MobileStat label="Manager" value={r.manager_team || "—"} />
-                      )}
-                    </div>
-                  )}
                   actions={(
-                    <>
-                      <button
-                        type="button"
-                        className="btn-ghost btn-sm"
-                        onClick={() => setSelectedPlayerId(r.player_id)}
-                      >
-                        Contract
-                      </button>
-                      <ContractHistoryLink
-                        playerId={r.player_id}
-                        playerName={r.player_name}
-                        onOpen={onOpenContractHistory}
-                      />
-                    </>
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm"
+                      onClick={() => setSelectedPlayerId(r.player_id)}
+                    >
+                      Contract
+                    </button>
                   )}
                 />
               );
@@ -1048,11 +1047,6 @@ export default function RosterBuilder({
                     >
                       Contract
                     </button>
-                    <ContractHistoryLink
-                      playerId={r.player_id}
-                      playerName={r.player_name}
-                      onOpen={onOpenContractHistory}
-                    />
                   </td>
                 </tr>
               );

@@ -382,6 +382,7 @@ export function parseFilterParams(searchParams) {
     rosSeason: rosSeason != null && rosSeason !== "" ? Number(rosSeason) : null,
     search: search != null && search !== "" ? search : null,
     player: searchParams.get("player") || null,
+    needPos: (searchParams.get("needPos") || "").toUpperCase() || null,
     compareIds: compareIds.length ? compareIds : null,
     /** Open state for the comparison panel (`cmp=1` deep-link, SCORE-4). */
     compareView,
@@ -400,6 +401,7 @@ export function buildFilterSearchParams({
   rosFromWeek,
   search,
   player,
+  needPos,
   compareIds,
   compareView,
   movementFilter,
@@ -440,6 +442,12 @@ export function buildFilterSearchParams({
     const pid = String(player || "").trim();
     if (pid) params.set("player", pid);
     else params.delete("player");
+  }
+
+  if (needPos !== undefined) {
+    const pos = String(needPos || "").trim().toUpperCase();
+    if (pos && pos !== "ALL") params.set("needPos", pos);
+    else params.delete("needPos");
   }
 
   // Only touch compare / cmp when callers pass them explicitly so unrelated

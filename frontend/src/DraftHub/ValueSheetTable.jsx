@@ -26,7 +26,9 @@ import {
   playersTabAddLabel,
   playersTabAddMode,
   playersTabBanner,
+  playersTabLockedChip,
 } from "./acquisitionWindow";
+import { vsCostCell } from "./capPlannerPresentation";
 import {
   formatSeasonPts,
   isScheduleAwareMethod,
@@ -137,6 +139,8 @@ export default function ValueSheetTable({
   acquisitionWindow = null,
   inLeague = false,
   onOpenContractHistory,
+  remainingCap = null,
+  preDraft = false,
 }) {
   const pickDraft = pickDraftProp != null
     ? Boolean(pickDraftProp)
@@ -181,7 +185,7 @@ export default function ValueSheetTable({
       compact,
       advanced: showAdvanced,
       draftConsole,
-      showDelta: showDelta && anyCostDelta,
+      showDelta: showDelta && (anyCostDelta || (isAvailableView && preDraft)),
       // Free agents shows only available players — a Status column of identical
       // "Free agent" labels is noise there.
       showStatus: showStatus && !isAvailableView,
@@ -189,7 +193,7 @@ export default function ValueSheetTable({
       showSelect: Boolean(onSelectPlayer),
       riskActive: activeRisk,
     }),
-    [pickDraft, compact, showAdvanced, draftConsole, showDelta, anyCostDelta, showStatus, isAvailableView, addEnabled, onSelectPlayer, activeRisk],
+    [pickDraft, compact, showAdvanced, draftConsole, showDelta, anyCostDelta, preDraft, showStatus, isAvailableView, addEnabled, onSelectPlayer, activeRisk],
   );
   const showRiskScore = schema.showRiskScore;
   const showPosCol = schema.showPosCol;
@@ -854,6 +858,24 @@ export default function ValueSheetTable({
               );
             }
 
+            const lockedPickup = isAvailableView && addMode === "locked";
+            const rawBid = r.fair_value ?? r.suggested_bid;
+            const suggestedBid = rawBid != null && rawBid !== "" ? Number(rawBid) : NaN;
+            const lockedCopy = playersTabLockedChip();
+            if (lockedPickup && onWatchPlayer) {
+              const watching = (watchIds || []).map(String).includes(String(r.player_id));
+              actions.push(
+                <button
+                  key="watch"
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  aria-pressed={watching}
+                  onClick={() => onWatchPlayer(r)}
+                >
+                  {watching ? "Starred" : "Star"}
+                </button>,
+              );
+            }
             return (
               <MobilePlayerCard
                 key={r.player_id || `row-${idx}`}
@@ -863,19 +885,25 @@ export default function ValueSheetTable({
                 heroValue={pickDraft
                   ? formatSeasonPts(band.p50, 0)
                   : (
-                    <RaavBidCell
-                      row={r}
-                      riskTolerance={riskTolerance}
-                      rules={rules}
-                      showDeltaBadge={activeRisk
-                        || (r.risk_adjusted_value != null
-                          && Number.isFinite(Number(r.risk_adjusted_value)))}
-                    />
+                    <span className="hub-fa-suggested">
+                      <span className="hub-fa-suggested-eye">Suggested</span>
+                      {Number.isFinite(suggestedBid) ? `$${Math.round(suggestedBid)}` : "—"}
+                    </span>
                   )}
-                heroLabel={pickDraft ? "proj" : "bid"}
+                heroLabel={pickDraft ? "proj" : ""}
                 selected={selectedPlayerId === r.player_id}
                 onSelect={onSelectPlayer ? () => onSelectPlayer(r) : undefined}
-                badge={r.is_rookie ? <span className="hub-sleeper-badge">Rookie est.</span> : null}
+                badge={(
+                  <>
+                    {lockedPickup ? (
+                      <details className="hub-fa-locked" onClick={(e) => e.stopPropagation()}>
+                        <summary className="hub-fa-locked-chip">{lockedCopy.label}</summary>
+                        <p className="hub-fa-locked-pop">{lockedCopy.popover}</p>
+                      </details>
+                    ) : null}
+                    {r.is_rookie ? <span className="hub-sleeper-badge">Rookie est.</span> : null}
+                  </>
+                )}
                 expanded={(
                   <div className="mobile-stat-grid">
                     <MobileStat
@@ -920,11 +948,15 @@ export default function ValueSheetTable({
                         )}
                       </>
                     )}
-                    {showCostDelta && r.value_delta != null && (
+                    {showCostDelta && (
                       <MobileStat
-                        label="Value vs cost"
-                        value={`${r.value_delta <= 0 ? "" : "+"}${fmtSal(r.value_delta)}`}
-                        title="Contract salary minus suggested bid (negative = good value)"
+                        label={preDraft ? "Room after" : "Value vs cost"}
+                        value={vsCostCell({
+                          preDraft,
+                          remaining: remainingCap,
+                          bid: r.fair_value ?? r.suggested_bid,
+                          valueDelta: r.value_delta,
+                        })}
                       />
                     )}
                     {schema.showStatus && (
@@ -951,7 +983,7 @@ export default function ValueSheetTable({
         </>
       ) : (
       <div className="table-wrap table-sticky">
-        <table className={`data-table hub-table${pickDraft ? " hub-table--pick-draft" : ""}`}>
+        <table className={`data-table hub-table${pickDraft ? " hub-table--pick-draft" : ""}${preDraft ? " hub-table--pre-draft" : ""}`}>
           <thead>
             <tr>
               <SortTh label="Player" col="player" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="col-player" />
@@ -1103,6 +1135,8 @@ export default function ValueSheetTable({
                   row={r}
                   showAdvanced={showAdvanced}
                   showDelta={showCostDelta}
+                  preDraft={preDraft}
+                  remainingCap={remainingCap}
                   showStatus={schema.showStatus}
                   showAdd={addEnabled}
                   addMode={addMode}

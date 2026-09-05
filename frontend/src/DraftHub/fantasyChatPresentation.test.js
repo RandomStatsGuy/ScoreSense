@@ -83,8 +83,10 @@ test("edge placement persists for the session", () => {
     },
   };
   assert.equal(readChatLauncherEdge(storage), "right");
+  assert.equal(readChatLauncherEdge(storage, { mobile: true }), "bottom");
   assert.equal(writeChatLauncherEdge("left", storage), "left");
   assert.equal(storage.getItem(CHAT_LAUNCHER_EDGE_KEY), "left");
+  assert.equal(readChatLauncherEdge(storage, { mobile: true }), "left");
   assert.equal(writeChatLauncherEdge("nope", storage), "right");
 });
 
@@ -94,6 +96,7 @@ test("dragging dock drops parent transform so the launcher stays viewport-fixed"
     "utf8",
   );
   assert.match(css, /\.fantasy-chat-dock\.is-dragging\s*\{[^}]*transform:\s*none/s);
+  assert.match(css, /safe-area-inset-bottom/);
 });
 
 test("Home hides the edge launcher because the locker is the house", () => {

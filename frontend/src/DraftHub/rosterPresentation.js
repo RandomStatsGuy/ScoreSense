@@ -13,4 +13,5 @@ export const MY_TEAM_COPY = {
   emptySupport: "Lock a night on Draft, or link Sleeper on Access & imports.",
   emptyAction: "Lock a night",
   emptyActionLink: "Link Sleeper",
+  removeSupport: "Deletes the contract from the league. Staff only. Does not refund cap.",
 };

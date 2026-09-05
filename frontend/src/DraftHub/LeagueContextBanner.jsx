@@ -263,8 +263,6 @@ export default function LeagueContextBanner({
 
   useEffect(() => () => setChrome(null), [setChrome]);
 
-  if (mobileLayout) return null;
-
   if (!inLeague && !hasLeagues) {
     return (
       <section className="hub-league-context-bar" role="status">
@@ -509,6 +507,71 @@ export default function LeagueContextBanner({
       )}
     </div>
   );
+
+  const attentionOneLine = visibleAttentionItems.length > 0 ? (
+    <div className="hub-league-context-attention is-one-line" role="status">
+      <span className="hub-league-context-attention-label">Needs attention</span>
+      {visibleAttentionItems.slice(0, 1).map((item) => (
+        <span key={item.id} className="hub-league-context-attention-item">
+          <span className="hub-league-context-attention-text">{item.label}</span>
+          {item.onAction && item.actionLabel ? (
+            <button
+              type="button"
+              className="btn-link hub-league-context-attention-action"
+              onClick={item.onAction}
+              disabled={busy}
+            >
+              {item.actionLabel}
+            </button>
+          ) : null}
+        </span>
+      ))}
+    </div>
+  ) : null;
+
+  if (mobileLayout) {
+    return (
+      <section
+        className="hub-league-context-bar is-compact"
+        role="status"
+        aria-busy={busy || freshnessLoading}
+      >
+        <details className="hub-league-context-caret">
+          <summary>
+            <span className="hub-league-context-name">{leagueName}</span>
+          </summary>
+          <div className="hub-league-context-caret-menu">
+            {showSwitcher ? (
+              <LeagueSwitcher
+                memberships={memberships}
+                hubContext={hubContext}
+                onSwitch={onLeagueSwitch}
+                onCreateLeague={onCreateLeague}
+                variant="compact"
+                hideCreate
+                disabled={busy}
+              />
+            ) : null}
+            {onCreateLeague ? (
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={onCreateLeague}
+                disabled={busy}
+              >
+                {LEAGUE_CREATE_COPY.newLeague}
+              </button>
+            ) : null}
+            {syncPopover}
+          </div>
+        </details>
+        {attentionOneLine}
+        {(syncError || freshnessError) && !syncOpen ? (
+          <p className="error hub-league-context-inline-error">{syncError || freshnessError}</p>
+        ) : null}
+      </section>
+    );
+  }
 
   return (
     <section

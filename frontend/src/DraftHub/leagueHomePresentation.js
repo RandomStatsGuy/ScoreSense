@@ -1,4 +1,5 @@
 const ACTION_LABELS = {
+  roster_hole: "Open draft room",
   cap_overage: "Fix cap",
   draft_night: "Open draft room",
   sync_league: "Connect Sleeper",
@@ -12,6 +13,7 @@ const ACTION_LABELS = {
 };
 
 const ACTION_SUPPORT = {
+  roster_hole: "A missing starter is a wasted nomination. Undo a cut or spend in the room.",
   cap_overage: "Get legal before the next roster move.",
   draft_night: "The room is open. Miss it and you draft late or not at all.",
   sync_league: "Without Sleeper, scores and rosters stay empty.",
@@ -93,17 +95,40 @@ export const HOME_PAGE_COPY = {
   loadingKicker: "Reading your league",
   loadingHeading: "Checking what is due…",
   loadingSupport: "Cap, lineup, and draft night.",
+  loadingFallback: "Still loading cap — Sync league if this persists",
+  undoCut: "Undo a cut",
   emptySeatsCost: "Empty seats draft as bots.",
   notScheduled: "Not scheduled",
+  lastSeason: "Last season",
 };
+
+export function homeHasPendingCuts(data) {
+  const count = Number(data?.pre_draft?.pending_cuts_count);
+  if (Number.isFinite(count) && count > 0) return true;
+  return Array.isArray(data?.pre_draft?.pending_cuts) && data.pre_draft.pending_cuts.length > 0;
+}
+
+export function homeDeckMode({ phaseId, draftCompleted, scoring } = {}) {
+  const preDraft = phaseId === "pre_draft" || draftCompleted === false;
+  if (!preDraft) return { show: true, historical: false };
+  const placeholder = Boolean(scoring?.placeholder);
+  const hasRows = Boolean(scoring?.standings?.length || scoring?.matchups?.length);
+  const hasScored = Boolean(scoring) && !placeholder && hasRows;
+  if (hasScored || (hasRows && !placeholder)) {
+    return { show: true, historical: true };
+  }
+  return { show: false, historical: false };
+}
 
 export function homeHeroHeading(data) {
   const top = data?.actions?.[0] || data?.attention?.items?.[0];
   const open = Number(data?.seating?.open_seats ?? top?.count);
+  if (top?.id === "roster_hole") return top.message;
   if (top?.id === "invite_managers" && Number.isFinite(open) && open > 0) {
     return `Fill ${open} seats, then lock a night.`;
   }
   if (top?.id === "draft_night") return "Lock a night.";
+  if (top?.message && top.id !== "invite_managers") return top.message;
   if (Number.isFinite(open) && open > 0) {
     return `Fill ${open} seats, then lock a night.`;
   }
@@ -112,7 +137,9 @@ export function homeHeroHeading(data) {
 
 export function homeHeroSupport(data) {
   const top = data?.actions?.[0] || data?.attention?.items?.[0];
-  if (top?.id === "invite_managers" || Number(data?.seating?.open_seats) > 0) {
+  if (top?.id === "roster_hole") return actionSupport(top);
+  if (top?.id === "invite_managers") return HOME_PAGE_COPY.emptySeatsCost;
+  if (!top && Number(data?.seating?.open_seats) > 0) {
     return HOME_PAGE_COPY.emptySeatsCost;
   }
   return actionSupport(top);

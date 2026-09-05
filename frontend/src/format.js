@@ -66,14 +66,19 @@ export function rosSeasonP90(row) {
   return pickRow(row, "Season P90", "Season High");
 }
 
-export async function parseApiError(res, fallback = "Request failed") {
+const MOCK_GATEWAY = "This took too long. If you were simulating a mock, open it from Recent mocks — the draft may have finished.";
+const MOCK_EMPTY_500 = "The server failed to finish this request. If you were simulating a mock, check Recent mocks.";
+const PLAIN_RETRY = "Server did not respond — Retry";
+
+export async function parseApiError(res, fallback = "Request failed", options = {}) {
+  const mockInFlight = Boolean(options?.mockInFlight);
   if (res.status === 502 || res.status === 504 || res.status === 524) {
-    return "This took too long. Reload the page and try again.";
+    return mockInFlight ? MOCK_GATEWAY : PLAIN_RETRY;
   }
   const text = await res.text();
   if (!text) {
     if (res.status >= 500) {
-      return "The server failed to finish this request. Reload and try again.";
+      return mockInFlight ? MOCK_EMPTY_500 : PLAIN_RETRY;
     }
     return fallback;
   }
@@ -87,13 +92,14 @@ export async function parseApiError(res, fallback = "Request failed") {
     return body.message || text;
   } catch {
     if (res.status >= 500) {
-      return "The server failed to finish this request. Reload and try again.";
+      return mockInFlight ? MOCK_EMPTY_500 : PLAIN_RETRY;
     }
     return text.length > 200 ? fallback : text;
   }
 }
 
-export function connectionErrorMessage(err, fallback) {
+export function connectionErrorMessage(err, fallback, options = {}) {
+  const mockInFlight = Boolean(options?.mockInFlight);
   const msg = err?.message || "";
   if (
     msg.includes("Failed to fetch") ||
@@ -101,7 +107,9 @@ export function connectionErrorMessage(err, fallback) {
     msg.includes("NetworkError") ||
     msg.includes("proxy error")
   ) {
-    return "Can't reach the server right now. Check your connection and try again.";
+    return mockInFlight
+      ? "Can't reach the server right now. Check your connection and try again."
+      : PLAIN_RETRY;
   }
   return msg || fallback;
 }

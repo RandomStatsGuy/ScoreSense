@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import useMobileLayout from "../useMobileLayout";
 import { apiFetch } from "../auth";
 import { MOBILE_CHROME_COPY } from "../layout/mobileChromePresentation";
 import { getFreshnessCache, setFreshnessCache } from "./hubDataCache";
@@ -54,6 +55,7 @@ export default function LeagueOverflowLead({
   onAfterAction,
 }) {
   const { chrome } = useLeagueChrome();
+  const mobileLayout = useMobileLayout();
   const leagueId = hubContext?.league_id;
   const inLeague = Boolean(leagueId) && !isSoloContext(hubContext);
   const freshness = useLeagueFreshness(leagueId, inLeague);
@@ -75,7 +77,7 @@ export default function LeagueOverflowLead({
     chrome?.attentionItems,
   );
 
-  if (!leagueName) return null;
+  if (mobileLayout || !leagueName) return null;
 
   const runAction = (action) => {
     if (action === "planner") onNavigate?.("planner");

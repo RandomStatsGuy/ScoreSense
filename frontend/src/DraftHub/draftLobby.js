@@ -47,7 +47,32 @@ export function lobbyChipLabel({ claimed = 0, teamCount = 12, live = false } = {
   const seated = Math.max(0, Number(claimed) || 0);
   if (live) return "Drafting";
   if (seated >= target) return "Room full";
-  return `${seated} of ${target} seated`;
+  return `${seated} of ${target} claimed`;
+}
+
+export function assignClaimedTeamsToOpenSeats(teams = [], teamCount = 12) {
+  const n = Math.max(1, Number(teamCount) || 12);
+  const list = Array.isArray(teams) ? teams : [];
+  const seats = Array.from({ length: n }, () => null);
+  const used = new Set();
+  for (const team of list) {
+    const slot = Number(team?.draft_slot);
+    if (Number.isFinite(slot) && slot >= 1 && slot <= n && !seats[slot - 1]) {
+      seats[slot - 1] = team;
+      used.add(team);
+    }
+  }
+  const claimedUnslotted = list.filter((team) => team?.user_sub && !used.has(team) && !team.is_bot);
+  let next = 0;
+  return seats.map((team, index) => {
+    if (team) return { slot: index + 1, team };
+    if (next < claimedUnslotted.length) {
+      const claimed = claimedUnslotted[next];
+      next += 1;
+      return { slot: index + 1, team: claimed };
+    }
+    return { slot: index + 1, team: null };
+  });
 }
 
 export function lobbyChipTone({ claimed = 0, teamCount = 12 } = {}) {

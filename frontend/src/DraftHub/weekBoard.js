@@ -116,7 +116,19 @@ export function slotTone(slot, { decision, wide, injured, onBye } = {}) {
   return "set";
 }
 
+export function formatDraftNightShort(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const weekday = d.toLocaleDateString(undefined, { weekday: "short" });
+  const hour = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  const compact = hour.replace(":00", "").replace(/\s*AM/i, " a.m.").replace(/\s*PM/i, " p.m.");
+  return `${weekday} ${compact}`;
+}
+
 export function weekHeroCopy({
+  loading = false,
+  error = false,
   loadFailed = false,
   emptyRoster = false,
   unlinked = false,
@@ -124,12 +136,31 @@ export function weekHeroCopy({
   poorCoverage = false,
   decisionCount = 0,
   weekLabel = "This week",
+  draftNightLabel = "",
 } = {}) {
-  if (loadFailed) {
+  const failed = loadFailed || error;
+  if (loading) {
     return {
-      heading: "Could not load this week's board.",
-      support: "The slots stay empty until this request finishes. Reload this week, or open Draft if you still need a roster.",
-      chip: weekLabel || "Needs refresh",
+      heading: "Reading your lineup…",
+      support: "Cap and projections are still landing.",
+      chip: weekLabel || "This week",
+      chipTone: "readonly",
+    };
+  }
+  if (failed) {
+    return {
+      heading: "Lineup did not load. Retry.",
+      support: "Server did not respond — Retry",
+      chip: weekLabel || "This week",
+      chipTone: "caution",
+    };
+  }
+  if (emptyRoster && !draftCompleted) {
+    const night = draftNightLabel ? ` Draft night is ${draftNightLabel}.` : "";
+    return {
+      heading: `Lineups open after the draft.${night}`,
+      support: "A start now would be a guess. Lock a night so seats fill.",
+      chip: weekLabel || "Waiting on roster",
       chipTone: "readonly",
     };
   }
@@ -173,16 +204,24 @@ export function weekHeroCopy({
 }
 
 export function weekRailItems({
+  loading = false,
+  error = false,
   loadFailed = false,
   emptyRoster = false,
   unlinked = false,
   poorCoverage = false,
   counts = {},
 } = {}) {
-  if (loadFailed) {
+  if (loadFailed || error) {
     return [
-      { id: "board", label: "Board", value: "Failed", tone: "warn" },
-      { id: "decisions", label: "Decisions", value: "Locked" },
+      { id: "board", label: "Board", value: "Did not load", tone: "warn" },
+      { id: "decisions", label: "Decisions", value: "Retry" },
+    ];
+  }
+  if (loading) {
+    return [
+      { id: "board", label: "Board", value: "Reading" },
+      { id: "decisions", label: "Decisions", value: "—" },
     ];
   }
   if (emptyRoster) {
@@ -212,7 +251,7 @@ export function weekRailNote({
   headline = "",
   syncedLabel = "",
 } = {}) {
-  if (loadFailed) return "Reload this week. If you still need a roster, open Draft.";
+  if (loadFailed) return "Server did not respond — Retry";
   if (emptyRoster) {
     const empty = leagueBoardEmpty({
       emptyRoster: true,
@@ -227,6 +266,8 @@ export function weekRailNote({
 }
 
 export function weekPrimaryAction({
+  loading = false,
+  error = false,
   loadFailed = false,
   emptyRoster = false,
   unlinked = false,
@@ -234,7 +275,8 @@ export function weekPrimaryAction({
   draftCompleted = false,
   sleeperStale = false,
 } = {}) {
-  if (loadFailed) return { kind: "retry", label: "Reload this week" };
+  if (loadFailed || error) return { kind: "retry", label: "Retry" };
+  if (loading) return { kind: "wait", label: "Reading…" };
   if (emptyRoster) {
     const empty = leagueBoardEmpty({
       emptyRoster: true,
@@ -255,14 +297,14 @@ export function weekBoardOverlayCopy({
 } = {}) {
   if (loadFailed) {
     return {
-      title: "This week's board did not load.",
-      body: "Reload this week. If you still need a roster, open Draft.",
+      title: "Lineup did not load.",
+      body: "Server did not respond — Retry",
     };
   }
   if (loading && !emptyRoster && !unlinked) {
     return {
-      title: "Loading this week…",
-      body: "Sit/start waits until the board is here.",
+      title: "Reading your lineup…",
+      body: "Cap and projections are still landing.",
     };
   }
   return {

@@ -33,6 +33,51 @@ export function leftoverAfterMoveYears({
   });
 }
 
+export function capRailPrimary({ pendingCut = null, remaining = 0 } = {}) {
+  if (pendingCut?.player_name) {
+    const dead = Number(pendingCut.dead_cap);
+    const salary = Number(pendingCut.salary);
+    const deadBit = Number.isFinite(dead) ? `+$${Math.round(dead)} dead` : "+$0 dead";
+    const roomBit = Number.isFinite(salary) ? `−$${Math.round(salary)} room` : "−$0 room";
+    return {
+      kind: "undo-cut",
+      label: `Undo cut · ${pendingCut.player_name} (${deadBit}, ${roomBit})`,
+      playerId: pendingCut.player_id,
+    };
+  }
+  const room = Number(remaining);
+  const spend = Number.isFinite(room) ? `$${Math.round(room)} to spend.` : "Open the room.";
+  return {
+    kind: "room",
+    label: `Open draft room · ${spend}`,
+  };
+}
+
+export function positionFromNeedError(error) {
+  const match = String(error || "").match(/more\s+([A-Z]+)/i);
+  return match ? match[1].toUpperCase() : "";
+}
+
+export function roomAfterBid({ remaining, bid } = {}) {
+  const rem = Number(remaining);
+  const spend = Number(bid);
+  if (!Number.isFinite(rem) || !Number.isFinite(spend)) return null;
+  return rem - spend;
+}
+
+export function vsCostCell({ preDraft = false, remaining, bid, valueDelta } = {}) {
+  if (preDraft) {
+    if (bid == null || bid === "") return "—";
+    if (!Number.isFinite(Number(bid))) return "—";
+    const after = roomAfterBid({ remaining, bid });
+    if (after == null) return "—";
+    return `Room after: $${Math.round(after)}`;
+  }
+  if (valueDelta == null || !Number.isFinite(Number(valueDelta))) return "—";
+  const n = Number(valueDelta);
+  return `${n <= 0 ? "" : "+"}$${Math.round(Math.abs(n))}`;
+}
+
 export function capHeroCopy({ empty = false, preDraft = false } = {}) {
   if (empty) {
     return {

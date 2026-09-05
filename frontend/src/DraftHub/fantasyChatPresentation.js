@@ -43,20 +43,23 @@ export function writeChatLauncherDismissed(dismissed, storage = defaultSessionSt
   return hidden;
 }
 
-export function normalizeChatLauncherEdge(edge) {
-  return CHAT_EDGES.includes(edge) ? edge : "right";
+export function normalizeChatLauncherEdge(edge, { mobile = false } = {}) {
+  if (CHAT_EDGES.includes(edge)) return edge;
+  return mobile ? "bottom" : "right";
 }
 
-export function readChatLauncherEdge(storage = defaultSessionStorage()) {
+export function readChatLauncherEdge(storage = defaultSessionStorage(), { mobile = false } = {}) {
   try {
-    return normalizeChatLauncherEdge(storage?.getItem(CHAT_LAUNCHER_EDGE_KEY));
+    const stored = storage?.getItem(CHAT_LAUNCHER_EDGE_KEY);
+    if (stored) return normalizeChatLauncherEdge(stored, { mobile });
+    return mobile ? "bottom" : "right";
   } catch {
-    return "right";
+    return mobile ? "bottom" : "right";
   }
 }
 
 export function writeChatLauncherEdge(edge, storage = defaultSessionStorage()) {
-  const next = normalizeChatLauncherEdge(edge);
+  const next = normalizeChatLauncherEdge(edge, { mobile: false });
   try {
     storage?.setItem(CHAT_LAUNCHER_EDGE_KEY, next);
   } catch {

@@ -6,6 +6,7 @@ import {
   lobbyChipLabel,
   lobbyChipTone,
   lobbyPath,
+  assignClaimedTeamsToOpenSeats,
   startDraftIsPrimary,
   roomHeading,
   roomSupport,
@@ -36,8 +37,9 @@ test("room strip copy stays one line", () => {
   assert.match(altLockSummary({ locked: true }), /Move the locked night/i);
 });
 
-test("lobbyChipLabel counts seated managers", () => {
-  assert.equal(lobbyChipLabel({ claimed: 3, teamCount: 12 }), "3 of 12 seated");
+test("lobbyChipLabel counts claimed managers", () => {
+  assert.equal(lobbyChipLabel({ claimed: 3, teamCount: 12 }), "3 of 12 claimed");
+  assert.equal(lobbyChipLabel({ claimed: 1, teamCount: 10 }), "1 of 10 claimed");
   assert.equal(lobbyChipLabel({ claimed: 12, teamCount: 12 }), "Room full");
   assert.equal(lobbyChipLabel({ live: true }), "Drafting");
   assert.equal(lobbyChipTone({ claimed: 1, teamCount: 12 }), "caution");
@@ -45,4 +47,11 @@ test("lobbyChipLabel counts seated managers", () => {
   assert.equal(startDraftIsPrimary({ scheduled: false, claimed: 1, teamCount: 12 }), false);
   assert.equal(startDraftIsPrimary({ scheduled: true, claimed: 1, teamCount: 12 }), true);
   assert.equal(startDraftIsPrimary({ scheduled: false, claimed: 12, teamCount: 12 }), true);
+  const seats = assignClaimedTeamsToOpenSeats(
+    [{ id: "a", user_sub: "me", name: "Ada" }, { id: "b", draft_slot: 2, name: "Bea" }],
+    3,
+  );
+  assert.equal(seats[0].team.name, "Ada");
+  assert.equal(seats[1].team.name, "Bea");
+  assert.equal(seats[2].team, null);
 });
