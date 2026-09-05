@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from src.draft_hub import storage
-from src.draft_hub.contract_sync import commissioner_sync_status
+from src.draft_hub.contract_sync import commissioner_read_status
 from src.draft_hub.draft_pool_cache import _artifact_paths, pool_fingerprint
 
 
@@ -80,12 +80,16 @@ def league_data_freshness(league_id: str, *, include_contract_detail: bool = Tru
     imports = storage.list_legacy_imports(league_id)
     cap_last_imported_at = _max_iso_timestamp([r.get("imported_at") for r in imports])
 
-    contract_sync = commissioner_sync_status(league_id)
+    # File mtimes + SQLite only — never parse commissioner workbooks on GET.
+    contract_sync = commissioner_read_status(league_id)
+    computed_at = datetime.now(timezone.utc).isoformat()
 
     out: dict[str, Any] = {
         "available": True,
         "league_id": league_id,
         "planning_season": planning_season,
+        "stale_as_of": computed_at,
+        "computed_at": computed_at,
         "sleeper": {
             "synced_at": sleeper_synced_at,
             "linked": bool(sleeper_league_id),

@@ -102,7 +102,7 @@ test("game center labels lead with owner and keep the team nickname", () => {
 
 test("game state label distinguishes past weeks and preseason", () => {
   assert.equal(gameStateLabel({ preseason: true }), "Preseason");
-  assert.equal(gameStateLabel({ placeholder: true, preseason: true }), "Waiting");
+  assert.equal(gameStateLabel({ placeholder: true, preseason: true }), "No scores yet");
   assert.equal(gameStateLabel({ week: 10, current_week: 12 }), "Final");
   assert.equal(gameStateLabel({ week: 12, current_week: 12 }), "Next games Thu");
   assert.equal(gameStateLabel({ week: 12, current_week: 12, live: true }), "Live");

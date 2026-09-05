@@ -110,7 +110,8 @@ def _days_ago(built_at: str | None, *, now: datetime | None = None) -> int | Non
 
 def _nfl_season_type() -> str:
     try:
-        state = get_nfl_state()
+        # Last disk snapshot only — never block Home on a live Sleeper fetch.
+        state = get_nfl_state(allow_stale=True)
         return str(state.get("season_type") or "off").lower()
     except Exception:
         return "off"
@@ -643,6 +644,7 @@ def build_league_home(
                 ),
             },
             "projections": freshness.get("projections"),
+            "stale_as_of": freshness.get("stale_as_of") or freshness.get("computed_at"),
         },
         "cap": {
             "salary_cap": cap.get("salary_cap"),
@@ -694,5 +696,6 @@ def build_league_home(
             "live_sleeper": False,
             "include_week": bool(include_week),
             "built_for": "SCORE-10",
+            "stale_as_of": (freshness.get("stale_as_of") or freshness.get("computed_at")),
         },
     }

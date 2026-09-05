@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import threading
 import time
 from pathlib import Path
 from typing import Any, Optional
@@ -26,6 +27,8 @@ _PLAYERS_DF_MTIME: float = -1.0
 _PLAYERS_SEARCH_ROWS: list[dict[str, Any]] | None = None
 _PLAYERS_SEARCH_BY_LAST: dict[str, list[int]] | None = None
 _PLAYERS_SEARCH_MTIME: float = -1.0
+_NFL_STATE_REFRESH_LOCK = threading.Lock()
+_NFL_STATE_REFRESHING = False
 
 INJURY_STATUSES = {"Out", "Doubtful", "Questionable", "IR", "PUP"}
 EXCLUDED_SLEEPER_STATUSES = {"Inactive", "Retired"}
@@ -285,18 +288,65 @@ def _fetch_json(url: str) -> dict | list:
     return response.json()
 
 
-def get_nfl_state(use_cache: bool = True) -> dict:
-    """Sleeper NFL calendar state — cached locally to avoid blocking every meta request."""
+def _read_nfl_state_cache() -> dict | None:
+    if not STATE_CACHE.exists():
+        return None
+    try:
+        return json.loads(STATE_CACHE.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def _write_nfl_state_cache(state: dict) -> None:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    STATE_CACHE.write_text(json.dumps(state), encoding="utf-8")
+
+
+def _refresh_nfl_state_background() -> None:
+    global _NFL_STATE_REFRESHING
+    try:
+        state = _fetch_json(SLEEPER_STATE_URL)
+        _write_nfl_state_cache(state)
+    except Exception:
+        pass
+    finally:
+        with _NFL_STATE_REFRESH_LOCK:
+            _NFL_STATE_REFRESHING = False
+
+
+def _kick_nfl_state_refresh() -> None:
+    global _NFL_STATE_REFRESHING
+    with _NFL_STATE_REFRESH_LOCK:
+        if _NFL_STATE_REFRESHING:
+            return
+        _NFL_STATE_REFRESHING = True
+        threading.Thread(
+            target=_refresh_nfl_state_background,
+            name="sleeper-nfl-state-refresh",
+            daemon=True,
+        ).start()
+
+
+def get_nfl_state(use_cache: bool = True, *, allow_stale: bool = True) -> dict:
+    """Sleeper NFL calendar state — never block a hub read on a live fetch.
+
+    `allow_stale=True` (default) returns the last disk snapshot even when the
+    TTL has expired and refreshes in the background. Interactive hub routes
+    must keep this on. Pass `allow_stale=False` only for jobs that need a
+    live calendar.
+    """
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    cached = _read_nfl_state_cache() if use_cache else None
+    age = None
     if use_cache and STATE_CACHE.exists():
         age = time.time() - STATE_CACHE.stat().st_mtime
-        if age < STATE_CACHE_TTL_SECONDS:
-            try:
-                return json.loads(STATE_CACHE.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError):
-                pass
+    if cached is not None and age is not None and age < STATE_CACHE_TTL_SECONDS:
+        return cached
+    if allow_stale:
+        _kick_nfl_state_refresh()
+        return cached or {}
     state = _fetch_json(SLEEPER_STATE_URL)
-    STATE_CACHE.write_text(json.dumps(state), encoding="utf-8")
+    _write_nfl_state_cache(state)
     return state
 
 

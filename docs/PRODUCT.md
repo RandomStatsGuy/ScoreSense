@@ -216,7 +216,7 @@ Voice:
 
 Hero pattern: eyebrow (`League rules`) + sentence heading that is the job (`What a new contract will cost.`) + one support line that is the consequence. See `RulesWizard.jsx` and `dfsToolPresentation.js`.
 
-Home names the manager’s roster hole over a commissioner invite when both are due. This Week hero copy comes from board state (loading / error / empty pre-draft) — never “No swap worth making” over an error. Cap and My team read one dead-cap story from `rosterFormat.js`. Needs attention says **Cap**, not Cap planner. Draft seating chips count claimed teams. Locked draft night renders in the viewer’s timezone with an abbreviation; Draft setup names league time once.
+Home names the manager’s roster hole over a commissioner invite when both are due. Gate hero copy on load: skeleton or “Checking what is due…” until the payload lands — never a confident headline over unresolved data. After 3s of a long load, say the sync is still working. This Week hero copy comes from board state (loading / error / empty pre-draft) — never “No swap worth making” over an error. Empty starter slots say **Empty**; “Waiting on roster” is the unresolved-roster rail, not a loading chip. Game center’s unscored placeholder says **No scores yet**, not Waiting. Cap and My team read one dead-cap story from `rosterFormat.js`. Needs attention says **Cap**, not Cap planner. Draft seating chips count claimed teams. Locked draft night renders in the viewer’s timezone with an abbreviation; Draft setup names league time once.
 
 ---
 

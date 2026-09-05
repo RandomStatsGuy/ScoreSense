@@ -5,10 +5,23 @@ from __future__ import annotations
 from src.draft_hub import storage
 from src.draft_hub.contract_sync import (
     commissioner_files_fingerprint,
+    commissioner_read_status,
     commissioner_sync_status,
     sync_commissioner_sheets,
 )
 from src.draft_hub.schemas import LeagueRules
+
+
+def test_commissioner_read_status_skips_parse(hub_db, monkeypatch):
+    def _boom(*_a, **_k):
+        raise AssertionError("read status must not parse workbooks")
+
+    monkeypatch.setattr("src.draft_hub.contract_sync.process_league_history", _boom)
+    league = storage.create_league("read-st", "Read", 2025, LeagueRules())
+    status = commissioner_read_status(league["id"])
+    assert status["parsed"] is False
+    assert status["has_commissioner_files"] in {True, False}
+    assert "stale" in status
 
 
 def test_commissioner_sync_status_no_files(hub_db, monkeypatch):

@@ -205,7 +205,7 @@ export default function StrategyBoard({
     () => nextPair(board, { seenKeys, posFilter, ctx }),
     [board, seenKeys, posFilter, ctx],
   );
-  const mediaIds = useMemo(() => board.map((row) => row.player_id), [board]);
+  const mediaIds = useMemo(() => siteBoard.map((row) => row.player_id), [siteBoard]);
   const media = usePlayerMedia(mediaIds);
   const siteOrdered = useMemo(
     () => [...board].sort((a, b) => a.site_rank - b.site_rank),

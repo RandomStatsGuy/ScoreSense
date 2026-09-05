@@ -48,7 +48,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "action-center",
     page: "frontend/src/DraftHub/LeagueHome.jsx",
     copy: "frontend/src/DraftHub/leagueHomePresentation.js",
-    doNot: "Do not wrap Home in HubExperienceLayout. Extend the action deck. House the league thread in the locker rail. Do not show the edge launcher on Home. Do not add a Chat destination. Draft night · Not scheduled links to Draft. Clear chat is staff-only, red, and confirms. Home names the roster hole over a commissioner invite. Hide Your matchup / Standings when pre-draft with no scored week. After 5s of loading, the action deck names Sync league. Also due does not style a count like a link. On phone, a one-row league strip (name + caret) sits under the picker — do not restack a second league card in the overflow.",
+    doNot: "Do not wrap Home in HubExperienceLayout. Extend the action deck. House the league thread in the locker rail. Do not show the edge launcher on Home. Do not add a Chat destination. Draft night · Not scheduled links to Draft. Clear chat is staff-only, red, and confirms. Home names the roster hole over a commissioner invite. Hide Your matchup / Standings when pre-draft with no scored week. Gate the hero on load — never Fill the seats over unresolved data. After 3s of loading, the action deck names the Sleeper sync. Also due does not style a count like a link. On phone, a one-row league strip (name + caret) sits under the picker — do not restack a second league card in the overflow.",
   }),
   "hub.value": S({
     label: "Strategy",
@@ -95,7 +95,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/WeeklyCommandCenter.jsx",
     copy: "frontend/src/DraftHub/weekBoard.js",
     also: ["frontend/src/DraftHub/WeekLineupBoard.jsx"],
-    doNot: "Do not fork a second week hero. Extend WeeklyCommandCenter. Hero copy comes from board state: loading, error + Retry, or empty pre-draft with draft night — never No swap worth making over an error. Empty boards use the shared league empty-state (Lock a night / Link Sleeper / Sync league) — not League settings or Rate vibes. Decisions rail says Waiting on roster when there is no roster. Do not render Waiting dashes for eight empty slots on load or error. Inert slots stay flat.",
+    doNot: "Do not fork a second week hero. Extend WeeklyCommandCenter. Hero copy comes from board state: loading, error + Retry, or empty pre-draft with draft night — never No swap worth making over an error. Empty boards use the shared league empty-state (Lock a night / Link Sleeper / Sync league) — not League settings or Rate vibes. Decisions rail says Waiting on roster when there is no roster. Empty starter slots say Empty — never Waiting as a loading chip. Do not render Waiting dashes for eight empty slots on load or error. Inert slots stay flat.",
   }),
   "hub.vibes": S({
     label: "Vibes",
@@ -116,7 +116,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "matchup",
     page: "frontend/src/DraftHub/GameCenter.jsx",
     copy: "frontend/src/DraftHub/gameCenterPresentation.js",
-    doNot: "Game center is a matchup board, not an editorial settings page. Live renders only inside a game window. Empty boards use the shared league empty-state.",
+    doNot: "Game center is a matchup board, not an editorial settings page. Live renders only inside a game window. Empty boards use the shared league empty-state. Unscored placeholder chip is No scores yet — never Waiting. Loading uses a skeleton or Loading chip.",
   }),
   "hub.roster": S({
     label: "My team",

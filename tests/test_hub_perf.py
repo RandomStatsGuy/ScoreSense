@@ -85,6 +85,44 @@ def test_peek_pool_payload_cache_after_build(hub_db):
     assert cached["count"] == payload["count"]
 
 
+def test_home_and_freshness_skip_workbook_parse_and_live_sleeper(hub_client, hub_db, monkeypatch):
+    monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
+
+    def _parse_boom(*_a, **_k):
+        raise AssertionError("workbook parse on hub read")
+
+    def _sleeper_boom(*_a, **_k):
+        raise AssertionError("live Sleeper on hub read")
+
+    monkeypatch.setattr("src.draft_hub.contract_sync.process_league_history", _parse_boom)
+    monkeypatch.setattr(
+        "src.integrations.sleeper._fetch_json",
+        _sleeper_boom,
+    )
+    monkeypatch.setattr(
+        "src.integrations.sleeper.get_nfl_state",
+        lambda *a, **k: {"season_type": "off"},
+    )
+    from src.draft_hub import storage
+
+    league = storage.create_league("dev", "Read Path", 2026, LeagueRules())
+    import time
+
+    t0 = time.perf_counter()
+    home = hub_client.get("/api/hub/home?include_week=false")
+    home_ms = (time.perf_counter() - t0) * 1000
+    assert home.status_code == 200
+    assert home.json()["meta"]["live_sleeper"] is False
+    assert home.json().get("freshness", {}).get("stale_as_of") or home.json().get("freshness")
+    t1 = time.perf_counter()
+    fresh = hub_client.get(f"/api/hub/league/{league['id']}/freshness")
+    fresh_ms = (time.perf_counter() - t1) * 1000
+    assert fresh.status_code == 200
+    assert fresh.json().get("stale_as_of")
+    assert home_ms < 2000, f"home read too slow: {home_ms:.0f}ms"
+    assert fresh_ms < 2000, f"freshness read too slow: {fresh_ms:.0f}ms"
+
+
 def test_roster_and_cap_sheet_api_skip_sleeper_fetch(hub_client, hub_db, monkeypatch):
     monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
     sleeper_calls: list[str] = []
@@ -363,6 +401,29 @@ def test_insights_cached_scoring_section_under_budget(hub_client, hub_db, monkey
     assert res.status_code == 200
     assert res.json()["scoring"]["available"] is True
     assert elapsed_ms < 5000, f"cached scoring insights too slow: {elapsed_ms:.0f}ms"
+
+
+def test_get_nfl_state_allow_stale_never_live_fetches(monkeypatch, tmp_path):
+    import time
+
+    from src.integrations import sleeper
+
+    monkeypatch.setattr(sleeper, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(sleeper, "STATE_CACHE", tmp_path / "sleeper_nfl_state.json")
+    monkeypatch.setattr(sleeper, "_NFL_STATE_REFRESHING", False)
+
+    def _boom(*_a, **_k):
+        raise AssertionError("live Sleeper fetch on allow_stale")
+
+    monkeypatch.setattr(sleeper, "_fetch_json", _boom)
+    assert sleeper.get_nfl_state(allow_stale=True) == {}
+
+    sleeper.STATE_CACHE.write_text('{"season_type": "regular"}', encoding="utf-8")
+    past = time.time() - sleeper.STATE_CACHE_TTL_SECONDS - 10
+    os_utime = __import__("os").utime
+    os_utime(sleeper.STATE_CACHE, (past, past))
+    out = sleeper.get_nfl_state(allow_stale=True)
+    assert out["season_type"] == "regular"
 
 
 def test_insights_overview_skips_roster_rebuild(hub_client, hub_db, monkeypatch):

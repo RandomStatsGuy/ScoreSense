@@ -214,6 +214,42 @@ export function setFreshnessCache(leagueId, data) {
 export function invalidateFreshnessCache(leagueId) {
   if (leagueId) freshnessCache.delete(leagueId);
   else freshnessCache.clear();
+  invalidateHomeCache(leagueId);
+}
+
+/** In-memory League Home cache (/api/hub/home). */
+const homeCache = new Map();
+const HOME_CACHE_TTL_MS = 60_000;
+
+export function homeCacheKey(hubContext) {
+  const leagueId = hubContext?.league_id || "solo";
+  const teamId = hubContext?.team_id || "";
+  const mode = hubContext?.mode || "";
+  return `${leagueId}:${teamId}:${mode}`;
+}
+
+export function getHomeCache(key) {
+  if (!key) return null;
+  const hit = homeCache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > HOME_CACHE_TTL_MS) return { ...hit, stale: true };
+  return hit;
+}
+
+export function setHomeCache(key, data) {
+  if (!key || !data) return;
+  homeCache.set(key, { data, at: Date.now() });
+}
+
+export function invalidateHomeCache(leagueId) {
+  if (!leagueId) {
+    homeCache.clear();
+    return;
+  }
+  const prefix = `${leagueId}:`;
+  for (const key of [...homeCache.keys()]) {
+    if (key === leagueId || key.startsWith(prefix)) homeCache.delete(key);
+  }
 }
 
 /** Pool-shaped payload for client cache (valuation fields only). */

@@ -11,9 +11,7 @@ import VerifyEmailBanner from "../VerifyEmailBanner";
 import HubSetup from "./HubSetup";
 import RulesWizard from "./RulesWizard";
 import ValueSheetTable from "./ValueSheetTable";
-import StrategyBoard from "./StrategyBoard";
 import RosterBuilder from "./RosterBuilder";
-import DraftRoom from "./DraftRoom";
 import CapPlanner from "./CapPlanner";
 import InsightsFallback from "./insights/InsightsChrome";
 import LeagueOffice from "./LeagueOffice";
@@ -21,9 +19,7 @@ import LeagueTrades from "./LeagueTrades";
 import LeagueRostersBrowser from "./LeagueRostersBrowser";
 import LeagueContextBanner from "./LeagueContextBanner";
 import HubDemoBanner from "./HubDemoBanner";
-import GameCenter from "./GameCenter";
 import WeeklyCommandCenter from "./WeeklyCommandCenter";
-import VibeRankings from "./VibeRankings";
 import LeagueHome from "./LeagueHome";
 import LeagueCreateJoinDialog from "./LeagueCreateJoinDialog";
 import FantasyChatDock from "./FantasyChatDock";
@@ -48,6 +44,10 @@ import { TeamIdentityProvider } from "./TeamIdentityContext";
 import { mergeAtmospherePrefs } from "./atmosphereCatalog";
 
 const LeagueInsights = lazy(() => import("./LeagueInsights"));
+const StrategyBoard = lazy(() => import("./StrategyBoard"));
+const DraftRoom = lazy(() => import("./DraftRoom"));
+const GameCenter = lazy(() => import("./GameCenter"));
+const VibeRankings = lazy(() => import("./VibeRankings"));
 
 const EMPTY_VALUE_ROWS = [];
 
@@ -748,17 +748,19 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       )}
 
       {subView === "value" && (
-        <StrategyBoard
-          rows={valueRows}
-          season={valueSheet?.season || workspace?.season}
-          teamCount={valueSheet?.team_count || workspace?.team_count || effectiveCtx?.team_count || 12}
-          loading={valueSheetLoading}
-          rules={effectiveCtx?.rules || workspace?.rules || null}
-          pickDraft={isPickDraft(effectiveCtx?.rules || workspace?.rules)}
-          leagueId={effectiveCtx?.league_id || leagueId}
-          inLeague={effectiveCtx?.mode === "league"}
-          leagueName={effectiveCtx?.league_name || ""}
-        />
+        <Suspense fallback={<ValueSheetTableSkeleton rows={8} colSpan={8} />}>
+          <StrategyBoard
+            rows={valueRows}
+            season={valueSheet?.season || workspace?.season}
+            teamCount={valueSheet?.team_count || workspace?.team_count || effectiveCtx?.team_count || 12}
+            loading={valueSheetLoading}
+            rules={effectiveCtx?.rules || workspace?.rules || null}
+            pickDraft={isPickDraft(effectiveCtx?.rules || workspace?.rules)}
+            leagueId={effectiveCtx?.league_id || leagueId}
+            inLeague={effectiveCtx?.mode === "league"}
+            leagueName={effectiveCtx?.league_name || ""}
+          />
+        </Suspense>
       )}
 
       {subView === "available" && (
@@ -812,20 +814,24 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       )}
 
       {subView === "vibes" && (
-        <VibeRankings
-          hubContext={effectiveCtx}
-          reloadToken={weekReloadToken}
-          onNavigate={setSubView}
-        />
+        <Suspense fallback={<p className="chart-note">Loading Vibes…</p>}>
+          <VibeRankings
+            hubContext={effectiveCtx}
+            reloadToken={weekReloadToken}
+            onNavigate={setSubView}
+          />
+        </Suspense>
       )}
 
       {subView === "game" && (
         effectiveCtx?.mode === "league" && effectiveCtx?.league_id ? (
-          <GameCenter
-            leagueId={effectiveCtx.league_id}
-            hubContext={effectiveCtx}
-            onNavigate={goHubView}
-          />
+          <Suspense fallback={<p className="chart-note">Loading matchups…</p>}>
+            <GameCenter
+              leagueId={effectiveCtx.league_id}
+              hubContext={effectiveCtx}
+              onNavigate={goHubView}
+            />
+          </Suspense>
         ) : (
           <HubPage>
             <h2 className="hub-tab-intro-title">Game center</h2>
@@ -934,19 +940,21 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       )}
 
       {subView === "room" && !demoMode && (
-        <DraftRoom
-          leagueId={leagueId || effectiveCtx?.league_id || ""}
-          onLeagueIdChange={setLeagueId}
-          onLeagueJoined={onLeagueJoined}
-          valueRows={valueRows}
-          valueSheetLoading={valueSheetLoading}
-          hubRoster={roster}
-          season={valueSheet?.season || workspace?.season}
-          hubContext={effectiveCtx}
-          onNavigate={setSubView}
-          watchIds={watchIds}
-          onWatchPlayer={toggleWatch}
-        />
+        <Suspense fallback={<p className="chart-note">Loading draft room…</p>}>
+          <DraftRoom
+            leagueId={leagueId || effectiveCtx?.league_id || ""}
+            onLeagueIdChange={setLeagueId}
+            onLeagueJoined={onLeagueJoined}
+            valueRows={valueRows}
+            valueSheetLoading={valueSheetLoading}
+            hubRoster={roster}
+            season={valueSheet?.season || workspace?.season}
+            hubContext={effectiveCtx}
+            onNavigate={setSubView}
+            watchIds={watchIds}
+            onWatchPlayer={toggleWatch}
+          />
+        </Suspense>
       )}
 
       {!demoMode && effectiveCtx?.mode === "league" && (

@@ -72,7 +72,7 @@ function SlotCard({ slot, decision, wide, movement, canEdit, selected, onSelect,
         ) : null}
       </header>
       {empty ? (
-        <p className="hub-wcc-slot-waiting">Waiting</p>
+        <p className="hub-wcc-slot-waiting">Empty</p>
       ) : (
         <>
           <div className="hub-wcc-slot-player">

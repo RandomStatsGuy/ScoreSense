@@ -468,34 +468,8 @@ export default function LeagueInsights({
     }
     const sections = INSIGHTS_TAB_SECTIONS[tab];
     load({ activeTab: tab, sections });
-  }, [leagueId, load, loadCacheRef]);
-
-  // Warm Scoring after the landing view paints.
-  useEffect(() => {
-    if (!leagueId || loading || tabLoading || !data) return;
-    if (String(data?.hub_context?.league_id || "") !== String(leagueId)) return;
-    let idleId;
-    let timeoutId;
-    const run = () => prefetchScoring(insightsHandlers);
-    if (typeof requestIdleCallback === "function") {
-      idleId = requestIdleCallback(run, { timeout: 2500 });
-    } else {
-      timeoutId = window.setTimeout(run, 700);
-    }
-    return () => {
-      if (idleId != null && typeof cancelIdleCallback === "function") {
-        cancelIdleCallback(idleId);
-      }
-      if (timeoutId != null) window.clearTimeout(timeoutId);
-    };
-  }, [
-    leagueId,
-    loading,
-    tabLoading,
-    data?.hub_context?.league_id,
-    prefetchScoring,
-    insightsHandlers,
-  ]);
+    if (tab === "overview") prefetchScoring(insightsHandlers);
+  }, [leagueId, load, loadCacheRef, prefetchScoring, insightsHandlers]);
 
   const loadOwnershipHistory = useCallback(async (opts = {}) => {
     if (!leagueId) return null;
