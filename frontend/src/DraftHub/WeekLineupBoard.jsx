@@ -59,7 +59,7 @@ function SlotCard({ slot, decision, wide, movement, canEdit, selected, onSelect,
 
   return (
     <article
-          className={`hub-wcc-slot hub-wcc-slot--${tone}${decision ? " is-swap" : ""}${empty ? " is-empty" : ""}${selected ? " is-target" : ""}${canEdit && !empty ? " is-editable" : ""}${!canEdit ? " is-inert" : ""}`}
+      className={"hub-wcc-slot hub-wcc-slot--" + tone + (decision ? " is-swap" : "") + (empty ? " is-empty" : "") + (selected ? " is-target" : "") + (canEdit && !empty ? " is-editable" : "") + (!canEdit ? " is-inert" : "")}
       aria-label={label}
       onClick={canEdit && !empty && onSelect ? () => onSelect(slot) : undefined}
     >
