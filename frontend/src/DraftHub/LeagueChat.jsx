@@ -266,7 +266,7 @@ export default function LeagueChat({ leagueId, hubContext, compact = false, lock
           maxLength={2000}
           aria-label="Chat message"
         />
-        <button type="submit" className="btn-primary btn-sm" disabled={sending || !body.trim()}>
+        <button type="submit" className="btn-ghost btn-sm" disabled={sending || !body.trim()}>
           {sending ? "Sending…" : "Send"}
         </button>
       </form>

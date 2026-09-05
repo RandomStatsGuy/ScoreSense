@@ -1403,7 +1403,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                   <>
                     <button
                       type="button"
-                      className="btn-primary btn-sm"
+                      className="btn-ghost btn-sm"
                       disabled={Boolean(busy)}
                       onClick={() => respond(p.id, true)}
                     >
@@ -1553,7 +1553,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                   </div>
                   <button
                     type="button"
-                    className="btn-primary btn-sm"
+                    className="btn-ghost btn-sm"
                     onClick={() => loadSuggestion(s)}
                   >
                     Load into builder

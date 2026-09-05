@@ -82,6 +82,12 @@ test("contracts pane owns the pending-write copy module", () => {
   assert.match(row.doNot, /pending-changes tray/);
 });
 
+test("approved primaries keep one fill on Home, Cap, and Trades", () => {
+  assert.match(LIVING_SURFACES["hub.home"].doNot, /Chat Send is ghost/);
+  assert.match(LIVING_SURFACES["hub.planner"].doNot, /Undo cut is ghost/);
+  assert.match(LIVING_SURFACES["hub.trades"].doNot, /Continue \(or Propose on the last step\) is the only primary/);
+});
+
 test("file lookup returns the surfaces that own a page", () => {
   const hits = surfacesForFile("frontend/src/DraftHub/ValueSheetTable.jsx");
   assert.deepEqual(hits.map((row) => row.id), ["hub.available"]);
