@@ -95,7 +95,7 @@ export const HOME_PAGE_COPY = {
   loadingKicker: "Reading your league",
   loadingHeading: "Checking what is due…",
   loadingSupport: "Cap, lineup, and draft night.",
-  loadingFallback: "Still loading cap — Sync league if this persists",
+  loadingFallback: "Still syncing with Sleeper — this can take a few seconds",
   undoCut: "Undo a cut",
   emptySeatsCost: "Empty seats draft as bots.",
   notScheduled: "Not scheduled",
@@ -155,6 +155,7 @@ export const HOME_DECK_COPY = {
   lockerKicker: "Chat",
   lockerTitle: "League chat",
   lockerNote: "One thread for the whole league. It follows you on every Fantasy page.",
+  clearChat: "Clear chat",
 };
 
 export function homeDeckStandingRows(standings, viewerTeamId, limit = 5) {
@@ -167,6 +168,13 @@ export function homeDeckStandingRows(standings, viewerTeamId, limit = 5) {
     return [...top.slice(0, Math.max(0, limit - 1)), mine];
   }
   return top;
+}
+
+export function homeStandingHasGap(prev, row) {
+  if (!prev || !row) return false;
+  const a = Number(prev.rank);
+  const b = Number(row.rank);
+  return Number.isFinite(a) && Number.isFinite(b) && b > a + 1;
 }
 
 export function formatHomeScore(team, placeholder = false) {

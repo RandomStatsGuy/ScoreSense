@@ -113,10 +113,18 @@ def test_design_spec_defers_to_constitution() -> None:
 def test_constitution_covers_phone_chrome() -> None:
     product = _read("docs", "PRODUCT.md")
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    hub_rule = _read(".cursor", "rules", "frontend-draft-hub.mdc")
     assert "On phone, the header is the current destination" in product
     assert "one-row league strip" in product
+    assert "hub-page-sticky" in product
+    assert "/hub/roster-management" in product
+    assert "sits on the bubble" in product
     assert "destination title" in core_rule.lower()
     assert "one-row league strip" in core_rule.lower()
+    assert "hub-page-sticky" in core_rule
+    assert "sits on the bubble" in core_rule
+    assert "sits on the bubble" in hub_rule
+    assert "hub-page-sticky" in hub_rule
 
 
 def test_constitution_covers_chat_chrome() -> None:
@@ -153,7 +161,10 @@ def test_css_type_never_drops_below_text_xs() -> None:
             match = pat.search(line)
             if match and float(match.group(1)) < 0.72:
                 offenders.append(f"{path.relative_to(ROOT)}:{lineno}:{match.group(1)}")
-    assert not offenders, "type below --text-xs (0.72rem):\n" + "\n".join(offenders[:30])
+    assert not offenders, "type below previous --text-xs floor (0.72rem):\n" + "\n".join(offenders[:30])
+    tokens = _read("frontend", "src", "styles", "tokens.css")
+    assert "--text-xs: 0.75rem" in tokens
+    assert "12px" in _read("docs", "PRODUCT.md")
     rhythm = _read("frontend", "src", "styles", "product-rhythm.css")
     main = _read("frontend", "src", "main.jsx")
     assert "--inset-chip" in rhythm
@@ -179,6 +190,9 @@ def test_constitution_covers_weekly_board_chrome() -> None:
     assert "compare" in core_rule.lower()
     assert "dense ranking rows" in product
     assert "checkbox on every card" in product
+    assert "swipeable" in product
+    assert "windowed" in product
+    assert "sticky bar" in product
 
 def test_constitution_bans_hub_ppr_in_ui() -> None:
     product = _read("docs", "PRODUCT.md")

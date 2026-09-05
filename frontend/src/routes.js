@@ -20,6 +20,7 @@ export const HUB_SLUG_TO_ID = {
   trades: "trades",
   insights: "insights",
   office: "office",
+  "roster-management": "office",
 };
 
 /** Explicit reverse map (do not derive — avoids roster/rosters collisions). */
@@ -38,7 +39,7 @@ export const HUB_ID_TO_SLUG = {
   planner: "cap",
   trades: "trades",
   insights: "insights",
-  office: "office",
+  office: "roster-management",
 };
 
 /** Insights URL slug ↔ internal tab id */
@@ -57,14 +58,16 @@ export const INSIGHT_ID_TO_SLUG = Object.fromEntries(
 export const OFFICE_SLUG_TO_ID = {
   chat: "current",
   current: "current",
+  contracts: "current",
   historic: "historic",
+  sheets: "historic",
   members: "members",
   access: "access",
 };
 
 export const OFFICE_ID_TO_SLUG = {
-  current: "current",
-  historic: "historic",
+  current: "contracts",
+  historic: "sheets",
   members: "members",
   access: "access",
 };
@@ -149,8 +152,8 @@ export function parseAppPath(pathname) {
         officeTab: null,
       };
     }
-    if (parts[1] === "office") {
-      const officeSlug = parts[2] || "current";
+    if (parts[1] === "office" || parts[1] === "roster-management") {
+      const officeSlug = parts[2] || "contracts";
       const officeTab = OFFICE_SLUG_TO_ID[officeSlug] || "current";
       return {
         view: "hub",
@@ -277,8 +280,8 @@ export function buildAppPath({
       return `/hub/insights/${slug}`;
     }
     if (hubSubView === "office") {
-      const slug = OFFICE_ID_TO_SLUG[officeTab] || "current";
-      return `/hub/office/${slug}`;
+      const slug = OFFICE_ID_TO_SLUG[officeTab] || "contracts";
+      return `/hub/roster-management/${slug}`;
     }
     const slug = HUB_ID_TO_SLUG[hubSubView] || "strategy";
     return `/hub/${slug}`;

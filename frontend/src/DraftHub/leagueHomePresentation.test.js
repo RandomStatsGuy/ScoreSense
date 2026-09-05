@@ -12,6 +12,7 @@ import {
   homeHeroHeading,
   homeHeroSupport,
   homeMatchupNote,
+  homeStandingHasGap,
   phaseTrackState,
   resolveLeagueHomeFocus,
   supportingLeagueHomeActions,
@@ -106,7 +107,9 @@ test("home hero names the roster hole over empty seats", () => {
   assert.match(homeHeroSupport({ actions: [hole] }), /wasted nomination|Undo a cut/i);
   assert.equal(homeHasPendingCuts({ pre_draft: { pending_cuts_count: 1 } }), true);
   assert.equal(HOME_PAGE_COPY.undoCut, "Undo a cut");
-  assert.match(HOME_PAGE_COPY.loadingFallback, /Still loading cap/i);
+  assert.match(HOME_PAGE_COPY.loadingFallback, /Still syncing with Sleeper/i);
+  assert.equal(HOME_PAGE_COPY.loadingHeading, "Checking what is due…");
+  assert.equal(HOME_PAGE_COPY.loadingKicker, "Reading your league");
 });
 
 test("pre-draft home hides an unscored matchup deck", () => {
@@ -147,6 +150,9 @@ test("home deck helpers format empty scores and keep the viewer in standings", (
     "Week 3 opponent TBD",
   );
   assert.equal(HOME_DECK_COPY.linkSleeper, "Link Sleeper to fill scores.");
+  assert.equal(homeStandingHasGap({ rank: 4 }, { rank: 10 }), true);
+  assert.equal(homeStandingHasGap({ rank: 3 }, { rank: 4 }), false);
+  assert.equal(HOME_DECK_COPY.clearChat, "Clear chat");
   assert.equal(HOME_DECK_COPY.lockerTitle, "League chat");
   assert.match(HOME_DECK_COPY.lockerNote, /follows you/i);
   assert.doesNotMatch(HOME_DECK_COPY.lockerNote, /Draft Hub|Submit|permission/i);

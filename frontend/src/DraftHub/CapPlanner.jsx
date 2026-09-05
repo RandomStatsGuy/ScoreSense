@@ -12,6 +12,8 @@ import {
   HubSection,
   HubTableCard,
   HubToolbar,
+  HubPageSticky,
+  HubFilterMenu,
   rosterAlertVariant,
 } from "./HubUILayout";
 import {
@@ -19,7 +21,9 @@ import {
   capRailPrimary,
   leftoverAfterMoveYears,
   positionFromNeedError,
+  formatNeedError,
   CAP_MOVE_COPY,
+  CAP_NEED_COPY,
 } from "./capPlannerPresentation";
 import { buildCapStatusCard } from "./capStatusCard";
 import { contractDeadCapStory, fmtSal, leagueStepUp, scheduleText } from "./rosterFormat";
@@ -334,29 +338,34 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
         hint={CAP_MOVE_COPY.hint}
         className="hub-cap-move-section"
       >
+        <HubPageSticky>
         <HubToolbar>
-          <label>
-            {CAP_MOVE_COPY.cutLabel}
-            <select value={cutPlayer} onChange={(e) => setCutPlayer(e.target.value)}>
-              <option value="">{CAP_MOVE_COPY.none}</option>
-              {(roster || []).map((row) => (
-                <option key={row.player_id} value={row.player_id}>
-                  {row.player_name || row.player_id} · {fmtSal(row.salary)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <HubFilterMenu
+            label={CAP_MOVE_COPY.cutLabel}
+            value={cutPlayer}
+            options={[
+              { id: "", label: CAP_MOVE_COPY.none },
+              ...(roster || []).map((row) => ({
+                id: row.player_id,
+                label: `${row.player_name || row.player_id} · ${fmtSal(row.salary)}`,
+              })),
+            ]}
+            onChange={setCutPlayer}
+          />
           <label>
             {CAP_MOVE_COPY.bidLabel}
             <input
               type="number"
+              inputMode="numeric"
               min="0"
               step="1"
               value={bidAmount}
               onChange={(e) => setBidAmount(e.target.value)}
+              aria-label={CAP_MOVE_COPY.bidLabel}
             />
           </label>
         </HubToolbar>
+        </HubPageSticky>
       </HubSection>
 
       {movedPlan.length > 0 && (
@@ -388,22 +397,24 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
       )}
 
       {errors.length > 0 && (
-        <HubAlertStack>
-          {errors.map((e) => (
-            <HubAlert
-              key={e}
-              variant={rosterAlertVariant(e)}
-              action={
-                onNavigate && /RB|WR|TE|QB|K|DEF/i.test(e) ? (
-                  <button type="button" className="btn-link" onClick={() => openNeed(e)}>
-                    Browse free agents
-                  </button>
-                ) : null}
+        <>
+          <HubAlertStack>
+            {errors.map((e) => (
+              <HubAlert key={e} variant={rosterAlertVariant(e)}>
+                {formatNeedError(e)}
+              </HubAlert>
+            ))}
+          </HubAlertStack>
+          {onNavigate && errors.some((e) => /RB|WR|TE|QB|K|DEF/i.test(e)) ? (
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => openNeed(errors.find((e) => /RB|WR|TE|QB|K|DEF/i.test(e)))}
             >
-              {e}
-            </HubAlert>
-          ))}
-        </HubAlertStack>
+              {CAP_NEED_COPY.browseFreeAgents}
+            </button>
+          ) : null}
+        </>
       )}
 
       {preDraft && (
@@ -580,10 +591,12 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                 Years
                 <input
                   type="number"
+                  inputMode="numeric"
                   min={1}
                   max={maxExtensionYears}
                   value={extendYears}
                   onChange={(e) => setExtendYears(e.target.value)}
+                  aria-label="Extension years"
                 />
               </label>
               {selectedStartSalary != null && (

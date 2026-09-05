@@ -88,9 +88,12 @@ test("Fantasy rules and roster management routes round-trip", () => {
   assert.equal(buildAppPath({ view: "hub", hubSubView: "rules" }), "/hub/rules");
   assert.equal(parseAppPath("/hub/office").officeTab, "current");
   assert.equal(parseAppPath("/hub/office/chat").officeTab, "current");
+  assert.equal(parseAppPath("/hub/roster-management").hubSubView, "office");
+  assert.equal(parseAppPath("/hub/roster-management/contracts").officeTab, "current");
+  assert.equal(parseAppPath("/hub/roster-management/sheets").officeTab, "historic");
   assert.equal(
     buildAppPath({ view: "hub", hubSubView: "office", officeTab: "current" }),
-    "/hub/office/current",
+    "/hub/roster-management/contracts",
   );
 });
 
@@ -101,6 +104,22 @@ test("Contract history deep-link keeps the player query", () => {
   assert.equal(parsed.player, "sleeper-4034");
   const cleared = buildFilterSearchParams({ player: "", preserveParams: params });
   assert.equal(cleared.get("player"), null);
+});
+
+test("season projections deep-link without a mode lands on Season, not Weekly", () => {
+  const parsed = parseAppPath("/projections/season");
+  assert.equal(parsed.view, "projections");
+  assert.equal(parsed.projectionsTab, "season");
+  assert.equal(parsed.seasonMode, "live");
+  assert.notEqual(parsed.projectionsTab, "weekly");
+  assert.equal(
+    buildAppPath({ view: "projections", projectionsTab: "season", seasonMode: "live" }),
+    "/projections/season/live",
+  );
+  assert.equal(
+    buildAppPath({ view: "projections", projectionsTab: "season", seasonMode: "preseason" }),
+    "/projections/season/preseason",
+  );
 });
 
 test("strategy and free-agent hub tabs round-trip, with legacy players alias", () => {

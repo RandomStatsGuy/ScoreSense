@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import useMobileLayout from "../useMobileLayout";
-import { apiFetch } from "../auth";
 import { MOBILE_CHROME_COPY } from "../layout/mobileChromePresentation";
-import { getFreshnessCache, setFreshnessCache } from "./hubDataCache";
+import { getFreshnessCache } from "./hubDataCache";
+import { ensureLeagueFreshness } from "./leagueFreshness";
 import {
   ageShort,
   buildLeagueAttentionItems,
@@ -28,21 +28,13 @@ export function useLeagueFreshness(leagueId, enabled) {
     const cached = getFreshnessCache(leagueId);
     setFreshness(cached?.data || null);
     const ctrl = new AbortController();
-    (async () => {
-      try {
-        const res = await apiFetch(
-          `/api/hub/league/${encodeURIComponent(leagueId)}/freshness`,
-          { signal: ctrl.signal },
-        );
-        if (!res.ok || ctrl.signal.aborted) return;
-        const payload = await res.json();
-        if (ctrl.signal.aborted) return;
-        setFreshnessCache(leagueId, payload);
-        setFreshness(payload);
-      } catch {
+    ensureLeagueFreshness(leagueId)
+      .then((payload) => {
+        if (!ctrl.signal.aborted && payload) setFreshness(payload);
+      })
+      .catch(() => {
         /* keep cached */
-      }
-    })();
+      });
     return () => ctrl.abort();
   }, [leagueId, enabled]);
 

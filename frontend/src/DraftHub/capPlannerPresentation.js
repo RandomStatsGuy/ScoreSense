@@ -58,6 +58,16 @@ export function positionFromNeedError(error) {
   return match ? match[1].toUpperCase() : "";
 }
 
+export function formatNeedError(error) {
+  return String(error || "")
+    .replace(/\s*\(min\s+(\d+)\s*\/\s*max\s+(\d+)\)/i, " · min $1, max $2")
+    .replace(/\s*\(min\s+(\d+)\)/i, " · min $1");
+}
+
+export const CAP_NEED_COPY = {
+  browseFreeAgents: "Browse free agents",
+};
+
 export function roomAfterBid({ remaining, bid } = {}) {
   const rem = Number(remaining);
   const spend = Number(bid);

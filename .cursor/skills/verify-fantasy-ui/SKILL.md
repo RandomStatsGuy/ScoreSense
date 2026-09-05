@@ -25,10 +25,10 @@ Follow `.cursor/skills/match-living-surface/SKILL.md`. Lead with **Matching:** `
 | `hub.planner` | `/hub/cap` |
 | `hub.trades` | `/hub/trades` |
 | `hub.rules` | `/hub/rules` |
-| `hub.office` | `/hub/office/current` |
-| `hub.office.historic` | `/hub/office/historic` |
-| `hub.office.members` | `/hub/office/members` |
-| `hub.office.access` | `/hub/office/access` |
+| `hub.office` | `/hub/roster-management/contracts` |
+| `hub.office.historic` | `/hub/roster-management/sheets` |
+| `hub.office.members` | `/hub/roster-management/members` |
+| `hub.office.access` | `/hub/roster-management/access` |
 | `hub.insights` | `/hub/insights` |
 | `hub.setup` | `/hub/setup` |
 | `tools.dfs` | `/tools/dfs` |

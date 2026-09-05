@@ -205,7 +205,7 @@ export default function StrategyBoard({
     () => nextPair(board, { seenKeys, posFilter, ctx }),
     [board, seenKeys, posFilter, ctx],
   );
-  const mediaIds = useMemo(() => board.map((row) => row.player_id), [board]);
+  const mediaIds = useMemo(() => siteBoard.map((row) => row.player_id), [siteBoard]);
   const media = usePlayerMedia(mediaIds);
   const siteOrdered = useMemo(
     () => [...board].sort((a, b) => a.site_rank - b.site_rank),
@@ -495,13 +495,12 @@ export default function StrategyBoard({
             </>
           ) : (
             <div className="hub-strategy-empty-wrap">
-              <p className="hub-strategy-empty">{COPY.emptyPair}</p>
+              <p className="hub-strategy-empty">
+                {posFilter === "ALL" ? COPY.emptyPairAll : COPY.emptyPair}
+              </p>
               <div className="hub-strategy-toolbar-actions">
                 <button type="button" className="btn btn-ghost" onClick={resetSeen}>
                   {COPY.resetSeen}
-                </button>
-                <button type="button" className="btn btn-primary" onClick={() => setPage("rankings")}>
-                  {COPY.viewRankings}
                 </button>
               </div>
             </div>

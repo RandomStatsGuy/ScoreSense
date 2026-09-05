@@ -11,6 +11,7 @@ import {
   decisionSwapIds,
   trophyStripCopy,
   formatDraftNightShort,
+  WEEK_BOARD_COPY,
   weekHeroCopy,
   weekBoardOverlayCopy,
   weekPrimaryAction,
@@ -192,4 +193,6 @@ test("trophy strip copy waits until the board is live", () => {
   assert.match(trophyStripCopy({ boardReady: false }), /after the board is live/i);
   assert.match(trophyStripCopy({ boardReady: true }), /one vote per trophy/i);
   assert.equal(boardTitle("Week 1"), "Week 1 board");
+  assert.equal(WEEK_BOARD_COPY.seeCalls, "See lineup calls");
+  assert.equal(WEEK_BOARD_COPY.emptySlot("K"), "Find K");
 });

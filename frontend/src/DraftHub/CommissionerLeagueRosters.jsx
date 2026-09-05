@@ -1090,22 +1090,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
           </p>
         </div>
         <div className="hub-league-rosters-summary" aria-label="League totals">
-          {hubContext?.is_commissioner && !draftCompleted ? (
-            <button
-              type="button"
-              className="btn-danger btn-sm"
-              onClick={async () => {
-                try {
-                  const data = await markDraftComplete(leagueId);
-                  if (data) onChanged?.();
-                } catch (e) {
-                  setError(e.message || "Could not mark draft complete");
-                }
-              }}
-            >
-              {MARK_DRAFT_COMPLETE_COPY.action}
-            </button>
-          ) : hubContext?.is_commissioner && draftCompleted ? (
+          {hubContext?.is_commissioner && draftCompleted ? (
             <span className="chart-note">{MARK_DRAFT_COMPLETE_COPY.done}</span>
           ) : null}
           {refreshing && <span className="hub-league-refresh-badge">Updating…</span>}
@@ -1216,6 +1201,24 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
       </div>
         </>
       )}
+      {hubContext?.is_commissioner && !draftCompleted ? (
+        <div className="hub-office-draft-complete">
+          <button
+            type="button"
+            className="btn-danger"
+            onClick={async () => {
+              try {
+                const data = await markDraftComplete(leagueId);
+                if (data) onChanged?.();
+              } catch (e) {
+                setError(e.message || "Could not mark draft complete");
+              }
+            }}
+          >
+            {MARK_DRAFT_COMPLETE_COPY.action}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -17,7 +17,7 @@ import {
   nextSortState,
   pinWatchedPlayers,
 } from "./valueSheetUtils";
-import { HubPage, HubTableCard, HubFilterMenu, HubFilterChip, SortTh, HubAlert } from "./HubUILayout";
+import { HubPage, HubPageSticky, HubTableCard, HubFilterMenu, HubFilterChip, SortTh, HubAlert } from "./HubUILayout";
 import { HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import ValueSheetPlayerRow from "./ValueSheetPlayerRow";
 import ContractHistoryLink from "./ContractHistoryLink";
@@ -47,6 +47,7 @@ import {
 } from "../riskAdjustedValue";
 import RaavBidCell from "./RaavBidCell";
 import { suggestedBidSubLabel } from "./suggestedBidLabel.js";
+import { useWindowedRows, WINDOW_AFTER } from "./useWindowedRows";
 
 const TIERS = ["ALL", "Elite", "Tier 1", "Tier 2", "Tier 3", "Depth"];
 const POSITIONS = HUB_POSITION_FILTERS;
@@ -142,6 +143,7 @@ export default function ValueSheetTable({
   remainingCap = null,
   preDraft = false,
 }) {
+  const mobileLayout = useMobileLayout();
   const pickDraft = pickDraftProp != null
     ? Boolean(pickDraftProp)
     : Boolean(actionLabel) && !String(actionLabel).toLowerCase().includes("nominate");
@@ -166,9 +168,9 @@ export default function ValueSheetTable({
   const [addError, setAddError] = useState("");
   const [showAdvancedLocal, setShowAdvancedLocal] = useState(false);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
-  const [mobileListLimit, setMobileListLimit] = useState(80);
+  const [mobileListLimit, setMobileListLimit] = useState(20);
 
-  const MOBILE_LIST_PAGE = 80;
+  const MOBILE_LIST_PAGE = 20;
 
   const showAdvanced = showAdvancedProp ?? (draftConsole ? false : compact ? true : showAdvancedLocal);
   const activeRisk = isRiskToleranceActive(riskTolerance) && !pickDraft;
@@ -324,9 +326,18 @@ export default function ValueSheetTable({
     [sorted, maxRows, mobileListLimit],
   );
 
+  const windowed = !mobileLayout && !maxRows && sorted.length > WINDOW_AFTER;
+  const { scrollerRef, range } = useWindowedRows(sorted.length, { enabled: windowed });
+  const visibleRows = useMemo(
+    () => (windowed ? sorted.slice(range.start, range.end) : sorted),
+    [windowed, sorted, range.start, range.end],
+  );
+  const topPad = windowed ? range.start * 44 : 0;
+  const bottomPad = windowed ? Math.max(0, sorted.length - range.end) * 44 : 0;
+
   const sheetPlayerIds = useMemo(
-    () => sorted.map((r) => r.player_id).filter(Boolean),
-    [sorted],
+    () => (windowed ? visibleRows : sorted).map((r) => r.player_id).filter(Boolean),
+    [windowed, visibleRows, sorted],
   );
   const playerMedia = usePlayerMedia(sheetPlayerIds);
 
@@ -443,8 +454,6 @@ export default function ValueSheetTable({
     }
   }, [addMode, isCommissioner, onAddToRoster, postAddPlayer, postBid, riskTolerance, rules]);
 
-  const mobileLayout = useMobileLayout();
-
   const panelTitle = title || (isAvailableView ? "Free agents" : "Strategy");
   const panelSub = subtitle || (
     isAvailableView
@@ -530,7 +539,6 @@ export default function ValueSheetTable({
     if (row.team) parts.push(row.team);
     if (row.position) parts.push(row.position);
     if (row.pos_rank) parts.push(`${row.position}${row.pos_rank}`);
-    if (!pickDraft && row.tier) parts.push(row.tier);
     return parts.join(" · ") || "—";
   }, [pickDraft]);
 
@@ -592,7 +600,7 @@ export default function ValueSheetTable({
         </HubAlert>
       ) : null}
 
-      {!hideHeader && (
+      {!hideHeader && !mobileLayout && (
         <div className="hub-page-meta">
           {panelSub}
           {sleeperLinked ? ` · ${sleeper.sleeper_team_name || "Sleeper linked"}` : ""}
@@ -608,6 +616,7 @@ export default function ValueSheetTable({
         </div>
       )}
 
+      <HubPageSticky>
       <div className={`hub-filter-bar${compact ? " hub-filter-bar--compact" : ""}`}>
         <input
           type="search"
@@ -737,17 +746,7 @@ export default function ValueSheetTable({
         </div>
       )}
       {addError && <div className="error">{addError}</div>}
-      {mobileLayout && (
-        <div className="hub-filter-summary-bar" aria-live="polite">
-          {sorted.length} shown
-          {posFilter !== "ALL" ? ` · ${posFilter}` : ""}
-          {tierFilter !== "ALL" ? ` · ${tierFilter}` : ""}
-          {statusFilter !== "ALL" ? ` · ${statusFilter}` : ""}
-          {riskProfile !== "ALL" ? ` · ${riskProfile}` : ""}
-          {search.trim() ? ` · “${search.trim()}”` : ""}
-          {` · sort ${activeSortLabel}`}
-        </div>
-      )}
+      </HubPageSticky>
       <HubTableCard>
       {mobileLayout ? (
         <>
@@ -982,7 +981,7 @@ export default function ValueSheetTable({
         )}
         </>
       ) : (
-      <div className="table-wrap table-sticky">
+      <div className="table-wrap table-sticky" ref={scrollerRef}>
         <table className={`data-table hub-table${pickDraft ? " hub-table--pick-draft" : ""}${preDraft ? " hub-table--pre-draft" : ""}`}>
           <thead>
             <tr>
@@ -1106,7 +1105,10 @@ export default function ValueSheetTable({
                   </td>
                 </tr>
               )}
-              {sorted.map((r, idx) => (
+              {topPad > 0 ? (
+                <tr aria-hidden="true"><td colSpan={colCount} style={{ height: topPad, padding: 0, border: 0 }} /></tr>
+              ) : null}
+              {visibleRows.map((r, idx) => (
                 <ValueSheetPlayerRow
                   draftConsole={draftConsole}
                   onQueuePlayer={onQueuePlayer}
@@ -1154,9 +1156,12 @@ export default function ValueSheetTable({
                   playerMedia={playerMedia}
                   narrativeScope={narrativeScope}
                   seasonScaleMax={seasonScaleMax}
-                  rowIndex={idx}
+                  rowIndex={windowed ? range.start + idx : idx}
                 />
               ))}
+              {bottomPad > 0 ? (
+                <tr aria-hidden="true"><td colSpan={colCount} style={{ height: bottomPad, padding: 0, border: 0 }} /></tr>
+              ) : null}
             </tbody>
           )}
         </table>

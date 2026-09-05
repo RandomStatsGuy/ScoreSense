@@ -2,6 +2,7 @@ import React from "react";
 import MobileBottomSheet from "./MobileBottomSheet";
 import LegalLinks from "../LegalLinks";
 import { STUDIO_NAME } from "../brand";
+import { formatRelativeTime } from "../format";
 
 export default function MobileMenuSheet({
   open,
@@ -98,7 +99,7 @@ export default function MobileMenuSheet({
         ) : null}
         {refreshStatus?.completed_at ? (
           <p className="app-mobile-sheet-meta">
-            Updated {new Date(refreshStatus.completed_at).toLocaleString()}
+            {formatRelativeTime(refreshStatus.completed_at) || "Updated"}
           </p>
         ) : null}
         <p className="app-mobile-sheet-group">Info</p>

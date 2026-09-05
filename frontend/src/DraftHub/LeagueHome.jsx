@@ -3,7 +3,7 @@ import { apiFetch } from "../auth";
 import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
 import useMobileLayout from "../useMobileLayout";
-import { HubAlert, HubPage } from "./HubUILayout";
+import { HubAlert, HubLoadingSkeleton, HubPage } from "./HubUILayout";
 import LeagueChat from "./LeagueChat";
 import TeamIdentityMark from "./TeamIdentityMark";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
@@ -17,6 +17,7 @@ import {
   homeDeckMode,
   homeDeckStandingRows,
   homeHasPendingCuts,
+  homeStandingHasGap,
   homeHeroHeading,
   homeHeroSupport,
   homeMatchupNote,
@@ -24,6 +25,7 @@ import {
   resolveLeagueHomeFocus,
   supportingLeagueHomeActions,
 } from "./leagueHomePresentation";
+import { getHomeCache, homeCacheKey, setHomeCache } from "./hubDataCache";
 
 /** Valid Hub subview targets returned by `/api/hub/home` actions / primary CTA. */
 const HUB_ACTION_VIEWS = new Set([
@@ -107,37 +109,56 @@ export default function LeagueHome({
 }) {
   const mobileLayout = useMobileLayout();
   const { identities } = useTeamIdentities();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = homeCacheKey(hubContext);
+  const [data, setData] = useState(() => getHomeCache(cacheKey)?.data || null);
+  const [loading, setLoading] = useState(() => !getHomeCache(cacheKey)?.data);
   const [error, setError] = useState("");
   const [scoring, setScoring] = useState(null);
   const [slowLoad, setSlowLoad] = useState(false);
+  const [prevCacheKey, setPrevCacheKey] = useState(cacheKey);
+  if (cacheKey !== prevCacheKey) {
+    setPrevCacheKey(cacheKey);
+    const cached = getHomeCache(cacheKey);
+    setData(cached?.data || null);
+    setLoading(!cached?.data);
+    setError("");
+    setScoring(null);
+    setSlowLoad(false);
+  }
   const leagueId = hubContext?.mode === "league" ? hubContext?.league_id : null;
 
   const load = useCallback(async (signal) => {
-    setLoading(true);
+    const cached = getHomeCache(cacheKey);
+    if (cached?.data) {
+      setData(cached.data);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError("");
     try {
       // include_week=true so in-season action center can surface lineup decisions.
       const res = await apiFetch("/api/hub/home?include_week=true", { signal });
       if (!res.ok) throw new Error(await parseApiError(res));
       const payload = await res.json();
-      if (!signal?.aborted) setData(payload);
+      if (signal?.aborted) return;
+      setHomeCache(cacheKey, payload);
+      setData(payload);
     } catch (e) {
       if (isAbortError(e) || signal?.aborted) return;
       setError(connectionErrorMessage(e));
-      setData(null);
+      if (!cached?.data) setData(null);
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
-  }, []);
+  }, [cacheKey]);
 
   useEffect(() => {
     if (!loading) {
       setSlowLoad(false);
       return undefined;
     }
-    const timer = window.setTimeout(() => setSlowLoad(true), 5000);
+    const timer = window.setTimeout(() => setSlowLoad(true), 3000);
     return () => window.clearTimeout(timer);
   }, [loading]);
 
@@ -229,7 +250,7 @@ export default function LeagueHome({
       <header className="hub-home-heading">
         <div>
           <p className="hub-experience-kicker">{HOME_PAGE_COPY.kicker}</p>
-          <h2>{loading && !data ? HOME_PAGE_COPY.heading : homeHeroHeading(data)}</h2>
+          <h2>{loading && !data ? HOME_PAGE_COPY.loadingHeading : homeHeroHeading(data)}</h2>
           {!loading && data ? (
             <p className="chart-note">{homeHeroSupport(data)}</p>
           ) : null}
@@ -260,45 +281,45 @@ export default function LeagueHome({
       <div className="hub-home-club-main">
       <div className="hub-home-stage">
         <section className={`hub-home-priority hub-home-priority--${focus.kind}`} aria-busy={loading}>
-          <p className="hub-home-priority-kicker">
-            {loading && !data ? HOME_PAGE_COPY.loadingKicker : (phase.label || "Right now")}
-          </p>
-          <h3>{loading && !data ? HOME_PAGE_COPY.loadingHeading : focus.title}</h3>
-          <p className="hub-home-priority-copy">
-            {loading && !data
-              ? (slowLoad ? HOME_PAGE_COPY.loadingFallback : HOME_PAGE_COPY.loadingSupport)
-              : focus.detail}
-          </p>
-          {loading && !data && slowLoad ? (
-            <div className="hub-home-priority-actions">
-              {onLeagueSync && leagueId ? (
-                <button type="button" className="btn-link" onClick={() => onLeagueSync(leagueId)}>
-                  Sync league
-                </button>
-              ) : onNavigate ? (
-                <button type="button" className="btn-link" onClick={() => onNavigate("setup")}>
-                  Sync league
-                </button>
+          {loading && !data ? (
+            <>
+              <HubLoadingSkeleton label={HOME_PAGE_COPY.loadingKicker} rows={3} />
+              {slowLoad ? (
+                <div className="hub-home-priority-actions">
+                  {onLeagueSync && leagueId ? (
+                    <button type="button" className="btn-link" onClick={() => onLeagueSync(leagueId)}>
+                      Sync league
+                    </button>
+                  ) : onNavigate ? (
+                    <button type="button" className="btn-link" onClick={() => onNavigate("setup")}>
+                      Sync league
+                    </button>
+                  ) : null}
+                </div>
               ) : null}
-            </div>
-          ) : null}
-          {!loading && (
-            <div className="hub-home-priority-actions">
-              {focus.view && onNavigate ? (
-                <button type="button" className="btn-primary" onClick={() => onNavigate(focus.view)}>
-                  {focus.label} <span aria-hidden="true">→</span>
-                </button>
-              ) : null}
-              {pendingCuts && onNavigate ? (
-                <button type="button" className="btn-link" onClick={() => onNavigate("roster")}>
-                  {HOME_PAGE_COPY.undoCut}
-                </button>
-              ) : showPhaseCta && onNavigate ? (
-                <button type="button" className="btn-link" onClick={() => onNavigate(phaseCtaView)}>
-                  {primaryCta.label}
-                </button>
-              ) : null}
-            </div>
+            </>
+          ) : (
+            <>
+              <p className="hub-home-priority-kicker">{phase.label || "Right now"}</p>
+              <h3>{focus.title}</h3>
+              <p className="hub-home-priority-copy">{focus.detail}</p>
+              <div className="hub-home-priority-actions">
+                {focus.view && onNavigate ? (
+                  <button type="button" className="btn-primary" onClick={() => onNavigate(focus.view)}>
+                    {focus.label} <span aria-hidden="true">→</span>
+                  </button>
+                ) : null}
+                {pendingCuts && onNavigate ? (
+                  <button type="button" className="btn-link" onClick={() => onNavigate("roster")}>
+                    {HOME_PAGE_COPY.undoCut}
+                  </button>
+                ) : showPhaseCta && onNavigate && !mobileLayout ? (
+                  <button type="button" className="btn-link" onClick={() => onNavigate(phaseCtaView)}>
+                    {primaryCta.label}
+                  </button>
+                ) : null}
+              </div>
+            </>
           )}
         </section>
 
@@ -401,24 +422,29 @@ export default function LeagueHome({
                 <span className="chart-note">{deckMode.historical ? HOME_PAGE_COPY.lastSeason : HOME_DECK_COPY.standingsNote}</span>
               </header>
               <ol className="hub-home-standings">
-                {standingRows.map((row) => {
+                {standingRows.map((row, index) => {
                   const parts = gameCenterTeamParts(row);
+                  const prev = standingRows[index - 1];
                   return (
-                  <li
-                    key={row.roster_id}
-                    className={row.hub_team_id && String(row.hub_team_id) === String(hubContext?.team_id) ? "is-you" : ""}
-                  >
-                    <span className="hub-home-standing-rank">{row.rank}</span>
-                    <span className="hub-home-standing-name">
-                      {parts.owner || parts.team || row.team_name}
-                      {parts.owner && parts.team ? (
-                        <span className="hub-gc-team-nick">{parts.team}</span>
-                      ) : null}
-                    </span>
-                    <span className="hub-home-standing-rec">
-                      {row.wins}–{row.losses}{row.ties ? `–${row.ties}` : ""}
-                    </span>
-                  </li>
+                  <React.Fragment key={row.roster_id}>
+                    {homeStandingHasGap(prev, row) ? (
+                      <li className="hub-home-standing-break" aria-hidden="true">···</li>
+                    ) : null}
+                    <li
+                      className={row.hub_team_id && String(row.hub_team_id) === String(hubContext?.team_id) ? "is-you" : ""}
+                    >
+                      <span className="hub-home-standing-rank">{row.rank}</span>
+                      <span className="hub-home-standing-name">
+                        {parts.owner || parts.team || row.team_name}
+                        {parts.owner && parts.team ? (
+                          <span className="hub-gc-team-nick">{parts.team}</span>
+                        ) : null}
+                      </span>
+                      <span className="hub-home-standing-rec">
+                        {row.wins}–{row.losses}{row.ties ? `–${row.ties}` : ""}
+                      </span>
+                    </li>
+                  </React.Fragment>
                   );
                 })}
               </ol>

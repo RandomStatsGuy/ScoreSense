@@ -17,6 +17,9 @@ test("vibe copy names the goal and never says Draft Hub or Submit", () => {
   assert.equal(VIBE_COPY.slateTitle, "VA-projections");
   assert.match(VIBE_COPY.slateHint, /vibe-adjusted/i);
   assert.match(VIBE_COPY.heading, /once today/i);
+  assert.equal(VIBE_COPY.vsYours, "Your vibe");
+  assert.equal(VIBE_COPY.vsBoard, "The board");
+  assert.match(VIBE_COPY.openMoreNamed("Justin Jefferson"), /Justin Jefferson/);
   assert.match(VIBE_COPY.vsModelLine("Addison", "Metcalf"), /your vibe starts Addison/i);
   assert.match(VIBE_COPY.vsModelLine("Addison", "Metcalf"), /the board starts Metcalf/i);
   assert.doesNotMatch(VIBE_COPY.vsModelLine("Addison", "Metcalf"), /\bover\b/i);

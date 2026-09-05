@@ -394,6 +394,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
     )
     _safe_add_column(conn, "league_legacy_import", "snapshot_phase", "TEXT DEFAULT 'unknown'")
     _safe_add_column(conn, "league_legacy_import", "source_fingerprint", "TEXT")
+    _safe_add_column(conn, "league_legacy_import", "file_fingerprint", "TEXT")
     # SCORE-44: sourced checkpoint provenance (phase/as_of/ruleset).
     _safe_add_column(conn, "league_legacy_import", "as_of", "TEXT")
     _safe_add_column(conn, "league_legacy_import", "ruleset_version", "TEXT")
@@ -4805,6 +4806,7 @@ def update_legacy_import_metadata(
     *,
     snapshot_phase: str | None = None,
     source_fingerprint: str | None = None,
+    file_fingerprint: str | None = None,
     as_of: str | None = None,
     ruleset_version: str | None = None,
     salary_cap: float | None = None,
@@ -4827,6 +4829,9 @@ def update_legacy_import_metadata(
         if source_fingerprint is not None:
             sets.append("source_fingerprint = ?")
             params.append(source_fingerprint)
+        if file_fingerprint is not None:
+            sets.append("file_fingerprint = ?")
+            params.append(file_fingerprint)
         if as_of is not None:
             sets.append("as_of = ?")
             params.append(as_of)

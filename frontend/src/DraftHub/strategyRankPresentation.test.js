@@ -11,6 +11,8 @@ test("Strategy copy is draft-night and names the two pages", () => {
   assert.match(STRATEGY_RANK_COPY.backToCalls, /close calls/i);
   assert.match(STRATEGY_RANK_COPY.useMine, /Draft/);
   assert.match(STRATEGY_RANK_COPY.emptyBoard, /available|keepers/i);
+  assert.match(STRATEGY_RANK_COPY.emptyPairAll, /Reset seen pairs/i);
+  assert.doesNotMatch(STRATEGY_RANK_COPY.emptyPairAll, /Open All/i);
   const joined = Object.values(STRATEGY_RANK_COPY)
     .map((value) => (typeof value === "function" ? value("Jeanty") : value))
     .join(" ");

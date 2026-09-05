@@ -13,6 +13,11 @@ export const DEFAULT_STARTER_COUNTS = {
 };
 
 export const BOARD_SLOT_ORDER = ["QB", "RB", "WR", "TE", "FLEX", "K", "DEF"];
+
+export const WEEK_BOARD_COPY = {
+  seeCalls: "See lineup calls",
+  emptySlot: (slot) => `Find ${slot}`,
+};
 export const FLEX_ELIGIBLE = ["RB", "WR", "TE"];
 
 export function starterSlotLabel(position, index, count) {
