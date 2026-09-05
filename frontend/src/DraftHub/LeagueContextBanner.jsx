@@ -249,18 +249,17 @@ export default function LeagueContextBanner({
   });
 
   const busy = syncing || switchBusy || sheetSyncing || projRefreshing;
-  const visibleAttentionItems = showAttention
-    ? filterAttentionForView(attentionItems, currentView)
-    : [];
+  const overflowAttentionItems = filterAttentionForView(attentionItems, currentView);
+  const visibleAttentionItems = showAttention ? overflowAttentionItems : [];
 
   useEffect(() => {
     setChrome({
       leagueName,
       phaseLabel: !inLeague && !hasLeagues ? "No shared league yet" : phaseLabel,
       roleLabel,
-      attentionItems: visibleAttentionItems,
+      attentionItems: overflowAttentionItems,
     });
-  }, [setChrome, leagueName, phaseLabel, roleLabel, visibleAttentionItems, inLeague, hasLeagues]);
+  }, [setChrome, leagueName, phaseLabel, roleLabel, overflowAttentionItems, inLeague, hasLeagues]);
 
   useEffect(() => () => setChrome(null), [setChrome]);
 
