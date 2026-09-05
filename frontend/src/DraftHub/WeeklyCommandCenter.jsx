@@ -18,7 +18,6 @@ import {
   fillStarterSlots,
   canEditHubLineup,
   decisionSwapIds,
-  weekBoardOverlayCopy,
   weekHeroCopy,
   weekPrimaryAction,
   weekRailItems,
