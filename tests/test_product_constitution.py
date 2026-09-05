@@ -179,6 +179,20 @@ def test_constitution_covers_copy_voice() -> None:
     assert "cost of getting it wrong" in core_rule
 
 
+def test_constitution_covers_best_ball_board() -> None:
+    product = _read("docs", "PRODUCT.md")
+    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    hub_rule = _read(".cursor", "rules", "frontend-draft-hub.mdc")
+    assert "Tools · Best ball" in product
+    assert "No ECR" in product
+    assert "Scoring: PPR" in product
+    assert "labeled Pos / Sort" in product
+    assert "No ECR" in core_rule
+    assert "Scoring: PPR" in core_rule
+    assert "labeled Pos / Sort" in hub_rule
+    assert "table-wrap" in hub_rule
+
+
 def test_constitution_covers_weekly_board_chrome() -> None:
     product = _read("docs", "PRODUCT.md")
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")

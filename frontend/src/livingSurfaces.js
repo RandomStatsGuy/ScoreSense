@@ -233,7 +233,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "experience",
     page: "frontend/src/BestBallBoard.jsx",
     copy: "frontend/src/bestBallPresentation.js",
-    doNot: "Reuse HubExperience*. Do not invent a fourth top-level area. Headers name the data (Pos rank, Pos ECR until a real ADP feed); ECR or ADP by its real name, never one labeled as the other. Hide ADP-edge sort when the source is ECR-only. Edge is blank, not 0, when either side is missing. Team abbreviations match Weekly (LAR, not LA).",
+    doNot: "Reuse HubExperience*. Do not invent a fourth top-level area. Leftmost # is monotonic; Pos rank is within position and groups under position headers on that sort. Missing ECR is a No ECR chip and ECR filter, never a dash. Edge names the ±10 threshold in copy; discount is teal, reach is --tone-negative, never amber. Pos / ECR / Sort are labeled menus. Export leads the rail; only With ECR repeats as a number. Page owns scroll and the list is windowed. Headers name the data (Pos rank, Pos ECR as FantasyPros consensus); ECR or ADP by its real name, never one labeled as the other. Hide Edge sort when the source is ECR-only. Edge is blank, not 0, when either side is missing. Show Scoring: PPR. No roadmap notes in user copy. Team abbreviations match Weekly (LAR, not LA).",
   }),
   "projections.weekly": S({
     label: "Weekly",

@@ -1,5 +1,7 @@
 /** Shared Best ball board presentation (Tools → Best ball). */
 
+export const BB_POSITION_ORDER = ["QB", "RB", "WR/TE"];
+
 export const BB_POSITION_FILTERS = [
   { id: "ALL", label: "All" },
   { id: "QB", label: "QB" },
@@ -7,16 +9,39 @@ export const BB_POSITION_FILTERS = [
   { id: "WR/TE", label: "WR/TE" },
 ];
 
+export const BB_COVERAGE_FILTERS = [
+  { id: "ALL", label: "All" },
+  { id: "missing", label: "No ECR" },
+  { id: "ranked", label: "With ECR" },
+];
+
 export const BB_SORTS = [
-  { id: "model", label: "Pos rank", hint: "ScoreSense positional rank from season projections" },
-  { id: "adp", label: "Pos ECR", hint: "FantasyPros positional ECR until a real ADP feed exists" },
+  { id: "model", label: "Pos rank", hint: "ScoreSense rank within position" },
+  { id: "adp", label: "Pos ECR", hint: "FantasyPros consensus rank within position" },
+  { id: "missing", label: "No ECR", hint: "Names FantasyPros has not ranked, then Pos rank" },
+];
+
+export const BB_NO_ECR_LABEL = "No ECR";
+export const BB_EDGE_THRESHOLD = 10;
+export const BB_COL_COUNT = 9;
+
+export const BB_COLUMNS = [
+  { id: "index", label: "#", hint: "Place in this filtered list" },
+  { id: "player", label: "Player" },
+  { id: "pos", label: "Pos" },
+  { id: "model", label: "Pos rank", hint: "ScoreSense rank within position" },
+  { id: "team", label: "Team" },
+  { id: "bye", label: "Bye" },
+  { id: "proj", label: "Season proj" },
+  { id: "ecr", label: "Pos ECR", hint: "FantasyPros consensus rank within position" },
+  { id: "edge", label: "Edge", hint: "Pos ECR minus Pos rank. Plus is a discount." },
 ];
 
 export function bestBallSorts({ ecrOnly = true, withAdp = 0 } = {}) {
   if (ecrOnly || !withAdp) return BB_SORTS;
   return [
     ...BB_SORTS,
-    { id: "edge", label: "ADP edge", hint: "Biggest gap between model rank and market ADP" },
+    { id: "edge", label: "Edge", hint: "Pos ECR minus Pos rank. Plus is a discount." },
   ];
 }
 
@@ -25,7 +50,7 @@ export function bestBallHeroCopy() {
     eyebrow: "Tools · Best ball",
     heading: "Take the name ECR is missing.",
     support:
-      "Pos rank is the model. Pos ECR is FantasyPros until a real ADP feed exists. Reach the other way and you pay extra for a name the board already priced.",
+      "Edge is Pos ECR minus Pos rank. A plus is a discount FantasyPros missed; a minus is a reach you pay extra for.",
   };
 }
 
@@ -33,7 +58,23 @@ export function bestBallStatusChip({ loading = false, count = 0, withAdp = 0 } =
   if (loading) return { label: "Building board", tone: "readonly" };
   if (!count) return { label: "No board yet", tone: "readonly" };
   if (!withAdp) return { label: `${count} players · no ECR cached`, tone: "readonly" };
-  return { label: `${count} players · ${withAdp} with ECR`, tone: "readonly" };
+  return { label: `${count} players`, tone: "readonly" };
+}
+
+export function bestBallScoringNote() {
+  return "Scoring: PPR";
+}
+
+export function bestBallEdgeLegendCopy() {
+  return "Edge +10 or more is a discount. −10 or more is a reach.";
+}
+
+export function bestBallEcrSourceCopy() {
+  return "Pos ECR is FantasyPros consensus.";
+}
+
+export function bestBallGroupLabel(position, count = 0) {
+  return `${position} · ${count}`;
 }
 
 /** Number(null) is 0 — treat null/empty as missing instead. */
@@ -43,25 +84,34 @@ function asNumber(value) {
   return Number.isFinite(num) ? num : null;
 }
 
+export function rowHasEcr(row) {
+  return asNumber(row?.adp_rank) != null;
+}
+
 export function formatRank(value) {
   const num = asNumber(value);
   return num != null ? String(Math.round(num)) : "—";
 }
 
+export function formatEcr(value) {
+  const num = asNumber(value);
+  return num != null ? String(Math.round(num)) : BB_NO_ECR_LABEL;
+}
+
 export function formatEdge(value) {
   const num = asNumber(value);
-  if (num == null) return "—";
+  if (num == null) return "";
   const rounded = Math.round(num);
   if (rounded > 0) return `+${rounded}`;
   return String(rounded);
 }
 
-/** Tone for the edge cell: positive = market discount, negative = market reach. */
+/** Tone for the edge cell: discount = market late, reach = market early. */
 export function edgeTone(value) {
   const num = asNumber(value);
   if (num == null) return "";
-  if (num >= 10) return "positive";
-  if (num <= -10) return "caution";
+  if (num >= BB_EDGE_THRESHOLD) return "discount";
+  if (num <= -BB_EDGE_THRESHOLD) return "reach";
   return "";
 }
 
@@ -75,12 +125,18 @@ export function formatSeasonPoints(value) {
   return num != null ? num.toFixed(0) : "—";
 }
 
+function rankValue(value) {
+  const num = asNumber(value);
+  return num != null ? num : Number.POSITIVE_INFINITY;
+}
+
+function positionOrder(row) {
+  const idx = BB_POSITION_ORDER.indexOf(String(row?.Position || ""));
+  return idx >= 0 ? idx : BB_POSITION_ORDER.length;
+}
+
 export function sortBoardRows(rows = [], sortId = "model") {
   const list = [...rows];
-  const rank = (value) => {
-    const num = asNumber(value);
-    return num != null ? num : Number.POSITIVE_INFINITY;
-  };
   if (sortId === "edge") {
     list.sort((a, b) => {
       const aEdge = asNumber(a.value_vs_adp);
@@ -89,25 +145,45 @@ export function sortBoardRows(rows = [], sortId = "model") {
       const bOk = bEdge != null;
       if (aOk && bOk && bEdge !== aEdge) return bEdge - aEdge;
       if (aOk !== bOk) return aOk ? -1 : 1;
-      return rank(a.model_rank) - rank(b.model_rank);
+      return rankValue(a.model_rank) - rankValue(b.model_rank);
     });
     return list;
   }
   if (sortId === "adp") {
     list.sort((a, b) => {
-      const diff = rank(a.adp_rank) - rank(b.adp_rank);
-      return diff !== 0 ? diff : rank(a.model_rank) - rank(b.model_rank);
+      const diff = rankValue(a.adp_rank) - rankValue(b.adp_rank);
+      return diff !== 0 ? diff : rankValue(a.model_rank) - rankValue(b.model_rank);
     });
     return list;
   }
-  list.sort((a, b) => rank(a.model_rank) - rank(b.model_rank));
+  if (sortId === "missing") {
+    list.sort((a, b) => {
+      const aMiss = !rowHasEcr(a);
+      const bMiss = !rowHasEcr(b);
+      if (aMiss !== bMiss) return aMiss ? -1 : 1;
+      const pos = positionOrder(a) - positionOrder(b);
+      if (pos !== 0) return pos;
+      return rankValue(a.model_rank) - rankValue(b.model_rank);
+    });
+    return list;
+  }
+  list.sort((a, b) => {
+    const pos = positionOrder(a) - positionOrder(b);
+    if (pos !== 0) return pos;
+    return rankValue(a.model_rank) - rankValue(b.model_rank);
+  });
   return list;
 }
 
-export function filterBoardRows(rows = [], { position = "ALL", search = "" } = {}) {
+export function filterBoardRows(rows = [], { position = "ALL", search = "", coverage = "ALL" } = {}) {
   let list = rows;
   if (position !== "ALL") {
     list = list.filter((row) => String(row.Position || "") === position);
+  }
+  if (coverage === "missing") {
+    list = list.filter((row) => !rowHasEcr(row));
+  } else if (coverage === "ranked") {
+    list = list.filter((row) => rowHasEcr(row));
   }
   const query = String(search || "").trim().toLowerCase();
   if (query) {
@@ -116,60 +192,78 @@ export function filterBoardRows(rows = [], { position = "ALL", search = "" } = {
   return list;
 }
 
+export function shouldGroupBoard(sortId = "model", positionId = "ALL") {
+  return sortId === "model" && positionId === "ALL";
+}
+
+export function buildBoardItems(rows = [], { groupByPosition = false } = {}) {
+  if (!groupByPosition) {
+    return rows.map((row, index) => ({ type: "player", row, index: index + 1 }));
+  }
+  const items = [];
+  let index = 0;
+  const consumed = new Set();
+  for (const pos of BB_POSITION_ORDER) {
+    const group = rows.filter((row) => String(row.Position || "") === pos);
+    if (!group.length) continue;
+    items.push({ type: "group", position: pos, count: group.length });
+    for (const row of group) {
+      index += 1;
+      items.push({ type: "player", row, index });
+      consumed.add(row);
+    }
+  }
+  const leftover = rows.filter((row) => !consumed.has(row));
+  if (leftover.length) {
+    items.push({ type: "group", position: "Other", count: leftover.length });
+    for (const row of leftover) {
+      index += 1;
+      items.push({ type: "player", row, index });
+    }
+  }
+  return items;
+}
+
 export function bestBallSummaryItems({
-  season,
   count = 0,
   withAdp = 0,
-  sortId = "model",
-  positionId = "ALL",
-  filteredCount = 0,
 } = {}) {
-  const sort = bestBallSorts({ ecrOnly: false, withAdp: 1 }).find((entry) => entry.id === sortId)
-    || BB_SORTS.find((entry) => entry.id === sortId);
-  const position = BB_POSITION_FILTERS.find((entry) => entry.id === positionId);
   return [
-    { id: "season", label: "Season", value: season != null ? String(season) : "—" },
-    { id: "players", label: "Players", value: count ? String(count) : "—" },
     {
       id: "adp",
       label: "With ECR",
       value: count ? `${withAdp} of ${count}` : "—",
       tone: count && !withAdp ? "caution" : undefined,
     },
-    { id: "sort", label: "Sorted by", value: sort?.label || "Pos rank" },
-    {
-      id: "showing",
-      label: "Showing",
-      value: `${filteredCount} · ${position?.label || "All"}`,
-    },
   ];
 }
 
 export function bestBallCsvLines(rows = [], quote = (v) => `"${v}"`) {
   const lines = [
-    ["Pos rank", "Player", "Team", "Pos", "Bye", "Season proj", "Pos ECR", "Edge"]
+    ["#", "Pos rank", "Player", "Pos", "Team", "Bye", "Season proj", "Pos ECR", "Edge"]
       .map(quote)
       .join(","),
   ];
-  for (const row of rows) {
+  rows.forEach((row, index) => {
     lines.push(
       [
+        String(index + 1),
         formatRank(row.model_rank),
         row.Player || "",
-        row.Team || "",
         row.Position || "",
+        row.Team || "",
         byeLabel(row.bye_week),
         formatSeasonPoints(row["Season Proj"]),
-        formatRank(row.adp_rank),
+        formatEcr(row.adp_rank),
         formatEdge(row.value_vs_adp),
       ]
         .map(quote)
         .join(",")
     );
-  }
+  });
   return lines;
 }
 
 export function bestBallBoardNote() {
-  return "";
+  return `${bestBallEcrSourceCopy()} ${bestBallEdgeLegendCopy()}`;
 }
