@@ -98,6 +98,12 @@ function ValueSheetPlayerRow({
   const isNeed = (needPositions || []).some(
     (p) => String(p || "").toUpperCase() === String(row.position || "").toUpperCase(),
   );
+  const costCell = vsCostCell({
+    preDraft,
+    remaining: remainingCap,
+    bid: row.fair_value ?? row.suggested_bid,
+    valueDelta: row.value_delta,
+  });
 
   return (
     <tr
@@ -137,7 +143,7 @@ function ValueSheetPlayerRow({
         </div>
           {row.is_rookie && <span className="hub-sleeper-badge">Rookie est.</span>}
           {addMode === "locked" ? (
-            <details className="hub-fa-locked">
+            <details className="hub-fa-locked" onClick={(e) => e.stopPropagation()}>
               <summary className="hub-fa-locked-chip">{playersTabLockedChip().label}</summary>
               <p className="hub-fa-locked-pop">{playersTabLockedChip().popover}</p>
             </details>
@@ -213,12 +219,11 @@ function ValueSheetPlayerRow({
       )}
       {showDelta && (
         <td className="num hub-col-delta">
-          {vsCostCell({
-            preDraft,
-            remaining: remainingCap,
-            bid: row.fair_value ?? row.suggested_bid,
-            valueDelta: row.value_delta,
-          })}
+          {!preDraft && row.value_delta != null ? (
+            <span className={row.value_delta <= 0 ? "hub-value-delta-pos" : "hub-value-delta-neg"}>
+              {costCell}
+            </span>
+          ) : costCell}
         </td>
       )}
       {showTier && <td className="hub-col-tier">{row.tier}</td>}

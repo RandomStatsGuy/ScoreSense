@@ -895,7 +895,7 @@ export default function ValueSheetTable({
                 badge={(
                   <>
                     {lockedPickup ? (
-                      <details className="hub-fa-locked">
+                      <details className="hub-fa-locked" onClick={(e) => e.stopPropagation()}>
                         <summary className="hub-fa-locked-chip">{lockedCopy.label}</summary>
                         <p className="hub-fa-locked-pop">{lockedCopy.popover}</p>
                       </details>

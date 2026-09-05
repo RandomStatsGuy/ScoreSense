@@ -71,6 +71,10 @@ export default function DraftAvailability({
   const [tappedHour, setTappedHour] = useState(null);
   const mobileLayout = useMobileLayout();
 
+  useEffect(() => {
+    setTappedHour(null);
+  }, [selectedDate]);
+
   const load = useCallback(async () => {
     if (!leagueId || !enabled) return;
     setLoading(true);
@@ -294,7 +298,7 @@ export default function DraftAvailability({
             <h4>{formatCalendarDay(selectedDate)}</h4>
             {hourChoices.length ? (
               <>
-                <p className="chart-note">{availabilityHoursHint({ canEdit: payload.can_edit })}</p>
+                <p className="chart-note">{availabilityHoursHint({ canEdit: payload?.can_edit })}</p>
                 <div className="draft-availability-hour-row">
                   {hourChoices.map((hour) => {
                     const slot = selectedDaySlots.find((item) => Number(item.hour) === Number(hour));
@@ -305,7 +309,7 @@ export default function DraftAvailability({
                         key={hour}
                         type="button"
                         className={`draft-availability-hour${mineHour ? " is-mine" : ""}${(slot?.count || 0) > 0 ? " has-people" : ""}${hourLocked ? " is-locked" : ""}`}
-                        disabled={!payload.can_edit}
+                        disabled={!payload?.can_edit}
                         aria-pressed={mineHour}
                         onClick={() => toggleHour(hour)}
                       >

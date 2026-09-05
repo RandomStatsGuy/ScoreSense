@@ -261,7 +261,9 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
 
   const pendingCut = (preDraft?.pending_cuts || [])[0] || null;
   const railPrimary = capRailPrimary({ pendingCut, remaining: summary.remaining });
-  const selectedCapRow = (roster || []).find((row) => String(row.player_id) === String(selectedPlayerId));
+  const selectedCapRow = selectedPlayerId
+    ? (roster || []).find((row) => String(row.player_id) === String(selectedPlayerId))
+    : null;
   const selectedStory = selectedCapRow
     ? contractDeadCapStory(selectedCapRow, workspace?.rules)
     : null;
