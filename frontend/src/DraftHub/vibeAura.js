@@ -1,6 +1,6 @@
 /** Personal aura + start-slate math for Fantasy → Vibes. */
 
-import { FLEX_ELIGIBLE, buildStarterSlotPlan, fillStarterSlots } from "./weekBoard.js";
+import { FLEX_ELIGIBLE, buildStarterSlotPlan } from "./weekBoard.js";
 
 export const AURA_BASE = 50;
 export const AURA_MIN = 0;
@@ -87,10 +87,7 @@ export function fillSlotsByScore(plan, players, scoreOf) {
 
 export function projectionStarts(players, rules) {
   const plan = buildStarterSlotPlan(rules);
-  const ranked = [...(players || [])]
-    .filter(eligibleToStart)
-    .sort((a, b) => (Number(b.p50) || 0) - (Number(a.p50) || 0));
-  return fillStarterSlots(plan, ranked);
+  return fillSlotsByScore(plan, players, (player) => Number(player.p50) || 0);
 }
 
 export function vibeStarts(players, auraById, rules) {

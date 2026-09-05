@@ -11,12 +11,15 @@ import {
   formatPtsDelta,
   normalizeDayVotes,
   playersLeftToday,
+  projectionStarts,
   readAura,
   recordDayVote,
   todayRatedCount,
   vibeDivergences,
   vibeScore,
+  vibeStarts,
 } from "./vibeAura.js";
+import { DEMO_VIBE_RULES, DEMO_VIBE_SLATE } from "./vibeRankingsPresentation.js";
 
 const bijan = { player_id: "bijan", player_name: "Bijan Robinson", position: "RB", p50: 17 };
 const gibbs = { player_id: "gibbs", player_name: "Jahmyr Gibbs", position: "RB", p50: 16 };
@@ -61,6 +64,16 @@ test("divergences name who your vibes start over the model", () => {
   assert.equal(pairs.length, 1);
   assert.equal(pairs[0].start.player_name, "Saquon Barkley");
   assert.equal(pairs[0].sit.player_name, "Bijan Robinson");
+});
+
+test("board and vibe slates match until aura moves a start", () => {
+  const proj = projectionStarts(DEMO_VIBE_SLATE, DEMO_VIBE_RULES);
+  const vibe = vibeStarts(DEMO_VIBE_SLATE, {}, DEMO_VIBE_RULES);
+  assert.deepEqual(
+    proj.map((slot) => slot.player?.player_id),
+    vibe.map((slot) => slot.player?.player_id),
+  );
+  assert.equal(vibeDivergences(proj, vibe).pairs.length, 0);
 });
 
 test("copy helpers stay numeric and never mention Draft Hub", () => {

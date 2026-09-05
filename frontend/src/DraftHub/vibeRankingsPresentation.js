@@ -321,9 +321,10 @@ export function vsSplitRows(pairs, auraById) {
   });
 }
 
-export function vsModelNote({ ratedToday = 0, pairCount = 0 } = {}) {
+export function vsModelNote({ ratedToday = 0, pairCount = 0, hasStoredAura = false } = {}) {
   if (!pairCount) return VIBE_COPY.vsModelEmpty;
-  if (ratedToday === 0) return VIBE_COPY.vsModelSourcePrior;
+  if (ratedToday === 0 && hasStoredAura) return VIBE_COPY.vsModelSourcePrior;
+  if (ratedToday === 0) return VIBE_COPY.vsModelEmpty;
   return VIBE_COPY.vsModelSource;
 }
 

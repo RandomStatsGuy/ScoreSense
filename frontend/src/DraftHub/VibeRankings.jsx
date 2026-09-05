@@ -94,7 +94,11 @@ function SlateList({ title, hint, slots, auraById, onNavigate }) {
 
 function VsBoardTable({ pairs, auraById, ratedToday }) {
   const rows = vsSplitRows(pairs, auraById);
-  const note = vsModelNote({ ratedToday, pairCount: rows.length });
+  const note = vsModelNote({
+    ratedToday,
+    pairCount: rows.length,
+    hasStoredAura: Object.keys(auraById || {}).length > 0,
+  });
   return (
     <section className="hub-vibes-splits" aria-label={VIBE_COPY.vsModel}>
       <h3>{VIBE_COPY.vsModel}</h3>

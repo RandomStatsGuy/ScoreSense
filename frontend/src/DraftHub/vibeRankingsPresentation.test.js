@@ -67,7 +67,8 @@ test("week vs vibe vs board table helpers stay scannable", () => {
   assert.equal(rows[0].boardName, "Metcalf");
   assert.ok(rows[0].delta !== 0);
   assert.match(vsModelNote({ ratedToday: 0, pairCount: 0 }), /empty until a vibe disagrees/i);
-  assert.match(vsModelNote({ ratedToday: 0, pairCount: 3 }), /have not rated today/i);
+  assert.match(vsModelNote({ ratedToday: 0, pairCount: 3 }), /empty until a vibe disagrees/i);
+  assert.match(vsModelNote({ ratedToday: 0, pairCount: 3, hasStoredAura: true }), /have not rated today/i);
   assert.match(vsModelNote({ ratedToday: 2, pairCount: 1 }), /board's week/i);
 });
 
