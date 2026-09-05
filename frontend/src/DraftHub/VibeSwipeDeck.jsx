@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { headshotCandidates, playerInitials, teamLogoUrl } from "./draftMedia";
+import { PAINT_WIDTH, headshotCandidates, paintMediaUrl, playerInitials, teamLogoUrl } from "./draftMedia";
 import { espnHeadshotUrl, opponentLabel, VIBE_COPY } from "./vibeRankingsPresentation";
 import { auraTone, formatAura, formatPts, readAura, vibeScore } from "./vibeAura";
 import { buildVibeLatest, buildVibeMatchup } from "./vibeMatchup";
@@ -12,7 +12,7 @@ const FLY_MS = 200;
 
 function cardMedia(player, media) {
   const row = media?.[player.player_id] || {};
-  return headshotCandidates(row, [espnHeadshotUrl(player.espn_id)]);
+  return headshotCandidates(row, [espnHeadshotUrl(player.espn_id)], { width: PAINT_WIDTH.hero });
 }
 
 function MoreArrow({ open }) {
@@ -42,7 +42,7 @@ function VibeCardFace({
   const [shotIndex, setShotIndex] = useState(0);
   const shots = cardMedia(player, media);
   const headshot = shots[shotIndex] || null;
-  const logo = teamLogoUrl(player.team);
+  const logo = paintMediaUrl(teamLogoUrl(player.team), PAINT_WIDTH.hero);
   const tone = auraTone(aura);
   const vibePts = vibeScore(player, aura);
   const profile = buildVibeProfile(player, media);

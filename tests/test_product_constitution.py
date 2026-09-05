@@ -179,6 +179,20 @@ def test_constitution_covers_copy_voice() -> None:
     assert "cost of getting it wrong" in core_rule
 
 
+def test_constitution_covers_best_ball_board() -> None:
+    product = _read("docs", "PRODUCT.md")
+    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    hub_rule = _read(".cursor", "rules", "frontend-draft-hub.mdc")
+    assert "Tools · Best ball" in product
+    assert "No ECR" in product
+    assert "Scoring: PPR" in product
+    assert "labeled Pos / Sort" in product
+    assert "No ECR" in core_rule
+    assert "Scoring: PPR" in core_rule
+    assert "labeled Pos / Sort" in hub_rule
+    assert "table-wrap" in hub_rule
+
+
 def test_constitution_covers_weekly_board_chrome() -> None:
     product = _read("docs", "PRODUCT.md")
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
@@ -212,6 +226,18 @@ def test_constitution_covers_landmarks_and_exclusive_choices() -> None:
     assert "radiogroup" in core_rule
     assert "aria-live" in hub_rule
     assert "list-item" in hub_rule
+
+
+def test_constitution_covers_painted_media() -> None:
+    product = _read("docs", "PRODUCT.md")
+    perf = _read(".cursor", "rules", "draft-hub-performance.mdc")
+    hub = _read(".cursor", "rules", "frontend-draft-hub.mdc")
+    core = _read(".cursor", "rules", "scoresense-core.mdc")
+    assert "?w=48" in product
+    assert "studio original" in product
+    assert "?w=" in perf
+    assert "painted size" in hub
+    assert "?w=48/96/256" in core
 
 
 def test_constitution_empty_states_name_a_destination() -> None:

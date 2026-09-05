@@ -7,9 +7,10 @@ export default function IdentityCropMedia({
   focus,
   alt = "",
   className = "",
+  width,
 }) {
   const isLocal = Boolean(src && (src.startsWith("blob:") || src.startsWith("data:")));
-  const remote = useHubMediaUrl(isLocal ? "" : src);
+  const remote = useHubMediaUrl(isLocal ? "" : src, { width });
   const url = isLocal ? src : remote;
   if (!url) return null;
   return (

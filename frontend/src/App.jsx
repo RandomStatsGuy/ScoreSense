@@ -3,9 +3,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { reportHref } from "./bugReportPresentation";
 import { useAuth } from "./AuthContext";
 import DraftTable from "./DraftTable";
-import DraftHub from "./DraftHub/DraftHub";
 import HubSubnav, { HUB_SUBVIEWS } from "./DraftHub/HubSubnav";
 import { LeagueChromeProvider } from "./DraftHub/leagueChromeContext";
+const DraftHub = lazy(() => import("./DraftHub/DraftHub"));
 const DfsOptimizer = lazy(() => import("./LineupOptimizer"));
 const MockDraftTool = lazy(() => import("./DraftHub/MockDraftTool"));
 import BestBallBoard from "./BestBallBoard";
@@ -1325,6 +1325,7 @@ export default function App() {
       onSectionChange={goToSection}
       onMoreOpen={() => setMobileMenuOpen(true)}
     >
+        <a className="app-skip-link" href="#main-content">Skip to content</a>
         <InviteAccept
           authenticated={authenticated}
           user={user}
@@ -1371,7 +1372,7 @@ export default function App() {
 
             <div className="app-header-row app-header-row-primary app-header-desktop-only">
               <div className="app-header-brand">
-                <h1 className="app-title">{PRODUCT_NAME}</h1>
+                <p className="app-title">{PRODUCT_NAME}</p>
                 <span className="app-header-studio">{STUDIO_NAME}</span>
               </div>
               <nav className="app-header-nav" aria-label="Sections">
@@ -1471,6 +1472,7 @@ export default function App() {
           )}
         </header>
 
+        <main id="main-content" className="app-main" tabIndex={-1}>
         {view === "projections" && !mobileLayout && (
           <ProjectionsFilterBar {...projectionsFilterProps} />
         )}
@@ -1544,7 +1546,6 @@ export default function App() {
           />
         )}
 
-        <main id="main-content" className="app-main" tabIndex={-1}>
         {error && isProjectionsDataView && (
           <div className="error">{error}</div>
         )}
@@ -1592,19 +1593,23 @@ export default function App() {
         {hubMounted && (
           <div
             className={view === "hub" ? "app-view-pane" : "app-view-pane app-view-pane-hidden"}
+            hidden={view !== "hub" || undefined}
+            {...(view !== "hub" ? { inert: "" } : {})}
             aria-hidden={view !== "hub"}
           >
-            <DraftHub
-              subView={hubSubView}
-              onSubViewChange={setHubSubView}
-              onHubContextChange={setHubContext}
-              insightTab={insightTab}
-              onInsightTabChange={nav.setInsightTab}
-              onOpenContractHistory={nav.openPlayerContractHistory}
-              officeTab={nav.officeTab}
-              onOfficeTabChange={nav.setOfficeTab}
-              active={view === "hub"}
-            />
+            <Suspense fallback={<p className="chart-note">Loading Fantasy…</p>}>
+              <DraftHub
+                subView={hubSubView}
+                onSubViewChange={setHubSubView}
+                onHubContextChange={setHubContext}
+                insightTab={insightTab}
+                onInsightTabChange={nav.setInsightTab}
+                onOpenContractHistory={nav.openPlayerContractHistory}
+                officeTab={nav.officeTab}
+                onOfficeTabChange={nav.setOfficeTab}
+                active={view === "hub"}
+              />
+            </Suspense>
           </div>
         )}
 
@@ -2064,10 +2069,10 @@ export default function App() {
         {view === "admin" && isAdmin && (
           <AdminPortal adminTab={adminTab || "overview"} onAdminTabChange={setAdminTab} />
         )}
+        </main>
         {!mobileLayout && (
           <LegalLinks termsUrl={termsUrl} privacyUrl={privacyUrl} className="app-legal-footer" compact />
         )}
-        </main>
       </MobileShell>
     </LeagueChromeProvider>
     </PlayerCardProvider>

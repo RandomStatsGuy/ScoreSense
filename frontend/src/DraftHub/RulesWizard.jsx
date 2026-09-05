@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import {
@@ -6,26 +6,35 @@ import {
   RISK_TOLERANCE_OPTIONS,
   riskToleranceLabel,
 } from "../riskAdjustedValue";
+import { confirmDialog } from "../ui/confirm";
+import { isHubRulesPath, setUnsavedNavigationBlocker } from "../unsavedNavigation";
 import { HubPage } from "./HubUILayout";
 import { isPickDraft } from "./draftEntryStatus";
 import {
   contractSchedule,
   DEFAULT_RULES,
+  FORMAT_OPTIONS,
+  formatLastSaved,
+  glanceEyebrow,
   mergeLeagueRules,
+  presetRulesFromList,
   ROSTER_LIMIT_KEYS,
   RULES_COPY,
+  rulesFormWarnings,
+  rulesSaveDisabledReason,
   rulesSummary,
+  snapshotRulesForm,
+  templateConfirmMessage,
   validateLeagueSettings,
 } from "./rulesPresentation";
 
-const FORMAT_OPTIONS = [
-  { id: "auction", label: "Salary cap", hint: "Nominate and bid with contracts." },
-  { id: "snake", label: "Snake", hint: "Pick order reverses each round." },
-  { id: "linear", label: "Linear", hint: "The same order every round." },
-];
-
-function RuleError({ children }) {
-  return children ? <span className="hub-rules-field-error">{children}</span> : null;
+function RuleError({ id, children }) {
+  if (!children) return null;
+  return (
+    <span id={id} className="hub-rules-field-error" role="alert">
+      {children}
+    </span>
+  );
 }
 
 function PolicyToggle({ checked, disabled, title, description, onChange }) {
@@ -66,10 +75,15 @@ function SalarySchedule({ title, detail, values }) {
   );
 }
 
+function fieldDescribedBy(id, error) {
+  return error ? id : undefined;
+}
+
 export default function RulesWizard({
   workspace,
   hubContext,
   presets = [],
+  roster = [],
   onSaved,
   readOnlyRules = false,
 }) {
@@ -77,21 +91,32 @@ export default function RulesWizard({
   const [name, setName] = useState("");
   const [season, setSeason] = useState(new Date().getFullYear());
   const [rules, setRules] = useState(() => mergeLeagueRules(workspace?.rules || DEFAULT_RULES));
+  const [savedSnapshot, setSavedSnapshot] = useState(() => snapshotRulesForm({
+    name: "",
+    season: new Date().getFullYear(),
+    rules: mergeLeagueRules(workspace?.rules || DEFAULT_RULES),
+  }));
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState({ kind: "", text: "" });
-  const formDirty = useRef(false);
+  const [savedAt, setSavedAt] = useState(null);
+  const [undo, setUndo] = useState(null);
   const sourceKeyRef = useRef("");
+  const dirtyRef = useRef(false);
 
   const applyServerState = React.useCallback((ws, ctx) => {
     const leagueMode = ctx?.mode === "league";
-    setName(leagueMode ? (ctx?.league_name || ws?.name || "") : (ws?.name || ""));
-    setSeason(Number(leagueMode ? ctx?.season ?? ws?.season : ws?.season) || new Date().getFullYear());
+    const nextName = leagueMode ? (ctx?.league_name || ws?.name || "") : (ws?.name || "");
+    const nextSeason = Number(leagueMode ? ctx?.season ?? ws?.season : ws?.season) || new Date().getFullYear();
     const incoming = (leagueMode ? ctx?.rules : ws?.rules) || ws?.rules || DEFAULT_RULES;
-    setRules(mergeLeagueRules(incoming));
-    formDirty.current = false;
+    const nextRules = mergeLeagueRules(incoming);
+    setName(nextName);
+    setSeason(nextSeason);
+    setRules(nextRules);
+    setSavedSnapshot(snapshotRulesForm({ name: nextName, season: nextSeason, rules: nextRules }));
+    setUndo(null);
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const sourceKey = inLeague
       ? `league:${hubContext?.league_id || ""}`
       : `workspace:${workspace?.id || ""}`;
@@ -100,12 +125,16 @@ export default function RulesWizard({
       applyServerState(workspace, hubContext);
       return;
     }
-    if (!formDirty.current) applyServerState(workspace, hubContext);
+    if (!dirtyRef.current) applyServerState(workspace, hubContext);
   }, [workspace, hubContext, inLeague, applyServerState]);
 
+  const formSnapshot = snapshotRulesForm({ name, season, rules });
+  const dirty = formSnapshot !== savedSnapshot;
+  dirtyRef.current = dirty;
+
   const touch = () => {
-    formDirty.current = true;
     if (status.text) setStatus({ kind: "", text: "" });
+    if (undo) setUndo(null);
   };
   const updateRules = (updater) => {
     touch();
@@ -134,6 +163,14 @@ export default function RulesWizard({
     () => validateLeagueSettings({ name, season, rules }),
     [name, season, rules],
   );
+  const warnings = useMemo(
+    () => rulesFormWarnings({ rules, roster }),
+    [rules, roster],
+  );
+  const warningList = Object.values(warnings);
+  const errorCount = Object.keys(errors).length;
+  const saveReason = rulesSaveDisabledReason({ dirty, saving, errorCount });
+  const saveDisabled = Boolean(saving || saveReason);
   const summary = useMemo(() => rulesSummary(rules), [rules]);
   const activeRisk = normalizeRiskTolerance(rules.risk_tolerance);
   const activeRiskHint = RISK_TOLERANCE_OPTIONS.find((option) => option.value === activeRisk)?.hint;
@@ -148,12 +185,39 @@ export default function RulesWizard({
     rules.contracts.veteran_years,
     rules.contracts.extension_step_up,
   );
+  const lastSavedLabel = RULES_COPY.lastSaved(formatLastSaved(savedAt));
+
+  useEffect(() => {
+    setUnsavedNavigationBlocker(async (nextPath) => {
+      if (!dirtyRef.current || readOnlyRules) return true;
+      if (isHubRulesPath(nextPath)) return true;
+      return confirmDialog({
+        title: RULES_COPY.leaveTitle,
+        message: RULES_COPY.leaveUnsaved,
+        confirmLabel: RULES_COPY.leaveConfirm,
+        cancelLabel: RULES_COPY.keepEditing,
+        danger: true,
+      });
+    });
+    return () => setUnsavedNavigationBlocker(null);
+  }, [readOnlyRules]);
+
+  useEffect(() => {
+    if (!dirtyRef.current || readOnlyRules) return undefined;
+    const onBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [name, season, rules, readOnlyRules]);
 
   const save = async () => {
-    if (Object.keys(errors).length > 0) {
-      setStatus({ kind: "error", text: "Fix the highlighted rules before saving." });
+    if (errorCount > 0) {
+      setStatus({ kind: "error", text: RULES_COPY.fixBeforeSave });
       return;
     }
+    if (!dirtyRef.current) return;
     setSaving(true);
     setStatus({ kind: "", text: "" });
     try {
@@ -166,34 +230,63 @@ export default function RulesWizard({
       const data = await res.json();
       applyServerState(data, data.hub_context || hubContext);
       onSaved?.(data);
-      setStatus({ kind: "ok", text: "Rules saved. Everyone now sees the same league policy." });
+      setSavedAt(new Date());
+      setStatus({ kind: "ok", text: RULES_COPY.saved });
     } catch (error) {
-      setStatus({ kind: "error", text: error.message || "Rules could not be saved." });
+      setStatus({ kind: "error", text: error.message || RULES_COPY.saveFailed });
     } finally {
       setSaving(false);
     }
   };
 
-  const applyPreset = async (presetId) => {
-    setSaving(true);
-    setStatus({ kind: "", text: "" });
-    try {
-      const res = await apiFetch("/api/hub/workspace", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ preset_id: presetId, name: name.trim(), season }),
-      });
-      if (!res.ok) throw new Error(await parseApiError(res));
-      const data = await res.json();
-      applyServerState(data, data.hub_context || hubContext);
-      onSaved?.(data);
-      setStatus({ kind: "ok", text: "Template applied and saved." });
-    } catch (error) {
-      setStatus({ kind: "error", text: error.message || "Template could not be applied." });
-    } finally {
-      setSaving(false);
+  const applyPreset = async (preset) => {
+    const nextRules = presetRulesFromList(preset);
+    if (!nextRules) {
+      setStatus({ kind: "error", text: RULES_COPY.templateMissing });
+      return;
     }
+    const ok = await confirmDialog({
+      title: RULES_COPY.templateConfirmTitle(preset.label),
+      message: templateConfirmMessage(preset, rules),
+      confirmLabel: RULES_COPY.templateConfirm,
+      cancelLabel: RULES_COPY.keepEditing,
+      danger: true,
+    });
+    if (!ok) return;
+    setUndo({
+      name,
+      season,
+      rules,
+      label: preset.label,
+    });
+    setRules(nextRules);
+    setStatus({ kind: "", text: "" });
   };
+
+  const undoTemplate = () => {
+    if (!undo) return;
+    setName(undo.name);
+    setSeason(undo.season);
+    setRules(mergeLeagueRules(undo.rules));
+    setUndo(null);
+    setStatus({ kind: "", text: "" });
+  };
+
+  const saveControls = !readOnlyRules && (
+    <>
+      <p className="hub-rules-summary-note">{RULES_COPY.saveFootnote}</p>
+      <button
+        type="button"
+        className="btn-primary hub-rules-save"
+        disabled={saveDisabled}
+        onClick={save}
+      >
+        {saving ? RULES_COPY.saving : RULES_COPY.save}
+      </button>
+      {saveReason ? <p className="hub-rules-save-reason">{saveReason}</p> : null}
+      {lastSavedLabel ? <p className="hub-rules-last-saved">{lastSavedLabel}</p> : null}
+    </>
+  );
 
   return (
     <HubPage className="hub-rules-center">
@@ -203,9 +296,9 @@ export default function RulesWizard({
           <h2>{RULES_COPY.heading}</h2>
           <p>{RULES_COPY.support}</p>
         </div>
-        <span className={`hub-rules-access${readOnlyRules ? " is-readonly" : ""}`}>
-          {readOnlyRules ? "Commissioner managed" : "You can edit"}
-        </span>
+        {readOnlyRules ? (
+          <span className="hub-rules-access is-readonly">{RULES_COPY.commissionerManaged}</span>
+        ) : null}
       </header>
 
       <div className="hub-rules-layout">
@@ -225,12 +318,14 @@ export default function RulesWizard({
                 <input
                   value={name}
                   disabled={readOnlyRules}
+                  aria-invalid={Boolean(errors.name)}
+                  aria-describedby={fieldDescribedBy("rules-name-error", errors.name)}
                   onChange={(event) => {
                     touch();
                     setName(event.target.value);
                   }}
                 />
-                <RuleError>{errors.name}</RuleError>
+                <RuleError id="rules-name-error">{errors.name}</RuleError>
               </label>
               <label>
                 <span>Season</span>
@@ -240,12 +335,14 @@ export default function RulesWizard({
                   max="2100"
                   value={season}
                   disabled={readOnlyRules}
+                  aria-invalid={Boolean(errors.season)}
+                  aria-describedby={fieldDescribedBy("rules-season-error", errors.season)}
                   onChange={(event) => {
                     touch();
                     setSeason(Number(event.target.value));
                   }}
                 />
-                <RuleError>{errors.season}</RuleError>
+                <RuleError id="rules-season-error">{errors.season}</RuleError>
               </label>
               {!pickDraft && (
                 <label>
@@ -257,26 +354,29 @@ export default function RulesWizard({
                       min="1"
                       value={rules.salary_cap}
                       disabled={readOnlyRules}
+                      aria-invalid={Boolean(errors.salary_cap)}
+                      aria-describedby={fieldDescribedBy("rules-cap-error", errors.salary_cap)}
                       onChange={(event) => updateRules((current) => ({
                         ...current,
                         salary_cap: Number(event.target.value),
                       }))}
                     />
                   </span>
-                  <RuleError>{errors.salary_cap}</RuleError>
+                  <RuleError id="rules-cap-error">{errors.salary_cap}</RuleError>
                 </label>
               )}
             </div>
 
             <fieldset className="hub-rules-format">
               <legend>Draft format</legend>
-              <div>
+              <div role="radiogroup" aria-label="Draft format">
                 {FORMAT_OPTIONS.map((format) => (
                   <button
                     key={format.id}
                     type="button"
+                    role="radio"
+                    aria-checked={rules.draft_type === format.id}
                     className={rules.draft_type === format.id ? "is-active" : ""}
-                    aria-pressed={rules.draft_type === format.id}
                     disabled={readOnlyRules}
                     onClick={() => updateRules((current) => ({ ...current, draft_type: format.id }))}
                   >
@@ -344,14 +444,14 @@ export default function RulesWizard({
                 </label>
                 <label>
                   <span>Default rookie term</span>
-                  <select value={rules.contracts.rookie_years} disabled={readOnlyRules} onChange={(event) => updateContract("rookie_years", Number(event.target.value))}>
+                  <select value={rules.contracts.rookie_years} disabled={readOnlyRules} aria-invalid={Boolean(errors.rookie_years)} onChange={(event) => updateContract("rookie_years", Number(event.target.value))}>
                     {[1, 2, 3, 4, 5].map((years) => <option key={years} value={years}>{years} year{years === 1 ? "" : "s"}</option>)}
                   </select>
                   <RuleError>{errors.rookie_years}</RuleError>
                 </label>
                 <label>
                   <span>Default veteran term</span>
-                  <select value={rules.contracts.veteran_years} disabled={readOnlyRules} onChange={(event) => updateContract("veteran_years", Number(event.target.value))}>
+                  <select value={rules.contracts.veteran_years} disabled={readOnlyRules} aria-invalid={Boolean(errors.veteran_years)} onChange={(event) => updateContract("veteran_years", Number(event.target.value))}>
                     {[1, 2, 3, 4, 5].map((years) => <option key={years} value={years}>{years} year{years === 1 ? "" : "s"}</option>)}
                   </select>
                   <RuleError>{errors.veteran_years}</RuleError>
@@ -375,13 +475,11 @@ export default function RulesWizard({
               <div className="hub-rules-contract-preview">
                 <div className="hub-rules-contract-preview-head">
                   <div><strong>What a $10 signing looks like</strong><span>Preview uses the rules above.</span></div>
-                  <span>New contracts only</span>
                 </div>
                 <div>
                   <SalarySchedule title="Rookie" detail={rules.contracts.rookie_salary_static ? "Flat salary" : "Annual step-up"} values={rookieSchedule} />
                   <SalarySchedule title="Veteran" detail="Annual step-up" values={veteranSchedule} />
                 </div>
-                <p>Saving these rules does not rewrite existing contract schedules.</p>
               </div>
             </section>
           )}
@@ -394,29 +492,60 @@ export default function RulesWizard({
                 <p>Use ranges to protect lineup integrity without dictating strategy.</p>
               </div>
             </header>
+            {warningList.length > 0 && (
+              <div className="hub-rules-warnings" role="status">
+                {warningList.map((warning) => <p key={warning}>{warning}</p>)}
+              </div>
+            )}
             <label className="hub-rules-roster-cap">
               <span><strong>Total roster size</strong><small>Maximum active players per team. Leave empty to let position limits set the cap.</small></span>
               <input
                 type="number"
-                min="1"
+                min="0"
                 max="100"
                 value={rules.roster_size_max ?? ""}
                 placeholder="No cap"
                 disabled={readOnlyRules}
+                aria-invalid={Boolean(errors.roster_size_max)}
+                aria-describedby={fieldDescribedBy("rules-roster-cap-error", errors.roster_size_max)}
                 onChange={(event) => updateRules((current) => ({
                   ...current,
                   roster_size_max: event.target.value === "" ? null : Number(event.target.value),
                 }))}
               />
-              <RuleError>{errors.roster_size_max}</RuleError>
+              <RuleError id="rules-roster-cap-error">{errors.roster_size_max}</RuleError>
             </label>
-            <div className="hub-rules-roster-table" role="group" aria-label="Position limits">
-              <div className="hub-rules-roster-heading" aria-hidden="true"><span>Position</span><span>Minimum</span><span>Maximum</span></div>
+            <div className="hub-rules-roster-table" role="table" aria-label="Position limits">
+              <div className="hub-rules-roster-heading" role="row">
+                <span role="columnheader">{RULES_COPY.rosterPosition}</span>
+                <span role="columnheader">{RULES_COPY.rosterMin}</span>
+                <span role="columnheader">{RULES_COPY.rosterMax}</span>
+              </div>
               {ROSTER_LIMIT_KEYS.map((position) => (
-                <div className="hub-rules-roster-row" key={position}>
-                  <strong>{position === "def" ? "DEF" : position.toUpperCase()}</strong>
-                  <label><span className="sr-only">{position.toUpperCase()} minimum</span><input type="number" min="0" value={rules.roster[position]?.min ?? 0} disabled={readOnlyRules} onChange={(event) => updatePosition(position, "min", event.target.value)} /></label>
-                  <label><span className="sr-only">{position.toUpperCase()} maximum</span><input type="number" min="0" value={rules.roster[position]?.max ?? 0} disabled={readOnlyRules} onChange={(event) => updatePosition(position, "max", event.target.value)} /></label>
+                <div className="hub-rules-roster-row" role="row" key={position}>
+                  <strong role="rowheader">{position === "def" ? "DEF" : position.toUpperCase()}</strong>
+                  <label>
+                    <span className="sr-only">{position.toUpperCase()} minimum</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={rules.roster[position]?.min ?? 0}
+                      disabled={readOnlyRules}
+                      aria-invalid={Boolean(errors[`roster_${position}`])}
+                      onChange={(event) => updatePosition(position, "min", event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span className="sr-only">{position.toUpperCase()} maximum</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={rules.roster[position]?.max ?? 0}
+                      disabled={readOnlyRules}
+                      aria-invalid={Boolean(errors[`roster_${position}`])}
+                      onChange={(event) => updatePosition(position, "max", event.target.value)}
+                    />
+                  </label>
                   <RuleError>{errors[`roster_${position}`]}</RuleError>
                 </div>
               ))}
@@ -424,41 +553,135 @@ export default function RulesWizard({
           </section>
 
           {!pickDraft && (
-            <details className="hub-rules-section hub-rules-advanced">
-              <summary><span>04</span><span><strong>Draft behavior</strong><small>Clock and nomination defaults</small></span></summary>
+            <section className="hub-rules-section" aria-labelledby="rules-draft-title">
+              <header className="hub-rules-section-head">
+                <span>04</span>
+                <div>
+                  <h3 id="rules-draft-title">Draft behavior</h3>
+                  <p>{RULES_COPY.draftBehaviorHint}</p>
+                </div>
+              </header>
               <div className="hub-rules-field-grid hub-rules-field-grid--draft">
-                <label><span>Minimum bid</span><input type="number" min="1" value={rules.auction.min_bid} disabled={readOnlyRules} onChange={(event) => updateAuction("min_bid", Number(event.target.value))} /></label>
-                <label><span>Nomination clock</span><input type="number" min="5" value={rules.auction.nomination_timer_sec} disabled={readOnlyRules} onChange={(event) => updateAuction("nomination_timer_sec", Number(event.target.value))} /></label>
-                <label><span>Bid clock</span><input type="number" min="5" value={rules.auction.bid_timer_sec} disabled={readOnlyRules} onChange={(event) => updateAuction("bid_timer_sec", Number(event.target.value))} /></label>
-                <label><span>Late-bid extension</span><input type="number" min="0" value={rules.auction.bid_extension_sec} disabled={readOnlyRules} onChange={(event) => updateAuction("bid_extension_sec", Number(event.target.value))} /></label>
+                <label>
+                  <span>Minimum bid</span>
+                  <span className="hub-rules-money-input">
+                    <span>$</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={rules.auction.min_bid}
+                      disabled={readOnlyRules}
+                      aria-invalid={Boolean(errors.min_bid)}
+                      onChange={(event) => updateAuction("min_bid", Number(event.target.value))}
+                    />
+                  </span>
+                  <RuleError>{errors.min_bid}</RuleError>
+                </label>
+                <label>
+                  <span>Nomination clock</span>
+                  <span className="hub-rules-suffix-input">
+                    <input
+                      type="number"
+                      min="5"
+                      value={rules.auction.nomination_timer_sec}
+                      disabled={readOnlyRules}
+                      aria-invalid={Boolean(errors.nomination_timer_sec)}
+                      onChange={(event) => updateAuction("nomination_timer_sec", Number(event.target.value))}
+                    />
+                    <span>{RULES_COPY.secondsSuffix}</span>
+                  </span>
+                  <RuleError>{errors.nomination_timer_sec}</RuleError>
+                </label>
+                <label>
+                  <span>Bid clock</span>
+                  <span className="hub-rules-suffix-input">
+                    <input
+                      type="number"
+                      min="5"
+                      value={rules.auction.bid_timer_sec}
+                      disabled={readOnlyRules}
+                      aria-invalid={Boolean(errors.bid_timer_sec)}
+                      onChange={(event) => updateAuction("bid_timer_sec", Number(event.target.value))}
+                    />
+                    <span>{RULES_COPY.secondsSuffix}</span>
+                  </span>
+                  <RuleError>{errors.bid_timer_sec}</RuleError>
+                </label>
+                <label>
+                  <span>Late-bid extension</span>
+                  <span className="hub-rules-suffix-input">
+                    <input
+                      type="number"
+                      min="0"
+                      value={rules.auction.bid_extension_sec}
+                      disabled={readOnlyRules}
+                      aria-invalid={Boolean(errors.bid_extension_sec)}
+                      onChange={(event) => updateAuction("bid_extension_sec", Number(event.target.value))}
+                    />
+                    <span>{RULES_COPY.secondsSuffix}</span>
+                  </span>
+                  <RuleError>{errors.bid_extension_sec}</RuleError>
+                </label>
               </div>
               <PolicyToggle checked={Boolean(rules.auction.allow_mid_draft_cuts)} disabled={readOnlyRules} title="Allow mid-draft cuts" description="Managers may release a drafted player while the auction is still running." onChange={(value) => updateAuction("allow_mid_draft_cuts", value)} />
-            </details>
+            </section>
           )}
 
           {!readOnlyRules && (
             <div className="hub-rules-sticky-save">
-              <button type="button" className="btn-primary" disabled={saving} onClick={save}>
-                {saving ? "Saving…" : "Save league rules"}
+              <button type="button" className="btn-primary" disabled={saveDisabled} onClick={save}>
+                {saving ? RULES_COPY.saving : RULES_COPY.save}
               </button>
+              {saveReason ? <p className="hub-rules-save-reason">{saveReason}</p> : null}
             </div>
           )}
 
           {presets.length > 0 && !readOnlyRules && (
             <details className="hub-rules-templates">
-              <summary>Start over from a league template</summary>
-              <p>Applying a template replaces the current rules and saves immediately.</p>
-              <div>{presets.map((preset) => <button key={preset.id} type="button" className="btn-ghost btn-sm" disabled={saving} onClick={() => applyPreset(preset.id)}>{preset.label}</button>)}</div>
+              <summary>{RULES_COPY.templatesTitle}</summary>
+              <p id="rules-template-help">{RULES_COPY.templatesHelp}</p>
+              <div>
+                {presets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    className="btn-danger btn-sm"
+                    disabled={saving}
+                    aria-describedby="rules-template-help"
+                    onClick={() => applyPreset(preset)}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
             </details>
           )}
         </div>
 
         <aside className="hub-rules-summary" aria-label="League rule summary">
-          <div><span className="hub-rules-eyebrow">At a glance</span><h3>{name || "Your league"}</h3><p>{season} season</p></div>
+          <div>
+            <span className={`hub-rules-eyebrow${dirty ? " is-preview" : ""}`}>
+              {glanceEyebrow(dirty)}
+            </span>
+            <h3>{name || "Your league"}</h3>
+            <p>{season} season</p>
+          </div>
           <dl>{summary.map((item) => <div key={item.id}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}</dl>
-          <p className="hub-rules-summary-note">Managers can read these rules here. Only commissioners can change them.</p>
-          {!readOnlyRules && <button type="button" className="btn-primary hub-rules-save" disabled={saving} onClick={save}>{saving ? "Saving…" : "Save league rules"}</button>}
-          {status.text && <p className={`hub-rules-status is-${status.kind}`} role="status" aria-live="polite">{status.text}</p>}
+          <p className="hub-rules-summary-note">{RULES_COPY.staffOnly}</p>
+          {saveControls}
+          {undo && (
+            <div className="hub-rules-undo" role="status">
+              <p>{RULES_COPY.templateApplied(undo.label)}</p>
+              <button type="button" className="btn-ghost btn-sm" onClick={undoTemplate}>
+                {RULES_COPY.templateUndo}
+              </button>
+            </div>
+          )}
+          {status.text && (
+            <p className={`hub-rules-status is-${status.kind || "ok"}`} role="status" aria-live="polite">
+              {status.text}
+            </p>
+          )}
         </aside>
       </div>
     </HubPage>

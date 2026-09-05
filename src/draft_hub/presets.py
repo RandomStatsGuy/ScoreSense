@@ -16,12 +16,15 @@ def list_presets() -> list[dict]:
         return out
     for path in sorted(DRAFT_HUB_PRESETS_DIR.glob("*.yaml")):
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        payload = {k: v for k, v in data.items() if k not in ("id", "label", "description")}
+        rules = LeagueRules.model_validate(payload).model_dump()
         out.append(
             {
                 "id": data.get("id") or path.stem,
                 "label": data.get("label") or path.stem,
                 "description": data.get("description") or "",
-                "draft_type": data.get("draft_type") or "auction",
+                "draft_type": data.get("draft_type") or rules.get("draft_type") or "auction",
+                "rules": rules,
             }
         )
     return out

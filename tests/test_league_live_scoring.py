@@ -19,6 +19,7 @@ from src.draft_hub.league_live_scoring import (
     get_sleeper_live_week,
     pair_placeholder_teams,
     refresh_sleeper_live_scoring_cache,
+    sleeper_week_is_historical,
     starting_slots,
     starting_slots_from_rules,
     week_picker_meta,
@@ -354,6 +355,8 @@ def test_starting_slots_from_rules_and_placeholder_week():
     assert viewer["hub_team_id"] == "t-b"
     assert payload["standings"][0]["team_name"] == "Alpha"
     assert payload["standings"][0]["wins"] == 0
+    assert payload["standings"][0]["rank"] is None
+    assert payload["standings_season"] == "none"
     assert payload["starting_slots"] == ["QB", "RB"]
     assert payload["hint"] == "Link Sleeper to fill scores."
 
@@ -397,6 +400,113 @@ def test_attach_hub_team_names_repairs_placeholder_owners():
     assert standing_owners["Alpha"] == "Alice"
 
 
+def test_prior_season_sleeper_week_uses_placeholder(monkeypatch):
+    def _fake_fetch(url):
+        if "/matchups/" in url:
+            raise AssertionError("prior-season weeks must not load last year's matchups")
+        if url.endswith("/rosters"):
+            return SAMPLE_ROSTERS
+        return SAMPLE_LEAGUE
+
+    monkeypatch.setattr("src.draft_hub.league_live_scoring._fetch_json", _fake_fetch)
+    monkeypatch.setattr(
+        "src.draft_hub.league_live_scoring.get_nfl_state",
+        lambda **_: {"week": 1, "season": "2026", "season_type": "regular"},
+    )
+    out = build_sleeper_live_week(
+        "sl-prior",
+        1,
+        hub_teams=[
+            {"id": "t1", "sleeper_roster_id": "1", "name": "Hub One"},
+            {"id": "t2", "sleeper_roster_id": "2", "name": "Hub Two"},
+        ],
+        viewer_team_id="t1",
+        nfl_state={"week": 1, "season": "2026", "season_type": "regular"},
+    )
+    assert out["placeholder"] is True
+    assert out["reason"] == "prior_season"
+    assert out["standings_season"] == "last"
+    assert all(team["points"] == 0 for matchup in out["matchups"] for team in matchup["teams"])
+    assert any(row["wins"] + row["losses"] > 0 for row in out["standings"])
+
+
+def test_hub_pre_draft_holds_same_season_sleeper_scores(monkeypatch):
+    def _fake_fetch(url):
+        if "/matchups/" in url:
+            raise AssertionError("pre-draft hub must not load Sleeper week scores")
+        if url.endswith("/rosters"):
+            return SAMPLE_ROSTERS
+        return {**SAMPLE_LEAGUE, "season": "2026", "status": "in_season"}
+
+    monkeypatch.setattr("src.draft_hub.league_live_scoring._fetch_json", _fake_fetch)
+    out = build_sleeper_live_week(
+        "sl-pre-draft",
+        1,
+        hub_teams=[
+            {"id": "t1", "sleeper_roster_id": "1", "name": "Hub One"},
+            {"id": "t2", "sleeper_roster_id": "2", "name": "Hub Two"},
+        ],
+        viewer_team_id="t1",
+        nfl_state={"week": 1, "season": "2026", "season_type": "regular"},
+        hub_pre_draft=True,
+    )
+    assert out["placeholder"] is True
+    assert out["reason"] == "pre_draft"
+    assert out["standings_season"] == "last"
+    assert all(team["points"] == 0 for matchup in out["matchups"] for team in matchup["teams"])
+
+
+def test_cached_prior_season_week_overlays_placeholder(monkeypatch, hub_db):
+    monkeypatch.setattr(
+        "src.draft_hub.league_live_scoring.resolve_current_week",
+        lambda **_: (1, {"week": 1, "season": "2026", "season_type": "regular"}),
+    )
+    storage.upsert_sleeper_live_scoring_cache(
+        "sl-cached-prior",
+        1,
+        {
+            "available": True,
+            "season": "2025",
+            "week": 1,
+            "status": "complete",
+            "placeholder": False,
+            "matchups": [
+                {
+                    "matchup_id": "5",
+                    "teams": [
+                        {"roster_id": "9", "hub_team_id": "you", "points": 114.8, "team_name": "You"},
+                        {"roster_id": "7", "hub_team_id": "them", "points": 90.1, "team_name": "Them"},
+                    ],
+                }
+            ],
+            "standings": [
+                {"roster_id": "7", "hub_team_id": "them", "wins": 10, "losses": 4, "rank": 1},
+                {"roster_id": "9", "hub_team_id": "you", "wins": 4, "losses": 10, "rank": 8},
+            ],
+        },
+    )
+    out = get_sleeper_live_week(
+        "sl-cached-prior",
+        hub_teams=[
+            {"id": "you", "sleeper_roster_id": "9", "name": "You"},
+            {"id": "them", "sleeper_roster_id": "7", "name": "Them"},
+        ],
+        viewer_team_id="you",
+        hub_pre_draft=True,
+        refresh=False,
+    )
+    assert out["placeholder"] is True
+    assert out["reason"] == "pre_draft"
+    assert out["standings_season"] == "last"
+    assert all(team["points"] == 0 for matchup in out["matchups"] for team in matchup["teams"])
+    caleb = next(row for row in out["standings"] if row["hub_team_id"] == "you")
+    assert caleb["wins"] == 4 and caleb["losses"] == 10
+    assert sleeper_week_is_historical(
+        {"season": "2025", "status": "complete"},
+        {"season": "2026"},
+    )
+
+
 def test_build_sleeper_live_week_empty_matchups_uses_placeholder(monkeypatch):
     def _fake_fetch(url):
         if "/matchups/" in url:
@@ -426,6 +536,9 @@ def test_build_sleeper_live_week_empty_matchups_uses_placeholder(monkeypatch):
     assert out["hint"] == "No scored matchups yet. Scores fill in after kickoff."
     names = {team["team_name"] for team in out["matchups"][0]["teams"]}
     assert names == {"Hub One", "Hub Two"}
+    assert out["standings_season"] == "last"
+    assert any(row["wins"] + row["losses"] > 0 for row in out["standings"])
+    assert all(row["rank"] is not None for row in out["standings"])
 
 
 def test_build_sleeper_live_week_unpaired_rows_use_placeholder(monkeypatch):

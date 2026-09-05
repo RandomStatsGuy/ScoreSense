@@ -217,8 +217,9 @@ def start_mock_draft(
     if source is not None:
         rules = LeagueRules.model_validate(source.get("rules") or {})
         season = int(source.get("season") or season)
-        if mode == "league_mirror":
-            team_count = max(2, min(int(source.get("team_count") or team_count), 24))
+        team_count = max(2, min(int(source.get("team_count") or team_count), 24))
+        if not lobby:
+            bot_count = max(1, min(int(bot_count), team_count - 1))
     else:
         rules = _load_mock_preset(preset_id)
 
