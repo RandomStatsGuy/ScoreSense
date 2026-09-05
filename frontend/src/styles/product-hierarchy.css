@@ -3173,6 +3173,12 @@
   min-width: 0;
 }
 
+@media (min-width: 769px) {
+  .hub-roster-browser-page .hub-roster-owner-main {
+    padding-inline-end: 2.75rem;
+  }
+}
+
 @media (max-width: 860px) {
   .hub-roster-owner-layout {
     grid-template-columns: 1fr;

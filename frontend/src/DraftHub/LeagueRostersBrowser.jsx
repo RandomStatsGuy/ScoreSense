@@ -341,10 +341,10 @@ export default function LeagueRostersBrowser({
             className={r.overpay ? "hub-overpay" : ""}
             name={r.player_name}
             meta={joinFacts([
+              expire,
               r.position,
               r.team,
               dealsView ? ownerLine(r.ownerTeam) : "",
-              expire,
             ])}
             heroValue={fmtSal(r.salary)}
             heroLabel="cap"

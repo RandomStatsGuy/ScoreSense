@@ -198,11 +198,18 @@
 
   .hub-roster-browser-page .mobile-player-card-name-row {
     flex-wrap: nowrap;
+    justify-content: flex-start;
   }
 
+  .hub-roster-browser-page .mobile-player-card-name-row > .mobile-player-card-name,
   .hub-roster-browser-page .mobile-player-card-name {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
+  }
+
+  .hub-roster-browser-page .mobile-player-card-chevron {
+    margin-left: 0.15rem;
+    flex: 0 0 auto;
   }
 
   .hub-roster-browser-page .mobile-player-card-actions {
