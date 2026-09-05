@@ -209,7 +209,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "experience",
     page: "frontend/src/LineupOptimizer.jsx",
     copy: "frontend/src/dfsToolPresentation.js",
-    doNot: "Reuse experience classes and dfsToolPresentation.js. Do not fork a DFS hero. Hero only — do not restate the hero as a sub-nav tagline. Rail is Your lineup · locked · skipped.",
+    doNot: "Reuse experience classes and dfsToolPresentation.js. Do not fork a DFS hero. Hero only — do not restate the hero as a sub-nav tagline. Rail is Your lineup · locked · skipped. Pool table lets the page own vertical scroll and sticks the header. Announce a built lineup and highlight those rows. Exclusive format/goal/stack choices use radiogroup. Lock/Skip names include the player. Amber never marks Highest total.",
   }),
   "tools.mock-draft": S({
     label: "Mock draft",

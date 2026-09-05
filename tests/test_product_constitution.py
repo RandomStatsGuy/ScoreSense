@@ -199,6 +199,21 @@ def test_constitution_bans_hub_ppr_in_ui() -> None:
     assert "ScoreSense PPR" in product
     assert 'the string "Hub PPR" never reaches UI' in product
 
+def test_constitution_covers_landmarks_and_exclusive_choices() -> None:
+    product = _read("docs", "PRODUCT.md")
+    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    hub_rule = _read(".cursor", "rules", "frontend-draft-hub.mdc")
+    assert "main-content" in product
+    assert "radiogroup" in product
+    assert "aria-live" in product
+    assert "list-item" in product
+    assert "13px" in product
+    assert "best-in-set" in product
+    assert "radiogroup" in core_rule
+    assert "aria-live" in hub_rule
+    assert "list-item" in hub_rule
+
+
 def test_constitution_empty_states_name_a_destination() -> None:
     product = _read("docs", "PRODUCT.md")
     assert "League settings" in product

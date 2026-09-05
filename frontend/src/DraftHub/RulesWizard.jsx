@@ -209,7 +209,7 @@ export default function RulesWizard({
       </header>
 
       <div className="hub-rules-layout">
-        <main className="hub-rules-sections">
+        <div className="hub-rules-sections">
           <section className="hub-rules-section" aria-labelledby="rules-foundation-title">
             <header className="hub-rules-section-head">
               <span>01</span>
@@ -451,7 +451,7 @@ export default function RulesWizard({
               <div>{presets.map((preset) => <button key={preset.id} type="button" className="btn-ghost btn-sm" disabled={saving} onClick={() => applyPreset(preset.id)}>{preset.label}</button>)}</div>
             </details>
           )}
-        </main>
+        </div>
 
         <aside className="hub-rules-summary" aria-label="League rule summary">
           <div><span className="hub-rules-eyebrow">At a glance</span><h3>{name || "Your league"}</h3><p>{season} season</p></div>

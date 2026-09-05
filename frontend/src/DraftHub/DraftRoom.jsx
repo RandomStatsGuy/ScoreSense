@@ -1712,7 +1712,7 @@ export default function DraftRoom({
 
       {leagueId && inLiveDraft && (
         <div className={`hub-draft-experience hub-draft-experience--${pickDraft ? "pick" : "auction"}`}>
-          <main className="hub-draft-stage" aria-label={pickDraft ? "Draft board" : "Auction stage"}>
+          <div className="hub-draft-stage" aria-label={pickDraft ? "Draft board" : "Auction stage"} role="region">
             {roomLoading && !session && (
               <p className="chart-note hub-draft-loading">Loading draft room…</p>
             )}
@@ -1808,7 +1808,7 @@ export default function DraftRoom({
                 </button>
               </div>
             )}
-          </main>
+          </div>
 
           <aside className="hub-draft-player-rail-wrap">
             <DraftPlayerRail

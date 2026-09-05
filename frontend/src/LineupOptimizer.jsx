@@ -14,6 +14,7 @@ import {
   HubAlertStack,
   HubFilterChip,
   HubPage,
+  SortTh,
 } from "./DraftHub/HubUILayout";
 import {
   DEFAULT_FORMATS,
@@ -25,8 +26,10 @@ import {
   STACK_OPTIONS,
   TEAM_LIMIT_OPTIONS,
   capMeterTone,
+  buildResultLiveText,
   constructionSummary,
   defaultSlateCategory,
+  DFS_POOL_COPY,
   DFS_STEP_COPY,
   dfsHeroCopy,
   dfsHeroNote,
@@ -42,9 +45,17 @@ import {
   isCaptainFormat,
   launchCopy,
   lockedSalaryTotal,
+  nextExclusiveChoice,
+  objectiveSortColumn,
   optimizeButtonLabel,
+  pinActionLabel,
+  POOL_COLUMN_TIPS,
   rosterHint,
   salarySpend,
+  sortPoolRows,
+  swapActionLabel,
+  swapPoolPlayerIntoLineup,
+  swapResultLiveText,
   teamMatchupHint,
   vegasImplied,
   vegasKickoffLabel,
@@ -60,13 +71,24 @@ import {
 } from "./dfsExport";
 import { downloadCsv } from "./table";
 
-function DfsPinRow({ playerId, locked, excluded, onLock, onSkip }) {
+function DfsPinRow({
+  playerId,
+  playerName,
+  locked,
+  excluded,
+  inLineup,
+  swapTarget,
+  onLock,
+  onSkip,
+  onSwap,
+}) {
   return (
     <div className="dfs-pin-row">
       <button
         type="button"
         className={`dfs-pin${locked ? " is-lock" : ""}`}
         aria-pressed={locked}
+        aria-label={pinActionLabel("lock", playerName)}
         onClick={() => onLock(playerId)}
       >
         Lock
@@ -75,10 +97,22 @@ function DfsPinRow({ playerId, locked, excluded, onLock, onSkip }) {
         type="button"
         className={`dfs-pin${excluded ? " is-skip" : ""}`}
         aria-pressed={excluded}
+        aria-label={pinActionLabel("skip", playerName)}
         onClick={() => onSkip(playerId)}
       >
         Skip
       </button>
+      {inLineup ? <span className="dfs-in-lineup">{DFS_POOL_COPY.inLineup}</span> : null}
+      {swapTarget ? (
+        <button
+          type="button"
+          className="dfs-pin dfs-pin-swap"
+          aria-label={swapActionLabel(playerName, swapTarget.player)}
+          onClick={onSwap}
+        >
+          {DFS_POOL_COPY.swap}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -129,6 +163,8 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
   const [error, setError] = useState("");
   const [posFilter, setPosFilter] = useState("ALL");
   const [search, setSearch] = useState("");
+  const [poolSort, setPoolSort] = useState({ column: "proj", dir: "desc" });
+  const [resultLive, setResultLive] = useState("");
   const fileInputRef = useRef(null);
 
   const isDfs = site !== "seasonal";
@@ -136,6 +172,13 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
   const mobileLayout = useMobileLayout();
   const [mobileStep, setMobileStep] = useState("setup");
   const resultRef = useRef(null);
+  const announceResult = useCallback((text) => {
+    setResultLive(text);
+    window.setTimeout(() => {
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      resultRef.current?.focus({ preventScroll: true });
+    }, 120);
+  }, []);
   const siteConfig = formats[site] || DEFAULT_FORMATS[site] || DEFAULT_FORMATS.seasonal;
   const showThink = useSlowThink(optimizing || loadingSalaries);
 
@@ -226,6 +269,10 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
   useEffect(() => {
     if (site === "seasonal" && objective === "value") setObjective("median");
   }, [site, objective]);
+
+  useEffect(() => {
+    setPoolSort({ column: objectiveSortColumn(objective), dir: "desc" });
+  }, [objective]);
 
   const loadSalaries = useCallback(
     async (slateId, { forceRefresh = false } = {}) => {
@@ -414,6 +461,42 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
     });
   };
 
+  const handlePoolSort = (column) => {
+    setPoolSort((prev) => ({
+      column,
+      dir: prev.column === column && prev.dir === "desc" ? "asc" : "desc",
+    }));
+  };
+
+  const handleSwap = (poolRow) => {
+    const result = swapPoolPlayerIntoLineup(lineup, poolRow);
+    if (!result) return;
+    setLineup(result.lineup);
+    setTotalPoints(result.totalPoints);
+    setTotalSalary(result.totalSalary);
+    const cap = Number(salaryCap);
+    if (Number.isFinite(cap) && cap > 0) {
+      setSalaryRemaining(cap - result.totalSalary);
+    }
+    const incomingId = String(poolRow.player_id);
+    const outgoingId = String(result.outgoing.player_id);
+    setLocked((prev) => {
+      const next = new Set(prev);
+      next.add(incomingId);
+      next.delete(outgoingId);
+      return next;
+    });
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      next.delete(incomingId);
+      return next;
+    });
+    announceResult(swapResultLiveText({
+      incomingName: poolRow.Player,
+      outgoingName: result.outgoing.player,
+    }));
+  };
+
   const runOptimize = async () => {
     if (season == null || week == null) return;
     if (isDfs && !slateSalaries?.length) {
@@ -422,6 +505,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
     }
     setOptimizing(true);
     setError("");
+    setResultLive("");
     try {
       const cap = salaryCap.trim() ? Number(salaryCap) : null;
       const minSalary = isDfs && cap && minSpendLeft > 0 ? Math.max(0, cap - minSpendLeft) : null;
@@ -459,7 +543,9 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
         setTotalPoints(null);
         setTotalSalary(null);
         setSalaryRemaining(null);
-        setError(data.error || "Could not build a valid lineup.");
+        const failText = data.error || "Could not build a valid lineup.";
+        setError(failText);
+        announceResult(buildResultLiveText({ ok: false, error: failText }));
         return;
       }
       if (data.lineups?.length) {
@@ -481,12 +567,18 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
         setSalaryRemaining(data.salary_remaining);
       }
       setOptimizeNote(data.note || "");
-      if (mobileLayout) {
-        setMobileStep("result");
-        window.setTimeout(() => {
-          resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 120);
-      }
+      const built = data.lineups?.length
+        ? data.lineups[0]?.lineup || []
+        : data.lineup || [];
+      const builtTotal = data.lineups?.length
+        ? data.lineups[0]?.total_points
+        : data.total_points;
+      if (mobileLayout) setMobileStep("result");
+      announceResult(buildResultLiveText({
+        ok: true,
+        playerCount: built.length,
+        totalPoints: builtTotal,
+      }));
     } catch (err) {
       setLineup([]);
       setLineups([]);
@@ -494,7 +586,9 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
       setTotalPoints(null);
       setTotalSalary(null);
       setSalaryRemaining(null);
-      setError(connectionErrorMessage(err, "Optimization failed"));
+      const failText = connectionErrorMessage(err, "Optimization failed");
+      setError(failText);
+      announceResult(buildResultLiveText({ ok: false, error: failText }));
     } finally {
       setOptimizing(false);
     }
@@ -539,8 +633,8 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
     const q = search.trim().toLowerCase();
     if (q) list = list.filter((r) => String(r.Player || "").toLowerCase().includes(q));
     if (posFilter !== "ALL") list = list.filter((r) => r.Position === posFilter);
-    return list;
-  }, [pool, search, posFilter, isDfs, slateSalaries]);
+    return sortPoolRows(list, poolSort, vegas?.teams || {});
+  }, [pool, search, posFilter, isDfs, slateSalaries, poolSort, vegas]);
 
   const narrativePlayerIds = useMemo(() => {
     const ids = new Set();
@@ -626,7 +720,36 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
   const exposureCopy = exposureListCopy({ lineupCount: lineups.length });
   const launch = launchCopy({ isDfs, hasLineup: lineup.length > 0, siteLabel: siteConfig.label });
   const canOptimize = !optimizing && !busy && pool.length > 0 && !(isDfs && !slateSalaries?.length);
-  const optimizeLabel = optimizeButtonLabel({ optimizing, lineupCount });
+  const optimizeLabel = optimizeButtonLabel({
+    optimizing,
+    lineupCount,
+    hasLineup: lineup.length > 0,
+  });
+  const lineupIds = new Set(lineup.map((row) => String(row.player_id)));
+  const formatIds = Object.keys(formats);
+  const handleFormatKeyDown = (event) => {
+    const next = nextExclusiveChoice(formatIds, site, event.key);
+    if (next !== site) {
+      event.preventDefault();
+      setSite(next);
+    }
+  };
+  const handleGoalKeyDown = (event) => {
+    const ids = objectiveOptions.map((opt) => opt.id);
+    const next = nextExclusiveChoice(ids, objective, event.key);
+    if (next !== objective) {
+      event.preventDefault();
+      setObjective(next);
+    }
+  };
+  const handleStackKeyDown = (event) => {
+    const ids = STACK_OPTIONS.map((opt) => opt.id);
+    const next = nextExclusiveChoice(ids, qbStackCount, event.key);
+    if (next !== qbStackCount) {
+      event.preventDefault();
+      setQbStackCount(next);
+    }
+  };
 
   return (
     <HubPage className={`dfs-tool lineup-layout${mobileLayout ? " lineup-layout--mobile" : ""}`}>
@@ -696,7 +819,12 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                 <p>{DFS_STEP_COPY.formatSupport}</p>
               </div>
             </header>
-            <div className="mock-draft-formats" aria-label="Lineup format">
+            <div
+              className="mock-draft-formats"
+              role="radiogroup"
+              aria-label="Lineup format"
+              onKeyDown={handleFormatKeyDown}
+            >
               {Object.entries(formats).map(([id]) => {
                 const personality = formatPersonality(id, formats);
                 const active = site === id;
@@ -704,9 +832,11 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                   <button
                     key={id}
                     type="button"
+                    role="radio"
+                    aria-checked={active}
+                    tabIndex={active ? 0 : -1}
                     className={`mock-draft-format-card${active ? " is-active" : ""}`}
                     disabled={busy || optimizing}
-                    aria-pressed={active}
                     onClick={() => setSite(id)}
                   >
                     <span className="mock-draft-format-icon" aria-hidden="true">{personality.icon}</span>
@@ -892,15 +1022,18 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
             </header>
             <div
               className={`mock-draft-experience-toggle dfs-goal-toggle${isDfs ? " is-dfs" : ""}`}
-              role="group"
+              role="radiogroup"
               aria-label="Optimization goal"
+              onKeyDown={handleGoalKeyDown}
             >
               {objectiveOptions.map((opt) => (
                 <button
                   key={opt.id}
                   type="button"
+                  role="radio"
+                  aria-checked={objective === opt.id}
+                  tabIndex={objective === opt.id ? 0 : -1}
                   className={objective === opt.id ? "is-active" : ""}
-                  aria-pressed={objective === opt.id}
                   onClick={() => setObjective(opt.id)}
                 >
                   {opt.shortLabel}
@@ -912,13 +1045,20 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
               {!isCaptain && (
                 <div className="dfs-stack-row">
                   <span className="hub-filter-label">QB stack</span>
-                  <div className="mock-draft-team-chips" role="group" aria-label="QB stack rule">
+                  <div
+                    className="mock-draft-team-chips"
+                    role="radiogroup"
+                    aria-label="QB stack rule"
+                    onKeyDown={handleStackKeyDown}
+                  >
                     {STACK_OPTIONS.map((opt) => (
                       <HubFilterChip
                         key={opt.id}
                         compact
+                        exclusive
                         active={qbStackCount === opt.id}
                         title={opt.hint}
+                        tabIndex={qbStackCount === opt.id ? 0 : -1}
                         onClick={() => setQbStackCount(opt.id)}
                       >
                         {opt.label}
@@ -1130,7 +1270,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
               </span>
               {(locked.size > 0 || excluded.size > 0) && (
                 <Button variant="ghost" size="sm" onClick={clearLocks}>
-                  Clear pins
+                  {DFS_POOL_COPY.clearLocks}
                 </Button>
               )}
             </div>
@@ -1143,19 +1283,22 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                 {filteredPool.map((row) => {
                   const pid = String(row.player_id || "");
                   const out = isPlayerUnavailable(row["Injury Status"]);
+                  const inLineup = lineupIds.has(pid);
+                  const swapTarget = inLineup ? null : swapPoolPlayerIntoLineup(lineup, row)?.outgoing;
                   return (
                     <MobilePlayerCard
                       key={pid}
-                      className={out ? "lineup-row-out" : ""}
+                      className={`${out ? "lineup-row-out" : ""}${inLineup ? " is-in-lineup" : ""}`.trim()}
                       unavailable={out}
                       name={row.Player}
-                      meta={[row.Position, row.Team].filter(Boolean).join(" · ") || "—"}
+                      meta={[row.Position, row.Team, inLineup ? DFS_POOL_COPY.inLineup].filter(Boolean).join(" · ") || "—"}
                       heroValue={fmtNum(row["Projected Points"])}
                       heroLabel="proj"
                       badge={(
                         <>
                           {out && <span className="badge badge-out lineup-out-badge">OUT</span>}
                           {row.on_bye && <span className="badge badge-doubtful lineup-out-badge">BYE</span>}
+                          {inLineup && <span className="dfs-in-lineup">{DFS_POOL_COPY.inLineup}</span>}
                         </>
                       )}
                       expanded={(
@@ -1178,6 +1321,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                           type="button"
                           className={`dfs-pin${locked.has(pid) ? " is-lock" : ""}`}
                           aria-pressed={locked.has(pid)}
+                          aria-label={pinActionLabel("lock", row.Player)}
                           onClick={() => toggleLock(pid)}
                         >
                           Lock
@@ -1187,34 +1331,115 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                           type="button"
                           className={`dfs-pin${excluded.has(pid) ? " is-skip" : ""}`}
                           aria-pressed={excluded.has(pid)}
+                          aria-label={pinActionLabel("skip", row.Player)}
                           onClick={() => toggleExclude(pid)}
                         >
                           Skip
                         </button>,
+                        swapTarget ? (
+                          <button
+                            key="swap"
+                            type="button"
+                            className="dfs-pin dfs-pin-swap"
+                            aria-label={swapActionLabel(row.Player, swapTarget.player)}
+                            onClick={() => handleSwap(row)}
+                          >
+                            {DFS_POOL_COPY.swap}
+                          </button>
+                        ) : null,
                       ]}
                     />
                   );
                 })}
               </MobileDataList>
             ) : (
-              <div className="table-wrap lineup-pool-table">
+              <div className="table-wrap table-sticky lineup-pool-table">
                 <table>
                   <thead>
                     <tr>
-                      <th>Pin</th>
-                      <th>Player</th>
-                      <th>Pos</th>
-                      <th>Team</th>
+                      <th scope="col">{DFS_POOL_COPY.lockSkip}</th>
+                      <SortTh
+                        label="Player"
+                        col="player"
+                        sortKey={poolSort.column}
+                        sortDir={poolSort.dir}
+                        onSort={handlePoolSort}
+                      />
+                      <SortTh
+                        label="Pos"
+                        col="pos"
+                        tip={POOL_COLUMN_TIPS.pos}
+                        sortKey={poolSort.column}
+                        sortDir={poolSort.dir}
+                        onSort={handlePoolSort}
+                      />
+                      <SortTh
+                        label="Team"
+                        col="team"
+                        sortKey={poolSort.column}
+                        sortDir={poolSort.dir}
+                        onSort={handlePoolSort}
+                      />
                       {showVegasCol && (
-                        <th className="num" title="Implied team total from the Vegas board">
-                          Imp
-                        </th>
+                        <SortTh
+                          label="Implied"
+                          col="implied"
+                          tip={POOL_COLUMN_TIPS.implied}
+                          className="num"
+                          sortKey={poolSort.column}
+                          sortDir={poolSort.dir}
+                          onSort={handlePoolSort}
+                        />
                       )}
-                      {isDfs && <th className="num">Salary</th>}
-                      <th className="num">Proj</th>
-                      {isDfs && <th className="num">Value</th>}
-                      <th className="num">Floor</th>
-                      <th className="num">Ceil</th>
+                      {isDfs && (
+                        <SortTh
+                          label="Salary"
+                          col="salary"
+                          tip={POOL_COLUMN_TIPS.salary}
+                          className="num"
+                          sortKey={poolSort.column}
+                          sortDir={poolSort.dir}
+                          onSort={handlePoolSort}
+                        />
+                      )}
+                      <SortTh
+                        label="Proj"
+                        col="proj"
+                        tip={POOL_COLUMN_TIPS.proj}
+                        className="num"
+                        sortKey={poolSort.column}
+                        sortDir={poolSort.dir}
+                        onSort={handlePoolSort}
+                      />
+                      {isDfs && (
+                        <SortTh
+                          label="Value"
+                          col="value"
+                          tip={POOL_COLUMN_TIPS.value}
+                          className="num"
+                          sortKey={poolSort.column}
+                          sortDir={poolSort.dir}
+                          onSort={handlePoolSort}
+                        />
+                      )}
+                      <SortTh
+                        label="Floor"
+                        col="floor"
+                        tip={POOL_COLUMN_TIPS.floor}
+                        className="num"
+                        sortKey={poolSort.column}
+                        sortDir={poolSort.dir}
+                        onSort={handlePoolSort}
+                      />
+                      <SortTh
+                        label="Ceiling"
+                        col="ceiling"
+                        tip={POOL_COLUMN_TIPS.ceiling}
+                        className="num"
+                        sortKey={poolSort.column}
+                        sortDir={poolSort.dir}
+                        onSort={handlePoolSort}
+                      />
                     </tr>
                   </thead>
                   <tbody>
@@ -1235,15 +1460,25 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                     {filteredPool.map((row) => {
                       const pid = String(row.player_id || "");
                       const out = isPlayerUnavailable(row["Injury Status"]);
+                      const inLineup = lineupIds.has(pid);
+                      const swapTarget = inLineup ? null : swapPoolPlayerIntoLineup(lineup, row)?.outgoing;
                       return (
-                        <tr key={pid} className={out ? "lineup-row-out" : ""}>
+                        <tr
+                          key={pid}
+                          className={`${out ? "lineup-row-out" : ""}${inLineup ? " is-in-lineup" : ""}`.trim()}
+                          aria-selected={inLineup || undefined}
+                        >
                           <td>
                             <DfsPinRow
                               playerId={pid}
+                              playerName={row.Player}
                               locked={locked.has(pid)}
                               excluded={excluded.has(pid)}
+                              inLineup={inLineup}
+                              swapTarget={swapTarget}
                               onLock={toggleLock}
                               onSkip={toggleExclude}
+                              onSwap={() => handleSwap(row)}
                             />
                           </td>
                           <td>
@@ -1263,7 +1498,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                           <td>{row.Team || "—"}</td>
                           {showVegasCol && (
                             <td
-                              className="num muted"
+                              className="num"
                               title={teamMatchupHint(vegasTeams[row.Team])}
                             >
                               {vegasImplied(vegasTeams[row.Team]?.implied_total)}
@@ -1271,9 +1506,9 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                           )}
                           {isDfs && <td className="num">{formatSalary(row.salary)}</td>}
                           <td className="num">{fmtNum(row["Projected Points"])}</td>
-                          {isDfs && <td className="num muted">{fmtNum(row.value)}</td>}
-                          <td className="num muted">{fmtNum(row["Low (P10)"])}</td>
-                          <td className="num muted">{fmtNum(row["High (P90)"])}</td>
+                          {isDfs && <td className="num">{fmtNum(row.value)}</td>}
+                          <td className="num">{fmtNum(row["Low (P10)"])}</td>
+                          <td className="num">{fmtNum(row["High (P90)"])}</td>
                         </tr>
                       );
                     })}
@@ -1288,7 +1523,9 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
           className={`mock-draft-launchpad dfs-launchpad${showResult ? "" : " lineup-mobile-pane-hidden"}`}
           aria-label="Lineup summary"
           ref={resultRef}
+          tabIndex={-1}
         >
+          <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">{resultLive}</p>
           <p className="hub-experience-kicker">{dfsRailTitle({ locked: locked.size, skipped: excluded.size })}</p>
           <div className="dfs-launch-copy">
             <h3>{launch.title}</h3>

@@ -35,6 +35,29 @@ body {
   padding: 1.5rem 1.4rem 3rem;
 }
 
+.skip-link {
+  position: absolute;
+  left: 0.85rem;
+  top: 0.85rem;
+  z-index: calc(var(--z-header) + 2);
+  padding: 0.55rem 0.85rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-bold);
+  transform: translateY(-160%);
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  transform: none;
+}
+
+.app-main {
+  outline: none;
+}
+
 .app-view-pane-hidden {
   display: none !important;
 }
@@ -4632,7 +4655,7 @@ th {
 th.num {
   text-align: right;
 }
-.muted { color: #64748b; }
+.muted { color: var(--text-muted); }
 .num-secondary {
   color: #9aaec4;
   font-weight: 500;
@@ -4823,7 +4846,7 @@ td.col-rank.col-rank-top {
 }
 
 .lineup-pool-table {
-  max-height: 62vh;
+  max-height: none;
 }
 
 .lineup-row-out {
@@ -12602,7 +12625,8 @@ td.col-rank.col-rank-top {
   overflow: hidden;
 }
 
-.mobile-player-card--selected {
+.mobile-player-card--selected,
+.mobile-player-card.is-in-lineup {
   border-color: rgba(59, 130, 246, 0.65);
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.28);
 }
@@ -13555,7 +13579,7 @@ td.col-rank.col-rank-top {
 .terms-reaccept-banner { margin: 0.75rem 1rem 0; max-width: 48rem; }
 .app-legal-footer { margin: 1.5rem auto 0.5rem; max-width: 48rem; padding: 0 1rem; }
 .app-mobile-sheet-legal { margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.08); }
-.app-product-disclaimer { margin-top: 0.25rem; font-size: 0.72rem; opacity: 0.85; }
+.app-product-disclaimer { margin-top: 0.25rem; font-size: var(--text-sm); opacity: 0.92; }
 .product-disclaimer { font-size: 0.75rem; opacity: 0.85; }
 .verify-email-banner { margin: 0.5rem 1rem; padding: 0.75rem 1rem; border-left: 3px solid var(--accent, #6ea8fe); }
 .verify-email-banner p { margin: 0 0 0.5rem; }

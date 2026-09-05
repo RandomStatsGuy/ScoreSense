@@ -23,6 +23,7 @@ export function SortTh({ label, sub, col, sortKey, sortDir, onSort, className = 
     return (
       <HoverTip
         as="th"
+        scope="col"
         content={tipContent}
         className={classes}
         onClick={() => onSort(col)}
@@ -35,6 +36,7 @@ export function SortTh({ label, sub, col, sortKey, sortDir, onSort, className = 
 
   return (
     <th
+      scope="col"
       className={classes}
       onClick={() => onSort(col)}
       aria-sort={ariaSort}
@@ -155,6 +157,7 @@ export function HubFilterChip({
   title,
   compact = false,
   disabled = false,
+  exclusive = false,
   ...rest
 }) {
   const classes = [
@@ -182,7 +185,9 @@ export function HubFilterChip({
       onClick={onClick}
       style={chipStyle}
       title={title}
-      aria-pressed={active}
+      role={exclusive ? "radio" : undefined}
+      aria-checked={exclusive ? active : undefined}
+      aria-pressed={exclusive ? undefined : active}
       disabled={disabled}
       {...rest}
     >

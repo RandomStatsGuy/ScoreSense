@@ -699,8 +699,8 @@
   gap: 0.18rem;
   padding-left: 1rem;
   border-left: 2px solid var(--experience-gold);
-  color: var(--text-muted);
-  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
 }
 
 .mock-draft-hero-note strong {
@@ -836,13 +836,16 @@
 }
 
 .mock-draft-advanced summary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
+  display: list-item;
+  list-style: disclosure-closed inside;
   color: var(--text-secondary);
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 650;
+}
+
+.mock-draft-advanced[open] > summary {
+  list-style: disclosure-open inside;
 }
 
 .mock-draft-advanced summary span {
@@ -927,10 +930,10 @@
 .mock-draft-experience-toggle button {
   min-width: 0;
   padding: 0.55rem 0.62rem;
-  border: 1px solid transparent;
+  border: 1px solid var(--border);
   border-radius: 11px;
-  background: transparent;
-  color: var(--text-muted);
+  background: var(--experience-surface);
+  color: var(--text-secondary);
   text-align: left;
 }
 
@@ -943,7 +946,7 @@
 .mock-draft-experience-toggle small {
   display: block;
   margin-top: 0.18rem;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-size: var(--text-xs);
 }
 
@@ -1002,14 +1005,17 @@
 }
 
 .mock-draft-recent > summary {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  display: list-item;
+  list-style: disclosure-closed inside;
   width: max-content;
   color: var(--text-secondary);
   cursor: pointer;
   font-size: 0.82rem;
   font-weight: 650;
+}
+
+.mock-draft-recent[open] > summary {
+  list-style: disclosure-open inside;
 }
 
 .mock-draft-recent > summary span {
@@ -1286,9 +1292,32 @@
 }
 
 .dfs-pool-section .lineup-pool-table {
+  max-height: none;
+  overflow: visible;
   border: 1px solid var(--experience-rule);
   border-radius: 16px;
   background: var(--experience-surface);
+}
+
+.dfs-pool-section tbody tr.is-in-lineup td {
+  background: var(--experience-blue-soft);
+}
+
+.dfs-in-lineup {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.85rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: var(--experience-blue-soft);
+  color: #c5d8f7;
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.dfs-pin-swap {
+  border-color: color-mix(in srgb, var(--experience-blue) 40%, transparent);
+  color: var(--text-secondary);
 }
 
 .dfs-pin-row {
@@ -1509,7 +1538,7 @@
 }
 
 .dfs-vegas-card.is-hot {
-  border-color: rgba(251, 191, 36, 0.35);
+  border-color: color-mix(in srgb, var(--experience-blue) 45%, transparent);
 }
 
 .dfs-vegas-kick {
@@ -1522,7 +1551,7 @@
 }
 
 .dfs-vegas-hot {
-  color: var(--tone-caution, #fbbf24);
+  color: var(--experience-blue);
   font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -2302,16 +2331,14 @@
 }
 
 .hub-rules-advanced > summary {
-  display: flex;
+  display: list-item;
+  list-style: disclosure-closed inside;
   padding: 1.1rem 1.2rem;
-  align-items: center;
-  gap: 0.8rem;
   cursor: pointer;
-  list-style: none;
 }
 
-.hub-rules-advanced > summary::-webkit-details-marker {
-  display: none;
+.hub-rules-advanced > summary > span + span {
+  margin-left: 0.8rem;
 }
 
 .hub-rules-advanced[open] {
@@ -2319,6 +2346,7 @@
 }
 
 .hub-rules-advanced[open] > summary {
+  list-style: disclosure-open inside;
   padding-inline: 0;
   border-bottom: 1px solid var(--experience-rule);
 }

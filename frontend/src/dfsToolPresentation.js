@@ -344,10 +344,195 @@ export function emptyLineupCopy({ optimizing = false, isDfs = true } = {}) {
   return "Lock or skip players, then build a lineup.";
 }
 
-export function optimizeButtonLabel({ optimizing = false, lineupCount = 1 } = {}) {
+export function optimizeButtonLabel({
+  optimizing = false,
+  lineupCount = 1,
+  hasLineup = false,
+} = {}) {
   if (optimizing) return "Optimizing…";
+  if (hasLineup) {
+    return Number(lineupCount) > 1 ? `Rebuild ${lineupCount} lineups` : "Rebuild this lineup";
+  }
   if (Number(lineupCount) > 1) return `Build ${lineupCount} lineups`;
   return "Build this lineup";
+}
+
+export const DFS_POOL_COPY = {
+  lockSkip: "Lock / Skip",
+  clearLocks: "Clear locks",
+  inLineup: "In lineup",
+  swap: "Swap",
+};
+
+export const POOL_COLUMN_TIPS = {
+  pos: "Position",
+  implied: "Implied team total from the Vegas board",
+  salary: "Slate salary",
+  proj: "Median projected points (P50)",
+  value: "Projected points per $1,000 of salary",
+  floor: "Low outcome (P10) — the Floor goal optimizes this",
+  ceiling: "High outcome (P90) — the Ceiling goal optimizes this",
+};
+
+const FLEX_POSITIONS = new Set(["RB", "WR", "TE"]);
+const DST_POSITIONS = new Set(["DST", "DEF"]);
+
+export function pinActionLabel(kind, playerName) {
+  const name = String(playerName || "player").trim() || "player";
+  return kind === "skip" ? `Skip ${name}` : `Lock ${name}`;
+}
+
+export function swapActionLabel(incomingName, outgoingName) {
+  const incoming = String(incomingName || "player").trim() || "player";
+  const outgoing = String(outgoingName || "").trim();
+  if (outgoing) return `Swap ${incoming} in for ${outgoing}`;
+  return `Swap ${incoming} into the lineup`;
+}
+
+export function buildResultLiveText({
+  ok = true,
+  playerCount = 0,
+  totalPoints = null,
+  error = "",
+} = {}) {
+  if (!ok) return error || "Could not build a valid lineup.";
+  const count = Number(playerCount) || 0;
+  const people = `${count} player${count === 1 ? "" : "s"}`;
+  if (totalPoints != null && Number.isFinite(Number(totalPoints))) {
+    return `Lineup is built. ${people}, ${Number(totalPoints).toFixed(1)} total.`;
+  }
+  return `Lineup is built. ${people}.`;
+}
+
+export function swapResultLiveText({ incomingName, outgoingName } = {}) {
+  return `Swapped ${outgoingName} for ${incomingName}.`;
+}
+
+export function objectiveSortColumn(objectiveId) {
+  if (objectiveId === "floor") return "floor";
+  if (objectiveId === "ceiling") return "ceiling";
+  if (objectiveId === "value") return "value";
+  return "proj";
+}
+
+export function poolSortValue(row = {}, column, vegasTeams = {}) {
+  switch (column) {
+    case "player":
+      return String(row.Player || "").toLowerCase();
+    case "pos":
+      return String(row.Position || "");
+    case "team":
+      return String(row.Team || "");
+    case "implied": {
+      const num = Number(vegasTeams[row.Team]?.implied_total);
+      return Number.isFinite(num) ? num : Number.NEGATIVE_INFINITY;
+    }
+    case "salary":
+      return Number(row.salary) || 0;
+    case "proj":
+      return Number(row["Projected Points"]) || 0;
+    case "value":
+      return Number(row.value) || 0;
+    case "floor":
+      return Number(row["Low (P10)"]) || 0;
+    case "ceiling":
+      return Number(row["High (P90)"]) || 0;
+    default:
+      return 0;
+  }
+}
+
+export function sortPoolRows(rows = [], { column = "proj", dir = "desc" } = {}, vegasTeams = {}) {
+  const mul = dir === "asc" ? 1 : -1;
+  return [...rows].sort((left, right) => {
+    const av = poolSortValue(left, column, vegasTeams);
+    const bv = poolSortValue(right, column, vegasTeams);
+    if (typeof av === "string" || typeof bv === "string") {
+      return String(av).localeCompare(String(bv), undefined, { sensitivity: "base" }) * mul;
+    }
+    return (av - bv) * mul;
+  });
+}
+
+export function nextExclusiveChoice(ids = [], current, key) {
+  const delta = key === "ArrowRight" || key === "ArrowDown"
+    ? 1
+    : key === "ArrowLeft" || key === "ArrowUp"
+      ? -1
+      : 0;
+  if (!delta || !ids.length) return current;
+  const idx = ids.indexOf(current);
+  const from = idx < 0 ? 0 : idx;
+  return ids[(from + delta + ids.length) % ids.length];
+}
+
+function normalizeSlot(value) {
+  return String(value || "").trim().toUpperCase();
+}
+
+export function slotAcceptsPosition(slot, position) {
+  const s = normalizeSlot(slot);
+  const p = normalizeSlot(position);
+  if (!s || !p) return false;
+  if (s === p) return true;
+  if (DST_POSITIONS.has(s) && DST_POSITIONS.has(p)) return true;
+  if ((s === "FLEX" || s === "F") && FLEX_POSITIONS.has(p)) return true;
+  if ((s === "CPT" || s === "MVP") && p && p !== "DST" && p !== "DEF") return true;
+  return false;
+}
+
+export function pickSwapTarget(lineup = [], position) {
+  const exact = lineup.filter((row) => normalizeSlot(row.slot) === normalizeSlot(position)
+    || (DST_POSITIONS.has(normalizeSlot(row.slot)) && DST_POSITIONS.has(normalizeSlot(position))));
+  const pool = exact.length
+    ? exact
+    : lineup.filter((row) => slotAcceptsPosition(row.slot, position));
+  if (!pool.length) return null;
+  return pool.slice().sort((a, b) => (Number(a.proj) || 0) - (Number(b.proj) || 0))[0];
+}
+
+export function poolRowToLineupSlot(poolRow, slot) {
+  return {
+    slot,
+    player: poolRow.Player,
+    player_id: poolRow.player_id,
+    team: poolRow.Team,
+    position: poolRow.Position,
+    proj: poolRow["Projected Points"],
+    salary: poolRow.salary,
+    floor: poolRow["Low (P10)"],
+    ceiling: poolRow["High (P90)"],
+  };
+}
+
+export function lineupTotals(lineup = []) {
+  return lineup.reduce((acc, row) => {
+    const proj = Number(row.proj);
+    const salary = Number(row.salary);
+    if (Number.isFinite(proj)) acc.totalPoints += proj;
+    if (Number.isFinite(salary)) acc.totalSalary += salary;
+    return acc;
+  }, { totalPoints: 0, totalSalary: 0 });
+}
+
+export function swapPoolPlayerIntoLineup(lineup = [], poolRow) {
+  if (!poolRow || !lineup.length) return null;
+  const incomingId = String(poolRow.player_id || "");
+  if (!incomingId) return null;
+  if (lineup.some((row) => String(row.player_id) === incomingId)) return null;
+  const outgoing = pickSwapTarget(lineup, poolRow.Position);
+  if (!outgoing) return null;
+  const next = lineup.map((row) => (
+    String(row.player_id) === String(outgoing.player_id) && row.slot === outgoing.slot
+      ? poolRowToLineupSlot(poolRow, outgoing.slot)
+      : row
+  ));
+  return {
+    lineup: next,
+    outgoing,
+    incoming: poolRow,
+    ...lineupTotals(next),
+  };
 }
 
 export function vegasKickoffLabel(kickoffEt, weekday) {
