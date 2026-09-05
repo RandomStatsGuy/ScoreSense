@@ -125,6 +125,17 @@ test("pre-draft home hides an unscored matchup deck", () => {
     }),
     { show: true, historical: true },
   );
+  assert.deepEqual(
+    homeDeckMode({
+      phaseId: "pre_draft",
+      draftCompleted: false,
+      scoring: {
+        placeholder: true,
+        standings: [{ rank: 8, wins: 4, losses: 10, hub_team_id: "you" }],
+      },
+    }),
+    { show: true, historical: true },
+  );
   assert.equal(HOME_PAGE_COPY.lastSeason, "Last season");
 });
 

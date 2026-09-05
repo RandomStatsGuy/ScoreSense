@@ -173,7 +173,7 @@ export default function LeagueSwitcher({
           {onCreateLeague && !hideCreate ? (
             <button
               type="button"
-              className="btn-ghost btn-sm hub-league-switcher-create"
+              className="btn-link hub-league-switcher-create"
               disabled={busy || disabled}
               onClick={() => onCreateLeague()}
             >

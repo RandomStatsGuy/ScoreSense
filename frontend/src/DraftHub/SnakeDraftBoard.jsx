@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { teamLogoUrl, playerInitials, lookupPlayerMedia, headshotCandidates } from "./draftMedia";
+import { PAINT_WIDTH, teamLogoUrl, playerInitials, lookupPlayerMedia, headshotCandidates } from "./draftMedia";
 import {
   buildDraftBoard,
   formatPickLabel,
@@ -9,7 +9,7 @@ import {
 } from "./snakeDraftBoard";
 
 function CellMark({ nflTeam, playerName }) {
-  const src = teamLogoUrl(nflTeam);
+  const src = teamLogoUrl(nflTeam, { width: PAINT_WIDTH.avatar });
   if (src) return <img className="hub-pick-board-mark" src={src} alt="" />;
   return <span className="hub-pick-board-initials" aria-hidden>{playerInitials(playerName)}</span>;
 }
@@ -43,7 +43,7 @@ function BoardGrid({ board, rows, mediaByPlayerId, scrollerRef, activeRef, modal
             {row.cells.map((cell) => {
               const media = lookupPlayerMedia(mediaByPlayerId, cell.pick?.player_id) || {};
               const nfl = cell.pick?.nfl_team || "";
-              const shot = headshotCandidates(media)[0];
+              const shot = headshotCandidates(media, [], { width: PAINT_WIDTH.avatar })[0];
               const classes = [
                 "hub-pick-board-cell",
                 cell.filled ? "is-filled" : "is-empty",

@@ -84,8 +84,8 @@ export default function HubSubnav({
     <button
       key={v.id}
       type="button"
-      role="tab"
-      aria-selected={subView === v.id}
+      aria-current={subView === v.id ? "page" : undefined}
+      aria-label={v.label}
       className={`app-section-subnav-btn${subView === v.id ? " active" : ""}`}
       onClick={() => onNavigate(v.id)}
       title={v.hint}
@@ -122,7 +122,6 @@ export default function HubSubnav({
         <nav
           ref={navRef}
           className="app-section-subnav app-section-subnav--hub"
-          role="tablist"
           aria-label="Fantasy"
         >
           {mobileLayout

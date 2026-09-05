@@ -285,6 +285,8 @@
     bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
     z-index: var(--z-sticky);
     display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
     padding: 0.55rem 0 0.2rem;
     background: linear-gradient(180deg, transparent, var(--bg-base) 28%);
   }
@@ -322,15 +324,15 @@
     gap: 0.35rem;
   }
 
-  .hub-wcc-week-stepper button {
+  .hub-wcc-week-stepper button,
+  .hub-wcc-week-stepper .week-step-btn {
     min-width: var(--touch-target);
     min-height: var(--touch-target);
   }
 
-  .hub-wcc-week-stepper output {
-    min-width: 3.5rem;
-    text-align: center;
-    font-weight: 700;
+  .hub-wcc-week-select .header-select {
+    min-height: var(--touch-target);
+    min-width: 4.5rem;
   }
 
   .hub-wcc-bench-chip {
@@ -340,14 +342,26 @@
     justify-content: center;
   }
 
+  .hub-game-center {
+    padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .hub-gc-head {
+    align-items: stretch;
+  }
+
+  .hub-gc-week-toolbar {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .hub-gc-week-nav {
+    flex: 1 1 auto;
     flex-wrap: wrap;
   }
 
-  .hub-gc-week-nav .hub-gc-state {
-    width: 100%;
-    text-align: center;
-    order: -1;
+  .hub-gc-state {
+    flex: none;
   }
 
   .hub-gc-week-nav button {
@@ -359,8 +373,19 @@
     white-space: nowrap;
   }
 
+  .hub-week-poll--compact > summary {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .hub-week-poll-summary-state {
+    flex: 1 1 100%;
+    order: 3;
+    white-space: normal;
+  }
+
   .hub-week-poll-summary-cta {
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
     min-height: var(--touch-target);
     display: inline-flex;
     align-items: center;
@@ -368,17 +393,17 @@
 
   .hub-insights-rank-row,
   .hub-insights-rank-row--button {
-    grid-template-columns: 1.4rem minmax(0, 1fr);
+    grid-template-columns: 1.4rem minmax(0, 1fr) 5.5rem;
     min-height: var(--touch-target);
   }
 
-  .hub-insights-rank-track,
-  .hub-insights-rank-value {
+  .hub-insights-rank-track {
     grid-column: 1 / -1;
+    width: 100%;
   }
 
   .hub-insights-rank-value {
-    white-space: normal;
+    white-space: nowrap;
     text-align: right;
     justify-content: flex-end;
     font-size: var(--text-xs);
@@ -421,8 +446,9 @@
 
   .hub-gc-week-toolbar {
     display: flex;
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 0.45rem;
   }
 
@@ -441,6 +467,14 @@
     align-items: flex-start;
     gap: 0.65rem;
     padding: 0.75rem 0;
+  }
+
+  .hub-gc-billboard {
+    padding-bottom: 3.25rem;
+  }
+
+  .hub-gc-billboard .hub-gc-storyline {
+    padding-right: 3.5rem;
   }
 
   .hub-stadium-cap-legend {

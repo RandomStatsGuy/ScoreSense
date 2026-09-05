@@ -100,7 +100,10 @@ def test_detect_image_type_accepts_jpeg_and_rejects_empty():
 
 
 def test_poll_tally_and_emote_eligibility():
-    teams = [{"id": "t1", "name": "Alpha"}, {"id": "t2", "name": "Beta"}]
+    teams = [
+        {"id": "t1", "name": "Alpha", "owner_name": "Ada A"},
+        {"id": "t2", "name": "Beta", "owner_name": "Bea B"},
+    ]
     tally = tally_poll_votes(
         [
             {"voter_team_id": "t1", "nominee_team_id": "t2"},
@@ -112,6 +115,7 @@ def test_poll_tally_and_emote_eligibility():
     assert tally["viewer_vote"] == "t2"
     assert tally["leader_team_id"] == "t2"
     assert tally["total_votes"] == 2
+    assert tally["options"][0]["owner_name"] == "Bea B"
 
     matchup = {
         "teams": [

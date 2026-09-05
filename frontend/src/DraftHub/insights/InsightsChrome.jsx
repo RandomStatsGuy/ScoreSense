@@ -20,6 +20,20 @@ export function InsightsSkeleton() {
   );
 }
 
+export function InsightsOverviewSkeleton() {
+  return (
+    <div
+      className="hub-insights-overview-grid hub-insights-overview-grid--skeleton"
+      aria-busy="true"
+      aria-label="Loading league history"
+    >
+      <div className="hub-insights-skeleton-block hub-insights-skeleton-block--panel" />
+      <div className="hub-insights-skeleton-block hub-insights-skeleton-block--panel" />
+      <div className="hub-insights-skeleton-block hub-insights-skeleton-block--panel" />
+    </div>
+  );
+}
+
 export default function InsightsFallback() {
   return (
     <div className="hub-insights">

@@ -11,7 +11,7 @@ Do not invent a second rules or contract model.
 
 | Layer | File |
 |-------|------|
-| Client merge / validate / preview | `frontend/src/DraftHub/rulesPresentation.js` (`mergeLeagueRules`, `validateLeagueSettings`, `contractSchedule`, `rulesSummary`) |
+| Client merge / validate / preview | `frontend/src/DraftHub/rulesPresentation.js` (`mergeLeagueRules`, `validateLeagueSettings`, `rulesFormWarnings`, `contractSchedule`, `rulesSummary`) |
 | UI | `frontend/src/DraftHub/RulesWizard.jsx` — living surface `hub.rules` |
 | Copy | same `rulesPresentation.js` |
 | Server schema | `src/draft_hub/schemas.py` (`LeagueRules`) |
@@ -23,7 +23,8 @@ Backend is authoritative for eligibility and materialized contracts. The client 
 
 ## Product constraints
 
-- Policy changes apply to **new contracts only** unless a migration exists. Say so next to the control.
+- Policy changes apply to **new contracts only**. Say that once, next to Save. Do not mention a migration unless a control exists.
+- Templates confirm, name what changes, and fill the form. They do not save.
 - Players-tab adds follow `acquisitionWindow.js`. Staff Roster management may override; Players-tab adds may not.
 - Static rookies stay flat; veterans / extensions use the configured step-up.
 - Offseason trades: surviving contracts only.
