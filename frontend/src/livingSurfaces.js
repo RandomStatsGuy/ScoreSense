@@ -59,7 +59,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/strategyRank.js",
       "frontend/src/styles/strategy-board.css",
     ],
-    doNot: "Do not add HubExperience hero chrome. Face-off is the Strategy page (full-page cards). Pairs are the same position only. View my rankings opens site vs mine. Not a leftover-cap spreadsheet and not a Vibes clone. Never show Hub in the scoring label. Suggested bid names scoring and Rules risk posture.",
+    doNot: "Do not add HubExperience hero chrome. Face-off is the Strategy page (full-page cards). Cards show a larger player photo on a faded team backdrop. Pairs are the same position only. View my rankings opens site vs mine. Not a leftover-cap spreadsheet and not a Vibes clone. Never show Hub in the scoring label. Suggested bid names scoring and Rules risk posture.",
   }),
   "hub.available": S({
     label: "Free agents",
@@ -138,7 +138,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "experience",
     page: "frontend/src/DraftHub/CapPlanner.jsx",
     copy: "frontend/src/DraftHub/capPlannerPresentation.js",
-    doNot: "Extend CapPlanner and HubExperience*. Do not start a new cap aesthetic. The move input (cut or bid) sits above the fold; do not stack This season leftover three times before the input.",
+    doNot: "Extend CapPlanner and HubExperience*. Do not start a new cap aesthetic. The summary-rail primary is the move — a cut or a bid — whose three-season leftover the page shows; the remaining-cap number appears once. The move input sits above the fold; do not stack This season leftover three times before the input.",
   }),
   "hub.trades": S({
     label: "Trades",
@@ -201,7 +201,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/HubSetup.jsx",
     also: ["frontend/src/DraftHub/LeagueSetup.jsx"],
     copy: "frontend/src/DraftHub/leagueAccessCopy.js",
-    doNot: "Setup is connections and imports, not a fourth top-level area. Draft night is read-only status. Mark draft complete lives on Contracts.",
+    doNot: "Setup is create/join, connections, and imports; it writes no league state and is not a fourth top-level area. Draft night is read-only status here and lives on Draft. Mark draft complete lives on Roster management · Contracts as a red confirm.",
   }),
   "tools.dfs": S({
     label: "DFS",
@@ -232,7 +232,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "experience",
     page: "frontend/src/BestBallBoard.jsx",
     copy: "frontend/src/bestBallPresentation.js",
-    doNot: "Reuse HubExperience*. Do not invent a fourth top-level area. Headers name the data (Pos rank, Pos ECR until a real ADP feed). Hide ADP-edge sort when the source is ECR-only. Team abbreviations match Weekly (LAR, not LA).",
+    doNot: "Reuse HubExperience*. Do not invent a fourth top-level area. Headers name the data (Pos rank, Pos ECR until a real ADP feed); ECR or ADP by its real name, never one labeled as the other. Hide ADP-edge sort when the source is ECR-only. Edge is blank, not 0, when either side is missing. Team abbreviations match Weekly (LAR, not LA).",
   }),
   "projections.weekly": S({
     label: "Weekly",

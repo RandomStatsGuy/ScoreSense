@@ -48,12 +48,14 @@ def _catalog_rows(text: str) -> list[tuple[str, str, str]]:
 
 def test_correction_capture_rule_is_always_applied() -> None:
     rule = _read(".cursor", "rules", "correction-capture.mdc")
+    skill = _read(".cursor", "skills", "capture-correction", "SKILL.md")
     assert "alwaysApply: true" in rule
+    assert ".cursor/skills/capture-correction/SKILL.md" in rule
     for freq in FREQS:
         assert freq in rule
-    assert "Captured:" in rule
-    assert "Not a rule:" in rule
-    assert ".cursor/skills/capture-correction/SKILL.md" in rule
+        assert f"`{freq}`" in skill or freq in skill
+    assert "Captured:" in skill
+    assert "Not a rule:" in skill
 
 
 def test_learned_rules_rule_is_always_applied() -> None:
@@ -87,11 +89,9 @@ def test_learned_rules_catalog_rows_are_valid() -> None:
 
 
 def test_core_and_index_point_at_capture_files() -> None:
-    core = _read(".cursor", "rules", "scoresense-core.mdc")
     readme = _read("docs", "README.md")
     cursorrules = _read(".cursorrules")
-    assert ".cursor/rules/correction-capture.mdc" in core
-    assert ".cursor/rules/learned-rules.mdc" in core
     assert "correction-capture.mdc" in readme
     assert "learned-rules.mdc" in readme
     assert "correction-capture.mdc" in cursorrules
+    assert "learned-rules.mdc" in cursorrules

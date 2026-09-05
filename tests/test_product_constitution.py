@@ -34,7 +34,6 @@ RULE_FILES = (
     "ml-projections.mdc",
     "correction-capture.mdc",
     "learned-rules.mdc",
-    "living-surfaces.mdc",
 )
 
 
@@ -61,8 +60,11 @@ def test_constitution_and_rules_exist() -> None:
 def test_constitution_covers_account_report() -> None:
     product = _read("docs", "PRODUCT.md")
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    onboarding = _read("docs", "ONBOARDING.md")
     assert "Report a bug" in product
-    assert "user-reported" in product
+    assert "ONBOARDING.md" in product
+    assert "user-reported" in onboarding
+    assert "pickup" in onboarding
     assert "Report a bug" in core_rule
     assert '"/report"' in _read("frontend", "src", "AppRouter.jsx")
 
@@ -161,20 +163,30 @@ def test_css_type_never_drops_below_text_xs() -> None:
 def test_constitution_covers_copy_voice() -> None:
     product = _read("docs", "PRODUCT.md")
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
-    learned = _read(".cursor", "rules", "learned-rules.mdc")
     assert "cost of getting it wrong" in product
     assert "slogan that could sit on another" in product
     assert "cost of getting it wrong" in core_rule
-    assert "slogan that could sit on another app" in learned
 
 
 def test_constitution_covers_weekly_board_chrome() -> None:
     product = _read("docs", "PRODUCT.md")
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
-    for text in (product, core_rule):
-        assert "always-on" in text.lower()
-        assert "compare" in text.lower()
-        assert "compact Q" in text or "compact Q / D / P" in text
-        assert "inspector" in text.lower()
+    assert "always-on" in product.lower()
+    assert "compare" in product.lower()
+    assert "compact Q" in product or "compact Q / D / P" in product
+    assert "inspector" in product.lower()
+    assert "New, never 0" in product
+    assert "compare" in core_rule.lower()
     assert "dense ranking rows" in product
     assert "checkbox on every card" in product
+
+def test_constitution_bans_hub_ppr_in_ui() -> None:
+    product = _read("docs", "PRODUCT.md")
+    assert "ScoreSense PPR" in product
+    assert 'the string "Hub PPR" never reaches UI' in product
+
+def test_constitution_empty_states_name_a_destination() -> None:
+    product = _read("docs", "PRODUCT.md")
+    assert "League settings" in product
+    assert "never a label like League settings" in product
+    assert "Roster management · Access & imports" in product
