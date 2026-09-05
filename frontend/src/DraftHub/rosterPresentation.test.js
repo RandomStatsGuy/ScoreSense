@@ -10,6 +10,11 @@ test("My team copy names the decision and skips Draft Hub / permission voice", (
   assert.doesNotMatch(MY_TEAM_COPY.removeConfirm, /Staff only|permission/i);
 });
 
+test("My team qualifies committed as the season year", () => {
+  assert.equal(MY_TEAM_COPY.committedLabel(2026), "2026 committed");
+  assert.doesNotMatch(MY_TEAM_COPY.committedLabel(2026), /current roster/i);
+});
+
 test("pre-draft status splits extension eligible from expiring", () => {
   const rookie = rosterStatusInfo(
     { contract: { years_remaining: 1, contract_type: "rookie" } },

@@ -17,16 +17,27 @@ import {
   rosterAlertVariant,
 } from "./HubUILayout";
 import {
+  againstCap,
+  capEquationNote,
+  displayCapPair,
   capHeroCopy,
   capRailPrimary,
-  leftoverAfterMoveYears,
-  positionFromNeedError,
-  formatNeedError,
+  capSheetYearOffsets,
+  leftoverAfterMoveDisplay,
+  leftoverMoveReadout,
+  fmtCapMoney,
+  parseNeedErrors,
+  rosterNeedLine,
+  CAP_DRAFT_COPY,
+  CAP_EXTEND_COPY,
+  CAP_FIGURE_COPY,
+  CAP_MODEL_COPY,
   CAP_MOVE_COPY,
   CAP_NEED_COPY,
+  CAP_SHEET_COPY,
 } from "./capPlannerPresentation";
 import { buildCapStatusCard } from "./capStatusCard";
-import { contractDeadCapStory, fmtSal, leagueStepUp, scheduleText } from "./rosterFormat";
+import { contractDeadCapStory, fmtSal, leagueStepUp } from "./rosterFormat";
 import ContractHistoryLink from "./ContractHistoryLink";
 import {
   hasPendingExtension,
@@ -52,12 +63,11 @@ function capHitForRow(row, offset = 0, rules) {
     const step = Number(contract?.step_up_per_year);
     const useStep = Number.isFinite(step) && step > 0 ? step : leagueStepUp(rules);
     const sched = contract?.schedule;
-    // Ignore legacy flat multi-year schedules; prefer stepped preview like scheduleText.
     if (sched?.length) {
-      const amounts = sched.map((y) => Number(y.salary));
+      const amounts = sched.map((year) => Number(year.salary));
       const isFlat = amounts.length > 0 && amounts.every((v) => Math.abs(v - base) < 0.001);
       if (!isFlat) {
-        const hit = sched.find((y) => Number(y.year_offset) === offset);
+        const hit = sched.find((year) => Number(year.year_offset) === offset);
         if (hit) return Number(hit.salary);
       }
     }
@@ -65,7 +75,7 @@ function capHitForRow(row, offset = 0, rules) {
   }
   const sched = contract?.schedule;
   if (sched?.length) {
-    const hit = sched.find((y) => Number(y.year_offset) === offset);
+    const hit = sched.find((year) => Number(year.year_offset) === offset);
     if (hit) return Number(hit.salary);
     if (offset === 0) return Number(contract.current_salary ?? row.salary);
     return null;
@@ -93,9 +103,29 @@ function CapDenseRow({ name, value, chip, onOpen }) {
   return <li className="hub-cap-dense-row">{body}</li>;
 }
 
+function CapMoneyField({ id, label, value, onChange }) {
+  return (
+    <label className="hub-cap-field" htmlFor={id}>
+      {label}
+      <span className="hub-cap-money">
+        <span className="hub-cap-money-affix" aria-hidden="true">$</span>
+        <input
+          id={id}
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          value={value}
+          onChange={(e) => onChange(e.target.value.replace(/[^\d]/g, ""))}
+          aria-label={label}
+        />
+      </span>
+    </label>
+  );
+}
+
 export default function CapPlanner({ capSheet, roster, workspace, hubContext, onChanged, onNavigate }) {
   const [extendPlayer, setExtendPlayer] = useState("");
-  const [extendYears, setExtendYears] = useState(1);
+  const [extendYears, setExtendYears] = useState("1");
   const [cutPlayer, setCutPlayer] = useState("");
   const [bidAmount, setBidAmount] = useState("");
   const [msg, setMsg] = useState("");
@@ -178,13 +208,13 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
   const expiryBadge = (playerId) => {
     const pid = String(playerId);
     if (pendingExtendIds.has(pid)) {
-      return <span className="hub-sleeper-badge hub-pending-badge">Extension queued</span>;
+      return <span className="hub-expire-chip hub-expire-chip--extend">Extension queued</span>;
     }
     if (extendableIds.has(pid)) {
-      return <span className="hub-sleeper-badge hub-expiring-badge">Extend to keep</span>;
+      return <span className="hub-roster-status hub-roster-status--keep">Extend to keep</span>;
     }
     if (droppingIds.has(pid)) {
-      return <span className="hub-sleeper-badge hub-expiring-badge">Expires — FA</span>;
+      return <span className="hub-roster-status hub-roster-status--warn">Expires — FA</span>;
     }
     return null;
   };
@@ -195,7 +225,8 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
       <p><strong>Years left</strong> — Includes the upcoming season; drops by 1 when the draft is marked complete.</p>
       <p><strong>Contract extension</strong> — Eligible final-year {veteranExtensions ? "rookie and veteran deals" : "rookie deals"}; one 1–{maxExtensionYears} year extension. Start salary is server-set (current + ${stepUp}).</p>
       <p><strong>Queued</strong> — Extension activates when draft is marked complete (1- and 3-year terms preserved).</p>
-      <p><strong>Dead cap</strong> — Counts after a cut.</p>
+      <p><strong>Against this cap</strong> — This year&apos;s salary plus dead cap. Leftover is the rest of the cap.</p>
+      <p><strong>Keep past this draft</strong> — Players still under contract after this draft. On this sheet is every row listed below.</p>
       <p><strong>Step-up</strong> — Rookie deals {rookieSalaryStatic ? "stay flat" : `increase $${stepUp}/yr`}; veteran deals and extensions increase ${stepUp}/yr.</p>
       <p><strong>Cut refund</strong> — {cutPct}% back; rest is dead cap.</p>
     </>
@@ -220,10 +251,9 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
     }
   };
 
-  const openNeed = (error) => {
-    const pos = positionFromNeedError(error);
-    if (pos) onNavigate?.("available", { pos });
-    else onNavigate?.("available");
+  const resetMove = () => {
+    setCutPlayer("");
+    setBidAmount("");
   };
 
   if (!summary) {
@@ -243,11 +273,14 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
     summary.salary_cap ?? workspace?.rules?.salary_cap ?? preDraft?.salary_cap,
   );
   const deadCap = Number(summary.dead_cap ?? preDraft?.dead_cap ?? 0);
+  const sheetCount = roster?.length ?? 0;
+  const keepCount = Number(summary.roster_size);
   const statusCard = buildCapStatusCard({
     remaining: summary.remaining,
     spent: summary.spent,
     salaryCap,
-    rosterSize: summary.roster_size,
+    rosterSize: keepCount,
+    sheetSize: sheetCount,
     deadCap,
     preDraft: Boolean(preDraft),
   });
@@ -256,12 +289,25 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
   const cutHits = seasonPlan.map((_, idx) => (
     cutRow ? Number(capHitForRow(cutRow, idx, workspace?.rules) || 0) : 0
   ));
-  const movedPlan = leftoverAfterMoveYears({
+  const currentPair = displayCapPair({ leftover: summary.remaining, salaryCap });
+  const movedPlan = leftoverAfterMoveDisplay({
     years: seasonPlan,
+    salaryCap,
     cutHits,
     cutRefundPct: workspace?.rules?.contracts?.cut_refund_pct ?? 0.5,
     bid: Number(bidAmount) || 0,
   });
+  const moveReadout = leftoverMoveReadout({
+    current: currentPair.leftover,
+    after: movedPlan[0]?.cap_remaining ?? currentPair.leftover,
+  });
+  const nowPair = currentPair;
+  const afterPair = displayCapPair({ leftover: moveReadout?.after, salaryCap });
+  const afterOverBy = afterPair.leftover != null && afterPair.leftover < 0
+    ? Math.abs(afterPair.leftover)
+    : 0;
+  const hasMove = Boolean(cutPlayer || bidAmount);
+  const against = againstCap({ spent: summary.spent, deadCap });
 
   const pendingCut = (preDraft?.pending_cuts || [])[0] || null;
   const railPrimary = capRailPrimary({ pendingCut, remaining: summary.remaining });
@@ -272,9 +318,42 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
     ? contractDeadCapStory(selectedCapRow, workspace?.rules)
     : null;
 
+  const { needs, other: otherErrors } = parseNeedErrors(errors);
+  const needLine = rosterNeedLine(needs);
+  const futureYearOffsets = capSheetYearOffsets({
+    roster: roster || [],
+    yearCount: yearLabels.length,
+    hitFor: (row, offset) => capHitForRow(row, offset, workspace?.rules),
+  });
+
+  const teamItems = [
+    { id: "leftover", label: CAP_FIGURE_COPY.leftover, value: fmtCapMoney(currentPair.leftover) },
+    { id: "against", label: CAP_FIGURE_COPY.againstCap, value: fmtCapMoney(currentPair.against) },
+    { id: "dead", label: CAP_FIGURE_COPY.deadCap, value: fmtSal(deadCap) },
+  ];
+  if (preDraft && Number.isFinite(keepCount)) {
+    teamItems.push({
+      id: "keep",
+      label: CAP_FIGURE_COPY.keepPastDraft,
+      value: String(keepCount),
+    });
+  }
+  if (sheetCount && (!preDraft || sheetCount !== keepCount)) {
+    teamItems.push({
+      id: "sheet",
+      label: CAP_FIGURE_COPY.onThisSheet,
+      value: String(sheetCount),
+    });
+  }
+
+  const yearOptions = Array.from({ length: maxExtensionYears }, (_, idx) => ({
+    id: String(idx + 1),
+    label: `${idx + 1}`,
+  }));
+
   return (
     <HubPage className="hub-experience-page hub-planner-page">
-        <HubExperienceHero
+      <HubExperienceHero
         {...capHeroCopy({ preDraft: Boolean(preDraft) })}
         chip={statusCard?.label || "Cap plan"}
         chipTone={statusCard?.tone === "over" ? "caution" : "readonly"}
@@ -282,6 +361,11 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
         {statusCard && !mobileLayout ? (
           <p className="hub-experience-hero-status">{statusCard.headline}</p>
         ) : null}
+        <p className="hub-cap-model-line">{CAP_MODEL_COPY.years}</p>
+        <details className="hub-cap-model-details">
+          <summary>{CAP_MODEL_COPY.summary}</summary>
+          <div>{glossary}</div>
+        </details>
       </HubExperienceHero>
 
       <HubExperienceLayout
@@ -290,15 +374,22 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
           <HubExperienceSummary
             title={workspace?.name || "Your team"}
             subtitle={`${baseSeason} season · ${fmtSal(salaryCap)} cap`}
-            items={[
-              { id: "remaining", label: "Remaining", value: fmtSal(summary.remaining) },
-              { id: "spent", label: "Committed", value: fmtSal(summary.spent) },
-              { id: "dead", label: "Dead cap", value: fmtSal(deadCap) },
-              { id: "roster", label: "Roster", value: String(summary.roster_size ?? roster?.length ?? "—") },
-              { id: "step", label: "Annual step-up", value: fmtSal(stepUp) },
-              { id: "cut", label: "Cut refund", value: `${cutPct}%` },
+            groups={[
+              { id: "you", items: teamItems },
+              {
+                id: "rules",
+                heading: CAP_FIGURE_COPY.rulesHeading,
+                items: [
+                  { id: "step", label: CAP_FIGURE_COPY.stepUp, value: fmtSal(stepUp) },
+                  { id: "cut", label: CAP_FIGURE_COPY.cutRefund, value: `${cutPct}%` },
+                ],
+              },
             ]}
-            note={statusCard?.meta || "Policy changes shape new contracts. Existing deals keep their schedules."}
+            note={capEquationNote({
+              against,
+              leftover: summary.remaining,
+              salaryCap,
+            })}
             action={(
               <div className="hub-cap-rail-actions">
                 {railPrimary.kind === "undo-cut" ? (
@@ -325,7 +416,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                     className="btn-link hub-cap-league-spend"
                     onClick={() => onNavigate("insights")}
                   >
-                    League spend
+                    {CAP_FIGURE_COPY.leagueSpend}
                   </button>
                 ) : null}
               </div>
@@ -333,6 +424,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
           />
         )}
       >
+      <div className="hub-cap-tools">
       <HubSection
         title={CAP_MOVE_COPY.title}
         hint={CAP_MOVE_COPY.hint}
@@ -352,69 +444,147 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
             ]}
             onChange={setCutPlayer}
           />
-          <label>
-            {CAP_MOVE_COPY.bidLabel}
-            <input
-              type="number"
-              inputMode="numeric"
-              min="0"
-              step="1"
-              value={bidAmount}
-              onChange={(e) => setBidAmount(e.target.value)}
-              aria-label={CAP_MOVE_COPY.bidLabel}
-            />
-          </label>
+          <CapMoneyField
+            id="cap-move-bid"
+            label={CAP_MOVE_COPY.bidLabel}
+            value={bidAmount}
+            onChange={setBidAmount}
+          />
+          {hasMove ? (
+            <button type="button" className="btn-ghost btn-sm" onClick={resetMove}>
+              {CAP_MOVE_COPY.reset}
+            </button>
+          ) : null}
         </HubToolbar>
         </HubPageSticky>
-      </HubSection>
-
-      {movedPlan.length > 0 && (
-        <HubSection
-          title="By season"
-          hint="Committed vs free under the same cap each year."
-          className="hub-cap-season-section"
-        >
-          <ul className="hub-cap-season-list" aria-label="Season-by-season cap">
+        {moveReadout ? (
+          <div
+            className={`hub-cap-move-result${moveReadout.over ? " is-over" : ""}`}
+            aria-live="polite"
+          >
+            <p className="hub-cap-move-result-line">
+              <span>
+                {CAP_MOVE_COPY.now}
+                {" "}
+                <strong>{fmtCapMoney(nowPair.leftover)}</strong>
+                {" "}
+                {CAP_MOVE_COPY.leftoverWord}
+              </span>
+              <span aria-hidden="true">→</span>
+              <span>
+                {CAP_MOVE_COPY.after}
+                {" "}
+                <strong>{fmtCapMoney(afterPair.leftover)}</strong>
+                {" "}
+                {CAP_MOVE_COPY.leftoverWord}
+              </span>
+            </p>
+            {afterOverBy > 0 ? (
+              <p className="hub-cap-move-over">
+                {CAP_MOVE_COPY.over(fmtCapMoney(afterOverBy))}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+        {movedPlan.length > 0 && (
+          <ul className="hub-cap-season-list" aria-label="Leftover after this move, by season">
             {movedPlan.map((year) => {
-              const free = Number(year.cap_remaining);
-              const freeOver = Number.isFinite(free) && free < 0;
+              const pair = displayCapPair({ leftover: year.cap_remaining, salaryCap });
+              const freeOver = pair.leftover != null && pair.leftover < 0;
               return (
                 <li key={year.label || year.seasonLabel} className="hub-cap-season-row">
                   <span className="hub-cap-season-year">{year.seasonLabel}</span>
                   <span className="hub-cap-season-committed">
-                    {fmtSal(year.total_committed)}
-                    <span className="hub-cap-season-unit"> committed</span>
+                    {fmtCapMoney(pair.against)}
+                    <span className="hub-cap-season-unit"> {CAP_FIGURE_COPY.seasonAgainst}</span>
                   </span>
                   <span className={`hub-cap-season-free${freeOver ? " is-over" : ""}`}>
-                    {fmtSal(year.cap_remaining)}
-                    <span className="hub-cap-season-unit"> free</span>
+                    {fmtCapMoney(pair.leftover)}
+                    <span className="hub-cap-season-unit"> {CAP_FIGURE_COPY.seasonLeftover}</span>
                   </span>
                 </li>
               );
             })}
           </ul>
+        )}
+      </HubSection>
+
+      {!draftCompleted && (
+        <HubSection
+          title={CAP_EXTEND_COPY.title}
+          hint={
+            extendableRoster.length > 0
+              ? `Eligible final-year contracts — pick 1–${maxExtensionYears} years. Start salary is current + $${stepUp} (server-calculated).`
+              : pendingExtendIds.size > 0
+                ? "Extension(s) already queued — they activate when draft is marked complete."
+                : "No rookies eligible to extend right now."
+          }
+        >
+          {extendableRoster.length > 0 ? (
+            <HubToolbar>
+              <HubFilterMenu
+                label={CAP_EXTEND_COPY.playerLabel}
+                value={extendPlayer}
+                options={[
+                  { id: "", label: CAP_EXTEND_COPY.selectPlayer },
+                  ...extendableRoster.map((r) => ({
+                    id: String(r.player_id),
+                    label: `${r.player_name} (${r.contract?.contract_type || "contract"} · ${fmtSal(r.salary)})`,
+                  })),
+                ]}
+                onChange={setExtendPlayer}
+              />
+              <HubFilterMenu
+                label={CAP_EXTEND_COPY.yearsLabel}
+                value={String(extendYears)}
+                options={yearOptions}
+                onChange={setExtendYears}
+              />
+              {selectedStartSalary != null && (
+                <span className="chart-note hub-extend-start-preview">
+                  Starts at {fmtSal(selectedStartSalary)}
+                </span>
+              )}
+              <button type="button" className="btn-primary btn-sm" onClick={extend} disabled={!extendPlayer}>
+                {CAP_EXTEND_COPY.queue}
+              </button>
+            </HubToolbar>
+          ) : (
+            <p className="chart-note">
+              {pendingExtendIds.size > 0
+                ? "All eligible rookies already have an extension queued."
+                : mustExtend.length === 0 && droppingAtDraft.length === 0
+                  ? "No deals end at this draft — nothing to extend yet."
+                  : "Veteran Deals and Rookie Extensions expire to free agency — they cannot be re-signed."}
+            </p>
+          )}
         </HubSection>
       )}
+      </div>
 
-      {errors.length > 0 && (
-        <>
-          <HubAlertStack>
-            {errors.map((e) => (
-              <HubAlert key={e} variant={rosterAlertVariant(e)}>
-                {formatNeedError(e)}
-              </HubAlert>
-            ))}
-          </HubAlertStack>
-          {onNavigate && errors.some((e) => /RB|WR|TE|QB|K|DEF/i.test(e)) ? (
+      {needLine && (
+        <div className="hub-cap-need">
+          <p>{needLine}</p>
+          {onNavigate ? (
             <button
               type="button"
               className="btn-primary"
-              onClick={() => openNeed(errors.find((e) => /RB|WR|TE|QB|K|DEF/i.test(e)))}
+              onClick={() => onNavigate("available", { pos: needs[0]?.position })}
             >
               {CAP_NEED_COPY.browseFreeAgents}
             </button>
           ) : null}
-        </>
+        </div>
+      )}
+
+      {otherErrors.length > 0 && (
+        <HubAlertStack>
+          {otherErrors.map((e) => (
+            <HubAlert key={e} variant={rosterAlertVariant(e)}>
+              {e}
+            </HubAlert>
+          ))}
+        </HubAlertStack>
       )}
 
       {preDraft && (
@@ -510,7 +680,15 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
 
       {!draftCompleted && isCommissioner && (
         <p className="chart-note hub-pre-draft-note">
-          Mark <strong>Draft complete</strong> on Roster management · Contracts when the auction ends.
+          {onNavigate ? (
+            <button type="button" className="btn-link" onClick={() => onNavigate("office")}>
+              {CAP_DRAFT_COPY.markComplete}
+            </button>
+          ) : (
+            <strong>{CAP_DRAFT_COPY.markComplete}</strong>
+          )}
+          {" "}
+          {CAP_DRAFT_COPY.markCompleteRest}
         </p>
       )}
 
@@ -521,6 +699,83 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
           </button>
           {" "}before planning cuts.
         </p>
+      )}
+
+      {msg && (
+        <p
+          className={`hub-msg${
+            /fail|could not|only |must |already queued with different|not on roster|403|400/i.test(msg)
+              ? " hub-msg--error"
+              : ""
+          }`}
+        >
+          {msg}
+        </p>
+      )}
+
+      {roster.length > 0 && (
+        <HubSection title={CAP_SHEET_COPY.title} hint={mobileLayout ? "By season" : CAP_SHEET_COPY.hint}>
+          <HubTableCard>
+            {mobileLayout ? (
+              <ul className="hub-cap-dense-list" aria-label="Cap sheet">
+                {roster.map((r) => (
+                  <CapDenseRow
+                    key={r.player_id}
+                    name={r.player_name}
+                    value={fmtSal(capHitForRow(r, 0, workspace?.rules))}
+                    chip={r.position || `${r.contract?.years_remaining ?? r.contract_years ?? "—"} yrs`}
+                    onOpen={() => setSelectedPlayerId(r.player_id)}
+                  />
+                ))}
+              </ul>
+            ) : (
+            <div className="table-wrap table-sticky">
+              <table className="data-table hub-table">
+                <thead>
+                  <tr>
+                    <th>Player</th>
+                    <th>{baseSeason}</th>
+                    <th>Yrs</th>
+                    {futureYearOffsets.map((offset) => (
+                      <th key={yearLabels[offset]?.seasonLabel || offset}>
+                        {yearLabels[offset]?.seasonLabel}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {roster.map((r) => (
+                    <tr
+                      key={r.player_id}
+                      className={`hub-cap-row is-action${
+                        droppingIds.has(String(r.player_id))
+                        || extendableIds.has(String(r.player_id))
+                        || pendingExtendIds.has(String(r.player_id))
+                          ? " hub-cap-row--expiring"
+                          : ""
+                      }`}
+                      onClick={() => setSelectedPlayerId(r.player_id)}
+                    >
+                      <td>
+                        {r.player_name}
+                        {" "}
+                        {expiryBadge(r.player_id)}
+                      </td>
+                      <td>{fmtSal(capHitForRow(r, 0, workspace?.rules))}</td>
+                      <td>{r.contract?.years_remaining ?? r.contract_years ?? "—"}</td>
+                      {futureYearOffsets.map((offset) => (
+                        <td key={yearLabels[offset]?.seasonLabel || offset}>
+                          {fmtSal(capHitForRow(r, offset, workspace?.rules))}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            )}
+          </HubTableCard>
+        </HubSection>
       )}
 
       {Object.keys(summary.by_position_count || {}).length > 0 && (
@@ -562,142 +817,6 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
           </HubTableCard>
         </HubSection>
       )}
-
-      {!draftCompleted && (
-        <HubSection
-          title="Extend contract"
-          hint={
-            extendableRoster.length > 0
-              ? `Eligible final-year contracts — pick 1–${maxExtensionYears} years. Start salary is current + $${stepUp} (server-calculated).`
-              : pendingExtendIds.size > 0
-                ? "Extension(s) already queued — they activate when draft is marked complete."
-                : "No rookies eligible to extend right now."
-          }
-        >
-          {extendableRoster.length > 0 ? (
-            <HubToolbar>
-              <label>
-                Player
-                <select value={extendPlayer} onChange={(e) => setExtendPlayer(e.target.value)}>
-                  <option value="">Select player…</option>
-                  {extendableRoster.map((r) => (
-                    <option key={r.player_id} value={r.player_id}>
-                      {r.player_name} ({r.contract?.contract_type || "contract"} · {fmtSal(r.salary)})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Years
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={maxExtensionYears}
-                  value={extendYears}
-                  onChange={(e) => setExtendYears(e.target.value)}
-                  aria-label="Extension years"
-                />
-              </label>
-              {selectedStartSalary != null && (
-                <span className="chart-note hub-extend-start-preview">
-                  Starts at {fmtSal(selectedStartSalary)}
-                </span>
-              )}
-              <button type="button" className="btn-primary btn-sm" onClick={extend} disabled={!extendPlayer}>
-                Queue extension
-              </button>
-            </HubToolbar>
-          ) : (
-            <p className="chart-note">
-              {pendingExtendIds.size > 0
-                ? "All eligible rookies already have an extension queued."
-                : mustExtend.length === 0 && droppingAtDraft.length === 0
-                  ? "No deals end at this draft — nothing to extend yet."
-                  : "Veteran Deals and Rookie Extensions expire to free agency — they cannot be re-signed."}
-            </p>
-          )}
-        </HubSection>
-      )}
-
-      {msg && (
-        <p
-          className={`hub-msg${
-            /fail|could not|only |must |already queued with different|not on roster|403|400/i.test(msg)
-              ? " hub-msg--error"
-              : ""
-          }`}
-        >
-          {msg}
-        </p>
-      )}
-
-      {roster.length > 0 && (
-        <HubSection title="Cap sheet" hint={mobileLayout ? "By season" : "Current deal and scheduled hits by season."}>
-          <HubTableCard>
-            {mobileLayout ? (
-              <ul className="hub-cap-dense-list" aria-label="Cap sheet">
-                {roster.map((r) => (
-                  <CapDenseRow
-                    key={r.player_id}
-                    name={r.player_name}
-                    value={fmtSal(capHitForRow(r, 0, workspace?.rules))}
-                    chip={r.position || `${r.contract?.years_remaining ?? r.contract_years ?? "—"} yrs`}
-                    onOpen={() => setSelectedPlayerId(r.player_id)}
-                  />
-                ))}
-              </ul>
-            ) : (
-            <div className="table-wrap table-sticky">
-              <table className="data-table hub-table">
-                <thead>
-                  <tr>
-                    <th>Player</th>
-                    <th>{baseSeason}</th>
-                    <th>Yrs</th>
-                    <th>Schedule</th>
-                    {yearLabels.slice(1, 3).map((y) => (
-                      <th key={y.seasonLabel}>{y.seasonLabel}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {roster.map((r) => (
-                    <tr
-                      key={r.player_id}
-                      className={`hub-cap-row is-action${
-                        droppingIds.has(String(r.player_id))
-                        || extendableIds.has(String(r.player_id))
-                        || pendingExtendIds.has(String(r.player_id))
-                          ? " hub-cap-row--expiring"
-                          : ""
-                      }`}
-                      onClick={() => setSelectedPlayerId(r.player_id)}
-                    >
-                      <td>
-                        {r.player_name}
-                        {" "}
-                        {expiryBadge(r.player_id)}
-                      </td>
-                      <td>{fmtSal(capHitForRow(r, 0, workspace?.rules))}</td>
-                      <td>{r.contract?.years_remaining ?? r.contract_years ?? "—"}</td>
-                      <td className="chart-note">{scheduleText(r, workspace?.rules)}</td>
-                      {yearLabels.slice(1, 3).map((y, idx) => (
-                        <td key={y.seasonLabel}>{fmtSal(capHitForRow(r, idx + 1, workspace?.rules))}</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            )}
-          </HubTableCard>
-        </HubSection>
-      )}
-        <details className="hub-experience-learn">
-          <summary>How cap years work</summary>
-          <div>{glossary}</div>
-        </details>
       </HubExperienceLayout>
       {selectedCapRow ? (
         <div

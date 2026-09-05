@@ -37,6 +37,11 @@ export function formatStatusLabel(status) {
   return STATUS_LABELS[status] || String(status);
 }
 
+export function tierChipClass(tier) {
+  const key = String(tier || "").toLowerCase().replace(/\s+/g, "-");
+  return key ? `hub-tier-chip hub-tier-chip--${key}` : "hub-tier-chip";
+}
+
 export function isRowAvailable(row) {
   if (row?.is_available != null) return Boolean(row.is_available);
   const status = row?.status;

@@ -49,7 +49,7 @@ test("live roster copy is pre-draft until draft complete", () => {
   assert.doesNotMatch(liveRosterSalaryHint(2026, false), /after the 2026 draft year tick/);
   assert.match(liveRosterSalaryHint(2026, true), /after the 2026 draft year tick/);
 
-  assert.match(liveContractsIntroHint(2026, false), /Editing 2026 keeper contracts \(pre-draft\)/);
+  assert.match(liveContractsIntroHint(2026, false), /Editing 2026 keeper contracts/);
   assert.match(liveContractsIntroHint(2026, true), /draft year tick already ran/);
 
   assert.match(liveContractCapHitBlurb(2026, false), /upcoming 2026/);
@@ -76,6 +76,10 @@ test("liveContractStage shows year, phase, and draft impact", () => {
   assert.equal(pre.capColumn, "2026 cap");
   assert.equal(pre.capColumnSub, "pre-draft");
   assert.equal(pre.yearsColumnSub, "incl. 2026");
+  assert.equal(pre.draftRules.length, 3);
+  assert.match(pre.draftRules[0], /committed before the auction/);
+  assert.match(pre.draftRules[1], /1 year left expires to FA/);
+  assert.match(pre.draftRules[2], /burns 1 year/);
   assert.match(pre.draftImpact, /committed before the auction/);
   assert.match(pre.draftImpact, /1 year left expires to FA/);
   assert.match(pre.draftImpact, /burns 1 year/);

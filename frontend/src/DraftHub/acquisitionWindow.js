@@ -1,5 +1,21 @@
 /** Players-tab add vs bid vs lock copy. */
 
+export const PLAYERS_TAB_COPY = {
+  add: "Add",
+  bid: "Bid",
+  reassign: "Reassign",
+  lockedReason: "Adds open after the draft",
+  star: "Star for draft",
+  starred: "Starred for draft",
+  unstar: "Remove star",
+  howAddsWork: "How adds work",
+  howAddsBody:
+    "Adds follow the league calendar. Before the draft, pickups go through the live room. After it, Bid or Add on the row when the window is open.",
+  starHint: "Star a name to queue it for draft night.",
+  history: "History",
+  seasonPts: "Season pts",
+};
+
 export function playersTabAddMode(window, { inLeague = false, draftConsole = false } = {}) {
   if (draftConsole) return "hidden";
   if (!inLeague) return "add";
@@ -9,9 +25,18 @@ export function playersTabAddMode(window, { inLeague = false, draftConsole = fal
 }
 
 export function playersTabAddLabel(mode, { taken = false, isCommissioner = false } = {}) {
-  if (mode === "bid") return "Bid";
-  if (taken && isCommissioner) return "Reassign";
-  return "Add";
+  if (mode === "bid") return PLAYERS_TAB_COPY.bid;
+  if (taken && isCommissioner) return PLAYERS_TAB_COPY.reassign;
+  return PLAYERS_TAB_COPY.add;
+}
+
+export function playersTabAddDisabledReason(mode) {
+  if (mode === "locked") return PLAYERS_TAB_COPY.lockedReason;
+  return "";
+}
+
+export function playersTabStarCopy(starred = false) {
+  return starred ? PLAYERS_TAB_COPY.starred : PLAYERS_TAB_COPY.star;
 }
 
 export function playerTradeableInWindow(row, window) {
@@ -28,7 +53,7 @@ export function playerTradeableInWindow(row, window) {
 export function playersTabLockedChip() {
   return {
     label: "Locked",
-    popover: "Pickups go through the draft. Star to queue for the room.",
+    popover: PLAYERS_TAB_COPY.lockedReason,
   };
 }
 

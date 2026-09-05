@@ -1,6 +1,6 @@
 import React from "react";
 import IdentityCropMedia from "./IdentityCropMedia";
-import { identityMediaUrl, initialsFromName, mergeTeamIdentity } from "./atmosphereCatalog";
+import { HUB_MEDIA_MARK_WIDTH, identityMediaUrl, initialsFromName, mergeTeamIdentity } from "./atmosphereCatalog";
 import { hubTeamInitialsName, hubTeamLabel } from "./hubTeamLabel";
 
 export default function TeamIdentityMark({
@@ -13,18 +13,18 @@ export default function TeamIdentityMark({
   const look = mergeTeamIdentity(identity || team?.identity);
   const name = hubTeamLabel(team) || team?.name || "Team";
   const initialsName = hubTeamInitialsName(team) || team?.name || "Team";
-  const photoUrl = identityMediaUrl(look, "photo");
+  const photoUrl = identityMediaUrl(look, "photo", { width: HUB_MEDIA_MARK_WIDTH });
+  const alt = initialsName || name;
 
   return (
     <span className={`hub-team-mark hub-team-mark--${size}${className ? ` ${className}` : ""}`}>
       <span
         className={`hub-team-mark-photo hub-team-photo--${look.photo_preset} hub-team-banner--${look.banner_preset}`}
-        aria-hidden="true"
       >
         {photoUrl ? (
-          <IdentityCropMedia src={photoUrl} focus={look.photo_focus} className="hub-team-mark-img" />
+          <IdentityCropMedia src={photoUrl} focus={look.photo_focus} className="hub-team-mark-img" alt={alt} width={HUB_MEDIA_MARK_WIDTH} />
         ) : (
-          <span className="hub-team-mark-initials">{initialsFromName(initialsName)}</span>
+          <span className="hub-team-mark-initials" aria-hidden="true">{initialsFromName(initialsName)}</span>
         )}
       </span>
       {showName ? <span className="hub-team-mark-name">{name}</span> : null}

@@ -1,6 +1,6 @@
 """Draft Hub rules engine tests."""
 
-from src.draft_hub.presets import load_preset
+from src.draft_hub.presets import list_presets, load_preset
 from src.draft_hub.rules_engine import (
     assert_can_acquire,
     cap_summary,
@@ -67,4 +67,17 @@ def test_relax_salary_roster_limits_skips_acquire_and_mins():
     cap = roster_capacity(relaxed, roster)
     assert cap["by_position"]["WR"]["at_max"] is False
     assert cap["by_position"]["TE"]["below_min"] is False
+
+
+def test_list_presets_includes_rules_payload_for_the_form():
+    presets = list_presets()
+    assert {item["id"] for item in presets} >= {
+        "salary_cap_auction_v1",
+        "snake_draft_v1",
+        "linear_draft_v1",
+    }
+    snake = next(item for item in presets if item["id"] == "snake_draft_v1")
+    assert snake["draft_type"] == "snake"
+    assert snake["rules"]["draft_type"] == "snake"
+    assert snake["rules"]["roster_size_max"] == 16
 

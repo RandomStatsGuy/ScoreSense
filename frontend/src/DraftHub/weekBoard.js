@@ -17,7 +17,37 @@ export const BOARD_SLOT_ORDER = ["QB", "RB", "WR", "TE", "FLEX", "K", "DEF"];
 export const WEEK_BOARD_COPY = {
   seeCalls: "See lineup calls",
   emptySlot: (slot) => `Find ${slot}`,
+  ptsUnit: "wk",
+  emptySlotHint: "Open Free agents",
+  noProjection: "No projection",
+  startFallback: "Start bench",
+  startInSleeper: "Opens Sleeper to set this start.",
+  startExternal: "Set this start in your league app.",
+  lineupLocked: "Lineup is locked.",
+  refreshProjections: "Refresh projections",
+  refreshing: "Refreshing…",
+  rosterFresh: "Roster",
+  weekBoardFresh: "Week board",
+  legendSwap: "Swap recommended",
+  legendWide: "Wide range",
+  legendNote: "Amber is a start/sit call. A wide range is a quiet floor–ceiling mark, not a flag.",
+  railByeHint: "Sit them before lock.",
+  railByeEmpty: "Nobody on bye.",
+  railInjuredHint: "Do not leave an out player in.",
+  railInjuredEmpty: "Nobody flagged out.",
+  railWideHint: "Floor to ceiling is large — not a start/sit call.",
+  railWideEmpty: "No unusually wide ranges.",
+  openGameCenter: "Open Game center",
+  gameCenterSupport: "Live scoring, the scoreboard, and week trophies.",
+  vibeNote: "Vibes uses an aura-adjusted week. The number here is the model.",
+  vibePts: "Vibes",
+  findSpecialists: "Empty K or DEF — Cap already knows. Find them on Free agents.",
+  weekLabel: "Week",
 };
+
+export const WEEK_BOUNDS = { min: 1, max: 22 };
+export const ROSTER_STALE_HOURS = 48;
+export const VIBE_DELTA_FLOOR = 0.45;
 export const FLEX_ELIGIBLE = ["RB", "WR", "TE"];
 
 export function starterSlotLabel(position, index, count) {
@@ -208,6 +238,20 @@ export function weekHeroCopy({
   };
 }
 
+function railCountItem(id, label, count, { hint, emptyHint, toneWhenOn } = {}) {
+  const n = Number(count) || 0;
+  const on = n > 0;
+  return {
+    id,
+    label,
+    value: String(n),
+    hint: on ? hint : emptyHint,
+    tone: on ? toneWhenOn : "quiet",
+    muted: !on,
+    href: on ? "#hub-wcc-calls" : undefined,
+  };
+}
+
 export function weekRailItems({
   loading = false,
   error = false,
@@ -220,30 +264,43 @@ export function weekRailItems({
   if (loadFailed || error) {
     return [
       { id: "board", label: "Board", value: "Did not load", tone: "warn" },
-      { id: "decisions", label: "Decisions", value: "Retry" },
+      { id: "next", label: "Next", value: "Retry" },
     ];
   }
   if (loading) {
     return [
       { id: "board", label: "Board", value: "Reading" },
-      { id: "decisions", label: "Decisions", value: "—" },
+      { id: "next", label: "Next", value: "—" },
     ];
   }
   if (emptyRoster) {
     return [
       { id: "board", label: "Board", value: "Empty", tone: "warn" },
-      { id: "decisions", label: "Decisions", value: "Waiting on roster" },
+      { id: "next", label: "Next", value: "Waiting on roster" },
+    ];
+  }
+  if (poorCoverage) {
+    return [
+      { id: "board", label: "Board", value: "Coverage thin", tone: "warn" },
+      { id: "next", label: "Next", value: "Refresh week board" },
     ];
   }
   return [
-    {
-      id: "decisions",
-      label: "Decisions",
-      value: poorCoverage ? "—" : String(counts.decisions ?? 0),
-    },
-    { id: "bye", label: "On bye", value: String(counts.on_bye ?? 0) },
-    { id: "injured", label: "Injured", value: String(counts.injured ?? 0) },
-    { id: "ranges", label: "Wide ranges", value: String(counts.wide_ranges ?? 0) },
+    railCountItem("bye", "On bye", counts.on_bye, {
+      hint: WEEK_BOARD_COPY.railByeHint,
+      emptyHint: WEEK_BOARD_COPY.railByeEmpty,
+      toneWhenOn: "warn",
+    }),
+    railCountItem("injured", "Injured", counts.injured, {
+      hint: WEEK_BOARD_COPY.railInjuredHint,
+      emptyHint: WEEK_BOARD_COPY.railInjuredEmpty,
+      toneWhenOn: "warn",
+    }),
+    railCountItem("ranges", "Wide ranges", counts.wide_ranges, {
+      hint: WEEK_BOARD_COPY.railWideHint,
+      emptyHint: WEEK_BOARD_COPY.railWideEmpty,
+      toneWhenOn: "quiet",
+    }),
   ];
 }
 
@@ -267,7 +324,7 @@ export function weekRailNote({
   }
   if (unlinked) return "Sleeper is not linked. The board is using league contracts.";
   if (poorCoverage) return "Waiting on projection coverage before lineup advice is useful.";
-  return headline || syncedLabel || "";
+  return WEEK_BOARD_COPY.legendNote;
 }
 
 export function weekPrimaryAction({
@@ -279,6 +336,7 @@ export function weekPrimaryAction({
   canSync = false,
   draftCompleted = false,
   sleeperStale = false,
+  showGameCenter = false,
 } = {}) {
   if (loadFailed || error) return { kind: "retry", label: "Retry" };
   if (loading) return { kind: "wait", label: "Reading…" };
@@ -291,7 +349,10 @@ export function weekPrimaryAction({
     });
     return empty?.action || { kind: "room", label: "Lock a night" };
   }
-  return { kind: "refresh", label: "Refresh projections" };
+  if (showGameCenter) {
+    return { kind: "game", label: WEEK_BOARD_COPY.openGameCenter };
+  }
+  return { kind: "none", label: "" };
 }
 
 export function weekBoardOverlayCopy({
@@ -352,4 +413,100 @@ export function decisionSwapIds(decision) {
   const bench = String(decision?.bench_player_id || "");
   if (!starter || !bench) return null;
   return { starter_player_id: starter, bench_player_id: bench };
+}
+
+const NAME_SUFFIXES = new Set(["jr", "jr.", "sr", "sr.", "ii", "iii", "iv", "v"]);
+const NAME_PARTICLES = new Set(["st", "st.", "van", "de", "del", "da", "la", "le"]);
+
+export function startSurname(name) {
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "";
+  let end = parts.length - 1;
+  while (end > 0 && NAME_SUFFIXES.has(parts[end].toLowerCase())) end -= 1;
+  const last = parts[end];
+  const prev = end > 0 ? parts[end - 1] : "";
+  if (prev && NAME_PARTICLES.has(prev.toLowerCase())) return `${prev} ${last}`;
+  return last;
+}
+
+export function startCallLabel(decision) {
+  const surname = startSurname(decision?.bench_player_name);
+  return surname ? `Start ${surname}` : WEEK_BOARD_COPY.startFallback;
+}
+
+export function sleeperLineupUrl(sleeperLeagueId) {
+  const id = String(sleeperLeagueId || "").trim();
+  if (!id) return "";
+  return `https://sleeper.com/leagues/${encodeURIComponent(id)}`;
+}
+
+export function lineupCallAction({
+  canEdit = false,
+  lineupLocked = false,
+  sleeperLeagueId = "",
+} = {}) {
+  if (canEdit) return { kind: "apply" };
+  if (lineupLocked) return { kind: "locked", reason: WEEK_BOARD_COPY.lineupLocked };
+  const href = sleeperLineupUrl(sleeperLeagueId);
+  if (href) return { kind: "sleeper", href, reason: WEEK_BOARD_COPY.startInSleeper };
+  return { kind: "external", reason: WEEK_BOARD_COPY.startExternal };
+}
+
+export function stripUpdatedPrefix(label) {
+  return String(label || "").replace(/^Updated\s+/i, "").trim();
+}
+
+export function relativeAgeHours(value, now = Date.now()) {
+  if (value == null || value === "") return null;
+  const ms = typeof value === "number" ? value : Date.parse(value);
+  if (!Number.isFinite(ms)) return null;
+  return Math.max(0, (Number(now) - ms) / 3600000);
+}
+
+export function boardFreshnessLine({
+  rosterAt,
+  weekBoardAt,
+  rosterLabel,
+  weekLabel,
+  now = Date.now(),
+} = {}) {
+  const rosterAge = stripUpdatedPrefix(rosterLabel);
+  const weekAge = stripUpdatedPrefix(weekLabel);
+  const hours = relativeAgeHours(rosterAt, now);
+  return {
+    roster: rosterAge ? `${WEEK_BOARD_COPY.rosterFresh} ${rosterAge}` : "",
+    weekBoard: weekAge ? `${WEEK_BOARD_COPY.weekBoardFresh} ${weekAge}` : "",
+    rosterStale: hours != null && hours >= ROSTER_STALE_HOURS,
+    weekAt: weekBoardAt || null,
+  };
+}
+
+export function clampWeek(value, fallback = 1) {
+  const n = Number(value);
+  const base = Number.isFinite(n) ? n : Number(fallback) || WEEK_BOUNDS.min;
+  return Math.min(WEEK_BOUNDS.max, Math.max(WEEK_BOUNDS.min, Math.round(base)));
+}
+
+export function weekSelectOptions(current) {
+  const max = Math.max(WEEK_BOUNDS.max, clampWeek(current, 1));
+  return Array.from({ length: max }, (_, i) => i + 1);
+}
+
+export function emptySpecialistSlots(slots = []) {
+  return (slots || []).filter((slot) => (
+    !slot?.player && (slot?.position === "K" || slot?.position === "DEF")
+  ));
+}
+
+export function projectionMissing(player) {
+  return Boolean(player?.projection_missing || player?.has_projection === false);
+}
+
+export function showVibePts(player, vibePts) {
+  if (vibePts == null || projectionMissing(player)) return false;
+  const p50 = Number(player?.p50);
+  if (!Number.isFinite(p50)) return false;
+  const vibe = Number(vibePts);
+  if (!Number.isFinite(vibe)) return false;
+  return Math.abs(vibe - p50) >= VIBE_DELTA_FLOOR;
 }

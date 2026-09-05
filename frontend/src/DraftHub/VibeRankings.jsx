@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
@@ -10,7 +10,6 @@ import {
   HubLoadingSkeleton,
   HubPage,
 } from "./HubUILayout";
-import VibeSwipeDeck from "./VibeSwipeDeck";
 import {
   applyVibe,
   auraLeaders,
@@ -41,6 +40,8 @@ import {
   emptySlotName,
   heroCopy,
 } from "./vibeRankingsPresentation";
+
+const VibeSwipeDeck = lazy(() => import("./VibeSwipeDeck"));
 
 function SlateList({ title, hint, slots, auraById }) {
   return (
@@ -261,17 +262,19 @@ export default function VibeRankings({
         {!done ? (
           <div className="hub-vibes-stage">
             <p className="hub-vibes-hint">{VIBE_COPY.swipeHint}</p>
-            <VibeSwipeDeck
-              players={openPlayers}
-              index={0}
-              auraById={auraById}
-              media={media}
-              vegasTeams={vegasTeams}
-              latestById={latestById}
-              onProfileOpen={loadLatest}
-              onSwipe={commit}
-              disabled={loading && !openPlayers.length}
-            />
+            <Suspense fallback={<HubLoadingSkeleton label={VIBE_COPY.loading} rows={2} />}>
+              <VibeSwipeDeck
+                players={openPlayers}
+                index={0}
+                auraById={auraById}
+                media={media}
+                vegasTeams={vegasTeams}
+                latestById={latestById}
+                onProfileOpen={loadLatest}
+                onSwipe={commit}
+                disabled={loading && !openPlayers.length}
+              />
+            </Suspense>
             <div className="hub-vibes-actions">
               <button type="button" className="hub-vibes-vote hub-vibes-vote--sit" onClick={() => current && commit("sit", current)}>
                 {VIBE_COPY.sit}

@@ -22,15 +22,26 @@ import {
   lockedSalaryTotal,
   optimizeButtonLabel,
   parseSalaryCap,
+  pinActionLabel,
+  pickSwapTarget,
+  poolRowToLineupSlot,
   rosterHint,
   salarySpend,
   slateLoadCopy,
   slateProviderSite,
+  slotAcceptsPosition,
+  sortPoolRows,
+  swapActionLabel,
+  swapPoolPlayerIntoLineup,
+  swapResultLiveText,
   teamMatchupHint,
   vegasKickoffLabel,
   vegasSpreadLabel,
   vegasTotalLabel,
   formatSlateOption,
+  buildResultLiveText,
+  nextExclusiveChoice,
+  objectiveSortColumn,
 } from "./dfsToolPresentation.js";
 
 test("formatSalary and parseSalaryCap handle empty and numeric values", () => {
@@ -136,6 +147,8 @@ test("slate and empty-state copy explain what happens next", () => {
   assert.match(emptyLineupCopy({ isDfs: true }), /under the cap/);
   assert.equal(optimizeButtonLabel({ lineupCount: 5 }), "Build 5 lineups");
   assert.equal(optimizeButtonLabel({ optimizing: true }), "Optimizing…");
+  assert.equal(optimizeButtonLabel({ hasLineup: true }), "Rebuild this lineup");
+  assert.equal(optimizeButtonLabel({ hasLineup: true, lineupCount: 3 }), "Rebuild 3 lineups");
   assert.match(launchCopy({ isDfs: true, hasLineup: false }).title, /Nine spots/);
   assert.match(launchCopy({ hasLineup: true }).title, /built/);
 });
@@ -225,4 +238,76 @@ test("constructionSummary compresses active rules", () => {
   assert.match(summary, /≤50% exposure/);
   assert.match(summary, /medium randomness/);
   assert.match(summary, /\$500 unspent/);
+});
+
+test("lock and skip names include the player", () => {
+  assert.equal(pinActionLabel("lock", "Lamar Jackson"), "Lock Lamar Jackson");
+  assert.equal(pinActionLabel("skip", "Lamar Jackson"), "Skip Lamar Jackson");
+  assert.equal(swapActionLabel("George Kittle", "Mark Andrews"), "Swap George Kittle in for Mark Andrews");
+});
+
+test("build and swap results announce a concrete outcome", () => {
+  assert.match(buildResultLiveText({ playerCount: 7, totalPoints: 106.9 }), /7 players/);
+  assert.match(buildResultLiveText({ playerCount: 7, totalPoints: 106.9 }), /106\.9/);
+  assert.match(buildResultLiveText({ ok: false, error: "Cap bust" }), /Cap bust/);
+  assert.equal(
+    swapResultLiveText({ incomingName: "George Kittle", outgoingName: "Mark Andrews" }),
+    "Swapped Mark Andrews for George Kittle.",
+  );
+});
+
+test("goal choice drives the default pool sort column", () => {
+  assert.equal(objectiveSortColumn("floor"), "floor");
+  assert.equal(objectiveSortColumn("ceiling"), "ceiling");
+  assert.equal(objectiveSortColumn("value"), "value");
+  assert.equal(objectiveSortColumn("median"), "proj");
+});
+
+test("sortPoolRows orders by floor and implied totals", () => {
+  const rows = [
+    { Player: "B", "Low (P10)": 8, Team: "SEA", "Projected Points": 12 },
+    { Player: "A", "Low (P10)": 14, Team: "NE", "Projected Points": 10 },
+  ];
+  const byFloor = sortPoolRows(rows, { column: "floor", dir: "desc" });
+  assert.equal(byFloor[0].Player, "A");
+  const byName = sortPoolRows(rows, { column: "player", dir: "asc" });
+  assert.equal(byName[0].Player, "A");
+  const byImp = sortPoolRows(rows, { column: "implied", dir: "desc" }, {
+    SEA: { implied_total: 28 },
+    NE: { implied_total: 19 },
+  });
+  assert.equal(byImp[0].Team, "SEA");
+});
+
+test("exclusive choice arrows wrap around the group", () => {
+  assert.equal(nextExclusiveChoice(["a", "b", "c"], "a", "ArrowRight"), "b");
+  assert.equal(nextExclusiveChoice(["a", "b", "c"], "c", "ArrowRight"), "a");
+  assert.equal(nextExclusiveChoice(["a", "b", "c"], "a", "ArrowLeft"), "c");
+  assert.equal(nextExclusiveChoice(["a", "b", "c"], "b", "Enter"), "b");
+});
+
+test("swap prefers an exact slot then the lowest FLEX", () => {
+  assert.equal(slotAcceptsPosition("FLEX", "TE"), true);
+  assert.equal(slotAcceptsPosition("QB", "TE"), false);
+  const lineup = [
+    { slot: "TE", player: "Mark Andrews", player_id: "and", position: "TE", proj: 11 },
+    { slot: "FLEX", player: "Flex WR", player_id: "wr", position: "WR", proj: 9 },
+  ];
+  assert.equal(pickSwapTarget(lineup, "TE").player_id, "and");
+  assert.equal(pickSwapTarget(lineup, "WR").player_id, "wr");
+  const swapped = swapPoolPlayerIntoLineup(lineup, {
+    player_id: "kit",
+    Player: "George Kittle",
+    Position: "TE",
+    Team: "SF",
+    "Projected Points": 14.2,
+    "Low (P10)": 8,
+    "High (P90)": 20,
+  });
+  assert.equal(swapped.outgoing.player_id, "and");
+  assert.equal(swapped.lineup[0].player, "George Kittle");
+  assert.equal(swapped.lineup[0].slot, "TE");
+  assert.equal(swapped.totalPoints, 23.2);
+  assert.equal(swapPoolPlayerIntoLineup(lineup, { player_id: "and", Player: "Mark Andrews", Position: "TE" }), null);
+  assert.equal(poolRowToLineupSlot({ Player: "X", player_id: "x", Position: "QB" }, "QB").slot, "QB");
 });

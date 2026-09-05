@@ -1,6 +1,12 @@
 import React from "react";
 import IdentityCropMedia from "./IdentityCropMedia";
-import { identityMediaUrl, initialsFromName, mergeTeamIdentity } from "./atmosphereCatalog";
+import {
+  HUB_MEDIA_HERO_WIDTH,
+  HUB_MEDIA_MARK_WIDTH,
+  identityMediaUrl,
+  initialsFromName,
+  mergeTeamIdentity,
+} from "./atmosphereCatalog";
 import { hubTeamInitialsName, hubTeamLabel } from "./hubTeamLabel";
 
 export default function TeamStadiumHero({
@@ -17,9 +23,10 @@ export default function TeamStadiumHero({
   const look = mergeTeamIdentity(identity);
   const name = hubTeamLabel(team) || team?.name || "Team";
   const initialsName = hubTeamInitialsName(team) || team?.name || "Team";
-  const photoUrl = identityMediaUrl(look, "photo");
-  const bannerUrl = identityMediaUrl(look, "banner");
   const preview = size === "preview";
+  const paintWidth = preview ? HUB_MEDIA_MARK_WIDTH : HUB_MEDIA_HERO_WIDTH;
+  const photoUrl = identityMediaUrl(look, "photo", { width: paintWidth });
+  const bannerUrl = identityMediaUrl(look, "banner", { width: paintWidth });
 
   return (
     <article
@@ -27,7 +34,7 @@ export default function TeamStadiumHero({
     >
       <div className={`hub-stadium-hero-banner hub-banner-fill--${look.banner_preset}`}>
         {bannerUrl ? (
-          <IdentityCropMedia src={bannerUrl} focus={look.banner_focus} className="hub-stadium-hero-banner-img" />
+          <IdentityCropMedia src={bannerUrl} focus={look.banner_focus} className="hub-stadium-hero-banner-img" width={paintWidth} />
         ) : null}
         {onEdit ? (
           <button type="button" className="hub-stadium-hero-edit" onClick={onEdit}>
@@ -41,7 +48,7 @@ export default function TeamStadiumHero({
           aria-hidden="true"
         >
           {photoUrl ? (
-            <IdentityCropMedia src={photoUrl} focus={look.photo_focus} />
+            <IdentityCropMedia src={photoUrl} focus={look.photo_focus} width={paintWidth} />
           ) : (
             <span className="hub-team-mark-initials">{initialsFromName(initialsName)}</span>
           )}

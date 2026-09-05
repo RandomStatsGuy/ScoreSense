@@ -19,6 +19,7 @@ export const MY_TEAM_COPY = {
   deadCapLegend: "Orange is dead cap — already spent on cuts.",
   capForDraft: "For draft",
   capCommitted: (spent, cap) => `${spent} / ${cap} committed`,
+  committedLabel: (season) => `${season} committed`,
   deadCapInline: (amount) => `${amount} dead`,
   lockerHeading: "Lockers",
   rosterHeading: "Roster",

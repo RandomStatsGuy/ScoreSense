@@ -1,46 +1,44 @@
 import React, { useEffect, useState } from "react";
-import { apiFetch } from "../auth";
+import {
+  ensureHubMediaObjectUrl,
+  peekHubMediaObjectUrl,
+  resolveHubMediaSrc,
+} from "./hubMediaUrl";
 
-const cache = new Map();
+export { ensureHubMediaObjectUrl, hubMediaInflightCount, resetHubMediaUrlCacheForTests } from "./hubMediaUrl";
 
-export function useHubMediaUrl(src) {
-  const [url, setUrl] = useState(() => (src && cache.has(src) ? cache.get(src) : ""));
+export function useHubMediaUrl(src, { width } = {}) {
+  const resolved = resolveHubMediaSrc(src, width);
+  const [url, setUrl] = useState(() => peekHubMediaObjectUrl(resolved));
 
   useEffect(() => {
-    if (!src) {
+    if (!resolved) {
       setUrl("");
       return undefined;
     }
-    if (cache.has(src)) {
-      setUrl(cache.get(src));
+    const cached = peekHubMediaObjectUrl(resolved);
+    if (cached) {
+      setUrl(cached);
       return undefined;
     }
     let cancelled = false;
-    const ctrl = new AbortController();
-    (async () => {
-      try {
-        const res = await apiFetch(src, { signal: ctrl.signal });
-        if (cancelled || !res.ok) return;
-        const blob = await res.blob();
-        if (cancelled) return;
-        const objectUrl = URL.createObjectURL(blob);
-        cache.set(src, objectUrl);
-        setUrl(objectUrl);
-      } catch {
+    ensureHubMediaObjectUrl(resolved)
+      .then((objectUrl) => {
+        if (!cancelled) setUrl(objectUrl);
+      })
+      .catch(() => {
         if (!cancelled) setUrl("");
-      }
-    })();
+      });
     return () => {
       cancelled = true;
-      ctrl.abort();
     };
-  }, [src]);
+  }, [resolved]);
 
   return url;
 }
 
-export default function HubMediaImg({ src, alt = "", className = "", style }) {
-  const url = useHubMediaUrl(src);
+export default function HubMediaImg({ src, alt = "", className = "", style, width }) {
+  const url = useHubMediaUrl(src, { width });
   if (!url) return null;
   return <img src={url} alt={alt} className={className} style={style} />;
 }

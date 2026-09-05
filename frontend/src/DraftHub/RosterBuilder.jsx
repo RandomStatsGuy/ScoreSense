@@ -39,15 +39,7 @@ import TeamIdentityStudio from "./TeamIdentityStudio";
 import TeamStadiumHero from "./TeamStadiumHero";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 import { hubTeamLabel } from "./hubTeamLabel";
-
-const TEAM_LOGO_ALIASES = { JAX: "jax", JAC: "jax", LA: "lar", LAR: "lar", WSH: "wsh", WAS: "wsh" };
-
-function teamLogoUrl(team) {
-  const abbr = String(team || "").trim().toUpperCase();
-  if (!abbr) return null;
-  const slug = TEAM_LOGO_ALIASES[abbr] || abbr.toLowerCase();
-  return `https://a.espncdn.com/i/teamlogos/nfl/500/${slug}.png`;
-}
+import { PAINT_WIDTH, paintMediaUrl, teamLogoUrl } from "./draftMedia";
 
 function posSortKey(position) {
   const pos = normalizeHubPosition(position);
@@ -1110,8 +1102,8 @@ export default function RosterBuilder({
           <tbody>
             {displayedRoster.map((r) => {
               const media = mediaById[r.player_id] || {};
-              const logo = media.team_logo_url || teamLogoUrl(r.team);
-              const thumb = media.headshot_url || logo;
+              const logo = paintMediaUrl(media.team_logo_url, PAINT_WIDTH.avatar) || teamLogoUrl(r.team, { width: PAINT_WIDTH.avatar });
+              const thumb = paintMediaUrl(media.headshot_url, PAINT_WIDTH.avatar) || logo;
               const vm = rowViewModel(r);
               const isCut = r.roster_status === "cut_before_draft";
               const selected = selectedPlayerId === r.player_id;
