@@ -21,13 +21,59 @@ def _team_roster_map(overview: dict[str, Any]) -> dict[str, list[dict[str, Any]]
     return out
 
 
+def _lookup_pos(mapping: dict[str, Any], pos: str) -> Any:
+    if not mapping:
+        return None
+    if pos in mapping:
+        return mapping.get(pos)
+    up = pos.upper()
+    if up in mapping:
+        return mapping.get(up)
+    lo = pos.lower()
+    if lo in mapping:
+        return mapping.get(lo)
+    return None
+
+
+def _count_at(counts: dict[str, Any], pos: str) -> int:
+    raw = _lookup_pos(counts, pos)
+    try:
+        return int(raw or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _float_at(mapping: dict[str, Any], pos: str) -> float:
+    raw = _lookup_pos(mapping, pos)
+    try:
+        return float(raw or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _counts_from_roster(roster: list[dict[str, Any]], positions: list[str]) -> dict[str, int]:
+    counts = {pos: 0 for pos in positions}
+    for row in roster or []:
+        pos = normalize_position(row.get("position"))
+        if pos in counts:
+            counts[pos] += 1
+    return counts
+
+
 def _balance_flags(
     team_analytics: dict[str, Any],
     league_avg: dict[str, Any],
     positions: list[str],
     rules: LeagueRules,
+    *,
+    roster: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Classify each position as surplus or need — roster mins first, then depth vs league."""
+    """Classify surplus / need for Ideas — starter holes and extra depth, not auction mins.
+
+    A 6-RB roster is extra depth even when the auction min is 4. Need means you cannot
+    fill a starter (or you have only a starter and the league is deeper). Neutral
+    positions get no chip.
+    """
     surplus: list[str] = []
     need: list[str] = []
     limits = roster_limits(rules)
@@ -35,32 +81,39 @@ def _balance_flags(
     avg_count = league_avg.get("count_by_position") or {}
     spend = team_analytics.get("spend_by_position") or {}
     counts = team_analytics.get("count_by_position") or {}
+    if roster and sum(_count_at(counts, pos) for pos in positions) == 0:
+        counts = _counts_from_roster(roster, positions)
 
     for pos in positions:
         pos_key = pos.lower()
         lim = limits.get(pos_key) or {}
         min_n = int(lim.get("min") or 0)
+        starter = int(lim.get("starter") or 0) or min_n
         max_n = int(lim.get("max") or 99)
-        cs = int(counts.get(pos) or 0)
-        ac = float(avg_count.get(pos) or 0)
-        ss = float(spend.get(pos) or 0)
-        av = float(avg_spend.get(pos) or 0)
+        cs = _count_at(counts, pos)
+        ac = _float_at(avg_count, pos)
+        ss = _float_at(spend, pos)
+        av = _float_at(avg_spend, pos)
 
-        if min_n > 0 and cs < min_n:
+        if starter > 0 and cs < starter:
+            need.append(pos)
+            continue
+        if starter == 0 and min_n > 0 and cs < min_n:
             need.append(pos)
             continue
 
-        depth_floor = min_n + 2 if min_n > 0 else max(2, int(ac + 1))
+        depth_floor = starter + 2 if starter > 0 else 3
         if max_n < 99 and cs > max_n:
             surplus.append(pos)
             continue
         if cs >= depth_floor:
             surplus.append(pos)
             continue
-        if min_n > 0 and cs == min_n and av > 0 and ss < av * 0.72:
-            need.append(pos)
+        if ac > 0 and cs >= ac + 1.5:
+            surplus.append(pos)
             continue
-        if ac > 0 and cs <= max(min_n, ac - 1.2) and ss <= av * 0.88:
+
+        if starter > 0 and cs <= starter and ac > 0 and cs <= ac - 1.0:
             need.append(pos)
             continue
         if av > 0 and cs >= ac + 1.2 and ss >= av * 1.1:
@@ -314,13 +367,16 @@ def _empty_reason(
     if not (my_balance.get("need") or []):
         return "No roster gaps detected — every position meets league minimums with reasonable depth."
     if not (my_balance.get("surplus") or []):
-        return "No tradeable surplus — add depth or import salaries to see movable pieces."
+        return (
+            "No extra depth to move — Ideas looks for positions where you sit above "
+            "a starter plus bench. Use the builder to send any contract."
+        )
     if not partners:
-        return "No partners with complementary needs yet — other teams may not have surplus where you have gaps."
+        return "No partners with complementary needs yet — other teams may not have extra depth where you are thin."
     if not suggestions:
         return (
             "Partners match on paper, but no balanced 1-for-1 or 2-for-1 packages cleared value checks. "
-            "Import missing salaries or refresh projections for better matches."
+            "Refresh projections or build the swap yourself."
         )
     return None
 
@@ -354,9 +410,11 @@ def build_trade_insights(
 
     league_avg = analytics.get("league_avg") or {}
     positions = analytics.get("positions") or []
-    my_balance = _balance_flags(my_analytics, league_avg, positions, rules)
     roster_map = _team_roster_map(overview)
     my_roster = roster_map.get(my_team_id, [])
+    my_balance = _balance_flags(
+        my_analytics, league_avg, positions, rules, roster=my_roster,
+    )
     if fair_map is None:
         if pool is None:
             from src.draft_hub.value_sheet import _load_draft_pool
@@ -376,7 +434,9 @@ def build_trade_insights(
         ta = team_by_id.get(tid)
         if not ta:
             continue
-        pb = _balance_flags(ta, league_avg, positions, rules)
+        pb = _balance_flags(
+            ta, league_avg, positions, rules, roster=roster_map.get(tid, []),
+        )
         score = _partner_score(my_balance, pb, ta)
         if score <= 0:
             continue
@@ -395,7 +455,13 @@ def build_trade_insights(
 
     for p in partners[:5]:
         tid = p["team_id"]
-        pb = _balance_flags(team_by_id.get(tid) or {}, league_avg, positions, rules)
+        pb = _balance_flags(
+            team_by_id.get(tid) or {},
+            league_avg,
+            positions,
+            rules,
+            roster=roster_map.get(tid, []),
+        )
         all_suggestions.extend(
             _suggest_trades(
                 my_team_id,

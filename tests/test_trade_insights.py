@@ -522,3 +522,59 @@ def test_reconcile_does_not_move_cap_sheet_rows(hub_db, monkeypatch):
     disappointment = storage.list_roster(ws["id"], team_b["id"])
     assert [r["player_id"] for r in thanks] == ["stroud"]
     assert [r["player_id"] for r in disappointment] == ["herbert"]
+
+
+def test_deep_skill_groups_are_surplus_not_universal_need():
+    from src.draft_hub.trade_insights import _balance_flags, _empty_reason
+
+    rules = load_preset("salary_cap_auction_v1")
+    team = {
+        "spend_by_position": {"QB": 20, "RB": 80, "WR": 70, "TE": 12, "K": 1, "DEF": 1},
+        "count_by_position": {"QB": 2, "RB": 6, "WR": 6, "TE": 2, "K": 1, "DEF": 1},
+    }
+    avg = {
+        "spend_by_position": {"QB": 18, "RB": 60, "WR": 60, "TE": 10, "K": 1, "DEF": 1},
+        "count_by_position": {"QB": 2.0, "RB": 5.0, "WR": 5.0, "TE": 2.0, "K": 1.0, "DEF": 1.0},
+    }
+    flags = _balance_flags(team, avg, ["QB", "RB", "WR", "TE", "K", "DEF"], rules)
+    assert "RB" in flags["surplus"]
+    assert "WR" in flags["surplus"]
+    assert "RB" not in flags["need"]
+    assert "WR" not in flags["need"]
+    assert len(flags["need"]) < 6
+
+
+def test_empty_counts_fall_back_to_roster_inventory():
+    from src.draft_hub.trade_insights import _balance_flags
+
+    rules = load_preset("salary_cap_auction_v1")
+    roster = (
+        [{"position": "QB"}] * 2
+        + [{"position": "RB"}] * 6
+        + [{"position": "WR"}] * 6
+        + [{"position": "TE"}] * 2
+    )
+    flags = _balance_flags(
+        {"spend_by_position": {}, "count_by_position": {}},
+        {"spend_by_position": {}, "count_by_position": {}},
+        ["QB", "RB", "WR", "TE", "K", "DEF"],
+        rules,
+        roster=roster,
+    )
+    assert "RB" in flags["surplus"]
+    assert "WR" in flags["surplus"]
+    assert "K" in flags["need"]
+
+
+def test_empty_reason_does_not_ask_to_import_salaries():
+    from src.draft_hub.trade_insights import _empty_reason
+
+    reason = _empty_reason(
+        {"need": ["TE"], "surplus": []},
+        [],
+        [],
+        my_team_id="t1",
+    )
+    assert reason
+    assert "import" not in reason.lower()
+    assert "builder" in reason.lower()
