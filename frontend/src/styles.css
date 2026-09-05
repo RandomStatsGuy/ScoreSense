@@ -15978,6 +15978,8 @@ td.col-rank.col-rank-top {
 
 .hub-wcc-slot-call.is-action {
   cursor: pointer;
+  border-color: color-mix(in srgb, var(--experience-blue) 58%, transparent);
+  background: color-mix(in srgb, var(--experience-blue) 24%, #0d1724);
 }
 
 .hub-wcc-slot-call.is-locked,
