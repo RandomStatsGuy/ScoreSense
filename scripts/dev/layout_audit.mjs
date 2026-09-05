@@ -55,6 +55,10 @@ export function isBlockDisplay(display) {
   return ["block", "flex", "grid", "list-item", "flow-root", "table"].includes(base);
 }
 
+export function isInFlowPosition(position) {
+  return !["fixed", "absolute", "sticky"].includes(String(position || ""));
+}
+
 export function isAutoFillGridTemplate(specified) {
   return /auto-(fill|fit)/i.test(String(specified || ""));
 }
@@ -187,8 +191,11 @@ function measureScript() {
     };
     const blockKids = new Map();
     document.querySelectorAll("body *").forEach((el) => {
-      if (!isBlockDisplay(getComputedStyle(el).display)) return;
+      const cs = getComputedStyle(el);
+      if (!isBlockDisplay(cs.display)) return;
+      if (["fixed", "absolute", "sticky"].includes(cs.position)) return;
       if (el.closest("script, style, .sr-only, [hidden]")) return;
+      if (!(el.textContent || "").trim()) return;
       const r = el.getBoundingClientRect();
       if (r.width < 1 || r.height < 1) return;
       const parent = el.parentElement;

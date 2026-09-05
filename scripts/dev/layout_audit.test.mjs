@@ -4,6 +4,7 @@ import {
   columnAlign,
   isAutoFillGridTemplate,
   isBlockDisplay,
+  isInFlowPosition,
   isNumericCellText,
   isVisibleNativeSelect,
   livingSurfaceRoutes,
@@ -64,6 +65,11 @@ test("collisions only treat block-level display as siblings", () => {
   assert.equal(isBlockDisplay("inline"), false);
   assert.equal(isBlockDisplay("inline-block"), false);
   assert.equal(isBlockDisplay("inline-flex"), false);
+  assert.equal(isInFlowPosition("relative"), true);
+  assert.equal(isInFlowPosition("static"), true);
+  assert.equal(isInFlowPosition("fixed"), false);
+  assert.equal(isInFlowPosition("absolute"), false);
+  assert.equal(isInFlowPosition("sticky"), false);
 });
 
 test("grids only match auto-fill or auto-fit templates", () => {

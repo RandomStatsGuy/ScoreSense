@@ -95,13 +95,21 @@ button.btn-sm {
 .app-header-info-link,
 .hub-league-switcher-create,
 button.btn-link.hub-league-switcher-create,
+.btn-link,
 .hub-filter-menu-trigger,
 .hub-more-filters-trigger,
 .proj-board-filter,
-.week-step-btn {
+.week-step-btn,
+.hub-star-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-height: var(--control-h-sm);
+}
+
+.hub-star-btn {
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
 }
 
 .hub-league-switcher--compact .hub-filter-menu {
@@ -118,10 +126,20 @@ button.btn-link.hub-league-switcher-create,
   .app-header-info-link,
   .hub-league-switcher-create,
   button.btn-link.hub-league-switcher-create,
+  .btn-link,
   .hub-filter-menu-trigger,
   .hub-more-filters-trigger,
   .proj-board-filter,
-  .week-step-btn {
+  .week-step-btn,
+  .hub-star-btn,
+  .btn-sm,
+  .btn-ghost.btn-sm,
+  button.btn-sm {
     min-height: var(--control-h-lg);
+  }
+
+  .hub-star-btn {
+    width: var(--control-h-lg);
+    height: var(--control-h-lg);
   }
 }

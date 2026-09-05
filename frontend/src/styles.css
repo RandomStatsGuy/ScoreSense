@@ -3874,7 +3874,7 @@ code {
   background: #1e293b;
   padding: 0.1rem 0.35rem;
   border-radius: 4px;
-  font-size: 0.85em;
+  font-size: inherit;
 }
 
 .callout {
