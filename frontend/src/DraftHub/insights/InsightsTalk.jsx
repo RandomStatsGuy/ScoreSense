@@ -144,7 +144,7 @@ export function RankBars({
               <div
                 className="hub-insights-rank-fill"
                 style={{
-                  width: `${Math.max(row.fillPct ?? row.pctOfLeader || 0, 4)}%`,
+                  width: `${Math.max((row.fillPct ?? row.pctOfLeader) || 0, 4)}%`,
                   ...(color ? { background: color } : {}),
                 }}
               />
@@ -265,7 +265,7 @@ export function ScoringRace({
                 <div className="hub-insights-rank-track" aria-hidden>
                   <div
                     className="hub-insights-rank-fill"
-                    style={{ width: `${Math.max(row.fillPct ?? row.pctOfLeader || 0, 4)}%` }}
+                    style={{ width: `${Math.max((row.fillPct ?? row.pctOfLeader) || 0, 4)}%` }}
                   />
                 </div>
                 <span className="hub-insights-rank-value">
