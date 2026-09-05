@@ -139,7 +139,7 @@ export default function BestBallBoard() {
             ))}
           </div>
           <div className="bestball-chip-row" role="group" aria-label="Sort order">
-            {bestBallSorts({ ecrOnly: true, withAdp: meta?.with_adp || 0 }).map((entry) => (
+            {bestBallSorts({ ecrOnly: !meta?.with_adp, withAdp: meta?.with_adp || 0 }).map((entry) => (
               <HubFilterChip
                 key={entry.id}
                 compact
