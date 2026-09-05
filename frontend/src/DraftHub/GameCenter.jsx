@@ -24,6 +24,7 @@ import {
   gameCenterTeamParts,
   gameStateLabel,
   interpretStandings,
+  scoresArePlaceholder,
   lineupIsEmpty,
   matchupStoryline,
   matchupTeams,
@@ -160,11 +161,11 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
   const maxWeek = data?.max_week || 18;
   const stateLabel = loading && !data
     ? GAME_CENTER_COPY.loadingChip
-    : (data ? gameStateLabel(data) : "");
+    : (data ? gameStateLabel(data, hubContext) : "");
   const viewerProb = matchup && viewer ? winProbFor(matchup, viewer) : null;
   const otherMatchups = (data?.matchups || []).filter((m) => m !== matchup);
   const weekComplete = stateLabel === "Final";
-  const placeholder = Boolean(data?.placeholder);
+  const placeholder = scoresArePlaceholder(data, hubContext);
   const hasSlate = (data?.matchups || []).length > 0;
   const fullPageEmpty = !loading && data && !hasSlate;
   const emptyLineup = lineupIsEmpty(viewer, opponent, rows);
@@ -473,7 +474,7 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
               </div>
             </section>
 
-            {(viewer.bench || opponent.bench) && (
+            {(viewer.bench || opponent.bench) && !placeholder && (
               <section className="panel hub-gc-bench" aria-label={GAME_CENTER_COPY.benchTitle}>
                 <header className="hub-gc-panel-head">
                   <div>

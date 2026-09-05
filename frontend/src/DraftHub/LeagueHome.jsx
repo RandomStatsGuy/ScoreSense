@@ -13,6 +13,7 @@ import {
   formatStandingRecord,
   gameCenterTeamParts,
   interpretStandings,
+  scoresArePlaceholder,
   matchupTeams,
 } from "./gameCenterPresentation";
 import { hubTeamLabel } from "./hubTeamLabel";
@@ -250,7 +251,7 @@ export default function LeagueHome({
     [standingsView.standings, hubContext?.team_id],
   );
   const showDeck = Boolean(deckMode.show && leagueId && (matchup || standingRows.length));
-  const placeholder = Boolean(scoring?.placeholder);
+  const placeholder = scoresArePlaceholder(scoring, hubContext);
   const matchupNote = homeMatchupNote(scoring, matchOpponent);
   const identityTeam = (team) => ({
     id: team?.hub_team_id || team?.roster_id,
@@ -385,7 +386,7 @@ export default function LeagueHome({
 
       {showDeck ? (
         <div className="hub-home-deck">
-          {placeholder ? (
+          {placeholder && !deckMode.historical && scoring?.reason === "no_sleeper_league" ? (
             <HubAlert
               variant="info"
               action={goSetup ? (

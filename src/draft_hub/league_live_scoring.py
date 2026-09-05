@@ -315,6 +315,26 @@ def standings_have_results(rows: list[dict[str, Any]] | None) -> bool:
     return False
 
 
+def sleeper_week_is_historical(
+    league: dict[str, Any] | None,
+    nfl_state: dict[str, Any] | None,
+    *,
+    hub_pre_draft: bool = False,
+    payload: dict[str, Any] | None = None,
+) -> bool:
+    """True when Sleeper's week is last season, or the hub league has not drafted."""
+    if hub_pre_draft:
+        return True
+    src = league or payload or {}
+    sleeper_season = str(src.get("season") or "")
+    nfl_season = str((nfl_state or {}).get("season") or "")
+    return bool(sleeper_season and nfl_season and sleeper_season != nfl_season)
+
+
+def historical_placeholder_reason(*, hub_pre_draft: bool = False) -> str:
+    return "pre_draft" if hub_pre_draft else "prior_season"
+
+
 def assign_standings_ranks(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Number 1–N only after a game exists. Unplayed slates stay unranked."""
     ranked = [dict(row) for row in rows]
@@ -372,6 +392,7 @@ def build_sleeper_live_week(
     viewer_team_id: str | None = None,
     nfl_state: dict[str, Any] | None = None,
     slot_labels: list[str] | None = None,
+    hub_pre_draft: bool = False,
 ) -> dict[str, Any]:
     """Fetch one week of Sleeper matchups with starter-level points."""
     if not sleeper_league_id:
@@ -403,23 +424,7 @@ def build_sleeper_live_week(
 
     roster_to_label, roster_to_owner, roster_to_hub_id = _hub_roster_lookups(hub_teams)
 
-    try:
-        matchups = _fetch_json(
-            f"{SLEEPER_API}/league/{sleeper_league_id}/matchups/{int(week)}"
-        )
-    except Exception as exc:
-        return {
-            "available": False,
-            "reason": "fetch_failed",
-            "error": str(exc),
-            "season": season,
-            "week": int(week),
-            "hint": "Could not load matchups from Sleeper.",
-            "synced_at": synced_at,
-            **week_meta,
-        }
-
-    def _empty_week() -> dict[str, Any]:
+    def _empty_week(reason: str = "no_matchups") -> dict[str, Any]:
         slots = slot_labels or starting_slots(league.get("roster_positions")) or list(
             DEFAULT_STARTING_SLOTS
         )
@@ -435,13 +440,32 @@ def build_sleeper_live_week(
             week=int(week),
             nfl_state=state,
             starting_slots=slots,
-            reason="no_matchups",
+            reason=reason,
             season=season,
             standings=last_season or None,
         )
         payload["status"] = status
         payload.update(week_meta)
         return payload
+
+    if sleeper_week_is_historical(league, state, hub_pre_draft=hub_pre_draft):
+        return _empty_week(historical_placeholder_reason(hub_pre_draft=hub_pre_draft))
+
+    try:
+        matchups = _fetch_json(
+            f"{SLEEPER_API}/league/{sleeper_league_id}/matchups/{int(week)}"
+        )
+    except Exception as exc:
+        return {
+            "available": False,
+            "reason": "fetch_failed",
+            "error": str(exc),
+            "season": season,
+            "week": int(week),
+            "hint": "Could not load matchups from Sleeper.",
+            "synced_at": synced_at,
+            **week_meta,
+        }
 
     if not matchups:
         return _empty_week()
@@ -535,6 +559,8 @@ DEFAULT_STARTING_SLOTS = ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "K", "DEF"
 PLACEHOLDER_HINTS = {
     "no_sleeper_league": "Link Sleeper to fill scores.",
     "no_matchups": "No scored matchups yet. Scores fill in after kickoff.",
+    "pre_draft": "",
+    "prior_season": "",
 }
 
 
@@ -701,6 +727,55 @@ def build_hub_placeholder_week(
     }
 
 
+def _hold_historical_week(
+    payload: dict[str, Any],
+    *,
+    hub_teams: list[dict[str, Any]] | None,
+    viewer_team_id: str | None,
+    viewer_roster_id: str | None,
+    week: int,
+    nfl_state: dict[str, Any],
+    slots: list[str],
+    hub_pre_draft: bool,
+) -> dict[str, Any]:
+    """Replace a prior-season or pre-draft Sleeper week with last-season standings."""
+    if payload.get("placeholder"):
+        return _apply_live_viewer(
+            payload,
+            viewer_team_id=viewer_team_id,
+            viewer_roster_id=viewer_roster_id,
+        )
+    if not sleeper_week_is_historical(
+        None,
+        nfl_state,
+        hub_pre_draft=hub_pre_draft,
+        payload=payload,
+    ):
+        return _apply_live_viewer(
+            payload,
+            viewer_team_id=viewer_team_id,
+            viewer_roster_id=viewer_roster_id,
+        )
+    overlay = build_hub_placeholder_week(
+        hub_teams,
+        viewer_team_id=viewer_team_id,
+        week=week,
+        nfl_state=nfl_state,
+        starting_slots=slots,
+        reason=historical_placeholder_reason(hub_pre_draft=hub_pre_draft),
+        season=payload.get("season"),
+        standings=payload.get("standings"),
+    )
+    overlay["cached"] = bool(payload.get("cached"))
+    overlay["synced_at"] = payload.get("synced_at") or overlay["synced_at"]
+    overlay["status"] = payload.get("status")
+    return _apply_live_viewer(
+        overlay,
+        viewer_team_id=viewer_team_id,
+        viewer_roster_id=viewer_roster_id,
+    )
+
+
 def get_sleeper_live_week(
     sleeper_league_id: str,
     *,
@@ -711,6 +786,7 @@ def get_sleeper_live_week(
     rules: Any = None,
     starting_slots: list[str] | None = None,
     refresh: bool = False,
+    hub_pre_draft: bool = False,
 ) -> dict[str, Any]:
     """Read-through cache for live week scoring (60s TTL unless refresh)."""
     resolved_week, nfl_state = resolve_current_week(week_override=week)
@@ -753,10 +829,15 @@ def get_sleeper_live_week(
                 overlay["cached"] = True
                 overlay["synced_at"] = payload.get("synced_at") or overlay["synced_at"]
                 return overlay
-            return _apply_live_viewer(
+            return _hold_historical_week(
                 payload,
+                hub_teams=hub_teams,
                 viewer_team_id=viewer_team_id,
                 viewer_roster_id=viewer_roster_id,
+                week=cache_key_week,
+                nfl_state=nfl_state,
+                slots=slots,
+                hub_pre_draft=hub_pre_draft,
             )
 
     payload = build_sleeper_live_week(
@@ -767,6 +848,7 @@ def get_sleeper_live_week(
         viewer_team_id=viewer_team_id,
         nfl_state=nfl_state,
         slot_labels=slots,
+        hub_pre_draft=hub_pre_draft,
     )
     if payload.get("available"):
         storage.upsert_sleeper_live_scoring_cache(
@@ -787,6 +869,7 @@ def refresh_sleeper_live_scoring_cache(
     week: int | None = None,
     viewer_roster_id: str | None = None,
     viewer_team_id: str | None = None,
+    hub_pre_draft: bool = False,
 ) -> dict[str, Any]:
     """Force live fetch and persist (used on Sleeper sync)."""
     return get_sleeper_live_week(
@@ -796,6 +879,7 @@ def refresh_sleeper_live_scoring_cache(
         viewer_roster_id=viewer_roster_id,
         viewer_team_id=viewer_team_id,
         refresh=True,
+        hub_pre_draft=hub_pre_draft,
     )
 
 

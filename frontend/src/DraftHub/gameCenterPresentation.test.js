@@ -16,6 +16,7 @@ import {
   gameCenterStandingRows,
   gameCenterTeamLabel,
   gameStateLabel,
+  scoresArePlaceholder,
   interpretStandings,
   lineupIsEmpty,
   matchupStoryline,
@@ -208,6 +209,12 @@ test("hero names the empty-lineup cost before kickoff", () => {
     opponent: { points: 10, starters: [{ points: 10 }], team_name: "Daddio" },
   });
   assert.match(live.heading, /you win by 10/);
+});
+
+test("pre-draft treats last year's Sleeper week as placeholder scores", () => {
+  assert.equal(scoresArePlaceholder({ placeholder: false, week: 1 }, { draft_completed: false }), true);
+  assert.equal(gameStateLabel({ week: 1, current_week: 1, status: "complete" }, { draft_completed: false }), GAME_CENTER_COPY.unscoredChip);
+  assert.equal(scoresArePlaceholder({ placeholder: false }, { draft_completed: true }), false);
 });
 
 test("unstarted scores say not started instead of a bare dash", () => {

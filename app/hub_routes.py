@@ -1019,6 +1019,7 @@ def _week_culture_matchup(league_id: str, ctx: dict[str, Any], week: int | None)
         viewer_team_id=str(ctx.get("team_id") or "") or None,
         rules=ctx.get("rules"),
         refresh=False,
+        hub_pre_draft=ctx.get("draft_completed") is False,
     )
 
 
@@ -3127,6 +3128,7 @@ def hub_league_live_scoring(
                     viewer_team_id=str(ctx.get("team_id") or "") or None,
                     rules=ctx.get("rules"),
                     refresh=refresh,
+                    hub_pre_draft=ctx.get("draft_completed") is False,
                 )
             else:
                 from src.draft_hub.hub_scoring import build_hub_live_week

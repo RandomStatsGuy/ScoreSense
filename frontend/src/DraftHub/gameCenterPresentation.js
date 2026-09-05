@@ -151,8 +151,12 @@ export function matchupsHavePoints(payload) {
   ));
 }
 
-export function gameStateLabel(payload) {
-  if (payload?.placeholder) return GAME_CENTER_COPY.unscoredChip;
+export function scoresArePlaceholder(payload, hubContext) {
+  return Boolean(payload?.placeholder) || hubContext?.draft_completed === false;
+}
+
+export function gameStateLabel(payload, hubContext) {
+  if (scoresArePlaceholder(payload, hubContext)) return GAME_CENTER_COPY.unscoredChip;
   if (payload?.preseason) return "Preseason";
   const week = payload?.week;
   const current = payload?.current_week;
