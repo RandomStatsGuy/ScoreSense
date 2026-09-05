@@ -7,6 +7,7 @@ import {
   indexByPlayerId,
   slotTone,
   swapBenchIdSet,
+  weekBoardOverlayCopy,
 } from "./weekBoard";
 
 function fmtPts(value) {
@@ -155,6 +156,7 @@ export default function WeekLineupBoard({
   wideRanges = [],
   projectionChanges = [],
   emptyRoster = false,
+  loadFailed = false,
   unlinked = false,
   poorCoverage = false,
   loading = false,
@@ -175,7 +177,13 @@ export default function WeekLineupBoard({
   const wideById = indexByPlayerId(wideRanges);
   const moveById = indexByPlayerId(projectionChanges);
   const swapBenchIds = swapBenchIdSet(decisions);
-  const showOverlay = emptyRoster || (loading && !slots.some((s) => s.player));
+  const showOverlay = loadFailed || emptyRoster || (loading && !slots.some((s) => s.player));
+  const overlayCopy = weekBoardOverlayCopy({
+    loadFailed,
+    loading,
+    emptyRoster,
+    unlinked,
+  });
 
   return (
     <section className="hub-wcc-board" aria-label={boardTitle(weekLabel)}>
@@ -238,14 +246,8 @@ export default function WeekLineupBoard({
         {showOverlay ? (
           <div className="hub-wcc-board-overlay">
             <div className="hub-wcc-board-overlay-card" role="status">
-              <h4>{loading && !emptyRoster && !unlinked
-                ? "Loading this week…"
-                : "Your roster isn't here yet."}</h4>
-              <p>
-                {unlinked
-                  ? "Link Sleeper, then sync to fill these slots."
-                  : "Sync league to fill these slots."}
-              </p>
+              <h4>{overlayCopy.title}</h4>
+              <p>{overlayCopy.body}</p>
               {overlayActions}
             </div>
           </div>

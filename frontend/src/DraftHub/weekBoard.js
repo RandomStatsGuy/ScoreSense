@@ -117,6 +117,7 @@ export function slotTone(slot, { decision, wide, injured, onBye } = {}) {
 }
 
 export function weekHeroCopy({
+  loadFailed = false,
   emptyRoster = false,
   unlinked = false,
   draftCompleted = false,
@@ -124,6 +125,14 @@ export function weekHeroCopy({
   decisionCount = 0,
   weekLabel = "This week",
 } = {}) {
+  if (loadFailed) {
+    return {
+      heading: "Could not load this week's board.",
+      support: "The slots stay empty until this request finishes. Reload this week, or open Draft if you still need a roster.",
+      chip: weekLabel || "Needs refresh",
+      chipTone: "readonly",
+    };
+  }
   if (emptyRoster) {
     const empty = leagueBoardEmpty({
       emptyRoster: true,
@@ -164,11 +173,18 @@ export function weekHeroCopy({
 }
 
 export function weekRailItems({
+  loadFailed = false,
   emptyRoster = false,
   unlinked = false,
   poorCoverage = false,
   counts = {},
 } = {}) {
+  if (loadFailed) {
+    return [
+      { id: "board", label: "Board", value: "Failed", tone: "warn" },
+      { id: "decisions", label: "Decisions", value: "Locked" },
+    ];
+  }
   if (emptyRoster) {
     return [
       { id: "board", label: "Board", value: "Empty", tone: "warn" },
@@ -188,6 +204,7 @@ export function weekRailItems({
 }
 
 export function weekRailNote({
+  loadFailed = false,
   emptyRoster = false,
   unlinked = false,
   draftCompleted = false,
@@ -195,6 +212,7 @@ export function weekRailNote({
   headline = "",
   syncedLabel = "",
 } = {}) {
+  if (loadFailed) return "Reload this week. If you still need a roster, open Draft.";
   if (emptyRoster) {
     const empty = leagueBoardEmpty({
       emptyRoster: true,
@@ -209,12 +227,14 @@ export function weekRailNote({
 }
 
 export function weekPrimaryAction({
+  loadFailed = false,
   emptyRoster = false,
   unlinked = false,
   canSync = false,
   draftCompleted = false,
   sleeperStale = false,
 } = {}) {
+  if (loadFailed) return { kind: "retry", label: "Reload this week" };
   if (emptyRoster) {
     const empty = leagueBoardEmpty({
       emptyRoster: true,
@@ -225,6 +245,32 @@ export function weekPrimaryAction({
     return empty?.action || { kind: "room", label: "Lock a night" };
   }
   return { kind: "refresh", label: "Refresh projections" };
+}
+
+export function weekBoardOverlayCopy({
+  loadFailed = false,
+  loading = false,
+  emptyRoster = false,
+  unlinked = false,
+} = {}) {
+  if (loadFailed) {
+    return {
+      title: "This week's board did not load.",
+      body: "Reload this week. If you still need a roster, open Draft.",
+    };
+  }
+  if (loading && !emptyRoster && !unlinked) {
+    return {
+      title: "Loading this week…",
+      body: "Sit/start waits until the board is here.",
+    };
+  }
+  return {
+    title: "Your roster isn't here yet.",
+    body: unlinked
+      ? "Link Sleeper from Roster management, then sync to fill these slots."
+      : "Sync league to fill these slots.",
+  };
 }
 
 export function trophyStripCopy({ boardReady = true, loading = false } = {}) {

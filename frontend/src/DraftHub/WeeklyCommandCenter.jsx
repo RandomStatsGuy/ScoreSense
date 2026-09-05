@@ -18,6 +18,7 @@ import {
   fillStarterSlots,
   canEditHubLineup,
   decisionSwapIds,
+  weekBoardOverlayCopy,
   weekHeroCopy,
   weekPrimaryAction,
   weekRailItems,
@@ -131,6 +132,7 @@ export default function WeeklyCommandCenter({
   const leagueLabel = data?.hub_context?.league_name || hubContext?.league_name;
   const emptyRoster = Boolean(status.empty_roster);
   const unlinked = Boolean(status.unlinked_league);
+  const loadFailed = Boolean(error) && !data;
   const draftCompleted = Boolean(hubContext?.draft_completed || data?.hub_context?.draft_completed);
   const canSync = Boolean(sync.sync_endpoint) && Boolean(sync.linked);
   const poorCoverage = Boolean(data) && isPoorProjectionCoverage({ counts, status });
@@ -145,6 +147,7 @@ export default function WeeklyCommandCenter({
   }, [hubContext?.rules, starters]);
 
   const hero = weekHeroCopy({
+    loadFailed,
     emptyRoster,
     unlinked,
     draftCompleted,
@@ -152,8 +155,9 @@ export default function WeeklyCommandCenter({
     decisionCount: poorCoverage ? 0 : decisions.length,
     weekLabel,
   });
-  const railItems = weekRailItems({ emptyRoster, unlinked, poorCoverage, counts });
+  const railItems = weekRailItems({ loadFailed, emptyRoster, unlinked, poorCoverage, counts });
   const railNote = weekRailNote({
+    loadFailed,
     emptyRoster,
     unlinked,
     draftCompleted,
@@ -162,6 +166,7 @@ export default function WeeklyCommandCenter({
     syncedLabel,
   });
   const primary = weekPrimaryAction({
+    loadFailed,
     emptyRoster,
     unlinked,
     canSync,
@@ -205,11 +210,12 @@ export default function WeeklyCommandCenter({
     if (primary.kind === "room") return onNavigate?.("room");
     if (primary.kind === "setup") return onNavigate?.("office-access") || onNavigateSetup?.();
     if (primary.kind === "roster") return onNavigate?.("roster");
+    if (primary.kind === "retry") return load();
     if (primary.kind === "refresh") return load(undefined, { rebuild: true });
     return load();
   };
 
-  const overlayActions = emptyRoster ? (
+  const overlayActions = (emptyRoster || loadFailed) ? (
     <div className="hub-wcc-board-overlay-actions">
       {primary.kind === "room" ? (
         <button type="button" className="btn-primary" onClick={() => onNavigate?.("room")}>
@@ -227,6 +233,18 @@ export default function WeeklyCommandCenter({
       ) : null}
       {primary.kind === "strip-sync" ? (
         <p className="chart-note">Use Sync league in the league strip.</p>
+      ) : null}
+      {primary.kind === "retry" ? (
+        <>
+          <button type="button" className="btn-primary" onClick={() => load()} disabled={loading}>
+            {loading ? "Reloading…" : primary.label}
+          </button>
+          {onNavigate ? (
+            <button type="button" className="btn-ghost" onClick={() => onNavigate("room")}>
+              Open Draft
+            </button>
+          ) : null}
+        </>
       ) : null}
     </div>
   ) : null;
@@ -291,7 +309,7 @@ export default function WeeklyCommandCenter({
               >
                 {loading && primary.kind === "refresh"
                   ? "Refreshing…"
-                  : primary.label}
+                  : (loading && primary.kind === "retry" ? "Reloading…" : primary.label)}
               </button>
             )}
           />
@@ -310,6 +328,7 @@ export default function WeeklyCommandCenter({
           wideRanges={wideRanges}
           projectionChanges={projectionChangeItems}
           emptyRoster={emptyRoster}
+          loadFailed={loadFailed}
           unlinked={unlinked}
           poorCoverage={poorCoverage}
           loading={loading}
