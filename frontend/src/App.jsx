@@ -1619,7 +1619,7 @@ export default function App() {
                 movementEmptyReason={meta?.projection_movement?.empty_reason || null}
                 movementNote={meta?.projection_movement?.note || null}
                 leftSlateRows={leftSlateRows}
-                attentionPlayerIds={new Set(weeklyAttention.map((item) => String(item.playerId || item.player_id || item.injury?.player_id || "")).filter(Boolean))}
+                attentionPlayerIds={new Set((weeklyAttention || []).map((item) => String(item.playerId || item.player_id || item.injury?.player_id || "")).filter(Boolean))}
                 compareEnabled
                 selectedCompareIds={compareIds}
                 maxCompare={MAX_COMPARE_PLAYERS}
