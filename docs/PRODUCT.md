@@ -156,6 +156,8 @@ Editorial Fantasy and Tools pages use the shared experience stack:
 `HubExperienceLayout` — main column + sticky summary rail
 `HubExperienceSummary` — “At a glance” facts + primary action
 
+Hero heading and padding use `--experience-hero-heading` and `--experience-hero-pad`. Status chips are not the page primary — do not put “You can edit” or “Need a partner” where Save belongs. The app shell is one `<main id="app-main">` with a skip link.
+
 Reuse `frontend/src/DraftHub/HubUILayout.jsx`. Do not fork a second hero/summary system.
 
 Which file to open for a given destination: `frontend/src/livingSurfaces.js`. Resolve the row, then match its `page` and `copy`. That registry is the living style guide — keep it current when you add or retarget a screen.
@@ -250,7 +252,8 @@ Home names the manager’s roster hole over a commissioner invite when both are 
 
 Do not invent a parallel rules model. Canonical merge/validate/preview: `frontend/src/DraftHub/rulesPresentation.js`. Backend remains authoritative for eligibility and materialized contracts.
 
-- Policy changes apply to **new contracts only** unless a separate migration exists. Say so near the control.
+- Policy changes apply to **new contracts only**. Say that once, next to Save. Do not mention a migration unless a control exists on the page.
+- Applying a league template confirms, names what changes, and fills the form. It does not save. Offer undo until the next edit. Style those triggers as destructive, not ghost chips.
 - Static rookies stay flat; veterans and extensions use the configured step-up.
 - Veteran extensions follow the league toggle on both client and server.
 - Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`): locked pre-draft and in-season off-window; FAAB bid post-draft / waivers; instant add after waivers; offseason trades only for contracts that survive the next draft.

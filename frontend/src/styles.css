@@ -35,6 +35,30 @@ body {
   padding: 1.5rem 1.4rem 3rem;
 }
 
+.app-skip-link {
+  position: absolute;
+  left: 0.85rem;
+  top: 0.85rem;
+  z-index: calc(var(--z-header) + 5);
+  padding: 0.5rem 0.8rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-bold);
+  transform: translateY(-180%);
+}
+
+.app-skip-link:focus,
+.app-skip-link:focus-visible {
+  transform: none;
+}
+
+.app-main {
+  display: block;
+  min-width: 0;
+}
+
 .app-view-pane-hidden {
   display: none !important;
 }
@@ -4247,6 +4271,7 @@ h2 {
   margin: 0;
   color: var(--text-secondary);
   line-height: var(--line-normal);
+  white-space: pre-wrap;
 }
 
 .confirm-actions {

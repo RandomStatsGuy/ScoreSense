@@ -285,6 +285,8 @@
     bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
     z-index: var(--z-sticky);
     display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
     padding: 0.55rem 0 0.2rem;
     background: linear-gradient(180deg, transparent, var(--bg-base) 28%);
   }

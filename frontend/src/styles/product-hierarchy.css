@@ -1764,7 +1764,7 @@ button.btn-link.hub-league-switcher-create:hover {
   align-items: flex-start;
   justify-content: space-between;
   gap: 2rem;
-  padding: 2rem 2.15rem 1.8rem;
+  padding: var(--experience-hero-pad);
   border-bottom: 1px solid var(--experience-rule);
   background:
     radial-gradient(circle at 88% 10%, rgba(91, 143, 232, 0.12), transparent 30%),
@@ -1782,13 +1782,17 @@ button.btn-link.hub-league-switcher-create:hover {
   text-transform: uppercase;
 }
 
+.hub-rules-eyebrow.is-preview {
+  color: var(--tone-caution-text);
+}
+
 .hub-rules-hero h2 {
   margin: 0;
   max-width: 34rem;
   color: var(--text-primary);
-  font-size: clamp(1.85rem, 3vw, 2.65rem);
+  font-size: var(--experience-hero-heading);
   letter-spacing: -0.045em;
-  line-height: 1.02;
+  line-height: 1.15;
 }
 
 .hub-rules-hero p {
@@ -1930,6 +1934,15 @@ button.btn-link.hub-league-switcher-create:hover {
 .hub-rules-roster-row input:focus {
   border-color: var(--experience-blue);
   box-shadow: 0 0 0 3px rgba(91, 143, 232, 0.12);
+}
+
+.hub-rules-field-grid input[aria-invalid="true"],
+.hub-rules-field-grid select[aria-invalid="true"],
+.hub-rules-roster-row input[aria-invalid="true"],
+.hub-rules-roster-cap input[aria-invalid="true"],
+.hub-rules-money-input:has(input[aria-invalid="true"]),
+.hub-rules-suffix-input:has(input[aria-invalid="true"]) {
+  border-color: var(--danger-border);
 }
 
 .hub-rules-field-grid input:disabled,
@@ -2233,8 +2246,26 @@ button.btn-link.hub-league-switcher-create:hover {
 
 .hub-rules-roster-table {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.45rem;
+  gap: 0.35rem;
+}
+
+.hub-rules-warnings {
+  margin: 0 0 0.8rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--tone-caution) 40%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--tone-caution) 10%, transparent);
+  color: var(--tone-caution-text);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+}
+
+.hub-rules-warnings p {
+  margin: 0;
+}
+
+.hub-rules-warnings p + p {
+  margin-top: 0.35rem;
 }
 
 .hub-rules-roster-cap {
@@ -2277,12 +2308,23 @@ button.btn-link.hub-league-switcher-create:hover {
 }
 
 .hub-rules-roster-heading {
-  display: none;
+  display: grid;
+  grid-template-columns: minmax(4rem, 1fr) 5.5rem 5.5rem;
+  gap: 0.45rem;
+  padding: 0 0.65rem 0.15rem;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.hub-rules-roster-heading span:nth-child(2),
+.hub-rules-roster-heading span:nth-child(3) {
+  text-align: center;
 }
 
 .hub-rules-roster-row {
   display: grid;
-  grid-template-columns: minmax(3.2rem, 1fr) 4.5rem 4.5rem;
+  grid-template-columns: minmax(4rem, 1fr) 5.5rem 5.5rem;
   gap: 0.45rem;
   align-items: center;
   padding: 0.55rem 0.65rem;
@@ -2419,6 +2461,34 @@ button.btn-link.hub-league-switcher-create:hover {
 
 .hub-rules-status.is-ok { color: #a7f3d0; }
 .hub-rules-status.is-error { color: #fca5a5; }
+.hub-rules-status.is-caution { color: var(--tone-caution-text); }
+
+.hub-rules-save-reason,
+.hub-rules-last-saved {
+  margin: 0.45rem 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+
+.hub-rules-undo {
+  display: flex;
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.7rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--tone-caution) 40%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--tone-caution) 10%, transparent);
+}
+
+.hub-rules-undo p {
+  margin: 0;
+  color: var(--tone-caution-text);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
 
 /* Persistent Fantasy chat ------------------------------------------------
    Portaled to document.body. Closed: flush edge chip. Open: side drawer.
@@ -2841,7 +2911,7 @@ button.btn-link.hub-league-switcher-create:hover {
   align-items: flex-start;
   justify-content: space-between;
   gap: 2rem;
-  padding: 2rem 2.15rem 1.8rem;
+  padding: var(--experience-hero-pad);
   border-bottom: 1px solid var(--experience-rule);
   background:
     radial-gradient(circle at 88% 10%, rgba(91, 143, 232, 0.12), transparent 30%),
@@ -2864,9 +2934,9 @@ button.btn-link.hub-league-switcher-create:hover {
   margin: 0;
   max-width: 36rem;
   color: var(--text-primary);
-  font-size: clamp(1.7rem, 2.8vw, 2.45rem);
+  font-size: var(--experience-hero-heading);
   letter-spacing: -0.045em;
-  line-height: 1.05;
+  line-height: 1.15;
 }
 
 .hub-experience-hero.is-compact {

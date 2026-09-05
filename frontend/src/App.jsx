@@ -1467,6 +1467,7 @@ export default function App() {
           )}
         </header>
 
+        <main id="app-main" className="app-main">
         {view === "projections" && !mobileLayout && (
           <ProjectionsFilterBar {...projectionsFilterProps} />
         )}
@@ -2066,6 +2067,7 @@ export default function App() {
         {!mobileLayout && (
           <LegalLinks termsUrl={termsUrl} privacyUrl={privacyUrl} className="app-legal-footer" compact />
         )}
+        </main>
       </MobileShell>
     </LeagueChromeProvider>
     </PlayerCardProvider>
