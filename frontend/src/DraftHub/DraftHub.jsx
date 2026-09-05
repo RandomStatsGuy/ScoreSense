@@ -883,7 +883,12 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       )}
 
       {(subView === "trades" || visitedTabs.has("trades")) && effectiveCtx?.mode === "league" && (
-        <div className={subView === "trades" ? undefined : "app-view-pane-hidden"}>
+        <div
+          className={subView === "trades" ? undefined : "app-view-pane-hidden"}
+          hidden={subView !== "trades" || undefined}
+          {...(subView !== "trades" ? { inert: "" } : {})}
+          aria-hidden={subView !== "trades" || undefined}
+        >
           <LeagueTrades
             leagueId={effectiveCtx.league_id}
             hubContext={effectiveCtx}
@@ -897,7 +902,12 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
 
 
       {(subView === "office" || visitedTabs.has("office")) && effectiveCtx?.mode === "league" && (
-        <div className={subView === "office" ? undefined : "app-view-pane-hidden"}>
+        <div
+          className={subView === "office" ? undefined : "app-view-pane-hidden"}
+          hidden={subView !== "office" || undefined}
+          {...(subView !== "office" ? { inert: "" } : {})}
+          aria-hidden={subView !== "office" || undefined}
+        >
           <LeagueOffice
             leagueId={effectiveCtx.league_id}
             hubContext={effectiveCtx}
@@ -913,7 +923,12 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       )}
 
       {subView === "insights" && effectiveCtx?.mode === "league" && (
-        <div className={subView === "insights" ? undefined : "app-view-pane-hidden"}>
+        <div
+          className={subView === "insights" ? undefined : "app-view-pane-hidden"}
+          hidden={subView !== "insights" || undefined}
+          {...(subView !== "insights" ? { inert: "" } : {})}
+          aria-hidden={subView !== "insights" || undefined}
+        >
           <Suspense fallback={<InsightsFallback />}>
             <LeagueInsights
               leagueId={effectiveCtx.league_id}

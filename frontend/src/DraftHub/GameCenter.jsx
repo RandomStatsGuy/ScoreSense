@@ -3,7 +3,6 @@ import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
 import { usePlayerMedia } from "../PlayerCell";
-import useMobileLayout from "../useMobileLayout";
 import { HubAlert, HubLoadingSkeleton, HubPage } from "./HubUILayout";
 import { PAINT_WIDTH, paintMediaUrl } from "./draftMedia";
 import TeamIdentityMark from "./TeamIdentityMark";
@@ -13,23 +12,30 @@ import {
   GAME_CENTER_COPY,
   duelRows,
   findViewerMatchup,
+  formatMatchupRecord,
+  formatMatchupScore,
+  formatStandingRank,
+  formatStandingRecord,
   formatSyncedAgo,
   formatWinProb,
+  gameCenterBanner,
+  gameCenterHeroCopy,
+  gameCenterStandingRows,
   gameCenterTeamLabel,
   gameCenterTeamParts,
   gameStateLabel,
+  interpretStandings,
+  scoresArePlaceholder,
+  lineupIsEmpty,
   matchupStoryline,
   matchupTeams,
+  shouldShowNextWeek,
+  shouldShowPrevWeek,
   startersPending,
   winProbFor,
 } from "./gameCenterPresentation";
 
 const REFRESH_MS = 60_000;
-
-function fmtPts(value, placeholder = false) {
-  if (placeholder || value == null || Number.isNaN(Number(value))) return "—";
-  return Number(value).toFixed(1);
-}
 
 function DuelPlayer({ player, media, away = false }) {
   if (!player || !player.name || player.name === "Empty") {
@@ -40,7 +46,13 @@ function DuelPlayer({ player, media, away = false }) {
   return (
     <div className={`hub-gc-duel-player${away ? " hub-gc-duel-player--away" : ""}`}>
       {shot ? (
-        <img className="hub-gc-duel-headshot" src={shot} alt="" loading="lazy" onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
+        <img
+          className="hub-gc-duel-headshot"
+          src={shot}
+          alt={player.name}
+          loading="lazy"
+          onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
+        />
       ) : (
         <span className="hub-gc-duel-headshot hub-gc-duel-headshot--empty" aria-hidden="true" />
       )}
@@ -55,16 +67,19 @@ function DuelPlayer({ player, media, away = false }) {
 }
 
 function DuelPoints({ player, leading, placeholder = false }) {
+  const shown = formatMatchupScore(player?.points, {
+    placeholder,
+    proj: player?.proj,
+  });
   return (
     <div className={`hub-gc-duel-pts${leading ? " is-leading" : ""}`}>
-      {fmtPts(player?.points, placeholder)}
-      <span>{!placeholder && player?.proj != null ? `proj ${fmtPts(player.proj)}` : "\u00a0"}</span>
+      {shown.score}
+      <span>{shown.label || "\u00a0"}</span>
     </div>
   );
 }
 
 export default function GameCenter({ leagueId, hubContext, onNavigate }) {
-  const mobileLayout = useMobileLayout();
   const { identities } = useTeamIdentities();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -125,28 +140,53 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
   );
   const media = usePlayerMedia(duelIds);
 
-  const standings = data?.standings || [];
-  const viewerStanding = standings.find(
+  const standingsView = useMemo(
+    () => interpretStandings(data, {
+      draftCompleted: hubContext?.draft_completed,
+    }),
+    [data, hubContext?.draft_completed],
+  );
+  const standingRows = useMemo(
+    () => gameCenterStandingRows(
+      standingsView.standings,
+      hubContext?.team_id,
+      { compact: false },
+    ),
+    [standingsView.standings, hubContext?.team_id],
+  );
+  const viewerStanding = standingRows.find(
     (row) => row.hub_team_id && String(row.hub_team_id) === String(hubContext?.team_id),
-  ) || standings.find((row) => viewer && String(row.roster_id) === String(viewer.roster_id));
+  ) || standingRows.find((row) => viewer && String(row.roster_id) === String(viewer.roster_id));
 
   const weekNumber = data?.week;
   const currentWeek = data?.current_week;
   const maxWeek = data?.max_week || 18;
   const stateLabel = loading && !data
     ? GAME_CENTER_COPY.loadingChip
-    : (data ? gameStateLabel(data) : "");
+    : (data ? gameStateLabel(data, hubContext) : "");
   const viewerProb = matchup && viewer ? winProbFor(matchup, viewer) : null;
   const otherMatchups = (data?.matchups || []).filter((m) => m !== matchup);
   const weekComplete = stateLabel === "Final";
-  const placeholder = Boolean(data?.placeholder);
+  const placeholder = scoresArePlaceholder(data, hubContext);
   const hasSlate = (data?.matchups || []).length > 0;
   const fullPageEmpty = !loading && data && !hasSlate;
-  const showBanner = Boolean(
-    !loading && data && (placeholder || data.reason === "no_sleeper_league" || data.reason === "no_matchups"),
-  );
-  const bannerText = data?.hint
-    || (data?.reason === "no_sleeper_league" ? GAME_CENTER_COPY.emptyNoSleeper : GAME_CENTER_COPY.emptyPreseason);
+  const emptyLineup = lineupIsEmpty(viewer, opponent, rows);
+  const banner = gameCenterBanner({
+    draftCompleted: hubContext?.draft_completed,
+    draftStartsAt: hubContext?.draft_starts_at,
+    placeholder,
+    reason: data?.reason,
+    sleeperLinked: Boolean(hubContext?.sleeper_league_id || data?.hub_context?.sleeper_league_id),
+  });
+  const showBanner = Boolean(!loading && data && banner);
+  const hero = gameCenterHeroCopy({
+    emptyLineup,
+    live: stateLabel === "Live",
+    weekComplete,
+    placeholder,
+    viewer,
+    opponent,
+  });
   const storyline = matchupStoryline({
     viewer,
     opponent,
@@ -154,6 +194,14 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
     placeholder,
     week: weekNumber,
     hint: data?.hint,
+  });
+  const viewerScore = formatMatchupScore(viewer?.points, {
+    placeholder,
+    proj: viewer?.est_final ?? viewer?.proj_total,
+  });
+  const opponentScore = formatMatchupScore(opponent?.points, {
+    placeholder,
+    proj: opponent?.est_final ?? opponent?.proj_total,
   });
 
   const stepWeek = (delta) => {
@@ -178,39 +226,63 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
     );
   };
 
+  const showLiveChip = stateLabel === "Live" || stateLabel === "Final" || stateLabel === GAME_CENTER_COPY.loadingChip;
   const heroChip = data?.synced_at && stateLabel === "Live"
     ? `${stateLabel} · ${formatSyncedAgo(data.synced_at) || ""}`
-    : stateLabel;
+    : (showLiveChip ? stateLabel : "");
+  const showPrev = shouldShowPrevWeek(weekNumber);
+  const showNext = shouldShowNextWeek(weekNumber, maxWeek);
+
+  const goBanner = () => {
+    if (!onNavigate || !banner) return;
+    onNavigate(banner.action);
+  };
+
+  const opponentRecord = (() => {
+    if (opponent?.roster_id === "tbd") {
+      return weekNumber != null ? `Week ${weekNumber} opponent TBD` : "Opponent TBD";
+    }
+    const row = standingRows.find((s) => String(s.roster_id) === String(opponent?.roster_id))
+      || standingRows.find((s) => s.hub_team_id && String(s.hub_team_id) === String(opponent?.hub_team_id));
+    return formatMatchupRecord(row, { ranked: standingsView.ranked });
+  })();
 
   return (
     <HubPage className="hub-game-center">
       <header className="hub-gc-head">
         <div>
           <p className="hub-experience-kicker">{GAME_CENTER_COPY.eyebrow}</p>
-          <h2 className="hub-tab-intro-title">
-            {weekNumber ? `Week ${weekNumber}` : "Your matchup"}
-          </h2>
+          <h1 className="hub-tab-intro-title">
+            {hero.heading}
+          </h1>
+          {hero.support ? <p className="hub-gc-hero-support">{hero.support}</p> : null}
         </div>
         <div className="hub-gc-week-toolbar">
           {heroChip ? <span className={`hub-gc-state${stateLabel === "Live" ? " is-live" : ""}`}>{heroChip}</span> : null}
-          <div className="hub-gc-week-nav" role="group" aria-label="Week">
-            <button
-              type="button"
-              className="btn-ghost btn-sm"
-              disabled={loading || Number(weekNumber ?? 1) <= 1}
-              onClick={() => stepWeek(-1)}
-            >
-              ← Week {Math.max(1, Number(weekNumber ?? 1) - 1)}
-            </button>
-            <button
-              type="button"
-              className="btn-ghost btn-sm"
-              disabled={loading || Number(weekNumber ?? maxWeek) >= Number(maxWeek)}
-              onClick={() => stepWeek(1)}
-            >
-              Week {Math.min(Number(maxWeek), Number(weekNumber ?? 1) + 1)} →
-            </button>
-          </div>
+          {(showPrev || showNext) ? (
+            <div className="hub-gc-week-nav" role="group" aria-label="Week">
+              {showPrev ? (
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  disabled={loading}
+                  onClick={() => stepWeek(-1)}
+                >
+                  ← Week {Math.max(1, Number(weekNumber ?? 1) - 1)}
+                </button>
+              ) : null}
+              {showNext ? (
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  disabled={loading}
+                  onClick={() => stepWeek(1)}
+                >
+                  Week {Math.min(Number(maxWeek), Number(weekNumber ?? 1) + 1)} →
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </header>
 
@@ -221,12 +293,12 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
         <HubAlert
           variant="warn"
           action={onNavigate ? (
-            <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("office-access")}>
-              {GAME_CENTER_COPY.setupCta}
+            <button type="button" className="btn-ghost btn-sm" onClick={goBanner}>
+              {banner.actionLabel}
             </button>
           ) : null}
         >
-          {bannerText}
+          {banner.text}
         </HubAlert>
       )}
 
@@ -246,36 +318,28 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
             <div className="hub-gc-bb-team">
               {teamTitle(viewer)}
               <span>
-                {viewerStanding ? `${viewerStanding.wins}–${viewerStanding.losses} · ${viewerStanding.rank}${["st", "nd", "rd"][viewerStanding.rank - 1] || "th"}` : "You"}
+                {formatMatchupRecord(viewerStanding, { ranked: standingsView.ranked }) || "You"}
               </span>
             </div>
           </div>
-          <div className="hub-gc-bb-score">
+          <div className="hub-gc-bb-score" aria-live="polite" aria-atomic="true">
             <div className={`hub-gc-bb-points${!placeholder && viewer.points >= opponent.points ? " is-leading" : ""}`}>
-              {fmtPts(viewer.points, placeholder)}
-              <span>{!placeholder && viewer.proj_total != null ? `proj ${fmtPts(viewer.est_final)}` : "\u00a0"}</span>
+              {viewerScore.score}
+              <span>{viewerScore.label || "\u00a0"}</span>
             </div>
             <div className="hub-gc-bb-divider" aria-hidden="true">
               <span>Week {weekNumber}</span>
             </div>
             <div className={`hub-gc-bb-points${!placeholder && opponent.points > viewer.points ? " is-leading" : ""}`}>
-              {fmtPts(opponent.points, placeholder)}
-              <span>{!placeholder && opponent.proj_total != null ? `proj ${fmtPts(opponent.est_final)}` : "\u00a0"}</span>
+              {opponentScore.score}
+              <span>{opponentScore.label || "\u00a0"}</span>
             </div>
           </div>
           <div className="hub-gc-bb-side hub-gc-bb-side--away">
             <TeamIdentityMark team={identityTeam(opponent)} identity={identityFor(identities, identityTeam(opponent))} size="lg" />
             <div className="hub-gc-bb-team">
               {teamTitle(opponent)}
-              <span>
-                {(() => {
-                  if (opponent.roster_id === "tbd") {
-                    return weekNumber != null ? `Week ${weekNumber} opponent TBD` : "Opponent TBD";
-                  }
-                  const row = standings.find((s) => String(s.roster_id) === String(opponent.roster_id));
-                  return row ? `${row.wins}–${row.losses} · ${row.rank}${["st", "nd", "rd"][row.rank - 1] || "th"}` : "Opponent";
-                })()}
-              </span>
+              <span>{opponentRecord || "Opponent"}</span>
             </div>
           </div>
 
@@ -308,11 +372,15 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
                   <p className="chart-note">{GAME_CENTER_COPY.leagueSupport}</p>
                 </div>
               </header>
-              <div className="hub-gc-mini-list">
+              <div className="hub-gc-mini-list" aria-live="polite">
                 {otherMatchups.map((m) => (
                   <div className="hub-gc-mini" key={m.matchup_id}>
                     {(m.teams || []).map((team) => {
                       const parts = gameCenterTeamParts(team);
+                      const shown = formatMatchupScore(team.points, {
+                        placeholder,
+                        proj: team.est_final ?? team.proj_total,
+                      });
                       return (
                       <div
                         className={`hub-gc-mini-line${Number(team.points) >= Math.max(...(m.teams || []).map((t) => Number(t.points || 0))) ? " is-leading" : ""}`}
@@ -329,7 +397,10 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
                             <span className="hub-gc-team-nick">{parts.team}</span>
                           ) : null}
                         </span>
-                        <span className="hub-gc-mini-score">{fmtPts(team.points, placeholder)}</span>
+                        <span className="hub-gc-mini-score">
+                          {shown.score}
+                          {shown.label ? <span className="hub-gc-mini-score-label">{shown.label}</span> : null}
+                        </span>
                       </div>
                       );
                     })}
@@ -339,30 +410,32 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
               </div>
             </section>
 
-            {standings.length > 0 && (
-              <section className="panel hub-gc-standings" aria-label="Standings">
+            {standingRows.length > 0 && (
+              <section className="panel hub-gc-standings" aria-label={GAME_CENTER_COPY.standingsTitle}>
                 <header className="hub-gc-panel-head">
                   <div>
-                    <h3>Standings</h3>
-                    <p className="chart-note">{placeholder ? (data?.hint || GAME_CENTER_COPY.emptyNoSleeper) : "Season to date."}</p>
+                    <h3>{standingsView.historical ? GAME_CENTER_COPY.standingsLastSeason : GAME_CENTER_COPY.standingsTitle}</h3>
+                    <p className="chart-note">{standingsView.note}</p>
                   </div>
                 </header>
                 <ol className="hub-gc-standings-list">
-                  {standings.slice(0, mobileLayout ? 5 : 10).map((row) => {
+                  {standingRows.map((row) => {
                     const parts = gameCenterTeamParts(row);
                     return (
                     <li
                       key={row.roster_id}
                       className={viewerStanding && row.roster_id === viewerStanding.roster_id ? "is-you" : ""}
                     >
-                      <span className="hub-gc-standing-rank">{row.rank}</span>
+                      <span className="hub-gc-standing-rank">
+                        {formatStandingRank(row, { ranked: standingsView.ranked })}
+                      </span>
                       <span className="hub-gc-standing-name">
                         {parts.owner || parts.team || row.team_name}
                         {parts.owner && parts.team ? (
                           <span className="hub-gc-team-nick">{parts.team}</span>
                         ) : null}
                       </span>
-                      <span className="hub-gc-standing-rec">{row.wins}–{row.losses}{row.ties ? `–${row.ties}` : ""}</span>
+                      <span className="hub-gc-standing-rec">{formatStandingRecord(row)}</span>
                     </li>
                     );
                   })}
@@ -377,17 +450,12 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
                   <h3>{GAME_CENTER_COPY.duelTitle}</h3>
                   <p className="chart-note">{GAME_CENTER_COPY.duelSupport}</p>
                 </div>
-                {onNavigate && !weekComplete ? (
-                  <button type="button" className="btn-link" onClick={() => onNavigate("week")}>
-                    {GAME_CENTER_COPY.setLineup}
-                  </button>
-                ) : null}
               </header>
               <div className="hub-gc-duel-rows">
                 {rows.length === 0 ? (
                   <div className="hub-gc-duel-empty">
                     <p className="chart-note">{GAME_CENTER_COPY.emptyDuel}</p>
-                    {onNavigate ? (
+                    {onNavigate && !weekComplete ? (
                       <button type="button" className="btn-primary" onClick={() => onNavigate("week")}>
                         {GAME_CENTER_COPY.setLineup}
                       </button>
@@ -409,7 +477,7 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
               </div>
             </section>
 
-            {(viewer.bench || opponent.bench) && (
+            {(viewer.bench || opponent.bench) && !placeholder && (
               <section className="panel hub-gc-bench" aria-label={GAME_CENTER_COPY.benchTitle}>
                 <header className="hub-gc-panel-head">
                   <div>
@@ -421,15 +489,15 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
                   {viewer.bench && (
                     <div className="hub-gc-bench-cell">
                       <strong>
-                        {viewer.bench.top_name} · {fmtPts(viewer.bench.top_points)} pts
+                        {viewer.bench.top_name} · {formatMatchupScore(viewer.bench.top_points).score} pts
                       </strong>
-                      Your best bench score. Bench total {fmtPts(viewer.bench.points)} across {viewer.bench.count} players.
+                      Your best bench score. Bench total {formatMatchupScore(viewer.bench.points).score} across {viewer.bench.count} players.
                     </div>
                   )}
                   {opponent.bench && (
                     <div className="hub-gc-bench-cell">
-                      <strong>Their bench: {fmtPts(opponent.bench.points)} pts</strong>
-                      Best left out: {opponent.bench.top_name} ({fmtPts(opponent.bench.top_points)}).
+                      <strong>Their bench: {formatMatchupScore(opponent.bench.points).score} pts</strong>
+                      Best left out: {opponent.bench.top_name} ({formatMatchupScore(opponent.bench.top_points).score}).
                     </div>
                   )}
                 </div>

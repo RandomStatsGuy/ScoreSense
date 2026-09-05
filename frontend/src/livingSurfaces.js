@@ -118,7 +118,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "matchup",
     page: "frontend/src/DraftHub/GameCenter.jsx",
     copy: "frontend/src/DraftHub/gameCenterPresentation.js",
-    doNot: "Game center is a matchup board, not an editorial settings page. Live renders only inside a game window. Empty boards use the shared league empty-state. Unscored placeholder chip is No scores yet — never Waiting. Loading uses a skeleton or Loading chip.",
+    doNot: "Game center is a matchup board, not an editorial settings page. Live renders only inside a game window. Hero names the job (empty lineup cost, then the live score). Pre-draft empty copy is one draft-night sentence to Open draft room — not Link Sleeper or a kickoff wait. Standings share Home's last-season records and stay unranked until a game is played. Do not play last year's Sleeper week as this week's scores. Include the viewer on mobile. Gold only on a claimed trophy. Unscored placeholder chip is No scores yet — never Waiting. Loading uses a skeleton or Loading chip.",
   }),
   "hub.roster": S({
     label: "My team",
