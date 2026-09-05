@@ -17,12 +17,23 @@ export function resolveHubMediaSrc(src, width) {
   return withHubMediaWidth(src, width) || "";
 }
 
+export function isHubMediaApiSrc(src) {
+  const href = String(src || "");
+  return href.startsWith("/api/hub/media/") || href.includes("/api/hub/media/");
+}
+
 export function peekHubMediaObjectUrl(src) {
-  return src && cache.has(src) ? cache.get(src) : "";
+  if (!src) return "";
+  if (cache.has(src)) return cache.get(src);
+  // Remote CDN / data URLs paint as-is. Blob-fetching ESPN or Sleeper
+  // sends cookies cross-origin and fails CORS, which blanks the image.
+  if (!isHubMediaApiSrc(src)) return src;
+  return "";
 }
 
 export function ensureHubMediaObjectUrl(src) {
   if (!src) return Promise.resolve("");
+  if (!isHubMediaApiSrc(src)) return Promise.resolve(src);
   if (cache.has(src)) return Promise.resolve(cache.get(src));
   const existing = inflight.get(src);
   if (existing) return existing;

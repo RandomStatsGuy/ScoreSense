@@ -66,6 +66,24 @@ def test_corrupt_bytes_fall_back_to_original(tmp_path):
     assert content_type == "image/jpeg"
 
 
+def test_transparent_png_keeps_alpha_in_webp(tmp_path):
+    original = tmp_path / "mark.bin"
+    img = Image.new("RGBA", (160, 160), (0, 0, 0, 0))
+    for x in range(40, 120):
+        for y in range(40, 120):
+            img.putpixel((x, y), (20, 180, 120, 255))
+    img.save(original, format="PNG")
+    path, content_type = resolve_hub_media_file(
+        {"path": original, "content_type": "image/png"},
+        48,
+    )
+    assert content_type == "image/webp"
+    with Image.open(path) as out:
+        converted = out.convert("RGBA")
+        assert converted.getpixel((0, 0))[3] == 0
+        assert converted.getpixel((24, 24))[3] == 255
+
+
 def test_png_bytes_round_trip_for_api_fixture():
     buf = BytesIO()
     Image.new("RGB", (64, 48), (8, 16, 24)).save(buf, format="PNG")

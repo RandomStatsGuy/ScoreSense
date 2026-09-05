@@ -68,7 +68,12 @@ def _write_variant(original: Path, dest: Path, width: int) -> bool:
             if src_w <= width:
                 return False
             height = max(1, round(src_h * (width / src_w)))
-            resized = img.convert("RGB").resize((width, height), Image.Resampling.LANCZOS)
+            # Keep logo/headshot alpha. RGB flatten turns transparent pixels black.
+            has_alpha = img.mode in ("RGBA", "LA") or (
+                img.mode == "P" and "transparency" in img.info
+            )
+            work = img.convert("RGBA") if has_alpha else img.convert("RGB")
+            resized = work.resize((width, height), Image.Resampling.LANCZOS)
             dest.parent.mkdir(parents=True, exist_ok=True)
             tmp = dest.with_suffix(dest.suffix + ".tmp")
             resized.save(tmp, format="WEBP", quality=80, method=4)
