@@ -23,8 +23,9 @@ import {
   capHeroCopy,
   capRailPrimary,
   capSheetYearOffsets,
-  leftoverAfterMoveYears,
+  leftoverAfterMoveDisplay,
   leftoverMoveReadout,
+  fmtCapMoney,
   parseNeedErrors,
   rosterNeedLine,
   CAP_DRAFT_COPY,
@@ -288,24 +289,25 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
   const cutHits = seasonPlan.map((_, idx) => (
     cutRow ? Number(capHitForRow(cutRow, idx, workspace?.rules) || 0) : 0
   ));
-  const movedPlan = leftoverAfterMoveYears({
+  const currentPair = displayCapPair({ leftover: summary.remaining, salaryCap });
+  const movedPlan = leftoverAfterMoveDisplay({
     years: seasonPlan,
+    salaryCap,
     cutHits,
     cutRefundPct: workspace?.rules?.contracts?.cut_refund_pct ?? 0.5,
     bid: Number(bidAmount) || 0,
   });
   const moveReadout = leftoverMoveReadout({
-    current: summary.remaining,
-    after: movedPlan[0]?.cap_remaining ?? summary.remaining,
+    current: currentPair.leftover,
+    after: movedPlan[0]?.cap_remaining ?? currentPair.leftover,
   });
-  const nowPair = displayCapPair({ leftover: moveReadout?.current, salaryCap });
+  const nowPair = currentPair;
   const afterPair = displayCapPair({ leftover: moveReadout?.after, salaryCap });
   const afterOverBy = afterPair.leftover != null && afterPair.leftover < 0
     ? Math.abs(afterPair.leftover)
     : 0;
   const hasMove = Boolean(cutPlayer || bidAmount);
   const against = againstCap({ spent: summary.spent, deadCap });
-  const currentPair = displayCapPair({ leftover: summary.remaining, salaryCap });
 
   const pendingCut = (preDraft?.pending_cuts || [])[0] || null;
   const railPrimary = capRailPrimary({ pendingCut, remaining: summary.remaining });
@@ -325,8 +327,8 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
   });
 
   const teamItems = [
-    { id: "leftover", label: CAP_FIGURE_COPY.leftover, value: fmtSal(currentPair.leftover) },
-    { id: "against", label: CAP_FIGURE_COPY.againstCap, value: fmtSal(currentPair.against) },
+    { id: "leftover", label: CAP_FIGURE_COPY.leftover, value: fmtCapMoney(currentPair.leftover) },
+    { id: "against", label: CAP_FIGURE_COPY.againstCap, value: fmtCapMoney(currentPair.against) },
     { id: "dead", label: CAP_FIGURE_COPY.deadCap, value: fmtSal(deadCap) },
   ];
   if (preDraft && Number.isFinite(keepCount)) {
@@ -464,7 +466,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
               <span>
                 {CAP_MOVE_COPY.now}
                 {" "}
-                <strong>{fmtSal(nowPair.leftover)}</strong>
+                <strong>{fmtCapMoney(nowPair.leftover)}</strong>
                 {" "}
                 {CAP_MOVE_COPY.leftoverWord}
               </span>
@@ -472,14 +474,14 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
               <span>
                 {CAP_MOVE_COPY.after}
                 {" "}
-                <strong>{fmtSal(afterPair.leftover)}</strong>
+                <strong>{fmtCapMoney(afterPair.leftover)}</strong>
                 {" "}
                 {CAP_MOVE_COPY.leftoverWord}
               </span>
             </p>
             {afterOverBy > 0 ? (
               <p className="hub-cap-move-over">
-                {CAP_MOVE_COPY.over(fmtSal(afterOverBy))}
+                {CAP_MOVE_COPY.over(fmtCapMoney(afterOverBy))}
               </p>
             ) : null}
           </div>
@@ -493,11 +495,11 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                 <li key={year.label || year.seasonLabel} className="hub-cap-season-row">
                   <span className="hub-cap-season-year">{year.seasonLabel}</span>
                   <span className="hub-cap-season-committed">
-                    {fmtSal(pair.against)}
+                    {fmtCapMoney(pair.against)}
                     <span className="hub-cap-season-unit"> {CAP_FIGURE_COPY.seasonAgainst}</span>
                   </span>
                   <span className={`hub-cap-season-free${freeOver ? " is-over" : ""}`}>
-                    {fmtSal(pair.leftover)}
+                    {fmtCapMoney(pair.leftover)}
                     <span className="hub-cap-season-unit"> {CAP_FIGURE_COPY.seasonLeftover}</span>
                   </span>
                 </li>

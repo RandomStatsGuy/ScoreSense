@@ -1,7 +1,5 @@
 /** User-facing copy for Fantasy → Cap. */
 
-import { fmtSal } from "./rosterFormat.js";
-
 export const CAP_MOVE_COPY = {
   title: "After this move",
   hint: "Cut a name or enter a bid. The leftover here updates.",
@@ -102,14 +100,49 @@ export function displayCapPair({ leftover, salaryCap } = {}) {
   return { leftover: leftoverRounded, against: cap - leftoverRounded, cap };
 }
 
+/** Dollars on Cap. Negative leftover is -$12, not $-12. */
+export function fmtCapMoney(n) {
+  if (n == null || !Number.isFinite(Number(n))) return "—";
+  const value = Math.round(Number(n));
+  return value < 0 ? `-$${Math.abs(value)}` : `$${value}`;
+}
+
+/**
+ * Apply a cut or bid to the leftover already shown, so Now $123 − $200 bid
+ * reads After -$77 — not a second rounding of the raw remaining.
+ */
+export function leftoverAfterMoveDisplay({
+  years = [],
+  salaryCap,
+  cutHits = [],
+  cutRefundPct = 0.5,
+  bid = 0,
+} = {}) {
+  const refund = Number.isFinite(Number(cutRefundPct)) ? Number(cutRefundPct) : 0.5;
+  const spend = Math.round(Number(bid) || 0);
+  return years.map((year, idx) => {
+    const pair = displayCapPair({ leftover: year.cap_remaining, salaryCap: year.salary_cap ?? salaryCap });
+    const hit = Number(cutHits[idx] || 0);
+    const leftover = idx === 0
+      ? (pair.leftover ?? 0) + Math.round(hit * refund) - spend
+      : (pair.leftover ?? 0) + Math.round(hit);
+    const next = displayCapPair({ leftover, salaryCap: pair.cap });
+    return {
+      ...year,
+      cap_remaining: next.leftover,
+      total_committed: next.against,
+    };
+  });
+}
+
 export function capEquationNote({ leftover, salaryCap, against } = {}) {
   const pair = displayCapPair({ leftover, salaryCap });
   const againstN = pair.against ?? Math.round(Number(against) || 0);
   const rem = pair.leftover;
   const leftoverBit = rem != null && rem < 0
-    ? `${fmtSal(Math.abs(rem))} over`
-    : `${fmtSal(rem ?? leftover)} leftover`;
-  return `${fmtSal(againstN)} of ${fmtSal(pair.cap || salaryCap)} against cap · ${leftoverBit}`;
+    ? `${fmtCapMoney(Math.abs(rem))} over`
+    : `${fmtCapMoney(rem ?? leftover)} leftover`;
+  return `${fmtCapMoney(againstN)} of ${fmtCapMoney(pair.cap || salaryCap)} against cap · ${leftoverBit}`;
 }
 
 export function leftoverMoveReadout({ current, after } = {}) {

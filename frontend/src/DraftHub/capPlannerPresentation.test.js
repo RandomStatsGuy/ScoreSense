@@ -8,7 +8,9 @@ import {
   capRailPrimary,
   capSheetYearOffsets,
   leftoverAfterMoveYears,
+  leftoverAfterMoveDisplay,
   leftoverMoveReadout,
+  fmtCapMoney,
   parseNeedErrors,
   positionFromNeedError,
   formatNeedError,
@@ -117,6 +119,28 @@ test("roster needs collapse to one sentence", () => {
   assert.deepEqual(other, ["Over cap by $12"]);
   assert.equal(rosterNeedLine(needs), "You need 9 more players (3 QB, 6 RB)");
   assert.equal(rosterNeedLine([{ count: 1, position: "TE" }]), "You need 1 more player (1 TE)");
+});
+
+test("leftoverAfterMoveDisplay applies the bid to the leftover already on screen", () => {
+  const next = leftoverAfterMoveDisplay({
+    years: [{ seasonLabel: 2026, cap_remaining: 122.5, total_committed: 77.5 }],
+    salaryCap: 200,
+    cutHits: [0],
+    bid: 200,
+  });
+  assert.equal(next[0].cap_remaining, -77);
+  assert.equal(next[0].total_committed, 277);
+  assert.equal(next[0].cap_remaining + next[0].total_committed, 200);
+  const cut = leftoverAfterMoveDisplay({
+    years: [{ seasonLabel: 2026, cap_remaining: 122.5 }],
+    salaryCap: 200,
+    cutHits: [23],
+    cutRefundPct: 0.5,
+    bid: 0,
+  });
+  assert.equal(cut[0].cap_remaining, 135);
+  assert.equal(fmtCapMoney(-77), "-$77");
+  assert.equal(fmtCapMoney(123), "$123");
 });
 
 test("leftoverMoveReadout names over-cap and reset-worthy change", () => {
