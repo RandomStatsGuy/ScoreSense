@@ -265,5 +265,5 @@ export function bestBallCsvLines(rows = [], quote = (v) => `"${v}"`) {
 }
 
 export function bestBallBoardNote() {
-  return `${bestBallEcrSourceCopy()} ${bestBallEdgeLegendCopy()}`;
+  return bestBallEcrSourceCopy();
 }

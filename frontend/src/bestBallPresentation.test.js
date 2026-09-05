@@ -96,7 +96,8 @@ test("hero names Edge sign and scoring without a roadmap note", () => {
   assert.doesNotMatch(hero.support, /until a real ADP|placeholder|roadmap/i);
   assert.equal(bestBallScoringNote(), "Scoring: PPR");
   assert.match(bestBallEdgeLegendCopy(), /\+10/);
-  assert.match(bestBallBoardNote(), /FantasyPros consensus/);
+  assert.equal(bestBallBoardNote(), "Pos ECR is FantasyPros consensus.");
+  assert.doesNotMatch(bestBallBoardNote(), /\+10|until a real ADP/);
 });
 
 test("summary keeps only With ECR and csv marks No ECR", () => {
