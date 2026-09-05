@@ -15,8 +15,11 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const BASE = process.env.LAYOUT_AUDIT_BASE || "http://127.0.0.1:5173";
 
-const NUMERIC_RE = /^[$\-−+]?\s*[\d,.]+%?$/;
+export const NUMERIC_RE = /^[$\-−+]?\s*[\d,.]+(?:st|nd|rd|th|pts?|yds?|%)?$/i;
 const SINGLE_GLYPH_RE = /^[A-Z]{1,3}$|^[QDP]$|^[·•—–-]$/;
+export const BAR_CONTROL_SELECTOR =
+  "button, a[href], input, select, textarea, [role='button'], [role='tab'], [role='radio'], [role='combobox']";
+export const TABLE_DEAD_ZONE_PX = 32;
 
 function parseArgs(argv) {
   const args = { route: null, width: 1280, json: false, all: false };
@@ -47,11 +50,48 @@ export function livingSurfaceRoutes(surfaces) {
   return rows;
 }
 
+export function isBlockDisplay(display) {
+  const base = String(display || "").split(" ")[0];
+  return ["block", "flex", "grid", "list-item", "flow-root", "table"].includes(base);
+}
+
+export function isAutoFillGridTemplate(specified) {
+  return /auto-(fill|fit)/i.test(String(specified || ""));
+}
+
+export function minTargetForWidth(width) {
+  return Number(width) === 390 ? 44 : 32;
+}
+
+export function isNumericCellText(text) {
+  const line = String(text || "").split("\n")[0].replace(/\s+/g, " ").trim();
+  return NUMERIC_RE.test(line);
+}
+
+export function tableWidthDeadZone(tableWidth, cardClientWidth, padL = 0, padR = 0) {
+  return cardClientWidth - padL - padR - tableWidth;
+}
+
+export function pickBarControl(el) {
+  if (!el) return null;
+  if (typeof el.matches === "function" && el.matches(BAR_CONTROL_SELECTOR)) return el;
+  if (typeof el.querySelector === "function") return el.querySelector(BAR_CONTROL_SELECTOR);
+  return null;
+}
+
+export function isVisibleNativeSelect(box) {
+  const width = Number(box?.width) || 0;
+  const height = Number(box?.height) || 0;
+  const display = String(box?.display || "");
+  const visibility = String(box?.visibility || "");
+  return width > 0 && height > 0 && display !== "none" && visibility !== "hidden";
+}
+
 export function columnAlign(texts) {
   const cells = texts.map((t) => String(t || "").split("\n")[0].trim()).filter((t) => t && t !== "—");
   if (!cells.length) return "left";
   if (cells.every((t) => SINGLE_GLYPH_RE.test(t))) return "center";
-  const numeric = cells.filter((t) => NUMERIC_RE.test(t.replace(/\s+/g, " ")) || /^[$\-−+]?\s*[\d,.]+/.test(t));
+  const numeric = cells.filter((t) => isNumericCellText(t));
   return numeric.length / cells.length >= 0.8 ? "right" : "left";
 }
 
@@ -88,10 +128,11 @@ function pass(rule, detail = "") {
   return { rule, ok: true, selector: "", detail };
 }
 
-function measureScript(minTarget) {
-  return ({ minTarget }) => {
+function measureScript() {
+  return ({ minTarget, numericRe, barControlSelector, tableDeadZonePx }) => {
     const results = [];
     const px = (n) => Math.round(n);
+    const numericPat = new RegExp(numericRe, "i");
 
     const bars = document.querySelectorAll(".hub-page-sticky, .hub-toolbar, thead");
     bars.forEach((el, i) => {
@@ -107,13 +148,19 @@ function measureScript(minTarget) {
         });
       }
       const kids = [...el.children].filter((c) => getComputedStyle(c).display !== "none");
-      const heights = kids.map((c) => c.offsetHeight);
-      if (heights.length > 1 && heights.some((h) => Math.abs(h - heights[0]) > 2)) {
+      const controlHeights = kids
+        .map((c) => {
+          if (c.matches(barControlSelector)) return c.offsetHeight;
+          const inner = c.querySelector(barControlSelector);
+          return inner ? inner.offsetHeight : 0;
+        })
+        .filter((h) => h > 0);
+      if (controlHeights.length > 1 && controlHeights.some((h) => Math.abs(h - controlHeights[0]) > 2)) {
         results.push({
           rule: "bars",
           ok: false,
-          selector: `${el.className || el.tagName} children`,
-          detail: `child heights ${heights.join(",")}`,
+          selector: `${el.className || el.tagName} controls`,
+          detail: `control heights ${controlHeights.join(",")}`,
         });
       }
       kids.forEach((c) => {
@@ -132,48 +179,55 @@ function measureScript(minTarget) {
     });
     if (!results.some((r) => r.rule === "bars")) results.push({ rule: "bars", ok: true, selector: "", detail: `${bars.length} bars` });
 
-    const textNodes = [];
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    let node;
-    while ((node = walker.nextNode())) {
-      if (!node.textContent.trim()) continue;
-      const parent = node.parentElement;
-      if (!parent) continue;
-      if (parent.closest("script, style, .sr-only, [hidden]")) continue;
-      const range = document.createRange();
-      range.selectNodeContents(node);
-      const r = range.getBoundingClientRect();
-      if (r.width < 1 || r.height < 1) continue;
-      textNodes.push({ parent, r, text: node.textContent.trim().slice(0, 40) });
-    }
+    // Block-level siblings only. Inline runs in one paragraph (Now $114 leftover)
+    // are supposed to sit adjacent — do not compare every text node on the page.
+    const isBlockDisplay = (display) => {
+      const base = String(display || "").split(" ")[0];
+      return ["block", "flex", "grid", "list-item", "flow-root", "table"].includes(base);
+    };
+    const blockKids = new Map();
+    document.querySelectorAll("body *").forEach((el) => {
+      if (!isBlockDisplay(getComputedStyle(el).display)) return;
+      if (el.closest("script, style, .sr-only, [hidden]")) return;
+      const r = el.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) return;
+      const parent = el.parentElement;
+      if (!parent) return;
+      if (!blockKids.has(parent)) blockKids.set(parent, []);
+      blockKids.get(parent).push({
+        el,
+        r,
+        text: (el.textContent || "").trim().slice(0, 40),
+      });
+    });
     let collisions = 0;
-    for (let i = 0; i < textNodes.length; i += 1) {
-      for (let j = i + 1; j < textNodes.length; j += 1) {
-        if (textNodes[i].parent !== textNodes[j].parent) continue;
-        const a = textNodes[i].r;
-        const b = textNodes[j].r;
-        const overlapX = Math.min(a.right, b.right) - Math.max(a.left, b.left);
-        const overlapY = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
-        const shareAxis = overlapX > 2 && overlapY > 2;
-        if (shareAxis) {
-          collisions += 1;
-          if (collisions <= 5) {
-            results.push({
-              rule: "collisions",
-              ok: false,
-              selector: textNodes[i].parent.className || textNodes[i].parent.tagName,
-              detail: `"${textNodes[i].text}" overlaps "${textNodes[j].text}"`,
-            });
+    blockKids.forEach((siblings) => {
+      for (let i = 0; i < siblings.length; i += 1) {
+        for (let j = i + 1; j < siblings.length; j += 1) {
+          const a = siblings[i].r;
+          const b = siblings[j].r;
+          const overlapX = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+          const overlapY = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+          if (overlapX > 2 && overlapY > 2) {
+            collisions += 1;
+            if (collisions <= 5) {
+              results.push({
+                rule: "collisions",
+                ok: false,
+                selector: siblings[i].el.className || siblings[i].el.tagName,
+                detail: `"${siblings[i].text}" overlaps "${siblings[j].text}"`,
+              });
+            }
           }
         }
       }
-    }
+    });
     if (!results.some((r) => r.rule === "collisions" && !r.ok)) {
-      results.push({ rule: "collisions", ok: true, selector: "", detail: "no overlapping sibling text" });
+      results.push({ rule: "collisions", ok: true, selector: "", detail: "no overlapping block siblings" });
     }
 
     const firstLine = (t) => String(t || "").split("\n")[0].replace(/\s+/g, " ").trim();
-    const isNumeric = (t) => /^[$\-−+]?\s*[\d,.]+%?/.test(firstLine(t));
+    const isNumeric = (t) => numericPat.test(firstLine(t));
     document.querySelectorAll("table").forEach((table, ti) => {
       const rows = [...table.rows];
       if (!rows.length) return;
@@ -203,22 +257,62 @@ function measureScript(minTarget) {
         }
       }
       const card = table.closest(".hub-table-card, .table-wrap, .hub-section, .proj-board-surface");
-      if (card && table.offsetWidth < card.clientWidth * 0.9) {
-        results.push({
-          rule: "tables",
-          ok: false,
-          selector: `table:${ti}`,
-          detail: `table ${table.offsetWidth}px < 0.9× card ${card.clientWidth}px`,
-        });
+      if (card) {
+        const style = getComputedStyle(card);
+        const padL = parseFloat(style.paddingLeft) || 0;
+        const padR = parseFloat(style.paddingRight) || 0;
+        const available = card.clientWidth - padL - padR;
+        const deadZone = available - table.offsetWidth;
+        if (deadZone > tableDeadZonePx) {
+          results.push({
+            rule: "tables",
+            ok: false,
+            selector: `table:${ti}`,
+            detail: `table ${table.offsetWidth}px leaves ${px(deadZone)}px dead zone (available ${px(available)}px)`,
+          });
+        }
       }
     });
     if (!results.some((r) => r.rule === "tables")) {
       results.push({ rule: "tables", ok: true, selector: "", detail: "no tables or all aligned" });
     }
 
+    const isAutoFillGridTemplate = (specified) => /auto-(fill|fit)/i.test(String(specified || ""));
+    const specifiedGridTemplate = (el) => {
+      if (isAutoFillGridTemplate(el.style.gridTemplateColumns)) {
+        return el.style.gridTemplateColumns;
+      }
+      const walk = (rules) => {
+        for (const rule of rules) {
+          if (rule.cssRules) {
+            const nested = walk(rule.cssRules);
+            if (nested) return nested;
+          }
+          if (!rule.style || !rule.selectorText) continue;
+          const tmpl = rule.style.getPropertyValue("grid-template-columns");
+          if (!isAutoFillGridTemplate(tmpl)) continue;
+          try {
+            if (el.matches(rule.selectorText)) return tmpl;
+          } catch {
+            /* invalid selector */
+          }
+        }
+        return "";
+      };
+      for (const sheet of document.styleSheets) {
+        try {
+          const hit = walk(sheet.cssRules);
+          if (hit) return hit;
+        } catch {
+          /* cross-origin */
+        }
+      }
+      return "";
+    };
     document.querySelectorAll("*").forEach((el) => {
       const cs = getComputedStyle(el);
       if (cs.display !== "grid") return;
+      if (!specifiedGridTemplate(el)) return;
       const kids = [...el.children].filter((c) => c.offsetHeight > 0);
       if (kids.length < 2) return;
       const tops = new Map();
@@ -239,7 +333,7 @@ function measureScript(minTarget) {
       });
     });
     if (!results.some((r) => r.rule === "grids")) {
-      results.push({ rule: "grids", ok: true, selector: "", detail: "grid rows even or single-row" });
+      results.push({ rule: "grids", ok: true, selector: "", detail: "auto-fill card grids even or none" });
     }
 
     const targets = document.querySelectorAll("button, a[role='button'], [role='radio'], [role='tab']");
@@ -272,8 +366,21 @@ function measureScript(minTarget) {
         : { rule: "primaries", ok: true, selector: "", detail: `${primaries.length} visible primary` },
     );
 
-    const xs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--text-xs")) || 12;
-    const xsPx = xs < 4 ? xs * 16 : xs;
+    const probe = document.createElement("span");
+    probe.style.fontSize = "var(--text-xs)";
+    probe.style.position = "absolute";
+    probe.textContent = ".";
+    document.body.appendChild(probe);
+    const xsPx = parseFloat(getComputedStyle(probe).fontSize) || 0;
+    probe.remove();
+    if (xsPx + 0.05 < 12) {
+      results.push({
+        rule: "type",
+        ok: false,
+        selector: ":root --text-xs",
+        detail: `--text-xs computes to ${xsPx.toFixed(2)}px < 12px`,
+      });
+    }
     let typeFails = 0;
     document.querySelectorAll("body *").forEach((el) => {
       if (!el.childNodes.length) return;
@@ -313,12 +420,13 @@ function measureScript(minTarget) {
 
     const selects = [...document.querySelectorAll("select")].filter((el) => {
       const r = el.getBoundingClientRect();
-      return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden";
+      const cs = getComputedStyle(el);
+      return r.width > 0 && r.height > 0 && cs.display !== "none" && cs.visibility !== "hidden";
     }).length;
     results.push(
       selects
-        ? { rule: "selects", ok: false, selector: "select", detail: `${selects} native select(s)` }
-        : { rule: "selects", ok: true, selector: "", detail: "0 native selects" },
+        ? { rule: "selects", ok: false, selector: "select", detail: `${selects} visible native select(s)` }
+        : { rule: "selects", ok: true, selector: "", detail: "0 visible native selects" },
     );
 
     results.push(
@@ -352,8 +460,13 @@ async function auditRoute(browser, route, width) {
     /* skeletons may persist on empty/error; still measure */
   }
   await page.waitForTimeout(400);
-  const minTarget = width === 390 ? 44 : 32;
-  const results = await page.evaluate(measureScript(minTarget), { minTarget });
+  const minTarget = minTargetForWidth(width);
+  const results = await page.evaluate(measureScript(), {
+    minTarget,
+    numericRe: NUMERIC_RE.source,
+    barControlSelector: BAR_CONTROL_SELECTOR,
+    tableDeadZonePx: TABLE_DEAD_ZONE_PX,
+  });
   await page.close();
   return results;
 }
