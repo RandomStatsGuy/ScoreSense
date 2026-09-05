@@ -3179,7 +3179,7 @@
   }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 1280px) {
   .hub-roster-owner-layout {
     grid-template-columns: 1fr;
     padding: 0.85rem 1.25rem 1.25rem;
@@ -3187,6 +3187,12 @@
 
   .hub-roster-owner-rail {
     position: static;
+  }
+
+  .hub-roster-owner-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    gap: 0.35rem;
   }
 
   .hub-roster-owner-chip {
