@@ -146,6 +146,8 @@ test("insights heroes name the argument, not a recap slogan", () => {
   assert.doesNotMatch(INSIGHTS_COPY.overview.heading, /overpays/i);
   assert.doesNotMatch(INSIGHTS_COPY.overview.support, /Spend shows/i);
   assert.match(INSIGHTS_COPY.overview.support, /titles|records|career points/i);
+  assert.match(INSIGHTS_COPY.overview.supportWithSeasons("5 seasons"), /across 5 seasons/);
+  assert.doesNotMatch(INSIGHTS_COPY.overview.supportWithSeasons("5 seasons"), /overpays|Spend shows/);
   assert.match(INSIGHTS_COPY.spend.support, /overspend|thin/i);
   assert.match(INSIGHTS_COPY.history.support, /paper trail|trade/i);
   assert.doesNotMatch(INSIGHTS_COPY.overview.heading, /league so far|Draft Hub|Submit/i);

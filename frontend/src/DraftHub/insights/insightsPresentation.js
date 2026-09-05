@@ -302,6 +302,9 @@ export const INSIGHTS_COPY = {
     eyebrow: "Insights",
     heading: "Who already won this room.",
     support: "Titles, records, and career points. Ignore the gap and you bid like every seat is even.",
+    supportWithSeasons: (countLabel) => (
+      `Titles, records, and career points across ${countLabel}. Ignore the gap and you bid like every seat is even.`
+    ),
     titles: "Titles",
     titlesEmpty: "Champions appear once a season’s bracket is complete.",
     titlesSupport: "Championships from the Sleeper bracket.",

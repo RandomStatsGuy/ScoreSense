@@ -38,7 +38,11 @@ export default function InsightsOverview({
       <HubExperienceHero
         eyebrow={copy.eyebrow}
         heading={copy.heading}
-        support={copy.support}
+        support={
+          seasonCount
+            ? copy.supportWithSeasons(formatCount(seasonCount, "season"))
+            : copy.support
+        }
       />
 
       {loading && !hasLanding && <InsightsOverviewSkeleton />}
@@ -48,12 +52,8 @@ export default function InsightsOverview({
       )}
 
       {hasLanding && (
-        <>
-          {seasonCount ? (
-            <p className="hub-insights-overview-meta">{formatCount(seasonCount, "season")}</p>
-          ) : null}
-          <div className="hub-insights-overview-grid">
-            <section className="hub-insights-overview-panel" aria-label={copy.titles}>
+        <div className="hub-insights-overview-grid">
+          <section className="hub-insights-overview-panel" aria-label={copy.titles}>
               <div className="hub-insights-talk-head">
                 <h3>{copy.titles}</h3>
                 <p>{titlesLine || (champions.length ? copy.titlesSupport : copy.titlesEmpty)}</p>
@@ -109,8 +109,7 @@ export default function InsightsOverview({
                 {copy.openScoring}
               </button>
             </section>
-          </div>
-        </>
+        </div>
       )}
     </HubPage>
   );
