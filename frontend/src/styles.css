@@ -4472,6 +4472,10 @@ td.col-per-game {
   max-width: var(--hub-col-delta-width);
   white-space: nowrap;
 }
+.hub-table.hub-table--pre-draft .hub-col-delta {
+  width: 9.5rem;
+  max-width: 9.5rem;
+}
 .hub-table .hub-col-fv {
   /* Wide enough for the full "Suggested bid" header + sort caret. */
   width: 7rem;

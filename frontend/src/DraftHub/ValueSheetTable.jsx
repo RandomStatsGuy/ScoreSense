@@ -982,7 +982,7 @@ export default function ValueSheetTable({
         </>
       ) : (
       <div className="table-wrap table-sticky">
-        <table className={`data-table hub-table${pickDraft ? " hub-table--pick-draft" : ""}`}>
+        <table className={`data-table hub-table${pickDraft ? " hub-table--pick-draft" : ""}${preDraft ? " hub-table--pre-draft" : ""}`}>
           <thead>
             <tr>
               <SortTh label="Player" col="player" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="col-player" />
