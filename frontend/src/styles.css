@@ -7740,7 +7740,7 @@ td.col-rank.col-rank-top {
   background: rgba(0, 0, 0, 0.12);
   max-height: none;
   overflow-x: auto;
-  overflow-y: visible;
+  overflow-y: hidden;
 }
 .hub-league-roster-table td { vertical-align: middle; }
 .hub-league-roster-table th {
