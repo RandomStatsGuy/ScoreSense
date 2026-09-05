@@ -26,7 +26,7 @@ function RedirectKeepSearch({ to }) {
 function HubTabOrHome() {
   const location = useLocation();
   const tab = location.pathname.split("/").filter(Boolean)[1];
-  if (tab && !(tab in HUB_SLUG_TO_ID)) {
+  if (tab && tab !== "home" && !(tab in HUB_SLUG_TO_ID)) {
     return <Navigate to={withLocationSearch("/hub/home", location.search, location.hash)} replace />;
   }
   return <App />;

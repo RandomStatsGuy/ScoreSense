@@ -167,15 +167,16 @@ export default function LeagueRostersBrowser({
     () => (dealsView ? dealRows : activeRoster(block)),
     [dealsView, dealRows, block],
   );
-  const playerIds = useMemo(() => roster.map((r) => r.player_id).filter(Boolean), [roster]);
-  const windowed = !mobileLayout && roster.length > 24;
-  const { rootRef, range } = usePageWindowedRows(roster.length, {
+  const rosterList = roster || [];
+  const playerIds = useMemo(() => rosterList.map((r) => r.player_id).filter(Boolean), [rosterList]);
+  const windowed = !mobileLayout && rosterList.length > 24;
+  const { rootRef, range } = usePageWindowedRows(rosterList.length, {
     enabled: windowed,
     rowHeight: 56,
   });
-  const visibleRoster = windowed ? roster.slice(range.start, range.end) : roster;
+  const visibleRoster = windowed ? rosterList.slice(range.start, range.end) : rosterList;
   const topPad = windowed ? range.start * 56 : 0;
-  const bottomPad = windowed ? Math.max(0, roster.length - range.end) * 56 : 0;
+  const bottomPad = windowed ? Math.max(0, rosterList.length - range.end) * 56 : 0;
   const media = usePlayerMedia(mobileLayout ? [] : playerIds);
   const counts = dealCounts(dealRows);
 

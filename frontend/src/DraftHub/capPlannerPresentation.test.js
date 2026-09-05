@@ -15,6 +15,7 @@ import {
   positionFromNeedError,
   formatNeedError,
   rosterNeedLine,
+  rosterPositionNeeds,
   vsCostCell,
   CAP_NEED_COPY,
   CAP_MOVE_COPY,
@@ -124,6 +125,19 @@ test("roster needs collapse to one sentence", () => {
     rosterNeedLine([{ count: 1, position: "QB" }, { count: 2, position: "K" }, { count: 2, position: "DEF" }], { minimumTotal: 20 }),
     "You need 5 more to reach the 20-player minimum: 1 QB · 2 K · 2 DEF",
   );
+});
+
+test("rosterPositionNeeds skips null rows and uses current shortfall", () => {
+  const { needs, minimumTotal } = rosterPositionNeeds({
+    roster: [null, { position: "QB", roster_status: "active" }, { position: "K" }],
+    limits: { qb: { min: 2 }, k: { min: 2 }, def: { min: 2 } },
+  });
+  assert.equal(minimumTotal, 6);
+  assert.deepEqual(needs, [
+    { count: 1, position: "QB", min: 2 },
+    { count: 1, position: "K", min: 2 },
+    { count: 2, position: "DEF", min: 2 },
+  ]);
 });
 
 test("leftoverAfterMoveDisplay applies the bid to the leftover already on screen", () => {

@@ -201,7 +201,7 @@ export function parseNeedErrors(errors = []) {
 export function rosterPositionNeeds({ roster = [], limits = {} } = {}) {
   const counts = {};
   for (const row of roster || []) {
-    if (!isActiveNeedRow(row)) continue;
+    if (!row || !isActiveNeedRow(row)) continue;
     const pos = normalizeNeedPosition(row.position);
     if (!pos) continue;
     counts[pos] = (counts[pos] || 0) + 1;

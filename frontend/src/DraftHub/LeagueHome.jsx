@@ -373,15 +373,15 @@ export default function LeagueHome({
                   : (freshness.projections?.available === false ? "Unavailable" : "Checking…")}
               </dd>
             </div>
-            {weekSummary.available ? (
+            {weekSummary?.available ? (
               <>
                 <div>
                   <dt>On bye</dt>
-                  <dd>{weekSummary.on_bye ?? 0}</dd>
+                  <dd>{weekSummary?.on_bye ?? 0}</dd>
                 </div>
                 <div>
                   <dt>Injured</dt>
-                  <dd>{weekSummary.injured ?? 0}</dd>
+                  <dd>{weekSummary?.injured ?? 0}</dd>
                 </div>
               </>
             ) : null}
