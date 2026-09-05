@@ -9,6 +9,7 @@ import {
   homeDeckMode,
   homeDeckStandingRows,
   homeHasPendingCuts,
+  homeAlsoDueMessage,
   homeHeroHeading,
   homeHeroSupport,
   homeMatchupNote,
@@ -75,6 +76,17 @@ test("home heading names the next move, not a command-center slogan", () => {
     "Fill 11 seats, then lock a night.",
   );
   assert.equal(homeHeroSupport({ seating: { open_seats: 11 } }), HOME_PAGE_COPY.emptySeatsCost);
+});
+
+test("Also due uses the same extend and expiring nouns as My team", () => {
+  assert.equal(
+    homeAlsoDueMessage({
+      id: "expiring_contracts",
+      message: "Review 7 expiring contracts",
+      meta: { must_extend: 2, dropping_at_draft: 5 },
+    }),
+    "2 to extend · 5 expiring",
+  );
 });
 
 test("known action labels use concrete verbs", () => {

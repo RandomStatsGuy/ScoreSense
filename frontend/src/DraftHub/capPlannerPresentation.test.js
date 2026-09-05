@@ -38,7 +38,8 @@ test("rail primary is the pending cut or the draft spend", () => {
     remaining: 178,
   });
   assert.equal(cut.kind, "undo-cut");
-  assert.equal(cut.label, "Undo cut · Zamir White (+$5 dead, −$10 room)");
+    assert.equal(cut.label, "Undo cut · Zamir White");
+  assert.equal(cut.detail, "+$5 dead, −$10 room");
   const room = capRailPrimary({ remaining: 178 });
   assert.equal(room.kind, "room");
   assert.equal(room.label, "Open draft room · $178 to spend.");
@@ -113,12 +114,16 @@ test("roster needs collapse to one sentence", () => {
     "Over cap by $12",
   ]);
   assert.deepEqual(needs, [
-    { count: 3, position: "QB" },
-    { count: 6, position: "RB" },
+    { count: 3, position: "QB", min: 3 },
+    { count: 6, position: "RB", min: 6 },
   ]);
   assert.deepEqual(other, ["Over cap by $12"]);
-  assert.equal(rosterNeedLine(needs), "You need 9 more players (3 QB, 6 RB)");
-  assert.equal(rosterNeedLine([{ count: 1, position: "TE" }]), "You need 1 more player (1 TE)");
+  assert.equal(rosterNeedLine(needs), "You need 9 more players: 3 QB · 6 RB");
+  assert.equal(rosterNeedLine([{ count: 1, position: "TE" }]), "You need 1 more player: 1 TE");
+  assert.equal(
+    rosterNeedLine([{ count: 1, position: "QB" }, { count: 2, position: "K" }, { count: 2, position: "DEF" }], { minimumTotal: 20 }),
+    "You need 5 more to reach the 20-player minimum: 1 QB · 2 K · 2 DEF",
+  );
 });
 
 test("leftoverAfterMoveDisplay applies the bid to the leftover already on screen", () => {

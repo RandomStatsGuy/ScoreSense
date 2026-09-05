@@ -76,8 +76,10 @@ test("live draft invite copy is members-only", () => {
   assert.match(draftInviteRailHint(), /already belong/i);
   assert.equal(draftLobbyHeroHeading(), "Lock a night, then start the draft.");
   assert.equal(draftLobbyHeroHeading({ locked: true }), "Draft night is locked. Fill the room.");
+  assert.equal(draftLobbyHeroHeading({ locked: true, roomFull: true }), "Room is full. Draft night is locked.");
   assert.match(draftLobbyHeroSupport(), /locks the overlap/i);
   assert.match(draftLobbyHeroSupport({ locked: true }), /claimed seats/i);
+  assert.match(draftLobbyHeroSupport({ locked: true, roomFull: true }), /Every seat is claimed/i);
   assert.match(draftInviteWhatHappens(), /already has their team/i);
 });
 

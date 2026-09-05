@@ -27,7 +27,7 @@ test("roster table action cells stay table-cells so header and body share a grid
 
 test("My Team roster columns declare a shared header/body layout", () => {
   const table = block(".hub-roster-builder .hub-roster-table");
-  assert.match(table, /table-layout:\s*fixed/);
+  assert.match(table, /table-layout:\s*auto/);
 
   for (const cls of [
     "hub-roster-col-player",

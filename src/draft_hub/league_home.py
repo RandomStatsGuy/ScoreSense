@@ -344,21 +344,29 @@ def _build_actions(
 
     if phase_id == PHASE_PRE_DRAFT and pre_draft:
         must_extend = list(pre_draft.get("must_extend") or [])
+        dropping = list(pre_draft.get("dropping_at_draft") or [])
         expiring = list(pre_draft.get("expiring_before_draft") or must_extend)
         n = len(expiring)
         if n:
+            must_n = len(must_extend)
+            drop_n = len(dropping)
+            parts = []
+            if must_n:
+                parts.append(f"{must_n} to extend")
+            if drop_n:
+                parts.append(f"{drop_n} expiring")
             actions.append(
                 _action(
                     "expiring_contracts",
                     severity="high" if must_extend else "medium",
-                    message=(
+                    message=" · ".join(parts) if parts else (
                         f"Review {n} expiring contract{'s' if n != 1 else ''}"
                     ),
                     href="roster",
                     count=n,
                     meta={
-                        "must_extend": len(must_extend),
-                        "dropping_at_draft": len(pre_draft.get("dropping_at_draft") or []),
+                        "must_extend": must_n,
+                        "dropping_at_draft": drop_n,
                     },
                 )
             )
@@ -465,6 +473,8 @@ def _week_summary_for_home(
         return {
             "available": True,
             "decision_count": int(counts.get("decisions") or 0),
+            "on_bye": int(counts.get("on_bye") or 0),
+            "injured": int(counts.get("injured") or 0),
             "season": (week_payload.get("meta") or {}).get("season"),
             "week": (week_payload.get("meta") or {}).get("week"),
             "headline": (week_payload.get("summary") or {}).get("headline"),

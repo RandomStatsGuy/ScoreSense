@@ -14,6 +14,7 @@ export const HUB_SLUG_TO_ID = {
   game: "game",
   "game-center": "game",
   roster: "roster",
+  "my-team": "roster",
   rosters: "rosters",
   draft: "room",
   cap: "planner",
@@ -192,7 +193,7 @@ export function parseAppPath(pathname) {
         officeTab: "current",
       };
     }
-    const hubSubView = HUB_SLUG_TO_ID[slug] || "value";
+    const hubSubView = HUB_SLUG_TO_ID[slug] || "home";
     return {
       view: "hub",
       projectionsTab: null,
@@ -283,7 +284,7 @@ export function buildAppPath({
       const slug = OFFICE_ID_TO_SLUG[officeTab] || "contracts";
       return `/hub/roster-management/${slug}`;
     }
-    const slug = HUB_ID_TO_SLUG[hubSubView] || "strategy";
+    const slug = HUB_ID_TO_SLUG[hubSubView] || "home";
     return `/hub/${slug}`;
   }
   if (view === "tools") {

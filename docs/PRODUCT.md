@@ -160,7 +160,7 @@ Editorial Fantasy and Tools pages use the shared experience stack:
 `HubExperienceLayout` — main column + sticky summary rail
 `HubExperienceSummary` — “At a glance” facts + primary action
 
-Hero heading and padding use `--experience-hero-heading` and `--experience-hero-pad`. Status chips are not the page primary — do not put “You can edit” or “Need a partner” where Save belongs. The app shell is one `<main id="main-content">` with a skip link.
+Fantasy destinations share one `HubExperienceHero` (eyebrow + heading + band). Home is the exception: the page hero is eyebrow + stepper only, and the heading stays in the Pre-draft card. Tools keep the display H1 + eyebrow pattern. Hero heading and padding use `--experience-hero-heading` and `--experience-hero-pad`. Status chips are not the page primary — do not put “You can edit” or “Need a partner” where Save belongs. Tab strips sit below the hero band. The shared league strip (and Needs attention) shows on Home and idle Draft; live rooms stay board-first. The app shell is one `<main id="main-content">` with a skip link.
 
 Reuse `frontend/src/DraftHub/HubUILayout.jsx`. Do not fork a second hero/summary system.
 
@@ -186,7 +186,7 @@ Weekly and Season projections are a **board**, not a Fantasy decision page.
 - Copy for signals, board reads, and inspector tiles lives in `frontend/src/projectionsPresentation.js`.
 - Phone weekly: one compact sticky bar under the header — position, filter, result count, and the floor–ceiling range stated once. Do not repeat Floor–Ceiling on every card. Hide the collapsed range while a card is open. Reserve the rank-delta slot so card heights stay even.
 - Phone weekly lists are windowed. Do not mount every row.
-- Desktop Free agents virtualizes against page scroll. Do not nest a table scroller.
+- Desktop Free agents, Weekly, and Rosters virtualize against page scroll. Do not nest a table scroller.
 - Movement chips (All / Movers / Risers / Fallers / Attention) live in the filter sheet, not the page body. The sheet owns Position, What changed, and Search; the page keeps an active-filter summary. The sheet has Apply, Reset, a live result count, and Scoring in the footer so it is not clipped.
 - A stale freshness chip is the refresh action and shows a relative time. Do not leave “Context snapshot stale” as dead text.
 

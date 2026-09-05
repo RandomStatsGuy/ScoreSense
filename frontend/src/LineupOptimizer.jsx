@@ -13,6 +13,7 @@ import {
   HubAlert,
   HubAlertStack,
   HubFilterChip,
+  HubFilterMenu,
   HubPage,
   SortTh,
 } from "./DraftHub/HubUILayout";
@@ -864,37 +865,23 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
             </header>
             {activeMeta && season != null && (
               <div className="dfs-field-row">
-                <label className="control-label" htmlFor="dfs-season">
-                  Season
-                  <select
-                    id="dfs-season"
-                    className="control-select"
-                    value={season}
-                    onChange={(e) => handleSeasonChange(e.target.value)}
-                  >
-                    {(activeMeta.seasons || []).map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="control-label" htmlFor="dfs-week">
-                  Week
-                  <select
-                    id="dfs-week"
-                    className="control-select"
-                    value={week ?? ""}
-                    onChange={(e) => {
-                      setWeek(Number(e.target.value));
-                      setSlateSalaries(null);
-                      setImportStats(null);
-                      setSlateMeta(null);
-                    }}
-                  >
-                    {weekOptions.map((w) => (
-                      <option key={w} value={w}>{w}</option>
-                    ))}
-                  </select>
-                </label>
+                <HubFilterMenu
+                  label="Season"
+                  value={String(season)}
+                  options={(activeMeta.seasons || []).map((s) => ({ id: String(s), label: String(s) }))}
+                  onChange={handleSeasonChange}
+                />
+                <HubFilterMenu
+                  label="Week"
+                  value={week == null ? "" : String(week)}
+                  options={weekOptions.map((w) => ({ id: String(w), label: String(w) }))}
+                  onChange={(id) => {
+                    setWeek(Number(id));
+                    setSlateSalaries(null);
+                    setImportStats(null);
+                    setSlateMeta(null);
+                  }}
+                />
                 {isDfs && (
                   <label className="control-label" htmlFor="dfs-cap">
                     Salary cap
@@ -984,7 +971,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                       <div className="dfs-vegas-kick">
                         <span>{vegasKickoffLabel(game.kickoff_et, game.weekday)}</span>
                         {game.game_id === hotGameId && (
-                          <span className="dfs-vegas-hot">Highest total</span>
+                          <span className="dfs-vegas-hot">Highest</span>
                         )}
                       </div>
                       <div className="dfs-vegas-teams">

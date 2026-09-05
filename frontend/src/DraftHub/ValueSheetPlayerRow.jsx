@@ -285,7 +285,7 @@ function ValueSheetPlayerRow({
             playerId={row.player_id}
             playerName={row.player || row.player_name}
             onOpen={onOpenContractHistory}
-            className="btn-link btn-sm"
+            className="btn-ghost btn-sm"
           >
             {PLAYERS_TAB_COPY.history}
           </ContractHistoryLink>

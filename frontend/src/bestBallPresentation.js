@@ -100,7 +100,7 @@ export function formatEcr(value) {
 
 export function formatEdge(value) {
   const num = asNumber(value);
-  if (num == null) return "";
+  if (num == null) return "—";
   const rounded = Math.round(num);
   if (rounded > 0) return `+${rounded}`;
   return String(rounded);

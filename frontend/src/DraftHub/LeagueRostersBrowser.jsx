@@ -18,6 +18,7 @@ import {
 } from "./HubUILayout";
 import { fmtSal } from "./rosterFormat";
 import { seedTradeFromPlayer, seedTradePartner } from "./tradeSeed";
+import { usePageWindowedRows } from "./useWindowedRows";
 import ContractHistoryLink from "./ContractHistoryLink";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 import TeamIdentityMark from "./TeamIdentityMark";
@@ -167,6 +168,14 @@ export default function LeagueRostersBrowser({
     [dealsView, dealRows, block],
   );
   const playerIds = useMemo(() => roster.map((r) => r.player_id).filter(Boolean), [roster]);
+  const windowed = !mobileLayout && roster.length > 24;
+  const { rootRef, range } = usePageWindowedRows(roster.length, {
+    enabled: windowed,
+    rowHeight: 56,
+  });
+  const visibleRoster = windowed ? roster.slice(range.start, range.end) : roster;
+  const topPad = windowed ? range.start * 56 : 0;
+  const bottomPad = windowed ? Math.max(0, roster.length - range.end) * 56 : 0;
   const media = usePlayerMedia(mobileLayout ? [] : playerIds);
   const counts = dealCounts(dealRows);
 
@@ -262,7 +271,7 @@ export default function LeagueRostersBrowser({
   };
 
   const renderDesktopTable = () => (
-    <div className="table-wrap">
+    <div className="table-wrap hub-page-board" ref={rootRef}>
       <table className="data-table hub-table hub-roster-table">
         <caption className="hub-roster-table-caption">{caption}</caption>
         <thead>
@@ -284,7 +293,12 @@ export default function LeagueRostersBrowser({
               </td>
             </tr>
           )}
-          {roster.map((r) => {
+          {topPad > 0 && (
+            <tr aria-hidden="true">
+              <td colSpan={7} style={{ height: topPad, padding: 0, border: 0 }} />
+            </tr>
+          )}
+          {visibleRoster.map((r) => {
             const gradeText = contractGradeText(r);
             const ownerTeamId = r.ownerTeamId || teamId;
             return (
@@ -321,6 +335,11 @@ export default function LeagueRostersBrowser({
               </tr>
             );
           })}
+          {bottomPad > 0 && (
+            <tr aria-hidden="true">
+              <td colSpan={7} style={{ height: bottomPad, padding: 0, border: 0 }} />
+            </tr>
+          )}
         </tbody>
       </table>
     </div>

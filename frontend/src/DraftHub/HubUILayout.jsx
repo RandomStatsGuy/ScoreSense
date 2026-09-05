@@ -207,7 +207,7 @@ export function HubFilterChip({
   );
 }
 
-export function HubFilterMenu({ label, value, options, onChange, className = "" }) {
+export function HubFilterMenu({ label, value, options, onChange, className = "", disabled = false }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const hoverCapable = useRef(
@@ -233,9 +233,9 @@ export function HubFilterMenu({ label, value, options, onChange, className = "" 
   return (
     <div
       ref={ref}
-      className={`hub-filter-menu${open ? " is-open" : ""}${className ? ` ${className}` : ""}`}
+      className={`hub-filter-menu${open ? " is-open" : ""}${disabled ? " is-disabled" : ""}${className ? ` ${className}` : ""}`}
       onMouseEnter={() => {
-        if (hoverCapable.current) setOpen(true);
+        if (!disabled && hoverCapable.current) setOpen(true);
       }}
       onMouseLeave={() => {
         if (hoverCapable.current) setOpen(false);
@@ -247,7 +247,10 @@ export function HubFilterMenu({ label, value, options, onChange, className = "" 
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={`${label}: ${display}`}
-        onClick={() => setOpen((v) => !v)}
+        disabled={disabled}
+        onClick={() => {
+          if (!disabled) setOpen((v) => !v);
+        }}
       >
         <span className="hub-filter-menu-kind">{label}</span>
         <span className="hub-filter-menu-value">{display}</span>

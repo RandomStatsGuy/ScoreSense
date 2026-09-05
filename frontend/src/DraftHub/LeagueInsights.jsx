@@ -895,17 +895,26 @@ export default function LeagueInsights({
     });
   };
 
+  const insightsNav = (
+    <div className="hub-insights-sticky">
+      <HubSegmentNav tabs={insightsTabs} active={activeTab} onChange={setActiveTab} ariaLabel="Insights" />
+      <InsightsProgress active={Boolean(loading && !data) || tabLoading} />
+    </div>
+  );
+
   if (loading && !data) {
     return (
       <div className="hub-insights">
-        <div className="hub-insights-sticky">
-          <HubSegmentNav tabs={insightsTabs} active={activeTab} onChange={setActiveTab} ariaLabel="Insights" />
-          <InsightsProgress active />
-        </div>
         {activeTab === "overview" ? (
-          <InsightsOverview loading onOpenTab={setActiveTab} />
+          <InsightsOverview loading onOpenTab={setActiveTab} nav={insightsNav} />
         ) : (
           <HubPage className="hub-spend-page hub-experience-page hub-insights-page">
+            <HubExperienceHero
+              eyebrow={INSIGHTS_COPY.overview.eyebrow}
+              heading={INSIGHTS_COPY.overview.heading}
+              support={INSIGHTS_COPY.overview.support}
+            />
+            {insightsNav}
             <InsightsSkeleton />
           </HubPage>
         )}
@@ -924,21 +933,6 @@ export default function LeagueInsights({
         <DraftRecapPanel recap={data.draft_recap} />
       )}
 
-      <div className="hub-insights-sticky">
-        <HubSegmentNav tabs={insightsTabs} active={activeTab} onChange={setActiveTab} ariaLabel="Insights" />
-        <InsightsProgress active={tabLoading} />
-      </div>
-
-      {activeTab === "ownership" && (
-        <InsightsSeasonBar
-          value={historySeason}
-          seasons={historic.seasons}
-          historic={historic}
-          onChange={onHistorySeasonChange}
-          disabled={loading || tabLoading}
-        />
-      )}
-
       {error && <div className="error">{error}</div>}
 
       {activeTab === "overview" && (
@@ -947,6 +941,7 @@ export default function LeagueInsights({
           ownerMap={ownerMap}
           loading={loading || tabLoading}
           onOpenTab={setActiveTab}
+          nav={insightsNav}
         />
       )}
 
@@ -962,6 +957,7 @@ export default function LeagueInsights({
               <p className="hub-experience-hero-status">{insightsHeroStatus(spendAwardSplit.featured)}</p>
             ) : null}
           </HubExperienceHero>
+          {insightsNav}
 
           <div className="hub-insights-toolbar">
             <InsightsSeasonBar
@@ -1207,6 +1203,7 @@ export default function LeagueInsights({
               <p className="hub-experience-hero-status">{insightsHeroStatus(scoringAwardSplit.featured)}</p>
             ) : null}
           </HubExperienceHero>
+          {insightsNav}
 
           {data?.scoring?.available && (data?.scoring?.available_seasons || scoringSeasonOptions).length > 0 && (
             <div className="hub-insights-season-bar hub-insights-season-bar--scoring">
@@ -1527,6 +1524,14 @@ export default function LeagueInsights({
             heading={INSIGHTS_COPY.history.heading}
             support={INSIGHTS_COPY.history.support}
             chip={historyLabel}
+          />
+          {insightsNav}
+          <InsightsSeasonBar
+            value={historySeason}
+            seasons={historic.seasons}
+            historic={historic}
+            onChange={onHistorySeasonChange}
+            disabled={loading || tabLoading}
           />
           <header className="hub-section-head hub-section-head--row">
             <div>
