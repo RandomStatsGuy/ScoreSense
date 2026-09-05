@@ -425,6 +425,17 @@ def test_get_nfl_state_allow_stale_never_live_fetches(monkeypatch, tmp_path):
     out = sleeper.get_nfl_state(allow_stale=True)
     assert out["season_type"] == "regular"
 
+    calls: list[str] = []
+
+    def _live(*_a, **_k):
+        calls.append("live")
+        return {"season_type": "pre"}
+
+    monkeypatch.setattr(sleeper, "_fetch_json", _live)
+    live = sleeper.get_nfl_state(use_cache=False)
+    assert live["season_type"] == "pre"
+    assert calls == ["live"]
+
 
 def test_insights_overview_skips_roster_rebuild(hub_client, hub_db, monkeypatch):
     monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)

@@ -114,6 +114,16 @@ export default function LeagueHome({
   const [error, setError] = useState("");
   const [scoring, setScoring] = useState(null);
   const [slowLoad, setSlowLoad] = useState(false);
+  const [prevCacheKey, setPrevCacheKey] = useState(cacheKey);
+  if (cacheKey !== prevCacheKey) {
+    setPrevCacheKey(cacheKey);
+    const cached = getHomeCache(cacheKey);
+    setData(cached?.data || null);
+    setLoading(!cached?.data);
+    setError("");
+    setScoring(null);
+    setSlowLoad(false);
+  }
   const leagueId = hubContext?.mode === "league" ? hubContext?.league_id : null;
 
   const load = useCallback(async (signal) => {

@@ -332,17 +332,23 @@ def get_nfl_state(use_cache: bool = True, *, allow_stale: bool = True) -> dict:
 
     `allow_stale=True` (default) returns the last disk snapshot even when the
     TTL has expired and refreshes in the background. Interactive hub routes
-    must keep this on. Pass `allow_stale=False` only for jobs that need a
-    live calendar.
+    must keep this on. Pass `allow_stale=False` or `use_cache=False` only for
+    jobs that need a live calendar.
     """
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cached = _read_nfl_state_cache() if use_cache else None
+    if not use_cache:
+        state = _fetch_json(SLEEPER_STATE_URL)
+        _write_nfl_state_cache(state)
+        return state
+    cached = _read_nfl_state_cache()
     age = None
-    if use_cache and STATE_CACHE.exists():
+    if STATE_CACHE.exists():
         age = time.time() - STATE_CACHE.stat().st_mtime
     if cached is not None and age is not None and age < STATE_CACHE_TTL_SECONDS:
         return cached
     if allow_stale:
+        # Missing snapshot: return {} and refresh in the background. Hub GET
+        # paths must not wait on Sleeper; jobs pass allow_stale=False.
         _kick_nfl_state_refresh()
         return cached or {}
     state = _fetch_json(SLEEPER_STATE_URL)

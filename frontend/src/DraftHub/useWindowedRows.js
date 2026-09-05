@@ -32,10 +32,11 @@ export function useWindowedRows(count, {
     };
     update();
     scroller.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
+    const observer = new ResizeObserver(update);
+    observer.observe(scroller);
     return () => {
       scroller.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
+      observer.disconnect();
     };
   }, [count, rowHeight, overscan, enabled, scroller]);
 
