@@ -10,7 +10,7 @@ import {
 } from "./draftEntryStatus";
 import { fmtSal } from "./rosterFormat";
 import { DRAFT_ENTRY_COPY } from "./leagueAccessCopy";
-import { HubExperienceHero, HubExperienceLayout, HubExperienceSummary } from "./HubUILayout";
+import { HubExperienceHero, HubExperienceLayout, HubExperienceSummary, HubLoadingSkeleton } from "./HubUILayout";
 
 /**
  * Draft room idle entry: live-draft CTA, with mock drafts in Tools.
@@ -181,22 +181,27 @@ export default function DraftEntryPanel({
               { id: "participants", label: "Participants", value: participants.label },
               { id: "phase", label: "Phase", value: phase.label },
             ]}
-            note={participants.detail}
+            note={participants.detail === "Full" ? undefined : participants.detail}
           />
         )}
       >
-        <article className="hub-experience-section hub-draft-entry-card hub-draft-entry-card--live is-emphasized">
+        <article className={`hub-experience-section hub-draft-entry-card hub-draft-entry-card--live${roomLoading ? "" : " is-emphasized"}`}>
           <header className="hub-draft-entry-card-head">
             <h3>{DRAFT_ENTRY_COPY.liveTitle}</h3>
             <p className="chart-note">{DRAFT_ENTRY_COPY.liveSupport}</p>
           </header>
           <div className="hub-draft-entry-card-actions">
             {leagueId && roomLoading ? (
-              <span className="chart-note">Loading room…</span>
+              <>
+                <HubLoadingSkeleton label="Loading room" rows={2} />
+                <button type="button" className="btn-primary" disabled>
+                  {DRAFT_ENTRY_COPY.liveTitle}
+                </button>
+              </>
             ) : (
               <button
                 type="button"
-                className="btn-ghost"
+                className="btn-primary"
                 disabled={!onNavigate}
                 onClick={() => onNavigate?.("setup")}
               >

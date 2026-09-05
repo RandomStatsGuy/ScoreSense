@@ -436,6 +436,14 @@ export default function RulesWizard({
             </details>
           )}
 
+          {!readOnlyRules && (
+            <div className="hub-rules-sticky-save">
+              <button type="button" className="btn-primary" disabled={saving} onClick={save}>
+                {saving ? "Saving…" : "Save league rules"}
+              </button>
+            </div>
+          )}
+
           {presets.length > 0 && !readOnlyRules && (
             <details className="hub-rules-templates">
               <summary>Start over from a league template</summary>

@@ -495,13 +495,12 @@ export default function StrategyBoard({
             </>
           ) : (
             <div className="hub-strategy-empty-wrap">
-              <p className="hub-strategy-empty">{COPY.emptyPair}</p>
+              <p className="hub-strategy-empty">
+                {posFilter === "ALL" ? COPY.emptyPairAll : COPY.emptyPair}
+              </p>
               <div className="hub-strategy-toolbar-actions">
                 <button type="button" className="btn btn-ghost" onClick={resetSeen}>
                   {COPY.resetSeen}
-                </button>
-                <button type="button" className="btn btn-primary" onClick={() => setPage("rankings")}>
-                  {COPY.viewRankings}
                 </button>
               </div>
             </div>

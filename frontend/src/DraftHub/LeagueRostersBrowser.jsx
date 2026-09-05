@@ -5,7 +5,7 @@ import useMobileLayout from "../useMobileLayout";
 import MobileDataList, { MobileStat } from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
-import { HubExperienceHero, HubFilterScroll, HubPage, HubTableCard } from "./HubUILayout";
+import { HubExperienceHero, HubFilterScroll, HubLoadingSkeleton, HubPage, HubPageSticky, HubTableCard } from "./HubUILayout";
 import { fmtSal } from "./rosterFormat";
 import { seedTradeFromPlayer, seedTradePartner } from "./tradeSeed";
 import ContractHistoryLink from "./ContractHistoryLink";
@@ -191,11 +191,11 @@ export default function LeagueRostersBrowser({
         chip={overview?.teams?.length ? formatCount(overview.teams.length, "manager") : undefined}
       />
       {error && <div className="error">{error}</div>}
-      {loading && !overview && <p className="chart-note">Loading league rosters…</p>}
+      {loading && !overview && <HubLoadingSkeleton label="Loading league rosters" rows={4} />}
 
       {overview && (
         <div className="hub-roster-owner-layout">
-          {ownerRail}
+          {mobileLayout ? <HubPageSticky>{ownerRail}</HubPageSticky> : ownerRail}
           <div className="hub-roster-owner-main">
           <div className="hub-roster-browser-toolbar">
             {block?.team && (

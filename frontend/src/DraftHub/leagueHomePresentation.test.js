@@ -12,6 +12,7 @@ import {
   homeHeroHeading,
   homeHeroSupport,
   homeMatchupNote,
+  homeStandingHasGap,
   phaseTrackState,
   resolveLeagueHomeFocus,
   supportingLeagueHomeActions,
@@ -147,6 +148,9 @@ test("home deck helpers format empty scores and keep the viewer in standings", (
     "Week 3 opponent TBD",
   );
   assert.equal(HOME_DECK_COPY.linkSleeper, "Link Sleeper to fill scores.");
+  assert.equal(homeStandingHasGap({ rank: 4 }, { rank: 10 }), true);
+  assert.equal(homeStandingHasGap({ rank: 3 }, { rank: 4 }), false);
+  assert.equal(HOME_DECK_COPY.clearChat, "Clear chat");
   assert.equal(HOME_DECK_COPY.lockerTitle, "League chat");
   assert.match(HOME_DECK_COPY.lockerNote, /follows you/i);
   assert.doesNotMatch(HOME_DECK_COPY.lockerNote, /Draft Hub|Submit|permission/i);

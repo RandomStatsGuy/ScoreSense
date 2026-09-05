@@ -121,6 +121,7 @@ test("login and create account resolve to the session pages", () => {
 test("shared tokens include the product spacing rhythm", () => {
   assert.ok(SHARED.tokens.includes("frontend/src/styles/product-rhythm.css"));
   assert.ok(SHARED.tokens.includes("frontend/src/styles/tokens.css"));
+  assert.ok(SHARED.tokens.includes("frontend/src/styles/fantasy-phone.css"));
 });
 
 test("shared mobile chrome resolves from the header files", () => {

@@ -64,18 +64,20 @@ export default function MobilePlayerCard({
               ) : null}
               {titleNode || <span className="mobile-player-card-name">{name}</span>}
               {badge}
+              {hasExpand ? (
+                <span className="mobile-player-card-chevron" aria-hidden="true">
+                  {open ? "▴" : "▾"}
+                </span>
+              ) : null}
             </div>
             {meta ? <span className="mobile-player-card-meta">{meta}</span> : null}
           </div>
           <div className={`mobile-player-card-hero${heroMuted ? " mobile-player-card-hero--muted" : ""}`}>
             <span className="mobile-player-card-hero-value">{heroValue}</span>
-            {heroLabel ? <span className="mobile-player-card-hero-label">{heroLabel}</span> : null}
-            {heroSub ? <span className="mobile-player-card-hero-sub">{heroSub}</span> : null}
-            {hasExpand ? (
-              <span className="mobile-player-card-chevron" aria-hidden="true">
-                {open ? "▴" : "▾"}
-              </span>
+            {heroLabel ? (
+              <span className="mobile-player-card-hero-label">{heroLabel}</span>
             ) : null}
+            {heroSub ? <span className="mobile-player-card-hero-sub">{heroSub}</span> : null}
           </div>
         </button>
         {aside ? <div className="mobile-player-card-aside">{aside}</div> : null}
