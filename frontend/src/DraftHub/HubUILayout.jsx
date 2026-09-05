@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import HoverTip from "../HoverTip";
-import { sortIndicator } from "./valueSheetUtils";
 
 /** Sortable column header shared by hub tables. */
 export function SortTh({ label, sub, col, sortKey, sortDir, onSort, className = "", title, tip }) {
@@ -8,15 +7,17 @@ export function SortTh({ label, sub, col, sortKey, sortDir, onSort, className = 
   const tipContent = tip || title;
   const classes = `sortable-header${active ? " sort-active" : ""}${tipContent ? " col-tip" : ""} ${className}`.trim();
   const ariaSort = active ? (sortDir === "asc" ? "ascending" : "descending") : "none";
-  const indicator = (
-    <span className="sort-indicator" aria-hidden="true"> {sortIndicator(sortKey, sortDir, col)}</span>
-  );
+  const indicator = active ? (
+    <span className="sort-indicator" data-dir={sortDir} aria-hidden="true" />
+  ) : null;
   const body = (
-    <>
-      <span className="sortable-header-label">{label}</span>
+    <span className="sortable-header-stack">
+      <span className="sortable-header-label">
+        {label}
+        {indicator}
+      </span>
       {sub ? <span className="sortable-header-sub">{sub}</span> : null}
-      {indicator}
-    </>
+    </span>
   );
 
   if (tipContent) {
@@ -44,9 +45,9 @@ export function SortTh({ label, sub, col, sortKey, sortDir, onSort, className = 
   );
 }
 
-export function HubPage({ className = "", children }) {
+export function HubPage({ className = "", children, style }) {
   return (
-    <section className={`hub-page panel wide hub-panel${className ? ` ${className}` : ""}`}>
+    <section className={`hub-page panel wide hub-panel${className ? ` ${className}` : ""}`} style={style}>
       {children}
     </section>
   );
@@ -118,9 +119,13 @@ export function HubFilterScroll({ children, className = "" }) {
   return <div className={`hub-filter-scroll${className ? ` ${className}` : ""}`}>{children}</div>;
 }
 
-export function HubPageSticky({ children, className = "" }) {
-  return <div className={`hub-page-sticky${className ? ` ${className}` : ""}`}>{children}</div>;
-}
+export const HubPageSticky = React.forwardRef(function HubPageSticky({ children, className = "" }, ref) {
+  return (
+    <div ref={ref} className={`hub-page-sticky${className ? ` ${className}` : ""}`}>
+      {children}
+    </div>
+  );
+});
 
 export function HubLoadingSkeleton({ label = "Loading", rows = 3 }) {
   return (

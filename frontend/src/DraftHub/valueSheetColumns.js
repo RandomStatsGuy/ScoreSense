@@ -1,7 +1,7 @@
 /** Centralized Draft Hub player-table columns by draft mode. */
 
 export const PICK_DRAFT_SORT_OPTIONS = [
-  { id: "season_proj", label: "Projected points" },
+  { id: "season_proj", label: "Season points" },
   { id: "season_p10", label: "Floor" },
   { id: "season_p90", label: "Ceiling" },
   { id: "pos_rank", label: "Positional rank" },
@@ -12,7 +12,7 @@ export const PICK_DRAFT_SORT_OPTIONS = [
 export const AUCTION_SORT_OPTIONS = [
   { id: "fair_value", label: "Suggested bid" },
   { id: "risk_score", label: "Risk score" },
-  { id: "season_proj", label: "Projected points" },
+  { id: "season_proj", label: "Season points" },
   { id: "season_spread", label: "Season spread" },
   { id: "upside_skew", label: "Upside skew" },
   { id: "value_delta", label: "Vs cost" },
@@ -32,7 +32,7 @@ const COL = {
   player: { id: "player", label: "Player", className: "col-player" },
   team: { id: "team", label: "Team", className: "hub-col-team" },
   pos: { id: "position", label: "Pos", className: "hub-col-pos" },
-  proj: { id: "season_proj", label: "Projected pts", className: "hub-col-proj" },
+  proj: { id: "season_proj", label: "Season pts", className: "hub-col-proj" },
   perGame: { id: "per_game_proj", label: "Per-game", className: "hub-col-pg" },
   spread: { id: "season_spread", label: "Spread", className: "hub-col-spread" },
   p10: { id: "season_p10", label: "P10", className: "hub-col-p10" },
@@ -65,6 +65,7 @@ export function columnsForDraftMode({
   showAdd = false,
   showSelect = false,
   riskActive = false,
+  foldTier = false,
 } = {}) {
   const actionCol = Boolean(showAdd || showSelect || draftConsole);
   const columns = [COL.player];
@@ -90,7 +91,7 @@ export function columnsForDraftMode({
     columns.push(COL.fairValue);
     if (draftConsole || advanced || riskActive) columns.push(COL.risk);
     if (showDelta) columns.push(COL.delta);
-    columns.push(COL.tier);
+    if (!foldTier) columns.push(COL.tier);
   }
 
   if (showStatus) columns.push(COL.status);

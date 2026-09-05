@@ -89,6 +89,9 @@ function SlotCard({ slot, decision, wide, movement, canEdit, selected, onSelect,
           <div className="hub-wcc-slot-proj">
             <span className="hub-wcc-slot-p50">
               {player.has_projection === false ? "—" : fmtPts(player.p50)}
+              {player.has_projection === false ? null : (
+                <span className="hub-wcc-slot-unit">{WEEK_BOARD_COPY.ptsUnit}</span>
+              )}
             </span>
             {wide ? (
               <span className="hub-wcc-slot-range">

@@ -18,20 +18,27 @@ export default function SeasonRangeCell({
   rowIndex = 0,
   digits = 0,
   showBar = true,
+  showRangeText = false,
   className = "",
 }) {
   const band = resolveSeasonBand(row, { method, gamesPerSeason });
   const tip = seasonRangeTooltip(band.method, { preliminary: band.preliminary });
   const hasRange = band.p10 != null && band.p90 != null && band.p50 != null;
+  const inline = showRangeText && !showBar;
 
   return (
     <div
-      className={`season-range-cell${band.preliminary ? " season-range-cell--preliminary" : ""}${className ? ` ${className}` : ""}`}
+      className={`season-range-cell${inline ? " season-range-cell--inline" : ""}${band.preliminary ? " season-range-cell--preliminary" : ""}${className ? ` ${className}` : ""}`}
       title={tip}
     >
       <span className="season-range-cell-p50 num-proj">
         {formatSeasonPts(band.p50, digits)}
       </span>
+      {hasRange && showRangeText ? (
+        <span className="season-range-cell-span">
+          {formatSeasonPts(band.p10, digits)}–{formatSeasonPts(band.p90, digits)}
+        </span>
+      ) : null}
       {hasRange && showBar ? (
         <div className="season-range-cell-bar">
           <QuantileBar

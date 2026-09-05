@@ -90,7 +90,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 | Vibes | `vibes` | Swipe each roster player once a day; front card is the matchup; info arrow opens bio and latest news; lean Vibe ranking rail; VA-projections (vibe-adjusted week, including K and DEF) as the table |
 | Game center | `game` | Your matchup live, league scoreboard, week trophies |
 | My team | `roster` | Personal contracts |
-| Free agents | `available` | Add / bid / locked by calendar |
+| Free agents | `available` | Add / bid / locked by calendar. Rows always show Bid or Add; when locked, disable with Adds open after the draft. Hide Vs cost until a contract cost exists. Desktop virtualizes on page scroll. Season pts use a number plus text range. How adds work lives in the acquisition banner. |
 | Rosters | `rosters` | League-wide roster reference |
 | Cap | `planner` | Cap leftover after a cut or bid. The move input sits above the fold; hero and At a glance keep the current leftover. |
 | Trades | `trades` | Propose and accept. Experience hero names the cap-bust cost. Rosters franchise headers deep-link here with the partner preselected. Zero partners → Invite managers on Members. |
@@ -180,6 +180,7 @@ Weekly and Season projections are a **board**, not a Fantasy decision page.
 - Copy for signals, board reads, and inspector tiles lives in `frontend/src/projectionsPresentation.js`.
 - Phone weekly: one compact sticky bar under the header — position, filter, result count, and the floor–ceiling range stated once. Do not repeat Floor–Ceiling on every card. Hide the collapsed range while a card is open. Reserve the rank-delta slot so card heights stay even.
 - Phone weekly lists are windowed. Do not mount every row.
+- Desktop Free agents virtualizes against page scroll. Do not nest a table scroller.
 - Movement chips (All / Movers / Risers / Fallers / Attention) live in the filter sheet, not the page body. The sheet owns Position, What changed, and Search; the page keeps an active-filter summary. The sheet has Apply, Reset, a live result count, and Scoring in the footer so it is not clipped.
 - A stale freshness chip is the refresh action and shows a relative time. Do not leave “Context snapshot stale” as dead text.
 
@@ -229,7 +230,9 @@ Home names the manager’s roster hole over a commissioner invite when both are 
 ## Interaction and accessibility
 
 - Primary action stays visible (summary rail or sticky footer).
-- Disable a button only with a reason next to it.
+- Disable a button only with a reason next to it. Free agents rows always show Bid or Add; when the window is locked, disable the control with Adds open after the draft — do not omit the action.
+- Hide Vs cost until a contract cost exists.
+- Fantasy tables label the projection scale (Season pts vs Week pts) and use a number plus text range on decision boards.
 - Validate before save. Failed saves keep edits.
 - Unsaved changes warn before navigation.
 - Success is a contained confirmation, not a modal.

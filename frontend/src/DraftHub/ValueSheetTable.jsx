@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
-import HoverTip, { TipLine, TipTitle } from "../HoverTip";
+import { TipLine, TipTitle } from "../HoverTip";
 import { TableSkeletonBody } from "../TableSkeleton";
 import useMobileLayout from "../useMobileLayout";
 import MobileDataList, { MobileStat } from "../MobileDataList";
@@ -16,6 +16,7 @@ import {
   formatStatusLabel,
   nextSortState,
   pinWatchedPlayers,
+  tierChipClass,
 } from "./valueSheetUtils";
 import { HubPage, HubPageSticky, HubTableCard, HubFilterMenu, HubFilterChip, SortTh, HubAlert } from "./HubUILayout";
 import { HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
@@ -23,10 +24,11 @@ import ValueSheetPlayerRow from "./ValueSheetPlayerRow";
 import ContractHistoryLink from "./ContractHistoryLink";
 import { columnsForDraftMode, positionalRanks, sortLabelForKey } from "./valueSheetColumns";
 import {
+  PLAYERS_TAB_COPY,
+  playersTabAddDisabledReason,
   playersTabAddLabel,
   playersTabAddMode,
   playersTabBanner,
-  playersTabLockedChip,
 } from "./acquisitionWindow";
 import { vsCostCell } from "./capPlannerPresentation";
 import {
@@ -47,7 +49,7 @@ import {
 } from "../riskAdjustedValue";
 import RaavBidCell from "./RaavBidCell";
 import { suggestedBidSubLabel } from "./suggestedBidLabel.js";
-import { useWindowedRows, WINDOW_AFTER } from "./useWindowedRows";
+import { AVAILABLE_ROW_HEIGHT, useWindowedRows, WINDOW_AFTER } from "./useWindowedRows";
 
 const TIERS = ["ALL", "Elite", "Tier 1", "Tier 2", "Tier 3", "Depth"];
 const POSITIONS = HUB_POSITION_FILTERS;
@@ -83,7 +85,7 @@ const VALUE_VS_COST_TIP = (
 );
 const PROJECTED_POINTS_TIP = (
   <>
-    <TipTitle>Projected points</TipTitle>
+    <TipTitle>Season points</TipTitle>
     <TipLine>
       Median season fantasy points with a floor–ceiling band. Use it to compare production before bidding.
     </TipLine>
@@ -91,7 +93,7 @@ const PROJECTED_POINTS_TIP = (
 );
 const PROJECTED_POINTS_TIP_PICK = (
   <>
-    <TipTitle>Projected points</TipTitle>
+    <TipTitle>Season points</TipTitle>
     <TipLine>
       Median season fantasy points with a floor–ceiling band. Use it to compare production before you pick.
     </TipLine>
@@ -152,7 +154,8 @@ export default function ValueSheetTable({
       ? (pickDraft ? "Pick" : `Nominate for $${Number(minBid || 1)}`)
       : "Nominate");
   const addMode = playersTabAddMode(acquisitionWindow, { inLeague, draftConsole });
-  const addEnabled = showAdd && addMode !== "hidden" && addMode !== "locked";
+  const addVisible = showAdd && addMode !== "hidden";
+  const addEnabled = addVisible && addMode !== "locked";
   const playersBanner = !draftConsole && inLeague ? playersTabBanner(acquisitionWindow) : null;
   const valueColLabel = "Suggested bid";
   const isAvailableView = mode === "available";
@@ -187,15 +190,16 @@ export default function ValueSheetTable({
       compact,
       advanced: showAdvanced,
       draftConsole,
-      showDelta: showDelta && (anyCostDelta || (isAvailableView && preDraft)),
+      showDelta: showDelta && anyCostDelta,
       // Free agents shows only available players — a Status column of identical
       // "Free agent" labels is noise there.
       showStatus: showStatus && !isAvailableView,
-      showAdd: addEnabled,
+      showAdd: addVisible,
       showSelect: Boolean(onSelectPlayer),
       riskActive: activeRisk,
+      foldTier: isAvailableView,
     }),
-    [pickDraft, compact, showAdvanced, draftConsole, showDelta, anyCostDelta, preDraft, showStatus, isAvailableView, addEnabled, onSelectPlayer, activeRisk],
+    [pickDraft, compact, showAdvanced, draftConsole, showDelta, anyCostDelta, showStatus, isAvailableView, addVisible, onSelectPlayer, activeRisk],
   );
   const showRiskScore = schema.showRiskScore;
   const showPosCol = schema.showPosCol;
@@ -278,20 +282,6 @@ export default function ValueSheetTable({
     return { text: label || "preliminary season bands", preliminary: true };
   }, [rows, seasonMethod]);
 
-  const seasonBandsTip = useMemo(() => {
-    const tip = seasonRangeTooltip(seasonMethod, {
-      preliminary: !isScheduleAwareMethod(seasonMethod),
-    });
-    return (
-      <>
-        <TipTitle>
-          {seasonMethodNote?.preliminary ? "Preliminary season bands" : "Season range"}
-        </TipTitle>
-        <TipLine>{tip}</TipLine>
-      </>
-    );
-  }, [seasonMethod, seasonMethodNote]);
-
   const projectedPointsTip = useMemo(() => {
     const bandTip = seasonRangeTooltip(seasonMethod, {
       preliminary: !isScheduleAwareMethod(seasonMethod),
@@ -326,14 +316,32 @@ export default function ValueSheetTable({
     [sorted, maxRows, mobileListLimit],
   );
 
-  const windowed = !mobileLayout && !maxRows && sorted.length > WINDOW_AFTER;
-  const { scrollerRef, range } = useWindowedRows(sorted.length, { enabled: windowed });
+  const pageBoard = isAvailableView && !draftConsole && !mobileLayout && !maxRows;
+  const windowed = pageBoard && sorted.length > WINDOW_AFTER;
+  const { scrollerRef, range } = useWindowedRows(sorted.length, {
+    enabled: windowed,
+    root: "page",
+    rowHeight: AVAILABLE_ROW_HEIGHT,
+  });
   const visibleRows = useMemo(
     () => (windowed ? sorted.slice(range.start, range.end) : sorted),
     [windowed, sorted, range.start, range.end],
   );
-  const topPad = windowed ? range.start * 44 : 0;
-  const bottomPad = windowed ? Math.max(0, sorted.length - range.end) * 44 : 0;
+  const topPad = windowed ? range.start * AVAILABLE_ROW_HEIGHT : 0;
+  const bottomPad = windowed ? Math.max(0, sorted.length - range.end) * AVAILABLE_ROW_HEIGHT : 0;
+  const stickyRef = useRef(null);
+  const [stickyOffset, setStickyOffset] = useState(0);
+
+  useLayoutEffect(() => {
+    if (!pageBoard) return undefined;
+    const el = stickyRef.current;
+    if (!el) return undefined;
+    const apply = () => setStickyOffset(el.offsetHeight);
+    apply();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(apply);
+    observer?.observe(el);
+    return () => observer?.disconnect();
+  }, [pageBoard]);
 
   const sheetPlayerIds = useMemo(
     () => (windowed ? visibleRows : sorted).map((r) => r.player_id).filter(Boolean),
@@ -544,24 +552,37 @@ export default function ValueSheetTable({
 
   const sheetClass = compact ? "hub-panel-compact" : "";
   const Wrapper = draftConsole ? "div" : HubPage;
-  const wrapperClass = draftConsole
-    ? `hub-embedded-sheet${sheetClass ? ` ${sheetClass}` : ""}`
-    : sheetClass;
+  const wrapperClass = [
+    draftConsole ? `hub-embedded-sheet${sheetClass ? ` ${sheetClass}` : ""}` : sheetClass,
+    pageBoard ? "hub-fa-page" : "",
+  ].filter(Boolean).join(" ");
+  const howAddsDetails = (
+    <details className="hub-fa-how-adds">
+      <summary>{PLAYERS_TAB_COPY.howAddsWork}</summary>
+      <div className="hub-fa-how-adds-body">
+        <p>{PLAYERS_TAB_COPY.howAddsBody}</p>
+        {onWatchPlayer ? <p>{PLAYERS_TAB_COPY.starHint}</p> : null}
+      </div>
+    </details>
+  );
 
   return (
-    <Wrapper className={wrapperClass}>
+    <Wrapper
+      className={wrapperClass}
+      style={pageBoard ? { "--hub-fa-sticky-offset": `${stickyOffset}px` } : undefined}
+    >
       {!hideHeader && !hideIntro && (
         <HubTabIntro
           title={panelTitle}
           compact={compact}
-          learnMoreLabel={isAvailableView ? "How adds work" : "Contract rules"}
+          learnMoreLabel={isAvailableView ? PLAYERS_TAB_COPY.howAddsWork : "Contract rules"}
           purpose={purpose || (compact ? null : (
             isAvailableView
               ? "Players not under contract. Bid or add when the window is open. Before the draft, pickups go through the live room or you miss them."
               : "Star names you want first. Compare suggested bids so you do not overpay a rostered player."
           ))}
           audience={audience}
-          learnMore={(showCostDelta || activeRisk || onWatchPlayer) && !compact && !mobileLayout ? (
+          learnMore={!isAvailableView && (showCostDelta || activeRisk || onWatchPlayer) && !compact && !mobileLayout ? (
             <>
               {onWatchPlayer ? (
                 <p>
@@ -584,12 +605,17 @@ export default function ValueSheetTable({
         />
       )}
       {playersBanner ? (
-        <HubAlert variant={playersBanner.variant}>
+        <HubAlert
+          variant={playersBanner.variant}
+          action={howAddsDetails}
+        >
           <strong>{playersBanner.label}.</strong>
           {" "}
           {playersBanner.text}
         </HubAlert>
-      ) : null}
+      ) : (isAvailableView && !compact ? (
+        <div className="hub-fa-how-adds-fallback">{howAddsDetails}</div>
+      ) : null)}
       {!draftConsole && !isAvailableView && statusFilter === "TAKEN" ? (
         <HubAlert variant="info">
           <strong>Rostered now.</strong>
@@ -602,21 +628,24 @@ export default function ValueSheetTable({
 
       {!hideHeader && !mobileLayout && (
         <div className="hub-page-meta">
-          {panelSub}
-          {sleeperLinked ? ` · ${sleeper.sleeper_team_name || "Sleeper linked"}` : ""}
+          <span>{panelSub}</span>
+          {sleeperLinked ? (
+            <span>{` · ${sleeper.sleeper_team_name || "Sleeper linked"}`}</span>
+          ) : null}
           {seasonMethodNote ? (
-            <>
-              {" · "}
-              <HoverTip content={seasonBandsTip} className="hub-page-meta-tip">
-                {seasonMethodNote.text}
-              </HoverTip>
-            </>
+            <span
+              title={seasonRangeTooltip(seasonMethod, {
+                preliminary: !isScheduleAwareMethod(seasonMethod),
+              })}
+            >
+              {` · ${seasonMethodNote.text}`}
+            </span>
           ) : null}
           {activeRisk && !pickDraft ? ` · ${riskToleranceLabel(riskTolerance)} bids` : ""}
         </div>
       )}
 
-      <HubPageSticky>
+      <HubPageSticky ref={pageBoard ? stickyRef : undefined}>
       <div className={`hub-filter-bar${compact ? " hub-filter-bar--compact" : ""}`}>
         <input
           type="search"
@@ -828,8 +857,9 @@ export default function ValueSheetTable({
                 </button>,
               );
             }
-            if (addEnabled && !inRoster && !showSelect) {
+            if (addVisible && !inRoster && !showSelect) {
               const taken = r.status === "taken";
+              const locked = addMode === "locked";
               const label = addingId === r.player_id
                 ? (addMode === "bid" ? "Bidding…" : "Adding…")
                 : playersTabAddLabel(addMode, { taken, isCommissioner });
@@ -838,9 +868,11 @@ export default function ValueSheetTable({
                   key="add"
                   type="button"
                   className="btn-ghost btn-sm"
-                  disabled={actionsDisabled || addingId === r.player_id}
-                  title={taken && !isCommissioner && addMode !== "bid" ? "Already on another roster" : undefined}
-                  onClick={() => addPlayer(r)}
+                  disabled={actionsDisabled || addingId === r.player_id || locked}
+                  title={locked
+                    ? playersTabAddDisabledReason(addMode)
+                    : (taken && !isCommissioner && addMode !== "bid" ? "Already on another roster" : undefined)}
+                  onClick={locked ? undefined : () => addPlayer(r)}
                 >
                   {label}
                 </button>,
@@ -853,28 +885,14 @@ export default function ValueSheetTable({
                   playerId={r.player_id}
                   playerName={r.player || r.player_name}
                   onOpen={onOpenContractHistory}
-                />,
+                >
+                  {PLAYERS_TAB_COPY.history}
+                </ContractHistoryLink>,
               );
             }
 
-            const lockedPickup = isAvailableView && addMode === "locked";
             const rawBid = r.fair_value ?? r.suggested_bid;
             const suggestedBid = rawBid != null && rawBid !== "" ? Number(rawBid) : NaN;
-            const lockedCopy = playersTabLockedChip();
-            if (lockedPickup && onWatchPlayer) {
-              const watching = (watchIds || []).map(String).includes(String(r.player_id));
-              actions.push(
-                <button
-                  key="watch"
-                  type="button"
-                  className="btn-ghost btn-sm"
-                  aria-pressed={watching}
-                  onClick={() => onWatchPlayer(r)}
-                >
-                  {watching ? "Starred" : "Star"}
-                </button>,
-              );
-            }
             return (
               <MobilePlayerCard
                 key={r.player_id || `row-${idx}`}
@@ -894,19 +912,14 @@ export default function ValueSheetTable({
                 onSelect={onSelectPlayer ? () => onSelectPlayer(r) : undefined}
                 badge={(
                   <>
-                    {lockedPickup ? (
-                      <details className="hub-fa-locked" onClick={(e) => e.stopPropagation()}>
-                        <summary className="hub-fa-locked-chip">{lockedCopy.label}</summary>
-                        <p className="hub-fa-locked-pop">{lockedCopy.popover}</p>
-                      </details>
-                    ) : null}
+                    {r.tier ? <span className={tierChipClass(r.tier)}>{r.tier}</span> : null}
                     {r.is_rookie ? <span className="hub-sleeper-badge">Rookie est.</span> : null}
                   </>
                 )}
                 expanded={(
                   <div className="mobile-stat-grid">
                     <MobileStat
-                      label="Projected pts"
+                      label={PLAYERS_TAB_COPY.seasonPts}
                       value={formatSeasonPts(band.p50, 0)}
                       title={rangeTip}
                     />
@@ -981,8 +994,11 @@ export default function ValueSheetTable({
         )}
         </>
       ) : (
-      <div className="table-wrap table-sticky" ref={scrollerRef}>
-        <table className={`data-table hub-table${pickDraft ? " hub-table--pick-draft" : ""}${preDraft ? " hub-table--pre-draft" : ""}`}>
+      <div
+        className={pageBoard ? "hub-fa-board" : "table-wrap table-sticky"}
+        ref={scrollerRef}
+      >
+        <table className={`data-table hub-table${pickDraft ? " hub-table--pick-draft" : ""}${preDraft ? " hub-table--pre-draft" : ""}${isAvailableView ? " hub-table--available" : ""}`}>
           <thead>
             <tr>
               <SortTh label="Player" col="player" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="col-player" />
@@ -993,7 +1009,7 @@ export default function ValueSheetTable({
                 <SortTh label="Pos" col="position" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-pos" />
               )}
               <SortTh
-                label="Projected pts"
+                label={PLAYERS_TAB_COPY.seasonPts}
                 col="season_proj"
                 sortKey={sortKey}
                 sortDir={sortDir}
@@ -1122,6 +1138,8 @@ export default function ValueSheetTable({
                   showValueRange={showValueRange}
                   showFairValue={showFairValue}
                   showTier={schema.showTier}
+                  foldTier={isAvailableView}
+                  inlinePts={isAvailableView}
                   showPosRank={schema.showPosRank}
                   showNeed={schema.showNeed}
                   showP10={schema.showP10}
@@ -1140,7 +1158,7 @@ export default function ValueSheetTable({
                   preDraft={preDraft}
                   remainingCap={remainingCap}
                   showStatus={schema.showStatus}
-                  showAdd={addEnabled}
+                  showAdd={addVisible}
                   addMode={addMode}
                   showSelect={showSelect}
                   showRiskScore={showRiskScore}
