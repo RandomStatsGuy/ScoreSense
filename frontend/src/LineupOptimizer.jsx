@@ -1291,7 +1291,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                       className={`${out ? "lineup-row-out" : ""}${inLineup ? " is-in-lineup" : ""}`.trim()}
                       unavailable={out}
                       name={row.Player}
-                      meta={[row.Position, row.Team, inLineup ? DFS_POOL_COPY.inLineup].filter(Boolean).join(" · ") || "—"}
+                      meta={[row.Position, row.Team, inLineup ? DFS_POOL_COPY.inLineup : null].filter(Boolean).join(" · ") || "—"}
                       heroValue={fmtNum(row["Projected Points"])}
                       heroLabel="proj"
                       badge={(
