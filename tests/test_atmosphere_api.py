@@ -229,6 +229,11 @@ def test_identity_media_serves_snapped_webp_variant(hub_db):
     with Image.open(BytesIO(variant.content)) as img:
         assert img.size[0] == 96
 
-    fake = client.get(f"/api/hub/media/{media_id}?w=22")
-    assert fake.status_code == 200
-    assert fake.content == variant.content
+        same = client.get(f"/api/hub/media/{media_id}?w=96")
+        assert same.status_code == 200
+        assert same.content == variant.content
+        tiny = client.get(f"/api/hub/media/{media_id}?w=22")
+        assert tiny.status_code == 200
+        assert tiny.headers["content-type"] == "image/webp"
+        with Image.open(BytesIO(tiny.content)) as img:
+            assert img.size[0] == 48
