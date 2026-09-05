@@ -6,7 +6,9 @@ import {
   formatHomeScore,
   HOME_DECK_COPY,
   HOME_PAGE_COPY,
+  homeDeckMode,
   homeDeckStandingRows,
+  homeHasPendingCuts,
   homeHeroHeading,
   homeHeroSupport,
   homeMatchupNote,
@@ -79,6 +81,48 @@ test("known action labels use concrete verbs", () => {
   assert.equal(actionLabel({ id: "lineup_decisions" }), "Set lineup");
   assert.equal(actionLabel({ id: "invite_managers" }), "Invite managers");
   assert.equal(actionLabel({ id: "mark_availability" }), "Mark times");
+  assert.equal(actionLabel({ id: "roster_hole" }), "Open draft room");
+});
+
+test("home hero names the roster hole over empty seats", () => {
+  const hole = {
+    id: "roster_hole",
+    message: "You draft with 0 RBs under contract. $178 to spend.",
+    href: "room",
+  };
+  const invite = { id: "invite_managers", message: "Invite 9 managers to claim a team", href: "room" };
+  const focus = resolveLeagueHomeFocus({
+    actions: [hole, invite],
+    primaryCta: { label: "Draft plan", view: "value" },
+    validViews,
+  });
+  assert.equal(focus.id, "roster_hole");
+  assert.equal(focus.label, "Open draft room");
+  assert.equal(supportingLeagueHomeActions([hole, invite], focus)[0].id, "invite_managers");
+  assert.equal(
+    homeHeroHeading({ actions: [hole, invite], seating: { open_seats: 9 } }),
+    hole.message,
+  );
+  assert.match(homeHeroSupport({ actions: [hole] }), /wasted nomination|Undo a cut/i);
+  assert.equal(homeHasPendingCuts({ pre_draft: { pending_cuts_count: 1 } }), true);
+  assert.equal(HOME_PAGE_COPY.undoCut, "Undo a cut");
+  assert.match(HOME_PAGE_COPY.loadingFallback, /Still loading cap/i);
+});
+
+test("pre-draft home hides an unscored matchup deck", () => {
+  assert.deepEqual(
+    homeDeckMode({ phaseId: "pre_draft", draftCompleted: false, scoring: { placeholder: true } }),
+    { show: false, historical: false },
+  );
+  assert.deepEqual(
+    homeDeckMode({
+      phaseId: "pre_draft",
+      draftCompleted: false,
+      scoring: { placeholder: false, standings: [{ rank: 1 }], week: 1 },
+    }),
+    { show: true, historical: true },
+  );
+  assert.equal(HOME_PAGE_COPY.lastSeason, "Last season");
 });
 
 test("home deck helpers format empty scores and keep the viewer in standings", () => {

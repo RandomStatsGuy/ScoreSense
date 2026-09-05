@@ -11,9 +11,15 @@ from datetime import datetime, timezone
 from typing import Any
 
 from src.draft_hub import storage
+from src.draft_hub.draft_budgets import occupying_roster
 from src.draft_hub.hub_context import list_roster_for_context
 from src.draft_hub.hub_freshness import league_data_freshness
 from src.draft_hub.pre_draft_cap import cap_summary_for_phase, pre_draft_cap_summary
+from src.draft_hub.rules_engine import (
+    normalize_position,
+    roster_limits,
+    salary_roster_limits_relaxed,
+)
 from src.draft_hub.schemas import LeagueRules
 from src.integrations.sleeper import get_nfl_state
 
@@ -37,7 +43,9 @@ _PRIMARY_CTA = {
 }
 
 # Priority order for action center (lower = higher priority).
+# roster_hole beats commissioner invite / cap chrome when the occupying roster fails mins.
 _ACTION_PRIORITY = {
+    "roster_hole": 5,
     "cap_overage": 10,
     "draft_night": 12,
     "invite_managers": 14,
@@ -149,6 +157,53 @@ def _status_line(ctx: dict[str, Any], phase: dict[str, Any]) -> str:
     return f"{league_name} · {phase['label']}"
 
 
+def _pos_count_label(have: int, pos: str) -> str:
+    if have == 1:
+        return f"1 {pos}"
+    return f"{have} {pos}s"
+
+
+def _roster_hole_action(
+    rules: LeagueRules,
+    roster: list[dict[str, Any]],
+    cap: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Worst occupying-roster min failure — manager job, not commissioner invite."""
+    if salary_roster_limits_relaxed(rules):
+        return None
+    occupying = occupying_roster(rules, roster or [], draft_completed=False)
+    counts: dict[str, int] = {}
+    for row in occupying:
+        pos = normalize_position(row.get("position") or "")
+        if pos:
+            counts[pos] = counts.get(pos, 0) + 1
+    holes: list[tuple[int, int, str, int]] = []
+    for key, lim in roster_limits(rules).items():
+        min_n = int(lim.get("min") or 0)
+        if min_n <= 0:
+            continue
+        pos = key.upper()
+        have = int(counts.get(pos, 0))
+        if have < min_n:
+            holes.append((have, -(min_n - have), pos, min_n))
+    if not holes:
+        return None
+    holes.sort()
+    have, _, pos, min_n = holes[0]
+    remaining = cap.get("remaining")
+    remaining_txt = ""
+    if remaining is not None:
+        remaining_txt = f" ${int(round(float(remaining)))} to spend."
+    return _action(
+        "roster_hole",
+        severity="high",
+        message=f"You draft with {_pos_count_label(have, pos)} under contract.{remaining_txt}",
+        href="room",
+        count=min_n - have,
+        meta={"position": pos, "have": have, "min": min_n},
+    )
+
+
 def _action(
     action_id: str,
     *,
@@ -188,9 +243,16 @@ def _build_actions(
     availability_state: str | None = None,
     availability_marked: bool = False,
     is_commissioner: bool = False,
+    rules: LeagueRules | None = None,
+    roster: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
     phase_id = phase["id"]
+
+    if phase_id == PHASE_PRE_DRAFT and rules is not None:
+        hole = _roster_hole_action(rules, roster or [], cap)
+        if hole:
+            actions.append(hole)
 
     remaining = float(cap.get("remaining") or 0)
     if remaining < 0:
@@ -358,6 +420,8 @@ def _attention_line(actions: list[dict[str, Any]], freshness: dict[str, Any]) ->
             parts.append(f"{n} lineup decision{'s' if n != 1 else ''}")
         elif aid == "draft_night":
             parts.append("draft night upcoming")
+        elif aid == "roster_hole":
+            parts.append(item.get("message") or "roster hole before the draft")
         elif aid == "invite_managers":
             n = item.get("count") or 0
             parts.append(f"{n} manager{'s' if n != 1 else ''} still need to claim")
@@ -527,6 +591,8 @@ def build_league_home(
         availability_state=availability_state,
         availability_marked=availability_marked,
         is_commissioner=bool(ctx.get("is_commissioner")),
+        rules=rules,
+        roster=roster,
     )
     attention_line = _attention_line(actions, freshness)
 
@@ -591,6 +657,14 @@ def build_league_home(
                 "must_extend_count": len(pre_draft.get("must_extend") or []),
                 "dropping_at_draft_count": len(pre_draft.get("dropping_at_draft") or []),
                 "expiring_before_draft_count": len(pre_draft.get("expiring_before_draft") or []),
+                "pending_cuts_count": len(pre_draft.get("pending_cuts") or []),
+                "pending_cuts": [
+                    {
+                        "player_id": row.get("player_id"),
+                        "player_name": row.get("player_name"),
+                    }
+                    for row in (pre_draft.get("pending_cuts") or [])
+                ],
                 "draft_budget_available": pre_draft.get("draft_budget_available"),
                 "season_committed": pre_draft.get("season_committed"),
                 "dead_cap": pre_draft.get("dead_cap"),

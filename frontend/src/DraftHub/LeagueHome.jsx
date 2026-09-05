@@ -14,7 +14,9 @@ import {
   formatHomeScore,
   HOME_DECK_COPY,
   HOME_PAGE_COPY,
+  homeDeckMode,
   homeDeckStandingRows,
+  homeHasPendingCuts,
   homeHeroHeading,
   homeHeroSupport,
   homeMatchupNote,
@@ -101,6 +103,7 @@ export default function LeagueHome({
   reloadToken = 0,
   onNavigate,
   onNavigateSetup,
+  onLeagueSync,
 }) {
   const mobileLayout = useMobileLayout();
   const { identities } = useTeamIdentities();
@@ -108,6 +111,7 @@ export default function LeagueHome({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [scoring, setScoring] = useState(null);
+  const [slowLoad, setSlowLoad] = useState(false);
   const leagueId = hubContext?.mode === "league" ? hubContext?.league_id : null;
 
   const load = useCallback(async (signal) => {
@@ -127,6 +131,15 @@ export default function LeagueHome({
       if (!signal?.aborted) setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      setSlowLoad(false);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => setSlowLoad(true), 5000);
+    return () => window.clearTimeout(timer);
+  }, [loading]);
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -179,6 +192,12 @@ export default function LeagueHome({
     ? primaryCta.view
     : null;
   const showPhaseCta = phaseCtaView && phaseCtaView !== focus.view;
+  const pendingCuts = homeHasPendingCuts(data);
+  const deckMode = homeDeckMode({
+    phaseId: phase.id,
+    draftCompleted: hubContext?.draft_completed ?? data?.hub_context?.draft_completed,
+    scoring,
+  });
 
   const projBuilt = freshness.projections?.built_at;
   const projDays = freshness.projections?.days_old;
@@ -195,7 +214,7 @@ export default function LeagueHome({
     () => homeDeckStandingRows(scoring?.standings || [], hubContext?.team_id),
     [scoring?.standings, hubContext?.team_id],
   );
-  const showDeck = Boolean(leagueId && (matchup || standingRows.length));
+  const showDeck = Boolean(deckMode.show && leagueId && (matchup || standingRows.length));
   const placeholder = Boolean(scoring?.placeholder);
   const matchupNote = homeMatchupNote(scoring, matchOpponent);
   const identityTeam = (team) => ({
@@ -247,9 +266,22 @@ export default function LeagueHome({
           <h3>{loading && !data ? HOME_PAGE_COPY.loadingHeading : focus.title}</h3>
           <p className="hub-home-priority-copy">
             {loading && !data
-              ? HOME_PAGE_COPY.loadingSupport
+              ? (slowLoad ? HOME_PAGE_COPY.loadingFallback : HOME_PAGE_COPY.loadingSupport)
               : focus.detail}
           </p>
+          {loading && !data && slowLoad ? (
+            <div className="hub-home-priority-actions">
+              {onLeagueSync && leagueId ? (
+                <button type="button" className="btn-link" onClick={() => onLeagueSync(leagueId)}>
+                  Sync league
+                </button>
+              ) : onNavigate ? (
+                <button type="button" className="btn-link" onClick={() => onNavigate("setup")}>
+                  Sync league
+                </button>
+              ) : null}
+            </div>
+          ) : null}
           {!loading && (
             <div className="hub-home-priority-actions">
               {focus.view && onNavigate ? (
@@ -257,7 +289,11 @@ export default function LeagueHome({
                   {focus.label} <span aria-hidden="true">→</span>
                 </button>
               ) : null}
-              {showPhaseCta && onNavigate ? (
+              {pendingCuts && onNavigate ? (
+                <button type="button" className="btn-link" onClick={() => onNavigate("roster")}>
+                  {HOME_PAGE_COPY.undoCut}
+                </button>
+              ) : showPhaseCta && onNavigate ? (
                 <button type="button" className="btn-link" onClick={() => onNavigate(phaseCtaView)}>
                   {primaryCta.label}
                 </button>
@@ -329,8 +365,8 @@ export default function LeagueHome({
           {matchup && matchViewer && matchOpponent ? (
             <section className="hub-home-deck-card" aria-label={HOME_DECK_COPY.matchupTitle}>
               <header className="hub-home-deck-head">
-                <h3>{HOME_DECK_COPY.matchupTitle}</h3>
-                <span className="chart-note">{matchupNote}</span>
+                <h3>{deckMode.historical ? HOME_PAGE_COPY.lastSeason : HOME_DECK_COPY.matchupTitle}</h3>
+                <span className="chart-note">{deckMode.historical ? HOME_PAGE_COPY.lastSeason : matchupNote}</span>
               </header>
               {[matchViewer, matchOpponent].map((team) => {
                 const parts = gameCenterTeamParts(team);
@@ -361,8 +397,8 @@ export default function LeagueHome({
           {standingRows.length > 0 ? (
             <section className="hub-home-deck-card" aria-label={HOME_DECK_COPY.standingsTitle}>
               <header className="hub-home-deck-head">
-                <h3>{HOME_DECK_COPY.standingsTitle}</h3>
-                <span className="chart-note">{HOME_DECK_COPY.standingsNote}</span>
+                <h3>{deckMode.historical ? HOME_PAGE_COPY.lastSeason : HOME_DECK_COPY.standingsTitle}</h3>
+                <span className="chart-note">{deckMode.historical ? HOME_PAGE_COPY.lastSeason : HOME_DECK_COPY.standingsNote}</span>
               </header>
               <ol className="hub-home-standings">
                 {standingRows.map((row) => {
@@ -398,7 +434,6 @@ export default function LeagueHome({
               <p className="hub-experience-kicker">After that</p>
               <h3 id="hub-home-supporting-title">{HOME_PAGE_COPY.supportingTitle}</h3>
             </div>
-            <span>{supportingActions.length} more</span>
           </header>
           <ol className="hub-home-action-list">
             {supportingActions.map((action) => (

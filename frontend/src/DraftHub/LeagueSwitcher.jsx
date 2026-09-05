@@ -88,6 +88,7 @@ export default function LeagueSwitcher({
   variant = "panel",
   disabled = false,
   hideActiveHero = false,
+  hideCreate = false,
 }) {
   const selectId = useId();
   const searchId = useId();
@@ -169,7 +170,7 @@ export default function LeagueSwitcher({
           ) : (
             <span id={selectId} className="hub-league-context-name">Solo prep</span>
           )}
-          {onCreateLeague ? (
+          {onCreateLeague && !hideCreate ? (
             <button
               type="button"
               className="btn-ghost btn-sm hub-league-switcher-create"

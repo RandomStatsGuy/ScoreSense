@@ -73,6 +73,50 @@ export function availabilityHoursGone() {
   return "Tonight's hours have passed. Pick another night.";
 }
 
+export function availabilityLockHourLabel({ date, hour } = {}) {
+  const day = formatCalendarDay(date);
+  const clock = formatHourLabel(hour);
+  const shortDay = day.split(",")[0] || day;
+  if (!shortDay || !clock) return "Lock this night";
+  return `Lock ${shortDay} ${clock}`;
+}
+
+export function formatLockedNightDisclosure(iso) {
+  if (!iso) return "Move it";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "Move it";
+  const datePart = d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  const timePart = d.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+  return `${datePart} · ${timePart} · Move it`;
+}
+
+const TZ_REGIONS = {
+  "America/New_York": "Eastern",
+  "America/Chicago": "Central",
+  "America/Denver": "Mountain",
+  "America/Los_Angeles": "Pacific",
+  "America/Phoenix": "Arizona",
+  "America/Anchorage": "Alaska",
+  "Pacific/Honolulu": "Hawaii",
+  UTC: "UTC",
+};
+
+export function leagueTimeLabel(timeZone) {
+  const key = String(timeZone || "").trim() || AVAILABILITY_TIMEZONE;
+  const region = TZ_REGIONS[key] || key.replace(/^America\//, "").replace(/_/g, " ");
+  return `League time: ${region}`;
+}
+
+export function availabilityStatusChip({ locked = false, dirty = false } = {}) {
+  if (locked) return "Night locked";
+  if (dirty) return "Unsaved times";
+  return "Times saved";
+}
+
 export function availabilityLockLabel({ locked = false, locking = false } = {}) {
   if (locking) return "Locking…";
   if (locked) return "Locked in";

@@ -192,6 +192,13 @@ def test_league_home_pre_draft_actions(hub_db):
     assert payload["pre_draft"]["expiring_before_draft_count"] >= 1
     assert payload["week_summary"]["available"] is False
     assert any(a["id"] == "invite_managers" for a in payload["actions"])
+    assert any(a["id"] == "roster_hole" for a in payload["actions"])
+    hole = next(a for a in payload["actions"] if a["id"] == "roster_hole")
+    invite = next(a for a in payload["actions"] if a["id"] == "invite_managers")
+    assert hole["priority"] < invite["priority"]
+    assert payload["actions"][0]["id"] == "roster_hole"
+    assert "under contract" in hole["message"]
+    assert hole["href"] == "room"
 
 
 def test_league_home_in_season_lineup_action(hub_db):

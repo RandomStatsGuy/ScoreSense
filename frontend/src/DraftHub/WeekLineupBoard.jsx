@@ -59,7 +59,7 @@ function SlotCard({ slot, decision, wide, movement, canEdit, selected, onSelect,
 
   return (
     <article
-      className={`hub-wcc-slot hub-wcc-slot--${tone}${decision ? " is-swap" : ""}${empty ? " is-empty" : ""}${selected ? " is-target" : ""}${canEdit && !empty ? " is-editable" : ""}`}
+          className={`hub-wcc-slot hub-wcc-slot--${tone}${decision ? " is-swap" : ""}${empty ? " is-empty" : ""}${selected ? " is-target" : ""}${canEdit && !empty ? " is-editable" : ""}${!canEdit ? " is-inert" : ""}`}
       aria-label={label}
       onClick={canEdit && !empty && onSelect ? () => onSelect(slot) : undefined}
     >
@@ -160,6 +160,7 @@ export default function WeekLineupBoard({
   unlinked = false,
   poorCoverage = false,
   loading = false,
+  error = false,
   coverageCopy = null,
   syncedLabel,
   projectionsBuiltAt,
@@ -177,9 +178,10 @@ export default function WeekLineupBoard({
   const wideById = indexByPlayerId(wideRanges);
   const moveById = indexByPlayerId(projectionChanges);
   const swapBenchIds = swapBenchIdSet(decisions);
-  const showOverlay = loadFailed || emptyRoster || (loading && !slots.some((s) => s.player));
+  const hideSlots = loadFailed || error || loading || (emptyRoster && !slots.some((s) => s.player));
+  const showOverlay = hideSlots;
   const overlayCopy = weekBoardOverlayCopy({
-    loadFailed,
+    loadFailed: loadFailed || error,
     loading,
     emptyRoster,
     unlinked,
@@ -226,7 +228,7 @@ export default function WeekLineupBoard({
 
       <div className="hub-wcc-board-stage">
         <div className="hub-wcc-board-grid">
-          {slots.map((slot) => {
+          {hideSlots ? null : slots.map((slot) => {
             const pid = slot.player?.player_id;
             return (
               <SlotCard

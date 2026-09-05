@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../auth";
 import { useAuth } from "../AuthContext";
 import { connectionErrorMessage, parseApiError } from "../format";
@@ -58,6 +59,8 @@ const TABS_NEED_CAP_SHEET = new Set(["planner", "roster", "rosters"]);
 const TABS_NEED_ROSTER = new Set(["home", "setup", "value", "available", "roster", "rosters", "planner", "room", "trades"]);
 
 export default function DraftHub({ subView, onSubViewChange, onHubContextChange, insightTab, onInsightTabChange, officeTab, onOfficeTabChange, onOpenContractHistory, active = true }) {
+  const [searchParams] = useSearchParams();
+  const availablePosFilter = (searchParams.get("needPos") || "ALL").toUpperCase();
   const { authenticated, refreshAuth, hubAuthRequired, hubDemo, ready: authReady, user, termsUrl, privacyUrl, patreonConfigured } = useAuth();
   const [demoMode, setDemoMode] = useState(() => {
     try {
@@ -115,10 +118,11 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     onOfficeTabChange?.(tab);
   }, [setSubView, onOfficeTabChange]);
 
-  const goHubView = useCallback((view) => {
+  const goHubView = useCallback((view, extra) => {
     if (view === "office-access") return goToOfficeTab("access");
     if (view === "office-members") return goToOfficeTab("members");
     if (view === "office") return goToOfficeTab("current");
+    if (extra && typeof extra === "object") return setSubView(view, extra);
     return setSubView(view);
   }, [goToOfficeTab, setSubView]);
 
@@ -136,11 +140,11 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     }
   }, [subView, setSubView, onInsightTabChange, onOfficeTabChange]);
 
-  // Insights/Trades stay mounted (display:none) after first visit so revisits
-  // skip refetch + chart remount. Heavy tabs (value sheet, draft room) still unmount.
+  // Trades/Office stay mounted (display:none) after first visit so revisits
+  // skip refetch. Insights unmounts on leave so Free agents clicks are not ignored.
   const [visitedTabs, setVisitedTabs] = useState(() => new Set());
   useEffect(() => {
-    if (subView !== "insights" && subView !== "trades" && subView !== "office") return;
+    if (subView !== "trades" && subView !== "office") return;
     setVisitedTabs((prev) => {
       if (prev.has(subView)) return prev;
       const next = new Set(prev);
@@ -706,6 +710,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           reloadToken={weekReloadToken}
           onNavigate={goHubView}
           onNavigateSetup={() => setSubView(effectiveCtx?.is_commissioner ? "rules" : "setup")}
+          onLeagueSync={onLeagueSleeperSync}
         />
       )}
 
@@ -780,6 +785,9 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           showAdd
           onWatchPlayer={toggleWatch}
           watchIds={watchIds}
+          defaultPosFilter={availablePosFilter}
+          remainingCap={capSheet?.summary?.remaining ?? capSheet?.remaining}
+          preDraft={!Boolean(effectiveCtx?.draft_completed)}
         />
       )}
 
@@ -899,7 +907,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         </div>
       )}
 
-      {(subView === "insights" || visitedTabs.has("insights")) && effectiveCtx?.mode === "league" && (
+      {subView === "insights" && effectiveCtx?.mode === "league" && (
         <div className={subView === "insights" ? undefined : "app-view-pane-hidden"}>
           <Suspense fallback={<InsightsFallback />}>
             <LeagueInsights

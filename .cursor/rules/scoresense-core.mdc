@@ -36,7 +36,7 @@ Use these labels. Keep internal ids if they already exist.
 | Roster management | `office` | Office, Commissioner |
 | Model accuracy | `model` | Accuracy tab |
 
-Roster management panes: Contracts, Salary sheets, Members, Access & imports. Members is where staff expand or shrink the seat count. A seat is the slot; a manager is the person. Chat is `FantasyChatDock`: a flush edge launcher parked on an edge (expands on hover) you can drag to a new edge that opens a side drawer. Not a pane. The full thread lives on Home as a locker rail. Do not show the launcher on Home. Do not rotate its type. Do not add a Chat destination. Clear chat is staff-only, red, and confirms.
+Roster management panes: Contracts, Salary sheets, Members, Access & imports. Members is where staff expand or shrink the seat count. A seat is the slot; a manager is the person. Chat is `FantasyChatDock`: a flush edge launcher parked on an edge (expands on hover) you can drag to a new edge that opens a side drawer. Not a pane. The full thread lives on Home as a locker rail. Do not show the launcher on Home. Do not rotate its type. Do not add a Chat destination. On phone the launcher defaults to the bottom-right above the tab bar. Clear chat is staff-only, red, and confirms.
 
 Source: `frontend/src/DraftHub/HubSubnav.jsx`, `frontend/src/appNavigation.js`.
 
@@ -52,7 +52,7 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Editorial pages use `HubExperienceHero` + `HubExperienceLayout` + `HubExperienceSummary` from `frontend/src/DraftHub/HubUILayout.jsx`.
 - Before UI work, resolve `frontend/src/livingSurfaces.js` and match that row’s `page` and `copy`. Do not invent chrome.
 - Live draft rooms stay board-first. Do not wrap them in settings chrome.
-- On phone: destination title + one overflow. League name and Needs attention live in that overflow. No stacked brand, context, or tab strips. Weekly and season boards are dense ranking rows. The Attention chip stays on the board toolbar. Compare is one toolbar control, never a checkbox on every card. Idle Draft and Mock share one seat component so the live room inherits it.
+- On phone: destination title + one overflow. A one-row league strip (name + caret; New league / Sync in the caret; Needs attention one line) sits under the picker so heroes stay above the fold. No stacked brand, context, or tab strips. Weekly and season boards are dense ranking rows. The Attention chip stays on the board toolbar. Compare is one toolbar control, never a checkbox on every card. Idle Draft and Mock share one seat component so the live room inherits it.
 - Copy lives in `*Presentation.js` (or an existing copy module). State the decision and the cost of getting it wrong. No slogan that could sit on another app. No “Submit”, no “You do not have permission” (use “Commissioner managed”).
 - Motion 120–200ms. Honor `prefers-reduced-motion`. No sound except opt-in live-draft audio.
 
@@ -69,7 +69,7 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Weekly board rows match across positions. Opportunity, role-up, and commentary live in the inspector, not extra table chips.
 - Player inspector is hero-first: one P50, floor/ceiling inline, one read strip. Do not restore the 2×2 insight grid.
 - One injury mark per weekly row (compact Q / D / P). Never a second status pill under the name.
-- Draft availability shows current and future times only. Commissioners lock a promising overlap as draft night. Idle Draft is the calendar plus a compact room strip — do not stack a second date/time card and a Who is in list on the same scroll. Closed calendar + no locked night: off-calendar lock is the primary. Seating pill is amber below a full room, teal only at 12/12. Home "Not scheduled" links to Draft.
+- Draft availability shows current and future times only. Commissioners lock a promising overlap as draft night, or the tapped hour even when no overlap exists yet. Idle Draft is the calendar plus a compact room strip — do not stack a second date/time card and a Who is in list on the same scroll. Closed calendar + no locked night: off-calendar lock is the primary. Seating pill counts claimed teams and is amber below a full room, teal only at 12/12. Locked night shows in the viewer’s timezone; Draft setup names league time once. Home "Not scheduled" links to Draft. Home names a roster hole over a commissioner invite. This Week hero follows board state — never “No swap worth making” over an error.
 - Suggested bid names scoring and Rules risk posture. Never show "Hub" in UI copy.
 - Teal only for healthy/saved (full room, synced, saved). Red is destructive only — not a P50 delta. Gold is awards only. Chat launcher stays flush to an edge and expands on hover.
 - Seat is the slot; manager is the person. Add a seat only past the seat count. Access & imports is email-assign and the Sleeper link; Draft owns the invite link; the strip owns Sync league.
