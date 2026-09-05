@@ -5,14 +5,20 @@ import {
   MOCK_DRAFT_STORAGE_KEY,
   botCountForTeams,
   buildMockDraftStartBody,
+  formatMockRoomWhen,
   mockDraftDisplayName,
   mockDraftFormatLabel,
+  mockDraftFormatNote,
+  mockDraftHeroCopy,
   mockDraftLaunchSummary,
   mockRoomPhaseKey,
   mockRoomPhaseLabel,
   mockRoomResumeLabel,
+  mockTeamSizeOptions,
   readStoredMockLeagueId,
+  recentMocksForRail,
   resolveMockDraftSeason,
+  resolveMockTeamCount,
   writeStoredMockLeagueId,
 } from "./mockDraftConfig.js";
 
@@ -20,6 +26,53 @@ test("botCountForTeams fills every seat except the user", () => {
   assert.equal(botCountForTeams(12), 11);
   assert.equal(botCountForTeams(8), 7);
   assert.equal(botCountForTeams(2), 1);
+  assert.equal(botCountForTeams(10), 9);
+});
+
+test("hero copy does not promise seat picks or stack a second reassurance", () => {
+  const copy = mockDraftHeroCopy();
+  assert.doesNotMatch(copy.support, /\bsit\b/i);
+  assert.match(copy.support, /does not write your real contracts/i);
+  assert.equal(copy.noteTitle, undefined);
+  assert.match(copy.seatFact(10), /10 seats · you draft from seat 1/);
+  assert.equal(copy.modeLiveSub(9), "You vs 9 bots");
+  assert.equal(copy.modeSimSub, "Skip to the results");
+  assert.equal(copy.recentTitle, "Recent mocks");
+  assert.match(mockDraftFormatNote("salary_cap_auction_v1"), /Overspend/);
+});
+
+test("field size follows the linked league when matching rules", () => {
+  assert.equal(resolveMockTeamCount({ teamCount: 12 }), 12);
+  assert.equal(resolveMockTeamCount({
+    teamCount: 12,
+    leagueTeamCount: 10,
+    followLeague: true,
+  }), 10);
+  assert.deepEqual(mockTeamSizeOptions(10, true), [8, 10, 12]);
+  assert.deepEqual(mockTeamSizeOptions(14, true), [8, 10, 12, 14]);
+
+  const body = buildMockDraftStartBody({
+    teamCount: 12,
+    leagueTeamCount: 10,
+    sourceLeagueId: "lg-1",
+    useLeagueRules: true,
+  });
+  assert.equal(body.team_count, 10);
+  assert.equal(body.bot_count, 9);
+  assert.equal(body.source_league_id, "lg-1");
+});
+
+test("recent mocks rail keeps the last three and formats a date", () => {
+  const rooms = [
+    { league_id: "a" },
+    { league_id: "b" },
+    { league_id: "c" },
+    { league_id: "d" },
+  ];
+  assert.deepEqual(recentMocksForRail(rooms).map((r) => r.league_id), ["a", "b", "c"]);
+  const now = Date.parse("2026-09-05T16:00:00Z");
+  assert.equal(formatMockRoomWhen("2026-09-05T15:10:00Z", now), "50m ago");
+  assert.equal(formatMockRoomWhen("", now), "");
 });
 
 test("buildMockDraftStartBody uses preset when no league overlay", () => {

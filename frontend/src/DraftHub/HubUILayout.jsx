@@ -84,9 +84,15 @@ export function HubAlertStack({ children }) {
   return <div className="hub-alert-stack">{children}</div>;
 }
 
-export function HubAlert({ variant = "warn", children, action }) {
+export function HubAlert({ variant = "warn", children, action, live, role }) {
+  const resolvedRole = role || (variant === "danger" ? "alert" : "status");
+  const resolvedLive = live || (resolvedRole === "alert" ? "assertive" : "polite");
   return (
-    <div className={`hub-alert hub-alert--${variant}`} role="status">
+    <div
+      className={`hub-alert hub-alert--${variant}`}
+      role={resolvedRole}
+      aria-live={resolvedLive}
+    >
       <span className="hub-alert-text">{children}</span>
       {action ? <span className="hub-alert-action">{action}</span> : null}
     </div>
@@ -252,10 +258,13 @@ export function HubFilterMenu({ label, value, options, onChange, className = "" 
               type="button"
               role="option"
               aria-selected={value === opt.id}
-              className={`hub-filter-menu-option${value === opt.id ? " is-active" : ""}`}
+              className={`hub-filter-menu-option${value === opt.id ? " is-active" : ""}${opt.detail ? " has-detail" : ""}`}
               onClick={() => pick(opt.id)}
             >
-              {opt.label}
+              <span className="hub-filter-menu-option-label">{opt.label}</span>
+              {opt.detail ? (
+                <span className="hub-filter-menu-option-detail">{opt.detail}</span>
+              ) : null}
             </button>
           ))}
         </div>
@@ -266,13 +275,12 @@ export function HubFilterMenu({ label, value, options, onChange, className = "" 
 
 export function HubSegmentNav({ tabs, active, onChange, ariaLabel = "Sections" }) {
   return (
-    <nav className="hub-segment-nav" role="tablist" aria-label={ariaLabel}>
+    <nav className="hub-segment-nav" aria-label={ariaLabel}>
       {tabs.map((tab) => (
         <button
           key={tab.id}
           type="button"
-          role="tab"
-          aria-selected={active === tab.id}
+          aria-current={active === tab.id ? "true" : undefined}
           className={`hub-segment-nav-btn${active === tab.id ? " active" : ""}`}
           onClick={() => onChange(tab.id)}
         >
@@ -296,17 +304,26 @@ export function HubExperienceHero({
   support,
   chip,
   chipTone = "active",
+  chipAs = "chip",
+  compact = false,
   children,
 }) {
+  const statusChip = chip && chipAs === "status";
+  const pillChip = chip && chipAs !== "status";
   return (
-    <header className="hub-experience-hero">
+    <header className={`hub-experience-hero${compact ? " is-compact" : ""}`}>
       <div>
         {eyebrow ? <span className="hub-experience-eyebrow">{eyebrow}</span> : null}
-        {heading ? <h2>{heading}</h2> : null}
+        {heading ? <h1>{heading}</h1> : null}
         {support ? <p>{support}</p> : null}
+        {statusChip ? (
+          <p className={`hub-experience-hero-status${chipToneClass(chipTone)}`} role="status">
+            {chip}
+          </p>
+        ) : null}
         {children}
       </div>
-      {chip ? (
+      {pillChip ? (
         <span className={`hub-experience-chip${chipToneClass(chipTone)}`}>
           {chip}
         </span>
@@ -315,16 +332,48 @@ export function HubExperienceHero({
   );
 }
 
-export function HubExperienceLayout({ children, summary, summaryLabel = "At a glance" }) {
+export function HubExperienceLayout({ children, summary, summaryLabel = "At a glance", footer }) {
   return (
-    <div className="hub-experience-layout">
+    <div className={`hub-experience-layout${footer ? " has-footer" : ""}`}>
       <div className="hub-experience-main">{children}</div>
       {summary ? (
         <aside className="hub-experience-summary" aria-label={summaryLabel}>
           {summary}
         </aside>
       ) : null}
+      {footer ? <div className="hub-experience-footer">{footer}</div> : null}
     </div>
+  );
+}
+
+function SummaryItems({ items = [] }) {
+  if (!Array.isArray(items) || !items.length) return null;
+  return (
+    <dl>
+      {items.map((item) => {
+        const valueClass = [
+          item.tone ? `hub-experience-summary-value--${item.tone}` : "",
+          item.muted ? "is-quiet" : "",
+        ].filter(Boolean).join(" ");
+        const value = item.href ? (
+          <a className="btn-link" href={item.href}>{item.value}</a>
+        ) : item.onClick ? (
+          <button type="button" className="btn-link" onClick={item.onClick}>{item.value}</button>
+        ) : item.value;
+        return (
+          <div
+            key={item.id || item.label}
+            className={item.muted ? "is-quiet" : undefined}
+          >
+            <dt>{item.label}</dt>
+            <dd className={valueClass || undefined}>{value}</dd>
+            {item.hint ? (
+              <p className="hub-experience-summary-hint">{item.hint}</p>
+            ) : null}
+          </div>
+        );
+      })}
+    </dl>
   );
 }
 
@@ -333,31 +382,36 @@ export function HubExperienceSummary({
   title,
   subtitle,
   items = [],
+  groups,
   note,
   action,
+  actionFirst = false,
   status,
 }) {
+  const actionNode = action && actionFirst ? (
+    <div className="hub-experience-summary-action is-first">{action}</div>
+  ) : action;
+  const blocks = Array.isArray(groups) && groups.length
+    ? groups
+    : (items.length ? [{ id: "main", items }] : []);
   return (
     <>
+      {actionFirst ? actionNode : null}
       <div>
         {eyebrow ? <span className="hub-experience-eyebrow">{eyebrow}</span> : null}
         {title ? <h3>{title}</h3> : null}
         {subtitle ? <p>{subtitle}</p> : null}
       </div>
-      {items.length > 0 && (
-        <dl>
-          {items.map((item) => (
-            <div key={item.id || item.label}>
-              <dt>{item.label}</dt>
-              <dd className={item.tone ? `hub-experience-summary-value--${item.tone}` : undefined}>
-                {item.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      )}
+      {blocks.map((block) => (
+        <div key={block.id || block.heading || "main"} className="hub-experience-summary-block">
+          {block.heading ? (
+            <p className="hub-experience-summary-group">{block.heading}</p>
+          ) : null}
+          <SummaryItems items={block.items} />
+        </div>
+      ))}
       {note ? <p className="hub-experience-summary-note">{note}</p> : null}
-      {action}
+      {!actionFirst ? actionNode : null}
       {status}
     </>
   );

@@ -58,10 +58,11 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 
 ## Product rules you may not bypass
 
-- League policy changes apply to **new contracts only** unless a migration exists.
+- League policy changes apply to **new contracts only**. Say that once, next to Save. Do not mention a migration unless a control exists.
+- Applying a league template confirms, names what changes, and fills the form. It does not save. Offer undo until the next edit. Style those triggers as destructive.
 - Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`). Staff Roster management may override; Players-tab adds may not.
 - Do not invent a parallel rules or contract model. Merge/validate via `rulesPresentation.js`. Backend is authoritative.
-- Same player photos on mock boards, nominee cards, rails, and rosters.
+- Same player photos on mock boards, nominee cards, rails, and rosters. Hub media and remote photos request the painted size (`?w=48/96/256`). Do not ship the studio original on every page.
 - New work reuses destinations, chrome, and tokens. Do not start a new aesthetic.
 - Fantasy lists people by **owner name**. Team nicknames may sit underneath or after a middot. Never show a team nickname as the only identity when an owner is known.
 - This-week player notes are Sleeper locker or practice plus an optional projection delta. Do not bake YouTube show copy as current-week narrative.
@@ -69,13 +70,22 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Weekly board rows match across positions. Opportunity, role-up, and commentary live in the inspector, not extra table chips.
 - Player inspector is hero-first: one P50, floor/ceiling inline, one read strip. Do not restore the 2×2 insight grid.
 - One injury mark per weekly row (compact Q / D / P). Never a second status pill under the name.
-- Draft availability shows current and future times only. Commissioners lock a promising overlap as draft night, or the tapped hour even when no overlap exists yet. Idle Draft is the calendar plus a compact room strip — do not stack a second date/time card and a Who is in list on the same scroll. Closed calendar + no locked night: off-calendar lock is the primary. Seating pill counts claimed teams and is amber below a full room, teal only at 12/12. Locked night shows in the viewer’s timezone; Draft setup names league time once. Home "Not scheduled" links to Draft. Home names a roster hole over a commissioner invite. This Week hero follows board state — never “No swap worth making” over an error. Gate hero copy on load. Empty slots say Empty; Waiting on roster is the missing-roster rail. Game center unscored state is “No scores yet”, not Waiting.
+- Draft availability shows current and future times only. Commissioners lock a promising overlap as draft night, or the tapped hour even when no overlap exists yet. Idle Draft is the calendar plus a compact room strip — do not stack a second date/time card and a Who is in list on the same scroll. Closed calendar + no locked night: off-calendar lock is the primary. Seating pill counts claimed teams and is amber below a full room, teal only at 12/12. Locked night shows in the viewer’s timezone; Draft setup names league time once. Home "Not scheduled" links to Draft. Home names a roster hole over a commissioner invite. This Week hero follows board state — never “No swap worth making” over an error. Gate hero copy on load. Hero states the lineup-call count once. Empty slots say Empty; Waiting on roster is the missing-roster rail. Swap cards are attention amber with a Start action; wide range is a quiet marker, never a card-wide amber border or primary blue. Refresh projections sits on the freshness line. Bench uses the same cards and spans under the rail. Name the Vibes / VA-projections number. Game center unscored state is “No scores yet”, not Waiting. Pre-draft Game center names draft night and Open draft room. Standings share Home’s last-season records and stay unranked until a game is played. Gold marks a claimed week trophy. Sync league is the routine strip action; New league is a quieter create control.
 - Suggested bid names scoring and Rules risk posture. Never show "Hub" in UI copy.
 - Free agents rows always show Bid or Add; when locked, disable with Adds open after the draft. Hide Vs cost until a contract cost exists. Desktop Free agents virtualizes on page scroll. Season pts use a number plus text range. How adds work lives in the acquisition banner.
+- Rosters defaults to the league-wide Overpay/Bargain list; the manager rail is the drill-down (free cap · expiring · worst overpay). Ten managers is a picker, not a swipe strip. Contract judgment is the word alone when the dollar delta is zero. Expire chips say Extendable, never a question.
+- Mock draft field size follows the linked league when matching that league's rules. Recent mocks live on the launch rail.
+- Best ball: leftmost # is monotonic; Pos rank groups by position; missing ECR is a No ECR chip/filter, never a dash; Edge names ±10 in copy (teal discount, `--tone-negative` reach, never amber); labeled Pos / ECR / Sort menus; page-owned windowed scroll; Scoring: PPR; no roadmap notes in user copy.
+- On Cap, leftover plus against-cap (salary + dead) equals the cap, and every figure names what it counts. After-this-move leftover sits next to the cut and bid.
 - Teal only for healthy/saved (full room, synced, saved). Red is destructive only — not a P50 delta. Gold is awards only. Chat launcher stays flush to an edge and expands on hover.
+- Insights Overview sells titles, records, and career points — not Spend. Rank bars share a fixed track and a field scale. Award names live on Roster management. Insights tabs stay live while cards skeleton. Hero chips are status only.
 - Seat is the slot; manager is the person. Add a seat only past the seat count. Access & imports is email-assign and the Sleeper link; Draft owns the invite link; the strip owns Sync league.
 - Mark draft complete is a Contracts red confirm. Setup shows status only.
+- Roster management · Contracts accumulates writes in a pending-changes tray. Drop executes on save. Extend to keep is teal, Expires — FA is amber, Cut is red. The pane switcher is the four pills only.
 - Transactional SMS is opt-in only. Phone lives on the account. SMS is never a league invite. Privacy and Terms must name the vendor, non-sharing of mobile numbers, frequency, and “message and data rates may apply.”
+- Trades cap line is **current roster** salary. My team **{season} committed** is draft-surviving salary. Do not use one "committed" for both.
+- Auto-check every trade package and gate Propose on a pass. The verdict is a colored live status banner next to the primary.
+- Ideas need chips are starter-thin positions only. Extra depth (6 RB) is surplus, not a need.
 
 ## Living surfaces
 

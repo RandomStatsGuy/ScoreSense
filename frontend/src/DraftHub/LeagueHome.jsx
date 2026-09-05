@@ -7,7 +7,15 @@ import { HubAlert, HubLoadingSkeleton, HubPage } from "./HubUILayout";
 import LeagueChat from "./LeagueChat";
 import TeamIdentityMark from "./TeamIdentityMark";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
-import { findViewerMatchup, gameCenterTeamParts, matchupTeams } from "./gameCenterPresentation";
+import {
+  findViewerMatchup,
+  formatStandingRank,
+  formatStandingRecord,
+  gameCenterTeamParts,
+  interpretStandings,
+  scoresArePlaceholder,
+  matchupTeams,
+} from "./gameCenterPresentation";
 import { hubTeamLabel } from "./hubTeamLabel";
 import {
   actionLabel,
@@ -231,12 +239,19 @@ export default function LeagueHome({
     () => matchupTeams(matchup),
     [matchup],
   );
+  const standingsView = useMemo(
+    () => interpretStandings(scoring, {
+      phaseId: phase.id,
+      draftCompleted: hubContext?.draft_completed ?? data?.hub_context?.draft_completed,
+    }),
+    [scoring, phase.id, hubContext?.draft_completed, data?.hub_context?.draft_completed],
+  );
   const standingRows = useMemo(
-    () => homeDeckStandingRows(scoring?.standings || [], hubContext?.team_id),
-    [scoring?.standings, hubContext?.team_id],
+    () => homeDeckStandingRows(standingsView.standings, hubContext?.team_id),
+    [standingsView.standings, hubContext?.team_id],
   );
   const showDeck = Boolean(deckMode.show && leagueId && (matchup || standingRows.length));
-  const placeholder = Boolean(scoring?.placeholder);
+  const placeholder = scoresArePlaceholder(scoring, hubContext);
   const matchupNote = homeMatchupNote(scoring, matchOpponent);
   const identityTeam = (team) => ({
     id: team?.hub_team_id || team?.roster_id,
@@ -371,7 +386,7 @@ export default function LeagueHome({
 
       {showDeck ? (
         <div className="hub-home-deck">
-          {placeholder ? (
+          {placeholder && !deckMode.historical && scoring?.reason === "no_sleeper_league" ? (
             <HubAlert
               variant="info"
               action={goSetup ? (
@@ -433,7 +448,9 @@ export default function LeagueHome({
                     <li
                       className={row.hub_team_id && String(row.hub_team_id) === String(hubContext?.team_id) ? "is-you" : ""}
                     >
-                      <span className="hub-home-standing-rank">{row.rank}</span>
+                      <span className="hub-home-standing-rank">
+                        {formatStandingRank(row, { ranked: standingsView.ranked })}
+                      </span>
                       <span className="hub-home-standing-name">
                         {parts.owner || parts.team || row.team_name}
                         {parts.owner && parts.team ? (
@@ -441,7 +458,7 @@ export default function LeagueHome({
                         ) : null}
                       </span>
                       <span className="hub-home-standing-rec">
-                        {row.wins}–{row.losses}{row.ties ? `–${row.ties}` : ""}
+                        {formatStandingRecord(row)}
                       </span>
                     </li>
                   </React.Fragment>

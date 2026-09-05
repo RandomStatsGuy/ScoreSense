@@ -15,6 +15,7 @@ import { DRAFT_ENTRY_COPY, draftLobbyHeroHeading } from "./DraftHub/leagueAccess
 import { INSIGHTS_COPY } from "./DraftHub/insights/insightsPresentation.js";
 import { ROSTERS_COPY } from "./DraftHub/leagueRostersPresentation.js";
 import { TRADES_COPY } from "./DraftHub/leagueTradesPresentation.js";
+import { OFFICE_CONTRACTS_COPY } from "./DraftHub/officeContractsPresentation.js";
 import { RULES_COPY } from "./DraftHub/rulesPresentation.js";
 import { STRATEGY_RANK_COPY } from "./DraftHub/strategyRankPresentation.js";
 import { VIBE_COPY } from "./DraftHub/vibeRankingsPresentation.js";
@@ -90,11 +91,14 @@ test("page heroes name a decision, not a slogan", () => {
   assert.match(weekHeroCopy({ decisionCount: 1 }).support, /leave those points|sit the wrong/i);
   assert.match(RULES_COPY.support, /old deals|strands/i);
   assert.match(dfsHeroCopy({ isDfs: true }).support, /leave salary|lose/i);
+  assert.match(bestBallHeroCopy().support, /discount|reach/i);
+  assert.doesNotMatch(bestBallHeroCopy().support, /until a real ADP/i);
 });
 
 test("nested presentation blobs stay off slogan phrases", () => {
   const blob = flatten({
     HOME_PAGE_COPY,
+    OFFICE_CONTRACTS_COPY,
     INSIGHTS_COPY,
     VIBE_COPY,
     STRATEGY_RANK_COPY,

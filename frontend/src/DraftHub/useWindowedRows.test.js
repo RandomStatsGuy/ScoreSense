@@ -23,3 +23,9 @@ test("page-board window keeps a short slice at 52px rows", () => {
   assert.ok(range.end < 50, `expected a window, got end=${range.end}`);
   assert.ok(AVAILABLE_ROW_HEIGHT < 60);
 });
+
+test("windowRange from a page-relative offset still windows a 643-row board", () => {
+  const range = windowRange(643, 0, 900, 44, 12);
+  assert.equal(range.start, 0);
+  assert.ok(range.end < 80);
+});
