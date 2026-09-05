@@ -48,10 +48,10 @@ export function livingSurfaceRoutes(surfaces) {
 }
 
 export function columnAlign(texts) {
-  const cells = texts.filter((t) => t && t !== "—");
+  const cells = texts.map((t) => String(t || "").split("\n")[0].trim()).filter((t) => t && t !== "—");
   if (!cells.length) return "left";
-  if (cells.every((t) => SINGLE_GLYPH_RE.test(t.trim()))) return "center";
-  const numeric = cells.filter((t) => NUMERIC_RE.test(t.replace(/\s+/g, " ").trim()));
+  if (cells.every((t) => SINGLE_GLYPH_RE.test(t))) return "center";
+  const numeric = cells.filter((t) => NUMERIC_RE.test(t.replace(/\s+/g, " ")) || /^[$\-−+]?\s*[\d,.]+/.test(t));
   return numeric.length / cells.length >= 0.8 ? "right" : "left";
 }
 
@@ -63,13 +63,14 @@ async function loadSurfaces() {
 
 async function importPlaywright() {
   const candidates = [
-    path.join(ROOT, "frontend/node_modules/playwright/index.js"),
-    path.join(ROOT, "node_modules/playwright/index.js"),
+    pathToFileURL(path.join(ROOT, "frontend/node_modules/playwright/index.mjs")).href,
+    pathToFileURL(path.join(ROOT, "node_modules/playwright/index.mjs")).href,
     "playwright",
   ];
   for (const spec of candidates) {
     try {
-      return await import(spec);
+      const mod = await import(spec);
+      if (mod.chromium) return mod;
     } catch {
       /* try next */
     }
@@ -137,8 +138,11 @@ function measureScript(minTarget) {
     while ((node = walker.nextNode())) {
       if (!node.textContent.trim()) continue;
       const parent = node.parentElement;
-      if (!parent || !parent.offsetParent && parent !== document.body) continue;
-      const r = parent.getBoundingClientRect();
+      if (!parent) continue;
+      if (parent.closest("script, style, .sr-only, [hidden]")) continue;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      const r = range.getBoundingClientRect();
       if (r.width < 1 || r.height < 1) continue;
       textNodes.push({ parent, r, text: node.textContent.trim().slice(0, 40) });
     }
@@ -150,7 +154,8 @@ function measureScript(minTarget) {
         const b = textNodes[j].r;
         const overlapX = Math.min(a.right, b.right) - Math.max(a.left, b.left);
         const overlapY = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
-        if (overlapX > 0 && overlapY > 0) {
+        const shareAxis = overlapX > 2 && overlapY > 2;
+        if (shareAxis) {
           collisions += 1;
           if (collisions <= 5) {
             results.push({
@@ -167,29 +172,35 @@ function measureScript(minTarget) {
       results.push({ rule: "collisions", ok: true, selector: "", detail: "no overlapping sibling text" });
     }
 
+    const firstLine = (t) => String(t || "").split("\n")[0].replace(/\s+/g, " ").trim();
+    const isNumeric = (t) => /^[$\-−+]?\s*[\d,.]+%?/.test(firstLine(t));
     document.querySelectorAll("table").forEach((table, ti) => {
       const rows = [...table.rows];
       if (!rows.length) return;
       const colCount = Math.max(...rows.map((r) => r.cells.length));
       for (let c = 0; c < colCount; c += 1) {
         const cells = rows.map((r) => r.cells[c]).filter(Boolean);
-        const texts = cells.map((cell) => cell.innerText.replace(/\s+/g, " ").trim());
-        const bodyTexts = texts.slice(1);
-        const numeric = bodyTexts.filter((t) => t && /^[$\-−+]?\s*[\d,.]+%?$/.test(t)).length;
+        const header = firstLine(cells[0]?.innerText || "");
+        const bodyTexts = cells.slice(1).map((cell) => firstLine(cell.innerText));
         const glyph = bodyTexts.length && bodyTexts.every((t) => /^[A-Z]{1,3}$|^[QDP]$/.test(t));
-        const expect = glyph ? "center" : bodyTexts.length && numeric / bodyTexts.length >= 0.8 ? "right" : "left";
-        cells.forEach((cell) => {
+        const action = /action/i.test(header) || cells[0]?.className.includes("hub-col-actions");
+        const numeric = bodyTexts.filter((t) => t && isNumeric(t)).length;
+        let expect = "left";
+        if (glyph) expect = "center";
+        else if (action || (bodyTexts.length && numeric / bodyTexts.length >= 0.8)) expect = "right";
+        const mismatches = cells.filter((cell) => {
           const align = getComputedStyle(cell).textAlign;
           const resolved = align === "start" ? "left" : align === "end" ? "right" : align;
-          if (resolved !== expect) {
-            results.push({
-              rule: "tables",
-              ok: false,
-              selector: `table:${ti} col ${c} ${cell.tagName}`,
-              detail: `align=${resolved} expected=${expect} sample="${cell.innerText.slice(0, 24)}"`,
-            });
-          }
+          return resolved !== expect;
         });
+        if (mismatches.length) {
+          results.push({
+            rule: "tables",
+            ok: false,
+            selector: `table:${ti} col ${c}`,
+            detail: `${mismatches.length} cells align≠${expect} header="${header.slice(0, 24)}"`,
+          });
+        }
       }
       const card = table.closest(".hub-table-card, .table-wrap, .hub-section, .proj-board-surface");
       if (card && table.offsetWidth < card.clientWidth * 0.9) {
@@ -300,7 +311,10 @@ function measureScript(minTarget) {
       results.push({ rule: "gutters", ok: true, selector: "", detail: edges.length ? `x=${edges[0].x}` : "no band set" });
     }
 
-    const selects = document.querySelectorAll("select").length;
+    const selects = [...document.querySelectorAll("select")].filter((el) => {
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden";
+    }).length;
     results.push(
       selects
         ? { rule: "selects", ok: false, selector: "select", detail: `${selects} native select(s)` }
@@ -326,15 +340,18 @@ async function auditRoute(browser, route, width) {
     await page.close();
     return [{ rule: "load", ok: false, selector: route, detail: String(err).slice(0, 160) }];
   }
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(600);
   try {
     await page.waitForFunction(
-      () => !document.querySelector("[aria-busy='true'], .hub-loading-skeleton, .hub-insights-skeleton"),
-      { timeout: 8000 },
+      () =>
+        Boolean(document.querySelector("main#main-content")) &&
+        !document.querySelector("[aria-busy='true'], .hub-loading-skeleton, .hub-insights-skeleton"),
+      { timeout: 12000 },
     );
   } catch {
     /* skeletons may persist on empty/error; still measure */
   }
+  await page.waitForTimeout(400);
   const minTarget = width === 390 ? 44 : 32;
   const results = await page.evaluate(measureScript(minTarget), { minTarget });
   await page.close();

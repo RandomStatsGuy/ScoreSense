@@ -4538,10 +4538,26 @@ td.col-opp {
 }
 
 th.col-proj,
+td.num-proj,
+th.col-floor-ceiling,
+td.col-floor-ceiling,
+th.col-per-game,
+td.col-per-game,
+th.col-quantile,
+td.num-quantile {
+  text-align: right;
+}
+
+th.col-proj .sortable-header-stack,
+th.col-floor-ceiling .sortable-header-stack,
+th.col-per-game .sortable-header-stack {
+  align-items: flex-end;
+}
+
+th.col-proj,
 td.num-proj {
   width: var(--col-season-width);
   max-width: 8rem;
-  text-align: right;
   padding-right: 0.75rem;
 }
 
