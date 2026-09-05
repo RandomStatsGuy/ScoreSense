@@ -68,12 +68,12 @@ export function rosSeasonP90(row) {
 
 export async function parseApiError(res, fallback = "Request failed") {
   if (res.status === 502 || res.status === 504 || res.status === 524) {
-    return "This took too long. If you were simulating a mock, open it from Recent mocks — the draft may have finished.";
+    return "This took too long. Reload the page and try again.";
   }
   const text = await res.text();
   if (!text) {
     if (res.status >= 500) {
-      return "The server failed to finish this request. If you were simulating a mock, check Recent mocks.";
+      return "The server failed to finish this request. Reload and try again.";
     }
     return fallback;
   }
@@ -87,7 +87,7 @@ export async function parseApiError(res, fallback = "Request failed") {
     return body.message || text;
   } catch {
     if (res.status >= 500) {
-      return "The server failed to finish this request. If you were simulating a mock, check Recent mocks.";
+      return "The server failed to finish this request. Reload and try again.";
     }
     return text.length > 200 ? fallback : text;
   }

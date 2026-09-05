@@ -69,10 +69,12 @@ test("formatReturnEstimate hides Unknown labels", () => {
 test("parseApiError maps gateway timeouts instead of Request failed", async () => {
   const html = `<html>${"x".repeat(300)}</html>`;
   const msg = await parseApiError(new Response(html, { status: 504 }));
-  assert.match(msg, /too long|Recent mocks/i);
+  assert.match(msg, /too long/i);
+  assert.doesNotMatch(msg, /Recent mocks|League settings/i);
 });
 
 test("parseApiError maps empty 500 bodies", async () => {
   const msg = await parseApiError(new Response("", { status: 500 }));
-  assert.match(msg, /failed to finish|Recent mocks/i);
+  assert.match(msg, /failed to finish|Reload/i);
+  assert.doesNotMatch(msg, /Recent mocks|League settings/i);
 });

@@ -11,6 +11,7 @@ import {
   decisionSwapIds,
   trophyStripCopy,
   weekHeroCopy,
+  weekBoardOverlayCopy,
   weekPrimaryAction,
   weekRailItems,
   weekRailNote,
@@ -118,6 +119,20 @@ test("empty week hero and rail name the missing board, not zeros", () => {
     weekHeroCopy({ emptyRoster: true, unlinked: false }).support,
     /Sync league/i,
   );
+});
+
+test("failed load names the miss and a real next destination", () => {
+  const hero = weekHeroCopy({ loadFailed: true, weekLabel: "Week 1" });
+  assert.equal(hero.heading, "Could not load this week's board.");
+  assert.match(hero.support, /Reload this week|open Draft/i);
+  assert.doesNotMatch(hero.support, /Recent mocks|League settings|No swap/i);
+  assert.equal(weekPrimaryAction({ loadFailed: true }).kind, "retry");
+  assert.equal(weekPrimaryAction({ loadFailed: true }).label, "Reload this week");
+  assert.deepEqual(weekRailItems({ loadFailed: true }).map((i) => i.value), ["Failed", "Locked"]);
+  assert.match(weekRailNote({ loadFailed: true }), /open Draft/i);
+  const overlay = weekBoardOverlayCopy({ loadFailed: true });
+  assert.match(overlay.title, /did not load/i);
+  assert.doesNotMatch(overlay.body, /Recent mocks|League settings/i);
 });
 
 test("populated week hero reports lineup calls", () => {
