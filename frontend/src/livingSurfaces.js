@@ -166,7 +166,8 @@ export const LIVING_SURFACES = Object.freeze({
     label: "Contracts",
     chrome: "office",
     page: "frontend/src/DraftHub/CommissionerLeagueRosters.jsx",
-    doNot: "Staff may override. Players-tab adds may not. Mark draft complete is a red confirm here — not an unlabeled Setup checkbox.",
+    copy: "frontend/src/DraftHub/officeContractsPresentation.js",
+    doNot: "Staff may override. Players-tab adds may not. Mark draft complete is a red confirm here — not an unlabeled Setup checkbox. Writes accumulate in a pending-changes tray; Drop executes on save. Extend to keep is teal, Expires — FA is amber, Cut is red.",
   }),
   "hub.office.historic": S({
     label: "Salary sheets",
@@ -186,7 +187,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "office",
     page: "frontend/src/DraftHub/LeagueOffice.jsx",
     copy: "frontend/src/DraftHub/leagueAccessCopy.js",
-    doNot: "Do not invent a second invite or import chrome. Access & imports is the Sleeper link and email-assign only. It does not copy the Draft invite link. The strip owns Sync league.",
+    doNot: "Do not invent a second invite or import chrome. Access & imports is the Sleeper link and email-assign only. It does not copy the Draft invite link. The strip owns Sync league. Collapse the Sleeper league ID form once the league is linked.",
   }),
   "hub.insights": S({
     label: "Insights",

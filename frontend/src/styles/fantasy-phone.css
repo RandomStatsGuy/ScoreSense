@@ -276,6 +276,28 @@
     display: none;
   }
 
+  .hub-league-rosters {
+    padding-right: 4.25rem;
+    padding-bottom: 7.5rem;
+  }
+
+  .hub-live-contract-stage,
+  .hub-league-team-card-head {
+    padding-right: 3.25rem;
+  }
+
+  .hub-league-team-select {
+    max-width: none;
+  }
+
+  .hub-office-pending-tray {
+    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .hub-office-player-title .mobile-player-card-name {
+    white-space: normal;
+  }
+
   .hub-league-office .hub-tab-intro-title {
     display: none;
   }

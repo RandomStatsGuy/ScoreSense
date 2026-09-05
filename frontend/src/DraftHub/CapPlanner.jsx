@@ -181,10 +181,10 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
       return <span className="hub-sleeper-badge hub-pending-badge">Extension queued</span>;
     }
     if (extendableIds.has(pid)) {
-      return <span className="hub-sleeper-badge hub-expiring-badge">Extend to keep</span>;
+      return <span className="hub-roster-status hub-roster-status--keep">Extend to keep</span>;
     }
     if (droppingIds.has(pid)) {
-      return <span className="hub-sleeper-badge hub-expiring-badge">Expires — FA</span>;
+      return <span className="hub-roster-status hub-roster-status--warn">Expires — FA</span>;
     }
     return null;
   };

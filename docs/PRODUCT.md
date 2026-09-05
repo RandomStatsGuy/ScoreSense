@@ -108,9 +108,11 @@ Source of truth: `frontend/src/DraftHub/hubOfficeTabs.js`.
 
 Contracts · Salary sheets · Members · Access & imports.
 
+The pane switcher is the four pane pills only. Do not inline group labels with the pills.
+
 Members is where staff expand or shrink the seat count. A seat is the slot; a manager is the person. Do not say club, franchise, or team for that object. Add a seat only when expanding past the current seat count — empty seats are claimed from Draft's invite link. Access & imports assigns a named email to one seat; it does not copy the Draft invite link.
 
-Sleeper: Access & imports is the one link. The league strip's Sync league is the one sync. Every other "Sync Sleeper" / "League settings" / "Import Sleeper" control deep-links to those. The sync confirm names what it overwrites.
+Sleeper: Access & imports is the one link. The league strip's Sync league is the one sync. Every other "Sync Sleeper" / "League settings" / "Import Sleeper" control deep-links to those. The sync confirm names what it overwrites. Collapse the Sleeper league ID form once the league is linked. A re-import on Contracts is secondary and names that it overwrites staff edits.
 
 Mark draft complete lives on Contracts as a red confirm. It burns one year on every contract and cannot be undone. Setup shows the status only.
 
@@ -233,6 +235,8 @@ Home names the manager’s roster hole over a commissioner invite when both are 
 - Validate before save. Failed saves keep edits.
 - Unsaved changes warn before navigation.
 - Success is a contained confirmation, not a modal.
+- Roster management · Contracts accumulates edits in a pending-changes tray (Save / Discard). Drop executes on save. Cap inputs validate against remaining room and show the resulting free / dead figures.
+- Contract-state chips: Extend to keep is teal, Expires — FA is amber, Cut is red. Never one green for all three.
 - Motion: 120–200ms, `--ease-standard`. Honor `prefers-reduced-motion`.
 - No sound except live-draft audio, and only as an opt-in.
 - Labels on every field. Errors associated with controls. WCAG AA contrast.

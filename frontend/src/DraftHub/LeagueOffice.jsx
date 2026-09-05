@@ -33,7 +33,6 @@ import {
   sheetsDefaultHint,
   sheetsGuideCopy,
   shouldAutoOpenSheetsGuide,
-  tabsWithGroupLabels,
 } from "./commissionerSections";
 import { liveContractStage } from "./officeCurrentContracts";
 
@@ -441,8 +440,8 @@ export default function LeagueOffice({
   const isCommissioner = Boolean(hubContext?.is_commissioner);
   const tabs = useMemo(() => visibleOfficeTabs(isCommissioner), [isCommissioner]);
   const navItems = useMemo(
-    () => (mobileLayout ? tabs.map((tab) => ({ type: "tab", ...tab })) : tabsWithGroupLabels(tabs)),
-    [tabs, mobileLayout],
+    () => tabs.map((tab) => ({ type: "tab", ...tab })),
+    [tabs],
   );
   const intro = useMemo(() => commissionerIntro(isCommissioner), [isCommissioner]);
   const activeTab = isOfficeTabAllowed(officeTab, isCommissioner)

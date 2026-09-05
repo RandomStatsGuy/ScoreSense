@@ -4,6 +4,7 @@ import { parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
 import MobileDataList from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
+import { OFFICE_CONTRACTS_COPY } from "./officeContractsPresentation";
 
 export default function LeagueSleeperConnect({ leagueId, hubContext, overview, onConnected }) {
   const linkedLeagueId = overview?.league?.sleeper_league_id || hubContext?.sleeper_league_id || "";
@@ -168,11 +169,14 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
       {hasSleeperLink && fullyLinked && !needsFullImport && (
         <div className="hub-sleeper-connected hub-league-sleeper-status">
           <span className="hub-roster-cap-pill hub-roster-cap-pill-ok">
-            Sleeper linked · {linkedCount}/{hubTeamCount} teams
+            {OFFICE_CONTRACTS_COPY.sleeperLinked(linkedCount, hubTeamCount)}
           </span>
-          <button type="button" className="btn-primary" onClick={syncAll} disabled={syncing}>
-            {syncing ? "Syncing…" : "Refresh all teams from Sleeper"}
+          <button type="button" className="btn-ghost" onClick={syncAll} disabled={syncing}>
+            {syncing ? "Syncing…" : OFFICE_CONTRACTS_COPY.refreshAction}
           </button>
+          <p className="chart-note hub-sleeper-refresh-support">
+            {OFFICE_CONTRACTS_COPY.refreshSupport}
+          </p>
         </div>
       )}
 
@@ -184,25 +188,49 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
           <button type="button" className="btn-ghost btn-sm" onClick={() => loadSleeperTeams(linkedLeagueId)} disabled={loading}>
             {loading ? "Loading…" : "Check Sleeper status"}
           </button>
-          <button type="button" className="btn-primary" onClick={syncAll} disabled={syncing}>
-            {syncing ? "Syncing…" : "Refresh all teams from Sleeper"}
+          <button type="button" className="btn-ghost" onClick={syncAll} disabled={syncing}>
+            {syncing ? "Syncing…" : OFFICE_CONTRACTS_COPY.refreshAction}
+          </button>
+          <p className="chart-note hub-sleeper-refresh-support">
+            {OFFICE_CONTRACTS_COPY.refreshSupport}
+          </p>
+        </div>
+      )}
+
+      {!hasSleeperLink && (
+        <div className="hub-form-row hub-league-sleeper-row">
+          <label>
+            Sleeper league ID
+            <input
+              value={sleeperLeagueId}
+              onChange={(e) => setSleeperLeagueId(e.target.value)}
+              placeholder="e.g. 1257419072740644612"
+            />
+          </label>
+          <button type="button" className="btn-ghost" onClick={() => loadSleeperTeams()} disabled={loading || !sleeperLeagueId.trim()}>
+            {loading ? "Loading…" : "Load teams"}
           </button>
         </div>
       )}
 
-      <div className="hub-form-row hub-league-sleeper-row">
-        <label>
-          Sleeper league ID
-          <input
-            value={sleeperLeagueId}
-            onChange={(e) => setSleeperLeagueId(e.target.value)}
-            placeholder="e.g. 1257419072740644612"
-          />
-        </label>
-        <button type="button" className="btn-ghost" onClick={() => loadSleeperTeams()} disabled={loading || !sleeperLeagueId.trim()}>
-          {loading ? "Loading…" : "Load teams"}
-        </button>
-      </div>
+      {hasSleeperLink && (
+        <details className="hub-league-sleeper-remap">
+          <summary>{OFFICE_CONTRACTS_COPY.changeMapping}</summary>
+          <div className="hub-form-row hub-league-sleeper-row">
+            <label>
+              Sleeper league ID
+              <input
+                value={sleeperLeagueId}
+                onChange={(e) => setSleeperLeagueId(e.target.value)}
+                placeholder="e.g. 1257419072740644612"
+              />
+            </label>
+            <button type="button" className="btn-ghost" onClick={() => loadSleeperTeams()} disabled={loading || !sleeperLeagueId.trim()}>
+              {loading ? "Loading…" : "Load teams"}
+            </button>
+          </div>
+        </details>
+      )}
 
       {sleeperMeta && (
         <p className="chart-note">
@@ -237,7 +265,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
                       st.owner_name,
                     ].filter(Boolean).join(" · ")}
                     heroValue={mappings[st.roster_id] ? "Mapped" : "New"}
-                    heroLabel="hub"
+                    heroLabel="Seat"
                     heroMuted
                     expanded={(
                       <label className="hub-league-sleeper-mobile-map">
