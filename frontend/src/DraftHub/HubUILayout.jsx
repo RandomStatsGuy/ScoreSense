@@ -265,8 +265,8 @@ export function HubFilterMenu({ label, value, options, onChange, className = "",
               key={String(opt.id) || "empty"}
               type="button"
               role="option"
-              aria-selected={String(value) === String(opt.id)}
-              className={`hub-filter-menu-option${value === opt.id ? " is-active" : ""}${opt.detail ? " has-detail" : ""}`}
+              aria-selected={String(value ?? "") === String(opt.id ?? "")}
+              className={`hub-filter-menu-option${String(value ?? "") === String(opt.id ?? "") ? " is-active" : ""}${opt.detail ? " has-detail" : ""}`}
               onClick={() => pick(opt.id)}
             >
               <span className="hub-filter-menu-option-label">{opt.label}</span>
