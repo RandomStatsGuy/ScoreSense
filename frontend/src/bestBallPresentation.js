@@ -132,7 +132,7 @@ export function bestBallSummaryItems({
     { id: "players", label: "Players", value: count ? String(count) : "—" },
     {
       id: "adp",
-      label: "With ADP",
+      label: "With ECR",
       value: count ? `${withAdp} of ${count}` : "—",
       tone: count && !withAdp ? "caution" : undefined,
     },

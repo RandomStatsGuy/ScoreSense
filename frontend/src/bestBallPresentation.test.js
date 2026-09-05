@@ -73,6 +73,7 @@ test("summary items and csv rows cover the board", () => {
     positionId: "RB",
     filteredCount: 2,
   });
+  assert.equal(items.find((i) => i.id === "adp").label, "With ECR");
   assert.equal(items.find((i) => i.id === "adp").value, "3 of 4");
   assert.equal(items.find((i) => i.id === "sort").value, "ADP edge");
 

@@ -106,6 +106,14 @@ test("game state label distinguishes past weeks and preseason", () => {
   assert.equal(gameStateLabel({ week: 10, current_week: 12 }), "Final");
   assert.equal(gameStateLabel({ week: 12, current_week: 12 }), "Next games Thu");
   assert.equal(gameStateLabel({ week: 12, current_week: 12, live: true }), "Live");
+  assert.equal(
+    gameStateLabel({
+      week: 1,
+      current_week: 1,
+      matchups: [{ teams: [{ points: 87 }] }],
+    }),
+    "Next games Thu",
+  );
 });
 
 test("placeholder storyline keeps the slate and names the missing opponent", () => {

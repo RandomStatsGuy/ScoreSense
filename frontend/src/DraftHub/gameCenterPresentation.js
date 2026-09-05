@@ -139,7 +139,7 @@ export function gameStateLabel(payload) {
   const current = payload?.current_week;
   if (week != null && current != null && Number(week) < Number(current)) return "Final";
   const liveFlag = payload?.live === true || payload?.has_live_games === true;
-  if (liveFlag || matchupsHavePoints(payload)) return "Live";
+  if (liveFlag) return "Live";
   return "Next games Thu";
 }
 

@@ -97,9 +97,9 @@ export default function DraftLobby({
   const [draftWall, setDraftWall] = useState(() => utcIsoToWall(league?.draft_starts_at, tzDefault));
   const [scheduleBusy, setScheduleBusy] = useState(false);
   const [bestOverlap, setBestOverlap] = useState("");
-  const [calendarState, setCalendarState] = useState("open");
+  const [calendarState, setCalendarState] = useState("");
   const onAvailHighlight = useCallback((label) => setBestOverlap(label || ""), []);
-  const onCalendarWindow = useCallback((state) => setCalendarState(state || "open"), []);
+  const onCalendarWindow = useCallback((state) => setCalendarState(state || ""), []);
   const startsAt = league?.draft_starts_at;
   const lockedSlot = useMemo(
     () => (startsAt ? wallToSlot(utcIsoToWall(startsAt, draftTz)) : null),
@@ -427,7 +427,7 @@ export default function DraftLobby({
           />
         ) : null}
 
-        {isCommissioner && !testMode && onSaveSchedule && calendarState === "closed" && !startsAt ? (
+        {isCommissioner && !testMode && onSaveSchedule && !startsAt && calendarState !== "open" && calendarState !== "upcoming" ? (
           <DraftNightSchedule
             variant="compact"
             startsAt={startsAt}
