@@ -134,7 +134,7 @@ Dark mode only. Matte, editorial, layered. Sports-product energy without casino 
 | Surface | `--experience-surface` / `--bg-elevated` | Cards and sections |
 | Primary action / current context | `--experience-blue` / `--accent` | One cool blue. Reserved for *now* and *next* |
 | Healthy / saved | teal (`--tone-positive`) | Only when the state is actually healthy: 12/12 seated, synced, or saved |
-| Attention | amber (`--tone-caution`) | Warnings, unsaved, bids, incomplete seating, info that needs a move |
+| Attention | amber (`--tone-caution`) | Warnings, unsaved, bids, incomplete seating, info that needs a move. Never a positive or best-in-set highlight. |
 | Destructive | red (`--danger`) | Errors, cuts, blocking validation, league-wide destructive actions — never a projection delta |
 | Gold accent | `--experience-gold` | Awards only |
 
@@ -158,7 +158,7 @@ Editorial Fantasy and Tools pages use the shared experience stack:
 `HubExperienceLayout` — main column + sticky summary rail
 `HubExperienceSummary` — “At a glance” facts + primary action
 
-Hero heading and padding use `--experience-hero-heading` and `--experience-hero-pad`. Status chips are not the page primary — do not put “You can edit” or “Need a partner” where Save belongs. The app shell is one `<main id="app-main">` with a skip link.
+Hero heading and padding use `--experience-hero-heading` and `--experience-hero-pad`. Status chips are not the page primary — do not put “You can edit” or “Need a partner” where Save belongs. The app shell is one `<main id="main-content">` with a skip link.
 
 Reuse `frontend/src/DraftHub/HubUILayout.jsx`. Do not fork a second hero/summary system.
 
@@ -262,6 +262,13 @@ Home names the manager’s roster hole over a commissioner invite when both are 
 - No sound except live-draft audio, and only as an opt-in.
 - Labels on every field. Errors associated with controls. WCAG AA contrast.
 - Touch targets ≥ 44px where a laptop or phone can tap them (`--touch-target`).
+- One document `<main id="main-content">` plus a skip link. Pages do not nest a second `<main>`.
+- Exclusive choice groups use `role="radiogroup"` and `role="radio"` with `aria-checked`, the same pattern as Rules risk posture. Do not use `aria-pressed` for mutually exclusive options.
+- After a build or validity verdict, announce with `aria-live` and move focus or scroll the result into view.
+- `details > summary` stays `list-item` so the disclosure marker shows. Do not set `display: flex` or `inline-flex` on `summary`.
+- Destination subnavs mark the current item with `aria-selected` (Fantasy already does; Tools and Projections must too).
+- Legal and compliance lines stay at 13px or larger (`--text-sm`). Amber never marks a positive or best-in-set highlight.
+- Dense pool tables let the page own vertical scroll and stick the column header. Do not trap the wheel in an inner box.
 - Chat: viewport-fixed flush edge launcher unless dismissed; opening is a side drawer. `aria-expanded` / `aria-controls`, Escape and backdrop close the drawer, focus returns to the launcher.
 - Draft availability shows current and future times only. Commissioners lock any shown overlap as the official night. Idle Draft shows that calendar as the one featured job; while the calendar is open the date/time form stays a collapsed fallback — when it is closed and no night is locked, that form is the card's primary and Start live draft drops to secondary.
 - Suggested bid columns name the scoring and risk posture from Rules (`PPR · Balanced`). Never show "Hub" in user copy. League context is `<league name> · <scoring>`.

@@ -77,7 +77,8 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Mock draft field size follows the linked league when matching that league's rules. Recent mocks live on the launch rail.
 - Best ball: leftmost # is monotonic; Pos rank groups by position; missing ECR is a No ECR chip/filter, never a dash; Edge names ±10 in copy (teal discount, `--tone-negative` reach, never amber); labeled Pos / ECR / Sort menus; page-owned windowed scroll; Scoring: PPR; no roadmap notes in user copy.
 - On Cap, leftover plus against-cap (salary + dead) equals the cap, and every figure names what it counts. After-this-move leftover sits next to the cut and bid.
-- Teal only for healthy/saved (full room, synced, saved). Red is destructive only — not a P50 delta. Gold is awards only. Chat launcher stays flush to an edge and expands on hover.
+- Teal only for healthy/saved (full room, synced, saved). Red is destructive only — not a P50 delta. Gold is awards only. Amber never marks a positive or best-in-set highlight. Chat launcher stays flush to an edge and expands on hover.
+- One `<main id="main-content">` plus a skip link; do not nest a second main. Exclusive choices use radiogroup/radio. Build and verdict results announce with aria-live and move focus or scroll into view. `details > summary` stays list-item. Destination subnavs set aria-selected. Legal/compliance copy stays at 13px+. Dense pool tables let the page own vertical scroll and stick the header.
 - Insights Overview sells titles, records, and career points — not Spend. Rank bars share a fixed track and a field scale. Award names live on Roster management. Insights tabs stay live while cards skeleton. Hero chips are status only.
 - Seat is the slot; manager is the person. Add a seat only past the seat count. Access & imports is email-assign and the Sleeper link; Draft owns the invite link; the strip owns Sync league.
 - Mark draft complete is a Contracts red confirm. Setup shows status only.

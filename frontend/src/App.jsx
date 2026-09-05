@@ -1325,7 +1325,7 @@ export default function App() {
       onSectionChange={goToSection}
       onMoreOpen={() => setMobileMenuOpen(true)}
     >
-        <a className="app-skip-link" href="#app-main">Skip to content</a>
+        <a className="app-skip-link" href="#main-content">Skip to content</a>
         <InviteAccept
           authenticated={authenticated}
           user={user}
@@ -1381,6 +1381,7 @@ export default function App() {
                     key={item.id}
                     type="button"
                     className={`tab view-tab ${view === item.id ? "active" : ""}`}
+                    aria-current={view === item.id ? "page" : undefined}
                     onClick={() => goToSection(item.id)}
                   >
                     {item.label}
@@ -1417,11 +1418,13 @@ export default function App() {
 
             {view === "projections" && !mobileLayout && (
               <div className="app-header-projections-toolbar">
-                <nav className="app-section-subnav app-section-subnav--compact" aria-label="Projection type">
+                <nav className="app-section-subnav app-section-subnav--compact" aria-label="Projection type" role="tablist">
                   {PROJECTIONS_TABS.map((tab) => (
                     <button
                       key={tab.id}
                       type="button"
+                      role="tab"
+                      aria-selected={projectionsTab === tab.id}
                       className={`app-section-subnav-btn${projectionsTab === tab.id ? " active" : ""}`}
                       onClick={() => setProjectionsTab(tab.id)}
                     >
@@ -1433,11 +1436,13 @@ export default function App() {
             )}
 
             {view === "tools" && TOOLS_TABS.length > 1 && !mobileLayout && (
-              <nav className="app-section-subnav app-section-subnav--compact" aria-label="Tools">
+              <nav className="app-section-subnav app-section-subnav--compact" aria-label="Tools" role="tablist">
                 {TOOLS_TABS.map((tab) => (
                   <button
                     key={tab.id}
                     type="button"
+                    role="tab"
+                    aria-selected={toolsTab === tab.id}
                     className={`app-section-subnav-btn${toolsTab === tab.id ? " active" : ""}`}
                     onClick={() => setToolsTab(tab.id)}
                   >
@@ -1467,7 +1472,7 @@ export default function App() {
           )}
         </header>
 
-        <main id="app-main" className="app-main">
+        <main id="main-content" className="app-main" tabIndex={-1}>
         {view === "projections" && !mobileLayout && (
           <ProjectionsFilterBar {...projectionsFilterProps} />
         )}
@@ -1541,7 +1546,6 @@ export default function App() {
           />
         )}
 
-        <main id="app-main" className="app-main">
         {error && isProjectionsDataView && (
           <div className="error">{error}</div>
         )}
@@ -2069,7 +2073,6 @@ export default function App() {
         {!mobileLayout && (
           <LegalLinks termsUrl={termsUrl} privacyUrl={privacyUrl} className="app-legal-footer" compact />
         )}
-        </main>
       </MobileShell>
     </LeagueChromeProvider>
     </PlayerCardProvider>
