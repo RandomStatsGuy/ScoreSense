@@ -1688,41 +1688,79 @@ button.btn-link.hub-league-switcher-create:hover {
 /* Best ball board (Tools) */
 
 .bestball-toolbar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-  margin-bottom: 0.9rem;
+  margin-bottom: 0.45rem;
 }
 
-.bestball-toolbar .search-input {
-  flex: 1;
-  min-width: 12rem;
+.bestball-scoring-note,
+.bestball-legend {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: var(--line-normal);
+}
+
+.bestball-scoring-note {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.bestball-legend {
+  margin: 0 0 0.65rem;
+}
+
+.bestball-table-page {
+  overflow: visible;
+}
+
+.bestball-table table {
+  width: 100%;
+}
+
+.bestball-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--experience-surface-strong);
+}
+
+.bestball-col-player {
+  width: 16rem;
   max-width: 18rem;
+  text-align: left;
 }
 
-.bestball-chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
+.bestball-pos-group th {
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--experience-surface);
 }
 
-.bestball-table .table-wrap {
-  max-height: 68vh;
-  overflow: auto;
+.bestball-no-ecr {
+  display: inline-block;
+  padding: var(--inset-chip);
+  border-radius: var(--radius-pill);
+  background: var(--experience-blue-soft);
+  color: var(--experience-blue);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-normal);
 }
 
 .bestball-edge {
-  font-weight: 650;
+  font-weight: var(--font-weight-medium);
   font-variant-numeric: tabular-nums;
 }
 
-.bestball-edge.is-positive {
-  color: var(--tone-positive, #4fd1c5);
+.bestball-edge.is-discount {
+  color: var(--tone-positive);
 }
 
-.bestball-edge.is-caution {
-  color: var(--tone-caution, #fbbf24);
+.bestball-edge.is-reach {
+  color: var(--tone-negative);
 }
 
 @media (max-width: 1100px) and (min-width: 769px) {
@@ -3180,6 +3218,11 @@ button.btn-link.hub-league-switcher-create:hover {
 .hub-experience-summary-action {
   width: 100%;
   margin-top: 0.35rem;
+}
+
+.hub-experience-summary-action.is-first {
+  margin-top: 0;
+  margin-bottom: 0.85rem;
 }
 
 .hub-experience-learn,

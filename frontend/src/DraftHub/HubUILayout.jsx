@@ -345,10 +345,15 @@ export function HubExperienceSummary({
   items = [],
   note,
   action,
+  actionFirst = false,
   status,
 }) {
+  const actionNode = action && actionFirst ? (
+    <div className="hub-experience-summary-action is-first">{action}</div>
+  ) : action;
   return (
     <>
+      {actionFirst ? actionNode : null}
       <div>
         {eyebrow ? <span className="hub-experience-eyebrow">{eyebrow}</span> : null}
         {title ? <h3>{title}</h3> : null}
@@ -382,7 +387,7 @@ export function HubExperienceSummary({
         </dl>
       )}
       {note ? <p className="hub-experience-summary-note">{note}</p> : null}
-      {action}
+      {!actionFirst ? actionNode : null}
       {status}
     </>
   );

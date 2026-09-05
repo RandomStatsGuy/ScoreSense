@@ -187,6 +187,21 @@ Weekly and Season projections are a **board**, not a Fantasy decision page.
 
 On laptop widths (~1024px), move the summary below the hero or into a compact sticky footer. Do not squeeze the form into multi-line control rows. Do not destroy desktop hierarchy to fake a phone layout.
 
+### Tools · Best ball
+
+Best ball is an experience page (`HubExperience*`) with a ranking table.
+
+- Pos rank is **within position**. The leftmost `#` is monotonic in the current list. On Pos rank + All, group rows under position headers (QB, RB, WR/TE).
+- Missing FantasyPros rank is the job of the page. Render **No ECR** as a chip and an ECR filter, never an em-dash that looks like missing data.
+- Edge is Pos ECR minus Pos rank. The hero names which sign is good. A legend states the ±10 threshold. Discount uses teal; reach uses `--tone-negative`. Do not encode reach with amber.
+- Pos / ECR / Sort are labeled menus, the same pattern as Free agents. Do not mix filter and sort in one unlabeled chip row.
+- The summary rail leads with Export CSV and keeps **With ECR** — do not restating Pos, Sort, or the player count already in the hero.
+- Window the table against page scroll. Do not nest a `.table-wrap` scroller.
+- Pos ECR is FantasyPros consensus. Do not put a roadmap note ("until a real ADP feed exists") in user-facing copy.
+- Show **Scoring: PPR**. The board uses the same season model as Projections.
+
+Player boards (Free agents and Best ball) use labeled Pos / Sort menus. Pick one control pattern per product, not two.
+
 ### Phone chrome
 
 On phone, the header is the current destination. Destination switching uses one picker, not a scrolling tab strip. Tapping a destination — including the one already open — closes the picker so the page is not left inert. Account lives in More. Do not stack ScoreSense, a context label, section tabs, and page tabs. A one-row league strip (name + caret) sits under the picker so heroes stay above the fold; New league and Sync league live in that caret. Needs attention is one line on that strip — do not restack a second league card in the destination overflow. Weekly phone chrome is the destination header plus one sticky bar (position, filter, result count). Attention and other movement filters live in that filter sheet. Live draft stays board-first. League chat is an edge launcher that defaults to the bottom-right above the tab bar; drag still parks it on a new edge. Idle Draft and Mock use one seat component so the live room inherits it.
