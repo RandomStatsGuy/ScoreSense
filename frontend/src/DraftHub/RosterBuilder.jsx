@@ -772,7 +772,9 @@ export default function RosterBuilder({
         }
         cap={(
           <div className="hub-stat-card hub-stat-card--accent hub-stadium-cap-card">
-            <span className="hub-stat-label">Cap ({season})</span>
+            <span className="hub-stat-label">
+              {preDraft ? MY_TEAM_COPY.committedLabel(season) : `Cap (${season})`}
+            </span>
             <strong className="hub-stat-value">
               ${totalSalary.toFixed(0)}
               <span className="hub-stat-value-note"> / ${salaryCap}</span>
@@ -782,7 +784,7 @@ export default function RosterBuilder({
                 <span
                   className="hub-stadium-cap-bar"
                   role="img"
-                  aria-label={`$${totalSalary.toFixed(0)} of $${salaryCap} committed${
+                  aria-label={`$${totalSalary.toFixed(0)} of $${salaryCap} · ${season} committed${
                     Number(capSheet?.summary?.dead_cap) > 0
                       ? `, $${Number(capSheet.summary.dead_cap).toFixed(0)} dead cap`
                       : ""

@@ -93,7 +93,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 | Free agents | `available` | Add / bid / locked by calendar |
 | Rosters | `rosters` | League-wide roster reference |
 | Cap | `planner` | Cap leftover after a cut or bid. The move input sits above the fold; hero and At a glance keep the current leftover. |
-| Trades | `trades` | Propose and accept. Experience hero names the cap-bust cost. Rosters franchise headers deep-link here with the partner preselected. Zero partners → Invite managers on Members. |
+| Trades | `trades` | Propose and accept. Experience hero names the cap-bust cost. Rosters franchise headers deep-link here with the partner preselected. Zero partners → Invite managers on Members. Cap line is **current roster** salary (active contracts this season, including expiring). My team **{season} committed** is draft-surviving salary — same $200 cap, different base; do not use one word for both. Auto-check every package change and gate Propose on a pass. The verdict is a colored live status banner next to the primary, not grey chart-note. Ideas need chips mark starter-thin positions only — a 6-RB roster is extra depth, not a need. |
 | Rules | `rules` | League model (read for members, edit for staff) |
 | Roster management | `office` | Staff-only contracts, sheets, members, access |
 | Insights | `insights` | League history and awards |
@@ -230,7 +230,8 @@ Home names the manager’s roster hole over a commissioner invite when both are 
 
 - Primary action stays visible (summary rail or sticky footer).
 - Disable a button only with a reason next to it.
-- Validate before save. Failed saves keep edits.
+- Validate before save. Failed saves keep edits. Trades re-check the package on every send or cut and keep Propose gated until cap and roster pass. The verdict sits next to that primary with `aria-live`.
+- Skip to content lands in `<main>`. The page heading is the destination job (`HubExperienceHero`), not the ScoreSense wordmark. Fantasy destination buttons use the tab label as the accessible name — never the hint.
 - Unsaved changes warn before navigation.
 - Success is a contained confirmation, not a modal.
 - Motion: 120–200ms, `--ease-standard`. Honor `prefers-reduced-motion`.
