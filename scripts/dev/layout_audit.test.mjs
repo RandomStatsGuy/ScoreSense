@@ -1,14 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  auditFailed,
   columnAlign,
   isAutoFillGridTemplate,
   isBlockDisplay,
+  isGatedFailure,
   isInFlowPosition,
   isNumericCellText,
   isVisibleNativeSelect,
   livingSurfaceRoutes,
   minTargetForWidth,
+  parseArgs,
+  parseGate,
   pickBarControl,
   tableWidthDeadZone,
 } from "./layout_audit.mjs";
@@ -83,6 +87,27 @@ test("target floor is 32 at desktop and 44 at 390", () => {
   assert.equal(minTargetForWidth(1280), 32);
   assert.equal(minTargetForWidth(390), 44);
   assert.equal(minTargetForWidth(1024), 32);
+});
+
+test("gate list parses and ignores backlog rules", () => {
+  assert.deepEqual(parseGate("type,selects,collisions,grids"), ["type", "selects", "collisions", "grids"]);
+  assert.equal(parseGate(""), null);
+  const args = parseArgs(["--all", "--width", "1280", "--gate", "type,selects"]);
+  assert.deepEqual(args.gate, ["type", "selects"]);
+  assert.equal(isGatedFailure({ rule: "primaries", ok: false }, args.gate), false);
+  assert.equal(isGatedFailure({ rule: "type", ok: false }, args.gate), true);
+  assert.equal(isGatedFailure({ rule: "load", ok: false }, args.gate), true);
+  const report = [
+    {
+      route: "/hub/home",
+      results: [
+        { rule: "type", ok: true },
+        { rule: "primaries", ok: false },
+      ],
+    },
+  ];
+  assert.equal(auditFailed(report, args.gate), false);
+  assert.equal(auditFailed(report, null), true);
 });
 
 test("livingSurfaceRoutes skips overlays and dedupes", () => {

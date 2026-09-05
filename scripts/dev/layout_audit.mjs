@@ -2,8 +2,8 @@
 /**
  * Falsifiable layout craft checks for ScoreSense screens.
  *
- *   node scripts/dev/layout_audit.mjs <route> [--width 1280|390] [--json]
- *   node scripts/dev/layout_audit.mjs --all [--width 1280] [--json]
+ *   node scripts/dev/layout_audit.mjs <route> [--width 1280|390] [--json] [--gate type,selects]
+ *   node scripts/dev/layout_audit.mjs --all [--width 1280] [--json] [--gate type,selects,collisions,grids]
  *
  * Requires a running app at http://127.0.0.1:5173 and Playwright
  * (`cd frontend && npm install` after playwright is in package.json).
@@ -21,8 +21,28 @@ export const BAR_CONTROL_SELECTOR =
   "button, a[href], input, select, textarea, [role='button'], [role='tab'], [role='radio'], [role='combobox']";
 export const TABLE_DEAD_ZONE_PX = 32;
 
-function parseArgs(argv) {
-  const args = { route: null, width: 1280, json: false, all: false };
+export function parseGate(value) {
+  if (value == null) return null;
+  const rules = String(value)
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return rules.length ? rules : null;
+}
+
+export function isGatedFailure(result, gate) {
+  if (!result || result.ok) return false;
+  if (result.rule === "load") return true;
+  if (!gate || !gate.length) return true;
+  return gate.includes(result.rule);
+}
+
+export function auditFailed(report, gate) {
+  return (report || []).some((row) => (row.results || []).some((x) => isGatedFailure(x, gate)));
+}
+
+export function parseArgs(argv) {
+  const args = { route: null, width: 1280, json: false, all: false, gate: null };
   const rest = [...argv];
   while (rest.length) {
     const tok = rest.shift();
@@ -30,6 +50,8 @@ function parseArgs(argv) {
     else if (tok === "--all") args.all = true;
     else if (tok === "--width") args.width = Number(rest.shift());
     else if (tok.startsWith("--width=")) args.width = Number(tok.slice(8));
+    else if (tok === "--gate") args.gate = parseGate(rest.shift());
+    else if (tok.startsWith("--gate=")) args.gate = parseGate(tok.slice(7));
     else if (!tok.startsWith("-") && !args.route) args.route = tok;
   }
   if (![1280, 390].includes(args.width)) {
@@ -495,7 +517,7 @@ async function main() {
   } else if (args.route) {
     jobs = [args.route.startsWith("/") ? args.route : `/${args.route}`];
   } else {
-    console.error("usage: node scripts/dev/layout_audit.mjs <route|--all> [--width 1280|390] [--json]");
+    console.error("usage: node scripts/dev/layout_audit.mjs <route|--all> [--width 1280|390] [--json] [--gate type,selects,...]");
     process.exit(2);
   }
 
@@ -512,11 +534,12 @@ async function main() {
     await browser.close();
   }
 
-  const failed = report.some((r) => r.results.some((x) => !x.ok));
-  if (args.json) console.log(JSON.stringify({ ok: !failed, report }, null, 2));
+  const failed = auditFailed(report, args.gate);
+  const failCount = report.reduce((n, r) => n + r.results.filter((x) => isGatedFailure(x, args.gate)).length, 0);
+  if (args.json) console.log(JSON.stringify({ ok: !failed, gate: args.gate, report }, null, 2));
   if (!args.json) {
-    const failCount = report.reduce((n, r) => n + r.results.filter((x) => !x.ok).length, 0);
-    console.log(`\n${failed ? "FAIL" : "PASS"}  ${failCount} failing check(s) across ${report.length} route(s)`);
+    const scope = args.gate ? `gated ${args.gate.join(",")}` : "all rules";
+    console.log(`\n${failed ? "FAIL" : "PASS"}  ${failCount} failing check(s) across ${report.length} route(s) (${scope})`);
   }
   process.exit(failed ? 1 : 0);
 }

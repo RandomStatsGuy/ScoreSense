@@ -156,6 +156,7 @@ def test_cloud_environment_json_starts_api_and_vite() -> None:
         "ensure_cloud_env.sh",
         "run_api.sh",
         "run_vite.sh",
+        "resolve_python.sh",
         "start_hub_dev.sh",
         "wait_for_dev.sh",
     ):

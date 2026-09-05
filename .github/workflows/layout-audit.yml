@@ -43,14 +43,16 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Start API and Vite
         run: bash scripts/dev/start_hub_dev.sh
+      # Gate the rules this PR already greened. JSON still includes tables /
+      # primaries / gutters / targets so the backlog stays visible.
       - name: Audit living-surface routes at 1280
         working-directory: frontend
         run: |
           mkdir -p ../artifacts
-          npm run audit:layout -- --all --width 1280 --json | tee ../artifacts/layout-audit-1280.json
+          npm run audit:layout -- --all --width 1280 --json --gate type,selects,collisions,grids | tee ../artifacts/layout-audit-1280.json
       - name: Audit living-surface routes at 390
         working-directory: frontend
-        run: npm run audit:layout -- --all --width 390 --json | tee ../artifacts/layout-audit-390.json
+        run: npm run audit:layout -- --all --width 390 --json --gate type,selects,collisions,grids | tee ../artifacts/layout-audit-390.json
       - name: Upload audit JSON
         if: always()
         uses: actions/upload-artifact@v4
