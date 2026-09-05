@@ -198,3 +198,37 @@ def test_identity_media_can_stage_then_crop_and_clear(hub_db):
     assert cleared.json()["identity"]["photo_media_id"] is None
     assert cleared.json()["identity"]["photo_focus"]["x"] == 10.0
     assert cleared.json()["identity"]["photo_focus"]["y"] == 70.0
+
+
+def test_identity_media_serves_snapped_webp_variant(hub_db):
+    from io import BytesIO
+
+    from PIL import Image
+
+    comm, _member, league = _seed_league(hub_db)
+    comm_team = storage.get_team_by_user(league["id"], comm)
+    client = _client_for(comm)
+    buf = BytesIO()
+    Image.new("RGB", (1600, 1138), (30, 50, 90)).save(buf, format="PNG")
+    uploaded = client.post(
+        f"/api/hub/league/{league['id']}/teams/{comm_team['id']}/identity/media?kind=photo",
+        files={"file": ("logo.png", buf.getvalue(), "image/png")},
+    )
+    assert uploaded.status_code == 200
+    media_id = uploaded.json()["media"]["id"]
+
+    original = client.get(f"/api/hub/media/{media_id}")
+    assert original.status_code == 200
+    assert original.headers["content-type"].startswith("image/png")
+
+    variant = client.get(f"/api/hub/media/{media_id}?w=84")
+    assert variant.status_code == 200
+    assert variant.headers["content-type"] == "image/webp"
+    assert "max-age=" in variant.headers.get("cache-control", "")
+    assert len(variant.content) < len(original.content) / 4
+    with Image.open(BytesIO(variant.content)) as img:
+        assert img.size[0] == 96
+
+    fake = client.get(f"/api/hub/media/{media_id}?w=22")
+    assert fake.status_code == 200
+    assert fake.content == variant.content

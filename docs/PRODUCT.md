@@ -255,7 +255,7 @@ Do not invent a parallel rules model. Canonical merge/validate/preview: `fronten
 - Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`): locked pre-draft and in-season off-window; FAAB bid post-draft / waivers; instant add after waivers; offseason trades only for contracts that survive the next draft.
 - ScoreSense-only leagues persist weekly lineups on This Week and score the week with ScoreSense PPR (nflverse; internal id `hub_ppr` — the string "Hub PPR" never reaches UI). Linked Sleeper leagues still set and score lineups in Sleeper; Game center reads Sleeper.
 - Staff edits in Roster management may override; Players-tab adds never do.
-- Headshots: mock boards, nominee cards, and rails use the same photos as rosters.
+- Headshots: mock boards, nominee cards, and rails use the same photos as rosters. Hub media and remote photos request the size they paint (`?w=48` / `96` / `256`); do not ship the studio original on every page.
 
 Contract-type playbook for imports and keepers: [CONTRACT_SCENARIOS.md](./CONTRACT_SCENARIOS.md).
 

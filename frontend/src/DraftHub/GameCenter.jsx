@@ -5,6 +5,7 @@ import { isAbortError } from "../fetchAbort";
 import { usePlayerMedia } from "../PlayerCell";
 import useMobileLayout from "../useMobileLayout";
 import { HubAlert, HubLoadingSkeleton, HubPage } from "./HubUILayout";
+import { PAINT_WIDTH, paintMediaUrl } from "./draftMedia";
 import TeamIdentityMark from "./TeamIdentityMark";
 import WeekCulturePanel from "./WeekCulturePanel";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
@@ -34,7 +35,8 @@ function DuelPlayer({ player, media, away = false }) {
   if (!player || !player.name || player.name === "Empty") {
     return <div className={`hub-gc-duel-player${away ? " hub-gc-duel-player--away" : ""} hub-gc-duel-player--empty`}>Empty slot</div>;
   }
-  const shot = media?.[player.player_id]?.headshot_url || media?.[player.player_id]?.team_logo_url;
+  const raw = media?.[player.player_id]?.headshot_url || media?.[player.player_id]?.team_logo_url;
+  const shot = paintMediaUrl(raw, PAINT_WIDTH.mark);
   return (
     <div className={`hub-gc-duel-player${away ? " hub-gc-duel-player--away" : ""}`}>
       {shot ? (

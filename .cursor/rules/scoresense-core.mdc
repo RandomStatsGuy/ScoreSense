@@ -61,7 +61,7 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - League policy changes apply to **new contracts only** unless a migration exists.
 - Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`). Staff Roster management may override; Players-tab adds may not.
 - Do not invent a parallel rules or contract model. Merge/validate via `rulesPresentation.js`. Backend is authoritative.
-- Same player photos on mock boards, nominee cards, rails, and rosters.
+- Same player photos on mock boards, nominee cards, rails, and rosters. Hub media and remote photos request the painted size (`?w=48/96/256`). Do not ship the studio original on every page.
 - New work reuses destinations, chrome, and tokens. Do not start a new aesthetic.
 - Fantasy lists people by **owner name**. Team nicknames may sit underneath or after a middot. Never show a team nickname as the only identity when an owner is known.
 - This-week player notes are Sleeper locker or practice plus an optional projection delta. Do not bake YouTube show copy as current-week narrative.

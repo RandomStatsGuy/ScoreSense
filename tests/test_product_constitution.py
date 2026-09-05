@@ -199,6 +199,18 @@ def test_constitution_bans_hub_ppr_in_ui() -> None:
     assert "ScoreSense PPR" in product
     assert 'the string "Hub PPR" never reaches UI' in product
 
+def test_constitution_covers_painted_media() -> None:
+    product = _read("docs", "PRODUCT.md")
+    perf = _read(".cursor", "rules", "draft-hub-performance.mdc")
+    hub = _read(".cursor", "rules", "frontend-draft-hub.mdc")
+    core = _read(".cursor", "rules", "scoresense-core.mdc")
+    assert "?w=48" in product
+    assert "studio original" in product
+    assert "?w=" in perf
+    assert "painted size" in hub
+    assert "?w=48/96/256" in core
+
+
 def test_constitution_empty_states_name_a_destination() -> None:
     product = _read("docs", "PRODUCT.md")
     assert "League settings" in product
