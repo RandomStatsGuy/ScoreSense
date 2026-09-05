@@ -372,7 +372,7 @@ export default function MockDraftTool({ projMeta = null }) {
               <summary>
                 <span className="mock-draft-step-num" aria-hidden="true">3</span>
                 <span>
-                  <strong id="mock-match-title">{mockHero.matchTitle}</strong>
+                  <h3 id="mock-match-title">{mockHero.matchTitle}</h3>
                   <small>{mockHero.matchSupport}</small>
                 </span>
               </summary>

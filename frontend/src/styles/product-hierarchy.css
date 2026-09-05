@@ -873,8 +873,8 @@
   min-width: 0;
 }
 
-.mock-draft-advanced > summary strong {
-  display: block;
+.mock-draft-advanced > summary h3 {
+  margin: 0;
   color: var(--text-primary);
   font-size: 1.05rem;
   font-weight: var(--font-weight-bold);
