@@ -65,6 +65,12 @@ def commissioner_source_seasons(data_dir: Path | None = None) -> set[int]:
     return seasons
 
 
+def clear_history_cache() -> None:
+    """Drop the in-process workbook cache. Tests must call this before mocks."""
+    global _HISTORY_CACHE
+    _HISTORY_CACHE = None
+
+
 def cached_league_history(data_dir: Path | None = None):
     """Parse commissioner workbooks once per file fingerprint (office / sync only)."""
     global _HISTORY_CACHE

@@ -2,14 +2,25 @@
 
 from __future__ import annotations
 
+import pytest
+
 from src.draft_hub import storage
 from src.draft_hub.contract_sync import (
+    cached_league_history,
+    clear_history_cache,
     commissioner_files_fingerprint,
     commissioner_read_status,
     commissioner_sync_status,
     sync_commissioner_sheets,
 )
 from src.draft_hub.schemas import LeagueRules
+
+
+@pytest.fixture(autouse=True)
+def _clear_workbook_cache():
+    clear_history_cache()
+    yield
+    clear_history_cache()
 
 
 def test_commissioner_read_status_skips_parse(hub_db, monkeypatch):
@@ -30,6 +41,46 @@ def test_commissioner_sync_status_no_files(hub_db, monkeypatch):
         lambda _dir: __import__("pandas").DataFrame(),
     )
     league = storage.create_league("sync-st", "Sync", 2025, LeagueRules())
+    status = commissioner_sync_status(league["id"])
+    assert status["stale"] is False
+    assert status["has_commissioner_files"] is False
+
+
+def test_commissioner_sync_status_database_only_is_not_stale(hub_db, monkeypatch):
+    monkeypatch.setattr(
+        "src.draft_hub.contract_sync.process_league_history",
+        lambda _dir: __import__("pandas").DataFrame(),
+    )
+    league = storage.create_league("sync-db", "Sync DB", 2025, LeagueRules())
+    storage.replace_league_contract_season(
+        league["id"],
+        2025,
+        [
+            {
+                "owner_label": "A",
+                "player_name": "P",
+                "position": "QB",
+                "cap_hit": 1.0,
+                "roster_status": "active",
+            }
+        ],
+    )
+
+    status = commissioner_sync_status(league["id"])
+
+    assert status["stale"] is False
+    assert status["has_commissioner_files"] is False
+
+
+def test_sync_status_empty_parse_ignores_warm_history_cache(hub_db, monkeypatch):
+    """#330 merge CI: a prior parse of repo sheets must not leak into mocked status."""
+    cached_league_history()
+    monkeypatch.setattr(
+        "src.draft_hub.contract_sync.process_league_history",
+        lambda _dir: __import__("pandas").DataFrame(),
+    )
+    clear_history_cache()
+    league = storage.create_league("sync-cache", "Sync Cache", 2025, LeagueRules())
     status = commissioner_sync_status(league["id"])
     assert status["stale"] is False
     assert status["has_commissioner_files"] is False
