@@ -48,7 +48,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "action-center",
     page: "frontend/src/DraftHub/LeagueHome.jsx",
     copy: "frontend/src/DraftHub/leagueHomePresentation.js",
-    doNot: "Do not wrap Home in HubExperienceLayout. Extend the action deck. House the league thread in the locker rail. Do not show the edge launcher on Home. Do not add a Chat destination. Draft night · Not scheduled links to Draft. Clear chat is staff-only, red, and confirms. On phone, league name and Needs attention fold into the destination overflow — do not stack a league strip under the title.",
+    doNot: "Do not wrap Home in HubExperienceLayout. Extend the action deck. House the league thread in the locker rail. Do not show the edge launcher on Home. Do not add a Chat destination. Draft night · Not scheduled links to Draft. Clear chat is staff-only, red, and confirms. Home names the roster hole over a commissioner invite. Hide Your matchup / Standings when pre-draft with no scored week. After 5s of loading, the action deck names Sync league. Also due does not style a count like a link. On phone, a one-row league strip (name + caret) sits under the picker — do not restack a second league card in the overflow.",
   }),
   "hub.value": S({
     label: "Strategy",
@@ -66,7 +66,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "table",
     page: "frontend/src/DraftHub/ValueSheetTable.jsx",
     copy: "frontend/src/DraftHub/acquisitionWindow.js",
-    doNot: "Do not add a second pickup board. Players-tab adds follow the calendar. Suggested bid names scoring and Rules risk posture. Never show Hub in user copy.",
+    doNot: "Do not add a second pickup board. Players-tab adds follow the calendar. Suggested bid names scoring and Rules risk posture. Never show Hub in user copy. Pre-draft rows show a Locked chip that says Star queues for the room. Vs cost is — only when the bid is missing; pre-draft the cell is Room after. Mobile cards keep the bid as a muted SUGGESTED value — Star is the one action.",
   }),
   "hub.room": S({
     label: "Draft",
@@ -81,7 +81,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/draftSeat.js",
       "frontend/src/DraftHub/leagueAccessCopy.js",
     ],
-    doNot: "Idle Draft uses experience chrome and one featured job: the shared calendar. Live rooms do not. Calendar shows current and future times only. Lock draft night from any shown overlap. Keep the date/time form, invite essays, and a second seat list collapsed unless the calendar is Closed and no night is locked — then the off-calendar lock is open as the card primary and Mark yours is gone. Start live draft stays secondary until a night is locked or the room is full. Seating pill is amber below a full room, teal only at 12/12. Room seat tiles keep token padding and product type — do not pack Take flush to the chip. Use DraftSeat so Mock and the live room inherit Open · Take / YOU.",
+    doNot: "Idle Draft uses experience chrome and one featured job: the shared calendar. Live rooms do not. Calendar shows current and future times only. Lock draft night from any shown overlap, or the tapped hour even when no overlap exists yet. Once locked, the hero is Draft night is locked. Fill the room. and the calendar collapses to a one-line disclosure. Keep the date/time form, invite essays, and a second seat list collapsed unless the calendar is Closed and no night is locked — then the off-calendar lock is open as the card primary and Mark yours is gone. Start live draft stays secondary until a night is locked or the room is full. Seating pill counts claimed teams and is amber below a full room, teal only at 12/12. Locked night shows in the viewer timezone; Draft setup names league time once. Room seat tiles keep token padding and product type — do not pack Take flush to the chip. Use DraftSeat so Mock and the live room inherit Open · Take / YOU. On phone, calendar sits above Draft setup; invite/copy live under Share the room; one status chip replaces Locked in / Times saved.",
   }),
   "hub.room.live": S({
     label: "Draft (live)",
@@ -95,7 +95,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/WeeklyCommandCenter.jsx",
     copy: "frontend/src/DraftHub/weekBoard.js",
     also: ["frontend/src/DraftHub/WeekLineupBoard.jsx"],
-    doNot: "Do not fork a second week hero. Extend WeeklyCommandCenter. Empty boards use the shared league empty-state (Lock a night / Link Sleeper / Sync league) — not League settings or Rate vibes. Decisions rail says Waiting on roster when there is no roster.",
+    doNot: "Do not fork a second week hero. Extend WeeklyCommandCenter. Hero copy comes from board state: loading, error + Retry, or empty pre-draft with draft night — never No swap worth making over an error. Empty boards use the shared league empty-state (Lock a night / Link Sleeper / Sync league) — not League settings or Rate vibes. Decisions rail says Waiting on roster when there is no roster. Do not render Waiting dashes for eight empty slots on load or error. Inert slots stay flat.",
   }),
   "hub.vibes": S({
     label: "Vibes",
@@ -124,7 +124,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/RosterBuilder.jsx",
     copy: "frontend/src/DraftHub/rosterPresentation.js",
     also: ["frontend/src/DraftHub/rosterFormat.js"],
-    doNot: "Do not invent a second my-team chrome. List people by owner name. At zero players hide search and position chips and show the shared empty-state.",
+    doNot: "Do not invent a second my-team chrome. List people by owner name. At zero players hide search and position chips and show the shared empty-state. One Contract control per row — history lives in the drawer. Dead cap and if-undone room use rosterFormat.js. Mobile cards do not expand a repeated POS/CAP/YRS/STATUS grid.",
   }),
   "hub.rosters": S({
     label: "Rosters",
@@ -138,7 +138,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "experience",
     page: "frontend/src/DraftHub/CapPlanner.jsx",
     copy: "frontend/src/DraftHub/capPlannerPresentation.js",
-    doNot: "Extend CapPlanner and HubExperience*. Do not start a new cap aesthetic. The summary-rail primary is the move — a cut or a bid — whose three-season leftover the page shows; the remaining-cap number appears once. The move input sits above the fold; do not stack This season leftover three times before the input.",
+    doNot: "Extend CapPlanner and HubExperience*. Do not start a new cap aesthetic. The summary-rail primary is the move — a cut or a bid — whose three-season leftover the page shows; League spend is a text link. The remaining-cap number appears once (drop the hero leftover on phone). The move input sits above the fold; do not stack This season leftover three times before the input. Pending-cut and expiring bullets get Undo cut / Contract. Cap sheet rows open the contract drawer or stay flat. Phone spend and sheet are dense vertical rows — no contract carousels. Need-N-more links carry the POS filter to Free agents.",
   }),
   "hub.trades": S({
     label: "Trades",

@@ -26,6 +26,10 @@ import {
   visibleHoursForDate,
   wallToSlot,
   availabilityTimezone,
+  availabilityLockHourLabel,
+  availabilityStatusChip,
+  formatLockedNightDisclosure,
+  leagueTimeLabel,
 } from "./draftAvailabilityPresentation.js";
 
 test("availability copy names the calendar consequence", () => {
@@ -94,4 +98,8 @@ test("calendar keeps only current and future hours", () => {
   assert.equal(availabilityTimezone(null), "America/New_York");
   assert.equal(availabilityTimezone("America/Los_Angeles"), "America/Los_Angeles");
   assert.match(calendarTodayIso(new Date("2026-09-02T20:00:00Z"), "UTC"), /2026-09-02/);
+  assert.equal(availabilityLockHourLabel({ date: "2026-09-05", hour: 19 }), "Lock Sat 7 p.m.");
+  assert.equal(leagueTimeLabel("America/New_York"), "League time: Eastern");
+  assert.equal(availabilityStatusChip({ locked: true }), "Night locked");
+  assert.match(formatLockedNightDisclosure("2026-09-05T23:00:00.000Z"), /Move it/);
 });

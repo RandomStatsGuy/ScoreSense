@@ -4472,6 +4472,10 @@ td.col-per-game {
   max-width: var(--hub-col-delta-width);
   white-space: nowrap;
 }
+.hub-table.hub-table--pre-draft .hub-col-delta {
+  width: 9.5rem;
+  max-width: 9.5rem;
+}
 .hub-table .hub-col-fv {
   /* Wide enough for the full "Suggested bid" header + sort caret. */
   width: 7rem;
@@ -15730,6 +15734,17 @@ td.col-rank.col-rank-top {
 .hub-wcc-slot.is-editable,
 .hub-wcc-bench-chip.is-action {
   cursor: pointer;
+}
+
+.hub-wcc-slot.is-inert {
+  cursor: default;
+  box-shadow: none;
+  transform: none;
+}
+
+.hub-wcc-slot.is-inert:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 .hub-wcc-slot.is-target {

@@ -11,9 +11,17 @@ import {
   isPickDraft,
   utcIsoToWall,
 } from "./draftEntryStatus";
-import { availabilityTimezone, calendarTodayIso, slotToWall, wallToSlot } from "./draftAvailabilityPresentation";
+import useMobileLayout from "../useMobileLayout";
+import {
+  availabilityTimezone,
+  calendarTodayIso,
+  leagueTimeLabel,
+  slotToWall,
+  wallToSlot,
+} from "./draftAvailabilityPresentation";
 import {
   altLockSummary,
+  assignClaimedTeamsToOpenSeats,
   lobbyAbsoluteUrl,
   lobbyChipLabel,
   lobbyChipTone,
@@ -30,6 +38,7 @@ import {
   draftLobbyHeroSupport,
   draftLobbyRailHeading,
   draftLobbyReadiness,
+  draftShareRoomLabel,
   emailManagersHint,
   managerClaimCopied,
   managerClaimCopyTextLabel,
@@ -75,6 +84,7 @@ export default function DraftLobby({
   const [fillBots, setFillBots] = useState(true);
   const [notifyState, setNotifyState] = useState("");
   const [error, setError] = useState("");
+  const mobileLayout = useMobileLayout();
 
   const pickDraft = isPickDraft(rules || league?.rules);
   const draftType = String((rules || league?.rules)?.draft_type || "auction").toLowerCase();
@@ -113,7 +123,7 @@ export default function DraftLobby({
     setDraftWall(utcIsoToWall(league?.draft_starts_at, tz));
   }, [league?.draft_starts_at, league?.draft_timezone]);
   const waitSecs = startsAt ? secondsUntil(startsAt) : null;
-  const scheduledLabel = startsAt ? formatDraftScheduleLabel(startsAt, draftTz) : "";
+  const scheduledLabel = startsAt ? formatDraftScheduleLabel(startsAt) : "";
   const tzOptions = DRAFT_TZ_OPTIONS.includes(draftTz) ? DRAFT_TZ_OPTIONS : [draftTz, ...DRAFT_TZ_OPTIONS];
   const readiness = draftLobbyReadiness({
     claimed,
@@ -122,17 +132,10 @@ export default function DraftLobby({
     testMode,
   });
 
-  const slots = useMemo(() => {
-    const bySlot = new Map();
-    humans.forEach((team) => {
-      const slot = Number(team.draft_slot);
-      if (Number.isFinite(slot) && slot > 0 && !bySlot.has(slot)) bySlot.set(slot, team);
-    });
-    return Array.from({ length: teamCount }, (_, i) => {
-      const slot = i + 1;
-      return { slot, team: bySlot.get(slot) || null };
-    });
-  }, [humans, teamCount]);
+  const slots = useMemo(
+    () => assignClaimedTeamsToOpenSeats(humans, teamCount),
+    [humans, teamCount],
+  );
 
   const copyLink = async () => {
     if (!inviteUrl) return;
@@ -275,8 +278,72 @@ export default function DraftLobby({
     await saveSchedule(false, { wall, timezone });
   };
 
-  const heading = draftLobbyHeroHeading({ testMode });
-  const support = draftLobbyHeroSupport({ testMode });
+  const nightLocked = Boolean(startsAt);
+  const heading = draftLobbyHeroHeading({ testMode, locked: nightLocked });
+  const support = draftLobbyHeroSupport({ testMode, locked: nightLocked });
+  const leagueTime = leagueTimeLabel(draftTz);
+  const shareRoomBody = (
+    <>
+      {isCommissioner && !testMode && claimUrl ? (
+        <div className="draft-lobby-link draft-lobby-claim">
+          <label htmlFor="draft-claim-url">{managerClaimLabel()}</label>
+          <div className="draft-lobby-link-row">
+            <input id="draft-claim-url" readOnly value={claimUrl} />
+            <Button variant="ghost" size="sm" onClick={copyClaimLink}>
+              {claimCopied ? "Copied" : "Copy"}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={copyClaimText}>
+              {managerClaimCopyTextLabel({ copied: claimTextCopied })}
+            </Button>
+          </div>
+          {claimCopied ? <p className="hub-experience-summary-note">{managerClaimCopied()}</p> : null}
+          {claimTextCopied ? <p className="hub-experience-summary-note">{managerClaimTextCopied()}</p> : null}
+          {!claimEnabled ? (
+            <p className="chart-note">This link is turned off in Roster management.</p>
+          ) : null}
+          <details className="draft-lobby-invite-details">
+            <summary>How claiming works</summary>
+            <p className="chart-note">{managerClaimExplainer()}</p>
+            <p className="chart-note">{managerClaimWhatHappens()}</p>
+            <button
+              type="button"
+              className="btn-link"
+              disabled={claimBusy}
+              onClick={rotateClaimLink}
+            >
+              {claimBusy ? "Rotating…" : "Rotate link"}
+            </button>
+            <p className="chart-note">{managerClaimRotateHint()}</p>
+          </details>
+        </div>
+      ) : null}
+      {inviteUrl ? (
+        <div className="draft-lobby-link">
+          <label htmlFor="draft-lobby-url">{draftInviteLabel({ testMode })}</label>
+          <div className="draft-lobby-link-row">
+            <input id="draft-lobby-url" readOnly value={inviteUrl} />
+            <Button variant="ghost" size="sm" onClick={copyLink}>
+              {copied ? "Copied" : "Copy"}
+            </Button>
+          </div>
+          <details className="draft-lobby-invite-details">
+            <summary>How draft-night access works</summary>
+            <p className="chart-note">{draftInviteRailHint({ testMode })}</p>
+            <p className="chart-note">{draftInviteWhatHappens({ testMode })}</p>
+            {isCommissioner && !testMode ? (
+              <p className="chart-note">{emailManagersHint()}</p>
+            ) : null}
+          </details>
+        </div>
+      ) : null}
+      {isCommissioner && !testMode ? (
+        <Button variant="ghost" disabled={slotBusy || busy} onClick={notifyManagers}>
+          Email managers already in the league
+        </Button>
+      ) : null}
+      {notifyState ? <p className="hub-experience-summary-note">{notifyState}</p> : null}
+    </>
+  );
 
   return (
     <div className="draft-lobby hub-experience-stack">
@@ -310,7 +377,8 @@ export default function DraftLobby({
               ...(bestOverlap ? [{ id: "overlap", label: "Best overlap", value: bestOverlap }] : []),
               { id: "format", label: "Format", value: formatLabel },
               ...(!pickDraft ? [{ id: "budget", label: "Salary cap", value: fmtSal(budget) }] : []),
-              { id: "seated", label: "Seated", value: `${claimed} / ${teamCount}` },
+              { id: "seated", label: "Claimed", value: `${claimed} / ${teamCount}` },
+              { id: "league-tz", label: "League time", value: leagueTime.replace(/^League time:\s*/, "") },
               ...(mySlot ? [{ id: "position", label: slotLabel(draftType), value: `#${mySlot}` }] : []),
             ]}
             action={(
@@ -352,64 +420,12 @@ export default function DraftLobby({
                 ) : (
                   <p className="hub-experience-summary-note">Waiting for the commissioner to start.</p>
                 )}
-                {isCommissioner && !testMode && claimUrl ? (
-                  <div className="draft-lobby-link draft-lobby-claim">
-                    <label htmlFor="draft-claim-url">{managerClaimLabel()}</label>
-                    <div className="draft-lobby-link-row">
-                      <input id="draft-claim-url" readOnly value={claimUrl} />
-                      <Button variant="ghost" size="sm" onClick={copyClaimLink}>
-                        {claimCopied ? "Copied" : "Copy"}
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={copyClaimText}>
-                        {managerClaimCopyTextLabel({ copied: claimTextCopied })}
-                      </Button>
-                    </div>
-                    {claimCopied ? <p className="hub-experience-summary-note">{managerClaimCopied()}</p> : null}
-                    {claimTextCopied ? <p className="hub-experience-summary-note">{managerClaimTextCopied()}</p> : null}
-                    {!claimEnabled ? (
-                      <p className="chart-note">This link is turned off in Roster management.</p>
-                    ) : null}
-                    <details className="draft-lobby-invite-details">
-                      <summary>How claiming works</summary>
-                      <p className="chart-note">{managerClaimExplainer()}</p>
-                      <p className="chart-note">{managerClaimWhatHappens()}</p>
-                      <button
-                        type="button"
-                        className="btn-link"
-                        disabled={claimBusy}
-                        onClick={rotateClaimLink}
-                      >
-                        {claimBusy ? "Rotating…" : "Rotate link"}
-                      </button>
-                      <p className="chart-note">{managerClaimRotateHint()}</p>
-                    </details>
-                  </div>
-                ) : null}
-                {inviteUrl ? (
-                  <div className="draft-lobby-link">
-                    <label htmlFor="draft-lobby-url">{draftInviteLabel({ testMode })}</label>
-                    <div className="draft-lobby-link-row">
-                      <input id="draft-lobby-url" readOnly value={inviteUrl} />
-                      <Button variant="ghost" size="sm" onClick={copyLink}>
-                        {copied ? "Copied" : "Copy"}
-                      </Button>
-                    </div>
-                    <details className="draft-lobby-invite-details">
-                      <summary>How draft-night access works</summary>
-                      <p className="chart-note">{draftInviteRailHint({ testMode })}</p>
-                      <p className="chart-note">{draftInviteWhatHappens({ testMode })}</p>
-                      {isCommissioner && !testMode ? (
-                        <p className="chart-note">{emailManagersHint()}</p>
-                      ) : null}
-                    </details>
-                  </div>
-                ) : null}
-                {isCommissioner && !testMode ? (
-                  <Button variant="ghost" disabled={slotBusy || busy} onClick={notifyManagers}>
-                    Email managers already in the league
-                  </Button>
-                ) : null}
-                {notifyState ? <p className="hub-experience-summary-note">{notifyState}</p> : null}
+                {mobileLayout ? (
+                  <details className="draft-lobby-share-room">
+                    <summary>{draftShareRoomLabel()}</summary>
+                    {shareRoomBody}
+                  </details>
+                ) : shareRoomBody}
               </div>
             )}
           />
@@ -421,6 +437,7 @@ export default function DraftLobby({
             enabled={!guestMode}
             canLock={isCommissioner && Boolean(onSaveSchedule)}
             lockedSlot={lockedSlot}
+            lockedStartsAt={startsAt}
             lockBusy={scheduleBusy || busy}
             onHighlight={onAvailHighlight}
             onLockSlot={lockAvailabilitySlot}

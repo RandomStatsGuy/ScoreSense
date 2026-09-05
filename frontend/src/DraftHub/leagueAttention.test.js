@@ -18,6 +18,16 @@ test("league identity is name · phase · role, never Hub", () => {
   assert.equal(leagueDisplayName(ctx, { inLeague: false }), "Solo prep");
 });
 
+test("Needs attention names Cap, not Cap planner", () => {
+  const items = buildLeagueAttentionItems({
+    inLeague: true,
+    overCapLabel: "$12",
+    mustExtendCount: 2,
+  });
+  assert.equal(items.find((item) => item.id === "over-cap")?.actionLabel, "Cap");
+  assert.equal(items.find((item) => item.id === "extend")?.actionLabel, "Cap");
+});
+
 test("Needs attention names the stale sheet and the sync", () => {
   const items = buildLeagueAttentionItems({
     inLeague: true,

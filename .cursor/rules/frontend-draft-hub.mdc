@@ -17,7 +17,7 @@ Read `docs/PRODUCT.md` first. User-facing name is **Fantasy**, not Draft Hub.
 - Intro copy: `HubTabIntro` only when the page is not already using the experience hero.
 - Live draft (`DraftRoom` while a draft is running): keep the board-first layout. Do not add the two-column settings chrome.
 - Do not create a second hero, chip, or summary component. Extend the existing ones.
-- On phone, Fantasy destinations use the header picker (`HubSubnav` sheet), not the destination scroller. League name and Needs attention fold into that overflow. Account lives in More.
+- On phone, Fantasy destinations use the header picker (`HubSubnav` sheet), not the destination scroller. A one-row league strip (name + caret) sits under the picker; New league / Sync league live in that caret. Needs attention is one line on the strip. Account lives in More.
 - Idle Draft, Mock, and the live room share `DraftSeat`. Do not fork YOU / Open · Take tiles.
 
 ## Copy and data
@@ -31,7 +31,7 @@ Read `docs/PRODUCT.md` first. User-facing name is **Fantasy**, not Draft Hub.
 ## Chat
 
 - Use `FantasyChatDock` on shared Fantasy pages when a real league is selected.
-- Keep it a flush edge launcher you can drag to a new edge. Horizontal type only — do not rotate the chip. Hide is not the only placement control.
+- Keep it a flush edge launcher you can drag to a new edge. Horizontal type only — do not rotate the chip. Hide is not the only placement control. On phone, default to the bottom-right above the tab bar with a safe-area inset.
 - Opening is a side drawer. Closing returns to the launcher.
 - House the full thread on Home as a locker rail. Do not show the edge launcher on Home. Do not add a Chat tab or destination.
 - Hide for solo / unconnected contexts.

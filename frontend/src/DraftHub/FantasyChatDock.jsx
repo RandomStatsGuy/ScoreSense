@@ -29,7 +29,7 @@ export default function FantasyChatDock({ leagueId, hubContext, hidden = false }
   const mobileLayout = useMobileLayout();
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState(readChatLauncherDismissed);
-  const [edge, setEdge] = useState(readChatLauncherEdge);
+  const [edge, setEdge] = useState(() => readChatLauncherEdge(undefined, { mobile: false }));
   const [dragging, setDragging] = useState(false);
   const triggerRef = useRef(null);
   const closeRef = useRef(null);
@@ -42,6 +42,10 @@ export default function FantasyChatDock({ leagueId, hubContext, hidden = false }
   const closeConversation = () => {
     setOpen(false);
   };
+
+  useEffect(() => {
+    setEdge(readChatLauncherEdge(undefined, { mobile: mobileLayout }));
+  }, [mobileLayout]);
 
   useEffect(() => {
     if (hidden) setOpen(false);

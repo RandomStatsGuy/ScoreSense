@@ -117,12 +117,21 @@ export default function useAppNavigation() {
 
   const setHubSubView = useCallback(
     (subView, insightOrOfficeTab) => {
-      navigateTo({
-        view: "hub",
-        hubSubView: subView,
-        insightTab: subView === "insights" ? (insightOrOfficeTab || route.insightTab || "overview") : null,
-        officeTab: subView === "office" ? (insightOrOfficeTab || route.officeTab || "current") : null,
-      });
+      const extra = insightOrOfficeTab && typeof insightOrOfficeTab === "object"
+        ? insightOrOfficeTab
+        : null;
+      const tab = extra ? (extra.insightTab || extra.officeTab) : insightOrOfficeTab;
+      navigateTo(
+        {
+          view: "hub",
+          hubSubView: subView,
+          insightTab: subView === "insights" ? (tab || route.insightTab || "overview") : null,
+          officeTab: subView === "office" ? (tab || route.officeTab || "current") : null,
+        },
+        extra?.pos
+          ? { filterUpdates: { needPos: String(extra.pos).toUpperCase() } }
+          : undefined,
+      );
     },
     [navigateTo, route.insightTab, route.officeTab],
   );

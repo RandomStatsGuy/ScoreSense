@@ -69,12 +69,20 @@ test("formatReturnEstimate hides Unknown labels", () => {
 test("parseApiError maps gateway timeouts instead of Request failed", async () => {
   const html = `<html>${"x".repeat(300)}</html>`;
   const msg = await parseApiError(new Response(html, { status: 504 }));
-  assert.match(msg, /too long/i);
+  assert.equal(msg, "Server did not respond — Retry");
   assert.doesNotMatch(msg, /Recent mocks|League settings/i);
+  const mock = await parseApiError(new Response(html, { status: 504 }), "Request failed", {
+    mockInFlight: true,
+  });
+  assert.match(mock, /too long|Recent mocks/i);
 });
 
 test("parseApiError maps empty 500 bodies", async () => {
   const msg = await parseApiError(new Response("", { status: 500 }));
-  assert.match(msg, /failed to finish|Reload/i);
+  assert.equal(msg, "Server did not respond — Retry");
   assert.doesNotMatch(msg, /Recent mocks|League settings/i);
+  const mock = await parseApiError(new Response("", { status: 500 }), "Request failed", {
+    mockInFlight: true,
+  });
+  assert.match(mock, /failed to finish|Recent mocks/i);
 });

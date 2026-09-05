@@ -18,6 +18,7 @@ import {
   fillStarterSlots,
   canEditHubLineup,
   decisionSwapIds,
+  formatDraftNightShort,
   weekHeroCopy,
   weekPrimaryAction,
   weekRailItems,
@@ -58,7 +59,7 @@ export default function WeeklyCommandCenter({
       if (!signal?.aborted) setData(payload);
     } catch (e) {
       if (isAbortError(e) || signal?.aborted) return;
-      setError(connectionErrorMessage(e));
+      setError(connectionErrorMessage(e) || "Server did not respond — Retry");
       if (!rebuild) setData(null);
     } finally {
       if (!signal?.aborted) setLoading(false);
@@ -145,7 +146,11 @@ export default function WeeklyCommandCenter({
     return fillStarterSlots(plan, starters);
   }, [hubContext?.rules, starters]);
 
+  const draftNightLabel = formatDraftNightShort(
+    hubContext?.draft_starts_at || data?.hub_context?.draft_starts_at,
+  );
   const hero = weekHeroCopy({
+    loading: loading && !data,
     loadFailed,
     emptyRoster,
     unlinked,
@@ -153,8 +158,16 @@ export default function WeeklyCommandCenter({
     poorCoverage,
     decisionCount: poorCoverage ? 0 : decisions.length,
     weekLabel,
+    draftNightLabel,
   });
-  const railItems = weekRailItems({ loadFailed, emptyRoster, unlinked, poorCoverage, counts });
+  const railItems = weekRailItems({
+    loading: loading && !data,
+    loadFailed,
+    emptyRoster,
+    unlinked,
+    poorCoverage,
+    counts,
+  });
   const railNote = weekRailNote({
     loadFailed,
     emptyRoster,
@@ -165,6 +178,7 @@ export default function WeeklyCommandCenter({
     syncedLabel,
   });
   const primary = weekPrimaryAction({
+    loading: loading && !data,
     loadFailed,
     emptyRoster,
     unlinked,
@@ -209,8 +223,8 @@ export default function WeeklyCommandCenter({
     if (primary.kind === "room") return onNavigate?.("room");
     if (primary.kind === "setup") return onNavigate?.("office-access") || onNavigateSetup?.();
     if (primary.kind === "roster") return onNavigate?.("roster");
-    if (primary.kind === "retry") return load();
     if (primary.kind === "refresh") return load(undefined, { rebuild: true });
+    if (primary.kind === "retry") return load();
     return load();
   };
 
@@ -230,13 +244,10 @@ export default function WeeklyCommandCenter({
           {primary.label}
         </button>
       ) : null}
-      {primary.kind === "strip-sync" ? (
-        <p className="chart-note">Use Sync league in the league strip.</p>
-      ) : null}
       {primary.kind === "retry" ? (
         <>
           <button type="button" className="btn-primary" onClick={() => load()} disabled={loading}>
-            {loading ? "Reloading…" : primary.label}
+            {loading ? "Retrying…" : primary.label}
           </button>
           {onNavigate ? (
             <button type="button" className="btn-ghost" onClick={() => onNavigate("room")}>
@@ -244,6 +255,9 @@ export default function WeeklyCommandCenter({
             </button>
           ) : null}
         </>
+      ) : null}
+      {primary.kind === "strip-sync" ? (
+        <p className="chart-note">Use Sync league in the league strip.</p>
       ) : null}
     </div>
   ) : null;
@@ -304,11 +318,11 @@ export default function WeeklyCommandCenter({
                 type="button"
                 className="btn-primary hub-experience-summary-action"
                 onClick={runPrimary}
-                disabled={loading || syncing}
+                disabled={loading || syncing || primary.kind === "wait"}
               >
-                {loading && primary.kind === "refresh"
-                  ? "Refreshing…"
-                  : (loading && primary.kind === "retry" ? "Reloading…" : primary.label)}
+                {loading && (primary.kind === "refresh" || primary.kind === "retry")
+                  ? (primary.kind === "retry" ? "Retrying…" : "Refreshing…")
+                  : primary.label}
               </button>
             )}
           />
@@ -330,7 +344,8 @@ export default function WeeklyCommandCenter({
           loadFailed={loadFailed}
           unlinked={unlinked}
           poorCoverage={poorCoverage}
-          loading={loading}
+          loading={loading && !data}
+          error={Boolean(error) && !data}
           coverageCopy={coverageCopy}
           syncedLabel={syncedLabel}
           projectionsBuiltAt={meta.projections_built_at}

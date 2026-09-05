@@ -4,6 +4,7 @@ import {
   playersTabAddLabel,
   playersTabAddMode,
   playersTabBanner,
+  playersTabLockedChip,
   playerTradeableInWindow,
   tradesWindowBanner,
 } from "./acquisitionWindow.js";
@@ -14,6 +15,9 @@ test("solo prep uses instant add", () => {
 
 test("league without a window stays locked", () => {
   assert.equal(playersTabAddMode(null, { inLeague: true }), "locked");
+  const chip = playersTabLockedChip();
+  assert.equal(chip.label, "Locked");
+  assert.match(chip.popover, /Star to queue/i);
 });
 
 test("waiver window uses bid copy", () => {

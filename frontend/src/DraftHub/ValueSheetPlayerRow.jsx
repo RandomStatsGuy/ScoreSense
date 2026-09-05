@@ -7,6 +7,8 @@ import { fmtSal, formatStatusLabel } from "./valueSheetUtils";
 import RaavBidCell from "./RaavBidCell";
 import { riskBand, riskBandTooltip, suggestedBidCaption } from "./draftLiveConsole";
 import ContractHistoryLink from "./ContractHistoryLink";
+import { playersTabLockedChip } from "./acquisitionWindow";
+import { vsCostCell } from "./capPlannerPresentation";
 
 function ValueSheetPlayerRow({
   row,
@@ -53,6 +55,8 @@ function ValueSheetPlayerRow({
   actionCol = true,
   needPositions = [],
   onOpenContractHistory,
+  preDraft = false,
+  remainingCap = null,
 }) {
   const handleRowClick = useCallback(() => {
     if (onSelectPlayer) onSelectPlayer(row);
@@ -94,6 +98,12 @@ function ValueSheetPlayerRow({
   const isNeed = (needPositions || []).some(
     (p) => String(p || "").toUpperCase() === String(row.position || "").toUpperCase(),
   );
+  const costCell = vsCostCell({
+    preDraft,
+    remaining: remainingCap,
+    bid: row.fair_value ?? row.suggested_bid,
+    valueDelta: row.value_delta,
+  });
 
   return (
     <tr
@@ -132,6 +142,12 @@ function ValueSheetPlayerRow({
           />
         </div>
           {row.is_rookie && <span className="hub-sleeper-badge">Rookie est.</span>}
+          {addMode === "locked" ? (
+            <details className="hub-fa-locked" onClick={(e) => e.stopPropagation()}>
+              <summary className="hub-fa-locked-chip">{playersTabLockedChip().label}</summary>
+              <p className="hub-fa-locked-pop">{playersTabLockedChip().popover}</p>
+            </details>
+          ) : null}
           <ContractHistoryLink
             playerId={row.player_id}
             playerName={row.player || row.player_name}
@@ -203,11 +219,11 @@ function ValueSheetPlayerRow({
       )}
       {showDelta && (
         <td className="num hub-col-delta">
-          {row.value_delta != null ? (
+          {!preDraft && row.value_delta != null ? (
             <span className={row.value_delta <= 0 ? "hub-value-delta-pos" : "hub-value-delta-neg"}>
-              {row.value_delta <= 0 ? "" : "+"}{fmtSal(row.value_delta)}
+              {costCell}
             </span>
-          ) : "—"}
+          ) : costCell}
         </td>
       )}
       {showTier && <td className="hub-col-tier">{row.tier}</td>}

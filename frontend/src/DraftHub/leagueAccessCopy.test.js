@@ -9,6 +9,7 @@ import {
   draftInviteExplainer,
   draftInviteRailHint,
   draftInviteWhatHappens,
+  draftLobbyHeroHeading,
   draftLobbyHeroSupport,
   draftLobbyRailHeading,
   draftLobbyReadiness,
@@ -73,7 +74,10 @@ test("live draft invite copy is members-only", () => {
   assert.doesNotMatch(live, /no account is required/i);
   assert.equal(draftInviteLabel(), "Member draft link");
   assert.match(draftInviteRailHint(), /already belong/i);
+  assert.equal(draftLobbyHeroHeading(), "Lock a night, then start the draft.");
+  assert.equal(draftLobbyHeroHeading({ locked: true }), "Draft night is locked. Fill the room.");
   assert.match(draftLobbyHeroSupport(), /locks the overlap/i);
+  assert.match(draftLobbyHeroSupport({ locked: true }), /claimed seats/i);
   assert.match(draftInviteWhatHappens(), /already has their team/i);
 });
 
@@ -95,7 +99,7 @@ test("draft lobby readiness keeps launch status concise", () => {
 
   const openRoom = draftLobbyReadiness({ claimed: 7, teamCount: 10 });
   assert.deepEqual(openRoom.map((item) => item.tone), ["attention", "neutral", "ready"]);
-  assert.match(openRoom[0].label, /7 of 10 managers seated/i);
+  assert.match(openRoom[0].label, /7 of 10 managers claimed/i);
   assert.match(openRoom[1].label, /commissioner launches/i);
 
   const readyRoom = draftLobbyReadiness({ claimed: 10, teamCount: 10, scheduled: true });

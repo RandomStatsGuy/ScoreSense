@@ -55,7 +55,7 @@ export function buildLeagueAttentionItems({
     items.push({
       id: "over-cap",
       label: `Over cap ${overCapLabel}`,
-      actionLabel: "Cap planner",
+      actionLabel: "Cap",
       action: "planner",
     });
   }
@@ -63,14 +63,14 @@ export function buildLeagueAttentionItems({
     items.push({
       id: "extend",
       label: `${mustExtendCount} need extension`,
-      actionLabel: "Cap planner",
+      actionLabel: "Cap",
       action: "planner",
     });
   } else if (droppingCount > 0) {
     items.push({
       id: "expire",
       label: `${droppingCount} expire → FA`,
-      actionLabel: "Cap planner",
+      actionLabel: "Cap",
       action: "planner",
     });
   }

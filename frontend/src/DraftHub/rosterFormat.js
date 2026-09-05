@@ -134,6 +134,28 @@ export function dropDeadCapAmount(row, rules) {
   return Math.round((sal - sal * cutRefundPct(rules)) * 100) / 100;
 }
 
+/** One dead-cap story for Cap bullets and the My team contract drawer. */
+export function contractDeadCapStory(row, rules) {
+  const salary = Number(capHitForRow(row, 0) || row?.salary || 0);
+  const refundPct = cutRefundPct(rules);
+  const freed = Number.isFinite(salary) ? Math.round(salary * refundPct) : 0;
+  const dead = Number.isFinite(salary) ? Math.round(salary - salary * refundPct) : 0;
+  const isCut = String(row?.roster_status || "") === "cut_before_draft";
+  const ifUndoneRoom = isCut ? -Math.round(salary) : 0;
+  return {
+    salary: Number.isFinite(salary) ? Math.round(salary) : 0,
+    dead,
+    freed,
+    isCut,
+    ifUndoneRoom,
+    deadLabel: `DEAD CAP ${fmtSal(dead)}`,
+    ifUndoneLabel: `IF UNDONE: room −${fmtSal(Math.abs(ifUndoneRoom || salary))}`,
+    cutBullet: `frees ${fmtSal(freed)}, dead ${fmtSal(dead)}`,
+    railCut: `(+${fmtSal(dead)} dead, −${fmtSal(Math.round(salary))} room)`,
+    undoSupport: `+${fmtSal(Math.round(salary))} room this season, ${fmtSal(dead)} dead cleared.`,
+  };
+}
+
 export function shortAuctionContractLabel(pick, stepUp = 5) {
   const years = Number(pick?.contract_years || 2);
   const ctype = String(pick?.contract_type || "");

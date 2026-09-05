@@ -25,6 +25,13 @@ export function playerTradeableInWindow(row, window) {
   return Number.isFinite(yrs) && yrs > 1;
 }
 
+export function playersTabLockedChip() {
+  return {
+    label: "Locked",
+    popover: "Pickups go through the draft. Star to queue for the room.",
+  };
+}
+
 export function playersTabBanner(window) {
   if (!window) return null;
   return {
