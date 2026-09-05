@@ -56,5 +56,3 @@ export function markSheetsGuideSeen(storage = globalThis.localStorage) {
     /* ignore quota / private mode */
   }
 }
-
-/** Pane switcher is the four pills only — no inline group labels. */
