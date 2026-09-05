@@ -187,7 +187,7 @@ export function formatRecordLine(row) {
 export function formatScoringRankValue(row) {
   const gap = Number(row?.gapFromFirst);
   if (Number.isFinite(gap) && gap > 0) return `−${formatPoints(gap)}`;
-  return formatPoints(row?.total ?? row?.total_points);
+  return "Leader";
 }
 
 export function overviewRecordRows(records, ownerMap) {

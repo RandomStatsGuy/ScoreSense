@@ -8,7 +8,7 @@ import {
 } from "../riskAdjustedValue";
 import { confirmDialog } from "../ui/confirm";
 import { isHubRulesPath, setUnsavedNavigationBlocker } from "../unsavedNavigation";
-import { HubPage } from "./HubUILayout";
+import { HubFilterMenu, HubPage } from "./HubUILayout";
 import { isPickDraft } from "./draftEntryStatus";
 import {
   contractSchedule,
@@ -429,9 +429,16 @@ export default function RulesWizard({
               <div className="hub-rules-field-grid hub-rules-field-grid--contracts">
                 <label>
                   <span>Max extension length</span>
-                  <select value={rules.contracts.max_years} disabled={readOnlyRules} onChange={(event) => updateContract("max_years", Number(event.target.value))}>
-                    {[1, 2, 3, 4, 5].map((years) => <option key={years} value={years}>{years} year{years === 1 ? "" : "s"}</option>)}
-                  </select>
+                  <HubFilterMenu
+                    label="Years"
+                    value={String(rules.contracts.max_years)}
+                    disabled={readOnlyRules}
+                    options={[1, 2, 3, 4, 5].map((years) => ({
+                      id: String(years),
+                      label: `${years} year${years === 1 ? "" : "s"}`,
+                    }))}
+                    onChange={(id) => updateContract("max_years", Number(id))}
+                  />
                   <RuleError>{errors.max_years}</RuleError>
                 </label>
                 <label>
@@ -444,16 +451,30 @@ export default function RulesWizard({
                 </label>
                 <label>
                   <span>Default rookie term</span>
-                  <select value={rules.contracts.rookie_years} disabled={readOnlyRules} aria-invalid={Boolean(errors.rookie_years)} onChange={(event) => updateContract("rookie_years", Number(event.target.value))}>
-                    {[1, 2, 3, 4, 5].map((years) => <option key={years} value={years}>{years} year{years === 1 ? "" : "s"}</option>)}
-                  </select>
+                  <HubFilterMenu
+                    label="Years"
+                    value={String(rules.contracts.rookie_years)}
+                    disabled={readOnlyRules}
+                    options={[1, 2, 3, 4, 5].map((years) => ({
+                      id: String(years),
+                      label: `${years} year${years === 1 ? "" : "s"}`,
+                    }))}
+                    onChange={(id) => updateContract("rookie_years", Number(id))}
+                  />
                   <RuleError>{errors.rookie_years}</RuleError>
                 </label>
                 <label>
                   <span>Default veteran term</span>
-                  <select value={rules.contracts.veteran_years} disabled={readOnlyRules} aria-invalid={Boolean(errors.veteran_years)} onChange={(event) => updateContract("veteran_years", Number(event.target.value))}>
-                    {[1, 2, 3, 4, 5].map((years) => <option key={years} value={years}>{years} year{years === 1 ? "" : "s"}</option>)}
-                  </select>
+                  <HubFilterMenu
+                    label="Years"
+                    value={String(rules.contracts.veteran_years)}
+                    disabled={readOnlyRules}
+                    options={[1, 2, 3, 4, 5].map((years) => ({
+                      id: String(years),
+                      label: `${years} year${years === 1 ? "" : "s"}`,
+                    }))}
+                    onChange={(id) => updateContract("veteran_years", Number(id))}
+                  />
                   <RuleError>{errors.veteran_years}</RuleError>
                 </label>
                 <label>

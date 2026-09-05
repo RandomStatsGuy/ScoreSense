@@ -72,6 +72,7 @@ export default function DraftLobby({
   onUpdated,
   guestMode = false,
   claimAccess = null,
+  expirePreview = null,
 }) {
   const [copied, setCopied] = useState(false);
   const [claimCopied, setClaimCopied] = useState(false);
@@ -279,8 +280,13 @@ export default function DraftLobby({
   };
 
   const nightLocked = Boolean(startsAt);
-  const heading = draftLobbyHeroHeading({ testMode, locked: nightLocked });
-  const support = draftLobbyHeroSupport({ testMode, locked: nightLocked });
+  const roomFull = claimed >= teamCount && teamCount > 0;
+  const readyToStart = Boolean(nightLocked && roomFull);
+  const heading = draftLobbyHeroHeading({ testMode, locked: nightLocked, roomFull });
+  const support = draftLobbyHeroSupport({ testMode, locked: nightLocked, roomFull });
+  const keepersLine = expirePreview && (Number(expirePreview.retained_count) || Number(expirePreview.expire_count))
+    ? `${Number(expirePreview.retained_count) || 0} retained · ${Number(expirePreview.expire_count) || 0} expire before draft`
+    : "";
   const leagueTime = leagueTimeLabel(draftTz);
   const shareRoomBody = (
     <>
@@ -353,7 +359,19 @@ export default function DraftLobby({
         support={support}
         chip={lobbyChipLabel({ claimed, teamCount })}
         chipTone={lobbyChipTone({ claimed, teamCount })}
-      />
+      >
+        {isCommissioner && readyToStart ? (
+          <div className="hub-experience-card-actions">
+            <Button
+              className="draft-lobby-primary-action"
+              disabled={busy || roomLoading}
+              onClick={() => onStartDraft?.({ fillBots: testMode && fillBots })}
+            >
+              {busy ? "Starting…" : (testMode ? "Start mock draft" : "Start live draft")}
+            </Button>
+          </div>
+        ) : null}
+      </HubExperienceHero>
 
       {error ? <p className="hub-alert hub-alert--danger draft-lobby-error" role="alert">{error}</p> : null}
 
@@ -404,7 +422,7 @@ export default function DraftLobby({
                     <span>Fill leftovers with bots</span>
                   </label>
                 ) : null}
-                {isCommissioner ? (
+                {isCommissioner && !readyToStart ? (
                   <Button
                     className="draft-lobby-primary-action"
                     variant={startDraftIsPrimary({
@@ -417,7 +435,7 @@ export default function DraftLobby({
                   >
                     {busy ? "Starting…" : (testMode ? "Start mock draft" : "Start live draft")}
                   </Button>
-                ) : (
+                ) : isCommissioner ? null : (
                   <p className="hub-experience-summary-note">Waiting for the commissioner to start.</p>
                 )}
                 {mobileLayout ? (
@@ -442,44 +460,44 @@ export default function DraftLobby({
             onHighlight={onAvailHighlight}
             onLockSlot={lockAvailabilitySlot}
             onWindowChange={onCalendarWindow}
-          />
-        ) : null}
-
-        {isCommissioner && !testMode && onSaveSchedule && !startsAt && calendarState !== "open" && calendarState !== "upcoming" ? (
-          <DraftNightSchedule
-            variant="compact"
-            startsAt={startsAt}
-            timezone={draftTz}
-            wall={draftWall}
-            onWallChange={setDraftWall}
-            onTimezoneChange={setDraftTz}
-            tzOptions={tzOptions}
-            canEdit
-            busy={scheduleBusy || busy}
-            waitSecs={waitSecs}
-            minDate={calendarTodayIso(undefined, draftTz)}
-            onSave={() => saveSchedule(false)}
-            onClear={() => saveSchedule(true)}
-          />
-        ) : isCommissioner && !testMode && onSaveSchedule ? (
-          <details className="draft-lobby-alt-lock">
-            <summary>{altLockSummary({ locked: Boolean(startsAt) })}</summary>
-            <DraftNightSchedule
-              variant="compact"
-              startsAt={startsAt}
-              timezone={draftTz}
-              wall={draftWall}
-              onWallChange={setDraftWall}
-              onTimezoneChange={setDraftTz}
-              tzOptions={tzOptions}
-              canEdit
-              busy={scheduleBusy || busy}
-              waitSecs={waitSecs}
-              minDate={calendarTodayIso(undefined, draftTz)}
-              onSave={() => saveSchedule(false)}
-              onClear={() => saveSchedule(true)}
-            />
-          </details>
+          >
+            {isCommissioner && onSaveSchedule && !startsAt && calendarState !== "open" && calendarState !== "upcoming" ? (
+              <DraftNightSchedule
+                variant="compact"
+                startsAt={startsAt}
+                timezone={draftTz}
+                wall={draftWall}
+                onWallChange={setDraftWall}
+                onTimezoneChange={setDraftTz}
+                tzOptions={tzOptions}
+                canEdit
+                busy={scheduleBusy || busy}
+                waitSecs={waitSecs}
+                minDate={calendarTodayIso(undefined, draftTz)}
+                onSave={() => saveSchedule(false)}
+                onClear={() => saveSchedule(true)}
+              />
+            ) : isCommissioner && onSaveSchedule ? (
+              <details className="draft-lobby-alt-lock">
+                <summary>{altLockSummary({ locked: Boolean(startsAt) })}</summary>
+                <DraftNightSchedule
+                  variant="compact"
+                  startsAt={startsAt}
+                  timezone={draftTz}
+                  wall={draftWall}
+                  onWallChange={setDraftWall}
+                  onTimezoneChange={setDraftTz}
+                  tzOptions={tzOptions}
+                  canEdit
+                  busy={scheduleBusy || busy}
+                  waitSecs={waitSecs}
+                  minDate={calendarTodayIso(undefined, draftTz)}
+                  onSave={() => saveSchedule(false)}
+                  onClear={() => saveSchedule(true)}
+                />
+              </details>
+            ) : null}
+          </DraftAvailability>
         ) : null}
 
         <article className="hub-experience-section draft-lobby-room">
@@ -487,6 +505,7 @@ export default function DraftLobby({
             <h3>{roomHeading()}</h3>
             <p className="chart-note">{roomSupport({ guestMode, testMode })}</p>
           </header>
+          {keepersLine ? <p className="chart-note">{keepersLine}</p> : null}
           <ol className="hub-pick-grid draft-lobby-slots" aria-label={slotLabel(draftType)}>
             {slots.map(({ slot, team }) => {
               const mine = team && String(team.id) === String(myTeamId);

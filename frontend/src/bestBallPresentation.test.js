@@ -65,7 +65,7 @@ test("filterBoardRows narrows by position, search, and ECR coverage", () => {
 test("edge formatting names discount and reach without amber caution", () => {
   assert.equal(formatEdge(17), "+17");
   assert.equal(formatEdge(-28), "-28");
-  assert.equal(formatEdge(null), "");
+  assert.equal(formatEdge(null), "—");
   assert.equal(edgeTone(17), "discount");
   assert.equal(edgeTone(-28), "reach");
   assert.equal(edgeTone(3), "");

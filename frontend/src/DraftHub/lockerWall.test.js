@@ -19,6 +19,6 @@ test("empty locker picks default to top active players by cap hit", () => {
 test("curated locker ids keep order and name the subset", () => {
   const wall = lockerWallPlayers(roster, ["d", "a", "missing"]);
   assert.deepEqual(wall.players.map((row) => row.player_id), ["d", "a"]);
-  assert.equal(wall.caption, "Your lockers · 2 of 3");
+  assert.equal(wall.caption, "Your lockers · 2 of 3 active");
   assert.equal(wall.curated, true);
 });

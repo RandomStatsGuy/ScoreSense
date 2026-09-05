@@ -109,7 +109,7 @@ test("overview scoring rows keep fill independent of label width and show the ga
     { team_name: "Colby", owner_name: "Colby L", total_points: 11030 },
   ]);
   assert.equal(rows[1].label, "Justin P");
-  assert.equal(formatScoringRankValue(rows[0]), "12,576");
+  assert.equal(formatScoringRankValue(rows[0]), "Leader");
   assert.match(formatScoringRankValue(rows[1]), /−1,485/);
   assert.ok(rows[1].fillPct > rows[2].fillPct);
 });

@@ -51,6 +51,7 @@ import {
   weeklyRowClickIntent,
   weeklyWhyNow,
 } from "./projectionsPresentation";
+import { usePageWindowedRows } from "./DraftHub/useWindowedRows";
 
 const SORT_KEYS = {
   Player: "Player",
@@ -289,7 +290,11 @@ const WeeklyTableRow = React.memo(function WeeklyTableRow({
       <td className={`num col-rank${rank != null && rank <= 3 ? " col-rank-top" : ""}`}>
         <span className="col-rank-stack">
           <span className="col-rank-value">{rank ?? "—"}</span>
-          {showMovement ? <RankMoveInline row={row} position={position} /> : null}
+          {showMovement ? (
+            <span className="col-rank-move">
+              <RankMoveInline row={row} position={position} />
+            </span>
+          ) : null}
         </span>
       </td>
       <td className="col-player">
@@ -613,6 +618,14 @@ export default function WeeklyTable({
 
   // Position rank over the full slate (stable regardless of sort/filter).
   const rankMap = useRankMap(rows, rankMetric);
+  const windowed = !mobileLayout && !loading && sorted.length > 40;
+  const { rootRef, range } = usePageWindowedRows(sorted.length, {
+    enabled: windowed,
+    rowHeight: 56,
+  });
+  const visibleRows = windowed ? sorted.slice(range.start, range.end) : sorted;
+  const topPad = windowed ? range.start * 56 : 0;
+  const bottomPad = windowed ? Math.max(0, sorted.length - range.end) * 56 : 0;
 
   const hasFilters = Boolean(
     (search || "").trim() ||
@@ -1027,7 +1040,10 @@ export default function WeeklyTable({
           />
         </MobileDataList>
       ) : (
-      <div className={`table-wrap table-sticky table-has-rank${compareSelecting ? " table-is-comparing" : ""}${showFilters ? " table-has-movement" : ""}`}>
+      <div
+        ref={rootRef}
+        className={`table-wrap table-sticky table-has-rank hub-page-board${compareSelecting ? " table-is-comparing" : ""}${showFilters ? " table-has-movement" : ""}`}
+      >
         <table>
           <thead>
             <tr>
@@ -1100,13 +1116,18 @@ export default function WeeklyTable({
                 onAction={hasFilters ? onClearFilters : undefined}
               />
             )}
-            {sorted.map((row, rowIndex) => {
+            {topPad > 0 && (
+              <tr aria-hidden="true">
+                <td colSpan={emptyColSpan} style={{ height: topPad, padding: 0, border: 0 }} />
+              </tr>
+            )}
+            {visibleRows.map((row, rowIndex) => {
               const pid = row.player_id ? String(row.player_id) : "";
               return (
               <WeeklyTableRow
                 key={rowRankKey(row)}
                 row={row}
-                rowIndex={rowIndex}
+                rowIndex={range.start + rowIndex}
                 rank={rankMap.get(rowRankKey(row)) ?? null}
                 showOpponent={showOpponent}
                 unavailableColSpan={unavailableColSpan}
@@ -1131,6 +1152,11 @@ export default function WeeklyTable({
               />
               );
             })}
+            {bottomPad > 0 && (
+              <tr aria-hidden="true">
+                <td colSpan={emptyColSpan} style={{ height: bottomPad, padding: 0, border: 0 }} />
+              </tr>
+            )}
               </>
             )}
           </tbody>

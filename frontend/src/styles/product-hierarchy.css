@@ -641,7 +641,7 @@ button.btn-link.hub-league-switcher-create:hover {
 
 .hub-home-action-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.55rem;
   margin: 0;
   padding: 0;
@@ -775,6 +775,12 @@ button.btn-link.hub-league-switcher-create:hover {
   gap: 0.55rem;
 }
 
+@media (min-width: 1100px) {
+  .mock-draft-formats {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
 .mock-draft-format-card {
   position: relative;
   display: grid;
@@ -852,16 +858,29 @@ button.btn-link.hub-league-switcher-create:hover {
 }
 
 .mock-draft-advanced summary {
-  display: list-item;
-  list-style: disclosure-closed inside;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  list-style: none;
   color: var(--text-secondary);
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 650;
 }
 
-.mock-draft-advanced[open] > summary {
-  list-style: disclosure-open inside;
+.mock-draft-advanced summary::-webkit-details-marker {
+  display: none;
+}
+
+.mock-draft-advanced summary::before {
+  content: "▸";
+  flex: none;
+  margin-top: 0;
+  color: var(--text-muted);
+}
+
+.mock-draft-advanced[open] > summary::before {
+  content: "▾";
 }
 
 .mock-draft-advanced > summary h3 {
@@ -872,7 +891,7 @@ button.btn-link.hub-league-switcher-create:hover {
 }
 
 .mock-draft-advanced > summary small,
-.mock-draft-advanced summary span {
+.mock-draft-advanced summary span:not(.mock-draft-step-num) {
   color: var(--text-muted);
   font-size: var(--text-xs);
   font-weight: 550;
@@ -977,7 +996,7 @@ button.btn-link.hub-league-switcher-create:hover {
 
 .mock-draft-experience-toggle button {
   min-width: 0;
-  min-height: var(--touch-target);
+  min-height: 5.6rem;
   padding: 0.55rem 0.62rem;
   border: 1px solid var(--border-strong);
   border-radius: 11px;
@@ -1321,6 +1340,10 @@ button.btn-link.hub-league-switcher-create:hover {
   align-items: end;
   margin-bottom: 0.85rem;
 }
+.dfs-field-row .hub-filter-menu,
+.hub-rules-field-grid .hub-filter-menu {
+  width: 100%;
+}
 
 .dfs-currency {
   display: flex;
@@ -1428,8 +1451,8 @@ button.btn-link.hub-league-switcher-create:hover {
 }
 
 .dfs-pin {
-  min-height: 1.85rem;
-  padding: 0.2rem 0.5rem;
+  min-height: 2.15rem;
+  padding: 0.35rem 0.7rem;
   border: 1px solid transparent;
   border-radius: 999px;
   background: #142133;
@@ -1629,6 +1652,7 @@ button.btn-link.hub-league-switcher-create:hover {
 }
 
 .dfs-vegas-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -1647,16 +1671,20 @@ button.btn-link.hub-league-switcher-create:hover {
   align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
+  padding-right: 4.2rem;
   color: var(--text-muted);
   font-size: var(--text-xs);
 }
 
 .dfs-vegas-hot {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
   color: var(--experience-blue);
   font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .dfs-vegas-teams {
@@ -3074,6 +3102,10 @@ button.btn-link.hub-league-switcher-create:hover {
   min-width: 0;
 }
 
+.hub-experience-hero .hub-experience-card-actions {
+  margin-top: 0.65rem;
+}
+
 .hub-experience-hero {
   display: flex;
   align-items: flex-start;
@@ -3173,12 +3205,16 @@ button.btn-link.hub-league-switcher-create:hover {
   color: var(--text-secondary);
 }
 
+.hub-experience-page > .hub-experience-hero + * {
+  margin-top: 0.65rem;
+}
+
 .hub-experience-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(17.5rem, 20rem);
   gap: 1rem;
   align-items: start;
-  padding: 1rem;
+  padding: 0.65rem 1.5rem 1.15rem;
 }
 
 .hub-experience-layout.has-footer {
@@ -3284,9 +3320,12 @@ button.btn-link.hub-league-switcher-create:hover {
 
 .hub-experience-summary h3 {
   margin: 0;
+  overflow: hidden;
   color: var(--text-primary);
   font-size: 1.15rem;
   letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .hub-experience-summary > div > p,
@@ -4682,8 +4721,9 @@ button.btn-link.hub-league-switcher-create:hover {
 
 .hub-cap-field {
   display: flex;
-  flex-direction: column;
-  gap: 0.28rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
   min-width: 0;
   color: var(--text-muted);
   font-size: var(--text-xs);
@@ -4693,7 +4733,7 @@ button.btn-link.hub-league-switcher-create:hover {
 .hub-cap-money {
   display: flex;
   align-items: center;
-  min-height: var(--touch-target);
+  min-height: 1.85rem;
   padding: 0 0.65rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -4840,6 +4880,14 @@ button.btn-link.hub-league-switcher-create:hover {
   font-size: var(--text-xs);
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.draft-availability-status-chip.is-saved {
+  color: var(--tone-positive);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .draft-lobby-share-room > summary {

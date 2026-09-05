@@ -3,7 +3,7 @@ import { apiFetch } from "../auth";
 import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
 import useMobileLayout from "../useMobileLayout";
-import { HubAlert, HubLoadingSkeleton, HubPage } from "./HubUILayout";
+import { HubAlert, HubExperienceHero, HubLoadingSkeleton, HubPage } from "./HubUILayout";
 import LeagueChat from "./LeagueChat";
 import TeamIdentityMark from "./TeamIdentityMark";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
@@ -26,8 +26,7 @@ import {
   homeDeckStandingRows,
   homeHasPendingCuts,
   homeStandingHasGap,
-  homeHeroHeading,
-  homeHeroSupport,
+  homeAlsoDueMessage,
   homeMatchupNote,
   phaseTrackState,
   resolveLeagueHomeFocus,
@@ -66,12 +65,13 @@ function fmtCap(value) {
 }
 
 function ActionRow({ action, onNavigate }) {
-  const href = HUB_ACTION_VIEWS.has(action?.href) ? action.href : null;
+  if (!action) return null;
+  const href = HUB_ACTION_VIEWS.has(action.href) ? action.href : null;
   return (
-    <li className={`hub-home-action hub-home-action--${severityVariant(action?.severity)}`}>
+    <li className={`hub-home-action hub-home-action--${severityVariant(action.severity)}`}>
       <div className="hub-home-action-main">
-        <p className="hub-home-action-message">{action.message}</p>
-        {action.count != null && (
+        <p className="hub-home-action-message">{homeAlsoDueMessage(action)}</p>
+        {action.count != null && action.id !== "expiring_contracts" && (
           <span className="hub-home-action-meta">{action.count} item{action.count === 1 ? "" : "s"}</span>
         )}
         {action.amount != null && action.id === "cap_overage" && (
@@ -229,7 +229,6 @@ export default function LeagueHome({
   });
 
   const projBuilt = freshness.projections?.built_at;
-  const projDays = freshness.projections?.days_old;
   const draftDate = formatDraftDate(data?.draft_schedule);
 
   const goSetup = onNavigateSetup || (onNavigate ? () => onNavigate("setup") : null);
@@ -260,37 +259,33 @@ export default function LeagueHome({
   });
 
   return (
-    <HubPage className={`hub-league-home${mobileLayout ? " hub-league-home--mobile" : ""}`}>
+    <HubPage className={`hub-league-home hub-experience-page${mobileLayout ? " hub-league-home--mobile" : ""}`}>
       {error && <div className="error">{error}</div>}
-      <header className="hub-home-heading">
-        <div>
-          <p className="hub-experience-kicker">{HOME_PAGE_COPY.kicker}</p>
-          <h2>{loading && !data ? HOME_PAGE_COPY.loadingHeading : homeHeroHeading(data)}</h2>
-          {!loading && data ? (
-            <p className="chart-note">{homeHeroSupport(data)}</p>
-          ) : null}
-        </div>
-        <div className="hub-home-heading-actions">
-          {goSetup ? (
+      <HubExperienceHero
+        eyebrow={HOME_PAGE_COPY.kicker}
+        heading={loading && !data ? HOME_PAGE_COPY.loadingHeading : null}
+        support={null}
+      >
+        <nav className="hub-home-phase-track" aria-label="League season stage">
+          {phaseTrack.map((item) => (
+            <span
+              key={item.id}
+              className={`hub-home-phase-step${item.current ? " is-current" : ""}`}
+              aria-current={item.current ? "step" : undefined}
+            >
+              <span className="hub-home-phase-dot" aria-hidden="true" />
+              {item.label}
+            </span>
+          ))}
+        </nav>
+        {goSetup ? (
+          <div className="hub-home-heading-actions">
             <button type="button" className="btn-ghost btn-sm" onClick={goSetup}>
               Settings
             </button>
-          ) : null}
-        </div>
-      </header>
-
-      <nav className="hub-home-phase-track" aria-label="League season stage">
-        {phaseTrack.map((item) => (
-          <span
-            key={item.id}
-            className={`hub-home-phase-step${item.current ? " is-current" : ""}`}
-            aria-current={item.current ? "step" : undefined}
-          >
-            <span className="hub-home-phase-dot" aria-hidden="true" />
-            {item.label}
-          </span>
-        ))}
-      </nav>
+          </div>
+        ) : null}
+      </HubExperienceHero>
 
       <div className="hub-home-club">
       <div className="hub-home-club-main">
@@ -378,8 +373,19 @@ export default function LeagueHome({
                   ? (formatRelativeTime(projBuilt) || "Available")
                   : (freshness.projections?.available === false ? "Unavailable" : "Checking…")}
               </dd>
-              {projDays != null ? <span>{projDays} day{projDays === 1 ? "" : "s"} old</span> : null}
             </div>
+            {weekSummary?.available ? (
+              <>
+                <div>
+                  <dt>On bye</dt>
+                  <dd>{weekSummary?.on_bye ?? 0}</dd>
+                </div>
+                <div>
+                  <dt>Injured</dt>
+                  <dd>{weekSummary?.injured ?? 0}</dd>
+                </div>
+              </>
+            ) : null}
           </dl>
         </aside>
       </div>

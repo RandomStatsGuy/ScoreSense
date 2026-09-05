@@ -8,7 +8,6 @@ import MobileDataList, { MobileStat } from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
 import { usePlayerMedia } from "../PlayerCell";
 import { confirmDialog } from "../ui/confirm";
-import HubTabIntro from "./HubTabIntro";
 import { pinNeedPositions } from "./draftRoomHelpers";
 import {
   filterAndSortRows,
@@ -19,7 +18,7 @@ import {
   pinWatchedPlayers,
   tierChipClass,
 } from "./valueSheetUtils";
-import { HubPage, HubPageSticky, HubTableCard, HubFilterMenu, HubFilterChip, SortTh, HubAlert } from "./HubUILayout";
+import { HubExperienceHero, HubPage, HubPageSticky, HubTableCard, HubFilterMenu, HubFilterChip, SortTh, HubAlert } from "./HubUILayout";
 import { HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import ValueSheetPlayerRow from "./ValueSheetPlayerRow";
 import ContractHistoryLink from "./ContractHistoryLink";
@@ -576,36 +575,15 @@ export default function ValueSheetTable({
       style={pageBoard ? { "--hub-fa-sticky-offset": `${stickyOffset}px` } : undefined}
     >
       {!hideHeader && !hideIntro && (
-        <HubTabIntro
-          title={panelTitle}
-          compact={compact}
-          learnMoreLabel={isAvailableView ? PLAYERS_TAB_COPY.howAddsWork : "Contract rules"}
-          purpose={purpose || (compact ? null : (
+        <HubExperienceHero
+          eyebrow={isAvailableView ? "Free agents" : panelTitle}
+          heading={panelTitle}
+          support={purpose || (compact ? null : (
             isAvailableView
               ? "Players not under contract. Bid or add when the window is open. Before the draft, pickups go through the live room or you miss them."
               : "Star names you want first. Compare suggested bids so you do not overpay a rostered player."
           ))}
-          audience={audience}
-          learnMore={!isAvailableView && (showCostDelta || activeRisk || onWatchPlayer) && !compact && !mobileLayout ? (
-            <>
-              {onWatchPlayer ? (
-                <p>
-                  Star players you want to take. Stars persist into the live draft room.
-                </p>
-              ) : null}
-              {showCostDelta && (
-                <p>
-                  Vs cost = contract salary minus suggested bid (negative = good value).
-                </p>
-              )}
-              {activeRisk && (
-                <p>
-                  Risk-adjusted $ badges show how {riskToleranceLabel(riskTolerance)} stance
-                  shifts fair value from season floor/ceiling variance.
-                </p>
-              )}
-            </>
-          ) : null}
+          compact={compact}
         />
       )}
       {playersBanner ? (
@@ -616,6 +594,9 @@ export default function ValueSheetTable({
           <strong>{playersBanner.label}.</strong>
           {" "}
           {playersBanner.text}
+          {addMode === "locked" ? (
+            <span className="hub-fa-locked-note"> {PLAYERS_TAB_COPY.lockedReason}</span>
+          ) : null}
         </HubAlert>
       ) : (isAvailableView && !compact ? (
         <div className="hub-fa-how-adds-fallback">{howAddsDetails}</div>
@@ -629,25 +610,6 @@ export default function ValueSheetTable({
           been imported yet.
         </HubAlert>
       ) : null}
-
-      {!hideHeader && !mobileLayout && (
-        <div className="hub-page-meta">
-          <span>{panelSub}</span>
-          {sleeperLinked ? (
-            <span>{` · ${sleeper.sleeper_team_name || "Sleeper linked"}`}</span>
-          ) : null}
-          {seasonMethodNote ? (
-            <span
-              title={seasonRangeTooltip(seasonMethod, {
-                preliminary: !isScheduleAwareMethod(seasonMethod),
-              })}
-            >
-              {` · ${seasonMethodNote.text}`}
-            </span>
-          ) : null}
-          {activeRisk && !pickDraft ? ` · ${riskToleranceLabel(riskTolerance)} bids` : ""}
-        </div>
-      )}
 
       <HubPageSticky ref={pageBoard ? stickyRef : undefined}>
       <div className={`hub-filter-bar${compact ? " hub-filter-bar--compact" : ""}`}>
@@ -720,6 +682,14 @@ export default function ValueSheetTable({
               </span>
             </button>
           </div>
+          {!hideHeader && !mobileLayout ? (
+            <span className="hub-filter-bar-meta">
+              {panelSub}
+              {sleeperLinked ? ` · ${sleeper.sleeper_team_name || "Sleeper linked"}` : ""}
+              {seasonMethodNote ? ` · ${seasonMethodNote.text}` : ""}
+              {activeRisk && !pickDraft ? ` · ${riskToleranceLabel(riskTolerance)} bids` : ""}
+            </span>
+          ) : null}
         </div>
       </div>
       {draftConsole && (

@@ -10,6 +10,7 @@ import {
   HubFilterMenu,
   HubPage,
   HubPageSticky,
+  HubLoadingSkeleton,
   HubTableCard,
 } from "./DraftHub/HubUILayout";
 import { usePageWindowedRows } from "./DraftHub/useWindowedRows";
@@ -129,14 +130,10 @@ export default function BestBallBoard() {
       <HubExperienceLayout
         summary={(
           <HubExperienceSummary
-            title="Board at a glance"
+            title="This board"
             subtitle="Rankings refresh with the season projection model."
             items={summaryItems}
             note={boardNote}
-            actionFirst
-            action={(
-              <ExportCsvButton onExport={exportCsv} disabled={loading || rows.length === 0} />
-            )}
           />
         )}
       >
@@ -173,6 +170,7 @@ export default function BestBallBoard() {
             <p className="bestball-scoring-note" title="ScoreSense season model is trained on PPR scoring">
               {bestBallScoringNote()}
             </p>
+            <ExportCsvButton onExport={exportCsv} disabled={loading || rows.length === 0} />
           </div>
         </HubPageSticky>
         <p className="bestball-legend">{bestBallEdgeLegendCopy()}</p>
@@ -196,8 +194,8 @@ export default function BestBallBoard() {
               <tbody>
                 {loading && (
                   <tr>
-                    <td colSpan={BB_COL_COUNT} className="table-empty-state muted">
-                      Building the board from season projections — first load can take a few seconds…
+                    <td colSpan={BB_COL_COUNT}>
+                      <HubLoadingSkeleton label="Building the board" rows={8} />
                     </td>
                   </tr>
                 )}
@@ -244,7 +242,11 @@ export default function BestBallBoard() {
                           )}
                         </td>
                         <td className={`num bestball-edge${tone ? ` is-${tone}` : ""}`}>
-                          {formatEdge(row.value_vs_adp)}
+                          {ecrLabel === BB_NO_ECR_LABEL ? (
+                            <span className="bestball-no-ecr">{BB_NO_ECR_LABEL}</span>
+                          ) : (
+                            formatEdge(row.value_vs_adp)
+                          )}
                         </td>
                       </tr>
                     );

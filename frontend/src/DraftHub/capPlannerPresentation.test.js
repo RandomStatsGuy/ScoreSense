@@ -15,6 +15,7 @@ import {
   positionFromNeedError,
   formatNeedError,
   rosterNeedLine,
+  rosterPositionNeeds,
   vsCostCell,
   CAP_NEED_COPY,
   CAP_MOVE_COPY,
@@ -38,7 +39,8 @@ test("rail primary is the pending cut or the draft spend", () => {
     remaining: 178,
   });
   assert.equal(cut.kind, "undo-cut");
-  assert.equal(cut.label, "Undo cut · Zamir White (+$5 dead, −$10 room)");
+    assert.equal(cut.label, "Undo cut · Zamir White");
+  assert.equal(cut.detail, "+$5 dead, −$10 room");
   const room = capRailPrimary({ remaining: 178 });
   assert.equal(room.kind, "room");
   assert.equal(room.label, "Open draft room · $178 to spend.");
@@ -113,12 +115,29 @@ test("roster needs collapse to one sentence", () => {
     "Over cap by $12",
   ]);
   assert.deepEqual(needs, [
-    { count: 3, position: "QB" },
-    { count: 6, position: "RB" },
+    { count: 3, position: "QB", min: 3 },
+    { count: 6, position: "RB", min: 6 },
   ]);
   assert.deepEqual(other, ["Over cap by $12"]);
-  assert.equal(rosterNeedLine(needs), "You need 9 more players (3 QB, 6 RB)");
-  assert.equal(rosterNeedLine([{ count: 1, position: "TE" }]), "You need 1 more player (1 TE)");
+  assert.equal(rosterNeedLine(needs), "You need 9 more players: 3 QB · 6 RB");
+  assert.equal(rosterNeedLine([{ count: 1, position: "TE" }]), "You need 1 more player: 1 TE");
+  assert.equal(
+    rosterNeedLine([{ count: 1, position: "QB" }, { count: 2, position: "K" }, { count: 2, position: "DEF" }], { minimumTotal: 20 }),
+    "You need 5 more to reach the 20-player minimum: 1 QB · 2 K · 2 DEF",
+  );
+});
+
+test("rosterPositionNeeds skips null rows and uses current shortfall", () => {
+  const { needs, minimumTotal } = rosterPositionNeeds({
+    roster: [null, { position: "QB", roster_status: "active" }, { position: "K" }],
+    limits: { qb: { min: 2 }, k: { min: 2 }, def: { min: 2 } },
+  });
+  assert.equal(minimumTotal, 6);
+  assert.deepEqual(needs, [
+    { count: 1, position: "QB", min: 2 },
+    { count: 1, position: "K", min: 2 },
+    { count: 2, position: "DEF", min: 2 },
+  ]);
 });
 
 test("leftoverAfterMoveDisplay applies the bid to the leftover already on screen", () => {

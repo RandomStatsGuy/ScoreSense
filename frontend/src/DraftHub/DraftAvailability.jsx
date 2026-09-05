@@ -60,6 +60,7 @@ export default function DraftAvailability({
   onHighlight,
   onLockSlot,
   onWindowChange,
+  children = null,
 }) {
   const [payload, setPayload] = useState(null);
   const [mine, setMine] = useState([]);
@@ -420,9 +421,15 @@ export default function DraftAvailability({
               ) : mobileLayout ? (
                 <p className="draft-availability-status-chip">{availabilityStatusChip({ locked, dirty })}</p>
               ) : payload.can_edit ? (
-                <Button disabled={saving || !dirty} onClick={save}>
-                  {availabilitySaveLabel({ dirty, saving })}
-                </Button>
+                dirty ? (
+                  <Button disabled={saving} onClick={save}>
+                    {availabilitySaveLabel({ dirty, saving })}
+                  </Button>
+                ) : (
+                  <p className="draft-availability-status-chip is-saved">
+                    {availabilityStatusChip({ locked, dirty })}
+                  </p>
+                )
               ) : null}
               {lockTappedHour}
               {dirty ? <p className="chart-note">{availabilityUnsavedHint()}</p> : null}
@@ -430,6 +437,7 @@ export default function DraftAvailability({
           ) : null}
         </>
       ) : null}
+      {children}
     </article>
   );
 }

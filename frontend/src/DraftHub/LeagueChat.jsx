@@ -224,8 +224,8 @@ export default function LeagueChat({ leagueId, hubContext, compact = false, lock
             type="button"
             className="btn-danger btn-sm"
             onClick={clearChat}
-            disabled={clearing || loading}
-            title="Delete all messages in this channel"
+            disabled={clearing || loading || messages.length === 0}
+            title={messages.length === 0 ? "Nothing to clear" : "Delete all messages in this channel"}
           >
             {clearing ? "Clearing…" : HOME_DECK_COPY.clearChat}
           </button>

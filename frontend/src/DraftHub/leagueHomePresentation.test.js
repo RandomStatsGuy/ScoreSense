@@ -9,6 +9,7 @@ import {
   homeDeckMode,
   homeDeckStandingRows,
   homeHasPendingCuts,
+  homeAlsoDueMessage,
   homeHeroHeading,
   homeHeroSupport,
   homeMatchupNote,
@@ -59,6 +60,11 @@ test("supporting actions omit the item already promoted into the hero", () => {
   assert.deepEqual(supportingLeagueHomeActions([first, second], focus), [second]);
 });
 
+test("supporting actions drop null entries so Also due cannot crash", () => {
+  const first = { id: "cap_overage", href: "planner" };
+  assert.deepEqual(supportingLeagueHomeActions([null, first, undefined], { action: null }), [first]);
+});
+
 test("phase track marks exactly one current phase", () => {
   const track = phaseTrackState("live_draft");
   assert.equal(track.filter((item) => item.current).length, 1);
@@ -75,6 +81,17 @@ test("home heading names the next move, not a command-center slogan", () => {
     "Fill 11 seats, then lock a night.",
   );
   assert.equal(homeHeroSupport({ seating: { open_seats: 11 } }), HOME_PAGE_COPY.emptySeatsCost);
+});
+
+test("Also due uses the same extend and expiring nouns as My team", () => {
+  assert.equal(
+    homeAlsoDueMessage({
+      id: "expiring_contracts",
+      message: "Review 7 expiring contracts",
+      meta: { must_extend: 2, dropping_at_draft: 5 },
+    }),
+    "2 to extend · 5 expiring",
+  );
 });
 
 test("known action labels use concrete verbs", () => {

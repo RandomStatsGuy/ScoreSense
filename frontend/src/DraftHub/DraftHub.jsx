@@ -96,9 +96,13 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const [rosterFocus, setRosterFocus] = useState(null);
   const watchLeagueKey = leagueId || hubContext?.league_id || workspace?.league_id || "solo";
   const [watchIds, setWatchIds] = useState([]);
+  const [liveDraftActive, setLiveDraftActive] = useState(false);
   useEffect(() => {
     setWatchIds(loadWatchIds(watchLeagueKey));
   }, [watchLeagueKey]);
+  useEffect(() => {
+    if (subView !== "room") setLiveDraftActive(false);
+  }, [subView]);
   const toggleWatch = useCallback((row) => {
     if (!row?.player_id) return;
     setWatchIds(toggleWatchId(watchLeagueKey, row.player_id));
@@ -650,6 +654,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const atmosphere = mergeAtmospherePrefs(
     workspace?.prefs || { atmosphere: effectiveCtx?.atmosphere },
   ).atmosphere;
+  const showLeagueStrip = !demoMode && subView !== "setup" && !(subView === "room" && liveDraftActive);
 
   return (
     <div className="draft-hub">
@@ -661,7 +666,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           onExit={exitDemo}
         />
       )}
-      {subView !== "room" && subView !== "setup" && !demoMode && (
+      {showLeagueStrip && (
         <LeagueContextBanner
           hubContext={effectiveCtx}
           memberships={memberships}
@@ -676,7 +681,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           syncMessage={leagueSyncMessage}
           syncError={leagueSyncError}
           switchBusy={leagueSwitchBusy}
-          showAttention={subView !== "home"}
+          showAttention
           currentView={subView}
           onRosterFocus={setRosterFocus}
           onProjectionsRefresh={async () => {
@@ -939,6 +944,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
             onNavigate={setSubView}
             watchIds={watchIds}
             onWatchPlayer={toggleWatch}
+            onLiveDraftChange={setLiveDraftActive}
           />
         </Suspense>
       )}

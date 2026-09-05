@@ -87,13 +87,8 @@ export default function DraftEntryPanel({
           onSaveSchedule={onSaveSchedule}
           onUpdated={onUpdated || onCommissionerUpdated}
           claimAccess={claimAccess}
+          expirePreview={expirePreview}
         />
-        {usingHubLeague && isCommissioner && expirePreview && (
-          <p className="chart-note hub-draft-expire-preview">
-            Keepers: {expirePreview.retained_count} retained · {expirePreview.expire_count} expire before draft
-            (nominatable). Real league unchanged in a keeper sandbox.
-          </p>
-        )}
         {testMode && mockModeLabel === "Keeper sandbox" && inDraftSetup && (
           <p className="chart-note hub-draft-expire-preview">
             Sandbox copy of keepers — inspect expire badges, then start when ready.

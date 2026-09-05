@@ -79,8 +79,9 @@ export function resolveLeagueHomeFocus({ actions = [], primaryCta, defaultView, 
 }
 
 export function supportingLeagueHomeActions(actions = [], focus) {
-  if (!focus?.action) return actions;
-  return actions.filter((action) => action !== focus.action);
+  const list = (actions || []).filter(Boolean);
+  if (!focus?.action) return list;
+  return list.filter((action) => action !== focus.action);
 }
 
 export function phaseTrackState(phaseId) {
@@ -144,6 +145,19 @@ export function homeHeroSupport(data) {
     return HOME_PAGE_COPY.emptySeatsCost;
   }
   return actionSupport(top);
+}
+
+export function homeAlsoDueMessage(action) {
+  if (!action) return "";
+  if (action.id === "expiring_contracts") {
+    const extend = Number(action.meta?.must_extend);
+    const expire = Number(action.meta?.dropping_at_draft);
+    const parts = [];
+    if (Number.isFinite(extend) && extend > 0) parts.push(`${extend} to extend`);
+    if (Number.isFinite(expire) && expire > 0) parts.push(`${expire} expiring`);
+    if (parts.length) return parts.join(" · ");
+  }
+  return action.message || "";
 }
 
 export const HOME_DECK_COPY = {

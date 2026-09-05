@@ -14,12 +14,22 @@ import PrivacyPage from "./legal/PrivacyPage";
 import SmsAlertsPage from "./legal/SmsAlertsPage";
 import TermsPage from "./legal/TermsPage";
 import { joinLandingPath, joinLandingSearch, withLocationSearch } from "./redirectSearch";
+import { HUB_SLUG_TO_ID } from "./routes";
 
 const LobbyJoinPage = lazy(() => import("./DraftHub/LobbyJoinPage"));
 
 function RedirectKeepSearch({ to }) {
   const location = useLocation();
   return <Navigate to={withLocationSearch(to, location.search, location.hash)} replace />;
+}
+
+function HubTabOrHome() {
+  const location = useLocation();
+  const tab = location.pathname.split("/").filter(Boolean)[1];
+  if (tab && tab !== "home" && !(tab in HUB_SLUG_TO_ID)) {
+    return <Navigate to={withLocationSearch("/hub/home", location.search, location.hash)} replace />;
+  }
+  return <App />;
 }
 
 function RootRedirect() {
@@ -68,6 +78,8 @@ export default function AppRouter() {
       <Route path="/hub/insights/salaries" element={<Navigate to="/hub/roster-management/sheets" replace />} />
       <Route path="/hub/insights/contracts" element={<Navigate to="/hub/roster-management/sheets" replace />} />
       <Route path="/hub/live" element={<Navigate to="/hub/game" replace />} />
+      <Route path="/hub/my-team" element={<Navigate to="/hub/roster" replace />} />
+      <Route path="/hub/game-center" element={<Navigate to="/hub/game" replace />} />
       <Route path="/hub/teams" element={<Navigate to="/hub/roster-management/contracts" replace />} />
       <Route path="/hub/players" element={<Navigate to="/hub/strategy" replace />} />
       <Route path="/hub/available" element={<Navigate to="/hub/free-agents" replace />} />
@@ -78,7 +90,7 @@ export default function AppRouter() {
       <Route path="/hub/roster-management" element={<Navigate to="/hub/roster-management/contracts" replace />} />
       <Route path="/hub/insights/:insightTab" element={<App />} />
       <Route path="/hub/insights" element={<Navigate to="/hub/insights/overview" replace />} />
-      <Route path="/hub/:tab" element={<App />} />
+      <Route path="/hub/:tab" element={<HubTabOrHome />} />
       <Route path="/hub" element={<Navigate to="/hub/home" replace />} />
       <Route path="/tools/:tab" element={<App />} />
       <Route path="/tools" element={<Navigate to="/tools/dfs" replace />} />

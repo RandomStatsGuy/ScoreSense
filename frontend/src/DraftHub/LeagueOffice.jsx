@@ -2,8 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
-import { HubAlert, HubFilterChip, HubFilterScroll, HubPage, HubPageSticky } from "./HubUILayout";
-import HubTabIntro from "./HubTabIntro";
+import { HubAlert, HubExperienceHero, HubFilterChip, HubFilterScroll, HubPage, HubPageSticky } from "./HubUILayout";
 import CommissionerLeagueRosters from "./CommissionerLeagueRosters";
 import TeamSalarySheets from "./TeamSalarySheets";
 import LeagueContractHistory from "./LeagueContractHistory";
@@ -480,10 +479,11 @@ export default function LeagueOffice({
 
   return (
     <div className="hub-league-office">
-      <HubTabIntro
-        title={mobileLayout ? null : intro.title}
-        purpose={intro.purpose}
-        audience={intro.audience}
+      <HubExperienceHero
+        eyebrow="Roster management"
+        heading={mobileLayout ? null : intro.title}
+        support={intro.purpose}
+        compact={mobileLayout}
       />
 
       {isCommissioner && (
@@ -519,7 +519,8 @@ export default function LeagueOffice({
               }).yearLabel}
               {" "}keepers.
             </p>
-            <div className="hub-office-contract-links">
+            <div className="hub-office-contract-links" role="group" aria-label="Open related views">
+              <span className="hub-filter-label">Related</span>
               <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate?.("planner")}>
                 Cap
               </button>

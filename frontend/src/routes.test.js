@@ -131,3 +131,10 @@ test("strategy and free-agent hub tabs round-trip, with legacy players alias", (
   assert.equal(parseAppPath("/hub/available").hubSubView, "available");
   assert.equal(buildAppPath({ view: "hub", hubSubView: "available" }), "/hub/free-agents");
 });
+
+test("my-team and game-center aliases resolve, unknown hub paths go Home", () => {
+  assert.equal(parseAppPath("/hub/my-team").hubSubView, "roster");
+  assert.equal(parseAppPath("/hub/game-center").hubSubView, "game");
+  assert.equal(parseAppPath("/hub/not-a-real-tab").hubSubView, "home");
+  assert.equal(buildAppPath({ view: "hub", hubSubView: "unknown" }), "/hub/home");
+});
