@@ -397,7 +397,6 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                     Browse free agents
                   </button>
                 ) : null}
-              }
             >
               {e}
             </HubAlert>
