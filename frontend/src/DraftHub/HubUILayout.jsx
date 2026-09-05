@@ -213,7 +213,7 @@ export function HubFilterMenu({ label, value, options, onChange, className = "",
   const hoverCapable = useRef(
     typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches,
   );
-  const selected = options.find((opt) => String(opt.id) === String(value));
+  const selected = options.find((opt) => String(opt.id ?? "") === String(value ?? ""));
   const display = selected?.label ?? value;
 
   useEffect(() => {
