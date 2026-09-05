@@ -22,9 +22,11 @@ Read `docs/PRODUCT.md` first. User-facing name is **Fantasy**, not Draft Hub.
 
 ## Copy and data
 
-- User-visible strings belong in `*Presentation.js` (`rulesPresentation.js`, `leagueHomePresentation.js`, `dfsToolPresentation.js`, `insightsPresentation.js`, `leagueAccessCopy.js`, `vibeRankingsPresentation.js`, `strategyRankPresentation.js`, `capPlannerPresentation.js`, `officeContractsPresentation.js`).
+- User-visible strings belong in `*Presentation.js` (`rulesPresentation.js`, `leagueHomePresentation.js`, `gameCenterPresentation.js`, `dfsToolPresentation.js`, `bestBallPresentation.js`, `insightsPresentation.js`, `leagueAccessCopy.js`, `vibeRankingsPresentation.js`, `strategyRankPresentation.js`, `capPlannerPresentation.js`, `officeContractsPresentation.js`). Home and Game center share `interpretStandings`. Do not invent a 1–10 seed from 0–0.
 - Page copy states the decision and the cost of getting it wrong. No slogan that could sit on another app.
 - Rules preview, validation, and summary: `mergeLeagueRules`, `validateLeagueSettings`, `contractSchedule`, `rulesSummary`.
+- Rules templates confirm and fill the form. They do not save. Draft behavior is an open section. Save stays off until the form is dirty and valid.
+- At a glance on Rules is “Currently saved” or “Preview of your changes”. Hero chips are status, not the page primary.
 - Free-agent button/banner copy: `acquisitionWindow.js`.
 - Home next-action voice: `leagueHomePresentation.js`.
 
@@ -49,7 +51,9 @@ Read `docs/PRODUCT.md` first. User-facing name is **Fantasy**, not Draft Hub.
 - Freshness is one shared `ensureLeagueFreshness` call. Do not add a second `/freshness` fetch on a destination.
 - Cache `/api/hub/home` like other destinations so a tab switch is not a 6s refetch.
 - Do not fetch Projections APIs (`/api/injuries`, `meta/*`, `ros/*`, `predict/*`, `draft/*`) on Fantasy pages that do not render them.
-- Headshots must match roster photos (`HubMediaImg` / existing media helpers).
+- Headshots must match roster photos (`HubMediaImg` / existing media helpers). Request the painted size (`?w=48|96|256` for hub media; ESPN combiner / Sleeper thumb for remotes). Do not fetch the studio original for a 22px mark.
+- `GET /api/hub/value-sheet` is one in-flight request per season/rules key. Cap-sheet updates must not abort and refetch it.
+- Chat polls back off when the tab is hidden. Do not keep a 12s `chat/league/messages` loop on a background tab.
 - Strategy face-off pairs the same position only. Do not pair RB vs WR as a FLEX toss-up.
 
 ## Visual
@@ -58,6 +62,15 @@ Read `docs/PRODUCT.md` first. User-facing name is **Fantasy**, not Draft Hub.
 - On phone, filter / tab / sort bars use `.hub-page-sticky` (the Insights strip). Experience summary labels stack above their values.
 - Every Fantasy, Tools, and Projections surface uses token padding and even gutters on mobile and desktop. Do not pack labels flush to a border or rule, or drop type below `--text-xs`.
 - Laptop: summary rail may drop under the hero. No horizontal page scroll at 1024 / 1280 / 1440.
+- Player boards (Free agents, Best ball) use labeled Pos / Sort menus. Do not mix filter and sort in one unlabeled chip row.
+- Long Tools tables window against page scroll. Do not nest a `.table-wrap` scroller.
 - Primary save/action stays visible. Disabled controls explain why.
 - Roster management pane switcher is the four pills only. Do not inline group labels with the chips.
 - Contracts writes go through the pending-changes tray. Drop is not a one-click delete.
+- Numbered step sequences include every visible step or drop the numerals.
+- Do not keep hidden Fantasy panes in the DOM of another destination. Unmount keep-alives when the tab is not showing.
+- Rank bars share a fixed track and a field scale (near the minimum, or delta from first). Never let the value label steal track width. Do not paint every bar teal/green.
+- Insights Overview keeps the tab strip live and skeletons the three cards. Do not cover Insights with a think scrim.
+- Trades Send / Get / Cut expose `aria-pressed` and an accessible name that includes the player and destination. Auto-check the package; do not leave Propose unlocked on an unchecked deal.
+- Fantasy forms use HubFilterMenu, not native `<select>`.
+- Cap leftover after a move sits next to the cut and bid controls. Every leftover, against-cap, and roster figure names what it counts.

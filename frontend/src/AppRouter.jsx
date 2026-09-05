@@ -1,4 +1,4 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import App from "./App";
 import AccountSettingsPage from "./AccountSettingsPage";
@@ -13,8 +13,9 @@ import AuthSessionPage from "./AuthSessionPage";
 import PrivacyPage from "./legal/PrivacyPage";
 import SmsAlertsPage from "./legal/SmsAlertsPage";
 import TermsPage from "./legal/TermsPage";
-import LobbyJoinPage from "./DraftHub/LobbyJoinPage";
 import { joinLandingPath, joinLandingSearch, withLocationSearch } from "./redirectSearch";
+
+const LobbyJoinPage = lazy(() => import("./DraftHub/LobbyJoinPage"));
 
 function RedirectKeepSearch({ to }) {
   const location = useLocation();
@@ -40,7 +41,14 @@ export default function AppRouter() {
       <Route path="/login" element={<AuthSessionPage mode="login" />} />
       <Route path="/register" element={<AuthSessionPage mode="register" />} />
       <Route path="/signup" element={<RedirectKeepSearch to="/register" />} />
-      <Route path="/lobby/:roomCode" element={<LobbyJoinPage />} />
+      <Route
+        path="/lobby/:roomCode"
+        element={(
+          <Suspense fallback={<p className="chart-note">Opening the lobby…</p>}>
+            <LobbyJoinPage />
+          </Suspense>
+        )}
+      />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route path="/auth/verify" element={<AuthVerifyPage />} />
       <Route path="/auth/reset-password" element={<AuthResetPasswordPage />} />

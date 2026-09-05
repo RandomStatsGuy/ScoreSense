@@ -16,3 +16,9 @@ test("windowRange scrolls into the middle of a 702-row board", () => {
   assert.ok(range.end <= 250);
   assert.ok(range.end - range.start < 60);
 });
+
+test("windowRange from a page-relative offset still windows a 643-row board", () => {
+  const range = windowRange(643, 0, 900, 44, 12);
+  assert.equal(range.start, 0);
+  assert.ok(range.end < 80);
+});

@@ -35,6 +35,8 @@ import {
   shouldAutoOpenSheetsGuide,
 } from "./commissionerSections";
 import { liveContractStage } from "./officeCurrentContracts";
+import AwardTitlesEditor from "./insights/AwardTitlesEditor";
+import { awardCatalogFromRules } from "./insights/insightsPresentation";
 
 /** Mount bulk contract-history tools only after the commissioner opens Advanced. */
 function OfficeAdvancedAudit({ leagueId, hubContext, seasonFilter }) {
@@ -434,6 +436,7 @@ export default function LeagueOffice({
   onOfficeTabChange,
   onChanged,
   onNavigate,
+  onWorkspaceSaved,
   active = true,
 }) {
   const mobileLayout = useMobileLayout();
@@ -532,6 +535,11 @@ export default function LeagueOffice({
             hubContext={hubContext}
             onChanged={handleChanged}
             reloadNonce={dataEpoch}
+          />
+          <AwardTitlesEditor
+            catalog={awardCatalogFromRules(workspace?.rules)}
+            currentRules={workspace?.rules || hubContext?.rules}
+            onSaved={onWorkspaceSaved}
           />
         </HubPage>
       )}

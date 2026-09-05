@@ -10,6 +10,7 @@ import {
 } from "./routes";
 import { isLeavingContractsPath } from "./DraftHub/officeContractsPresentation";
 import { allowOfficeNavigation } from "./DraftHub/officeUnsavedGuard";
+import { allowUnsavedNavigation } from "./unsavedNavigation";
 
 export default function useAppNavigation() {
   const navigate = useNavigate();
@@ -37,7 +38,7 @@ export default function useAppNavigation() {
   );
 
   const navigateTo = useCallback(
-    (next, { replace = false, filterUpdates = null } = {}) => {
+    async (next, { replace = false, filterUpdates = null } = {}) => {
       const path = buildAppPath({ ...route, ...next });
       const run = () => {
         const targetView = next.view ?? route.view;
@@ -68,6 +69,7 @@ export default function useAppNavigation() {
         });
         return;
       }
+      if (!(await allowUnsavedNavigation(path))) return;
       run();
     },
     [navigate, route, location.search, searchParams, location.pathname],
