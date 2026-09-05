@@ -182,19 +182,14 @@
     flex: 0 0 auto;
   }
 
-  .hub-roster-browser-page .hub-experience-layout {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .hub-roster-browser-page .hub-experience-summary {
-    order: -1;
-    position: static;
-  }
-
   .hub-roster-manager-picker,
-  .hub-roster-manager-picker .hub-filter-menu-trigger {
+  .hub-roster-manager-picker .hub-filter-menu-trigger,
+  .hub-roster-manager-picker .hub-filter-menu-panel {
     width: 100%;
+  }
+
+  .hub-roster-manager-picker .hub-filter-menu-panel {
+    max-height: 22rem;
   }
 
   .hub-roster-selected-heading {
@@ -217,6 +212,7 @@
   }
 
   .hub-roster-browser-page .hub-roster-action-group {
+    flex-wrap: wrap;
     justify-content: flex-start;
     white-space: normal;
   }
@@ -278,13 +274,19 @@
     max-width: 2.75rem;
   }
 
-  .fantasy-chat-dock.is-edge-right:not(.is-open),
-  .fantasy-chat-dock.is-edge-bottom:not(.is-open) {
+  .draft-hub .fantasy-chat-dock.is-edge-right:not(.is-open),
+  .draft-hub .fantasy-chat-dock.is-edge-left:not(.is-open),
+  .draft-hub .fantasy-chat-dock.is-edge-bottom:not(.is-open) {
     top: auto;
-    right: 0.85rem;
     transform: none;
     /* Sit above the tab bar and any fixed page action (Vibes / Rules save). */
     bottom: calc(8.85rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .draft-hub .fantasy-chat-dock.is-edge-right:not(.is-open),
+  .draft-hub .fantasy-chat-dock.is-edge-bottom:not(.is-open) {
+    right: 0.85rem;
+    left: auto;
   }
 
   .hub-loading-skeleton {

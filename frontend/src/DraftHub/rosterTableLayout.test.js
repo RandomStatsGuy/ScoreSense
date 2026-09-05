@@ -73,6 +73,8 @@ test("League Rosters player and action cells keep a measured gap", () => {
 
   const actions = block(".hub-roster-action-group");
   assert.match(actions, /display:\s*inline-flex/);
+  assert.match(actions, /flex-wrap:\s*nowrap/);
+  assert.match(actions, /white-space:\s*nowrap/);
   assert.match(actions, /gap:\s*0\.35rem 0\.55rem/);
   assert.match(rosterBrowser, /className="hub-roster-action-group"/);
 });

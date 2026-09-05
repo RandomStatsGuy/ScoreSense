@@ -3189,13 +3189,50 @@
   }
 }
 
-@media (max-width: 1280px) {
-  .hub-roster-browser-page .hub-experience-layout {
-    grid-template-columns: 1fr;
-  }
+/* Deal table is the page. Keep At a glance above it so 1434px still
+   has room for names and the two action verbs on one line. */
+.hub-roster-browser-page .hub-experience-layout {
+  display: flex;
+  flex-direction: column;
+}
 
+.hub-roster-browser-page .hub-experience-summary {
+  display: grid;
+  order: -1;
+  position: static;
+  width: 100%;
+  grid-template-columns: minmax(14rem, 1.2fr) minmax(0, 2fr) auto;
+  align-items: start;
+  gap: 0.85rem 1.25rem;
+}
+
+.hub-roster-browser-page .hub-experience-summary dl {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  gap: 0.65rem 1.35rem;
+}
+
+.hub-roster-browser-page .hub-experience-summary dl > div {
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0;
+  border-bottom: none;
+  gap: 0.12rem;
+}
+
+.hub-roster-browser-page .hub-experience-summary dd {
+  text-align: left;
+}
+
+.hub-roster-browser-page .hub-experience-summary-note {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 768px) {
   .hub-roster-browser-page .hub-experience-summary {
-    position: static;
+    display: flex;
+    flex-direction: column;
   }
 }
 

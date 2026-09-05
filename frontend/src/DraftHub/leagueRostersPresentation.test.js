@@ -12,6 +12,8 @@ import {
   joinFacts,
   leagueDealRows,
   managerDealFacts,
+  managerPickerOptions,
+  positionSpendNote,
   tradeActionLabel,
   tradeLockReason,
   yearsLeftLabel,
@@ -112,4 +114,31 @@ test("offseason trade lock names the surviving-contract rule", () => {
 test("years left stays a short label", () => {
   assert.equal(yearsLeftLabel({ years_remaining: 1 }), "1 yr");
   assert.equal(yearsLeftLabel({ contract_years: 3 }), "3 yrs");
+});
+
+test("position spend keeps count on the money, not a floating middot", () => {
+  assert.equal(
+    positionSpendNote({
+      by_position_spend: { QB: 11, RB: 58, WR: 0 },
+      by_position_count: { QB: 1, RB: 3, WR: 0 },
+    }),
+    "QB $11 (1) · RB $58 (3)",
+  );
+});
+
+test("phone picker options carry deal facts under the owner name", () => {
+  const options = managerPickerOptions(
+    [
+      {
+        team: { id: "a", owner_name: "Caleb K" },
+        stats: { unspent: 65 },
+        roster: [{ expire_chip: "fa", contract_grade: "bad", value_delta: 6 }],
+      },
+    ],
+    [{ contract_grade: "bad" }, { contract_grade: "good" }],
+  );
+  assert.equal(options[0].label, "Deals");
+  assert.equal(options[0].detail, "1 overpay · 1 bargain");
+  assert.equal(options[1].label, "Caleb K");
+  assert.equal(options[1].detail, "$65 free · 1 expiring · +$6 overpay");
 });

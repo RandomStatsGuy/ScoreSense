@@ -34,6 +34,7 @@ import {
   joinFacts,
   leagueDealRows,
   managerDealFacts,
+  managerPickerOptions,
   nicknameLine,
   ownerLine,
   positionSpendNote,
@@ -169,13 +170,10 @@ export default function LeagueRostersBrowser({
   const media = usePlayerMedia(mobileLayout ? [] : playerIds);
   const counts = dealCounts(dealRows);
 
-  const pickerOptions = useMemo(() => ([
-    { id: DEALS_VIEW, label: ROSTERS_COPY.dealsNav },
-    ...teamBlocks.map((b) => ({
-      id: b.team.id,
-      label: ownerLine(b.team),
-    })),
-  ]), [teamBlocks]);
+  const pickerOptions = useMemo(
+    () => managerPickerOptions(teamBlocks, dealRows),
+    [teamBlocks, dealRows],
+  );
 
   const heading = dealsView ? ROSTERS_COPY.dealsHeading : rosterHeading(block);
   const caption = dealsView ? ROSTERS_COPY.dealsCaption : rosterCaption(block);

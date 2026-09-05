@@ -204,9 +204,26 @@ export function positionSpendNote(stats) {
   const spend = stats?.by_position_spend || {};
   const counts = stats?.by_position_count || {};
   return Object.entries(spend)
+    .filter(([, amt]) => Number(amt) > 0)
     .map(([pos, amt]) => {
-      const count = counts[pos];
-      return count != null ? `${pos} ${fmtSal(amt)} · ${count}` : `${pos} ${fmtSal(amt)}`;
+      const count = Number(counts[pos]);
+      const money = fmtSal(amt);
+      return Number.isFinite(count) && count > 0 ? `${pos} ${money} (${count})` : `${pos} ${money}`;
     })
     .join(" · ");
+}
+
+export function managerPickerOptions(teamBlocks, dealRows) {
+  return [
+    {
+      id: DEALS_VIEW,
+      label: ROSTERS_COPY.dealsNav,
+      detail: formatDealsRailFacts(dealRows),
+    },
+    ...(teamBlocks || []).map((block) => ({
+      id: block.team.id,
+      label: ownerLine(block.team),
+      detail: formatManagerRailFacts(managerDealFacts(block)),
+    })),
+  ];
 }
