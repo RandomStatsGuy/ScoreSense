@@ -6,6 +6,7 @@ import AccountAuth from "../AccountAuth";
 import VerifyEmailBanner from "../VerifyEmailBanner";
 import Button from "../ui/Button";
 import { HubAlert, HubFilterChip, HubPage } from "./HubUILayout";
+import DraftSeat from "./DraftSeat";
 import DraftRoom from "./DraftRoom";
 import ThinkingScrim from "../ui/ThinkingScrim";
 import useSlowThink from "../hooks/useSlowThink";
@@ -393,11 +394,14 @@ export default function MockDraftTool({ projMeta = null }) {
 
         <aside className="mock-draft-launchpad" aria-label="Launch mock draft">
           <p className="hub-experience-kicker">Your room</p>
-          <div className="mock-draft-field" aria-label={`One human and ${botCount} bots`}>
+          <div className="mock-draft-field draft-seat-row" aria-label={`One human and ${botCount} bots`}>
             {Array.from({ length: teamCount }, (_, index) => (
-              <span key={index} className={`mock-draft-seat${index === 0 ? " is-human" : ""}`}>
-                {index === 0 ? "YOU" : index + 1}
-              </span>
+              <DraftSeat
+                key={index}
+                variant="mark"
+                slot={index + 1}
+                mine={index === 0}
+              />
             ))}
           </div>
 

@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import MobileDestinationSheet from "../layout/MobileDestinationSheet";
 import { MOBILE_CHROME_COPY, selectAndDismissDestination } from "../layout/mobileChromePresentation";
+import LeagueOverflowLead from "./LeagueOverflowLead";
 
 /** group: "home" | "prep" (draft prep) | "season" (in-season) | "office" (league-wide). */
 export const HUB_SUBVIEWS = [
@@ -101,6 +102,7 @@ export default function HubSubnav({
       onClose={() => setPickerOpen(false)}
       title={MOBILE_CHROME_COPY.fantasySheet}
       className="app-mobile-sheet-hub-tabs"
+      lead={<LeagueOverflowLead onAfterAction={() => setPickerOpen(false)} />}
       groups={groups}
       active={subView}
       onSelect={(id) => selectAndDismissDestination(id, onNavigate, () => setPickerOpen(false))}

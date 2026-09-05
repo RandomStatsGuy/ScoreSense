@@ -183,7 +183,7 @@ On laptop widths (~1024px), move the summary below the hero or into a compact st
 
 ### Phone chrome
 
-On phone, the header is the current destination. Destination switching uses one picker, not a scrolling tab strip. Tapping a destination — including the one already open — closes the picker so the page is not left inert. Account lives in More. Do not stack ScoreSense, a context label, section tabs, and page tabs. Filters stay as one icon when the board has filters. Live draft stays board-first. League chat is an edge launcher, not a header control and not a control locked to the bottom of the page.
+On phone, the header is the current destination. Destination switching uses one picker, not a scrolling tab strip. Tapping a destination — including the one already open — closes the picker so the page is not left inert. Account lives in More. Do not stack ScoreSense, a context label, section tabs, and page tabs. League name and Needs attention fold into that overflow. Do not keep a Fantasy strip, league strip, or attention line under the title. The Weekly Attention chip stays on the board toolbar. Filters stay as one icon when the board has filters. Live draft stays board-first. League chat is an edge launcher, not a header control and not a control locked to the bottom of the page. Idle Draft and Mock use one seat component so the live room inherits it.
 
 On phone, weekly and season boards are **dense ranking rows** (rank, face, name, P50). Compare is one toolbar control. Never a Compare checkbox on every card. Signals stay a compact strip, not a second page of chrome.
 

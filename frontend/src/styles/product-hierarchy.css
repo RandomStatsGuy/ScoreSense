@@ -884,11 +884,17 @@
   pointer-events: none;
 }
 
-.mock-draft-field {
+.mock-draft-field,
+.draft-seat-row {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 0.38rem;
   margin: 0.7rem 0 0.8rem;
+}
+
+.hub-teams-list--dock .draft-seat-row {
+  grid-template-columns: repeat(auto-fill, minmax(2.4rem, 1fr));
+  margin: 0 0 0.75rem;
 }
 
 .mock-draft-seat {

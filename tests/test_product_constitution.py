@@ -112,7 +112,9 @@ def test_constitution_covers_phone_chrome() -> None:
     product = _read("docs", "PRODUCT.md")
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
     assert "On phone, the header is the current destination" in product
+    assert "League name and Needs attention fold into that overflow" in product
     assert "destination title" in core_rule.lower()
+    assert "needs attention live in that overflow" in core_rule.lower()
 
 
 def test_constitution_covers_chat_chrome() -> None:

@@ -35,6 +35,8 @@ export const SHARED = Object.freeze({
     "frontend/src/layout/MobileHeader.jsx",
     "frontend/src/layout/MobileDestinationSheet.jsx",
     "frontend/src/layout/mobileChromePresentation.js",
+    "frontend/src/DraftHub/leagueAttention.js",
+    "frontend/src/DraftHub/LeagueOverflowLead.jsx",
   ],
 });
 
@@ -46,7 +48,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "action-center",
     page: "frontend/src/DraftHub/LeagueHome.jsx",
     copy: "frontend/src/DraftHub/leagueHomePresentation.js",
-    doNot: "Do not wrap Home in HubExperienceLayout. Extend the action deck. House the league thread in the locker rail. Do not show the edge launcher on Home. Do not add a Chat destination. Draft night · Not scheduled links to Draft. Clear chat is staff-only, red, and confirms.",
+    doNot: "Do not wrap Home in HubExperienceLayout. Extend the action deck. House the league thread in the locker rail. Do not show the edge launcher on Home. Do not add a Chat destination. Draft night · Not scheduled links to Draft. Clear chat is staff-only, red, and confirms. On phone, league name and Needs attention fold into the destination overflow — do not stack a league strip under the title.",
   }),
   "hub.value": S({
     label: "Strategy",
@@ -75,15 +77,17 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/DraftEntryPanel.jsx",
       "frontend/src/DraftHub/DraftAvailability.jsx",
       "frontend/src/DraftHub/DraftNightSchedule.jsx",
+      "frontend/src/DraftHub/DraftSeat.jsx",
+      "frontend/src/DraftHub/draftSeat.js",
       "frontend/src/DraftHub/leagueAccessCopy.js",
     ],
-    doNot: "Idle Draft uses experience chrome and one featured job: the shared calendar. Live rooms do not. Calendar shows current and future times only. Lock draft night from any shown overlap. Keep the date/time form, invite essays, and a second seat list collapsed unless the calendar is Closed and no night is locked — then the off-calendar lock is open as the card primary and Mark yours is gone. Start live draft stays secondary until a night is locked or the room is full. Seating pill is amber below a full room, teal only at 12/12. Room seat tiles keep token padding and product type — do not pack Take flush to the chip.",
+    doNot: "Idle Draft uses experience chrome and one featured job: the shared calendar. Live rooms do not. Calendar shows current and future times only. Lock draft night from any shown overlap. Keep the date/time form, invite essays, and a second seat list collapsed unless the calendar is Closed and no night is locked — then the off-calendar lock is open as the card primary and Mark yours is gone. Start live draft stays secondary until a night is locked or the room is full. Seating pill is amber below a full room, teal only at 12/12. Room seat tiles keep token padding and product type — do not pack Take flush to the chip. Use DraftSeat so Mock and the live room inherit Open · Take / YOU.",
   }),
   "hub.room.live": S({
     label: "Draft (live)",
     chrome: "draft-live",
     page: "frontend/src/DraftHub/DraftRoom.jsx",
-    doNot: "Do not wrap a live draft in HubExperience two-column settings chrome.",
+    doNot: "Do not wrap a live draft in HubExperience two-column settings chrome. Seats inherit DraftSeat from idle Draft and Mock.",
   }),
   "hub.week": S({
     label: "This Week",
@@ -211,7 +215,11 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "experience",
     page: "frontend/src/DraftHub/MockDraftTool.jsx",
     copy: "frontend/src/DraftHub/mockDraftConfig.js",
-    doNot: "Idle mock uses this launch page. A running mock uses DraftRoom.",
+    also: [
+      "frontend/src/DraftHub/DraftSeat.jsx",
+      "frontend/src/DraftHub/draftSeat.js",
+    ],
+    doNot: "Idle mock uses this launch page. A running mock uses DraftRoom. Seats use DraftSeat (YOU / 2 / 3), the same component as idle Draft.",
   }),
   "tools.mock-draft.live": S({
     label: "Mock draft (live)",

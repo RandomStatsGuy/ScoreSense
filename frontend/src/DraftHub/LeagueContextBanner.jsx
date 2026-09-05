@@ -14,6 +14,14 @@ import {
 import { fmtSal } from "./rosterFormat";
 import TeamIdentityMark from "./TeamIdentityMark";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
+import {
+  buildLeagueAttentionItems,
+  filterAttentionForView,
+  leagueDisplayName,
+  leaguePhaseLabel,
+  leagueRoleLabel,
+} from "./leagueAttention";
+import { useLeagueChrome } from "./leagueChromeContext";
 
 function ageShort(at) {
   if (!at) return null;
@@ -61,6 +69,7 @@ export default function LeagueContextBanner({
   currentView = null,
 }) {
   const { identities } = useTeamIdentities();
+  const { setChrome } = useLeagueChrome();
   const leagues = useMemo(
     () => effectiveMemberships(memberships, hubContext),
     [memberships, hubContext],
@@ -182,6 +191,81 @@ export default function LeagueContextBanner({
     await loadFreshness(undefined);
   }, [leagueId, onLeagueSync, loadFreshness]);
 
+  const phaseLabel = leaguePhaseLabel(hubContext, { inLeague });
+  const roleLabel = leagueRoleLabel(hubContext, { inLeague });
+  const leagueName = leagueDisplayName(hubContext, { inLeague });
+
+  const preDraft = inLeague && !hubContext.draft_completed ? capSheet?.pre_draft : null;
+  const mustExtend = preDraft?.must_extend ?? [];
+  const dropping = preDraft?.dropping_at_draft ?? [];
+  const remaining = capSheet?.summary?.remaining;
+  const overCapBy = Number.isFinite(Number(remaining)) && Number(remaining) < 0
+    ? Math.abs(Number(remaining))
+    : null;
+
+  const poolStale = Boolean(freshness?.projections?.stale)
+    || (freshness && freshness.projections?.available === false);
+  const projAge = ageShort(freshness?.projections?.built_at);
+  const capSheetsStale = Boolean(freshness?.cap_sheets?.stale);
+
+  const attentionItems = buildLeagueAttentionItems({
+    inLeague,
+    poolStale,
+    projectionsAvailable: freshness?.projections?.available,
+    projAge,
+    overCapLabel: overCapBy != null ? fmtSal(overCapBy) : "",
+    mustExtendCount: mustExtend.length,
+    droppingCount: dropping.length,
+    capSheetsStale,
+    isCommish,
+  }).map((item) => {
+    const withTone = { ...item, tone: "attention" };
+    if (item.action === "projections") {
+      return {
+        ...withTone,
+        onAction: () => {
+          setSyncOpen(true);
+          runProjectionsRefresh();
+        },
+      };
+    }
+    if (item.action === "planner") {
+      return {
+        ...withTone,
+        target: "planner",
+        onAction: onNavigate ? () => onNavigate("planner") : null,
+      };
+    }
+    if (item.action === "sheets") {
+      return {
+        ...withTone,
+        onAction: () => {
+          setSyncOpen(true);
+          runSheetSync();
+        },
+      };
+    }
+    return withTone;
+  });
+
+  const busy = syncing || switchBusy || sheetSyncing || projRefreshing;
+  const visibleAttentionItems = showAttention
+    ? filterAttentionForView(attentionItems, currentView)
+    : [];
+
+  useEffect(() => {
+    setChrome({
+      leagueName,
+      phaseLabel: !inLeague && !hasLeagues ? "No shared league yet" : phaseLabel,
+      roleLabel,
+      attentionItems: visibleAttentionItems,
+    });
+  }, [setChrome, leagueName, phaseLabel, roleLabel, visibleAttentionItems, inLeague, hasLeagues]);
+
+  useEffect(() => () => setChrome(null), [setChrome]);
+
+  if (mobileLayout) return null;
+
   if (!inLeague && !hasLeagues) {
     return (
       <section className="hub-league-context-bar" role="status">
@@ -201,90 +285,6 @@ export default function LeagueContextBanner({
     );
   }
 
-  const phaseLabel = inLeague
-    ? (hubContext.draft_completed ? "In season" : "Pre-draft")
-    : "Solo";
-  const roleLabel = inLeague
-    ? (isCommish ? "Commissioner" : "Member")
-    : null;
-  const leagueName = inLeague
-    ? (hubContext.league_name || "League")
-    : "Solo prep";
-
-  const preDraft = inLeague && !hubContext.draft_completed ? capSheet?.pre_draft : null;
-  const mustExtend = preDraft?.must_extend ?? [];
-  const dropping = preDraft?.dropping_at_draft ?? [];
-  const remaining = capSheet?.summary?.remaining;
-  const overCapBy = Number.isFinite(Number(remaining)) && Number(remaining) < 0
-    ? Math.abs(Number(remaining))
-    : null;
-
-  const poolStale = Boolean(freshness?.projections?.stale)
-    || (freshness && freshness.projections?.available === false);
-  const projAge = ageShort(freshness?.projections?.built_at);
-  const capSheetsStale = Boolean(freshness?.cap_sheets?.stale);
-
-  const attentionItems = [];
-  if (inLeague && poolStale) {
-    attentionItems.push({
-      id: "projections",
-      tone: "attention",
-      label: freshness?.projections?.available === false
-        ? "Projections missing"
-        : (projAge ? `Projections stale ${projAge}` : "Projections stale"),
-      actionLabel: "Sync projections",
-      onAction: () => {
-        setSyncOpen(true);
-        runProjectionsRefresh();
-      },
-    });
-  }
-  if (inLeague && overCapBy != null) {
-    attentionItems.push({
-      id: "over-cap",
-      tone: "attention",
-      label: `Over cap ${fmtSal(overCapBy)}`,
-      actionLabel: "Cap planner",
-      onAction: onNavigate ? () => onNavigate("planner") : null,
-      target: "planner",
-    });
-  }
-  if (inLeague && mustExtend.length > 0) {
-    attentionItems.push({
-      id: "extend",
-      tone: "attention",
-      label: `${mustExtend.length} need extension`,
-      actionLabel: "Cap planner",
-      onAction: onNavigate ? () => onNavigate("planner") : null,
-      target: "planner",
-    });
-  } else if (inLeague && dropping.length > 0) {
-    attentionItems.push({
-      id: "expire",
-      tone: "attention",
-      label: `${dropping.length} expire → FA`,
-      actionLabel: "Cap planner",
-      onAction: onNavigate ? () => onNavigate("planner") : null,
-      target: "planner",
-    });
-  }
-  if (inLeague && capSheetsStale && isCommish) {
-    attentionItems.push({
-      id: "cap-sheets",
-      tone: "attention",
-      label: "Cap sheets stale",
-      actionLabel: "Sync sheets",
-      onAction: () => {
-        setSyncOpen(true);
-        runSheetSync();
-      },
-    });
-  }
-
-  const busy = syncing || switchBusy || sheetSyncing || projRefreshing;
-  const visibleAttentionItems = showAttention
-    ? attentionItems.filter((item) => item.target !== currentView)
-    : [];
   const sleeperLinked = Boolean(
     freshness?.sleeper?.linked || hubContext?.sleeper_league_id,
   );
@@ -513,7 +513,7 @@ export default function LeagueContextBanner({
 
   return (
     <section
-      className={`hub-league-context-bar${mobileLayout ? " hub-league-context-bar--compact" : ""}`}
+      className="hub-league-context-bar"
       role="status"
       aria-busy={busy || freshnessLoading}
     >

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import Button from "../ui/Button";
+import DraftSeat from "./DraftSeat";
 import {
   DRAFT_TZ_OPTIONS,
   draftFormatLabel,
@@ -475,19 +476,16 @@ export default function DraftLobby({
               const taken = Boolean(team) && !mine;
               return (
                 <li key={slot}>
-                  <button
-                    type="button"
-                    className={`hub-pick-tile draft-lobby-slot${mine ? " is-you" : ""}${taken ? " is-taken" : ""}${!team ? " is-open" : ""}`}
+                  <DraftSeat
+                    variant="tile"
+                    slot={slot}
+                    name={team?.name}
+                    mine={mine}
+                    taken={taken}
                     disabled={slotBusy || busy || taken || !myTeamId}
-                    aria-pressed={Boolean(mine)}
+                    pressed={Boolean(mine)}
                     onClick={() => claimSlot(slot)}
-                  >
-                    <span className="draft-lobby-slot-num">{slot}</span>
-                    <span className="draft-lobby-slot-who">{team?.name || "Open"}</span>
-                    <span className="draft-lobby-slot-action">
-                      {mine ? "Yours" : taken ? "Taken" : "Take"}
-                    </span>
-                  </button>
+                  />
                 </li>
               );
             })}
