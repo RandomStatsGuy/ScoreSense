@@ -99,7 +99,7 @@ test("draft lobby readiness keeps launch status concise", () => {
 
   const openRoom = draftLobbyReadiness({ claimed: 7, teamCount: 10 });
   assert.deepEqual(openRoom.map((item) => item.tone), ["attention", "neutral", "ready"]);
-  assert.match(openRoom[0].label, /7 of 10 managers seated/i);
+  assert.match(openRoom[0].label, /7 of 10 managers claimed/i);
   assert.match(openRoom[1].label, /commissioner launches/i);
 
   const readyRoom = draftLobbyReadiness({ claimed: 10, teamCount: 10, scheduled: true });

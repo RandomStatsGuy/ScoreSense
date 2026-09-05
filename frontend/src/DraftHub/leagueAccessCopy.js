@@ -92,7 +92,7 @@ export function draftLobbyReadiness({
       tone: roomFull ? "ready" : "attention",
       label: roomFull
         ? "Every seat is claimed"
-        : `${seated} of ${total} ${testMode ? "people" : "managers"} seated`,
+        : `${seated} of ${total} ${testMode ? "people" : "managers"} claimed`,
     },
     {
       id: "schedule",
