@@ -166,12 +166,12 @@ def test_css_type_never_drops_below_text_xs() -> None:
     for path in (ROOT / "frontend" / "src").rglob("*.css"):
         for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             match = pat.search(line)
-            if match and float(match.group(1)) < 0.72:
+            if match and float(match.group(1)) < 0.75:
                 offenders.append(f"{path.relative_to(ROOT)}:{lineno}:{match.group(1)}")
-    assert not offenders, "type below previous --text-xs floor (0.72rem):\n" + "\n".join(offenders[:30])
+    assert not offenders, "type below --text-xs floor (0.75rem / 12px):\n" + "\n".join(offenders[:30])
     tokens = _read("frontend", "src", "styles", "tokens.css")
-    assert "--text-xs: 0.75rem" in tokens
-    assert "12px" in _read("docs", "PRODUCT.md")
+    assert "--text-xs: 12px" in tokens
+    assert "12px computed" in _read("docs", "PRODUCT.md")
     rhythm = _read("frontend", "src", "styles", "product-rhythm.css")
     main = _read("frontend", "src", "main.jsx")
     assert "--inset-chip" in rhythm

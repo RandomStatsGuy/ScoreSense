@@ -110,7 +110,7 @@ body {
 .mock-pill {
   display: inline-flex; align-items: center; gap: 0.35rem;
   border-radius: var(--radius-pill); padding: 0.22rem 0.7rem;
-  font-size: 0.72rem; font-weight: 600;
+  font-size: var(--text-xs); font-weight: 600;
 }
 .mock-pill--accent { background: var(--accent); color: #fff; }
 .mock-pill--live { background: rgba(239, 68, 68, 0.16); color: #fca5a5; }
@@ -185,7 +185,7 @@ body {
 .btn-ghost { border-color: var(--border-strong); color: var(--text-secondary); background: transparent; }
 .btn-sm { font-size: 0.76rem; padding: 0.32rem 0.8rem; }
 
-.footnote { color: var(--text-muted); font-size: 0.72rem; text-align: center; margin-top: 2.2rem; }
+.footnote { color: var(--text-muted); font-size: var(--text-xs); text-align: center; margin-top: 2.2rem; }
 
 /* ---- Design-review chrome (not product) ---- */
 .concept-banner {
@@ -194,7 +194,7 @@ body {
   padding: 0.55rem 1.5rem;
   background: #0a1220;
   border-bottom: 1px solid var(--border);
-  font-size: 0.74rem;
+  font-size: var(--text-xs);
 }
 .concept-banner strong { color: var(--text-primary); font-weight: 700; }
 .concept-banner span { color: var(--text-muted); }
@@ -219,7 +219,7 @@ body {
   border-radius: var(--radius-pill);
   background: var(--bg-subtle);
   border: 1px solid var(--border);
-  font-size: 0.74rem;
+  font-size: var(--text-xs);
 }
 .presence-chip .av {
   width: 1.55rem; height: 1.55rem; border-radius: 50%;
@@ -255,7 +255,7 @@ body {
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 0.66rem; font-weight: 800;
 }
-.chat-msg .who { font-size: 0.74rem; font-weight: 700; }
+.chat-msg .who { font-size: var(--text-xs); font-weight: 700; }
 .chat-msg .when { font-size: 0.64rem; color: var(--text-muted); font-weight: 500; margin-left: 0.4rem; }
 .chat-msg p { margin: 0.12rem 0 0; font-size: 0.82rem; color: var(--text-secondary); }
 .chat-compose {
@@ -276,7 +276,7 @@ body {
   border-bottom: 1px solid rgba(36, 50, 73, 0.5);
 }
 .queue-list li:last-child { border-bottom: 0; }
-.queue-list .n { color: var(--text-muted); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+.queue-list .n { color: var(--text-muted); font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
 .queue-list img, .queue-list .ph {
   width: 2.1rem; height: 2.1rem; border-radius: 50%; object-fit: cover; object-position: top;
   background: var(--bg-subtle);

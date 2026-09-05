@@ -48,7 +48,7 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Tokens only: `frontend/src/styles/tokens.css`, `product-hierarchy.css`, `product-rhythm.css`, `fantasy-phone.css`.
 - Blue (`--experience-blue` / `--accent`) = current context and the next action. Nothing else.
 - Teal = healthy/saved. Amber = attention. Red = destructive/blocking. Gold = awards only.
-- Hierarchy from surface, type, and spacing — not a border on every box. Token insets and gutters; text is never flush to a line and never smaller than `--text-xs`.
+- Hierarchy from surface, type, and spacing — not a border on every box. Token insets and gutters; text is never flush to a line and never smaller than `--text-xs` (12px computed).
 - Editorial pages use one hero stack: `HubExperienceHero` + `HubExperienceLayout` + `HubExperienceSummary` from `HubUILayout.jsx`.
 - **Fix the primitive, not the page.** Shared CSS/components first. Measurable layout rules: `.cursor/rules/frontend-craft.mdc`.
 - Copy lives in `*Presentation.js`. State the decision and the cost of getting it wrong. No slogan that could sit on another app. No “Submit”, no “You do not have permission” (use “Commissioner managed”).

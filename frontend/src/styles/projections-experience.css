@@ -494,7 +494,7 @@
 }
 
 .player-context-panel--hero .player-context-panel-title {
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -524,7 +524,7 @@
 .player-context-hero-status {
   margin: 0;
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
 }
 
 .player-context-hero-trust {

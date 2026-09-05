@@ -11,19 +11,6 @@
 }
 
 @media (max-width: 768px) {
-  .hub-page,
-  .hub-experience-page,
-  .hub-league-home,
-  .hub-insights,
-  .hub-vibes,
-  .hub-strategy-board,
-  .hub-rules-center,
-  .hub-league-office,
-  .hub-gc,
-  .hub-wcc {
-    --text-xs: 0.74rem; /* 11.84px — same phone floor as Projections meta */
-  }
-
   .hub-page .chart-note,
   .hub-experience-page .chart-note,
   .hub-league-home .chart-note,
@@ -50,7 +37,7 @@
   .mobile-stat-label,
   .filter-chip--compact,
   .chip-filter.chip-tier {
-    font-size: max(var(--text-xs), 0.74rem);
+    font-size: var(--text-xs);
   }
 
   .filter-chip,
