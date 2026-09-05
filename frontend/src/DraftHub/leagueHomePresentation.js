@@ -1,3 +1,5 @@
+import { interpretStandings } from "./gameCenterPresentation.js";
+
 const ACTION_LABELS = {
   roster_hole: "Open draft room",
   cap_overage: "Fix cap",
@@ -110,13 +112,12 @@ export function homeHasPendingCuts(data) {
 
 export function homeDeckMode({ phaseId, draftCompleted, scoring } = {}) {
   const preDraft = phaseId === "pre_draft" || draftCompleted === false;
+  const view = interpretStandings(scoring, { phaseId, draftCompleted });
   if (!preDraft) return { show: true, historical: false };
+  if (view.hasResults) return { show: true, historical: true };
   const placeholder = Boolean(scoring?.placeholder);
   const hasRows = Boolean(scoring?.standings?.length || scoring?.matchups?.length);
-  const hasScored = Boolean(scoring) && !placeholder && hasRows;
-  if (hasScored || (hasRows && !placeholder)) {
-    return { show: true, historical: true };
-  }
+  if (hasRows && !placeholder) return { show: true, historical: true };
   return { show: false, historical: false };
 }
 

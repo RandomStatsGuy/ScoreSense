@@ -1,5 +1,6 @@
 import React from "react";
 import { lockerNameplate, mergeTeamIdentity } from "./atmosphereCatalog";
+import { PAINT_WIDTH, paintMediaUrl } from "./draftMedia";
 import { nflTeamColors } from "./nflTeamColors";
 import { fmtSal } from "./rosterFormat";
 import { normalizeHubPosition } from "./hubPositions";
@@ -123,7 +124,7 @@ export default function LockerRoomScene({
                   {media.headshot_url ? (
                     <img
                       className="hub-locker-headshot"
-                      src={media.headshot_url}
+                      src={paintMediaUrl(media.headshot_url, PAINT_WIDTH.mark)}
                       alt=""
                       loading="lazy"
                       onError={(e) => { e.currentTarget.style.display = "none"; }}

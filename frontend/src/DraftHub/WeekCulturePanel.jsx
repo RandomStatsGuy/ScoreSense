@@ -7,6 +7,11 @@ import { EMOTE_COPY, emoteTitle } from "./atmosphereCatalog";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 import { hubTeamLabel } from "./hubTeamLabel";
 import { trophyStripCopy } from "./weekBoard";
+import {
+  GAME_CENTER_COPY,
+  trophyLeaderLabel,
+  trophySummaryState,
+} from "./gameCenterPresentation";
 
 function EmoteFigure({ emoteKey }) {
   return (
@@ -193,17 +198,22 @@ export default function WeekCulturePanel({
         );
         const viewerPick = options.find((option) => poll.viewer_vote === option.team_id);
         return (
-          <details key={poll.id} className="hub-week-poll hub-week-poll--compact">
+          <details
+            key={poll.id}
+            className={`hub-week-poll hub-week-poll--compact${leader && Number(leader.votes) > 0 ? " is-claimed" : ""}`}
+          >
             <summary>
+              <span className="hub-week-poll-caret" aria-hidden="true" />
               <span className="hub-week-poll-summary-title">{poll.title}</span>
               <span className="hub-week-poll-summary-state chart-note">
-                {leader && Number(leader.votes) > 0
-                  ? `${leader.team_name} leads · ${leader.votes} vote${Number(leader.votes) === 1 ? "" : "s"}`
-                  : "No votes yet"}
-                {viewerPick ? " · you voted" : ""}
+                {trophySummaryState({
+                  leader,
+                  votes: leader?.votes,
+                  youVoted: Boolean(viewerPick),
+                })}
               </span>
-              <span className="hub-week-poll-summary-cta" aria-hidden="true">
-                {viewerPick ? "Change vote" : "Vote"}
+              <span className="hub-week-poll-summary-cta">
+                {viewerPick ? GAME_CENTER_COPY.trophyChangeVote : GAME_CENTER_COPY.trophyVote}
               </span>
             </summary>
             <div className="hub-week-poll-options">
@@ -225,7 +235,7 @@ export default function WeekCulturePanel({
                       size="sm"
                     />
                     <span className="hub-week-poll-option-main">
-                      <strong>{option.team_name}</strong>
+                      <strong>{trophyLeaderLabel(option)}</strong>
                       <span className="chart-note">
                         {option.votes} vote{option.votes === 1 ? "" : "s"}
                       </span>

@@ -30,3 +30,7 @@ Keep under 30 data rows. Promote `always` / `never` into `docs/PRODUCT.md` or a 
 | usually | projections | When GBM weekly is missing for K or DEF, fill the week from the rank-curve per-game number. |
 | usually | fantasy-ui | Player names are the last column to truncate on roster tables. |
 | usually | fantasy-ui | Refresh labels name the scope (Refresh league), never sit beside a single manager as if they refresh that roster. |
+| usually | fantasy-ui | Mode-select cards describe; the primary button carries the verb. |
+| usually | fantasy-ui | Do not stack the same reassurance twice in the first viewport. |
+| usually | fantasy-ui | Insights Overview is a three-card page that should sit above the fold; do not stretch unequal panels to a shared bottom. |
+| usually | fantasy-ui | Hero chips are status, not the page primary. Do not put You can edit or Need a partner where Save belongs. |

@@ -758,6 +758,7 @@ def build_weekly_command_center(
             "team_id": ctx.get("team_id"),
             "team_name": ctx.get("team_name"),
             "season": hub_season,
+            "sleeper_league_id": ctx.get("sleeper_league_id"),
         },
         "meta": {
             "season": resolved_season,

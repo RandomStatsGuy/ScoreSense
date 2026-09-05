@@ -1,5 +1,7 @@
 /** Team logos and headshot fallbacks for draft room. */
 
+import { snapHubMediaWidth, withHubMediaWidth } from "./atmosphereCatalog.js";
+
 const TEAM_LOGO_ALIASES = {
   JAX: "jax",
   JAC: "jax",
@@ -9,11 +11,50 @@ const TEAM_LOGO_ALIASES = {
   WAS: "wsh",
 };
 
-export function teamLogoUrl(team) {
+export const PAINT_WIDTH = Object.freeze({
+  avatar: 48,
+  mark: 96,
+  hero: 256,
+});
+
+export function paintMediaUrl(url, width) {
+  if (!url) return url;
+  const href = String(url);
+  const snapped = snapHubMediaWidth(width);
+  if (!snapped) return href;
+  if (href.includes("/api/hub/media/")) return withHubMediaWidth(href, snapped);
+  if (href.includes("espncdn.com")) return espnPaintUrl(href, snapped);
+  if (href.includes("sleepercdn.com")) return sleeperPaintUrl(href, snapped);
+  return href;
+}
+
+function espnPaintUrl(href, width) {
+  if (href.includes("combiner/i?")) {
+    const next = href
+      .replace(/([?&])w=\d+/g, "$1")
+      .replace(/([?&])h=\d+/g, "$1")
+      .replace(/[?&]$/, "")
+      .replace(/\?&/, "?");
+    return `${next}${next.includes("?") ? "&" : "?"}w=${width}&h=${width}`;
+  }
+  let path = href.replace(/^https?:\/\/[^/]+/i, "");
+  const q = path.indexOf("?");
+  if (q >= 0) path = path.slice(0, q);
+  return `https://a.espncdn.com/combiner/i?img=${path}&w=${width}&h=${width}`;
+}
+
+function sleeperPaintUrl(href, width) {
+  if (width > 96) return href;
+  if (href.includes("/players/thumb/")) return href;
+  return href.replace("/content/nfl/players/", "/content/nfl/players/thumb/");
+}
+
+export function teamLogoUrl(team, { width } = {}) {
   const abbr = String(team || "").trim().toUpperCase();
   if (!abbr) return null;
   const slug = TEAM_LOGO_ALIASES[abbr] || abbr.toLowerCase();
-  return `https://a.espncdn.com/i/teamlogos/nfl/500/${slug}.png`;
+  const url = `https://a.espncdn.com/i/teamlogos/nfl/500/${slug}.png`;
+  return width ? paintMediaUrl(url, width) : url;
 }
 
 export function playerInitials(name) {
@@ -28,10 +69,11 @@ export function lookupPlayerMedia(media, playerId) {
   return media[playerId] || media[String(playerId)] || null;
 }
 
-export function headshotCandidates(media = {}, extraUrls = []) {
-  return [
+export function headshotCandidates(media = {}, extraUrls = [], { width } = {}) {
+  const shots = [
     media?.headshot_url,
     media?.espn_headshot_url,
     ...extraUrls,
   ].filter(Boolean);
+  return width ? shots.map((url) => paintMediaUrl(url, width)) : shots;
 }

@@ -178,6 +178,24 @@ def test_mock_league_empty_recap_after_end_without_picks(hub_db):
     assert recap is None
 
 
+def test_rules_overlay_follows_source_team_count(hub_db):
+    rules = load_preset("salary_cap_auction_v1")
+    ws = storage.get_or_create_workspace("comm", 2025)
+    source = storage.create_league(
+        "comm", "Ten Team", 2025, rules, team_count=10, workspace_id=ws["id"],
+    )
+    out = start_mock_draft(
+        "comm",
+        mode="quick_bots",
+        team_count=12,
+        bot_count=11,
+        source_league_id=source["id"],
+        auto_start=False,
+    )
+    league = storage.get_league(out["league_id"])
+    assert league["team_count"] == 10
+
+
 def test_league_mirror_uses_manager_names(hub_db):
     rules = load_preset("salary_cap_auction_v1")
     ws = storage.get_or_create_workspace("comm", 2025)
