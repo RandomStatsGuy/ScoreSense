@@ -24,6 +24,8 @@ export default function MobilePlayerCard({
   onSelect,
   aside = null,
   actions,
+  hideHeroSubWhenOpen = false,
+  reserveHeroSub = false,
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const detailsId = useId();
@@ -74,10 +76,12 @@ export default function MobilePlayerCard({
           </div>
           <div className={`mobile-player-card-hero${heroMuted ? " mobile-player-card-hero--muted" : ""}`}>
             <span className="mobile-player-card-hero-value">{heroValue}</span>
-            {heroLabel ? (
-              <span className="mobile-player-card-hero-label">{heroLabel}</span>
+            {heroLabel ? <span className="mobile-player-card-hero-label">{heroLabel}</span> : null}
+            {heroSub && !(hideHeroSubWhenOpen && open) ? (
+              <span className="mobile-player-card-hero-sub">{heroSub}</span>
+            ) : reserveHeroSub ? (
+              <span className="mobile-player-card-hero-sub mobile-player-card-hero-sub--slot" aria-hidden="true" />
             ) : null}
-            {heroSub ? <span className="mobile-player-card-hero-sub">{heroSub}</span> : null}
           </div>
         </button>
         {aside ? <div className="mobile-player-card-aside">{aside}</div> : null}

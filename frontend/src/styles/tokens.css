@@ -94,7 +94,7 @@
   --muted: #95a4b8;
 
   /* Typography scale */
-  --text-xs: 0.72rem;
+  --text-xs: 0.75rem;
   --text-min: var(--text-xs);
   --text-sm: 0.82rem;
   --text-md: 0.9rem;

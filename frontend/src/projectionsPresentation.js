@@ -3,7 +3,7 @@
  * Keep JSX structural; user-facing strings live here.
  */
 
-import { isPlayerUnavailable } from "./format.js";
+import { formatRelativeTime, isPlayerUnavailable } from "./format.js";
 import { formatOpportunityAdjustmentPct } from "./opportunityAdjustment.js";
 import { isLeftSlate } from "./projectionMovement.js";
 import { isScheduleAwareMethod, resolveSeasonBand, upsideSkew } from "./seasonQuantiles.js";
@@ -28,6 +28,7 @@ export const SEASON_BOARD_FILTERS = [
 
 export const BOARD_COPY = {
   weeklyBoard: "The board",
+  weeklySlate: "This week's slate",
   weeklySupport: "Rank the week, then open a player. Sit the wrong name and you leave the P50 on the bench.",
   seasonBoard: "The season board",
   seasonSupport: "Season P50 with floor and ceiling. Draft the wrong tier and your keeper price is set for three years.",
@@ -43,6 +44,16 @@ export const BOARD_COPY = {
   compareHint: "Tap a row to add them. The name still opens details.",
   comparePick: "Compare 2–4 players",
   compareOpen: "Compare",
+  why: "Why",
+  details: "Details",
+  applyFilters: "Apply",
+  resetFilters: "Reset",
+  filters: "Filters",
+  floorCeiling: "Floor–ceiling",
+  stale: "Stale",
+  staleRefresh: "Stale · Refresh",
+  refreshing: "Refreshing…",
+  scoringPpr: "Scoring: PPR",
   scheduleAware: "Schedule-aware estimate",
   preseasonEstimate: "Preseason estimate",
   liveSeason: "Live season + ROS",
@@ -588,6 +599,28 @@ export function analystDisclosureSummary({
   return week != null
     ? `No current Week ${week} notes.`
     : "No analyst notes for this slate.";
+}
+
+/** Last name when the first+last string will clip a compact signal tile. */
+export function compactSignalName(name, { max = 16 } = {}) {
+  const raw = String(name || "").trim();
+  if (!raw || raw === "—") return raw || "—";
+  if (raw.length <= max) return raw;
+  const parts = raw.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return parts[parts.length - 1];
+  return raw;
+}
+
+export function staleRefreshLabel({
+  stale = false,
+  updatedAt = null,
+  refreshing = false,
+} = {}) {
+  if (refreshing) return BOARD_COPY.refreshing;
+  const rel = formatRelativeTime(updatedAt);
+  const time = rel ? String(rel).replace(/^Updated /, "") : "";
+  if (stale) return time ? `${BOARD_COPY.stale} · ${time}` : BOARD_COPY.staleRefresh;
+  return rel || "";
 }
 
 export function weeklyBoardKicker({ week, scoring = "PPR" } = {}) {
