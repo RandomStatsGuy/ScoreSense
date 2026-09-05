@@ -107,7 +107,9 @@ test("home hero names the roster hole over empty seats", () => {
   assert.match(homeHeroSupport({ actions: [hole] }), /wasted nomination|Undo a cut/i);
   assert.equal(homeHasPendingCuts({ pre_draft: { pending_cuts_count: 1 } }), true);
   assert.equal(HOME_PAGE_COPY.undoCut, "Undo a cut");
-  assert.match(HOME_PAGE_COPY.loadingFallback, /Still loading cap/i);
+  assert.match(HOME_PAGE_COPY.loadingFallback, /Still syncing with Sleeper/i);
+  assert.equal(HOME_PAGE_COPY.loadingHeading, "Checking what is due…");
+  assert.equal(HOME_PAGE_COPY.loadingKicker, "Reading your league");
 });
 
 test("pre-draft home hides an unscored matchup deck", () => {

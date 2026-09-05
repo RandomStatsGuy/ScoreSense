@@ -25,6 +25,7 @@ import {
   resolveLeagueHomeFocus,
   supportingLeagueHomeActions,
 } from "./leagueHomePresentation";
+import { getHomeCache, homeCacheKey, setHomeCache } from "./hubDataCache";
 
 /** Valid Hub subview targets returned by `/api/hub/home` actions / primary CTA. */
 const HUB_ACTION_VIEWS = new Set([
@@ -108,37 +109,56 @@ export default function LeagueHome({
 }) {
   const mobileLayout = useMobileLayout();
   const { identities } = useTeamIdentities();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = homeCacheKey(hubContext);
+  const [data, setData] = useState(() => getHomeCache(cacheKey)?.data || null);
+  const [loading, setLoading] = useState(() => !getHomeCache(cacheKey)?.data);
   const [error, setError] = useState("");
   const [scoring, setScoring] = useState(null);
   const [slowLoad, setSlowLoad] = useState(false);
+  const [prevCacheKey, setPrevCacheKey] = useState(cacheKey);
+  if (cacheKey !== prevCacheKey) {
+    setPrevCacheKey(cacheKey);
+    const cached = getHomeCache(cacheKey);
+    setData(cached?.data || null);
+    setLoading(!cached?.data);
+    setError("");
+    setScoring(null);
+    setSlowLoad(false);
+  }
   const leagueId = hubContext?.mode === "league" ? hubContext?.league_id : null;
 
   const load = useCallback(async (signal) => {
-    setLoading(true);
+    const cached = getHomeCache(cacheKey);
+    if (cached?.data) {
+      setData(cached.data);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError("");
     try {
       // include_week=true so in-season action center can surface lineup decisions.
       const res = await apiFetch("/api/hub/home?include_week=true", { signal });
       if (!res.ok) throw new Error(await parseApiError(res));
       const payload = await res.json();
-      if (!signal?.aborted) setData(payload);
+      if (signal?.aborted) return;
+      setHomeCache(cacheKey, payload);
+      setData(payload);
     } catch (e) {
       if (isAbortError(e) || signal?.aborted) return;
       setError(connectionErrorMessage(e));
-      setData(null);
+      if (!cached?.data) setData(null);
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
-  }, []);
+  }, [cacheKey]);
 
   useEffect(() => {
     if (!loading) {
       setSlowLoad(false);
       return undefined;
     }
-    const timer = window.setTimeout(() => setSlowLoad(true), 5000);
+    const timer = window.setTimeout(() => setSlowLoad(true), 3000);
     return () => window.clearTimeout(timer);
   }, [loading]);
 
@@ -230,7 +250,7 @@ export default function LeagueHome({
       <header className="hub-home-heading">
         <div>
           <p className="hub-experience-kicker">{HOME_PAGE_COPY.kicker}</p>
-          <h2>{loading && !data ? HOME_PAGE_COPY.heading : homeHeroHeading(data)}</h2>
+          <h2>{loading && !data ? HOME_PAGE_COPY.loadingHeading : homeHeroHeading(data)}</h2>
           {!loading && data ? (
             <p className="chart-note">{homeHeroSupport(data)}</p>
           ) : null}

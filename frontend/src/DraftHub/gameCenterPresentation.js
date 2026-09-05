@@ -7,6 +7,8 @@ export const GAME_CENTER_COPY = {
   emptySolo: "Game center follows your head-to-head matchup. Open a shared league to use it.",
   emptyNoSleeper: "Link Sleeper to fill scores.",
   emptyPreseason: "No scored matchups yet. Scores fill in after kickoff.",
+  loadingChip: "Loading",
+  unscoredChip: "No scores yet",
   emptyDuel: "Lineups are empty until kickoff. Set them on This Week.",
   setLineup: "Set lineup",
   setupCta: "Link Sleeper",
@@ -138,7 +140,7 @@ export function matchupsHavePoints(payload) {
 }
 
 export function gameStateLabel(payload) {
-  if (payload?.placeholder) return "Waiting";
+  if (payload?.placeholder) return GAME_CENTER_COPY.unscoredChip;
   if (payload?.preseason) return "Preseason";
   const week = payload?.week;
   const current = payload?.current_week;

@@ -78,7 +78,7 @@ function SlotCard({ slot, decision, wide, movement, canEdit, selected, onSelect,
             {WEEK_BOARD_COPY.emptySlot(slot.slot)}
           </button>
         ) : (
-          <p className="hub-wcc-slot-waiting">Waiting</p>
+          <p className="hub-wcc-slot-waiting">Empty</p>
         )
       ) : (
         <>

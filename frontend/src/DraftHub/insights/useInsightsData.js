@@ -148,10 +148,14 @@ export function useInsightsData(leagueId, refs) {
       if (!opts.background) setLoading?.(false);
     }
 
-    const generation = ++loadGenerationRef.current;
     const background = Boolean(
       opts.background || (opts.merge && dataRef?.current) || hasStale,
     );
+    // Background section loads must not bump generation — that discarded the
+    // in-flight overview when Scoring was prefetched in parallel.
+    const generation = background
+      ? loadGenerationRef.current
+      : ++loadGenerationRef.current;
     // One in-flight load owns one indicator; clear the other so a discarded
     // background prefetch cannot leave tabLoading stuck after a foreground load.
     if (background) {
@@ -248,19 +252,8 @@ export function useInsightsData(leagueId, refs) {
     if (!leagueId || scoringPrefetchRef.current) return;
     scoringPrefetchRef.current = true;
     const prefetchFor = leagueId;
-    try {
-      const root = handlers.hubContextRef?.current?.demo ? "/api/hub/demo" : "/api/hub";
-      const res = await apiFetch(
-        `${root}/league/${encodeURIComponent(prefetchFor)}/insights/status`,
-      );
-      if (res.ok) {
-        const status = await res.json();
-        if (status.scoring !== "hit") return;
-      }
-    } catch {
-      return;
-    }
-    // Drop if the user switched leagues while the status check was in flight.
+    // Fire Scoring at mount next to Overview — do not wait on /insights/status
+    // or the overview payload. Drop if the user switched leagues.
     if (leagueIdRef.current !== prefetchFor) return;
     await load(
       {
@@ -270,7 +263,6 @@ export function useInsightsData(leagueId, refs) {
         keepChartHidden: true,
         background: true,
         activeTab: "scoring",
-        skipSessionCache: true,
       },
       handlers,
     );

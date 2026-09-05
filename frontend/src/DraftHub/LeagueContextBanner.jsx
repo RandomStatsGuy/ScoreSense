@@ -9,8 +9,8 @@ import {
   getFreshnessCache,
   invalidateFreshnessCache,
   invalidateInsightsAfterCapSync,
-  setFreshnessCache,
 } from "./hubDataCache";
+import { ensureLeagueFreshness } from "./leagueFreshness";
 import { fmtSal } from "./rosterFormat";
 import TeamIdentityMark from "./TeamIdentityMark";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
@@ -104,15 +104,9 @@ export default function LeagueContextBanner({
     setFreshnessLoading(!cached?.data);
     setFreshnessError("");
     try {
-      const root = isDemo ? "/api/hub/demo" : "/api/hub";
-      const res = await apiFetch(
-        `${root}/league/${encodeURIComponent(leagueId)}/freshness`,
-        { signal },
-      );
-      if (!res.ok) throw new Error(await parseApiError(res));
-      const payload = await res.json();
-      setFreshnessCache(leagueId, payload);
-      setFreshness(payload);
+      const payload = await ensureLeagueFreshness(leagueId, { demo: isDemo });
+      if (signal?.aborted) return;
+      if (payload) setFreshness(payload);
     } catch (e) {
       if (signal?.aborted) return;
       setFreshnessError(connectionErrorMessage(e));

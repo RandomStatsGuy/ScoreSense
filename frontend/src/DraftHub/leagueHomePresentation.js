@@ -95,7 +95,7 @@ export const HOME_PAGE_COPY = {
   loadingKicker: "Reading your league",
   loadingHeading: "Checking what is due…",
   loadingSupport: "Cap, lineup, and draft night.",
-  loadingFallback: "Still loading cap — Sync league if this persists",
+  loadingFallback: "Still syncing with Sleeper — this can take a few seconds",
   undoCut: "Undo a cut",
   emptySeatsCost: "Empty seats draft as bots.",
   notScheduled: "Not scheduled",

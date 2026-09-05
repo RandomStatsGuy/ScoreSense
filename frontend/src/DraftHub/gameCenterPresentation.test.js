@@ -100,7 +100,7 @@ test("game center labels lead with owner and keep the team nickname", () => {
 
 test("game state label distinguishes past weeks and preseason", () => {
   assert.equal(gameStateLabel({ preseason: true }), "Preseason");
-  assert.equal(gameStateLabel({ placeholder: true, preseason: true }), "Waiting");
+  assert.equal(gameStateLabel({ placeholder: true, preseason: true }), "No scores yet");
   assert.equal(gameStateLabel({ week: 10, current_week: 12 }), "Final");
   assert.equal(gameStateLabel({ week: 12, current_week: 12 }), "Next games Thu");
   assert.equal(gameStateLabel({ week: 12, current_week: 12, live: true }), "Live");
@@ -118,6 +118,8 @@ test("empty duel copy names This Week", () => {
   assert.match(GAME_CENTER_COPY.emptyDuel, /This Week|lineup/i);
   assert.equal(GAME_CENTER_COPY.setLineup, "Set lineup");
   assert.doesNotMatch(GAME_CENTER_COPY.emptyDuel, /Draft Hub|Submit/i);
+  assert.equal(GAME_CENTER_COPY.loadingChip, "Loading");
+  assert.equal(GAME_CENTER_COPY.unscoredChip, "No scores yet");
 });
 
 test("placeholder storyline keeps the slate and names the missing opponent", () => {

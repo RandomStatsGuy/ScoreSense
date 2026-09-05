@@ -52,7 +52,9 @@ export default function AppRouter() {
       <Route path="/report" element={<BugReportPage />} />
       <Route path="/projections/weekly" element={<App />} />
       <Route path="/projections/weekly/:panel" element={<App />} />
+      <Route path="/projections/season" element={<App />} />
       <Route path="/projections/season/:mode" element={<App />} />
+      <Route path="/projections/season/:mode/:panel" element={<App />} />
       <Route path="/hub/insights/trades" element={<Navigate to="/hub/trades" replace />} />
       <Route path="/hub/insights/desk" element={<Navigate to="/hub/roster-management/contracts" replace />} />
       <Route path="/hub/insights/salaries" element={<Navigate to="/hub/roster-management/sheets" replace />} />

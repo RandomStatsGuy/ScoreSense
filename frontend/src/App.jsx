@@ -6,8 +6,8 @@ import DraftTable from "./DraftTable";
 import DraftHub from "./DraftHub/DraftHub";
 import HubSubnav, { HUB_SUBVIEWS } from "./DraftHub/HubSubnav";
 import { LeagueChromeProvider } from "./DraftHub/leagueChromeContext";
-import DfsOptimizer from "./LineupOptimizer";
-import MockDraftTool from "./DraftHub/MockDraftTool";
+const DfsOptimizer = lazy(() => import("./LineupOptimizer"));
+const MockDraftTool = lazy(() => import("./DraftHub/MockDraftTool"));
 import BestBallBoard from "./BestBallBoard";
 import SeasonTable from "./SeasonTable";
 import SeasonTransitionState from "./SeasonTransitionState";
@@ -760,6 +760,7 @@ export default function App() {
   });
 
   useEffect(() => {
+    if (view !== "projections") return undefined;
     const controller = new AbortController();
     fetchProjMeta(position, controller.signal);
     fetchDraftMeta(position, controller.signal);
@@ -767,7 +768,7 @@ export default function App() {
     setSearchQuery("");
     seasonModeUserPicked.current = false;
     return () => controller.abort();
-  }, [position, fetchProjMeta, fetchDraftMeta]);
+  }, [view, position, fetchProjMeta, fetchDraftMeta]);
 
   useEffect(() => {
     if (filtersFromUrl.position && filtersFromUrl.position !== position) {
@@ -1061,11 +1062,11 @@ export default function App() {
   }, [headerSubtitle, subtitleDisplay]);
 
   useEffect(() => {
-    if (draftSeason == null) return undefined;
+    if (!isSeasonPreseason || draftSeason == null) return undefined;
     const controller = new AbortController();
     fetchDraft(controller.signal);
     return () => controller.abort();
-  }, [fetchDraft, draftSeason, position]);
+  }, [isSeasonPreseason, fetchDraft, draftSeason, position]);
 
   useEffect(() => {
     if (!isWeeklyProjections || season == null || week == null) return undefined;
@@ -1082,15 +1083,17 @@ export default function App() {
   }, [isWeeklyProjections, fetchSentiment, season, week, position, weeklyMediaMode]);
 
   useEffect(() => {
+    if (!isProjectionsDataView) return undefined;
     fetchMeta();
-  }, [fetchMeta]);
+    return undefined;
+  }, [isProjectionsDataView, fetchMeta]);
 
   useEffect(() => {
-    if (rosSeason == null || rosFromWeek == null) return undefined;
+    if (!isSeasonLive || rosSeason == null || rosFromWeek == null) return undefined;
     const controller = new AbortController();
     fetchRos(controller.signal);
     return () => controller.abort();
-  }, [fetchRos, rosSeason, rosFromWeek, position]);
+  }, [isSeasonLive, fetchRos, rosSeason, rosFromWeek, position]);
 
   useEffect(() => {
     if (!isSeasonLive || rosSeason == null || rosFromWeek == null) return undefined;
@@ -2005,16 +2008,16 @@ export default function App() {
           </div>
         )}
 
-        {view === "tools" && toolsTab === "mock-draft" && (
-          <MockDraftTool projMeta={projMeta} />
-        )}
-
-        {view === "tools" && toolsTab === "best-ball" && (
-          <BestBallBoard />
-        )}
-
-        {view === "tools" && toolsTab !== "mock-draft" && toolsTab !== "best-ball" && (
-          <DfsOptimizer projMeta={projMeta} loading={loading} />
+        {view === "tools" && (
+          <Suspense fallback={<p className="chart-note">Loading tools…</p>}>
+            {toolsTab === "mock-draft" ? (
+              <MockDraftTool projMeta={projMeta} />
+            ) : toolsTab === "best-ball" ? (
+              <BestBallBoard />
+            ) : (
+              <DfsOptimizer projMeta={projMeta} loading={loading} />
+            )}
+          </Suspense>
         )}
 
         {view === "model" && accuracyRebuildPhase === "building" && (

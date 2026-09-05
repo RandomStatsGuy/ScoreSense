@@ -131,7 +131,9 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
   const weekNumber = data?.week;
   const currentWeek = data?.current_week;
   const maxWeek = data?.max_week || 18;
-  const stateLabel = data ? gameStateLabel(data) : "";
+  const stateLabel = loading && !data
+    ? GAME_CENTER_COPY.loadingChip
+    : (data ? gameStateLabel(data) : "");
   const viewerProb = matchup && viewer ? winProbFor(matchup, viewer) : null;
   const otherMatchups = (data?.matchups || []).filter((m) => m !== matchup);
   const weekComplete = stateLabel === "Final";

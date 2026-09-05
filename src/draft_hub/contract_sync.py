@@ -9,7 +9,11 @@ from typing import Any
 from src.config import OLD_LEAGUE_FILES_DIR
 from src.draft_hub import storage
 from src.draft_hub.legacy_contract_history import import_legacy_files
-from src.draft_hub.legacy_contract_import import process_league_history, rows_for_storage
+from src.draft_hub.legacy_contract_import import (
+    YEAR_FILES,
+    process_league_history,
+    rows_for_storage,
+)
 from src.draft_hub.legacy_contract_reconcile import (
     infer_all_season_movements,
     reconcile_movements_with_sleeper,
@@ -20,6 +24,8 @@ from src.draft_hub.sourced_checkpoints import (
     list_checkpoint_specs,
     summarize_row_quarantines,
 )
+
+_HISTORY_CACHE: tuple[str, Any] | None = None
 
 VALID_SNAPSHOT_PHASES = frozenset({
     "pre_draft",
@@ -45,10 +51,35 @@ def commissioner_files_fingerprint(data_dir: Path | None = None) -> str:
     return hashlib.sha256("|".join(parts).encode()).hexdigest()[:16]
 
 
+def commissioner_source_seasons(data_dir: Path | None = None) -> set[int]:
+    """Years that have a commissioner source file on disk — no parse."""
+    base = data_dir or OLD_LEAGUE_FILES_DIR
+    seasons: set[int] = set()
+    if not base.exists():
+        return seasons
+    if (base / "2021 Fantasy Draft Results.pdf").exists():
+        seasons.add(2021)
+    for year, fname in YEAR_FILES.items():
+        if (base / fname).exists():
+            seasons.add(int(year))
+    return seasons
+
+
+def cached_league_history(data_dir: Path | None = None):
+    """Parse commissioner workbooks once per file fingerprint (office / sync only)."""
+    global _HISTORY_CACHE
+    base = data_dir or OLD_LEAGUE_FILES_DIR
+    fp = commissioner_files_fingerprint(base)
+    if _HISTORY_CACHE and _HISTORY_CACHE[0] == fp:
+        return _HISTORY_CACHE[1]
+    df = process_league_history(base)
+    _HISTORY_CACHE = (fp, df)
+    return df
+
+
 def parsed_content_fingerprint(data_dir: Path | None = None) -> str:
     """Hash parsed commissioner row content."""
-    base = data_dir or OLD_LEAGUE_FILES_DIR
-    df = process_league_history(base)
+    df = cached_league_history(data_dir)
     if df.empty:
         return ""
     grouped = rows_for_storage(df)
@@ -65,14 +96,79 @@ def default_snapshot_phases() -> dict[int, str]:
     }
 
 
-def commissioner_sync_status(league_id: str) -> dict[str, Any]:
-    """Compare commissioner files to last DB import."""
+def commissioner_read_status(league_id: str) -> dict[str, Any]:
+    """Cap-sheet freshness for GET paths — file mtimes + SQLite only. Never parses workbooks."""
+    file_fp = commissioner_files_fingerprint()
+    imports = storage.list_legacy_imports(league_id)
+    import_by_season = {int(r["season_year"]): r for r in imports}
+    file_seasons = commissioner_source_seasons()
+    db_seasons = set(storage.list_league_contract_seasons(league_id))
+    stored_file_fp = next(
+        (str(row.get("file_fingerprint") or "") for row in imports if row.get("file_fingerprint")),
+        "",
+    )
+    stale = False
+    if file_seasons and not db_seasons and not imports:
+        stale = True
+    elif file_fp and stored_file_fp and stored_file_fp != file_fp:
+        stale = True
+    elif file_seasons:
+        for yr in file_seasons:
+            if yr not in import_by_season and yr not in db_seasons:
+                stale = True
+                break
+
+    seasons_detail: list[dict[str, Any]] = []
+    for yr in sorted(file_seasons | db_seasons):
+        imp = import_by_season.get(yr)
+        season_stale = bool(
+            (file_fp and stored_file_fp and stored_file_fp != file_fp)
+            or (yr in file_seasons and not imp)
+        )
+        ck = checkpoint_for_season(yr) or {}
+        seasons_detail.append(
+            {
+                "season_year": yr,
+                "in_files": yr in file_seasons,
+                "in_database": yr in db_seasons,
+                "last_imported_at": imp.get("imported_at") if imp else None,
+                "snapshot_phase": (imp.get("snapshot_phase") if imp else None) or ck.get("phase"),
+                "as_of": (imp.get("as_of") if imp else None) or ck.get("as_of"),
+                "ruleset_version": (imp.get("ruleset_version") if imp else None)
+                or ck.get("ruleset_version"),
+                "salary_cap": (imp.get("salary_cap") if imp else None) or ck.get("salary_cap"),
+                "stale": season_stale,
+            }
+        )
+
+    quarantine_rows = storage.list_league_import_quarantine(league_id)
+    return {
+        "stale": stale,
+        "file_fingerprint": file_fp,
+        "content_fingerprint": stored_file_fp or None,
+        "seasons": seasons_detail,
+        "checkpoints": list_checkpoint_specs(),
+        "quarantine_count": len(quarantine_rows),
+        "has_commissioner_files": bool(file_seasons),
+        "parsed": False,
+    }
+
+
+def commissioner_sync_status(league_id: str, *, parse: bool = True) -> dict[str, Any]:
+    """Compare commissioner files to last DB import.
+
+    GET / freshness / home must use `parse=False` (or `commissioner_read_status`).
+    Office sync may parse once; the workbook frame is cached by file fingerprint.
+    """
+    if not parse:
+        return commissioner_read_status(league_id)
+
     file_fp = commissioner_files_fingerprint()
     content_fp = parsed_content_fingerprint()
     imports = storage.list_legacy_imports(league_id)
     import_by_season = {int(r["season_year"]): r for r in imports}
 
-    df = process_league_history(OLD_LEAGUE_FILES_DIR)
+    df = cached_league_history(OLD_LEAGUE_FILES_DIR)
     file_seasons: set[int] = set()
     if not df.empty:
         file_seasons = set(int(s) for s in rows_for_storage(df).keys())
@@ -115,6 +211,7 @@ def commissioner_sync_status(league_id: str) -> dict[str, Any]:
         "checkpoints": list_checkpoint_specs(),
         "quarantine_count": len(quarantine_rows),
         "has_commissioner_files": bool(file_seasons),
+        "parsed": True,
     }
 
 
@@ -151,6 +248,7 @@ def sync_commissioner_sheets(
             yr,
             snapshot_phase=str(phase),
             source_fingerprint=content_fp,
+            file_fingerprint=commissioner_files_fingerprint(base),
             as_of=ck.get("as_of"),
             ruleset_version=ck.get("ruleset_version"),
             salary_cap=ck.get("salary_cap"),

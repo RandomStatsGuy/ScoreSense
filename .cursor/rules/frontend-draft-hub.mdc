@@ -46,6 +46,9 @@ Read `docs/PRODUCT.md` first. User-facing name is **Fantasy**, not Draft Hub.
 - Draft availability shows current and future times only. Commissioners lock a promising overlap as draft night from the shared calendar.
 - Idle Draft is one featured job: the shared calendar plus a compact room strip. While the calendar is open, the date/time form, invite essays, and a second Who is in list stay collapsed. When the calendar is closed and no night is locked, the date/time form is the card primary and Start live draft is secondary.
 - Suggested bid, wherever it renders (Strategy, Free agents, live room), shows the league scoring name and the Rules risk posture beside the number.
+- Freshness is one shared `ensureLeagueFreshness` call. Do not add a second `/freshness` fetch on a destination.
+- Cache `/api/hub/home` like other destinations so a tab switch is not a 6s refetch.
+- Do not fetch Projections APIs (`/api/injuries`, `meta/*`, `ros/*`, `predict/*`, `draft/*`) on Fantasy pages that do not render them.
 - Headshots must match roster photos (`HubMediaImg` / existing media helpers).
 - Strategy face-off pairs the same position only. Do not pair RB vs WR as a FLEX toss-up.
 

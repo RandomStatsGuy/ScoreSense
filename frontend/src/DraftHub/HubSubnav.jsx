@@ -1,8 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import MobileDestinationSheet from "../layout/MobileDestinationSheet";
 import { MOBILE_CHROME_COPY, selectAndDismissDestination } from "../layout/mobileChromePresentation";
-import LeagueOverflowLead, { useLeagueFreshness } from "./LeagueOverflowLead";
-import { isSoloContext } from "./hubLeagues";
+import LeagueOverflowLead from "./LeagueOverflowLead";
 
 /** group: "home" | "prep" (draft prep) | "season" (in-season) | "office" (league-wide). */
 export const HUB_SUBVIEWS = [
@@ -74,9 +73,6 @@ export default function HubSubnav({
   };
   const visible = useMemo(() => filterHubSubviews(hubContext), [hubContext]);
   const groups = useMemo(() => hubDestinationGroups(hubContext), [hubContext]);
-  const leagueId = hubContext?.league_id;
-  useLeagueFreshness(leagueId, Boolean(leagueId) && !isSoloContext(hubContext));
-
   React.useEffect(() => {
     if (pickerOnly) return undefined;
     const active = navRef.current?.querySelector(".app-section-subnav-btn.active");
