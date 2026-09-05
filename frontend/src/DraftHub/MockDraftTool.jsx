@@ -11,29 +11,28 @@ import ThinkingScrim from "../ui/ThinkingScrim";
 import useSlowThink from "../hooks/useSlowThink";
 import {
   MOCK_DRAFT_PRESETS,
-  MOCK_TEAM_SIZES,
   botCountForTeams,
   buildMockDraftStartBody,
+  formatMockRoomWhen,
   mockDraftDisplayName,
-  mockDraftHeroCopy,
   mockDraftFormatLabel,
+  mockDraftFormatNote,
+  mockDraftHeroCopy,
   mockDraftLaunchSummary,
   mockRoomPhaseKey,
   mockRoomPhaseLabel,
   mockRoomResumeLabel,
+  mockTeamSizeOptions,
   readStoredMockLeagueId,
+  recentMocksForRail,
   resolveMockDraftSeason,
+  resolveMockTeamCount,
   writeStoredMockLeagueId,
 } from "./mockDraftConfig";
 
 const DraftRoom = lazy(() => import("./DraftRoom"));
 
 const EMPTY_ROWS = [];
-const FORMAT_PERSONALITY = {
-  salary_cap_auction_v1: { icon: "$", note: "Nominate and bid. Overspend and you miss later names." },
-  snake_draft_v1: { icon: "S", note: "Plan the turns. Let the board come to you." },
-  linear_draft_v1: { icon: "L", note: "Same seat every round. Make position count." },
-};
 
 export default function MockDraftTool({ projMeta = null }) {
   const {
@@ -69,21 +68,31 @@ export default function MockDraftTool({ projMeta = null }) {
   );
   const sourceLeagueId = hubContext?.mode === "league" ? hubContext.league_id : null;
   const hasLeague = Boolean(sourceLeagueId);
+  const leagueTeamCount = Number(hubContext?.team_count);
+  const followLeagueSize = Boolean(hasLeague && (useLeagueRules || useLeagueManagers));
   const season = resolveMockDraftSeason(projMeta, hubContext);
-  const botCount = botCountForTeams(teamCount);
+  const effectiveTeamCount = resolveMockTeamCount({
+    teamCount,
+    leagueTeamCount,
+    followLeague: followLeagueSize,
+  });
+  const teamSizeOptions = mockTeamSizeOptions(leagueTeamCount, followLeagueSize);
+  const botCount = botCountForTeams(effectiveTeamCount);
   const formatLocked = Boolean((useLeagueRules || useLeagueManagers) && hasLeague);
   const launchSummary = useMemo(
     () => mockDraftLaunchSummary({
       presetId,
       teamCount,
+      leagueTeamCount,
       season,
       useLeagueRules,
       useLeagueManagers,
       hasLeague,
       leagueName: hubContext?.league_name,
     }),
-    [presetId, teamCount, season, useLeagueRules, useLeagueManagers, hasLeague, hubContext?.league_name],
+    [presetId, teamCount, leagueTeamCount, season, useLeagueRules, useLeagueManagers, hasLeague, hubContext?.league_name],
   );
+  const railRecent = useMemo(() => recentMocksForRail(recent), [recent]);
 
   useEffect(() => {
     if (!formatLocked) return;
@@ -92,6 +101,13 @@ export default function MockDraftTool({ projMeta = null }) {
     else if (t === "linear") setPresetId("linear_draft_v1");
     else setPresetId("salary_cap_auction_v1");
   }, [formatLocked, hubContext?.rules?.draft_type]);
+
+  useEffect(() => {
+    if (!followLeagueSize) return;
+    if (Number.isFinite(leagueTeamCount) && leagueTeamCount >= 2) {
+      setTeamCount(leagueTeamCount);
+    }
+  }, [followLeagueSize, leagueTeamCount]);
 
   const persistLeague = useCallback((id) => {
     setLeagueId(id || "");
@@ -146,6 +162,7 @@ export default function MockDraftTool({ projMeta = null }) {
       const body = buildMockDraftStartBody({
         presetId,
         teamCount,
+        leagueTeamCount,
         season,
         sourceLeagueId,
         useLeagueRules,
@@ -268,6 +285,7 @@ export default function MockDraftTool({ projMeta = null }) {
   }
 
   const mockHero = mockDraftHeroCopy();
+  const leagueName = hubContext?.league_name || "your league";
 
   return (
     <HubPage className="mock-draft-tool">
@@ -285,10 +303,6 @@ export default function MockDraftTool({ projMeta = null }) {
           <h2>{mockHero.heading}</h2>
           <p>{mockHero.support}</p>
         </div>
-        <div className="mock-draft-hero-note" role="note">
-          <strong>{mockHero.noteTitle}</strong>
-          <span>{mockHero.noteBody}</span>
-        </div>
       </header>
       {error ? <HubAlert variant="danger">{error}</HubAlert> : null}
 
@@ -305,7 +319,6 @@ export default function MockDraftTool({ projMeta = null }) {
             <div className="mock-draft-formats" aria-label="Draft format">
               {MOCK_DRAFT_PRESETS.map((preset) => {
                 const active = selectedPreset.id === preset.id;
-                const personality = FORMAT_PERSONALITY[preset.id] || { icon: "•", note: preset.hint };
                 return (
                   <button
                     key={preset.id}
@@ -315,10 +328,9 @@ export default function MockDraftTool({ projMeta = null }) {
                     aria-pressed={active}
                     onClick={() => setPresetId(preset.id)}
                   >
-                    <span className="mock-draft-format-icon" aria-hidden="true">{personality.icon}</span>
                     <span>
                       <strong>{preset.label}</strong>
-                      <small>{personality.note}</small>
+                      <small>{mockDraftFormatNote(preset.id)}</small>
                     </span>
                     <span className="mock-draft-format-check" aria-hidden="true">{active ? "✓" : ""}</span>
                   </button>
@@ -326,7 +338,7 @@ export default function MockDraftTool({ projMeta = null }) {
               })}
             </div>
             {formatLocked ? (
-              <p className="chart-note">Format follows {hubContext?.league_name || "your league"}.</p>
+              <p className="chart-note">Format follows {leagueName}.</p>
             ) : null}
           </section>
 
@@ -334,19 +346,19 @@ export default function MockDraftTool({ projMeta = null }) {
             <header className="mock-draft-step-head">
               <span>2</span>
               <div>
-                <h3 id="mock-field-title">Set the field</h3>
-                <p>Set the size. Invite friends or leave the rest to bots.</p>
+                <h3 id="mock-field-title">{mockHero.fieldTitle}</h3>
+                <p>{mockHero.fieldSupport}</p>
               </div>
             </header>
-            <fieldset className="mock-draft-teams" disabled={busy}>
+            <fieldset className="mock-draft-teams" disabled={busy || followLeagueSize}>
               <legend className="sr-only">Field size</legend>
               <div className="mock-draft-team-chips" role="group" aria-label="League size">
-                {MOCK_TEAM_SIZES.map((n) => (
+                {teamSizeOptions.map((n) => (
                   <HubFilterChip
                     key={n}
                     compact
-                    active={teamCount === n}
-                    disabled={busy}
+                    active={effectiveTeamCount === n}
+                    disabled={busy || followLeagueSize}
                     onClick={() => setTeamCount(n)}
                   >
                     {n} teams
@@ -354,14 +366,26 @@ export default function MockDraftTool({ projMeta = null }) {
                 ))}
               </div>
             </fieldset>
+            {followLeagueSize ? (
+              <p className="chart-note">{mockHero.fieldLockedNote(hubContext?.league_name)}</p>
+            ) : null}
+          </section>
 
+          <section className="mock-draft-step" aria-labelledby="mock-match-title">
             <details className="mock-draft-advanced">
-              <summary>Match a real league <span>Optional</span></summary>
+              <summary>
+                <span className="mock-draft-step-num" aria-hidden="true">3</span>
+                <span>
+                  <h3 id="mock-match-title">{mockHero.matchTitle}</h3>
+                  <small>{mockHero.matchSupport}</small>
+                </span>
+              </summary>
               <div className="mock-draft-advanced-body">
                 {hasLeague ? (
                   <div className="mock-draft-league-opts">
-                    <label className="hub-toggle-row">
+                    <label className="hub-toggle-row" htmlFor="mock-use-league-rules">
                       <input
+                        id="mock-use-league-rules"
                         type="checkbox"
                         checked={useLeagueRules}
                         disabled={busy}
@@ -372,8 +396,9 @@ export default function MockDraftTool({ projMeta = null }) {
                         <span className="hub-toggle-hint">Scoring, roster spots, and draft type.</span>
                       </span>
                     </label>
-                    <label className="hub-toggle-row">
+                    <label className="hub-toggle-row" htmlFor="mock-use-league-managers">
                       <input
+                        id="mock-use-league-managers"
                         type="checkbox"
                         checked={useLeagueManagers}
                         disabled={busy}
@@ -397,8 +422,12 @@ export default function MockDraftTool({ projMeta = null }) {
 
         <aside className="mock-draft-launchpad" aria-label="Launch mock draft">
           <p className="hub-experience-kicker">Your room</p>
-          <div className="mock-draft-field draft-seat-row" aria-label={`One human and ${botCount} bots`}>
-            {Array.from({ length: teamCount }, (_, index) => (
+          <p className="mock-draft-seat-fact">{mockHero.seatFact(effectiveTeamCount)}</p>
+          <div
+            className="mock-draft-field draft-seat-row"
+            aria-hidden="true"
+          >
+            {Array.from({ length: effectiveTeamCount }, (_, index) => (
               <DraftSeat
                 key={index}
                 variant="mark"
@@ -416,7 +445,7 @@ export default function MockDraftTool({ projMeta = null }) {
               onClick={() => setLaunchMode("together")}
             >
               Invite friends
-              <small>Open a lobby</small>
+              <small>{mockHero.modeTogetherSub}</small>
             </button>
             <button
               type="button"
@@ -425,7 +454,7 @@ export default function MockDraftTool({ projMeta = null }) {
               onClick={() => setLaunchMode("live")}
             >
               Solo vs bots
-              <small>Start now</small>
+              <small>{mockHero.modeLiveSub(botCount)}</small>
             </button>
             <button
               type="button"
@@ -434,7 +463,7 @@ export default function MockDraftTool({ projMeta = null }) {
               onClick={() => setLaunchMode("simulate")}
             >
               Instant sim
-              <small>Jump to the recap</small>
+              <small>{mockHero.modeSimSub}</small>
             </button>
           </div>
 
@@ -476,15 +505,43 @@ export default function MockDraftTool({ projMeta = null }) {
           </Button>
           <p className="mock-draft-launch-foot">
             {launchMode === "together"
-              ? `You host · ${teamCount - 1} open seats · shareable link`
+              ? `You host · ${effectiveTeamCount - 1} open seats · shareable link`
               : `1 human · ${botCount} bots · private practice`}
           </p>
+
+          {railRecent.length > 0 ? (
+            <div className="mock-draft-rail-recent">
+              <h3 className="mock-draft-rail-recent-title">{mockHero.recentTitle}</h3>
+              <ul>
+                {railRecent.map((room) => {
+                  const when = formatMockRoomWhen(room.created_at);
+                  return (
+                    <li key={room.league_id}>
+                      <button
+                        type="button"
+                        className="mock-draft-rail-recent-link"
+                        disabled={busy}
+                        onClick={() => resumeRoom(room.league_id, room.name || "Mock draft")}
+                      >
+                        <strong>{room.name || "Mock draft"}</strong>
+                        <span>
+                          {mockDraftFormatLabel(room.draft_type)}
+                          {when ? ` · ${when}` : ""}
+                          {` · ${mockRoomResumeLabel(room)}`}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
         </aside>
       </div>
 
       {recent.length > 0 && (
         <details className="mock-draft-recent" aria-label="Saved and recent mock drafts">
-          <summary>Practice rooms <span>{recent.length}</span></summary>
+          <summary>{mockHero.recentMore} <span>{recent.length}</span></summary>
           <p className="chart-note mock-draft-recent-note">
             Throwaway mocks are cleaned up automatically. Save up to 6 favorites to keep them.
           </p>

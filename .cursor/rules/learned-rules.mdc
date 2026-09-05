@@ -28,5 +28,7 @@ Keep under 30 data rows. Promote `always` / `never` into `docs/PRODUCT.md` or a 
 | usually | agent | Address review comments on the existing PR branch. Do not open a new branch for the same review. |
 | usually | agent | When the user says ready to merge, rebase onto develop, address review, and mark the PR ready. |
 | usually | projections | When GBM weekly is missing for K or DEF, fill the week from the rank-curve per-game number. |
+| usually | fantasy-ui | Mode-select cards describe; the primary button carries the verb. |
+| usually | fantasy-ui | Do not stack the same reassurance twice in the first viewport. |
 | usually | fantasy-ui | Insights Overview is a three-card page that should sit above the fold; do not stretch unequal panels to a shared bottom. |
 | usually | fantasy-ui | Hero chips are status, not the page primary. Do not put You can edit or Need a partner where Save belongs. |

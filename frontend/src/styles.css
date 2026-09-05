@@ -10757,8 +10757,8 @@ td.col-rank.col-rank-top {
   flex-shrink: 0;
 }
 .mock-draft-keep {
-  width: 2rem;
-  height: 2rem;
+  width: var(--touch-target);
+  height: var(--touch-target);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: transparent;
