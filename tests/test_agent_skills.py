@@ -47,7 +47,7 @@ def test_verify_fantasy_ui_skill_uses_living_routes() -> None:
     assert "/hub/free-agents" in text
     assert "/hub/cap" in text
     assert "/hub/setup" in text
-    assert "/hub/office/members" in text
+    assert "/hub/roster-management/members" in text
     assert "/report" in text
     assert "mirror-prod-league" in text
     assert "start-local-app" in text

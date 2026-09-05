@@ -118,6 +118,20 @@ export function HubFilterScroll({ children, className = "" }) {
   return <div className={`hub-filter-scroll${className ? ` ${className}` : ""}`}>{children}</div>;
 }
 
+export function HubPageSticky({ children, className = "" }) {
+  return <div className={`hub-page-sticky${className ? ` ${className}` : ""}`}>{children}</div>;
+}
+
+export function HubLoadingSkeleton({ label = "Loading", rows = 3 }) {
+  return (
+    <div className="hub-loading-skeleton" aria-busy="true" aria-label={label}>
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="hub-loading-skeleton-block" />
+      ))}
+    </div>
+  );
+}
+
 export function HubFilterGroup({ label, children, className = "", inline = false }) {
   return (
     <div

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../auth";
 import { parseApiError } from "../../format";
-import { HubExperienceHero, HubPage } from "../HubUILayout";
+import { HubExperienceHero, HubLoadingSkeleton, HubPage } from "../HubUILayout";
 import { InsightsDisclosure, RankBars } from "./InsightsTalk";
 import { INSIGHTS_COPY, insightsHeroStatus, teamDisplayName } from "./insightsPresentation";
 
@@ -89,7 +89,7 @@ export default function InsightsOverview({
       </HubExperienceHero>
 
       {loading && !hasLanding && (
-        <p className="chart-note">Loading league history…</p>
+        <HubLoadingSkeleton label="Loading league history" rows={3} />
       )}
 
       {!loading && !hasLanding && (

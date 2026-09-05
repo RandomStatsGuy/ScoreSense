@@ -59,6 +59,14 @@
   text-overflow: ellipsis;
 }
 
+.proj-signals--swipe .proj-signal-name {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
 .proj-signal-value {
   margin-top: 0.2rem;
   color: var(--text-secondary);
@@ -104,7 +112,7 @@
 
 .proj-board-kicker {
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   font-weight: 650;
 }
 
@@ -219,7 +227,7 @@
 .proj-board-surface .col-player-meta {
   display: block;
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
 }
 
 .proj-disclosures {
@@ -573,6 +581,24 @@
     padding-bottom: 0;
   }
 
+  .proj-signals--swipe {
+    display: flex;
+    grid-template-columns: none;
+    gap: 0.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 0.15rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .proj-signals--swipe .proj-signal {
+    flex: 0 0 min(9.25rem, 58vw);
+    min-width: min(9.25rem, 58vw);
+    scroll-snap-align: start;
+    padding: 0.55rem 0.7rem;
+  }
+
   .proj-signal {
     flex: unset;
     padding: 0.5rem 0.65rem;
@@ -586,6 +612,14 @@
 
   .proj-board-head-copy {
     display: none;
+  }
+
+  .proj-board-surface > .proj-disclosure {
+    margin-bottom: 0.45rem;
+  }
+
+  .proj-board-surface > .proj-disclosure .proj-disclosure-summary-row {
+    min-height: var(--touch-target);
   }
 
   .table-toolbar .table-meta-movement {

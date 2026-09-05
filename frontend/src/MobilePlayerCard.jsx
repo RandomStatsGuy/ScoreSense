@@ -24,6 +24,8 @@ export default function MobilePlayerCard({
   onSelect,
   aside = null,
   actions,
+  hideHeroSubWhenOpen = false,
+  reserveHeroSub = false,
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const detailsId = useId();
@@ -64,17 +66,21 @@ export default function MobilePlayerCard({
               ) : null}
               {titleNode || <span className="mobile-player-card-name">{name}</span>}
               {badge}
+              {hasExpand ? (
+                <span className="mobile-player-card-chevron" aria-hidden="true">
+                  {open ? "▴" : "▾"}
+                </span>
+              ) : null}
             </div>
             {meta ? <span className="mobile-player-card-meta">{meta}</span> : null}
           </div>
           <div className={`mobile-player-card-hero${heroMuted ? " mobile-player-card-hero--muted" : ""}`}>
             <span className="mobile-player-card-hero-value">{heroValue}</span>
             {heroLabel ? <span className="mobile-player-card-hero-label">{heroLabel}</span> : null}
-            {heroSub ? <span className="mobile-player-card-hero-sub">{heroSub}</span> : null}
-            {hasExpand ? (
-              <span className="mobile-player-card-chevron" aria-hidden="true">
-                {open ? "▴" : "▾"}
-              </span>
+            {heroSub && !(hideHeroSubWhenOpen && open) ? (
+              <span className="mobile-player-card-hero-sub">{heroSub}</span>
+            ) : reserveHeroSub ? (
+              <span className="mobile-player-card-hero-sub mobile-player-card-hero-sub--slot" aria-hidden="true" />
             ) : null}
           </div>
         </button>

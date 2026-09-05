@@ -28,12 +28,18 @@ import {
   seasonBoardKicker,
   seasonBoardSignals,
   seasonPeerStats,
+  staleRefreshLabel,
   weeklyBoardKicker,
   weeklyBoardPreview,
   weeklyBoardSignals,
   weeklyPeerStats,
   seasonBoardPreview,
 } from "./projectionsPresentation";
+import {
+  filterWeeklyBoardRows,
+  weeklyActiveFilterChips,
+  weeklyResultLabel,
+} from "./weeklyBoardFilter";
 import { isScheduleAwareMethod } from "./seasonQuantiles";
 import { applyMediaQueryParams } from "./mediaContext";
 import PlayerCompare, { MAX_COMPARE as MAX_COMPARE_PLAYERS } from "./PlayerCompare";
@@ -54,6 +60,7 @@ import MobileHeader from "./layout/MobileHeader";
 import MobileSubnav from "./layout/MobileSubnav";
 import MobileDestinationSheet from "./layout/MobileDestinationSheet";
 import MobileFilterSheet from "./layout/MobileFilterSheet";
+import WeeklyStickyBar from "./layout/WeeklyStickyBar";
 import ProjectionsFilterBar, { PROJECTION_POSITIONS } from "./layout/ProjectionsFilterBar";
 import MobileMenuSheet from "./layout/MobileMenuSheet";
 import {
@@ -196,6 +203,7 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [mobileDestOpen, setMobileDestOpen] = useState(false);
+  const [weeklyContextMeta, setWeeklyContextMeta] = useState(null);
   const [hubMounted, setHubMounted] = useState(false);
   const rosFetchGen = useRef(0);
   const seasonModeUserPicked = useRef(false);
@@ -610,6 +618,39 @@ export default function App() {
     () => weeklyBoardSignals(tableRows, { attentionItems: weeklyAttention, position }),
     [tableRows, weeklyAttention, position],
   );
+  const weeklyMovementFilters = useMemo(
+    () => (meta?.projection_movement != null ? movementBoardFilters(tableRows.length) : []),
+    [meta?.projection_movement, tableRows.length],
+  );
+  const weeklyFilteredRows = useMemo(
+    () => filterWeeklyBoardRows(tableRows, {
+      search: searchQuery,
+      teamsFilter: selectedTeams,
+      movementFilter,
+      showFilters: meta?.projection_movement != null,
+      leftSlateRows,
+      attentionPlayerIds,
+    }),
+    [
+      tableRows,
+      searchQuery,
+      selectedTeams,
+      movementFilter,
+      meta?.projection_movement,
+      leftSlateRows,
+      attentionPlayerIds,
+    ],
+  );
+  const weeklyBoardResultLabel = weeklyResultLabel(weeklyFilteredRows.length, compareIds.length);
+  const weeklyFilterChips = useMemo(
+    () => weeklyActiveFilterChips({
+      search: searchQuery,
+      teams: selectedTeams,
+      movementFilter,
+      movementFilters: weeklyMovementFilters,
+    }),
+    [searchQuery, selectedTeams, movementFilter, weeklyMovementFilters],
+  );
 
   const seasonSignalRows = isSeasonPreseason ? draftProjections : rosTableRows;
   const seasonSignals = useMemo(
@@ -995,6 +1036,11 @@ export default function App() {
       : isSeasonLive
         ? rosLoading
         : loading);
+  const weeklyStaleLabel = staleRefreshLabel({
+    stale: Boolean(weeklyContextMeta?.stale),
+    updatedAt: weeklyContextMeta?.updatedAt || refreshStatus?.completed_at,
+    refreshing: dataRefreshLoading,
+  });
 
   const goToHub = useCallback(() => {
     setHubMounted(true);
@@ -1320,7 +1366,7 @@ export default function App() {
               menuOpen={mobileDestOpen}
               onTitleClick={() => setMobileDestOpen(true)}
               onFilterOpen={() => setMobileFilterOpen(true)}
-              showFilter={view === "projections" && mobileLayout}
+              showFilter={view === "projections" && mobileLayout && projectionsTab !== "weekly"}
             />
 
             <div className="app-header-row app-header-row-primary app-header-desktop-only">
@@ -1451,6 +1497,9 @@ export default function App() {
           onClose={() => setMobileFilterOpen(false)}
           view={view}
           filterProps={projectionsFilterProps}
+          resultLabel={isWeeklyProjections ? weeklyBoardResultLabel : null}
+          onReset={clearTableFilters}
+          onApply={() => setMobileFilterOpen(false)}
         />
 
         {mobileLayout && view === "hub" && !hubNeedsSignIn && (
@@ -1494,7 +1543,30 @@ export default function App() {
           <div className="error">{error}</div>
         )}
 
-        {view === "projections" && mobileLayout && (
+        {view === "projections" && mobileLayout && projectionsTab === "weekly" && (
+          <WeeklyStickyBar
+            position={position}
+            onPositionChange={handlePositionChange}
+            onFilterOpen={() => setMobileFilterOpen(true)}
+            resultLabel={weeklyBoardResultLabel}
+            filterActive={weeklyFilterChips.length > 0}
+            stale={Boolean(weeklyContextMeta?.stale)}
+            staleLabel={weeklyStaleLabel}
+            onRefresh={triggerRefresh}
+            refreshing={dataRefreshLoading}
+          />
+        )}
+        {view === "projections" && mobileLayout && projectionsTab === "weekly" && weeklyFilterChips.length > 0 ? (
+          <div className="weekly-filter-summary" aria-label="Active filters">
+            {weeklyFilterChips.map((chip) => (
+              <span key={chip.id} className="weekly-filter-summary-chip">{chip.label}</span>
+            ))}
+            <button type="button" className="weekly-filter-summary-clear" onClick={clearTableFilters}>
+              {BOARD_COPY.resetFilters}
+            </button>
+          </div>
+        ) : null}
+        {view === "projections" && mobileLayout && projectionsTab !== "weekly" && (
           <div className="projections-mobile-pos-row">
             <div className="projections-mobile-pos-chips" role="group" aria-label="Position">
               {POSITIONS.map((p) => (
@@ -1572,28 +1644,38 @@ export default function App() {
             ) : null}
             <section className={`panel wide panel-projections proj-board-surface projections-mobile-panel${projectionsMobilePanel === "projections" ? " is-mobile-active" : ""}`}>
               {mobileLayout ? (
-                <ProjectionBoardSignals
-                  signals={weeklySignals}
-                  playerParams={{
-                    position,
-                    season,
-                    week,
-                    applyInjuryAdjustments: isLiveContext,
-                    scope: "weekly",
-                  }}
-                  onActivate={(signal) => {
-                    if (signal.id === "attention") handleMovementFilterChange("attention");
-                  }}
-                />
+                <ProjectionBoardDisclosure
+                  title={BOARD_COPY.weeklySlate}
+                  summary={
+                    weeklySignals[0]?.value
+                      ? `${weeklySignals[0].kicker} · ${weeklySignals[0].value}`
+                      : weeklyBoardResultLabel
+                  }
+                >
+                  <ProjectionBoardSignals
+                    swipe
+                    signals={weeklySignals}
+                    playerParams={{
+                      position,
+                      season,
+                      week,
+                      applyInjuryAdjustments: isLiveContext,
+                      scope: "weekly",
+                    }}
+                    onActivate={(signal) => {
+                      if (signal.id === "attention") handleMovementFilterChange("attention");
+                    }}
+                  />
+                </ProjectionBoardDisclosure>
               ) : null}
               <ProjectionBoardHeader
                 kicker={weeklyBoardKicker({ week })}
                 title={BOARD_COPY.weeklyBoard}
                 support={BOARD_COPY.weeklySupport}
                 filters={
-                  meta?.projection_movement != null
-                    ? movementBoardFilters(tableRows.length)
-                    : []
+                  mobileLayout
+                    ? []
+                    : (meta?.projection_movement != null ? weeklyMovementFilters : [])
                 }
                 activeFilter={movementFilter}
                 onFilterChange={handleMovementFilterChange}
@@ -1636,18 +1718,10 @@ export default function App() {
                 onRemoveCompare={handleRemoveComparePlayer}
                 compareSelectionMeta={compareSelectionMeta}
                 hideMovementFilters
-                searchSlot={
-                  !mobileLayout ? null : (
-                  <input
-                    type="search"
-                    className="search-input"
-                    placeholder={BOARD_COPY.searchBoard}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    aria-label="Search the board"
-                  />
-                  )
-                }
+                onRefreshData={triggerRefresh}
+                dataRefreshLoading={dataRefreshLoading}
+                onContextMeta={setWeeklyContextMeta}
+                searchSlot={null}
               />
               {!mobileLayout ? (
                 <div className="proj-disclosures">

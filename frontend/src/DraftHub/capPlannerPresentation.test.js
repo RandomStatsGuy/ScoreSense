@@ -5,7 +5,9 @@ import {
   capRailPrimary,
   leftoverAfterMoveYears,
   positionFromNeedError,
+  formatNeedError,
   vsCostCell,
+  CAP_NEED_COPY,
 } from "./capPlannerPresentation.js";
 
 test("Cap hero asks if you can afford the bid", () => {
@@ -30,6 +32,9 @@ test("rail primary is the pending cut or the draft spend", () => {
   assert.equal(room.kind, "room");
   assert.equal(room.label, "Open draft room · $178 to spend.");
   assert.equal(positionFromNeedError("Need 4 more RB (min 4)"), "RB");
+  assert.equal(formatNeedError("Need 3 more QB (min 3)"), "Need 3 more QB · min 3");
+  assert.equal(formatNeedError("Need 3 more QB (min 3 / max 4)"), "Need 3 more QB · min 3, max 4");
+  assert.equal(CAP_NEED_COPY.browseFreeAgents, "Browse free agents");
   assert.equal(vsCostCell({ preDraft: true, remaining: 178, bid: 35 }), "Room after: $143");
   assert.equal(vsCostCell({ preDraft: true, remaining: 178, bid: null }), "—");
 });

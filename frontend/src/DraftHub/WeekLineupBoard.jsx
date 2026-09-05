@@ -7,6 +7,7 @@ import {
   indexByPlayerId,
   slotTone,
   swapBenchIdSet,
+  WEEK_BOARD_COPY,
   weekBoardOverlayCopy,
 } from "./weekBoard";
 
@@ -45,7 +46,7 @@ function PlayerFlags({ player }) {
   );
 }
 
-function SlotCard({ slot, decision, wide, movement, canEdit, selected, onSelect, onApplyDecision }) {
+function SlotCard({ slot, decision, wide, movement, canEdit, selected, onSelect, onApplyDecision, onFillSlot }) {
   const player = slot.player;
   const empty = !player;
   const injured = Boolean(player?.injured);
@@ -72,7 +73,13 @@ function SlotCard({ slot, decision, wide, movement, canEdit, selected, onSelect,
         ) : null}
       </header>
       {empty ? (
-        <p className="hub-wcc-slot-waiting">Empty</p>
+        onFillSlot ? (
+          <button type="button" className="btn-link hub-wcc-slot-fill" onClick={onFillSlot}>
+            {WEEK_BOARD_COPY.emptySlot(slot.slot)}
+          </button>
+        ) : (
+          <p className="hub-wcc-slot-waiting">Empty</p>
+        )
       ) : (
         <>
           <div className="hub-wcc-slot-player">
@@ -174,6 +181,7 @@ export default function WeekLineupBoard({
   onSelectBench,
   onSelectSlot,
   onApplyDecision,
+  onNavigate,
 }) {
   const wideById = indexByPlayerId(wideRanges);
   const moveById = indexByPlayerId(projectionChanges);
@@ -199,18 +207,29 @@ export default function WeekLineupBoard({
               : ""}
           </p>
         </div>
-        <label className="hub-wcc-week-control">
-          Week
-          <input
-            type="number"
-            min={1}
-            max={22}
-            value={weekValue}
-            placeholder={weekPlaceholder}
-            onChange={onWeekChange}
-            aria-label="NFL week override"
-          />
-        </label>
+        <div className="hub-wcc-week-stepper">
+          <button
+            type="button"
+            aria-label="Previous week"
+            onClick={() => {
+              const current = Number(weekValue || weekPlaceholder) || 1;
+              onWeekChange?.({ target: { value: String(Math.max(1, current - 1)) } });
+            }}
+          >
+            ‹
+          </button>
+          <output aria-live="polite">Week {Number(weekValue || weekPlaceholder) || 1}</output>
+          <button
+            type="button"
+            aria-label="Next week"
+            onClick={() => {
+              const current = Number(weekValue || weekPlaceholder) || 1;
+              onWeekChange?.({ target: { value: String(Math.min(22, current + 1)) } });
+            }}
+          >
+            ›
+          </button>
+        </div>
       </header>
 
       {poorCoverage && !emptyRoster && coverageCopy ? (
@@ -227,7 +246,7 @@ export default function WeekLineupBoard({
       ) : null}
 
       <div className="hub-wcc-board-stage">
-        <div className="hub-wcc-board-grid">
+        <div className="hub-wcc-board-grid" id="hub-wcc-calls">
           {hideSlots ? null : slots.map((slot) => {
             const pid = slot.player?.player_id;
             return (
@@ -241,6 +260,7 @@ export default function WeekLineupBoard({
                 selected={Boolean(canEdit && selectedBenchId && pid)}
                 onSelect={onSelectSlot}
                 onApplyDecision={onApplyDecision}
+                onFillSlot={!pid && onNavigate ? () => onNavigate("available") : undefined}
               />
             );
           })}

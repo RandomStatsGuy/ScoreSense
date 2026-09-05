@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
-import { HubAlert, HubFilterChip, HubFilterScroll, HubPage } from "./HubUILayout";
+import useMobileLayout from "../useMobileLayout";
+import { HubAlert, HubFilterChip, HubFilterScroll, HubPage, HubPageSticky } from "./HubUILayout";
 import HubTabIntro from "./HubTabIntro";
 import CommissionerLeagueRosters from "./CommissionerLeagueRosters";
 import TeamSalarySheets from "./TeamSalarySheets";
@@ -436,9 +437,13 @@ export default function LeagueOffice({
   onNavigate,
   active = true,
 }) {
+  const mobileLayout = useMobileLayout();
   const isCommissioner = Boolean(hubContext?.is_commissioner);
   const tabs = useMemo(() => visibleOfficeTabs(isCommissioner), [isCommissioner]);
-  const navItems = useMemo(() => tabsWithGroupLabels(tabs), [tabs]);
+  const navItems = useMemo(
+    () => (mobileLayout ? tabs.map((tab) => ({ type: "tab", ...tab })) : tabsWithGroupLabels(tabs)),
+    [tabs, mobileLayout],
+  );
   const intro = useMemo(() => commissionerIntro(isCommissioner), [isCommissioner]);
   const activeTab = isOfficeTabAllowed(officeTab, isCommissioner)
     ? officeTab
@@ -478,7 +483,7 @@ export default function LeagueOffice({
   return (
     <div className="hub-league-office">
       <HubTabIntro
-        title={intro.title}
+        title={mobileLayout ? null : intro.title}
         purpose={intro.purpose}
         audience={intro.audience}
       />
@@ -489,6 +494,7 @@ export default function LeagueOffice({
         </p>
       )}
 
+      <HubPageSticky>
       <div className="hub-filter-bar hub-office-tab-bar">
         <HubFilterScroll>
           {navItems.map((item) => (
@@ -508,6 +514,7 @@ export default function LeagueOffice({
           ))}
         </HubFilterScroll>
       </div>
+      </HubPageSticky>
 
       {activeTab === "current" && isCommissioner && (
         <HubPage>
@@ -518,16 +525,16 @@ export default function LeagueOffice({
                 draftCompleted: Boolean(hubContext?.draft_completed),
                 leagueStatus: hubContext?.league_status,
               }).yearLabel}
-              {" "}keepers — use{" "}
-              <button type="button" className="btn-link" onClick={() => onNavigate?.("planner")}>
+              {" "}keepers.
+            </p>
+            <div className="hub-office-contract-links">
+              <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate?.("planner")}>
                 Cap
               </button>
-              {" "}for extend / FA, or{" "}
-              <button type="button" className="btn-link" onClick={() => onOfficeTabChange?.("historic")}>
+              <button type="button" className="btn-ghost btn-sm" onClick={() => onOfficeTabChange?.("historic")}>
                 Sheets
               </button>
-              {" "}for year books.
-            </p>
+            </div>
           </header>
           <CommissionerLeagueRosters
             leagueId={leagueId}

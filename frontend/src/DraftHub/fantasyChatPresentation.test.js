@@ -99,6 +99,16 @@ test("dragging dock drops parent transform so the launcher stays viewport-fixed"
   assert.match(css, /safe-area-inset-bottom/);
 });
 
+test("phone CSS parks dismiss on the bubble, not off the right edge", () => {
+  const css = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "../styles/fantasy-phone.css"),
+    "utf8",
+  );
+  assert.match(css, /\.fantasy-chat-dismiss--on-bubble\s*,|\.fantasy-chat-dismiss--on-bubble\s*\{/);
+  assert.match(css, /\.fantasy-chat-dismiss--on-bubble[\s\S]*position:\s*absolute/);
+  assert.match(css, /8\.85rem \+ env\(safe-area-inset-bottom/);
+});
+
 test("Home hides the edge launcher because the locker is the house", () => {
   assert.equal(hideFantasyChatDock({ house: true }), true);
   assert.equal(hideFantasyChatDock({ hidden: true }), true);

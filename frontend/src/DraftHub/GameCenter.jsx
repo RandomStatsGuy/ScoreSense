@@ -4,7 +4,7 @@ import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
 import { usePlayerMedia } from "../PlayerCell";
 import useMobileLayout from "../useMobileLayout";
-import { HubAlert, HubPage } from "./HubUILayout";
+import { HubAlert, HubLoadingSkeleton, HubPage } from "./HubUILayout";
 import TeamIdentityMark from "./TeamIdentityMark";
 import WeekCulturePanel from "./WeekCulturePanel";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
@@ -189,29 +189,31 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
             {weekNumber ? `Week ${weekNumber}` : "Your matchup"}
           </h2>
         </div>
-        <div className="hub-gc-week-nav" role="group" aria-label="Week">
-          <button
-            type="button"
-            className="btn-ghost btn-sm"
-            disabled={loading || Number(weekNumber ?? 1) <= 1}
-            onClick={() => stepWeek(-1)}
-          >
-            ← Wk {Math.max(1, Number(weekNumber ?? 1) - 1)}
-          </button>
+        <div className="hub-gc-week-toolbar">
           {heroChip ? <span className={`hub-gc-state${stateLabel === "Live" ? " is-live" : ""}`}>{heroChip}</span> : null}
-          <button
-            type="button"
-            className="btn-ghost btn-sm"
-            disabled={loading || Number(weekNumber ?? maxWeek) >= Number(maxWeek)}
-            onClick={() => stepWeek(1)}
-          >
-            Wk {Math.min(Number(maxWeek), Number(weekNumber ?? 1) + 1)} →
-          </button>
+          <div className="hub-gc-week-nav" role="group" aria-label="Week">
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              disabled={loading || Number(weekNumber ?? 1) <= 1}
+              onClick={() => stepWeek(-1)}
+            >
+              ← Week {Math.max(1, Number(weekNumber ?? 1) - 1)}
+            </button>
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              disabled={loading || Number(weekNumber ?? maxWeek) >= Number(maxWeek)}
+              onClick={() => stepWeek(1)}
+            >
+              Week {Math.min(Number(maxWeek), Number(weekNumber ?? 1) + 1)} →
+            </button>
+          </div>
         </div>
       </header>
 
       {error && <div className="error">{error}</div>}
-      {loading && !data && <p className="chart-note">Loading matchups…</p>}
+      {loading && !data && <HubLoadingSkeleton label="Loading matchups" rows={3} />}
 
       {showBanner && (
         <HubAlert
@@ -226,10 +228,12 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
         </HubAlert>
       )}
 
-      {fullPageEmpty && !placeholder && (
+      {fullPageEmpty && !placeholder && !showBanner && (
         <section className="hub-gc-empty panel">
           <h3>{data?.reason === "fetch_failed" ? "Couldn’t load matchups" : "No matchups yet"}</h3>
-          <p className="chart-note">{data?.hint || GAME_CENTER_COPY.emptyPreseason}</p>
+          {data?.hint && data.hint !== GAME_CENTER_COPY.emptyPreseason ? (
+            <p className="chart-note">{data.hint}</p>
+          ) : null}
         </section>
       )}
 
@@ -250,7 +254,7 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
               <span>{!placeholder && viewer.proj_total != null ? `proj ${fmtPts(viewer.est_final)}` : "\u00a0"}</span>
             </div>
             <div className="hub-gc-bb-divider" aria-hidden="true">
-              <span>Wk {weekNumber}</span>
+              <span>Week {weekNumber}</span>
             </div>
             <div className={`hub-gc-bb-points${!placeholder && opponent.points > viewer.points ? " is-leading" : ""}`}>
               {fmtPts(opponent.points, placeholder)}
@@ -373,12 +377,21 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
                 </div>
                 {onNavigate && !weekComplete ? (
                   <button type="button" className="btn-link" onClick={() => onNavigate("week")}>
-                    Set lineup →
+                    {GAME_CENTER_COPY.setLineup}
                   </button>
                 ) : null}
               </header>
               <div className="hub-gc-duel-rows">
-                {rows.map((row) => {
+                {rows.length === 0 ? (
+                  <div className="hub-gc-duel-empty">
+                    <p className="chart-note">{GAME_CENTER_COPY.emptyDuel}</p>
+                    {onNavigate ? (
+                      <button type="button" className="btn-primary" onClick={() => onNavigate("week")}>
+                        {GAME_CENTER_COPY.setLineup}
+                      </button>
+                    ) : null}
+                  </div>
+                ) : rows.map((row) => {
                   const homePts = Number(row.home?.points || 0);
                   const awayPts = Number(row.away?.points || 0);
                   return (

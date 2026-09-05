@@ -9,6 +9,8 @@ export const GAME_CENTER_COPY = {
   emptyPreseason: "No scored matchups yet. Scores fill in after kickoff.",
   loadingChip: "Loading",
   unscoredChip: "No scores yet",
+  emptyDuel: "Lineups are empty until kickoff. Set them on This Week.",
+  setLineup: "Set lineup",
   setupCta: "Link Sleeper",
   nextGames: "Next games Thu",
   duelTitle: "Starter duel",
@@ -20,6 +22,10 @@ export const GAME_CENTER_COPY = {
   trophiesTitle: "Week trophies",
   trophiesSupport: "High score and low score land in Insights.",
 };
+
+export function duelSlotFilled(player) {
+  return Boolean(player && player.name && player.name !== "Empty");
+}
 
 export function gameCenterTeamLabel(team) {
   return hubTeamLabel({
@@ -79,6 +85,9 @@ export function duelRows(viewer, opponent, startingSlots = []) {
   for (let i = 0; i < count; i += 1) {
     const home = mine[i] || null;
     const away = theirs[i] || null;
+    if (!duelSlotFilled(home) && !duelSlotFilled(away) && !home?.sleeper_player_id && !away?.sleeper_player_id && !home?.points && !away?.points) {
+      continue;
+    }
     rows.push({
       key: `${home?.sleeper_player_id || "x"}-${away?.sleeper_player_id || "x"}-${i}`,
       slot: startingSlots[i] || home?.position || away?.position || "—",
@@ -99,16 +108,12 @@ export function matchupStoryline({
   hint = "",
 } = {}) {
   if (placeholder) {
-    const closer = hint || GAME_CENTER_COPY.emptyNoSleeper;
     const tbd = !opponent?.team_name || opponent.team_name === "Opponent TBD" || opponent.roster_id === "tbd";
     if (tbd) {
-      return week != null
-        ? `Week ${week} opponent TBD. ${closer}`
-        : `Opponent TBD. ${closer}`;
+      return week != null ? `Week ${week} opponent TBD` : "Opponent TBD";
     }
     const opponentLabel = gameCenterTeamLabel(opponent) || opponent.team_name;
-    const weekBit = week != null ? `Week ${week} vs ${opponentLabel}` : `vs ${opponentLabel}`;
-    return `${weekBit}. ${closer}`;
+    return week != null ? `Week ${week} vs ${opponentLabel}` : `vs ${opponentLabel}`;
   }
   if (!viewer || !opponent) return "";
   const margin = Number(viewer.points || 0) - Number(opponent.points || 0);

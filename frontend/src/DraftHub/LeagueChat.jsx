@@ -3,6 +3,7 @@ import { apiFetch, getToken } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { confirmDialog } from "../ui/confirm";
 import { HubFilterChip } from "./HubUILayout";
+import { HOME_DECK_COPY } from "./leagueHomePresentation";
 
 function formatTime(iso) {
   if (!iso) return "";
@@ -190,7 +191,16 @@ export default function LeagueChat({ leagueId, hubContext, compact = false, lock
             ? "Commissioners only"
             : "Visible to every team in the league"}
         </span>
-        {isPrimary && (
+      </div>
+      )}
+      {compact && (
+        <div className="hub-league-chat-compact-head">
+          <strong>Draft chat</strong>
+          <span className="chart-note">League</span>
+        </div>
+      )}
+      {isPrimary && !compact && (
+        <div className="hub-league-chat-staff">
           <button
             type="button"
             className="btn-danger btn-sm"
@@ -198,15 +208,8 @@ export default function LeagueChat({ leagueId, hubContext, compact = false, lock
             disabled={clearing || loading}
             title="Delete all messages in this channel"
           >
-            {clearing ? "Clearing…" : "Clear chat"}
+            {clearing ? "Clearing…" : HOME_DECK_COPY.clearChat}
           </button>
-        )}
-      </div>
-      )}
-      {compact && (
-        <div className="hub-league-chat-compact-head">
-          <strong>Draft chat</strong>
-          <span className="chart-note">League</span>
         </div>
       )}
 

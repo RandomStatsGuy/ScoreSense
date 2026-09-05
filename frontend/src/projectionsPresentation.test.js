@@ -21,6 +21,8 @@ import {
   seasonBoardSignals,
   seasonRead,
   starterCutoff,
+  compactSignalName,
+  staleRefreshLabel,
   weeklyBoardPreview,
   weeklyBoardSignals,
   weeklyPeerStats,
@@ -266,4 +268,27 @@ test("live season signals ignore schedule-aware draft method metadata", () => {
   });
   assert.equal(preseason[3].name, "Schedule-aware");
   assert.match(preseason[3].value, /Bye weeks included/);
+});
+
+test("weekly mobile copy stays sentence case and names the job", () => {
+  assert.equal(BOARD_COPY.why, "Why");
+  assert.equal(BOARD_COPY.details, "Details");
+  assert.equal(BOARD_COPY.applyFilters, "Apply");
+  assert.equal(BOARD_COPY.resetFilters, "Reset");
+  assert.equal(BOARD_COPY.weeklySlate, "This week's slate");
+  assert.doesNotMatch(JSON.stringify(BOARD_COPY), /Why\?|Submit|Draft Hub/i);
+});
+
+test("compact signal names keep short names and fall back to last name", () => {
+  assert.equal(compactSignalName("Lamar Jackson"), "Lamar Jackson");
+  assert.equal(compactSignalName("Anthony Richardson"), "Richardson");
+  assert.equal(compactSignalName("—"), "—");
+});
+
+test("stale refresh label uses relative time, not a locale dump", () => {
+  const now = new Date();
+  const hourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+  assert.equal(staleRefreshLabel({ stale: true, refreshing: true }), "Refreshing…");
+  assert.match(staleRefreshLabel({ stale: true, updatedAt: hourAgo }), /Stale · /);
+  assert.doesNotMatch(staleRefreshLabel({ stale: true, updatedAt: hourAgo }), /AM|PM|:\d{2}:\d{2}/);
 });
