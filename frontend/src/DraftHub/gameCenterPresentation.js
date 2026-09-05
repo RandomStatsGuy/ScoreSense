@@ -315,7 +315,7 @@ export function gameCenterHeroCopy({
 
 export function formatMatchupScore(value, { placeholder = false, proj = null } = {}) {
   const projNum = proj == null ? null : Number(proj);
-  const hasProj = projNum != null && !Number.isNaN(projNum);
+  const hasProj = projNum != null && !Number.isNaN(projNum) && projNum > 0;
   if (placeholder || value == null || Number.isNaN(Number(value))) {
     return {
       score: "—",

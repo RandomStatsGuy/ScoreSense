@@ -633,8 +633,8 @@ def _placeholder_team(
             "is_viewer": False,
             "is_opponent": True,
             "proj_total": None,
-            "points_pending": 0.0,
-            "est_final": 0.0,
+            "points_pending": None,
+            "est_final": None,
         }
     tid = str(team.get("id") or "")
     owner = str(team.get("owner_name") or "").strip() or None
@@ -649,8 +649,8 @@ def _placeholder_team(
         "is_viewer": is_viewer,
         "is_opponent": is_opponent,
         "proj_total": None,
-        "points_pending": 0.0,
-        "est_final": 0.0,
+        "points_pending": None,
+        "est_final": None,
     }
 
 

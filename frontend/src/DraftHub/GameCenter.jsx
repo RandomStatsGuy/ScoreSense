@@ -240,7 +240,8 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
     if (opponent?.roster_id === "tbd") {
       return weekNumber != null ? `Week ${weekNumber} opponent TBD` : "Opponent TBD";
     }
-    const row = standingRows.find((s) => String(s.roster_id) === String(opponent?.roster_id));
+    const row = standingRows.find((s) => String(s.roster_id) === String(opponent?.roster_id))
+      || standingRows.find((s) => s.hub_team_id && String(s.hub_team_id) === String(opponent?.hub_team_id));
     return formatMatchupRecord(row, { ranked: standingsView.ranked });
   })();
 

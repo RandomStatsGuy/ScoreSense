@@ -222,6 +222,10 @@ test("unstarted scores say not started instead of a bare dash", () => {
     score: "—",
     label: GAME_CENTER_COPY.notStarted,
   });
+  assert.deepEqual(formatMatchupScore(0, { placeholder: true, proj: 0 }), {
+    score: "—",
+    label: GAME_CENTER_COPY.notStarted,
+  });
   assert.equal(formatMatchupScore(12.4, { placeholder: false }).score, "12.4");
   assert.equal(shouldShowPrevWeek(1), false);
   assert.equal(shouldShowPrevWeek(2), true);
