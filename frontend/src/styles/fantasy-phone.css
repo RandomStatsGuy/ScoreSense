@@ -182,6 +182,52 @@
     flex: 0 0 auto;
   }
 
+  .hub-roster-manager-picker,
+  .hub-roster-manager-picker .hub-filter-menu-trigger,
+  .hub-roster-manager-picker .hub-filter-menu-panel {
+    width: 100%;
+  }
+
+  .hub-roster-manager-picker .hub-filter-menu-panel {
+    max-height: 22rem;
+  }
+
+  .hub-roster-selected-heading {
+    padding-inline-end: 0;
+  }
+
+  .hub-roster-browser-page .mobile-player-card-name-row {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+  }
+
+  .hub-roster-browser-page .mobile-player-card-name-row > .mobile-player-card-name,
+  .hub-roster-browser-page .mobile-player-card-name {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .hub-roster-browser-page .mobile-player-card-chevron {
+    margin-left: 0.15rem;
+    flex: 0 0 auto;
+  }
+
+  .hub-roster-browser-page .mobile-player-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .hub-roster-browser-page .hub-roster-action-group {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    white-space: normal;
+  }
+
+  .hub-roster-browser-page .hub-roster-trade-lock {
+    text-align: left;
+  }
+
   .mobile-player-card-header {
     align-items: center;
   }
@@ -235,11 +281,19 @@
     max-width: 2.75rem;
   }
 
-  .fantasy-chat-dock.is-edge-right:not(.is-open),
-  .fantasy-chat-dock.is-edge-bottom:not(.is-open) {
-    right: 0.85rem;
+  .draft-hub .fantasy-chat-dock.is-edge-right:not(.is-open),
+  .draft-hub .fantasy-chat-dock.is-edge-left:not(.is-open),
+  .draft-hub .fantasy-chat-dock.is-edge-bottom:not(.is-open) {
+    top: auto;
+    transform: none;
     /* Sit above the tab bar and any fixed page action (Vibes / Rules save). */
     bottom: calc(8.85rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .draft-hub .fantasy-chat-dock.is-edge-right:not(.is-open),
+  .draft-hub .fantasy-chat-dock.is-edge-bottom:not(.is-open) {
+    right: 0.85rem;
+    left: auto;
   }
 
   .hub-loading-skeleton {

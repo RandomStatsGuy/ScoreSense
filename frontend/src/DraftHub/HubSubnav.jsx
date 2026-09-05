@@ -13,7 +13,7 @@ export const HUB_SUBVIEWS = [
   { id: "game", label: "Game center", shortLabel: "Game", leagueOnly: true, hint: "Your matchup, live", group: "season" },
   { id: "roster", label: "My team", shortLabel: "My team", hint: "Your contracts", group: "season" },
   { id: "available", label: "Free agents", shortLabel: "FA", hint: "Who you can still add", group: "season" },
-  { id: "rosters", label: "Rosters", shortLabel: "Rosters", leagueOnly: true, hint: "Every team's contracts", group: "season" },
+  { id: "rosters", label: "Rosters", shortLabel: "Rosters", leagueOnly: true, hint: "Overpays and cheap years across the league", group: "season" },
   { id: "planner", label: "Cap", shortLabel: "Cap", hint: "Bids, cuts, leftover cap", group: "season" },
   { id: "trades", label: "Trades", shortLabel: "Trades", leagueOnly: true, hint: "Cap-checked deals", group: "season" },
   { id: "rules", label: "Rules", shortLabel: "Rules", hint: "What new contracts cost", group: "office" },

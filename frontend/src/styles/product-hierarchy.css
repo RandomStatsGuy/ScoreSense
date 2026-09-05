@@ -3443,7 +3443,7 @@ button.btn-link.hub-league-switcher-create:hover {
   grid-template-columns: minmax(13.5rem, 16rem) minmax(0, 1fr);
   gap: 1.15rem;
   align-items: start;
-  padding: 1rem 2.15rem 1.5rem;
+  padding: 0;
 }
 
 .hub-roster-owner-rail {
@@ -3455,8 +3455,14 @@ button.btn-link.hub-league-switcher-create:hover {
   background: #132033;
 }
 
+.hub-roster-rail-heading,
 .hub-roster-owner-rail .hub-filter-label {
   margin: 0 0 0.55rem;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .hub-roster-owner-list {
@@ -3472,6 +3478,7 @@ button.btn-link.hub-league-switcher-create:hover {
 .hub-roster-owner-chip {
   display: flex;
   width: 100%;
+  min-height: var(--touch-target);
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
@@ -3487,18 +3494,23 @@ button.btn-link.hub-league-switcher-create:hover {
 
 .hub-roster-owner-btn strong,
 .hub-roster-owner-chip strong {
-  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  font-size: var(--text-sm);
   font-weight: 650;
 }
 
 .hub-roster-owner-btn span,
 .hub-roster-owner-chip span {
-  color: var(--text-muted);
-  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
 }
 
-.hub-roster-owner-btn em {
-  color: var(--experience-blue);
+.hub-roster-owner-btn em,
+.hub-roster-you {
+  color: var(--text-primary);
   font-size: var(--text-xs);
   font-style: normal;
 }
@@ -3518,7 +3530,13 @@ button.btn-link.hub-league-switcher-create:hover {
   min-width: 0;
 }
 
-@media (max-width: 860px) {
+@media (min-width: 769px) {
+  .hub-roster-browser-page .hub-roster-owner-main {
+    padding-inline-end: 2.75rem;
+  }
+}
+
+@media (max-width: 1280px) {
   .hub-roster-owner-layout {
     grid-template-columns: 1fr;
     padding: 0.85rem 1.25rem 1.25rem;
@@ -3528,9 +3546,62 @@ button.btn-link.hub-league-switcher-create:hover {
     position: static;
   }
 
+  .hub-roster-owner-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    gap: 0.35rem;
+  }
+
   .hub-roster-owner-chip {
     width: auto;
     min-width: 8.5rem;
+  }
+}
+
+/* Deal table is the page. Keep At a glance above it so 1434px still
+   has room for names and the two action verbs on one line. */
+.hub-roster-browser-page .hub-experience-layout {
+  display: flex;
+  flex-direction: column;
+}
+
+.hub-roster-browser-page .hub-experience-summary {
+  display: grid;
+  order: -1;
+  position: static;
+  width: 100%;
+  grid-template-columns: minmax(14rem, 1.2fr) minmax(0, 2fr) auto;
+  align-items: start;
+  gap: 0.85rem 1.25rem;
+}
+
+.hub-roster-browser-page .hub-experience-summary dl {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  gap: 0.65rem 1.35rem;
+}
+
+.hub-roster-browser-page .hub-experience-summary dl > div {
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0;
+  border-bottom: none;
+  gap: 0.12rem;
+}
+
+.hub-roster-browser-page .hub-experience-summary dd {
+  text-align: left;
+}
+
+.hub-roster-browser-page .hub-experience-summary-note {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 768px) {
+  .hub-roster-browser-page .hub-experience-summary {
+    display: flex;
+    flex-direction: column;
   }
 }
 

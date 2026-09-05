@@ -253,10 +253,13 @@ export function HubFilterMenu({ label, value, options, onChange, className = "" 
               type="button"
               role="option"
               aria-selected={value === opt.id}
-              className={`hub-filter-menu-option${value === opt.id ? " is-active" : ""}`}
+              className={`hub-filter-menu-option${value === opt.id ? " is-active" : ""}${opt.detail ? " has-detail" : ""}`}
               onClick={() => pick(opt.id)}
             >
-              {opt.label}
+              <span className="hub-filter-menu-option-label">{opt.label}</span>
+              {opt.detail ? (
+                <span className="hub-filter-menu-option-detail">{opt.detail}</span>
+              ) : null}
             </button>
           ))}
         </div>
