@@ -859,7 +859,8 @@ export default function ValueSheetTable({
             }
 
             const lockedPickup = isAvailableView && addMode === "locked";
-            const suggestedBid = Number(r.fair_value ?? r.suggested_bid);
+            const rawBid = r.fair_value ?? r.suggested_bid;
+            const suggestedBid = rawBid != null && rawBid !== "" ? Number(rawBid) : NaN;
             const lockedCopy = playersTabLockedChip();
             if (lockedPickup && onWatchPlayer) {
               const watching = (watchIds || []).map(String).includes(String(r.player_id));
