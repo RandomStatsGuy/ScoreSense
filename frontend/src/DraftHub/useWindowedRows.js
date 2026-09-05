@@ -49,7 +49,7 @@ export function useWindowedRows(count, {
       window.addEventListener("scroll", update, { passive: true });
       window.addEventListener("resize", update);
       const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
-      observer?.observe(node);
+      if (node) observer?.observe(node);
       return () => {
         window.removeEventListener("scroll", update);
         window.removeEventListener("resize", update);
