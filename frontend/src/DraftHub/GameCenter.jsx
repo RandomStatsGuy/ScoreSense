@@ -252,7 +252,7 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
               <span>{!placeholder && viewer.proj_total != null ? `proj ${fmtPts(viewer.est_final)}` : "\u00a0"}</span>
             </div>
             <div className="hub-gc-bb-divider" aria-hidden="true">
-              <span>Wk {weekNumber}</span>
+              <span>Week {weekNumber}</span>
             </div>
             <div className={`hub-gc-bb-points${!placeholder && opponent.points > viewer.points ? " is-leading" : ""}`}>
               {fmtPts(opponent.points, placeholder)}

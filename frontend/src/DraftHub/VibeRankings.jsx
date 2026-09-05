@@ -7,6 +7,7 @@ import {
   HubExperienceHero,
   HubExperienceLayout,
   HubExperienceSummary,
+  HubLoadingSkeleton,
   HubPage,
 } from "./HubUILayout";
 import VibeSwipeDeck from "./VibeSwipeDeck";
@@ -255,7 +256,7 @@ export default function VibeRankings({
         )}
       >
         {error ? <div className="error">{error}</div> : null}
-        {loading && !data ? <p className="hub-vibes-empty">{VIBE_COPY.loading}</p> : null}
+        {loading && !data ? <HubLoadingSkeleton label={VIBE_COPY.loading} rows={3} /> : null}
 
         {!done ? (
           <div className="hub-vibes-stage">

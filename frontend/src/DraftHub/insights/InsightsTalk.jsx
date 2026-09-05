@@ -131,6 +131,7 @@ export function RankBars({
           <li
             key={row.teamId || row.teamName || row.label}
             className={`hub-insights-rank-row${mine ? " is-mine" : ""}`}
+            aria-label={`${row.label} ${formatValue(row) || ""}`.trim()}
           >
             <span className="hub-insights-rank-place">{row.rank || ""}</span>
             <span className="hub-insights-rank-name">
@@ -193,6 +194,7 @@ export function PositionSpendBoard({
               className={`hub-insights-pos-king${selected ? " is-selected" : ""}`}
               onClick={() => onFocus(row.position)}
               aria-pressed={selected}
+              aria-label={`${row.position} ${row.leader?.label || "empty"} ${formatSpendValue(row.max, mode)}`}
               style={{ "--pos-accent": POS_COLORS[row.position] || "#64748b" }}
             >
               <span className="hub-insights-pos-king-pos">{row.position}</span>

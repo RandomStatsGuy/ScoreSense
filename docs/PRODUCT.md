@@ -138,7 +138,7 @@ Dark mode only. Matte, editorial, layered. Sports-product energy without casino 
 
 Rules:
 
-- Prefer tokens in `frontend/src/styles/tokens.css`, `product-hierarchy.css`, and `product-rhythm.css`. Do not invent a new hue for a new page.
+- Prefer tokens in `frontend/src/styles/tokens.css`, `product-hierarchy.css`, `product-rhythm.css`, and `fantasy-phone.css`. Do not invent a new hue for a new page.
 - Hierarchy comes from surface lift, type size/weight, and spacing — not outlines on every box.
 - Every destination, mobile and desktop, uses the same spacing rhythm (`--inset-chip`, `--inset-tile`, `--inset-section`, `--gutter`). Text is never flush against a border, rule, or chip edge. Type never drops below `--text-xs`. Use `--text-*` and `--font-weight-*` — no intermediate weights like 750.
 - Medium-to-large radii (`--radius-md` / `--radius-lg`). Soft shadows on sticky or floating chrome only.
@@ -187,7 +187,7 @@ On phone, the header is the current destination. Destination switching uses one 
 
 On phone, weekly and season boards are **dense ranking rows** (rank, face, name, P50). Compare is one toolbar control. Never a Compare checkbox on every card. Signals stay a compact strip, not a second page of chrome.
 
-Fantasy phone (≤768px) shares one floor with Projections: type never drops below `--text-xs` (11.52–11.84px). Filter, tab, and sort bars use the Insights sticky strip (`.hub-page-sticky`). Experience summary labels stack above their values. The chat dismiss control sits on the bubble, not off the right edge. Loading states use skeletons, not unlabeled “Loading…” copy. Roster management’s public path is `/hub/roster-management`; `/hub/office` redirects.
+Fantasy phone (≤768px) shares one floor with Projections: type never drops below `--text-xs` (11.52–11.84px). Filter, tab, and sort bars use the Insights sticky strip (`.hub-page-sticky`). Experience summary labels stack above their values. The chat dismiss control sits on the bubble, not off the right edge. Chat parks above the tab bar and any fixed page action (Vibes Sit/Undo/Start, Rules save). Loading states use skeletons, not unlabeled “Loading…” copy. Roster management’s public path is `/hub/roster-management`; `/hub/office` redirects.
 
 ---
 
@@ -282,6 +282,7 @@ Contract-type playbook for imports and keepers: [CONTRACT_SCENARIOS.md](./CONTRA
 | Tokens | `frontend/src/styles/tokens.css` |
 | Experience CSS | `frontend/src/styles/product-hierarchy.css` |
 | Spacing rhythm | `frontend/src/styles/product-rhythm.css` |
+| Fantasy phone | `frontend/src/styles/fantasy-phone.css` |
 | Nav source | `frontend/src/appNavigation.js`, `DraftHub/HubSubnav.jsx` |
 | Living page to match | `frontend/src/livingSurfaces.js` |
 | Redesign / first-design options | [mockups/](./mockups/) · `.cursor/skills/fast-ui-mock/SKILL.md` |

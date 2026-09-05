@@ -70,6 +70,10 @@
     font-size: var(--text-sm);
   }
 
+  .hub-filter-summary-bar {
+    display: none;
+  }
+
   .hub-page-sticky {
     position: sticky;
     top: 0;
@@ -199,25 +203,29 @@
     font-size: var(--text-sm);
   }
 
-  .fantasy-chat-launcher {
+  .fantasy-chat-launcher,
+  .fantasy-chat-launcher--phone {
     position: relative;
     overflow: visible;
     max-width: 2.75rem;
   }
 
-  .fantasy-chat-dismiss {
+  .fantasy-chat-dismiss,
+  .fantasy-chat-dismiss--on-bubble {
     position: absolute;
     top: -0.45rem;
     left: -0.45rem;
     min-width: 1.75rem;
     min-height: 1.75rem;
     border: 1px solid var(--experience-rule);
+    border-left: 1px solid var(--experience-rule);
     border-radius: 50%;
     background: var(--experience-surface-strong);
     z-index: 1;
   }
 
-  .fantasy-chat-dock.is-edge-left .fantasy-chat-dismiss {
+  .fantasy-chat-dock.is-edge-left .fantasy-chat-dismiss,
+  .fantasy-chat-dock.is-edge-left .fantasy-chat-dismiss--on-bubble {
     left: auto;
     right: -0.45rem;
   }
@@ -230,7 +238,8 @@
   .fantasy-chat-dock.is-edge-right:not(.is-open),
   .fantasy-chat-dock.is-edge-bottom:not(.is-open) {
     right: 0.85rem;
-    bottom: calc(5.35rem + env(safe-area-inset-bottom, 0px));
+    /* Sit above the tab bar and any fixed page action (Vibes / Rules save). */
+    bottom: calc(8.85rem + env(safe-area-inset-bottom, 0px));
   }
 
   .hub-loading-skeleton {
@@ -357,14 +366,22 @@
     align-items: center;
   }
 
+  .hub-insights-rank-row,
+  .hub-insights-rank-row--button {
+    grid-template-columns: 1.4rem minmax(0, 1fr);
+    min-height: var(--touch-target);
+  }
+
+  .hub-insights-rank-track,
+  .hub-insights-rank-value {
+    grid-column: 1 / -1;
+  }
+
   .hub-insights-rank-value {
     white-space: normal;
     text-align: right;
+    justify-content: flex-end;
     font-size: var(--text-xs);
-  }
-
-  .hub-insights-rank-row--button {
-    min-height: var(--touch-target);
   }
 
   .hub-stadium-hero-edit {
@@ -444,12 +461,23 @@
     border: 1px solid var(--experience-rule);
   }
 
+  .hub-vibes-stage {
+    padding-bottom: 5.75rem;
+  }
+
+  .hub-vibes-keys {
+    display: none;
+  }
+
   .hub-vibes-actions {
-    position: sticky;
+    position: fixed;
+    left: 0;
+    right: 0;
     bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
     z-index: var(--z-sticky);
-    padding: 0.55rem 0 0.2rem;
-    background: linear-gradient(180deg, transparent, var(--bg-base) 28%);
+    padding: 0.55rem 0.85rem 0.65rem;
+    background: var(--bg-base);
+    border-top: 1px solid var(--border);
   }
 
   .hub-vibes-compare {

@@ -786,29 +786,31 @@ export default function RosterBuilder({
               <span className="hub-stat-value-note"> / ${salaryCap}</span>
             </strong>
             {salaryCap > 0 && (
-              <span
-                className="hub-stadium-cap-bar"
-                role="img"
-                aria-label={`$${totalSalary.toFixed(0)} of $${salaryCap} committed${
-                  Number(capSheet?.summary?.dead_cap) > 0
-                    ? `, $${Number(capSheet.summary.dead_cap).toFixed(0)} dead cap`
-                    : ""
-                }`}
-              >
+              <>
                 <span
-                  className="hub-stadium-cap-bar-committed"
-                  style={{ width: `${Math.min(100, Math.max(0, (totalSalary / salaryCap) * 100))}%` }}
-                />
-                {Number(capSheet?.summary?.dead_cap) > 0 && (
+                  className="hub-stadium-cap-bar"
+                  role="img"
+                  aria-label={`$${totalSalary.toFixed(0)} of $${salaryCap} committed${
+                    Number(capSheet?.summary?.dead_cap) > 0
+                      ? `, $${Number(capSheet.summary.dead_cap).toFixed(0)} dead cap`
+                      : ""
+                  }`}
+                >
                   <span
-                    className="hub-stadium-cap-bar-dead"
-                    style={{ width: `${Math.min(100, (Number(capSheet.summary.dead_cap) / salaryCap) * 100)}%` }}
+                    className="hub-stadium-cap-bar-committed"
+                    style={{ width: `${Math.min(100, Math.max(0, (totalSalary / salaryCap) * 100))}%` }}
                   />
-                )}
-              </span>
-              {Number(capSheet?.summary?.dead_cap) > 0 ? (
-                <span className="hub-stadium-cap-legend">{MY_TEAM_COPY.deadCapLegend}</span>
-              ) : null}
+                  {Number(capSheet?.summary?.dead_cap) > 0 && (
+                    <span
+                      className="hub-stadium-cap-bar-dead"
+                      style={{ width: `${Math.min(100, (Number(capSheet.summary.dead_cap) / salaryCap) * 100)}%` }}
+                    />
+                  )}
+                </span>
+                {Number(capSheet?.summary?.dead_cap) > 0 ? (
+                  <span className="hub-stadium-cap-legend">{MY_TEAM_COPY.deadCapLegend}</span>
+                ) : null}
+              </>
             )}
             {preDraft && (
               <span className="hub-stat-sub">

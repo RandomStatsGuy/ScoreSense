@@ -263,7 +263,6 @@ export default function LeagueHome({
         <section className={`hub-home-priority hub-home-priority--${focus.kind}`} aria-busy={loading}>
           {loading && !data ? (
             <>
-              <p className="hub-home-priority-kicker">{HOME_PAGE_COPY.loadingKicker}</p>
               <HubLoadingSkeleton label={HOME_PAGE_COPY.loadingKicker} rows={3} />
               {slowLoad ? (
                 <div className="hub-home-priority-actions">
