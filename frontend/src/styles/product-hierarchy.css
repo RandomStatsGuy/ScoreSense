@@ -3073,6 +3073,19 @@
   margin: 0;
 }
 
+.hub-insights-page--overview .hub-experience-hero {
+  padding: 1.15rem 2.15rem 1rem;
+}
+
+.hub-insights-page--overview .hub-experience-hero h2 {
+  max-width: 28rem;
+  font-size: clamp(1.35rem, 2.2vw, 1.85rem);
+}
+
+.hub-insights-page--overview .hub-experience-hero p {
+  margin-top: 0.45rem;
+}
+
 .hub-roster-browser-page.hub-page {
   padding: 0;
   overflow: visible;

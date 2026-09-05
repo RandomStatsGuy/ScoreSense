@@ -96,7 +96,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 | Trades | `trades` | Propose and accept. Experience hero names the cap-bust cost. Rosters franchise headers deep-link here with the partner preselected. Zero partners → Invite managers on Members. |
 | Rules | `rules` | League model (read for members, edit for staff) |
 | Roster management | `office` | Staff-only contracts, sheets, members, access |
-| Insights | `insights` | League history and awards |
+| Insights | `insights` | League history and awards. Overview is titles, records, and career scoring — not Spend. Rank bars share a fixed track and start near the field (or show the gap from first). Award names are a Roster management control. The tab strip stays live; skeleton the cards. |
 
 Groups in the subnav: **Draft** (Strategy, Draft) · **Team** (This Week through Trades, including Vibes) · **League** (Rules, Roster management, Insights).
 
@@ -220,7 +220,7 @@ Voice:
 | Commissioner managed | You do not have permission |
 | Bid / Add / Locked | “FA lottery” in player-facing buttons |
 
-Hero pattern: eyebrow (`League rules`) + sentence heading that is the job (`What a new contract will cost.`) + one support line that is the consequence. See `RulesWizard.jsx` and `dfsToolPresentation.js`.
+Hero pattern: eyebrow (`League rules`) + sentence heading that is the job (`What a new contract will cost.`) + one support line that is the consequence. See `RulesWizard.jsx` and `dfsToolPresentation.js`. The heading sells the tab you are on. Hero chips are status only (saved, locked, caution) — season counts and other facts are meta text, not chips.
 
 Home names the manager’s roster hole over a commissioner invite when both are due. Gate hero copy on load: skeleton or “Checking what is due…” until the payload lands — never a confident headline over unresolved data. After 3s of a long load, say the sync is still working. This Week hero copy comes from board state (loading / error / empty pre-draft) — never “No swap worth making” over an error. Empty starter slots say **Empty**; “Waiting on roster” is the unresolved-roster rail, not a loading chip. Game center’s unscored placeholder says **No scores yet**, not Waiting. Cap and My team read one dead-cap story from `rosterFormat.js`. Needs attention says **Cap**, not Cap planner. Draft seating chips count claimed teams. Locked draft night renders in the viewer’s timezone with an abbreviation; Draft setup names league time once.
 

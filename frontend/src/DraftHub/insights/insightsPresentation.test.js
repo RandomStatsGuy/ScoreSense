@@ -5,10 +5,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  awardCatalogFromRules,
   featureAwards,
+  fieldRankShare,
+  formatRecordLine,
+  formatScoringRankValue,
   formatSpendValue,
   INSIGHTS_COPY,
   insightsHeroStatus,
+  mostTitlesLine,
+  overviewRecordRows,
+  overviewScoringRows,
   pickDiscussablePosition,
   positionSpendLeaders,
   scoringRaceRows,
@@ -79,10 +86,66 @@ test("scoringRaceRows sorts by points and measures the gap from first", () => {
   assert.deepEqual(rows.map((r) => r.label), ["First", "Second", "Third"]);
   assert.equal(rows[1].gapFromFirst, 300);
   assert.equal(rows[0].pctOfLeader, 100);
+  assert.ok(rows[0].fillPct > rows[1].fillPct);
+  assert.ok(rows[1].fillPct > rows[2].fillPct);
+});
+
+test("fieldRankShare starts near the field, so a 1,700-point career gap is visible", () => {
+  const values = [12576, 11090.8, 11030, 10869];
+  const first = fieldRankShare(12576, values);
+  const justin = fieldRankShare(11090.8, values);
+  const colby = fieldRankShare(11030, values);
+  const last = fieldRankShare(10869, values);
+  assert.equal(first, 100);
+  assert.ok(justin - colby > 2, "shorter total must get a shorter bar");
+  assert.ok(first - last > 70, "career spread must not collapse into the top sliver");
+  assert.ok(last >= 6);
+});
+
+test("overview scoring rows keep fill independent of label width and show the gap", () => {
+  const rows = overviewScoringRows([
+    { team_name: "Leader", owner_name: "Alex A", total_points: 12576 },
+    { team_name: "Justin", owner_name: "Justin P", total_points: 11090.8 },
+    { team_name: "Colby", owner_name: "Colby L", total_points: 11030 },
+  ]);
+  assert.equal(rows[1].label, "Justin P");
+  assert.equal(formatScoringRankValue(rows[0]), "12,576");
+  assert.match(formatScoringRankValue(rows[1]), /−1,485/);
+  assert.ok(rows[1].fillPct > rows[2].fillPct);
+});
+
+test("overview record rows show W-L only and scale from the field", () => {
+  const rows = overviewRecordRows([
+    { team_name: "A", wins: 49, losses: 19, ties: 0, games: 68, win_pct: 0.721 },
+    { team_name: "B", wins: 40, losses: 28, ties: 0, games: 68, win_pct: 0.588 },
+  ]);
+  assert.equal(formatRecordLine(rows[0]), "49-19");
+  assert.doesNotMatch(formatRecordLine(rows[0]), /%/);
+  assert.ok(rows[0].fillPct > rows[1].fillPct);
+});
+
+test("mostTitlesLine sits on the Titles panel, not as a dangling hero word", () => {
+  assert.equal(
+    mostTitlesLine({ titles: 3, team_name: "The Deported Panda", owner_name: "Stephen P" }),
+    "Stephen P · 3 titles",
+  );
+  assert.equal(mostTitlesLine({ titles: 1, team_name: "Solo" }), "");
+});
+
+test("awardCatalogFromRules applies commissioner overrides", () => {
+  const catalog = awardCatalogFromRules({
+    insight_award_titles: { points_king: "Scoring champ" },
+  });
+  const king = catalog.find((row) => row.id === "points_king");
+  assert.equal(king.title, "Scoring champ");
+  assert.equal(king.default_title, "Most points");
 });
 
 test("insights heroes name the argument, not a recap slogan", () => {
-  assert.match(INSIGHTS_COPY.overview.heading, /overpays/i);
+  assert.match(INSIGHTS_COPY.overview.heading, /already won|titles|records/i);
+  assert.doesNotMatch(INSIGHTS_COPY.overview.heading, /overpays/i);
+  assert.doesNotMatch(INSIGHTS_COPY.overview.support, /Spend shows/i);
+  assert.match(INSIGHTS_COPY.overview.support, /titles|records|career points/i);
   assert.match(INSIGHTS_COPY.spend.support, /overspend|thin/i);
   assert.match(INSIGHTS_COPY.history.support, /paper trail|trade/i);
   assert.doesNotMatch(INSIGHTS_COPY.overview.heading, /league so far|Draft Hub|Submit/i);

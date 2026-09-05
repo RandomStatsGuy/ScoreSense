@@ -9391,6 +9391,17 @@ td.col-rank.col-rank-top {
   padding-bottom: 1.6rem;
 }
 
+.hub-insights-page--overview {
+  gap: 0.85rem;
+  padding-bottom: 1.1rem;
+}
+
+.hub-insights-overview-meta {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
 .hub-insights-page > *:not(.hub-experience-hero) {
   margin-left: 1.5rem;
   margin-right: 1.5rem;
@@ -9537,7 +9548,8 @@ td.col-rank.col-rank-top {
 
 .hub-insights-overview-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  grid-template-columns: minmax(12rem, 0.85fr) minmax(0, 1.15fr) minmax(0, 1.15fr);
   gap: 1rem;
 }
 
@@ -9546,6 +9558,10 @@ td.col-rank.col-rank-top {
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 14px;
   background: rgba(15, 23, 42, 0.45);
+}
+
+.hub-insights-skeleton-block--panel {
+  min-height: 16rem;
 }
 
 .hub-insights-champions {
@@ -9629,6 +9645,12 @@ td.col-rank.col-rank-top {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+.hub-office-award-names {
+  margin-top: 1.5rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--experience-rule);
 }
 
 /* Keep the per-row link out of the resting view — reveal on the row you're on.
@@ -9768,7 +9790,7 @@ td.col-rank.col-rank-top {
 
 .hub-insights-rank-row {
   display: grid;
-  grid-template-columns: 1.6rem minmax(6rem, 11rem) minmax(0, 1fr) auto;
+  grid-template-columns: 1.6rem minmax(0, 1fr) 7.5rem 5.75rem;
   align-items: center;
   gap: 0.55rem 0.7rem;
   padding: 0.28rem 0.15rem;
@@ -9826,6 +9848,7 @@ td.col-rank.col-rank-top {
 }
 
 .hub-insights-rank-track {
+  width: 7.5rem;
   height: 0.55rem;
   border-radius: 999px;
   background: rgba(148, 163, 184, 0.14);
@@ -9835,14 +9858,16 @@ td.col-rank.col-rank-top {
 .hub-insights-rank-fill {
   height: 100%;
   border-radius: inherit;
-  background: #60a5fa;
+  background: color-mix(in srgb, var(--text-secondary) 58%, transparent);
   transition: width 160ms ease;
 }
 
 .hub-insights-rank-value {
   display: flex;
   align-items: baseline;
+  justify-content: flex-end;
   gap: 0.35rem;
+  min-width: 0;
   font-size: 0.84rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -9943,11 +9968,12 @@ td.col-rank.col-rank-top {
 
   .hub-insights-rank-row,
   .hub-insights-rank-row--button {
-    grid-template-columns: 1.4rem minmax(0, 1fr) auto;
+    grid-template-columns: 1.4rem minmax(0, 1fr) 5.5rem;
   }
 
   .hub-insights-rank-track {
     grid-column: 1 / -1;
+    width: 100%;
   }
 }
 
