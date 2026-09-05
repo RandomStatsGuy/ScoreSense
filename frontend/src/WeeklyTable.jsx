@@ -665,8 +665,8 @@ export default function WeeklyTable({
           ))}
         </div>
       ) : null}
-      <div className="table-toolbar">
-        <span className="table-meta">{resultLabel}</span>
+      <div className={`table-toolbar${mobileLayout ? " table-toolbar--weekly-mobile" : ""}`}>
+        {mobileLayout ? null : <span className="table-meta">{resultLabel}</span>}
         {metaLine}
         {showFilters ? (
           <span className="table-meta table-meta-movement" role="status">
@@ -676,7 +676,7 @@ export default function WeeklyTable({
                 "Movement unavailable for this slate"}
           </span>
         ) : null}
-        {!playersContext.unavailable && playersContext.meta?.updated_at ? (
+        {!mobileLayout && !playersContext.unavailable && playersContext.meta?.updated_at ? (
           <span className="table-meta" role="status">
             {`Injury context · ${(formatRelativeTime(playersContext.meta.updated_at) || "").replace(/^Updated /, "")}`}
           </span>

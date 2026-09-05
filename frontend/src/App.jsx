@@ -1641,20 +1641,29 @@ export default function App() {
             ) : null}
             <section className={`panel wide panel-projections proj-board-surface projections-mobile-panel${projectionsMobilePanel === "projections" ? " is-mobile-active" : ""}`}>
               {mobileLayout ? (
-                <ProjectionBoardSignals
-                  swipe
-                  signals={weeklySignals}
-                  playerParams={{
-                    position,
-                    season,
-                    week,
-                    applyInjuryAdjustments: isLiveContext,
-                    scope: "weekly",
-                  }}
-                  onActivate={(signal) => {
-                    if (signal.id === "attention") handleMovementFilterChange("attention");
-                  }}
-                />
+                <ProjectionBoardDisclosure
+                  title={weeklySignals[0]?.name || BOARD_COPY.weeklyBoard}
+                  summary={
+                    weeklySignals[0]?.value
+                      ? `${weeklySignals[0].kicker} · ${weeklySignals[0].value}`
+                      : weeklyBoardResultLabel
+                  }
+                >
+                  <ProjectionBoardSignals
+                    swipe
+                    signals={weeklySignals}
+                    playerParams={{
+                      position,
+                      season,
+                      week,
+                      applyInjuryAdjustments: isLiveContext,
+                      scope: "weekly",
+                    }}
+                    onActivate={(signal) => {
+                      if (signal.id === "attention") handleMovementFilterChange("attention");
+                    }}
+                  />
+                </ProjectionBoardDisclosure>
               ) : null}
               <ProjectionBoardHeader
                 kicker={weeklyBoardKicker({ week })}

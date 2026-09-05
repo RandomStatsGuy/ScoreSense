@@ -593,8 +593,8 @@
   }
 
   .proj-signals--swipe .proj-signal {
-    flex: 0 0 min(11.5rem, 72vw);
-    min-width: min(11.5rem, 72vw);
+    flex: 0 0 min(9.25rem, 58vw);
+    min-width: min(9.25rem, 58vw);
     scroll-snap-align: start;
     padding: 0.55rem 0.7rem;
   }
@@ -612,6 +612,14 @@
 
   .proj-board-head-copy {
     display: none;
+  }
+
+  .proj-board-surface > .proj-disclosure {
+    margin-bottom: 0.45rem;
+  }
+
+  .proj-board-surface > .proj-disclosure .proj-disclosure-summary-row {
+    min-height: var(--touch-target);
   }
 
   .table-toolbar .table-meta-movement {

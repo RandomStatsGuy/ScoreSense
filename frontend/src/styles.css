@@ -12617,6 +12617,14 @@ td.col-rank.col-rank-top {
   gap: 0;
 }
 
+.table-toolbar--weekly-mobile {
+  margin-bottom: 0.35rem;
+}
+
+.table-toolbar--weekly-mobile .table-meta {
+  display: none;
+}
+
 .mobile-player-card-header {
   display: flex;
   align-items: flex-start;
@@ -12624,6 +12632,7 @@ td.col-rank.col-rank-top {
   gap: 0.65rem;
   flex: 1 1 auto;
   min-width: 0;
+  min-height: 6.35rem;
   width: auto;
   padding: 0.65rem 0.55rem 0.65rem 0.75rem;
   border: none;
@@ -12707,7 +12716,7 @@ td.col-rank.col-rank-top {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  min-height: 2.15rem;
+  min-height: 2.55rem;
   font-size: var(--text-xs);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
@@ -12724,7 +12733,7 @@ td.col-rank.col-rank-top {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  min-height: 1.15rem;
+  min-height: 1.35rem;
 }
 
 .mobile-player-card-floor-ceil-label {
