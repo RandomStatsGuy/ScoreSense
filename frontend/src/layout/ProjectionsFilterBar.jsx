@@ -243,12 +243,6 @@ export function ProjectionsFilterControls({
           </>
         ) : null}
       </div>
-
-      {isSheet ? (
-        <p className="mobile-filter-scoring-note chart-note" title="ScoreSense weekly model is trained on PPR scoring">
-          Scoring: PPR
-        </p>
-      ) : null}
     </>
   );
 }

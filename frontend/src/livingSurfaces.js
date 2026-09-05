@@ -243,7 +243,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/ProjectionBoardChrome.jsx",
       "frontend/src/styles/projections-experience.css",
     ],
-    doNot: "Projections are a board. Do not wrap them in HubExperienceLayout. Weekly compare is a mode — no always-on checkboxes. Weekly rows match QB/WR/TE: no opportunity/role/commentary chips on the board. One compact injury chip only. Phone rows are dense ranking rows; Compare is one toolbar control, never a per-card checkbox. Null prior rank is New, not 0. ATTENTION is a filter chip. Injury context hides while loading and timestamps when ready.",
+    doNot: "Projections are a board. Do not wrap them in HubExperienceLayout. Weekly compare is a mode — no always-on checkboxes. Weekly rows match QB/WR/TE: no opportunity/role/commentary chips on the board. One compact injury chip only. Phone rows are dense ranking rows; Compare is one toolbar control, never a per-card checkbox. Null prior rank is New, not 0. Phone weekly: swipeable signals, no body movement chips, sticky position+filter+count, windowed list, stale chip is refresh with relative time. Filter sheet owns search/what-changed with Apply/Reset. No per-card Floor–Ceiling label. Injury context hides while loading and timestamps when ready.",
   }),
   "projections.season": S({
     label: "Season",

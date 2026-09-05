@@ -1,21 +1,32 @@
 import React from "react";
-import { BOARD_COPY } from "./projectionsPresentation";
+import { BOARD_COPY, compactSignalName } from "./projectionsPresentation";
 import { usePlayerCardOptional } from "./PlayerCardContext";
 
-export function ProjectionBoardSignals({ signals = [], playerParams = null, onActivate }) {
+export function ProjectionBoardSignals({
+  signals = [],
+  playerParams = null,
+  onActivate,
+  swipe = false,
+}) {
   const card = usePlayerCardOptional();
   if (!signals.length) return null;
   return (
-    <div className="proj-signals" role="list" aria-label="Board signals">
+    <div
+      className={`proj-signals${swipe ? " proj-signals--swipe" : ""}`}
+      role="list"
+      aria-label="Board signals"
+    >
       {signals.map((signal) => {
         const clickable = Boolean(onActivate || (signal.playerId && card));
         const Tag = clickable ? "button" : "div";
+        const name = swipe ? compactSignalName(signal.name) : signal.name;
         return (
           <Tag
             key={signal.id}
             type={clickable ? "button" : undefined}
             role="listitem"
             className={`proj-signal${signal.tone ? ` proj-signal--${signal.tone}` : ""}${clickable ? " proj-signal--open" : ""}`}
+            title={swipe && name !== signal.name ? signal.name : undefined}
             onClick={clickable ? () => {
               if (onActivate) {
                 onActivate(signal);
@@ -32,7 +43,7 @@ export function ProjectionBoardSignals({ signals = [], playerParams = null, onAc
             } : undefined}
           >
             <p className="proj-signal-kicker">{signal.kicker}</p>
-            <p className="proj-signal-name">{signal.name}</p>
+            <p className="proj-signal-name">{name}</p>
             <p className="proj-signal-value">{signal.value}</p>
           </Tag>
         );

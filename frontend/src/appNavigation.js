@@ -1,5 +1,5 @@
 export const APP_SECTIONS = [
-  { id: "projections", label: "Projections", shortLabel: "Proj" },
+  { id: "projections", label: "Projections", shortLabel: "Projections" },
   { id: "hub", label: "Fantasy", shortLabel: "Fantasy" },
   { id: "tools", label: "Tools", shortLabel: "Tools" },
 ];

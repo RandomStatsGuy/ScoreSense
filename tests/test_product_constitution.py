@@ -153,7 +153,10 @@ def test_css_type_never_drops_below_text_xs() -> None:
             match = pat.search(line)
             if match and float(match.group(1)) < 0.72:
                 offenders.append(f"{path.relative_to(ROOT)}:{lineno}:{match.group(1)}")
-    assert not offenders, "type below --text-xs (0.72rem):\n" + "\n".join(offenders[:30])
+    assert not offenders, "type below previous --text-xs floor (0.72rem):\n" + "\n".join(offenders[:30])
+    tokens = _read("frontend", "src", "styles", "tokens.css")
+    assert "--text-xs: 0.75rem" in tokens
+    assert "12px" in _read("docs", "PRODUCT.md")
     rhythm = _read("frontend", "src", "styles", "product-rhythm.css")
     main = _read("frontend", "src", "main.jsx")
     assert "--inset-chip" in rhythm
@@ -179,6 +182,9 @@ def test_constitution_covers_weekly_board_chrome() -> None:
     assert "compare" in core_rule.lower()
     assert "dense ranking rows" in product
     assert "checkbox on every card" in product
+    assert "swipeable" in product
+    assert "windowed" in product
+    assert "sticky bar" in product
 
 def test_constitution_bans_hub_ppr_in_ui() -> None:
     product = _read("docs", "PRODUCT.md")

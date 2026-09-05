@@ -21,7 +21,12 @@ import useMobileLayout from "./useMobileLayout";
 import usePlayersContext from "./usePlayersContext";
 import MobileDataList, { MobileStat } from "./MobileDataList";
 import MobilePlayerCard from "./MobilePlayerCard";
+import WindowedList from "./WindowedList";
 import PlayerCell, { usePlayerMedia } from "./PlayerCell";
+import {
+  filterWeeklyBoardRows,
+  weeklyResultLabel,
+} from "./weeklyBoardFilter";
 import { usePlayerCardOptional } from "./PlayerCardContext";
 import {
   MOVEMENT_FILTERS,
@@ -29,8 +34,6 @@ import {
   formatRankMove,
   hasMovement,
   isLeftSlate,
-  matchesMovementFilter,
-  mergeRowsForMovementFilter,
   movementEmptyMessage,
   movementSortScore,
   rowMovementTone,
@@ -42,6 +45,7 @@ import {
 import {
   BOARD_COPY,
   positionShort,
+  staleRefreshLabel,
   weeklyBoardPreview,
   weeklyPeerStats,
   weeklyRowClickIntent,
@@ -202,9 +206,9 @@ function WhyToggleButton({ playerName, expanded, onToggle }) {
       }}
       aria-expanded={expanded}
       aria-label={`Why this projection for ${playerName || "player"}`}
-      title="Why this projection?"
+      title={BOARD_COPY.why}
     >
-      Why?
+      {BOARD_COPY.why}
     </button>
   );
 }
@@ -454,6 +458,9 @@ export default function WeeklyTable({
   hideMovementFilters = false,
   attentionPlayerIds = null,
   onOpenPlayer,
+  onRefreshData,
+  dataRefreshLoading = false,
+  onContextMeta,
 }) {
   const [sort, toggleSort] = useTableSort({ column: "P50", dir: "desc" });
   const [whyPlayerId, setWhyPlayerId] = useState(null);
@@ -517,37 +524,26 @@ export default function WeeklyTable({
   const emptyColSpan = 7 + (showOpponent ? 1 : 0);
   const unavailableColSpan = 4;
 
-  const filtered = useMemo(() => {
-    let list = rows || [];
-    const q = (search || "").trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (r) =>
-          String(r.Player || "").toLowerCase().includes(q) ||
-          String(r.Team || "").toLowerCase().includes(q),
-      );
-    }
-    if (teamsFilter?.length) {
-      const set = new Set(teamsFilter.map((t) => t.toUpperCase()));
-      list = list.filter((r) => set.has(String(r.Team || "").toUpperCase()));
-    }
-    if (showFilters && movementFilter && movementFilter !== "all") {
-      list = list.filter((r) => matchesMovementFilter(r, movementFilter, { attentionIds: attentionPlayerIds }));
-      list = mergeRowsForMovementFilter(list, leftSlateRows, movementFilter);
-      if (q) {
-        list = list.filter(
-          (r) =>
-            String(r.Player || "").toLowerCase().includes(q) ||
-            String(r.Team || "").toLowerCase().includes(q),
-        );
-      }
-      if (teamsFilter?.length) {
-        const set = new Set(teamsFilter.map((t) => t.toUpperCase()));
-        list = list.filter((r) => set.has(String(r.Team || "").toUpperCase()));
-      }
-    }
-    return list;
-  }, [rows, search, teamsFilter, showFilters, movementFilter, leftSlateRows, attentionPlayerIds]);
+  const filtered = useMemo(
+    () => filterWeeklyBoardRows(rows, {
+      search,
+      teamsFilter,
+      movementFilter,
+      showFilters,
+      leftSlateRows,
+      attentionPlayerIds,
+    }),
+    [rows, search, teamsFilter, showFilters, movementFilter, leftSlateRows, attentionPlayerIds],
+  );
+
+  useEffect(() => {
+    if (!onContextMeta) return undefined;
+    onContextMeta({
+      stale: Boolean(playersContext.meta?.stale),
+      updatedAt: playersContext.meta?.updated_at || null,
+    });
+    return undefined;
+  }, [onContextMeta, playersContext.meta?.stale, playersContext.meta?.updated_at]);
 
   const scaleMax = useMemo(() => {
     const slate = rows || [];
@@ -638,19 +634,18 @@ export default function WeeklyTable({
           : "No players match your search or team filters."
         : "No projections available for this week.";
 
-  const resultLabel =
-    selectedCount > 0
-      ? `${sorted.length} result${sorted.length === 1 ? "" : "s"} · ${selectedCount} selected`
-      : `${sorted.length} player${sorted.length === 1 ? "" : "s"}`;
+  const resultLabel = weeklyResultLabel(sorted.length, selectedCount);
 
   return (
     <>
+      {searchSlot || !mobileLayout ? (
       <div className="table-controls">
         {searchSlot}
         {!mobileLayout && (
           <ExportCsvButton onExport={() => exportCsv(sorted)} disabled={!sorted.length} />
         )}
       </div>
+      ) : null}
       {showFilters && !hideMovementFilters ? (
         <div
           className="proj-move-filter"
@@ -686,10 +681,28 @@ export default function WeeklyTable({
             {`Injury context · ${(formatRelativeTime(playersContext.meta.updated_at) || "").replace(/^Updated /, "")}`}
           </span>
         ) : null}
-        {playersContext.meta?.stale ? (
-          <span className="table-meta table-meta-context-stale" role="status">
-            Context snapshot stale
-          </span>
+        {!mobileLayout && playersContext.meta?.stale ? (
+          onRefreshData ? (
+            <button
+              type="button"
+              className="table-meta table-meta-context-stale table-meta-context-stale--action"
+              onClick={onRefreshData}
+              disabled={dataRefreshLoading}
+            >
+              {staleRefreshLabel({
+                stale: true,
+                updatedAt: playersContext.meta?.updated_at,
+                refreshing: dataRefreshLoading,
+              })}
+            </button>
+          ) : (
+            <span className="table-meta table-meta-context-stale" role="status">
+              {staleRefreshLabel({
+                stale: true,
+                updatedAt: playersContext.meta?.updated_at,
+              })}
+            </span>
+          )
         ) : null}
         {!mobileLayout ? (
           <span className="table-meta range-scale-legend range-scale-legend--toolbar" aria-hidden="true">
@@ -774,7 +787,9 @@ export default function WeeklyTable({
           emptyMessage={!loading && sorted.length === 0 ? emptyMessage : null}
           onEmptyAction={hasFilters && sorted.length === 0 ? onClearFilters : undefined}
         >
-          {sorted.map((row, rowIndex) => {
+          <WindowedList
+            items={sorted}
+            renderItem={(row, rowIndex) => {
             const status = row["Injury Status"] || "";
             const leftSlate = isLeftSlate(row);
             const unavailable = !leftSlate && isPlayerUnavailable(status);
@@ -847,24 +862,31 @@ export default function WeeklyTable({
                 meta={metaNode}
                 heroValue={leftSlate ? "—" : unavailable ? tag : fmtNum(row["Projected Points"], 1)}
                 heroLabel={leftSlate || unavailable ? "" : "Proj"}
+                hideHeroSubWhenOpen
+                reserveHeroSub
                 heroSub={leftSlate ? (
-                  showMovement || showFilters ? (
-                    <span className="mobile-player-card-move">
-                      <MovementInline row={row} position={position} compact />
-                    </span>
-                  ) : (
-                    <span className="muted">Left this week&apos;s slate</span>
-                  )
-                ) : unavailable ? null : (
-                  <>
-                    <span className="sr-only">Floor to ceiling </span>
-                    {fmtNum(p10, 1)}–{fmtNum(p90, 1)}
-                    <span className="mobile-player-card-floor-ceil-label" aria-hidden="true">Floor–Ceiling</span>
-                    {showMovement && hasMovement(row) ? (
+                  <span className="mobile-player-card-move-slot">
+                    {showMovement || showFilters ? (
                       <span className="mobile-player-card-move">
                         <MovementInline row={row} position={position} compact />
                       </span>
-                    ) : null}
+                    ) : (
+                      <span className="muted">Left this week&apos;s slate</span>
+                    )}
+                  </span>
+                ) : unavailable ? (
+                  <span className="mobile-player-card-move-slot" aria-hidden="true" />
+                ) : (
+                  <>
+                    <span className="sr-only">Floor to ceiling </span>
+                    {fmtNum(p10, 1)}–{fmtNum(p90, 1)}
+                    <span className="mobile-player-card-move-slot">
+                      {showMovement && hasMovement(row) ? (
+                        <span className="mobile-player-card-move">
+                          <MovementInline row={row} position={position} compact />
+                        </span>
+                      ) : null}
+                    </span>
                   </>
                 )}
                 heroMuted={unavailable || leftSlate}
@@ -894,7 +916,7 @@ export default function WeeklyTable({
                         });
                       }}
                     >
-                      Details
+                      {BOARD_COPY.details}
                     </button>
                   ) : null
                 }
@@ -925,7 +947,7 @@ export default function WeeklyTable({
                             });
                           }}
                         >
-                          Details
+                          {BOARD_COPY.details}
                         </button>
                       ) : null}
                       <WhyToggleButton
@@ -1001,7 +1023,8 @@ export default function WeeklyTable({
                 )}
               />
             );
-          })}
+          }}
+          />
         </MobileDataList>
       ) : (
       <div className={`table-wrap table-sticky table-has-rank${compareSelecting ? " table-is-comparing" : ""}${showFilters ? " table-has-movement" : ""}`}>
