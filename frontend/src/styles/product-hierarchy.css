@@ -930,10 +930,10 @@
 .mock-draft-experience-toggle button {
   min-width: 0;
   padding: 0.55rem 0.62rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: 11px;
-  background: var(--experience-surface);
-  color: var(--text-secondary);
+  background: var(--experience-surface-strong);
+  color: var(--text-primary);
   text-align: left;
 }
 
@@ -1299,8 +1299,9 @@
   background: var(--experience-surface);
 }
 
-.dfs-pool-section tbody tr.is-in-lineup td {
-  background: var(--experience-blue-soft);
+.dfs-pool-section .table-sticky tbody tr.is-in-lineup td {
+  background: color-mix(in srgb, var(--experience-blue) 20%, #0f172a);
+  box-shadow: inset 3px 0 0 var(--experience-blue);
 }
 
 .dfs-in-lineup {
