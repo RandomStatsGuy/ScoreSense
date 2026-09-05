@@ -549,7 +549,7 @@ export default function LeagueContextBanner({
             {onCreateLeague ? (
               <button
                 type="button"
-                className="btn-ghost btn-sm"
+                className="btn-link hub-league-switcher-create"
                 onClick={onCreateLeague}
                 disabled={busy}
               >
