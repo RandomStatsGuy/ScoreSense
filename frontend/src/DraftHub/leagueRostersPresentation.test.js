@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   DEALS_VIEW,
   ROSTERS_COPY,
+  activeRoster,
   contractGradeLabel,
   contractGradeText,
   dealCounts,
@@ -60,6 +61,21 @@ test("expire chips are status, never a question", () => {
 test("joinFacts drops empty sides so a middot cannot float", () => {
   assert.equal(joinFacts(["$13 free", "", "2 expiring"]), "$13 free · 2 expiring");
   assert.equal(joinFacts([null, "Fair"]), "Fair");
+});
+
+test("active roster and deal rows skip null entries so windowing cannot crash", () => {
+  const roster = [
+    null,
+    { player_id: "1", player_name: "Metcalf", contract_grade: "bad", value_delta: 6 },
+    undefined,
+    { player_id: "2", player_name: "Taxi", roster_status: "taxi", contract_grade: "good", value_delta: -2 },
+  ];
+  assert.deepEqual(
+    activeRoster({ roster }).map((r) => r.player_id),
+    ["1"],
+  );
+  const rows = leagueDealRows([{ team: { id: "a", owner_name: "Ada" }, roster }]);
+  assert.deepEqual(rows.map((r) => r.player_name), ["Metcalf"]);
 });
 
 test("league deal list is Overpay and Bargain sorted by absolute delta", () => {

@@ -79,8 +79,9 @@ export function resolveLeagueHomeFocus({ actions = [], primaryCta, defaultView, 
 }
 
 export function supportingLeagueHomeActions(actions = [], focus) {
-  if (!focus?.action) return actions;
-  return actions.filter((action) => action !== focus.action);
+  const list = (actions || []).filter(Boolean);
+  if (!focus?.action) return list;
+  return list.filter((action) => action !== focus.action);
 }
 
 export function phaseTrackState(phaseId) {

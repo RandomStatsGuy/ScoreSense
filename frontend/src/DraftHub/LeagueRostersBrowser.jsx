@@ -167,7 +167,10 @@ export default function LeagueRostersBrowser({
     () => (dealsView ? dealRows : activeRoster(block)),
     [dealsView, dealRows, block],
   );
-  const rosterList = roster || [];
+  const rosterList = useMemo(
+    () => (roster || []).filter(Boolean),
+    [roster],
+  );
   const playerIds = useMemo(() => rosterList.map((r) => r.player_id).filter(Boolean), [rosterList]);
   const windowed = !mobileLayout && rosterList.length > 24;
   const { rootRef, range } = usePageWindowedRows(rosterList.length, {

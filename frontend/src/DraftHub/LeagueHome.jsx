@@ -65,9 +65,10 @@ function fmtCap(value) {
 }
 
 function ActionRow({ action, onNavigate }) {
-  const href = HUB_ACTION_VIEWS.has(action?.href) ? action.href : null;
+  if (!action) return null;
+  const href = HUB_ACTION_VIEWS.has(action.href) ? action.href : null;
   return (
-    <li className={`hub-home-action hub-home-action--${severityVariant(action?.severity)}`}>
+    <li className={`hub-home-action hub-home-action--${severityVariant(action.severity)}`}>
       <div className="hub-home-action-main">
         <p className="hub-home-action-message">{homeAlsoDueMessage(action)}</p>
         {action.count != null && action.id !== "expiring_contracts" && (

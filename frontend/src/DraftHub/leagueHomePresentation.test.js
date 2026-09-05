@@ -60,6 +60,11 @@ test("supporting actions omit the item already promoted into the hero", () => {
   assert.deepEqual(supportingLeagueHomeActions([first, second], focus), [second]);
 });
 
+test("supporting actions drop null entries so Also due cannot crash", () => {
+  const first = { id: "cap_overage", href: "planner" };
+  assert.deepEqual(supportingLeagueHomeActions([null, first, undefined], { action: null }), [first]);
+});
+
 test("phase track marks exactly one current phase", () => {
   const track = phaseTrackState("live_draft");
   assert.equal(track.filter((item) => item.current).length, 1);

@@ -100,7 +100,7 @@ export function yearsLeftLabel(row) {
 }
 
 export function activeRoster(block) {
-  return (block?.roster || []).filter((r) => String(r.roster_status || "active") === "active");
+  return (block?.roster || []).filter((r) => r && String(r.roster_status || "active") === "active");
 }
 
 export function managerDealFacts(block) {
