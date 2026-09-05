@@ -2,7 +2,6 @@
 
 Product, brand, and design: **`docs/PRODUCT.md`**. Always-applied agent rules: `.cursor/rules/scoresense-core.mdc`. Do not wait for the user to restate them.
 User corrections: `.cursor/rules/correction-capture.mdc` (classify + persist). Frequency-scoped catalog: `.cursor/rules/learned-rules.mdc`.
-Living UI: resolve `frontend/src/livingSurfaces.js` and match that page before changing chrome.
 
 ## Git branching (STRICT — non-negotiable)
 

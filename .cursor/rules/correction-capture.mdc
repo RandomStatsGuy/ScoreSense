@@ -7,17 +7,6 @@ alwaysApply: true
 
 When the user corrects behavior, taste, naming, process, or a product decision — including “don’t”, “never”, “always”, “usually”, “stop”, “instead”, “we don’t”, “not like that” — do this **in the same turn**. Do not wait to be asked.
 
-1. Read `.cursor/skills/capture-correction/SKILL.md` and follow it.
-2. Decide **persist**, **skip**, or **ask**. Set frequency to exactly one of: `always` | `never` | `usually` | `rarely`.
-3. Apply that decision for the rest of this turn at that frequency.
-4. If persist: write one line where later agents will see it. Say what you wrote.
-
-Reply with one of:
-
-- **Captured:** `{freq}` · `{scope}` · {one-line rule}
-- **Not a rule:** {why} — applied this turn only
-- **Need a call:** {one question}
-
-Do not add a rule that duplicates `docs/PRODUCT.md` or an existing `.mdc` line. Strengthen or retarget the existing line instead.
+Read `.cursor/skills/capture-correction/SKILL.md` and follow it. Classify with `always` | `never` | `usually` | `rarely`.
 
 `docs/PRODUCT.md` still wins on product, brand, and design.

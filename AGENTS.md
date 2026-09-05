@@ -5,7 +5,7 @@
 > Global AI rules: `.cursor/rules/scoresense-core.mdc` (always applied).
 > File-specific: `.cursor/rules/frontend-draft-hub.mdc`, `.cursor/rules/draft-hub-performance.mdc`, `.cursor/rules/ml-projections.mdc`.
 > Corrections: `.cursor/rules/correction-capture.mdc` + `.cursor/skills/capture-correction/SKILL.md`. Catalog: `.cursor/rules/learned-rules.mdc`.
-> Living UI: `frontend/src/livingSurfaces.js` + `.cursor/rules/living-surfaces.mdc` + `.cursor/skills/match-living-surface/SKILL.md`.
+> Living UI: `frontend/src/livingSurfaces.js` + `.cursor/skills/match-living-surface/SKILL.md`. Reply **Matching:** `{id}` · `{page}` before UI edits.
 > Repo skills: `.cursor/skills/run-tests/SKILL.md`, `.cursor/skills/fast-ui-mock/SKILL.md`, `.cursor/skills/verify-fantasy-ui/SKILL.md`, `.cursor/skills/mirror-prod-league/SKILL.md`, `.cursor/skills/start-local-app/SKILL.md`, `.cursor/skills/file-fun-ux-idea/SKILL.md`, `.cursor/skills/add-fantasy-destination/SKILL.md`, `.cursor/skills/add-hub-route/SKILL.md`, `.cursor/skills/add-ui-copy/SKILL.md`, `.cursor/skills/change-league-rules/SKILL.md`, `.cursor/skills/refresh-draft-pool/SKILL.md`.
 > Doc index: [`docs/README.md`](docs/README.md).
 

@@ -5,7 +5,7 @@ description: Look up the shipped page and copy module for a ScoreSense screen an
 
 # Match the living surface
 
-Triggered by `.cursor/rules/living-surfaces.mdc` before UI work. The living file beats a prose description.
+Triggered by `.cursor/rules/scoresense-core.mdc` (Matching checkpoint) before UI work. The living file beats a prose description.
 
 ## 1. Resolve the destination
 
@@ -57,8 +57,6 @@ A chrome correction is a living-surface edit, not a new essay. If you are also r
 When the user rejects the checkpoint (“not the lobby, the live room”, “Strategy, not Free agents”):
 
 1. Resolve the **right** id. Keep working there this turn.
-2. Take the distinctive phrase they used (or the phrase that sent you to the wrong row). Add it to `SURFACE_ALIASES` pointing at the right id. Longer, specific phrases beat short ones (`nominee card` not `draft` if they meant live).
-3. Add a one-line test in `frontend/src/livingSurfaces.test.js` for that phrase.
-4. Reply **Captured:** `always` · `fantasy-ui` · `{phrase}` → `{id}`.
+2. On the **second** miss for the same screen in this conversation, take the distinctive phrase they used (or the phrase that sent you to the wrong row). Add it to `SURFACE_ALIASES` pointing at the right id. Longer, specific phrases beat short ones (`nominee card` not `draft` if they meant live). Add a one-line test in `frontend/src/livingSurfaces.test.js` for that phrase. Reply **Captured:** `always` · `fantasy-ui` · `{phrase}` → `{id}`.
 
-Do this even if they do not say “make it a rule.” A wrong Matching: pick is a durable alias miss.
+Do not grow `SURFACE_ALIASES` on the first miss. A one-off wrong pick is not a durable alias.

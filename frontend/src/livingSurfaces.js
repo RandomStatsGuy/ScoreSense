@@ -134,7 +134,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "experience",
     page: "frontend/src/DraftHub/CapPlanner.jsx",
     copy: "frontend/src/DraftHub/capPlannerPresentation.js",
-    doNot: "Extend CapPlanner and HubExperience*. Do not start a new cap aesthetic.",
+    doNot: "Extend CapPlanner and HubExperience*. The summary-rail primary is the move — a cut or a bid — whose three-season leftover the page shows; the remaining-cap number appears once.",
   }),
   "hub.trades": S({
     label: "Trades",
@@ -197,7 +197,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/HubSetup.jsx",
     also: ["frontend/src/DraftHub/LeagueSetup.jsx"],
     copy: "frontend/src/DraftHub/leagueAccessCopy.js",
-    doNot: "Setup is connections and imports, not a fourth top-level area.",
+    doNot: "Setup is create/join, connections, and imports; it writes no league state. Draft done lives on Roster management · Contracts as a red confirm; draft night lives on Draft.",
   }),
   "tools.dfs": S({
     label: "DFS",
@@ -224,7 +224,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "experience",
     page: "frontend/src/BestBallBoard.jsx",
     copy: "frontend/src/bestBallPresentation.js",
-    doNot: "Reuse HubExperience*. Do not invent a fourth top-level area.",
+    doNot: "Column headers name their basis — positional model rank, and ECR or ADP by its real name, never one labeled as the other; Edge is blank, not 0, when either side is missing. Reuse HubExperience*.",
   }),
   "projections.weekly": S({
     label: "Weekly",
@@ -289,7 +289,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/layout/UserMenu.jsx",
       "frontend/src/layout/MobileMenuSheet.jsx",
     ],
-    doNot: "Account-only side option. Do not add Report a bug to top-level nav or invent a fourth product area. Tickets land on SCORE Jira with labels user-reported and pickup.",
+    doNot: "Account-only side option. Do not add Report a bug to top-level nav or invent a fourth product area.",
   }),
   "account.login": S({
     label: "Sign in",

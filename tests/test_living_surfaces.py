@@ -56,13 +56,14 @@ def _office_ids() -> list[str]:
 
 
 def test_living_surfaces_rule_and_skill_exist() -> None:
-    rule = _read(".cursor", "rules", "living-surfaces.mdc")
+    core = _read(".cursor", "rules", "scoresense-core.mdc")
     skill = _read(".cursor", "skills", "match-living-surface", "SKILL.md")
-    assert "alwaysApply: true" in rule
-    assert "frontend/src/livingSurfaces.js" in rule
-    assert "Matching:" in rule
+    assert not (ROOT / ".cursor" / "rules" / "living-surfaces.mdc").exists()
+    assert "Matching:" in core
+    assert "frontend/src/livingSurfaces.js" in core
     assert "name: match-living-surface" in skill
     assert "resolveLivingSurfaceFromText" in skill
+    assert "second" in skill.lower()
 
 
 def test_every_fantasy_tab_has_a_living_surface() -> None:
@@ -100,11 +101,21 @@ def test_living_surface_paths_exist_and_chrome_is_known() -> None:
         assert (ROOT / rel).is_file(), f"missing {rel}"
 
 
+def test_registry_donots_name_concrete_jobs() -> None:
+    text = _read("frontend", "src", "livingSurfaces.js")
+    assert "ECR or ADP by its real name" in text
+    assert "writes no league state" in text
+    assert "summary-rail primary is the move" in text
+    hub = _read(".cursor", "rules", "frontend-draft-hub.mdc")
+    assert "Rules risk posture" in hub
+
+
 def test_constitution_and_core_point_at_living_surfaces() -> None:
     product = _read("docs", "PRODUCT.md")
     core = _read(".cursor", "rules", "scoresense-core.mdc")
     readme = _read("docs", "README.md")
     assert "livingSurfaces.js" in product
     assert "livingSurfaces.js" in core
+    assert "Matching:" in core
     assert "livingSurfaces.js" in readme
-    assert ".cursor/rules/living-surfaces.mdc" in _read("AGENTS.md")
+    assert "living-surfaces.mdc" not in _read("AGENTS.md")
