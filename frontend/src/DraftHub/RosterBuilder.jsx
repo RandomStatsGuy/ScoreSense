@@ -40,6 +40,7 @@ import TeamStadiumHero from "./TeamStadiumHero";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 import { hubTeamLabel } from "./hubTeamLabel";
 import { PAINT_WIDTH, paintMediaUrl, teamLogoUrl } from "./draftMedia";
+import { sendRosterWrite } from "./rosterWrite";
 
 function posSortKey(position) {
   const pos = normalizeHubPosition(position);
@@ -562,14 +563,10 @@ export default function RosterBuilder({
     setError("");
     setSavedId(null);
     try {
-      const res = await apiFetch("/api/hub/roster", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          player_id: r.player_id,
-          salary: Number.isFinite(nextSal) ? nextSal : curSal,
-          contract_years: Number.isFinite(nextYears) ? nextYears : curYears,
-        }),
+      const res = await sendRosterWrite(apiFetch, {
+        playerId: r.player_id,
+        salary: Number.isFinite(nextSal) ? nextSal : curSal,
+        years: Number.isFinite(nextYears) ? nextYears : curYears,
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       setSavedId(r.player_id);
@@ -590,10 +587,9 @@ export default function RosterBuilder({
     setSavingId(r.player_id);
     setError("");
     try {
-      const res = await apiFetch("/api/hub/roster/contract-type", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ player_id: r.player_id, contract_type: nextType }),
+      const res = await sendRosterWrite(apiFetch, {
+        playerId: r.player_id,
+        contractType: nextType,
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
@@ -633,10 +629,9 @@ export default function RosterBuilder({
       danger: true,
     });
     if (!ok) return;
-    const res = await apiFetch("/api/hub/roster", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ player_id: pid }),
+    const res = await sendRosterWrite(apiFetch, {
+      playerId: pid,
+      drop: true,
     });
     if (!res.ok) setError(await parseApiError(res));
     else {

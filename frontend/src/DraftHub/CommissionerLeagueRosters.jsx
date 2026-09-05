@@ -53,6 +53,7 @@ import {
   buildLiveRosterAddBody,
   isRosterReassignConflict,
 } from "./liveRosterAdd";
+import { sendRosterWrite } from "./rosterWrite";
 
 const POS_ORDER = ["QB", "RB", "WR", "TE"];
 
@@ -1046,34 +1047,16 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
     const remaining = { ...pendingByPlayer };
     try {
       for (const [playerId, change] of Object.entries(pendingByPlayer)) {
-        if (change.contractType && !change.drop) {
-          const res = await apiFetch("/api/hub/roster/contract-type", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ player_id: playerId, contract_type: change.contractType }),
-          });
-          if (!res.ok) throw new Error(await parseApiError(res));
-        }
-        if (!change.drop && (change.salary != null || change.years != null || change.rosterStatus)) {
-          const body = { player_id: playerId, note };
-          if (change.salary != null) body.salary = Number(change.salary);
-          if (change.years != null) body.contract_years = Number(change.years);
-          if (change.rosterStatus) body.roster_status = change.rosterStatus;
-          const res = await apiFetch("/api/hub/roster", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          });
-          if (!res.ok) throw new Error(await parseApiError(res));
-        }
-        if (change.drop) {
-          const res = await apiFetch("/api/hub/roster", {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ player_id: playerId }),
-          });
-          if (!res.ok) throw new Error(await parseApiError(res));
-        }
+        const res = await sendRosterWrite(apiFetch, {
+          playerId,
+          drop: Boolean(change.drop),
+          contractType: change.drop ? undefined : change.contractType,
+          salary: change.drop ? undefined : change.salary,
+          years: change.drop ? undefined : change.years,
+          rosterStatus: change.drop ? undefined : change.rosterStatus,
+          note,
+        });
+        if (!res?.ok) throw new Error(await parseApiError(res));
         delete remaining[playerId];
       }
       setPendingByPlayer({});

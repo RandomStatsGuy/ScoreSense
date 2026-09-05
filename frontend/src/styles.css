@@ -14567,7 +14567,7 @@ td.col-rank.col-rank-top {
   flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.35rem 0.55rem;
+  gap: 0.55rem;
   white-space: nowrap;
   max-width: none;
 }

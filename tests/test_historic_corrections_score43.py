@@ -294,6 +294,48 @@ def test_commissioner_roster_override_requires_reason_and_before_after(hub_db):
         app.dependency_overrides.pop(require_hub_user, None)
 
 
+def test_commissioner_roster_patch_applies_type_and_salary_together(hub_db):
+    lid, _, _, _ = _seed_league_with_historic_and_live(hub_db)
+    storage.set_hub_focus("corr-commish", league_id=lid)
+    client = _client_for("corr-commish")
+    try:
+        res = client.patch(
+            "/api/hub/roster",
+            json={
+                "player_id": "00-0035676",
+                "salary": 18.0,
+                "contract_years": 3,
+                "contract_type": "rookie",
+                "note": "One PATCH for type and cap",
+            },
+        )
+        assert res.status_code == 200, res.text
+        body = res.json()
+        slot = body["slot"]
+        assert float(slot["salary"]) == 18.0
+        assert int(slot["contract_years"]) == 3
+        assert (slot.get("contract") or {}).get("contract_type") == "rookie"
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_commissioner_roster_patch_type_only_does_not_need_a_note(hub_db):
+    lid, _, _, _ = _seed_league_with_historic_and_live(hub_db)
+    storage.set_hub_focus("corr-commish", league_id=lid)
+    client = _client_for("corr-commish")
+    try:
+        res = client.patch(
+            "/api/hub/roster",
+            json={"player_id": "00-0035676", "contract_type": "extension"},
+        )
+        assert res.status_code == 200, res.text
+        body = res.json()
+        assert body.get("saved_contract_type") == "extension"
+        assert (body["slot"].get("contract") or {}).get("contract_type") == "extension"
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+
 def test_forward_preview_helper_matches_by_name(hub_db):
     lid, _, _, row = _seed_league_with_historic_and_live(hub_db)
     preview = build_live_forward_preview(
