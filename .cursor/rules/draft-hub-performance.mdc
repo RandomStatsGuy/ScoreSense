@@ -10,6 +10,7 @@ alwaysApply: false
 - Pool vs overlay: `build_draft_pool_payload()` then `build_value_overlay()` in `value_sheet.py`. Do not recompute the pool per request.
 - Roster/cap reads are DB-only. Sleeper runs on link/sync, or `GET /api/hub/roster?live_sleeper=1` for a one-off pull.
 - `GET /api/hub/home` and `GET /league/{id}/freshness` serve the last-known snapshot (`stale_as_of`) and never parse commissioner workbooks or block on Sleeper. Cap-sheet stale uses file mtimes vs stored `file_fingerprint`. Workbook parse stays on explicit sheet sync.
+- Hub `GET /media/{id}` serves the original unless `?w=` is set. Snap to 48 / 96 / 256, cache the WebP variant next to the file, and never resize on a cache hit. Clients request the painted size — do not ship the studio original for a 22px mark.
 - Scoring history lives in SQLite `sleeper_scoring_cache`. Refresh on league sync or `GET /api/hub/league/{id}/insights?refresh=1`.
 - CPU-heavy work uses `app/process_pool.py`. Do not start a per-route process pool.
 - Secrets and paths go through `src/config.py`, not raw `os.environ` in routes.

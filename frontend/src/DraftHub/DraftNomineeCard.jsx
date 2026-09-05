@@ -8,7 +8,7 @@ import {
   pickHistoricalWeek,
 } from "../mediaContext";
 import { pickFantasyMediaDigest } from "../fantasyMediaDigest";
-import { playerInitials, teamLogoUrl, headshotCandidates } from "./draftMedia";
+import { PAINT_WIDTH, playerInitials, teamLogoUrl, headshotCandidates, paintMediaUrl } from "./draftMedia";
 import DraftDeadlineClock from "./DraftDeadlineClock";
 import { fmtSal } from "./rosterFormat";
 
@@ -63,9 +63,10 @@ function PlayerAvatar({
 }) {
   const [shotIndex, setShotIndex] = useState(0);
   const [logoFailed, setLogoFailed] = useState(false);
-  const shots = headshotCandidates({ headshot_url: headshotUrl, espn_headshot_url: espnHeadshotUrl });
+  const paintWidth = size === "lg" ? PAINT_WIDTH.hero : PAINT_WIDTH.mark;
+  const shots = headshotCandidates({ headshot_url: headshotUrl, espn_headshot_url: espnHeadshotUrl }, [], { width: paintWidth });
   const headshot = shots[shotIndex] || null;
-  const logo = logoOverride || teamLogoUrl(team);
+  const logo = paintMediaUrl(logoOverride, paintWidth) || teamLogoUrl(team, { width: paintWidth });
   const showHeadshot = Boolean(headshot);
   const logoAsMain = !showHeadshot && logo && !logoFailed;
 

@@ -83,7 +83,7 @@ const HUB_PAGE_LABELS = {
   week: "This Week",
   vibes: "Vibes",
   game: "Game center",
-  roster: "My Team",
+  roster: "My team",
   rosters: "Rosters",
   room: "Draft",
   planner: "Cap",

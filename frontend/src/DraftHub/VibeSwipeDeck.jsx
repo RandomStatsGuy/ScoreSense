@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { headshotCandidates, playerInitials, teamLogoUrl } from "./draftMedia";
-import { espnHeadshotUrl, opponentLabel, VIBE_COPY } from "./vibeRankingsPresentation";
-import { auraTone, formatAura, formatPts, readAura, vibeScore } from "./vibeAura";
+import { PAINT_WIDTH, headshotCandidates, paintMediaUrl, playerInitials, teamLogoUrl } from "./draftMedia";
+import { espnHeadshotUrl, opponentLabel, rateHint, VIBE_COPY } from "./vibeRankingsPresentation";
+import { AURA_MAX, AURA_MIN, formatAura, formatPts, formatPtsDelta, readAura, vibeScore } from "./vibeAura";
 import { buildVibeLatest, buildVibeMatchup } from "./vibeMatchup";
 import { buildVibeProfile } from "./vibeProfile";
 
@@ -12,7 +12,7 @@ const FLY_MS = 200;
 
 function cardMedia(player, media) {
   const row = media?.[player.player_id] || {};
-  return headshotCandidates(row, [espnHeadshotUrl(player.espn_id)]);
+  return headshotCandidates(row, [espnHeadshotUrl(player.espn_id)], { width: PAINT_WIDTH.hero });
 }
 
 function MoreArrow({ open }) {
@@ -42,9 +42,11 @@ function VibeCardFace({
   const [shotIndex, setShotIndex] = useState(0);
   const shots = cardMedia(player, media);
   const headshot = shots[shotIndex] || null;
-  const logo = teamLogoUrl(player.team);
-  const tone = auraTone(aura);
+  const logo = paintMediaUrl(teamLogoUrl(player.team), PAINT_WIDTH.hero);
   const vibePts = vibeScore(player, aura);
+  const weekPts = Number(player.p50);
+  const weekDelta = Number.isFinite(weekPts) ? vibePts - weekPts : 0;
+  const auraNow = Math.round(Number.isFinite(Number(aura)) ? Number(aura) : 0);
   const profile = buildVibeProfile(player, media);
   const news = buildVibeLatest(player, latest);
 
@@ -106,6 +108,7 @@ function VibeCardFace({
               onToggleOpen?.();
             }}
           >
+            <span>{VIBE_COPY.moreLabel}</span>
             <MoreArrow open={open} />
           </button>
         ) : null}
@@ -113,22 +116,32 @@ function VibeCardFace({
       <div className="hub-vibes-identity">
         <h3 className="hub-vibes-name">{player.player_name}</h3>
         <p className="hub-vibes-meta">{flags.join(" · ")}</p>
-        <div className="hub-vibes-stats">
+        <div className="hub-vibes-stats" aria-label={VIBE_COPY.weekCompare}>
           <div className="hub-vibes-stat">
             <span>{VIBE_COPY.weekProj}</span>
             <strong>{formatPts(player.p50)}</strong>
           </div>
+          <p className="hub-vibes-week-delta">{formatPtsDelta(weekDelta)}</p>
           <div className="hub-vibes-stat">
             <span>{VIBE_COPY.vibeProj}</span>
             <strong>{formatPts(vibePts)}</strong>
           </div>
-          <div className={`hub-vibes-stat hub-vibes-stat--${tone}`}>
-            <span>{VIBE_COPY.auraLabel}</span>
-            <strong>{formatAura(aura)}</strong>
-          </div>
         </div>
-        <div className={`hub-vibes-aura-bar is-${tone}`} aria-hidden="true">
-          <i style={{ width: `${aura}%` }} />
+        <div className="hub-vibes-aura">
+          <div className="hub-vibes-aura-scale">
+            <span>{VIBE_COPY.auraLabel} {formatAura(aura)}</span>
+            <span>{VIBE_COPY.auraScale}</span>
+          </div>
+          <div
+            className="hub-vibes-aura-bar"
+            role="meter"
+            aria-label={VIBE_COPY.auraMeter}
+            aria-valuemin={AURA_MIN}
+            aria-valuemax={AURA_MAX}
+            aria-valuenow={auraNow}
+          >
+            <i style={{ width: `${(auraNow / AURA_MAX) * 100}%` }} />
+          </div>
         </div>
         {matchup.facts.length ? (
           <dl className="hub-vibes-matchup">
@@ -183,6 +196,7 @@ export default function VibeSwipeDeck({
   onProfileOpen,
   onSwipe,
   disabled = false,
+  coarsePointer = false,
 }) {
   const wrapRef = useRef(null);
   const dragRef = useRef(null);
@@ -330,7 +344,7 @@ export default function VibeSwipeDeck({
       ref={wrapRef}
       className="hub-vibes-deck-wrap"
       aria-live="polite"
-      aria-label={`${front.player_name}. ${VIBE_COPY.swipeHint}`}
+      aria-label={`${front.player_name}. ${rateHint({ coarse: coarsePointer })}`}
     >
       {stacked.map((player, stackIndex) => {
         const isFront = stackIndex === 0;

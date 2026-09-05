@@ -32,12 +32,17 @@ test("My Team roster columns declare a shared header/body layout", () => {
   for (const cls of [
     "hub-roster-col-player",
     "hub-roster-col-pos",
-    "num hub-roster-col-cap",
-    "num hub-roster-col-years",
-    "hub-roster-col-status",
     "hub-roster-actions",
   ]) {
     assert.match(rosterBuilder, new RegExp(`<th[^>]*className="${cls}"`));
+    assert.match(rosterBuilder, new RegExp(`<td[^>]*className="${cls}"`));
+  }
+  for (const cls of [
+    "num hub-roster-col-cap",
+    "num hub-roster-col-years",
+    "hub-roster-col-status",
+  ]) {
+    assert.match(rosterBuilder, new RegExp(`<SortTh[^>]*className="${cls}"`));
     assert.match(rosterBuilder, new RegExp(`<td[^>]*className="${cls}"`));
   }
   assert.match(rosterBuilder, /<th className="hub-roster-actions">Contract<\/th>/);
@@ -59,8 +64,8 @@ test("League Rosters columns declare a shared header/body layout", () => {
     assert.match(rosterBrowser, new RegExp(`<th[^>]*className="${cls}"`));
     assert.match(rosterBrowser, new RegExp(`<td[^>]*className="${cls}"`));
   }
-  assert.match(rosterBrowser, /<th[^>]*className="num hub-roster-col-pts"/);
-  assert.match(rosterBrowser, /<td className="num hub-roster-col-pts">/);
+  assert.doesNotMatch(rosterBrowser, /hub-roster-col-pts/);
+  assert.doesNotMatch(rosterBrowser, /Pts \/\$/);
 });
 
 test("League Rosters player and action cells keep a measured gap", () => {
@@ -68,11 +73,14 @@ test("League Rosters player and action cells keep a measured gap", () => {
   assert.match(playerLine, /display:\s*flex/);
   assert.match(playerLine, /gap:\s*0\.5rem/);
 
-  const expire = block(".hub-roster-player-line .hub-expire-chip");
+  const expire = block(".hub-roster-player-stack .hub-expire-chip");
   assert.match(expire, /margin-left:\s*0/);
 
   const actions = block(".hub-roster-action-group");
   assert.match(actions, /display:\s*inline-flex/);
-  assert.match(actions, /gap:\s*0\.55rem/);
+  assert.match(actions, /flex-wrap:\s*nowrap/);
+  assert.match(actions, /white-space:\s*nowrap/);
+  assert.match(actions, /gap:\s*0\.55rem;/);
+  assert.doesNotMatch(actions, /gap:\s*[\d.]+rem\s+[\d.]+rem/);
   assert.match(rosterBrowser, /className="hub-roster-action-group"/);
 });

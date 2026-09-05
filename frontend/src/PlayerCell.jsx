@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "./auth";
-import { headshotCandidates, lookupPlayerMedia, playerInitials, teamLogoUrl } from "./DraftHub/draftMedia";
+import { PAINT_WIDTH, headshotCandidates, lookupPlayerMedia, paintMediaUrl, playerInitials, teamLogoUrl } from "./DraftHub/draftMedia";
 import { usePlayerCardOptional } from "./PlayerCardContext";
 
 const mediaCache = new Map();
@@ -79,9 +79,10 @@ export default function PlayerCell({
   const playerCard = usePlayerCardOptional();
   const row = lookupPlayerMedia(media, playerId);
   const teamAbbr = (row?.team || team || "").toUpperCase();
-  const shots = headshotCandidates(row);
+  const paintWidth = size === "lg" ? PAINT_WIDTH.mark : PAINT_WIDTH.avatar;
+  const shots = headshotCandidates(row, [], { width: paintWidth });
   const headshot = shots[shotIndex] || null;
-  const logo = row?.team_logo_url || teamLogoUrl(teamAbbr);
+  const logo = paintMediaUrl(row?.team_logo_url, paintWidth) || teamLogoUrl(teamAbbr, { width: paintWidth });
 
   useEffect(() => {
     setShotIndex(0);
@@ -106,19 +107,19 @@ export default function PlayerCell({
 
   const inner = (
     <>
-      <span className="player-cell-avatar" aria-hidden>
+      <span className="player-cell-avatar">
         {headshot ? (
           <img
             className="player-cell-headshot"
             src={headshot}
-            alt=""
+            alt={name || ""}
             loading="lazy"
             onError={() => setShotIndex((index) => index + 1)}
           />
         ) : logo ? (
-          <img className="player-cell-team-logo" src={logo} alt="" loading="lazy" />
+          <img className="player-cell-team-logo" src={logo} alt={name ? `${name} team` : ""} loading="lazy" />
         ) : (
-          <span className="player-cell-initials">{playerInitials(name)}</span>
+          <span className="player-cell-initials" aria-hidden="true">{playerInitials(name)}</span>
         )}
       </span>
       <span className="player-cell-text">

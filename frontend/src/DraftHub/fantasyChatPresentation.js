@@ -83,6 +83,16 @@ export function hideFantasyChatDock({ hidden = false, house = false } = {}) {
   return Boolean(hidden || house);
 }
 
+/** Visible poll stays tight. Hidden tabs back off so Home's "network quiet" is not a 12s chat loop. */
+export const CHAT_POLL_MS = 12_000;
+export const CHAT_POLL_COMPACT_MS = 4_000;
+export const CHAT_POLL_HIDDEN_MS = 60_000;
+
+export function chatPollMs({ compact = false, hidden = false } = {}) {
+  if (hidden) return CHAT_POLL_HIDDEN_MS;
+  return compact ? CHAT_POLL_COMPACT_MS : CHAT_POLL_MS;
+}
+
 export function fantasyChatDockClass({
   open = false,
   dismissed = false,

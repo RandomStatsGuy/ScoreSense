@@ -65,6 +65,7 @@ export default function LeagueContextBanner({
   capSheet = null,
   onNavigate,
   onProjectionsRefresh,
+  onRosterFocus,
   showAttention = true,
   currentView = null,
 }) {
@@ -223,6 +224,15 @@ export default function LeagueContextBanner({
         },
       };
     }
+    if (item.action === "roster-extend") {
+      return {
+        ...withTone,
+        onAction: () => {
+          onRosterFocus?.("extend");
+          if (currentView !== "roster") onNavigate?.("roster");
+        },
+      };
+    }
     if (item.action === "planner") {
       return {
         ...withTone,
@@ -259,7 +269,7 @@ export default function LeagueContextBanner({
 
   if (!inLeague && !hasLeagues) {
     return (
-      <section className="hub-league-context-bar" role="status">
+      <section className="hub-league-context-bar">
         <div className="hub-league-context-top">
           <p className="hub-league-context-line">
             <span className="hub-league-context-name">Solo prep</span>
@@ -527,7 +537,6 @@ export default function LeagueContextBanner({
     return (
       <section
         className="hub-league-context-bar is-compact"
-        role="status"
         aria-busy={busy || freshnessLoading}
       >
         <details className="hub-league-context-caret">
@@ -549,7 +558,7 @@ export default function LeagueContextBanner({
             {onCreateLeague ? (
               <button
                 type="button"
-                className="btn-ghost btn-sm"
+                className="btn-link hub-league-switcher-create"
                 onClick={onCreateLeague}
                 disabled={busy}
               >
@@ -570,7 +579,6 @@ export default function LeagueContextBanner({
   return (
     <section
       className="hub-league-context-bar"
-      role="status"
       aria-busy={busy || freshnessLoading}
     >
       <div className="hub-league-context-top">

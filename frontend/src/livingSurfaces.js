@@ -25,6 +25,7 @@ export const SHARED = Object.freeze({
     "frontend/src/styles/fantasy-phone.css",
   ],
   primitives: "frontend/src/DraftHub/HubUILayout.jsx",
+  // Request painted size via HubMediaImg / identityMediaUrl (?w=48|96|256).
   media: "frontend/src/DraftHub/HubMediaImg.jsx",
   ownerLabel: "frontend/src/DraftHub/hubTeamLabel.js",
   chat: [
@@ -67,7 +68,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "table",
     page: "frontend/src/DraftHub/ValueSheetTable.jsx",
     copy: "frontend/src/DraftHub/acquisitionWindow.js",
-    doNot: "Do not add a second pickup board. Players-tab adds follow the calendar. Suggested bid names scoring and Rules risk posture. Never show Hub in user copy. Pre-draft rows show a Locked chip that says Star queues for the room. Vs cost is — only when the bid is missing; pre-draft the cell is Room after. Mobile cards keep the bid as a muted SUGGESTED value — Star is the one action.",
+    doNot: "Do not add a second pickup board. Players-tab adds follow the calendar. Suggested bid names scoring and Rules risk posture. Never show Hub in user copy. Rows always show Bid or Add; when locked, disable with Adds open after the draft — do not omit the action. Star is Star for draft with a visible starred state. Hide Vs cost until a contract cost exists. Fold tier into the player cell. Desktop virtualizes on page scroll — no nested table scroller. Season pts use a number plus text range. How adds work lives in the acquisition banner. Mobile still shows the disabled Add beside the muted SUGGESTED bid.",
   }),
   "hub.room": S({
     label: "Draft",
@@ -96,7 +97,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/WeeklyCommandCenter.jsx",
     copy: "frontend/src/DraftHub/weekBoard.js",
     also: ["frontend/src/DraftHub/WeekLineupBoard.jsx"],
-    doNot: "Do not fork a second week hero. Extend WeeklyCommandCenter. Hero copy comes from board state: loading, error + Retry, or empty pre-draft with draft night — never No swap worth making over an error. Empty boards use the shared league empty-state (Lock a night / Link Sleeper / Sync league) — not League settings or Rate vibes. Decisions rail says Waiting on roster when there is no roster. Empty starter slots say Empty — never Waiting as a loading chip. Do not render Waiting dashes for eight empty slots on load or error. Inert slots stay flat.",
+    doNot: "Do not fork a second week hero. Extend WeeklyCommandCenter. Hero copy comes from board state: loading, error + Retry, or empty pre-draft with draft night — never No swap worth making over an error. Empty boards use the shared league empty-state (Lock a night / Link Sleeper / Sync league) — not League settings or Rate vibes. Decisions rail says Waiting on roster when there is no roster. Empty starter slots say Empty — never Waiting as a loading chip. Do not render Waiting dashes for eight empty slots on load or error. Inert slots stay flat. Decision count lives in the hero once — not also as Decisions N and a rail headline. Refresh projections sits on the freshness line, not as the decision-panel primary. Swap cards use attention amber with a Start control; wide range is a quiet marker, never a card-wide amber border or primary blue. Reserve the swap-action slot so P50s share a baseline. Empty K/DEF link to Free agents. Bench uses the same cards and spans under the rail. Name the Vibes / VA-projections number. Week uses the Projections stepper.",
   }),
   "hub.vibes": S({
     label: "Vibes",
@@ -110,14 +111,14 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/vibeMatchup.js",
       "frontend/src/styles/vibe-rankings.css",
     ],
-    doNot: "Reuse HubExperience*. Aura is a personal start weight, not a new accent or award gold. Front card is matchup only. Bio and latest news stay behind the info arrow. One swipe per player per calendar day. VA-projections show vibe week, including K and DEF. Do not scrape Wikipedia. Review on This Week stays hidden until a roster exists. Info arrow is neutral, not accent blue.",
+    doNot: "Reuse HubExperience*. Aura is a personal start weight, not a new accent or award gold. Desktop: card left, Vibe ranking and VA-projections right, both in view. Front card is week-vs-vibe, not a giant cutout. Bio is the one noun for the profile control — labeled Bio, neutral, not accent blue. Sit and Start are equal; Undo is a meta control, not a third option. Sit is not amber. One progress readout lives by the card. Week and vibe week compare; aura is a labeled 0–99 meter. One rate per player per calendar day. VA-projections are research; This Week lineup uses the board number. Empty slots say Empty with Find {POS}. Review on This Week stays hidden until a rating exists. Do not scrape Wikipedia. Do not say site board. Do not mention swipe on a pointer desktop.",
   }),
   "hub.game": S({
     label: "Game center",
     chrome: "matchup",
     page: "frontend/src/DraftHub/GameCenter.jsx",
     copy: "frontend/src/DraftHub/gameCenterPresentation.js",
-    doNot: "Game center is a matchup board, not an editorial settings page. Live renders only inside a game window. Empty boards use the shared league empty-state. Unscored placeholder chip is No scores yet — never Waiting. Loading uses a skeleton or Loading chip.",
+    doNot: "Game center is a matchup board, not an editorial settings page. Live renders only inside a game window. Hero names the job (empty lineup cost, then the live score). Pre-draft empty copy is one draft-night sentence to Open draft room — not Link Sleeper or a kickoff wait. Standings share Home's last-season records and stay unranked until a game is played. Do not play last year's Sleeper week as this week's scores. Include the viewer on mobile. Gold only on a claimed trophy. Unscored placeholder chip is No scores yet — never Waiting. Loading uses a skeleton or Loading chip.",
   }),
   "hub.roster": S({
     label: "My team",
@@ -125,48 +126,53 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/RosterBuilder.jsx",
     copy: "frontend/src/DraftHub/rosterPresentation.js",
     also: ["frontend/src/DraftHub/rosterFormat.js"],
-    doNot: "Do not invent a second my-team chrome. List people by owner name. At zero players hide search and position chips and show the shared empty-state. One Contract control per row — history lives in the drawer. Dead cap and if-undone room use rosterFormat.js. Mobile cards do not expand a repeated POS/CAP/YRS/STATUS grid.",
+    doNot: "Do not invent a second my-team chrome. List people by owner name. At zero players hide search and position chips and show the shared empty-state. One Contract control per row — history lives in the drawer. Dead cap and if-undone room use rosterFormat.js and never repeat their field labels. The roster table uses page scroll, not an inner max-height. Cap card leads with leftover for draft. Dead cap is a tooltip or inline · $N dead. Staff-only Remove is gated, confirmed, and separated from Queue extension. Contract dialog moves focus to the heading. Filter chips show counts and disable zeros. Extension eligible vs Expiring use different hues. Locker cards are named controls that open the contract panel. Mobile cards do not expand a repeated POS/CAP/YRS/STATUS grid.",
   }),
   "hub.rosters": S({
     label: "Rosters",
     chrome: "experience",
     page: "frontend/src/DraftHub/LeagueRostersBrowser.jsx",
     copy: "frontend/src/DraftHub/leagueRostersPresentation.js",
-    doNot: "Reuse HubExperienceHero + HubTableCard. Do not fork a roster browser. Franchise headers get Propose trade into Trades · Builder with the partner preselected.",
+    doNot: "Reuse HubExperienceHero + HubExperienceLayout + HubExperienceSummary + HubTableCard. Default is the league-wide Overpay/Bargain list; the manager rail is the drill-down and shows free cap, expiring count, and worst overpay. Ten managers is a picker, not a swipe strip. Franchise headers get Propose trade into Trades · Builder with the partner preselected. Contract judgment is the word alone when the dollar delta is zero. Expire chips say Extendable, never a question. Do not offer Add to trade on contracts that will not survive the next draft. Mobile cards expand into the judgment and actions, not a repeated years/pts grid.",
   }),
   "hub.planner": S({
     label: "Cap",
     chrome: "experience",
     page: "frontend/src/DraftHub/CapPlanner.jsx",
     copy: "frontend/src/DraftHub/capPlannerPresentation.js",
-    doNot: "Extend CapPlanner and HubExperience*. Do not start a new cap aesthetic. The summary-rail primary is the move — a cut or a bid — whose three-season leftover the page shows; League spend is a text link. The remaining-cap number appears once (drop the hero leftover on phone). The move input sits above the fold; do not stack This season leftover three times before the input. Pending-cut and expiring bullets get Undo cut / Contract. Cap sheet rows open the contract drawer or stay flat. Phone spend and sheet are dense vertical rows — no contract carousels. Need-N-more links carry the POS filter to Free agents.",
+    doNot: "Extend CapPlanner and HubExperience*. Do not start a new cap aesthetic. Every leftover, against-cap, and roster figure names what it counts; against-cap is salary plus dead cap and leftover plus against-cap equals the cap. The move leftover (before/after) sits next to the cut and bid controls — do not leave the consequence in the rail only. The summary-rail primary is the move — undo a cut or open the room to spend leftover; League spend is a text link. Hero and At a glance keep the current leftover (drop the hero leftover on phone). Do not use native select; use HubFilterMenu. Roster-min needs are one sentence and one Free agents CTA, not six attention rows. Expires uses amber; extend-to-keep uses the blue option chip. Hide empty future-year columns; do not duplicate next year in a Schedule column. Pending-cut and expiring bullets get Undo cut / Contract. Cap sheet rows open the contract drawer or stay flat. Phone spend and sheet are dense vertical rows — no contract carousels. Need-N-more links carry the POS filter to Free agents.",
   }),
   "hub.trades": S({
     label: "Trades",
     chrome: "experience",
     page: "frontend/src/DraftHub/LeagueTrades.jsx",
     copy: "frontend/src/DraftHub/leagueTradesPresentation.js",
-    doNot: "Wrap Trades in HubExperienceHero. Zero partners swaps the primary to Invite managers on Members. Do not invent a second hero system.",
+    doNot: "Wrap Trades in HubExperienceHero. Zero partners swaps the primary to Invite managers on Members. Do not invent a second hero system. Trades cap line is current roster salary, not My team's {season} committed. Auto-check the package and gate Propose on a pass; put the verdict beside the primary as a live status banner. Partner status is hero text, not a chip CTA. Ideas need chips are starter-thin only.",
   }),
   "hub.rules": S({
     label: "Rules",
     chrome: "rules-center",
     page: "frontend/src/DraftHub/RulesWizard.jsx",
     copy: "frontend/src/DraftHub/rulesPresentation.js",
-    doNot: "Do not invent a parallel rules model. Merge via rulesPresentation.js.",
+    doNot: "Do not invent a parallel rules model. Merge via rulesPresentation.js. Templates confirm and fill the form — they do not save. Draft behavior stays an open section. At a glance names saved vs preview.",
   }),
   "hub.office": S({
     label: "Roster management",
     chrome: "office",
     page: "frontend/src/DraftHub/LeagueOffice.jsx",
-    also: ["frontend/src/DraftHub/hubOfficeTabs.js"],
+    also: [
+      "frontend/src/DraftHub/hubOfficeTabs.js",
+      "frontend/src/DraftHub/insights/AwardTitlesEditor.jsx",
+    ],
     doNot: "Chat is FantasyChatDock plus the Home thread. Not an office pane. Do not add a Chat tab.",
   }),
   "hub.office.current": S({
     label: "Contracts",
     chrome: "office",
     page: "frontend/src/DraftHub/CommissionerLeagueRosters.jsx",
-    doNot: "Staff may override. Players-tab adds may not. Mark draft complete is a red confirm here — not an unlabeled Setup checkbox.",
+    copy: "frontend/src/DraftHub/officeContractsPresentation.js",
+    also: ["frontend/src/DraftHub/insights/AwardTitlesEditor.jsx"],
+    doNot: "Staff may override. Players-tab adds may not. Mark draft complete is a red confirm here — not an unlabeled Setup checkbox. Writes accumulate in a pending-changes tray; Drop executes on save. Extend to keep is teal, Expires — FA is amber, Cut is red. Award names is a Roster management control, not an Insights disclosure.",
   }),
   "hub.office.historic": S({
     label: "Salary sheets",
@@ -186,7 +192,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "office",
     page: "frontend/src/DraftHub/LeagueOffice.jsx",
     copy: "frontend/src/DraftHub/leagueAccessCopy.js",
-    doNot: "Do not invent a second invite or import chrome. Access & imports is the Sleeper link and email-assign only. It does not copy the Draft invite link. The strip owns Sync league.",
+    doNot: "Do not invent a second invite or import chrome. Access & imports is the Sleeper link and email-assign only. It does not copy the Draft invite link. The strip owns Sync league. Collapse the Sleeper league ID form once the league is linked.",
   }),
   "hub.insights": S({
     label: "Insights",
@@ -194,7 +200,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/LeagueInsights.jsx",
     copy: "frontend/src/DraftHub/insights/insightsPresentation.js",
     also: ["frontend/src/DraftHub/insights/InsightsOverview.jsx"],
-    doNot: "Gold is for awards only. Extend InsightsOverview / LeagueInsights. Spend expands the league table by default. Empty spend names when committed dollars appear.",
+    doNot: "Gold is for awards only. Overview sells titles, records, and scoring — not Spend. Rank bars share a fixed track and a field scale, not a zero baseline or the value-label width. Season counts are meta, not chips. Keep the tab strip live and skeleton the three cards — no think scrim. Award names live on Roster management.",
   }),
   "hub.setup": S({
     label: "Setup",
@@ -209,7 +215,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "experience",
     page: "frontend/src/LineupOptimizer.jsx",
     copy: "frontend/src/dfsToolPresentation.js",
-    doNot: "Reuse experience classes and dfsToolPresentation.js. Do not fork a DFS hero. Hero only — do not restate the hero as a sub-nav tagline. Rail is Your lineup · locked · skipped.",
+    doNot: "Reuse experience classes and dfsToolPresentation.js. Do not fork a DFS hero. Hero only — do not restate the hero as a sub-nav tagline. Rail is Your lineup · locked · skipped. Pool table lets the page own vertical scroll and sticks the header. Announce a built lineup and highlight those rows. Exclusive format/goal/stack choices use radiogroup. Lock/Skip names include the player. Amber never marks Highest total.",
   }),
   "tools.mock-draft": S({
     label: "Mock draft",
@@ -220,7 +226,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/DraftSeat.jsx",
       "frontend/src/DraftHub/draftSeat.js",
     ],
-    doNot: "Idle mock uses this launch page. A running mock uses DraftRoom. Seats use DraftSeat (YOU / 2 / 3), the same component as idle Draft.",
+    doNot: "Idle mock uses this launch page. A running mock uses DraftRoom. Seats use DraftSeat (YOU / 2 / 3), the same component as idle Draft. Number every visible step or drop the numerals. Disclosure summaries show a caret. Mode cards describe; the primary carries the verb. Seat marks that are not selectable are labeled as a fact — do not promise sit. One reassurance in the first viewport. When matching league rules, field size follows that league. Recent mocks (last 3) sit on the launch rail.",
   }),
   "tools.mock-draft.live": S({
     label: "Mock draft (live)",
@@ -233,7 +239,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "experience",
     page: "frontend/src/BestBallBoard.jsx",
     copy: "frontend/src/bestBallPresentation.js",
-    doNot: "Reuse HubExperience*. Do not invent a fourth top-level area. Headers name the data (Pos rank, Pos ECR until a real ADP feed); ECR or ADP by its real name, never one labeled as the other. Hide ADP-edge sort when the source is ECR-only. Edge is blank, not 0, when either side is missing. Team abbreviations match Weekly (LAR, not LA).",
+    doNot: "Reuse HubExperience*. Do not invent a fourth top-level area. Leftmost # is monotonic; Pos rank is within position and groups under position headers on that sort. Missing ECR is a No ECR chip and ECR filter, never a dash. Edge names the ±10 threshold in copy; discount is teal, reach is --tone-negative, never amber. Pos / ECR / Sort are labeled menus. Export leads the rail; only With ECR repeats as a number. Page owns scroll and the list is windowed. Headers name the data (Pos rank, Pos ECR as FantasyPros consensus); ECR or ADP by its real name, never one labeled as the other. Hide Edge sort when the source is ECR-only. Edge is blank, not 0, when either side is missing. Show Scoring: PPR. No roadmap notes in user copy. Team abbreviations match Weekly (LAR, not LA).",
   }),
   "projections.weekly": S({
     label: "Weekly",

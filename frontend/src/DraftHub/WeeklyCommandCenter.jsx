@@ -13,6 +13,7 @@ import {
   projectionCoverageRatio,
 } from "./projectionCoverage";
 import WeekLineupBoard from "./WeekLineupBoard";
+import { loadAura, readAura, storageKey, vibeScore } from "./vibeAura";
 import {
   buildStarterSlotPlan,
   fillStarterSlots,
@@ -45,6 +46,7 @@ export default function WeeklyCommandCenter({
   const [selectedBenchId, setSelectedBenchId] = useState("");
   const [lineupBusy, setLineupBusy] = useState(false);
   const [lineupError, setLineupError] = useState("");
+  const [auraById, setAuraById] = useState({});
 
   const load = useCallback(async (signal, { rebuild = false } = {}) => {
     setLoading(true);
@@ -178,6 +180,7 @@ export default function WeeklyCommandCenter({
     headline: summary.headline,
     syncedLabel,
   });
+  const showGameCenter = Boolean(hubContext?.mode === "league" || data?.hub_context?.mode === "league");
   const primary = weekPrimaryAction({
     loading: loading && !data,
     loadFailed,
@@ -186,6 +189,7 @@ export default function WeeklyCommandCenter({
     canSync,
     draftCompleted,
     sleeperStale: canSync && emptyRoster,
+    showGameCenter,
   });
   const canEdit = canEditHubLineup({
     mode: data?.hub_context?.mode || hubContext?.mode,
@@ -193,6 +197,27 @@ export default function WeeklyCommandCenter({
     lineupLocked: meta.lineup_locked,
   });
   const leagueId = data?.hub_context?.league_id || hubContext?.league_id;
+  const sleeperLeagueId = data?.hub_context?.sleeper_league_id || hubContext?.sleeper_league_id || "";
+
+  useEffect(() => {
+    const key = storageKey({
+      leagueId,
+      season: meta.season,
+      week: meta.week,
+    });
+    setAuraById(loadAura(key));
+  }, [leagueId, meta.season, meta.week]);
+
+  const vibeById = useMemo(() => {
+    const map = {};
+    const rated = auraById && typeof auraById === "object" ? auraById : {};
+    for (const player of [...starters, ...bench]) {
+      const id = String(player?.player_id || "");
+      if (!id || !Object.prototype.hasOwnProperty.call(rated, id)) continue;
+      map[id] = vibeScore(player, readAura(rated, id));
+    }
+    return map;
+  }, [auraById, bench, starters]);
 
   const applySwap = useCallback(async (starterId, benchId) => {
     if (!leagueId || !starterId || !benchId) return;
@@ -224,9 +249,9 @@ export default function WeeklyCommandCenter({
     if (primary.kind === "room") return onNavigate?.("room");
     if (primary.kind === "setup") return onNavigate?.("office-access") || onNavigateSetup?.();
     if (primary.kind === "roster") return onNavigate?.("roster");
-    if (primary.kind === "refresh") return load(undefined, { rebuild: true });
+    if (primary.kind === "game") return onNavigate?.("game");
     if (primary.kind === "retry") return load();
-    return load();
+    return undefined;
   };
 
   const overlayActions = (emptyRoster || loadFailed) ? (
@@ -294,6 +319,52 @@ export default function WeeklyCommandCenter({
     </>
   );
 
+  const boardProps = {
+    weekLabel,
+    slots,
+    bench,
+    decisions: poorCoverage ? [] : decisions,
+    wideRanges,
+    projectionChanges: projectionChangeItems,
+    emptyRoster,
+    loadFailed,
+    unlinked,
+    poorCoverage,
+    loading: loading && !data,
+    error: Boolean(error) && !data,
+    coverageCopy,
+    syncedLabel,
+    projectionsBuiltAt: meta.projections_built_at,
+    rosterSyncedAt: sync.sleeper_synced_at,
+    vibeById,
+    weekValue: weekOverride,
+    weekPlaceholder: meta.week != null ? String(meta.week) : "auto",
+    onWeekChange: (week) => setWeekOverride(String(week)),
+    overlayActions: loading && !data ? null : overlayActions,
+    coverageActions,
+    refreshAction: () => load(undefined, { rebuild: true }),
+    refreshing: loading,
+    canEdit: canEdit && !lineupBusy,
+    lineupLocked: Boolean(meta.lineup_locked),
+    sleeperLeagueId,
+    selectedBenchId,
+    onSelectBench: (player) => {
+      const pid = String(player?.player_id || "");
+      setSelectedBenchId((cur) => (cur === pid ? "" : pid));
+    },
+    onSelectSlot: (slot) => {
+      const starterId = slot?.player?.player_id;
+      if (selectedBenchId && starterId) {
+        applySwap(starterId, selectedBenchId);
+      }
+    },
+    onNavigate,
+    onApplyDecision: (decision) => {
+      const ids = decisionSwapIds(decision);
+      if (ids) applySwap(ids.starter_player_id, ids.bench_player_id);
+    },
+  };
+
   return (
     <HubPage className="hub-wcc hub-experience-page">
       <HubExperienceHero
@@ -318,82 +389,32 @@ export default function WeeklyCommandCenter({
             note={railNote}
             action={primary.kind === "strip-sync" ? (
               <p className="hub-experience-summary-note">Use Sync league in the league strip.</p>
-            ) : (
+            ) : primary.kind && primary.kind !== "none" && primary.kind !== "wait" ? (
               <button
                 type="button"
                 className="btn-primary hub-experience-summary-action"
                 onClick={runPrimary}
-                disabled={loading || syncing || primary.kind === "wait"}
+                disabled={loading || syncing}
               >
-                {loading && (primary.kind === "refresh" || primary.kind === "retry")
-                  ? (primary.kind === "retry" ? "Retrying…" : "Refreshing…")
-                  : primary.label}
+                {loading && primary.kind === "retry" ? "Retrying…" : primary.label}
               </button>
-            )}
+            ) : null}
+            status={primary.kind === "game" ? (
+              <p className="hub-experience-summary-note">{WEEK_BOARD_COPY.gameCenterSupport}</p>
+            ) : null}
           />
         )}
+        footer={!emptyRoster && bench.length > 0 ? (
+          <WeekLineupBoard {...boardProps} includeChrome={false} includeStarters={false} />
+        ) : null}
       >
         {error && <div className="error">{error}</div>}
         {syncError && <div className="error">{syncError}</div>}
         {lineupError && <div className="error">{lineupError}</div>}
         {syncMessage && <p className="chart-note hub-wcc-sync-msg">{syncMessage}</p>}
 
-        <WeekLineupBoard
-          weekLabel={weekLabel}
-          slots={slots}
-          bench={bench}
-          decisions={poorCoverage ? [] : decisions}
-          wideRanges={wideRanges}
-          projectionChanges={projectionChangeItems}
-          emptyRoster={emptyRoster}
-          loadFailed={loadFailed}
-          unlinked={unlinked}
-          poorCoverage={poorCoverage}
-          loading={loading && !data}
-          error={Boolean(error) && !data}
-          coverageCopy={coverageCopy}
-          syncedLabel={syncedLabel}
-          projectionsBuiltAt={meta.projections_built_at}
-          weekValue={weekOverride}
-          weekPlaceholder={meta.week != null ? String(meta.week) : "auto"}
-          onWeekChange={(e) => setWeekOverride(e.target.value)}
-          overlayActions={loading && !data ? null : overlayActions}
-          coverageActions={coverageActions}
-          canEdit={canEdit && !lineupBusy}
-          selectedBenchId={selectedBenchId}
-          onSelectBench={(player) => {
-            const pid = String(player?.player_id || "");
-            setSelectedBenchId((cur) => (cur === pid ? "" : pid));
-          }}
-          onSelectSlot={(slot) => {
-            const starterId = slot?.player?.player_id;
-            if (selectedBenchId && starterId) {
-              applySwap(starterId, selectedBenchId);
-            }
-          }}
-          onNavigate={onNavigate}
-          onApplyDecision={(decision) => {
-            const ids = decisionSwapIds(decision);
-            if (ids) applySwap(ids.starter_player_id, ids.bench_player_id);
-          }}
-        />
+        <WeekLineupBoard {...boardProps} includeBench={false} />
 
-        {hubContext?.mode === "league" && (
-          <section className="hub-wcc-gamecenter panel" aria-label="Game center">
-            <div>
-              <h3>The matchup lives in Game center</h3>
-              <p className="chart-note">
-                Live scoring against your opponent, the league scoreboard, week trophies,
-                and reactions.
-              </p>
-            </div>
-            {onNavigate ? (
-              <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("game")}>
-                Open Game center →
-              </button>
-            ) : null}
-          </section>
-        )}
       </HubExperienceLayout>
     </HubPage>
   );

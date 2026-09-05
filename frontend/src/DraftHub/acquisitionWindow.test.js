@@ -1,10 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  PLAYERS_TAB_COPY,
+  playersTabAddDisabledReason,
   playersTabAddLabel,
   playersTabAddMode,
   playersTabBanner,
   playersTabLockedChip,
+  playersTabStarCopy,
   playerTradeableInWindow,
   tradesWindowBanner,
 } from "./acquisitionWindow.js";
@@ -17,7 +20,17 @@ test("league without a window stays locked", () => {
   assert.equal(playersTabAddMode(null, { inLeague: true }), "locked");
   const chip = playersTabLockedChip();
   assert.equal(chip.label, "Locked");
-  assert.match(chip.popover, /Star to queue/i);
+  assert.equal(playersTabAddDisabledReason("locked"), PLAYERS_TAB_COPY.lockedReason);
+  assert.match(chip.popover, /Adds open after the draft/i);
+  assert.equal(playersTabStarCopy(false), "Star for draft");
+  assert.equal(playersTabStarCopy(true), "Starred for draft");
+});
+
+test("free agents copy names the add and the cost of waiting", () => {
+  assert.match(PLAYERS_TAB_COPY.lockedReason, /after the draft/i);
+  assert.match(PLAYERS_TAB_COPY.howAddsBody, /calendar|draft|Bid or Add/i);
+  assert.doesNotMatch(PLAYERS_TAB_COPY.howAddsBody, /Submit|Draft Hub|permission/i);
+  assert.equal(PLAYERS_TAB_COPY.seasonPts, "Season pts");
 });
 
 test("waiver window uses bid copy", () => {

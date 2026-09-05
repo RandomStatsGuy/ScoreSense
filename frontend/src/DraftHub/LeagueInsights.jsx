@@ -333,7 +333,6 @@ export default function LeagueInsights({
   onNavigate,
   activeTab: activeTabProp,
   onActiveTabChange,
-  onWorkspaceSaved,
 }) {
   const [searchParams] = useSearchParams();
   const playerFromUrl = searchParams.get("player") || "";
@@ -429,7 +428,7 @@ export default function LeagueInsights({
     () => ({ capSeasonRef, scoringSeasonRef, historySeasonRef }),
     [],
   );
-  const { load: loadInsights, loadCacheRef, prefetchScoring, resetCache } = useInsightsData(leagueId, insightsRefs);
+  const { load: loadInsights, loadCacheRef, prefetchScoring } = useInsightsData(leagueId, insightsRefs);
   const insightsHandlers = useMemo(() => ({
     setData,
     setLoading,
@@ -903,9 +902,13 @@ export default function LeagueInsights({
           <HubSegmentNav tabs={insightsTabs} active={activeTab} onChange={setActiveTab} ariaLabel="Insights" />
           <InsightsProgress active />
         </div>
-        <HubPage className="hub-spend-page hub-experience-page hub-insights-page">
-          <InsightsSkeleton />
-        </HubPage>
+        {activeTab === "overview" ? (
+          <InsightsOverview loading onOpenTab={setActiveTab} />
+        ) : (
+          <HubPage className="hub-spend-page hub-experience-page hub-insights-page">
+            <InsightsSkeleton />
+          </HubPage>
+        )}
       </div>
     );
   }
@@ -944,14 +947,6 @@ export default function LeagueInsights({
           ownerMap={ownerMap}
           loading={loading || tabLoading}
           onOpenTab={setActiveTab}
-          isCommissioner={isCommissioner}
-          awardCatalog={data?.award_catalog || data?.landing?.award_catalog}
-          currentRules={hubContext?.rules}
-          onRulesSaved={(updated) => {
-            resetCache();
-            onWorkspaceSaved?.(updated);
-            load({ activeTab: "overview", sections: "overview", refresh: true });
-          }}
         />
       )}
 

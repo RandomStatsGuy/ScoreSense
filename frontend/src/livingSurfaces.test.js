@@ -74,6 +74,13 @@ test("text lookup prefers the longest alias and ignores capture vs cap", () => {
   assert.equal(mobileWeekly.page, "frontend/src/WeeklyTable.jsx");
 });
 
+test("contracts pane owns the pending-write copy module", () => {
+  const row = LIVING_SURFACES["hub.office.current"];
+  assert.equal(row.page, "frontend/src/DraftHub/CommissionerLeagueRosters.jsx");
+  assert.equal(row.copy, "frontend/src/DraftHub/officeContractsPresentation.js");
+  assert.match(row.doNot, /pending-changes tray/);
+});
+
 test("file lookup returns the surfaces that own a page", () => {
   const hits = surfacesForFile("frontend/src/DraftHub/ValueSheetTable.jsx");
   assert.deepEqual(hits.map((row) => row.id), ["hub.available"]);

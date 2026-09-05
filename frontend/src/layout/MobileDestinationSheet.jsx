@@ -29,6 +29,8 @@ export default function MobileDestinationSheet({
                 key={item.id}
                 type="button"
                 className={`app-mobile-sheet-item app-mobile-sheet-item-subdued app-mobile-sheet-item--dest${active === item.id ? " active" : ""}`}
+                aria-label={item.label}
+                aria-current={active === item.id ? "page" : undefined}
                 onClick={() => selectAndDismissDestination(item.id, onSelect, onClose)}
               >
                 <span>{item.label}</span>

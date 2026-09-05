@@ -70,6 +70,11 @@ export function liveContractStage(season, { draftCompleted = false, leagueStatus
       phaseLabel: "Draft in progress",
       yearLabel: `${y} season`,
       headline: `Editing ${y} keepers while the auction is live`,
+      draftRules: [
+        `${y} $ is still committed cap in the room and reduces remaining draft budget.`,
+        `Years include ${y}.`,
+        `Completing the draft drops years by 1 and steps veteran/extension salaries.`,
+      ],
       draftImpact: (
         `${y} $ is still committed cap in the room (it reduces remaining draft budget). `
         + `Completing the draft drops years by 1 and steps veteran/extension salaries.`
@@ -99,6 +104,11 @@ export function liveContractStage(season, { draftCompleted = false, leagueStatus
       phaseLabel: "After draft",
       yearLabel: `${y} season`,
       headline: `Editing live ${y} contracts — the ${y} draft year tick already ran`,
+      draftRules: [
+        `Years already dropped for the ${y} draft.`,
+        `Edits change the live ${y} roster.`,
+        `They do not rewind keepers for a future draft — advance the planning season to reopen pre-draft.`,
+      ],
       draftImpact: (
         `Years already dropped for the ${y} draft. Edits change the live ${y} roster. `
         + `They do not rewind keepers for a future draft — advance the planning season to reopen pre-draft.`
@@ -126,10 +136,15 @@ export function liveContractStage(season, { draftCompleted = false, leagueStatus
     phase: LIVE_CONTRACT_PHASE.PRE_DRAFT,
     phaseLabel: "Pre-draft",
     yearLabel: `${y} season`,
-    headline: `Editing ${y} keeper contracts (pre-draft)`,
+    headline: `Editing ${y} keeper contracts`,
+    draftRules: [
+      `${y} $ is committed before the auction and comes off that team's draft budget.`,
+      `Years include ${y} — 1 year left expires to FA at the draft unless extended.`,
+      `Marking the draft complete burns 1 year and steps veteran/extension salaries.`,
+    ],
     draftImpact: (
       `${y} $ is committed before the auction and comes off that team's draft budget. `
-      + `Yrs include ${y} — 1 year left expires to FA at the draft unless extended. `
+      + `Years include ${y} — 1 year left expires to FA at the draft unless extended. `
       + `Marking the draft complete burns 1 year and steps veteran/extension salaries.`
     ),
     capColumn: `${y} cap`,

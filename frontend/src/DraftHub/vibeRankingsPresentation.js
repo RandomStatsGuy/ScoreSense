@@ -1,14 +1,19 @@
 /** User-facing copy and demo slate for Fantasy → Vibes. */
 
+import { WEEK_BOARD_COPY } from "./weekBoard.js";
+import { formatAura, formatPts, formatPtsDelta, readAura, vibeScore } from "./vibeAura.js";
+
 export const VIBE_COPY = Object.freeze({
   eyebrow: "Vibes",
   heading: "Start or sit each name once today.",
-  support: "Start raises a name's aura; sit lowers it. Skip a card and its rank stays the site board.",
+  support: "Start raises a name's aura; sit lowers it. Skip a card and its rank stays the board.",
   chip: "Your read",
   chipDemo: "Demo slate",
   sit: "Sit",
   start: "Start",
   undo: "Undo",
+  undoDisabled: "Nothing to undo yet.",
+  rateGroup: "Rate this name",
   resetDeck: "Reshuffle",
   clearAura: "Clear aura",
   deckProgress: (index, total) => `${Math.min(index + 1, total)} of ${total}`,
@@ -19,12 +24,14 @@ export const VIBE_COPY = Object.freeze({
   loading: "Loading this week's roster…",
   error: "Could not load the week. Try again from This Week.",
   keyboardHint: "← sit · → start · Backspace undo",
-  swipeHint: "Swipe to rate. The arrow opens the profile.",
+  swipeHint: "Swipe to sit or start. Open bio for the latest note.",
+  desktopHint: "Sit or Start. Open bio for the latest note.",
   profileAbout: "About",
   profileLatest: "Latest",
   profileEmptyNews: "No new note this week.",
-  openMore: "Open bio and latest note",
-  closeMore: "Close profile",
+  openMore: "Open bio",
+  closeMore: "Close bio",
+  moreLabel: "Bio",
   matchupSite: "Site",
   matchupWeather: "Weather",
   matchupLine: "Line",
@@ -34,20 +41,24 @@ export const VIBE_COPY = Object.freeze({
   rated: "Today",
   hottest: "Hottest",
   nextAction: "Review on This Week",
-  nextActionDisabled: "Rate someone today to lock VA-projections.",
+  nextActionDisabled: "Rate someone today to take a start to This Week.",
   slateTitle: "VA-projections",
-  slateHint: "Vibe-adjusted week. Aura scales the number. Bye and injured stay out.",
+  slateHint: "Aura scales this table. This Week still starts from the board number.",
   vsModel: "Vibe vs the board",
-  vsModelEmpty: "Your vibes have not moved a start yet.",
+  vsModelEmpty: "Rate a card to move a start. This table stays empty until a vibe disagrees with the board.",
+  vsModelSource: "Compares vibe-adjusted starts to the board's week number.",
+  vsModelSourcePrior: "From earlier aura. You have not rated today.",
   vsYours: "Your vibe",
   vsBoard: "The board",
-  vsModelLine: (start, sit) => `Your vibe starts ${start}. The board starts ${sit}.`,
-  openMoreNamed: (name) => (name ? `Open bio for ${name}` : "Open bio and latest note"),
-  emptyK: "No kicker rostered",
-  emptyDef: "No defense rostered",
+  vsDelta: "Δ",
+  openMoreNamed: (name) => (name ? `Open bio for ${name}` : "Open bio"),
+  emptySlot: "Empty",
   auraLabel: "Aura",
+  auraScale: "0–99",
+  auraMeter: "Aura, 0 to 99",
   weekProj: "Week",
   vibeProj: "Vibe week",
+  weekCompare: "Week vs vibe week",
   opponent: "Opp",
   onBye: "Bye",
   injured: "Out",
@@ -55,7 +66,7 @@ export const VIBE_COPY = Object.freeze({
   stampStart: "Start",
   stampSit: "Sit",
   resultsCta: "Review on This Week",
-  resultsAgain: "Swipe again",
+  resultsAgain: "Rate again",
   lockedToday: "You've read this roster today. Come back tomorrow to nudge again.",
 });
 
@@ -236,7 +247,7 @@ export function heroCopy({ demo = false, empty = false, done = false } = {}) {
     return {
       heading: VIBE_COPY.emptyHeading,
       support: VIBE_COPY.emptySupport,
-      chip: VIBE_COPY.chip,
+      chip: "",
       chipTone: "readonly",
     };
   }
@@ -244,15 +255,15 @@ export function heroCopy({ demo = false, empty = false, done = false } = {}) {
     return {
       heading: VIBE_COPY.deckDoneHeading,
       support: VIBE_COPY.deckDoneSupport,
-      chip: demo ? VIBE_COPY.chipDemo : VIBE_COPY.chip,
-      chipTone: "active",
+      chip: demo ? VIBE_COPY.chipDemo : "",
+      chipTone: "readonly",
     };
   }
   return {
     heading: VIBE_COPY.heading,
     support: VIBE_COPY.support,
-    chip: demo ? VIBE_COPY.chipDemo : VIBE_COPY.chip,
-    chipTone: demo ? "readonly" : "active",
+    chip: demo ? VIBE_COPY.chipDemo : "",
+    chipTone: "readonly",
   };
 }
 
@@ -269,12 +280,55 @@ export const DEMO_VIBE_RULES = Object.freeze({
   },
 });
 
-export function emptySlotName(position) {
-  const pos = String(position || "").toUpperCase();
-  if (pos === "K") return VIBE_COPY.emptyK;
-  if (pos === "DEF") return VIBE_COPY.emptyDef;
-  return "—";
+export function emptySlotName() {
+  return VIBE_COPY.emptySlot;
 }
+
+export function emptySlotCta(position) {
+  const pos = String(position || "").replace(/\d+$/, "").toUpperCase();
+  return WEEK_BOARD_COPY.emptySlot(pos || "player");
+}
+
+export function rateHint({ coarse = false } = {}) {
+  return coarse
+    ? VIBE_COPY.swipeHint
+    : `${VIBE_COPY.desktopHint} ${VIBE_COPY.keyboardHint}`;
+}
+
+export function hottestLabel(leaders) {
+  const list = Array.isArray(leaders) ? leaders : (leaders ? [leaders] : []);
+  const top = list[0];
+  if (!top?.player) return "—";
+  const week = formatPts(top.player.p50);
+  const tied = list[1] && Number(list[1].aura) === Number(top.aura);
+  const base = `${top.player.player_name} · ${formatAura(top.aura)} · ${week} week`;
+  return tied ? `${base} (week tiebreak)` : base;
+}
+
+export function vsSplitRows(pairs, auraById) {
+  return (pairs || []).map((pair) => {
+    const yours = vibeScore(pair.start, readAura(auraById, pair.start?.player_id));
+    const board = Number(pair.sit?.p50);
+    const boardPts = Number.isFinite(board) ? board : 0;
+    return {
+      key: `${pair.start?.player_id || ""}-${pair.sit?.player_id || ""}`,
+      yoursName: pair.start?.player_name || "—",
+      yoursPts: yours,
+      boardName: pair.sit?.player_name || "—",
+      boardPts,
+      delta: yours - boardPts,
+    };
+  });
+}
+
+export function vsModelNote({ ratedToday = 0, pairCount = 0, hasStoredAura = false } = {}) {
+  if (!pairCount) return VIBE_COPY.vsModelEmpty;
+  if (ratedToday === 0 && hasStoredAura) return VIBE_COPY.vsModelSourcePrior;
+  if (ratedToday === 0) return VIBE_COPY.vsModelEmpty;
+  return VIBE_COPY.vsModelSource;
+}
+
+export { formatPtsDelta };
 
 export function opponentLabel(player) {
   const opp = String(player?.opponent || "").replace(/^@/, "").trim();

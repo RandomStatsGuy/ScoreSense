@@ -1,3 +1,5 @@
+export const SKIP_TO_CONTENT = "Skip to content";
+
 export const APP_SECTIONS = [
   { id: "projections", label: "Projections", shortLabel: "Projections" },
   { id: "hub", label: "Fantasy", shortLabel: "Fantasy" },
@@ -48,13 +50,13 @@ export const SECTION_SUBTITLES = {
     vibes: "One start/sit read per player today",
     game: "Your matchup, live",
     roster: "Your contracts and leftover cap",
-    rosters: "Every team's contracts",
+    rosters: "Overpays and cheap years across the league",
     room: "Pick a draft night, then enter the room",
     planner: "What a bid or cut does to leftover cap",
     trades: "Propose a deal and see the cap hit",
     insights: "Who won, who spent, who scored",
     office: "Staff edits to contracts, members, and access",
-    "league-rosters": "Every team's contracts",
+    "league-rosters": "Overpays and cheap years across the league",
   },
   tools: {
     dfs: "",

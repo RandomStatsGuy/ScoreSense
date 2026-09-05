@@ -1,5 +1,6 @@
 import React from "react";
 import { APP_SECTIONS } from "./appNavigation";
+import { interceptAppNav } from "./appNavLink";
 
 function NavIcon({ name }) {
   if (name === "projections") {
@@ -45,23 +46,46 @@ function NavIcon({ name }) {
   );
 }
 
-export default function AppBottomNav({ section, onSectionChange, onMoreOpen }) {
+export default function AppBottomNav({ section, onSectionChange, onMoreOpen, hrefForSection }) {
   return (
     <nav className="app-bottom-nav" aria-label="Main">
-      {APP_SECTIONS.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          className={`app-bottom-nav-item${section === item.id ? " active" : ""}`}
-          aria-current={section === item.id ? "page" : undefined}
-          onClick={() => onSectionChange(item.id)}
-        >
-          <span className="app-bottom-nav-icon">
-            <NavIcon name={item.id} />
-          </span>
-          <span className="app-bottom-nav-label">{item.shortLabel}</span>
-        </button>
-      ))}
+      {APP_SECTIONS.map((item) => {
+        const href = hrefForSection?.(item.id);
+        const className = `app-bottom-nav-item${section === item.id ? " active" : ""}`;
+        const body = (
+          <>
+            <span className="app-bottom-nav-icon">
+              <NavIcon name={item.id} />
+            </span>
+            <span className="app-bottom-nav-label">{item.shortLabel}</span>
+          </>
+        );
+        if (href) {
+          return (
+            <a
+              key={item.id}
+              href={href}
+              className={className}
+              aria-current={section === item.id ? "page" : undefined}
+              aria-label={item.label}
+              onClick={(event) => interceptAppNav(event, () => onSectionChange(item.id))}
+            >
+              {body}
+            </a>
+          );
+        }
+        return (
+          <button
+            key={item.id}
+            type="button"
+            className={className}
+            aria-current={section === item.id ? "page" : undefined}
+            onClick={() => onSectionChange(item.id)}
+          >
+            {body}
+          </button>
+        );
+      })}
       <button
         type="button"
         className={`app-bottom-nav-item${section === "model" || section === "admin" ? " active" : ""}`}
