@@ -92,12 +92,36 @@ export function focusCssVars(focus) {
   };
 }
 
-export function identityMediaUrl(identity, kind) {
-  if (!identity) return null;
-  if (kind === "banner") {
-    return identity.banner_url || (identity.banner_media_id ? `/api/hub/media/${identity.banner_media_id}` : null);
+/** Painted hub-media widths. Snap up to the next bucket so 22px and 84px share one file. */
+export const HUB_MEDIA_WIDTHS = Object.freeze([48, 96, 256]);
+export const HUB_MEDIA_MARK_WIDTH = 96;
+export const HUB_MEDIA_HERO_WIDTH = 256;
+
+export function snapHubMediaWidth(px) {
+  const n = Number(px);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  for (const width of HUB_MEDIA_WIDTHS) {
+    if (n <= width) return width;
   }
-  return identity.photo_url || (identity.photo_media_id ? `/api/hub/media/${identity.photo_media_id}` : null);
+  return HUB_MEDIA_WIDTHS[HUB_MEDIA_WIDTHS.length - 1];
+}
+
+export function withHubMediaWidth(url, width) {
+  if (!url) return url;
+  const snapped = snapHubMediaWidth(width);
+  if (!snapped) return url;
+  const href = String(url);
+  if (!href.includes("/api/hub/media/")) return href;
+  if (/[?&]w=\d+/.test(href)) return href;
+  return `${href}${href.includes("?") ? "&" : "?"}w=${snapped}`;
+}
+
+export function identityMediaUrl(identity, kind, { width } = {}) {
+  if (!identity) return null;
+  const raw = kind === "banner"
+    ? (identity.banner_url || (identity.banner_media_id ? `/api/hub/media/${identity.banner_media_id}` : null))
+    : (identity.photo_url || (identity.photo_media_id ? `/api/hub/media/${identity.photo_media_id}` : null));
+  return withHubMediaWidth(raw, width);
 }
 
 function coerceBool(value, fallback) {

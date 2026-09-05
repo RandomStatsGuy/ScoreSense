@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { lazy, Suspense, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   apiFetch,
@@ -18,8 +18,9 @@ import {
   draftJoinSupport,
   liveDraftMembersOnlyMessage,
 } from "./leagueAccessCopy";
-import DraftRoom from "./DraftRoom";
 import { HubExperienceHero } from "./HubUILayout";
+
+const DraftRoom = lazy(() => import("./DraftRoom"));
 
 export default function LobbyJoinPage() {
   const { roomCode } = useParams();
@@ -103,15 +104,17 @@ export default function LobbyJoinPage() {
   if (leagueId) {
     return (
       <div className="draft-lobby-page">
-        <DraftRoom
-          leagueId={leagueId}
-          toolMode
-          guestMode={!authenticated && Boolean(preview?.test_mode)}
-          toolLabel={preview?.test_mode ? "Mock lobby" : "Draft lobby"}
-          onExitRoom={() => setLeagueId("")}
-          valueRows={[]}
-          season={preview?.season}
-        />
+        <Suspense fallback={<p className="chart-note">Loading draft room…</p>}>
+          <DraftRoom
+            leagueId={leagueId}
+            toolMode
+            guestMode={!authenticated && Boolean(preview?.test_mode)}
+            toolLabel={preview?.test_mode ? "Mock lobby" : "Draft lobby"}
+            onExitRoom={() => setLeagueId("")}
+            valueRows={[]}
+            season={preview?.season}
+          />
+        </Suspense>
       </div>
     );
   }

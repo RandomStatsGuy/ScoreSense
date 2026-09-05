@@ -25,6 +25,7 @@ export const SHARED = Object.freeze({
     "frontend/src/styles/fantasy-phone.css",
   ],
   primitives: "frontend/src/DraftHub/HubUILayout.jsx",
+  // Request painted size via HubMediaImg / identityMediaUrl (?w=48|96|256).
   media: "frontend/src/DraftHub/HubMediaImg.jsx",
   ownerLabel: "frontend/src/DraftHub/hubTeamLabel.js",
   chat: [
@@ -96,7 +97,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/WeeklyCommandCenter.jsx",
     copy: "frontend/src/DraftHub/weekBoard.js",
     also: ["frontend/src/DraftHub/WeekLineupBoard.jsx"],
-    doNot: "Do not fork a second week hero. Extend WeeklyCommandCenter. Hero copy comes from board state: loading, error + Retry, or empty pre-draft with draft night — never No swap worth making over an error. Empty boards use the shared league empty-state (Lock a night / Link Sleeper / Sync league) — not League settings or Rate vibes. Decisions rail says Waiting on roster when there is no roster. Empty starter slots say Empty — never Waiting as a loading chip. Do not render Waiting dashes for eight empty slots on load or error. Inert slots stay flat.",
+    doNot: "Do not fork a second week hero. Extend WeeklyCommandCenter. Hero copy comes from board state: loading, error + Retry, or empty pre-draft with draft night — never No swap worth making over an error. Empty boards use the shared league empty-state (Lock a night / Link Sleeper / Sync league) — not League settings or Rate vibes. Decisions rail says Waiting on roster when there is no roster. Empty starter slots say Empty — never Waiting as a loading chip. Do not render Waiting dashes for eight empty slots on load or error. Inert slots stay flat. Decision count lives in the hero once — not also as Decisions N and a rail headline. Refresh projections sits on the freshness line, not as the decision-panel primary. Swap cards use attention amber with a Start control; wide range is a quiet marker, never a card-wide amber border or primary blue. Reserve the swap-action slot so P50s share a baseline. Empty K/DEF link to Free agents. Bench uses the same cards and spans under the rail. Name the Vibes / VA-projections number. Week uses the Projections stepper.",
   }),
   "hub.vibes": S({
     label: "Vibes",
@@ -139,21 +140,21 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "experience",
     page: "frontend/src/DraftHub/CapPlanner.jsx",
     copy: "frontend/src/DraftHub/capPlannerPresentation.js",
-    doNot: "Extend CapPlanner and HubExperience*. Do not start a new cap aesthetic. The summary-rail primary is the move — a cut or a bid — whose three-season leftover the page shows; League spend is a text link. The remaining-cap number appears once (drop the hero leftover on phone). The move input sits above the fold; do not stack This season leftover three times before the input. Pending-cut and expiring bullets get Undo cut / Contract. Cap sheet rows open the contract drawer or stay flat. Phone spend and sheet are dense vertical rows — no contract carousels. Need-N-more links carry the POS filter to Free agents.",
+    doNot: "Extend CapPlanner and HubExperience*. Do not start a new cap aesthetic. Every leftover, against-cap, and roster figure names what it counts; against-cap is salary plus dead cap and leftover plus against-cap equals the cap. The move leftover (before/after) sits next to the cut and bid controls — do not leave the consequence in the rail only. The summary-rail primary is the move — undo a cut or open the room to spend leftover; League spend is a text link. Hero and At a glance keep the current leftover (drop the hero leftover on phone). Do not use native select; use HubFilterMenu. Roster-min needs are one sentence and one Free agents CTA, not six attention rows. Expires uses amber; extend-to-keep uses the blue option chip. Hide empty future-year columns; do not duplicate next year in a Schedule column. Pending-cut and expiring bullets get Undo cut / Contract. Cap sheet rows open the contract drawer or stay flat. Phone spend and sheet are dense vertical rows — no contract carousels. Need-N-more links carry the POS filter to Free agents.",
   }),
   "hub.trades": S({
     label: "Trades",
     chrome: "experience",
     page: "frontend/src/DraftHub/LeagueTrades.jsx",
     copy: "frontend/src/DraftHub/leagueTradesPresentation.js",
-    doNot: "Wrap Trades in HubExperienceHero. Zero partners swaps the primary to Invite managers on Members. Do not invent a second hero system.",
+    doNot: "Wrap Trades in HubExperienceHero. Zero partners swaps the primary to Invite managers on Members. Do not invent a second hero system. Trades cap line is current roster salary, not My team's {season} committed. Auto-check the package and gate Propose on a pass; put the verdict beside the primary as a live status banner. Partner status is hero text, not a chip CTA. Ideas need chips are starter-thin only.",
   }),
   "hub.rules": S({
     label: "Rules",
     chrome: "rules-center",
     page: "frontend/src/DraftHub/RulesWizard.jsx",
     copy: "frontend/src/DraftHub/rulesPresentation.js",
-    doNot: "Do not invent a parallel rules model. Merge via rulesPresentation.js.",
+    doNot: "Do not invent a parallel rules model. Merge via rulesPresentation.js. Templates confirm and fill the form — they do not save. Draft behavior stays an open section. At a glance names saved vs preview.",
   }),
   "hub.office": S({
     label: "Roster management",
@@ -237,7 +238,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "experience",
     page: "frontend/src/BestBallBoard.jsx",
     copy: "frontend/src/bestBallPresentation.js",
-    doNot: "Reuse HubExperience*. Do not invent a fourth top-level area. Headers name the data (Pos rank, Pos ECR until a real ADP feed); ECR or ADP by its real name, never one labeled as the other. Hide ADP-edge sort when the source is ECR-only. Edge is blank, not 0, when either side is missing. Team abbreviations match Weekly (LAR, not LA).",
+    doNot: "Reuse HubExperience*. Do not invent a fourth top-level area. Leftmost # is monotonic; Pos rank is within position and groups under position headers on that sort. Missing ECR is a No ECR chip and ECR filter, never a dash. Edge names the ±10 threshold in copy; discount is teal, reach is --tone-negative, never amber. Pos / ECR / Sort are labeled menus. Export leads the rail; only With ECR repeats as a number. Page owns scroll and the list is windowed. Headers name the data (Pos rank, Pos ECR as FantasyPros consensus); ECR or ADP by its real name, never one labeled as the other. Hide Edge sort when the source is ECR-only. Edge is blank, not 0, when either side is missing. Show Scoring: PPR. No roadmap notes in user copy. Team abbreviations match Weekly (LAR, not LA).",
   }),
   "projections.weekly": S({
     label: "Weekly",

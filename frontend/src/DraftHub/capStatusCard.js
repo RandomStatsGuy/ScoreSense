@@ -1,4 +1,5 @@
 import { fmtSal } from "./rosterFormat.js";
+import { againstCap, capEquationNote } from "./capPlannerPresentation.js";
 
 /**
  * Single decision figure for Cap planner (SCORE-19).
@@ -9,6 +10,7 @@ export function buildCapStatusCard({
   spent,
   salaryCap,
   rosterSize,
+  sheetSize,
   deadCap = 0,
   preDraft = false,
 } = {}) {
@@ -29,17 +31,22 @@ export function buildCapStatusCard({
     headline = `You are ${fmtSal(rem)} under cap`;
   }
 
+  const against = againstCap({ spent, deadCap });
   const metaParts = [];
-  if (Number.isFinite(Number(spent)) && Number.isFinite(Number(salaryCap))) {
-    metaParts.push(`${fmtSal(spent)} of ${fmtSal(salaryCap)} committed`);
-  } else if (Number.isFinite(Number(spent))) {
-    metaParts.push(`${fmtSal(spent)} committed`);
+  if (Number.isFinite(Number(salaryCap))) {
+    metaParts.push(capEquationNote({ against, leftover: rem, salaryCap }));
+  } else if (Number.isFinite(against)) {
+    metaParts.push(`${fmtSal(against)} against cap`);
   }
-  if (rosterSize != null && rosterSize !== "") {
-    metaParts.push(`${rosterSize} player${Number(rosterSize) === 1 ? "" : "s"}`);
+  const keep = rosterSize;
+  const sheet = sheetSize;
+  if (preDraft && keep != null && keep !== "") {
+    metaParts.push(`${keep} keep past this draft`);
   }
-  if (Number(deadCap) > 0) {
-    metaParts.push(`${fmtSal(deadCap)} dead cap`);
+  if (sheet != null && sheet !== "" && Number(sheet) !== Number(keep)) {
+    metaParts.push(`${sheet} on this sheet`);
+  } else if (!preDraft && keep != null && keep !== "") {
+    metaParts.push(`${keep} player${Number(keep) === 1 ? "" : "s"}`);
   }
 
   return {
@@ -47,6 +54,7 @@ export function buildCapStatusCard({
     headline,
     meta: metaParts.join(" · "),
     remaining: rem,
+    against,
     label: preDraft ? "This season" : "Auction budget",
   };
 }

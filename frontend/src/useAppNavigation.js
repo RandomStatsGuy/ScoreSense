@@ -8,6 +8,7 @@ import {
   stripOneShotAuthParams,
   stripProjectionParams,
 } from "./routes";
+import { allowUnsavedNavigation } from "./unsavedNavigation";
 
 export default function useAppNavigation() {
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ export default function useAppNavigation() {
   );
 
   const navigateTo = useCallback(
-    (next, { replace = false, filterUpdates = null } = {}) => {
+    async (next, { replace = false, filterUpdates = null } = {}) => {
       const path = buildAppPath({ ...route, ...next });
       const targetView = next.view ?? route.view;
       let search = location.search;
@@ -57,9 +58,12 @@ export default function useAppNavigation() {
         search.startsWith("?") ? search.slice(1) : search,
       ).toString();
       search = cleaned ? `?${cleaned}` : "";
+      const nextHref = `${path}${search}`;
+      const currentHref = `${location.pathname}${location.search}`;
+      if (nextHref !== currentHref && !(await allowUnsavedNavigation(path))) return;
       navigate({ pathname: path, search }, { replace });
     },
-    [navigate, route, location.search, searchParams],
+    [navigate, route, location.pathname, location.search, searchParams],
   );
 
   const goToSection = useCallback(
