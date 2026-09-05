@@ -25,6 +25,7 @@ export const SHARED = Object.freeze({
     "frontend/src/styles/fantasy-phone.css",
   ],
   primitives: "frontend/src/DraftHub/HubUILayout.jsx",
+  // Request painted size via HubMediaImg / identityMediaUrl (?w=48|96|256).
   media: "frontend/src/DraftHub/HubMediaImg.jsx",
   ownerLabel: "frontend/src/DraftHub/hubTeamLabel.js",
   chat: [

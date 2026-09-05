@@ -3,9 +3,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { reportHref } from "./bugReportPresentation";
 import { useAuth } from "./AuthContext";
 import DraftTable from "./DraftTable";
-import DraftHub from "./DraftHub/DraftHub";
 import HubSubnav, { HUB_SUBVIEWS } from "./DraftHub/HubSubnav";
 import { LeagueChromeProvider } from "./DraftHub/leagueChromeContext";
+const DraftHub = lazy(() => import("./DraftHub/DraftHub"));
 const DfsOptimizer = lazy(() => import("./LineupOptimizer"));
 const MockDraftTool = lazy(() => import("./DraftHub/MockDraftTool"));
 import BestBallBoard from "./BestBallBoard";
@@ -1588,17 +1588,19 @@ export default function App() {
             className={view === "hub" ? "app-view-pane" : "app-view-pane app-view-pane-hidden"}
             aria-hidden={view !== "hub"}
           >
-            <DraftHub
-              subView={hubSubView}
-              onSubViewChange={setHubSubView}
-              onHubContextChange={setHubContext}
-              insightTab={insightTab}
-              onInsightTabChange={nav.setInsightTab}
-              onOpenContractHistory={nav.openPlayerContractHistory}
-              officeTab={nav.officeTab}
-              onOfficeTabChange={nav.setOfficeTab}
-              active={view === "hub"}
-            />
+            <Suspense fallback={<p className="chart-note">Loading Fantasy…</p>}>
+              <DraftHub
+                subView={hubSubView}
+                onSubViewChange={setHubSubView}
+                onHubContextChange={setHubContext}
+                insightTab={insightTab}
+                onInsightTabChange={nav.setInsightTab}
+                onOpenContractHistory={nav.openPlayerContractHistory}
+                officeTab={nav.officeTab}
+                onOfficeTabChange={nav.setOfficeTab}
+                active={view === "hub"}
+              />
+            </Suspense>
           </div>
         )}
 

@@ -5,11 +5,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   applyAtmospherePatch,
+  identityMediaUrl,
   lockerNameplate,
   mergeAtmospherePrefs,
   mergeFocus,
   mergeTeamIdentity,
   shouldShowAtmosphere,
+  snapHubMediaWidth,
+  withHubMediaWidth,
 } from "./atmosphereCatalog.js";
 
 test("mergeAtmospherePrefs stays off unless a known theme is chosen", () => {
@@ -86,6 +89,38 @@ test("lockerNameplate uses the last name", () => {
 test("mergeFocus clamps pan and zoom", () => {
   assert.deepEqual(mergeFocus({ x: -10, y: 140, zoom: 8 }), { x: 0, y: 100, zoom: 2.5 });
   assert.deepEqual(mergeFocus({ x: "25", y: "n/a", zoom: 1.2 }), { x: 25, y: 50, zoom: 1.2 });
+});
+
+test("hub media widths snap 22 and 84 onto one 96 file", () => {
+  assert.equal(snapHubMediaWidth(22), 48);
+  assert.equal(snapHubMediaWidth(84), 96);
+  assert.equal(snapHubMediaWidth(200), 256);
+  assert.equal(
+    withHubMediaWidth("/api/hub/media/abc", 22),
+    "/api/hub/media/abc?w=48",
+  );
+  assert.equal(
+    withHubMediaWidth("/api/hub/media/abc", 84),
+    "/api/hub/media/abc?w=96",
+  );
+  assert.equal(
+    withHubMediaWidth("/api/hub/media/abc?w=96", 256),
+    "/api/hub/media/abc?w=96",
+  );
+  assert.equal(withHubMediaWidth("https://a.espncdn.com/i/x.png", 48), "https://a.espncdn.com/i/x.png");
+});
+
+test("identityMediaUrl appends painted width for marks and leaves studio full", () => {
+  const identity = { photo_media_id: "logo-1", banner_media_id: "ban-1" };
+  assert.equal(identityMediaUrl(identity, "photo"), "/api/hub/media/logo-1");
+  assert.equal(
+    identityMediaUrl(identity, "photo", { width: 96 }),
+    "/api/hub/media/logo-1?w=96",
+  );
+  assert.equal(
+    identityMediaUrl(identity, "banner", { width: 256 }),
+    "/api/hub/media/ban-1?w=256",
+  );
 });
 
 test("mergeTeamIdentity keeps crop focus", () => {

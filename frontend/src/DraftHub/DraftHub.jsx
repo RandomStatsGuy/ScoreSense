@@ -32,8 +32,10 @@ import {
   invalidateFreshnessCache,
   mergePoolAndOverlay,
   poolPayloadFromSheet,
+  runValueSheetRequest,
   setCachedOverlay,
   setCachedPool,
+  valueSheetRequestKey,
 } from "./hubDataCache";
 import { effectiveHubContext } from "./hubContext";
 import { fetchHubMemberships, setHubFocus, effectiveMemberships } from "./hubLeagues";
@@ -215,37 +217,38 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
 
   const refreshValueSheet = useCallback(async (season, rules, { forcePool = false, signal } = {}) => {
     setValueSheetLoading(true);
+    const key = valueSheetRequestKey(season, rules, { forcePool });
     try {
-      const cachedPool = !forcePool ? getCachedPool(season, rules) : null;
-      if (cachedPool) {
-        const overlay = await loadValueOverlay(season, signal);
-        if (signal?.aborted) return null;
-        const sheet = mergePoolAndOverlay(cachedPool, overlay);
-        sheet.sleeper = overlay.sleeper;
-        if (overlay.hub_context) applyHubContext(overlay.hub_context);
-        setValueSheet(sheet);
-        return sheet;
-      }
-
-      const q = season ? `?season=${season}` : "";
-      const res = await apiFetch(`/api/hub/value-sheet${q}`, { signal });
-      if (!res.ok) throw new Error(await parseApiError(res));
-      const sheet = await res.json();
-      if (signal?.aborted) return null;
-      setCachedPool(season, rules, poolPayloadFromSheet(sheet));
-      setCachedOverlay(season, sheet);
-      if (sheet.hub_context) applyHubContext(sheet.hub_context);
+      const sheet = await runValueSheetRequest(key, async () => {
+        const cachedPool = !forcePool ? getCachedPool(season, rules) : null;
+        if (cachedPool) {
+          const overlay = await loadValueOverlay(season);
+          const merged = mergePoolAndOverlay(cachedPool, overlay);
+          merged.sleeper = overlay.sleeper;
+          if (overlay.hub_context) applyHubContext(overlay.hub_context);
+          return merged;
+        }
+        const q = season ? `?season=${season}` : "";
+        const res = await apiFetch(`/api/hub/value-sheet${q}`);
+        if (!res.ok) throw new Error(await parseApiError(res));
+        const next = await res.json();
+        setCachedPool(season, rules, poolPayloadFromSheet(next));
+        setCachedOverlay(season, next);
+        if (next.hub_context) applyHubContext(next.hub_context);
+        return next;
+      });
+      if (signal?.aborted) return sheet;
       setValueSheet(sheet);
       return sheet;
     } catch (e) {
-      if (isAbortError(e)) return null;
+      if (isAbortError(e) || signal?.aborted) return null;
       const msg = connectionErrorMessage(e);
       if (!/sign in|login required|401/i.test(msg)) {
         setError(msg);
       }
       return null;
     } finally {
-      setValueSheetLoading(false);
+      if (!signal?.aborted) setValueSheetLoading(false);
     }
   }, [loadValueOverlay, applyHubContext]);
 
@@ -385,31 +388,25 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     return () => controller.abort();
   }, [subView, workspace, loading, refreshRoster]);
 
-  /** Load cap sheet for league mode (season banner) and cap/roster tabs; value sheet per tab. */
+  /** Load cap sheet for league mode (season banner) and cap/roster tabs. */
   useEffect(() => {
     if (!workspace || loading) return undefined;
     const controller = new AbortController();
-    const { signal } = controller;
     const inLeague = effectiveHubContext(hubContext, workspace)?.mode === "league";
-
     if (!capSheet && (inLeague || TABS_NEED_CAP_SHEET.has(subView))) {
-      ensureCapSheet(signal);
+      ensureCapSheet(controller.signal);
     }
-    if (TABS_NEED_VALUE_SHEET.has(subView) && !valueSheet) {
-      refreshValueSheet(workspace.season, workspace.rules, { signal });
-    }
-
     return () => controller.abort();
-  }, [
-    subView,
-    workspace,
-    loading,
-    hubContext,
-    capSheet,
-    valueSheet,
-    ensureCapSheet,
-    refreshValueSheet,
-  ]);
+  }, [subView, workspace, loading, hubContext, capSheet, ensureCapSheet]);
+
+  /** Value sheet is one shared GET. Cap-sheet updates must not abort it. */
+  useEffect(() => {
+    if (!workspace || loading) return undefined;
+    if (!TABS_NEED_VALUE_SHEET.has(subView) || valueSheet) return undefined;
+    const controller = new AbortController();
+    refreshValueSheet(workspace.season, workspace.rules, { signal: controller.signal });
+    return () => controller.abort();
+  }, [subView, workspace, loading, valueSheet, refreshValueSheet]);
 
   useEffect(() => {
     if (!authReady) return undefined;

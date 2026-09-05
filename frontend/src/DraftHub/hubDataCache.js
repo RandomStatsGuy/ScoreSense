@@ -54,6 +54,31 @@ export function clearHubDataCache() {
   clearLeagueRostersCache();
 }
 
+/** One in-flight value-sheet GET per season/rules key. */
+const valueSheetInflight = new Map();
+
+export function valueSheetRequestKey(season, rules, { forcePool = false } = {}) {
+  return `${poolCacheKey(season, rules)}:${forcePool ? "force" : "soft"}`;
+}
+
+export function runValueSheetRequest(key, factory) {
+  const existing = valueSheetInflight.get(key);
+  if (existing) return existing;
+  const request = Promise.resolve().then(factory).finally(() => {
+    if (valueSheetInflight.get(key) === request) valueSheetInflight.delete(key);
+  });
+  valueSheetInflight.set(key, request);
+  return request;
+}
+
+export function resetValueSheetInflightForTests() {
+  valueSheetInflight.clear();
+}
+
+export function valueSheetInflightCount() {
+  return valueSheetInflight.size;
+}
+
 /** Session + memory cache for commissioner Teams tab (/league/{id}/rosters). */
 const ROSTERS_SESSION_PREFIX = "ss_rosters_";
 const ROSTERS_CACHE_VERSION = 1;
