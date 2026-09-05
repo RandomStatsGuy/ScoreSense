@@ -13,7 +13,7 @@ import { getInsightsSection, setInsightsSection } from "./hubDataCache";
 import { confirmDialog } from "../ui/confirm";
 import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import { fmtSal } from "./rosterFormat";
-import { clearTradeSeed, readTradeSeed } from "./tradeSeed";
+import { clearTradeSeed, readTradeSeed, resolveTradePartnerId } from "./tradeSeed";
 import { formatStatDelta, projectTeamTradeStats } from "./tradeProjection";
 import { formatIdeaCapNet, ideaCapImpact, whyThisHelpsText } from "./tradeIdeaHelpers";
 import { playerTradeableInWindow, tradesWindowBanner } from "./acquisitionWindow";
@@ -318,10 +318,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
       if (seed?.players?.length || seed?.partnerTeamId) {
         clearTradeSeed();
         const myId = hubContext?.team_id || myTeamId;
-        const otherId = seed.partnerTeamId
-          || seed.players?.find((p) => p.team_id && p.team_id !== myId)?.team_id
-          || (teamBlocks || []).map((b) => b.team?.id).find((id) => id && id !== myId)
-          || "";
+        const otherId = resolveTradePartnerId(seed, myId, teamBlocks);
         const next = [
           emptyParty(myId),
           emptyParty(otherId),

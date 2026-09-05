@@ -28,6 +28,17 @@ export function seedTradeFromPlayer(player) {
   }
 }
 
+export function resolveTradePartnerId(seed, myId, teamBlocks = []) {
+  const mine = myId || "";
+  const fromSeed = seed?.partnerTeamId && String(seed.partnerTeamId) !== String(mine)
+    ? seed.partnerTeamId
+    : null;
+  return fromSeed
+    || seed?.players?.find((p) => p.team_id && String(p.team_id) !== String(mine))?.team_id
+    || (teamBlocks || []).map((b) => b.team?.id).find((id) => id && String(id) !== String(mine))
+    || "";
+}
+
 export function readTradeSeed() {
   try {
     const raw = sessionStorage.getItem(KEY);

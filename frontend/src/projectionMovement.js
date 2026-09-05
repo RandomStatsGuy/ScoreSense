@@ -211,7 +211,7 @@ export function matchesMovementFilter(row, filterId, { attentionIds } = {}) {
   if (filterId === "risers") return isRiser(row);
   if (filterId === "fallers") return isFaller(row);
   if (filterId === "attention") {
-    const id = String(row?.player_id || "");
+    const id = String(row?.player_id || row?.playerId || "");
     return Boolean(id && attentionIds?.has(id));
   }
   return true;

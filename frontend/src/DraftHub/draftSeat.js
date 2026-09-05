@@ -1,5 +1,14 @@
 /** Shared seat labels for idle Draft, Mock, and the live room. */
 
+export function seatOwnership({ teamId, myTeamId } = {}) {
+  const id = teamId != null && String(teamId) !== "" ? String(teamId) : "";
+  const mineId = myTeamId != null && String(myTeamId) !== "" ? String(myTeamId) : "";
+  return {
+    mine: Boolean(id && mineId && id === mineId),
+    taken: Boolean(id && id !== mineId),
+  };
+}
+
 export function seatState({ mine = false, taken = false } = {}) {
   if (mine) return "you";
   if (taken) return "taken";

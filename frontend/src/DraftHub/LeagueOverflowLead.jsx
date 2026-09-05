@@ -25,7 +25,7 @@ export function useLeagueFreshness(leagueId, enabled) {
       return undefined;
     }
     const cached = getFreshnessCache(leagueId);
-    if (cached?.data) setFreshness(cached.data);
+    setFreshness(cached?.data || null);
     const ctrl = new AbortController();
     (async () => {
       try {
@@ -33,8 +33,9 @@ export function useLeagueFreshness(leagueId, enabled) {
           `/api/hub/league/${encodeURIComponent(leagueId)}/freshness`,
           { signal: ctrl.signal },
         );
-        if (!res.ok) return;
+        if (!res.ok || ctrl.signal.aborted) return;
         const payload = await res.json();
+        if (ctrl.signal.aborted) return;
         setFreshnessCache(leagueId, payload);
         setFreshness(payload);
       } catch {

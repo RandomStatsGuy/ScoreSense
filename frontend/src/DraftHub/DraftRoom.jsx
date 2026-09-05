@@ -7,6 +7,7 @@ import DraftNomineeCard from "./DraftNomineeCard";
 import DraftRosterPanel from "./DraftRosterPanel";
 import DraftTeamCard from "./DraftTeamCard";
 import DraftSeat from "./DraftSeat";
+import { seatOwnership } from "./draftSeat";
 import DraftPickRecap from "./DraftPickRecap";
 import DraftRecapPanel from "./DraftRecapPanel";
 import DraftOwnerReport from "./DraftOwnerReport";
@@ -1890,16 +1891,22 @@ export default function DraftRoom({
                 {activityTab === "teams" && (
                   <div className="hub-teams-list hub-teams-list--dock">
                     <div className="draft-seat-row" aria-label="Seats">
-                      {teams.map((team, index) => (
-                        <DraftSeat
-                          key={team.id}
-                          variant="mark"
-                          slot={team.draft_slot || index + 1}
-                          name={team.name}
-                          mine={String(team.id) === String(myTeamId)}
-                          taken={String(team.id) !== String(myTeamId)}
-                        />
-                      ))}
+                      {teams.map((team, index) => {
+                        const { mine, taken } = seatOwnership({
+                          teamId: team.id,
+                          myTeamId,
+                        });
+                        return (
+                          <DraftSeat
+                            key={team.id || `open-${index}`}
+                            variant="mark"
+                            slot={team.draft_slot || index + 1}
+                            name={team.name}
+                            mine={mine}
+                            taken={taken}
+                          />
+                        );
+                      })}
                     </div>
                     {railTeams.map((team) => (
                       <DraftTeamCard
