@@ -2414,29 +2414,31 @@ input[type="search"].search-input {
 
 .hub-table.hub-table--available {
   table-layout: fixed;
-  width: 100%;
+  width: 60rem;
+  max-width: 100%;
 }
 
 .hub-table.hub-table--available .col-player,
 .hub-table.hub-table--available thead th.col-player {
-  width: 17.5rem;
-  min-width: 15rem;
-  max-width: 17.5rem;
+  width: 20rem;
+  min-width: 16rem;
+  max-width: 20rem;
 }
 
 .hub-table.hub-table--available .hub-col-fv {
-  width: auto;
-  min-width: 12rem;
+  width: 16rem;
+  min-width: 14rem;
+  max-width: 16rem;
 }
 
 .hub-table.hub-table--available .hub-col-proj {
-  width: 8.25rem;
-  max-width: 8.25rem;
+  width: 9rem;
+  max-width: 9rem;
 }
 
 .hub-table.hub-table--available .hub-col-actions {
-  width: 8.25rem;
-  min-width: 7.5rem;
+  width: 9rem;
+  min-width: 8rem;
 }
 
 .hub-table.hub-table--available td,
@@ -16929,13 +16931,31 @@ button.hub-wcc-bench-chip {
   color: var(--text-muted);
 }
 
+.hub-fa-page .hub-table-card {
+  overflow: visible;
+}
+
 .hub-fa-board {
   overflow: visible;
   max-height: none;
 }
 
+.hub-fa-page .hub-player-cell-main {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.28rem 0.4rem;
+}
+
 .hub-fa-page .hub-table thead th {
+  position: sticky;
   top: var(--hub-fa-sticky-offset, 0px);
+  z-index: 21;
+  background: #101a29;
+}
+
+.hub-fa-page .hub-table thead th.col-player {
+  z-index: 22;
 }
 
 .hub-fa-how-adds {

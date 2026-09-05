@@ -14,6 +14,7 @@ import {
   filterAndSortRows,
   fmtSal,
   formatStatusLabel,
+  isRowAvailable,
   nextSortState,
   pinWatchedPlayers,
   tierChipClass,
@@ -180,10 +181,13 @@ export default function ValueSheetTable({
   const showAdvancedToggle = !compact && showAdvancedProp == null;
   // Vs cost is only meaningful once contract costs exist (post-import / in-season).
   // Pre-draft every row is "—", so drop the column instead of shipping dead ink.
-  const anyCostDelta = useMemo(
-    () => (rows || []).some((r) => r?.value_delta != null),
-    [rows],
-  );
+  const anyCostDelta = useMemo(() => {
+    if (isAvailableView && preDraft) return false;
+    return (rows || []).some((r) => {
+      if (r?.value_delta == null) return false;
+      return isAvailableView ? isRowAvailable(r) : true;
+    });
+  }, [rows, isAvailableView, preDraft]);
   const schema = useMemo(
     () => columnsForDraftMode({
       pickDraft,

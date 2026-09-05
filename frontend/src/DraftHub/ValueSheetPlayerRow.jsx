@@ -99,7 +99,7 @@ function ValueSheetPlayerRow({
     ? playersTabAddDisabledReason(addMode)
     : (taken && !isCommissioner && addMode !== "bid" ? "Already on another roster" : undefined);
   const watching = (watchIds || []).map(String).includes(String(row.player_id));
-  const starLabel = watching ? PLAYERS_TAB_COPY.unstar : playersTabStarCopy(false);
+  const starLabel = playersTabStarCopy(watching);
   const spreadLabel = useMemo(
     () => (row.season_spread != null ? formatSeasonPts(row.season_spread, 0) : "—"),
     [row.season_spread],
