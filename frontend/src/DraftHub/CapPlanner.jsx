@@ -211,10 +211,10 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
       return <span className="hub-expire-chip hub-expire-chip--extend">Extension queued</span>;
     }
     if (extendableIds.has(pid)) {
-      return <span className="hub-expire-chip hub-expire-chip--extend">Extend to keep</span>;
+      return <span className="hub-roster-status hub-roster-status--keep">Extend to keep</span>;
     }
     if (droppingIds.has(pid)) {
-      return <span className="hub-expire-chip">Expires — FA</span>;
+      return <span className="hub-roster-status hub-roster-status--warn">Expires — FA</span>;
     }
     return null;
   };

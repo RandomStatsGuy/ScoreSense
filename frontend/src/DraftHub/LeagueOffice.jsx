@@ -33,7 +33,6 @@ import {
   sheetsDefaultHint,
   sheetsGuideCopy,
   shouldAutoOpenSheetsGuide,
-  tabsWithGroupLabels,
 } from "./commissionerSections";
 import { liveContractStage } from "./officeCurrentContracts";
 import AwardTitlesEditor from "./insights/AwardTitlesEditor";
@@ -443,10 +442,6 @@ export default function LeagueOffice({
   const mobileLayout = useMobileLayout();
   const isCommissioner = Boolean(hubContext?.is_commissioner);
   const tabs = useMemo(() => visibleOfficeTabs(isCommissioner), [isCommissioner]);
-  const navItems = useMemo(
-    () => (mobileLayout ? tabs.map((tab) => ({ type: "tab", ...tab })) : tabsWithGroupLabels(tabs)),
-    [tabs, mobileLayout],
-  );
   const intro = useMemo(() => commissionerIntro(isCommissioner), [isCommissioner]);
   const activeTab = isOfficeTabAllowed(officeTab, isCommissioner)
     ? officeTab
@@ -500,20 +495,14 @@ export default function LeagueOffice({
       <HubPageSticky>
       <div className="hub-filter-bar hub-office-tab-bar">
         <HubFilterScroll>
-          {navItems.map((item) => (
-            item.type === "label" ? (
-              <span key={item.id} className="hub-office-tab-group" aria-hidden="true">
-                {item.label}
-              </span>
-            ) : (
-              <HubFilterChip
-                key={item.id}
-                active={activeTab === item.id}
-                onClick={() => onOfficeTabChange?.(item.id)}
-              >
-                {item.label}
-              </HubFilterChip>
-            )
+          {tabs.map((tab) => (
+            <HubFilterChip
+              key={tab.id}
+              active={activeTab === tab.id}
+              onClick={() => onOfficeTabChange?.(tab.id)}
+            >
+              {tab.label}
+            </HubFilterChip>
           ))}
         </HubFilterScroll>
       </div>

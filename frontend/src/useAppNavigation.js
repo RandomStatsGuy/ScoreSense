@@ -8,6 +8,8 @@ import {
   stripOneShotAuthParams,
   stripProjectionParams,
 } from "./routes";
+import { isLeavingContractsPath } from "./DraftHub/officeContractsPresentation";
+import { allowOfficeNavigation } from "./DraftHub/officeUnsavedGuard";
 import { allowUnsavedNavigation } from "./unsavedNavigation";
 
 export default function useAppNavigation() {
@@ -38,32 +40,39 @@ export default function useAppNavigation() {
   const navigateTo = useCallback(
     async (next, { replace = false, filterUpdates = null } = {}) => {
       const path = buildAppPath({ ...route, ...next });
-      const targetView = next.view ?? route.view;
-      let search = location.search;
-      if (filterUpdates) {
-        let params = buildFilterSearchParams({
-          ...filterUpdates,
-          preserveParams: searchParams,
+      const run = () => {
+        const targetView = next.view ?? route.view;
+        let search = location.search;
+        if (filterUpdates) {
+          let params = buildFilterSearchParams({
+            ...filterUpdates,
+            preserveParams: searchParams,
+          });
+          if (targetView !== "projections") params = stripProjectionParams(params);
+          const qs = params.toString();
+          search = qs ? `?${qs}` : "";
+        } else if (targetView !== "projections") {
+          // Keep Fantasy/Tools URLs clean of projections filters (pos, week, …).
+          // Filter state lives in App state and re-syncs when Projections re-opens.
+          const qs = stripProjectionParams(searchParams).toString();
+          search = qs ? `?${qs}` : "";
+        }
+        const cleaned = stripOneShotAuthParams(
+          search.startsWith("?") ? search.slice(1) : search,
+        ).toString();
+        search = cleaned ? `?${cleaned}` : "";
+        navigate({ pathname: path, search }, { replace });
+      };
+      if (isLeavingContractsPath(location.pathname, path)) {
+        allowOfficeNavigation().then((ok) => {
+          if (ok) run();
         });
-        if (targetView !== "projections") params = stripProjectionParams(params);
-        const qs = params.toString();
-        search = qs ? `?${qs}` : "";
-      } else if (targetView !== "projections") {
-        // Keep Fantasy/Tools URLs clean of projections filters (pos, week, …).
-        // Filter state lives in App state and re-syncs when Projections re-opens.
-        const qs = stripProjectionParams(searchParams).toString();
-        search = qs ? `?${qs}` : "";
+        return;
       }
-      const cleaned = stripOneShotAuthParams(
-        search.startsWith("?") ? search.slice(1) : search,
-      ).toString();
-      search = cleaned ? `?${cleaned}` : "";
-      const nextHref = `${path}${search}`;
-      const currentHref = `${location.pathname}${location.search}`;
-      if (nextHref !== currentHref && !(await allowUnsavedNavigation(path))) return;
-      navigate({ pathname: path, search }, { replace });
+      if (!(await allowUnsavedNavigation(path))) return;
+      run();
     },
-    [navigate, route, location.pathname, location.search, searchParams],
+    [navigate, route, location.search, searchParams, location.pathname],
   );
 
   const goToSection = useCallback(
