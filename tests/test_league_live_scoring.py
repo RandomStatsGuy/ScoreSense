@@ -354,6 +354,8 @@ def test_starting_slots_from_rules_and_placeholder_week():
     assert viewer["hub_team_id"] == "t-b"
     assert payload["standings"][0]["team_name"] == "Alpha"
     assert payload["standings"][0]["wins"] == 0
+    assert payload["standings"][0]["rank"] is None
+    assert payload["standings_season"] == "none"
     assert payload["starting_slots"] == ["QB", "RB"]
     assert payload["hint"] == "Link Sleeper to fill scores."
 
@@ -426,6 +428,9 @@ def test_build_sleeper_live_week_empty_matchups_uses_placeholder(monkeypatch):
     assert out["hint"] == "No scored matchups yet. Scores fill in after kickoff."
     names = {team["team_name"] for team in out["matchups"][0]["teams"]}
     assert names == {"Hub One", "Hub Two"}
+    assert out["standings_season"] == "last"
+    assert any(row["wins"] + row["losses"] > 0 for row in out["standings"])
+    assert all(row["rank"] is not None for row in out["standings"])
 
 
 def test_build_sleeper_live_week_unpaired_rows_use_placeholder(monkeypatch):

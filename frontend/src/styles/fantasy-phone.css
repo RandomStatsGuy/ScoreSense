@@ -340,14 +340,26 @@
     justify-content: center;
   }
 
+  .hub-game-center {
+    padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .hub-gc-head {
+    align-items: stretch;
+  }
+
+  .hub-gc-week-toolbar {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .hub-gc-week-nav {
+    flex: 1 1 auto;
     flex-wrap: wrap;
   }
 
-  .hub-gc-week-nav .hub-gc-state {
-    width: 100%;
-    text-align: center;
-    order: -1;
+  .hub-gc-state {
+    flex: none;
   }
 
   .hub-gc-week-nav button {
@@ -359,8 +371,19 @@
     white-space: nowrap;
   }
 
+  .hub-week-poll--compact > summary {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .hub-week-poll-summary-state {
+    flex: 1 1 100%;
+    order: 3;
+    white-space: normal;
+  }
+
   .hub-week-poll-summary-cta {
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
     min-height: var(--touch-target);
     display: inline-flex;
     align-items: center;
@@ -421,8 +444,9 @@
 
   .hub-gc-week-toolbar {
     display: flex;
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 0.45rem;
   }
 

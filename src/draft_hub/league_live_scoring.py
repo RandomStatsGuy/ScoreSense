@@ -306,6 +306,27 @@ def attach_matchup_analytics(
             matchup["win_prob_by_roster"] = {}
 
 
+def standings_have_results(rows: list[dict[str, Any]] | None) -> bool:
+    """True when any team has a decided game or scored points."""
+    for row in rows or []:
+        games = int(row.get("wins") or 0) + int(row.get("losses") or 0) + int(row.get("ties") or 0)
+        if games > 0 or float(row.get("points_for") or 0) > 0:
+            return True
+    return False
+
+
+def assign_standings_ranks(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Number 1–N only after a game exists. Unplayed slates stay unranked."""
+    ranked = [dict(row) for row in rows]
+    if standings_have_results(ranked):
+        for index, row in enumerate(ranked, start=1):
+            row["rank"] = index
+    else:
+        for row in ranked:
+            row["rank"] = None
+    return ranked
+
+
 def _fetch_standings(
     sleeper_league_id: str,
     roster_to_label: dict[str, str],
@@ -339,9 +360,7 @@ def _fetch_standings(
             }
         )
     rows.sort(key=lambda r: (-r["wins"], -r["points_for"]))
-    for rank, row in enumerate(rows, start=1):
-        row["rank"] = rank
-    return rows
+    return assign_standings_ranks(rows)
 
 
 def build_sleeper_live_week(
@@ -404,6 +423,12 @@ def build_sleeper_live_week(
         slots = slot_labels or starting_slots(league.get("roster_positions")) or list(
             DEFAULT_STARTING_SLOTS
         )
+        last_season = _fetch_standings(
+            str(sleeper_league_id),
+            roster_to_label,
+            roster_to_hub_id,
+            roster_to_owner,
+        )
         payload = build_hub_placeholder_week(
             hub_teams,
             viewer_team_id=viewer_team_id,
@@ -412,6 +437,7 @@ def build_sleeper_live_week(
             starting_slots=slots,
             reason="no_matchups",
             season=season,
+            standings=last_season or None,
         )
         payload["status"] = status
         payload.update(week_meta)
@@ -485,6 +511,15 @@ def build_sleeper_live_week(
             roster_to_label,
             roster_to_hub_id,
             roster_to_owner,
+        ),
+        "standings_season": (
+            "last"
+            if (
+                preseason
+                or status in ("pre_draft", "drafting")
+                or (not has_points and int(week) <= 1)
+            )
+            else "current"
         ),
         "hint": (
             "Season not started — scores update after Week 1."
@@ -602,6 +637,7 @@ def build_hub_placeholder_week(
     starting_slots: list[str] | None = None,
     reason: str = "no_sleeper_league",
     season: str | None = None,
+    standings: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Fill Game center / Home widgets from hub teams when Sleeper has nothing yet."""
     state = nfl_state or {}
@@ -623,14 +659,14 @@ def build_hub_placeholder_week(
             viewer_matchup_id = mid
         matchups.append({"matchup_id": mid, "teams": sides, "win_prob_by_roster": {}})
 
-    standings: list[dict[str, Any]] = []
     named = sorted(
         [row for row in teams if str(row.get("id") or "").strip()],
         key=lambda row: (str(row.get("name") or "").lower(), str(row.get("id") or "")),
     )
-    for rank, row in enumerate(named, start=1):
+    fallback: list[dict[str, Any]] = []
+    for row in named:
         tid = str(row.get("id") or "")
-        standings.append(
+        fallback.append(
             {
                 "roster_id": tid,
                 "hub_team_id": tid,
@@ -640,9 +676,11 @@ def build_hub_placeholder_week(
                 "losses": 0,
                 "ties": 0,
                 "points_for": 0.0,
-                "rank": rank,
+                "rank": None,
             }
         )
+    resolved = standings if standings_have_results(standings) else fallback
+    resolved = assign_standings_ranks(resolved)
 
     return {
         "available": True,
@@ -653,10 +691,11 @@ def build_hub_placeholder_week(
         "week": week_n,
         "season_type": str(state.get("season_type") or "regular"),
         "preseason": True,
+        "standings_season": "last" if standings_have_results(resolved) else "none",
         "viewer_matchup_id": viewer_matchup_id,
         "matchups": matchups,
         "starting_slots": list(starting_slots or DEFAULT_STARTING_SLOTS),
-        "standings": standings,
+        "standings": resolved,
         "synced_at": _utcnow_iso(),
         **week_picker_meta(state),
     }
@@ -709,6 +748,7 @@ def get_sleeper_live_week(
                     starting_slots=slots,
                     reason="no_matchups",
                     season=payload.get("season"),
+                    standings=payload.get("standings"),
                 )
                 overlay["cached"] = True
                 overlay["synced_at"] = payload.get("synced_at") or overlay["synced_at"]

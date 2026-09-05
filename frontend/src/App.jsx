@@ -1371,7 +1371,7 @@ export default function App() {
 
             <div className="app-header-row app-header-row-primary app-header-desktop-only">
               <div className="app-header-brand">
-                <h1 className="app-title">{PRODUCT_NAME}</h1>
+                <p className="app-title">{PRODUCT_NAME}</p>
                 <span className="app-header-studio">{STUDIO_NAME}</span>
               </div>
               <nav className="app-header-nav" aria-label="Sections">
@@ -1586,6 +1586,8 @@ export default function App() {
         {hubMounted && (
           <div
             className={view === "hub" ? "app-view-pane" : "app-view-pane app-view-pane-hidden"}
+            hidden={view !== "hub" || undefined}
+            {...(view !== "hub" ? { inert: "" } : {})}
             aria-hidden={view !== "hub"}
           >
             <DraftHub

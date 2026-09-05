@@ -12,7 +12,19 @@ export const GAME_CENTER_COPY = {
   emptyDuel: "Lineups are empty until kickoff. Set them on This Week.",
   setLineup: "Set lineup",
   setupCta: "Link Sleeper",
+  openDraft: "Open draft room",
   nextGames: "Next games Thu",
+  notStarted: "Not started",
+  standingsTitle: "Standings",
+  standingsUnranked: "Standings start after Week 1.",
+  standingsLastSeason: "Last season",
+  standingsToDate: "Season to date.",
+  emptyLineupHeading: "Your lineup is empty.",
+  emptyLineupSupport: "Empty slots score zero.",
+  trophyNoVotes: "No votes yet",
+  trophyYouVoted: "you voted",
+  trophyVote: "Vote",
+  trophyChangeVote: "Change vote",
   duelTitle: "Starter duel",
   duelSupport: "Slot by slot against your opponent.",
   benchTitle: "Bench watch",
@@ -158,4 +170,188 @@ export function formatSyncedAgo(syncedAt) {
   if (seconds < 90) return `Updated ${seconds}s ago`;
   const minutes = Math.round(seconds / 60);
   return `Updated ${minutes}m ago`;
+}
+
+export function standingsHaveResults(standings) {
+  return (standings || []).some((row) => {
+    const games = Number(row?.wins || 0) + Number(row?.losses || 0) + Number(row?.ties || 0);
+    return games > 0 || Number(row?.points_for || 0) > 0;
+  });
+}
+
+/** Same standings read as Home. Last-season records stay last season until Week 1. */
+export function interpretStandings(scoring, { phaseId, draftCompleted } = {}) {
+  const standings = scoring?.standings || [];
+  const hasResults = standingsHaveResults(standings);
+  const placeholder = Boolean(scoring?.placeholder);
+  const preDraft = phaseId === "pre_draft" || draftCompleted === false;
+  const markedLast = scoring?.standings_season === "last";
+  const historical = Boolean(
+    hasResults && (markedLast || preDraft || placeholder || scoring?.preseason),
+  );
+  let note = GAME_CENTER_COPY.standingsToDate;
+  if (!hasResults) note = GAME_CENTER_COPY.standingsUnranked;
+  else if (historical) note = GAME_CENTER_COPY.standingsLastSeason;
+  return {
+    standings,
+    hasResults,
+    historical,
+    ranked: hasResults,
+    note,
+    placeholder,
+  };
+}
+
+export function gameCenterStandingRows(standings, viewerId, { compact = false, limit = 12 } = {}) {
+  if (!standings?.length) return [];
+  if (!compact || standings.length <= limit) return standings;
+  const top = standings.slice(0, 3);
+  const mineIdx = standings.findIndex(
+    (row) => row.hub_team_id && String(row.hub_team_id) === String(viewerId),
+  );
+  if (mineIdx < 0) return top;
+  const start = Math.max(3, mineIdx - 1);
+  const end = Math.min(standings.length, mineIdx + 2);
+  const seen = new Set(top.map((row) => String(row.roster_id)));
+  const out = [...top];
+  for (const row of standings.slice(start, end)) {
+    const key = String(row.roster_id);
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push(row);
+    }
+  }
+  if (!seen.has(String(standings[mineIdx].roster_id))) out.push(standings[mineIdx]);
+  return out;
+}
+
+export function formatStandingRecord(row) {
+  if (!row) return "";
+  const ties = row.ties ? `–${row.ties}` : "";
+  return `${row.wins}–${row.losses}${ties}`;
+}
+
+export function ordinalRank(rank) {
+  const n = Number(rank);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  return `${n}${["st", "nd", "rd"][n - 1] || "th"}`;
+}
+
+export function formatStandingRank(row, { ranked = true } = {}) {
+  if (!ranked || row?.rank == null) return "—";
+  return String(row.rank);
+}
+
+export function formatMatchupRecord(row, { ranked = true } = {}) {
+  if (!row || !ranked) return "";
+  const seed = ordinalRank(row.rank);
+  const rec = formatStandingRecord(row);
+  return seed ? `${rec} · ${seed}` : rec;
+}
+
+export function formatDraftNightDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
+export function gameCenterBanner({
+  draftCompleted,
+  draftStartsAt,
+  placeholder = false,
+  reason = "",
+  sleeperLinked = false,
+} = {}) {
+  if (draftCompleted === false) {
+    const date = formatDraftNightDate(draftStartsAt);
+    return {
+      text: date
+        ? `Draft night is ${date} · scores start after Week 1 kicks off`
+        : "Draft night is not locked · scores start after Week 1 kicks off",
+      action: "room",
+      actionLabel: GAME_CENTER_COPY.openDraft,
+    };
+  }
+  if (reason === "no_sleeper_league" || (!sleeperLinked && placeholder)) {
+    return {
+      text: GAME_CENTER_COPY.emptyNoSleeper,
+      action: "office-access",
+      actionLabel: GAME_CENTER_COPY.setupCta,
+    };
+  }
+  return null;
+}
+
+export function gameCenterHeroCopy({
+  emptyLineup = false,
+  live = false,
+  weekComplete = false,
+  placeholder = false,
+  viewer,
+  opponent,
+} = {}) {
+  if (emptyLineup || placeholder) {
+    return {
+      heading: GAME_CENTER_COPY.emptyLineupHeading,
+      support: GAME_CENTER_COPY.emptyLineupSupport,
+    };
+  }
+  if (live || weekComplete) {
+    return {
+      heading: matchupStoryline({ viewer, opponent, weekComplete }),
+      support: "",
+    };
+  }
+  return {
+    heading: GAME_CENTER_COPY.emptyLineupHeading,
+    support: GAME_CENTER_COPY.emptyLineupSupport,
+  };
+}
+
+export function formatMatchupScore(value, { placeholder = false, proj = null } = {}) {
+  const projNum = proj == null ? null : Number(proj);
+  const hasProj = projNum != null && !Number.isNaN(projNum);
+  if (placeholder || value == null || Number.isNaN(Number(value))) {
+    return {
+      score: "—",
+      label: hasProj ? `proj ${projNum.toFixed(1)}` : GAME_CENTER_COPY.notStarted,
+    };
+  }
+  return {
+    score: Number(value).toFixed(1),
+    label: hasProj ? `proj ${projNum.toFixed(1)}` : "",
+  };
+}
+
+export function shouldShowPrevWeek(weekNumber) {
+  return Number(weekNumber ?? 1) > 1;
+}
+
+export function shouldShowNextWeek(weekNumber, maxWeek) {
+  return Number(weekNumber ?? 1) < Number(maxWeek || 18);
+}
+
+export function trophyLeaderLabel(option) {
+  return hubTeamLabel({
+    name: option?.team_name,
+    owner_name: option?.owner_name,
+  }) || option?.team_name || "";
+}
+
+export function trophySummaryState({ leader, votes, youVoted = false } = {}) {
+  if (!leader || Number(votes) <= 0) return GAME_CENTER_COPY.trophyNoVotes;
+  const n = Number(votes);
+  const voteWord = n === 1 ? "vote" : "votes";
+  const voted = youVoted ? ` · ${GAME_CENTER_COPY.trophyYouVoted}` : "";
+  return `${trophyLeaderLabel(leader)} · ${n} ${voteWord}${voted}`;
+}
+
+export function lineupIsEmpty(viewer, opponent, rows = []) {
+  if (rows.length === 0) return true;
+  const sides = [viewer, opponent];
+  return sides.every((team) => {
+    const starters = team?.starters || [];
+    return starters.length === 0 || starters.every((player) => !duelSlotFilled(player));
+  });
 }

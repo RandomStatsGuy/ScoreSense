@@ -88,7 +88,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 | Draft | `room` | Idle entry + live room. Email and text invite links open here. Members mark **current and future** draft-night times on one calendar (opens 31 days before the first NFL game, closes the day before). Commissioners lock any shown overlap as draft night. Idle Draft is that calendar plus a compact room strip — do not stack a second date/time card and a Who is in list on the same scroll. When the calendar is Closed and no night is locked, the off-calendar lock is the card's primary — do not leave "Mark yours" on a closed board. Start live draft stays secondary until a night is locked or every seat is filled. The seating pill is amber below a full room and teal only at 12/12. Home's "Not scheduled" links here. Setup shows draft-night status only. |
 | This Week | `week` | Lineup decisions; ScoreSense-only leagues set start/sit here |
 | Vibes | `vibes` | Swipe each roster player once a day; front card is the matchup; info arrow opens bio and latest news; lean Vibe ranking rail; VA-projections (vibe-adjusted week, including K and DEF) as the table |
-| Game center | `game` | Your matchup live, league scoreboard, week trophies |
+| Game center | `game` | Your matchup live, league scoreboard, week trophies. The hero names the job: empty lineup consequence pre-kickoff, the score line once live. One empty message — draft night plus when scores start — and Open draft room. Standings share Home's last-season records and stay unranked until a game is played. Gold marks a claimed week trophy. |
 | My team | `roster` | Personal contracts |
 | Free agents | `available` | Add / bid / locked by calendar |
 | Rosters | `rosters` | League-wide roster reference |
@@ -162,7 +162,7 @@ Which file to open for a given destination: `frontend/src/livingSurfaces.js`. Re
 
 **Use this chrome for:** every row whose chrome is `experience` in `frontend/src/livingSurfaces.js` — the registry decides, not a list here.
 
-Empty This Week / My team / Game center boards share one empty-state block, branched on league state: native pre-draft → Lock a night (Draft); Sleeper not linked → Link Sleeper (Access & imports); linked but stale → the strip's Sync league. Do not send those boards to Setup. "Live" on Game center renders only inside a game window.
+Empty This Week / My team / Game center boards share one empty-state block, branched on league state: native pre-draft → Lock a night (Draft); Sleeper not linked → Link Sleeper (Access & imports); linked but stale → the strip's Sync league. Do not send those boards to Setup. Game center pre-draft is one sentence to Open draft room — not Link Sleeper and not a kickoff wait. "Live" on Game center renders only inside a game window.
 
 **Do not use this chrome for:** the live draft board (board-first, existing live-room layout), **Projections** (board-first table), **Strategy** (full-page face-off; View my rankings is site vs mine), or other dense data tables that are not a decision surface.
 
@@ -222,7 +222,7 @@ Voice:
 
 Hero pattern: eyebrow (`League rules`) + sentence heading that is the job (`What a new contract will cost.`) + one support line that is the consequence. See `RulesWizard.jsx` and `dfsToolPresentation.js`.
 
-Home names the manager’s roster hole over a commissioner invite when both are due. Gate hero copy on load: skeleton or “Checking what is due…” until the payload lands — never a confident headline over unresolved data. After 3s of a long load, say the sync is still working. This Week hero copy comes from board state (loading / error / empty pre-draft) — never “No swap worth making” over an error. Empty starter slots say **Empty**; “Waiting on roster” is the unresolved-roster rail, not a loading chip. Game center’s unscored placeholder says **No scores yet**, not Waiting. Cap and My team read one dead-cap story from `rosterFormat.js`. Needs attention says **Cap**, not Cap planner. Draft seating chips count claimed teams. Locked draft night renders in the viewer’s timezone with an abbreviation; Draft setup names league time once.
+Home names the manager’s roster hole over a commissioner invite when both are due. Gate hero copy on load: skeleton or “Checking what is due…” until the payload lands — never a confident headline over unresolved data. After 3s of a long load, say the sync is still working. This Week hero copy comes from board state (loading / error / empty pre-draft) — never “No swap worth making” over an error. Empty starter slots say **Empty**; “Waiting on roster” is the unresolved-roster rail, not a loading chip. Game center’s unscored placeholder says **No scores yet**, not Waiting. Pre-draft Game center names draft night and when scores start; it does not invent a 1–10 seed from 0–0. Home and Game center read the same standings payload — last-season records stay labeled Last season. Cap and My team read one dead-cap story from `rosterFormat.js`. Needs attention says **Cap**, not Cap planner. Draft seating chips count claimed teams. Locked draft night renders in the viewer’s timezone with an abbreviation; Draft setup names league time once.
 
 ---
 

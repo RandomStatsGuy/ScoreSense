@@ -6165,7 +6165,10 @@ td.col-rank.col-rank-top {
   font-weight: 600;
 }
 .hub-league-context-attention-action {
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
+  min-height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
 }
 .hub-league-context-sync {
   position: relative;
@@ -13533,7 +13536,14 @@ td.col-rank.col-rank-top {
 /* --- Legal, auth pages, onboarding checklist --- */
 .legal-links { display: grid; gap: 0.35rem; text-align: center; font-size: 0.78rem; }
 .legal-links-nav { display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: center; align-items: center; }
-.legal-links-nav a { color: var(--muted, #9aa3b2); text-decoration: underline; }
+.legal-links-nav a {
+  color: var(--muted, #9aa3b2);
+  text-decoration: underline;
+  min-height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.45rem;
+}
 .legal-links-sep { opacity: 0.5; }
 .legal-links-disclaimer { margin: 0; max-width: 36rem; margin-inline: auto; }
 .legal-links-compact .legal-links-disclaimer { display: none; }
@@ -19068,23 +19078,51 @@ th.sortable-header {
 .hub-week-poll--compact { padding: 0; border-top: 1px solid var(--experience-rule, var(--border)); }
 .hub-week-poll--compact > summary {
   display: flex;
-  align-items: baseline;
-  gap: 0.7rem;
-  padding: 0.65rem 0.2rem;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: var(--touch-target);
+  padding: 0.45rem 0.2rem;
   cursor: pointer;
   list-style: none;
 }
 .hub-week-poll--compact > summary::-webkit-details-marker { display: none; }
-.hub-week-poll--compact > summary:hover .hub-week-poll-summary-cta { color: var(--accent-muted); }
+.hub-week-poll-caret {
+  width: 0.45rem;
+  height: 0.45rem;
+  flex: none;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: rotate(-45deg);
+  margin-top: -0.15rem;
+}
+.hub-week-poll--compact[open] > summary .hub-week-poll-caret {
+  transform: rotate(45deg);
+  margin-top: 0;
+}
+.hub-week-poll--compact > summary:hover .hub-week-poll-summary-cta { color: var(--text-secondary); }
 .hub-week-poll-summary-title { font-weight: 700; font-size: 0.88rem; flex: none; }
-.hub-week-poll-summary-state { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hub-week-poll-summary-state {
+  flex: 1;
+  min-width: 0;
+  white-space: normal;
+  overflow: visible;
+}
 .hub-week-poll-summary-cta {
   flex: none;
-  font-size: 0.76rem;
+  font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-muted);
+  pointer-events: none;
 }
-.hub-week-poll--compact[open] > summary .hub-week-poll-summary-cta { color: var(--accent-muted); }
+.hub-week-poll--compact.is-claimed > summary .hub-week-poll-summary-title,
+.hub-week-poll--compact.is-claimed > summary .hub-week-poll-caret {
+  color: var(--experience-gold);
+  border-color: var(--experience-gold);
+}
+.hub-week-poll--compact.is-claimed {
+  border-top-color: color-mix(in srgb, var(--experience-gold) 45%, var(--experience-rule, var(--border)));
+}
+.hub-week-poll--compact[open] > summary .hub-week-poll-summary-cta { color: var(--text-muted); }
 .hub-week-poll--compact .hub-week-poll-options { padding: 0 0.2rem 0.75rem; }
 .hub-week-poll-options {
   display: flex;
@@ -19183,10 +19221,26 @@ th.sortable-header {
   flex-wrap: wrap;
 }
 .hub-gc-head .hub-tab-intro-title { margin: 0.1rem 0 0; }
-.hub-gc-week-toolbar { display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; }
+.hub-gc-hero-support {
+  margin: 0.35rem 0 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  max-width: 36rem;
+}
+.hub-gc-week-toolbar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
 .hub-gc-week-nav { display: flex; align-items: center; gap: 0.5rem; }
+.hub-gc-week-nav .btn-ghost {
+  min-height: var(--touch-target);
+}
 .hub-gc-state {
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   font-weight: 700;
   border-radius: var(--radius-pill);
   padding: 0.24rem 0.7rem;
@@ -19241,7 +19295,7 @@ th.sortable-header {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.hub-gc-bb-team span { font-size: 0.72rem; color: var(--text-muted); }
+.hub-gc-bb-team span { font-size: var(--text-xs); color: var(--text-muted); }
 .hub-gc-bb-score { display: flex; align-items: center; gap: 1.4rem; }
 .hub-gc-bb-points {
   font-size: 2.4rem;
@@ -19409,7 +19463,13 @@ th.sortable-header {
 .hub-gc-mini-line.is-leading { color: var(--text-primary); }
 .hub-gc-mini-line.is-leading .hub-gc-mini-score { color: var(--text-primary); }
 .hub-gc-mini-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hub-gc-mini-score { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-muted); }
+.hub-gc-mini-score { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-muted); text-align: right; }
+.hub-gc-mini-score-label {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-muted);
+}
 .hub-gc-standings-list { list-style: none; margin: 0; padding: 0; }
 .hub-gc-standings-list li {
   display: flex;

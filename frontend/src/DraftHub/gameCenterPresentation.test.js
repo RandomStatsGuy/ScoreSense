@@ -6,13 +6,25 @@ import test from "node:test";
 import {
   duelRows,
   findViewerMatchup,
+  formatDraftNightDate,
+  formatMatchupRecord,
+  formatMatchupScore,
   formatWinProb,
   GAME_CENTER_COPY,
+  gameCenterBanner,
+  gameCenterHeroCopy,
+  gameCenterStandingRows,
   gameCenterTeamLabel,
   gameStateLabel,
+  interpretStandings,
+  lineupIsEmpty,
   matchupStoryline,
   matchupTeams,
+  shouldShowPrevWeek,
+  standingsHaveResults,
   startersPending,
+  trophyLeaderLabel,
+  trophySummaryState,
   winProbFor,
 } from "./gameCenterPresentation.js";
 
@@ -120,6 +132,102 @@ test("empty duel copy names This Week", () => {
   assert.doesNotMatch(GAME_CENTER_COPY.emptyDuel, /Draft Hub|Submit/i);
   assert.equal(GAME_CENTER_COPY.loadingChip, "Loading");
   assert.equal(GAME_CENTER_COPY.unscoredChip, "No scores yet");
+  assert.equal(GAME_CENTER_COPY.emptyLineupHeading, "Your lineup is empty.");
+  assert.match(GAME_CENTER_COPY.emptyLineupSupport, /score zero/i);
+  assert.equal(GAME_CENTER_COPY.openDraft, "Open draft room");
+});
+
+test("standings stay unranked until a game is played", () => {
+  const zero = [
+    { roster_id: "1", hub_team_id: "a", rank: 1, wins: 0, losses: 0 },
+    { roster_id: "2", hub_team_id: "you", rank: 10, wins: 0, losses: 0 },
+  ];
+  assert.equal(standingsHaveResults(zero), false);
+  const view = interpretStandings(
+    { standings: zero, placeholder: true, preseason: true },
+    { phaseId: "pre_draft", draftCompleted: false },
+  );
+  assert.equal(view.ranked, false);
+  assert.equal(view.note, GAME_CENTER_COPY.standingsUnranked);
+  assert.equal(formatMatchupRecord(zero[1], { ranked: false }), "");
+});
+
+test("last-season records stay last season on Home and Game center", () => {
+  const last = [
+    { roster_id: "1", hub_team_id: "a", rank: 1, wins: 10, losses: 4 },
+    { roster_id: "2", hub_team_id: "you", rank: 8, wins: 4, losses: 10 },
+  ];
+  assert.equal(standingsHaveResults(last), true);
+  const view = interpretStandings(
+    { standings: last, placeholder: true, standings_season: "last" },
+    { phaseId: "pre_draft", draftCompleted: false },
+  );
+  assert.equal(view.ranked, true);
+  assert.equal(view.historical, true);
+  assert.equal(view.note, GAME_CENTER_COPY.standingsLastSeason);
+  assert.equal(formatMatchupRecord(last[1], { ranked: true }), "4–10 · 8th");
+});
+
+test("standings list keeps the reader when compacting a large league", () => {
+  const rows = Array.from({ length: 16 }, (_, i) => ({
+    roster_id: String(i + 1),
+    hub_team_id: `t${i + 1}`,
+    rank: i + 1,
+    wins: 8,
+    losses: 6,
+  }));
+  const compact = gameCenterStandingRows(rows, "t12", { compact: true, limit: 6 });
+  assert.ok(compact.some((row) => row.hub_team_id === "t12"));
+  assert.ok(compact.length <= 6);
+  const full = gameCenterStandingRows(rows.slice(0, 10), "t10", { compact: true });
+  assert.equal(full.length, 10);
+});
+
+test("pre-draft banner names draft night and opens the room", () => {
+  const banner = gameCenterBanner({
+    draftCompleted: false,
+    draftStartsAt: "2026-09-05T23:00:00.000Z",
+    placeholder: true,
+    reason: "no_matchups",
+  });
+  assert.match(banner.text, /Draft night is/);
+  assert.match(banner.text, /Week 1/);
+  assert.doesNotMatch(banner.text, /kickoff|Link Sleeper/i);
+  assert.equal(banner.action, "room");
+  assert.equal(banner.actionLabel, GAME_CENTER_COPY.openDraft);
+  assert.match(formatDraftNightDate("2026-09-05T23:00:00.000Z"), /Sep/);
+});
+
+test("hero names the empty-lineup cost before kickoff", () => {
+  const hero = gameCenterHeroCopy({ emptyLineup: true, placeholder: true });
+  assert.equal(hero.heading, GAME_CENTER_COPY.emptyLineupHeading);
+  assert.equal(hero.support, GAME_CENTER_COPY.emptyLineupSupport);
+  const live = gameCenterHeroCopy({
+    live: true,
+    viewer: { points: 20, starters: [{ points: 20 }] },
+    opponent: { points: 10, starters: [{ points: 10 }], team_name: "Daddio" },
+  });
+  assert.match(live.heading, /you win by 10/);
+});
+
+test("unstarted scores say not started instead of a bare dash", () => {
+  assert.deepEqual(formatMatchupScore(null, { placeholder: true }), {
+    score: "—",
+    label: GAME_CENTER_COPY.notStarted,
+  });
+  assert.equal(formatMatchupScore(12.4, { placeholder: false }).score, "12.4");
+  assert.equal(shouldShowPrevWeek(1), false);
+  assert.equal(shouldShowPrevWeek(2), true);
+  assert.equal(lineupIsEmpty({ starters: [] }, { starters: [] }, []), true);
+});
+
+test("trophy summary leads with the owner, not the nickname", () => {
+  const leader = { team_name: "Disappointment", owner_name: "Aaron D" };
+  assert.equal(trophyLeaderLabel(leader), "Aaron D · Disappointment");
+  assert.equal(
+    trophySummaryState({ leader, votes: 1, youVoted: true }),
+    "Aaron D · Disappointment · 1 vote · you voted",
+  );
 });
 
 test("placeholder storyline keeps the slate and names the missing opponent", () => {

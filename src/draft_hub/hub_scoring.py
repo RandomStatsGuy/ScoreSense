@@ -696,9 +696,9 @@ def build_hub_standings(league_id: str, season: int) -> list[dict[str, Any]]:
             }
         )
     rows.sort(key=lambda r: (-r["wins"], -r["points_for"], str(r["team_name"] or "").lower()))
-    for rank, row in enumerate(rows, start=1):
-        row["rank"] = rank
-    return rows
+    from src.draft_hub.league_live_scoring import assign_standings_ranks
+
+    return assign_standings_ranks(rows)
 
 
 def _starter_sort_key(row: dict[str, Any]) -> tuple[int, int, str]:
