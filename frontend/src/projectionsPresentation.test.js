@@ -196,8 +196,8 @@ test("hero read collapses range and role into one strip", () => {
   const hero = heroRead({ range, role });
   assert.equal(hero.title, "Best ceiling · Locked-in starter");
   assert.match(hero.detail, /wider band/i);
-  assert.match(hero.detail, /Volume and availability/i);
-  assert.match(hero.detail, /band\. Volume/);
+  assert.match(hero.detail, /wider band/i);
+  assert.doesNotMatch(hero.detail, /Volume and availability assumptions remain visible/i);
   assert.doesNotMatch(hero.title, /Role outlook|Range read/i);
   const starterOverlap = heroRead({
     range: { title: "Expected starter", detail: "stable, compact range" },

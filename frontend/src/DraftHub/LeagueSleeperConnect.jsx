@@ -148,7 +148,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
 
   return (
     <section className="hub-league-sleeper-connect">
-      <h3>Import Sleeper league</h3>
+      <h3>Link Sleeper</h3>
       <p className="chart-note">
         Import full Sleeper league for all contracts.
       </p>

@@ -13,7 +13,7 @@ export const BUG_REPORT_COPY = Object.freeze({
   menu: "Report a bug",
   eyebrow: "Report a bug",
   heading: "Tell us what broke.",
-  support: "It lands on the pickup board. Someone takes the ticket.",
+  support: "We get the page you were on and what broke. Someone follows up by email.",
   titleLabel: "Short title",
   titlePlaceholder: "Create league eats the click",
   happenedLabel: "What happened",
@@ -22,7 +22,7 @@ export const BUG_REPORT_COPY = Object.freeze({
   expectedPlaceholder: "The room is created and Fantasy switches to it.",
   areaLabel: "Where",
   pathLabel: "Page",
-  send: "Send to the board",
+  send: "Send the report",
   sending: "Sending…",
   needTitle: "Give it a short title.",
   needHappened: "Say what broke in a sentence or two.",
@@ -32,7 +32,7 @@ export const BUG_REPORT_COPY = Object.freeze({
   boardClosed: "The board is not taking reports right now.",
   sendFailed: "Could not file this report. Try again in a minute.",
   tooMany: "Too many reports from this account. Try again later.",
-  accountLink: "Something broken? Send a report. It lands on the pickup board.",
+  accountLink: "Something broken? Send a report. We follow up by email.",
   accountAction: "Report a bug",
   back: "Back",
 });
@@ -64,8 +64,8 @@ export function safeReportFrom(value) {
 
 export function reportSuccess(key) {
   const id = String(key || "").trim();
-  if (!id) return "It's on the pickup board. Someone will take it.";
-  return `It's on the pickup board as ${id}. Someone will take it.`;
+  if (!id) return "We have the report. Someone will follow up by email.";
+  return `We have the report as ${id}. Someone will follow up by email.`;
 }
 
 export function reportSendEnabled(boardOpen, busy) {

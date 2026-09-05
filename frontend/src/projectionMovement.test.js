@@ -47,6 +47,25 @@ test("formatRankMove hides unchanged ranks", () => {
   );
 });
 
+test("formatRankMove labels a missing prior rank as New", () => {
+  assert.equal(
+    formatRankMove({
+      previousRank: null,
+      currentRank: 4,
+      position: "QB",
+    }),
+    "New → QB4",
+  );
+  assert.equal(
+    formatRankMove({
+      previousRank: 0,
+      currentRank: 4,
+      position: "QB",
+    }),
+    "New → QB4",
+  );
+});
+
 test("formatRankMove keeps real rank changes", () => {
   assert.equal(
     formatRankMove({

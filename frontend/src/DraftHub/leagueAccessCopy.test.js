@@ -32,6 +32,7 @@ import {
   franchiseResizeHint,
   addFranchiseLabel,
   addFranchiseSupport,
+  canAddSeat,
   removeFranchiseLabel,
   franchiseSeatSummary,
 } from "./leagueAccessCopy.js";
@@ -122,7 +123,7 @@ test("join account note blocks guests on live drafts", () => {
 test("member email invite is how people join the league", () => {
   const copy = memberInviteExplainer();
   assert.match(copy, /invite link/i);
-  assert.match(copy, /claim a team/i);
+  assert.match(copy, /named email/i);
   assert.match(managerClaimLabel(), /Invite link/i);
   assert.equal(
     shareableAppUrl("https://app.example.com/hub/draft?claim=abc", "http://127.0.0.1:5173"),
@@ -166,12 +167,15 @@ test("draft night copy names the lock time", () => {
 });
 
 test("franchise resize copy names the next auction consequence", () => {
-  assert.equal(addFranchiseLabel(), "Add franchise");
-  assert.equal(removeFranchiseLabel(), "Remove franchise");
-  assert.match(franchiseResizeHint(), /next auction/i);
+  assert.equal(addFranchiseLabel(), "Add seat");
+  assert.equal(removeFranchiseLabel(), "Remove seat");
+  assert.match(franchiseResizeHint(), /seat count|claimed from Draft/i);
   assert.doesNotMatch(franchiseResizeHint(), /Submit|Draft Hub|permission/i);
-  assert.match(addFranchiseSupport({ nextCount: 11, cap: 200 }), /11 teams/);
+  assert.match(addFranchiseSupport({ nextCount: 11, cap: 200 }), /11 seats/);
   assert.match(addFranchiseSupport({ nextCount: 11, cap: 200 }), /\$200/);
-  assert.equal(franchiseSeatSummary({ configured: 12, actual: 10 }), "10 franchises · 12 seats");
-  assert.equal(franchiseSeatSummary({ configured: 10, actual: 10 }), "10 franchises");
+  assert.equal(franchiseSeatSummary({ configured: 12, actual: 10 }), "10 of 12 seats filled");
+  assert.equal(franchiseSeatSummary({ configured: 10, actual: 10 }), "10 seats");
+  assert.equal(franchiseSeatSummary({ configured: 1, actual: 1 }), "1 seat");
+  assert.equal(canAddSeat({ configured: 12, actual: 10 }), false);
+  assert.equal(canAddSeat({ configured: 12, actual: 12 }), true);
 });

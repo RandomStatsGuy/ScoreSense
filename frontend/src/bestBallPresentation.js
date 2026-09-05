@@ -8,25 +8,32 @@ export const BB_POSITION_FILTERS = [
 ];
 
 export const BB_SORTS = [
-  { id: "model", label: "Model rank", hint: "ScoreSense season projections, best first" },
-  { id: "edge", label: "ADP edge", hint: "Biggest gap between model rank and market ADP" },
-  { id: "adp", label: "ADP", hint: "Market draft order (FantasyPros ECR)" },
+  { id: "model", label: "Pos rank", hint: "ScoreSense positional rank from season projections" },
+  { id: "adp", label: "Pos ECR", hint: "FantasyPros positional ECR until a real ADP feed exists" },
 ];
+
+export function bestBallSorts({ ecrOnly = true, withAdp = 0 } = {}) {
+  if (ecrOnly || !withAdp) return BB_SORTS;
+  return [
+    ...BB_SORTS,
+    { id: "edge", label: "ADP edge", hint: "Biggest gap between model rank and market ADP" },
+  ];
+}
 
 export function bestBallHeroCopy() {
   return {
     eyebrow: "Tools · Best ball",
-    heading: "Take the name ADP is missing.",
+    heading: "Take the name ECR is missing.",
     support:
-      "Positive edge means the model wants him earlier than the room. Reach the other way and you pay extra for a name the board already priced.",
+      "Pos rank is the model. Pos ECR is FantasyPros until a real ADP feed exists. Reach the other way and you pay extra for a name the board already priced.",
   };
 }
 
 export function bestBallStatusChip({ loading = false, count = 0, withAdp = 0 } = {}) {
   if (loading) return { label: "Building board", tone: "readonly" };
   if (!count) return { label: "No board yet", tone: "readonly" };
-  if (!withAdp) return { label: `${count} players · no ADP cached`, tone: "readonly" };
-  return { label: `${count} players · ${withAdp} with ADP`, tone: "active" };
+  if (!withAdp) return { label: `${count} players · no ECR cached`, tone: "readonly" };
+  return { label: `${count} players · ${withAdp} with ECR`, tone: "readonly" };
 }
 
 /** Number(null) is 0 — treat null/empty as missing instead. */
@@ -117,18 +124,19 @@ export function bestBallSummaryItems({
   positionId = "ALL",
   filteredCount = 0,
 } = {}) {
-  const sort = BB_SORTS.find((entry) => entry.id === sortId);
+  const sort = bestBallSorts({ ecrOnly: false, withAdp: 1 }).find((entry) => entry.id === sortId)
+    || BB_SORTS.find((entry) => entry.id === sortId);
   const position = BB_POSITION_FILTERS.find((entry) => entry.id === positionId);
   return [
     { id: "season", label: "Season", value: season != null ? String(season) : "—" },
     { id: "players", label: "Players", value: count ? String(count) : "—" },
     {
       id: "adp",
-      label: "With ADP",
+      label: "With ECR",
       value: count ? `${withAdp} of ${count}` : "—",
       tone: count && !withAdp ? "caution" : undefined,
     },
-    { id: "sort", label: "Sorted by", value: sort?.label || "Model rank" },
+    { id: "sort", label: "Sorted by", value: sort?.label || "Pos rank" },
     {
       id: "showing",
       label: "Showing",
@@ -139,7 +147,7 @@ export function bestBallSummaryItems({
 
 export function bestBallCsvLines(rows = [], quote = (v) => `"${v}"`) {
   const lines = [
-    ["Model rank", "Player", "Team", "Pos", "Bye", "Season proj", "ADP", "Edge"]
+    ["Pos rank", "Player", "Team", "Pos", "Bye", "Season proj", "Pos ECR", "Edge"]
       .map(quote)
       .join(","),
   ];
@@ -162,10 +170,6 @@ export function bestBallCsvLines(rows = [], quote = (v) => `"${v}"`) {
   return lines;
 }
 
-export function bestBallBoardNote({ withAdp = 0, count = 0 } = {}) {
-  if (!count) return "";
-  if (!withAdp) {
-    return "No ADP cache found — showing model ranks only. ADP loads from FantasyPros ECR when configured.";
-  }
-  return "ADP is FantasyPros week-1 ECR when cached. Edge = ADP minus model rank.";
+export function bestBallBoardNote() {
+  return "";
 }

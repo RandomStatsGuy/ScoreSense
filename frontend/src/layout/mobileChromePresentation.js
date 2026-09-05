@@ -4,6 +4,7 @@ import { FANTASY_CHAT_COPY } from "../DraftHub/fantasyChatPresentation.js";
 export const MOBILE_CHROME_COPY = {
   goTo: "Go to",
   filters: "Filters",
+  needsAttention: "Needs attention",
   leagueChat: FANTASY_CHAT_COPY.leagueChat,
   openChat: FANTASY_CHAT_COPY.openChat,
   closeChat: FANTASY_CHAT_COPY.closeChat,

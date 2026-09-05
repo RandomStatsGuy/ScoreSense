@@ -5,6 +5,7 @@ import { useAuth } from "./AuthContext";
 import DraftTable from "./DraftTable";
 import DraftHub from "./DraftHub/DraftHub";
 import HubSubnav, { HUB_SUBVIEWS } from "./DraftHub/HubSubnav";
+import { LeagueChromeProvider } from "./DraftHub/leagueChromeContext";
 import DfsOptimizer from "./LineupOptimizer";
 import MockDraftTool from "./DraftHub/MockDraftTool";
 import BestBallBoard from "./BestBallBoard";
@@ -1265,6 +1266,7 @@ export default function App() {
       maxCompare={MAX_COMPARE_PLAYERS}
       resetKey={`${projectionsTab}:${seasonMode}:${position}`}
     >
+    <LeagueChromeProvider>
     <MobileShell
       section={view}
       onSectionChange={goToSection}
@@ -1556,6 +1558,9 @@ export default function App() {
                   applyInjuryAdjustments: isLiveContext,
                   scope: "weekly",
                 }}
+                onActivate={(signal) => {
+                  if (signal.id === "attention") handleMovementFilterChange("attention");
+                }}
               />
             ) : null}
             <section className={`panel wide panel-projections proj-board-surface projections-mobile-panel${projectionsMobilePanel === "projections" ? " is-mobile-active" : ""}`}>
@@ -1569,6 +1574,9 @@ export default function App() {
                     applyInjuryAdjustments: isLiveContext,
                     scope: "weekly",
                   }}
+                  onActivate={(signal) => {
+                    if (signal.id === "attention") handleMovementFilterChange("attention");
+                  }}
                 />
               ) : null}
               <ProjectionBoardHeader
@@ -1576,11 +1584,9 @@ export default function App() {
                 title={BOARD_COPY.weeklyBoard}
                 support={BOARD_COPY.weeklySupport}
                 filters={
-                  mobileLayout
-                    ? []
-                    : (meta?.projection_movement != null
-                      ? movementBoardFilters(tableRows.length)
-                      : [])
+                  meta?.projection_movement != null
+                    ? movementBoardFilters(tableRows.length)
+                    : []
                 }
                 activeFilter={movementFilter}
                 onFilterChange={handleMovementFilterChange}
@@ -1613,6 +1619,7 @@ export default function App() {
                 movementEmptyReason={meta?.projection_movement?.empty_reason || null}
                 movementNote={meta?.projection_movement?.note || null}
                 leftSlateRows={leftSlateRows}
+                attentionPlayerIds={new Set((weeklyAttention || []).map((item) => String(item.playerId || item.player_id || item.injury?.player_id || "")).filter(Boolean))}
                 compareEnabled
                 selectedCompareIds={compareIds}
                 maxCompare={MAX_COMPARE_PLAYERS}
@@ -1974,6 +1981,7 @@ export default function App() {
           <LegalLinks termsUrl={termsUrl} privacyUrl={privacyUrl} className="app-legal-footer" compact />
         )}
       </MobileShell>
+    </LeagueChromeProvider>
     </PlayerCardProvider>
   );
 }

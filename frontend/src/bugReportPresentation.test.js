@@ -11,11 +11,11 @@ import {
 
 test("report copy names the board and skips banned verbs", () => {
   assert.match(BUG_REPORT_COPY.heading, /broke/i);
-  assert.match(BUG_REPORT_COPY.support, /pickup board/i);
-  assert.match(BUG_REPORT_COPY.send, /Send to the board/);
-  assert.doesNotMatch(BUG_REPORT_COPY.send, /Submit|Draft Hub|permission/i);
+  assert.match(BUG_REPORT_COPY.support, /follows up by email/i);
+  assert.match(BUG_REPORT_COPY.send, /Send the report/);
+  assert.doesNotMatch(BUG_REPORT_COPY.send, /Submit|Draft Hub|permission|pickup board/i);
   assert.doesNotMatch(BUG_REPORT_COPY.needAccount, /Submit|Draft Hub|permission/i);
-  assert.match(BUG_REPORT_COPY.accountLink, /pickup board/i);
+  assert.match(BUG_REPORT_COPY.accountLink, /follow up by email/i);
 });
 
 test("inferReportArea maps in-app paths", () => {
@@ -43,6 +43,6 @@ test("send stays off until the board is confirmed open", () => {
 
 test("success names the ticket key", () => {
   assert.match(reportSuccess("SCORE-99"), /SCORE-99/);
-  assert.match(reportSuccess(""), /pickup board/);
+  assert.match(reportSuccess(""), /follow up by email/);
   assert.doesNotMatch(reportSuccess("SCORE-99"), /Submit|Draft Hub/i);
 });

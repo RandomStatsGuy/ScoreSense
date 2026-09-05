@@ -12,7 +12,7 @@ test("vibe copy names the goal and never says Draft Hub or Submit", () => {
   assert.match(VIBE_COPY.heading, /start or sit/i);
   assert.match(VIBE_COPY.support, /aura/i);
   assert.match(VIBE_COPY.swipeHint, /arrow/i);
-  assert.match(VIBE_COPY.support, /week number/i);
+  assert.match(VIBE_COPY.support, /Skip a card/i);
   assert.equal(VIBE_COPY.railTitle, "Vibe ranking");
   assert.equal(VIBE_COPY.slateTitle, "VA-projections");
   assert.match(VIBE_COPY.slateHint, /vibe-adjusted/i);

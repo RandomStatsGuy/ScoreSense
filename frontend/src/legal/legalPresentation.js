@@ -3,7 +3,7 @@
 export const LEGAL_PRIVACY = Object.freeze({
   lastUpdated: "September 2026",
   phoneCollect:
-    "Mobile number, only if you opt in to draft alert texts. Stored on your account.",
+    "Mobile number, only if you opt in to draft alert texts. Stored on your account. Texts go through Twilio. We do not share mobile numbers for marketing.",
   smsTitle: "Draft alert texts",
   smsBody:
     "If you opt in, we store your mobile number on your ScoreSense account and use it only to send draft alerts: lobby open, 15 minutes before the draft, and draft is live. Message frequency varies and is typically a few texts around your league draft. Message and data rates may apply. We do not share mobile numbers with third parties or affiliates for marketing or promotional purposes. Texts are sent through Twilio. You can turn SMS off in Account or reply STOP.",

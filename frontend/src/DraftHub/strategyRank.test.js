@@ -146,7 +146,7 @@ test("context fingerprint changes when scoring or draft type changes", () => {
   assert.notEqual(a, b);
   assert.equal(scoringIsSupported("dynasty"), false);
   assert.equal(scoringIsSupported("hub_ppr"), true);
-  assert.equal(scoringLabel("hub_ppr"), "Hub PPR");
+  assert.equal(scoringLabel("hub_ppr"), "PPR");
 });
 
 test("rank delta is site minus mine", () => {

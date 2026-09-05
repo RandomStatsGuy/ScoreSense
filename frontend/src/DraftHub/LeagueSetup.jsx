@@ -104,40 +104,6 @@ export default function LeagueSetup({
     }
   };
 
-  const toggleDraftCompleted = async () => {
-    if (!ctx?.league_id) return;
-    if (!draftCompleted) {
-      const ok = window.confirm(
-        "This starts the new contract year. Every active player’s years left will drop by 1. Anyone at 0 leaves as a free agent. Continue?",
-      );
-      if (!ok) return;
-    }
-    setBusy(true);
-    setError("");
-    try {
-      const res = await apiFetch(`/api/hub/league/${ctx.league_id}/settings`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ draft_completed: !draftCompleted }),
-      });
-      if (!res.ok) throw new Error(await parseApiError(res));
-      const data = await res.json();
-      onLeagueCreated?.(data);
-      const tick = data.contract_year_tick;
-      if (!draftCompleted && tick) {
-        const parts = [`Contracts updated: ${tick.advanced || 0} players −1 year`];
-        if (tick.expired) parts.push(`${tick.expired} became FA`);
-        setMsg(parts.join("; ") + ".");
-      } else {
-        setMsg(draftCompleted ? "Back to pre-draft mode." : "Draft marked complete.");
-      }
-    } catch (e) {
-      setError(e.message || "Could not update league settings");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const saveDraftNight = async (clear = false) => {
     if (!ctx?.league_id) return;
     setBusy(true);
@@ -186,30 +152,23 @@ export default function LeagueSetup({
             {!isCommissioner && <span className="hub-member-badge">Member</span>}
           </div>
           <div className="hub-league-setup-toolbar-actions">
-            {isCommissioner && onLeagueSync && ctx.league_id && (
+            {isCommissioner && onNavigate && (
               <button
                 type="button"
                 className="btn-ghost btn-sm"
-                disabled={leagueSyncing || busy}
-                onClick={() => onLeagueSync(ctx.league_id)}
+                onClick={() => onNavigate("office-access")}
               >
-                {leagueSyncing ? "Syncing…" : "Sync Sleeper"}
+                Link Sleeper
               </button>
             )}
             {isCommissioner && (
               <>
-                <label className="hub-toggle-row hub-toggle-row-compact">
-                  <input
-                    type="checkbox"
-                    checked={draftCompleted}
-                    disabled={busy}
-                    onChange={toggleDraftCompleted}
-                  />
-                  <span>Draft done</span>
-                </label>
+                <span className="chart-note">
+                  {draftCompleted ? "Draft complete" : "Draft not marked complete"}
+                </span>
                 {onNavigate && (
-                  <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("league-rosters")}>
-                    All teams
+                  <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("office")}>
+                    Contracts
                   </button>
                 )}
               </>
@@ -230,7 +189,7 @@ export default function LeagueSetup({
             onWallChange={setDraftWall}
             onTimezoneChange={setDraftTz}
             tzOptions={DRAFT_TZ_OPTIONS.includes(draftTz) ? DRAFT_TZ_OPTIONS : [draftTz, ...DRAFT_TZ_OPTIONS]}
-            canEdit
+            canEdit={false}
             busy={busy}
             minDate={calendarTodayIso(undefined, draftTz)}
             onSave={() => saveDraftNight(false)}

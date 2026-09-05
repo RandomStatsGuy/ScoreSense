@@ -1,6 +1,8 @@
 import React, { useMemo, useRef, useState } from "react";
 import MobileDestinationSheet from "../layout/MobileDestinationSheet";
 import { MOBILE_CHROME_COPY, selectAndDismissDestination } from "../layout/mobileChromePresentation";
+import LeagueOverflowLead, { useLeagueFreshness } from "./LeagueOverflowLead";
+import { isSoloContext } from "./hubLeagues";
 
 /** group: "home" | "prep" (draft prep) | "season" (in-season) | "office" (league-wide). */
 export const HUB_SUBVIEWS = [
@@ -72,6 +74,8 @@ export default function HubSubnav({
   };
   const visible = useMemo(() => filterHubSubviews(hubContext), [hubContext]);
   const groups = useMemo(() => hubDestinationGroups(hubContext), [hubContext]);
+  const leagueId = hubContext?.league_id;
+  useLeagueFreshness(leagueId, Boolean(leagueId) && !isSoloContext(hubContext));
 
   React.useEffect(() => {
     if (pickerOnly) return undefined;
@@ -101,6 +105,13 @@ export default function HubSubnav({
       onClose={() => setPickerOpen(false)}
       title={MOBILE_CHROME_COPY.fantasySheet}
       className="app-mobile-sheet-hub-tabs"
+      lead={(
+        <LeagueOverflowLead
+          hubContext={hubContext}
+          onNavigate={onNavigate}
+          onAfterAction={() => setPickerOpen(false)}
+        />
+      )}
       groups={groups}
       active={subView}
       onSelect={(id) => selectAndDismissDestination(id, onNavigate, () => setPickerOpen(false))}

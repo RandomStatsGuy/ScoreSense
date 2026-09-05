@@ -15,18 +15,18 @@ export const QUEUE_CAP = 40;
 export const SIMILAR_REL_GAP = 0.18;
 export const FLEX_ELIGIBLE = Object.freeze(["RB", "WR", "TE"]);
 
-/** Honest default until Rules stores a scoring profile. Pool today is Hub PPR. */
+/** Honest default until Rules stores a scoring profile. Pool today is PPR. */
 export const DEFAULT_SCORING_PROFILE = "hub_ppr";
 
 export const UNSUPPORTED_PROFILES = Object.freeze(["dynasty", "standard", "half_ppr"]);
 
 export function scoringLabel(profile) {
   const id = String(profile || DEFAULT_SCORING_PROFILE);
-  if (id === "hub_ppr" || id === "ppr") return "Hub PPR";
+  if (id === "hub_ppr" || id === "ppr") return "PPR";
   if (id === "half_ppr") return "Half PPR";
   if (id === "standard") return "Standard";
   if (id === "dynasty") return "Dynasty";
-  return "Hub PPR";
+  return "PPR";
 }
 
 export function scoringIsSupported(profile) {

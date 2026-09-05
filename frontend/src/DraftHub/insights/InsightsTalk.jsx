@@ -280,10 +280,11 @@ export function ScoringRace({
   );
 }
 
-export function InsightsDisclosure({ summary, meta, children, onOpen }) {
+export function InsightsDisclosure({ summary, meta, children, onOpen, open }) {
   return (
     <details
       className="hub-insights-disclosure"
+      open={open}
       onToggle={(event) => {
         if (event.currentTarget.open) onOpen?.();
       }}

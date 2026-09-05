@@ -2,8 +2,13 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
-import { HubFilterChip, HubFilterScroll, HubAlert, HubPage } from "./HubUILayout";
-import HubTabIntro from "./HubTabIntro";
+import {
+  HubAlert,
+  HubExperienceHero,
+  HubFilterChip,
+  HubFilterScroll,
+  HubPage,
+} from "./HubUILayout";
 import { getInsightsSection, setInsightsSection } from "./hubDataCache";
 import { confirmDialog } from "../ui/confirm";
 import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
@@ -211,7 +216,7 @@ function TradePlayerRow({
   );
 }
 
-export default function LeagueTrades({ leagueId, hubContext }) {
+export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
   const [tab, setTab] = useState("builder");
   const [builderStep, setBuilderStep] = useState("partner");
   const [insights, setInsights] = useState(null);
@@ -310,17 +315,18 @@ export default function LeagueTrades({ leagueId, hubContext }) {
       const teamBlocks = await loadRosters();
       await Promise.all([loadProposals(), loadInsights()]);
       const seed = readTradeSeed();
-      if (seed?.players?.length) {
+      if (seed?.players?.length || seed?.partnerTeamId) {
         clearTradeSeed();
         const myId = hubContext?.team_id || myTeamId;
-        const otherId = seed.players.find((p) => p.team_id && p.team_id !== myId)?.team_id
+        const otherId = seed.partnerTeamId
+          || seed.players?.find((p) => p.team_id && p.team_id !== myId)?.team_id
           || (teamBlocks || []).map((b) => b.team?.id).find((id) => id && id !== myId)
           || "";
         const next = [
           emptyParty(myId),
           emptyParty(otherId),
         ];
-        seed.players.forEach((p) => {
+        (seed.players || []).forEach((p) => {
           const fromIdx = next.findIndex((x) => x.team_id === p.team_id);
           const from = fromIdx >= 0 ? next[fromIdx] : next[1];
           if (!from.team_id) from.team_id = p.team_id;
@@ -972,10 +978,13 @@ export default function LeagueTrades({ leagueId, hubContext }) {
   );
 
   return (
-    <HubPage>
-      <HubTabIntro
-        title={TRADES_COPY.title}
-        purpose={TRADES_COPY.purpose}
+    <HubPage className="hub-experience-page">
+      <HubExperienceHero
+        eyebrow={TRADES_COPY.eyebrow}
+        heading={TRADES_COPY.heading}
+        support={TRADES_COPY.support}
+        chip={hasPartner ? "Partner picked" : "Need a partner"}
+        chipTone={hasPartner ? "ready" : "caution"}
       />
       {tradeBanner ? (
         <HubAlert variant={tradeBanner.variant}>
@@ -1073,7 +1082,7 @@ export default function LeagueTrades({ leagueId, hubContext }) {
                 })}
               </ul>
               {teams.filter((t) => t.id && t.id !== myTeamId).length === 0 && (
-                <p className="chart-note">No other teams in this league yet.</p>
+                <p className="chart-note">{TRADES_COPY.noPartners}</p>
               )}
               {partnerTeamIds.length > 1 && (
                 <p className="chart-note">
@@ -1081,14 +1090,24 @@ export default function LeagueTrades({ leagueId, hubContext }) {
                 </p>
               )}
               <div className="hub-toolbar hub-trade-builder-actions">
-                <button
-                  type="button"
-                  className="btn-primary btn-sm"
-                  disabled={!hasPartner}
-                  onClick={() => goBuilderStep("players")}
-                >
-                  Continue to players
-                </button>
+                {teams.filter((t) => t.id && t.id !== myTeamId).length === 0 ? (
+                  <button
+                    type="button"
+                    className="btn-primary btn-sm"
+                    onClick={() => onNavigate?.("office-members")}
+                  >
+                    {TRADES_COPY.inviteManagers}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-primary btn-sm"
+                    disabled={!hasPartner}
+                    onClick={() => goBuilderStep("players")}
+                  >
+                    Continue to players
+                  </button>
+                )}
               </div>
             </div>
           )}

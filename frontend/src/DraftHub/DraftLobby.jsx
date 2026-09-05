@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import Button from "../ui/Button";
+import DraftSeat from "./DraftSeat";
 import {
   DRAFT_TZ_OPTIONS,
   draftFormatLabel,
@@ -11,7 +12,16 @@ import {
   utcIsoToWall,
 } from "./draftEntryStatus";
 import { availabilityTimezone, calendarTodayIso, slotToWall, wallToSlot } from "./draftAvailabilityPresentation";
-import { altLockSummary, lobbyAbsoluteUrl, lobbyChipLabel, roomHeading, roomSupport, slotLabel } from "./draftLobby";
+import {
+  altLockSummary,
+  lobbyAbsoluteUrl,
+  lobbyChipLabel,
+  lobbyChipTone,
+  roomHeading,
+  roomSupport,
+  slotLabel,
+  startDraftIsPrimary,
+} from "./draftLobby";
 import {
   draftInviteLabel,
   draftInviteRailHint,
@@ -88,7 +98,9 @@ export default function DraftLobby({
   const [draftWall, setDraftWall] = useState(() => utcIsoToWall(league?.draft_starts_at, tzDefault));
   const [scheduleBusy, setScheduleBusy] = useState(false);
   const [bestOverlap, setBestOverlap] = useState("");
+  const [calendarState, setCalendarState] = useState("");
   const onAvailHighlight = useCallback((label) => setBestOverlap(label || ""), []);
+  const onCalendarWindow = useCallback((state) => setCalendarState(state || ""), []);
   const startsAt = league?.draft_starts_at;
   const lockedSlot = useMemo(
     () => (startsAt ? wallToSlot(utcIsoToWall(startsAt, draftTz)) : null),
@@ -273,7 +285,7 @@ export default function DraftLobby({
         heading={heading}
         support={support}
         chip={lobbyChipLabel({ claimed, teamCount })}
-        chipTone={claimed > 0 ? "active" : "readonly"}
+        chipTone={lobbyChipTone({ claimed, teamCount })}
       />
 
       {error ? <p className="hub-alert hub-alert--danger draft-lobby-error" role="alert">{error}</p> : null}
@@ -327,6 +339,11 @@ export default function DraftLobby({
                 {isCommissioner ? (
                   <Button
                     className="draft-lobby-primary-action"
+                    variant={startDraftIsPrimary({
+                      scheduled: Boolean(startsAt),
+                      claimed,
+                      teamCount,
+                    }) || testMode ? "primary" : "ghost"}
                     disabled={busy || roomLoading}
                     onClick={() => onStartDraft?.({ fillBots: testMode && fillBots })}
                   >
@@ -407,10 +424,27 @@ export default function DraftLobby({
             lockBusy={scheduleBusy || busy}
             onHighlight={onAvailHighlight}
             onLockSlot={lockAvailabilitySlot}
+            onWindowChange={onCalendarWindow}
           />
         ) : null}
 
-        {isCommissioner && !testMode && onSaveSchedule ? (
+        {isCommissioner && !testMode && onSaveSchedule && !startsAt && calendarState !== "open" && calendarState !== "upcoming" ? (
+          <DraftNightSchedule
+            variant="compact"
+            startsAt={startsAt}
+            timezone={draftTz}
+            wall={draftWall}
+            onWallChange={setDraftWall}
+            onTimezoneChange={setDraftTz}
+            tzOptions={tzOptions}
+            canEdit
+            busy={scheduleBusy || busy}
+            waitSecs={waitSecs}
+            minDate={calendarTodayIso(undefined, draftTz)}
+            onSave={() => saveSchedule(false)}
+            onClear={() => saveSchedule(true)}
+          />
+        ) : isCommissioner && !testMode && onSaveSchedule ? (
           <details className="draft-lobby-alt-lock">
             <summary>{altLockSummary({ locked: Boolean(startsAt) })}</summary>
             <DraftNightSchedule
@@ -442,19 +476,16 @@ export default function DraftLobby({
               const taken = Boolean(team) && !mine;
               return (
                 <li key={slot}>
-                  <button
-                    type="button"
-                    className={`hub-pick-tile draft-lobby-slot${mine ? " is-you" : ""}${taken ? " is-taken" : ""}${!team ? " is-open" : ""}`}
+                  <DraftSeat
+                    variant="tile"
+                    slot={slot}
+                    name={team?.name}
+                    mine={mine}
+                    taken={taken}
                     disabled={slotBusy || busy || taken || !myTeamId}
-                    aria-pressed={Boolean(mine)}
+                    pressed={Boolean(mine)}
                     onClick={() => claimSlot(slot)}
-                  >
-                    <span className="draft-lobby-slot-num">{slot}</span>
-                    <span className="draft-lobby-slot-who">{team?.name || "Open"}</span>
-                    <span className="draft-lobby-slot-action">
-                      {mine ? "Yours" : taken ? "Taken" : "Take"}
-                    </span>
-                  </button>
+                  />
                 </li>
               );
             })}

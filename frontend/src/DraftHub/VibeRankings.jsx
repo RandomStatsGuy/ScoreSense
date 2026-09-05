@@ -240,7 +240,7 @@ export default function VibeRankings({
             title={VIBE_COPY.railTitle}
             subtitle={VIBE_COPY.railSubtitle(weekLabel)}
             items={railItems}
-            action={(
+            action={!usingDemo ? (
               <button
                 type="button"
                 className="btn-primary hub-experience-summary-action"
@@ -250,7 +250,7 @@ export default function VibeRankings({
               >
                 {VIBE_COPY.nextAction}
               </button>
-            )}
+            ) : null}
           />
         )}
       >
@@ -289,9 +289,11 @@ export default function VibeRankings({
           <div className="hub-vibes-results">
             <p className="hub-vibes-hint">{VIBE_COPY.lockedToday}</p>
             <div className="hub-vibes-actions">
+              {!usingDemo ? (
               <button type="button" className="btn-primary" onClick={() => onNavigate?.("week")}>
                 {VIBE_COPY.resultsCta}
               </button>
+              ) : null}
             </div>
           </div>
         )}

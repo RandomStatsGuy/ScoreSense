@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Chip, { injuryChipTone } from "./Chip";
-import { fmtNum, isPlayerUnavailable, unavailableLabel } from "./format";
+import { fmtNum, formatRelativeTime, isPlayerUnavailable, unavailableLabel } from "./format";
 import {
   SortHeader,
   ExportCsvButton,
@@ -452,6 +452,7 @@ export default function WeeklyTable({
   /** Left-slate rows from `/changes` (not soft-joined onto current projections). */
   leftSlateRows = null,
   hideMovementFilters = false,
+  attentionPlayerIds = null,
   onOpenPlayer,
 }) {
   const [sort, toggleSort] = useTableSort({ column: "P50", dir: "desc" });
@@ -531,7 +532,7 @@ export default function WeeklyTable({
       list = list.filter((r) => set.has(String(r.Team || "").toUpperCase()));
     }
     if (showFilters && movementFilter && movementFilter !== "all") {
-      list = list.filter((r) => matchesMovementFilter(r, movementFilter));
+      list = list.filter((r) => matchesMovementFilter(r, movementFilter, { attentionIds: attentionPlayerIds }));
       list = mergeRowsForMovementFilter(list, leftSlateRows, movementFilter);
       if (q) {
         list = list.filter(
@@ -546,7 +547,7 @@ export default function WeeklyTable({
       }
     }
     return list;
-  }, [rows, search, teamsFilter, showFilters, movementFilter, leftSlateRows]);
+  }, [rows, search, teamsFilter, showFilters, movementFilter, leftSlateRows, attentionPlayerIds]);
 
   const scaleMax = useMemo(() => {
     const slate = rows || [];
@@ -680,9 +681,9 @@ export default function WeeklyTable({
                 "Movement unavailable for this slate"}
           </span>
         ) : null}
-        {playersContext.unavailable ? (
-          <span className="table-meta table-meta-context-cold" role="status">
-            Injury context still loading
+        {!playersContext.unavailable && playersContext.meta?.updated_at ? (
+          <span className="table-meta" role="status">
+            {`Injury context · ${(formatRelativeTime(playersContext.meta.updated_at) || "").replace(/^Updated /, "")}`}
           </span>
         ) : null}
         {playersContext.meta?.stale ? (

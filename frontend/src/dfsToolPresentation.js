@@ -435,7 +435,11 @@ export function launchCopy({ isDfs = true, hasLineup = false, siteLabel = "Draft
     };
   }
   return {
-    title: "Set the lineup.",
+    title: "Your lineup.",
     body: "Best-effort PPR from this week's projections.",
   };
+}
+
+export function dfsRailTitle({ locked = 0, skipped = 0 } = {}) {
+  return `Your lineup · ${locked} locked · ${skipped} skipped`;
 }

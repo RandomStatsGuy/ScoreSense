@@ -3,13 +3,20 @@ import HoverTip from "../HoverTip";
 import { sortIndicator } from "./valueSheetUtils";
 
 /** Sortable column header shared by hub tables. */
-export function SortTh({ label, col, sortKey, sortDir, onSort, className = "", title, tip }) {
+export function SortTh({ label, sub, col, sortKey, sortDir, onSort, className = "", title, tip }) {
   const active = sortKey === col;
   const tipContent = tip || title;
   const classes = `sortable-header${active ? " sort-active" : ""}${tipContent ? " col-tip" : ""} ${className}`.trim();
   const ariaSort = active ? (sortDir === "asc" ? "ascending" : "descending") : "none";
   const indicator = (
     <span className="sort-indicator" aria-hidden="true"> {sortIndicator(sortKey, sortDir, col)}</span>
+  );
+  const body = (
+    <>
+      <span className="sortable-header-label">{label}</span>
+      {sub ? <span className="sortable-header-sub">{sub}</span> : null}
+      {indicator}
+    </>
   );
 
   if (tipContent) {
@@ -21,8 +28,7 @@ export function SortTh({ label, col, sortKey, sortDir, onSort, className = "", t
         onClick={() => onSort(col)}
         aria-sort={ariaSort}
       >
-        {label}
-        {indicator}
+        {body}
       </HoverTip>
     );
   }
@@ -33,8 +39,7 @@ export function SortTh({ label, col, sortKey, sortDir, onSort, className = "", t
       onClick={() => onSort(col)}
       aria-sort={ariaSort}
     >
-      {label}
-      {indicator}
+      {body}
     </th>
   );
 }
@@ -259,6 +264,13 @@ export function HubSegmentNav({ tabs, active, onChange, ariaLabel = "Sections" }
   );
 }
 
+export function chipToneClass(tone) {
+  if (tone === "readonly") return " is-readonly";
+  if (tone === "caution") return " is-caution";
+  if (tone === "ready") return " is-ready";
+  return "";
+}
+
 export function HubExperienceHero({
   eyebrow,
   heading,
@@ -276,7 +288,7 @@ export function HubExperienceHero({
         {children}
       </div>
       {chip ? (
-        <span className={`hub-experience-chip${chipTone === "readonly" ? " is-readonly" : ""}`}>
+        <span className={`hub-experience-chip${chipToneClass(chipTone)}`}>
           {chip}
         </span>
       ) : null}

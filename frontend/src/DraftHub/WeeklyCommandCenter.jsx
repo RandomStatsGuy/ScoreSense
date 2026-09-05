@@ -131,6 +131,7 @@ export default function WeeklyCommandCenter({
   const leagueLabel = data?.hub_context?.league_name || hubContext?.league_name;
   const emptyRoster = Boolean(status.empty_roster);
   const unlinked = Boolean(status.unlinked_league);
+  const draftCompleted = Boolean(hubContext?.draft_completed || data?.hub_context?.draft_completed);
   const canSync = Boolean(sync.sync_endpoint) && Boolean(sync.linked);
   const poorCoverage = Boolean(data) && isPoorProjectionCoverage({ counts, status });
   const rosterCount = Number(counts.roster) || 0;
@@ -146,6 +147,7 @@ export default function WeeklyCommandCenter({
   const hero = weekHeroCopy({
     emptyRoster,
     unlinked,
+    draftCompleted,
     poorCoverage,
     decisionCount: poorCoverage ? 0 : decisions.length,
     weekLabel,
@@ -154,11 +156,18 @@ export default function WeeklyCommandCenter({
   const railNote = weekRailNote({
     emptyRoster,
     unlinked,
+    draftCompleted,
     poorCoverage,
     headline: summary.headline,
     syncedLabel,
   });
-  const primary = weekPrimaryAction({ emptyRoster, unlinked, canSync });
+  const primary = weekPrimaryAction({
+    emptyRoster,
+    unlinked,
+    canSync,
+    draftCompleted,
+    sleeperStale: canSync && emptyRoster,
+  });
   const canEdit = canEditHubLineup({
     mode: data?.hub_context?.mode || hubContext?.mode,
     lineupSource: meta.lineup_source,
@@ -191,42 +200,36 @@ export default function WeeklyCommandCenter({
   }, [leagueId, load, meta.week, weekOverride]);
 
   const runPrimary = () => {
-    if (primary.kind === "sync") return runSync();
-    if (primary.kind === "setup") return onNavigateSetup?.();
+    if (primary.kind === "sync" || primary.kind === "strip-sync") return undefined;
+    if (primary.kind === "office-access") return onNavigate?.("office-access") || onNavigateSetup?.();
+    if (primary.kind === "room") return onNavigate?.("room");
+    if (primary.kind === "setup") return onNavigate?.("office-access") || onNavigateSetup?.();
     if (primary.kind === "roster") return onNavigate?.("roster");
     if (primary.kind === "refresh") return load(undefined, { rebuild: true });
     return load();
   };
 
-  const overlayActions = (
+  const overlayActions = emptyRoster ? (
     <div className="hub-wcc-board-overlay-actions">
-      {canSync ? (
+      {primary.kind === "room" ? (
+        <button type="button" className="btn-primary" onClick={() => onNavigate?.("room")}>
+          {primary.label}
+        </button>
+      ) : null}
+      {primary.kind === "office-access" ? (
         <button
           type="button"
           className="btn-primary"
-          onClick={runSync}
-          disabled={syncing || loading}
+          onClick={() => onNavigate?.("office-access") || onNavigateSetup?.()}
         >
-          {syncing ? "Syncing…" : "Sync league"}
+          {primary.label}
         </button>
       ) : null}
-      {unlinked && onNavigateSetup ? (
-        <button type="button" className="btn-ghost" onClick={onNavigateSetup}>
-          League settings
-        </button>
-      ) : null}
-      {onNavigate ? (
-        <button type="button" className="btn-link" onClick={() => onNavigate("roster")}>
-          Add contracts
-        </button>
-      ) : null}
-      {onNavigate ? (
-        <button type="button" className="btn-link" onClick={() => onNavigate("vibes")}>
-          Rate vibes
-        </button>
+      {primary.kind === "strip-sync" ? (
+        <p className="chart-note">Use Sync league in the league strip.</p>
       ) : null}
     </div>
-  );
+  ) : null;
 
   const coverageCopy = poorCoverage ? {
     title: "Projections need attention",
@@ -277,7 +280,9 @@ export default function WeeklyCommandCenter({
             subtitle={weekLabel + (meta.season != null ? ` · ${meta.season}` : "")}
             items={railItems}
             note={railNote}
-            action={(
+            action={primary.kind === "strip-sync" ? (
+              <p className="hub-experience-summary-note">Use Sync league in the league strip.</p>
+            ) : (
               <button
                 type="button"
                 className="btn-primary hub-experience-summary-action"
@@ -286,7 +291,7 @@ export default function WeeklyCommandCenter({
               >
                 {loading && primary.kind === "refresh"
                   ? "Refreshing…"
-                  : (syncing && primary.kind === "sync" ? "Syncing…" : primary.label)}
+                  : primary.label}
               </button>
             )}
           />
