@@ -275,6 +275,7 @@ test("weekly mobile copy stays sentence case and names the job", () => {
   assert.equal(BOARD_COPY.details, "Details");
   assert.equal(BOARD_COPY.applyFilters, "Apply");
   assert.equal(BOARD_COPY.resetFilters, "Reset");
+  assert.equal(BOARD_COPY.weeklySlate, "This week's slate");
   assert.doesNotMatch(JSON.stringify(BOARD_COPY), /Why\?|Submit|Draft Hub/i);
 });
 
