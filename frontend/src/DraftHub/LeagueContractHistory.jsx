@@ -10,7 +10,7 @@ import ContractPlayerJourney from "./ContractPlayerJourney";
 import ContractOwnerChangesPanel from "./ContractOwnerChangesPanel";
 import ContractDataSourcesBanner from "./ContractDataSourcesBanner";
 import { invalidateInsightsAfterCapSync } from "./hubDataCache";
-import { HubPage } from './HubUILayout';
+import { HubFilterMenu, HubPage } from './HubUILayout';
 import { confirmDialog } from "../ui/confirm";
 import { historicCorrectionDialog } from "./HistoricCorrectionDialog";
 import { fmtSal } from "./rosterFormat";
@@ -195,19 +195,12 @@ function ContractRowEditor({ row, leagueId, seasonYear, isNew, onSaved, onDelete
             onChange={(e) => setForm((f) => ({ ...f, player_name: e.target.value }))}
           />
         </label>
-        <label>
-          <span className="hub-filter-label">Pos</span>
-          <select
-            className="search-input"
-            value={form.position}
-            onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
-          >
-            <option value="">—</option>
-            {POSITIONS.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-        </label>
+        <HubFilterMenu
+          label="Pos"
+          value={form.position}
+          options={[{ id: "", label: "—" }, ...POSITIONS.map((p) => ({ id: p, label: p }))]}
+          onChange={(id) => setForm((f) => ({ ...f, position: id }))}
+        />
         <label>
           <span className="hub-filter-label">Cap</span>
           <input
@@ -235,42 +228,24 @@ function ContractRowEditor({ row, leagueId, seasonYear, isNew, onSaved, onDelete
             onChange={(e) => setForm((f) => ({ ...f, original_draft_year: e.target.value }))}
           />
         </label>
-        <label>
-          <span className="hub-filter-label">Status</span>
-          <select
-            className="search-input"
-            value={form.roster_status}
-            onChange={(e) => setForm((f) => ({ ...f, roster_status: e.target.value }))}
-          >
-            {ROSTER_STATUSES.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span className="hub-filter-label">Phase</span>
-          <select
-            className="search-input"
-            value={form.contract_phase}
-            onChange={(e) => setForm((f) => ({ ...f, contract_phase: e.target.value }))}
-          >
-            {CONTRACT_PHASES.map((p) => (
-              <option key={p || "none"} value={p}>{p || "—"}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span className="hub-filter-label">Acquired</span>
-          <select
-            className="search-input"
-            value={form.acquisition_type}
-            onChange={(e) => setForm((f) => ({ ...f, acquisition_type: e.target.value }))}
-          >
-            {ACQUISITION_TYPES.map((a) => (
-              <option key={a || "none"} value={a}>{a || "—"}</option>
-            ))}
-          </select>
-        </label>
+        <HubFilterMenu
+          label="Status"
+          value={form.roster_status}
+          options={ROSTER_STATUSES.map((s) => ({ id: s, label: s }))}
+          onChange={(id) => setForm((f) => ({ ...f, roster_status: id }))}
+        />
+        <HubFilterMenu
+          label="Phase"
+          value={form.contract_phase}
+          options={CONTRACT_PHASES.map((p) => ({ id: p, label: p || "—" }))}
+          onChange={(id) => setForm((f) => ({ ...f, contract_phase: id }))}
+        />
+        <HubFilterMenu
+          label="Acquired"
+          value={form.acquisition_type}
+          options={ACQUISITION_TYPES.map((a) => ({ id: a, label: a || "—" }))}
+          onChange={(id) => setForm((f) => ({ ...f, acquisition_type: id }))}
+        />
         <label className="hub-contract-edit-check">
           <input
             type="checkbox"
@@ -657,19 +632,13 @@ export default function LeagueContractHistory({ leagueId, hubContext, seasonFilt
         )}
         <div className={`hub-insights-scoring-meta${mobileLayout ? " hub-insights-scoring-meta--desktop" : ""}`}>
           {seasonOptions.length > 0 && !hideSeasonPicker && (
-            <label className="hub-insights-season-picker">
-              <span className="hub-filter-label">Season</span>
-              <select
-                className="search-input"
-                value={season || ""}
-                onChange={(e) => onSeasonChange(e.target.value)}
-                disabled={loading}
-              >
-                {seasonOptions.map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-            </label>
+            <HubFilterMenu
+              label="Season"
+              value={season || ""}
+              options={seasonOptions.map((y) => ({ id: y, label: String(y) }))}
+              onChange={onSeasonChange}
+              disabled={loading}
+            />
           )}
           {data?.needs_review_count > 0 && (
             <label className="hub-contract-filter">
@@ -719,19 +688,13 @@ export default function LeagueContractHistory({ leagueId, hubContext, seasonFilt
       {mobileLayout && (
         <div className="hub-contract-mobile-filters hub-filter-bar">
           {seasonOptions.length > 0 && !hideSeasonPicker && (
-            <label className="hub-insights-season-picker">
-              <span className="hub-filter-label">Season</span>
-              <select
-                className="search-input"
-                value={season || ""}
-                onChange={(e) => onSeasonChange(e.target.value)}
-                disabled={loading}
-              >
-                {seasonOptions.map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-            </label>
+            <HubFilterMenu
+              label="Season"
+              value={season || ""}
+              options={seasonOptions.map((y) => ({ id: y, label: String(y) }))}
+              onChange={onSeasonChange}
+              disabled={loading}
+            />
           )}
           {data?.needs_review_count > 0 && (
             <label className="hub-contract-filter">

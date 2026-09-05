@@ -92,9 +92,36 @@ button.btn-sm {
   font-size: var(--text-sm);
 }
 
+.app-header-info-link,
+.hub-league-switcher-create,
+button.btn-link.hub-league-switcher-create,
+.hub-filter-menu-trigger,
+.hub-more-filters-trigger,
+.proj-board-filter,
+.week-step-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-h-sm);
+}
+
+.hub-league-switcher--compact .hub-filter-menu {
+  min-width: min(100%, 12rem);
+  flex: 1 1 12rem;
+}
+
 @media (max-width: 768px) {
   :root {
     --inset-cell: 0.45rem 0.6rem;
     --inset-section: 1rem 1.05rem;
+  }
+
+  .app-header-info-link,
+  .hub-league-switcher-create,
+  button.btn-link.hub-league-switcher-create,
+  .hub-filter-menu-trigger,
+  .hub-more-filters-trigger,
+  .proj-board-filter,
+  .week-step-btn {
+    min-height: var(--control-h-lg);
   }
 }

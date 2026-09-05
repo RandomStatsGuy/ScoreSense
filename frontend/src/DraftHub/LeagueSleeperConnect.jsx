@@ -4,6 +4,7 @@ import { parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
 import MobileDataList from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
+import { HubFilterMenu } from "./HubUILayout";
 import { OFFICE_CONTRACTS_COPY } from "./officeContractsPresentation";
 
 export default function LeagueSleeperConnect({ leagueId, hubContext, overview, onConnected }) {
@@ -240,17 +241,18 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
 
       {sleeperTeams.length > 0 && (
         <>
-          <label className="hub-league-sleeper-comm">
-            Your Sleeper team
-            <select value={commRosterId} onChange={(e) => setCommRosterId(e.target.value)}>
-              <option value="">Auto-match by name</option>
-              {sleeperTeams.map((t) => (
-                <option key={t.roster_id} value={t.roster_id}>
-                  {t.team_name} ({t.player_count} players{t.owner_name ? ` · ${t.owner_name}` : ""})
-                </option>
-              ))}
-            </select>
-          </label>
+          <HubFilterMenu
+            label="Your Sleeper team"
+            value={commRosterId}
+            options={[
+              { id: "", label: "Auto-match by name" },
+              ...sleeperTeams.map((t) => ({
+                id: t.roster_id,
+                label: `${t.team_name} (${t.player_count} players${t.owner_name ? ` · ${t.owner_name}` : ""})`,
+              })),
+            ]}
+            onChange={setCommRosterId}
+          />
 
           <details className="hub-league-sleeper-details" open={needsFullImport}>
             <summary>Team mapping ({sleeperTeams.length})</summary>
@@ -268,20 +270,18 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
                     heroLabel="Seat"
                     heroMuted
                     expanded={(
-                      <label className="hub-league-sleeper-mobile-map">
-                        <span className="mobile-stat-label">Hub team</span>
-                        <select
-                          value={mappings[st.roster_id] ?? ""}
-                          onChange={(e) => setMappings((prev) => ({ ...prev, [st.roster_id]: e.target.value }))}
-                        >
-                          <option value="">Create new team</option>
-                          {hubTeams.map((ht) => (
-                            <option key={ht.id} value={ht.id}>
-                              {ht.name}{ht.user_sub ? " · claimed" : ""}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                      <HubFilterMenu
+                        label="Fantasy team"
+                        value={mappings[st.roster_id] ?? ""}
+                        options={[
+                          { id: "", label: "Create new team" },
+                          ...hubTeams.map((ht) => ({
+                            id: ht.id,
+                            label: `${ht.name}${ht.user_sub ? " · claimed" : ""}`,
+                          })),
+                        ]}
+                        onChange={(id) => setMappings((prev) => ({ ...prev, [st.roster_id]: id }))}
+                      />
                     )}
                   />
                 ))}
@@ -305,17 +305,18 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
                       </td>
                       <td>{st.player_count}</td>
                       <td>
-                        <select
+                        <HubFilterMenu
+                          label="Fantasy team"
                           value={mappings[st.roster_id] ?? ""}
-                          onChange={(e) => setMappings((prev) => ({ ...prev, [st.roster_id]: e.target.value }))}
-                        >
-                          <option value="">Create new team</option>
-                          {hubTeams.map((ht) => (
-                            <option key={ht.id} value={ht.id}>
-                              {ht.name}{ht.user_sub ? " · claimed" : ""}
-                            </option>
-                          ))}
-                        </select>
+                          options={[
+                            { id: "", label: "Create new team" },
+                            ...hubTeams.map((ht) => ({
+                              id: ht.id,
+                              label: `${ht.name}${ht.user_sub ? " · claimed" : ""}`,
+                            })),
+                          ]}
+                          onChange={(id) => setMappings((prev) => ({ ...prev, [st.roster_id]: id }))}
+                        />
                       </td>
                     </tr>
                   ))}

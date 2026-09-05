@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { HubFilterMenu } from "./HubUILayout";
 import Button from "../ui/Button";
 import {
   formatDraftScheduleLabel,
@@ -98,18 +99,13 @@ export default function DraftNightSchedule({
                   disabled={busy}
                 />
               </label>
-              <label className="hub-draft-schedule-tz">
-                Timezone
-                <select
-                  value={timezone}
-                  onChange={(e) => onTimezoneChange?.(e.target.value)}
-                  disabled={busy}
-                >
-                  {tzOptions.map((tz) => (
-                    <option key={tz} value={tz}>{tz.replace(/_/g, " ")}</option>
-                  ))}
-                </select>
-              </label>
+              <HubFilterMenu
+                label="Timezone"
+                value={timezone}
+                options={tzOptions.map((tz) => ({ id: tz, label: tz.replace(/_/g, " ") }))}
+                onChange={(id) => onTimezoneChange?.(id)}
+                disabled={busy}
+              />
             </div>
             <div className="hub-draft-schedule-actions">
               <Button

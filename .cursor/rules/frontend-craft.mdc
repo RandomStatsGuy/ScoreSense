@@ -12,7 +12,7 @@ These are checked by `scripts/dev/layout_audit.mjs`. A change is not done until 
 - One scale: `--space-1..8` (4/8/12/16/24/32/48/64). No literal px for margin, padding, or gap. `0` is allowed.
 - A container's padding is symmetric unless a rule below says otherwise. Bars (`.hub-page-sticky`, toolbars, table headers) have equal top and bottom padding; children carry no vertical margin inside a bar.
 - Vertical rhythm between page sections is one token (`--inset-section`). Hero → gap → content. Never 0 between two containers, never two different gaps on one page.
-- Text never touches text. Every heading/paragraph pair has a margin from the scale. Two inline text runs on one line are separated by ` · ` or a gap token, never by nothing.
+- Text never touches text. Every heading/paragraph pair has a margin from the scale. Two inline text runs on one line are separated by ` · ` or a gap token, never by nothing. Collision checks compare block-level siblings only — inline children of one paragraph (a leftover number in `<strong>`) are supposed to sit adjacent.
 - Disclosures, footnotes, and "see also" lines live inside the card they refer to, not floating between cards.
 
 ## Alignment
@@ -24,17 +24,17 @@ These are checked by `scripts/dev/layout_audit.mjs`. A change is not done until 
 - Page containers share one max-width and one horizontal inset. Hero band, strip, cards, and rail all start at the same x.
 
 ## Grids and wrapping
-- Card grids use `repeat(auto-fill, minmax(<token>, 1fr))`, never a fixed column count. An orphan row is acceptable only if it's the last row of an auto-fill grid.
-- Cards in one grid share one height: pin the action to the bottom (`margin-top: auto`), clamp titles to 2 lines with ellipsis, reserve the action slot even when empty.
+- Card grids use `repeat(auto-fill, minmax(<token>, 1fr))`, never a fixed column count. An orphan row is acceptable only if it's the last row of an auto-fill grid. Layout grids (hero beside a rail) may have unequal heights — the audit only checks auto-fill / auto-fit card grids.
+- Cards in one auto-fill grid share one height: pin the action to the bottom (`margin-top: auto`), clamp titles to 2 lines with ellipsis, reserve the action slot even when empty.
 - Text that wraps differently per card (badge, meta line) gets a fixed line count or a fixed height. Never let a badge push a sibling's timestamp onto two lines.
 
 ## Controls
-- Interactive targets are ≥ 44×44 on phone and ≥ 32 tall on desktop. Lock/Skip/Add/History in a row share one style tier (all buttons or all links, not mixed).
-- One primary per viewport. A second blue filled button on screen is a bug. Undo, secondary, and "browse" are ghost or text.
+- Interactive targets are ≥ 32 tall at 1280 and ≥ 44 at 390. Do not apply the phone 44 floor on desktop. Lock/Skip/Add/History in a row share one style tier (all buttons or all links, not mixed).
+- One primary per viewport. A second blue filled button on screen is a bug. Undo, secondary, and "browse" are ghost or text. Do not demote whichever `.btn-primary` is second in the DOM to satisfy the audit — each extra primary is a judgment call on an approved list.
 - Native `<select>` is never used; `HubFilterMenu` is. Applies to Rules, DFS, Season, every page.
 
 ## Type
-- Never below `--text-xs`. Legal / compliance text is `--text-xs` or larger, muted color, and lives in the footer — not inline next to a heading.
+- Never below `--text-xs`. `--text-xs` must compute to at least 12px. Legal / compliance text is `--text-xs` or larger, muted color, and lives in the footer — not inline next to a heading.
 - Eyebrow, H1, support sentence use the hero tokens on every page (`--experience-hero-heading`, `--experience-hero-pad`). Tools use the display H1 tokens. There is no third scale.
 
 ## Loading / empty

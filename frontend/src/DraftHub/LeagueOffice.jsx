@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
-import { HubAlert, HubExperienceHero, HubFilterChip, HubFilterScroll, HubPage, HubPageSticky } from "./HubUILayout";
+import { HubAlert, HubExperienceHero, HubFilterChip, HubFilterMenu, HubFilterScroll, HubPage, HubPageSticky } from "./HubUILayout";
 import CommissionerLeagueRosters from "./CommissionerLeagueRosters";
 import TeamSalarySheets from "./TeamSalarySheets";
 import LeagueContractHistory from "./LeagueContractHistory";
@@ -549,18 +549,12 @@ export default function LeagueOffice({
         <>
           {seasonOptions?.length > 0 && (
             <div className="hub-filter-bar">
-              <label className="hub-league-search">
-                <span className="sr-only">Season</span>
-                <select
-                  className="hub-league-switcher-select"
-                  value={historySeason || "current"}
-                  onChange={(e) => setHistorySeason(e.target.value)}
-                >
-                  {seasonOptions.map((s) => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
-                  ))}
-                </select>
-              </label>
+              <HubFilterMenu
+                label="Season"
+                value={historySeason || "current"}
+                options={seasonOptions.map((s) => ({ id: s.value, label: s.label }))}
+                onChange={setHistorySeason}
+              />
             </div>
           )}
           <HubPage>

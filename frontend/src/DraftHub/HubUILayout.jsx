@@ -213,7 +213,7 @@ export function HubFilterMenu({ label, value, options, onChange, className = "",
   const hoverCapable = useRef(
     typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches,
   );
-  const selected = options.find((opt) => opt.id === value);
+  const selected = options.find((opt) => String(opt.id) === String(value));
   const display = selected?.label ?? value;
 
   useEffect(() => {
@@ -262,10 +262,10 @@ export function HubFilterMenu({ label, value, options, onChange, className = "",
         <div className="hub-filter-menu-panel" role="listbox" aria-label={label}>
           {options.map((opt) => (
             <button
-              key={opt.id}
+              key={String(opt.id) || "empty"}
               type="button"
               role="option"
-              aria-selected={value === opt.id}
+              aria-selected={String(value) === String(opt.id)}
               className={`hub-filter-menu-option${value === opt.id ? " is-active" : ""}${opt.detail ? " has-detail" : ""}`}
               onClick={() => pick(opt.id)}
             >

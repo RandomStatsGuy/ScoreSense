@@ -917,27 +917,20 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                     </HubFilterChip>
                   ))}
                 </div>
-                <label className="control-label dfs-slate-select" htmlFor="dfs-slate">
-                  Slate
-                  <select
-                    id="dfs-slate"
-                    className="control-select"
-                    value={selectedSlateId}
-                    onChange={(e) => {
-                      const next = e.target.value;
-                      setSelectedSlateId(next);
-                      if (next) loadSalaries(next);
-                    }}
-                    disabled={loadingSlates || !slates.length}
-                  >
-                    {!slates.length && <option value="">No slates found</option>}
-                    {slates.map((s) => (
-                      <option key={s.slate_id} value={s.slate_id}>
-                        {formatSlateOption(s)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <HubFilterMenu
+                  label="Slate"
+                  value={selectedSlateId}
+                  options={
+                    slates.length
+                      ? slates.map((s) => ({ id: s.slate_id, label: formatSlateOption(s) }))
+                      : [{ id: "", label: "No slates found" }]
+                  }
+                  onChange={(next) => {
+                    setSelectedSlateId(next);
+                    if (next) loadSalaries(next);
+                  }}
+                  disabled={loadingSlates || !slates.length}
+                />
                 <p className="chart-note dfs-slate-note">
                   {slateLoadCopy({
                     site,
@@ -1118,19 +1111,12 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                     </label>
                   )}
                   {lineupCount > 1 && (
-                    <label className="control-label" htmlFor="dfs-exposure">
-                      Max exposure
-                      <select
-                        id="dfs-exposure"
-                        className="control-select"
-                        value={maxExposure}
-                        onChange={(e) => setMaxExposure(Number(e.target.value))}
-                      >
-                        {EXPOSURE_OPTIONS.map((opt) => (
-                          <option key={opt.id} value={opt.id}>{opt.label}</option>
-                        ))}
-                      </select>
-                    </label>
+                    <HubFilterMenu
+                      label="Max exposure"
+                      value={maxExposure}
+                      options={EXPOSURE_OPTIONS.map((opt) => ({ id: opt.id, label: opt.label }))}
+                      onChange={(id) => setMaxExposure(Number(id))}
+                    />
                   )}
                 </div>
                 {lineupCount > 1 && (
@@ -1156,33 +1142,19 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                       ))}
                     </div>
                   </div>
-                  <label className="control-label" htmlFor="dfs-team-limit">
-                    Team limit
-                    <select
-                      id="dfs-team-limit"
-                      className="control-select"
-                      value={maxPerTeam}
-                      onChange={(e) => setMaxPerTeam(Number(e.target.value))}
-                    >
-                      {TEAM_LIMIT_OPTIONS.map((opt) => (
-                        <option key={opt.id} value={opt.id}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </label>
+                  <HubFilterMenu
+                    label="Team limit"
+                    value={maxPerTeam}
+                    options={TEAM_LIMIT_OPTIONS.map((opt) => ({ id: opt.id, label: opt.label }))}
+                    onChange={(id) => setMaxPerTeam(Number(id))}
+                  />
                   {isDfs && (
-                    <label className="control-label" htmlFor="dfs-min-spend">
-                      Spend
-                      <select
-                        id="dfs-min-spend"
-                        className="control-select"
-                        value={minSpendLeft}
-                        onChange={(e) => setMinSpendLeft(Number(e.target.value))}
-                      >
-                        {MIN_SPEND_OPTIONS.map((opt) => (
-                          <option key={opt.id} value={opt.id}>{opt.label}</option>
-                        ))}
-                      </select>
-                    </label>
+                    <HubFilterMenu
+                      label="Spend"
+                      value={minSpendLeft}
+                      options={MIN_SPEND_OPTIONS.map((opt) => ({ id: opt.id, label: opt.label }))}
+                      onChange={(id) => setMinSpendLeft(Number(id))}
+                    />
                   )}
                 </div>
                 {isDfs && (
@@ -1581,21 +1553,15 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
               >
                 Prev
               </Button>
-              <label className="control-label" htmlFor="dfs-lineup-pick">
-                <span className="sr-only">Lineup</span>
-                <select
-                  id="dfs-lineup-pick"
-                  className="control-select"
-                  value={activeLineupIdx}
-                  onChange={(e) => selectLineup(Number(e.target.value))}
-                >
-                  {lineups.map((entry, idx) => (
-                    <option key={idx} value={idx}>
-                      Lineup {idx + 1} of {lineups.length} · {fmtNum(entry.total_points)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <HubFilterMenu
+                label="Lineup"
+                value={activeLineupIdx}
+                options={lineups.map((entry, idx) => ({
+                  id: idx,
+                  label: `Lineup ${idx + 1} of ${lineups.length} · ${fmtNum(entry.total_points)}`,
+                }))}
+                onChange={(id) => selectLineup(Number(id))}
+              />
               <Button
                 variant="ghost"
                 size="sm"

@@ -3,7 +3,7 @@
 export const CREATE_LEAGUE_VALUE = "__create__";
 export const SOLO_VALUE = "__solo__";
 
-/** Create/join is a real button. Never put this value in a native <select>. */
+/** Create/join is a real button. Never put this value in the league menu. */
 export const LEAGUE_CREATE_COPY = {
   newLeague: "New league",
   createOrJoin: "Create or join a league",

@@ -6,6 +6,7 @@ import {
   HubAlert,
   HubExperienceHero,
   HubFilterChip,
+  HubFilterMenu,
   HubFilterScroll,
   HubLoadingSkeleton,
   HubPage,
@@ -881,10 +882,11 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                       <span className="hub-trade-salary-inline">{fmtSal(row?.salary)}</span>
                       <span className="table-meta">→</span>
                       {activeParties.length > 2 ? (
-                        <select
+                        <HubFilterMenu
+                          label="To"
                           value={s.to_team_id}
-                          onChange={(e) => {
-                            const to = e.target.value;
+                          options={others.map((oid) => ({ id: oid, label: teamName(oid) }))}
+                          onChange={(to) => {
                             setParties((prev) => prev.map((p, i) => {
                               if (i !== idx) return p;
                               return {
@@ -895,11 +897,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                               };
                             }));
                           }}
-                        >
-                          {others.map((oid) => (
-                            <option key={oid} value={oid}>{teamName(oid)}</option>
-                          ))}
-                        </select>
+                        />
                       ) : (
                         <span className="table-meta">{teamName(s.to_team_id)}</span>
                       )}
@@ -921,34 +919,29 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                     <div key={pid} className="hub-trade-leg-row hub-trade-drop-row">
                       <span className="hub-roster-pos-tag">{row?.position || "?"}</span>
                       <span>{playerLabel(party.team_id, pid)}</span>
-                      <label className="table-meta hub-trade-dead-label">
-                        Dead →
-                        <select
-                          value={a.assigned_to_team_id}
-                          onChange={(e) => {
-                            const assigned = e.target.value;
-                            setDeadCapAssignments((prev) => {
-                              const rest = prev.filter(
-                                (x) => !(x.player_id === pid && x.from_team_id === party.team_id),
-                              );
-                              return [
-                                ...rest,
-                                {
-                                  player_id: pid,
-                                  from_team_id: party.team_id,
-                                  assigned_to_team_id: assigned,
-                                },
-                              ];
-                            });
-                          }}
-                        >
-                          {activeParties.map((p) => (
-                            <option key={p.team_id} value={p.team_id}>
-                              {teamName(p.team_id)}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                      <HubFilterMenu
+                        label="Dead →"
+                        value={a.assigned_to_team_id}
+                        options={activeParties.map((p) => ({
+                          id: p.team_id,
+                          label: teamName(p.team_id),
+                        }))}
+                        onChange={(assigned) => {
+                          setDeadCapAssignments((prev) => {
+                            const rest = prev.filter(
+                              (x) => !(x.player_id === pid && x.from_team_id === party.team_id),
+                            );
+                            return [
+                              ...rest,
+                              {
+                                player_id: pid,
+                                from_team_id: party.team_id,
+                                assigned_to_team_id: assigned,
+                              },
+                            ];
+                          });
+                        }}
+                      />
                       {a.amount != null && (
                         <span className="hub-trade-stat-warn">{fmtSal(a.amount)}</span>
                       )}
