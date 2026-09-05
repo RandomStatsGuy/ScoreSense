@@ -84,7 +84,7 @@ def commissioner_sync_status(league_id: str) -> dict[str, Any]:
     for yr in sorted(file_seasons | db_seasons):
         imp = import_by_season.get(yr)
         imp_fp = str(imp.get("source_fingerprint") or "") if imp else ""
-        season_stale = bool(file_fp and imp_fp and imp_fp != content_fp)
+        season_stale = bool(file_seasons and file_fp and imp_fp and imp_fp != content_fp)
         if file_seasons and yr in file_seasons and (not imp or season_stale):
             stale = True
         ck = checkpoint_for_season(yr) or {}
