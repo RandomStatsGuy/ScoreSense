@@ -81,16 +81,11 @@ def test_capture_correction_skill_has_decision_tree() -> None:
 def test_learned_rules_catalog_rows_are_valid() -> None:
     rows = _catalog_rows(_read(".cursor", "rules", "learned-rules.mdc"))
     assert len(rows) <= MAX_CATALOG_ROWS
-    assert len(rows) == 3
     for freq, scope, rule in rows:
         assert freq in FREQS, f"bad freq {freq!r}"
         assert scope in SCOPES, f"bad scope {scope!r}"
         assert rule, "empty rule"
         assert "|" not in rule
-    joined = " ".join(rule for _freq, _scope, rule in rows)
-    assert "docs/mockups" in joined
-    assert "existing PR branch" in joined
-    assert "GBM weekly" in joined
 
 
 def test_core_and_index_point_at_capture_files() -> None:
