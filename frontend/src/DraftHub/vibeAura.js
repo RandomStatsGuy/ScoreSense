@@ -151,6 +151,15 @@ export function formatPts(value) {
   return n.toFixed(1);
 }
 
+export function formatPtsDelta(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "—";
+  const abs = Math.abs(n).toFixed(1);
+  if (n > 0) return `+${abs}`;
+  if (n < 0) return `−${abs}`;
+  return abs;
+}
+
 export function storageKey({ leagueId, season, week } = {}) {
   const league = String(leagueId || "solo");
   const yr = season == null ? "na" : String(season);

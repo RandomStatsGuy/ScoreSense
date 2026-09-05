@@ -329,6 +329,7 @@ export function HubExperienceSummary({
   subtitle,
   items = [],
   note,
+  children,
   action,
   status,
 }) {
@@ -352,6 +353,7 @@ export function HubExperienceSummary({
         </dl>
       )}
       {note ? <p className="hub-experience-summary-note">{note}</p> : null}
+      {children}
       {action}
       {status}
     </>

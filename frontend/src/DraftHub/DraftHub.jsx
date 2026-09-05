@@ -818,7 +818,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           <VibeRankings
             hubContext={effectiveCtx}
             reloadToken={weekReloadToken}
-            onNavigate={setSubView}
+            onNavigate={goHubView}
           />
         </Suspense>
       )}

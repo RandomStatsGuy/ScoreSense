@@ -55,7 +55,7 @@ function SlotCard({ slot, decision, wide, movement, canEdit, selected, onSelect,
   const moveLabel = formatP50Move(movement?.p50_delta ?? movement?.delta_p50);
   const moveTone = movement ? rowMovementTone(movement) : "neutral";
   const label = empty
-    ? `${slot.slot} slot, waiting`
+    ? `${slot.slot} slot, empty`
     : `${slot.slot} ${player.player_name || player.player_id}`;
 
   return (
@@ -206,6 +206,7 @@ export default function WeekLineupBoard({
               ? ` · Projections ${formatRelativeTime(projectionsBuiltAt) || "available"}`
               : ""}
           </p>
+          <p className="hub-wcc-board-meta">{WEEK_BOARD_COPY.lineupSource}</p>
         </div>
         <div className="hub-wcc-week-stepper">
           <button
@@ -260,7 +261,7 @@ export default function WeekLineupBoard({
                 selected={Boolean(canEdit && selectedBenchId && pid)}
                 onSelect={onSelectSlot}
                 onApplyDecision={onApplyDecision}
-                onFillSlot={!pid && onNavigate ? () => onNavigate("available") : undefined}
+                onFillSlot={!pid && onNavigate ? () => onNavigate("available", { pos: slot.position || String(slot.slot || "").replace(/\d+$/, "") }) : undefined}
               />
             );
           })}

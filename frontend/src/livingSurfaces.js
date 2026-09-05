@@ -110,7 +110,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/vibeMatchup.js",
       "frontend/src/styles/vibe-rankings.css",
     ],
-    doNot: "Reuse HubExperience*. Aura is a personal start weight, not a new accent or award gold. Front card is matchup only. Bio and latest news stay behind the info arrow. One swipe per player per calendar day. VA-projections show vibe week, including K and DEF. Do not scrape Wikipedia. Review on This Week stays hidden until a roster exists. Info arrow is neutral, not accent blue.",
+    doNot: "Reuse HubExperience*. Aura is a personal start weight, not a new accent or award gold. Desktop: card left, Vibe ranking and VA-projections right, both in view. Front card is week-vs-vibe, not a giant cutout. Bio is the one noun for the profile control — labeled Bio, neutral, not accent blue. Sit and Start are equal; Undo is a meta control, not a third option. Sit is not amber. One progress readout lives by the card. Week and vibe week compare; aura is a labeled 0–99 meter. One rate per player per calendar day. VA-projections are research; This Week lineup uses the board number. Empty slots say Empty with Find {POS}. Review on This Week stays hidden until a rating exists. Do not scrape Wikipedia. Do not say site board. Do not mention swipe on a pointer desktop.",
   }),
   "hub.game": S({
     label: "Game center",

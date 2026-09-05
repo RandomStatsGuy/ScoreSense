@@ -8,6 +8,7 @@ import {
   clearDayVote,
   fillSlotsByScore,
   formatAura,
+  formatPtsDelta,
   normalizeDayVotes,
   playersLeftToday,
   readAura,
@@ -66,6 +67,9 @@ test("copy helpers stay numeric and never mention Draft Hub", () => {
   assert.equal(formatAura(72.4), "72");
   assert.equal(auraTone(80), "hot");
   assert.equal(auraTone(20), "cold");
+  assert.equal(formatPtsDelta(2.3), "+2.3");
+  assert.equal(formatPtsDelta(-1.4), "−1.4");
+  assert.equal(formatPtsDelta(0), "0.0");
 });
 
 test("one swipe per player per calendar day, then the card leaves the deck", () => {
