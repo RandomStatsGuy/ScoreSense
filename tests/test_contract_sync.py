@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from src.draft_hub import storage
 from src.draft_hub.contract_sync import (
+    clear_history_cache,
     commissioner_files_fingerprint,
     commissioner_read_status,
     commissioner_sync_status,
@@ -25,6 +26,7 @@ def test_commissioner_read_status_skips_parse(hub_db, monkeypatch):
 
 
 def test_commissioner_sync_status_no_files(hub_db, monkeypatch):
+    clear_history_cache()
     monkeypatch.setattr(
         "src.draft_hub.contract_sync.process_league_history",
         lambda _dir: __import__("pandas").DataFrame(),
@@ -36,6 +38,7 @@ def test_commissioner_sync_status_no_files(hub_db, monkeypatch):
 
 
 def test_commissioner_sync_status_database_only_is_not_stale(hub_db, monkeypatch):
+    clear_history_cache()
     monkeypatch.setattr(
         "src.draft_hub.contract_sync.process_league_history",
         lambda _dir: __import__("pandas").DataFrame(),
@@ -57,6 +60,21 @@ def test_commissioner_sync_status_database_only_is_not_stale(hub_db, monkeypatch
 
     status = commissioner_sync_status(league["id"])
 
+    assert status["stale"] is False
+    assert status["has_commissioner_files"] is False
+
+
+def test_sync_status_clears_workbook_cache_before_empty_parse(hub_db, monkeypatch):
+    import src.draft_hub.contract_sync as cs
+
+    cs._HISTORY_CACHE = ("warm", __import__("pandas").DataFrame({"season": [2024]}))
+    clear_history_cache()
+    monkeypatch.setattr(
+        "src.draft_hub.contract_sync.process_league_history",
+        lambda _dir: __import__("pandas").DataFrame(),
+    )
+    league = storage.create_league("sync-cache", "Cache", 2025, LeagueRules())
+    status = commissioner_sync_status(league["id"])
     assert status["stale"] is False
     assert status["has_commissioner_files"] is False
 

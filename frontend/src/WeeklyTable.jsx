@@ -772,7 +772,7 @@ export default function WeeklyTable({
             </button>
             <button
               type="button"
-              className="btn primary btn-sm"
+              className="btn-primary btn-sm"
               disabled={selectedCount < 2}
               onClick={onOpenCompare}
             >

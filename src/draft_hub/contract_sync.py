@@ -27,6 +27,12 @@ from src.draft_hub.sourced_checkpoints import (
 
 _HISTORY_CACHE: tuple[str, Any] | None = None
 
+
+def clear_history_cache() -> None:
+    """Drop the in-process workbook cache. Tests must call this before mocking parse."""
+    global _HISTORY_CACHE
+    _HISTORY_CACHE = None
+
 VALID_SNAPSHOT_PHASES = frozenset({
     "pre_draft",
     "post_draft",

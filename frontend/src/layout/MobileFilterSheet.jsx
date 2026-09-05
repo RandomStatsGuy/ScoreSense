@@ -49,7 +49,7 @@ export default function MobileFilterSheet({
               </button>
               <button
                 type="button"
-                className="btn primary"
+                className="btn-primary"
                 onClick={() => (onApply ? onApply() : onClose?.())}
               >
                 {BOARD_COPY.applyFilters}
