@@ -93,6 +93,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const [memberships, setMemberships] = useState([]);
   const [leagueSwitchBusy, setLeagueSwitchBusy] = useState(false);
   const [createLeagueOpen, setCreateLeagueOpen] = useState(false);
+  const [rosterFocus, setRosterFocus] = useState(null);
   const watchLeagueKey = leagueId || hubContext?.league_id || workspace?.league_id || "solo";
   const [watchIds, setWatchIds] = useState([]);
   useEffect(() => {
@@ -677,6 +678,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           switchBusy={leagueSwitchBusy}
           showAttention={subView !== "home"}
           currentView={subView}
+          onRosterFocus={setRosterFocus}
           onProjectionsRefresh={async () => {
             clearHubDataCache();
             await refreshValueSheet(
@@ -847,6 +849,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           onEditInOffice={goToRosterManagement}
           onOpenContractHistory={onOpenContractHistory}
           onNavigate={goHubView}
+          focusFilter={rosterFocus}
+          onFocusConsumed={() => setRosterFocus(null)}
         />
       )}
 

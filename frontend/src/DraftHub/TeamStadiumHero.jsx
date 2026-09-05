@@ -18,6 +18,7 @@ export default function TeamStadiumHero({
   onEdit,
   size = "full",
   className = "",
+  hideName = false,
 }) {
   const look = mergeTeamIdentity(identity);
   const name = hubTeamLabel(team) || team?.name || "Team";
@@ -53,7 +54,7 @@ export default function TeamStadiumHero({
           )}
         </div>
         <div className="hub-stadium-hero-id">
-          <div className="hub-stadium-hero-name">{name}</div>
+          {hideName ? null : <div className="hub-stadium-hero-name">{name}</div>}
           {meta ? <div className="hub-stadium-hero-meta">{meta}</div> : null}
         </div>
         {cap ? <div className="hub-stadium-hero-cap">{cap}</div> : null}

@@ -126,7 +126,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/RosterBuilder.jsx",
     copy: "frontend/src/DraftHub/rosterPresentation.js",
     also: ["frontend/src/DraftHub/rosterFormat.js"],
-    doNot: "Do not invent a second my-team chrome. List people by owner name. At zero players hide search and position chips and show the shared empty-state. One Contract control per row — history lives in the drawer. Dead cap and if-undone room use rosterFormat.js. Mobile cards do not expand a repeated POS/CAP/YRS/STATUS grid.",
+    doNot: "Do not invent a second my-team chrome. List people by owner name. At zero players hide search and position chips and show the shared empty-state. One Contract control per row — history lives in the drawer. Dead cap and if-undone room use rosterFormat.js and never repeat their field labels. The roster table uses page scroll, not an inner max-height. Cap card leads with leftover for draft. Dead cap is a tooltip or inline · $N dead. Staff-only Remove is gated, confirmed, and separated from Queue extension. Contract dialog moves focus to the heading. Filter chips show counts and disable zeros. Extension eligible vs Expiring use different hues. Locker cards are named controls that open the contract panel. Mobile cards do not expand a repeated POS/CAP/YRS/STATUS grid.",
   }),
   "hub.rosters": S({
     label: "Rosters",

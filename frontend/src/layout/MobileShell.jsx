@@ -7,6 +7,7 @@ export default function MobileShell({
   section,
   onSectionChange,
   onMoreOpen,
+  hrefForSection,
   className = "",
 }) {
   const mobileLayout = useMobileLayout();
@@ -18,6 +19,7 @@ export default function MobileShell({
         section={section}
         onSectionChange={onSectionChange}
         onMoreOpen={onMoreOpen}
+        hrefForSection={hrefForSection}
       />
     </div>
   );
