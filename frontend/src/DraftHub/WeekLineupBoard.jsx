@@ -184,7 +184,12 @@ function SlotCard({
           </div>
           <div className="hub-wcc-slot-proj">
             <span className="hub-wcc-slot-p50">
-              {missing ? WEEK_BOARD_COPY.noProjection : fmtPts(player.p50)}
+              {missing ? WEEK_BOARD_COPY.noProjection : (
+                <>
+                  {fmtPts(player.p50)}
+                  <span className="hub-wcc-slot-unit">{WEEK_BOARD_COPY.ptsUnit}</span>
+                </>
+              )}
             </span>
             {wide && !missing ? (
               <span className="hub-wcc-slot-range is-wide" title={WEEK_BOARD_COPY.railWideHint}>

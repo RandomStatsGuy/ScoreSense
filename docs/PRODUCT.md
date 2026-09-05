@@ -90,7 +90,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 | Vibes | `vibes` | Swipe each roster player once a day; front card is the matchup; info arrow opens bio and latest news; lean Vibe ranking rail; VA-projections (vibe-adjusted week, including K and DEF) as the table |
 | Game center | `game` | Your matchup live, league scoreboard, week trophies. The hero names the job: empty lineup consequence pre-kickoff, the score line once live. One empty message — draft night plus when scores start — and Open draft room. Standings share Home's last-season records and stay unranked until a game is played. Do not play last year's Sleeper week as this week's scores. Gold marks a claimed week trophy. |
 | My team | `roster` | Personal contracts |
-| Free agents | `available` | Add / bid / locked by calendar |
+| Free agents | `available` | Add / bid / locked by calendar. Rows always show Bid or Add; when locked, disable with Adds open after the draft. Hide Vs cost until a contract cost exists. Desktop virtualizes on page scroll. Season pts use a number plus text range. How adds work lives in the acquisition banner. |
 | Rosters | `rosters` | League-wide Overpay and Bargain list (deal finder). The manager rail is the drill-down and shows free cap, expiring count, and worst overpay. Ten managers is a picker, not a swipe strip. |
 | Cap | `planner` | Cap leftover after a cut or bid. The move input sits above the fold and shows leftover after the move next to the controls. Hero and At a glance keep the current leftover. Every figure names what it counts; leftover plus against-cap (salary + dead) equals the cap. Roster counts say on this sheet vs keep past this draft. Roster-min needs are one sentence and one Free agents CTA. Expires uses amber; extend-to-keep uses blue. |
 | Trades | `trades` | Propose and accept. Experience hero names the cap-bust cost. Rosters franchise headers deep-link here with the partner preselected. Zero partners → Invite managers on Members. Cap line is **current roster** salary (active contracts this season, including expiring). My team **{season} committed** is draft-surviving salary — same $200 cap, different base; do not use one word for both. Auto-check every package change and gate Propose on a pass. The verdict is a colored live status banner next to the primary, not grey chart-note. Ideas need chips mark starter-thin positions only — a 6-RB roster is extra depth, not a need. |
@@ -184,6 +184,7 @@ Weekly and Season projections are a **board**, not a Fantasy decision page.
 - Copy for signals, board reads, and inspector tiles lives in `frontend/src/projectionsPresentation.js`.
 - Phone weekly: one compact sticky bar under the header — position, filter, result count, and the floor–ceiling range stated once. Do not repeat Floor–Ceiling on every card. Hide the collapsed range while a card is open. Reserve the rank-delta slot so card heights stay even.
 - Phone weekly lists are windowed. Do not mount every row.
+- Desktop Free agents virtualizes against page scroll. Do not nest a table scroller.
 - Movement chips (All / Movers / Risers / Fallers / Attention) live in the filter sheet, not the page body. The sheet owns Position, What changed, and Search; the page keeps an active-filter summary. The sheet has Apply, Reset, a live result count, and Scoring in the footer so it is not clipped.
 - A stale freshness chip is the refresh action and shows a relative time. Do not leave “Context snapshot stale” as dead text.
 
@@ -248,7 +249,9 @@ Home names the manager’s roster hole over a commissioner invite when both are 
 ## Interaction and accessibility
 
 - Primary action stays visible (summary rail or sticky footer).
-- Disable a button only with a reason next to it.
+- Disable a button only with a reason next to it. Free agents rows always show Bid or Add; when the window is locked, disable the control with Adds open after the draft — do not omit the action.
+- Hide Vs cost until a contract cost exists.
+- Fantasy tables label the projection scale (Season pts vs Week pts) and use a number plus text range on decision boards.
 - Validate before save. Failed saves keep edits. Trades re-check the package on every send or cut and keep Propose gated until cap and roster pass. The verdict sits next to that primary with `aria-live`.
 - Skip to content lands in `<main>`. The page heading is the destination job (`HubExperienceHero`), not the ScoreSense wordmark. Fantasy destination buttons use the tab label as the accessible name — never the hint.
 - Unsaved changes warn before navigation.

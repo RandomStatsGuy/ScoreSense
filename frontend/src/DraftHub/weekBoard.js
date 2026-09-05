@@ -17,6 +17,7 @@ export const BOARD_SLOT_ORDER = ["QB", "RB", "WR", "TE", "FLEX", "K", "DEF"];
 export const WEEK_BOARD_COPY = {
   seeCalls: "See lineup calls",
   emptySlot: (slot) => `Find ${slot}`,
+  ptsUnit: "wk",
   emptySlotHint: "Open Free agents",
   noProjection: "No projection",
   startFallback: "Start bench",
