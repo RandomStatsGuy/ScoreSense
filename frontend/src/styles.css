@@ -14293,6 +14293,10 @@ td.col-rank.col-rank-top {
   color: var(--text-muted);
   font-size: 0.78rem;
   line-height: 1.35;
+  min-height: 2.7em;
+}
+.hub-trade-partner-card .table-meta {
+  margin-top: auto;
 }
 .hub-trade-partner-card:hover {
   border-color: rgba(59, 130, 246, 0.4);
@@ -14414,14 +14418,17 @@ td.col-rank.col-rank-top {
   gap: 0.35rem 0.65rem;
   align-items: center;
   margin: 0.15rem 0 0.45rem;
+  padding: 0.35rem 0.45rem;
+  min-height: 3.75rem;
+  box-sizing: border-box;
+  border-radius: 6px;
+  border: 1px solid transparent;
   font-size: 0.78rem;
   color: var(--text-muted);
 }
 .hub-trade-team-stats.is-projected {
-  padding: 0.35rem 0.45rem;
-  border-radius: 6px;
   background: rgba(59, 130, 246, 0.08);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.2);
 }
 .hub-trade-team-stats strong {
   color: var(--text);

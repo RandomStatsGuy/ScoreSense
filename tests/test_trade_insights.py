@@ -578,3 +578,16 @@ def test_empty_reason_does_not_ask_to_import_salaries():
     assert reason
     assert "import" not in reason.lower()
     assert "builder" in reason.lower()
+
+
+def test_empty_reason_no_needs_uses_starter_language():
+    from src.draft_hub.trade_insights import _empty_reason
+
+    reason = _empty_reason(
+        {"need": [], "surplus": ["WR"]},
+        [],
+        [],
+        my_team_id="t1",
+    )
+    assert "starter" in reason.lower()
+    assert "minimum" not in reason.lower()

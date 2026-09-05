@@ -365,7 +365,7 @@ def _empty_reason(
     if not my_team_id:
         return "Select your team in Setup so trade ideas know which roster is yours."
     if not (my_balance.get("need") or []):
-        return "No roster gaps detected — every position meets league minimums with reasonable depth."
+        return "No starter holes — Ideas only flags positions that cannot fill a starter."
     if not (my_balance.get("surplus") or []):
         return (
             "No extra depth to move — Ideas looks for positions where you sit above "
