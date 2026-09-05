@@ -310,15 +310,16 @@ export function HubExperienceHero({
   );
 }
 
-export function HubExperienceLayout({ children, summary, summaryLabel = "At a glance" }) {
+export function HubExperienceLayout({ children, summary, summaryLabel = "At a glance", footer }) {
   return (
-    <div className="hub-experience-layout">
+    <div className={`hub-experience-layout${footer ? " has-footer" : ""}`}>
       <div className="hub-experience-main">{children}</div>
       {summary ? (
         <aside className="hub-experience-summary" aria-label={summaryLabel}>
           {summary}
         </aside>
       ) : null}
+      {footer ? <div className="hub-experience-footer">{footer}</div> : null}
     </div>
   );
 }
@@ -341,14 +342,29 @@ export function HubExperienceSummary({
       </div>
       {items.length > 0 && (
         <dl>
-          {items.map((item) => (
-            <div key={item.id || item.label}>
-              <dt>{item.label}</dt>
-              <dd className={item.tone ? `hub-experience-summary-value--${item.tone}` : undefined}>
-                {item.value}
-              </dd>
-            </div>
-          ))}
+          {items.map((item) => {
+            const valueClass = [
+              item.tone ? `hub-experience-summary-value--${item.tone}` : "",
+              item.muted ? "is-quiet" : "",
+            ].filter(Boolean).join(" ");
+            const value = item.href ? (
+              <a className="btn-link" href={item.href}>{item.value}</a>
+            ) : item.onClick ? (
+              <button type="button" className="btn-link" onClick={item.onClick}>{item.value}</button>
+            ) : item.value;
+            return (
+              <div
+                key={item.id || item.label}
+                className={item.muted ? "is-quiet" : undefined}
+              >
+                <dt>{item.label}</dt>
+                <dd className={valueClass || undefined}>{value}</dd>
+                {item.hint ? (
+                  <p className="hub-experience-summary-hint">{item.hint}</p>
+                ) : null}
+              </div>
+            );
+          })}
         </dl>
       )}
       {note ? <p className="hub-experience-summary-note">{note}</p> : null}
