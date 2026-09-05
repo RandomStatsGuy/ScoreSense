@@ -106,19 +106,19 @@ export default function PlayerCell({
 
   const inner = (
     <>
-      <span className="player-cell-avatar" aria-hidden>
+      <span className="player-cell-avatar">
         {headshot ? (
           <img
             className="player-cell-headshot"
             src={headshot}
-            alt=""
+            alt={name || ""}
             loading="lazy"
             onError={() => setShotIndex((index) => index + 1)}
           />
         ) : logo ? (
-          <img className="player-cell-team-logo" src={logo} alt="" loading="lazy" />
+          <img className="player-cell-team-logo" src={logo} alt={name ? `${name} team` : ""} loading="lazy" />
         ) : (
-          <span className="player-cell-initials">{playerInitials(name)}</span>
+          <span className="player-cell-initials" aria-hidden="true">{playerInitials(name)}</span>
         )}
       </span>
       <span className="player-cell-text">

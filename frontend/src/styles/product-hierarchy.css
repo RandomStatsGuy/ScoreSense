@@ -2999,8 +2999,8 @@
 .hub-experience-summary > div > p,
 .hub-experience-summary-note {
   margin: 0.2rem 0 0;
-  color: var(--text-muted);
-  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
   line-height: 1.45;
 }
 
@@ -3086,7 +3086,7 @@
   grid-template-columns: minmax(13.5rem, 16rem) minmax(0, 1fr);
   gap: 1.15rem;
   align-items: start;
-  padding: 1rem 2.15rem 1.5rem;
+  padding: 0;
 }
 
 .hub-roster-owner-rail {
@@ -3098,8 +3098,14 @@
   background: #132033;
 }
 
+.hub-roster-rail-heading,
 .hub-roster-owner-rail .hub-filter-label {
   margin: 0 0 0.55rem;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .hub-roster-owner-list {
@@ -3115,6 +3121,7 @@
 .hub-roster-owner-chip {
   display: flex;
   width: 100%;
+  min-height: var(--touch-target);
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
@@ -3130,18 +3137,23 @@
 
 .hub-roster-owner-btn strong,
 .hub-roster-owner-chip strong {
-  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  font-size: var(--text-sm);
   font-weight: 650;
 }
 
 .hub-roster-owner-btn span,
 .hub-roster-owner-chip span {
-  color: var(--text-muted);
-  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
 }
 
-.hub-roster-owner-btn em {
-  color: var(--experience-blue);
+.hub-roster-owner-btn em,
+.hub-roster-you {
+  color: var(--text-primary);
   font-size: var(--text-xs);
   font-style: normal;
 }
@@ -3174,6 +3186,16 @@
   .hub-roster-owner-chip {
     width: auto;
     min-width: 8.5rem;
+  }
+}
+
+@media (max-width: 1280px) {
+  .hub-roster-browser-page .hub-experience-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .hub-roster-browser-page .hub-experience-summary {
+    position: static;
   }
 }
 

@@ -132,7 +132,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "experience",
     page: "frontend/src/DraftHub/LeagueRostersBrowser.jsx",
     copy: "frontend/src/DraftHub/leagueRostersPresentation.js",
-    doNot: "Reuse HubExperienceHero + HubTableCard. Do not fork a roster browser. Franchise headers get Propose trade into Trades · Builder with the partner preselected.",
+    doNot: "Reuse HubExperienceHero + HubExperienceLayout + HubExperienceSummary + HubTableCard. Default is the league-wide Overpay/Bargain list; the manager rail is the drill-down and shows free cap, expiring count, and worst overpay. Ten managers is a picker, not a swipe strip. Franchise headers get Propose trade into Trades · Builder with the partner preselected. Contract judgment is the word alone when the dollar delta is zero. Expire chips say Extendable, never a question. Do not offer Add to trade on contracts that will not survive the next draft. Mobile cards expand into the judgment and actions, not a repeated years/pts grid.",
   }),
   "hub.planner": S({
     label: "Cap",
