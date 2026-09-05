@@ -18950,6 +18950,7 @@ th.sortable-header {
   flex-wrap: wrap;
 }
 .hub-gc-head .hub-tab-intro-title { margin: 0.1rem 0 0; }
+.hub-gc-week-toolbar { display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; }
 .hub-gc-week-nav { display: flex; align-items: center; gap: 0.5rem; }
 .hub-gc-state {
   font-size: 0.72rem;

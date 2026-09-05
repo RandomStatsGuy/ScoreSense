@@ -22,6 +22,7 @@ export const STRATEGY_RANK_COPY = Object.freeze({
   closeCall: "Close call",
   vs: "OR",
   emptyPair: "No close calls left in this filter. Open All or reset seen pairs.",
+  emptyPairAll: "No close calls left. Reset seen pairs or open your rankings.",
   resetSeen: "Reset close calls",
   emptyBoard: "Need available players to rank. Keepers and rostered names stay off this board.",
   loading: "Loading the site board…",

@@ -7,7 +7,7 @@ import MobilePlayerCard from "../MobilePlayerCard";
 import MobileBottomSheet from "../layout/MobileBottomSheet";
 import HubTabIntro from "./HubTabIntro";
 import { MY_TEAM_COPY } from "./rosterPresentation";
-import { HubFilterChip, HubFilterScroll, HubPage, HubTableCard } from "./HubUILayout";
+import { HubFilterChip, HubFilterScroll, HubPage, HubPageSticky, HubTableCard } from "./HubUILayout";
 import {
   CONTRACT_TYPE_OPTIONS,
   contractDeadCapStory,
@@ -786,7 +786,15 @@ export default function RosterBuilder({
               <span className="hub-stat-value-note"> / ${salaryCap}</span>
             </strong>
             {salaryCap > 0 && (
-              <span className="hub-stadium-cap-bar" aria-hidden="true">
+              <span
+                className="hub-stadium-cap-bar"
+                role="img"
+                aria-label={`$${totalSalary.toFixed(0)} of $${salaryCap} committed${
+                  Number(capSheet?.summary?.dead_cap) > 0
+                    ? `, $${Number(capSheet.summary.dead_cap).toFixed(0)} dead cap`
+                    : ""
+                }`}
+              >
                 <span
                   className="hub-stadium-cap-bar-committed"
                   style={{ width: `${Math.min(100, Math.max(0, (totalSalary / salaryCap) * 100))}%` }}
@@ -798,6 +806,9 @@ export default function RosterBuilder({
                   />
                 )}
               </span>
+              {Number(capSheet?.summary?.dead_cap) > 0 ? (
+                <span className="hub-stadium-cap-legend">{MY_TEAM_COPY.deadCapLegend}</span>
+              ) : null}
             )}
             {preDraft && (
               <span className="hub-stat-sub">
@@ -811,16 +822,18 @@ export default function RosterBuilder({
         )}
         chips={(
           <div className="hub-chip-row">
-            {HUB_POS_ORDER.filter((p) => posCounts[p]).map((pos) => (
+            {HUB_POS_ORDER.map((pos) => (
               <span key={pos} className="hub-pos-chip">
-                {pos} <strong>{posCounts[pos]}</strong>
+                {pos} <strong>{posCounts[pos] || 0}</strong>
               </span>
             ))}
           </div>
         )}
       />
 
-      <LockerRoomScene identity={teamIdentity} roster={roster} mediaById={mediaById} />
+      {!mobileLayout ? (
+        <LockerRoomScene identity={teamIdentity} roster={roster} mediaById={mediaById} />
+      ) : null}
 
       {isLeague && hubContext?.league_id && hubContext?.team_id && (
         <TeamIdentityStudio
@@ -906,6 +919,7 @@ export default function RosterBuilder({
         </div>
       ) : (
       <>
+      <HubPageSticky>
       <div className="hub-filter-bar hub-roster-pos-bar">
         <input
           type="search"
@@ -927,6 +941,7 @@ export default function RosterBuilder({
           ))}
         </HubFilterScroll>
       </div>
+      </HubPageSticky>
 
       <HubTableCard className="hub-roster-table-wrap">
         {mobileLayout ? (

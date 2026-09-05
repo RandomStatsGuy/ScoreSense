@@ -22,6 +22,7 @@ export const SHARED = Object.freeze({
     "frontend/src/styles/tokens.css",
     "frontend/src/styles/product-hierarchy.css",
     "frontend/src/styles/product-rhythm.css",
+    "frontend/src/styles/fantasy-phone.css",
   ],
   primitives: "frontend/src/DraftHub/HubUILayout.jsx",
   media: "frontend/src/DraftHub/HubMediaImg.jsx",

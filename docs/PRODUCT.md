@@ -187,6 +187,8 @@ On phone, the header is the current destination. Destination switching uses one 
 
 On phone, weekly and season boards are **dense ranking rows** (rank, face, name, P50). Compare is one toolbar control. Never a Compare checkbox on every card. Signals stay a compact strip, not a second page of chrome.
 
+Fantasy phone (≤768px) shares one floor with Projections: type never drops below `--text-xs` (11.52–11.84px). Filter, tab, and sort bars use the Insights sticky strip (`.hub-page-sticky`). Experience summary labels stack above their values. The chat dismiss control sits on the bubble, not off the right edge. Loading states use skeletons, not unlabeled “Loading…” copy. Roster management’s public path is `/hub/roster-management`; `/hub/office` redirects.
+
 ---
 
 ## Copy

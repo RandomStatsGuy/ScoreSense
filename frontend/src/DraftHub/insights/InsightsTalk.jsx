@@ -148,7 +148,9 @@ export function RankBars({
                 }}
               />
             </div>
-            <span className="hub-insights-rank-value">{formatValue(row)}</span>
+            <span className="hub-insights-rank-value" title={String(formatValue(row) || "")}>
+              {formatValue(row)}
+            </span>
           </li>
         );
       })}
@@ -249,6 +251,7 @@ export function ScoringRace({
                 onClick={() => onToggleTeam?.(row.teamName)}
                 onMouseEnter={() => onHover?.(row.teamName)}
                 onMouseLeave={() => onHover?.("")}
+                aria-label={`${row.label} ${row.total}${row.gapFromFirst > 0 ? `, ${row.gapFromFirst} back` : ", lead"}`}
               >
                 <span className="hub-insights-rank-place">#{row.rank}</span>
                 <span className="hub-insights-rank-name">

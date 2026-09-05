@@ -7,7 +7,9 @@ import {
   HubExperienceHero,
   HubFilterChip,
   HubFilterScroll,
+  HubLoadingSkeleton,
   HubPage,
+  HubSegmentNav,
 } from "./HubUILayout";
 import { getInsightsSection, setInsightsSection } from "./hubDataCache";
 import { confirmDialog } from "../ui/confirm";
@@ -991,21 +993,16 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
         </HubAlert>
       ) : null}
 
-      <div className="hub-filter-bar hub-trade-tabs">
-        {[
+      <HubSegmentNav
+        ariaLabel="Trades"
+        active={tab}
+        onChange={setTab}
+        tabs={[
           { id: "builder", label: "Builder" },
           { id: "inbox", label: `Inbox${proposals.length ? ` (${proposals.length})` : ""}` },
           { id: "ideas", label: "Ideas" },
-        ].map((t) => (
-          <HubFilterChip
-            key={t.id}
-            active={tab === t.id}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </HubFilterChip>
-        ))}
-      </div>
+        ]}
+      />
 
       {(bannerError || bannerErrors.length > 0) && (
         <div className="error hub-trade-alerts" role="alert">
@@ -1016,7 +1013,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
         </div>
       )}
       {msg && <p className="chart-note hub-trade-msg">{msg}</p>}
-      {loading && <p className="chart-note">Loading trades…</p>}
+      {loading && <HubLoadingSkeleton label="Loading trades" rows={4} />}
 
       {tab === "builder" && !loading && (
         <div className="hub-trade-builder">

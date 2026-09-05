@@ -259,6 +259,7 @@ export default function VibeRankings({
 
         {!done ? (
           <div className="hub-vibes-stage">
+            <p className="hub-vibes-hint">{VIBE_COPY.swipeHint}</p>
             <VibeSwipeDeck
               players={openPlayers}
               index={0}
@@ -282,7 +283,6 @@ export default function VibeRankings({
               </button>
             </div>
             <p className="hub-vibes-progress">{VIBE_COPY.deckProgress(ratedToday, players.length)}</p>
-            <p className="hub-vibes-hint">{VIBE_COPY.swipeHint}</p>
             <p className="hub-vibes-keys">{VIBE_COPY.keyboardHint}</p>
           </div>
         ) : (
@@ -310,9 +310,16 @@ export default function VibeRankings({
           {splits.pairs.length === 0 ? (
             <p>{VIBE_COPY.vsModelEmpty}</p>
           ) : splits.pairs.map((pair) => (
-            <p key={`${pair.start.player_id}-${pair.sit.player_id}`} className="hub-vibes-split-line">
-              {VIBE_COPY.vsModelLine(pair.start.player_name, pair.sit.player_name)}
-            </p>
+            <div key={`${pair.start.player_id}-${pair.sit.player_id}`} className="hub-vibes-compare">
+              <div>
+                <span>{VIBE_COPY.vsYours}</span>
+                <strong>{pair.start.player_name}</strong>
+              </div>
+              <div>
+                <span>{VIBE_COPY.vsBoard}</span>
+                <strong>{pair.sit.player_name}</strong>
+              </div>
+            </div>
           ))}
         </section>
       </HubExperienceLayout>

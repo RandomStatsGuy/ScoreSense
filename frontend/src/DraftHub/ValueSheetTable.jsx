@@ -17,7 +17,7 @@ import {
   nextSortState,
   pinWatchedPlayers,
 } from "./valueSheetUtils";
-import { HubPage, HubTableCard, HubFilterMenu, HubFilterChip, SortTh, HubAlert } from "./HubUILayout";
+import { HubPage, HubPageSticky, HubTableCard, HubFilterMenu, HubFilterChip, SortTh, HubAlert } from "./HubUILayout";
 import { HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import ValueSheetPlayerRow from "./ValueSheetPlayerRow";
 import ContractHistoryLink from "./ContractHistoryLink";
@@ -166,9 +166,9 @@ export default function ValueSheetTable({
   const [addError, setAddError] = useState("");
   const [showAdvancedLocal, setShowAdvancedLocal] = useState(false);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
-  const [mobileListLimit, setMobileListLimit] = useState(80);
+  const [mobileListLimit, setMobileListLimit] = useState(20);
 
-  const MOBILE_LIST_PAGE = 80;
+  const MOBILE_LIST_PAGE = 20;
 
   const showAdvanced = showAdvancedProp ?? (draftConsole ? false : compact ? true : showAdvancedLocal);
   const activeRisk = isRiskToleranceActive(riskTolerance) && !pickDraft;
@@ -530,7 +530,6 @@ export default function ValueSheetTable({
     if (row.team) parts.push(row.team);
     if (row.position) parts.push(row.position);
     if (row.pos_rank) parts.push(`${row.position}${row.pos_rank}`);
-    if (!pickDraft && row.tier) parts.push(row.tier);
     return parts.join(" · ") || "—";
   }, [pickDraft]);
 
@@ -592,7 +591,7 @@ export default function ValueSheetTable({
         </HubAlert>
       ) : null}
 
-      {!hideHeader && (
+      {!hideHeader && !mobileLayout && (
         <div className="hub-page-meta">
           {panelSub}
           {sleeperLinked ? ` · ${sleeper.sleeper_team_name || "Sleeper linked"}` : ""}
@@ -608,6 +607,7 @@ export default function ValueSheetTable({
         </div>
       )}
 
+      <HubPageSticky>
       <div className={`hub-filter-bar${compact ? " hub-filter-bar--compact" : ""}`}>
         <input
           type="search"
@@ -737,17 +737,7 @@ export default function ValueSheetTable({
         </div>
       )}
       {addError && <div className="error">{addError}</div>}
-      {mobileLayout && (
-        <div className="hub-filter-summary-bar" aria-live="polite">
-          {sorted.length} shown
-          {posFilter !== "ALL" ? ` · ${posFilter}` : ""}
-          {tierFilter !== "ALL" ? ` · ${tierFilter}` : ""}
-          {statusFilter !== "ALL" ? ` · ${statusFilter}` : ""}
-          {riskProfile !== "ALL" ? ` · ${riskProfile}` : ""}
-          {search.trim() ? ` · “${search.trim()}”` : ""}
-          {` · sort ${activeSortLabel}`}
-        </div>
-      )}
+      </HubPageSticky>
       <HubTableCard>
       {mobileLayout ? (
         <>

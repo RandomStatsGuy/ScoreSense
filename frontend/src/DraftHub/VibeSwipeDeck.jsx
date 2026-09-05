@@ -97,7 +97,7 @@ function VibeCardFace({
             type="button"
             className={`hub-vibes-more${open ? " is-open" : ""}`}
             aria-expanded={open}
-            aria-label={open ? VIBE_COPY.closeMore : VIBE_COPY.openMore}
+            aria-label={open ? VIBE_COPY.closeMore : VIBE_COPY.openMoreNamed(player.player_name)}
             onPointerDown={stopCardGesture}
             onPointerMove={stopCardGesture}
             onPointerUp={stopCardGesture}
