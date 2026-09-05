@@ -1325,6 +1325,7 @@ export default function App() {
       onSectionChange={goToSection}
       onMoreOpen={() => setMobileMenuOpen(true)}
     >
+        <a className="app-skip-link" href="#app-main">Skip to content</a>
         <InviteAccept
           authenticated={authenticated}
           user={user}
@@ -1466,6 +1467,7 @@ export default function App() {
           )}
         </header>
 
+        <main id="app-main" className="app-main">
         {view === "projections" && !mobileLayout && (
           <ProjectionsFilterBar {...projectionsFilterProps} />
         )}
@@ -2061,6 +2063,7 @@ export default function App() {
         {!mobileLayout && (
           <LegalLinks termsUrl={termsUrl} privacyUrl={privacyUrl} className="app-legal-footer" compact />
         )}
+        </main>
       </MobileShell>
     </LeagueChromeProvider>
     </PlayerCardProvider>

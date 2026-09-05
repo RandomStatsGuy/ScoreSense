@@ -56,7 +56,7 @@ const TABS_NEED_VALUE_SHEET = new Set(["value", "available", "room", "rosters", 
 /** Tabs that need cap-sheet (also hits roster on the server). */
 const TABS_NEED_CAP_SHEET = new Set(["planner", "roster", "rosters"]);
 /** Tabs that read the hub roster ("value" marks my players via rosterIds). */
-const TABS_NEED_ROSTER = new Set(["home", "setup", "value", "available", "roster", "rosters", "planner", "room", "trades"]);
+const TABS_NEED_ROSTER = new Set(["home", "setup", "value", "available", "roster", "rosters", "planner", "room", "trades", "rules"]);
 
 export default function DraftHub({ subView, onSubViewChange, onHubContextChange, insightTab, onInsightTabChange, officeTab, onOfficeTabChange, onOpenContractHistory, active = true }) {
   const [searchParams] = useSearchParams();
@@ -719,6 +719,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           workspace={workspace}
           hubContext={effectiveCtx}
           presets={presets}
+          roster={roster}
           onSaved={onWorkspaceSaved}
           readOnlyRules={effectiveCtx?.mode === "league" && !effectiveCtx?.is_commissioner}
         />

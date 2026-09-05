@@ -153,7 +153,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "rules-center",
     page: "frontend/src/DraftHub/RulesWizard.jsx",
     copy: "frontend/src/DraftHub/rulesPresentation.js",
-    doNot: "Do not invent a parallel rules model. Merge via rulesPresentation.js.",
+    doNot: "Do not invent a parallel rules model. Merge via rulesPresentation.js. Templates confirm and fill the form — they do not save. Draft behavior stays an open section. At a glance names saved vs preview.",
   }),
   "hub.office": S({
     label: "Roster management",

@@ -58,7 +58,8 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 
 ## Product rules you may not bypass
 
-- League policy changes apply to **new contracts only** unless a migration exists.
+- League policy changes apply to **new contracts only**. Say that once, next to Save. Do not mention a migration unless a control exists.
+- Applying a league template confirms, names what changes, and fills the form. It does not save. Offer undo until the next edit. Style those triggers as destructive.
 - Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`). Staff Roster management may override; Players-tab adds may not.
 - Do not invent a parallel rules or contract model. Merge/validate via `rulesPresentation.js`. Backend is authoritative.
 - Same player photos on mock boards, nominee cards, rails, and rosters.
