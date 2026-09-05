@@ -93,12 +93,23 @@ export function againstCap({ spent = 0, deadCap = 0 } = {}) {
   return (Number(spent) || 0) + (Number(deadCap) || 0);
 }
 
-export function capEquationNote({ against, leftover, salaryCap } = {}) {
+/** Whole-dollar leftover and against-cap that always sum to the cap. */
+export function displayCapPair({ leftover, salaryCap } = {}) {
+  const cap = Math.round(Number(salaryCap) || 0);
   const rem = Number(leftover);
-  const leftoverBit = Number.isFinite(rem) && rem < -0.005
+  if (!Number.isFinite(rem)) return { leftover: null, against: null, cap };
+  const leftoverRounded = Math.round(rem);
+  return { leftover: leftoverRounded, against: cap - leftoverRounded, cap };
+}
+
+export function capEquationNote({ leftover, salaryCap, against } = {}) {
+  const pair = displayCapPair({ leftover, salaryCap });
+  const againstN = pair.against ?? Math.round(Number(against) || 0);
+  const rem = pair.leftover;
+  const leftoverBit = rem != null && rem < 0
     ? `${fmtSal(Math.abs(rem))} over`
-    : `${fmtSal(leftover)} leftover`;
-  return `${fmtSal(against)} of ${fmtSal(salaryCap)} against cap · ${leftoverBit}`;
+    : `${fmtSal(rem ?? leftover)} leftover`;
+  return `${fmtSal(againstN)} of ${fmtSal(pair.cap || salaryCap)} against cap · ${leftoverBit}`;
 }
 
 export function leftoverMoveReadout({ current, after } = {}) {

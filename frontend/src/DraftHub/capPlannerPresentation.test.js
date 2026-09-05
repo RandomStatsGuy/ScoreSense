@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   againstCap,
   capEquationNote,
+  displayCapPair,
   capHeroCopy,
   capRailPrimary,
   capSheetYearOffsets,
@@ -88,11 +89,19 @@ test("against cap plus leftover equals the cap", () => {
     "$86 of $200 against cap · $114 leftover",
   );
   assert.equal(
+    capEquationNote({ leftover: 122.5, salaryCap: 200 }),
+    "$77 of $200 against cap · $123 leftover",
+  );
+  assert.equal(
     capEquationNote({ against: 270, leftover: -70, salaryCap: 200 }),
     "$270 of $200 against cap · $70 over",
   );
   assert.equal(CAP_FIGURE_COPY.againstCap, "Against this cap");
   assert.doesNotMatch(CAP_FIGURE_COPY.againstCap, /^Committed$/);
+  const pair = displayCapPair({ leftover: 122.5, salaryCap: 200 });
+  assert.equal(pair.leftover, 123);
+  assert.equal(pair.against, 77);
+  assert.equal(pair.leftover + pair.against, 200);
 });
 
 test("roster needs collapse to one sentence", () => {

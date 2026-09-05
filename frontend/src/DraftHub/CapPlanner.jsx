@@ -19,6 +19,7 @@ import {
 import {
   againstCap,
   capEquationNote,
+  displayCapPair,
   capHeroCopy,
   capRailPrimary,
   capSheetYearOffsets,
@@ -297,8 +298,14 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
     current: summary.remaining,
     after: movedPlan[0]?.cap_remaining ?? summary.remaining,
   });
+  const nowPair = displayCapPair({ leftover: moveReadout?.current, salaryCap });
+  const afterPair = displayCapPair({ leftover: moveReadout?.after, salaryCap });
+  const afterOverBy = afterPair.leftover != null && afterPair.leftover < 0
+    ? Math.abs(afterPair.leftover)
+    : 0;
   const hasMove = Boolean(cutPlayer || bidAmount);
   const against = againstCap({ spent: summary.spent, deadCap });
+  const currentPair = displayCapPair({ leftover: summary.remaining, salaryCap });
 
   const pendingCut = (preDraft?.pending_cuts || [])[0] || null;
   const railPrimary = capRailPrimary({ pendingCut, remaining: summary.remaining });
@@ -318,8 +325,8 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
   });
 
   const teamItems = [
-    { id: "leftover", label: CAP_FIGURE_COPY.leftover, value: fmtSal(summary.remaining) },
-    { id: "against", label: CAP_FIGURE_COPY.againstCap, value: fmtSal(against) },
+    { id: "leftover", label: CAP_FIGURE_COPY.leftover, value: fmtSal(currentPair.leftover) },
+    { id: "against", label: CAP_FIGURE_COPY.againstCap, value: fmtSal(currentPair.against) },
     { id: "dead", label: CAP_FIGURE_COPY.deadCap, value: fmtSal(deadCap) },
   ];
   if (preDraft && Number.isFinite(keepCount)) {
@@ -457,7 +464,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
               <span>
                 {CAP_MOVE_COPY.now}
                 {" "}
-                <strong>{fmtSal(moveReadout.current)}</strong>
+                <strong>{fmtSal(nowPair.leftover)}</strong>
                 {" "}
                 {CAP_MOVE_COPY.leftoverWord}
               </span>
@@ -465,14 +472,14 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
               <span>
                 {CAP_MOVE_COPY.after}
                 {" "}
-                <strong>{fmtSal(moveReadout.after)}</strong>
+                <strong>{fmtSal(afterPair.leftover)}</strong>
                 {" "}
                 {CAP_MOVE_COPY.leftoverWord}
               </span>
             </p>
-            {moveReadout.over ? (
+            {afterOverBy > 0 ? (
               <p className="hub-cap-move-over">
-                {CAP_MOVE_COPY.over(fmtSal(moveReadout.overBy))}
+                {CAP_MOVE_COPY.over(fmtSal(afterOverBy))}
               </p>
             ) : null}
           </div>
@@ -480,17 +487,17 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
         {movedPlan.length > 0 && (
           <ul className="hub-cap-season-list" aria-label="Leftover after this move, by season">
             {movedPlan.map((year) => {
-              const free = Number(year.cap_remaining);
-              const freeOver = Number.isFinite(free) && free < 0;
+              const pair = displayCapPair({ leftover: year.cap_remaining, salaryCap });
+              const freeOver = pair.leftover != null && pair.leftover < 0;
               return (
                 <li key={year.label || year.seasonLabel} className="hub-cap-season-row">
                   <span className="hub-cap-season-year">{year.seasonLabel}</span>
                   <span className="hub-cap-season-committed">
-                    {fmtSal(year.total_committed)}
+                    {fmtSal(pair.against)}
                     <span className="hub-cap-season-unit"> {CAP_FIGURE_COPY.seasonAgainst}</span>
                   </span>
                   <span className={`hub-cap-season-free${freeOver ? " is-over" : ""}`}>
-                    {fmtSal(year.cap_remaining)}
+                    {fmtSal(pair.leftover)}
                     <span className="hub-cap-season-unit"> {CAP_FIGURE_COPY.seasonLeftover}</span>
                   </span>
                 </li>
