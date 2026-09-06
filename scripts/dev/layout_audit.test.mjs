@@ -77,6 +77,16 @@ test("bar height check uses the interactive control", () => {
   assert.equal(pickBarControl(wrapped), button);
 });
 
+test("bar height prefers a composite trigger over a nested input", () => {
+  const trigger = { matches: (sel) => sel.includes("hub-filter-menu-trigger"), offsetHeight: 32 };
+  const input = { matches: (sel) => sel.includes("input"), offsetHeight: 17 };
+  const field = {
+    matches: () => false,
+    querySelector: (sel) => (sel.includes("hub-filter-menu-trigger") ? trigger : input),
+  };
+  assert.equal(pickBarControl(field), trigger);
+});
+
 test("text columns left-align", () => {
   assert.equal(columnAlign(["Ja'Marr Chase", "Bijan Robinson"]), "left");
 });
