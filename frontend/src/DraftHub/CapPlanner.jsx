@@ -106,9 +106,9 @@ function CapDenseRow({ name, value, chip, onOpen }) {
 
 function CapMoneyField({ id, label, value, onChange }) {
   return (
-    <label className="hub-cap-field" htmlFor={id}>
-      {label}
-      <span className="hub-cap-money">
+    <div className="hub-filter-menu hub-cap-money-field">
+      <label className="hub-filter-menu-trigger hub-cap-money" htmlFor={id}>
+        <span className="hub-filter-menu-kind">{label}</span>
         <span className="hub-cap-money-affix" aria-hidden="true">$</span>
         <input
           id={id}
@@ -119,8 +119,8 @@ function CapMoneyField({ id, label, value, onChange }) {
           onChange={(e) => onChange(e.target.value.replace(/[^\d]/g, ""))}
           aria-label={label}
         />
-      </span>
-    </label>
+      </label>
+    </div>
   );
 }
 

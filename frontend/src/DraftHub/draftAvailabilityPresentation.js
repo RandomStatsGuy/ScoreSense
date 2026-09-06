@@ -117,6 +117,11 @@ export function availabilityStatusChip({ locked = false, dirty = false } = {}) {
   return "Times saved";
 }
 
+/** Teal saved chip only after a clean save — never while times are dirty. */
+export function availabilityShowsSavedChip({ canEdit = false, locked = false, dirty = false } = {}) {
+  return Boolean(canEdit && !locked && !dirty);
+}
+
 export function availabilityLockLabel({ locked = false, locking = false } = {}) {
   if (locking) return "Locking…";
   if (locked) return "Locked in";

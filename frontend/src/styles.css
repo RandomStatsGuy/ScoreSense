@@ -5602,7 +5602,7 @@ td.col-rank.col-rank-top {
 .hub-toolbar-form {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   gap: 0.65rem 0.85rem;
   margin: 0 0 1rem;
   padding: 0.75rem 0.85rem;
@@ -5619,6 +5619,27 @@ td.col-rank.col-rank-top {
   font-weight: 600;
   color: var(--text-muted);
   min-width: 0;
+}
+
+.hub-toolbar-form .hub-filter-menu-trigger,
+.hub-toolbar-form label.hub-cap-money {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.32rem;
+  min-height: var(--control-h-sm);
+  padding: 0.24rem 0.55rem 0.24rem 0.5rem;
+  border-radius: var(--radius-pill);
+}
+
+.hub-toolbar-form .hub-cap-money input[type="text"] {
+  width: 4.5rem;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  line-height: 1.2;
 }
 
 .hub-toolbar-form select,
@@ -8691,7 +8712,7 @@ td.col-rank.col-rank-top {
   display: inline-flex;
   align-items: center;
   gap: 0.32rem;
-  min-height: 1.85rem;
+  min-height: var(--control-h-sm);
   padding: 0.24rem 0.55rem 0.24rem 0.5rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
@@ -9222,32 +9243,20 @@ td.col-rank.col-rank-top {
   width: 100%;
 }
 .hub-roster-builder .hub-roster-col-player {
-  width: auto;
+  width: 100%;
   min-width: 11rem;
 }
-.hub-roster-builder .hub-roster-col-manager {
-  width: 12%;
+.hub-roster-builder .hub-roster-col-manager,
+.hub-roster-builder .hub-roster-col-pos,
+.hub-roster-builder .hub-roster-col-cap,
+.hub-roster-builder .hub-roster-col-years,
+.hub-roster-builder .hub-roster-col-status,
+.hub-roster-builder .hub-roster-table .hub-roster-actions {
+  width: 1%;
   white-space: nowrap;
 }
 .hub-roster-builder .hub-roster-col-pos {
-  width: 8%;
   text-align: center;
-  white-space: nowrap;
-}
-.hub-roster-builder .hub-roster-col-cap {
-  width: 14%;
-  white-space: nowrap;
-}
-.hub-roster-builder .hub-roster-col-years {
-  width: 10%;
-  white-space: nowrap;
-}
-.hub-roster-builder .hub-roster-col-status {
-  width: 18%;
-  white-space: nowrap;
-}
-.hub-roster-builder .hub-roster-table .hub-roster-actions {
-  width: 12%;
 }
 .hub-roster-player-cell { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
 .hub-roster-player-thumb {
@@ -19495,6 +19504,9 @@ th.sortable-header {
   top: 0.65rem;
   right: 0.65rem;
   z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-h-sm);
   background: rgba(8, 12, 20, 0.72);
   color: var(--text-primary);
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -19515,10 +19527,10 @@ th.sortable-header {
   padding: 0 1rem 0.9rem;
 }
 .hub-stadium-hero--my-team .hub-stadium-hero-body {
-  align-items: center;
+  align-items: flex-end;
 }
 .hub-stadium-hero--my-team .hub-stadium-hero-photo {
-  margin-top: 0;
+  margin-top: -2.65rem;
 }
 .hub-stadium-hero-photo {
   display: flex;
@@ -20053,11 +20065,18 @@ button.hub-locker {
   border-right: 2px solid var(--text-muted);
   border-bottom: 2px solid var(--text-muted);
   transform: rotate(-45deg);
-  margin-top: -0.15rem;
+  margin-top: 0;
 }
 .hub-week-poll--compact[open] > summary .hub-week-poll-caret {
   transform: rotate(45deg);
   margin-top: 0;
+}
+.hub-week-poll--compact > summary .hub-week-poll-summary-title,
+.hub-week-poll--compact > summary .hub-week-poll-summary-state,
+.hub-week-poll--compact > summary .hub-week-poll-summary-cta,
+.hub-week-poll--compact > summary .chart-note {
+  margin: 0;
+  line-height: 1.2;
 }
 .hub-week-poll--compact > summary:hover .hub-week-poll-summary-cta { color: var(--text-secondary); }
 .hub-week-poll-summary-title { font-weight: 700; font-size: 0.88rem; flex: none; }
