@@ -16,6 +16,7 @@ import {
   availabilityLockLabel,
   availabilitySaveLabel,
   availabilityStatusChip,
+  availabilityShowsSavedChip,
   formatLockedNightDisclosure,
   availabilitySupport,
   availabilityUnsavedHint,
@@ -418,18 +419,12 @@ export default function DraftAvailability({
                 <Button disabled={saving} onClick={save}>
                   {availabilitySaveLabel({ dirty, saving })}
                 </Button>
-              ) : mobileLayout ? (
+              ) : availabilityShowsSavedChip({ canEdit: payload.can_edit, locked, dirty }) ? (
+                <p className="draft-availability-status-chip is-saved">
+                  {availabilityStatusChip({ locked, dirty })}
+                </p>
+              ) : mobileLayout && !locked ? (
                 <p className="draft-availability-status-chip">{availabilityStatusChip({ locked, dirty })}</p>
-              ) : payload.can_edit ? (
-                dirty ? (
-                  <Button disabled={saving} onClick={save}>
-                    {availabilitySaveLabel({ dirty, saving })}
-                  </Button>
-                ) : (
-                  <p className="draft-availability-status-chip is-saved">
-                    {availabilityStatusChip({ locked, dirty })}
-                  </p>
-                )
               ) : null}
               {lockTappedHour}
               {dirty ? <p className="chart-note">{availabilityUnsavedHint()}</p> : null}

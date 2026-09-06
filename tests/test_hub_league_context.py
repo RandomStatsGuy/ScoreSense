@@ -35,8 +35,8 @@ def test_league_membership_uses_shared_workspace(hub_db):
     assert team_id is not None
 
 
-def test_league_without_workspace_id_shares_commissioner_roster(hub_db):
-    """Members must see cap-sheet rows stored in the commissioner's workspace."""
+def test_league_without_workspace_id_uses_dedicated_roster_pool(hub_db):
+    """Members see rows in the league pool, not the commissioner's solo workspace."""
     from src.draft_hub.hub_context import list_roster_for_context
 
     comm = "cap-comm"
@@ -45,8 +45,10 @@ def test_league_without_workspace_id_shares_commissioner_roster(hub_db):
     league = storage.create_league(comm, "Cap Sheet League", 2025, rules, team_count=10)
     member_team = storage.join_league(member, league["room_code"], "White Supremacists")
     comm_ws = storage.get_or_create_workspace(comm)
+    league_ws = storage.roster_workspace_for_league(league)
+    assert league_ws != comm_ws["id"]
     storage.add_roster_slot(
-        storage.roster_workspace_for_league(league),
+        league_ws,
         {
             "player_id": "00-0035640",
             "player_name": "Test Player",
@@ -60,7 +62,8 @@ def test_league_without_workspace_id_shares_commissioner_roster(hub_db):
     )
 
     member_ctx = resolve_hub_context(member)
-    assert member_ctx["workspace_id"] == comm_ws["id"]
+    assert member_ctx["workspace_id"] == league_ws
+    assert member_ctx["workspace_id"] != comm_ws["id"]
     assert member_ctx["team_count"] == 10
     roster = list_roster_for_context(member_ctx)
     assert len(roster) == 1

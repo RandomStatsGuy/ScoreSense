@@ -141,7 +141,13 @@ from src.draft_hub.league_sheet_import import parse_league_sheet_csv
 from src.draft_hub.mock_draft import start_mock_draft
 from src.draft_hub.draft_expire_preview import build_draft_expire_preview
 from src.draft_hub.draft_recap import build_owner_draft_report
-from src.draft_hub.test_draft import reset_test_draft, setup_test_draft, simulate_draft
+from src.draft_hub.test_draft import (
+    reset_test_draft,
+    setup_test_draft,
+    simulate_draft,
+    simulation_is_running,
+    simulation_progress,
+)
 from src.draft_hub.trade_executor import execute_league_trade
 from src.draft_hub.trade_proposals import (
     cancel_proposal,
@@ -1349,8 +1355,22 @@ def hub_remove_roster(body: RosterRemoveRequest, _user=Depends(require_hub_user)
             status_code=403,
             detail=window.get("message") or "Rosters are locked",
         )
-    ws_id, _team_id = roster_scope(ctx)
-    ok = storage.remove_roster_slot(ws_id, body.player_id)
+    ws_id, team_id = roster_scope(ctx)
+    existing = storage.get_roster_slot(ws_id, body.player_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Player not on roster")
+    if ctx.get("mode") == "league" and not can_edit_roster(
+        ctx, player_team_id=existing.get("team_id") or ""
+    ):
+        raise HTTPException(status_code=403, detail="Cannot drop another team's player")
+    own_team_only = bool(
+        ctx.get("mode") == "league" and team_id and not ctx.get("is_commissioner")
+    )
+    ok = storage.remove_roster_slot(
+        ws_id,
+        body.player_id,
+        team_id=str(team_id) if own_team_only else None,
+    )
     if not ok:
         raise HTTPException(status_code=404, detail="Player not on roster")
     _invalidate_league_rosters_from_ctx(ctx)
@@ -1798,7 +1818,6 @@ def hub_draft_fantasy_media_digest(
 @router.post("/league")
 def hub_create_league(body: LeagueCreateRequest, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
-    ws = storage.get_or_create_workspace(sub, body.season)
     rules = body.rules or load_preset(body.preset_id or "salary_cap_auction_v1")
     league = storage.create_league(
         sub,
@@ -1806,7 +1825,7 @@ def hub_create_league(body: LeagueCreateRequest, _user=Depends(require_hub_user)
         body.season,
         rules,
         body.team_count,
-        ws["id"] if not body.test_mode else None,
+        None,
         commissioner_team_name=body.commissioner_team_name or "Commissioner",
         test_mode=body.test_mode,
     )
@@ -5173,13 +5192,29 @@ async def hub_test_draft_simulate(
     body: SimulateDraftRequest = None,
     _user=Depends(require_hub_user),
 ) -> dict:
-    """Run the rest of a practice draft instantly (dev tool)."""
+    """Run the rest of a practice draft off the event loop so room polls stay live."""
+    import asyncio
+
     sub = _sub(_user)
+    if simulation_is_running(league_id):
+        try:
+            state = get_room_state(league_id, sub)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {
+            "status": "running",
+            "simulation": simulation_progress(league_id),
+            "state": state,
+        }
     try:
         max_picks = body.max_picks if body else None
-        state = simulate_draft(league_id, sub, max_picks=max_picks)
+        state = await asyncio.to_thread(simulate_draft, league_id, sub, max_picks)
         await broadcast_room(league_id)
-        return {"state": state}
+        return {
+            "status": "completed",
+            "simulation": simulation_progress(league_id),
+            "state": state,
+        }
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:

@@ -24,6 +24,10 @@ import {
   shouldScheduleWsReconnect,
   isLiveAuctionStatus,
   draftInteractionState,
+  rosterForTeam,
+  simulationProgressLabel,
+  simulationPostFailureAction,
+  fetchTimeoutSignal,
   draftResultTransition,
   loadWatchIds,
   saveWatchIds,
@@ -198,29 +202,86 @@ test("isLiveAuctionStatus includes pick-draft clocks", () => {
 
 test("draftInteractionState locks mutations and freezes clocks during simulation", () => {
   assert.deepEqual(
-    draftInteractionState({ simulationStatus: "running" }),
+    draftInteractionState({ simulationStatus: "running", simulationDone: 12, simulationTotal: 270 }),
     {
       locked: true,
+      discardEnabled: true,
       simulationActive: true,
       simulating: true,
       clockPaused: true,
-      clockLabel: "Simulating…",
+      clockLabel: "12 of 270",
     },
   );
   assert.equal(draftInteractionState({ simulationStatus: "confirming" }).locked, true);
+  assert.equal(draftInteractionState({ simulationStatus: "confirming" }).discardEnabled, true);
   assert.equal(draftInteractionState({ simulationStatus: "failed" }).locked, false);
   assert.equal(draftInteractionState({ pendingAction: "bid" }).locked, true);
   assert.equal(draftInteractionState({ busy: true }).locked, true);
+  assert.equal(draftInteractionState({ pendingAction: "delete" }).discardEnabled, false);
   assert.deepEqual(
     draftInteractionState({ paused: true }),
     {
       locked: true,
+      discardEnabled: true,
       simulationActive: false,
       simulating: false,
       clockPaused: true,
       clockLabel: "Paused",
     },
   );
+});
+
+test("simulationProgressLabel names N of total", () => {
+  assert.equal(simulationProgressLabel({ done: 4, total: 270 }), "4 of 270");
+  assert.equal(simulationProgressLabel({}), "Sim…");
+});
+
+test("simulationPostFailureAction keeps a running room after proxy timeout", () => {
+  assert.equal(
+    simulationPostFailureAction({ roomSimulationStatus: "running", errorName: "Error" }),
+    "continue",
+  );
+  assert.equal(
+    simulationPostFailureAction({ errorName: "AbortError" }),
+    "continue",
+  );
+  assert.equal(
+    simulationPostFailureAction({ errorName: "TimeoutError" }),
+    "continue",
+  );
+  assert.equal(
+    simulationPostFailureAction({ roomSimulationStatus: "completed" }),
+    "completed",
+  );
+  assert.equal(
+    simulationPostFailureAction({ sessionStatus: "completed" }),
+    "completed",
+  );
+  assert.equal(
+    simulationPostFailureAction({ draftCompleted: true }),
+    "completed",
+  );
+  assert.equal(
+    simulationPostFailureAction({ errorName: "Error" }),
+    "fail",
+  );
+});
+
+test("fetchTimeoutSignal uses AbortSignal.timeout when present", () => {
+  const signal = fetchTimeoutSignal(50);
+  if (typeof AbortSignal.timeout === "function") {
+    assert.ok(signal);
+    assert.equal(typeof signal.aborted, "boolean");
+  } else {
+    assert.equal(signal, undefined);
+  }
+});
+
+test("rosterForTeam matches string or raw team ids", () => {
+  const rows = [{ player_id: "p1" }];
+  assert.deepEqual(rosterForTeam({ abc: rows }, "abc"), rows);
+  assert.deepEqual(rosterForTeam({ 12: rows }, 12), rows);
+  assert.deepEqual(rosterForTeam({}, "missing"), []);
 });
 
 test("shouldApplyRoomState drops stale setup flashes during a live auction", () => {

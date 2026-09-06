@@ -11,6 +11,7 @@ import {
 } from "./draftPlayerRail.js";
 import { HubFilterMenu } from "./HubUILayout";
 import { mergePlayerMedia } from "./draftRoomEnrichment";
+import { mockDraftLiveCopy } from "./mockDraftConfig";
 
 const PICK_SORTS = [
   ["season_proj", "Projection"],
@@ -84,19 +85,19 @@ export default function DraftPlayerRail({
     [needPositions],
   );
   const sorts = pickDraft ? PICK_SORTS : AUCTION_SORTS;
+  const poolCopy = mockDraftLiveCopy();
 
   return (
-    <section className="hub-draft-player-rail" aria-label="Available players">
+    <section className="hub-draft-player-rail" aria-label={poolCopy.playerPoolLabel}>
       <header className="hub-draft-player-rail-head">
         <div>
-          <span className="hub-draft-experience-kicker">Player pool</span>
-          <h2>Available players</h2>
+          <span className="hub-draft-experience-kicker">{poolCopy.playerPoolLabel}</span>
         </div>
         <span className="hub-draft-player-count">{rows.length}</span>
       </header>
 
       <label className="hub-draft-player-search">
-        <span className="sr-only">Search available players</span>
+        <span className="sr-only">{poolCopy.playerPoolSearch}</span>
         <input
           type="search"
           value={search}

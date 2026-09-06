@@ -10,6 +10,7 @@ import {
   mockDraftFormatLabel,
   mockDraftFormatNote,
   mockDraftHeroCopy,
+  mockDraftLiveCopy,
   mockDraftLaunchSummary,
   mockRoomPhaseKey,
   mockRoomPhaseLabel,
@@ -27,6 +28,14 @@ test("botCountForTeams fills every seat except the user", () => {
   assert.equal(botCountForTeams(8), 7);
   assert.equal(botCountForTeams(2), 1);
   assert.equal(botCountForTeams(10), 9);
+});
+
+test("live mock copy never says Available players", () => {
+  const copy = mockDraftLiveCopy();
+  assert.equal(copy.playerPoolLabel, "Player pool");
+  assert.doesNotMatch(copy.playerPoolLabel, /available players/i);
+  assert.match(copy.simulatingBanner(12, 270), /12 of 270/);
+  assert.match(copy.simulatingDetail, /Discard stays available/);
 });
 
 test("hero copy does not promise seat picks or stack a second reassurance", () => {
