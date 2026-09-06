@@ -314,14 +314,13 @@ export function HubExperienceHero({
   chipTone = "active",
   chipAs = "chip",
   compact = false,
-  aside = null,
   children,
 }) {
   const statusChip = chip && chipAs === "status";
-  const pillChip = chip && chipAs !== "status" && !aside;
+  const pillChip = chip && chipAs !== "status";
   return (
-    <header className={`hub-experience-hero${compact ? " is-compact" : ""}${aside ? " has-aside" : ""}`}>
-      <div className="hub-experience-hero-main">
+    <header className={`hub-experience-hero${compact ? " is-compact" : ""}`}>
+      <div>
         {eyebrow ? <span className="hub-experience-eyebrow">{eyebrow}</span> : null}
         {heading ? <h1>{heading}</h1> : null}
         {support ? <p>{support}</p> : null}
@@ -332,7 +331,6 @@ export function HubExperienceHero({
         ) : null}
         {children}
       </div>
-      {aside ? <div className="hub-experience-hero-aside">{aside}</div> : null}
       {pillChip ? (
         <span className={`hub-experience-chip${chipToneClass(chipTone)}`}>
           {chip}

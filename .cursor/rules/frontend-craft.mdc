@@ -19,9 +19,9 @@ These are checked by `scripts/dev/layout_audit.mjs`. A change is not done until 
 - Every horizontal group (bar, row, toolbar, button pair) is `align-items: center` and all its controls share one height token (`--control-h-sm` 32 / `--control-h-md` 40 / `--control-h-lg` 44). No mixed heights in one row.
 - Segmented controls and tabs center their labels. Fixed-width segments center; content-width segments use equal horizontal padding.
 - Tables: numeric columns (`$`, points, ranks, counts, deltas) right-align the cell AND the header. Text columns left-align both. Never center a column unless it is a single glyph (Pos, injury mark). The action column right-aligns.
-- Table column widths: first text column takes the remainder; numeric columns are `min-content` + padding. No column may be wider than 1.5× its widest cell unless it is the remainder column. The same pack and align rules apply to `table`, `[role=table]`, `[role=grid]`, and CSS-grid row groups.
+- Table column widths: first text column takes the remainder; numeric columns are `min-content` + padding. No column may be wider than 1.5× its widest cell unless it is the remainder column.
 - Content in a card/table fills the card. No dead zone > `--space-6` on either side of a table inside its card.
-- Page containers share one max-width and one horizontal inset. Hero band, strip, and main cards start at the same x. The summary rail is the right column — do not compare its left edge to the hero.
+- Page containers share one max-width and one horizontal inset. Hero band, strip, cards, and rail all start at the same x.
 
 ## Grids and wrapping
 - Card grids use `repeat(auto-fill, minmax(<token>, 1fr))`, never a fixed column count. An orphan row is acceptable only if it's the last row of an auto-fill grid. Layout grids (hero beside a rail) may have unequal heights — the audit only checks auto-fill / auto-fit card grids.

@@ -212,11 +212,19 @@ export default function DraftNomineeCard({
                 </div>
               ) : null}
             </div>
-          ) : olderAvailable ? (
+          ) : (
             <p className="hub-draft-no-story">
-              {`No current-week fantasy narrative. Older discussion exists from ${historicalLabel} (not shown here).`}
+              {olderAvailable
+                ? `No current-week fantasy narrative. Older discussion exists from ${historicalLabel} (not shown here).`
+                : `No fantasy narrative this week${
+                  sentimentMeta?.requested_week != null
+                    ? ` (Week ${sentimentMeta.requested_week})`
+                    : sentimentMeta?.week
+                      ? ` (Week ${sentimentMeta.week})`
+                      : ""
+                }.`}
             </p>
-          ) : null}
+          )}
 
           {(highBid != null || highBidderName || openingBid != null) && (
             <div className="hub-nominee-bid-row">

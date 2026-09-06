@@ -226,13 +226,14 @@ def admin_create_league(body: AdminLeagueCreateRequest, _admin=Depends(require_a
                 "already_in_league": True,
                 "hub_context": resolve_hub_context(comm_sub),
             }
+    ws = storage.get_or_create_workspace(comm_sub, body.season)
     league = storage.create_league(
         comm_sub,
         body.name.strip(),
         body.season,
         rules,
         body.team_count,
-        None,
+        ws["id"] if not body.test_mode else None,
         commissioner_team_name=body.commissioner_team_name,
         test_mode=body.test_mode,
     )

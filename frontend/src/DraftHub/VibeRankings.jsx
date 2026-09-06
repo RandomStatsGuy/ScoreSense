@@ -41,7 +41,6 @@ import {
   heroCopy,
   hottestLabel,
   rateHint,
-  todayReadRows,
   vsModelNote,
   vsSplitRows,
 } from "./vibeRankingsPresentation";
@@ -306,7 +305,6 @@ export default function VibeRankings({
     },
   ];
   const canReview = !usingDemo && ratedToday > 0;
-  const todayReads = todayReadRows(players, dayVotes?.votes);
   const reviewButton = canReview ? (
     <button
       type="button"
@@ -404,19 +402,16 @@ export default function VibeRankings({
             </div>
           </div>
         ) : (
-          todayReads.length ? (
           <div className="hub-vibes-results">
-            <h2 className="hub-vibes-reads-title">{VIBE_COPY.todayReadsTitle}</h2>
-            <ul className="hub-vibes-reads">
-              {todayReads.map((row) => (
-                <li key={row.id}>
-                  <span>{row.name}</span>
-                  <span>{row.vibe}</span>
-                </li>
-              ))}
-            </ul>
+            <p className="hub-vibes-hint">{VIBE_COPY.lockedToday}</p>
+            <div className="hub-vibes-actions">
+              {canReview ? (
+                <button type="button" className="btn-primary" onClick={() => onNavigate?.("week")}>
+                  {VIBE_COPY.resultsCta}
+                </button>
+              ) : null}
+            </div>
           </div>
-          ) : null
         )}
       </HubExperienceLayout>
     </HubPage>

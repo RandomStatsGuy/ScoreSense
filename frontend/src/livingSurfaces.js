@@ -51,7 +51,7 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/hub/home",
     page: "frontend/src/DraftHub/LeagueHome.jsx",
     copy: "frontend/src/DraftHub/leagueHomePresentation.js",
-    doNot: "Do not wrap Home in HubExperienceLayout. The page hero is eyebrow + a centered phase stepper — the heading stays in the Pre-draft card. Settings sits in the hero chip slot (top-right), never under the stepper. Also due uses the same extend/expiring nouns as My team and Cap (2 to extend · 5 expiring). Extend the action deck. The deck action is the only page primary. Chat Send is ghost. House the league thread in the locker rail. Do not show the edge launcher on Home. Do not add a Chat destination. Draft night · Not scheduled links to Draft. Clear chat is staff-only, red, confirms, and disables when the thread is empty. Home names the roster hole over a commissioner invite. Hide Your matchup / Standings when pre-draft with no scored week. Gate the hero on load — never Fill the seats over unresolved data. After 3s of loading, the action deck names the Sleeper sync. Also due does not style a count like a link. The shared league strip (and Needs attention) shows on Home. On phone, a one-row league strip (name + caret) sits under the picker — do not restack a second league card in the overflow.",
+    doNot: "Do not wrap Home in HubExperienceLayout. The page hero is eyebrow + stepper only — the heading stays in the Pre-draft card. Also due uses the same extend/expiring nouns as My team and Cap (2 to extend · 5 expiring). Extend the action deck. The deck action is the only page primary. Chat Send is ghost. House the league thread in the locker rail. Do not show the edge launcher on Home. Do not add a Chat destination. Draft night · Not scheduled links to Draft. Clear chat is staff-only, red, confirms, and disables when the thread is empty. Home names the roster hole over a commissioner invite. Hide Your matchup / Standings when pre-draft with no scored week. Gate the hero on load — never Fill the seats over unresolved data. After 3s of loading, the action deck names the Sleeper sync. Also due does not style a count like a link. The shared league strip (and Needs attention) shows on Home. On phone, a one-row league strip (name + caret) sits under the picker — do not restack a second league card in the overflow.",
   }),
   "hub.value": S({
     label: "Strategy",
@@ -63,7 +63,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/strategyRank.js",
       "frontend/src/styles/strategy-board.css",
     ],
-    doNot: "Do not add HubExperienceHero. Strategy is the only Fantasy destination without a hero band — a deliberate board-first exception. Face-off is the Strategy page (full-page cards). Cards show a larger player photo on a faded team backdrop. Pairs are the same position only. View my rankings opens site vs mine. Not a leftover-cap spreadsheet and not a Vibes clone. Never show Hub in the scoring label. Suggested bid names scoring and Rules risk posture.",
+    doNot: "Do not add HubExperience hero chrome. Face-off is the Strategy page (full-page cards). Cards show a larger player photo on a faded team backdrop. Pairs are the same position only. View my rankings opens site vs mine. Not a leftover-cap spreadsheet and not a Vibes clone. Never show Hub in the scoring label. Suggested bid names scoring and Rules risk posture.",
   }),
   "hub.available": S({
     label: "Free agents",
@@ -87,7 +87,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/draftSeat.js",
       "frontend/src/DraftHub/leagueAccessCopy.js",
     ],
-    doNot: "Idle Draft uses experience chrome and one featured job: the shared calendar. Live rooms do not. The shared league strip shows on idle Draft and hides once the room is live. Calendar shows current and future times only. Lock draft night from any shown overlap, or the tapped hour even when no overlap exists yet. Once locked, the hero is Draft night is locked. Fill the room. When the room is also full, switch to Room is full. Draft night is locked. and put Start live draft on the hero. The calendar collapses to a one-line disclosure. Do not repeat Night locked as a green body heading — keep the card-header chip and the rail Locked night. Keep the date/time form, invite essays, and a second seat list collapsed unless the calendar is Closed and no night is locked — then the off-calendar lock is open as the card primary and Mark yours is gone. Off-calendar lock lives inside the When-can-you-draft card. Keepers sit inside The room card. Times saved is the teal saved chip, not a disabled primary. Start live draft stays secondary until a night is locked or the room is full. Seating pill counts claimed teams and is amber below a full room, teal only at 12/12. Locked night shows in the viewer timezone; Draft setup names league time once. Room seat tiles keep token padding and product type — do not pack Take flush to the chip. Use DraftSeat so Mock and the live room inherit Open · Take / YOU. On phone, calendar sits above Draft setup; invite/copy live under Share the room; one status chip replaces Locked in / Times saved.",
+    doNot: "Idle Draft uses experience chrome and one featured job: the shared calendar. Live rooms do not. The shared league strip shows on idle Draft and hides once the room is live. Calendar shows current and future times only. Lock draft night from any shown overlap, or the tapped hour even when no overlap exists yet. Once locked, the hero is Draft night is locked. Fill the room. When the room is also full, switch to Room is full. Draft night is locked. and put Start live draft on the hero. The calendar collapses to a one-line disclosure. Keep the date/time form, invite essays, and a second seat list collapsed unless the calendar is Closed and no night is locked — then the off-calendar lock is open as the card primary and Mark yours is gone. Off-calendar lock lives inside the When-can-you-draft card. Keepers sit inside The room card. Times saved is the teal saved chip, not a disabled primary. Start live draft stays secondary until a night is locked or the room is full. Seating pill counts claimed teams and is amber below a full room, teal only at 12/12. Locked night shows in the viewer timezone; Draft setup names league time once. Room seat tiles keep token padding and product type — do not pack Take flush to the chip. Use DraftSeat so Mock and the live room inherit Open · Take / YOU. On phone, calendar sits above Draft setup; invite/copy live under Share the room; one status chip replaces Locked in / Times saved.",
   }),
   "hub.room.live": S({
     label: "Draft (live)",
@@ -95,7 +95,7 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/hub/draft",
     overlay: true,
     page: "frontend/src/DraftHub/DraftRoom.jsx",
-    doNot: "Do not wrap a live draft in HubExperience two-column settings chrome. Seats inherit DraftSeat from idle Draft and Mock. Never say Available players — the rail eyebrow is Player pool. Result toasts are HubAlert under the header. Hide empty fantasy narrative. Satisfied position chips are not red.",
+    doNot: "Do not wrap a live draft in HubExperience two-column settings chrome. Seats inherit DraftSeat from idle Draft and Mock.",
   }),
   "hub.week": S({
     label: "This Week",
@@ -119,7 +119,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/vibeMatchup.js",
       "frontend/src/styles/vibe-rankings.css",
     ],
-    doNot: "Reuse HubExperience*. Aura is a personal start weight, not a new accent or award gold. Desktop: card left, Vibe ranking and VA-projections right, both in view. Front card is week-vs-vibe, not a giant cutout. Bio is the one noun for the profile control — labeled Bio, neutral, not accent blue. Sit and Start are equal; Undo is a meta control, not a third option. Sit is not amber. One progress readout lives by the card. Week and vibe week compare; aura is a labeled 0–99 meter. One rate per player per calendar day. VA-projections are research; This Week lineup uses the board number. Empty slots say Empty with Find {POS}. Review on This Week stays hidden until a rating exists. When the deck is done, keep one Review primary on the ranking card — the left column lists today's reads or collapses. Do not scrape Wikipedia. Do not say site board. Do not mention swipe on a pointer desktop.",
+    doNot: "Reuse HubExperience*. Aura is a personal start weight, not a new accent or award gold. Desktop: card left, Vibe ranking and VA-projections right, both in view. Front card is week-vs-vibe, not a giant cutout. Bio is the one noun for the profile control — labeled Bio, neutral, not accent blue. Sit and Start are equal; Undo is a meta control, not a third option. Sit is not amber. One progress readout lives by the card. Week and vibe week compare; aura is a labeled 0–99 meter. One rate per player per calendar day. VA-projections are research; This Week lineup uses the board number. Empty slots say Empty with Find {POS}. Review on This Week stays hidden until a rating exists. Do not scrape Wikipedia. Do not say site board. Do not mention swipe on a pointer desktop.",
   }),
   "hub.game": S({
     label: "Game center",
@@ -127,7 +127,7 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/hub/game",
     page: "frontend/src/DraftHub/GameCenter.jsx",
     copy: "frontend/src/DraftHub/gameCenterPresentation.js",
-    doNot: "Game center is a matchup board, not an editorial settings page. Live renders only inside a game window. Hero names the job (empty lineup cost, then the live score). Pre-draft empty copy is one draft-night sentence to Open draft room — not Link Sleeper or a kickoff wait. Standings share Home's last-season records and stay unranked until a game is played. Do not play last year's Sleeper week as this week's scores. Include the viewer on mobile. Gold only on a claimed trophy. Trophy summary is one flex row, title and value on one baseline. Unscored placeholder chip is No scores yet — never Waiting. Loading uses a skeleton or Loading chip.",
+    doNot: "Game center is a matchup board, not an editorial settings page. Live renders only inside a game window. Hero names the job (empty lineup cost, then the live score). Pre-draft empty copy is one draft-night sentence to Open draft room — not Link Sleeper or a kickoff wait. Standings share Home's last-season records and stay unranked until a game is played. Do not play last year's Sleeper week as this week's scores. Include the viewer on mobile. Gold only on a claimed trophy. Unscored placeholder chip is No scores yet — never Waiting. Loading uses a skeleton or Loading chip.",
   }),
   "hub.roster": S({
     label: "My team",
@@ -136,7 +136,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/RosterBuilder.jsx",
     copy: "frontend/src/DraftHub/rosterPresentation.js",
     also: ["frontend/src/DraftHub/rosterFormat.js"],
-    doNot: "Do not invent a second my-team chrome. List people by owner name. At zero players hide search and position chips and show the shared empty-state. One Contract control per row — history lives in the drawer. Dead cap and if-undone room use rosterFormat.js and never repeat their field labels. The roster table uses page scroll, not an inner max-height. Pack non-player columns to min-content so header and value share an edge. The player-count line sits under the stadium banner, not mid-band. Cap card leads with leftover for draft. Dead cap is a tooltip or inline · $N dead. Staff-only Remove is gated, confirmed, and separated from Queue extension. Contract dialog moves focus to the heading. Filter chips show counts and disable zeros. Extension eligible vs Expiring use different hues. Locker cards are named controls that open the contract panel. Lockers default to top 6 by cap hit unless the owner picked a wall, and they open the contract panel. Player names are the last column to truncate. Mobile cards do not expand a repeated POS/CAP/YRS/STATUS grid.",
+    doNot: "Do not invent a second my-team chrome. List people by owner name. At zero players hide search and position chips and show the shared empty-state. One Contract control per row — history lives in the drawer. Dead cap and if-undone room use rosterFormat.js and never repeat their field labels. The roster table uses page scroll, not an inner max-height. Cap card leads with leftover for draft. Dead cap is a tooltip or inline · $N dead. Staff-only Remove is gated, confirmed, and separated from Queue extension. Contract dialog moves focus to the heading. Filter chips show counts and disable zeros. Extension eligible vs Expiring use different hues. Locker cards are named controls that open the contract panel. Lockers default to top 6 by cap hit unless the owner picked a wall, and they open the contract panel. Player names are the last column to truncate. Mobile cards do not expand a repeated POS/CAP/YRS/STATUS grid.",
   }),
   "hub.rosters": S({
     label: "Rosters",
@@ -257,8 +257,7 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/tools/mock-draft",
     overlay: true,
     page: "frontend/src/DraftHub/DraftRoom.jsx",
-    copy: "frontend/src/DraftHub/mockDraftConfig.js",
-    doNot: "A live mock is board-first. Same photos as rosters. Never say Available players — the rail eyebrow is Player pool. Practice rooms have no Drop or Trade. Simulate uses live-bot pricing, shows N of the remaining pool, and never disables Discard. Result toasts are HubAlert under the header. Hide empty fantasy narrative. Award now only when the viewer is high bidder. Team cards show names; seats are not a grid cell. Satisfied position chips are not red. Bots jump toward their ceiling; the bid clock extends only on late bids. Empty nomination stage is the player pool, not a 300px waiting card.",
+    doNot: "A live mock is board-first. Same photos as rosters.",
   }),
   "tools.best-ball": S({
     label: "Best ball",

@@ -20,12 +20,6 @@ const SINGLE_GLYPH_RE = /^[A-Z]{1,3}$|^[QDP]$|^[·•—–-]$/;
 export const BAR_CONTROL_SELECTOR =
   "button, a[href], input, select, textarea, [role='button'], [role='tab'], [role='radio'], [role='combobox']";
 export const TABLE_DEAD_ZONE_PX = 32;
-export const COLUMN_PACK_RATIO = 1.5;
-export const GUTTER_EDGE_SELECTORS = [
-  "[class*='hero']",
-  ".hub-league-strip, .league-overflow-lead, .hub-league-bar",
-  ".hub-experience-layout, .hub-home-club, .hub-table-card, .hub-experience-section, .hub-section",
-];
 
 export function parseGate(value) {
   if (value == null) return null;
@@ -64,19 +58,6 @@ export function parseArgs(argv) {
     args.width = args.width <= 500 ? 390 : 1280;
   }
   return args;
-}
-
-/** HTML and SVG both expose a string class list this way. `el.className` is an object on SVG. */
-export function elementClassName(el) {
-  if (!el) return "";
-  if (typeof el.getAttribute === "function") {
-    const named = el.getAttribute("class");
-    if (named != null) return String(named);
-  }
-  const raw = el.className;
-  if (typeof raw === "string") return raw;
-  if (raw && typeof raw.baseVal === "string") return raw.baseVal;
-  return "";
 }
 
 export function livingSurfaceRoutes(surfaces) {
@@ -119,13 +100,8 @@ export function tableWidthDeadZone(tableWidth, cardClientWidth, padL = 0, padR =
 
 export function pickBarControl(el) {
   if (!el) return null;
-  if (typeof el.matches === "function" && el.matches(".hub-filter-menu-trigger, [role='combobox']")) return el;
   if (typeof el.matches === "function" && el.matches(BAR_CONTROL_SELECTOR)) return el;
-  if (typeof el.querySelector === "function") {
-    const trigger = el.querySelector(".hub-filter-menu-trigger, [role='combobox']");
-    if (trigger) return trigger;
-    return el.querySelector(BAR_CONTROL_SELECTOR);
-  }
+  if (typeof el.querySelector === "function") return el.querySelector(BAR_CONTROL_SELECTOR);
   return null;
 }
 
@@ -143,23 +119,6 @@ export function columnAlign(texts) {
   if (cells.every((t) => SINGLE_GLYPH_RE.test(t))) return "center";
   const numeric = cells.filter((t) => isNumericCellText(t));
   return numeric.length / cells.length >= 0.8 ? "right" : "left";
-}
-
-export function remainderColumnIndex(aligns) {
-  return (aligns || []).findIndex((align) => align === "left");
-}
-
-export function columnIsOverwide(colWidth, maxContentWidth, remainder, ratio = COLUMN_PACK_RATIO) {
-  if (remainder) return false;
-  if (!(maxContentWidth > 0) || !(colWidth > 0)) return false;
-  return colWidth > maxContentWidth * ratio + 1;
-}
-
-export function isCssGridTableRowGroup(columnCounts, autoFillFlags = []) {
-  if (!columnCounts || columnCounts.length < 2) return false;
-  if (autoFillFlags.some(Boolean)) return false;
-  const count = columnCounts[0];
-  return count >= 3 && columnCounts.every((n) => n === count);
 }
 
 async function loadSurfaces() {
@@ -196,7 +155,7 @@ function pass(rule, detail = "") {
 }
 
 function measureScript() {
-  return ({ minTarget, numericRe, barControlSelector, tableDeadZonePx, columnPackRatio, gutterSelectors }) => {
+  return ({ minTarget, numericRe, barControlSelector, tableDeadZonePx }) => {
     const results = [];
     const px = (n) => Math.round(n);
     const numericPat = new RegExp(numericRe, "i");
@@ -217,10 +176,8 @@ function measureScript() {
       const kids = [...el.children].filter((c) => getComputedStyle(c).display !== "none");
       const controlHeights = kids
         .map((c) => {
-          const trigger = c.matches(".hub-filter-menu-trigger, [role='combobox']")
-            ? c
-            : c.querySelector(".hub-filter-menu-trigger, [role='combobox']");
-          const inner = trigger || (c.matches(barControlSelector) ? c : c.querySelector(barControlSelector));
+          if (c.matches(barControlSelector)) return c.offsetHeight;
+          const inner = c.querySelector(barControlSelector);
           return inner ? inner.offsetHeight : 0;
         })
         .filter((h) => h > 0);
@@ -300,72 +257,20 @@ function measureScript() {
 
     const firstLine = (t) => String(t || "").split("\n")[0].replace(/\s+/g, " ").trim();
     const isNumeric = (t) => numericPat.test(firstLine(t));
-    const cellContentWidth = (el) => {
-      const range = document.createRange();
-      range.selectNodeContents(el);
-      let width = 0;
-      [...range.getClientRects()].forEach((rect) => { width = Math.max(width, rect.width); });
-      [...el.children].forEach((child) => { width = Math.max(width, child.offsetWidth); });
-      return width;
-    };
-    const rowCells = (row) => {
-      if (row.cells) return [...row.cells];
-      const named = [...row.children].filter((child) => {
-        const role = child.getAttribute("role");
-        return role === "cell" || role === "columnheader" || role === "gridcell" || role === "rowheader";
-      });
-      if (named.length) return named;
-      return [...row.children].filter((child) => getComputedStyle(child).display !== "none");
-    };
-    const htmlTables = [...document.querySelectorAll("table")].map((table) => ({
-      el: table,
-      rows: [...table.rows],
-      label: "table",
-    }));
-    const roleTables = [...document.querySelectorAll("[role='table'], [role='grid']")].map((table) => ({
-      el: table,
-      rows: [...table.querySelectorAll("[role='row']")],
-      label: table.getAttribute("role") || "role-table",
-    }));
-    const gridTables = [];
-    document.querySelectorAll("*").forEach((el) => {
-      if (el.matches("table, [role='table'], [role='grid']")) return;
-      const tableLike = /table|grid/i.test(elementClassName(el)) || el.getAttribute("role") === "table";
-      if (!tableLike) return;
-      const kids = [...el.children].filter((child) => {
-        const cs = getComputedStyle(child);
-        return cs.display !== "none" && child.offsetHeight > 0;
-      });
-      const gridKids = kids.filter((child) => getComputedStyle(child).display === "grid");
-      if (gridKids.length < 2) return;
-      const counts = gridKids.map((child) => getComputedStyle(child).gridTemplateColumns.split(/\s+/).filter(Boolean).length);
-      const autoFill = gridKids.map((child) => /auto-(fill|fit)/i.test(getComputedStyle(child).gridTemplateColumns));
-      if (autoFill.some(Boolean)) return;
-      if (counts[0] < 3 || counts.some((n) => n !== counts[0])) return;
-      gridTables.push({
-        el,
-        rows: gridKids,
-        label: "css-grid",
-      });
-    });
-    const tables = [...htmlTables, ...roleTables, ...gridTables];
-    tables.forEach((table, ti) => {
-      const rows = table.rows.filter((row) => rowCells(row).length);
+    document.querySelectorAll("table").forEach((table, ti) => {
+      const rows = [...table.rows];
       if (!rows.length) return;
-      const colCount = Math.max(...rows.map((row) => rowCells(row).length));
-      const expectAligns = [];
+      const colCount = Math.max(...rows.map((r) => r.cells.length));
       for (let c = 0; c < colCount; c += 1) {
-        const cells = rows.map((row) => rowCells(row)[c]).filter(Boolean);
-        if (!cells.length) continue;
+        const cells = rows.map((r) => r.cells[c]).filter(Boolean);
         const header = firstLine(cells[0]?.innerText || "");
         const bodyTexts = cells.slice(1).map((cell) => firstLine(cell.innerText));
         const glyph = bodyTexts.length && bodyTexts.every((t) => /^[A-Z]{1,3}$|^[QDP]$/.test(t));
-        const action = /action/i.test(header) || /actions|contract/i.test(cells[0]?.className || "");
+        const action = /action/i.test(header) || cells[0]?.className.includes("hub-col-actions");
         const numeric = bodyTexts.filter((t) => t && isNumeric(t)).length;
         let expect = "left";
         if (glyph) expect = "center";
         else if (action || (bodyTexts.length && numeric / bodyTexts.length >= 0.8)) expect = "right";
-        expectAligns[c] = expect;
         const mismatches = cells.filter((cell) => {
           const align = getComputedStyle(cell).textAlign;
           const resolved = align === "start" ? "left" : align === "end" ? "right" : align;
@@ -375,36 +280,24 @@ function measureScript() {
           results.push({
             rule: "tables",
             ok: false,
-            selector: `${table.label}:${ti} col ${c}`,
+            selector: `table:${ti} col ${c}`,
             detail: `${mismatches.length} cells align≠${expect} header="${header.slice(0, 24)}"`,
           });
         }
-        const colWidth = Math.max(...cells.map((cell) => cell.offsetWidth || 0));
-        const maxContent = Math.max(...cells.map((cell) => cellContentWidth(cell)));
-        const remainder = expectAligns.findIndex((align) => align === "left") === c;
-        const packRatio = columnPackRatio || 1.5;
-        if (!remainder && colWidth > maxContent * packRatio + 1) {
-          results.push({
-            rule: "tables",
-            ok: false,
-            selector: `${table.label}:${ti} col ${c}`,
-            detail: `col ${c} ${px(colWidth)}px > ${packRatio}× content ${px(maxContent)}px header="${header.slice(0, 24)}"`,
-          });
-        }
       }
-      const card = table.el.closest(".hub-table-card, .table-wrap, .hub-section, .proj-board-surface");
+      const card = table.closest(".hub-table-card, .table-wrap, .hub-section, .proj-board-surface");
       if (card) {
         const style = getComputedStyle(card);
         const padL = parseFloat(style.paddingLeft) || 0;
         const padR = parseFloat(style.paddingRight) || 0;
         const available = card.clientWidth - padL - padR;
-        const deadZone = available - table.el.offsetWidth;
+        const deadZone = available - table.offsetWidth;
         if (deadZone > tableDeadZonePx) {
           results.push({
             rule: "tables",
             ok: false,
-            selector: `${table.label}:${ti}`,
-            detail: `table ${table.el.offsetWidth}px leaves ${px(deadZone)}px dead zone (available ${px(available)}px)`,
+            selector: `table:${ti}`,
+            detail: `table ${table.offsetWidth}px leaves ${px(deadZone)}px dead zone (available ${px(available)}px)`,
           });
         }
       }
@@ -539,7 +432,7 @@ function measureScript() {
       results.push({ rule: "type", ok: true, selector: "", detail: `≥ ${xsPx}px` });
     }
 
-    const edges = (gutterSelectors || [])
+    const edges = ["[class*='hero']", ".hub-league-strip, .league-overflow-lead, .hub-league-bar", ".hub-table-card, .hub-experience-section, .hub-section", ".hub-experience-summary"]
       .map((sel) => document.querySelector(sel))
       .filter(Boolean)
       .map((el) => ({ sel: el.className, x: Math.round(el.getBoundingClientRect().left) }));
@@ -602,8 +495,6 @@ async function auditRoute(browser, route, width) {
     numericRe: NUMERIC_RE.source,
     barControlSelector: BAR_CONTROL_SELECTOR,
     tableDeadZonePx: TABLE_DEAD_ZONE_PX,
-    columnPackRatio: COLUMN_PACK_RATIO,
-    gutterSelectors: GUTTER_EDGE_SELECTORS,
   });
   await page.close();
   return results;

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import threading
 import uuid
 import zlib
 from typing import Any
@@ -20,37 +19,6 @@ BOT_NAMES = [
 
 # Instant sims must not share a clock tick with the live ticker / room poller.
 SIMULATING_LEAGUE_IDS: set[str] = set()
-_SIMULATION_LOCK = threading.Lock()
-_SIMULATION: dict[str, dict[str, Any]] = {}
-
-
-def simulation_progress(league_id: str) -> dict[str, Any] | None:
-    """In-flight simulate snapshot for room polls (done / total / status)."""
-    with _SIMULATION_LOCK:
-        snap = _SIMULATION.get(str(league_id))
-        return dict(snap) if snap else None
-
-
-def mark_simulation(league_id: str, **fields: Any) -> dict[str, Any]:
-    key = str(league_id)
-    with _SIMULATION_LOCK:
-        cur = dict(_SIMULATION.get(key) or {})
-        cur.update(fields)
-        cur["league_id"] = key
-        _SIMULATION[key] = cur
-        return dict(cur)
-
-
-def clear_simulation(league_id: str) -> None:
-    with _SIMULATION_LOCK:
-        _SIMULATION.pop(str(league_id), None)
-
-
-def simulation_is_running(league_id: str) -> bool:
-    if str(league_id) in SIMULATING_LEAGUE_IDS:
-        return True
-    snap = simulation_progress(league_id)
-    return bool(snap and snap.get("status") == "running")
 
 
 def setup_test_draft(league_id: str, commissioner_sub: str, bot_count: int = 3,
@@ -324,30 +292,6 @@ def maybe_autodraft_pick(league_id: str) -> dict[str, Any] | None:
         return None
 
 
-def next_bot_bid(high_bid: float, ceiling: float, min_bid: float) -> float | None:
-    """Next live-bot bid: jump toward the ceiling instead of dripping +$1.
-
-    Real rooms move because bidders jump. A 35% gap step (at least 2× min bid)
-    reaches a fair+$6 ceiling in a few ticks instead of a 90-second drip.
-    """
-    try:
-        high = float(high_bid)
-        ceil = float(ceiling)
-        step = float(min_bid)
-    except (TypeError, ValueError):
-        return None
-    if step <= 0:
-        return None
-    nxt = high + step
-    if nxt > ceil + 1e-9:
-        return None
-    gap = ceil - high
-    if gap <= step + 1e-9:
-        return round(min(ceil, nxt), 2)
-    jump = max(step * 2.0, round(gap * 0.35 / step) * step)
-    return round(min(ceil, high + jump), 2)
-
-
 def bot_max_price(bot_id: str, nominee: dict[str, Any], min_bid: float) -> float:
     """Per-bot price ceiling around the player's fair value.
 
@@ -425,7 +369,11 @@ def maybe_bot_bid(league_id: str) -> dict[str, Any] | None:
         if bot["id"] == high_team_id:
             continue
         budget = float(bot.get("budget_remaining") or 0)
-        ceiling = bot_max_price(bot["id"], nominee, min_bid)
+        next_bid = max(min_bid, high_bid + min_bid)
+        if next_bid > budget:
+            continue
+        if next_bid > bot_max_price(bot["id"], nominee, min_bid):
+            continue
         # Keep min_bid in reserve for every roster slot still to fill.
         from src.draft_hub.draft_budgets import open_roster_slots
         from src.draft_hub.rules_engine import salary_roster_limits_relaxed, should_need_bid
@@ -435,14 +383,10 @@ def maybe_bot_bid(league_id: str) -> dict[str, Any] | None:
             continue
         if _blocks_luxury_min_steal(rules, league_id, roster, nominee.get("position")):
             continue
-        if salary_roster_limits_relaxed(rules):
-            affordable = budget
-        else:
+        if not salary_roster_limits_relaxed(rules):
             open_slots = open_roster_slots(rules, roster, draft_completed=False)
-            affordable = budget - min_bid * max(0, open_slots - 1)
-        next_bid = next_bot_bid(high_bid, min(ceiling, affordable), min_bid)
-        if next_bid is None:
-            continue
+            if open_slots > 1 and next_bid > budget - min_bid * (open_slots - 1):
+                continue
         try:
             return place_bid(league_id, f"bot:{bot['id']}", next_bid)
         except ValueError:
@@ -504,16 +448,10 @@ def _settle_auction(league_id: str) -> None:
 
     offers.sort(key=lambda o: o[0], reverse=True)
     if offers:
-        top_ceiling, _winner_id, winner_sub = offers[0]
+        top_ceiling, winner_id, winner_sub = offers[0]
         runner_up = offers[1][0] if len(offers) > 1 else 0.0
-        # Same outcome as the live jump loop: winner pays just over the runner-up.
-        # Always post that price — if the nominator already has the high bid at
-        # $1, skipping place_bid used to award stars for the nomination opener.
-        if runner_up > 0:
-            price = max(min_bid, high_bid + min_bid, min(top_ceiling, runner_up + min_bid))
-        else:
-            price = max(min_bid, high_bid)
-        if price > high_bid:
+        price = max(min_bid, high_bid + min_bid, min(top_ceiling, runner_up + min_bid))
+        if winner_id != high_team_id:
             try:
                 place_bid(league_id, winner_sub, price)
             except ValueError:
@@ -557,7 +495,6 @@ def simulate_draft(
     picks = 0
     stalled_turns = 0
     SIMULATING_LEAGUE_IDS.add(league_id)
-    mark_simulation(league_id, status="running", done=0, total=pick_cap, error=None)
     try:
         with suppress_room_state():
             # Every iteration either nominates, settles an auction, or skips a full
@@ -570,7 +507,6 @@ def simulate_draft(
                 if status == "bidding":
                     _settle_auction(league_id)
                     picks += 1
-                    mark_simulation(league_id, done=picks, total=pick_cap)
                     continue
                 if status == "picking":
                     nominator_id = _current_nominator_team_id(session, rules)
@@ -587,7 +523,6 @@ def simulate_draft(
                             make_pick(league_id, sub, payload, from_pool=True)
                             picked = True
                             picks += 1
-                            mark_simulation(league_id, done=picks, total=pick_cap)
                         except ValueError:
                             pass
                     if picked:
@@ -634,10 +569,6 @@ def simulate_draft(
                 # Partial sims (max_picks) and starved pools still need a clean stop.
                 force = max_picks is not None or bool(draft_completion_errors(league_id))
                 end_draft(league_id, commissioner_sub, force=force)
-        mark_simulation(league_id, status="completed", done=picks, total=pick_cap, error=None)
-    except Exception as exc:
-        mark_simulation(league_id, status="failed", error=str(exc) or "Simulation failed")
-        raise
     finally:
         SIMULATING_LEAGUE_IDS.discard(league_id)
     return get_room_state(league_id, commissioner_sub)

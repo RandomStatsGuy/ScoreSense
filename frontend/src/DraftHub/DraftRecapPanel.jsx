@@ -115,7 +115,6 @@ export default function DraftRecapPanel({
   recap,
   compact = false,
   hideHero = false,
-  hideNotable = false,
   onViewInsights,
   viewerTeamId = null,
   board = null,
@@ -124,7 +123,7 @@ export default function DraftRecapPanel({
   if (!recap) return null;
   const pickDraft = Boolean(recap.pick_draft);
   const hasAwards = (recap.awards?.length ?? 0) > 0;
-  const hasNotable = !hideNotable && (recap.notable_picks?.length ?? 0) > 0;
+  const hasNotable = (recap.notable_picks?.length ?? 0) > 0;
   const hasStandings = (recap.projected_standings?.length ?? 0) > 0;
   if (!hasAwards && !hasNotable && !pickDraft && !hasStandings) return null;
 
@@ -220,7 +219,7 @@ export default function DraftRecapPanel({
 
       {board}
 
-      {hasNotable && recap.notable_picks?.length > 0 && (
+      {recap.notable_picks?.length > 0 && (
         <div className="hub-draft-recap-notable">
           <h3>{pickDraft ? "Notable picks" : "Notable sales"}</h3>
           <ul>

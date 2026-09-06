@@ -71,7 +71,7 @@ Fun comes from consequence and control, not animation, confetti, or mascots.
 Do not add a fourth top-level item. Do not rename Fantasy to League.
 
 **Projections:** Weekly · Season (Preseason outlook / Live season).
-**Tools:** DFS · Mock draft · Best ball. Mock draft field size follows the linked league when matching that league's rules. Recent mocks live on the launch rail. A practice room has no Drop or Trade. Simulate uses the same bot pricing as the live auction, shows N of the remaining pool, and never disables Discard. Never say Available players — the rail eyebrow is Player pool.
+**Tools:** DFS · Mock draft · Best ball. Mock draft field size follows the linked league when matching that league's rules. Recent mocks live on the launch rail.
 **Account menu (not top-level):** Model accuracy · Admin · Account · Report a bug.
 **Account session (not top-level):** Sign in · Create account (`/login`, `/register`). Mobile-first session pages. Google is the lead social option; email is secondary. Do not wrap these in Fantasy experience chrome.
 **Report a bug** (`/report`) is a side option in the account / More menu. Signed-in filing and SCORE labels live in [ONBOARDING.md](./ONBOARDING.md). Do not add it to top-level nav.
@@ -83,8 +83,8 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 
 | Label | Internal id | Purpose |
 |-------|-------------|---------|
-| Home | `home` | Phase-aware next actions. The hero band is eyebrow + a centered phase stepper; Settings sits in the chip slot (top-right). The deck action is the only page primary. Chat Send is ghost. |
-| Strategy | `value` | Full-page pairwise face-off from a league-context site board, same position only. View my rankings opens site vs mine. Optionally write that order into the draft queue. The only Fantasy destination without a `HubExperienceHero` band — a deliberate board-first exception, not a missing chrome pass. |
+| Home | `home` | Phase-aware next actions. The deck action is the only page primary. Chat Send is ghost. |
+| Strategy | `value` | Full-page pairwise face-off from a league-context site board, same position only. View my rankings opens site vs mine. Optionally write that order into the draft queue. |
 | Draft | `room` | Idle entry + live room. Email and text invite links open here. Members mark **current and future** draft-night times on one calendar (opens 31 days before the first NFL game, closes the day before). Commissioners lock any shown overlap as draft night. Idle Draft is that calendar plus a compact room strip — do not stack a second date/time card and a Who is in list on the same scroll. When the calendar is Closed and no night is locked, the off-calendar lock is the card's primary — do not leave "Mark yours" on a closed board. Start live draft stays secondary until a night is locked or every seat is filled. The seating pill is amber below a full room and teal only at 12/12. Home's "Not scheduled" links here. Setup shows draft-night status only. |
 
 | This Week | `week` | Lineup decisions. The Start control on a swap card is the action — ScoreSense-only leagues apply it here; linked Sleeper leagues open the platform. Decision count lives in the hero once. Refresh projections sits on the freshness line. Swap cards use attention amber; wide range is a quiet marker, never a card-wide amber border or primary blue. Empty slots keep starter-card height and say Empty (or Find {slot} to Free agents). Reserve the swap-action slot so P50s share a baseline. Bench uses the same starter cards and spans under the rail. Week uses the Projections stepper. Calls use the board number, not vibe week. Name the Vibes / VA-projections number so the two pages do not silently disagree. |
@@ -160,7 +160,7 @@ Editorial Fantasy and Tools pages use the shared experience stack:
 `HubExperienceLayout` — main column + sticky summary rail
 `HubExperienceSummary` — “At a glance” facts + primary action
 
-Fantasy destinations share one `HubExperienceHero` (eyebrow + heading + band). Home is the exception: the page hero is eyebrow + a centered phase stepper, Settings in the chip slot, and the heading stays in the Pre-draft card. Strategy is the other exception: no hero band. Tools keep the display H1 + eyebrow pattern. Hero heading and padding use `--experience-hero-heading` and `--experience-hero-pad`. Status chips are not the page primary — do not put “You can edit” or “Need a partner” where Save belongs. Tab strips sit below the hero band. The shared league strip (and Needs attention) shows on Home and idle Draft; live rooms stay board-first. The app shell is one `<main id="main-content">` with a skip link.
+Fantasy destinations share one `HubExperienceHero` (eyebrow + heading + band). Home is the exception: the page hero is eyebrow + stepper only, and the heading stays in the Pre-draft card. Tools keep the display H1 + eyebrow pattern. Hero heading and padding use `--experience-hero-heading` and `--experience-hero-pad`. Status chips are not the page primary — do not put “You can edit” or “Need a partner” where Save belongs. Tab strips sit below the hero band. The shared league strip (and Needs attention) shows on Home and idle Draft; live rooms stay board-first. The app shell is one `<main id="main-content">` with a skip link.
 
 Reuse `frontend/src/DraftHub/HubUILayout.jsx`. Do not fork a second hero/summary system.
 
@@ -170,7 +170,7 @@ Which file to open for a given destination: `frontend/src/livingSurfaces.js`. Re
 
 Empty This Week / My team / Game center boards share one empty-state block, branched on league state: native pre-draft → Lock a night (Draft); Sleeper not linked → Link Sleeper (Access & imports); linked but stale → the strip's Sync league. Do not send those boards to Setup. Game center pre-draft is one sentence to Open draft room — not Link Sleeper and not a kickoff wait. "Live" on Game center renders only inside a game window.
 
-**Do not use this chrome for:** the live draft board (board-first, existing live-room layout), **Projections** (board-first table), **Strategy** (the only Fantasy destination without a hero band — full-page face-off; View my rankings is site vs mine), or other dense data tables that are not a decision surface. Do not add `HubExperienceHero` to Strategy to “match” the other 13.
+**Do not use this chrome for:** the live draft board (board-first, existing live-room layout), **Projections** (board-first table), **Strategy** (full-page face-off; View my rankings is site vs mine), or other dense data tables that are not a decision surface.
 
 ### Projections board
 

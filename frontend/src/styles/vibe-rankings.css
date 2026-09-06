@@ -550,30 +550,7 @@
 .hub-vibes-results {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-}
-
-.hub-vibes-reads-title {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: var(--text-md);
-  font-weight: var(--font-weight-bold);
-}
-
-.hub-vibes-reads {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.hub-vibes-reads li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  gap: 0.8rem;
 }
 
 .hub-vibes-empty {

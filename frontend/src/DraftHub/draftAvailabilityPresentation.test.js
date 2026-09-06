@@ -28,7 +28,6 @@ import {
   availabilityTimezone,
   availabilityLockHourLabel,
   availabilityStatusChip,
-  availabilityShowsSavedChip,
   formatLockedNightDisclosure,
   leagueTimeLabel,
 } from "./draftAvailabilityPresentation.js";
@@ -102,8 +101,5 @@ test("calendar keeps only current and future hours", () => {
   assert.equal(availabilityLockHourLabel({ date: "2026-09-05", hour: 19 }), "Lock Sat 7 p.m.");
   assert.equal(leagueTimeLabel("America/New_York"), "League time: Eastern");
   assert.equal(availabilityStatusChip({ locked: true }), "Night locked");
-  assert.equal(availabilityShowsSavedChip({ canEdit: true, locked: false, dirty: false }), true);
-  assert.equal(availabilityShowsSavedChip({ canEdit: true, locked: false, dirty: true }), false);
-  assert.equal(availabilityShowsSavedChip({ canEdit: true, locked: true, dirty: false }), false);
   assert.match(formatLockedNightDisclosure("2026-09-05T23:00:00.000Z"), /Move it/);
 });

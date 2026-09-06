@@ -36,7 +36,6 @@ export default function DraftLiveCommandBar({
   bidDisabled = false,
   pendingAction = "",
   isCommissioner = false,
-  canAward = false,
   onAward,
   nominatorTeam,
   nextNominatorTeam,
@@ -202,13 +201,13 @@ export default function DraftLiveCommandBar({
             {myMaxBid != null && <> · max {fmtSal(myMaxBid)}</>}
           </span>
         )}
-        {isCommissioner && canAward && status === "bidding" && (
+        {isCommissioner && status === "bidding" && session?.high_bidder_team_id && (
           <button
             type="button"
             className="btn-ghost btn-sm hub-draft-award-now"
             onClick={onAward}
             disabled={bidDisabled}
-            title="Settle this auction for your high bid"
+            title="Commissioner only — settle this auction immediately"
           >
             Award now {fmtSal(highBid)}
           </button>

@@ -23,19 +23,6 @@ export const MOCK_DRAFT_PRESETS = [
 export const MOCK_TEAM_SIZES = [8, 10, 12];
 export const RECENT_MOCKS_RAIL_LIMIT = 3;
 
-export function mockDraftLiveCopy() {
-  return {
-    playerPoolLabel: "Player pool",
-    playerPoolSearch: "Search player or team",
-    simulatingBanner: (done, total) => (
-      Number.isFinite(Number(done)) && Number.isFinite(Number(total)) && Number(total) > 0
-        ? `Finishing mock draft… ${Math.trunc(Number(done))} of ${Math.trunc(Number(total))}`
-        : "Finishing mock draft…"
-    ),
-    simulatingDetail: "Bots use the same auction rules as the live room. Discard stays available.",
-  };
-}
-
 export function mockDraftHeroCopy() {
   return {
     kicker: "Mock draft",

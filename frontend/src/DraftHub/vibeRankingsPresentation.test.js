@@ -11,7 +11,6 @@ import {
   heroCopy,
   hottestLabel,
   rateHint,
-  todayReadRows,
   vsModelNote,
   vsSplitRows,
 } from "./vibeRankingsPresentation.js";
@@ -83,23 +82,6 @@ test("hottest names the week tiebreak when aura ties", () => {
   assert.match(tied, /15\.9 week/);
   assert.match(tied, /tiebreak/i);
   assert.equal(hottestLabel([]), "—");
-});
-
-test("today's reads list Sit/Start and collapse when empty", () => {
-  assert.equal(VIBE_COPY.todayReadsTitle, "Today's reads");
-  const rows = todayReadRows(
-    [
-      { player_id: "a", player_name: "Josh Allen" },
-      { player_id: "b", player_name: "Bijan Robinson" },
-      { player_id: "c", player_name: "Skipped" },
-    ],
-    { a: "start", b: "sit" },
-  );
-  assert.deepEqual(rows, [
-    { id: "a", name: "Josh Allen", vibe: "Start" },
-    { id: "b", name: "Bijan Robinson", vibe: "Sit" },
-  ]);
-  assert.deepEqual(todayReadRows([{ player_id: "a", player_name: "A" }], {}), []);
 });
 
 test("empty and done heroes keep consequence copy and drop the fake chip", () => {

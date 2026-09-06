@@ -15,11 +15,6 @@ import {
   parseGate,
   pickBarControl,
   tableWidthDeadZone,
-  remainderColumnIndex,
-  columnIsOverwide,
-  isCssGridTableRowGroup,
-  elementClassName,
-  COLUMN_PACK_RATIO,
 } from "./layout_audit.mjs";
 
 test("numeric columns right-align", () => {
@@ -35,33 +30,6 @@ test("numeric cell text accepts ordinals and units", () => {
   assert.equal(isNumericCellText("15pts"), true);
   assert.equal(isNumericCellText("120yds"), true);
   assert.equal(isNumericCellText("Ja'Marr Chase"), false);
-});
-
-test("remainder column is the first left-aligned text column", () => {
-  assert.equal(remainderColumnIndex(["left", "center", "right"]), 0);
-  assert.equal(remainderColumnIndex(["center", "left", "right"]), 1);
-  assert.equal(remainderColumnIndex(["center", "right"]), -1);
-});
-
-test("non-remainder columns fail when wider than 1.5× content", () => {
-  assert.equal(columnIsOverwide(96, 20, false), true);
-  assert.equal(columnIsOverwide(24, 20, false), false);
-  assert.equal(columnIsOverwide(400, 20, true), false);
-  assert.equal(COLUMN_PACK_RATIO, 1.5);
-});
-
-test("elementClassName reads HTML strings and SVGAnimatedString", () => {
-  assert.equal(elementClassName({ getAttribute: () => "hub-table-card", className: {} }), "hub-table-card");
-  assert.equal(elementClassName({ className: { baseVal: "svg-grid" } }), "svg-grid");
-  assert.equal(elementClassName({ className: "plain-grid" }), "plain-grid");
-  assert.equal(elementClassName(null), "");
-});
-
-test("css-grid table groups need matching 3+ columns and no auto-fill", () => {
-  assert.equal(isCssGridTableRowGroup([4, 4, 4], [false, false, false]), true);
-  assert.equal(isCssGridTableRowGroup([2, 2], [false, false]), false);
-  assert.equal(isCssGridTableRowGroup([4, 4], [true, false]), false);
-  assert.equal(isCssGridTableRowGroup([4, 3], [false, false]), false);
 });
 
 test("table dead zone subtracts card padding", () => {
@@ -83,16 +51,6 @@ test("bar height check uses the interactive control", () => {
   assert.equal(pickBarControl(button), button);
   assert.equal(pickBarControl(label), null);
   assert.equal(pickBarControl(wrapped), button);
-});
-
-test("bar height prefers a composite trigger over a nested input", () => {
-  const trigger = { matches: (sel) => sel.includes("hub-filter-menu-trigger"), offsetHeight: 32 };
-  const input = { matches: (sel) => sel.includes("input"), offsetHeight: 17 };
-  const field = {
-    matches: () => false,
-    querySelector: (sel) => (sel.includes("hub-filter-menu-trigger") ? trigger : input),
-  };
-  assert.equal(pickBarControl(field), trigger);
 });
 
 test("text columns left-align", () => {

@@ -310,46 +310,6 @@ button.btn-link.hub-league-switcher-create:hover {
   padding: 0.45rem 0;
 }
 
-.hub-league-home > .hub-experience-hero {
-  display: grid;
-  grid-template-columns: minmax(5rem, 1fr) auto minmax(5rem, 1fr);
-  align-items: center;
-  column-gap: var(--space-4);
-  padding-block: var(--space-4);
-}
-
-.hub-league-home > .hub-experience-hero > .hub-experience-hero-main {
-  display: contents;
-}
-
-.hub-league-home > .hub-experience-hero .hub-experience-eyebrow {
-  grid-column: 1;
-  grid-row: 1;
-  margin-bottom: 0;
-  align-self: center;
-}
-
-.hub-league-home > .hub-experience-hero .hub-home-phase-track {
-  grid-column: 2;
-  grid-row: 1;
-  width: min(22rem, 100%);
-  margin: 0;
-  padding-block: var(--space-1);
-}
-
-.hub-league-home > .hub-experience-hero .hub-experience-hero-aside {
-  grid-column: 3;
-  grid-row: 1;
-  justify-self: end;
-  align-self: start;
-}
-
-.hub-league-home > .hub-experience-hero h1,
-.hub-league-home > .hub-experience-hero p {
-  grid-column: 1 / -1;
-  grid-row: 2;
-}
-
 .hub-home-phase-track::before {
   content: "";
   position: absolute;
@@ -3130,7 +3090,7 @@ button.btn-link.hub-league-switcher-create:hover {
 /* Shared Fantasy experience layout (Draft idle, This Week, Cap) ------------ */
 
 .hub-experience-page.hub-page {
-  padding: 0 var(--experience-page-inline);
+  padding: 0;
   overflow: visible;
   background: var(--experience-canvas);
   border-color: var(--experience-rule);
@@ -3144,11 +3104,6 @@ button.btn-link.hub-league-switcher-create:hover {
 
 .hub-experience-hero .hub-experience-card-actions {
   margin-top: 0.65rem;
-}
-
-.hub-experience-hero-aside {
-  flex: none;
-  align-self: flex-start;
 }
 
 .hub-experience-hero {
@@ -3254,16 +3209,12 @@ button.btn-link.hub-league-switcher-create:hover {
   margin-top: 0.65rem;
 }
 
-.hub-experience-page > .hub-experience-hero + .hub-segment-nav {
-  margin-top: var(--space-4);
-}
-
 .hub-experience-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(17.5rem, 20rem);
   gap: 1rem;
   align-items: start;
-  padding: 0.65rem 0 1.15rem;
+  padding: 0.65rem 1.5rem 1.15rem;
 }
 
 .hub-experience-layout.has-footer {
@@ -3483,7 +3434,7 @@ button.btn-link.hub-league-switcher-create:hover {
 }
 
 .hub-insights > .hub-page.hub-experience-page {
-  padding: 0 var(--experience-page-inline);
+  padding: 0;
   overflow: visible;
   border: 1px solid var(--experience-rule);
   background: var(--experience-canvas);
@@ -3515,7 +3466,7 @@ button.btn-link.hub-league-switcher-create:hover {
 }
 
 .hub-roster-browser-page.hub-page {
-  padding: 0 var(--experience-page-inline);
+  padding: 0;
   overflow: visible;
   border: 1px solid var(--experience-rule);
   background: var(--experience-canvas);
@@ -4780,8 +4731,13 @@ button.btn-link.hub-league-switcher-create:hover {
 }
 
 .hub-cap-money {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  min-height: 1.85rem;
+  padding: 0 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
 }
 
 .hub-cap-money-affix {
@@ -4790,16 +4746,13 @@ button.btn-link.hub-league-switcher-create:hover {
 }
 
 .hub-cap-money input {
-  width: 4.5rem;
+  width: 5.5rem;
   min-width: 0;
-  min-height: 0;
-  height: auto;
-  padding: 0;
+  padding: 0.35rem 0;
   border: 0;
   background: transparent;
   color: var(--text-primary);
   font-size: var(--text-sm);
-  line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
 

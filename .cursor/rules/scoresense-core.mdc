@@ -49,7 +49,7 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Blue (`--experience-blue` / `--accent`) = current context and the next action. Nothing else.
 - Teal = healthy/saved. Amber = attention. Red = destructive/blocking. Gold = awards only.
 - Hierarchy from surface, type, and spacing — not a border on every box. Token insets and gutters; text is never flush to a line and never smaller than `--text-xs` (12px computed).
-- Editorial pages use one hero stack: `HubExperienceHero` + `HubExperienceLayout` + `HubExperienceSummary` from `HubUILayout.jsx`. Strategy is the board-first exception — no hero band.
+- Editorial pages use one hero stack: `HubExperienceHero` + `HubExperienceLayout` + `HubExperienceSummary` from `HubUILayout.jsx`.
 - **Fix the primitive, not the page.** Shared CSS/components first. Measurable layout rules: `.cursor/rules/frontend-craft.mdc`.
 - Copy lives in `*Presentation.js`. State the decision and the cost of getting it wrong. No slogan that could sit on another app. No “Submit”, no “You do not have permission” (use “Commissioner managed”).
 
@@ -61,7 +61,6 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Do not invent a parallel rules or contract model. Merge/validate via `rulesPresentation.js`. Backend is authoritative.
 - Fantasy lists people by **owner name**. Team nicknames may sit underneath or after a middot.
 - One `<main id="main-content">` plus a skip link; do not nest a second main.
-- Practice mock rooms have no Drop or Trade. Simulate uses live-bot pricing, shows N of the remaining pool, and never disables Discard. Never say Available players.
 
 ## Living surfaces
 
