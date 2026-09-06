@@ -616,8 +616,8 @@ const cls = classNameOf(el);
           if (!covered) return;
           menuFails += 1;
           if (menuFails <= 4) {
-            const hostName = host.className || host.tagName;
-            const sibName = sib.className || sib.tagName;
+const hostName = classNameOf(host) || host.tagName;
+const sibName = classNameOf(sib) || sib.tagName;
             results.push({
               rule: "menus",
               ok: false,
