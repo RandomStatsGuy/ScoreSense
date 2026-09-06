@@ -177,6 +177,9 @@ def approve_league_delete(league_id: str, *, actor_sub: str, confirm_name: str) 
 
 
 def cancel_league_delete(league_id: str, *, actor_sub: str) -> dict[str, Any]:
+    league = storage.get_league(league_id)
+    if not league:
+        raise LeagueDeleteError("League not found", status_code=404)
     _require_commissioner_sub(league_id, actor_sub)
     pending = _pending_request(league_id)
     if not pending:
