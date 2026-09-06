@@ -563,6 +563,16 @@
     min-height: var(--touch-target);
   }
 
+  .hub-league-lifecycle-actions .btn-danger,
+  .hub-league-lifecycle-actions .btn-ghost,
+  .hub-league-lifecycle-confirm input {
+    min-height: var(--touch-target);
+  }
+
+  .hub-league-lifecycle-actions .btn-danger {
+    width: 100%;
+  }
+
   .hub-gc-week-toolbar {
     display: flex;
     flex-direction: row;

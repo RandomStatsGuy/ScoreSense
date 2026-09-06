@@ -178,7 +178,7 @@ export default function OfficeLeagueLifecycle({
         {status?.you_approved ? (
           <p className="hub-league-lifecycle-pending">{LEAGUE_DELETE_COPY.youAgreed}</p>
         ) : null}
-        {status?.commissioners?.length ? (
+        {pending && status?.commissioners?.length ? (
           <ul className="hub-league-lifecycle-staff" aria-label={LEAGUE_DELETE_COPY.staffHeading}>
             {status.commissioners.map((row) => (
               <li key={row.user_sub}>
