@@ -197,6 +197,17 @@ function pass(rule, detail = "") {
 
 function measureScript() {
   return ({ minTarget, numericRe, barControlSelector, tableDeadZonePx, columnPackRatio, gutterSelectors }) => {
+    const elementClassName = (el) => {
+      if (!el) return "";
+      if (typeof el.getAttribute === "function") {
+        const named = el.getAttribute("class");
+        if (named != null) return String(named);
+      }
+      const raw = el.className;
+      if (typeof raw === "string") return raw;
+      if (raw && typeof raw.baseVal === "string") return raw.baseVal;
+      return "";
+    };
     const results = [];
     const px = (n) => Math.round(n);
     const numericPat = new RegExp(numericRe, "i");

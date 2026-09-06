@@ -13,6 +13,7 @@ from app.auth import require_hub_user
 from src.draft_hub import storage
 from src.draft_hub.presets import load_preset
 from src.draft_hub.weekly_command_center import (
+    attach_call_facts,
     build_lineup_decisions,
     build_weekly_command_center,
     infer_starters_and_bench,
@@ -496,6 +497,78 @@ def test_build_command_center_payload(hub_db):
     assert any(r["player_id"] == "wr-volatile" for r in payload["wide_ranges"])
     assert payload["projection_changes"]["available"] is False
     assert "lineup decision" in payload["summary"]["headline"]
+    ace = next(p for p in payload["roster"]["starters"] if p["player_id"] == "wr-ace")
+    assert "vegas_spread" in ace
+    assert "prior_ppg" in ace
+    assert "opp_def_rank" in ace
+    assert "kickoff_et" in ace
+
+
+def test_attach_call_facts_uses_injected_vegas_ppg_and_dvp():
+    cards = [
+        {
+            "player_id": "rb-jeanty",
+            "proj_player_id": "00-jeanty",
+            "player_name": "Ashton Jeanty",
+            "team": "LV",
+            "position": "RB",
+            "opponent": "NE",
+        },
+        {
+            "player_id": "rb-rookie",
+            "player_name": "No History",
+            "team": "NYJ",
+            "position": "RB",
+            "opponent": "PIT",
+        },
+    ]
+    attach_call_facts(
+        cards,
+        season=2026,
+        week=1,
+        vegas_teams={
+            "LV": {
+                "spread": 6.5,
+                "total_line": 41.5,
+                "is_home": False,
+                "kickoff_et": "2026-09-13T13:00:00-04:00",
+                "weekday": "Sunday",
+                "opponent": "NE",
+            }
+        },
+        prior_ppg={"by_id": {"00-jeanty": 14.8}, "by_name_team": {}, "season": 2025},
+        def_vs_pos={("RB", "NE"): {"rank": 8, "ppg": 16.1}},
+    )
+    sit = cards[0]
+    assert sit["vegas_spread"] == 6.5
+    assert sit["vegas_total"] == 41.5
+    assert sit["is_home"] is False
+    assert sit["prior_ppg"] == 14.8
+    assert sit["prior_ppg_season"] == 2025
+    assert sit["opp_def_rank"] == 8
+    assert sit["opp_def_ppg"] == 16.1
+    assert sit["kickoff_et"]
+    assert cards[1]["prior_ppg"] is None
+    assert cards[1]["vegas_spread"] is None
+
+
+def test_lookup_prior_ppg_follows_name_when_team_changes():
+    from src.draft_hub.weekly_command_center import _lookup_prior_ppg, _ppg_name_keys
+
+    assert "kwalker" in _ppg_name_keys("Kenneth Walker")
+    assert "kwalker" in _ppg_name_keys("K.Walker")
+    assert "gwilson" in _ppg_name_keys("Garrett Wilson")
+    index = {
+        "by_id": {"00-kw3": 16.4},
+        "by_name_team": {"kwalker|SEA": 16.4},
+        "season": 2025,
+    }
+    card = {
+        "player_id": "sleeper-8151",
+        "player_name": "Kenneth Walker",
+        "team": "KC",
+    }
+    assert _lookup_prior_ppg(card, index) == 16.4
 
 
 def test_hub_only_week_persists_lineup(hub_db):

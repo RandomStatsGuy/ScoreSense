@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — This Week · call B Ticket</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  body { overflow: hidden; }
+  .back { filter: blur(2px); opacity: 0.35; pointer-events: none; padding: 0 1.5rem; }
+  .back h1 { font-size: 1.6rem; margin: 0 0 var(--space-2); }
+  .ghost-row { height: 2.75rem; border-bottom: 1px solid var(--border); }
+  .sheet-back {
+    position: fixed; inset: 0; z-index: 30;
+    background: rgba(7, 13, 23, 0.55);
+    display: flex; align-items: center; justify-content: center;
+    padding: var(--space-4);
+  }
+  .sheet {
+    width: min(42rem, 100%);
+    display: flex; flex-direction: column;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-panel);
+  }
+  .poster {
+    position: relative;
+    padding: var(--space-4) var(--space-5) var(--space-5);
+    background:
+      radial-gradient(90% 80% at 50% -10%, rgba(251, 191, 36, 0.16), transparent 50%),
+      linear-gradient(180deg, #14110c, #0c121c);
+  }
+  .poster-top {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+  .sheet-kicker {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-xs); letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent-muted); font-weight: 700;
+  }
+  .poster h2 { margin: 0; font-size: 1.45rem; letter-spacing: -0.03em; }
+  .sheet-close {
+    min-height: var(--control-h-sm); min-width: var(--control-h-sm);
+    border-radius: var(--radius-md); border: 1px solid var(--border-strong);
+    background: transparent; color: var(--text-secondary); font: inherit; font-weight: 700;
+  }
+  .faces {
+    display: flex; align-items: center; gap: var(--space-3);
+  }
+  .who { flex: 1; min-width: 0; text-align: center; }
+  .who img {
+    width: 7.5rem; height: 7.5rem; border-radius: 18px;
+    object-fit: cover; object-position: top; display: block; margin: 0 auto var(--space-3);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+  }
+  .who .role {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-xs); letter-spacing: 0.14em; text-transform: uppercase; font-weight: 800;
+    color: var(--text-muted);
+  }
+  .who.is-go .role { color: var(--tone-caution); }
+  .who h3 { margin: 0; font-size: 1.15rem; }
+  .who .meta { margin: var(--space-1) 0 0; color: var(--text-secondary); font-size: var(--text-xs); }
+  .delta {
+    flex: none; text-align: center; min-width: 6.5rem;
+  }
+  .delta strong {
+    display: block;
+    font-size: 2.4rem; font-weight: 800; letter-spacing: -0.05em;
+    color: var(--tone-caution); font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  .delta span {
+    display: block; margin-top: var(--space-2);
+    font-size: var(--text-xs); color: var(--text-muted); font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .lanes {
+    display: flex; gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+  }
+  .lane { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+  .stat {
+    display: flex; flex-direction: column; gap: var(--space-1);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    min-height: 4.25rem;
+  }
+  .stat span { color: var(--text-muted); font-size: var(--text-xs); }
+  .stat b { font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+  .foot {
+    display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3);
+    padding: var(--space-3) var(--space-5) var(--space-4);
+  }
+  .note { margin: 0 auto 0 0; color: var(--text-muted); font-size: var(--text-xs); max-width: 18rem; }
+  .start {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: var(--space-2); min-height: var(--control-h-sm); min-width: 11rem;
+    padding: 0 var(--space-4); border-radius: var(--radius-md);
+    border: 1px solid color-mix(in srgb, var(--tone-caution) 55%, transparent);
+    background: var(--tone-caution-soft); color: var(--tone-caution);
+    font: inherit; font-size: 0.92rem; font-weight: 800; cursor: pointer;
+  }
+  @media (max-width: 760px) {
+    .sheet-back { padding: 0; align-items: flex-end; }
+    .sheet { width: 100%; height: 94vh; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+    .poster { padding: var(--space-4); }
+    .poster h2 { font-size: 1.15rem; }
+    .who img { width: 5.5rem; height: 5.5rem; }
+    .delta strong { font-size: 1.9rem; }
+    .lanes { padding: var(--space-3) var(--space-4); }
+    .stat:last-child { display: none; }
+    .foot { flex-wrap: wrap; padding: var(--space-3) var(--space-4) var(--space-4); }
+    .note { max-width: none; }
+    .start { width: 100%; }
+  }
+  @media (max-width: 430px) {
+    .sheet-close, .start, .btn { min-height: var(--control-h-lg); }
+  }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>B · Ticket</strong> <span>· the +2.4 is the poster</span></div>
+  <nav class="concept-nav">
+    <a href="this-week-call.html">Call sheet</a>
+    <a href="this-week-call-a.html">A · Duel</a>
+    <a class="is-on" href="this-week-call-b.html">B · Ticket</a>
+  </nav>
+</div>
+
+<div class="back">
+  <p class="mock-kicker">This Week</p>
+  <h1>2 lineup calls on the board.</h1>
+  <div class="ghost-row"></div>
+  <div class="ghost-row"></div>
+</div>
+
+<div class="sheet-back">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="call-title">
+    <div class="poster">
+      <div class="poster-top">
+        <div>
+          <p class="sheet-kicker">Lineup call · RB</p>
+          <h2 id="call-title">Sit Jeanty. Start Allen.</h2>
+        </div>
+        <button type="button" class="sheet-close" aria-label="Close">×</button>
+      </div>
+      <div class="faces">
+        <div class="who">
+          <img alt="" src="https://sleepercdn.com/content/nfl/players/11563.jpg" />
+          <p class="role">Sit</p>
+          <h3>Ashton Jeanty</h3>
+          <p class="meta">LV · Away @ NE</p>
+        </div>
+        <div class="delta">
+          <strong>+2.4</strong>
+          <span>Week pts</span>
+        </div>
+        <div class="who is-go">
+          <img alt="" src="https://sleepercdn.com/content/nfl/players/11604.jpg" />
+          <p class="role">Start</p>
+          <h3>Braelon Allen</h3>
+          <p class="meta">NYJ · Home vs PIT</p>
+        </div>
+      </div>
+    </div>
+    <div class="lanes">
+      <div class="lane">
+        <div class="stat"><span>Vegas</span><b>+6.5 · O/U 41.5</b></div>
+        <div class="stat"><span>2025 PPG</span><b>14.8</b></div>
+        <div class="stat"><span>Def vs RB</span><b>NE 8th · 16.1</b></div>
+        <div class="stat"><span>Kickoff</span><b>Sun 1:00</b></div>
+      </div>
+      <div class="lane">
+        <div class="stat"><span>Vegas</span><b>+3.0 · O/U 43.0</b></div>
+        <div class="stat"><span>2025 PPG</span><b>8.2</b></div>
+        <div class="stat"><span>Def vs RB</span><b>PIT 26th · 22.4</b></div>
+        <div class="stat"><span>Kickoff</span><b>Sun 4:25</b></div>
+      </div>
+    </div>
+    <div class="foot">
+      <p class="note">Week 1 uses last season’s PPG. A rookie stays empty.</p>
+      <button type="button" class="btn btn-ghost">Keep Jeanty</button>
+      <button type="button" class="start">Start Allen</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
