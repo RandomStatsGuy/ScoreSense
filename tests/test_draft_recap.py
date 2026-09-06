@@ -35,6 +35,7 @@ def test_build_draft_recap_after_completed_draft(hub_db):
     rules = load_preset("salary_cap_auction_v1")
     ws = storage.get_or_create_workspace("recap-user")
     league = storage.create_league("recap-user", "Recap League", 2025, rules, workspace_id=ws["id"])
+    storage.add_bot_team(league["id"], "bot-idle", "The Auditor", 200)
     teams = storage.list_league_teams(league["id"])
     team = teams[0]
 
@@ -53,6 +54,26 @@ def test_build_draft_recap_after_completed_draft(hub_db):
     assert recap.get("projected_standings") in (None, [])
     assert any(a["id"] == "steal_of_draft" for a in recap["awards"])
     assert any(a["id"] == "reach_of_draft" for a in recap["awards"])
+    assert recap["team_insights"]
+    mine = next(row for row in recap["team_insights"] if row["team_id"] == team["id"])
+    assert mine["steals"] == 1
+    assert mine["reaches"] == 1
+    idle = next(row for row in recap["team_insights"] if row["team_id"] == "bot-idle")
+    assert idle["steals"] == 0
+    assert idle["spent"] == 0
+    assert idle["leftover"] >= 0
+
+
+def test_steal_award_requires_a_real_discount(hub_db):
+    rules = load_preset("salary_cap_auction_v1")
+    league = storage.create_league("recap-fair", "Fair League", 2025, rules)
+    team = storage.list_league_teams(league["id"])[0]
+    storage.update_draft_session(league["id"], status="completed", completed_at="2026-01-01T00:00:00+00:00")
+    storage.update_league_settings(league["id"], draft_completed=True)
+    _seed_win(league["id"], team_id=team["id"], team_name=team["name"], player="Fair RB", amount=20, fair=20, grade="fair")
+    recap = build_draft_recap(league["id"])
+    assert recap is not None
+    assert not any(a["id"] == "steal_of_draft" for a in recap["awards"])
 
 
 def test_relaxed_limits_skip_cap_awards_and_label_scopes(hub_db):

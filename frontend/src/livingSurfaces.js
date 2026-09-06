@@ -95,7 +95,12 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/hub/draft",
     overlay: true,
     page: "frontend/src/DraftHub/DraftRoom.jsx",
-    doNot: "Do not wrap a live draft in HubExperience two-column settings chrome. Seats inherit DraftSeat from idle Draft and Mock. Never say Available players — the rail eyebrow is Player pool. Result toasts are HubAlert under the header. Hide empty fantasy narrative. Satisfied position chips are not red.",
+    copy: "frontend/src/DraftHub/draftLivePresentation.js",
+    also: [
+      "frontend/src/DraftHub/DraftNomineeCard.jsx",
+      "frontend/src/DraftHub/botPersona.js",
+    ],
+    doNot: "Do not wrap a live draft in HubExperience two-column settings chrome. Seats inherit DraftSeat from idle Draft and Mock. Never say Available players — the rail eyebrow is Player pool. Auction awards play on the block card (bid pulse, draining clock, 1s SOLD hold) — do not toast a sold result in the header. Hide empty fantasy narrative; a real line is the name tagline. High bid is never gold: blue while winning, primary text otherwise. Bots use locker marks and persona names, never identical emoji robots. Filled position chips are teal, over-max amber, empty muted. Won roster rows pop in like lockers. Simulate pins the block-card layout.",
   }),
   "hub.week": S({
     label: "This Week",
@@ -258,7 +263,14 @@ export const LIVING_SURFACES = Object.freeze({
     overlay: true,
     page: "frontend/src/DraftHub/DraftRoom.jsx",
     copy: "frontend/src/DraftHub/mockDraftConfig.js",
-    doNot: "A live mock is board-first. Same photos as rosters. Never say Available players — the rail eyebrow is Player pool. Practice rooms have no Drop or Trade. Simulate uses live-bot pricing, shows N of the remaining pool, and never disables Discard. Result toasts are HubAlert under the header. Hide empty fantasy narrative. Award now only when the viewer is high bidder. Team cards show names; seats are not a grid cell. Satisfied position chips are not red. Bots jump toward their ceiling; the bid clock extends only on late bids. Empty nomination stage is the player pool, not a 300px waiting card.",
+    also: [
+      "frontend/src/DraftHub/DraftSeat.jsx",
+      "frontend/src/DraftHub/draftSeat.js",
+      "frontend/src/DraftHub/draftLivePresentation.js",
+      "frontend/src/DraftHub/DraftNomineeCard.jsx",
+      "frontend/src/DraftHub/botPersona.js",
+    ],
+    doNot: "A live mock is board-first. Same photos as rosters. Never say Available players — the rail eyebrow is Player pool. Practice rooms have no Drop or Trade. Simulate uses live-bot pricing, shows N of the remaining pool, pins the block-card layout, and never disables Discard. Auction awards play on the block card — do not toast a sold result in the header. Hide empty fantasy narrative; a real line is the name tagline. Award now only when the viewer is high bidder. High bid is never gold: blue while winning, primary text otherwise. Bots use locker marks and persona names, never identical emoji robots. Team cards show names; seats are not a grid cell. Filled position chips are teal, over-max amber, empty muted. Recap awards are gold trophy tiles and the page leads with the viewer's grade. Bots jump toward their ceiling; the bid clock extends only on late bids. Empty nomination stage is the player pool with range + why in the gap, not a 300px waiting card.",
   }),
   "tools.best-ball": S({
     label: "Best ball",

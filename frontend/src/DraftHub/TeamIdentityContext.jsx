@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { isAbortError } from "../fetchAbort";
+import { botIdentityLook } from "./botPersona";
 
 const TeamIdentityContext = createContext({
   identities: {},
@@ -58,5 +59,5 @@ export function TeamIdentityProvider({ leagueId, children }) {
 
 export function identityFor(identities, team) {
   if (!team) return null;
-  return identities?.[team.id] || team.identity || null;
+  return identities?.[team.id] || team.identity || botIdentityLook(team) || null;
 }

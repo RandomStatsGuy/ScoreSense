@@ -12,6 +12,7 @@ import {
 import { HubFilterMenu } from "./HubUILayout";
 import { mergePlayerMedia } from "./draftRoomEnrichment";
 import { mockDraftLiveCopy } from "./mockDraftConfig";
+import { draftPoolWhy, rangeBarPercents } from "./draftPoolWhy";
 
 const PICK_SORTS = [
   ["season_proj", "Projection"],
@@ -57,6 +58,7 @@ export default function DraftPlayerRail({
   minBid = 1,
   riskTolerance = 0,
   rules = null,
+  wideStage = false,
 }) {
   const [search, setSearch] = useState("");
   const [position, setPosition] = useState("ALL");
@@ -88,7 +90,7 @@ export default function DraftPlayerRail({
   const poolCopy = mockDraftLiveCopy();
 
   return (
-    <section className="hub-draft-player-rail" aria-label={poolCopy.playerPoolLabel}>
+    <section className={`hub-draft-player-rail${wideStage ? " hub-draft-player-rail--stage" : ""}`} aria-label={poolCopy.playerPoolLabel}>
       <header className="hub-draft-player-rail-head">
         <div>
           <span className="hub-draft-experience-kicker">{poolCopy.playerPoolLabel}</span>
@@ -153,6 +155,9 @@ export default function DraftPlayerRail({
           const primary = pickDraft
             ? `${formatSeasonPts(row.season_p50 ?? row.season_proj, 0)} pts`
             : fmtSal(auctionValue);
+          const whyBar = wideStage && !pickDraft
+            ? rangeBarPercents(row.min_sal, auctionValue, row.max_sal)
+            : null;
           return (
             <article
               key={id || `${row.player || row.player_name}-${row.position}`}
@@ -175,6 +180,16 @@ export default function DraftPlayerRail({
                   size="sm"
                   narrativeScope="season"
                 />
+                {wideStage && !pickDraft && (
+                  <span className="hub-draft-player-why">
+                    {whyBar && (
+                      <span className="hub-draft-range-bar" aria-hidden>
+                        <span className="hub-draft-range-bar-mark" style={{ left: `${whyBar.mark}%` }} />
+                      </span>
+                    )}
+                    <span>{draftPoolWhy(row, { isNeed })}</span>
+                  </span>
+                )}
                 <span className="hub-draft-player-metric">
                   <strong>{primary}</strong>
                   <span>{secondaryMetric(row, pickDraft)}</span>

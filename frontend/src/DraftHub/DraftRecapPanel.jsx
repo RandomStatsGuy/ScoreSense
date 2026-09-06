@@ -10,6 +10,10 @@ import {
   sortStandings,
   viewerInsight,
 } from "./recapFormat";
+import { displayBotName, botIdentityLook } from "./botPersona";
+import TeamIdentityMark from "./TeamIdentityMark";
+import { auctionViewerGradeCopy } from "./draftLivePresentation";
+import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 
 const GRADE_LABEL = {
   steal: "Steal",
@@ -121,15 +125,30 @@ export default function DraftRecapPanel({
   board = null,
   mobile = false,
 }) {
+  const awardIds = useMemo(
+    () => (recap?.awards || []).map((award) => award.player_id).filter(Boolean),
+    [recap?.awards],
+  );
+  const awardMedia = usePlayerMedia(awardIds);
   if (!recap) return null;
   const pickDraft = Boolean(recap.pick_draft);
   const hasAwards = (recap.awards?.length ?? 0) > 0;
   const hasNotable = !hideNotable && (recap.notable_picks?.length ?? 0) > 0;
   const hasStandings = (recap.projected_standings?.length ?? 0) > 0;
-  if (!hasAwards && !hasNotable && !pickDraft && !hasStandings) return null;
+  const hasAuctionInsight = !pickDraft && (recap.team_insights?.length ?? 0) > 0;
+  if (!hasAwards && !hasNotable && !pickDraft && !hasStandings && !hasAuctionInsight) return null;
 
   const insight = viewerInsight(recap, viewerTeamId);
   const dtype = String(recap.draft_type || "").toLowerCase();
+  const auctionGrade = !pickDraft && insight
+    ? auctionViewerGradeCopy({
+      steals: insight.steals,
+      reaches: insight.reaches,
+      leftover: insight.leftover,
+      spent: insight.spent,
+      cap: insight.cap,
+    })
+    : null;
 
   return (
     <section className={`hub-draft-recap${compact ? " hub-draft-recap-compact" : ""}${pickDraft ? " hub-draft-recap--picks" : ""}`}>
@@ -175,6 +194,23 @@ export default function DraftRecapPanel({
         </article>
       )}
 
+      {!pickDraft && auctionGrade && (
+        <article className="hub-recap-grade hub-recap-grade--auction">
+          <p className="hub-draft-recap-kicker">Your draft</p>
+          <h3>
+            <span className="hub-recap-letter">{auctionGrade.grade}</span>
+            {" "}
+            {displayBotName(insight.team_name)}
+          </h3>
+          <p>{auctionGrade.summary}</p>
+          <p className="chart-note">
+            {insight.steals || 0} steal{(insight.steals || 0) === 1 ? "" : "s"}
+            {" · "}
+            {insight.reaches || 0} reach{(insight.reaches || 0) === 1 ? "" : "es"}
+          </p>
+        </article>
+      )}
+
       {pickDraft && hasStandings && (
         <div className="hub-recap-standings-block">
           <h3>Projected standings</h3>
@@ -202,12 +238,28 @@ export default function DraftRecapPanel({
       {recap.awards?.length > 0 && (
         <div className="hub-draft-recap-awards">
           {recap.awards.map((award) => (
-            <article key={award.id} className="hub-draft-recap-award">
-              <span className="hub-draft-recap-emoji" aria-hidden>{award.emoji}</span>
+            <article key={award.id} className="hub-draft-recap-award hub-draft-recap-award--trophy">
+              <span className="hub-draft-recap-trophy" aria-hidden>★</span>
+              {award.player_name ? (
+                <PlayerCell
+                  name={award.player_name}
+                  playerId={award.player_id}
+                  media={awardMedia}
+                  size="md"
+                  showTeam={false}
+                  narrativeScope="season"
+                />
+              ) : (
+                <TeamIdentityMark
+                  team={{ name: award.team_name }}
+                  identity={botIdentityLook({ name: award.team_name })}
+                  size="md"
+                />
+              )}
               <div>
                 <strong>{award.title}</strong>
                 <p className="hub-draft-recap-award-who">
-                  {award.team_name}
+                  {displayBotName(award.team_name)}
                   {award.player_name ? ` · ${award.player_name}` : ""}
                 </p>
                 <p className="chart-note">{award.detail}</p>

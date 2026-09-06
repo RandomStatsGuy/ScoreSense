@@ -1,5 +1,7 @@
 /** Owner-first labels. Team nicknames are extra, never the only name when an owner exists. */
 
+import { displayBotName, resolveBotPersona } from "./botPersona.js";
+
 function trimName(value) {
   return String(value || "").trim();
 }
@@ -17,9 +19,13 @@ export function hubTeamParts(team) {
 }
 
 export function hubTeamLabel(team, { includeTeam = true } = {}) {
+  const persona = resolveBotPersona(team);
+  if (persona && (team?.is_bot || !hubTeamParts(team).owner)) {
+    return persona.name;
+  }
   const { owner, team: teamName } = hubTeamParts(team);
   if (owner && teamName && includeTeam) return `${owner} · ${teamName}`;
-  return owner || teamName || "";
+  return owner || displayBotName(teamName, team) || "";
 }
 
 /** Avatar initials use the manager, never the combined "Owner · Team" label. */

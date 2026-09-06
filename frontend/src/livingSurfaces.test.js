@@ -169,7 +169,17 @@ test("live mock forbids Available players and keeps Discard on", () => {
   assert.match(live.doNot, /Available players/);
   assert.match(live.doNot, /Discard/);
   assert.match(live.doNot, /Drop or Trade/);
+  assert.match(live.doNot, /SOLD hold|block card/);
+  assert.match(live.doNot, /persona names/);
   assert.equal(live.copy, "frontend/src/DraftHub/mockDraftConfig.js");
+});
+
+test("live draft theater lives on the block card", () => {
+  const live = LIVING_SURFACES["hub.room.live"];
+  assert.equal(live.copy, "frontend/src/DraftHub/draftLivePresentation.js");
+  assert.match(live.doNot, /SOLD hold|block card/);
+  assert.match(live.doNot, /never gold/i);
+  assert.match(live.doNot, /persona names/);
 });
 
 test("shared tokens include the product spacing rhythm", () => {

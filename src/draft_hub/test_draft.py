@@ -8,15 +8,10 @@ import zlib
 from typing import Any
 
 from src.draft_hub import storage
+from src.draft_hub.bot_persona import BOT_NAMES, persona_ceiling_mult, persona_jump, resolve_bot_persona
 from src.draft_hub.draft_state import get_room_state, place_bid
 from src.draft_hub.draft_budgets import total_roster_slots
 from src.draft_hub.schemas import LeagueRules
-
-BOT_NAMES = [
-    "Bot Alpha", "Bot Bravo", "Bot Charlie", "Bot Delta", "Bot Echo",
-    "Bot Foxtrot", "Bot Golf", "Bot Hotel", "Bot India", "Bot Juliet",
-    "Bot Kilo",
-]
 
 # Instant sims must not share a clock tick with the live ticker / room poller.
 SIMULATING_LEAGUE_IDS: set[str] = set()
@@ -364,11 +359,17 @@ def maybe_autodraft_pick(league_id: str) -> dict[str, Any] | None:
         return None
 
 
-def next_bot_bid(high_bid: float, ceiling: float, min_bid: float) -> float | None:
+def next_bot_bid(
+    high_bid: float,
+    ceiling: float,
+    min_bid: float,
+    persona: dict[str, Any] | None = None,
+) -> float | None:
     """Next live-bot bid: jump toward the ceiling instead of dripping +$1.
 
     Real rooms move because bidders jump. A 35% gap step (at least 2× min bid)
     reaches a fair+$6 ceiling in a few ticks instead of a 90-second drip.
+    Personalities scale the jump (Whale +$10, Copier min raise).
     """
     try:
         high = float(high_bid)
@@ -376,24 +377,23 @@ def next_bot_bid(high_bid: float, ceiling: float, min_bid: float) -> float | Non
         step = float(min_bid)
     except (TypeError, ValueError):
         return None
-    if step <= 0:
-        return None
-    nxt = high + step
-    if nxt > ceil + 1e-9:
-        return None
-    gap = ceil - high
-    if gap <= step + 1e-9:
-        return round(min(ceil, nxt), 2)
-    jump = max(step * 2.0, round(gap * 0.35 / step) * step)
-    return round(min(ceil, high + jump), 2)
+    return persona_jump(persona, high=high, ceiling=ceil, step=step)
 
 
-def bot_max_price(bot_id: str, nominee: dict[str, Any], min_bid: float) -> float:
+def bot_max_price(
+    bot_id: str,
+    nominee: dict[str, Any],
+    min_bid: float,
+    *,
+    team: dict[str, Any] | None = None,
+    luxury: bool = False,
+) -> float:
     """Per-bot price ceiling around the player's fair value.
 
     Deterministic (crc32 of bot+player) so a bot doesn't re-roll its valuation
-    on every timer tick: each bot values the player at 0.75x–1.15x fair value,
-    which lets auctions end near fair price instead of climbing forever.
+    on every timer tick. Personality ranges replace the old 0.75x–1.15x band.
+    Luxury bids (roster space but another position still needs filling) use
+    the persona's luxury multiplier so leftover cap still clears talent.
     """
     try:
         fair = float(nominee.get("fair_value") or 0)
@@ -402,7 +402,8 @@ def bot_max_price(bot_id: str, nominee: dict[str, Any], min_bid: float) -> float
     if fair <= 0:
         return min_bid * 3  # unvalued players are cheap fliers only
     seed = zlib.crc32(f"{bot_id}:{nominee.get('player_id')}".encode()) % 1000
-    mult = 0.75 + 0.4 * (seed / 999)
+    persona = resolve_bot_persona(team or {"id": bot_id, "is_bot": True})
+    mult = persona_ceiling_mult(persona, seed=seed, luxury=luxury, fair=fair)
     return max(min_bid, round(fair * mult))
 
 
@@ -465,22 +466,29 @@ def maybe_bot_bid(league_id: str) -> dict[str, Any] | None:
         if bot["id"] == high_team_id:
             continue
         budget = float(bot.get("budget_remaining") or 0)
-        ceiling = bot_max_price(bot["id"], nominee, min_bid)
         # Keep min_bid in reserve for every roster slot still to fill.
         from src.draft_hub.draft_budgets import open_roster_slots
         from src.draft_hub.rules_engine import salary_roster_limits_relaxed, should_need_bid
 
         roster = storage.list_team_roster(league_id, bot["id"])
-        if not should_need_bid(rules, roster, nominee.get("position")):
-            continue
+        need = should_need_bid(rules, roster, nominee.get("position"))
         if _blocks_luxury_min_steal(rules, league_id, roster, nominee.get("position")):
             continue
+        luxury = not need
         if salary_roster_limits_relaxed(rules):
             affordable = budget
         else:
             open_slots = open_roster_slots(rules, roster, draft_completed=False)
             affordable = budget - min_bid * max(0, open_slots - 1)
-        next_bid = next_bot_bid(high_bid, min(ceiling, affordable), min_bid)
+        ceiling = bot_max_price(
+            bot["id"],
+            nominee,
+            min_bid,
+            team=bot,
+            luxury=luxury,
+        )
+        persona = resolve_bot_persona(bot)
+        next_bid = next_bot_bid(high_bid, min(ceiling, affordable), min_bid, persona)
         if next_bid is None:
             continue
         try:
@@ -490,74 +498,57 @@ def maybe_bot_bid(league_id: str) -> dict[str, Any] | None:
     return None
 
 
-def _settle_auction(league_id: str) -> None:
-    """Resolve the current auction in one step (simulation only).
+def _apply_uncontested_floor(league_id: str, session: dict[str, Any]) -> None:
+    """If nobody contested a valued player, clear near 70% of fair.
 
-    Instead of ticking $1 bids back and forth, compute every team's price
-    ceiling and let the highest bidder pay second-price + min_bid — same
-    outcome as the live bot loop, but one bid per pick.
+    Live rooms still end at $1 when a human is the only bidder. Simulate
+    nominates leftover stars into empty markets; paying a market floor
+    spends leftover cap so recap awards are about the draft, not $1 bugs.
     """
+    league = storage.get_league(league_id)
+    if not league:
+        return
+    rules = LeagueRules.model_validate(league["rules"])
+    min_bid = float(rules.auction.min_bid)
+    nominee = session.get("current_nominee") or {}
+    high = float(session.get("high_bid") or 0)
+    try:
+        fair = float(nominee.get("fair_value") or 0)
+    except (TypeError, ValueError):
+        fair = 0.0
+    if high > min_bid + 1e-9 or fair < 8:
+        return
+    high_team_id = session.get("high_bidder_team_id")
+    team = storage.get_team(high_team_id) if high_team_id else None
+    if not team or not team.get("is_bot"):
+        return
+    ceiling = bot_max_price(team["id"], nominee, min_bid, team=team, luxury=True)
+    floor = min(ceiling, max(min_bid, round(fair * 0.7)))
+    if floor <= high:
+        return
+    sub = _team_sub(team)
+    if not sub:
+        return
+    try:
+        place_bid(league_id, sub, floor)
+    except ValueError:
+        pass
+
+
+def _settle_auction(league_id: str) -> None:
+    """Resolve the current auction with the same bot loop as the live room."""
     from src.draft_hub.draft_state import award_nominee
-    from src.draft_hub.rules_engine import assert_can_acquire, should_need_bid
 
     session = storage.get_draft_session(league_id) or {}
     if session.get("status") != "bidding":
         return
-    league = storage.get_league(league_id)
-    rules = LeagueRules.model_validate(league["rules"])
-    min_bid = float(rules.auction.min_bid)
-    nominee = session.get("current_nominee") or {}
-    high_bid = float(session.get("high_bid") or 0)
-    high_team_id = session.get("high_bidder_team_id")
-
-    offers: list[tuple[float, str, str]] = []
-    for team in storage.list_league_teams(league_id):
-        sub = _team_sub(team)
-        if not sub:
-            continue
-        roster = storage.list_team_roster(league_id, team["id"])
-        try:
-            assert_can_acquire(rules, roster, nominee.get("position"))
-        except ValueError:
-            continue
-        if str(team["id"]) != str(high_team_id) and not should_need_bid(
-            rules, roster, nominee.get("position")
-        ):
-            continue
-        if str(team["id"]) != str(high_team_id) and _blocks_luxury_min_steal(
-            rules, league_id, roster, nominee.get("position")
-        ):
-            continue
-        budget = float(team.get("budget_remaining") or 0)
-        from src.draft_hub.draft_budgets import open_roster_slots
-        from src.draft_hub.rules_engine import salary_roster_limits_relaxed
-
-        if salary_roster_limits_relaxed(rules):
-            affordable = budget
-        else:
-            open_slots = open_roster_slots(rules, roster, draft_completed=False)
-            affordable = budget - min_bid * max(0, open_slots - 1)
-        ceiling = min(bot_max_price(team["id"], nominee, min_bid), affordable)
-        floor = high_bid + min_bid if team["id"] != high_team_id else high_bid
-        if ceiling >= max(min_bid, floor):
-            offers.append((ceiling, team["id"], sub))
-
-    offers.sort(key=lambda o: o[0], reverse=True)
-    if offers:
-        top_ceiling, _winner_id, winner_sub = offers[0]
-        runner_up = offers[1][0] if len(offers) > 1 else 0.0
-        # Same outcome as the live jump loop: winner pays just over the runner-up.
-        # Always post that price — if the nominator already has the high bid at
-        # $1, skipping place_bid used to award stars for the nomination opener.
-        if runner_up > 0:
-            price = max(min_bid, high_bid + min_bid, min(top_ceiling, runner_up + min_bid))
-        else:
-            price = max(min_bid, high_bid)
-        if price > high_bid:
-            try:
-                place_bid(league_id, winner_sub, price)
-            except ValueError:
-                pass
+    for _ in range(80):
+        if maybe_bot_bid(league_id) is None:
+            break
+    session = storage.get_draft_session(league_id) or {}
+    if session.get("status") != "bidding":
+        return
+    _apply_uncontested_floor(league_id, session)
     award_nominee(league_id)
 
 
