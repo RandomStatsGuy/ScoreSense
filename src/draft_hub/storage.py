@@ -1427,7 +1427,7 @@ def remove_roster_slot(
     team_id: str | None = None,
 ) -> bool:
     with get_conn() as conn:
-        if team_id:
+        if team_id is not None:
             cur = conn.execute(
                 "DELETE FROM roster_slot WHERE workspace_id = ? AND player_id = ? AND team_id = ?",
                 (workspace_id, player_id, team_id),
