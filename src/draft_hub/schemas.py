@@ -469,3 +469,7 @@ class VictoryEmoteRequest(BaseModel):
     emote_key: str
     week: Optional[int] = None
     season: Optional[int] = None
+
+
+class LeagueDeleteConfirmRequest(BaseModel):
+    confirm_name: str
