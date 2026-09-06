@@ -46,6 +46,7 @@ import {
   BOARD_COPY,
   positionShort,
   staleRefreshLabel,
+  weeklyContextNeedsRefresh,
   weeklyBoardPreview,
   weeklyPeerStats,
   weeklyRowClickIntent,
@@ -466,6 +467,7 @@ export default function WeeklyTable({
   onRefreshData,
   dataRefreshLoading = false,
   onContextMeta,
+  contextReloadToken = 0,
 }) {
   const [sort, toggleSort] = useTableSort({ column: "P50", dir: "desc" });
   const [whyPlayerId, setWhyPlayerId] = useState(null);
@@ -476,6 +478,7 @@ export default function WeeklyTable({
   const playersContext = usePlayersContext(season, week, {
     enabled: season != null && week != null,
     mediaMode,
+    reloadToken: contextReloadToken,
   });
   const selectedSet = useMemo(
     () => new Set((selectedCompareIds || []).map(String)),
@@ -541,14 +544,25 @@ export default function WeeklyTable({
     [rows, search, teamsFilter, showFilters, movementFilter, leftSlateRows, attentionPlayerIds],
   );
 
+  const contextNeedsRefresh = weeklyContextNeedsRefresh({
+    stale: Boolean(playersContext.meta?.stale),
+    unavailable: Boolean(playersContext.unavailable),
+  });
+
   useEffect(() => {
     if (!onContextMeta) return undefined;
     onContextMeta({
       stale: Boolean(playersContext.meta?.stale),
+      unavailable: Boolean(playersContext.unavailable),
       updatedAt: playersContext.meta?.updated_at || null,
     });
     return undefined;
-  }, [onContextMeta, playersContext.meta?.stale, playersContext.meta?.updated_at]);
+  }, [
+    onContextMeta,
+    playersContext.meta?.stale,
+    playersContext.meta?.updated_at,
+    playersContext.unavailable,
+  ]);
 
   const scaleMax = useMemo(() => {
     const slate = rows || [];
@@ -694,7 +708,7 @@ export default function WeeklyTable({
             {`Injury context · ${(formatRelativeTime(playersContext.meta.updated_at) || "").replace(/^Updated /, "")}`}
           </span>
         ) : null}
-        {!mobileLayout && playersContext.meta?.stale ? (
+        {!mobileLayout && contextNeedsRefresh ? (
           onRefreshData ? (
             <button
               type="button"
@@ -703,7 +717,8 @@ export default function WeeklyTable({
               disabled={dataRefreshLoading}
             >
               {staleRefreshLabel({
-                stale: true,
+                stale: Boolean(playersContext.meta?.stale),
+                unavailable: Boolean(playersContext.unavailable),
                 updatedAt: playersContext.meta?.updated_at,
                 refreshing: dataRefreshLoading,
               })}
@@ -711,7 +726,8 @@ export default function WeeklyTable({
           ) : (
             <span className="table-meta table-meta-context-stale" role="status">
               {staleRefreshLabel({
-                stale: true,
+                stale: Boolean(playersContext.meta?.stale),
+                unavailable: Boolean(playersContext.unavailable),
                 updatedAt: playersContext.meta?.updated_at,
               })}
             </span>

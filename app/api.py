@@ -48,6 +48,7 @@ from app.auth import (
     request_password_reset,
     require_patron,
     require_admin,
+    require_data_refresh,
     is_admin_user,
     resend_verification_email,
     reset_password_with_token,
@@ -1195,7 +1196,7 @@ async def refresh(
     retrain: bool = True,
     draft_only: bool = False,
     background_tasks: BackgroundTasks = None,
-    _user=Depends(require_admin),
+    _user=Depends(require_data_refresh),
 ) -> dict:
     try:
         started = mark_refresh_started(retrain=retrain, draft_only=draft_only)

@@ -23,6 +23,7 @@ import {
   starterCutoff,
   compactSignalName,
   staleRefreshLabel,
+  weeklyContextNeedsRefresh,
   weeklyBoardPreview,
   weeklyBoardSignals,
   weeklyPeerStats,
@@ -291,4 +292,12 @@ test("stale refresh label uses relative time, not a locale dump", () => {
   assert.equal(staleRefreshLabel({ stale: true, refreshing: true }), "Refreshing…");
   assert.match(staleRefreshLabel({ stale: true, updatedAt: hourAgo }), /Stale · /);
   assert.doesNotMatch(staleRefreshLabel({ stale: true, updatedAt: hourAgo }), /AM|PM|:\d{2}:\d{2}/);
+});
+
+test("weekly context refresh shows when notes are stale or missing", () => {
+  assert.equal(weeklyContextNeedsRefresh({}), false);
+  assert.equal(weeklyContextNeedsRefresh({ stale: true }), true);
+  assert.equal(weeklyContextNeedsRefresh({ unavailable: true }), true);
+  assert.equal(staleRefreshLabel({ unavailable: true }), "Notes missing · Refresh");
+  assert.doesNotMatch(BOARD_COPY.contextMissingRefresh, /Submit|Draft Hub|permission/i);
 });

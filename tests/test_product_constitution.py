@@ -227,6 +227,9 @@ def test_constitution_covers_weekly_board_chrome() -> None:
     assert "swipeable" in product
     assert "windowed" in product
     assert "sticky bar" in product
+    assert "missing-notes freshness chip" in product
+    assert "header Refresh on Weekly" in product
+    assert "stale or missing-notes chip is the refresh" in living
 
 def test_constitution_bans_hub_ppr_in_ui() -> None:
     product = _read("docs", "PRODUCT.md")

@@ -14,7 +14,7 @@ import { indexPlayersContext } from "./playerContextDisplay";
 export default function usePlayersContext(
   season,
   week,
-  { enabled = true, mediaMode = null } = {},
+  { enabled = true, mediaMode = null, reloadToken = 0 } = {},
 ) {
   const [byId, setById] = useState(() => new Map());
   const [meta, setMeta] = useState(null);
@@ -75,7 +75,7 @@ export default function usePlayersContext(
     })();
 
     return () => controller.abort();
-  }, [enabled, season, week, mediaMode]);
+  }, [enabled, season, week, mediaMode, reloadToken]);
 
   return useMemo(
     () => ({ byId, meta, loading, error, unavailable }),
