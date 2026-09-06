@@ -698,8 +698,10 @@ async function auditOpenMenus(page) {
     if ((await trigger.count()) === 0 || !(await trigger.isVisible().catch(() => false))) {
       continue;
     }
-    await trigger.click();
-    await page.waitForTimeout(120);
+    // Dispatch click in-page. Playwright's actionability hover would open
+    // HubFilterMenu, then the click would toggle it closed.
+    await trigger.evaluate((el) => el.click());
+    await page.waitForSelector(spec.panel, { timeout: 2000 }).catch(() => {});
     const probe = await page.evaluate(({ panelSel, name }) => {
       const panel = document.querySelector(panelSel);
       if (!panel) {
@@ -729,7 +731,7 @@ async function auditOpenMenus(page) {
       return { rule: "menus", ok: true, selector: name, detail: "panel paints above page" };
     }, { panelSel: spec.panel, name: spec.name });
     results.push(probe);
-    await trigger.click().catch(() => {});
+    await trigger.evaluate((el) => el.click()).catch(() => {});
     await page.keyboard.press("Escape").catch(() => {});
   }
   return results;
