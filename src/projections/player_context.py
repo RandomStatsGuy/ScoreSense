@@ -916,12 +916,12 @@ def prewarm_player_context(
 def refresh_player_context(
     season: int | None = None,
     week: int | None = None,
-    *,
-    force_injury_refresh: bool = False,
-) -> dict[str, Any]:
-    """Rebuild this-week notes from cached weekly projections — no ETL."""
-    resolved_season, resolved_week = season_week_context(season, week)
-    result = prewarm_player_context(
+    return {
+        **result,
+        "status": "completed",
+        "season": resolved_season,
+        "week": resolved_week,
+    }
         resolved_season,
         resolved_week,
         force_injury_refresh=force_injury_refresh,
