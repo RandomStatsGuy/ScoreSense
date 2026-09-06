@@ -6397,7 +6397,7 @@ td.col-rank.col-rank-top {
   position: absolute;
   right: 0;
   top: calc(100% + 0.35rem);
-  z-index: 40;
+  z-index: var(--z-dropdown);
   width: min(22rem, calc(100vw - 1.5rem));
   padding: 0.65rem 0.7rem;
   border: 1px solid var(--border);
@@ -8702,6 +8702,9 @@ td.col-rank.col-rank-top {
 .hub-filter-menu {
   position: relative;
   flex: 0 0 auto;
+}
+.hub-filter-menu.is-open {
+  z-index: var(--z-dropdown);
 }
 .hub-filter-menu.is-disabled .hub-filter-menu-trigger {
   opacity: 0.55;
@@ -16706,16 +16709,16 @@ td.col-rank.col-rank-top {
 .hub-wcc-slot-call {
   display: flex;
   width: 100%;
-  min-height: 2.15rem;
+  min-height: var(--control-h-sm);
   align-items: center;
   justify-content: space-between;
-  gap: 0.4rem;
+  gap: var(--space-2);
   margin: 0;
-  padding: 0.35rem 0.55rem;
-  border: 1px solid color-mix(in srgb, var(--experience-blue) 40%, transparent);
+  padding: 0 var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--tone-caution) 50%, transparent);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--experience-blue) 12%, transparent);
-  color: var(--text-primary);
+  background: var(--tone-caution-soft);
+  color: var(--tone-caution);
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
   line-height: 1.35;
@@ -16724,8 +16727,6 @@ td.col-rank.col-rank-top {
 
 .hub-wcc-slot-call.is-action {
   cursor: pointer;
-  border-color: color-mix(in srgb, var(--experience-blue) 58%, transparent);
-  background: color-mix(in srgb, var(--experience-blue) 24%, #0d1724);
 }
 
 .hub-wcc-slot-call.is-locked,
@@ -16735,8 +16736,415 @@ td.col-rank.col-rank-top {
 }
 
 .hub-wcc-slot-call-delta {
-  color: var(--experience-blue);
+  color: var(--tone-caution);
   font-weight: var(--font-weight-bold);
+}
+
+.hub-wcc-slate {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.hub-wcc-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 3.5rem;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.hub-wcc-row:last-child {
+  border-bottom: 0;
+}
+
+.hub-wcc-row.is-call {
+  background: color-mix(in srgb, var(--tone-caution) 8%, transparent);
+  margin: 0 calc(var(--space-3) * -1);
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
+  border-radius: var(--radius-sm);
+}
+
+.hub-wcc-row.is-pick {
+  background: color-mix(in srgb, var(--tone-caution) 6%, transparent);
+}
+
+.hub-wcc-row.is-target {
+  outline: 1px solid color-mix(in srgb, var(--tone-caution) 45%, transparent);
+}
+
+.hub-wcc-row-pos {
+  width: 2.75rem;
+  flex: none;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.hub-wcc-row-face {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+  background: var(--bg-subtle);
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.hub-wcc-row-who {
+  flex: 1;
+  min-width: 0;
+}
+
+.hub-wcc-row-who strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.92rem;
+}
+
+.hub-wcc-row-who span {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.hub-wcc-row-pts {
+  width: 4.5rem;
+  flex: none;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.hub-wcc-row-pts.is-quiet {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.hub-wcc-row-pts small {
+  margin-left: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.hub-wcc-row-mark {
+  width: 7.5rem;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  text-align: right;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  min-height: 1.25rem;
+}
+
+.hub-wcc-row-mark .is-wide {
+  color: var(--text-muted);
+}
+
+.hub-wcc-row-action {
+  width: 8.75rem;
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  min-height: var(--control-h-sm);
+}
+
+.hub-wcc.is-call-open .hub-experience-summary-action,
+.hub-wcc.is-call-open .hub-wcc-coverage-actions .btn-primary,
+.hub-wcc.is-call-open .hub-wcc-board-overlay .btn-primary {
+  visibility: hidden;
+}
+
+.hub-wcc-ticket-back {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-confirm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: rgba(7, 13, 23, 0.55);
+}
+
+.hub-wcc-ticket {
+  width: min(42rem, 100%);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-panel);
+}
+
+.hub-wcc-ticket-poster {
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  background:
+    radial-gradient(90% 80% at 50% -10%, color-mix(in srgb, var(--tone-caution) 16%, transparent), transparent 50%),
+    linear-gradient(180deg, #14110c, #0c121c);
+}
+
+.hub-wcc-ticket-poster-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.hub-wcc-ticket-kicker {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-muted);
+  font-weight: 700;
+}
+
+.hub-wcc-ticket-poster h2 {
+  margin: 0;
+  font-size: 1.45rem;
+  letter-spacing: -0.03em;
+}
+
+.hub-wcc-ticket-close {
+  min-height: var(--control-h-sm);
+  min-width: var(--control-h-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-weight: 700;
+}
+
+.hub-wcc-ticket-faces {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.hub-wcc-ticket-who {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.hub-wcc-ticket-face {
+  width: 7.5rem;
+  height: 7.5rem;
+  border-radius: 18px;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+  margin: 0 auto var(--space-3);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  background: var(--bg-subtle);
+}
+
+.hub-wcc-ticket-face.is-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.hub-wcc-ticket-role {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.hub-wcc-ticket-who.is-go .hub-wcc-ticket-role {
+  color: var(--tone-caution);
+}
+
+.hub-wcc-ticket-who h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.hub-wcc-ticket-meta {
+  margin: var(--space-1) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+.hub-wcc-ticket-delta {
+  flex: none;
+  text-align: center;
+  min-width: 6.5rem;
+}
+
+.hub-wcc-ticket-delta strong {
+  display: block;
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  color: var(--tone-caution);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.hub-wcc-ticket-delta span {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.hub-wcc-ticket-lanes {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+}
+
+.hub-wcc-ticket-lane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.hub-wcc-ticket-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  min-height: 4.25rem;
+}
+
+.hub-wcc-ticket-stat span {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.hub-wcc-ticket-stat b {
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hub-wcc-ticket-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5) var(--space-4);
+}
+
+.hub-wcc-ticket-note {
+  margin: 0 auto 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  max-width: 18rem;
+}
+
+.hub-wcc-ticket-start {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--control-h-sm);
+  min-width: 11rem;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--tone-caution) 55%, transparent);
+  background: var(--tone-caution-soft);
+  color: var(--tone-caution);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.hub-wcc-ticket-start:disabled,
+.hub-wcc-ticket-start[aria-disabled="true"] {
+  opacity: 0.62;
+  cursor: default;
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .hub-wcc-row-mark {
+    display: none;
+  }
+
+  .hub-wcc-row-pts {
+    width: 3.6rem;
+  }
+
+  .hub-wcc-ticket-back {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .hub-wcc-ticket {
+    width: 100%;
+    height: 94vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .hub-wcc-ticket-poster {
+    padding: var(--space-4);
+  }
+
+  .hub-wcc-ticket-poster h2 {
+    font-size: 1.15rem;
+  }
+
+  .hub-wcc-ticket-face {
+    width: 5.5rem;
+    height: 5.5rem;
+  }
+
+  .hub-wcc-ticket-delta strong {
+    font-size: 1.9rem;
+  }
+
+  .hub-wcc-ticket-lanes {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .hub-wcc-ticket-foot {
+    flex-wrap: wrap;
+    padding: var(--space-3) var(--space-4) var(--space-4);
+  }
+
+  .hub-wcc-ticket-note {
+    max-width: none;
+  }
+
+  .hub-wcc-ticket-start {
+    width: 100%;
+  }
 }
 
 .hub-wcc-board-overlay {
@@ -16802,6 +17210,10 @@ td.col-rank.col-rank-top {
 
 .hub-experience-footer .hub-wcc-bench-grid {
   grid-template-columns: repeat(auto-fill, minmax(16.5rem, 1fr));
+}
+
+.hub-experience-footer .hub-wcc-bench-slate {
+  margin: 0;
 }
 
 .hub-wcc-bench-list {
@@ -19292,9 +19704,16 @@ th.sortable-header {
      own share so the cats can stay more present than the drifting bits. */
   --atm-alpha: 0.28;
 }
-.draft-hub > *:not(.hub-atmosphere):not(.fantasy-chat-dock) {
+/* Atmosphere is z-index 0. Content siblings share z-index 1 so the wash
+   stays behind clicks. The league strip hosts overflowing Switch league /
+   Sync league menus — those must win over the later .hub-page card. */
+.draft-hub > *:not(.hub-atmosphere):not(.fantasy-chat-dock):not(.hub-league-context-bar) {
   position: relative;
   z-index: 1;
+}
+.draft-hub > .hub-league-context-bar {
+  position: relative;
+  z-index: var(--z-dropdown);
 }
 .draft-hub > .invite-overlay {
   position: fixed;

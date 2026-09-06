@@ -61,3 +61,4 @@ Chat chrome lives on `FantasyChatDock.jsx` (header comment) and `docs/PRODUCT.md
 - Do not keep hidden Fantasy panes in the DOM of another destination. Unmount keep-alives when the tab is not showing.
 - Rank bars share a fixed track and a field scale. Never let the value label steal track width. Do not paint every bar teal/green.
 - Trades Send / Get / Cut expose `aria-pressed` and an accessible name that includes the player and destination.
+- League-strip menus (Switch league, Sync league) must paint above the Fantasy page below the strip, not only above Needs attention. `.draft-hub > *` is pinned at z-index 1 so atmosphere stays under content — raise `.hub-league-context-bar` to `--z-dropdown` or portal the menu.

@@ -64,6 +64,11 @@ export function playerInitials(name) {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
+export function playerFaceInitials(player, empty = "?") {
+  if (!player) return empty;
+  return playerInitials(player.player_name || player.player_id || "");
+}
+
 export function lookupPlayerMedia(media, playerId) {
   if (!media || playerId == null || playerId === "") return null;
   return media[playerId] || media[String(playerId)] || null;

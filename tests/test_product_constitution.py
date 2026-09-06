@@ -123,6 +123,7 @@ def test_constitution_covers_phone_chrome() -> None:
     craft = _read(".cursor", "rules", "frontend-craft.mdc")
     assert "On phone, the header is the current destination" in product
     assert "one-row league strip" in product
+    assert "League-strip option menus" in product
     assert "hub-page-sticky" in product
     assert "/hub/roster-management" in product
     assert "sits on the bubble" in product
@@ -130,6 +131,19 @@ def test_constitution_covers_phone_chrome() -> None:
     assert "one-row league strip" in phone_css
     assert "hub-page-sticky" in phone_css
     assert "equal" in craft and "padding" in craft
+    assert "hub-league-context-bar" in craft
+    assert "layout_audit `menus`" in craft
+
+
+def test_constitution_covers_league_strip_menu_stacking() -> None:
+    product = _read("docs", "PRODUCT.md")
+    css = _read("frontend", "src", "styles.css")
+    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    assert "League-strip option menus" in product
+    assert "later `.hub-page`" in product
+    assert ".draft-hub > .hub-league-context-bar" in css
+    assert "z-index: var(--z-dropdown);" in css
+    assert "League-strip option menus" in core_rule
 
 
 def test_constitution_covers_chat_chrome() -> None:

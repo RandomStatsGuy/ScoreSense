@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — This Week · call A Duel</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  body { overflow: hidden; }
+  .back {
+    filter: blur(2px); opacity: 0.35; pointer-events: none;
+    padding: 0 1.5rem;
+  }
+  .back h1 { font-size: 1.6rem; margin: 0 0 var(--space-2); }
+  .ghost-row { height: 2.75rem; border-bottom: 1px solid var(--border); }
+  .sheet-back {
+    position: fixed; inset: 0; z-index: 30;
+    background: rgba(7, 13, 23, 0.55);
+    display: flex; align-items: stretch; justify-content: center;
+    padding: var(--space-4);
+  }
+  .sheet {
+    width: min(58rem, 100%);
+    display: flex; flex-direction: column;
+    background: var(--bg-base);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-panel);
+  }
+  .sheet-top {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+  }
+  .sheet-kicker {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-xs); letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent-muted); font-weight: 700;
+  }
+  .sheet-top h2 { margin: 0; font-size: 1.35rem; letter-spacing: -0.03em; }
+  .sheet-close {
+    min-height: var(--control-h-sm); min-width: var(--control-h-sm);
+    border-radius: var(--radius-md); border: 1px solid var(--border-strong);
+    background: transparent; color: var(--text-secondary); font: inherit; font-weight: 700;
+  }
+  .duel {
+    display: grid; grid-template-columns: 1fr 1fr;
+    flex: 1; min-height: 28rem;
+  }
+  .col {
+    position: relative; min-width: 0; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .col.is-sit {
+    background: linear-gradient(180deg, #1a2433, #0c121c);
+  }
+  .col.is-go {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--tone-caution) 16%, #1c1910), #14110c);
+  }
+  .col img {
+    width: 100%; height: 18rem; object-fit: cover; object-position: top;
+    display: block;
+    mask-image: linear-gradient(180deg, #000 62%, transparent);
+  }
+  .col-body {
+    margin-top: -4.5rem; padding: 0 var(--space-4) var(--space-4);
+    display: flex; flex-direction: column; gap: var(--space-2); flex: 1;
+  }
+  .role {
+    margin: 0;
+    font-size: var(--text-xs); letter-spacing: 0.14em; text-transform: uppercase; font-weight: 800;
+  }
+  .is-sit .role { color: var(--text-muted); }
+  .is-go .role { color: var(--tone-caution); }
+  .col h3 { margin: 0; font-size: 1.55rem; letter-spacing: -0.03em; }
+  .where { margin: 0; color: var(--text-secondary); font-size: var(--text-xs); }
+  .wk {
+    margin: var(--space-1) 0 0;
+    font-size: 2rem; font-weight: 800; letter-spacing: -0.04em; font-variant-numeric: tabular-nums;
+  }
+  .wk span { font-size: var(--text-xs); color: var(--text-muted); font-weight: 600; margin-left: var(--space-1); }
+  .chips { display: flex; flex-direction: column; gap: var(--space-2); margin-top: auto; }
+  .chip {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
+    min-height: 2rem;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    background: rgba(7, 13, 23, 0.45);
+    border: 1px solid rgba(36, 50, 73, 0.7);
+    font-size: var(--text-xs);
+  }
+  .chip b { font-variant-numeric: tabular-nums; }
+  .foot {
+    display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--border);
+  }
+  .start {
+    display: inline-flex; align-items: center; justify-content: space-between;
+    gap: var(--space-3); min-height: var(--control-h-sm); min-width: 12rem;
+    padding: 0 var(--space-4); border-radius: var(--radius-md);
+    border: 1px solid color-mix(in srgb, var(--tone-caution) 55%, transparent);
+    background: var(--tone-caution-soft); color: var(--tone-caution);
+    font: inherit; font-size: 0.92rem; font-weight: 800; cursor: pointer;
+  }
+  .note { margin: 0 auto 0 0; color: var(--text-muted); font-size: var(--text-xs); max-width: 22rem; }
+  @media (max-width: 760px) {
+    .sheet-back { padding: 0; align-items: flex-end; }
+    .sheet { width: 100%; height: 94vh; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+    .sheet-top h2 { font-size: 1.1rem; }
+    .duel { min-height: 0; }
+    .col img { height: 11rem; }
+    .col-body { margin-top: -2.5rem; padding: 0 var(--space-3) var(--space-3); }
+    .col h3 { font-size: 1.15rem; }
+    .wk { font-size: 1.45rem; }
+    .foot { flex-wrap: wrap; }
+    .note { max-width: none; }
+    .start { width: 100%; min-width: 0; }
+  }
+  @media (max-width: 430px) {
+    .sheet-close, .start, .btn { min-height: var(--control-h-lg); }
+  }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>A · Duel</strong> <span>· portraits · facts on the player</span></div>
+  <nav class="concept-nav">
+    <a href="this-week-call.html">Call sheet</a>
+    <a class="is-on" href="this-week-call-a.html">A · Duel</a>
+    <a href="this-week-call-b.html">B · Ticket</a>
+  </nav>
+</div>
+
+<div class="back">
+  <p class="mock-kicker">This Week</p>
+  <h1>2 lineup calls on the board.</h1>
+  <div class="ghost-row"></div>
+  <div class="ghost-row"></div>
+  <div class="ghost-row"></div>
+</div>
+
+<div class="sheet-back">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="call-title">
+    <div class="sheet-top">
+      <div>
+        <p class="sheet-kicker">Lineup call · RB</p>
+        <h2 id="call-title">Sit Jeanty. Start Allen.</h2>
+      </div>
+      <button type="button" class="sheet-close" aria-label="Close">×</button>
+    </div>
+    <div class="duel">
+      <article class="col is-sit">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/11563.jpg" />
+        <div class="col-body">
+          <p class="role">Sit</p>
+          <h3>Ashton Jeanty</h3>
+          <p class="where">LV · Away @ NE · Sun 1:00</p>
+          <p class="wk">16.2<span>wk</span></p>
+          <div class="chips">
+            <div class="chip"><span>Vegas</span><b>+6.5 · O/U 41.5</b></div>
+            <div class="chip"><span>2025 PPG</span><b>14.8</b></div>
+            <div class="chip"><span>Def vs RB</span><b>NE 8th · 16.1</b></div>
+          </div>
+        </div>
+      </article>
+      <article class="col is-go">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/11604.jpg" />
+        <div class="col-body">
+          <p class="role">Start</p>
+          <h3>Braelon Allen</h3>
+          <p class="where">NYJ · Home vs PIT · Sun 4:25</p>
+          <p class="wk">18.6<span>wk</span></p>
+          <div class="chips">
+            <div class="chip"><span>Vegas</span><b>+3.0 · O/U 43.0</b></div>
+            <div class="chip"><span>2025 PPG</span><b>8.2</b></div>
+            <div class="chip"><span>Def vs RB</span><b>PIT 26th · 22.4</b></div>
+          </div>
+        </div>
+      </article>
+    </div>
+    <div class="foot">
+      <p class="note">Week 1 uses last season’s PPG. A rookie stays empty.</p>
+      <button type="button" class="btn btn-ghost">Keep Jeanty</button>
+      <button type="button" class="start"><span>Start Allen</span><span>+2.4</span></button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

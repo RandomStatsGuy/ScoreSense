@@ -1,17 +1,24 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { HubFilterMenu } from "./HubUILayout";
 import { fmtNum, formatRelativeTime } from "../format";
-import { formatP50Move, rowMovementTone } from "../projectionMovement";
+import { formatP50Move } from "../projectionMovement";
+import {
+  PAINT_WIDTH,
+  headshotCandidates,
+  lookupPlayerMedia,
+  paintMediaUrl,
+  playerFaceInitials,
+  teamLogoUrl,
+} from "./draftMedia";
 import {
   boardFreshnessLine,
   boardTitle,
   clampWeek,
   decisionForStarter,
-  emptySpecialistSlots,
   indexByPlayerId,
-  lineupCallAction,
   projectionMissing,
   showVibePts,
+  slatePlayerMeta,
   slotTone,
   startCallLabel,
   swapBenchIdSet,
@@ -25,10 +32,37 @@ function fmtPts(value) {
   return value == null || value === "" ? "—" : fmtNum(value, 1);
 }
 
-function playerMeta(player) {
-  const bits = [player?.position, player?.team].filter(Boolean);
-  if (player?.opponent) bits.push(`vs ${player.opponent}`);
-  return bits.join(" · ");
+function RowFace({ player, slot, media }) {
+  const [shotIndex, setShotIndex] = useState(0);
+  const row = lookupPlayerMedia(media, player?.player_id);
+  const shots = headshotCandidates(row, [], { width: PAINT_WIDTH.avatar });
+  const headshot = shots[shotIndex] || null;
+  const logo = paintMediaUrl(row?.team_logo_url, PAINT_WIDTH.avatar)
+    || teamLogoUrl(player?.team, { width: PAINT_WIDTH.avatar });
+  const fallback = playerFaceInitials(player, slot || "?");
+
+  useEffect(() => {
+    setShotIndex(0);
+  }, [player?.player_id, row?.headshot_url, row?.espn_headshot_url]);
+
+  if (headshot) {
+    return (
+      <img
+        className="hub-wcc-row-face"
+        src={headshot}
+        alt=""
+        onError={() => setShotIndex((n) => n + 1)}
+      />
+    );
+  }
+  if (logo) {
+    return <img className="hub-wcc-row-face" src={logo} alt="" />;
+  }
+  return (
+    <span className="hub-wcc-row-face is-fallback" aria-hidden="true">
+      {fallback}
+    </span>
+  );
 }
 
 function PlayerFlags({ player }) {
@@ -53,92 +87,45 @@ function PlayerFlags({ player }) {
   );
 }
 
-function SlotAction({ decision, callAction, onApplyDecision }) {
+function SlotAction({ decision, onOpenCall }) {
   if (!decision) {
-    return <div className="hub-wcc-slot-action" aria-hidden="true" />;
+    return <div className="hub-wcc-row-action" aria-hidden="true" />;
   }
   const label = startCallLabel(decision);
   const delta = decision.delta_p50 != null ? (
     <span className="hub-wcc-slot-call-delta">+{fmtPts(decision.delta_p50)}</span>
   ) : null;
-  const title = [
-    decision.bench_player_name ? `Start ${decision.bench_player_name}` : label,
-    decision.delta_p50 != null ? `+${fmtPts(decision.delta_p50)}` : "",
-    callAction?.reason,
-  ].filter(Boolean).join(" · ");
-
-  if (callAction?.kind === "sleeper" && callAction.href) {
-    return (
-      <div className="hub-wcc-slot-action">
-        <a
-          className="hub-wcc-slot-call is-action"
-          href={callAction.href}
-          target="_blank"
-          rel="noreferrer"
-          title={title}
-        >
-          <span>{label}</span>
-          {delta}
-        </a>
-      </div>
-    );
-  }
-
-  const locked = callAction?.kind === "locked";
-  const clickable = callAction?.kind === "apply" && onApplyDecision;
-  const body = (
-    <>
-      <span>{label}</span>
-      {delta}
-    </>
-  );
-
-  if (clickable) {
-    return (
-      <div className="hub-wcc-slot-action">
-        <button
-          type="button"
-          className="hub-wcc-slot-call is-action"
-          title={title}
-          onClick={(event) => {
-            event.stopPropagation();
-            onApplyDecision(decision);
-          }}
-        >
-          {body}
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="hub-wcc-slot-action">
+    <div className="hub-wcc-row-action">
       <button
         type="button"
-        className={`hub-wcc-slot-call is-action${locked ? " is-locked" : ""}`}
-        title={title}
-        disabled={locked}
-        onClick={callAction?.kind === "external" ? (event) => event.stopPropagation() : undefined}
+        className="hub-wcc-slot-call is-action"
+        title={decision.bench_player_name ? `Start ${decision.bench_player_name}` : label}
+        onClick={(event) => {
+          event.stopPropagation();
+          onOpenCall?.(decision);
+        }}
       >
-        {body}
+        <span>{label}</span>
+        {delta}
       </button>
     </div>
   );
 }
 
-function SlotCard({
+function SlateRow({
   slot,
   decision,
   highlighted = false,
   wide,
   movement,
   vibePts,
-  callAction,
   canEdit,
   selected,
   onSelect,
-  onApplyDecision,
+  onOpenCall,
   onFillSlot,
+  media,
 }) {
   const player = slot.player;
   const empty = !player;
@@ -149,71 +136,75 @@ function SlotCard({
     ? "swap"
     : slotTone(slot, { decision, wide: false, injured, onBye });
   const moveLabel = formatP50Move(movement?.p50_delta ?? movement?.delta_p50);
-  const moveTone = movement ? rowMovementTone(movement) : "neutral";
   const label = empty
     ? `${slot.slot} slot, empty`
     : `${slot.slot} ${player.player_name || player.player_id}`;
   const showVibe = showVibePts(player, vibePts);
+  const marks = [];
+  if (wide && !missing && player) {
+    marks.push(`${fmtPts(player.p10)}–${fmtPts(player.p90)}`);
+  }
+  if (showVibe) marks.push(`${WEEK_BOARD_COPY.vibePts} ${fmtPts(vibePts)}`);
+  if (moveLabel) marks.push(moveLabel);
 
   return (
     <article
-      className={"hub-wcc-slot hub-wcc-slot--" + tone + (decision ? " is-swap" : "") + (empty ? " is-empty" : "") + (selected ? " is-target" : "") + (canEdit && !empty ? " is-editable" : "") + (!canEdit ? " is-inert" : "")}
+      className={
+        "hub-wcc-row"
+        + ` hub-wcc-row--${tone}`
+        + (decision ? " is-call" : "")
+        + (empty ? " is-empty" : "")
+        + (selected ? " is-target" : "")
+        + (highlighted ? " is-pick" : "")
+        + (canEdit && !empty ? " is-editable" : "")
+        + (!canEdit ? " is-inert" : "")
+      }
       aria-label={label}
       onClick={canEdit && !empty && onSelect ? () => onSelect(slot) : undefined}
     >
-      <header className="hub-wcc-slot-head">
-        <span className="hub-wcc-slot-pos">{slot.slot}</span>
-        {moveLabel ? (
-          <span className={`hub-wcc-slot-move hub-wcc-slot-move--${moveTone}`}>
-            {moveLabel}
+      <span className="hub-wcc-row-pos">{slot.slot}</span>
+      <RowFace player={player} slot={slot.slot} media={media} />
+      {empty ? (
+        <div className="hub-wcc-row-who">
+          <strong>{WEEK_BOARD_COPY.emptySlotName}</strong>
+          <span>{slot.position === "K" || slot.position === "DEF" ? WEEK_BOARD_COPY.specialistEmpty : slot.slot}</span>
+        </div>
+      ) : (
+        <div className="hub-wcc-row-who">
+          <strong>{player.player_name || player.player_id}</strong>
+          <span>{slatePlayerMeta(player)}</span>
+        </div>
+      )}
+      <div className={`hub-wcc-row-pts${missing ? " is-quiet" : ""}`}>
+        {empty || missing ? (
+          empty ? null : WEEK_BOARD_COPY.noProjection
+        ) : (
+          <>
+            {fmtPts(player.p50)}
+            <small>{WEEK_BOARD_COPY.ptsUnit}</small>
+          </>
+        )}
+      </div>
+      <div className="hub-wcc-row-mark">
+        {marks.length ? (
+          <span
+            className={wide && !missing ? "is-wide" : undefined}
+            title={showVibe ? WEEK_BOARD_COPY.vibeNote : (wide ? WEEK_BOARD_COPY.railWideHint : undefined)}
+          >
+            {marks.join(" · ")}
           </span>
         ) : null}
-      </header>
-      {empty ? (
-        onFillSlot ? (
-          <>
-            <p className="hub-wcc-slot-empty-label">Empty</p>
-            <button type="button" className="btn-link hub-wcc-slot-fill" onClick={onFillSlot}>
-              {WEEK_BOARD_COPY.emptySlot(slot.slot)}
-            </button>
-          </>
-        ) : (
-          <p className="hub-wcc-slot-waiting">Empty</p>
-        )
+        <PlayerFlags player={player} />
+      </div>
+      {empty && onFillSlot ? (
+        <div className="hub-wcc-row-action">
+          <button type="button" className="btn-link hub-wcc-slot-fill" onClick={onFillSlot}>
+            {WEEK_BOARD_COPY.emptySlot(slot.slot)}
+          </button>
+        </div>
       ) : (
-        <>
-          <div className="hub-wcc-slot-player">
-            <strong>{player?.player_name || player?.player_id}</strong>
-            <span className="chart-note">{playerMeta(player)}</span>
-          </div>
-          <div className="hub-wcc-slot-proj">
-            <span className={`hub-wcc-slot-p50${missing ? " is-quiet" : ""}`}>
-              {missing ? WEEK_BOARD_COPY.noProjection : (
-                <>
-                  {fmtPts(player.p50)}
-                  <span className="hub-wcc-slot-unit">{WEEK_BOARD_COPY.ptsUnit}</span>
-                </>
-              )}
-            </span>
-            {wide && !missing ? (
-              <span className="hub-wcc-slot-range is-wide" title={WEEK_BOARD_COPY.railWideHint}>
-                {fmtPts(player.p10)}–{fmtPts(player.p90)}
-              </span>
-            ) : null}
-            {showVibe ? (
-              <span className="hub-wcc-slot-vibe" title={WEEK_BOARD_COPY.vibeNote}>
-                {WEEK_BOARD_COPY.vibePts} {fmtPts(vibePts)}
-              </span>
-            ) : null}
-            <PlayerFlags player={player} />
-          </div>
-        </>
+        <SlotAction decision={decision} onOpenCall={onOpenCall} />
       )}
-      <SlotAction
-        decision={decision}
-        callAction={callAction}
-        onApplyDecision={onApplyDecision}
-      />
     </article>
   );
 }
@@ -284,6 +275,8 @@ export default function WeekLineupBoard({
   onSelectSlot,
   onApplyDecision,
   onNavigate,
+  onOpenCall,
+  media = {},
   includeChrome = true,
   includeStarters = true,
   includeBench = true,
@@ -299,20 +292,17 @@ export default function WeekLineupBoard({
     emptyRoster,
     unlinked,
   });
-  const callAction = lineupCallAction({ canEdit, lineupLocked, sleeperLeagueId });
   const freshness = boardFreshnessLine({
     rosterAt: rosterSyncedAt,
     weekBoardAt: projectionsBuiltAt,
     rosterLabel: syncedLabel,
     weekLabel: projectionsBuiltAt ? formatRelativeTime(projectionsBuiltAt) : "",
   });
-  const specialists = emptySpecialistSlots(slots);
-
-  const renderCard = (slot, { onSelect, selected, highlighted = false, showCall = true } = {}) => {
+  const renderRow = (slot, { onSelect, selected, highlighted = false, showCall = true } = {}) => {
     const player = slot.player;
     const pid = player?.player_id;
     return (
-      <SlotCard
+      <SlateRow
         key={slot.key || pid || slot.slot}
         slot={slot}
         decision={showCall ? decisionForStarter(slot, decisions) : null}
@@ -320,12 +310,12 @@ export default function WeekLineupBoard({
         wide={pid ? wideById.get(String(pid)) : null}
         movement={pid ? moveById.get(String(pid)) : null}
         vibePts={pid ? vibeById[String(pid)] : null}
-        callAction={callAction}
         canEdit={canEdit}
         selected={selected}
         onSelect={onSelect}
-        onApplyDecision={onApplyDecision}
+        onOpenCall={onOpenCall}
         onFillSlot={!pid && onNavigate ? () => onNavigate("available") : undefined}
+        media={media}
       />
     );
   };
@@ -333,9 +323,9 @@ export default function WeekLineupBoard({
   const benchBlock = !emptyRoster && bench.length > 0 ? (
     <div className="hub-wcc-bench">
       <h4>Bench</h4>
-      <div className="hub-wcc-board-grid hub-wcc-bench-grid">
+      <div className="hub-wcc-slate hub-wcc-bench-slate">
         {bench.filter((player) => player?.player_id).map((player) => (
-          renderCard(
+          renderRow(
             {
               key: `bn-${player.player_id}`,
               slot: "BN",
@@ -420,8 +410,8 @@ export default function WeekLineupBoard({
 
       {includeStarters ? (
         <div className="hub-wcc-board-stage">
-          <div className="hub-wcc-board-grid" id="hub-wcc-calls">
-            {hideSlots ? null : slots.map((slot) => renderCard(slot, {
+          <div className="hub-wcc-slate" id="hub-wcc-calls">
+            {hideSlots ? null : slots.map((slot) => renderRow(slot, {
               onSelect: onSelectSlot,
               selected: Boolean(canEdit && selectedBenchId && slot.player?.player_id),
             }))}

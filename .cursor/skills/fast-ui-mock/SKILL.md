@@ -17,7 +17,7 @@ This pass is for **options**. It is not documentation and not a ship.
 
 ## Do not (mock pass)
 
-- Screenshot, record, or write a design essay
+- Write a design essay
 - Open the product app or computerUse to “document” options
 - Use Vercel, v0, or Figma file creation
 - Call GenerateImage (wrong tokens; tables lie)
@@ -30,9 +30,12 @@ This pass is for **options**. It is not documentation and not a ship.
 3. Copy the starter into `docs/mockups/{slug}-a.html` and `{slug}-b.html`. Add `-c` only when the third fork is a real layout, not decoration.
 4. Keep mock chrome (header, subnav, hero). Tokens from `mockup-shared.css` only. Each option must change a decision or a layout beat. Mock pages must pass `layout_audit` too — otherwise the picked option ships the same bar / table / header bugs.
 5. Add a chooser row on `docs/mockups/index.html` (and a `{slug}.html` chooser if A/B/C need a sentence each).
-6. Start `bash scripts/dev/serve_mockups.sh`. Local: give `http://127.0.0.1:5174/{slug}.html`. Cloud: give the `docs/mockups/{slug}-*.html` paths on the branch — a web viewer cannot open `127.0.0.1` — and still no screenshots.
-7. **Stop.** One line per option. Wait for the pick.
+6. Start `bash scripts/dev/serve_mockups.sh`. Local: give `http://127.0.0.1:5174/{slug}.html`. Cloud: give the `docs/mockups/{slug}-*.html` paths on the branch — a web viewer cannot open `127.0.0.1`.
+7. Screenshot each option at 1280 (hero plus the unique layout beat). One image per letter. No design essay.
+8. **Stop.** One line per option. Wait for the pick.
 
 ## After they pick
 
-Implement on the living `page` / `copy`. Then `.cursor/skills/verify-fantasy-ui/SKILL.md`. Screenshots only after that ship, never on the mock pass.
+If the pick adds an overlay, sheet, or popup that was not in the chosen option, mock that surface and screenshot it first. Then wait.
+
+Implement on the living `page` / `copy`. Then `.cursor/skills/verify-fantasy-ui/SKILL.md`.

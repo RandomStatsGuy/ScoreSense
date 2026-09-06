@@ -32,6 +32,7 @@ These are checked by `scripts/dev/layout_audit.mjs`. A change is not done until 
 - Interactive targets are ≥ 32 tall at 1280 and ≥ 44 at 390. Do not apply the phone 44 floor on desktop. Lock/Skip/Add/History in a row share one style tier (all buttons or all links, not mixed).
 - One primary per viewport. A second blue filled button on screen is a bug. Undo, secondary, and "browse" are ghost or text. Do not demote whichever `.btn-primary` is second in the DOM to satisfy the audit — each extra primary is a judgment call on an approved list. Approved: Cap Undo cut is ghost (leftover / open the room stays primary); Home chat Send is ghost (the deck action stays); Trades Continue or Propose is the only primary (Accept and Load into builder are ghost).
 - Native `<select>` is never used; `HubFilterMenu` is. Applies to Rules, DFS, Season, every page.
+- Option menus that overflow their host must paint above later siblings. Atmosphere pins `.draft-hub` children at z-index 1 so the wash stays behind content — raise `.hub-league-context-bar` to `--z-dropdown` (or portal the menu). A later `.hub-page` at the same z-index as the strip is a bug. Checked by layout_audit `menus`.
 
 ## Type
 - Never below `--text-xs`. `--text-xs` must compute to at least 12px. Legal / compliance text is `--text-xs` or larger, muted color, and lives in the footer — not inline next to a heading.

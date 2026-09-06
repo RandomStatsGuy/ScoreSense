@@ -8,12 +8,14 @@ starter counts + P50 ranking — Hub does not persist weekly lineup slots.
 from __future__ import annotations
 
 import math
+import re
 from typing import Any, Iterable
 
 import numpy as np
 import pandas as pd
 
 from src.core.projection_context import resolve_projection_context
+from src.core.team_codes import normalize_team_to_mlready
 from src.config import PROCESSED_DATA_DIR
 from src.draft_hub import storage
 from src.draft_hub.hub_context import list_roster_for_context
@@ -24,7 +26,7 @@ from src.projections.player_compare import (
     position_rank_map,
     volatility,
 )
-from src.draft_hub.player_name_match import name_key
+from src.draft_hub.player_name_match import last_name_key, name_key
 from src.projections.weekly_cache import load_weekly_prediction
 
 # nflverse/mlready uses LA/JAC/WAS; Sleeper rosters often use LAR/JAX/WSH.
@@ -61,6 +63,21 @@ _P10_KEYS = ("Low (P10)", "P10", "p10")
 _P90_KEYS = ("High (P90)", "P90", "p90")
 
 _UNAVAILABLE_INJURY = ("out", "ir", "pup", "inactive", "suspended")
+
+_MLREADY_SLIM_CACHE: dict[str, tuple[tuple[str, int], pd.DataFrame]] = {}
+_PRIOR_PPG_CACHE: dict[int, tuple[tuple[str, ...], dict[str, Any]]] = {}
+_DEF_VS_POS_CACHE: dict[tuple[int, int], tuple[tuple[str, ...], dict[tuple[str, str], dict[str, Any]]]] = {}
+_VEGAS_CACHE: dict[tuple[int, int], dict[str, dict[str, Any]]] = {}
+_MLREADY_SLIM_COLS = (
+    "player_id",
+    "player_name",
+    "position",
+    "season",
+    "week",
+    "team",
+    "opponent",
+    "Fpts",
+)
 
 
 def _json_safe(value: Any) -> Any:
@@ -315,8 +332,257 @@ def _enrich_roster_players(
             "position_rank": proj.get("position_rank"),
             "has_projection": bool(proj.get("has_projection")),
             "projection_missing": not bool(proj.get("has_projection")),
+            "proj_player_id": proj.get("player_id") or None,
         }
         cards.append(card)
+    return cards
+
+
+def _norm_team(team: str | None) -> str:
+    raw = str(team or "").strip().upper()
+    if not raw or raw == "BYE":
+        return ""
+    return normalize_team_to_mlready(raw.lstrip("@"))
+
+
+def _team_lookup_keys(team: str | None) -> tuple[str, ...]:
+    code = _norm_team(team)
+    if not code:
+        return ()
+    aliases = _TEAM_LOOKUP_ALIASES.get(code, (code,))
+    return tuple(dict.fromkeys((code, *aliases)))
+
+
+def _read_mlready_slim(position: str) -> pd.DataFrame:
+    pos = str(position or "").lower()
+    for ext in (".parquet", ".csv"):
+        path = PROCESSED_DATA_DIR / f"{pos}_mlready{ext}"
+        if not path.exists():
+            continue
+        key = (str(path), int(path.stat().st_mtime_ns))
+        cached = _MLREADY_SLIM_CACHE.get(pos)
+        if cached and cached[0] == key:
+            return cached[1]
+        try:
+            if ext == ".parquet":
+                frame = pd.read_parquet(path, columns=list(_MLREADY_SLIM_COLS))
+            else:
+                frame = pd.read_csv(path, usecols=lambda col: col in _MLREADY_SLIM_COLS)
+        except Exception:
+            continue
+        _MLREADY_SLIM_CACHE[pos] = (key, frame)
+        return frame
+    return pd.DataFrame(columns=list(_MLREADY_SLIM_COLS))
+
+
+def _mlready_fingerprint(*positions: str) -> tuple[str, ...]:
+    parts: list[str] = []
+    for pos in positions:
+        for ext in (".parquet", ".csv"):
+            path = PROCESSED_DATA_DIR / f"{pos}_mlready{ext}"
+            if path.exists():
+                parts.append(f"{pos}:{path.stat().st_mtime_ns}")
+                break
+    return tuple(parts)
+
+
+def _load_prior_ppg_index(season: int) -> dict[str, Any]:
+    """player_id / name|team → last-season PPG. Cached; empty when mlready is missing."""
+    season = int(season)
+    fp = _mlready_fingerprint("qb", "rb", "wr")
+    cached = _PRIOR_PPG_CACHE.get(season)
+    if cached and cached[0] == fp:
+        return cached[1]
+    frames = [_read_mlready_slim(pos) for pos in ("qb", "rb", "wr")]
+    frames = [frame for frame in frames if not frame.empty]
+    empty = {"by_id": {}, "by_name_team": {}, "season": season - 1}
+    if not frames:
+        _PRIOR_PPG_CACHE[season] = (fp, empty)
+        return empty
+    try:
+        from src.projections.season_blend import prior_year_ppg_map
+
+        df = pd.concat(frames, ignore_index=True)
+        series = prior_year_ppg_map(df, season)
+    except Exception:
+        _PRIOR_PPG_CACHE[season] = (fp, empty)
+        return empty
+    by_id: dict[str, float] = {}
+    by_name_team: dict[str, float] = {}
+    for pid, value in series.items():
+        if value is None or (isinstance(value, float) and (math.isnan(value) or math.isinf(value))):
+            continue
+        ppg = round(float(value), 1)
+        key = str(pid)
+        if key:
+            by_id[key] = ppg
+    prior_season = season - 1
+    prior_rows = df[(df["season"] == prior_season) & (df["week"].between(1, 18))]
+    for row in prior_rows.itertuples(index=False):
+        pid = str(getattr(row, "player_id", "") or "")
+        ppg = by_id.get(pid)
+        if ppg is None:
+            continue
+        team = _norm_team(getattr(row, "team", None))
+        for nk in _ppg_name_keys(str(getattr(row, "player_name", "") or "")):
+            if nk and team:
+                by_name_team[f"{nk}|{team}"] = ppg
+    index = {"by_id": by_id, "by_name_team": by_name_team, "season": prior_season}
+    _PRIOR_PPG_CACHE[season] = (fp, index)
+    return index
+
+
+def _lookup_prior_ppg(card: dict[str, Any], index: dict[str, Any]) -> float | None:
+    by_id = index.get("by_id") or {}
+    for raw in (
+        card.get("proj_player_id"),
+        card.get("player_id"),
+        card.get("sleeper_player_id"),
+    ):
+        pid = str(raw or "").strip()
+        if not pid:
+            continue
+        if pid in by_id:
+            return by_id[pid]
+        if pid.startswith("sleeper-") and pid.removeprefix("sleeper-") in by_id:
+            return by_id[pid.removeprefix("sleeper-")]
+        prefixed = f"sleeper-{pid}"
+        if prefixed in by_id:
+            return by_id[prefixed]
+    keys = _ppg_name_keys(str(card.get("player_name") or ""))
+    by_name = index.get("by_name_team") or {}
+    for nk in keys:
+        for team in _team_lookup_keys(card.get("team")):
+            hit = by_name.get(f"{nk}|{team}")
+            if hit is not None:
+                return hit
+    for nk in keys:
+        named = [value for key, value in by_name.items() if str(key).startswith(f"{nk}|")]
+        uniq = {value for value in named}
+        if len(uniq) == 1:
+            return next(iter(uniq))
+    return None
+
+
+def _ppg_name_keys(name: str) -> tuple[str, ...]:
+    """Full name key plus initial+last so K.Walker matches Kenneth Walker."""
+    raw = str(name or "").strip()
+    if not raw:
+        return ()
+    keys: list[str] = []
+    full = name_key(raw)
+    if full:
+        keys.append(full)
+    last = last_name_key(raw)
+    tokens = [part for part in re.split(r"[\s.]+", raw) if part]
+    first = tokens[0] if tokens else ""
+    initial = "".join(ch for ch in first if ch.isalpha())[:1].lower()
+    if initial and last:
+        short = f"{initial}{last}"
+        if short not in keys:
+            keys.append(short)
+    return tuple(keys)
+
+
+def _load_def_vs_pos(season: int, week: int) -> dict[tuple[str, str], dict[str, Any]]:
+    """(position, opponent) → {rank, ppg}. 1 = toughest (lowest Fpts allowed)."""
+    key = (int(season), int(week))
+    fp = _mlready_fingerprint("qb", "rb", "wr")
+    cached = _DEF_VS_POS_CACHE.get(key)
+    if cached and cached[0] == fp:
+        return cached[1]
+    out: dict[tuple[str, str], dict[str, Any]] = {}
+    for pos in ("QB", "RB", "WR"):
+        df = _read_mlready_slim(pos.lower())
+        if df.empty or "Fpts" not in df.columns:
+            continue
+        current = df[(df["season"] == season) & (df["week"] < week)]
+        sample = current
+        if current.empty or current["week"].nunique() < 4:
+            prior = df[df["season"] == season - 1]
+            if not prior.empty:
+                sample = pd.concat([prior, current], ignore_index=True)
+        if sample.empty:
+            continue
+        sample = sample.copy()
+        sample["opp"] = sample["opponent"].map(_norm_team)
+        sample = sample[sample["opp"] != ""]
+        if sample.empty:
+            continue
+        grouped = sample.groupby("opp", as_index=True)["Fpts"].mean()
+        ranks = grouped.rank(method="min", ascending=True)
+        for opp, ppg in grouped.items():
+            out[(pos, str(opp))] = {
+                "rank": int(ranks.loc[opp]),
+                "ppg": round(float(ppg), 1),
+            }
+    _DEF_VS_POS_CACHE[key] = (fp, out)
+    return out
+
+
+def _load_vegas_teams(season: int, week: int) -> dict[str, dict[str, Any]]:
+    cache_key = (int(season), int(week))
+    if cache_key in _VEGAS_CACHE:
+        return _VEGAS_CACHE[cache_key]
+    try:
+        from src.products.vegas_lines import build_vegas_board
+
+        board = build_vegas_board(int(season), int(week))
+        teams = board.get("teams") or {}
+    except Exception:
+        teams = {}
+    _VEGAS_CACHE[cache_key] = teams
+    return teams
+
+
+def _vegas_for_team(teams: dict[str, dict[str, Any]], team: str | None) -> dict[str, Any]:
+    for code in _team_lookup_keys(team):
+        hit = teams.get(code)
+        if hit:
+            return hit
+    return {}
+
+
+def attach_call_facts(
+    cards: list[dict[str, Any]],
+    *,
+    season: int,
+    week: int,
+    vegas_teams: dict[str, dict[str, Any]] | None = None,
+    prior_ppg: dict[str, Any] | None = None,
+    def_vs_pos: dict[tuple[str, str], dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Attach Ticket-sheet facts. Soft-fail: missing sources leave fields empty."""
+    if vegas_teams is None:
+        vegas_teams = _load_vegas_teams(season, week)
+    if prior_ppg is None:
+        prior_ppg = _load_prior_ppg_index(season)
+    if def_vs_pos is None:
+        def_vs_pos = _load_def_vs_pos(season, week)
+    prior_season = prior_ppg.get("season") if isinstance(prior_ppg, dict) else season - 1
+    for card in cards:
+        ctx = _vegas_for_team(vegas_teams, card.get("team"))
+        if ctx:
+            card["vegas_spread"] = _round_opt(ctx.get("spread"), 1)
+            card["vegas_total"] = _round_opt(ctx.get("total_line"), 1)
+            card["is_home"] = bool(ctx.get("is_home")) if ctx.get("is_home") is not None else None
+            card["kickoff_et"] = ctx.get("kickoff_et")
+            card["weekday"] = ctx.get("weekday")
+            if not card.get("opponent") and ctx.get("opponent"):
+                card["opponent"] = ctx.get("opponent")
+        else:
+            card.setdefault("vegas_spread", None)
+            card.setdefault("vegas_total", None)
+            card.setdefault("is_home", None)
+            card.setdefault("kickoff_et", None)
+            card.setdefault("weekday", None)
+        card["prior_ppg"] = _lookup_prior_ppg(card, prior_ppg)
+        card["prior_ppg_season"] = prior_season
+        pos = normalize_position(card.get("position"))
+        opp = _norm_team(card.get("opponent"))
+        dvp = def_vs_pos.get((pos, opp)) if opp and pos in {"QB", "RB", "WR"} else None
+        card["opp_def_rank"] = int(dvp["rank"]) if dvp and dvp.get("rank") is not None else None
+        card["opp_def_ppg"] = _round_opt(dvp.get("ppg"), 1) if dvp else None
     return cards
 
 
@@ -718,6 +984,11 @@ def build_weekly_command_center(
         ctx,
         players,
         rules,
+        season=resolved_season,
+        week=resolved_week,
+    )
+    attach_call_facts(
+        [*starters, *bench],
         season=resolved_season,
         week=resolved_week,
     )

@@ -9,8 +9,20 @@ import {
   slotTone,
   startCallLabel,
   startSurname,
+  keepCallLabel,
+  callTitle,
+  callPpgNote,
+  formatVegasFact,
+  formatPriorPpgFact,
+  formatDefVsFact,
+  formatKickoffFact,
+  callFaceMeta,
+  slatePlayerMeta,
+  ordinalRank,
+  priorPpgSeason,
   sleeperLineupUrl,
   lineupCallAction,
+  callStartLinkProps,
   swapBenchIdSet,
   canEditHubLineup,
   clampWeek,
@@ -228,6 +240,52 @@ test("week board names the Vibes number instead of staying silent", () => {
   assert.match(WEEK_BOARD_COPY.vibeNote, /model/i);
 });
 
+test("ticket copy names sit, start, keep, and the week-1 PPG rule", () => {
+  const decision = {
+    starter_player_name: "Ashton Jeanty",
+    bench_player_name: "Braelon Allen",
+    starter_slot: "RB",
+  };
+  assert.equal(callTitle(decision), "Sit Jeanty. Start Allen.");
+  assert.equal(keepCallLabel(decision), "Keep Jeanty");
+  assert.equal(startCallLabel(decision), "Start Allen");
+  assert.equal(WEEK_BOARD_COPY.callKicker("RB"), "Lineup call · RB");
+  assert.equal(WEEK_BOARD_COPY.vegas, "Vegas");
+  assert.equal(WEEK_BOARD_COPY.priorPpg(2025), "2025 PPG");
+  assert.equal(WEEK_BOARD_COPY.defVs("RB"), "Def vs RB");
+  assert.equal(WEEK_BOARD_COPY.kickoff, "Kickoff");
+  assert.match(callPpgNote(1), /last season/i);
+  assert.match(callPpgNote(1), /rookie/i);
+  assert.equal(priorPpgSeason(2026), 2025);
+  assert.doesNotMatch(WEEK_BOARD_COPY.week1PpgNote, /Draft Hub|Submit/i);
+});
+
+test("ticket facts format Vegas, prior PPG, def vs pos, and kickoff", () => {
+  const player = {
+    team: "LV",
+    opponent: "NE",
+    is_home: false,
+    vegas_spread: 6.5,
+    vegas_total: 41.5,
+    prior_ppg: 14.8,
+    opp_def_rank: 8,
+    opp_def_ppg: 16.1,
+    kickoff_et: "2026-09-13T13:00:00-04:00",
+  };
+  assert.equal(formatVegasFact(player), "+6.5 · O/U 41.5");
+  assert.equal(formatPriorPpgFact(player), "14.8");
+  assert.equal(formatPriorPpgFact({}), "—");
+  assert.equal(formatPriorPpgFact({ prior_ppg: null }), "—");
+  assert.equal(formatPriorPpgFact({ prior_ppg: 0 }), "0.0");
+  assert.equal(formatVegasFact({ vegas_spread: null, vegas_total: null }), "—");
+  assert.equal(formatDefVsFact(player), "NE 8th · 16.1");
+  assert.equal(ordinalRank(1), "1st");
+  assert.equal(ordinalRank(22), "22nd");
+  assert.match(formatKickoffFact(player), /^Sun /);
+  assert.equal(callFaceMeta(player), "LV · Away @ NE");
+  assert.equal(slatePlayerMeta({ position: "RB", team: "LV", opponent: "NE" }), "RB · LV · vs NE");
+});
+
 test("start button uses a short surname and a real action", () => {
   assert.equal(startSurname("J.K. Dobbins"), "Dobbins");
   assert.equal(startSurname("Malik Nabers"), "Nabers");
@@ -238,6 +296,13 @@ test("start button uses a short surname and a real action", () => {
   assert.equal(sleeperLineupUrl("12345"), "https://sleeper.com/leagues/12345");
   assert.equal(lineupCallAction({ sleeperLeagueId: "12345" }).kind, "sleeper");
   assert.equal(lineupCallAction({}).kind, "external");
+  assert.equal(callStartLinkProps({ href: "https://sleeper.com/leagues/1" }).href, "https://sleeper.com/leagues/1");
+  assert.deepEqual(callStartLinkProps({ href: "https://sleeper.com/leagues/1", busy: true }), {
+    href: undefined,
+    "aria-disabled": true,
+    tabIndex: -1,
+  });
+  assert.equal(callStartLinkProps({}), null);
 });
 
 test("freshness line drops mid-sentence Updated and flags a stale roster", () => {
