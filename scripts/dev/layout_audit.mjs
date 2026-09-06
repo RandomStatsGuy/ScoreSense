@@ -24,7 +24,7 @@ export const COLUMN_PACK_RATIO = 1.5;
 export const GUTTER_EDGE_SELECTORS = [
   "[class*='hero']",
   ".hub-league-strip, .league-overflow-lead, .hub-league-bar",
-  ".hub-table-card, .hub-experience-section, .hub-section",
+  ".hub-experience-layout, .hub-home-club, .hub-table-card, .hub-experience-section, .hub-section",
 ];
 
 export function parseGate(value) {
@@ -106,8 +106,13 @@ export function tableWidthDeadZone(tableWidth, cardClientWidth, padL = 0, padR =
 
 export function pickBarControl(el) {
   if (!el) return null;
+  if (typeof el.matches === "function" && el.matches(".hub-filter-menu-trigger, [role='combobox']")) return el;
   if (typeof el.matches === "function" && el.matches(BAR_CONTROL_SELECTOR)) return el;
-  if (typeof el.querySelector === "function") return el.querySelector(BAR_CONTROL_SELECTOR);
+  if (typeof el.querySelector === "function") {
+    const trigger = el.querySelector(".hub-filter-menu-trigger, [role='combobox']");
+    if (trigger) return trigger;
+    return el.querySelector(BAR_CONTROL_SELECTOR);
+  }
   return null;
 }
 
@@ -199,8 +204,10 @@ function measureScript() {
       const kids = [...el.children].filter((c) => getComputedStyle(c).display !== "none");
       const controlHeights = kids
         .map((c) => {
-          if (c.matches(barControlSelector)) return c.offsetHeight;
-          const inner = c.querySelector(barControlSelector);
+          const trigger = c.matches(".hub-filter-menu-trigger, [role='combobox']")
+            ? c
+            : c.querySelector(".hub-filter-menu-trigger, [role='combobox']");
+          const inner = trigger || (c.matches(barControlSelector) ? c : c.querySelector(barControlSelector));
           return inner ? inner.offsetHeight : 0;
         })
         .filter((h) => h > 0);
@@ -310,6 +317,8 @@ function measureScript() {
     const gridTables = [];
     document.querySelectorAll("*").forEach((el) => {
       if (el.matches("table, [role='table'], [role='grid']")) return;
+      const tableLike = /table|grid/i.test(el.className || "") || el.getAttribute("role") === "table";
+      if (!tableLike) return;
       const kids = [...el.children].filter((child) => {
         const cs = getComputedStyle(child);
         return cs.display !== "none" && child.offsetHeight > 0;

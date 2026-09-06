@@ -4792,11 +4792,14 @@ button.btn-link.hub-league-switcher-create:hover {
 .hub-cap-money input {
   width: 4.5rem;
   min-width: 0;
+  min-height: 0;
+  height: auto;
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--text-primary);
   font-size: var(--text-sm);
+  line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
 

@@ -5634,9 +5634,12 @@ td.col-rank.col-rank-top {
 .hub-toolbar-form .hub-cap-money input[type="text"] {
   width: 4.5rem;
   min-width: 0;
+  min-height: 0;
+  height: auto;
   padding: 0;
   border: 0;
   background: transparent;
+  line-height: 1.2;
 }
 
 .hub-toolbar-form select,
@@ -19501,6 +19504,9 @@ th.sortable-header {
   top: 0.65rem;
   right: 0.65rem;
   z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-h-sm);
   background: rgba(8, 12, 20, 0.72);
   color: var(--text-primary);
   border: 1px solid rgba(255, 255, 255, 0.18);
