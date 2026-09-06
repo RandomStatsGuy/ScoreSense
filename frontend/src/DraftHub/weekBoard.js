@@ -45,6 +45,20 @@ export const WEEK_BOARD_COPY = {
   vibePts: "Vibes",
   findSpecialists: "Empty K or DEF — Cap already knows. Find them on Free agents.",
   weekLabel: "Week",
+  callKicker: (slot) => (slot ? `Lineup call · ${slot}` : "Lineup call"),
+  sitRole: "Sit",
+  startRole: "Start",
+  weekPts: "Week pts",
+  vegas: "Vegas",
+  priorPpg: (season) => (season != null ? `${season} PPG` : "Prior PPG"),
+  defVs: (pos) => (pos ? `Def vs ${pos}` : "Def vs pos"),
+  kickoff: "Kickoff",
+  emptyFact: "—",
+  closeCall: "Close",
+  keepFallback: "Keep starter",
+  week1PpgNote: "Week 1 uses last season’s PPG. A rookie stays empty.",
+  laterPpgNote: "Last season’s PPG. A rookie stays empty.",
+  specialistEmpty: "Specialist",
 };
 
 export const WEEK_BOUNDS = { min: 1, max: 22 };
@@ -434,6 +448,121 @@ export function startSurname(name) {
 export function startCallLabel(decision) {
   const surname = startSurname(decision?.bench_player_name);
   return surname ? `Start ${surname}` : WEEK_BOARD_COPY.startFallback;
+}
+
+export function keepCallLabel(decision) {
+  const surname = startSurname(decision?.starter_player_name);
+  return surname ? `Keep ${surname}` : WEEK_BOARD_COPY.keepFallback;
+}
+
+export function callTitle(decision) {
+  const sit = startSurname(decision?.starter_player_name);
+  const go = startSurname(decision?.bench_player_name);
+  if (sit && go) return `Sit ${sit}. Start ${go}.`;
+  if (go) return `Start ${go}.`;
+  return WEEK_BOARD_COPY.callKicker(decision?.starter_slot);
+}
+
+export function priorPpgSeason(season) {
+  const year = Number(season);
+  return Number.isFinite(year) ? year - 1 : null;
+}
+
+export function callPpgNote(week) {
+  return Number(week) === 1 ? WEEK_BOARD_COPY.week1PpgNote : WEEK_BOARD_COPY.laterPpgNote;
+}
+
+export function ordinalRank(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  const rounded = Math.round(n);
+  const mod100 = rounded % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${rounded}th`;
+  const suffix = { 1: "st", 2: "nd", 3: "rd" }[rounded % 10] || "th";
+  return `${rounded}${suffix}`;
+}
+
+export function formatVegasFact(player) {
+  const spread = Number(player?.vegas_spread);
+  const total = Number(player?.vegas_total);
+  const bits = [];
+  if (Number.isFinite(spread)) bits.push(spread > 0 ? `+${spread}` : String(spread));
+  if (Number.isFinite(total)) bits.push(`O/U ${total}`);
+  return bits.join(" · ") || WEEK_BOARD_COPY.emptyFact;
+}
+
+export function formatKickoffFact(player) {
+  const iso = player?.kickoff_et;
+  if (iso) {
+    const date = new Date(iso);
+    if (!Number.isNaN(date.getTime())) {
+      const day = date.toLocaleDateString("en-US", {
+        weekday: "short",
+        timeZone: "America/New_York",
+      });
+      const time = date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone: "America/New_York",
+      });
+      const compact = time.replace(/\s*[AP]M/i, "").trim();
+      return `${day} ${compact}`;
+    }
+  }
+  const weekday = String(player?.weekday || "").trim();
+  return weekday ? weekday.slice(0, 3) : WEEK_BOARD_COPY.emptyFact;
+}
+
+export function formatPriorPpgFact(player) {
+  const ppg = Number(player?.prior_ppg);
+  if (!Number.isFinite(ppg)) return WEEK_BOARD_COPY.emptyFact;
+  return ppg.toFixed(1);
+}
+
+export function formatDefVsFact(player) {
+  const opp = String(player?.opponent || "").replace(/^@/, "").replace(/^BYE$/i, "").trim();
+  const rank = ordinalRank(player?.opp_def_rank);
+  const ppg = Number(player?.opp_def_ppg);
+  const head = [opp && opp.toUpperCase() !== "BYE" ? opp : "", rank].filter(Boolean).join(" ");
+  const bits = [];
+  if (head) bits.push(head);
+  if (Number.isFinite(ppg)) bits.push(ppg.toFixed(1));
+  return bits.join(" · ") || WEEK_BOARD_COPY.emptyFact;
+}
+
+export function callFaceMeta(player) {
+  const team = String(player?.team || "").trim();
+  if (player?.on_bye) return [team, "Bye"].filter(Boolean).join(" · ");
+  const opp = String(player?.opponent || "").replace(/^@/, "").trim();
+  let site = "";
+  if (player?.is_home === true && opp) site = `Home vs ${opp}`;
+  else if (player?.is_home === false && opp) site = `Away @ ${opp}`;
+  else if (opp) site = String(player?.opponent || "").startsWith("@") ? `Away @ ${opp}` : `vs ${opp}`;
+  return [team, site].filter(Boolean).join(" · ");
+}
+
+export function slatePlayerMeta(player) {
+  const bits = [player?.position, player?.team].filter(Boolean);
+  if (player?.on_bye) bits.push("BYE");
+  else if (player?.opponent) {
+    const opp = String(player.opponent).replace(/^@/, "").trim();
+    if (opp) bits.push(String(player.opponent).startsWith("@") ? `@ ${opp}` : `vs ${opp}`);
+  }
+  return bits.join(" · ");
+}
+
+export function playerById(rows = [], playerId) {
+  const id = String(playerId || "");
+  if (!id) return null;
+  return (rows || []).find((row) => String(row?.player_id || "") === id) || null;
+}
+
+export function callSheetPlayers(decision, starters = [], bench = []) {
+  const pool = [...(starters || []), ...(bench || [])];
+  return {
+    starter: playerById(pool, decision?.starter_player_id),
+    bench: playerById(pool, decision?.bench_player_id),
+  };
 }
 
 export function sleeperLineupUrl(sleeperLeagueId) {

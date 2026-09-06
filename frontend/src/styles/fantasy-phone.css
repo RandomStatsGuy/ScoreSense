@@ -381,15 +381,28 @@
     grid-template-columns: 1fr;
   }
 
-  .hub-wcc-slot-player strong {
+  .hub-wcc-slot-player strong,
+  .hub-wcc-row-who strong {
     white-space: normal;
     overflow: visible;
     text-overflow: unset;
   }
 
-  .hub-wcc-slot-call {
+  .hub-wcc-slot-call,
+  .hub-wcc-ticket-start,
+  .hub-wcc-ticket-close,
+  .hub-wcc-ticket-foot .btn-ghost {
     min-height: var(--touch-target);
     font-size: var(--text-sm);
+  }
+
+  .hub-wcc-row-action {
+    width: 9.5rem;
+  }
+
+  .hub-wcc-ticket-faces {
+    flex-direction: row;
+    align-items: center;
   }
 
   .hub-wcc-week-stepper {

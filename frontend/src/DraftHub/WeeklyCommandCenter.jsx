@@ -13,6 +13,8 @@ import {
   projectionCoverageRatio,
 } from "./projectionCoverage";
 import WeekLineupBoard from "./WeekLineupBoard";
+import WeekLineupCallSheet from "./WeekLineupCallSheet";
+import { usePlayerMedia } from "../PlayerCell";
 import { loadAura, readAura, storageKey, vibeScore } from "./vibeAura";
 import {
   buildStarterSlotPlan,
@@ -21,6 +23,7 @@ import {
   decisionSwapIds,
   formatDraftNightShort,
   WEEK_BOARD_COPY,
+  callSheetPlayers,
   weekHeroCopy,
   weekPrimaryAction,
   weekRailItems,
@@ -44,6 +47,7 @@ export default function WeeklyCommandCenter({
   const [syncError, setSyncError] = useState("");
   const [weekOverride, setWeekOverride] = useState("");
   const [selectedBenchId, setSelectedBenchId] = useState("");
+  const [openCall, setOpenCall] = useState(null);
   const [lineupBusy, setLineupBusy] = useState(false);
   const [lineupError, setLineupError] = useState("");
   const [auraById, setAuraById] = useState({});
@@ -208,6 +212,12 @@ export default function WeeklyCommandCenter({
     setAuraById(loadAura(key));
   }, [leagueId, meta.season, meta.week]);
 
+  const mediaIds = useMemo(() => (
+    [...starters, ...bench].map((player) => player?.player_id).filter(Boolean)
+  ), [bench, starters]);
+  const media = usePlayerMedia(mediaIds);
+  const openPlayers = openCall ? callSheetPlayers(openCall, starters, bench) : { starter: null, bench: null };
+
   const vibeById = useMemo(() => {
     const map = {};
     const rated = auraById && typeof auraById === "object" ? auraById : {};
@@ -235,6 +245,7 @@ export default function WeeklyCommandCenter({
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       setSelectedBenchId("");
+      setOpenCall(null);
       await load();
     } catch (e) {
       setLineupError(connectionErrorMessage(e));
@@ -341,7 +352,7 @@ export default function WeeklyCommandCenter({
     weekPlaceholder: meta.week != null ? String(meta.week) : "auto",
     onWeekChange: (week) => setWeekOverride(String(week)),
     overlayActions: loading && !data ? null : overlayActions,
-    coverageActions,
+    coverageActions: openCall ? null : coverageActions,
     refreshAction: () => load(undefined, { rebuild: true }),
     refreshing: loading,
     canEdit: canEdit && !lineupBusy,
@@ -363,10 +374,12 @@ export default function WeeklyCommandCenter({
       const ids = decisionSwapIds(decision);
       if (ids) applySwap(ids.starter_player_id, ids.bench_player_id);
     },
+    onOpenCall: (decision) => setOpenCall(decision),
+    media,
   };
 
   return (
-    <HubPage className="hub-wcc hub-experience-page">
+    <HubPage className={`hub-wcc hub-experience-page${openCall ? " is-call-open" : ""}`}>
       <HubExperienceHero
         eyebrow="This week"
         heading={hero.heading}
@@ -387,7 +400,7 @@ export default function WeeklyCommandCenter({
             subtitle={weekLabel + (meta.season != null ? ` · ${meta.season}` : "")}
             items={railItems}
             note={railNote}
-            action={primary.kind === "strip-sync" ? (
+            action={openCall ? null : primary.kind === "strip-sync" ? (
               <p className="hub-experience-summary-note">Use Sync league in the league strip.</p>
             ) : primary.kind && primary.kind !== "none" && primary.kind !== "wait" ? (
               <button
@@ -416,6 +429,25 @@ export default function WeeklyCommandCenter({
         <WeekLineupBoard {...boardProps} includeBench={false} />
 
       </HubExperienceLayout>
+      {openCall ? (
+        <WeekLineupCallSheet
+          decision={openCall}
+          starter={openPlayers.starter}
+          bench={openPlayers.bench}
+          media={media}
+          season={meta.season}
+          week={meta.week}
+          canEdit={canEdit && !lineupBusy}
+          lineupLocked={Boolean(meta.lineup_locked)}
+          sleeperLeagueId={sleeperLeagueId}
+          busy={lineupBusy}
+          onClose={() => setOpenCall(null)}
+          onApply={(decision) => {
+            const ids = decisionSwapIds(decision);
+            if (ids) applySwap(ids.starter_player_id, ids.bench_player_id);
+          }}
+        />
+      ) : null}
     </HubPage>
   );
 }
