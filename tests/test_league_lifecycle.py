@@ -11,6 +11,7 @@ from src.draft_hub import storage
 from src.draft_hub.league_export import build_league_workbook, league_name_matches
 from src.draft_hub.league_home import build_league_home
 from src.draft_hub.league_lifecycle import (
+    LeagueDeleteError,
     approve_league_delete,
     cancel_league_delete,
     delete_request_snapshot,
@@ -178,6 +179,15 @@ def test_cancel_withdraws_delete(hub_db):
     assert storage.get_league(league["id"]) is not None
     again = start_league_delete(league["id"], actor_sub="life-comm", confirm_name="Withdraw Delete")
     assert again["deleted"] is False
+
+
+def test_cancel_missing_league_is_not_found(hub_db):
+    try:
+        cancel_league_delete("missing-league", actor_sub="life-comm")
+        assert False, "expected missing league"
+    except LeagueDeleteError as exc:
+        assert exc.status_code == 404
+        assert "not found" in exc.detail.lower()
 
 
 def test_home_surfaces_pending_delete(hub_db):
