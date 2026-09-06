@@ -40,16 +40,16 @@ def test_extend_bid_deadline_from_empty():
     assert 4 <= delta <= 6
 
 
-def test_extend_bid_deadline_caps_at_opening_clock():
+def test_extend_bid_deadline_ignores_early_bids():
     rules = load_preset("salary_cap_auction_v1")
     now = datetime.now(timezone.utc)
     session = {"bid_deadline": (now + timedelta(seconds=28)).isoformat()}
     extended = datetime.fromisoformat(_extend_bid_deadline(session, rules))
     delta = (extended - now).total_seconds()
-    assert 29 <= delta <= 31  # 28 + 5 would be 33; cap at bid_timer_sec=30
+    assert 27 <= delta <= 29  # still plenty of clock — do not refill to 30
 
 
-def test_extend_bid_deadline_rapid_bids_do_not_exceed_opening_clock():
+def test_extend_bid_deadline_rapid_bids_do_not_reset_opening_clock():
     rules = load_preset("salary_cap_auction_v1")
     now = datetime.now(timezone.utc)
     session = {"bid_deadline": (now + timedelta(seconds=30)).isoformat()}
@@ -60,13 +60,13 @@ def test_extend_bid_deadline_rapid_bids_do_not_exceed_opening_clock():
     assert 0 <= delta <= 31
 
 
-def test_extend_bid_deadline_clamps_already_over_cap():
+def test_extend_bid_deadline_leaves_long_clock_alone():
     rules = load_preset("salary_cap_auction_v1")
     now = datetime.now(timezone.utc)
     session = {"bid_deadline": (now + timedelta(seconds=48)).isoformat()}
     extended = datetime.fromisoformat(_extend_bid_deadline(session, rules))
     delta = (extended - now).total_seconds()
-    assert 29 <= delta <= 31
+    assert 47 <= delta <= 49
 
 
 def test_place_bid_rapid_raises_do_not_exceed_opening_clock(hub_db, monkeypatch):

@@ -95,7 +95,7 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/hub/draft",
     overlay: true,
     page: "frontend/src/DraftHub/DraftRoom.jsx",
-    doNot: "Do not wrap a live draft in HubExperience two-column settings chrome. Seats inherit DraftSeat from idle Draft and Mock.",
+    doNot: "Do not wrap a live draft in HubExperience two-column settings chrome. Seats inherit DraftSeat from idle Draft and Mock. Never say Available players — the rail eyebrow is Player pool. Result toasts are HubAlert under the header. Hide empty fantasy narrative. Satisfied position chips are not red.",
   }),
   "hub.week": S({
     label: "This Week",
@@ -257,7 +257,8 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/tools/mock-draft",
     overlay: true,
     page: "frontend/src/DraftHub/DraftRoom.jsx",
-    doNot: "A live mock is board-first. Same photos as rosters.",
+    copy: "frontend/src/DraftHub/mockDraftConfig.js",
+    doNot: "A live mock is board-first. Same photos as rosters. Never say Available players — the rail eyebrow is Player pool. Practice rooms have no Drop or Trade. Simulate uses live-bot pricing, shows N of the remaining pool, and never disables Discard. Result toasts are HubAlert under the header. Hide empty fantasy narrative. Award now only when the viewer is high bidder. Team cards show names; seats are not a grid cell. Satisfied position chips are not red. Bots jump toward their ceiling; the bid clock extends only on late bids. Empty nomination stage is the player pool, not a 300px waiting card.",
   }),
   "tools.best-ball": S({
     label: "Best ball",

@@ -61,6 +61,7 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Do not invent a parallel rules or contract model. Merge/validate via `rulesPresentation.js`. Backend is authoritative.
 - Fantasy lists people by **owner name**. Team nicknames may sit underneath or after a middot.
 - One `<main id="main-content">` plus a skip link; do not nest a second main.
+- Practice mock rooms have no Drop or Trade. Simulate uses live-bot pricing, shows N of the remaining pool, and never disables Discard. Never say Available players.
 
 ## Living surfaces
 

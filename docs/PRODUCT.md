@@ -71,7 +71,7 @@ Fun comes from consequence and control, not animation, confetti, or mascots.
 Do not add a fourth top-level item. Do not rename Fantasy to League.
 
 **Projections:** Weekly · Season (Preseason outlook / Live season).
-**Tools:** DFS · Mock draft · Best ball. Mock draft field size follows the linked league when matching that league's rules. Recent mocks live on the launch rail.
+**Tools:** DFS · Mock draft · Best ball. Mock draft field size follows the linked league when matching that league's rules. Recent mocks live on the launch rail. A practice room has no Drop or Trade. Simulate uses the same bot pricing as the live auction, shows N of the remaining pool, and never disables Discard. Never say Available players — the rail eyebrow is Player pool.
 **Account menu (not top-level):** Model accuracy · Admin · Account · Report a bug.
 **Account session (not top-level):** Sign in · Create account (`/login`, `/register`). Mobile-first session pages. Google is the lead social option; email is secondary. Do not wrap these in Fantasy experience chrome.
 **Report a bug** (`/report`) is a side option in the account / More menu. Signed-in filing and SCORE labels live in [ONBOARDING.md](./ONBOARDING.md). Do not add it to top-level nav.

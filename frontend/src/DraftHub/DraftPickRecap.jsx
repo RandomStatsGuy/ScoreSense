@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
-import { formatPickSlot } from "./draftRoomHelpers";
+import { formatPickSlot, formatRecapPrice } from "./draftRoomHelpers";
+import { HubAlert } from "./HubUILayout";
 
 const GRADE_LABEL = {
   steal: "Steal",
@@ -10,6 +11,14 @@ const GRADE_LABEL = {
   major_reach: "Major reach",
   pick: "Sold",
 };
+
+function recapAlertVariant(grade, isPick) {
+  if (isPick) return "info";
+  if (grade === "steal" || grade === "great_value") return "ready";
+  if (grade === "major_reach") return "danger";
+  if (grade === "reach" || grade === "slight_reach") return "warn";
+  return "info";
+}
 
 export default function DraftPickRecap({ recap, onDismiss, pickDraft = false }) {
   useEffect(() => {
@@ -23,21 +32,31 @@ export default function DraftPickRecap({ recap, onDismiss, pickDraft = false }) 
   const grade = recap.value_grade || "pick";
   const isPick = Boolean(pickDraft || recap.pick_draft);
   const slot = formatPickSlot(recap);
+  const title = isPick ? "Picked" : (GRADE_LABEL[grade] || "Pick");
+  const who = [
+    recap.team_name,
+    recap.player_name ? `${recap.player_name} (${recap.position || "?"})` : null,
+  ].filter(Boolean).join(" · ");
+  const price = isPick
+    ? (slot || "")
+    : formatRecapPrice(recap.amount);
+  const detail = recap.value_blurb || recap.detail || "";
 
   return (
-    <div className={`hub-pick-recap hub-pick-recap-${grade}`} role="status">
-      <div className="hub-pick-recap-head">
-        <strong>{isPick ? "Picked" : (GRADE_LABEL[grade] || "Pick")}</strong>
-        <button type="button" className="btn-ghost btn-sm" onClick={onDismiss}>Dismiss</button>
-      </div>
-      <p className="hub-pick-recap-player">
-        {recap.team_name ? `${recap.team_name} · ` : ""}
-        {recap.player_name} ({recap.position})
-        {isPick
-          ? (slot ? ` — ${slot}` : "")
-          : ` — $${Number(recap.amount).toFixed(0)}`}
-      </p>
-      <p className="hub-pick-recap-detail">{recap.value_blurb || recap.detail}</p>
+    <div className={`hub-pick-recap hub-pick-recap-${grade}`}>
+      <HubAlert
+        variant={recapAlertVariant(grade, isPick)}
+        action={(
+          <button type="button" className="btn-ghost btn-sm" onClick={onDismiss}>
+            Dismiss
+          </button>
+        )}
+      >
+        <strong>{title}</strong>
+        {who ? ` · ${who}` : ""}
+        {price ? ` — ${price}` : ""}
+        {detail ? ` · ${detail}` : ""}
+      </HubAlert>
     </div>
   );
 }
