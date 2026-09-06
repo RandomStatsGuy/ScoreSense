@@ -699,7 +699,7 @@ async function auditOpenMenus(page) {
       continue;
     }
     // Dispatch click in-page. Playwright's actionability hover would open
-    // HubFilterMenu, then the click would toggle it closed.
+await page.locator(spec.panel).first().waitFor({ state: "visible", timeout: 2000 }).catch(() => {});
     await trigger.evaluate((el) => el.click());
     await page.waitForSelector(spec.panel, { timeout: 2000 }).catch(() => {});
     const probe = await page.evaluate(({ panelSel, name }) => {
