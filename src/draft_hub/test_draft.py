@@ -41,16 +41,56 @@ def mark_simulation(league_id: str, **fields: Any) -> dict[str, Any]:
         return dict(cur)
 
 
-def clear_simulation(league_id: str) -> None:
+def claim_simulation(league_id: str, **fields: Any) -> bool:
+    """Atomically take the running slot. False if a sim is already in flight."""
+    key = str(league_id)
     with _SIMULATION_LOCK:
-        _SIMULATION.pop(str(league_id), None)
+        snap = _SIMULATION.get(key)
+        if key in SIMULATING_LEAGUE_IDS or (snap and snap.get("status") == "running"):
+            return False
+        SIMULATING_LEAGUE_IDS.add(key)
+        cur = dict(snap or {})
+        cur.update(fields)
+        cur["league_id"] = key
+        cur["status"] = "running"
+        cur.setdefault("done", 0)
+        cur.setdefault("total", 0)
+        cur["error"] = None
+        _SIMULATION[key] = cur
+        return True
+
+
+def release_simulation_claim(league_id: str, *, error: str | None = None) -> None:
+    """Drop a route-level claim if simulate_draft never finished bookkeeping."""
+    key = str(league_id)
+    with _SIMULATION_LOCK:
+        SIMULATING_LEAGUE_IDS.discard(key)
+        snap = _SIMULATION.get(key)
+        if not snap or snap.get("status") != "running":
+            return
+        if error:
+            cur = dict(snap)
+            cur["status"] = "failed"
+            cur["error"] = error
+            _SIMULATION[key] = cur
+            return
+        _SIMULATION.pop(key, None)
+
+
+def clear_simulation(league_id: str) -> None:
+    key = str(league_id)
+    with _SIMULATION_LOCK:
+        _SIMULATION.pop(key, None)
+        SIMULATING_LEAGUE_IDS.discard(key)
 
 
 def simulation_is_running(league_id: str) -> bool:
-    if str(league_id) in SIMULATING_LEAGUE_IDS:
-        return True
-    snap = simulation_progress(league_id)
-    return bool(snap and snap.get("status") == "running")
+    key = str(league_id)
+    with _SIMULATION_LOCK:
+        if key in SIMULATING_LEAGUE_IDS:
+            return True
+        snap = _SIMULATION.get(key)
+        return bool(snap and snap.get("status") == "running")
 
 
 def setup_test_draft(league_id: str, commissioner_sub: str, bot_count: int = 3,
@@ -556,7 +596,8 @@ def simulate_draft(
     pick_cap = int(max_picks) if max_picks else _total_roster_slots(rules) * max(1, len(teams))
     picks = 0
     stalled_turns = 0
-    SIMULATING_LEAGUE_IDS.add(league_id)
+    with _SIMULATION_LOCK:
+        SIMULATING_LEAGUE_IDS.add(str(league_id))
     mark_simulation(league_id, status="running", done=0, total=pick_cap, error=None)
     try:
         with suppress_room_state():
@@ -639,5 +680,6 @@ def simulate_draft(
         mark_simulation(league_id, status="failed", error=str(exc) or "Simulation failed")
         raise
     finally:
-        SIMULATING_LEAGUE_IDS.discard(league_id)
+        with _SIMULATION_LOCK:
+            SIMULATING_LEAGUE_IDS.discard(str(league_id))
     return get_room_state(league_id, commissioner_sub)

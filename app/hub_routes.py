@@ -142,10 +142,11 @@ from src.draft_hub.mock_draft import start_mock_draft
 from src.draft_hub.draft_expire_preview import build_draft_expire_preview
 from src.draft_hub.draft_recap import build_owner_draft_report
 from src.draft_hub.test_draft import (
+    claim_simulation,
+    release_simulation_claim,
     reset_test_draft,
     setup_test_draft,
     simulate_draft,
-    simulation_is_running,
     simulation_progress,
 )
 from src.draft_hub.trade_executor import execute_league_trade
@@ -5196,7 +5197,7 @@ async def hub_test_draft_simulate(
     import asyncio
 
     sub = _sub(_user)
-    if simulation_is_running(league_id):
+    if not claim_simulation(league_id):
         try:
             state = get_room_state(league_id, sub)
         except ValueError as exc:
@@ -5216,8 +5217,10 @@ async def hub_test_draft_simulate(
             "state": state,
         }
     except ValueError as exc:
+        release_simulation_claim(league_id)
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
+        release_simulation_claim(league_id, error=str(exc) or "Simulation failed")
         logger.exception("Mock draft simulation failed for %s", league_id)
         raise HTTPException(
             status_code=500,

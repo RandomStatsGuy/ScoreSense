@@ -27,6 +27,8 @@ import {
   rosterForTeam,
   simulationProgressLabel,
   simulationPostFailureAction,
+  caughtErrorMessage,
+  caughtErrorName,
   fetchTimeoutSignal,
   draftResultTransition,
   loadWatchIds,
@@ -234,6 +236,15 @@ test("draftInteractionState locks mutations and freezes clocks during simulation
 test("simulationProgressLabel names N of total", () => {
   assert.equal(simulationProgressLabel({ done: 4, total: 270 }), "4 of 270");
   assert.equal(simulationProgressLabel({}), "Sim…");
+});
+
+test("caughtErrorName and message tolerate non-Error rejects", () => {
+  assert.equal(caughtErrorName(undefined), "");
+  assert.equal(caughtErrorName("timeout"), "");
+  assert.equal(caughtErrorName({ name: "AbortError" }), "AbortError");
+  assert.equal(caughtErrorMessage(undefined, "fallback"), "fallback");
+  assert.equal(caughtErrorMessage("timeout", "fallback"), "fallback");
+  assert.equal(caughtErrorMessage({ message: "proxy 504" }, "fallback"), "proxy 504");
 });
 
 test("simulationPostFailureAction keeps a running room after proxy timeout", () => {
