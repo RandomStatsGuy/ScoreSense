@@ -6,10 +6,21 @@ import {
   completedDraftReviewTarget,
   formatDraftEvent,
   formatPickSlot,
+  formatRecapPrice,
   pinNeedPositions,
   unmetMinPositions,
 } from "./draftRoomHelpers.js";
 import { auctionAwardContractLabel } from "./rosterFormat.js";
+
+test("formatRecapPrice hides missing or invalid amounts", () => {
+  assert.equal(formatRecapPrice(54), "$54");
+  assert.equal(formatRecapPrice("18"), "$18");
+  assert.equal(formatRecapPrice(0), "$0");
+  assert.equal(formatRecapPrice(null), "");
+  assert.equal(formatRecapPrice(undefined), "");
+  assert.equal(formatRecapPrice(""), "");
+  assert.equal(formatRecapPrice("sold"), "");
+});
 
 test("formatDraftEvent describes mid-draft trades", () => {
   assert.equal(

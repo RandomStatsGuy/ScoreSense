@@ -181,6 +181,15 @@ def test_next_bot_bid_jumps_toward_ceiling():
     assert next_bot_bid(10, 11, 1) == 11
 
 
+def test_next_bot_bid_snaps_jump_to_increment():
+    from src.draft_hub.test_draft import next_bot_bid
+
+    bid = next_bot_bid(5, 40, 5)
+    assert bid == 15  # $5 + max($10, nearest $5 to 35% of $35)
+    assert bid % 5 == 0
+    assert next_bot_bid(10, 40, 5) == 20
+
+
 def test_settle_auction_nominator_pays_second_price(hub_db, monkeypatch):
     """Nominator already high at $1 must still pay the runner-up ceiling."""
     from src.draft_hub.test_draft import _settle_auction

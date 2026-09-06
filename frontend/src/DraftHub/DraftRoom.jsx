@@ -37,7 +37,9 @@ import {
   draftInteractionState,
   draftResultTransition,
   displayedBidAmount,
+  fetchTimeoutSignal,
   rosterForTeam,
+  simulationPostFailureAction,
 } from "./draftLiveConsole";
 import { mockDraftLiveCopy } from "./mockDraftConfig";
 import { isPickDraft } from "./draftEntryStatus";
@@ -1001,7 +1003,7 @@ export default function DraftRoom({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
-        signal: AbortSignal.timeout(8 * 60 * 1000),
+        signal: fetchTimeoutSignal(8 * 60 * 1000),
       });
       if (!res.ok) {
         const detail = await parseApiError(res);
@@ -1016,15 +1018,18 @@ export default function DraftRoom({
       }
     } catch (e) {
       await refresh();
-      const finished = roomStateRef.current?.session?.status === "completed"
-        || Boolean(roomStateRef.current?.league?.draft_completed)
-        || roomStateRef.current?.simulation?.status === "completed";
-      if (finished) {
+      const action = simulationPostFailureAction({
+        roomSimulationStatus: roomStateRef.current?.simulation?.status,
+        sessionStatus: roomStateRef.current?.session?.status,
+        draftCompleted: Boolean(roomStateRef.current?.league?.draft_completed),
+        errorName: e.name,
+      });
+      if (action === "completed") {
         setMockModeLabel("Simulated mock");
         setSimulationStatus("completed");
         return;
       }
-      if (e.name === "AbortError" || e.name === "TimeoutError") {
+      if (action === "continue") {
         return;
       }
       setSimulationStatus("failed");

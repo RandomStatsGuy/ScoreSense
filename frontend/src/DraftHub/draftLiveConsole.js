@@ -299,6 +299,36 @@ export function simulationProgressLabel({ done, total, fallback = "Sim…" } = {
   return fallback;
 }
 
+/** Client abort/timeout for long simulate POSTs. Older browsers lack AbortSignal.timeout. */
+export function fetchTimeoutSignal(ms) {
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    return AbortSignal.timeout(ms);
+  }
+  return undefined;
+}
+
+/**
+ * After a simulate POST errors (proxy 504, abort), keep the UI running when
+ * the room already shows the job in flight. Only fail when the server is idle.
+ */
+export function simulationPostFailureAction({
+  roomSimulationStatus = "",
+  sessionStatus = "",
+  draftCompleted = false,
+  errorName = "",
+} = {}) {
+  if (
+    sessionStatus === "completed"
+    || draftCompleted
+    || roomSimulationStatus === "completed"
+  ) {
+    return "completed";
+  }
+  if (roomSimulationStatus === "running") return "continue";
+  if (errorName === "AbortError" || errorName === "TimeoutError") return "continue";
+  return "fail";
+}
+
 export function rosterForTeam(rosters, teamId) {
   if (!rosters || teamId == null) return [];
   const direct = rosters[teamId];

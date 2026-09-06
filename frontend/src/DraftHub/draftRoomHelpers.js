@@ -89,6 +89,14 @@ function fmt(v) {
   return `$${Number(v).toFixed(0)}`;
 }
 
+/** Auction recap price. Empty when the amount is missing so the toast never shows $NaN. */
+export function formatRecapPrice(amount) {
+  if (amount == null || amount === "") return "";
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return "";
+  return `$${n.toFixed(0)}`;
+}
+
 export function minNextBid(session, rules) {
   const minInc = Number(rules?.auction?.min_bid ?? 1);
   const high = Number(session?.high_bid ?? 0);

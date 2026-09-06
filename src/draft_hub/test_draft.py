@@ -344,7 +344,7 @@ def next_bot_bid(high_bid: float, ceiling: float, min_bid: float) -> float | Non
     gap = ceil - high
     if gap <= step + 1e-9:
         return round(min(ceil, nxt), 2)
-    jump = max(step * 2.0, round(gap * 0.35))
+    jump = max(step * 2.0, round(gap * 0.35 / step) * step)
     return round(min(ceil, high + jump), 2)
 
 

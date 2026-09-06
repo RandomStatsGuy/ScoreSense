@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { formatPickSlot } from "./draftRoomHelpers";
+import { formatPickSlot, formatRecapPrice } from "./draftRoomHelpers";
 import { HubAlert } from "./HubUILayout";
 
 const GRADE_LABEL = {
@@ -39,7 +39,7 @@ export default function DraftPickRecap({ recap, onDismiss, pickDraft = false }) 
   ].filter(Boolean).join(" · ");
   const price = isPick
     ? (slot || "")
-    : `$${Number(recap.amount).toFixed(0)}`;
+    : formatRecapPrice(recap.amount);
   const detail = recap.value_blurb || recap.detail || "";
 
   return (

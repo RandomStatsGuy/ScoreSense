@@ -26,6 +26,8 @@ import {
   draftInteractionState,
   rosterForTeam,
   simulationProgressLabel,
+  simulationPostFailureAction,
+  fetchTimeoutSignal,
   draftResultTransition,
   loadWatchIds,
   saveWatchIds,
@@ -232,6 +234,47 @@ test("draftInteractionState locks mutations and freezes clocks during simulation
 test("simulationProgressLabel names N of total", () => {
   assert.equal(simulationProgressLabel({ done: 4, total: 270 }), "4 of 270");
   assert.equal(simulationProgressLabel({}), "Sim…");
+});
+
+test("simulationPostFailureAction keeps a running room after proxy timeout", () => {
+  assert.equal(
+    simulationPostFailureAction({ roomSimulationStatus: "running", errorName: "Error" }),
+    "continue",
+  );
+  assert.equal(
+    simulationPostFailureAction({ errorName: "AbortError" }),
+    "continue",
+  );
+  assert.equal(
+    simulationPostFailureAction({ errorName: "TimeoutError" }),
+    "continue",
+  );
+  assert.equal(
+    simulationPostFailureAction({ roomSimulationStatus: "completed" }),
+    "completed",
+  );
+  assert.equal(
+    simulationPostFailureAction({ sessionStatus: "completed" }),
+    "completed",
+  );
+  assert.equal(
+    simulationPostFailureAction({ draftCompleted: true }),
+    "completed",
+  );
+  assert.equal(
+    simulationPostFailureAction({ errorName: "Error" }),
+    "fail",
+  );
+});
+
+test("fetchTimeoutSignal uses AbortSignal.timeout when present", () => {
+  const signal = fetchTimeoutSignal(50);
+  if (typeof AbortSignal.timeout === "function") {
+    assert.ok(signal);
+    assert.equal(typeof signal.aborted, "boolean");
+  } else {
+    assert.equal(signal, undefined);
+  }
 });
 
 test("rosterForTeam matches string or raw team ids", () => {
