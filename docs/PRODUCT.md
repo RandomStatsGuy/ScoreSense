@@ -112,7 +112,7 @@ Contracts · Salary sheets · Members · Access & imports.
 
 The pane switcher is the four pane pills only. Do not inline group labels with the pills.
 
-Members is where staff expand or shrink the seat count. A seat is the slot; a manager is the person. Do not say club, franchise, or team for that object. Add a seat only when expanding past the current seat count — empty seats are claimed from Draft's invite link. Access & imports assigns a named email to one seat; it does not copy the Draft invite link.
+Members is where staff expand or shrink the seat count. A seat is the slot; a manager is the person. Do not say club, franchise, or team for that object. Add a seat only when expanding past the current seat count — empty seats are claimed from Draft's invite link. Access & imports assigns a named email to one seat; it does not copy the Draft invite link. Commissioners download the league workbook and start a delete here. Every commissioner must type the league name and agree; the last confirm erases the room. Members download that same workbook on Rosters.
 
 Sleeper: Access & imports is the one link. The league strip's Sync league is the one sync. Every other "Sync Sleeper" / "League settings" / "Import Sleeper" control deep-links to those. The sync confirm names what it overwrites. Collapse the Sleeper league ID form once the league is linked. A re-import on Contracts is secondary and names that it overwrites staff edits.
 

@@ -271,6 +271,12 @@ def test_constitution_empty_states_name_a_destination() -> None:
     assert "Roster management · Access & imports" in product
 
 
+def test_constitution_covers_league_delete_and_workbook() -> None:
+    product = _read("docs", "PRODUCT.md")
+    assert "Every commissioner must type the league name" in product
+    assert "Members download that same workbook on Rosters" in product
+
+
 def test_strategy_is_deliberate_hero_band_exception() -> None:
     product = _read("docs", "PRODUCT.md")
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")

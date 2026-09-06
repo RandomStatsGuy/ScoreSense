@@ -12,6 +12,8 @@ const ACTION_LABELS = {
   cap_sheets_stale: "Sync sheets",
   invite_managers: "Invite managers",
   mark_availability: "Mark times",
+  delete_league: "Open Access",
+  delete_league_wait: "Open Access",
 };
 
 const ACTION_SUPPORT = {
@@ -26,6 +28,8 @@ const ACTION_SUPPORT = {
   cap_sheets_stale: "Bring the league ledger back in sync.",
   invite_managers: "Empty seats mean bots or a delayed draft.",
   mark_availability: "Tell the room which nights you can actually sit.",
+  delete_league: "Once every commissioner agrees, the room and its history are gone.",
+  delete_league_wait: "The room stays until every commissioner types the name.",
 };
 
 export const LEAGUE_PHASES = [

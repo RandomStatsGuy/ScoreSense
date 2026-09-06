@@ -24,6 +24,9 @@ test("hero names the deal and the cost of getting it wrong", () => {
   assert.match(ROSTERS_COPY.heading, /deal/i);
   assert.match(ROSTERS_COPY.support, /cheap year|overpay/i);
   assert.doesNotMatch(ROSTERS_COPY.support, /Draft Hub|Submit|permission/i);
+  assert.equal(ROSTERS_COPY.exportExcel, "Download Excel");
+  assert.match(ROSTERS_COPY.exportTitle, /Excel/i);
+  assert.doesNotMatch(ROSTERS_COPY.exportTitle, /Draft Hub|Submit|permission/i);
   assert.equal(DEALS_VIEW, "deals");
 });
 

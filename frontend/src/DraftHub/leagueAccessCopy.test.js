@@ -36,6 +36,10 @@ import {
   canAddSeat,
   removeFranchiseLabel,
   franchiseSeatSummary,
+  LEAGUE_DELETE_COPY,
+  LEAGUE_WORKBOOK_COPY,
+  leagueDeletePendingLine,
+  leagueNameMatches,
 } from "./leagueAccessCopy.js";
 
 test("create-league copy stays a button label, not a select option", () => {
@@ -184,4 +188,22 @@ test("franchise resize copy names the next auction consequence", () => {
   assert.equal(franchiseSeatSummary({ configured: 1, actual: 1 }), "1 seat");
   assert.equal(canAddSeat({ configured: 12, actual: 10 }), false);
   assert.equal(canAddSeat({ configured: 12, actual: 12 }), true);
+});
+
+test("league workbook and delete copy name the cost", () => {
+  assert.match(LEAGUE_WORKBOOK_COPY.exportLabel, /Excel/i);
+  assert.match(LEAGUE_WORKBOOK_COPY.exportSupport, /roster|salary|history/i);
+  assert.doesNotMatch(LEAGUE_WORKBOOK_COPY.exportSupport, /Draft Hub|Submit|permission/i);
+  assert.match(LEAGUE_DELETE_COPY.support, /every commissioner/i);
+  assert.match(LEAGUE_DELETE_COPY.support, /cannot put this back/i);
+  assert.doesNotMatch(
+    `${LEAGUE_DELETE_COPY.title} ${LEAGUE_DELETE_COPY.support}`,
+    /Draft Hub|Submit|permission/i,
+  );
+  assert.equal(leagueNameMatches("  My Auction ", "My Auction"), true);
+  assert.equal(leagueNameMatches("Nope", "My Auction"), false);
+  assert.match(
+    leagueDeletePendingLine({ approved: 1, required: 2, waiting: ["Sam"] }),
+    /Waiting on Sam/,
+  );
 });

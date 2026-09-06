@@ -784,6 +784,32 @@ def _migrate(conn: sqlite3.Connection) -> None:
         "CREATE INDEX IF NOT EXISTS idx_team_week_score "
         "ON league_team_week_score(league_id, season, week)"
     )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS league_delete_request (
+            id TEXT PRIMARY KEY,
+            league_id TEXT NOT NULL,
+            started_by_sub TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_league_delete_request_league "
+        "ON league_delete_request(league_id, status)"
+    )
+    conn.execute(
+        """CREATE UNIQUE INDEX IF NOT EXISTS idx_league_delete_pending
+           ON league_delete_request(league_id) WHERE status = 'pending'"""
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS league_delete_approval (
+            request_id TEXT NOT NULL,
+            user_sub TEXT NOT NULL,
+            approved_at TEXT NOT NULL,
+            PRIMARY KEY (request_id, user_sub)
+        )"""
+    )
     _ensure_dedicated_league_workspaces(conn)
 
 
@@ -4789,20 +4815,71 @@ def delete_league(league_id: str) -> dict[str, Any]:
         raise ValueError("League not found")
     team_ids = [str(t["id"]) for t in list_league_teams(league_id)]
     ws_id = roster_workspace_for_league(league)
+    dedicated_ws = bool(ws_id) and str(ws_id) == str(league_id)
     with get_conn() as conn:
+        request_ids = [
+            str(r["id"])
+            for r in conn.execute(
+                "SELECT id FROM league_delete_request WHERE league_id = ?",
+                (league_id,),
+            ).fetchall()
+        ]
+        if request_ids:
+            placeholders = ",".join("?" * len(request_ids))
+            conn.execute(
+                f"DELETE FROM league_delete_approval WHERE request_id IN ({placeholders})",
+                request_ids,
+            )
+        conn.execute("DELETE FROM league_delete_request WHERE league_id = ?", (league_id,))
         if team_ids:
             placeholders = ",".join("?" * len(team_ids))
+            slot_ids = [
+                int(r["id"])
+                for r in conn.execute(
+                    f"SELECT id FROM roster_slot WHERE team_id IN ({placeholders})",
+                    team_ids,
+                ).fetchall()
+            ]
+            if slot_ids:
+                slot_ph = ",".join("?" * len(slot_ids))
+                conn.execute(
+                    f"DELETE FROM contract_extension WHERE roster_slot_id IN ({slot_ph})",
+                    slot_ids,
+                )
             conn.execute(
                 f"DELETE FROM roster_slot WHERE team_id IN ({placeholders})",
                 team_ids,
             )
-        # Practice rooms isolate rosters under the league id — wipe that workspace too.
-        if league.get("test_mode") and ws_id:
+        if dedicated_ws or (league.get("test_mode") and ws_id):
             conn.execute("DELETE FROM roster_slot WHERE workspace_id = ?", (ws_id,))
-        conn.execute("DELETE FROM draft_event WHERE league_id = ?", (league_id,))
-        conn.execute("DELETE FROM draft_session WHERE league_id = ?", (league_id,))
-        conn.execute("DELETE FROM trade_log WHERE league_id = ?", (league_id,))
-        conn.execute("DELETE FROM league_invite WHERE league_id = ?", (league_id,))
+            if dedicated_ws:
+                conn.execute("DELETE FROM salary_range WHERE workspace_id = ?", (ws_id,))
+        row_ids = [
+            int(r["id"])
+            for r in conn.execute(
+                "SELECT id FROM league_contract_row WHERE league_id = ?",
+                (league_id,),
+            ).fetchall()
+        ]
+        if row_ids:
+            row_ph = ",".join("?" * len(row_ids))
+            conn.execute(
+                f"DELETE FROM league_contract_row_edit WHERE row_id IN ({row_ph})",
+                row_ids,
+            )
+        poll_ids = [
+            str(r["id"])
+            for r in conn.execute(
+                "SELECT id FROM week_poll WHERE league_id = ?",
+                (league_id,),
+            ).fetchall()
+        ]
+        if poll_ids:
+            poll_ph = ",".join("?" * len(poll_ids))
+            conn.execute(
+                f"DELETE FROM week_poll_vote WHERE poll_id IN ({poll_ph})",
+                poll_ids,
+            )
         channel_ids = [
             str(r["id"])
             for r in conn.execute(
@@ -4816,7 +4893,39 @@ def delete_league(league_id: str) -> dict[str, Any]:
                 f"DELETE FROM league_chat_message WHERE channel_id IN ({placeholders})",
                 channel_ids,
             )
-        conn.execute("DELETE FROM league_chat_channel WHERE league_id = ?", (league_id,))
+        for table in (
+            "draft_event",
+            "draft_session",
+            "draft_availability",
+            "trade_log",
+            "trade_proposal",
+            "league_invite",
+            "league_chat_channel",
+            "fa_bid",
+            "week_poll",
+            "matchup_emote",
+            "league_week_matchup",
+            "league_week_lineup",
+            "league_player_week_score",
+            "league_team_week_score",
+            "insights_cap_cache",
+            "insights_fair_values",
+            "league_legacy_import",
+            "league_import_quarantine",
+            "league_contract_row",
+            "league_roster_edit",
+            "league_historic_correction",
+            "league_owner_season_map",
+            "league_season_salary_cap",
+            "league_player_name_alias",
+            "league_player_movement",
+            "hub_media",
+        ):
+            conn.execute(f"DELETE FROM {table} WHERE league_id = ?", (league_id,))
+        conn.execute(
+            "UPDATE hub_workspace SET active_league_id = NULL WHERE active_league_id = ?",
+            (league_id,),
+        )
         conn.execute("DELETE FROM team WHERE league_id = ?", (league_id,))
         conn.execute("DELETE FROM league WHERE id = ?", (league_id,))
     return {
