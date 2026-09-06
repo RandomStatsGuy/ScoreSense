@@ -15,6 +15,10 @@ import {
   parseGate,
   pickBarControl,
   tableWidthDeadZone,
+  remainderColumnIndex,
+  columnIsOverwide,
+  isCssGridTableRowGroup,
+  COLUMN_PACK_RATIO,
 } from "./layout_audit.mjs";
 
 test("numeric columns right-align", () => {
@@ -30,6 +34,26 @@ test("numeric cell text accepts ordinals and units", () => {
   assert.equal(isNumericCellText("15pts"), true);
   assert.equal(isNumericCellText("120yds"), true);
   assert.equal(isNumericCellText("Ja'Marr Chase"), false);
+});
+
+test("remainder column is the first left-aligned text column", () => {
+  assert.equal(remainderColumnIndex(["left", "center", "right"]), 0);
+  assert.equal(remainderColumnIndex(["center", "left", "right"]), 1);
+  assert.equal(remainderColumnIndex(["center", "right"]), -1);
+});
+
+test("non-remainder columns fail when wider than 1.5× content", () => {
+  assert.equal(columnIsOverwide(96, 20, false), true);
+  assert.equal(columnIsOverwide(24, 20, false), false);
+  assert.equal(columnIsOverwide(400, 20, true), false);
+  assert.equal(COLUMN_PACK_RATIO, 1.5);
+});
+
+test("css-grid table groups need matching 3+ columns and no auto-fill", () => {
+  assert.equal(isCssGridTableRowGroup([4, 4, 4], [false, false, false]), true);
+  assert.equal(isCssGridTableRowGroup([2, 2], [false, false]), false);
+  assert.equal(isCssGridTableRowGroup([4, 4], [true, false]), false);
+  assert.equal(isCssGridTableRowGroup([4, 3], [false, false]), false);
 });
 
 test("table dead zone subtracts card padding", () => {

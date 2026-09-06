@@ -68,7 +68,21 @@ export const VIBE_COPY = Object.freeze({
   resultsCta: "Review on This Week",
   resultsAgain: "Rate again",
   lockedToday: "You've read this roster today. Come back tomorrow to nudge again.",
+  todayReadsTitle: "Today's reads",
 });
+
+export function todayReadRows(players, votes) {
+  const rated = votes && typeof votes === "object" ? votes : {};
+  return (players || []).flatMap((player) => {
+    const id = String(player?.player_id || "");
+    if (!id || !Object.prototype.hasOwnProperty.call(rated, id)) return [];
+    return [{
+      id,
+      name: player.player_name || "—",
+      vibe: rated[id] === "sit" ? VIBE_COPY.stampSit : VIBE_COPY.stampStart,
+    }];
+  });
+}
 
 export const DEMO_VIBE_SLATE = Object.freeze([
   {

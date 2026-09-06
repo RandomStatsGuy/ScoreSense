@@ -93,6 +93,7 @@ export function phaseTrackState(phaseId) {
 
 export const HOME_PAGE_COPY = {
   kicker: "Home",
+  settings: "Settings",
   heading: "Fill the seats, then lock a night.",
   supportingTitle: "Also due",
   loadingKicker: "Reading your league",

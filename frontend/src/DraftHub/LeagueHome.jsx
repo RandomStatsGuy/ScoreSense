@@ -265,6 +265,11 @@ export default function LeagueHome({
         eyebrow={HOME_PAGE_COPY.kicker}
         heading={loading && !data ? HOME_PAGE_COPY.loadingHeading : null}
         support={null}
+        aside={goSetup ? (
+          <button type="button" className="btn-ghost btn-sm" onClick={goSetup}>
+            {HOME_PAGE_COPY.settings}
+          </button>
+        ) : null}
       >
         <nav className="hub-home-phase-track" aria-label="League season stage">
           {phaseTrack.map((item) => (
@@ -278,13 +283,6 @@ export default function LeagueHome({
             </span>
           ))}
         </nav>
-        {goSetup ? (
-          <div className="hub-home-heading-actions">
-            <button type="button" className="btn-ghost btn-sm" onClick={goSetup}>
-              Settings
-            </button>
-          </div>
-        ) : null}
       </HubExperienceHero>
 
       <div className="hub-home-club">
