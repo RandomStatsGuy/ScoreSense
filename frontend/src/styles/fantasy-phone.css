@@ -407,7 +407,29 @@
   }
 
   .hub-wcc-row-action {
-    width: 9.5rem;
+    width: 0;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .hub-wcc-row.is-call,
+  .hub-wcc-row.is-empty {
+    flex-wrap: wrap;
+  }
+
+  .hub-wcc-row.is-call .hub-wcc-row-action,
+  .hub-wcc-row.is-empty .hub-wcc-row-action {
+    width: 100%;
+    min-height: var(--touch-target);
+    overflow: visible;
+    justify-content: flex-end;
+  }
+
+  .hub-wcc-row.is-call .hub-wcc-slot-call,
+  .hub-wcc-row.is-empty .hub-wcc-slot-fill {
+    width: auto;
+    max-width: 100%;
   }
 
   .hub-wcc-ticket-faces {
