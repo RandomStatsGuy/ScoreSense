@@ -1354,7 +1354,7 @@ def hub_remove_roster(body: RosterRemoveRequest, _user=Depends(require_hub_user)
     if not existing:
         raise HTTPException(status_code=404, detail="Player not on roster")
     if ctx.get("mode") == "league" and not can_edit_roster(
-        ctx, player_team_id=existing.get("team_id")
+        ctx, player_team_id=existing.get("team_id") or ""
     ):
         raise HTTPException(status_code=403, detail="Cannot drop another team's player")
     own_team_only = bool(
