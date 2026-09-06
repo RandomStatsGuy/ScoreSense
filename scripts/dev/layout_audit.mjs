@@ -328,9 +328,20 @@ function measureScript() {
       label: table.getAttribute("role") || "role-table",
     }));
     const gridTables = [];
+    const classNameOf = (el) => {
+      if (!el) return "";
+      if (typeof el.getAttribute === "function") {
+        const named = el.getAttribute("class");
+        if (named != null) return String(named);
+      }
+      const raw = el.className;
+      if (typeof raw === "string") return raw;
+      if (raw && typeof raw.baseVal === "string") return raw.baseVal;
+      return "";
+    };
     document.querySelectorAll("*").forEach((el) => {
       if (el.matches("table, [role='table'], [role='grid']")) return;
-      const tableLike = /table|grid/i.test(elementClassName(el)) || el.getAttribute("role") === "table";
+      const tableLike = /table|grid/i.test(classNameOf(el)) || el.getAttribute("role") === "table";
       if (!tableLike) return;
       const kids = [...el.children].filter((child) => {
         const cs = getComputedStyle(child);
