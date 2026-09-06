@@ -74,6 +74,7 @@ test("phase track marks exactly one current phase", () => {
 test("home heading names the next move, not a command-center slogan", () => {
   assert.match(HOME_PAGE_COPY.heading, /seats|lock a night/i);
   assert.equal(HOME_PAGE_COPY.supportingTitle, "Also due");
+  assert.equal(HOME_PAGE_COPY.settings, "Settings");
   assert.equal(HOME_PAGE_COPY.notScheduled, "Not scheduled");
   assert.doesNotMatch(HOME_PAGE_COPY.heading, /command center|decision count|Do the next league move/i);
   assert.equal(

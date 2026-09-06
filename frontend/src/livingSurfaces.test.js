@@ -84,8 +84,28 @@ test("contracts pane owns the pending-write copy module", () => {
 
 test("approved primaries keep one fill on Home, Cap, and Trades", () => {
   assert.match(LIVING_SURFACES["hub.home"].doNot, /Chat Send is ghost/);
+  assert.match(LIVING_SURFACES["hub.home"].doNot, /centered phase stepper/);
+  assert.match(LIVING_SURFACES["hub.home"].doNot, /chip slot/);
   assert.match(LIVING_SURFACES["hub.planner"].doNot, /Undo cut is ghost/);
   assert.match(LIVING_SURFACES["hub.trades"].doNot, /Continue \(or Propose on the last step\) is the only primary/);
+});
+
+test("Strategy stays a board-first hero exception", () => {
+  assert.match(LIVING_SURFACES["hub.value"].doNot, /Do not add HubExperienceHero/);
+  assert.match(LIVING_SURFACES["hub.value"].doNot, /only Fantasy destination without a hero band/);
+});
+
+test("Draft does not repeat Night locked as a body heading", () => {
+  assert.match(LIVING_SURFACES["hub.room"].doNot, /Do not repeat Night locked as a green body heading/);
+});
+
+test("Vibes done-state keeps one Review primary", () => {
+  assert.match(LIVING_SURFACES["hub.vibes"].doNot, /keep one Review primary on the ranking card/);
+});
+
+test("My team packs columns and grounds the stadium count", () => {
+  assert.match(LIVING_SURFACES["hub.roster"].doNot, /Pack non-player columns to min-content/);
+  assert.match(LIVING_SURFACES["hub.roster"].doNot, /under the stadium banner/);
 });
 
 test("file lookup returns the surfaces that own a page", () => {
