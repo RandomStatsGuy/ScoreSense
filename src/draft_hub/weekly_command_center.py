@@ -454,6 +454,11 @@ def _lookup_prior_ppg(card: dict[str, Any], index: dict[str, Any]) -> float | No
         hit = by_name.get(f"{nk}|{team}")
         if hit is not None:
             return hit
+    if nk:
+        named = [value for key, value in by_name.items() if str(key).startswith(f"{nk}|")]
+        uniq = {value for value in named}
+        if len(uniq) == 1:
+            return next(iter(uniq))
     return None
 
 

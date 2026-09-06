@@ -482,12 +482,18 @@ export function ordinalRank(value) {
   return `${rounded}${suffix}`;
 }
 
+function finiteNumber(value) {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 export function formatVegasFact(player) {
-  const spread = Number(player?.vegas_spread);
-  const total = Number(player?.vegas_total);
+  const spread = finiteNumber(player?.vegas_spread);
+  const total = finiteNumber(player?.vegas_total);
   const bits = [];
-  if (Number.isFinite(spread)) bits.push(spread > 0 ? `+${spread}` : String(spread));
-  if (Number.isFinite(total)) bits.push(`O/U ${total}`);
+  if (spread != null) bits.push(spread > 0 ? `+${spread}` : String(spread));
+  if (total != null) bits.push(`O/U ${total}`);
   return bits.join(" · ") || WEEK_BOARD_COPY.emptyFact;
 }
 
@@ -514,19 +520,19 @@ export function formatKickoffFact(player) {
 }
 
 export function formatPriorPpgFact(player) {
-  const ppg = Number(player?.prior_ppg);
-  if (!Number.isFinite(ppg)) return WEEK_BOARD_COPY.emptyFact;
+  const ppg = finiteNumber(player?.prior_ppg);
+  if (ppg == null) return WEEK_BOARD_COPY.emptyFact;
   return ppg.toFixed(1);
 }
 
 export function formatDefVsFact(player) {
   const opp = String(player?.opponent || "").replace(/^@/, "").replace(/^BYE$/i, "").trim();
   const rank = ordinalRank(player?.opp_def_rank);
-  const ppg = Number(player?.opp_def_ppg);
+  const ppg = finiteNumber(player?.opp_def_ppg);
   const head = [opp && opp.toUpperCase() !== "BYE" ? opp : "", rank].filter(Boolean).join(" ");
   const bits = [];
   if (head) bits.push(head);
-  if (Number.isFinite(ppg)) bits.push(ppg.toFixed(1));
+  if (ppg != null) bits.push(ppg.toFixed(1));
   return bits.join(" · ") || WEEK_BOARD_COPY.emptyFact;
 }
 

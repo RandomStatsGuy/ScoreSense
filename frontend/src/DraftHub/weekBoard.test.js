@@ -274,6 +274,9 @@ test("ticket facts format Vegas, prior PPG, def vs pos, and kickoff", () => {
   assert.equal(formatVegasFact(player), "+6.5 · O/U 41.5");
   assert.equal(formatPriorPpgFact(player), "14.8");
   assert.equal(formatPriorPpgFact({}), "—");
+  assert.equal(formatPriorPpgFact({ prior_ppg: null }), "—");
+  assert.equal(formatPriorPpgFact({ prior_ppg: 0 }), "0.0");
+  assert.equal(formatVegasFact({ vegas_spread: null, vegas_total: null }), "—");
   assert.equal(formatDefVsFact(player), "NE 8th · 16.1");
   assert.equal(ordinalRank(1), "1st");
   assert.equal(ordinalRank(22), "22nd");

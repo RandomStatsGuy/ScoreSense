@@ -552,6 +552,22 @@ def test_attach_call_facts_uses_injected_vegas_ppg_and_dvp():
     assert cards[1]["vegas_spread"] is None
 
 
+def test_lookup_prior_ppg_follows_name_when_team_changes():
+    from src.draft_hub.weekly_command_center import _lookup_prior_ppg
+
+    index = {
+        "by_id": {"00-kw3": 16.4},
+        "by_name_team": {"kennethwalker|SEA": 16.4},
+        "season": 2025,
+    }
+    card = {
+        "player_id": "sleeper-8151",
+        "player_name": "Kenneth Walker",
+        "team": "KC",
+    }
+    assert _lookup_prior_ppg(card, index) == 16.4
+
+
 def test_hub_only_week_persists_lineup(hub_db):
     league, team, _ws, comm = _seed_league_roster(hub_db, sleeper=False)
     from src.draft_hub.hub_context import resolve_hub_context
