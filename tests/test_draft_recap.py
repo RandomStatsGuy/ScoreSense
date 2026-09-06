@@ -53,6 +53,9 @@ def test_build_draft_recap_after_completed_draft(hub_db):
     assert recap.get("projected_standings") in (None, [])
     assert any(a["id"] == "steal_of_draft" for a in recap["awards"])
     assert any(a["id"] == "reach_of_draft" for a in recap["awards"])
+    assert recap["team_insights"]
+    assert recap["team_insights"][0]["steals"] == 1
+    assert recap["team_insights"][0]["reaches"] == 1
 
 
 def test_relaxed_limits_skip_cap_awards_and_label_scopes(hub_db):

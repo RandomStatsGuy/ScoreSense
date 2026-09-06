@@ -141,8 +141,8 @@ def test_mock_award_lands_on_roster_and_blocks_renomination(hub_db, monkeypatch)
 
 
 def test_bot_bidding_stops_at_fair_value_ceiling(hub_db, monkeypatch):
-    """Bots value players at 0.75x–1.15x fair value — an auction must converge
-    near fair price instead of climbing until budgets run out."""
+    """Bots value players inside their personality ceiling — an auction must
+    converge near fair price instead of climbing until budgets run out."""
     from src.draft_hub.test_draft import bot_max_price, maybe_bot_bid
 
     out = start_mock_draft("mock-user", mode="quick_bots", bot_count=3, auto_start=True)
@@ -164,7 +164,7 @@ def test_bot_bidding_stops_at_fair_value_ceiling(hub_db, monkeypatch):
             break
     session = storage.get_draft_session(league_id)
     high = float(session.get("high_bid") or 0)
-    assert 1 <= high <= fair * 1.15 + 1
+    assert 1 <= high <= fair * 1.25 + 1
     assert maybe_bot_bid(league_id) is None
 
     # Unvalued players are cheap fliers only.
@@ -217,6 +217,33 @@ def test_settle_auction_nominator_pays_second_price(hub_db, monkeypatch):
     assert wins, "settle should award the nominee"
     amount = float((wins[-1].get("payload") or {}).get("amount") or 0)
     assert amount >= 20, f"star should not sell for nomination $1, got ${amount:.0f}"
+
+
+def test_settle_auction_uncontested_star_pays_market_floor(hub_db, monkeypatch):
+    """A leftover QB at fair $11 must not clear for the $1 nomination opener."""
+    from src.draft_hub.test_draft import _settle_auction
+
+    out = start_mock_draft("mock-user", mode="quick_bots", bot_count=3, auto_start=True)
+    league_id = out["league_id"]
+    player = {
+        "player_id": "dj",
+        "player_name": "Daniel Jones",
+        "team": "IND",
+        "position": "QB",
+        "fair_value": 11,
+        "season_proj": 220,
+        "per_game_proj": 14,
+    }
+    _stub_pool_player(monkeypatch, player)
+    nominate(league_id, "mock-user", player)
+    _settle_auction(league_id)
+    wins = [
+        e for e in storage.list_draft_events(league_id)
+        if e.get("event_type") == "win"
+    ]
+    assert wins
+    amount = float((wins[-1].get("payload") or {}).get("amount") or 0)
+    assert amount >= 7, f"uncontested valued player should clear near fair, got ${amount:.0f}"
 
 
 def test_claim_simulation_is_exclusive_under_race():

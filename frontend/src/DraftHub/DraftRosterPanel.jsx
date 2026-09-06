@@ -1,4 +1,5 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { positionChipTone } from "./draftAuctionTheater";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 import { mergePlayerMedia } from "./draftRoomEnrichment";
 import { HUB_POS_ORDER, normalizeHubPosition } from "./hubPositions";
@@ -112,6 +113,20 @@ export default function DraftRosterPanel({
   }
 
   const liveActions = !ended && (allowMidDraftCuts || allowTrades);
+  const seenIds = useRef(new Set());
+  const [freshIds, setFreshIds] = useState(() => new Set());
+  useEffect(() => {
+    const next = new Set(roster.map((row) => String(row.player_id || "")).filter(Boolean));
+    const added = [...next].filter((id) => !seenIds.current.has(id));
+    if (seenIds.current.size && added.length) {
+      setFreshIds(new Set(added));
+      const id = setTimeout(() => setFreshIds(new Set()), 200);
+      seenIds.current = next;
+      return () => clearTimeout(id);
+    }
+    seenIds.current = next;
+    return undefined;
+  }, [roster]);
 
   return (
     <div className={`hub-roster-panel${band ? " hub-roster-panel--band" : ""}`}>
@@ -169,13 +184,17 @@ export default function DraftRosterPanel({
           const min = Number(cap?.min ?? rosterLimits?.[pos.toLowerCase()]?.min ?? 0);
           const count = cap?.count ?? grouped[pos]?.length ?? 0;
           const max = cap?.max ?? rosterLimits?.[pos.toLowerCase()]?.max ?? "—";
-          const atMax = cap?.at_max;
+          const tone = positionChipTone({
+            count,
+            min,
+            max: max === "—" || max == null ? null : max,
+          });
           const belowMin = cap?.below_min ?? (min > 0 && count < min);
           const label = min > 0 ? `${count}/${min} min · ${max} max` : `${count}/${max}`;
           return (
             <div
               key={pos}
-              className={`hub-cap-chip${atMax ? " hub-cap-chip-full" : ""}${belowMin ? " hub-cap-chip-need" : ""}`}
+              className={`hub-cap-chip hub-cap-chip-${tone}`}
               title={belowMin ? `Need ${min - count} ${pos}` : undefined}
             >
               <span>{pos}</span>
@@ -189,7 +208,10 @@ export default function DraftRosterPanel({
       ) : (
         <ul className="hub-roster-list">
           {sortedRoster.map((row) => (
-            <li key={row.player_id} className="hub-roster-row">
+            <li
+              key={row.player_id}
+              className={`hub-roster-row hub-roster-row--locker${freshIds.has(String(row.player_id)) ? " is-new" : ""}`}
+            >
               <span className="hub-roster-pos">{normalizeHubPosition(row.position)}</span>
               <span className="hub-roster-name">
                 <PlayerCell

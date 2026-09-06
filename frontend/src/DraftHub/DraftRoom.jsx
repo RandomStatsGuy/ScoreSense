@@ -44,6 +44,8 @@ import {
   simulationPostFailureAction,
 } from "./draftLiveConsole";
 import { mockDraftLiveCopy } from "./mockDraftConfig";
+import { displayBotName } from "./botPersona";
+import { SOLD_HOLD_MS, pinAuctionStage, shouldHoldSoldCard } from "./draftAuctionTheater";
 import { isPickDraft } from "./draftEntryStatus";
 import { HubPage } from "./HubUILayout";
 import { usePlayerMedia } from "../PlayerCell";
@@ -107,6 +109,7 @@ export default function DraftRoom({
   const [fantasyMediaDigests, setFantasyMediaDigests] = useState({});
   const [digestLoadingId, setDigestLoadingId] = useState(null);
   const [pickRecap, setPickRecap] = useState(null);
+  const [soldHold, setSoldHold] = useState(null);
   const [draftRecap, setDraftRecap] = useState(null);
   const [nominationPoolRows, setNominationPoolRows] = useState(null);
   const [poolLoading, setPoolLoading] = useState(false);
@@ -128,6 +131,8 @@ export default function DraftRoom({
   const myTeamIdRef = useRef(null);
   const lastWinEventIdRef = useRef(null);
   const pickRecapReadyRef = useRef(false);
+  const lastNomineeRef = useRef(null);
+  const soldHoldTimerRef = useRef(null);
   const timerExpiredRef = useRef(false);
   const soundEventsReadyRef = useRef(false);
   const lastSoundEventRef = useRef("");
@@ -139,7 +144,9 @@ export default function DraftRoom({
   const pickDraft = isPickDraft(rules) || ["snake", "linear"].includes(String(roomState?.draft_type || ""));
   const pickClock = roomState?.pick || null;
   const relaxLimits = Boolean(rules?.relax_salary_roster_limits || roomState?.limits_relaxed);
-  const nominee = session?.current_nominee;
+  const liveNominee = session?.current_nominee;
+  if (liveNominee) lastNomineeRef.current = liveNominee;
+  const nominee = liveNominee;
   const teams = roomState?.teams || [];
   const events = roomState?.events || [];
   const pickEvents = (Array.isArray(roomState?.picks) && roomState.picks.length)
@@ -300,6 +307,13 @@ export default function DraftRoom({
     simulationDone: roomState?.simulation?.done,
     simulationTotal: roomState?.simulation?.total,
   });
+  const cardNominee = soldHold || liveNominee || (simulationRunning ? lastNomineeRef.current : null);
+  const pinStage = pinAuctionStage({
+    pickDraft,
+    nominee: cardNominee,
+    soldHold,
+    simulating: simulationRunning,
+  });
   const liveCopy = mockDraftLiveCopy();
   const recapHasStory = Boolean(
     draftRecap && (
@@ -307,6 +321,7 @@ export default function DraftRoom({
       || (draftRecap.notable_picks?.length ?? 0) > 0
       || (draftRecap.projected_standings?.length ?? 0) > 0
       || draftRecap.pick_draft
+      || (draftRecap.team_insights?.length ?? 0) > 0
     ),
   );
   const completedReview = completedDraftReviewTarget(pickDraft);
@@ -1373,6 +1388,7 @@ export default function DraftRoom({
     pickRecapReadyRef.current = false;
     lastWinEventIdRef.current = null;
     setPickRecap(null);
+    setSoldHold(null);
   }, [leagueId]);
 
   useEffect(() => {
@@ -1385,25 +1401,46 @@ export default function DraftRoom({
     pickRecapReadyRef.current = transition.initialized;
     lastWinEventIdRef.current = transition.lastEventId;
     const lastAward = transition.event;
-    if (!lastAward) return;
+    if (!lastAward) return undefined;
     const p = lastAward.payload || {};
     const isPick = lastAward.event_type === "pick" || pickDraft;
     const proj = p.season_proj != null && Number.isFinite(Number(p.season_proj)) && Number(p.season_proj) > 0
       ? `${Number(p.season_proj).toFixed(0)} proj pts`
       : "";
-    setPickRecap({
+    if (isPick) {
+      setPickRecap({
+        player_name: p.player_name,
+        position: p.position,
+        team_name: p.team_name,
+        amount: p.amount,
+        value_grade: p.value_grade,
+        value_blurb: p.value_blurb,
+        detail: proj || p.value_blurb,
+        round: p.round,
+        overall: p.overall,
+        pick_draft: true,
+      });
+      return undefined;
+    }
+    setPickRecap(null);
+    if (!shouldHoldSoldCard({ simulating: simulationRunning, pickDraft, event: lastAward })) {
+      return undefined;
+    }
+    setSoldHold({
+      player_id: p.player_id,
       player_name: p.player_name,
       position: p.position,
-      team_name: p.team_name,
+      team: p.team || p.nfl_team,
+      winner: displayBotName(p.team_name),
       amount: p.amount,
-      value_grade: p.value_grade,
-      value_blurb: p.value_blurb,
-      detail: isPick ? (proj || p.value_blurb) : p.value_blurb,
-      round: p.round,
-      overall: p.overall,
-      pick_draft: isPick,
+      fair_value: p.fair_value,
     });
-  }, [events, pickDraft, roomState]);
+    if (soldHoldTimerRef.current) clearTimeout(soldHoldTimerRef.current);
+    soldHoldTimerRef.current = setTimeout(() => setSoldHold(null), SOLD_HOLD_MS);
+    return () => {
+      if (soldHoldTimerRef.current) clearTimeout(soldHoldTimerRef.current);
+    };
+  }, [events, pickDraft, roomState, simulationRunning]);
 
   const expireAuctionTimer = useCallback(async () => {
     if (!leagueId) return;
@@ -1592,6 +1629,7 @@ export default function DraftRoom({
           compact
           hideHero
           hideNotable
+          viewerTeamId={myTeamId}
           onViewInsights={
             usingHubLeague && onNavigate
               ? () => onNavigate("insights")
@@ -1745,7 +1783,9 @@ export default function DraftRoom({
         </div>
       )}
 
-      <DraftPickRecap recap={pickRecap} pickDraft={pickDraft} onDismiss={() => setPickRecap(null)} />
+      {pickDraft && (
+        <DraftPickRecap recap={pickRecap} pickDraft={pickDraft} onDismiss={() => setPickRecap(null)} />
+      )}
 
       {showDraftEntry && (
         <DraftEntryPanel
@@ -1779,8 +1819,8 @@ export default function DraftRoom({
       )}
 
       {leagueId && inLiveDraft && (
-        <div className={`hub-draft-experience hub-draft-experience--${pickDraft ? "pick" : "auction"}${!pickDraft && !nominee ? " hub-draft-experience--pool-stage" : ""}`}>
-          {(pickDraft || nominee || (onClock && previewRow && nomPlayerId) || (roomLoading && !session)) && (
+        <div className={`hub-draft-experience hub-draft-experience--${pickDraft ? "pick" : "auction"}${!pickDraft && !pinStage ? " hub-draft-experience--pool-stage" : ""}`}>
+          {(pickDraft || pinStage || (onClock && previewRow && nomPlayerId) || (roomLoading && !session)) && (
           <div className="hub-draft-stage" aria-label={pickDraft ? "Draft board" : "Auction stage"} role="region">
             {roomLoading && !session && (
               <p className="chart-note hub-draft-loading">Loading draft room…</p>
@@ -1799,23 +1839,31 @@ export default function DraftRoom({
                 compactDefault
                 variant="stage"
               />
-            ) : nominee ? (
-              <div className="hub-auction-stage-card">
+            ) : cardNominee ? (
+              <div className={`hub-auction-stage-card${soldHold ? " is-sold-hold" : ""}`}>
                 <DraftNomineeCard
-                  playerName={nominee.player_name}
-                  position={nominee.position}
-                  team={nominee.team}
-                  {...playerContext(nominee.player_id)}
-                  stats={nomineeStats}
-                  digestLoading={digestLoadingId === nominee.player_id}
+                  key={soldHold ? `sold-${soldHold.player_id}` : cardNominee.player_id}
+                  playerName={cardNominee.player_name}
+                  position={cardNominee.position}
+                  team={cardNominee.team}
+                  {...playerContext(cardNominee.player_id)}
+                  stats={soldHold ? { fairValue: soldHold.fair_value } : nomineeStats}
+                  digestLoading={digestLoadingId === cardNominee.player_id}
                   sentimentMeta={sentimentMeta}
-                  highBid={session.high_bidder_team_id ? session.high_bid : null}
+                  highBid={soldHold ? soldHold.amount : (session.high_bidder_team_id ? session.high_bid : null)}
                   openingBid={rules?.auction?.min_bid}
-                  highBidderName={highBidder?.name}
-                  highBidderIsBot={highBidder?.is_bot}
-                  deadline={session.status === "bidding" ? session.bid_deadline : null}
+                  highBidderName={soldHold ? soldHold.winner : highBidder?.name}
+                  highBidderTeam={soldHold ? { name: soldHold.winner } : highBidder}
+                  highBidderIsBot={soldHold ? false : highBidder?.is_bot}
+                  deadline={soldHold || session.status !== "bidding" ? null : session.bid_deadline}
+                  bidDurationSec={Number(rules?.auction?.bid_timer_sec) || 30}
                   paused={clockPaused}
                   pausedLabel={clockLabel}
+                  isWinning={!soldHold && Boolean(myTeamId && session?.high_bidder_team_id === myTeamId)}
+                  sold={Boolean(soldHold)}
+                  soldWinner={soldHold?.winner}
+                  soldAmount={soldHold?.amount}
+                  soldFair={soldHold?.fair_value}
                 />
                 {(bidInvalid || nomineePosBlocked) && (
                   <div className="hub-auction-stage-warning" role="status">
@@ -1882,6 +1930,7 @@ export default function DraftRoom({
               minBid={minBidUnit || 1}
               riskTolerance={rules?.risk_tolerance ?? 0}
               rules={rules || null}
+              wideStage={!pickDraft && !pinStage}
             />
           </aside>
 

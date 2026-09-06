@@ -17,7 +17,7 @@ Page-specific do-nots: the matching row in `frontend/src/livingSurfaces.js`.
 - Hero + sticky summary: `HubExperienceHero`, `HubExperienceLayout`, `HubExperienceSummary` in `HubUILayout.jsx`.
 - Sections: `HubSection`, `HubTableCard`, `HubToolbar`, `HubAlert` / `HubAlertStack`.
 - Intro copy: `HubTabIntro` only when the page is not already using the experience hero.
-- Live draft (`DraftRoom` while a draft is running): keep the board-first layout. Do not add the two-column settings chrome.
+- Live draft (`DraftRoom` while a draft is running): keep the board-first layout. Do not add the two-column settings chrome. Auction theater lives on the nominee card (bid pulse, draining clock, 1s SOLD hold). Do not toast a sold result in the header.
 - Do not create a second hero, chip, or summary component. Extend the existing ones.
 - Idle Draft, Mock, and the live room share `DraftSeat`. Do not fork YOU / Open · Take tiles.
 

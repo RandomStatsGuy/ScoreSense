@@ -17,7 +17,8 @@ test("hubTeamLabel does not show team names exclusively when an owner exists", (
 
 test("hubTeamLabel falls back to the team nickname when no owner is known", () => {
   assert.equal(hubTeamLabel({ sleeper_team_name: "Panda Fraud", name: "Commissioner" }), "Panda Fraud");
-  assert.equal(hubTeamLabel({ name: "Bot Alpha" }), "Bot Alpha");
+  assert.equal(hubTeamLabel({ name: "Bot Alpha" }), "The Auditor");
+  assert.equal(hubTeamLabel({ name: "Bot Alpha", is_bot: true }), "The Auditor");
 });
 
 test("hubTeamInitialsName uses the owner, not the combined Owner · Team label", () => {
