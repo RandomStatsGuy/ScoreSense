@@ -29,6 +29,7 @@ import {
   seasonBoardSignals,
   seasonPeerStats,
   staleRefreshLabel,
+  weeklyContextNeedsRefresh,
   weeklyBoardKicker,
   weeklyBoardPreview,
   weeklyBoardSignals,
@@ -207,6 +208,7 @@ export default function App() {
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [mobileDestOpen, setMobileDestOpen] = useState(false);
   const [weeklyContextMeta, setWeeklyContextMeta] = useState(null);
+  const [contextReloadToken, setContextReloadToken] = useState(0);
   const [hubMounted, setHubMounted] = useState(false);
   const rosFetchGen = useRef(0);
   const seasonModeUserPicked = useRef(false);
@@ -1039,8 +1041,10 @@ export default function App() {
       : isSeasonLive
         ? rosLoading
         : loading);
+  const weeklyNeedsRefresh = weeklyContextNeedsRefresh(weeklyContextMeta || {});
   const weeklyStaleLabel = staleRefreshLabel({
     stale: Boolean(weeklyContextMeta?.stale),
+    unavailable: Boolean(weeklyContextMeta?.unavailable),
     updatedAt: weeklyContextMeta?.updatedAt || refreshStatus?.completed_at,
     refreshing: dataRefreshLoading,
   });
@@ -1166,6 +1170,7 @@ export default function App() {
       else if (isSeasonPreseason) await fetchDraft();
       else await fetchProjections();
       await fetchMeta();
+      setContextReloadToken((n) => n + 1);
     } catch (err) {
       setError(err.message || "Refresh failed");
     } finally {
@@ -1572,7 +1577,7 @@ export default function App() {
             onFilterOpen={() => setMobileFilterOpen(true)}
             resultLabel={weeklyBoardResultLabel}
             filterActive={weeklyFilterChips.length > 0}
-            stale={Boolean(weeklyContextMeta?.stale)}
+            stale={weeklyNeedsRefresh}
             staleLabel={weeklyStaleLabel}
             onRefresh={triggerRefresh}
             refreshing={dataRefreshLoading}
@@ -1746,6 +1751,7 @@ export default function App() {
                 hideMovementFilters
                 onRefreshData={triggerRefresh}
                 dataRefreshLoading={dataRefreshLoading}
+                contextReloadToken={contextReloadToken}
                 onContextMeta={setWeeklyContextMeta}
                 searchSlot={null}
               />
