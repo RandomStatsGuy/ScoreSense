@@ -85,24 +85,29 @@ export default function DraftTeamCard({
     >
       <button type="button" className="hub-team-card-toggle" onClick={() => setOpen((v) => !v)}>
         <div className="hub-team-card-head">
-          <strong className="hub-team-card-name">
-            <TeamIdentityMark
-              team={team}
-              identity={identityFor(identities, team)}
-              size="sm"
-            />
-            {hubTeamLabel(team)}
-          </strong>
-          <span className="hub-team-card-tags">
-            {isNominator ? <span className="hub-team-tag hub-team-tag-nom">{pickDraft ? "On the clock" : "Nominate"}</span> : null}
-            {!pickDraft && isLeader ? <span className="hub-team-tag hub-team-tag-lead">High bid</span> : null}
-          </span>
+          <div className="hub-team-card-title">
+            <strong className="hub-team-card-name">
+              <TeamIdentityMark
+                team={team}
+                identity={identityFor(identities, team)}
+                size="sm"
+              />
+              {hubTeamLabel(team) || (team.is_bot ? "Bot" : "Team")}
+            </strong>
+            <span className="hub-team-card-tags">
+              {isNominator ? <span className="hub-team-tag hub-team-tag-nom">{pickDraft ? "On the clock" : "Nominate"}</span> : null}
+              {!pickDraft && isLeader ? <span className="hub-team-tag hub-team-tag-lead">High bid</span> : null}
+            </span>
+          </div>
           <span className="hub-team-card-meta">
             {pickDraft
-              ? teamRosterLine({ ...team, occupying: occupying.length }).text
+              ? teamRosterLine({
+                  ...team,
+                  occupying: occupying.length || Number(team.occupying) || 0,
+                }).text
               : teamBudgetLine({
                   ...team,
-                  occupying: occupying.length,
+                  occupying: occupying.length || Number(team.occupying) || 0,
                   roster_size_max: team.roster_size_max,
                   max_bid: team.max_bid,
                 }).text}

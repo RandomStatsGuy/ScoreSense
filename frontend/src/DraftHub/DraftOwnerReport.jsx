@@ -44,7 +44,7 @@ export default function DraftOwnerReport({
   }, [leagueId]);
 
   if (loading) {
-    return <p className="chart-note hub-owner-report-loading">Loading your draft…</p>;
+    return null;
   }
   if (error && !report) {
     return <div className="error">{error}</div>;

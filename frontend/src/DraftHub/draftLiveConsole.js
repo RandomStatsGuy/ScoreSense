@@ -290,25 +290,47 @@ export function isLiveAuctionStatus(status) {
   return status === "nominating" || status === "bidding" || status === "picking";
 }
 
+export function simulationProgressLabel({ done, total, fallback = "Sim…" } = {}) {
+  const n = Number(done);
+  const t = Number(total);
+  if (Number.isFinite(n) && Number.isFinite(t) && t > 0) {
+    return `${Math.max(0, Math.trunc(n))} of ${Math.trunc(t)}`;
+  }
+  return fallback;
+}
+
+export function rosterForTeam(rosters, teamId) {
+  if (!rosters || teamId == null) return [];
+  const direct = rosters[teamId];
+  if (Array.isArray(direct)) return direct;
+  const keyed = rosters[String(teamId)];
+  return Array.isArray(keyed) ? keyed : [];
+}
+
 /**
  * One lock policy for every draft mutation and every visible clock.
- * Simulation is client-initiated and can outlive several server clock ticks,
- * so it must freeze the UI even before the completed room state arrives.
+ * Simulation freezes bids and clocks, but Discard must stay available.
  */
 export function draftInteractionState({
   busy = false,
   pendingAction = "",
   paused = false,
   simulationStatus = "idle",
+  simulationDone = null,
+  simulationTotal = null,
 } = {}) {
   const simulationActive = simulationStatus === "confirming" || simulationStatus === "running";
   const simulating = simulationStatus === "running";
+  const deleting = pendingAction === "delete" || pendingAction === "discard";
   return {
     locked: Boolean(busy || pendingAction || paused || simulationActive),
+    discardEnabled: !deleting,
     simulationActive,
     simulating,
     clockPaused: Boolean(paused || simulating),
-    clockLabel: simulating ? "Simulating…" : "Paused",
+    clockLabel: simulating
+      ? simulationProgressLabel({ done: simulationDone, total: simulationTotal })
+      : "Paused",
   };
 }
 

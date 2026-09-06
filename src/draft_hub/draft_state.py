@@ -84,18 +84,23 @@ def _parse_bid_deadline(value: Any, fallback: datetime) -> datetime:
 
 
 def _extend_bid_deadline(session: dict[str, Any], rules: LeagueRules) -> str:
-    """Add a few seconds on each bid, never above the opening bid clock.
+    """Extend only late bids by a few seconds — never refill the opening clock.
 
-    Rapid bids used to stack `bid_extension_sec` onto remaining time and the
-    displayed clock could shoot past `bid_timer_sec`. Soft-cap at that opening
-    length instead of resetting all the way back to a full timer on every bid.
+    Early bids used to add `bid_extension_sec` back toward `bid_timer_sec`,
+    which read as a 31-second reset on every +$1. Real rooms only bump the
+    clock when time is almost gone.
     """
     ext = max(0, int(getattr(rules.auction, "bid_extension_sec", 5) or 0))
-    cap = max(1, int(getattr(rules.auction, "bid_timer_sec", 30) or 30))
     now = datetime.now(timezone.utc)
-    deadline = _parse_bid_deadline(session.get("bid_deadline"), now)
+    raw = session.get("bid_deadline")
+    if not raw:
+        return (now + timedelta(seconds=max(ext, 1))).isoformat()
+    deadline = _parse_bid_deadline(raw, now)
     remaining = max(0.0, (deadline - now).total_seconds())
-    new_remaining = min(float(cap), remaining + ext)
+    late_window = float(max(ext, 1))
+    if remaining > late_window:
+        return deadline.isoformat()
+    new_remaining = min(late_window + ext, remaining + ext)
     return (now + timedelta(seconds=new_remaining)).isoformat()
 
 
@@ -396,6 +401,14 @@ def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any
         "claimed_humans": len(claimed_human_teams(league_id)),
         "limits_relaxed": salary_roster_limits_relaxed(rules),
     }
+    try:
+        from src.draft_hub.test_draft import simulation_progress
+
+        sim = simulation_progress(league_id)
+    except Exception:
+        sim = None
+    if sim:
+        out["simulation"] = sim
     if user_sub:
         team = storage.get_team_by_user(league_id, user_sub)
         is_staff = str(league.get("commissioner_sub") or "") == str(user_sub) or bool(

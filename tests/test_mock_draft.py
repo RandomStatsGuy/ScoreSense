@@ -171,6 +171,62 @@ def test_bot_bidding_stops_at_fair_value_ceiling(hub_db, monkeypatch):
     assert bot_max_price("bot-x", {"player_id": "p2"}, 1.0) == 3.0
 
 
+def test_next_bot_bid_jumps_toward_ceiling():
+    from src.draft_hub.test_draft import next_bot_bid
+
+    assert next_bot_bid(1, 40, 1) == 15  # 35% of $39 gap, at least $2
+    assert next_bot_bid(38, 40, 1) == 40
+    assert next_bot_bid(39, 40, 1) == 40
+    assert next_bot_bid(40, 40, 1) is None
+    assert next_bot_bid(10, 11, 1) == 11
+
+
+def test_settle_auction_nominator_pays_second_price(hub_db, monkeypatch):
+    """Nominator already high at $1 must still pay the runner-up ceiling."""
+    from src.draft_hub.test_draft import _settle_auction
+
+    out = start_mock_draft("mock-user", mode="quick_bots", bot_count=3, auto_start=True)
+    league_id = out["league_id"]
+    player = {
+        "player_id": "cmc",
+        "player_name": "Star RB",
+        "team": "SF",
+        "position": "RB",
+        "fair_value": 50,
+        "season_proj": 320,
+        "per_game_proj": 18,
+    }
+    _stub_pool_player(monkeypatch, player)
+    nominate(league_id, "mock-user", player)
+    session = storage.get_draft_session(league_id)
+    assert float(session.get("high_bid") or 0) == 1
+    _settle_auction(league_id)
+    wins = [
+        e for e in storage.list_draft_events(league_id)
+        if e.get("event_type") == "win"
+    ]
+    assert wins, "settle should award the nominee"
+    amount = float((wins[-1].get("payload") or {}).get("amount") or 0)
+    assert amount >= 20, f"star should not sell for nomination $1, got ${amount:.0f}"
+
+
+def test_simulate_progress_is_on_room_state(hub_db, monkeypatch):
+    from src.draft_hub.test_draft import simulate_draft, simulation_progress
+
+    monkeypatch.setattr(
+        "src.draft_hub.value_sheet.build_draft_pool_payload",
+        lambda *a, **k: {"rows": _fake_pool_rows(12)},
+    )
+    out = start_mock_draft("mock-user", mode="quick_bots", bot_count=2, auto_start=True)
+    league_id = out["league_id"]
+    state = simulate_draft(league_id, "mock-user", max_picks=4)
+    snap = simulation_progress(league_id)
+    assert snap is not None
+    assert snap["status"] == "completed"
+    assert snap["done"] >= 1
+    assert state.get("simulation", {}).get("status") == "completed"
+
+
 def test_mock_league_empty_recap_after_end_without_picks(hub_db):
     out = start_mock_draft("mock-user", mode="quick_bots", bot_count=2, auto_start=True)
     end_draft(out["league_id"], "mock-user", force=True)

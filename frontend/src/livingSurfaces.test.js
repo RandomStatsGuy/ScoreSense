@@ -144,6 +144,14 @@ test("audit routes come from the registry and skip overlays", () => {
   assert.equal(LIVING_SURFACES["projections.inspector"].overlay, true);
 });
 
+test("live mock forbids Available players and keeps Discard on", () => {
+  const live = LIVING_SURFACES["tools.mock-draft.live"];
+  assert.match(live.doNot, /Available players/);
+  assert.match(live.doNot, /Discard/);
+  assert.match(live.doNot, /Drop or Trade/);
+  assert.equal(live.copy, "frontend/src/DraftHub/mockDraftConfig.js");
+});
+
 test("shared tokens include the product spacing rhythm", () => {
   assert.ok(SHARED.tokens.includes("frontend/src/styles/product-rhythm.css"));
   assert.ok(SHARED.tokens.includes("frontend/src/styles/tokens.css"));
