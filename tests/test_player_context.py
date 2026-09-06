@@ -319,7 +319,7 @@ def test_refresh_player_context_skips_mlready_when_slate_is_known():
     assert out["season"] == 2026
     assert out["week"] == 1
     assert out["rows"] == 3
-    prewarm.assert_called_once_with(2026, 1, force_injury_refresh=False)
+    prewarm.assert_called_once_with(2026, 1, force_injury_refresh=False, allow_compute=True)
     read_parquet.assert_not_called()
     assert season_week_context(2026, 1) == (2026, 1)
 
