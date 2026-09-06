@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mockup — This Week · B Slate</title>
+<title>Mockup — This Week · B Slate · lineup call</title>
 <link rel="stylesheet" href="mockup-shared.css" />
 <style>
   .hero-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-2); }
@@ -74,39 +74,123 @@
   .action { width: 8.75rem; flex: none; display: flex; justify-content: flex-end; min-height: var(--control-h-sm); }
   .start {
     display: inline-flex; align-items: center; justify-content: space-between;
-    gap: var(--space-2); min-height: var(--control-h-sm); width: 100%;
+    gap: var(--space-2); min-height: var(--control-h-sm);
     padding: 0 var(--space-3); border-radius: var(--radius-md);
     border: 1px solid color-mix(in srgb, var(--tone-caution) 50%, transparent);
     background: var(--tone-caution-soft); color: var(--tone-caution);
     font: inherit; font-size: var(--text-xs); font-weight: 700; cursor: pointer;
   }
-  .flag { color: var(--danger); font-weight: 700; }
-  .bench-wrap { margin-top: var(--space-5); }
-  .bench-wrap h3 { margin: 0 0 var(--space-3); font-size: 1.02rem; }
-  .row.is-pick { background: color-mix(in srgb, var(--tone-caution) 6%, transparent); }
+  .row .start { width: 100%; }
+  .sheet-back {
+    position: fixed; inset: 0; z-index: 30;
+    background: rgba(7, 13, 23, 0.72);
+    display: flex; align-items: center; justify-content: center;
+    padding: var(--space-5);
+  }
+  .sheet {
+    width: min(36rem, 100%);
+    max-height: calc(100vh - 3rem);
+    overflow: auto;
+    display: flex; flex-direction: column;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-panel);
+    padding: var(--space-5);
+  }
+  .sheet-body { min-height: 0; }
+  .sheet-top {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+  .sheet-top h2 { margin: 0; font-size: 1.15rem; letter-spacing: -0.02em; }
+  .sheet-kicker { margin: 0 0 var(--space-1); font-size: var(--text-xs); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-muted); font-weight: 700; }
+  .sheet-close {
+    min-height: var(--control-h-sm); min-width: var(--control-h-sm);
+    border-radius: var(--radius-md); border: 1px solid var(--border-strong);
+    background: transparent; color: var(--text-secondary); font: inherit; font-weight: 700;
+  }
+  .pair {
+    display: flex; align-items: stretch; gap: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+  .side {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: var(--space-2);
+    padding: var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-subtle);
+  }
+  .side.is-start {
+    background: color-mix(in srgb, var(--tone-caution) 10%, var(--bg-subtle));
+  }
+  .side img {
+    width: 4.5rem; height: 4.5rem; border-radius: 12px;
+    object-fit: cover; object-position: top; display: block;
+  }
+  .side .role { margin: 0; font-size: var(--text-xs); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+  .side h3 { margin: 0; font-size: 1.05rem; }
+  .side .meta { margin: 0; color: var(--text-muted); font-size: var(--text-xs); }
+  .vs-mark {
+    align-self: center;
+    width: 2.25rem; height: 2.25rem; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-base); border: 1px solid var(--border);
+    font-size: var(--text-xs); font-weight: 800; color: var(--text-muted); flex: none;
+  }
+  .fact-line {
+    display: flex; align-items: center; gap: var(--space-3);
+    min-height: 2.5rem;
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid rgba(36, 50, 73, 0.55);
+  }
+  .fact-line:last-of-type { border-bottom: 0; }
+  .fact-label { flex: 1; min-width: 0; color: var(--text-muted); font-size: var(--text-xs); }
+  .fact-sit, .fact-go {
+    width: 7.5rem; flex: none; text-align: right;
+    font-size: var(--text-xs); font-variant-numeric: tabular-nums;
+  }
+  .fact-go { font-weight: 700; color: var(--text-primary); }
+  .sheet-note { margin: var(--space-3) 0 0; color: var(--text-muted); font-size: var(--text-xs); }
+  .sheet-foot {
+    display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3);
+    margin-top: var(--space-4);
+    position: sticky; bottom: 0;
+    padding-top: var(--space-3);
+    background: var(--bg-elevated);
+  }
+  .sheet-foot .start { min-width: 11rem; }
   .hub-experience-summary-action { width: 100%; min-height: var(--control-h-sm); }
   @media (max-width: 760px) {
     .board-head { flex-wrap: wrap; }
     .mark { display: none; }
-    .pts { width: 3.6rem; }
+    .pair { flex-direction: column; }
+    .vs-mark { margin: 0 auto; }
+    .fact-sit, .fact-go { width: 5.5rem; }
+    .sheet-back { align-items: flex-end; padding: 0; }
+    .sheet { width: 100%; max-height: 92vh; border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: var(--space-4); }
+    .side img { width: 3.25rem; height: 3.25rem; }
+    .pair { margin-bottom: var(--space-3); }
+    .sheet-foot { flex-wrap: wrap; }
+    .sheet-foot .start { width: 100%; }
   }
   @media (max-width: 430px) {
-    .week-step button, .start, button.btn-link, .hub-experience-summary-action, .btn {
+    .week-step button, .start, button.btn-link, .sheet-close, .btn {
       min-height: var(--control-h-lg);
     }
-    .action { width: 9.5rem; }
   }
 </style>
 </head>
 <body>
 <div class="concept-banner">
-  <div><strong>B · Slate</strong> <span>· one row per slot</span></div>
+  <div><strong>B · Call sheet</strong> <span>· slate stays · Start opens this</span></div>
   <nav class="concept-nav">
     <a href="index.html">All mocks</a>
     <a href="this-week.html">Chooser</a>
     <a href="this-week-a.html">A</a>
-    <a class="is-on" href="this-week-b.html">B</a>
-    <a href="this-week-b-call.html">B · Call</a>
+    <a href="this-week-b.html">B</a>
+    <a class="is-on" href="this-week-b-call.html">B · Call</a>
     <a href="this-week-c.html">C</a>
   </nav>
 </div>
@@ -166,7 +250,6 @@
         </div>
         <p class="legend">Swap recommended · Wide range</p>
         <p class="vibe-note">Vibes uses an aura-adjusted week. The number here is the model.</p>
-
         <div class="slate" id="calls">
           <article class="row">
             <span class="pos">QB</span>
@@ -184,66 +267,9 @@
             <div class="mark"></div>
             <div class="action"><button type="button" class="start"><span>Start Allen</span><span>+2.4</span></button></div>
           </article>
-          <article class="row">
-            <span class="pos">RB</span>
-            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/8155.jpg" />
-            <div class="who"><strong>Kyren Williams</strong><span>RB · LAR · vs DET</span></div>
-            <div class="pts">14.8 <small>wk</small></div>
-            <div class="mark"></div>
-            <div class="action" aria-hidden="true"></div>
-          </article>
-          <article class="row">
-            <span class="pos">WR</span>
-            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/6786.jpg" />
-            <div class="who"><strong>Ja'Marr Chase</strong><span>WR · CIN · vs CLE</span></div>
-            <div class="pts">18.1 <small>wk</small></div>
-            <div class="mark">8.2–28.4 · Vibes 16.8</div>
-            <div class="action" aria-hidden="true"></div>
-          </article>
-          <article class="row">
-            <span class="pos">WR</span>
-            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/9221.jpg" />
-            <div class="who"><strong>Puka Nacua</strong><span>WR · LAR · vs DET</span></div>
-            <div class="pts">15.6 <small>wk</small></div>
-            <div class="mark"></div>
-            <div class="action" aria-hidden="true"></div>
-          </article>
-          <article class="row">
-            <span class="pos">TE</span>
-            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11632.jpg" />
-            <div class="who"><strong>Trey McBride</strong><span>TE · ARI · vs BUF</span></div>
-            <div class="pts">12.4 <small>wk</small></div>
-            <div class="mark"></div>
-            <div class="action" aria-hidden="true"></div>
-          </article>
-          <article class="row is-call">
-            <span class="pos">FLEX</span>
-            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/5859.jpg" />
-            <div class="who"><strong>Courtland Sutton</strong><span>WR · DEN · vs SEA</span></div>
-            <div class="pts">11.2 <small>wk</small></div>
-            <div class="mark"></div>
-            <div class="action"><button type="button" class="start"><span>Start Jennings</span><span>+1.8</span></button></div>
-          </article>
-          <article class="row">
-            <span class="pos">K</span>
-            <span class="face">K</span>
-            <div class="who"><strong>Empty</strong><span>Specialist</span></div>
-            <div class="pts"></div>
-            <div class="mark"></div>
-            <div class="action"><button type="button" class="btn-link">Find K</button></div>
-          </article>
-          <article class="row">
-            <span class="pos">DEF</span>
-            <span class="face">DEN</span>
-            <div class="who"><strong>Broncos</strong><span>DEF · DEN · vs SEA</span></div>
-            <div class="pts">8.1 <small>wk</small></div>
-            <div class="mark"></div>
-            <div class="action" aria-hidden="true"></div>
-          </article>
         </div>
       </section>
     </main>
-
     <aside class="mock-rail">
       <section class="card">
         <h3>Maya Chen</h3>
@@ -253,60 +279,71 @@
           <div class="fact">Injured <strong>1</strong></div>
           <div class="fact">Wide ranges <strong>1</strong></div>
         </div>
-        <p class="note" style="margin-top: var(--space-3);">Amber is a start/sit call. A wide range is a quiet floor–ceiling mark, not a flag. Nobody on bye. Do not leave an out player in.</p>
-        <button type="button" class="btn btn-primary hub-experience-summary-action" style="margin-top: var(--space-4); width: 100%;">Open Game center</button>
-        <p class="note" style="margin-top: var(--space-2);">Live scoring, the scoreboard, and week trophies.</p>
       </section>
     </aside>
   </div>
+  <p class="footnote">Static mock · tokens only · not product code</p>
+</div>
 
-  <section class="bench-wrap card">
-    <h3>Bench</h3>
-    <div class="slate">
-      <article class="row is-pick">
-        <span class="pos">BN</span>
-        <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11604.jpg" />
-        <div class="who"><strong>Braelon Allen</strong><span>RB · NYJ · vs PIT</span></div>
-        <div class="pts">18.6 <small>wk</small></div>
-        <div class="mark"></div>
-        <div class="action" aria-hidden="true"></div>
+<div class="sheet-back">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="call-title">
+    <div class="sheet-top">
+      <div>
+        <p class="sheet-kicker">Lineup call · RB</p>
+        <h2 id="call-title">Sit Jeanty. Start Allen.</h2>
+      </div>
+      <button type="button" class="sheet-close" aria-label="Close">×</button>
+    </div>
+
+    <div class="pair">
+      <article class="side">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11563.jpg" />
+        <p class="role">Sit</p>
+        <h3>Ashton Jeanty</h3>
+        <p class="meta">RB · LV · Away @ NE</p>
       </article>
-      <article class="row is-pick">
-        <span class="pos">BN</span>
-        <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/8148.jpg" />
-        <div class="who"><strong>Jauan Jennings</strong><span>WR · SF · vs NYJ</span></div>
-        <div class="pts">13.0 <small>wk</small></div>
-        <div class="mark"></div>
-        <div class="action" aria-hidden="true"></div>
-      </article>
-      <article class="row">
-        <span class="pos">BN</span>
-        <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11635.jpg" />
-        <div class="who"><strong>Tucker Kraft</strong><span>TE · GB · vs CHI</span></div>
-        <div class="pts">9.2 <small>wk</small></div>
-        <div class="mark"></div>
-        <div class="action" aria-hidden="true"></div>
-      </article>
-      <article class="row">
-        <span class="pos">BN</span>
-        <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/9509.jpg" />
-        <div class="who"><strong>Jordan Mason</strong><span>RB · MIN · vs CHI</span></div>
-        <div class="pts">8.4 <small>wk</small></div>
-        <div class="mark"></div>
-        <div class="action" aria-hidden="true"></div>
-      </article>
-      <article class="row">
-        <span class="pos">BN</span>
-        <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/7564.jpg" />
-        <div class="who"><strong>Isiah Pacheco</strong><span>RB · KC · vs LAC</span></div>
-        <div class="pts">7.1 <small>wk</small></div>
-        <div class="mark"><span class="flag">OUT</span></div>
-        <div class="action" aria-hidden="true"></div>
+      <div class="vs-mark">VS</div>
+      <article class="side is-start">
+        <img alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11604.jpg" />
+        <p class="role">Start</p>
+        <h3>Braelon Allen</h3>
+        <p class="meta">RB · NYJ · Home vs PIT</p>
       </article>
     </div>
-  </section>
 
-  <p class="footnote">Static mock · tokens only · not product code</p>
+    <div class="sheet-body">
+      <div class="fact-line">
+        <span class="fact-label">Week pts</span>
+        <span class="fact-sit">16.2</span>
+        <span class="fact-go">18.6</span>
+      </div>
+      <div class="fact-line">
+        <span class="fact-label">Vegas line</span>
+        <span class="fact-sit">+6.5 · O/U 41.5</span>
+        <span class="fact-go">+3.0 · O/U 43.0</span>
+      </div>
+      <div class="fact-line">
+        <span class="fact-label">2025 PPG</span>
+        <span class="fact-sit">14.8</span>
+        <span class="fact-go">8.2</span>
+      </div>
+      <div class="fact-line">
+        <span class="fact-label">Def vs RB</span>
+        <span class="fact-sit">8th · 16.1</span>
+        <span class="fact-go">26th · 22.4</span>
+      </div>
+      <div class="fact-line">
+        <span class="fact-label">Kickoff</span>
+        <span class="fact-sit">Sun 1:00</span>
+        <span class="fact-go">Sun 4:25</span>
+      </div>
+    </div>
+    <p class="sheet-note">Week 1 uses last season’s PPG. A rookie stays empty. Def vs RB is points allowed, not a start flag.</p>
+    <div class="sheet-foot">
+      <button type="button" class="btn btn-ghost">Keep Jeanty</button>
+      <button type="button" class="start"><span>Start Allen</span><span>+2.4</span></button>
+    </div>
+  </div>
 </div>
 </body>
 </html>

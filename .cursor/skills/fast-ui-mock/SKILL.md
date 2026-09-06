@@ -36,4 +36,6 @@ This pass is for **options**. It is not documentation and not a ship.
 
 ## After they pick
 
+If the pick adds an overlay, sheet, or popup that was not in the chosen option, mock that surface and screenshot it first. Then wait.
+
 Implement on the living `page` / `copy`. Then `.cursor/skills/verify-fantasy-ui/SKILL.md`.
