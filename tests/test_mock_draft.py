@@ -219,6 +219,108 @@ def test_settle_auction_nominator_pays_second_price(hub_db, monkeypatch):
     assert amount >= 20, f"star should not sell for nomination $1, got ${amount:.0f}"
 
 
+def test_claim_simulation_is_exclusive_under_race():
+    import threading
+
+    from src.draft_hub.test_draft import (
+        claim_simulation,
+        clear_simulation,
+        release_simulation_claim,
+        simulation_is_running,
+    )
+
+    league_id = "claim-race"
+    clear_simulation(league_id)
+    winners: list[bool] = []
+    barrier = threading.Barrier(8)
+
+    def worker() -> None:
+        barrier.wait()
+        winners.append(claim_simulation(league_id))
+
+    threads = [threading.Thread(target=worker) for _ in range(8)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    try:
+        assert winners.count(True) == 1
+        assert winners.count(False) == 7
+        assert simulation_is_running(league_id)
+        assert claim_simulation(league_id) is False
+    finally:
+        release_simulation_claim(league_id)
+        clear_simulation(league_id)
+
+
+def test_http_simulate_returns_running_when_already_claimed(hub_db):
+    from fastapi.testclient import TestClient
+
+    from app.api import app
+    from app.auth import require_hub_user
+    from src.draft_hub.test_draft import claim_simulation, clear_simulation, release_simulation_claim
+
+    app.dependency_overrides[require_hub_user] = lambda: {"sub": "http-sim-claim", "auth_type": "dev"}
+    client = TestClient(app)
+    league_id = None
+    try:
+        started = client.post(
+            "/api/hub/mock-draft/start",
+            json={
+                "mode": "quick_bots",
+                "preset_id": "salary_cap_auction_v1",
+                "team_count": 3,
+                "bot_count": 2,
+                "auto_start": False,
+            },
+        )
+        assert started.status_code == 200, started.text
+        league_id = started.json()["league_id"]
+        assert claim_simulation(league_id)
+        sim = client.post(f"/api/hub/league/{league_id}/test/simulate", json={})
+        assert sim.status_code == 200, sim.text
+        body = sim.json()
+        assert body["status"] == "running"
+        assert (body.get("simulation") or {}).get("status") == "running"
+    finally:
+        if league_id:
+            release_simulation_claim(league_id)
+            clear_simulation(league_id)
+        app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_http_simulate_releases_claim_after_validation_error(hub_db):
+    from fastapi.testclient import TestClient
+
+    from app.api import app
+    from app.auth import require_hub_user
+    from src.draft_hub.test_draft import simulation_is_running
+
+    app.dependency_overrides[require_hub_user] = lambda: {"sub": "http-sim-stranger", "auth_type": "dev"}
+    client = TestClient(app)
+    try:
+        owner_override = lambda: {"sub": "http-sim-owner", "auth_type": "dev"}
+        app.dependency_overrides[require_hub_user] = owner_override
+        started = client.post(
+            "/api/hub/mock-draft/start",
+            json={
+                "mode": "quick_bots",
+                "preset_id": "salary_cap_auction_v1",
+                "team_count": 3,
+                "bot_count": 2,
+                "auto_start": False,
+            },
+        )
+        assert started.status_code == 200, started.text
+        league_id = started.json()["league_id"]
+        app.dependency_overrides[require_hub_user] = lambda: {"sub": "http-sim-stranger", "auth_type": "dev"}
+        sim = client.post(f"/api/hub/league/{league_id}/test/simulate", json={})
+        assert sim.status_code == 400, sim.text
+        assert not simulation_is_running(league_id)
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+
 def test_simulate_progress_is_on_room_state(hub_db, monkeypatch):
     from src.draft_hub.test_draft import simulate_draft, simulation_progress
 

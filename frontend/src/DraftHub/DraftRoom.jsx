@@ -39,6 +39,8 @@ import {
   displayedBidAmount,
   fetchTimeoutSignal,
   rosterForTeam,
+  caughtErrorMessage,
+  caughtErrorName,
   simulationPostFailureAction,
 } from "./draftLiveConsole";
 import { mockDraftLiveCopy } from "./mockDraftConfig";
@@ -1022,7 +1024,7 @@ export default function DraftRoom({
         roomSimulationStatus: roomStateRef.current?.simulation?.status,
         sessionStatus: roomStateRef.current?.session?.status,
         draftCompleted: Boolean(roomStateRef.current?.league?.draft_completed),
-        errorName: e.name,
+        errorName: caughtErrorName(e),
       });
       if (action === "completed") {
         setMockModeLabel("Simulated mock");
@@ -1033,7 +1035,7 @@ export default function DraftRoom({
         return;
       }
       setSimulationStatus("failed");
-      setError(e.message || "Simulation failed. Refresh the room, then retry.");
+      setError(caughtErrorMessage(e, "Simulation failed. Refresh the room, then retry."));
     }
   };
 

@@ -311,6 +311,15 @@ export function fetchTimeoutSignal(ms) {
  * After a simulate POST errors (proxy 504, abort), keep the UI running when
  * the room already shows the job in flight. Only fail when the server is idle.
  */
+/** Safe reads from catch (e) — rejects are not always Error objects. */
+export function caughtErrorName(error) {
+  return error?.name || "";
+}
+
+export function caughtErrorMessage(error, fallback = "") {
+  return error?.message || fallback;
+}
+
 export function simulationPostFailureAction({
   roomSimulationStatus = "",
   sessionStatus = "",
