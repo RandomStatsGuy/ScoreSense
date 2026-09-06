@@ -157,6 +157,7 @@ test("weekly refresh lives on the stale or missing-notes chip", () => {
   const weekly = LIVING_SURFACES["projections.weekly"];
   assert.match(weekly.doNot, /Do not add a header Refresh on Weekly/);
   assert.match(weekly.doNot, /stale or missing-notes chip is the refresh/);
+  assert.match(weekly.doNot, /do not start the weekly ETL pipeline/);
 });
 
 test("audit routes come from the registry and skip overlays", () => {

@@ -33,7 +33,7 @@ def test_get_refresh_status_legacy_completed(tmp_path, monkeypatch):
 def test_run_weekly_refresh_records_error(tmp_path, monkeypatch):
     status_path = tmp_path / "last_refresh.json"
     monkeypatch.setattr(wr, "REFRESH_STATUS", status_path)
-    with patch.object(wr, "build_all_datasets", side_effect=RuntimeError("nflverse down")):
+    with patch.object(wr, "invalidate_weekly_cache", side_effect=RuntimeError("cache locked")):
         try:
             wr.run_weekly_refresh(retrain=False, seasons=[2026], draft_only=False)
         except RuntimeError:
@@ -42,5 +42,21 @@ def test_run_weekly_refresh_records_error(tmp_path, monkeypatch):
             raise AssertionError("expected RuntimeError")
     status = wr.get_refresh_status()
     assert status["status"] == "error"
-    assert "nflverse down" in status["error"]
+    assert "cache locked" in status["error"]
     assert status.get("completed_at")
+
+
+def test_retrain_false_skips_etl(tmp_path, monkeypatch):
+    status_path = tmp_path / "last_refresh.json"
+    monkeypatch.setattr(wr, "REFRESH_STATUS", status_path)
+    with (
+        patch.object(wr, "build_all_datasets") as etl,
+        patch.object(wr, "invalidate_weekly_cache", side_effect=RuntimeError("stop after skip")),
+    ):
+        try:
+            wr.run_weekly_refresh(retrain=False, seasons=[2026], draft_only=False)
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("expected RuntimeError")
+    etl.assert_not_called()
