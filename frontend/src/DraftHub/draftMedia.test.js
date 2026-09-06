@@ -1,6 +1,21 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { headshotCandidates, lookupPlayerMedia, paintMediaUrl, teamLogoUrl } from "./draftMedia.js";
+import {
+  headshotCandidates,
+  lookupPlayerMedia,
+  paintMediaUrl,
+  playerFaceInitials,
+  playerInitials,
+  teamLogoUrl,
+} from "./draftMedia.js";
+
+test("player initials fall back to id or a mark when the name is missing", () => {
+  assert.equal(playerInitials(undefined), "?");
+  assert.equal(playerInitials(""), "?");
+  assert.equal(playerFaceInitials({ player_id: "00-1" }), "00");
+  assert.equal(playerFaceInitials({ player_name: "Puka Nacua" }), "PN");
+  assert.equal(playerFaceInitials(null, "RB"), "RB");
+});
 
 test("lookupPlayerMedia accepts numeric or string ids", () => {
   const media = { "00-1": { headshot_url: "https://img/a.png" } };

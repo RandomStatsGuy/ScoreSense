@@ -589,6 +589,16 @@ export function lineupCallAction({
   return { kind: "external", reason: WEEK_BOARD_COPY.startExternal };
 }
 
+/** `<a>` cannot use disabled — drop href and mark inert while the ticket is busy. */
+export function callStartLinkProps({ href, busy = false } = {}) {
+  if (!href) return null;
+  return {
+    href: busy ? undefined : href,
+    "aria-disabled": busy || undefined,
+    tabIndex: busy ? -1 : undefined,
+  };
+}
+
 export function stripUpdatedPrefix(label) {
   return String(label || "").replace(/^Updated\s+/i, "").trim();
 }

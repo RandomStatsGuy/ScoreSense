@@ -17085,9 +17085,11 @@ td.col-rank.col-rank-top {
   text-decoration: none;
 }
 
-.hub-wcc-ticket-start:disabled {
+.hub-wcc-ticket-start:disabled,
+.hub-wcc-ticket-start[aria-disabled="true"] {
   opacity: 0.62;
   cursor: default;
+  pointer-events: none;
 }
 
 @media (max-width: 760px) {

@@ -22,6 +22,7 @@ import {
   priorPpgSeason,
   sleeperLineupUrl,
   lineupCallAction,
+  callStartLinkProps,
   swapBenchIdSet,
   canEditHubLineup,
   clampWeek,
@@ -295,6 +296,13 @@ test("start button uses a short surname and a real action", () => {
   assert.equal(sleeperLineupUrl("12345"), "https://sleeper.com/leagues/12345");
   assert.equal(lineupCallAction({ sleeperLeagueId: "12345" }).kind, "sleeper");
   assert.equal(lineupCallAction({}).kind, "external");
+  assert.equal(callStartLinkProps({ href: "https://sleeper.com/leagues/1" }).href, "https://sleeper.com/leagues/1");
+  assert.deepEqual(callStartLinkProps({ href: "https://sleeper.com/leagues/1", busy: true }), {
+    href: undefined,
+    "aria-disabled": true,
+    tabIndex: -1,
+  });
+  assert.equal(callStartLinkProps({}), null);
 });
 
 test("freshness line drops mid-sentence Updated and flags a stale roster", () => {

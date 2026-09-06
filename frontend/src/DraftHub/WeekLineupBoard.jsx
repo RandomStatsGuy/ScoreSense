@@ -7,7 +7,7 @@ import {
   headshotCandidates,
   lookupPlayerMedia,
   paintMediaUrl,
-  playerInitials,
+  playerFaceInitials,
   teamLogoUrl,
 } from "./draftMedia";
 import {
@@ -39,7 +39,7 @@ function RowFace({ player, slot, media }) {
   const headshot = shots[shotIndex] || null;
   const logo = paintMediaUrl(row?.team_logo_url, PAINT_WIDTH.avatar)
     || teamLogoUrl(player?.team, { width: PAINT_WIDTH.avatar });
-  const fallback = player ? playerInitials(player.player_name || player.player_id || "") : (slot || "?");
+  const fallback = playerFaceInitials(player, slot || "?");
 
   useEffect(() => {
     setShotIndex(0);

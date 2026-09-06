@@ -5,13 +5,14 @@ import {
   headshotCandidates,
   lookupPlayerMedia,
   paintMediaUrl,
-  playerInitials,
+  playerFaceInitials,
   teamLogoUrl,
 } from "./draftMedia";
 import {
   WEEK_BOARD_COPY,
   callFaceMeta,
   callPpgNote,
+  callStartLinkProps,
   callTitle,
   formatDefVsFact,
   formatKickoffFact,
@@ -35,6 +36,7 @@ function CallFace({ player, media, role, going = false, paintWidth = PAINT_WIDTH
   const logo = paintMediaUrl(row?.team_logo_url, paintWidth)
     || teamLogoUrl(player?.team, { width: paintWidth });
   const name = player?.player_name || player?.player_id || "";
+  const initials = playerFaceInitials(player);
 
   useEffect(() => {
     setShotIndex(0);
@@ -53,7 +55,7 @@ function CallFace({ player, media, role, going = false, paintWidth = PAINT_WIDTH
         <img className="hub-wcc-ticket-face" src={logo} alt="" />
       ) : (
         <span className="hub-wcc-ticket-face is-fallback" aria-hidden="true">
-          {playerInitials(name)}
+          {initials}
         </span>
       )}
       <p className="hub-wcc-ticket-role">{role}</p>
@@ -102,6 +104,7 @@ export default function WeekLineupCallSheet({
   onApply,
 }) {
   const closeRef = useRef(null);
+  const prevFocusRef = useRef(null);
   const titleId = "hub-wcc-ticket-title";
   const callAction = lineupCallAction({ canEdit, lineupLocked, sleeperLeagueId });
   const title = callTitle(decision);
@@ -113,16 +116,20 @@ export default function WeekLineupCallSheet({
   const locked = callAction.kind === "locked";
 
   useEffect(() => {
-    const prev = document.activeElement;
+    prevFocusRef.current = document.activeElement;
     closeRef.current?.focus();
+    return () => {
+      const prev = prevFocusRef.current;
+      if (prev && typeof prev.focus === "function") prev.focus();
+    };
+  }, []);
+
+  useEffect(() => {
     const onKey = (event) => {
       if (event.key === "Escape" && !busy) onClose?.();
     };
     document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      if (prev && typeof prev.focus === "function") prev.focus();
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, [busy, onClose]);
 
   const startBody = (
@@ -185,10 +192,13 @@ export default function WeekLineupCallSheet({
           {sleeperHref ? (
             <a
               className="hub-wcc-ticket-start"
-              href={sleeperHref}
+              {...callStartLinkProps({ href: sleeperHref, busy })}
               target="_blank"
               rel="noreferrer"
               title={callAction.reason}
+              onClick={(event) => {
+                if (busy) event.preventDefault();
+              }}
             >
               {startBody}
             </a>
