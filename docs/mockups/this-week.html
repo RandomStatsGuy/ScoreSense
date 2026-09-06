@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — This Week · choose a layout</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .chooser-hero h1 { font-size: 2.1rem; }
+  .phase {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: var(--space-3);
+    margin: var(--space-4) 0 0;
+  }
+  .phase article {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    min-height: 8.5rem;
+    display: flex; flex-direction: column;
+  }
+  .phase .when { font-size: var(--text-xs); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-muted); font-weight: 700; }
+  .phase h3 { margin: var(--space-1) 0 var(--space-1); font-size: 0.95rem; }
+  .phase p { margin: 0; font-size: var(--text-xs); color: var(--text-muted); }
+  .phase .is-new { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .concepts { display: flex; flex-direction: column; gap: var(--space-4); }
+  .concept {
+    display: grid; grid-template-columns: minmax(11rem, 16rem) minmax(0, 1fr) auto;
+    gap: var(--space-4); align-items: center;
+    text-decoration: none; color: inherit;
+    padding: var(--space-4) 1.2rem;
+  }
+  .concept:hover { border-color: var(--border-strong); }
+  .letter {
+    width: 100%; aspect-ratio: 16 / 10; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; font-weight: 800; letter-spacing: -0.03em;
+  }
+  .letter-a { background: linear-gradient(150deg, #3a2a14, #1c1710); color: #fde68a; }
+  .letter-b { background: linear-gradient(150deg, #1a3358, #122033); color: #bcd4ff; }
+  .letter-c { background: linear-gradient(150deg, #173a34, #102028); color: #9ff0cf; }
+  .concept h3 { margin: 0 0 var(--space-1); font-size: 1.08rem; }
+  .concept p { margin: 0; color: var(--text-secondary); font-size: 0.84rem; }
+  .pick { color: var(--accent-muted); font-size: 0.8rem; font-weight: 650; white-space: nowrap; }
+  @media (max-width: 760px) {
+    .concept { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>This Week</strong> <span>· design review · not shipped</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a class="is-on" href="this-week.html">Chooser</a>
+    <a href="this-week-a.html">A · Call first</a>
+    <a href="this-week-b.html">B · Slate</a>
+    <a href="this-week-c.html">C · Formation</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span class="active">Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+
+  <section class="mock-hero chooser-hero">
+    <p class="mock-kicker">Design review · This Week</p>
+    <h1>Make the start/sit the page.</h1>
+    <p class="support">
+      Today This Week is a wrapping tile grid: same card for every slot, Start tucked at the bottom, bench as a second dump. Game center and Vibes already have a beat. Pick the lineup canvas.
+    </p>
+    <div class="phase">
+      <article>
+        <div class="when">Today</div>
+        <h3>Tile dump</h3>
+        <p>Eight starter tiles wrap in three columns. The call is a chip on the card. No photos. Bench repeats the same tiles.</p>
+      </article>
+      <article class="is-new">
+        <div class="when">Keep</div>
+        <h3>Experience chrome</h3>
+        <p>Hero names the call count once. Refresh stays on freshness. Rail is bye / injured / wide. Start is amber, not a second blue.</p>
+      </article>
+      <article class="is-new">
+        <div class="when">Fork</div>
+        <h3>The board beat</h3>
+        <p>Call first, slate rows, or a formation. Same slots, same Start, different canvas.</p>
+      </article>
+    </div>
+  </section>
+
+  <div class="concepts">
+    <a class="card concept" href="this-week-a.html">
+      <div class="letter letter-a">A</div>
+      <div>
+        <h3>Call first</h3>
+        <p>The recommended swap is a face-off. Other starters sit as a compact set. Bench spans under the rail.</p>
+      </div>
+      <span class="pick">Open →</span>
+    </a>
+    <a class="card concept" href="this-week-b.html">
+      <div class="letter letter-b">B</div>
+      <div>
+        <h3>Slate</h3>
+        <p>One editorial row per slot. Start stays on the right. P50s share a baseline. Bench uses the same rows.</p>
+      </div>
+      <span class="pick">Open →</span>
+    </a>
+    <a class="card concept" href="this-week-c.html">
+      <div class="letter letter-c">C</div>
+      <div>
+        <h3>Formation</h3>
+        <p>The lineup is grouped — quarterback, skill, specialists — with portraits. Empty K keeps starter height.</p>
+      </div>
+      <span class="pick">Open →</span>
+    </a>
+  </div>
+
+  <p class="footnote">Static mock · tokens only · not product code. Reply A, B, or C.</p>
+</div>
+</body>
+</html>

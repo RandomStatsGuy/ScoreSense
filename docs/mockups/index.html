@@ -13,9 +13,9 @@
     min-height: 8.5rem;
   }
   .grid a:hover { border-color: var(--border-strong); }
-  .grid .k { font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-muted); font-weight: 700; }
+  .grid .k { font-size: var(--text-xs); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-muted); font-weight: 700; }
   .grid h3 { margin: 0; font-size: 1rem; }
-  .grid p { margin: 0; font-size: 0.78rem; color: var(--text-muted); }
+  .grid p { margin: 0; font-size: var(--text-xs); color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -23,6 +23,7 @@
   <div><strong>Design options</strong> <span>· static HTML · not shipped</span></div>
   <nav class="concept-nav">
     <a class="is-on" href="index.html">All mocks</a>
+    <a href="this-week.html">This Week</a>
     <a href="league-chat.html">League chat</a>
     <a href="draft-lobby-waiting.html">Draft waiting</a>
   </nav>
@@ -38,8 +39,28 @@
     </p>
   </section>
 
-  <h2 style="font-size:0.78rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); margin:0 0 0.7rem;">Active reviews</h2>
+  <h2 style="font-size:var(--text-xs); letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); margin:0 0 0.7rem;">Active reviews</h2>
   <div class="grid" style="margin-bottom:1.6rem;">
+    <a class="card" href="this-week.html">
+      <span class="k">This Week</span>
+      <h3>Lineup canvas</h3>
+      <p>A Call first · B Slate · C Formation.</p>
+    </a>
+    <a class="card" href="this-week-a.html">
+      <span class="k">A</span>
+      <h3>Call first</h3>
+      <p>Face-off is the canvas. Set list under it.</p>
+    </a>
+    <a class="card" href="this-week-b.html">
+      <span class="k">B</span>
+      <h3>Slate</h3>
+      <p>One editorial row per slot. Start on the right.</p>
+    </a>
+    <a class="card" href="this-week-c.html">
+      <span class="k">C</span>
+      <h3>Formation</h3>
+      <p>Quarterback, skill, specialists. Portraits.</p>
+    </a>
     <a class="card" href="strategy-rank.html">
       <span class="k">Strategy</span>
       <h3>Rank board</h3>
@@ -122,7 +143,7 @@
     </a>
   </div>
 
-  <h2 style="font-size:0.78rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); margin:0 0 0.7rem;">Earlier reviews</h2>
+  <h2 style="font-size:var(--text-xs); letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); margin:0 0 0.7rem;">Earlier reviews</h2>
   <div class="grid">
     <a class="card" href="game-center.html">
       <span class="k">Fantasy</span>
