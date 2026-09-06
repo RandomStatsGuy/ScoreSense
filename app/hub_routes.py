@@ -1349,8 +1349,22 @@ def hub_remove_roster(body: RosterRemoveRequest, _user=Depends(require_hub_user)
             status_code=403,
             detail=window.get("message") or "Rosters are locked",
         )
-    ws_id, _team_id = roster_scope(ctx)
-    ok = storage.remove_roster_slot(ws_id, body.player_id)
+    ws_id, team_id = roster_scope(ctx)
+    existing = storage.get_roster_slot(ws_id, body.player_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Player not on roster")
+    if ctx.get("mode") == "league" and not can_edit_roster(
+        ctx, player_team_id=existing.get("team_id")
+    ):
+        raise HTTPException(status_code=403, detail="Cannot drop another team's player")
+    own_team_only = bool(
+        ctx.get("mode") == "league" and team_id and not ctx.get("is_commissioner")
+    )
+    ok = storage.remove_roster_slot(
+        ws_id,
+        body.player_id,
+        team_id=str(team_id) if own_team_only else None,
+    )
     if not ok:
         raise HTTPException(status_code=404, detail="Player not on roster")
     _invalidate_league_rosters_from_ctx(ctx)
@@ -1798,7 +1812,6 @@ def hub_draft_fantasy_media_digest(
 @router.post("/league")
 def hub_create_league(body: LeagueCreateRequest, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
-    ws = storage.get_or_create_workspace(sub, body.season)
     rules = body.rules or load_preset(body.preset_id or "salary_cap_auction_v1")
     league = storage.create_league(
         sub,
@@ -1806,7 +1819,7 @@ def hub_create_league(body: LeagueCreateRequest, _user=Depends(require_hub_user)
         body.season,
         rules,
         body.team_count,
-        ws["id"] if not body.test_mode else None,
+        None,
         commissioner_team_name=body.commissioner_team_name or "Commissioner",
         test_mode=body.test_mode,
     )
