@@ -51,6 +51,7 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Hierarchy from surface, type, and spacing — not a border on every box. Token insets and gutters; text is never flush to a line and never smaller than `--text-xs` (12px computed).
 - Editorial pages use one hero stack: `HubExperienceHero` + `HubExperienceLayout` + `HubExperienceSummary` from `HubUILayout.jsx`. Strategy is the board-first exception — no hero band.
 - **Fix the primitive, not the page.** Shared CSS/components first. Measurable layout rules: `.cursor/rules/frontend-craft.mdc`.
+- League-strip option menus paint above the Fantasy page below the strip. Raise `.hub-league-context-bar` (or portal the menu) — a later `.hub-page` at the same z-index covers overflowing menus.
 - Copy lives in `*Presentation.js`. State the decision and the cost of getting it wrong. No slogan that could sit on another app. No “Submit”, no “You do not have permission” (use “Commissioner managed”).
 
 ## Product rules you may not bypass

@@ -6397,7 +6397,7 @@ td.col-rank.col-rank-top {
   position: absolute;
   right: 0;
   top: calc(100% + 0.35rem);
-  z-index: 40;
+  z-index: var(--z-dropdown);
   width: min(22rem, calc(100vw - 1.5rem));
   padding: 0.65rem 0.7rem;
   border: 1px solid var(--border);
@@ -8702,6 +8702,9 @@ td.col-rank.col-rank-top {
 .hub-filter-menu {
   position: relative;
   flex: 0 0 auto;
+}
+.hub-filter-menu.is-open {
+  z-index: var(--z-dropdown);
 }
 .hub-filter-menu.is-disabled .hub-filter-menu-trigger {
   opacity: 0.55;
@@ -19292,9 +19295,16 @@ th.sortable-header {
      own share so the cats can stay more present than the drifting bits. */
   --atm-alpha: 0.28;
 }
-.draft-hub > *:not(.hub-atmosphere):not(.fantasy-chat-dock) {
+/* Atmosphere is z-index 0. Content siblings share z-index 1 so the wash
+   stays behind clicks. The league strip hosts overflowing Switch league /
+   Sync league menus — those must win over the later .hub-page card. */
+.draft-hub > *:not(.hub-atmosphere):not(.fantasy-chat-dock):not(.hub-league-context-bar) {
   position: relative;
   z-index: 1;
+}
+.draft-hub > .hub-league-context-bar {
+  position: relative;
+  z-index: var(--z-dropdown);
 }
 .draft-hub > .invite-overlay {
   position: fixed;
