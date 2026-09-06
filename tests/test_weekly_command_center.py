@@ -553,11 +553,14 @@ def test_attach_call_facts_uses_injected_vegas_ppg_and_dvp():
 
 
 def test_lookup_prior_ppg_follows_name_when_team_changes():
-    from src.draft_hub.weekly_command_center import _lookup_prior_ppg
+    from src.draft_hub.weekly_command_center import _lookup_prior_ppg, _ppg_name_keys
 
+    assert "kwalker" in _ppg_name_keys("Kenneth Walker")
+    assert "kwalker" in _ppg_name_keys("K.Walker")
+    assert "gwilson" in _ppg_name_keys("Garrett Wilson")
     index = {
         "by_id": {"00-kw3": 16.4},
-        "by_name_team": {"kennethwalker|SEA": 16.4},
+        "by_name_team": {"kwalker|SEA": 16.4},
         "season": 2025,
     }
     card = {

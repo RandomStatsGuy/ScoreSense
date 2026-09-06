@@ -8,6 +8,7 @@ starter counts + P50 ranking — Hub does not persist weekly lineup slots.
 from __future__ import annotations
 
 import math
+import re
 from typing import Any, Iterable
 
 import numpy as np
@@ -25,7 +26,7 @@ from src.projections.player_compare import (
     position_rank_map,
     volatility,
 )
-from src.draft_hub.player_name_match import name_key
+from src.draft_hub.player_name_match import last_name_key, name_key
 from src.projections.weekly_cache import load_weekly_prediction
 
 # nflverse/mlready uses LA/JAC/WAS; Sleeper rosters often use LAR/JAX/WSH.
@@ -422,10 +423,10 @@ def _load_prior_ppg_index(season: int) -> dict[str, Any]:
         ppg = by_id.get(pid)
         if ppg is None:
             continue
-        nk = name_key(str(getattr(row, "player_name", "") or ""))
         team = _norm_team(getattr(row, "team", None))
-        if nk and team:
-            by_name_team[f"{nk}|{team}"] = ppg
+        for nk in _ppg_name_keys(str(getattr(row, "player_name", "") or "")):
+            if nk and team:
+                by_name_team[f"{nk}|{team}"] = ppg
     index = {"by_id": by_id, "by_name_team": by_name_team, "season": prior_season}
     _PRIOR_PPG_CACHE[season] = (fp, index)
     return index
@@ -448,18 +449,39 @@ def _lookup_prior_ppg(card: dict[str, Any], index: dict[str, Any]) -> float | No
         prefixed = f"sleeper-{pid}"
         if prefixed in by_id:
             return by_id[prefixed]
-    nk = name_key(str(card.get("player_name") or ""))
+    keys = _ppg_name_keys(str(card.get("player_name") or ""))
     by_name = index.get("by_name_team") or {}
-    for team in _team_lookup_keys(card.get("team")):
-        hit = by_name.get(f"{nk}|{team}")
-        if hit is not None:
-            return hit
-    if nk:
+    for nk in keys:
+        for team in _team_lookup_keys(card.get("team")):
+            hit = by_name.get(f"{nk}|{team}")
+            if hit is not None:
+                return hit
+    for nk in keys:
         named = [value for key, value in by_name.items() if str(key).startswith(f"{nk}|")]
         uniq = {value for value in named}
         if len(uniq) == 1:
             return next(iter(uniq))
     return None
+
+
+def _ppg_name_keys(name: str) -> tuple[str, ...]:
+    """Full name key plus initial+last so K.Walker matches Kenneth Walker."""
+    raw = str(name or "").strip()
+    if not raw:
+        return ()
+    keys: list[str] = []
+    full = name_key(raw)
+    if full:
+        keys.append(full)
+    last = last_name_key(raw)
+    tokens = [part for part in re.split(r"[\s.]+", raw) if part]
+    first = tokens[0] if tokens else ""
+    initial = "".join(ch for ch in first if ch.isalpha())[:1].lower()
+    if initial and last:
+        short = f"{initial}{last}"
+        if short not in keys:
+            keys.append(short)
+    return tuple(keys)
 
 
 def _load_def_vs_pos(season: int, week: int) -> dict[tuple[str, str], dict[str, Any]]:
