@@ -9,6 +9,7 @@ import {
   isInFlowPosition,
   isNumericCellText,
   isVisibleNativeSelect,
+  laterSiblingCoversMenuHost,
   livingSurfaceRoutes,
   minTargetForWidth,
   parseArgs,
@@ -150,6 +151,13 @@ test("gate list parses and ignores backlog rules", () => {
   ];
   assert.equal(auditFailed(report, args.gate), false);
   assert.equal(auditFailed(report, null), true);
+});
+
+test("later sibling at the same z-index covers an overflowing menu host", () => {
+  assert.equal(laterSiblingCoversMenuHost("1", "1"), true);
+  assert.equal(laterSiblingCoversMenuHost("auto", "1"), true);
+  assert.equal(laterSiblingCoversMenuHost("60", "1"), false);
+  assert.equal(laterSiblingCoversMenuHost("20", "auto"), false);
 });
 
 test("livingSurfaceRoutes skips overlays and dedupes", () => {

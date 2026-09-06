@@ -162,6 +162,18 @@ export function isCssGridTableRowGroup(columnCounts, autoFillFlags = []) {
   return count >= 3 && columnCounts.every((n) => n === count);
 }
 
+/** True when a later .draft-hub sibling will paint over an overflowing menu host. */
+export function laterSiblingCoversMenuHost(hostZIndex, siblingZIndex) {
+  const hostZ = Number.parseInt(hostZIndex, 10);
+  const sibZ = Number.parseInt(siblingZIndex, 10);
+  if (!Number.isFinite(hostZ)) return true;
+  if (!Number.isFinite(sibZ)) return false;
+  return sibZ >= hostZ;
+}
+
+export const DRAFT_HUB_MENU_HOST_SELECTOR = ".hub-league-context-bar";
+export const DRAFT_HUB_STACK_EXCLUDE = /\b(hub-atmosphere|fantasy-chat-dock)\b/;
+
 async function loadSurfaces() {
   const href = pathToFileURL(path.join(ROOT, "frontend/src/livingSurfaces.js")).href;
   const mod = await import(href);
@@ -593,6 +605,51 @@ function measureScript() {
         : { rule: "overflow", ok: true, selector: "", detail: "no horizontal overflow" },
     );
 
+    const hub = document.querySelector(".draft-hub");
+    if (hub) {
+      const kids = [...hub.children].filter((el) => {
+        const cls = classNameOf(el);
+        return !/\b(hub-atmosphere|fantasy-chat-dock)\b/.test(cls);
+      });
+      const hosts = kids.filter((el) => (
+        el.classList.contains("hub-league-context-bar")
+        || el.querySelector(".hub-filter-menu, .hub-league-context-sync")
+      ));
+      let menuFails = 0;
+      hosts.forEach((host) => {
+        const hostZ = getComputedStyle(host).zIndex;
+        const hostIdx = kids.indexOf(host);
+        kids.slice(hostIdx + 1).forEach((sib) => {
+          const sibZ = getComputedStyle(sib).zIndex;
+          const hostN = Number.parseInt(hostZ, 10);
+          const sibN = Number.parseInt(sibZ, 10);
+          const covered = !Number.isFinite(hostN) || (Number.isFinite(sibN) && sibN >= hostN);
+          if (!covered) return;
+          menuFails += 1;
+          if (menuFails <= 4) {
+            const hostName = classNameOf(host) || host.tagName;
+            const sibName = classNameOf(sib) || sib.tagName;
+            results.push({
+              rule: "menus",
+              ok: false,
+              selector: hostName,
+              detail: `z-index ${hostZ} covered by later sibling ${sibName} z-index ${sibZ}`,
+            });
+          }
+        });
+      });
+      if (!results.some((r) => r.rule === "menus" && !r.ok)) {
+        results.push({
+          rule: "menus",
+          ok: true,
+          selector: "",
+          detail: hosts.length ? "strip menus stack above later hub siblings" : "no strip menu host",
+        });
+      }
+    } else {
+      results.push({ rule: "menus", ok: true, selector: "", detail: "no draft-hub" });
+    }
+
     return results;
   };
 }
@@ -627,7 +684,78 @@ async function auditRoute(browser, route, width) {
     columnPackRatio: COLUMN_PACK_RATIO,
     gutterSelectors: GUTTER_EDGE_SELECTORS,
   });
+  const openMenuResults = await auditOpenMenus(page);
+  results.push(...openMenuResults);
   await page.close();
+  return results;
+}
+
+async function auditOpenMenus(page) {
+  const specs = [
+    {
+      name: "Switch league",
+      trigger: ".hub-league-context-identity .hub-filter-menu-trigger",
+      panel: ".hub-filter-menu-panel",
+    },
+    {
+      name: "Sync league",
+      trigger: ".hub-league-context-sync-trigger",
+      panel: ".hub-league-context-sync-panel",
+    },
+  ];
+  const results = [];
+  for (const spec of specs) {
+    const trigger = page.locator(spec.trigger).first();
+    if ((await trigger.count()) === 0 || !(await trigger.isVisible().catch(() => false))) {
+      continue;
+    }
+    // Dispatch click in-page. Playwright's actionability hover would open
+    // HubFilterMenu, then the click would toggle it closed.
+    await trigger.evaluate((el) => el.click());
+    await page.locator(spec.panel).first().waitFor({ state: "visible", timeout: 2000 }).catch(() => {});
+    const probe = await page.evaluate(({ panelSel, name }) => {
+      const classNameOf = (node) => {
+        if (!node) return "";
+        if (typeof node.getAttribute === "function") {
+          const named = node.getAttribute("class");
+          if (named != null) return String(named);
+        }
+        const raw = node.className;
+        if (typeof raw === "string") return raw;
+        if (raw && typeof raw.baseVal === "string") return raw.baseVal;
+        return "";
+      };
+      const panel = document.querySelector(panelSel);
+      if (!panel) {
+        return { rule: "menus", ok: false, selector: name, detail: "panel did not open" };
+      }
+      const r = panel.getBoundingClientRect();
+      if (r.width < 8 || r.height < 8) {
+        return { rule: "menus", ok: false, selector: name, detail: "panel has no box" };
+      }
+      const samples = [
+        [r.left + r.width / 2, r.top + Math.min(16, r.height / 3)],
+        [r.left + r.width / 2, r.top + r.height / 2],
+        [r.left + Math.min(20, r.width / 4), r.top + Math.min(16, r.height / 3)],
+      ];
+      for (const [x, y] of samples) {
+        const el = document.elementFromPoint(x, y);
+        if (!el || !panel.contains(el)) {
+          const cover = el ? (classNameOf(el) || el.tagName) : "null";
+          return {
+            rule: "menus",
+            ok: false,
+            selector: name,
+            detail: `covered by ${cover} at ${Math.round(x)},${Math.round(y)}`,
+          };
+        }
+      }
+      return { rule: "menus", ok: true, selector: name, detail: "panel paints above page" };
+    }, { panelSel: spec.panel, name: spec.name });
+    results.push(probe);
+    await trigger.evaluate((el) => el.click()).catch(() => {});
+    await page.keyboard.press("Escape").catch(() => {});
+  }
   return results;
 }
 
