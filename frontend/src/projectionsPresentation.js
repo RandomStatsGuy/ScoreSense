@@ -52,6 +52,8 @@ export const BOARD_COPY = {
   floorCeiling: "Floor–ceiling",
   stale: "Stale",
   staleRefresh: "Stale · Refresh",
+  contextMissing: "Notes missing",
+  contextMissingRefresh: "Notes missing · Refresh",
   refreshing: "Refreshing…",
   scoringPpr: "Scoring: PPR",
   scheduleAware: "Schedule-aware estimate",
@@ -611,14 +613,22 @@ export function compactSignalName(name, { max = 16 } = {}) {
   return raw;
 }
 
+export function weeklyContextNeedsRefresh({ stale = false, unavailable = false } = {}) {
+  return Boolean(stale || unavailable);
+}
+
 export function staleRefreshLabel({
   stale = false,
+  unavailable = false,
   updatedAt = null,
   refreshing = false,
 } = {}) {
   if (refreshing) return BOARD_COPY.refreshing;
   const rel = formatRelativeTime(updatedAt);
   const time = rel ? String(rel).replace(/^Updated /, "") : "";
+  if (unavailable) {
+    return time ? `${BOARD_COPY.contextMissing} · ${time}` : BOARD_COPY.contextMissingRefresh;
+  }
   if (stale) return time ? `${BOARD_COPY.stale} · ${time}` : BOARD_COPY.staleRefresh;
   return rel || "";
 }

@@ -105,6 +105,13 @@ def require_admin(request: Request) -> dict[str, Any]:
     return user
 
 
+def require_data_refresh(request: Request) -> dict[str, Any] | None:
+    """Allow unsigned local/dev refresh. When site auth is on, keep admin-only."""
+    if not auth_enabled():
+        return optional_user(request)
+    return require_admin(request)
+
+
 def _hash_password(password: str) -> str:
     user_store.validate_password(password)
     salt = os.urandom(16)
