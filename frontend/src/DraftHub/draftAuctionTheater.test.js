@@ -37,6 +37,8 @@ test("position chips fill teal, overflow amber, empty muted", () => {
   assert.equal(positionChipTone({ count: 2, min: 2, max: 4 }), "filled");
   assert.equal(positionChipTone({ count: 4, min: 2, max: 4 }), "filled");
   assert.equal(positionChipTone({ count: 5, min: 2, max: 4 }), "over");
+  assert.equal(positionChipTone({ count: 0, min: 0, max: 2 }), "empty");
+  assert.equal(positionChipTone({ count: 1, min: 0, max: 2 }), "filled");
 });
 
 test("simulate pins the auction stage without a nominee", () => {

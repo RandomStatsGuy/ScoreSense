@@ -261,7 +261,7 @@ export default function DraftNomineeCard({
               <span className="hub-nominee-dot">·</span>
               <span>{team || "—"}</span>
             </p>
-            {tagline && !sold && (
+            {(tagline || digestLoading) && !sold && (
               <p className="hub-nominee-tagline">
                 {digestLoading ? "Summarizing…" : tagline}
                 {sentiment?.mention_count ? (

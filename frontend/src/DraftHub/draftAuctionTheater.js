@@ -32,7 +32,7 @@ export function positionChipTone({ count = 0, min = 0, max = null } = {}) {
   const floor = Number(min) || 0;
   const ceiling = max == null || max === "" || max === "—" ? null : Number(max);
   if (Number.isFinite(ceiling) && n > ceiling) return "over";
-  if (floor > 0 && n >= floor && (ceiling == null || n <= ceiling)) return "filled";
+  if (n > 0 && n >= floor && (ceiling == null || n <= ceiling)) return "filled";
   return "empty";
 }
 

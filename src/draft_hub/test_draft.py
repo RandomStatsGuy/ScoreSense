@@ -520,7 +520,7 @@ def _apply_uncontested_floor(league_id: str, session: dict[str, Any]) -> None:
         return
     high_team_id = session.get("high_bidder_team_id")
     team = storage.get_team(high_team_id) if high_team_id else None
-    if not team:
+    if not team or not team.get("is_bot"):
         return
     ceiling = bot_max_price(team["id"], nominee, min_bid, team=team, luxury=True)
     floor = min(ceiling, max(min_bid, round(fair * 0.7)))

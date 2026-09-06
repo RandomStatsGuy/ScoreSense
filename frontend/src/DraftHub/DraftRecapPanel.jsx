@@ -125,7 +125,10 @@ export default function DraftRecapPanel({
   board = null,
   mobile = false,
 }) {
-  const awardIds = (recap?.awards || []).map((award) => award.player_id).filter(Boolean);
+  const awardIds = useMemo(
+    () => (recap?.awards || []).map((award) => award.player_id).filter(Boolean),
+    [recap?.awards],
+  );
   const awardMedia = usePlayerMedia(awardIds);
   if (!recap) return null;
   const pickDraft = Boolean(recap.pick_draft);

@@ -1389,6 +1389,10 @@ export default function DraftRoom({
     lastWinEventIdRef.current = null;
     setPickRecap(null);
     setSoldHold(null);
+    if (soldHoldTimerRef.current) {
+      clearTimeout(soldHoldTimerRef.current);
+      soldHoldTimerRef.current = null;
+    }
   }, [leagueId]);
 
   useEffect(() => {
