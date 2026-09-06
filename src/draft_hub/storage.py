@@ -784,6 +784,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
         "CREATE INDEX IF NOT EXISTS idx_team_week_score "
         "ON league_team_week_score(league_id, season, week)"
     )
+    _ensure_dedicated_league_workspaces(conn)
 
 
 _DB_INITIALIZED = False
@@ -1268,12 +1269,6 @@ def set_roster_contract_type(
                 "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ? AND (team_id IS NULL OR team_id = '')",
                 (workspace_id, player_id),
             ).fetchone()
-        if row is None and not any_team:
-            # Last resort for league edits when team_id was wrong/missing.
-            row = conn.execute(
-                "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
-                (workspace_id, player_id),
-            ).fetchone()
         if not row:
             raise ValueError("Player not on roster")
 
@@ -1425,12 +1420,23 @@ def remove_solo_placeholder_imports(
         return cur.rowcount
 
 
-def remove_roster_slot(workspace_id: str, player_id: str) -> bool:
+def remove_roster_slot(
+    workspace_id: str,
+    player_id: str,
+    *,
+    team_id: str | None = None,
+) -> bool:
     with get_conn() as conn:
-        cur = conn.execute(
-            "DELETE FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
-            (workspace_id, player_id),
-        )
+        if team_id is not None:
+            cur = conn.execute(
+                "DELETE FROM roster_slot WHERE workspace_id = ? AND player_id = ? AND team_id = ?",
+                (workspace_id, player_id, team_id),
+            )
+        else:
+            cur = conn.execute(
+                "DELETE FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
+                (workspace_id, player_id),
+            )
         return cur.rowcount > 0
 
 
@@ -1487,15 +1493,14 @@ def create_league(commissioner_sub: str, name: str, season: int, rules: LeagueRu
     now = _utcnow()
     comm_ws = None
     sleeper_league_id = None
+    if not test_mode:
+        comm_ws = get_or_create_workspace(commissioner_sub, season)
+        sleeper_league_id = comm_ws.get("sleeper_league_id")
     if test_mode:
         workspace_id = None
     elif workspace_id is None:
-        comm_ws = get_or_create_workspace(commissioner_sub, season)
-        workspace_id = comm_ws["id"]
-        sleeper_league_id = comm_ws.get("sleeper_league_id")
-    else:
-        comm_ws = get_or_create_workspace(commissioner_sub, season)
-        sleeper_league_id = comm_ws.get("sleeper_league_id")
+        # Own roster/salary pool. Do not reuse the commissioner's solo workspace.
+        workspace_id = league_id
     with get_conn() as conn:
         room_code = _gen_room_code(conn)
         claim_token = _new_claim_token()
@@ -3274,18 +3279,86 @@ def league_test_mode(league_id: str) -> bool:
 
 
 def roster_workspace_for_league(league: dict[str, Any]) -> str:
-    """Shared roster workspace for a league (explicit id or commissioner workspace)."""
+    """Roster/salary pool for this league. Never the commissioner's solo workspace."""
     ws_id = league.get("workspace_id")
     if ws_id:
         return str(ws_id)
-    # Mock/test rooms have no workspace: keep their rosters isolated under the
-    # league id so draft picks never touch the commissioner's real hub roster.
-    if league.get("test_mode"):
-        return str(league["id"])
-    comm = league.get("commissioner_sub")
-    if comm:
-        return str(get_or_create_workspace(str(comm))["id"])
     return str(league["id"])
+
+
+def _rehome_league_roster_workspace(
+    conn: sqlite3.Connection,
+    league_id: str,
+    old_ws: str,
+    new_ws: str,
+) -> None:
+    if not old_ws or old_ws == new_ws:
+        return
+    team_ids = [
+        str(row["id"])
+        for row in conn.execute("SELECT id FROM team WHERE league_id = ?", (league_id,)).fetchall()
+    ]
+    if team_ids:
+        placeholders = ",".join("?" * len(team_ids))
+        conn.execute(
+            f"UPDATE roster_slot SET workspace_id = ? WHERE workspace_id = ? AND team_id IN ({placeholders})",
+            [new_ws, old_ws, *team_ids],
+        )
+    conn.execute(
+        """INSERT OR IGNORE INTO salary_range
+           (workspace_id, player_id, player_name, team, position, min_sal, max_sal, source)
+           SELECT ?, player_id, player_name, team, position, min_sal, max_sal, source
+           FROM salary_range WHERE workspace_id = ?""",
+        (new_ws, old_ws),
+    )
+
+
+def _ensure_dedicated_league_workspaces(conn: sqlite3.Connection) -> int:
+    """Detach league roster pools from a shared or personal hub workspace."""
+    league_cols = {row[1] for row in conn.execute("PRAGMA table_info(league)").fetchall()}
+    if "workspace_id" not in league_cols:
+        return 0
+    personal = {
+        str(row["id"])
+        for row in conn.execute("SELECT id FROM hub_workspace").fetchall()
+    }
+    leagues = conn.execute("SELECT id, workspace_id, test_mode FROM league").fetchall()
+    shared_counts: dict[str, int] = {}
+    for row in leagues:
+        current = row["workspace_id"]
+        if current:
+            key = str(current)
+            shared_counts[key] = shared_counts.get(key, 0) + 1
+
+    moved = 0
+    for row in leagues:
+        league_id = str(row["id"])
+        current = str(row["workspace_id"]) if row["workspace_id"] else None
+        test_mode = bool(row["test_mode"])
+        shared = bool(current and shared_counts.get(current, 0) > 1)
+        on_personal = bool(current and current in personal)
+        if test_mode:
+            if current and (on_personal or shared):
+                _rehome_league_roster_workspace(conn, league_id, current, league_id)
+                conn.execute("UPDATE league SET workspace_id = NULL WHERE id = ?", (league_id,))
+                moved += 1
+            continue
+        if current is None or on_personal or shared:
+            dedicated = league_id
+            if current:
+                _rehome_league_roster_workspace(conn, league_id, current, dedicated)
+            conn.execute(
+                "UPDATE league SET workspace_id = ? WHERE id = ?",
+                (dedicated, league_id),
+            )
+            moved += 1
+    return moved
+
+
+def ensure_dedicated_league_workspaces() -> int:
+    """Public wrapper so tests can rehome an already-initialized DB."""
+    with get_conn() as conn:
+        return _ensure_dedicated_league_workspaces(conn)
 
 
 def clear_league_draft_picks(league_id: str) -> int:
