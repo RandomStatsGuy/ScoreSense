@@ -110,6 +110,8 @@ def _pick_num(row: dict[str, Any] | pd.Series, keys: tuple[str, ...]) -> float |
 
 
 def season_week_context(season: int | None, week: int | None) -> tuple[int, int]:
+    if season is not None and week is not None:
+        return int(season), int(week)
     path = PROCESSED_DATA_DIR / "qb_mlready.parquet"
     df = pd.read_parquet(path, columns=["season", "week"])
     return resolve_projection_context(df, season, week)
@@ -898,6 +900,27 @@ def prewarm_player_context(
         "fingerprint": meta.get("fingerprint"),
         "injury_snapshot_id": meta.get("injury_snapshot_id"),
         "built_at": meta.get("built_at"),
+    }
+
+
+def refresh_player_context(
+    season: int | None = None,
+    week: int | None = None,
+    *,
+    force_injury_refresh: bool = False,
+) -> dict[str, Any]:
+    """Rebuild this-week notes from cached weekly projections — no ETL."""
+    resolved_season, resolved_week = season_week_context(season, week)
+    result = prewarm_player_context(
+        resolved_season,
+        resolved_week,
+        force_injury_refresh=force_injury_refresh,
+    )
+    return {
+        "status": "completed",
+        "season": resolved_season,
+        "week": resolved_week,
+        **result,
     }
 
 

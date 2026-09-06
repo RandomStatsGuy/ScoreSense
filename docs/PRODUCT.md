@@ -188,7 +188,7 @@ Weekly and Season projections are a **board**, not a Fantasy decision page.
 - Phone weekly lists are windowed. Do not mount every row.
 - Desktop Free agents, Weekly, and Rosters virtualize against page scroll. Do not nest a table scroller.
 - Movement chips (All / Movers / Risers / Fallers / Attention) live in the filter sheet, not the page body. The sheet owns Position, What changed, and Search; the page keeps an active-filter summary. The sheet has Apply, Reset, a live result count, and Scoring in the footer so it is not clipped.
-- A stale or missing-notes freshness chip is the refresh action and shows a relative time when one exists. Do not hide the chip when the notes artifact is missing, and do not add a header Refresh on Weekly.
+- A stale or missing-notes freshness chip is the refresh action and shows a relative time when one exists. Do not hide the chip when the notes artifact is missing, and do not add a header Refresh on Weekly. The chip rebuilds this-week notes from cached projections — it does not start the weekly ETL pipeline.
 
 On laptop widths (~1024px), move the summary below the hero or into a compact sticky footer. Do not squeeze the form into multi-line control rows. Do not destroy desktop hierarchy to fake a phone layout.
 

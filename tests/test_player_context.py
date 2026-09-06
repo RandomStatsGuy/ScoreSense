@@ -22,7 +22,9 @@ from src.projections.player_context import (
     injury_age_hours,
     list_player_context,
     parse_opportunity_drivers,
+    refresh_player_context,
     save_player_context_artifact,
+    season_week_context,
     slugify_player_name,
 )
 
@@ -301,6 +303,25 @@ def test_player_context_routes_registered():
     assert "/api/player/{player_id}/context" in paths
     assert "/api/player/{player_id}/latest" in paths
     assert "/api/players/context" in paths
+    assert "/api/players/context/refresh" in paths
+
+
+def test_refresh_player_context_skips_mlready_when_slate_is_known():
+    with (
+        patch(
+            "src.projections.player_context.prewarm_player_context",
+            return_value={"status": "ok", "rows": 3, "built_at": "2026-09-06T21:00:00+00:00"},
+        ) as prewarm,
+        patch("src.projections.player_context.pd.read_parquet") as read_parquet,
+    ):
+        out = refresh_player_context(season=2026, week=1)
+    assert out["status"] == "completed"
+    assert out["season"] == 2026
+    assert out["week"] == 1
+    assert out["rows"] == 3
+    prewarm.assert_called_once_with(2026, 1, force_injury_refresh=False)
+    read_parquet.assert_not_called()
+    assert season_week_context(2026, 1) == (2026, 1)
 
 
 def test_player_context_requires_auth(client):
@@ -360,6 +381,47 @@ def test_players_context_list_api(mock_list, client):
     kwargs = mock_list.call_args.kwargs
     assert kwargs["player_ids"] == ["wr-higgins"]
     assert kwargs.get("compact") is True
+
+
+@patch("app.api.refresh_player_context")
+def test_players_context_refresh_api(mock_refresh, client):
+    mock_refresh.return_value = {
+        "status": "completed",
+        "season": 2026,
+        "week": 1,
+        "rows": 12,
+        "built_at": "2026-09-06T21:00:00+00:00",
+    }
+    from app.auth import require_patron
+
+    app.dependency_overrides[require_patron] = lambda: {"sub": "test"}
+    try:
+        res = client.post("/api/players/context/refresh?season=2026&week=1")
+    finally:
+        app.dependency_overrides.clear()
+    assert res.status_code == 200
+    body = res.json()
+    assert body["status"] == "completed"
+    assert body["season"] == 2026
+    assert body["week"] == 1
+    mock_refresh.assert_called_once()
+    assert mock_refresh.call_args.kwargs["season"] == 2026
+    assert mock_refresh.call_args.kwargs["week"] == 1
+
+
+@patch("app.api.refresh_player_context")
+def test_players_context_refresh_api_503_when_weekly_missing(mock_refresh, client):
+    mock_refresh.side_effect = FileNotFoundError(
+        "Weekly prediction artifacts missing for 2026 week 1."
+    )
+    from app.auth import require_patron
+
+    app.dependency_overrides[require_patron] = lambda: {"sub": "test"}
+    try:
+        res = client.post("/api/players/context/refresh?season=2026&week=1")
+    finally:
+        app.dependency_overrides.clear()
+    assert res.status_code == 503
 
 
 @patch("app.api.list_player_context")

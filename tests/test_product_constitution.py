@@ -230,6 +230,8 @@ def test_constitution_covers_weekly_board_chrome() -> None:
     assert "missing-notes freshness chip" in product
     assert "header Refresh on Weekly" in product
     assert "stale or missing-notes chip is the refresh" in living
+    assert "does not start the weekly ETL pipeline" in product
+    assert "do not start the weekly ETL pipeline" in living
 
 def test_constitution_bans_hub_ppr_in_ui() -> None:
     product = _read("docs", "PRODUCT.md")
