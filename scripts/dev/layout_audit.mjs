@@ -597,7 +597,7 @@ function measureScript() {
     const hub = document.querySelector(".draft-hub");
     if (hub) {
       const kids = [...hub.children].filter((el) => {
-const cls = classNameOf(el);
+        const cls = classNameOf(el);
         return !/\b(hub-atmosphere|fantasy-chat-dock)\b/.test(cls);
       });
       const hosts = kids.filter((el) => (
@@ -616,8 +616,8 @@ const cls = classNameOf(el);
           if (!covered) return;
           menuFails += 1;
           if (menuFails <= 4) {
-const hostName = classNameOf(host) || host.tagName;
-const sibName = classNameOf(sib) || sib.tagName;
+            const hostName = classNameOf(host) || host.tagName;
+            const sibName = classNameOf(sib) || sib.tagName;
             results.push({
               rule: "menus",
               ok: false,
@@ -699,10 +699,21 @@ async function auditOpenMenus(page) {
       continue;
     }
     // Dispatch click in-page. Playwright's actionability hover would open
-await page.locator(spec.panel).first().waitFor({ state: "visible", timeout: 2000 }).catch(() => {});
+    // HubFilterMenu, then the click would toggle it closed.
     await trigger.evaluate((el) => el.click());
-    await page.waitForSelector(spec.panel, { timeout: 2000 }).catch(() => {});
+    await page.locator(spec.panel).first().waitFor({ state: "visible", timeout: 2000 }).catch(() => {});
     const probe = await page.evaluate(({ panelSel, name }) => {
+      const classNameOf = (node) => {
+        if (!node) return "";
+        if (typeof node.getAttribute === "function") {
+          const named = node.getAttribute("class");
+          if (named != null) return String(named);
+        }
+        const raw = node.className;
+        if (typeof raw === "string") return raw;
+        if (raw && typeof raw.baseVal === "string") return raw.baseVal;
+        return "";
+      };
       const panel = document.querySelector(panelSel);
       if (!panel) {
         return { rule: "menus", ok: false, selector: name, detail: "panel did not open" };
@@ -719,7 +730,7 @@ await page.locator(spec.panel).first().waitFor({ state: "visible", timeout: 2000
       for (const [x, y] of samples) {
         const el = document.elementFromPoint(x, y);
         if (!el || !panel.contains(el)) {
-          const cover = el ? (el.className || el.tagName) : "null";
+          const cover = el ? (classNameOf(el) || el.tagName) : "null";
           return {
             rule: "menus",
             ok: false,
