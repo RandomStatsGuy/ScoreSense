@@ -110,6 +110,8 @@ def _pick_num(row: dict[str, Any] | pd.Series, keys: tuple[str, ...]) -> float |
 
 
 def season_week_context(season: int | None, week: int | None) -> tuple[int, int]:
+    if season is not None and week is not None:
+        return int(season), int(week)
     path = PROCESSED_DATA_DIR / "qb_mlready.parquet"
     df = pd.read_parquet(path, columns=["season", "week"])
     return resolve_projection_context(df, season, week)
@@ -661,8 +663,13 @@ def _cached_digest_summary(
         return (snippet or None), datetime.now(timezone.utc).isoformat()
 
 
-def _load_weekly_pair(season: int, week: int) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Load inj + no_inj weekly artifacts with allow_compute=False."""
+def _load_weekly_pair(
+    season: int,
+    week: int,
+    *,
+    allow_compute: bool = False,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Load inj + no_inj weekly artifacts. Refresh may compute; serve path must not."""
     frames_inj: list[pd.DataFrame] = []
     frames_base: list[pd.DataFrame] = []
     for pos in POSITIONS:
@@ -671,14 +678,14 @@ def _load_weekly_pair(season: int, week: int) -> tuple[pd.DataFrame, pd.DataFram
             season=season,
             week=week,
             apply_injury_adjustments=True,
-            allow_compute=False,
+            allow_compute=allow_compute,
         )
         base = load_weekly_prediction(
             pos,
             season=season,
             week=week,
             apply_injury_adjustments=False,
-            allow_compute=False,
+            allow_compute=allow_compute,
         )
         if not inj.empty:
             frames_inj.append(inj)
@@ -706,6 +713,7 @@ def build_player_context_rows(
     *,
     injury_snapshot: dict[str, Any] | None = None,
     force_injury_refresh: bool = False,
+    allow_compute: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Join pipeline outputs into per-player context payloads (build path)."""
     if injury_snapshot is None:
@@ -716,7 +724,7 @@ def build_player_context_rows(
         )
         save_injury_snapshot(injury_snapshot)
 
-    inj_df, base_df = _load_weekly_pair(season, week)
+    inj_df, base_df = _load_weekly_pair(season, week, allow_compute=allow_compute)
     if inj_df.empty and base_df.empty:
         raise FileNotFoundError(
             f"Weekly prediction artifacts missing for {season} week {week}. "
@@ -852,6 +860,7 @@ def save_player_context_artifact(
     rows: list[dict[str, Any]] | None = None,
     meta: dict[str, Any] | None = None,
     force_injury_refresh: bool = False,
+    allow_compute: bool = False,
 ) -> Path:
     """Persist player-context parquet + meta sidecar; refresh in-process cache."""
     if rows is None or meta is None:
@@ -859,6 +868,7 @@ def save_player_context_artifact(
             season,
             week,
             force_injury_refresh=force_injury_refresh,
+            allow_compute=allow_compute,
         )
     parquet_path, meta_path = _artifact_paths(season, week)
     frame = pd.DataFrame(
@@ -882,12 +892,14 @@ def prewarm_player_context(
     week: int,
     *,
     force_injury_refresh: bool = False,
+    allow_compute: bool = False,
 ) -> dict[str, Any]:
     """Job helper: build + save player-context artifact."""
     path = save_player_context_artifact(
         season,
         week,
         force_injury_refresh=force_injury_refresh,
+        allow_compute=allow_compute,
     )
     meta_path = _artifact_paths(season, week)[1]
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -898,6 +910,28 @@ def prewarm_player_context(
         "fingerprint": meta.get("fingerprint"),
         "injury_snapshot_id": meta.get("injury_snapshot_id"),
         "built_at": meta.get("built_at"),
+    }
+
+
+def refresh_player_context(
+    season: int | None = None,
+    week: int | None = None,
+    return {
+        **result,
+        "status": "completed",
+        "season": resolved_season,
+        "week": resolved_week,
+    }
+        resolved_season,
+        resolved_week,
+        force_injury_refresh=force_injury_refresh,
+        allow_compute=True,
+    )
+    return {
+        "season": resolved_season,
+        "week": resolved_week,
+        **result,
+        "status": "completed",
     }
 
 

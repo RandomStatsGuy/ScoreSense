@@ -112,7 +112,7 @@ Contracts · Salary sheets · Members · Access & imports.
 
 The pane switcher is the four pane pills only. Do not inline group labels with the pills.
 
-Members is where staff expand or shrink the seat count. A seat is the slot; a manager is the person. Do not say club, franchise, or team for that object. Add a seat only when expanding past the current seat count — empty seats are claimed from Draft's invite link. Access & imports assigns a named email to one seat; it does not copy the Draft invite link.
+Members is where staff expand or shrink the seat count. A seat is the slot; a manager is the person. Do not say club, franchise, or team for that object. Add a seat only when expanding past the current seat count — empty seats are claimed from Draft's invite link. Access & imports assigns a named email to one seat; it does not copy the Draft invite link. Commissioners download the league workbook and start a delete here. Every commissioner must type the league name and agree; the last confirm erases the room. Members download that same workbook on Rosters.
 
 Sleeper: Access & imports is the one link. The league strip's Sync league is the one sync. Every other "Sync Sleeper" / "League settings" / "Import Sleeper" control deep-links to those. The sync confirm names what it overwrites. Collapse the Sleeper league ID form once the league is linked. A re-import on Contracts is secondary and names that it overwrites staff edits.
 
@@ -188,7 +188,7 @@ Weekly and Season projections are a **board**, not a Fantasy decision page.
 - Phone weekly lists are windowed. Do not mount every row.
 - Desktop Free agents, Weekly, and Rosters virtualize against page scroll. Do not nest a table scroller.
 - Movement chips (All / Movers / Risers / Fallers / Attention) live in the filter sheet, not the page body. The sheet owns Position, What changed, and Search; the page keeps an active-filter summary. The sheet has Apply, Reset, a live result count, and Scoring in the footer so it is not clipped.
-- A stale or missing-notes freshness chip is the refresh action and shows a relative time when one exists. Do not hide the chip when the notes artifact is missing, and do not add a header Refresh on Weekly.
+- A stale or missing-notes freshness chip is the refresh action and shows a relative time when one exists. Do not hide the chip when the notes artifact is missing, and do not add a header Refresh on Weekly. The chip rebuilds this-week notes from cached projections — it does not start the weekly ETL pipeline.
 
 On laptop widths (~1024px), move the summary below the hero or into a compact sticky footer. Do not squeeze the form into multi-line control rows. Do not destroy desktop hierarchy to fake a phone layout.
 

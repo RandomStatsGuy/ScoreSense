@@ -101,6 +101,7 @@ test("known action labels use concrete verbs", () => {
   assert.equal(actionLabel({ id: "invite_managers" }), "Invite managers");
   assert.equal(actionLabel({ id: "mark_availability" }), "Mark times");
   assert.equal(actionLabel({ id: "roster_hole" }), "Open draft room");
+  assert.equal(actionLabel({ id: "delete_league" }), "Open Access");
 });
 
 test("home hero names the roster hole over empty seats", () => {

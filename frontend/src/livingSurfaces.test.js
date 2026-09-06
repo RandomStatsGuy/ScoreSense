@@ -75,6 +75,16 @@ test("text lookup prefers the longest alias and ignores capture vs cap", () => {
   assert.equal(mobileWeekly.page, "frontend/src/WeeklyTable.jsx");
 });
 
+test("delete league and excel download resolve to living surfaces", () => {
+  const del = resolveLivingSurfaceFromText("delete this league");
+  assert.equal(del.label, "Access & imports");
+  assert.ok(del.also.includes("frontend/src/DraftHub/OfficeLeagueLifecycle.jsx"));
+  assert.match(del.doNot, /every commissioner/);
+  const excel = resolveLivingSurfaceFromText("download excel");
+  assert.equal(excel.label, "Rosters");
+  assert.match(excel.doNot, /Download Excel is ghost/);
+});
+
 test("contracts pane owns the pending-write copy module", () => {
   const row = LIVING_SURFACES["hub.office.current"];
   assert.equal(row.page, "frontend/src/DraftHub/CommissionerLeagueRosters.jsx");
@@ -157,6 +167,7 @@ test("weekly refresh lives on the stale or missing-notes chip", () => {
   const weekly = LIVING_SURFACES["projections.weekly"];
   assert.match(weekly.doNot, /Do not add a header Refresh on Weekly/);
   assert.match(weekly.doNot, /stale or missing-notes chip is the refresh/);
+  assert.match(weekly.doNot, /do not start the weekly ETL pipeline/);
 });
 
 test("audit routes come from the registry and skip overlays", () => {

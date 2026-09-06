@@ -48,6 +48,8 @@ Staff-only. UI label is **Roster management**, not Office.
 - **Salary sheets**: season-gated (prefer Sleeper week-1, else pre-draft rosters, else Excel; $ seeded from prior year). Commissioner **Build pre-draft sheet** (`POST .../build-pre-draft?season=Y`) before the draft; **Build week-1 sheet** (`POST .../build-week1?season=Y`) once week-1 matchups exist. **FA lottery** = post-draft FA win (real $); **FA contract** = always $1 and expires before the next draft (skipped as keepers on pre-draft seed). Contract-history row audit under Advanced.
 - **Members**: claim vs Sleeper link status, add/remove franchise (pre-draft only), invites with optional co-commissioner, promote/demote co-commish (primary only). Franchise resize: `POST/DELETE /api/hub/league/{id}/franchises`. See [LEAGUE_RESIZE.md](./LEAGUE_RESIZE.md).
 - Co-commissioners share operational powers with the primary except transfer ownership / demote other staff.
+- **League workbook** (`GET /api/hub/league/{id}/export`): any member downloads an Excel file of current rosters, salary history, trades, and week scores.
+- **Delete league**: commissioners start and approve on Access & imports (`GET/POST .../delete-request`, `.../approve`, `.../cancel`). Every current commissioner must type the league name. The last approval runs `delete_league`. The client downloads the workbook before each start or approve.
 
 ## Salary range CSV
 
@@ -110,6 +112,11 @@ Player IDs are mapped via Sleeper `gsis_id` → ScoreSense `player_id` when avai
 | POST | `/api/hub/league/{id}/lineup/swap` | Swap a starter with a bench player |
 | GET | `/api/hub/league/{id}/schedule` | Persist / read rotating H2H schedule |
 | POST | `/api/hub/league/{id}/score-week` | Apply Hub PPR from nflverse weekly stats |
+| GET | `/api/hub/league/{id}/export` | Member Excel workbook (rosters, salaries, history) |
+| GET | `/api/hub/league/{id}/delete-request` | Commissioner delete status |
+| POST | `/api/hub/league/{id}/delete-request` | Start delete (type league name) |
+| POST | `/api/hub/league/{id}/delete-request/approve` | Agree to a pending delete |
+| POST | `/api/hub/league/{id}/delete-request/cancel` | Withdraw a pending delete |
 
 Hub-only leagues persist start/sit on **This Week** and score weeks with standard PPR (`FANTASY_SCORING`). Linked Sleeper leagues keep inferred (advice-only) starters on This Week; lineup writes and `score-week` return 409. Game center still reads Sleeper matchups.
 

@@ -7,7 +7,7 @@ import time
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 from app.auth import hub_auth_enabled, optional_user, require_hub_user, ws_user_from_token
@@ -65,6 +65,7 @@ from src.draft_hub.schemas import (
     LeagueClaimAcceptRequest,
     DraftAvailabilityUpdate,
     LeagueJoinRequest,
+    LeagueDeleteConfirmRequest,
     LobbyJoinRequest,
     LobbyNameRequest,
     LobbySlotRequest,
@@ -120,7 +121,12 @@ from src.draft_hub.fa_market import (
     process_due_windows,
     process_window,
 )
-from src.draft_hub.league_permissions import can_edit_roster, require_commissioner, require_primary_commissioner
+from src.draft_hub.league_permissions import (
+    can_edit_roster,
+    require_commissioner,
+    require_league_member,
+    require_primary_commissioner,
+)
 from src.draft_hub.league_resize import (
     LeagueResizeError,
     apply_add_franchise,
@@ -1881,6 +1887,99 @@ def hub_league_members(league_id: str, _user=Depends(require_hub_user)) -> dict:
         except LeagueResizeError:
             out["resize"] = None
     return out
+
+
+@router.get("/league/{league_id}/export")
+def hub_league_export(league_id: str, _user=Depends(require_hub_user)) -> Response:
+    """Workbook of rosters, salaries, and history. Any league member."""
+    from src.draft_hub.league_export import build_league_workbook
+
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    require_league_member(ctx)
+    try:
+        payload, filename = build_league_workbook(league_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return Response(
+        content=payload,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+def _league_delete_http(exc):
+    from src.draft_hub.league_lifecycle import LeagueDeleteError
+
+    if isinstance(exc, LeagueDeleteError):
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+    raise exc
+
+
+@router.get("/league/{league_id}/delete-request")
+def hub_league_delete_status(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    from src.draft_hub.league_lifecycle import LeagueDeleteError, delete_request_snapshot
+
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    require_commissioner(ctx)
+    try:
+        return delete_request_snapshot(league_id, viewer_sub=_sub(_user))
+    except LeagueDeleteError as exc:
+        _league_delete_http(exc)
+
+
+@router.post("/league/{league_id}/delete-request")
+def hub_league_delete_start(
+    league_id: str,
+    body: LeagueDeleteConfirmRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    from src.draft_hub.league_lifecycle import LeagueDeleteError, start_league_delete
+
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    require_commissioner(ctx)
+    try:
+        return start_league_delete(
+            league_id,
+            actor_sub=_sub(_user),
+            confirm_name=body.confirm_name,
+        )
+    except LeagueDeleteError as exc:
+        _league_delete_http(exc)
+
+
+@router.post("/league/{league_id}/delete-request/approve")
+def hub_league_delete_approve(
+    league_id: str,
+    body: LeagueDeleteConfirmRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    from src.draft_hub.league_lifecycle import LeagueDeleteError, approve_league_delete
+
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    require_commissioner(ctx)
+    try:
+        return approve_league_delete(
+            league_id,
+            actor_sub=_sub(_user),
+            confirm_name=body.confirm_name,
+        )
+    except LeagueDeleteError as exc:
+        _league_delete_http(exc)
+
+
+@router.post("/league/{league_id}/delete-request/cancel")
+def hub_league_delete_cancel(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    from src.draft_hub.league_lifecycle import LeagueDeleteError, cancel_league_delete
+
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    require_commissioner(ctx)
+    try:
+        return cancel_league_delete(league_id, actor_sub=_sub(_user))
+    except LeagueDeleteError as exc:
+        _league_delete_http(exc)
 
 
 @router.get("/league/{league_id}/rosters")

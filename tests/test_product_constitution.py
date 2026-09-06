@@ -230,6 +230,8 @@ def test_constitution_covers_weekly_board_chrome() -> None:
     assert "missing-notes freshness chip" in product
     assert "header Refresh on Weekly" in product
     assert "stale or missing-notes chip is the refresh" in living
+    assert "does not start the weekly ETL pipeline" in product
+    assert "do not start the weekly ETL pipeline" in living
 
 def test_constitution_bans_hub_ppr_in_ui() -> None:
     product = _read("docs", "PRODUCT.md")
@@ -267,6 +269,12 @@ def test_constitution_empty_states_name_a_destination() -> None:
     assert "League settings" in product
     assert "never a label like League settings" in product
     assert "Roster management · Access & imports" in product
+
+
+def test_constitution_covers_league_delete_and_workbook() -> None:
+    product = _read("docs", "PRODUCT.md")
+    assert "Every commissioner must type the league name" in product
+    assert "Members download that same workbook on Rosters" in product
 
 
 def test_strategy_is_deliberate_hero_band_exception() -> None:
