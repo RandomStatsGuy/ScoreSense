@@ -597,7 +597,7 @@ function measureScript() {
     const hub = document.querySelector(".draft-hub");
     if (hub) {
       const kids = [...hub.children].filter((el) => {
-        const cls = typeof el.className === "string" ? el.className : el.getAttribute("class") || "";
+const cls = classNameOf(el);
         return !/\b(hub-atmosphere|fantasy-chat-dock)\b/.test(cls);
       });
       const hosts = kids.filter((el) => (
