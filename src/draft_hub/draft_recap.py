@@ -112,8 +112,6 @@ def _subheadline(picks: list[dict[str, Any]], overview: dict[str, Any] | None, *
 def _award_steal(picks: list[dict[str, Any]]) -> dict[str, Any] | None:
     graded = [p for p in picks if p.get("ratio") is not None and p["value_grade"] in STEAL_GRADES]
     if not graded:
-        graded = [p for p in picks if p.get("ratio") is not None]
-    if not graded:
         return None
     best = max(graded, key=lambda p: p["ratio"] or 0)
     return {
@@ -306,6 +304,19 @@ def _auction_team_insights(
             row["steals"] += 1
         if pick.get("value_grade") in REACH_GRADES:
             row["reaches"] += 1
+    for tid, name in names.items():
+        buckets.setdefault(
+            tid,
+            {
+                "team_id": tid,
+                "team_name": name,
+                "steals": 0,
+                "reaches": 0,
+                "spent": 0.0,
+                "leftover": leftover.get(tid, 0.0),
+                "cap": cap,
+            },
+        )
     return list(buckets.values())
 
 

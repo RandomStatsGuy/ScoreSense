@@ -277,7 +277,16 @@ export default function DraftNomineeCard({
             <div className={`hub-nominee-sold-row is-${soldKind}`} role="status">
               <div className="hub-bid-stat">
                 <span className="hub-cap-label">{draftLiveCopy.winner}</span>
-                <strong>{soldWinner || bidderLabel}</strong>
+                <strong className="hub-high-bidder">
+                  {(highBidderIsBot || persona) && (
+                    <TeamIdentityMark
+                      team={highBidderTeam || { name: soldWinner || bidderLabel, is_bot: true }}
+                      identity={botIdentityLook(highBidderTeam || { name: soldWinner || bidderLabel, is_bot: true })}
+                      size="sm"
+                    />
+                  )}
+                  {soldWinner || bidderLabel}
+                </strong>
               </div>
               <div className="hub-bid-stat">
                 <span className="hub-cap-label">{draftLiveCopy.vsFair}</span>

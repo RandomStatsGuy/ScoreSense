@@ -10,7 +10,8 @@ import {
   sortStandings,
   viewerInsight,
 } from "./recapFormat";
-import { displayBotName } from "./botPersona";
+import { displayBotName, botIdentityLook } from "./botPersona";
+import TeamIdentityMark from "./TeamIdentityMark";
 import { auctionViewerGradeCopy } from "./draftLivePresentation";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 
@@ -246,7 +247,11 @@ export default function DraftRecapPanel({
                   narrativeScope="season"
                 />
               ) : (
-                <span className="hub-draft-recap-emoji" aria-hidden>{award.emoji}</span>
+                <TeamIdentityMark
+                  team={{ name: award.team_name }}
+                  identity={botIdentityLook({ name: award.team_name })}
+                  size="md"
+                />
               )}
               <div>
                 <strong>{award.title}</strong>

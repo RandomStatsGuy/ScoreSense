@@ -18634,7 +18634,7 @@ th.sortable-header {
 }
 .hub-nominee-sold-row.is-discount .hub-sold-price { color: var(--tone-positive); }
 .hub-nominee-sold-row.is-reach .hub-sold-price { color: var(--tone-negative); }
-.hub-nominee-card.is-sold {
+.hub-auction-stage-card .hub-nominee-card:not(.is-sold) {
   animation: hub-nominee-enter 160ms var(--ease-standard);
 }
 @keyframes hub-nominee-enter {
@@ -18643,7 +18643,7 @@ th.sortable-header {
 }
 @media (prefers-reduced-motion: reduce) {
   .hub-nominee-card.is-bid-pulse .hub-high-bid,
-  .hub-nominee-card.is-sold,
+  .hub-auction-stage-card .hub-nominee-card:not(.is-sold),
   .hub-bid-clock-fill,
   .hub-roster-row--locker.is-new {
     animation: none;
