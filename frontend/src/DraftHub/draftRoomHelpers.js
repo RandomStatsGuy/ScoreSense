@@ -1,3 +1,5 @@
+import { displayBotName } from "./botPersona.js";
+
 /** Compact round/overall label, e.g. `R1 · P1`. */
 export function formatPickSlot(payload = {}) {
   const round = payload.round == null || payload.round === "" ? null : Number(payload.round);
@@ -26,42 +28,46 @@ export function completedDraftReviewTarget(pickDraft = false) {
   };
 }
 
+function eventTeamName(name) {
+  return displayBotName(name) || name || "Team";
+}
+
 /** Format draft room events for display. */
 export function formatDraftEvent(ev) {
   const p = ev.payload || {};
   switch (ev.event_type) {
     case "bid":
-      return `${p.team_name || "Team"} bid ${fmt(p.amount)}`;
+      return `${eventTeamName(p.team_name)} bid ${fmt(p.amount)}`;
     case "nominate":
       return p.forced
-        ? `${p.player_name || "Player"} (${p.position || "?"}) force-nominated for ${p.nominating_team_name || "on-clock team"}`
+        ? `${p.player_name || "Player"} (${p.position || "?"}) force-nominated for ${eventTeamName(p.nominating_team_name) || "on-clock team"}`
         : `${p.player_name || "Player"} (${p.position || "?"}) nominated`;
     case "force_nominate":
-      return `Commissioner nominated ${p.player_name || "player"} for ${p.team_name || "on-clock team"}`;
+      return `Commissioner nominated ${p.player_name || "player"} for ${eventTeamName(p.team_name) || "on-clock team"}`;
     case "pick": {
       const who = `${p.player_name || "Player"} (${p.position || "?"})`;
       const loc = formatPickSlot(p);
       const locBit = loc ? ` · ${loc}` : "";
       return p.forced
-        ? `${p.team_name || "Team"} force-picked ${who}${locBit}`
-        : `${p.team_name || "Team"} picked ${who}${locBit}`;
+        ? `${eventTeamName(p.team_name)} force-picked ${who}${locBit}`
+        : `${eventTeamName(p.team_name)} picked ${who}${locBit}`;
     }
     case "win":
       return p.value_blurb
-        ? `${p.team_name || "Team"} gets ${p.player_name || "Player"} — ${p.value_blurb}`
-        : `${p.player_name || "Player"} won for ${fmt(p.amount)}${p.team_name ? ` · ${p.team_name}` : ""}`;
+        ? `${eventTeamName(p.team_name)} gets ${p.player_name || "Player"} — ${p.value_blurb}`
+        : `${p.player_name || "Player"} won for ${fmt(p.amount)}${p.team_name ? ` · ${eventTeamName(p.team_name)}` : ""}`;
     case "pass":
       if (p.reason === "no_bids") {
         return `${p.player_name || "Player"} passed — no bids`;
       }
       if (p.reason === "nomination_timeout") {
-        return `${p.team_name || "Team"} skipped — nomination clock expired`;
+        return `${eventTeamName(p.team_name)} skipped — nomination clock expired`;
       }
       if (p.reason === "pick_timeout") {
-        return `${p.team_name || "Team"} skipped — pick clock expired`;
+        return `${eventTeamName(p.team_name)} skipped — pick clock expired`;
       }
       if (p.reason === "commissioner_skip") {
-        return `${p.team_name || "Team"} skipped by commissioner`;
+        return `${eventTeamName(p.team_name)} skipped by commissioner`;
       }
       if (p.reason === "position_cap") return `${p.player_id ? "No sale" : "Nomination passed"} · roster position full`;
       return p.player_id ? "No sale" : "Nomination passed";

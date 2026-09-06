@@ -10565,6 +10565,19 @@ td.col-rank.col-rank-top {
   background: rgba(0, 0, 0, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
+.hub-draft-recap-award--trophy {
+  min-height: 8.5rem;
+  border-color: color-mix(in srgb, var(--experience-gold) 45%, var(--border));
+  background: linear-gradient(180deg, rgba(214, 170, 97, 0.12), rgba(0, 0, 0, 0.18));
+}
+.hub-draft-recap-trophy {
+  color: var(--experience-gold);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.hub-recap-grade--auction .hub-recap-letter {
+  color: var(--experience-gold);
+}
 .hub-draft-recap-emoji { font-size: 1.6rem; line-height: 1; }
 .hub-draft-recap-award-who { margin: 0.15rem 0; font-size: 0.92rem; }
 .hub-draft-recap-blurb { margin: 0.35rem 0 0; font-size: 0.85rem; color: var(--text-secondary); }
@@ -10697,8 +10710,11 @@ td.col-rank.col-rank-top {
   display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.45rem;
   border-radius: 999px; font-size: 0.75rem; background: rgba(255, 255, 255, 0.06);
 }
-.hub-cap-chip-full { background: rgba(52, 211, 153, 0.12); color: var(--tone-positive, #34d399); }
+.hub-cap-chip-full,
+.hub-cap-chip-filled { background: rgba(52, 211, 153, 0.12); color: var(--tone-positive, #34d399); }
 .hub-cap-chip-need { background: rgba(245, 158, 11, 0.18); color: #fbbf24; }
+.hub-cap-chip-over { background: var(--tone-caution-soft); color: var(--tone-caution-text); }
+.hub-cap-chip-empty { background: rgba(255, 255, 255, 0.06); color: var(--text-muted); }
 .hub-roster-list { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow-x: hidden; overflow-y: auto; }
 .hub-roster-row {
   display: grid;
@@ -11858,7 +11874,8 @@ td.col-rank.col-rank-top {
 .hub-nominee-player strong { font-size: 1.35rem; }
 .hub-nominee-meta { color: var(--text-secondary); font-size: 0.9rem; }
 .hub-nominee-bid-row { display: flex; gap: 2rem; flex-wrap: wrap; margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid var(--border); }
-.hub-high-bid { font-size: 1.25rem; color: var(--tone-caution-text); }
+.hub-high-bid { font-size: 1.25rem; color: var(--text-primary); }
+.hub-high-bid.is-winning { color: var(--accent); }
 .hub-timer {
   font-variant-numeric: tabular-nums; font-size: 0.85rem; font-weight: 600;
   padding: 0.15rem 0.5rem; border-radius: var(--radius-pill); background: rgba(0,0,0,0.25);
@@ -18518,6 +18535,154 @@ th.sortable-header {
   background: #101a28;
 }
 
+.hub-nominee-card.is-winning {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.hub-nominee-card.is-bid-pulse .hub-high-bid {
+  display: inline-block;
+  animation: hub-bid-pop 150ms var(--ease-standard);
+}
+@keyframes hub-bid-pop {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+.hub-nominee-bid-row.is-flash-you {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.hub-nominee-bid-row.is-flash-them {
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.hub-high-bidder {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.hub-bot-hint { display: block; margin-top: var(--space-1); }
+.hub-nominee-tagline {
+  margin: var(--space-2) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+.hub-nominee-tagline-meta { color: var(--text-muted); }
+.hub-draft-avatar-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3);
+}
+.hub-bid-clock-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+.hub-bid-clock-track,
+.hub-bid-clock-fill {
+  fill: none;
+  stroke-width: 6;
+}
+.hub-bid-clock-track { stroke: var(--border); }
+.hub-bid-clock-fill {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 250ms linear, stroke 150ms var(--ease-standard);
+}
+.hub-bid-clock-ring.is-late .hub-bid-clock-fill { stroke: var(--tone-caution); }
+.hub-bid-clock-ring.is-urgent .hub-bid-clock-fill { stroke: var(--danger); }
+.hub-bid-clock-label {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translate(-50%, 45%);
+  min-width: 2.25rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-align: center;
+}
+.hub-bid-clock-label.is-late { color: var(--tone-caution-text); }
+.hub-bid-clock-label.is-urgent { color: var(--danger); }
+.hub-nominee-sold-stamp {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  z-index: 1;
+  transform: translate(-50%, -50%) rotate(-14deg);
+  padding: var(--space-1) var(--space-3);
+  border: 2px solid var(--experience-gold);
+  color: var(--experience-gold);
+  font-size: var(--text-lg, 1.1rem);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  background: rgba(7, 13, 23, 0.72);
+}
+.hub-nominee-sold-row {
+  display: flex;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+}
+.hub-nominee-sold-row.is-discount .hub-sold-price { color: var(--tone-positive); }
+.hub-nominee-sold-row.is-reach .hub-sold-price { color: var(--tone-negative); }
+.hub-auction-stage-card .hub-nominee-card:not(.is-sold) {
+  animation: hub-nominee-enter 160ms var(--ease-standard);
+}
+@keyframes hub-nominee-enter {
+  from { opacity: 0.72; transform: translateX(var(--space-4)); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hub-nominee-card.is-bid-pulse .hub-high-bid,
+  .hub-auction-stage-card .hub-nominee-card:not(.is-sold),
+  .hub-bid-clock-fill,
+  .hub-roster-row--locker.is-new {
+    animation: none;
+    transition: none;
+  }
+}
+
+.hub-draft-player-rail--stage .hub-draft-player-card-select {
+  grid-template-columns: minmax(10rem, 18rem) minmax(8rem, 1fr) auto;
+  gap: var(--space-4);
+}
+.hub-draft-player-why {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+.hub-draft-range-bar {
+  position: relative;
+  display: block;
+  height: 0.35rem;
+  border-radius: var(--radius-pill);
+  background: var(--border);
+}
+.hub-draft-range-bar-mark {
+  position: absolute;
+  top: -2px;
+  width: 0.45rem;
+  height: 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  transform: translateX(-50%);
+}
+.hub-roster-row--locker.is-new {
+  animation: hub-bid-pop 150ms var(--ease-standard);
+}
+
 .hub-auction-stage-warning {
   margin-top: 0.65rem;
   padding: 0.65rem 0.75rem;
@@ -18833,6 +18998,8 @@ th.sortable-header {
 
 .hub-roster-panel--band .hub-cap-chip {
   padding: 0.3rem 0.55rem;
+}
+.hub-roster-panel--band .hub-cap-chip-empty {
   background: var(--draft-panel-raised);
 }
 

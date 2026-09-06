@@ -1,16 +1,22 @@
 import React, { useEffect, useState } from "react";
-import SentimentBadge from "../SentimentBadge";
 import Chip, { sentimentChipTone } from "../Chip";
 import { mentionCountLabel } from "../format";
-import {
-  formatHistoricalWeekLabel,
-  isHistoricalAvailable,
-  pickHistoricalWeek,
-} from "../mediaContext";
 import { pickFantasyMediaDigest } from "../fantasyMediaDigest";
 import { PAINT_WIDTH, playerInitials, teamLogoUrl, headshotCandidates, paintMediaUrl } from "./draftMedia";
-import DraftDeadlineClock from "./DraftDeadlineClock";
+import { useDeadlineSeconds } from "./DraftDeadlineClock";
 import { fmtSal } from "./rosterFormat";
+import { formatCountdown } from "./draftRoomHelpers";
+import TeamIdentityMark from "./TeamIdentityMark";
+import { displayBotName, botIdentityLook, resolveBotPersona } from "./botPersona";
+import {
+  BID_PULSE_MS,
+  clockRingOffset,
+  clockUrgency,
+} from "./draftAuctionTheater";
+import { draftLiveCopy, soldPriceLine, soldTone } from "./draftLivePresentation";
+
+const RING_R = 54;
+const RING_CIRC = 2 * Math.PI * RING_R;
 
 function fmtPts(v, digits = 1) {
   const n = Number(v);
@@ -76,7 +82,7 @@ function PlayerAvatar({
   }, [headshotUrl, espnHeadshotUrl, name]);
 
   return (
-    <div className={`hub-draft-avatar-wrap hub-draft-avatar-${size}`}>
+    <div className={`hub-draft-avatar-core hub-draft-avatar-${size}`}>
       {showHeadshot ? (
         <img
           className="hub-draft-headshot"
@@ -105,6 +111,37 @@ function PlayerAvatar({
   );
 }
 
+function BidClockRing({
+  deadline,
+  paused,
+  pausedLabel,
+  durationSec,
+}) {
+  const seconds = useDeadlineSeconds(deadline, paused);
+  if (paused) {
+    return <span className="hub-bid-clock-label">{pausedLabel}</span>;
+  }
+  if (seconds == null) return null;
+  const total = Math.max(Number(durationSec) || 0, seconds, 1);
+  const urgency = clockUrgency(seconds);
+  const offset = clockRingOffset(seconds, total, RING_CIRC);
+  return (
+    <>
+      <svg className={`hub-bid-clock-ring is-${urgency}`} viewBox="0 0 120 120" aria-hidden>
+        <circle className="hub-bid-clock-track" cx="60" cy="60" r={RING_R} />
+        <circle
+          className="hub-bid-clock-fill"
+          cx="60"
+          cy="60"
+          r={RING_R}
+          style={{ strokeDasharray: RING_CIRC, strokeDashoffset: offset }}
+        />
+      </svg>
+      <span className={`hub-bid-clock-label is-${urgency}`}>{formatCountdown(seconds)}</span>
+    </>
+  );
+}
+
 export default function DraftNomineeCard({
   playerName,
   position,
@@ -118,62 +155,103 @@ export default function DraftNomineeCard({
   sentimentMeta,
   highBid,
   highBidderName,
+  highBidderTeam = null,
   highBidderIsBot,
   openingBid,
   timerLabel,
   timerSeconds,
   deadline,
+  bidDurationSec = 30,
   paused = false,
   pausedLabel = "Paused",
-  label = "On the block",
+  label = draftLiveCopy.onTheBlock,
   compact = false,
   stats = null,
+  isWinning = false,
+  sold = false,
+  soldWinner = "",
+  soldAmount = null,
+  soldFair = null,
 }) {
   const digest = fantasyMediaDigest || pickFantasyMediaDigest(sentiment) || null;
-  const hasStory = sentiment && Number(sentiment.mention_count) > 0;
+  const tagline = digest && String(digest).trim() && !/no (current-week )?fantasy narrative/i.test(digest)
+    ? String(digest).trim()
+    : "";
+  const hasStory = Boolean(tagline);
   const labelText = sentiment?.sentiment_label_text || sentiment?.sentiment_label;
-  const historicalLabel = formatHistoricalWeekLabel(
-    pickHistoricalWeek(sentimentMeta?.media_context),
-  );
-  const olderAvailable =
-    !hasStory
-    && isHistoricalAvailable(sentimentMeta?.media_context)
-    && Boolean(historicalLabel);
+  const [pulse, setPulse] = useState(false);
+  const [flash, setFlash] = useState(false);
+  const bidKey = `${highBid ?? ""}:${highBidderName || ""}`;
+
+  useEffect(() => {
+    if (highBid == null && !highBidderName) return undefined;
+    setPulse(true);
+    setFlash(true);
+    const pulseId = setTimeout(() => setPulse(false), BID_PULSE_MS);
+    const flashId = setTimeout(() => setFlash(false), 200);
+    return () => {
+      clearTimeout(pulseId);
+      clearTimeout(flashId);
+    };
+  }, [bidKey, highBid, highBidderName]);
+
+  const persona = highBidderTeam ? resolveBotPersona(highBidderTeam) : resolveBotPersona({
+    name: highBidderName,
+    is_bot: highBidderIsBot,
+  });
+  const bidderLabel = highBidderTeam
+    ? displayBotName(highBidderTeam.name, highBidderTeam)
+    : displayBotName(highBidderName, { name: highBidderName, is_bot: highBidderIsBot });
+  const showClock = Boolean(deadline || timerSeconds != null);
+  const soldKind = soldTone({ amount: soldAmount, fair: soldFair ?? stats?.fairValue });
+
+  const classes = [
+    "hub-nominee-card",
+    compact ? "hub-nominee-card-compact" : "",
+    isWinning && !sold ? "is-winning" : "",
+    sold ? "is-sold" : "",
+    pulse && !sold ? "is-bid-pulse" : "",
+  ].filter(Boolean).join(" ");
 
   return (
-    <article className={`hub-nominee-card${compact ? " hub-nominee-card-compact" : ""}`}>
+    <article className={classes}>
       <header className="hub-nominee-header">
         <div className="hub-nominee-header-left">
-          {label && <span className="hub-nominee-label">{label}</span>}
-          {hasStory && labelText && (
+          {label && <span className="hub-nominee-label">{sold ? draftLiveCopy.soldLabel : label}</span>}
+          {hasStory && labelText && !sold && (
             <Chip tone={sentimentChipTone(sentiment.sentiment_label)} className="hub-nominee-tone">
               {labelText}
             </Chip>
           )}
         </div>
-        {(deadline || timerSeconds != null) && (
-          deadline
-            ? (
-              <DraftDeadlineClock
-                deadline={deadline}
-                paused={paused}
-                pausedLabel={pausedLabel}
-                className="hub-timer"
-              />
-            )
-            : <span className="hub-timer">{timerLabel || `${timerSeconds}s`}</span>
-        )}
       </header>
 
       <div className="hub-nominee-body">
-        <PlayerAvatar
-          name={playerName}
-          headshotUrl={headshotUrl}
-          espnHeadshotUrl={espnHeadshotUrl}
-          team={team}
-          teamLogoUrl={logoOverride}
-          size={compact ? "md" : "lg"}
-        />
+        <div className="hub-draft-avatar-wrap">
+          <PlayerAvatar
+            name={playerName}
+            headshotUrl={headshotUrl}
+            espnHeadshotUrl={espnHeadshotUrl}
+            team={team}
+            teamLogoUrl={logoOverride}
+            size={compact ? "md" : "lg"}
+          />
+          {showClock && !sold && (
+            deadline
+              ? (
+                <BidClockRing
+                  deadline={deadline}
+                  paused={paused}
+                  pausedLabel={pausedLabel}
+                  durationSec={bidDurationSec}
+                />
+              )
+              : <span className="hub-bid-clock-label">{timerLabel || `${timerSeconds}s`}</span>
+          )}
+          {sold && (
+            <span className="hub-nominee-sold-stamp" aria-hidden>{draftLiveCopy.soldStamp}</span>
+          )}
+        </div>
 
         <div className="hub-nominee-details">
           <div className="hub-nominee-identity">
@@ -183,61 +261,72 @@ export default function DraftNomineeCard({
               <span className="hub-nominee-dot">·</span>
               <span>{team || "—"}</span>
             </p>
+            {(tagline || digestLoading) && !sold && (
+              <p className="hub-nominee-tagline">
+                {digestLoading ? "Summarizing…" : tagline}
+                {sentiment?.mention_count ? (
+                  <span className="hub-nominee-tagline-meta"> · {mentionCountLabel(sentiment.mention_count)}</span>
+                ) : null}
+              </p>
+            )}
           </div>
 
-          <NomineeStats stats={stats} />
+          {!sold && <NomineeStats stats={stats} />}
 
-          {hasStory ? (
-            <div className="hub-draft-story">
-              <div className="hub-draft-story-head">
-                <span className="hub-draft-story-kicker">
-                  Fantasy narrative
-                  {sentimentMeta?.week ? ` · Wk ${sentimentMeta.week}` : ""}
-                  {sentimentMeta?.context_fallback ? " · older" : ""}
-                </span>
-                <span className="hub-draft-story-mentions">{mentionCountLabel(sentiment.mention_count)}</span>
+          {sold ? (
+            <div className={`hub-nominee-sold-row is-${soldKind}`} role="status">
+              <div className="hub-bid-stat">
+                <span className="hub-cap-label">{draftLiveCopy.winner}</span>
+                <strong className="hub-high-bidder">
+                  {(highBidderIsBot || persona) && (
+                    <TeamIdentityMark
+                      team={highBidderTeam || { name: soldWinner || bidderLabel, is_bot: true }}
+                      identity={botIdentityLook(highBidderTeam || { name: soldWinner || bidderLabel, is_bot: true })}
+                      size="sm"
+                    />
+                  )}
+                  {soldWinner || bidderLabel}
+                </strong>
               </div>
-              {digestLoading ? (
-                <p className="hub-draft-story-text hub-draft-story-loading">Summarizing fantasy narrative…</p>
-              ) : (
-                <p className="hub-draft-story-text">{digest}</p>
-              )}
-              {sentiment.sources?.length ? (
-                <div className="hub-draft-story-sources">
-                  {sentiment.sources.slice(0, 3).map((src) => (
-                    <span key={`${src.label}-${src.network}`} className="hub-draft-source-pill">
-                      {src.network_label || src.label}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
+              <div className="hub-bid-stat">
+                <span className="hub-cap-label">{draftLiveCopy.vsFair}</span>
+                <strong className="hub-sold-price">
+                  {soldPriceLine({ amount: soldAmount ?? highBid, fair: soldFair ?? stats?.fairValue })}
+                </strong>
+              </div>
             </div>
-          ) : olderAvailable ? (
-            <p className="hub-draft-no-story">
-              {`No current-week fantasy narrative. Older discussion exists from ${historicalLabel} (not shown here).`}
-            </p>
-          ) : null}
-
-          {(highBid != null || highBidderName || openingBid != null) && (
-            <div className="hub-nominee-bid-row">
+          ) : (highBid != null || highBidderName || openingBid != null) && (
+            <div className={`hub-nominee-bid-row${flash ? (isWinning ? " is-flash-you" : " is-flash-them") : ""}`}>
               {highBidderName ? (
                 <>
                   {highBid != null && (
                     <div className="hub-bid-stat">
-                      <span className="hub-cap-label">High bid</span>
-                      <strong className="hub-high-bid">${Number(highBid).toFixed(0)}</strong>
+                      <span className="hub-cap-label">{draftLiveCopy.highBid}</span>
+                      <strong className={`hub-high-bid${isWinning ? " is-winning" : ""}`}>
+                        ${Number(highBid).toFixed(0)}
+                      </strong>
                     </div>
                   )}
-                  <div className="hub-bid-stat">
-                    <span className="hub-cap-label">High bidder</span>
-                    <strong>{highBidderName}{highBidderIsBot ? " 🤖" : ""}</strong>
+                  <div className="hub-bid-stat hub-bid-stat-bidder">
+                    <span className="hub-cap-label">{draftLiveCopy.highBidder}</span>
+                    <strong className="hub-high-bidder">
+                      {(highBidderIsBot || persona) && (
+                        <TeamIdentityMark
+                          team={highBidderTeam || { name: bidderLabel, is_bot: true }}
+                          identity={botIdentityLook(highBidderTeam || { name: bidderLabel, is_bot: true })}
+                          size="sm"
+                        />
+                      )}
+                      {bidderLabel}
+                    </strong>
+                    {persona?.hint && <span className="chart-note hub-bot-hint">{persona.hint}</span>}
                   </div>
                 </>
               ) : (
                 <div className="hub-bid-stat">
-                  <span className="hub-cap-label">Opening bid</span>
+                  <span className="hub-cap-label">{draftLiveCopy.openingBid}</span>
                   <strong className="hub-high-bid">${Number(openingBid ?? 1).toFixed(0)}</strong>
-                  <span className="chart-note hub-bid-waiting">Waiting for first bid…</span>
+                  <span className="chart-note hub-bid-waiting">{draftLiveCopy.waitingFirstBid}</span>
                 </div>
               )}
             </div>

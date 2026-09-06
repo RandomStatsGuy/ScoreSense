@@ -97,6 +97,13 @@ test("formatDraftEvent describes snake picks and pick-clock skips", () => {
     }),
     "Bot 3 skipped — pick clock expired",
   );
+  assert.equal(
+    formatDraftEvent({
+      event_type: "bid",
+      payload: { team_name: "Bot Bravo", amount: 28 },
+    }),
+    "Whale bid $28",
+  );
 });
 
 test("formatPickSlot omits dollars and missing slots", () => {

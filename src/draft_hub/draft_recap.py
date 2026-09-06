@@ -112,16 +112,18 @@ def _subheadline(picks: list[dict[str, Any]], overview: dict[str, Any] | None, *
 def _award_steal(picks: list[dict[str, Any]]) -> dict[str, Any] | None:
     graded = [p for p in picks if p.get("ratio") is not None and p["value_grade"] in STEAL_GRADES]
     if not graded:
-        graded = [p for p in picks if p.get("ratio") is not None]
-    if not graded:
         return None
     best = max(graded, key=lambda p: p["ratio"] or 0)
     return {
         "id": "steal_of_draft",
         "title": "Steal of the draft",
         "emoji": "🎯",
+        "team_id": best.get("team_id"),
         "team_name": best["team_name"],
+        "player_id": best.get("player_id"),
         "player_name": best["player_name"],
+        "amount": best.get("amount"),
+        "fair_value": best.get("fair_value"),
         "detail": f"${best['amount']:.0f} · fair ${best['fair_value']:.0f}",
         "blurb": "The bid that aged like fine wine before the season even started.",
     }
@@ -136,8 +138,12 @@ def _award_reach(picks: list[dict[str, Any]]) -> dict[str, Any] | None:
         "id": "reach_of_draft",
         "title": "Reach for the stars",
         "emoji": "🚀",
+        "team_id": worst.get("team_id"),
         "team_name": worst["team_name"],
+        "player_id": worst.get("player_id"),
         "player_name": worst["player_name"],
+        "amount": worst.get("amount"),
+        "fair_value": worst.get("fair_value"),
         "detail": f"${worst['amount']:.0f} · fair ${worst['fair_value']:.0f}",
         "blurb": "Bold move — hope the projection catches the invoice.",
     }
@@ -151,8 +157,12 @@ def _award_splash(picks: list[dict[str, Any]]) -> dict[str, Any] | None:
         "id": "big_splash",
         "title": "Biggest splash",
         "emoji": "💸",
+        "team_id": top.get("team_id"),
         "team_name": top["team_name"],
+        "player_id": top.get("player_id"),
         "player_name": top["player_name"],
+        "amount": top.get("amount"),
+        "fair_value": top.get("fair_value"),
         "detail": f"${top['amount']:.0f} on {top['position']}",
         "blurb": "When you want the room to know you mean business.",
     }
@@ -256,6 +266,58 @@ def _award_position_obsessed(picks: list[dict[str, Any]], overview: dict[str, An
         "detail": f"{round(best_pct * 100)}% of cap on {best_pos}",
         "blurb": "They had a type and they stuck to it.",
     }
+
+
+def _auction_team_insights(
+    picks: list[dict[str, Any]],
+    overview: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    leftover: dict[str, float] = {}
+    names: dict[str, str] = {}
+    cap = float((overview or {}).get("salary_cap") or 200)
+    for block in (overview or {}).get("teams") or []:
+        team = block.get("team") or {}
+        tid = str(team.get("id") or "")
+        if not tid:
+            continue
+        names[tid] = str(team.get("name") or "Team")
+        leftover[tid] = float(team.get("budget_remaining") or block.get("cap_remaining") or 0)
+    buckets: dict[str, dict[str, Any]] = {}
+    for pick in picks:
+        tid = str(pick.get("team_id") or "")
+        if not tid:
+            continue
+        row = buckets.setdefault(
+            tid,
+            {
+                "team_id": tid,
+                "team_name": pick.get("team_name") or names.get(tid) or "Team",
+                "steals": 0,
+                "reaches": 0,
+                "spent": 0.0,
+                "leftover": leftover.get(tid, 0.0),
+                "cap": cap,
+            },
+        )
+        row["spent"] = round(row["spent"] + float(pick.get("amount") or 0), 2)
+        if pick.get("value_grade") in STEAL_GRADES:
+            row["steals"] += 1
+        if pick.get("value_grade") in REACH_GRADES:
+            row["reaches"] += 1
+    for tid, name in names.items():
+        buckets.setdefault(
+            tid,
+            {
+                "team_id": tid,
+                "team_name": name,
+                "steals": 0,
+                "reaches": 0,
+                "spent": 0.0,
+                "leftover": leftover.get(tid, 0.0),
+                "cap": cap,
+            },
+        )
+    return list(buckets.values())
 
 
 def _notable_picks(picks: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -449,6 +511,7 @@ def build_draft_recap(
         "total_spent": round(sum(p["amount"] for p in picks), 2),
         "awards": awards,
         "notable_picks": _notable_picks(picks),
+        "team_insights": _auction_team_insights(picks, overview),
         "completed_at": session.get("completed_at"),
         "limits_relaxed": limits_relaxed,
         "scopes": {

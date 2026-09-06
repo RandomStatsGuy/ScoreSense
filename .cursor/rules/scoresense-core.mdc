@@ -47,7 +47,7 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Dark, matte, editorial, layered. No neon-terminal chrome. No casino glow.
 - Tokens only: `frontend/src/styles/tokens.css`, `product-hierarchy.css`, `product-rhythm.css`, `fantasy-phone.css`.
 - Blue (`--experience-blue` / `--accent`) = current context and the next action. Nothing else.
-- Teal = healthy/saved. Amber = attention. Red = destructive/blocking. Gold = awards only.
+- Teal = healthy/saved. Amber = attention. Red = destructive/blocking, plus the live auction clock under 5s. Gold = awards only — never the live high-bid figure.
 - Hierarchy from surface, type, and spacing — not a border on every box. Token insets and gutters; text is never flush to a line and never smaller than `--text-xs` (12px computed).
 - Editorial pages use one hero stack: `HubExperienceHero` + `HubExperienceLayout` + `HubExperienceSummary` from `HubUILayout.jsx`. Strategy is the board-first exception — no hero band.
 - **Fix the primitive, not the page.** Shared CSS/components first. Measurable layout rules: `.cursor/rules/frontend-craft.mdc`.
