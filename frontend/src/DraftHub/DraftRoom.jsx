@@ -45,7 +45,7 @@ import {
 } from "./draftLiveConsole";
 import { mockDraftLiveCopy } from "./mockDraftConfig";
 import { displayBotName } from "./botPersona";
-import { SOLD_HOLD_MS, pinAuctionStage, shouldHoldSoldCard } from "./draftAuctionTheater";
+import { SOLD_HOLD_MS, pinAuctionStage, soldHoldDecision } from "./draftAuctionTheater";
 import { isPickDraft } from "./draftEntryStatus";
 import { HubPage } from "./HubUILayout";
 import { usePlayerMedia } from "../PlayerCell";
@@ -132,7 +132,6 @@ export default function DraftRoom({
   const lastWinEventIdRef = useRef(null);
   const pickRecapReadyRef = useRef(false);
   const lastNomineeRef = useRef(null);
-  const soldHoldTimerRef = useRef(null);
   const timerExpiredRef = useRef(false);
   const soundEventsReadyRef = useRef(false);
   const lastSoundEventRef = useRef("");
@@ -1389,10 +1388,6 @@ export default function DraftRoom({
     lastWinEventIdRef.current = null;
     setPickRecap(null);
     setSoldHold(null);
-    if (soldHoldTimerRef.current) {
-      clearTimeout(soldHoldTimerRef.current);
-      soldHoldTimerRef.current = null;
-    }
   }, [leagueId]);
 
   useEffect(() => {
@@ -1405,7 +1400,13 @@ export default function DraftRoom({
     pickRecapReadyRef.current = transition.initialized;
     lastWinEventIdRef.current = transition.lastEventId;
     const lastAward = transition.event;
-    if (!lastAward) return undefined;
+    const decision = soldHoldDecision({
+      lastAward,
+      simulating: simulationRunning,
+      pickDraft,
+    });
+    if (decision === "clear") setSoldHold(null);
+    if (!lastAward) return;
     const p = lastAward.payload || {};
     const isPick = lastAward.event_type === "pick" || pickDraft;
     const proj = p.season_proj != null && Number.isFinite(Number(p.season_proj)) && Number(p.season_proj) > 0
@@ -1424,12 +1425,10 @@ export default function DraftRoom({
         overall: p.overall,
         pick_draft: true,
       });
-      return undefined;
+      return;
     }
     setPickRecap(null);
-    if (!shouldHoldSoldCard({ simulating: simulationRunning, pickDraft, event: lastAward })) {
-      return undefined;
-    }
+    if (decision !== "set") return;
     setSoldHold({
       player_id: p.player_id,
       player_name: p.player_name,
@@ -1439,12 +1438,13 @@ export default function DraftRoom({
       amount: p.amount,
       fair_value: p.fair_value,
     });
-    if (soldHoldTimerRef.current) clearTimeout(soldHoldTimerRef.current);
-    soldHoldTimerRef.current = setTimeout(() => setSoldHold(null), SOLD_HOLD_MS);
-    return () => {
-      if (soldHoldTimerRef.current) clearTimeout(soldHoldTimerRef.current);
-    };
   }, [events, pickDraft, roomState, simulationRunning]);
+
+  useEffect(() => {
+    if (!soldHold) return undefined;
+    const id = setTimeout(() => setSoldHold(null), SOLD_HOLD_MS);
+    return () => clearTimeout(id);
+  }, [soldHold]);
 
   const expireAuctionTimer = useCallback(async () => {
     if (!leagueId) return;

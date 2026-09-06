@@ -8,6 +8,7 @@ import {
   pinAuctionStage,
   positionChipTone,
   shouldHoldSoldCard,
+  soldHoldDecision,
 } from "./draftAuctionTheater.js";
 
 test("clock urgency is amber under 10 and red under 5", () => {
@@ -30,6 +31,14 @@ test("sold hold is live auction only", () => {
   assert.equal(shouldHoldSoldCard({ event: { event_type: "win" } }), true);
   assert.equal(shouldHoldSoldCard({ event: { event_type: "win" }, simulating: true }), false);
   assert.equal(shouldHoldSoldCard({ event: { event_type: "pick" } }), false);
+});
+
+test("later bids keep the SOLD hold; sim and pick draft drop it", () => {
+  assert.equal(soldHoldDecision({ lastAward: { event_type: "win" } }), "set");
+  assert.equal(soldHoldDecision({ lastAward: null }), "keep");
+  assert.equal(soldHoldDecision({ lastAward: { event_type: "bid" } }), "keep");
+  assert.equal(soldHoldDecision({ lastAward: { event_type: "win" }, simulating: true }), "clear");
+  assert.equal(soldHoldDecision({ lastAward: null, pickDraft: true }), "clear");
 });
 
 test("position chips fill teal, overflow amber, empty muted", () => {

@@ -27,6 +27,22 @@ export function shouldHoldSoldCard({ simulating = false, pickDraft = false, even
   return event?.event_type === "win";
 }
 
+/**
+ * Event ticks after a win are usually bids/noms, not a new award.
+ * Keep the current hold so a decoupled timer can expire it.
+ * Clear only when the room leaves live-auction theater.
+ */
+export function soldHoldDecision({
+  lastAward = null,
+  simulating = false,
+  pickDraft = false,
+} = {}) {
+  if (simulating || pickDraft) return "clear";
+  if (!lastAward) return "keep";
+  if (shouldHoldSoldCard({ simulating, pickDraft, event: lastAward })) return "set";
+  return "keep";
+}
+
 export function positionChipTone({ count = 0, min = 0, max = null } = {}) {
   const n = Number(count) || 0;
   const floor = Number(min) || 0;
