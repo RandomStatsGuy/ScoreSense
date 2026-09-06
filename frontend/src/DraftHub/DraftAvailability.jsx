@@ -16,6 +16,7 @@ import {
   availabilityLockLabel,
   availabilitySaveLabel,
   availabilityStatusChip,
+  availabilityShowsSavedChip,
   formatLockedNightDisclosure,
   availabilitySupport,
   availabilityUnsavedHint,
@@ -418,7 +419,7 @@ export default function DraftAvailability({
                 <Button disabled={saving} onClick={save}>
                   {availabilitySaveLabel({ dirty, saving })}
                 </Button>
-              ) : payload.can_edit && !locked ? (
+              ) : availabilityShowsSavedChip({ canEdit: payload.can_edit, locked, dirty }) ? (
                 <p className="draft-availability-status-chip is-saved">
                   {availabilityStatusChip({ locked, dirty })}
                 </p>

@@ -306,7 +306,7 @@ export default function VibeRankings({
     },
   ];
   const canReview = !usingDemo && ratedToday > 0;
-  const todayReads = todayReadRows(players, dayVotes.votes);
+  const todayReads = todayReadRows(players, dayVotes?.votes);
   const reviewButton = canReview ? (
     <button
       type="button"

@@ -66,6 +66,19 @@ export function parseArgs(argv) {
   return args;
 }
 
+/** HTML and SVG both expose a string class list this way. `el.className` is an object on SVG. */
+export function elementClassName(el) {
+  if (!el) return "";
+  if (typeof el.getAttribute === "function") {
+    const named = el.getAttribute("class");
+    if (named != null) return String(named);
+  }
+  const raw = el.className;
+  if (typeof raw === "string") return raw;
+  if (raw && typeof raw.baseVal === "string") return raw.baseVal;
+  return "";
+}
+
 export function livingSurfaceRoutes(surfaces) {
   const seen = new Set();
   const rows = [];
@@ -317,7 +330,7 @@ function measureScript() {
     const gridTables = [];
     document.querySelectorAll("*").forEach((el) => {
       if (el.matches("table, [role='table'], [role='grid']")) return;
-      const tableLike = /table|grid/i.test(el.className || "") || el.getAttribute("role") === "table";
+      const tableLike = /table|grid/i.test(elementClassName(el)) || el.getAttribute("role") === "table";
       if (!tableLike) return;
       const kids = [...el.children].filter((child) => {
         const cs = getComputedStyle(child);

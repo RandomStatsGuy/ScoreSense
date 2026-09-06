@@ -18,6 +18,7 @@ import {
   remainderColumnIndex,
   columnIsOverwide,
   isCssGridTableRowGroup,
+  elementClassName,
   COLUMN_PACK_RATIO,
 } from "./layout_audit.mjs";
 
@@ -47,6 +48,13 @@ test("non-remainder columns fail when wider than 1.5× content", () => {
   assert.equal(columnIsOverwide(24, 20, false), false);
   assert.equal(columnIsOverwide(400, 20, true), false);
   assert.equal(COLUMN_PACK_RATIO, 1.5);
+});
+
+test("elementClassName reads HTML strings and SVGAnimatedString", () => {
+  assert.equal(elementClassName({ getAttribute: () => "hub-table-card", className: {} }), "hub-table-card");
+  assert.equal(elementClassName({ className: { baseVal: "svg-grid" } }), "svg-grid");
+  assert.equal(elementClassName({ className: "plain-grid" }), "plain-grid");
+  assert.equal(elementClassName(null), "");
 });
 
 test("css-grid table groups need matching 3+ columns and no auto-fill", () => {
