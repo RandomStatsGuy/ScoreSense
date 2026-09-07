@@ -226,9 +226,12 @@ def _starter_capacity(rules: LeagueRules) -> dict[str, int]:
         key.upper(): int(lim.get("starter") or 0)
         for key, lim in roster_limits(rules).items()
     }
-    flex = (rules.roster or {}).get("flex") or {}
-    if isinstance(flex, dict):
-        out["FLEX"] = int(flex.get("starter") or 0)
+    roster = rules.roster
+    flex = getattr(roster, "flex", None) if hasattr(roster, "flex") else (roster or {}).get("flex")
+    if flex:
+        starter_val = getattr(flex, "starter", None) if hasattr(flex, "starter") else flex.get("starter")
+        if starter_val is not None:
+            out["FLEX"] = int(starter_val)
     return out
 
 
