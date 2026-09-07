@@ -11,8 +11,17 @@ export function refreshHasFinished(status, cutoffMs) {
     throw new Error(status.error || "Refresh failed");
   }
   const doneAt = Date.parse(status.completed_at);
-  if (!Number.isFinite(doneAt)) return false;
-  return doneAt >= cutoffMs - CLOCK_SKEW_MS;
+  if (Number.isFinite(doneAt)) {
+    return doneAt >= cutoffMs - CLOCK_SKEW_MS;
+  }
+  if (status.status === "completed") {
+    const startedAt = Date.parse(status.started_at);
+    if (Number.isFinite(startedAt)) {
+      return startedAt >= cutoffMs - CLOCK_SKEW_MS;
+    }
+    return true;
+  }
+  return false;
 }
 
 export async function waitForRefreshComplete({

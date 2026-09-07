@@ -45,6 +45,8 @@ _PRIMARY_CTA = {
 # Priority order for action center (lower = higher priority).
 # roster_hole beats commissioner invite / cap chrome when the occupying roster fails mins.
 _ACTION_PRIORITY = {
+    "delete_league": 1,
+    "delete_league_wait": 8,
     "roster_hole": 5,
     "cap_overage": 10,
     "draft_night": 12,
@@ -246,9 +248,48 @@ def _build_actions(
     is_commissioner: bool = False,
     rules: LeagueRules | None = None,
     roster: list[dict[str, Any]] | None = None,
+    league_id: str | None = None,
+    viewer_team_id: str | None = None,
 ) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
     phase_id = phase["id"]
+
+    if league_id and is_commissioner:
+        from src.draft_hub.league_lifecycle import delete_request_snapshot
+
+        try:
+            delete_snap = delete_request_snapshot(
+                str(league_id),
+                viewer_team_id=viewer_team_id,
+            )
+        except Exception:
+            delete_snap = None
+        if delete_snap and delete_snap.get("pending"):
+            waiting = int(delete_snap.get("required_count") or 0) - int(
+                delete_snap.get("approved_count") or 0
+            )
+            if delete_snap.get("you_approved"):
+                actions.append(
+                    _action(
+                        "delete_league_wait",
+                        severity="medium",
+                        message=(
+                            f"Waiting on {waiting} commissioner"
+                            f"{'' if waiting == 1 else 's'} to delete this league"
+                        ),
+                        href="office-access",
+                        count=max(0, waiting),
+                    )
+                )
+            else:
+                actions.append(
+                    _action(
+                        "delete_league",
+                        severity="high",
+                        message="Agree to delete this league",
+                        href="office-access",
+                    )
+                )
 
     if phase_id == PHASE_PRE_DRAFT and rules is not None:
         hole = _roster_hole_action(rules, roster or [], cap)
@@ -440,6 +481,11 @@ def _attention_line(actions: list[dict[str, Any]], freshness: dict[str, Any]) ->
             parts.append("league not linked")
         elif aid == "cap_sheets_stale":
             parts.append("cap sheets stale")
+        elif aid == "delete_league":
+            parts.append("delete waiting on you")
+        elif aid == "delete_league_wait":
+            n = item.get("count") or 0
+            parts.append(f"delete waiting on {n} commissioner{'s' if n != 1 else ''}")
     if not parts:
         return None
     # Sentence-case first fragment for the attention strip.
@@ -604,6 +650,8 @@ def build_league_home(
         is_commissioner=bool(ctx.get("is_commissioner")),
         rules=rules,
         roster=roster,
+        league_id=str(league_id) if league_id else None,
+        viewer_team_id=str(ctx.get("team_id") or "") or None,
     )
     attention_line = _attention_line(actions, freshness)
 

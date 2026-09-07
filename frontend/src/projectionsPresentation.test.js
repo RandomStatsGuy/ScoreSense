@@ -24,6 +24,7 @@ import {
   compactSignalName,
   staleRefreshLabel,
   weeklyContextNeedsRefresh,
+  weeklyContextRefreshPath,
   weeklyBoardPreview,
   weeklyBoardSignals,
   weeklyPeerStats,
@@ -299,5 +300,8 @@ test("weekly context refresh shows when notes are stale or missing", () => {
   assert.equal(weeklyContextNeedsRefresh({ stale: true }), true);
   assert.equal(weeklyContextNeedsRefresh({ unavailable: true }), true);
   assert.equal(staleRefreshLabel({ unavailable: true }), "Notes missing · Refresh");
+  assert.equal(weeklyContextRefreshPath({ season: 2026, week: 1 }), "/api/players/context/refresh?season=2026&week=1");
+  assert.doesNotMatch(weeklyContextRefreshPath({ season: 2026, week: 1 }), /\/api\/refresh\?/);
   assert.doesNotMatch(BOARD_COPY.contextMissingRefresh, /Submit|Draft Hub|permission/i);
+  assert.doesNotMatch(BOARD_COPY.contextRefreshFailed, /Submit|Draft Hub|permission/i);
 });

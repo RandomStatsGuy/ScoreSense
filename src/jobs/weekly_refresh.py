@@ -82,7 +82,9 @@ def _run_weekly_refresh(
     draft_only: bool,
     started: str,
 ) -> dict:
-    build_all_datasets(seasons=seasons)
+    # UI / --no-retrain reuses existing mlready. Full ETL is the hang on Refresh.
+    if retrain or draft_only:
+        build_all_datasets(seasons=seasons)
     invalidate_weekly_cache()
     invalidate_ros_cache()
     if draft_only:

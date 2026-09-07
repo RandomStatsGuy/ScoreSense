@@ -21,6 +21,7 @@ import {
   removeFranchiseLabel,
 } from "./leagueAccessCopy";
 import LeagueSheetImport from "./LeagueSheetImport";
+import OfficeLeagueLifecycle from "./OfficeLeagueLifecycle";
 import {
   defaultOfficeTab,
   isOfficeTabAllowed,
@@ -341,7 +342,7 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
   );
 }
 
-function OfficeAccess({ leagueId, hubContext, workspace, onChanged }) {
+function OfficeAccess({ leagueId, hubContext, workspace, onChanged, onNavigate }) {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -423,6 +424,13 @@ function OfficeAccess({ leagueId, hubContext, workspace, onChanged }) {
         />
         <CapSheetImport onImported={onChanged} embedded />
       </section>
+
+      <OfficeLeagueLifecycle
+        leagueId={leagueId}
+        leagueName={hubContext?.league_name}
+        onChanged={onChanged}
+        onNavigate={onNavigate}
+      />
     </div>
   );
 }
@@ -598,6 +606,7 @@ export default function LeagueOffice({
             hubContext={hubContext}
             workspace={workspace}
             onChanged={handleChanged}
+            onNavigate={onNavigate}
           />
         </HubPage>
       )}

@@ -27,6 +27,17 @@ test("refreshHasFinished is true when completed_at is after the click", () => {
   );
 });
 
+test("refreshHasFinished treats completed without a parseable timestamp as done", () => {
+  const cutoff = Date.parse("2026-08-17T12:00:00.000Z");
+  assert.equal(
+    refreshHasFinished(
+      { status: "completed", started_at: "2026-08-17T12:00:01.000Z", completed_at: "not-a-date" },
+      cutoff,
+    ),
+    true,
+  );
+});
+
 test("refreshHasFinished treats legacy files without status as complete when fresh", () => {
   const cutoff = Date.parse("2026-08-17T12:00:00.000Z");
   assert.equal(

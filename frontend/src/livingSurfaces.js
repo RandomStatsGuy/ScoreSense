@@ -152,7 +152,7 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/hub/rosters",
     page: "frontend/src/DraftHub/LeagueRostersBrowser.jsx",
     copy: "frontend/src/DraftHub/leagueRostersPresentation.js",
-    doNot: "Reuse HubExperienceHero + HubExperienceLayout + HubExperienceSummary + HubTableCard. Default is the league-wide Overpay/Bargain list; the manager rail is the drill-down and shows free cap, expiring count, and worst overpay. Ten managers is a picker, not a swipe strip. Franchise headers get Propose trade into Trades · Builder with the partner preselected. Contract judgment is the word alone when the dollar delta is zero. Expire chips say Extendable, never a question. Expire chips are sentence case. Overpay rows stay a neutral background — only the delta chip is red. Desktop virtualizes on page scroll — no nested table scroller. Do not offer Add to trade on contracts that will not survive the next draft. Refresh labels name the scope (Refresh league), never sit beside a single manager as if they refresh that roster. Mobile cards expand into the judgment and actions, not a repeated years/pts grid.",
+    doNot: "Reuse HubExperienceHero + HubExperienceLayout + HubExperienceSummary + HubTableCard. Default is the league-wide Overpay/Bargain list; the manager rail is the drill-down and shows free cap, expiring count, and worst overpay. Ten managers is a picker, not a swipe strip. Franchise headers get Propose trade into Trades · Builder with the partner preselected. Contract judgment is the word alone when the dollar delta is zero. Expire chips say Extendable, never a question. Expire chips are sentence case. Overpay rows stay a neutral background — only the delta chip is red. Desktop virtualizes on page scroll — no nested table scroller. Do not offer Add to trade on contracts that will not survive the next draft. Refresh labels name the scope (Refresh league), never sit beside a single manager as if they refresh that roster. Download Excel is ghost beside Refresh — never a second primary. Mobile cards expand into the judgment and actions, not a repeated years/pts grid.",
   }),
   "hub.planner": S({
     label: "Cap",
@@ -219,7 +219,8 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/hub/roster-management/access",
     page: "frontend/src/DraftHub/LeagueOffice.jsx",
     copy: "frontend/src/DraftHub/leagueAccessCopy.js",
-    doNot: "Do not invent a second invite or import chrome. Access & imports is the Sleeper link and email-assign only. It does not copy the Draft invite link. The strip owns Sync league. Collapse the Sleeper league ID form once the league is linked.",
+    also: ["frontend/src/DraftHub/OfficeLeagueLifecycle.jsx"],
+    doNot: "Do not invent a second invite or import chrome. Access & imports is the Sleeper link, email-assign, league workbook, and delete. It does not copy the Draft invite link. The strip owns Sync league. Collapse the Sleeper league ID form once the league is linked. Delete requires every commissioner to type the league name and agree.",
   }),
   "hub.insights": S({
     label: "Insights",
@@ -293,7 +294,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/ProjectionBoardChrome.jsx",
       "frontend/src/styles/projections-experience.css",
     ],
-    doNot: "Projections are a board. Do not wrap them in HubExperienceLayout. Weekly compare is a mode — no always-on checkboxes. Weekly rows match QB/WR/TE: no opportunity/role/commentary chips on the board. One compact injury chip only. Rank stays one line; movement is one muted line under it. Desktop virtualizes on page scroll — no nested table scroller. Do not add a header Refresh on Weekly — the stale or missing-notes chip is the refresh. Phone rows are dense ranking rows; Compare is one toolbar control, never a per-card checkbox. Null prior rank is New, not 0. Phone weekly: swipeable signals, no body movement chips, sticky position+filter+count, windowed list, stale or missing-notes chip is refresh with relative time when one exists. Filter sheet owns search/what-changed with Apply/Reset. No per-card Floor–Ceiling label. Injury context hides while loading and timestamps when ready.",
+    doNot: "Projections are a board. Do not wrap them in HubExperienceLayout. Weekly compare is a mode — no always-on checkboxes. Weekly rows match QB/WR/TE: no opportunity/role/commentary chips on the board. One compact injury chip only. Rank stays one line; movement is one muted line under it. Desktop virtualizes on page scroll — no nested table scroller. Do not add a header Refresh on Weekly — the stale or missing-notes chip is the refresh. The notes chip rebuilds player-context only — do not start the weekly ETL pipeline. Phone rows are dense ranking rows; Compare is one toolbar control, never a per-card checkbox. Null prior rank is New, not 0. Phone weekly: swipeable signals, no body movement chips, sticky position+filter+count, windowed list, stale or missing-notes chip is refresh with relative time when one exists. Filter sheet owns search/what-changed with Apply/Reset. No per-card Floor–Ceiling label. Injury context hides while loading and timestamps when ready.",
   }),
   "projections.season": S({
     label: "Season",
@@ -457,6 +458,10 @@ export const SURFACE_ALIASES = Object.freeze({
   "salary sheets": "hub.office.historic",
   "roster management": "hub.office",
   "access & imports": "hub.office.access",
+  "delete league": "hub.office.access",
+  "delete this league": "hub.office.access",
+  "download excel": "hub.rosters",
+  "league workbook": "hub.rosters",
   "mock draft": "tools.mock-draft",
   "best ball": "tools.best-ball",
   "player inspector": "projections.inspector",

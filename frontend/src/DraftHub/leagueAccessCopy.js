@@ -292,3 +292,41 @@ export function draftNightChangeSummary() {
 export function draftNightLockedChip() {
   return "Locked";
 }
+
+export const LEAGUE_WORKBOOK_COPY = {
+  title: "League workbook",
+  exportLabel: "Download Excel",
+  exportBusy: "Preparing workbook…",
+  exportSupport: "Every roster, salary, and history row. Opens in Excel.",
+};
+
+export const LEAGUE_DELETE_COPY = {
+  title: "Delete this league",
+  support:
+    "Removes the room, contracts, and history. Every commissioner has to type the name and agree. Download the workbook first — ScoreSense cannot put this back.",
+  start: "Start delete",
+  approve: "Agree to delete",
+  cancel: "Withdraw delete",
+  confirmLabel: "Type the league name",
+  confirmHint: "Type the league name to enable delete.",
+  youAgreed: "You agreed. The room stays until every commissioner does.",
+  staffHeading: "Commissioners",
+  agreed: "Agreed",
+  waiting: "Waiting",
+};
+
+export function leagueNameMatches(typed, official) {
+  const left = String(typed || "").trim().replace(/\s+/g, " ").toLowerCase();
+  const right = String(official || "").trim().replace(/\s+/g, " ").toLowerCase();
+  return Boolean(left) && left === right;
+}
+
+export function leagueDeletePendingLine({ approved = 0, required = 0, waiting = [] } = {}) {
+  const have = Number(approved) || 0;
+  const need = Number(required) || 0;
+  const names = (waiting || []).filter(Boolean);
+  if (need <= 1) return "Your confirm deletes the room.";
+  if (!names.length) return `${have} of ${need} commissioners have agreed.`;
+  const wait = names.length === 1 ? names[0] : `${names.length} commissioners`;
+  return `${have} of ${need} commissioners have agreed. Waiting on ${wait}.`;
+}

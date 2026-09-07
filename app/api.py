@@ -88,7 +88,11 @@ from src.projections.projection_meta import get_projection_meta
 from src.projections.draft_meta import get_draft_meta
 from src.projections.draft_projections import draft_projection_note, predict_draft_season
 from src.projections.weekly_cache import compute_weekly_artifact, load_weekly_prediction
-from src.projections.player_context import get_player_context, list_player_context
+from src.projections.player_context import (
+    get_player_context,
+    list_player_context,
+    refresh_player_context,
+)
 from src.projections.injury_overlay import (
     get_injury_overlay,
     list_injury_overlays,
@@ -401,6 +405,23 @@ def players_context_list(
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.post("/api/players/context/refresh")
+def players_context_refresh(
+    season: Optional[int] = None,
+    week: Optional[int] = None,
+    _user=Depends(require_patron),
+) -> dict:
+    """Rebuild this-week notes from cached weekly projections. No ETL / train."""
+    from fastapi.encoders import jsonable_encoder
+
+    try:
+        return jsonable_encoder(refresh_player_context(season=season, week=week))
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.get("/api/player/{player_id}/card")
@@ -1202,14 +1223,17 @@ async def refresh(
         started = mark_refresh_started(retrain=retrain, draft_only=draft_only)
         if background_tasks is not None:
             background_tasks.add_task(run_weekly_refresh, retrain, None, draft_only)
-            return {
-                "status": "started",
-                "started_at": started["started_at"],
-                "message": "Weekly refresh running in background. Projections update when it finishes.",
-            }
-        loop = asyncio.get_event_loop()
-        status = await loop.run_in_executor(None, run_weekly_refresh, retrain, None, draft_only)
-        return {"status": "completed", **status}
+        else:
+            try:
+                submit_cpu_job(run_weekly_refresh, retrain, None, draft_only)
+            except RuntimeError:
+                loop = asyncio.get_event_loop()
+                loop.run_in_executor(None, run_weekly_refresh, retrain, None, draft_only)
+        return {
+            "status": "started",
+            "started_at": started["started_at"],
+            "message": "Weekly refresh running in background. Projections update when it finishes.",
+        }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 

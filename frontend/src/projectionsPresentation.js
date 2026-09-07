@@ -54,6 +54,7 @@ export const BOARD_COPY = {
   staleRefresh: "Stale · Refresh",
   contextMissing: "Notes missing",
   contextMissingRefresh: "Notes missing · Refresh",
+  contextRefreshFailed: "Notes did not rebuild. The board is still the last slate.",
   refreshing: "Refreshing…",
   scoringPpr: "Scoring: PPR",
   scheduleAware: "Schedule-aware estimate",
@@ -615,6 +616,14 @@ export function compactSignalName(name, { max = 16 } = {}) {
 
 export function weeklyContextNeedsRefresh({ stale = false, unavailable = false } = {}) {
   return Boolean(stale || unavailable);
+}
+
+export function weeklyContextRefreshPath({ season, week } = {}) {
+  const params = new URLSearchParams();
+  if (season != null && Number.isFinite(Number(season))) params.set("season", String(season));
+  if (week != null && Number.isFinite(Number(week))) params.set("week", String(week));
+  const q = params.toString();
+  return q ? `/api/players/context/refresh?${q}` : "/api/players/context/refresh";
 }
 
 export function staleRefreshLabel({

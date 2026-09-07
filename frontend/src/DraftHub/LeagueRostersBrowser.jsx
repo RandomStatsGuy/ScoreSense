@@ -22,6 +22,7 @@ import { usePageWindowedRows } from "./useWindowedRows";
 import ContractHistoryLink from "./ContractHistoryLink";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 import TeamIdentityMark from "./TeamIdentityMark";
+import { downloadLeagueWorkbook } from "./leagueWorkbook";
 import {
   DEALS_VIEW,
   ROSTERS_COPY,
@@ -114,6 +115,7 @@ export default function LeagueRostersBrowser({
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [exporting, setExporting] = useState(false);
   const myTeamId = hubContext?.team_id || "";
   const [teamId, setTeamId] = useState(DEALS_VIEW);
   const acquisitionWindow = hubContext?.acquisition_window || null;
@@ -182,6 +184,19 @@ export default function LeagueRostersBrowser({
   const bottomPad = windowed ? Math.max(0, rosterList.length - range.end) * 56 : 0;
   const media = usePlayerMedia(mobileLayout ? [] : playerIds);
   const counts = dealCounts(dealRows);
+
+  const handleExport = useCallback(async () => {
+    if (!leagueId || exporting) return;
+    setExporting(true);
+    setError("");
+    try {
+      await downloadLeagueWorkbook(leagueId);
+    } catch (e) {
+      setError(connectionErrorMessage(e));
+    } finally {
+      setExporting(false);
+    }
+  }, [leagueId, exporting]);
 
   const pickerOptions = useMemo(
     () => managerPickerOptions(teamBlocks, dealRows),
@@ -434,6 +449,15 @@ export default function LeagueRostersBrowser({
                       {ROSTERS_COPY.proposeTrade}
                     </button>
                   ) : null}
+                  <button
+                    type="button"
+                    className="btn-ghost hub-experience-summary-action"
+                    onClick={handleExport}
+                    disabled={exporting}
+                    title={ROSTERS_COPY.exportTitle}
+                  >
+                    {exporting ? ROSTERS_COPY.exportBusy : ROSTERS_COPY.exportExcel}
+                  </button>
                   <button
                     type="button"
                     className="btn-ghost hub-experience-summary-action hub-roster-browser-refresh"

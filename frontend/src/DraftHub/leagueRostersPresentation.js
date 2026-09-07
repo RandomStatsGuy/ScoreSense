@@ -13,6 +13,9 @@ export const ROSTERS_COPY = {
     "Overpays and cheap years across the league. A cheap year is a trade chip; an overpay is someone else's problem until you take it.",
   proposeTrade: "Propose trade",
   refreshLeague: "Refresh league",
+  exportExcel: "Download Excel",
+  exportBusy: "Preparing workbook…",
+  exportTitle: "Workbook of every roster, salary, and history row. Opens in Excel.",
   dealsNav: "Deals",
   dealsHeading: "Overpays and bargains",
   dealsCaption:

@@ -30,6 +30,7 @@ import {
   seasonPeerStats,
   staleRefreshLabel,
   weeklyContextNeedsRefresh,
+  weeklyContextRefreshPath,
   weeklyBoardKicker,
   weeklyBoardPreview,
   weeklyBoardSignals,
@@ -158,6 +159,7 @@ export default function App() {
   const [meta, setMeta] = useState(null);
   const [refreshStatus, setRefreshStatus] = useState(null);
   const [pipelineRefreshing, setPipelineRefreshing] = useState(false);
+  const [contextRefreshing, setContextRefreshing] = useState(false);
   const [accuracyReport, setAccuracyReport] = useState(null);
   const [upsideReport, setUpsideReport] = useState(null);
   const [seasonLongReport, setSeasonLongReport] = useState(null);
@@ -1046,7 +1048,7 @@ export default function App() {
     stale: Boolean(weeklyContextMeta?.stale),
     unavailable: Boolean(weeklyContextMeta?.unavailable),
     updatedAt: weeklyContextMeta?.updatedAt || refreshStatus?.completed_at,
-    refreshing: dataRefreshLoading,
+    refreshing: contextRefreshing,
   });
 
   const goToHub = useCallback(() => {
@@ -1175,6 +1177,20 @@ export default function App() {
       setError(err.message || "Refresh failed");
     } finally {
       setPipelineRefreshing(false);
+    }
+  };
+
+  const triggerWeeklyContextRefresh = async () => {
+    setContextRefreshing(true);
+    setError("");
+    try {
+      const res = await apiFetch(weeklyContextRefreshPath({ season, week }), { method: "POST" });
+      if (!res.ok) throw new Error(await parseApiError(res, BOARD_COPY.contextRefreshFailed));
+      setContextReloadToken((n) => n + 1);
+    } catch (err) {
+      setError(err.message || BOARD_COPY.contextRefreshFailed);
+    } finally {
+      setContextRefreshing(false);
     }
   };
 
@@ -1579,8 +1595,8 @@ export default function App() {
             filterActive={weeklyFilterChips.length > 0}
             stale={weeklyNeedsRefresh}
             staleLabel={weeklyStaleLabel}
-            onRefresh={triggerRefresh}
-            refreshing={dataRefreshLoading}
+            onRefresh={triggerWeeklyContextRefresh}
+            refreshing={contextRefreshing}
           />
         )}
         {view === "projections" && mobileLayout && projectionsTab === "weekly" && weeklyFilterChips.length > 0 ? (
@@ -1749,8 +1765,8 @@ export default function App() {
                 onRemoveCompare={handleRemoveComparePlayer}
                 compareSelectionMeta={compareSelectionMeta}
                 hideMovementFilters
-                onRefreshData={triggerRefresh}
-                dataRefreshLoading={dataRefreshLoading}
+                onRefreshData={triggerWeeklyContextRefresh}
+                dataRefreshLoading={contextRefreshing}
                 contextReloadToken={contextReloadToken}
                 onContextMeta={setWeeklyContextMeta}
                 searchSlot={null}
