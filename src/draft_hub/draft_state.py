@@ -382,7 +382,8 @@ def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any
             draft_completed=draft_completed,
             budget_remaining=float(team.get("budget_remaining") or 0),
         )
-        enriched_teams.append({**team, **finance})
+        public_team = {k: v for k, v in team.items() if k != "nomination_queue"}
+        enriched_teams.append({**public_team, **finance})
     picks = [e for e in events if str(e.get("event_type") or "") == "pick"]
     out: dict[str, Any] = {
         "league": league,
@@ -1174,6 +1175,8 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
     session = storage.get_draft_session(league_id)
     if not league or not session:
         raise ValueError("Invalid session")
+    if bool(league.get("draft_completed")) or session.get("status") == "completed":
+        return get_room_state(league_id, user_sub)
     nominee = session.get("current_nominee")
     winner_id = session.get("high_bidder_team_id")
     amount = session.get("high_bid")

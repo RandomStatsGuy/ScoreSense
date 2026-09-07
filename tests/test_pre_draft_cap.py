@@ -10,6 +10,7 @@ from src.draft_hub.pre_draft_cap import (
     retained_through_draft,
 )
 from src.draft_hub.presets import load_preset
+from src.draft_hub.roster_overview_enrich import enrich_league_roster_overview
 from src.draft_hub.rules_engine import multi_year_cap_plan
 from src.draft_hub.schemas import LeagueRules
 
@@ -205,6 +206,32 @@ def test_no_pre_draft_when_draft_completed():
     rules = LeagueRules(salary_cap=200)
     roster = [_row("a", 50, 1, ROSTER_CUT_BEFORE_DRAFT)]
     assert pre_draft_cap_summary(rules, roster, draft_completed=True) is None
+
+
+def test_roster_overview_committed_is_auction_leftover():
+    rules = LeagueRules(salary_cap=200)
+    overview = {
+        "salary_cap": 200,
+        "league": {
+            "id": "overview-leftover",
+            "season": 2026,
+            "draft_completed": False,
+            "rules": rules.model_dump(),
+        },
+        "teams": [
+            {
+                "team": {"id": "t1", "name": "Alpha"},
+                "roster": [
+                    _row("kept", 50, 2),
+                    _row("gone", 40, 1, contract_type="veteran"),
+                ],
+            }
+        ],
+    }
+    out = enrich_league_roster_overview(overview, fair_map={})
+    stats = out["teams"][0]["stats"]
+    assert stats["committed"] == 50
+    assert stats["unspent"] == 150
 
 
 def test_cap_summary_for_phase_respects_cuts():

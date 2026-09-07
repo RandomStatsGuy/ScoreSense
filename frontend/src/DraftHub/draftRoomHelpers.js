@@ -142,6 +142,7 @@ export function isRetainedThroughDraft(row, draftCompleted = false) {
   if (draftCompleted) return true;
   const yrs = Number(row.contract?.years_remaining ?? row.contract_years ?? 1);
   if (yrs > 1) return true;
+  if (row.contract?.pending_extension) return true;
   const source = String(row.source || "").toLowerCase();
   return ["draft", "auction", "mock", "test_draft"].includes(source);
 }

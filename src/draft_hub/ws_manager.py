@@ -11,33 +11,48 @@ from fastapi import WebSocket
 
 class DraftRoomManager:
     def __init__(self) -> None:
-        self._rooms: dict[str, set[WebSocket]] = {}
+        self._rooms: dict[str, dict[WebSocket, dict[str, Any]]] = {}
         self._lock = asyncio.Lock()
 
-    async def connect(self, league_id: str, ws: WebSocket) -> None:
+    async def connect(self, league_id: str, ws: WebSocket, *, staff: bool = False) -> None:
         await ws.accept()
         async with self._lock:
-            self._rooms.setdefault(league_id, set()).add(ws)
+            self._rooms.setdefault(league_id, {})[ws] = {"staff": bool(staff)}
 
     async def disconnect(self, league_id: str, ws: WebSocket) -> None:
         async with self._lock:
             conns = self._rooms.get(league_id)
             if not conns:
                 return
-            conns.discard(ws)
+            conns.pop(ws, None)
             if not conns:
                 self._rooms.pop(league_id, None)
 
-    async def broadcast(self, league_id: str, payload: dict[str, Any]) -> None:
+    async def broadcast(
+        self,
+        league_id: str,
+        payload: dict[str, Any],
+        *,
+        staff_only: bool = False,
+    ) -> None:
         async with self._lock:
-            conns = list(self._rooms.get(league_id, set()))
+            items = list(self._rooms.get(league_id, {}).items())
         dead: list[WebSocket] = []
         text = json.dumps(payload)
-        for ws in conns:
+
+        async def send_safe(ws_conn: WebSocket) -> None:
             try:
-                await ws.send_text(text)
+                await ws_conn.send_text(text)
             except Exception:
-                dead.append(ws)
+                dead.append(ws_conn)
+
+        targets = [
+            ws
+            for ws, meta in items
+            if not (staff_only and not meta.get("staff"))
+        ]
+        if targets:
+            await asyncio.gather(*(send_safe(ws) for ws in targets))
         for ws in dead:
             await self.disconnect(league_id, ws)
 

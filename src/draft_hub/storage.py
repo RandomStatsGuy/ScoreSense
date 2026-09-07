@@ -1130,42 +1130,51 @@ def list_roster(workspace_id: str, team_id: str | None = None) -> list[dict[str,
     return [_roster_dict(r, default_step=step) for r in rows]
 
 
-def add_roster_slot(workspace_id: str, row: dict[str, Any], team_id: str | None = None) -> dict[str, Any]:
+def _insert_roster_slot_conn(
+    conn: sqlite3.Connection,
+    workspace_id: str,
+    row: dict[str, Any],
+    team_id: str | None = None,
+) -> sqlite3.Row:
     contract = row.get("contract")
     contract_json = json.dumps(contract) if contract else None
     source = row.get("source") or "manual"
     roster_status = str(row.get("roster_status") or "active")
+    conn.execute(
+        """INSERT INTO roster_slot
+           (workspace_id, team_id, player_id, player_name, team, position, salary, contract_years,
+            acquired_at, sleeper_player_id, source, contract_json, roster_status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(workspace_id, player_id) DO UPDATE SET
+             team_id=excluded.team_id, player_name=excluded.player_name, team=excluded.team,
+             position=excluded.position, salary=excluded.salary, contract_years=excluded.contract_years,
+             sleeper_player_id=excluded.sleeper_player_id, source=excluded.source,
+             contract_json=excluded.contract_json, roster_status=excluded.roster_status""",
+        (
+            workspace_id,
+            team_id,
+            row["player_id"],
+            row.get("player_name"),
+            row.get("team"),
+            row["position"],
+            row["salary"],
+            row.get("contract_years", 1),
+            _utcnow(),
+            row.get("sleeper_player_id"),
+            source,
+            contract_json,
+            roster_status,
+        ),
+    )
+    return conn.execute(
+        "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
+        (workspace_id, row["player_id"]),
+    ).fetchone()
+
+
+def add_roster_slot(workspace_id: str, row: dict[str, Any], team_id: str | None = None) -> dict[str, Any]:
     with get_conn() as conn:
-        conn.execute(
-            """INSERT INTO roster_slot
-               (workspace_id, team_id, player_id, player_name, team, position, salary, contract_years,
-                acquired_at, sleeper_player_id, source, contract_json, roster_status)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-               ON CONFLICT(workspace_id, player_id) DO UPDATE SET
-                 team_id=excluded.team_id, player_name=excluded.player_name, team=excluded.team,
-                 position=excluded.position, salary=excluded.salary, contract_years=excluded.contract_years,
-                 sleeper_player_id=excluded.sleeper_player_id, source=excluded.source,
-                 contract_json=excluded.contract_json, roster_status=excluded.roster_status""",
-            (
-                workspace_id,
-                team_id,
-                row["player_id"],
-                row.get("player_name"),
-                row.get("team"),
-                row["position"],
-                row["salary"],
-                row.get("contract_years", 1),
-                _utcnow(),
-                row.get("sleeper_player_id"),
-                source,
-                contract_json,
-                roster_status,
-            ),
-        )
-        r = conn.execute(
-            "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
-            (workspace_id, row["player_id"]),
-        ).fetchone()
+        r = _insert_roster_slot_conn(conn, workspace_id, row, team_id)
         _bump_live_for_workspace_conn(conn, workspace_id)
         return _roster_dict(r)
 
@@ -1365,19 +1374,28 @@ def set_roster_contract_type(
         return after
 
 
+def _delete_roster_by_source_conn(
+    conn: sqlite3.Connection,
+    workspace_id: str,
+    source: str,
+    team_id: str | None = None,
+) -> int:
+    if team_id:
+        cur = conn.execute(
+            "DELETE FROM roster_slot WHERE workspace_id = ? AND source = ? AND team_id = ?",
+            (workspace_id, source, team_id),
+        )
+    else:
+        cur = conn.execute(
+            "DELETE FROM roster_slot WHERE workspace_id = ? AND source = ?",
+            (workspace_id, source),
+        )
+    return cur.rowcount
+
+
 def remove_roster_by_source(workspace_id: str, source: str, team_id: str | None = None) -> int:
     with get_conn() as conn:
-        if team_id:
-            cur = conn.execute(
-                "DELETE FROM roster_slot WHERE workspace_id = ? AND source = ? AND team_id = ?",
-                (workspace_id, source, team_id),
-            )
-        else:
-            cur = conn.execute(
-                "DELETE FROM roster_slot WHERE workspace_id = ? AND source = ?",
-                (workspace_id, source),
-            )
-        return cur.rowcount
+        return _delete_roster_by_source_conn(conn, workspace_id, source, team_id)
 
 
 def is_scoresense_player_id(player_id: str) -> bool:
@@ -1969,10 +1987,21 @@ def get_team_by_user(league_id: str, user_sub: str) -> dict[str, Any] | None:
 
 
 def verify_league_membership(user_sub: str, league_id: str) -> bool:
-    """True when user_sub has a team row in the league."""
-    if not get_league(league_id):
-        return False
-    return get_team_by_user(league_id, user_sub) is not None
+    """True when user_sub is the commissioner or has a team row in the league."""
+    with get_conn() as conn:
+        league = conn.execute(
+            "SELECT commissioner_sub FROM league WHERE id = ?",
+            (league_id,),
+        ).fetchone()
+        if not league:
+            return False
+        if str(league["commissioner_sub"] or "") == str(user_sub):
+            return True
+        team = conn.execute(
+            "SELECT 1 FROM team WHERE league_id = ? AND user_sub = ?",
+            (league_id, user_sub),
+        ).fetchone()
+        return team is not None
 
 
 def list_team_roster(league_id: str, team_id: str) -> list[dict[str, Any]]:
@@ -2003,6 +2032,75 @@ def transfer_roster_players(
         if moved:
             _bump_live_for_workspace_conn(conn, workspace_id)
     return moved
+
+
+def apply_trade_plan(
+    workspace_id: str,
+    moves: list[dict[str, Any]],
+    *,
+    trade_log: dict[str, Any] | None = None,
+) -> None:
+    """Apply every trade roster write in one transaction. Raises ValueError if a row is missing."""
+    if not moves:
+        return
+    with get_conn() as conn:
+        for move in moves:
+            pid = str(move["player_id"])
+            row = conn.execute(
+                "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
+                (workspace_id, pid),
+            ).fetchone()
+            if not row:
+                raise ValueError(f"Failed to move {pid}")
+            updates = ["team_id = ?"]
+            params: list[Any] = [move["team_id"]]
+            if move.get("roster_status") is not None:
+                updates.append("roster_status = ?")
+                params.append(move["roster_status"])
+            contract = move.get("contract")
+            if contract is not None:
+                updates.extend(["contract_json = ?", "salary = ?", "contract_years = ?"])
+                sal_val = contract.get("current_salary")
+                if sal_val is None:
+                    sal_val = contract.get("base_salary")
+                if sal_val is None:
+                    sal_val = row["salary"]
+                sal = float(sal_val)
+                yrs = int(
+                    contract.get("years_remaining")
+                    if contract.get("years_remaining") is not None
+                    else row["contract_years"]
+                )
+                params.extend([json.dumps(contract), sal, yrs])
+            params.append(row["id"])
+            conn.execute(
+                f"UPDATE roster_slot SET {', '.join(updates)} WHERE id = ?",
+                params,
+            )
+        if trade_log:
+            extra = {
+                "proposal_id": trade_log.get("proposal_id"),
+                "parties": trade_log.get("parties"),
+                "dead_cap_assignments": trade_log.get("dead_cap_assignments"),
+            }
+            conn.execute(
+                """INSERT INTO trade_log (league_id, team_a_id, team_b_id, send_a_json, send_b_json, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (
+                    trade_log["league_id"],
+                    trade_log["team_a_id"],
+                    trade_log["team_b_id"],
+                    json.dumps(
+                        {
+                            "players": trade_log.get("send_a") or [],
+                            **{k: v for k, v in extra.items() if v is not None},
+                        }
+                    ),
+                    json.dumps(trade_log.get("send_b") or []),
+                    _utcnow(),
+                ),
+            )
+        _bump_live_for_workspace_conn(conn, workspace_id)
 
 
 def log_league_trade(
@@ -3366,13 +3464,16 @@ def import_roster_snapshot(
     *,
     replace_source: str | None = None,
 ) -> int:
-    if replace_source:
-        remove_roster_by_source(workspace_id, replace_source)
-    count = 0
-    for row in rows:
-        add_roster_slot(workspace_id, row, team_id=team_id)
-        count += 1
-    return count
+    if replace_source and not rows:
+        raise ValueError("Refusing to replace roster from an empty import")
+    with get_conn() as conn:
+        if replace_source:
+            _delete_roster_by_source_conn(conn, workspace_id, replace_source)
+        for row in rows:
+            _insert_roster_slot_conn(conn, workspace_id, row, team_id)
+        if rows or replace_source:
+            _bump_live_for_workspace_conn(conn, workspace_id)
+        return len(rows)
 
 
 def add_bot_team(
@@ -3733,6 +3834,18 @@ def create_league_invite(
     if not league:
         raise ValueError("League not found")
     rules = LeagueRules.model_validate(league["rules"])
+    wanted = str(team_name or "").strip()
+    teams = list_league_teams(league_id)
+    existing = next(
+        (
+            team
+            for team in teams
+            if str(team.get("name") or "").strip().lower() == wanted.lower()
+        ),
+        None,
+    )
+    if not existing and len(teams) >= int(league.get("team_count") or 0):
+        raise ValueError("League is full")
     team = get_or_create_league_team_by_name(league_id, team_name, rules.salary_cap)
     if team.get("user_sub"):
         raise ValueError(f"Team '{team['name']}' is already claimed")
@@ -4034,6 +4147,8 @@ def import_commissioner_league_sheet(
 ) -> dict[str, Any]:
     """Import all manager blocks from a league spreadsheet into shared team rosters."""
     if replace_existing:
+        if not rows:
+            raise ValueError("Refusing to replace roster from an empty import")
         remove_roster_by_source(workspace_id, "sheet")
     team_ids: dict[str, str] = {}
     by_team: dict[str, int] = {}

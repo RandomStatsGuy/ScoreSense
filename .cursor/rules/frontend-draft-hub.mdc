@@ -46,6 +46,7 @@ Chat chrome lives on `FantasyChatDock.jsx` (header comment) and `docs/PRODUCT.md
 - `GET /api/hub/value-sheet` is one in-flight request per season/rules key. Cap-sheet updates must not abort and refetch it.
 - Chat polls back off when the tab is hidden. Do not keep a 12s `chat/league/messages` loop on a background tab.
 - Strategy face-off pairs the same position only. Do not pair RB vs WR as a FLEX toss-up.
+- Cap, Rosters, and My team leftover is auction leftover. Do not count expiring 1-year keepers as committed.
 
 ## Visual / a11y
 

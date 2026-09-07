@@ -117,6 +117,16 @@ def test_design_spec_defers_to_constitution() -> None:
     assert not (ROOT / "docs" / "design.md").exists()
 
 
+def test_constitution_covers_auction_leftover() -> None:
+    product = _read("docs", "PRODUCT.md")
+    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    assert "auction leftover" in product
+    assert "auction leftover" in core_rule
+    assert "1-year keeper" in product
+    assert "nomination queue" in product
+    assert "nomination queue" in core_rule
+
+
 def test_constitution_covers_phone_chrome() -> None:
     product = _read("docs", "PRODUCT.md")
     phone_css = _read("frontend", "src", "styles", "fantasy-phone.css")
