@@ -16,6 +16,7 @@ import { draftPoolWhy, rangeBarCopy, showPoolNeedChip } from "./draftPoolWhy";
 import {
   draftLiveCopy,
   nominateDisabledReason,
+  poolRowIsPrimary,
   poolSearchPlaceholder,
   watchLabel,
 } from "./draftLivePresentation";
@@ -178,7 +179,11 @@ export default function DraftPlayerRail({
             : null;
           const showNeed = showPoolNeedChip({ isNeed, rosterCount });
           const watching = watched.has(id);
-          const rowPrimary = Boolean(canDraft && id && id === primaryRowId);
+          const rowPrimary = poolRowIsPrimary({
+            playerId: id,
+            primaryRowId,
+            canDraft,
+          });
           return (
             <article
               key={id || `${row.player || row.player_name}-${row.position}`}
@@ -224,15 +229,19 @@ export default function DraftPlayerRail({
               <div className="hub-draft-player-card-actions">
                 {showNeed ? <span className="hub-draft-player-need">Need</span> : <span />}
                 {showDraftAction && (
-                  <button
-                    type="button"
-                    className={rowPrimary ? "btn-primary btn-sm" : "btn-ghost btn-sm"}
-                    disabled={actionsDisabled || !canDraft}
+                  <span
+                    className="hub-draft-player-draft-tip"
                     title={!canDraft ? lockedReason : undefined}
-                    onClick={() => onDraftPlayer?.(row)}
                   >
-                    {actionLabel || (pickDraft ? draftLiveCopy.pick : draftLiveCopy.nominate)}
-                  </button>
+                    <button
+                      type="button"
+                      className={rowPrimary ? "btn-primary btn-sm" : "btn-ghost btn-sm"}
+                      disabled={actionsDisabled || !canDraft}
+                      onClick={() => onDraftPlayer?.(row)}
+                    >
+                      {actionLabel || (pickDraft ? draftLiveCopy.pick : draftLiveCopy.nominate)}
+                    </button>
+                  </span>
                 )}
                 <button
                   type="button"

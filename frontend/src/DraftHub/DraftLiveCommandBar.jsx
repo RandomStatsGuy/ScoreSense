@@ -72,7 +72,7 @@ export default function DraftLiveCommandBar({
     picking,
     isMyTurn: isMyNominationTurn,
     nominatorName: nominatorTeam?.name,
-    paused: Boolean(session?.paused),
+    paused: Boolean(paused),
   });
   const nextLine = picking && pickClock?.round
     ? `Round ${pickClock.round} · Pick ${pickClock.overall}`

@@ -77,6 +77,17 @@ export function nextOwnerLine(name) {
   return name ? `${draftLiveCopy.nextPrefix} ${name}` : "";
 }
 
+export function poolRowIsPrimary({ playerId, primaryRowId, canDraft = false } = {}) {
+  const id = String(playerId || "");
+  return Boolean(canDraft && id && id === String(primaryRowId || ""));
+}
+
+/** Queue lives on the pool rail during empty nomination — do not keep that tab selected. */
+export function activityDockTab(tab, { poolStage = false } = {}) {
+  if (poolStage && tab === "queue") return "";
+  return tab || "";
+}
+
 export function soldPriceLine({ amount, fair } = {}) {
   const price = Number(amount);
   const market = Number(fair);

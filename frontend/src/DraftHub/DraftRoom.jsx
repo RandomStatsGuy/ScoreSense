@@ -44,6 +44,7 @@ import {
   simulationPostFailureAction,
 } from "./draftLiveConsole";
 import { mockDraftLiveCopy } from "./mockDraftConfig";
+import { activityDockTab, draftLiveCopy } from "./draftLivePresentation";
 import { displayBotName } from "./botPersona";
 import { SOLD_HOLD_MS, pinAuctionStage, soldHoldDecision } from "./draftAuctionTheater";
 import { isPickDraft } from "./draftEntryStatus";
@@ -313,6 +314,12 @@ export default function DraftRoom({
     simulating: simulationRunning,
   });
   const poolStage = !pickDraft && !pinStage;
+  const dockTab = activityDockTab(activityTab, { poolStage });
+  useEffect(() => {
+    if (poolStage && activityTab === "queue") {
+      setActivityTab("");
+    }
+  }, [poolStage, activityTab]);
   const liveCopy = mockDraftLiveCopy();
   const recapHasStory = Boolean(
     draftRecap && (
@@ -1717,7 +1724,7 @@ export default function DraftRoom({
               )}
               {isCommissioner && !session?.paused && (
                 <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={pauseOrResumeDraft}>
-                  Pause
+                  {draftLiveCopy.pause}
                 </button>
               )}
               {isCommissioner && onClock && !session?.paused && (
@@ -1974,8 +1981,8 @@ export default function DraftRoom({
                     key={id}
                     type="button"
                     role="tab"
-                    aria-selected={activityTab === id}
-                    className={activityTab === id ? "is-active" : ""}
+                    aria-selected={dockTab === id}
+                    className={dockTab === id ? "is-active" : ""}
                     onClick={() => setActivityTab((current) => current === id ? "" : id)}
                   >
                     {label}
@@ -1984,9 +1991,9 @@ export default function DraftRoom({
               </div>
             </header>
 
-            {activityTab && !(poolStage && activityTab === "queue") && (
+            {dockTab && (
               <div className="hub-draft-activity-panel" role="tabpanel">
-                {activityTab === "teams" && (
+                {dockTab === "teams" && (
                   <div className="hub-teams-dock">
                     <div className="draft-seat-row" aria-label="Seats">
                       {teams.map((team, index) => {
@@ -2028,7 +2035,7 @@ export default function DraftRoom({
                     </div>
                   </div>
                 )}
-                {activityTab === "queue" && myTeamId && (
+                {dockTab === "queue" && myTeamId && (
                   <DraftNominationQueue
                     leagueId={leagueId}
                     queue={roomState?.viewer?.nomination_queue || []}
@@ -2047,7 +2054,7 @@ export default function DraftRoom({
                     onUpdated={applyState}
                   />
                 )}
-                {activityTab === "chat" && (
+                {dockTab === "chat" && (
                   <LeagueChat
                     leagueId={leagueId}
                     hubContext={hubContext}
@@ -2055,7 +2062,7 @@ export default function DraftRoom({
                     lockedKind="league"
                   />
                 )}
-                {activityTab === "log" && (
+                {dockTab === "log" && (
                   <ul className="hub-event-log hub-event-log--dock">
                     {events.length === 0 && <li className="hub-event-empty">No events yet</li>}
                     {[...events].reverse().slice(0, 30).map((event) => (

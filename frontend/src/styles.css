@@ -19434,6 +19434,10 @@ th.sortable-header {
   font-size: var(--text-xs);
 }
 
+.hub-draft-player-draft-tip {
+  display: inline-flex;
+}
+
 .hub-draft-player-need {
   color: var(--tone-caution);
   font-size: var(--text-xs);
@@ -19800,7 +19804,9 @@ th.sortable-header {
     grid-template-columns: 1fr;
   }
   .hub-draft-player-card-actions { flex-wrap: wrap; }
-  .hub-draft-player-card-actions .btn-primary { width: 100%; }
+  .hub-draft-player-card-actions .btn-primary,
+  .hub-draft-player-draft-tip,
+  .hub-draft-player-draft-tip .btn-primary { width: 100%; }
 }
 
 /* League atmosphere, team identity, locker room, trophies, reactions */

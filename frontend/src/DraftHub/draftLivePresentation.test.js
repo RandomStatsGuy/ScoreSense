@@ -9,6 +9,8 @@ import {
   soldPriceLine,
   soldTone,
   watchLabel,
+  activityDockTab,
+  poolRowIsPrimary,
 } from "./draftLivePresentation.js";
 
 test("sold copy names the price against fair", () => {
@@ -37,4 +39,17 @@ test("nomination job names the turn and pause without shouting Live", () => {
   assert.equal(poolSearchPlaceholder({ canDraft: true }), draftLiveCopy.searchNominate);
   assert.equal(watchLabel(true), draftLiveCopy.watching);
   assert.doesNotMatch(draftLiveCopy.searchNominate, /Submit|Draft Hub|permission/i);
+  assert.equal(draftLiveCopy.pause, "Pause");
+});
+
+test("pool row primary matches string or numeric ids", () => {
+  assert.equal(poolRowIsPrimary({ playerId: 12, primaryRowId: "12", canDraft: true }), true);
+  assert.equal(poolRowIsPrimary({ playerId: "12", primaryRowId: 12, canDraft: true }), true);
+  assert.equal(poolRowIsPrimary({ playerId: 12, primaryRowId: "12", canDraft: false }), false);
+});
+
+test("activity dock drops Queue when the pool stage owns it", () => {
+  assert.equal(activityDockTab("queue", { poolStage: true }), "");
+  assert.equal(activityDockTab("teams", { poolStage: true }), "teams");
+  assert.equal(activityDockTab("queue", { poolStage: false }), "queue");
 });
