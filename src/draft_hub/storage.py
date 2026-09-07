@@ -3449,6 +3449,7 @@ def _rehome_league_roster_workspace(
                 (new_ws, slot["player_id"]),
             ).fetchone()
             if clash:
+                conn.execute("DELETE FROM roster_slot WHERE id = ?", (slot["id"],))
                 continue
             conn.execute(
                 "UPDATE roster_slot SET workspace_id = ? WHERE id = ?",

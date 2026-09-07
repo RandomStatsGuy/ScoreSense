@@ -1284,7 +1284,6 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
         "season_proj": nominee.get("season_proj"),
         **nominee,
     }
-    rules = LeagueRules.model_validate(league["rules"])
     claimed = storage.finalize_auction_win(
         league_id,
         player_id=str(nominee["player_id"]),

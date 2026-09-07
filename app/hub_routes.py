@@ -1344,8 +1344,11 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
         "contract_years": contract["years_remaining"],
         "contract": contract,
     }
-    preview = [r for r in dest_roster if str(r.get("player_id")) != str(body.player_id)]
-    preview.append(preview_slot)
+    dest_without = [r for r in dest_roster if str(r.get("player_id")) != str(body.player_id)]
+    counted = roster_for_pre_draft_validation(
+        rules, dest_without, draft_completed=bool(ctx.get("draft_completed"))
+    )
+    preview = [*counted, preview_slot]
     staff_override = bool(body.staff_edit) and bool(ctx.get("is_commissioner"))
     blocking = blocking_acquisition_errors(rules, preview)
     if blocking and not staff_override:

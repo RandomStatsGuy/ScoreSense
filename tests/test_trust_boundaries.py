@@ -15,6 +15,7 @@ from src.auth import user_store
 from src.draft_hub import storage
 from src.draft_hub.league_invites import create_invite
 from src.draft_hub.presets import load_preset
+from src.draft_hub.pre_draft_cap import roster_for_pre_draft_validation
 from src.draft_hub.rules_engine import blocking_acquisition_errors
 from src.draft_hub.schemas import LeagueRules, RosterAddRequest, RosterUpdateRequest
 
@@ -144,6 +145,51 @@ def test_blocking_acquisition_errors_catch_over_cap_not_mins():
         [{"player_id": "b", "position": "QB", "salary": 40, "contract_years": 1}],
     )
     assert incomplete == []
+
+
+def test_pre_draft_cuts_do_not_block_acquisition():
+    rules = LeagueRules(salary_cap=200)
+    existing = [
+        {
+            "player_id": "cut-qb",
+            "position": "QB",
+            "salary": 180,
+            "contract_years": 2,
+            "roster_status": "cut_before_draft",
+        }
+    ]
+    incoming = {"player_id": "add-rb", "position": "RB", "salary": 40, "contract_years": 1}
+    raw = blocking_acquisition_errors(rules, [*existing, incoming])
+    assert any("Over cap" in e for e in raw)
+    counted = roster_for_pre_draft_validation(rules, existing, draft_completed=False)
+    assert counted == []
+    assert blocking_acquisition_errors(rules, [*counted, incoming]) == []
+    over_add = {"player_id": "add-qb", "position": "QB", "salary": 1000, "contract_years": 1}
+    assert any(
+        "Over cap" in e
+        for e in blocking_acquisition_errors(rules, [*counted, over_add])
+    )
+
+
+def test_rehome_deletes_clashing_leftover_from_old_workspace(hub_db):
+    rules = LeagueRules()
+    comm = "comm-clash-ws"
+    personal = storage.get_or_create_workspace(comm)
+    league = storage.create_league(comm, "Clash", 2026, rules, team_count=8)
+    team = storage.list_league_teams(league["id"])[0]
+    dedicated = storage.roster_workspace_for_league(league)
+    _add(dedicated, team["id"])
+    leftover = _add(personal["id"], team["id"])
+    assert leftover is not None
+    with storage.get_conn() as conn:
+        conn.execute("UPDATE league SET workspace_id = NULL WHERE id = ?", (league["id"],))
+
+    storage.ensure_dedicated_league_workspaces()
+    league = storage.get_league(league["id"])
+    kept = storage.get_roster_slot(dedicated, "00-0033873")
+    assert kept is not None
+    assert kept["team_id"] == team["id"]
+    assert storage.get_roster_slot(personal["id"], "00-0033873") is None
 
 
 def test_password_reset_revokes_old_jwt(auth_db):
