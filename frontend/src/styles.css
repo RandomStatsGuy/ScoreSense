@@ -18968,6 +18968,15 @@ th.sortable-header {
   border-top: 1px solid var(--draft-border);
 }
 
+.hub-nom-queue .hub-toggle-row input[type="checkbox"] {
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
+  min-width: var(--control-h-sm);
+  min-height: var(--control-h-sm);
+  flex: 0 0 auto;
+  margin: 0;
+}
+
 .hub-draft-activity-dock {
   grid-area: activity;
   border: 1px solid var(--draft-border);
@@ -19287,7 +19296,7 @@ th.sortable-header {
 
 .hub-draft-player-search input {
   width: 100%;
-  min-height: 2.45rem;
+  min-height: var(--control-h-md);
   padding: 0.52rem 0.65rem;
   border: 1px solid var(--draft-border);
   border-radius: 12px;
@@ -19310,7 +19319,8 @@ th.sortable-header {
 .hub-draft-activity-tabs button {
   flex: 0 0 auto;
   appearance: none;
-  padding: 0.28rem 0.5rem;
+  min-height: var(--control-h-sm);
+  padding: 0 var(--space-3);
   border: 1px solid transparent;
   border-radius: 999px;
   background: var(--draft-panel);
@@ -19738,11 +19748,18 @@ th.sortable-header {
   .hub-draft-player-filters button,
   .hub-draft-needs-toggle,
   .hub-draft-activity-tabs button,
+  .hub-draft-player-search input,
   .hub-draft-live-command-actions .btn-primary,
   .hub-draft-live-command-actions .btn-ghost,
   .hub-draft-command-utilities .btn-ghost,
-  .hub-draft-command-utilities button {
+  .hub-draft-command-utilities button,
+  .hub-nom-queue .hub-toggle-row input[type="checkbox"] {
     min-height: var(--control-h-lg);
+  }
+  .hub-nom-queue .hub-toggle-row input[type="checkbox"] {
+    width: var(--control-h-lg);
+    min-width: var(--control-h-lg);
+    height: var(--control-h-lg);
   }
   .hub-draft-stage,
   .hub-draft-player-rail,
