@@ -194,6 +194,7 @@ test("live mock forbids Available players and keeps Discard on", () => {
   assert.match(live.doNot, /Drop or Trade/);
   assert.match(live.doNot, /SOLD hold|block card/);
   assert.match(live.doNot, /persona names/);
+  assert.match(live.doNot, /right rail|Nominate when paused/);
   assert.equal(live.copy, "frontend/src/DraftHub/mockDraftConfig.js");
 });
 
@@ -203,6 +204,7 @@ test("live draft theater lives on the block card", () => {
   assert.match(live.doNot, /SOLD hold|block card/);
   assert.match(live.doNot, /never gold/i);
   assert.match(live.doNot, /persona names/);
+  assert.match(live.doNot, /right rail|Nominate when paused/);
 });
 
 test("shared tokens include the product spacing rhythm", () => {

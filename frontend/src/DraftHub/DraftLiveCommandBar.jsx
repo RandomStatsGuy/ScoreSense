@@ -7,10 +7,14 @@ import {
   bidAmountSubmitLocked,
   bidRelation,
   bidRelationLabel,
-  connectionStatusLabel,
   sanitizeBidAmountInput,
   shouldSwallowBidDeleteKey,
 } from "./draftLiveConsole";
+import {
+  draftLiveCopy,
+  nominationJobLine,
+  nextOwnerLine,
+} from "./draftLivePresentation";
 
 function playerShortName(nominee) {
   const full = nominee?.player_name || nominee?.player || "";
@@ -44,9 +48,8 @@ export default function DraftLiveCommandBar({
   connectionStatus = "connecting",
   paused = false,
   pausedLabel = "Paused",
-  canNominate = false,
-  onNominate,
-  nominateLabel,
+  canResume = false,
+  onResume,
   pickDraft = false,
   pickClock = null,
   modeLabel = "",
@@ -64,7 +67,18 @@ export default function DraftLiveCommandBar({
     ? session?.bid_deadline
     : session?.nomination_deadline;
   const nextBid = suggestedBid ?? (highBid + Number(minBid || 1));
-  const connLabel = connectionStatusLabel(connectionStatus);
+  const connLive = connectionStatus === "live";
+  const jobLine = nominationJobLine({
+    picking,
+    isMyTurn: isMyNominationTurn,
+    nominatorName: nominatorTeam?.name,
+    paused: Boolean(session?.paused),
+  });
+  const nextLine = picking && pickClock?.round
+    ? `Round ${pickClock.round} · Pick ${pickClock.overall}`
+    : nextOwnerLine(nextNominatorTeam?.name);
+  const showResume = Boolean(canResume);
+  const showBid = status === "bidding" && !showResume;
   const [focusedDraft, setFocusedDraft] = useState(null);
   const fieldValue = focusedDraft != null ? focusedDraft : bidAmount;
   const inputLocked = bidAmountInputLocked({
@@ -122,9 +136,9 @@ export default function DraftLiveCommandBar({
         <div className="hub-draft-live-command-status">
           <span
             className={`hub-draft-conn hub-draft-conn--${connectionStatus}`}
-            title={connectionStatus === "live" ? "Realtime connection is up" : "Draft updates may be delayed"}
+            title={connLive ? draftLiveCopy.connectionLive : draftLiveCopy.connectionDelay}
           >
-            {connLabel}
+            <span className="sr-only">{connLive ? "Live" : connectionStatus}</span>
           </span>
           {status === "bidding" && nominee ? (
             <>
@@ -138,19 +152,9 @@ export default function DraftLiveCommandBar({
             </>
           ) : (
             <>
-              <strong className="hub-draft-live-command-player">
-                {picking
-                  ? (isMyNominationTurn ? "Your pick" : `On the clock: ${nominatorTeam?.name || "a team"}`)
-                  : (isMyNominationTurn ? "Your turn to nominate" : `Waiting for ${nominatorTeam?.name || "nominator"}`)}
-              </strong>
-              {picking && pickClock?.round ? (
-                <span className="hub-draft-live-command-next">
-                  Round {pickClock.round} · Pick {pickClock.overall}
-                </span>
-              ) : nextNominatorTeam?.name ? (
-                <span className="hub-draft-live-command-next">
-                  Next {nextNominatorTeam.name}
-                </span>
+              <strong className="hub-draft-live-command-player">{jobLine}</strong>
+              {nextLine ? (
+                <span className="hub-draft-live-command-next">{nextLine}</span>
               ) : null}
             </>
           )}
@@ -164,7 +168,16 @@ export default function DraftLiveCommandBar({
       </div>
 
       <div className="hub-draft-live-command-actions">
-        {status === "bidding" ? (
+        {showResume ? (
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={onResume}
+            disabled={Boolean(pendingAction) && pendingAction !== "resume"}
+          >
+            {draftLiveCopy.resume}
+          </button>
+        ) : showBid ? (
           <form className="hub-draft-live-command-bid" onSubmit={submitBid}>
             <label className="sr-only" htmlFor="hub-live-bid-amount">Bid amount</label>
             <input
@@ -191,15 +204,11 @@ export default function DraftLiveCommandBar({
               {pendingAction === "bid" ? "Bidding…" : `Bid ${fmtSal(bidAmount || nextBid)}`}
             </button>
           </form>
-        ) : canNominate ? (
-          <button type="button" className="btn-primary" onClick={onNominate} disabled={bidDisabled}>
-            {nominateLabel || (picking ? "Pick" : `Nominate for ${fmtSal(minBid || 1)}`)}
-          </button>
         ) : null}
         {!picking && Number.isFinite(Number(myBudget)) && (
           <span className="hub-draft-live-command-cap">
-            {fmtSal(myBudget)} left
-            {myMaxBid != null && <> · max {fmtSal(myMaxBid)}</>}
+            {fmtSal(myBudget)} {draftLiveCopy.leftover}
+            {myMaxBid != null && <> · {draftLiveCopy.maxBid} {fmtSal(myMaxBid)}</>}
           </span>
         )}
         {isCommissioner && canAward && status === "bidding" && (

@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { auctionViewerGradeCopy, draftLiveCopy, soldPriceLine, soldTone } from "./draftLivePresentation.js";
+import {
+  auctionViewerGradeCopy,
+  draftLiveCopy,
+  nominateDisabledReason,
+  nominationJobLine,
+  poolSearchPlaceholder,
+  soldPriceLine,
+  soldTone,
+  watchLabel,
+} from "./draftLivePresentation.js";
 
 test("sold copy names the price against fair", () => {
   assert.equal(draftLiveCopy.soldStamp, "SOLD");
@@ -15,4 +24,17 @@ test("auction grade leads with a letter and a verdict", () => {
   assert.equal(bought.grade, "B−");
   assert.match(bought.summary, /bought the room|ran out/i);
   assert.doesNotMatch(bought.summary, /Submit|Draft Hub|permission/i);
+});
+
+test("nomination job names the turn and pause without shouting Live", () => {
+  assert.equal(
+    nominationJobLine({ isMyTurn: true }),
+    draftLiveCopy.yourTurnToNominate,
+  );
+  assert.match(nominationJobLine({ isMyTurn: true, paused: true }), /Paused/);
+  assert.match(nominateDisabledReason({ paused: true }), /paused/i);
+  assert.match(nominateDisabledReason({ canDraft: false, nominatorName: "The Auditor" }), /Auditor/);
+  assert.equal(poolSearchPlaceholder({ canDraft: true }), draftLiveCopy.searchNominate);
+  assert.equal(watchLabel(true), draftLiveCopy.watching);
+  assert.doesNotMatch(draftLiveCopy.searchNominate, /Submit|Draft Hub|permission/i);
 });
