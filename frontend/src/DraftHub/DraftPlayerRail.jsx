@@ -57,7 +57,6 @@ export default function DraftPlayerRail({
   onSelectPlayer,
   onDraftPlayer,
   onQueuePlayer,
-  selectedPlayerId,
   onWatchPlayer,
   watchIds = [],
   canDraft = false,
