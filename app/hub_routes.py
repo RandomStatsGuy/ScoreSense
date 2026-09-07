@@ -4984,9 +4984,9 @@ def _hub_cancel_rookie_extend(*, player_id: str, ctx: dict[str, Any]) -> dict:
         raise HTTPException(status_code=404, detail="Player not on roster")
     if ctx.get("mode") == "league":
         if not team_id:
-            raise HTTPException(status_code=403, detail="Join a league team to extend contracts")
+            raise HTTPException(status_code=403, detail="Join a league team to undo extensions")
         if str(existing.get("team_id") or "") != str(team_id):
-            raise HTTPException(status_code=403, detail="Can only extend contracts on your own team")
+            raise HTTPException(status_code=403, detail="Can only undo extensions on your own team")
 
     try:
         contract = cancel_rookie_extension_command(
