@@ -197,7 +197,7 @@ export function buildDraftBoard({
   const rawCurrent = Math.max(0, Number(currentOverall) || 0);
   const maxOverall = rounds * Math.max(1, n);
   const current = !draftCompleted && rawCurrent > 0 && rawCurrent <= maxOverall ? rawCurrent : 0;
-  const currentRound = rawCurrent > maxOverall
+  const currentRound = (draftCompleted || rawCurrent > maxOverall)
     ? rounds
     : current && n
       ? Math.ceil(current / n)
