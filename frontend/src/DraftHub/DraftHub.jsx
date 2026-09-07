@@ -107,7 +107,11 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   useEffect(() => {
     if (subView === "room") return;
     const focused = focusedLeagueId(hubContext);
-    if (focused) setLeagueId(focused);
+    if (focused) {
+      setLeagueId(focused);
+    } else if (hubContext) {
+      setLeagueId("");
+    }
   }, [subView, hubContext]);
   const toggleWatch = useCallback((row) => {
     if (!row?.player_id) return;
