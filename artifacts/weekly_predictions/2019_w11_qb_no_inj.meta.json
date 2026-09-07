@@ -1,0 +1,21 @@
+{
+  "position": "qb",
+  "season": 2019,
+  "week": 11,
+  "apply_injury_adjustments": false,
+  "fingerprint": "267284bd8c81ed16",
+  "rows": 64,
+  "built_at": "2026-07-02T18:23:00.313658+00:00",
+  "attrs": {
+    "inference_meta": {
+      "preseason_mode": false,
+      "feature_season": 2019,
+      "roster_overlay": {
+        "applied": false
+      },
+      "depth_mode": "starter"
+    },
+    "projection_note": "",
+    "preseason_mode": false
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "position": "qb",
+  "season": 2019,
+  "week": 1,
+  "apply_injury_adjustments": false,
+  "fingerprint": "267284bd8c81ed16",
+  "rows": 27,
+  "built_at": "2026-07-02T18:22:28.586753+00:00",
+  "attrs": {
+    "inference_meta": {
+      "preseason_mode": true,
+      "feature_season": 2018,
+      "roster_overlay": {
+        "applied": true,
+        "teams_updated": 22,
+        "removed_unrostered": 45,
+        "rookies_added": 22,
+        "emerging_added": 0
+      },
+      "depth_mode": "starter",
+      "depth_chart": {
+        "applied": true,
+        "removed": 23,
+        "removed_players": [
+          "Aaron Rodgers",
+          "Drew Allar",
+          "Josh Johnson",
+          "Ty Simpson",
+          "Matthew Caldwell",
+          "Cole Payton",
+          "Kyron Drones",
+          "Miller Moss",
+          "Fernando Mendoza",
+          "Jacob Clark",
+          "Cade Klubnik",
+          "Teddy Bridgewater",
+          "Luke Altmyer",
+          "Blake Bortles",
+          "Athan Kaliakmanis",
+          "Carson Beck",
+          "Joey Aguilar",
+          "Taylen Green",
+          "Garrett Nussmeier",
+          "Kyle Allen",
+          "Joe Fagnano",
+          "Diego Pavia",
+          "Jalon Daniels"
+        ],
+        "keep_per_team": 1,
+        "sole_rookie_teams": [
+          "NE",
+          "MIA",
+          "CAR",
+          "ATL"
+        ]
+      }
+    },
+    "projection_note": "Week 1 2019 slate with schedule opponents. Projections use 2018 player profiles (preseason estimate). Roster refreshed from Sleeper (22 team moves, 22 rookies added). One QB per team for preseason (23 backups omitted). Sole-rookie QB estimate for 4 team(s) with no prior-season starter.",
+    "preseason_mode": true
+  }
+}

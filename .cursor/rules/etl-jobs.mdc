@@ -1,0 +1,40 @@
+---
+description: ETL and refresh jobs — memory limits, idempotent artifacts, safe writes
+globs: "src/etl/**/*, src/jobs/**/*"
+alwaysApply: false
+---
+
+# ScoreSense ETL & jobs pipeline
+
+## Memory management
+
+- Do not load multi-season play-by-play into memory at once.
+- Prefer season-scoped reads, column pruning (`read_parquet(columns=[...])`), and chunked processing.
+- Drop large intermediate DataFrames (`del df`) before the next join when processing nflverse data.
+
+## Idempotency
+
+- Refresh jobs (`weekly_refresh`, `preseason_refresh`) must be safe to re-run.
+- Overwrite parquet/CSV artifacts in place — no duplicate rows on rerun.
+
+## Atomic artifact writes
+
+- Write to a `.tmp` path first, then `Path.replace()` to the final path.
+- Prevents API reads of half-written pool or weekly prediction files.
+- `save_pool_artifact` / `save_weekly_artifact` should follow this pattern when extended.
+
+## Cache rebuild hooks
+
+- After ETL + predict in refresh jobs, call `save_pool_artifact(season)` and `save_weekly_artifact(...)` as appropriate.
+- Saving refreshes on-disk artifacts and in-process cache entries — see cache lifecycle in `draft-hub-performance.mdc`.
+
+## External APIs
+
+- Use existing integration modules (`src/integrations/`) with their cache/retry patterns.
+- Do not add unbounded retry loops; respect rate limits for FantasyPros and similar APIs.
+
+## Production refresh (VPS)
+
+- Server path: `/root/scoresense`; run jobs inside container: `docker compose -f deploy/docker-compose.prod.yml exec -T api python -m src.jobs.preseason_refresh --draft-season 2026`
+- Optional cron (Tuesdays 10:00 UTC): `docker compose -f deploy/docker-compose.prod.yml --profile cron run --rm refresh`
+- After retrain/ETL on server: run `scripts/ops/fix_artifact_fingerprints.py` so cached weekly + draft pool artifacts are not rejected.

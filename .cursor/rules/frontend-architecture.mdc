@@ -1,0 +1,44 @@
+---
+description: React 18, Vite, and frontend performance rules — strict guidelines for state, styling, and data-heavy UI components
+alwaysApply: false
+globs: "frontend/src/**/*, frontend/package.json, frontend/vite.config.js"
+---
+
+# ScoreSense Frontend Architecture
+
+## React 18 & State Management
+- **No React Query:** Custom fetch logic must reside in `frontend/src/auth.js` via `apiFetch`. 
+- **Effect Cleanup:** Any `useEffect` that fetches data MUST include an AbortController to prevent race conditions and handle React 18 Strict Mode double-mounting.
+- **Prop Drilling:** Limit prop drilling to 2 levels. If state is needed deeper, use React Context or component composition (passing `children`).
+- **State Batching:** Rely on React 18's automatic state batching. Do not write custom debounce functions for standard state updates unless dealing with raw keyboard input or window resizing.
+
+## Draft Hub Performance (The Golden Rules)
+- **Data Table Stability:** The Draft Pool is a massive array. You MUST wrap player row components in `React.memo`.
+- **Memoization:** Arrays and objects passed as props to child components must be wrapped in `useMemo`. Functions passed as callbacks must use `useCallback` to prevent unnecessary re-renders of the draft overlay.
+- **Overlay Refetching:** Use `hubDataCache.js` for the static pool. When polling the live draft room, ONLY request and update the overlay data (status, availability). Never force a full pool re-render on a roster change.
+- **Hidden Tabs:** Keep non-active tabs (like `LeagueInsights`) mounted but hidden via `display: none` to preserve component state and avoid re-mounting heavy charts.
+
+## Component & File Structure
+- **Naming:** Use `PascalCase` for components and their files (e.g., `DraftTable.jsx`). Use `camelCase` for hooks and utility files (e.g., `useDraftSync.js`).
+- **Exports:** Prefer named exports over default exports for everything except lazy-loaded route components.
+- **Lazy Loading:** Use `React.lazy()` and `<Suspense>` to chunk heavy route boundaries (e.g., the Draft Hub itself, or `recharts` dependencies).
+
+## Styling & UI Principles (The ScoreSense Design Language)
+- **Color Palette:** ScoreSense is strictly a deep dark-mode application. Never introduce light-mode backgrounds or high-luminance panels. 
+- **Accent Colors:** Reserve bright, saturated colors (greens, blues, oranges) ONLY for active states, data boosts, and semantic badges. Do not use bright colors for structural borders or generic text.
+- **Micro-Visualizations:** When rendering ranges, variances, or floor/ceiling projections, default to inline visual components (like horizontal range bars) rather than raw text arrays.
+- **Semantic Badging:** Render categorical statuses (e.g., Narrative, Injury status) as rounded pill badges (`border-radius: full` equivalent). Match the badge color to the sentiment (e.g., orange for Questionable/Mixed, green for Bullish).
+- **Data Tables:** Prioritize information density. Use compact padding for table rows. You MUST use monospaced fonts (or tabular numerals) for all numerical projection data to ensure perfect vertical alignment across rows.
+- **Panel Structure:** Group distinct data sets (e.g., Projections vs. Injuries) into separate container panels with rounded corners and subtle, low-opacity borders. Never let raw data float on the main background.
+- **Loading States:** Never show a "false empty slate" (e.g., "No players found") while data is fetching. 
+- **Skeletons over Spinners:** Explicitly use skeleton loader components that match the dimensions of the `DraftTable`, `WeeklyTable`, or `InjuryCards` during the initial fetch.
+
+## Vite Specifics
+- **Environment Variables:** All frontend environment variables must be prefixed with `VITE_` and accessed via `import.meta.env`.
+- **Imports:** Use absolute imports configured in Vite (e.g., `src/components/...`) rather than deep relative paths (`../../components/`).
+
+## Production (`app.fourthdownlabs.com`)
+
+- Production serves built `frontend/dist` from the same origin as `/api/*` — no separate frontend host.
+- Patreon OAuth redirect: `https://app.fourthdownlabs.com/api/auth/patreon/callback`; `apiFetch` in `auth.js` sends credentials for cookie-based JWT.
+- Local dev proxies API to `localhost:8000`; production URL is `https://app.fourthdownlabs.com` (set in server `.env` as `FRONTEND_URL`, not in frontend code).

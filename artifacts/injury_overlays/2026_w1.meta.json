@@ -1,0 +1,26 @@
+{
+  "season": 2026,
+  "week": 1,
+  "schema_version": "injury_overlay_v1",
+  "injury_snapshot_id": "inj_2026w1_f5a8bdbefa5dddcd",
+  "injury_snapshot_built_at": "2026-09-05T22:00:38.218294+00:00",
+  "previous_snapshot_id": "inj_2026w1_96ff090b3f42b4ad",
+  "built_at": "2026-09-05T22:00:37.914553+00:00",
+  "last_recompute_at": "2026-09-05T22:00:37.914553+00:00",
+  "changed_teams": [
+    "BUF",
+    "CHI",
+    "JAX",
+    "KC",
+    "LAC",
+    "LV",
+    "MIN",
+    "PHI",
+    "SF",
+    "WAS"
+  ],
+  "rows": 226,
+  "recomputed_players": 164,
+  "debounce_seconds": 60,
+  "fingerprint": "inj_2026w1_f5a8bdbefa5dddcd"
+}

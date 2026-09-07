@@ -1,0 +1,34 @@
+---
+description: Sentiment pipeline — read artifacts, avoid on-the-fly NLP and roster recursion
+globs: "src/sentiment/**/*"
+alwaysApply: false
+---
+
+# Sentiment pipeline
+
+## Read path (prefer)
+
+- Pre-aggregated features: `data/candidates/sentiment_features.parquet` via `load_sentiment_features` / `build_sentiment_index`.
+- Beat digests: `src/sentiment/beat_digest.py` with file cache under `data/cache/draft_beat_digest/`.
+- Channel config: YAML under `data/sentiment/` (`channels.yaml`, `networks.yaml`, etc.).
+
+## Do not
+
+- Train or run NLP models on the fly in API request paths.
+- Rebuild the full sentiment index for a single player when a subset suffices (Draft Hub enrichment scopes to hints).
+- Call `load_season_roster()` from hot readout paths that already have `player_id` — use targeted parquet column reads (see `_player_names` in `readout.py`).
+- Reintroduce sentiment → roster → sentiment recursion (caused 90s+ hangs in rookie role lookup).
+
+## Draft Hub integration
+
+- `build_draft_room_enrichment`: attach digests only for requested `players` hints.
+- Single-player LLM digests: `beat_digest_single` endpoint only — not bulk LLM in list endpoints.
+
+## Refresh
+
+- Bulk sentiment rebuild belongs in `src/jobs/sentiment_refresh.py`, triggered from `weekly_refresh` — not from user-facing routes.
+
+## Production
+
+- Sentiment artifacts live on VPS under `data/candidates/sentiment_features.parquet` and `data/cache/draft_beat_digest/` (Docker volumes).
+- Beat digest LLM calls require `OPENAI_API_KEY` in server `.env` only — never commit keys.
