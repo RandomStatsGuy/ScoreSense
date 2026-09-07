@@ -1899,6 +1899,7 @@ export default function DraftRoom({
               onWatchPlayer={toggleWatch}
               watchIds={watchIds}
               canDraft={!draftControlsLocked && onClock && (isMyNominationTurn || canForceNominate)}
+              selectedPlayerId={nomPlayerId}
               showDraftAction={onClock}
               actionsDisabled={draftControlsLocked}
               actionLabel={pickDraft ? (canForceNominate ? "Force pick" : "Pick") : undefined}
