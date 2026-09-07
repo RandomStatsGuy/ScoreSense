@@ -473,7 +473,7 @@ def hub_put_workspace(body: WorkspaceUpdate, _user=Depends(require_hub_user)) ->
         ws = storage.get_or_create_workspace(sub)
 
     rules_to_apply = rules
-    if rules_to_apply is None and ws.get("rules"):
+    if rules_to_apply is None and update_personal and ws.get("rules"):
         rules_to_apply = LeagueRules.model_validate(ws["rules"])
     if write_league_id and writing_settings:
         _apply_league_workspace_writes(write_league_id, body, rules_to_apply)
