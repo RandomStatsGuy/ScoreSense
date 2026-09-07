@@ -1,10 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import {
-  focusedLeagueId,
-  membershipFromContext,
-  shouldApplyHubContext,
-} from "./hubLeagues.js";
+import { focusedLeagueId, shouldApplyHubContext } from "./hubContext.js";
 
 const live = {
   mode: "league",
@@ -49,12 +45,5 @@ describe("focusedLeagueId", () => {
     assert.equal(focusedLeagueId(live), "live-1");
     assert.equal(focusedLeagueId(practice), "");
     assert.equal(focusedLeagueId({ mode: "solo" }), "");
-  });
-});
-
-describe("membershipFromContext", () => {
-  it("does not inject a practice room into the switcher", () => {
-    assert.equal(membershipFromContext(practice), null);
-    assert.equal(membershipFromContext(live)?.league_id, "live-1");
   });
 });

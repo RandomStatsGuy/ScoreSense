@@ -1,11 +1,11 @@
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
+import { focusedLeagueId } from "./hubContext";
 
 /** @typedef {{ league_id: string, league_name: string, room_code: string, league_season: number, is_commissioner: boolean, team: { id: string, name: string } }} HubMembership */
 
 export function membershipFromContext(hubContext) {
-  if (hubContext?.test_mode) return null;
-  if (hubContext?.mode !== "league" || !hubContext?.league_id) return null;
+  if (!focusedLeagueId(hubContext)) return null;
   return {
     league_id: hubContext.league_id,
     league_name: hubContext.league_name || "League",
@@ -17,28 +17,6 @@ export function membershipFromContext(hubContext) {
       name: hubContext.team_name || "Team",
     },
   };
-}
-
-/** Saved Fantasy focus — never a practice / test_mode room. */
-export function focusedLeagueId(hubContext) {
-  if (hubContext?.test_mode) return "";
-  if (hubContext?.mode !== "league") return "";
-  return hubContext?.league_id || "";
-}
-
-/**
- * Page fetches may include another room's hub_context. Only Switch league,
- * workspace boot, or a live join/create may replace the strip.
- */
-export function shouldApplyHubContext(incoming, current, { force = false } = {}) {
-  if (!incoming || typeof incoming !== "object") return false;
-  if (incoming.test_mode) return false;
-  if (force) return true;
-  const currentId = current?.league_id || "";
-  const incomingId = incoming.league_id || "";
-  if (!currentId) return incoming.mode !== "solo";
-  if (incoming.mode === "solo") return false;
-  return Boolean(incomingId) && incomingId === currentId;
 }
 
 /** Merge API list with active league from hub context (covers stale API / failed fetch). */
