@@ -88,7 +88,7 @@ test("mistyped 110 against remaining room fails validation", () => {
   assert.equal(stats.committed, 11);
   assert.equal(stats.remaining, 189);
   const max = salaryInputMax({ remaining: stats.remaining, currentSalary: 11, isCut: false });
-  assert.equal(max, 192);
+  assert.equal(max, 200);
   assert.match(validateSalaryValue(110, 20), /exceeds remaining room \(\$20\)/);
   assert.equal(validateSalaryValue(11, 20), "");
 });
