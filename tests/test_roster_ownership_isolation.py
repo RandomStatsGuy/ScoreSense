@@ -156,3 +156,33 @@ def test_rehome_shared_workspace_splits_roster_rows(hub_db):
     assert storage.get_roster_slot(ws_b, "00-0035228")["team_id"] == team_b["id"]
     assert storage.get_roster_slot(ws_a, "00-0035228") is None
     assert storage.get_roster_slot(ws_b, "00-0033873") is None
+
+
+def test_ordinary_add_rejects_negative_and_over_cap(hub_db, monkeypatch):
+    league, _owner, member, ws_id = _seed_two_teams("comm-money", "member-money")
+    _open_fa(monkeypatch, league)
+    storage.set_hub_focus("member-money", league_id=league["id"])
+    client = _client_for("member-money")
+    payload = {
+        "player_id": "00-0035228",
+        "player_name": "Josh Allen",
+        "team": "BUF",
+        "position": "QB",
+        "salary": -100,
+        "contract_years": 1,
+    }
+    try:
+        negative = client.post("/api/hub/roster", json=payload)
+        assert negative.status_code in (400, 422)
+        assert storage.get_roster_slot(ws_id, "00-0035228") is None
+
+        over = client.post("/api/hub/roster", json={**payload, "salary": 1000})
+        assert over.status_code == 400
+        assert "over cap" in over.json()["detail"].lower()
+        assert storage.get_roster_slot(ws_id, "00-0035228") is None
+
+        ok = client.post("/api/hub/roster", json={**payload, "salary": 40})
+        assert ok.status_code == 200
+        assert storage.get_roster_slot(ws_id, "00-0035228") is not None
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)

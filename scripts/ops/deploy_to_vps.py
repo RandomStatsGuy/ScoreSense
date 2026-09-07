@@ -46,6 +46,7 @@ EXCLUDE_DIR_NAMES = {
 EXCLUDE_PREFIXES = (
     "data/raw/",
     "data/cache/",
+    "data/auth/",  # live accounts DB — never overwrite production users
     "data/draft_hub/",  # SQLite league state — volume-mounted on VPS; never overwrite
     "data/processed/",  # ETL output from VPS refresh — do not clobber with laptop copies
     "artifacts/analytics/",
@@ -59,7 +60,7 @@ EXCLUDE_PREFIXES = (
     "artifacts/predictions/",
     "league_contract_history/",
 )
-EXCLUDE_FILES = {".env"}
+EXCLUDE_FILES = {".env", "users.db", "users.db-wal", "users.db-shm"}
 # Models stay in the tarball (bootstrap). Live refresh outputs stay on the VPS.
 
 

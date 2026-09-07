@@ -46,7 +46,12 @@ from src.draft_hub.pre_draft_cap import (
     pre_draft_cap_summary,
     roster_for_pre_draft_validation,
 )
-from src.draft_hub.rules_engine import cap_summary, multi_year_cap_plan, validate_roster
+from src.draft_hub.rules_engine import (
+    blocking_acquisition_errors,
+    cap_summary,
+    multi_year_cap_plan,
+    validate_roster,
+)
 from src.draft_hub.salary_import import match_ranges_to_pool, parse_salary_range_csv
 from src.draft_hub.schemas import (
     ActiveLeagueUpdate,
@@ -1330,6 +1335,21 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
     sleeper_id = str(body.sleeper_player_id or "").strip() or None
     if not sleeper_id and str(body.player_id).isdigit():
         sleeper_id = str(body.player_id)
+    dest_roster = storage.list_roster(ws_id, team_id) if team_id else list_roster_for_context(ctx)
+    preview_slot = {
+        "player_id": body.player_id,
+        "player_name": body.player_name,
+        "position": body.position,
+        "salary": contract["current_salary"],
+        "contract_years": contract["years_remaining"],
+        "contract": contract,
+    }
+    preview = [r for r in dest_roster if str(r.get("player_id")) != str(body.player_id)]
+    preview.append(preview_slot)
+    staff_override = bool(body.staff_edit) and bool(ctx.get("is_commissioner"))
+    blocking = blocking_acquisition_errors(rules, preview)
+    if blocking and not staff_override:
+        raise HTTPException(status_code=400, detail=blocking[0])
     row = storage.add_roster_slot(
         ws_id,
         {
@@ -1539,8 +1559,6 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
             status_code=400,
             detail=f"Years remaining must be between 1 and {max_years}",
         )
-    if body.salary is not None and body.salary < 0:
-        raise HTTPException(status_code=400, detail="Salary cannot be negative")
     if type_field and body.contract_type not in CONTRACT_TYPES:
         raise HTTPException(status_code=400, detail="contract_type must be rookie, veteran, or extension")
     existing = storage.get_roster_slot(ws_id, body.player_id)

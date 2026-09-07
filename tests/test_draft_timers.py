@@ -132,3 +132,48 @@ def test_tick_expired_drafts_awards_expired_bid(hub_db, monkeypatch):
     team = storage.get_team_by_user(league["id"], "tick-award")
     roster = storage.list_team_roster(league["id"], team["id"])
     assert any(r.get("player_id") == "p1" for r in roster)
+
+
+def test_concurrent_expired_awards_settle_once(hub_db, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+
+    rules = load_preset("salary_cap_auction_v1")
+    ws = storage.get_or_create_workspace("race-award")
+    league = storage.create_league("race-award", "Race Award", 2026, rules, workspace_id=ws["id"])
+    player = {
+        "player_id": "race-wr",
+        "player": "Race WR",
+        "player_name": "Race WR",
+        "team": "DAL",
+        "position": "WR",
+        "fair_value": 10,
+        "is_rookie": False,
+    }
+    monkeypatch.setattr(
+        "src.draft_hub.draft_state.resolve_nomination_player",
+        lambda **kwargs: player,
+    )
+    from src.draft_hub.draft_state import nominate
+
+    start_draft(league["id"], "race-award", allow_empty=True)
+    nominate(league["id"], "race-award", player)
+    storage.update_draft_session(league["id"], bid_deadline=_past())
+    team = storage.get_team_by_user(league["id"], "race-award")
+    start_budget = float(team["budget_remaining"])
+
+    def _run():
+        return check_timers(league["id"], "race-award")
+
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        futs = [pool.submit(_run) for _ in range(12)]
+        for fut in futs:
+            fut.result()
+
+    wins = [e for e in storage.list_draft_events(league["id"]) if e.get("event_type") == "win"]
+    assert len(wins) == 1
+    roster = storage.list_team_roster(league["id"], team["id"])
+    awarded = [r for r in roster if r.get("player_id") == "race-wr"]
+    assert len(awarded) == 1
+    refreshed = storage.get_team(team["id"])
+    spent = start_budget - float(refreshed["budget_remaining"])
+    assert spent == pytest.approx(float(wins[0]["payload"]["amount"]))

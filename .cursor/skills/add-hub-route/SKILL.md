@@ -18,6 +18,10 @@ Use `Depends(require_hub_user)` from `app/auth.py` for Fantasy. That is a real a
 
 `require_patron` is for non-hub product routes. Do not mix them.
 
+Mutations take actor + league + target. Authorize against the target row and the request’s league id. Do not delete or reassign by workspace/player alone. Do not trust global hub focus as the write destination.
+
+Validate money and seat reservations before the write. Ordinary negative or over-cap acquisitions return 400 and change no rows. Room-code join cannot take an email-reserved seat.
+
 ## Data and CPU
 
 - Roster / cap / league state: SQLite via `src/draft_hub/storage.py`. No live Sleeper on the read path. One-off live pull is already `GET /api/hub/roster?live_sleeper=1`.

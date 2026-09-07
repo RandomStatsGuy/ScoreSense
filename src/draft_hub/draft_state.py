@@ -1245,8 +1245,6 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
             {"player_id": nominee.get("player_id"), "reason": "position_cap"},
         )
         return _emit_state(league_id, user_sub)
-    new_budget = float(winner["budget_remaining"]) - float(amount)
-    storage.update_team_budget(winner_id, new_budget)
     # Must match the workspace list_team_roster reads from, or picks vanish.
     ws_id = storage.roster_workspace_for_league(league)
     from src.draft_hub.contracts import auction_win_is_rookie, build_auction_win_contract
@@ -1255,56 +1253,58 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
     preserve_cut_liability(ws_id, str(nominee["player_id"]))
     is_rookie = auction_win_is_rookie(rules, nominee)
     contract = build_auction_win_contract(rules, float(amount), is_rookie=is_rookie)
-    storage.add_roster_slot(
-        ws_id,
-        {
-            "player_id": nominee["player_id"],
-            "player_name": nominee.get("player_name"),
-            "team": nominee.get("team"),
-            "position": nominee.get("position"),
-            "salary": float(amount),
-            "contract_years": int(contract.get("years_remaining") or 2),
-            "contract": contract,
-            "source": "draft",
-        },
-        team_id=winner_id,
-    )
+    roster_row = {
+        "player_id": nominee["player_id"],
+        "player_name": nominee.get("player_name"),
+        "team": nominee.get("team"),
+        "position": nominee.get("position"),
+        "salary": float(amount),
+        "contract_years": int(contract.get("years_remaining") or 2),
+        "contract": contract,
+        "source": "draft",
+    }
     grade = _pick_value_grade(
         float(amount),
         _finite_or_none(nominee.get("fair_value")),
         _finite_or_none(nominee.get("per_game_proj")),
     )
-    storage.append_draft_event(
+    event_payload = {
+        "team_id": winner_id,
+        "team_name": winner.get("name"),
+        "amount": amount,
+        "value_grade": grade,
+        "value_blurb": _pick_value_blurb(
+            grade,
+            amount=float(amount),
+            fair_value=_finite_or_none(nominee.get("fair_value")),
+            per_game=_finite_or_none(nominee.get("per_game_proj")),
+        ),
+        "fair_value": nominee.get("fair_value"),
+        "per_game_proj": nominee.get("per_game_proj"),
+        "season_proj": nominee.get("season_proj"),
+        **nominee,
+    }
+    rules = LeagueRules.model_validate(league["rules"])
+    claimed = storage.finalize_auction_win(
         league_id,
-        "win",
-        {
-            "team_id": winner_id,
-            "team_name": winner.get("name"),
-            "amount": amount,
-            "value_grade": grade,
-            "value_blurb": _pick_value_blurb(
-                grade,
-                amount=float(amount),
-                fair_value=_finite_or_none(nominee.get("fair_value")),
-                per_game=_finite_or_none(nominee.get("per_game_proj")),
-            ),
-            "fair_value": nominee.get("fair_value"),
-            "per_game_proj": nominee.get("per_game_proj"),
-            "season_proj": nominee.get("season_proj"),
-            **nominee,
+        player_id=str(nominee["player_id"]),
+        winner_id=str(winner_id),
+        amount=float(amount),
+        workspace_id=ws_id,
+        roster_row=roster_row,
+        event_payload=event_payload,
+        session_fields={
+            "status": "nominating",
+            "current_nominee_json": None,
+            "high_bid": None,
+            "high_bidder_team_id": None,
+            "bid_deadline": None,
+            "last_bid_at": None,
+            "nomination_deadline": _deadline(rules.auction.nomination_timer_sec),
         },
     )
-    rules = LeagueRules.model_validate(league["rules"])
-    storage.update_draft_session(
-        league_id,
-        status="nominating",
-        current_nominee_json=None,
-        high_bid=None,
-        high_bidder_team_id=None,
-        bid_deadline=None,
-        last_bid_at=None,
-        nomination_deadline=_deadline(rules.auction.nomination_timer_sec),
-    )
+    if not claimed:
+        return _emit_state(league_id, user_sub)
     _advance_nominator(league_id)
     ended = _maybe_end_if_rosters_full(league_id, league, rules)
     if ended is not None:
