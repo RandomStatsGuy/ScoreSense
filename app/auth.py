@@ -328,7 +328,11 @@ def safe_oauth_next_path(next_path: str | None) -> str:
     """Same-origin app path only. Reject protocol-relative and off-site next values."""
     raw = (next_path or _OAUTH_DEFAULT_NEXT).strip()
     try:
-        raw = urllib.parse.unquote(raw)
+        for _ in range(5):
+            decoded = urllib.parse.unquote(raw)
+            if decoded == raw:
+                break
+            raw = decoded
     except Exception:
         return _OAUTH_DEFAULT_NEXT
     if "\\" in raw or not raw.startswith("/") or raw.startswith("//"):

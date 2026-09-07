@@ -50,6 +50,8 @@ def test_oauth_state_rejects_offsite_and_expired(monkeypatch):
     assert safe_oauth_next_path("//evil.example/phish") == "/projections/weekly"
     assert safe_oauth_next_path("https://evil.example/phish") == "/projections/weekly"
     assert safe_oauth_next_path("/%2f%2fevil.example") == "/projections/weekly"
+    assert safe_oauth_next_path("/%252f%252fevil.example") == "/projections/weekly"
+    assert safe_oauth_next_path("/%25252f%25252fevil.example") == "/projections/weekly"
 
     good = sign_oauth_state("/hub/home")
     assert verify_oauth_state(good) == "/hub/home"
