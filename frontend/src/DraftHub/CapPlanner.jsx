@@ -45,6 +45,7 @@ import ContractHistoryLink from "./ContractHistoryLink";
 import {
   cancelRookieExtend,
   hasPendingExtension,
+  listQueuedExtensions,
   postRookieExtend,
   previewRookieExtendStartSalary,
   rookieExtendCancelSuccessMessage,
@@ -175,7 +176,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
       const data = await postRookieExtend(extendPlayer, extendYears, maxExtensionYears);
       setMsg(rookieExtendSuccessMessage(data));
       setExtendPlayer("");
-      onChanged?.();
+      onChanged?.({ roster: true });
     } catch (e) {
       setMsg(e.message);
     }
@@ -210,19 +211,10 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
     ),
     [roster],
   );
-  const queuedExtensions = useMemo(() => {
-    const fromSummary = preDraft?.queued_extensions;
-    if (Array.isArray(fromSummary) && fromSummary.length) return fromSummary;
-    return (roster || [])
-      .filter((r) => hasPendingExtension(r))
-      .map((r) => ({
-        player_id: r.player_id,
-        player_name: r.player_name,
-        position: r.position,
-        salary: r.salary,
-        queued_years: r.contract?.pending_extension?.years,
-      }));
-  }, [preDraft?.queued_extensions, roster]);
+  const queuedExtensions = useMemo(
+    () => listQueuedExtensions(preDraft, roster),
+    [preDraft, roster],
+  );
 
   const expiryBadge = (playerId) => {
     const pid = String(playerId);
@@ -258,7 +250,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
     try {
       await cancelRookieExtend(playerId);
       setMsg(rookieExtendCancelSuccessMessage());
-      onChanged?.();
+      onChanged?.({ roster: true });
     } catch (e) {
       setMsg(e.message || "Could not undo the extension");
     } finally {

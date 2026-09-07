@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   canManagerRookieExtend,
   hasPendingExtension,
+  listQueuedExtensions,
   rookieExtendCancelSuccessMessage,
   rookieExtendSuccessMessage,
 } from "./rookieExtend.js";
@@ -22,6 +23,16 @@ test("undo copy names the expire cost and skips slogan voice", () => {
   assert.match(msg, /undone/i);
   assert.match(msg, /expire/i);
   assert.doesNotMatch(msg, /Submit|Draft Hub|permission/i);
+});
+
+test("empty cap queued_extensions wins over a stale roster pending flag", () => {
+  const roster = [{
+    player_id: "p1",
+    player_name: "Stale",
+    contract: { pending_extension: { years: 2 } },
+  }];
+  assert.deepEqual(listQueuedExtensions({ queued_extensions: [] }, roster), []);
+  assert.equal(listQueuedExtensions(undefined, roster).length, 1);
 });
 
 test("queue success still names activation at draft complete", () => {

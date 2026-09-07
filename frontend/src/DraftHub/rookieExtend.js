@@ -108,3 +108,18 @@ export async function cancelRookieExtend(playerId) {
 export function rookieExtendCancelSuccessMessage() {
   return "Extension undone. This deal expires at the draft unless you queue again.";
 }
+
+/** Prefer the cap summary list, including empty after undo. Roster is fallback only. */
+export function listQueuedExtensions(preDraft, roster) {
+  const fromSummary = preDraft?.queued_extensions;
+  if (Array.isArray(fromSummary)) return fromSummary;
+  return (roster || [])
+    .filter((row) => hasPendingExtension(row))
+    .map((row) => ({
+      player_id: row.player_id,
+      player_name: row.player_name,
+      position: row.position,
+      salary: row.salary,
+      queued_years: row.contract?.pending_extension?.years,
+    }));
+}
