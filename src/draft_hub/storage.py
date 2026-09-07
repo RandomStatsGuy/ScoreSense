@@ -1969,9 +1969,12 @@ def get_team_by_user(league_id: str, user_sub: str) -> dict[str, Any] | None:
 
 
 def verify_league_membership(user_sub: str, league_id: str) -> bool:
-    """True when user_sub has a team row in the league."""
-    if not get_league(league_id):
+    """True when user_sub is the commissioner or has a team row in the league."""
+    league = get_league(league_id)
+    if not league:
         return False
+    if str(league.get("commissioner_sub") or "") == str(user_sub):
+        return True
     return get_team_by_user(league_id, user_sub) is not None
 
 
@@ -2003,6 +2006,75 @@ def transfer_roster_players(
         if moved:
             _bump_live_for_workspace_conn(conn, workspace_id)
     return moved
+
+
+def apply_trade_plan(
+    workspace_id: str,
+    moves: list[dict[str, Any]],
+    *,
+    trade_log: dict[str, Any] | None = None,
+) -> None:
+    """Apply every trade roster write in one transaction. Raises ValueError if a row is missing."""
+    if not moves:
+        return
+    with get_conn() as conn:
+        for move in moves:
+            pid = str(move["player_id"])
+            row = conn.execute(
+                "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
+                (workspace_id, pid),
+            ).fetchone()
+            if not row:
+                raise ValueError(f"Failed to move {pid}")
+            updates = ["team_id = ?"]
+            params: list[Any] = [move["team_id"]]
+            if move.get("roster_status") is not None:
+                updates.append("roster_status = ?")
+                params.append(move["roster_status"])
+            contract = move.get("contract")
+            if contract is not None:
+                updates.extend(["contract_json = ?", "salary = ?", "contract_years = ?"])
+                sal_val = contract.get("current_salary")
+                if sal_val is None:
+                    sal_val = contract.get("base_salary")
+                if sal_val is None:
+                    sal_val = row["salary"]
+                sal = float(sal_val)
+                yrs = int(
+                    contract.get("years_remaining")
+                    if contract.get("years_remaining") is not None
+                    else row["contract_years"]
+                )
+                params.extend([json.dumps(contract), sal, yrs])
+            params.append(row["id"])
+            conn.execute(
+                f"UPDATE roster_slot SET {', '.join(updates)} WHERE id = ?",
+                params,
+            )
+        if trade_log:
+            extra = {
+                "proposal_id": trade_log.get("proposal_id"),
+                "parties": trade_log.get("parties"),
+                "dead_cap_assignments": trade_log.get("dead_cap_assignments"),
+            }
+            conn.execute(
+                """INSERT INTO trade_log (league_id, team_a_id, team_b_id, send_a_json, send_b_json, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (
+                    trade_log["league_id"],
+                    trade_log["team_a_id"],
+                    trade_log["team_b_id"],
+                    json.dumps(
+                        {
+                            "players": trade_log.get("send_a") or [],
+                            **{k: v for k, v in extra.items() if v is not None},
+                        }
+                    ),
+                    json.dumps(trade_log.get("send_b") or []),
+                    _utcnow(),
+                ),
+            )
+        _bump_live_for_workspace_conn(conn, workspace_id)
 
 
 def log_league_trade(

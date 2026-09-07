@@ -9,6 +9,7 @@ from src.draft_hub.insights_cache import read_fair_values
 from src.draft_hub.pre_draft_cap import (
     expires_before_draft,
     is_active_for_pre_draft,
+    retained_through_draft,
     total_pre_draft_dead_cap,
     years_remaining,
 )
@@ -56,7 +57,7 @@ def enrich_league_roster_overview(
             )
             fp_per_dollar = round(fair / sal, 2) if marketable and sal > 0 else None
             active = is_active_for_pre_draft(row)
-            if active:
+            if retained_through_draft(row, draft_completed=draft_completed):
                 committed += sal
                 pos = normalize_position(row.get("position"))
                 by_pos_spend[pos] = by_pos_spend.get(pos, 0.0) + sal

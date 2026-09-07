@@ -1174,6 +1174,8 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
     session = storage.get_draft_session(league_id)
     if not league or not session:
         raise ValueError("Invalid session")
+    if bool(league.get("draft_completed")) or session.get("status") == "completed":
+        return get_room_state(league_id, user_sub)
     nominee = session.get("current_nominee")
     winner_id = session.get("high_bidder_team_id")
     amount = session.get("high_bid")

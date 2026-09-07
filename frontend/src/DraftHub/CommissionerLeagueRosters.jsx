@@ -404,7 +404,7 @@ function TeamRosterBlock({
     () => applyPendingToBlock(block, pendingByPlayer),
     [block, pendingByPlayer],
   );
-  const stats = teamCapStats(appliedBlock, salaryCap, rules);
+  const stats = teamCapStats(appliedBlock, salaryCap, rules, draftCompleted);
   const committedPct = Math.min(100, (stats.committed / stats.cap) * 100);
   const deadCapPct = Math.min(100 - committedPct, (stats.deadCap / stats.cap) * 100);
   const capPct = Math.min(100, Math.round(committedPct + deadCapPct));
@@ -451,7 +451,9 @@ function TeamRosterBlock({
     const isHighlight = Boolean(
       highlightPlayerId && matchLiveRosterPlayer(r, highlightPlayerId),
     );
-    const salaryMax = salaryRoomForRow(block, pendingByPlayer, r, salaryCap, rules);
+    const salaryMax = salaryRoomForRow(
+      block, pendingByPlayer, r, salaryCap, rules, draftCompleted,
+    );
     const salaryError = fieldErrors[r.player_id] || (
       pending.salary != null ? validateSalaryValue(pending.salary, salaryMax) : ""
     );
@@ -936,17 +938,19 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
     let committed = 0;
     let deadCap = 0;
     for (const block of teams) {
-      const s = teamCapStats(applyPendingToBlock(block, pendingByPlayer), salaryCap, leagueRules);
+      const s = teamCapStats(
+        applyPendingToBlock(block, pendingByPlayer), salaryCap, leagueRules, draftCompleted,
+      );
       players += s.playerCount;
       committed += s.committed;
       deadCap += s.deadCap;
     }
     return { teams: teams.length, players, committed, deadCap };
-  }, [teams, salaryCap, leagueRules, pendingByPlayer]);
+  }, [teams, salaryCap, leagueRules, pendingByPlayer, draftCompleted]);
 
   const pendingSummary = useMemo(
-    () => summarizePending(teams, pendingByPlayer, salaryCap, leagueRules),
-    [teams, pendingByPlayer, salaryCap, leagueRules],
+    () => summarizePending(teams, pendingByPlayer, salaryCap, leagueRules, draftCompleted),
+    [teams, pendingByPlayer, salaryCap, leagueRules, draftCompleted],
   );
   const hasPending = pendingSummary.count > 0;
 
@@ -1001,7 +1005,9 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
     const errors = [];
     const byPlayer = {};
     for (const block of teams) {
-      for (const err of validatePendingForTeam(block, pendingByPlayer, salaryCap, leagueRules)) {
+      for (const err of validatePendingForTeam(
+        block, pendingByPlayer, salaryCap, leagueRules, draftCompleted,
+      )) {
         errors.push(err);
         if (err.playerId) byPlayer[err.playerId] = err.message;
       }
@@ -1149,6 +1155,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
                     applyPendingToBlock(block, pendingByPlayer),
                     salaryCap,
                     leagueRules,
+                    draftCompleted,
                   );
                   const parts = hubTeamParts(block.team);
                   const ownerLabel = parts.owner || hubTeamLabel(block.team);

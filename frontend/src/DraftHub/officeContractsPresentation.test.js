@@ -80,14 +80,15 @@ test("pending tray summarizes count, cap impact, and drops", () => {
   const summary = summarizePending([TEAM], pending, 200, RULES);
   assert.equal(summary.count, 2);
   assert.equal(summary.dropCount, 1);
-  assert.equal(pendingTraySummary(summary), "2 changes · +$3 cap impact · 1 drop");
+  assert.equal(pendingTraySummary(summary), "2 changes · −$5 cap impact · 1 drop");
 });
 
 test("mistyped 110 against remaining room fails validation", () => {
   const stats = teamCapStats(TEAM, 200, RULES);
-  assert.equal(stats.remaining, 181);
+  assert.equal(stats.committed, 11);
+  assert.equal(stats.remaining, 189);
   const max = salaryInputMax({ remaining: stats.remaining, currentSalary: 11, isCut: false });
-  assert.equal(max, 192);
+  assert.equal(max, 200);
   assert.match(validateSalaryValue(110, 20), /exceeds remaining room \(\$20\)/);
   assert.equal(validateSalaryValue(11, 20), "");
 });
@@ -96,12 +97,25 @@ test("pending salary over remaining room is a field error", () => {
   const pending = { p1: { playerId: "p1", salary: 110 } };
   const tight = {
     ...TEAM,
-    roster: TEAM.roster.map((r) => (r.player_id === "p2" ? { ...r, salary: 180 } : r)),
+    roster: TEAM.roster.map((r) => (
+      r.player_id === "p2"
+        ? { ...r, salary: 180, contract_years: 2, contract: { ...r.contract, years_remaining: 2 } }
+        : r
+    )),
   };
   const room = salaryRoomForRow(tight, pending, tight.roster[0], 200, RULES);
   assert.ok(room < 110);
   const errors = validatePendingForTeam(tight, pending, 200, RULES);
   assert.ok(errors.some((e) => e.playerId === "p1"));
+});
+
+test("auction leftover ignores a 1-year keeper who expires at draft", () => {
+  const stats = teamCapStats(TEAM, 200, RULES, false);
+  assert.equal(stats.committed, 11);
+  assert.equal(stats.remaining, 189);
+  const afterDraft = teamCapStats(TEAM, 200, RULES, true);
+  assert.equal(afterDraft.committed, 19);
+  assert.equal(afterDraft.remaining, 181);
 });
 
 test("queued drop is excluded from the applied roster", () => {

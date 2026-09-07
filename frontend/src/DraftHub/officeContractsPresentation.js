@@ -1,6 +1,7 @@
 /**
  * Roster management · Contracts copy and pending-write helpers.
  */
+import { isRetainedThroughDraft } from "./draftRoomHelpers.js";
 import {
   contractDeadCapStory,
   fmtSal,
@@ -113,10 +114,13 @@ function activeRoster(roster) {
   return (roster || []).filter((r) => r.roster_status !== "cut_before_draft");
 }
 
-export function teamCapStats(block, salaryCap, rules) {
+export function teamCapStats(block, salaryCap, rules, draftCompleted = false) {
   const active = activeRoster(block?.roster);
+  const occupying = (block?.roster || []).filter((r) => (
+    isRetainedThroughDraft(r, draftCompleted)
+  ));
   const cuts = (block?.roster || []).filter((r) => r.roster_status === "cut_before_draft");
-  const committed = active.reduce((sum, r) => sum + Number(r.salary || 0), 0);
+  const committed = occupying.reduce((sum, r) => sum + Number(r.salary || 0), 0);
   const deadCap = cuts.reduce((sum, r) => sum + preDraftCutDeadCap(r, rules), 0);
   const cap = Number(salaryCap) || 200;
   return {
@@ -191,12 +195,14 @@ export function applyPendingToBlock(block, pendingByPlayer) {
   return { ...block, roster };
 }
 
-export function summarizePending(teams, pendingByPlayer, salaryCap, rules) {
+export function summarizePending(teams, pendingByPlayer, salaryCap, rules, draftCompleted = false) {
   const items = Object.values(pendingByPlayer || {});
   let capImpact = 0;
   for (const block of teams || []) {
-    const before = teamCapStats(block, salaryCap, rules).remaining;
-    const after = teamCapStats(applyPendingToBlock(block, pendingByPlayer), salaryCap, rules).remaining;
+    const before = teamCapStats(block, salaryCap, rules, draftCompleted).remaining;
+    const after = teamCapStats(
+      applyPendingToBlock(block, pendingByPlayer), salaryCap, rules, draftCompleted,
+    ).remaining;
     capImpact += after - before;
   }
   return {
@@ -207,12 +213,14 @@ export function summarizePending(teams, pendingByPlayer, salaryCap, rules) {
   };
 }
 
-export function salaryRoomForRow(block, pendingByPlayer, row, salaryCap, rules) {
+export function salaryRoomForRow(block, pendingByPlayer, row, salaryCap, rules, draftCompleted = false) {
   const others = { ...(pendingByPlayer || {}) };
   const cur = { ...(others[row.player_id] || { playerId: row.player_id }) };
   delete cur.salary;
   others[row.player_id] = cur;
-  const stats = teamCapStats(applyPendingToBlock(block, others), salaryCap, rules);
+  const stats = teamCapStats(
+    applyPendingToBlock(block, others), salaryCap, rules, draftCompleted,
+  );
   const effective = applyPendingToRow(row, cur);
   const isCut = rowStatus(effective) === "cut_before_draft" || Boolean(cur.drop);
   return salaryInputMax({
@@ -229,13 +237,15 @@ export function validateSalaryValue(nextSalary, max) {
   return "";
 }
 
-export function validatePendingForTeam(block, pendingByPlayer, salaryCap, rules) {
+export function validatePendingForTeam(block, pendingByPlayer, salaryCap, rules, draftCompleted = false) {
   const errors = [];
   for (const row of block?.roster || []) {
     const pending = pendingByPlayer[row.player_id];
     if (!pending || pending.drop) continue;
     if (pending.salary != null) {
-      const max = salaryRoomForRow(block, pendingByPlayer, row, salaryCap, rules);
+      const max = salaryRoomForRow(
+        block, pendingByPlayer, row, salaryCap, rules, draftCompleted,
+      );
       const message = validateSalaryValue(pending.salary, max);
       if (message) errors.push({ playerId: row.player_id, message });
     }
@@ -246,7 +256,9 @@ export function validatePendingForTeam(block, pendingByPlayer, salaryCap, rules)
       }
     }
   }
-  const after = teamCapStats(applyPendingToBlock(block, pendingByPlayer), salaryCap, rules);
+  const after = teamCapStats(
+    applyPendingToBlock(block, pendingByPlayer), salaryCap, rules, draftCompleted,
+  );
   if (after.remaining < 0) {
     errors.push({
       teamId: block?.team?.id,
