@@ -387,46 +387,50 @@ def execute_multiparty_trade(
     assignments = check["dead_cap_assignments"]
     event_summary = _trade_event_summary(league_id, norm)
 
-    # Apply sends
-    from src.draft_hub.contract_service import apply_trade_drop, apply_trade_transfer
-
-    for party in norm:
-        from_tid = str(party["team_id"])
-        for send in party["sends"]:
-            moved = apply_trade_transfer(
-                league_id, ws_id, [send["player_id"]], from_tid, send["to_team_id"]
-            )
-            if moved != 1:
-                raise ValueError(f"Failed to move {send['player_id']}")
-
-    # Apply drops: cut + move to assignee if needed
     assign_map = {
         (str(a["from_team_id"]), str(a["player_id"])): a for a in assignments
     }
+    moves: list[dict[str, Any]] = []
     for party in norm:
         from_tid = str(party["team_id"])
+        for send in party["sends"]:
+            moves.append(
+                {
+                    "player_id": send["player_id"],
+                    "team_id": send["to_team_id"],
+                }
+            )
         for pid in party["drops"]:
             a = assign_map[(from_tid, pid)]
             assignee = str(a["assigned_to_team_id"])
-            apply_trade_drop(
-                league_id,
-                ws_id,
-                pid,
-                from_team_id=from_tid,
-                assignee_team_id=assignee,
+            slot = storage.get_roster_slot(ws_id, pid)
+            if not slot or str(slot.get("team_id")) != from_tid:
+                raise ValueError(f"Drop {pid} not on expected team")
+            moves.append(
+                {
+                    "player_id": pid,
+                    "team_id": assignee,
+                    "roster_status": ROSTER_CUT_BEFORE_DRAFT,
+                    "contract": contract_on_cut_status_change(
+                        slot, roster_status=ROSTER_CUT_BEFORE_DRAFT
+                    ),
+                }
             )
 
-    # Log (pairwise summary for legacy table + full parties in send_a json)
     team_ids = _party_team_ids(norm)
-    storage.log_league_trade(
-        league_id,
-        team_a_id=team_ids[0],
-        team_b_id=team_ids[1] if len(team_ids) > 1 else team_ids[0],
-        send_a=[s["player_id"] for p in norm for s in p["sends"] if p["team_id"] == team_ids[0]],
-        send_b=[s["player_id"] for p in norm for s in p["sends"] if p["team_id"] != team_ids[0]],
-        proposal_id=proposal_id,
-        parties=norm,
-        dead_cap_assignments=assignments,
+    storage.apply_trade_plan(
+        ws_id,
+        moves,
+        trade_log={
+            "league_id": league_id,
+            "team_a_id": team_ids[0],
+            "team_b_id": team_ids[1] if len(team_ids) > 1 else team_ids[0],
+            "send_a": [s["player_id"] for p in norm for s in p["sends"] if p["team_id"] == team_ids[0]],
+            "send_b": [s["player_id"] for p in norm for s in p["sends"] if p["team_id"] != team_ids[0]],
+            "proposal_id": proposal_id,
+            "parties": norm,
+            "dead_cap_assignments": assignments,
+        },
     )
 
     session = storage.get_draft_session(league_id) or {}

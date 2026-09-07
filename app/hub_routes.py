@@ -4430,6 +4430,7 @@ async def hub_post_chat_message(
     await draft_room_manager.broadcast(
         league_id,
         {"type": "chat", "kind": kind_norm, "message": message},
+        staff_only=(kind_norm == "office"),
     )
     return {"message": message}
 
@@ -4454,6 +4455,7 @@ async def hub_clear_chat_messages(
     await draft_room_manager.broadcast(
         league_id,
         {"type": "chat_cleared", "kind": kind_norm},
+        staff_only=(kind_norm == "office"),
     )
     return result
 
@@ -4555,6 +4557,7 @@ def hub_accept_invite(body: LeagueInviteAcceptRequest, user=Depends(require_hub_
 @router.get("/league/{league_id}")
 def hub_get_league(league_id: str, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
+    _assert_league_access(league_id, sub)
     try:
         state = check_timers(league_id, sub)
     except ValueError as exc:
@@ -4564,6 +4567,8 @@ def hub_get_league(league_id: str, _user=Depends(require_hub_user)) -> dict:
 
 @router.get("/league/{league_id}/nomination-pool")
 def hub_nomination_pool(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    _assert_league_access(league_id, sub)
     league = storage.get_league(league_id)
     if not league:
         raise HTTPException(status_code=404, detail="League not found")
@@ -4811,7 +4816,9 @@ async def hub_ws(
         await websocket.close(code=1008, reason="Not a league member.")
         return
 
-    await draft_room_manager.connect(league_id, websocket)
+    await draft_room_manager.connect(
+        league_id, websocket, staff=user_is_draft_staff(league_id, sub)
+    )
     try:
         state = get_room_state(league_id, sub)
         await websocket.send_json({"type": "state", "payload": state})
