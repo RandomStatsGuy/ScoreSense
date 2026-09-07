@@ -12,7 +12,14 @@ import {
 import { HubFilterMenu } from "./HubUILayout";
 import { mergePlayerMedia } from "./draftRoomEnrichment";
 import { mockDraftLiveCopy } from "./mockDraftConfig";
-import { draftPoolWhy, rangeBarPercents } from "./draftPoolWhy";
+import { draftPoolWhy, rangeBarCopy, showPoolNeedChip } from "./draftPoolWhy";
+import {
+  draftLiveCopy,
+  nominateDisabledReason,
+  poolRowIsPrimary,
+  poolSearchPlaceholder,
+  watchLabel,
+} from "./draftLivePresentation";
 
 const PICK_SORTS = [
   ["season_proj", "Projection"],
@@ -52,12 +59,16 @@ export default function DraftPlayerRail({
   onWatchPlayer,
   watchIds = [],
   canDraft = false,
+  showDraftAction = false,
   actionsDisabled = false,
   actionLabel,
   minBid = 1,
   riskTolerance = 0,
   rules = null,
   wideStage = false,
+  rosterCount = 0,
+  paused = false,
+  nominatorName = "",
 }) {
   const [search, setSearch] = useState("");
   const [position, setPosition] = useState("ALL");
@@ -87,6 +98,13 @@ export default function DraftPlayerRail({
   );
   const sorts = pickDraft ? PICK_SORTS : AUCTION_SORTS;
   const poolCopy = mockDraftLiveCopy();
+  const searchPlaceholder = poolSearchPlaceholder({ canDraft, pickDraft });
+  const lockedReason = nominateDisabledReason({
+    paused,
+    canDraft,
+    nominatorName,
+  });
+  const primaryRowId = String(selectedPlayerId || visibleRows[0]?.player_id || "");
 
   return (
     <section className={`hub-draft-player-rail${wideStage ? " hub-draft-player-rail--stage" : ""}`} aria-label={poolCopy.playerPoolLabel}>
@@ -102,7 +120,7 @@ export default function DraftPlayerRail({
         <input
           type="search"
           value={search}
-          placeholder="Search player or team"
+          placeholder={searchPlaceholder}
           onChange={(event) => setSearch(event.target.value)}
         />
       </label>
@@ -155,8 +173,15 @@ export default function DraftPlayerRail({
             ? `${formatSeasonPts(row.season_p50 ?? row.season_proj, 0)} pts`
             : fmtSal(auctionValue);
           const whyBar = wideStage && !pickDraft
-            ? rangeBarPercents(row.min_sal, auctionValue, row.max_sal)
+            ? rangeBarCopy(row.min_sal, auctionValue, row.max_sal)
             : null;
+          const showNeed = showPoolNeedChip({ isNeed, rosterCount });
+          const watching = watched.has(id);
+          const rowPrimary = poolRowIsPrimary({
+            playerId: id,
+            primaryRowId,
+            canDraft,
+          });
           return (
             <article
               key={id || `${row.player || row.player_name}-${row.position}`}
@@ -181,30 +206,40 @@ export default function DraftPlayerRail({
                 />
                 {wideStage && !pickDraft && (
                   <span className="hub-draft-player-why">
-                    {whyBar && (
-                      <span className="hub-draft-range-bar" aria-hidden>
-                        <span className="hub-draft-range-bar-mark" style={{ left: `${whyBar.mark}%` }} />
+                    {whyBar ? (
+                      <span className="hub-draft-range-copy">
+                        {draftLiveCopy.floor} {whyBar.floor}
+                        {" · "}
+                        {draftLiveCopy.suggested} {whyBar.suggested || primary}
+                        {" · "}
+                        {draftLiveCopy.ceiling} {whyBar.ceiling}
                       </span>
+                    ) : (
+                      <span>{draftPoolWhy(row, { isNeed, rosterCount })}</span>
                     )}
-                    <span>{draftPoolWhy(row, { isNeed })}</span>
                   </span>
                 )}
                 <span className="hub-draft-player-metric">
                   <strong>{primary}</strong>
-                  <span>{secondaryMetric(row, pickDraft)}</span>
+                  <span>{pickDraft ? secondaryMetric(row, pickDraft) : draftLiveCopy.suggested}</span>
                 </span>
               </button>
               <div className="hub-draft-player-card-actions">
-                {isNeed ? <span className="hub-draft-player-need">Need</span> : <span />}
-                {canDraft && (
-                  <button
-                    type="button"
-                    className="btn-primary btn-sm"
-                    disabled={actionsDisabled}
-                    onClick={() => onDraftPlayer?.(row)}
+                {showNeed ? <span className="hub-draft-player-need">Need</span> : <span />}
+                {showDraftAction && (
+                  <span
+                    className="hub-draft-player-draft-tip"
+                    title={!canDraft ? lockedReason : undefined}
                   >
-                    {actionLabel || (pickDraft ? "Pick" : `Nominate ${fmtSal(minBid)}`)}
-                  </button>
+                    <button
+                      type="button"
+                      className={rowPrimary ? "btn-primary btn-sm" : "btn-ghost btn-sm"}
+                      disabled={actionsDisabled || !canDraft}
+                      onClick={() => onDraftPlayer?.(row)}
+                    >
+                      {actionLabel || (pickDraft ? draftLiveCopy.pick : draftLiveCopy.nominate)}
+                    </button>
+                  </span>
                 )}
                 <button
                   type="button"
@@ -212,16 +247,19 @@ export default function DraftPlayerRail({
                   disabled={actionsDisabled}
                   onClick={() => onQueuePlayer?.(row)}
                 >
-                  Queue
+                  {draftLiveCopy.queue}
                 </button>
                 <button
                   type="button"
-                  className="hub-draft-player-watch"
-                  aria-label={watched.has(id) ? `Remove ${row.player || row.player_name} from watch list` : `Watch ${row.player || row.player_name}`}
-                  aria-pressed={watched.has(id)}
+                  className={`hub-draft-player-watch${watching ? " is-watching" : ""}`}
+                  aria-label={watching
+                    ? `Remove ${row.player || row.player_name} from watch list`
+                    : `Watch ${row.player || row.player_name}`}
+                  aria-pressed={watching}
                   onClick={() => onWatchPlayer?.(row)}
                 >
-                  {watched.has(id) ? "★" : "☆"}
+                  <span aria-hidden="true">{watching ? "★" : "☆"}</span>
+                  {watchLabel(watching)}
                 </button>
               </div>
             </article>

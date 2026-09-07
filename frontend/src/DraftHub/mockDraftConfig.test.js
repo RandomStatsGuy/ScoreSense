@@ -33,6 +33,7 @@ test("botCountForTeams fills every seat except the user", () => {
 test("live mock copy never says Available players", () => {
   const copy = mockDraftLiveCopy();
   assert.equal(copy.playerPoolLabel, "Player pool");
+  assert.equal(copy.playerPoolSearch, "Search player or team");
   assert.doesNotMatch(copy.playerPoolLabel, /available players/i);
   assert.match(copy.simulatingBanner(12, 270), /12 of 270/);
   assert.match(copy.simulatingDetail, /Discard stays available/);

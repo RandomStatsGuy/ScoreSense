@@ -3,7 +3,11 @@
 import { normalizeHubPosition } from "./hubPositions.js";
 import { fmtSal } from "./rosterFormat.js";
 
-export function draftPoolWhy(row, { isNeed = false } = {}) {
+export function showPoolNeedChip({ isNeed = false, rosterCount = 0 } = {}) {
+  return Boolean(isNeed && Number(rosterCount) > 0);
+}
+
+export function draftPoolWhy(row, { isNeed = false, rosterCount = 0 } = {}) {
   const pos = normalizeHubPosition(row?.position) || "this position";
   const fair = Number(row?.fair_value ?? row?.model_bid_hint);
   const lo = Number(row?.min_sal);
@@ -11,7 +15,7 @@ export function draftPoolWhy(row, { isNeed = false } = {}) {
   const hasRange = Number.isFinite(lo) && Number.isFinite(hi) && hi > 0;
   const range = hasRange ? `${fmtSal(lo)}–${fmtSal(hi)}` : null;
 
-  if (isNeed) {
+  if (showPoolNeedChip({ isNeed, rosterCount })) {
     return range ? `Need ${pos} · ${range}` : `Need ${pos}`;
   }
   if (Number.isFinite(fair) && fair >= 30) {
@@ -34,5 +38,16 @@ export function rangeBarPercents(minSal, fair, maxSal) {
   return {
     start: 0,
     mark: ((clamped - lo) / span) * 100,
+  };
+}
+
+export function rangeBarCopy(minSal, fair, maxSal) {
+  const percents = rangeBarPercents(minSal, fair, maxSal);
+  if (!percents) return null;
+  return {
+    ...percents,
+    floor: fmtSal(Number(minSal)),
+    suggested: Number.isFinite(Number(fair)) ? fmtSal(Number(fair)) : null,
+    ceiling: fmtSal(Number(maxSal)),
   };
 }

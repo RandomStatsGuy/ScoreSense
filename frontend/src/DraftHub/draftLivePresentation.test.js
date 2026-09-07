@@ -1,6 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { auctionViewerGradeCopy, draftLiveCopy, soldPriceLine, soldTone } from "./draftLivePresentation.js";
+import {
+  auctionViewerGradeCopy,
+  draftLiveCopy,
+  nominateDisabledReason,
+  nominationJobLine,
+  poolSearchPlaceholder,
+  soldPriceLine,
+  soldTone,
+  watchLabel,
+  activityDockTab,
+  poolRowIsPrimary,
+} from "./draftLivePresentation.js";
 
 test("sold copy names the price against fair", () => {
   assert.equal(draftLiveCopy.soldStamp, "SOLD");
@@ -15,4 +26,30 @@ test("auction grade leads with a letter and a verdict", () => {
   assert.equal(bought.grade, "B−");
   assert.match(bought.summary, /bought the room|ran out/i);
   assert.doesNotMatch(bought.summary, /Submit|Draft Hub|permission/i);
+});
+
+test("nomination job names the turn and pause without shouting Live", () => {
+  assert.equal(
+    nominationJobLine({ isMyTurn: true }),
+    draftLiveCopy.yourTurnToNominate,
+  );
+  assert.match(nominationJobLine({ isMyTurn: true, paused: true }), /Paused/);
+  assert.match(nominateDisabledReason({ paused: true }), /paused/i);
+  assert.match(nominateDisabledReason({ canDraft: false, nominatorName: "The Auditor" }), /Auditor/);
+  assert.equal(poolSearchPlaceholder({ canDraft: true }), draftLiveCopy.searchNominate);
+  assert.equal(watchLabel(true), draftLiveCopy.watching);
+  assert.doesNotMatch(draftLiveCopy.searchNominate, /Submit|Draft Hub|permission/i);
+  assert.equal(draftLiveCopy.pause, "Pause");
+});
+
+test("pool row primary matches string or numeric ids", () => {
+  assert.equal(poolRowIsPrimary({ playerId: 12, primaryRowId: "12", canDraft: true }), true);
+  assert.equal(poolRowIsPrimary({ playerId: "12", primaryRowId: 12, canDraft: true }), true);
+  assert.equal(poolRowIsPrimary({ playerId: 12, primaryRowId: "12", canDraft: false }), false);
+});
+
+test("activity dock drops Queue when the pool stage owns it", () => {
+  assert.equal(activityDockTab("queue", { poolStage: true }), "");
+  assert.equal(activityDockTab("teams", { poolStage: true }), "teams");
+  assert.equal(activityDockTab("queue", { poolStage: false }), "queue");
 });

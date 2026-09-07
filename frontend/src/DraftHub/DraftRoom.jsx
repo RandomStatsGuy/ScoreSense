@@ -44,6 +44,7 @@ import {
   simulationPostFailureAction,
 } from "./draftLiveConsole";
 import { mockDraftLiveCopy } from "./mockDraftConfig";
+import { activityDockTab, draftLiveCopy } from "./draftLivePresentation";
 import { displayBotName } from "./botPersona";
 import { SOLD_HOLD_MS, pinAuctionStage, soldHoldDecision } from "./draftAuctionTheater";
 import { isPickDraft } from "./draftEntryStatus";
@@ -67,7 +68,6 @@ import {
   isRiskToleranceActive,
   raavDelta,
 } from "../riskAdjustedValue";
-import { formatSeasonPts } from "../seasonQuantiles";
 import {
   draftEventSoundKey,
   draftToneForEvent,
@@ -313,6 +313,13 @@ export default function DraftRoom({
     soldHold,
     simulating: simulationRunning,
   });
+  const poolStage = !pickDraft && !pinStage;
+  const dockTab = activityDockTab(activityTab, { poolStage });
+  useEffect(() => {
+    if (poolStage && activityTab === "queue") {
+      setActivityTab("");
+    }
+  }, [poolStage, activityTab]);
   const liveCopy = mockDraftLiveCopy();
   const recapHasStory = Boolean(
     draftRecap && (
@@ -870,8 +877,6 @@ export default function DraftRoom({
   const bidInvalid = session?.status === "bidding"
     && (!bidAmount || Number(bidAmount) < suggestedBid);
   const nomineePosBlocked = nominee && !canAcquire(nominee.position);
-  const selectedNomBlocked = previewRow && !canAcquire(previewRow.position);
-
   const minBidUnit = Number(rules?.auction?.min_bid ?? 1);
   const openSlotsTotal = useMemo(
     () => Object.values(posCapacity).reduce((sum, c) => sum + (c?.remaining || 0), 0),
@@ -1682,9 +1687,8 @@ export default function DraftRoom({
           connectionStatus={connectionStatus}
           paused={clockPaused}
           pausedLabel={clockLabel}
-          canNominate={Boolean(nomPlayerId) && !draftControlsLocked && onClock && (isMyNominationTurn || canForceNominate)}
-          onNominate={nominate}
-          nominateLabel={pickDraft ? (canForceNominate ? "Force pick" : "Pick") : `Nominate for ${fmtSal(minBidUnit || 1)}`}
+          canResume={Boolean(isCommissioner && session?.paused)}
+          onResume={pauseOrResumeDraft}
           pickDraft={pickDraft}
           pickClock={pickClock}
           modeLabel={pickDraft
@@ -1718,9 +1722,9 @@ export default function DraftRoom({
                       : "Simulate"}
                 </button>
               )}
-              {isCommissioner && (
+              {isCommissioner && !session?.paused && (
                 <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={pauseOrResumeDraft}>
-                  {session?.paused ? "Resume" : "Pause"}
+                  {draftLiveCopy.pause}
                 </button>
               )}
               {isCommissioner && onClock && !session?.paused && (
@@ -1824,8 +1828,8 @@ export default function DraftRoom({
       )}
 
       {leagueId && inLiveDraft && (
-        <div className={`hub-draft-experience hub-draft-experience--${pickDraft ? "pick" : "auction"}${!pickDraft && !pinStage ? " hub-draft-experience--pool-stage" : ""}`}>
-          {(pickDraft || pinStage || (onClock && previewRow && nomPlayerId) || (roomLoading && !session)) && (
+        <div className={`hub-draft-experience hub-draft-experience--${pickDraft ? "pick" : "auction"}${poolStage ? " hub-draft-experience--pool-stage" : ""}`}>
+          {(pickDraft || pinStage || (roomLoading && !session)) && (
           <div className="hub-draft-stage" aria-label={pickDraft ? "Draft board" : "Auction stage"} role="region">
             {roomLoading && !session && (
               <p className="chart-note hub-draft-loading">Loading draft room…</p>
@@ -1881,35 +1885,6 @@ export default function DraftRoom({
               </div>
             ) : null}
 
-            {onClock && previewRow && nomPlayerId && (
-              <div className="hub-draft-selection-card" role="status">
-                <div>
-                  <span className="hub-draft-experience-kicker">Selected</span>
-                  <strong>{previewRow.player || previewRow.player_name}</strong>
-                  <span>
-                    {previewRow.position} · {previewRow.team || "FA"} · {pickDraft
-                      ? `${formatSeasonPts(previewRow.season_p50 ?? previewRow.season_proj, 0)} projected points`
-                      : `${fmtSal(effectiveAuctionBid(previewRow, rules?.risk_tolerance, rules) ?? previewRow.fair_value)} suggested bid`}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  disabled={
-                    draftControlsLocked
-                    || (!canForceNominate && selectedNomBlocked)
-                    || !(isMyNominationTurn || canForceNominate)
-                  }
-                  onClick={nominate}
-                >
-                  {pendingAction === "nominate" || pendingAction === "pick"
-                    ? (pickDraft ? "Picking…" : "Nominating…")
-                    : canForceNominate
-                      ? (pickDraft ? "Force pick" : `Force nominate ${fmtSal(minBidUnit || 1)}`)
-                      : (pickDraft ? "Lock in pick" : `Nominate ${fmtSal(minBidUnit || 1)}`)}
-                </button>
-              </div>
-            )}
           </div>
           )}
 
@@ -1931,12 +1906,16 @@ export default function DraftRoom({
               onWatchPlayer={toggleWatch}
               watchIds={watchIds}
               canDraft={!draftControlsLocked && onClock && (isMyNominationTurn || canForceNominate)}
+              showDraftAction={onClock}
               actionsDisabled={draftControlsLocked}
               actionLabel={pickDraft ? (canForceNominate ? "Force pick" : "Pick") : undefined}
               minBid={minBidUnit || 1}
               riskTolerance={rules?.risk_tolerance ?? 0}
               rules={rules || null}
-              wideStage={!pickDraft && !pinStage}
+              wideStage={poolStage}
+              rosterCount={myRoster.length}
+              paused={Boolean(session?.paused)}
+              nominatorName={nominatorTeam?.name || ""}
             />
           </aside>
 
@@ -1961,6 +1940,25 @@ export default function DraftRoom({
               variant="band"
               mediaByPlayerId={mediaByPlayerId}
             />
+            {poolStage && myTeamId && (
+              <DraftNominationQueue
+                leagueId={leagueId}
+                queue={roomState?.viewer?.nomination_queue || []}
+                autodraft={Boolean(roomState?.viewer?.autodraft)}
+                selectedPlayerId={nomPlayerId}
+                selectedPlayerName={previewRow?.player || previewRow?.player_name || ""}
+                playerNames={Object.fromEntries(
+                  (availableRows || []).map((row) => [
+                    String(row.player_id),
+                    `${row.player || row.player_name || row.player_id} (${row.position || "?"})`,
+                  ]),
+                )}
+                disabled={draftControlsLocked}
+                pickDraft={pickDraft}
+                embedded
+                onUpdated={applyState}
+              />
+            )}
           </section>
 
           <section className="hub-draft-activity-dock" aria-label="League activity">
@@ -1972,7 +1970,9 @@ export default function DraftRoom({
               <div className="hub-draft-activity-tabs" role="tablist" aria-label="League room panels">
                 {[
                   ["teams", "Teams"],
-                  ["queue", `Queue${roomState?.viewer?.nomination_queue?.length ? ` (${roomState.viewer.nomination_queue.length})` : ""}`],
+                  ...(!poolStage
+                    ? [["queue", `Queue${roomState?.viewer?.nomination_queue?.length ? ` (${roomState.viewer.nomination_queue.length})` : ""}`]]
+                    : []),
                   ["chat", "Chat"],
                   ["log", pickDraft ? "Pick log" : "Activity"],
                 ].map(([id, label]) => (
@@ -1980,8 +1980,8 @@ export default function DraftRoom({
                     key={id}
                     type="button"
                     role="tab"
-                    aria-selected={activityTab === id}
-                    className={activityTab === id ? "is-active" : ""}
+                    aria-selected={dockTab === id}
+                    className={dockTab === id ? "is-active" : ""}
                     onClick={() => setActivityTab((current) => current === id ? "" : id)}
                   >
                     {label}
@@ -1990,9 +1990,9 @@ export default function DraftRoom({
               </div>
             </header>
 
-            {activityTab && (
+            {dockTab && (
               <div className="hub-draft-activity-panel" role="tabpanel">
-                {activityTab === "teams" && (
+                {dockTab === "teams" && (
                   <div className="hub-teams-dock">
                     <div className="draft-seat-row" aria-label="Seats">
                       {teams.map((team, index) => {
@@ -2034,7 +2034,7 @@ export default function DraftRoom({
                     </div>
                   </div>
                 )}
-                {activityTab === "queue" && myTeamId && (
+                {dockTab === "queue" && myTeamId && (
                   <DraftNominationQueue
                     leagueId={leagueId}
                     queue={roomState?.viewer?.nomination_queue || []}
@@ -2053,7 +2053,7 @@ export default function DraftRoom({
                     onUpdated={applyState}
                   />
                 )}
-                {activityTab === "chat" && (
+                {dockTab === "chat" && (
                   <LeagueChat
                     leagueId={leagueId}
                     hubContext={hubContext}
@@ -2061,7 +2061,7 @@ export default function DraftRoom({
                     lockedKind="league"
                   />
                 )}
-                {activityTab === "log" && (
+                {dockTab === "log" && (
                   <ul className="hub-event-log hub-event-log--dock">
                     {events.length === 0 && <li className="hub-event-empty">No events yet</li>}
                     {[...events].reverse().slice(0, 30).map((event) => (

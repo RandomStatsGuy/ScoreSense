@@ -1,5 +1,7 @@
 /** Shared mock-draft launcher config (Tools → Mock draft). */
 
+import { draftLiveCopy } from "./draftLivePresentation.js";
+
 export const MOCK_DRAFT_STORAGE_KEY = "ss_mock_draft_league_id";
 
 export const MOCK_DRAFT_PRESETS = [
@@ -26,7 +28,7 @@ export const RECENT_MOCKS_RAIL_LIMIT = 3;
 export function mockDraftLiveCopy() {
   return {
     playerPoolLabel: "Player pool",
-    playerPoolSearch: "Search player or team",
+    playerPoolSearch: draftLiveCopy.searchPlayer,
     simulatingBanner: (done, total) => (
       Number.isFinite(Number(done)) && Number.isFinite(Number(total)) && Number(total) > 0
         ? `Finishing mock draft… ${Math.trunc(Number(done))} of ${Math.trunc(Number(total))}`

@@ -12,7 +12,81 @@ export const draftLiveCopy = {
   onTheBlock: "On the block",
   winner: "Winner",
   vsFair: "vs fair",
+  yourTurnToNominate: "Your turn to nominate",
+  yourPick: "Your pick",
+  waitingFor: "Waiting for",
+  onTheClock: "On the clock",
+  nextPrefix: "Next",
+  paused: "Paused",
+  leftover: "left",
+  maxBid: "max",
+  nominate: "Nominate",
+  pick: "Pick",
+  forceNominate: "Force nominate",
+  forcePick: "Force pick",
+  resume: "Resume",
+  pause: "Pause",
+  watch: "Watch",
+  watching: "Watching",
+  queue: "Queue",
+  floor: "Floor",
+  suggested: "Suggested",
+  ceiling: "Ceiling",
+  searchNominate: "Search for a player to nominate…",
+  searchPlayer: "Search player or team",
+  nominatePaused: "Draft paused",
+  connectionLive: "Realtime connection is up",
+  connectionDelay: "Draft updates may be delayed",
 };
+
+export function waitingForName(name) {
+  return `${draftLiveCopy.waitingFor} ${name || "the next manager"}`;
+}
+
+export function nominationJobLine({
+  picking = false,
+  isMyTurn = false,
+  nominatorName = "",
+  paused = false,
+} = {}) {
+  const job = picking
+    ? (isMyTurn ? draftLiveCopy.yourPick : `${draftLiveCopy.onTheClock}: ${nominatorName || "a team"}`)
+    : (isMyTurn ? draftLiveCopy.yourTurnToNominate : waitingForName(nominatorName));
+  return paused ? `${draftLiveCopy.paused} · ${job}` : job;
+}
+
+export function nominateDisabledReason({
+  paused = false,
+  canDraft = false,
+  nominatorName = "",
+} = {}) {
+  if (paused) return draftLiveCopy.nominatePaused;
+  if (!canDraft) return waitingForName(nominatorName);
+  return "";
+}
+
+export function poolSearchPlaceholder({ canDraft = false, pickDraft = false } = {}) {
+  return canDraft && !pickDraft ? draftLiveCopy.searchNominate : draftLiveCopy.searchPlayer;
+}
+
+export function watchLabel(watching) {
+  return watching ? draftLiveCopy.watching : draftLiveCopy.watch;
+}
+
+export function nextOwnerLine(name) {
+  return name ? `${draftLiveCopy.nextPrefix} ${name}` : "";
+}
+
+export function poolRowIsPrimary({ playerId, primaryRowId, canDraft = false } = {}) {
+  const id = String(playerId || "");
+  return Boolean(canDraft && id && id === String(primaryRowId || ""));
+}
+
+/** Queue lives on the pool rail during empty nomination — do not keep that tab selected. */
+export function activityDockTab(tab, { poolStage = false } = {}) {
+  if (poolStage && tab === "queue") return "";
+  return tab || "";
+}
 
 export function soldPriceLine({ amount, fair } = {}) {
   const price = Number(amount);
