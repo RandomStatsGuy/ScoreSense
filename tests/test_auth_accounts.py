@@ -85,11 +85,17 @@ def test_password_reset_flow(auth_db, mock_send):
     register_native_user("reset@example.com", "oldpassword1", "R", accept_terms=True)
     row = user_store.get_user_by_email("reset@example.com")
     user_store.mark_email_verified(row["id"])
+    old_jwt = create_access_token(row, auth_type="native")
     token = user_store.create_email_token(row["id"], "reset", hours=1)
     updated = reset_password_with_token(token, "newpassword2")
     assert updated is not None
     user = authenticate_native_user("reset@example.com", "newpassword2")
     assert user["email"] == "reset@example.com"
+    from app.auth import native_session_current
+
+    assert native_session_current(decode_access_token(old_jwt)) is False
+    fresh = create_access_token(user, auth_type="native")
+    assert native_session_current(decode_access_token(fresh)) is True
 
 
 def test_native_jwt_sub_is_stable(auth_db, mock_send):

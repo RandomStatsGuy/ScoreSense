@@ -64,6 +64,7 @@ def test_google_same_sub_returns_same_account(auth_db):
 def test_google_links_existing_email_account(auth_db, monkeypatch):
     monkeypatch.setattr("app.auth.send_verification_email", lambda *a, **k: True)
     native = register_native_user("caleb@gmail.com", "password12", "Caleb", accept_terms=True)
+    old_token = create_access_token(native, auth_type="native")
     linked = upsert_google_user(_identity())
     assert linked["id"] == native["id"]
     row = user_store.get_user_by_email("caleb@gmail.com")
@@ -73,6 +74,12 @@ def test_google_links_existing_email_account(auth_db, monkeypatch):
         authenticate_native_user("caleb@gmail.com", "password12")
     assert exc.value.status_code == 401
     assert "Google" in exc.value.detail
+    from app.auth import decode_access_token, native_session_current
+
+    old_payload = decode_access_token(old_token)
+    assert native_session_current(old_payload) is False
+    fresh = create_access_token(row, auth_type="native")
+    assert native_session_current(decode_access_token(fresh)) is True
 
 
 def test_google_keeps_password_on_verified_email_account(auth_db, monkeypatch):
