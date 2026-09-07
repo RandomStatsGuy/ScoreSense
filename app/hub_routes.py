@@ -118,7 +118,12 @@ from src.draft_hub.contracts import (
     build_contract_from_roster_edit,
 )
 from src.draft_hub.contract_typing import CONTRACT_TYPES, apply_type_to_contract
-from src.draft_hub.hub_context import list_roster_for_context, resolve_hub_context, roster_scope
+from src.draft_hub.hub_context import (
+    list_roster_for_context,
+    resolve_hub_context,
+    resolve_hub_context_for_league,
+    roster_scope,
+)
 from src.draft_hub.fa_market import (
     ensure_bidding_window,
     list_market,
@@ -306,13 +311,12 @@ def _assert_league_commissioner(league_id: str, sub: str) -> dict[str, Any]:
 
 
 def _ctx_for_league(sub: str, league_id: str) -> dict[str, Any]:
-    """Verify membership and auto-switch active league when URL targets a joined league."""
+    """Verify membership for this room. Does not write saved Fantasy focus."""
     _assert_league_access(league_id, sub)
-    ctx = _ctx(sub)
-    if ctx.get("league_id") != league_id:
-        storage.set_hub_focus(sub, league_id=league_id)
-        ctx = _ctx(sub)
-    return ctx
+    scoped = resolve_hub_context_for_league(sub, league_id)
+    if not scoped:
+        raise HTTPException(status_code=403, detail="Not a member of this league")
+    return scoped
 
 
 def _value_overlay_inputs(

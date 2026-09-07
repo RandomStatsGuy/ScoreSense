@@ -101,47 +101,77 @@ def filter_team_sleeper_roster(
     return filtered
 
 
+def _hub_focus_label(ws: dict[str, Any], membership) -> str:
+    focus = ws.get("active_league_id")
+    if focus == storage.HUB_FOCUS_SOLO:
+        return "solo"
+    return "league" if membership else "auto"
+
+
+def _context_from_league_team(
+    user_sub: str,
+    ws: dict[str, Any],
+    league: dict[str, Any],
+    team: dict[str, Any],
+    *,
+    hub_focus: str,
+) -> dict[str, Any]:
+    league_ws_id = storage.roster_workspace_for_league(league)
+    rules = LeagueRules.model_validate(league["rules"])
+    is_primary = str(league["commissioner_sub"]) == str(user_sub)
+    is_staff = is_primary or bool(team.get("is_commissioner"))
+    from src.draft_hub.owner_display import attach_owner_names_to_teams
+
+    attach_owner_names_to_teams(str(league["id"]), [team], season_year=league.get("season"))
+    return _with_permissions({
+        "mode": "league",
+        "hub_focus": hub_focus,
+        "workspace_id": league_ws_id,
+        "personal_workspace_id": ws["id"],
+        "league_id": league["id"],
+        "league_name": league["name"],
+        "league_room_code": league["room_code"],
+        "league_status": league["status"],
+        "team_count": int(league.get("team_count") or 12),
+        "team_id": team["id"],
+        "team_name": team["name"],
+        "owner_name": team.get("owner_name"),
+        "is_commissioner": is_staff,
+        "is_primary_commissioner": is_primary,
+        "lock_team_claims": bool(league.get("lock_team_claims", True)),
+        "draft_completed": bool(league.get("draft_completed", False)),
+        "draft_starts_at": league.get("draft_starts_at"),
+        "draft_timezone": league.get("draft_timezone"),
+        "rules": rules.model_dump(),
+        "season": int(league["season"]),
+        "sleeper_league_id": league.get("sleeper_league_id"),
+        "sleeper_roster_id": team.get("sleeper_roster_id"),
+        "sleeper_team_name": team.get("sleeper_team_name"),
+        "atmosphere": (ws.get("prefs") or {}).get("atmosphere") or "none",
+        "team_identity": team.get("identity") or {},
+        "test_mode": bool(league.get("test_mode")),
+    })
+
+
+def resolve_hub_context_for_league(user_sub: str, league_id: str) -> dict[str, Any] | None:
+    """Auth context for one joined league. Does not write saved Fantasy focus."""
+    membership = storage.get_league_membership(user_sub, str(league_id))
+    if not membership:
+        return None
+    league, team = membership
+    ws = storage.get_or_create_workspace(user_sub)
+    focus = ws.get("active_league_id")
+    hub_focus = "league" if focus == str(league["id"]) else _hub_focus_label(ws, True)
+    return _context_from_league_team(user_sub, ws, league, team, hub_focus=hub_focus)
+
+
 def resolve_hub_context(user_sub: str) -> dict[str, Any]:
     ws = storage.get_or_create_workspace(user_sub)
     membership = storage.resolve_league_membership(user_sub)
-    focus = ws.get("active_league_id")
-    hub_focus = "solo" if focus == storage.HUB_FOCUS_SOLO else ("league" if membership else "auto")
+    hub_focus = _hub_focus_label(ws, membership)
     if membership:
         league, team = membership
-        league_ws_id = storage.roster_workspace_for_league(league)
-        rules = LeagueRules.model_validate(league["rules"])
-        is_primary = str(league["commissioner_sub"]) == str(user_sub)
-        is_staff = is_primary or bool(team.get("is_commissioner"))
-        from src.draft_hub.owner_display import attach_owner_names_to_teams
-
-        attach_owner_names_to_teams(str(league["id"]), [team], season_year=league.get("season"))
-        return _with_permissions({
-            "mode": "league",
-            "hub_focus": hub_focus,
-            "workspace_id": league_ws_id,
-            "personal_workspace_id": ws["id"],
-            "league_id": league["id"],
-            "league_name": league["name"],
-            "league_room_code": league["room_code"],
-            "league_status": league["status"],
-            "team_count": int(league.get("team_count") or 12),
-            "team_id": team["id"],
-            "team_name": team["name"],
-            "owner_name": team.get("owner_name"),
-            "is_commissioner": is_staff,
-            "is_primary_commissioner": is_primary,
-            "lock_team_claims": bool(league.get("lock_team_claims", True)),
-            "draft_completed": bool(league.get("draft_completed", False)),
-            "draft_starts_at": league.get("draft_starts_at"),
-            "draft_timezone": league.get("draft_timezone"),
-            "rules": rules.model_dump(),
-            "season": int(league["season"]),
-            "sleeper_league_id": league.get("sleeper_league_id"),
-            "sleeper_roster_id": team.get("sleeper_roster_id"),
-            "sleeper_team_name": team.get("sleeper_team_name"),
-            "atmosphere": (ws.get("prefs") or {}).get("atmosphere") or "none",
-            "team_identity": team.get("identity") or {},
-        })
+        return _context_from_league_team(user_sub, ws, league, team, hub_focus=hub_focus)
     rules = LeagueRules.model_validate(ws["rules"])
     link = storage.sleeper_link_from_workspace(ws)
     return _with_permissions({
@@ -157,6 +187,7 @@ def resolve_hub_context(user_sub: str) -> dict[str, Any]:
         "season": int(ws["season"]),
         "atmosphere": (ws.get("prefs") or {}).get("atmosphere") or "none",
         "team_identity": {},
+        "test_mode": False,
         **link,
     })
 

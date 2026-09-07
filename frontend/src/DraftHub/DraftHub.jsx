@@ -38,7 +38,13 @@ import {
   valueSheetRequestKey,
 } from "./hubDataCache";
 import { effectiveHubContext } from "./hubContext";
-import { fetchHubMemberships, setHubFocus, effectiveMemberships } from "./hubLeagues";
+import {
+  fetchHubMemberships,
+  focusedLeagueId,
+  setHubFocus,
+  effectiveMemberships,
+  shouldApplyHubContext,
+} from "./hubLeagues";
 import { isPickDraft } from "./draftEntryStatus";
 import { loadWatchIds, toggleWatchId } from "./draftLiveConsole";
 import AtmosphereLayer from "./AtmosphereLayer";
@@ -104,14 +110,21 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   useEffect(() => {
     if (subView !== "room") setLiveDraftActive(false);
   }, [subView]);
+  useEffect(() => {
+    if (subView === "room") return;
+    const focused = focusedLeagueId(hubContext);
+    if (focused) setLeagueId(focused);
+  }, [subView, hubContext]);
   const toggleWatch = useCallback((row) => {
     if (!row?.player_id) return;
     setWatchIds(toggleWatchId(watchLeagueKey, row.player_id));
   }, [watchLeagueKey]);
 
   const setSubView = onSubViewChange;
-  const applyHubContext = useCallback((ctx) => {
-    if (!ctx || typeof ctx !== "object") return;
+  const hubContextRef = React.useRef(hubContext);
+  hubContextRef.current = hubContext;
+  const applyHubContext = useCallback((ctx, opts = {}) => {
+    if (!shouldApplyHubContext(ctx, hubContextRef.current, opts)) return;
     setHubContext(ctx);
     onHubContextChange?.(ctx);
   }, [onHubContextChange]);
@@ -340,8 +353,14 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       if (signal?.aborted) return;
       const ctx = ws.hub_context || null;
       setWorkspace({ ...ws, hub_context: ctx });
-      applyHubContext(ctx);
-      setLeagueId((prev) => prev || ctx?.league_id || "");
+      applyHubContext(ctx, { force: true });
+      setLeagueId((prev) => {
+        if (subViewRef.current === "room" && prev && prev !== ctx?.league_id) {
+          return prev;
+        }
+        if (ctx?.test_mode) return prev;
+        return ctx?.league_id || "";
+      });
       const merged = effectiveMemberships(ws.memberships || [], ctx);
       if (!signal?.aborted) setMemberships(merged);
       if (presetsRes?.ok) {
@@ -452,8 +471,10 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
 
   const onSleeperLinked = useCallback(async (payload) => {
     if (payload?.hub_context) {
-      applyHubContext(payload.hub_context);
-      if (payload.hub_context.league_id) setLeagueId(payload.hub_context.league_id);
+      applyHubContext(payload.hub_context, { force: !payload.hub_context.test_mode });
+      if (payload.hub_context.league_id && !payload.hub_context.test_mode) {
+        setLeagueId(payload.hub_context.league_id);
+      }
     }
     const [wsRes, ctxRes] = await Promise.all([
       loadWorkspace(),
@@ -461,7 +482,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     ]);
     const ctx = ctxRes?.mode ? ctxRes : (wsRes.hub_context || payload?.hub_context || null);
     setWorkspace({ ...wsRes, hub_context: ctx });
-    if (ctx) applyHubContext(ctx);
+    if (ctx) applyHubContext(ctx, { force: !ctx.test_mode });
     const rows = await refreshRoster();
     const cap = await loadCapSheet();
     setCapSheet(cap);
@@ -543,9 +564,11 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   }, [refreshValueSheet, workspace?.rules, workspace?.season]);
 
   const onLeagueChanged = useCallback(async (payload) => {
-    if (payload?.hub_context) applyHubContext(payload.hub_context);
-    if (payload?.id) setLeagueId(payload.id);
-    if (payload?.league_id) setLeagueId(payload.league_id);
+    if (payload?.hub_context) applyHubContext(payload.hub_context, { force: !payload.hub_context.test_mode });
+    if (!payload?.test_mode && !payload?.hub_context?.test_mode) {
+      if (payload?.id) setLeagueId(payload.id);
+      if (payload?.league_id) setLeagueId(payload.league_id);
+    }
     clearHubDataCache();
     setCapSheet(null);
     setValueSheet(null);
@@ -562,7 +585,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       setCapSheet(null);
       setValueSheet(null);
       if (data.hub_context) {
-        applyHubContext(data.hub_context);
+        applyHubContext(data.hub_context, { force: true });
         setLeagueId(data.hub_context.league_id || "");
       }
       await refreshAll();
@@ -958,9 +981,9 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         </Suspense>
       )}
 
-      {!demoMode && effectiveCtx?.mode === "league" && (
+      {!demoMode && focusedLeagueId(effectiveCtx) && (
         <FantasyChatDock
-          leagueId={leagueId || effectiveCtx?.league_id || ""}
+          leagueId={focusedLeagueId(effectiveCtx)}
           hubContext={effectiveCtx}
           hidden={hideFantasyChatDock({
             hidden: !active || subView === "room" || createLeagueOpen,

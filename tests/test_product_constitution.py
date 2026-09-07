@@ -127,6 +127,7 @@ def test_constitution_covers_auction_leftover() -> None:
     assert "nomination queue" in core_rule
     assert "Rules Save writes the league on the form" in core_rule
     assert "last destination" in core_rule
+    assert "Practice rooms never become strip focus" in core_rule
 
 
 def test_constitution_covers_phone_chrome() -> None:
@@ -135,6 +136,7 @@ def test_constitution_covers_phone_chrome() -> None:
     craft = _read(".cursor", "rules", "frontend-craft.mdc")
     assert "last destination you used in that area" in product
     assert "Rules Save writes the league on the form" in product
+    assert "Practice rooms never become the strip focus" in product
     assert "On phone, the header is the current destination" in product
     assert "one-row league strip" in product
     assert "League-strip option menus" in product

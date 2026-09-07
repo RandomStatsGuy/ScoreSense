@@ -74,3 +74,19 @@ def test_workspace_put_rejects_non_commissioner_target(hub_db):
         assert storage.get_league(alpha["id"])["name"] == "Alpha"
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_freshness_read_does_not_steal_focus(hub_db):
+    sub = "freshness-focus"
+    rules = load_preset("salary_cap_auction_v1")
+    live = storage.create_league(sub, "My Auction", 2026, rules)
+    other = storage.create_league(sub, "Test League", 2026, LeagueRules.model_validate(rules.model_dump()))
+    storage.set_hub_focus(sub, league_id=live["id"])
+    client = _client(sub)
+    try:
+        res = client.get(f"/api/hub/league/{other['id']}/freshness")
+        assert res.status_code == 200, res.text
+        assert resolve_hub_context(sub)["league_id"] == live["id"]
+        assert storage.get_hub_focus_league_id(sub) == live["id"]
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)

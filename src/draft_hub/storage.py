@@ -2321,11 +2321,17 @@ def get_hub_focus_league_id(user_sub: str) -> str | None:
 
 
 def set_hub_focus(user_sub: str, *, league_id: str | None = None, solo: bool = False) -> str | None:
-    """Persist which league (or solo prep) the user is working in."""
+    """Persist which league (or solo prep) the user is working in.
+
+    Practice / test_mode rooms never become Fantasy focus.
+    """
     ws = get_or_create_workspace(user_sub)
     if solo:
         focus = HUB_FOCUS_SOLO
     elif league_id:
+        target = get_league(str(league_id))
+        if target and target.get("test_mode"):
+            return ws.get("active_league_id")
         focus = str(league_id)
     else:
         focus = None
