@@ -1608,6 +1608,7 @@ export default function DraftRoom({
               events={pickEvents}
               draftType={roomState?.draft_type || rules?.draft_type}
               currentOverall={pickClock?.overall}
+              draftCompleted
               viewerTeamId={myTeamId}
               rules={rules}
               mediaByPlayerId={mediaByPlayerId}
@@ -1837,6 +1838,7 @@ export default function DraftRoom({
                 events={pickEvents}
                 draftType={roomState?.draft_type || rules?.draft_type}
                 currentOverall={pickClock?.overall}
+                draftCompleted={draftCompleted}
                 viewerTeamId={myTeamId}
                 rules={rules}
                 mediaByPlayerId={mediaByPlayerId}

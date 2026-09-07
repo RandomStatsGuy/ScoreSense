@@ -101,6 +101,7 @@ export default function SnakeDraftBoard({
   events,
   draftType,
   currentOverall,
+  draftCompleted = false,
   viewerTeamId,
   rules,
   mediaByPlayerId,
@@ -117,11 +118,12 @@ export default function SnakeDraftBoard({
         events,
         draftType: type,
         currentOverall,
+        draftCompleted,
         viewerTeamId,
         rules,
       })
       : { rows: [], columns: [], totalRounds: 0, teamCount: 0, currentRound: 1, currentOverall: 0, nextPick: null, snake: false }),
-    [enabled, nominationOrder, teams, events, type, currentOverall, viewerTeamId, rules],
+    [enabled, nominationOrder, teams, events, type, currentOverall, draftCompleted, viewerTeamId, rules],
   );
   const [focusRound, setFocusRound] = useState(board.currentRound || 1);
   const [fullBoard, setFullBoard] = useState(false);

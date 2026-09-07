@@ -375,3 +375,16 @@ export function presetRulesFromList(preset) {
   if (!preset?.rules || typeof preset.rules !== "object") return null;
   return mergeLeagueRules(preset.rules);
 }
+
+/** Apply a Rules save only if the form is still bound to the league that was written. */
+export function shouldApplyWorkspaceSave({
+  boundLeagueId = null,
+  currentLeagueId = null,
+  savedLeagueId = null,
+} = {}) {
+  const bound = boundLeagueId ? String(boundLeagueId) : "";
+  if (!bound) return true;
+  if (savedLeagueId && String(savedLeagueId) !== bound) return false;
+  if (currentLeagueId && String(currentLeagueId) !== bound) return false;
+  return true;
+}

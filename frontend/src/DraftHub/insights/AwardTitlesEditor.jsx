@@ -6,6 +6,7 @@ import { awardCatalogFromRules, INSIGHTS_COPY } from "./insightsPresentation";
 export default function AwardTitlesEditor({
   catalog,
   currentRules,
+  leagueId = "",
   onSaved,
 }) {
   const rows = useMemo(
@@ -41,11 +42,12 @@ export default function AwardTitlesEditor({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           rules: { ...(currentRules || {}), insight_award_titles },
+          ...(leagueId ? { league_id: leagueId } : {}),
         }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
-      onSaved?.(data);
+      onSaved?.(data, { boundLeagueId: leagueId || null });
       setStatus(copy.saved);
     } catch (error) {
       setStatus(error.message || copy.failed);

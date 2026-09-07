@@ -19,6 +19,7 @@ import { loadAura, readAura, storageKey, vibeScore } from "./vibeAura";
 import {
   buildStarterSlotPlan,
   fillStarterSlots,
+  emptySlotAction,
   canEditHubLineup,
   decisionSwapIds,
   formatDraftNightShort,
@@ -229,6 +230,33 @@ export default function WeeklyCommandCenter({
     return map;
   }, [auraById, bench, starters]);
 
+  const applyFill = useCallback(async (slot, benchPlayer) => {
+    if (!leagueId || !slot?.slot || !benchPlayer?.player_id) return;
+    setLineupBusy(true);
+    setLineupError("");
+    try {
+      const starters = slots
+        .filter((row) => row.player?.player_id)
+        .map((row) => ({ player_id: row.player.player_id, slot: row.slot }));
+      starters.push({ player_id: benchPlayer.player_id, slot: slot.slot });
+      const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/lineup`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          starters,
+          week: weekOverride !== "" ? Number(weekOverride) : (meta.week ?? undefined),
+        }),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      setSelectedBenchId("");
+      await load();
+    } catch (e) {
+      setLineupError(connectionErrorMessage(e));
+    } finally {
+      setLineupBusy(false);
+    }
+  }, [leagueId, load, meta.week, slots, weekOverride]);
+
   const applySwap = useCallback(async (starterId, benchId) => {
     if (!leagueId || !starterId || !benchId) return;
     setLineupBusy(true);
@@ -370,6 +398,15 @@ export default function WeeklyCommandCenter({
       }
     },
     onNavigate,
+    onFillSlot: (slot) => {
+      const action = emptySlotAction(slot, bench, hubContext?.rules || data?.hub_context?.rules);
+      if (action.kind === "bench" && action.player) {
+        if (canEdit) applyFill(slot, action.player);
+        else setSelectedBenchId(String(action.player.player_id));
+        return;
+      }
+      onNavigate?.("available", { pos: action.pos });
+    },
     onApplyDecision: (decision) => {
       const ids = decisionSwapIds(decision);
       if (ids) applySwap(ids.starter_player_id, ids.bench_player_id);

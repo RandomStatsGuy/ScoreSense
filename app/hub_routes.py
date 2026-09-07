@@ -118,7 +118,12 @@ from src.draft_hub.contracts import (
     build_contract_from_roster_edit,
 )
 from src.draft_hub.contract_typing import CONTRACT_TYPES, apply_type_to_contract
-from src.draft_hub.hub_context import list_roster_for_context, resolve_hub_context, roster_scope
+from src.draft_hub.hub_context import (
+    list_roster_for_context,
+    resolve_hub_context,
+    resolve_hub_context_for_league,
+    roster_scope,
+)
 from src.draft_hub.fa_market import (
     ensure_bidding_window,
     list_market,
@@ -306,13 +311,12 @@ def _assert_league_commissioner(league_id: str, sub: str) -> dict[str, Any]:
 
 
 def _ctx_for_league(sub: str, league_id: str) -> dict[str, Any]:
-    """Verify membership and auto-switch active league when URL targets a joined league."""
+    """Verify membership for this room. Does not write saved Fantasy focus."""
     _assert_league_access(league_id, sub)
-    ctx = _ctx(sub)
-    if ctx.get("league_id") != league_id:
-        storage.set_hub_focus(sub, league_id=league_id)
-        ctx = _ctx(sub)
-    return ctx
+    scoped = resolve_hub_context_for_league(sub, league_id)
+    if not scoped:
+        raise HTTPException(status_code=403, detail="Not a member of this league")
+    return scoped
 
 
 def _value_overlay_inputs(
@@ -411,39 +415,69 @@ def hub_get_workspace(response: Response, _user=Depends(require_hub_user)) -> di
     return ws
 
 
+def _apply_league_workspace_writes(
+    league_id: str,
+    body: WorkspaceUpdate,
+    rules_to_apply,
+) -> None:
+    if body.season is not None:
+        storage.update_league_season(league_id, int(body.season))
+    if body.name is not None:
+        storage.update_league_name(league_id, body.name)
+    if rules_to_apply:
+        storage.update_league_rules(league_id, rules_to_apply)
+        _clear_insights_response_cache(league_id)
+        try:
+            from src.draft_hub.insights_cache import invalidate_cap_cache
+
+            invalidate_cap_cache(league_id)
+        except Exception:
+            pass
+
+
 @router.put("/workspace")
 def hub_put_workspace(body: WorkspaceUpdate, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
     ctx = _ctx(sub)
-    if ctx.get("mode") == "league" and (body.rules or body.preset_id or body.season is not None or body.name):
-        if not ctx.get("is_commissioner"):
-            raise HTTPException(status_code=403, detail="Only the league commissioner can change league settings")
-    rules = body.rules
-    ws = storage.update_workspace(
-        sub,
-        name=body.name,
-        season=body.season,
-        rules=rules,
-        preset_id=body.preset_id,
+    target_league_id = str(body.league_id or "").strip() or None
+    writing_settings = bool(
+        body.rules or body.preset_id or body.season is not None or body.name
     )
-    rules_to_apply = rules
-    if rules_to_apply is None and ws.get("rules"):
-        rules_to_apply = LeagueRules.model_validate(ws["rules"])
-    if ctx.get("mode") == "league" and ctx.get("is_commissioner") and ctx.get("league_id"):
-        league_id = str(ctx["league_id"])
-        if body.season is not None:
-            storage.update_league_season(league_id, int(body.season))
-        if body.name is not None:
-            storage.update_league_name(league_id, body.name)
-        if rules_to_apply:
-            storage.update_league_rules(league_id, rules_to_apply)
-            _clear_insights_response_cache(league_id)
-            try:
-                from src.draft_hub.insights_cache import invalidate_cap_cache
+    if target_league_id:
+        _assert_league_commissioner(target_league_id, sub)
+        write_league_id = target_league_id
+    elif ctx.get("mode") == "league" and writing_settings:
+        if not ctx.get("is_commissioner"):
+            raise HTTPException(
+                status_code=403,
+                detail="Only the league commissioner can change league settings",
+            )
+        write_league_id = str(ctx["league_id"]) if ctx.get("league_id") else None
+    else:
+        write_league_id = None
 
-                invalidate_cap_cache(league_id)
-            except Exception:
-                pass
+    focus_id = str(ctx.get("league_id") or "") or None
+    update_personal = not write_league_id or write_league_id == focus_id
+    rules = body.rules
+    if body.preset_id:
+        rules = load_preset(body.preset_id)
+    if update_personal:
+        ws = storage.update_workspace(
+            sub,
+            name=body.name,
+            season=body.season,
+            rules=rules,
+            preset_id=body.preset_id,
+        )
+    else:
+        ws = storage.get_or_create_workspace(sub)
+
+    rules_to_apply = rules
+    if rules_to_apply is None and update_personal and ws.get("rules"):
+        rules_to_apply = LeagueRules.model_validate(ws["rules"])
+    if write_league_id and writing_settings:
+        _apply_league_workspace_writes(write_league_id, body, rules_to_apply)
+
     ctx = _ctx(sub)
     if ctx.get("mode") == "league":
         team = storage.get_team(str(ctx["team_id"])) if ctx.get("team_id") else None
@@ -461,6 +495,15 @@ def hub_put_workspace(body: WorkspaceUpdate, _user=Depends(require_hub_user)) ->
         }
     else:
         ws["hub_context"] = ctx
+    if write_league_id:
+        saved_league = storage.get_league(write_league_id) or {}
+        ws["saved_league_id"] = write_league_id
+        ws["saved"] = {
+            "league_id": write_league_id,
+            "name": saved_league.get("name"),
+            "season": saved_league.get("season"),
+            "rules": saved_league.get("rules"),
+        }
     return ws
 
 

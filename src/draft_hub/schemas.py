@@ -64,6 +64,8 @@ class WorkspaceUpdate(BaseModel):
     season: Optional[int] = None
     rules: Optional[LeagueRules] = None
     preset_id: Optional[str] = None
+    # Bind league writes to this id. Do not fall back to hub focus when set.
+    league_id: Optional[str] = None
 
 
 class RosterAddRequest(BaseModel):

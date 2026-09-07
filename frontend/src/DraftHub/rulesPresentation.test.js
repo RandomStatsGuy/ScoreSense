@@ -10,6 +10,7 @@ import {
   rulesFormWarnings,
   rulesSaveDisabledReason,
   rulesSummary,
+  shouldApplyWorkspaceSave,
   snapshotRulesForm,
   templateConfirmMessage,
   templateImpact,
@@ -152,4 +153,23 @@ test("template impact names format, cap, and roster changes and does not save", 
   assert.match(message, /Snake draft/);
   assert.ok(presetRulesFromList({ rules: snake }));
   assert.equal(presetRulesFromList({ label: "Snake draft" }), null);
+});
+
+test("late Rules save does not apply when the form or header has moved leagues", () => {
+  assert.equal(shouldApplyWorkspaceSave({}), true);
+  assert.equal(shouldApplyWorkspaceSave({
+    boundLeagueId: "alpha",
+    currentLeagueId: "alpha",
+    savedLeagueId: "alpha",
+  }), true);
+  assert.equal(shouldApplyWorkspaceSave({
+    boundLeagueId: "alpha",
+    currentLeagueId: "beta",
+    savedLeagueId: "alpha",
+  }), false);
+  assert.equal(shouldApplyWorkspaceSave({
+    boundLeagueId: "alpha",
+    currentLeagueId: "alpha",
+    savedLeagueId: "beta",
+  }), false);
 });

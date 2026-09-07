@@ -7,6 +7,7 @@ Sleeper as the scoring host.
 
 from __future__ import annotations
 
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
 
@@ -22,7 +23,7 @@ from src.draft_hub.league_live_scoring import (
     starting_slots_from_rules,
     week_picker_meta,
 )
-from src.draft_hub.rules_engine import normalize_position
+from src.draft_hub.rules_engine import normalize_position, roster_limits
 from src.draft_hub.schemas import LeagueRules
 
 ACTIVE_ROSTER = "active"
@@ -220,6 +221,20 @@ def _flex_eligible(rules: LeagueRules) -> frozenset[str]:
     return frozenset(normalize_position(p) for p in eligible)
 
 
+def _starter_capacity(rules: LeagueRules) -> dict[str, int]:
+    out = {
+        key.upper(): int(lim.get("starter") or 0)
+        for key, lim in roster_limits(rules).items()
+    }
+    roster = rules.roster
+    flex = getattr(roster, "flex", None) if hasattr(roster, "flex") else (roster or {}).get("flex")
+    if flex:
+        starter_val = getattr(flex, "starter", None) if hasattr(flex, "starter") else flex.get("starter")
+        if starter_val is not None:
+            out["FLEX"] = int(starter_val)
+    return out
+
+
 def slot_accepts_position(slot: str, position: str, rules: LeagueRules) -> bool:
     pos = normalize_position(position)
     label = str(slot or "").upper()
@@ -415,6 +430,7 @@ def set_team_starters(
     existing_by_id = {row["player_id"]: row for row in existing}
 
     seen: set[str] = set()
+    seen_slots: set[str] = set()
     starters: list[dict[str, Any]] = []
     for item in starter_slots:
         pid = str(item.get("player_id") or "").strip()
@@ -423,6 +439,8 @@ def set_team_starters(
             raise LineupError("Each starter needs a player and a slot")
         if pid in seen:
             raise LineupError("A player cannot fill two starter slots")
+        if slot in seen_slots:
+            raise LineupError("Each starter slot can only be filled once")
         card = cards.get(pid)
         if not card:
             raise LineupError("That player is not on this roster")
@@ -434,6 +452,16 @@ def set_team_starters(
                 raise LineupError("That player's game has started")
         starters.append({**card, "slot": slot, "lineup_role": "starter"})
         seen.add(pid)
+        seen_slots.add(slot)
+
+    counts = Counter(
+        str(row["slot"]).upper().rstrip("0123456789") for row in starters
+    )
+    capacity = _starter_capacity(rules)
+    for base, n in counts.items():
+        max_n = capacity.get(base)
+        if max_n is not None and n > max_n:
+            raise LineupError(f"Lineup allows {max_n} {base} starter(s)")
 
     bench = []
     for pid, card in cards.items():

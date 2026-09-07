@@ -82,6 +82,7 @@ import {
 import { interceptAppNav } from "./appNavLink";
 import { pageTitleForPath } from "./analytics";
 import { buildAppPath } from "./routes";
+import { destinationForSection } from "./lastDestinations";
 import { apiFetch } from "./auth";
 import { isAbortError } from "./fetchAbort";
 import {
@@ -128,6 +129,7 @@ export default function App() {
     toolsTab,
     hubSubView,
     insightTab,
+    officeTab,
     adminTab,
     filtersFromUrl,
     goToSection,
@@ -1056,6 +1058,41 @@ export default function App() {
     goToSection("hub");
   }, [goToSection]);
 
+  const pathForSection = useCallback((id) => buildAppPath({
+    view: id,
+    ...destinationForSection(id, {
+      current: {
+        view,
+        hubSubView,
+        projectionsTab,
+        seasonMode,
+        toolsTab,
+        officeTab,
+        insightTab,
+      },
+    }),
+  }), [hubSubView, insightTab, officeTab, projectionsTab, seasonMode, toolsTab, view]);
+
+  useEffect(() => {
+    const onReopen = (event) => {
+      const section = event.detail?.section;
+      if (section !== view) return;
+      const phone = typeof window.matchMedia === "function"
+        && window.matchMedia("(max-width: 899px)").matches;
+      if (phone) {
+        setMobileDestOpen(true);
+        document.querySelector(".app-header-mobile-title-btn")?.scrollIntoView({
+          block: "nearest",
+        });
+        return;
+      }
+      document.querySelector(".hub-subnav-row, .app-header-nav, .app-section-subnav")
+        ?.scrollIntoView({ block: "nearest" });
+    };
+    window.addEventListener("scoresense-reopen-destination", onReopen);
+    return () => window.removeEventListener("scoresense-reopen-destination", onReopen);
+  }, [view]);
+
   useEffect(() => {
     if (view === "hub") setHubMounted(true);
   }, [view]);
@@ -1352,13 +1389,7 @@ export default function App() {
       section={view}
       onSectionChange={goToSection}
       onMoreOpen={() => setMobileMenuOpen(true)}
-      hrefForSection={(id) => buildAppPath({
-        view: id,
-        hubSubView,
-        projectionsTab,
-        seasonMode,
-        toolsTab,
-      })}
+      hrefForSection={pathForSection}
     >
         <a className="app-skip-link" href="#main-content">{SKIP_TO_CONTENT}</a>
         <InviteAccept
@@ -1414,13 +1445,7 @@ export default function App() {
                 {APP_SECTIONS.map((item) => (
                   <a
                     key={item.id}
-                    href={buildAppPath({
-                      view: item.id,
-                      hubSubView,
-                      projectionsTab,
-                      seasonMode,
-                      toolsTab,
-                    })}
+                    href={pathForSection(item.id)}
                     className={`tab view-tab ${view === item.id ? "active" : ""}`}
                     aria-current={view === item.id ? "page" : undefined}
                     onClick={(event) => interceptAppNav(event, () => goToSection(item.id))}
