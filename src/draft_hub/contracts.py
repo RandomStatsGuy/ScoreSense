@@ -572,8 +572,8 @@ def apply_rookie_extension_command(
         if pending_years == years:
             return contract, True
         raise ValueError(
-            f"Extension already queued for {pending_years} year(s) — "
-            "cannot change duration after submission."
+            f"Extension already queued for {pending_years} year(s). "
+            "Undo it first to pick a different term."
         )
 
     ok, msg = can_manager_rookie_extend(row, rules, draft_completed=draft_completed)
@@ -582,6 +582,34 @@ def apply_rookie_extension_command(
 
     queued = queue_pending_extension(row, rules, extension_years=years)
     return queued, False
+
+
+def clear_pending_extension(contract: dict[str, Any] | None) -> dict[str, Any]:
+    """Drop a queued extension. The current deal is unchanged."""
+    existing = dict(contract or {})
+    existing.pop(PENDING_EXTENSION_KEY, None)
+    return existing
+
+
+def cancel_rookie_extension_command(
+    row: dict[str, Any],
+    rules: LeagueRules,
+    *,
+    draft_completed: bool = False,
+) -> dict[str, Any]:
+    """Remove a queued extension so the current deal can expire or be queued again.
+
+    ``rules`` is unused — keep the signature aligned with the queue command.
+    """
+    _ = rules
+    if not extension_window_open(draft_completed=draft_completed):
+        raise ValueError(
+            "Contract extensions are only available before the draft is marked complete."
+        )
+    contract = dict(row.get("contract") or {})
+    if not has_pending_extension(contract):
+        raise ValueError("No extension is queued on this contract.")
+    return clear_pending_extension(contract)
 
 
 def swap_contracts(row_a: dict[str, Any], row_b: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:

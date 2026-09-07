@@ -31,6 +31,8 @@ import {
   rosterPositionNeeds,
   CAP_DRAFT_COPY,
   CAP_EXTEND_COPY,
+  queuedExtensionsSummary,
+  queuedYearsLine,
   CAP_FIGURE_COPY,
   CAP_MODEL_COPY,
   CAP_MOVE_COPY,
@@ -41,9 +43,11 @@ import { buildCapStatusCard } from "./capStatusCard";
 import { contractDeadCapStory, fmtSal, leagueStepUp } from "./rosterFormat";
 import ContractHistoryLink from "./ContractHistoryLink";
 import {
+  cancelRookieExtend,
   hasPendingExtension,
   postRookieExtend,
   previewRookieExtendStartSalary,
+  rookieExtendCancelSuccessMessage,
   rookieExtendSuccessMessage,
 } from "./rookieExtend";
 
@@ -132,6 +136,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
   const [msg, setMsg] = useState("");
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
   const [cutBusyId, setCutBusyId] = useState("");
+  const [extendBusyId, setExtendBusyId] = useState("");
 
   const summary = capSheet?.summary;
   const errors = capSheet?.validation_errors || [];
@@ -205,6 +210,19 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
     ),
     [roster],
   );
+  const queuedExtensions = useMemo(() => {
+    const fromSummary = preDraft?.queued_extensions;
+    if (Array.isArray(fromSummary) && fromSummary.length) return fromSummary;
+    return (roster || [])
+      .filter((r) => hasPendingExtension(r))
+      .map((r) => ({
+        player_id: r.player_id,
+        player_name: r.player_name,
+        position: r.position,
+        salary: r.salary,
+        queued_years: r.contract?.pending_extension?.years,
+      }));
+  }, [preDraft?.queued_extensions, roster]);
 
   const expiryBadge = (playerId) => {
     const pid = String(playerId);
@@ -232,6 +250,21 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
       <p><strong>Cut refund</strong> — {cutPct}% back; rest is dead cap.</p>
     </>
   );
+
+  const undoQueuedExtension = async (playerId) => {
+    if (!playerId) return;
+    setExtendBusyId(String(playerId));
+    setMsg("");
+    try {
+      await cancelRookieExtend(playerId);
+      setMsg(rookieExtendCancelSuccessMessage());
+      onChanged?.();
+    } catch (e) {
+      setMsg(e.message || "Could not undo the extension");
+    } finally {
+      setExtendBusyId("");
+    }
+  };
 
   const undoCut = async (playerId) => {
     if (!playerId) return;
@@ -527,7 +560,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
             extendableRoster.length > 0
               ? `Eligible final-year contracts — pick 1–${maxExtensionYears} years. Start salary is current + $${stepUp} (server-calculated).`
               : pendingExtendIds.size > 0
-                ? "Extension(s) already queued — they activate when draft is marked complete."
+                ? CAP_EXTEND_COPY.queuedHint
                 : "No rookies eligible to extend right now."
           }
         >
@@ -562,13 +595,34 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
             </HubToolbar>
           ) : (
             <p className="chart-note">
-              {pendingExtendIds.size > 0
-                ? "All eligible rookies already have an extension queued."
+              {queuedExtensions.length > 0
+                ? CAP_EXTEND_COPY.queuedHint
                 : mustExtend.length === 0 && droppingAtDraft.length === 0
                   ? "No deals end at this draft — nothing to extend yet."
                   : "Veteran Deals and Rookie Extensions expire to free agency — they cannot be re-signed."}
             </p>
           )}
+          {queuedExtensions.length > 0 ? (
+            <ul className="hub-pre-draft-list">
+              {queuedExtensions.map((p) => (
+                <li key={p.player_id}>
+                  {p.position && <span className="hub-roster-pos-tag">{p.position}</span>}{" "}
+                  {p.player_name}
+                  {queuedYearsLine(p.queued_years) ? (
+                    <span className="table-meta"> · {queuedYearsLine(p.queued_years)}</span>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="btn-link"
+                    disabled={extendBusyId === String(p.player_id)}
+                    onClick={() => undoQueuedExtension(p.player_id)}
+                  >
+                    {CAP_EXTEND_COPY.undo}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </HubSection>
       )}
       </div>
@@ -635,6 +689,30 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                       onClick={() => undoCut(p.player_id)}
                     >
                       Undo cut
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+          {queuedExtensions.length > 0 && (
+            <details className="hub-pre-draft-details" open>
+              <summary>{queuedExtensionsSummary(queuedExtensions.length)}</summary>
+              <ul className="hub-pre-draft-list">
+                {queuedExtensions.map((p) => (
+                  <li key={p.player_id}>
+                    {p.position && <span className="hub-roster-pos-tag">{p.position}</span>}{" "}
+                    {p.player_name}: {fmtSal(p.salary)}
+                    {queuedYearsLine(p.queued_years) ? (
+                      <span className="table-meta"> · {queuedYearsLine(p.queued_years)}</span>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="btn-link"
+                      disabled={extendBusyId === String(p.player_id)}
+                      onClick={() => undoQueuedExtension(p.player_id)}
+                    >
+                      {CAP_EXTEND_COPY.undo}
                     </button>
                   </li>
                 ))}
@@ -714,7 +792,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
       {msg && (
         <p
           className={`hub-msg${
-            /fail|could not|only |must |already queued with different|not on roster|403|400/i.test(msg)
+            /fail|could not|only |must |already queued|not on roster|403|400/i.test(msg)
               ? " hub-msg--error"
               : ""
           }`}
@@ -871,6 +949,17 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                 </div>
               ) : null}
               <div className="hub-roster-contract-panel-actions">
+                {hasPendingExtension(selectedCapRow) && !draftCompleted ? (
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm"
+                    disabled={Boolean(extendBusyId)}
+                    onClick={() => undoQueuedExtension(selectedCapRow.player_id)}
+                  >
+                    {CAP_EXTEND_COPY.undo}
+                    <span className="hub-btn-support">{CAP_EXTEND_COPY.queuedHint}</span>
+                  </button>
+                ) : null}
                 {selectedStory?.isCut ? (
                   <button
                     type="button"

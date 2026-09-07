@@ -196,6 +196,9 @@ def test_pending_extension_retained_not_must_extend():
     summary = pre_draft_cap_summary(rules, [row], draft_completed=False)
     assert summary["must_extend"] == []
     assert summary["dropping_at_draft"] == []
+    assert len(summary["queued_extensions"]) == 1
+    assert summary["queued_extensions"][0]["player_id"] == "rook"
+    assert summary["queued_extensions"][0]["queued_years"] == 2
     assert summary["season_committed"] == 10
     ok, msg = can_renew(row, rules)
     assert not ok

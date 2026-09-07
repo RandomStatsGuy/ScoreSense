@@ -27,6 +27,9 @@ export const MY_TEAM_COPY = {
   statusExtend: "Extension eligible",
   statusExpire: "Expiring",
   reviewExtensions: "Review extensions",
+  undoExtension: "Undo extension",
+  queuedNote: "Queued. Undo if the years are wrong — it activates when draft is marked complete.",
+  undoExtensionHint: "This deal expires at the draft unless you queue again.",
   skipToContent: "Skip to content",
 };
 

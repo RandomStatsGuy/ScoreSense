@@ -10,6 +10,8 @@ import {
   leftoverAfterMoveYears,
   leftoverAfterMoveDisplay,
   leftoverMoveReadout,
+  queuedExtensionsSummary,
+  queuedYearsLine,
   fmtCapMoney,
   parseNeedErrors,
   positionFromNeedError,
@@ -20,6 +22,7 @@ import {
   CAP_NEED_COPY,
   CAP_MOVE_COPY,
   CAP_FIGURE_COPY,
+  CAP_EXTEND_COPY,
 } from "./capPlannerPresentation.js";
 
 test("Cap hero asks if you can afford the bid", () => {
@@ -48,6 +51,12 @@ test("rail primary is the pending cut or the draft spend", () => {
   assert.equal(formatNeedError("Need 3 more QB (min 3)"), "Need 3 more QB · min 3");
   assert.equal(formatNeedError("Need 3 more QB (min 3 / max 4)"), "Need 3 more QB · min 3, max 4");
   assert.equal(CAP_NEED_COPY.browseFreeAgents, "Browse free agents");
+  assert.equal(CAP_EXTEND_COPY.undo, "Undo extension");
+  assert.match(CAP_EXTEND_COPY.queuedHint, /expire/i);
+  assert.doesNotMatch(CAP_EXTEND_COPY.queuedHint, /Submit|Draft Hub|permission/i);
+  assert.equal(queuedExtensionsSummary(1), "1 queued extension");
+  assert.equal(queuedExtensionsSummary(2), "2 queued extensions");
+  assert.equal(queuedYearsLine(3), "3-yr queued");
   assert.equal(vsCostCell({ preDraft: true, remaining: 178, bid: 35 }), "Room after: $143");
   assert.equal(vsCostCell({ preDraft: true, remaining: 178, bid: null }), "—");
 });
