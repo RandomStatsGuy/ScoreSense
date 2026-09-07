@@ -1,0 +1,56 @@
+---
+description: FastAPI route constraints, Pydantic responses, auth dependencies, and HTTP errors
+globs: "app/**/*.py"
+alwaysApply: false
+---
+
+# ScoreSense API & security
+
+## Authentication
+
+- Patron routes: `Depends(require_patron)`.
+- Draft Hub routes: `Depends(require_hub_user)`.
+- Never parse `user_id` from raw headers; use dependency injection and `hub_context` helpers.
+- Native JWTs carry `sv`. Revoke prior sessions on password reset and Google account linking. Reject tokens whose `sv` does not match `app_user.session_version`.
+
+## League mutations
+
+- Scope writes to the league in the request (or an explicit league id), not “whatever league is focused.”
+- Check ownership against the target roster/contract row. Membership alone is not enough to mutate another team.
+- Each real league has its own roster namespace. A write in one league must not move or alter another league’s player row.
+- Reject illegal money before persist: negative salary is never legal; ordinary adds that go over cap must 400 and leave the DB unchanged. Incomplete-roster mins are warnings, not blockers. Commissioner `staff_edit` is the explicit exception for over-cap corrections.
+- Trade, auction award, and season tick must be one transaction or a once-only claim. Concurrent room reads must not settle the same nominee twice.
+- Reserved seats stay reserved on every join path, including room-code + exact team name. The email invite path is the only way to take a reserved seat.
+
+## Response shape
+
+- Prefer existing Pydantic schemas in `src/draft_hub/schemas.py` for request/response bodies where already defined.
+- Return `{"detail": "..."}` via `HTTPException` for errors — match existing route style.
+- Large row arrays (500+ players: draft pool, value sheet): prefer `ORJSONResponse` when adding new endpoints or refactoring hot paths to avoid JSON serialization bottlenecks.
+
+## HTTP status codes (match existing usage)
+
+| Code | Use |
+|------|-----|
+| 400 | Invalid params, business rule violation (roster full, bad CSV) |
+| 401 | Missing/invalid auth token |
+| 403 | Authenticated but not commissioner / not allowed |
+| 404 | League, workspace, or resource not found |
+| 502/503 | External API or missing model/data artifact |
+
+## Secrets
+
+- Configuration via `src/config.py` only in application code.
+- Never log tokens, API keys, or full auth payloads.
+
+## CPU-heavy work
+
+- Never instantiate `ProcessPoolExecutor` inside a route.
+- Import `get_process_executor` / `submit_cpu_job` from `app/process_pool`.
+
+## Production (`app.fourthdownlabs.com`)
+
+- Patreon auth required (`AUTH_REQUIRED=true`); unauthenticated requests return **401**.
+- Health: `GET /api/health` — use `_collect_route_paths` + `hub_router.routes` for `draft_hub` feature flag (FastAPI 0.138 nests included routers).
+- Deploy: `.\deploy.ps1` → VPS `/root/scoresense`; do not push local `.env` to server.
+- Hotfix on server: `docker cp` into running container + restart, or full `docker compose ... up -d --build`.

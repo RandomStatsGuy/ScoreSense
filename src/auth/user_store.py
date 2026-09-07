@@ -82,6 +82,8 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE app_user ADD COLUMN phone TEXT")
     if not _column_exists(conn, "app_user", "sms_opted_in_at"):
         conn.execute("ALTER TABLE app_user ADD COLUMN sms_opted_in_at TEXT")
+    if not _column_exists(conn, "app_user", "session_version"):
+        conn.execute("ALTER TABLE app_user ADD COLUMN session_version INTEGER NOT NULL DEFAULT 1")
     conn.execute(
         """CREATE UNIQUE INDEX IF NOT EXISTS idx_app_user_google_sub
            ON app_user(google_sub) WHERE google_sub IS NOT NULL"""
@@ -120,6 +122,7 @@ def _user_dict(row: sqlite3.Row) -> dict[str, Any]:
         "has_password": bool(row["has_password"]) if "has_password" in row.keys() else True,
         "phone": row["phone"] if "phone" in row.keys() else None,
         "sms_opted_in_at": row["sms_opted_in_at"] if "sms_opted_in_at" in row.keys() else None,
+        "session_version": int(row["session_version"]) if "session_version" in row.keys() and row["session_version"] is not None else 1,
     }
 
 
@@ -175,11 +178,28 @@ def mark_email_verified(user_id: str) -> dict[str, Any] | None:
         return _user_dict(row) if row else None
 
 
+def bump_session_version(user_id: str) -> int:
+    now = _utcnow()
+    with get_conn() as conn:
+        conn.execute(
+            """UPDATE app_user
+               SET session_version = COALESCE(session_version, 1) + 1, updated_at = ?
+               WHERE id = ?""",
+            (now, user_id),
+        )
+        row = conn.execute("SELECT session_version FROM app_user WHERE id = ?", (user_id,)).fetchone()
+    return int(row["session_version"]) if row and row["session_version"] is not None else 1
+
+
 def update_password(user_id: str, password_hash: str) -> None:
     now = _utcnow()
     with get_conn() as conn:
         conn.execute(
-            "UPDATE app_user SET password_hash = ?, has_password = 1, updated_at = ? WHERE id = ?",
+            """UPDATE app_user
+               SET password_hash = ?, has_password = 1,
+                   session_version = COALESCE(session_version, 1) + 1,
+                   updated_at = ?
+               WHERE id = ?""",
             (password_hash, now, user_id),
         )
 
@@ -329,6 +349,7 @@ def link_google_sub(
                            email_verified_at = COALESCE(email_verified_at, ?),
                            password_hash = ?,
                            has_password = 0,
+                           session_version = COALESCE(session_version, 1) + 1,
                            updated_at = ?
                        WHERE id = ?""",
                     (sub, now, secrets.token_urlsafe(32), now, user_id),
@@ -338,6 +359,7 @@ def link_google_sub(
                     """UPDATE app_user
                        SET google_sub = ?,
                            email_verified_at = COALESCE(email_verified_at, ?),
+                           session_version = COALESCE(session_version, 1) + 1,
                            updated_at = ?
                        WHERE id = ?""",
                     (sub, now, now, user_id),

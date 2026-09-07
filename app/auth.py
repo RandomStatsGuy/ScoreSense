@@ -584,6 +584,33 @@ def fetch_patron_identity(access_token: str) -> dict[str, Any]:
     }
 
 
+def _native_session_version(user: dict[str, Any]) -> int:
+    raw = user.get("session_version")
+    if raw is None and user.get("id"):
+        row = user_store.get_user_by_id(str(user["id"]))
+        raw = (row or {}).get("session_version")
+    try:
+        return int(raw or 1)
+    except (TypeError, ValueError):
+        return 1
+
+
+def native_session_current(jwt_user: dict[str, Any]) -> bool:
+    if jwt_user.get("auth_type") != "native":
+        return True
+    row = native_account_row(jwt_user)
+    if not row:
+        return False
+    current = int(row.get("session_version") or 1)
+    token_sv = jwt_user.get("sv")
+    if token_sv is None:
+        return current == 1
+    try:
+        return int(token_sv) == current
+    except (TypeError, ValueError):
+        return False
+
+
 def create_access_token(user: dict[str, Any], *, auth_type: str = "patreon") -> str:
     exp = datetime.now(timezone.utc) + timedelta(days=JWT_DAYS)
     if auth_type == "native":
@@ -593,6 +620,7 @@ def create_access_token(user: dict[str, Any], *, auth_type: str = "patreon") -> 
             "auth_type": "native",
             "name": user.get("display_name") or user.get("name") or "User",
             "email": user.get("email"),
+            "sv": _native_session_version(user),
             "exp": exp,
         }
     else:
@@ -654,7 +682,10 @@ def require_patron(request: Request) -> dict[str, Any] | None:
     token = token_from_request(request)
     if not token:
         raise HTTPException(status_code=401, detail="Login required")
-    return decode_access_token(token)
+    user = decode_access_token(token)
+    if user.get("auth_type") == "native" and not native_session_current(user):
+        raise HTTPException(status_code=401, detail="Invalid or expired session")
+    return user
 
 
 def require_hub_user(request: Request) -> dict[str, Any]:
@@ -683,6 +714,8 @@ def require_hub_user(request: Request) -> dict[str, Any]:
                 detail="Guest sessions can only use the draft room they joined.",
             )
         return user
+    if user.get("auth_type") == "native" and not native_session_current(user):
+        raise HTTPException(status_code=401, detail="Invalid or expired session")
     if user.get("auth_type") == "native" and not native_email_verified(user):
         raise HTTPException(
             status_code=403,

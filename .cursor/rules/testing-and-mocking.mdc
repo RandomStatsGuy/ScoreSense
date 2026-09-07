@@ -1,0 +1,60 @@
+---
+description: Test isolation for Draft Hub, caches, and process pool — no live DB or orphan workers
+globs: "tests/**/*, **/test_*.py"
+alwaysApply: false
+---
+
+# Testing & mocking
+
+## Environment
+
+- Prefer a root `tests/conftest.py` that sets `os.environ["TESTING"] = "1"` (or `SCORESENSE_TESTING=1`) so config can guard production paths if needed.
+- Always run pytest with `PYTHONPATH=.` from repo root.
+
+## Draft Hub SQLite
+
+- **NEVER** hit `data/draft_hub/draft_hub.db` in tests.
+- Use the existing fixture pattern:
+
+```python
+@pytest.fixture()
+def hub_db(tmp_path, monkeypatch):
+    monkeypatch.setattr(storage, "DRAFT_HUB_DB", tmp_path / "draft_hub.db")
+```
+
+## Materialized cache tests
+
+- Monkeypatch artifact dirs to `tmp_path` (`DRAFT_POOL_DIR`, `WEEKLY_PREDICTIONS_DIR`, `PROCESSED_DATA_DIR`, `MODEL_DIR`).
+- Call `invalidate_pool_cache()` / `invalidate_weekly_cache()` in autouse fixtures when testing cache miss paths.
+- Mock `_compute_pool` / `predict_draft_season` — return `(DataFrame, sidecar_dict)` tuples for pool mocks.
+- No live 3× ML inference in unit tests unless marked `@pytest.mark.slow` or `integration`.
+
+## Process pool
+
+- Patch or shut down the global executor when tests invoke CPU-offload paths:
+
+```python
+@pytest.fixture(autouse=True)
+def _process_pool(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.process_pool._executor", None)
+    yield
+    from app.process_pool import shutdown_process_executor
+    shutdown_process_executor(wait=False)
+```
+
+- Never let tests spawn orphaned `ProcessPoolExecutor` workers.
+
+## External APIs
+
+- Mock Sleeper, FantasyPros, OpenAI; follow `tests/test_fantasypros.py` fixture-only pattern.
+
+## Production isolation
+
+- **Never** run tests against `app.fourthdownlabs.com` or the VPS SQLite DB.
+- Do not use production Patreon credentials or server `.env` in tests.
+
+## What to test
+
+- Pool/overlay split, auction math, SQLite batch paths, cache hit/miss behavior.
+- Denied ownership, two real leagues under one commissioner, reserved-seat join rejection, and a failure or race in the middle of a multi-write (award claim, trade, tick).
+- Skip tests that only assert obvious framework behavior.

@@ -73,6 +73,25 @@ def cap_summary(rules: LeagueRules, roster: list[dict[str, Any]]) -> dict[str, A
     }
 
 
+def blocking_acquisition_errors(rules: LeagueRules, roster: list[dict[str, Any]]) -> list[str]:
+    """Illegal-money / over-limit errors. Incomplete-roster mins are not blockers."""
+    if salary_roster_limits_relaxed(rules):
+        return []
+    roster = cap_relevant_roster(rules, roster)
+    errors: list[str] = []
+    summary = cap_summary(rules, roster)
+    if summary["remaining"] < 0:
+        errors.append(f"Over cap by ${abs(summary['remaining']):.0f}")
+    limits = roster_limits(rules)
+    counts = summary["by_position_count"]
+    for pos, lim in limits.items():
+        pos_key = pos.upper()
+        count = counts.get(pos_key, 0)
+        if count > lim["max"]:
+            errors.append(f"{count - lim['max']} too many {pos_key} (max {lim['max']})")
+    return errors
+
+
 def validate_roster(rules: LeagueRules, roster: list[dict[str, Any]]) -> list[str]:
     errors: list[str] = []
     roster = cap_relevant_roster(rules, roster)

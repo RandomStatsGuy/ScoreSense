@@ -139,3 +139,19 @@ def test_claim_link_skips_seats_with_pending_invite(hub_db):
         raise AssertionError("expected reserved name to reject")
     except ValueError as exc:
         assert "reserved" in str(exc).lower()
+    try:
+        storage.join_league("ss:thief", league["room_code"], "The Night Owls")
+        raise AssertionError("expected room-code reserved join to reject")
+    except ValueError as exc:
+        assert "reserved" in str(exc).lower()
+    still_join = storage.get_team(night["id"])
+    assert not still_join.get("user_sub")
+
+    client = _client_for("ss:room-thief")
+    res = client.post(
+        "/api/hub/league/join",
+        json={"room_code": league["room_code"], "team_name": "The Night Owls"},
+    )
+    assert res.status_code == 400
+    assert "reserved" in res.json()["detail"].lower()
+    assert not storage.get_team(night["id"]).get("user_sub")

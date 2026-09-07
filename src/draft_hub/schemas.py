@@ -39,7 +39,7 @@ class ContractRules(BaseModel):
 
 
 class LeagueRules(BaseModel):
-    salary_cap: float = 200.0
+    salary_cap: float = Field(default=200.0, ge=0)
     # auction = salary-cap nomination auction; snake/linear = classic pick draft.
     draft_type: Literal["auction", "snake", "linear"] = "auction"
     auction: AuctionRules = Field(default_factory=AuctionRules)
@@ -71,7 +71,7 @@ class RosterAddRequest(BaseModel):
     player_name: str
     team: str = ""
     position: str
-    salary: float
+    salary: float = Field(ge=0)
     contract_years: int = 1
     contract_type: Optional[str] = None  # rookie | veteran | extension
     # Commissioners: add onto this league team instead of the caller's roster.
@@ -89,7 +89,7 @@ class RosterRemoveRequest(BaseModel):
 
 class RosterUpdateRequest(BaseModel):
     player_id: str
-    salary: Optional[float] = None
+    salary: Optional[float] = Field(default=None, ge=0)
     contract_years: Optional[int] = None  # years remaining on contract
     step_up: Optional[float] = None
     salary_schedule: Optional[list[float]] = None

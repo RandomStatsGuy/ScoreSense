@@ -810,6 +810,14 @@ def _migrate(conn: sqlite3.Connection) -> None:
             PRIMARY KEY (request_id, user_sub)
         )"""
     )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS auction_award_claim (
+            league_id TEXT NOT NULL,
+            player_id TEXT NOT NULL,
+            awarded_at TEXT NOT NULL,
+            PRIMARY KEY (league_id, player_id)
+        )"""
+    )
     _ensure_dedicated_league_workspaces(conn)
 
 
@@ -1603,6 +1611,14 @@ def join_league(user_sub: str, room_code: str, team_name: str) -> dict[str, Any]
         if named:
             if named["user_sub"] and str(named["user_sub"]) != str(user_sub):
                 raise ValueError(f"Team '{named['name']}' is already claimed")
+            reserved = conn.execute(
+                """SELECT 1 FROM league_invite
+                   WHERE league_id = ? AND status = 'pending'
+                     AND LOWER(team_name) = LOWER(?)""",
+                (league["id"], named["name"]),
+            ).fetchone()
+            if reserved:
+                raise ValueError("That seat is reserved for an invited manager")
             now = _utcnow()
             conn.execute(
                 """UPDATE team SET user_sub = ?, joined_at = COALESCE(joined_at, ?)
@@ -1749,6 +1765,92 @@ def list_draft_result_events(league_id: str) -> list[dict[str, Any]]:
         d["payload"] = json_safe(json.loads(d["payload_json"]))
         out.append(d)
     return out
+
+
+def finalize_auction_win(
+    league_id: str,
+    *,
+    player_id: str,
+    winner_id: str,
+    amount: float,
+    workspace_id: str,
+    roster_row: dict[str, Any],
+    event_payload: dict[str, Any],
+    session_fields: dict[str, Any],
+) -> bool:
+    """Claim and persist one auction award. False if another worker already won this player."""
+    pid = str(player_id)
+    now = _utcnow()
+    contract = roster_row.get("contract")
+    contract_json = json.dumps(contract) if contract else None
+    allowed = {
+        "status", "current_nominee_json", "high_bid", "high_bidder_team_id",
+        "nomination_deadline", "bid_deadline", "started_at", "completed_at", "pool_mode",
+        "last_bid_at", "nominator_index", "nomination_order_json",
+        "paused", "paused_at",
+    }
+    with get_conn() as conn:
+        try:
+            conn.execute(
+                """INSERT INTO auction_award_claim (league_id, player_id, awarded_at)
+                   VALUES (?, ?, ?)""",
+                (league_id, pid, now),
+            )
+        except sqlite3.IntegrityError:
+            return False
+        winner = conn.execute("SELECT budget_remaining FROM team WHERE id = ?", (winner_id,)).fetchone()
+        if not winner:
+            raise ValueError("Winning team not found")
+        new_budget = float(winner["budget_remaining"]) - float(amount)
+        conn.execute(
+            "UPDATE team SET budget_remaining = ? WHERE id = ?",
+            (new_budget, winner_id),
+        )
+        conn.execute(
+            """INSERT INTO roster_slot
+               (workspace_id, team_id, player_id, player_name, team, position, salary, contract_years,
+                acquired_at, sleeper_player_id, source, contract_json, roster_status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(workspace_id, player_id) DO UPDATE SET
+                 team_id=excluded.team_id, player_name=excluded.player_name, team=excluded.team,
+                 position=excluded.position, salary=excluded.salary, contract_years=excluded.contract_years,
+                 sleeper_player_id=excluded.sleeper_player_id, source=excluded.source,
+                 contract_json=excluded.contract_json, roster_status=excluded.roster_status""",
+            (
+                workspace_id,
+                winner_id,
+                roster_row["player_id"],
+                roster_row.get("player_name"),
+                roster_row.get("team"),
+                roster_row["position"],
+                roster_row["salary"],
+                roster_row.get("contract_years", 1),
+                now,
+                roster_row.get("sleeper_player_id"),
+                roster_row.get("source") or "draft",
+                contract_json,
+                str(roster_row.get("roster_status") or "active"),
+            ),
+        )
+        _bump_live_for_workspace_conn(conn, workspace_id)
+        conn.execute(
+            "INSERT INTO draft_event (league_id, event_type, payload_json, created_at) VALUES (?, ?, ?, ?)",
+            (league_id, "win", _draft_payload_dumps(event_payload), now),
+        )
+        parts = []
+        params: list[Any] = []
+        for key, value in session_fields.items():
+            if key not in allowed:
+                continue
+            parts.append(f"{key} = ?")
+            params.append(value)
+        if parts:
+            params.append(league_id)
+            conn.execute(
+                f"UPDATE draft_session SET {', '.join(parts)} WHERE league_id = ?",
+                params,
+            )
+        return True
 
 
 def update_draft_session(league_id: str, **fields: Any) -> dict[str, Any]:
@@ -3312,6 +3414,16 @@ def roster_workspace_for_league(league: dict[str, Any]) -> str:
     return str(league["id"])
 
 
+def _personal_workspace_id_for_sub(conn: sqlite3.Connection, user_sub: str | None) -> str | None:
+    if not user_sub:
+        return None
+    row = conn.execute(
+        "SELECT id FROM hub_workspace WHERE user_sub = ? ORDER BY updated_at DESC LIMIT 1",
+        (str(user_sub),),
+    ).fetchone()
+    return str(row["id"]) if row else None
+
+
 def _rehome_league_roster_workspace(
     conn: sqlite3.Connection,
     league_id: str,
@@ -3326,10 +3438,22 @@ def _rehome_league_roster_workspace(
     ]
     if team_ids:
         placeholders = ",".join("?" * len(team_ids))
-        conn.execute(
-            f"UPDATE roster_slot SET workspace_id = ? WHERE workspace_id = ? AND team_id IN ({placeholders})",
-            [new_ws, old_ws, *team_ids],
-        )
+        rows = conn.execute(
+            f"""SELECT id, player_id FROM roster_slot
+                WHERE workspace_id = ? AND team_id IN ({placeholders})""",
+            [old_ws, *team_ids],
+        ).fetchall()
+        for slot in rows:
+            clash = conn.execute(
+                "SELECT 1 FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
+                (new_ws, slot["player_id"]),
+            ).fetchone()
+            if clash:
+                continue
+            conn.execute(
+                "UPDATE roster_slot SET workspace_id = ? WHERE id = ?",
+                (new_ws, slot["id"]),
+            )
     conn.execute(
         """INSERT OR IGNORE INTO salary_range
            (workspace_id, player_id, player_name, team, position, min_sal, max_sal, source)
@@ -3348,7 +3472,9 @@ def _ensure_dedicated_league_workspaces(conn: sqlite3.Connection) -> int:
         str(row["id"])
         for row in conn.execute("SELECT id FROM hub_workspace").fetchall()
     }
-    leagues = conn.execute("SELECT id, workspace_id, test_mode FROM league").fetchall()
+    leagues = conn.execute(
+        "SELECT id, workspace_id, test_mode, commissioner_sub FROM league"
+    ).fetchall()
     shared_counts: dict[str, int] = {}
     for row in leagues:
         current = row["workspace_id"]
@@ -3371,8 +3497,11 @@ def _ensure_dedicated_league_workspaces(conn: sqlite3.Connection) -> int:
             continue
         if current is None or on_personal or shared:
             dedicated = league_id
-            if current:
-                _rehome_league_roster_workspace(conn, league_id, current, dedicated)
+            source_ws = current
+            if source_ws is None:
+                source_ws = _personal_workspace_id_for_sub(conn, row["commissioner_sub"])
+            if source_ws:
+                _rehome_league_roster_workspace(conn, league_id, source_ws, dedicated)
             conn.execute(
                 "UPDATE league SET workspace_id = ? WHERE id = ?",
                 (dedicated, league_id),
