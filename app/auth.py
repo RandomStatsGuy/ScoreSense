@@ -335,7 +335,7 @@ def safe_oauth_next_path(next_path: str | None) -> str:
             raw = decoded
     except Exception:
         return _OAUTH_DEFAULT_NEXT
-    if "\\" in raw or not raw.startswith("/") or raw.startswith("//"):
+    if "\r" in raw or "\n" in raw or "\\" in raw or not raw.startswith("/") or raw.startswith("//"):
         return _OAUTH_DEFAULT_NEXT
     parts = urllib.parse.urlsplit(raw)
     if parts.scheme or parts.netloc:
@@ -343,7 +343,11 @@ def safe_oauth_next_path(next_path: str | None) -> str:
     path = parts.path or "/"
     if not path.startswith("/") or path.startswith("//"):
         return _OAUTH_DEFAULT_NEXT
+    if "\r" in path or "\n" in path:
+        return _OAUTH_DEFAULT_NEXT
     if parts.query:
+        if "\r" in parts.query or "\n" in parts.query:
+            return _OAUTH_DEFAULT_NEXT
         return f"{path}?{parts.query}"
     return path
 

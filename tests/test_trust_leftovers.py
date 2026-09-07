@@ -52,6 +52,8 @@ def test_oauth_state_rejects_offsite_and_expired(monkeypatch):
     assert safe_oauth_next_path("/%2f%2fevil.example") == "/projections/weekly"
     assert safe_oauth_next_path("/%252f%252fevil.example") == "/projections/weekly"
     assert safe_oauth_next_path("/%25252f%25252fevil.example") == "/projections/weekly"
+    assert safe_oauth_next_path("/hub/home\r\nSet-Cookie: x=1") == "/projections/weekly"
+    assert safe_oauth_next_path("/hub/home%0d%0aSet-Cookie:x=1") == "/projections/weekly"
 
     good = sign_oauth_state("/hub/home")
     assert verify_oauth_state(good) == "/hub/home"
@@ -104,6 +106,52 @@ def test_empty_replace_import_leaves_existing_roster(hub_db):
             league["id"], ws, [], load_preset("salary_cap_auction_v1"), replace_existing=True
         )
     assert storage.get_roster_slot(ws, "keep-sleeper") is not None
+
+
+def test_replace_import_rolls_back_when_a_later_row_fails(hub_db):
+    comm = "atomic-import-comm"
+    league = _league(comm, "Atomic Import")
+    team = storage.get_team_by_user(league["id"], comm)
+    ws = storage.roster_workspace_for_league(league)
+    storage.add_roster_slot(
+        ws,
+        {
+            "player_id": "keep-sleeper",
+            "player_name": "Keep Sleeper",
+            "team": "SEA",
+            "position": "WR",
+            "salary": 12,
+            "contract_years": 2,
+            "source": "sleeper",
+        },
+        team_id=team["id"],
+    )
+    with pytest.raises(KeyError):
+        storage.import_roster_snapshot(
+            ws,
+            team["id"],
+            [
+                {
+                    "player_id": "new-one",
+                    "player_name": "New One",
+                    "team": "SEA",
+                    "position": "RB",
+                    "salary": 8,
+                    "contract_years": 1,
+                    "source": "sleeper",
+                },
+                {
+                    "player_name": "Missing Id",
+                    "team": "SEA",
+                    "position": "WR",
+                    "salary": 5,
+                    "source": "sleeper",
+                },
+            ],
+            replace_source="sleeper",
+        )
+    assert storage.get_roster_slot(ws, "keep-sleeper")["team_id"] == team["id"]
+    assert storage.get_roster_slot(ws, "new-one") is None
 
 
 def test_year_tick_does_not_burn_a_second_year(hub_db):

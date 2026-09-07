@@ -43,4 +43,8 @@ def test_verify_league_membership(hub_db, auth_db):
     outsider = user_store.create_user("other@example.com", "pbkdf2_sha256$120000$00$00", "Other")
     outsider_sub = native_user_sub(outsider["id"])
     assert storage.verify_league_membership(outsider_sub, league["id"]) is False
+    member = user_store.create_user("seat@example.com", "pbkdf2_sha256$120000$00$00", "Seat")
+    member_sub = native_user_sub(member["id"])
+    storage.join_league(member_sub, league["room_code"], "Seat Team")
+    assert storage.verify_league_membership(member_sub, league["id"]) is True
     assert storage.verify_league_membership(sub, "missing-league") is False

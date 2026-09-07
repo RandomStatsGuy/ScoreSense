@@ -64,12 +64,18 @@ def test_office_ws_broadcast_skips_non_staff(hub_db):
         async def send_text(self, text):
             self.texts.append(text)
 
+    class DeadWS(FakeWS):
+        async def send_text(self, text):
+            raise RuntimeError("socket closed")
+
     async def run():
         mgr = DraftRoomManager()
         staff = FakeWS()
         member = FakeWS()
+        dead = DeadWS()
         await mgr.connect("lg-office", staff, staff=True)
         await mgr.connect("lg-office", member, staff=False)
+        await mgr.connect("lg-office", dead, staff=False)
         await mgr.broadcast(
             "lg-office",
             {"type": "chat", "kind": "office", "message": {"body": "Staff only"}},
@@ -86,6 +92,7 @@ def test_office_ws_broadcast_skips_non_staff(hub_db):
         assert "league" in staff_kinds
         assert "office" not in member_kinds
         assert "league" in member_kinds
+        assert dead not in mgr._rooms.get("lg-office", {})
 
     asyncio.run(run())
 

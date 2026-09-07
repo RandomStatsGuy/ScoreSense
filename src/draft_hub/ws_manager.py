@@ -39,13 +39,20 @@ class DraftRoomManager:
             items = list(self._rooms.get(league_id, {}).items())
         dead: list[WebSocket] = []
         text = json.dumps(payload)
-        for ws, meta in items:
-            if staff_only and not meta.get("staff"):
-                continue
+
+        async def send_safe(ws_conn: WebSocket) -> None:
             try:
-                await ws.send_text(text)
+                await ws_conn.send_text(text)
             except Exception:
-                dead.append(ws)
+                dead.append(ws_conn)
+
+        targets = [
+            ws
+            for ws, meta in items
+            if not (staff_only and not meta.get("staff"))
+        ]
+        if targets:
+            await asyncio.gather(*(send_safe(ws) for ws in targets))
         for ws in dead:
             await self.disconnect(league_id, ws)
 
