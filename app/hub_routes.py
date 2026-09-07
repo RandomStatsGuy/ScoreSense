@@ -411,39 +411,69 @@ def hub_get_workspace(response: Response, _user=Depends(require_hub_user)) -> di
     return ws
 
 
+def _apply_league_workspace_writes(
+    league_id: str,
+    body: WorkspaceUpdate,
+    rules_to_apply,
+) -> None:
+    if body.season is not None:
+        storage.update_league_season(league_id, int(body.season))
+    if body.name is not None:
+        storage.update_league_name(league_id, body.name)
+    if rules_to_apply:
+        storage.update_league_rules(league_id, rules_to_apply)
+        _clear_insights_response_cache(league_id)
+        try:
+            from src.draft_hub.insights_cache import invalidate_cap_cache
+
+            invalidate_cap_cache(league_id)
+        except Exception:
+            pass
+
+
 @router.put("/workspace")
 def hub_put_workspace(body: WorkspaceUpdate, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
     ctx = _ctx(sub)
-    if ctx.get("mode") == "league" and (body.rules or body.preset_id or body.season is not None or body.name):
-        if not ctx.get("is_commissioner"):
-            raise HTTPException(status_code=403, detail="Only the league commissioner can change league settings")
-    rules = body.rules
-    ws = storage.update_workspace(
-        sub,
-        name=body.name,
-        season=body.season,
-        rules=rules,
-        preset_id=body.preset_id,
+    target_league_id = str(body.league_id or "").strip() or None
+    writing_settings = bool(
+        body.rules or body.preset_id or body.season is not None or body.name
     )
+    if target_league_id:
+        _assert_league_commissioner(target_league_id, sub)
+        write_league_id = target_league_id
+    elif ctx.get("mode") == "league" and writing_settings:
+        if not ctx.get("is_commissioner"):
+            raise HTTPException(
+                status_code=403,
+                detail="Only the league commissioner can change league settings",
+            )
+        write_league_id = str(ctx["league_id"]) if ctx.get("league_id") else None
+    else:
+        write_league_id = None
+
+    focus_id = str(ctx.get("league_id") or "") or None
+    update_personal = not write_league_id or write_league_id == focus_id
+    rules = body.rules
+    if body.preset_id:
+        rules = load_preset(body.preset_id)
+    if update_personal:
+        ws = storage.update_workspace(
+            sub,
+            name=body.name,
+            season=body.season,
+            rules=rules,
+            preset_id=body.preset_id,
+        )
+    else:
+        ws = storage.get_or_create_workspace(sub)
+
     rules_to_apply = rules
     if rules_to_apply is None and ws.get("rules"):
         rules_to_apply = LeagueRules.model_validate(ws["rules"])
-    if ctx.get("mode") == "league" and ctx.get("is_commissioner") and ctx.get("league_id"):
-        league_id = str(ctx["league_id"])
-        if body.season is not None:
-            storage.update_league_season(league_id, int(body.season))
-        if body.name is not None:
-            storage.update_league_name(league_id, body.name)
-        if rules_to_apply:
-            storage.update_league_rules(league_id, rules_to_apply)
-            _clear_insights_response_cache(league_id)
-            try:
-                from src.draft_hub.insights_cache import invalidate_cap_cache
+    if write_league_id and writing_settings:
+        _apply_league_workspace_writes(write_league_id, body, rules_to_apply)
 
-                invalidate_cap_cache(league_id)
-            except Exception:
-                pass
     ctx = _ctx(sub)
     if ctx.get("mode") == "league":
         team = storage.get_team(str(ctx["team_id"])) if ctx.get("team_id") else None
@@ -461,6 +491,15 @@ def hub_put_workspace(body: WorkspaceUpdate, _user=Depends(require_hub_user)) ->
         }
     else:
         ws["hub_context"] = ctx
+    if write_league_id:
+        saved_league = storage.get_league(write_league_id) or {}
+        ws["saved_league_id"] = write_league_id
+        ws["saved"] = {
+            "league_id": write_league_id,
+            "name": saved_league.get("name"),
+            "season": saved_league.get("season"),
+            "rules": saved_league.get("rules"),
+        }
     return ws
 
 

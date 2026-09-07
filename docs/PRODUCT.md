@@ -209,6 +209,8 @@ Player boards (Free agents and Best ball) use labeled Pos / Sort menus. Pick one
 
 ### Phone chrome
 
+Switching Projections, Fantasy, or Tools returns you to the last destination you used in that area. Tapping the already-selected Projections, Fantasy, or Tools tab reopens that area’s destination picker on phone, or scrolls the destination strip into view on desktop.
+
 On phone, the header is the current destination. Destination switching uses one picker, not a scrolling tab strip. Tapping a destination — including the one already open — closes the picker so the page is not left inert. Account lives in More. Do not stack ScoreSense, a context label, section tabs, and page tabs. A one-row league strip (name + caret) sits under the picker so heroes stay above the fold; New league and Sync league live in that caret. Needs attention is one line on that strip — do not restack a second league card in the destination overflow. Weekly phone chrome is the destination header plus one sticky bar (position, filter, result count). Attention and other movement filters live in that filter sheet. Live draft stays board-first. League chat is an edge launcher that defaults to the bottom-right above the tab bar; drag still parks it on a new edge. Idle Draft and Mock use one seat component so the live room inherits it.
 
 On phone, weekly and season boards are **dense ranking rows** (rank, face, name, P50). Compare is one toolbar control. Never a Compare checkbox on every card. Signals stay a compact swipeable strip, not a second page of chrome. Why and Details are equal-width, sentence case. The bottom nav uses the full word **Projections** and carries `env(safe-area-inset-bottom)` on the nav itself. Mobile type never drops below 12px (`--text-xs`). Ten managers is a picker, not a swipe strip.
@@ -286,6 +288,7 @@ Home names the manager’s roster hole over a commissioner invite when both are 
 Do not invent a parallel rules model. Canonical merge/validate/preview: `frontend/src/DraftHub/rulesPresentation.js`. Backend remains authoritative for eligibility and materialized contracts.
 
 - Policy changes apply to **new contracts only**. Say that once, next to Save. Do not mention a migration unless a control exists on the page.
+- Rules Save writes the league on the form, not the last-focused league in the header. A late save response must not yank the UI to a different league.
 - Applying a league template confirms, names what changes, and fills the form. It does not save. Offer undo until the next edit. Style those triggers as destructive, not ghost chips.
 - Static rookies stay flat; veterans and extensions use the configured step-up.
 - Veteran extensions follow the league toggle on both client and server.

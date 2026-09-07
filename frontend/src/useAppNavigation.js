@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   buildAppPath,
@@ -11,6 +11,11 @@ import {
 import { isLeavingContractsPath } from "./DraftHub/officeContractsPresentation";
 import { allowOfficeNavigation } from "./DraftHub/officeUnsavedGuard";
 import { allowUnsavedNavigation } from "./unsavedNavigation";
+import {
+  destinationForSection,
+  rememberDestination,
+  reopenDestinationEvent,
+} from "./lastDestinations";
 
 export default function useAppNavigation() {
   const navigate = useNavigate();
@@ -36,6 +41,10 @@ export default function useAppNavigation() {
     () => parseFilterParams(searchParams),
     [searchParams],
   );
+
+  useEffect(() => {
+    rememberDestination(route);
+  }, [route]);
 
   const navigateTo = useCallback(
     async (next, { replace = false, filterUpdates = null } = {}) => {
@@ -77,15 +86,16 @@ export default function useAppNavigation() {
 
   const goToSection = useCallback(
     (section) => {
-      if (section === route.view && section !== "hub") return;
-      const base = { view: section };
-      if (section === "hub") base.hubSubView = route.hubSubView || "home";
-      if (section === "projections") {
-        base.projectionsTab = route.projectionsTab || "weekly";
-        base.seasonMode = route.seasonMode || "live";
+      if (section === route.view) {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(reopenDestinationEvent(section));
+        }
+        return;
       }
-      if (section === "tools") base.toolsTab = route.toolsTab || "dfs";
-      navigateTo(base);
+      navigateTo({
+        view: section,
+        ...destinationForSection(section, { current: route }),
+      });
     },
     [navigateTo, route],
   );

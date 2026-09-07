@@ -178,6 +178,7 @@ export function buildDraftBoard({
   viewerTeamId,
   rules,
   totalRounds: totalRoundsProp,
+  draftCompleted = false,
 } = {}) {
   const type = normalizeDraftType(draftType);
   const order = (nominationOrder || []).map((id) => String(id)).filter(Boolean);
@@ -195,7 +196,7 @@ export function buildDraftBoard({
   );
   const rawCurrent = Math.max(0, Number(currentOverall) || 0);
   const maxOverall = rounds * Math.max(1, n);
-  const current = rawCurrent > 0 && rawCurrent <= maxOverall ? rawCurrent : 0;
+  const current = !draftCompleted && rawCurrent > 0 && rawCurrent <= maxOverall ? rawCurrent : 0;
   const currentRound = rawCurrent > maxOverall
     ? rounds
     : current && n
@@ -247,13 +248,15 @@ export function buildDraftBoard({
     });
   }
 
-  const next = viewerNextPick({
-    order,
-    viewerTeamId: viewer,
-    currentOverall: rawCurrent > maxOverall ? maxOverall + 1 : (current || 1),
-    draftType: type,
-    totalRounds: rounds,
-  });
+  const next = draftCompleted || current <= 0
+    ? null
+    : viewerNextPick({
+      order,
+      viewerTeamId: viewer,
+      currentOverall: current,
+      draftType: type,
+      totalRounds: rounds,
+    });
 
   return {
     draftType: type,

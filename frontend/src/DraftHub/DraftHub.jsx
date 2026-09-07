@@ -44,6 +44,7 @@ import { loadWatchIds, toggleWatchId } from "./draftLiveConsole";
 import AtmosphereLayer from "./AtmosphereLayer";
 import { TeamIdentityProvider } from "./TeamIdentityContext";
 import { mergeAtmospherePrefs } from "./atmosphereCatalog";
+import { shouldApplyWorkspaceSave } from "./rulesPresentation";
 
 const LeagueInsights = lazy(() => import("./LeagueInsights"));
 const StrategyBoard = lazy(() => import("./StrategyBoard"));
@@ -432,14 +433,22 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     }
   }, [demoMode, hubDemo?.available, exitDemo]);
 
-  const onWorkspaceSaved = useCallback(async (updated) => {
+  const onWorkspaceSaved = useCallback(async (updated, meta) => {
+    const boundLeagueId = meta?.boundLeagueId || updated?.saved_league_id || "";
+    if (!shouldApplyWorkspaceSave({
+      boundLeagueId,
+      currentLeagueId: hubContext?.league_id,
+      savedLeagueId: updated?.saved_league_id,
+    })) {
+      return;
+    }
     setWorkspace(updated);
     if (updated?.hub_context) applyHubContext(updated.hub_context);
     clearHubDataCache();
     const cap = await loadCapSheet();
     setCapSheet(cap);
     await refreshValueSheet(updated.season, updated.rules, { forcePool: true });
-  }, [applyHubContext, loadCapSheet, refreshValueSheet]);
+  }, [applyHubContext, hubContext?.league_id, loadCapSheet, refreshValueSheet]);
 
   const onSleeperLinked = useCallback(async (payload) => {
     if (payload?.hub_context) {

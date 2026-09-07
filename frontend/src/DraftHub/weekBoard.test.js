@@ -27,6 +27,7 @@ import {
   canEditHubLineup,
   clampWeek,
   decisionSwapIds,
+  emptySlotAction,
   emptySpecialistSlots,
   projectionMissing,
   showVibePts,
@@ -211,6 +212,26 @@ test("canEditHubLineup is league-only and unlocked", () => {
   assert.equal(canEditHubLineup({ mode: "league", lineupSource: "hub", lineupLocked: true }), false);
   assert.equal(canEditHubLineup({ mode: "solo", lineupSource: "hub" }), false);
   assert.equal(canEditHubLineup({ mode: "league", lineupSource: "inferred" }), false);
+});
+
+test("empty skill slot with a bench fit starts that player instead of leaving This Week", () => {
+  const action = emptySlotAction(
+    { slot: "RB2", position: "RB" },
+    [
+      { player_id: "cmc", player_name: "McCaffrey", position: "RB", p50: 18 },
+      { player_id: "k1", player_name: "Kicker", position: "K", p50: 8 },
+    ],
+    PRESET_RULES,
+  );
+  assert.equal(action.kind, "bench");
+  assert.equal(action.player.player_id, "cmc");
+  const kicker = emptySlotAction(
+    { slot: "K", position: "K" },
+    [{ player_id: "cmc", position: "RB", p50: 18 }],
+    PRESET_RULES,
+  );
+  assert.equal(kicker.kind, "available");
+  assert.equal(kicker.pos, "K");
 });
 
 test("decisionSwapIds requires both player ids", () => {

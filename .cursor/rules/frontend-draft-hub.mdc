@@ -35,7 +35,8 @@ Chat chrome lives on `FantasyChatDock.jsx` (header comment) and `docs/PRODUCT.md
 
 ## League behavior
 
-- Rules are readable by members (`Commissioner managed`). Roster management is commissioner/co-commissioner only.
+- Rules are readable by members (`Commissioner managed`). Roster management is commissioner/co-commissioner only. Rules Save sends the form’s `league_id` and never writes hub focus by accident.
+- `HubFilterMenu` opens on click, not hover. Hover-open plus click-toggle closes the menu on the first click.
 - Old `/hub/office` and commissioner routes must keep working; redirect, do not break bookmarks.
 - Players-tab adds follow the calendar. Offseason trades: surviving contracts only.
 - Suggested bid, wherever it renders (Strategy, Free agents, live room), shows the league scoring name and the Rules risk posture beside the number.

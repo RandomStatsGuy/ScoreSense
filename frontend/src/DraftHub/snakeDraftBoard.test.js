@@ -215,3 +215,22 @@ test("completed boards do not invent an extra on-the-clock round", () => {
   assert.equal(board.nextPick, null);
   assert.equal(board.rows.flatMap((row) => row.cells).some((cell) => cell.isActive), false);
 });
+
+test("a completed flag clears on-the-clock even when currentOverall is still in range", () => {
+  const board = buildDraftBoard({
+    nominationOrder: ["a", "b"],
+    teams: [{ id: "a", name: "A" }, { id: "b", name: "B" }],
+    events: eventsForOveralls([
+      [1, "a", "One"],
+      [2, "b", "Two"],
+    ]),
+    draftType: "snake",
+    currentOverall: 3,
+    draftCompleted: true,
+    viewerTeamId: "a",
+    totalRounds: 2,
+  });
+  assert.equal(board.currentOverall, 0);
+  assert.equal(board.nextPick, null);
+  assert.equal(board.rows.flatMap((row) => row.cells).some((cell) => cell.isActive), false);
+});

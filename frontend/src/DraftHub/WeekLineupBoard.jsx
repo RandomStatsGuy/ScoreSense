@@ -275,6 +275,7 @@ export default function WeekLineupBoard({
   onSelectSlot,
   onApplyDecision,
   onNavigate,
+  onFillSlot,
   onOpenCall,
   media = {},
   includeChrome = true,
@@ -314,7 +315,7 @@ export default function WeekLineupBoard({
         selected={selected}
         onSelect={onSelect}
         onOpenCall={onOpenCall}
-        onFillSlot={!pid && onNavigate ? () => onNavigate("available") : undefined}
+        onFillSlot={!pid && onFillSlot ? () => onFillSlot(slot) : undefined}
         media={media}
       />
     );
