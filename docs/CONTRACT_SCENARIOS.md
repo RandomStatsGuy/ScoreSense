@@ -142,6 +142,8 @@ Year control is only the **pre-draft rookie extension** window (add 1–3 years,
 
 Type/years stay on the row for dead-cap math; they are not FA you can re-buy under the same deal.
 
+**Leftover on Cap, Rosters, and My team is auction leftover.** A 1-year keeper who expires at the draft does not count as committed. Dead cap from a pre-draft cut still subtracts from leftover.
+
 ---
 
 ### G. Cap sheet import looks wrong
