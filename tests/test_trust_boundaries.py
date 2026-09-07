@@ -3,13 +3,20 @@
 import pytest
 from pydantic import ValidationError
 
-from app.auth import create_access_token, decode_access_token, native_session_current
+from fastapi import HTTPException
+
+from app.auth import (
+    _verify_native_session,
+    create_access_token,
+    decode_access_token,
+    native_session_current,
+)
 from src.auth import user_store
 from src.draft_hub import storage
 from src.draft_hub.league_invites import create_invite
 from src.draft_hub.presets import load_preset
 from src.draft_hub.rules_engine import blocking_acquisition_errors
-from src.draft_hub.schemas import LeagueRules, RosterAddRequest
+from src.draft_hub.schemas import LeagueRules, RosterAddRequest, RosterUpdateRequest
 
 
 def _add(ws_id, team_id, player_id="00-0033873", name="Patrick Mahomes", salary=40):
@@ -116,6 +123,8 @@ def test_roster_add_schema_rejects_negative_salary():
             position="QB",
             salary=-100,
         )
+    with pytest.raises(ValidationError):
+        RosterUpdateRequest(player_id="x", salary=-5)
 
 
 def test_league_rules_reject_negative_cap():
@@ -141,7 +150,12 @@ def test_password_reset_revokes_old_jwt(auth_db):
     user = user_store.create_user("reset2@example.com", "hash", "R")
     old = create_access_token(user, auth_type="native")
     user_store.update_password(user["id"], "new-hash")
-    assert native_session_current(decode_access_token(old)) is False
+    stale = decode_access_token(old)
+    assert native_session_current(stale) is False
+    with pytest.raises(HTTPException) as exc:
+        _verify_native_session(stale)
+    assert exc.value.status_code == 401
+    _verify_native_session({"auth_type": "patreon", "sub": "p1"})
     fresh_row = user_store.get_user_by_id(user["id"])
     fresh = create_access_token(fresh_row, auth_type="native")
     assert native_session_current(decode_access_token(fresh)) is True

@@ -1335,8 +1335,6 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
     sleeper_id = str(body.sleeper_player_id or "").strip() or None
     if not sleeper_id and str(body.player_id).isdigit():
         sleeper_id = str(body.player_id)
-    if float(body.salary) < 0:
-        raise HTTPException(status_code=400, detail="Salary must be zero or greater")
     dest_roster = storage.list_roster(ws_id, team_id) if team_id else list_roster_for_context(ctx)
     preview_slot = {
         "player_id": body.player_id,
@@ -1561,8 +1559,6 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
             status_code=400,
             detail=f"Years remaining must be between 1 and {max_years}",
         )
-    if body.salary is not None and body.salary < 0:
-        raise HTTPException(status_code=400, detail="Salary cannot be negative")
     if type_field and body.contract_type not in CONTRACT_TYPES:
         raise HTTPException(status_code=400, detail="contract_type must be rookie, veteran, or extension")
     existing = storage.get_roster_slot(ws_id, body.player_id)

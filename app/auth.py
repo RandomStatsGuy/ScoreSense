@@ -611,6 +611,11 @@ def native_session_current(jwt_user: dict[str, Any]) -> bool:
         return False
 
 
+def _verify_native_session(user: dict[str, Any]) -> None:
+    if user.get("auth_type") == "native" and not native_session_current(user):
+        raise HTTPException(status_code=401, detail="Invalid or expired session")
+
+
 def create_access_token(user: dict[str, Any], *, auth_type: str = "patreon") -> str:
     exp = datetime.now(timezone.utc) + timedelta(days=JWT_DAYS)
     if auth_type == "native":
@@ -683,8 +688,7 @@ def require_patron(request: Request) -> dict[str, Any] | None:
     if not token:
         raise HTTPException(status_code=401, detail="Login required")
     user = decode_access_token(token)
-    if user.get("auth_type") == "native" and not native_session_current(user):
-        raise HTTPException(status_code=401, detail="Invalid or expired session")
+    _verify_native_session(user)
     return user
 
 
@@ -714,8 +718,7 @@ def require_hub_user(request: Request) -> dict[str, Any]:
                 detail="Guest sessions can only use the draft room they joined.",
             )
         return user
-    if user.get("auth_type") == "native" and not native_session_current(user):
-        raise HTTPException(status_code=401, detail="Invalid or expired session")
+    _verify_native_session(user)
     if user.get("auth_type") == "native" and not native_email_verified(user):
         raise HTTPException(
             status_code=403,
