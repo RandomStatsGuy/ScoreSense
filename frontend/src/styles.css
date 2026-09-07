@@ -19733,7 +19733,15 @@ th.sortable-header {
   }
   .hub-draft-player-card-actions .btn-ghost,
   .hub-draft-player-card-actions .btn-primary,
-  .hub-draft-player-watch {
+  .hub-draft-player-watch,
+  .hub-draft-player-card-select,
+  .hub-draft-player-filters button,
+  .hub-draft-needs-toggle,
+  .hub-draft-activity-tabs button,
+  .hub-draft-live-command-actions .btn-primary,
+  .hub-draft-live-command-actions .btn-ghost,
+  .hub-draft-command-utilities .btn-ghost,
+  .hub-draft-command-utilities button {
     min-height: var(--control-h-lg);
   }
   .hub-draft-stage,
@@ -19752,7 +19760,7 @@ th.sortable-header {
   .hub-roster-panel--band .hub-roster-list { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 14rem; }
   .hub-draft-activity-head { align-items: flex-start; flex-direction: column; }
   .hub-draft-activity-tabs { width: 100%; }
-  .hub-draft-activity-tabs button { min-height: 2.2rem; padding-inline: 0.7rem; }
+  .hub-draft-activity-tabs button { padding-inline: var(--space-3); }
   .hub-teams-list--dock,
   .hub-event-log--dock { grid-template-columns: 1fr; }
   .hub-pick-board-toolbar { align-items: flex-start; flex-direction: column; }
