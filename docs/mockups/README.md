@@ -61,6 +61,18 @@ They reuse token values from `frontend/src/styles/tokens.css` but are **not prod
 | `atmosphere-demo.html` | **Working atmosphere v2 demo** (interactive). Hand-drawn inline SVG leaves / snowflakes / footballs on three parallax depth layers with independent fall + sway + tumble animation, wind control, cursor repulsion, click-to-pop footballs, and a “shipped renderer” comparison toggle. `?theme=snow|leaves|footballs` picks the theme on load. No PNG/SVG asset files required — everything is generated inline. |
 | `vibe-rankings.html` | **Proposed Team destination: Vibes.** Tinder-style start/sit swipe (mouse, touch, arrows). Each vote raises or lowers personal **aura**, which scales the week projection and rebuilds a start slate live. Desktop/phone toggle. Interactive — open in a browser. Shipped in-app at `/hub/vibes`. |
 
+## Nomination layout (Sep 2026)
+
+Open **[draft-nom-layout.html](./draft-nom-layout.html)** first. Live mock / live auction empty nomination stage.
+
+| File | Shows |
+|------|-------|
+| `draft-nom-layout.html` | Chooser: leftover as a sticky strip vs a My team + Queue rail. |
+| `draft-nom-layout-a.html` | **A · Sticky strip.** Pool stays full width. |
+| `draft-nom-layout-b.html` | **B · My team rail.** Pool is the board; leftover and queue stay on the right. |
+
+Shipped pick is **B**. Living surface: `tools.mock-draft.live` / `hub.room.live` → `DraftRoom.jsx`.
+
 ## Draft waiting state (Sep 2026)
 
 Open **[draft-lobby-waiting.html](./draft-lobby-waiting.html)** first. Same token chrome as the files above; not product code.
