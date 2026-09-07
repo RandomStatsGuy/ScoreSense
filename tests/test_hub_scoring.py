@@ -379,6 +379,57 @@ def test_score_week_route_rejects_non_commissioner(hub_db, monkeypatch):
     assert blocked.status_code == 403
 
 
+def test_set_team_starters_rejects_two_quarterbacks(hub_db):
+    league, home, _away, _ = _seed_two_team_league(hub_db)
+    roster_ws = storage.roster_workspace_for_league(storage.get_league(league["id"]))
+    storage.add_roster_slot(
+        roster_ws,
+        {
+            "player_id": "qb-a2",
+            "player_name": "QB Two",
+            "team": "LAC",
+            "position": "QB",
+            "salary": 8,
+            "contract_years": 1,
+        },
+        team_id=home["id"],
+    )
+    rows = ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    starters = [
+        {"player_id": row["player_id"], "slot": row["slot"]}
+        for row in rows
+        if row["lineup_role"] == "starter"
+    ]
+    qb_slot = next(item for item in starters if item["player_id"] == "qb-a")
+    try:
+        set_team_starters(
+            league["id"],
+            home["id"],
+            2026,
+            1,
+            [*starters, {"player_id": "qb-a2", "slot": "QB2"}],
+            game_started=lambda _team: False,
+        )
+        raise AssertionError("two QB starters should fail")
+    except LineupError as exc:
+        assert "QB" in str(exc)
+    try:
+        set_team_starters(
+            league["id"],
+            home["id"],
+            2026,
+            1,
+            [*starters, {"player_id": "qb-a2", "slot": qb_slot["slot"]}],
+            game_started=lambda _team: False,
+        )
+        raise AssertionError("duplicate QB slot should fail")
+    except LineupError as exc:
+        assert "slot" in str(exc).lower()
+    still = {row["player_id"]: row for row in storage.list_team_lineup(league["id"], home["id"], 2026, 1)}
+    assert still["qb-a"]["lineup_role"] == "starter"
+    assert still.get("qb-a2", {}).get("lineup_role") != "starter"
+
+
 def test_set_team_starters_cannot_bench_locked_starter(hub_db):
     league, home, _away, _ = _seed_two_team_league(hub_db)
     rows = ensure_team_lineup(league["id"], home["id"], 2026, 1)

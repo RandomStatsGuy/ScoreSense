@@ -66,6 +66,32 @@ export const ROSTER_STALE_HOURS = 48;
 export const VIBE_DELTA_FLOOR = 0.45;
 export const FLEX_ELIGIBLE = ["RB", "WR", "TE"];
 
+export function slotAcceptsPosition(slot, position, rules) {
+  const pos = String(position || "").toUpperCase();
+  const label = String(slot?.slot || slot || "").toUpperCase();
+  const base = label.replace(/\d+$/, "");
+  if (!pos || !base) return false;
+  if (base === "BN") return true;
+  if (base === "FLEX") {
+    const eligible = (rules?.roster?.flex?.eligible || FLEX_ELIGIBLE)
+      .map((item) => String(item || "").toUpperCase());
+    return eligible.includes(pos);
+  }
+  return base === pos;
+}
+
+export function emptySlotAction(slot, bench = [], rules) {
+  const pos = String(slot?.position || slot?.slot || "").replace(/\d+$/, "").toUpperCase();
+  const fits = (bench || []).filter((player) => (
+    player?.player_id && slotAcceptsPosition(slot, player.position, rules)
+  ));
+  if (fits.length) {
+    const best = [...fits].sort((a, b) => (Number(b.p50) || 0) - (Number(a.p50) || 0))[0];
+    return { kind: "bench", player: best, pos };
+  }
+  return { kind: "available", pos: pos || "ALL" };
+}
+
 export function starterSlotLabel(position, index, count) {
   if (count <= 1) return position;
   return `${position}${index + 1}`;

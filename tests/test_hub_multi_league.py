@@ -106,28 +106,61 @@ def test_active_league_api_switches_context(hub_db, monkeypatch):
         app.dependency_overrides.pop(require_hub_user, None)
 
 
-def test_league_route_auto_switches_active_league(hub_db, monkeypatch):
-    """URL league_id should auto-switch focus instead of 403 when user is a member."""
+def test_league_route_does_not_steal_focus(hub_db, monkeypatch):
+    """Reading another joined league must not change saved Fantasy focus."""
     from fastapi.testclient import TestClient
     from app.api import app
     from app.auth import require_hub_user
 
     def _user():
-        return {"sub": "auto-switch-user", "auth_type": "dev"}
+        return {"sub": "no-steal-user", "auth_type": "dev"}
 
     app.dependency_overrides[require_hub_user] = _user
     try:
         rules = load_preset("salary_cap_auction_v1")
-        ws = storage.get_or_create_workspace("auto-switch-user")
-        a = storage.create_league("auto-switch-user", "Alpha", 2025, rules, workspace_id=ws["id"])
-        b = storage.create_league("auto-switch-user", "Beta", 2025, rules, team_count=10)
+        ws = storage.get_or_create_workspace("no-steal-user")
+        a = storage.create_league("no-steal-user", "Alpha", 2025, rules, workspace_id=ws["id"])
+        b = storage.create_league("no-steal-user", "Beta", 2025, rules, team_count=10)
 
-        storage.set_hub_focus("auto-switch-user", league_id=a["id"])
+        storage.set_hub_focus("no-steal-user", league_id=a["id"])
         client = TestClient(app)
 
         res = client.get(f"/api/hub/league/{b['id']}/members")
         assert res.status_code == 200
         body = res.json()
         assert body["hub_context"]["league_id"] == b["id"]
+        assert resolve_hub_context("no-steal-user")["league_id"] == a["id"]
+        assert storage.get_hub_focus_league_id("no-steal-user") == a["id"]
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_test_mode_route_does_not_become_focus(hub_db, monkeypatch):
+    """Practice rooms stay off the Fantasy strip even when a page reads them."""
+    from fastapi.testclient import TestClient
+    from app.api import app
+    from app.auth import require_hub_user
+
+    sub = "practice-steal-user"
+
+    def _user():
+        return {"sub": sub, "auth_type": "dev"}
+
+    app.dependency_overrides[require_hub_user] = _user
+    try:
+        rules = load_preset("salary_cap_auction_v1")
+        live = storage.create_league(sub, "My Auction", 2025, rules)
+        practice = storage.create_league(sub, "Test League", 2025, rules, test_mode=True)
+        storage.set_hub_focus(sub, league_id=live["id"])
+        client = TestClient(app)
+
+        res = client.get(f"/api/hub/league/{practice['id']}/chat/league/messages?limit=10")
+        assert res.status_code == 200
+        assert resolve_hub_context(sub)["league_id"] == live["id"]
+        assert storage.get_hub_focus_league_id(sub) == live["id"]
+
+        storage.set_hub_focus(sub, league_id=practice["id"])
+        assert storage.get_hub_focus_league_id(sub) == live["id"]
+        assert resolve_hub_context(sub)["league_id"] == live["id"]
     finally:
         app.dependency_overrides.pop(require_hub_user, None)

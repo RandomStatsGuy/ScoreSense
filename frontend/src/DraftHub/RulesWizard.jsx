@@ -221,15 +221,37 @@ export default function RulesWizard({
     setSaving(true);
     setStatus({ kind: "", text: "" });
     try {
+      const boundLeagueId = sourceKeyRef.current.startsWith("league:")
+        ? sourceKeyRef.current.slice("league:".length)
+        : "";
       const res = await apiFetch("/api/hub/workspace", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), season, rules }),
+        body: JSON.stringify({
+          name: name.trim(),
+          season,
+          rules,
+          ...(boundLeagueId ? { league_id: boundLeagueId } : {}),
+        }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
-      applyServerState(data, data.hub_context || hubContext);
-      onSaved?.(data);
+      const saved = data.saved;
+      if (boundLeagueId) {
+        applyServerState(
+          saved || data,
+          {
+            ...(hubContext || {}),
+            league_id: boundLeagueId,
+            league_name: saved?.name ?? name,
+            season: saved?.season ?? season,
+            rules: saved?.rules ?? rules,
+          },
+        );
+      } else {
+        applyServerState(data, data.hub_context || hubContext);
+      }
+      onSaved?.(data, { boundLeagueId: boundLeagueId || null });
       setSavedAt(new Date());
       setStatus({ kind: "ok", text: RULES_COPY.saved });
     } catch (error) {

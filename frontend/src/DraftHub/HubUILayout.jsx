@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import HoverTip from "../HoverTip";
 
 /** Sortable column header shared by hub tables. */
@@ -124,7 +124,23 @@ export function HubTableCard({ children, className = "" }) {
 }
 
 export function HubFilterScroll({ children, className = "" }) {
-  return <div className={`hub-filter-scroll${className ? ` ${className}` : ""}`}>{children}</div>;
+  const ref = useRef(null);
+  useLayoutEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    const active = root.querySelector(".filter-chip--active, [aria-pressed='true'], [aria-current='page']");
+    if (!active) return;
+    const rootBox = root.getBoundingClientRect();
+    const chipBox = active.getBoundingClientRect();
+    if (chipBox.left < rootBox.left || chipBox.right > rootBox.right) {
+      active.scrollIntoView({ inline: "center", block: "nearest" });
+    }
+  });
+  return (
+    <div ref={ref} className={`hub-filter-scroll${className ? ` ${className}` : ""}`}>
+      {children}
+    </div>
+  );
 }
 
 export const HubPageSticky = React.forwardRef(function HubPageSticky({ children, className = "" }, ref) {
@@ -210,9 +226,6 @@ export function HubFilterChip({
 export function HubFilterMenu({ label, value, options, onChange, className = "", disabled = false }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  const hoverCapable = useRef(
-    typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches,
-  );
   const selected = options.find((opt) => String(opt.id ?? "") === String(value ?? ""));
   const display = selected?.label ?? value;
 
@@ -234,12 +247,6 @@ export function HubFilterMenu({ label, value, options, onChange, className = "",
     <div
       ref={ref}
       className={`hub-filter-menu${open ? " is-open" : ""}${disabled ? " is-disabled" : ""}${className ? ` ${className}` : ""}`}
-      onMouseEnter={() => {
-        if (!disabled && hoverCapable.current) setOpen(true);
-      }}
-      onMouseLeave={() => {
-        if (hoverCapable.current) setOpen(false);
-      }}
     >
       <button
         type="button"

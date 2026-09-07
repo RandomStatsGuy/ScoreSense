@@ -548,6 +548,7 @@ export default function LeagueOffice({
           <AwardTitlesEditor
             catalog={awardCatalogFromRules(workspace?.rules)}
             currentRules={workspace?.rules || hubContext?.rules}
+            leagueId={leagueId}
             onSaved={onWorkspaceSaved}
           />
         </HubPage>

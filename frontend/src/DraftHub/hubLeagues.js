@@ -1,10 +1,11 @@
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
+import { focusedLeagueId } from "./hubContext";
 
 /** @typedef {{ league_id: string, league_name: string, room_code: string, league_season: number, is_commissioner: boolean, team: { id: string, name: string } }} HubMembership */
 
 export function membershipFromContext(hubContext) {
-  if (hubContext?.mode !== "league" || !hubContext?.league_id) return null;
+  if (!focusedLeagueId(hubContext)) return null;
   return {
     league_id: hubContext.league_id,
     league_name: hubContext.league_name || "League",

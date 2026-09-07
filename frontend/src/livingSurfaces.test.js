@@ -85,6 +85,11 @@ test("delete league and excel download resolve to living surfaces", () => {
   assert.match(excel.doNot, /Download Excel is ghost/);
 });
 
+test("rules save and this-week empty slots stay on the living surface", () => {
+  assert.match(LIVING_SURFACES["hub.rules"].doNot, /Save writes the league on the form/);
+  assert.match(LIVING_SURFACES["hub.week"].doNot, /starts a bench player who can fill it/);
+});
+
 test("contracts pane owns the pending-write copy module", () => {
   const row = LIVING_SURFACES["hub.office.current"];
   assert.equal(row.page, "frontend/src/DraftHub/CommissionerLeagueRosters.jsx");
