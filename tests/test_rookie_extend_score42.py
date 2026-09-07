@@ -13,7 +13,9 @@ from src.draft_hub.contracts import (
     apply_rookie_extension_command,
     build_rookie_contract,
     can_manager_rookie_extend,
+    cancel_rookie_extension_command,
     compute_rookie_extension_start_salary,
+    has_pending_extension,
 )
 from src.draft_hub.presets import load_preset
 from src.draft_hub.schemas import LeagueRules
@@ -70,6 +72,20 @@ def test_idempotent_same_years_and_reject_conflict():
     with pytest.raises(ValueError, match="already queued"):
         apply_rookie_extension_command(row, rules, extension_years=3, draft_completed=False)
 
+    cleared = cancel_rookie_extension_command(row, rules, draft_completed=False)
+    assert has_pending_extension(cleared) is False
+    row["contract"] = cleared
+    third, already = apply_rookie_extension_command(
+        row, rules, extension_years=3, draft_completed=False
+    )
+    assert already is False
+    assert third["pending_extension"]["years"] == 3
+
+    with pytest.raises(ValueError, match="No extension is queued"):
+        cancel_rookie_extension_command(
+            {"contract": cleared}, rules, draft_completed=False
+        )
+
 
 def test_eligibility_gates_window_type_and_years():
     rules = load_preset("salary_cap_auction_v1")
@@ -94,6 +110,11 @@ def test_eligibility_gates_window_type_and_years():
     ok, msg = can_manager_rookie_extend(vet, rules, draft_completed=False)
     assert ok is False
     assert "veteran" in msg.lower()
+
+    queued, _ = apply_rookie_extension_command(row, rules, extension_years=1, draft_completed=False)
+    row["contract"] = queued
+    with pytest.raises(ValueError, match="before the draft"):
+        cancel_rookie_extension_command(row, rules, draft_completed=True)
 
 
 def test_one_and_three_year_durations_survive_draft_complete_tick():
@@ -158,6 +179,39 @@ def test_manager_rookie_extend_endpoint_own_team_only(hub_db):
         )
         assert blocked.status_code == 403
         assert "own team" in blocked.json()["detail"].lower()
+
+        cancelled = client.post(
+            "/api/hub/contract/rookie-extend/cancel",
+            json={"player_id": "00-0039101"},
+        )
+        assert cancelled.status_code == 200, cancelled.text
+        body = cancelled.json()
+        assert body["cancelled"] is True
+        assert body["pending_extension"] is False
+        assert "pending_extension" not in (body["slot"]["contract"] or {})
+
+        again_cancel = client.post(
+            "/api/hub/contract/rookie-extend/cancel",
+            json={"player_id": "00-0039101"},
+        )
+        assert again_cancel.status_code == 400
+        assert "queued" in again_cancel.json()["detail"].lower()
+
+        requeued = client.post(
+            "/api/hub/contract/rookie-extend",
+            json={"player_id": "00-0039101", "extension_years": 1},
+        )
+        assert requeued.status_code == 200, requeued.text
+        assert requeued.json()["pending_extension"] is True
+        assert requeued.json()["already_applied"] is False
+        assert requeued.json()["extension_years"] == 1
+
+        other_cancel = client.post(
+            "/api/hub/contract/rookie-extend/cancel",
+            json={"player_id": "00-0039102"},
+        )
+        assert other_cancel.status_code == 403
+        assert "own team" in other_cancel.json()["detail"].lower()
 
         # Legacy renew alias also works for managers (no commissioner gate).
         vet = _final_year_rookie(player_id="00-0039103", salary=8)

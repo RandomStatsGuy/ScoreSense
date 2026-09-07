@@ -7,6 +7,9 @@ test("My team copy names the decision and skips Draft Hub / permission voice", (
   assert.doesNotMatch(MY_TEAM_COPY.purpose, /Submit|Draft Hub|permission/i);
   assert.equal(MY_TEAM_COPY.title, "My team");
   assert.equal(MY_TEAM_COPY.reviewExtensions, "Review extensions");
+  assert.equal(MY_TEAM_COPY.undoExtension, "Undo extension");
+  assert.match(MY_TEAM_COPY.queuedNote, /undo/i);
+  assert.match(MY_TEAM_COPY.undoExtensionHint, /expire/i);
   assert.doesNotMatch(MY_TEAM_COPY.removeConfirm, /Staff only|permission/i);
 });
 

@@ -93,3 +93,18 @@ export function rookieExtendSuccessMessage(data) {
   }
   return "Contract extended.";
 }
+
+export async function cancelRookieExtend(playerId) {
+  if (!playerId) throw new Error("Pick a player to undo.");
+  const res = await apiFetch("/api/hub/contract/rookie-extend/cancel", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ player_id: playerId }),
+  });
+  if (!res.ok) throw new Error(await parseApiError(res));
+  return res.json();
+}
+
+export function rookieExtendCancelSuccessMessage() {
+  return "Extension undone. This deal expires at the draft unless you queue again.";
+}
