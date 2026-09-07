@@ -2034,7 +2034,12 @@ def apply_trade_plan(
             contract = move.get("contract")
             if contract is not None:
                 updates.extend(["contract_json = ?", "salary = ?", "contract_years = ?"])
-                sal = float(contract.get("current_salary") or contract.get("base_salary") or row["salary"])
+                sal_val = contract.get("current_salary")
+                if sal_val is None:
+                    sal_val = contract.get("base_salary")
+                if sal_val is None:
+                    sal_val = row["salary"]
+                sal = float(sal_val)
                 yrs = int(
                     contract.get("years_remaining")
                     if contract.get("years_remaining") is not None
