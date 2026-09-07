@@ -1,6 +1,6 @@
-import { apiFetch } from "../auth";
-import { parseApiError } from "../format";
-import { leagueStepUp } from "./rosterFormat";
+import { apiFetch } from "../auth.js";
+import { parseApiError } from "../format.js";
+import { leagueStepUp } from "./rosterFormat.js";
 
 /** True when contract has a queued post-draft extension (SCORE-42). */
 export function hasPendingExtension(rowOrContract) {
