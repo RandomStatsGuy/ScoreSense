@@ -123,6 +123,8 @@ def test_constitution_covers_auction_leftover() -> None:
     assert "auction leftover" in product
     assert "auction leftover" in core_rule
     assert "1-year keeper" in product
+    assert "nomination queue" in product
+    assert "nomination queue" in core_rule
 
 
 def test_constitution_covers_phone_chrome() -> None:

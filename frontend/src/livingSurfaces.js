@@ -100,7 +100,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/DraftNomineeCard.jsx",
       "frontend/src/DraftHub/botPersona.js",
     ],
-    doNot: "Do not wrap a live draft in HubExperience two-column settings chrome. Seats inherit DraftSeat from idle Draft and Mock. Never say Available players — the rail eyebrow is Player pool. Auction awards play on the block card (bid pulse, draining clock, 1s SOLD hold) — do not toast a sold result in the header. Hide empty fantasy narrative; a real line is the name tagline. High bid is never gold: blue while winning, primary text otherwise. Bots use locker marks and persona names, never identical emoji robots. Filled position chips are teal, over-max amber, empty muted. Won roster rows pop in like lockers. Simulate pins the block-card layout.",
+    doNot: "Do not wrap a live draft in HubExperience two-column settings chrome. Seats inherit DraftSeat from idle Draft and Mock. Never say Available players — the rail eyebrow is Player pool. A nomination queue stays on the viewer's board only — never on other teams in room state. Auction awards play on the block card (bid pulse, draining clock, 1s SOLD hold) — do not toast a sold result in the header. Hide empty fantasy narrative; a real line is the name tagline. High bid is never gold: blue while winning, primary text otherwise. Bots use locker marks and persona names, never identical emoji robots. Filled position chips are teal, over-max amber, empty muted. Won roster rows pop in like lockers. Simulate pins the block-card layout.",
   }),
   "hub.week": S({
     label: "This Week",

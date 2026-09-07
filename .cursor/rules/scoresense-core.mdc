@@ -64,6 +64,7 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - One `<main id="main-content">` plus a skip link; do not nest a second main.
 - Practice mock rooms have no Drop or Trade. Simulate uses live-bot pricing, shows N of the remaining pool, and never disables Discard. Never say Available players.
 - Cap, Rosters, and My team leftover is auction leftover: expiring 1-year keepers are not committed. Against-cap is salary plus dead cap.
+- A nomination queue stays on that manager's board only. Do not put another team's queue on room state.
 
 ## Living surfaces
 

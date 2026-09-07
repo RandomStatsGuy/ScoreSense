@@ -3439,6 +3439,8 @@ def import_roster_snapshot(
     replace_source: str | None = None,
 ) -> int:
     if replace_source:
+        if not rows:
+            raise ValueError("Refusing to replace roster from an empty import")
         remove_roster_by_source(workspace_id, replace_source)
     count = 0
     for row in rows:
@@ -3805,6 +3807,17 @@ def create_league_invite(
     if not league:
         raise ValueError("League not found")
     rules = LeagueRules.model_validate(league["rules"])
+    wanted = str(team_name or "").strip()
+    existing = next(
+        (
+            team
+            for team in list_league_teams(league_id)
+            if str(team.get("name") or "").strip().lower() == wanted.lower()
+        ),
+        None,
+    )
+    if not existing and len(list_league_teams(league_id)) >= int(league.get("team_count") or 0):
+        raise ValueError("League is full")
     team = get_or_create_league_team_by_name(league_id, team_name, rules.salary_cap)
     if team.get("user_sub"):
         raise ValueError(f"Team '{team['name']}' is already claimed")
@@ -4106,6 +4119,8 @@ def import_commissioner_league_sheet(
 ) -> dict[str, Any]:
     """Import all manager blocks from a league spreadsheet into shared team rosters."""
     if replace_existing:
+        if not rows:
+            raise ValueError("Refusing to replace roster from an empty import")
         remove_roster_by_source(workspace_id, "sheet")
     team_ids: dict[str, str] = {}
     by_team: dict[str, int] = {}

@@ -382,7 +382,8 @@ def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any
             draft_completed=draft_completed,
             budget_remaining=float(team.get("budget_remaining") or 0),
         )
-        enriched_teams.append({**team, **finance})
+        public_team = {k: v for k, v in team.items() if k != "nomination_queue"}
+        enriched_teams.append({**public_team, **finance})
     picks = [e for e in events if str(e.get("event_type") or "") == "pick"]
     out: dict[str, Any] = {
         "league": league,
