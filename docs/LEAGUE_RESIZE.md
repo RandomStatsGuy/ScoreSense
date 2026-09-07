@@ -10,7 +10,7 @@ This is not a fourth destination. It is not a new contract model. Keepers stay o
 |--------|----------------|---------------------|
 | Create league | Sets `league.team_count` (2–20) and creates the commissioner franchise | Cannot change seat count later |
 | Room-code join | Adds a claimed team while `status=setup` and under the cap | Blocked once the draft starts; "League is full" at cap |
-| Email invite | `get_or_create_league_team_by_name` — can stub a named seat | Does **not** bump `team_count` (seat cap can drift) |
+| Email invite | Claims an existing named seat, or stubs one only while under `team_count` | Does **not** bump `team_count`. A new name at cap returns "League is full" |
 | Cap sheet / Sleeper import | Same stub helper for missing manager names | Same drift |
 | Release claim | Unlinks the account so you can re-invite | Leaves the franchise and contracts |
 | Delete league | Wipes every team | Not contraction |

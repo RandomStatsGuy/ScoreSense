@@ -384,6 +384,19 @@ def tick_contracts_on_draft_complete(league_id: str) -> dict[str, Any]:
     rules = LeagueRules.model_validate(league.get("rules") or {})
     ws_id, roster = _flatten_league_roster(league_id, league)
     season = int(league.get("season") or 0)
+    existing = storage.get_draft_contract_snapshot(league_id) or {}
+    post = existing.get("post_draft") or {}
+    if existing.get("published") and int(existing.get("season") or 0) == season:
+        return {
+            "advanced": int(post.get("advanced") or 0),
+            "expired": int(post.get("expired") or 0),
+            "archived": int(post.get("archived") or 0),
+            "updates": [],
+            "skipped": True,
+            "already_ticked": True,
+            "snapshot_published": True,
+            "archive_mode": True,
+        }
     as_of = _utcnow()
 
     pre_slots = [

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import os
 import secrets
+import time
 import urllib.parse
 import uuid
 import base64
@@ -318,31 +320,65 @@ def native_email_verified(jwt_user: dict[str, Any]) -> bool:
     return user_store.is_email_verified(row)
 
 
+OAUTH_STATE_MAX_AGE_SEC = 15 * 60
+_OAUTH_DEFAULT_NEXT = "/projections/weekly"
+
+
+def safe_oauth_next_path(next_path: str | None) -> str:
+    """Same-origin app path only. Reject protocol-relative and off-site next values."""
+    raw = (next_path or _OAUTH_DEFAULT_NEXT).strip()
+    try:
+        raw = urllib.parse.unquote(raw)
+    except Exception:
+        return _OAUTH_DEFAULT_NEXT
+    if "\\" in raw or not raw.startswith("/") or raw.startswith("//"):
+        return _OAUTH_DEFAULT_NEXT
+    parts = urllib.parse.urlsplit(raw)
+    if parts.scheme or parts.netloc:
+        return _OAUTH_DEFAULT_NEXT
+    path = parts.path or "/"
+    if not path.startswith("/") or path.startswith("//"):
+        return _OAUTH_DEFAULT_NEXT
+    if parts.query:
+        return f"{path}?{parts.query}"
+    return path
+
+
 def sign_oauth_state(next_path: str) -> str:
-    """HMAC-signed return path for Patreon OAuth state param."""
-    safe_next = (next_path or "/projections/weekly").strip()
-    if not safe_next.startswith("/"):
-        safe_next = f"/{safe_next}"
-    payload = base64.urlsafe_b64encode(safe_next.encode("utf-8")).decode("ascii").rstrip("=")
-    sig = hmac.new(JWT_SECRET.encode("utf-8"), payload.encode("ascii"), hashlib.sha256).hexdigest()[:16]
+    """HMAC-signed, expiring return path for OAuth state."""
+    payload_obj = {
+        "n": safe_oauth_next_path(next_path),
+        "t": int(time.time()),
+        "r": secrets.token_hex(8),
+    }
+    payload = base64.urlsafe_b64encode(
+        json.dumps(payload_obj, separators=(",", ":")).encode("utf-8")
+    ).decode("ascii").rstrip("=")
+    sig = hmac.new(JWT_SECRET.encode("utf-8"), payload.encode("ascii"), hashlib.sha256).hexdigest()[:32]
     return f"{payload}.{sig}"
 
 
 def verify_oauth_state(state: str | None) -> str:
     if not state or "." not in state:
-        return "/projections/weekly"
+        return _OAUTH_DEFAULT_NEXT
     payload, sig = state.rsplit(".", 1)
-    expected = hmac.new(JWT_SECRET.encode("utf-8"), payload.encode("ascii"), hashlib.sha256).hexdigest()[:16]
-    if not hmac.compare_digest(expected, sig):
-        return "/projections/weekly"
+    expected = hmac.new(JWT_SECRET.encode("utf-8"), payload.encode("ascii"), hashlib.sha256).hexdigest()[:32]
+    if len(sig) != len(expected) or not hmac.compare_digest(expected, sig):
+        return _OAUTH_DEFAULT_NEXT
     pad = "=" * (-len(payload) % 4)
     try:
-        path = base64.urlsafe_b64decode(payload + pad).decode("utf-8")
-    except (ValueError, UnicodeDecodeError):
-        return "/projections/weekly"
-    if not path.startswith("/"):
-        return "/projections/weekly"
-    return path
+        data = json.loads(base64.urlsafe_b64decode(payload + pad).decode("utf-8"))
+    except (ValueError, UnicodeDecodeError, json.JSONDecodeError):
+        return _OAUTH_DEFAULT_NEXT
+    if not isinstance(data, dict):
+        return _OAUTH_DEFAULT_NEXT
+    try:
+        issued = int(data.get("t"))
+    except (TypeError, ValueError):
+        return _OAUTH_DEFAULT_NEXT
+    if abs(int(time.time()) - issued) > OAUTH_STATE_MAX_AGE_SEC:
+        return _OAUTH_DEFAULT_NEXT
+    return safe_oauth_next_path(str(data.get("n") or ""))
 
 
 def authenticate_native_user(email: str, password: str) -> dict[str, Any]:
