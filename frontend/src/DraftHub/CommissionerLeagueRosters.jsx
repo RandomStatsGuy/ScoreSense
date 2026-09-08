@@ -821,7 +821,7 @@ function TeamRosterBlock({
                         aria-invalid={Boolean(vm.salaryError)}
                         onChange={(e) => onQueue(r, { salary: e.target.value })}
                         onBlur={() => {
-                          if (vm.salaryError || vm.pending.salary == null) return;
+                          if (vm.salaryError || vm.pending?.salary == null) return;
                           flushField(r, { salary: vm.pending.salary });
                         }}
                       />
