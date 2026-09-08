@@ -24,9 +24,12 @@ import {
 } from "./rosterFormat";
 import {
   canManagerRookieExtend,
+  cancelRookieExtend,
   hasPendingExtension,
+  isRookieExtendSuccessMessage,
   postRookieExtend,
   previewRookieExtendStartSalary,
+  rookieExtendCancelSuccessMessage,
   rookieExtendSuccessMessage,
 } from "./rookieExtend";
 import ContractHistoryLink from "./ContractHistoryLink";
@@ -112,6 +115,7 @@ function ContractSidePanelBody({
   saveRow,
   saveContractType,
   queueRookieExtend,
+  undoQueuedExtension,
   toggleCut,
   remove,
   canRemove,
@@ -219,7 +223,7 @@ function ContractSidePanelBody({
       {(pendingType || pendingExt) && (
         <p className="chart-note">
           {pendingType ? "Type change pending commissioner approval. " : ""}
-          {pendingExt ? "Extension is queued for commissioner apply." : ""}
+          {pendingExt ? MY_TEAM_COPY.queuedNote : ""}
         </p>
       )}
 
@@ -258,6 +262,17 @@ function ContractSidePanelBody({
               Queue extension
             </button>
           </div>
+        )}
+        {pendingExt && !draftCompleted && (
+          <button
+            type="button"
+            className="btn-ghost btn-sm"
+            disabled={isSaving}
+            onClick={() => undoQueuedExtension(r)}
+          >
+            {MY_TEAM_COPY.undoExtension}
+            <span className="hub-btn-support">{MY_TEAM_COPY.undoExtensionHint}</span>
+          </button>
         )}
         <div className="hub-roster-contract-panel-danger">
           {!draftCompleted && (
@@ -541,6 +556,21 @@ export default function RosterBuilder({
     }
   }, [extendYearsFor, maxYears, onChanged]);
 
+  const undoQueuedExtension = useCallback(async (r) => {
+    setSavingId(r.player_id);
+    setError("");
+    try {
+      await cancelRookieExtend(r.player_id);
+      setError(rookieExtendCancelSuccessMessage());
+      setTimeout(() => setError(""), 4000);
+      onChanged?.();
+    } catch (e) {
+      setError(e.message || "Could not undo the extension");
+    } finally {
+      setSavingId(null);
+    }
+  }, [onChanged]);
+
   const saveRow = useCallback(async (r) => {
     if (hubContext?.mode === "league") return;
     const edit = getEdit(r);
@@ -778,6 +808,7 @@ export default function RosterBuilder({
       saveRow,
       saveContractType,
       queueRookieExtend,
+      undoQueuedExtension,
       toggleCut,
       remove,
       canRemove,
@@ -951,7 +982,7 @@ export default function RosterBuilder({
       )}
 
       {error && (
-        <div className={/queued|already queued/i.test(error) ? "hub-msg" : "error"}>
+        <div className={isRookieExtendSuccessMessage(error) ? "hub-msg" : "error"}>
           {error}
         </div>
       )}

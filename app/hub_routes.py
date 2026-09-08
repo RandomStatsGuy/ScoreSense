@@ -59,6 +59,7 @@ from src.draft_hub.schemas import (
     ContractExtendRequest,
     ContractRenewRequest,
     RookieExtendRequest,
+    RookieExtendCancelRequest,
     DraftBidRequest,
     DraftCutRequest,
     DraftEnrichmentRequest,
@@ -113,6 +114,7 @@ from src.draft_hub.schemas import (
 )
 from src.draft_hub.contracts import (
     apply_rookie_extension_command,
+    cancel_rookie_extension_command,
     roster_row_from_import,
     swap_contracts,
     build_contract_from_roster_edit,
@@ -4969,6 +4971,60 @@ def hub_rookie_extend(body: RookieExtendRequest, _user=Depends(require_hub_user)
         extension_years=body.extension_years,
         ctx=ctx,
     )
+
+
+def _hub_cancel_rookie_extend(*, player_id: str, ctx: dict[str, Any]) -> dict:
+    """Undo a queued manager extension. Own-team only, same as queue."""
+    ws_id, team_id = roster_scope(ctx)
+    rules = LeagueRules.model_validate(ctx["rules"])
+    draft_completed = bool(ctx.get("draft_completed"))
+
+    existing = storage.get_roster_slot(ws_id, player_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Player not on roster")
+    if ctx.get("mode") == "league":
+        if not team_id:
+            raise HTTPException(status_code=403, detail="Join a league team to undo extensions")
+        if str(existing.get("team_id") or "") != str(team_id):
+            raise HTTPException(status_code=403, detail="Can only undo extensions on your own team")
+
+    try:
+        contract = cancel_rookie_extension_command(
+            existing,
+            rules,
+            draft_completed=draft_completed,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    from src.draft_hub.contract_service import apply_roster_edit
+
+    slot = apply_roster_edit(
+        ctx.get("league_id"),
+        ws_id,
+        player_id,
+        contract=contract,
+        any_team=True,
+        op="extension",
+    )
+    roster = list_roster_for_context(ctx)
+    _invalidate_league_rosters_from_ctx(ctx)
+    return {
+        "slot": slot,
+        "pending_extension": bool((slot.get("contract") or {}).get("pending_extension")),
+        "cancelled": True,
+        "validation_errors": validate_roster(rules, roster),
+        "multi_year_plan": multi_year_cap_plan(rules, roster, draft_completed=draft_completed),
+        "pre_draft": pre_draft_cap_summary(rules, roster, draft_completed=draft_completed),
+        "hub_context": ctx,
+    }
+
+
+@router.post("/contract/rookie-extend/cancel")
+def hub_cancel_rookie_extend(body: RookieExtendCancelRequest, _user=Depends(require_hub_user)) -> dict:
+    """Undo a queued extension. The current deal stays; it expires at the draft unless queued again."""
+    ctx = _ctx(_sub(_user))
+    return _hub_cancel_rookie_extend(player_id=body.player_id, ctx=ctx)
 
 
 @router.post("/contract/extend")

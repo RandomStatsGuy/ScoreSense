@@ -181,9 +181,18 @@ def pre_draft_cap_summary(
     cap_freed_from_cuts = round(sum(pre_draft_cut_cap_freed(rules, r) for r in cuts), 2)
     draft_budget = round(cap - committed - dead_cap, 2)
 
+    from src.draft_hub.contracts import has_pending_extension
+
     must_extend: list[dict[str, Any]] = []
     dropping: list[dict[str, Any]] = []
+    queued_extensions: list[dict[str, Any]] = []
     for row in scoped:
+        if has_pending_extension(row) and is_active_for_pre_draft(row):
+            pending = (row.get("contract") or {}).get("pending_extension") or {}
+            brief = _player_brief(row, rules)
+            brief["queued_years"] = int(pending.get("years") or 0) or None
+            brief["queued_start_salary"] = pending.get("start_salary")
+            queued_extensions.append(brief)
         if not expires_before_draft(row, draft_completed=False):
             continue
         brief = _player_brief(row, rules)
@@ -207,6 +216,7 @@ def pre_draft_cap_summary(
         "draft_budget_available": draft_budget,
         "cap_freed_from_cuts": cap_freed_from_cuts,
         "must_extend": must_extend,
+        "queued_extensions": queued_extensions,
         "dropping_at_draft": dropping,
         "expiring_before_draft": expiring,
         # Deprecated alias — same as expiring_before_draft.

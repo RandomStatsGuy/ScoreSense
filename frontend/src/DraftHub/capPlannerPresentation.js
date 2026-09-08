@@ -19,7 +19,20 @@ export const CAP_EXTEND_COPY = {
   yearsLabel: "Years",
   selectPlayer: "Select player",
   queue: "Queue extension",
+  undo: "Undo extension",
+  queuedHint: "Undo if the years are wrong. The deal expires at the draft unless you queue again.",
 };
+
+export function queuedExtensionsSummary(count) {
+  const n = Number(count) || 0;
+  return n === 1 ? "1 queued extension" : `${n} queued extensions`;
+}
+
+export function queuedYearsLine(years) {
+  const n = Number(years);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  return `${n}-yr queued`;
+}
 
 export const CAP_FIGURE_COPY = {
   leftover: "Leftover",

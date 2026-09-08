@@ -247,6 +247,12 @@ class RookieExtendRequest(BaseModel):
     extension_years: int = 1
 
 
+class RookieExtendCancelRequest(BaseModel):
+    """Undo a queued manager extension. The current deal stays in place."""
+
+    player_id: str
+
+
 class ContractExtendRequest(BaseModel):
     """Legacy alias for RookieExtendRequest. ``new_salary`` is ignored."""
 

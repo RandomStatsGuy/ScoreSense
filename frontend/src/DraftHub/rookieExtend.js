@@ -1,6 +1,6 @@
-import { apiFetch } from "../auth";
-import { parseApiError } from "../format";
-import { leagueStepUp } from "./rosterFormat";
+import { apiFetch } from "../auth.js";
+import { parseApiError } from "../format.js";
+import { leagueStepUp } from "./rosterFormat.js";
 
 /** True when contract has a queued post-draft extension (SCORE-42). */
 export function hasPendingExtension(rowOrContract) {
@@ -92,4 +92,26 @@ export function rookieExtendSuccessMessage(data) {
     return `Extension queued (${yearsBit}${salaryBit}). Activates when draft is marked complete.`;
   }
   return "Contract extended.";
+}
+
+export async function cancelRookieExtend(playerId) {
+  if (!playerId) throw new Error("Pick a player to undo.");
+  const res = await apiFetch("/api/hub/contract/rookie-extend/cancel", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ player_id: playerId }),
+  });
+  if (!res.ok) throw new Error(await parseApiError(res));
+  return res.json();
+}
+
+export function rookieExtendCancelSuccessMessage() {
+  return "Extension undone. This deal expires at the draft unless you queue again.";
+}
+
+/** Tone for Cap / My team notices. Prefixes only — "queued" in an error is still an error. */
+const ROOKIE_EXTEND_SUCCESS_PREFIX = /^(Extension queued \(|Extension already queued \(|Contract extended\.|Extension undone\.)/i;
+
+export function isRookieExtendSuccessMessage(msg) {
+  return ROOKIE_EXTEND_SUCCESS_PREFIX.test(String(msg || "").trim());
 }
