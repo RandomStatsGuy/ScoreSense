@@ -37,6 +37,8 @@ export const OFFICE_CONTRACTS_COPY = {
   capInvalid: "Cap must be 0 or more.",
   yearsInvalid: "Years must be at least 1.",
   sleeperLinked: (linked, total) => `Sleeper linked · ${linked}/${total} teams`,
+  extendToKeep: "Extend to keep",
+  expiring: "Expiring",
 };
 
 export function contractStateChip({
@@ -49,8 +51,8 @@ export function contractStateChip({
   if (queuedDrop) return { label: "Drop queued", tone: "cut" };
   if (rosterStatus === "cut_before_draft") return { label: "Cut", tone: "cut" };
   if (!draftCompleted && Number(yearsLeft) <= 1) {
-    if (contractType === "rookie") return { label: "Extend to keep", tone: "keep" };
-    return { label: "Expires — FA", tone: "warn" };
+    if (contractType === "rookie") return { label: OFFICE_CONTRACTS_COPY.extendToKeep, tone: "keep" };
+    return { label: OFFICE_CONTRACTS_COPY.expiring, tone: "warn" };
   }
   return null;
 }

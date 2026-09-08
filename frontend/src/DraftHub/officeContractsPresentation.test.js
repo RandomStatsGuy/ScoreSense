@@ -58,8 +58,10 @@ test("contract-state chips use keep / caution / cut tones", () => {
       contractType: "veteran",
       draftCompleted: false,
     }),
-    { label: "Expires — FA", tone: "warn" },
+    { label: "Expiring", tone: "warn" },
   );
+  assert.equal(OFFICE_CONTRACTS_COPY.expiring, "Expiring");
+  assert.doesNotMatch(OFFICE_CONTRACTS_COPY.expiring, /FA|Expires/);
   assert.deepEqual(
     contractStateChip({ rosterStatus: "cut_before_draft", yearsLeft: 2, contractType: "veteran" }),
     { label: "Cut", tone: "cut" },

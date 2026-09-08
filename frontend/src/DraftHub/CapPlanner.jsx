@@ -35,6 +35,7 @@ import {
   queuedYearsLine,
   CAP_FIGURE_COPY,
   CAP_MODEL_COPY,
+  CAP_STATUS_COPY,
   CAP_MOVE_COPY,
   CAP_NEED_COPY,
   CAP_SHEET_COPY,
@@ -228,20 +229,20 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
   const expiryBadge = (playerId) => {
     const pid = String(playerId);
     if (pendingExtendIds.has(pid)) {
-      return <span className="hub-expire-chip hub-expire-chip--extend">Extension queued</span>;
+      return <span className="hub-expire-chip hub-expire-chip--extend">{CAP_STATUS_COPY.extensionQueued}</span>;
     }
     if (extendableIds.has(pid)) {
-      return <span className="hub-roster-status hub-roster-status--keep">Extend to keep</span>;
+      return <span className="hub-roster-status hub-roster-status--keep">{CAP_STATUS_COPY.extendToKeep}</span>;
     }
     if (droppingIds.has(pid)) {
-      return <span className="hub-roster-status hub-roster-status--warn">Expires — FA</span>;
+      return <span className="hub-roster-status hub-roster-status--warn">{CAP_STATUS_COPY.expiring}</span>;
     }
     return null;
   };
 
   const glossary = (
     <>
-      <p><strong>Expire before draft</strong> — Final-year deals leave your roster (FA) unless extended.</p>
+      <p><strong>{CAP_MODEL_COPY.expireBeforeDraftTitle}</strong> — {CAP_MODEL_COPY.expireBeforeDraft}</p>
       <p><strong>Years left</strong> — Includes the upcoming season; drops by 1 when the draft is marked complete.</p>
       <p><strong>Contract extension</strong> — Eligible final-year {veteranExtensions ? "rookie and veteran deals" : "rookie deals"}; one 1–{maxExtensionYears} year extension. Start salary is server-set (current + ${stepUp}).</p>
       <p><strong>Queued</strong> — Extension activates when draft is marked complete (1- and 3-year terms preserved).</p>

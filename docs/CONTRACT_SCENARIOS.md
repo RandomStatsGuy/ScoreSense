@@ -51,7 +51,7 @@ If a sheet shows `1` but you still have the player for the upcoming season on a 
 | Badge | When |
 |---|---|
 | **Extend to keep** | Final year **and** type is Rookie deal (eligible for one extension) |
-| **Expires — FA** | Final year **and** Veteran Deal or Rookie Extension (cannot re-sign) |
+| **Expiring** | Final year **and** Veteran Deal or Rookie Extension (cannot re-sign). They enter the draft pool; undrafted names become free agents after the draft. |
 | _(none)_ | Years left ≥ 2, or just drafted this auction |
 
 ---
@@ -80,7 +80,7 @@ If a sheet shows `1` but you still have the player for the upcoming season on a 
 | Contract type | **Rookie deal** |
 | Years left | **1** |
 
-**Action:** Cap Planner → **Extend** (1–3 years, step-up applies) **or** let them hit FA.
+**Action:** Cap Planner → **Extend** (1–3 years, step-up applies) **or** let them enter the draft pool.
 
 Do **not** set type to Veteran Deal here — that removes extend eligibility.
 
@@ -95,7 +95,7 @@ Do **not** set type to Veteran Deal here — that removes extend eligibility.
 | Contract type | **Rookie Extension** |
 | Years left | Remaining seasons **including** the upcoming one |
 
-**Cap Planner:** when years = 1 → **Expires — FA** (cannot extend again).
+**Cap Planner:** when years = 1 → **Expiring** (cannot extend again). They enter the draft pool; undrafted names become free agents after the draft.
 
 ---
 
@@ -108,7 +108,7 @@ Do **not** set type to Veteran Deal here — that removes extend eligibility.
 | Contract type | **Veteran Deal** (or **Rookie Extension** only if they were already extended in *your* league) |
 | Years left | Whatever their current deal still covers (often **1**) |
 
-**Cap Planner:** years = 1 → **Expires — FA**. You cannot re-sign them after expiry.
+**Cap Planner:** years = 1 → **Expiring**. They enter the draft pool; you cannot re-sign them after expiry.
 
 ---
 
@@ -175,8 +175,8 @@ Is years left ≥ 2?
   YES → Retained; nothing to do for expire/extend
   NO (years = 1, not a brand-new draft buy):
       Type = Rookie deal?
-        YES → Cap Planner: Extend to keep (or FA)
-        NO  → Cap Planner: Expires — FA (cannot re-sign)
+        YES → Cap Planner: Extend to keep (or draft pool)
+        NO  → Cap Planner: Expiring (cannot re-sign; draft pool, then FA if undrafted)
 ```
 
 ---
