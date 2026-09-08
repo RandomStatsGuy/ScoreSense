@@ -116,7 +116,7 @@ Members is where staff expand or shrink the seat count. A seat is the slot; a ma
 
 Sleeper: Access & imports is the one link. The league strip's Sync league is the one sync. Every other "Sync Sleeper" / "League settings" / "Import Sleeper" control deep-links to those. The sync confirm names what it overwrites. Collapse the Sleeper league ID form once the league is linked. A re-import on Contracts is secondary and names that it overwrites staff edits.
 
-Mark draft complete lives on Contracts as a red confirm. It burns one year on every contract and cannot be undone. Setup shows the status only.
+Mark draft complete lives on Contracts as a red confirm. It burns one year on every contract and cannot be undone. It also ends a leftover live room and moves the league in-season. Setup shows the status only. After that, Roster management is After draft — not live-auction chrome, and not keepers.
 
 Commissioner Drop on Contracts and My team removes a player with no dead cap so staff can add them to another team before the draft. Cut is the penalty path.
 

@@ -66,6 +66,35 @@ def test_resolve_phase_live_draft():
     assert phase["primary_cta"]["view"] == "room"
 
 
+def test_resolve_phase_mark_complete_wins_over_stale_live():
+    phase = resolve_league_phase(
+        draft_completed=True,
+        league_status="live",
+        draft_session_status="nominating",
+        nfl_season_type="off",
+    )
+    assert phase["id"] == PHASE_OFFSEASON
+
+
+def test_mark_draft_complete_seals_leftover_live_room(hub_db):
+    league, _team, _ws, sub, _rules = _seed_league(hub_db)
+    storage.update_league_status(league["id"], "live")
+    storage.update_draft_session(league["id"], status="nominating")
+    client = _client_for(sub)
+    res = client.patch(
+        f"/api/hub/league/{league['id']}/settings",
+        json={"draft_completed": True},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["league"]["draft_completed"] is True
+    assert body["league"]["status"] == "completed"
+    assert body["hub_context"]["draft_completed"] is True
+    assert body["hub_context"]["league_status"] == "completed"
+    session = storage.get_draft_session(league["id"])
+    assert session["status"] == "completed"
+
+
 def test_resolve_phase_in_season():
     phase = resolve_league_phase(
         draft_completed=True,

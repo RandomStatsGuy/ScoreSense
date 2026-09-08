@@ -770,6 +770,31 @@ def end_draft(league_id: str, user_sub: str, *, force: bool = False) -> dict[str
     return state
 
 
+def seal_room_after_draft_complete(league_id: str) -> None:
+    """End leftover live-room flags after Mark draft complete.
+
+    The Contracts confirm burns years without going through finish_draft. A
+    leftover league status of live still paints auction chrome on Roster
+    management and Home.
+    """
+    storage.update_league_status(league_id, "completed")
+    session = storage.get_draft_session(league_id) or {}
+    status = str(session.get("status") or "").strip().lower()
+    if status not in {"nominating", "bidding", "picking"}:
+        return
+    storage.update_draft_session(
+        league_id,
+        status="completed",
+        completed_at=_now_iso(),
+        current_nominee_json=None,
+        high_bid=None,
+        high_bidder_team_id=None,
+        bid_deadline=None,
+        nomination_deadline=None,
+        last_bid_at=None,
+    )
+
+
 def reset_live_draft(league_id: str, user_sub: str) -> dict[str, Any]:
     """Undo a live (non-practice) draft: clear auction picks/events, restore session to setup.
 

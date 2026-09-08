@@ -4305,8 +4305,11 @@ def hub_league_settings(
     year_tick = None
     if body.draft_completed is True and not was_complete:
         from src.draft_hub.contract_year_clock import tick_contracts_on_draft_complete
+        from src.draft_hub.draft_state import seal_room_after_draft_complete
 
         year_tick = tick_contracts_on_draft_complete(league_id)
+        seal_room_after_draft_complete(league_id)
+        league = storage.get_league(league_id) or league
     out: dict = {"league": league, "hub_context": _ctx(sub)}
     if year_tick is not None:
         out["contract_year_tick"] = year_tick
