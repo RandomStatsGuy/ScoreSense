@@ -46,6 +46,17 @@ export const RULES_COPY = {
   livePosShort: (labels) => (
     `This roster is short of the new minimums (${labels}).`
   ),
+  rookieTerm: "Default rookie deal",
+  vetTerm: "Default vet deal",
+  keepRookieFlat: "Keep rookie deals flat",
+  keepRookieFlatHelp: "Year one and two of a rookie deal stay at the signing salary. Vet deals and extensions step every year.",
+  allowExtensions: "Allow extensions",
+  allowExtensionsHelp: "A final-year rookie deal or vet deal may take one extension. An extension cannot be extended again.",
+  previewRookie: "Rookie deal",
+  previewVet: "Vet deal",
+  previewExtension: "Extension",
+  previewFlat: "Flat salary",
+  previewStep: "Steps every year",
 };
 
 export const FORMAT_OPTIONS = [
@@ -85,7 +96,7 @@ export const DEFAULT_RULES = {
     veteran_years: 2,
     rookie_salary_static: true,
     one_renewal_after_rookie: true,
-    allow_veteran_renewal: false,
+    allow_veteran_renewal: true,
   },
 };
 
@@ -139,10 +150,10 @@ export function validateLeagueSettings({ name, season, rules }) {
     errors.max_years = "Choose 1–5 years.";
   }
   if (!numberInRange(merged.contracts.rookie_years, 1, maxYears || 5)) {
-    errors.rookie_years = "Rookie term cannot exceed the maximum contract length.";
+    errors.rookie_years = "Rookie deal term cannot exceed the maximum contract length.";
   }
   if (!numberInRange(merged.contracts.veteran_years, 1, maxYears || 5)) {
-    errors.veteran_years = "Veteran term cannot exceed the maximum contract length.";
+    errors.veteran_years = "Vet deal term cannot exceed the maximum contract length.";
   }
   if (!numberInRange(merged.contracts.extension_step_up, 0, 100000)) {
     errors.extension_step_up = "Annual step-up cannot be negative.";
@@ -250,13 +261,13 @@ export function rulesSummary(rules) {
     },
     {
       id: "veteran",
-      label: "New veteran deals",
-      value: `${contracts.veteran_years} year${Number(contracts.veteran_years) === 1 ? "" : "s"}`,
+      label: "New vet deals",
+      value: `${contracts.veteran_years} year${Number(contracts.veteran_years) === 1 ? "" : "s"} · Steps up`,
     },
     {
       id: "renewals",
       label: "Extensions",
-      value: contracts.allow_veteran_renewal ? "Rookies + veterans" : (contracts.one_renewal_after_rookie ? "Rookies only" : "Disabled"),
+      value: extensionPolicyLabel(contracts),
     },
     {
       id: "roster",
@@ -274,6 +285,28 @@ function formatLabel(draftType) {
 
 function moneyLabel(value) {
   return `$${Number(value || 0).toLocaleString()}`;
+}
+
+export function leagueAllowsDealExtensions(contracts = {}) {
+  return Boolean(contracts.one_renewal_after_rookie) || Boolean(contracts.allow_veteran_renewal);
+}
+
+export function applyDealExtensionPolicy(contracts = {}, enabled) {
+  const on = Boolean(enabled);
+  return {
+    ...contracts,
+    one_renewal_after_rookie: on,
+    allow_veteran_renewal: on,
+  };
+}
+
+export function extensionPolicyLabel(contracts = {}) {
+  const rookies = Boolean(contracts.one_renewal_after_rookie);
+  const vets = Boolean(contracts.allow_veteran_renewal);
+  if (rookies && vets) return "Rookie deals and vet deals";
+  if (rookies) return "Rookie deals only";
+  if (vets) return "Vet deals only";
+  return "Off";
 }
 
 export function snapshotRulesForm({ name, season, rules }) {
@@ -358,6 +391,13 @@ export function templateImpact(currentRules, presetRules) {
   }
   if (Number(current.contracts.max_years) !== Number(next.contracts.max_years)) {
     changes.push(`Max extension becomes ${next.contracts.max_years} year${Number(next.contracts.max_years) === 1 ? "" : "s"}.`);
+  }
+  if (leagueAllowsDealExtensions(current.contracts) !== leagueAllowsDealExtensions(next.contracts)) {
+    changes.push(
+      leagueAllowsDealExtensions(next.contracts)
+        ? "Extensions become available on rookie deals and vet deals."
+        : "Extensions become off.",
+    );
   }
   if (!changes.length) {
     changes.push("Every field is reset to this template.");

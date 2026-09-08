@@ -105,6 +105,24 @@ def test_constitution_forbids_stale_product_names() -> None:
     assert "fourth top-level" in product.lower() or "fourth top-level" in core_rule
 
 
+def test_constitution_covers_contract_type_labels() -> None:
+    product = _read("docs", "PRODUCT.md")
+    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    roster_format = _read("frontend", "src", "DraftHub", "rosterFormat.js")
+    rules_copy = _read("frontend", "src", "DraftHub", "rulesPresentation.js")
+    assert "**Rookie deal**" in product
+    assert "**Vet deal**" in product
+    assert "**Extension**" in product
+    assert "Never “Rookie Extension” or “Veteran Deal”" in product
+    assert "never Rookie Extension or Veteran Deal" in core_rule
+    assert 'label: "Rookie deal"' in roster_format
+    assert 'label: "Vet deal"' in roster_format
+    assert 'label: "Extension"' in roster_format
+    assert 'previewRookie: "Rookie deal"' in rules_copy
+    assert 'previewVet: "Vet deal"' in rules_copy
+    assert 'previewExtension: "Extension"' in rules_copy
+
+
 def test_expire_chips_say_expiring_not_fa_destination() -> None:
     product = _read("docs", "PRODUCT.md")
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")

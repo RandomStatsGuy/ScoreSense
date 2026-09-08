@@ -25,8 +25,8 @@ export function canManagerRookieExtend(row, { draftCompleted = false, rules = nu
   if (ctype === "extension") {
     return { ok: false, reason: "Already on an extension — expires to free agency." };
   }
-  if (ctype === "veteran" && rules?.contracts?.allow_veteran_renewal !== true) {
-    return { ok: false, reason: "Veteran extensions are disabled by league rules." };
+  if (ctype === "veteran" && rules?.contracts?.allow_veteran_renewal === false) {
+    return { ok: false, reason: "Vet deal extensions are disabled by league rules." };
   }
   if (ctype !== "rookie" && ctype !== "veteran") {
     return { ok: false, reason: "This contract type cannot be extended." };
@@ -42,7 +42,7 @@ export function canManagerRookieExtend(row, { draftCompleted = false, rules = nu
     return { ok: false, reason: "Renewal already used — player becomes a free agent." };
   }
   if (ctype === "rookie" && rules?.contracts?.one_renewal_after_rookie === false) {
-    return { ok: false, reason: "Rookie extensions are disabled by league rules." };
+    return { ok: false, reason: "Rookie deal extensions are disabled by league rules." };
   }
   const maxYears = Math.max(1, Number(rules?.contracts?.max_years ?? 3));
   return { ok: true, reason: `Eligible for one extension (1–${maxYears} years).` };

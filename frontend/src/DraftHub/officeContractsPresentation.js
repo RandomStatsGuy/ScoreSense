@@ -4,6 +4,7 @@
 import { isRetainedThroughDraft } from "./draftRoomHelpers.js";
 import {
   contractDeadCapStory,
+  dealCanTakeExtension,
   fmtSal,
   preDraftCutDeadCap,
 } from "./rosterFormat.js";
@@ -95,11 +96,14 @@ export function contractStateChip({
   contractType,
   draftCompleted,
   queuedDrop = false,
+  rules = null,
 } = {}) {
   if (queuedDrop) return { label: "Drop queued", tone: "cut" };
   if (rosterStatus === "cut_before_draft") return { label: "Cut", tone: "cut" };
   if (!draftCompleted && Number(yearsLeft) <= 1) {
-    if (contractType === "rookie") return { label: OFFICE_CONTRACTS_COPY.extendToKeep, tone: "keep" };
+    if (dealCanTakeExtension(contractType, rules)) {
+      return { label: OFFICE_CONTRACTS_COPY.extendToKeep, tone: "keep" };
+    }
     return { label: OFFICE_CONTRACTS_COPY.expiring, tone: "warn" };
   }
   return null;

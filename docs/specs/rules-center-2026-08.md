@@ -149,7 +149,7 @@ The right rail is sticky within the viewport and contains:
 - league format
 - salary cap
 - rookie contract summary
-- veteran contract summary
+- vet deal summary
 - extension policy
 - roster size
 - validation state
@@ -202,19 +202,17 @@ Required controls:
 | Maximum extension length | Stepper or compact select | Longest extension a manager may choose |
 | Annual salary step-up | Currency input | Amount added in each later contract year |
 | Rookie contract length | Stepper or compact select | Default number of years for new rookie deals |
-| Average/default veteran contract length | Stepper or compact select | Default number of years for new veteran deals |
+| Default vet deal length | Stepper or compact select | Default number of years for new vet deals |
 | Rookie salary behavior | Toggle | Static each year or increases by the league step-up |
-| Rookie extensions | Toggle | Whether a final-year rookie may receive one extension |
-| Veteran extensions | Toggle | Whether an eligible veteran may be extended |
+| Extensions | Toggle | Whether a final-year rookie deal or vet deal may take one extension |
 | Cut refund | Percentage input | Salary relief when a player is cut |
 
 Use policy toggles with a title and one sentence of consequence. Do not place bare checkboxes next to internal field names.
 
 Example toggle copy:
 
-- **Keep rookie salary static** — `A rookie keeps the same cap hit in every year of the initial deal.`
-- **Allow one rookie extension** — `A final-year rookie may move onto one extension before free agency.`
-- **Allow veteran extensions** — `Eligible final-year veteran deals may be extended under the same term limit and step-up.`
+- **Keep rookie deals flat** — `Year one and two of a rookie deal stay at the signing salary. Vet deals and extensions step every year.`
+- **Allow extensions** — `A final-year rookie deal or vet deal may take one extension. An extension cannot be extended again.`
 
 #### Live contract preview
 
@@ -406,10 +404,10 @@ Older saved leagues will not contain every new field. Deep-merge defaults instea
 
 Recommended defaults should preserve existing ScoreSense behavior:
 
-- veteran contract length: existing default term
+- vet deal length: existing default term
 - rookie salary static: `true`
-- veteran extensions: `false`
-- rookie extension permission: preserve existing default
+- veteran extensions: `true` (same Allow extensions toggle as rookie deals)
+- rookie extension permission: `true`
 
 ### Operational propagation
 
@@ -582,7 +580,7 @@ Backend validation errors should be observable with enough context to diagnose t
 
 ### Contract behavior
 
-- New rookie and veteran contracts use configured lengths.
+- New rookie deals and vet deals use configured lengths.
 - Rookie contracts are flat or stepped according to policy.
 - Extension length is bounded by the configured maximum.
 - Veteran extension eligibility follows the league toggle in both frontend and backend.
@@ -636,7 +634,7 @@ Backend validation errors should be observable with enough context to diagnose t
 - Static rookie schedule
 - Stepped rookie schedule
 - Veteran contract schedule
-- Rookie extension disabled/enabled
+- Extensions disabled/enabled
 - Veteran extension disabled/enabled
 - Configured maximum extension term
 - Read-path preservation of explicitly stepped rookie contracts

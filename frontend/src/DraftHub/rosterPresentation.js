@@ -1,5 +1,7 @@
 /** User-facing copy for Fantasy → My team. */
 
+import { dealCanTakeExtension } from "./rosterFormat.js";
+
 export const MY_TEAM_COPY = {
   title: "My team",
   purpose: "Your contracts and leftover cap. Cut or extend the wrong name and you pay for it next season.",
@@ -34,7 +36,7 @@ export const MY_TEAM_COPY = {
   skipToContent: "Skip to content",
 };
 
-export function rosterStatusInfo(row, { draftCompleted, ctype, pendingType, pendingExt } = {}) {
+export function rosterStatusInfo(row, { draftCompleted, ctype, pendingType, pendingExt, rules } = {}) {
   if (row?.roster_status === "cut_before_draft") {
     return { label: "Cut before draft", tone: "cut", key: "cut" };
   }
@@ -42,7 +44,7 @@ export function rosterStatusInfo(row, { draftCompleted, ctype, pendingType, pend
   if (pendingType) return { label: "Pending type", tone: "pending", key: "pending-type" };
   const yrsLeft = Number(row?.contract?.years_remaining ?? row?.contract_years ?? 1);
   if (!draftCompleted && yrsLeft <= 1) {
-    return ctype === "rookie"
+    return dealCanTakeExtension(ctype, rules)
       ? { label: MY_TEAM_COPY.statusExtend, tone: "extend", key: "extend" }
       : { label: MY_TEAM_COPY.statusExpire, tone: "expire", key: "expire" };
   }
