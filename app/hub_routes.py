@@ -1424,8 +1424,6 @@ def hub_remove_roster(body: RosterRemoveRequest, _user=Depends(require_hub_user)
     ctx = _ctx(sub)
     if ctx.get("mode") == "league" and not ctx.get("is_commissioner"):
         raise HTTPException(status_code=403, detail="Commissioner managed")
-    if ctx.get("mode") == "league" and not can_edit_roster(ctx):
-        raise HTTPException(status_code=403, detail="Join a league team to edit your roster")
     ws_id, team_id = roster_scope(ctx)
     existing = storage.get_roster_slot(ws_id, body.player_id)
     if not existing:
