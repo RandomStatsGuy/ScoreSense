@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from app.api import app
 from app.auth import require_hub_user
 from src.draft_hub import storage
+from src.draft_hub.pre_draft_cap import pre_draft_cap_summary
 from src.draft_hub.schemas import LeagueRules
 
 ET = ZoneInfo("America/New_York")
@@ -63,13 +64,13 @@ def test_member_cannot_delete_another_team_player(hub_db, monkeypatch):
     try:
         res = client.request("DELETE", "/api/hub/roster", json={"player_id": "00-0033873"})
         assert res.status_code == 403
-        assert "another team" in res.json()["detail"].lower()
+        assert "commissioner managed" in res.json()["detail"].lower()
         assert storage.get_roster_slot(ws_id, "00-0033873") is not None
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
 
 
-def test_member_can_delete_own_player(hub_db, monkeypatch):
+def test_member_cannot_delete_own_player(hub_db, monkeypatch):
     league, _owner, member, ws_id = _seed_two_teams("comm-own-del", "member-own-del")
     _open_fa(monkeypatch, league)
     _add(ws_id, member["id"], player_id="00-0035228", name="Josh Allen")
@@ -77,9 +78,9 @@ def test_member_can_delete_own_player(hub_db, monkeypatch):
     client = _client_for("member-own-del")
     try:
         res = client.request("DELETE", "/api/hub/roster", json={"player_id": "00-0035228"})
-        assert res.status_code == 200
-        assert res.json()["removed"] == "00-0035228"
-        assert storage.get_roster_slot(ws_id, "00-0035228") is None
+        assert res.status_code == 403
+        assert "commissioner managed" in res.json()["detail"].lower()
+        assert storage.get_roster_slot(ws_id, "00-0035228") is not None
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
 
@@ -94,6 +95,49 @@ def test_commissioner_can_delete_another_team_player(hub_db, monkeypatch):
         res = client.request("DELETE", "/api/hub/roster", json={"player_id": "00-0033873"})
         assert res.status_code == 200
         assert storage.get_roster_slot(ws_id, "00-0033873") is None
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_commissioner_drop_does_not_apply_dead_cap(hub_db):
+    rules = LeagueRules()
+    league = storage.create_league("comm-void", "Void League", 2026, rules, team_count=10)
+    owner = storage.join_league("owner-void", league["room_code"], "Owner Team")
+    ws_id = storage.roster_workspace_for_league(league)
+    storage.add_roster_slot(
+        ws_id,
+        {
+            "player_id": "00-0033873",
+            "player_name": "Patrick Mahomes",
+            "team": "KC",
+            "position": "QB",
+            "salary": 40,
+            "contract_years": 2,
+            "contract": {
+                "current_salary": 40,
+                "years_remaining": 2,
+                "contract_type": "veteran",
+            },
+        },
+        team_id=owner["id"],
+    )
+    before = pre_draft_cap_summary(rules, storage.list_team_roster(league["id"], owner["id"]))
+    assert before is not None
+    assert before["season_committed"] == 40
+    assert before["dead_cap"] == 0
+
+    client = _client_for("comm-void")
+    try:
+        res = client.request("DELETE", "/api/hub/roster", json={"player_id": "00-0033873"})
+        assert res.status_code == 200
+        assert storage.get_roster_slot(ws_id, "00-0033873") is None
+        after_rows = storage.list_team_roster(league["id"], owner["id"])
+        after = pre_draft_cap_summary(rules, after_rows)
+        assert after is not None
+        assert after["dead_cap"] == 0
+        assert after["season_committed"] == 0
+        assert after["draft_budget_available"] == before["draft_budget_available"] + 40
+        assert not any(str(r.get("roster_status")) == "cut_before_draft" for r in after_rows)
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
 

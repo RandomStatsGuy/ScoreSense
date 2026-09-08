@@ -10,7 +10,10 @@ test("My team copy names the decision and skips Draft Hub / permission voice", (
   assert.equal(MY_TEAM_COPY.undoExtension, "Undo extension");
   assert.match(MY_TEAM_COPY.queuedNote, /undo/i);
   assert.match(MY_TEAM_COPY.undoExtensionHint, /expire/i);
-  assert.doesNotMatch(MY_TEAM_COPY.removeConfirm, /Staff only|permission/i);
+  assert.match(MY_TEAM_COPY.removeConfirm, /No dead cap/);
+  assert.match(MY_TEAM_COPY.removeConfirm, /Cut if you meant a penalty/);
+  assert.doesNotMatch(MY_TEAM_COPY.removeConfirm, /Staff only|permission|refund/i);
+  assert.equal(MY_TEAM_COPY.dropLabel, "Drop");
 });
 
 test("My team qualifies committed as the season year", () => {

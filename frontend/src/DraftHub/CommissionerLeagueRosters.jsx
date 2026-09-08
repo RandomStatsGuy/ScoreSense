@@ -35,6 +35,7 @@ import {
   contractStateClass,
   cutButtonCopy,
   dropButtonCopy,
+  dropConfirmCopy,
   mergePendingChange,
   pendingNeedsOverrideNote,
   pendingTraySummary,
@@ -89,15 +90,6 @@ function LiveContractStageBanner({ stage }) {
           ))}
         </ul>
       )}
-    </details>
-  );
-}
-
-function RowOverflow({ label, children }) {
-  return (
-    <details className="hub-row-overflow">
-      <summary className="hub-row-overflow-summary">{label}</summary>
-      <div className="hub-row-overflow-menu">{children}</div>
     </details>
   );
 }
@@ -421,6 +413,21 @@ function TeamRosterBlock({
 
   const team = block.team;
 
+  const onToggleDrop = async (r, queuedDrop) => {
+    if (queuedDrop) {
+      onQueue(r, { drop: false });
+      return;
+    }
+    const copy = dropConfirmCopy(r, { draftCompleted });
+    const ok = await confirmDialog({
+      title: copy.title,
+      message: copy.message,
+      confirmLabel: copy.confirmLabel,
+      danger: true,
+    });
+    if (ok) onQueue(r, { drop: true });
+  };
+
   const renderRowFields = (r) => {
     const pending = pendingByPlayer[r.player_id] || {};
     const effective = applyPendingToRow(r, pending);
@@ -458,7 +465,7 @@ function TeamRosterBlock({
       pending.salary != null ? validateSalaryValue(pending.salary, salaryMax) : ""
     );
     const cutCopy = cutButtonCopy(r, rules, { queuedCut: isCut && pending.rosterStatus === "cut_before_draft" });
-    const dropCopy = dropButtonCopy(r, { queuedDrop });
+    const dropCopy = dropButtonCopy(r, { queuedDrop, draftCompleted });
     const cutControl = !draftCompleted && !queuedDrop ? (
       <button
         type="button"
@@ -476,7 +483,7 @@ function TeamRosterBlock({
         type="button"
         className="btn-ghost btn-sm hub-drop-btn"
         aria-label={dropCopy.ariaLabel}
-        onClick={() => onQueue(r, { drop: !queuedDrop })}
+        onClick={() => onToggleDrop(r, queuedDrop)}
       >
         {dropCopy.label}
       </button>
@@ -661,9 +668,7 @@ function TeamRosterBlock({
                 actions={(
                   <>
                     {vm.cutControl}
-                    <RowOverflow label={OFFICE_CONTRACTS_COPY.moreActions}>
-                      {vm.dropControl}
-                    </RowOverflow>
+                    {vm.dropControl}
                   </>
                 )}
               />
@@ -766,9 +771,7 @@ function TeamRosterBlock({
                   <td className="chart-note hub-schedule-preview">{vm.livePreview}</td>
                   <td className="hub-roster-actions">
                     {vm.cutControl}
-                    <RowOverflow label={OFFICE_CONTRACTS_COPY.moreActions}>
-                      {vm.dropControl}
-                    </RowOverflow>
+                    {vm.dropControl}
                   </td>
                 </tr>
               );

@@ -24,8 +24,9 @@ export const OFFICE_CONTRACTS_COPY = {
   overridePlaceholder: "Why are you changing these live contracts?",
   overrideConfirm: "Save overrides",
   moreActions: "More",
-  queueDrop: "Queue drop — remove from league",
+  queueDrop: "Drop — no dead cap",
   undoDrop: "Undo drop",
+  dropConfirmLabel: "Queue drop",
   refreshAction: "Re-import Sleeper rosters",
   refreshSupport:
     "Overwrites staff contract edits on this page with Sleeper's roster. Sync league in the strip is the usual path.",
@@ -76,16 +77,39 @@ export function cutButtonCopy(row, rules, { queuedCut = false } = {}) {
   };
 }
 
-export function dropButtonCopy(row, { queuedDrop = false } = {}) {
+export function dropLeftoverFreed(row, draftCompleted = false) {
+  if (!row || !isRetainedThroughDraft(row, draftCompleted)) return 0;
+  const salary = Number(row.salary);
+  return Number.isFinite(salary) ? salary : 0;
+}
+
+export function dropButtonCopy(row, { queuedDrop = false, draftCompleted = false } = {}) {
   if (queuedDrop) {
     return {
       label: OFFICE_CONTRACTS_COPY.undoDrop,
       ariaLabel: `Undo queued drop of ${row?.player_name || "player"}`,
     };
   }
+  const name = row?.player_name || "player";
+  const freed = dropLeftoverFreed(row, draftCompleted);
   return {
-    label: OFFICE_CONTRACTS_COPY.queueDrop,
-    ariaLabel: `Queue drop of ${row?.player_name || "player"} from the league`,
+    label: freed
+      ? `Drop · +${fmtSal(freed)} leftover, $0 dead`
+      : OFFICE_CONTRACTS_COPY.queueDrop,
+    ariaLabel: `Queue drop of ${name} with no dead cap`,
+  };
+}
+
+export function dropConfirmCopy(row, { draftCompleted = false } = {}) {
+  const name = row?.player_name || "this player";
+  const freed = dropLeftoverFreed(row, draftCompleted);
+  const leftoverLine = freed
+    ? ` Leftover goes up ${fmtSal(freed)}.`
+    : "";
+  return {
+    title: `Drop ${name}?`,
+    message: `Removes ${name} from this team.${leftoverLine} No dead cap. Cut if you meant a penalty.`,
+    confirmLabel: OFFICE_CONTRACTS_COPY.dropConfirmLabel,
   };
 }
 
