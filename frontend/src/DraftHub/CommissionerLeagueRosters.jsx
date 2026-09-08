@@ -847,7 +847,7 @@ function TeamRosterBlock({
                         aria-label={`${stage?.yearsFieldLabel || "Years"} for ${r.player_name}`}
                         onChange={(e) => onQueue(r, { years: e.target.value })}
                         onBlur={() => {
-                          if (vm.pending.years != null) flushField(r, { years: vm.pending.years });
+                          if (vm.pending?.years != null) flushField(r, { years: vm.pending.years });
                         }}
                       />
                     </label>
