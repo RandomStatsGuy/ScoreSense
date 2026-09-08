@@ -26,6 +26,7 @@ import {
   canManagerRookieExtend,
   cancelRookieExtend,
   hasPendingExtension,
+  isRookieExtendSuccessMessage,
   postRookieExtend,
   previewRookieExtendStartSalary,
   rookieExtendCancelSuccessMessage,
@@ -981,7 +982,7 @@ export default function RosterBuilder({
       )}
 
       {error && (
-        <div className={/queued|already queued|undone/i.test(error) ? "hub-msg" : "error"}>
+        <div className={isRookieExtendSuccessMessage(error) ? "hub-msg" : "error"}>
           {error}
         </div>
       )}

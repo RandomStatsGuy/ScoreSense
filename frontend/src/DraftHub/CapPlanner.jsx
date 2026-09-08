@@ -45,6 +45,7 @@ import ContractHistoryLink from "./ContractHistoryLink";
 import {
   cancelRookieExtend,
   hasPendingExtension,
+  isRookieExtendSuccessMessage,
   postRookieExtend,
   previewRookieExtendStartSalary,
   rookieExtendCancelSuccessMessage,
@@ -792,9 +793,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
       {msg && (
         <p
           className={`hub-msg${
-            /fail|could not|only |must |already queued|not on roster|403|400/i.test(msg)
-              ? " hub-msg--error"
-              : ""
+            isRookieExtendSuccessMessage(msg) ? "" : " hub-msg--error"
           }`}
         >
           {msg}

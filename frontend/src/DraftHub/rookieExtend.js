@@ -108,3 +108,10 @@ export async function cancelRookieExtend(playerId) {
 export function rookieExtendCancelSuccessMessage() {
   return "Extension undone. This deal expires at the draft unless you queue again.";
 }
+
+/** Tone for Cap / My team notices. Prefixes only — "queued" in an error is still an error. */
+const ROOKIE_EXTEND_SUCCESS_PREFIX = /^(Extension queued \(|Extension already queued \(|Contract extended\.|Extension undone\.)/i;
+
+export function isRookieExtendSuccessMessage(msg) {
+  return ROOKIE_EXTEND_SUCCESS_PREFIX.test(String(msg || "").trim());
+}
