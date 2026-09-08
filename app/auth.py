@@ -708,6 +708,14 @@ def ws_user_from_token(token: str | None) -> dict[str, Any] | None:
     return {"sub": "dev", "auth_type": "dev", "name": "Dev"}
 
 
+def ws_user_from_handshake(
+    token: str | None,
+    cookie_token: str | None = None,
+) -> dict[str, Any] | None:
+    """Query token first, then the HttpOnly session cookie (same as HTTP routes)."""
+    return ws_user_from_token(token) or ws_user_from_token(cookie_token)
+
+
 def token_from_request(request: Request) -> str | None:
     auth = request.headers.get("Authorization")
     if auth and auth.lower().startswith("bearer "):

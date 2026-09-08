@@ -16,3 +16,9 @@ test("DraftRoom declares myTeamId before the offline team seed effect", () => {
     "myTeamId is in the temporal dead zone of the offline seed effect and crashes every DraftRoom mount",
   );
 });
+
+test("DraftRoom only applies setup over live on an explicit reset", () => {
+  assert.ok(src.includes("allowSetupDowngrade: true"));
+  assert.ok(src.includes("wsReconnectDelayMs"));
+  assert.ok(src.includes("if (!roomStateRef.current) setRoomLoading(true)"));
+});

@@ -14,6 +14,7 @@ import {
   bestSlotLines,
   calendarTodayIso,
   firstSelectableDate,
+  resolveCalendarSelectedDate,
   formatHourLabel,
   groupDatesByMonth,
   heatTone,
@@ -91,6 +92,29 @@ test("calendar keeps only current and future hours", () => {
     [16, 18, 22],
   );
   assert.equal(firstSelectableDate(["2026-09-02", "2026-09-03"], [12, 18], "2026-09-02", 20), "2026-09-03");
+  assert.equal(
+    resolveCalendarSelectedDate({
+      selectedDate: "2026-09-03",
+      dates: ["2026-09-02", "2026-09-03"],
+      hours: [12, 18],
+      today: "2026-09-02",
+      currentHour: 20,
+      lockedDate: "2026-09-02",
+    }),
+    "2026-09-03",
+    "locked night with no remaining hours must not snap back",
+  );
+  assert.equal(
+    resolveCalendarSelectedDate({
+      selectedDate: "2026-09-03",
+      dates: ["2026-09-02", "2026-09-03"],
+      hours: [12, 18],
+      today: "2026-09-02",
+      currentHour: 16,
+      lockedDate: "2026-09-02",
+    }),
+    "2026-09-02",
+  );
   assert.equal(preferDateStrip(["2026-09-02", "2026-09-03"]), true);
   assert.equal(preferDateStrip(Array.from({ length: 20 }, (_, i) => `2026-08-${String(i + 10).padStart(2, "0")}`)), false);
   assert.equal(slotToWall("2026-09-02", 19), "2026-09-02T19:00");
