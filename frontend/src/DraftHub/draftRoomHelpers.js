@@ -134,13 +134,17 @@ export function canAcquireAtPosition(capacity, position, { relaxLimits } = {}) {
  */
 export function isRetainedThroughDraft(row, draftCompleted = false) {
   if (!row) return false;
-  if (String(row.roster_status || "active") === "cut_before_draft") return false;
+  const status = String(row.roster_status || "active");
+  if (status === "cut_before_draft" || status === "expired") return false;
   const acq = String(
     row.acquisition_type || row.contract?.acquisition_type || "",
   ).toLowerCase();
   if (acq === "fa_contract") return false;
+  const yrs = Number(
+    row.contract?.years_remaining ?? row.years_remaining ?? row.contract_years ?? 1,
+  );
+  if (!Number.isFinite(yrs) || yrs < 1) return false;
   if (draftCompleted) return true;
-  const yrs = Number(row.contract?.years_remaining ?? row.contract_years ?? 1);
   if (yrs > 1) return true;
   if (row.contract?.pending_extension) return true;
   const source = String(row.source || "").toLowerCase();

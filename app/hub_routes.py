@@ -1387,6 +1387,22 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
     )
     if ctype:
         contract["contract_type_manual"] = True
+    source = str(body.source or "").strip().lower() or None
+    if source and source not in {"draft", "auction", "post_draft_fa", "manual", "mock", "test_draft"}:
+        raise HTTPException(
+            status_code=400,
+            detail="source must be draft, auction, post_draft_fa, manual, mock, or test_draft",
+        )
+    acq_type = str(body.acquisition_type or "").strip().lower() or None
+    if acq_type and acq_type not in {"draft", "post_draft_fa", "fa_contract"}:
+        raise HTTPException(
+            status_code=400,
+            detail="acquisition_type must be draft, post_draft_fa, or fa_contract",
+        )
+    if source == "post_draft_fa" and not acq_type:
+        acq_type = "post_draft_fa"
+    if acq_type:
+        contract["acquisition_type"] = acq_type
     sleeper_id = str(body.sleeper_player_id or "").strip() or None
     if not sleeper_id and str(body.player_id).isdigit():
         sleeper_id = str(body.player_id)
@@ -1416,6 +1432,7 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
             "contract_years": contract["years_remaining"],
             "contract": contract,
             "sleeper_player_id": sleeper_id,
+            **({"source": source} if source else {}),
         },
         team_id=team_id,
     )

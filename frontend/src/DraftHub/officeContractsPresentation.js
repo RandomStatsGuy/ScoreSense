@@ -26,7 +26,19 @@ export const OFFICE_CONTRACTS_COPY = {
   moreActions: "More",
   queueDrop: "Drop — no dead cap",
   undoDrop: "Undo drop",
+  dropNow: "Drop",
   dropConfirmLabel: "Queue drop",
+  dropConfirmNow: "Drop",
+  acquired: "Acquired",
+  acquiredAuction: "Auction",
+  acquiredFaLottery: "FA lottery",
+  bidLabel: "Winning bid",
+  bidSupport: "Winning bid. Writes the live roster Rosters reads.",
+  expiredToFa: "Expired to FA",
+  expiredToFaSupport:
+    "These deals ticked to zero. They do not occupy leftover. Drop removes them from this roster.",
+  liveEditNote: "Roster management live edit",
+  liveSaved: "Saved. Rosters now matches this contract.",
   refreshAction: "Re-import Sleeper rosters",
   refreshSupport:
     "Overwrites staff contract edits on this page with Sleeper's roster. Sync league in the strip is the usual path.",
@@ -41,6 +53,41 @@ export const OFFICE_CONTRACTS_COPY = {
   extendToKeep: "Extend to keep",
   expiring: "Expiring",
 };
+
+export const OFFICE_ACQUIRED_OPTIONS = [
+  { value: "draft", label: OFFICE_CONTRACTS_COPY.acquiredAuction },
+  { value: "post_draft_fa", label: OFFICE_CONTRACTS_COPY.acquiredFaLottery },
+];
+
+export function isExpiredToFaRow(row) {
+  if (!row) return false;
+  const status = String(row.roster_status || "active");
+  if (status === "cut_before_draft") return false;
+  if (status === "expired") return true;
+  return rowYears(row) < 1;
+}
+
+export function isLiveOfficeRow(row) {
+  if (!row) return false;
+  if (String(row.roster_status || "active") === "cut_before_draft") return false;
+  return !isExpiredToFaRow(row);
+}
+
+export function partitionOfficeRoster(roster = []) {
+  const live = [];
+  const expired = [];
+  const cuts = [];
+  for (const row of roster || []) {
+    const status = String(row?.roster_status || "active");
+    if (status === "cut_before_draft") {
+      cuts.push(row);
+      continue;
+    }
+    if (isExpiredToFaRow(row)) expired.push(row);
+    else live.push(row);
+  }
+  return { live, expired, cuts };
+}
 
 export function contractStateChip({
   rosterStatus,
@@ -91,6 +138,12 @@ export function dropButtonCopy(row, { queuedDrop = false, draftCompleted = false
     };
   }
   const name = row?.player_name || "player";
+  if (draftCompleted) {
+    return {
+      label: OFFICE_CONTRACTS_COPY.dropNow,
+      ariaLabel: `Drop ${name} with no dead cap`,
+    };
+  }
   const freed = dropLeftoverFreed(row, draftCompleted);
   return {
     label: freed
@@ -109,7 +162,9 @@ export function dropConfirmCopy(row, { draftCompleted = false } = {}) {
   return {
     title: `Drop ${name}?`,
     message: `Removes ${name} from this team.${leftoverLine} No dead cap. Cut if you meant a penalty.`,
-    confirmLabel: OFFICE_CONTRACTS_COPY.dropConfirmLabel,
+    confirmLabel: draftCompleted
+      ? OFFICE_CONTRACTS_COPY.dropConfirmNow
+      : OFFICE_CONTRACTS_COPY.dropConfirmLabel,
   };
 }
 
@@ -141,21 +196,24 @@ function activeRoster(roster) {
 }
 
 export function teamCapStats(block, salaryCap, rules, draftCompleted = false) {
-  const active = activeRoster(block?.roster);
+  const parts = partitionOfficeRoster(block?.roster);
   const occupying = (block?.roster || []).filter((r) => (
     isRetainedThroughDraft(r, draftCompleted)
   ));
-  const cuts = (block?.roster || []).filter((r) => r.roster_status === "cut_before_draft");
+  const cuts = parts.cuts;
   const committed = occupying.reduce((sum, r) => sum + Number(r.salary || 0), 0);
-  const deadCap = cuts.reduce((sum, r) => sum + preDraftCutDeadCap(r, rules), 0);
+  const deadCap = draftCompleted
+    ? 0
+    : cuts.reduce((sum, r) => sum + preDraftCutDeadCap(r, rules), 0);
   const cap = Number(salaryCap) || 200;
+  const playerCount = draftCompleted ? parts.live.length : activeRoster(block?.roster).length;
   return {
     committed,
     deadCap,
     remaining: cap - committed - deadCap,
     cap,
-    playerCount: active.length,
-    cutCount: (block?.roster?.length || 0) - active.length,
+    playerCount,
+    cutCount: draftCompleted ? 0 : cuts.length,
   };
 }
 
@@ -282,10 +340,11 @@ export function validatePendingForTeam(block, pendingByPlayer, salaryCap, rules,
       }
     }
   }
+  const before = teamCapStats(block, salaryCap, rules, draftCompleted);
   const after = teamCapStats(
     applyPendingToBlock(block, pendingByPlayer), salaryCap, rules, draftCompleted,
   );
-  if (after.remaining < 0) {
+  if (after.remaining < 0 && after.remaining < before.remaining - 0.005) {
     errors.push({
       teamId: block?.team?.id,
       message: `${block?.team?.name || "This team"} would be ${fmtSal(-after.remaining)} over cap.`,

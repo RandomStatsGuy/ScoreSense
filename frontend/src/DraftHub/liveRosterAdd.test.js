@@ -40,6 +40,30 @@ test("buildLiveRosterAddBody maps suggestion onto POST /roster payload", () => {
   assert.equal(body.sleeper_player_id, "4039");
   assert.equal(body.force, true);
   assert.equal(body.staff_edit, true);
+  assert.equal(body.source, undefined);
+});
+
+test("buildLiveRosterAddBody tags Auction and FA lottery bids", () => {
+  const auction = buildLiveRosterAddBody({
+    suggestion: { sleeper_player_id: "1", player_name: "Bid", position: "RB" },
+    salary: 18,
+    years: 1,
+    contractType: "veteran",
+    teamId: "t",
+    acquired: "draft",
+  });
+  assert.equal(auction.source, "draft");
+  assert.equal(auction.acquisition_type, "draft");
+  const fa = buildLiveRosterAddBody({
+    suggestion: { sleeper_player_id: "2", player_name: "Lottery", position: "WR" },
+    salary: 7,
+    years: 1,
+    contractType: "veteran",
+    teamId: "t",
+    acquired: "post_draft_fa",
+  });
+  assert.equal(fa.source, "post_draft_fa");
+  assert.equal(fa.acquisition_type, "post_draft_fa");
 });
 
 test("buildLiveRosterAddBody returns null without a player id or name", () => {

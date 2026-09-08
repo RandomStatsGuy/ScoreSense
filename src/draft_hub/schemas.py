@@ -83,6 +83,9 @@ class RosterAddRequest(BaseModel):
     force: bool = False
     # Roster management only. Players-tab adds still follow the acquisition window.
     staff_edit: bool = False
+    # After-draft staff add: draft / auction / post_draft_fa / manual.
+    source: Optional[str] = None
+    acquisition_type: Optional[str] = None
 
 
 class RosterRemoveRequest(BaseModel):

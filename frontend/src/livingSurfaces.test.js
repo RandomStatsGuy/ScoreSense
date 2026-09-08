@@ -97,6 +97,9 @@ test("contracts pane owns the pending-write copy module", () => {
   assert.match(row.doNot, /pending-changes tray/);
   assert.match(row.doNot, /Drop is no dead cap/);
   assert.match(row.doNot, /After draft — not live-auction chrome, and not keepers/);
+  assert.match(row.doNot, /leftover matches Rosters/);
+  assert.match(row.doNot, /write immediately/);
+  assert.match(row.doNot, /Auction or FA lottery/);
 });
 
 test("approved primaries keep one fill on Home, Cap, and Trades", () => {

@@ -13,6 +13,7 @@ export function buildLiveRosterAddBody({
   contractType,
   teamId,
   force = false,
+  acquired = "",
 }) {
   const playerId = playerIdFromSuggestion(suggestion);
   const name = String(suggestion?.player_name || "").trim();
@@ -36,6 +37,14 @@ export function buildLiveRosterAddBody({
   if (tid) body.team_id = tid;
   const sleeperId = String(suggestion?.sleeper_player_id || "").trim();
   if (sleeperId) body.sleeper_player_id = sleeperId;
+  const acq = String(acquired || "").trim().toLowerCase();
+  if (acq === "draft" || acq === "auction") {
+    body.source = "draft";
+    body.acquisition_type = "draft";
+  } else if (acq === "post_draft_fa") {
+    body.source = "post_draft_fa";
+    body.acquisition_type = "post_draft_fa";
+  }
   return body;
 }
 
