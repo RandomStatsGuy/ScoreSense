@@ -34,7 +34,7 @@ class ContractRules(BaseModel):
     rookie_years: int = 2
     veteran_years: int = 2
     rookie_salary_static: bool = True
-    allow_veteran_renewal: bool = False
+    allow_veteran_renewal: bool = True
     one_renewal_after_rookie: bool = True
 
 

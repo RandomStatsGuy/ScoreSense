@@ -5,13 +5,23 @@ export function fmtSal(v) {
 
 export const CONTRACT_TYPE_OPTIONS = [
   { value: "rookie", label: "Rookie deal" },
-  { value: "veteran", label: "Veteran Deal" },
-  { value: "extension", label: "Rookie Extension" },
+  { value: "veteran", label: "Vet deal" },
+  { value: "extension", label: "Extension" },
 ];
 
 export function contractTypeLabel(type) {
   const hit = CONTRACT_TYPE_OPTIONS.find((o) => o.value === type);
-  return hit?.label || "Veteran Deal";
+  return hit?.label || "Vet deal";
+}
+
+/** Final-year rookie / vet deals may take one extension. An extension cannot. */
+export function dealCanTakeExtension(contractType, rules) {
+  const ctype = String(contractType || "veteran");
+  if (ctype === "extension") return false;
+  const contracts = rules?.contracts || {};
+  if (ctype === "rookie") return contracts.one_renewal_after_rookie !== false;
+  if (ctype === "veteran") return contracts.allow_veteran_renewal !== false;
+  return false;
 }
 
 export function contractTypeBadgeClass(type) {
@@ -90,7 +100,7 @@ export function contractScheduleHint(stepUp, rules = null) {
   const rookiePolicy = rules?.contracts?.rookie_salary_static === false
     ? `Rookies ${rookieYears} yrs +$${step}/yr`
     : `Rookies flat ${rookieYears} yrs`;
-  return `${rookiePolicy} · Veteran Deal / Rookie Extension +$${step}/yr`;
+  return `${rookiePolicy} · Vet deal / Extension +$${step}/yr`;
 }
 
 /** Read-only auction award line: "Rookie deal · 2y · $12" */
@@ -104,7 +114,7 @@ export function auctionAwardContractLabel(pick, stepUp = 5) {
   const sched = Array.isArray(pick?.salary_schedule) && pick.salary_schedule.length
     ? joinSalarySchedule(pick.salary_schedule.map((n) => fmtSal(n)))
     : previewSchedule(paid, years, step, ctype || "veteran", pick?.rookie_salary_static !== false);
-  const kind = ctype === "rookie" ? "Rookie deal" : "Veteran deal";
+  const kind = contractTypeLabel(ctype || "veteran");
   const yrs = Number.isFinite(years) ? `${years}y` : "2y";
   return sched ? `${kind} · ${yrs} · ${sched}` : `${kind} · ${yrs}`;
 }

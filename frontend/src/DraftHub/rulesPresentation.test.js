@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  applyDealExtensionPolicy,
   contractSchedule,
+  extensionPolicyLabel,
   glanceEyebrow,
   isRulesFormDirty,
+  leagueAllowsDealExtensions,
   mergeLeagueRules,
   presetRulesFromList,
   RULES_COPY,
@@ -29,6 +32,8 @@ test("mergeLeagueRules adds new contract policy defaults without losing roster r
   assert.equal(merged.contracts.max_years, 4);
   assert.equal(merged.contracts.veteran_years, 2);
   assert.equal(merged.contracts.rookie_salary_static, true);
+  assert.equal(merged.contracts.allow_veteran_renewal, true);
+  assert.equal(merged.contracts.one_renewal_after_rookie, true);
 });
 
 test("validateLeagueSettings catches conflicting contract and roster limits", () => {
@@ -37,8 +42,9 @@ test("validateLeagueSettings catches conflicting contract and roster limits", ()
     roster: { te: { min: 4, max: 2 } },
   });
   const errors = validateLeagueSettings({ name: "Cap League", season: 2026, rules });
-  assert.match(errors.rookie_years, /cannot exceed/i);
-  assert.match(errors.veteran_years, /cannot exceed/i);
+  assert.match(errors.rookie_years, /Rookie deal term cannot exceed/i);
+  assert.match(errors.veteran_years, /Vet deal term cannot exceed/i);
+  assert.doesNotMatch(errors.veteran_years, /Veteran/);
   assert.match(errors.roster_te, /cannot exceed/i);
 });
 
@@ -49,6 +55,24 @@ test("contractSchedule and rulesSummary explain flat versus stepped rookie deals
     contracts: { rookie_years: 3, rookie_salary_static: false },
   }));
   assert.match(summary.find((item) => item.id === "rookie").value, /3 years · Steps up/);
+  assert.match(summary.find((item) => item.id === "veteran").value, /Steps up/);
+  assert.equal(summary.find((item) => item.id === "renewals").value, "Rookie deals and vet deals");
+});
+
+test("one Allow extensions toggle writes both deal flags", () => {
+  assert.equal(leagueAllowsDealExtensions({ one_renewal_after_rookie: true }), true);
+  assert.equal(extensionPolicyLabel({ one_renewal_after_rookie: true, allow_veteran_renewal: true }), "Rookie deals and vet deals");
+  const off = applyDealExtensionPolicy({ max_years: 3 }, false);
+  assert.equal(off.one_renewal_after_rookie, false);
+  assert.equal(off.allow_veteran_renewal, false);
+  assert.equal(leagueAllowsDealExtensions(off), false);
+  assert.equal(RULES_COPY.allowExtensions, "Allow extensions");
+  assert.equal(RULES_COPY.previewRookie, "Rookie deal");
+  assert.equal(RULES_COPY.previewVet, "Vet deal");
+  assert.equal(RULES_COPY.previewExtension, "Extension");
+  assert.doesNotMatch(RULES_COPY.allowExtensionsHelp, /rookie extension/i);
+  assert.match(RULES_COPY.allowExtensionsHelp, /vet deal/i);
+  assert.doesNotMatch(JSON.stringify(RULES_COPY), /Rookie Extension|Veteran Deal/);
 });
 
 test("explicit null roster size reads as position limits, never 'null players'", () => {

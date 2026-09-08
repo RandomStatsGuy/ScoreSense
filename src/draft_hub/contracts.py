@@ -111,7 +111,7 @@ def build_auction_win_contract(
     """Build auction terms from the league's rookie and veteran defaults.
 
     Owners do not choose years here — that only happens in the pre-draft
-    rookie-extension window.
+    extension window.
     """
     cr = contract_rules(rules)
     sal = round(float(amount), 2)
@@ -133,11 +133,11 @@ def build_auction_win_contract(
 
 def build_veteran_contract(
     base_salary: float,
-    years: int = 1,
+    years: int = 2,
     *,
     step_up: float = 0.0,
 ) -> dict[str, Any]:
-    """Multi-year veteran deals step by ``step_up`` each year (league default $5)."""
+    """Multi-year vet deals step by ``step_up`` each year (league default $5)."""
     yrs = max(1, years)
     sal = round(float(base_salary), 2)
     step = float(step_up or 0)
@@ -392,7 +392,7 @@ def has_pending_extension(contract_or_row: dict[str, Any] | None) -> bool:
 
 
 def can_renew(row: dict[str, Any], rules: LeagueRules) -> tuple[bool, str]:
-    """One extension is allowed only at the end of a rookie deal (before draft)."""
+    """One extension is allowed at the end of a rookie deal or vet deal."""
     contract = row.get("contract") or {}
     ctype = contract.get("contract_type") or "veteran"
     yrs = int(contract.get("years_remaining") or row.get("contract_years") or 1)
@@ -403,15 +403,16 @@ def can_renew(row: dict[str, Any], rules: LeagueRules) -> tuple[bool, str]:
     if contract.get("renewal_used"):
         return False, "Renewal already used — player becomes a free agent."
     cr = contract_rules(rules)
+    eligible = f"Eligible for one extension (1–{int(cr.max_years)} years)."
     if ctype == "rookie":
         if not cr.one_renewal_after_rookie:
-            return False, "Rookie extensions are disabled by league rules."
-        return True, f"Eligible for one post-rookie extension (1–{int(cr.max_years)} years)."
+            return False, "Rookie deal extensions are disabled by league rules."
+        return True, eligible
     if ctype == "extension":
         return False, "Already on an extension — expires to free agency."
     if cr.allow_veteran_renewal:
-        return True, "Eligible for renewal."
-    return False, "Veterans cannot be re-signed — expires to free agency."
+        return True, eligible
+    return False, "Vet deal extensions are disabled by league rules."
 
 
 def extension_window_open(*, draft_completed: bool) -> bool:
@@ -441,7 +442,7 @@ def can_manager_rookie_extend(
     if ctype == "extension":
         return False, "Already on an extension — expires to free agency."
     if ctype == "veteran" and not rules.contracts.allow_veteran_renewal:
-        return False, "Veteran extensions are disabled by league rules."
+        return False, "Vet deal extensions are disabled by league rules."
     if ctype not in ("rookie", "veteran"):
         return False, "This contract type cannot be extended."
     return can_renew(row, rules)
@@ -677,7 +678,8 @@ def roster_row_from_import(
     elif contract_type == "extension":
         contract = build_extension_contract(rules, start_salary=salary, years=years, step_up=step_up)
     else:
-        contract = build_veteran_contract(salary, years)
+        vet_step = float(step_up if step_up is not None else rules.contracts.extension_step_up)
+        contract = build_veteran_contract(salary, years, step_up=vet_step)
     return {
         "player_id": player_id,
         "player_name": player_name,

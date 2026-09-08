@@ -13,8 +13,7 @@ import {
 import { calendarTodayIso } from "./draftAvailabilityPresentation";
 import DraftNightSchedule from "./DraftNightSchedule";
 import LeagueCreateJoinForm from "./LeagueCreateJoinForm";
-
-const TYPE_LABEL = { rookie: "Rookie deal", veteran: "Veteran Deal", extension: "Rookie Extension" };
+import { contractTypeLabel } from "./rosterFormat";
 
 export default function LeagueSetup({
   workspace,
@@ -208,8 +207,8 @@ export default function LeagueSetup({
                   <strong>{p.player_name}</strong>
                   <span className="table-meta">
                     {" · "}{p.team_name || "Team"}
-                    {" · "}{TYPE_LABEL[p.current_type] || p.current_type}
-                    {" → "}{TYPE_LABEL[p.pending_type] || p.pending_type}
+                    {" · "}{contractTypeLabel(p.current_type)}
+                    {" → "}{contractTypeLabel(p.pending_type)}
                   </span>
                 </div>
                 <div className="hub-pending-types-actions">

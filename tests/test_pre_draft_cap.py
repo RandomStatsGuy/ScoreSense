@@ -106,7 +106,7 @@ def test_fa_contract_always_expires_before_draft():
     assert any(p["player_id"] == "fac" for p in summary["dropping_at_draft"])
 
 
-def test_expiring_veteran_drops_before_draft_and_frees_cap():
+def test_expiring_veteran_must_extend_and_does_not_occupy_leftover():
     rules = LeagueRules(salary_cap=200)
     roster = [
         _row("kept", 50, 2),
@@ -115,10 +115,29 @@ def test_expiring_veteran_drops_before_draft_and_frees_cap():
     summary = pre_draft_cap_summary(rules, roster, draft_completed=False)
     assert summary["season_committed"] == 50
     assert summary["draft_budget_available"] == 150
+    assert len(summary["must_extend"]) == 1
+    assert summary["must_extend"][0]["player_id"] == "gone"
+    assert summary["dropping_at_draft"] == []
+    assert not retained_through_draft(roster[1], draft_completed=False)
+
+
+def test_expiring_veteran_drops_when_extensions_are_off():
+    rules = LeagueRules(
+        salary_cap=200,
+        contracts=LeagueRules().contracts.model_copy(update={"allow_veteran_renewal": False}),
+    )
+    roster = [
+        _row("kept", 50, 2),
+        _row("gone", 40, 1, contract_type="veteran"),
+    ]
+    summary = pre_draft_cap_summary(rules, roster, draft_completed=False)
     assert len(summary["dropping_at_draft"]) == 1
     assert summary["dropping_at_draft"][0]["player_id"] == "gone"
     assert summary["must_extend"] == []
-    assert not retained_through_draft(roster[1], draft_completed=False)
+
+    phase = cap_summary_for_phase(rules, roster, draft_completed=False)
+    assert phase["spent"] == 50
+    assert summary["must_extend"] == []
 
     phase = cap_summary_for_phase(rules, roster, draft_completed=False)
     assert phase["spent"] == 50

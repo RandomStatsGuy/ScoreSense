@@ -107,9 +107,15 @@ def test_eligibility_gates_window_type_and_years():
 
     vet = _final_year_rookie(player_id="00-0039003")
     vet["contract"]["contract_type"] = "veteran"
-    ok, msg = can_manager_rookie_extend(vet, rules, draft_completed=False)
+    ok, _ = can_manager_rookie_extend(vet, rules, draft_completed=False)
+    assert ok is True
+
+    blocked = rules.model_copy(update={
+        "contracts": rules.contracts.model_copy(update={"allow_veteran_renewal": False}),
+    })
+    ok, msg = can_manager_rookie_extend(vet, blocked, draft_completed=False)
     assert ok is False
-    assert "veteran" in msg.lower()
+    assert "vet deal" in msg.lower()
 
     queued, _ = apply_rookie_extension_command(row, rules, extension_years=1, draft_completed=False)
     row["contract"] = queued
@@ -217,12 +223,13 @@ def test_manager_rookie_extend_endpoint_own_team_only(hub_db):
         vet = _final_year_rookie(player_id="00-0039103", salary=8)
         vet["contract"]["contract_type"] = "veteran"
         storage.add_roster_slot(ws_id, vet, team_id=owner["id"])
-        bad = client.post(
+        good = client.post(
             "/api/hub/contract/renew",
-            json={"player_id": "00-0039103", "extension_years": 1, "start_salary": 1},
+            json={"player_id": "00-0039103", "extension_years": 2, "start_salary": 1},
         )
-        assert bad.status_code == 400
-        assert "veteran" in bad.json()["detail"].lower() or "rookie" in bad.json()["detail"].lower()
+        assert good.status_code == 200, good.text
+        assert good.json()["pending_extension"] is True
+        assert good.json()["start_salary"] == 13.0
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
 

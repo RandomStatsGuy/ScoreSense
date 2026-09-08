@@ -156,7 +156,7 @@ test("auctionAwardContractLabel describes locked rookie and vet deals", () => {
       step_up_per_year: 5,
       salary_schedule: [20, 25],
     }),
-    "Veteran deal · 2y · $20 → $25",
+    "Vet deal · 2y · $20 → $25",
   );
 });
 

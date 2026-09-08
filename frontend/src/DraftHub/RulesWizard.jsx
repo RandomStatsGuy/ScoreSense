@@ -11,11 +11,13 @@ import { isHubRulesPath, setUnsavedNavigationBlocker } from "../unsavedNavigatio
 import { HubFilterMenu, HubPage } from "./HubUILayout";
 import { isPickDraft } from "./draftEntryStatus";
 import {
+  applyDealExtensionPolicy,
   contractSchedule,
   DEFAULT_RULES,
   FORMAT_OPTIONS,
   formatLastSaved,
   glanceEyebrow,
+  leagueAllowsDealExtensions,
   mergeLeagueRules,
   presetRulesFromList,
   ROSTER_LIMIT_KEYS,
@@ -183,6 +185,12 @@ export default function RulesWizard({
   const veteranSchedule = contractSchedule(
     10,
     rules.contracts.veteran_years,
+    rules.contracts.extension_step_up,
+  );
+  const extensionPreviewYears = Math.min(2, Math.max(1, Number(rules.contracts.max_years) || 2));
+  const extensionSchedule = contractSchedule(
+    10 + Number(rules.contracts.extension_step_up || 0),
+    extensionPreviewYears,
     rules.contracts.extension_step_up,
   );
   const lastSavedLabel = RULES_COPY.lastSaved(formatLastSaved(savedAt));
@@ -472,7 +480,7 @@ export default function RulesWizard({
                   <RuleError>{errors.extension_step_up}</RuleError>
                 </label>
                 <label>
-                  <span>Default rookie term</span>
+                  <span>{RULES_COPY.rookieTerm}</span>
                   <HubFilterMenu
                     label="Years"
                     value={String(rules.contracts.rookie_years)}
@@ -486,7 +494,7 @@ export default function RulesWizard({
                   <RuleError>{errors.rookie_years}</RuleError>
                 </label>
                 <label>
-                  <span>Default veteran term</span>
+                  <span>{RULES_COPY.vetTerm}</span>
                   <HubFilterMenu
                     label="Years"
                     value={String(rules.contracts.veteran_years)}
@@ -510,9 +518,23 @@ export default function RulesWizard({
               </div>
 
               <div className="hub-rules-policies">
-                <PolicyToggle checked={Boolean(rules.contracts.rookie_salary_static)} disabled={readOnlyRules} title="Keep rookie salaries flat" description="Every year of a rookie deal keeps the draft-day salary." onChange={(value) => updateContract("rookie_salary_static", value)} />
-                <PolicyToggle checked={Boolean(rules.contracts.one_renewal_after_rookie)} disabled={readOnlyRules} title="Allow one rookie extension" description="Final-year rookies may move onto one extension before free agency." onChange={(value) => updateContract("one_renewal_after_rookie", value)} />
-                <PolicyToggle checked={Boolean(rules.contracts.allow_veteran_renewal)} disabled={readOnlyRules} title="Allow veteran extensions" description="Final-year veterans may be renewed instead of returning to the pool." onChange={(value) => updateContract("allow_veteran_renewal", value)} />
+                <PolicyToggle
+                  checked={Boolean(rules.contracts.rookie_salary_static)}
+                  disabled={readOnlyRules}
+                  title={RULES_COPY.keepRookieFlat}
+                  description={RULES_COPY.keepRookieFlatHelp}
+                  onChange={(value) => updateContract("rookie_salary_static", value)}
+                />
+                <PolicyToggle
+                  checked={leagueAllowsDealExtensions(rules.contracts)}
+                  disabled={readOnlyRules}
+                  title={RULES_COPY.allowExtensions}
+                  description={RULES_COPY.allowExtensionsHelp}
+                  onChange={(value) => updateRules((current) => ({
+                    ...current,
+                    contracts: applyDealExtensionPolicy(current.contracts, value),
+                  }))}
+                />
               </div>
 
               <div className="hub-rules-contract-preview">
@@ -520,8 +542,23 @@ export default function RulesWizard({
                   <div><strong>What a $10 signing looks like</strong><span>Preview uses the rules above.</span></div>
                 </div>
                 <div>
-                  <SalarySchedule title="Rookie" detail={rules.contracts.rookie_salary_static ? "Flat salary" : "Annual step-up"} values={rookieSchedule} />
-                  <SalarySchedule title="Veteran" detail="Annual step-up" values={veteranSchedule} />
+                  <SalarySchedule
+                    title={RULES_COPY.previewRookie}
+                    detail={rules.contracts.rookie_salary_static ? RULES_COPY.previewFlat : RULES_COPY.previewStep}
+                    values={rookieSchedule}
+                  />
+                  <SalarySchedule
+                    title={RULES_COPY.previewVet}
+                    detail={RULES_COPY.previewStep}
+                    values={veteranSchedule}
+                  />
+                  {leagueAllowsDealExtensions(rules.contracts) ? (
+                    <SalarySchedule
+                      title={RULES_COPY.previewExtension}
+                      detail={RULES_COPY.previewStep}
+                      values={extensionSchedule}
+                    />
+                  ) : null}
                 </div>
               </div>
             </section>

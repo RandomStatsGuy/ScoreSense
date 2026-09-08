@@ -26,7 +26,8 @@ Backend is authoritative for eligibility and materialized contracts. The client 
 - Policy changes apply to **new contracts only**. Say that once, next to Save. Do not mention a migration unless a control exists.
 - Templates confirm, name what changes, and fill the form. They do not save.
 - Players-tab adds follow `acquisitionWindow.js`. Staff Roster management may override; Players-tab adds may not.
-- Static rookies stay flat; veterans / extensions use the configured step-up.
+- Static rookie deals stay flat; vet deals and extensions use the configured step-up.
+- Final-year rookie deals and vet deals may take one extension. An extension cannot be extended again.
 - Offseason trades: surviving contracts only.
 
 ## Tests

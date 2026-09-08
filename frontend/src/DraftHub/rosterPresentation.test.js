@@ -30,10 +30,23 @@ test("pre-draft status splits extension eligible from expiring", () => {
     { contract: { years_remaining: 1, contract_type: "veteran" } },
     { draftCompleted: false, ctype: "veteran" },
   );
+  const blockedVet = rosterStatusInfo(
+    { contract: { years_remaining: 1, contract_type: "veteran" } },
+    {
+      draftCompleted: false,
+      ctype: "veteran",
+      rules: { contracts: { allow_veteran_renewal: false } },
+    },
+  );
+  const extension = rosterStatusInfo(
+    { contract: { years_remaining: 1, contract_type: "extension" } },
+    { draftCompleted: false, ctype: "extension" },
+  );
   assert.equal(rookie.label, "Extension eligible");
   assert.equal(rookie.tone, "extend");
-  assert.equal(veteran.label, "Expiring");
-  assert.equal(veteran.tone, "expire");
-  assert.doesNotMatch(veteran.label, /FA|Expires/);
-  assert.notEqual(rookie.tone, veteran.tone);
+  assert.equal(veteran.label, "Extension eligible");
+  assert.equal(veteran.tone, "extend");
+  assert.equal(blockedVet.label, "Expiring");
+  assert.equal(extension.label, "Expiring");
+  assert.doesNotMatch(blockedVet.label, /FA|Expires/);
 });

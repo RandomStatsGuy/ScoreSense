@@ -142,9 +142,9 @@ export default function DraftOwnerReport({
       </div>
       {!pickDraft && (
         <p className="chart-note hub-owner-report-hint">
-          Auction deals are automatic: rookies stay 2 years at the sale price;
-          veterans are 2 years with a {fmtSal(stepUp)}/yr step-up.
-          Choose extra years only during the pre-draft rookie extension window.
+          Auction deals are automatic: rookie deals stay 2 years at the sale price;
+          vet deals are 2 years with a {fmtSal(stepUp)}/yr step-up.
+          Choose extra years only during the pre-draft extension window.
         </p>
       )}
     </section>
