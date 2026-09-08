@@ -54,6 +54,13 @@ If a sheet shows `1` but you still have the player for the upcoming season on a 
 | **Expiring** | Final year **and** Veteran Deal or Rookie Extension (cannot re-sign). They enter the draft pool; undrafted names become free agents after the draft. |
 | _(none)_ | Years left ≥ 2, or just drafted this auction |
 
+### Commissioner Drop vs Cut (Roster management)
+
+| Action | Cap | Use |
+|---|---|---|
+| **Drop** | No dead cap. Leftover returns in full. | Staff removing a player so they can add them to another team before the draft. |
+| **Cut** | Dead cap at the league refund rate. | A real pre-draft cut. |
+
 ---
 
 ## Scenario → what to set
