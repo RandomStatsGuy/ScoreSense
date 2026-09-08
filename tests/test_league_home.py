@@ -66,6 +66,76 @@ def test_resolve_phase_live_draft():
     assert phase["primary_cta"]["view"] == "room"
 
 
+def test_resolve_phase_mark_complete_wins_over_stale_live():
+    phase = resolve_league_phase(
+        draft_completed=True,
+        league_status="live",
+        draft_session_status="nominating",
+        nfl_season_type="off",
+    )
+    assert phase["id"] == PHASE_OFFSEASON
+
+
+def test_mark_draft_complete_seals_leftover_live_room(hub_db):
+    league, _team, _ws, sub, _rules = _seed_league(hub_db)
+    storage.update_league_status(league["id"], "live")
+    storage.update_draft_session(league["id"], status="nominating")
+    client = _client_for(sub)
+    res = client.patch(
+        f"/api/hub/league/{league['id']}/settings",
+        json={"draft_completed": True},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["league"]["draft_completed"] is True
+    assert body["league"]["status"] == "completed"
+    assert body["hub_context"]["draft_completed"] is True
+    assert body["hub_context"]["league_status"] == "completed"
+    session = storage.get_draft_session(league["id"])
+    assert session["status"] == "completed"
+
+
+def test_get_league_heals_prod_leftover_live_after_mark_complete(hub_db):
+    """Prod marked complete without sealing; GET /league used to keep running timers."""
+    from src.draft_hub.draft_state import award_nominee, leftover_live_after_complete
+
+    league, team, _ws, sub, _rules = _seed_league(hub_db)
+    storage.update_league_settings(league["id"], draft_completed=True)
+    storage.update_league_status(league["id"], "live")
+    storage.update_draft_session(
+        league["id"],
+        status="bidding",
+        current_nominee_json='{"player_id":"p1","player_name":"Stuck","position":"RB"}',
+        high_bid=5,
+        high_bidder_team_id=team["id"],
+        bid_deadline="2000-01-01T00:00:00+00:00",
+    )
+    assert leftover_live_after_complete(
+        storage.get_league(league["id"]),
+        storage.get_draft_session(league["id"]),
+    )
+
+    with patch("src.draft_hub.draft_state.award_nominee", wraps=award_nominee) as award:
+        with patch("src.draft_hub.draft_pool.build_nomination_pool") as pool:
+            client = _client_for(sub)
+            res = client.get(f"/api/hub/league/{league['id']}")
+            pool_res = client.get(f"/api/hub/league/{league['id']}/nomination-pool")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["league"]["draft_completed"] is True
+    assert body["league"]["status"] == "completed"
+    assert body["session"]["status"] == "completed"
+    assert body["session"]["current_nominee_json"] in (None, "")
+    award.assert_not_called()
+    assert pool_res.status_code == 200
+    assert pool_res.json()["rows"] == []
+    pool.assert_not_called()
+    assert not leftover_live_after_complete(
+        storage.get_league(league["id"]),
+        storage.get_draft_session(league["id"]),
+    )
+
+
 def test_resolve_phase_in_season():
     phase = resolve_league_phase(
         draft_completed=True,

@@ -64,7 +64,7 @@ test("liveContractPhase maps setup, live auction, and after draft", () => {
   assert.equal(liveContractPhase({ draftCompleted: true }), LIVE_CONTRACT_PHASE.AFTER_DRAFT);
   assert.equal(
     liveContractPhase({ leagueStatus: "LIVE", draftCompleted: true }),
-    LIVE_CONTRACT_PHASE.LIVE_DRAFT,
+    LIVE_CONTRACT_PHASE.AFTER_DRAFT,
   );
 });
 
@@ -92,7 +92,13 @@ test("liveContractStage shows year, phase, and draft impact", () => {
 
   const after = liveContractStage(2026, { draftCompleted: true, leagueStatus: "completed" });
   assert.equal(after.phase, LIVE_CONTRACT_PHASE.AFTER_DRAFT);
+  assert.equal(after.disclosureSummary, "After draft · 2026 season");
+  assert.equal(after.sectionHint, "Live 2026 contracts.");
   assert.match(after.headline, /year tick already ran/);
   assert.match(after.draftImpact, /do not rewind keepers/);
   assert.equal(after.capColumnSub, "after year tick");
+
+  const staleLive = liveContractStage(2026, { draftCompleted: true, leagueStatus: "live" });
+  assert.equal(staleLive.phase, LIVE_CONTRACT_PHASE.AFTER_DRAFT);
+  assert.doesNotMatch(staleLive.sectionHint, /keepers|auction/i);
 });

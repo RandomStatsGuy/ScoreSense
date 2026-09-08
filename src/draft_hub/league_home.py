@@ -131,15 +131,13 @@ def resolve_league_phase(
     league = str(league_status or "").lower()
     nfl = str(nfl_season_type or _nfl_season_type()).lower()
 
-    if session in {"nominating", "bidding", "picking"} or league == "live":
+    if draft_completed:
+        # Mark draft complete wins over a leftover live session/status.
+        phase_id = PHASE_IN_SEASON if nfl == "regular" else PHASE_OFFSEASON
+    elif session in {"nominating", "bidding", "picking"} or league == "live":
         phase_id = PHASE_LIVE_DRAFT
-    elif not draft_completed:
-        phase_id = PHASE_PRE_DRAFT
-    elif nfl == "regular":
-        phase_id = PHASE_IN_SEASON
     else:
-        # off / pre / post (and unknown) after draft → offseason home (roster & cap).
-        phase_id = PHASE_OFFSEASON
+        phase_id = PHASE_PRE_DRAFT
 
     cta = dict(_PRIMARY_CTA[phase_id])
     return {

@@ -23,3 +23,9 @@ test("DraftRoom only applies setup over live on an explicit reset", () => {
   assert.ok(/if\s*\(\s*!roomStateRef\.current\s*\)\s*setRoomLoading\(\s*true\s*\)/.test(src));
   assert.ok(src.includes("onLiveDraftChangeRef"));
 });
+
+test("DraftRoom treats leftover live session as ended after Mark draft complete", () => {
+  assert.ok(src.includes("resolveDraftRoomStatus"));
+  assert.ok(src.includes("hubContext?.draft_completed"));
+  assert.ok(src.includes("hasValueRows || draftCompleted"));
+});

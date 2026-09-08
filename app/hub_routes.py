@@ -4305,8 +4305,11 @@ def hub_league_settings(
     year_tick = None
     if body.draft_completed is True and not was_complete:
         from src.draft_hub.contract_year_clock import tick_contracts_on_draft_complete
+        from src.draft_hub.draft_state import seal_room_after_draft_complete
 
         year_tick = tick_contracts_on_draft_complete(league_id)
+        seal_room_after_draft_complete(league_id)
+        league = storage.get_league(league_id) or league
     out: dict = {"league": league, "hub_context": _ctx(sub)}
     if year_tick is not None:
         out["contract_year_tick"] = year_tick
@@ -4622,6 +4625,8 @@ def hub_nomination_pool(league_id: str, _user=Depends(require_hub_user)) -> dict
     if not league:
         raise HTTPException(status_code=404, detail="League not found")
     session = storage.get_draft_session(league_id) or {}
+    if league.get("draft_completed") or str(session.get("status") or "").lower() == "completed":
+        return {"rows": [], "draft_completed": True}
     workspace_id = storage.roster_workspace_for_league(league)
     linked_ws = storage.get_workspace_by_id(workspace_id) if league.get("workspace_id") else None
     rules = LeagueRules.model_validate(league["rules"])

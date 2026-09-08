@@ -24,6 +24,7 @@ import {
   mergeRoomState,
   shouldScheduleWsReconnect,
   isLiveAuctionStatus,
+  resolveDraftRoomStatus,
   draftInteractionState,
   rosterForTeam,
   simulationProgressLabel,
@@ -201,6 +202,41 @@ test("isLiveAuctionStatus includes pick-draft clocks", () => {
   assert.equal(isLiveAuctionStatus("picking"), true);
   assert.equal(isLiveAuctionStatus("setup"), false);
   assert.equal(isLiveAuctionStatus("completed"), false);
+});
+
+test("resolveDraftRoomStatus lets Mark draft complete win leftover nominating", () => {
+  assert.equal(
+    resolveDraftRoomStatus({
+      sessionStatus: "nominating",
+      draftCompleted: true,
+      leagueStatus: "live",
+    }),
+    "completed",
+  );
+  assert.equal(
+    resolveDraftRoomStatus({
+      sessionStatus: "bidding",
+      draftCompleted: false,
+      leagueStatus: "live",
+    }),
+    "bidding",
+  );
+  assert.equal(
+    resolveDraftRoomStatus({
+      sessionStatus: undefined,
+      draftCompleted: false,
+      leagueStatus: "live",
+    }),
+    "nominating",
+  );
+  assert.equal(
+    resolveDraftRoomStatus({
+      sessionStatus: undefined,
+      draftCompleted: false,
+      leagueStatus: "setup",
+    }),
+    "setup",
+  );
 });
 
 test("draftInteractionState locks mutations and freezes clocks during simulation", () => {

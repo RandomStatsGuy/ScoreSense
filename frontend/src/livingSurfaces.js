@@ -198,7 +198,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/CommissionerLeagueRosters.jsx",
     copy: "frontend/src/DraftHub/officeContractsPresentation.js",
     also: ["frontend/src/DraftHub/insights/AwardTitlesEditor.jsx"],
-    doNot: "Staff may override. Players-tab adds may not. Mark draft complete is a red confirm here — not an unlabeled Setup checkbox. Writes accumulate in a pending-changes tray; Drop executes on save. Drop is no dead cap and sits next to Cut; Cut is the penalty path. Extend to keep is teal, Expiring is amber, Cut is red. Live-contracts callout is a disclosure like How cap years work — do not nest a second hub-page. Cap / Sheets is a labeled Related pair. Award names is a Roster management control, not an Insights disclosure.",
+    doNot: "Staff may override. Players-tab adds may not. Mark draft complete is a red confirm here — not an unlabeled Setup checkbox. After that confirm, show After draft — not live-auction chrome, and not keepers. Writes accumulate in a pending-changes tray; Drop executes on save. Drop is no dead cap and sits next to Cut; Cut is the penalty path. Extend to keep is teal, Expiring is amber, Cut is red. Live-contracts callout is a disclosure like How cap years work — do not nest a second hub-page. Cap / Sheets is a labeled Related pair. Award names is a Roster management control, not an Insights disclosure.",
   }),
   "hub.office.historic": S({
     label: "Salary sheets",

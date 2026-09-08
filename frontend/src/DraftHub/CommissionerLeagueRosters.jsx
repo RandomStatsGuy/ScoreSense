@@ -77,12 +77,16 @@ function StageColHead({ label, sub }) {
 function LiveContractStageBanner({ stage }) {
   if (!stage) return null;
   const rules = stage.draftRules?.length ? stage.draftRules : [stage.draftImpact].filter(Boolean);
+  const summary = stage.disclosureSummary || stage.helpSummary || stage.phaseLabel;
   return (
     <details
       className={`hub-live-contract-stage hub-live-contract-stage--${stage.phase}`}
       aria-label={stage.headline}
     >
-      <summary>{stage.headline}</summary>
+      <summary>{summary}</summary>
+      {stage.headline && stage.headline !== summary ? (
+        <p className="hub-live-contract-stage-headline">{stage.headline}</p>
+      ) : null}
       {rules.length > 0 && (
         <ul className="hub-live-contract-rules">
           {rules.map((rule) => (

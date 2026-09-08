@@ -96,6 +96,7 @@ test("contracts pane owns the pending-write copy module", () => {
   assert.equal(row.copy, "frontend/src/DraftHub/officeContractsPresentation.js");
   assert.match(row.doNot, /pending-changes tray/);
   assert.match(row.doNot, /Drop is no dead cap/);
+  assert.match(row.doNot, /After draft — not live-auction chrome, and not keepers/);
 });
 
 test("approved primaries keep one fill on Home, Cap, and Trades", () => {
