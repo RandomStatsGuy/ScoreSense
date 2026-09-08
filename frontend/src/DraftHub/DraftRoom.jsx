@@ -152,6 +152,7 @@ export default function DraftRoom({
   const soundEventsReadyRef = useRef(false);
   const lastSoundEventRef = useRef("");
   const soundRoomRef = useRef("");
+  const onLiveDraftChangeRef = useRef(onLiveDraftChange);
 
   const session = roomState?.session;
   const league = roomState?.league;
@@ -308,11 +309,14 @@ export default function DraftRoom({
   roomStateRef.current = roomState;
   const inLiveDraft = isLiveAuctionStatus(draftStatus);
   useEffect(() => {
-    onLiveDraftChange?.(inLiveDraft);
-  }, [inLiveDraft, onLiveDraftChange]);
-  useEffect(() => () => {
-    onLiveDraftChange?.(false);
+    onLiveDraftChangeRef.current = onLiveDraftChange;
   }, [onLiveDraftChange]);
+  useEffect(() => {
+    onLiveDraftChangeRef.current?.(inLiveDraft);
+  }, [inLiveDraft]);
+  useEffect(() => () => {
+    onLiveDraftChangeRef.current?.(false);
+  }, []);
   const onClock = draftStatus === "nominating" || draftStatus === "picking";
   const {
     locked: draftControlsLocked,

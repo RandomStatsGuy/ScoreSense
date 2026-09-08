@@ -159,7 +159,7 @@ export default function DraftAvailability({
     if (!datesKey) return;
     const next = resolveCalendarSelectedDate({
       selectedDate,
-      dates: visibleDates,
+      dates: datesKey.split(","),
       hours: availWindow.hours || [],
       today: availWindow.today,
       currentHour: availWindow.current_hour,
@@ -173,7 +173,6 @@ export default function DraftAvailability({
     datesKey,
     lockedSlot?.date,
     selectedDate,
-    visibleDates,
   ]);
 
   useEffect(() => {

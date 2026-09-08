@@ -20,5 +20,6 @@ test("DraftRoom declares myTeamId before the offline team seed effect", () => {
 test("DraftRoom only applies setup over live on an explicit reset", () => {
   assert.ok(src.includes("allowSetupDowngrade: true"));
   assert.ok(src.includes("wsReconnectDelayMs"));
-  assert.ok(src.includes("if (!roomStateRef.current) setRoomLoading(true)"));
+  assert.ok(/if\s*\(\s*!roomStateRef\.current\s*\)\s*setRoomLoading\(\s*true\s*\)/.test(src));
+  assert.ok(src.includes("onLiveDraftChangeRef"));
 });

@@ -10,7 +10,14 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Res
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
-from app.auth import hub_auth_enabled, optional_user, require_hub_user, ws_user_from_handshake
+from app.auth import (
+    hub_auth_enabled,
+    optional_user,
+    require_hub_user,
+    ws_cookie_origin_trusted,
+    ws_handshake_uses_cookie_auth,
+    ws_user_from_handshake,
+)
 from src.draft_hub import storage
 from src.draft_hub.draft_enrichment import build_draft_room_enrichment, fantasy_media_digest_single
 from src.draft_hub.draft_state import (
@@ -4959,9 +4966,16 @@ async def hub_ws(
     league_id: str,
     token: Optional[str] = Query(None),
 ):
-    user = ws_user_from_handshake(token, websocket.cookies.get("scoresense_token"))
+    cookie_token = websocket.cookies.get("scoresense_token")
+    user = ws_user_from_handshake(token, cookie_token)
     if user is None:
         await websocket.close(code=1008, reason="Missing or invalid authentication token.")
+        return
+    if ws_handshake_uses_cookie_auth(token, cookie_token) and not ws_cookie_origin_trusted(
+        websocket.headers.get("origin"),
+        websocket.headers.get("host"),
+    ):
+        await websocket.close(code=1008, reason="Untrusted origin.")
         return
 
     sub = user_sub_from_patron(user)
