@@ -27,6 +27,7 @@ import {
   matchLiveRosterPlayer,
 } from "./officeCurrentContracts";
 import {
+  OFFICE_ACQUIRED_OPTIONS,
   OFFICE_CONTRACTS_COPY,
   applyPendingToBlock,
   applyPendingToRow,
@@ -37,6 +38,7 @@ import {
   dropButtonCopy,
   dropConfirmCopy,
   mergePendingChange,
+  partitionOfficeRoster,
   pendingNeedsOverrideNote,
   pendingTraySummary,
   rowType,
@@ -117,6 +119,7 @@ function AddPlayerForm({
   maxSalary,
   remaining,
   stage,
+  draftCompleted,
   onSaved,
   onError,
   onNotice,
@@ -127,6 +130,7 @@ function AddPlayerForm({
   const [salary, setSalary] = useState("1");
   const [years, setYears] = useState("1");
   const [contractType, setContractType] = useState("veteran");
+  const [acquired, setAcquired] = useState("draft");
   const [openList, setOpenList] = useState(false);
   const [searching, setSearching] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -194,6 +198,7 @@ function AddPlayerForm({
     setSalary("1");
     setYears("1");
     setContractType("veteran");
+    setAcquired("draft");
     setOpenList(false);
   };
 
@@ -209,6 +214,7 @@ function AddPlayerForm({
       contractType,
       teamId,
       force,
+      acquired: draftCompleted ? acquired : "",
     });
     if (!body) {
       onError?.("Search and pick a player, then set salary and years.");
@@ -299,6 +305,15 @@ function AddPlayerForm({
             </ul>
           )}
         </label>
+        {draftCompleted ? (
+          <HubFilterMenu
+            label={OFFICE_CONTRACTS_COPY.acquired}
+            value={acquired}
+            options={OFFICE_ACQUIRED_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
+            onChange={setAcquired}
+            disabled={adding}
+          />
+        ) : null}
         <HubFilterMenu
           label="Type"
           value={contractType}
@@ -307,7 +322,11 @@ function AddPlayerForm({
           disabled={adding}
         />
         <label>
-          <span>{stage?.salaryFieldLabel || (season ? `${season} $` : "Salary")}</span>
+          <span>
+            {draftCompleted
+              ? OFFICE_CONTRACTS_COPY.bidLabel
+              : (stage?.salaryFieldLabel || (season ? `${season} $` : "Salary"))}
+          </span>
           <input
             type="number"
             className="hub-roster-edit-input"
@@ -319,7 +338,11 @@ function AddPlayerForm({
             aria-invalid={Boolean(salaryError)}
             onChange={(e) => setSalary(e.target.value)}
           />
-          <span className="hub-cap-field-hint">{capFieldFigures({ free: remaining, dead: 0 })}</span>
+          <span className="hub-cap-field-hint">
+            {draftCompleted
+              ? OFFICE_CONTRACTS_COPY.bidSupport
+              : capFieldFigures({ free: remaining, dead: 0 })}
+          </span>
         </label>
         <label>
           <span>{stage?.yearsFieldLabel || "Yrs left"}</span>
@@ -369,6 +392,7 @@ function TeamRosterBlock({
   pendingByPlayer,
   fieldErrors,
   onQueue,
+  onWriteImmediate,
   onSaved,
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -387,12 +411,23 @@ function TeamRosterBlock({
     return undefined;
   }, [highlightPlayerId, open, block.roster]);
 
+  const { live: liveRows, expired: expiredRows } = useMemo(
+    () => partitionOfficeRoster(block.roster),
+    [block.roster],
+  );
+  const tableRows = draftCompleted ? liveRows : (block.roster || []);
   const sorted = useMemo(
-    () => [...(block.roster || [])].sort(
+    () => [...tableRows].sort(
       (a, b) => posSortKey(a.position) - posSortKey(b.position)
         || String(a.player_name).localeCompare(String(b.player_name)),
     ),
-    [block.roster],
+    [tableRows],
+  );
+  const expiredSorted = useMemo(
+    () => [...expiredRows].sort(
+      (a, b) => String(a.player_name).localeCompare(String(b.player_name)),
+    ),
+    [expiredRows],
   );
 
   const stepUp = leagueStepUp(rules);
@@ -418,7 +453,7 @@ function TeamRosterBlock({
   const team = block.team;
 
   const onToggleDrop = async (r, queuedDrop) => {
-    if (queuedDrop) {
+    if (queuedDrop && !draftCompleted) {
       onQueue(r, { drop: false });
       return;
     }
@@ -429,7 +464,37 @@ function TeamRosterBlock({
       confirmLabel: copy.confirmLabel,
       danger: true,
     });
-    if (ok) onQueue(r, { drop: true });
+    if (!ok) return;
+    if (draftCompleted) {
+      try {
+        await onWriteImmediate?.(r, { drop: true });
+      } catch (e) {
+        setError(e.message || "Could not drop that player.");
+      }
+      return;
+    }
+    onQueue(r, { drop: true });
+  };
+
+  const onTypeChange = async (r, contractType) => {
+    if (draftCompleted) {
+      try {
+        await onWriteImmediate?.(r, { contractType });
+      } catch (e) {
+        setError(e.message || "Could not update contract type.");
+      }
+      return;
+    }
+    onQueue(r, { contractType });
+  };
+
+  const flushField = async (r, patch) => {
+    if (!draftCompleted) return;
+    try {
+      await onWriteImmediate?.(r, patch);
+    } catch (e) {
+      setError(e.message || "Could not save that edit.");
+    }
   };
 
   const renderRowFields = (r) => {
@@ -540,7 +605,7 @@ function TeamRosterBlock({
             <span className="hub-league-cut-count">{fmtSal(stats.deadCap)} dead cap</span>
           )}
           <span className="hub-league-cap-free">{fmtSal(stats.remaining)} free</span>
-          {stats.cutCount > 0 && (
+          {!draftCompleted && stats.cutCount > 0 && (
             <span className="hub-league-cut-count">{stats.cutCount} cut pre-draft</span>
           )}
           {!open && stats.playerCount > 0 && (
@@ -575,6 +640,7 @@ function TeamRosterBlock({
           maxSalary={Math.max(0, stats.remaining)}
           remaining={stats.remaining}
           stage={stage}
+          draftCompleted={draftCompleted}
           onSaved={onSaved}
           onError={setError}
           onNotice={(msg) => {
@@ -623,7 +689,7 @@ function TeamRosterBlock({
                       label="Contract type"
                       value={vm.pendingType || vm.ctype}
                       options={CONTRACT_TYPE_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
-                      onChange={(id) => onQueue(r, { contractType: id })}
+                      onChange={(id) => onTypeChange(r, id)}
                       disabled={vm.locked}
                     />
                     <label className="hub-roster-mobile-field">
@@ -641,6 +707,10 @@ function TeamRosterBlock({
                         aria-invalid={Boolean(vm.salaryError)}
                         aria-describedby={`cap-hint-${r.player_id}`}
                         onChange={(e) => onQueue(r, { salary: e.target.value })}
+                        onBlur={() => {
+                          if (vm.salaryError || vm.pending?.salary == null) return;
+                          flushField(r, { salary: vm.pending.salary });
+                        }}
                       />
                       <span id={`cap-hint-${r.player_id}`} className="hub-cap-field-hint">
                         {capFigures}
@@ -660,6 +730,9 @@ function TeamRosterBlock({
                         value={vm.edit.years}
                         disabled={vm.locked}
                         onChange={(e) => onQueue(r, { years: e.target.value })}
+                        onBlur={() => {
+                          if (vm.pending?.years != null) flushField(r, { years: vm.pending.years });
+                        }}
                       />
                     </label>
                     <MobileStat
@@ -726,7 +799,7 @@ function TeamRosterBlock({
                       label="Type"
                       value={vm.pendingType || vm.ctype}
                       options={CONTRACT_TYPE_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
-                      onChange={(id) => onQueue(r, { contractType: id })}
+                      onChange={(id) => onTypeChange(r, id)}
                       disabled={vm.locked}
                     />
                   </td>
@@ -747,6 +820,10 @@ function TeamRosterBlock({
                         aria-describedby={`cap-hint-${r.player_id}`}
                         aria-invalid={Boolean(vm.salaryError)}
                         onChange={(e) => onQueue(r, { salary: e.target.value })}
+                        onBlur={() => {
+                          if (vm.salaryError || vm.pending?.salary == null) return;
+                          flushField(r, { salary: vm.pending.salary });
+                        }}
                       />
                       <span id={`cap-hint-${r.player_id}`} className="hub-cap-field-hint">
                         {capFigures}
@@ -769,6 +846,9 @@ function TeamRosterBlock({
                         disabled={vm.locked}
                         aria-label={`${stage?.yearsFieldLabel || "Years"} for ${r.player_name}`}
                         onChange={(e) => onQueue(r, { years: e.target.value })}
+                        onBlur={() => {
+                          if (vm.pending?.years != null) flushField(r, { years: vm.pending.years });
+                        }}
                       />
                     </label>
                   </td>
@@ -791,6 +871,42 @@ function TeamRosterBlock({
         </table>
       </div>
       )
+      )}
+
+      {open && draftCompleted && expiredSorted.length > 0 && (
+        <details className="hub-office-expired-fa">
+          <summary>
+            {OFFICE_CONTRACTS_COPY.expiredToFa}
+            {" · "}
+            {expiredSorted.length}
+          </summary>
+          <p className="chart-note">{OFFICE_CONTRACTS_COPY.expiredToFaSupport}</p>
+          <ul className="hub-office-expired-fa-list">
+            {expiredSorted.map((r) => {
+              const dropCopy = dropButtonCopy(r, { draftCompleted: true });
+              return (
+                <li key={r.player_id}>
+                  <span>
+                    <strong>{r.player_name}</strong>
+                    {" · "}
+                    {[r.position, r.team].filter(Boolean).join(" · ")}
+                    {" · "}
+                    {fmtSal(r.salary)}
+                    {" · Yrs 0"}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm hub-drop-btn"
+                    aria-label={dropCopy.ariaLabel}
+                    onClick={() => onToggleDrop(r, false)}
+                  >
+                    {dropCopy.label}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </details>
       )}
     </details>
   );
@@ -960,6 +1076,37 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
     [teams, pendingByPlayer, salaryCap, leagueRules, draftCompleted],
   );
   const hasPending = pendingSummary.count > 0;
+  const showPendingTray = hasPending && !draftCompleted;
+
+  const writeImmediate = useCallback(async (row, patch) => {
+    const playerId = row?.player_id;
+    if (!playerId) return;
+    setError("");
+    setFieldErrors((prev) => {
+      if (!prev[playerId]) return prev;
+      const next = { ...prev };
+      delete next[playerId];
+      return next;
+    });
+    const res = await sendRosterWrite(apiFetch, {
+      playerId,
+      drop: Boolean(patch.drop),
+      contractType: patch.drop ? undefined : patch.contractType,
+      salary: patch.drop ? undefined : patch.salary,
+      years: patch.drop ? undefined : patch.years,
+      note: patch.drop ? undefined : OFFICE_CONTRACTS_COPY.liveEditNote,
+    });
+    if (!res?.ok) throw new Error(await parseApiError(res));
+    setPendingByPlayer((prev) => {
+      if (!prev[playerId]) return prev;
+      const next = { ...prev };
+      delete next[playerId];
+      return next;
+    });
+    setSaveNotice(OFFICE_CONTRACTS_COPY.liveSaved);
+    setTimeout(() => setSaveNotice(""), 4000);
+    await handleSaved({ syncHub: true });
+  }, [handleSaved]);
 
   const queueChange = useCallback((row, patch) => {
     setFieldErrors((prev) => {
@@ -994,19 +1141,19 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
   }, [discardPending]);
 
   useEffect(() => {
-    setOfficeUnsavedGuard(hasPending, confirmLeave);
+    setOfficeUnsavedGuard(showPendingTray, confirmLeave);
     return () => setOfficeUnsavedGuard(false, null);
-  }, [hasPending, confirmLeave]);
+  }, [showPendingTray, confirmLeave]);
 
   useEffect(() => {
-    if (!hasPending) return undefined;
+    if (!showPendingTray) return undefined;
     const onLeave = (e) => {
       e.preventDefault();
       e.returnValue = "";
     };
     window.addEventListener("beforeunload", onLeave);
     return () => window.removeEventListener("beforeunload", onLeave);
-  }, [hasPending]);
+  }, [showPendingTray]);
 
   const savePending = async () => {
     const errors = [];
@@ -1220,6 +1367,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
                 pendingByPlayer={pendingByPlayer}
                 fieldErrors={fieldErrors}
                 onQueue={queueChange}
+                onWriteImmediate={writeImmediate}
                 onSaved={handleSaved}
               />
             ))}
@@ -1231,7 +1379,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
       </div>
         </>
       )}
-      {hasPending && (
+      {showPendingTray && (
         <div className="hub-office-pending-tray" role="region" aria-label="Pending contract changes">
           <p className="hub-office-pending-summary">{pendingTraySummary(pendingSummary)}</p>
           <div className="hub-office-pending-actions">
@@ -1260,7 +1408,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
             type="button"
             className="btn-danger"
             onClick={async () => {
-              if (hasPending && !(await confirmLeave())) return;
+              if (showPendingTray && !(await confirmLeave())) return;
               try {
                 const data = await markDraftComplete(leagueId);
                 if (data) onChanged?.();

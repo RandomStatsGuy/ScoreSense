@@ -96,6 +96,8 @@ test("liveContractStage shows year, phase, and draft impact", () => {
   assert.equal(after.sectionHint, "Live 2026 contracts.");
   assert.match(after.headline, /year tick already ran/);
   assert.match(after.draftImpact, /do not rewind keepers/);
+  assert.ok(after.draftRules.some((rule) => /leftover matches Rosters/i.test(rule)));
+  assert.ok(after.draftRules.some((rule) => /write the live roster immediately/i.test(rule)));
   assert.equal(after.capColumnSub, "after year tick");
 
   const staleLive = liveContractStage(2026, { draftCompleted: true, leagueStatus: "live" });

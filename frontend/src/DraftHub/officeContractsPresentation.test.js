@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  OFFICE_ACQUIRED_OPTIONS,
   OFFICE_CONTRACTS_COPY,
   applyPendingToBlock,
   capFieldFigures,
@@ -9,8 +10,10 @@ import {
   dropButtonCopy,
   dropConfirmCopy,
   dropLeftoverFreed,
+  isExpiredToFaRow,
   isLeavingContractsPath,
   mergePendingChange,
+  partitionOfficeRoster,
   pendingNeedsOverrideNote,
   pendingTraySummary,
   salaryInputMax,
@@ -135,6 +138,99 @@ test("auction leftover ignores a 1-year keeper who expires at draft", () => {
   const afterDraft = teamCapStats(TEAM, 200, RULES, true);
   assert.equal(afterDraft.committed, 19);
   assert.equal(afterDraft.remaining, 181);
+});
+
+test("after draft leftover ignores Yrs-0 expirees the way Rosters does", () => {
+  const block = {
+    team: { id: "t1", name: "Alpha" },
+    roster: [
+      {
+        player_id: "live",
+        player_name: "Kept",
+        salary: 124,
+        contract_years: 1,
+        contract: { years_remaining: 1, contract_type: "veteran" },
+        source: "draft",
+        roster_status: "active",
+      },
+      {
+        player_id: "exp",
+        player_name: "Expiree",
+        salary: 35,
+        contract_years: 0,
+        contract: { years_remaining: 0, contract_type: "veteran" },
+        roster_status: "expired",
+      },
+      {
+        player_id: "zero",
+        player_name: "Ticked",
+        salary: 16,
+        contract_years: 0,
+        contract: { years_remaining: 0, contract_type: "veteran" },
+        roster_status: "active",
+      },
+    ],
+  };
+  const stats = teamCapStats(block, 200, RULES, true);
+  assert.equal(stats.committed, 124);
+  assert.equal(stats.remaining, 76);
+  assert.equal(stats.playerCount, 1);
+  assert.equal(stats.cutCount, 0);
+  const parts = partitionOfficeRoster(block.roster);
+  assert.equal(parts.live.length, 1);
+  assert.equal(parts.expired.length, 2);
+  assert.equal(isExpiredToFaRow(block.roster[1]), true);
+});
+
+test("drop-only save is not blocked when leftover is already over", () => {
+  const tight = {
+    team: { id: "t1", name: "Alpha" },
+    roster: [
+      {
+        player_id: "p1",
+        player_name: "Star",
+        salary: 180,
+        contract_years: 2,
+        contract: { years_remaining: 2, contract_type: "veteran" },
+        source: "draft",
+        roster_status: "active",
+      },
+      {
+        player_id: "p2",
+        player_name: "Depth",
+        salary: 40,
+        contract_years: 1,
+        contract: { years_remaining: 1, contract_type: "veteran" },
+        source: "draft",
+        roster_status: "active",
+      },
+    ],
+  };
+  const before = teamCapStats(tight, 200, RULES, true);
+  assert.ok(before.remaining < 0);
+  const dropOnly = validatePendingForTeam(
+    tight, { p2: { playerId: "p2", drop: true } }, 200, RULES, true,
+  );
+  assert.equal(dropOnly.length, 0);
+  const raise = validatePendingForTeam(
+    tight, { p1: { playerId: "p1", salary: 190 } }, 200, RULES, true,
+  );
+  assert.ok(raise.some((e) => e.teamId === "t1"));
+});
+
+test("after draft drop copy writes now, not queue", () => {
+  const copy = dropButtonCopy(TEAM.roster[0], { draftCompleted: true });
+  assert.equal(copy.label, OFFICE_CONTRACTS_COPY.dropNow);
+  assert.match(copy.ariaLabel, /^Drop /);
+  const confirm = dropConfirmCopy(TEAM.roster[0], { draftCompleted: true });
+  assert.equal(confirm.confirmLabel, OFFICE_CONTRACTS_COPY.dropConfirmNow);
+  assert.equal(OFFICE_CONTRACTS_COPY.acquiredAuction, "Auction");
+  assert.equal(OFFICE_CONTRACTS_COPY.acquiredFaLottery, "FA lottery");
+  assert.match(OFFICE_CONTRACTS_COPY.bidSupport, /Rosters reads/);
+  assert.deepEqual(
+    OFFICE_ACQUIRED_OPTIONS.map((o) => o.value),
+    ["draft", "post_draft_fa"],
+  );
 });
 
 test("queued drop is excluded from the applied roster", () => {
