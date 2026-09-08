@@ -31,5 +31,6 @@ test("pre-draft status splits extension eligible from expiring", () => {
   assert.equal(rookie.tone, "extend");
   assert.equal(veteran.label, "Expiring");
   assert.equal(veteran.tone, "expire");
+  assert.doesNotMatch(veteran.label, /FA|Expires/);
   assert.notEqual(rookie.tone, veteran.tone);
 });

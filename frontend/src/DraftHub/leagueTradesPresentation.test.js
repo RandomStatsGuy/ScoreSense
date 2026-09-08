@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { stepBlockedReason, TRADES_COPY, tradesFreeLabel } from "./leagueTradesPresentation.js";
+import { expireChipLabel, stepBlockedReason, TRADES_COPY, tradesFreeLabel } from "./leagueTradesPresentation.js";
 
 test("trades copy names the cap-bust cost and skips banned verbs", () => {
   assert.match(TRADES_COPY.heading, /cap/i);
@@ -25,6 +25,13 @@ test("step blockers explain partner vs package", () => {
 test("free label qualifies the cap", () => {
   assert.equal(tradesFreeLabel(200, (n) => `$${n}`), "free / $200");
   assert.equal(tradesFreeLabel(null, (n) => `$${n}`), "free");
+});
+
+test("expire chips match Rosters and never name FA", () => {
+  assert.equal(expireChipLabel("extend"), "Extendable");
+  assert.equal(expireChipLabel("fa"), "Expiring");
+  assert.doesNotMatch(expireChipLabel("extend"), /\?/);
+  assert.doesNotMatch(expireChipLabel("fa"), /FA|Expires/);
 });
 
 test("send and get names include the player and destination", () => {

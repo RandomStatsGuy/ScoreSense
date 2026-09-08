@@ -57,6 +57,15 @@ export const CAP_NEED_COPY = {
 export const CAP_MODEL_COPY = {
   years: "Years left include this season and drop when the draft is marked complete.",
   summary: "How cap years work",
+  expireBeforeDraftTitle: "Expire before draft",
+  expireBeforeDraft:
+    "Final-year deals enter the draft pool unless you extend. If they are not drafted, they become free agents.",
+};
+
+export const CAP_STATUS_COPY = {
+  extensionQueued: "Extension queued",
+  extendToKeep: "Extend to keep",
+  expiring: "Expiring",
 };
 
 export const CAP_DRAFT_COPY = {

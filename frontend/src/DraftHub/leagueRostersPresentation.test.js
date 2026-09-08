@@ -55,10 +55,11 @@ test("Overpay and Bargain keep the vs-fair phrasing", () => {
   );
 });
 
-test("expire chips are status, never a question", () => {
+test("expire chips are status, never a question or FA destination", () => {
   assert.equal(expireChipLabel("extend"), "Extendable");
-  assert.equal(expireChipLabel("fa"), "Expires — FA");
+  assert.equal(expireChipLabel("fa"), "Expiring");
   assert.doesNotMatch(expireChipLabel("extend"), /\?/);
+  assert.doesNotMatch(expireChipLabel("fa"), /FA|Expires/);
 });
 
 test("joinFacts drops empty sides so a middot cannot float", () => {
