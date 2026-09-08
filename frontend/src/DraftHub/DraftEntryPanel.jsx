@@ -77,6 +77,8 @@ export default function DraftEntryPanel({
           rules={rules}
           teams={teams}
           viewer={viewer}
+          session={session}
+          hubContext={hubContext}
           isCommissioner={isCommissioner}
           testMode={testMode}
           roomLoading={roomLoading}
@@ -84,6 +86,7 @@ export default function DraftEntryPanel({
           claimedHumans={claimedHumans}
           guestMode={guestMode}
           onStartDraft={onStartLiveDraft}
+          onStartOffline={() => onStartLiveDraft?.({ conduct: "offline" })}
           onSaveSchedule={onSaveSchedule}
           onUpdated={onUpdated || onCommissionerUpdated}
           claimAccess={claimAccess}

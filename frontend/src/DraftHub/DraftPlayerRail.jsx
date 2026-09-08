@@ -70,6 +70,7 @@ export default function DraftPlayerRail({
   rosterCount = 0,
   paused = false,
   nominatorName = "",
+  offline = false,
 }) {
   const [search, setSearch] = useState("");
   const [position, setPosition] = useState("ALL");
@@ -99,7 +100,7 @@ export default function DraftPlayerRail({
   );
   const sorts = pickDraft ? PICK_SORTS : AUCTION_SORTS;
   const poolCopy = mockDraftLiveCopy();
-  const searchPlaceholder = poolSearchPlaceholder({ canDraft, pickDraft });
+  const searchPlaceholder = poolSearchPlaceholder({ canDraft, pickDraft, offline });
   const lockedReason = nominateDisabledReason({
     paused,
     canDraft,
@@ -238,7 +239,7 @@ export default function DraftPlayerRail({
                       disabled={actionsDisabled || !canDraft}
                       onClick={() => onDraftPlayer?.(row)}
                     >
-                      {actionLabel || (pickDraft ? draftLiveCopy.pick : draftLiveCopy.nominate)}
+                      {actionLabel || (offline ? draftLiveCopy.record : (pickDraft ? draftLiveCopy.pick : draftLiveCopy.nominate))}
                     </button>
                   </span>
                 )}

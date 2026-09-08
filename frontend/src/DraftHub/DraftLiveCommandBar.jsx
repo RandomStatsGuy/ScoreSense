@@ -55,6 +55,9 @@ export default function DraftLiveCommandBar({
   modeLabel = "",
   leagueLabel = "",
   utilityActions = null,
+  hideClock = false,
+  offline = false,
+  recordDock = null,
 }) {
   const status = session?.status;
   const picking = pickDraft || status === "picking";
@@ -73,10 +76,13 @@ export default function DraftLiveCommandBar({
     isMyTurn: isMyNominationTurn,
     nominatorName: nominatorTeam?.name,
     paused: Boolean(paused),
+    offline,
   });
-  const nextLine = picking && pickClock?.round
-    ? `Round ${pickClock.round} · Pick ${pickClock.overall}`
-    : nextOwnerLine(nextNominatorTeam?.name);
+  const nextLine = offline
+    ? ""
+    : picking && pickClock?.round
+      ? `Round ${pickClock.round} · Pick ${pickClock.overall}`
+      : nextOwnerLine(nextNominatorTeam?.name);
   const showResume = Boolean(canResume);
   const showBid = status === "bidding" && !showResume;
   const [focusedDraft, setFocusedDraft] = useState(null);
@@ -158,13 +164,16 @@ export default function DraftLiveCommandBar({
               ) : null}
             </>
           )}
-          <DraftDeadlineClock
-            deadline={deadline}
-            paused={paused}
-            pausedLabel={pausedLabel}
-            className="hub-draft-live-command-clock"
-          />
+          {hideClock ? null : (
+            <DraftDeadlineClock
+              deadline={deadline}
+              paused={paused}
+              pausedLabel={pausedLabel}
+              className="hub-draft-live-command-clock"
+            />
+          )}
         </div>
+        {recordDock}
       </div>
 
       <div className="hub-draft-live-command-actions">

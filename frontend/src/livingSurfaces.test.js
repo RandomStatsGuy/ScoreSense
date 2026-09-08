@@ -113,6 +113,8 @@ test("Strategy stays a board-first hero exception", () => {
 
 test("Draft does not repeat Night locked as a body heading", () => {
   assert.match(LIVING_SURFACES["hub.room"].doNot, /Do not repeat Night locked as a green body heading/);
+  assert.match(LIVING_SURFACES["hub.room"].doNot, /Start offline is ghost/);
+  assert.match(LIVING_SURFACES["hub.room"].doNot, /does not flip Home to live/);
 });
 
 test("Vibes done-state keeps one Review primary", () => {
@@ -125,6 +127,8 @@ test("My team packs columns and grounds the stadium count", () => {
 });
 
 test("file lookup returns the surfaces that own a page", () => {
+  const offline = surfacesForFile("frontend/src/DraftHub/OfflineDraftPanel.jsx");
+  assert.equal(offline[0].id, "hub.room");
   const hits = surfacesForFile("frontend/src/DraftHub/ValueSheetTable.jsx");
   assert.deepEqual(hits.map((row) => row.id), ["hub.available"]);
   const strategy = surfacesForFile("frontend/src/DraftHub/StrategyBoard.jsx");
@@ -205,6 +209,7 @@ test("live draft theater lives on the block card", () => {
   assert.match(live.doNot, /never gold/i);
   assert.match(live.doNot, /persona names/);
   assert.match(live.doNot, /right rail|Nominate when paused/);
+  assert.match(live.doNot, /Offline conduct hides clocks/);
 });
 
 test("shared tokens include the product spacing rhythm", () => {

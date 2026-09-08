@@ -240,6 +240,29 @@ class DraftCutRequest(BaseModel):
     player_id: str
 
 
+class DraftRecordRequest(BaseModel):
+    """Record one offline / owner-entry draft win. Salary ignored on pick drafts."""
+
+    player_id: str = ""
+    team_id: str = ""
+    salary: Optional[float] = None
+    player_name: str = ""
+    position: str = ""
+    nfl_team: str = ""
+    owner: str = ""
+
+
+class DraftOwnerEntryRequest(BaseModel):
+    """Open or close the owner self-entry window. Does not start live clocks."""
+
+    open: bool
+    closes_at: Optional[str] = None
+
+
+class DraftResultsCsvRequest(BaseModel):
+    csv_text: str
+
+
 class RookieExtendRequest(BaseModel):
     """Manager rookie-extension command — years only; salary is server-calculated."""
 

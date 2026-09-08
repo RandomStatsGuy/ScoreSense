@@ -331,12 +331,20 @@ def start_from_lobby(
     force: bool = False,
     allow_empty: bool = False,
     fill_bots: bool = False,
+    conduct: str = "live",
 ) -> dict[str, Any]:
     if fill_bots:
         fill_empty_seats_with_bots(league_id)
-    state = start_draft(league_id, user_sub, force=force, allow_empty=allow_empty)
+    offline = str(conduct or "live").strip().lower() == "offline"
+    state = start_draft(
+        league_id,
+        user_sub,
+        force=force,
+        allow_empty=allow_empty or offline,
+        conduct="offline" if offline else "live",
+    )
     league = storage.get_league(league_id) or {}
-    if not league.get("test_mode"):
+    if not league.get("test_mode") and not offline:
         try:
             notify_managers_draft_open(league_id, user_sub, force=False)
         except ValueError:
