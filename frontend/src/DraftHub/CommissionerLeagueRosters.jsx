@@ -708,7 +708,7 @@ function TeamRosterBlock({
                         aria-describedby={`cap-hint-${r.player_id}`}
                         onChange={(e) => onQueue(r, { salary: e.target.value })}
                         onBlur={() => {
-                          if (vm.salaryError || vm.pending.salary == null) return;
+                          if (vm.salaryError || vm.pending?.salary == null) return;
                           flushField(r, { salary: vm.pending.salary });
                         }}
                       />
