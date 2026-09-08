@@ -22,6 +22,8 @@ from src.draft_hub.schemas import LeagueRules
 
 CONDUCT_LIVE = "live"
 CONDUCT_OFFLINE = "offline"
+LIVE_CLOCK_STATUSES = frozenset({"nominating", "bidding", "picking"})
+LIVE_DRAFT_RECORD_BLOCKED = "Cannot record offline results while a live draft is in progress."
 
 CSV_FIELDS = (
     "pick",
@@ -42,6 +44,13 @@ def session_conduct(session: dict[str, Any] | None) -> str:
 
 def is_offline_conduct(session: dict[str, Any] | None) -> bool:
     return session_conduct(session) == CONDUCT_OFFLINE
+
+
+def assert_can_record_offline(session: dict[str, Any] | None) -> None:
+    """Offline / CSV writes share the live persist path — do not collide with clocks."""
+    sess = session or {}
+    if sess.get("status") in LIVE_CLOCK_STATUSES and not is_offline_conduct(sess):
+        raise ValueError(LIVE_DRAFT_RECORD_BLOCKED)
 
 
 def owner_entry_is_open(session: dict[str, Any] | None) -> bool:
@@ -150,6 +159,10 @@ def _resolve_player(
     ]
     if len(narrowed) == 1:
         return narrowed[0]
+    if not narrowed:
+        raise ValueError(
+            f"No pool match for {player_name} matching position '{position}' and team '{nfl_team}'."
+        )
     raise ValueError(f"More than one pool match for {player_name}. Add a player id.")
 
 
@@ -242,6 +255,7 @@ def record_draft_result(
     if league.get("draft_completed"):
         raise ValueError("Draft is already marked complete.")
     session = storage.get_draft_session(league_id) or {}
+    assert_can_record_offline(session)
     is_comm = _primary_commissioner(league, user_sub)
     caller_team = storage.get_team_by_user(league_id, user_sub)
     winner = _resolve_team_for_record(league_id, team_id=team_id, owner=owner)
@@ -433,12 +447,14 @@ def preview_draft_results_csv(league_id: str, text: str) -> dict[str, Any]:
     if not league:
         raise ValueError("League not found")
     session = storage.get_draft_session(league_id) or {}
+    assert_can_record_offline(session)
     rules = LeagueRules.model_validate(league["rules"])
     pick_draft = is_pick_draft(rules)
     rows = parse_draft_results_csv(text)
     ready: list[dict[str, Any]] = []
     errors: list[dict[str, Any]] = []
     reserved: dict[str, float] = {}
+    reserved_rosters: dict[str, list[dict[str, Any]]] = {}
     for index, row in enumerate(rows, start=1):
         item = {**row, "row": index}
         try:
@@ -458,10 +474,14 @@ def preview_draft_results_csv(league_id: str, text: str) -> dict[str, Any]:
             pos = normalize_position(player.get("position") or row.get("pos") or "")
             if not pos:
                 raise ValueError("That player needs a position before it can be recorded.")
+            tid = str(team["id"])
+            if tid not in reserved_rosters:
+                reserved_rosters[tid] = list(storage.list_team_roster(league_id, tid))
+            assert_can_acquire(rules, reserved_rosters[tid], pos)
+            reserved_rosters[tid].append({"position": pos, "source": "draft"})
             if not pick_draft:
                 parsed = parse_salary_amount(row.get("salary"))
                 amount = parsed if parsed is not None else float(rules.auction.min_bid)
-                tid = str(team["id"])
                 projected = {**team, "budget_remaining": float(team.get("budget_remaining") or 0) - reserved.get(tid, 0.0)}
                 assert_auction_salary(amount, projected, rules)
                 reserved[tid] = reserved.get(tid, 0.0) + amount

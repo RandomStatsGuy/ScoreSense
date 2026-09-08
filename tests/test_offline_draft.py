@@ -15,6 +15,8 @@ from src.draft_hub.acquisition_window import ADD_LOCKED, resolve_acquisition_win
 from src.draft_hub.draft_state import check_timers, start_draft
 from src.draft_hub.league_home import PHASE_PRE_DRAFT, resolve_league_phase
 from src.draft_hub.offline_draft import (
+    LIVE_DRAFT_RECORD_BLOCKED,
+    _resolve_player,
     apply_draft_results_csv,
     export_draft_results_csv,
     parse_draft_results_csv,
@@ -320,3 +322,98 @@ def test_commissioner_records_pick_draft(hub_db, monkeypatch):
     roster = storage.list_team_roster(league["id"], team["id"])
     assert roster[0]["player_id"] == "pick-1"
     assert float(roster[0]["salary"]) == 0
+
+
+def test_record_blocked_while_live_clocks_run(hub_db, monkeypatch):
+    rules = load_preset("salary_cap_auction_v1")
+    league = storage.create_league("live-comm", "Live", 2026, rules, team_count=8)
+    team = storage.get_team_by_user(league["id"], "live-comm")
+    _patch_pool(monkeypatch, [_player("live-1", "Live One")])
+    start_draft(league["id"], "live-comm", allow_empty=True, conduct="live")
+    session = storage.get_draft_session(league["id"])
+    assert session["status"] == "nominating"
+    assert session.get("conduct") != "offline"
+    with pytest.raises(ValueError, match=LIVE_DRAFT_RECORD_BLOCKED):
+        record_draft_result(
+            league["id"],
+            "live-comm",
+            player_id="live-1",
+            team_id=team["id"],
+            salary=10,
+        )
+    preview = None
+    text = (
+        "pick,player_id,name,pos,nfl_team,owner,team_id,salary\n"
+        f"1,live-1,Live One,RB,NE,Commissioner,{team['id']},10\n"
+    )
+    with pytest.raises(ValueError, match=LIVE_DRAFT_RECORD_BLOCKED):
+        preview = preview_draft_results_csv(league["id"], text)
+    assert preview is None
+
+
+def test_record_allowed_during_offline_session(hub_db, monkeypatch):
+    rules = load_preset("salary_cap_auction_v1")
+    league = storage.create_league("off-rec", "Offline rec", 2026, rules, team_count=8)
+    team = storage.get_team_by_user(league["id"], "off-rec")
+    _patch_pool(monkeypatch, [_player("off-1", "Off One")])
+    start_draft(league["id"], "off-rec", conduct="offline")
+    state = record_draft_result(
+        league["id"],
+        "off-rec",
+        player_id="off-1",
+        team_id=team["id"],
+        salary=9,
+    )
+    assert any(e.get("event_type") == "win" for e in state["events"])
+
+
+def test_csv_preview_flags_roster_max(hub_db, monkeypatch):
+    rules = load_preset("salary_cap_auction_v1")
+    rules.roster["rb"]["max"] = 1
+    league = storage.create_league("lim-comm", "Limits", 2026, rules, team_count=8)
+    team = storage.get_team_by_user(league["id"], "lim-comm")
+    _patch_pool(monkeypatch, [_player("lim-1", "Lim One"), _player("lim-2", "Lim Two")])
+    text = (
+        "pick,player_id,name,pos,nfl_team,owner,team_id,salary\n"
+        f"1,lim-1,Lim One,RB,NE,Commissioner,{team['id']},5\n"
+        f"2,lim-2,Lim Two,RB,NE,Commissioner,{team['id']},6\n"
+    )
+    preview = preview_draft_results_csv(league["id"], text)
+    assert preview["ready_count"] == 1
+    assert preview["error_count"] == 1
+    assert "RB maximum" in preview["errors"][0]["error"]
+    applied = apply_draft_results_csv(league["id"], "lim-comm", text)
+    assert applied["applied"] == 1
+    roster = storage.list_team_roster(league["id"], team["id"])
+    assert [row["player_id"] for row in roster] == ["lim-1"]
+
+
+def test_name_lookup_distinguishes_zero_and_many(hub_db, monkeypatch):
+    rules = load_preset("salary_cap_auction_v1")
+    league = storage.create_league("name-comm", "Names", 2026, rules, team_count=8)
+    session = storage.get_draft_session(league["id"]) or {}
+    twins = [
+        _player("name-rb", "Same Name") | {"position": "RB", "team": "NE"},
+        _player("name-wr", "Same Name") | {"position": "WR", "team": "KC"},
+    ]
+    _patch_pool(monkeypatch, twins)
+    with pytest.raises(ValueError, match="More than one pool match"):
+        _resolve_player(league, session, player_id="", player_name="Same Name")
+    with pytest.raises(ValueError, match="No pool match"):
+        _resolve_player(
+            league,
+            session,
+            player_id="",
+            player_name="Same Name",
+            position="TE",
+            nfl_team="DAL",
+        )
+    hit = _resolve_player(
+        league,
+        session,
+        player_id="",
+        player_name="Same Name",
+        position="WR",
+        nfl_team="KC",
+    )
+    assert hit["player_id"] == "name-wr"
