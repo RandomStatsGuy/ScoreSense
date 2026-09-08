@@ -9,6 +9,7 @@ import {
   canRunOfflineCommissioner,
   canShowOwnerRecord,
   downloadDraftResultsCsv,
+  parseOfflineSalary,
 } from "./offlineDraft";
 
 export function OfflineRecordDock({
@@ -98,6 +99,8 @@ export default function OfflineDraftPanel({
 
   const recordWin = () => run("record", async () => {
     const dest = runAsCommish ? teamId : myTeamId;
+    const parsed = parseOfflineSalary(salary, { pickDraft });
+    if (!parsed.ok) throw new Error(OFFLINE_DRAFT_COPY.salaryInvalid);
     const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/draft/record`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -105,7 +108,7 @@ export default function OfflineDraftPanel({
         player_id: playerId.trim(),
         player_name: playerName.trim(),
         team_id: dest,
-        salary: pickDraft ? undefined : Number(salary),
+        salary: parsed.salary,
       }),
     });
     if (!res.ok) throw new Error(await parseApiError(res));

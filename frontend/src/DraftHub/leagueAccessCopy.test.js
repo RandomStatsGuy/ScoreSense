@@ -214,8 +214,9 @@ test("offline draft copy stays on Draft and keeps Add locked", () => {
   assert.match(OFFLINE_DRAFT_COPY.hint, /Free agents Add stays locked/);
   assert.match(OFFLINE_DRAFT_COPY.entryOpen, /Draft/);
   assert.match(OFFLINE_DRAFT_COPY.ownerHint, /draft contract/);
+  assert.match(OFFLINE_DRAFT_COPY.salaryInvalid, /dollar amount/);
   assert.doesNotMatch(
-    `${OFFLINE_DRAFT_COPY.title} ${OFFLINE_DRAFT_COPY.hint} ${OFFLINE_DRAFT_COPY.ownerHint}`,
+    `${OFFLINE_DRAFT_COPY.title} ${OFFLINE_DRAFT_COPY.hint} ${OFFLINE_DRAFT_COPY.ownerHint} ${OFFLINE_DRAFT_COPY.salaryInvalid}`,
     /Draft Hub|Submit|permission/i,
   );
 });

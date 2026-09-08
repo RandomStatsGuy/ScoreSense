@@ -82,6 +82,7 @@ export const OFFLINE_DRAFT_COPY = {
   playerLabel: "Player",
   teamLabel: "Team",
   salaryLabel: "Salary",
+  salaryInvalid: "Salary has to be a dollar amount.",
   exportCsv: "Download CSV",
   importCsv: "Preview CSV",
   applyCsv: "Apply matched rows",

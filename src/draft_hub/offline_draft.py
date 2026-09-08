@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import csv
 import io
+import math
 import re
 from datetime import datetime, timezone
 from typing import Any
@@ -129,7 +130,7 @@ def _resolve_player(
         season=int(league["season"]),
         rules=rules,
         workspace_id=workspace_id,
-    )
+    ) or {}
     matches = [
         row
         for row in (pool.get("rows") or [])
@@ -187,6 +188,41 @@ def _resolve_team_for_record(
     raise ValueError(f"More than one team match for {owner}. Use team_id.")
 
 
+def parse_salary_amount(salary: Any) -> float | None:
+    """Return a finite dollar amount, or None when the field was left blank."""
+    if salary is None:
+        return None
+    if isinstance(salary, bool):
+        raise ValueError("Salary has to be a dollar amount.")
+    if isinstance(salary, (int, float)):
+        amount = float(salary)
+        if not math.isfinite(amount):
+            raise ValueError("Salary has to be a dollar amount.")
+        return amount
+    text = str(salary).strip().replace("$", "").replace(",", "")
+    if not text:
+        return None
+    try:
+        amount = float(text)
+    except ValueError as exc:
+        raise ValueError("Salary has to be a dollar amount.") from exc
+    if not math.isfinite(amount):
+        raise ValueError("Salary has to be a dollar amount.")
+    return amount
+
+
+def assert_auction_salary(amount: float, team: dict[str, Any], rules: LeagueRules) -> float:
+    min_bid = float(rules.auction.min_bid)
+    if amount < min_bid:
+        raise ValueError(f"Salary must be at least ${min_bid:.0f}.")
+    leftover = float(team.get("budget_remaining") or 0)
+    if amount > leftover + 1e-9:
+        raise ValueError(
+            f"{team.get('name') or 'That team'} has ${leftover:.0f} leftover. This bid is ${amount:.0f}."
+        )
+    return amount
+
+
 def record_draft_result(
     league_id: str,
     user_sub: str,
@@ -231,6 +267,8 @@ def record_draft_result(
         raise ValueError("Player already drafted")
 
     pos = normalize_position(resolved.get("position") or position)
+    if not pos:
+        raise ValueError("That player needs a position before it can be recorded.")
     winner_roster = storage.list_team_roster(league_id, winner["id"])
     assert_can_acquire(rules, winner_roster, pos)
 
@@ -270,15 +308,12 @@ def record_draft_result(
         )
         return get_room_state(league_id, user_sub)
 
-    amount = float(salary if salary is not None else rules.auction.min_bid)
-    min_bid = float(rules.auction.min_bid)
-    if amount < min_bid:
-        raise ValueError(f"Salary must be at least ${min_bid:.0f}.")
-    leftover = float(winner.get("budget_remaining") or 0)
-    if amount > leftover + 1e-9:
-        raise ValueError(
-            f"{winner.get('name') or 'That team'} has ${leftover:.0f} leftover. This bid is ${amount:.0f}."
-        )
+    parsed = parse_salary_amount(salary)
+    amount = assert_auction_salary(
+        parsed if parsed is not None else float(rules.auction.min_bid),
+        winner,
+        rules,
+    )
 
     from src.draft_hub.contracts import auction_win_is_rookie, build_auction_win_contract
     from src.draft_hub.draft_budgets import preserve_cut_liability
@@ -375,15 +410,18 @@ def parse_draft_results_csv(text: str) -> list[dict[str, str]]:
         "$": "salary",
     }
     mapped: list[dict[str, str]] = []
-    for row in reader:
-        out = {key: "" for key in CSV_FIELDS}
-        for src, value in row.items():
-            dest = alias.get(str(src or "").strip().lower())
-            if dest:
-                out[dest] = str(value or "").strip()
-        if not any(out[k] for k in ("player_id", "name", "team_id", "owner")):
-            continue
-        mapped.append(out)
+    try:
+        for row in reader:
+            out = {key: "" for key in CSV_FIELDS}
+            for src, value in row.items():
+                dest = alias.get(str(src or "").strip().lower())
+                if dest:
+                    out[dest] = str(value or "").strip()
+            if not any(out[k] for k in ("player_id", "name", "team_id", "owner")):
+                continue
+            mapped.append(out)
+    except csv.Error as exc:
+        raise ValueError("CSV could not be read. Check quotes and commas, then preview again.") from exc
     if not mapped:
         raise ValueError("CSV has a header but no pick rows.")
     _ = headers
@@ -395,9 +433,12 @@ def preview_draft_results_csv(league_id: str, text: str) -> dict[str, Any]:
     if not league:
         raise ValueError("League not found")
     session = storage.get_draft_session(league_id) or {}
+    rules = LeagueRules.model_validate(league["rules"])
+    pick_draft = is_pick_draft(rules)
     rows = parse_draft_results_csv(text)
     ready: list[dict[str, Any]] = []
     errors: list[dict[str, Any]] = []
+    reserved: dict[str, float] = {}
     for index, row in enumerate(rows, start=1):
         item = {**row, "row": index}
         try:
@@ -414,6 +455,17 @@ def preview_draft_results_csv(league_id: str, text: str) -> dict[str, Any]:
                 team_id=row.get("team_id") or "",
                 owner=row.get("owner") or "",
             )
+            pos = normalize_position(player.get("position") or row.get("pos") or "")
+            if not pos:
+                raise ValueError("That player needs a position before it can be recorded.")
+            if not pick_draft:
+                parsed = parse_salary_amount(row.get("salary"))
+                amount = parsed if parsed is not None else float(rules.auction.min_bid)
+                tid = str(team["id"])
+                projected = {**team, "budget_remaining": float(team.get("budget_remaining") or 0) - reserved.get(tid, 0.0)}
+                assert_auction_salary(amount, projected, rules)
+                reserved[tid] = reserved.get(tid, 0.0) + amount
+                item["matched_salary"] = amount
             item["matched_player_id"] = player.get("player_id")
             item["matched_player_name"] = player.get("player") or player.get("player_name")
             item["matched_team_id"] = team["id"]
@@ -437,8 +489,9 @@ def apply_draft_results_csv(league_id: str, user_sub: str, text: str) -> dict[st
     apply_errors: list[dict[str, Any]] = list(preview["errors"])
     for row in preview["ready"]:
         try:
-            salary_raw = row.get("salary")
-            salary = float(salary_raw) if str(salary_raw or "").strip() else None
+            salary = row.get("matched_salary")
+            if salary is None:
+                salary = parse_salary_amount(row.get("salary"))
             record_draft_result(
                 league_id,
                 user_sub,

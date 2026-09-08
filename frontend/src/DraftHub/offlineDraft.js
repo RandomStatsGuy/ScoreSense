@@ -26,6 +26,15 @@ export function canRunOfflineCommissioner({ hubContext = null, isCommissioner = 
   return Boolean(isCommissioner);
 }
 
+export function parseOfflineSalary(raw, { pickDraft = false } = {}) {
+  if (pickDraft) return { ok: true, salary: undefined };
+  const text = String(raw ?? "").trim().replace(/^\$/, "").replace(/,/g, "");
+  if (!text) return { ok: false, salary: undefined };
+  const amount = Number(text);
+  if (!Number.isFinite(amount)) return { ok: false, salary: undefined };
+  return { ok: true, salary: amount };
+}
+
 export function canShowOwnerRecord({ session = null, hubContext = null, myTeamId = "" } = {}) {
   if (!myTeamId) return false;
   return Boolean(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -16,6 +17,8 @@ from src.draft_hub.league_home import PHASE_PRE_DRAFT, resolve_league_phase
 from src.draft_hub.offline_draft import (
     apply_draft_results_csv,
     export_draft_results_csv,
+    parse_draft_results_csv,
+    parse_salary_amount,
     preview_draft_results_csv,
     record_draft_result,
     set_owner_entry,
@@ -246,6 +249,58 @@ def test_offline_start_ignores_future_schedule(hub_db, monkeypatch):
     state = start_draft(league["id"], "sched-comm", conduct="offline")
     assert state["session"]["conduct"] == "offline"
     assert state["session"]["status"] == "nominating"
+
+
+def test_malformed_csv_is_a_value_error():
+    old = csv.field_size_limit()
+    csv.field_size_limit(12)
+    try:
+        with pytest.raises(ValueError, match="quotes and commas"):
+            parse_draft_results_csv("pick,player_id,name\n1,x," + ("Z" * 40) + "\n")
+    finally:
+        csv.field_size_limit(old)
+
+
+def test_csv_preview_flags_salary_and_budget(hub_db, monkeypatch):
+    rules = load_preset("salary_cap_auction_v1")
+    league = storage.create_league("sal-comm", "Salary", 2026, rules, team_count=8)
+    team = storage.get_team_by_user(league["id"], "sal-comm")
+    _patch_pool(monkeypatch, [_player("sal-1", "Sal One"), _player("sal-2", "Sal Two")])
+    bad = (
+        "pick,player_id,name,pos,nfl_team,owner,team_id,salary\n"
+        f"1,sal-1,Sal One,RB,NE,Commissioner,{team['id']},abc\n"
+        f"2,sal-2,Sal Two,RB,NE,Commissioner,{team['id']},9999\n"
+    )
+    preview = preview_draft_results_csv(league["id"], bad)
+    assert preview["ready_count"] == 0
+    assert preview["error_count"] == 2
+    messages = " ".join(row["error"] for row in preview["errors"])
+    assert "dollar amount" in messages
+    assert "leftover" in messages
+
+
+def test_record_requires_a_position(hub_db, monkeypatch):
+    rules = load_preset("salary_cap_auction_v1")
+    league = storage.create_league("pos-comm", "Pos", 2026, rules, team_count=8)
+    team = storage.get_team_by_user(league["id"], "pos-comm")
+    _patch_pool(monkeypatch, [_player("pos-1", "No Pos") | {"position": ""}])
+    with pytest.raises(ValueError, match="position"):
+        record_draft_result(
+            league["id"],
+            "pos-comm",
+            player_id="pos-1",
+            team_id=team["id"],
+            salary=5,
+        )
+
+
+def test_parse_salary_amount_rejects_nan():
+    assert parse_salary_amount("") is None
+    assert parse_salary_amount("$12") == 12.0
+    with pytest.raises(ValueError, match="dollar amount"):
+        parse_salary_amount("abc")
+    with pytest.raises(ValueError, match="dollar amount"):
+        parse_salary_amount(float("nan"))
 
 
 def test_commissioner_records_pick_draft(hub_db, monkeypatch):

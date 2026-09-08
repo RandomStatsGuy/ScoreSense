@@ -4,6 +4,7 @@ import {
   canRunOfflineCommissioner,
   canShowOwnerRecord,
   isOfflineConduct,
+  parseOfflineSalary,
   startDraftSearch,
 } from "./offlineDraft.js";
 
@@ -39,4 +40,12 @@ test("offline commissioner tools stay on the primary seat", () => {
     isCommissioner: true,
   }), false);
   assert.equal(canRunOfflineCommissioner({ isCommissioner: true }), true);
+});
+
+test("offline salary rejects NaN so the room cannot write min bid by accident", () => {
+  assert.deepEqual(parseOfflineSalary("18"), { ok: true, salary: 18 });
+  assert.deepEqual(parseOfflineSalary("$12"), { ok: true, salary: 12 });
+  assert.equal(parseOfflineSalary("abc").ok, false);
+  assert.equal(parseOfflineSalary("").ok, false);
+  assert.deepEqual(parseOfflineSalary("nope", { pickDraft: true }), { ok: true, salary: undefined });
 });

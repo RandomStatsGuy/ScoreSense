@@ -52,6 +52,7 @@ import {
   canShowOwnerRecord,
   downloadDraftResultsCsv,
   isOfflineConduct,
+  parseOfflineSalary,
   startDraftSearch,
 } from "./offlineDraft";
 import { displayBotName } from "./botPersona";
@@ -1381,6 +1382,11 @@ export default function DraftRoom({
       setError("Pick a team to record the win.");
       return;
     }
+    const parsed = parseOfflineSalary(offlineSalary, { pickDraft });
+    if (!parsed.ok) {
+      setError(OFFLINE_DRAFT_COPY.salaryInvalid);
+      return;
+    }
     setNomPlayerId(row.player_id);
     setPendingAction("record");
     setError("");
@@ -1394,7 +1400,7 @@ export default function DraftRoom({
           position: row.position || "",
           nfl_team: row.team || "",
           team_id: dest,
-          salary: pickDraft ? undefined : Number(offlineSalary),
+          salary: parsed.salary,
         }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
