@@ -266,7 +266,7 @@ Home names the manager’s roster hole over a commissioner invite when both are 
 - Unsaved changes warn before navigation.
 - Success is a contained confirmation, not a modal.
 - Roster management · Contracts accumulates pre-draft edits in a pending-changes tray (Save / Discard). Commissioner Drop removes the player with no dead cap so staff can add them to another team before the draft; it executes on save. After draft, leftover matches Rosters, Drop and field edits write immediately, and Add records Auction or FA lottery bids. Cut is the penalty path. Cap inputs validate against remaining room and show the resulting free / dead figures.
-- Contract-state chips: Extend to keep is teal, Expiring is amber, Cut is red. Never one green for all three. One-year expirees that cannot extend use **Expiring** — never **Expires — FA**. They enter the draft pool; after the draft is marked complete, undrafted names become free agents.
+- Contract-state chips: Extend to keep is teal, Expiring is amber, Cut is red. Never one green for all three. Final-year Rookie deals and Vet deals use Extend to keep when extensions are on. One-year expirees that cannot extend (already an Extension, or extensions off) use **Expiring** — never **Expires — FA**. They enter the draft pool; after the draft is marked complete, undrafted names become free agents.
 - Motion: 120–200ms, `--ease-standard`. Honor `prefers-reduced-motion`.
 - No sound except live-draft audio, and only as an opt-in.
 - Labels on every field. Errors associated with controls. WCAG AA contrast.
@@ -293,8 +293,9 @@ Do not invent a parallel rules model. Canonical merge/validate/preview: `fronten
 - Policy changes apply to **new contracts only**. Say that once, next to Save. Do not mention a migration unless a control exists on the page.
 - Rules Save writes the league on the form, not the last-focused league in the header. A late save response must not yank the UI to a different league.
 - Applying a league template confirms, names what changes, and fills the form. It does not save. Offer undo until the next edit. Style those triggers as destructive, not ghost chips.
-- Static rookies stay flat; veterans and extensions use the configured step-up.
-- Veteran extensions follow the league toggle on both client and server.
+- Contract types shown to users are **Rookie deal**, **Vet deal**, and **Extension**. Never “Rookie Extension” or “Veteran Deal”.
+- Static rookie deals stay flat; vet deals and extensions use the configured step-up every year.
+- Final-year rookie deals and vet deals may take one extension when Rules **Allow extensions** is on. An extension cannot be extended again. The same toggle writes both client and server flags.
 - Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`): locked pre-draft and in-season off-window; FAAB bid post-draft / waivers; instant add after waivers; offseason trades only for contracts that survive the next draft.
 - ScoreSense-only leagues persist weekly lineups on This Week and score the week with ScoreSense PPR (nflverse; internal id `hub_ppr` — the string "Hub PPR" never reaches UI). Linked Sleeper leagues still set and score lineups in Sleeper; Game center reads Sleeper.
 - Staff edits in Roster management may override; Players-tab adds never do.

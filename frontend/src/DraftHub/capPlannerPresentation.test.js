@@ -56,6 +56,8 @@ test("rail primary is the pending cut or the draft spend", () => {
   assert.equal(CAP_EXTEND_COPY.undo, "Undo extension");
   assert.match(CAP_EXTEND_COPY.queuedHint, /expire/i);
   assert.doesNotMatch(CAP_EXTEND_COPY.queuedHint, /Submit|Draft Hub|permission/i);
+  assert.match(CAP_EXTEND_COPY.alreadyExtended, /extension cannot be extended/i);
+  assert.doesNotMatch(CAP_EXTEND_COPY.alreadyExtended, /Rookie Extension|Veteran Deal/);
   assert.equal(queuedExtensionsSummary(1), "1 queued extension");
   assert.equal(queuedExtensionsSummary(2), "2 queued extensions");
   assert.equal(queuedYearsLine(3), "3-yr queued");

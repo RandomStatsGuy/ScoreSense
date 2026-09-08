@@ -523,6 +523,7 @@ function TeamRosterBlock({
       contractType: ctype,
       draftCompleted,
       queuedDrop,
+      rules,
     });
     const isHighlight = Boolean(
       highlightPlayerId && matchLiveRosterPlayer(r, highlightPlayerId),

@@ -41,7 +41,7 @@ import {
   CAP_SHEET_COPY,
 } from "./capPlannerPresentation";
 import { buildCapStatusCard } from "./capStatusCard";
-import { contractDeadCapStory, fmtSal, leagueStepUp } from "./rosterFormat";
+import { contractDeadCapStory, contractTypeLabel, fmtSal, leagueStepUp } from "./rosterFormat";
 import ContractHistoryLink from "./ContractHistoryLink";
 import {
   cancelRookieExtend,
@@ -132,7 +132,7 @@ function CapMoneyField({ id, label, value, onChange }) {
 
 export default function CapPlanner({ capSheet, roster, workspace, hubContext, onChanged, onNavigate }) {
   const [extendPlayer, setExtendPlayer] = useState("");
-  const [extendYears, setExtendYears] = useState("1");
+  const [extendYears, setExtendYears] = useState("2");
   const [cutPlayer, setCutPlayer] = useState("");
   const [bidAmount, setBidAmount] = useState("");
   const [msg, setMsg] = useState("");
@@ -174,7 +174,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
   const extend = async () => {
     setMsg("");
     try {
-      const data = await postRookieExtend(extendPlayer, extendYears, maxExtensionYears);
+      const data = await postRookieExtend(extendPlayer, extendYearsSafe, maxExtensionYears);
       setMsg(rookieExtendSuccessMessage(data));
       setExtendPlayer("");
       onChanged?.();
@@ -244,11 +244,11 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
     <>
       <p><strong>{CAP_MODEL_COPY.expireBeforeDraftTitle}</strong> — {CAP_MODEL_COPY.expireBeforeDraft}</p>
       <p><strong>Years left</strong> — Includes the upcoming season; drops by 1 when the draft is marked complete.</p>
-      <p><strong>Contract extension</strong> — Eligible final-year {veteranExtensions ? "rookie and veteran deals" : "rookie deals"}; one 1–{maxExtensionYears} year extension. Start salary is server-set (current + ${stepUp}).</p>
+      <p><strong>Contract extension</strong> — Eligible final-year {veteranExtensions ? "rookie deals and vet deals" : "rookie deals"}; one 1–{maxExtensionYears} year extension. Start salary is server-set (current + ${stepUp}).</p>
       <p><strong>Queued</strong> — Extension activates when draft is marked complete (1- and 3-year terms preserved).</p>
       <p><strong>Against this cap</strong> — This year&apos;s salary plus dead cap. Leftover is the rest of the cap.</p>
       <p><strong>Keep past this draft</strong> — Players still under contract after this draft. On this sheet is every row listed below.</p>
-      <p><strong>Step-up</strong> — Rookie deals {rookieSalaryStatic ? "stay flat" : `increase $${stepUp}/yr`}; veteran deals and extensions increase ${stepUp}/yr.</p>
+      <p><strong>Step-up</strong> — Rookie deals {rookieSalaryStatic ? "stay flat" : `increase $${stepUp}/yr`}; vet deals and extensions increase ${stepUp}/yr.</p>
       <p><strong>Cut refund</strong> — {cutPct}% back; rest is dead cap.</p>
     </>
   );
@@ -391,6 +391,9 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
     id: String(idx + 1),
     label: `${idx + 1}`,
   }));
+  const extendYearsSafe = yearOptions.some((option) => option.id === String(extendYears))
+    ? String(extendYears)
+    : String(Math.min(2, maxExtensionYears));
 
   return (
     <HubPage className="hub-experience-page hub-planner-page">
@@ -575,14 +578,14 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                   { id: "", label: CAP_EXTEND_COPY.selectPlayer },
                   ...extendableRoster.map((r) => ({
                     id: String(r.player_id),
-                    label: `${r.player_name} (${r.contract?.contract_type || "contract"} · ${fmtSal(r.salary)})`,
+                    label: `${r.player_name} (${contractTypeLabel(r.contract?.contract_type) || "contract"} · ${fmtSal(r.salary)})`,
                   })),
                 ]}
                 onChange={setExtendPlayer}
               />
               <HubFilterMenu
                 label={CAP_EXTEND_COPY.yearsLabel}
-                value={String(extendYears)}
+                value={extendYearsSafe}
                 options={yearOptions}
                 onChange={setExtendYears}
               />
@@ -600,8 +603,8 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
               {queuedExtensions.length > 0
                 ? CAP_EXTEND_COPY.queuedHint
                 : mustExtend.length === 0 && droppingAtDraft.length === 0
-                  ? "No deals end at this draft — nothing to extend yet."
-                  : "Veteran Deals and Rookie Extensions expire to free agency — they cannot be re-signed."}
+                  ? CAP_EXTEND_COPY.noDealsEnd
+                  : CAP_EXTEND_COPY.alreadyExtended}
             </p>
           )}
           {queuedExtensions.length > 0 ? (

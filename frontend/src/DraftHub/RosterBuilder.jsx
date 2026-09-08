@@ -363,7 +363,7 @@ export default function RosterBuilder({
   const isLeague = hubContext?.mode === "league";
   const isCommissioner = Boolean(hubContext?.is_commissioner || hubContext?.can_edit_salaries);
   // SCORE-41: league My Team never edits salary/years/type — Roster management is the arbitrary editor.
-  // SCORE-42: managers may still queue a server-calculated rookie extension for their own eligible rookies.
+  // SCORE-42: managers may still queue a server-calculated extension for their own eligible deals.
   const contractsReadOnly = isLeague || readOnly;
   const canEditType = !contractsReadOnly;
   const canRemove = !isLeague || isCommissioner;
@@ -538,7 +538,7 @@ export default function RosterBuilder({
     const raw = extendYearsById[r.player_id];
     const n = Number(raw);
     if (Number.isFinite(n) && n >= 1 && n <= maxYears) return n;
-    return 1;
+    return Math.min(2, maxYears);
   }, [extendYearsById, maxYears]);
 
   const queueRookieExtend = useCallback(async (r) => {
@@ -722,18 +722,20 @@ export default function RosterBuilder({
           ctype: String(a.contract?.contract_type || "veteran"),
           pendingType: a.contract?.pending_type,
           pendingExt: hasPendingExtension(a),
+          rules: workspace?.rules,
         });
         const sb = rosterStatusInfo(b, {
           draftCompleted,
           ctype: String(b.contract?.contract_type || "veteran"),
           pendingType: b.contract?.pending_type,
           pendingExt: hasPendingExtension(b),
+          rules: workspace?.rules,
         });
         return sa.label.localeCompare(sb.label) * dir;
       }
       return 0;
     });
-  }, [filteredRoster, sortKey, sortDir, draftCompleted]);
+  }, [filteredRoster, sortKey, sortDir, draftCompleted, workspace?.rules]);
 
   const rowViewModel = useCallback((r) => {
     const edit = getEdit(r);
@@ -750,7 +752,9 @@ export default function RosterBuilder({
         ctype,
         workspace?.rules?.contracts?.rookie_salary_static !== false,
       ) || storedSchedule);
-    const status = rosterStatusInfo(r, { draftCompleted, ctype, pendingType, pendingExt });
+    const status = rosterStatusInfo(r, {
+      draftCompleted, ctype, pendingType, pendingExt, rules: workspace?.rules,
+    });
     const extendEligible = canManagerRookieExtend(r, { draftCompleted, rules: workspace?.rules }).ok;
     const extendStart = extendEligible
       ? previewRookieExtendStartSalary(r, workspace?.rules)

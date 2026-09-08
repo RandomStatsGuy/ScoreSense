@@ -249,8 +249,8 @@ def pre_draft_cap_summary(
             "budget_available": after_draft_budget,
             "note": (
                 "Expired deals leave before the draft (FA). "
-                f"Final-year {'rookie and veteran' if rules.contracts.allow_veteran_renewal else 'rookie'} "
-                f"contracts can take one 1–{int(rules.contracts.max_years)} year extension "
+                f"Final-year {'rookie deals and vet deals' if rules.contracts.allow_veteran_renewal else 'rookie deals'} "
+                f"can take one 1–{int(rules.contracts.max_years)} year extension "
                 "when league rules allow it."
             ),
         },

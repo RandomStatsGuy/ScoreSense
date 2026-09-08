@@ -298,7 +298,7 @@ def test_pre_draft_henderson_not_expiring_with_two_years():
     assert summary["dropping_at_draft"] == []
 
 
-def test_after_tick_rookie_must_extend_veteran_drops():
+def test_after_tick_rookie_and_vet_must_extend():
     rules = _rules()
     rook = {
         "player_id": "r1",
@@ -317,10 +317,8 @@ def test_after_tick_rookie_must_extend_veteran_drops():
         "contract": {"contract_type": "veteran", "years_remaining": 1, "current_salary": 8},
     }
     summary = pre_draft_cap_summary(rules, [rook, vet], draft_completed=False)
-    assert len(summary["must_extend"]) == 1
-    assert summary["must_extend"][0]["player_id"] == "r1"
-    assert len(summary["dropping_at_draft"]) == 1
-    assert summary["dropping_at_draft"][0]["player_id"] == "v1"
+    assert {p["player_id"] for p in summary["must_extend"]} == {"r1", "v1"}
+    assert summary["dropping_at_draft"] == []
 
 
 def test_years_edit_preserves_manual_type_meta():

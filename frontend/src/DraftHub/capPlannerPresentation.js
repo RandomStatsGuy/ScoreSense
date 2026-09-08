@@ -21,6 +21,8 @@ export const CAP_EXTEND_COPY = {
   queue: "Queue extension",
   undo: "Undo extension",
   queuedHint: "Undo if the years are wrong. The deal expires at the draft unless you queue again.",
+  noDealsEnd: "No deals end at this draft — nothing to extend yet.",
+  alreadyExtended: "An extension cannot be extended again. Those names expire to the draft pool.",
 };
 
 export function queuedExtensionsSummary(count) {

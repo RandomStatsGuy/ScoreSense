@@ -8,6 +8,18 @@ import {
   rookieExtendSuccessMessage,
 } from "./rookieExtend.js";
 
+test("final-year vet deals can extend unless Rules turns it off", () => {
+  const vet = { contract: { contract_type: "veteran", years_remaining: 1 } };
+  assert.equal(canManagerRookieExtend(vet, { draftCompleted: false }).ok, true);
+  assert.equal(
+    canManagerRookieExtend(vet, {
+      draftCompleted: false,
+      rules: { contracts: { allow_veteran_renewal: false } },
+    }).ok,
+    false,
+  );
+});
+
 test("queued extension is detected and blocks a second queue", () => {
   const queued = {
     contract: { contract_type: "rookie", years_remaining: 1, pending_extension: { years: 2 } },
