@@ -87,23 +87,12 @@ export default function DraftAvailability({
       const data = await res.json();
       setPayload(data);
       setMine(data.mine || []);
-      const windowDates = data.window?.dates || [];
-      setSelectedDate((current) => (
-        resolveCalendarSelectedDate({
-          selectedDate: current,
-          dates: windowDates,
-          hours: data.window?.hours || [],
-          today: data.window?.today,
-          currentHour: data.window?.current_hour,
-          lockedDate: lockedSlot?.date,
-        }) || current
-      ));
     } catch (e) {
       setError(connectionErrorMessage(e));
     } finally {
       setLoading(false);
     }
-  }, [leagueId, enabled, lockedSlot?.date]);
+  }, [leagueId, enabled]);
 
   useEffect(() => {
     load();

@@ -740,7 +740,7 @@ def ws_cookie_origin_trusted(
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
         return False
     origin_netloc = parsed.netloc.lower()
-    allowed = {urllib.parse.urlparse(frontend_url or FRONTEND_URL).netloc.lower()}
+    allowed = {urllib.parse.urlparse(frontend_url or FRONTEND_URL or "").netloc.lower()}
     host_netloc = str(host or "").split(",", 1)[0].strip().lower()
     if host_netloc:
         allowed.add(host_netloc)

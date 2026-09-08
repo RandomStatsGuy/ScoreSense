@@ -1,5 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   availabilityBestHeading,
   availabilityChip,
@@ -130,4 +133,14 @@ test("calendar keeps only current and future hours", () => {
   assert.equal(availabilityShowsSavedChip({ canEdit: true, locked: false, dirty: true }), false);
   assert.equal(availabilityShowsSavedChip({ canEdit: true, locked: true, dirty: false }), false);
   assert.match(formatLockedNightDisclosure("2026-09-05T23:00:00.000Z"), /Move it/);
+});
+
+test("availability load does not refetch when the locked night changes", () => {
+  const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "DraftAvailability.jsx"), "utf8");
+  const start = src.indexOf("const load = useCallback");
+  const end = src.indexOf("useEffect(() => {\n    load();");
+  assert.ok(start >= 0 && end > start, "expected availability load callback");
+  const load = src.slice(start, end);
+  assert.ok(!load.includes("lockedSlot"), "lock date belongs in the calendar effect, not the fetch");
+  assert.match(load, /}, \[leagueId, enabled\]\);/);
 });

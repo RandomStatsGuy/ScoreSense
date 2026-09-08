@@ -75,6 +75,20 @@ def test_ws_cookie_origin_trusted_matches_frontend_or_host():
     )
 
 
+def test_ws_cookie_origin_trusted_empty_frontend_url(monkeypatch):
+    monkeypatch.setattr("app.auth.FRONTEND_URL", None)
+    assert ws_cookie_origin_trusted(
+        "https://app.example.test",
+        "app.example.test",
+        frontend_url=None,
+    )
+    assert not ws_cookie_origin_trusted(
+        "https://evil.example",
+        None,
+        frontend_url="",
+    )
+
+
 def test_verify_league_membership(hub_db, auth_db):
     user = user_store.create_user("ws@example.com", "pbkdf2_sha256$120000$00$00", "WS User")
     from app.auth import native_user_sub
