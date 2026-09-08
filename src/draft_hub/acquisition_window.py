@@ -109,6 +109,7 @@ def resolve_acquisition_window(
             "label": _WINDOW_LABELS[WINDOW_SOLO],
             "add_mode": ADD_INSTANT,
             "can_instant_add": True,
+            "can_record_draft_result": False,
             "can_bid": False,
             "roster_locked": False,
             "trade_scope": TRADE_ACTIVE,
@@ -177,11 +178,19 @@ def resolve_acquisition_window(
         trade_scope = TRADE_SURVIVING
         message = _ADD_COPY[ADD_LOCKED]
 
+    can_record = bool(ctx.get("owner_entry_open")) and not bool(ctx.get("draft_completed"))
+    if can_record and phase_id == PHASE_PRE_DRAFT:
+        message = (
+            "Owners can record draft wins on Draft. Free agents Add stays locked "
+            "until after the draft is marked complete."
+        )
+
     return {
         "id": window,
         "label": _WINDOW_LABELS[window],
         "add_mode": add_mode,
         "can_instant_add": add_mode == ADD_INSTANT,
+        "can_record_draft_result": can_record,
         "can_bid": add_mode == ADD_BID,
         "roster_locked": add_mode == ADD_LOCKED,
         "trade_scope": trade_scope,

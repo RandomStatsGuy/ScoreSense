@@ -123,6 +123,7 @@ def _context_from_league_team(
     from src.draft_hub.owner_display import attach_owner_names_to_teams
 
     attach_owner_names_to_teams(str(league["id"]), [team], season_year=league.get("season"))
+    session = storage.get_draft_session(str(league["id"])) or {}
     return _with_permissions({
         "mode": "league",
         "hub_focus": hub_focus,
@@ -132,6 +133,9 @@ def _context_from_league_team(
         "league_name": league["name"],
         "league_room_code": league["room_code"],
         "league_status": league["status"],
+        "draft_session_status": session.get("status"),
+        "draft_conduct": session.get("conduct") or "live",
+        "owner_entry_open": bool(session.get("owner_entry_open")),
         "team_count": int(league.get("team_count") or 12),
         "team_id": team["id"],
         "team_name": team["name"],

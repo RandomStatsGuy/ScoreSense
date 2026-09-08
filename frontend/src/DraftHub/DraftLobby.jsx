@@ -52,6 +52,7 @@ import {
 } from "./leagueAccessCopy";
 import DraftAvailability from "./DraftAvailability";
 import DraftNightSchedule from "./DraftNightSchedule";
+import OfflineDraftPanel from "./OfflineDraftPanel";
 import { HubExperienceHero, HubExperienceLayout, HubExperienceSummary } from "./HubUILayout";
 import { secondsUntil } from "./draftRoomHelpers";
 import { fmtSal } from "./rosterFormat";
@@ -68,11 +69,14 @@ export default function DraftLobby({
   roomLoading = false,
   claimedHumans = 0,
   onStartDraft,
+  onStartOffline,
   onSaveSchedule,
   onUpdated,
   guestMode = false,
   claimAccess = null,
   expirePreview = null,
+  session = null,
+  hubContext = null,
 }) {
   const [copied, setCopied] = useState(false);
   const [claimCopied, setClaimCopied] = useState(false);
@@ -563,6 +567,20 @@ export default function DraftLobby({
             </div>
           ) : null}
         </article>
+
+        <OfflineDraftPanel
+          leagueId={leagueId}
+          session={session}
+          teams={teams}
+          viewer={viewer}
+          rules={rules || league?.rules}
+          isCommissioner={isCommissioner}
+          testMode={testMode}
+          busy={busy}
+          hubContext={hubContext}
+          onStartOffline={onStartOffline}
+          onUpdated={onUpdated}
+        />
 
       </HubExperienceLayout>
     </div>

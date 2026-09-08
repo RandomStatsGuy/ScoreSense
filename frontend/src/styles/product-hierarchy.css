@@ -4055,6 +4055,45 @@ button.btn-link.hub-league-switcher-create:hover {
   line-height: var(--line-normal);
 }
 
+.draft-lobby-offline .hub-draft-entry-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-md);
+}
+
+.draft-lobby-offline .hub-toolbar,
+.draft-lobby-offline-form,
+.hub-draft-offline-dock {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.draft-lobby-offline input,
+.draft-lobby-offline textarea,
+.hub-draft-offline-dock input {
+  min-height: 44px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.draft-lobby-offline textarea {
+  width: 100%;
+  margin-top: var(--space-3);
+}
+
+.draft-lobby-offline-errors {
+  margin: var(--space-2) 0 0;
+  padding-left: 1.2rem;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
 .draft-lobby-rename {
   margin-top: var(--space-md);
 }

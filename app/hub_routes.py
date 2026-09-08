@@ -62,6 +62,9 @@ from src.draft_hub.schemas import (
     RookieExtendCancelRequest,
     DraftBidRequest,
     DraftCutRequest,
+    DraftOwnerEntryRequest,
+    DraftRecordRequest,
+    DraftResultsCsvRequest,
     DraftEnrichmentRequest,
     DraftNominateRequest,
     DraftPoolModeRequest,
@@ -4685,6 +4688,10 @@ async def hub_start_draft(
         False,
         description="Fill leftover mock seats with bots before starting",
     ),
+    conduct: str = Query(
+        "live",
+        description="live clocks, or offline commissioner-paced (no timers)",
+    ),
     _user=Depends(require_hub_user),
 ) -> dict:
     sub = _sub(_user)
@@ -4697,7 +4704,114 @@ async def hub_start_draft(
             force=force,
             allow_empty=allow_empty,
             fill_bots=fill_bots,
+            conduct=conduct,
         )
+        await broadcast_room(league_id)
+        return state
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/league/{league_id}/draft/record")
+async def hub_record_draft_result(
+    league_id: str,
+    body: DraftRecordRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Record one draft win without clocks. Owners need the entry window; the commissioner may always write."""
+    sub = _sub(_user)
+    _assert_league_access(league_id, sub)
+    from src.draft_hub.offline_draft import record_draft_result
+
+    try:
+        state = record_draft_result(
+            league_id,
+            sub,
+            player_id=body.player_id,
+            team_id=body.team_id,
+            salary=body.salary,
+            player_name=body.player_name,
+            position=body.position,
+            nfl_team=body.nfl_team,
+            owner=body.owner,
+        )
+        await broadcast_room(league_id)
+        return state
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/league/{league_id}/draft/owner-entry")
+async def hub_set_owner_entry(
+    league_id: str,
+    body: DraftOwnerEntryRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    _assert_league_access(league_id, sub)
+    from src.draft_hub.offline_draft import set_owner_entry
+
+    try:
+        state = set_owner_entry(
+            league_id,
+            sub,
+            open_entry=body.open,
+            closes_at=body.closes_at,
+        )
+        await broadcast_room(league_id)
+        return {**state, "hub_context": _ctx_for_league(sub, league_id) or _ctx(sub)}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/league/{league_id}/draft/results.csv")
+def hub_export_draft_results(league_id: str, _user=Depends(require_hub_user)) -> Response:
+    sub = _sub(_user)
+    _assert_league_access(league_id, sub)
+    from src.draft_hub.offline_draft import export_draft_results_csv
+
+    csv_text = export_draft_results_csv(league_id)
+    return Response(
+        content=csv_text,
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="draft-results.csv"'},
+    )
+
+
+@router.post("/league/{league_id}/draft/results/preview")
+def hub_preview_draft_results(
+    league_id: str,
+    body: DraftResultsCsvRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    _assert_league_access(league_id, sub)
+    league = storage.get_league(league_id)
+    if not league or str(league.get("commissioner_sub") or "") != str(sub):
+        raise HTTPException(status_code=403, detail="Commissioner managed")
+    from src.draft_hub.offline_draft import preview_draft_results_csv
+
+    try:
+        return preview_draft_results_csv(league_id, body.csv_text)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/league/{league_id}/draft/results/apply")
+async def hub_apply_draft_results(
+    league_id: str,
+    body: DraftResultsCsvRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    _assert_league_access(league_id, sub)
+    league = storage.get_league(league_id)
+    if not league or str(league.get("commissioner_sub") or "") != str(sub):
+        raise HTTPException(status_code=403, detail="Commissioner managed")
+    from src.draft_hub.offline_draft import apply_draft_results_csv
+
+    try:
+        state = apply_draft_results_csv(league_id, sub, body.csv_text)
         await broadcast_room(league_id)
         return state
     except ValueError as exc:

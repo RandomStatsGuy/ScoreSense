@@ -34,6 +34,8 @@ export const draftLiveCopy = {
   ceiling: "Ceiling",
   searchNominate: "Search for a player to nominate…",
   searchPlayer: "Search player or team",
+  offlineJob: "No clocks. Record the next win.",
+  record: "Record",
   nominatePaused: "Draft paused",
   connectionLive: "Realtime connection is up",
   connectionDelay: "Draft updates may be delayed",
@@ -48,7 +50,11 @@ export function nominationJobLine({
   isMyTurn = false,
   nominatorName = "",
   paused = false,
+  offline = false,
 } = {}) {
+  if (offline) {
+    return paused ? `${draftLiveCopy.paused} · ${draftLiveCopy.offlineJob}` : draftLiveCopy.offlineJob;
+  }
   const job = picking
     ? (isMyTurn ? draftLiveCopy.yourPick : `${draftLiveCopy.onTheClock}: ${nominatorName || "a team"}`)
     : (isMyTurn ? draftLiveCopy.yourTurnToNominate : waitingForName(nominatorName));
@@ -65,7 +71,8 @@ export function nominateDisabledReason({
   return "";
 }
 
-export function poolSearchPlaceholder({ canDraft = false, pickDraft = false } = {}) {
+export function poolSearchPlaceholder({ canDraft = false, pickDraft = false, offline = false } = {}) {
+  if (offline) return draftLiveCopy.searchPlayer;
   return canDraft && !pickDraft ? draftLiveCopy.searchNominate : draftLiveCopy.searchPlayer;
 }
 

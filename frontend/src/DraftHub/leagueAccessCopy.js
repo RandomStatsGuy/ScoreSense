@@ -69,6 +69,29 @@ export const DRAFT_ENTRY_COPY = {
   liveSupport: "Live draft is for your real room. Keepers and contracts apply.",
 };
 
+export const OFFLINE_DRAFT_COPY = {
+  title: "Record results",
+  hint: "Walk the board yourself, import a CSV, or let owners add their own wins. Free agents Add stays locked.",
+  startOffline: "Start offline draft",
+  startOfflineHint: "No clocks. You assign each win. Same contracts as a live auction.",
+  openEntry: "Open owner entry",
+  closeEntry: "Close owner entry",
+  entryOpen: "Owners can record their draft wins on Draft until you close this.",
+  entryClosed: "Open a window so owners type their own wins instead of you entering every pick.",
+  record: "Record win",
+  playerLabel: "Player",
+  teamLabel: "Team",
+  salaryLabel: "Salary",
+  exportCsv: "Download CSV",
+  importCsv: "Preview CSV",
+  applyCsv: "Apply matched rows",
+  csvHint: "Columns: pick, player_id, name, pos, nfl_team, owner, team_id, salary.",
+  previewReady: (n) => (n === 1 ? "1 row ready" : `${n} rows ready`),
+  previewErrors: (n) => (n === 1 ? "1 unmatched" : `${n} unmatched`),
+  applied: (n) => (n === 1 ? "Recorded 1 win." : `Recorded ${n} wins.`),
+  ownerHint: "This writes a draft contract on your team. Wrong name and you eat the cap.",
+};
+
 export function draftInviteRailHint({ testMode = false } = {}) {
   return testMode
     ? "Share this link with anyone joining the practice room."
