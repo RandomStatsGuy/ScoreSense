@@ -1387,7 +1387,7 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
     )
     if ctype:
         contract["contract_type_manual"] = True
-    source = str(body.source or "").strip().lower() or None
+    source = body.source.strip().lower() if body.source else None
     if source and source not in {"draft", "auction", "post_draft_fa", "manual", "mock", "test_draft"}:
         raise HTTPException(
             status_code=400,
