@@ -375,9 +375,12 @@ export function draftInteractionState({
 
 /**
  * Ignore stale/partial room payloads so the live auction cannot flash back
- * to the setup "draft page" (wrong league, missing session, reconnect race).
+ * to the setup lobby (wrong league, missing session, reconnect race).
+ * A commissioner Reset is the only setup downgrade — pass allowSetupDowngrade.
  */
-export function shouldApplyRoomState(prev, next, currentLeagueId) {
+export function shouldApplyRoomState(prev, next, currentLeagueId, {
+  allowSetupDowngrade = false,
+} = {}) {
   if (!next || typeof next !== "object") return false;
   const nextLeagueId = next.league?.id;
   if (currentLeagueId && nextLeagueId && String(nextLeagueId) !== String(currentLeagueId)) {
@@ -388,10 +391,16 @@ export function shouldApplyRoomState(prev, next, currentLeagueId) {
   const nextLive = isLiveAuctionStatus(nextStatus);
   const nextCompleted = nextStatus === "completed" || Boolean(next.league?.draft_completed);
   const nextExplicitSetup = nextStatus === "setup";
-  if (prevLive && !nextLive && !nextCompleted && !nextExplicitSetup) {
-    return false;
+  if (prevLive && !nextLive && !nextCompleted) {
+    return Boolean(allowSetupDowngrade && nextExplicitSetup);
   }
   return true;
+}
+
+/** Back off after a closed socket so a missing token cannot hammer the room. */
+export function wsReconnectDelayMs(attempt = 0) {
+  const n = Math.max(0, Math.trunc(Number(attempt) || 0));
+  return Math.min(30000, 2000 * (2 ** Math.min(n, 4)));
 }
 
 /** Broadcasts omit `viewer`; keep the last one so the roster/turn UI stays put. */

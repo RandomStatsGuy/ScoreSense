@@ -262,6 +262,30 @@ export function firstSelectableDate(dates = [], hours = [], today, currentHour) 
   return "";
 }
 
+/**
+ * One date for the lobby calendar. A locked night that has no remaining hours
+ * must not fight firstSelectableDate — that pair remounts the board in a loop.
+ */
+export function resolveCalendarSelectedDate({
+  selectedDate = "",
+  dates = [],
+  hours = [],
+  today,
+  currentHour,
+  lockedDate = "",
+} = {}) {
+  const list = Array.isArray(dates) ? dates : [];
+  const lockedOpen = lockedDate
+    && list.includes(lockedDate)
+    && visibleHoursForDate(lockedDate, hours, today, currentHour).length > 0;
+  if (lockedOpen) return lockedDate;
+  const stillOpen = selectedDate
+    && list.includes(selectedDate)
+    && visibleHoursForDate(selectedDate, hours, today, currentHour).length > 0;
+  if (stillOpen) return selectedDate;
+  return firstSelectableDate(list, hours, today, currentHour);
+}
+
 export function calendarTodayIso(now = new Date(), timeZone) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: timeZone || "UTC",

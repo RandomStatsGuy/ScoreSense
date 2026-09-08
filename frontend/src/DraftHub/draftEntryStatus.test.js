@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   draftEntryPhase,
+  showDraftLobby,
   draftFormatLabel,
   draftParticipantSummary,
   formatDraftWait,
@@ -19,6 +20,28 @@ test("draftFormatLabel uses salary cap auction when auction rules exist", () => 
   assert.equal(draftFormatLabel({ draft_type: "linear", auction: { min_bid: 1 } }), "Linear draft");
   assert.equal(isPickDraft({ draft_type: "snake" }), true);
   assert.equal(isPickDraft({ draft_type: "auction" }), false);
+});
+
+test("showDraftLobby keeps the board up while the room refreshes", () => {
+  assert.equal(showDraftLobby({ leagueId: "lg", inDraftSetup: true, roomLoading: true }), false);
+  assert.equal(
+    showDraftLobby({
+      leagueId: "lg",
+      inDraftSetup: true,
+      league: { id: "lg" },
+      roomLoading: true,
+    }),
+    true,
+  );
+  assert.equal(
+    showDraftLobby({
+      leagueId: "lg",
+      inDraftSetup: false,
+      league: { id: "lg" },
+      roomLoading: false,
+    }),
+    false,
+  );
 });
 
 test("draftEntryPhase maps season and practice states", () => {

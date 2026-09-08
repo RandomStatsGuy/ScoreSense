@@ -2,7 +2,15 @@
 
 import pytest
 
-from app.auth import create_access_token, decode_token_or_none, hub_auth_enabled, ws_user_from_token
+from app.auth import (
+    create_access_token,
+    decode_token_or_none,
+    hub_auth_enabled,
+    ws_cookie_origin_trusted,
+    ws_handshake_uses_cookie_auth,
+    ws_user_from_handshake,
+    ws_user_from_token,
+)
 from src.auth import user_store
 from src.draft_hub import storage
 from src.draft_hub.presets import load_preset
@@ -24,6 +32,47 @@ def test_ws_user_from_token_missing_when_hub_auth(hub_db, monkeypatch):
         pytest.skip("Hub auth disabled in this environment")
     assert ws_user_from_token(None) is None
     assert ws_user_from_token("bad-token") is None
+    assert ws_user_from_handshake(None, None) is None
+    assert ws_user_from_handshake(None, "bad-token") is None
+
+
+def test_ws_user_from_handshake_falls_back_to_cookie(hub_db, auth_db, monkeypatch):
+    monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: True)
+    user = user_store.create_user("cookie@example.com", "pbkdf2_sha256$120000$00$00", "Cookie")
+    token = create_access_token(user, auth_type="native")
+    assert ws_user_from_handshake(None, None) is None
+    assert ws_user_from_handshake(None, token) is not None
+    assert ws_user_from_handshake("bad-token", token) is not None
+    assert ws_handshake_uses_cookie_auth(None, token) is True
+    assert ws_handshake_uses_cookie_auth(token, token) is False
+    assert ws_handshake_uses_cookie_auth("bad-token", token) is True
+    assert ws_handshake_uses_cookie_auth(None, None) is False
+
+
+def test_ws_cookie_origin_trusted_matches_frontend_or_host():
+    frontend = "https://app.example.test"
+    assert ws_cookie_origin_trusted(
+        "https://app.example.test",
+        "app.example.test",
+        frontend_url=frontend,
+    )
+    assert ws_cookie_origin_trusted(
+        "http://127.0.0.1:5173",
+        "127.0.0.1:5173",
+        frontend_url="http://localhost:5173",
+    )
+    assert not ws_cookie_origin_trusted(
+        "https://evil.example",
+        "app.example.test",
+        frontend_url=frontend,
+    )
+    assert not ws_cookie_origin_trusted(None, "app.example.test", frontend_url=frontend)
+    assert not ws_cookie_origin_trusted("null", "app.example.test", frontend_url=frontend)
+    assert not ws_cookie_origin_trusted(
+        "https://app.example.test",
+        None,
+        frontend_url="http://localhost:5173",
+    )
 
 
 def test_verify_league_membership(hub_db, auth_db):
