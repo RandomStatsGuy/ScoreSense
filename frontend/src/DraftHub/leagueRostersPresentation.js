@@ -29,7 +29,7 @@ export const ROSTERS_COPY = {
   tradeLocked: "Offseason trades apply only to contracts that survive the next draft.",
   tradeLockedShort: "Survives the draft only",
   extendable: "Extendable",
-  expiresFa: "Expires — FA",
+  expiring: "Expiring",
   you: "you",
   player: "Player",
   pos: "Pos",
@@ -83,7 +83,7 @@ export function contractGradeText(row) {
 
 export function expireChipLabel(chip) {
   if (chip === "extend") return ROSTERS_COPY.extendable;
-  if (chip === "fa") return ROSTERS_COPY.expiresFa;
+  if (chip === "fa") return ROSTERS_COPY.expiring;
   return null;
 }
 

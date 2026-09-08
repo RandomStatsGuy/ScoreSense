@@ -21,7 +21,7 @@ import { clearTradeSeed, readTradeSeed, resolveTradePartnerId } from "./tradeSee
 import { formatStatDelta, projectTeamTradeStats } from "./tradeProjection";
 import { formatIdeaCapNet, ideaCapImpact, whyThisHelpsText } from "./tradeIdeaHelpers";
 import { playerTradeableInWindow, tradesWindowBanner } from "./acquisitionWindow";
-import { stepBlockedReason, TRADES_COPY, tradesFreeLabel } from "./leagueTradesPresentation";
+import { expireChipLabel, stepBlockedReason, TRADES_COPY, tradesFreeLabel } from "./leagueTradesPresentation";
 import {
   notifyPartnerNames,
   packageFingerprint,
@@ -166,6 +166,7 @@ function TradePlayerRow({
   srcName,
 }) {
   const grade = gradeLabel(row.contract_grade);
+  const expireLabel = expireChipLabel(row.expire_chip);
   const yrs = row.years_remaining ?? row.contract_years;
   const sendCopy = sendGetCopy({
     isYours,
@@ -199,11 +200,10 @@ function TradePlayerRow({
           <div className="hub-trade-player-meta">
             {yrs != null && <span>{yrs}y</span>}
             {row.contract_type && <span>{row.contract_type}</span>}
-            {row.expire_chip === "extend" && (
-              <span className="hub-expire-chip hub-expire-chip--extend">Extend?</span>
-            )}
-            {row.expire_chip === "fa" && (
-              <span className="hub-expire-chip">Expires — FA</span>
+            {expireLabel && (
+              <span className={`hub-expire-chip${row.expire_chip === "extend" ? " hub-expire-chip--extend" : ""}`}>
+                {expireLabel}
+              </span>
             )}
             {grade && (
               <span className={gradeClass(row.contract_grade)}>

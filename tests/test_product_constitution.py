@@ -105,6 +105,14 @@ def test_constitution_forbids_stale_product_names() -> None:
     assert "fourth top-level" in product.lower() or "fourth top-level" in core_rule
 
 
+def test_expire_chips_say_expiring_not_fa_destination() -> None:
+    product = _read("docs", "PRODUCT.md")
+    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    assert "never **Expires — FA**" in product
+    assert "enter the draft pool" in product
+    assert "never Expires — FA" in core_rule
+
+
 def test_design_spec_defers_to_constitution() -> None:
     design = _read("docs", "specs", "rules-center-2026-08.md")
     assert "Historical spec" in design

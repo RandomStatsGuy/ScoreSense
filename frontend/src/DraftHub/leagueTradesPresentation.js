@@ -65,7 +65,15 @@ export const TRADES_COPY = {
       ? `${names.join(", ")} will see this in Inbox. Nothing moves until every team accepts.`
       : "Every team in the deal must accept before contracts move.",
   whatsNext: "They can accept or reject. You can cancel from Inbox until it executes.",
+  extendable: "Extendable",
+  expiring: "Expiring",
 };
+
+export function expireChipLabel(chip) {
+  if (chip === "extend") return TRADES_COPY.extendable;
+  if (chip === "fa") return TRADES_COPY.expiring;
+  return null;
+}
 
 export function tradesFreeLabel(salaryCap, fmtSal) {
   return salaryCap != null ? `${TRADES_COPY.free} / ${fmtSal(salaryCap)}` : TRADES_COPY.free;

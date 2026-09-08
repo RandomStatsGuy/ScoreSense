@@ -23,6 +23,8 @@ import {
   CAP_MOVE_COPY,
   CAP_FIGURE_COPY,
   CAP_EXTEND_COPY,
+  CAP_MODEL_COPY,
+  CAP_STATUS_COPY,
 } from "./capPlannerPresentation.js";
 
 test("Cap hero asks if you can afford the bid", () => {
@@ -59,6 +61,11 @@ test("rail primary is the pending cut or the draft spend", () => {
   assert.equal(queuedYearsLine(3), "3-yr queued");
   assert.equal(vsCostCell({ preDraft: true, remaining: 178, bid: 35 }), "Room after: $143");
   assert.equal(vsCostCell({ preDraft: true, remaining: 178, bid: null }), "—");
+  assert.equal(CAP_STATUS_COPY.expiring, "Expiring");
+  assert.doesNotMatch(CAP_STATUS_COPY.expiring, /FA|Expires/);
+  assert.match(CAP_MODEL_COPY.expireBeforeDraft, /draft pool/i);
+  assert.match(CAP_MODEL_COPY.expireBeforeDraft, /free agents/i);
+  assert.doesNotMatch(CAP_MODEL_COPY.expireBeforeDraft, /Expires — FA/);
 });
 
 test("leftoverAfterMoveYears applies the bid and cut refund and keeps committed in sync", () => {
