@@ -92,6 +92,16 @@ export function draftFormatLabel(rules) {
   return "Auction";
 }
 
+/** Keep the lobby mounted across room refreshes so the calendar cannot remount-loop. */
+export function showDraftLobby({
+  leagueId = "",
+  inDraftSetup = false,
+  league = null,
+  roomLoading = false,
+} = {}) {
+  return Boolean(leagueId && inDraftSetup && (league || !roomLoading));
+}
+
 export function draftEntryPhase({
   hubContext = null,
   testMode = false,

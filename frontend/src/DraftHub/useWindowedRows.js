@@ -28,11 +28,16 @@ export function useWindowedRows(count, {
       setRange({ start: 0, end: count });
       return undefined;
     }
+    const applyRange = (next) => {
+      setRange((prev) => (
+        prev.start === next.start && prev.end === next.end ? prev : next
+      ));
+    };
     const update = () => {
       if (root === "page") {
         if (!node) return;
         const rect = node.getBoundingClientRect();
-        setRange(windowRange(
+        applyRange(windowRange(
           count,
           Math.max(0, -rect.top),
           window.innerHeight,
@@ -42,7 +47,7 @@ export function useWindowedRows(count, {
         return;
       }
       if (!node) return;
-      setRange(windowRange(count, node.scrollTop, node.clientHeight, rowHeight, overscan));
+      applyRange(windowRange(count, node.scrollTop, node.clientHeight, rowHeight, overscan));
     };
     update();
     if (root === "page") {

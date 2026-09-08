@@ -708,6 +708,46 @@ def ws_user_from_token(token: str | None) -> dict[str, Any] | None:
     return {"sub": "dev", "auth_type": "dev", "name": "Dev"}
 
 
+def ws_user_from_handshake(
+    token: str | None,
+    cookie_token: str | None = None,
+) -> dict[str, Any] | None:
+    """Query token first, then the HttpOnly session cookie (same as HTTP routes)."""
+    return ws_user_from_token(token) or ws_user_from_token(cookie_token)
+
+
+def ws_handshake_uses_cookie_auth(
+    token: str | None,
+    cookie_token: str | None = None,
+) -> bool:
+    """True when the socket authenticates via the session cookie, not ?token=."""
+    if token and decode_token_or_none(token) is not None:
+        return False
+    return bool(cookie_token)
+
+
+def ws_cookie_origin_trusted(
+    origin: str | None,
+    host: str | None,
+    *,
+    frontend_url: str | None = None,
+) -> bool:
+    """Cookie-authenticated sockets must come from our frontend (CSWSH)."""
+    raw = str(origin or "").strip()
+    if not raw or raw.lower() == "null":
+        return False
+    parsed = urllib.parse.urlparse(raw)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        return False
+    origin_netloc = parsed.netloc.lower()
+    allowed = {urllib.parse.urlparse(frontend_url or FRONTEND_URL or "").netloc.lower()}
+    host_netloc = str(host or "").split(",", 1)[0].strip().lower()
+    if host_netloc:
+        allowed.add(host_netloc)
+    allowed.discard("")
+    return origin_netloc in allowed
+
+
 def token_from_request(request: Request) -> str | None:
     auth = request.headers.get("Authorization")
     if auth and auth.lower().startswith("bearer "):

@@ -20,6 +20,7 @@ import {
   recapScopes,
   shortContractLabel,
   shouldApplyRoomState,
+  wsReconnectDelayMs,
   mergeRoomState,
   shouldScheduleWsReconnect,
   isLiveAuctionStatus,
@@ -311,12 +312,28 @@ test("shouldApplyRoomState drops stale setup flashes during a live auction", () 
   );
   assert.equal(
     shouldApplyRoomState(live, { league: { id: "sandbox" }, session: { status: "setup" } }, "sandbox"),
+    false,
+  );
+  assert.equal(
+    shouldApplyRoomState(
+      live,
+      { league: { id: "sandbox" }, session: { status: "setup" } },
+      "sandbox",
+      { allowSetupDowngrade: true },
+    ),
     true,
   );
   assert.equal(
     shouldApplyRoomState(live, { league: { id: "sandbox" }, session: { status: "bidding" } }, "sandbox"),
     true,
   );
+});
+
+test("wsReconnectDelayMs backs off after a closed socket", () => {
+  assert.equal(wsReconnectDelayMs(0), 2000);
+  assert.equal(wsReconnectDelayMs(1), 4000);
+  assert.equal(wsReconnectDelayMs(4), 30000);
+  assert.equal(wsReconnectDelayMs(9), 30000);
 });
 
 test("mergeRoomState keeps viewer when a broadcast omits it", () => {

@@ -34,6 +34,7 @@ import {
   shouldApplyRoomState,
   mergeRoomState,
   shouldScheduleWsReconnect,
+  wsReconnectDelayMs,
   draftInteractionState,
   draftResultTransition,
   displayedBidAmount,
@@ -136,6 +137,7 @@ export default function DraftRoom({
   const [soundEnabled, setSoundEnabled] = useState(() => loadDraftSoundPreference());
   const wsAliveRef = useRef(false);
   const wsGenRef = useRef(0);
+  const wsReconnectAttemptRef = useRef(0);
   const wsReconnectTimerRef = useRef(null);
   const roomFetchGenRef = useRef(0);
   const wsRef = useRef(null);
@@ -150,6 +152,7 @@ export default function DraftRoom({
   const soundEventsReadyRef = useRef(false);
   const lastSoundEventRef = useRef("");
   const soundRoomRef = useRef("");
+  const onLiveDraftChangeRef = useRef(onLiveDraftChange);
 
   const session = roomState?.session;
   const league = roomState?.league;
@@ -306,9 +309,14 @@ export default function DraftRoom({
   roomStateRef.current = roomState;
   const inLiveDraft = isLiveAuctionStatus(draftStatus);
   useEffect(() => {
-    onLiveDraftChange?.(inLiveDraft);
-    return () => onLiveDraftChange?.(false);
-  }, [inLiveDraft, onLiveDraftChange]);
+    onLiveDraftChangeRef.current = onLiveDraftChange;
+  }, [onLiveDraftChange]);
+  useEffect(() => {
+    onLiveDraftChangeRef.current?.(inLiveDraft);
+  }, [inLiveDraft]);
+  useEffect(() => () => {
+    onLiveDraftChangeRef.current?.(false);
+  }, []);
   const onClock = draftStatus === "nominating" || draftStatus === "picking";
   const {
     locked: draftControlsLocked,
@@ -592,12 +600,16 @@ export default function DraftRoom({
   useEffect(() => {
     if (!enrichment?.sentiment_by_player_id) return;
     setFantasyMediaDigests((prev) => {
+      let changed = false;
       const next = { ...prev };
       for (const [pid, row] of Object.entries(enrichment.sentiment_by_player_id)) {
         const digest = pickFantasyMediaDigest(row);
-        if (digest && !next[pid]) next[pid] = digest;
+        if (digest && !next[pid]) {
+          next[pid] = digest;
+          changed = true;
+        }
       }
-      return next;
+      return changed ? next : prev;
     });
   }, [enrichment]);
 
@@ -677,9 +689,9 @@ export default function DraftRoom({
     return () => { cancelled = true; };
   }, [leagueId, draftCompleted, testMode, draftedCount]);
 
-  const applyState = useCallback((state) => {
+  const applyState = useCallback((state, opts = {}) => {
     setRoomState((prev) => {
-      if (!shouldApplyRoomState(prev, state, leagueId)) return prev;
+      if (!shouldApplyRoomState(prev, state, leagueId, opts)) return prev;
       return mergeRoomState(prev, state);
     });
     setError("");
@@ -722,6 +734,7 @@ export default function DraftRoom({
     const ws = new WebSocket(`${proto}://${window.location.host}/api/hub/ws/${id}${qs}`);
     ws.onopen = () => {
       if (wsGenRef.current !== gen) return;
+      wsReconnectAttemptRef.current = 0;
       setConnectionStatus("live");
     };
     ws.onmessage = (ev) => {
@@ -742,9 +755,11 @@ export default function DraftRoom({
         return;
       }
       setConnectionStatus("offline");
+      const delay = wsReconnectDelayMs(wsReconnectAttemptRef.current);
+      wsReconnectAttemptRef.current += 1;
       wsReconnectTimerRef.current = window.setTimeout(() => {
         if (wsAliveRef.current && wsGenRef.current === gen) connectWs(id);
-      }, 2000);
+      }, delay);
     };
     wsRef.current = ws;
   }, [applyState, clearWsReconnectTimer, teardownSocket]);
@@ -752,7 +767,7 @@ export default function DraftRoom({
   const refresh = useCallback(async () => {
     if (!leagueId) return;
     const gen = ++roomFetchGenRef.current;
-    setRoomLoading(true);
+    if (!roomStateRef.current) setRoomLoading(true);
     try {
       const res = await apiFetch(`/api/hub/league/${leagueId}`);
       if (gen !== roomFetchGenRef.current) return;
@@ -1237,7 +1252,7 @@ export default function DraftRoom({
       const res = await apiFetch(`/api/hub/league/${leagueId}/test/reset`, { method: "POST" });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
-      applyState(data.state);
+      applyState(data.state, { allowSetupDowngrade: true });
       setPickRecap(null);
       setDraftRecap(null);
       setNomPlayerId("");
@@ -1265,7 +1280,7 @@ export default function DraftRoom({
       const res = await apiFetch(`/api/hub/league/${leagueId}/reset-draft`, { method: "POST" });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
-      applyState(data.state);
+      applyState(data.state, { allowSetupDowngrade: true });
       setPickRecap(null);
       setDraftRecap(null);
       setNomPlayerId("");

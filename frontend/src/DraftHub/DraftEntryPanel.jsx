@@ -7,6 +7,7 @@ import {
   draftFormatLabel,
   draftParticipantSummary,
   isPickDraft,
+  showDraftLobby,
 } from "./draftEntryStatus";
 import { fmtSal } from "./rosterFormat";
 import { DRAFT_ENTRY_COPY } from "./leagueAccessCopy";
@@ -65,7 +66,12 @@ export default function DraftEntryPanel({
   });
 
   const leagueName = hubContext?.league_name || league?.name || "your league";
-  const showLobby = Boolean(leagueId && inDraftSetup && !roomLoading);
+  const showLobby = showDraftLobby({
+    leagueId,
+    inDraftSetup,
+    league,
+    roomLoading,
+  });
 
   if (showLobby) {
     return (

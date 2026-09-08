@@ -23,7 +23,7 @@ import {
   bestSlotLines,
   dayHeat,
   dayMaxCount,
-  firstSelectableDate,
+  resolveCalendarSelectedDate,
   formatCalendarDay,
   formatHourLabel,
   groupDatesByMonth,
@@ -87,18 +87,6 @@ export default function DraftAvailability({
       const data = await res.json();
       setPayload(data);
       setMine(data.mine || []);
-      const windowDates = data.window?.dates || [];
-      const nextDate = firstSelectableDate(
-        windowDates,
-        data.window?.hours || [],
-        data.window?.today,
-        data.window?.current_hour,
-      );
-      setSelectedDate((current) => (
-        current && windowDates.includes(current)
-          ? current
-          : nextDate
-      ));
     } catch (e) {
       setError(connectionErrorMessage(e));
     } finally {
@@ -154,36 +142,31 @@ export default function DraftAvailability({
     ));
   }, [months]);
 
+  const datesKey = (payload?.window?.dates || []).join(",");
+
   useEffect(() => {
-    if (!visibleDates.length) return;
-    const stillOpen = selectedDate
-      && visibleDates.includes(selectedDate)
-      && visibleHoursForDate(
-        selectedDate,
-        availWindow.hours || [],
-        availWindow.today,
-        availWindow.current_hour,
-      ).length > 0;
-    if (stillOpen) return;
-    const next = firstSelectableDate(
-      visibleDates,
-      availWindow.hours || [],
-      availWindow.today,
-      availWindow.current_hour,
-    );
+    if (!datesKey) return;
+    const next = resolveCalendarSelectedDate({
+      selectedDate,
+      dates: datesKey.split(","),
+      hours: availWindow.hours || [],
+      today: availWindow.today,
+      currentHour: availWindow.current_hour,
+      lockedDate: lockedSlot?.date,
+    });
     if (next && next !== selectedDate) setSelectedDate(next);
-  }, [availWindow.current_hour, availWindow.hours, availWindow.today, selectedDate, visibleDates]);
+  }, [
+    availWindow.current_hour,
+    availWindow.hours,
+    availWindow.today,
+    datesKey,
+    lockedSlot?.date,
+    selectedDate,
+  ]);
 
   useEffect(() => {
     onHighlight?.(bestLabel);
   }, [bestLabel, onHighlight]);
-
-  useEffect(() => {
-    const dates = payload?.window?.dates || [];
-    if (lockedSlot?.date && dates.includes(lockedSlot.date)) {
-      setSelectedDate(lockedSlot.date);
-    }
-  }, [lockedSlot?.date, payload?.window?.dates]);
 
   const toggleHour = (hour) => {
     if (!payload?.can_edit || !selectedDate) return;
