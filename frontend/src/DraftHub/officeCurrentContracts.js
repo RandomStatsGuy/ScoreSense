@@ -110,7 +110,9 @@ export function liveContractStage(season, { draftCompleted = false, leagueStatus
       headline: `Editing live ${y} contracts — the ${y} draft year tick already ran`,
       draftRules: [
         `Years already dropped for the ${y} draft.`,
-        `Edits change the live ${y} roster.`,
+        `Leftover matches Rosters — expired deals do not occupy cap.`,
+        `Drop, type, salary, and years write the live roster immediately.`,
+        `Add records an Auction or FA lottery bid.`,
         `They do not rewind keepers for a future draft — advance the planning season to reopen pre-draft.`,
       ],
       draftImpact: (

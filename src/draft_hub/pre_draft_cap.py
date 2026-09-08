@@ -23,7 +23,13 @@ def is_active_for_pre_draft(row: dict[str, Any]) -> bool:
 
 def years_remaining(row: dict[str, Any]) -> int:
     contract = row.get("contract") or {}
-    return int(contract.get("years_remaining") or row.get("contract_years") or 1)
+    if isinstance(contract, dict) and contract.get("years_remaining") is not None:
+        return int(contract["years_remaining"])
+    if row.get("years_remaining") is not None:
+        return int(row["years_remaining"])
+    if row.get("contract_years") is not None:
+        return int(row["contract_years"])
+    return 1
 
 
 def contract_type(row: dict[str, Any]) -> str:
@@ -136,6 +142,8 @@ def retained_through_draft(row: dict[str, Any], *, draft_completed: bool) -> boo
     from src.draft_hub.contracts import has_pending_extension
 
     if is_fa_contract(row):
+        return False
+    if years_remaining(row) < 1:
         return False
     if draft_completed:
         return True
@@ -258,10 +266,7 @@ def cap_summary_for_phase(
     from src.draft_hub.rules_engine import cap_summary
 
     scoped = cap_relevant_roster(rules, roster)
-    if draft_completed:
-        pool = scoped
-    else:
-        pool = [r for r in scoped if retained_through_draft(r, draft_completed=False)]
+    pool = [r for r in scoped if retained_through_draft(r, draft_completed=draft_completed)]
 
     base = cap_summary(rules, pool)
     dead_cap = 0.0 if draft_completed else total_pre_draft_dead_cap(rules, scoped, year_offset=0)
@@ -283,6 +288,4 @@ def roster_for_pre_draft_validation(
 ) -> list[dict[str, Any]]:
     """Roster rows that still count toward position limits before the draft."""
     scoped = cap_relevant_roster(rules, roster)
-    if draft_completed:
-        return scoped
-    return [r for r in scoped if retained_through_draft(r, draft_completed=False)]
+    return [r for r in scoped if retained_through_draft(r, draft_completed=draft_completed)]

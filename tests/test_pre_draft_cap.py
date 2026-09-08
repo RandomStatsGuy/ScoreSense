@@ -3,11 +3,13 @@
 from src.draft_hub.contracts import build_rookie_contract, can_renew, renew_player_contract
 from src.draft_hub.pre_draft_cap import (
     ROSTER_CUT_BEFORE_DRAFT,
+    ROSTER_EXPIRED,
     cap_summary_for_phase,
     expires_before_draft,
     pre_draft_cap_summary,
     pre_draft_cut_dead_cap_at_offset,
     retained_through_draft,
+    years_remaining,
 )
 from src.draft_hub.presets import load_preset
 from src.draft_hub.roster_overview_enrich import enrich_league_roster_overview
@@ -203,6 +205,42 @@ def test_pending_extension_retained_not_must_extend():
     ok, msg = can_renew(row, rules)
     assert not ok
     assert "queued" in msg.lower()
+
+
+def test_years_remaining_honors_explicit_zero():
+    row = _row("gone", 16, 0)
+    assert years_remaining(row) == 0
+    assert retained_through_draft(row, draft_completed=True) is False
+    archived = _row("arch", 35, 0, ROSTER_EXPIRED)
+    assert years_remaining(archived) == 0
+    assert retained_through_draft(archived, draft_completed=True) is False
+
+
+def test_after_draft_leftover_matches_live_contracts():
+    rules = LeagueRules(salary_cap=200)
+    roster = [
+        _row("kept", 50, 2),
+        _row("auction", 74, 1),
+        _row("expiree", 35, 0, ROSTER_EXPIRED),
+        _row("ticked", 16, 0),
+    ]
+    roster[1]["source"] = "draft"
+    summary = cap_summary_for_phase(rules, roster, draft_completed=True)
+    assert summary["spent"] == 124
+    assert summary["remaining"] == 76
+    overview = {
+        "salary_cap": 200,
+        "league": {
+            "id": "after-draft-leftover",
+            "season": 2026,
+            "draft_completed": True,
+            "rules": rules.model_dump(),
+        },
+        "teams": [{"team": {"id": "t1", "name": "Alpha"}, "roster": roster}],
+    }
+    stats = enrich_league_roster_overview(overview, fair_map={})["teams"][0]["stats"]
+    assert stats["committed"] == 124
+    assert stats["unspent"] == 76
 
 
 def test_no_pre_draft_when_draft_completed():

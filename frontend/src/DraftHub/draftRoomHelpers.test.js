@@ -7,6 +7,7 @@ import {
   formatDraftEvent,
   formatPickSlot,
   formatRecapPrice,
+  isRetainedThroughDraft,
   pinNeedPositions,
   unmetMinPositions,
 } from "./draftRoomHelpers.js";
@@ -185,6 +186,35 @@ test("pinNeedPositions lifts unmet-min positions into the visible window", () =>
   ];
   const visible = pinNeedPositions(rows, ["TE"], 3);
   assert.deepEqual(visible.map((r) => r.player_id), ["te1", "wr1", "wr2"]);
+});
+
+test("after draft leftover ignores expired and Yrs-0 rows", () => {
+  const live = {
+    player_id: "live",
+    salary: 20,
+    contract_years: 1,
+    contract: { years_remaining: 1 },
+    source: "draft",
+    roster_status: "active",
+  };
+  const expired = {
+    player_id: "gone",
+    salary: 35,
+    contract_years: 0,
+    contract: { years_remaining: 0 },
+    roster_status: "expired",
+  };
+  const yrsZero = {
+    player_id: "tick",
+    salary: 16,
+    contract_years: 0,
+    contract: { years_remaining: 0 },
+    roster_status: "active",
+  };
+  assert.equal(isRetainedThroughDraft(live, true), true);
+  assert.equal(isRetainedThroughDraft(expired, true), false);
+  assert.equal(isRetainedThroughDraft(yrsZero, true), false);
+  assert.equal(isRetainedThroughDraft(live, false), true);
 });
 
 test("buildRosterCapacity relaxLimits clears at_max and below_min", () => {

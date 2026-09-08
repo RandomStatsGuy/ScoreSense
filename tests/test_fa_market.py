@@ -113,9 +113,14 @@ def test_commissioner_staff_edit_bypasses_window(hub_db, monkeypatch):
                 "salary": 40,
                 "contract_years": 2,
                 "staff_edit": True,
+                "source": "draft",
+                "acquisition_type": "draft",
             },
         )
         assert res.status_code == 200, res.text
+        slot = res.json()["slot"]
+        assert slot["source"] == "draft"
+        assert (slot.get("contract") or {}).get("acquisition_type") == "draft"
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
     assert league["id"]
