@@ -532,6 +532,7 @@ def start_draft(
     *,
     force: bool = False,
     allow_empty: bool = False,
+    conduct: str = "live",
 ) -> dict[str, Any]:
     league = storage.get_league(league_id)
     if not league:
@@ -541,14 +542,15 @@ def start_draft(
     session = storage.get_draft_session(league_id) or {}
     if session.get("status") in ("nominating", "bidding", "picking"):
         return get_room_state(league_id, user_sub)
+    offline = str(conduct or "live").strip().lower() == "offline"
     starts = league.get("draft_starts_at")
-    if starts and not force:
+    if starts and not force and not offline:
         when = _parse_utc(starts)
         if datetime.now(timezone.utc) < when:
             raise ValueError(
                 "Draft is scheduled for later. Use Start now (force) to override."
             )
-    if not storage.league_test_mode(league_id) and not allow_empty:
+    if not storage.league_test_mode(league_id) and not allow_empty and not offline:
         empty = empty_seat_count(league_id, league)
         if empty:
             claimed = len(claimed_human_teams(league_id))
@@ -570,12 +572,13 @@ def start_draft(
         league_id,
         status=status,
         started_at=_now_iso(),
-        nomination_deadline=_deadline(rules.auction.nomination_timer_sec),
+        nomination_deadline=None if offline else _deadline(rules.auction.nomination_timer_sec),
         nomination_order_json=json.dumps(order),
         nominator_index=0,
         last_bid_at=None,
         paused=0,
         paused_at=None,
+        conduct="offline" if offline else "live",
     )
     if is_pick_draft(rules):
         _skip_full_on_clock(league_id)
@@ -805,6 +808,9 @@ def reset_live_draft(league_id: str, user_sub: str) -> dict[str, Any]:
         nomination_order_json=None,
         paused=0,
         paused_at=None,
+        conduct="live",
+        owner_entry_open=0,
+        owner_entry_closes_at=None,
     )
     storage.update_league_status(league_id, "setup")
     storage.update_league_settings(league_id, draft_completed=False)
@@ -1518,6 +1524,8 @@ def check_timers(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
     league = storage.get_league(league_id)
     session = storage.get_draft_session(league_id)
     if not league or not session:
+        return get_room_state(league_id, user_sub)
+    if str(session.get("conduct") or "live") == "offline":
         return get_room_state(league_id, user_sub)
     if session.get("paused"):
         return get_room_state(league_id, user_sub)

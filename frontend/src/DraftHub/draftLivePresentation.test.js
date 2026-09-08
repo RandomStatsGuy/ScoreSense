@@ -40,6 +40,10 @@ test("nomination job names the turn and pause without shouting Live", () => {
   assert.equal(watchLabel(true), draftLiveCopy.watching);
   assert.doesNotMatch(draftLiveCopy.searchNominate, /Submit|Draft Hub|permission/i);
   assert.equal(draftLiveCopy.pause, "Pause");
+  assert.equal(nominationJobLine({ offline: true }), draftLiveCopy.offlineJob);
+  assert.match(nominationJobLine({ offline: true, paused: true }), /No clocks/);
+  assert.equal(poolSearchPlaceholder({ canDraft: true, offline: true }), draftLiveCopy.searchPlayer);
+  assert.equal(draftLiveCopy.record, "Record");
 });
 
 test("pool row primary matches string or numeric ids", () => {

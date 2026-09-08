@@ -294,6 +294,9 @@ def _migrate(conn: sqlite3.Connection) -> None:
     )
     _safe_add_column(conn, "draft_session", "paused", "INTEGER NOT NULL DEFAULT 0")
     _safe_add_column(conn, "draft_session", "paused_at", "TEXT")
+    _safe_add_column(conn, "draft_session", "conduct", "TEXT NOT NULL DEFAULT 'live'")
+    _safe_add_column(conn, "draft_session", "owner_entry_open", "INTEGER NOT NULL DEFAULT 0")
+    _safe_add_column(conn, "draft_session", "owner_entry_closes_at", "TEXT")
     _safe_add_column(conn, "team", "nomination_queue_json", "TEXT")
     _safe_add_column(conn, "team", "autodraft", "INTEGER NOT NULL DEFAULT 0")
     _safe_add_column(conn, "team", "draft_slot", "INTEGER")
@@ -1710,6 +1713,8 @@ def get_draft_session(league_id: str) -> dict[str, Any] | None:
         else:
             d["nomination_order"] = []
         d["paused"] = bool(int(d.get("paused") or 0))
+        d["conduct"] = str(d.get("conduct") or "live").strip().lower() or "live"
+        d["owner_entry_open"] = bool(int(d.get("owner_entry_open") or 0))
         return d
 
 
@@ -1717,7 +1722,9 @@ def list_in_progress_draft_league_ids() -> list[str]:
     """League ids whose draft is nominating, bidding, or picking (for the server ticker)."""
     with get_conn() as conn:
         rows = conn.execute(
-            "SELECT league_id FROM draft_session WHERE status IN ('nominating', 'bidding', 'picking')"
+            """SELECT league_id FROM draft_session
+               WHERE status IN ('nominating', 'bidding', 'picking')
+                 AND COALESCE(conduct, 'live') != 'offline'"""
         ).fetchall()
     return [str(r["league_id"]) for r in rows]
 
@@ -1801,12 +1808,7 @@ def finalize_auction_win(
     now = _utcnow()
     contract = roster_row.get("contract")
     contract_json = json.dumps(contract) if contract else None
-    allowed = {
-        "status", "current_nominee_json", "high_bid", "high_bidder_team_id",
-        "nomination_deadline", "bid_deadline", "started_at", "completed_at", "pool_mode",
-        "last_bid_at", "nominator_index", "nomination_order_json",
-        "paused", "paused_at",
-    }
+    allowed = DRAFT_SESSION_UPDATE_FIELDS
     with get_conn() as conn:
         try:
             conn.execute(
@@ -1871,13 +1873,17 @@ def finalize_auction_win(
         return True
 
 
+DRAFT_SESSION_UPDATE_FIELDS = {
+    "status", "current_nominee_json", "high_bid", "high_bidder_team_id",
+    "nomination_deadline", "bid_deadline", "started_at", "completed_at", "pool_mode",
+    "last_bid_at", "nominator_index", "nomination_order_json",
+    "paused", "paused_at",
+    "conduct", "owner_entry_open", "owner_entry_closes_at",
+}
+
+
 def update_draft_session(league_id: str, **fields: Any) -> dict[str, Any]:
-    allowed = {
-        "status", "current_nominee_json", "high_bid", "high_bidder_team_id",
-        "nomination_deadline", "bid_deadline", "started_at", "completed_at", "pool_mode",
-        "last_bid_at", "nominator_index", "nomination_order_json",
-        "paused", "paused_at",
-    }
+    allowed = DRAFT_SESSION_UPDATE_FIELDS
     parts = []
     params: list[Any] = []
     for k, v in fields.items():

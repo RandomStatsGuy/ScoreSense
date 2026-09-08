@@ -45,6 +45,16 @@ import {
 } from "./draftLiveConsole";
 import { mockDraftLiveCopy } from "./mockDraftConfig";
 import { activityDockTab, draftLiveCopy } from "./draftLivePresentation";
+import { OFFLINE_DRAFT_COPY } from "./leagueAccessCopy";
+import { OfflineRecordDock } from "./OfflineDraftPanel";
+import {
+  canRunOfflineCommissioner,
+  canShowOwnerRecord,
+  downloadDraftResultsCsv,
+  isOfflineConduct,
+  parseOfflineSalary,
+  startDraftSearch,
+} from "./offlineDraft";
 import { displayBotName } from "./botPersona";
 import { SOLD_HOLD_MS, pinAuctionStage, soldHoldDecision } from "./draftAuctionTheater";
 import { isPickDraft } from "./draftEntryStatus";
@@ -76,6 +86,8 @@ import {
   saveDraftSoundPreference,
 } from "./draftSound";
 
+const EMPTY_DRAFT_EVENTS = [];
+
 export default function DraftRoom({
   leagueId,
   onLeagueIdChange,
@@ -105,6 +117,8 @@ export default function DraftRoom({
   const [busy, setBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState("");
   const [simulationStatus, setSimulationStatus] = useState("idle");
+  const [offlineTeamId, setOfflineTeamId] = useState("");
+  const [offlineSalary, setOfflineSalary] = useState("1");
   const [enrichment, setEnrichment] = useState(null);
   const [fantasyMediaDigests, setFantasyMediaDigests] = useState({});
   const [digestLoadingId, setDigestLoadingId] = useState(null);
@@ -147,7 +161,7 @@ export default function DraftRoom({
   if (liveNominee) lastNomineeRef.current = liveNominee;
   const nominee = liveNominee;
   const teams = roomState?.teams || [];
-  const events = roomState?.events || [];
+  const events = roomState?.events || EMPTY_DRAFT_EVENTS;
   const pickEvents = (Array.isArray(roomState?.picks) && roomState.picks.length)
     ? roomState.picks
     : events;
@@ -190,7 +204,11 @@ export default function DraftRoom({
     if (roomState?.viewer?.team_id) myTeamIdRef.current = roomState.viewer.team_id;
   }, [roomState?.viewer?.team_id]);
 
+  // Must be declared before the seed effect: effect deps evaluate myTeamId during render.
   const myTeamId = roomState?.viewer?.team_id || myTeamIdRef.current;
+  useEffect(() => {
+    if (myTeamId && !offlineTeamId) setOfflineTeamId(myTeamId);
+  }, [myTeamId, offlineTeamId]);
   const myRoster = useMemo(() => {
     if (myTeamId && roomState?.rosters?.[myTeamId]) return roomState.rosters[myTeamId];
     return roomState?.viewer?.roster || [];
@@ -357,6 +375,17 @@ export default function DraftRoom({
     && !session?.paused
     && nominatorTeamId
     && String(myTeamId) !== String(nominatorTeamId),
+  );
+  const offlineConduct = isOfflineConduct(session);
+  const runOfflineCommish = canRunOfflineCommissioner({ hubContext, isCommissioner });
+  const canRecordOffline = Boolean(
+    offlineConduct
+    && !testMode
+    && (runOfflineCommish || canShowOwnerRecord({ session, hubContext, myTeamId })),
+  );
+  const seatedHumans = useMemo(
+    () => (teams || []).filter((t) => t?.id && !t.is_bot),
+    [teams],
   );
 
   const sentimentByPlayerId = enrichment?.sentiment_by_player_id || {};
@@ -1058,9 +1087,10 @@ export default function DraftRoom({
     }
   };
 
-  const startDraft = async ({ fillBots = false } = {}) => {
+  const startDraft = async ({ fillBots = false, conduct = "live" } = {}) => {
+    const offline = String(conduct || "live").toLowerCase() === "offline";
     const startsAt = league?.draft_starts_at;
-    const scheduledFuture = startsAt && new Date(startsAt).getTime() > Date.now();
+    const scheduledFuture = !offline && startsAt && new Date(startsAt).getTime() > Date.now();
     let force = false;
     if (scheduledFuture) {
       if (!(await confirmDialog({
@@ -1076,17 +1106,18 @@ export default function DraftRoom({
     }
     await runAction(async () => {
       const postStart = async ({ allowEmpty = false } = {}) => {
-        const q = new URLSearchParams();
-        if (force) q.set("force", "true");
-        if (allowEmpty) q.set("allow_empty", "true");
-        if (fillBots) q.set("fill_bots", "true");
-        const qs = q.toString() ? `?${q}` : "";
+        const qs = startDraftSearch({
+          force,
+          allowEmpty,
+          fillBots,
+          conduct: offline ? "offline" : "live",
+        });
         return apiFetch(`/api/hub/league/${leagueId}/start${qs}`, { method: "POST" });
       };
       let res = await postStart();
       if (!res.ok) {
         const detail = await parseApiError(res);
-        if (/empty seat/i.test(detail)) {
+        if (!offline && /empty seat/i.test(detail)) {
           if (!(await confirmDialog({
             title: "Empty seats",
             message: `${detail}\n\nStart anyway? Unclaimed seats will not ${pickDraft ? "pick" : "bid"}.`,
@@ -1347,6 +1378,56 @@ export default function DraftRoom({
     await nominateRow(row, { force: canForceNominate });
   };
 
+  const recordOfflineRow = useCallback(async (row) => {
+    if (!row || draftControlsLocked || !canRecordOffline) return;
+    const dest = runOfflineCommish ? (offlineTeamId || myTeamId) : myTeamId;
+    if (!dest) {
+      setError("Pick a team to record the win.");
+      return;
+    }
+    const parsed = parseOfflineSalary(offlineSalary, { pickDraft });
+    if (!parsed.ok) {
+      setError(OFFLINE_DRAFT_COPY.salaryInvalid);
+      return;
+    }
+    setNomPlayerId(row.player_id);
+    setPendingAction("record");
+    setError("");
+    try {
+      const res = await apiFetch(`/api/hub/league/${leagueId}/draft/record`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          player_id: row.player_id,
+          player_name: row.player || row.player_name || "",
+          position: row.position || "",
+          nfl_team: row.team || "",
+          team_id: dest,
+          salary: parsed.salary,
+        }),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      applyState(await res.json());
+      setNomPlayerId("");
+      wsRefresh();
+    } catch (e) {
+      setError(e.message || "Could not record that win");
+    } finally {
+      setPendingAction("");
+    }
+  }, [
+    applyState,
+    canRecordOffline,
+    draftControlsLocked,
+    leagueId,
+    myTeamId,
+    offlineSalary,
+    offlineTeamId,
+    pickDraft,
+    runOfflineCommish,
+    wsRefresh,
+  ]);
+
   const bid = async (amount) => {
     if (draftControlsLocked) return;
     const val = amount ?? Number(bidAmount);
@@ -1589,6 +1670,17 @@ export default function DraftRoom({
                 </button>
               </details>
             )}
+            {!testMode && leagueId ? (
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={() => downloadDraftResultsCsv(leagueId, { apiFetch, parseApiError }).catch((e) => {
+                  setError(e.message || "Could not download CSV");
+                })}
+              >
+                {OFFLINE_DRAFT_COPY.exportCsv}
+              </button>
+            ) : null}
             {!testMode && isCommissioner && (
               <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={resetLiveDraft}>
                 Reset draft
@@ -1653,6 +1745,19 @@ export default function DraftRoom({
         <DraftLiveCommandBar
           session={session}
           nominee={nominee}
+          hideClock={offlineConduct}
+          offline={offlineConduct}
+          recordDock={canRecordOffline ? (
+            <OfflineRecordDock
+              teams={seatedHumans}
+              teamId={offlineTeamId || myTeamId}
+              onTeamChange={setOfflineTeamId}
+              salary={offlineSalary}
+              onSalaryChange={setOfflineSalary}
+              pickDraft={pickDraft}
+              showTeam={runOfflineCommish}
+            />
+          ) : null}
           myTeamId={myTeamId}
           myBudget={myBudget}
           myMaxBid={myMaxBid}
@@ -1727,7 +1832,7 @@ export default function DraftRoom({
                   {draftLiveCopy.pause}
                 </button>
               )}
-              {isCommissioner && onClock && !session?.paused && (
+              {isCommissioner && onClock && !session?.paused && !offlineConduct && (
                 <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={skipNominationTurn}>
                   {pickDraft ? "Skip pick" : "Skip nom"}
                 </button>
@@ -1865,7 +1970,7 @@ export default function DraftRoom({
                   highBidderName={soldHold ? soldHold.winner : highBidder?.name}
                   highBidderTeam={soldHold ? { name: soldHold.winner } : highBidder}
                   highBidderIsBot={soldHold ? false : highBidder?.is_bot}
-                  deadline={soldHold || session.status !== "bidding" ? null : session.bid_deadline}
+                  deadline={offlineConduct || soldHold || session.status !== "bidding" ? null : session.bid_deadline}
                   bidDurationSec={Number(rules?.auction?.bid_timer_sec) || 30}
                   paused={clockPaused}
                   pausedLabel={clockLabel}
@@ -1898,17 +2003,24 @@ export default function DraftRoom({
               mediaByPlayerId={mediaByPlayerId}
               onSelectPlayer={(row) => setNomPlayerId(row.player_id)}
               onDraftPlayer={
-                !draftControlsLocked && onClock && (isMyNominationTurn || canForceNominate)
-                  ? (row) => nominateRow(row, { force: canForceNominate })
-                  : undefined
+                canRecordOffline
+                  ? (row) => recordOfflineRow(row)
+                  : !draftControlsLocked && onClock && (isMyNominationTurn || canForceNominate)
+                    ? (row) => nominateRow(row, { force: canForceNominate })
+                    : undefined
               }
               onQueuePlayer={queuePlayer}
               onWatchPlayer={toggleWatch}
               watchIds={watchIds}
-              canDraft={!draftControlsLocked && onClock && (isMyNominationTurn || canForceNominate)}
-              showDraftAction={onClock}
+              canDraft={canRecordOffline
+                ? !draftControlsLocked
+                : !draftControlsLocked && onClock && (isMyNominationTurn || canForceNominate)}
+              showDraftAction={canRecordOffline || onClock}
               actionsDisabled={draftControlsLocked}
-              actionLabel={pickDraft ? (canForceNominate ? "Force pick" : "Pick") : undefined}
+              actionLabel={canRecordOffline
+                ? draftLiveCopy.record
+                : (pickDraft ? (canForceNominate ? "Force pick" : "Pick") : undefined)}
+              offline={offlineConduct}
               minBid={minBidUnit || 1}
               riskTolerance={rules?.risk_tolerance ?? 0}
               rules={rules || null}
