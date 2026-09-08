@@ -95,6 +95,7 @@ test("contracts pane owns the pending-write copy module", () => {
   assert.equal(row.page, "frontend/src/DraftHub/CommissionerLeagueRosters.jsx");
   assert.equal(row.copy, "frontend/src/DraftHub/officeContractsPresentation.js");
   assert.match(row.doNot, /pending-changes tray/);
+  assert.match(row.doNot, /Drop is no dead cap/);
 });
 
 test("approved primaries keep one fill on Home, Cap, and Trades", () => {

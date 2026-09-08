@@ -6,6 +6,9 @@ import {
   capFieldFigures,
   contractStateChip,
   cutButtonCopy,
+  dropButtonCopy,
+  dropConfirmCopy,
+  dropLeftoverFreed,
   isLeavingContractsPath,
   mergePendingChange,
   pendingNeedsOverrideNote,
@@ -72,6 +75,20 @@ test("cut control names the room and dead consequence", () => {
   const copy = cutButtonCopy(TEAM.roster[1], RULES);
   assert.match(copy.label, /Cut · \+\$4 room, \$4 dead/);
   assert.match(copy.ariaLabel, /Queue cut of Veteran/);
+});
+
+test("drop control names leftover and zero dead cap", () => {
+  const kept = dropButtonCopy(TEAM.roster[0], { draftCompleted: false });
+  assert.equal(dropLeftoverFreed(TEAM.roster[0], false), 11);
+  assert.match(kept.label, /Drop · \+\$11 leftover, \$0 dead/);
+  assert.match(kept.ariaLabel, /no dead cap/);
+  const expiree = dropButtonCopy(TEAM.roster[1], { draftCompleted: false });
+  assert.equal(dropLeftoverFreed(TEAM.roster[1], false), 0);
+  assert.equal(expiree.label, OFFICE_CONTRACTS_COPY.queueDrop);
+  const confirm = dropConfirmCopy(TEAM.roster[0], { draftCompleted: false });
+  assert.match(confirm.message, /No dead cap/);
+  assert.match(confirm.message, /Cut if you meant a penalty/);
+  assert.doesNotMatch(confirm.message, /Submit|Draft Hub|permission/i);
 });
 
 test("pending tray summarizes count, cap impact, and drops", () => {

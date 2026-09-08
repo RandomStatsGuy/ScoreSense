@@ -293,7 +293,7 @@ function ContractSidePanelBody({
               disabled={isSaving}
               onClick={() => remove(r.player_id)}
             >
-              Remove
+              {MY_TEAM_COPY.dropLabel}
             </button>
           )}
         </div>

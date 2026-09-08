@@ -118,6 +118,8 @@ Sleeper: Access & imports is the one link. The league strip's Sync league is the
 
 Mark draft complete lives on Contracts as a red confirm. It burns one year on every contract and cannot be undone. Setup shows the status only.
 
+Commissioner Drop on Contracts and My team removes a player with no dead cap so staff can add them to another team before the draft. Cut is the penalty path.
+
 Chat is **not** a pane or a Fantasy destination. The full thread lives on **Home** as a locker rail. Do not show the edge launcher on Home. Other Fantasy pages keep `FantasyChatDock`: a flush edge launcher (parked on an edge, expands on hover) you can drag to a new edge (horizontal type, not rotated, not hide-only). Opening is a side drawer. On phone the launcher defaults to the bottom-right above the tab bar with a safe-area inset — never mid-viewport over hero copy or lineup slots. Live draft rooms that already have integrated chat stay board-first. Clear chat is staff-only, red, and confirms.
 
 ### Manager labels
@@ -263,7 +265,7 @@ Home names the manager’s roster hole over a commissioner invite when both are 
 - Skip to content lands in `<main>`. The page heading is the destination job (`HubExperienceHero`), not the ScoreSense wordmark. Fantasy destination buttons use the tab label as the accessible name — never the hint.
 - Unsaved changes warn before navigation.
 - Success is a contained confirmation, not a modal.
-- Roster management · Contracts accumulates edits in a pending-changes tray (Save / Discard). Drop executes on save. Cap inputs validate against remaining room and show the resulting free / dead figures.
+- Roster management · Contracts accumulates edits in a pending-changes tray (Save / Discard). Commissioner Drop removes the player with no dead cap so staff can add them to another team before the draft; it executes on save. Cut is the penalty path. Cap inputs validate against remaining room and show the resulting free / dead figures.
 - Contract-state chips: Extend to keep is teal, Expiring is amber, Cut is red. Never one green for all three. One-year expirees that cannot extend use **Expiring** — never **Expires — FA**. They enter the draft pool; after the draft is marked complete, undrafted names become free agents.
 - Motion: 120–200ms, `--ease-standard`. Honor `prefers-reduced-motion`.
 - No sound except live-draft audio, and only as an opt-in.
