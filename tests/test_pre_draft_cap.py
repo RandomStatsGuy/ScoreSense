@@ -131,9 +131,12 @@ def test_expiring_veteran_drops_when_extensions_are_off():
         _row("gone", 40, 1, contract_type="veteran"),
     ]
     summary = pre_draft_cap_summary(rules, roster, draft_completed=False)
-    assert summary["season_committed"] == 50
     assert len(summary["dropping_at_draft"]) == 1
     assert summary["dropping_at_draft"][0]["player_id"] == "gone"
+    assert summary["must_extend"] == []
+
+    phase = cap_summary_for_phase(rules, roster, draft_completed=False)
+    assert phase["spent"] == 50
     assert summary["must_extend"] == []
 
     phase = cap_summary_for_phase(rules, roster, draft_completed=False)
