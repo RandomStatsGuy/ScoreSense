@@ -126,8 +126,12 @@ def test_expiring_veteran_drops_when_extensions_are_off():
         salary_cap=200,
         contracts=LeagueRules().contracts.model_copy(update={"allow_veteran_renewal": False}),
     )
-    roster = [_row("gone", 40, 1, contract_type="veteran")]
+    roster = [
+        _row("kept", 50, 2),
+        _row("gone", 40, 1, contract_type="veteran"),
+    ]
     summary = pre_draft_cap_summary(rules, roster, draft_completed=False)
+    assert summary["season_committed"] == 50
     assert len(summary["dropping_at_draft"]) == 1
     assert summary["dropping_at_draft"][0]["player_id"] == "gone"
     assert summary["must_extend"] == []
