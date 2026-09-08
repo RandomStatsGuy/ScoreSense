@@ -362,6 +362,9 @@ def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any
     if not league:
         raise ValueError("League not found")
     session = storage.get_draft_session(league_id) or {}
+    if heal_completed_draft_room(league_id):
+        league = storage.get_league(league_id) or league
+        session = storage.get_draft_session(league_id) or session
     rules = LeagueRules.model_validate(league["rules"])
     teams = storage.list_league_teams(league_id)
     configured_teams = int(league.get("team_count") or 0) or len(teams)
@@ -768,6 +771,29 @@ def end_draft(league_id: str, user_sub: str, *, force: bool = False) -> dict[str
     if year_tick:
         state["contract_year_tick"] = json_safe(year_tick)
     return state
+
+
+def leftover_live_after_complete(league: dict[str, Any] | None, session: dict[str, Any] | None) -> bool:
+    """True when Mark draft complete ran but the auction session is still live."""
+    if not league or not league.get("draft_completed"):
+        return False
+    if str(league.get("status") or "").strip().lower() == "live":
+        return True
+    return str((session or {}).get("status") or "").strip().lower() in {
+        "nominating",
+        "bidding",
+        "picking",
+    }
+
+
+def heal_completed_draft_room(league_id: str) -> bool:
+    """Seal a leftover live room so GET /league does not keep running auction timers."""
+    league = storage.get_league(league_id) or {}
+    session = storage.get_draft_session(league_id) or {}
+    if not leftover_live_after_complete(league, session):
+        return False
+    seal_room_after_draft_complete(league_id)
+    return True
 
 
 def seal_room_after_draft_complete(league_id: str) -> None:
@@ -1549,6 +1575,8 @@ def check_timers(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
     league = storage.get_league(league_id)
     session = storage.get_draft_session(league_id)
     if not league or not session:
+        return get_room_state(league_id, user_sub)
+    if league.get("draft_completed") or leftover_live_after_complete(league, session):
         return get_room_state(league_id, user_sub)
     if str(session.get("conduct") or "live") == "offline":
         return get_room_state(league_id, user_sub)

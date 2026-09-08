@@ -290,6 +290,18 @@ export function isLiveAuctionStatus(status) {
   return status === "nominating" || status === "bidding" || status === "picking";
 }
 
+/** League flag wins leftover nominating/live session after Mark draft complete. */
+export function resolveDraftRoomStatus({
+  sessionStatus,
+  draftCompleted,
+  leagueStatus,
+} = {}) {
+  if (draftCompleted || sessionStatus === "completed") return "completed";
+  if (isLiveAuctionStatus(sessionStatus)) return sessionStatus;
+  if (String(leagueStatus || "").toLowerCase() === "live") return "nominating";
+  return sessionStatus || "setup";
+}
+
 export function simulationProgressLabel({ done, total, fallback = "Sim…" } = {}) {
   const n = Number(done);
   const t = Number(total);

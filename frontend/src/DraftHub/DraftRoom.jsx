@@ -31,6 +31,7 @@ import {
   toggleWatchId,
   teamBudgetLine,
   isLiveAuctionStatus,
+  resolveDraftRoomStatus,
   shouldApplyRoomState,
   mergeRoomState,
   shouldScheduleWsReconnect,
@@ -298,14 +299,15 @@ export default function DraftRoom({
     [hubContext, roomState?.viewer, teams, myTeamId],
   );
 
-  const draftStatus = session?.status
-    || (league?.draft_completed
-      ? "completed"
-      : league?.status === "live"
-        ? "nominating"
-        : "setup");
+  const draftCompleted = Boolean(league?.draft_completed)
+    || Boolean(hubContext?.draft_completed)
+    || session?.status === "completed";
+  const draftStatus = resolveDraftRoomStatus({
+    sessionStatus: session?.status,
+    draftCompleted,
+    leagueStatus: league?.status,
+  });
   const inDraftSetup = draftStatus === "setup";
-  const draftCompleted = draftStatus === "completed" || Boolean(league?.draft_completed);
   roomStateRef.current = roomState;
   const inLiveDraft = isLiveAuctionStatus(draftStatus);
   useEffect(() => {
@@ -528,7 +530,7 @@ export default function DraftRoom({
   // Server nomination pool is only needed when the value sheet is cold; each
   // fetch runs a full build_value_sheet server-side, so avoid per-pick refetches.
   useEffect(() => {
-    if (!leagueId || hasValueRows) {
+    if (!leagueId || hasValueRows || draftCompleted) {
       setNominationPoolRows(null);
       setPoolLoading(false);
       return undefined;
@@ -548,7 +550,7 @@ export default function DraftRoom({
       }
     })();
     return () => { cancelled = true; };
-  }, [leagueId, hasValueRows, poolMode]);
+  }, [leagueId, hasValueRows, poolMode, draftCompleted]);
 
   const allowMidDraftCuts = Boolean(rules?.auction?.allow_mid_draft_cuts);
 

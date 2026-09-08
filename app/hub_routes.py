@@ -4625,6 +4625,8 @@ def hub_nomination_pool(league_id: str, _user=Depends(require_hub_user)) -> dict
     if not league:
         raise HTTPException(status_code=404, detail="League not found")
     session = storage.get_draft_session(league_id) or {}
+    if league.get("draft_completed") or str(session.get("status") or "").lower() == "completed":
+        return {"rows": [], "draft_completed": True}
     workspace_id = storage.roster_workspace_for_league(league)
     linked_ws = storage.get_workspace_by_id(workspace_id) if league.get("workspace_id") else None
     rules = LeagueRules.model_validate(league["rules"])
