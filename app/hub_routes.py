@@ -1391,7 +1391,7 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
     if source and source not in {"draft", "auction", "post_draft_fa", "manual", "mock", "test_draft"}:
         raise HTTPException(
             status_code=400,
-            detail="source must be draft, auction, post_draft_fa, or manual",
+            detail="source must be draft, auction, post_draft_fa, manual, mock, or test_draft",
         )
     acq_type = str(body.acquisition_type or "").strip().lower() or None
     if acq_type and acq_type not in {"draft", "post_draft_fa", "fa_contract"}:
