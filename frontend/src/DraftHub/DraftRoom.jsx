@@ -86,6 +86,8 @@ import {
   saveDraftSoundPreference,
 } from "./draftSound";
 
+const EMPTY_DRAFT_EVENTS = [];
+
 export default function DraftRoom({
   leagueId,
   onLeagueIdChange,
@@ -159,7 +161,7 @@ export default function DraftRoom({
   if (liveNominee) lastNomineeRef.current = liveNominee;
   const nominee = liveNominee;
   const teams = roomState?.teams || [];
-  const events = roomState?.events || [];
+  const events = roomState?.events || EMPTY_DRAFT_EVENTS;
   const pickEvents = (Array.isArray(roomState?.picks) && roomState.picks.length)
     ? roomState.picks
     : events;
@@ -201,11 +203,12 @@ export default function DraftRoom({
   useEffect(() => {
     if (roomState?.viewer?.team_id) myTeamIdRef.current = roomState.viewer.team_id;
   }, [roomState?.viewer?.team_id]);
+
+  // Must be declared before the seed effect: effect deps evaluate myTeamId during render.
+  const myTeamId = roomState?.viewer?.team_id || myTeamIdRef.current;
   useEffect(() => {
     if (myTeamId && !offlineTeamId) setOfflineTeamId(myTeamId);
   }, [myTeamId, offlineTeamId]);
-
-  const myTeamId = roomState?.viewer?.team_id || myTeamIdRef.current;
   const myRoster = useMemo(() => {
     if (myTeamId && roomState?.rosters?.[myTeamId]) return roomState.rosters[myTeamId];
     return roomState?.viewer?.roster || [];
