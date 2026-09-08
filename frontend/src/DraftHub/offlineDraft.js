@@ -1,8 +1,5 @@
 /** Offline / owner-entry helpers. Copy lives in leagueAccessCopy + draftLivePresentation. */
 
-import { apiFetch as defaultApiFetch } from "../auth";
-import { parseApiError as defaultParseApiError } from "../format";
-
 export function isOfflineConduct(session) {
   return String(session?.conduct || "live").toLowerCase() === "offline";
 }
@@ -37,10 +34,10 @@ export function canShowOwnerRecord({ session = null, hubContext = null, myTeamId
   );
 }
 
-export async function downloadDraftResultsCsv(leagueId, {
-  apiFetch = defaultApiFetch,
-  parseApiError = defaultParseApiError,
-} = {}) {
+export async function downloadDraftResultsCsv(leagueId, { apiFetch, parseApiError } = {}) {
+  if (typeof apiFetch !== "function" || typeof parseApiError !== "function") {
+    throw new Error("CSV download needs the app fetch helpers.");
+  }
   const id = String(leagueId || "").trim();
   if (!id) throw new Error("Missing league");
   const res = await apiFetch(`/api/hub/league/${encodeURIComponent(id)}/draft/results.csv`);
