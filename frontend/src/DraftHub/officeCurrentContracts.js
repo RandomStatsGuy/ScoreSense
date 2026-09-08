@@ -46,9 +46,9 @@ export function findLiveContractTarget(teams, rawId) {
 
 /** Pre-draft, live auction, or after the draft year tick. */
 export function liveContractPhase({ draftCompleted = false, leagueStatus = "" } = {}) {
+  if (draftCompleted) return LIVE_CONTRACT_PHASE.AFTER_DRAFT;
   const status = String(leagueStatus || "").toLowerCase();
   if (status === "live") return LIVE_CONTRACT_PHASE.LIVE_DRAFT;
-  if (draftCompleted) return LIVE_CONTRACT_PHASE.AFTER_DRAFT;
   return LIVE_CONTRACT_PHASE.PRE_DRAFT;
 }
 
@@ -69,6 +69,8 @@ export function liveContractStage(season, { draftCompleted = false, leagueStatus
       phase,
       phaseLabel: "Draft in progress",
       yearLabel: `${y} season`,
+      disclosureSummary: `Draft in progress · ${y} season`,
+      sectionHint: `${y} keepers in the auction.`,
       headline: `Editing ${y} keepers while the auction is live`,
       draftRules: [
         `${y} $ is still committed cap in the room and reduces remaining draft budget.`,
@@ -103,6 +105,8 @@ export function liveContractStage(season, { draftCompleted = false, leagueStatus
       phase,
       phaseLabel: "After draft",
       yearLabel: `${y} season`,
+      disclosureSummary: `After draft · ${y} season`,
+      sectionHint: `Live ${y} contracts.`,
       headline: `Editing live ${y} contracts — the ${y} draft year tick already ran`,
       draftRules: [
         `Years already dropped for the ${y} draft.`,
@@ -136,6 +140,8 @@ export function liveContractStage(season, { draftCompleted = false, leagueStatus
     phase: LIVE_CONTRACT_PHASE.PRE_DRAFT,
     phaseLabel: "Pre-draft",
     yearLabel: `${y} season`,
+    disclosureSummary: `Pre-draft · ${y} season`,
+    sectionHint: `${y} season keepers.`,
     headline: `Editing ${y} keeper contracts`,
     draftRules: [
       `${y} $ is committed before the auction and comes off that team's draft budget.`,

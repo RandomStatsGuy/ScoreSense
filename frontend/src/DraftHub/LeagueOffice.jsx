@@ -524,8 +524,7 @@ export default function LeagueOffice({
               {liveContractStage(hubContext?.season, {
                 draftCompleted: Boolean(hubContext?.draft_completed),
                 leagueStatus: hubContext?.league_status,
-              }).yearLabel}
-              {" "}keepers.
+              }).sectionHint}
             </p>
             <div className="hub-office-contract-links" role="group" aria-label="Open related views">
               <span className="hub-filter-label">Related</span>
