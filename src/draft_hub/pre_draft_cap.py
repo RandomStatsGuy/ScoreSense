@@ -143,11 +143,12 @@ def retained_through_draft(row: dict[str, Any], *, draft_completed: bool) -> boo
 
     if is_fa_contract(row):
         return False
-    if years_remaining(row) < 1:
+    yrs = years_remaining(row)
+    if yrs < 1:
         return False
     if draft_completed:
         return True
-    if years_remaining(row) > 1:
+    if yrs > 1:
         return True
     if has_pending_extension(row):
         return True
