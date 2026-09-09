@@ -420,7 +420,7 @@ export default function CapPlanner({
   const cutFundsLine = capCutFundsLine(cutPreview);
 
   const cutAndHandoff = async () => {
-    if (!cutPreview || cutPreview.is_cut) return;
+    if (!cutPreview || cutPreview.is_cut || cutBusyId) return;
     const ok = await confirmDialog({
       title: CAP_CUT_COPY.confirmTitle(cutPreview.player_name),
       message: capCutConfirmCopy(cutPreview),

@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 import {
   againstCap,
@@ -299,4 +302,9 @@ test("locked window still cuts and names the funded player as advice", () => {
   assert.equal(capCutFundsAction(preview).kind, "cut");
   assert.equal(capCutFundsAction({ ...preview, add_mode: "add" }).kind, "cut-add");
   assert.equal(capCutFundsLine({ leftover_after: 2 }), CAP_CUT_COPY.noneFit);
+});
+
+test("Cap cut handoff bails while a cut is already in flight", () => {
+  const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "CapPlanner.jsx"), "utf8");
+  assert.match(src, /if \(!cutPreview \|\| cutPreview\.is_cut \|\| cutBusyId\) return/);
 });

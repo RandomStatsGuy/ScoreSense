@@ -9,6 +9,7 @@ import MobilePlayerCard from "../MobilePlayerCard";
 import { usePlayerMedia } from "../PlayerCell";
 import { confirmDialog } from "../ui/confirm";
 import { pinNeedPositions } from "./draftRoomHelpers";
+import { escapePlayerIdSelector } from "../cssEscape";
 import {
   filterAndSortRows,
   fmtSal,
@@ -267,7 +268,7 @@ export default function ValueSheetTable({
 
   useEffect(() => {
     if (!selectedPlayerId) return undefined;
-    const node = document.querySelector(`[data-player-id="${CSS.escape(String(selectedPlayerId))}"]`);
+    const node = document.querySelector(`[data-player-id="${escapePlayerIdSelector(selectedPlayerId)}"]`);
     node?.scrollIntoView({ block: "center", behavior: "smooth" });
     return undefined;
   }, [selectedPlayerId, sorted]);
