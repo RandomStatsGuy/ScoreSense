@@ -233,6 +233,8 @@ def pre_draft_cap_summary(
                 "cap_freed": pre_draft_cut_cap_freed(rules, row),
                 "dead_cap_years": cut_obligation_years(row),
                 "cut_refund_pct": float(rules.contracts.cut_refund_pct),
+                "can_undo_cut": row.get("can_undo_cut", True),
+                "claimed_by_owner": row.get("claimed_by_owner"),
             }
             for row in cuts
         ],

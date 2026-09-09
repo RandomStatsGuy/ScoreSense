@@ -9,6 +9,17 @@ export const MY_TEAM_COPY = {
     "Salary, years, and type are edited in Roster management → Contracts only. Cut your own names here. Eligible final-year contracts can still queue one extension before the draft.",
   cutLabel: "Cut",
   undoCut: "Undo cut",
+  undoCutClosed: "Undo cut is closed",
+  undoCutClosedSupport: (owner) => (
+    owner
+      ? `They're on ${owner}'s roster.`
+      : "They're on another roster."
+  ),
+  undoCutClosedDetail: (owner) => (
+    owner
+      ? `Undo cut is closed. They're on ${owner}'s roster.`
+      : "Undo cut is closed. They're on another roster."
+  ),
   cutConfirmTitle: (name) => `Cut ${name}?`,
   cutConfirm: (freed, dead) => (
     `Frees ${freed} leftover. Dead cap ${dead}. Drop if you meant no penalty.`

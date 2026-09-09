@@ -29,10 +29,7 @@ NON_OCCUPYING_STATUSES = frozenset(
 def is_liability_row(row: dict[str, Any] | None) -> bool:
     if not row:
         return False
-    pid = str(row.get("player_id") or "")
-    if pid.startswith(DEADCAP_PREFIX):
-        return True
-    return roster_status(row) in NON_OCCUPYING_STATUSES
+    return not storage.roster_row_occupies(row)
 
 
 def deadcap_player_id(player_id: str) -> str:
@@ -201,25 +198,11 @@ def sync_league_auction_budgets(league_id: str) -> dict[str, float]:
 
 
 def preserve_cut_liability(workspace_id: str, player_id: str) -> dict[str, Any] | None:
-    """If player_id is a cut/liability row, rekey it so a new award can own the id."""
-    existing = storage.get_roster_slot(workspace_id, player_id)
-    if not existing or not is_liability_row(existing):
-        return None
-    new_id = deadcap_player_id(player_id)
-    if str(existing.get("player_id")) == new_id:
-        return existing
-    if storage.get_roster_slot(workspace_id, new_id):
-        storage.remove_roster_slot(workspace_id, new_id)
-    contract = dict(existing.get("contract") or {})
-    contract["liability_only"] = True
-    contract["liability_of"] = str(player_id)
-    return storage.rekey_roster_player_id(
-        workspace_id,
-        player_id,
-        new_id,
-        contract=contract,
-        roster_status=existing.get("roster_status") or ROSTER_CUT_BEFORE_DRAFT,
-    )
+    """Leave cut rows in place. A new award uses the same player_id."""
+    for slot in storage.list_roster_slots_for_player(workspace_id, player_id):
+        if is_liability_row(slot):
+            return slot
+    return None
 
 
 def slot_snapshot(row: dict[str, Any]) -> dict[str, Any]:

@@ -105,6 +105,18 @@ test("cut control names the room and dead consequence", () => {
   assert.match(confirm.message, /Frees \$4 leftover/);
   assert.match(confirm.message, /Dead cap \$4/);
   assert.match(confirm.message, /Drop if you meant no penalty/);
+  const closed = cutButtonCopy(
+    {
+      player_name: "Veteran",
+      roster_status: "cut_before_draft",
+      can_undo_cut: false,
+      claimed_by_owner: "Bravo",
+    },
+    RULES,
+  );
+  assert.equal(closed.label, "Undo cut is closed");
+  assert.equal(closed.disabled, true);
+  assert.match(closed.support, /Bravo's roster/);
 });
 
 test("after-draft leftover includes this-season dead cap only", () => {
@@ -300,6 +312,14 @@ test("mergePendingChange drops no-op edits", () => {
   assert.deepEqual(pending, {});
   const next = mergePendingChange({}, "p1", { salary: 16 }, TEAM.roster[0]);
   assert.equal(next.p1.salary, 16);
+});
+
+test("mergePendingChange drops the old playerId key after a slot key write", () => {
+  const row = { ...TEAM.roster[0], id: 9 };
+  const prev = { p1: { playerId: "p1", salary: 14 } };
+  const next = mergePendingChange(prev, "p1", { salary: 16 }, row);
+  assert.equal(next["slot-9"].salary, 16);
+  assert.equal(next.p1, undefined);
 });
 
 test("salary/year/status writes need an override note; drop-only does not", () => {

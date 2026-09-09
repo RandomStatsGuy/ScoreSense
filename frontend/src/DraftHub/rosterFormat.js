@@ -1,3 +1,14 @@
+export function rosterSlotKey(row) {
+  if (row?.id != null && String(row.id) !== "") return `slot-${row.id}`;
+  return String(row?.player_id || "");
+}
+
+export function pendingForRow(pendingByPlayer, row) {
+  if (!pendingByPlayer || !row) return undefined;
+  const key = rosterSlotKey(row);
+  return pendingByPlayer[key] || pendingByPlayer[row.player_id];
+}
+
 export function fmtSal(v) {
   if (v == null || !Number.isFinite(Number(v))) return "—";
   return `$${Number(v).toFixed(0)}`;

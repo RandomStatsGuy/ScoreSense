@@ -264,36 +264,18 @@ def test_award_preserves_cut_liability(hub_db, monkeypatch):
     award_nominee(seeded["league_id"], seeded["comm_sub"])
 
     rows = storage.list_team_roster(seeded["league_id"], seeded["comm_team_id"])
-    by_id = {r["player_id"]: r for r in rows}
-    assert f"{DEADCAP_PREFIX}cut-qb" in by_id
-    assert by_id[f"{DEADCAP_PREFIX}cut-qb"]["roster_status"] == "cut_before_draft"
-    assert by_id["cut-qb"]["source"] == "draft"
-    assert by_id["cut-qb"]["roster_status"] == "active"
+    same = [r for r in rows if r["player_id"] == "cut-qb"]
+    assert any(r["roster_status"] == "cut_before_draft" for r in same)
+    assert any(r["roster_status"] == "active" and r.get("source") == "draft" for r in same)
+    assert not any(str(r["player_id"]).startswith(DEADCAP_PREFIX) for r in rows)
 
 
 def test_preserve_cut_liability_when_deadcap_row_exists(hub_db):
     seeded = _seed_source()
     first = preserve_cut_liability(seeded["ws_id"], "cut-qb")
     assert first is not None
-    assert first["player_id"] == f"{DEADCAP_PREFIX}cut-qb"
-    storage.add_roster_slot(
-        seeded["ws_id"],
-        {
-            "player_id": "cut-qb",
-            "player_name": "Cut QB",
-            "team": "BUF",
-            "position": "QB",
-            "salary": 40,
-            "contract_years": 1,
-            "contract": build_veteran_contract(40, 1),
-            "source": "sheet",
-            "roster_status": "cut_before_draft",
-        },
-        team_id=seeded["comm_team_id"],
-    )
-    second = preserve_cut_liability(seeded["ws_id"], "cut-qb")
-    assert second is not None
-    assert second["player_id"] == f"{DEADCAP_PREFIX}cut-qb"
+    assert first["player_id"] == "cut-qb"
+    assert first["roster_status"] == "cut_before_draft"
     storage.add_roster_slot(
         seeded["ws_id"],
         {
@@ -307,10 +289,15 @@ def test_preserve_cut_liability_when_deadcap_row_exists(hub_db):
         },
         team_id=seeded["comm_team_id"],
     )
+    second = preserve_cut_liability(seeded["ws_id"], "cut-qb")
+    assert second is not None
+    assert second["player_id"] == "cut-qb"
+    assert second["roster_status"] == "cut_before_draft"
     rows = storage.list_team_roster(seeded["league_id"], seeded["comm_team_id"])
-    by_id = {r["player_id"]: r for r in rows}
-    assert f"{DEADCAP_PREFIX}cut-qb" in by_id
-    assert by_id["cut-qb"]["source"] == "draft"
+    same = [r for r in rows if r["player_id"] == "cut-qb"]
+    assert any(r["roster_status"] == "cut_before_draft" for r in same)
+    assert any(r.get("source") == "draft" and r["roster_status"] == "active" for r in same)
+    assert not any(str(r["player_id"]).startswith(DEADCAP_PREFIX) for r in rows)
 
 
 def test_reset_after_end_syncs_budget_after_rewind(hub_db):

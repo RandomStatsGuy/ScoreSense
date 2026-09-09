@@ -16,6 +16,9 @@ test("My team copy names the decision and skips Draft Hub / permission voice", (
   assert.equal(MY_TEAM_COPY.dropLabel, "Drop");
   assert.equal(MY_TEAM_COPY.cutLabel, "Cut");
   assert.equal(MY_TEAM_COPY.undoCut, "Undo cut");
+  assert.equal(MY_TEAM_COPY.undoCutClosed, "Undo cut is closed");
+  assert.match(MY_TEAM_COPY.undoCutClosedDetail("Bravo"), /Bravo's roster/);
+  assert.match(MY_TEAM_COPY.undoCutClosedSupport("Bravo"), /Bravo's roster/);
   assert.equal(MY_TEAM_COPY.cutConfirmTitle("Veteran"), "Cut Veteran?");
   assert.match(MY_TEAM_COPY.cutConfirm("$4", "$4"), /Frees \$4 leftover/);
   assert.match(MY_TEAM_COPY.cutConfirm("$4", "$4"), /Dead cap \$4/);

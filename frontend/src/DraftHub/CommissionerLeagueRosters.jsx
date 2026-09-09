@@ -18,6 +18,7 @@ import {
   contractTypeLabel,
   fmtSal,
   leagueStepUp,
+  rosterSlotKey,
   previewSchedule,
   scheduleText,
 } from "./rosterFormat";
@@ -443,7 +444,7 @@ function TeamRosterBlock({
   const capFigures = capFieldFigures({ free: stats.remaining, dead: stats.deadCap });
 
   const getEdit = (r) => {
-    const pending = pendingByPlayer[r.player_id];
+    const pending = pendingByPlayer[rosterSlotKey(r)] || pendingByPlayer[r.player_id];
     const effective = applyPendingToRow(r, pending);
     return {
       salary: String(effective.salary ?? ""),
@@ -478,6 +479,7 @@ function TeamRosterBlock({
   };
 
   const onToggleCut = async (r, isCut) => {
+    if (isCut && r?.can_undo_cut === false) return;
     if (isCut) {
       if (draftCompleted) {
         try {
@@ -531,7 +533,7 @@ function TeamRosterBlock({
   };
 
   const renderRowFields = (r) => {
-    const pending = pendingByPlayer[r.player_id] || {};
+    const pending = pendingByPlayer[rosterSlotKey(r)] || pendingByPlayer[r.player_id] || {};
     const effective = applyPendingToRow(r, pending);
     const edit = getEdit(r);
     const isCut = effective.roster_status === "cut_before_draft";
@@ -578,9 +580,11 @@ function TeamRosterBlock({
         type="button"
         className={`btn-ghost btn-sm${isCut ? " hub-uncut-btn" : ""}`}
         aria-label={cutCopy.ariaLabel}
+        disabled={Boolean(cutCopy.disabled)}
         onClick={() => onToggleCut(r, isCut)}
       >
         {cutCopy.label}
+        {cutCopy.support ? <span className="hub-btn-support">{cutCopy.support}</span> : null}
       </button>
     ) : null;
     const dropControl = (
@@ -695,7 +699,7 @@ function TeamRosterBlock({
             const vm = renderRowFields(r);
             return (
               <div
-                key={r.player_id}
+                key={rosterSlotKey(r)}
                 id={vm.isHighlight ? "live-contract-highlight" : undefined}
               >
               <MobilePlayerCard
@@ -812,7 +816,7 @@ function TeamRosterBlock({
               const vm = renderRowFields(r);
               return (
                 <tr
-                  key={r.player_id}
+                  key={rosterSlotKey(r)}
                   id={vm.isHighlight ? "live-contract-highlight" : undefined}
                   className={`${vm.isCut ? "hub-cut-row" : ""}${vm.queuedDrop ? " hub-drop-queued-row" : ""}${vm.isHighlight ? " hub-roster-row--selected" : ""}`.trim()}
                 >
@@ -921,7 +925,7 @@ function TeamRosterBlock({
             {expiredSorted.map((r) => {
               const dropCopy = dropButtonCopy(r, { draftCompleted: true });
               return (
-                <li key={r.player_id}>
+                <li key={rosterSlotKey(r)}>
                   <span>
                     <strong>{r.player_name}</strong>
                     {" · "}
