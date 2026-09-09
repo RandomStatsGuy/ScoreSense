@@ -122,7 +122,7 @@ def validate_roster(rules: LeagueRules, roster: list[dict[str, Any]]) -> list[st
 def cut_dead_cap_amount(salary: float, cut_refund_pct: float = 0.5) -> float:
     """Floor the dead-cap charge. $1 → $0 and $7 → $3 at 50% refund."""
     sal = float(salary or 0)
-    if sal <= 0:
+    if not math.isfinite(sal) or sal <= 0:
         return 0.0
     keep = max(0.0, min(1.0, 1.0 - float(cut_refund_pct)))
     return float(math.floor(sal * keep + 1e-9))
