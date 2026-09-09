@@ -39,6 +39,15 @@ _HISTORIC_TEAM_OWNERS = {
     "lincoler's dual ethics": "Justin P",
     f"lincoler{chr(8217)}s dual ethics": "Justin P",
     "daddio of the pandio": "Colby L",
+    "daddio of the pandia": "Colby L",
+    "king panda": "Stephen P",
+    "kking panda": "Stephen P",
+    "k king panda": "Stephen P",
+    "top panda": "Dawson O",
+    "bottom panda": "Stephen P",
+    "sad panda": "Dawson O",
+    "better call a bamboolance": "Dawson O",
+    "kama-rvin-la harris-son": "Nick F",
 }
 
 
@@ -316,6 +325,62 @@ def label_team(
 ) -> str:
     owner_label = lookup_owner_label(team_name, owner_map)
     return format_manager_label(team_name, owner_label=owner_label, year_specific=year_specific)
+
+
+def enrich_insights_landing(
+    landing: dict[str, Any] | None,
+    owner_map: dict[str, str] | None,
+    sleeper_owner_map: dict[str, str] | None = None,
+) -> dict[str, Any] | None:
+    """Attach manager names on Overview rows. Team nicknames stay secondary."""
+    if not landing:
+        return landing
+    out = dict(landing)
+    champs = []
+    for row in landing.get("champions") or []:
+        enriched = enrich_team_row(
+            row,
+            owner_map,
+            year_specific=False,
+            sleeper_owner_map=sleeper_owner_map,
+        )
+        ru_team = str(row.get("runner_up") or "").strip()
+        if ru_team:
+            ru_label = lookup_owner_label(
+                ru_team,
+                owner_map,
+                sleeper_user_id=str(row.get("runner_up_owner_id") or "") or None,
+                sleeper_owner_map=sleeper_owner_map,
+            )
+            enriched["runner_up_owner_name"] = resolve_owner(ru_team, ru_label)
+        champs.append(enriched)
+    out["champions"] = champs
+    if landing.get("most_titles"):
+        out["most_titles"] = enrich_team_row(
+            landing["most_titles"],
+            owner_map,
+            year_specific=False,
+            sleeper_owner_map=sleeper_owner_map,
+        )
+    out["record_leaders"] = [
+        enrich_team_row(
+            row,
+            owner_map,
+            year_specific=False,
+            sleeper_owner_map=sleeper_owner_map,
+        )
+        for row in landing.get("record_leaders") or []
+    ]
+    out["scoring_leaders"] = [
+        enrich_team_row(
+            row,
+            owner_map,
+            year_specific=False,
+            sleeper_owner_map=sleeper_owner_map,
+        )
+        for row in landing.get("scoring_leaders") or []
+    ]
+    return out
 
 
 def attach_owner_names_to_teams(

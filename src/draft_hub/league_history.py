@@ -370,7 +370,11 @@ def build_insights_landing(
     if title_counts:
         key, count = max(title_counts.items(), key=lambda kv: (kv[1], kv[0]))
         sample = next(
-            (c for c in champions if str(c.get("owner_id") or c.get("team_name") or "") == key),
+            (
+                c
+                for c in reversed(champions)
+                if str(c.get("owner_id") or c.get("team_name") or "") == key
+            ),
             None,
         )
         most_titles = {
