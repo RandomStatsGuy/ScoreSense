@@ -514,7 +514,7 @@ def test_fill_slots_and_projection_starts_tolerate_junk_scores():
 
 def test_resolve_vibe_week_tolerates_malformed_inputs():
     with patch(
-        "src.draft_hub.weekly_command_center.resolve_week_context",
+        "src.draft_hub.vibe_rankings.resolve_week_context",
         side_effect=ValueError("bad week"),
     ):
         season, week = resolve_vibe_week({"season": "preseason"}, season="N/A", week="soon")
@@ -522,7 +522,7 @@ def test_resolve_vibe_week_tolerates_malformed_inputs():
         assert week == 1
 
     with patch(
-        "src.draft_hub.weekly_command_center.resolve_week_context",
+        "src.draft_hub.vibe_rankings.resolve_week_context",
         return_value=(2026, 3),
     ) as resolve:
         season, week = resolve_vibe_week({"season": "2026"}, season=None, week=3)
@@ -532,7 +532,7 @@ def test_resolve_vibe_week_tolerates_malformed_inputs():
     from app.hub_routes import _lineup_week_args
 
     with patch(
-        "src.draft_hub.weekly_command_center.resolve_week_context",
+        "src.draft_hub.vibe_rankings.resolve_week_context",
         side_effect=ValueError("bad week"),
     ):
         season, week = _lineup_week_args({"season": "oops"}, None, None)
@@ -544,7 +544,7 @@ def test_build_vibe_rankings_tolerates_malformed_week_inputs():
     from src.draft_hub.schemas import LeagueRules
 
     with patch(
-        "src.draft_hub.weekly_command_center.resolve_week_context",
+        "src.draft_hub.vibe_rankings.resolve_week_context",
         side_effect=ValueError("bad week"),
     ), patch(
         "src.draft_hub.vibe_rankings._load_week_players",
