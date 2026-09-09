@@ -16,6 +16,20 @@ def name_key(name: str) -> str:
     return re.sub(r"[^a-z0-9]", "", norm_name(name).lower())
 
 
+def roster_name_key(name: str) -> str:
+    """Full-name key with Jr/Sr/II/III stripped.
+
+    Sleeper ``full_name`` is often ``Kenneth Walker`` while mlready keeps
+    ``Kenneth Walker III``. Exact lowercasing misses those rows.
+    """
+    n = norm_name(name)
+    if not n:
+        return ""
+    parts = re.split(r"[\s.]+", n)
+    tokens = _strip_generational_tokens([p for p in parts if p])
+    return re.sub(r"[^a-z0-9]", "", "".join(tokens).lower())
+
+
 def is_garbage_player_name(name: str) -> bool:
     """Reject concatenated PDF grid cells and other non-player strings."""
     n = norm_name(name)

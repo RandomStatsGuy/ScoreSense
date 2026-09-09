@@ -214,6 +214,16 @@ def build_inference_roster(
         )
         meta["roster_overlay"] = overlay
 
+    from src.integrations.roster_identity import apply_roster_identity_overlay
+
+    roster, identity = apply_roster_identity_overlay(
+        roster,
+        position,
+        season=season,
+        week=target_week,
+    )
+    meta["roster_identity"] = identity
+
     if meta["preseason_mode"]:
         from src.core.depth_chart import filter_depth_chart_starters
 

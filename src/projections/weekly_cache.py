@@ -35,6 +35,26 @@ def _artifact_paths(position: str, season: int, week: int, apply_injury: bool) -
 WEEKLY_POOL_POLICY = "v3-unlisted-backup"
 
 
+def _with_roster_identity(
+    df: pd.DataFrame,
+    position: str,
+    season: int | None,
+    week: int | None,
+    *,
+    cache_key: str | None = None,
+) -> pd.DataFrame:
+    """Re-label cached weekly rows from the current nflverse roster."""
+    from src.integrations.roster_identity import apply_roster_identity_with_attrs
+
+    return apply_roster_identity_with_attrs(
+        df,
+        position,
+        season=season,
+        week=week,
+        cache_key=cache_key,
+    )
+
+
 def weekly_fingerprint() -> str:
     parts: list[str] = [f"pool:{WEEKLY_POOL_POLICY}"]
     for pos in ("qb", "rb", "wr"):
@@ -77,7 +97,15 @@ def load_weekly_prediction(
             out = cached[1].copy()
             for k, v in cached[1].attrs.items():
                 out.attrs[k] = v
-            return ensure_opportunity_adjustment_columns(out)
+            return ensure_opportunity_adjustment_columns(
+                _with_roster_identity(
+                    out,
+                    pos,
+                    int(season),
+                    int(week),
+                    cache_key=f"weekly:{key}:{fp}",
+                )
+            )
 
         parquet_path, meta_path = _artifact_paths(pos, int(season), int(week), apply_injury_adjustments)
         if parquet_path.exists() and meta_path.exists():
@@ -91,7 +119,13 @@ def load_weekly_prediction(
                 if meta.get("built_at"):
                     df.attrs["built_at"] = meta["built_at"]
                 _WEEKLY_CACHE[key] = (fp, df.copy())
-                return df
+                return _with_roster_identity(
+                    df,
+                    pos,
+                    int(season),
+                    int(week),
+                    cache_key=f"weekly:{key}:{fp}",
+                )
 
     if not allow_compute:
         return pd.DataFrame()
@@ -108,7 +142,13 @@ def load_weekly_prediction(
     # Mirror the artifact timestamp onto the in-process frame for API freshness.
     if "built_at" not in df.attrs:
         df.attrs["built_at"] = datetime.now(timezone.utc).isoformat()
-    return df
+    return _with_roster_identity(
+        df,
+        pos,
+        int(season),
+        int(week),
+        cache_key=f"weekly:{key}:{fp}",
+    )
 
 
 def compute_weekly_artifact(
@@ -216,6 +256,9 @@ def _apply_saved_attrs(df: pd.DataFrame, meta: dict[str, Any]) -> None:
 
 def invalidate_weekly_cache() -> None:
     _WEEKLY_CACHE.clear()
+    from src.integrations.roster_identity import invalidate_identity_overlay_cache
+
+    invalidate_identity_overlay_cache()
 
 
 def prewarm_weekly_predictions(
