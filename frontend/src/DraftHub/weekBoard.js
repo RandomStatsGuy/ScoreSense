@@ -346,8 +346,9 @@ export function weekRailItems({
       { id: "next", label: "Next", value: "Refresh week board" },
     ];
   }
+  const safeCounts = counts || {};
   const items = [];
-  if (weekBoardIsClear({ onBye: counts.on_bye, injured: counts.injured })) {
+  if (weekBoardIsClear({ onBye: safeCounts.on_bye, injured: safeCounts.injured })) {
     items.push({
       id: "available",
       label: WEEK_BOARD_COPY.clearRailLabel,
@@ -358,19 +359,19 @@ export function weekRailItems({
     });
   } else {
     items.push(
-      railCountItem("bye", "On bye", counts.on_bye, {
+      railCountItem("bye", "On bye", safeCounts.on_bye, {
         hint: WEEK_BOARD_COPY.railByeHint,
         emptyHint: WEEK_BOARD_COPY.railByeEmpty,
         toneWhenOn: "warn",
       }),
-      railCountItem("injured", "Injured", counts.injured, {
+      railCountItem("injured", "Injured", safeCounts.injured, {
         hint: WEEK_BOARD_COPY.railInjuredHint,
         emptyHint: WEEK_BOARD_COPY.railInjuredEmpty,
         toneWhenOn: "warn",
       }),
     );
   }
-  items.push(railCountItem("ranges", "Wide ranges", counts.wide_ranges, {
+  items.push(railCountItem("ranges", "Wide ranges", safeCounts.wide_ranges, {
     hint: WEEK_BOARD_COPY.railWideHint,
     emptyHint: WEEK_BOARD_COPY.railWideEmpty,
     toneWhenOn: "quiet",
@@ -508,19 +509,33 @@ export function startCallLabel(decision) {
   return surname ? `Start ${surname}` : WEEK_BOARD_COPY.startFallback;
 }
 
+export function startCallAriaLabel(decision) {
+  const label = startCallLabel(decision);
+  const delta = Number(decision?.delta_p50);
+  if (!Number.isFinite(delta)) return label;
+  return `${label} (+${delta.toFixed(1)})`;
+}
+
 export function sitCallLabel(decision) {
   const surname = startSurname(decision?.starter_player_name);
   return surname ? `Sit ${surname}` : WEEK_BOARD_COPY.sitRole;
 }
 
+function slotToken(slot) {
+  if (typeof slot === "string") return slot;
+  return slot?.position || slot?.slot || "";
+}
+
 export function isSpecialistSlot(slot) {
-  const pos = String(slot?.position || slot?.slot || "").replace(/\d+$/, "").toUpperCase();
+  const pos = String(slotToken(slot)).replace(/\d+$/, "").toUpperCase();
   return pos === "K" || pos === "DEF";
 }
 
 export function emptySlotDoorway(slot) {
-  const pos = String(slot?.position || slot?.slot || "").replace(/\d+$/, "").toUpperCase();
-  return WEEK_BOARD_COPY.emptySlot(isSpecialistSlot(slot) ? pos : (slot?.slot || pos || "ALL"));
+  const raw = slotToken(slot);
+  const pos = String(raw).replace(/\d+$/, "").toUpperCase();
+  const fallback = typeof slot === "string" ? slot : (slot?.slot || pos || "ALL");
+  return WEEK_BOARD_COPY.emptySlot(isSpecialistSlot(slot) ? pos : fallback);
 }
 
 export function keepCallLabel(decision) {

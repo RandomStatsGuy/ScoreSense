@@ -32,6 +32,7 @@ import {
   emptySpecialistSlots,
   isSpecialistSlot,
   sitCallLabel,
+  startCallAriaLabel,
   weekBoardIsClear,
   projectionMissing,
   showVibePts,
@@ -323,6 +324,8 @@ test("start button uses a short surname and a real action", () => {
   assert.equal(startSurname("Malik Nabers"), "Nabers");
   assert.equal(startSurname("Amon-Ra St. Brown"), "St. Brown");
   assert.equal(startCallLabel({ bench_player_name: "J.K. Dobbins" }), "Start Dobbins");
+  assert.equal(startCallAriaLabel({ bench_player_name: "J.K. Dobbins", delta_p50: 1.5 }), "Start Dobbins (+1.5)");
+  assert.equal(startCallAriaLabel({ bench_player_name: "J.K. Dobbins" }), "Start Dobbins");
   assert.equal(sitCallLabel({ starter_player_name: "Ashton Jeanty" }), "Sit Jeanty");
   assert.equal(WEEK_BOARD_COPY.ticketStamp, "Private");
   assert.doesNotMatch(WEEK_BOARD_COPY.clearBoard, /liturgy|prayer|altar|bulletin/i);
@@ -361,9 +364,15 @@ test("empty K/DEF slots and a missing projection are single states", () => {
   ]);
   assert.equal(missing.length, 2);
   assert.equal(isSpecialistSlot({ position: "K" }), true);
+  assert.equal(isSpecialistSlot("K"), true);
+  assert.equal(isSpecialistSlot("DEF"), true);
+  assert.equal(isSpecialistSlot("RB2"), false);
   assert.equal(emptySlotDoorway({ slot: "K", position: "K" }), "Find K");
+  assert.equal(emptySlotDoorway("K"), "Find K");
+  assert.equal(emptySlotDoorway("DEF"), "Find DEF");
   assert.equal(emptySlotDoorway({ slot: "DEF", position: "DEF" }), "Find DEF");
   assert.equal(emptySlotDoorway({ slot: "RB2", position: "RB" }), "Find RB2");
+  assert.equal(emptySlotDoorway("RB2"), "Find RB2");
   assert.equal(WEEK_BOARD_COPY.emptySlotHint, "Open Free agents");
   assert.equal(projectionMissing({ has_projection: false }), true);
   assert.equal(projectionMissing({ p50: 8.3 }), false);
@@ -380,4 +389,7 @@ test("clear board collapses bye and out into one quiet line", () => {
   assert.equal(flagged.find((i) => i.id === "bye").value, "2");
   assert.equal(flagged.find((i) => i.id === "injured").muted, true);
   assert.equal(flagged.some((i) => i.id === "available"), false);
+  const missing = weekRailItems({ counts: null });
+  assert.equal(missing.find((i) => i.id === "available").value, WEEK_BOARD_COPY.clearRailValue);
+  assert.equal(missing.find((i) => i.id === "ranges").value, "0");
 });

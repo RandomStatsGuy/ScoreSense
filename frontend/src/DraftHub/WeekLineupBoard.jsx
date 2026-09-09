@@ -23,6 +23,7 @@ import {
   slatePlayerMeta,
   slotTone,
   sitCallLabel,
+  startCallAriaLabel,
   startCallLabel,
   swapBenchIdSet,
   WEEK_BOARD_COPY,
@@ -115,7 +116,7 @@ function SlotAction({ decision, onOpenCall }) {
         <button
           type="button"
           className="hub-wcc-call-pill is-start"
-          aria-label={startLabel}
+          aria-label={startCallAriaLabel(decision)}
           title={decision.bench_player_name ? startLabel : WEEK_BOARD_COPY.startRole}
           onClick={open}
         >
