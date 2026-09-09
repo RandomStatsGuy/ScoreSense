@@ -2,6 +2,19 @@
 
 Static HTML options. Not product code. Agents: `.cursor/skills/fast-ui-mock/SKILL.md`.
 
+## DFS (Sep 2026)
+
+Open **[dfs.html](./dfs.html)** first. Living surface: `tools.dfs` → `LineupOptimizer.jsx`.
+
+| File | Shows |
+|------|-------|
+| `dfs.html` | Chooser: contest first, shootout first, or fade chalk. |
+| `dfs-a.html` | **A · Contest.** Cash or Tournament applies floor/no-stack vs ceiling/QB+2. |
+| `dfs-b.html` | **B · Shootout.** Vegas games are the board. Pick the total, then the stack. |
+| `dfs-c.html` | **C · Leverage.** Pool board with Own% and Lev. Fade chalk. |
+
+Reply A / B / C. Do not implement the living page until a letter is picked.
+
 Mock pages must pass `scripts/dev/layout_audit.mjs` (same bar, table, and collision rules as the app). Do not pick an option that would ship a known craft fail.
 
 Serve and click: `bash scripts/dev/serve_mockups.sh` → [http://127.0.0.1:5174/](http://127.0.0.1:5174/). Or open [index.html](./index.html).
