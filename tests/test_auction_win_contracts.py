@@ -68,7 +68,7 @@ def test_award_rookie_is_flat_two_years(hub_db, monkeypatch):
     assert [y["salary"] for y in contract["schedule"]] == [39, 39]
 
 
-def test_award_veteran_is_two_years_with_step(hub_db, monkeypatch):
+def test_award_veteran_is_two_years_flat(hub_db, monkeypatch):
     seeded = _seed_league("comm-vet")
     _award(
         monkeypatch,
@@ -88,6 +88,38 @@ def test_award_veteran_is_two_years_with_step(hub_db, monkeypatch):
     assert int(slot["contract_years"]) == 2
     contract = slot["contract"]
     assert contract["contract_type"] == "veteran"
+    assert contract.get("veteran_salary_static") is True
+    assert [y["salary"] for y in contract["schedule"]] == [20, 20]
+
+
+def test_award_veteran_steps_when_flat_toggle_off(hub_db, monkeypatch):
+    seeded = _seed_league("comm-vet-step")
+    rules = seeded["rules"].model_copy(
+        update={
+            "contracts": seeded["rules"].contracts.model_copy(
+                update={"veteran_salary_static": False}
+            )
+        }
+    )
+    storage.update_league_rules(seeded["league"]["id"], rules)
+    _award(
+        monkeypatch,
+        seeded,
+        {
+            "player_id": "vet-2",
+            "player_name": "Vet WR",
+            "team": "DAL",
+            "position": "WR",
+            "is_rookie": False,
+            "years_exp": 6,
+            "bid": 20,
+        },
+    )
+    rows = storage.list_team_roster(seeded["league"]["id"], seeded["comm_team"]["id"])
+    slot = next(r for r in rows if r["player_id"] == "vet-2")
+    contract = slot["contract"]
+    assert contract["contract_type"] == "veteran"
+    assert contract.get("veteran_salary_static") is False
     assert [y["salary"] for y in contract["schedule"]] == [20, 25]
 
 
