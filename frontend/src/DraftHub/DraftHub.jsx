@@ -815,6 +815,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           defaultPosFilter={availablePosFilter}
           remainingCap={capSheet?.summary?.remaining ?? capSheet?.remaining}
           preDraft={!Boolean(effectiveCtx?.draft_completed)}
+          leagueId={effectiveCtx?.league_id || leagueId}
         />
       )}
 

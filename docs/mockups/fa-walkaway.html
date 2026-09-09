@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Fantasy · Free agents walk-away</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .row {
+    display: grid;
+    grid-template-columns: 1.6fr 0.6fr 0.7fr auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.7rem 0.85rem;
+    min-height: 52px;
+  }
+  .row + .row { border-top: 1px solid var(--border); }
+  .name { font-weight: 650; }
+  .meta { color: var(--text-muted); font-size: var(--text-xs); }
+  .bid { font-variant-numeric: tabular-nums; text-align: right; }
+  .actions { display: flex; gap: 0.4rem; justify-content: flex-end; }
+  .chip, .ghost, .primary {
+    min-height: 44px; min-width: 44px;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0 0.8rem; border-radius: var(--radius-pill); font-weight: 650;
+    font-size: 0.85rem;
+  }
+  .chip, .ghost { border: 1px solid var(--border); color: var(--text-secondary); }
+  .chip.is-over { color: var(--tone-caution); border-color: var(--tone-caution); }
+  .primary { background: var(--accent); color: #fff; border: 0; }
+  .primary:disabled { opacity: 0.45; }
+  .dlg {
+    margin-top: 1rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+  .field { display: flex; flex-direction: column; gap: 0.25rem; }
+  .field input {
+    min-height: 44px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    padding: 0 0.7rem;
+  }
+  .warn { color: var(--tone-caution); margin: 0; }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>Free agents</strong> <span>· walk-away · not shipped</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a class="is-on" href="fa-walkaway.html">Walk-away</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span class="active">Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+
+  <nav class="mock-subnav">
+    <span class="mock-subnav-group-label">Team</span>
+    <span class="mock-tab">This Week</span>
+    <span class="mock-tab">My team</span>
+    <span class="mock-tab active">Free agents</span>
+    <span class="mock-tab">Cap</span>
+  </nav>
+
+  <section class="mock-hero">
+    <p class="mock-kicker">Free agents</p>
+    <h1>Players not under contract.</h1>
+    <p class="support">Bid when the window is open. Walk-away is your private max — the bid that posts never exceeds it.</p>
+  </section>
+
+  <section class="card">
+    <div class="row">
+      <div>
+        <div class="name">Puka Nacua</div>
+        <div class="meta">WR · LAR</div>
+      </div>
+      <div class="bid">$14</div>
+      <div class="actions">
+        <span class="chip is-over">$12</span>
+        <span class="ghost">Bid</span>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <div class="name">Rico Dowdle</div>
+        <div class="meta">RB · CAR</div>
+      </div>
+      <div class="bid">$7</div>
+      <div class="actions">
+        <span class="chip">Walk-away</span>
+        <span class="ghost">Bid</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="card dlg" aria-label="Place FA bid">
+    <h3 style="margin:0;">Place FA bid</h3>
+    <p class="note">Bid $14 on Puka Nacua? The highest bid wins when this window processes — same as post-draft FA.</p>
+    <label class="field">Bid <input type="number" value="14" /></label>
+    <label class="field">Walk-away <input type="number" value="12" /></label>
+    <p class="warn">Above your walk-away ($12)</p>
+    <div class="actions">
+      <span class="ghost">Pass</span>
+      <span class="ghost">Bid at ceiling</span>
+      <span class="ghost">Raise ceiling</span>
+      <span class="primary" style="opacity:0.45;">Place bid</span>
+    </div>
+  </section>
+</div>
+</body>
+</html>

@@ -13,6 +13,7 @@ import {
   playersTabAddLabel,
   playersTabStarCopy,
 } from "./acquisitionWindow";
+import { faWalkawayChip } from "./faBidPresentation";
 import { vsCostCell } from "./capPlannerPresentation";
 
 function ValueSheetPlayerRow({
@@ -64,6 +65,10 @@ function ValueSheetPlayerRow({
   onOpenContractHistory,
   preDraft = false,
   remainingCap = null,
+  showWalkaway = false,
+  walkawayCeiling = null,
+  walkawayAmber = false,
+  onWalkaway,
 }) {
   const handleRowClick = useCallback(() => {
     if (onSelectPlayer) onSelectPlayer(row);
@@ -269,6 +274,18 @@ function ValueSheetPlayerRow({
             Select
           </button>
         )}
+        {showWalkaway && !inRoster && !showSelect && (
+          <button
+            type="button"
+            className={`btn-ghost btn-sm hub-fa-walkaway${walkawayAmber ? " is-over" : ""}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onWalkaway?.(row);
+            }}
+          >
+            {faWalkawayChip(walkawayCeiling)}
+          </button>
+        )}
         {showAdd && !inRoster && !showSelect && (
           <button
             type="button"
@@ -303,6 +320,9 @@ function propsAreEqual(prev, next) {
     && prev.showDelta === next.showDelta
     && prev.showStatus === next.showStatus
     && prev.showAdd === next.showAdd
+    && prev.showWalkaway === next.showWalkaway
+    && prev.walkawayCeiling === next.walkawayCeiling
+    && prev.walkawayAmber === next.walkawayAmber
     && prev.addMode === next.addMode
     && prev.showSelect === next.showSelect
     && prev.showRiskScore === next.showRiskScore
@@ -314,6 +334,7 @@ function propsAreEqual(prev, next) {
     && prev.isCommissioner === next.isCommissioner
     && prev.onSelectPlayer === next.onSelectPlayer
     && prev.onAddPlayer === next.onAddPlayer
+    && prev.onWalkaway === next.onWalkaway
     && prev.onRowDoubleClick === next.onRowDoubleClick
     && prev.narrativeScope === next.narrativeScope
     && prev.seasonScaleMax === next.seasonScaleMax
