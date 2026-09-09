@@ -764,7 +764,7 @@ export function vegasSpreadLabel(game = {}) {
   if (spread == null) return "No line";
   if (spread === 0) return "Pick 'em";
   const favorite = spread > 0 ? game.home : game.away;
-  return `${favorite} -${Math.abs(spread)}`;
+  return `${displayNflTeam(favorite)} -${Math.abs(spread)}`;
 }
 
 export function vegasTotalLabel(game = {}) {

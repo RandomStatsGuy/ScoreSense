@@ -216,6 +216,7 @@ test("vegas labels read like a betting board", () => {
   };
   assert.equal(vegasSpreadLabel(game), "SEA -3.5");
   assert.equal(vegasSpreadLabel({ ...game, spread_line: -2.5 }), "NE -2.5");
+  assert.equal(vegasSpreadLabel({ away: "SF", home: "LA", spread_line: 3.5 }), "LAR -3.5");
   assert.equal(vegasSpreadLabel({ ...game, spread_line: 0 }), "Pick 'em");
   assert.equal(vegasSpreadLabel({ ...game, spread_line: null }), "No line");
   assert.equal(vegasTotalLabel(game), "O/U 44.5");
