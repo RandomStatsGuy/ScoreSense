@@ -508,11 +508,12 @@ export default function RulesWizard({
                   <RuleError>{errors.veteran_years}</RuleError>
                 </label>
                 <label>
-                  <span>Cut refund</span>
+                  <span>{RULES_COPY.cutRefund}</span>
                   <span className="hub-rules-suffix-input">
                     <input type="number" min="0" max="100" value={Math.round(Number(rules.contracts.cut_refund_pct) * 100)} disabled={readOnlyRules} onChange={(event) => updateContract("cut_refund_pct", Number(event.target.value) / 100)} />
                     <span>%</span>
                   </span>
+                  <span>{RULES_COPY.cutRefundHelp}</span>
                   <RuleError>{errors.cut_refund_pct}</RuleError>
                 </label>
               </div>
