@@ -1159,7 +1159,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                       return (
                         <article
                           key={pid}
-                          className={`dfs-stack-row${entry.role === "bring" ? " is-bring" : ""}`}
+                          className={`dfs-shootout-row${entry.role === "bring" ? " is-bring" : ""}`}
                         >
                           <span className="dfs-stack-tag">{entry.label}</span>
                           <PlayerCell

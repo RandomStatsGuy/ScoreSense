@@ -1364,7 +1364,7 @@ button.btn-link.hub-league-switcher-create:hover {
     margin-top: 0.45rem;
   }
 
-  .dfs-stack-row .dfs-pin,
+  .dfs-shootout-row .dfs-pin,
   .dfs-stack-preview-head button {
     min-height: var(--control-h-lg);
   }
@@ -1844,7 +1844,7 @@ button.dfs-vegas-card {
   min-height: var(--control-h-sm);
 }
 
-.dfs-stack-row {
+.dfs-shootout-row {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -1853,11 +1853,11 @@ button.dfs-vegas-card {
   border-bottom: 1px solid color-mix(in srgb, var(--experience-rule) 70%, transparent);
 }
 
-.dfs-stack-row:last-child {
+.dfs-shootout-row:last-child {
   border-bottom: 0;
 }
 
-.dfs-stack-row.is-bring {
+.dfs-shootout-row.is-bring {
   background: color-mix(in srgb, var(--experience-blue) 7%, transparent);
   margin: 0 calc(var(--space-3) * -1);
   padding-left: var(--space-3);
