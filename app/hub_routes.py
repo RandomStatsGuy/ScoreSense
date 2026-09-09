@@ -1338,27 +1338,30 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
             )
     ws_id, _own_team_id = roster_scope(ctx)
     team_id, dest_label = _resolve_roster_add_team(ctx, body.team_id)
-    existing = storage.get_roster_slot(ws_id, body.player_id)
-    if existing:
-        existing_team_id = str(existing.get("team_id") or "") or None
-        same_team = bool(
-            (team_id and existing_team_id == str(team_id))
-            or (not team_id and not existing_team_id)
+    dest_key = str(team_id) if team_id else ""
+    slots = storage.list_roster_slots_for_player(ws_id, body.player_id)
+    occupying = [s for s in slots if storage.roster_row_occupies(s)]
+    dest_occupying = next(
+        (s for s in occupying if str(s.get("team_id") or "") == dest_key),
+        None,
+    )
+    if dest_occupying:
+        already = (
+            "your roster" if dest_label == "your team" else "this roster"
         )
-        if same_team:
-            already = (
-                "your roster" if dest_label == "your team" else "this roster"
-            )
-            raise HTTPException(
-                status_code=409,
-                detail=f"{body.player_name or 'Player'} is already on {already}",
-            )
+        raise HTTPException(
+            status_code=409,
+            detail=f"{body.player_name or 'Player'} is already on {already}",
+        )
+    other_occupying = occupying[0] if occupying else None
+    if other_occupying:
         owner_label = "another team"
+        existing_team_id = str(other_occupying.get("team_id") or "")
         if existing_team_id:
             owner = storage.get_team(existing_team_id)
             if owner and owner.get("name"):
                 owner_label = str(owner["name"])
-        pname = body.player_name or existing.get("player_name") or "Player"
+        pname = body.player_name or other_occupying.get("player_name") or "Player"
         if ctx.get("mode") == "league" and not ctx.get("is_commissioner"):
             raise HTTPException(
                 status_code=409,
@@ -1415,27 +1418,45 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
         "contract_years": contract["years_remaining"],
         "contract": contract,
     }
-    preview = [r for r in dest_roster if str(r.get("player_id")) != str(body.player_id)]
+    preview = [
+        r
+        for r in dest_roster
+        if not (
+            storage.roster_row_occupies(r)
+            and str(r.get("player_id")) == str(body.player_id)
+        )
+    ]
     preview.append(preview_slot)
     staff_override = bool(body.staff_edit) and bool(ctx.get("is_commissioner"))
     blocking = blocking_acquisition_errors(rules, preview)
     if blocking and not staff_override:
         raise HTTPException(status_code=400, detail=blocking[0])
-    row = storage.add_roster_slot(
-        ws_id,
-        {
-            "player_id": body.player_id,
-            "player_name": body.player_name,
-            "team": body.team,
-            "position": body.position,
-            "salary": contract["current_salary"],
-            "contract_years": contract["years_remaining"],
-            "contract": contract,
-            "sleeper_player_id": sleeper_id,
-            **({"source": source} if source else {}),
-        },
-        team_id=team_id,
-    )
+    if other_occupying and body.force:
+        moved = storage.move_roster_player(ws_id, body.player_id, dest_key)
+        if not moved:
+            raise HTTPException(status_code=404, detail="Player not on roster")
+        roster = storage.list_roster(ws_id, team_id) if team_id else list_roster_for_context(ctx)
+        errors = validate_roster(rules, roster)
+        _invalidate_league_rosters_from_ctx(ctx)
+        return {"slot": moved, "validation_errors": errors}
+    try:
+        row = storage.add_roster_slot(
+            ws_id,
+            {
+                "player_id": body.player_id,
+                "player_name": body.player_name,
+                "team": body.team,
+                "position": body.position,
+                "salary": contract["current_salary"],
+                "contract_years": contract["years_remaining"],
+                "contract": contract,
+                "sleeper_player_id": sleeper_id,
+                **({"source": source} if source else {}),
+            },
+            team_id=team_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     roster = storage.list_roster(ws_id, team_id) if team_id else list_roster_for_context(ctx)
     errors = validate_roster(rules, roster)
     _invalidate_league_rosters_from_ctx(ctx)
@@ -1625,9 +1646,61 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
         )
     if type_field and body.contract_type not in CONTRACT_TYPES:
         raise HTTPException(status_code=400, detail="contract_type must be rookie, veteran, or extension")
-    existing = storage.get_roster_slot(ws_id, body.player_id)
-    if not existing:
+    slots = storage.list_roster_slots_for_player(ws_id, body.player_id)
+    if not slots:
         raise HTTPException(status_code=404, detail="Player not on roster")
+    occupying = next((s for s in slots if storage.roster_row_occupies(s)), None)
+    if body.roster_status == ROSTER_ACTIVE:
+        existing_cut = next(
+            (
+                s
+                for s in slots
+                if not storage.roster_row_occupies(s)
+                and (
+                    not team_id
+                    or str(s.get("team_id") or "") == str(team_id)
+                    or ctx.get("is_commissioner")
+                )
+            ),
+            None,
+        )
+        if existing_cut is None:
+            existing_cut = next((s for s in slots if not storage.roster_row_occupies(s)), None)
+        if existing_cut is not None and occupying is not None:
+            owner_label = "another team"
+            occ_tid = str(occupying.get("team_id") or "")
+            if occ_tid and team_id and occ_tid == str(team_id):
+                owner_label = "your"
+            elif occ_tid:
+                owner = storage.get_team(occ_tid)
+                if owner and owner.get("name"):
+                    owner_label = str(owner["name"])
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Undo cut is closed. "
+                    + (
+                        "They're on your roster."
+                        if owner_label == "your"
+                        else f"They're on {owner_label}'s roster."
+                    )
+                ),
+            )
+        existing = existing_cut or occupying
+        if existing is None:
+            raise HTTPException(status_code=404, detail="Player not on roster")
+    elif body.roster_status == ROSTER_CUT_BEFORE_DRAFT:
+        existing = occupying or storage.get_roster_slot(
+            ws_id, body.player_id, team_id=team_id, prefer_occupying=True
+        )
+        if not existing:
+            raise HTTPException(status_code=404, detail="Player not on roster")
+    else:
+        existing = occupying or storage.get_roster_slot(
+            ws_id, body.player_id, team_id=team_id, prefer_occupying=True
+        )
+        if not existing:
+            raise HTTPException(status_code=404, detail="Player not on roster")
     if ctx.get("mode") == "league" and not ctx.get("is_commissioner"):
         if existing.get("team_id") and str(existing["team_id"]) != str(team_id):
             raise HTTPException(status_code=403, detail="Cannot edit another team's roster")

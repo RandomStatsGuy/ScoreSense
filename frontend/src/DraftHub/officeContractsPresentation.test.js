@@ -105,6 +105,18 @@ test("cut control names the room and dead consequence", () => {
   assert.match(confirm.message, /Frees \$4 leftover/);
   assert.match(confirm.message, /Dead cap \$4/);
   assert.match(confirm.message, /Drop if you meant no penalty/);
+  const closed = cutButtonCopy(
+    {
+      player_name: "Veteran",
+      roster_status: "cut_before_draft",
+      can_undo_cut: false,
+      claimed_by_owner: "Bravo",
+    },
+    RULES,
+  );
+  assert.equal(closed.label, "Undo cut is closed");
+  assert.equal(closed.disabled, true);
+  assert.match(closed.support, /Bravo's roster/);
 });
 
 test("after-draft leftover includes this-season dead cap only", () => {

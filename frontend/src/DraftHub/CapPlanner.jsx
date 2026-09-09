@@ -43,7 +43,8 @@ import {
   CAP_SHEET_COPY,
 } from "./capPlannerPresentation";
 import { buildCapStatusCard } from "./capStatusCard";
-import { contractDeadCapStory, contractTypeLabel, dealSalaryIsStatic, fmtSal, leagueStepUp } from "./rosterFormat";
+import { contractDeadCapStory, contractTypeLabel, dealSalaryIsStatic, fmtSal, leagueStepUp, rosterSlotKey } from "./rosterFormat";
+import { MY_TEAM_COPY } from "./rosterPresentation";
 import ContractHistoryLink from "./ContractHistoryLink";
 import {
   cancelRookieExtend,
@@ -706,6 +707,11 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                       roster_status: "cut_before_draft",
                     }, workspace?.rules).cutBullet}
                     {p.dead_cap_years > 1 ? ` (${p.dead_cap_years} yrs)` : ""}
+                    {p.can_undo_cut === false ? (
+                      <span className="hub-btn-support">
+                        {MY_TEAM_COPY.undoCutClosedDetail(p.claimed_by_owner)}
+                      </span>
+                    ) : (
                     <button
                       type="button"
                       className="btn-link"
@@ -714,6 +720,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                     >
                       Undo cut
                     </button>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -830,7 +837,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
               <ul className="hub-cap-dense-list" aria-label="Cap sheet">
                 {roster.map((r) => (
                   <CapDenseRow
-                    key={r.player_id}
+                    key={rosterSlotKey(r)}
                     name={r.player_name}
                     value={fmtSal(capHitForRow(r, 0, workspace?.rules))}
                     chip={r.position || `${r.contract?.years_remaining ?? r.contract_years ?? "—"} yrs`}
@@ -856,7 +863,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                 <tbody>
                   {roster.map((r) => (
                     <tr
-                      key={r.player_id}
+                      key={rosterSlotKey(r)}
                       className={`hub-cap-row is-action${
                         droppingIds.has(String(r.player_id))
                         || extendableIds.has(String(r.player_id))
@@ -986,11 +993,17 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                   <button
                     type="button"
                     className="btn-ghost btn-sm hub-uncut-btn"
-                    disabled={Boolean(cutBusyId)}
+                    disabled={Boolean(cutBusyId) || selectedCapRow.can_undo_cut === false}
                     onClick={() => undoCut(selectedCapRow.player_id)}
                   >
-                    Undo cut
-                    <span className="hub-btn-support">{selectedStory.undoSupport}</span>
+                    {selectedCapRow.can_undo_cut === false
+                      ? MY_TEAM_COPY.undoCutClosed
+                      : "Undo cut"}
+                    <span className="hub-btn-support">
+                      {selectedCapRow.can_undo_cut === false
+                        ? MY_TEAM_COPY.undoCutClosedSupport(selectedCapRow.claimed_by_owner)
+                        : selectedStory.undoSupport}
+                    </span>
                   </button>
                 ) : null}
                 <ContractHistoryLink

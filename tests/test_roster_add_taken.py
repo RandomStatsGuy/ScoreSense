@@ -229,3 +229,112 @@ def test_commissioner_force_reassigns_to_requested_team(hub_db, monkeypatch):
         assert slot["team_id"] == dest["id"]
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_add_keeps_other_team_cut_and_closes_undo(hub_db, monkeypatch):
+    rules = LeagueRules()
+    league = storage.create_league("comm-keep-cut", "Keep Cut League", 2026, rules, team_count=10)
+    _open_fa(monkeypatch, league)
+    owner = storage.join_league("owner-keep-cut", league["room_code"], "Alpha")
+    member = storage.join_league("member-keep-cut", league["room_code"], "Bravo")
+    ws_id = storage.roster_workspace_for_league(league)
+    storage.add_roster_slot(
+        ws_id,
+        {
+            "player_id": "00-0033873",
+            "player_name": "Patrick Mahomes",
+            "team": "KC",
+            "position": "QB",
+            "salary": 40,
+            "contract_years": 1,
+            "roster_status": "cut_before_draft",
+            "contract": {
+                "current_salary": 40,
+                "years_remaining": 1,
+                "contract_type": "veteran",
+                "cut_dead_cap_years": 1,
+            },
+        },
+        team_id=owner["id"],
+    )
+
+    client = _client_for("member-keep-cut")
+    try:
+        ok = client.post("/api/hub/roster", json=_payload(salary=12, contract_years=1))
+        assert ok.status_code == 200, ok.text
+        slots = storage.list_roster_slots_for_player(ws_id, "00-0033873")
+        assert len(slots) == 2
+        cut = next(s for s in slots if s["roster_status"] == "cut_before_draft")
+        active = next(s for s in slots if s["roster_status"] == "active")
+        assert cut["team_id"] == owner["id"]
+        assert cut["salary"] == 40
+        assert active["team_id"] == member["id"]
+        assert active["salary"] == 12
+        owner_roster = storage.list_roster(ws_id, owner["id"])
+        flagged = next(r for r in owner_roster if r["roster_status"] == "cut_before_draft")
+        assert flagged["can_undo_cut"] is False
+        assert flagged["claimed_by_team_id"] == member["id"]
+
+        storage.set_hub_focus("owner-keep-cut", league_id=league["id"])
+        owner_client = _client_for("owner-keep-cut")
+        blocked = owner_client.patch(
+            "/api/hub/roster",
+            json={"player_id": "00-0033873", "roster_status": "active"},
+        )
+        assert blocked.status_code == 409
+        assert "Undo cut is closed" in blocked.json()["detail"]
+        assert "Bravo" in blocked.json()["detail"]
+        still = storage.list_roster_slots_for_player(ws_id, "00-0033873")
+        assert any(s["roster_status"] == "cut_before_draft" for s in still)
+        assert any(s["roster_status"] == "active" for s in still)
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_member_cannot_add_active_player_even_with_cut_elsewhere(hub_db, monkeypatch):
+    rules = LeagueRules()
+    league = storage.create_league("comm-active-cut", "Active Cut League", 2026, rules, team_count=10)
+    _open_fa(monkeypatch, league)
+    owner = storage.join_league("owner-active-cut", league["room_code"], "Alpha")
+    storage.join_league("member-active-cut", league["room_code"], "Bravo")
+    ws_id = storage.roster_workspace_for_league(league)
+    storage.add_roster_slot(
+        ws_id,
+        {
+            "player_id": "00-0033873",
+            "player_name": "Patrick Mahomes",
+            "team": "KC",
+            "position": "QB",
+            "salary": 40,
+            "contract_years": 1,
+            "roster_status": "cut_before_draft",
+        },
+        team_id=owner["id"],
+    )
+    storage.add_roster_slot(
+        ws_id,
+        {
+            "player_id": "00-0033873",
+            "player_name": "Patrick Mahomes",
+            "team": "KC",
+            "position": "QB",
+            "salary": 12,
+            "contract_years": 1,
+        },
+        team_id=owner["id"],
+    )
+
+    client = _client_for("member-active-cut")
+    try:
+        res = client.post("/api/hub/roster", json=_payload())
+        assert res.status_code == 409
+        assert "already on" in res.json()["detail"].lower()
+        actives = [
+            s
+            for s in storage.list_roster_slots_for_player(ws_id, "00-0033873")
+            if s["roster_status"] == "active"
+        ]
+        assert len(actives) == 1
+        assert actives[0]["team_id"] == owner["id"]
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)

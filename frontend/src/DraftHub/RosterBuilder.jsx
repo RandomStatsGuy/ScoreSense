@@ -16,6 +16,7 @@ import {
   contractTypeLabel,
   fmtSal,
   leagueStepUp,
+  rosterSlotKey,
   contractScheduleHint,
   previewSchedule,
   scheduleText,
@@ -278,11 +279,19 @@ function ContractSidePanelBody({
           <button
             type="button"
             className={`btn-ghost btn-sm${isCut ? " hub-uncut-btn" : ""}`}
-            disabled={isSaving}
+            disabled={isSaving || (isCut && r.can_undo_cut === false)}
             onClick={() => toggleCut(r, !isCut)}
           >
-            {isCut ? MY_TEAM_COPY.undoCut : MY_TEAM_COPY.cutLabel}
-            {isCut ? <span className="hub-btn-support">{deadStory.undoSupport}</span> : null}
+            {isCut && r.can_undo_cut === false
+              ? MY_TEAM_COPY.undoCutClosed
+              : isCut ? MY_TEAM_COPY.undoCut : MY_TEAM_COPY.cutLabel}
+            {isCut ? (
+              <span className="hub-btn-support">
+                {r.can_undo_cut === false
+                  ? MY_TEAM_COPY.undoCutClosedSupport(r.claimed_by_owner)
+                  : deadStory.undoSupport}
+              </span>
+            ) : null}
           </button>
           {canRemove && (
             <button
@@ -431,6 +440,7 @@ export default function RosterBuilder({
   }, []);
 
   const toggleCut = useCallback(async (r, cut) => {
+    if (!cut && r?.can_undo_cut === false) return;
     if (cut && draftCompleted) {
       const story = contractDeadCapStory({ ...r, roster_status: "active" }, workspace?.rules);
       const ok = await confirmDialog({
@@ -1072,7 +1082,7 @@ export default function RosterBuilder({
               const vm = rowViewModel(r);
               return (
                 <MobilePlayerCard
-                  key={r.player_id}
+                  key={rosterSlotKey(r)}
                   className={`${isSleeperPlayer(r) ? "hub-sleeper-row" : ""}${r.roster_status === "cut_before_draft" ? " hub-cut-row" : ""}`.trim()}
                   name={r.player_name}
                   meta={[r.team, normalizeHubPosition(r.position)].filter(Boolean).join(" · ") || "—"}
@@ -1143,7 +1153,7 @@ export default function RosterBuilder({
               const selected = selectedPlayerId === r.player_id;
               return (
                 <tr
-                  key={r.player_id}
+                  key={rosterSlotKey(r)}
                   className={`${isSleeperPlayer(r) ? "hub-sleeper-row" : ""}${isCut ? " hub-cut-row" : ""}${selected ? " hub-roster-row--selected" : ""}`}
                 >
                   <td className="hub-roster-col-player">

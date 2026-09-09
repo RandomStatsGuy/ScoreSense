@@ -6,7 +6,9 @@ import {
   contractDeadCapStory,
   dealCanTakeExtension,
   fmtSal,
+  pendingForRow,
   preDraftCutDeadCap,
+  rosterSlotKey,
 } from "./rosterFormat.js";
 
 export const OFFICE_CONTRACTS_COPY = {
@@ -117,6 +119,17 @@ export function cutButtonCopy(row, rules, { queuedCut = false, draftCompleted = 
   const isCut = queuedCut || row?.roster_status === "cut_before_draft";
   const name = row?.player_name || "player";
   if (isCut) {
+    if (row?.can_undo_cut === false) {
+      const owner = row.claimed_by_owner;
+      return {
+        label: "Undo cut is closed",
+        ariaLabel: `Undo cut of ${name} is closed`,
+        disabled: true,
+        support: owner
+          ? `They're on ${owner}'s roster.`
+          : "They're on another roster.",
+      };
+    }
     return {
       label: "Undo cut",
       ariaLabel: `Undo cut of ${name}`,
@@ -258,11 +271,12 @@ export function pendingMatchesBaseline(pending, row) {
 }
 
 export function mergePendingChange(prev, playerId, patch, baseline) {
-  const cur = { ...(prev[playerId] || { playerId }), ...patch, playerId };
+  const key = rosterSlotKey(baseline) || playerId;
+  const cur = { ...(prev[key] || prev[playerId] || { playerId }), ...patch, playerId };
   if (patch.drop === false) delete cur.drop;
   const next = { ...prev };
-  if (pendingMatchesBaseline(cur, baseline)) delete next[playerId];
-  else next[playerId] = cur;
+  if (pendingMatchesBaseline(cur, baseline)) delete next[key];
+  else next[key] = cur;
   return next;
 }
 
@@ -292,8 +306,8 @@ export function applyPendingToRow(row, pending) {
 
 export function applyPendingToBlock(block, pendingByPlayer) {
   const roster = (block?.roster || [])
-    .filter((r) => !pendingByPlayer[r.player_id]?.drop)
-    .map((r) => applyPendingToRow(r, pendingByPlayer[r.player_id]));
+    .filter((r) => !pendingForRow(pendingByPlayer, r)?.drop)
+    .map((r) => applyPendingToRow(r, pendingForRow(pendingByPlayer, r)));
   return { ...block, roster };
 }
 
@@ -317,9 +331,10 @@ export function summarizePending(teams, pendingByPlayer, salaryCap, rules, draft
 
 export function salaryRoomForRow(block, pendingByPlayer, row, salaryCap, rules, draftCompleted = false) {
   const others = { ...(pendingByPlayer || {}) };
-  const cur = { ...(others[row.player_id] || { playerId: row.player_id }) };
+  const key = rosterSlotKey(row) || row.player_id;
+  const cur = { ...(pendingForRow(others, row) || { playerId: row.player_id }) };
   delete cur.salary;
-  others[row.player_id] = cur;
+  others[key] = cur;
   const stats = teamCapStats(
     applyPendingToBlock(block, others), salaryCap, rules, draftCompleted,
   );

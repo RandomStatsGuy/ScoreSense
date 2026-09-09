@@ -57,7 +57,8 @@ CREATE TABLE IF NOT EXISTS roster_slot (
     salary REAL NOT NULL,
     contract_years INTEGER NOT NULL DEFAULT 1,
     acquired_at TEXT NOT NULL,
-    UNIQUE(workspace_id, player_id)
+    roster_status TEXT NOT NULL DEFAULT 'active',
+    UNIQUE(workspace_id, team_id, player_id, roster_status)
 );
 
 CREATE TABLE IF NOT EXISTS league (
@@ -822,6 +823,173 @@ def _migrate(conn: sqlite3.Connection) -> None:
         )"""
     )
     _ensure_dedicated_league_workspaces(conn)
+    _migrate_roster_slot_cut_coexistence(conn)
+    _ensure_occupying_unique_index(conn)
+
+
+def _roster_slot_allows_cut_and_active(conn: sqlite3.Connection) -> bool:
+    row = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='roster_slot'"
+    ).fetchone()
+    sql = (row[0] if row else "") or ""
+    compact = "".join(sql.split())
+    return "UNIQUE(workspace_id,team_id,player_id,roster_status)" in compact
+
+
+def _migrate_roster_slot_cut_coexistence(conn: sqlite3.Connection) -> None:
+    """Let a cut row and an active award share a player_id.
+
+    Dead cap stays on the original team when another team adds the player.
+    """
+    if _roster_slot_allows_cut_and_active(conn):
+        _ensure_occupying_unique_index(conn)
+        return
+    cols = [str(r[1]) for r in conn.execute("PRAGMA table_info(roster_slot)").fetchall()]
+    if "player_id" not in cols:
+        return
+    conn.execute("UPDATE roster_slot SET team_id = '' WHERE team_id IS NULL")
+    if "roster_status" in cols:
+        conn.execute(
+            "UPDATE roster_slot SET roster_status = 'active' "
+            "WHERE roster_status IS NULL OR TRIM(roster_status) = ''"
+        )
+    col_sql = {
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "workspace_id": "TEXT NOT NULL",
+        "team_id": "TEXT",
+        "player_id": "TEXT NOT NULL",
+        "player_name": "TEXT",
+        "team": "TEXT",
+        "position": "TEXT NOT NULL",
+        "salary": "REAL NOT NULL",
+        "contract_years": "INTEGER NOT NULL DEFAULT 1",
+        "acquired_at": "TEXT NOT NULL",
+        "sleeper_player_id": "TEXT",
+        "source": "TEXT DEFAULT 'manual'",
+        "contract_json": "TEXT",
+        "roster_status": "TEXT NOT NULL DEFAULT 'active'",
+    }
+    keep = [c for c in cols if c in col_sql]
+    if "roster_status" not in keep:
+        keep.append("roster_status")
+    create_cols = ", ".join(f"{c} {col_sql[c]}" for c in keep)
+    conn.execute("DROP TABLE IF EXISTS roster_slot_cut_mig")
+    conn.execute(
+        f"""CREATE TABLE roster_slot_cut_mig (
+            {create_cols},
+            UNIQUE(workspace_id, team_id, player_id, roster_status)
+        )"""
+    )
+    select_parts: list[str] = []
+    for col in keep:
+        if col == "roster_status":
+            select_parts.append(
+                "COALESCE(NULLIF(roster_status, ''), 'active')"
+                if "roster_status" in cols
+                else "'active'"
+            )
+        else:
+            select_parts.append(col)
+    if "roster_status" in cols:
+        conn.execute(
+            """DELETE FROM roster_slot WHERE id NOT IN (
+                 SELECT MIN(id) FROM roster_slot
+                 GROUP BY workspace_id, IFNULL(team_id, ''), player_id,
+                          IFNULL(NULLIF(roster_status, ''), 'active')
+               )"""
+        )
+    else:
+        conn.execute(
+            """DELETE FROM roster_slot WHERE id NOT IN (
+                 SELECT MIN(id) FROM roster_slot
+                 GROUP BY workspace_id, IFNULL(team_id, ''), player_id
+               )"""
+        )
+    quoted = ", ".join(keep)
+    conn.execute(
+        f"INSERT INTO roster_slot_cut_mig ({quoted}) SELECT {', '.join(select_parts)} FROM roster_slot"
+    )
+    conn.execute("DROP TABLE roster_slot")
+    conn.execute("ALTER TABLE roster_slot_cut_mig RENAME TO roster_slot")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_roster_workspace ON roster_slot(workspace_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_roster_team ON roster_slot(team_id)")
+    _ensure_occupying_unique_index(conn)
+
+
+def _ensure_occupying_unique_index(conn: sqlite3.Connection) -> None:
+    """At most one occupying (non-cut) row per player in a workspace."""
+    conn.execute(
+        """CREATE UNIQUE INDEX IF NOT EXISTS idx_roster_one_occupying
+           ON roster_slot(workspace_id, player_id)
+           WHERE IFNULL(roster_status, 'active') NOT IN (
+               'cut_before_draft', 'cut', 'expired', 'waived', 'traded'
+           )
+           AND IFNULL(player_id, '') NOT LIKE 'deadcap:%'"""
+    )
+
+
+DEADCAP_PLAYER_PREFIX = "deadcap:"
+NON_OCCUPYING_ROSTER_STATUSES = frozenset(
+    {"cut_before_draft", "cut", "expired", "waived", "traded"}
+)
+
+
+def roster_row_occupies(row: Any) -> bool:
+    """True when the row consumes the player's live roster spot."""
+    if not row:
+        return False
+    if isinstance(row, sqlite3.Row):
+        pid = str(row["player_id"] or "")
+        status = str(row["roster_status"] or "active") if "roster_status" in row.keys() else "active"
+    else:
+        pid = str(row.get("player_id") or "")
+        status = str(row.get("roster_status") or "active")
+    if pid.startswith(DEADCAP_PLAYER_PREFIX):
+        return False
+    return status not in NON_OCCUPYING_ROSTER_STATUSES
+
+
+def _slot_team_key(row: Any) -> str:
+    if isinstance(row, sqlite3.Row):
+        return str(row["team_id"] or "")
+    return str((row or {}).get("team_id") or "")
+
+
+def _pick_roster_sqlite_row(
+    rows: list[sqlite3.Row],
+    *,
+    team_id: str | None = None,
+    prefer: str = "occupying",
+) -> sqlite3.Row | None:
+    if not rows:
+        return None
+    scoped = rows
+    if team_id is not None and str(team_id) != "":
+        matched = [r for r in rows if str(r["team_id"] or "") == str(team_id)]
+        if matched:
+            scoped = matched
+    if prefer == "cut":
+        cuts = [r for r in scoped if not roster_row_occupies(r)]
+        return cuts[0] if cuts else scoped[0]
+    occupying = [r for r in scoped if roster_row_occupies(r)]
+    if occupying:
+        return occupying[0]
+    return scoped[0]
+
+
+def _occupying_row_conn(
+    conn: sqlite3.Connection,
+    workspace_id: str,
+    player_id: str,
+) -> sqlite3.Row | None:
+    rows = conn.execute(
+        "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
+        (workspace_id, player_id),
+    ).fetchall()
+    for row in rows:
+        if roster_row_occupies(row):
+            return row
+    return None
 
 
 _DB_INITIALIZED = False
@@ -1130,7 +1298,10 @@ def list_roster(workspace_id: str, team_id: str | None = None) -> list[dict[str,
                 (workspace_id,),
             ).fetchall()
         step = _extension_step_for_workspace(conn, workspace_id)
-    return [_roster_dict(r, default_step=step) for r in rows]
+    return enrich_cut_claim_flags(
+        workspace_id,
+        [_roster_dict(r, default_step=step) for r in rows],
+    )
 
 
 def _insert_roster_slot_conn(
@@ -1143,19 +1314,27 @@ def _insert_roster_slot_conn(
     contract_json = json.dumps(contract) if contract else None
     source = row.get("source") or "manual"
     roster_status = str(row.get("roster_status") or "active")
+    team_key = team_id or ""
+    if roster_row_occupies({"player_id": row["player_id"], "roster_status": roster_status}):
+        occ = _occupying_row_conn(conn, workspace_id, str(row["player_id"]))
+        if occ and (
+            str(occ["team_id"] or "") != team_key
+            or str(occ["roster_status"] or "active") != roster_status
+        ):
+            raise ValueError("Player is already on a roster")
     conn.execute(
         """INSERT INTO roster_slot
            (workspace_id, team_id, player_id, player_name, team, position, salary, contract_years,
             acquired_at, sleeper_player_id, source, contract_json, roster_status)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT(workspace_id, player_id) DO UPDATE SET
-             team_id=excluded.team_id, player_name=excluded.player_name, team=excluded.team,
+           ON CONFLICT(workspace_id, team_id, player_id, roster_status) DO UPDATE SET
+             player_name=excluded.player_name, team=excluded.team,
              position=excluded.position, salary=excluded.salary, contract_years=excluded.contract_years,
              sleeper_player_id=excluded.sleeper_player_id, source=excluded.source,
-             contract_json=excluded.contract_json, roster_status=excluded.roster_status""",
+             contract_json=excluded.contract_json""",
         (
             workspace_id,
-            team_id,
+            team_key,
             row["player_id"],
             row.get("player_name"),
             row.get("team"),
@@ -1170,14 +1349,18 @@ def _insert_roster_slot_conn(
         ),
     )
     return conn.execute(
-        "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
-        (workspace_id, row["player_id"]),
+        """SELECT * FROM roster_slot
+           WHERE workspace_id = ? AND team_id = ? AND player_id = ? AND roster_status = ?""",
+        (workspace_id, team_key, row["player_id"], roster_status),
     ).fetchone()
 
 
 def add_roster_slot(workspace_id: str, row: dict[str, Any], team_id: str | None = None) -> dict[str, Any]:
     with get_conn() as conn:
-        r = _insert_roster_slot_conn(conn, workspace_id, row, team_id)
+        try:
+            r = _insert_roster_slot_conn(conn, workspace_id, row, team_id)
+        except sqlite3.IntegrityError as exc:
+            raise ValueError("Player is already on a roster") from exc
         _bump_live_for_workspace_conn(conn, workspace_id)
         return _roster_dict(r)
 
@@ -1197,23 +1380,33 @@ def update_roster_slot(
     allow_zero_years: bool = False,
 ) -> dict[str, Any]:
     with get_conn() as conn:
-        if any_team:
-            row = conn.execute(
-                "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
-                (workspace_id, player_id),
-            ).fetchone()
-        elif team_id:
-            row = conn.execute(
-                "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ? AND team_id = ?",
-                (workspace_id, player_id, team_id),
-            ).fetchone()
-        else:
-            row = conn.execute(
-                "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ? AND (team_id IS NULL OR team_id = '')",
-                (workspace_id, player_id),
-            ).fetchone()
+        rows = conn.execute(
+            "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
+            (workspace_id, player_id),
+        ).fetchall()
+        if not any_team:
+            if team_id:
+                rows = [r for r in rows if str(r["team_id"] or "") == str(team_id)]
+            else:
+                rows = [r for r in rows if not str(r["team_id"] or "")]
+        prefer = "occupying"
+        if roster_status == "active":
+            prefer = "cut"
+        elif roster_status in ("cut", "cut_before_draft"):
+            prefer = "occupying"
+        row = _pick_roster_sqlite_row(rows, team_id=team_id, prefer=prefer)
         if not row:
             raise ValueError("Player not on roster")
+        if roster_status in ("cut", "cut_before_draft"):
+            same_cut = [
+                r for r in rows
+                if not roster_row_occupies(r)
+                and int(r["id"]) != int(row["id"])
+                and str(r["team_id"] or "") == str(row["team_id"] or "")
+                and str(r["roster_status"] or "") == str(roster_status)
+            ]
+            if same_cut:
+                raise ValueError("Already carrying dead cap for this player on this team")
         prior = _roster_dict(row)
         sal = float(salary) if salary is not None else float(row["salary"])
         yrs = int(contract_years) if contract_years is not None else int(row["contract_years"])
@@ -1298,23 +1491,18 @@ def set_roster_contract_type(
     from datetime import datetime, timezone
 
     with get_conn() as conn:
-        row = None
-        # Prefer the caller's team row when duplicates exist.
+        all_rows = conn.execute(
+            "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
+            (workspace_id, player_id),
+        ).fetchall()
+        scoped = all_rows
         if team_id:
-            row = conn.execute(
-                "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ? AND team_id = ?",
-                (workspace_id, player_id, team_id),
-            ).fetchone()
-        if row is None and any_team:
-            row = conn.execute(
-                "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
-                (workspace_id, player_id),
-            ).fetchone()
-        if row is None and not team_id:
-            row = conn.execute(
-                "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ? AND (team_id IS NULL OR team_id = '')",
-                (workspace_id, player_id),
-            ).fetchone()
+            scoped = [r for r in all_rows if str(r["team_id"] or "") == str(team_id)] or (
+                all_rows if any_team else []
+            )
+        elif not any_team:
+            scoped = [r for r in all_rows if not str(r["team_id"] or "")]
+        row = _pick_roster_sqlite_row(scoped, team_id=team_id, prefer="occupying")
         if not row:
             raise ValueError("Player not on roster")
 
@@ -1480,28 +1668,37 @@ def remove_roster_slot(
     player_id: str,
     *,
     team_id: str | None = None,
+    occupying_only: bool = True,
 ) -> bool:
     with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
+            (workspace_id, player_id),
+        ).fetchall()
         if team_id is not None:
-            cur = conn.execute(
-                "DELETE FROM roster_slot WHERE workspace_id = ? AND player_id = ? AND team_id = ?",
-                (workspace_id, player_id, team_id),
-            )
-        else:
-            cur = conn.execute(
-                "DELETE FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
-                (workspace_id, player_id),
-            )
-        return cur.rowcount > 0
+            rows = [r for r in rows if str(r["team_id"] or "") == str(team_id)]
+        if occupying_only:
+            rows = [r for r in rows if roster_row_occupies(r)]
+        if not rows:
+            return False
+        ids = [int(r["id"]) for r in rows]
+        placeholders = ",".join("?" * len(ids))
+        conn.execute(
+            f"DELETE FROM roster_slot WHERE id IN ({placeholders})",
+            ids,
+        )
+        _bump_live_for_workspace_conn(conn, workspace_id)
+        return True
 
 
 def extend_contract(workspace_id: str, player_id: str, extension_years: int,
                     new_salary: float | None = None, contract: dict | None = None) -> dict[str, Any] | None:
     with get_conn() as conn:
-        slot = conn.execute(
+        rows = conn.execute(
             "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
             (workspace_id, player_id),
-        ).fetchone()
+        ).fetchall()
+        slot = _pick_roster_sqlite_row(rows, prefer="occupying")
         if not slot:
             return None
         if contract:
@@ -1826,19 +2023,21 @@ def finalize_auction_win(
             "UPDATE team SET budget_remaining = ? WHERE id = ?",
             (new_budget, winner_id),
         )
+        award_status = str(roster_row.get("roster_status") or "active")
+        winner_key = winner_id or ""
         conn.execute(
             """INSERT INTO roster_slot
                (workspace_id, team_id, player_id, player_name, team, position, salary, contract_years,
                 acquired_at, sleeper_player_id, source, contract_json, roster_status)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-               ON CONFLICT(workspace_id, player_id) DO UPDATE SET
-                 team_id=excluded.team_id, player_name=excluded.player_name, team=excluded.team,
+               ON CONFLICT(workspace_id, team_id, player_id, roster_status) DO UPDATE SET
+                 player_name=excluded.player_name, team=excluded.team,
                  position=excluded.position, salary=excluded.salary, contract_years=excluded.contract_years,
                  sleeper_player_id=excluded.sleeper_player_id, source=excluded.source,
-                 contract_json=excluded.contract_json, roster_status=excluded.roster_status""",
+                 contract_json=excluded.contract_json""",
             (
                 workspace_id,
-                winner_id,
+                winner_key,
                 roster_row["player_id"],
                 roster_row.get("player_name"),
                 roster_row.get("team"),
@@ -1849,7 +2048,7 @@ def finalize_auction_win(
                 roster_row.get("sleeper_player_id"),
                 roster_row.get("source") or "draft",
                 contract_json,
-                str(roster_row.get("roster_status") or "active"),
+                award_status,
             ),
         )
         _bump_live_for_workspace_conn(conn, workspace_id)
@@ -2030,11 +2229,18 @@ def transfer_roster_players(
     moved = 0
     with get_conn() as conn:
         for pid in player_ids:
-            cur = conn.execute(
-                """UPDATE roster_slot SET team_id = ? WHERE workspace_id = ? AND player_id = ? AND team_id = ?""",
-                (to_team_id, workspace_id, pid, from_team_id),
-            )
-            moved += cur.rowcount
+            rows = conn.execute(
+                """SELECT * FROM roster_slot
+                   WHERE workspace_id = ? AND player_id = ? AND team_id = ?""",
+                (workspace_id, pid, from_team_id),
+            ).fetchall()
+            occupying = [r for r in rows if roster_row_occupies(r)]
+            for row in occupying:
+                cur = conn.execute(
+                    "UPDATE roster_slot SET team_id = ? WHERE id = ?",
+                    (to_team_id, row["id"]),
+                )
+                moved += cur.rowcount
         if moved:
             _bump_live_for_workspace_conn(conn, workspace_id)
     return moved
@@ -2052,10 +2258,15 @@ def apply_trade_plan(
     with get_conn() as conn:
         for move in moves:
             pid = str(move["player_id"])
-            row = conn.execute(
+            rows = conn.execute(
                 "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
                 (workspace_id, pid),
-            ).fetchone()
+            ).fetchall()
+            row = _pick_roster_sqlite_row(
+                rows,
+                team_id=move.get("from_team_id"),
+                prefer="occupying",
+            )
             if not row:
                 raise ValueError(f"Failed to move {pid}")
             updates = ["team_id = ?"]
@@ -3211,13 +3422,88 @@ def update_team_sleeper_link(
         return _team_dict(row)
 
 
-def get_roster_slot(workspace_id: str, player_id: str) -> dict[str, Any] | None:
+def get_roster_slot(
+    workspace_id: str,
+    player_id: str,
+    *,
+    team_id: str | None = None,
+    prefer_occupying: bool = True,
+) -> dict[str, Any] | None:
     with get_conn() as conn:
-        row = conn.execute(
+        rows = conn.execute(
             "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
             (workspace_id, player_id),
-        ).fetchone()
+        ).fetchall()
+        row = _pick_roster_sqlite_row(
+            rows,
+            team_id=team_id,
+            prefer="occupying" if prefer_occupying else "cut",
+        )
         return _roster_dict(row) if row else None
+
+
+def list_roster_slots_for_player(workspace_id: str, player_id: str) -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
+            (workspace_id, player_id),
+        ).fetchall()
+        step = _extension_step_for_workspace(conn, workspace_id)
+    return [_roster_dict(r, default_step=step) for r in rows]
+
+
+def enrich_cut_claim_flags(
+    workspace_id: str,
+    roster: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Mark cut rows whose undo is closed because the player is active again."""
+    if not roster:
+        return roster
+    cut_pids = [
+        str(row.get("player_id") or "")
+        for row in roster
+        if not roster_row_occupies(row)
+    ]
+    cut_pids = [pid for pid in cut_pids if pid]
+    if not cut_pids:
+        return roster
+    occupying_by_pid: dict[str, dict[str, Any]] = {}
+    with get_conn() as conn:
+        placeholders = ",".join("?" * len(cut_pids))
+        rows = conn.execute(
+            f"""SELECT * FROM roster_slot
+                WHERE workspace_id = ? AND player_id IN ({placeholders})""",
+            (workspace_id, *cut_pids),
+        ).fetchall()
+        for row in rows:
+            if roster_row_occupies(row):
+                occupying_by_pid[str(row["player_id"])] = _roster_dict(row)
+        team_ids = {
+            str(slot.get("team_id") or "")
+            for slot in occupying_by_pid.values()
+            if slot.get("team_id")
+        }
+        names: dict[str, str] = {}
+        if team_ids:
+            t_ph = ",".join("?" * len(team_ids))
+            for team in conn.execute(
+                f"SELECT id, name FROM team WHERE id IN ({t_ph})",
+                tuple(team_ids),
+            ).fetchall():
+                names[str(team["id"])] = str(team["name"] or "")
+    out: list[dict[str, Any]] = []
+    for row in roster:
+        if roster_row_occupies(row):
+            out.append(row)
+            continue
+        claimed = occupying_by_pid.get(str(row.get("player_id") or ""))
+        extra: dict[str, Any] = {"can_undo_cut": claimed is None}
+        if claimed:
+            extra["claimed_by_team_id"] = claimed.get("team_id")
+            tid = str(claimed.get("team_id") or "")
+            extra["claimed_by_owner"] = names.get(tid) or None
+        out.append({**row, **extra})
+    return out
 
 
 def list_league_roster(workspace_id: str) -> list[dict[str, Any]]:
@@ -3228,7 +3514,10 @@ def list_league_roster(workspace_id: str) -> list[dict[str, Any]]:
             (workspace_id,),
         ).fetchall()
         step = _extension_step_for_workspace(conn, workspace_id)
-    return [_roster_dict(r, default_step=step) for r in rows]
+    return enrich_cut_claim_flags(
+        workspace_id,
+        [_roster_dict(r, default_step=step) for r in rows],
+    )
 
 
 def list_league_rosters_by_team(league_id: str) -> dict[str, list[dict[str, Any]]]:
@@ -3245,16 +3534,22 @@ def list_league_rosters_by_team(league_id: str) -> dict[str, list[dict[str, Any]
             (workspace_id,),
         ).fetchall()
         step = _extension_step_for_workspace(conn, workspace_id)
-    for row in rows:
-        tid = str(row["team_id"])
+    all_rows = enrich_cut_claim_flags(
+        workspace_id,
+        [_roster_dict(row, default_step=step) for row in rows],
+    )
+    for row in all_rows:
+        tid = str(row.get("team_id") or "")
         if tid in out:
-            out[tid].append(_roster_dict(row, default_step=step))
+            out[tid].append(row)
     return out
 
 
 def roster_player_team_map(workspace_id: str) -> dict[str, str]:
     out: dict[str, str] = {}
     for row in list_league_roster(workspace_id):
+        if not roster_row_occupies(row):
+            continue
         tid = row.get("team_id")
         if tid:
             out[str(row["player_id"])] = str(tid)
@@ -3276,10 +3571,11 @@ def list_orphan_roster_slots(workspace_id: str) -> list[dict[str, Any]]:
 def move_roster_player(workspace_id: str, player_id: str, to_team_id: str) -> dict[str, Any] | None:
     """Move a player's contract to another hub team (Sleeper trade sync)."""
     with get_conn() as conn:
-        row = conn.execute(
+        rows = conn.execute(
             "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
             (workspace_id, player_id),
-        ).fetchone()
+        ).fetchall()
+        row = _pick_roster_sqlite_row(rows, prefer="occupying")
         if not row:
             return None
         if str(row["team_id"] or "") == str(to_team_id):
@@ -3303,33 +3599,42 @@ def update_roster_metadata(
     sleeper_player_id: str | None = None,
 ) -> dict[str, Any] | None:
     with get_conn() as conn:
-        row = conn.execute(
+        rows = conn.execute(
             "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
             (workspace_id, player_id),
-        ).fetchone()
-        if not row:
+        ).fetchall()
+        if not rows:
             return None
-        updates: list[str] = []
-        params: list[Any] = []
-        if player_name is not None and player_name != row["player_name"]:
-            updates.append("player_name = ?")
-            params.append(player_name)
-        if team is not None and team != row["team"]:
-            updates.append("team = ?")
-            params.append(team)
-        if position is not None and position != row["position"]:
-            updates.append("position = ?")
-            params.append(position)
-        if sleeper_player_id is not None and sleeper_player_id != row["sleeper_player_id"]:
-            updates.append("sleeper_player_id = ?")
-            params.append(sleeper_player_id)
-        if not updates:
-            return _roster_dict(row)
-        params.append(row["id"])
-        conn.execute(f"UPDATE roster_slot SET {', '.join(updates)} WHERE id = ?", params)
-        updated = conn.execute("SELECT * FROM roster_slot WHERE id = ?", (row["id"],)).fetchone()
-        _bump_live_for_workspace_conn(conn, workspace_id)
-        return _roster_dict(updated)
+        last = None
+        changed = False
+        for row in rows:
+            updates: list[str] = []
+            params: list[Any] = []
+            if player_name is not None and player_name != row["player_name"]:
+                updates.append("player_name = ?")
+                params.append(player_name)
+            if team is not None and team != row["team"]:
+                updates.append("team = ?")
+                params.append(team)
+            if position is not None and position != row["position"]:
+                updates.append("position = ?")
+                params.append(position)
+            if sleeper_player_id is not None and sleeper_player_id != row["sleeper_player_id"]:
+                updates.append("sleeper_player_id = ?")
+                params.append(sleeper_player_id)
+            if not updates:
+                last = row
+                continue
+            params.append(row["id"])
+            conn.execute(f"UPDATE roster_slot SET {', '.join(updates)} WHERE id = ?", params)
+            last = conn.execute("SELECT * FROM roster_slot WHERE id = ?", (row["id"],)).fetchone()
+            changed = True
+        if changed:
+            _bump_live_for_workspace_conn(conn, workspace_id)
+        picked = _pick_roster_sqlite_row(rows if last is None else [last], prefer="occupying")
+        if changed and last is not None:
+            picked = last
+        return _roster_dict(picked) if picked else None
 
 
 def _league_dict(row: sqlite3.Row) -> dict[str, Any]:
@@ -4188,16 +4493,16 @@ def import_commissioner_league_sheet(
             conn.execute(
                 """INSERT INTO roster_slot
                    (workspace_id, team_id, player_id, player_name, team, position, salary, contract_years,
-                    acquired_at, sleeper_player_id, source, contract_json)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                   ON CONFLICT(workspace_id, player_id) DO UPDATE SET
-                     team_id=excluded.team_id, player_name=excluded.player_name, team=excluded.team,
+                    acquired_at, sleeper_player_id, source, contract_json, roster_status)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(workspace_id, team_id, player_id, roster_status) DO UPDATE SET
+                     player_name=excluded.player_name, team=excluded.team,
                      position=excluded.position, salary=excluded.salary, contract_years=excluded.contract_years,
                      sleeper_player_id=excluded.sleeper_player_id, source=excluded.source,
                      contract_json=excluded.contract_json""",
                 (
                     workspace_id,
-                    tid,
+                    tid or "",
                     payload["player_id"],
                     payload.get("player_name"),
                     payload.get("team"),
@@ -4208,6 +4513,7 @@ def import_commissioner_league_sheet(
                     payload.get("sleeper_player_id"),
                     source,
                     contract_json,
+                    str(payload.get("roster_status") or "active"),
                 ),
             )
     return {"imported": sum(by_team.values()), "by_team": by_team, "teams": list(by_team.keys())}

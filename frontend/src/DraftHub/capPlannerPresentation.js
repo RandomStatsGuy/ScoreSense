@@ -293,7 +293,7 @@ export function capSheetYearOffsets({ roster = [], yearCount = 0, hitFor } = {})
 }
 
 export function capRailPrimary({ pendingCut = null, remaining = 0 } = {}) {
-  if (pendingCut?.player_name) {
+  if (pendingCut?.player_name && pendingCut.can_undo_cut !== false) {
     const dead = Number(pendingCut.dead_cap);
     const salary = Number(pendingCut.salary);
     const deadBit = Number.isFinite(dead) ? `+$${Math.round(dead)} dead` : "+$0 dead";
