@@ -25,6 +25,10 @@ export function nominationModeLabel(mode) {
   return mode === "tax" ? NOMINATION_COPY.tax : NOMINATION_COPY.need;
 }
 
+function hasActiveSlice({ search = "", position = "ALL" } = {}) {
+  return Boolean(String(search || "").trim()) || (position && position !== "ALL");
+}
+
 export function nominationRailEmpty({
   loading = false,
   rowCount = 0,
@@ -32,15 +36,23 @@ export function nominationRailEmpty({
   leftover = null,
   hasTaxTargets = false,
   needPositions = [],
+  search = "",
+  position = "ALL",
+  hasNeedWithoutLeftover = false,
+  minBid = 1,
 } = {}) {
   if (loading && rowCount === 0) return NOMINATION_COPY.loading;
   if (rowCount > 0) return "";
   if (mode === "tax" && !hasTaxTargets) return NOMINATION_COPY.emptyTaxNone;
   if (mode === "tax") return NOMINATION_COPY.emptyTaxSlice;
+  if (hasActiveSlice({ search, position })) return NOMINATION_COPY.emptyFilter;
   if (mode === "need" && needPositions.length) {
-    if (leftover != null && Number.isFinite(Number(leftover))) {
-      return NOMINATION_COPY.emptyNeedBroke;
-    }
+    const purse = leftover == null ? null : Number(leftover);
+    const floor = Number(minBid ?? 1);
+    const broke = Number.isFinite(purse) && (
+      (Number.isFinite(floor) && purse < floor) || hasNeedWithoutLeftover
+    );
+    if (broke) return NOMINATION_COPY.emptyNeedBroke;
     return NOMINATION_COPY.emptyNeed;
   }
   return NOMINATION_COPY.emptyFilter;

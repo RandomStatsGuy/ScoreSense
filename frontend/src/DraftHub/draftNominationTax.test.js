@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  auctionFloor,
   buildNominationTaxMap,
+  needExistsInSlice,
   playerFitsNeed,
   sortRowsByTax,
 } from "./draftNominationTax.js";
@@ -71,4 +73,39 @@ test("Tax sort puts the richest rival hole first", () => {
     sortRowsByTax(rows, map).map((row) => row.player_id),
     ["te1", "qb1", "rb1"],
   );
+});
+
+test("Tax sort treats a missing suggested bid as unset, not zero", () => {
+  const tied = [
+    { player_id: "zero", player: "Alpha", position: "TE" },
+    { player_id: "null", player: "Bravo", position: "TE" },
+  ];
+  const map = {
+    zero: { rival_budget_remaining: 50, suggested_bid: 0 },
+    null: { rival_budget_remaining: 50, suggested_bid: null },
+  };
+  assert.deepEqual(
+    sortRowsByTax(tied, map).map((row) => row.player_id),
+    ["zero", "null"],
+  );
+});
+
+test("a zero min bid still taxes a rival sitting on leftover 0", () => {
+  const broke = { id: "broke", owner_name: "Pat", name: "Pat", budget_remaining: 0 };
+  const map = buildNominationTaxMap({
+    rows: [{ player_id: "te1", player: "Tight End", position: "TE", fair_value: 14 }],
+    teams: [me, broke],
+    rosters: { me: [keeper("QB")], broke: [keeper("RB"), keeper("RB")] },
+    viewerTeamId: "me",
+    rules: RULES,
+    minBid: 0,
+  });
+  assert.equal(auctionFloor(0), 0);
+  assert.equal(map.te1.rival_owner_name, "Pat");
+});
+
+test("Need slice ignores leftover when asking if a hole still has names", () => {
+  assert.equal(needExistsInSlice(rows, { needPositions: ["QB"] }), true);
+  assert.equal(needExistsInSlice(rows, { needPositions: ["QB"], search: "zzz" }), false);
+  assert.equal(needExistsInSlice(rows, { needPositions: ["QB"], position: "TE" }), false);
 });

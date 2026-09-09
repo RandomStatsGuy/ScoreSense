@@ -21,6 +21,7 @@ import {
   watchLabel,
 } from "./draftLivePresentation";
 import { NOMINATION_COPY, nominationRailEmpty } from "./draftNominationPresentation";
+import { needExistsInSlice } from "./draftNominationTax";
 
 const PICK_SORTS = [
   ["season_proj", "Projection"],
@@ -96,6 +97,10 @@ export default function DraftPlayerRail({
       maxRows: 60,
     }),
     [rows, pickDraft, position, search, sortKey, mode, needPositions, taxById, leftover],
+  );
+  const hasNeedWithoutLeftover = useMemo(
+    () => needExistsInSlice(rows, { needPositions, position, search }),
+    [rows, needPositions, position, search],
   );
   const fetchedMedia = usePlayerMedia(visibleRows.map((row) => row.player_id).filter(Boolean));
   const media = useMemo(
@@ -193,6 +198,10 @@ export default function DraftPlayerRail({
               leftover,
               hasTaxTargets: Boolean(taxCount),
               needPositions,
+              search,
+              position,
+              hasNeedWithoutLeftover,
+              minBid,
             })}
           </p>
         ) : visibleRows.map((row) => {

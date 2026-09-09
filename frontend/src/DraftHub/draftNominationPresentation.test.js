@@ -17,7 +17,41 @@ test("Need empty names leftover as the reason", () => {
     /leftover/i,
   );
   assert.match(
+    nominationRailEmpty({
+      mode: "need",
+      leftover: 40,
+      needPositions: ["QB"],
+      hasNeedWithoutLeftover: true,
+    }),
+    /leftover/i,
+  );
+  assert.match(
     nominationRailEmpty({ mode: "need", needPositions: ["TE"] }),
+    /Needs filled/i,
+  );
+});
+
+test("Need empty does not call leftover broke when a filter emptied the rail", () => {
+  assert.match(
+    nominationRailEmpty({
+      mode: "need",
+      leftover: 100,
+      needPositions: ["QB"],
+      search: "zzz",
+    }),
+    /filters/i,
+  );
+  assert.match(
+    nominationRailEmpty({
+      mode: "need",
+      leftover: 100,
+      needPositions: ["QB"],
+      position: "WR",
+    }),
+    /filters/i,
+  );
+  assert.match(
+    nominationRailEmpty({ mode: "need", leftover: 100, needPositions: ["QB"] }),
     /Needs filled/i,
   );
 });

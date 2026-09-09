@@ -288,7 +288,7 @@ export default function DraftRoom({
       rosters: roomState?.rosters || {},
       viewerTeamId: myTeamId,
       rules,
-      minBid: Number(rules?.auction?.min_bid ?? 1) || 1,
+      minBid: Number(rules?.auction?.min_bid ?? 1),
       draftCompleted: Boolean(league?.draft_completed) || session?.status === "completed",
     });
   }, [
