@@ -130,6 +130,25 @@ def test_repair_preserves_explicitly_stepped_rookie_schedule():
     assert fixed == stepped
 
 
+def test_repair_keeps_explicitly_static_veteran_flat():
+    from src.draft_hub.contracts import repair_flat_deal_schedule
+
+    flat = {
+        "contract_type": "veteran",
+        "current_salary": 8,
+        "years_remaining": 2,
+        "veteran_salary_static": True,
+        "step_up_per_year": 0,
+        "schedule": [
+            {"year_offset": 0, "salary": 8},
+            {"year_offset": 1, "salary": 8},
+        ],
+    }
+    fixed = repair_flat_deal_schedule(flat)
+    assert [y["salary"] for y in fixed["schedule"]] == [8, 8]
+    assert float(fixed.get("step_up_per_year") or 0) == 0
+
+
 def test_repair_applies_step_to_flat_multi_year_veteran():
     from src.draft_hub.contracts import repair_flat_deal_schedule
 

@@ -62,7 +62,19 @@ export const CAP_MODEL_COPY = {
   expireBeforeDraftTitle: "Expire before draft",
   expireBeforeDraft:
     "Final-year deals enter the draft pool unless you extend. If they are not drafted, they become free agents.",
+  stepUp: "Step-up",
 };
+
+export function capStepUpLine({
+  rookieStatic = true,
+  veteranStatic = true,
+  stepUp = 5,
+} = {}) {
+  const step = Number(stepUp) || 0;
+  const rookie = rookieStatic ? "stay flat" : `increase $${step}/yr`;
+  const vet = veteranStatic ? "stay flat" : `increase $${step}/yr`;
+  return `Rookie deals ${rookie}; vet deals ${vet}; extensions increase $${step}/yr.`;
+}
 
 export const CAP_STATUS_COPY = {
   extensionQueued: "Extension queued",

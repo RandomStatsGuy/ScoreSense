@@ -241,6 +241,8 @@ Voice:
 | Maximum extension | Max yrs |
 | Annual salary step-up | Step |
 | Keep rookie salary static | Static rookies |
+| Keep vet deals flat | Static vets |
+| Allow vet deal extensions | Vet extensions |
 | Roster management | Commissioner |
 | Save rules | Submit |
 | Commissioner managed | You do not have permission |
@@ -294,8 +296,8 @@ Do not invent a parallel rules model. Canonical merge/validate/preview: `fronten
 - Rules Save writes the league on the form, not the last-focused league in the header. A late save response must not yank the UI to a different league.
 - Applying a league template confirms, names what changes, and fills the form. It does not save. Offer undo until the next edit. Style those triggers as destructive, not ghost chips.
 - Contract types shown to users are **Rookie deal**, **Vet deal**, and **Extension**. Never “Rookie Extension” or “Veteran Deal”.
-- Static rookie deals stay flat; vet deals and extensions use the configured step-up every year.
-- Final-year rookie deals and vet deals may take one extension when Rules **Allow extensions** is on. An extension cannot be extended again. The same toggle writes both client and server flags.
+- Static rookie deals and vet deals stay flat for the first term. The configured step-up starts on an **Extension**. Rules shows **Keep vet deals flat** and **Allow vet deal extensions** as their own toggles.
+- Final-year rookie deals may take one extension when **Allow rookie deal extensions** is on. Final-year vet deals may take one when **Allow vet deal extensions** is on. An extension cannot be extended again.
 - Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`): locked pre-draft and in-season off-window; FAAB bid post-draft / waivers; instant add after waivers; offseason trades only for contracts that survive the next draft.
 - ScoreSense-only leagues persist weekly lineups on This Week and score the week with ScoreSense PPR (nflverse; internal id `hub_ppr` — the string "Hub PPR" never reaches UI). Linked Sleeper leagues still set and score lineups in Sleeper; Game center reads Sleeper.
 - Staff edits in Roster management may override; Players-tab adds never do.

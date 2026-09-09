@@ -178,7 +178,7 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/hub/rules",
     page: "frontend/src/DraftHub/RulesWizard.jsx",
     copy: "frontend/src/DraftHub/rulesPresentation.js",
-    doNot: "Do not invent a parallel rules model. Merge via rulesPresentation.js. Templates confirm and fill the form — they do not save. Save writes the league on the form, not hub focus. Draft behavior stays an open section. At a glance names saved vs preview. Hero chips are status, not the page primary. Do not put You can edit where Save belongs.",
+    doNot: "Do not invent a parallel rules model. Merge via rulesPresentation.js. Templates confirm and fill the form — they do not save. Save writes the league on the form, not hub focus. Draft behavior stays an open section. At a glance names saved vs preview. Hero chips are status, not the page primary. Do not put You can edit where Save belongs. Keep vet deals flat and Allow vet deal extensions are their own toggles — do not hide vet policy inside one Allow extensions switch.",
   }),
   "hub.office": S({
     label: "Roster management",

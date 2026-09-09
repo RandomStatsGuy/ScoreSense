@@ -11,7 +11,6 @@ import { isHubRulesPath, setUnsavedNavigationBlocker } from "../unsavedNavigatio
 import { HubFilterMenu, HubPage } from "./HubUILayout";
 import { isPickDraft } from "./draftEntryStatus";
 import {
-  applyDealExtensionPolicy,
   contractSchedule,
   DEFAULT_RULES,
   FORMAT_OPTIONS,
@@ -186,6 +185,7 @@ export default function RulesWizard({
     10,
     rules.contracts.veteran_years,
     rules.contracts.extension_step_up,
+    rules.contracts.veteran_salary_static,
   );
   const extensionPreviewYears = Math.min(2, Math.max(1, Number(rules.contracts.max_years) || 2));
   const extensionSchedule = contractSchedule(
@@ -526,14 +526,25 @@ export default function RulesWizard({
                   onChange={(value) => updateContract("rookie_salary_static", value)}
                 />
                 <PolicyToggle
-                  checked={leagueAllowsDealExtensions(rules.contracts)}
+                  checked={Boolean(rules.contracts.veteran_salary_static)}
                   disabled={readOnlyRules}
-                  title={RULES_COPY.allowExtensions}
-                  description={RULES_COPY.allowExtensionsHelp}
-                  onChange={(value) => updateRules((current) => ({
-                    ...current,
-                    contracts: applyDealExtensionPolicy(current.contracts, value),
-                  }))}
+                  title={RULES_COPY.keepVetFlat}
+                  description={RULES_COPY.keepVetFlatHelp}
+                  onChange={(value) => updateContract("veteran_salary_static", value)}
+                />
+                <PolicyToggle
+                  checked={Boolean(rules.contracts.one_renewal_after_rookie)}
+                  disabled={readOnlyRules}
+                  title={RULES_COPY.allowRookieExtensions}
+                  description={RULES_COPY.allowRookieExtensionsHelp}
+                  onChange={(value) => updateContract("one_renewal_after_rookie", value)}
+                />
+                <PolicyToggle
+                  checked={Boolean(rules.contracts.allow_veteran_renewal)}
+                  disabled={readOnlyRules}
+                  title={RULES_COPY.allowVetExtensions}
+                  description={RULES_COPY.allowVetExtensionsHelp}
+                  onChange={(value) => updateContract("allow_veteran_renewal", value)}
                 />
               </div>
 
@@ -549,7 +560,7 @@ export default function RulesWizard({
                   />
                   <SalarySchedule
                     title={RULES_COPY.previewVet}
-                    detail={RULES_COPY.previewStep}
+                    detail={rules.contracts.veteran_salary_static ? RULES_COPY.previewFlat : RULES_COPY.previewStep}
                     values={veteranSchedule}
                   />
                   {leagueAllowsDealExtensions(rules.contracts) ? (

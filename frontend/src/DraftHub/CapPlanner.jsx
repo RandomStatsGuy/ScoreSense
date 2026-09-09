@@ -25,6 +25,7 @@ import {
   capSheetYearOffsets,
   leftoverAfterMoveDisplay,
   leftoverMoveReadout,
+  capStepUpLine,
   fmtCapMoney,
   parseNeedErrors,
   rosterNeedLine,
@@ -41,7 +42,7 @@ import {
   CAP_SHEET_COPY,
 } from "./capPlannerPresentation";
 import { buildCapStatusCard } from "./capStatusCard";
-import { contractDeadCapStory, contractTypeLabel, fmtSal, leagueStepUp } from "./rosterFormat";
+import { contractDeadCapStory, contractTypeLabel, dealSalaryIsStatic, fmtSal, leagueStepUp } from "./rosterFormat";
 import ContractHistoryLink from "./ContractHistoryLink";
 import {
   cancelRookieExtend,
@@ -67,6 +68,18 @@ function capHitForRow(row, offset = 0, rules) {
     return Math.round(base + (Number.isFinite(step) ? step : leagueStepUp(rules)) * offset);
   }
   if ((ctype === "extension" || ctype === "veteran") && Number.isFinite(base)) {
+    if (ctype === "veteran" && dealSalaryIsStatic(ctype, rules, contract)) {
+      const sched = contract?.schedule;
+      if (sched?.length) {
+        const amounts = sched.map((year) => Number(year.salary));
+        const isFlat = amounts.length > 0 && amounts.every((v) => Math.abs(v - base) < 0.001);
+        if (!isFlat) {
+          const hit = sched.find((year) => Number(year.year_offset) === offset);
+          if (hit) return Number(hit.salary);
+        }
+      }
+      return base;
+    }
     const step = Number(contract?.step_up_per_year);
     const useStep = Number.isFinite(step) && step > 0 ? step : leagueStepUp(rules);
     const sched = contract?.schedule;
@@ -152,6 +165,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
   const stepUp = leagueStepUp(workspace?.rules);
   const maxExtensionYears = Math.max(1, Number(workspace?.rules?.contracts?.max_years ?? 3));
   const rookieSalaryStatic = workspace?.rules?.contracts?.rookie_salary_static !== false;
+  const veteranSalaryStatic = workspace?.rules?.contracts?.veteran_salary_static !== false;
   const veteranExtensions = workspace?.rules?.contracts?.allow_veteran_renewal === true;
   const hasRoster = (roster?.length ?? 0) > 0;
   const mobileLayout = useMobileLayout();
@@ -248,7 +262,11 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
       <p><strong>Queued</strong> — Extension activates when draft is marked complete (1- and 3-year terms preserved).</p>
       <p><strong>Against this cap</strong> — This year&apos;s salary plus dead cap. Leftover is the rest of the cap.</p>
       <p><strong>Keep past this draft</strong> — Players still under contract after this draft. On this sheet is every row listed below.</p>
-      <p><strong>Step-up</strong> — Rookie deals {rookieSalaryStatic ? "stay flat" : `increase $${stepUp}/yr`}; vet deals and extensions increase ${stepUp}/yr.</p>
+      <p><strong>{CAP_MODEL_COPY.stepUp}</strong> — {capStepUpLine({
+        rookieStatic: rookieSalaryStatic,
+        veteranStatic: veteranSalaryStatic,
+        stepUp,
+      })}</p>
       <p><strong>Cut refund</strong> — {cutPct}% back; rest is dead cap.</p>
     </>
   );

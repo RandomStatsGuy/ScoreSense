@@ -6,6 +6,7 @@ import {
   auctionAwardContractLabel,
   contractTypeLabel,
   dealCanTakeExtension,
+  dealSalaryIsStatic,
   joinSalarySchedule,
   previewSchedule,
 } from "./rosterFormat.js";
@@ -59,5 +60,17 @@ test("flat salary schedules render as one figure", () => {
   assert.equal(joinSalarySchedule(["$4", "$4"]), "$4");
   assert.equal(joinSalarySchedule(["$17", "$22"]), "$17 → $22");
   assert.equal(previewSchedule(4, 2, 0, "rookie", true), "$4");
-  assert.equal(previewSchedule(17, 2, 5, "veteran", true), "$17 → $22");
+  assert.equal(previewSchedule(17, 2, 5, "veteran", true, true), "$17");
+  assert.equal(previewSchedule(17, 2, 5, "veteran", true, false), "$17 → $22");
+  assert.equal(dealSalaryIsStatic("veteran", { contracts: { veteran_salary_static: true } }), true);
+  assert.equal(dealSalaryIsStatic("veteran", { contracts: { veteran_salary_static: false } }), false);
+  assert.equal(
+    auctionAwardContractLabel({
+      contract_type: "veteran",
+      contract_years: 2,
+      salary: 12,
+      veteran_salary_static: true,
+    }),
+    "Vet deal · 2y · $12",
+  );
 });

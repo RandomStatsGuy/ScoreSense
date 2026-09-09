@@ -126,7 +126,12 @@ def build_auction_win_contract(
         contract["source"] = "draft"
         return contract
     years = max(1, min(int(cr.veteran_years or 1), int(cr.max_years)))
-    contract = build_veteran_contract(sal, years, step_up=float(cr.extension_step_up))
+    contract = build_veteran_contract(
+        sal,
+        years,
+        static=bool(cr.veteran_salary_static),
+        step_up=float(cr.extension_step_up),
+    )
     contract["source"] = "draft"
     return contract
 
@@ -136,11 +141,17 @@ def build_veteran_contract(
     years: int = 2,
     *,
     step_up: float = 0.0,
+    static: bool = False,
 ) -> dict[str, Any]:
-    """Multi-year vet deals step by ``step_up`` each year (league default $5)."""
+    """Build a vet deal. ``static`` keeps every year at the signing salary.
+
+    Callers that know the league policy pass ``static`` from
+    ``veteran_salary_static``. Direct helpers default to the legacy stepped
+    path when ``step_up`` is set, so existing sheet/test builders stay put.
+    """
     yrs = max(1, years)
     sal = round(float(base_salary), 2)
-    step = float(step_up or 0)
+    step = 0.0 if static else float(step_up or 0)
     if step and yrs > 1:
         schedule = [{"year_offset": i, "salary": round(sal + step * i, 2)} for i in range(yrs)]
     else:
@@ -151,6 +162,7 @@ def build_veteran_contract(
         "years_total": yrs,
         "years_remaining": yrs,
         "renewal_used": False,
+        "veteran_salary_static": bool(static),
         "step_up_per_year": step if yrs > 1 else 0.0,
         "schedule": schedule,
         "current_salary": sal,
@@ -209,6 +221,8 @@ def _schedule_step_for_type(
     """Return the league-approved annual salary step for a contract type."""
     kind = str(ctype or "veteran")
     if kind == "rookie" and cr.rookie_salary_static:
+        return 0.0
+    if kind == "veteran" and cr.veteran_salary_static:
         return 0.0
     if kind not in ("rookie", "extension", "veteran"):
         return 0.0
@@ -281,6 +295,26 @@ def repair_flat_deal_schedule(
         out["schedule"] = [{"year_offset": i, "salary": round(base, 2)} for i in range(yrs)]
         out["step_up_per_year"] = 0.0
         out["current_salary"] = round(base, 2)
+        return out
+
+    if ctype == "veteran" and contract.get("veteran_salary_static") is True:
+        needs_repair = float(contract.get("step_up_per_year") or 0) != 0
+        if not needs_repair:
+            for i in range(yrs):
+                sal = salary_for_year(contract, i)
+                if sal > 0 and abs(sal - base) > 0.001:
+                    needs_repair = True
+                    break
+                if i < len(schedule) and abs(float(schedule[i].get("salary") or 0) - base) > 0.001:
+                    needs_repair = True
+                    break
+        if not needs_repair and len(schedule) >= yrs:
+            return contract
+        out = dict(contract)
+        out["schedule"] = [{"year_offset": i, "salary": round(base, 2)} for i in range(yrs)]
+        out["step_up_per_year"] = 0.0
+        out["current_salary"] = round(base, 2)
+        out["veteran_salary_static"] = True
         return out
 
     if ctype in ("veteran", "extension") and yrs > 1:
@@ -365,6 +399,8 @@ def build_contract_from_roster_edit(
     }
     if ctype == "rookie":
         out["rookie_salary_static"] = bool(cr.rookie_salary_static)
+    if ctype == "veteran":
+        out["veteran_salary_static"] = bool(cr.veteran_salary_static)
     # Preserve typing / approval metadata across salary & years edits.
     for key in (
         "contract_type_manual",
@@ -679,7 +715,12 @@ def roster_row_from_import(
         contract = build_extension_contract(rules, start_salary=salary, years=years, step_up=step_up)
     else:
         vet_step = float(step_up if step_up is not None else rules.contracts.extension_step_up)
-        contract = build_veteran_contract(salary, years, step_up=vet_step)
+        contract = build_veteran_contract(
+            salary,
+            years,
+            step_up=vet_step,
+            static=bool(rules.contracts.veteran_salary_static),
+        )
     return {
         "player_id": player_id,
         "player_name": player_name,

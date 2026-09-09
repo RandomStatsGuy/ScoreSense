@@ -49,9 +49,15 @@ export const RULES_COPY = {
   rookieTerm: "Default rookie deal",
   vetTerm: "Default vet deal",
   keepRookieFlat: "Keep rookie deals flat",
-  keepRookieFlatHelp: "Year one and two of a rookie deal stay at the signing salary. Vet deals and extensions step every year.",
+  keepRookieFlatHelp: "Year one and two of a rookie deal stay at the signing salary. The step-up starts on an extension.",
+  keepVetFlat: "Keep vet deals flat",
+  keepVetFlatHelp: "Year one and two of a vet deal stay at the signing salary. The step-up starts on an extension.",
   allowExtensions: "Allow extensions",
   allowExtensionsHelp: "A final-year rookie deal or vet deal may take one extension. An extension cannot be extended again.",
+  allowRookieExtensions: "Allow rookie deal extensions",
+  allowRookieExtensionsHelp: "A final-year rookie deal may take one extension. An extension cannot be extended again.",
+  allowVetExtensions: "Allow vet deal extensions",
+  allowVetExtensionsHelp: "A final-year vet deal may take one extension. An extension cannot be extended again.",
   previewRookie: "Rookie deal",
   previewVet: "Vet deal",
   previewExtension: "Extension",
@@ -95,6 +101,7 @@ export const DEFAULT_RULES = {
     rookie_years: 2,
     veteran_years: 2,
     rookie_salary_static: true,
+    veteran_salary_static: true,
     one_renewal_after_rookie: true,
     allow_veteran_renewal: true,
   },
@@ -262,7 +269,7 @@ export function rulesSummary(rules) {
     {
       id: "veteran",
       label: "New vet deals",
-      value: `${contracts.veteran_years} year${Number(contracts.veteran_years) === 1 ? "" : "s"} · Steps up`,
+      value: `${contracts.veteran_years} year${Number(contracts.veteran_years) === 1 ? "" : "s"} · ${contracts.veteran_salary_static ? "Flat" : "Steps up"}`,
     },
     {
       id: "renewals",
@@ -339,6 +346,7 @@ export function snapshotRulesForm({ name, season, rules }) {
       rookie_years: Number(merged.contracts.rookie_years) || 0,
       veteran_years: Number(merged.contracts.veteran_years) || 0,
       rookie_salary_static: Boolean(merged.contracts.rookie_salary_static),
+      veteran_salary_static: Boolean(merged.contracts.veteran_salary_static),
       one_renewal_after_rookie: Boolean(merged.contracts.one_renewal_after_rookie),
       allow_veteran_renewal: Boolean(merged.contracts.allow_veteran_renewal),
     },
@@ -392,11 +400,25 @@ export function templateImpact(currentRules, presetRules) {
   if (Number(current.contracts.max_years) !== Number(next.contracts.max_years)) {
     changes.push(`Max extension becomes ${next.contracts.max_years} year${Number(next.contracts.max_years) === 1 ? "" : "s"}.`);
   }
-  if (leagueAllowsDealExtensions(current.contracts) !== leagueAllowsDealExtensions(next.contracts)) {
+  if (Boolean(current.contracts.veteran_salary_static) !== Boolean(next.contracts.veteran_salary_static)) {
     changes.push(
-      leagueAllowsDealExtensions(next.contracts)
-        ? "Extensions become available on rookie deals and vet deals."
-        : "Extensions become off.",
+      next.contracts.veteran_salary_static
+        ? "New vet deals stay flat. The step-up starts on an extension."
+        : "New vet deals step every year.",
+    );
+  }
+  if (Boolean(current.contracts.allow_veteran_renewal) !== Boolean(next.contracts.allow_veteran_renewal)) {
+    changes.push(
+      next.contracts.allow_veteran_renewal
+        ? "Vet deal extensions become available."
+        : "Vet deal extensions become off.",
+    );
+  }
+  if (Boolean(current.contracts.one_renewal_after_rookie) !== Boolean(next.contracts.one_renewal_after_rookie)) {
+    changes.push(
+      next.contracts.one_renewal_after_rookie
+        ? "Rookie deal extensions become available."
+        : "Rookie deal extensions become off.",
     );
   }
   if (!changes.length) {

@@ -41,10 +41,24 @@ export const YEARS_LEFT_HINT = (
   + "not when the NFL season ends or the planning season advances."
 );
 
-/** Step applies to veterans/extensions and to rookies when the league opts out of flat salaries. */
-export function scheduleStepForType(contractType, rules, storedStep) {
+/** True when this deal type stays at the signing salary under current rules. */
+export function dealSalaryIsStatic(contractType, rules, contract = null) {
   const ctype = String(contractType || "veteran");
-  if (ctype === "rookie" && rules?.contracts?.rookie_salary_static !== false) return 0;
+  if (ctype === "rookie") {
+    return (contract?.rookie_salary_static ?? rules?.contracts?.rookie_salary_static) !== false;
+  }
+  if (ctype === "veteran") {
+    if (contract?.veteran_salary_static === true) return true;
+    if (contract?.veteran_salary_static === false) return false;
+    return rules?.contracts?.veteran_salary_static !== false;
+  }
+  return false;
+}
+
+/** Step applies to extensions and to deals that opted out of a flat first term. */
+export function scheduleStepForType(contractType, rules, storedStep, contract = null) {
+  const ctype = String(contractType || "veteran");
+  if (dealSalaryIsStatic(ctype, rules, contract)) return 0;
   const stored = Number(storedStep);
   if (Number.isFinite(stored) && stored > 0) return stored;
   return leagueStepUp(rules);
@@ -58,11 +72,19 @@ export function joinSalarySchedule(parts) {
   return clean.join(" → ");
 }
 
-export function previewSchedule(salary, years, stepUp, contractType = "veteran", rookieStatic = true) {
+export function previewSchedule(
+  salary,
+  years,
+  stepUp,
+  contractType = "veteran",
+  rookieStatic = true,
+  veteranStatic = true,
+) {
   const sal = Number(salary);
   const yrs = Number(years);
   const ctype = String(contractType || "veteran");
-  const step = ctype === "rookie" && rookieStatic
+  const flat = (ctype === "rookie" && rookieStatic) || (ctype === "veteran" && veteranStatic);
+  const step = flat
     ? 0
     : (Number.isFinite(Number(stepUp)) ? Number(stepUp) : 0);
   if (!Number.isFinite(sal) || !Number.isFinite(yrs) || yrs < 1) return "";
@@ -78,11 +100,12 @@ export function scheduleText(row, rules) {
   const sal = Number(row?.contract?.current_salary ?? row?.salary);
   const yrs = Number(row?.contract?.years_remaining ?? row?.contract_years ?? 1);
   if (Number.isFinite(sal) && Number.isFinite(yrs) && yrs >= 1) {
-    const step = scheduleStepForType(ctype, rules, row?.contract?.step_up_per_year);
+    const step = scheduleStepForType(ctype, rules, row?.contract?.step_up_per_year, row?.contract);
     const rookieStatic = row?.contract?.rookie_salary_static
       ?? rules?.contracts?.rookie_salary_static
       ?? true;
-    const fromPreview = previewSchedule(sal, yrs, step, ctype, rookieStatic);
+    const veteranStatic = dealSalaryIsStatic(ctype, rules, row?.contract);
+    const fromPreview = previewSchedule(sal, yrs, step, ctype, rookieStatic, veteranStatic);
     if (fromPreview) return fromPreview;
   }
   const sched = row?.contract?.schedule;
@@ -97,10 +120,14 @@ export function leagueStepUp(rules) {
 export function contractScheduleHint(stepUp, rules = null) {
   const step = Number.isFinite(Number(stepUp)) ? Number(stepUp) : 5;
   const rookieYears = Math.max(1, Number(rules?.contracts?.rookie_years ?? 2));
+  const vetYears = Math.max(1, Number(rules?.contracts?.veteran_years ?? 2));
   const rookiePolicy = rules?.contracts?.rookie_salary_static === false
     ? `Rookies ${rookieYears} yrs +$${step}/yr`
     : `Rookies flat ${rookieYears} yrs`;
-  return `${rookiePolicy} · Vet deal / Extension +$${step}/yr`;
+  const vetPolicy = rules?.contracts?.veteran_salary_static === false
+    ? `Vet deals ${vetYears} yrs +$${step}/yr`
+    : `Vet deals flat ${vetYears} yrs`;
+  return `${rookiePolicy} · ${vetPolicy} · Extension +$${step}/yr`;
 }
 
 /** Read-only auction award line: "Rookie deal · 2y · $12" */
@@ -108,12 +135,20 @@ export function auctionAwardContractLabel(pick, stepUp = 5) {
   const ctype = String(pick?.contract_type || "");
   const years = Number(pick?.contract_years || 2);
   const paid = Number(pick?.salary ?? pick?.amount);
-  const step = ctype === "rookie" && pick?.rookie_salary_static !== false
+  const step = (ctype === "rookie" && pick?.rookie_salary_static !== false)
+    || (ctype === "veteran" && pick?.veteran_salary_static !== false)
     ? 0
     : Number(pick?.step_up_per_year ?? stepUp);
   const sched = Array.isArray(pick?.salary_schedule) && pick.salary_schedule.length
     ? joinSalarySchedule(pick.salary_schedule.map((n) => fmtSal(n)))
-    : previewSchedule(paid, years, step, ctype || "veteran", pick?.rookie_salary_static !== false);
+    : previewSchedule(
+      paid,
+      years,
+      step,
+      ctype || "veteran",
+      pick?.rookie_salary_static !== false,
+      pick?.veteran_salary_static !== false,
+    );
   const kind = contractTypeLabel(ctype || "veteran");
   const yrs = Number.isFinite(years) ? `${years}y` : "2y";
   return sched ? `${kind} · ${yrs} · ${sched}` : `${kind} · ${yrs}`;
@@ -178,7 +213,8 @@ export function shortAuctionContractLabel(pick, stepUp = 5) {
   const years = Number(pick?.contract_years || 2);
   const ctype = String(pick?.contract_type || "");
   const paid = Number(pick?.salary ?? pick?.amount);
-  const step = ctype === "rookie" && pick?.rookie_salary_static !== false
+  const step = (ctype === "rookie" && pick?.rookie_salary_static !== false)
+    || (ctype === "veteran" && pick?.veteran_salary_static !== false)
     ? 0
     : Number(pick?.step_up_per_year ?? stepUp);
   const sched = Array.isArray(pick?.salary_schedule) && pick.salary_schedule.length
