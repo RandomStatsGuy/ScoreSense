@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — DFS · A Contest</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  :root { --space-6: 2rem; }
+  .hero-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-2);
+  }
+  .hero-top .mock-kicker { margin: 0; }
+  .slate-bar,
+  .row,
+  .pin-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .slate-bar {
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-bottom: var(--space-4);
+  }
+  .slate-bar h3 { margin: 0; font-size: 1.02rem; }
+  .slate-bar p { margin: 0; color: var(--text-muted); font-size: var(--text-xs); }
+  .menu {
+    min-height: var(--control-h-sm);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+  .contest {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
+  .contest article {
+    min-height: 11.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg-elevated);
+    color: inherit;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+  }
+  .contest article.is-on {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .contest .k {
+    font-size: var(--text-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 700;
+    min-height: 1rem;
+  }
+  .contest h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .contest p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    min-height: 2.4rem;
+  }
+  .contest .apply {
+    margin-top: auto;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    min-height: 2.4rem;
+  }
+  .contest article.is-on .apply { color: var(--accent-muted); font-weight: 600; }
+  .formats {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+  .formats button {
+    min-height: var(--control-h-sm);
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--bg-subtle);
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: var(--text-sm);
+  }
+  .formats button.is-on { background: var(--accent-soft); color: var(--accent-muted); font-weight: 600; }
+  .row {
+    min-height: 3.5rem;
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  }
+  .row:last-child { border-bottom: 0; }
+  .pos {
+    width: 2.75rem;
+    flex: none;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .face {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: top;
+    background: var(--bg-subtle);
+    flex: none;
+  }
+  .who { flex: 1; min-width: 0; }
+  .who strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.92rem;
+  }
+  .who span { display: block; color: var(--text-muted); font-size: var(--text-xs); }
+  .num {
+    width: 4.5rem;
+    flex: none;
+    text-align: right;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .num small { font-size: var(--text-xs); color: var(--text-muted); font-weight: 500; }
+  .sal {
+    width: 4.25rem;
+    flex: none;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+  }
+  .pin-row { width: 8.5rem; flex: none; justify-content: flex-end; }
+  .pin {
+    min-height: var(--control-h-sm);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: var(--text-xs);
+    font-weight: 600;
+  }
+  .pin.is-lock { border-color: color-mix(in srgb, var(--tone-positive) 45%, transparent); color: var(--tone-positive); }
+  .meter { margin: var(--space-3) 0 0; }
+  .meter-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+  .meter-top strong { color: var(--text-primary); }
+  .track {
+    height: 0.45rem;
+    margin-top: var(--space-2);
+    border-radius: var(--radius-pill);
+    background: var(--bg-subtle);
+    overflow: hidden;
+  }
+  .track span {
+    display: block;
+    width: 96%;
+    height: 100%;
+    background: var(--tone-positive);
+  }
+  .hub-experience-summary-action { width: 100%; min-height: var(--control-h-sm); margin-top: var(--space-4); }
+  @media (max-width: 430px) {
+    .contest article, .formats button, .pin, .menu, .hub-experience-summary-action {
+      min-height: var(--control-h-lg);
+    }
+  }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>A · Contest</strong> <span>· cash or tournament sets the nine</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a href="dfs.html">Chooser</a>
+    <a class="is-on" href="dfs-a.html">A</a>
+    <a href="dfs-b.html">B</a>
+    <a href="dfs-c.html">C</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span>Fantasy</span>
+        <span class="active">Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+  <nav class="mock-subnav">
+    <span class="mock-tab active">DFS</span>
+    <span class="mock-tab">Mock draft</span>
+    <span class="mock-tab">Best ball</span>
+  </nav>
+
+  <section class="mock-hero">
+    <div class="hero-top">
+      <p class="mock-kicker">DFS</p>
+      <span class="mock-pill mock-pill--accent">312 salaries</span>
+    </div>
+    <h1>Cash and tournaments need opposite nines.</h1>
+    <p class="support">A cash lineup that looks like the field is fine. The same nine in a GPP finishes with everyone.</p>
+  </section>
+
+  <div class="mock-cols">
+    <main id="main-content">
+      <section class="card">
+        <div class="slate-bar">
+          <div>
+            <h3>What are you entering</h3>
+            <p>DraftKings Classic · Week 1 · Main</p>
+          </div>
+          <button type="button" class="menu" aria-haspopup="listbox" aria-expanded="false" aria-label="Slate">Main 16g</button>
+        </div>
+        <div class="formats" role="radiogroup" aria-label="Lineup format">
+          <button type="button" role="radio" aria-checked="false">Season-long</button>
+          <button type="button" role="radio" aria-checked="true" class="is-on">DraftKings</button>
+          <button type="button" role="radio" aria-checked="false">FanDuel</button>
+          <button type="button" role="radio" aria-checked="false">Showdown</button>
+          <button type="button" role="radio" aria-checked="false">Single game</button>
+        </div>
+        <div class="contest" role="radiogroup" aria-label="Contest type">
+          <article role="radio" aria-checked="true" class="is-on" tabindex="0">
+            <span class="k">50/50 · double-up</span>
+            <h3>Cash</h3>
+            <p>Beat half the field. Pay volume. Ignore ownership. Stacking usually hurts the floor.</p>
+            <span class="apply">Applies Floor · stack Off · ≤ $200 left</span>
+          </article>
+          <article role="radio" aria-checked="false" tabindex="-1">
+            <span class="k">GPP · large field</span>
+            <h3>Tournament</h3>
+            <p>Beat almost everyone. Ride a stack and a bring-back. Look different on purpose.</p>
+            <span class="apply">Would apply Ceiling · QB +2 · bring-back</span>
+          </article>
+        </div>
+        <p class="note">Cash is selected. The nine below spread across games on purpose.</p>
+        <div class="slate">
+          <article class="row">
+            <span class="pos">QB</span>
+            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/4984.jpg" />
+            <div class="who"><strong>Josh Allen</strong><span>BUF · vs MIA · 24.8 implied</span></div>
+            <div class="num">24.1 <small>flr</small></div>
+            <div class="sal">$7,800</div>
+            <div class="pin-row">
+              <button type="button" class="pin is-lock">Lock</button>
+              <button type="button" class="pin">Skip</button>
+            </div>
+          </article>
+          <article class="row">
+            <span class="pos">RB</span>
+            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/4034.jpg" />
+            <div class="who"><strong>Saquon Barkley</strong><span>PHI · vs GB · 21.4 implied</span></div>
+            <div class="num">16.8 <small>flr</small></div>
+            <div class="sal">$8,200</div>
+            <div class="pin-row">
+              <button type="button" class="pin">Lock</button>
+              <button type="button" class="pin">Skip</button>
+            </div>
+          </article>
+          <article class="row">
+            <span class="pos">RB</span>
+            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/9221.jpg" />
+            <div class="who"><strong>Breece Hall</strong><span>NYJ · vs PIT · 20.1 implied</span></div>
+            <div class="num">14.2 <small>flr</small></div>
+            <div class="sal">$7,100</div>
+            <div class="pin-row">
+              <button type="button" class="pin">Lock</button>
+              <button type="button" class="pin">Skip</button>
+            </div>
+          </article>
+          <article class="row">
+            <span class="pos">WR</span>
+            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/6786.jpg" />
+            <div class="who"><strong>Ja'Marr Chase</strong><span>CIN · vs CLE · 22.6 implied</span></div>
+            <div class="num">15.4 <small>flr</small></div>
+            <div class="sal">$8,400</div>
+            <div class="pin-row">
+              <button type="button" class="pin">Lock</button>
+              <button type="button" class="pin">Skip</button>
+            </div>
+          </article>
+          <article class="row">
+            <span class="pos">WR</span>
+            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/2216.jpg" />
+            <div class="who"><strong>Amon-Ra St. Brown</strong><span>DET · vs CHI · 25.2 implied</span></div>
+            <div class="num">13.9 <small>flr</small></div>
+            <div class="sal">$7,600</div>
+            <div class="pin-row">
+              <button type="button" class="pin">Lock</button>
+              <button type="button" class="pin">Skip</button>
+            </div>
+          </article>
+          <article class="row">
+            <span class="pos">WR</span>
+            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/8146.jpg" />
+            <div class="who"><strong>Nico Collins</strong><span>HOU · vs IND · 21.8 implied</span></div>
+            <div class="num">12.1 <small>flr</small></div>
+            <div class="sal">$6,800</div>
+            <div class="pin-row">
+              <button type="button" class="pin">Lock</button>
+              <button type="button" class="pin">Skip</button>
+            </div>
+          </article>
+          <article class="row">
+            <span class="pos">TE</span>
+            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11632.jpg" />
+            <div class="who"><strong>Trey McBride</strong><span>ARI · vs NO · 23.0 implied</span></div>
+            <div class="num">10.4 <small>flr</small></div>
+            <div class="sal">$6,200</div>
+            <div class="pin-row">
+              <button type="button" class="pin">Lock</button>
+              <button type="button" class="pin">Skip</button>
+            </div>
+          </article>
+          <article class="row">
+            <span class="pos">FLEX</span>
+            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/8155.jpg" />
+            <div class="who"><strong>Kyren Williams</strong><span>LAR · vs DET · 24.1 implied</span></div>
+            <div class="num">11.6 <small>flr</small></div>
+            <div class="sal">$6,400</div>
+            <div class="pin-row">
+              <button type="button" class="pin">Lock</button>
+              <button type="button" class="pin">Skip</button>
+            </div>
+          </article>
+          <article class="row">
+            <span class="pos">DST</span>
+            <span class="face" style="display:inline-flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:800;color:var(--text-muted);">DEN</span>
+            <div class="who"><strong>Broncos</strong><span>DEN · vs SEA</span></div>
+            <div class="num">7.2 <small>flr</small></div>
+            <div class="sal">$3,300</div>
+            <div class="pin-row">
+              <button type="button" class="pin">Lock</button>
+              <button type="button" class="pin">Skip</button>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <aside class="mock-rail">
+      <section class="card">
+        <h3>Your lineup · 1 locked · 0 skipped</h3>
+        <p class="note">Cash applies the floor build. Leave more than $200 and you lose to someone who spent it.</p>
+        <div class="facts">
+          <div class="fact">Format <strong>DK Classic</strong></div>
+          <div class="fact">Contest <strong>Cash</strong></div>
+          <div class="fact">Goal <strong>Floor (P10)</strong></div>
+          <div class="fact">Rules <strong>Stack Off</strong></div>
+          <div class="fact">Salary <strong>$49,800</strong></div>
+        </div>
+        <div class="meter">
+          <div class="meter-top">Cap used <strong>$200 left</strong></div>
+          <div class="track" aria-hidden="true"><span></span></div>
+        </div>
+        <button type="button" class="btn btn-primary hub-experience-summary-action">Build this lineup</button>
+      </section>
+    </aside>
+  </div>
+
+  <p class="footnote">Static mock · tokens only · not product code</p>
+</div>
+</body>
+</html>

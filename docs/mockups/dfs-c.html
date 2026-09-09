@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — DFS · C Leverage</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  :root { --space-6: 2rem; }
+  .hero-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-2);
+  }
+  .hero-top .mock-kicker { margin: 0; }
+  .board-head,
+  .tools,
+  .row,
+  .pin-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .board-head {
+    justify-content: space-between;
+    margin-bottom: var(--space-3);
+    flex-wrap: wrap;
+  }
+  .board-head h3 { margin: 0; font-size: 1.02rem; }
+  .board-head p { margin: var(--space-1) 0 0; color: var(--text-muted); font-size: var(--text-xs); }
+  .tools { flex-wrap: wrap; margin-bottom: var(--space-3); }
+  .poschip,
+  .menu {
+    min-height: var(--control-h-sm);
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--bg-subtle);
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: var(--text-sm);
+  }
+  .poschip.is-on { background: var(--accent-soft); color: var(--accent-muted); font-weight: 600; }
+  .menu {
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .legend { margin: 0 0 var(--space-3); color: var(--text-secondary); font-size: var(--text-xs); }
+  .head,
+  .row {
+    display: grid;
+    grid-template-columns: minmax(11rem, 1fr) 2.4rem 3.6rem 3.4rem 3.2rem 3.2rem 8.75rem;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .head {
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    font-weight: 700;
+  }
+  .head .n, .row .n { text-align: right; font-variant-numeric: tabular-nums; }
+  .head .a, .row .pin-row { text-align: right; justify-content: flex-end; }
+  .row {
+    min-height: 3.25rem;
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  }
+  .row.is-lev {
+    background: color-mix(in srgb, var(--tone-positive) 7%, transparent);
+    margin: 0 calc(var(--space-3) * -1);
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+    border-radius: var(--radius-sm);
+  }
+  .row.is-chalk { opacity: 0.55; }
+  .who { min-width: 0; display: flex; align-items: center; gap: var(--space-3); }
+  .face {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: top;
+    background: var(--bg-subtle);
+    flex: none;
+  }
+  .nm strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.92rem;
+  }
+  .nm span { display: block; color: var(--text-muted); font-size: var(--text-xs); }
+  .lev { color: var(--tone-positive); font-weight: 700; }
+  .own-high { color: var(--text-muted); }
+  .pin-row { width: 8.75rem; }
+  .pin {
+    min-height: var(--control-h-sm);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: var(--text-xs);
+    font-weight: 600;
+  }
+  .pin.is-skip { border-color: color-mix(in srgb, var(--tone-caution) 50%, transparent); color: var(--tone-caution); }
+  .pin.is-lock { border-color: color-mix(in srgb, var(--tone-positive) 45%, transparent); color: var(--tone-positive); }
+  .exp {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
+    font-size: var(--text-sm);
+  }
+  .exp:last-child { border-bottom: 0; }
+  .exp strong { font-variant-numeric: tabular-nums; }
+  .exp .ok { color: var(--tone-positive); }
+  .hub-experience-summary-action { width: 100%; min-height: var(--control-h-sm); margin-top: var(--space-4); }
+  @media (max-width: 860px) {
+    .head .a, .row .pin-row { display: none; }
+    .head, .row { grid-template-columns: minmax(8rem, 1fr) 2.2rem 3.2rem 3rem 3rem 3rem; }
+  }
+  @media (max-width: 430px) {
+    .poschip, .menu, .pin, .hub-experience-summary-action { min-height: var(--control-h-lg); }
+  }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>C · Leverage</strong> <span>· fade chalk on the pool board</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a href="dfs.html">Chooser</a>
+    <a href="dfs-a.html">A</a>
+    <a href="dfs-b.html">B</a>
+    <a class="is-on" href="dfs-c.html">C</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span>Fantasy</span>
+        <span class="active">Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+  <nav class="mock-subnav">
+    <span class="mock-tab active">DFS</span>
+    <span class="mock-tab">Mock draft</span>
+    <span class="mock-tab">Best ball</span>
+  </nav>
+
+  <section class="mock-hero">
+    <div class="hero-top">
+      <p class="mock-kicker">DFS</p>
+      <span class="mock-pill mock-pill--accent">20 lineups</span>
+    </div>
+    <h1>Own less of the chalk than the field.</h1>
+    <p class="support">If the 38% WR hits, you finish with the field. Fade him and you need the pivot to hit.</p>
+  </section>
+
+  <div class="mock-cols">
+    <main id="main-content">
+      <section class="card">
+        <div class="board-head">
+          <div>
+            <h3>Leverage board</h3>
+            <p>Lev is model rate minus projected own. Import an ownership CSV when you have one.</p>
+          </div>
+          <button type="button" class="menu" aria-haspopup="listbox" aria-expanded="false" aria-label="Sort">Lev</button>
+        </div>
+        <div class="tools" role="radiogroup" aria-label="Position">
+          <button type="button" class="poschip is-on" role="radio" aria-checked="true">All</button>
+          <button type="button" class="poschip" role="radio" aria-checked="false" tabindex="-1">QB</button>
+          <button type="button" class="poschip" role="radio" aria-checked="false" tabindex="-1">RB</button>
+          <button type="button" class="poschip" role="radio" aria-checked="false" tabindex="-1">WR</button>
+          <button type="button" class="poschip" role="radio" aria-checked="false" tabindex="-1">TE</button>
+        </div>
+        <p class="legend">Teal rows are leverage. Dim rows are chalk. Amber is a skip you already made.</p>
+        <div class="head">
+          <span>Player</span>
+          <span>Pos</span>
+          <span class="n">Salary</span>
+          <span class="n">P50</span>
+          <span class="n">Own</span>
+          <span class="n">Lev</span>
+          <span class="a">Lock / Skip</span>
+        </div>
+        <article class="row is-lev">
+          <div class="who">
+            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11563.jpg" />
+            <div class="nm"><strong>Ashton Jeanty</strong><span>LV · vs NE</span></div>
+          </div>
+          <span>RB</span>
+          <span class="n">$6,400</span>
+          <span class="n">16.8</span>
+          <span class="n">8%</span>
+          <span class="n lev">+2.1</span>
+          <div class="pin-row">
+            <button type="button" class="pin is-lock">Lock</button>
+            <button type="button" class="pin">Skip</button>
+          </div>
+        </article>
+        <article class="row is-lev">
+          <div class="who">
+            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/6801.jpg" />
+            <div class="nm"><strong>Khalil Shakir</strong><span>BUF · vs MIA</span></div>
+          </div>
+          <span>WR</span>
+          <span class="n">$5,900</span>
+          <span class="n">14.6</span>
+          <span class="n">11%</span>
+          <span class="n lev">+1.6</span>
+          <div class="pin-row">
+            <button type="button" class="pin is-lock">Lock</button>
+            <button type="button" class="pin">Skip</button>
+          </div>
+        </article>
+        <article class="row is-lev">
+          <div class="who">
+            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/11635.jpg" />
+            <div class="nm"><strong>Tucker Kraft</strong><span>GB · vs PHI</span></div>
+          </div>
+          <span>TE</span>
+          <span class="n">$4,600</span>
+          <span class="n">11.4</span>
+          <span class="n">6%</span>
+          <span class="n lev">+1.4</span>
+          <div class="pin-row">
+            <button type="button" class="pin">Lock</button>
+            <button type="button" class="pin">Skip</button>
+          </div>
+        </article>
+        <article class="row">
+          <div class="who">
+            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/4984.jpg" />
+            <div class="nm"><strong>Josh Allen</strong><span>BUF · vs MIA</span></div>
+          </div>
+          <span>QB</span>
+          <span class="n">$7,800</span>
+          <span class="n">24.1</span>
+          <span class="n">22%</span>
+          <span class="n">+0.3</span>
+          <div class="pin-row">
+            <button type="button" class="pin">Lock</button>
+            <button type="button" class="pin">Skip</button>
+          </div>
+        </article>
+        <article class="row is-chalk">
+          <div class="who">
+            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/6786.jpg" />
+            <div class="nm"><strong>Ja'Marr Chase</strong><span>CIN · vs CLE</span></div>
+          </div>
+          <span>WR</span>
+          <span class="n">$8,400</span>
+          <span class="n">18.1</span>
+          <span class="n own-high">38%</span>
+          <span class="n">−0.8</span>
+          <div class="pin-row">
+            <button type="button" class="pin">Lock</button>
+            <button type="button" class="pin is-skip">Skip</button>
+          </div>
+        </article>
+        <article class="row is-chalk">
+          <div class="who">
+            <img class="face" alt="" src="https://sleepercdn.com/content/nfl/players/thumb/4034.jpg" />
+            <div class="nm"><strong>Saquon Barkley</strong><span>PHI · vs GB</span></div>
+          </div>
+          <span>RB</span>
+          <span class="n">$8,200</span>
+          <span class="n">18.6</span>
+          <span class="n own-high">34%</span>
+          <span class="n">−0.6</span>
+          <div class="pin-row">
+            <button type="button" class="pin">Lock</button>
+            <button type="button" class="pin">Skip</button>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <aside class="mock-rail">
+      <section class="card">
+        <h3>Your lineup · 2 locked · 1 skipped</h3>
+        <p class="note">Exposure is share of your 20. Locks can exceed the cap. Chalk you skipped stays off the set.</p>
+        <div class="facts">
+          <div class="fact">Contest <strong>Tournament</strong></div>
+          <div class="fact">Lineups <strong>20</strong></div>
+          <div class="fact">Max exposure <strong>40%</strong></div>
+          <div class="fact">Skipped chalk <strong>Chase</strong></div>
+        </div>
+        <div class="exp"><span>Jeanty</span><strong class="ok">40%</strong></div>
+        <div class="exp"><span>Shakir</span><strong class="ok">35%</strong></div>
+        <div class="exp"><span>Allen</span><strong>20%</strong></div>
+        <div class="exp"><span>Chase</span><strong>0%</strong></div>
+        <button type="button" class="btn btn-primary hub-experience-summary-action">Build 20 lineups</button>
+      </section>
+    </aside>
+  </div>
+
+  <p class="footnote">Static mock · tokens only · not product code</p>
+</div>
+</body>
+</html>

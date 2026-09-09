@@ -90,7 +90,8 @@ test("page heroes name a decision, not a slogan", () => {
   assert.match(capHeroCopy().heading, /afford|bid|cut/i);
   assert.match(weekHeroCopy({ decisionCount: 1 }).support, /leave those points|sit the wrong/i);
   assert.match(RULES_COPY.support, /old deals|strands/i);
-  assert.match(dfsHeroCopy({ isDfs: true }).support, /leave salary|lose/i);
+  assert.match(dfsHeroCopy({ isDfs: true }).support, /stack dies|leave salary|lose/i);
+  assert.match(dfsHeroCopy({ isDfs: true, captain: true }).support, /leave salary|lose/i);
   assert.match(bestBallHeroCopy().support, /discount|reach/i);
   assert.doesNotMatch(bestBallHeroCopy().support, /until a real ADP/i);
 });

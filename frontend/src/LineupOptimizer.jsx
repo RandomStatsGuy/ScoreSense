@@ -37,11 +37,13 @@ import {
   dfsRailTitle,
   dfsStatusChip,
   dfsSummaryItems,
+  dropLockId,
   emptyLineupCopy,
   exposureListCopy,
   filterObjectives,
   formatPersonality,
   formatSalary,
+  gameStackLabel,
   highestTotalGameId,
   isCaptainFormat,
   launchCopy,
@@ -49,15 +51,23 @@ import {
   nextExclusiveChoice,
   objectiveSortColumn,
   optimizeButtonLabel,
+  pickGameStack,
   pinActionLabel,
   POOL_COLUMN_TIPS,
+  replaceStackLocks,
   rosterHint,
   salarySpend,
+  slateGames,
   sortPoolRows,
+  stackApplyLiveText,
+  stackClearLiveText,
+  stackPlayerIds,
+  stackPreviewCopy,
   swapActionLabel,
   swapPoolPlayerIntoLineup,
   swapResultLiveText,
   teamMatchupHint,
+  vegasGameCta,
   vegasImplied,
   vegasKickoffLabel,
   vegasSpreadLabel,
@@ -71,6 +81,7 @@ import {
   siteExportDisabledReason,
 } from "./dfsExport";
 import { downloadCsv } from "./table";
+import { displayNflTeam } from "./nflTeamAbbrev";
 
 function DfsPinRow({
   playerId,
@@ -153,6 +164,8 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
   const [randomness, setRandomness] = useState(0);
   const [exposure, setExposure] = useState([]);
   const [vegas, setVegas] = useState(null);
+  const [selectedGameId, setSelectedGameId] = useState("");
+  const [stackLockIds, setStackLockIds] = useState(() => new Set());
   const [blockByeWeeks, setBlockByeWeeks] = useState(true);
   const [optimizeNote, setOptimizeNote] = useState("");
   const [totalPoints, setTotalPoints] = useState(null);
@@ -435,31 +448,38 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
   };
 
   const toggleLock = (playerId) => {
+    const id = String(playerId);
     setLocked((prev) => {
       const next = new Set(prev);
-      if (next.has(playerId)) next.delete(playerId);
-      else next.add(playerId);
+      if (next.has(id)) {
+        next.delete(id);
+        setStackLockIds((ids) => dropLockId(ids, id));
+      } else {
+        next.add(id);
+      }
       return next;
     });
     setExcluded((prev) => {
       const next = new Set(prev);
-      next.delete(playerId);
+      next.delete(id);
       return next;
     });
   };
 
   const toggleExclude = (playerId) => {
+    const id = String(playerId);
     setExcluded((prev) => {
       const next = new Set(prev);
-      if (next.has(playerId)) next.delete(playerId);
-      else next.add(playerId);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
     setLocked((prev) => {
       const next = new Set(prev);
-      next.delete(playerId);
+      next.delete(id);
       return next;
     });
+    setStackLockIds((ids) => dropLockId(ids, id));
   };
 
   const handlePoolSort = (column) => {
@@ -670,10 +690,76 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
   const clearLocks = () => {
     setLocked(new Set());
     setExcluded(new Set());
+    setSelectedGameId("");
+    setStackLockIds(new Set());
   };
 
+  const applyShootout = useCallback((gameId) => {
+    if (isCaptain) return;
+    const nextId = String(gameId || "");
+    if (selectedGameId && selectedGameId === nextId) {
+      setLocked((prev) => replaceStackLocks(prev, stackLockIds, []));
+      setStackLockIds(new Set());
+      setSelectedGameId("");
+      announceResult(stackClearLiveText());
+      return;
+    }
+    const game = (vegas?.games || []).find((row) => String(row.game_id) === nextId);
+    const picked = pickGameStack(pool, game, {
+      stackCount: 2,
+      requireSalary: isDfs && Boolean(slateSalaries?.length),
+    });
+    const nextIds = stackPlayerIds(picked);
+    setSelectedGameId(nextId);
+    setQbStackCount(2);
+    setBringBack(true);
+    setObjective("ceiling");
+    setLocked((prev) => replaceStackLocks(prev, stackLockIds, nextIds));
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      nextIds.forEach((id) => next.delete(id));
+      return next;
+    });
+    setStackLockIds(new Set(nextIds));
+    announceResult(stackApplyLiveText(picked));
+  }, [
+    announceResult,
+    isCaptain,
+    isDfs,
+    pool,
+    selectedGameId,
+    slateSalaries,
+    stackLockIds,
+    vegas,
+  ]);
+
+  useEffect(() => {
+    setSelectedGameId("");
+    setStackLockIds(new Set());
+    setLocked(new Set());
+    setExcluded(new Set());
+  }, [site, season, week, selectedSlateId]);
+
+  useEffect(() => {
+    if (!selectedGameId || isCaptain || stackLockIds.size > 0 || !pool.length) return;
+    const game = (vegas?.games || []).find((row) => String(row.game_id) === String(selectedGameId));
+    const picked = pickGameStack(pool, game, {
+      stackCount: 2,
+      requireSalary: isDfs && Boolean(slateSalaries?.length),
+    });
+    const nextIds = stackPlayerIds(picked);
+    if (!nextIds.length) return;
+    setLocked((prev) => replaceStackLocks(prev, [], nextIds));
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      nextIds.forEach((id) => next.delete(id));
+      return next;
+    });
+    setStackLockIds(new Set(nextIds));
+  }, [pool, selectedGameId, isCaptain, isDfs, slateSalaries, vegas, stackLockIds.size]);
+
   const selectedSlate = slates.find((s) => String(s.slate_id) === String(selectedSlateId));
-  const hero = dfsHeroCopy({ isDfs, siteLabel: siteConfig.label });
+  const hero = dfsHeroCopy({ isDfs, siteLabel: siteConfig.label, captain: isCaptain });
   const heroNote = dfsHeroNote({ isDfs });
   const statusChip = dfsStatusChip({
     isDfs,
@@ -712,19 +798,38 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
       isDfs,
       lineupCount,
     }),
+    stackGameLabel: selectedGameId
+      ? gameStackLabel((vegas?.games || []).find((row) => String(row.game_id) === String(selectedGameId)))
+      : "",
   });
   const vegasGames = vegas?.games || [];
   const vegasTeams = vegas?.teams || {};
-  const hotGameId = highestTotalGameId(vegasGames);
+  const shootoutGames = slateGames(vegasGames, pool);
+  const selectedGame = shootoutGames.find((row) => String(row.game_id) === String(selectedGameId));
+  const shootoutStack = selectedGame && !isCaptain
+    ? pickGameStack(pool, selectedGame, {
+      stackCount: 2,
+      requireSalary: isDfs && Boolean(slateSalaries?.length),
+    })
+    : null;
+  const stackLabel = selectedGame ? gameStackLabel(selectedGame) : "";
+  const stackCopy = stackPreviewCopy(shootoutStack || { game: selectedGame });
+  const hotGameId = highestTotalGameId(shootoutGames);
   const showVegasCol = vegasGames.length > 0;
   const poolColumns = (isDfs ? 9 : 7) + (showVegasCol ? 1 : 0);
   const exposureCopy = exposureListCopy({ lineupCount: lineups.length });
-  const launch = launchCopy({ isDfs, hasLineup: lineup.length > 0, siteLabel: siteConfig.label });
+  const launch = launchCopy({
+    isDfs,
+    hasLineup: lineup.length > 0,
+    siteLabel: siteConfig.label,
+    stackGameLabel: stackLabel,
+  });
   const canOptimize = !optimizing && !busy && pool.length > 0 && !(isDfs && !slateSalaries?.length);
   const optimizeLabel = optimizeButtonLabel({
     optimizing,
     lineupCount,
     hasLineup: lineup.length > 0,
+    hasStack: Boolean(selectedGameId) && !isCaptain,
   });
   const lineupIds = new Set(lineup.map((row) => String(row.player_id)));
   const formatIds = Object.keys(formats);
@@ -749,6 +854,15 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
     if (next !== qbStackCount) {
       event.preventDefault();
       setQbStackCount(next);
+    }
+  };
+  const handleShootoutKeyDown = (event) => {
+    const ids = shootoutGames.map((game) => String(game.game_id));
+    const current = selectedGameId || ids[0];
+    const next = nextExclusiveChoice(ids, current, event.key);
+    if (next && next !== selectedGameId) {
+      event.preventDefault();
+      applyShootout(next);
     }
   };
 
@@ -949,42 +1063,133 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                 )}
               </>
             )}
-            {vegasGames.length > 0 && (
-              <div className="dfs-vegas" role="group" aria-label="Vegas lines for this week">
+          </section>
+
+          <section
+            className={`mock-draft-step${showSetup ? "" : " lineup-mobile-pane-hidden"}`}
+            aria-labelledby="dfs-shootout-title"
+          >
+            <header className="mock-draft-step-head">
+              <span>3</span>
+              <div>
+                <h3 id="dfs-shootout-title">{DFS_STEP_COPY.shootoutTitle}</h3>
+                <p>{isCaptain ? DFS_STEP_COPY.shootoutCaptain : DFS_STEP_COPY.shootoutSupport}</p>
+              </div>
+            </header>
+            {shootoutGames.length === 0 ? (
+              <p className="chart-note">{DFS_STEP_COPY.shootoutEmpty}</p>
+            ) : (
+              <div className="dfs-vegas">
                 <div className="dfs-vegas-head">
                   <span className="hub-filter-label">Vegas board</span>
-                  <span className="chart-note">{vegas?.note}</span>
+                  {vegas?.note ? <span className="chart-note">{vegas.note}</span> : null}
                 </div>
-                <ul className="dfs-vegas-grid">
-                  {vegasGames.map((game) => (
-                    <li
-                      key={game.game_id}
-                      className={`dfs-vegas-card${game.game_id === hotGameId ? " is-hot" : ""}`}
-                    >
-                      <div className="dfs-vegas-kick">
-                        <span>{vegasKickoffLabel(game.kickoff_et, game.weekday)}</span>
-                        {game.game_id === hotGameId && (
-                          <span className="dfs-vegas-hot">Highest</span>
-                        )}
+                <div
+                  className="dfs-vegas-grid"
+                  role={isCaptain ? "group" : "radiogroup"}
+                  aria-label={isCaptain ? "Vegas lines for this week" : "Stack game"}
+                  onKeyDown={isCaptain ? undefined : handleShootoutKeyDown}
+                >
+                  {shootoutGames.map((game, index) => {
+                    const selected = String(game.game_id) === String(selectedGameId);
+                    const hot = String(game.game_id) === String(hotGameId);
+                    const cardClass = `dfs-vegas-card${hot ? " is-hot" : ""}${selected ? " is-on" : ""}`;
+                    const inner = (
+                      <>
+                        <div className="dfs-vegas-kick">
+                          <span>{vegasKickoffLabel(game.kickoff_et, game.weekday)}</span>
+                          {hot ? <span className="dfs-vegas-hot">Highest</span> : null}
+                        </div>
+                        <div className="dfs-vegas-teams">
+                          <span className={game.favorite === game.away ? "is-favorite" : ""}>
+                            <strong>{displayNflTeam(game.away)}</strong>
+                            <em>{vegasImplied(game.away_implied)}</em>
+                          </span>
+                          <span className="dfs-vegas-at" aria-hidden="true">@</span>
+                          <span className={game.favorite === game.home ? "is-favorite" : ""}>
+                            <strong>{displayNflTeam(game.home)}</strong>
+                            <em>{vegasImplied(game.home_implied)}</em>
+                          </span>
+                        </div>
+                        <div className="dfs-vegas-line">
+                          <span>{vegasSpreadLabel(game)}</span>
+                          <span>{vegasTotalLabel(game)}</span>
+                        </div>
+                        {!isCaptain ? (
+                          <span className="dfs-vegas-cta">{vegasGameCta({ selected })}</span>
+                        ) : null}
+                      </>
+                    );
+                    if (isCaptain) {
+                      return (
+                        <div key={game.game_id} className={cardClass}>
+                          {inner}
+                        </div>
+                      );
+                    }
+                    return (
+                      <button
+                        key={game.game_id}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        tabIndex={selected || (!selectedGameId && (hot || index === 0)) ? 0 : -1}
+                        className={cardClass}
+                        disabled={busy || optimizing}
+                        onClick={() => applyShootout(game.game_id)}
+                      >
+                        {inner}
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedGame && !isCaptain ? (
+                  <div className="dfs-stack-preview">
+                    <div className="dfs-stack-preview-head">
+                      <div>
+                        <h3>{stackCopy.title}</h3>
+                        <p className="chart-note">{stackCopy.body}</p>
                       </div>
-                      <div className="dfs-vegas-teams">
-                        <span className={game.favorite === game.away ? "is-favorite" : ""}>
-                          <strong>{game.away}</strong>
-                          <em>{vegasImplied(game.away_implied)}</em>
-                        </span>
-                        <span className="dfs-vegas-at" aria-hidden="true">@</span>
-                        <span className={game.favorite === game.home ? "is-favorite" : ""}>
-                          <strong>{game.home}</strong>
-                          <em>{vegasImplied(game.home_implied)}</em>
-                        </span>
-                      </div>
-                      <div className="dfs-vegas-line">
-                        <span>{vegasSpreadLabel(game)}</span>
-                        <span>{vegasTotalLabel(game)}</span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                      <Button variant="ghost" size="sm" onClick={() => applyShootout(selectedGameId)}>
+                        {DFS_STEP_COPY.clearStack}
+                      </Button>
+                    </div>
+                    {(shootoutStack?.players || []).map((entry) => {
+                      const pid = String(entry.row.player_id);
+                      return (
+                        <article
+                          key={pid}
+                          className={`dfs-shootout-row${entry.role === "bring" ? " is-bring" : ""}`}
+                        >
+                          <span className="dfs-stack-tag">{entry.label}</span>
+                          <PlayerCell
+                            name={entry.row.Player}
+                            team={entry.row.Team}
+                            playerId={pid}
+                            media={playerMedia}
+                            size="sm"
+                            showTeam={false}
+                            narrativeScope="weekly"
+                          />
+                          <span className="dfs-stack-proj">{fmtNum(entry.row["Projected Points"])}</span>
+                          {isDfs ? (
+                            <span className="dfs-stack-sal">{formatSalary(entry.row.salary)}</span>
+                          ) : null}
+                          <DfsPinRow
+                            playerId={pid}
+                            playerName={entry.row.Player}
+                            locked={locked.has(pid)}
+                            excluded={excluded.has(pid)}
+                            inLineup={false}
+                            swapTarget={null}
+                            onLock={toggleLock}
+                            onSkip={toggleExclude}
+                          />
+                        </article>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
             )}
           </section>
@@ -994,7 +1199,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
             aria-labelledby="dfs-goal-title"
           >
             <header className="mock-draft-step-head">
-              <span>3</span>
+              <span>4</span>
               <div>
                 <h3 id="dfs-goal-title">Pick the goal</h3>
                 <p>Choose the score the optimizer should chase.</p>
@@ -1195,7 +1400,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
             aria-labelledby="dfs-pool-title"
           >
             <header className="mock-draft-step-head">
-              <span>4</span>
+              <span>5</span>
               <div>
                 <h3 id="dfs-pool-title">Shape the pool</h3>
                 <p>Lock the players you want. Skip the ones you do not.</p>
@@ -1596,7 +1801,11 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
             <ol className="dfs-slot-list">
               {lineup.length === 0 && (
                 <li className="dfs-slot-empty">
-                  {error || emptyLineupCopy({ optimizing, isDfs })}
+                  {error || emptyLineupCopy({
+                    optimizing,
+                    isDfs,
+                    hasStack: Boolean(selectedGameId) && !isCaptain,
+                  })}
                 </li>
               )}
               {lineup.map((row) => (
