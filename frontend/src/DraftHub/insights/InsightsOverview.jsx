@@ -4,13 +4,13 @@ import { HubExperienceHero, HubPage } from "../HubUILayout";
 import { InsightsOverviewSkeleton } from "./InsightsChrome";
 import { RankBars } from "./InsightsTalk";
 import {
+  championYearRows,
   formatRecordLine,
   formatScoringRankValue,
   INSIGHTS_COPY,
-  mostTitlesLine,
+  overviewPlaque,
   overviewRecordRows,
   overviewScoringRows,
-  teamDisplayName,
 } from "./insightsPresentation";
 
 export default function InsightsOverview({
@@ -19,12 +19,20 @@ export default function InsightsOverview({
   loading,
   onOpenTab,
   nav = null,
+  mineId,
+  mineName,
 }) {
   const copy = INSIGHTS_COPY.overview;
-  const champions = landing?.champions || [];
   const hasLanding = Boolean(landing?.available);
   const seasonCount = landing?.seasons_included?.length || 0;
-  const titlesLine = mostTitlesLine(landing?.most_titles, ownerMap);
+  const plaque = useMemo(
+    () => overviewPlaque(landing?.most_titles, landing?.champions || [], ownerMap),
+    [landing?.most_titles, landing?.champions, ownerMap],
+  );
+  const years = useMemo(
+    () => championYearRows(landing?.champions || [], landing?.most_titles, ownerMap),
+    [landing?.champions, landing?.most_titles, ownerMap],
+  );
   const recordRows = useMemo(
     () => overviewRecordRows(landing?.record_leaders || [], ownerMap),
     [landing?.record_leaders, ownerMap],
@@ -54,29 +62,45 @@ export default function InsightsOverview({
       )}
 
       {hasLanding && (
-        <div className="hub-insights-overview-grid">
-          <section className="hub-insights-overview-panel" aria-label={copy.titles}>
-              <div className="hub-insights-talk-head">
-                <h3>{copy.titles}</h3>
-                <p>{titlesLine || (champions.length ? copy.titlesSupport : copy.titlesEmpty)}</p>
+        <div className="hub-insights-overview">
+          {plaque ? (
+            <section className="hub-insights-plaque" aria-label={copy.titles}>
+              <div>
+                <p className="hub-insights-plaque-kicker">{copy.titles}</p>
+                <h2>{plaque.owner}</h2>
+                {plaque.team ? <p className="hub-insights-plaque-team">{plaque.team}</p> : null}
+                <p>{copy.plaqueSupport(plaque)}</p>
               </div>
-              {champions.length ? (
-                <ol className="hub-insights-champions">
-                  {champions.map((row) => (
-                    <li key={row.season}>
-                      <span className="hub-insights-champions-year">{row.season}</span>
-                      <strong>{teamDisplayName(row, ownerMap, true)}</strong>
-                      {row.runner_up ? (
-                        <span className="chart-note">def. {row.runner_up}</span>
-                      ) : null}
-                    </li>
-                  ))}
-                </ol>
-              ) : (
-                <p className="chart-note">{copy.titlesNone}</p>
-              )}
+              <div className="hub-insights-plaque-count">
+                <strong>{plaque.titles}</strong>
+                <span>{copy.titlesNoun}</span>
+              </div>
             </section>
+          ) : (
+            <p className="chart-note">{copy.titlesEmpty}</p>
+          )}
 
+          {years.length ? (
+            <section className="hub-insights-years" aria-label={copy.titlesYears}>
+              {years.map((row) => (
+                <article
+                  key={row.season}
+                  className={`hub-insights-year${row.dynasty ? " is-dynasty" : ""}`}
+                >
+                  <time dateTime={String(row.season)}>{row.season}</time>
+                  <strong>{row.owner}</strong>
+                  {row.team ? <span>{row.team}</span> : null}
+                  {row.runnerUp ? (
+                    <span className="hub-insights-year-runner">{copy.defeated(row.runnerUp)}</span>
+                  ) : null}
+                </article>
+              ))}
+            </section>
+          ) : (
+            <p className="chart-note">{copy.titlesNone}</p>
+          )}
+
+          <div className="hub-insights-overview-boards">
             <section className="hub-insights-overview-panel" aria-label={copy.records}>
               <div className="hub-insights-talk-head">
                 <h3>{copy.records}</h3>
@@ -88,6 +112,8 @@ export default function InsightsOverview({
                 <RankBars
                   rows={recordRows}
                   formatValue={(row) => formatRecordLine(row)}
+                  mineId={mineId}
+                  mineName={mineName}
                 />
               ) : (
                 <p className="chart-note">{copy.recordsEmpty}</p>
@@ -95,22 +121,27 @@ export default function InsightsOverview({
             </section>
 
             <section className="hub-insights-overview-panel" aria-label={copy.scoring}>
-              <div className="hub-insights-talk-head">
-                <h3>{copy.scoring}</h3>
-                <p>{copy.scoringSupport}</p>
+              <div className="hub-insights-talk-head hub-insights-talk-head--row">
+                <div>
+                  <h3>{copy.scoring}</h3>
+                  <p>{copy.scoringSupport}</p>
+                </div>
+                <button type="button" className="btn-primary btn-sm" onClick={() => onOpenTab("scoring")}>
+                  {copy.openScoring}
+                </button>
               </div>
               {scoringRows.length ? (
                 <RankBars
                   rows={scoringRows}
                   formatValue={(row) => formatScoringRankValue(row)}
+                  mineId={mineId}
+                  mineName={mineName}
                 />
               ) : (
                 <p className="chart-note">{copy.scoringEmpty}</p>
               )}
-              <button type="button" className="btn-link btn-sm" onClick={() => onOpenTab("scoring")}>
-                {copy.openScoring}
-              </button>
             </section>
+          </div>
         </div>
       )}
     </HubPage>

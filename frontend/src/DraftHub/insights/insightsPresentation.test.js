@@ -13,7 +13,9 @@ import {
   formatSpendValue,
   INSIGHTS_COPY,
   insightsHeroStatus,
+  championYearRows,
   mostTitlesLine,
+  overviewPlaque,
   overviewRecordRows,
   overviewScoringRows,
   pickDiscussablePosition,
@@ -112,6 +114,85 @@ test("overview scoring rows keep fill independent of label width and show the ga
   assert.equal(formatScoringRankValue(rows[0]), "Leader");
   assert.match(formatScoringRankValue(rows[1]), /−1,485/);
   assert.ok(rows[1].fillPct > rows[2].fillPct);
+});
+
+test("overview ranks keep every manager, labeled by the name that persists", () => {
+  const records = [
+    { team_name: "King Panda", owner_name: "Stephen P", wins: 45, losses: 17, ties: 0, games: 62, win_pct: 0.726 },
+    { team_name: "She Bo on my Nix til I TD", owner_name: "Dawson O", wins: 40, losses: 22, ties: 0, games: 62, win_pct: 0.645 },
+    { team_name: "516-74-3927", owner_name: "Chris G", wins: 34, losses: 28, ties: 0, games: 62, win_pct: 0.548 },
+    { team_name: "Disappointment", owner_name: "Aaron D", wins: 33, losses: 29, ties: 0, games: 62, win_pct: 0.532 },
+    { team_name: "Daddio of the Pandio", owner_name: "Colby L", wins: 33, losses: 29, ties: 0, games: 62, win_pct: 0.532 },
+    { team_name: "Panda Fraud", owner_name: "Andrew M", wins: 31, losses: 31, ties: 0, games: 62, win_pct: 0.5 },
+    { team_name: "Lincoler’s Dual Ethics", owner_name: "Justin P", wins: 25, losses: 37, ties: 0, games: 62, win_pct: 0.403 },
+    { team_name: "Thanks noob noob", owner_name: "Josh C", wins: 25, losses: 37, ties: 0, games: 62, win_pct: 0.403 },
+    { team_name: "Hurts when I Brown", owner_name: "Nick F", wins: 24, losses: 38, ties: 0, games: 62, win_pct: 0.387 },
+    { team_name: "White Supremacists", owner_name: "Caleb K", wins: 20, losses: 42, ties: 0, games: 62, win_pct: 0.323 },
+  ];
+  const rows = overviewRecordRows(records);
+  assert.equal(rows.length, 10);
+  assert.deepEqual(rows.map((row) => row.label), [
+    "Stephen P", "Dawson O", "Chris G", "Aaron D", "Colby L",
+    "Andrew M", "Justin P", "Josh C", "Nick F", "Caleb K",
+  ]);
+  assert.equal(rows[0].teamName, "King Panda");
+});
+
+test("career labels ignore a year-specific display_name", () => {
+  assert.equal(
+    teamDisplayName({
+      team_name: "King Panda",
+      owner_name: "Stephen P",
+      display_name: "Stephen P · King Panda",
+    }, null, false),
+    "Stephen P",
+  );
+  assert.equal(
+    teamDisplayName({
+      team_name: "King Panda",
+      display_name: "Stephen P · King Panda",
+    }, null, false),
+    "Stephen P",
+  );
+  assert.equal(
+    teamDisplayName({
+      team_name: "King Panda",
+      owner_name: "Stephen P",
+      display_name: "Stephen P · King Panda",
+    }, null, true),
+    "Stephen P · King Panda",
+  );
+});
+
+test("overview plaque uses the manager, not a retired team nickname", () => {
+  const plaque = overviewPlaque(
+    { titles: 3, team_name: "The Deported Panda", owner_name: "Stephen P", owner_id: "u1" },
+    [
+      { season: "2025", team_name: "The Deported Panda", owner_name: "Stephen P", owner_id: "u1", runner_up_owner_name: "Colby L" },
+      { season: "2022", team_name: "King Panda", owner_name: "Stephen P", owner_id: "u1", runner_up_owner_name: "Dawson O" },
+    ],
+  );
+  assert.equal(plaque.owner, "Stephen P");
+  assert.equal(plaque.team, "The Deported Panda");
+  assert.equal(plaque.titles, 3);
+  assert.equal(plaque.lastSeason, "2025");
+  assert.equal(plaque.runnerUp, "Colby L");
+  assert.doesNotMatch(plaque.owner, /King Panda/i);
+});
+
+test("championship years keep the manager on top and the team underneath", () => {
+  const years = championYearRows(
+    [
+      { season: "2022", team_name: "King Panda", owner_name: "Stephen P", owner_id: "u1", runner_up: "Sad Panda", runner_up_owner_name: "Dawson O" },
+      { season: "2024", team_name: "Panda Fraud", owner_name: "Andrew M", owner_id: "u2" },
+    ],
+    { titles: 3, owner_name: "Stephen P", owner_id: "u1" },
+  );
+  assert.equal(years[0].owner, "Stephen P");
+  assert.equal(years[0].team, "King Panda");
+  assert.equal(years[0].runnerUp, "Dawson O");
+  assert.equal(years[0].dynasty, true);
+  assert.equal(years[1].dynasty, false);
 });
 
 test("overview record rows show W-L only and scale from the field", () => {

@@ -61,6 +61,89 @@ def test_champion_from_winners_bracket_uses_first_place_match():
     assert champ["runner_up_team_name"] == "Runner"
 
 
+def test_most_titles_uses_latest_championship_team(monkeypatch):
+    chain = [
+        {"season": "2022", "league_id": "a"},
+        {"season": "2025", "league_id": "b"},
+    ]
+    payloads = {
+        "2022": {
+            "available": True,
+            "preseason": False,
+            "playoff": {
+                "champion_team_name": "King Panda",
+                "champion_owner_id": "u1",
+                "champion_roster_id": "7",
+                "runner_up_team_name": "Sad Panda",
+                "runner_up_owner_id": "u2",
+            },
+            "standings": [
+                {
+                    "owner_id": "u1",
+                    "team_name": "King Panda",
+                    "wins": 10,
+                    "losses": 4,
+                    "ties": 0,
+                    "total_points": 1000,
+                    "weeks_scored": 14,
+                },
+                {
+                    "owner_id": "u2",
+                    "team_name": "Sad Panda",
+                    "wins": 8,
+                    "losses": 6,
+                    "ties": 0,
+                    "total_points": 900,
+                    "weeks_scored": 14,
+                },
+            ],
+        },
+        "2025": {
+            "available": True,
+            "preseason": False,
+            "playoff": {
+                "champion_team_name": "The Deported Panda",
+                "champion_owner_id": "u1",
+                "champion_roster_id": "7",
+                "runner_up_team_name": "Daddio of the Pandio",
+                "runner_up_owner_id": "u3",
+            },
+            "standings": [
+                {
+                    "owner_id": "u1",
+                    "team_name": "The Deported Panda",
+                    "wins": 11,
+                    "losses": 3,
+                    "ties": 0,
+                    "total_points": 1100,
+                    "weeks_scored": 14,
+                },
+                {
+                    "owner_id": "u3",
+                    "team_name": "Daddio of the Pandio",
+                    "wins": 9,
+                    "losses": 5,
+                    "ties": 0,
+                    "total_points": 950,
+                    "weeks_scored": 14,
+                },
+            ],
+        },
+    }
+    monkeypatch.setattr(
+        "src.draft_hub.league_history.sleeper_league_season_chain",
+        lambda *_a, **_k: chain,
+    )
+    monkeypatch.setattr(
+        "src.draft_hub.league_history.get_sleeper_scoring_history",
+        lambda *_a, scoring_season=None, **_k: payloads[str(scoring_season)],
+    )
+    landing = build_insights_landing("lid")
+    assert landing["most_titles"]["titles"] == 2
+    assert landing["most_titles"]["team_name"] == "The Deported Panda"
+    assert landing["most_titles"]["owner_id"] == "u1"
+
+
 def test_build_insights_landing_without_sleeper_still_returns_catalog():
     payload = build_insights_landing("", award_titles={"points_king": "Scoring champ"})
     assert payload["available"] is False

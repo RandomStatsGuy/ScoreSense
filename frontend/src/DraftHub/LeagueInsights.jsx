@@ -906,7 +906,13 @@ export default function LeagueInsights({
     return (
       <div className="hub-insights">
         {activeTab === "overview" ? (
-          <InsightsOverview loading onOpenTab={setActiveTab} nav={insightsNav} />
+          <InsightsOverview
+            loading
+            onOpenTab={setActiveTab}
+            nav={insightsNav}
+            mineId={hubContext?.team_id}
+            mineName={hubContext?.team_name}
+          />
         ) : (
           <HubPage className="hub-spend-page hub-experience-page hub-insights-page">
             <HubExperienceHero
@@ -942,6 +948,8 @@ export default function LeagueInsights({
           loading={loading || tabLoading}
           onOpenTab={setActiveTab}
           nav={insightsNav}
+          mineId={hubContext?.team_id}
+          mineName={hubContext?.team_name}
         />
       )}
 

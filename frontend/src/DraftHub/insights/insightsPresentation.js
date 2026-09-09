@@ -25,24 +25,42 @@ function ownerFromMap(team, ownerMap) {
     || "";
 }
 
-export function teamDisplayName(row, ownerMap, yearSpecific) {
-  if (row?.display_name) return row.display_name;
-  const team = String(row?.team_name || row?.name || "").trim();
-  const owner = String(row?.owner_name || ownerFromMap(team, ownerMap) || "").trim();
-  if (!team) return owner || "—";
-  if (!owner || owner.toLowerCase() === team.toLowerCase()) return team;
-  if (yearSpecific) return `${owner} · ${team}`;
+function careerOwnerLabel(row, team, owner) {
+  if (owner && owner.toLowerCase() !== team.toLowerCase()) return owner;
+  const display = String(row?.display_name || "").trim();
+  if (display) {
+    const named = display.split(" · ")[0].trim();
+    if (named && named.toLowerCase() !== team.toLowerCase()) return named;
+  }
   return owner;
 }
 
+export function teamDisplayName(row, ownerMap, yearSpecific) {
+  const team = String(row?.team_name || row?.name || "").trim();
+  const owner = String(row?.owner_name || ownerFromMap(team, ownerMap) || "").trim();
+  if (yearSpecific) {
+    if (row?.display_name) return row.display_name;
+    if (!team) return owner || "—";
+    if (!owner || owner.toLowerCase() === team.toLowerCase()) return team;
+    return `${owner} · ${team}`;
+  }
+  const career = careerOwnerLabel(row, team, owner);
+  if (career) return career;
+  return team || "—";
+}
+
 export function managerLabel(award, ownerMap, yearSpecific) {
-  if (award?.display_name) return award.display_name;
   const team = String(award?.team_name || "").trim();
   const owner = String(award?.owner_name || ownerFromMap(team, ownerMap) || "").trim();
-  if (!team && owner) return owner;
-  if (!owner || owner.toLowerCase() === team.toLowerCase()) return team || owner;
-  if (yearSpecific) return `${owner} · ${team}`;
-  return owner;
+  if (yearSpecific) {
+    if (award?.display_name) return award.display_name;
+    if (!team && owner) return owner;
+    if (!owner || owner.toLowerCase() === team.toLowerCase()) return team || owner;
+    return `${owner} · ${team}`;
+  }
+  const career = careerOwnerLabel(award, team, owner);
+  if (career) return career;
+  return team || owner || "—";
 }
 
 /** True when the rank label is the owner and the team nickname can sit underneath. */
@@ -191,7 +209,7 @@ export function formatScoringRankValue(row) {
 }
 
 export function overviewRecordRows(records, ownerMap) {
-  const list = (records || []).filter((row) => (Number(row.games) || 0) > 0).slice(0, 8);
+  const list = (records || []).filter((row) => (Number(row.games) || 0) > 0);
   const values = list.map((row) => Number(row.win_pct) || 0);
   return list.map((row, idx) => ({
     ...row,
@@ -203,7 +221,7 @@ export function overviewRecordRows(records, ownerMap) {
 }
 
 export function overviewScoringRows(scorers, ownerMap) {
-  const list = (scorers || []).slice(0, 8);
+  const list = (scorers || []);
   const values = list.map((row) => Number(row.total_points) || 0);
   const leader = values[0] || 0;
   return list.map((row, idx) => {
@@ -216,6 +234,52 @@ export function overviewScoringRows(scorers, ownerMap) {
       total,
       fillPct: fieldRankShare(total, values),
       gapFromFirst: gapFromLeader(total, leader),
+    };
+  });
+}
+
+export function championRunnerLabel(row, ownerMap) {
+  const named = String(row?.runner_up_owner_name || "").trim();
+  if (named) return named;
+  if (!row?.runner_up) return "";
+  return teamDisplayName({
+    team_name: row.runner_up,
+    owner_name: row.runner_up_owner_name,
+  }, ownerMap, false);
+}
+
+export function overviewPlaque(mostTitles, champions, ownerMap) {
+  if (!mostTitles || !(Number(mostTitles.titles) > 1)) return null;
+  const owner = teamDisplayName(mostTitles, ownerMap, false);
+  const dynastyId = String(mostTitles.owner_id || "");
+  const last = (champions || []).find((row) => {
+    if (dynastyId && String(row.owner_id || "") === dynastyId) return true;
+    return teamDisplayName(row, ownerMap, false) === owner;
+  }) || null;
+  const team = String(mostTitles.team_name || last?.team_name || "").trim();
+  return {
+    owner,
+    team: team && team.toLowerCase() !== owner.toLowerCase() ? team : "",
+    titles: Number(mostTitles.titles),
+    lastSeason: last?.season || "",
+    runnerUp: last ? championRunnerLabel(last, ownerMap) : "",
+  };
+}
+
+export function championYearRows(champions, mostTitles, ownerMap) {
+  const plaque = overviewPlaque(mostTitles, champions, ownerMap);
+  const dynastyOwner = plaque?.owner || "";
+  const dynastyId = String(mostTitles?.owner_id || "");
+  return (champions || []).map((row) => {
+    const owner = teamDisplayName(row, ownerMap, false);
+    const team = String(row.team_name || "").trim();
+    const sameId = Boolean(dynastyId && String(row.owner_id || "") === dynastyId);
+    return {
+      season: row.season,
+      owner,
+      team: team && team.toLowerCase() !== owner.toLowerCase() ? team : "",
+      runnerUp: championRunnerLabel(row, ownerMap),
+      dynasty: sameId || Boolean(dynastyOwner && owner === dynastyOwner),
     };
   });
 }
@@ -306,9 +370,18 @@ export const INSIGHTS_COPY = {
       `Titles, records, and career points across ${countLabel}. Ignore the gap and you bid like every seat is even.`
     ),
     titles: "Titles",
+    titlesNoun: "titles",
+    titlesYears: "Championship years",
     titlesEmpty: "Champions appear once a season’s bracket is complete.",
     titlesSupport: "Championships from the Sleeper bracket.",
     titlesNone: "No completed championships in the Sleeper history yet.",
+    defeated: (name) => `def. ${name}`,
+    plaqueSupport: ({ titles, lastSeason, runnerUp }) => {
+      const bits = [`${titles} championships`];
+      if (lastSeason) bits.push(`last ${lastSeason}`);
+      if (runnerUp) bits.push(`def. ${runnerUp} that year`);
+      return bits.join(" · ");
+    },
     records: "All-time records",
     recordsSupport: "Regular-season wins across every scored year.",
     recordsEmpty: "Win-loss records fill in after scoring history refreshes.",
