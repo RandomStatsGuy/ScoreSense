@@ -974,6 +974,8 @@ def _pick_roster_sqlite_row(
             scoped = matched
         elif require_team:
             return None
+    elif require_team:
+        return None
     if prefer == "cut":
         cuts = [r for r in scoped if not roster_row_occupies(r)]
         return cuts[0] if cuts else scoped[0]

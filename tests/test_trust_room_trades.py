@@ -121,8 +121,16 @@ def test_apply_trade_plan_rolls_back_when_a_player_is_missing(hub_db):
         storage.apply_trade_plan(
             ws["id"],
             [
-                {"player_id": "keep-me", "team_id": team_b["id"]},
-                {"player_id": "ghost", "team_id": team_b["id"]},
+                {
+                    "player_id": "keep-me",
+                    "from_team_id": team_a["id"],
+                    "team_id": team_b["id"],
+                },
+                {
+                    "player_id": "ghost",
+                    "from_team_id": team_a["id"],
+                    "team_id": team_b["id"],
+                },
             ],
         )
     assert storage.get_roster_slot(ws["id"], "keep-me")["team_id"] == team_a["id"]
@@ -160,6 +168,41 @@ def test_apply_trade_plan_does_not_steal_from_another_team(hub_db):
             ],
         )
     assert storage.get_roster_slot(ws["id"], "stay-put")["team_id"] == team_a["id"]
+
+
+def test_apply_trade_plan_requires_from_team(hub_db):
+    comm = "trade-missing-from-comm"
+    member = "trade-missing-from-member"
+    rules = load_preset("salary_cap_auction_v1")
+    ws = storage.get_or_create_workspace(comm)
+    league = storage.create_league(comm, "Missing From Team", 2026, rules, workspace_id=ws["id"])
+    team_a = storage.get_team_by_user(league["id"], comm)
+    team_b = storage.join_league(member, league["room_code"], "Team B")
+    storage.add_roster_slot(
+        ws["id"],
+        {
+            "player_id": "needs-from",
+            "player_name": "Needs From",
+            "team": "SEA",
+            "position": "WR",
+            "salary": 16,
+            "contract_years": 2,
+        },
+        team_id=team_a["id"],
+    )
+    for from_team_id in (None, ""):
+        with pytest.raises(ValueError, match="Failed to move needs-from"):
+            storage.apply_trade_plan(
+                ws["id"],
+                [
+                    {
+                        "player_id": "needs-from",
+                        "from_team_id": from_team_id,
+                        "team_id": team_b["id"],
+                    }
+                ],
+            )
+        assert storage.get_roster_slot(ws["id"], "needs-from")["team_id"] == team_a["id"]
 
 
 def test_stale_award_after_end_draft_does_not_revive(hub_db):

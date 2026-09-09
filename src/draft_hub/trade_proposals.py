@@ -397,6 +397,7 @@ def execute_multiparty_trade(
             moves.append(
                 {
                     "player_id": send["player_id"],
+                    "from_team_id": from_tid,
                     "team_id": send["to_team_id"],
                 }
             )
@@ -409,6 +410,7 @@ def execute_multiparty_trade(
             moves.append(
                 {
                     "player_id": pid,
+                    "from_team_id": from_tid,
                     "team_id": assignee,
                     "roster_status": ROSTER_CUT_BEFORE_DRAFT,
                     "contract": contract_on_cut_status_change(
