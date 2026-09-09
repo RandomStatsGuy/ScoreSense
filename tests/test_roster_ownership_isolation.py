@@ -99,6 +99,101 @@ def test_commissioner_can_delete_another_team_player(hub_db, monkeypatch):
         app.dependency_overrides.pop(require_hub_user, None)
 
 
+def _add_multi_year(ws_id, team_id, player_id, name, salary=80, years=3):
+    return storage.add_roster_slot(
+        ws_id,
+        {
+            "player_id": player_id,
+            "player_name": name,
+            "team": "KC",
+            "position": "QB",
+            "salary": salary,
+            "contract_years": years,
+            "contract": {
+                "current_salary": salary,
+                "years_remaining": years,
+                "contract_type": "veteran",
+                "schedule": [{"year_offset": i, "salary": salary} for i in range(years)],
+            },
+        },
+        team_id=team_id,
+    )
+
+
+def test_member_can_cut_own_player_after_draft(hub_db, monkeypatch):
+    league, _owner, member, ws_id = _seed_two_teams("comm-own-cut", "member-own-cut")
+    _open_fa(monkeypatch, league)
+    _add_multi_year(ws_id, member["id"], "00-0035228", "Josh Allen")
+    storage.set_hub_focus("member-own-cut", league_id=league["id"])
+
+    client = _client_for("member-own-cut")
+    try:
+        res = client.patch(
+            "/api/hub/roster",
+            json={"player_id": "00-0035228", "roster_status": "cut_before_draft"},
+        )
+        assert res.status_code == 200, res.text
+        slot = storage.get_roster_slot(ws_id, "00-0035228")
+        assert slot["roster_status"] == "cut_before_draft"
+        assert (slot.get("contract") or {}).get("cut_dead_cap_years") == 1
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_member_cannot_cut_another_team_after_draft(hub_db, monkeypatch):
+    league, owner, _member, ws_id = _seed_two_teams("comm-other-cut", "member-other-cut")
+    _open_fa(monkeypatch, league)
+    _add_multi_year(ws_id, owner["id"], "00-0033873", "Patrick Mahomes")
+    storage.set_hub_focus("member-other-cut", league_id=league["id"])
+
+    client = _client_for("member-other-cut")
+    try:
+        res = client.patch(
+            "/api/hub/roster",
+            json={"player_id": "00-0033873", "roster_status": "cut_before_draft"},
+        )
+        assert res.status_code == 403
+        slot = storage.get_roster_slot(ws_id, "00-0033873")
+        assert slot["roster_status"] != "cut_before_draft"
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_commissioner_can_cut_another_team_after_draft(hub_db, monkeypatch):
+    league, owner, _member, ws_id = _seed_two_teams("comm-staff-cut", "member-staff-cut")
+    _open_fa(monkeypatch, league)
+    _add_multi_year(ws_id, owner["id"], "00-0033873", "Patrick Mahomes")
+    storage.set_hub_focus("comm-staff-cut", league_id=league["id"])
+
+    client = _client_for("comm-staff-cut")
+    try:
+        res = client.patch(
+            "/api/hub/roster",
+            json={
+                "player_id": "00-0033873",
+                "roster_status": "cut_before_draft",
+                "note": "Roster management live edit",
+            },
+        )
+        assert res.status_code == 200, res.text
+        slot = storage.get_roster_slot(ws_id, "00-0033873")
+        assert slot["roster_status"] == "cut_before_draft"
+        from src.draft_hub.pre_draft_cap import cap_summary_for_phase, pre_draft_cut_dead_cap_at_offset
+        from src.draft_hub.rules_engine import multi_year_cap_plan
+
+        rules = LeagueRules()
+        roster = storage.list_team_roster(league["id"], owner["id"])
+        summary = cap_summary_for_phase(rules, roster, draft_completed=True)
+        assert summary["dead_cap"] == 40
+        assert summary["spent"] == 0
+        plan = multi_year_cap_plan(rules, roster, seasons_ahead=3, draft_completed=True)
+        assert plan[0]["dead_cap"] == 40
+        assert plan[1].get("dead_cap", 0) == 0
+        assert pre_draft_cut_dead_cap_at_offset(rules, slot, 1) == 0
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+
 def test_commissioner_drop_does_not_apply_dead_cap(hub_db):
     rules = LeagueRules()
     league = storage.create_league("comm-void", "Void League", 2026, rules, team_count=10)

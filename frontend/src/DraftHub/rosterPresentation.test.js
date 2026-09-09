@@ -14,6 +14,20 @@ test("My team copy names the decision and skips Draft Hub / permission voice", (
   assert.match(MY_TEAM_COPY.removeConfirm, /Cut if you meant a penalty/);
   assert.doesNotMatch(MY_TEAM_COPY.removeConfirm, /Staff only|permission|refund/i);
   assert.equal(MY_TEAM_COPY.dropLabel, "Drop");
+  assert.equal(MY_TEAM_COPY.cutLabel, "Cut");
+  assert.equal(MY_TEAM_COPY.undoCut, "Undo cut");
+  assert.equal(MY_TEAM_COPY.cutConfirmTitle("Veteran"), "Cut Veteran?");
+  assert.match(MY_TEAM_COPY.cutConfirm("$4", "$4"), /Frees \$4 leftover/);
+  assert.match(MY_TEAM_COPY.cutConfirm("$4", "$4"), /Dead cap \$4/);
+});
+
+test("cut status chip says Cut, not Cut before draft", () => {
+  const cut = rosterStatusInfo(
+    { roster_status: "cut_before_draft", contract: { years_remaining: 3 } },
+    { draftCompleted: true },
+  );
+  assert.equal(cut.label, "Cut");
+  assert.equal(cut.tone, "cut");
 });
 
 test("My team qualifies committed as the season year", () => {

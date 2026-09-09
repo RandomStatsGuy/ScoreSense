@@ -275,17 +275,15 @@ function ContractSidePanelBody({
           </button>
         )}
         <div className="hub-roster-contract-panel-danger">
-          {!draftCompleted && (
-            <button
-              type="button"
-              className={`btn-ghost btn-sm${isCut ? " hub-uncut-btn" : ""}`}
-              disabled={isSaving}
-              onClick={() => toggleCut(r, !isCut)}
-            >
-              {isCut ? "Undo cut" : "Cut pre-draft"}
-              {isCut ? <span className="hub-btn-support">{deadStory.undoSupport}</span> : null}
-            </button>
-          )}
+          <button
+            type="button"
+            className={`btn-ghost btn-sm${isCut ? " hub-uncut-btn" : ""}`}
+            disabled={isSaving}
+            onClick={() => toggleCut(r, !isCut)}
+          >
+            {isCut ? MY_TEAM_COPY.undoCut : MY_TEAM_COPY.cutLabel}
+            {isCut ? <span className="hub-btn-support">{deadStory.undoSupport}</span> : null}
+          </button>
           {canRemove && (
             <button
               type="button"
@@ -433,6 +431,16 @@ export default function RosterBuilder({
   }, []);
 
   const toggleCut = useCallback(async (r, cut) => {
+    if (cut && draftCompleted) {
+      const story = contractDeadCapStory({ ...r, roster_status: "active" }, workspace?.rules);
+      const ok = await confirmDialog({
+        title: MY_TEAM_COPY.cutConfirmTitle(r.player_name || "this player"),
+        message: MY_TEAM_COPY.cutConfirm(fmtSal(story.freed), story.deadLabel),
+        confirmLabel: MY_TEAM_COPY.cutConfirmLabel,
+        danger: true,
+      });
+      if (!ok) return;
+    }
     setSavingId(r.player_id);
     setError("");
     try {
@@ -451,7 +459,7 @@ export default function RosterBuilder({
     } finally {
       setSavingId(null);
     }
-  }, [onChanged]);
+  }, [onChanged, draftCompleted, workspace?.rules]);
 
   useEffect(() => {
     if (!roster?.length) {

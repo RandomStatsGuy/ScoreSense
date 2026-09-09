@@ -80,19 +80,35 @@ def test_pre_draft_cut_multi_year_incurs_pct_dead_cap():
     assert summary["draft_budget_available"] == 110
     assert summary["pending_cuts"][0]["dead_cap"] == 40
     assert summary["pending_cuts"][0]["cap_freed"] == 40
-    assert summary["pending_cuts"][0]["dead_cap_years"] == 2
+    assert summary["pending_cuts"][0]["dead_cap_years"] == 1
 
 
-def test_pre_draft_cut_dead_cap_persists_in_multi_year_plan():
+def test_cut_dead_cap_hits_only_the_cut_season():
     rules = LeagueRules(salary_cap=200, contracts={"cut_refund_pct": 0.5})
     roster = [_row("b", 80, 3, ROSTER_CUT_BEFORE_DRAFT)]
     plan = multi_year_cap_plan(rules, roster, seasons_ahead=3, draft_completed=False)
     assert len(plan) == 3
     assert plan[0]["dead_cap"] == 40
-    assert plan[1]["dead_cap"] == 40
-    assert plan[2]["dead_cap"] == 40
-    assert pre_draft_cut_dead_cap_at_offset(rules, roster[0], 2) == 40
-    assert pre_draft_cut_dead_cap_at_offset(rules, roster[0], 3) == 0
+    assert plan[1].get("dead_cap", 0) == 0
+    assert plan[2].get("dead_cap", 0) == 0
+    assert pre_draft_cut_dead_cap_at_offset(rules, roster[0], 0) == 40
+    assert pre_draft_cut_dead_cap_at_offset(rules, roster[0], 1) == 0
+    assert pre_draft_cut_dead_cap_at_offset(rules, roster[0], 2) == 0
+
+
+def test_after_draft_cut_occupies_this_season_dead_not_salary():
+    rules = LeagueRules(salary_cap=200, contracts={"cut_refund_pct": 0.5})
+    roster = [
+        _row("kept", 50, 2),
+        _row("cut", 80, 3, ROSTER_CUT_BEFORE_DRAFT),
+    ]
+    summary = cap_summary_for_phase(rules, roster, draft_completed=True)
+    assert summary["spent"] == 50
+    assert summary["dead_cap"] == 40
+    assert summary["remaining"] == 110
+    plan = multi_year_cap_plan(rules, roster, seasons_ahead=3, draft_completed=True)
+    assert plan[0]["dead_cap"] == 40
+    assert plan[1].get("dead_cap", 0) == 0
 
 
 def test_fa_contract_always_expires_before_draft():
