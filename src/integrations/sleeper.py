@@ -692,10 +692,12 @@ def _sleeper_positions_for(position: str) -> frozenset[str]:
     return SLEEPER_POSITIONS[key]
 
 
-def _sleeper_row_rank(row: pd.Series, allowed: frozenset[str]) -> tuple[int, int, int]:
-    team = str(row.get("team") or "").strip()
-    pos = str(row.get("position") or "").strip().upper()
-    status = str(row.get("status") or "").strip()
+def _sleeper_row_rank(row: dict | pd.Series, allowed: frozenset[str]) -> tuple[int, int, int]:
+    from src.integrations.roster_identity import cell_text
+
+    team = cell_text(row.get("team"))
+    pos = cell_text(row.get("position")).upper()
+    status = cell_text(row.get("status"))
     return (
         1 if pos in allowed else 0,
         1 if team else 0,
@@ -707,19 +709,20 @@ def _build_sleeper_lookups(
     sleeper_df: pd.DataFrame,
     position: str,
     allowed: frozenset[str] | None = None,
-) -> tuple[dict[str, pd.Series], dict[str, pd.Series]]:
+) -> tuple[dict[str, dict], dict[str, dict]]:
     """Map gsis_id and suffix-stripped name to Sleeper rows for one fantasy position."""
     from src.draft_hub.player_name_match import roster_name_key
+    from src.integrations.roster_identity import cell_text
 
     allowed = allowed if allowed is not None else _sleeper_positions_for(position)
-    scoped = sleeper_df[sleeper_df["position"].isin(allowed)].copy()
-    by_gsis: dict[str, pd.Series] = {}
-    by_name: dict[str, pd.Series] = {}
-    for _, row in scoped.iterrows():
-        gsis = str(row.get("gsis_id") or "").strip()
+    scoped = sleeper_df[sleeper_df["position"].isin(allowed)]
+    by_gsis: dict[str, dict] = {}
+    by_name: dict[str, dict] = {}
+    for row in scoped.to_dict(orient="records"):
+        gsis = cell_text(row.get("gsis_id"))
         if gsis:
             by_gsis[gsis] = row
-        name = roster_name_key(str(row.get("full_name") or ""))
+        name = roster_name_key(cell_text(row.get("full_name")))
         if not name:
             continue
         prev = by_name.get(name)
@@ -730,12 +733,13 @@ def _build_sleeper_lookups(
 
 def _lookup_sleeper_row(
     row: pd.Series,
-    by_gsis: dict[str, pd.Series],
-    by_name: dict[str, pd.Series],
-) -> Optional[pd.Series]:
+    by_gsis: dict[str, dict],
+    by_name: dict[str, dict],
+) -> Optional[dict]:
     from src.draft_hub.player_name_match import roster_name_key
+    from src.integrations.roster_identity import cell_text
 
-    player_id = str(row.get("player_id") or "").strip()
+    player_id = cell_text(row.get("player_id"))
     if player_id and player_id in by_gsis:
         return by_gsis[player_id]
     name = roster_name_key(_player_name_from_row(row))
@@ -896,7 +900,9 @@ def apply_sleeper_roster_overlay(
             continue
 
         matched_names.add(str(sleeper_row["full_name"]).strip().lower())
-        player_id = str(row.get("player_id") or "").strip()
+        from src.integrations.roster_identity import cell_text
+
+        player_id = cell_text(row.get("player_id"))
         if player_id:
             matched_ids.add(player_id)
 

@@ -23,20 +23,14 @@ def _with_roster_identity(
     position: str,
     season: int | None,
     week: int | None,
+    *,
+    cache_key: str | None = None,
 ) -> pd.DataFrame:
-    if df is None or df.empty or "player_id" not in df.columns:
-        return df
-    from src.integrations.roster_identity import apply_roster_identity_overlay
+    from src.integrations.roster_identity import apply_roster_identity_with_attrs
 
-    out, stats = apply_roster_identity_overlay(
-        df, position, season=season, week=week
+    return apply_roster_identity_with_attrs(
+        df, position, season=season, week=week, cache_key=cache_key
     )
-    if stats.get("applied"):
-        out.attrs["roster_identity"] = stats
-        for key, value in df.attrs.items():
-            if key not in out.attrs:
-                out.attrs[key] = value
-    return out
 
 
 def _cache_key(position: str, season: int, week: int, apply_injury: bool) -> str:
@@ -96,7 +90,13 @@ def load_ros_prediction(
     if not force:
         cached = _ROS_CACHE.get(key)
         if cached is not None and cached[0] == fp:
-            return _with_roster_identity(cached[1].copy(), pos, int(season), int(week))
+            return _with_roster_identity(
+                cached[1].copy(),
+                pos,
+                int(season),
+                int(week),
+                cache_key=f"ros:{key}:{fp}",
+            )
 
         if parquet_path.exists() and meta_path.exists():
             try:
@@ -106,7 +106,13 @@ def load_ros_prediction(
             if meta.get("fingerprint") == fp:
                 df = pd.read_parquet(parquet_path)
                 _ROS_CACHE[key] = (fp, df.copy())
-                return _with_roster_identity(df, pos, int(season), int(week))
+                return _with_roster_identity(
+                    df,
+                    pos,
+                    int(season),
+                    int(week),
+                    cache_key=f"ros:{key}:{fp}",
+                )
 
     if not allow_compute:
         return pd.DataFrame()
@@ -115,7 +121,13 @@ def load_ros_prediction(
         if not force:
             cached = _ROS_CACHE.get(key)
             if cached is not None and cached[0] == fp:
-                return _with_roster_identity(cached[1].copy(), pos, int(season), int(week))
+                return _with_roster_identity(
+                cached[1].copy(),
+                pos,
+                int(season),
+                int(week),
+                cache_key=f"ros:{key}:{fp}",
+            )
             if parquet_path.exists() and meta_path.exists():
                 try:
                     meta = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -124,7 +136,13 @@ def load_ros_prediction(
                 if meta.get("fingerprint") == fp:
                     df = pd.read_parquet(parquet_path)
                     _ROS_CACHE[key] = (fp, df.copy())
-                    return _with_roster_identity(df, pos, int(season), int(week))
+                    return _with_roster_identity(
+                    df,
+                    pos,
+                    int(season),
+                    int(week),
+                    cache_key=f"ros:{key}:{fp}",
+                )
 
         df = predict_rest_of_season(
             pos,
@@ -133,7 +151,13 @@ def load_ros_prediction(
             apply_injury_adjustments=apply_injury_adjustments,
         )
         save_ros_artifact(pos, int(season), int(week), apply_injury_adjustments, df)
-        return _with_roster_identity(df, pos, int(season), int(week))
+        return _with_roster_identity(
+            df,
+            pos,
+            int(season),
+            int(week),
+            cache_key=f"ros:{key}:{fp}",
+        )
 
 
 def save_ros_artifact(
@@ -162,6 +186,9 @@ def save_ros_artifact(
 
 def invalidate_ros_cache() -> None:
     _ROS_CACHE.clear()
+    from src.integrations.roster_identity import invalidate_identity_overlay_cache
+
+    invalidate_identity_overlay_cache()
 
 
 def prewarm_ros_predictions(

@@ -2,7 +2,10 @@
 
 import pandas as pd
 
-from src.integrations.roster_identity import apply_roster_identity_overlay
+from src.integrations.roster_identity import (
+    apply_roster_identity_overlay,
+    invalidate_identity_overlay_cache,
+)
 
 
 def _nflverse() -> pd.DataFrame:
@@ -340,3 +343,90 @@ def test_sleeper_suffix_fallback_when_nflverse_empty():
     assert updated.iloc[0]["Team"] == "KC"
     assert stats["source"] == "sleeper"
     assert stats["teams_updated"] == 1
+
+
+def test_schema_without_team_column_is_noop():
+    board = pd.DataFrame(
+        [
+            {
+                "Player": "Kenneth Walker III",
+                "Position": "RB",
+                "player_id": "00-0038134",
+            }
+        ]
+    )
+    updated, stats = apply_roster_identity_overlay(
+        board,
+        "rb",
+        season=2026,
+        nflverse_df=_nflverse(),
+        sleeper_df=pd.DataFrame(),
+        load_defaults=False,
+    )
+    assert stats["applied"] is False
+    assert len(updated) == 1
+    assert "Team" not in updated.columns
+    assert "team" not in updated.columns
+
+
+def test_nan_player_id_is_not_treated_as_gsis():
+    board = pd.DataFrame(
+        [
+            {
+                "Player": "Unknown Back",
+                "Team": "SEA",
+                "Position": "RB",
+                "player_id": float("nan"),
+            }
+        ]
+    )
+    updated, stats = apply_roster_identity_overlay(
+        board,
+        "rb",
+        season=2026,
+        nflverse_df=_nflverse(),
+        sleeper_df=pd.DataFrame(),
+        load_defaults=False,
+    )
+    assert len(updated) == 1
+    assert updated.iloc[0]["Player"] == "Unknown Back"
+    assert stats["dropped_stale"] == 0
+
+
+def test_overlay_with_attrs_reuses_cache(monkeypatch):
+    from src.integrations import roster_identity as ri
+
+    invalidate_identity_overlay_cache()
+    calls = {"n": 0}
+    original = ri.apply_roster_identity_overlay
+
+    def fake_apply(frame, position, **kwargs):
+        calls["n"] += 1
+        return original(
+            frame,
+            position,
+            nflverse_df=_nflverse(),
+            sleeper_df=pd.DataFrame(),
+            load_defaults=False,
+        )
+
+    monkeypatch.setattr(ri, "apply_roster_identity_overlay", fake_apply)
+    board = pd.DataFrame(
+        [
+            {
+                "Player": "Kenneth Walker III",
+                "Team": "SEA",
+                "Position": "RB",
+                "player_id": "00-0038134",
+            }
+        ]
+    )
+    first = ri.apply_roster_identity_with_attrs(
+        board, "rb", season=2026, cache_key="test:walker"
+    )
+    second = ri.apply_roster_identity_with_attrs(
+        board, "rb", season=2026, cache_key="test:walker"
+    )
+    assert first.iloc[0]["Team"] == "KC"
+    assert second.iloc[0]["Team"] == "KC"
+    assert calls["n"] == 1

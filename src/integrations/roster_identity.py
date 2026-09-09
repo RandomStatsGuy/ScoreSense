@@ -10,7 +10,8 @@ longer on the season roster.
 from __future__ import annotations
 
 import re
-from typing import Any
+import time
+from typing import Any, Mapping
 
 import pandas as pd
 
@@ -29,6 +30,23 @@ BOARD_ALLOWED: dict[str, frozenset[str]] = {
 SKILL_POSITIONS = frozenset({"QB", "RB", "FB", "WR", "TE"})
 DROP_STATUSES = frozenset({"CUT"})
 SLEEPER_EXCLUDED = frozenset({"Inactive", "Retired"})
+IDENTITY_CACHE_TTL_SECONDS = 300
+_OVERLAY_CACHE: dict[str, tuple[str, float, pd.DataFrame]] = {}
+
+
+def cell_text(value: Any) -> str:
+    """Stringify a cell, treating NaN / None / 'nan' as empty."""
+    if value is None:
+        return ""
+    try:
+        if pd.isna(value):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    text = str(value).strip()
+    if text.lower() in {"", "nan", "none", "<na>"}:
+        return ""
+    return text
 
 
 def _board_for_position(position: str | None) -> str | None:
@@ -41,7 +59,7 @@ def _board_for_position(position: str | None) -> str | None:
 
 
 def _row_board(position: Any) -> str | None:
-    pos = str(position or "").strip().upper()
+    pos = cell_text(position).upper()
     if pos == "QB":
         return "qb"
     if pos in {"RB", "FB"}:
@@ -57,29 +75,33 @@ def _allowed_for(board: str | None, row_position: Any) -> frozenset[str]:
     row_board = _row_board(row_position)
     if row_board:
         return BOARD_ALLOWED[row_board]
-    pos = str(row_position or "").strip().upper()
+    pos = cell_text(row_position).upper()
     if pos and pos not in SKILL_POSITIONS:
         return frozenset({pos})
     return SKILL_POSITIONS
 
 
 def _is_gsis(player_id: str) -> bool:
-    return bool(GSIS_RE.match(str(player_id or "").strip()))
+    return bool(GSIS_RE.match(cell_text(player_id)))
 
 
-def _is_rookie_row(row: pd.Series) -> bool:
+def _is_rookie_row(row: Mapping[str, Any]) -> bool:
     flag = row.get("_rookie_estimate")
     try:
         if flag is not None and not (isinstance(flag, float) and pd.isna(flag)) and bool(flag):
             return True
     except (TypeError, ValueError):
         pass
-    pid = str(row.get("player_id") or "").strip()
-    return pid.startswith("sleeper-")
+    return cell_text(row.get("player_id")).startswith("sleeper-")
 
 
 def _schema(frame: pd.DataFrame) -> tuple[str, str, str, str]:
-    team_col = "Team" if "Team" in frame.columns else "team"
+    if "Team" in frame.columns:
+        team_col = "Team"
+    elif "team" in frame.columns:
+        team_col = "team"
+    else:
+        team_col = ""
     if "Position" in frame.columns:
         pos_col = "Position"
     elif "position" in frame.columns:
@@ -95,40 +117,44 @@ def _schema(frame: pd.DataFrame) -> tuple[str, str, str, str]:
     return team_col, pos_col, name_col, id_col
 
 
-def _index_nflverse(roster: pd.DataFrame) -> dict[str, pd.Series]:
-    by_id: dict[str, pd.Series] = {}
+def _index_nflverse(roster: pd.DataFrame) -> dict[str, dict[str, Any]]:
+    by_id: dict[str, dict[str, Any]] = {}
     if roster is None or roster.empty or "player_id" not in roster.columns:
         return by_id
-    for _, row in roster.iterrows():
-        pid = str(row.get("player_id") or "").strip()
+    for row in roster.to_dict(orient="records"):
+        pid = cell_text(row.get("player_id"))
         if pid:
             by_id[pid] = row
     return by_id
 
 
-def _index_sleeper(sleeper_df: pd.DataFrame) -> tuple[dict[str, pd.Series], dict[str, pd.Series]]:
-    by_gsis: dict[str, pd.Series] = {}
-    by_name: dict[str, list[pd.Series]] = {}
+def _index_sleeper(
+    sleeper_df: pd.DataFrame,
+) -> tuple[dict[str, dict[str, Any]], dict[str, list[dict[str, Any]]]]:
+    by_gsis: dict[str, dict[str, Any]] = {}
+    by_name: dict[str, list[dict[str, Any]]] = {}
     if sleeper_df is None or sleeper_df.empty:
         return {}, {}
-    for _, row in sleeper_df.iterrows():
-        gsis = str(row.get("gsis_id") or "").strip()
+    for row in sleeper_df.to_dict(orient="records"):
+        gsis = cell_text(row.get("gsis_id"))
         if gsis:
             by_gsis[gsis] = row
-        key = roster_name_key(str(row.get("full_name") or ""))
+        key = roster_name_key(cell_text(row.get("full_name")))
         if key:
             by_name.setdefault(key, []).append(row)
     return by_gsis, by_name
 
 
-def _pick_sleeper_row(candidates: list[pd.Series], allowed: frozenset[str]) -> pd.Series | None:
+def _pick_sleeper_row(
+    candidates: list[dict[str, Any]], allowed: frozenset[str]
+) -> dict[str, Any] | None:
     if not candidates:
         return None
 
-    def score(row: pd.Series) -> tuple[int, int, int]:
-        team = str(row.get("team") or "").strip()
-        pos = str(row.get("position") or "").strip().upper()
-        status = str(row.get("status") or "").strip()
+    def score(row: Mapping[str, Any]) -> tuple[int, int, int]:
+        team = cell_text(row.get("team"))
+        pos = cell_text(row.get("position")).upper()
+        status = cell_text(row.get("status"))
         return (
             1 if pos in allowed else 0,
             1 if team else 0,
@@ -140,14 +166,13 @@ def _pick_sleeper_row(candidates: list[pd.Series], allowed: frozenset[str]) -> p
 
 
 def _lookup_sleeper(
-    row: pd.Series,
     *,
     name: str,
     player_id: str,
     allowed: frozenset[str],
-    by_gsis: dict[str, pd.Series],
-    by_name: dict[str, list[pd.Series]],
-) -> pd.Series | None:
+    by_gsis: dict[str, dict[str, Any]],
+    by_name: dict[str, list[dict[str, Any]]],
+) -> dict[str, Any] | None:
     if player_id and player_id in by_gsis:
         return by_gsis[player_id]
     key = roster_name_key(name)
@@ -176,6 +201,75 @@ def _refresh_opponents(frame: pd.DataFrame, season: int | None, week: int | None
     except Exception:
         return frame
     return frame
+
+
+def identity_stamp(season: int | None) -> str:
+    """Roster-source stamp so overlay caches refresh when nflverse or Sleeper does."""
+    parts = ["identity:v1"]
+    if season is not None:
+        try:
+            from src.integrations.nflverse_roster import roster_cache_path
+
+            path = roster_cache_path(int(season))
+            if path.exists():
+                parts.append(f"nfl:{path.stat().st_mtime_ns}")
+        except OSError:
+            pass
+    try:
+        from src.integrations.sleeper import PLAYERS_CACHE
+
+        if PLAYERS_CACHE.exists():
+            parts.append(f"sl:{PLAYERS_CACHE.stat().st_mtime_ns}")
+    except OSError:
+        pass
+    return "|".join(parts)
+
+
+def invalidate_identity_overlay_cache() -> None:
+    _OVERLAY_CACHE.clear()
+
+
+def apply_roster_identity_with_attrs(
+    df: pd.DataFrame,
+    position: str | None,
+    *,
+    season: int | None = None,
+    week: int | None = None,
+    cache_key: str | None = None,
+) -> pd.DataFrame:
+    """Serve-time overlay that keeps source attrs and skips repeat work on cache hits."""
+    if df is None or df.empty or "player_id" not in df.columns:
+        return df
+
+    stamp = identity_stamp(season)
+    now = time.time()
+    if cache_key:
+        hit = _OVERLAY_CACHE.get(cache_key)
+        if hit is not None:
+            cached_stamp, loaded_at, cached_df = hit
+            if cached_stamp == stamp and (now - loaded_at) < IDENTITY_CACHE_TTL_SECONDS:
+                out = cached_df.copy()
+                for key, value in cached_df.attrs.items():
+                    out.attrs[key] = value
+                return out
+
+    out, stats = apply_roster_identity_overlay(
+        df,
+        position,
+        season=season,
+        week=week,
+    )
+    if stats.get("applied"):
+        out.attrs["roster_identity"] = stats
+        for key, value in df.attrs.items():
+            if key not in out.attrs:
+                out.attrs[key] = value
+    if cache_key:
+        stored = out.copy()
+        for key, value in out.attrs.items():
+            stored.attrs[key] = value
+        _OVERLAY_CACHE[cache_key] = (stamp, now, stored)
+    return out
 
 
 def apply_roster_identity_overlay(
@@ -241,18 +335,19 @@ def apply_roster_identity_overlay(
     dropped_stale = 0
     dropped_cut = 0
 
-    for idx, row in out.iterrows():
-        player_id = str(row[id_col] or "").strip() if id_col else ""
-        name = str(row[name_col] or "").strip() if name_col else ""
-        row_pos = row[pos_col] if pos_col else ""
+    records = out.to_dict(orient="records")
+    for idx, rec in zip(out.index, records):
+        player_id = cell_text(rec.get(id_col)) if id_col else ""
+        name = cell_text(rec.get(name_col)) if name_col else ""
+        row_pos = cell_text(rec.get(pos_col)) if pos_col else ""
         allowed = _allowed_for(board, row_pos)
-        current_team = normalize_team_to_mlready(str(row.get(team_col) or "").strip())
+        current_team = normalize_team_to_mlready(cell_text(rec.get(team_col)))
 
         nfl_row = by_nfl.get(player_id) if player_id else None
         if nfl_row is not None:
-            nfl_status = str(nfl_row.get("status") or "").strip().upper()
-            nfl_pos = str(nfl_row.get("position") or "").strip().upper()
-            nfl_team = normalize_team_to_mlready(str(nfl_row.get("team") or "").strip())
+            nfl_status = cell_text(nfl_row.get("status")).upper()
+            nfl_pos = cell_text(nfl_row.get("position")).upper()
+            nfl_team = normalize_team_to_mlready(cell_text(nfl_row.get("team")))
             if nfl_status in DROP_STATUSES:
                 keep.append(False)
                 dropped_cut += 1
@@ -264,19 +359,18 @@ def apply_roster_identity_overlay(
             if nfl_team and nfl_team != current_team:
                 out.at[idx, team_col] = nfl_team
                 teams_updated += 1
-            if pos_col and nfl_pos and str(row_pos or "").strip().upper() != nfl_pos:
+            if pos_col and nfl_pos and row_pos.upper() != nfl_pos:
                 out.at[idx, pos_col] = nfl_pos
                 positions_updated += 1
             keep.append(True)
             continue
 
-        if nflverse_ready and _is_gsis(player_id) and not _is_rookie_row(row):
+        if nflverse_ready and _is_gsis(player_id) and not _is_rookie_row(rec):
             keep.append(False)
             dropped_stale += 1
             continue
 
         sleeper_row = _lookup_sleeper(
-            row,
             name=name,
             player_id=player_id,
             allowed=allowed,
@@ -287,9 +381,9 @@ def apply_roster_identity_overlay(
             keep.append(True)
             continue
 
-        sl_status = str(sleeper_row.get("status") or "").strip()
-        sl_pos = str(sleeper_row.get("position") or "").strip().upper()
-        sl_team = normalize_team_to_mlready(str(sleeper_row.get("team") or "").strip())
+        sl_status = cell_text(sleeper_row.get("status"))
+        sl_pos = cell_text(sleeper_row.get("position")).upper()
+        sl_team = normalize_team_to_mlready(cell_text(sleeper_row.get("team")))
         if sl_status in SLEEPER_EXCLUDED or not sl_team:
             keep.append(False)
             dropped_stale += 1
@@ -301,7 +395,7 @@ def apply_roster_identity_overlay(
         if sl_team != current_team:
             out.at[idx, team_col] = sl_team
             teams_updated += 1
-        if pos_col and sl_pos and str(row_pos or "").strip().upper() != sl_pos:
+        if pos_col and sl_pos and row_pos.upper() != sl_pos:
             out.at[idx, pos_col] = sl_pos
             positions_updated += 1
         keep.append(True)
