@@ -82,17 +82,24 @@ def collect_keep_teams(
     wanted = {str(pid) for pid in keep_player_ids if pid}
     if not wanted:
         return keys
-    matched = pool[pool["player_id"].map(lambda value: str(value) in wanted)]
+    matched = pool[pool["player_id"].astype(str).isin(wanted)]
     if matched.empty:
         return keys
     if "Team" in matched.columns:
-        keys.update(normalize_team_for_match(team) for team in matched["Team"].tolist())
+        keys.update(
+            normalize_team_for_match(team)
+            for team in matched["Team"].dropna()
+            if team
+        )
     if "Opponent" in matched.columns:
-        for opp in matched["Opponent"].tolist():
+        for opp in matched["Opponent"].dropna():
+            if not opp:
+                continue
             key = normalize_team_for_match(opp)
             if key and key != "BYE":
                 keys.add(key)
     keys.discard("")
+    keys.discard("NAN")
     return keys
 
 
@@ -163,7 +170,7 @@ def build_lineup_pool(
             .head(top_per_position)
             .reset_index(drop=True)
         )
-    if len(reserved):
+    if not reserved.empty:
         pool = (
             pd.concat([pool, reserved], ignore_index=True)
             .drop_duplicates(subset=["player_id"], keep="first")

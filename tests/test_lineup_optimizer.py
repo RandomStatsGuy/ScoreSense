@@ -115,6 +115,14 @@ def test_collect_keep_teams_adds_locked_qb_side_and_opponent():
     assert keys == {"MIA", "LV"}
     from_pin = collect_keep_teams(None, ["cousins"], pool)
     assert from_pin == {"LV", "MIA"}
+    sparse = pd.DataFrame(
+        [
+            {"player_id": "willis", "Team": None, "Opponent": float("nan")},
+            {"player_id": "cousins", "Team": "LV", "Opponent": "MIA"},
+        ]
+    )
+    assert collect_keep_teams(None, ["willis"], sparse) == set()
+    assert collect_keep_teams(None, ["cousins"], sparse) == {"LV", "MIA"}
 
 
 def test_optimize_locked_willis_with_mates_builds():

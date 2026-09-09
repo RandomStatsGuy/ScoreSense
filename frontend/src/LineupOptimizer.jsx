@@ -1076,7 +1076,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                   aria-label={isCaptain ? "Vegas lines for this week" : "Games to stack"}
                   onKeyDown={isCaptain ? undefined : handleShootoutKeyDown}
                 >
-                  {shootoutGames.map((game, index) => {
+                  {shootoutGames.map((game) => {
                     const selected = selectedGameIds.has(String(game.game_id));
                     const hot = String(game.game_id) === String(hotGameId);
                     const cardClass = `dfs-vegas-card${hot ? " is-hot" : ""}${selected ? " is-on" : ""}`;
@@ -1119,7 +1119,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                         type="button"
                         data-game-id={String(game.game_id)}
                         aria-pressed={selected}
-                        tabIndex={selected || (!selectedGameIds.size && (hot || index === 0)) ? 0 : -1}
+                        tabIndex={0}
                         className={cardClass}
                         disabled={busy || optimizing}
                         onClick={() => toggleShootoutGame(game.game_id)}
