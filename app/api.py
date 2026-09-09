@@ -245,6 +245,7 @@ def health() -> dict:
             "injury_overlays": "/api/injury-overlays" in route_paths,
             "injury_poll": "/api/injuries/poll" in route_paths,
             "weekly_command_center": "/api/hub/week" in route_paths,
+            "vibes": "/api/hub/vibes" in route_paths,
             "league_home": "/api/hub/home" in route_paths,
             "projection_movement": "/api/predict/{position}/changes" in route_paths,
         },

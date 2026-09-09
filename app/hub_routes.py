@@ -121,6 +121,7 @@ from src.draft_hub.schemas import (
     LineupSetRequest,
     LineupSwapRequest,
     ScoreWeekRequest,
+    VibeAuraPutRequest,
 )
 from src.draft_hub.contracts import (
     apply_rookie_extension_command,
@@ -778,6 +779,63 @@ def hub_refresh_weekly_command_center(
     payload.setdefault("meta", {})
     payload["meta"]["rebuilt"] = True
     payload["meta"]["rebuild_counts"] = counts
+    return jsonable_encoder(payload)
+
+
+@router.get("/vibes")
+def hub_get_vibes(
+    response: Response,
+    season: Optional[int] = Query(None),
+    week: Optional[int] = Query(None),
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Personal aura + vibe slate for the focused league-week. No live predict_*."""
+    from fastapi.encoders import jsonable_encoder
+
+    from src.draft_hub.vibe_rankings import build_vibes_payload
+
+    with HubTimer("vibes", response) as timer:
+        with timer.phase("ctx"):
+            ctx = _ctx(_sub(_user))
+        with timer.phase("build"):
+            payload = build_vibes_payload(ctx, season=season, week=week)
+    return jsonable_encoder(payload)
+
+
+@router.put("/vibes")
+def hub_put_vibes(
+    response: Response,
+    body: VibeAuraPutRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Persist aura for the viewer's team. Does not write another seat's slate."""
+    from fastapi.encoders import jsonable_encoder
+
+    from src.draft_hub.vibe_rankings import build_vibes_payload, normalize_aura_by_id
+
+    ctx = _ctx(_sub(_user))
+    league_id = str(ctx.get("league_id") or "")
+    team_id = str(ctx.get("team_id") or "")
+    if not league_id or not team_id:
+        raise HTTPException(status_code=400, detail="Need a league team to keep aura")
+    aura = normalize_aura_by_id(body.aura_by_id)
+    resolved_season, resolved_week = _lineup_week_args(ctx, body.week, body.season)
+    with HubTimer("vibes-put", response) as timer:
+        with timer.phase("save"):
+            storage.replace_vibe_aura(
+                league_id,
+                team_id,
+                resolved_season,
+                resolved_week,
+                aura,
+            )
+        with timer.phase("build"):
+            payload = build_vibes_payload(
+                ctx,
+                season=resolved_season,
+                week=resolved_week,
+                aura_by_id=aura,
+            )
     return jsonable_encoder(payload)
 
 

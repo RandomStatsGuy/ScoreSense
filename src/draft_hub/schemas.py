@@ -430,6 +430,12 @@ class LineupSetRequest(BaseModel):
     team_id: Optional[str] = None
 
 
+class VibeAuraPutRequest(BaseModel):
+    aura_by_id: dict[str, int] = {}
+    week: Optional[int] = None
+    season: Optional[int] = None
+
+
 class LineupSwapRequest(BaseModel):
     starter_player_id: str
     bench_player_id: str

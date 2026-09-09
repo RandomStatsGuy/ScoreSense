@@ -754,6 +754,22 @@ def _migrate(conn: sqlite3.Connection) -> None:
         "ON league_week_lineup(league_id, team_id, season, week)"
     )
     conn.execute(
+        """CREATE TABLE IF NOT EXISTS vibe_aura (
+            league_id TEXT NOT NULL,
+            team_id TEXT NOT NULL,
+            season INTEGER NOT NULL,
+            week INTEGER NOT NULL,
+            player_id TEXT NOT NULL,
+            aura INTEGER NOT NULL,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (league_id, team_id, season, week, player_id)
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_vibe_aura_team "
+        "ON vibe_aura(league_id, team_id, season, week)"
+    )
+    conn.execute(
         """CREATE TABLE IF NOT EXISTS league_player_week_score (
             league_id TEXT NOT NULL,
             season INTEGER NOT NULL,
@@ -3153,6 +3169,57 @@ def replace_team_lineup(
                 ),
             )
     return list_team_lineup(league_id, team_id, season, week)
+
+
+def list_vibe_aura(
+    league_id: str,
+    team_id: str,
+    season: int,
+    week: int,
+) -> dict[str, int]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT player_id, aura FROM vibe_aura
+               WHERE league_id = ? AND team_id = ? AND season = ? AND week = ?""",
+            (league_id, team_id, int(season), int(week)),
+        ).fetchall()
+    out: dict[str, int] = {}
+    for row in rows:
+        pid = str(row["player_id"] or "").strip()
+        if not pid:
+            continue
+        try:
+            out[pid] = int(row["aura"])
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
+def replace_vibe_aura(
+    league_id: str,
+    team_id: str,
+    season: int,
+    week: int,
+    aura_by_id: dict[str, int],
+) -> dict[str, int]:
+    now = _utcnow()
+    with get_conn() as conn:
+        conn.execute(
+            """DELETE FROM vibe_aura
+               WHERE league_id = ? AND team_id = ? AND season = ? AND week = ?""",
+            (league_id, team_id, int(season), int(week)),
+        )
+        for player_id, aura in (aura_by_id or {}).items():
+            pid = str(player_id or "").strip()
+            if not pid:
+                continue
+            conn.execute(
+                """INSERT INTO vibe_aura (
+                       league_id, team_id, season, week, player_id, aura, updated_at
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (league_id, team_id, int(season), int(week), pid, int(aura), now),
+            )
+    return list_vibe_aura(league_id, team_id, season, week)
 
 
 def lock_week_lineups(league_id: str, season: int, week: int) -> int:
