@@ -1639,7 +1639,7 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
         and (salary_fields or status_field or (type_field and ctx.get("can_edit_salaries")))
     )
     note = str(body.note or "").strip() or None
-    own_team = str(existing.get("team_id") or "") == str(team_id or "")
+    own_team = bool(team_id) and str(existing.get('team_id') or '') == str(team_id)
     status_only = status_field and not salary_fields and not type_field
     # Own-team Cut / Undo cut is a manager action — My team does not collect a staff note.
     if commissioner_override and (salary_fields or status_field) and not (own_team and status_only):
