@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Insights · B You vs the room</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  :root { --space-6: 2rem; }
+  .skip {
+    position: absolute; left: var(--space-3); top: var(--space-3);
+    transform: translateY(-8rem);
+  }
+  .skip:focus { transform: none; }
+  .mock-league-strip { flex-wrap: wrap; }
+  .hero-top {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--space-3); margin-bottom: var(--space-2);
+  }
+  .hero-top .mock-kicker { margin: 0; }
+  .hero-meta { margin: 0; color: var(--text-muted); font-size: var(--text-xs); }
+  .ins-tabs {
+    display: flex; align-items: center; gap: var(--space-2);
+    margin: 0 0 var(--space-5);
+    padding: var(--space-2) 0;
+  }
+  .ins-tab {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: var(--control-h-sm); padding: 0 var(--space-3);
+    border-radius: var(--radius-pill); border: 1px solid transparent;
+    color: var(--text-secondary); font-size: var(--text-xs); font-weight: 600;
+  }
+  .ins-tab.is-on { background: var(--accent); color: #fff; }
+  .stack { display: flex; flex-direction: column; gap: var(--space-5); }
+  .duel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center; gap: var(--space-4);
+  }
+  .seat { min-width: 0; }
+  .seat.is-room { text-align: right; }
+  .mark {
+    width: 3.25rem; height: 3.25rem; border-radius: var(--radius-md);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.88rem; font-weight: 800;
+    background: var(--accent-soft); color: var(--accent-muted);
+  }
+  .seat.is-room .mark {
+    background: var(--gold-soft); color: var(--gold);
+  }
+  .seat-top { display: flex; align-items: center; gap: var(--space-3); }
+  .seat.is-room .seat-top { flex-direction: row-reverse; }
+  .seat h2 { margin: 0; font-size: 1.15rem; letter-spacing: -0.02em; }
+  .seat .club { margin: var(--space-1) 0 0; color: var(--text-muted); font-size: var(--text-xs); }
+  .vs {
+    display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
+    color: var(--text-muted); font-size: var(--text-xs); font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .vs i { display: block; width: 1px; height: 2rem; background: var(--border-strong); font-style: normal; }
+  .lines { margin-top: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
+  .line { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--space-3); }
+  .line .l, .line .r { font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .line .r { text-align: right; }
+  .line .l.is-down { color: var(--text-secondary); }
+  .line .mid { text-align: center; color: var(--text-muted); font-size: var(--text-xs); }
+  .cost { margin: var(--space-4) 0 0; color: var(--text-secondary); font-size: 0.88rem; }
+  .board-head h3 { margin: 0 0 var(--space-1); }
+  .board-head p { margin: 0 0 var(--space-3); color: var(--text-muted); font-size: var(--text-xs); }
+  .rank { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .rank li {
+    display: grid;
+    grid-template-columns: 1.5rem minmax(7rem, 11rem) minmax(0, 1fr) 4.75rem;
+    align-items: center; gap: var(--space-3);
+    min-height: var(--control-h-md); padding: var(--space-2) 0;
+  }
+  .rank .n { color: var(--text-muted); font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
+  .rank .who { min-width: 0; }
+  .rank .who strong { display: block; font-size: 0.88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rank .who span { display: block; color: var(--text-muted); font-size: var(--text-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .track { height: 0.5rem; border-radius: var(--radius-pill); background: var(--bg-subtle); min-width: 0; }
+  .fill { height: 100%; border-radius: var(--radius-pill); background: var(--border-strong); }
+  .rank li.is-you .fill { background: var(--accent); }
+  .val { text-align: right; font-variant-numeric: tabular-nums; font-size: 0.88rem; font-weight: 700; }
+  .btn { min-height: var(--control-h-sm); width: 100%; }
+  .mock-rail .facts { margin-top: var(--space-3); }
+  @media (max-width: 860px) {
+    .duel, .line { grid-template-columns: 1fr; }
+    .seat.is-room, .line .r { text-align: left; }
+    .seat.is-room .seat-top { flex-direction: row; }
+    .vs { flex-direction: row; }
+    .vs i { width: 2rem; height: 1px; }
+  }
+  @media (max-width: 430px) {
+    .ins-tab, .btn { min-height: var(--control-h-lg); }
+  }
+</style>
+</head>
+<body>
+<a class="skip btn btn-ghost btn-sm" href="#main-content">Skip to content</a>
+<div class="concept-banner">
+  <div><strong>B · You vs the room</strong> <span>· your gap · not shipped</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a href="insights.html">Chooser</a>
+    <a href="insights-a.html">A</a>
+    <a class="is-on" href="insights-b.html">B</a>
+    <a href="insights-c.html">C</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav"><span>Projections</span><span class="active">Fantasy</span><span>Tools</span></nav>
+    </div>
+    <span class="mock-account"><span class="dot">K</span> Kheylub</span>
+  </header>
+  <nav class="mock-subnav">
+    <span class="mock-subnav-group-label">Draft</span>
+    <span class="mock-tab">Strategy</span>
+    <span class="mock-tab">Draft</span>
+    <span class="mock-subnav-group-label">Team</span>
+    <span class="mock-tab">This Week</span>
+    <span class="mock-tab">Vibes</span>
+    <span class="mock-tab">Game center</span>
+    <span class="mock-tab">My team</span>
+    <span class="mock-tab">Free agents</span>
+    <span class="mock-tab">Rosters</span>
+    <span class="mock-tab">Cap</span>
+    <span class="mock-tab">Trades</span>
+    <span class="mock-subnav-group-label">League</span>
+    <span class="mock-tab">Rules</span>
+    <span class="mock-tab">Roster management</span>
+    <span class="mock-tab active">Insights</span>
+  </nav>
+  <div class="mock-league-strip">
+    <span class="lg-name">Bottom to Top: Dominate Your Panda</span>
+    <span>In season</span>
+    <span class="spacer"></span>
+    <span>Sync league</span>
+  </div>
+
+  <section class="mock-hero">
+    <div class="hero-top">
+      <p class="mock-kicker">Insights</p>
+      <p class="hero-meta">6 seasons</p>
+    </div>
+    <h1>You are not even with this room.</h1>
+    <p class="support">Two titles and 533 career points sit on the other seat. Bid like that is even and you pay his price.</p>
+  </section>
+
+  <div class="ins-tabs" role="tablist" aria-label="Insights">
+    <span class="ins-tab is-on" role="tab" aria-selected="true">Overview</span>
+    <span class="ins-tab" role="tab" aria-selected="false">Spend</span>
+    <span class="ins-tab" role="tab" aria-selected="false">Scoring</span>
+    <span class="ins-tab" role="tab" aria-selected="false">History</span>
+  </div>
+
+  <div class="mock-cols">
+    <main id="main-content" class="stack">
+      <section class="card" aria-label="You versus the dynasty">
+        <div class="duel">
+          <div class="seat">
+            <div class="seat-top">
+              <span class="mark">K</span>
+              <div>
+                <h2>Kheylub</h2>
+                <p class="club">Your seat</p>
+              </div>
+            </div>
+          </div>
+          <div class="vs">You<span><i></i></span>Room</div>
+          <div class="seat is-room">
+            <div class="seat-top">
+              <span class="mark">KP</span>
+              <div>
+                <h2>King Panda</h2>
+                <p class="club">The Throne</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="lines">
+          <div class="line">
+            <span class="l is-down">0</span>
+            <span class="mid">Titles</span>
+            <span class="r">3</span>
+          </div>
+          <div class="line">
+            <span class="l is-down">36-32</span>
+            <span class="mid">Record</span>
+            <span class="r">49-19</span>
+          </div>
+          <div class="line">
+            <span class="l is-down">−532.7</span>
+            <span class="mid">Career pts</span>
+            <span class="r">Leader</span>
+          </div>
+        </div>
+        <p class="cost">He already won 2021, 2023, and 2024. Your next bid is against that paper.</p>
+      </section>
+
+      <section class="card" aria-label="All-time records">
+        <div class="board-head">
+          <h3>All-time records</h3>
+          <p>Regular-season wins across every scored year.</p>
+        </div>
+        <ol class="rank">
+          <li>
+            <span class="n">1</span>
+            <span class="who"><strong>King Panda</strong><span>The Throne</span></span>
+            <div class="track"><div class="fill" style="width:100%"></div></div>
+            <span class="val">49-19</span>
+          </li>
+          <li>
+            <span class="n">2</span>
+            <span class="who"><strong>Stephen P</strong><span>The Deported Panda</span></span>
+            <div class="track"><div class="fill" style="width:86%"></div></div>
+            <span class="val">44-24</span>
+          </li>
+          <li>
+            <span class="n">3</span>
+            <span class="who"><strong>Daddio of the Pandio</strong><span>Pandio</span></span>
+            <div class="track"><div class="fill" style="width:72%"></div></div>
+            <span class="val">40-28</span>
+          </li>
+          <li class="is-you">
+            <span class="n">4</span>
+            <span class="who"><strong>Kheylub</strong><span>Your seat</span></span>
+            <div class="track"><div class="fill" style="width:58%"></div></div>
+            <span class="val">36-32</span>
+          </li>
+        </ol>
+      </section>
+
+      <section class="card" aria-label="All-time scoring">
+        <div class="board-head">
+          <h3>All-time scoring</h3>
+          <p>Gap from first in career fantasy points.</p>
+        </div>
+        <ol class="rank">
+          <li>
+            <span class="n">1</span>
+            <span class="who"><strong>King Panda</strong><span>The Throne</span></span>
+            <div class="track"><div class="fill" style="width:100%"></div></div>
+            <span class="val">Leader</span>
+          </li>
+          <li>
+            <span class="n">2</span>
+            <span class="who"><strong>Stephen P</strong><span>The Deported Panda</span></span>
+            <div class="track"><div class="fill" style="width:94%"></div></div>
+            <span class="val">−47.9</span>
+          </li>
+          <li class="is-you">
+            <span class="n">3</span>
+            <span class="who"><strong>Kheylub</strong><span>Your seat</span></span>
+            <div class="track"><div class="fill" style="width:72%"></div></div>
+            <span class="val">−532.7</span>
+          </li>
+          <li>
+            <span class="n">4</span>
+            <span class="who"><strong>Daddio of the Pandio</strong><span>Pandio</span></span>
+            <div class="track"><div class="fill" style="width:54%"></div></div>
+            <span class="val">−890.2</span>
+          </li>
+        </ol>
+      </section>
+    </main>
+
+    <aside class="mock-rail">
+      <section class="card">
+        <h3>At a glance</h3>
+        <p class="note">Your paper against the room.</p>
+        <div class="facts">
+          <div class="fact">Your titles <strong>0</strong></div>
+          <div class="fact">Your record <strong>36-32</strong></div>
+          <div class="fact">Gap from first <strong>−532.7</strong></div>
+          <div class="fact">Seasons <strong>6</strong></div>
+        </div>
+        <a class="btn btn-primary" href="#" style="margin-top: var(--space-4);">Open scoring</a>
+      </section>
+    </aside>
+  </div>
+
+  <p class="footnote">Static mock · option B · not product code</p>
+</div>
+</body>
+</html>
