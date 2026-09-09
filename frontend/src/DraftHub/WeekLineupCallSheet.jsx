@@ -160,6 +160,7 @@ export default function WeekLineupCallSheet({
                 {WEEK_BOARD_COPY.callKicker(decision?.starter_slot)}
               </p>
               <h2 id={titleId}>{title}</h2>
+              <p className="hub-wcc-ticket-stamp">{WEEK_BOARD_COPY.ticketStamp}</p>
             </div>
             <button
               ref={closeRef}

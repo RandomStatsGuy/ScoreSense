@@ -121,7 +121,7 @@ from src.draft_hub.schemas import (
     LineupSetRequest,
     LineupSwapRequest,
     ScoreWeekRequest,
-    VibeAuraPutRequest,
+    VibesPutRequest,
 )
 from src.draft_hub.contracts import (
     apply_rookie_extension_command,
@@ -720,6 +720,76 @@ def hub_weekly_command_center(
     return jsonable_encoder(payload)
 
 
+@router.get("/vibes")
+def hub_vibe_rankings(
+    response: Response,
+    season: Optional[int] = Query(None, description="NFL season (defaults from hub + mlready)"),
+    week: Optional[int] = Query(None, description="NFL week (defaults from mlready context)"),
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Personal vibe aura + start slate for the focused team (SCORE-81).
+
+    Reuses week roster × weekly artifacts — no live ``predict_*``. Aura is read
+    from SQLite per league/team/season/week. Apply the returned ``starters`` via
+    ``PUT /api/hub/league/{id}/lineup`` when ``meta.can_edit_lineup`` is true;
+    Sleeper-linked leagues stay advice-only.
+    """
+    from fastapi.encoders import jsonable_encoder
+
+    from src.draft_hub.vibe_rankings import build_vibe_rankings
+
+    with HubTimer("vibes", response) as timer:
+        with timer.phase("ctx"):
+            sub = _sub(_user)
+            ctx = _ctx(sub)
+        with timer.phase("build"):
+            payload = build_vibe_rankings(ctx, season=season, week=week)
+    return jsonable_encoder(payload)
+
+
+@router.put("/vibes")
+def hub_put_vibe_rankings(
+    response: Response,
+    body: VibesPutRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Persist aura for the focused league-team-week and return the vibe slate."""
+    from fastapi.encoders import jsonable_encoder
+
+    from src.draft_hub.vibe_rankings import apply_vibe, build_vibe_rankings
+
+    with HubTimer("vibes-put", response) as timer:
+        with timer.phase("ctx"):
+            sub = _sub(_user)
+            ctx = _ctx(sub)
+            if ctx.get("mode") != "league" or not ctx.get("league_id") or not ctx.get("team_id"):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Join a Fantasy league to save aura",
+                )
+            resolved_season, resolved_week = _lineup_week_args(ctx, body.week, body.season)
+        with timer.phase("build"):
+            aura = dict(body.aura_by_id or {})
+            # Incremental vote: when only player_id+vibe is sent, merge onto stored.
+            if body.player_id and body.vibe and not aura:
+                aura = storage.get_team_vibe_aura(
+                    str(ctx["league_id"]),
+                    str(ctx["team_id"]),
+                    resolved_season,
+                    resolved_week,
+                )
+            if body.player_id and body.vibe:
+                aura = apply_vibe(aura, body.player_id, body.vibe)
+            payload = build_vibe_rankings(
+                ctx,
+                season=resolved_season,
+                week=resolved_week,
+                aura_by_id=aura,
+                persist=True,
+            )
+    return jsonable_encoder(payload)
+
+
 @router.post("/week/refresh")
 def hub_refresh_weekly_command_center(
     response: Response,
@@ -779,63 +849,6 @@ def hub_refresh_weekly_command_center(
     payload.setdefault("meta", {})
     payload["meta"]["rebuilt"] = True
     payload["meta"]["rebuild_counts"] = counts
-    return jsonable_encoder(payload)
-
-
-@router.get("/vibes")
-def hub_get_vibes(
-    response: Response,
-    season: Optional[int] = Query(None),
-    week: Optional[int] = Query(None),
-    _user=Depends(require_hub_user),
-) -> dict:
-    """Personal aura + vibe slate for the focused league-week. No live predict_*."""
-    from fastapi.encoders import jsonable_encoder
-
-    from src.draft_hub.vibe_rankings import build_vibes_payload
-
-    with HubTimer("vibes", response) as timer:
-        with timer.phase("ctx"):
-            ctx = _ctx(_sub(_user))
-        with timer.phase("build"):
-            payload = build_vibes_payload(ctx, season=season, week=week)
-    return jsonable_encoder(payload)
-
-
-@router.put("/vibes")
-def hub_put_vibes(
-    response: Response,
-    body: VibeAuraPutRequest,
-    _user=Depends(require_hub_user),
-) -> dict:
-    """Persist aura for the viewer's team. Does not write another seat's slate."""
-    from fastapi.encoders import jsonable_encoder
-
-    from src.draft_hub.vibe_rankings import build_vibes_payload, normalize_aura_by_id
-
-    ctx = _ctx(_sub(_user))
-    league_id = str(ctx.get("league_id") or "")
-    team_id = str(ctx.get("team_id") or "")
-    if not league_id or not team_id:
-        raise HTTPException(status_code=400, detail="Need a league team to keep aura")
-    aura = normalize_aura_by_id(body.aura_by_id)
-    resolved_season, resolved_week = _lineup_week_args(ctx, body.week, body.season)
-    with HubTimer("vibes-put", response) as timer:
-        with timer.phase("save"):
-            storage.replace_vibe_aura(
-                league_id,
-                team_id,
-                resolved_season,
-                resolved_week,
-                aura,
-            )
-        with timer.phase("build"):
-            payload = build_vibes_payload(
-                ctx,
-                season=resolved_season,
-                week=resolved_week,
-                aura_by_id=aura,
-            )
     return jsonable_encoder(payload)
 
 

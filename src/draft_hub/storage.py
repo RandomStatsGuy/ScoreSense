@@ -692,6 +692,22 @@ def _migrate(conn: sqlite3.Connection) -> None:
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_week_poll_league ON week_poll(league_id, season, week)"
     )
+    # SCORE-81: personal vibe aura per league-team-week (not localStorage-only).
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS team_vibe_aura (
+            league_id TEXT NOT NULL,
+            team_id TEXT NOT NULL,
+            season INTEGER NOT NULL,
+            week INTEGER NOT NULL,
+            aura_json TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (league_id, team_id, season, week)
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_team_vibe_aura_team "
+        "ON team_vibe_aura(league_id, team_id, season, week)"
+    )
     conn.execute(
         """CREATE TABLE IF NOT EXISTS week_poll_vote (
             poll_id TEXT NOT NULL,
@@ -752,22 +768,6 @@ def _migrate(conn: sqlite3.Connection) -> None:
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_week_lineup_team "
         "ON league_week_lineup(league_id, team_id, season, week)"
-    )
-    conn.execute(
-        """CREATE TABLE IF NOT EXISTS vibe_aura (
-            league_id TEXT NOT NULL,
-            team_id TEXT NOT NULL,
-            season INTEGER NOT NULL,
-            week INTEGER NOT NULL,
-            player_id TEXT NOT NULL,
-            aura INTEGER NOT NULL,
-            updated_at TEXT NOT NULL,
-            PRIMARY KEY (league_id, team_id, season, week, player_id)
-        )"""
-    )
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_vibe_aura_team "
-        "ON vibe_aura(league_id, team_id, season, week)"
     )
     conn.execute(
         """CREATE TABLE IF NOT EXISTS league_player_week_score (
@@ -2945,6 +2945,74 @@ def get_hub_media(media_id: str) -> dict[str, Any] | None:
     }
 
 
+def get_team_vibe_aura(
+    league_id: str,
+    team_id: str,
+    season: int,
+    week: int,
+) -> dict[str, float]:
+    """Return aura_by_id for a league-team-week (empty when unset)."""
+    with get_conn() as conn:
+        row = conn.execute(
+            """SELECT aura_json FROM team_vibe_aura
+               WHERE league_id = ? AND team_id = ? AND season = ? AND week = ?""",
+            (league_id, team_id, int(season), int(week)),
+        ).fetchone()
+    if not row:
+        return {}
+    try:
+        raw = json.loads(row["aura_json"] or "{}")
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return {}
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, float] = {}
+    for key, value in raw.items():
+        pid = str(key or "").strip()
+        if not pid:
+            continue
+        try:
+            out[pid] = float(value)
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
+def put_team_vibe_aura(
+    league_id: str,
+    team_id: str,
+    season: int,
+    week: int,
+    aura_by_id: dict[str, Any] | None,
+) -> dict[str, float]:
+    """Replace stored aura_by_id for a league-team-week. Values clamped 0–99."""
+    cleaned: dict[str, float] = {}
+    for key, value in (aura_by_id or {}).items():
+        pid = str(key or "").strip()
+        if not pid:
+            continue
+        try:
+            num = float(value)
+        except (TypeError, ValueError):
+            continue
+        if num != num:  # NaN
+            continue
+        cleaned[pid] = max(0.0, min(99.0, num))
+    now = _utcnow()
+    payload = json.dumps(cleaned, separators=(",", ":"), sort_keys=True)
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO team_vibe_aura
+               (league_id, team_id, season, week, aura_json, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?)
+               ON CONFLICT(league_id, team_id, season, week) DO UPDATE SET
+                 aura_json = excluded.aura_json,
+                 updated_at = excluded.updated_at""",
+            (league_id, team_id, int(season), int(week), payload, now),
+        )
+    return cleaned
+
+
 def ensure_week_trophy_polls(league_id: str, season: int, week: int) -> list[dict[str, Any]]:
     from src.draft_hub.league_atmosphere import TROPHY_POLLS
 
@@ -3169,57 +3237,6 @@ def replace_team_lineup(
                 ),
             )
     return list_team_lineup(league_id, team_id, season, week)
-
-
-def list_vibe_aura(
-    league_id: str,
-    team_id: str,
-    season: int,
-    week: int,
-) -> dict[str, int]:
-    with get_conn() as conn:
-        rows = conn.execute(
-            """SELECT player_id, aura FROM vibe_aura
-               WHERE league_id = ? AND team_id = ? AND season = ? AND week = ?""",
-            (league_id, team_id, int(season), int(week)),
-        ).fetchall()
-    out: dict[str, int] = {}
-    for row in rows:
-        pid = str(row["player_id"] or "").strip()
-        if not pid:
-            continue
-        try:
-            out[pid] = int(row["aura"])
-        except (TypeError, ValueError):
-            continue
-    return out
-
-
-def replace_vibe_aura(
-    league_id: str,
-    team_id: str,
-    season: int,
-    week: int,
-    aura_by_id: dict[str, int],
-) -> dict[str, int]:
-    now = _utcnow()
-    with get_conn() as conn:
-        conn.execute(
-            """DELETE FROM vibe_aura
-               WHERE league_id = ? AND team_id = ? AND season = ? AND week = ?""",
-            (league_id, team_id, int(season), int(week)),
-        )
-        for player_id, aura in (aura_by_id or {}).items():
-            pid = str(player_id or "").strip()
-            if not pid:
-                continue
-            conn.execute(
-                """INSERT INTO vibe_aura (
-                       league_id, team_id, season, week, player_id, aura, updated_at
-                   ) VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                (league_id, team_id, int(season), int(week), pid, int(aura), now),
-            )
-    return list_vibe_aura(league_id, team_id, season, week)
 
 
 def lock_week_lineups(league_id: str, season: int, week: int) -> int:
@@ -5572,6 +5589,7 @@ def delete_league(league_id: str) -> dict[str, Any]:
             "league_week_lineup",
             "league_player_week_score",
             "league_team_week_score",
+            "team_vibe_aura",
             "insights_cap_cache",
             "insights_fair_values",
             "league_legacy_import",
