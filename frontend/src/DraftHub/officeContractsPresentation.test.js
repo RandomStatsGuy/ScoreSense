@@ -314,6 +314,14 @@ test("mergePendingChange drops no-op edits", () => {
   assert.equal(next.p1.salary, 16);
 });
 
+test("mergePendingChange drops the old playerId key after a slot key write", () => {
+  const row = { ...TEAM.roster[0], id: 9 };
+  const prev = { p1: { playerId: "p1", salary: 14 } };
+  const next = mergePendingChange(prev, "p1", { salary: 16 }, row);
+  assert.equal(next["slot-9"].salary, 16);
+  assert.equal(next.p1, undefined);
+});
+
 test("salary/year/status writes need an override note; drop-only does not", () => {
   assert.equal(pendingNeedsOverrideNote({ p1: { salary: 16 } }), true);
   assert.equal(pendingNeedsOverrideNote({ p1: { drop: true } }), false);

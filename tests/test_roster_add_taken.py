@@ -287,6 +287,25 @@ def test_add_keeps_other_team_cut_and_closes_undo(hub_db, monkeypatch):
         still = storage.list_roster_slots_for_player(ws_id, "00-0033873")
         assert any(s["roster_status"] == "cut_before_draft" for s in still)
         assert any(s["roster_status"] == "active" for s in still)
+
+        typed = owner_client.patch(
+            "/api/hub/roster",
+            json={"player_id": "00-0033873", "contract_type": "veteran"},
+        )
+        assert typed.status_code == 200, typed.text
+        assert typed.json().get("pending_type") is True
+        cut_after = next(
+            s
+            for s in storage.list_roster_slots_for_player(ws_id, "00-0033873")
+            if s["roster_status"] == "cut_before_draft"
+        )
+        assert (cut_after.get("contract") or {}).get("pending_type") == "veteran"
+        active_after = next(
+            s
+            for s in storage.list_roster_slots_for_player(ws_id, "00-0033873")
+            if s["roster_status"] == "active"
+        )
+        assert (active_after.get("contract") or {}).get("pending_type") is None
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
 
@@ -338,3 +357,41 @@ def test_member_cannot_add_active_player_even_with_cut_elsewhere(hub_db, monkeyp
         assert actives[0]["team_id"] == owner["id"]
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_metadata_noop_prefers_occupying_over_cut(hub_db):
+    rules = LeagueRules()
+    league = storage.create_league("comm-meta-cut", "Meta Cut League", 2026, rules, team_count=8)
+    owner = storage.join_league("owner-meta-cut", league["room_code"], "Alpha")
+    dest = storage.join_league("dest-meta-cut", league["room_code"], "Bravo")
+    ws_id = storage.roster_workspace_for_league(league)
+    storage.add_roster_slot(
+        ws_id,
+        {
+            "player_id": "00-0033873",
+            "player_name": "Patrick Mahomes",
+            "team": "KC",
+            "position": "QB",
+            "salary": 40,
+            "contract_years": 1,
+            "roster_status": "cut_before_draft",
+        },
+        team_id=owner["id"],
+    )
+    storage.add_roster_slot(
+        ws_id,
+        {
+            "player_id": "00-0033873",
+            "player_name": "Patrick Mahomes",
+            "team": "KC",
+            "position": "QB",
+            "salary": 12,
+            "contract_years": 1,
+        },
+        team_id=dest["id"],
+    )
+    slot = storage.update_roster_metadata(ws_id, "00-0033873", player_name="Patrick Mahomes")
+    assert slot is not None
+    assert slot["roster_status"] == "active"
+    assert slot["team_id"] == dest["id"]
+    assert slot["salary"] == 12

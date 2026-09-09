@@ -1689,14 +1689,8 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
         existing = existing_cut or occupying
         if existing is None:
             raise HTTPException(status_code=404, detail="Player not on roster")
-    elif body.roster_status == ROSTER_CUT_BEFORE_DRAFT:
-        existing = occupying or storage.get_roster_slot(
-            ws_id, body.player_id, team_id=team_id, prefer_occupying=True
-        )
-        if not existing:
-            raise HTTPException(status_code=404, detail="Player not on roster")
     else:
-        existing = occupying or storage.get_roster_slot(
+        existing = storage.get_roster_slot(
             ws_id, body.player_id, team_id=team_id, prefer_occupying=True
         )
         if not existing:

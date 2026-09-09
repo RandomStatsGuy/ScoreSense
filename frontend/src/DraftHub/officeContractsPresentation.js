@@ -277,6 +277,7 @@ export function mergePendingChange(prev, playerId, patch, baseline) {
   const next = { ...prev };
   if (pendingMatchesBaseline(cur, baseline)) delete next[key];
   else next[key] = cur;
+  if (key !== playerId) delete next[playerId];
   return next;
 }
 

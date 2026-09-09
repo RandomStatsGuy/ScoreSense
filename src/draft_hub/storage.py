@@ -3621,7 +3621,6 @@ def update_roster_metadata(
         ).fetchall()
         if not rows:
             return None
-        last = None
         changed = False
         for row in rows:
             updates: list[str] = []
@@ -3639,17 +3638,19 @@ def update_roster_metadata(
                 updates.append("sleeper_player_id = ?")
                 params.append(sleeper_player_id)
             if not updates:
-                last = row
                 continue
             params.append(row["id"])
             conn.execute(f"UPDATE roster_slot SET {', '.join(updates)} WHERE id = ?", params)
-            last = conn.execute("SELECT * FROM roster_slot WHERE id = ?", (row["id"],)).fetchone()
             changed = True
         if changed:
             _bump_live_for_workspace_conn(conn, workspace_id)
-        picked = _pick_roster_sqlite_row(rows if last is None else [last], prefer="occupying")
-        if changed and last is not None:
-            picked = last
+            updated_rows = conn.execute(
+                "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
+                (workspace_id, player_id),
+            ).fetchall()
+            picked = _pick_roster_sqlite_row(updated_rows, prefer="occupying")
+        else:
+            picked = _pick_roster_sqlite_row(rows, prefer="occupying")
         return _roster_dict(picked) if picked else None
 
 
