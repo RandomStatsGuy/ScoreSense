@@ -8,8 +8,10 @@ import {
   capStepUpLine,
   capRailPrimary,
   capSheetYearOffsets,
+  leftoverAfterMove,
   leftoverAfterMoveYears,
   leftoverAfterMoveDisplay,
+  capCutRefundLine,
   leftoverMoveReadout,
   queuedExtensionsSummary,
   queuedYearsLine,
@@ -43,6 +45,8 @@ test("step-up glossary names flat vet deals separately from extensions", () => {
   assert.match(capStepUpLine({ rookieStatic: true, veteranStatic: true, stepUp: 5 }), /vet deals stay flat/i);
   assert.match(capStepUpLine({ rookieStatic: true, veteranStatic: true, stepUp: 5 }), /extensions increase \$5/i);
   assert.match(capStepUpLine({ veteranStatic: false, stepUp: 5 }), /vet deals increase \$5/i);
+  assert.match(capCutRefundLine(50), /\$1 cut is \$0 dead/);
+  assert.match(capCutRefundLine(50), /\$7 cut is \$3 dead/);
 });
 
 test("rail primary is the pending cut or the draft spend", () => {
@@ -196,6 +200,16 @@ test("leftoverAfterMoveDisplay applies the bid to the leftover already on screen
   });
   assert.equal(later[0].cap_remaining, 120);
   assert.equal(later[1].cap_remaining, 140);
+  assert.equal(leftoverAfterMove({ remaining: 100, cutSalary: 1, cutRefundPct: 0.5 }), 101);
+  assert.equal(leftoverAfterMove({ remaining: 100, cutSalary: 7, cutRefundPct: 0.5 }), 104);
+  const oddCut = leftoverAfterMoveDisplay({
+    years: [{ seasonLabel: 2026, cap_remaining: 100 }],
+    salaryCap: 200,
+    cutHits: [7],
+    cutRefundPct: 0.5,
+    bid: 0,
+  });
+  assert.equal(oddCut[0].cap_remaining, 104);
   assert.equal(fmtCapMoney(-77), "-$77");
   assert.equal(fmtCapMoney(123), "$123");
 });

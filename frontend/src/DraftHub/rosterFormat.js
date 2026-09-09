@@ -158,6 +158,21 @@ export function cutRefundPct(rules) {
   return Number(rules?.contracts?.cut_refund_pct ?? 0.5);
 }
 
+/** Floor the dead-cap charge. $1 → $0 and $7 → $3 at 50% refund. */
+export function cutDeadCapAmount(salary, refundPct = 0.5) {
+  const sal = Number(salary);
+  const pct = Number.isFinite(Number(refundPct)) ? Number(refundPct) : 0.5;
+  if (!Number.isFinite(sal) || sal <= 0) return 0;
+  const keep = Math.min(1, Math.max(0, 1 - pct));
+  return Math.floor(sal * keep + 1e-9);
+}
+
+export function cutRefundAmount(salary, refundPct = 0.5) {
+  const sal = Number(salary);
+  if (!Number.isFinite(sal) || sal <= 0) return 0;
+  return Math.round((sal - cutDeadCapAmount(sal, refundPct)) * 100) / 100;
+}
+
 function capHitForRow(row, offset = 0) {
   const contract = row?.contract;
   const yrs = Number(contract?.years_remaining ?? row?.contract_years ?? 1);
@@ -175,24 +190,23 @@ function capHitForRow(row, offset = 0) {
 /** Pre-draft cut dead cap for a roster row (current season). */
 export function preDraftCutDeadCap(row, rules) {
   if (row?.roster_status !== "cut_before_draft") return 0;
-  const sal = capHitForRow(row, 0);
-  const refund = sal * cutRefundPct(rules);
-  return Math.round((sal - refund) * 100) / 100;
+  return cutDeadCapAmount(capHitForRow(row, 0), cutRefundPct(rules));
 }
 
 /** Dead money if an active player were cut before the draft. */
 export function dropDeadCapAmount(row, rules) {
   const sal = Number(capHitForRow(row, 0) || row?.salary || 0);
   if (!Number.isFinite(sal) || sal <= 0) return 0;
-  return Math.round((sal - sal * cutRefundPct(rules)) * 100) / 100;
+  return cutDeadCapAmount(sal, cutRefundPct(rules));
 }
 
 /** One dead-cap story for Cap bullets and the My team contract drawer. */
 export function contractDeadCapStory(row, rules) {
-  const salary = Number(capHitForRow(row, 0) || row?.salary || 0);
+  const raw = Number(capHitForRow(row, 0) || row?.salary || 0);
   const refundPct = cutRefundPct(rules);
-  const freed = Number.isFinite(salary) ? Math.round(salary * refundPct) : 0;
-  const dead = Number.isFinite(salary) ? Math.round(salary - salary * refundPct) : 0;
+  const salary = Number.isFinite(raw) ? Math.round(raw) : 0;
+  const dead = cutDeadCapAmount(salary, refundPct);
+  const freed = salary - dead;
   const isCut = String(row?.roster_status || "") === "cut_before_draft";
   const ifUndoneRoom = isCut ? -Math.round(salary) : 0;
   return {

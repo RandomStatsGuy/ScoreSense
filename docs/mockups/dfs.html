@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — DFS · choose a layout</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .chooser-hero h1 { font-size: 2.1rem; }
+  .phase {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: var(--space-3);
+    margin: var(--space-4) 0 0;
+  }
+  .phase article {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    min-height: 8.5rem;
+    display: flex;
+    flex-direction: column;
+  }
+  .phase .when {
+    font-size: var(--text-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-muted);
+    font-weight: 700;
+  }
+  .phase h3 { margin: var(--space-1) 0 var(--space-1); font-size: 0.95rem; }
+  .phase p { margin: 0; font-size: var(--text-xs); color: var(--text-muted); }
+  .phase .is-new { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .concepts { display: flex; flex-direction: column; gap: var(--space-4); }
+  .concept {
+    display: grid;
+    grid-template-columns: minmax(11rem, 16rem) minmax(0, 1fr) auto;
+    gap: var(--space-4);
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+    padding: var(--space-4) 1.2rem;
+  }
+  .concept:hover { border-color: var(--border-strong); }
+  .letter {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  .letter-a { background: linear-gradient(150deg, #3a2a14, #1c1710); color: #fde68a; }
+  .letter-b { background: linear-gradient(150deg, #1a3358, #122033); color: #bcd4ff; }
+  .letter-c { background: linear-gradient(150deg, #173a34, #102028); color: #9ff0cf; }
+  .concept h3 { margin: 0 0 var(--space-1); font-size: 1.08rem; }
+  .concept p { margin: 0; color: var(--text-secondary); font-size: 0.84rem; }
+  .pick { color: var(--accent-muted); font-size: 0.8rem; font-weight: 650; white-space: nowrap; }
+  @media (max-width: 760px) {
+    .concept { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>DFS</strong> <span>· design review · not shipped</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a class="is-on" href="dfs.html">Chooser</a>
+    <a href="dfs-a.html">A · Contest</a>
+    <a href="dfs-b.html">B · Shootout</a>
+    <a href="dfs-c.html">C · Leverage</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span>Fantasy</span>
+        <span class="active">Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+
+  <section class="mock-hero chooser-hero">
+    <p class="mock-kicker">Design review · DFS</p>
+    <h1>Name the contest before you name the nine.</h1>
+    <p class="support">
+      Today DFS is a four-step form: format, week, goal knobs, then a pool table.
+      Winning cash and GPP lineups are opposite builds. Pick the canvas that makes that decision.
+    </p>
+    <div class="phase">
+      <article>
+        <div class="when">Today</div>
+        <h3>Knob stack</h3>
+        <p>Proj / Floor / Ceiling sit next to QB +2 and bring-back. Cash and GPP look like the same page.</p>
+      </article>
+      <article class="is-new">
+        <div class="when">Keep</div>
+        <h3>Experience chrome</h3>
+        <p>Hero names the job. Rail is Your lineup · locked · skipped. One primary: Build. Highest is a corner tag.</p>
+      </article>
+      <article class="is-new">
+        <div class="when">Fork</div>
+        <h3>The decision beat</h3>
+        <p>Contest first, shootout first, or fade the chalk. Same cap. Different next action.</p>
+      </article>
+    </div>
+  </section>
+
+  <main id="main-content" class="concepts">
+    <a class="card concept" href="dfs-a.html">
+      <div class="letter letter-a">A</div>
+      <div>
+        <h3>Contest</h3>
+        <p>Cash or Tournament sets the nine. Floor and no stack, or ceiling plus a bring-back. No new data.</p>
+      </div>
+      <span class="pick">Open →</span>
+    </a>
+    <a class="card concept" href="dfs-b.html">
+      <div class="letter letter-b">B</div>
+      <div>
+        <h3>Shootout</h3>
+        <p>Vegas games are the board. Pick the total, then the stack fills three slots and a bring-back.</p>
+      </div>
+      <span class="pick">Open →</span>
+    </a>
+    <a class="card concept" href="dfs-c.html">
+      <div class="letter letter-c">C</div>
+      <div>
+        <h3>Leverage</h3>
+        <p>Pool is the board. Own% and Lev sit on every row. Fade chalk so you do not finish with the field.</p>
+      </div>
+      <span class="pick">Open →</span>
+    </a>
+  </main>
+
+  <p class="footnote">Static mock · tokens only · not product code. Reply A, B, or C.</p>
+</div>
+</body>
+</html>

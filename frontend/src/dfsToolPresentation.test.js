@@ -16,11 +16,21 @@ import {
   filterObjectives,
   formatPersonality,
   formatSalary,
+  gameStackLabel,
   highestTotalGameId,
   isCaptainFormat,
   launchCopy,
   lockedSalaryTotal,
+  normalizeDfsTeam,
   optimizeButtonLabel,
+  pickGameStack,
+  replaceStackLocks,
+  slateGames,
+  stackApplyLiveText,
+  stackClearLiveText,
+  stackPlayerIds,
+  stackPreviewCopy,
+  vegasGameCta,
   parseSalaryCap,
   pinActionLabel,
   pickSwapTarget,
@@ -71,8 +81,12 @@ test("filterObjectives hides value unless the site is DFS", () => {
 test("dfsHeroCopy names the user goal instead of the internal tool", () => {
   const dfs = dfsHeroCopy({ isDfs: true, siteLabel: "FanDuel Classic" });
   assert.equal(dfs.eyebrow, "DFS");
-  assert.match(dfs.heading, /under the cap/i);
+  assert.match(dfs.heading, /shootout first/i);
   assert.match(dfs.support, /FanDuel Classic/);
+  assert.match(dfs.support, /stack dies/i);
+  const captain = dfsHeroCopy({ isDfs: true, captain: true, siteLabel: "DraftKings Showdown" });
+  assert.match(captain.heading, /captain/i);
+  assert.match(captain.support, /leave salary|lose/i);
   const seasonal = dfsHeroCopy({ isDfs: false });
   assert.equal(seasonal.eyebrow, "Lineups");
   assert.match(seasonal.heading, /this week's PPR lineup/i);
@@ -120,12 +134,14 @@ test("dfsSummaryItems lists consequence-first fields", () => {
     excludedCount: 1,
     objectiveId: "ceiling",
     lineupCount: 3,
+    stackGameLabel: "BUF @ MIA",
   });
   const byId = Object.fromEntries(items.map((item) => [item.id, item.value]));
   assert.equal(byId.format, "DraftKings Classic");
   assert.equal(byId.week, "2026 · Wk 1");
   assert.equal(byId.slate, "Main");
   assert.equal(byId.cap, "$50,000");
+  assert.equal(byId.game, "BUF @ MIA");
   assert.equal(byId.goal, "Ceiling (P90)");
   assert.equal(byId.locks, "2 / 1");
   assert.equal(byId.lineups, "3");
@@ -145,12 +161,16 @@ test("slate and empty-state copy explain what happens next", () => {
     /380 matched/,
   );
   assert.match(emptyLineupCopy({ isDfs: true }), /under the cap/);
+  assert.match(emptyLineupCopy({ isDfs: true, hasStack: true }), /Four spots are the stack/);
   assert.equal(optimizeButtonLabel({ lineupCount: 5 }), "Build 5 lineups");
   assert.equal(optimizeButtonLabel({ optimizing: true }), "Optimizing…");
   assert.equal(optimizeButtonLabel({ hasLineup: true }), "Rebuild this lineup");
   assert.equal(optimizeButtonLabel({ hasLineup: true, lineupCount: 3 }), "Rebuild 3 lineups");
+  assert.equal(optimizeButtonLabel({ hasStack: true }), "Build around this stack");
+  assert.equal(optimizeButtonLabel({ hasStack: true, lineupCount: 20 }), "Build 20 lineups around this stack");
   assert.match(launchCopy({ isDfs: true, hasLineup: false }).title, /Nine spots/);
   assert.match(launchCopy({ hasLineup: true }).title, /built/);
+  assert.match(launchCopy({ stackGameLabel: "BUF @ MIA" }).title, /BUF @ MIA is locked/);
 });
 
 test("formatSlateOption and sparse lobby copy explain few DK slates", () => {
@@ -196,6 +216,7 @@ test("vegas labels read like a betting board", () => {
   };
   assert.equal(vegasSpreadLabel(game), "SEA -3.5");
   assert.equal(vegasSpreadLabel({ ...game, spread_line: -2.5 }), "NE -2.5");
+  assert.equal(vegasSpreadLabel({ away: "SF", home: "LA", spread_line: 3.5 }), "LAR -3.5");
   assert.equal(vegasSpreadLabel({ ...game, spread_line: 0 }), "Pick 'em");
   assert.equal(vegasSpreadLabel({ ...game, spread_line: null }), "No line");
   assert.equal(vegasTotalLabel(game), "O/U 44.5");
@@ -310,4 +331,56 @@ test("swap prefers an exact slot then the lowest FLEX", () => {
   assert.equal(swapped.totalPoints, 23.2);
   assert.equal(swapPoolPlayerIntoLineup(lineup, { player_id: "and", Player: "Mark Andrews", Position: "TE" }), null);
   assert.equal(poolRowToLineupSlot({ Player: "X", player_id: "x", Position: "QB" }, "QB").slot, "QB");
+});
+
+test("pickGameStack locks the higher-ceiling QB plus two catchers and a bring-back", () => {
+  const game = { game_id: "g1", away: "BUF", home: "MIA" };
+  const pool = [
+    { player_id: "allen", Player: "Josh Allen", Position: "QB", Team: "BUF", "High (P90)": 34, "Projected Points": 24 },
+    { player_id: "tua", Player: "Tua", Position: "QB", Team: "MIA", "High (P90)": 28, "Projected Points": 20 },
+    { player_id: "shakir", Player: "Khalil Shakir", Position: "WR", Team: "BUF", "High (P90)": 22, "Projected Points": 14 },
+    { player_id: "kincaid", Player: "Dalton Kincaid", Position: "TE", Team: "BUF", "High (P90)": 18, "Projected Points": 11 },
+    { player_id: "cooks", Player: "Keon Coleman", Position: "WR", Team: "BUF", "High (P90)": 12, "Projected Points": 8 },
+    { player_id: "waddle", Player: "Jaylen Waddle", Position: "WR", Team: "MIA", "High (P90)": 24, "Projected Points": 15 },
+    { player_id: "out-wr", Player: "Out WR", Position: "WR", Team: "BUF", "Injury Status": "Out", "High (P90)": 40 },
+    { player_id: "lar-qb", Player: "Stafford", Position: "QB", Team: "LAR", "High (P90)": 20 },
+  ];
+  const stack = pickGameStack(pool, game, { stackCount: 2 });
+  assert.equal(stack.complete, true);
+  assert.equal(stack.stackTeam, "BUF");
+  assert.deepEqual(stackPlayerIds(stack), ["allen", "shakir", "kincaid", "waddle"]);
+  assert.equal(stack.players[3].label, "Bring");
+  assert.equal(gameStackLabel(game), "BUF @ MIA");
+  assert.match(stackPreviewCopy(stack).body, /bring-back/i);
+  assert.match(stackApplyLiveText(stack), /Josh Allen/);
+  assert.match(stackClearLiveText(), /cleared/i);
+  assert.equal(vegasGameCta({ selected: true }), "Stack this game");
+  assert.equal(vegasGameCta({ selected: false }), "Ride this total");
+});
+
+test("pickGameStack treats LAR and LA as the same team and skips byes", () => {
+  const game = { game_id: "g2", away: "LA", home: "SEA" };
+  const pool = [
+    { player_id: "staff", Player: "Stafford", Position: "QB", Team: "LAR", "High (P90)": 22 },
+    { player_id: "puka", Player: "Puka Nacua", Position: "WR", Team: "LAR", "High (P90)": 26 },
+    { player_id: "bye-te", Player: "Bye TE", Position: "TE", Team: "LAR", on_bye: true, "High (P90)": 30 },
+    { player_id: "kupp", Player: "Cooper Kupp", Position: "WR", Team: "LA", "High (P90)": 19 },
+    { player_id: "metcalf", Player: "DK Metcalf", Position: "WR", Team: "SEA", "High (P90)": 21 },
+  ];
+  const stack = pickGameStack(pool, game, { stackCount: 2 });
+  assert.equal(normalizeDfsTeam("LAR"), "LA");
+  assert.deepEqual(stackPlayerIds(stack), ["staff", "puka", "kupp", "metcalf"]);
+  const games = slateGames([
+    game,
+    { game_id: "g3", away: "BUF", home: "MIA" },
+  ], pool);
+  assert.deepEqual(games.map((row) => row.game_id), ["g2"]);
+});
+
+test("replaceStackLocks swaps the auto-stack without dropping a user lock", () => {
+  const next = replaceStackLocks(["user", "old-qb"], ["old-qb"], ["new-qb", "new-wr"]);
+  assert.equal(next.has("user"), true);
+  assert.equal(next.has("old-qb"), false);
+  assert.equal(next.has("new-qb"), true);
+  assert.equal(next.has("new-wr"), true);
 });

@@ -8,7 +8,7 @@ from typing import Any
 
 from src.draft_hub import storage
 from src.draft_hub.legacy_contract_import import _norm_name
-from src.draft_hub.rules_engine import normalize_position, roster_limits
+from src.draft_hub.rules_engine import cut_dead_cap_amount, normalize_position, roster_limits
 from src.draft_hub.schemas import ContractRules, LeagueRules
 
 ISSUE_CATEGORIES = {
@@ -117,7 +117,7 @@ def _expected_active_cap(
 
 
 def _dead_cap_amount(prior_cap: float, rules: ContractRules) -> float:
-    return round(prior_cap * (1.0 - float(rules.cut_refund_pct)), 2)
+    return cut_dead_cap_amount(prior_cap, float(rules.cut_refund_pct))
 
 
 def cut_looks_like_full_salary_dead(
@@ -155,7 +155,7 @@ def normalize_cut_cap_hit(
     if abs(hit) <= 0.051:
         return 0.0
     if cut_looks_like_full_salary_dead(hit, prior):
-        return round(float(prior) * (1.0 - pct), 2)
+        return cut_dead_cap_amount(float(prior), pct)
     return hit
 
 

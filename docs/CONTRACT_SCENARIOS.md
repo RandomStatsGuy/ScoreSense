@@ -144,7 +144,7 @@ Year control is only the **pre-draft extension** window (add 1–3 years, defaul
 
 | UI action | Result |
 |---|---|
-| **Cut** on My team or Roster management | Player leaves committed cap; dead cap = (1 − cut refund %) of this season only. Later years free in full. |
+| **Cut** on My team or Roster management | Player leaves committed cap; dead cap = floor of (1 − cut refund %) of this season only ($1 → $0, $7 → $3 at 50%). Later years free in full. |
 | Undo cut | Restores active status |
 
 Type/years stay on the row for dead-cap math; they are not FA you can re-buy under the same deal.

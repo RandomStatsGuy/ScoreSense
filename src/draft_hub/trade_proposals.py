@@ -15,7 +15,7 @@ from src.draft_hub.pre_draft_cap import (
 )
 from src.draft_hub.rules_engine import (
     cap_relevant_roster,
-    cut_refund,
+    cut_dead_cap,
     normalize_position,
     roster_limits,
 )
@@ -57,7 +57,7 @@ def drop_dead_cap_amount(rules: LeagueRules, row: dict[str, Any]) -> float:
     sal = float(cap_hit(row, 0) or 0)
     if sal <= 0:
         return 0.0
-    return round(sal - cut_refund(rules, sal), 2)
+    return cut_dead_cap(rules, sal)
 
 
 def _party_team_ids(parties: list[dict[str, Any]]) -> list[str]:
