@@ -254,12 +254,9 @@ def _schedule_step_for_type(
     kind = str(ctype or "veteran")
     if kind not in ("rookie", "extension", "veteran"):
         return 0.0
-    if kind == "rookie":
-        is_static = bool(cr.rookie_salary_static) if static is None else bool(static)
-        if is_static:
-            return 0.0
-    if kind == "veteran":
-        is_static = bool(cr.veteran_salary_static) if static is None else bool(static)
+    if kind in ("rookie", "veteran"):
+        rule_is_static = cr.rookie_salary_static if kind == "rookie" else cr.veteran_salary_static
+        is_static = bool(rule_is_static) if static is None else bool(static)
         if is_static:
             return 0.0
     if step_up is not None:
