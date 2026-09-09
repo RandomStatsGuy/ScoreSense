@@ -2034,12 +2034,16 @@ def lineup_optimize(
         )
     site = (request.site or "seasonal").lower()
     try:
+        keep_player_ids = list(request.locked_player_ids or []) + list(
+            request.stack_qb_ids or []
+        )
         pool, meta = build_lineup_pool(
             season=request.season,
             week=request.week,
             apply_injury_adjustments=request.apply_injury_adjustments,
             site=site,
             keep_teams=request.stack_teams,
+            keep_player_ids=keep_player_ids,
         )
         if request.slate_salaries:
             sal_df = pd.DataFrame(request.slate_salaries)

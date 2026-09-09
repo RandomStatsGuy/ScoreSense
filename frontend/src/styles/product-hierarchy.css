@@ -1871,6 +1871,11 @@ button.dfs-vegas-card {
   font-size: 1.02rem;
 }
 
+.dfs-stack-option small {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
 .dfs-stack-option span {
   color: var(--text-secondary);
   font-size: var(--text-xs);

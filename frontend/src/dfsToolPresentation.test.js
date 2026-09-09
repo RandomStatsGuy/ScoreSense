@@ -23,8 +23,10 @@ import {
   lockedSalaryTotal,
   normalizeDfsTeam,
   optimizeButtonLabel,
+  gamesMarkedCopy,
   listGameStacks,
   pickGameStack,
+  stackOptionCopy,
   replaceStackLocks,
   slateGames,
   stackApplyLiveText,
@@ -143,6 +145,13 @@ test("dfsSummaryItems lists consequence-first fields", () => {
   assert.equal(byId.slate, "Main");
   assert.equal(byId.cap, "$50,000");
   assert.equal(byId.game, "BUF @ MIA");
+  assert.equal(items.find((item) => item.id === "game")?.label, "Game");
+  const multi = dfsSummaryItems({
+    siteLabel: "DraftKings Classic",
+    isDfs: true,
+    stackGameLabel: "2 games in the build",
+  });
+  assert.equal(multi.find((item) => item.id === "game")?.label, "Games");
   assert.equal(byId.goal, "Ceiling (P90)");
   assert.equal(byId.locks, "2 / 1");
   assert.equal(byId.lineups, "3");
@@ -357,6 +366,9 @@ test("pickGameStack locks the higher-ceiling QB plus two catchers and a bring-ba
   assert.match(stackClearLiveText(), /cleared/i);
   assert.equal(vegasGameCta({ selected: true }), "In the build");
   assert.equal(vegasGameCta({ selected: false }), "Add this total");
+  assert.equal(gamesMarkedCopy(0), "");
+  assert.equal(gamesMarkedCopy(1), "1 game in the build");
+  assert.equal(gamesMarkedCopy(2), "2 games in the build");
 });
 
 test("listGameStacks offers each side's starter QB and ignores a loud backup ceiling", () => {
@@ -375,6 +387,12 @@ test("listGameStacks offers each side's starter QB and ignores a loud backup cei
   assert.equal(stacks.some((row) => row.qb.player_id === "cook"), false);
   const suggested = pickGameStack(pool, game, { stackCount: 2 });
   assert.equal(suggested.players[0].row.player_id, "cousins");
+  const cousins = stackOptionCopy(stacks.find((row) => row.qb.player_id === "cousins"));
+  assert.equal(cousins.title, "Kirk Cousins · LV");
+  assert.equal(cousins.game, "MIA @ LV");
+  assert.match(cousins.body, /Bowers/);
+  assert.equal(normalizeDfsTeam("LVR"), "LV");
+  assert.equal(normalizeDfsTeam("OAK"), "LV");
 });
 
 test("pickGameStack treats LAR and LA as the same team and skips byes", () => {
