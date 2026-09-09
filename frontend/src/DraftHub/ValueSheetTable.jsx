@@ -9,6 +9,7 @@ import MobilePlayerCard from "../MobilePlayerCard";
 import { usePlayerMedia } from "../PlayerCell";
 import { confirmDialog } from "../ui/confirm";
 import { pinNeedPositions } from "./draftRoomHelpers";
+import { escapePlayerIdSelector } from "../cssEscape";
 import {
   filterAndSortRows,
   fmtSal,
@@ -257,8 +258,20 @@ export default function ValueSheetTable({
     if (!isAvailableView && statusFilter !== "STARRED") {
       list = pinWatchedPlayers(list, watchIds);
     }
+    if (selectedPlayerId) {
+      const focusId = String(selectedPlayerId);
+      const hit = list.find((row) => String(row.player_id) === focusId);
+      if (hit) list = [hit, ...list.filter((row) => String(row.player_id) !== focusId)];
+    }
     return pinNeedPositions(list, pins, maxRows);
-  }, [rankedRows, isAvailableView, posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, maxRows, needPositions, needsOnly, watchIds]);
+  }, [rankedRows, isAvailableView, posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, maxRows, needPositions, needsOnly, watchIds, selectedPlayerId]);
+
+  useEffect(() => {
+    if (!selectedPlayerId) return undefined;
+    const node = document.querySelector(`[data-player-id="${escapePlayerIdSelector(selectedPlayerId)}"]`);
+    node?.scrollIntoView({ block: "center", behavior: "smooth" });
+    return undefined;
+  }, [selectedPlayerId, sorted]);
 
   const seasonScaleMax = useMemo(() => {
     let max = 0;
@@ -870,6 +883,7 @@ export default function ValueSheetTable({
             return (
               <MobilePlayerCard
                 key={r.player_id || `row-${idx}`}
+                playerId={r.player_id}
                 className={`${r.overpay ? "hub-overpay" : ""}${r.on_sleeper ? " hub-sleeper-row" : ""}`.trim()}
                 name={r.player}
                 meta={buildMobileMeta(r)}

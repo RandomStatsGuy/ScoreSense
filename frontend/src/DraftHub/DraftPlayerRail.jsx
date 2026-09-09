@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 import { formatSeasonPts } from "../seasonQuantiles";
 import { effectiveAuctionBid } from "../riskAdjustedValue";
@@ -20,6 +20,8 @@ import {
   poolSearchPlaceholder,
   watchLabel,
 } from "./draftLivePresentation";
+import { NOMINATION_COPY, nominationRailEmpty } from "./draftNominationPresentation";
+import { needExistsInSlice } from "./draftNominationTax";
 
 const PICK_SORTS = [
   ["season_proj", "Projection"],
@@ -71,22 +73,34 @@ export default function DraftPlayerRail({
   paused = false,
   nominatorName = "",
   offline = false,
+  taxById = {},
+  leftover = null,
 }) {
   const [search, setSearch] = useState("");
   const [position, setPosition] = useState("ALL");
   const [sortKey, setSortKey] = useState(() => defaultDraftPlayerRailSort(pickDraft));
-  const [needsOnly, setNeedsOnly] = useState(false);
+  const [mode, setMode] = useState("need");
+  const taxCount = useMemo(() => Object.keys(taxById || {}).length, [taxById]);
+  useEffect(() => {
+    if (mode === "tax" && !taxCount) setMode("need");
+  }, [mode, taxCount]);
   const visibleRows = useMemo(
     () => draftPlayerRailRows(rows, {
       pickDraft,
       position,
       search,
       sortKey,
-      needsOnly,
+      mode,
       needPositions,
+      taxById,
+      leftover,
       maxRows: 60,
     }),
-    [rows, pickDraft, position, search, sortKey, needsOnly, needPositions],
+    [rows, pickDraft, position, search, sortKey, mode, needPositions, taxById, leftover],
+  );
+  const hasNeedWithoutLeftover = useMemo(
+    () => needExistsInSlice(rows, { needPositions, position, search }),
+    [rows, needPositions, position, search],
   );
   const fetchedMedia = usePlayerMedia(visibleRows.map((row) => row.player_id).filter(Boolean));
   const media = useMemo(
@@ -142,15 +156,30 @@ export default function DraftPlayerRail({
       </div>
 
       <div className="hub-draft-player-rail-tools">
-        <button
-          type="button"
-          className={`hub-draft-needs-toggle${needsOnly ? " is-active" : ""}`}
-          aria-pressed={needsOnly}
-          disabled={!needPositions.length}
-          onClick={() => setNeedsOnly((value) => !value)}
-        >
-          {needPositions.length ? `Needs · ${needPositions.join(" ")}` : "Needs filled"}
-        </button>
+        <div className="hub-draft-nom-mode" role="radiogroup" aria-label={NOMINATION_COPY.modeGroup}>
+          <button
+            type="button"
+            role="radio"
+            className={`hub-draft-needs-toggle${mode === "need" ? " is-active" : ""}`}
+            aria-checked={mode === "need"}
+            disabled={!needPositions.length}
+            onClick={() => setMode("need")}
+          >
+            {needPositions.length ? `${NOMINATION_COPY.need} · ${needPositions.join(" ")}` : NOMINATION_COPY.needFilled}
+          </button>
+          {pickDraft ? null : (
+          <button
+            type="button"
+            role="radio"
+            className={`hub-draft-needs-toggle${mode === "tax" ? " is-active" : ""}`}
+            aria-checked={mode === "tax"}
+            disabled={!taxCount}
+            onClick={() => setMode("tax")}
+          >
+            {taxCount ? NOMINATION_COPY.tax : NOMINATION_COPY.taxEmpty}
+          </button>
+          )}
+        </div>
         <HubFilterMenu
           label="Sort"
           value={sortKey}
@@ -160,10 +189,21 @@ export default function DraftPlayerRail({
       </div>
 
       <div className="hub-draft-player-list" role="list" aria-label="Draftable players">
-        {loading && visibleRows.length === 0 ? (
-          <p className="chart-note hub-draft-player-empty">Loading players…</p>
-        ) : visibleRows.length === 0 ? (
-          <p className="chart-note hub-draft-player-empty">No players match these filters.</p>
+        {visibleRows.length === 0 ? (
+          <p className="chart-note hub-draft-player-empty">
+            {nominationRailEmpty({
+              loading,
+              rowCount: visibleRows.length,
+              mode,
+              leftover,
+              hasTaxTargets: Boolean(taxCount),
+              needPositions,
+              search,
+              position,
+              hasNeedWithoutLeftover,
+              minBid,
+            })}
+          </p>
         ) : visibleRows.map((row) => {
           const id = String(row.player_id || "");
           const selected = id && id === String(selectedPlayerId || "");
@@ -178,6 +218,10 @@ export default function DraftPlayerRail({
             ? rangeBarCopy(row.min_sal, auctionValue, row.max_sal)
             : null;
           const showNeed = showPoolNeedChip({ isNeed, rosterCount });
+          const tax = taxById?.[id];
+          const taxPressure = Boolean(
+            tax && Number(tax.suggested_bid) > Number(tax.rival_budget_remaining),
+          );
           const watching = watched.has(id);
           const rowPrimary = poolRowIsPrimary({
             playerId: id,
@@ -206,7 +250,15 @@ export default function DraftPlayerRail({
                   size="sm"
                   narrativeScope="season"
                 />
-                {wideStage && !pickDraft && (
+                {mode === "tax" && tax ? (
+                  <span className={`hub-draft-player-tax${taxPressure ? " is-pressure" : ""}`}>
+                    {NOMINATION_COPY.taxLine({
+                      owner: tax.rival_owner_name,
+                      leftover: tax.rival_budget_remaining,
+                      pos: tax.rival_hole_position,
+                    })}
+                  </span>
+                ) : wideStage && !pickDraft ? (
                   <span className="hub-draft-player-why">
                     {whyBar ? (
                       <span className="hub-draft-range-copy">
@@ -220,7 +272,7 @@ export default function DraftPlayerRail({
                       <span>{draftPoolWhy(row, { isNeed, rosterCount })}</span>
                     )}
                   </span>
-                )}
+                ) : null}
                 <span className="hub-draft-player-metric">
                   <strong>{primary}</strong>
                   <span>{pickDraft ? secondaryMetric(row, pickDraft) : draftLiveCopy.suggested}</span>

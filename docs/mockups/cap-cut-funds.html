@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Cap · This cut funds</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .sheet-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: var(--space-3);
+    align-items: center;
+    min-height: var(--control-h-lg);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-sm);
+  }
+  .sheet-row.is-on {
+    background: var(--accent-soft);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  .sheet-row span { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .rail-actions { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>Cap</strong> <span>· This cut funds · SCORE-83</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a class="is-on" href="cap-cut-funds.html">This cut funds</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span class="active">Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+  </header>
+
+  <nav class="mock-subnav">
+    <span class="mock-subnav-group-label">Team</span>
+    <span class="mock-tab">My team</span>
+    <span class="mock-tab active">Cap</span>
+    <span class="mock-tab">Free agents</span>
+  </nav>
+
+  <section class="mock-hero">
+    <p class="mock-kicker">Cap</p>
+    <h1>Can you afford the bid after the cut?</h1>
+    <p class="support">Tap a contract. Leftover after the refund names the one free agent that cut now funds.</p>
+  </section>
+
+  <div class="mock-cols">
+    <main>
+      <section class="card">
+        <h3>Cap sheet</h3>
+        <div class="sheet-row">
+          <strong>Josh Allen</strong>
+          <span>$45</span>
+          <span>3 yrs</span>
+        </div>
+        <div class="sheet-row is-on">
+          <strong>Zamir White</strong>
+          <span>$10</span>
+          <span>2 yrs</span>
+        </div>
+        <div class="sheet-row">
+          <strong>Trey McBride</strong>
+          <span>$28</span>
+          <span>2 yrs</span>
+        </div>
+      </section>
+    </main>
+    <aside class="mock-rail">
+      <section class="card">
+        <p class="mock-kicker">At a glance</p>
+        <h3>Your team</h3>
+        <div class="facts">
+          <div class="fact">Leftover <strong>$12</strong></div>
+          <div class="fact">Against this cap <strong>$188</strong></div>
+        </div>
+        <p class="mock-kicker" style="margin-top:var(--space-4)">This cut</p>
+        <div class="facts">
+          <div class="fact">Dead after cut <strong>$5</strong></div>
+          <div class="fact">Leftover after cut <strong>$17</strong></div>
+          <div class="fact">This cut funds <strong>Isaiah Likely at $12</strong></div>
+        </div>
+        <div class="rail-actions" style="margin-top:var(--space-4)">
+          <button type="button" class="btn btn-primary">Cut and open bid</button>
+          <button type="button" class="btn btn-ghost">Keep</button>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>
+</body>
+</html>

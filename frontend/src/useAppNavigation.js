@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   buildAppPath,
   buildFilterSearchParams,
+  hubSubViewFilterUpdates,
   parseAppPath,
   parseFilterParams,
   stripOneShotAuthParams,
@@ -144,6 +145,7 @@ export default function useAppNavigation() {
         ? insightOrOfficeTab
         : null;
       const tab = extra ? (extra.insightTab || extra.officeTab) : insightOrOfficeTab;
+      const filterUpdates = hubSubViewFilterUpdates(subView, extra);
       navigateTo(
         {
           view: "hub",
@@ -151,9 +153,7 @@ export default function useAppNavigation() {
           insightTab: subView === "insights" ? (tab || route.insightTab || "overview") : null,
           officeTab: subView === "office" ? (tab || route.officeTab || "current") : null,
         },
-        extra?.pos
-          ? { filterUpdates: { needPos: String(extra.pos).toUpperCase() } }
-          : undefined,
+        filterUpdates ? { filterUpdates } : undefined,
       );
     },
     [navigateTo, route.insightTab, route.officeTab],

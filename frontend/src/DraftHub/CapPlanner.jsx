@@ -31,6 +31,10 @@ import {
   parseNeedErrors,
   rosterNeedLine,
   rosterPositionNeeds,
+  previewCutFunds,
+  capCutFundsAction,
+  capCutFundsLine,
+  capCutConfirmCopy,
   CAP_DRAFT_COPY,
   CAP_EXTEND_COPY,
   queuedExtensionsSummary,
@@ -41,11 +45,14 @@ import {
   CAP_MOVE_COPY,
   CAP_NEED_COPY,
   CAP_SHEET_COPY,
+  CAP_CUT_COPY,
 } from "./capPlannerPresentation";
 import { buildCapStatusCard } from "./capStatusCard";
 import { contractDeadCapStory, contractTypeLabel, dealSalaryIsStatic, fmtSal, leagueStepUp, rosterSlotKey } from "./rosterFormat";
 import { MY_TEAM_COPY } from "./rosterPresentation";
 import ContractHistoryLink from "./ContractHistoryLink";
+import { playersTabAddMode, playersTabBanner } from "./acquisitionWindow";
+import { confirmDialog } from "../ui/confirm";
 import {
   cancelRookieExtend,
   hasPendingExtension,
@@ -105,7 +112,7 @@ function capHitForRow(row, offset = 0, rules) {
   return offset === 0 ? Number(row.salary) : Number(row.salary);
 }
 
-function CapDenseRow({ name, value, chip, onOpen }) {
+function CapDenseRow({ name, value, chip, onOpen, selected = false }) {
   const body = (
     <>
       <span className="hub-cap-dense-name">{name}</span>
@@ -116,7 +123,12 @@ function CapDenseRow({ name, value, chip, onOpen }) {
   if (onOpen) {
     return (
       <li>
-        <button type="button" className="hub-cap-dense-row is-action" onClick={onOpen}>
+        <button
+          type="button"
+          className={`hub-cap-dense-row is-action${selected ? " is-selected" : ""}`}
+          aria-pressed={selected}
+          onClick={onOpen}
+        >
           {body}
         </button>
       </li>
@@ -145,7 +157,16 @@ function CapMoneyField({ id, label, value, onChange }) {
   );
 }
 
-export default function CapPlanner({ capSheet, roster, workspace, hubContext, onChanged, onNavigate }) {
+export default function CapPlanner({
+  capSheet,
+  roster,
+  workspace,
+  hubContext,
+  onChanged,
+  onNavigate,
+  valueRows = [],
+  acquisitionWindow = null,
+}) {
   const [extendPlayer, setExtendPlayer] = useState("");
   const [extendYears, setExtendYears] = useState("2");
   const [cutPlayer, setCutPlayer] = useState("");
@@ -307,9 +328,21 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
     }
   };
 
+  const selectCapRow = (playerId) => {
+    const id = playerId ? String(playerId) : "";
+    setSelectedPlayerId(id || null);
+    setCutPlayer(id);
+  };
+
+  const clearCapSelection = () => {
+    setSelectedPlayerId(null);
+    setCutPlayer("");
+  };
+
   const resetMove = () => {
     setCutPlayer("");
     setBidAmount("");
+    setSelectedPlayerId(null);
   };
 
   if (!summary) {
@@ -370,9 +403,57 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
   const selectedCapRow = selectedPlayerId
     ? (roster || []).find((row) => String(row.player_id) === String(selectedPlayerId))
     : null;
-  const selectedStory = selectedCapRow
-    ? contractDeadCapStory(selectedCapRow, workspace?.rules)
+  const addMode = playersTabAddMode(acquisitionWindow, { inLeague });
+  const cutWindowBanner = inLeague ? playersTabBanner(acquisitionWindow) : null;
+  const minBid = Number(workspace?.rules?.auction?.min_bid ?? 1) || 1;
+  const cutPreview = selectedCapRow
+    ? previewCutFunds({
+      row: selectedCapRow,
+      leftover: currentPair.leftover,
+      rules: workspace?.rules,
+      availableRows: valueRows,
+      addMode,
+      minBid,
+    })
     : null;
+  const cutAction = capCutFundsAction(cutPreview);
+  const cutFundsLine = capCutFundsLine(cutPreview);
+
+  const cutAndHandoff = async () => {
+    if (!cutPreview || cutPreview.is_cut || cutBusyId) return;
+    const ok = await confirmDialog({
+      title: CAP_CUT_COPY.confirmTitle(cutPreview.player_name),
+      message: capCutConfirmCopy(cutPreview),
+      confirmLabel: cutAction.label,
+      cancelLabel: CAP_CUT_COPY.keep,
+      danger: true,
+    });
+    if (!ok) return;
+    setCutBusyId(String(cutPreview.player_id));
+    setMsg("");
+    try {
+      const res = await apiFetch("/api/hub/roster", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          player_id: cutPreview.player_id,
+          roster_status: "cut_before_draft",
+        }),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      onChanged?.();
+      if (cutAction.kind === "cut-bid" || cutAction.kind === "cut-add") {
+        onNavigate?.("available", {
+          player: cutPreview.funded_player_id || "",
+          pos: cutPreview.funded_position || undefined,
+        });
+      }
+    } catch (e) {
+      setMsg(e.message || "Could not cut");
+    } finally {
+      setCutBusyId("");
+    }
+  };
 
   const computedNeeds = rosterPositionNeeds({
     roster,
@@ -440,6 +521,15 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
             subtitle={`${baseSeason} season · ${fmtSal(salaryCap)} cap`}
             groups={[
               { id: "you", items: teamItems },
+              ...(cutPreview ? [{
+                id: "cut-funds",
+                heading: CAP_CUT_COPY.heading,
+                items: [
+                  { id: "dead-after", label: CAP_CUT_COPY.deadAfter, value: fmtCapMoney(cutPreview.dead_cap) },
+                  { id: "left-after", label: CAP_CUT_COPY.leftoverAfter, value: fmtCapMoney(cutPreview.leftover_after) },
+                  { id: "funds", label: CAP_CUT_COPY.thisCutFunds, value: cutFundsLine },
+                ],
+              }] : []),
               {
                 id: "rules",
                 heading: CAP_FIGURE_COPY.rulesHeading,
@@ -449,14 +539,60 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                 ],
               },
             ]}
-            note={capEquationNote({
-              against,
-              leftover: summary.remaining,
-              salaryCap,
-            })}
+            note={cutPreview && addMode === "locked" && cutWindowBanner?.text
+              ? cutWindowBanner.text
+              : capEquationNote({
+                against,
+                leftover: summary.remaining,
+                salaryCap,
+              })}
             action={(
               <div className="hub-cap-rail-actions">
-                {railPrimary.kind === "undo-cut" ? (
+                {cutPreview && !cutPreview.is_cut ? (
+                  <>
+                    <button
+                      type="button"
+                      className="btn-primary hub-experience-summary-action"
+                      disabled={Boolean(cutBusyId)}
+                      onClick={cutAndHandoff}
+                    >
+                      {cutAction.label}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost hub-experience-summary-action"
+                      onClick={clearCapSelection}
+                    >
+                      {CAP_CUT_COPY.keep}
+                    </button>
+                    {selectedCapRow ? (
+                      <ContractHistoryLink
+                        playerId={selectedCapRow.player_id}
+                        playerName={selectedCapRow.player_name}
+                      />
+                    ) : null}
+                  </>
+                ) : cutPreview?.is_cut ? (
+                  <div className="hub-cap-undo-cut">
+                    <button
+                      type="button"
+                      className="btn-ghost hub-experience-summary-action"
+                      disabled={Boolean(cutBusyId) || selectedCapRow?.can_undo_cut === false}
+                      onClick={() => undoCut(cutPreview.player_id)}
+                    >
+                      {selectedCapRow?.can_undo_cut === false
+                        ? MY_TEAM_COPY.undoCutClosed
+                        : MY_TEAM_COPY.undoCut}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost hub-experience-summary-action"
+                      onClick={clearCapSelection}
+                    >
+                      {CAP_CUT_COPY.keep}
+                    </button>
+                  </div>
+                ) : railPrimary.kind === "undo-cut" ? (
                   <div className="hub-cap-undo-cut">
                     <button
                       type="button"
@@ -479,7 +615,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                     {railPrimary.label}
                   </button>
                 ) : null}
-                {inLeague && onNavigate ? (
+                {inLeague && onNavigate && !cutPreview ? (
                   <button
                     type="button"
                     className="btn-link hub-cap-league-spend"
@@ -511,7 +647,10 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                 label: `${row.player_name || row.player_id} · ${fmtSal(row.salary)}`,
               })),
             ]}
-            onChange={setCutPlayer}
+            onChange={(id) => {
+              setCutPlayer(id);
+              setSelectedPlayerId(id || null);
+            }}
           />
           <CapMoneyField
             id="cap-move-bid"
@@ -841,7 +980,8 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                     name={r.player_name}
                     value={fmtSal(capHitForRow(r, 0, workspace?.rules))}
                     chip={r.position || `${r.contract?.years_remaining ?? r.contract_years ?? "—"} yrs`}
-                    onOpen={() => setSelectedPlayerId(r.player_id)}
+                    selected={String(r.player_id) === String(selectedPlayerId)}
+                    onOpen={() => selectCapRow(r.player_id)}
                   />
                 ))}
               </ul>
@@ -865,13 +1005,16 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
                     <tr
                       key={rosterSlotKey(r)}
                       className={`hub-cap-row is-action${
+                        String(r.player_id) === String(selectedPlayerId) ? " is-selected" : ""
+                      }${
                         droppingIds.has(String(r.player_id))
                         || extendableIds.has(String(r.player_id))
                         || pendingExtendIds.has(String(r.player_id))
                           ? " hub-cap-row--expiring"
                           : ""
                       }`}
-                      onClick={() => setSelectedPlayerId(r.player_id)}
+                      aria-selected={String(r.player_id) === String(selectedPlayerId)}
+                      onClick={() => selectCapRow(r.player_id)}
                     >
                       <td>
                         {r.player_name}
@@ -935,86 +1078,6 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
         </HubSection>
       )}
       </HubExperienceLayout>
-      {selectedCapRow ? (
-        <div
-          className="hub-roster-side-panel-overlay"
-          role="presentation"
-          onClick={() => setSelectedPlayerId(null)}
-        >
-          <aside
-            className="hub-roster-side-panel panel"
-            role="dialog"
-            aria-label={`Contract for ${selectedCapRow.player_name}`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="hub-roster-side-panel-head">
-              <h3 className="hub-roster-side-panel-title">Contract</h3>
-              <button
-                type="button"
-                className="btn-ghost btn-sm"
-                onClick={() => setSelectedPlayerId(null)}
-                aria-label="Close contract panel"
-              >
-                Close
-              </button>
-            </div>
-            <div className="hub-roster-contract-panel-body">
-              <div className="hub-roster-contract-panel-identity">
-                <strong>{selectedCapRow.player_name}</strong>
-                <span className="chart-note">
-                  {[selectedCapRow.team, selectedCapRow.position].filter(Boolean).join(" · ") || "—"}
-                </span>
-              </div>
-              {selectedStory ? (
-                <div className="hub-roster-contract-panel-grid">
-                  <div className="hub-roster-contract-panel-stat">
-                    <span className="mobile-stat-label">Dead cap</span>
-                    <strong>{selectedStory.deadLabel}</strong>
-                  </div>
-                  <div className="hub-roster-contract-panel-stat">
-                    <span className="mobile-stat-label">If undone</span>
-                    <strong>{selectedStory.ifUndoneLabel}</strong>
-                  </div>
-                </div>
-              ) : null}
-              <div className="hub-roster-contract-panel-actions">
-                {hasPendingExtension(selectedCapRow) && !draftCompleted ? (
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm"
-                    disabled={Boolean(extendBusyId)}
-                    onClick={() => undoQueuedExtension(selectedCapRow.player_id)}
-                  >
-                    {CAP_EXTEND_COPY.undo}
-                    <span className="hub-btn-support">{CAP_EXTEND_COPY.queuedHint}</span>
-                  </button>
-                ) : null}
-                {selectedStory?.isCut ? (
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm hub-uncut-btn"
-                    disabled={Boolean(cutBusyId) || selectedCapRow.can_undo_cut === false}
-                    onClick={() => undoCut(selectedCapRow.player_id)}
-                  >
-                    {selectedCapRow.can_undo_cut === false
-                      ? MY_TEAM_COPY.undoCutClosed
-                      : "Undo cut"}
-                    <span className="hub-btn-support">
-                      {selectedCapRow.can_undo_cut === false
-                        ? MY_TEAM_COPY.undoCutClosedSupport(selectedCapRow.claimed_by_owner)
-                        : selectedStory.undoSupport}
-                    </span>
-                  </button>
-                ) : null}
-                <ContractHistoryLink
-                  playerId={selectedCapRow.player_id}
-                  playerName={selectedCapRow.player_name}
-                />
-              </div>
-            </div>
-          </aside>
-        </div>
-      ) : null}
     </HubPage>
   );
 }
