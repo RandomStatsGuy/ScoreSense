@@ -439,6 +439,16 @@ def test_put_vibes_requires_league(hub_db):
         app.dependency_overrides.pop(require_hub_user, None)
 
 
+def test_hub_put_vibe_rankings_imports_storage_locally():
+    import inspect
+
+    from app.hub_routes import hub_put_vibe_rankings
+
+    source = inspect.getsource(hub_put_vibe_rankings)
+    assert "from src.draft_hub import storage" in source
+    assert "storage.get_team_vibe_aura" in source
+
+
 def test_health_feature_flag_vibe_rankings():
     client = TestClient(app)
     res = client.get("/api/health")

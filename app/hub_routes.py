@@ -761,6 +761,7 @@ def hub_put_vibe_rankings(
     """Persist aura for the focused league-team-week and return the vibe slate."""
     from fastapi.encoders import jsonable_encoder
 
+    from src.draft_hub import storage
     from src.draft_hub.vibe_rankings import apply_vibe, build_vibe_rankings
 
     with HubTimer("vibes-put", response) as timer:
