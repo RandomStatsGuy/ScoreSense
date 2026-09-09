@@ -83,8 +83,9 @@
     display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: var(--space-5); align-items: start;
   }
+  .board-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
   .board-head h3 { margin: 0 0 var(--space-1); }
-  .board-head p { margin: 0 0 var(--space-3); color: var(--text-muted); font-size: var(--text-xs); }
+  .board-head p { margin: 0; color: var(--text-muted); font-size: var(--text-xs); }
   .rank { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
   .rank li {
     display: grid;
@@ -100,7 +101,6 @@
   .fill { height: 100%; border-radius: var(--radius-pill); background: var(--border-strong); }
   .rank li.is-you .fill { background: var(--accent); }
   .val { text-align: right; font-variant-numeric: tabular-nums; font-size: 0.88rem; font-weight: 700; }
-  .board-action { margin-top: var(--space-4); }
   .btn { min-height: var(--control-h-sm); }
   @media (max-width: 860px) { .boards { grid-template-columns: 1fr; } }
   @media (max-width: 430px) {
@@ -220,8 +220,10 @@
     <div class="boards">
       <section class="card" aria-label="All-time records">
         <div class="board-head">
-          <h3>All-time records</h3>
-          <p>Regular-season wins across every scored year.</p>
+          <div>
+            <h3>All-time records</h3>
+            <p>Regular-season wins across every scored year.</p>
+          </div>
         </div>
         <ol class="rank">
           <li>
@@ -259,8 +261,11 @@
 
       <section class="card" aria-label="All-time scoring">
         <div class="board-head">
-          <h3>All-time scoring</h3>
-          <p>Gap from first in career fantasy points.</p>
+          <div>
+            <h3>All-time scoring</h3>
+            <p>Gap from first in career fantasy points.</p>
+          </div>
+          <a class="btn btn-primary" href="#">Open scoring</a>
         </div>
         <ol class="rank">
           <li>
@@ -294,9 +299,6 @@
             <span class="val">−1,707.4</span>
           </li>
         </ol>
-        <div class="board-action">
-          <a class="btn btn-primary" href="#">Open scoring</a>
-        </div>
       </section>
     </div>
   </main>
