@@ -25,6 +25,12 @@ test("Cap and My team share one dead-cap story", () => {
   assert.equal(story.ifUndoneLabel, "room −$10");
   assert.equal(story.railCut, "(+$5 dead, −$10 room)");
   assert.equal(story.undoSupport, "+$10 room this season, $5 dead cleared.");
+  const dollar = contractDeadCapStory({ salary: 1, roster_status: "cut_before_draft" }, RULES);
+  assert.equal(dollar.dead, 0);
+  assert.equal(dollar.freed, 1);
+  const odd = contractDeadCapStory({ salary: 7, roster_status: "active" }, RULES);
+  assert.equal(odd.dead, 3);
+  assert.equal(odd.freed, 4);
 });
 
 test("active contract if-undone value is a dash, not a label prefix", () => {

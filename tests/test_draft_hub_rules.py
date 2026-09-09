@@ -4,6 +4,7 @@ from src.draft_hub.presets import list_presets, load_preset
 from src.draft_hub.rules_engine import (
     assert_can_acquire,
     cap_summary,
+    cut_dead_cap,
     cut_refund,
     occupying_min_errors,
     roster_capacity,
@@ -42,6 +43,11 @@ def test_validate_roster_position_min():
 def test_cut_refund():
     rules = load_preset("salary_cap_auction_v1")
     assert cut_refund(rules, 20) == 10.0
+    assert cut_dead_cap(rules, 20) == 10.0
+    assert cut_dead_cap(rules, 1) == 0.0
+    assert cut_refund(rules, 1) == 1.0
+    assert cut_dead_cap(rules, 7) == 3.0
+    assert cut_refund(rules, 7) == 4.0
 
 
 def test_relax_salary_roster_limits_skips_acquire_and_mins():

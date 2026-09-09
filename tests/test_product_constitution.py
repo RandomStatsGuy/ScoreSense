@@ -127,7 +127,9 @@ def test_constitution_covers_cut_dead_cap_this_season_only() -> None:
     product = _read("docs", "PRODUCT.md")
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
     assert "Dead cap hits only the season the player is cut" in product
+    assert "Dead cap floors to the lower dollar" in product
     assert "Dead cap hits only the cut season" in core_rule
+    assert "Dead cap floors to the lower dollar" in core_rule
     assert "owners Cut on My team" in product
 
 

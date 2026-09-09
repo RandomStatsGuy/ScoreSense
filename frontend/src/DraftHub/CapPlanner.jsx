@@ -26,6 +26,7 @@ import {
   leftoverAfterMoveDisplay,
   leftoverMoveReadout,
   capStepUpLine,
+  capCutRefundLine,
   fmtCapMoney,
   parseNeedErrors,
   rosterNeedLine,
@@ -267,7 +268,7 @@ export default function CapPlanner({ capSheet, roster, workspace, hubContext, on
         veteranStatic: veteranSalaryStatic,
         stepUp,
       })}</p>
-      <p><strong>Cut refund</strong> — {cutPct}% back; rest is dead cap.</p>
+      <p><strong>{CAP_MODEL_COPY.cutRefund}</strong> — {capCutRefundLine(cutPct)}</p>
     </>
   );
 
