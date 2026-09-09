@@ -504,6 +504,31 @@ def test_build_command_center_payload(hub_db):
     assert "kickoff_et" in ace
 
 
+def test_league_cards_opt_in_for_trade_week_preview(hub_db):
+    _league, _team, _ws, comm = _seed_league_roster(hub_db)
+    from src.draft_hub.hub_context import resolve_hub_context
+
+    ctx = resolve_hub_context(comm)
+    with patch(
+        "src.draft_hub.weekly_command_center.load_weekly_prediction",
+        side_effect=_fake_load,
+    ), patch(
+        "src.draft_hub.weekly_command_center.resolve_week_context",
+        return_value=(2026, 1),
+    ), patch(
+        "src.projections.projection_movement.build_projection_movement_payload",
+        return_value={"available": False, "changes": [], "meta": {}},
+    ):
+        default = build_weekly_command_center(ctx, season=2026, week=1)
+        enriched = build_weekly_command_center(ctx, season=2026, week=1, league_cards=True)
+
+    assert default["cards"] == {}
+    ace = enriched["cards"]["wr-ace"]
+    assert ace["player_id"] == "wr-ace"
+    assert ace["p50"] == 18.0
+    assert ace["position"] == "WR"
+
+
 def test_attach_call_facts_uses_injected_vegas_ppg_and_dvp():
     cards = [
         {

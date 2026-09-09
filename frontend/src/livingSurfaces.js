@@ -170,7 +170,11 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/hub/trades",
     page: "frontend/src/DraftHub/LeagueTrades.jsx",
     copy: "frontend/src/DraftHub/leagueTradesPresentation.js",
-    doNot: "Wrap Trades in HubExperienceHero. Zero partners swaps the primary to Invite managers on Members. Continue (or Propose on the last step) is the only primary in the viewport. Accept and Load into builder are ghost. Do not invent a second hero system. Need a partner is status text, never amber. Partner cards use the Rosters manager-rail min-width with Select pinned to the card bottom. The Continue bar right-aligns and drops the extra card chrome. Trades cap line is current roster salary, not My team's {season} committed. Auto-check the package and gate Propose on a pass; put the verdict beside the primary as a live status banner. Partner status is hero text, not a chip CTA. Ideas need chips are starter-thin only. Expire chips say Extendable or Expiring, never a question or Expires — FA.",
+    also: [
+      "frontend/src/DraftHub/tradeWeekPreviewPresentation.js",
+      "frontend/src/DraftHub/tradeWeekPreview.js",
+    ],
+    doNot: "Wrap Trades in HubExperienceHero. Zero partners swaps the primary to Invite managers on Members. Continue (or Propose on the last step) is the only primary in the viewport. Accept and Load into builder are ghost. Do not invent a second hero system. Need a partner is status text, never amber. Partner cards use the Rosters manager-rail min-width with Select pinned to the card bottom. The Continue bar right-aligns and drops the extra card chrome. Trades cap line is current roster salary, not My team's {season} committed. Auto-check the package and gate Propose on a pass; put the verdict beside the primary as a live status banner. Partner status is hero text, not a chip CTA. Ideas need chips are starter-thin only. Expire chips say Extendable or Expiring, never a question or Expires — FA. This Week starter strip sits under your cap card only — do not broadcast the preview. Teal when the week delta is up, amber when it is down; blue stays Propose. Offseason hides the strip with week empty copy, never a $0 lineup.",
   }),
   "hub.rules": S({
     label: "Rules",

@@ -941,6 +941,32 @@ def _roster_projection_changes(
     }
 
 
+def league_week_cards(proj_index: dict[str, dict[str, Any]], league_id: str | None) -> dict[str, dict[str, Any]]:
+    """Slim P50 cards for every active league roster row. Artifact read only."""
+    if not league_id or not proj_index:
+        return {}
+    cards: dict[str, dict[str, Any]] = {}
+    try:
+        by_team = storage.list_league_rosters_by_team(str(league_id))
+    except Exception:
+        return {}
+    for rows in (by_team or {}).values():
+        for row in rows or []:
+            pid = str(row.get("player_id") or "").strip()
+            if not pid:
+                continue
+            proj = proj_index.get(pid) or proj_index.get(pid.removeprefix("sleeper-"))
+            if not proj or proj.get("p50") is None:
+                continue
+            cards[pid] = {
+                "player_id": pid,
+                "player_name": proj.get("player_name") or row.get("player_name"),
+                "position": proj.get("position") or row.get("position"),
+                "p50": proj.get("p50"),
+            }
+    return cards
+
+
 def build_weekly_command_center(
     ctx: dict[str, Any],
     *,
@@ -948,6 +974,7 @@ def build_weekly_command_center(
     week: int | None = None,
     apply_injury_adjustments: bool = True,
     bench_over_starter_threshold: float = DEFAULT_BENCH_OVER_STARTER_THRESHOLD,
+    league_cards: bool = False,
 ) -> dict[str, Any]:
     """Build the Your Week payload for the signed-in Hub user's active team."""
     hub_season = int(ctx["season"]) if ctx.get("season") is not None else None
@@ -1055,6 +1082,7 @@ def build_weekly_command_center(
             "empty_roster": len(players) == 0,
             "projections_missing": not bool(proj_meta.get("available")),
         },
+        "cards": league_week_cards(proj_index, ctx.get("league_id")) if league_cards else {},
         "roster": {
             "starters": starters,
             "bench": bench,
