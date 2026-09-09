@@ -23,7 +23,10 @@ import {
   lockedSalaryTotal,
   normalizeDfsTeam,
   optimizeButtonLabel,
+  gamesMarkedCopy,
+  listGameStacks,
   pickGameStack,
+  stackOptionCopy,
   replaceStackLocks,
   slateGames,
   stackApplyLiveText,
@@ -81,9 +84,9 @@ test("filterObjectives hides value unless the site is DFS", () => {
 test("dfsHeroCopy names the user goal instead of the internal tool", () => {
   const dfs = dfsHeroCopy({ isDfs: true, siteLabel: "FanDuel Classic" });
   assert.equal(dfs.eyebrow, "DFS");
-  assert.match(dfs.heading, /shootout first/i);
+  assert.match(dfs.heading, /high totals/i);
   assert.match(dfs.support, /FanDuel Classic/);
-  assert.match(dfs.support, /stack dies/i);
+  assert.match(dfs.support, /backup/i);
   const captain = dfsHeroCopy({ isDfs: true, captain: true, siteLabel: "DraftKings Showdown" });
   assert.match(captain.heading, /captain/i);
   assert.match(captain.support, /leave salary|lose/i);
@@ -142,6 +145,13 @@ test("dfsSummaryItems lists consequence-first fields", () => {
   assert.equal(byId.slate, "Main");
   assert.equal(byId.cap, "$50,000");
   assert.equal(byId.game, "BUF @ MIA");
+  assert.equal(items.find((item) => item.id === "game")?.label, "Game");
+  const multi = dfsSummaryItems({
+    siteLabel: "DraftKings Classic",
+    isDfs: true,
+    stackGameLabel: "2 games in the build",
+  });
+  assert.equal(multi.find((item) => item.id === "game")?.label, "Games");
   assert.equal(byId.goal, "Ceiling (P90)");
   assert.equal(byId.locks, "2 / 1");
   assert.equal(byId.lineups, "3");
@@ -161,16 +171,16 @@ test("slate and empty-state copy explain what happens next", () => {
     /380 matched/,
   );
   assert.match(emptyLineupCopy({ isDfs: true }), /under the cap/);
-  assert.match(emptyLineupCopy({ isDfs: true, hasStack: true }), /Four spots are the stack/);
+  assert.match(emptyLineupCopy({ isDfs: true, hasStack: true }), /games you marked/);
   assert.equal(optimizeButtonLabel({ lineupCount: 5 }), "Build 5 lineups");
   assert.equal(optimizeButtonLabel({ optimizing: true }), "Optimizing…");
   assert.equal(optimizeButtonLabel({ hasLineup: true }), "Rebuild this lineup");
   assert.equal(optimizeButtonLabel({ hasLineup: true, lineupCount: 3 }), "Rebuild 3 lineups");
-  assert.equal(optimizeButtonLabel({ hasStack: true }), "Build around this stack");
-  assert.equal(optimizeButtonLabel({ hasStack: true, lineupCount: 20 }), "Build 20 lineups around this stack");
+  assert.equal(optimizeButtonLabel({ hasStack: true }), "Build around these games");
+  assert.equal(optimizeButtonLabel({ hasStack: true, lineupCount: 20 }), "Build 20 lineups around these games");
   assert.match(launchCopy({ isDfs: true, hasLineup: false }).title, /Nine spots/);
   assert.match(launchCopy({ hasLineup: true }).title, /built/);
-  assert.match(launchCopy({ stackGameLabel: "BUF @ MIA" }).title, /BUF @ MIA is locked/);
+  assert.match(launchCopy({ stackGameLabel: "BUF @ MIA" }).title, /BUF @ MIA/);
 });
 
 test("formatSlateOption and sparse lobby copy explain few DK slates", () => {
@@ -351,11 +361,38 @@ test("pickGameStack locks the higher-ceiling QB plus two catchers and a bring-ba
   assert.deepEqual(stackPlayerIds(stack), ["allen", "shakir", "kincaid", "waddle"]);
   assert.equal(stack.players[3].label, "Bring");
   assert.equal(gameStackLabel(game), "BUF @ MIA");
-  assert.match(stackPreviewCopy(stack).body, /bring-back/i);
-  assert.match(stackApplyLiveText(stack), /Josh Allen/);
+  assert.match(stackPreviewCopy(stack).body, /pin a stack/i);
+  assert.match(stackApplyLiveText(stack), /in the build/i);
   assert.match(stackClearLiveText(), /cleared/i);
-  assert.equal(vegasGameCta({ selected: true }), "Stack this game");
-  assert.equal(vegasGameCta({ selected: false }), "Ride this total");
+  assert.equal(vegasGameCta({ selected: true }), "In the build");
+  assert.equal(vegasGameCta({ selected: false }), "Add this total");
+  assert.equal(gamesMarkedCopy(0), "");
+  assert.equal(gamesMarkedCopy(1), "1 game in the build");
+  assert.equal(gamesMarkedCopy(2), "2 games in the build");
+});
+
+test("listGameStacks offers each side's starter QB and ignores a loud backup ceiling", () => {
+  const game = { game_id: "mia-lv", away: "MIA", home: "LV" };
+  const pool = [
+    { player_id: "willis", Player: "Malik Willis", Position: "QB", Team: "MIA", "Projected Points": 9.3, "High (P90)": 25.5 },
+    { player_id: "cousins", Player: "Kirk Cousins", Position: "QB", Team: "LV", "Projected Points": 10.6, "High (P90)": 17.7 },
+    { player_id: "cook", Player: "Brady Cook", Position: "QB", Team: "MIA", "Projected Points": 2.5, "High (P90)": 4.5 },
+    { player_id: "bowers", Player: "Brock Bowers", Position: "TE", Team: "LV", "Projected Points": 11, "High (P90)": 22 },
+    { player_id: "tucker", Player: "Tre Tucker", Position: "WR", Team: "LV", "Projected Points": 4, "High (P90)": 13 },
+    { player_id: "achane", Player: "De'Von Achane", Position: "RB", Team: "MIA", "Projected Points": 14, "High (P90)": 26 },
+    { player_id: "dulcich", Player: "Greg Dulcich", Position: "TE", Team: "MIA", "Projected Points": 5.5, "High (P90)": 15 },
+  ];
+  const stacks = listGameStacks(pool, game, { stackCount: 2 });
+  assert.deepEqual(stacks.map((row) => row.qb.player_id), ["cousins", "willis"]);
+  assert.equal(stacks.some((row) => row.qb.player_id === "cook"), false);
+  const suggested = pickGameStack(pool, game, { stackCount: 2 });
+  assert.equal(suggested.players[0].row.player_id, "cousins");
+  const cousins = stackOptionCopy(stacks.find((row) => row.qb.player_id === "cousins"));
+  assert.equal(cousins.title, "Kirk Cousins · LV");
+  assert.equal(cousins.game, "MIA @ LV");
+  assert.match(cousins.body, /Bowers/);
+  assert.equal(normalizeDfsTeam("LVR"), "LV");
+  assert.equal(normalizeDfsTeam("OAK"), "LV");
 });
 
 test("pickGameStack treats LAR and LA as the same team and skips byes", () => {

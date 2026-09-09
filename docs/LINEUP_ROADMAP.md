@@ -22,7 +22,7 @@ Props are backlog — not top-level nav. Do not add them as a fourth product are
 
 **Exports:** DraftKings upload CSV (`Name (ID)` cells), FanDuel upload CSV (`Id:Name` cells), captain-mode variants (CPT/MVP column first), plus a detail CSV. Rows paste over the placeholder players in each site's entries template.
 
-**Vegas board:** `/api/lineup/vegas` reads cached nflverse schedules — spread, total, moneylines, implied team totals; implied totals also annotate the player pool. On classic and season-long DFS the board is the shootout picker: tap a game to apply Ceiling, QB +2, and a bring-back, and lock that stack. Highest stays a corner tag.
+**Vegas board:** `/api/lineup/vegas` reads cached nflverse schedules — spread, total, moneylines, implied team totals; implied totals also annotate the player pool. On classic and season-long DFS the board is the shootout picker: tap one or more high-total games to stack. That does not lock a player. Pin a stack if you want that QB; otherwise Build takes a stack from the marked games. Highest stays a corner tag.
 
 **DST note:** DST rows come from the salary file with a fixed 7-point projection placeholder until we add a defensive model. Kickers stay unmodeled — showdown lineups fill from QB/RB/WR/TE/DST.
 

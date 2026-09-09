@@ -153,11 +153,15 @@ export function objectiveLabel(objectiveId, isDfs = true) {
 export const DFS_STEP_COPY = {
   formatTitle: "Choose the format",
   formatSupport: "Cap, captain, or season-long. Pick the one you are entering.",
-  shootoutTitle: "Pick the shootout",
-  shootoutSupport: "Tap a game to lock QB +2 and a bring-back. Highest is the tag, not a reason by itself.",
+  shootoutTitle: "Pick the totals",
+  shootoutSupport: "Tap every high-total game you want stacked. That does not lock a player. Pin a stack if you want that side.",
   shootoutEmpty: "No Vegas lines for this week.",
   shootoutCaptain: "Captain mode fills from this game. The CPT slot is 1.5×.",
-  clearStack: "Clear stack",
+  clearGames: "Clear games",
+  stacksTitle: "Stacks from these games",
+  stacksSupport: "Build takes a QB from the games you marked. Pin a stack only if you want that quarterback.",
+  useStack: "Use this stack",
+  stackInBuild: "In the build",
 };
 
 const TEAM_MATCH = Object.freeze({
@@ -167,6 +171,9 @@ const TEAM_MATCH = Object.freeze({
   WAS: "WAS",
   JAC: "JAX",
   JAX: "JAX",
+  LVR: "LV",
+  LV: "LV",
+  OAK: "LV",
 });
 
 const PASS_CATCHERS = new Set(["WR", "TE"]);
@@ -203,10 +210,17 @@ export function slateGames(games = [], pool = []) {
   return matched.length ? matched : games;
 }
 
-function stackRank(row = {}) {
-  const ceiling = Number(row["High (P90)"]);
-  if (Number.isFinite(ceiling) && ceiling > 0) return ceiling;
+const STACK_QB_FLOOR = 6;
+
+function stackMedian(row = {}) {
   return Number(row["Projected Points"]) || 0;
+}
+
+function stackRank(row = {}) {
+  const median = stackMedian(row);
+  if (median > 0) return median;
+  const ceiling = Number(row["High (P90)"]);
+  return Number.isFinite(ceiling) && ceiling > 0 ? ceiling : 0;
 }
 
 function stackRowOut(row = {}) {
@@ -226,50 +240,98 @@ function normalizePos(value) {
   return String(value || "").trim().toUpperCase();
 }
 
-export function pickGameStack(pool = [], game = {}, { stackCount = 2, requireSalary = false } = {}) {
-  const home = normalizeDfsTeam(game.home);
-  const away = normalizeDfsTeam(game.away);
-  if (!home || !away) {
-    return { game, players: [], complete: false, stackTeam: "", oppTeam: "" };
-  }
-  const available = (pool || []).filter((row) => {
-    if (!stackRowEligible(row, { requireSalary })) return false;
-    return sameDfsTeam(row.Team, home) || sameDfsTeam(row.Team, away);
-  });
-  const qbs = available
-    .filter((row) => normalizePos(row.Position) === "QB")
+export function gameTeamCodes(game = {}) {
+  return [normalizeDfsTeam(game.away), normalizeDfsTeam(game.home)].filter(Boolean);
+}
+
+function teamPlayers(pool, team, { requireSalary = false } = {}) {
+  return (pool || []).filter((row) => (
+    stackRowEligible(row, { requireSalary }) && sameDfsTeam(row.Team, team)
+  ));
+}
+
+export function starterQb(pool, team, { requireSalary = false } = {}) {
+  const qbs = teamPlayers(pool, team, { requireSalary })
+    .filter((row) => normalizePos(row.Position) === "QB" && stackRank(row) >= STACK_QB_FLOOR)
     .slice()
     .sort((left, right) => stackRank(right) - stackRank(left));
-  if (!qbs.length) {
+  return qbs[0] || null;
+}
+
+export function listGameStacks(pool = [], game = {}, { stackCount = 2, requireSalary = false } = {}) {
+  const home = normalizeDfsTeam(game.home);
+  const away = normalizeDfsTeam(game.away);
+  const sides = [away, home].filter(Boolean);
+  const stacks = [];
+  for (const team of sides) {
+    const qb = starterQb(pool, team, { requireSalary });
+    if (!qb) continue;
+    const oppTeam = team === home ? away : home;
+    const catchers = teamPlayers(pool, team, { requireSalary })
+      .filter((row) => PASS_CATCHERS.has(normalizePos(row.Position)))
+      .slice()
+      .sort((left, right) => stackRank(right) - stackRank(left))
+      .slice(0, Math.max(0, stackCount));
+    const bring = teamPlayers(pool, oppTeam, { requireSalary })
+      .filter((row) => SKILL_POSITIONS.has(normalizePos(row.Position)))
+      .slice()
+      .sort((left, right) => stackRank(right) - stackRank(left))[0] || null;
+    stacks.push({
+      id: `${game.game_id || "game"}:${team}:${qb.player_id}`,
+      game,
+      qb,
+      stackTeam: team,
+      oppTeam,
+      catchers,
+      bring,
+      complete: catchers.length >= stackCount,
+    });
+  }
+  return stacks.sort((left, right) => stackRank(right.qb) - stackRank(left.qb));
+}
+
+export function listSelectedGameStacks(pool, games = [], opts = {}) {
+  return (games || []).flatMap((game) => listGameStacks(pool, game, opts));
+}
+
+export function pickGameStack(pool = [], game = {}, { stackCount = 2, requireSalary = false } = {}) {
+  const listed = listGameStacks(pool, game, { stackCount, requireSalary });
+  const stack = listed[0];
+  if (!stack) {
     return { game, players: [], complete: false, stackTeam: "", oppTeam: "" };
   }
-  const qb = qbs[0];
-  const stackTeam = normalizeDfsTeam(qb.Team);
-  const oppTeam = stackTeam === home ? away : home;
-  const catchers = available
-    .filter((row) => sameDfsTeam(row.Team, stackTeam) && PASS_CATCHERS.has(normalizePos(row.Position)))
-    .slice()
-    .sort((left, right) => stackRank(right) - stackRank(left))
-    .slice(0, Math.max(0, stackCount));
-  const bring = available
-    .filter((row) => sameDfsTeam(row.Team, oppTeam) && SKILL_POSITIONS.has(normalizePos(row.Position)))
-    .slice()
-    .sort((left, right) => stackRank(right) - stackRank(left))[0] || null;
   const players = [
-    { role: "qb", label: "QB", row: qb },
-    ...catchers.map((row, index) => ({
+    { role: "qb", label: "QB", row: stack.qb },
+    ...stack.catchers.map((row, index) => ({
       role: "stack",
       label: `${normalizePos(row.Position)} +${index + 1}`,
       row,
     })),
   ];
-  if (bring) players.push({ role: "bring", label: "Bring", row: bring });
+  if (stack.bring) players.push({ role: "bring", label: "Bring", row: stack.bring });
   return {
     game,
-    stackTeam,
-    oppTeam,
+    stackTeam: stack.stackTeam,
+    oppTeam: stack.oppTeam,
     players,
-    complete: catchers.length >= stackCount && Boolean(bring),
+    complete: stack.complete && Boolean(stack.bring),
+  };
+}
+
+export function stackOptionCopy(stack) {
+  const qbName = String(stack?.qb?.Player || "").trim() || "QB";
+  const team = displayNflTeam(stack?.stackTeam);
+  const catcherNames = (stack?.catchers || [])
+    .map((row) => String(row.Player || "").trim())
+    .filter(Boolean);
+  const bringName = String(stack?.bring?.Player || "").trim();
+  const mates = catcherNames.length
+    ? catcherNames.join(" · ")
+    : "Thin on this board — Build still pulls the rest of the team.";
+  return {
+    title: `${qbName} · ${team}`,
+    game: gameStackLabel(stack?.game),
+    body: bringName ? `${mates}. Bring-back ${bringName}.` : mates,
   };
 }
 
@@ -295,40 +357,37 @@ export function dropLockId(ids, playerId) {
 }
 
 export function vegasGameCta({ selected = false } = {}) {
-  return selected ? "Stack this game" : "Ride this total";
+  return selected ? "In the build" : "Add this total";
 }
 
 export function stackPreviewCopy(stack) {
   const label = gameStackLabel(stack?.game);
   if (!stack?.players?.length) {
     return {
-      title: label ? `${label} stack` : "Game stack",
-      body: "Not enough players on this slate to lock a stack from that game.",
+      title: label ? `${label}` : "These games",
+      body: "No starter QB on this slate for that game yet.",
     };
   }
   const stackName = displayNflTeam(stack.stackTeam);
-  const oppName = displayNflTeam(stack.oppTeam);
   return {
-    title: label ? `${label} stack` : "Game stack",
-    body: stack.complete
-      ? `${stackName} plus two. ${oppName} is the bring-back so a shootout pays both sides.`
-      : `${stackName} is the stack side. Lock what is here, then fill the rest from the pool.`,
+    title: label || "These games",
+    body: `${stackName} is one side. Pin a stack if you want that quarterback — Build does not lock him for you.`,
   };
 }
 
 export function stackApplyLiveText(stack) {
-  const names = (stack?.players || [])
-    .map((entry) => String(entry.row?.Player || "").trim())
-    .filter(Boolean);
   const game = gameStackLabel(stack?.game);
-  if (!names.length) {
-    return game ? `${game} selected. No stack to lock on this slate.` : "Shootout selected.";
-  }
-  return `${game || "Stack"} locked. ${names.join(", ")}.`;
+  return game ? `${game} is in the build. No player locked.` : "Game is in the build. No player locked.";
 }
 
 export function stackClearLiveText() {
-  return "Stack cleared. Locks from that game are off.";
+  return "Games cleared. Stacks from those totals are off.";
+}
+
+export function gamesMarkedCopy(count = 0) {
+  const n = Number(count) || 0;
+  if (n <= 0) return "";
+  return n === 1 ? "1 game in the build" : `${n} games in the build`;
 }
 
 export function dfsHeroCopy({
@@ -346,8 +405,8 @@ export function dfsHeroCopy({
   if (isDfs) {
     return {
       eyebrow: "DFS",
-      heading: "Pick the shootout first.",
-      support: `One ${siteLabel} game pays three slots. Pick the wrong total and the stack dies together.`,
+      heading: "Pick the high totals.",
+      support: `Mark the ${siteLabel} games you want stacked. Pin a stack if you want that quarterback. A loud ceiling does not lock a backup for you.`,
     };
   }
   return {
@@ -453,7 +512,11 @@ export function dfsSummaryItems({
     items.push({ id: "cap", label: "Salary cap", value: formatSalary(parseSalaryCap(salaryCap)) });
   }
   if (stackGameLabel) {
-    items.push({ id: "game", label: "Game", value: stackGameLabel });
+    items.push({
+      id: "game",
+      label: /games/i.test(stackGameLabel) ? "Games" : "Game",
+      value: stackGameLabel,
+    });
   }
   items.push({ id: "goal", label: "Goal", value: objectiveLabel(objectiveId, isDfs) });
   items.push({ id: "locks", label: "Locked / skipped", value: `${lockedCount} / ${excludedCount}` });
@@ -535,8 +598,8 @@ export function emptyLineupCopy({ optimizing = false, isDfs = true, hasStack = f
   if (optimizing) return "Running optimizer…";
   if (hasStack) {
     return isDfs
-      ? "Four spots are the stack. Build fills the rest under the cap."
-      : "The stack is locked. Build fills the rest of the week.";
+      ? "Build takes a QB stack from the games you marked. Pin a stack if you want that side."
+      : "Build takes a stack from the games you marked.";
   }
   if (isDfs) return "Lock or skip players, then build a lineup under the cap.";
   return "Lock or skip players, then build a lineup.";
@@ -554,8 +617,8 @@ export function optimizeButtonLabel({
   }
   if (hasStack) {
     return Number(lineupCount) > 1
-      ? `Build ${lineupCount} lineups around this stack`
-      : "Build around this stack";
+      ? `Build ${lineupCount} lineups around these games`
+      : "Build around these games";
   }
   if (Number(lineupCount) > 1) return `Build ${lineupCount} lineups`;
   return "Build this lineup";
@@ -824,10 +887,10 @@ export function launchCopy({
   }
   if (stackGameLabel) {
     return {
-      title: `${stackGameLabel} is locked.`,
+      title: `${stackGameLabel}.`,
       body: isDfs
-        ? "Four spots are the stack. Build spends the leftover on other games."
-        : "The stack is locked. Build fills the rest of the week.",
+        ? "Build takes a stack from those totals and spends the leftover on other games."
+        : "Build takes a stack from those games.",
     };
   }
   if (isDfs) {

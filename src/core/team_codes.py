@@ -20,3 +20,19 @@ def normalize_team_to_mlready(team: str) -> str:
 def normalize_team_to_schedule(team: str) -> str:
     team = normalize_team_to_mlready(team)
     return MLREADY_TO_SCHEDULE.get(team, team)
+
+
+# DFS / lineup matching: treat common dual codes as one team.
+_MATCH_ALIASES: dict[str, str] = {
+    "WSH": "WAS",
+    "WAS": "WAS",
+    "JAC": "JAX",
+    "JAX": "JAX",
+    "LVR": "LV",
+    "OAK": "LV",
+}
+
+
+def normalize_team_for_match(team: str) -> str:
+    team = normalize_team_to_mlready(team)
+    return _MATCH_ALIASES.get(team, team)
