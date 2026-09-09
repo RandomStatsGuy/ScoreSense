@@ -4940,6 +4940,20 @@ button.dfs-vegas-card {
   cursor: pointer;
 }
 
+.hub-cap-row.is-selected td,
+.hub-cap-dense-row.is-selected {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+  transition: background 160ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-cap-row.is-selected td,
+  .hub-cap-dense-row.is-selected {
+    transition: none;
+  }
+}
+
 .hub-cap-rail-actions {
   display: flex;
   flex-direction: column;
@@ -5088,6 +5102,26 @@ button.dfs-vegas-card {
   font-size: var(--text-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.hub-fa-walkaway.is-over {
+  color: var(--tone-caution-text);
+}
+
+.hub-fa-bid-warn {
+  margin: 0;
+  color: var(--tone-caution-text);
+}
+
+.hub-fa-bid-actions {
+  flex-wrap: wrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-fa-walkaway,
+  .hub-fa-bid-warn {
+    transition: none;
+  }
 }
 
 .hub-fa-locked {

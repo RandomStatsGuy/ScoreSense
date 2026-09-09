@@ -430,12 +430,40 @@ def get_room_state(league_id: str, user_sub: str | None = None) -> dict[str, Any
                 draft_completed=draft_completed,
                 budget_remaining=float(team.get("budget_remaining") or 0),
             )
+            nomination_tax: dict[str, Any] = {}
+            if not is_pick_draft(rules):
+                from src.draft_hub.nomination_tax import (
+                    build_nomination_tax,
+                    drafted_player_ids_from_rosters,
+                    load_nomination_tax_pool_rows,
+                )
+
+                try:
+                    pool_rows = load_nomination_tax_pool_rows(
+                        league,
+                        rules,
+                        team_count=max(len(teams), configured_teams) or 12,
+                    )
+                    nomination_tax = build_nomination_tax(
+                        viewer_team_id=team["id"],
+                        teams=enriched_teams,
+                        rosters=rosters,
+                        rules=rules,
+                        pool_rows=pool_rows,
+                        drafted_player_ids=drafted_player_ids_from_rosters(
+                            rosters, draft_completed=draft_completed
+                        ),
+                        draft_completed=draft_completed,
+                    )
+                except Exception:
+                    nomination_tax = {}
             out["viewer"] = {
                 "team_id": team["id"],
                 "team_name": team["name"],
                 "roster": team_roster,
                 "capacity": roster_capacity(rules, team_roster),
                 "nomination_queue": list(team.get("nomination_queue") or []),
+                "nomination_tax": nomination_tax,
                 "autodraft": bool(team.get("autodraft")),
                 "is_commissioner": (
                     str(league.get("commissioner_sub") or "") == str(user_sub)

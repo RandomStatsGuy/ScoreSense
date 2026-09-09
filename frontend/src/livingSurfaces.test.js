@@ -89,6 +89,8 @@ test("rules save and this-week empty slots stay on the living surface", () => {
   assert.match(LIVING_SURFACES["hub.rules"].doNot, /Save writes the league on the form/);
   assert.match(LIVING_SURFACES["hub.rules"].doNot, /Allow vet deal extensions/);
   assert.match(LIVING_SURFACES["hub.week"].doNot, /starts a bench player who can fill it/);
+  assert.match(LIVING_SURFACES["hub.week"].doNot, /Sit\/Start pills/);
+  assert.match(LIVING_SURFACES["hub.week"].doNot, /Never liturgy/);
 });
 
 test("contracts pane owns the pending-write copy module", () => {
@@ -114,6 +116,8 @@ test("approved primaries keep one fill on Home, Cap, and Trades", () => {
   assert.match(LIVING_SURFACES["hub.roster"].doNot, /Undo cut only if they are not active on any team/);
   assert.match(LIVING_SURFACES["hub.office.current"].doNot, /Adding a player does not remove that dead cap/);
   assert.match(LIVING_SURFACES["hub.trades"].doNot, /Continue \(or Propose on the last step\) is the only primary/);
+  assert.match(LIVING_SURFACES["hub.trades"].doNot, /This Week starter strip sits under your cap card only/);
+  assert.match(LIVING_SURFACES["hub.available"].doNot, /Walk-away is a personal local ceiling/);
 });
 
 test("Strategy stays a board-first hero exception", () => {
@@ -127,8 +131,9 @@ test("Draft does not repeat Night locked as a body heading", () => {
   assert.match(LIVING_SURFACES["hub.room"].doNot, /does not flip Home to live/);
 });
 
-test("Vibes done-state keeps one Review primary", () => {
-  assert.match(LIVING_SURFACES["hub.vibes"].doNot, /keep one Review primary on the ranking card/);
+test("Vibes done-state keeps one Review or Set this slate primary", () => {
+  assert.match(LIVING_SURFACES["hub.vibes"].doNot, /Set this slate is the one primary/);
+  assert.match(LIVING_SURFACES["hub.vibes"].doNot, /Otherwise Review is the one primary on the ranking card/);
 });
 
 test("My team packs columns and grounds the stadium count", () => {

@@ -30,6 +30,15 @@ import {
   sendGetCopy,
   validationBanner,
 } from "./tradeBuilderHelpers";
+import { projectTradeWeekLineup } from "./tradeWeekPreview";
+import {
+  TRADE_WEEK_COPY,
+  tradeWeekDeltaLine,
+  tradeWeekEmptyCopy,
+  tradeWeekFaceRows,
+  tradeWeekSupport,
+  tradeWeekTone,
+} from "./tradeWeekPreviewPresentation";
 
 const MAX_PARTIES = 4;
 
@@ -83,6 +92,43 @@ function StatWithDelta({ value, delta, label, warn }) {
       <strong>{fmtSal(value)}</strong> {label}
       {delta && <span className="hub-trade-stat-delta"> ({delta})</span>}
     </span>
+  );
+}
+
+function TradeWeekStrip({ preview, emptyCopy, media }) {
+  if (!preview) return null;
+  if (!preview.available) {
+    return (
+      <div className="hub-trade-week-strip" aria-label="This Week">
+        <div className="hub-trade-week-kicker">{TRADE_WEEK_COPY.eyebrow}</div>
+        <p className="chart-note">{emptyCopy || TRADE_WEEK_COPY.missing}</p>
+      </div>
+    );
+  }
+  const tone = tradeWeekTone(preview.delta);
+  const { shown, overflow } = tradeWeekFaceRows(preview);
+  return (
+    <div className="hub-trade-week-strip" aria-label="This Week lineup preview">
+      <div className="hub-trade-week-kicker">{TRADE_WEEK_COPY.eyebrow}</div>
+      <div className={`hub-trade-week-line is-${tone}`}>{tradeWeekDeltaLine(preview)}</div>
+      <p className="chart-note">{tradeWeekSupport(preview)}</p>
+      {shown.length > 0 && (
+        <div className="hub-trade-week-faces">
+          {shown.map((row) => (
+            <PlayerCell
+              key={row.player_id}
+              name={row.player_name}
+              playerId={row.player_id}
+              media={media}
+              size="sm"
+              showTeam={false}
+              narrativeScope="weekly"
+            />
+          ))}
+          {overflow > 0 ? <span className="table-meta">+{overflow}</span> : null}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -315,6 +361,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
     emptyParty(""),
   ]);
   const [deadCapAssignments, setDeadCapAssignments] = useState([]);
+  const [weekState, setWeekState] = useState({ status: "idle" });
 
   const trade = insights?.trade || {};
 
@@ -350,12 +397,25 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
     setInsights(payload);
   }, [leagueId]);
 
+  const loadWeekPreview = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/hub/week?league_cards=1");
+      if (!res.ok) {
+        setWeekState({ status: "missing" });
+        return;
+      }
+      setWeekState({ status: "ready", data: await res.json() });
+    } catch {
+      setWeekState({ status: "missing" });
+    }
+  }, []);
+
   const boot = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
       const teamBlocks = await loadRosters();
-      await Promise.all([loadProposals(), loadInsights()]);
+      await Promise.all([loadProposals(), loadInsights(), loadWeekPreview()]);
       const seed = readTradeSeed();
       if (seed?.players?.length || seed?.partnerTeamId) {
         clearTradeSeed();
@@ -390,7 +450,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
     } finally {
       setLoading(false);
     }
-  }, [loadRosters, loadProposals, loadInsights, hubContext?.team_id, myTeamId]);
+  }, [loadRosters, loadProposals, loadInsights, loadWeekPreview, hubContext?.team_id, myTeamId]);
 
   useEffect(() => {
     boot();
@@ -490,6 +550,38 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
     });
     return out;
   }, [parties, deadCapAssignments, statsByTeam, rosterByTeam, rowByPlayer, rules, salaryCap]);
+
+  const weekPayload = weekState.status === "ready" ? weekState.data : null;
+  const weekStripReady = weekState.status === "ready" || weekState.status === "missing";
+  const weekEmptyCopy = useMemo(() => tradeWeekEmptyCopy({
+    emptyRoster: Boolean(weekPayload?.status?.empty_roster),
+    projectionsMissing: weekState.status === "missing"
+      || !weekPayload?.meta?.projections_available
+      || Boolean(weekPayload?.status?.projections_missing),
+    draftCompleted: Boolean(hubContext?.draft_completed),
+  }), [weekPayload, weekState.status, hubContext?.draft_completed]);
+
+  const myWeekPreview = useMemo(() => projectTradeWeekLineup({
+    rosterByTeam,
+    parties,
+    myTeamId,
+    weekCards: weekPayload?.cards,
+    weekStarters: weekPayload?.roster?.starters,
+    rules,
+    projectionsAvailable: Boolean(weekPayload?.meta?.projections_available),
+    emptyRoster: Boolean(weekPayload?.status?.empty_roster),
+  }), [rosterByTeam, parties, myTeamId, weekPayload, rules]);
+
+  const inboxWeekPreview = useCallback((proposal) => projectTradeWeekLineup({
+    rosterByTeam,
+    parties: proposal?.parties || [],
+    myTeamId,
+    weekCards: weekPayload?.cards,
+    weekStarters: weekPayload?.roster?.starters,
+    rules,
+    projectionsAvailable: Boolean(weekPayload?.meta?.projections_available),
+    emptyRoster: Boolean(weekPayload?.status?.empty_roster),
+  }), [rosterByTeam, myTeamId, weekPayload, rules]);
 
   const syncDeadCapDefaults = (nextParties) => {
     setDeadCapAssignments((prev) => {
@@ -990,6 +1082,13 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
             projected={projectedByTeam[party.team_id]}
             salaryCap={capLimit}
           />
+          {weekStripReady && party.team_id === myTeamId && (
+            <TradeWeekStrip
+              preview={myWeekPreview}
+              emptyCopy={weekEmptyCopy}
+              media={media}
+            />
+          )}
           {(party.sends.length > 0 || party.drops.length > 0 || receivingFor(party.team_id).length > 0) && (
             <div className="hub-trade-cap-review-legs">
               {receivingFor(party.team_id).map((s) => (
@@ -1398,6 +1497,13 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                   )}
                 </div>
               ))}
+              {weekStripReady && p.acceptances?.[myTeamId] === "pending" && (
+                <TradeWeekStrip
+                  preview={inboxWeekPreview(p)}
+                  emptyCopy={weekEmptyCopy}
+                  media={media}
+                />
+              )}
               <div className="hub-insights-suggestion-actions">
                 {p.acceptances?.[myTeamId] === "pending" && (
                   <>

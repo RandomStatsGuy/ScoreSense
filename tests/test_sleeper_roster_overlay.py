@@ -61,6 +61,65 @@ def _mock_sleeper() -> pd.DataFrame:
     )
 
 
+def test_overlay_matches_jr_suffix_and_drops_position_change():
+    sleeper = pd.DataFrame(
+        [
+            {
+                "sleeper_id": "s1",
+                "full_name": "Kenneth Walker",
+                "team": "KC",
+                "position": "RB",
+                "status": "Active",
+                "gsis_id": "",
+                "years_exp": 4,
+            },
+            {
+                "sleeper_id": "s2",
+                "full_name": "Velus Jones",
+                "team": "SEA",
+                "position": "RB",
+                "status": "Active",
+                "gsis_id": "",
+                "years_exp": 4,
+            },
+        ]
+    )
+    rb = pd.DataFrame(
+        [
+            {
+                "player_id": "00-0038134",
+                "player_display_name": "Kenneth Walker III",
+                "team": "SEA",
+                "season": 2026,
+                "week": 1,
+            }
+        ]
+    )
+    updated, stats = apply_sleeper_roster_overlay(
+        rb, "rb", season=2026, sleeper_df=sleeper, add_rookies=False
+    )
+    assert stats["teams_updated"] == 1
+    assert updated.iloc[0]["team"] == "KC"
+
+    wr = pd.DataFrame(
+        [
+            {
+                "player_id": "00-0037745",
+                "player_display_name": "Velus Jones Jr.",
+                "team": "SEA",
+                "position": "WR",
+                "season": 2026,
+                "week": 1,
+            }
+        ]
+    )
+    cleared, wr_stats = apply_sleeper_roster_overlay(
+        wr, "wr", season=2026, sleeper_df=sleeper, add_rookies=False
+    )
+    assert wr_stats["removed_wrong_position"] == 1
+    assert cleared.empty
+
+
 def test_apply_sleeper_roster_overlay_updates_teams_and_adds_rookie():
     roster = pd.DataFrame(
         [

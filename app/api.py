@@ -245,6 +245,8 @@ def health() -> dict:
             "injury_overlays": "/api/injury-overlays" in route_paths,
             "injury_poll": "/api/injuries/poll" in route_paths,
             "weekly_command_center": "/api/hub/week" in route_paths,
+            "vibes": "/api/hub/vibes" in route_paths,
+            "vibe_rankings": "/api/hub/vibes" in route_paths,
             "league_home": "/api/hub/home" in route_paths,
             "projection_movement": "/api/predict/{position}/changes" in route_paths,
         },
@@ -1343,6 +1345,10 @@ def _predict_response(
             meta["feature_season"] = inference.get("feature_season")
             meta["roster_overlay"] = inference.get("roster_overlay")
             meta["depth_chart"] = inference.get("depth_chart") or {"applied": False}
+            if inference.get("roster_identity"):
+                meta["roster_identity"] = inference.get("roster_identity")
+        if preds.attrs.get("roster_identity"):
+            meta["roster_identity"] = preds.attrs.get("roster_identity")
         note = str(preds.attrs.get("projection_note") or "")
     projections = _json_safe_records(preds)
     ids = parse_compare_player_ids(player_ids)

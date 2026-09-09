@@ -16,6 +16,7 @@ import {
   recordDayVote,
   todayRatedCount,
   vibeDivergences,
+  vibeLineupStarters,
   vibeScore,
   vibeStarts,
 } from "./vibeAura.js";
@@ -101,4 +102,12 @@ test("one swipe per player per calendar day, then the card leaves the deck", () 
   const nextDay = normalizeDayVotes(day, tomorrow);
   assert.equal(nextDay.date, calendarDay(tomorrow));
   assert.deepEqual(nextDay.votes, {});
+});
+
+test("vibe lineup starters map filled slots for the Hub set path", () => {
+  const slots = vibeStarts([bijan, gibbs, saquon, puka], { bijan: 99 }, DEMO_VIBE_RULES);
+  const starters = vibeLineupStarters(slots);
+  assert.ok(starters.every((row) => row.player_id && row.slot));
+  assert.ok(starters.some((row) => row.player_id === "bijan"));
+  assert.equal(vibeLineupStarters([{ slot: "RB1" }]).length, 0);
 });

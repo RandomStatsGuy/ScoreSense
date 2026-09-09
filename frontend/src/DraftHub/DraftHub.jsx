@@ -55,7 +55,7 @@ const VibeRankings = lazy(() => import("./VibeRankings"));
 const EMPTY_VALUE_ROWS = [];
 
 /** Tabs that need the heavy value-sheet / draft-pool payload. */
-const TABS_NEED_VALUE_SHEET = new Set(["value", "available", "room", "rosters", "trades"]);
+const TABS_NEED_VALUE_SHEET = new Set(["value", "available", "room", "rosters", "trades", "planner"]);
 /** Tabs that need cap-sheet (also hits roster on the server). */
 const TABS_NEED_CAP_SHEET = new Set(["planner", "roster", "rosters"]);
 /** Tabs that read the hub roster ("value" marks my players via rosterIds). */
@@ -64,6 +64,7 @@ const TABS_NEED_ROSTER = new Set(["home", "setup", "value", "available", "roster
 export default function DraftHub({ subView, onSubViewChange, onHubContextChange, insightTab, onInsightTabChange, officeTab, onOfficeTabChange, onOpenContractHistory, active = true }) {
   const [searchParams] = useSearchParams();
   const availablePosFilter = (searchParams.get("needPos") || "ALL").toUpperCase();
+  const availablePlayerId = (searchParams.get("player") || "").trim();
   const { authenticated, refreshAuth, hubAuthRequired, hubDemo, ready: authReady, user, termsUrl, privacyUrl, patreonConfigured } = useAuth();
   const [demoMode, setDemoMode] = useState(() => {
     try {
@@ -813,8 +814,10 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           onWatchPlayer={toggleWatch}
           watchIds={watchIds}
           defaultPosFilter={availablePosFilter}
+          selectedPlayerId={availablePlayerId}
           remainingCap={capSheet?.summary?.remaining ?? capSheet?.remaining}
           preDraft={!Boolean(effectiveCtx?.draft_completed)}
+          leagueId={effectiveCtx?.league_id || leagueId}
         />
       )}
 
@@ -957,6 +960,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           hubContext={effectiveCtx}
           onChanged={onCapChanged}
           onNavigate={goHubView}
+          valueRows={valueRows}
+          acquisitionWindow={effectiveCtx?.acquisition_window}
         />
       )}
 

@@ -28,7 +28,12 @@ import {
   clampWeek,
   decisionSwapIds,
   emptySlotAction,
+  emptySlotDoorway,
   emptySpecialistSlots,
+  isSpecialistSlot,
+  sitCallLabel,
+  startCallAriaLabel,
+  weekBoardIsClear,
   projectionMissing,
   showVibePts,
   trophyStripCopy,
@@ -179,19 +184,24 @@ test("week hero follows board state instead of a false swap", () => {
   assert.match(pre.heading, /Sat 7 p\.m\./);
   assert.notEqual(weekHeroCopy({ loading: true }).heading, "No swap worth making.");
   assert.notEqual(weekHeroCopy({ error: true }).heading, "No swap worth making.");
+  assert.notEqual(weekHeroCopy({ loading: true }).heading, WEEK_BOARD_COPY.clearBoard);
+  assert.notEqual(weekHeroCopy({ error: true }).heading, WEEK_BOARD_COPY.clearBoard);
   assert.match(formatDraftNightShort("2026-09-05T23:00:00.000Z"), /Sat|Sep/);
 });
 
 test("populated week hero reports lineup calls", () => {
   const hero = weekHeroCopy({ decisionCount: 2, weekLabel: "Week 1" });
   assert.equal(hero.heading, "2 lineup calls on the board.");
+  const flagged = weekHeroCopy({ decisionCount: 0, onBye: 1, weekLabel: "Week 1" });
+  assert.equal(flagged.heading, "No swap worth making.");
   const clean = weekHeroCopy({ decisionCount: 0, weekLabel: "Week 1" });
-  assert.equal(clean.heading, "No swap worth making.");
+  assert.equal(clean.heading, WEEK_BOARD_COPY.clearBoard);
+  assert.match(clean.support, /late scratch|lock/i);
 });
 
 test("unlinked with a roster still treats the board as live", () => {
   const hero = weekHeroCopy({ emptyRoster: false, unlinked: true, weekLabel: "Week 1" });
-  assert.equal(hero.heading, "No swap worth making.");
+  assert.equal(hero.heading, WEEK_BOARD_COPY.clearBoard);
   const items = weekRailItems({
     emptyRoster: false,
     unlinked: true,
@@ -199,7 +209,9 @@ test("unlinked with a roster still treats the board as live", () => {
   });
   assert.equal(items.some((i) => i.id === "decisions"), false);
   assert.equal(items.find((i) => i.id === "ranges").value, "12");
-  assert.equal(items.find((i) => i.id === "bye").muted, true);
+  assert.equal(items.find((i) => i.id === "available").value, WEEK_BOARD_COPY.clearRailValue);
+  assert.match(items.find((i) => i.id === "available").hint, /No bye/);
+  assert.equal(items.some((i) => i.id === "bye"), false);
   assert.match(items.find((i) => i.id === "ranges").hint, /not a start\/sit/i);
   assert.match(weekRailNote({ emptyRoster: false, unlinked: true }), /league contracts/i);
   assert.match(weekRailNote({ emptyRoster: false, unlinked: false }), /Amber is a start\/sit/i);
@@ -312,6 +324,11 @@ test("start button uses a short surname and a real action", () => {
   assert.equal(startSurname("Malik Nabers"), "Nabers");
   assert.equal(startSurname("Amon-Ra St. Brown"), "St. Brown");
   assert.equal(startCallLabel({ bench_player_name: "J.K. Dobbins" }), "Start Dobbins");
+  assert.equal(startCallAriaLabel({ bench_player_name: "J.K. Dobbins", delta_p50: 1.5 }), "Start Dobbins (+1.5)");
+  assert.equal(startCallAriaLabel({ bench_player_name: "J.K. Dobbins" }), "Start Dobbins");
+  assert.equal(sitCallLabel({ starter_player_name: "Ashton Jeanty" }), "Sit Jeanty");
+  assert.equal(WEEK_BOARD_COPY.ticketStamp, "Private");
+  assert.doesNotMatch(WEEK_BOARD_COPY.clearBoard, /liturgy|prayer|altar|bulletin/i);
   assert.equal(lineupCallAction({ canEdit: true }).kind, "apply");
   assert.equal(lineupCallAction({ lineupLocked: true }).kind, "locked");
   assert.equal(sleeperLineupUrl("12345"), "https://sleeper.com/leagues/12345");
@@ -346,8 +363,33 @@ test("empty K/DEF slots and a missing projection are single states", () => {
     { position: "QB", player: { player_id: "q" } },
   ]);
   assert.equal(missing.length, 2);
+  assert.equal(isSpecialistSlot({ position: "K" }), true);
+  assert.equal(isSpecialistSlot("K"), true);
+  assert.equal(isSpecialistSlot("DEF"), true);
+  assert.equal(isSpecialistSlot("RB2"), false);
+  assert.equal(emptySlotDoorway({ slot: "K", position: "K" }), "Find K");
+  assert.equal(emptySlotDoorway("K"), "Find K");
+  assert.equal(emptySlotDoorway("DEF"), "Find DEF");
+  assert.equal(emptySlotDoorway({ slot: "DEF", position: "DEF" }), "Find DEF");
+  assert.equal(emptySlotDoorway({ slot: "RB2", position: "RB" }), "Find RB2");
+  assert.equal(emptySlotDoorway("RB2"), "Find RB2");
+  assert.equal(WEEK_BOARD_COPY.emptySlotHint, "Open Free agents");
   assert.equal(projectionMissing({ has_projection: false }), true);
   assert.equal(projectionMissing({ p50: 8.3 }), false);
   assert.equal(showVibePts({ p50: 6.0 }, 8.3), true);
   assert.equal(showVibePts({ p50: 6.0 }, 6.1), false);
+});
+
+test("clear board collapses bye and out into one quiet line", () => {
+  assert.equal(weekBoardIsClear({ onBye: 0, injured: 0 }), true);
+  assert.equal(weekBoardIsClear({ onBye: 2, injured: 0 }), false);
+  const flagged = weekRailItems({
+    counts: { on_bye: 2, injured: 0, wide_ranges: 1 },
+  });
+  assert.equal(flagged.find((i) => i.id === "bye").value, "2");
+  assert.equal(flagged.find((i) => i.id === "injured").muted, true);
+  assert.equal(flagged.some((i) => i.id === "available"), false);
+  const missing = weekRailItems({ counts: null });
+  assert.equal(missing.find((i) => i.id === "available").value, WEEK_BOARD_COPY.clearRailValue);
+  assert.equal(missing.find((i) => i.id === "ranges").value, "0");
 });

@@ -14,6 +14,15 @@ def test_garbage_pdf_chunks():
     assert not is_garbage_player_name("A. Eckler")
 
 
+def test_roster_name_key_strips_generational_suffix():
+    from src.draft_hub.player_name_match import roster_name_key
+
+    assert roster_name_key("Kenneth Walker III") == roster_name_key("Kenneth Walker")
+    assert roster_name_key("Velus Jones Jr.") == roster_name_key("Velus Jones")
+    assert roster_name_key("Chris Rodriguez Jr.") == roster_name_key("Chris Rodriguez")
+    assert roster_name_key("Theo Wease Jr.") == "theowease"
+
+
 def test_last_name_key_strips_jr():
     from src.draft_hub.player_name_match import last_name_key
 

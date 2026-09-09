@@ -24,6 +24,18 @@ POSITION_LOGIC_VERSION = "wr_te_v1"
 SKILL_POSITIONS = ("QB", "RB", "WR", "TE", "K", "DEF")
 
 
+def _with_roster_identity(pool: pd.DataFrame, season: int, *, cache_key: str | None = None) -> pd.DataFrame:
+    from src.integrations.roster_identity import apply_roster_identity_with_attrs
+
+    return apply_roster_identity_with_attrs(
+        pool,
+        None,
+        season=int(season),
+        week=1,
+        cache_key=cache_key,
+    )
+
+
 def _artifact_paths(season: int) -> tuple[Path, Path]:
     DRAFT_POOL_DIR.mkdir(parents=True, exist_ok=True)
     return (
@@ -184,7 +196,7 @@ def load_draft_pool(season: int, *, allow_compute: bool = True) -> pd.DataFrame:
     fp = pool_fingerprint()
     cached = _POOL_CACHE.get(season)
     if cached is not None and cached[0] == fp:
-        return cached[1].copy()
+        return _with_roster_identity(cached[1].copy(), season, cache_key=f"pool:{season}:{fp}")
 
     parquet_path, meta_path = _artifact_paths(season)
     if parquet_path.exists() and meta_path.exists():
@@ -196,7 +208,7 @@ def load_draft_pool(season: int, *, allow_compute: bool = True) -> pd.DataFrame:
             pool = pd.read_parquet(parquet_path)
             if _artifact_is_current(meta, fp, pool):
                 _POOL_CACHE[season] = (fp, pool)
-                return pool.copy()
+                return _with_roster_identity(pool.copy(), season, cache_key=f"pool:{season}:{fp}")
 
     if not allow_compute:
         return pd.DataFrame()
@@ -204,7 +216,7 @@ def load_draft_pool(season: int, *, allow_compute: bool = True) -> pd.DataFrame:
     with _POOL_COMPUTE_LOCK:
         cached = _POOL_CACHE.get(season)
         if cached is not None and cached[0] == fp:
-            return cached[1].copy()
+            return _with_roster_identity(cached[1].copy(), season, cache_key=f"pool:{season}:{fp}")
         if parquet_path.exists() and meta_path.exists():
             try:
                 meta = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -214,11 +226,11 @@ def load_draft_pool(season: int, *, allow_compute: bool = True) -> pd.DataFrame:
                 pool = pd.read_parquet(parquet_path)
                 if _artifact_is_current(meta, fp, pool):
                     _POOL_CACHE[season] = (fp, pool)
-                    return pool.copy()
+                    return _with_roster_identity(pool.copy(), season, cache_key=f"pool:{season}:{fp}")
 
         pool, sidecar = _compute_pool(season)
         save_pool_artifact(season, pool, sidecar)
-        return pool.copy()
+        return _with_roster_identity(pool.copy(), season, cache_key=f"pool:{season}:{fp}")
 
 
 def load_pool_meta(season: int) -> dict[str, Any]:
@@ -257,6 +269,9 @@ def invalidate_pool_cache(season: int | None = None) -> None:
         _POOL_CACHE.clear()
     else:
         _POOL_CACHE.pop(season, None)
+    from src.integrations.roster_identity import invalidate_identity_overlay_cache
+
+    invalidate_identity_overlay_cache()
 
 
 def pool_artifact_status(season: int) -> dict[str, Any]:

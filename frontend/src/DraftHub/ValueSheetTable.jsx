@@ -8,7 +8,18 @@ import MobileDataList, { MobileStat } from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
 import { usePlayerMedia } from "../PlayerCell";
 import { confirmDialog } from "../ui/confirm";
+import FaBidDialog from "./FaBidDialog";
+import {
+  bidBlockedByCeiling,
+  parseWalkaway,
+  readWalkaway,
+  suggestedFaBid,
+  walkawayChipAmber,
+  writeWalkaway,
+} from "./faWalkaway";
+import { faWalkawayChip } from "./faBidPresentation";
 import { pinNeedPositions } from "./draftRoomHelpers";
+import { escapePlayerIdSelector } from "../cssEscape";
 import {
   filterAndSortRows,
   fmtSal,
@@ -144,6 +155,7 @@ export default function ValueSheetTable({
   onOpenContractHistory,
   remainingCap = null,
   preDraft = false,
+  leagueId = "",
 }) {
   const mobileLayout = useMobileLayout();
   const pickDraft = pickDraftProp != null
@@ -172,6 +184,8 @@ export default function ValueSheetTable({
   const [showAdvancedLocal, setShowAdvancedLocal] = useState(false);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const [mobileListLimit, setMobileListLimit] = useState(20);
+  const [bidDraft, setBidDraft] = useState(null);
+  const [walkawayRev, setWalkawayRev] = useState(0);
 
   const MOBILE_LIST_PAGE = 20;
 
@@ -257,8 +271,20 @@ export default function ValueSheetTable({
     if (!isAvailableView && statusFilter !== "STARRED") {
       list = pinWatchedPlayers(list, watchIds);
     }
+    if (selectedPlayerId) {
+      const focusId = String(selectedPlayerId);
+      const hit = list.find((row) => String(row.player_id) === focusId);
+      if (hit) list = [hit, ...list.filter((row) => String(row.player_id) !== focusId)];
+    }
     return pinNeedPositions(list, pins, maxRows);
-  }, [rankedRows, isAvailableView, posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, maxRows, needPositions, needsOnly, watchIds]);
+  }, [rankedRows, isAvailableView, posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, maxRows, needPositions, needsOnly, watchIds, selectedPlayerId]);
+
+  useEffect(() => {
+    if (!selectedPlayerId) return undefined;
+    const node = document.querySelector(`[data-player-id="${escapePlayerIdSelector(selectedPlayerId)}"]`);
+    node?.scrollIntoView({ block: "center", behavior: "smooth" });
+    return undefined;
+  }, [selectedPlayerId, sorted]);
 
   const seasonScaleMax = useMemo(() => {
     let max = 0;
@@ -385,12 +411,9 @@ export default function ValueSheetTable({
     if (!res.ok) throw new Error(await parseApiError(res));
   }, [riskTolerance, rules]);
 
-  const postBid = useCallback(async (row) => {
-    const sal = effectiveAuctionBid(row, riskTolerance, rules)
-      ?? row.fair_value
-      ?? row.model_bid_hint
-      ?? row.min_sal
-      ?? 1;
+  const postBid = useCallback(async (row, amount) => {
+    const sal = parseWalkaway(amount)
+      ?? suggestedFaBid(row, effectiveAuctionBid(row, riskTolerance, rules));
     const res = await apiFetch("/api/hub/fa-market/bid", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -406,37 +429,57 @@ export default function ValueSheetTable({
     return res.json();
   }, [riskTolerance, rules]);
 
+  const showWalkaway = addMode === "bid" && addEnabled && Boolean(leagueId) && isAvailableView;
+  const ceilingFor = (playerId) => {
+    void walkawayRev;
+    return readWalkaway(leagueId, playerId);
+  };
+
+  const openBidDraft = useCallback((row) => {
+    const suggested = suggestedFaBid(row, effectiveAuctionBid(row, riskTolerance, rules));
+    const existing = readWalkaway(leagueId, row.player_id);
+    setBidDraft({
+      row,
+      amount: suggested,
+      ceiling: existing ?? suggested,
+      firstPrompt: existing == null,
+    });
+  }, [leagueId, riskTolerance, rules]);
+
+  const persistCeiling = useCallback((playerId, amount) => {
+    writeWalkaway(leagueId, playerId, amount);
+    setWalkawayRev((n) => n + 1);
+  }, [leagueId]);
+
+  const closeBidDraft = useCallback(() => setBidDraft(null), []);
+
+  const submitFaBid = useCallback(async (row, amount, ceiling) => {
+    if (parseWalkaway(amount) == null || bidBlockedByCeiling(amount, ceiling)) return;
+    persistCeiling(row.player_id, ceiling);
+    setAddError("");
+    setAddingId(row.player_id);
+    try {
+      const result = await postBid(row, amount);
+      const high = result?.high_bid?.high_bid;
+      setAddError(
+        high != null
+          ? `Bid in. High bid on ${row.player || "this player"} is $${Number(high).toFixed(0)}.`
+          : `Bid in on ${row.player || "this player"}.`,
+      );
+      onAddToRoster?.();
+      setBidDraft(null);
+    } catch (e) {
+      setAddError(e.message || "Could not place bid");
+    } finally {
+      setAddingId(null);
+    }
+  }, [onAddToRoster, persistCeiling, postBid]);
+
   const addPlayer = useCallback(async (row) => {
     const taken = row.status === "taken";
     setAddError("");
     if (addMode === "bid") {
-      const sal = effectiveAuctionBid(row, riskTolerance, rules)
-        ?? row.fair_value
-        ?? row.model_bid_hint
-        ?? 1;
-      const ok = await confirmDialog({
-        title: "Place FA bid",
-        message:
-          `Bid ${fmtSal(sal)} on ${row.player || "this player"}? `
-          + "The highest bid wins when this window processes — same as post-draft FA.",
-        confirmLabel: "Place bid",
-      });
-      if (!ok) return;
-      setAddingId(row.player_id);
-      try {
-        const result = await postBid(row);
-        const high = result?.high_bid?.high_bid;
-        setAddError(
-          high != null
-            ? `Bid in. High bid on ${row.player || "this player"} is $${Number(high).toFixed(0)}.`
-            : `Bid in on ${row.player || "this player"}.`,
-        );
-        onAddToRoster?.();
-      } catch (e) {
-        setAddError(e.message || "Could not place bid");
-      } finally {
-        setAddingId(null);
-      }
+      openBidDraft(row);
       return;
     }
     if (taken && !isCommissioner) {
@@ -463,7 +506,7 @@ export default function ValueSheetTable({
     } finally {
       setAddingId(null);
     }
-  }, [addMode, isCommissioner, onAddToRoster, postAddPlayer, postBid, riskTolerance, rules]);
+  }, [addMode, isCommissioner, onAddToRoster, openBidDraft, postAddPlayer]);
 
   const panelTitle = title || (isAvailableView ? "Free agents" : "Strategy");
   const panelSub = subtitle || (
@@ -574,6 +617,26 @@ export default function ValueSheetTable({
       className={wrapperClass}
       style={pageBoard ? { "--hub-fa-sticky-offset": `${stickyOffset}px` } : undefined}
     >
+      {bidDraft ? (
+        <FaBidDialog
+          playerName={bidDraft.row.player || bidDraft.row.player_name}
+          amount={bidDraft.amount}
+          ceiling={bidDraft.ceiling}
+          firstPrompt={bidDraft.firstPrompt}
+          busy={addingId === bidDraft.row.player_id}
+          onChangeAmount={(value) => setBidDraft((prev) => (prev ? { ...prev, amount: value } : prev))}
+          onChangeCeiling={(value) => setBidDraft((prev) => (prev ? { ...prev, ceiling: value } : prev))}
+          onPass={closeBidDraft}
+          onPlace={() => submitFaBid(bidDraft.row, bidDraft.amount, bidDraft.ceiling)}
+          onBidAtCeiling={() => submitFaBid(bidDraft.row, bidDraft.ceiling, bidDraft.ceiling)}
+          onRaiseCeiling={() => {
+            const next = parseWalkaway(bidDraft.amount);
+            if (next == null) return;
+            persistCeiling(bidDraft.row.player_id, next);
+            setBidDraft((prev) => (prev ? { ...prev, ceiling: next, firstPrompt: false } : prev));
+          }}
+        />
+      ) : null}
       {!hideHeader && !hideIntro && (
         <HubExperienceHero
           eyebrow={isAvailableView ? "Free agents" : panelTitle}
@@ -837,6 +900,21 @@ export default function ValueSheetTable({
               const label = addingId === r.player_id
                 ? (addMode === "bid" ? "Bidding…" : "Adding…")
                 : playersTabAddLabel(addMode, { taken, isCommissioner });
+              const ceiling = showWalkaway ? ceilingFor(r.player_id) : null;
+              const suggested = suggestedFaBid(r, effectiveAuctionBid(r, riskTolerance, rules));
+              if (showWalkaway) {
+                void walkawayRev;
+                actions.push(
+                  <button
+                    key="walkaway"
+                    type="button"
+                    className={`btn-ghost btn-sm hub-fa-walkaway${walkawayChipAmber(suggested, ceiling) ? " is-over" : ""}`}
+                    onClick={() => openBidDraft(r)}
+                  >
+                    {faWalkawayChip(ceiling)}
+                  </button>,
+                );
+              }
               actions.push(
                 <button
                   key="add"
@@ -870,6 +948,7 @@ export default function ValueSheetTable({
             return (
               <MobilePlayerCard
                 key={r.player_id || `row-${idx}`}
+                playerId={r.player_id}
                 className={`${r.overpay ? "hub-overpay" : ""}${r.on_sleeper ? " hub-sleeper-row" : ""}`.trim()}
                 name={r.player}
                 meta={buildMobileMeta(r)}
@@ -1145,6 +1224,13 @@ export default function ValueSheetTable({
                   onSelectPlayer={onSelectPlayer}
                   onRowDoubleClick={onRowDoubleClick}
                   onAddPlayer={addPlayer}
+                  showWalkaway={showWalkaway}
+                  walkawayCeiling={showWalkaway ? ceilingFor(r.player_id) : null}
+                  walkawayAmber={showWalkaway && walkawayChipAmber(
+                    suggestedFaBid(r, effectiveAuctionBid(r, riskTolerance, rules)),
+                    ceilingFor(r.player_id),
+                  )}
+                  onWalkaway={showWalkaway ? openBidDraft : undefined}
                   playerMedia={playerMedia}
                   narrativeScope={narrativeScope}
                   seasonScaleMax={seasonScaleMax}
