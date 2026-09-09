@@ -15,7 +15,9 @@ from src.draft_hub.vibe_rankings import (
     AURA_BASE,
     fill_slots_by_score,
     normalize_aura_by_id,
+    projection_starts,
     read_aura,
+    resolve_vibe_week,
     vibe_divergences,
     vibe_score,
 )
@@ -127,6 +129,76 @@ def test_high_aura_bench_enters_the_slate():
     splits = vibe_divergences(proj, vibe)
     assert any(row["player_id"] == "rb-saquon" for row in splits["in_vibe"])
     assert splits["pairs"]
+
+
+def test_fill_slots_and_projection_starts_tolerate_junk_scores():
+    plan = [
+        {"key": "RB1", "slot": "RB1", "position": "RB", "index": 0},
+        {"key": "RB2", "slot": "RB2", "position": "RB", "index": 1},
+    ]
+    players = [
+        {"player_id": "rb-na", "player_name": "NA", "position": "RB", "p50": "N/A"},
+        {"player_id": "rb-nan", "player_name": "NaN", "position": "RB", "p50": "NaN"},
+        {"player_id": "rb-null", "player_name": "Null", "position": "RB", "p50": "null"},
+        {"player_id": "rb-good", "player_name": "Good", "position": "RB", "p50": 12.5},
+        {"player_id": "rb-ok", "player_name": "Ok", "position": "RB", "p50": 9.0},
+    ]
+    filled = fill_slots_by_score(
+        plan,
+        players,
+        lambda player: float(player.get("p50") or 0),
+    )
+    assert [slot["player"]["player_id"] for slot in filled] == ["rb-good", "rb-ok"]
+    proj = projection_starts(players, {"roster": {"rb": {"starter": 2}}})
+    assert [slot["player"]["player_id"] for slot in proj] == ["rb-good", "rb-ok"]
+
+
+def test_resolve_vibe_week_tolerates_malformed_inputs():
+    with patch(
+        "src.draft_hub.weekly_command_center.resolve_week_context",
+        side_effect=ValueError("bad week"),
+    ):
+        season, week = resolve_vibe_week({"season": "preseason"}, season="N/A", week="soon")
+        assert season == 2026
+        assert week == 1
+
+    with patch(
+        "src.draft_hub.weekly_command_center.resolve_week_context",
+        return_value=(2026, 3),
+    ) as resolve:
+        season, week = resolve_vibe_week({"season": "2026"}, season=None, week=3)
+        assert (season, week) == (2026, 3)
+        resolve.assert_called_once_with(None, 3, hub_season=2026)
+
+    from app.hub_routes import _lineup_week_args
+
+    with patch(
+        "src.draft_hub.weekly_command_center.resolve_week_context",
+        side_effect=ValueError("bad week"),
+    ):
+        season, week = _lineup_week_args({"season": "oops"}, None, None)
+        assert season == 2026
+        assert week == 1
+
+
+def test_build_vibes_payload_tolerates_malformed_week_inputs():
+    from src.draft_hub.vibe_rankings import build_vibes_payload
+
+    with patch(
+        "src.draft_hub.weekly_command_center.resolve_week_context",
+        side_effect=ValueError("bad week"),
+    ), patch(
+        "src.draft_hub.weekly_command_center.build_weekly_command_center",
+        return_value={},
+    ):
+        payload = build_vibes_payload(
+            {"season": "preseason", "league_id": "", "team_id": ""},
+            season="N/A",
+            week="soon",
+        )
+    assert payload["season"] == 2026
+    assert payload["week"] == 1
+    assert payload["aura_by_id"] == {}
 
 
 def test_storage_aura_is_per_team_week(hub_db):

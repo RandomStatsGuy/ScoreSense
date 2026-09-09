@@ -23,6 +23,28 @@ DEFAULT_STARTER_COUNTS = {
 }
 
 
+def safe_number(value: Any, default: float = 0.0) -> float:
+    if value is None or value == "":
+        return default
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return default
+    if n != n or n in (float("inf"), float("-inf")):
+        return default
+    return n
+
+
+def safe_int(value: Any, default: int | None = None) -> int | None:
+    n = safe_number(value, float("nan"))
+    if n != n:
+        return default
+    try:
+        return int(n)
+    except (OverflowError, ValueError):
+        return default
+
+
 def parse_aura(value: Any) -> int | None:
     try:
         n = int(round(float(value)))
@@ -57,11 +79,8 @@ def read_aura(aura_by_id: dict[str, Any] | None, player_id: str | None) -> int:
 
 
 def vibe_score(player: dict[str, Any] | None, aura: Any) -> float:
-    try:
-        p50 = float(player.get("p50")) if player is not None else 0.0
-    except (TypeError, ValueError, AttributeError):
-        p50 = 0.0
-    proj = max(0.0, p50) if p50 == p50 else 0.0
+    p50 = safe_number((player or {}).get("p50") if player is not None else None)
+    proj = max(0.0, p50)
     a = clamp_aura(aura) if aura is not None else AURA_BASE
     return proj * (0.6 + 0.4 * (a / AURA_BASE))
 
@@ -136,10 +155,16 @@ def fill_slots_by_score(
     players: list[dict[str, Any]],
     score_of,
 ) -> list[dict[str, Any]]:
+    def scored(row: dict[str, Any]) -> float:
+        try:
+            return safe_number(score_of(row))
+        except (TypeError, ValueError, OverflowError):
+            return 0.0
+
     remaining = sorted(
         list(players or []),
         key=lambda row: (
-            -float(score_of(row) or 0),
+            -scored(row),
             str(row.get("player_id") or ""),
         ),
     )
@@ -169,7 +194,7 @@ def fill_slots_by_score(
 
 def projection_starts(players: list[dict[str, Any]], rules: Any) -> list[dict[str, Any]]:
     plan = build_starter_slot_plan(rules)
-    return fill_slots_by_score(plan, players, lambda player: float(player.get("p50") or 0))
+    return fill_slots_by_score(plan, players, lambda player: safe_number(player.get("p50")))
 
 
 def vibe_starts(
@@ -250,6 +275,22 @@ def empty_divergences() -> dict[str, Any]:
     return {"in_vibe": [], "in_proj": [], "pairs": []}
 
 
+def resolve_vibe_week(
+    ctx: dict[str, Any] | None,
+    season: Any = None,
+    week: Any = None,
+) -> tuple[int, int]:
+    from src.draft_hub.weekly_command_center import resolve_week_context
+
+    hub_season = safe_int((ctx or {}).get("season"))
+    clean_season = safe_int(season)
+    clean_week = safe_int(week)
+    try:
+        return resolve_week_context(clean_season, clean_week, hub_season=hub_season)
+    except Exception:
+        return (clean_season or hub_season or 2026, clean_week or 1)
+
+
 def build_vibes_payload(
     ctx: dict[str, Any],
     *,
@@ -257,19 +298,9 @@ def build_vibes_payload(
     week: int | None = None,
     aura_by_id: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    from src.draft_hub.weekly_command_center import (
-        build_weekly_command_center,
-        resolve_week_context,
-    )
+    from src.draft_hub.weekly_command_center import build_weekly_command_center
 
-    hub_season = int(ctx["season"]) if ctx.get("season") is not None else None
-    try:
-        resolved_season, resolved_week = resolve_week_context(
-            season, week, hub_season=hub_season
-        )
-    except Exception:
-        resolved_season = int(season or hub_season or 2026)
-        resolved_week = int(week or 1)
+    resolved_season, resolved_week = resolve_vibe_week(ctx, season=season, week=week)
 
     league_id = str(ctx.get("league_id") or "") or None
     team_id = str(ctx.get("team_id") or "") or None

@@ -840,13 +840,9 @@ def hub_put_vibes(
 
 
 def _lineup_week_args(ctx: dict[str, Any], week: int | None, season: int | None) -> tuple[int, int]:
-    from src.draft_hub.weekly_command_center import resolve_week_context
+    from src.draft_hub.vibe_rankings import resolve_vibe_week
 
-    hub_season = int(ctx["season"]) if ctx.get("season") is not None else None
-    try:
-        return resolve_week_context(season, week, hub_season=hub_season)
-    except Exception:
-        return int(season or hub_season or 2026), int(week or 1)
+    return resolve_vibe_week(ctx, season=season, week=week)
 
 
 def _lineup_target_team(ctx: dict[str, Any], requested_team_id: str | None) -> str:
