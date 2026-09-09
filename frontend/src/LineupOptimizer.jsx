@@ -50,7 +50,7 @@ import {
   launchCopy,
   listSelectedGameStacks,
   lockedSalaryTotal,
-  normalizeDfsTeam,
+  sameDfsTeam,
   nextExclusiveChoice,
   objectiveSortColumn,
   optimizeButtonLabel,
@@ -718,7 +718,9 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
       const kept = new Set();
       ids.forEach((pid) => {
         const qb = pool.find((row) => String(row.player_id) === String(pid));
-        if (qb && remainingTeams.has(normalizeDfsTeam(qb.Team))) kept.add(String(pid));
+        if (qb && [...remainingTeams].some((team) => sameDfsTeam(qb.Team, team))) {
+          kept.add(String(pid));
+        }
       });
       return kept;
     });
@@ -1164,6 +1166,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                             onClick={() => toggleStackQb(pid)}
                           >
                             <strong>{copy.title}</strong>
+                            {copy.game ? <small>{copy.game}</small> : null}
                             <span>{copy.body}</span>
                             <em>{on ? DFS_STEP_COPY.stackInBuild : DFS_STEP_COPY.useStack}</em>
                           </button>

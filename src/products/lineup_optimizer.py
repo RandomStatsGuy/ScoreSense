@@ -69,6 +69,33 @@ def _normalize_pos(raw: str) -> str:
     return pos
 
 
+def collect_keep_teams(
+    keep_teams: list[str] | None = None,
+    keep_player_ids: list[str] | None = None,
+    pool: pd.DataFrame | None = None,
+) -> set[str]:
+    """Teams that must survive the top-N cut so a marked game or locked QB can stack."""
+    keys = {normalize_team_for_match(team) for team in (keep_teams or []) if team}
+    keys.discard("")
+    if pool is None or pool.empty or not keep_player_ids or "player_id" not in pool.columns:
+        return keys
+    wanted = {str(pid) for pid in keep_player_ids if pid}
+    if not wanted:
+        return keys
+    matched = pool[pool["player_id"].map(lambda value: str(value) in wanted)]
+    if matched.empty:
+        return keys
+    if "Team" in matched.columns:
+        keys.update(normalize_team_for_match(team) for team in matched["Team"].tolist())
+    if "Opponent" in matched.columns:
+        for opp in matched["Opponent"].tolist():
+            key = normalize_team_for_match(opp)
+            if key and key != "BYE":
+                keys.add(key)
+    keys.discard("")
+    return keys
+
+
 def build_lineup_pool(
     season: int | None = None,
     week: int | None = None,
@@ -78,6 +105,7 @@ def build_lineup_pool(
     top_per_position: int = 40,
     site: str = "seasonal",
     keep_teams: list[str] | None = None,
+    keep_player_ids: list[str] | None = None,
 ) -> tuple[pd.DataFrame, dict]:
     """Merge QB/RB/WR weekly projections into one pool with fantasy positions."""
     from src.config import MODEL_DIR, PROCESSED_DATA_DIR
@@ -123,7 +151,7 @@ def build_lineup_pool(
     from src.core.schedule_utils import attach_bye_flags
 
     pool = attach_bye_flags(pool, int(season), int(week))
-    keep_keys = {normalize_team_for_match(team) for team in (keep_teams or []) if team}
+    keep_keys = collect_keep_teams(keep_teams, keep_player_ids, pool)
     reserved = pd.DataFrame()
     if keep_keys and "Team" in pool.columns:
         reserved = pool[pool["Team"].map(normalize_team_for_match).isin(keep_keys)].copy()

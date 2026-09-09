@@ -171,6 +171,9 @@ const TEAM_MATCH = Object.freeze({
   WAS: "WAS",
   JAC: "JAX",
   JAX: "JAX",
+  LVR: "LV",
+  LV: "LV",
+  OAK: "LV",
 });
 
 const PASS_CATCHERS = new Set(["WR", "TE"]);
@@ -327,6 +330,7 @@ export function stackOptionCopy(stack) {
     : "Thin on this board — Build still pulls the rest of the team.";
   return {
     title: `${qbName} · ${team}`,
+    game: gameStackLabel(stack?.game),
     body: bringName ? `${mates}. Bring-back ${bringName}.` : mates,
   };
 }
@@ -508,7 +512,11 @@ export function dfsSummaryItems({
     items.push({ id: "cap", label: "Salary cap", value: formatSalary(parseSalaryCap(salaryCap)) });
   }
   if (stackGameLabel) {
-    items.push({ id: "game", label: "Game", value: stackGameLabel });
+    items.push({
+      id: "game",
+      label: /games/i.test(stackGameLabel) ? "Games" : "Game",
+      value: stackGameLabel,
+    });
   }
   items.push({ id: "goal", label: "Goal", value: objectiveLabel(objectiveId, isDfs) });
   items.push({ id: "locks", label: "Locked / skipped", value: `${lockedCount} / ${excludedCount}` });
