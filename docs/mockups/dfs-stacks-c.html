@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — DFS stacks · C Totals first</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .games, .opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: var(--space-3); }
+  .game, .opt {
+    display: flex; flex-direction: column; gap: var(--space-2);
+    min-height: 8.5rem; padding: var(--space-4);
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    background: var(--bg-elevated); text-align: left;
+  }
+  .game.is-on, .opt.is-on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .kick { display: flex; font-size: var(--text-xs); color: var(--text-muted); }
+  .hot { margin-left: auto; color: var(--accent-muted); font-weight: 700; }
+  .game h3, .opt h3 { margin: 0; font-size: 1.02rem; }
+  .note, .cta { margin: 0; font-size: var(--text-xs); color: var(--text-muted); }
+  .cta { margin-top: auto; }
+  .game.is-on .cta, .opt.is-on .cta { color: var(--accent-muted); font-weight: 600; }
+  .stacks { margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid var(--border); }
+  .hub-experience-summary-action { width: 100%; min-height: var(--control-h-sm); margin-top: var(--space-4); }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>C · Totals first</strong> <span>· living page ships this beat</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a href="dfs-stacks.html">Chooser</a>
+    <a href="dfs-stacks-a.html">A</a>
+    <a href="dfs-stacks-b.html">B</a>
+    <a class="is-on" href="dfs-stacks-c.html">C</a>
+  </nav>
+</div>
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav"><span>Projections</span><span>Fantasy</span><span class="active">Tools</span></nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+  <nav class="mock-subnav">
+    <span class="mock-tab active">DFS</span>
+    <span class="mock-tab">Mock draft</span>
+    <span class="mock-tab">Best ball</span>
+  </nav>
+  <section class="mock-hero">
+    <p class="mock-kicker">DFS</p>
+    <h1>Pick the high totals.</h1>
+    <p class="support">Mark every game you want stacked. Pin a stack only if you want that quarterback.</p>
+  </section>
+  <div class="mock-cols">
+    <main id="main-content">
+      <section class="card">
+        <h3>Vegas board</h3>
+        <p class="note">Tap every high-total game. That does not lock a player. Highest is the tag.</p>
+        <div class="games" role="group" aria-label="Games to stack">
+          <article class="game is-on" aria-pressed="true">
+            <span class="kick">Sun 1:00</span>
+            <h3>MIA @ LV</h3>
+            <p class="note">O/U 44.5 · LV -3</p>
+            <span class="cta">In the build</span>
+          </article>
+          <article class="game is-on" aria-pressed="true">
+            <span class="kick">Sun 1:00 <span class="hot">Highest</span></span>
+            <h3>TB @ CIN</h3>
+            <p class="note">O/U 50.5 · CIN -3.5</p>
+            <span class="cta">In the build</span>
+          </article>
+          <article class="game" aria-pressed="false">
+            <span class="kick">Sun 4:25</span>
+            <h3>SF @ LAR</h3>
+            <p class="note">O/U 48.5 · LAR -3.5</p>
+            <span class="cta">Add this total</span>
+          </article>
+        </div>
+        <div class="stacks">
+          <h3>Stacks from these games</h3>
+          <p class="note">Build takes a QB from the games you marked. Pin a stack if you want that side.</p>
+          <div class="opts" role="group" aria-label="Optional stacks">
+            <article class="opt" aria-pressed="false">
+              <h3>Joe Burrow · CIN</h3>
+              <p class="note">Chase · Higgins. Bring-back Evans.</p>
+              <span class="cta">Use this stack</span>
+            </article>
+            <article class="opt" aria-pressed="false">
+              <h3>Kirk Cousins · LV</h3>
+              <p class="note">Bowers · Tucker. Bring-back Achane.</p>
+              <span class="cta">Use this stack</span>
+            </article>
+            <article class="opt" aria-pressed="false">
+              <h3>Malik Willis · MIA</h3>
+              <p class="note">Thin on this board. Not locked.</p>
+              <span class="cta">Use this stack</span>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+    <aside class="mock-rail">
+      <section class="card">
+        <p class="note">YOUR LINEUP · 0 LOCKED · 0 SKIPPED</p>
+        <h3>2 games in the build.</h3>
+        <p class="note">Build takes a stack from those totals and spends the leftover on other games.</p>
+        <button type="button" class="hub-experience-summary-action">Build around these games</button>
+      </section>
+    </aside>
+  </div>
+</div>
+</body>
+</html>

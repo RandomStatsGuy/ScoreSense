@@ -1365,7 +1365,8 @@ button.btn-link.hub-league-switcher-create:hover {
   }
 
   .dfs-shootout-row .dfs-pin,
-  .dfs-stack-preview-head button {
+  .dfs-stack-preview-head button,
+  .dfs-stack-option {
     min-height: var(--control-h-lg);
   }
 }
@@ -1842,6 +1843,54 @@ button.dfs-vegas-card {
 .dfs-stack-preview-head button {
   flex: none;
   min-height: var(--control-h-sm);
+}
+
+.dfs-stack-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: var(--space-3);
+}
+
+.dfs-stack-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-height: 8.5rem;
+  padding: var(--space-4);
+  border: 1px solid var(--experience-rule);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.dfs-stack-option strong {
+  font-size: 1.02rem;
+}
+
+.dfs-stack-option span {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+.dfs-stack-option em {
+  margin-top: auto;
+  font-style: normal;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.dfs-stack-option.is-on {
+  border-color: var(--experience-blue);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--experience-blue) 22%, transparent);
+}
+
+.dfs-stack-option.is-on em {
+  color: var(--experience-blue);
+  font-weight: 650;
 }
 
 .dfs-shootout-row {

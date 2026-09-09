@@ -13,7 +13,18 @@ Open **[dfs.html](./dfs.html)** first. Living surface: `tools.dfs` → `LineupOp
 | `dfs-b.html` | **B · Shootout.** Vegas games are the board. Pick the total, then the stack. |
 | `dfs-c.html` | **C · Leverage.** Pool board with Own% and Lev. Fade chalk. |
 
-Shipped pick is **B**. Living surface: `tools.dfs` → `LineupOptimizer.jsx`. Copy: `dfsToolPresentation.js`.
+Shipped pick is **B**, then the stack picker on that board. Living surface: `tools.dfs` → `LineupOptimizer.jsx`. Copy: `dfsToolPresentation.js`.
+
+## DFS stacks (Sep 2026)
+
+How you pick a stack after the Vegas board. Living page ships **C**. Reply A / B if you want a different beat.
+
+| File | Shows |
+|------|-------|
+| `dfs-stacks.html` | Chooser: expand, stack board, or totals first. |
+| `dfs-stacks-a.html` | **A · Expand.** One game opens both QBs as chips. |
+| `dfs-stacks-b.html` | **B · Stack board.** High totals are headers. Rows are stacks. |
+| `dfs-stacks-c.html` | **C · Totals first.** Mark games. Stacks optional underneath. |
 
 Mock pages must pass `scripts/dev/layout_audit.mjs` (same bar, table, and collision rules as the app). Do not pick an option that would ship a known craft fail.
 

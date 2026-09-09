@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — DFS stacks · A Expand</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .games { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: var(--space-3); }
+  .game, .chip {
+    display: flex; flex-direction: column; gap: var(--space-2);
+    padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    background: var(--bg-elevated); text-align: left; min-height: 8.5rem;
+  }
+  .game.is-on, .chip.is-on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .game h3, .chip h3 { margin: 0; font-size: 1.02rem; }
+  .note, .cta { margin: 0; font-size: var(--text-xs); color: var(--text-muted); }
+  .cta { margin-top: auto; }
+  .chip.is-on .cta { color: var(--accent-muted); font-weight: 600; }
+  .hot { margin-left: auto; color: var(--accent-muted); font-size: var(--text-xs); font-weight: 700; }
+  .kick { display: flex; align-items: center; font-size: var(--text-xs); color: var(--text-muted); }
+  .sides { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: var(--space-3); margin-top: var(--space-4); }
+  .hub-experience-summary-action { width: 100%; min-height: var(--control-h-sm); margin-top: var(--space-4); }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>A · Expand</strong> <span>· one game opens both stacks</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a href="dfs-stacks.html">Chooser</a>
+    <a class="is-on" href="dfs-stacks-a.html">A</a>
+    <a href="dfs-stacks-b.html">B</a>
+    <a href="dfs-stacks-c.html">C</a>
+  </nav>
+</div>
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav"><span>Projections</span><span>Fantasy</span><span class="active">Tools</span></nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+  <nav class="mock-subnav">
+    <span class="mock-tab active">DFS</span>
+    <span class="mock-tab">Mock draft</span>
+    <span class="mock-tab">Best ball</span>
+  </nav>
+  <section class="mock-hero">
+    <p class="mock-kicker">DFS</p>
+    <h1>Open the game. Then pick the side.</h1>
+    <p class="support">MIA @ LV is in the build. That does not lock Malik Willis.</p>
+  </section>
+  <div class="mock-cols">
+    <main id="main-content">
+      <section class="card">
+        <h3>Vegas board</h3>
+        <p class="note">Tap a game to open both stacks. Highest is the tag.</p>
+        <div class="games" role="group" aria-label="Games">
+          <article class="game is-on" aria-pressed="true">
+            <span class="kick">Sun 1:00 <span class="hot">Highest</span></span>
+            <h3>MIA @ LV</h3>
+            <p class="note">O/U 44.5 · LV -3</p>
+            <span class="cta">Open</span>
+          </article>
+          <article class="game" aria-pressed="false">
+            <span class="kick">Sun 4:25</span>
+            <h3>TB @ CIN</h3>
+            <p class="note">O/U 50.5 · CIN -3.5</p>
+            <span class="cta">Add this total</span>
+          </article>
+        </div>
+        <div class="sides" role="group" aria-label="Stacks in MIA @ LV">
+          <article class="chip" aria-pressed="false">
+            <h3>Kirk Cousins · LV</h3>
+            <p class="note">Bowers · Tucker. Bring-back Achane.</p>
+            <span class="cta">Use this stack</span>
+          </article>
+          <article class="chip" aria-pressed="false">
+            <h3>Malik Willis · MIA</h3>
+            <p class="note">Dulcich is thin. Build still pulls the rest of the team.</p>
+            <span class="cta">Use this stack</span>
+          </article>
+        </div>
+      </section>
+    </main>
+    <aside class="mock-rail">
+      <section class="card">
+        <p class="note">YOUR LINEUP · 0 LOCKED · 0 SKIPPED</p>
+        <h3>1 game in the build</h3>
+        <p class="note">Build takes a stack from MIA @ LV. Pin a stack if you want that quarterback.</p>
+        <button type="button" class="hub-experience-summary-action">Build around these games</button>
+      </section>
+    </aside>
+  </div>
+</div>
+</body>
+</html>

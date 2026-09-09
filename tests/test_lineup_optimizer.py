@@ -100,6 +100,59 @@ def test_optimize_qb_stack_count_two_pass_catchers():
     assert len(mates) >= 2
 
 
+def test_optimize_locked_qb_without_mates_explains_the_miss():
+    players = [
+        LineupPlayer("willis", "Malik Willis", "MIA", "QB", 9, 1, 25),
+        LineupPlayer("cousins", "Kirk Cousins", "LV", "QB", 11, 6, 18),
+        LineupPlayer("rb1", "RB One", "BBB", "RB", 16, 10, 22),
+        LineupPlayer("rb2", "RB Two", "CCC", "RB", 14, 9, 20),
+        LineupPlayer("rb3", "RB Three", "DDD", "RB", 12, 8, 18),
+        LineupPlayer("dulcich", "Greg Dulcich", "MIA", "TE", 6, 3, 12),
+        LineupPlayer("bowers", "Brock Bowers", "LV", "TE", 12, 7, 20),
+        LineupPlayer("wr2", "WR Two", "BBB", "WR", 13, 8, 19),
+        LineupPlayer("wr3", "WR Three", "CCC", "WR", 11, 7, 17),
+        LineupPlayer("wr4", "WR Four", "EEE", "WR", 10, 6, 15),
+    ]
+    roster = {"qb": 1, "rb": 2, "wr": 2, "te": 1, "flex": 1, "dst": 0}
+    result = optimize_lineup(
+        players,
+        roster=roster,
+        qb_stack_count=2,
+        locked_player_ids={"willis"},
+    )
+    assert result["ok"] is False
+    assert "Malik Willis" in result["error"]
+    assert "pass catchers" in result["error"]
+
+
+def test_optimize_stack_teams_uses_a_qb_from_the_marked_game():
+    players = [
+        LineupPlayer("willis", "Malik Willis", "MIA", "QB", 9, 1, 25, opponent="LV"),
+        LineupPlayer("allen", "Josh Allen", "BUF", "QB", 24, 16, 34, opponent="NYJ"),
+        LineupPlayer("rb1", "RB One", "BBB", "RB", 16, 10, 22),
+        LineupPlayer("rb2", "RB Two", "CCC", "RB", 14, 9, 20),
+        LineupPlayer("rb3", "RB Three", "DDD", "RB", 12, 8, 18),
+        LineupPlayer("waddle", "Jaylen Waddle", "MIA", "WR", 15, 9, 22),
+        LineupPlayer("wease", "Theo Wease Jr.", "MIA", "WR", 8, 4, 14),
+        LineupPlayer("bowers", "Brock Bowers", "LV", "TE", 12, 7, 20),
+        LineupPlayer("shakir", "Khalil Shakir", "BUF", "WR", 14, 8, 20),
+        LineupPlayer("kincaid", "Dalton Kincaid", "BUF", "TE", 11, 6, 16),
+        LineupPlayer("te2", "TE Two", "EEE", "TE", 7, 4, 11),
+        LineupPlayer("wr4", "WR Four", "EEE", "WR", 6, 3, 10),
+    ]
+    roster = {"qb": 1, "rb": 2, "wr": 2, "te": 1, "flex": 1, "dst": 0}
+    result = optimize_lineup(
+        players,
+        roster=roster,
+        qb_stack_count=2,
+        stack_bring_back=True,
+        stack_teams=["MIA", "LV"],
+    )
+    assert result["ok"] is True
+    qb = next(row for row in result["lineup"] if row["slot"] == "QB")
+    assert qb["player_id"] == "willis"
+
+
 def test_optimize_bring_back_uses_opponent_player():
     players = [
         LineupPlayer("qb1", "QB One", "AAA", "QB", 22, 15, 28, opponent="ZZZ"),
