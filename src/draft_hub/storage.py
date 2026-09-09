@@ -2250,7 +2250,7 @@ def transfer_roster_players(
                 (workspace_id, pid, from_team_id),
             ).fetchall()
             occupying = [r for r in rows if roster_row_occupies(r)]
-            targets = occupying or list(rows)
+            targets = occupying
             for row in targets:
                 cur = conn.execute(
                     "UPDATE roster_slot SET team_id = ? WHERE id = ?",
