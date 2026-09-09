@@ -18,7 +18,7 @@ export const VIBE_COPY = Object.freeze({
   clearAura: "Clear aura",
   deckProgress: (index, total) => `${Math.min(index + 1, total)} of ${total}`,
   deckDoneHeading: "Today's reads are in.",
-  deckDoneSupport: "Aura already moved the week numbers. Come back tomorrow or set the lineup on This Week.",
+  deckDoneSupport: "Aura already moved the week numbers. Set this slate when Hub can write, or review it on This Week.",
   emptyHeading: "Need a roster to read.",
   emptySupport: "Add contracts or sync the league. Without a roster there is no start/sit to lock.",
   loading: "Loading this week's roster…",
@@ -42,6 +42,9 @@ export const VIBE_COPY = Object.freeze({
   hottest: "Hottest",
   nextAction: "Review on This Week",
   nextActionDisabled: "Rate someone today to take a start to This Week.",
+  setSlate: "Set this slate",
+  setSlateBusy: "Setting this slate…",
+  setSlateError: "Could not set the slate. Review it on This Week or try again.",
   slateTitle: "VA-projections",
   slateHint: "Aura scales this table. This Week still starts from the board number.",
   vsModel: "Vibe vs the board",
@@ -349,4 +352,10 @@ export function opponentLabel(player) {
   if (!opp) return "—";
   const home = !String(player?.opponent || "").startsWith("@");
   return home ? `vs ${opp}` : `@ ${opp}`;
+}
+
+export function vibeNextActions({ canReview = false, canEdit = false } = {}) {
+  if (!canReview) return { primary: null, review: false, apply: false };
+  if (canEdit) return { primary: "apply", review: true, apply: true };
+  return { primary: "review", review: true, apply: false };
 }

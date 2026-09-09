@@ -129,8 +129,9 @@ test("Draft does not repeat Night locked as a body heading", () => {
   assert.match(LIVING_SURFACES["hub.room"].doNot, /does not flip Home to live/);
 });
 
-test("Vibes done-state keeps one Review primary", () => {
-  assert.match(LIVING_SURFACES["hub.vibes"].doNot, /keep one Review primary on the ranking card/);
+test("Vibes done-state keeps one Review or Set this slate primary", () => {
+  assert.match(LIVING_SURFACES["hub.vibes"].doNot, /Set this slate is the one primary/);
+  assert.match(LIVING_SURFACES["hub.vibes"].doNot, /Otherwise Review is the one primary on the ranking card/);
 });
 
 test("My team packs columns and grounds the stadium count", () => {

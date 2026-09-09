@@ -35,3 +35,4 @@ Keep under 30 data rows. Promote `always` / `never` into `docs/PRODUCT.md` or a 
 | usually | fantasy-ui | The This Week lineup-call sheet is a sit/start compare, not a dense stats table, and it has to work on phone. |
 | usually | projections | When GBM weekly is missing for K or DEF, fill the week from the rank-curve per-game number. |
 | never | agent | Do not demote the second .btn-primary in DOM order to satisfy the layout audit; primaries are a judgment list the user approves. |
+| usually | agent | When sweeping Jira UI tickets, close already-landed work as Done; otherwise mock, ship a draft PR, then start the next ticket without waiting for review. |

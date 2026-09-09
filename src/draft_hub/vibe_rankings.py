@@ -38,6 +38,28 @@ DEFAULT_STARTER_COUNTS = {
 DEFAULT_FLEX_ELIGIBLE = frozenset({"RB", "WR", "TE"})
 
 
+def safe_number(value: Any, default: float = 0.0) -> float:
+    if value is None or value == "":
+        return default
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return default
+    if n != n or n in (float("inf"), float("-inf")):
+        return default
+    return n
+
+
+def safe_int(value: Any, default: int | None = None) -> int | None:
+    n = safe_number(value, float("nan"))
+    if n != n:
+        return default
+    try:
+        return int(n)
+    except (OverflowError, ValueError):
+        return default
+
+
 def clamp_aura(value: Any) -> float:
     try:
         num = float(value)
@@ -86,12 +108,7 @@ def normalize_aura_map(aura_by_id: dict[str, Any] | None) -> dict[str, float]:
 
 def vibe_score(player: dict[str, Any] | None, aura: float | None = None) -> float:
     """Aura scales week P50. 50 = 1.0×, 0 = 0.6×, 99 ≈ 1.39×."""
-    try:
-        p50 = float((player or {}).get("p50"))
-    except (TypeError, ValueError):
-        p50 = 0.0
-    if p50 != p50:
-        p50 = 0.0
+    p50 = safe_number((player or {}).get("p50"))
     proj = max(0.0, p50)
     a = clamp_aura(aura if aura is not None else AURA_BASE)
     return proj * (0.6 + 0.4 * (a / AURA_BASE))
@@ -181,10 +198,17 @@ def fill_slots_by_score(
     flex_eligible: frozenset[str] | None = None,
 ) -> list[dict[str, Any]]:
     flex_ok = flex_eligible or DEFAULT_FLEX_ELIGIBLE
+
+    def scored(row: dict[str, Any]) -> float:
+        try:
+            return safe_number(score_of(row))
+        except (TypeError, ValueError, OverflowError):
+            return 0.0
+
     remaining = sorted(
         players or [],
         key=lambda p: (
-            -float(score_of(p) or 0.0),
+            -scored(p),
             str(p.get("player_id") or ""),
         ),
     )
@@ -224,7 +248,7 @@ def projection_starts(
     return fill_slots_by_score(
         plan,
         players,
-        lambda p: float(p.get("p50") or 0.0),
+        lambda p: safe_number(p.get("p50")),
         flex_eligible=flex,
     )
 
@@ -367,6 +391,20 @@ def _load_week_players(
     return players, proj_meta, rules
 
 
+def resolve_vibe_week(
+    ctx: dict[str, Any] | None,
+    season: Any = None,
+    week: Any = None,
+) -> tuple[int, int]:
+    hub_season = safe_int((ctx or {}).get("season"))
+    clean_season = safe_int(season)
+    clean_week = safe_int(week)
+    try:
+        return resolve_week_context(clean_season, clean_week, hub_season=hub_season)
+    except Exception:
+        return (clean_season or hub_season or 2026, clean_week or 1)
+
+
 def build_vibe_rankings(
     ctx: dict[str, Any],
     *,
@@ -376,14 +414,8 @@ def build_vibe_rankings(
     persist: bool = False,
 ) -> dict[str, Any]:
     """Build GET/PUT ``/api/hub/vibes`` payload from week roster cards + stored aura."""
-    hub_season = int(ctx["season"]) if ctx.get("season") is not None else None
-    try:
-        resolved_season, resolved_week = resolve_week_context(
-            season, week, hub_season=hub_season
-        )
-    except Exception:
-        resolved_season = int(season or hub_season or 2026)
-        resolved_week = int(week or 1)
+    resolved_season, resolved_week = resolve_vibe_week(ctx, season=season, week=week)
+    hub_season = safe_int((ctx or {}).get("season"))
 
     league_id = str(ctx.get("league_id") or "")
     team_id = str(ctx.get("team_id") or "")

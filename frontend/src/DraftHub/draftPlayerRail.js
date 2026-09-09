@@ -1,5 +1,6 @@
 import { normalizeHubPosition } from "./hubPositions.js";
 import { pinNeedPositions } from "./draftRoomHelpers.js";
+import { playerFitsNeed, sortRowsByTax } from "./draftNominationTax.js";
 
 export const DRAFT_PLAYER_RAIL_POSITIONS = ["ALL", "QB", "RB", "WR", "TE", "K", "DEF"];
 
@@ -15,6 +16,9 @@ export function draftPlayerRailRows(rows, {
   needsOnly = false,
   needPositions = [],
   maxRows = 60,
+  mode = "need",
+  taxById = {},
+  leftover = null,
 } = {}) {
   const needs = [...new Set(
     (needPositions || []).map(normalizeHubPosition).filter(Boolean),
@@ -49,11 +53,18 @@ export function draftPlayerRailRows(rows, {
     if (!Number.isFinite(b)) return -1;
     return b - a;
   });
-  if (needsOnly && needs.length) {
-    const needSet = new Set(needs);
-    list = list.filter((row) => needSet.has(normalizeHubPosition(row.position)));
+  if (mode === "tax") {
+    list = sortRowsByTax(list, taxById);
+    return maxRows ? list.slice(0, maxRows) : list;
   }
-  return pinNeedPositions(list, needsOnly ? [] : needs, maxRows);
+  if ((needsOnly || mode === "need") && needs.length) {
+    list = list.filter((row) => playerFitsNeed({
+      row,
+      needPositions: needs,
+      leftover,
+    }));
+  }
+  return pinNeedPositions(list, needsOnly || mode === "need" ? [] : needs, maxRows);
 }
 
 export function draftPlayerRailValue(row, pickDraft) {
