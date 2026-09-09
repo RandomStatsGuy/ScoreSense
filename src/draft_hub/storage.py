@@ -965,9 +965,9 @@ def _pick_roster_sqlite_row(
         return None
     scoped = rows
     if team_id is not None and str(team_id) != "":
-        matched = [r for r in rows if str(r["team_id"] or "") == str(team_id)]
-        if matched:
-            scoped = matched
+        scoped = [r for r in rows if str(r["team_id"] or "") == str(team_id)]
+        if not scoped:
+            return None
     if prefer == "cut":
         cuts = [r for r in scoped if not roster_row_occupies(r)]
         return cuts[0] if cuts else scoped[0]
