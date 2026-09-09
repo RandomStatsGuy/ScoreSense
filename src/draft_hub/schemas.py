@@ -506,5 +506,16 @@ class VictoryEmoteRequest(BaseModel):
     season: Optional[int] = None
 
 
+class VibesPutRequest(BaseModel):
+    """Replace stored aura for the caller's league-team-week (SCORE-81)."""
+
+    aura_by_id: dict[str, float] = Field(default_factory=dict)
+    week: Optional[int] = None
+    season: Optional[int] = None
+    # Optional single vote: applied on top of aura_by_id (or stored) before save.
+    player_id: Optional[str] = None
+    vibe: Optional[str] = None  # "start" | "sit"
+
+
 class LeagueDeleteConfirmRequest(BaseModel):
     confirm_name: str
