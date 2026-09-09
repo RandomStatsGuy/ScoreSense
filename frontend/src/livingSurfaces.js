@@ -248,7 +248,7 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/tools/dfs",
     page: "frontend/src/LineupOptimizer.jsx",
     copy: "frontend/src/dfsToolPresentation.js",
-    doNot: "Reuse experience classes and dfsToolPresentation.js. Do not fork a DFS hero. Hero only — do not restate the hero as a sub-nav tagline. Rail is Your lineup · locked · skipped. Pool table lets the page own vertical scroll and sticks the header. Announce a built lineup and highlight those rows. Exclusive format/goal/stack choices use radiogroup. Season and Week use HubFilterMenu, not a native select. Format cards are 5-up at desktop width. Highest is a corner tag, not a wrapping HIGHEST TOTAL line. Lock/Skip use the same ghost height as Free agents History. Amber never marks Highest.",
+    doNot: "Reuse experience classes and dfsToolPresentation.js. Do not fork a DFS hero. Hero only — do not restate the hero as a sub-nav tagline. Rail is Your lineup · locked · skipped. Pool table lets the page own vertical scroll and sticks the header. Announce a built lineup and highlight those rows. Exclusive format/goal/stack choices use radiogroup. Season and Week use HubFilterMenu, not a native select. Format cards are 5-up at desktop width. Vegas games are the shootout board — selectable on classic and season-long. Picking a game applies Ceiling, QB +2, and a bring-back, and locks that stack. Highest is a corner tag, not a wrapping HIGHEST TOTAL line. Lock/Skip use the same ghost height as Free agents History. Amber never marks Highest or the selected game.",
   }),
   "tools.mock-draft": S({
     label: "Mock draft",

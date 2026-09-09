@@ -13,7 +13,7 @@ Open **[dfs.html](./dfs.html)** first. Living surface: `tools.dfs` → `LineupOp
 | `dfs-b.html` | **B · Shootout.** Vegas games are the board. Pick the total, then the stack. |
 | `dfs-c.html` | **C · Leverage.** Pool board with Own% and Lev. Fade chalk. |
 
-Reply A / B / C. Do not implement the living page until a letter is picked.
+Shipped pick is **B**. Living surface: `tools.dfs` → `LineupOptimizer.jsx`. Copy: `dfsToolPresentation.js`.
 
 Mock pages must pass `scripts/dev/layout_audit.mjs` (same bar, table, and collision rules as the app). Do not pick an option that would ship a known craft fail.
 
