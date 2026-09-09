@@ -411,14 +411,14 @@ export function templateImpact(currentRules, presetRules) {
     changes.push(
       next.contracts.allow_veteran_renewal
         ? "Vet deal extensions become available."
-        : "Vet deal extensions become off.",
+        : "Vet deal extensions are disabled.",
     );
   }
   if (Boolean(current.contracts.one_renewal_after_rookie) !== Boolean(next.contracts.one_renewal_after_rookie)) {
     changes.push(
       next.contracts.one_renewal_after_rookie
         ? "Rookie deal extensions become available."
-        : "Rookie deal extensions become off.",
+        : "Rookie deal extensions are disabled.",
     );
   }
   if (!changes.length) {

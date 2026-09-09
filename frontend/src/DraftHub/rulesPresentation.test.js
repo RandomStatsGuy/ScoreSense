@@ -181,6 +181,15 @@ test("template impact names format, cap, and roster changes and does not save", 
   assert.match(message, /Snake draft/);
   assert.ok(presetRulesFromList({ rules: snake }));
   assert.equal(presetRulesFromList({ label: "Snake draft" }), null);
+  const extensionsOff = templateImpact(
+    mergeLeagueRules({}),
+    mergeLeagueRules({
+      contracts: { allow_veteran_renewal: false, one_renewal_after_rookie: false },
+    }),
+  );
+  assert.ok(extensionsOff.some((line) => /Vet deal extensions are disabled/.test(line)));
+  assert.ok(extensionsOff.some((line) => /Rookie deal extensions are disabled/.test(line)));
+  assert.ok(!extensionsOff.some((line) => /become off/.test(line)));
 });
 
 test("late Rules save does not apply when the form or header has moved leagues", () => {

@@ -212,20 +212,56 @@ def schedule_preview(contract: dict[str, Any] | None) -> list[float]:
     return out
 
 
+def _existing_deal_is_static(
+    ctype: str,
+    prior: dict[str, Any],
+    cr: ContractRules,
+) -> bool:
+    """Keep this deal's flat/stepped shape. League policy applies to new contracts only."""
+    kind = str(ctype or "veteran")
+    if kind == "rookie":
+        if prior and prior.get("rookie_salary_static") is not None:
+            return bool(prior["rookie_salary_static"])
+        return bool(cr.rookie_salary_static)
+    if kind == "veteran":
+        if prior and prior.get("veteran_salary_static") is not None:
+            return bool(prior["veteran_salary_static"])
+        if prior:
+            stored_step = float(prior.get("step_up_per_year") or 0)
+            preview = schedule_preview(prior)
+            stepped = stored_step > 0 or (
+                len(preview) >= 2
+                and any(abs(value - preview[0]) > 0.001 for value in preview[1:])
+            )
+            if stepped:
+                return False
+        return bool(cr.veteran_salary_static)
+    return False
+
+
 def _schedule_step_for_type(
     ctype: str,
     *,
     step_up: float | None,
     cr: ContractRules,
+    static: bool | None = None,
 ) -> float:
-    """Return the league-approved annual salary step for a contract type."""
+    """Return the annual salary step for a contract type.
+
+    ``static`` overrides the current league flag so a roster edit keeps the
+    deal's original flat/stepped term.
+    """
     kind = str(ctype or "veteran")
-    if kind == "rookie" and cr.rookie_salary_static:
-        return 0.0
-    if kind == "veteran" and cr.veteran_salary_static:
-        return 0.0
     if kind not in ("rookie", "extension", "veteran"):
         return 0.0
+    if kind == "rookie":
+        is_static = bool(cr.rookie_salary_static) if static is None else bool(static)
+        if is_static:
+            return 0.0
+    if kind == "veteran":
+        is_static = bool(cr.veteran_salary_static) if static is None else bool(static)
+        if is_static:
+            return 0.0
     if step_up is not None:
         return float(step_up)
     return float(cr.extension_step_up)
@@ -363,7 +399,8 @@ def build_contract_from_roster_edit(
     base = round(float(current_salary), 2)
     prior = existing or {}
     ctype = contract_type or prior.get("contract_type") or "veteran"
-    step = _schedule_step_for_type(str(ctype), step_up=step_up, cr=cr)
+    static = _existing_deal_is_static(str(ctype), prior, cr) if ctype in ("rookie", "veteran") else None
+    step = _schedule_step_for_type(str(ctype), step_up=step_up, cr=cr, static=static)
 
     if ctype == "rookie":
         amounts = [round(base + step * i, 2) for i in range(yrs)]
@@ -398,9 +435,13 @@ def build_contract_from_roster_edit(
         "current_salary": schedule[0]["salary"],
     }
     if ctype == "rookie":
-        out["rookie_salary_static"] = bool(cr.rookie_salary_static)
+        out["rookie_salary_static"] = bool(
+            static if static is not None else cr.rookie_salary_static
+        )
     if ctype == "veteran":
-        out["veteran_salary_static"] = bool(cr.veteran_salary_static)
+        out["veteran_salary_static"] = bool(
+            static if static is not None else cr.veteran_salary_static
+        )
     # Preserve typing / approval metadata across salary & years edits.
     for key in (
         "contract_type_manual",
