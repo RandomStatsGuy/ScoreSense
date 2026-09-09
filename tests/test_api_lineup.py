@@ -21,6 +21,8 @@ def test_optimize_request_supports_construction_controls():
     request = LineupOptimizeRequest(
         qb_stack_count=2,
         stack_bring_back=True,
+        stack_teams=["MIA", "LV"],
+        stack_qb_ids=["00-0038128"],
         max_per_team=3,
         min_salary=49000,
         lineup_count=150,
@@ -29,6 +31,8 @@ def test_optimize_request_supports_construction_controls():
     )
     assert request.qb_stack_count == 2
     assert request.stack_bring_back is True
+    assert request.stack_teams == ["MIA", "LV"]
+    assert request.stack_qb_ids == ["00-0038128"]
     assert request.max_exposure == 0.5
 
     defaults = LineupOptimizeRequest()

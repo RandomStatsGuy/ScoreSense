@@ -231,7 +231,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/LeagueInsights.jsx",
     copy: "frontend/src/DraftHub/insights/insightsPresentation.js",
     also: ["frontend/src/DraftHub/insights/InsightsOverview.jsx"],
-    doNot: "Gold is for awards only. Overview sells titles, records, and scoring — not Spend. Rank bars share a fixed track and a field scale, not a zero baseline or the value-label width. Scoring gaps from first; the leader reads Leader. Season counts are meta, not chips. Keep the tab strip live and below the hero band — never above it. Skeleton the three cards — no think scrim. Award names live on Roster management. Overview is a three-card page that should sit above the fold; do not stretch unequal panels to a shared bottom.",
+    doNot: "Gold is for awards only. Overview sells titles, records, and scoring — not Spend. Rank bars share a fixed track and a field scale, not a zero baseline or the value-label width. Scoring gaps from first; the leader reads Leader. Season counts are meta, not chips. Keep the tab strip live and below the hero band — never above it. Skeleton the plaque, year ribbon, and two boards — no think scrim. Award names live on Roster management. Overview is a dynasty plaque, championship years, and two boards; do not stretch unequal panels to a shared bottom. List every manager by the name that persists across seasons; team nicknames sit under or after a middot — never as the only label.",
   }),
   "hub.setup": S({
     label: "Setup",
@@ -248,7 +248,7 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/tools/dfs",
     page: "frontend/src/LineupOptimizer.jsx",
     copy: "frontend/src/dfsToolPresentation.js",
-    doNot: "Reuse experience classes and dfsToolPresentation.js. Do not fork a DFS hero. Hero only — do not restate the hero as a sub-nav tagline. Rail is Your lineup · locked · skipped. Pool table lets the page own vertical scroll and sticks the header. Announce a built lineup and highlight those rows. Exclusive format/goal/stack choices use radiogroup. Season and Week use HubFilterMenu, not a native select. Format cards are 5-up at desktop width. Vegas games are the shootout board — selectable on classic and season-long. Picking a game applies Ceiling, QB +2, and a bring-back, and locks that stack. Highest is a corner tag, not a wrapping HIGHEST TOTAL line. Lock/Skip use the same ghost height as Free agents History. Amber never marks Highest or the selected game.",
+    doNot: "Reuse experience classes and dfsToolPresentation.js. Do not fork a DFS hero. Hero only — do not restate the hero as a sub-nav tagline. Rail is Your lineup · locked · skipped. Pool table lets the page own vertical scroll and sticks the header. Announce a built lineup and highlight those rows. Exclusive format/goal/stack-count choices use radiogroup. Season and Week use HubFilterMenu, not a native select. Format cards are 5-up at desktop width. Vegas games are the shootout board — multi-select on classic and season-long. Picking a game marks it for the build and does not lock a player. Stack cards are optional. Highest is a corner tag, not a wrapping HIGHEST TOTAL line. Lock/Skip use the same ghost height as Free agents History. Amber never marks Highest or the selected game.",
   }),
   "tools.mock-draft": S({
     label: "Mock draft",

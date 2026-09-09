@@ -23,13 +23,16 @@ export function InsightsSkeleton() {
 export function InsightsOverviewSkeleton() {
   return (
     <div
-      className="hub-insights-overview-grid hub-insights-overview-grid--skeleton"
+      className="hub-insights-overview hub-insights-overview--skeleton"
       aria-busy="true"
       aria-label="Loading league history"
     >
-      <div className="hub-insights-skeleton-block hub-insights-skeleton-block--panel" />
-      <div className="hub-insights-skeleton-block hub-insights-skeleton-block--panel" />
-      <div className="hub-insights-skeleton-block hub-insights-skeleton-block--panel" />
+      <div className="hub-insights-skeleton-block hub-insights-skeleton-block--plaque" />
+      <div className="hub-insights-skeleton-block hub-insights-skeleton-block--years" />
+      <div className="hub-insights-overview-boards">
+        <div className="hub-insights-skeleton-block hub-insights-skeleton-block--panel" />
+        <div className="hub-insights-skeleton-block hub-insights-skeleton-block--panel" />
+      </div>
     </div>
   );
 }

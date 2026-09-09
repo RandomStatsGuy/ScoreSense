@@ -1,9 +1,14 @@
 """Tests for lineup optimizer."""
 
+import pandas as pd
+
 from src.products.lineup_optimizer import (
     LineupPlayer,
+    _locked_stack_error,
+    collect_keep_teams,
     optimize_lineup,
     optimize_multiple_lineups,
+    reserve_pool_for_keep_teams,
 )
 
 
@@ -98,6 +103,127 @@ def test_optimize_qb_stack_count_two_pass_catchers():
         if r["team"] == qb["team"] and r["position"] in ("WR", "TE")
     ]
     assert len(mates) >= 2
+
+
+def test_collect_keep_teams_adds_locked_qb_side_and_opponent():
+    pool = pd.DataFrame(
+        [
+            {"player_id": "willis", "Team": "MIA", "Opponent": "LV"},
+            {"player_id": "cousins", "Team": "LVR", "Opponent": "MIA"},
+            {"player_id": "allen", "Team": "BUF", "Opponent": "NYJ"},
+        ]
+    )
+    keys = collect_keep_teams(["MIA"], ["willis"], pool)
+    assert keys == {"MIA", "LV"}
+    from_pin = collect_keep_teams(None, ["cousins"], pool)
+    assert from_pin == {"LV", "MIA"}
+    sparse = pd.DataFrame(
+        [
+            {"player_id": "willis", "Team": None, "Opponent": float("nan")},
+            {"player_id": "cousins", "Team": "LV", "Opponent": "MIA"},
+        ]
+    )
+    assert collect_keep_teams(None, ["willis"], sparse) == set()
+    assert collect_keep_teams(None, ["cousins"], sparse) == {"LV", "MIA"}
+    reserved = reserve_pool_for_keep_teams(sparse, {"LV", "MIA"})
+    assert set(reserved["player_id"]) == {"cousins"}
+    nan_team = pd.DataFrame(
+        [
+            {"player_id": "bye", "Team": float("nan")},
+            {"player_id": "waddle", "Team": "MIA"},
+        ]
+    )
+    assert set(reserve_pool_for_keep_teams(nan_team, {"MIA"})["player_id"]) == {"waddle"}
+
+
+def test_locked_stack_error_tolerates_missing_locks():
+    assert _locked_stack_error(_sample_pool(), None, 2) is None
+    assert _locked_stack_error(_sample_pool(), set(), 2) is None
+
+
+def test_optimize_locked_willis_with_mates_builds():
+    players = [
+        LineupPlayer("willis", "Malik Willis", "MIA", "QB", 9, 1, 25, opponent="LV"),
+        LineupPlayer("rb1", "RB One", "BBB", "RB", 16, 10, 22),
+        LineupPlayer("rb2", "RB Two", "CCC", "RB", 14, 9, 20),
+        LineupPlayer("rb3", "RB Three", "DDD", "RB", 12, 8, 18),
+        LineupPlayer("waddle", "Jaylen Waddle", "MIA", "WR", 15, 9, 22),
+        LineupPlayer("wease", "Theo Wease Jr.", "MIA", "WR", 8, 4, 14),
+        LineupPlayer("bowers", "Brock Bowers", "LV", "TE", 12, 7, 20),
+        LineupPlayer("wr2", "WR Two", "BBB", "WR", 13, 8, 19),
+        LineupPlayer("wr3", "WR Three", "CCC", "WR", 11, 7, 17),
+        LineupPlayer("te2", "TE Two", "EEE", "TE", 7, 4, 11),
+    ]
+    roster = {"qb": 1, "rb": 2, "wr": 2, "te": 1, "flex": 1, "dst": 0}
+    result = optimize_lineup(
+        players,
+        roster=roster,
+        qb_stack_count=2,
+        stack_bring_back=True,
+        locked_player_ids={"willis"},
+    )
+    assert result["ok"] is True
+    qb = next(row for row in result["lineup"] if row["slot"] == "QB")
+    assert qb["player_id"] == "willis"
+    mates = [
+        row
+        for row in result["lineup"]
+        if row["team"] == "MIA" and row["position"] in ("WR", "TE")
+    ]
+    assert len(mates) >= 2
+
+
+def test_optimize_locked_qb_without_mates_explains_the_miss():
+    players = [
+        LineupPlayer("willis", "Malik Willis", "MIA", "QB", 9, 1, 25),
+        LineupPlayer("cousins", "Kirk Cousins", "LV", "QB", 11, 6, 18),
+        LineupPlayer("rb1", "RB One", "BBB", "RB", 16, 10, 22),
+        LineupPlayer("rb2", "RB Two", "CCC", "RB", 14, 9, 20),
+        LineupPlayer("rb3", "RB Three", "DDD", "RB", 12, 8, 18),
+        LineupPlayer("dulcich", "Greg Dulcich", "MIA", "TE", 6, 3, 12),
+        LineupPlayer("bowers", "Brock Bowers", "LV", "TE", 12, 7, 20),
+        LineupPlayer("wr2", "WR Two", "BBB", "WR", 13, 8, 19),
+        LineupPlayer("wr3", "WR Three", "CCC", "WR", 11, 7, 17),
+        LineupPlayer("wr4", "WR Four", "EEE", "WR", 10, 6, 15),
+    ]
+    roster = {"qb": 1, "rb": 2, "wr": 2, "te": 1, "flex": 1, "dst": 0}
+    result = optimize_lineup(
+        players,
+        roster=roster,
+        qb_stack_count=2,
+        locked_player_ids={"willis"},
+    )
+    assert result["ok"] is False
+    assert "Malik Willis" in result["error"]
+    assert "pass catchers" in result["error"]
+
+
+def test_optimize_stack_teams_uses_a_qb_from_the_marked_game():
+    players = [
+        LineupPlayer("willis", "Malik Willis", "MIA", "QB", 9, 1, 25, opponent="LV"),
+        LineupPlayer("allen", "Josh Allen", "BUF", "QB", 24, 16, 34, opponent="NYJ"),
+        LineupPlayer("rb1", "RB One", "BBB", "RB", 16, 10, 22),
+        LineupPlayer("rb2", "RB Two", "CCC", "RB", 14, 9, 20),
+        LineupPlayer("rb3", "RB Three", "DDD", "RB", 12, 8, 18),
+        LineupPlayer("waddle", "Jaylen Waddle", "MIA", "WR", 15, 9, 22),
+        LineupPlayer("wease", "Theo Wease Jr.", "MIA", "WR", 8, 4, 14),
+        LineupPlayer("bowers", "Brock Bowers", "LV", "TE", 12, 7, 20),
+        LineupPlayer("shakir", "Khalil Shakir", "BUF", "WR", 14, 8, 20),
+        LineupPlayer("kincaid", "Dalton Kincaid", "BUF", "TE", 11, 6, 16),
+        LineupPlayer("te2", "TE Two", "EEE", "TE", 7, 4, 11),
+        LineupPlayer("wr4", "WR Four", "EEE", "WR", 6, 3, 10),
+    ]
+    roster = {"qb": 1, "rb": 2, "wr": 2, "te": 1, "flex": 1, "dst": 0}
+    result = optimize_lineup(
+        players,
+        roster=roster,
+        qb_stack_count=2,
+        stack_bring_back=True,
+        stack_teams=["MIA", "LV"],
+    )
+    assert result["ok"] is True
+    qb = next(row for row in result["lineup"] if row["slot"] == "QB")
+    assert qb["player_id"] == "willis"
 
 
 def test_optimize_bring_back_uses_opponent_player():

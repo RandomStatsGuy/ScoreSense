@@ -1,6 +1,7 @@
 from src.draft_hub.owner_display import (
     attach_owner_names_to_teams,
     enrich_award_display,
+    enrich_insights_landing,
     enrich_team_row,
     format_manager_label,
     resolve_owner,
@@ -48,6 +49,41 @@ def test_enrich_team_row_adds_display_name():
     assert row["team_name"] == "Alpha"
     assert row["display_name"] == "Alice"
     assert row["owner_name"] == "Alice"
+
+
+def test_historic_king_panda_is_stephen():
+    from src.draft_hub.owner_display import _fuzzy_yaml_owner
+
+    assert _fuzzy_yaml_owner("King Panda") == "Stephen P"
+    assert _fuzzy_yaml_owner("KKing panda") == "Stephen P"
+
+
+def test_enrich_insights_landing_uses_manager_names():
+    landing = enrich_insights_landing(
+        {
+            "most_titles": {"team_name": "King Panda", "owner_id": "u1", "titles": 3},
+            "champions": [
+                {
+                    "season": "2022",
+                    "team_name": "King Panda",
+                    "owner_id": "u1",
+                    "runner_up": "Sad Panda",
+                    "runner_up_owner_id": "u2",
+                }
+            ],
+            "record_leaders": [{"team_name": "The Deported Panda", "owner_id": "u1", "wins": 45}],
+            "scoring_leaders": [{"team_name": "The Deported Panda", "owner_id": "u1"}],
+        },
+        {"The Deported Panda": "Stephen P"},
+        {"u1": "Stephen P", "u2": "Dawson O"},
+    )
+    assert landing["most_titles"]["owner_name"] == "Stephen P"
+    assert landing["most_titles"]["display_name"] == "Stephen P"
+    assert landing["champions"][0]["owner_name"] == "Stephen P"
+    assert landing["champions"][0]["display_name"] == "Stephen P"
+    assert landing["champions"][0]["team_name"] == "King Panda"
+    assert landing["champions"][0]["runner_up_owner_name"] == "Dawson O"
+    assert landing["record_leaders"][0]["owner_name"] == "Stephen P"
 
 
 def test_fuzzy_yaml_owner_matches_partial_team_name():

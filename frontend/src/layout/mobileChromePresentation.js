@@ -13,7 +13,7 @@ export const MOBILE_CHROME_COPY = {
   fantasySheet: "Go to",
   weeklyHint: "Who to start this week",
   seasonHint: "Who to draft, or rest of season",
-  dfsHint: "Pick the shootout, then fill the cap",
+  dfsHint: "Pick the totals, then the stack",
   mockHint: "Practice without touching keepers",
   bestBallHint: "Who the model wants earlier than ADP",
 };

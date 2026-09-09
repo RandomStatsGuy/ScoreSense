@@ -144,12 +144,19 @@ def build_demo_insights(league_id: str, *, sections: str = "cap,scoring,trades")
             }
             for block in teams
         ]
+        from src.draft_hub.owner_display import enrich_insights_landing, scoring_owner_maps_for_league
+
         landing = build_insights_landing(
             str(league.get("sleeper_league_id") or ""),
             hub_teams=hub_teams,
             award_titles=titles,
         )
-        payload["landing"] = landing
+        owner_map, sleeper_map = scoring_owner_maps_for_league(
+            league_id,
+            sleeper_league_id=str(league.get("sleeper_league_id") or "") or None,
+        )
+        payload["landing"] = enrich_insights_landing(landing, owner_map, sleeper_map)
+        payload["owner_map"] = owner_map
         payload["award_catalog"] = landing.get("award_catalog") or award_catalog(titles)
     if "trades" in wanted:
         from src.draft_hub.insights_cache import read_fair_values

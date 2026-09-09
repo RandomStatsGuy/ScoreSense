@@ -2696,6 +2696,25 @@ def _hub_ownership_history_payload(
     return _finalize(ownership)
 
 
+def _insights_landing_bundle(league_id: str, *, refresh: bool, award_titles):
+    from src.draft_hub.league_history import build_insights_landing
+    from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
+    from src.draft_hub.owner_display import enrich_insights_landing, scoring_owner_maps_for_league
+
+    sleeper_lid = resolve_sleeper_league_id(league_id) or ""
+    landing = build_insights_landing(
+        str(sleeper_lid),
+        hub_teams=_hub_teams_for_scoring(league_id),
+        refresh=refresh,
+        award_titles=award_titles,
+    )
+    owner_map, sleeper_map = scoring_owner_maps_for_league(
+        league_id,
+        sleeper_league_id=str(sleeper_lid) or None,
+    )
+    return enrich_insights_landing(landing, owner_map, sleeper_map), owner_map
+
+
 @router.get("/league/{league_id}/insights")
 def hub_league_insights(
     response: Response,
@@ -2797,16 +2816,12 @@ def hub_league_insights(
             and wanted_sections == {"overview"}
         ):
             from src.draft_hub.insight_awards import award_catalog
-            from src.draft_hub.league_history import build_insights_landing
-            from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
-            from src.draft_hub.owner_display import planning_season_for_user, team_owner_map_for_league
+            from src.draft_hub.owner_display import planning_season_for_user
 
             with timer.phase("landing"):
                 league = storage.get_league(league_id) or {}
-                sleeper_lid = resolve_sleeper_league_id(league_id) or ""
-                landing = build_insights_landing(
-                    str(sleeper_lid),
-                    hub_teams=_hub_teams_for_scoring(league_id),
+                landing, owner_map = _insights_landing_bundle(
+                    league_id,
                     refresh=False,
                     award_titles=_league_award_titles(league),
                 )
@@ -2827,7 +2842,7 @@ def hub_league_insights(
                     "historic": {"available": False, "awards": []},
                     "landing": landing,
                     "award_catalog": landing.get("award_catalog") or award_catalog(_league_award_titles(league)),
-                    "owner_map": team_owner_map_for_league(league_id),
+                    "owner_map": owner_map,
                     "planning_season": planning_season_for_user(sub, league),
                     "hub_context": ctx,
                     "cache_status": {"overview": "hit" if landing.get("available") else "miss"},
@@ -3147,16 +3162,11 @@ def hub_league_insights(
         from src.draft_hub.owner_display import planning_season_for_user, team_owner_map_for_league
 
     landing = None
+    owner_map = None
     if wanted_sections and "overview" in wanted_sections:
-        from src.draft_hub.insight_awards import award_catalog
-        from src.draft_hub.league_history import build_insights_landing
-        from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
-
         with timer.phase("landing"):
-            sleeper_lid = resolve_sleeper_league_id(league_id) or ""
-            landing = build_insights_landing(
-                str(sleeper_lid),
-                hub_teams=_hub_teams_for_scoring(league_id),
+            landing, owner_map = _insights_landing_bundle(
+                league_id,
                 refresh=refresh,
                 award_titles=_league_award_titles(league),
             )
@@ -3177,7 +3187,7 @@ def hub_league_insights(
         "historic": historic,
         "landing": landing,
         "award_catalog": (landing or {}).get("award_catalog"),
-        "owner_map": team_owner_map_for_league(league_id),
+        "owner_map": owner_map if owner_map is not None else team_owner_map_for_league(league_id),
         "planning_season": planning_season_for_user(sub, league),
         "hub_context": ctx,
         "cache_status": cache_status,
