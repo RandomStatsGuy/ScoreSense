@@ -4940,6 +4940,20 @@ button.dfs-vegas-card {
   cursor: pointer;
 }
 
+.hub-cap-row.is-selected td,
+.hub-cap-dense-row.is-selected {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+  transition: background 160ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-cap-row.is-selected td,
+  .hub-cap-dense-row.is-selected {
+    transition: none;
+  }
+}
+
 .hub-cap-rail-actions {
   display: flex;
   flex-direction: column;

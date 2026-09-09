@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   buildAppPath,
   buildFilterSearchParams,
+  hubSubViewFilterUpdates,
   leagueInvitePath,
   parseAppPath,
   parseFilterParams,
@@ -119,6 +120,28 @@ test("season projections deep-link without a mode lands on Season, not Weekly", 
   assert.equal(
     buildAppPath({ view: "projections", projectionsTab: "season", seasonMode: "preseason" }),
     "/projections/season/preseason",
+  );
+});
+
+test("opening Free agents without extras clears a leftover player focus", () => {
+  assert.deepEqual(hubSubViewFilterUpdates("available"), { player: "" });
+  assert.deepEqual(hubSubViewFilterUpdates("available", null), { player: "" });
+  assert.equal(hubSubViewFilterUpdates("planner"), null);
+  assert.equal(hubSubViewFilterUpdates("room"), null);
+});
+
+test("Free agents extras can set or clear the focused player", () => {
+  assert.deepEqual(
+    hubSubViewFilterUpdates("available", { player: "4017", pos: "wr" }),
+    { needPos: "WR", player: "4017" },
+  );
+  assert.deepEqual(
+    hubSubViewFilterUpdates("available", { pos: "RB" }),
+    { needPos: "RB", player: "" },
+  );
+  assert.deepEqual(
+    hubSubViewFilterUpdates("available", { player_id: "fit" }),
+    { player: "fit" },
   );
 });
 

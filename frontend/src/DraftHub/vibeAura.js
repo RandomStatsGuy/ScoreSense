@@ -106,6 +106,15 @@ export function startIds(slots) {
   );
 }
 
+export function vibeLineupStarters(slots) {
+  return (slots || [])
+    .filter((slot) => slot?.player?.player_id && slot?.slot)
+    .map((slot) => ({
+      player_id: String(slot.player.player_id),
+      slot: String(slot.slot),
+    }));
+}
+
 export function vibeDivergences(projSlots, vibeSlots) {
   const proj = startIds(projSlots);
   const vibe = startIds(vibeSlots);

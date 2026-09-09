@@ -483,3 +483,17 @@ export function buildFilterSearchParams({
 
   return params;
 }
+
+/** Filter writes for Fantasy destination switches. Opening Free agents without a focus extra clears a leftover `player` from Cut and open bid. */
+export function hubSubViewFilterUpdates(subView, extra) {
+  const updates = {};
+  if (extra && typeof extra === "object") {
+    if (extra.pos) updates.needPos = String(extra.pos).toUpperCase();
+    const playerId = extra.player ?? extra.player_id ?? extra.playerId;
+    if (playerId !== undefined) updates.player = String(playerId || "");
+    else if (subView === "available") updates.player = "";
+  } else if (subView === "available") {
+    updates.player = "";
+  }
+  return Object.keys(updates).length ? updates : null;
+}

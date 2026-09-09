@@ -26,6 +26,7 @@ export default function MobilePlayerCard({
   actions,
   hideHeroSubWhenOpen = false,
   reserveHeroSub = false,
+  playerId,
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const detailsId = useId();
@@ -46,6 +47,7 @@ export default function MobilePlayerCard({
 
   return (
     <article
+      data-player-id={playerId || undefined}
       className={`mobile-player-card${selected ? " mobile-player-card--selected" : ""}${unavailable ? " mobile-player-card--unavailable" : ""}${open ? " mobile-player-card--open" : ""} ${className}`.trim()}
     >
       <div className="mobile-player-card-top">

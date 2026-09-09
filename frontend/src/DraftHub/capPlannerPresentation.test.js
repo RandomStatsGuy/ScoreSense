@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 import {
   againstCap,
@@ -22,12 +25,18 @@ import {
   rosterNeedLine,
   rosterPositionNeeds,
   vsCostCell,
+  previewCutFunds,
+  pickFundedPlayer,
+  capCutFundsAction,
+  capCutFundsLine,
+  capCutConfirmCopy,
   CAP_NEED_COPY,
   CAP_MOVE_COPY,
   CAP_FIGURE_COPY,
   CAP_EXTEND_COPY,
   CAP_MODEL_COPY,
   CAP_STATUS_COPY,
+  CAP_CUT_COPY,
 } from "./capPlannerPresentation.js";
 
 test("Cap hero asks if you can afford the bid", () => {
@@ -248,4 +257,54 @@ test("capSheetYearOffsets hides years with no hits", () => {
     hitFor: (row, offset) => hits[row.id]?.[offset] ?? null,
   });
   assert.deepEqual(offsets, [1]);
+});
+
+const CUT_RULES = { contracts: { cut_refund_pct: 0.5 } };
+const FA_ROWS = [
+  { player_id: "pricey", player: "Pricey", position: "WR", fair_value: 25, status: "available" },
+  { player_id: "fit", player: "Fits", position: "TE", fair_value: 18, status: "available" },
+  { player_id: "cheap", player: "Cheap", position: "RB", fair_value: 12, status: "available" },
+  { player_id: "mine", player: "Mine", fair_value: 30, status: "mine" },
+];
+
+test("This cut funds the highest available bid that still fits leftover", () => {
+  const funded = pickFundedPlayer({ leftoverAfter: 20, availableRows: FA_ROWS });
+  assert.equal(funded.player_id, "fit");
+  assert.equal(funded.suggested_bid, 18);
+  const preview = previewCutFunds({
+    row: { player_id: "vet", player_name: "Veteran", salary: 10, roster_status: "active" },
+    leftover: 12,
+    rules: CUT_RULES,
+    availableRows: FA_ROWS,
+    addMode: "bid",
+  });
+  assert.equal(preview.dead_cap, 5);
+  assert.equal(preview.cap_freed, 5);
+  assert.equal(preview.leftover_after, 17);
+  assert.equal(preview.funded_player_id, "cheap");
+  assert.equal(capCutFundsAction(preview).kind, "cut-bid");
+  assert.equal(capCutFundsAction(preview).label, CAP_CUT_COPY.cutAndBid);
+  assert.match(capCutFundsLine(preview), /Cheap at \$12/);
+  assert.match(capCutConfirmCopy(preview), /Veteran/);
+  assert.match(capCutConfirmCopy(preview), /Cheap/);
+  assert.doesNotMatch(capCutConfirmCopy(preview), /Draft Hub|Submit|permission/i);
+});
+
+test("locked window still cuts and names the funded player as advice", () => {
+  const preview = previewCutFunds({
+    row: { player_id: "vet", player_name: "Veteran", salary: 10 },
+    leftover: 40,
+    rules: CUT_RULES,
+    availableRows: FA_ROWS,
+    addMode: "locked",
+  });
+  assert.equal(preview.funded_player_id, "pricey");
+  assert.equal(capCutFundsAction(preview).kind, "cut");
+  assert.equal(capCutFundsAction({ ...preview, add_mode: "add" }).kind, "cut-add");
+  assert.equal(capCutFundsLine({ leftover_after: 2 }), CAP_CUT_COPY.noneFit);
+});
+
+test("Cap cut handoff bails while a cut is already in flight", () => {
+  const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "CapPlanner.jsx"), "utf8");
+  assert.match(src, /if \(!cutPreview \|\| cutPreview\.is_cut \|\| cutBusyId\) return/);
 });

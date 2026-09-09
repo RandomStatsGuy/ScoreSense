@@ -10,6 +10,7 @@ import {
   HubLoadingSkeleton,
   HubPage,
 } from "./HubUILayout";
+import { canEditHubLineup } from "./weekBoard";
 import {
   applyVibe,
   auraLeaders,
@@ -28,6 +29,7 @@ import {
   storageKey,
   todayRatedCount,
   vibeDivergences,
+  vibeLineupStarters,
   vibeScore,
   vibeStarts,
 } from "./vibeAura";
@@ -42,6 +44,7 @@ import {
   hottestLabel,
   rateHint,
   todayReadRows,
+  vibeNextActions,
   vsModelNote,
   vsSplitRows,
 } from "./vibeRankingsPresentation";
@@ -148,6 +151,8 @@ export default function VibeRankings({
   const [dayVotes, setDayVotes] = useState(() => loadDayVotes(""));
   const [vegasTeams, setVegasTeams] = useState({});
   const [latestById, setLatestById] = useState({});
+  const [applyBusy, setApplyBusy] = useState(false);
+  const [applyError, setApplyError] = useState("");
   const coarsePointer = useCoarsePointer();
 
   const load = useCallback(async (signal) => {
@@ -233,15 +238,54 @@ export default function VibeRankings({
     week: data?.meta?.week,
   });
 
+  const leagueId = data?.hub_context?.league_id || hubContext?.league_id;
+
+  const persistRemote = useCallback((next) => {
+    if (!leagueId || season == null || week == null) return;
+    apiFetch("/api/hub/vibes", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ aura_by_id: next, week, season }),
+    }).catch(() => {});
+  }, [leagueId, season, week]);
+
   useEffect(() => {
     setAuraById(loadAura(key));
     setDayVotes(loadDayVotes(dayKey));
     setHistory([]);
+    setApplyError("");
   }, [dayKey, key]);
 
   useEffect(() => {
     saveAura(key, auraById);
   }, [auraById, key]);
+
+  useEffect(() => {
+    if (!leagueId || season == null || week == null) return undefined;
+    const ctrl = new AbortController();
+    (async () => {
+      try {
+        const params = new URLSearchParams({
+          week: String(week),
+          season: String(season),
+        });
+        const res = await apiFetch(`/api/hub/vibes?${params}`, { signal: ctrl.signal });
+        if (!res.ok) return;
+        const payload = await res.json();
+        const remote = payload?.aura_by_id;
+        if (remote && typeof remote === "object" && Object.keys(remote).length) {
+          setAuraById(remote);
+          saveAura(key, remote);
+          return;
+        }
+        const local = loadAura(key);
+        if (Object.keys(local).length) persistRemote(local);
+      } catch (e) {
+        if (isAbortError(e) || ctrl.signal.aborted) return;
+      }
+    })();
+    return () => ctrl.abort();
+  }, [key, leagueId, persistRemote, season, week]);
 
   useEffect(() => {
     saveDayVotes(dayKey, dayVotes);
@@ -269,7 +313,11 @@ export default function VibeRankings({
 
   const commit = (vibe, player) => {
     if (!player?.player_id) return;
-    setAuraById((cur) => applyVibe(cur, player.player_id, vibe));
+    setAuraById((cur) => {
+      const next = applyVibe(cur, player.player_id, vibe);
+      persistRemote(next);
+      return next;
+    });
     setDayVotes((cur) => recordDayVote(cur, player.player_id, vibe));
     setHistory((cur) => [...cur, { playerId: player.player_id, vibe }]);
   };
@@ -279,11 +327,15 @@ export default function VibeRankings({
       const last = cur[cur.length - 1];
       if (!last) return cur;
       const reverse = last.vibe === "start" ? "sit" : "start";
-      setAuraById((aura) => applyVibe(aura, last.playerId, reverse));
+      setAuraById((aura) => {
+        const next = applyVibe(aura, last.playerId, reverse);
+        persistRemote(next);
+        return next;
+      });
       setDayVotes((votes) => clearDayVote(votes, last.playerId));
       return cur.slice(0, -1);
     });
-  }, []);
+  }, [persistRemote]);
 
   useEffect(() => {
     const onKey = (event) => {
@@ -306,15 +358,61 @@ export default function VibeRankings({
     },
   ];
   const canReview = !usingDemo && ratedToday > 0;
+  const canEdit = canEditHubLineup({
+    mode: data?.hub_context?.mode || hubContext?.mode,
+    lineupSource: data?.meta?.lineup_source,
+    lineupLocked: data?.meta?.lineup_locked,
+  });
+  const nextActions = vibeNextActions({ canReview, canEdit });
   const todayReads = todayReadRows(players, dayVotes?.votes);
-  const reviewButton = canReview ? (
+
+  const applySlate = async () => {
+    if (!leagueId || !nextActions.apply) return;
+    setApplyBusy(true);
+    setApplyError("");
+    try {
+      const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/lineup`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          starters: vibeLineupStarters(vibeSlots),
+          week,
+          season,
+        }),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      onNavigate?.("week");
+    } catch (e) {
+      setApplyError(connectionErrorMessage(e) || VIBE_COPY.setSlateError);
+    } finally {
+      setApplyBusy(false);
+    }
+  };
+
+  const reviewButton = nextActions.review ? (
     <button
       type="button"
-      className="btn-primary hub-experience-summary-action"
+      className={nextActions.primary === "review" ? "btn-primary" : "btn-ghost"}
       onClick={() => onNavigate?.("week")}
     >
       {VIBE_COPY.nextAction}
     </button>
+  ) : null;
+  const applyButton = nextActions.apply ? (
+    <button
+      type="button"
+      className="btn-primary"
+      onClick={applySlate}
+      disabled={applyBusy}
+    >
+      {applyBusy ? VIBE_COPY.setSlateBusy : VIBE_COPY.setSlate}
+    </button>
+  ) : null;
+  const summaryAction = nextActions.primary ? (
+    <div className="hub-experience-summary-action hub-vibes-summary-actions">
+      {applyButton}
+      {reviewButton}
+    </div>
   ) : null;
 
   return (
@@ -335,7 +433,8 @@ export default function VibeRankings({
             title={VIBE_COPY.railTitle}
             subtitle={VIBE_COPY.railSubtitle(weekLabel)}
             items={railItems}
-            action={reviewButton}
+            action={summaryAction}
+            status={applyError ? <p className="error">{applyError}</p> : null}
           >
             <SlateList
               title={VIBE_COPY.slateTitle}

@@ -14,6 +14,7 @@ import {
   todayReadRows,
   vsModelNote,
   vsSplitRows,
+  vibeNextActions,
 } from "./vibeRankingsPresentation.js";
 
 test("vibe copy names the goal and never says Draft Hub or Submit", () => {
@@ -37,6 +38,21 @@ test("vibe copy names the goal and never says Draft Hub or Submit", () => {
   assert.doesNotMatch(VIBE_COPY.railTitle, /Your aura/i);
   assert.doesNotMatch(VIBE_COPY.slateTitle, /Vibe slate/i);
   assert.doesNotMatch(JSON.stringify(VIBE_COPY), /Draft Hub|Submit|permission|Tinder|Wikipedia|site board/i);
+  assert.equal(VIBE_COPY.setSlate, "Set this slate");
+  assert.equal(VIBE_COPY.nextAction, "Review on This Week");
+  assert.doesNotMatch(VIBE_COPY.setSlateError, /permission|Submit/i);
+});
+
+test("writable Hub lineups make Set this slate the primary", () => {
+  assert.deepEqual(vibeNextActions({ canReview: false, canEdit: true }), {
+    primary: null, review: false, apply: false,
+  });
+  assert.deepEqual(vibeNextActions({ canReview: true, canEdit: false }), {
+    primary: "review", review: true, apply: false,
+  });
+  assert.deepEqual(vibeNextActions({ canReview: true, canEdit: true }), {
+    primary: "apply", review: true, apply: true,
+  });
 });
 
 test("desktop hint is one instruction line; phone names swipe and bio", () => {

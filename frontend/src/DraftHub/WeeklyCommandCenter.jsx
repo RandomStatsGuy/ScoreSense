@@ -15,7 +15,7 @@ import {
 import WeekLineupBoard from "./WeekLineupBoard";
 import WeekLineupCallSheet from "./WeekLineupCallSheet";
 import { usePlayerMedia } from "../PlayerCell";
-import { loadAura, readAura, storageKey, vibeScore } from "./vibeAura";
+import { loadAura, readAura, saveAura, storageKey, vibeScore } from "./vibeAura";
 import {
   buildStarterSlotPlan,
   fillStarterSlots,
@@ -213,6 +213,25 @@ export default function WeeklyCommandCenter({
       week: meta.week,
     });
     setAuraById(loadAura(key));
+    if (!leagueId || meta.week == null) return undefined;
+    const ctrl = new AbortController();
+    (async () => {
+      try {
+        const params = new URLSearchParams({ week: String(meta.week) });
+        if (meta.season != null) params.set("season", String(meta.season));
+        const res = await apiFetch(`/api/hub/vibes?${params}`, { signal: ctrl.signal });
+        if (!res.ok) return;
+        const payload = await res.json();
+        const remote = payload?.aura_by_id;
+        if (remote && typeof remote === "object" && Object.keys(remote).length) {
+          setAuraById(remote);
+          saveAura(key, remote);
+        }
+      } catch (e) {
+        if (isAbortError(e) || ctrl.signal.aborted) return;
+      }
+    })();
+    return () => ctrl.abort();
   }, [leagueId, meta.season, meta.week]);
 
   const mediaIds = useMemo(() => (
