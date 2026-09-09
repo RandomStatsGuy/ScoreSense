@@ -1,3 +1,5 @@
+import { cutRefundAmount } from "./rosterFormat.js";
+
 /** User-facing copy for Fantasy → Cap. */
 
 export const CAP_MOVE_COPY = {
@@ -63,6 +65,7 @@ export const CAP_MODEL_COPY = {
   expireBeforeDraft:
     "Final-year deals enter the draft pool unless you extend. If they are not drafted, they become free agents.",
   stepUp: "Step-up",
+  cutRefund: "Cut refund",
 };
 
 export function capStepUpLine({
@@ -74,6 +77,12 @@ export function capStepUpLine({
   const rookie = rookieStatic ? "stay flat" : `increase $${step}/yr`;
   const vet = veteranStatic ? "stay flat" : `increase $${step}/yr`;
   return `Rookie deals ${rookie}; vet deals ${vet}; extensions increase $${step}/yr.`;
+}
+
+export function capCutRefundLine(pct = 50) {
+  const n = Number(pct);
+  const label = Number.isFinite(n) ? `${Math.round(n)}%` : "50%";
+  return `${label} back; dead cap floors to the lower dollar. A $1 cut is $0 dead; a $7 cut is $3 dead at 50%.`;
 }
 
 export const CAP_STATUS_COPY = {
@@ -96,7 +105,7 @@ export function leftoverAfterMove({ remaining = 0, cutSalary = 0, cutRefundPct =
   const rem = Number(remaining) || 0;
   const salary = Number(cutSalary) || 0;
   const refund = Number.isFinite(Number(cutRefundPct)) ? Number(cutRefundPct) : 0.5;
-  const freed = salary * refund;
+  const freed = cutRefundAmount(salary, refund);
   const spend = Number(bid) || 0;
   return rem + freed - spend;
 }
@@ -114,11 +123,12 @@ export function leftoverAfterMoveYears({
     const remaining = Number(year.cap_remaining) || 0;
     const committed = Number(year.total_committed) || 0;
     const hit = Number(cutHits[idx] || 0);
+    const freed = cutRefundAmount(hit, refund);
     const nextRemaining = idx === 0
-      ? remaining + hit * refund - spend
+      ? remaining + freed - spend
       : remaining + hit;
     const nextCommitted = idx === 0
-      ? committed - hit * refund + spend
+      ? committed - freed + spend
       : committed - hit;
     return { ...year, cap_remaining: nextRemaining, total_committed: nextCommitted };
   });
@@ -162,7 +172,7 @@ export function leftoverAfterMoveDisplay({
     const pair = displayCapPair({ leftover: year.cap_remaining, salaryCap: year.salary_cap ?? salaryCap });
     const hit = Number(cutHits[idx] || 0);
     const leftover = idx === 0
-      ? (pair.leftover ?? 0) + Math.round(hit * refund) - spend
+      ? (pair.leftover ?? 0) + Math.round(cutRefundAmount(hit, refund)) - spend
       : (pair.leftover ?? 0) + Math.round(hit);
     const next = displayCapPair({ leftover, salaryCap: pair.cap });
     return {

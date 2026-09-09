@@ -76,6 +76,9 @@ test("Rules copy names vet flat and vet extension toggles separately", () => {
   assert.equal(RULES_COPY.previewExtension, "Extension");
   assert.match(RULES_COPY.keepVetFlatHelp, /step-up starts on an extension/i);
   assert.match(RULES_COPY.allowVetExtensionsHelp, /vet deal/i);
+  assert.equal(RULES_COPY.cutRefund, "Cut refund");
+  assert.match(RULES_COPY.cutRefundHelp, /floors to the lower dollar/i);
+  assert.match(RULES_COPY.cutRefundHelp, /\$1 is \$0 dead/);
   assert.doesNotMatch(JSON.stringify(RULES_COPY), /Rookie Extension|Veteran Deal/);
 });
 

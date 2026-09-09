@@ -63,6 +63,8 @@ export const RULES_COPY = {
   previewExtension: "Extension",
   previewFlat: "Flat salary",
   previewStep: "Steps every year",
+  cutRefund: "Cut refund",
+  cutRefundHelp: "Dead cap floors to the lower dollar. Cutting $1 is $0 dead; cutting $7 is $3 dead at 50%.",
 };
 
 export const FORMAT_OPTIONS = [

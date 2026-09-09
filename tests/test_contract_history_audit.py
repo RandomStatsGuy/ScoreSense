@@ -161,6 +161,8 @@ def test_normalize_cut_cap_hit_halves_full_prior():
     from src.draft_hub.contract_history_audit import normalize_cut_cap_hit
 
     assert normalize_cut_cap_hit(cap_hit=22, prior_salary=22, cut_refund_pct=0.5) == 11
+    assert normalize_cut_cap_hit(cap_hit=7, prior_salary=7, cut_refund_pct=0.5) == 3
+    assert normalize_cut_cap_hit(cap_hit=1, prior_salary=1, cut_refund_pct=0.5) == 0
     assert normalize_cut_cap_hit(cap_hit=5.5, prior_salary=11, cut_refund_pct=0.5) == 5.5
     assert normalize_cut_cap_hit(cap_hit=0, prior_salary=20, cut_refund_pct=0.5) == 0.0
     assert normalize_cut_cap_hit(cap_hit=None, prior_salary=20, cut_refund_pct=0.5) == 0.0

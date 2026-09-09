@@ -68,6 +68,16 @@ def test_pre_draft_cut_one_year_still_incurs_pct_dead_cap():
     assert summary["pending_cuts"][0]["dead_cap_years"] == 1
 
 
+def test_pre_draft_cut_dead_cap_floors_odd_salaries():
+    rules = LeagueRules(salary_cap=200, contracts={"cut_refund_pct": 0.5})
+    dollar = pre_draft_cap_summary(rules, [_row("cheap", 1, 1, ROSTER_CUT_BEFORE_DRAFT)])
+    assert dollar["dead_cap"] == 0
+    assert dollar["pending_cuts"][0]["cap_freed"] == 1
+    seven = pre_draft_cap_summary(rules, [_row("odd", 7, 1, ROSTER_CUT_BEFORE_DRAFT)])
+    assert seven["dead_cap"] == 3
+    assert seven["pending_cuts"][0]["cap_freed"] == 4
+
+
 def test_pre_draft_cut_multi_year_incurs_pct_dead_cap():
     rules = LeagueRules(salary_cap=200, contracts={"cut_refund_pct": 0.5})
     roster = [

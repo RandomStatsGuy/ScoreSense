@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.draft_hub.contracts import can_renew, cap_hit
-from src.draft_hub.rules_engine import cap_relevant_roster, cut_refund, normalize_position
+from src.draft_hub.rules_engine import cap_relevant_roster, cut_dead_cap, cut_refund, normalize_position
 from src.draft_hub.schemas import LeagueRules
 
 ROSTER_ACTIVE = "active"
@@ -48,7 +48,7 @@ def pre_draft_cut_dead_cap_at_offset(
     row: dict[str, Any],
     year_offset: int = 0,
 ) -> float:
-    """Dead cap is this season only: (1 - cut_refund_pct) of the cut year's cap hit."""
+    """Dead cap is this season only: floor of (1 - cut_refund_pct) of the cut year's hit."""
     if roster_status(row) != ROSTER_CUT_BEFORE_DRAFT:
         return 0.0
     if year_offset != 0:
@@ -56,7 +56,7 @@ def pre_draft_cut_dead_cap_at_offset(
     sal = cap_hit(row, 0)
     if sal <= 0:
         return 0.0
-    return round(float(sal) - cut_refund(rules, sal), 2)
+    return cut_dead_cap(rules, sal)
 
 
 def pre_draft_cut_cap_freed(rules: LeagueRules, row: dict[str, Any]) -> float:

@@ -119,9 +119,24 @@ def validate_roster(rules: LeagueRules, roster: list[dict[str, Any]]) -> list[st
     return errors
 
 
+def cut_dead_cap_amount(salary: float, cut_refund_pct: float = 0.5) -> float:
+    """Floor the dead-cap charge. $1 → $0 and $7 → $3 at 50% refund."""
+    sal = float(salary or 0)
+    if not math.isfinite(sal) or sal <= 0:
+        return 0.0
+    keep = max(0.0, min(1.0, 1.0 - float(cut_refund_pct)))
+    return float(math.floor(sal * keep + 1e-9))
+
+
+def cut_dead_cap(rules: LeagueRules, salary: float) -> float:
+    return cut_dead_cap_amount(salary, float(rules.contracts.cut_refund_pct))
+
+
 def cut_refund(rules: LeagueRules, salary: float) -> float:
-    pct = float(rules.contracts.cut_refund_pct)
-    return round(float(salary) * pct, 2)
+    sal = float(salary or 0)
+    if sal <= 0:
+        return 0.0
+    return round(sal - cut_dead_cap(rules, sal), 2)
 
 
 def can_afford_bid(rules: LeagueRules, budget_remaining: float, bid: float) -> bool:

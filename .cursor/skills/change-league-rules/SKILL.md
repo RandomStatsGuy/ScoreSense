@@ -28,7 +28,7 @@ Backend is authoritative for eligibility and materialized contracts. The client 
 - Players-tab adds follow `acquisitionWindow.js`. Staff Roster management may override; Players-tab adds may not.
 - Static rookie deals and vet deals stay flat for the first term. The configured step-up starts on an extension. Show Keep vet deals flat and Allow vet deal extensions as their own Rules toggles.
 - Final-year rookie deals and vet deals may take one extension. An extension cannot be extended again.
-- Cut dead cap hits only the season the player is cut. Later years of the deal free in full.
+- Cut dead cap hits only the season the player is cut. Later years of the deal free in full. Dead cap floors to the lower dollar ($1 → $0, $7 → $3 at 50%).
 - Offseason trades: surviving contracts only.
 
 ## Tests
