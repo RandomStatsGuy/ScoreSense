@@ -37,16 +37,10 @@ def contract_type(row: dict[str, Any]) -> str:
 
 
 def cut_obligation_years(row: dict[str, Any]) -> int:
-    """Contract years remaining when the player was cut (includes current season)."""
+    """Dead cap lasts the cut season only — later years are gone."""
     if roster_status(row) != ROSTER_CUT_BEFORE_DRAFT:
         return 0
-    contract = row.get("contract") or {}
-    return int(
-        contract.get("cut_dead_cap_years")
-        or contract.get("years_remaining")
-        or row.get("contract_years")
-        or 1
-    )
+    return 1
 
 
 def pre_draft_cut_dead_cap_at_offset(
@@ -54,13 +48,12 @@ def pre_draft_cut_dead_cap_at_offset(
     row: dict[str, Any],
     year_offset: int = 0,
 ) -> float:
-    """Dead cap for a pre-draft cut: (1 - cut_refund_pct) of that year's cap hit until contract ends."""
+    """Dead cap is this season only: (1 - cut_refund_pct) of the cut year's cap hit."""
     if roster_status(row) != ROSTER_CUT_BEFORE_DRAFT:
         return 0.0
-    yrs = cut_obligation_years(row)
-    if year_offset < 0 or year_offset >= yrs:
+    if year_offset != 0:
         return 0.0
-    sal = cap_hit(row, year_offset)
+    sal = cap_hit(row, 0)
     if sal <= 0:
         return 0.0
     return round(float(sal) - cut_refund(rules, sal), 2)
@@ -95,7 +88,7 @@ def contract_on_cut_status_change(
     """Snapshot or clear cut obligation years on the stored contract."""
     contract = dict(existing.get("contract") or {})
     if roster_status == ROSTER_CUT_BEFORE_DRAFT:
-        contract["cut_dead_cap_years"] = years_remaining(existing)
+        contract["cut_dead_cap_years"] = 1
         return contract
     if roster_status == ROSTER_ACTIVE:
         contract.pop("cut_dead_cap_years", None)
@@ -270,7 +263,7 @@ def cap_summary_for_phase(
     pool = [r for r in scoped if retained_through_draft(r, draft_completed=draft_completed)]
 
     base = cap_summary(rules, pool)
-    dead_cap = 0.0 if draft_completed else total_pre_draft_dead_cap(rules, scoped, year_offset=0)
+    dead_cap = total_pre_draft_dead_cap(rules, scoped, year_offset=0)
     spent = float(base["spent"])
     cap = float(base["salary_cap"])
     return {

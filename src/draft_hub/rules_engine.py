@@ -295,9 +295,6 @@ def multi_year_cap_plan(
     *,
     draft_completed: bool = False,
 ) -> list[dict[str, Any]]:
-    if draft_completed:
-        return contract_cap_plan(rules, roster, seasons_ahead=seasons_ahead)
-
     from src.draft_hub.pre_draft_cap import (
         pre_draft_cut_dead_cap_at_offset,
         retained_through_draft,
@@ -305,7 +302,7 @@ def multi_year_cap_plan(
     )
 
     scoped = cap_relevant_roster(rules, roster)
-    active = [r for r in scoped if retained_through_draft(r, draft_completed=False)]
+    active = [r for r in scoped if retained_through_draft(r, draft_completed=draft_completed)]
     plan = contract_cap_plan(rules, active, seasons_ahead=seasons_ahead)
     cap = float(rules.salary_cap)
 

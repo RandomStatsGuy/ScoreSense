@@ -89,7 +89,7 @@ def enrich_league_roster_overview(
                 }
             )
 
-        dead = 0.0 if draft_completed else total_pre_draft_dead_cap(rules, rows, year_offset=0)
+        dead = total_pre_draft_dead_cap(rules, rows, year_offset=0)
         unspent = round(cap - committed - dead, 2)
         team_fp_per_dollar = (
             round(fair_total / committed, 2) if committed > 0 and fair_sal_pairs else None

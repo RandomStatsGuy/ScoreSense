@@ -35,6 +35,7 @@ import {
   contractStateChip,
   contractStateClass,
   cutButtonCopy,
+  cutConfirmCopy,
   dropButtonCopy,
   dropConfirmCopy,
   mergePendingChange,
@@ -411,11 +412,11 @@ function TeamRosterBlock({
     return undefined;
   }, [highlightPlayerId, open, block.roster]);
 
-  const { live: liveRows, expired: expiredRows } = useMemo(
+  const { live: liveRows, expired: expiredRows, cuts: cutRows } = useMemo(
     () => partitionOfficeRoster(block.roster),
     [block.roster],
   );
-  const tableRows = draftCompleted ? liveRows : (block.roster || []);
+  const tableRows = draftCompleted ? [...liveRows, ...cutRows] : (block.roster || []);
   const sorted = useMemo(
     () => [...tableRows].sort(
       (a, b) => posSortKey(a.position) - posSortKey(b.position)
@@ -476,6 +477,38 @@ function TeamRosterBlock({
     onQueue(r, { drop: true });
   };
 
+  const onToggleCut = async (r, isCut) => {
+    if (isCut) {
+      if (draftCompleted) {
+        try {
+          await onWriteImmediate?.(r, { rosterStatus: "active" });
+        } catch (e) {
+          setError(e.message || "Could not undo that cut.");
+        }
+        return;
+      }
+      onQueue(r, { rosterStatus: "active" });
+      return;
+    }
+    if (draftCompleted) {
+      const copy = cutConfirmCopy(r, rules);
+      const ok = await confirmDialog({
+        title: copy.title,
+        message: copy.message,
+        confirmLabel: copy.confirmLabel,
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await onWriteImmediate?.(r, { rosterStatus: "cut_before_draft" });
+      } catch (e) {
+        setError(e.message || "Could not cut that player.");
+      }
+      return;
+    }
+    onQueue(r, { rosterStatus: "cut_before_draft" });
+  };
+
   const onTypeChange = async (r, contractType) => {
     if (draftCompleted) {
       try {
@@ -534,16 +567,17 @@ function TeamRosterBlock({
     const salaryError = fieldErrors[r.player_id] || (
       pending.salary != null ? validateSalaryValue(pending.salary, salaryMax) : ""
     );
-    const cutCopy = cutButtonCopy(r, rules, { queuedCut: isCut && pending.rosterStatus === "cut_before_draft" });
+    const cutCopy = cutButtonCopy(r, rules, {
+      queuedCut: isCut && pending.rosterStatus === "cut_before_draft",
+      draftCompleted,
+    });
     const dropCopy = dropButtonCopy(r, { queuedDrop, draftCompleted });
-    const cutControl = !draftCompleted && !queuedDrop ? (
+    const cutControl = !queuedDrop ? (
       <button
         type="button"
         className={`btn-ghost btn-sm${isCut ? " hub-uncut-btn" : ""}`}
         aria-label={cutCopy.ariaLabel}
-        onClick={() => onQueue(r, {
-          rosterStatus: isCut ? "active" : "cut_before_draft",
-        })}
+        onClick={() => onToggleCut(r, isCut)}
       >
         {cutCopy.label}
       </button>
@@ -606,8 +640,8 @@ function TeamRosterBlock({
             <span className="hub-league-cut-count">{fmtSal(stats.deadCap)} dead cap</span>
           )}
           <span className="hub-league-cap-free">{fmtSal(stats.remaining)} free</span>
-          {!draftCompleted && stats.cutCount > 0 && (
-            <span className="hub-league-cut-count">{stats.cutCount} cut pre-draft</span>
+          {stats.cutCount > 0 && (
+            <span className="hub-league-cut-count">{stats.cutCount} cut</span>
           )}
           {!open && stats.playerCount > 0 && (
             <span className="hub-league-expand-hint hub-league-expand-hint--desktop">Tap to edit</span>
@@ -1095,6 +1129,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
       contractType: patch.drop ? undefined : patch.contractType,
       salary: patch.drop ? undefined : patch.salary,
       years: patch.drop ? undefined : patch.years,
+      rosterStatus: patch.drop ? undefined : patch.rosterStatus,
       note: patch.drop ? undefined : OFFICE_CONTRACTS_COPY.liveEditNote,
     });
     if (!res?.ok) throw new Error(await parseApiError(res));

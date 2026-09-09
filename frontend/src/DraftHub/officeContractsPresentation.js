@@ -113,18 +113,34 @@ export function contractStateClass(tone) {
   return `hub-roster-status hub-roster-status--${tone || "ok"}`;
 }
 
-export function cutButtonCopy(row, rules, { queuedCut = false } = {}) {
+export function cutButtonCopy(row, rules, { queuedCut = false, draftCompleted = false } = {}) {
   const isCut = queuedCut || row?.roster_status === "cut_before_draft";
+  const name = row?.player_name || "player";
   if (isCut) {
     return {
       label: "Undo cut",
-      ariaLabel: `Undo cut of ${row?.player_name || "player"}`,
+      ariaLabel: `Undo cut of ${name}`,
     };
   }
   const story = contractDeadCapStory({ ...row, roster_status: "active" }, rules);
   return {
     label: `Cut · +${fmtSal(story.freed)} room, ${fmtSal(story.dead)} dead`,
-    ariaLabel: `Queue cut of ${row?.player_name || "player"} before draft`,
+    ariaLabel: draftCompleted
+      ? `Cut ${name} with dead cap`
+      : `Queue cut of ${name} before draft`,
+  };
+}
+
+export function cutConfirmCopy(row, rules) {
+  const name = row?.player_name || "this player";
+  const story = contractDeadCapStory({ ...row, roster_status: "active" }, rules);
+  return {
+    title: `Cut ${name}?`,
+    message: (
+      `Frees ${fmtSal(story.freed)} leftover. Dead cap ${fmtSal(story.dead)}. `
+      + "Drop if you meant no penalty."
+    ),
+    confirmLabel: "Cut",
   };
 }
 
@@ -206,9 +222,7 @@ export function teamCapStats(block, salaryCap, rules, draftCompleted = false) {
   ));
   const cuts = parts.cuts;
   const committed = occupying.reduce((sum, r) => sum + Number(r.salary || 0), 0);
-  const deadCap = draftCompleted
-    ? 0
-    : cuts.reduce((sum, r) => sum + preDraftCutDeadCap(r, rules), 0);
+  const deadCap = cuts.reduce((sum, r) => sum + preDraftCutDeadCap(r, rules), 0);
   const cap = Number(salaryCap) || 200;
   const playerCount = draftCompleted ? parts.live.length : activeRoster(block?.roster).length;
   return {
@@ -217,7 +231,7 @@ export function teamCapStats(block, salaryCap, rules, draftCompleted = false) {
     remaining: cap - committed - deadCap,
     cap,
     playerCount,
-    cutCount: draftCompleted ? 0 : cuts.length,
+    cutCount: cuts.length,
   };
 }
 

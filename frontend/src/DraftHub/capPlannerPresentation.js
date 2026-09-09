@@ -97,6 +97,7 @@ export function leftoverAfterMoveYears({
 } = {}) {
   const refund = Number.isFinite(Number(cutRefundPct)) ? Number(cutRefundPct) : 0.5;
   const spend = Number(bid) || 0;
+  // Dead cap hits the cut season only. Later years free the full remaining hit.
   return years.map((year, idx) => {
     const remaining = Number(year.cap_remaining) || 0;
     const committed = Number(year.total_committed) || 0;
@@ -144,6 +145,7 @@ export function leftoverAfterMoveDisplay({
 } = {}) {
   const refund = Number.isFinite(Number(cutRefundPct)) ? Number(cutRefundPct) : 0.5;
   const spend = Math.round(Number(bid) || 0);
+  // Dead cap hits the cut season only. Later years free the full remaining hit.
   return years.map((year, idx) => {
     const pair = displayCapPair({ leftover: year.cap_remaining, salaryCap: year.salary_cap ?? salaryCap });
     const hit = Number(cutHits[idx] || 0);
