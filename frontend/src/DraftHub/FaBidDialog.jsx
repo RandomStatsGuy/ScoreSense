@@ -20,25 +20,31 @@ export default function FaBidDialog({
   busy = false,
 }) {
   const amountRef = useRef(null);
+  const onPassRef = useRef(onPass);
   const blocked = bidBlockedByCeiling(amount, ceiling);
-  const bid = parseWalkaway(amount) ?? 1;
+  const parsedBid = parseWalkaway(amount);
+  const bid = parsedBid ?? 1;
   const cap = parseWalkaway(ceiling);
+
+  useEffect(() => {
+    onPassRef.current = onPass;
+  }, [onPass]);
 
   useEffect(() => {
     amountRef.current?.focus();
     const onKey = (e) => {
-      if (e.key === "Escape") onPass?.();
+      if (e.key === "Escape") onPassRef.current?.();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onPass]);
+  }, []);
 
   return (
     <div
       className="confirm-overlay"
       role="presentation"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onPass?.();
+        if (e.target === e.currentTarget) onPassRef.current?.();
       }}
     >
       <div
@@ -58,7 +64,7 @@ export default function FaBidDialog({
             type="number"
             min={1}
             step={1}
-            value={bid}
+            value={amount ?? ""}
             onChange={(e) => onChangeAmount?.(e.target.value)}
           />
         </label>
@@ -69,7 +75,7 @@ export default function FaBidDialog({
             type="number"
             min={1}
             step={1}
-            value={cap ?? ""}
+            value={ceiling ?? ""}
             placeholder={FA_BID_COPY.walkAwayPrompt}
             onChange={(e) => onChangeCeiling?.(e.target.value)}
           />
@@ -94,7 +100,7 @@ export default function FaBidDialog({
           <button
             type="button"
             className="btn-primary"
-            disabled={busy || blocked || bid == null}
+            disabled={busy || blocked || parsedBid == null}
             onClick={onPlace}
           >
             {busy ? FA_BID_COPY.bidding : FA_BID_COPY.placeBid}

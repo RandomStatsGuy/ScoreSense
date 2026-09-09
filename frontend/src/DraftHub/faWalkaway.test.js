@@ -26,10 +26,13 @@ test("read and write survive a refresh-style store", () => {
   const storage = {
     getItem: (k) => (store.has(k) ? store.get(k) : null),
     setItem: (k, v) => { store.set(k, String(v)); },
+    removeItem: (k) => { store.delete(k); },
   };
   assert.equal(readWalkaway("L1", "p1", storage), null);
   assert.equal(writeWalkaway("L1", "p1", 9, storage), 9);
   assert.equal(readWalkaway("L1", "p1", storage), 9);
+  assert.equal(writeWalkaway("L1", "p1", "", storage), null);
+  assert.equal(readWalkaway("L1", "p1", storage), null);
 });
 
 test("suggested bid prefers fair value then model hint", () => {

@@ -21,9 +21,13 @@ export function readWalkaway(leagueId, playerId, storage = globalThis.localStora
 
 export function writeWalkaway(leagueId, playerId, amount, storage = globalThis.localStorage) {
   const n = parseWalkaway(amount);
-  if (!leagueId || !playerId || n == null || !storage) return null;
+  if (!leagueId || !playerId || !storage) return null;
   try {
-    storage.setItem(walkawayStorageKey(leagueId, playerId), String(n));
+    if (n == null) {
+      storage.removeItem(walkawayStorageKey(leagueId, playerId));
+    } else {
+      storage.setItem(walkawayStorageKey(leagueId, playerId), String(n));
+    }
   } catch {
     return n;
   }

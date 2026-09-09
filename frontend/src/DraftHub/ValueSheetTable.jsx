@@ -451,8 +451,10 @@ export default function ValueSheetTable({
     setWalkawayRev((n) => n + 1);
   }, [leagueId]);
 
+  const closeBidDraft = useCallback(() => setBidDraft(null), []);
+
   const submitFaBid = useCallback(async (row, amount, ceiling) => {
-    if (bidBlockedByCeiling(amount, ceiling)) return;
+    if (parseWalkaway(amount) == null || bidBlockedByCeiling(amount, ceiling)) return;
     persistCeiling(row.player_id, ceiling);
     setAddError("");
     setAddingId(row.player_id);
@@ -624,7 +626,7 @@ export default function ValueSheetTable({
           busy={addingId === bidDraft.row.player_id}
           onChangeAmount={(value) => setBidDraft((prev) => (prev ? { ...prev, amount: value } : prev))}
           onChangeCeiling={(value) => setBidDraft((prev) => (prev ? { ...prev, ceiling: value } : prev))}
-          onPass={() => setBidDraft(null)}
+          onPass={closeBidDraft}
           onPlace={() => submitFaBid(bidDraft.row, bidDraft.amount, bidDraft.ceiling)}
           onBidAtCeiling={() => submitFaBid(bidDraft.row, bidDraft.ceiling, bidDraft.ceiling)}
           onRaiseCeiling={() => {
@@ -1228,7 +1230,7 @@ export default function ValueSheetTable({
                     suggestedFaBid(r, effectiveAuctionBid(r, riskTolerance, rules)),
                     ceilingFor(r.player_id),
                   )}
-                  onWalkaway={showWalkaway ? () => openBidDraft(r) : undefined}
+                  onWalkaway={showWalkaway ? openBidDraft : undefined}
                   playerMedia={playerMedia}
                   narrativeScope={narrativeScope}
                   seasonScaleMax={seasonScaleMax}
