@@ -1,4 +1,10 @@
-import { cutRefundAmount } from "./rosterFormat.js";
+import { contractDeadCapStory, cutRefundAmount, cutRefundPct } from "./rosterFormat.js";
+
+function rowIsAvailable(row) {
+  if (row?.is_available != null) return Boolean(row.is_available);
+  const status = row?.status;
+  return status === "available" || status === "pass" || status === "target" || status === "sleeper";
+}
 
 /** User-facing copy for Fantasy → Cap. */
 
@@ -359,4 +365,113 @@ export function capHeroCopy({ empty = false, preDraft = false } = {}) {
       ? "Final-year deals leave unless you extend. Cut the wrong name and you eat dead cap into the draft."
       : "Against this cap is salary plus dead cap. Leftover is what you can still bid.",
   };
+}
+
+export const CAP_CUT_COPY = {
+  heading: "This cut",
+  thisCutFunds: "This cut funds",
+  deadAfter: "Dead after cut",
+  leftoverAfter: "Leftover after cut",
+  noneFit: "Nothing available still fits this leftover.",
+  keep: "Keep",
+  cut: "Cut",
+  cutAndBid: "Cut and open bid",
+  cutAndAdd: "Cut and add",
+  confirmTitle: (name) => `Cut ${name || "this player"}?`,
+};
+
+export function suggestedFaBid(row) {
+  const n = Number(row?.fair_value ?? row?.model_bid_hint);
+  return Number.isFinite(n) ? n : null;
+}
+
+export function pickFundedPlayer({ leftoverAfter, availableRows = [], excludeId } = {}) {
+  const room = Number(leftoverAfter);
+  if (!Number.isFinite(room) || room < 1) return null;
+  let best = null;
+  for (const row of availableRows || []) {
+    if (!row || !rowIsAvailable(row)) continue;
+    if (excludeId && String(row.player_id) === String(excludeId)) continue;
+    const bid = suggestedFaBid(row);
+    if (bid == null || bid <= 0 || bid > room) continue;
+    if (!best || bid > best.suggested_bid) {
+      best = {
+        player_id: row.player_id,
+        player_name: row.player || row.player_name,
+        position: row.position || "",
+        suggested_bid: bid,
+      };
+    }
+  }
+  return best;
+}
+
+export function previewCutFunds({
+  row,
+  leftover,
+  rules,
+  availableRows = [],
+  addMode = "locked",
+  minBid = 1,
+} = {}) {
+  if (!row) return null;
+  const previewStory = contractDeadCapStory({ ...row, roster_status: "active" }, rules);
+  const leftoverAfter = leftoverAfterMove({
+    remaining: leftover,
+    cutSalary: previewStory.salary,
+    cutRefundPct: cutRefundPct(rules),
+    bid: 0,
+  });
+  const funded = pickFundedPlayer({
+    leftoverAfter,
+    availableRows,
+    excludeId: row.player_id,
+  });
+  const mode = addMode === "add" || addMode === "bid" || addMode === "locked" ? addMode : "locked";
+  return {
+    player_id: row.player_id,
+    player_name: row.player_name || row.player,
+    dead_cap: previewStory.dead,
+    cap_freed: previewStory.freed,
+    leftover_after: leftoverAfter,
+    funded_player_id: funded?.player_id || null,
+    funded_name: funded?.player_name || null,
+    funded_position: funded?.position || "",
+    funded_suggested_bid: funded?.suggested_bid ?? null,
+    add_mode: mode,
+    min_bid: Number(minBid) || 1,
+    is_cut: String(row.roster_status || "") === "cut_before_draft",
+  };
+}
+
+export function capCutFundsAction(preview) {
+  if (!preview || preview.is_cut) {
+    return { kind: "keep", label: CAP_CUT_COPY.keep };
+  }
+  const leftoverOk = Number(preview.leftover_after) >= Number(preview.min_bid || 1);
+  if (preview.add_mode === "bid" && preview.funded_player_id) {
+    return { kind: "cut-bid", label: CAP_CUT_COPY.cutAndBid };
+  }
+  if (preview.add_mode === "add" && leftoverOk) {
+    return { kind: "cut-add", label: CAP_CUT_COPY.cutAndAdd };
+  }
+  return { kind: "cut", label: CAP_CUT_COPY.cut };
+}
+
+export function capCutFundsLine(preview) {
+  if (!preview) return "";
+  if (preview.funded_name) {
+    return `${preview.funded_name} at ${fmtCapMoney(preview.funded_suggested_bid)}`;
+  }
+  return CAP_CUT_COPY.noneFit;
+}
+
+export function capCutConfirmCopy(preview) {
+  if (!preview) return "";
+  const name = preview.player_name || "this player";
+  const money = `Frees ${fmtCapMoney(preview.cap_freed)}. Dead cap ${fmtCapMoney(preview.dead_cap)}.`;
+  if (preview.funded_name) {
+    return `Cut ${name}. ${money} This leftover funds ${preview.funded_name} at ${fmtCapMoney(preview.funded_suggested_bid)}.`;
+  }
+  return `Cut ${name}. ${money} ${CAP_CUT_COPY.noneFit}`;
 }

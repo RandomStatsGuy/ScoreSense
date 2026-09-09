@@ -144,6 +144,13 @@ export default function useAppNavigation() {
         ? insightOrOfficeTab
         : null;
       const tab = extra ? (extra.insightTab || extra.officeTab) : insightOrOfficeTab;
+      const filterUpdates = extra ? {} : null;
+      if (filterUpdates) {
+        if (extra.pos) filterUpdates.needPos = String(extra.pos).toUpperCase();
+        const playerId = extra.player ?? extra.player_id ?? extra.playerId;
+        if (playerId !== undefined) filterUpdates.player = String(playerId || "");
+        else if (subView === "available") filterUpdates.player = "";
+      }
       navigateTo(
         {
           view: "hub",
@@ -151,8 +158,8 @@ export default function useAppNavigation() {
           insightTab: subView === "insights" ? (tab || route.insightTab || "overview") : null,
           officeTab: subView === "office" ? (tab || route.officeTab || "current") : null,
         },
-        extra?.pos
-          ? { filterUpdates: { needPos: String(extra.pos).toUpperCase() } }
+        filterUpdates && Object.keys(filterUpdates).length
+          ? { filterUpdates }
           : undefined,
       );
     },
