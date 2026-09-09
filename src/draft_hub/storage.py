@@ -964,18 +964,16 @@ def _pick_roster_sqlite_row(
 ) -> sqlite3.Row | None:
     if not rows:
         return None
+    if require_team and (team_id is None or str(team_id) == ""):
+        return None
     scoped = rows
     if team_id is not None and str(team_id) != "":
-        # Prefer the viewer team. Staff Cut and member 403 still need the
-        # other team's row. Trades pass require_team so a missing from-team
-        # cannot steal a different roster.
-        matched = [r for r in rows if str(r["team_id"] or "") == str(team_id)]
-        if matched:
-            scoped = matched
-        elif require_team:
+        # Team-scoped reads stay strict. Staff Cut clears pick_team when the
+        # viewer does not own the row. Trades pass require_team so a missing
+        # from-team cannot steal a different roster.
+        scoped = [r for r in rows if str(r["team_id"] or "") == str(team_id)]
+        if not scoped:
             return None
-    elif require_team:
-        return None
     if prefer == "cut":
         cuts = [r for r in scoped if not roster_row_occupies(r)]
         return cuts[0] if cuts else scoped[0]
