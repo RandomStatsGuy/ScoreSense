@@ -955,7 +955,11 @@ def league_week_cards(proj_index: dict[str, dict[str, Any]], league_id: str | No
             pid = str(row.get("player_id") or "").strip()
             if not pid:
                 continue
-            proj = proj_index.get(pid) or proj_index.get(pid.removeprefix("sleeper-"))
+            proj = (
+                proj_index.get(pid)
+                or proj_index.get(pid.removeprefix("sleeper-"))
+                or proj_index.get(f"sleeper-{pid}")
+            )
             if not proj or proj.get("p50") is None:
                 continue
             cards[pid] = {

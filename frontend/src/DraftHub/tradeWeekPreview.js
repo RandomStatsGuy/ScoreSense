@@ -63,7 +63,7 @@ export function partyTradeBundle(parties = [], myTeamId) {
 
 function findRosterRow(rosterByTeam, playerId) {
   for (const rows of Object.values(rosterByTeam || {})) {
-    const hit = (rows || []).find((row) => row?.player_id === playerId);
+    const hit = (rows || []).find((row) => asPlayerId(row) === playerId);
     if (hit) return hit;
   }
   return null;

@@ -128,6 +128,29 @@ test("empty roster hides the strip", () => {
   assert.equal(preview.available, false);
 });
 
+test("incoming numeric roster ids still resolve against string trade ids", () => {
+  const byTeam = roster();
+  byTeam[THEIRS] = [
+    { player_id: 4034, player_name: "Puka Nacua", position: "WR", p50: 22 },
+  ];
+  const preview = projectTradeWeekLineup({
+    rosterByTeam: byTeam,
+    parties: [
+      { team_id: MY, sends: [], drops: [] },
+      { team_id: THEIRS, sends: [{ player_id: "4034", to_team_id: MY }], drops: [] },
+    ],
+    myTeamId: MY,
+    weekCards: {
+      ...cardsFromRoster(roster()),
+      4034: { player_id: "4034", player_name: "Puka Nacua", position: "WR", p50: 22 },
+    },
+    weekStarters: startersFromMine(roster()),
+    rules: RULES,
+  });
+  assert.equal(preview.available, true);
+  assert.equal(preview.bumped_starters[0]?.player_id, "4034");
+});
+
 test("party bundle reads receives from the other seat", () => {
   const bundle = partyTradeBundle(
     [

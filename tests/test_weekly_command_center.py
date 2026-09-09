@@ -17,6 +17,7 @@ from src.draft_hub.weekly_command_center import (
     build_lineup_decisions,
     build_weekly_command_center,
     infer_starters_and_bench,
+    league_week_cards,
 )
 
 
@@ -527,6 +528,26 @@ def test_league_cards_opt_in_for_trade_week_preview(hub_db):
     assert ace["player_id"] == "wr-ace"
     assert ace["p50"] == 18.0
     assert ace["position"] == "WR"
+
+
+def test_league_week_cards_match_sleeper_prefix_both_ways(hub_db, monkeypatch):
+    monkeypatch.setattr(
+        storage,
+        "list_league_rosters_by_team",
+        lambda _lid: {
+            "t1": [{"player_id": "4034", "player_name": "Bare", "position": "WR"}],
+            "t2": [{"player_id": "sleeper-8151", "player_name": "Prefixed", "position": "RB"}],
+        },
+    )
+    cards = league_week_cards(
+        {
+            "sleeper-4034": {"p50": 14.2, "player_name": "Bare", "position": "WR"},
+            "8151": {"p50": 11.0, "player_name": "Prefixed", "position": "RB"},
+        },
+        "lg-1",
+    )
+    assert cards["4034"]["p50"] == 14.2
+    assert cards["sleeper-8151"]["p50"] == 11.0
 
 
 def test_attach_call_facts_uses_injected_vegas_ppg_and_dvp():
