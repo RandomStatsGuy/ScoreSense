@@ -960,11 +960,17 @@ def _pick_roster_sqlite_row(
     *,
     team_id: str | None = None,
     prefer: str = "occupying",
+    require_team: bool = False,
 ) -> sqlite3.Row | None:
     if not rows:
         return None
+    if require_team and (team_id is None or str(team_id) == ""):
+        return None
     scoped = rows
     if team_id is not None and str(team_id) != "":
+        # Team-scoped reads stay strict. Staff Cut clears pick_team when the
+        # viewer does not own the row. Trades pass require_team so a missing
+        # from-team cannot steal a different roster.
         scoped = [r for r in rows if str(r["team_id"] or "") == str(team_id)]
         if not scoped:
             return None
@@ -2293,6 +2299,7 @@ def apply_trade_plan(
                 rows,
                 team_id=move.get("from_team_id"),
                 prefer="occupying",
+                require_team=True,
             )
             if not row:
                 raise ValueError(f"Failed to move {pid}")
