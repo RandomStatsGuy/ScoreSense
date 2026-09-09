@@ -1691,6 +1691,21 @@ def remove_roster_slot(
         return True
 
 
+def delete_roster_slot_ids(workspace_id: str, slot_ids: list[int]) -> int:
+    ids = [int(i) for i in slot_ids if i is not None]
+    if not ids:
+        return 0
+    with get_conn() as conn:
+        placeholders = ",".join("?" * len(ids))
+        cur = conn.execute(
+            f"DELETE FROM roster_slot WHERE workspace_id = ? AND id IN ({placeholders})",
+            (workspace_id, *ids),
+        )
+        if cur.rowcount:
+            _bump_live_for_workspace_conn(conn, workspace_id)
+        return cur.rowcount
+
+
 def extend_contract(workspace_id: str, player_id: str, extension_years: int,
                     new_salary: float | None = None, contract: dict | None = None) -> dict[str, Any] | None:
     with get_conn() as conn:
@@ -2235,7 +2250,8 @@ def transfer_roster_players(
                 (workspace_id, pid, from_team_id),
             ).fetchall()
             occupying = [r for r in rows if roster_row_occupies(r)]
-            for row in occupying:
+            targets = occupying or list(rows)
+            for row in targets:
                 cur = conn.execute(
                     "UPDATE roster_slot SET team_id = ? WHERE id = ?",
                     (to_team_id, row["id"]),
