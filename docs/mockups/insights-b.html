@@ -155,10 +155,10 @@
   </section>
 
   <div class="ins-tabs" role="tablist" aria-label="Insights">
-    <span class="ins-tab is-on" role="tab" aria-selected="true">Overview</span>
-    <span class="ins-tab" role="tab" aria-selected="false">Spend</span>
-    <span class="ins-tab" role="tab" aria-selected="false">Scoring</span>
-    <span class="ins-tab" role="tab" aria-selected="false">History</span>
+    <span class="ins-tab is-on" role="tab" aria-selected="true" tabindex="0">Overview</span>
+    <span class="ins-tab" role="tab" aria-selected="false" tabindex="-1">Spend</span>
+    <span class="ins-tab" role="tab" aria-selected="false" tabindex="-1">Scoring</span>
+    <span class="ins-tab" role="tab" aria-selected="false" tabindex="-1">History</span>
   </div>
 
   <div class="mock-cols">
@@ -174,7 +174,7 @@
               </div>
             </div>
           </div>
-          <div class="vs">You<span><i></i></span>Room</div>
+          <div class="vs">You<span aria-hidden="true"><i></i></span>Room</div>
           <div class="seat is-room">
             <div class="seat-top">
               <span class="mark">KP</span>

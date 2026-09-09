@@ -145,10 +145,10 @@
   </section>
 
   <div class="ins-tabs" role="tablist" aria-label="Insights">
-    <span class="ins-tab is-on" role="tab" aria-selected="true">Overview</span>
-    <span class="ins-tab" role="tab" aria-selected="false">Spend</span>
-    <span class="ins-tab" role="tab" aria-selected="false">Scoring</span>
-    <span class="ins-tab" role="tab" aria-selected="false">History</span>
+    <span class="ins-tab is-on" role="tab" aria-selected="true" tabindex="0">Overview</span>
+    <span class="ins-tab" role="tab" aria-selected="false" tabindex="-1">Spend</span>
+    <span class="ins-tab" role="tab" aria-selected="false" tabindex="-1">Scoring</span>
+    <span class="ins-tab" role="tab" aria-selected="false" tabindex="-1">History</span>
   </div>
 
   <main id="main-content" class="stack">
@@ -188,11 +188,11 @@
       <table class="hall-board">
         <thead>
           <tr>
-            <th class="who">Manager</th>
-            <th class="num">Titles</th>
-            <th class="rec">Record</th>
-            <th class="num hide-narrow">Career pts</th>
-            <th class="num">Gap</th>
+            <th scope="col" class="who">Manager</th>
+            <th scope="col" class="num">Titles</th>
+            <th scope="col" class="rec">Record</th>
+            <th scope="col" class="num hide-narrow">Career pts</th>
+            <th scope="col" class="num">Gap</th>
           </tr>
         </thead>
         <tbody>
