@@ -399,6 +399,7 @@
   }
 
   .hub-wcc-slot-call,
+  .hub-wcc-call-pill,
   .hub-wcc-ticket-start,
   .hub-wcc-ticket-close,
   .hub-wcc-ticket-foot .btn-ghost {
@@ -427,6 +428,7 @@
   }
 
   .hub-wcc-row.is-call .hub-wcc-slot-call,
+  .hub-wcc-row.is-call .hub-wcc-call-pills,
   .hub-wcc-row.is-empty .hub-wcc-slot-fill {
     width: auto;
     max-width: 100%;
