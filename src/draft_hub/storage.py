@@ -960,11 +960,17 @@ def _pick_roster_sqlite_row(
     *,
     team_id: str | None = None,
     prefer: str = "occupying",
+    require_team: bool = False,
 ) -> sqlite3.Row | None:
     if not rows:
         return None
+    if require_team and (team_id is None or str(team_id) == ""):
+        return None
     scoped = rows
     if team_id is not None and str(team_id) != "":
+        # Team-scoped reads stay strict. Staff Cut clears pick_team when the
+        # viewer does not own the row. Trades pass require_team so a missing
+        # from-team cannot steal a different roster.
         scoped = [r for r in rows if str(r["team_id"] or "") == str(team_id)]
         if not scoped:
             return None
@@ -1394,7 +1400,12 @@ def update_roster_slot(
             prefer = "cut"
         elif roster_status in ("cut", "cut_before_draft"):
             prefer = "occupying"
-        row = _pick_roster_sqlite_row(rows, team_id=team_id, prefer=prefer)
+        pick_team = team_id
+        if any_team and team_id:
+            preferred = [r for r in rows if str(r["team_id"] or "") == str(team_id)]
+            if not preferred:
+                pick_team = None
+        row = _pick_roster_sqlite_row(rows, team_id=pick_team, prefer=prefer)
         if not row:
             raise ValueError("Player not on roster")
         if roster_status in ("cut", "cut_before_draft"):
@@ -1496,13 +1507,19 @@ def set_roster_contract_type(
             (workspace_id, player_id),
         ).fetchall()
         scoped = all_rows
+        pick_team = team_id
         if team_id:
-            scoped = [r for r in all_rows if str(r["team_id"] or "") == str(team_id)] or (
-                all_rows if any_team else []
-            )
+            matched = [r for r in all_rows if str(r["team_id"] or "") == str(team_id)]
+            if matched:
+                scoped = matched
+            elif any_team:
+                scoped = all_rows
+                pick_team = None
+            else:
+                scoped = []
         elif not any_team:
             scoped = [r for r in all_rows if not str(r["team_id"] or "")]
-        row = _pick_roster_sqlite_row(scoped, team_id=team_id, prefer="occupying")
+        row = _pick_roster_sqlite_row(scoped, team_id=pick_team, prefer="occupying")
         if not row:
             raise ValueError("Player not on roster")
 
@@ -2250,7 +2267,7 @@ def transfer_roster_players(
                 (workspace_id, pid, from_team_id),
             ).fetchall()
             occupying = [r for r in rows if roster_row_occupies(r)]
-            targets = occupying
+            targets = occupying or rows
             for row in targets:
                 cur = conn.execute(
                     "UPDATE roster_slot SET team_id = ? WHERE id = ?",
@@ -2282,6 +2299,7 @@ def apply_trade_plan(
                 rows,
                 team_id=move.get("from_team_id"),
                 prefer="occupying",
+                require_team=True,
             )
             if not row:
                 raise ValueError(f"Failed to move {pid}")

@@ -297,6 +297,13 @@ def test_rehome_shared_workspace_splits_roster_rows(hub_db):
     assert storage.get_roster_slot(ws_b, "00-0033873") is None
 
 
+def test_get_roster_slot_team_id_is_strict(hub_db):
+    _league, owner, member, ws_id = _seed_two_teams("comm-strict-slot", "member-strict-slot")
+    _add(ws_id, owner["id"])
+    assert storage.get_roster_slot(ws_id, "00-0033873", team_id=owner["id"]) is not None
+    assert storage.get_roster_slot(ws_id, "00-0033873", team_id=member["id"]) is None
+
+
 def test_ordinary_add_rejects_negative_and_over_cap(hub_db, monkeypatch):
     league, _owner, member, ws_id = _seed_two_teams("comm-money", "member-money")
     _open_fa(monkeypatch, league)
