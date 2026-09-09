@@ -5104,6 +5104,26 @@ button.dfs-vegas-card {
   text-transform: uppercase;
 }
 
+.hub-fa-walkaway.is-over {
+  color: var(--tone-caution-text);
+}
+
+.hub-fa-bid-warn {
+  margin: 0;
+  color: var(--tone-caution-text);
+}
+
+.hub-fa-bid-actions {
+  flex-wrap: wrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-fa-walkaway,
+  .hub-fa-bid-warn {
+    transition: none;
+  }
+}
+
 .hub-fa-locked {
   position: relative;
 }
