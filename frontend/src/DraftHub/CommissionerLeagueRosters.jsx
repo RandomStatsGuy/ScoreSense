@@ -549,6 +549,7 @@ function TeamRosterBlock({
       stepUp,
       ctype,
       rules?.contracts?.rookie_salary_static !== false,
+      rules?.contracts?.veteran_salary_static !== false,
     ) || storedSchedule;
     const chip = contractStateChip({
       rosterStatus: effective.roster_status,

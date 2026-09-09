@@ -26,7 +26,7 @@ Backend is authoritative for eligibility and materialized contracts. The client 
 - Policy changes apply to **new contracts only**. Say that once, next to Save. Do not mention a migration unless a control exists.
 - Templates confirm, name what changes, and fill the form. They do not save.
 - Players-tab adds follow `acquisitionWindow.js`. Staff Roster management may override; Players-tab adds may not.
-- Static rookie deals stay flat; vet deals and extensions use the configured step-up.
+- Static rookie deals and vet deals stay flat for the first term. The configured step-up starts on an extension. Show Keep vet deals flat and Allow vet deal extensions as their own Rules toggles.
 - Final-year rookie deals and vet deals may take one extension. An extension cannot be extended again.
 - Cut dead cap hits only the season the player is cut. Later years of the deal free in full.
 - Offseason trades: surviving contracts only.

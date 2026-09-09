@@ -32,6 +32,7 @@ test("mergeLeagueRules adds new contract policy defaults without losing roster r
   assert.equal(merged.contracts.max_years, 4);
   assert.equal(merged.contracts.veteran_years, 2);
   assert.equal(merged.contracts.rookie_salary_static, true);
+  assert.equal(merged.contracts.veteran_salary_static, true);
   assert.equal(merged.contracts.allow_veteran_renewal, true);
   assert.equal(merged.contracts.one_renewal_after_rookie, true);
 });
@@ -48,30 +49,33 @@ test("validateLeagueSettings catches conflicting contract and roster limits", ()
   assert.match(errors.roster_te, /cannot exceed/i);
 });
 
-test("contractSchedule and rulesSummary explain flat versus stepped rookie deals", () => {
+test("contractSchedule and rulesSummary explain flat versus stepped first terms", () => {
   assert.deepEqual(contractSchedule(10, 3, 5, true), [10, 10, 10]);
   assert.deepEqual(contractSchedule(10, 3, 5, false), [10, 15, 20]);
   const summary = rulesSummary(mergeLeagueRules({
-    contracts: { rookie_years: 3, rookie_salary_static: false },
+    contracts: { rookie_years: 3, rookie_salary_static: false, veteran_salary_static: true },
   }));
   assert.match(summary.find((item) => item.id === "rookie").value, /3 years · Steps up/);
-  assert.match(summary.find((item) => item.id === "veteran").value, /Steps up/);
+  assert.match(summary.find((item) => item.id === "veteran").value, /Flat/);
   assert.equal(summary.find((item) => item.id === "renewals").value, "Rookie deals and vet deals");
 });
 
-test("one Allow extensions toggle writes both deal flags", () => {
+test("Rules copy names vet flat and vet extension toggles separately", () => {
   assert.equal(leagueAllowsDealExtensions({ one_renewal_after_rookie: true }), true);
   assert.equal(extensionPolicyLabel({ one_renewal_after_rookie: true, allow_veteran_renewal: true }), "Rookie deals and vet deals");
+  assert.equal(extensionPolicyLabel({ one_renewal_after_rookie: true, allow_veteran_renewal: false }), "Rookie deals only");
   const off = applyDealExtensionPolicy({ max_years: 3 }, false);
   assert.equal(off.one_renewal_after_rookie, false);
   assert.equal(off.allow_veteran_renewal, false);
   assert.equal(leagueAllowsDealExtensions(off), false);
-  assert.equal(RULES_COPY.allowExtensions, "Allow extensions");
+  assert.equal(RULES_COPY.keepVetFlat, "Keep vet deals flat");
+  assert.equal(RULES_COPY.allowVetExtensions, "Allow vet deal extensions");
+  assert.equal(RULES_COPY.allowRookieExtensions, "Allow rookie deal extensions");
   assert.equal(RULES_COPY.previewRookie, "Rookie deal");
   assert.equal(RULES_COPY.previewVet, "Vet deal");
   assert.equal(RULES_COPY.previewExtension, "Extension");
-  assert.doesNotMatch(RULES_COPY.allowExtensionsHelp, /rookie extension/i);
-  assert.match(RULES_COPY.allowExtensionsHelp, /vet deal/i);
+  assert.match(RULES_COPY.keepVetFlatHelp, /step-up starts on an extension/i);
+  assert.match(RULES_COPY.allowVetExtensionsHelp, /vet deal/i);
   assert.doesNotMatch(JSON.stringify(RULES_COPY), /Rookie Extension|Veteran Deal/);
 });
 
@@ -177,6 +181,15 @@ test("template impact names format, cap, and roster changes and does not save", 
   assert.match(message, /Snake draft/);
   assert.ok(presetRulesFromList({ rules: snake }));
   assert.equal(presetRulesFromList({ label: "Snake draft" }), null);
+  const extensionsOff = templateImpact(
+    mergeLeagueRules({}),
+    mergeLeagueRules({
+      contracts: { allow_veteran_renewal: false, one_renewal_after_rookie: false },
+    }),
+  );
+  assert.ok(extensionsOff.some((line) => /Vet deal extensions are disabled/.test(line)));
+  assert.ok(extensionsOff.some((line) => /Rookie deal extensions are disabled/.test(line)));
+  assert.ok(!extensionsOff.some((line) => /become off/.test(line)));
 });
 
 test("late Rules save does not apply when the form or header has moved leagues", () => {

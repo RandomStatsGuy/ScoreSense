@@ -13,7 +13,7 @@ from src.draft_hub.contracts import (
 from src.draft_hub.presets import load_preset
 
 
-def test_auction_win_contracts_rookie_flat_vet_steps():
+def test_auction_win_contracts_rookie_and_vet_stay_flat():
     rules = load_preset("salary_cap_auction_v1")
     rook = build_auction_win_contract(rules, 39, is_rookie=True)
     assert rook["contract_type"] == "rookie"
@@ -24,8 +24,9 @@ def test_auction_win_contracts_rookie_flat_vet_steps():
     vet = build_auction_win_contract(rules, 39, is_rookie=False)
     assert vet["contract_type"] == "veteran"
     assert vet["years_remaining"] == 2
-    assert [y["salary"] for y in vet["schedule"]] == [39, 44]
-    assert float(vet.get("step_up_per_year") or 0) == 5
+    assert vet["veteran_salary_static"] is True
+    assert [y["salary"] for y in vet["schedule"]] == [39, 39]
+    assert float(vet.get("step_up_per_year") or 0) == 0
 
 
 def test_auction_win_contracts_follow_commissioner_term_and_rookie_salary_rules():
@@ -36,6 +37,7 @@ def test_auction_win_contracts_follow_commissioner_term_and_rookie_salary_rules(
             "rookie_years": 3,
             "veteran_years": 4,
             "rookie_salary_static": False,
+            "veteran_salary_static": False,
             "extension_step_up": 3,
         }),
     })
@@ -47,6 +49,7 @@ def test_auction_win_contracts_follow_commissioner_term_and_rookie_salary_rules(
 
     vet = build_auction_win_contract(rules, 10, is_rookie=False)
     assert vet["years_remaining"] == 4
+    assert vet["veteran_salary_static"] is False
     assert [year["salary"] for year in vet["schedule"]] == [10, 13, 16, 19]
 
 
@@ -129,7 +132,7 @@ def test_rookie_contract_flat_years():
     assert c["schedule"][1]["salary"] == 10
 
 
-def test_roster_edit_rookie_stays_flat_vet_and_extension_step():
+def test_roster_edit_first_term_stays_flat_extension_steps():
     from src.draft_hub.contracts import build_contract_from_roster_edit
 
     rules = load_preset("salary_cap_auction_v1")
@@ -142,13 +145,133 @@ def test_roster_edit_rookie_stays_flat_vet_and_extension_step():
     vet = build_contract_from_roster_edit(
         rules, current_salary=12, years_remaining=2, contract_type="veteran", step_up=5
     )
-    assert [y["salary"] for y in vet["schedule"]] == [12, 17]
-    assert float(vet.get("step_up_per_year") or 0) == 5
+    assert [y["salary"] for y in vet["schedule"]] == [12, 12]
+    assert float(vet.get("step_up_per_year") or 0) == 0
+    assert vet.get("veteran_salary_static") is True
 
     ext = build_contract_from_roster_edit(
         rules, current_salary=15, years_remaining=3, contract_type="extension"
     )
     assert [y["salary"] for y in ext["schedule"]] == [15, 20, 25]
+
+
+def test_roster_edit_keeps_existing_deal_static_flag():
+    from src.draft_hub.contracts import build_contract_from_roster_edit
+
+    rules = load_preset("salary_cap_auction_v1")
+    stepped_rules = rules.model_copy(update={
+        "contracts": rules.contracts.model_copy(update={"veteran_salary_static": False}),
+    })
+    existing = {
+        "contract_type": "veteran",
+        "veteran_salary_static": False,
+        "current_salary": 12,
+        "years_remaining": 2,
+        "step_up_per_year": 5,
+        "schedule": [
+            {"year_offset": 0, "salary": 12},
+            {"year_offset": 1, "salary": 17},
+        ],
+    }
+    kept = build_contract_from_roster_edit(
+        rules,
+        current_salary=14,
+        years_remaining=2,
+        existing=existing,
+        contract_type="veteran",
+        step_up=5,
+    )
+    assert kept["veteran_salary_static"] is False
+    assert [y["salary"] for y in kept["schedule"]] == [14, 19]
+
+    legacy = {
+        "contract_type": "veteran",
+        "current_salary": 2,
+        "years_remaining": 2,
+        "step_up_per_year": 5,
+        "schedule": [
+            {"year_offset": 0, "salary": 2},
+            {"year_offset": 1, "salary": 7},
+        ],
+    }
+    inferred = build_contract_from_roster_edit(
+        rules,
+        current_salary=3,
+        years_remaining=2,
+        existing=legacy,
+        contract_type="veteran",
+    )
+    assert inferred["veteran_salary_static"] is False
+    assert [y["salary"] for y in inferred["schedule"]] == [3, 8]
+
+    flat = {
+        "contract_type": "veteran",
+        "veteran_salary_static": True,
+        "current_salary": 10,
+        "years_remaining": 2,
+        "step_up_per_year": 0,
+        "schedule": [
+            {"year_offset": 0, "salary": 10},
+            {"year_offset": 1, "salary": 10},
+        ],
+    }
+    still_flat = build_contract_from_roster_edit(
+        stepped_rules,
+        current_salary=11,
+        years_remaining=2,
+        existing=flat,
+        contract_type="veteran",
+        step_up=5,
+    )
+    assert still_flat["veteran_salary_static"] is True
+    assert [y["salary"] for y in still_flat["schedule"]] == [11, 11]
+
+    stepped_rookie_rules = rules.model_copy(update={
+        "contracts": rules.contracts.model_copy(update={"rookie_salary_static": False}),
+    })
+    stepped_rookie = {
+        "contract_type": "rookie",
+        "rookie_salary_static": False,
+        "current_salary": 10,
+        "years_remaining": 2,
+        "step_up_per_year": 5,
+        "schedule": [
+            {"year_offset": 0, "salary": 10},
+            {"year_offset": 1, "salary": 15},
+        ],
+    }
+    kept_rookie = build_contract_from_roster_edit(
+        rules,
+        current_salary=12,
+        years_remaining=2,
+        existing=stepped_rookie,
+        contract_type="rookie",
+        step_up=5,
+    )
+    assert kept_rookie["rookie_salary_static"] is False
+    assert [y["salary"] for y in kept_rookie["schedule"]] == [12, 17]
+
+    flat_rookie = {
+        "contract_type": "rookie",
+        "rookie_salary_static": True,
+        "current_salary": 8,
+        "years_remaining": 2,
+        "step_up_per_year": 0,
+        "schedule": [
+            {"year_offset": 0, "salary": 8},
+            {"year_offset": 1, "salary": 8},
+        ],
+    }
+    still_flat_rookie = build_contract_from_roster_edit(
+        stepped_rookie_rules,
+        current_salary=9,
+        years_remaining=2,
+        existing=flat_rookie,
+        contract_type="rookie",
+        step_up=5,
+    )
+    assert still_flat_rookie["rookie_salary_static"] is True
+    assert [y["salary"] for y in still_flat_rookie["schedule"]] == [9, 9]
 
 
 def test_mendoza_extension_step_up():

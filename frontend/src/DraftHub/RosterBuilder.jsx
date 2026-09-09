@@ -759,6 +759,7 @@ export default function RosterBuilder({
         defaultStepUp,
         ctype,
         workspace?.rules?.contracts?.rookie_salary_static !== false,
+        workspace?.rules?.contracts?.veteran_salary_static !== false,
       ) || storedSchedule);
     const status = rosterStatusInfo(r, {
       draftCompleted, ctype, pendingType, pendingExt, rules: workspace?.rules,
