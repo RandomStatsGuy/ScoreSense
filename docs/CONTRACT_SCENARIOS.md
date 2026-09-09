@@ -11,7 +11,7 @@ Use this when importing a cap sheet, fixing mistagged players, or deciding exten
 | Rule | Default |
 |---|---|
 | Rookie deal length | **2** seasons, **flat** salary |
-| Vet deal length | **2** seasons, **+$5**/yr step-up |
+| Vet deal length | **2** seasons, **flat** salary (step-up starts on the extension) |
 | Extension | **One** extension of **1–3** years (default **2**), **+$5**/yr |
 | Who can extend | Final-year **Rookie deal** or **Vet deal** |
 | After an Extension ends | **Cannot extend again** → draft pool, then FA if undrafted |
@@ -28,7 +28,7 @@ Contracts expire **before** the next draft (keepers with 1 year left leave unles
 | UI label | Meaning |
 |---|---|
 | **Rookie deal** | First fantasy deal for an NFL rookie window; years 1–2 stay flat; can take one extension in the final year |
-| **Vet deal** | Not a rookie deal and not already an extension — steps +$5/yr every year; can take one extension in the final year |
+| **Vet deal** | Not a rookie deal and not already an extension — first term stays flat; can take one extension in the final year |
 | **Extension** | Already used the one extension — steps +$5/yr; when years hit 1 → draft pool, then FA if undrafted |
 
 Auto-tagging (Sleeper sync / import) uses NFL experience (`years_exp` &lt; 2 → rookie). Commissioners can override; members can propose a type for commissioner approval.
@@ -129,7 +129,7 @@ Auction terms are assigned automatically. Owners do **not** pick years after the
 |---|---|
 | Contract type | **Rookie deal** if NFL rookie class; else **Vet deal** |
 | Years left | **2** |
-| Salary | Sale price in year 1. Rookies stay flat; veterans step +$5/yr (league setting) |
+| Salary | Sale price in year 1. Rookie deals and vet deals stay flat; the step-up starts on an extension |
 | Source | System tags `draft` / `auction` |
 
 Year control is only the **pre-draft extension** window (add 1–3 years, default 2, with step-ups).

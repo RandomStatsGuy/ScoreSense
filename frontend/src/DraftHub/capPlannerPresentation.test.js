@@ -5,6 +5,7 @@ import {
   capEquationNote,
   displayCapPair,
   capHeroCopy,
+  capStepUpLine,
   capRailPrimary,
   capSheetYearOffsets,
   leftoverAfterMoveYears,
@@ -36,6 +37,12 @@ test("Cap hero asks if you can afford the bid", () => {
   const pre = capHeroCopy({ preDraft: true });
   assert.match(pre.support, /dead cap/i);
   assert.doesNotMatch(JSON.stringify(live), /three seasons before you spend|Draft Hub|Submit/i);
+});
+
+test("step-up glossary names flat vet deals separately from extensions", () => {
+  assert.match(capStepUpLine({ rookieStatic: true, veteranStatic: true, stepUp: 5 }), /vet deals stay flat/i);
+  assert.match(capStepUpLine({ rookieStatic: true, veteranStatic: true, stepUp: 5 }), /extensions increase \$5/i);
+  assert.match(capStepUpLine({ veteranStatic: false, stepUp: 5 }), /vet deals increase \$5/i);
 });
 
 test("rail primary is the pending cut or the draft spend", () => {

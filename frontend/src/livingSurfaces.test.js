@@ -87,6 +87,7 @@ test("delete league and excel download resolve to living surfaces", () => {
 
 test("rules save and this-week empty slots stay on the living surface", () => {
   assert.match(LIVING_SURFACES["hub.rules"].doNot, /Save writes the league on the form/);
+  assert.match(LIVING_SURFACES["hub.rules"].doNot, /Allow vet deal extensions/);
   assert.match(LIVING_SURFACES["hub.week"].doNot, /starts a bench player who can fill it/);
 });
 

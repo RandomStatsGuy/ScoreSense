@@ -25,5 +25,6 @@ contracts:
   rookie_years: 2
   veteran_years: 2
   rookie_salary_static: true
+  veteran_salary_static: true
   one_renewal_after_rookie: true
   allow_veteran_renewal: true
