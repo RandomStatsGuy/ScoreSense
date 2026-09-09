@@ -18,6 +18,27 @@ _ROS_CACHE: dict[str, tuple[str, pd.DataFrame]] = {}
 _ROS_COMPUTE_LOCK = threading.Lock()
 
 
+def _with_roster_identity(
+    df: pd.DataFrame,
+    position: str,
+    season: int | None,
+    week: int | None,
+) -> pd.DataFrame:
+    if df is None or df.empty or "player_id" not in df.columns:
+        return df
+    from src.integrations.roster_identity import apply_roster_identity_overlay
+
+    out, stats = apply_roster_identity_overlay(
+        df, position, season=season, week=week
+    )
+    if stats.get("applied"):
+        out.attrs["roster_identity"] = stats
+        for key, value in df.attrs.items():
+            if key not in out.attrs:
+                out.attrs[key] = value
+    return out
+
+
 def _cache_key(position: str, season: int, week: int, apply_injury: bool) -> str:
     return f"{position.lower()}:{season}:w{week}:inj{int(apply_injury)}"
 
@@ -75,7 +96,7 @@ def load_ros_prediction(
     if not force:
         cached = _ROS_CACHE.get(key)
         if cached is not None and cached[0] == fp:
-            return cached[1].copy()
+            return _with_roster_identity(cached[1].copy(), pos, int(season), int(week))
 
         if parquet_path.exists() and meta_path.exists():
             try:
@@ -85,7 +106,7 @@ def load_ros_prediction(
             if meta.get("fingerprint") == fp:
                 df = pd.read_parquet(parquet_path)
                 _ROS_CACHE[key] = (fp, df.copy())
-                return df
+                return _with_roster_identity(df, pos, int(season), int(week))
 
     if not allow_compute:
         return pd.DataFrame()
@@ -94,7 +115,7 @@ def load_ros_prediction(
         if not force:
             cached = _ROS_CACHE.get(key)
             if cached is not None and cached[0] == fp:
-                return cached[1].copy()
+                return _with_roster_identity(cached[1].copy(), pos, int(season), int(week))
             if parquet_path.exists() and meta_path.exists():
                 try:
                     meta = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -103,7 +124,7 @@ def load_ros_prediction(
                 if meta.get("fingerprint") == fp:
                     df = pd.read_parquet(parquet_path)
                     _ROS_CACHE[key] = (fp, df.copy())
-                    return df
+                    return _with_roster_identity(df, pos, int(season), int(week))
 
         df = predict_rest_of_season(
             pos,
@@ -112,7 +133,7 @@ def load_ros_prediction(
             apply_injury_adjustments=apply_injury_adjustments,
         )
         save_ros_artifact(pos, int(season), int(week), apply_injury_adjustments, df)
-        return df
+        return _with_roster_identity(df, pos, int(season), int(week))
 
 
 def save_ros_artifact(

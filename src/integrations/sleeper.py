@@ -692,9 +692,26 @@ def _sleeper_positions_for(position: str) -> frozenset[str]:
     return SLEEPER_POSITIONS[key]
 
 
-def _build_sleeper_lookups(sleeper_df: pd.DataFrame, position: str) -> tuple[dict[str, pd.Series], dict[str, pd.Series]]:
-    """Map gsis_id and lowercased full_name to Sleeper rows for one fantasy position."""
-    allowed = _sleeper_positions_for(position)
+def _sleeper_row_rank(row: pd.Series, allowed: frozenset[str]) -> tuple[int, int, int]:
+    team = str(row.get("team") or "").strip()
+    pos = str(row.get("position") or "").strip().upper()
+    status = str(row.get("status") or "").strip()
+    return (
+        1 if pos in allowed else 0,
+        1 if team else 0,
+        0 if status in EXCLUDED_SLEEPER_STATUSES else 1,
+    )
+
+
+def _build_sleeper_lookups(
+    sleeper_df: pd.DataFrame,
+    position: str,
+    allowed: frozenset[str] | None = None,
+) -> tuple[dict[str, pd.Series], dict[str, pd.Series]]:
+    """Map gsis_id and suffix-stripped name to Sleeper rows for one fantasy position."""
+    from src.draft_hub.player_name_match import roster_name_key
+
+    allowed = allowed if allowed is not None else _sleeper_positions_for(position)
     scoped = sleeper_df[sleeper_df["position"].isin(allowed)].copy()
     by_gsis: dict[str, pd.Series] = {}
     by_name: dict[str, pd.Series] = {}
@@ -702,8 +719,11 @@ def _build_sleeper_lookups(sleeper_df: pd.DataFrame, position: str) -> tuple[dic
         gsis = str(row.get("gsis_id") or "").strip()
         if gsis:
             by_gsis[gsis] = row
-        name = str(row.get("full_name") or "").strip().lower()
-        if name and name not in by_name:
+        name = roster_name_key(str(row.get("full_name") or ""))
+        if not name:
+            continue
+        prev = by_name.get(name)
+        if prev is None or _sleeper_row_rank(row, allowed) > _sleeper_row_rank(prev, allowed):
             by_name[name] = row
     return by_gsis, by_name
 
@@ -713,10 +733,12 @@ def _lookup_sleeper_row(
     by_gsis: dict[str, pd.Series],
     by_name: dict[str, pd.Series],
 ) -> Optional[pd.Series]:
+    from src.draft_hub.player_name_match import roster_name_key
+
     player_id = str(row.get("player_id") or "").strip()
     if player_id and player_id in by_gsis:
         return by_gsis[player_id]
-    name = _player_name_from_row(row).lower()
+    name = roster_name_key(_player_name_from_row(row))
     if name and name in by_name:
         return by_name[name]
     return None
@@ -834,7 +856,11 @@ def apply_sleeper_roster_overlay(
         return roster_df.copy(), {"applied": False, "teams_updated": 0, "removed_unrostered": 0, "rookies_added": 0}
 
     sleeper_df = sleeper_df if sleeper_df is not None else players_dataframe()
-    by_gsis, by_name = _build_sleeper_lookups(sleeper_df, position)
+    allowed = _sleeper_positions_for(position)
+    by_gsis, by_name = _build_sleeper_lookups(sleeper_df, position, allowed=allowed)
+    cross_gsis, cross_name = _build_sleeper_lookups(
+        sleeper_df, position, allowed=frozenset({"QB", "RB", "FB", "WR", "TE"})
+    )
 
     out = roster_df.copy()
     if "_rookie_estimate" not in out.columns:
@@ -853,6 +879,7 @@ def apply_sleeper_roster_overlay(
     keep_mask: list[bool] = []
     teams_updated = 0
     removed_unrostered = 0
+    removed_wrong_position = 0
     backups_scaled = 0
     matched_names: set[str] = set()
     matched_ids: set[str] = set()
@@ -860,6 +887,11 @@ def apply_sleeper_roster_overlay(
     for idx, row in out.iterrows():
         sleeper_row = _lookup_sleeper_row(row, by_gsis, by_name)
         if sleeper_row is None:
+            other = _lookup_sleeper_row(row, cross_gsis, cross_name)
+            if other is not None and str(other.get("position") or "").strip().upper() not in allowed:
+                keep_mask.append(False)
+                removed_wrong_position += 1
+                continue
             keep_mask.append(True)
             continue
 
@@ -972,6 +1004,7 @@ def apply_sleeper_roster_overlay(
         "applied": True,
         "teams_updated": teams_updated,
         "removed_unrostered": removed_unrostered,
+        "removed_wrong_position": removed_wrong_position,
         "rookies_added": rookies_added,
         "emerging_added": emerging_added,
         "backups_scaled": backups_scaled,
