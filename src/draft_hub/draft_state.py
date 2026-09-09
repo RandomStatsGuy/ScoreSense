@@ -1422,7 +1422,7 @@ def set_draft_contracts(
         raise ValueError("League not found")
     raise ValueError(
         "Auction contracts are assigned automatically (rookies 2 years flat, "
-        "veterans 2 years at the sale price). Choose years only during the "
+        "veterans 2 years at sale price (or stepped)). Choose years only during the "
         "pre-draft rookie extension window."
     )
 
