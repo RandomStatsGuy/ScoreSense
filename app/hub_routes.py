@@ -1615,8 +1615,6 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
         raise HTTPException(status_code=403, detail="Join a league team to propose contract type changes")
     if body.roster_status is not None and body.roster_status not in (ROSTER_ACTIVE, ROSTER_CUT_BEFORE_DRAFT):
         raise HTTPException(status_code=400, detail="roster_status must be active or cut_before_draft")
-    if body.roster_status is not None and draft_completed:
-        raise HTTPException(status_code=400, detail="Cannot change pre-draft cut status after the draft is completed")
     rules = LeagueRules.model_validate(ctx["rules"])
     max_years = int(rules.contracts.max_years)
     yrs_in = body.contract_years
@@ -1641,7 +1639,10 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
         and (salary_fields or status_field or (type_field and ctx.get("can_edit_salaries")))
     )
     note = str(body.note or "").strip() or None
-    if commissioner_override and (salary_fields or status_field):
+    own_team = bool(team_id) and str(existing.get('team_id') or '') == str(team_id)
+    status_only = status_field and not salary_fields and not type_field
+    # Own-team Cut / Undo cut is a manager action — My team does not collect a staff note.
+    if commissioner_override and (salary_fields or status_field) and not (own_team and status_only):
         if not note or len(note) < 3:
             raise HTTPException(
                 status_code=400,

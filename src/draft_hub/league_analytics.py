@@ -43,7 +43,7 @@ def build_league_analytics(
             counts[pos] += 1
 
         committed = round(sum(spend.values()), 2)
-        dead_cap = 0.0 if draft_completed else total_pre_draft_dead_cap(rules, roster, year_offset=0)
+        dead_cap = total_pre_draft_dead_cap(rules, roster, year_offset=0)
         unspent = round(max(0.0, cap - committed - dead_cap), 2)
         pct = {p: round((spend[p] / cap) * 100, 1) if cap else 0.0 for p in positions}
         pct_unspent = round((unspent / cap) * 100, 1) if cap else 0.0

@@ -123,6 +123,14 @@ def test_constitution_covers_contract_type_labels() -> None:
     assert 'previewExtension: "Extension"' in rules_copy
 
 
+def test_constitution_covers_cut_dead_cap_this_season_only() -> None:
+    product = _read("docs", "PRODUCT.md")
+    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    assert "Dead cap hits only the season the player is cut" in product
+    assert "Dead cap hits only the cut season" in core_rule
+    assert "owners Cut on My team" in product
+
+
 def test_expire_chips_say_expiring_not_fa_destination() -> None:
     product = _read("docs", "PRODUCT.md")
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")

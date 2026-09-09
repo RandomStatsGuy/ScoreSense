@@ -58,8 +58,8 @@ If a sheet shows `1` but you still have the player for the upcoming season on a 
 
 | Action | Cap | Use |
 |---|---|---|
-| **Drop** | No dead cap. Leftover returns in full. | Staff removing a player so they can add them to another team before the draft. |
-| **Cut** | Dead cap at the league refund rate. | A real pre-draft cut. |
+| **Drop** | No dead cap. Leftover returns in full. | Staff removing a player so they can add them to another team. |
+| **Cut** | Dead cap this season only at the league refund rate. Later years free in full. | A real cut, before or after the draft. |
 
 ---
 
@@ -138,18 +138,18 @@ Year control is only the **pre-draft extension** window (add 1–3 years, defaul
 
 ---
 
-### F. Cut before draft (keep dead cap)
+### F. Cut (keep dead cap this season only)
 
-**Examples:** Dropping a keeper to free auction budget; accepting dead money.
+**Examples:** Dropping a keeper to free auction budget; cutting a multi-year deal after the draft.
 
 | UI action | Result |
 |---|---|
-| **Cut pre-draft** on Roster | Player leaves committed cap; dead cap = (1 − cut refund %) of remaining years |
+| **Cut** on My team or Roster management | Player leaves committed cap; dead cap = (1 − cut refund %) of this season only. Later years free in full. |
 | Undo cut | Restores active status |
 
 Type/years stay on the row for dead-cap math; they are not FA you can re-buy under the same deal.
 
-**Leftover on Cap, Rosters, and My team is auction leftover.** A 1-year keeper who expires at the draft does not count as committed. Dead cap from a pre-draft cut still subtracts from leftover.
+**Leftover on Cap, Rosters, and My team is auction leftover.** A 1-year keeper who expires at the draft does not count as committed. Dead cap from a cut still subtracts from leftover this season only.
 
 ---
 

@@ -7,6 +7,7 @@ import {
   capFieldFigures,
   contractStateChip,
   cutButtonCopy,
+  cutConfirmCopy,
   dropButtonCopy,
   dropConfirmCopy,
   dropLeftoverFreed,
@@ -97,6 +98,42 @@ test("cut control names the room and dead consequence", () => {
   const copy = cutButtonCopy(TEAM.roster[1], RULES);
   assert.match(copy.label, /Cut · \+\$4 room, \$4 dead/);
   assert.match(copy.ariaLabel, /Queue cut of Veteran/);
+  const afterDraft = cutButtonCopy(TEAM.roster[1], RULES, { draftCompleted: true });
+  assert.match(afterDraft.ariaLabel, /Cut Veteran with dead cap/);
+  const confirm = cutConfirmCopy(TEAM.roster[1], RULES);
+  assert.equal(confirm.title, "Cut Veteran?");
+  assert.match(confirm.message, /Frees \$4 leftover/);
+  assert.match(confirm.message, /Dead cap \$4/);
+  assert.match(confirm.message, /Drop if you meant no penalty/);
+});
+
+test("after-draft leftover includes this-season dead cap only", () => {
+  const block = {
+    team: { id: "t1", name: "Alpha" },
+    roster: [
+      {
+        player_id: "kept",
+        player_name: "Kept",
+        salary: 50,
+        contract_years: 2,
+        contract: { years_remaining: 2, contract_type: "veteran" },
+        roster_status: "active",
+      },
+      {
+        player_id: "cut",
+        player_name: "Cut",
+        salary: 80,
+        contract_years: 3,
+        contract: { years_remaining: 3, contract_type: "veteran" },
+        roster_status: "cut_before_draft",
+      },
+    ],
+  };
+  const stats = teamCapStats(block, 200, RULES, true);
+  assert.equal(stats.committed, 50);
+  assert.equal(stats.deadCap, 40);
+  assert.equal(stats.remaining, 110);
+  assert.equal(stats.cutCount, 1);
 });
 
 test("drop control names leftover and zero dead cap", () => {

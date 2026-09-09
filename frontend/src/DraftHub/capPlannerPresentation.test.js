@@ -82,6 +82,7 @@ test("leftoverAfterMoveYears applies the bid and cut refund and keeps committed 
   });
   assert.equal(next[0].cap_remaining, 210);
   assert.equal(next[0].total_committed, -10);
+  // Later years free the full remaining hit — no dead after the cut season.
   assert.equal(next[1].cap_remaining, 220);
   assert.equal(next[1].total_committed, -20);
   const closed = leftoverAfterMoveYears({
@@ -176,6 +177,18 @@ test("leftoverAfterMoveDisplay applies the bid to the leftover already on screen
     bid: 0,
   });
   assert.equal(cut[0].cap_remaining, 135);
+  const later = leftoverAfterMoveDisplay({
+    years: [
+      { seasonLabel: 2026, cap_remaining: 100 },
+      { seasonLabel: 2027, cap_remaining: 100 },
+    ],
+    salaryCap: 200,
+    cutHits: [40, 40],
+    cutRefundPct: 0.5,
+    bid: 0,
+  });
+  assert.equal(later[0].cap_remaining, 120);
+  assert.equal(later[1].cap_remaining, 140);
   assert.equal(fmtCapMoney(-77), "-$77");
   assert.equal(fmtCapMoney(123), "$123");
 });

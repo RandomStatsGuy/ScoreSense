@@ -6,7 +6,14 @@ export const MY_TEAM_COPY = {
   title: "My team",
   purpose: "Your contracts and leftover cap. Cut or extend the wrong name and you pay for it next season.",
   learnMoreReadonlyLeague:
-    "Salary, years, and type are edited in Roster management → Contracts only. Eligible final-year contracts can still queue one extension here.",
+    "Salary, years, and type are edited in Roster management → Contracts only. Cut your own names here. Eligible final-year contracts can still queue one extension before the draft.",
+  cutLabel: "Cut",
+  undoCut: "Undo cut",
+  cutConfirmTitle: (name) => `Cut ${name}?`,
+  cutConfirm: (freed, dead) => (
+    `Frees ${freed} leftover. Dead cap ${dead}. Drop if you meant no penalty.`
+  ),
+  cutConfirmLabel: "Cut",
   learnMoreReadonlySolo: "Read-only — ask commish to edit.",
   learnMoreEdit:
     "Personal roster decisions live here. Edit look sets a wide banner on this page and a photo that travels with your team.",
@@ -38,7 +45,7 @@ export const MY_TEAM_COPY = {
 
 export function rosterStatusInfo(row, { draftCompleted, ctype, pendingType, pendingExt, rules } = {}) {
   if (row?.roster_status === "cut_before_draft") {
-    return { label: "Cut before draft", tone: "cut", key: "cut" };
+    return { label: "Cut", tone: "cut", key: "cut" };
   }
   if (pendingExt) return { label: "Extension queued", tone: "pending", key: "pending-ext" };
   if (pendingType) return { label: "Pending type", tone: "pending", key: "pending-type" };

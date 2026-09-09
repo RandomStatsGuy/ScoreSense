@@ -50,6 +50,28 @@ def test_spend_pct_sums_within_cap(hub_db):
         assert team["committed"] <= cap + 0.01
 
 
+def test_after_draft_analytics_count_cut_dead_this_season(hub_db):
+    overview = _overview(hub_db)
+    team = overview["teams"][0]
+    team["roster"].append(
+        {
+            "player_id": "p-cut",
+            "player_name": "Cut",
+            "position": "TE",
+            "salary": 20,
+            "roster_status": "cut_before_draft",
+            "contract": {
+                "years_remaining": 3,
+                "current_salary": 20,
+                "schedule": [{"year_offset": i, "salary": 20} for i in range(3)],
+            },
+        }
+    )
+    analytics = build_league_analytics(overview, draft_completed=True)
+    cut_team = next(t for t in analytics["teams"] if t["team_id"] == team["team"]["id"])
+    assert cut_team["dead_cap"] == 10
+
+
 def test_position_totals_match_roster(hub_db):
     overview = _overview(hub_db)
     analytics = build_league_analytics(overview, draft_completed=True)

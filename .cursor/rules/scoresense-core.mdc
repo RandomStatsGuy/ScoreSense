@@ -66,7 +66,7 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Fantasy lists people by **owner name**. Team nicknames may sit underneath or after a middot.
 - One `<main id="main-content">` plus a skip link; do not nest a second main.
 - Practice mock rooms have no Drop or Trade. Simulate uses live-bot pricing, shows N of the remaining pool, and never disables Discard. Never say Available players.
-- Cap, Rosters, My team, and after-draft Roster management leftover is auction leftover: expiring 1-year keepers and Yrs-0 expirees are not committed. Against-cap is salary plus dead cap. After draft, staff Drop and field edits write immediately.
+- Cap, Rosters, My team, and after-draft Roster management leftover is auction leftover: expiring 1-year keepers and Yrs-0 expirees are not committed. Against-cap is salary plus dead cap. After draft, staff Drop, Cut, and field edits write immediately. Owners Cut on My team after draft. Dead cap hits only the cut season.
 - One-year expirees that cannot extend use Expiring — never Expires — FA. They enter the draft pool; undrafted names become free agents after the draft.
 - Contract types shown to users are Rookie deal, Vet deal, and Extension — never Rookie Extension or Veteran Deal. Rookie deals stay flat; vet deals and extensions step every year. Final-year rookie deals and vet deals may take one extension when Rules Allow extensions is on.
 - A nomination queue stays on that manager's board only. Do not put another team's queue on room state.
