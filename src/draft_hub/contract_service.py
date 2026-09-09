@@ -511,6 +511,17 @@ def rewind_contracts_on_draft_reset(league_id: str) -> dict[str, Any]:
             pid = slot.get("player_id")
             if not pid:
                 continue
+            team_key = str(slot.get("team_id") or "")
+            existing = [
+                s
+                for s in storage.list_roster_slots_for_player(ws_id, pid)
+                if str(s.get("team_id") or "") == team_key
+            ]
+            if existing:
+                storage.delete_roster_slot_ids(
+                    ws_id,
+                    [int(s["id"]) for s in existing if s.get("id") is not None],
+                )
             storage.add_roster_slot(
                 ws_id,
                 {

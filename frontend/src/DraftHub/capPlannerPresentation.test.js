@@ -57,6 +57,17 @@ test("rail primary is the pending cut or the draft spend", () => {
   assert.equal(cut.kind, "undo-cut");
     assert.equal(cut.label, "Undo cut · Zamir White");
   assert.equal(cut.detail, "+$5 dead, −$10 room");
+  const closed = capRailPrimary({
+    pendingCut: {
+      player_name: "Zamir White",
+      player_id: "zw",
+      dead_cap: 5,
+      salary: 10,
+      can_undo_cut: false,
+    },
+    remaining: 178,
+  });
+  assert.equal(closed.kind, "room");
   const room = capRailPrimary({ remaining: 178 });
   assert.equal(room.kind, "room");
   assert.equal(room.label, "Open draft room · $178 to spend.");

@@ -1413,8 +1413,8 @@ def set_draft_contracts(
     """Owners no longer choose auction contract years.
 
     Rookies get a flat 2-year deal at the sale price; veterans get 2 years
-    with the league step-up. Year control is only the pre-draft rookie
-    extension window.
+    at the sale price when Keep vet deals flat is on. Year control is only
+    the pre-draft rookie extension window.
     """
     _ = (items, max_years, user_sub)
     league = storage.get_league(league_id)
@@ -1422,7 +1422,7 @@ def set_draft_contracts(
         raise ValueError("League not found")
     raise ValueError(
         "Auction contracts are assigned automatically (rookies 2 years flat, "
-        "veterans 2 years with step-up). Choose years only during the "
+        "veterans 2 years at sale price (or stepped)). Choose years only during the "
         "pre-draft rookie extension window."
     )
 
