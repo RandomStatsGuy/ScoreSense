@@ -1689,10 +1689,17 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
         existing = existing_cut or occupying
         if existing is None:
             raise HTTPException(status_code=404, detail="Player not on roster")
+    elif status_field:
+        # Cut looks up the occupying row league-wide, then authorize below.
+        existing = occupying
+        if existing is None:
+            raise HTTPException(status_code=404, detail="Player not on roster")
     else:
         existing = storage.get_roster_slot(
             ws_id, body.player_id, team_id=team_id, prefer_occupying=True
         )
+        if not existing and ctx.get("is_commissioner"):
+            existing = occupying
         if not existing:
             raise HTTPException(status_code=404, detail="Player not on roster")
     if ctx.get("mode") == "league" and not ctx.get("is_commissioner"):
@@ -1841,7 +1848,7 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
             ctx.get("league_id"),
             ws_id,
             body.player_id,
-            team_id=team_id,
+            team_id=str(existing.get("team_id") or team_id or "") or None,
             contract=contract,
             roster_status=body.roster_status,
             any_team=bool(ctx.get("mode") == "league" and ctx.get("is_commissioner")),

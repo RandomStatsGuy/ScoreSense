@@ -1394,7 +1394,12 @@ def update_roster_slot(
             prefer = "cut"
         elif roster_status in ("cut", "cut_before_draft"):
             prefer = "occupying"
-        row = _pick_roster_sqlite_row(rows, team_id=team_id, prefer=prefer)
+        pick_team = team_id
+        if any_team and team_id:
+            preferred = [r for r in rows if str(r["team_id"] or "") == str(team_id)]
+            if not preferred:
+                pick_team = None
+        row = _pick_roster_sqlite_row(rows, team_id=pick_team, prefer=prefer)
         if not row:
             raise ValueError("Player not on roster")
         if roster_status in ("cut", "cut_before_draft"):
@@ -1496,13 +1501,19 @@ def set_roster_contract_type(
             (workspace_id, player_id),
         ).fetchall()
         scoped = all_rows
+        pick_team = team_id
         if team_id:
-            scoped = [r for r in all_rows if str(r["team_id"] or "") == str(team_id)] or (
-                all_rows if any_team else []
-            )
+            matched = [r for r in all_rows if str(r["team_id"] or "") == str(team_id)]
+            if matched:
+                scoped = matched
+            elif any_team:
+                scoped = all_rows
+                pick_team = None
+            else:
+                scoped = []
         elif not any_team:
             scoped = [r for r in all_rows if not str(r["team_id"] or "")]
-        row = _pick_roster_sqlite_row(scoped, team_id=team_id, prefer="occupying")
+        row = _pick_roster_sqlite_row(scoped, team_id=pick_team, prefer="occupying")
         if not row:
             raise ValueError("Player not on roster")
 
