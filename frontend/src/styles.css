@@ -19461,10 +19461,29 @@ th.sortable-header {
 
 .hub-draft-needs-toggle:disabled { opacity: 0.52; cursor: default; }
 
+.hub-draft-nom-mode {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.hub-draft-player-tax {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+.hub-draft-player-tax.is-pressure {
+  color: var(--tone-caution-text);
+}
+
 .hub-draft-player-rail-tools {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 0.45rem;
   margin-bottom: 0.55rem;
 }

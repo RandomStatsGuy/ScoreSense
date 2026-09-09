@@ -73,6 +73,7 @@ import {
   minNextBid,
   unmetMinPositions,
 } from "./draftRoomHelpers";
+import { buildNominationTaxMap } from "./draftNominationTax";
 import { fmtSal } from "./rosterFormat";
 import {
   effectiveAuctionBid,
@@ -278,6 +279,28 @@ export default function DraftRoom({
     if (pickDraft || !nominee?.player_id) return availableRows;
     return availableRows.filter((row) => String(row.player_id) !== String(nominee.player_id));
   }, [availableRows, nominee?.player_id, pickDraft]);
+
+  const nominationTaxById = useMemo(() => {
+    if (pickDraft) return {};
+    return buildNominationTaxMap({
+      rows: playerRailRows,
+      teams,
+      rosters: roomState?.rosters || {},
+      viewerTeamId: myTeamId,
+      rules,
+      minBid: Number(rules?.auction?.min_bid ?? 1) || 1,
+      draftCompleted: Boolean(league?.draft_completed) || session?.status === "completed",
+    });
+  }, [
+    pickDraft,
+    playerRailRows,
+    teams,
+    roomState?.rosters,
+    myTeamId,
+    rules,
+    league?.draft_completed,
+    session?.status,
+  ]);
 
   const boardLoading = poolLoading || (availableRows.length === 0 && valueSheetLoading);
 
@@ -2045,6 +2068,8 @@ export default function DraftRoom({
               rosterCount={myRoster.length}
               paused={Boolean(session?.paused)}
               nominatorName={nominatorTeam?.name || ""}
+              taxById={nominationTaxById}
+              leftover={myTeam?.budget_remaining}
             />
           </aside>
 
