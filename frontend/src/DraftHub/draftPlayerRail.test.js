@@ -25,6 +25,17 @@ test("pick and auction rails use mode-appropriate default sorts", () => {
   );
 });
 
+test("tax mode reorders the same rail by rival leftover", () => {
+  const taxById = {
+    te: { rival_budget_remaining: 90, suggested_bid: 17 },
+    wr: { rival_budget_remaining: 20, suggested_bid: 28 },
+  };
+  assert.deepEqual(
+    draftPlayerRailRows(ROWS, { mode: "tax", taxById }).map((row) => row.player_id),
+    ["te", "wr", "qb"],
+  );
+});
+
 test("the compact rail keeps TE visible and supports need-only filtering", () => {
   assert.deepEqual(
     draftPlayerRailRows(ROWS, { position: "TE" }).map((row) => row.player_id),
@@ -32,6 +43,17 @@ test("the compact rail keeps TE visible and supports need-only filtering", () =>
   );
   assert.deepEqual(
     draftPlayerRailRows(ROWS, { needsOnly: true, needPositions: ["TE"] }).map((row) => row.player_id),
+    ["te"],
+  );
+});
+
+test("Need drops a hole that no longer fits leftover", () => {
+  assert.deepEqual(
+    draftPlayerRailRows(ROWS, {
+      mode: "need",
+      needPositions: ["QB", "TE"],
+      leftover: 20,
+    }).map((row) => row.player_id),
     ["te"],
   );
 });
