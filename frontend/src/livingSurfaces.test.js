@@ -108,7 +108,8 @@ test("approved primaries keep one fill on Home, Cap, and Trades", () => {
   assert.match(LIVING_SURFACES["hub.home"].doNot, /centered phase stepper/);
   assert.match(LIVING_SURFACES["hub.home"].doNot, /chip slot/);
   assert.match(LIVING_SURFACES["hub.home"].doNot, /paint above the Home page card/);
-  assert.match(LIVING_SURFACES["hub.planner"].doNot, /Undo cut is ghost/);
+  assert.match(LIVING_SURFACES["hub.planner"].doNot, /Undo cut and Undo extension are ghost/);
+  assert.match(LIVING_SURFACES["hub.planner"].doNot, /floors to the lower dollar/);
   assert.match(LIVING_SURFACES["hub.trades"].doNot, /Continue \(or Propose on the last step\) is the only primary/);
 });
 
