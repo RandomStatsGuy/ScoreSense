@@ -37,8 +37,13 @@ export const WEEK_BOARD_COPY = {
   railByeEmpty: "Nobody on bye.",
   railInjuredHint: "Do not leave an out player in.",
   railInjuredEmpty: "Nobody flagged out.",
+  clearBoard: "No bye. Nobody flagged out.",
+  clearBoardSupport: "A late scratch still sits someone. Check news before lock.",
+  clearRailLabel: "Bye · Out",
+  clearRailValue: "None",
   railWideHint: "Floor to ceiling is large — not a start/sit call.",
   railWideEmpty: "No unusually wide ranges.",
+  ticketStamp: "Private",
   openGameCenter: "Open Game center",
   gameCenterSupport: "Live scoring, the scoreboard, and week trophies.",
   vibeNote: "Vibes uses an aura-adjusted week. The number here is the model.",
@@ -203,6 +208,10 @@ export function formatDraftNightShort(iso) {
   return `${weekday} ${compact}`;
 }
 
+export function weekBoardIsClear({ onBye = 0, injured = 0 } = {}) {
+  return (Number(onBye) || 0) === 0 && (Number(injured) || 0) === 0;
+}
+
 export function weekHeroCopy({
   loading = false,
   error = false,
@@ -212,6 +221,8 @@ export function weekHeroCopy({
   draftCompleted = false,
   poorCoverage = false,
   decisionCount = 0,
+  onBye = 0,
+  injured = 0,
   weekLabel = "This week",
   draftNightLabel = "",
 } = {}) {
@@ -272,6 +283,14 @@ export function weekHeroCopy({
       chipTone: "active",
     };
   }
+  if (weekBoardIsClear({ onBye, injured })) {
+    return {
+      heading: WEEK_BOARD_COPY.clearBoard,
+      support: WEEK_BOARD_COPY.clearBoardSupport,
+      chip: weekLabel,
+      chipTone: "active",
+    };
+  }
   return {
     heading: "No swap worth making.",
     support: "Bye and injury still sit people. Check those before lock.",
@@ -327,23 +346,36 @@ export function weekRailItems({
       { id: "next", label: "Next", value: "Refresh week board" },
     ];
   }
-  return [
-    railCountItem("bye", "On bye", counts.on_bye, {
-      hint: WEEK_BOARD_COPY.railByeHint,
-      emptyHint: WEEK_BOARD_COPY.railByeEmpty,
-      toneWhenOn: "warn",
-    }),
-    railCountItem("injured", "Injured", counts.injured, {
-      hint: WEEK_BOARD_COPY.railInjuredHint,
-      emptyHint: WEEK_BOARD_COPY.railInjuredEmpty,
-      toneWhenOn: "warn",
-    }),
-    railCountItem("ranges", "Wide ranges", counts.wide_ranges, {
-      hint: WEEK_BOARD_COPY.railWideHint,
-      emptyHint: WEEK_BOARD_COPY.railWideEmpty,
-      toneWhenOn: "quiet",
-    }),
-  ];
+  const items = [];
+  if (weekBoardIsClear({ onBye: counts.on_bye, injured: counts.injured })) {
+    items.push({
+      id: "available",
+      label: WEEK_BOARD_COPY.clearRailLabel,
+      value: WEEK_BOARD_COPY.clearRailValue,
+      hint: WEEK_BOARD_COPY.clearBoard,
+      tone: "quiet",
+      muted: true,
+    });
+  } else {
+    items.push(
+      railCountItem("bye", "On bye", counts.on_bye, {
+        hint: WEEK_BOARD_COPY.railByeHint,
+        emptyHint: WEEK_BOARD_COPY.railByeEmpty,
+        toneWhenOn: "warn",
+      }),
+      railCountItem("injured", "Injured", counts.injured, {
+        hint: WEEK_BOARD_COPY.railInjuredHint,
+        emptyHint: WEEK_BOARD_COPY.railInjuredEmpty,
+        toneWhenOn: "warn",
+      }),
+    );
+  }
+  items.push(railCountItem("ranges", "Wide ranges", counts.wide_ranges, {
+    hint: WEEK_BOARD_COPY.railWideHint,
+    emptyHint: WEEK_BOARD_COPY.railWideEmpty,
+    toneWhenOn: "quiet",
+  }));
+  return items;
 }
 
 export function weekRailNote({
@@ -474,6 +506,21 @@ export function startSurname(name) {
 export function startCallLabel(decision) {
   const surname = startSurname(decision?.bench_player_name);
   return surname ? `Start ${surname}` : WEEK_BOARD_COPY.startFallback;
+}
+
+export function sitCallLabel(decision) {
+  const surname = startSurname(decision?.starter_player_name);
+  return surname ? `Sit ${surname}` : WEEK_BOARD_COPY.sitRole;
+}
+
+export function isSpecialistSlot(slot) {
+  const pos = String(slot?.position || slot?.slot || "").replace(/\d+$/, "").toUpperCase();
+  return pos === "K" || pos === "DEF";
+}
+
+export function emptySlotDoorway(slot) {
+  const pos = String(slot?.position || slot?.slot || "").replace(/\d+$/, "").toUpperCase();
+  return WEEK_BOARD_COPY.emptySlot(isSpecialistSlot(slot) ? pos : (slot?.slot || pos || "ALL"));
 }
 
 export function keepCallLabel(decision) {

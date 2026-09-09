@@ -15,11 +15,14 @@ import {
   boardTitle,
   clampWeek,
   decisionForStarter,
+  emptySlotDoorway,
   indexByPlayerId,
+  isSpecialistSlot,
   projectionMissing,
   showVibePts,
   slatePlayerMeta,
   slotTone,
+  sitCallLabel,
   startCallLabel,
   swapBenchIdSet,
   WEEK_BOARD_COPY,
@@ -91,24 +94,37 @@ function SlotAction({ decision, onOpenCall }) {
   if (!decision) {
     return <div className="hub-wcc-row-action" aria-hidden="true" />;
   }
-  const label = startCallLabel(decision);
-  const delta = decision.delta_p50 != null ? (
-    <span className="hub-wcc-slot-call-delta">+{fmtPts(decision.delta_p50)}</span>
-  ) : null;
+  const sitLabel = sitCallLabel(decision);
+  const startLabel = startCallLabel(decision);
+  const open = (event) => {
+    event.stopPropagation();
+    onOpenCall?.(decision);
+  };
   return (
     <div className="hub-wcc-row-action">
-      <button
-        type="button"
-        className="hub-wcc-slot-call is-action"
-        title={decision.bench_player_name ? `Start ${decision.bench_player_name}` : label}
-        onClick={(event) => {
-          event.stopPropagation();
-          onOpenCall?.(decision);
-        }}
-      >
-        <span>{label}</span>
-        {delta}
-      </button>
+      <div className="hub-wcc-call-pills">
+        <button
+          type="button"
+          className="hub-wcc-call-pill is-sit"
+          aria-label={sitLabel}
+          title={decision.starter_player_name ? sitLabel : WEEK_BOARD_COPY.sitRole}
+          onClick={open}
+        >
+          {WEEK_BOARD_COPY.sitRole}
+        </button>
+        <button
+          type="button"
+          className="hub-wcc-call-pill is-start"
+          aria-label={startLabel}
+          title={decision.bench_player_name ? startLabel : WEEK_BOARD_COPY.startRole}
+          onClick={open}
+        >
+          <span>{WEEK_BOARD_COPY.startRole}</span>
+          {decision.delta_p50 != null ? (
+            <span className="hub-wcc-slot-call-delta">+{fmtPts(decision.delta_p50)}</span>
+          ) : null}
+        </button>
+      </div>
     </div>
   );
 }
@@ -154,6 +170,7 @@ function SlateRow({
         + ` hub-wcc-row--${tone}`
         + (decision ? " is-call" : "")
         + (empty ? " is-empty" : "")
+        + (empty && isSpecialistSlot(slot) ? " is-doorway" : "")
         + (selected ? " is-target" : "")
         + (highlighted ? " is-pick" : "")
         + (canEdit && !empty ? " is-editable" : "")
@@ -167,7 +184,7 @@ function SlateRow({
       {empty ? (
         <div className="hub-wcc-row-who">
           <strong>{WEEK_BOARD_COPY.emptySlotName}</strong>
-          <span>{slot.position === "K" || slot.position === "DEF" ? WEEK_BOARD_COPY.specialistEmpty : slot.slot}</span>
+          <span>{isSpecialistSlot(slot) ? WEEK_BOARD_COPY.emptySlotHint : slot.slot}</span>
         </div>
       ) : (
         <div className="hub-wcc-row-who">
@@ -199,7 +216,7 @@ function SlateRow({
       {empty && onFillSlot ? (
         <div className="hub-wcc-row-action">
           <button type="button" className="btn-link hub-wcc-slot-fill" onClick={onFillSlot}>
-            {WEEK_BOARD_COPY.emptySlot(slot.slot)}
+            {emptySlotDoorway(slot)}
           </button>
         </div>
       ) : (

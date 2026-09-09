@@ -165,6 +165,8 @@ export default function WeeklyCommandCenter({
     draftCompleted,
     poorCoverage,
     decisionCount: poorCoverage ? 0 : decisions.length,
+    onBye: counts.on_bye,
+    injured: counts.injured,
     weekLabel,
     draftNightLabel,
   });
