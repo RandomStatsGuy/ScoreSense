@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Fantasy · Trades This Week</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .seg { display: flex; gap: 0.35rem; margin: 0 0 1rem; }
+  .seg span {
+    min-height: 44px;
+    display: inline-flex; align-items: center;
+    padding: 0 0.85rem;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    font-weight: 650;
+  }
+  .seg span.is-on { background: var(--accent); border-color: transparent; color: #fff; }
+  .review { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
+  .cap-card { display: flex; flex-direction: column; gap: 0.4rem; }
+  .cap-card h3 { margin: 0; font-size: 1rem; }
+  .facts { display: flex; flex-wrap: wrap; gap: 0.55rem 0.9rem; }
+  .week-strip {
+    margin-top: 0.15rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  .week-kicker {
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+  .week-line {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--tone-positive);
+  }
+  .week-line.is-down { color: var(--tone-caution); }
+  .faces { display: flex; gap: 0.45rem; align-items: center; }
+  .face {
+    width: 28px; height: 28px; border-radius: 999px;
+    background: #1d2b3f; display: grid; place-items: center;
+    font-size: 0.7rem; font-weight: 700;
+  }
+  .actions {
+    display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;
+  }
+  .actions .ghost, .actions .primary {
+    min-height: 44px; min-width: 44px;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0 0.9rem; border-radius: var(--radius-pill);
+    font-weight: 650; font-size: 0.88rem;
+  }
+  .actions .ghost { border: 1px solid var(--border); color: var(--text-secondary); }
+  .actions .primary { background: var(--accent); color: #fff; border: 0; }
+  @media (max-width: 720px) {
+    .review { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>Trades</strong> <span>· This Week strip · not shipped</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a class="is-on" href="trade-week-preview.html">This Week</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span class="active">Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+
+  <nav class="mock-subnav">
+    <span class="mock-subnav-group-label">Team</span>
+    <span class="mock-tab">This Week</span>
+    <span class="mock-tab">My team</span>
+    <span class="mock-tab">Free agents</span>
+    <span class="mock-subnav-group-label">League</span>
+    <span class="mock-tab active">Trades</span>
+    <span class="mock-tab">Cap</span>
+  </nav>
+
+  <div class="mock-league-strip">
+    <span class="lg-name">Bottom to Top: Dominate Your Panda</span>
+    <span>Week 1 · 2026</span>
+    <span class="spacer"></span>
+    <span class="mock-pill mock-pill--accent">Cap impact</span>
+  </div>
+
+  <section class="mock-hero">
+    <p class="mock-kicker">Trades</p>
+    <h1>Can you fit the deal under both caps?</h1>
+    <p class="support">A swap that busts a cap is voided before anyone accepts.</p>
+  </section>
+
+  <div class="seg" aria-label="Trades">
+    <span class="is-on">Builder</span>
+    <span>Inbox</span>
+    <span>Ideas</span>
+  </div>
+
+  <div class="review">
+    <section class="card cap-card">
+      <h3>You</h3>
+      <div class="facts">
+        <div class="fact">current roster <strong>$148</strong></div>
+        <div class="fact">free / $200 <strong>$52</strong></div>
+      </div>
+      <div class="week-strip" aria-label="This Week lineup preview">
+        <div class="week-kicker">This Week</div>
+        <div class="week-line">112.4 → 118.1 (+5.7)</div>
+        <p class="note">Incoming WR bumps your RB2.</p>
+        <div class="faces">
+          <span class="face">PN</span>
+          <span class="face">RB</span>
+        </div>
+      </div>
+    </section>
+    <section class="card cap-card">
+      <h3>Disappointment</h3>
+      <div class="facts">
+        <div class="fact">current roster <strong>$161</strong></div>
+        <div class="fact">free / $200 <strong>$39</strong></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="actions">
+    <span class="ghost">Back</span>
+    <span class="primary">Continue to propose</span>
+  </div>
+</div>
+</body>
+</html>

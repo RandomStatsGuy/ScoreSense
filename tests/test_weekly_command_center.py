@@ -17,6 +17,7 @@ from src.draft_hub.weekly_command_center import (
     build_lineup_decisions,
     build_weekly_command_center,
     infer_starters_and_bench,
+    league_week_cards,
 )
 
 
@@ -502,6 +503,51 @@ def test_build_command_center_payload(hub_db):
     assert "prior_ppg" in ace
     assert "opp_def_rank" in ace
     assert "kickoff_et" in ace
+
+
+def test_league_cards_opt_in_for_trade_week_preview(hub_db):
+    _league, _team, _ws, comm = _seed_league_roster(hub_db)
+    from src.draft_hub.hub_context import resolve_hub_context
+
+    ctx = resolve_hub_context(comm)
+    with patch(
+        "src.draft_hub.weekly_command_center.load_weekly_prediction",
+        side_effect=_fake_load,
+    ), patch(
+        "src.draft_hub.weekly_command_center.resolve_week_context",
+        return_value=(2026, 1),
+    ), patch(
+        "src.projections.projection_movement.build_projection_movement_payload",
+        return_value={"available": False, "changes": [], "meta": {}},
+    ):
+        default = build_weekly_command_center(ctx, season=2026, week=1)
+        enriched = build_weekly_command_center(ctx, season=2026, week=1, league_cards=True)
+
+    assert default["cards"] == {}
+    ace = enriched["cards"]["wr-ace"]
+    assert ace["player_id"] == "wr-ace"
+    assert ace["p50"] == 18.0
+    assert ace["position"] == "WR"
+
+
+def test_league_week_cards_match_sleeper_prefix_both_ways(hub_db, monkeypatch):
+    monkeypatch.setattr(
+        storage,
+        "list_league_rosters_by_team",
+        lambda _lid: {
+            "t1": [{"player_id": "4034", "player_name": "Bare", "position": "WR"}],
+            "t2": [{"player_id": "sleeper-8151", "player_name": "Prefixed", "position": "RB"}],
+        },
+    )
+    cards = league_week_cards(
+        {
+            "sleeper-4034": {"p50": 14.2, "player_name": "Bare", "position": "WR"},
+            "8151": {"p50": 11.0, "player_name": "Prefixed", "position": "RB"},
+        },
+        "lg-1",
+    )
+    assert cards["4034"]["p50"] == 14.2
+    assert cards["sleeper-8151"]["p50"] == 11.0
 
 
 def test_attach_call_facts_uses_injected_vegas_ppg_and_dvp():

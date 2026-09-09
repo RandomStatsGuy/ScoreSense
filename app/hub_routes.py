@@ -698,6 +698,10 @@ def hub_weekly_command_center(
         ge=0.0,
         description="Bench P50 must exceed starter P50 by this amount to recommend a swap",
     ),
+    league_cards: bool = Query(
+        False,
+        description="Include slim P50 cards for every league roster (Trades This Week preview)",
+    ),
     _user=Depends(require_hub_user),
 ) -> dict:
     """Personalized Your Week command center — roster × weekly artifacts (no live Sleeper)."""
@@ -716,6 +720,7 @@ def hub_weekly_command_center(
                 week=week,
                 apply_injury_adjustments=apply_injury_adjustments,
                 bench_over_starter_threshold=bench_over_starter_threshold,
+                league_cards=league_cards,
             )
     return jsonable_encoder(payload)
 
