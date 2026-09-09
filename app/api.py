@@ -198,6 +198,8 @@ class LineupOptimizeRequest(BaseModel):
     # 0 = off; 1–2 pass catchers required alongside each rostered QB.
     qb_stack_count: Optional[int] = None
     stack_bring_back: bool = False
+    stack_teams: Optional[list[str]] = None
+    stack_qb_ids: Optional[list[str]] = None
     max_per_team: Optional[int] = None
     min_salary: Optional[int] = None
     lineup_count: int = 1
@@ -2037,6 +2039,7 @@ def lineup_optimize(
             week=request.week,
             apply_injury_adjustments=request.apply_injury_adjustments,
             site=site,
+            keep_teams=request.stack_teams,
         )
         if request.slate_salaries:
             sal_df = pd.DataFrame(request.slate_salaries)
@@ -2058,6 +2061,8 @@ def lineup_optimize(
                 else None
             ),
             stack_bring_back=request.stack_bring_back,
+            stack_teams=request.stack_teams,
+            stack_qb_ids=request.stack_qb_ids,
             max_per_team=(
                 max(1, int(request.max_per_team)) if request.max_per_team else None
             ),

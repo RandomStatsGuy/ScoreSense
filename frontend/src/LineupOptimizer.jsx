@@ -37,32 +37,32 @@ import {
   dfsRailTitle,
   dfsStatusChip,
   dfsSummaryItems,
-  dropLockId,
   emptyLineupCopy,
   exposureListCopy,
   filterObjectives,
   formatPersonality,
   formatSalary,
   gameStackLabel,
+  gameTeamCodes,
+  gamesMarkedCopy,
   highestTotalGameId,
   isCaptainFormat,
   launchCopy,
+  listSelectedGameStacks,
   lockedSalaryTotal,
+  normalizeDfsTeam,
   nextExclusiveChoice,
   objectiveSortColumn,
   optimizeButtonLabel,
-  pickGameStack,
   pinActionLabel,
   POOL_COLUMN_TIPS,
-  replaceStackLocks,
   rosterHint,
   salarySpend,
   slateGames,
   sortPoolRows,
   stackApplyLiveText,
   stackClearLiveText,
-  stackPlayerIds,
-  stackPreviewCopy,
+  stackOptionCopy,
   swapActionLabel,
   swapPoolPlayerIntoLineup,
   swapResultLiveText,
@@ -164,8 +164,8 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
   const [randomness, setRandomness] = useState(0);
   const [exposure, setExposure] = useState([]);
   const [vegas, setVegas] = useState(null);
-  const [selectedGameId, setSelectedGameId] = useState("");
-  const [stackLockIds, setStackLockIds] = useState(() => new Set());
+  const [selectedGameIds, setSelectedGameIds] = useState(() => new Set());
+  const [selectedStackQbIds, setSelectedStackQbIds] = useState(() => new Set());
   const [blockByeWeeks, setBlockByeWeeks] = useState(true);
   const [optimizeNote, setOptimizeNote] = useState("");
   const [totalPoints, setTotalPoints] = useState(null);
@@ -451,12 +451,8 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
     const id = String(playerId);
     setLocked((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-        setStackLockIds((ids) => dropLockId(ids, id));
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
     setExcluded((prev) => {
@@ -479,7 +475,6 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
       next.delete(id);
       return next;
     });
-    setStackLockIds((ids) => dropLockId(ids, id));
   };
 
   const handlePoolSort = (column) => {
@@ -545,6 +540,11 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
           apply_injury_adjustments: isLiveContext,
           qb_stack_count: isCaptain ? 0 : qbStackCount,
           stack_bring_back: !isCaptain && qbStackCount > 0 && bringBack,
+          stack_teams: isCaptain ? [] : [...selectedGameIds].flatMap((id) => {
+            const game = (vegas?.games || []).find((row) => String(row.game_id) === String(id));
+            return gameTeamCodes(game);
+          }),
+          stack_qb_ids: isCaptain ? [] : [...selectedStackQbIds],
           max_per_team: maxPerTeam > 0 ? maxPerTeam : null,
           min_salary: minSalary,
           lineup_count: lineupCount,
@@ -690,73 +690,58 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
   const clearLocks = () => {
     setLocked(new Set());
     setExcluded(new Set());
-    setSelectedGameId("");
-    setStackLockIds(new Set());
+    setSelectedGameIds(new Set());
+    setSelectedStackQbIds(new Set());
   };
 
-  const applyShootout = useCallback((gameId) => {
+  const toggleShootoutGame = useCallback((gameId) => {
     if (isCaptain) return;
     const nextId = String(gameId || "");
-    if (selectedGameId && selectedGameId === nextId) {
-      setLocked((prev) => replaceStackLocks(prev, stackLockIds, []));
-      setStackLockIds(new Set());
-      setSelectedGameId("");
-      announceResult(stackClearLiveText());
-      return;
-    }
     const game = (vegas?.games || []).find((row) => String(row.game_id) === nextId);
-    const picked = pickGameStack(pool, game, {
-      stackCount: 2,
-      requireSalary: isDfs && Boolean(slateSalaries?.length),
+    const adding = !selectedGameIds.has(nextId);
+    const next = new Set(selectedGameIds);
+    if (adding) next.add(nextId);
+    else next.delete(nextId);
+    setSelectedGameIds(next);
+    if (next.size > 0) {
+      setQbStackCount(2);
+      setBringBack(true);
+      setObjective("ceiling");
+    }
+    const remainingTeams = new Set(
+      [...next].flatMap((id) => {
+        const row = (vegas?.games || []).find((item) => String(item.game_id) === String(id));
+        return gameTeamCodes(row);
+      }),
+    );
+    setSelectedStackQbIds((ids) => {
+      const kept = new Set();
+      ids.forEach((pid) => {
+        const qb = pool.find((row) => String(row.player_id) === String(pid));
+        if (qb && remainingTeams.has(normalizeDfsTeam(qb.Team))) kept.add(String(pid));
+      });
+      return kept;
     });
-    const nextIds = stackPlayerIds(picked);
-    setSelectedGameId(nextId);
-    setQbStackCount(2);
-    setBringBack(true);
-    setObjective("ceiling");
-    setLocked((prev) => replaceStackLocks(prev, stackLockIds, nextIds));
-    setExcluded((prev) => {
+    announceResult(adding ? stackApplyLiveText({ game }) : stackClearLiveText());
+  }, [announceResult, isCaptain, pool, selectedGameIds, vegas]);
+
+  const toggleStackQb = useCallback((playerId) => {
+    const pid = String(playerId || "");
+    if (!pid) return;
+    setSelectedStackQbIds((prev) => {
       const next = new Set(prev);
-      nextIds.forEach((id) => next.delete(id));
+      if (next.has(pid)) next.delete(pid);
+      else next.add(pid);
       return next;
     });
-    setStackLockIds(new Set(nextIds));
-    announceResult(stackApplyLiveText(picked));
-  }, [
-    announceResult,
-    isCaptain,
-    isDfs,
-    pool,
-    selectedGameId,
-    slateSalaries,
-    stackLockIds,
-    vegas,
-  ]);
+  }, []);
 
   useEffect(() => {
-    setSelectedGameId("");
-    setStackLockIds(new Set());
+    setSelectedGameIds(new Set());
+    setSelectedStackQbIds(new Set());
     setLocked(new Set());
     setExcluded(new Set());
   }, [site, season, week, selectedSlateId]);
-
-  useEffect(() => {
-    if (!selectedGameId || isCaptain || stackLockIds.size > 0 || !pool.length) return;
-    const game = (vegas?.games || []).find((row) => String(row.game_id) === String(selectedGameId));
-    const picked = pickGameStack(pool, game, {
-      stackCount: 2,
-      requireSalary: isDfs && Boolean(slateSalaries?.length),
-    });
-    const nextIds = stackPlayerIds(picked);
-    if (!nextIds.length) return;
-    setLocked((prev) => replaceStackLocks(prev, [], nextIds));
-    setExcluded((prev) => {
-      const next = new Set(prev);
-      nextIds.forEach((id) => next.delete(id));
-      return next;
-    });
-    setStackLockIds(new Set(nextIds));
-  }, [pool, selectedGameId, isCaptain, isDfs, slateSalaries, vegas, stackLockIds.size]);
 
   const selectedSlate = slates.find((s) => String(s.slate_id) === String(selectedSlateId));
   const hero = dfsHeroCopy({ isDfs, siteLabel: siteConfig.label, captain: isCaptain });
@@ -798,22 +783,19 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
       isDfs,
       lineupCount,
     }),
-    stackGameLabel: selectedGameId
-      ? gameStackLabel((vegas?.games || []).find((row) => String(row.game_id) === String(selectedGameId)))
-      : "",
+    stackGameLabel: gamesMarkedCopy(selectedGameIds.size) || "",
   });
   const vegasGames = vegas?.games || [];
   const vegasTeams = vegas?.teams || {};
   const shootoutGames = slateGames(vegasGames, pool);
-  const selectedGame = shootoutGames.find((row) => String(row.game_id) === String(selectedGameId));
-  const shootoutStack = selectedGame && !isCaptain
-    ? pickGameStack(pool, selectedGame, {
+  const selectedGames = shootoutGames.filter((row) => selectedGameIds.has(String(row.game_id)));
+  const shootoutStacks = !isCaptain
+    ? listSelectedGameStacks(pool, selectedGames, {
       stackCount: 2,
       requireSalary: isDfs && Boolean(slateSalaries?.length),
     })
-    : null;
-  const stackLabel = selectedGame ? gameStackLabel(selectedGame) : "";
-  const stackCopy = stackPreviewCopy(shootoutStack || { game: selectedGame });
+    : [];
+  const stackLabel = selectedGames.map((game) => gameStackLabel(game)).filter(Boolean).join(" · ");
   const hotGameId = highestTotalGameId(shootoutGames);
   const showVegasCol = vegasGames.length > 0;
   const poolColumns = (isDfs ? 9 : 7) + (showVegasCol ? 1 : 0);
@@ -829,7 +811,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
     optimizing,
     lineupCount,
     hasLineup: lineup.length > 0,
-    hasStack: Boolean(selectedGameId) && !isCaptain,
+    hasStack: selectedGameIds.size > 0 && !isCaptain,
   });
   const lineupIds = new Set(lineup.map((row) => String(row.player_id)));
   const formatIds = Object.keys(formats);
@@ -857,12 +839,14 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
     }
   };
   const handleShootoutKeyDown = (event) => {
+    if (event.key === " " || event.key === "Enter") return;
     const ids = shootoutGames.map((game) => String(game.game_id));
-    const current = selectedGameId || ids[0];
+    const current = document.activeElement?.getAttribute?.("data-game-id") || ids[0];
     const next = nextExclusiveChoice(ids, current, event.key);
-    if (next && next !== selectedGameId) {
+    if (next && next !== current) {
       event.preventDefault();
-      applyShootout(next);
+      const target = event.currentTarget.querySelector(`[data-game-id="${next}"]`);
+      target?.focus();
     }
   };
 
@@ -1086,12 +1070,12 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                 </div>
                 <div
                   className="dfs-vegas-grid"
-                  role={isCaptain ? "group" : "radiogroup"}
-                  aria-label={isCaptain ? "Vegas lines for this week" : "Stack game"}
+                  role={isCaptain ? "group" : "group"}
+                  aria-label={isCaptain ? "Vegas lines for this week" : "Games to stack"}
                   onKeyDown={isCaptain ? undefined : handleShootoutKeyDown}
                 >
                   {shootoutGames.map((game, index) => {
-                    const selected = String(game.game_id) === String(selectedGameId);
+                    const selected = selectedGameIds.has(String(game.game_id));
                     const hot = String(game.game_id) === String(hotGameId);
                     const cardClass = `dfs-vegas-card${hot ? " is-hot" : ""}${selected ? " is-on" : ""}`;
                     const inner = (
@@ -1131,63 +1115,62 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                       <button
                         key={game.game_id}
                         type="button"
-                        role="radio"
-                        aria-checked={selected}
-                        tabIndex={selected || (!selectedGameId && (hot || index === 0)) ? 0 : -1}
+                        data-game-id={String(game.game_id)}
+                        aria-pressed={selected}
+                        tabIndex={selected || (!selectedGameIds.size && (hot || index === 0)) ? 0 : -1}
                         className={cardClass}
                         disabled={busy || optimizing}
-                        onClick={() => applyShootout(game.game_id)}
+                        onClick={() => toggleShootoutGame(game.game_id)}
                       >
                         {inner}
                       </button>
                     );
                   })}
                 </div>
-                {selectedGame && !isCaptain ? (
+                {selectedGames.length > 0 && !isCaptain ? (
                   <div className="dfs-stack-preview">
                     <div className="dfs-stack-preview-head">
                       <div>
-                        <h3>{stackCopy.title}</h3>
-                        <p className="chart-note">{stackCopy.body}</p>
+                        <h3>{DFS_STEP_COPY.stacksTitle}</h3>
+                        <p className="chart-note">{DFS_STEP_COPY.stacksSupport}</p>
                       </div>
-                      <Button variant="ghost" size="sm" onClick={() => applyShootout(selectedGameId)}>
-                        {DFS_STEP_COPY.clearStack}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedGameIds(new Set());
+                          setSelectedStackQbIds(new Set());
+                          announceResult(stackClearLiveText());
+                        }}
+                      >
+                        {DFS_STEP_COPY.clearGames}
                       </Button>
                     </div>
-                    {(shootoutStack?.players || []).map((entry) => {
-                      const pid = String(entry.row.player_id);
-                      return (
-                        <article
-                          key={pid}
-                          className={`dfs-shootout-row${entry.role === "bring" ? " is-bring" : ""}`}
-                        >
-                          <span className="dfs-stack-tag">{entry.label}</span>
-                          <PlayerCell
-                            name={entry.row.Player}
-                            team={entry.row.Team}
-                            playerId={pid}
-                            media={playerMedia}
-                            size="sm"
-                            showTeam={false}
-                            narrativeScope="weekly"
-                          />
-                          <span className="dfs-stack-proj">{fmtNum(entry.row["Projected Points"])}</span>
-                          {isDfs ? (
-                            <span className="dfs-stack-sal">{formatSalary(entry.row.salary)}</span>
-                          ) : null}
-                          <DfsPinRow
-                            playerId={pid}
-                            playerName={entry.row.Player}
-                            locked={locked.has(pid)}
-                            excluded={excluded.has(pid)}
-                            inLineup={false}
-                            swapTarget={null}
-                            onLock={toggleLock}
-                            onSkip={toggleExclude}
-                          />
-                        </article>
-                      );
-                    })}
+                    {shootoutStacks.length === 0 ? (
+                      <p className="chart-note">No starter QB on this slate for those games yet.</p>
+                    ) : (
+                    <div className="dfs-stack-options" role="group" aria-label="Stacks from marked games">
+                      {shootoutStacks.map((stack) => {
+                        const pid = String(stack.qb.player_id);
+                        const on = selectedStackQbIds.has(pid);
+                        const copy = stackOptionCopy(stack);
+                        return (
+                          <button
+                            key={stack.id}
+                            type="button"
+                            className={`dfs-stack-option${on ? " is-on" : ""}`}
+                            aria-pressed={on}
+                            disabled={busy || optimizing}
+                            onClick={() => toggleStackQb(pid)}
+                          >
+                            <strong>{copy.title}</strong>
+                            <span>{copy.body}</span>
+                            <em>{on ? DFS_STEP_COPY.stackInBuild : DFS_STEP_COPY.useStack}</em>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    )}
                   </div>
                 ) : null}
               </div>
@@ -1804,7 +1787,7 @@ export default function LineupOptimizer({ projMeta, loading: parentLoading }) {
                   {error || emptyLineupCopy({
                     optimizing,
                     isDfs,
-                    hasStack: Boolean(selectedGameId) && !isCaptain,
+                    hasStack: selectedGameIds.size > 0 && !isCaptain,
                   })}
                 </li>
               )}

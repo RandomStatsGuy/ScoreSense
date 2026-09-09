@@ -12,6 +12,7 @@ from scipy.optimize import Bounds, LinearConstraint, milp
 from src.products.dfs_config import get_site_config
 from src.projections.weekly_cache import load_weekly_prediction
 from src.core.projection_context import resolve_projection_context
+from src.core.team_codes import normalize_team_for_match
 
 OBJECTIVE_COLUMNS = {
     "median": "Projected Points",
@@ -76,6 +77,7 @@ def build_lineup_pool(
     model_dir=None,
     top_per_position: int = 40,
     site: str = "seasonal",
+    keep_teams: list[str] | None = None,
 ) -> tuple[pd.DataFrame, dict]:
     """Merge QB/RB/WR weekly projections into one pool with fantasy positions."""
     from src.config import MODEL_DIR, PROCESSED_DATA_DIR
@@ -118,6 +120,14 @@ def build_lineup_pool(
     for col in ("Projected Points", "Low (P10)", "High (P90)"):
         pool[col] = pd.to_numeric(pool[col], errors="coerce").fillna(0.0)
 
+    from src.core.schedule_utils import attach_bye_flags
+
+    pool = attach_bye_flags(pool, int(season), int(week))
+    keep_keys = {normalize_team_for_match(team) for team in (keep_teams or []) if team}
+    reserved = pd.DataFrame()
+    if keep_keys and "Team" in pool.columns:
+        reserved = pool[pool["Team"].map(normalize_team_for_match).isin(keep_keys)].copy()
+
     pool = pool.sort_values("Projected Points", ascending=False)
     if top_per_position:
         pool = (
@@ -125,10 +135,12 @@ def build_lineup_pool(
             .head(top_per_position)
             .reset_index(drop=True)
         )
-
-    from src.core.schedule_utils import attach_bye_flags
-
-    pool = attach_bye_flags(pool, int(season), int(week))
+    if len(reserved):
+        pool = (
+            pd.concat([pool, reserved], ignore_index=True)
+            .drop_duplicates(subset=["player_id"], keep="first")
+            .reset_index(drop=True)
+        )
 
     meta = {
         "season": int(season),
@@ -220,21 +232,29 @@ def _players_from_pool(
 
 
 def _stack_constraints(players: list[LineupPlayer], n: int, stack_count: int) -> list[LinearConstraint]:
-    """If a QB is used, require at least `stack_count` same-team WR/TE."""
+    """If a QB is used, require at least `stack_count` same-team WR/TE.
+
+    A QB with fewer eligible mates cannot be selected — that keeps a locked
+    backup from making the whole MILP infeasible.
+    """
     constraints: list[LinearConstraint] = []
     for i, qb in enumerate(players):
         if qb.position != "QB":
             continue
-        team = qb.team.upper()
+        team = normalize_team_for_match(qb.team)
         row = np.zeros(n, dtype=float)
         row[i] = -float(stack_count)
         mates = 0
         for j, p in enumerate(players):
-            if p.position in ("WR", "TE") and p.team.upper() == team:
+            if p.position in ("WR", "TE") and normalize_team_for_match(p.team) == team:
                 row[j] = 1.0
                 mates += 1
-        if mates:
-            constraints.append(LinearConstraint(row.reshape(1, -1), lb=0, ub=np.inf))
+        if mates < stack_count:
+            ban = np.zeros((1, n), dtype=float)
+            ban[0, i] = 1.0
+            constraints.append(LinearConstraint(ban, lb=0, ub=0))
+            continue
+        constraints.append(LinearConstraint(row.reshape(1, -1), lb=0, ub=np.inf))
     return constraints
 
 
@@ -244,19 +264,74 @@ def _bring_back_constraints(players: list[LineupPlayer], n: int) -> list[LinearC
     for i, qb in enumerate(players):
         if qb.position != "QB":
             continue
-        opponent = qb.opponent.upper()
+        opponent = normalize_team_for_match(qb.opponent)
         if not opponent:
             continue
         row = np.zeros(n, dtype=float)
         row[i] = -1.0
         rivals = 0
         for j, p in enumerate(players):
-            if p.position in ("RB", "WR", "TE") and p.team.upper() == opponent:
+            if p.position in ("RB", "WR", "TE") and normalize_team_for_match(p.team) == opponent:
                 row[j] = 1.0
                 rivals += 1
         if rivals:
             constraints.append(LinearConstraint(row.reshape(1, -1), lb=0, ub=np.inf))
     return constraints
+
+
+def _qb_source_constraints(
+    players: list[LineupPlayer],
+    n: int,
+    stack_teams: list[str] | None = None,
+    stack_qb_ids: list[str] | None = None,
+) -> list[LinearConstraint]:
+    """Require the rostered QB to come from selected games or named stack QBs."""
+    wanted_ids = {str(pid) for pid in (stack_qb_ids or []) if pid}
+    wanted_teams = {normalize_team_for_match(team) for team in (stack_teams or []) if team}
+    if not wanted_ids and not wanted_teams:
+        return []
+    row = np.zeros(n, dtype=float)
+    hits = 0
+    for i, player in enumerate(players):
+        if player.position != "QB":
+            continue
+        if wanted_ids and player.player_id in wanted_ids:
+            row[i] = 1.0
+            hits += 1
+        elif not wanted_ids and wanted_teams and normalize_team_for_match(player.team) in wanted_teams:
+            row[i] = 1.0
+            hits += 1
+    if not hits:
+        return []
+    return [LinearConstraint(row.reshape(1, -1), lb=1, ub=np.inf)]
+
+
+def _locked_stack_error(
+    players: list[LineupPlayer],
+    locked_player_ids: set[str],
+    stack_count: int,
+) -> str | None:
+    if stack_count <= 0:
+        return None
+    by_id = {player.player_id: player for player in players}
+    for pid in locked_player_ids:
+        qb = by_id.get(pid)
+        if not qb or qb.position != "QB":
+            continue
+        team = normalize_team_for_match(qb.team)
+        mates = [
+            player
+            for player in players
+            if player.position in ("WR", "TE") and normalize_team_for_match(player.team) == team
+        ]
+        if len(mates) >= stack_count:
+            continue
+        name = qb.name or pid
+        return (
+            f"{name} needs {stack_count} same-team pass catchers for QB +{stack_count}. "
+            f"This slate only has {len(mates)}. Unlock him, pick the other side, or turn stack Off."
+        )
+    return None
 
 
 def _team_limit_constraints(players: list[LineupPlayer], n: int, max_per_team: int) -> list[LinearConstraint]:
@@ -317,6 +392,8 @@ def optimize_lineup(
     require_qb_stack: bool = False,
     qb_stack_count: int | None = None,
     stack_bring_back: bool = False,
+    stack_teams: list[str] | None = None,
+    stack_qb_ids: list[str] | None = None,
     max_per_team: int | None = None,
     min_salary: int | None = None,
     objective_noise: dict[str, float] | None = None,
@@ -369,6 +446,10 @@ def optimize_lineup(
                 "lineup": [],
             }
 
+    stack_fail = _locked_stack_error(players, locked_player_ids, stack_count)
+    if stack_fail:
+        return {"ok": False, "error": stack_fail, "lineup": []}
+
     locked_salary = sum(players[idx[pid]].salary or 0 for pid in locked_player_ids)
     if salary_cap is not None and locked_salary > salary_cap:
         return {
@@ -418,6 +499,14 @@ def optimize_lineup(
         constraints.extend(_stack_constraints(players, n, stack_count))
     if stack_bring_back:
         constraints.extend(_bring_back_constraints(players, n))
+    source = _qb_source_constraints(players, n, stack_teams=stack_teams, stack_qb_ids=stack_qb_ids)
+    if (stack_teams or stack_qb_ids) and not source:
+        return {
+            "ok": False,
+            "error": "No quarterback from the selected games is in this pool.",
+            "lineup": [],
+        }
+    constraints.extend(source)
     if max_per_team is not None and max_per_team > 0:
         constraints.extend(_team_limit_constraints(players, n, int(max_per_team)))
     constraints.extend(
@@ -457,6 +546,10 @@ def optimize_lineup(
         note_parts.append(f"QB stack rule: each QB paired with {stack_count} same-team pass catchers.")
     if stack_bring_back:
         note_parts.append("Bring-back: at least one opposing RB/WR/TE joins each QB's game.")
+    if stack_qb_ids:
+        note_parts.append("QB must be one of the stacks you picked.")
+    elif stack_teams:
+        note_parts.append("QB comes from the games you marked.")
     if max_per_team:
         note_parts.append(f"No more than {max_per_team} players from one NFL team.")
     if salary_cap is not None:
@@ -860,6 +953,8 @@ def optimize_from_pool_dataframe(
     require_qb_stack: bool = False,
     qb_stack_count: int | None = None,
     stack_bring_back: bool = False,
+    stack_teams: list[str] | None = None,
+    stack_qb_ids: list[str] | None = None,
     max_per_team: int | None = None,
     min_salary: int | None = None,
     lineup_count: int = 1,
@@ -892,6 +987,8 @@ def optimize_from_pool_dataframe(
         "require_qb_stack": require_qb_stack,
         "qb_stack_count": qb_stack_count,
         "stack_bring_back": stack_bring_back,
+        "stack_teams": stack_teams,
+        "stack_qb_ids": stack_qb_ids,
         "max_per_team": max_per_team,
         "min_salary": min_salary,
         "captain_multiplier": site_cfg.get("captain_multiplier", 1.5),
