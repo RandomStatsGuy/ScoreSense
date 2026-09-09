@@ -4,9 +4,11 @@ import pandas as pd
 
 from src.products.lineup_optimizer import (
     LineupPlayer,
+    _locked_stack_error,
     collect_keep_teams,
     optimize_lineup,
     optimize_multiple_lineups,
+    reserve_pool_for_keep_teams,
 )
 
 
@@ -123,6 +125,20 @@ def test_collect_keep_teams_adds_locked_qb_side_and_opponent():
     )
     assert collect_keep_teams(None, ["willis"], sparse) == set()
     assert collect_keep_teams(None, ["cousins"], sparse) == {"LV", "MIA"}
+    reserved = reserve_pool_for_keep_teams(sparse, {"LV", "MIA"})
+    assert set(reserved["player_id"]) == {"cousins"}
+    nan_team = pd.DataFrame(
+        [
+            {"player_id": "bye", "Team": float("nan")},
+            {"player_id": "waddle", "Team": "MIA"},
+        ]
+    )
+    assert set(reserve_pool_for_keep_teams(nan_team, {"MIA"})["player_id"]) == {"waddle"}
+
+
+def test_locked_stack_error_tolerates_missing_locks():
+    assert _locked_stack_error(_sample_pool(), None, 2) is None
+    assert _locked_stack_error(_sample_pool(), set(), 2) is None
 
 
 def test_optimize_locked_willis_with_mates_builds():

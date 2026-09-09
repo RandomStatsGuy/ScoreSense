@@ -103,6 +103,14 @@ def collect_keep_teams(
     return keys
 
 
+def reserve_pool_for_keep_teams(pool: pd.DataFrame, keep_keys: set[str]) -> pd.DataFrame:
+    """Keep marked-game rows even when Team is missing or NaN."""
+    if not keep_keys or pool is None or pool.empty or "Team" not in pool.columns:
+        return pd.DataFrame()
+    teams = pool["Team"].fillna("").map(normalize_team_for_match)
+    return pool[teams.isin(keep_keys)].copy()
+
+
 def build_lineup_pool(
     season: int | None = None,
     week: int | None = None,
@@ -159,9 +167,7 @@ def build_lineup_pool(
 
     pool = attach_bye_flags(pool, int(season), int(week))
     keep_keys = collect_keep_teams(keep_teams, keep_player_ids, pool)
-    reserved = pd.DataFrame()
-    if keep_keys and "Team" in pool.columns:
-        reserved = pool[pool["Team"].map(normalize_team_for_match).isin(keep_keys)].copy()
+    reserved = reserve_pool_for_keep_teams(pool, keep_keys)
 
     pool = pool.sort_values("Projected Points", ascending=False)
     if top_per_position:
@@ -343,10 +349,10 @@ def _qb_source_constraints(
 
 def _locked_stack_error(
     players: list[LineupPlayer],
-    locked_player_ids: set[str],
+    locked_player_ids: set[str] | None,
     stack_count: int,
 ) -> str | None:
-    if stack_count <= 0:
+    if stack_count <= 0 or not locked_player_ids:
         return None
     by_id = {player.player_id: player for player in players}
     for pid in locked_player_ids:
