@@ -128,6 +128,40 @@ def test_apply_trade_plan_rolls_back_when_a_player_is_missing(hub_db):
     assert storage.get_roster_slot(ws["id"], "keep-me")["team_id"] == team_a["id"]
 
 
+def test_apply_trade_plan_does_not_steal_from_another_team(hub_db):
+    comm = "trade-from-comm"
+    member = "trade-from-member"
+    rules = load_preset("salary_cap_auction_v1")
+    ws = storage.get_or_create_workspace(comm)
+    league = storage.create_league(comm, "From Team Trade", 2026, rules, workspace_id=ws["id"])
+    team_a = storage.get_team_by_user(league["id"], comm)
+    team_b = storage.join_league(member, league["room_code"], "Team B")
+    storage.add_roster_slot(
+        ws["id"],
+        {
+            "player_id": "stay-put",
+            "player_name": "Stay Put",
+            "team": "SEA",
+            "position": "WR",
+            "salary": 18,
+            "contract_years": 2,
+        },
+        team_id=team_a["id"],
+    )
+    with pytest.raises(ValueError, match="Failed to move stay-put"):
+        storage.apply_trade_plan(
+            ws["id"],
+            [
+                {
+                    "player_id": "stay-put",
+                    "from_team_id": team_b["id"],
+                    "team_id": team_b["id"],
+                }
+            ],
+        )
+    assert storage.get_roster_slot(ws["id"], "stay-put")["team_id"] == team_a["id"]
+
+
 def test_stale_award_after_end_draft_does_not_revive(hub_db):
     comm = "stale-award-comm"
     league = _league(comm, "Stale Award")
