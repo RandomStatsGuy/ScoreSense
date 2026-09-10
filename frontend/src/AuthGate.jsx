@@ -16,6 +16,7 @@ const PUBLIC_PATH_PREFIXES = [
   "/sms-alerts",
   "/auth/",
   "/lobby",
+  "/team-room/",
   "/login",
   "/register",
   "/signup",

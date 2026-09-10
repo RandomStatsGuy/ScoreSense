@@ -4,6 +4,19 @@ import { dealCanTakeExtension } from "./rosterFormat.js";
 
 export const MY_TEAM_COPY = {
   title: "My team",
+  room: "Room",
+  manage: "Manage roster",
+  roomLoading: "Opening the team room…",
+  roomError: "Could not load this room. Try again.",
+  roomEmpty: "Your lockers are ready. Players appear here when your roster is available.",
+  lineupEmpty: "No starting lineup is available for this week. Browse your roster below or set your lineup on This Week.",
+  shareRoom: "Share room",
+  shareDescription: "Anyone with this link can see your team, lineup, scores, nicknames, and room theme. Contract controls stay private.",
+  nicknameLabel: "Player nickname",
+  nicknameSaved: "Nickname saved.",
+  resetNickname: "Use Sleeper nickname",
+  projectionMissing: "Projection unavailable",
+  roomStates: { pregame: "Pregame", live: "Week in progress", final: "Final", unknown: "Scores" },
   purpose: "View your players, manage contracts, and check your cap room.",
   learnMoreReadonlyLeague:
     "Commissioners edit salaries, years, and contract types in Roster management → Contracts. You can cut your players here or queue an eligible extension before the draft.",
@@ -53,6 +66,25 @@ export const MY_TEAM_COPY = {
   undoExtensionHint: "This deal expires at the draft unless you queue again.",
   skipToContent: "Skip to content",
 };
+
+export function roomNumber(value) {
+  return value == null || !Number.isFinite(Number(value)) ? "—" : Number(value).toFixed(1);
+}
+
+export function roomDelta(player, state) {
+  if (state !== "final" || player?.points == null || player?.projection == null) return null;
+  const delta = Number(player.points) - Number(player.projection);
+  return Number.isFinite(delta) ? delta : null;
+}
+
+export function roomResult(room) {
+  if (room?.score == null || room?.opponent?.score == null) return "";
+  const delta = Number(room.score) - Number(room.opponent.score);
+  if (!Number.isFinite(delta)) return "";
+  if (!delta) return room.state === "final" ? "Finished tied" : "Matchup tied";
+  const verb = room.state === "final" ? (delta > 0 ? "Won by" : "Lost by") : (delta > 0 ? "Leading by" : "Trailing by");
+  return `${verb} ${Math.abs(delta).toFixed(1)}`;
+}
 
 export function rosterStatusInfo(row, { draftCompleted, ctype, pendingType, pendingExt, rules } = {}) {
   if (row?.roster_status === "cut_before_draft") {

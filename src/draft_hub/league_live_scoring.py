@@ -204,6 +204,8 @@ def _team_from_matchup_row(
         "points": round(float(row.get("points") or 0), 2),
         "starters": starter_rows,
         "bench": _bench_summary(row, raw_players),
+        "bench_players": [_enrich_starter(sid, players_points, raw_players)
+                          for sid in row.get("players", []) if str(sid) not in {str(s) for s in starters}],
         "is_viewer": bool(viewer_rid and rid == viewer_rid),
         "is_opponent": False,
     }
