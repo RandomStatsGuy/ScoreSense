@@ -49,10 +49,10 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Blue (`--experience-blue` / `--accent`) = current context and the next action. Nothing else.
 - Teal = healthy/saved. Amber = attention. Red = destructive/blocking, plus the live auction clock under 5s. Gold = awards only — never the live high-bid figure.
 - Hierarchy from surface, type, and spacing — not a border on every box. Token insets and gutters; text is never flush to a line and never smaller than `--text-xs` (12px computed).
-- Editorial pages use one hero stack: `HubExperienceHero` + `HubExperienceLayout` + `HubExperienceSummary` from `HubUILayout.jsx`. Strategy is the board-first exception — no hero band.
+- Editorial pages use one hero stack: `HubExperienceHero` + `HubExperienceLayout` + `HubExperienceSummary` from `HubUILayout.jsx`. Strategy and Rosters are board-first exceptions — no hero band.
 - **Fix the primitive, not the page.** Shared CSS/components first. Measurable layout rules: `.cursor/rules/frontend-craft.mdc`.
 - League-strip option menus paint above the Fantasy page below the strip. Raise `.hub-league-context-bar` (or portal the menu) — a later `.hub-page` at the same z-index covers overflowing menus.
-- Copy lives in `*Presentation.js`. State the decision and the cost of getting it wrong. No slogan that could sit on another app. No “Submit”, no “You do not have permission” (use “Commissioner managed”).
+- Copy lives in `*Presentation.js`. Explain the action and its actual effect in plain language; do not invent consequences or scold the user. No slogan that could sit on another app. No “Submit”, no “You do not have permission” (use “Commissioner managed”).
 
 ## Product rules you may not bypass
 
@@ -74,3 +74,7 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 ## Living surfaces
 
 Before editing UI, reply **Matching:** `{id}` · `{page}` resolved from `frontend/src/livingSurfaces.js` (or **Need a surface:** `{which screen?}`). Page-specific do-nots live on that row. Procedure: `.cursor/skills/match-living-surface/SKILL.md`. Everything else is indexed in `docs/README.md`.
+
+## Approved Rosters design
+
+The user-approved September 10 table/details mockup takes priority for `hub.rosters`: compact header, no experience hero/summary or manager rail, filters and pagination, and selected-player actions. Use dedicated layout CSS and existing tokens; do not restyle other pages to force this layout. Teal/coral text may distinguish below/above-estimate salaries. See `docs/PRODUCT.md` and the living-surface row.

@@ -35,7 +35,7 @@ If this is a redesign or first design and they have not picked an option, follow
 
 ## 3. Change by extending, not replacing
 
-- Keep `chrome`. `experience` uses `HubExperienceHero` / `Layout` / `Summary`. `board` stays a projections board. `draft-live` stays board-first. `action-center` stays the Home deck.
+- An explicit user-approved redesign may change `chrome`; update the registry and product rules in the same change. Otherwise keep `chrome`. `experience` uses `HubExperienceHero` / `Layout` / `Summary`. `board` stays a projections board. `draft-live` stays board-first. `action-center` stays the Home deck.
 - Put new user-visible strings in the existing `copy` module. Do not add a parallel `*Presentation.js`.
 - Tokens only. No new accent.
 - Honor `doNot` on the row.

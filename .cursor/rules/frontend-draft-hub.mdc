@@ -24,7 +24,7 @@ Page-specific do-nots: the matching row in `frontend/src/livingSurfaces.js`.
 ## Copy and data
 
 - User-visible strings belong in `*Presentation.js` (`rulesPresentation.js`, `leagueHomePresentation.js`, `gameCenterPresentation.js`, `dfsToolPresentation.js`, `bestBallPresentation.js`, `insightsPresentation.js`, `leagueAccessCopy.js`, `vibeRankingsPresentation.js`, `strategyRankPresentation.js`, `capPlannerPresentation.js`, `officeContractsPresentation.js`, `rosterPresentation.js`, `projectionsPresentation.js`). Home and Game center share `interpretStandings`. Do not invent a 1–10 seed from 0–0.
-- Page copy states the decision and the cost of getting it wrong. No slogan that could sit on another app.
+- Page copy explains the action and its actual effect in plain language; do not invent consequences or scold the user. No slogan that could sit on another app.
 - Rules preview, validation, and summary: `mergeLeagueRules`, `validateLeagueSettings`, `contractSchedule`, `rulesSummary`.
 - Free-agent button/banner copy: `acquisitionWindow.js`.
 - Home next-action voice: `leagueHomePresentation.js`.
@@ -65,3 +65,7 @@ Chat chrome lives on `FantasyChatDock.jsx` (header comment) and `docs/PRODUCT.md
 - Rank bars share a fixed track and a field scale. Never let the value label steal track width. Do not paint every bar teal/green.
 - Trades Send / Get / Cut expose `aria-pressed` and an accessible name that includes the player and destination.
 - League-strip menus (Switch league, Sync league) must paint above the Fantasy page below the strip, not only above Needs attention. `.draft-hub > *` is pinned at z-index 1 so atmosphere stays under content — raise `.hub-league-context-bar` to `--z-dropdown` or portal the menu.
+
+## Approved Rosters design
+
+The user-approved September 10 table/details mockup takes priority for `hub.rosters`: compact header, no experience hero/summary or manager rail, filters and pagination, and selected-player actions. Use dedicated layout CSS and existing tokens; do not restyle other pages to force this layout. Teal/coral text may distinguish below/above-estimate salaries. See `docs/PRODUCT.md` and the living-surface row.

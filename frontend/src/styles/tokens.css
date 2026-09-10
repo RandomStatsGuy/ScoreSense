@@ -102,6 +102,11 @@
   --surface-raised: #172437;
   --muted: #95a4b8;
 
+  /* Approved table/details typography: readable at desktop and phone sizes. */
+  --rosters-text: 1rem;
+  --rosters-meta: 0.875rem;
+  --rosters-heading: 2rem;
+
   /* Typography scale */
   --text-xs: 12px;
   --text-min: var(--text-xs);

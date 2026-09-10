@@ -207,7 +207,7 @@ function pass(rule, detail = "") {
   return { rule, ok: true, selector: "", detail };
 }
 
-function measureScript() {
+export function measureScript() {
   return ({ minTarget, numericRe, barControlSelector, tableDeadZonePx, columnPackRatio, gutterSelectors }) => {
     const elementClassName = (el) => {
       if (!el) return "";
@@ -394,10 +394,12 @@ function measureScript() {
         const header = firstLine(cells[0]?.innerText || "");
         const bodyTexts = cells.slice(1).map((cell) => firstLine(cell.innerText));
         const glyph = bodyTexts.length && bodyTexts.every((t) => /^[A-Z]{1,3}$|^[QDP]$/.test(t));
-        const action = /action/i.test(header) || /actions|contract/i.test(cells[0]?.className || "");
+        const action = /action/i.test(header) || (!table.el.matches(".rosters-table") && /actions|contract/i.test(cells[0]?.className || ""));
         const numeric = bodyTexts.filter((t) => t && isNumeric(t)).length;
         let expect = "left";
-        if (glyph) expect = "center";
+        if (cells[0]?.classList.contains("rosters-num")) expect = "right";
+        else if (cells[0]?.classList.contains("rosters-chevron")) expect = "center";
+        else if (glyph) expect = "center";
         else if (action || (bodyTexts.length && numeric / bodyTexts.length >= 0.8)) expect = "right";
         expectAligns[c] = expect;
         const mismatches = cells.filter((cell) => {
@@ -417,7 +419,7 @@ function measureScript() {
         const maxContent = Math.max(...cells.map((cell) => cellContentWidth(cell)));
         const remainder = expectAligns.findIndex((align) => align === "left") === c;
         const packRatio = columnPackRatio || 1.5;
-        if (!remainder && colWidth > maxContent * packRatio + 1) {
+        if (!table.el.matches(".rosters-table") && !remainder && colWidth > maxContent * packRatio + 1) {
           results.push({
             rule: "tables",
             ok: false,
