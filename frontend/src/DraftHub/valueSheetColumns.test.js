@@ -95,7 +95,7 @@ test("available board folds tier and hides empty vs-cost", () => {
   assert.ok(!schema.ids.includes("tier"));
   assert.ok(!schema.ids.includes("value_delta"));
   assert.ok(schema.ids.includes("actions"));
-  assert.equal(schema.columns.find((c) => c.id === "season_proj")?.label, "Season pts");
+  assert.equal(schema.columns.find((c) => c.id === "season_proj")?.label, "Projected season pts");
 });
 
 test("sort labels stay human-readable in compact and mobile summaries", () => {

@@ -141,10 +141,10 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
 
   return (
     <section className={`panel hub-panel hub-panel-embedded${mobileLayout ? " hub-invites--mobile" : ""}`}>
-      <h3>Invite league members</h3>
+      <h3>Invite a manager</h3>
       <p className="chart-note">{memberInviteExplainer()}</p>
 
-      <p className="chart-note">The invite link lives on Draft. This page assigns a named email to one seat.</p>
+
 
       <label className="hub-lock-claims">
         <input type="checkbox" checked={lockClaims} onChange={toggleLockClaims} />

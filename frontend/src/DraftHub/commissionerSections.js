@@ -9,19 +9,19 @@ export function commissionerIntro(isCommissioner) {
   if (isCommissioner) {
     return {
       title: "Roster management",
-      purpose: "Add or cut contracts, edit sheets, and seat managers. A wrong cut here hits every team's cap.",
+      purpose: "Manage team contracts, salary sheets, and league access.",
       audience: "Commissioners and co-commissioners",
     };
   }
   return {
     title: "Roster management",
-    purpose: "Commissioner managed. Members cannot edit contracts or seats here.",
+    purpose: "Only commissioners can edit contracts and team access here.",
     audience: null,
   };
 }
 
 export function sheetsDefaultHint() {
-  return "Edit Pos, $, Status, and Acquired on the table.";
+  return "Edit player positions, salaries, status, and acquisition methods in the table.";
 }
 
 /**
@@ -33,9 +33,9 @@ export function sheetsGuideCopy(year) {
   return {
     summary: "What does a year sheet mean?",
     paragraphs: [
-      `${y} sheet = keepers / after-draft roster for ${y} — not a live mid-season snapshot.`,
-      "Use Contracts for live keepers and Cap for extend / FA. Sheets reconcile historic year books.",
-      "Use Sync league in the strip, or Excel when empty.",
+      `The ${y} salary sheet records that season's contracts. It may differ from the current roster after trades and player additions.`,
+      "Use Contracts for current rosters and Cap for extensions. Use salary sheets to review and correct past-season records.",
+      "Use Sync league at the top of the page to update league data, or import a salary sheet.",
     ],
   };
 }

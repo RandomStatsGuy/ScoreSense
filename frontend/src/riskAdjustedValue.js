@@ -8,19 +8,19 @@ export const RISK_TOLERANCE_OPTIONS = [
     id: "conservative",
     label: "Conservative",
     value: -1,
-    hint: "Pay up for floor; discount boom/bust",
+    hint: "Favors players with steadier projections",
   },
   {
     id: "balanced",
     label: "Balanced",
     value: 0,
-    hint: "Neutral — median Season Proj pricing",
+    hint: "Uses median season projections",
   },
   {
     id: "aggressive",
     label: "Aggressive",
     value: 1,
-    hint: "Premium for ceiling / high variance",
+    hint: "Favors players with higher upside",
   },
 ];
 

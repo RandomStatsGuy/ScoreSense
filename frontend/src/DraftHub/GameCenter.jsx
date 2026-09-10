@@ -480,7 +480,7 @@ export default function GameCenter({ leagueId, hubContext, onNavigate }) {
                   {opponent.bench && (
                     <div className="hub-gc-bench-cell">
                       <strong>Their bench: {formatMatchupScore(opponent.bench.points).score} pts</strong>
-                      Best left out: {opponent.bench.top_name} ({formatMatchupScore(opponent.bench.top_points).score}).
+                      Highest bench score: {opponent.bench.top_name} ({formatMatchupScore(opponent.bench.top_points).score}).
                     </div>
                   )}
                 </div>

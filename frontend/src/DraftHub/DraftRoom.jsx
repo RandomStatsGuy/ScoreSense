@@ -6,7 +6,7 @@ import { pickFantasyMediaDigest } from "../fantasyMediaDigest";
 import DraftNomineeCard from "./DraftNomineeCard";
 import DraftRosterPanel from "./DraftRosterPanel";
 import DraftTeamCard from "./DraftTeamCard";
-import DraftSeat from "./DraftSeat";
+import DraftSeat from "./DraftSeat.jsx";
 import { seatOwnership } from "./draftSeat";
 import DraftPickRecap from "./DraftPickRecap";
 import DraftRecapPanel from "./DraftRecapPanel";

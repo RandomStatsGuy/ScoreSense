@@ -22,15 +22,15 @@ test("league without a window stays locked", () => {
   assert.equal(chip.label, "Locked");
   assert.equal(playersTabAddDisabledReason("locked"), PLAYERS_TAB_COPY.lockedReason);
   assert.match(chip.popover, /Adds open after the draft/i);
-  assert.equal(playersTabStarCopy(false), "Star for draft");
-  assert.equal(playersTabStarCopy(true), "Starred for draft");
+  assert.equal(playersTabStarCopy(false), "Add to draft watchlist");
+  assert.equal(playersTabStarCopy(true), "On draft watchlist");
 });
 
 test("free agents copy names the add and the cost of waiting", () => {
   assert.match(PLAYERS_TAB_COPY.lockedReason, /after the draft/i);
   assert.match(PLAYERS_TAB_COPY.howAddsBody, /calendar|draft|Bid or Add/i);
   assert.doesNotMatch(PLAYERS_TAB_COPY.howAddsBody, /Submit|Draft Hub|permission/i);
-  assert.equal(PLAYERS_TAB_COPY.seasonPts, "Season pts");
+  assert.equal(PLAYERS_TAB_COPY.seasonPts, "Projected season pts");
 });
 
 test("waiver window uses bid copy", () => {

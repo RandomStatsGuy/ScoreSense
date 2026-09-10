@@ -134,7 +134,7 @@ test("empty duel copy names This Week", () => {
   assert.equal(GAME_CENTER_COPY.loadingChip, "Loading");
   assert.equal(GAME_CENTER_COPY.unscoredChip, "No scores yet");
   assert.equal(GAME_CENTER_COPY.emptyLineupHeading, "Your lineup is empty.");
-  assert.match(GAME_CENTER_COPY.emptyLineupSupport, /score zero/i);
+  assert.match(GAME_CENTER_COPY.emptyLineupSupport, /Review your starters/i);
   assert.equal(GAME_CENTER_COPY.openDraft, "Open draft room");
 });
 
@@ -199,8 +199,8 @@ test("pre-draft banner names draft night and opens the room", () => {
   assert.match(formatDraftNightDate("2026-09-05T23:00:00.000Z"), /Sep/);
 });
 
-test("hero names the empty-lineup cost before kickoff", () => {
-  const hero = gameCenterHeroCopy({ emptyLineup: true, placeholder: true });
+test("hero identifies a confirmed empty viewer lineup", () => {
+  const hero = gameCenterHeroCopy({ emptyLineup: true, viewer: { starters: [] } });
   assert.equal(hero.heading, GAME_CENTER_COPY.emptyLineupHeading);
   assert.equal(hero.support, GAME_CENTER_COPY.emptyLineupSupport);
   const live = gameCenterHeroCopy({
@@ -209,6 +209,17 @@ test("hero names the empty-lineup cost before kickoff", () => {
     opponent: { points: 10, starters: [{ points: 10 }], team_name: "Daddio" },
   });
   assert.match(live.heading, /you win by 10/);
+});
+
+test("populated and unavailable lineups never claim the viewer lineup is empty", () => {
+  const viewer = { starters: [{ name: "Quarterback", points: 0 }], points: 0 };
+  const opponent = { starters: [], points: 0 };
+  assert.equal(lineupIsEmpty(viewer, opponent), false);
+  assert.notEqual(gameCenterHeroCopy({ viewer, opponent }).heading, GAME_CENTER_COPY.emptyLineupHeading);
+  assert.equal(lineupIsEmpty(null, opponent), false);
+  assert.notEqual(gameCenterHeroCopy({ placeholder: true, emptyLineup: true }).heading, GAME_CENTER_COPY.emptyLineupHeading);
+  assert.notEqual(gameCenterHeroCopy({}).heading, GAME_CENTER_COPY.emptyLineupHeading);
+  assert.equal(lineupIsEmpty({ starters: [] }, viewer), true);
 });
 
 test("pre-draft treats last year's Sleeper week as placeholder scores", () => {

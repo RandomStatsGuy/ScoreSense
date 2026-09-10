@@ -18,32 +18,32 @@ import {
 } from "./vibeRankingsPresentation.js";
 
 test("vibe copy names the goal and never says Draft Hub or Submit", () => {
-  assert.match(VIBE_COPY.heading, /start or sit/i);
-  assert.match(VIBE_COPY.support, /aura/i);
-  assert.match(VIBE_COPY.support, /the board/i);
+  assert.match(VIBE_COPY.heading, /players this week/i);
+  assert.match(VIBE_COPY.support, /Vibes score/i);
+  assert.match(VIBE_COPY.support, /do not save your lineup/i);
   assert.doesNotMatch(VIBE_COPY.support, /site board/i);
-  assert.match(VIBE_COPY.support, /Skip a card/i);
+  assert.match(VIBE_COPY.support, /higher or lower/i);
   assert.equal(VIBE_COPY.railTitle, "Vibe ranking");
-  assert.equal(VIBE_COPY.slateTitle, "VA-projections");
-  assert.match(VIBE_COPY.slateHint, /board number/i);
-  assert.match(VIBE_COPY.heading, /once today/i);
+  assert.equal(VIBE_COPY.slateTitle, "Vibes-adjusted projections");
+  assert.match(VIBE_COPY.slateHint, /model projections/i);
+  assert.match(VIBE_COPY.support, /once a day/i);
   assert.equal(VIBE_COPY.vsYours, "Your vibe");
-  assert.equal(VIBE_COPY.vsBoard, "The board");
-  assert.equal(VIBE_COPY.moreLabel, "Bio");
+  assert.equal(VIBE_COPY.vsBoard, "Model");
+  assert.equal(VIBE_COPY.moreLabel, "Player details");
   assert.match(VIBE_COPY.openMoreNamed("Justin Jefferson"), /Justin Jefferson/);
-  assert.match(VIBE_COPY.openMoreNamed("Justin Jefferson"), /Open bio/);
+  assert.match(VIBE_COPY.openMoreNamed("Justin Jefferson"), /Open player details/);
   assert.doesNotMatch(VIBE_COPY.openMore, /profile|arrow/i);
   assert.doesNotMatch(VIBE_COPY.swipeHint, /arrow|profile/i);
   assert.doesNotMatch(VIBE_COPY.desktopHint, /swipe/i);
   assert.doesNotMatch(VIBE_COPY.railTitle, /Your aura/i);
   assert.doesNotMatch(VIBE_COPY.slateTitle, /Vibe slate/i);
   assert.doesNotMatch(JSON.stringify(VIBE_COPY), /Draft Hub|Submit|permission|Tinder|Wikipedia|site board/i);
-  assert.equal(VIBE_COPY.setSlate, "Set this slate");
+  assert.equal(VIBE_COPY.setSlate, "Save lineup");
   assert.equal(VIBE_COPY.nextAction, "Review on This Week");
   assert.doesNotMatch(VIBE_COPY.setSlateError, /permission|Submit/i);
 });
 
-test("writable Hub lineups make Set this slate the primary", () => {
+test("writable Hub lineups make Save lineup the primary", () => {
   assert.deepEqual(vibeNextActions({ canReview: false, canEdit: true }), {
     primary: null, review: false, apply: false,
   });
@@ -56,12 +56,12 @@ test("writable Hub lineups make Set this slate the primary", () => {
 });
 
 test("desktop hint is one instruction line; phone names swipe and bio", () => {
-  assert.match(rateHint({ coarse: false }), /Sit or Start/i);
-  assert.match(rateHint({ coarse: false }), /Open bio/i);
+  assert.match(rateHint({ coarse: false }), /higher or lower/i);
+  assert.match(rateHint({ coarse: false }), /Open player details/i);
   assert.match(rateHint({ coarse: false }), /Backspace/i);
   assert.doesNotMatch(rateHint({ coarse: false }), /swipe/i);
   assert.match(rateHint({ coarse: true }), /swipe/i);
-  assert.match(rateHint({ coarse: true }), /Open bio/i);
+  assert.match(rateHint({ coarse: true }), /Open player details/i);
 });
 
 test("empty slots share This Week's Empty string and Find POS CTA", () => {
@@ -83,10 +83,10 @@ test("week vs vibe vs board table helpers stay scannable", () => {
   assert.equal(rows[0].yoursName, "Addison");
   assert.equal(rows[0].boardName, "Metcalf");
   assert.ok(rows[0].delta !== 0);
-  assert.match(vsModelNote({ ratedToday: 0, pairCount: 0 }), /empty until a vibe disagrees/i);
-  assert.match(vsModelNote({ ratedToday: 0, pairCount: 3 }), /empty until a vibe disagrees/i);
-  assert.match(vsModelNote({ ratedToday: 0, pairCount: 3, hasStoredAura: true }), /have not rated today/i);
-  assert.match(vsModelNote({ ratedToday: 2, pairCount: 1 }), /board's week/i);
+  assert.match(vsModelNote({ ratedToday: 0, pairCount: 0 }), /No lineup differences/i);
+  assert.match(vsModelNote({ ratedToday: 0, pairCount: 3 }), /No lineup differences/i);
+  assert.match(vsModelNote({ ratedToday: 0, pairCount: 3, hasStoredAura: true }), /have not rated players today/i);
+  assert.match(vsModelNote({ ratedToday: 2, pairCount: 1 }), /model projections/i);
 });
 
 test("hottest names the week tiebreak when aura ties", () => {
@@ -96,13 +96,13 @@ test("hottest names the week tiebreak when aura ties", () => {
   ]);
   assert.match(tied, /Jonathan Taylor/);
   assert.match(tied, /99/);
-  assert.match(tied, /15\.9 week/);
+  assert.match(tied, /15\.9 projected pts/);
   assert.match(tied, /tiebreak/i);
   assert.equal(hottestLabel([]), "—");
 });
 
 test("today's reads list Sit/Start and collapse when empty", () => {
-  assert.equal(VIBE_COPY.todayReadsTitle, "Today's reads");
+  assert.equal(VIBE_COPY.todayReadsTitle, "Today's ratings");
   const rows = todayReadRows(
     [
       { player_id: "a", player_name: "Josh Allen" },
@@ -112,21 +112,21 @@ test("today's reads list Sit/Start and collapse when empty", () => {
     { a: "start", b: "sit" },
   );
   assert.deepEqual(rows, [
-    { id: "a", name: "Josh Allen", vibe: "Start" },
-    { id: "b", name: "Bijan Robinson", vibe: "Sit" },
+    { id: "a", name: "Josh Allen", vibe: "Higher" },
+    { id: "b", name: "Bijan Robinson", vibe: "Lower" },
   ]);
   assert.deepEqual(todayReadRows([{ player_id: "a", player_name: "A" }], {}), []);
 });
 
 test("empty and done heroes keep consequence copy and drop the fake chip", () => {
   const empty = heroCopy({ empty: true });
-  assert.match(empty.heading, /roster/i);
+  assert.match(empty.heading, /players/i);
   assert.equal(empty.chip, "");
   const live = heroCopy();
   assert.equal(live.chip, "");
   const done = heroCopy({ done: true });
-  assert.match(done.heading, /reads are in/i);
-  assert.match(done.support, /This Week/);
+  assert.match(done.heading, /ratings are saved/i);
+  assert.match(done.support, /Save lineup/);
   assert.equal(done.chip, "");
   const demo = heroCopy({ demo: true });
   assert.equal(demo.chip, VIBE_COPY.chipDemo);

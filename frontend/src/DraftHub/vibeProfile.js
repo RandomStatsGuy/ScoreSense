@@ -56,84 +56,72 @@ export const DEMO_VIBE_PROFILES = Object.freeze({
     college: "Wyoming",
     job: "Quarterback for the Bills",
     age: 30,
-    bio: "Firebaugh kid, Wyoming walk-on energy, now I launch footballs in Orchard Park. If you sit me you're the one explaining it in the group chat.",
   },
   "demo-bijan": {
     hometown: "Tucson, AZ",
     college: "Texas",
     job: "Running back for the Falcons",
     age: 24,
-    bio: "Tucson to Austin to Atlanta. I want the rock on early downs and the last five minutes. Swipe right if you draft backs to use them.",
   },
   "demo-gibbs": {
     hometown: "Dalton, GA",
     college: "Alabama",
     job: "Running back for the Lions",
     age: 24,
-    bio: "Dalton, then Tuscaloosa, now Detroit. I score in bunches and I do not love a timeshare. Start me when the lights are on.",
   },
   "demo-jefferson": {
     hometown: "Destrehan, LA",
     college: "LSU",
     job: "Receiver for the Vikings",
     age: 27,
-    bio: "Destrehan, LSU, Minnesota. I run past corners for a living. If your vibe is 'wait for a safer floor,' that's a you problem.",
   },
   "demo-puka": {
     hometown: "Orem, UT",
     college: "BYU",
     job: "Receiver for the Rams",
     age: 25,
-    bio: "Orem kid who showed up on a late-round card and refused to leave. I work the middle of the field. Don't make me a secret.",
   },
   "demo-cd": {
     hometown: "Richmond, TX",
     college: "Oklahoma",
     job: "Receiver for the Cowboys",
     age: 27,
-    bio: "Foster High, then Norman, now Dallas. I want targets and I want them early. Sit me and I'll still be open.",
   },
   "demo-bowers": {
     hometown: "Napa, CA",
     college: "Georgia",
     job: "Tight end for the Raiders",
     age: 23,
-    bio: "Napa to Athens to Vegas. I play tight end like a receiver who grew extra size. If you're waiting on 'the safe TE,' that's not this card.",
   },
   "demo-kittle": {
     hometown: "Norman, OK",
     college: "Iowa",
     job: "Tight end for the 49ers",
     age: 32,
-    bio: "Norman, Iowa, then every yard after contact in Santa Clara. I block, I YAC, I talk. Start me or hear about it.",
   },
   "demo-saquon": {
     hometown: "Whitehall, PA",
     college: "Penn State",
     job: "Running back for the Eagles",
     age: 29,
-    bio: "Whitehall to Happy Valley to Philly. I still bounce it outside and I still want the goal line. Year nine. Don't overthink it.",
   },
   "demo-sun-god": {
     hometown: "Santa Ana, CA",
     college: "USC",
     job: "Receiver for the Lions",
     age: 26,
-    bio: "Mater Dei, USC, Detroit. Slot, boundary, third down — I live there. If you need a 'vibe' to start me, the vibe is volume.",
   },
   "demo-bates": {
     hometown: "Tomball, TX",
     college: "Arkansas",
     job: "Kicker for the Lions",
     age: 26,
-    bio: "Tomball to Fayetteville to Detroit. I hit from distance and I do not need a speech. If the wind is honest, so am I.",
   },
   "demo-lions-def": {
     hometown: "Detroit, MI",
     college: "",
     job: "Defense for the Lions",
     age: null,
-    bio: "Ford Field energy on the road. We chase the quarterback and we take the ball. Sit a defense and you're streaming feelings.",
   },
 });
 
@@ -193,25 +181,24 @@ export function firstName(playerName) {
 
 export function composeBio({ hometown, college, team, position, yearsExp } = {}) {
   const parts = [];
-  if (hometown) parts.push(`Grew up in ${hometown}.`);
-  if (college) parts.push(`${college} is where I learned the job.`);
+  if (college) parts.push(`College: ${college}.`);
   const nick = teamNickname(team);
   const role = positionJob(position).toLowerCase();
-  if (nick) parts.push(`Now I play ${role} for the ${nick}.`);
-  const years = Number(yearsExp);
+  if (nick) parts.push(`Position: ${role} for the ${nick}.`);
+  const years = yearsExp == null || yearsExp === "" ? NaN : Number(yearsExp);
   if (Number.isFinite(years) && years <= 0) {
-    parts.push("Rookie year. Don't sit me on a feeling.");
+    parts.push("Rookie season.");
   } else if (Number.isFinite(years) && years > 0) {
-    parts.push(`Year ${years + 1}. I still want the snap.`);
+    parts.push(`NFL season: ${years + 1}.`);
   }
-  return parts.join(" ") || "Rate the week. I'll take it from there.";
+  return parts.join(" ");
 }
 
 export function profileFacts(profile) {
   const rows = [];
-  if (profile.hometown) rows.push({ id: "from", label: "From", value: profile.hometown });
+  if (profile.hometown) rows.push({ id: "from", label: "Birthplace / school location", value: profile.hometown });
   if (profile.college) rows.push({ id: "college", label: "College", value: profile.college });
-  if (profile.job) rows.push({ id: "job", label: "Job", value: profile.job });
+  if (profile.job) rows.push({ id: "job", label: "Position", value: profile.job });
   if (profile.age) rows.push({ id: "age", label: "Age", value: String(profile.age) });
   if (profile.size) rows.push({ id: "size", label: "Size", value: profile.size });
   return rows;
@@ -243,7 +230,7 @@ export function buildVibeProfile(player, mediaMap) {
   const height = formatHeight(media.height || player?.height);
   const weight = media.weight || player?.weight;
   const size = [height, weight ? `${weight} lbs` : ""].filter(Boolean).join(" · ");
-  const bio = demo?.bio || composeBio({
+  const bio = composeBio({
     hometown,
     college,
     team: player?.team || media.team,

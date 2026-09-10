@@ -75,9 +75,9 @@ test("Rules copy names vet flat and vet extension toggles separately", () => {
   assert.equal(RULES_COPY.previewVet, "Vet deal");
   assert.equal(RULES_COPY.previewExtension, "Extension");
   assert.match(RULES_COPY.keepVetFlatHelp, /step-up starts on an extension/i);
-  assert.match(RULES_COPY.allowVetExtensionsHelp, /vet deal/i);
+  assert.match(RULES_COPY.allowVetExtensionsHelp, /veteran contract/i);
   assert.equal(RULES_COPY.cutRefund, "Cut refund");
-  assert.match(RULES_COPY.cutRefundHelp, /floors to the lower dollar/i);
+  assert.match(RULES_COPY.cutRefundHelp, /rounded down to the nearest dollar/i);
   assert.match(RULES_COPY.cutRefundHelp, /\$1 is \$0 dead/);
   assert.doesNotMatch(JSON.stringify(RULES_COPY), /Rookie Extension|Veteran Deal/);
 });
@@ -106,7 +106,7 @@ test("validateLeagueSettings allows null roster size (no explicit cap)", () => {
 });
 
 test("rules copy names the silent-change cost and keeps the caveat next to Save", () => {
-  assert.match(RULES_COPY.support, /strands/i);
+  assert.match(RULES_COPY.support, /salary, contract, roster, and draft/i);
   assert.doesNotMatch(RULES_COPY.support, /migration/i);
   assert.match(RULES_COPY.saveFootnote, /does not rewrite existing/i);
   assert.match(RULES_COPY.templatesHelp, /does not save|unsaved until you press Save/i);
@@ -155,7 +155,7 @@ test("warnings name a fixed-point range and a short live roster", () => {
       { position: "RB", roster_status: "active" },
     ],
   });
-  assert.match(warnings.fixed_point, /fixed 27-player demand/);
+  assert.match(warnings.fixed_point, /exactly 27 players per team/);
   assert.match(warnings.live_roster, /require 27 players. This roster has 2/);
   assert.match(warnings.live_positions, /QB, RB, WR, TE, K, DEF/i);
 });

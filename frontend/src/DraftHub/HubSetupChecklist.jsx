@@ -49,7 +49,7 @@ export default function HubSetupChecklist({
       },
       {
         id: "rules",
-        label: "Configure rules",
+        label: "Set league rules",
         done: hasRules(workspace),
         action: () => onNavigate?.("rules"),
       },

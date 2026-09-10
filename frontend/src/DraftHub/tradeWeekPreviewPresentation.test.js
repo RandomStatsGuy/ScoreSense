@@ -69,7 +69,7 @@ test("empty week uses This Week copy and never a zero lie", () => {
   );
   assert.equal(
     tradeWeekEmptyCopy({ projectionsMissing: true }),
-    "Cannot trust a swap yet.",
+    "More projections needed",
   );
   assert.equal(tradeWeekEmptyCopy({}), TRADE_WEEK_COPY.missing);
   assert.doesNotMatch(TRADE_WEEK_COPY.missing, /\$0|Submit|Draft Hub/i);

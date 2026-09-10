@@ -21,8 +21,8 @@ export function lockerWallPlayers(roster, lockerPlayerIds, { limit = LOCKER_WALL
     return {
       players,
       caption: cut > 0
-        ? `Your lockers · ${players.length} of ${active.length} active`
-        : `Your lockers · ${players.length} of ${active.length}`,
+        ? `Featured players · ${players.length} of ${active.length} active players`
+        : `Featured players · ${players.length} of ${active.length} active players`,
       curated: true,
     };
   }

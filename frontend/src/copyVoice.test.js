@@ -1,5 +1,5 @@
 /**
- * Site hero/intro copy must name a decision and a cost — not a slogan.
+ * Site hero/intro copy must explain its purpose — not a slogan.
  * Run with: node --test frontend/src/copyVoice.test.js
  */
 import assert from "node:assert/strict";
@@ -87,11 +87,11 @@ test("page heroes name a decision, not a slogan", () => {
     assert.doesNotMatch(line, /Draft Hub|Submit|permission/i, line);
   }
 
-  assert.match(capHeroCopy().heading, /afford|bid|cut/i);
-  assert.match(weekHeroCopy({ decisionCount: 1 }).support, /leave those points|sit the wrong/i);
+  assert.match(capHeroCopy().heading, /salary cap/i);
+  assert.match(weekHeroCopy({ decisionCount: 1 }).support, /higher-projected bench players/i);
   assert.match(weekHeroCopy({ decisionCount: 0 }).heading, /No bye|Nobody flagged out/);
-  assert.match(weekHeroCopy({ decisionCount: 0, onBye: 1 }).heading, /No swap worth making/);
-  assert.match(RULES_COPY.support, /old deals|strands/i);
+  assert.match(weekHeroCopy({ decisionCount: 0, onBye: 1 }).heading, /No suggested lineup changes/);
+  assert.match(RULES_COPY.support, /salary, contract, roster, and draft/i);
   assert.match(dfsHeroCopy({ isDfs: true }).support, /backup|leave salary|lose/i);
   assert.match(dfsHeroCopy({ isDfs: true, captain: true }).support, /leave salary|lose/i);
   assert.match(bestBallHeroCopy().support, /discount|reach/i);

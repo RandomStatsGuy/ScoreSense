@@ -38,7 +38,7 @@ export default function TeamStadiumHero({
         ) : null}
         {onEdit ? (
           <button type="button" className="hub-stadium-hero-edit" onClick={onEdit}>
-            Edit look
+            Customize team appearance
           </button>
         ) : null}
       </div>

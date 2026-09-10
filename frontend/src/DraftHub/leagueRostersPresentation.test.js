@@ -21,8 +21,8 @@ import {
 } from "./leagueRostersPresentation.js";
 
 test("hero names the deal and the cost of getting it wrong", () => {
-  assert.match(ROSTERS_COPY.heading, /deal/i);
-  assert.match(ROSTERS_COPY.support, /cheap year|overpay/i);
+  assert.match(ROSTERS_COPY.heading, /rosters/i);
+  assert.match(ROSTERS_COPY.support, /salaries|estimated player values/i);
   assert.doesNotMatch(ROSTERS_COPY.support, /Draft Hub|Submit|permission/i);
   assert.equal(ROSTERS_COPY.exportExcel, "Download Excel");
   assert.match(ROSTERS_COPY.exportTitle, /Excel/i);
@@ -34,24 +34,24 @@ test("Fair with a zero delta is the word alone", () => {
   assert.equal(contractGradeLabel("fair"), "Fair");
   assert.equal(
     contractGradeText({ contract_grade: "fair", value_delta: 0, fair_value: 11 }),
-    "Fair",
+    "At estimated value",
   );
   assert.equal(
     contractGradeText({ contract_grade: "fair", value_delta: null, fair_value: 11 }),
-    "Fair",
+    "At estimated value",
   );
 });
 
-test("Overpay and Bargain keep the vs-fair phrasing", () => {
+test("contract values describe the salary difference from the estimate", () => {
   assert.equal(contractGradeLabel("bad"), "Overpay");
   assert.equal(contractGradeLabel("good"), "Bargain");
   assert.equal(
     contractGradeText({ contract_grade: "bad", value_delta: 6, fair_value: 11 }),
-    "Overpay (+$6) vs $11 fair",
+    "$6 above estimated value",
   );
   assert.equal(
     contractGradeText({ contract_grade: "good", value_delta: -4, fair_value: 15 }),
-    "Bargain (−$4) vs $15 fair",
+    "$4 below estimated value",
   );
 });
 
@@ -63,7 +63,7 @@ test("expire chips are status, never a question or FA destination", () => {
 });
 
 test("joinFacts drops empty sides so a middot cannot float", () => {
-  assert.equal(joinFacts(["$13 free", "", "2 expiring"]), "$13 free · 2 expiring");
+  assert.equal(joinFacts(["$13 cap room", "", "2 expiring"]), "$13 cap room · 2 expiring");
   assert.equal(joinFacts([null, "Fair"]), "Fair");
 });
 
@@ -120,7 +120,7 @@ test("manager rail facts name free cap, expiring, and worst overpay", () => {
   assert.equal(facts.free, 13);
   assert.equal(facts.expiring, 2);
   assert.equal(facts.worstOverpay, 6);
-  assert.equal(formatManagerRailFacts(facts), "$13 free · 2 expiring · +$6 overpay");
+  assert.equal(formatManagerRailFacts(facts), "$13 cap room · 2 expiring · +$6 overpay");
 });
 
 test("offseason trade lock names the surviving-contract rule", () => {
@@ -157,8 +157,8 @@ test("phone picker options carry deal facts under the owner name", () => {
     ],
     [{ contract_grade: "bad" }, { contract_grade: "good" }],
   );
-  assert.equal(options[0].label, "Deals");
+  assert.equal(options[0].label, "Contract values");
   assert.equal(options[0].detail, "1 overpay · 1 bargain");
   assert.equal(options[1].label, "Caleb K");
-  assert.equal(options[1].detail, "$65 free · 1 expiring · +$6 overpay");
+  assert.equal(options[1].detail, "$65 cap room · 1 expiring · +$6 overpay");
 });

@@ -631,7 +631,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
             await refreshAll();
           }}
           title="Sign in"
-          subtitle="Save league & rosters."
+          subtitle="Sign in to manage your leagues and rosters."
           compact
           termsUrl={termsUrl}
           privacyUrl={privacyUrl}

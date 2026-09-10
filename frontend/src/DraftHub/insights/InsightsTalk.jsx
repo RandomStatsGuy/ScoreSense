@@ -174,7 +174,7 @@ export function PositionSpendBoard({
   return (
     <section className="hub-insights-board" aria-label="Position spend">
       <div className="hub-insights-talk-head">
-        <h3>{allTime ? "Who spends the cap?" : "Who went heavy?"}</h3>
+        <h3>{allTime ? "Who spends the cap?" : "Spending by position"}</h3>
         <p>
           {active?.leader
             ? `${active.leader.label} leads ${active.position} by ${formatSpendValue(active.gap, mode)}.`
