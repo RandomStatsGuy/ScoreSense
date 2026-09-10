@@ -91,10 +91,12 @@ class RosterAddRequest(BaseModel):
 
 class RosterRemoveRequest(BaseModel):
     player_id: str
+    roster_slot_id: Optional[int] = None
 
 
 class RosterUpdateRequest(BaseModel):
     player_id: str
+    roster_slot_id: Optional[int] = None
     salary: Optional[float] = Field(default=None, ge=0)
     contract_years: Optional[int] = None  # years remaining on contract
     step_up: Optional[float] = None

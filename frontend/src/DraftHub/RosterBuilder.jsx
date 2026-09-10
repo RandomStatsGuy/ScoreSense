@@ -298,7 +298,7 @@ function ContractSidePanelBody({
               type="button"
               className="btn-ghost btn-sm hub-btn-danger"
               disabled={isSaving}
-              onClick={() => remove(r.player_id)}
+              onClick={() => remove(r)}
             >
               {MY_TEAM_COPY.dropLabel}
             </button>
@@ -343,7 +343,7 @@ export default function RosterBuilder({
   const [statusFocus, setStatusFocus] = useState(null);
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState("desc");
-  const [selectedPlayerId, setSelectedPlayerId] = useState(null);
+  const [selectedSlotKey, setSelectedSlotKey] = useState(null);
   const [lookOpen, setLookOpen] = useState(false);
   const panelTitleRef = useRef(null);
   const restoreFocusRef = useRef(null);
@@ -423,17 +423,20 @@ export default function RosterBuilder({
   }, [preDraft, roster]);
 
   const selectedRow = useMemo(
-    () => (selectedPlayerId ? (roster || []).find((r) => r.player_id === selectedPlayerId) : null),
-    [roster, selectedPlayerId],
+    () => (selectedSlotKey ? (roster || []).find((r) => rosterSlotKey(r) === selectedSlotKey) : null),
+    [roster, selectedSlotKey],
   );
 
-  const openContractPanel = useCallback((playerId, fromEl) => {
+  const openContractPanel = useCallback((rowOrId, fromEl) => {
     restoreFocusRef.current = fromEl || document.activeElement;
-    setSelectedPlayerId(playerId);
-  }, []);
+    const row = rowOrId && typeof rowOrId === "object"
+      ? rowOrId
+      : (roster || []).find((r) => r.player_id === rowOrId);
+    setSelectedSlotKey((row ? rosterSlotKey(row) : null) || String(row?.player_id || rowOrId || ""));
+  }, [roster]);
 
   const closeContractPanel = useCallback(() => {
-    setSelectedPlayerId(null);
+    setSelectedSlotKey(null);
     const restore = restoreFocusRef.current;
     restoreFocusRef.current = null;
     queueMicrotask(() => restore?.focus?.());
@@ -459,6 +462,7 @@ export default function RosterBuilder({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           player_id: r.player_id,
+          roster_slot_id: r.id || undefined,
           roster_status: cut ? "cut_before_draft" : "active",
         }),
       });
@@ -509,10 +513,10 @@ export default function RosterBuilder({
   }, [roster]);
 
   useEffect(() => {
-    if (selectedPlayerId && !(roster || []).some((r) => r.player_id === selectedPlayerId)) {
-      setSelectedPlayerId(null);
+    if (selectedSlotKey && !(roster || []).some((r) => rosterSlotKey(r) === selectedSlotKey)) {
+      setSelectedSlotKey(null);
     }
-  }, [roster, selectedPlayerId]);
+  }, [roster, selectedSlotKey]);
 
   useEffect(() => {
     if (!selectedRow || mobileLayout) return undefined;
@@ -604,6 +608,7 @@ export default function RosterBuilder({
     try {
       const res = await sendRosterWrite(apiFetch, {
         playerId: r.player_id,
+        rosterSlotId: r.id,
         salary: Number.isFinite(nextSal) ? nextSal : curSal,
         years: Number.isFinite(nextYears) ? nextYears : curYears,
       });
@@ -628,6 +633,7 @@ export default function RosterBuilder({
     try {
       const res = await sendRosterWrite(apiFetch, {
         playerId: r.player_id,
+        rosterSlotId: r.id,
         contractType: nextType,
       });
       if (!res.ok) throw new Error(await parseApiError(res));
@@ -660,7 +666,9 @@ export default function RosterBuilder({
     }
   }, [onChanged, hubContext?.mode]);
 
-  const remove = async (pid) => {
+  const remove = async (row) => {
+    const pid = row?.player_id;
+    if (!pid) return;
     const ok = await confirmDialog({
       title: MY_TEAM_COPY.removeTitle,
       message: MY_TEAM_COPY.removeConfirm,
@@ -670,11 +678,12 @@ export default function RosterBuilder({
     if (!ok) return;
     const res = await sendRosterWrite(apiFetch, {
       playerId: pid,
+      rosterSlotId: row?.id,
       drop: true,
     });
     if (!res.ok) setError(await parseApiError(res));
     else {
-      if (selectedPlayerId === pid) setSelectedPlayerId(null);
+      if (selectedSlotKey && rosterSlotKey(row) === selectedSlotKey) setSelectedSlotKey(null);
       onChanged?.();
     }
   };
@@ -1099,7 +1108,7 @@ export default function RosterBuilder({
                     <button
                       type="button"
                       className="btn-ghost btn-sm"
-                      onClick={(event) => openContractPanel(r.player_id, event.currentTarget)}
+                      onClick={(event) => openContractPanel(r, event.currentTarget)}
                     >
                       Contract
                     </button>
@@ -1150,7 +1159,7 @@ export default function RosterBuilder({
               const thumb = paintMediaUrl(media.headshot_url, PAINT_WIDTH.avatar) || logo;
               const vm = rowViewModel(r);
               const isCut = r.roster_status === "cut_before_draft";
-              const selected = selectedPlayerId === r.player_id;
+              const selected = selectedSlotKey === rosterSlotKey(r);
               return (
                 <tr
                   key={rosterSlotKey(r)}
@@ -1160,7 +1169,7 @@ export default function RosterBuilder({
                     <button
                       type="button"
                       className="hub-roster-player-open"
-                      onClick={(event) => openContractPanel(r.player_id, event.currentTarget)}
+                      onClick={(event) => openContractPanel(r, event.currentTarget)}
                     >
                       <div className="hub-roster-player-cell">
                         {thumb ? (
@@ -1201,7 +1210,7 @@ export default function RosterBuilder({
                     <button
                       type="button"
                       className="btn-ghost btn-sm"
-                      onClick={(event) => openContractPanel(r.player_id, event.currentTarget)}
+                      onClick={(event) => openContractPanel(r, event.currentTarget)}
                     >
                       Contract
                     </button>

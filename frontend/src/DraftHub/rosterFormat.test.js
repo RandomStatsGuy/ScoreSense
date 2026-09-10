@@ -9,7 +9,15 @@ import {
   dealSalaryIsStatic,
   joinSalarySchedule,
   previewSchedule,
+  rosterSlotKey,
 } from "./rosterFormat.js";
+
+test("rosterSlotKey is empty when the row is missing", () => {
+  assert.equal(rosterSlotKey(undefined), "");
+  assert.equal(rosterSlotKey(null), "");
+  assert.equal(rosterSlotKey({ player_id: "p1" }), "p1");
+  assert.equal(rosterSlotKey({ id: 44, player_id: "p1" }), "slot-44");
+});
 
 const RULES = { contracts: { cut_refund_pct: 0.5 } };
 const ZAMIR = { player_name: "Zamir White", salary: 10, roster_status: "cut_before_draft" };
