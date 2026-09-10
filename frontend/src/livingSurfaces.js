@@ -18,6 +18,7 @@ export const CHROME = Object.freeze([
 ]);
 
 export const SHARED = Object.freeze({
+  desktopHeader: ["frontend/src/App.jsx", "frontend/src/layout/DesktopPrimaryHeader.jsx", "frontend/src/layout/HeaderDisclosure.jsx", "frontend/src/DraftHub/HubSubnav.jsx", "frontend/src/DraftHub/LeagueContextBanner.jsx", "frontend/src/DraftHub/LeagueSwitcher.jsx", "frontend/src/styles/fantasy-header.css"],
   tokens: [
     "frontend/src/styles/tokens.css",
     "frontend/src/styles/product-hierarchy.css",

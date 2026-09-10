@@ -4,7 +4,7 @@ import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../fo
 import useMobileLayout from "../useMobileLayout";
 import LeagueSwitcher from "./LeagueSwitcher";
 import { effectiveMemberships, isSoloContext } from "./hubLeagues";
-import { LEAGUE_CREATE_COPY } from "./leagueAccessCopy";
+import { FANTASY_HEADER_COPY, LEAGUE_CREATE_COPY } from "./leagueAccessCopy";
 import {
   getFreshnessCache,
   invalidateFreshnessCache,
@@ -130,7 +130,10 @@ export default function LeagueContextBanner({
       }
     };
     const onKey = (event) => {
-      if (event.key === "Escape") setSyncOpen(false);
+      if (event.key === "Escape") {
+        setSyncOpen(false);
+        syncWrapRef.current?.querySelector(".hub-league-context-sync-trigger")?.focus();
+      }
     };
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onKey);
@@ -303,41 +306,15 @@ export default function LeagueContextBanner({
           disabled={busy}
         />
       )}
-      {(!showSwitcher || !mobileLayout) && (
-      <p className="hub-league-context-line">
-        {!showSwitcher && (
-          <>
-            <span className="hub-league-context-kicker">League</span>
-            <span className="hub-league-context-name">{leagueName}</span>
-            <span className="hub-league-context-sep" aria-hidden="true">·</span>
-          </>
-        )}
-        <span className="hub-league-context-phase">{phaseLabel}</span>
-        {roleLabel && (
-          <>
-            <span className="hub-league-context-sep" aria-hidden="true">·</span>
-            <span className="hub-league-context-role">{roleLabel}</span>
-          </>
-        )}
-        {inLeague
-          && hubContext.team_name
-          && !mobileLayout
-          && String(hubContext.team_name).trim().toLowerCase() !== String(roleLabel || "").toLowerCase()
-          && (
-          <>
-            <span className="hub-league-context-sep" aria-hidden="true">·</span>
-            <TeamIdentityMark
-              team={{ id: hubContext.team_id, name: hubContext.team_name }}
-              identity={identityFor(identities, { id: hubContext.team_id, identity: hubContext.team_identity })}
-              size="sm"
-            />
-            <span className="hub-league-context-team">{hubContext.team_name}</span>
-          </>
-        )}
-      </p>
-      )}
+      {!showSwitcher && <span className="hub-league-context-name">{leagueName}</span>}
+      <span className="hub-league-context-phase">{phaseLabel}</span>
     </div>
   );
+
+  const teamContext = <div className="fantasy-team-context">
+    {inLeague && hubContext.team_name && <><span className="fantasy-team-context-label">{FANTASY_HEADER_COPY.yourTeam}</span><TeamIdentityMark team={{ id: hubContext.team_id, name: hubContext.team_name }} identity={identityFor(identities, { id: hubContext.team_id, identity: hubContext.team_identity })} size="sm" /><strong className="hub-league-context-team">{hubContext.team_name}</strong></>}
+    {roleLabel && <span className="hub-league-context-role">{roleLabel}</span>}
+  </div>;
 
   const attentionRow = visibleAttentionItems.length > 0 ? (
     <div className="hub-league-context-attention" role="status">
@@ -373,7 +350,8 @@ export default function LeagueContextBanner({
         disabled={switchBusy}
         onClick={() => setSyncOpen((v) => !v)}
       >
-        {syncing || sheetSyncing || projRefreshing ? "Syncing…" : "Sync league"}
+        <svg className="fantasy-sync-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 2M4 16l2 2a7 7 0 0 0 12-1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        {syncing || sheetSyncing || projRefreshing ? "Syncing…" : FANTASY_HEADER_COPY.sync}
         <span className="hub-league-context-sync-caret" aria-hidden="true">▾</span>
       </button>
       {syncOpen && (
@@ -583,6 +561,7 @@ export default function LeagueContextBanner({
     >
       <div className="hub-league-context-top">
         {identityLine}
+        {teamContext}
         {syncPopover}
       </div>
       {attentionRow}

@@ -1,3 +1,4 @@
+import HeaderDisclosure from "../layout/HeaderDisclosure";
 import React, { useId, useMemo, useState } from "react";
 import useMobileLayout from "../useMobileLayout";
 import {
@@ -8,8 +9,7 @@ import {
 } from "./hubLeagues";
 import TeamIdentityMark from "./TeamIdentityMark";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
-import { HubFilterMenu } from "./HubUILayout";
-import { LEAGUE_CREATE_COPY, SOLO_VALUE, interpretLeagueSwitcherValue } from "./leagueAccessCopy";
+import { FANTASY_HEADER_COPY, LEAGUE_CREATE_COPY, SOLO_VALUE, interpretLeagueSwitcherValue } from "./leagueAccessCopy";
 
 const LIST_SCROLL_THRESHOLD = 4;
 
@@ -91,7 +91,6 @@ export default function LeagueSwitcher({
   hideActiveHero = false,
   hideCreate = false,
 }) {
-  const selectId = useId();
   const searchId = useId();
   const { identities } = useTeamIdentities();
   const [busy, setBusy] = useState(false);
@@ -146,41 +145,20 @@ export default function LeagueSwitcher({
 
   if (variant === "compact") {
     if (leagues.length === 0 && soloActive && !onCreateLeague) return null;
-    return (
-      <div className="hub-league-switcher hub-league-switcher--compact" aria-busy={busy}>
-        <div className="hub-league-switcher-compact-row">
-          {leagues.length > 0 || !soloActive ? (
-            <HubFilterMenu
-              label={mobileLayout ? "League" : "Switch league"}
-              value={value}
-              options={[
-                ...leagues.map((m) => ({
-                  id: m.league_id,
-                  label: m.league_name || membershipLabel(m),
-                })),
-                { id: SOLO_VALUE, label: mobileLayout ? "Solo prep" : "Personal prep (just me)" },
-              ]}
-              onChange={switchTo}
-              disabled={busy || disabled}
-              className="hub-league-switcher-menu"
-            />
-          ) : (
-            <span id={selectId} className="hub-league-context-name">Solo prep</span>
-          )}
-          {onCreateLeague && !hideCreate ? (
-            <button
-              type="button"
-              className="btn-link hub-league-switcher-create"
-              disabled={busy || disabled}
-              onClick={() => onCreateLeague()}
-            >
-              {LEAGUE_CREATE_COPY.newLeague}
-            </button>
-          ) : null}
-        </div>
-        {switchError && <div className="error hub-league-picker-error">{switchError}</div>}
-      </div>
-    );
+    return <div className="hub-league-switcher hub-league-switcher--compact" aria-busy={busy}>
+      <HeaderDisclosure label={soloActive ? "Solo prep" : hubContext?.league_name || "League"} accessibleLabel={`Switch league: ${soloActive ? "Solo prep" : hubContext?.league_name || "League"}`} disabled={busy || disabled} resetKey={value} className="fantasy-league-picker">
+        {close => <>
+          {leagues.length > LIST_SCROLL_THRESHOLD && <input type="search" aria-label={FANTASY_HEADER_COPY.searchLeagues} placeholder={FANTASY_HEADER_COPY.searchLeagues} value={filter} onChange={event => setFilter(event.target.value)} />}
+          <div className="fantasy-league-picker-options">
+            {filteredLeagues.map(m => <LeagueRow key={m.league_id} title={m.league_name || membershipLabel(m)} meta={m.team?.name} active={isActiveMembership(m, hubContext)} disabled={busy || disabled} onClick={() => { close(); switchTo(m.league_id); }} />)}
+            {!filteredLeagues.length && filter.trim() && <p>{FANTASY_HEADER_COPY.noLeagues}</p>}
+            <LeagueRow title="Solo prep" active={soloActive} disabled={busy || disabled} onClick={() => { close(); switchTo(SOLO_VALUE); }} />
+          </div>
+          {onCreateLeague && !hideCreate && <div className="fantasy-league-picker-footer"><button type="button" disabled={busy || disabled} onClick={() => { close(); onCreateLeague(); }}>{LEAGUE_CREATE_COPY.newLeague}</button></div>}
+        </>}
+      </HeaderDisclosure>
+      {switchError && <div role="alert" className="error hub-league-picker-error">{switchError}</div>}
+    </div>;
   }
 
   const showSearch = leagues.length > LIST_SCROLL_THRESHOLD;
