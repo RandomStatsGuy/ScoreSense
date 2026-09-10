@@ -24,7 +24,14 @@ test("height formats inches", () => {
   assert.equal(formatHeight("6'3\""), "6'3\"");
 });
 
-test("composed bio is first person and names hometown plus job", () => {
+test("missing profile facts do not invent a rookie season or first-person fallback", () => {
+  assert.equal(composeBio({}), "");
+  assert.equal(composeBio({ yearsExp: null }), "");
+  assert.equal(composeBio({ yearsExp: "" }), "");
+  assert.equal(composeBio({ yearsExp: 0 }), "Rookie season.");
+});
+
+test("composed bio uses available facts without inventing player speech", () => {
   const bio = composeBio({
     hometown: "Orem, UT",
     college: "BYU",
@@ -32,13 +39,13 @@ test("composed bio is first person and names hometown plus job", () => {
     position: "WR",
     yearsExp: 3,
   });
-  assert.match(bio, /Grew up in Orem/);
+  assert.doesNotMatch(bio, /\\bI\\b|\\bmy\\b|grew up|want the snap/i);
   assert.match(bio, /BYU/);
   assert.match(bio, /Rams/);
   assert.doesNotMatch(bio, /Draft Hub|Wikipedia|Submit/i);
 });
 
-test("demo Josh Allen profile keeps a first-person bio", () => {
+test("demo profiles use the same factual bio format", () => {
   const profile = buildVibeProfile({
     player_id: "demo-allen",
     player_name: "Josh Allen",
@@ -48,7 +55,7 @@ test("demo Josh Allen profile keeps a first-person bio", () => {
   assert.equal(profile.hometown, "Firebaugh, CA");
   assert.equal(profile.college, "Wyoming");
   assert.match(profile.job, /Bills/);
-  assert.match(profile.bio, /Firebaugh/);
+  assert.match(profile.bio, /College: Wyoming/);
   assert.ok(profile.facts.some((row) => row.id === "from"));
 });
 
@@ -60,5 +67,5 @@ test("roster player uses Sleeper media when there is no demo card", () => {
   assert.equal(profile.hometown, "Orem, UT");
   assert.equal(profile.college, "BYU");
   assert.match(profile.job, /#12/);
-  assert.match(profile.bio, /Orem/);
+  assert.match(profile.bio, /College: BYU/);
 });

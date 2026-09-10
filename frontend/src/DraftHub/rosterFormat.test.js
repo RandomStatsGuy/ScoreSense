@@ -49,8 +49,8 @@ test("active contract if-undone value is a dash, not a label prefix", () => {
 
 test("contract types are rookie deal, vet deal, and extension", () => {
   assert.deepEqual(CONTRACT_TYPE_OPTIONS.map((o) => o.label), [
-    "Rookie deal",
-    "Vet deal",
+    "Rookie contract",
+    "Veteran contract",
     "Extension",
   ]);
   assert.equal(contractTypeLabel("extension"), "Extension");
@@ -85,6 +85,6 @@ test("flat salary schedules render as one figure", () => {
       salary: 12,
       veteran_salary_static: true,
     }),
-    "Vet deal · 2y · $12",
+    "Veteran contract · 2y · $12",
   );
 });

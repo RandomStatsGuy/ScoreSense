@@ -146,7 +146,7 @@ test("auctionAwardContractLabel describes locked rookie and vet deals", () => {
       salary: 39,
       salary_schedule: [39, 39],
     }),
-    "Rookie deal · 2y · $39",
+    "Rookie contract · 2y · $39",
   );
   assert.equal(
     auctionAwardContractLabel({
@@ -156,7 +156,7 @@ test("auctionAwardContractLabel describes locked rookie and vet deals", () => {
       step_up_per_year: 5,
       salary_schedule: [20, 25],
     }),
-    "Vet deal · 2y · $20 → $25",
+    "Veteran contract · 2y · $20 → $25",
   );
 });
 

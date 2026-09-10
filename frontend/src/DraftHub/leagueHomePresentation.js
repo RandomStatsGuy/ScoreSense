@@ -8,7 +8,7 @@ const ACTION_LABELS = {
   projections_missing: "Sync projections",
   projections_stale: "Refresh projections",
   expiring_contracts: "Review contracts",
-  lineup_decisions: "Set lineup",
+  lineup_decisions: "Review lineup",
   cap_sheets_stale: "Sync sheets",
   invite_managers: "Invite managers",
   mark_availability: "Mark times",
@@ -17,26 +17,26 @@ const ACTION_LABELS = {
 };
 
 const ACTION_SUPPORT = {
-  roster_hole: "A missing starter is a wasted nomination. Undo a cut or spend in the room.",
-  cap_overage: "Get legal before the next roster move.",
-  draft_night: "The room is open. Miss it and you draft late or not at all.",
-  sync_league: "Without Sleeper, scores and rosters stay empty.",
-  projections_missing: "You cannot price a bid until the player pool is back.",
-  projections_stale: "A stale board prices last week's player.",
+  roster_hole: "Review your roster needs before the draft.",
+  cap_overage: "Reduce your cap usage before making another roster move.",
+  draft_night: "Your draft room is open.",
+  sync_league: "Connect Sleeper to import league rosters and scores.",
+  projections_missing: "Load player projections to see suggested bids.",
+  projections_stale: "Refresh projections to update suggested bids.",
   expiring_contracts: "Decide who stays before those deals become free agents.",
-  lineup_decisions: "A wrong start sits points on the bench.",
+  lineup_decisions: "Compare your starters with higher-projected bench players.",
   cap_sheets_stale: "Bring the league ledger back in sync.",
-  invite_managers: "Empty seats mean bots or a delayed draft.",
-  mark_availability: "Tell the room which nights you can actually sit.",
+  invite_managers: "Invite managers to claim the remaining teams.",
+  mark_availability: "Choose the nights you are available to draft.",
   delete_league: "Once every commissioner agrees, the room and its history are gone.",
   delete_league_wait: "The room stays until every commissioner types the name.",
 };
 
 export const LEAGUE_PHASES = [
-  { id: "offseason", label: "Build" },
-  { id: "pre_draft", label: "Prepare" },
+  { id: "offseason", label: "Setup" },
+  { id: "pre_draft", label: "Draft prep" },
   { id: "live_draft", label: "Draft" },
-  { id: "in_season", label: "Compete" },
+  { id: "in_season", label: "In season" },
 ];
 
 export function isLeagueHomeTarget(view, validViews) {
@@ -49,8 +49,8 @@ export function actionLabel(action) {
 }
 
 export function actionSupport(action) {
-  if (!action) return "Cap is legal and the next phase is not waiting on you.";
-  return ACTION_SUPPORT[action.id] || "Handle this before the next roster move.";
+  if (!action) return "No league actions need your attention.";
+  return ACTION_SUPPORT[action.id] || "Review this league update.";
 }
 
 export function resolveLeagueHomeFocus({ actions = [], primaryCta, defaultView, validViews }) {
@@ -59,7 +59,7 @@ export function resolveLeagueHomeFocus({ actions = [], primaryCta, defaultView, 
     return {
       kind: "action",
       id: priorityAction.id,
-      title: priorityAction.message,
+      title: homeAlsoDueMessage(priorityAction),
       detail: actionSupport(priorityAction),
       label: actionLabel(priorityAction),
       view: priorityAction.href,
@@ -135,7 +135,7 @@ export function homeHeroHeading(data) {
     return `Fill ${open} seats, then lock a night.`;
   }
   if (top?.id === "draft_night") return "Lock a night.";
-  if (top?.message && top.id !== "invite_managers") return top.message;
+  if (top?.message && top.id !== "invite_managers") return homeAlsoDueMessage(top);
   if (Number.isFinite(open) && open > 0) {
     return `Fill ${open} seats, then lock a night.`;
   }
@@ -154,6 +154,10 @@ export function homeHeroSupport(data) {
 
 export function homeAlsoDueMessage(action) {
   if (!action) return "";
+  if (action.id === "lineup_decisions") {
+    const count = Number(action.count);
+    if (Number.isFinite(count) && count > 0) return `${count} lineup change${count === 1 ? "" : "s"} to review`;
+  }
   if (action.id === "expiring_contracts") {
     const extend = Number(action.meta?.must_extend);
     const expire = Number(action.meta?.dropping_at_draft);
@@ -174,7 +178,7 @@ export const HOME_DECK_COPY = {
   opponentTbd: "Opponent TBD",
   lockerKicker: "Chat",
   lockerTitle: "League chat",
-  lockerNote: "One thread for the whole league. It follows you on every Fantasy page.",
+  lockerNote: "Chat with your league from any Fantasy page.",
   clearChat: "Clear chat",
 };
 

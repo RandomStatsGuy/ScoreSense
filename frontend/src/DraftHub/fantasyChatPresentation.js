@@ -3,7 +3,7 @@ export const FANTASY_CHAT_COPY = {
   titleFallback: "League chat",
   context: "Same thread as Home. Drag the chip to an edge.",
   leagueChat: "League chat",
-  openConversation: "Drag to park",
+  openConversation: "Drag to move",
   closeConversation: "Close conversation",
   openChat: "Open league chat",
   closeChat: "Close league chat",

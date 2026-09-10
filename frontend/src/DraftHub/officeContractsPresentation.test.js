@@ -294,7 +294,7 @@ test("after draft drop copy writes now, not queue", () => {
   assert.equal(confirm.confirmLabel, OFFICE_CONTRACTS_COPY.dropConfirmNow);
   assert.equal(OFFICE_CONTRACTS_COPY.acquiredAuction, "Auction");
   assert.equal(OFFICE_CONTRACTS_COPY.acquiredFaLottery, "FA lottery");
-  assert.match(OFFICE_CONTRACTS_COPY.bidSupport, /Rosters reads/);
+  assert.match(OFFICE_CONTRACTS_COPY.bidSupport, /current roster/);
   assert.deepEqual(
     OFFICE_ACQUIRED_OPTIONS.map((o) => o.value),
     ["draft", "post_draft_fa"],
@@ -334,7 +334,7 @@ test("cap field figures name free and dead", () => {
 test("copy stays off Submit and Draft Hub", () => {
   assert.doesNotMatch(OFFICE_CONTRACTS_COPY.save, /Submit|Draft Hub|permission/i);
   assert.doesNotMatch(OFFICE_CONTRACTS_COPY.refreshSupport, /Submit|Draft Hub|permission/i);
-  assert.match(OFFICE_CONTRACTS_COPY.refreshSupport, /staff contract edits/);
+  assert.match(OFFICE_CONTRACTS_COPY.refreshSupport, /commissioner edits/);
 });
 
 test("leaving contracts path detects destination changes", () => {

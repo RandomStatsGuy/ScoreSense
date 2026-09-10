@@ -17,6 +17,7 @@ export default function InsightsOverview({
   landing,
   ownerMap,
   loading,
+  error,
   onOpenTab,
   nav = null,
   mineId,
@@ -57,7 +58,7 @@ export default function InsightsOverview({
 
       {loading && !hasLanding && <InsightsOverviewSkeleton />}
 
-      {!loading && !hasLanding && (
+      {!loading && !error && landing && !hasLanding && (
         <p className="chart-note">{landing?.hint || copy.empty}</p>
       )}
 

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import Button from "../ui/Button";
-import DraftSeat from "./DraftSeat";
+import DraftSeat from "./DraftSeat.jsx";
 import {
   DRAFT_TZ_OPTIONS,
   draftFormatLabel,

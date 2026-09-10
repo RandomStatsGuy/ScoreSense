@@ -134,7 +134,7 @@ test("join account note blocks guests on live drafts", () => {
 test("member email invite is how people join the league", () => {
   const copy = memberInviteExplainer();
   assert.match(copy, /invite link/i);
-  assert.match(copy, /named email/i);
+  assert.match(copy, /manager by email/i);
   assert.match(managerClaimLabel(), /Invite link/i);
   assert.equal(
     shareableAppUrl("https://app.example.com/hub/draft?claim=abc", "http://127.0.0.1:5173"),
@@ -178,9 +178,9 @@ test("draft night copy names the lock time", () => {
 });
 
 test("franchise resize copy names the next auction consequence", () => {
-  assert.equal(addFranchiseLabel(), "Add seat");
-  assert.equal(removeFranchiseLabel(), "Remove seat");
-  assert.match(franchiseResizeHint(), /seat count|claimed from Draft/i);
+  assert.equal(addFranchiseLabel(), "Add team");
+  assert.equal(removeFranchiseLabel(), "Remove team");
+  assert.match(franchiseResizeHint(), /claim open teams from Draft/i);
   assert.doesNotMatch(franchiseResizeHint(), /Submit|Draft Hub|permission/i);
   assert.match(addFranchiseSupport({ nextCount: 11, cap: 200 }), /11 seats/);
   assert.match(addFranchiseSupport({ nextCount: 11, cap: 200 }), /\$200/);
@@ -196,7 +196,7 @@ test("league workbook and delete copy name the cost", () => {
   assert.match(LEAGUE_WORKBOOK_COPY.exportSupport, /roster|salary|history/i);
   assert.doesNotMatch(LEAGUE_WORKBOOK_COPY.exportSupport, /Draft Hub|Submit|permission/i);
   assert.match(LEAGUE_DELETE_COPY.support, /every commissioner/i);
-  assert.match(LEAGUE_DELETE_COPY.support, /cannot put this back/i);
+  assert.match(LEAGUE_DELETE_COPY.support, /cannot be undone/i);
   assert.doesNotMatch(
     `${LEAGUE_DELETE_COPY.title} ${LEAGUE_DELETE_COPY.support}`,
     /Draft Hub|Submit|permission/i,
@@ -213,7 +213,7 @@ test("offline draft copy stays on Draft and keeps Add locked", () => {
   assert.equal(OFFLINE_DRAFT_COPY.startOffline, "Start offline draft");
   assert.match(OFFLINE_DRAFT_COPY.hint, /Free agents Add stays locked/);
   assert.match(OFFLINE_DRAFT_COPY.entryOpen, /Draft/);
-  assert.match(OFFLINE_DRAFT_COPY.ownerHint, /draft contract/);
+  assert.match(OFFLINE_DRAFT_COPY.ownerHint, /winning bid as a contract/);
   assert.match(OFFLINE_DRAFT_COPY.salaryInvalid, /dollar amount/);
   assert.doesNotMatch(
     `${OFFLINE_DRAFT_COPY.title} ${OFFLINE_DRAFT_COPY.hint} ${OFFLINE_DRAFT_COPY.ownerHint} ${OFFLINE_DRAFT_COPY.salaryInvalid}`,

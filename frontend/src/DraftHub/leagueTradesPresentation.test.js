@@ -3,8 +3,8 @@ import test from "node:test";
 import { expireChipLabel, stepBlockedReason, TRADES_COPY, tradesFreeLabel } from "./leagueTradesPresentation.js";
 
 test("trades copy names the cap-bust cost and skips banned verbs", () => {
-  assert.match(TRADES_COPY.heading, /cap/i);
-  assert.match(TRADES_COPY.support, /voided|accept/i);
+  assert.match(TRADES_COPY.heading, /trade/i);
+  assert.match(TRADES_COPY.support, /cap impact/i);
   assert.doesNotMatch(TRADES_COPY.inviteManagers, /Submit|Draft Hub|permission/i);
   assert.doesNotMatch(TRADES_COPY.valid, /constraint/i);
   assert.doesNotMatch(TRADES_COPY.ideasEmptyHeading, /import salaries/i);
@@ -23,8 +23,8 @@ test("step blockers explain partner vs package", () => {
 });
 
 test("free label qualifies the cap", () => {
-  assert.equal(tradesFreeLabel(200, (n) => `$${n}`), "free / $200");
-  assert.equal(tradesFreeLabel(null, (n) => `$${n}`), "free");
+  assert.equal(tradesFreeLabel(200, (n) => `$${n}`), "cap room / $200");
+  assert.equal(tradesFreeLabel(null, (n) => `$${n}`), "cap room");
 });
 
 test("expire chips match Rosters and never name FA", () => {

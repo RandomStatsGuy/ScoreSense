@@ -8,20 +8,20 @@ export const DEALS_VIEW = "deals";
 
 export const ROSTERS_COPY = {
   eyebrow: "Rosters",
-  heading: "Find a deal worth trading for.",
+  heading: "Compare league rosters",
   support:
-    "Overpays and cheap years across the league. A cheap year is a trade chip; an overpay is someone else's problem until you take it.",
+    "Compare salaries, contract years, and estimated player values across teams.",
   proposeTrade: "Propose trade",
   refreshLeague: "Refresh league",
   exportExcel: "Download Excel",
   exportBusy: "Preparing workbook…",
   exportTitle: "Workbook of every roster, salary, and history row. Opens in Excel.",
-  dealsNav: "Deals",
+  dealsNav: "Contract values",
   dealsHeading: "Overpays and bargains",
   dealsCaption:
-    "Every Overpay and Bargain in the league, sorted by how far the salary sits from fair.",
-  dealsEmpty: "No overpays or bargains right now — every marketable contract is Fair.",
-  dealsHint: "Open a manager to see Fair contracts and the rest of the roster.",
+    "Contracts ranked by the difference between salary and estimated value.",
+  dealsEmpty: "No contracts are above or below their estimated value.",
+  dealsHint: "Select a team to view its full roster.",
   managersHeading: "Managers",
   emptyRoster: "No active players.",
   addToTrade: "Add to trade",
@@ -39,13 +39,13 @@ export const ROSTERS_COPY = {
   contract: "Contract",
   actions: "Actions",
   glanceEyebrow: "At a glance",
-  glanceDealsTitle: "Deals",
+  glanceDealsTitle: "Contract values",
   glanceOverpays: "Overpays",
   glanceBargains: "Bargains",
   glanceManagers: "Managers",
   glanceCommitted: "Committed",
   glanceDead: "Dead cap",
-  glanceFree: "Free",
+  glanceFree: "Cap room",
   glanceExpiring: "Expiring",
   loading: "Loading league rosters",
 };
@@ -69,16 +69,13 @@ export function isZeroDelta(value) {
   return !Number.isFinite(n) || n === 0;
 }
 
-/** Judgment word alone when the dollar delta is zero; Overpay/Bargain keep vs-fair. */
+/** Describe the salary difference from estimated value. */
 export function contractGradeText(row) {
   const grade = contractGradeLabel(row?.contract_grade);
   if (!grade) return null;
-  if (grade === "Fair" || isZeroDelta(row?.value_delta)) return grade;
+  if (row?.contract_grade === "fair" || isZeroDelta(row?.value_delta)) return "At estimated value";
   const delta = Number(row.value_delta);
-  const signed = `${delta > 0 ? "+" : "−"}${fmtSal(Math.abs(delta))}`;
-  const parts = [grade, `(${signed})`];
-  if (row.fair_value != null) parts.push(`vs ${fmtSal(row.fair_value)} fair`);
-  return parts.join(" ");
+  return `${fmtSal(Math.abs(delta))} ${delta > 0 ? "above" : "below"} estimated value`;
 }
 
 export function expireChipLabel(chip) {
@@ -125,7 +122,7 @@ export function managerDealFacts(block) {
 
 export function formatManagerRailFacts(facts) {
   const parts = [];
-  if (facts?.free != null) parts.push(`${fmtSal(facts.free)} free`);
+  if (facts?.free != null) parts.push(`${fmtSal(facts.free)} cap room`);
   parts.push(`${facts?.expiring ?? 0} expiring`);
   if (facts?.worstOverpay != null) {
     const n = Number(facts.worstOverpay);

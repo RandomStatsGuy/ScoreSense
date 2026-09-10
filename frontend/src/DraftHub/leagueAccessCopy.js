@@ -90,7 +90,7 @@ export const OFFLINE_DRAFT_COPY = {
   previewReady: (n) => (n === 1 ? "1 row ready" : `${n} rows ready`),
   previewErrors: (n) => (n === 1 ? "1 unmatched" : `${n} unmatched`),
   applied: (n) => (n === 1 ? "Recorded 1 win." : `Recorded ${n} wins.`),
-  ownerHint: "This writes a draft contract on your team. Wrong name and you eat the cap.",
+  ownerHint: "This records the player and winning bid as a contract on your team.",
 };
 
 export function draftInviteRailHint({ testMode = false } = {}) {
@@ -221,7 +221,7 @@ export function managerClaimRotateHint() {
 }
 
 export function memberInviteExplainer() {
-  return "Assign a named email to one seat. The invite link lives on Draft — this page does not copy it.";
+  return "Invite a manager by email and assign them to a team. Find the general invite link on the Draft page.";
 }
 
 export function emailManagersHint() {
@@ -233,11 +233,11 @@ export function liveDraftMembersOnlyMessage() {
 }
 
 export function franchiseResizeHint() {
-  return "Add a seat only when you need more than the current seat count. Empty seats are claimed from Draft.";
+  return "Add a team to expand your league. Managers can claim open teams from Draft.";
 }
 
 export function addFranchiseLabel() {
-  return "Add seat";
+  return "Add team";
 }
 
 export function addFranchiseSupport({ nextCount, cap } = {}) {
@@ -258,7 +258,7 @@ export function canAddSeat({ configured, actual } = {}) {
 }
 
 export function removeFranchiseLabel() {
-  return "Remove seat";
+  return "Remove team";
 }
 
 export function removeFranchiseConfirm(name) {
@@ -327,8 +327,8 @@ export const LEAGUE_WORKBOOK_COPY = {
 export const LEAGUE_DELETE_COPY = {
   title: "Delete this league",
   support:
-    "Removes the room, contracts, and history. Every commissioner has to type the name and agree. Download the workbook first — ScoreSense cannot put this back.",
-  start: "Start delete",
+    "Removes the room, contracts, and history. Every commissioner has to type the name and agree. Download the workbook first. This cannot be undone.",
+  start: "Request league deletion",
   approve: "Agree to delete",
   cancel: "Withdraw delete",
   confirmLabel: "Type the league name",

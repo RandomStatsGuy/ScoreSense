@@ -8,5 +8,5 @@ export function suggestedBidSubLabel({
 } = {}) {
   const scoring = scoringLabel(scoringProfile);
   const posture = riskToleranceLabel(riskTolerance);
-  return `My ${scoring} scoring · ${posture}`;
+  return `${scoring} · ${posture} pricing`;
 }

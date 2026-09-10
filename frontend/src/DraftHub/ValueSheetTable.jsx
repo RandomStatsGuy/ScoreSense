@@ -643,8 +643,8 @@ export default function ValueSheetTable({
           heading={panelTitle}
           support={purpose || (compact ? null : (
             isAvailableView
-              ? "Players not under contract. Bid or add when the window is open. Before the draft, pickups go through the live room or you miss them."
-              : "Star names you want first. Compare suggested bids so you do not overpay a rostered player."
+              ? "Browse players and check the current acquisition period below."
+              : "Compare suggested bids and add players to your draft watchlist."
           ))}
           compact={compact}
         />
@@ -1078,9 +1078,9 @@ export default function ValueSheetTable({
               )}
               {schema.showP10 && (
                 <>
-                  <SortTh label="P10" col="season_p10" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-p10" tip="Season floor (10th percentile)" />
-                  <SortTh label="P50" col="season_p50" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-p50" />
-                  <SortTh label="P90" col="season_p90" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-p90" tip="Season ceiling (90th percentile)" />
+                  <SortTh label="Low estimate" col="season_p10" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-p10" tip="Season points: 10th percentile estimate, not a minimum" />
+                  <SortTh label="Projected pts" col="season_p50" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-p50" />
+                  <SortTh label="High estimate" col="season_p90" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hub-col-p90" tip="Season points: 90th percentile estimate, not a maximum" />
                 </>
               )}
               {schema.showPerGame && (

@@ -6,7 +6,7 @@ import AccountAuth from "../AccountAuth";
 import VerifyEmailBanner from "../VerifyEmailBanner";
 import Button from "../ui/Button";
 import { HubAlert, HubFilterChip, HubPage } from "./HubUILayout";
-import DraftSeat from "./DraftSeat";
+import DraftSeat from "./DraftSeat.jsx";
 import ThinkingScrim from "../ui/ThinkingScrim";
 import useSlowThink from "../hooks/useSlowThink";
 import {

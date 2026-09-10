@@ -32,7 +32,7 @@ const COL = {
   player: { id: "player", label: "Player", className: "col-player" },
   team: { id: "team", label: "Team", className: "hub-col-team" },
   pos: { id: "position", label: "Pos", className: "hub-col-pos" },
-  proj: { id: "season_proj", label: "Season pts", className: "hub-col-proj" },
+  proj: { id: "season_proj", label: "Projected season pts", className: "hub-col-proj" },
   perGame: { id: "per_game_proj", label: "Per-game", className: "hub-col-pg" },
   spread: { id: "season_spread", label: "Spread", className: "hub-col-spread" },
   p10: { id: "season_p10", label: "P10", className: "hub-col-p10" },

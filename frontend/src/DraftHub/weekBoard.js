@@ -15,11 +15,11 @@ export const DEFAULT_STARTER_COUNTS = {
 export const BOARD_SLOT_ORDER = ["QB", "RB", "WR", "TE", "FLEX", "K", "DEF"];
 
 export const WEEK_BOARD_COPY = {
-  seeCalls: "See lineup calls",
+  seeCalls: "Review suggested changes",
   emptySlot: (slot) => `Find ${slot}`,
   emptySlotName: "Empty",
-  lineupSource: "Lineup calls use the board number. Vibes only scale VA-projections.",
-  ptsUnit: "wk",
+  lineupSource: "Lineup suggestions use model projections. Your Vibes ratings only affect Vibes-adjusted projections.",
+  ptsUnit: "proj pts",
   emptySlotHint: "Open Free agents",
   noProjection: "No projection",
   startFallback: "Start bench",
@@ -29,26 +29,26 @@ export const WEEK_BOARD_COPY = {
   refreshProjections: "Refresh projections",
   refreshing: "Refreshing…",
   rosterFresh: "Roster",
-  weekBoardFresh: "Week board",
+  weekBoardFresh: "Projections",
   legendSwap: "Swap recommended",
   legendWide: "Wide range",
-  legendNote: "Amber is a start/sit call. A wide range is a quiet floor–ceiling mark, not a flag.",
+  legendNote: "Suggested changes compare projected points. Range badges show scoring uncertainty.",
   railByeHint: "Sit them before lock.",
   railByeEmpty: "Nobody on bye.",
-  railInjuredHint: "Do not leave an out player in.",
+  railInjuredHint: "Review players who are ruled out before setting your lineup.",
   railInjuredEmpty: "Nobody flagged out.",
   clearBoard: "No bye. Nobody flagged out.",
-  clearBoardSupport: "A late scratch still sits someone. Check news before lock.",
+  clearBoardSupport: "Check player updates before your lineup locks.",
   clearRailLabel: "Bye · Out",
   clearRailValue: "None",
-  railWideHint: "Floor to ceiling is large — not a start/sit call.",
+  railWideHint: "This player has a wide projected scoring range.",
   railWideEmpty: "No unusually wide ranges.",
   ticketStamp: "Private",
   openGameCenter: "Open Game center",
-  gameCenterSupport: "Live scoring, the scoreboard, and week trophies.",
-  vibeNote: "Vibes uses an aura-adjusted week. The number here is the model.",
+  gameCenterSupport: "Live scoring, the scoreboard, and weekly awards.",
+  vibeNote: "This page shows model projections. Vibes also shows projections adjusted by your ratings.",
   vibePts: "Vibes",
-  findSpecialists: "Empty K or DEF — Cap already knows. Find them on Free agents.",
+  findSpecialists: "Find a kicker or defense on Free agents to fill your empty slots.",
   weekLabel: "Week",
   callKicker: (slot) => (slot ? `Lineup call · ${slot}` : "Lineup call"),
   sitRole: "Sit",
@@ -61,8 +61,8 @@ export const WEEK_BOARD_COPY = {
   emptyFact: "—",
   closeCall: "Close",
   keepFallback: "Keep starter",
-  week1PpgNote: "Week 1 uses last season’s PPG. A rookie stays empty.",
-  laterPpgNote: "Last season’s PPG. A rookie stays empty.",
+  week1PpgNote: "Week 1 shows last season's points per game. Rookies have no prior-season average.",
+  laterPpgNote: "Last season's points per game. Rookies have no prior-season average.",
   specialistEmpty: "Specialist",
 };
 
@@ -267,8 +267,8 @@ export function weekHeroCopy({
   }
   if (poorCoverage) {
     return {
-      heading: "Cannot trust a swap yet.",
-      support: "The roster still shows. Sit/start calls wait until projections cover the week.",
+      heading: "More projections needed",
+      support: "Your roster is available. Lineup suggestions will appear when enough players have projections.",
       chip: weekLabel,
       chipTone: "readonly",
     };
@@ -276,9 +276,9 @@ export function weekHeroCopy({
   if (decisionCount > 0) {
     return {
       heading: decisionCount === 1
-        ? "One lineup call on the board."
-        : `${decisionCount} lineup calls on the board.`,
-      support: "A flagged bench player outprojects the starter. Sit the wrong one and you leave those points.",
+        ? "1 lineup change to review"
+        : `${decisionCount} lineup changes to review`,
+      support: "Compare your starters with higher-projected bench players.",
       chip: weekLabel,
       chipTone: "active",
     };
@@ -292,8 +292,8 @@ export function weekHeroCopy({
     };
   }
   return {
-    heading: "No swap worth making.",
-    support: "Bye and injury still sit people. Check those before lock.",
+    heading: "No suggested lineup changes",
+    support: "Review bye weeks and injury updates before your lineup locks.",
     chip: weekLabel,
     chipTone: "active",
   };
