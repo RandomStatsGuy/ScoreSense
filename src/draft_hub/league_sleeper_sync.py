@@ -115,16 +115,33 @@ def _workspace_slots(workspace_id: str) -> list[dict[str, Any]]:
     return storage.list_workspace_roster_slots(workspace_id)
 
 
-def _apply_sleeper_identity(workspace_id: str, existing: dict[str, Any], player: dict[str, Any]) -> None:
+def _replace_workspace_slot(slots: list[dict[str, Any]], row: dict[str, Any] | None) -> None:
+    """Keep the in-memory workspace list current after an add or identity stamp."""
+    if not row:
+        return
+    rid = row.get("id")
+    if rid is not None:
+        for i, current in enumerate(slots):
+            if current.get("id") == rid:
+                slots[i] = row
+                return
+    slots.append(row)
+
+
+def _apply_sleeper_identity(
+    workspace_id: str,
+    existing: dict[str, Any],
+    player: dict[str, Any],
+) -> dict[str, Any] | None:
     slot_id = existing.get("id")
     if slot_id is None:
-        return
-    storage.stamp_roster_slot_identity(
+        return existing
+    return storage.stamp_roster_slot_identity(
         workspace_id,
-        int(slot_id),
+        slot_id,
         player_id=preferred_player_id(existing, player),
         sleeper_player_id=player.get("sleeper_player_id") or existing.get("sleeper_player_id"),
-    )
+    ) or existing
 
 
 def merge_sleeper_team_roster(
@@ -161,9 +178,9 @@ def merge_sleeper_team_roster(
                 position=p.get("position"),
                 sleeper_player_id=p.get("sleeper_player_id"),
             )
-            _apply_sleeper_identity(workspace_id, existing, p)
+            stamped = _apply_sleeper_identity(workspace_id, existing, p)
+            _replace_workspace_slot(slots, stamped)
             updated += 1
-            slots = _workspace_slots(workspace_id)
             continue
         contract = _default_contract_for_sleeper_player(
             p,
@@ -171,7 +188,7 @@ def merge_sleeper_team_roster(
             season=season,
             draft_completed=draft_completed,
         )
-        storage.add_roster_slot(
+        created = storage.add_roster_slot(
             workspace_id,
             {
                 "player_id": pid,
@@ -187,7 +204,7 @@ def merge_sleeper_team_roster(
             team_id=team_id,
         )
         added += 1
-        slots = _workspace_slots(workspace_id)
+        _replace_workspace_slot(slots, created)
     return {"added": added, "updated": updated}
 
 

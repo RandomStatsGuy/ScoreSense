@@ -392,3 +392,77 @@ def test_group_duplicate_occupying_keeps_rows_without_ids():
     )
     assert len(groups) == 1
     assert {row["player_id"] for row in groups[0]} == {"00-0036389", "sleeper-4017"}
+
+
+def test_merge_lists_workspace_slots_once_for_many_players(hub_db, monkeypatch):
+    ws, _league, team = _seed_league("merge-nplus1")
+    storage.add_roster_slot(
+        ws["id"],
+        {
+            "player_id": "00-0036389",
+            "player_name": "Jalen Hurts",
+            "team": "PHI",
+            "position": "QB",
+            "salary": 17,
+            "contract_years": 2,
+            "source": "sheet",
+        },
+        team_id=team["id"],
+    )
+    calls: list[str] = []
+    real = storage.list_workspace_roster_slots
+
+    def counted(workspace_id):
+        calls.append(str(workspace_id))
+        return real(workspace_id)
+
+    monkeypatch.setattr(storage, "list_workspace_roster_slots", counted)
+    stats = merge_sleeper_team_roster(
+        ws["id"],
+        team["id"],
+        [
+            {
+                "player_id": "sleeper-4017",
+                "player_name": "Jalen Hurts",
+                "team": "PHI",
+                "position": "QB",
+                "sleeper_player_id": "4017",
+            },
+            {
+                "player_id": "sleeper-1476",
+                "player_name": "Travis Kelce",
+                "team": "KC",
+                "position": "TE",
+                "sleeper_player_id": "1476",
+            },
+            {
+                "player_id": "sleeper-5846",
+                "player_name": "DK Metcalf",
+                "team": "SEA",
+                "position": "WR",
+                "sleeper_player_id": "5846",
+            },
+        ],
+    )
+    assert stats["added"] == 2
+    assert stats["updated"] == 1
+    assert calls == [ws["id"]]
+    roster = [r for r in storage.list_roster(ws["id"], team["id"]) if storage.roster_row_occupies(r)]
+    assert len(roster) == 3
+
+
+def test_merge_same_snapshot_duplicate_uses_in_memory_add(hub_db):
+    ws, _league, team = _seed_league("merge-dup-snap")
+    snap = {
+        "player_id": "sleeper-4017",
+        "player_name": "Jalen Hurts",
+        "team": "PHI",
+        "position": "QB",
+        "sleeper_player_id": "4017",
+    }
+    stats = merge_sleeper_team_roster(ws["id"], team["id"], [snap, dict(snap)])
+    assert stats["added"] == 1
+    assert stats["updated"] == 1
+    roster = [r for r in storage.list_roster(ws["id"], team["id"]) if storage.roster_row_occupies(r)]
+    assert len(roster) == 1
+    assert roster[0]["sleeper_player_id"] == "4017"

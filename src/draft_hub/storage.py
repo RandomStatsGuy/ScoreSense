@@ -1708,7 +1708,7 @@ def remove_roster_slot(
         if slot_id is not None:
             row = conn.execute(
                 "SELECT * FROM roster_slot WHERE workspace_id = ? AND id = ?",
-                (workspace_id, int(slot_id)),
+                (workspace_id, slot_id),
             ).fetchone()
             if not row:
                 return False
@@ -1716,7 +1716,7 @@ def remove_roster_slot(
                 return False
             if team_id is not None and str(row["team_id"] or "") != str(team_id):
                 return False
-            conn.execute("DELETE FROM roster_slot WHERE id = ?", (int(slot_id),))
+            conn.execute("DELETE FROM roster_slot WHERE id = ?", (slot_id,))
             _bump_live_for_workspace_conn(conn, workspace_id)
             return True
         rows = conn.execute(
@@ -3585,12 +3585,12 @@ def get_roster_slot_by_id(
         if workspace_id:
             row = conn.execute(
                 "SELECT * FROM roster_slot WHERE id = ? AND workspace_id = ?",
-                (int(slot_id), workspace_id),
+                (slot_id, workspace_id),
             ).fetchone()
         else:
             row = conn.execute(
                 "SELECT * FROM roster_slot WHERE id = ?",
-                (int(slot_id),),
+                (slot_id,),
             ).fetchone()
         return _roster_dict(row) if row else None
 
@@ -3617,7 +3617,7 @@ def stamp_roster_slot_identity(
     with get_conn() as conn:
         row = conn.execute(
             "SELECT * FROM roster_slot WHERE workspace_id = ? AND id = ?",
-            (workspace_id, int(slot_id)),
+            (workspace_id, slot_id),
         ).fetchone()
         if not row:
             return None
