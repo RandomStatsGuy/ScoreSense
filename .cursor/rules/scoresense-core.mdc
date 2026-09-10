@@ -81,4 +81,6 @@ The user-approved September 10 table/details mockup takes priority for `hub.rost
 
 Approved Fantasy header: match the September 10 compact three-row mockup. No rounded desktop header/league containers or group overlines. League dropdown owns Rules/permission-gated Roster management/Insights. New league is an action in the league picker, not a permanent strip button. See docs/PRODUCT.md.
 
+The approved product and destination rows also apply to Projections and Tools via DesktopPrimaryHeader and ProductSubnav. Keep two flat rows there, existing projection filters, and phone destination sheets; league context remains Fantasy-only.
+
 Approved My team room: the September 10 curved locker-room concepts take priority on `hub.roster`. Room owns immersive materials, lighting, owner atmosphere, and in-place locker details; Manage roster retains contract tools. See `docs/PRODUCT.md` and `docs/TEAM_ROOM.md` for the scoped artwork exception and data requirements.
