@@ -5884,6 +5884,85 @@ def hub_players_media(
     return {"media": media}
 
 
+class RoomNicknameUpdate(BaseModel):
+    nickname: Optional[str] = None
+
+
+class RoomShareUpdate(BaseModel):
+    enabled: bool
+
+
+def _room_team(league_id: str, team_id: str, sub: str, *, owner=False):
+    _assert_league_access(league_id, sub)
+    team = storage.get_team(team_id)
+    if not team or str(team.get("league_id")) != league_id:
+        raise HTTPException(404, "Team not found")
+    if owner and team.get("user_sub") != sub:
+        raise HTTPException(403, "Only the team owner can change this room")
+    return team
+
+
+@router.get("/league/{league_id}/teams/{team_id}/room")
+def hub_team_room(league_id: str, team_id: str, week: Optional[int] = Query(None, ge=1, le=18), _user=Depends(require_hub_user)):
+    from src.draft_hub.team_room import build_room, settings
+    sub = _sub(_user)
+    team = _room_team(league_id, team_id, sub)
+    can_edit = team.get("user_sub") == sub
+    saved = settings(team_id)
+    room = build_room(team, week)
+    photo_id = room.pop("photo_media_id", None)
+    return {**room, "photo_url": f"/api/hub/media/{photo_id}?w=96" if photo_id else None, "can_edit": can_edit,
+            "share_token": saved["share_token"] if can_edit else None,
+            "teams": [{"id": t["id"], "name": t["name"], "owner_name": t.get("owner_name")}
+                      for t in storage.list_league_teams(league_id)]}
+
+
+@router.patch("/league/{league_id}/teams/{team_id}/room/nicknames/{player_id}")
+def hub_room_nickname(league_id: str, team_id: str, player_id: str, body: RoomNicknameUpdate, _user=Depends(require_hub_user)):
+    from src.draft_hub.team_room import nickname
+    _room_team(league_id, team_id, _sub(_user), owner=True)
+    league = storage.get_league(league_id)
+    roster = storage.list_roster(league.get("workspace_id"), team_id)
+    if not any(str(p["player_id"]) == player_id and p.get("roster_status") != "cut_before_draft" for p in roster):
+        raise HTTPException(404, "Player is not on this team")
+    if body.nickname is not None and (len(body.nickname) > 40 or any(ord(c) < 32 for c in body.nickname)):
+        raise HTTPException(422, "Use a nickname of up to 40 characters without line breaks")
+    nickname(team_id, player_id, body.nickname)
+    return {"saved": True}
+
+
+@router.patch("/league/{league_id}/teams/{team_id}/room/share")
+def hub_room_share(league_id: str, team_id: str, body: RoomShareUpdate, _user=Depends(require_hub_user)):
+    from src.draft_hub.team_room import share
+    _room_team(league_id, team_id, _sub(_user), owner=True)
+    return {"share_token": share(team_id, body.enabled)}
+
+
+@router.get("/shared-room/{token}")
+def hub_shared_room(token: str, response: Response, week: Optional[int] = Query(None, ge=1, le=18)):
+    from src.draft_hub.team_room import shared_team, build_room
+    team = shared_team(token)
+    if not team:
+        raise HTTPException(404, "This room link is no longer available")
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    room = build_room(team, week)
+    photo_id = room.pop("photo_media_id", None)
+    return {**room, "photo_url": f"/api/hub/shared-room/{token}/photo" if photo_id else None, "can_edit": False}
+
+
+@router.get("/shared-room/{token}/photo")
+def hub_shared_room_photo(token: str):
+    from src.draft_hub.team_room import shared_team
+    team = shared_team(token)
+    photo_id = (team.get("identity") or {}).get("photo_media_id") if team else None
+    media = storage.get_hub_media(photo_id) if photo_id else None
+    if not media or str(media.get("team_id")) != str(team["id"]):
+        raise HTTPException(404, "Image not found")
+    path, content_type = resolve_hub_media_file(media, 96)
+    return FileResponse(path, media_type=content_type, headers={"Cache-Control": "no-store", "X-Robots-Tag": "noindex"})
+
+
 @router.post("/cap-sheet/validate")
 async def hub_cap_sheet_validate(
     file: UploadFile = File(...),

@@ -6,10 +6,10 @@ import { fmtSal } from "./rosterFormat";
 import { normalizeHubPosition } from "./hubPositions";
 import { lockerWallPlayers } from "./lockerWall";
 
-function JerseySvg({ colors, number, gradientId }) {
+export function JerseySvg({ colors, number, gradientId, detailed = false }) {
   const [c1, c2] = colors;
   return (
-    <svg className="hub-locker-jersey" viewBox="0 0 120 96" aria-hidden="true">
+    <svg className="hub-locker-jersey" viewBox={detailed ? "18 0 84 96" : "0 0 120 96"} aria-hidden="true">
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={c1} />
@@ -31,6 +31,11 @@ function JerseySvg({ colors, number, gradientId }) {
       <path d="M22 26 L30 44 L34 41 L26 24 Z" fill="rgba(255, 255, 255, 0.22)" />
       <path d="M98 26 L90 44 L86 41 L94 24 Z" fill="rgba(255, 255, 255, 0.22)" />
       <path d="M52 10 Q60 16 68 10 L66 14 Q60 19 54 14 Z" fill="rgba(0, 0, 0, 0.4)" />
+      {detailed && <g fill="none">
+        <path d="M39 40 Q44 60 40 87 M81 40 Q76 60 80 87 M48 24 Q46 35 49 47 M72 24 Q74 35 71 47" stroke="rgba(0,0,0,.3)" strokeWidth="2" />
+        <path d="M40 86 Q60 91 80 86 M42 16 L45 27 M78 16 L75 27" stroke="rgba(255,255,255,.24)" strokeWidth=".6" strokeDasharray="1 1" />
+        <path d="M26 29 L32 39 M94 29 L88 39" stroke="rgba(255,255,255,.65)" strokeWidth="2" />
+      </g>}
       {number ? (
         <text
           x="60"

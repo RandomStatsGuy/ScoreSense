@@ -35,9 +35,7 @@ import {
 } from "./rookieExtend";
 import ContractHistoryLink from "./ContractHistoryLink";
 import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
-import LockerRoomScene from "./LockerRoomScene";
-import { lockerWallPlayers } from "./lockerWall";
-import { mergeTeamIdentity } from "./atmosphereCatalog";
+import TeamRoom from "./TeamRoom";
 import TeamIdentityStudio from "./TeamIdentityStudio";
 import TeamStadiumHero from "./TeamStadiumHero";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
@@ -347,6 +345,9 @@ export default function RosterBuilder({
   const [sortDir, setSortDir] = useState("desc");
   const [selectedSlotKey, setSelectedSlotKey] = useState(null);
   const [lookOpen, setLookOpen] = useState(false);
+  const [roomTab, setRoomTab] = useState("room");
+  const manageTabRef = useRef(null);
+  useEffect(() => { setRoomTab(focusFilter ? "manage" : "room"); }, [hubContext?.league_id, hubContext?.team_id, focusFilter]);
   const panelTitleRef = useRef(null);
   const restoreFocusRef = useRef(null);
 
@@ -376,12 +377,6 @@ export default function RosterBuilder({
   const contractsReadOnly = isLeague || readOnly;
   const canEditType = !contractsReadOnly;
   const canRemove = !isLeague || isCommissioner;
-  const teamLook = useMemo(() => mergeTeamIdentity(teamIdentity), [teamIdentity]);
-  const lockerWall = useMemo(
-    () => lockerWallPlayers(roster, teamLook.locker_player_ids),
-    [roster, teamLook.locker_player_ids],
-  );
-
   const isSleeperPlayer = (r) => r.source === "sleeper" || Boolean(r.sleeper_player_id);
   const lookup = valueRows?.find((r) => r.player_id === playerId);
 
@@ -938,22 +933,6 @@ export default function RosterBuilder({
         )}
       />
 
-      {!mobileLayout && teamLook.room_theme === "locker" ? (
-        <section className="hub-roster-lockers" aria-labelledby="hub-roster-lockers-heading">
-          <h3 id="hub-roster-lockers-heading" className="hub-roster-section-title">
-            {MY_TEAM_COPY.lockerHeading}
-            <span className="hub-roster-section-caption">{lockerWall.caption}</span>
-          </h3>
-          <LockerRoomScene
-            identity={teamIdentity}
-            roster={roster}
-            mediaById={mediaById}
-            wall={lockerWall}
-            onSelectPlayer={(playerId, event) => openContractPanel(playerId, event?.currentTarget)}
-          />
-        </section>
-      ) : null}
-
       {isLeague && hubContext?.league_id && hubContext?.team_id && (
         <TeamIdentityStudio
           open={lookOpen}
@@ -1291,5 +1270,15 @@ export default function RosterBuilder({
     </HubPage>
   );
 
-  return rosterPage;
+  if (!isLeague || !hubContext?.team_id) return rosterPage;
+  return <>
+    <div className="team-room-page-tabs" role="group" aria-label="My team view">
+      <button type="button" aria-pressed={roomTab === "room"} onClick={() => setRoomTab("room")}>{MY_TEAM_COPY.room}</button>
+      <button ref={manageTabRef} type="button" aria-pressed={roomTab === "manage"} onClick={() => setRoomTab("manage")}>{MY_TEAM_COPY.manage}</button>
+    </div>
+    {roomTab === "room" ? <TeamRoom leagueId={hubContext.league_id} teamId={hubContext.team_id}
+      onContract={(pid) => { setRoomTab("manage"); openContractPanel(pid, manageTabRef.current); }}
+      onAppearance={() => { setRoomTab("manage"); setLookOpen(true); }}
+      onLineup={() => onNavigate?.("week")} /> : rosterPage}
+  </>;
 }

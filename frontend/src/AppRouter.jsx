@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import App from "./App";
+const SharedTeamRoom = lazy(() => import("./DraftHub/SharedTeamRoom"));
 import AccountSettingsPage from "./AccountSettingsPage";
 import BugReportPage from "./BugReportPage";
 import {
@@ -48,6 +49,7 @@ export default function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<RootRedirect />} />
+      <Route path="/team-room/:token" element={<Suspense fallback={<p className="chart-note">Opening the team room…</p>}><SharedTeamRoom /></Suspense>} />
       <Route path="/login" element={<AuthSessionPage mode="login" />} />
       <Route path="/register" element={<AuthSessionPage mode="register" />} />
       <Route path="/signup" element={<RedirectKeepSearch to="/register" />} />

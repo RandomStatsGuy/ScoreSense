@@ -71,3 +71,5 @@ Chat chrome lives on `FantasyChatDock.jsx` (header comment) and `docs/PRODUCT.md
 The user-approved September 10 table/details mockup takes priority for `hub.rosters`: compact header, no experience hero/summary or manager rail, filters and pagination, and selected-player actions. Use dedicated layout CSS and existing tokens; do not restyle other pages to force this layout. Teal/coral text may distinguish below/above-estimate salaries. See `docs/PRODUCT.md` and the living-surface row.
 
 Approved Fantasy header: match the September 10 compact three-row mockup. No rounded desktop header/league containers or group overlines. League dropdown owns Rules/permission-gated Roster management/Insights. New league is an action in the league picker, not a permanent strip button. See docs/PRODUCT.md.
+
+Approved My team room: docs/PRODUCT.md records the September 10 immersive room exception. Use TeamRoom for presentation and RosterBuilder for Manage roster. Physical textures, owner theme, and curved lockers take precedence over flat-card conventions on this surface.
