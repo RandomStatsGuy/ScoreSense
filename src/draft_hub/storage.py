@@ -1702,8 +1702,19 @@ def remove_roster_slot(
     *,
     team_id: str | None = None,
     occupying_only: bool = True,
+    slot_id: int | None = None,
 ) -> bool:
     with get_conn() as conn:
+        if slot_id is not None:
+            row = conn.execute(
+                "SELECT * FROM roster_slot WHERE workspace_id = ? AND id = ?",
+                (workspace_id, int(slot_id)),
+            ).fetchone()
+            if not row:
+                return False
+            conn.execute("DELETE FROM roster_slot WHERE id = ?", (int(slot_id),))
+            _bump_live_for_workspace_conn(conn, workspace_id)
+            return True
         rows = conn.execute(
             "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
             (workspace_id, player_id),
@@ -1711,7 +1722,8 @@ def remove_roster_slot(
         if team_id is not None:
             rows = [r for r in rows if str(r["team_id"] or "") == str(team_id)]
         if occupying_only:
-            rows = [r for r in rows if roster_row_occupies(r)]
+            occupying = [r for r in rows if roster_row_occupies(r)]
+            rows = occupying or rows
         if not rows:
             return False
         ids = [int(r["id"]) for r in rows]
@@ -3557,6 +3569,77 @@ def get_roster_slot(
             team_id=team_id,
             prefer="occupying" if prefer_occupying else "cut",
         )
+        return _roster_dict(row) if row else None
+
+
+def get_roster_slot_by_id(
+    slot_id: int,
+    *,
+    workspace_id: str | None = None,
+) -> dict[str, Any] | None:
+    with get_conn() as conn:
+        if workspace_id:
+            row = conn.execute(
+                "SELECT * FROM roster_slot WHERE id = ? AND workspace_id = ?",
+                (int(slot_id), workspace_id),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT * FROM roster_slot WHERE id = ?",
+                (int(slot_id),),
+            ).fetchone()
+        return _roster_dict(row) if row else None
+
+
+def list_workspace_roster_slots(workspace_id: str) -> list[dict[str, Any]]:
+    """Every roster row in a workspace, including orphans."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM roster_slot WHERE workspace_id = ?",
+            (workspace_id,),
+        ).fetchall()
+        step = _extension_step_for_workspace(conn, workspace_id)
+    return [_roster_dict(row, default_step=step) for row in rows]
+
+
+def stamp_roster_slot_identity(
+    workspace_id: str,
+    slot_id: int,
+    *,
+    player_id: str | None = None,
+    sleeper_player_id: str | None = None,
+) -> dict[str, Any] | None:
+    """Write canonical ids onto an existing slot. Does not touch salary."""
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM roster_slot WHERE workspace_id = ? AND id = ?",
+            (workspace_id, int(slot_id)),
+        ).fetchone()
+        if not row:
+            return None
+        updates: list[str] = []
+        params: list[Any] = []
+        new_pid = str(player_id or "").strip()
+        if new_pid and new_pid != str(row["player_id"] or ""):
+            taken = _occupying_row_conn(conn, workspace_id, new_pid)
+            if taken is None or int(taken["id"]) == int(row["id"]):
+                updates.append("player_id = ?")
+                params.append(new_pid)
+        new_spid = str(sleeper_player_id or "").strip()
+        if new_spid and new_spid != str(row["sleeper_player_id"] or ""):
+            updates.append("sleeper_player_id = ?")
+            params.append(new_spid)
+        if updates:
+            params.append(int(row["id"]))
+            conn.execute(
+                f"UPDATE roster_slot SET {', '.join(updates)} WHERE id = ?",
+                params,
+            )
+            _bump_live_for_workspace_conn(conn, workspace_id)
+            row = conn.execute(
+                "SELECT * FROM roster_slot WHERE id = ?",
+                (int(row["id"]),),
+            ).fetchone()
         return _roster_dict(row) if row else None
 
 

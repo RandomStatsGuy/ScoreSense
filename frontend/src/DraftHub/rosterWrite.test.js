@@ -27,6 +27,12 @@ test("drop is one DELETE", () => {
   assert.deepEqual(req.body, { player_id: "p1" });
 });
 
+test("drop sends roster_slot_id when the row has a slot", () => {
+  const req = buildRosterWriteRequest({ playerId: "p1", rosterSlotId: 44, drop: true });
+  assert.equal(req.method, "DELETE");
+  assert.deepEqual(req.body, { player_id: "p1", roster_slot_id: 44 });
+});
+
 test("pending tray emits one write per player", () => {
   const writes = buildPendingRosterWrites({
     a: { contractType: "extension", salary: 20, years: 3 },

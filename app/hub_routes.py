@@ -1536,6 +1536,30 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
     return {"slot": row, "validation_errors": errors}
 
 
+def _resolve_roster_write_row(
+    workspace_id: str,
+    player_id: str,
+    *,
+    roster_slot_id: int | None = None,
+    team_id: str | None = None,
+) -> dict | None:
+    if roster_slot_id is not None:
+        hit = storage.get_roster_slot_by_id(int(roster_slot_id), workspace_id=workspace_id)
+        if hit:
+            return hit
+    existing = storage.get_roster_slot(workspace_id, player_id, team_id=team_id)
+    if existing:
+        return existing
+    from src.draft_hub.roster_identity_match import find_matching_roster_slot
+
+    return find_matching_roster_slot(
+        storage.list_workspace_roster_slots(workspace_id),
+        {"player_id": player_id},
+        team_id=team_id,
+        occupying_only=False,
+    )
+
+
 @router.delete("/roster")
 def hub_remove_roster(body: RosterRemoveRequest, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
@@ -1543,7 +1567,11 @@ def hub_remove_roster(body: RosterRemoveRequest, _user=Depends(require_hub_user)
     if ctx.get("mode") == "league" and not ctx.get("is_commissioner"):
         raise HTTPException(status_code=403, detail="Commissioner managed")
     ws_id, team_id = roster_scope(ctx)
-    existing = storage.get_roster_slot(ws_id, body.player_id)
+    existing = _resolve_roster_write_row(
+        ws_id,
+        body.player_id,
+        roster_slot_id=body.roster_slot_id,
+    )
     if not existing:
         raise HTTPException(status_code=404, detail="Player not on roster")
     if ctx.get("mode") == "league" and not can_edit_roster(
@@ -1553,15 +1581,18 @@ def hub_remove_roster(body: RosterRemoveRequest, _user=Depends(require_hub_user)
     own_team_only = bool(
         ctx.get("mode") == "league" and team_id and not ctx.get("is_commissioner")
     )
+    slot_id = existing.get("id")
     ok = storage.remove_roster_slot(
         ws_id,
-        body.player_id,
+        str(existing.get("player_id") or body.player_id),
         team_id=str(team_id) if own_team_only else None,
+        slot_id=int(slot_id) if slot_id is not None else None,
+        occupying_only=False,
     )
     if not ok:
         raise HTTPException(status_code=404, detail="Player not on roster")
     _invalidate_league_rosters_from_ctx(ctx)
-    return {"removed": body.player_id}
+    return {"removed": existing.get("player_id") or body.player_id}
 
 
 @router.get("/fa-market")
@@ -1720,6 +1751,20 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
     if type_field and body.contract_type not in CONTRACT_TYPES:
         raise HTTPException(status_code=400, detail="contract_type must be rookie, veteran, or extension")
     slots = storage.list_roster_slots_for_player(ws_id, body.player_id)
+    if body.roster_slot_id is not None:
+        pinned = storage.get_roster_slot_by_id(int(body.roster_slot_id), workspace_id=ws_id)
+        if pinned:
+            slots = [pinned] + [s for s in slots if int(s.get("id") or 0) != int(pinned.get("id") or 0)]
+            body.player_id = str(pinned.get("player_id") or body.player_id)
+    if not slots:
+        resolved = _resolve_roster_write_row(
+            ws_id,
+            body.player_id,
+            roster_slot_id=body.roster_slot_id,
+        )
+        if resolved:
+            slots = [resolved]
+            body.player_id = str(resolved.get("player_id") or body.player_id)
     if not slots:
         raise HTTPException(status_code=404, detail="Player not on roster")
     occupying = next((s for s in slots if storage.roster_row_occupies(s)), None)
