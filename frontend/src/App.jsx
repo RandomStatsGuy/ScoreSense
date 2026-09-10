@@ -1,4 +1,5 @@
 import DesktopPrimaryHeader from "./layout/DesktopPrimaryHeader";
+import ProductSubnav from "./layout/ProductSubnav";
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { reportHref } from "./bugReportPresentation";
@@ -74,13 +75,10 @@ import {
 import UserMenu from "./layout/UserMenu";
 import {
   APP_SECTIONS,
-  PROJECTIONS_TABS,
   SECTION_SUBTITLES,
   SKIP_TO_CONTENT,
-  TOOLS_TABS,
   defaultSeasonMode,
 } from "./appNavigation";
-import { interceptAppNav } from "./appNavLink";
 import { pageTitleForPath } from "./analytics";
 import { buildAppPath } from "./routes";
 import { destinationForSection } from "./lastDestinations";
@@ -1426,7 +1424,7 @@ export default function App() {
           />
         )}
         <InstallPrompt />
-        <header className={`app-header${view === "hub" ? " app-header--hub" : ""}${view === "hub" && hubNeedsSignIn ? " app-header--hub-guest" : ""}`}>
+        <header className={`app-header${APP_SECTIONS.some(section => section.id === view) ? " app-header--product" : ""}${view === "hub" ? " app-header--hub" : ""}${view === "hub" && hubNeedsSignIn ? " app-header--hub-guest" : ""}`}>
           <div className={`app-header-shell${view === "hub" ? " app-header-shell--hub" : ""}`}>
             <MobileHeader
               title={mobileDestination.title}
@@ -1464,38 +1462,13 @@ export default function App() {
                 />
             </DesktopPrimaryHeader>
 
-            {view === "projections" && !mobileLayout && (
-              <div className="app-header-projections-toolbar">
-                <nav className="app-section-subnav app-section-subnav--compact" aria-label="Projection type" role="tablist">
-                  {PROJECTIONS_TABS.map((tab) => (
-                    <a
-                      key={tab.id}
-                      href={buildAppPath({ view: "projections", projectionsTab: tab.id, seasonMode })}
-                      className={`app-section-subnav-btn${projectionsTab === tab.id ? " active" : ""}`}
-                      aria-current={projectionsTab === tab.id ? "page" : undefined}
-                      onClick={(event) => interceptAppNav(event, () => setProjectionsTab(tab.id))}
-                    >
-                      {tab.label}
-                    </a>
-                  ))}
-                </nav>
-              </div>
-            )}
-
-            {view === "tools" && TOOLS_TABS.length > 1 && !mobileLayout && (
-              <nav className="app-section-subnav app-section-subnav--compact" aria-label="Tools" role="tablist">
-                {TOOLS_TABS.map((tab) => (
-                  <a
-                    key={tab.id}
-                    href={buildAppPath({ view: "tools", toolsTab: tab.id })}
-                    className={`app-section-subnav-btn${toolsTab === tab.id ? " active" : ""}`}
-                    aria-current={toolsTab === tab.id ? "page" : undefined}
-                    onClick={(event) => interceptAppNav(event, () => setToolsTab(tab.id))}
-                  >
-                    {tab.label}
-                  </a>
-                ))}
-              </nav>
+            {(view === "projections" || view === "tools") && !mobileLayout && (
+              <ProductSubnav
+                view={view}
+                active={view === "projections" ? projectionsTab : toolsTab}
+                seasonMode={seasonMode}
+                onNavigate={view === "projections" ? setProjectionsTab : setToolsTab}
+              />
             )}
 
             {view === "hub" && !hubNeedsSignIn && !mobileLayout && (
