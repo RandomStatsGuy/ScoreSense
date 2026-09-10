@@ -1544,9 +1544,7 @@ def _resolve_roster_write_row(
     team_id: str | None = None,
 ) -> dict | None:
     if roster_slot_id is not None:
-        hit = storage.get_roster_slot_by_id(int(roster_slot_id), workspace_id=workspace_id)
-        if hit:
-            return hit
+        return storage.get_roster_slot_by_id(int(roster_slot_id), workspace_id=workspace_id)
     existing = storage.get_roster_slot(workspace_id, player_id, team_id=team_id)
     if existing:
         return existing
@@ -1753,14 +1751,14 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
     slots = storage.list_roster_slots_for_player(ws_id, body.player_id)
     if body.roster_slot_id is not None:
         pinned = storage.get_roster_slot_by_id(int(body.roster_slot_id), workspace_id=ws_id)
-        if pinned:
-            slots = [pinned] + [s for s in slots if int(s.get("id") or 0) != int(pinned.get("id") or 0)]
-            body.player_id = str(pinned.get("player_id") or body.player_id)
+        if not pinned:
+            raise HTTPException(status_code=404, detail="Player not on roster")
+        slots = [pinned] + [s for s in slots if int(s.get("id") or 0) != int(pinned.get("id") or 0)]
+        body.player_id = str(pinned.get("player_id") or body.player_id)
     if not slots:
         resolved = _resolve_roster_write_row(
             ws_id,
             body.player_id,
-            roster_slot_id=body.roster_slot_id,
         )
         if resolved:
             slots = [resolved]

@@ -161,21 +161,23 @@ def group_duplicate_occupying(
     used: set[int] = set()
     groups: list[list[dict[str, Any]]] = []
     for i, row in enumerate(occupying):
-        rid = int(row.get("id") or 0)
-        if rid in used:
+        rid = row.get("id")
+        if rid is not None and int(rid) in used:
             continue
         cluster = [row]
-        used.add(rid)
+        if rid is not None:
+            used.add(int(rid))
         key = name_pos_key(row)
         for other in occupying[i + 1 :]:
-            oid = int(other.get("id") or 0)
-            if oid in used:
+            oid = other.get("id")
+            if oid is not None and int(oid) in used:
                 continue
             if _team_key(other) != _team_key(row):
                 continue
             if identities_overlap(row, other) or (key and key == name_pos_key(other)):
                 cluster.append(other)
-                used.add(oid)
+                if oid is not None:
+                    used.add(int(oid))
         if len(cluster) > 1:
             groups.append(cluster)
     return groups

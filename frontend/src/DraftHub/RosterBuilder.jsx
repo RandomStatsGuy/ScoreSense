@@ -432,7 +432,7 @@ export default function RosterBuilder({
     const row = rowOrId && typeof rowOrId === "object"
       ? rowOrId
       : (roster || []).find((r) => r.player_id === rowOrId);
-    setSelectedSlotKey(rosterSlotKey(row) || String(row?.player_id || rowOrId || ""));
+    setSelectedSlotKey((row ? rosterSlotKey(row) : null) || String(row?.player_id || rowOrId || ""));
   }, [roster]);
 
   const closeContractPanel = useCallback(() => {

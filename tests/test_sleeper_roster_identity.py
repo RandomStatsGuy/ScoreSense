@@ -263,3 +263,132 @@ def test_hub_delete_expired_duplicate_by_slot(hub_db):
         assert float(live["salary"]) == 3.0
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_missing_slot_id_does_not_fall_back_to_player_id(hub_db):
+    from fastapi.testclient import TestClient
+
+    from app.api import app
+    from app.auth import require_hub_user
+
+    ws, _league, team = _seed_league("no-slot-fallback")
+    sheet = storage.add_roster_slot(
+        ws["id"],
+        {
+            "player_id": "00-0036389",
+            "player_name": "Jalen Hurts",
+            "team": "PHI",
+            "position": "QB",
+            "salary": 17,
+            "contract_years": 0,
+            "source": "sheet",
+        },
+        team_id=team["id"],
+    )
+    storage.add_roster_slot(
+        ws["id"],
+        {
+            "player_id": "sleeper-4017",
+            "player_name": "Jalen Hurts",
+            "team": "PHI",
+            "position": "QB",
+            "salary": 9,
+            "contract_years": 2,
+            "source": "sleeper",
+        },
+        team_id=team["id"],
+    )
+    missing_id = int(sheet["id"]) + 999
+    app.dependency_overrides[require_hub_user] = lambda: {
+        "sub": "no-slot-fallback",
+        "auth_type": "dev",
+    }
+    client = TestClient(app)
+    try:
+        dropped = client.request(
+            "DELETE",
+            "/api/hub/roster",
+            json={"player_id": "00-0036389", "roster_slot_id": missing_id},
+        )
+        assert dropped.status_code == 404, dropped.text
+        patched = client.patch(
+            "/api/hub/roster",
+            json={"player_id": "00-0036389", "roster_slot_id": missing_id, "salary": 1},
+        )
+        assert patched.status_code == 404, patched.text
+        assert storage.get_roster_slot(ws["id"], "00-0036389") is not None
+        assert storage.get_roster_slot(ws["id"], "sleeper-4017") is not None
+        assert float(storage.get_roster_slot(ws["id"], "00-0036389")["salary"]) == 17.0
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_remove_roster_slot_refuses_mismatched_player_or_team(hub_db):
+    ws, _league, team = _seed_league("slot-mismatch")
+    row = storage.add_roster_slot(
+        ws["id"],
+        {
+            "player_id": "00-0036389",
+            "player_name": "Jalen Hurts",
+            "team": "PHI",
+            "position": "QB",
+            "salary": 9,
+            "contract_years": 2,
+            "source": "sheet",
+        },
+        team_id=team["id"],
+    )
+    slot_id = int(row["id"])
+    assert storage.remove_roster_slot(ws["id"], "sleeper-4017", slot_id=slot_id) is False
+    assert storage.remove_roster_slot(
+        ws["id"],
+        "00-0036389",
+        slot_id=slot_id,
+        team_id="other-team",
+    ) is False
+    assert storage.get_roster_slot_by_id(slot_id, workspace_id=ws["id"]) is not None
+    assert storage.remove_roster_slot(
+        ws["id"],
+        "00-0036389",
+        slot_id=slot_id,
+        team_id=team["id"],
+    ) is True
+    assert storage.get_roster_slot_by_id(slot_id, workspace_id=ws["id"]) is None
+
+
+def test_group_duplicate_occupying_keeps_rows_without_ids():
+    from src.draft_hub.roster_identity_match import group_duplicate_occupying
+
+    groups = group_duplicate_occupying(
+        [
+            {
+                "id": None,
+                "player_id": "00-0036389",
+                "player_name": "Jalen Hurts",
+                "position": "QB",
+                "team_id": "t1",
+                "contract_years": 2,
+                "roster_status": "active",
+            },
+            {
+                "id": None,
+                "player_id": "sleeper-4017",
+                "player_name": "Jalen Hurts",
+                "position": "QB",
+                "team_id": "t1",
+                "contract_years": 0,
+                "roster_status": "active",
+            },
+            {
+                "id": 7,
+                "player_id": "00-0030506",
+                "player_name": "Travis Kelce",
+                "position": "TE",
+                "team_id": "t1",
+                "contract_years": 2,
+                "roster_status": "active",
+            },
+        ]
+    )
+    assert len(groups) == 1
+    assert {row["player_id"] for row in groups[0]} == {"00-0036389", "sleeper-4017"}

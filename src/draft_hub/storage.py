@@ -1712,6 +1712,10 @@ def remove_roster_slot(
             ).fetchone()
             if not row:
                 return False
+            if str(row["player_id"]) != str(player_id):
+                return False
+            if team_id is not None and str(row["team_id"] or "") != str(team_id):
+                return False
             conn.execute("DELETE FROM roster_slot WHERE id = ?", (int(slot_id),))
             _bump_live_for_workspace_conn(conn, workspace_id)
             return True
