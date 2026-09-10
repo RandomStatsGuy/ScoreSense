@@ -1,7 +1,7 @@
 # ScoreSense product constitution
 
 > **Read this before designing or building any user-facing work.**
-> If another doc disagrees with this file, this file wins. Update this file in the same change when you add a destination, name, token, or interaction pattern.
+> Explicit user-approved designs take priority; update this file and the living-surface registry to record approved changes. Otherwise, if another doc disagrees with this file, this file wins. Update this file in the same change when you add a destination, name, token, or interaction pattern.
 
 Agents: `.cursor/rules/scoresense-core.mdc` injects these rules on every turn. Do not wait for the user to restate them.
 
@@ -84,7 +84,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 | Label | Internal id | Purpose |
 |-------|-------------|---------|
 | Home | `home` | Phase-aware next actions. The hero band is eyebrow + a centered phase stepper; Settings sits in the chip slot (top-right). The deck action is the only page primary. Chat Send is ghost. |
-| Strategy | `value` | Full-page pairwise face-off from a league-context site board, same position only. View my rankings opens site vs mine. Optionally write that order into the draft queue. The only Fantasy destination without a `HubExperienceHero` band — a deliberate board-first exception, not a missing chrome pass. |
+| Strategy | `value` | Full-page pairwise face-off from a league-context site board, same position only. View my rankings opens site vs mine. Optionally write that order into the draft queue. A Fantasy destination without a `HubExperienceHero` band — a deliberate board-first exception, not a missing chrome pass. |
 | Draft | `room` | Idle entry + live room. Email and text invite links open here. Members mark **current and future** draft-night times on one calendar (opens 31 days before the first NFL game, closes the day before). Commissioners lock any shown overlap as draft night. Idle Draft is that calendar plus a compact room strip — do not stack a second date/time card and a Who is in list on the same scroll. When the calendar is Closed and no night is locked, the off-calendar lock is the card's primary — do not leave "Mark yours" on a closed board. Start live draft stays secondary until a night is locked or every seat is filled. Start offline draft is ghost — no clocks, same award path. Owner entry records draft wins on Draft, not Free agents Add, and does not flip Home to live draft. CSV export/import is commissioner-only and previews unmatched rows first. The seating pill is amber below a full room and teal only at 12/12. Home's "Not scheduled" links here. Setup shows draft-night status only. Live auction theater lives on the block card: a 150ms bid pulse, a draining clock ring on the headshot (amber under 10s, red under 5s), and a ~1s SOLD hold before the next nominee. High bid is blue while you are winning and primary text otherwise — never gold. Hide empty fantasy narrative; a real line is the tagline under the name. Bots use locker marks and named personalities, not identical emoji robots. Simulate pins the block-card layout and uses live-bot pricing. Recap awards are gold trophy tiles; the page leads with the viewer's grade. Empty nomination keeps leftover, slots, and the viewer's queue on a right rail beside Player pool. Do not hide Nominate when paused — disable it. The command bar leads with the job; connection is a quiet mark. |
 
 | This Week | `week` | Lineup decisions on one slate (editorial row per slot). The hero lede is the call count (`N lineup calls on the board`) or, when there is no swap and nobody is out, **No bye. Nobody flagged out.** Start opens the Ticket sheet — the week-pts delta is the poster; sit and start stay side by side on phone; facts are Vegas, prior PPG, def vs pos, and kickoff. Keep closes. ScoreSense-only leagues apply the swap from the Ticket Start; linked Sleeper leagues open the platform. Decision count lives in the hero once. Refresh projections sits on the freshness line. Call heat is amber Sit/Start pills; quiet rows stay unmarked. The Ticket Start is amber, not a second blue. Wide range is a quiet marker, never a row-wide amber border or primary blue. Empty slots say Empty (or Find {slot} to Free agents). Empty K/DEF with no bench specialist still say Find K / Find DEF into Free agents. Reserve the Start slot so P50s share a baseline. Bench uses the same slate rows and spans under the rail. Week uses the Projections stepper. Calls use the board number, not vibe week. Name the Vibes / VA-projections number so the two pages do not silently disagree. Week 1 prior PPG is last season; a rookie stays empty. |
@@ -93,7 +93,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 
 | My team | `roster` | Personal contracts |
 | Free agents | `available` | Add / bid / locked by calendar. Rows always show Bid or Add; when locked, disable with Adds open after the draft. Hide Vs cost until a contract cost exists. Desktop virtualizes on page scroll. Season pts use a number plus text range. How adds work lives in the acquisition banner. |
-| Rosters | `rosters` | League-wide Overpay and Bargain list (deal finder). The manager rail is the drill-down and shows free cap, expiring count, and worst overpay. Ten managers is a picker, not a swipe strip. |
+| Rosters | `rosters` | Table-first league contract comparison, matching the approved September 10 mockup. Compact title/actions, Contract values and Team rosters tabs, searchable manager picker, player/position/value filters, eight-row pagination, and a selected-player details panel. No hero band, At a glance card, tall manager rail, or repeated row actions. Salary, estimated value, and difference sit side by side. |
 | Cap | `planner` | Cap leftover after a cut or bid. The move input sits above the fold and shows leftover after the move next to the controls. Hero and At a glance keep the current leftover. Every figure names what it counts; leftover plus against-cap (salary + dead) equals the cap. The rail primary is leftover / open the room. Undo cut and Undo extension are ghost. Roster counts say on this sheet vs keep past this draft. Roster-min needs are one sentence and one Free agents CTA. Expiring uses amber; extend-to-keep uses blue. |
 | Trades | `trades` | Propose and accept. Experience hero names the cap-bust cost. Rosters franchise headers deep-link here with the partner preselected. Zero partners → Invite managers on Members. Continue (or Propose on the last step) is the only primary; Accept and Load into builder are ghost. Cap line is **current roster** salary (active contracts this season, including expiring). My team **{season} committed** is draft-surviving salary — same $200 cap, different base; do not use one word for both. Auto-check every package change and gate Propose on a pass. The verdict is a colored live status banner next to the primary, not grey chart-note. Ideas need chips mark starter-thin positions only — a 6-RB roster is extra depth, not a need. |
 | Rules | `rules` | League model (read for members, edit for staff) |
@@ -137,9 +137,9 @@ Dark mode only. Matte, editorial, layered. Sports-product energy without casino 
 | Page canvas | `--experience-canvas` / `--bg-base` (`#09111d` / `#070d17`) | Page background |
 | Surface | `--experience-surface` / `--bg-elevated` | Cards and sections |
 | Primary action / current context | `--experience-blue` / `--accent` | One cool blue. Reserved for *now* and *next* |
-| Healthy / saved | teal (`--tone-positive`) | Only when the state is actually healthy: 12/12 seated, synced, or saved |
+| Healthy / saved | teal (`--tone-positive`) | Healthy states and below-estimate contract salaries; always pair value color with text |
 | Attention | amber (`--tone-caution`) | Warnings, unsaved, bids, incomplete seating, info that needs a move. Never a positive or best-in-set highlight. |
-| Destructive | red (`--danger`) | Errors, cuts, blocking validation, league-wide destructive actions — never a projection delta. One urgency exception: the live auction clock under 5s. |
+| Destructive | red (`--danger`) | Errors, cuts, blocking validation, league-wide destructive actions — never a projection delta. Exceptions: the live auction clock under 5s, and muted `--tone-negative` coral for above-estimate contract salaries (with text, never a row-wide warning). |
 | Gold accent | `--experience-gold` | Awards only. Never the live high-bid figure. |
 
 Rules:
@@ -162,7 +162,7 @@ Editorial Fantasy and Tools pages use the shared experience stack:
 `HubExperienceLayout` — main column + sticky summary rail
 `HubExperienceSummary` — “At a glance” facts + primary action
 
-Fantasy destinations share one `HubExperienceHero` (eyebrow + heading + band). Home is the exception: the page hero is eyebrow + a centered phase stepper, Settings in the chip slot, and the heading stays in the Pre-draft card. Strategy is the other exception: no hero band. Tools keep the display H1 + eyebrow pattern. Hero heading and padding use `--experience-hero-heading` and `--experience-hero-pad`. Status chips are not the page primary — do not put “You can edit” or “Need a partner” where Save belongs. Tab strips sit below the hero band. The shared league strip (and Needs attention) shows on Home and idle Draft; live rooms stay board-first. The app shell is one `<main id="main-content">` with a skip link.
+Fantasy destinations share one `HubExperienceHero` (eyebrow + heading + band). Home is the exception: the page hero is eyebrow + a centered phase stepper, Settings in the chip slot, and the heading stays in the Pre-draft card. Strategy and Rosters are also exceptions: no hero band. Rosters uses a compact title and toolbar with a table/details layout; its CSS may define that approved layout without changing unrelated experience pages. Tools keep the display H1 + eyebrow pattern. Hero heading and padding use `--experience-hero-heading` and `--experience-hero-pad`. Status chips are not the page primary — do not put “You can edit” or “Need a partner” where Save belongs. Tab strips sit below the hero band. The shared league strip (and Needs attention) shows on Home and idle Draft; live rooms stay board-first. The app shell is one `<main id="main-content">` with a skip link.
 
 Reuse `frontend/src/DraftHub/HubUILayout.jsx`. Do not fork a second hero/summary system.
 
@@ -172,7 +172,7 @@ Which file to open for a given destination: `frontend/src/livingSurfaces.js`. Re
 
 Empty This Week / My team / Game center boards share one empty-state block, branched on league state: native pre-draft → Lock a night (Draft); Sleeper not linked → Link Sleeper (Access & imports); linked but stale → the strip's Sync league. Do not send those boards to Setup. Game center pre-draft is one sentence to Open draft room — not Link Sleeper and not a kickoff wait. "Live" on Game center renders only inside a game window.
 
-**Do not use this chrome for:** the live draft board (board-first, existing live-room layout), **Projections** (board-first table), **Strategy** (the only Fantasy destination without a hero band — full-page face-off; View my rankings is site vs mine), or other dense data tables that are not a decision surface. Do not add `HubExperienceHero` to Strategy to “match” the other 13.
+**Do not use this chrome for:** the live draft board (board-first, existing live-room layout), **Projections** (board-first table), **Rosters** (the approved table/details layout), **Strategy** (a Fantasy destination without a hero band — full-page face-off; View my rankings is site vs mine), or other dense data tables that are not a decision surface. Do not add `HubExperienceHero` to Strategy to “match” the other 13.
 
 ### Projections board
 
@@ -188,7 +188,7 @@ Weekly and Season projections are a **board**, not a Fantasy decision page.
 - Copy for signals, board reads, and inspector tiles lives in `frontend/src/projectionsPresentation.js`.
 - Phone weekly: one compact sticky bar under the header — position, filter, result count, and the floor–ceiling range stated once. Do not repeat Floor–Ceiling on every card. Hide the collapsed range while a card is open. Reserve the rank-delta slot so card heights stay even.
 - Phone weekly lists are windowed. Do not mount every row.
-- Desktop Free agents, Weekly, and Rosters virtualize against page scroll. Do not nest a table scroller.
+- Desktop Free agents and Weekly virtualize against page scroll. Rosters uses bounded pagination instead. Do not nest a table scroller.
 - Movement chips (All / Movers / Risers / Fallers / Attention) live in the filter sheet, not the page body. The sheet owns Position, What changed, and Search; the page keeps an active-filter summary. The sheet has Apply, Reset, a live result count, and Scoring in the footer so it is not clipped.
 - A stale or missing-notes freshness chip is the refresh action and shows a relative time when one exists. Do not hide the chip when the notes artifact is missing, and do not add a header Refresh on Weekly. The chip rebuilds this-week notes from cached projections — it does not start the weekly ETL pipeline.
 
@@ -228,7 +228,7 @@ Put user-facing strings in `*Presentation.js` (or an existing copy module). Keep
 Voice:
 
 - Name the **decision** this page is for, not the system.
-- Name the **cost of getting it wrong**, not a slogan.
+- Explain the action and its actual effect. Do not invent consequences or scold the user.
 - Short labels. Specific support text.
 - No slogan that could sit on another sports app (“own the week,” “stay ahead,” “smarter way”).
 - No unexplained abbreviations on configuration or data-dense pages.
@@ -236,7 +236,7 @@ Voice:
 
 | Prefer | Avoid |
 |--------|--------|
-| Sit the wrong RB and you leave points on the bench | Own the week / stay ahead of the board |
+| Compare starters with higher-projected bench players | Own the week / stay ahead of the board |
 | Can you afford this bid after the cut? | See the next three seasons before you spend |
 | Maximum extension | Max yrs |
 | Annual salary step-up | Step |

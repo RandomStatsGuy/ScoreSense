@@ -1,522 +1,268 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
-import { formatCount } from "../formatCount";
 import useMobileLayout from "../useMobileLayout";
-import MobileDataList from "../MobileDataList";
-import MobilePlayerCard from "../MobilePlayerCard";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
-import {
-  HubExperienceHero,
-  HubExperienceLayout,
-  HubExperienceSummary,
-  HubFilterMenu,
-  HubLoadingSkeleton,
-  HubPage,
-  HubPageSticky,
-  HubTableCard,
-} from "./HubUILayout";
-import { fmtSal } from "./rosterFormat";
-import { seedTradeFromPlayer, seedTradePartner } from "./tradeSeed";
-import { usePageWindowedRows } from "./useWindowedRows";
 import ContractHistoryLink from "./ContractHistoryLink";
-import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
-import TeamIdentityMark from "./TeamIdentityMark";
+import { seedTradeFromPlayer, seedTradePartner } from "./tradeSeed";
 import { downloadLeagueWorkbook } from "./leagueWorkbook";
-import {
-  DEALS_VIEW,
-  ROSTERS_COPY,
-  activeRoster,
-  contractGradeClass,
-  contractGradeText,
-  dealCounts,
-  expireChipLabel,
-  formatDealsRailFacts,
-  formatManagerRailFacts,
-  joinFacts,
-  leagueDealRows,
-  managerDealFacts,
-  managerPickerOptions,
-  nicknameLine,
-  ownerLine,
-  positionSpendNote,
-  rosterCaption,
-  rosterHeading,
-  tradeActionLabel,
-  tradeLockReason,
-  yearsLeftLabel,
-} from "./leagueRostersPresentation";
+import { ROSTERS_COPY, ROSTER_BOARD_COPY as C, rosterBoardRows, rosterRowKey, rosterMoney, rosterDifference, rosterDifferenceLabel, rosterContractLabel, ownerLine, nicknameLine, tradeLockReason, expireChipLabel } from "./leagueRostersPresentation";
+import "../styles/league-rosters.css";
 
-function ExpireStatus({ chip }) {
-  const label = expireChipLabel(chip);
-  if (!label) return null;
-  return (
-    <span
-      className={`hub-expire-chip${chip === "extend" ? " hub-expire-chip--extend" : ""}`}
-    >
-      {label}
-    </span>
-  );
-}
-
-function YouMark() {
-  return <em className="hub-roster-you">{ROSTERS_COPY.you}</em>;
-}
-
-function TradeActions({
-  row,
-  ownerTeamId,
-  myTeamId,
-  acquisitionWindow,
-  onNavigateTrade,
-  onOpenContractHistory,
+// Local filter control for the approved board: searchable team list, native buttons,
+// dismissal/focus behavior, and no changes to the shared menus on other pages.
+function BoardFilter({
+  label,
+  value,
+  options,
+  onChange,
+  searchable = false
 }) {
-  const lockedReason = tradeLockReason(row, acquisitionWindow);
-  const locked = Boolean(lockedReason);
-  const label = tradeActionLabel({ isOwnTeam: ownerTeamId === myTeamId });
-  return (
-    <span className="hub-roster-action-group">
-      <button
-        type="button"
-        className="btn-ghost btn-sm"
-        disabled={locked}
-        title={locked ? lockedReason : undefined}
-        onClick={() => {
-          seedTradeFromPlayer({
-            player_id: row.player_id,
-            player_name: row.player_name,
-            team_id: ownerTeamId,
-            salary: row.salary,
-            position: row.position,
-          });
-          onNavigateTrade?.();
-        }}
-      >
-        {label}
-      </button>
-      {locked ? <span className="hub-roster-trade-lock">{ROSTERS_COPY.tradeLockedShort}</span> : null}
-      <ContractHistoryLink
-        playerId={row.player_id}
-        playerName={row.player_name}
-        onOpen={onOpenContractHistory}
-      />
-    </span>
-  );
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const root = useRef(null);
+  const trigger = useRef(null);
+  const search = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    if (searchable) search.current?.focus();
+    const outside = e => {
+      if (!root.current?.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", outside);
+    return () => document.removeEventListener("pointerdown", outside);
+  }, [open, searchable]);
+  const shown = options.filter(o => `${o.label} ${o.detail || ""}`.toLowerCase().includes(query.toLowerCase()));
+  const selected = options.find(o => o.id === value);
+  return <div className="rosters-filter" ref={root} onBlur={e => {
+    if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false);
+  }} onKeyDown={e => {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      setOpen(false);
+      trigger.current?.focus();
+    }
+  }}>
+    <button ref={trigger} type="button" className="rosters-control" aria-label={`${label}: ${selected?.label || ""}`} aria-expanded={open} onClick={() => {
+      setQuery("");
+      setOpen(!open);
+    }}>{selected?.label}<span aria-hidden="true">⌄</span></button>
+    {open && <div className="rosters-filter-menu" aria-label={label}>
+      {searchable && <input ref={search} aria-label={C.teamSearch} placeholder={C.teamSearch} value={query} onChange={e => setQuery(e.target.value)} />}
+      <div className="rosters-filter-options">{shown.map(o => <button key={o.id} type="button" aria-pressed={o.id === value} onClick={() => {
+          onChange(o.id);
+          setOpen(false);
+          trigger.current?.focus();
+        }}><span>{o.label}</span>{o.detail && <small>{o.detail}</small>}</button>)}</div>
+    </div>}
+  </div>;
 }
-
+function Difference({
+  row
+}) {
+  const delta = rosterDifference(row);
+  return <span className={`rosters-difference ${delta == null || delta === 0 ? "" : delta < 0 ? "is-below" : "is-above"}`}>{delta != null && delta !== 0 && <i aria-hidden="true" />}{rosterDifferenceLabel(row)}</span>;
+}
 export default function LeagueRostersBrowser({
   leagueId,
   hubContext,
   onNavigateTrade,
-  onOpenContractHistory,
+  onOpenContractHistory
 }) {
-  const { identities } = useTeamIdentities();
   const mobileLayout = useMobileLayout();
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [exportError, setExportError] = useState("");
   const [exporting, setExporting] = useState(false);
-  const myTeamId = hubContext?.team_id || "";
-  const [teamId, setTeamId] = useState(DEALS_VIEW);
-  const acquisitionWindow = hubContext?.acquisition_window || null;
-
-  const load = useCallback(async ({ refresh = false } = {}) => {
+  const [view, setView] = useState("deals");
+  const [teamId, setTeamId] = useState("");
+  const [query, setQuery] = useState("");
+  const [position, setPosition] = useState("");
+  const [value, setValue] = useState("all");
+  const [sort, setSort] = useState("difference");
+  const [page, setPage] = useState(0);
+  const [selectedKey, setSelectedKey] = useState(null);
+  const [closed, setClosed] = useState(false);
+  const request = useRef(0);
+  const rowButtons = useRef(new Map());
+  const detailHeading = useRef(null);
+  const currentLeague = useRef(leagueId);
+  currentLeague.current = leagueId;
+  const load = useCallback(async (refresh = false) => {
+    const id = ++request.current;
     if (!leagueId) {
-      setLoading(false);
       setOverview(null);
+      setLoading(false);
       return;
     }
     setLoading(true);
     setError("");
     try {
-      const q = refresh ? "?refresh=1" : "";
-      const res = await apiFetch(
-        `/api/hub/league/${encodeURIComponent(leagueId)}/rosters${q}`,
-      );
-      if (!res.ok) throw new Error(await parseApiError(res));
-      const data = await res.json();
-      setOverview(data);
-      setTeamId((prev) => {
-        if (prev === DEALS_VIEW) return DEALS_VIEW;
-        if (prev && (data.teams || []).some((b) => b.team?.id === prev)) return prev;
-        return DEALS_VIEW;
-      });
+      const response = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/rosters${refresh ? "?refresh=1" : ""}`);
+      if (!response.ok) throw new Error(await parseApiError(response));
+      const data = await response.json();
+      if (id === request.current && currentLeague.current === leagueId) setOverview(data);
     } catch (e) {
-      setError(connectionErrorMessage(e));
+      if (id === request.current && currentLeague.current === leagueId) setError(connectionErrorMessage(e));
     } finally {
-      setLoading(false);
+      if (id === request.current && currentLeague.current === leagueId) setLoading(false);
     }
   }, [leagueId]);
-
   useEffect(() => {
+    setOverview(null);
+    setTeamId("");
+    setQuery("");
+    setPosition("");
+    setValue("all");
+    setPage(0);
+    setSelectedKey(null);
+    setClosed(false);
+    setExportError("");
     load();
+    return () => {
+      request.current++;
+    };
   }, [load]);
-
-  const teamBlocks = useMemo(() => {
-    return [...(overview?.teams || [])].sort((a, b) => (
-      ownerLine(a.team).localeCompare(ownerLine(b.team))
-    ));
-  }, [overview]);
-
-  const dealRows = useMemo(() => leagueDealRows(teamBlocks), [teamBlocks]);
-  const dealsView = teamId === DEALS_VIEW;
-  const block = useMemo(
-    () => (dealsView ? null : teamBlocks.find((b) => b.team?.id === teamId) || null),
-    [dealsView, teamBlocks, teamId],
-  );
-  const stats = block?.stats || {};
-  const roster = useMemo(
-    () => (dealsView ? dealRows : activeRoster(block)),
-    [dealsView, dealRows, block],
-  );
-  const rosterList = useMemo(
-    () => (roster || []).filter(Boolean),
-    [roster],
-  );
-  const playerIds = useMemo(() => rosterList.map((r) => r.player_id).filter(Boolean), [rosterList]);
-  const windowed = !mobileLayout && rosterList.length > 24;
-  const { rootRef, range } = usePageWindowedRows(rosterList.length, {
-    enabled: windowed,
-    rowHeight: 56,
-  });
-  const visibleRoster = windowed ? rosterList.slice(range.start, range.end) : rosterList;
-  const topPad = windowed ? range.start * 56 : 0;
-  const bottomPad = windowed ? Math.max(0, rosterList.length - range.end) * 56 : 0;
-  const media = usePlayerMedia(mobileLayout ? [] : playerIds);
-  const counts = dealCounts(dealRows);
-
-  const handleExport = useCallback(async () => {
+  const blocks = useMemo(() => [...(overview?.teams || [])].filter(b => b?.team?.id).sort((a, b) => ownerLine(a.team).localeCompare(ownerLine(b.team))), [overview]);
+  const rows = useMemo(() => rosterBoardRows(blocks, {
+    view,
+    teamId,
+    query,
+    position,
+    value,
+    sort
+  }), [blocks, view, teamId, query, position, value, sort]);
+  const scopeRows = useMemo(() => rosterBoardRows(blocks, {
+    view,
+    teamId,
+    query,
+    position
+  }), [blocks, view, teamId, query, position]);
+  const pages = Math.max(1, Math.ceil(rows.length / 8));
+  const currentPage = Math.min(page, pages - 1);
+  const visible = rows.slice(currentPage * 8, currentPage * 8 + 8);
+  const selected = closed ? null : visible.find(r => rosterRowKey(r) === selectedKey) || visible[0] || null;
+  const ids = useMemo(() => visible.map(r => r.player_id).filter(Boolean), [visible.map(rosterRowKey).join("|")]);
+  const media = usePlayerMedia(ids);
+  const myTeamId = hubContext?.team_id;
+  const block = blocks.find(b => b.team?.id === teamId);
+  const lockReason = selected ? tradeLockReason(selected, hubContext?.acquisition_window) : "";
+  const disabledReason = !onNavigateTrade ? C.readonly : !selected?.player_id ? C.noId : lockReason;
+  const change = (setter, next) => {
+    setter(next);
+    setPage(0);
+    setSelectedKey(null);
+    setClosed(false);
+  };
+  const reset = () => {
+    setTeamId("");
+    setQuery("");
+    setPosition("");
+    setValue("all");
+    setPage(0);
+    setClosed(false);
+  };
+  const select = row => {
+    setSelectedKey(rosterRowKey(row));
+    setClosed(false);
+    requestAnimationFrame(() => detailHeading.current?.focus({
+      preventScroll: !mobileLayout
+    }));
+  };
+  const close = () => {
+    const key = selected && rosterRowKey(selected);
+    setClosed(true);
+    rowButtons.current.get(key)?.focus({
+      preventScroll: true
+    });
+  };
+  const exportWorkbook = async () => {
     if (!leagueId || exporting) return;
+    const exportingLeague = leagueId;
     setExporting(true);
-    setError("");
+    setExportError("");
     try {
       await downloadLeagueWorkbook(leagueId);
     } catch (e) {
-      setError(connectionErrorMessage(e));
+      if (currentLeague.current === exportingLeague) setExportError(connectionErrorMessage(e));
     } finally {
       setExporting(false);
     }
-  }, [leagueId, exporting]);
-
-  const pickerOptions = useMemo(
-    () => managerPickerOptions(teamBlocks, dealRows),
-    [teamBlocks, dealRows],
-  );
-
-  const heading = dealsView ? ROSTERS_COPY.dealsHeading : rosterHeading(block);
-  const caption = dealsView ? ROSTERS_COPY.dealsCaption : rosterCaption(block);
-
-  const glanceItems = dealsView
-    ? [
-        { id: "overpays", label: ROSTERS_COPY.glanceOverpays, value: String(counts.overpays) },
-        { id: "bargains", label: ROSTERS_COPY.glanceBargains, value: String(counts.bargains) },
-        { id: "managers", label: ROSTERS_COPY.glanceManagers, value: String(teamBlocks.length) },
-      ]
-    : [
-        { id: "committed", label: ROSTERS_COPY.glanceCommitted, value: fmtSal(stats.committed) },
-        { id: "dead", label: ROSTERS_COPY.glanceDead, value: fmtSal(stats.dead_cap) },
-        { id: "free", label: ROSTERS_COPY.glanceFree, value: fmtSal(stats.unspent) },
-        {
-          id: "expiring",
-          label: ROSTERS_COPY.glanceExpiring,
-          value: String(managerDealFacts(block).expiring),
-        },
-      ];
-
-  const ownerRail = (
-    <nav className="hub-roster-owner-rail" aria-labelledby="hub-roster-managers-heading">
-      <h3 id="hub-roster-managers-heading" className="hub-roster-rail-heading">
-        {ROSTERS_COPY.managersHeading}
-      </h3>
-      <ul className="hub-roster-owner-list">
-        <li>
-          <button
-            type="button"
-            className={`hub-roster-owner-btn${dealsView ? " is-selected" : ""}`}
-            aria-pressed={dealsView}
-            onClick={() => setTeamId(DEALS_VIEW)}
-          >
-            <strong>{ROSTERS_COPY.dealsNav}</strong>
-            <span>{formatDealsRailFacts(dealRows)}</span>
-          </button>
-        </li>
-        {teamBlocks.map((b) => {
-          const selected = b.team.id === teamId;
-          const facts = formatManagerRailFacts(managerDealFacts(b));
-          const nick = nicknameLine(b.team);
-          return (
-            <li key={b.team.id}>
-              <button
-                type="button"
-                className={`hub-roster-owner-btn${selected ? " is-selected" : ""}`}
-                aria-pressed={selected}
-                onClick={() => setTeamId(b.team.id)}
-              >
-                <strong>
-                  {ownerLine(b.team)}
-                  {b.team.id === myTeamId ? <YouMark /> : null}
-                </strong>
-                {nick ? <span>{nick}</span> : null}
-                <span>{facts}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
-  );
-
-  const renderPlayer = (row) => {
-    const owner = row.ownerTeam;
-    return (
-      <div className="hub-roster-player-stack">
-        <div className="hub-roster-player-line">
-          <PlayerCell
-            name={row.player_name}
-            team={row.team}
-            playerId={row.player_id}
-            media={media}
-            size="sm"
-            showTeam={false}
-            narrativeScope="season"
-          />
-        </div>
-        {dealsView && owner ? (
-          <span className="hub-roster-owner-sub">{ownerLine(owner)}</span>
-        ) : null}
-        <ExpireStatus chip={row.expire_chip} />
-      </div>
-    );
   };
-
-  const renderDesktopTable = () => (
-    <div className="table-wrap hub-page-board" ref={rootRef}>
-      <table className="data-table hub-table hub-roster-table">
-        <caption className="hub-roster-table-caption">{caption}</caption>
-        <thead>
-          <tr>
-            <th className="hub-roster-col-player">{ROSTERS_COPY.player}</th>
-            <th className="hub-roster-col-pos">{ROSTERS_COPY.pos}</th>
-            <th className="num hub-roster-col-cap">{ROSTERS_COPY.cap}</th>
-            <th className="num hub-roster-col-years">{ROSTERS_COPY.years}</th>
-            <th className="hub-roster-col-type">{ROSTERS_COPY.type}</th>
-            <th className="hub-roster-col-contract">{ROSTERS_COPY.contract}</th>
-            <th className="hub-roster-actions">{ROSTERS_COPY.actions}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {roster.length === 0 && (
-            <tr>
-              <td colSpan={7} className="hub-roster-empty">
-                {dealsView ? ROSTERS_COPY.dealsEmpty : ROSTERS_COPY.emptyRoster}
-              </td>
-            </tr>
-          )}
-          {topPad > 0 && (
-            <tr aria-hidden="true">
-              <td colSpan={7} style={{ height: topPad, padding: 0, border: 0 }} />
-            </tr>
-          )}
-          {visibleRoster.map((r) => {
-            const gradeText = contractGradeText(r);
-            const ownerTeamId = r.ownerTeamId || teamId;
-            return (
-              <tr key={`${ownerTeamId}-${r.player_id}`} className={r.overpay ? "hub-overpay" : ""}>
-                <td className="hub-roster-col-player">{renderPlayer(r)}</td>
-                <td className="hub-roster-col-pos">{r.position}</td>
-                <td className="num hub-roster-col-cap">{fmtSal(r.salary)}</td>
-                <td className="num hub-roster-col-years">{r.years_remaining ?? r.contract_years ?? "—"}</td>
-                <td className="hub-roster-col-type">{r.contract_type || "—"}</td>
-                <td className="hub-roster-col-contract">
-                  {gradeText ? (
-                    <span
-                      className={`hub-roster-grade-chip ${contractGradeClass(r.contract_grade)}`}
-                      title={r.fair_value != null ? `Fair value ${fmtSal(r.fair_value)}` : undefined}
-                    >
-                      {gradeText}
-                    </span>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td className="hub-roster-actions">
-                  {r.player_id ? (
-                    <TradeActions
-                      row={r}
-                      ownerTeamId={ownerTeamId}
-                      myTeamId={myTeamId}
-                      acquisitionWindow={acquisitionWindow}
-                      onNavigateTrade={onNavigateTrade}
-                      onOpenContractHistory={onOpenContractHistory}
-                    />
-                  ) : null}
-                </td>
-              </tr>
-            );
-          })}
-          {bottomPad > 0 && (
-            <tr aria-hidden="true">
-              <td colSpan={7} style={{ height: bottomPad, padding: 0, border: 0 }} />
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const renderMobileCards = () => (
-    <MobileDataList
-      emptyMessage={!roster.length ? (dealsView ? ROSTERS_COPY.dealsEmpty : ROSTERS_COPY.emptyRoster) : null}
-    >
-      {roster.map((r) => {
-        const gradeText = contractGradeText(r);
-        const ownerTeamId = r.ownerTeamId || teamId;
-        const lockedReason = tradeLockReason(r, acquisitionWindow);
-        const expire = expireChipLabel(r.expire_chip);
-        return (
-          <MobilePlayerCard
-            key={`${ownerTeamId}-${r.player_id}`}
-            className={r.overpay ? "hub-overpay" : ""}
-            name={r.player_name}
-            meta={joinFacts([
-              expire,
-              r.position,
-              r.team,
-              dealsView ? ownerLine(r.ownerTeam) : "",
-            ])}
-            heroValue={fmtSal(r.salary)}
-            heroLabel="cap"
-            heroSub={yearsLeftLabel(r) !== "—" ? yearsLeftLabel(r) : undefined}
-            hideHeroSubWhenOpen
-            expanded={(
-              <div className="hub-roster-mobile-expand">
-                {gradeText ? (
-                  <p className={`hub-roster-mobile-judgment ${contractGradeClass(r.contract_grade)}`}>
-                    {gradeText}
-                  </p>
-                ) : null}
-                {lockedReason ? <p className="hub-roster-trade-lock">{lockedReason}</p> : null}
-              </div>
-            )}
-            actions={r.player_id ? (
-              <TradeActions
-                row={r}
-                ownerTeamId={ownerTeamId}
-                myTeamId={myTeamId}
-                acquisitionWindow={acquisitionWindow}
-                onNavigateTrade={onNavigateTrade}
-                onOpenContractHistory={onOpenContractHistory}
-              />
-            ) : null}
-          />
-        );
-      })}
-    </MobileDataList>
-  );
-
-  return (
-    <HubPage className="hub-experience-page hub-roster-browser-page">
-      <HubExperienceHero
-        eyebrow={ROSTERS_COPY.eyebrow}
-        heading={ROSTERS_COPY.heading}
-        support={ROSTERS_COPY.support}
-        chip={overview?.teams?.length ? formatCount(overview.teams.length, "manager") : undefined}
-      />
-      {error && <div className="error">{error}</div>}
-      {loading && !overview && <HubLoadingSkeleton label={ROSTERS_COPY.loading} rows={4} />}
-
-      {overview && (
-        <HubExperienceLayout
-          summaryLabel={ROSTERS_COPY.glanceEyebrow}
-          summary={(
-            <HubExperienceSummary
-              eyebrow={ROSTERS_COPY.glanceEyebrow}
-              title={dealsView ? ROSTERS_COPY.glanceDealsTitle : heading}
-              subtitle={dealsView ? ROSTERS_COPY.dealsHint : nicknameLine(block?.team) || undefined}
-              items={glanceItems}
-              note={!dealsView ? positionSpendNote(stats) || undefined : undefined}
-              action={(
-                <div className="hub-roster-glance-actions">
-                  {block?.team && block.team.id !== myTeamId && onNavigateTrade ? (
-                    <button
-                      type="button"
-                      className="btn-primary hub-experience-summary-action"
-                      onClick={() => {
-                        seedTradePartner(block.team.id);
-                        onNavigateTrade();
-                      }}
-                    >
-                      {ROSTERS_COPY.proposeTrade}
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="btn-ghost hub-experience-summary-action"
-                    onClick={handleExport}
-                    disabled={exporting}
-                    title={ROSTERS_COPY.exportTitle}
-                  >
-                    {exporting ? ROSTERS_COPY.exportBusy : ROSTERS_COPY.exportExcel}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-ghost hub-experience-summary-action hub-roster-browser-refresh"
-                    onClick={() => load({ refresh: true })}
-                  >
-                    {ROSTERS_COPY.refreshLeague}
-                  </button>
-                </div>
-              )}
-            />
-          )}
-        >
-          <div className="hub-roster-owner-layout">
-            {mobileLayout ? (
-              <HubPageSticky>
-                <HubFilterMenu
-                  className="hub-roster-manager-picker"
-                  label={ROSTERS_COPY.managersHeading}
-                  value={teamId}
-                  options={pickerOptions}
-                  onChange={setTeamId}
-                />
-              </HubPageSticky>
-            ) : ownerRail}
-            <div className="hub-roster-owner-main">
-              <header className="hub-roster-browser-toolbar">
-                {block?.team ? (
-                  <h3 className="hub-roster-selected-heading">
-                    <TeamIdentityMark
-                      team={block.team}
-                      identity={identityFor(identities, block.team)}
-                      size="md"
-                      showName
-                    />
-                    {block.team.id === myTeamId ? <YouMark /> : null}
-                  </h3>
-                ) : (
-                  <h3 className="hub-roster-selected-heading">{heading}</h3>
-                )}
-                {block?.team && block.team.id !== myTeamId && onNavigateTrade ? (
-                  <button
-                    type="button"
-                    className="btn-primary btn-sm"
-                    onClick={() => {
-                      seedTradePartner(block.team.id);
-                      onNavigateTrade();
-                    }}
-                  >
-                    {ROSTERS_COPY.proposeTrade}
-                  </button>
-                ) : null}
-              </header>
-              <HubTableCard className="hub-roster-browser-table-wrap">
-                {mobileLayout ? renderMobileCards() : renderDesktopTable()}
-              </HubTableCard>
-            </div>
-          </div>
-        </HubExperienceLayout>
-      )}
-    </HubPage>
-  );
+  const teams = [{
+    id: "",
+    label: C.allTeams
+  }, ...blocks.map(b => ({
+    id: b.team.id,
+    label: ownerLine(b.team),
+    detail: nicknameLine(b.team)
+  }))];
+  const positions = [{
+    id: "",
+    label: C.positions
+  }, ...[...new Set(blocks.flatMap(b => (b.roster || []).filter(Boolean).map(r => r.position).filter(Boolean)))].sort().map(id => ({
+    id,
+    label: id
+  }))];
+  const detail = selected && <aside className="rosters-detail" aria-label={`${selected.player_name} contract`} onKeyDown={e => {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      close();
+    }
+  }}>
+    <button className="rosters-close" aria-label={C.close} onClick={close}>×</button>
+    <h2 ref={detailHeading} tabIndex={-1}><PlayerCell name={selected.player_name} playerId={selected.player_id} team={selected.team} position={selected.position} media={media} size="lg" /></h2>
+    <p className="rosters-managed">{C.managedBy} <strong>{ownerLine(selected.ownerTeam)}{selected.ownerTeamId === myTeamId ? ` · ${ROSTERS_COPY.you}` : ""}</strong></p>
+    <div className="rosters-detail-values"><dl><div><dt>{C.salary}</dt><dd>{rosterMoney(selected.salary)}</dd></div><div><dt>{C.estimate}</dt><dd>{rosterMoney(selected.fair_value)}</dd></div></dl><Difference row={selected} /></div>
+    <div className="rosters-detail-contract"><span>{C.contract}</span><strong>{rosterContractLabel(selected)}</strong>{expireChipLabel(selected.expire_chip) && <span>{expireChipLabel(selected.expire_chip)}</span>}</div>
+    <button className="rosters-primary" disabled={Boolean(disabledReason)} aria-describedby={disabledReason ? "rosters-trade-reason" : undefined} onClick={() => {
+      if (disabledReason) return;
+      seedTradeFromPlayer({
+        player_id: selected.player_id,
+        player_name: selected.player_name,
+        team_id: selected.ownerTeamId,
+        salary: selected.salary,
+        position: selected.position
+      });
+      onNavigateTrade();
+    }}>{selected.ownerTeamId === myTeamId ? ROSTERS_COPY.addToTrade : ROSTERS_COPY.proposeTrade}</button>
+    {disabledReason && <p id="rosters-trade-reason" className="rosters-help">{disabledReason}</p>}
+    <ContractHistoryLink playerId={selected.player_id} playerName={selected.player_name} onOpen={onOpenContractHistory} className="rosters-history">{C.history}</ContractHistoryLink>
+  </aside>;
+  return <section className="rosters-board" aria-labelledby="rosters-heading">
+    <header className="rosters-header"><div><h1 id="rosters-heading">{ROSTERS_COPY.heading}</h1><p>{ROSTERS_COPY.support}</p></div><div className="rosters-header-actions"><button className="rosters-control" disabled={!leagueId || loading} onClick={() => load(true)} aria-label={ROSTERS_COPY.refreshLeague}><span aria-hidden="true">↻</span>{loading && overview ? C.refreshing : C.refresh}</button><button className="rosters-control" disabled={!leagueId || exporting} onClick={exportWorkbook}><span aria-hidden="true">↓</span>{exporting ? ROSTERS_COPY.exportBusy : ROSTERS_COPY.exportExcel}</button></div></header>
+    {(error || exportError) && <p className="rosters-error" role="alert">{error || exportError}</p>}
+    {!leagueId ? <p className="rosters-empty">{C.noLeague}</p> : <>
+    <div className="rosters-tabbar"><div className="rosters-tabs" role="tablist" aria-label={ROSTERS_COPY.heading}>{C.tabs.map(tab => <button key={tab.id} id={`rosters-tab-${tab.id}`} role="tab" aria-selected={view === tab.id} aria-controls="rosters-results" tabIndex={view === tab.id ? 0 : -1} onKeyDown={e => {
+            if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) {
+              e.preventDefault();
+              const next = e.key === "Home" ? "deals" : e.key === "End" ? "teams" : view === "deals" ? "teams" : "deals";
+              change(setView, next);
+              document.getElementById(`rosters-tab-${next}`)?.focus();
+            }
+          }} onClick={() => change(setView, tab.id)}>{tab.label}</button>)}</div>{overview && <div className="rosters-counts"><span>{C.resultCount(scopeRows.length)}</span><span className="is-below">{C.below(scopeRows.filter(r => rosterDifference(r) < 0).length)}</span><span className="is-above">{C.above(scopeRows.filter(r => rosterDifference(r) > 0).length)}</span></div>}</div>
+    <div className="rosters-toolbar"><BoardFilter label={C.manager} value={teamId} options={teams} onChange={v => change(setTeamId, v)} searchable /><label className="rosters-search"><span aria-hidden="true">⌕</span><input aria-label={C.search} placeholder={C.search} value={query} onChange={e => change(setQuery, e.target.value)} /></label><BoardFilter label="Position" value={position} options={positions} onChange={v => change(setPosition, v)} /><div className="rosters-segments" role="radiogroup" aria-label={C.difference}>{C.filters.map(f => <button key={f.id} role="radio" aria-checked={value === f.id} tabIndex={value === f.id ? 0 : -1} onKeyDown={e => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) { e.preventDefault(); const index = C.filters.findIndex(item => item.id === value); const next = e.key === "Home" ? 0 : e.key === "End" ? 2 : (index + (e.key === "ArrowRight" ? 1 : 2)) % 3; change(setValue, C.filters[next].id); e.currentTarget.parentElement.children[next]?.focus(); } }} onClick={() => change(setValue, f.id)}>{f.label}</button>)}</div><div className="rosters-sort"><BoardFilter label="Sort by" value={sort} options={C.sorts} onChange={v => change(setSort, v)} /></div></div>
+    <p className="rosters-explanation">{C.explanation}</p>
+    {view === "teams" && block && <div className="rosters-team-summary"><strong>{ownerLine(block.team)}</strong><span>{nicknameLine(block.team)}</span><span>{C.capRoom}: {rosterMoney(block.stats?.unspent)}</span><span>{C.deadCap}: {rosterMoney(block.stats?.dead_cap)}</span>{onNavigateTrade && teamId !== myTeamId && <button className="rosters-control" onClick={() => {
+          seedTradePartner(teamId);
+          onNavigateTrade();
+        }}>{ROSTERS_COPY.proposeTrade}</button>}</div>}
+    <div id="rosters-results" role="tabpanel" aria-labelledby={`rosters-tab-${view}`} aria-busy={loading}>
+    {loading && !overview ? <div className="rosters-skeleton" role="status" aria-label={ROSTERS_COPY.loading}>{Array.from({
+            length: 8
+          }, (_, i) => <div key={i}><span /><span /><span /></div>)}</div> : overview && <div className={`rosters-content${selected ? " has-selection" : ""}`}><div className="rosters-table-card"><table className="rosters-table"><caption className="rosters-sr">{C.tabs.find(t => t.id === view).label}</caption><thead><tr><th scope="col">{C.player}</th><th scope="col" className="rosters-manager-col">{C.manager}</th><th scope="col" className="rosters-num">{C.salary}</th><th scope="col" className="rosters-num rosters-estimate-col">{C.estimate}</th><th scope="col" className="rosters-num">{C.difference}</th><th scope="col" className="rosters-contract-col">{C.contract}</th><th scope="col" className="rosters-chevron"><span className="rosters-sr">{C.select}</span></th></tr></thead><tbody>{visible.map(row => <React.Fragment key={rosterRowKey(row)}><tr className={selected && rosterRowKey(selected) === rosterRowKey(row) ? "is-selected" : ""} onClick={() => select(row)}><td><button className="rosters-player" ref={el => {
+                        if (el) rowButtons.current.set(rosterRowKey(row), el);else rowButtons.current.delete(rosterRowKey(row));
+                      }} aria-label={C.selectPlayer(row.player_name)} aria-expanded={Boolean(selected && rosterRowKey(selected) === rosterRowKey(row))} onClick={e => {
+                        e.stopPropagation();
+                        select(row);
+                      }}><PlayerCell name={row.player_name} playerId={row.player_id} team={row.team} position={row.position} media={media} size="md" /></button></td><td className="rosters-manager-col">{ownerLine(row.ownerTeam)}</td><td className="rosters-num">{rosterMoney(row.salary)}</td><td className="rosters-num rosters-estimate-col">{rosterMoney(row.fair_value)}</td><td className="rosters-num"><Difference row={row} /></td><td className="rosters-contract-col">{rosterContractLabel(row)}</td><td className="rosters-chevron" aria-hidden="true">›</td></tr>{mobileLayout && selected && rosterRowKey(selected) === rosterRowKey(row) && <tr className="rosters-inline-detail"><td colSpan={7}>{detail}</td></tr>}</React.Fragment>)}</tbody></table>{!rows.length && <div className="rosters-empty"><p>{C.noResults}</p><button className="rosters-control" onClick={reset}>{C.reset}</button></div>}<footer className="rosters-pagination"><span role="status">{C.pagination(rows.length ? currentPage * 8 + 1 : 0, Math.min(rows.length, currentPage * 8 + 8), rows.length)}</span><div><button disabled={currentPage === 0} aria-label="Previous page" onClick={() => {
+                  setPage(currentPage - 1);
+                  setClosed(false);
+                }}>‹</button><span>{currentPage + 1} / {pages}</span><button disabled={currentPage >= pages - 1} aria-label="Next page" onClick={() => {
+                  setPage(currentPage + 1);
+                  setClosed(false);
+                }}>›</button></div></footer></div>{!mobileLayout && detail}</div>}
+    </div></>}
+  </section>;
 }

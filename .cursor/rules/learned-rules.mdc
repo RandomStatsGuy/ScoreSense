@@ -24,7 +24,7 @@ Keep under 30 data rows. Promote `always` / `never` into `docs/PRODUCT.md` or a 
 
 | Freq | Scope | Rule |
 |------|-------|------|
-| usually | agent | For a redesign or new page, write 2-3 static HTML mock options in docs/mockups, then implement the pick. Mock pages must pass `layout_audit` too. Include a screenshot of each option so the user can pick visually. Skip design essays on the mock pass. |
+| usually | agent | When the user has not already approved a design, write 2-3 static HTML mock options in docs/mockups, then implement the pick. Mock pages must pass `layout_audit` too. Include a screenshot of each option so the user can pick visually. Skip design essays on the mock pass. |
 | usually | agent | Mock a new overlay or popup on a picked layout and screenshot it before implementing the living page. |
 | usually | agent | When given audit reports, summarize findings in plain language before implementing any fixes. |
 | usually | agent | After finishing requested implementation, commit, push the branch, and open a draft PR to develop unless the user said to keep it local. |

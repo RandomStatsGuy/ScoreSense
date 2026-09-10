@@ -157,11 +157,11 @@ export const LIVING_SURFACES = Object.freeze({
   }),
   "hub.rosters": S({
     label: "Rosters",
-    chrome: "experience",
+    chrome: "table",
     route: "/hub/rosters",
     page: "frontend/src/DraftHub/LeagueRostersBrowser.jsx",
     copy: "frontend/src/DraftHub/leagueRostersPresentation.js",
-    doNot: "Free cap is auction leftover — same number as Cap. Expiring 1-year keepers are not committed. Reuse HubExperienceHero + HubExperienceLayout + HubExperienceSummary + HubTableCard. Default is the league-wide Overpay/Bargain list; the manager rail is the drill-down and shows free cap, expiring count, and worst overpay. Ten managers is a picker, not a swipe strip. Franchise headers get Propose trade into Trades · Builder with the partner preselected. Contract judgment is the word alone when the dollar delta is zero. Expire chips say Extendable or Expiring, never a question or Expires — FA. Expire chips are sentence case. Overpay rows stay a neutral background — only the delta chip is red. Desktop virtualizes on page scroll — no nested table scroller. Do not offer Add to trade on contracts that will not survive the next draft. Refresh labels name the scope (Refresh league), never sit beside a single manager as if they refresh that roster. Download Excel is ghost beside Refresh — never a second primary. Mobile cards expand into the judgment and actions, not a repeated years/pts grid.",
+    doNot: "Match the approved September 10 table/details mockup. Compact title and actions; no hero band, At a glance, manager rail, or repeated row actions. Contract values and Team rosters tabs; searchable manager picker, player/position/value filters, eight-row pagination. Salary, estimated value, and text delta stay adjacent. Selected-player panel owns Propose trade and contract history. Teal below/coral above estimates with explicit text; neutral rows. Responsive details below at laptop widths, inline on phone. Cap room uses backend auction leftover. Preserve trade eligibility, owner identity, export, and refresh scope; never invent missing estimates. Download Excel is ghost beside Refresh league. Dedicated layout CSS is approved.",
   }),
   "hub.planner": S({
     label: "Cap",
