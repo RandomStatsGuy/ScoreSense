@@ -8,9 +8,9 @@ export const DEALS_VIEW = "deals";
 
 export const ROSTERS_COPY = {
   eyebrow: "Rosters",
-  heading: "Compare league rosters",
+  heading: "League rosters",
   support:
-    "Compare salaries, contract years, and estimated player values across teams.",
+    "Compare contracts and find players to trade for.",
   proposeTrade: "Propose trade",
   refreshLeague: "Refresh league",
   exportExcel: "Download Excel",
@@ -226,4 +226,72 @@ export function managerPickerOptions(teamBlocks, dealRows) {
       detail: formatManagerRailFacts(managerDealFacts(block)),
     })),
   ];
+}
+
+export const ROSTER_BOARD_COPY = {
+  tabs: [{ id: "deals", label: "Contract values" }, { id: "teams", label: "Team rosters" }],
+  filters: [{ id: "all", label: "All" }, { id: "below", label: "Below estimate" }, { id: "above", label: "Above estimate" }],
+  sorts: [{ id: "difference", label: "Largest difference" }, { id: "salary", label: "Highest salary" }, { id: "name", label: "Player name" }],
+  search: "Search players", allTeams: "All teams", teamSearch: "Find a manager or team",
+  positions: "All positions", explanation: "Difference compares annual salary with ScoreSense estimated value.",
+  refresh: "Refresh", refreshing: "Refreshing…", history: "View contract history",
+  noLeague: "Choose a league to compare rosters.", noResults: "No contracts match these filters.",
+  reset: "Reset filters", select: "Select a player to view their contract.",
+  unavailable: "Estimate unavailable", estimate: "Est. value", salary: "Salary", difference: "Difference",
+  contract: "Contract", player: "Player", manager: "Manager", close: "Close player details",
+  managedBy: "Managed by", remaining: "remaining", capRoom: "Cap room", deadCap: "Dead cap",
+  unknownContract: "Contract not recorded", readonly: "Trade actions are unavailable in this view.",
+  noId: "This contract needs a matched player before it can be traded.",
+  resultCount: (n) => `${n} contract${n === 1 ? "" : "s"}`,
+  pagination: (start, end, total) => `Showing ${start}–${end} of ${total} contracts`,
+  below: (n) => `${n} below estimate`, above: (n) => `${n} above estimate`,
+  selectPlayer: (name) => `View ${name} contract`,
+};
+
+export function rosterMoney(value) {
+  return value == null || value === "" || !Number.isFinite(Number(value)) ? "—" : fmtSal(Number(value));
+}
+
+// Use the API estimate, never infer it from a grade or convert missing values to zero.
+export function rosterDifference(row) {
+  if (rosterMoney(row?.salary) === "—" || rosterMoney(row?.fair_value) === "—") return null;
+  return Number(row.salary) - Number(row.fair_value);
+}
+
+export function rosterDifferenceLabel(row) {
+  const delta = rosterDifference(row);
+  if (delta == null) return ROSTER_BOARD_COPY.unavailable;
+  if (delta === 0) return "At estimate";
+  return `${fmtSal(Math.abs(delta))} ${delta < 0 ? "below" : "above"}`;
+}
+
+export function rosterContractLabel(row) {
+  const n = row?.years_remaining ?? row?.contract_years;
+  const years = n == null || n === "" ? "" : `${n} year${Number(n) === 1 ? "" : "s"}`;
+  const types = { veteran: "Vet deal", rookie: "Rookie deal", extension: "Extension", fa: "Free agent" };
+  const type = types[row?.contract_type] || row?.contract_type || "";
+  return joinFacts([years, type]) || ROSTER_BOARD_COPY.unknownContract;
+}
+
+export function rosterRowKey(row) {
+  return `${row.ownerTeamId}:${row.player_id || row.player_name}`;
+}
+
+export function rosterBoardRows(blocks, { view = "deals", teamId = "", query = "", position = "", value = "all", sort = "difference" } = {}) {
+  const needle = query.trim().toLowerCase();
+  const rows = (blocks || []).flatMap(block => activeRoster(block).map(row => ({ ...row, ownerTeam: block.team, ownerTeamId: block.team?.id || "" })));
+  return rows.filter(row => {
+    const delta = rosterDifference(row);
+    if (view === "deals" && (delta == null || delta === 0)) return false;
+    if (teamId && row.ownerTeamId !== teamId) return false;
+    if (position && row.position !== position) return false;
+    if (value === "below" && !(delta != null && delta < 0)) return false;
+    if (value === "above" && !(delta != null && delta > 0)) return false;
+    return !needle || `${row.player_name} ${row.team || ""}`.toLowerCase().includes(needle);
+  }).sort((a,b) => {
+    if (sort === "name") return String(a.player_name).localeCompare(String(b.player_name));
+    const av = sort === "salary" ? (rosterMoney(a.salary) === "—" ? -Infinity : Number(a.salary)) : (rosterDifference(a) == null ? -Infinity : Math.abs(rosterDifference(a)));
+    const bv = sort === "salary" ? (rosterMoney(b.salary) === "—" ? -Infinity : Number(b.salary)) : (rosterDifference(b) == null ? -Infinity : Math.abs(rosterDifference(b)));
+    return (av === bv ? 0 : av > bv ? -1 : 1) || String(a.player_name).localeCompare(String(b.player_name));
+  });
 }

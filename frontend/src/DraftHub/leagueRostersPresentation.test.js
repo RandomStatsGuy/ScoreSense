@@ -20,9 +20,9 @@ import {
   yearsLeftLabel,
 } from "./leagueRostersPresentation.js";
 
-test("hero names the deal and the cost of getting it wrong", () => {
+test("header describes contract comparison", () => {
   assert.match(ROSTERS_COPY.heading, /rosters/i);
-  assert.match(ROSTERS_COPY.support, /salaries|estimated player values/i);
+  assert.match(ROSTERS_COPY.support, /contracts|trade/i);
   assert.doesNotMatch(ROSTERS_COPY.support, /Draft Hub|Submit|permission/i);
   assert.equal(ROSTERS_COPY.exportExcel, "Download Excel");
   assert.match(ROSTERS_COPY.exportTitle, /Excel/i);

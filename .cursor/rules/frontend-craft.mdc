@@ -19,7 +19,7 @@ These are checked by `scripts/dev/layout_audit.mjs`. A change is not done until 
 - Every horizontal group (bar, row, toolbar, button pair) is `align-items: center` and all its controls share one height token (`--control-h-sm` 32 / `--control-h-md` 40 / `--control-h-lg` 44). No mixed heights in one row.
 - Segmented controls and tabs center their labels. Fixed-width segments center; content-width segments use equal horizontal padding.
 - Tables: numeric columns (`$`, points, ranks, counts, deltas) right-align the cell AND the header. Text columns left-align both. Never center a column unless it is a single glyph (Pos, injury mark). The action column right-aligns.
-- Table column widths: first text column takes the remainder; numeric columns are `min-content` + padding. No column may be wider than 1.5× its widest cell unless it is the remainder column. The same pack and align rules apply to `table`, `[role=table]`, `[role=grid]`, and CSS-grid row groups.
+- Table column widths: first text column takes the remainder; numeric columns are `min-content` + padding. No column may be wider than 1.5× its widest cell unless it is the remainder column. The approved Rosters comparison table is an exception: balanced proportional columns keep salary, estimate, and difference readable together rather than creating an oversized player column. The same pack and align rules apply to `table`, `[role=table]`, `[role=grid]`, and CSS-grid row groups.
 - Content in a card/table fills the card. No dead zone > `--space-6` on either side of a table inside its card.
 - Page containers share one max-width and one horizontal inset. Hero band, strip, and main cards start at the same x. The summary rail is the right column — do not compare its left edge to the hero.
 
@@ -31,7 +31,7 @@ These are checked by `scripts/dev/layout_audit.mjs`. A change is not done until 
 ## Controls
 - Interactive targets are ≥ 32 tall at 1280 and ≥ 44 at 390. Do not apply the phone 44 floor on desktop. Lock/Skip/Add/History in a row share one style tier (all buttons or all links, not mixed).
 - One primary per viewport. A second blue filled button on screen is a bug. Undo, secondary, and "browse" are ghost or text. Do not demote whichever `.btn-primary` is second in the DOM to satisfy the audit — each extra primary is a judgment call on an approved list. Approved: Cap Undo cut and Undo extension are ghost (leftover / open the room stays primary); Home chat Send is ghost (the deck action stays); Trades Continue or Propose is the only primary (Accept and Load into builder are ghost).
-- Native `<select>` is never used; `HubFilterMenu` is. Applies to Rules, DFS, Season, every page.
+- Native `<select>` is never used; `HubFilterMenu` is the default. The approved Rosters board uses its compact `BoardFilter` with manager search and keyboard dismissal. Applies to Rules, DFS, Season, every page.
 - Option menus that overflow their host must paint above later siblings. Atmosphere pins `.draft-hub` children at z-index 1 so the wash stays behind content — raise `.hub-league-context-bar` to `--z-dropdown` (or portal the menu). A later `.hub-page` at the same z-index as the strip is a bug. Checked by layout_audit `menus`.
 
 ## Type
@@ -44,3 +44,7 @@ These are checked by `scripts/dev/layout_audit.mjs`. A change is not done until 
 
 ## When you find a violation on one page
 - Fix the primitive (the shared CSS class or component), not the page. Then grep every consumer and run the audit on each. A page-scoped override of a shared primitive is a failing review.
+
+## Approved table/details surface
+
+Rosters uses the approved compact title, filters, paginated table and selected-player panel instead of the experience stack. Its dedicated layout is not an override of another surface. Use a responsive panel below the table at laptop widths and inline details on phone. Delta cells are right-aligned text, with teal/coral and explicit below/above labels. Keep the existing spacing, readable type, focus, and target-size requirements.
