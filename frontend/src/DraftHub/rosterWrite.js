@@ -6,14 +6,19 @@
 export function buildRosterWriteRequest(change = {}) {
   const playerId = String(change.playerId || "").trim();
   if (!playerId) return null;
+  const slotId = Number(change.rosterSlotId);
+  const hasSlot = Number.isFinite(slotId) && slotId > 0;
   if (change.drop) {
+    const body = { player_id: playerId };
+    if (hasSlot) body.roster_slot_id = slotId;
     return {
       path: "/api/hub/roster",
       method: "DELETE",
-      body: { player_id: playerId },
+      body,
     };
   }
   const body = { player_id: playerId };
+  if (hasSlot) body.roster_slot_id = slotId;
   const ctype = String(change.contractType || "").trim().toLowerCase();
   if (ctype) body.contract_type = ctype;
   if (change.salary != null && Number.isFinite(Number(change.salary))) {

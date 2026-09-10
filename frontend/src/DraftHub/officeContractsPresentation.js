@@ -272,7 +272,12 @@ export function pendingMatchesBaseline(pending, row) {
 
 export function mergePendingChange(prev, playerId, patch, baseline) {
   const key = rosterSlotKey(baseline) || playerId;
-  const cur = { ...(prev[key] || prev[playerId] || { playerId }), ...patch, playerId };
+  const cur = {
+    ...(prev[key] || prev[playerId] || { playerId }),
+    ...patch,
+    playerId,
+    rosterSlotId: baseline?.id ?? (prev[key] || prev[playerId] || {}).rosterSlotId,
+  };
   if (patch.drop === false) delete cur.drop;
   const next = { ...prev };
   if (pendingMatchesBaseline(cur, baseline)) delete next[key];

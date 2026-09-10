@@ -7,6 +7,12 @@ from typing import Any
 
 from src.draft_hub import storage
 from src.draft_hub.contract_typing import apply_type_to_contract, infer_contract_type, suggested_rookie_years_pre_draft
+from src.draft_hub.roster_identity_match import (
+    find_matching_roster_slot,
+    group_duplicate_occupying,
+    pick_keeper_slot,
+    preferred_player_id,
+)
 from src.draft_hub.schemas import LeagueRules
 from src.draft_hub.years_exp_lookup import years_exp_for_player
 from src.integrations.sleeper_league import fetch_all_linked_rosters, fetch_linked_roster, list_league_teams
@@ -105,6 +111,39 @@ def _snapshot_players(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
     return list(snapshot.get("players") or [])
 
 
+def _workspace_slots(workspace_id: str) -> list[dict[str, Any]]:
+    return storage.list_workspace_roster_slots(workspace_id)
+
+
+def _replace_workspace_slot(slots: list[dict[str, Any]], row: dict[str, Any] | None) -> None:
+    """Keep the in-memory workspace list current after an add or identity stamp."""
+    if not row:
+        return
+    rid = row.get("id")
+    if rid is not None:
+        for i, current in enumerate(slots):
+            if current.get("id") == rid:
+                slots[i] = row
+                return
+    slots.append(row)
+
+
+def _apply_sleeper_identity(
+    workspace_id: str,
+    existing: dict[str, Any],
+    player: dict[str, Any],
+) -> dict[str, Any] | None:
+    slot_id = existing.get("id")
+    if slot_id is None:
+        return existing
+    return storage.stamp_roster_slot_identity(
+        workspace_id,
+        slot_id,
+        player_id=preferred_player_id(existing, player),
+        sleeper_player_id=player.get("sleeper_player_id") or existing.get("sleeper_player_id"),
+    ) or existing
+
+
 def merge_sleeper_team_roster(
     workspace_id: str,
     team_id: str,
@@ -119,22 +158,28 @@ def merge_sleeper_team_roster(
     season = int(season or 2026)
     added = 0
     updated = 0
+    slots = _workspace_slots(workspace_id)
     for p in players:
         pid = str(p["player_id"])
-        existing = storage.get_roster_slot(workspace_id, pid)
+        existing = find_matching_roster_slot(slots, p, team_id=str(team_id), occupying_only=True)
+        if existing is None:
+            existing = find_matching_roster_slot(slots, p, team_id=str(team_id), occupying_only=False)
         if existing:
+            existing_pid = str(existing.get("player_id") or pid)
             existing_tid = str(existing.get("team_id") or "")
             target_tid = str(team_id)
             if existing_tid != target_tid:
-                storage.move_roster_player(workspace_id, pid, target_tid)
+                storage.move_roster_player(workspace_id, existing_pid, target_tid)
             storage.update_roster_metadata(
                 workspace_id,
-                pid,
+                existing_pid,
                 player_name=p.get("player_name"),
                 team=p.get("team"),
                 position=p.get("position"),
                 sleeper_player_id=p.get("sleeper_player_id"),
             )
+            stamped = _apply_sleeper_identity(workspace_id, existing, p)
+            _replace_workspace_slot(slots, stamped)
             updated += 1
             continue
         contract = _default_contract_for_sleeper_player(
@@ -143,7 +188,7 @@ def merge_sleeper_team_roster(
             season=season,
             draft_completed=draft_completed,
         )
-        storage.add_roster_slot(
+        created = storage.add_roster_slot(
             workspace_id,
             {
                 "player_id": pid,
@@ -159,7 +204,35 @@ def merge_sleeper_team_roster(
             team_id=team_id,
         )
         added += 1
+        _replace_workspace_slot(slots, created)
     return {"added": added, "updated": updated}
+
+
+def collapse_duplicate_occupying_players(workspace_id: str) -> dict[str, int]:
+    """Delete extra occupying rows that are the same person on the same team."""
+    slots = _workspace_slots(workspace_id)
+    removed = 0
+    for cluster in group_duplicate_occupying(slots):
+        keeper = pick_keeper_slot(cluster)
+        keeper_id = int(keeper.get("id") or 0)
+        sleeper_id = str(keeper.get("sleeper_player_id") or "").strip()
+        drop_ids: list[int] = []
+        for row in cluster:
+            rid = int(row.get("id") or 0)
+            if rid == keeper_id:
+                continue
+            drop_ids.append(rid)
+            if not sleeper_id:
+                sleeper_id = str(row.get("sleeper_player_id") or "").strip()
+        if drop_ids:
+            removed += storage.delete_roster_slot_ids(workspace_id, drop_ids)
+        if sleeper_id and keeper_id:
+            storage.stamp_roster_slot_identity(
+                workspace_id,
+                keeper_id,
+                sleeper_player_id=sleeper_id,
+            )
+    return {"removed": removed}
 
 
 def invalidate_team_allowlist_cache(league_id: str | None = None) -> None:
@@ -325,6 +398,7 @@ def compose_team_roster_from_live_snapshot(
 
     sleeper_rows: list[dict[str, Any]] = []
     seen_sleeper: set[str] = set()
+    used_db_ids: set[str] = set()
     for player in live_players:
         pid = str(player.get("player_id") or "")
         if not pid:
@@ -338,7 +412,12 @@ def compose_team_roster_from_live_snapshot(
         row = db_by_pid.get(pid)
         if not row and spid:
             row = db_by_sleeper.get(spid)
+        if not row:
+            row = find_matching_roster_slot(db_roster, player, team_id=str(team_id))
         if row:
+            used_key = str(row.get("id") or row.get("player_id") or "")
+            if used_key:
+                used_db_ids.add(used_key)
             sleeper_rows.append(row)
             continue
         contract = _default_contract_for_sleeper_player(
@@ -367,8 +446,10 @@ def compose_team_roster_from_live_snapshot(
     manual_only = [
         r
         for r in manual
-        if str(r.get("player_id") or "") not in live_pids
+        if str(r.get("id") or r.get("player_id") or "") not in used_db_ids
+        and str(r.get("player_id") or "") not in live_pids
         and str(r.get("sleeper_player_id") or "") not in live_spids
+        and not find_matching_roster_slot(live_players, r, occupying_only=False)
     ]
     return manual_only + sleeper_rows
 
@@ -485,6 +566,7 @@ def ensure_sleeper_team_links(league_id: str) -> dict[str, Any]:
 
     reattach = reattach_league_roster_slots(league_id)
     reconcile = reconcile_league_roster_assignments(league_id)
+    collapse = collapse_duplicate_occupying_players(ws_id)
     from src.draft_hub.contract_backfill import backfill_league_contracts
 
     backfill = backfill_league_contracts(league_id)
@@ -500,6 +582,7 @@ def ensure_sleeper_team_links(league_id: str) -> dict[str, Any]:
         "merge": merge_stats,
         "reattach": reattach,
         "reconcile": reconcile,
+        "collapse": collapse,
         "backfill": backfill,
         "message": message,
     }
@@ -513,21 +596,27 @@ def detect_and_apply_sleeper_trades(
     Compare fresh Sleeper rosters to hub assignments.
     When a player moves between linked teams, move their contract row too.
     """
-    prev = storage.roster_player_team_map(workspace_id)
-    new_map: dict[str, str] = {}
+    slots = [r for r in _workspace_slots(workspace_id) if storage.roster_row_occupies(r)]
+    seen_slot_ids: set[int] = set()
+    moves: list[dict[str, Any]] = []
     for team_id, players in team_snapshots.items():
         for p in players:
-            new_map[str(p["player_id"])] = str(team_id)
-
-    moves: list[dict[str, Any]] = []
-    for pid, new_team in new_map.items():
-        old_team = prev.get(pid)
-        if old_team and old_team != new_team:
-            slot = storage.move_roster_player(workspace_id, pid, new_team)
+            match = find_matching_roster_slot(slots, p, occupying_only=True)
+            if not match:
+                continue
+            slot_id = int(match.get("id") or 0)
+            if slot_id in seen_slot_ids:
+                continue
+            old_team = str(match.get("team_id") or "")
+            new_team = str(team_id)
+            if not old_team or old_team == new_team:
+                continue
+            slot = storage.move_roster_player(workspace_id, str(match["player_id"]), new_team)
             if slot:
+                seen_slot_ids.add(slot_id)
                 moves.append(
                     {
-                        "player_id": pid,
+                        "player_id": slot.get("player_id") or p.get("player_id"),
                         "player_name": slot.get("player_name"),
                         "from_team_id": old_team,
                         "to_team_id": new_team,
@@ -811,6 +900,7 @@ def connect_sleeper_league(
 
     reattach = reattach_league_roster_slots(league_id)
     reconcile = reconcile_league_roster_assignments(league_id)
+    collapse = collapse_duplicate_occupying_players(str(ws_id))
 
     return {
         "league_id": league_id,
@@ -821,6 +911,7 @@ def connect_sleeper_league(
         "merge": merge_stats,
         "reattach": reattach,
         "reconcile": reconcile,
+        "collapse": collapse,
         "trades_applied": moves,
         "trade_count": len(moves),
     }
@@ -886,6 +977,7 @@ def sync_team_sleeper_to_league(
 
     reattach = reattach_league_roster_slots(league_id)
     reconcile = reconcile_league_roster_assignments(league_id)
+    collapse = collapse_duplicate_occupying_players(str(ws_id))
 
     return {
         "team_id": team_id,
@@ -894,4 +986,5 @@ def sync_team_sleeper_to_league(
         "trade_count": len(moves),
         "reattach": reattach,
         "reconcile": reconcile,
+        "collapse": collapse,
     }

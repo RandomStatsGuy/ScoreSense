@@ -1130,6 +1130,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
     });
     const res = await sendRosterWrite(apiFetch, {
       playerId,
+      rosterSlotId: row?.id,
       drop: Boolean(patch.drop),
       contractType: patch.drop ? undefined : patch.contractType,
       salary: patch.drop ? undefined : patch.salary,
@@ -1230,7 +1231,8 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
     try {
       for (const [playerId, change] of Object.entries(pendingByPlayer)) {
         const res = await sendRosterWrite(apiFetch, {
-          playerId,
+          playerId: change.playerId || playerId,
+          rosterSlotId: change.rosterSlotId,
           drop: Boolean(change.drop),
           contractType: change.drop ? undefined : change.contractType,
           salary: change.drop ? undefined : change.salary,
