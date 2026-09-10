@@ -23,6 +23,21 @@ test("analyticsEnabled only on production hostnames", () => {
   assert.equal(analyticsEnabled("scoresense-git-preview.vercel.app"), false);
 });
 
+test("shared room capability tokens never enter analytics", () => {
+  const pathname = "/team-room/private-capability-token";
+  assert.equal(shouldSkipPageView(pathname), true);
+  assert.equal(buildPageViewPayload({ pathname }).page_path, "/team-room/shared");
+  resetAnalyticsForTests();
+  const events = [];
+  const win = { location: { hostname: "app.fourthdownlabs.com", pathname }, gtag: (...args) => events.push(args) };
+  assert.equal(initAnalytics({ win, doc: {} }), false);
+  assert.equal(trackPageView({ pathname }, { win, doc: {} }), false);
+  assert.deepEqual(events, []);
+  const inline = productionGtagHtmlSnippet().match(/<script>([\s\S]*?)<\/script>/)[1];
+  new Function("window", "location", inline)(win, win.location);
+  assert.deepEqual(win.dataLayer, []);
+});
+
 test("sanitizeSearch drops secrets and keeps filters", () => {
   assert.equal(sanitizeSearch(""), "");
   assert.equal(

@@ -139,7 +139,7 @@ export function productionGtagHtmlSnippet({
     "window.dataLayer = window.dataLayer || [];",
     "function gtag(){dataLayer.push(arguments);}",
     "window.__SS_GA = 1;",
-    `if (${hosts}.indexOf(location.hostname) !== -1) {`,
+    `if (${hosts}.indexOf(location.hostname) !== -1 && !String(location.pathname || '').startsWith('/team-room/')) {`,
     "  gtag('js', new Date());",
     `  gtag('config', '${measurementId}', { send_page_view: false, anonymize_ip: true });`,
     "}",
@@ -165,6 +165,7 @@ export function sanitizeSearch(search) {
 
 export function shouldSkipPageView(pathname) {
   if (!pathname) return true;
+  if (pathname.startsWith("/team-room/")) return true;
   if (SKIP_PATHS.has(pathname)) return true;
   if (pathname.startsWith("/auth/callback")) return true;
   if (STANDALONE_TITLES[pathname]) return false;
@@ -236,7 +237,8 @@ export function buildPageViewPayload({
   search = "",
   origin = "",
 }) {
-  const pagePath = `${pathname}${sanitizeSearch(search)}`;
+  const safePath = String(pathname || "").startsWith("/team-room/") ? "/team-room/shared" : pathname;
+  const pagePath = `${safePath}${sanitizeSearch(search)}`;
   return {
     page_title: pageTitleForPath(pathname),
     page_path: pagePath,
@@ -261,6 +263,7 @@ export function initAnalytics({
   doc = typeof document !== "undefined" ? document : undefined,
 } = {}) {
   if (!win || !doc) return false;
+  if (String(win.location?.pathname || "").startsWith("/team-room/")) return false;
   const host = hostname ?? win.location?.hostname ?? "";
   if (!analyticsEnabled(host)) return false;
   if (initialized) return true;
