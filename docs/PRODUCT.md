@@ -100,7 +100,7 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 | Roster management | `office` | Staff-only contracts, sheets, members, access |
 | Insights | `insights` | League history and awards. Overview is a dynasty plaque, championship years, records, and career scoring — not Spend. Rank bars share a fixed track and start near the field (or show the gap from first). Career lists show every manager by the name that persists; team nicknames sit underneath — never as the only label. Award names are a Roster management control. The tab strip stays live; skeleton the plaque and boards. |
 
-Groups in the subnav: **Draft** (Strategy, Draft) · **Team** (This Week through Trades, including Vibes) · **League** (Rules, Roster management, Insights).
+Desktop Fantasy navigation is one readable row from Home through Trades, followed by a League dropdown containing Rules, Roster management (commissioners only), and Insights. Do not restore Draft/Team/League overlines or vertical group dividers. Phone destination sheets retain their useful grouping.
 
 If you add or rename a Fantasy destination, update `HubSubnav.jsx`, `appNavigation.js` subtitles, routes, `frontend/src/livingSurfaces.js`, this table, and tests in the same change.
 
@@ -338,3 +338,7 @@ Contract-type playbook for imports and keepers: [CONTRACT_SCENARIOS.md](./CONTRA
 | Living page to match | `frontend/src/livingSurfaces.js` |
 | Redesign / first-design options | [mockups/](./mockups/) · `.cursor/skills/fast-ui-mock/SKILL.md` |
 | Cloud Agent runtime | `.cursor/environment.json` |
+
+## Approved Fantasy header — September 10, 2026
+
+Match the approved compact header mockup: three continuous desktop rows for product navigation, Fantasy destinations, and league context; no rounded outer panel containers. League name is the picker label (no SWITCH LEAGUE prefix); New league lives inside its footer. Put phase beside the league, and Your team, team identity, role, and Sync league on the right. Keep mobile destination navigation and permissions. At narrow laptop widths the destination links may scroll horizontally while League stays reachable; do not shrink text. Dropdowns support keyboard dismissal/focus return and paint above page content.

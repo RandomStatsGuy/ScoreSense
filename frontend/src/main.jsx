@@ -12,6 +12,7 @@ import "./styles/vibe-rankings.css";
 import "./styles/strategy-board.css";
 import "./styles/product-rhythm.css";
 import "./styles/fantasy-phone.css";
+import "./styles/fantasy-header.css";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>

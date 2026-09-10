@@ -1,0 +1,60 @@
+/* Approved shared Fantasy header: product, destination, then league context. */
+.fantasy-header-menu { position: relative; flex: 0 0 auto; min-width: 0; }
+.fantasy-header-menu-trigger { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: var(--control-h-lg,44px); max-width: 100%; padding: var(--space-2) var(--space-4); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--bg-elevated); color: var(--text-primary); font-size: var(--rosters-text,1rem); cursor: pointer; text-align: left; }
+.fantasy-header-menu-trigger svg { flex-shrink: 0; }
+.fantasy-header-menu-trigger.is-active { background: var(--accent-soft); border-color: var(--accent); }
+.fantasy-header-menu-trigger:disabled { cursor: not-allowed; opacity: .6; }
+.fantasy-header-menu-panel { position: absolute; top: calc(100% + var(--space-2)); right: 0; min-width: 240px; max-width: min(420px, calc(100vw - var(--space-6))); padding: var(--space-2); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-popover); z-index: var(--z-dropdown-portal); }
+.fantasy-header-menu-panel nav { display: flex; flex-direction: column; gap: var(--space-1); }
+.fantasy-header-menu-panel nav a, .fantasy-league-picker-footer button { display: flex; align-items: center; min-height: var(--control-h-lg,44px); padding: var(--space-2) var(--space-3); border: 0; border-radius: var(--radius-sm); color: var(--text-primary); background: none; font-size: var(--rosters-text,1rem); text-decoration: none; cursor: pointer; }
+.fantasy-header-menu-panel nav a:hover, .fantasy-header-menu-panel nav a[aria-current=page], .fantasy-league-picker-footer button:hover { background: var(--accent-soft); color: var(--accent-muted); }
+.fantasy-league-picker .fantasy-header-menu-panel { left: 0; right: auto; width: 380px; }
+.fantasy-league-picker-options { max-height: 320px; overflow-y: auto; }
+.fantasy-league-picker-footer { border-top: 1px solid var(--border); margin-top: var(--space-2); padding-top: var(--space-2); }
+.fantasy-league-picker-footer button { width: 100%; color: var(--accent-muted); }
+.fantasy-league-picker input { display: block; width: 100%; min-height: var(--control-h-lg,44px); padding: var(--space-2) var(--space-3); margin-bottom: var(--space-2); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); background: var(--bg-base); font-size: var(--rosters-text,1rem); }
+.fantasy-league-picker .hub-league-pick-row { min-height: var(--control-h-lg,44px); padding: var(--space-3); }
+.fantasy-league-picker .hub-league-pick-row-title { font-size: var(--rosters-text,1rem); }
+.fantasy-league-picker .hub-league-pick-row-meta { font-size: var(--rosters-meta,.875rem); }
+@media (min-width: 769px) {
+ .app-header.app-header--hub { margin-bottom: 0; position: relative; z-index: var(--z-header); }
+ .app-header--hub .app-header-shell { padding: 0; gap: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; overflow: visible; }
+ .app-header--hub .app-header-row-primary { min-height: 64px; display: flex; align-items: center; gap: var(--space-7); padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); }
+ .app-header--hub .app-header-brand { display: flex; align-items: center; flex-direction: row; gap: var(--space-4); flex: 0 0 auto; }
+ .app-header--hub .app-title { font-size: var(--text-2xl); margin: 0; line-height: var(--line-tight); }
+ .app-header--hub .app-header-studio { font-size: var(--rosters-meta,.875rem); color: var(--text-secondary); white-space: nowrap; letter-spacing: 0; }
+ .app-header--hub .app-header-nav { display: flex; align-items: center; gap: var(--space-5); }
+ .app-header--hub .app-header-nav .view-tab { min-height: var(--control-h-lg,44px); padding: var(--space-2) var(--space-3); font-size: var(--rosters-text,1rem); color: var(--text-secondary); }
+ .app-header--hub .app-header-nav .view-tab.active { color: var(--text-primary); }
+ .app-header--hub .app-header-actions { margin-left: auto; }
+ .hub-subnav-row.hub-subnav-row--flat { display: flex; align-items: center; width: 100%; gap: var(--space-4); padding: var(--space-2) var(--space-3); min-height: 60px; border-bottom: 1px solid var(--border); }
+ .hub-subnav-row--flat .app-section-subnav.app-section-subnav--hub { flex: 1 1 auto; align-items: center; width: auto; min-width: 0; gap: var(--space-2); margin: 0; padding: 0; border: 0; overflow-x: auto; scrollbar-width: thin; }
+ .hub-subnav-row--flat .app-section-subnav--hub .app-section-subnav-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 0; min-height: var(--control-h-lg,44px); flex: 0 0 auto; padding: var(--space-2) var(--space-3); font-size: var(--rosters-meta,.875rem); color: var(--text-secondary); border: 1px solid transparent; border-radius: var(--radius-sm); }
+ .hub-subnav-row--flat .app-section-subnav--hub .app-section-subnav-btn.active { color: var(--text-primary); background: var(--accent-soft); border-color: var(--accent); }
+ .hub-subnav-row--flat .app-section-subnav-label { display: inline; }
+ .hub-subnav-row--flat .app-section-subnav-label-short { display: none; }
+ .hub-subnav-row--flat .fantasy-league-nav { margin-left: auto; }
+ .draft-hub > .hub-league-context-bar { z-index: var(--z-sticky); padding: var(--space-3); margin: 0; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; box-shadow: none; }
+ .hub-league-context-bar .hub-league-context-top { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-4); min-height: var(--control-h-lg,44px); }
+ .hub-league-context-bar .hub-league-context-identity { display: flex; align-items: center; gap: var(--space-4); flex: 0 1 auto; min-width: 0; }
+ .hub-league-context-bar .hub-league-switcher--compact { min-width: 0; max-width: 440px; }
+ .hub-league-context-bar .hub-league-context-phase { padding: var(--space-2) var(--space-3); border: 1px solid var(--border-strong); border-radius: var(--radius-pill); color: var(--text-secondary); font-size: var(--rosters-meta,.875rem); white-space: nowrap; }
+ .fantasy-team-context { display: flex; align-items: center; gap: var(--space-3); margin-left: auto; min-width: 0; color: var(--text-secondary); font-size: var(--rosters-meta,.875rem); }
+ .fantasy-team-context-label { white-space: nowrap; }
+ .fantasy-team-context .hub-league-context-team { font-size: var(--rosters-meta,.875rem); font-weight: var(--font-weight-medium); color: var(--text-primary); overflow-wrap: anywhere; }
+ .fantasy-team-context .hub-league-context-role { padding: var(--space-1) var(--space-3); border-radius: var(--radius-pill); background: var(--bg-subtle); color: var(--text-secondary); font-size: var(--text-xs); }
+ .hub-league-context-bar .hub-league-context-sync { margin-left: 0; }
+ .hub-league-context-bar .hub-league-context-sync-trigger { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); min-height: var(--control-h-lg,44px); font-size: var(--rosters-meta,.875rem); color: var(--accent-muted); border: 0; background: transparent; }
+ .hub-league-context-sync-panel { z-index: var(--z-dropdown-portal); }
+}
+@media (min-width: 769px) and (max-width: 1100px) {
+ .app-header--hub .app-header-row-primary { gap: var(--space-5); }
+ .app-header--hub .app-header-brand { flex-direction: column; align-items: flex-start; gap: var(--space-1); }
+ .app-header--hub .app-header-studio { font-size: var(--text-xs); }
+ .fantasy-team-context { flex: 1 1 auto; }
+ .hub-league-context-bar .hub-league-context-identity { flex: 1 1 auto; }
+}
+@media (max-width: 768px) {
+ .fantasy-header-menu-trigger { font-size: var(--rosters-meta,.875rem); }
+ .fantasy-league-picker .fantasy-header-menu-panel { max-width: calc(100vw - var(--space-7)); }
+}
