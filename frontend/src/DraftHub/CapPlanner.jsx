@@ -281,9 +281,9 @@ export default function CapPlanner({
     <>
       <p><strong>{CAP_MODEL_COPY.expireBeforeDraftTitle}</strong> — {CAP_MODEL_COPY.expireBeforeDraft}</p>
       <p><strong>Years left</strong> — Includes the upcoming season; drops by 1 when the draft is marked complete.</p>
-      <p><strong>Contract extension</strong> — Eligible final-year {veteranExtensions ? "rookie deals and vet deals" : "rookie deals"}; one 1–{maxExtensionYears} year extension. Start salary is server-set (current + ${stepUp}).</p>
+      <p><strong>Contract extension</strong> — Eligible final-year {veteranExtensions ? "rookie deals and vet deals" : "rookie deals"}; one 1–{maxExtensionYears} year extension. The extension starts at the current salary plus ${stepUp}.</p>
       <p><strong>Queued</strong> — Extension activates when draft is marked complete (1- and 3-year terms preserved).</p>
-      <p><strong>Against this cap</strong> — This year&apos;s salary plus dead cap. Leftover is the rest of the cap.</p>
+      <p><strong>Cap used</strong> — This year&apos;s salary plus dead cap. Leftover is the rest of the cap.</p>
       <p><strong>Keep past this draft</strong> — Players still under contract after this draft. On this sheet is every row listed below.</p>
       <p><strong>{CAP_MODEL_COPY.stepUp}</strong> — {capStepUpLine({
         rookieStatic: rookieSalaryStatic,

@@ -79,7 +79,7 @@ export default function CapSheetImport({ onImported, embedded = false }) {
       const msg = e.message || "Validation failed";
       setError(
         /field required/i.test(msg)
-          ? "The file didn't reach the server. Use the .tsv from the repo (not Excel) and try again."
+          ? "The file did not reach the server. Choose a TSV file using the downloadable template and try again."
           : msg,
       );
       pendingFileRef.current = null;
@@ -108,8 +108,8 @@ export default function CapSheetImport({ onImported, embedded = false }) {
     <section className={`panel hub-panel${embedded ? " hub-panel-embedded" : ""}${mobileLayout ? " hub-cap-import--mobile" : ""}`}>
       {!embedded && <h2>Cap sheet import</h2>}
       <p className="chart-note">
-        Commissioner tab-separated cap sheet: manager, position, player, salary, contract years.
-        Use a <code>.tsv</code> (for example <code>data/draft_hub/cap_sheet_test.tsv</code>), not the Excel workbook.
+        Upload a tab-separated cap sheet with manager, position, player, salary, and contract columns.
+        {" "}<a href="/templates/cap-sheet.tsv" download>Download the TSV template</a> and replace the example row with your league data.
       </p>
       <label className="admin-checkbox hub-cap-import-option">
         <input
@@ -125,7 +125,7 @@ export default function CapSheetImport({ onImported, embedded = false }) {
       </label>
       {!syncSleeperFirst && (
         <p className="chart-note admin-muted">
-          Replace mode wipes all league rosters and imports only what is in the file.
+          Confirming this import will replace all league rosters with the players in this file.
         </p>
       )}
       <div className={`hub-toolbar${mobileLayout ? " hub-toolbar--stack" : ""}`}>
@@ -203,7 +203,7 @@ export default function CapSheetImport({ onImported, embedded = false }) {
         className="app-mobile-sheet-confirm"
       >
         <p className="chart-note">
-          Replace mode wipes all league rosters and imports only what is in the file. Continue?
+          This mode replaces all league rosters with the players in your file. You can review validation results before confirming the import.
         </p>
         <div className="hub-toolbar hub-toolbar--stack">
           <button type="button" className="btn-primary" onClick={confirmReplacePick}>

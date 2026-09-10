@@ -364,10 +364,10 @@ export function awardCatalogFromRules(rules, catalog = DEFAULT_AWARD_CATALOG) {
 export const INSIGHTS_COPY = {
   overview: {
     eyebrow: "Insights",
-    heading: "Who already won this room.",
-    support: "Titles, records, and career points. Ignore the gap and you bid like every seat is even.",
+    heading: "Your league's history",
+    support: "Championships, records, and total points across your league's history.",
     supportWithSeasons: (countLabel) => (
-      `Titles, records, and career points across ${countLabel}. Ignore the gap and you bid like every seat is even.`
+      `Championships, records, and total points across ${countLabel}.`
     ),
     titles: "Titles",
     titlesNoun: "titles",
@@ -383,19 +383,19 @@ export const INSIGHTS_COPY = {
       return bits.join(" · ");
     },
     records: "All-time records",
-    recordsSupport: "Regular-season wins across every scored year.",
+    recordsSupport: "Regular-season records across all available seasons (W–L–T).",
     recordsEmpty: "Win-loss records fill in after scoring history refreshes.",
     scoring: "All-time scoring",
-    scoringSupport: "Gap from first in career fantasy points.",
+    scoringSupport: "Points behind the all-time leader.",
     scoringEmpty: "No scoring history yet.",
     openScoring: "Open scoring",
-    empty: "Link a Sleeper league to see champions, records, and scoring leaders.",
+    empty: "No league history is available yet. Check the Sleeper connection or refresh league history.",
     loading: "Loading league history",
   },
   awards: {
     heading: "Award names",
     support: "Rename the labels everyone sees on Insights.",
-    restore: "Blank a field and save to restore the original name.",
+    restore: "Clear a field and save to restore its default name.",
     save: "Save names",
     saving: "Saving…",
     saved: "Award names saved.",
@@ -405,19 +405,19 @@ export const INSIGHTS_COPY = {
   },
   spend: {
     eyebrow: "Insights",
-    heading: "Who burned the cap.",
-    support: "Positional spend and who is out of room. Overspend at RB and you draft thin everywhere else.",
-    empty: "Spend appears after the draft writes contracts. $0 committed means nobody has a deal yet.",
+    heading: "League spending",
+    support: "Compare spending by team and position.",
+    empty: "No spending data is available for this view.",
   },
   scoring: {
     eyebrow: "Scoring",
-    heading: "Find the team that scores but loses.",
-    support: "That manager sells high scorers cheap. The standings hide it.",
+    heading: "League scoring",
+    support: "Compare points scored, records, and scoring consistency.",
   },
   history: {
     eyebrow: "History",
-    heading: "Follow one player across owners.",
-    support: "Contracts and the timeline. Use it when a trade or keeper fight needs the paper trail.",
+    heading: "Player contract history",
+    support: "Review a player's teams, salaries, and contract changes by season.",
   },
 };
 

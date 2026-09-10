@@ -9,30 +9,30 @@ export const GAME_CENTER_COPY = {
   emptyPreseason: "No scored matchups yet. Scores fill in after kickoff.",
   loadingChip: "Loading",
   unscoredChip: "No scores yet",
-  emptyDuel: "Lineups are empty until kickoff. Set them on This Week.",
+  emptyDuel: "No starting lineup is available. Review your lineup on This Week.",
   setLineup: "Set lineup",
   setupCta: "Link Sleeper",
   openDraft: "Open draft room",
   nextGames: "Next games Thu",
   notStarted: "Not started",
   standingsTitle: "Standings",
-  standingsUnranked: "Standings start after Week 1.",
+  standingsUnranked: "Standings update after Week 1 is complete.",
   standingsLastSeason: "Last season",
   standingsToDate: "Season to date.",
   emptyLineupHeading: "Your lineup is empty.",
-  emptyLineupSupport: "Empty slots score zero.",
+  emptyLineupSupport: "Review your starters on This Week.",
   trophyNoVotes: "No votes yet",
   trophyYouVoted: "you voted",
   trophyVote: "Vote",
   trophyChangeVote: "Change vote",
-  duelTitle: "Starter duel",
+  duelTitle: "Starting lineups",
   duelSupport: "Slot by slot against your opponent.",
-  benchTitle: "Bench watch",
-  benchSupport: "Points you left on the bench.",
+  benchTitle: "Bench scoring",
+  benchSupport: "Points scored by your bench players.",
   leagueTitle: "Around the league",
   leagueSupport: "Every matchup this week.",
-  trophiesTitle: "Week trophies",
-  trophiesSupport: "High score and low score land in Insights.",
+  trophiesTitle: "Weekly awards",
+  trophiesSupport: "See weekly high and low scores in Insights.",
 };
 
 export function duelSlotFilled(player) {
@@ -295,7 +295,13 @@ export function gameCenterHeroCopy({
   viewer,
   opponent,
 } = {}) {
-  if (emptyLineup || placeholder) {
+  if (placeholder || !viewer || !Array.isArray(viewer.starters)) {
+    return {
+      heading: "Your matchup",
+      support: "Matchup data is not available yet.",
+    };
+  }
+  if (emptyLineup) {
     return {
       heading: GAME_CENTER_COPY.emptyLineupHeading,
       support: GAME_CENTER_COPY.emptyLineupSupport,
@@ -308,8 +314,8 @@ export function gameCenterHeroCopy({
     };
   }
   return {
-    heading: GAME_CENTER_COPY.emptyLineupHeading,
-    support: GAME_CENTER_COPY.emptyLineupSupport,
+    heading: "Your matchup",
+    support: "Compare starting lineups and follow this week's scores.",
   };
 }
 
@@ -352,10 +358,8 @@ export function trophySummaryState({ leader, votes, youVoted = false } = {}) {
 }
 
 export function lineupIsEmpty(viewer, opponent, rows = []) {
-  if (rows.length === 0) return true;
-  const sides = [viewer, opponent];
-  return sides.every((team) => {
-    const starters = team?.starters || [];
-    return starters.length === 0 || starters.every((player) => !duelSlotFilled(player));
-  });
+  // Missing data is not an empty lineup. Only the viewer's starters determine
+  // whether the message "Your lineup is empty" applies.
+  if (!Array.isArray(viewer?.starters)) return false;
+  return viewer.starters.every((player) => !duelSlotFilled(player));
 }

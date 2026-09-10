@@ -337,8 +337,8 @@ export default function RulesWizard({
             <header className="hub-rules-section-head">
               <span>01</span>
               <div>
-                <h3 id="rules-foundation-title">League foundation</h3>
-                <p>The identity and format managers see everywhere in Fantasy.</p>
+                <h3 id="rules-foundation-title">League settings</h3>
+                <p>Set your league name, season, and draft format.</p>
               </div>
             </header>
 
@@ -420,10 +420,10 @@ export default function RulesWizard({
             {!pickDraft && (
               <div className="hub-rules-risk">
                 <div>
-                  <strong>Risk posture</strong>
+                  <strong>Bid strategy</strong>
                   <span>How projection uncertainty influences suggested bids.</span>
                 </div>
-                <div className="hub-rules-risk-options" role="radiogroup" aria-label="Risk posture">
+                <div className="hub-rules-risk-options" role="radiogroup" aria-label="Bid strategy">
                   {RISK_TOLERANCE_OPTIONS.map((option) => (
                     <button
                       key={option.id}
@@ -451,8 +451,8 @@ export default function RulesWizard({
               <header className="hub-rules-section-head">
                 <span>02</span>
                 <div>
-                  <h3 id="rules-contracts-title">Contract lifecycle</h3>
-                  <p>Define how new deals grow and who can stay beyond the original term.</p>
+                  <h3 id="rules-contracts-title">Contract rules</h3>
+                  <p>Set contract lengths, annual salary increases, and extension eligibility.</p>
                 </div>
               </header>
 
@@ -580,8 +580,8 @@ export default function RulesWizard({
             <header className="hub-rules-section-head">
               <span>{pickDraft ? "02" : "03"}</span>
               <div>
-                <h3 id="rules-roster-title">Roster shape</h3>
-                <p>Use ranges to protect lineup integrity without dictating strategy.</p>
+                <h3 id="rules-roster-title">Roster limits</h3>
+                <p>Set the minimum and maximum number of players at each position.</p>
               </div>
             </header>
             {warningList.length > 0 && (
@@ -649,7 +649,7 @@ export default function RulesWizard({
               <header className="hub-rules-section-head">
                 <span>04</span>
                 <div>
-                  <h3 id="rules-draft-title">Draft behavior</h3>
+                  <h3 id="rules-draft-title">Draft settings</h3>
                   <p>{RULES_COPY.draftBehaviorHint}</p>
                 </div>
               </header>

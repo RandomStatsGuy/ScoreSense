@@ -206,19 +206,21 @@ function ContractSidePanelBody({
       </div>
 
       <div className="hub-roster-contract-panel-stat hub-roster-contract-panel-schedule">
-        <span className="mobile-stat-label">Schedule</span>
+        <span className="mobile-stat-label">Salary schedule</span>
         <strong className="hub-schedule-preview">{livePreview || "—"}</strong>
       </div>
 
       <div className="hub-roster-contract-panel-grid">
         <div className="hub-roster-contract-panel-stat">
-          <span className="mobile-stat-label">Dead cap</span>
+          <span className="mobile-stat-label">{deadStory.isCut ? "Dead cap" : "Dead cap if cut"}</span>
           <strong>{deadStory.deadLabel}</strong>
         </div>
-        <div className="hub-roster-contract-panel-stat">
-          <span className="mobile-stat-label">If undone</span>
-          <strong>{deadStory.ifUndoneLabel}</strong>
-        </div>
+        {deadStory.isCut && (
+          <div className="hub-roster-contract-panel-stat">
+            <span className="mobile-stat-label">Salary restored if cut is undone</span>
+            <strong>{fmtSal(deadStory.salary)}</strong>
+          </div>
+        )}
       </div>
 
       {(pendingType || pendingExt) && (

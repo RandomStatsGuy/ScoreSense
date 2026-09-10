@@ -5,15 +5,15 @@ export const PLAYERS_TAB_COPY = {
   bid: "Bid",
   reassign: "Reassign",
   lockedReason: "Adds open after the draft",
-  star: "Star for draft",
-  starred: "Starred for draft",
-  unstar: "Remove star",
+  star: "Add to draft watchlist",
+  starred: "On draft watchlist",
+  unstar: "Remove from draft watchlist",
   howAddsWork: "How adds work",
   howAddsBody:
-    "Adds follow the league calendar. Before the draft, pickups go through the live room. After it, Bid or Add on the row when the window is open.",
-  starHint: "Star a name to queue it for draft night.",
-  history: "History",
-  seasonPts: "Season pts",
+    "Player additions follow the league calendar. Use Draft before the draft ends. Afterward, use Bid during waivers or Add during free agency.",
+  starHint: "Add a player to your draft watchlist.",
+  history: "Contract history",
+  seasonPts: "Projected season pts",
 };
 
 export function playersTabAddMode(window, { inLeague = false, draftConsole = false } = {}) {

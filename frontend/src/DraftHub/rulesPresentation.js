@@ -3,8 +3,8 @@ import { normalizeHubPosition } from "./hubPositions.js";
 
 export const RULES_COPY = {
   eyebrow: "League rules",
-  heading: "What a new contract will cost.",
-  support: "New deals follow these numbers. A silent change after the draft strands managers.",
+  heading: "League rules",
+  support: "Set salary, contract, roster, and draft rules for your league.",
   saveFootnote: "Saving these rules does not rewrite existing contract schedules.",
   staffOnly: "Managers can read these rules here. Only commissioners can change them.",
   commissionerManaged: "Commissioner managed",
@@ -12,7 +12,7 @@ export const RULES_COPY = {
   glancePreview: "Preview of your changes",
   save: "Save league rules",
   saving: "Saving…",
-  saved: "Rules saved. Everyone now sees the same league policy.",
+  saved: "League rules saved.",
   saveFailed: "Rules could not be saved.",
   fixBeforeSave: "Fix the highlighted rules before saving.",
   noChanges: "No changes to save.",
@@ -41,13 +41,13 @@ export const RULES_COPY = {
     `Position minimums require ${minSum} players. This roster has ${liveCount}.`
   ),
   fixedPointRange: (minSum) => (
-    `Every position min equals its max, so the range is a fixed ${minSum}-player demand.`
+    `These limits require exactly ${minSum} players per team.`
   ),
   livePosShort: (labels) => (
-    `This roster is short of the new minimums (${labels}).`
+    `Your roster does not meet these position minimums (${labels}).`
   ),
-  rookieTerm: "Default rookie deal",
-  vetTerm: "Default vet deal",
+  rookieTerm: "Default rookie contract length",
+  vetTerm: "Default veteran contract length",
   keepRookieFlat: "Keep rookie deals flat",
   keepRookieFlatHelp: "Year one and two of a rookie deal stay at the signing salary. The step-up starts on an extension.",
   keepVetFlat: "Keep vet deals flat",
@@ -55,16 +55,16 @@ export const RULES_COPY = {
   allowExtensions: "Allow extensions",
   allowExtensionsHelp: "A final-year rookie deal or vet deal may take one extension. An extension cannot be extended again.",
   allowRookieExtensions: "Allow rookie deal extensions",
-  allowRookieExtensionsHelp: "A final-year rookie deal may take one extension. An extension cannot be extended again.",
+  allowRookieExtensionsHelp: "A rookie contract can be extended once, in its final year. An extension cannot be extended again.",
   allowVetExtensions: "Allow vet deal extensions",
-  allowVetExtensionsHelp: "A final-year vet deal may take one extension. An extension cannot be extended again.",
+  allowVetExtensionsHelp: "A veteran contract can be extended once, in its final year. An extension cannot be extended again.",
   previewRookie: "Rookie deal",
   previewVet: "Vet deal",
   previewExtension: "Extension",
   previewFlat: "Flat salary",
-  previewStep: "Steps every year",
+  previewStep: "Increases each year",
   cutRefund: "Cut refund",
-  cutRefundHelp: "Dead cap floors to the lower dollar. Cutting $1 is $0 dead; cutting $7 is $3 dead at 50%.",
+  cutRefundHelp: "Dead cap is rounded down to the nearest dollar. Cutting $1 is $0 dead; cutting $7 is $3 dead at 50%.",
 };
 
 export const FORMAT_OPTIONS = [
@@ -165,7 +165,7 @@ export function validateLeagueSettings({ name, season, rules }) {
     errors.veteran_years = "Vet deal term cannot exceed the maximum contract length.";
   }
   if (!numberInRange(merged.contracts.extension_step_up, 0, 100000)) {
-    errors.extension_step_up = "Annual step-up cannot be negative.";
+    errors.extension_step_up = "Annual salary increase cannot be negative.";
   }
   if (!numberInRange(merged.contracts.cut_refund_pct, 0, 1)) {
     errors.cut_refund_pct = "Cut refund must be between 0% and 100%.";

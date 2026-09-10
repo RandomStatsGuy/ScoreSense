@@ -15,14 +15,14 @@ export function fmtSal(v) {
 }
 
 export const CONTRACT_TYPE_OPTIONS = [
-  { value: "rookie", label: "Rookie deal" },
-  { value: "veteran", label: "Vet deal" },
+  { value: "rookie", label: "Rookie contract" },
+  { value: "veteran", label: "Veteran contract" },
   { value: "extension", label: "Extension" },
 ];
 
 export function contractTypeLabel(type) {
   const hit = CONTRACT_TYPE_OPTIONS.find((o) => o.value === type);
-  return hit?.label || "Vet deal";
+  return hit?.label || "Veteran contract";
 }
 
 /** Final-year rookie / vet deals may take one extension. An extension cannot. */

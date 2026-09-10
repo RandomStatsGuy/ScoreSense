@@ -97,7 +97,7 @@ test("Also due uses the same extend and expiring nouns as My team", () => {
 
 test("known action labels use concrete verbs", () => {
   assert.equal(actionLabel({ id: "cap_overage" }), "Fix cap");
-  assert.equal(actionLabel({ id: "lineup_decisions" }), "Set lineup");
+  assert.equal(actionLabel({ id: "lineup_decisions" }), "Review lineup");
   assert.equal(actionLabel({ id: "invite_managers" }), "Invite managers");
   assert.equal(actionLabel({ id: "mark_availability" }), "Mark times");
   assert.equal(actionLabel({ id: "roster_hole" }), "Open draft room");
@@ -123,7 +123,7 @@ test("home hero names the roster hole over empty seats", () => {
     homeHeroHeading({ actions: [hole, invite], seating: { open_seats: 9 } }),
     hole.message,
   );
-  assert.match(homeHeroSupport({ actions: [hole] }), /wasted nomination|Undo a cut/i);
+  assert.match(homeHeroSupport({ actions: [hole] }), /roster needs/i);
   assert.equal(homeHasPendingCuts({ pre_draft: { pending_cuts_count: 1 } }), true);
   assert.equal(HOME_PAGE_COPY.undoCut, "Undo a cut");
   assert.match(HOME_PAGE_COPY.loadingFallback, /Still syncing with Sleeper/i);
@@ -184,6 +184,6 @@ test("home deck helpers format empty scores and keep the viewer in standings", (
   assert.equal(homeStandingHasGap({ rank: 3 }, { rank: 4 }), false);
   assert.equal(HOME_DECK_COPY.clearChat, "Clear chat");
   assert.equal(HOME_DECK_COPY.lockerTitle, "League chat");
-  assert.match(HOME_DECK_COPY.lockerNote, /follows you/i);
+  assert.match(HOME_DECK_COPY.lockerNote, /any Fantasy page/i);
   assert.doesNotMatch(HOME_DECK_COPY.lockerNote, /Draft Hub|Submit|permission/i);
 });

@@ -41,12 +41,12 @@ import {
 
 test("Cap hero asks if you can afford the bid", () => {
   const live = capHeroCopy();
-  assert.match(live.heading, /afford/i);
-  assert.match(live.support, /leftover|bid|against this cap/i);
+  assert.match(live.heading, /salary cap/i);
+  assert.match(live.support, /active salaries and dead cap/i);
   const empty = capHeroCopy({ empty: true });
-  assert.match(empty.support, /guess/i);
+  assert.match(empty.support, /Add players/i);
   const pre = capHeroCopy({ preDraft: true });
-  assert.match(pre.support, /dead cap/i);
+  assert.match(pre.support, /expiring contracts and extension costs/i);
   assert.doesNotMatch(JSON.stringify(live), /three seasons before you spend|Draft Hub|Submit/i);
 });
 
@@ -140,17 +140,17 @@ test("against cap plus leftover equals the cap", () => {
   assert.equal(against + leftover, salaryCap);
   assert.equal(
     capEquationNote({ against, leftover, salaryCap }),
-    "$86 of $200 against cap · $114 leftover",
+    "$86 of $200 cap used · $114 cap room",
   );
   assert.equal(
     capEquationNote({ leftover: 122.5, salaryCap: 200 }),
-    "$77 of $200 against cap · $123 leftover",
+    "$77 of $200 cap used · $123 cap room",
   );
   assert.equal(
     capEquationNote({ against: 270, leftover: -70, salaryCap: 200 }),
-    "$270 of $200 against cap · $70 over",
+    "$270 of $200 cap used · $70 over",
   );
-  assert.equal(CAP_FIGURE_COPY.againstCap, "Against this cap");
+  assert.equal(CAP_FIGURE_COPY.againstCap, "Cap used");
   assert.doesNotMatch(CAP_FIGURE_COPY.againstCap, /^Committed$/);
   const pair = displayCapPair({ leftover: 122.5, salaryCap: 200 });
   assert.equal(pair.leftover, 123);
@@ -267,7 +267,7 @@ const FA_ROWS = [
   { player_id: "mine", player: "Mine", fair_value: 30, status: "mine" },
 ];
 
-test("This cut funds the highest available bid that still fits leftover", () => {
+test("This cut funds the highest available bid that still fits cap room", () => {
   const funded = pickFundedPlayer({ leftoverAfter: 20, availableRows: FA_ROWS });
   assert.equal(funded.player_id, "fit");
   assert.equal(funded.suggested_bid, 18);

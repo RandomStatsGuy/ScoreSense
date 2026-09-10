@@ -944,6 +944,7 @@ export default function LeagueInsights({
       {activeTab === "overview" && (
         <InsightsOverview
           landing={data?.landing}
+          error={error}
           ownerMap={ownerMap}
           loading={loading || tabLoading}
           onOpenTab={setActiveTab}
@@ -1011,7 +1012,7 @@ export default function LeagueInsights({
             yearSpecific={capYearSpecific}
             subtitle={`${usingHistoricCap ? capHistoryLabel : "Current rosters"}${allTimeCap ? " · avg % of cap" : ""}`}
           />
-          {!allTimeCap && capTeamsRaw.every((t) => !Number(t.committed)) ? (
+          {!loading && !tabLoading && !error && !allTimeCap && capTeamsRaw.every((t) => !Number(t.committed)) ? (
             <p className="chart-note">{INSIGHTS_COPY.spend.empty}</p>
           ) : null}
 
@@ -1042,7 +1043,7 @@ export default function LeagueInsights({
 
           {showCapBarChart && (
             <InsightsDisclosure
-              summary="Compare stacked spend"
+              summary="Compare team spending"
               meta="Optional charts"
               onOpen={() => setCapChartsOpen(true)}
             >
@@ -1191,7 +1192,7 @@ export default function LeagueInsights({
                   </table>
                 </div>
               )}
-              {filteredCapTeams.length === 0 && (
+              {!loading && !tabLoading && !error && filteredCapTeams.length === 0 && (
                 <p className="chart-note">No teams match this filter.</p>
               )}
             </div>
@@ -1294,9 +1295,9 @@ export default function LeagueInsights({
             </>
           )}
 
-          {data?.scoring?.available && !data?.scoring?.preseason && scoringAwards.length === 0 && showScoringTables && (
+          {!error && data?.scoring?.available && !data?.scoring?.preseason && scoringAwards.length === 0 && showScoringTables && (
             <p className="chart-note hub-insights-callout">
-              {tabLoading ? "Loading awards…" : "Awards still loading — tap Refresh scoring."}
+              {tabLoading ? "Loading awards…" : "No scoring awards are available for this view."}
             </p>
           )}
 
@@ -1582,7 +1583,7 @@ export default function LeagueInsights({
           {ownershipSeasonLoading && (
             <p className="chart-note">Loading Sleeper history…</p>
           )}
-          {!ownershipLoading && !loading && filteredPlayers.length === 0 && (
+          {!ownershipLoading && !loading && !tabLoading && !error && filteredPlayers.length === 0 && (
             <p className="chart-note">
               No players for this view. Try another season.
             </p>
@@ -1650,15 +1651,15 @@ export default function LeagueInsights({
                     />
                     <div className="hub-player-history-stat-grid">
                       <PlayerHistoryStat
-                        label="Avg contract"
+                        label="Average salary"
                         value={selectedPlayer.contract_stats?.avg_cap != null ? fmtSal(selectedPlayer.contract_stats.avg_cap) : "—"}
                       />
                       <PlayerHistoryStat
-                        label="Peak cap"
+                        label="Highest cap hit"
                         value={selectedPlayer.contract_stats?.max_cap != null ? fmtSal(selectedPlayer.contract_stats.max_cap) : "—"}
                       />
                       <PlayerHistoryStat
-                        label="Teams owned"
+                        label="Teams in this league"
                         value={selectedPlayer.contract_stats?.team_count ?? "—"}
                         hint={
                           (selectedPlayer.contract_stats?.teams_owned || []).length

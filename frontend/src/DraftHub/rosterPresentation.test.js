@@ -10,18 +10,18 @@ test("My team copy names the decision and skips Draft Hub / permission voice", (
   assert.equal(MY_TEAM_COPY.undoExtension, "Undo extension");
   assert.match(MY_TEAM_COPY.queuedNote, /undo/i);
   assert.match(MY_TEAM_COPY.undoExtensionHint, /expire/i);
-  assert.match(MY_TEAM_COPY.removeConfirm, /No dead cap/);
-  assert.match(MY_TEAM_COPY.removeConfirm, /Cut if you meant a penalty/);
-  assert.doesNotMatch(MY_TEAM_COPY.removeConfirm, /Staff only|permission|refund/i);
-  assert.equal(MY_TEAM_COPY.dropLabel, "Drop");
+  assert.match(MY_TEAM_COPY.removeConfirm, /no dead cap/i);
+  assert.match(MY_TEAM_COPY.removeConfirm, /refunds the full cap charge/);
+  assert.doesNotMatch(MY_TEAM_COPY.removeConfirm, /Staff only|permission/i);
+  assert.equal(MY_TEAM_COPY.dropLabel, "Remove without penalty");
   assert.equal(MY_TEAM_COPY.cutLabel, "Cut");
   assert.equal(MY_TEAM_COPY.undoCut, "Undo cut");
   assert.equal(MY_TEAM_COPY.undoCutClosed, "Undo cut is closed");
   assert.match(MY_TEAM_COPY.undoCutClosedDetail("Bravo"), /Bravo's roster/);
   assert.match(MY_TEAM_COPY.undoCutClosedSupport("Bravo"), /Bravo's roster/);
   assert.equal(MY_TEAM_COPY.cutConfirmTitle("Veteran"), "Cut Veteran?");
-  assert.match(MY_TEAM_COPY.cutConfirm("$4", "$4"), /Frees \$4 leftover/);
-  assert.match(MY_TEAM_COPY.cutConfirm("$4", "$4"), /Dead cap \$4/);
+  assert.match(MY_TEAM_COPY.cutConfirm("$4", "$4"), /Frees \$4 in cap room/);
+  assert.match(MY_TEAM_COPY.cutConfirm("$4", "$4"), /\$4 in dead cap/);
 });
 
 test("cut status chip says Cut, not Cut before draft", () => {

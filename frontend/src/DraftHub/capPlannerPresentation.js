@@ -9,15 +9,15 @@ function rowIsAvailable(row) {
 /** User-facing copy for Fantasy → Cap. */
 
 export const CAP_MOVE_COPY = {
-  title: "After this move",
-  hint: "Cut a name or enter a bid. The leftover here updates.",
+  title: "Preview a roster move",
+  hint: "Choose a player to cut or enter a bid to preview your remaining cap room. This calculator does not change your roster.",
   cutLabel: "Cut",
   bidLabel: "Bid",
   none: "No cut",
   reset: "Reset",
   now: "Now",
   after: "After",
-  leftoverWord: "leftover",
+  leftoverWord: "cap room",
   over: (amount) => `This bid puts you ${amount} over. Cut more or bid less.`,
 };
 
@@ -28,9 +28,9 @@ export const CAP_EXTEND_COPY = {
   selectPlayer: "Select player",
   queue: "Queue extension",
   undo: "Undo extension",
-  queuedHint: "Undo if the years are wrong. The deal expires at the draft unless you queue again.",
+  queuedHint: "Undo if the years are wrong. If you undo the extension, the contract will expire at the draft unless you queue another.",
   noDealsEnd: "No deals end at this draft — nothing to extend yet.",
-  alreadyExtended: "An extension cannot be extended again. Those names expire to the draft pool.",
+  alreadyExtended: "An extension cannot be extended again. Those players enter the draft pool when their contracts expire.",
 };
 
 export function queuedExtensionsSummary(count) {
@@ -45,19 +45,19 @@ export function queuedYearsLine(years) {
 }
 
 export const CAP_FIGURE_COPY = {
-  leftover: "Leftover",
-  againstCap: "Against this cap",
+  leftover: "Cap room",
+  againstCap: "Cap used",
   againstCapHint: "Salary plus dead cap",
   salary: "Salary",
   deadCap: "Dead cap",
   keepPastDraft: "Keep past this draft",
-  onThisSheet: "On this sheet",
+  onThisSheet: "Contract records",
   rulesHeading: "League rules",
-  stepUp: "Annual step-up",
+  stepUp: "Annual salary increase",
   cutRefund: "Cut refund",
   leagueSpend: "League spend",
-  seasonAgainst: "against cap",
-  seasonLeftover: "leftover",
+  seasonAgainst: "cap used",
+  seasonLeftover: "cap room",
 };
 
 export const CAP_NEED_COPY = {
@@ -88,7 +88,7 @@ export function capStepUpLine({
 export function capCutRefundLine(pct = 50) {
   const n = Number(pct);
   const label = Number.isFinite(n) ? `${Math.round(n)}%` : "50%";
-  return `${label} back; dead cap floors to the lower dollar. A $1 cut is $0 dead; a $7 cut is $3 dead at 50%.`;
+  return `${label} back; dead cap is rounded down to the nearest dollar. A $1 cut is $0 dead; a $7 cut is $3 dead at 50%.`;
 }
 
 export const CAP_STATUS_COPY = {
@@ -104,7 +104,7 @@ export const CAP_DRAFT_COPY = {
 
 export const CAP_SHEET_COPY = {
   title: "Cap sheet",
-  hint: "Cap hit by season. Years with no hits are hidden.",
+  hint: "Cap hit by season. Seasons with no cap charges are hidden.",
 };
 
 export function leftoverAfterMove({ remaining = 0, cutSalary = 0, cutRefundPct = 0.5, bid = 0 } = {}) {
@@ -195,8 +195,8 @@ export function capEquationNote({ leftover, salaryCap, against } = {}) {
   const rem = pair.leftover;
   const leftoverBit = rem != null && rem < 0
     ? `${fmtCapMoney(Math.abs(rem))} over`
-    : `${fmtCapMoney(rem ?? leftover)} leftover`;
-  return `${fmtCapMoney(againstN)} of ${fmtCapMoney(pair.cap || salaryCap)} against cap · ${leftoverBit}`;
+    : `${fmtCapMoney(rem ?? leftover)} cap room`;
+  return `${fmtCapMoney(againstN)} of ${fmtCapMoney(pair.cap || salaryCap)} cap used · ${leftoverBit}`;
 }
 
 export function leftoverMoveReadout({ current, after } = {}) {
@@ -354,25 +354,25 @@ export function capHeroCopy({ empty = false, preDraft = false } = {}) {
   if (empty) {
     return {
       eyebrow: "Cap",
-      heading: "Can you afford the bid after the cut?",
-      support: "No contracts yet. Add them on My team or leftover cap is a guess.",
+      heading: "Plan your salary cap",
+      support: "No contracts yet. Add players on My team to see their cap impact.",
     };
   }
   return {
     eyebrow: "Cap",
-    heading: "Can you afford the bid after the cut?",
+    heading: "Plan your salary cap",
     support: preDraft
-      ? "Final-year deals leave unless you extend. Cut the wrong name and you eat dead cap into the draft."
-      : "Against this cap is salary plus dead cap. Leftover is what you can still bid.",
+      ? "Review expiring contracts and extension costs before the draft."
+      : "Your cap usage includes active salaries and dead cap. Cap room may need to cover multiple open roster spots.",
   };
 }
 
 export const CAP_CUT_COPY = {
   heading: "This cut",
   thisCutFunds: "This cut funds",
-  deadAfter: "Dead after cut",
-  leftoverAfter: "Leftover after cut",
-  noneFit: "Nothing available still fits this leftover.",
+  deadAfter: "Dead cap after cut",
+  leftoverAfter: "Cap room after cut",
+  noneFit: "No available players fit this cap room at their suggested bid.",
   keep: "Keep",
   cut: "Cut",
   cutAndBid: "Cut and open bid",
@@ -471,7 +471,7 @@ export function capCutConfirmCopy(preview) {
   const name = preview.player_name || "this player";
   const money = `Frees ${fmtCapMoney(preview.cap_freed)}. Dead cap ${fmtCapMoney(preview.dead_cap)}.`;
   if (preview.funded_name) {
-    return `Cut ${name}. ${money} This leftover funds ${preview.funded_name} at ${fmtCapMoney(preview.funded_suggested_bid)}.`;
+    return `Cut ${name}. ${money} This cap room covers ${preview.funded_name} at ${fmtCapMoney(preview.funded_suggested_bid)}.`;
   }
   return `Cut ${name}. ${money} ${CAP_CUT_COPY.noneFit}`;
 }

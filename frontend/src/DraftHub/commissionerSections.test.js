@@ -11,20 +11,20 @@ import {
 
 test("commissionerIntro marks admin boundary for staff", () => {
   const staff = commissionerIntro(true);
-  assert.match(staff.purpose, /wrong cut/i);
+  assert.match(staff.purpose, /contracts, salary sheets, and league access/i);
   assert.equal(staff.title, "Roster management");
 });
 
 test("commissionerIntro keeps the member framing read-only", () => {
   const member = commissionerIntro(false);
-  assert.match(member.purpose, /Commissioner managed/i);
+  assert.match(member.purpose, /Only commissioners can edit/i);
 });
 
 test("sheetsGuideCopy keeps caveat out of default hint", () => {
   assert.doesNotMatch(sheetsDefaultHint(), /not live mid-season/i);
   const guide = sheetsGuideCopy(2026);
-  assert.match(guide.paragraphs[0], /2026 sheet/);
-  assert.match(guide.paragraphs[0], /not a live mid-season/i);
+  assert.match(guide.paragraphs[0], /2026 salary sheet/);
+  assert.match(guide.paragraphs[0], /may differ from the current roster/i);
 });
 
 test("sheets guide first-use uses localStorage flag", () => {

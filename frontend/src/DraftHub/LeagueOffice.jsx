@@ -205,9 +205,9 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
   return (
     <div className="hub-office-members">
       <header className="hub-section-head">
-        <h3 className="hub-section-title">Membership</h3>
+        <h3 className="hub-section-title">Members</h3>
         <p className="hub-section-hint">
-          Who claimed each team and co-commissioner roles. Invites and Sleeper mapping live under Access.
+          See who manages each team and update commissioner access. Manage invitations and Sleeper connections under Access & imports.
         </p>
       </header>
 
@@ -380,9 +380,7 @@ function OfficeAccess({ leagueId, hubContext, workspace, onChanged, onNavigate }
       <section className="hub-office-access-section">
         <header className="hub-section-head">
           <h3 className="hub-section-title">Invites</h3>
-          <p className="hub-section-hint">
-            Assign a named email to one seat. The invite link lives on Draft.
-          </p>
+
         </header>
         <LeagueInvites
           leagueId={leagueId}
@@ -393,8 +391,8 @@ function OfficeAccess({ leagueId, hubContext, workspace, onChanged, onNavigate }
 
       <section className="hub-office-access-section">
         <header className="hub-section-head">
-          <h3 className="hub-section-title">Sleeper mapping</h3>
-          <p className="hub-section-hint">Connect each seat to a Sleeper roster.</p>
+          <h3 className="hub-section-title">Sleeper team connections</h3>
+          <p className="hub-section-hint">Connect each team to its Sleeper roster.</p>
         </header>
         {error && <div className="error">{error}</div>}
         {loading && <p className="chart-note">Loading teams…</p>}
@@ -519,7 +517,7 @@ export default function LeagueOffice({
       {activeTab === "current" && isCommissioner && (
         <HubPage>
           <header className="hub-section-head">
-            <h3 className="hub-section-title">Live contracts</h3>
+            <h3 className="hub-section-title">Current contracts</h3>
             <p className="hub-section-hint">
               {liveContractStage(hubContext?.season, {
                 draftCompleted: Boolean(hubContext?.draft_completed),

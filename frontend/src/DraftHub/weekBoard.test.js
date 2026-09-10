@@ -182,8 +182,8 @@ test("week hero follows board state instead of a false swap", () => {
   });
   assert.match(pre.heading, /Lineups open after the draft/);
   assert.match(pre.heading, /Sat 7 p\.m\./);
-  assert.notEqual(weekHeroCopy({ loading: true }).heading, "No swap worth making.");
-  assert.notEqual(weekHeroCopy({ error: true }).heading, "No swap worth making.");
+  assert.notEqual(weekHeroCopy({ loading: true }).heading, "No suggested lineup changes");
+  assert.notEqual(weekHeroCopy({ error: true }).heading, "No suggested lineup changes");
   assert.notEqual(weekHeroCopy({ loading: true }).heading, WEEK_BOARD_COPY.clearBoard);
   assert.notEqual(weekHeroCopy({ error: true }).heading, WEEK_BOARD_COPY.clearBoard);
   assert.match(formatDraftNightShort("2026-09-05T23:00:00.000Z"), /Sat|Sep/);
@@ -191,9 +191,9 @@ test("week hero follows board state instead of a false swap", () => {
 
 test("populated week hero reports lineup calls", () => {
   const hero = weekHeroCopy({ decisionCount: 2, weekLabel: "Week 1" });
-  assert.equal(hero.heading, "2 lineup calls on the board.");
+  assert.equal(hero.heading, "2 lineup changes to review");
   const flagged = weekHeroCopy({ decisionCount: 0, onBye: 1, weekLabel: "Week 1" });
-  assert.equal(flagged.heading, "No swap worth making.");
+  assert.equal(flagged.heading, "No suggested lineup changes");
   const clean = weekHeroCopy({ decisionCount: 0, weekLabel: "Week 1" });
   assert.equal(clean.heading, WEEK_BOARD_COPY.clearBoard);
   assert.match(clean.support, /late scratch|lock/i);
@@ -212,9 +212,9 @@ test("unlinked with a roster still treats the board as live", () => {
   assert.equal(items.find((i) => i.id === "available").value, WEEK_BOARD_COPY.clearRailValue);
   assert.match(items.find((i) => i.id === "available").hint, /No bye/);
   assert.equal(items.some((i) => i.id === "bye"), false);
-  assert.match(items.find((i) => i.id === "ranges").hint, /not a start\/sit/i);
+  assert.match(items.find((i) => i.id === "ranges").hint, /wide projected scoring range/i);
   assert.match(weekRailNote({ emptyRoster: false, unlinked: true }), /league contracts/i);
-  assert.match(weekRailNote({ emptyRoster: false, unlinked: false }), /Amber is a start\/sit/i);
+  assert.match(weekRailNote({ emptyRoster: false, unlinked: false }), /Suggested changes compare projected points/i);
   assert.equal(weekPrimaryAction({ emptyRoster: false, unlinked: true }).kind, "none");
   assert.equal(weekPrimaryAction({ emptyRoster: false, showGameCenter: true }).kind, "game");
 });
@@ -258,12 +258,12 @@ test("trophy strip copy waits until the board is live", () => {
   assert.match(trophyStripCopy({ boardReady: false }), /after the board is live/i);
   assert.match(trophyStripCopy({ boardReady: true }), /one vote per trophy/i);
   assert.equal(boardTitle("Week 1"), "Week 1 board");
-  assert.equal(WEEK_BOARD_COPY.seeCalls, "See lineup calls");
+  assert.equal(WEEK_BOARD_COPY.seeCalls, "Review suggested changes");
   assert.equal(WEEK_BOARD_COPY.emptySlot("K"), "Find K");
   assert.equal(WEEK_BOARD_COPY.emptySlotName, "Empty");
-  assert.match(WEEK_BOARD_COPY.lineupSource, /board number/i);
-  assert.match(WEEK_BOARD_COPY.lineupSource, /VA-projections/i);
-  assert.equal(WEEK_BOARD_COPY.ptsUnit, "wk");
+  assert.match(WEEK_BOARD_COPY.lineupSource, /model projections/i);
+  assert.match(WEEK_BOARD_COPY.lineupSource, /Vibes-adjusted projections/i);
+  assert.equal(WEEK_BOARD_COPY.ptsUnit, "proj pts");
   assert.match(WEEK_BOARD_COPY.refreshProjections, /Refresh projections/);
   assert.doesNotMatch(WEEK_BOARD_COPY.legendNote, /Draft Hub|Submit/i);
 });
@@ -350,7 +350,7 @@ test("freshness line drops mid-sentence Updated and flags a stale roster", () =>
     weekLabel: "Updated 24h ago",
   });
   assert.equal(stale.roster, "Roster 12d ago");
-  assert.equal(stale.weekBoard, "Week board 24h ago");
+  assert.equal(stale.weekBoard, "Projections 24h ago");
   assert.equal(stale.rosterStale, true);
   assert.equal(clampWeek(0), 1);
   assert.equal(clampWeek(99), 22);

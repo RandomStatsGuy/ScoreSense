@@ -1877,7 +1877,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
       const n = (diff.add_count || 0) + (diff.remove_count || 0);
       if (n === 0) return;
       if (!(await confirmDialog({
-        title: "Apply Sleeper moves",
+        title: "Apply Sleeper transactions",
         message: `Apply ${n} Sleeper move(s) to contract history for ${yr}?`,
         confirmLabel: "Apply moves",
       }))) return;
@@ -2009,7 +2009,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
             </p>
           ) : (
             <p className="table-meta hub-salary-source-line">
-              Contract history DB
+              Saved contract history
             </p>
           )}
           {week1Report && Number(week1Report.season_year) === Number(seasonYear) && (
@@ -2084,7 +2084,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
                 onClick={runApplySleeperMoves}
                 disabled={applySleeperBusy}
               >
-                {applySleeperBusy ? "Applying…" : "Apply Sleeper moves"}
+                {applySleeperBusy ? "Applying…" : "Apply Sleeper transactions"}
               </button>
             </div>
           )}
@@ -2249,11 +2249,11 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
               <div className="hub-salary-toolbar-group hub-salary-toolbar-toggles">
                 <label className="hub-salary-toggle">
                   <input type="checkbox" checked={showDelta} onChange={(e) => setShowDelta(e.target.checked)} />
-                  Show Δ
+                  Show salary changes
                 </label>
                 <label className="hub-salary-toggle">
                   <input type="checkbox" checked={showCuts} onChange={(e) => setShowCuts(e.target.checked)} />
-                  Show cuts / dead $
+                  Show released players and dead cap
                 </label>
                 <label className="hub-salary-toggle">
                   <input type="checkbox" checked={showMissing} onChange={(e) => setShowMissing(e.target.checked)} />
@@ -2262,7 +2262,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
                 {isCommissioner && (
                   <label className="hub-salary-toggle">
                     <input type="checkbox" checked={showNameMaps} onChange={(e) => setShowNameMaps(e.target.checked)} />
-                    Name maps
+                    Player name matches
                   </label>
                 )}
                 {viewMode === "grid" && (
