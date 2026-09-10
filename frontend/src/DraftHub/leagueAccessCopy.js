@@ -3,7 +3,7 @@
 export const CREATE_LEAGUE_VALUE = "__create__";
 export const SOLO_VALUE = "__solo__";
 
-/** Create/join is a real button. Never put this value in the league menu. */
+/** Create/join remains an action, placed in the compact league picker footer. */
 export const LEAGUE_CREATE_COPY = {
   newLeague: "New league",
   createOrJoin: "Create or join a league",
@@ -354,3 +354,5 @@ export function leagueDeletePendingLine({ approved = 0, required = 0, waiting = 
   const wait = names.length === 1 ? names[0] : `${names.length} commissioners`;
   return `${have} of ${need} commissioners have agreed. Waiting on ${wait}.`;
 }
+
+export const FANTASY_HEADER_COPY = { league: "League", leagueNavigation: "League navigation", yourTeam: "Your team:", searchLeagues: "Search leagues", noLeagues: "No leagues match your search.", sync: "Sync league" };

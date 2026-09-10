@@ -1,3 +1,5 @@
+import HeaderDisclosure from "../layout/HeaderDisclosure";
+import { FANTASY_HEADER_COPY } from "./leagueAccessCopy";
 import React, { useMemo, useRef, useState } from "react";
 import MobileDestinationSheet from "../layout/MobileDestinationSheet";
 import { MOBILE_CHROME_COPY, selectAndDismissDestination } from "../layout/mobileChromePresentation";
@@ -121,25 +123,15 @@ export default function HubSubnav({
 
   return (
     <>
-      <div className="hub-subnav-row">
+      <div className={`hub-subnav-row${!mobileLayout ? " hub-subnav-row--flat" : ""}`}>
         <nav
           ref={navRef}
           className="app-section-subnav app-section-subnav--hub"
           aria-label="Fantasy"
         >
-          {mobileLayout
-            ? visible.map(tabButton)
-            : groups.map((group) => (
-              <div className={`hub-subnav-group hub-subnav-group--${group.id}`} key={group.id} role="presentation">
-                {group.id !== "home" && group.label && (
-                  <span className="hub-subnav-group-label" aria-hidden="true">{group.label}</span>
-                )}
-                <span className="hub-subnav-group-tabs" role="presentation">
-                  {group.items.map(tabButton)}
-                </span>
-              </div>
-            ))}
+          {(mobileLayout ? visible : visible.filter(v => v.group !== "office")).map(tabButton)}
         </nav>
+        {!mobileLayout && <HeaderDisclosure label={visible.find(v => v.group === "office" && v.id === subView)?.label || FANTASY_HEADER_COPY.league} accessibleLabel={FANTASY_HEADER_COPY.leagueNavigation} active={visible.some(v => v.group === "office" && v.id === subView)} resetKey={subView} className="fantasy-league-nav">{close => <nav aria-label={FANTASY_HEADER_COPY.leagueNavigation}>{visible.filter(v => v.group === "office").map(v => <a key={v.id} href={buildAppPath({ view: "hub", hubSubView: v.id })} aria-current={subView === v.id ? "page" : undefined} onClick={event => interceptAppNav(event, () => { close(); onNavigate(v.id); })}>{v.label}</a>)}</nav>}</HeaderDisclosure>}
         {mobileLayout && visible.length > 5 ? (
           <button
             type="button"

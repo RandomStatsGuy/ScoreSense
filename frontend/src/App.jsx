@@ -1,3 +1,4 @@
+import DesktopPrimaryHeader from "./layout/DesktopPrimaryHeader";
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { reportHref } from "./bugReportPresentation";
@@ -1436,25 +1437,7 @@ export default function App() {
               showFilter={view === "projections" && mobileLayout && projectionsTab !== "weekly"}
             />
 
-            <div className="app-header-row app-header-row-primary app-header-desktop-only">
-              <div className="app-header-brand">
-                <p className="app-title">{PRODUCT_NAME}</p>
-                <span className="app-header-studio">{STUDIO_NAME}</span>
-              </div>
-              <nav className="app-header-nav" aria-label="Sections">
-                {APP_SECTIONS.map((item) => (
-                  <a
-                    key={item.id}
-                    href={pathForSection(item.id)}
-                    className={`tab view-tab ${view === item.id ? "active" : ""}`}
-                    aria-current={view === item.id ? "page" : undefined}
-                    onClick={(event) => interceptAppNav(event, () => goToSection(item.id))}
-                  >
-                    {item.label}
-                  </a>
-                ))}
-              </nav>
-              <div className="app-header-actions">
+            <DesktopPrimaryHeader productName={PRODUCT_NAME} studioName={STUDIO_NAME} sections={APP_SECTIONS} view={view} pathForSection={pathForSection} onNavigate={goToSection}>
                 {showDataRefresh && (
                   <button
                     className="btn-ghost btn-header-action"
@@ -1479,8 +1462,7 @@ export default function App() {
                   onLogout={authLogout}
                   refreshStatus={refreshStatus}
                 />
-              </div>
-            </div>
+            </DesktopPrimaryHeader>
 
             {view === "projections" && !mobileLayout && (
               <div className="app-header-projections-toolbar">

@@ -1,0 +1,77 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { measureScript, NUMERIC_RE, BAR_CONTROL_SELECTOR, TABLE_DEAD_ZONE_PX, COLUMN_PACK_RATIO, GUTTER_EDGE_SELECTORS } from './layout_audit.mjs';
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+fs.mkdirSync('outputs', { recursive: true });
+const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
+try {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('http://127.0.0.1:5173/test-fixtures/header.html');
+  const league = page.getByRole('button', { name: 'League navigation', exact: true });
+  await league.waitFor();
+  await page.getByRole('button', { name: /Kheylub/ }).click();
+  const accountItem = page.getByRole('menuitem').first();
+  await accountItem.waitFor();
+  assert.equal(await accountItem.evaluate(e => { const r = e.getBoundingClientRect(); return e.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)); }), true, 'Account menu is above header');
+  await page.keyboard.press('Escape');
+  await page.screenshot({ path: 'outputs/header-1440.png', fullPage: true });
+  await league.focus();
+  await page.keyboard.press('ArrowDown');
+  assert.equal(await page.getByRole('link', { name: 'Rules', exact: true }).evaluate(e => e === document.activeElement), true);
+  const manage = page.getByRole('link', { name: 'Roster management', exact: true });
+  await manage.waitFor();
+  assert.equal(await manage.evaluate(e => { const r = e.getBoundingClientRect(); return e.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)); }), true, 'League menu is above context strip');
+  await page.keyboard.press('Escape');
+  assert.equal(await league.evaluate(e => e === document.activeElement), true);
+  await league.click();
+  await page.getByRole('link', { name: 'Insights', exact: true }).click();
+  assert.equal(await league.innerText(), 'Insights');
+  await page.evaluate(() => window.__setContext({ is_commissioner: false }));
+  await league.click();
+  assert.equal(await manage.count(), 0);
+  await page.locator('h1').click();
+  assert.equal(await league.getAttribute('aria-expanded'), 'false');
+  const picker = page.getByRole('button', { name: /^Switch league:/ });
+  await picker.click();
+  await page.getByRole('button', { name: 'New league', exact: true }).click();
+  assert.equal(await page.evaluate(() => window.__created), true);
+  assert.equal(await page.evaluate(() => window.__switched), undefined);
+  await picker.click();
+  await page.getByRole('button', { name: /Sunday league/ }).click();
+  assert.deepEqual(await page.evaluate(() => window.__switched), { leagueId: 'second' });
+  await picker.click();
+  await page.keyboard.press('Escape');
+  assert.equal(await picker.evaluate(e => e === document.activeElement), true);
+  await page.getByRole('button', { name: /Sync league/ }).click();
+  await page.getByRole('dialog', { name: 'Sync league sources' }).waitFor();
+  await page.keyboard.press('Escape');
+  assert.equal(await page.evaluate(() => window.__requests.some(r => r.method !== 'GET')), false);
+  const reports = [];
+  for (const width of [1440, 1280, 1024, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.evaluate(() => { window.__setView('rosters'); window.__setContext({ is_commissioner: true }); });
+    await page.waitForTimeout(200);
+    await page.locator('h1').click();
+    await page.screenshot({ path: `outputs/header-${width}.png`, fullPage: true });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `page overflow at ${width}`);
+    const report = await page.evaluate(measureScript(), { minTarget: width === 390 ? 44 : 32, numericRe: NUMERIC_RE.source, barControlSelector: BAR_CONTROL_SELECTOR, tableDeadZonePx: TABLE_DEAD_ZONE_PX, columnPackRatio: COLUMN_PACK_RATIO, gutterSelectors: GUTTER_EDGE_SELECTORS });
+    reports.push({ width, failures: report.filter(row => !row.ok) });
+    for (const destination of await page.evaluate(() => window.__destinations)) {
+      await page.evaluate(id => window.__setView(id), destination.id);
+      await page.waitForTimeout(30);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${destination.id} overflow at ${width}`);
+    }
+  }
+  await page.getByRole('button', { name: /Choose.*destination/i }).click();
+  await page.getByRole('dialog').waitFor();
+  await page.keyboard.press('Escape');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.evaluate(() => window.__setContext({ league_name: 'A very long league name for a league with many friends and football fans', team_name: 'An exceptionally long fantasy team name for responsive testing' }));
+  await page.waitForTimeout(150);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'long labels overflow');
+  fs.writeFileSync('outputs/header-audit.json', JSON.stringify(reports, null, 2));
+  assert.deepEqual(errors, []);
+  console.log(JSON.stringify({ interactions: 'passed', errors, reports }, null, 2));
+} finally { await browser.close(); }
