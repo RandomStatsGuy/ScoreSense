@@ -20,6 +20,7 @@ class Entry(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
     site: Literal["draftkings", "fanduel"] = "draftkings"
     entry_id: str = Field(min_length=1, max_length=100)
+    entry_name: str | None = Field(default=None, max_length=300)
     contest_id: str = Field(min_length=1, max_length=100)
     contest_name: str | None = Field(default=None, max_length=300)
     date: CalendarDate | None = None

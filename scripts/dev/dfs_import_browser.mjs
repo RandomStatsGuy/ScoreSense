@@ -197,6 +197,99 @@ try {
         errors,
       }),
     );
+    const source = process.env.DFS_STANDINGS_FILES;
+    if (source) {
+      const username = process.env.DFS_TEST_USERNAME;
+      const expected = Number(process.env.DFS_EXPECTED_ENTRIES);
+      assert.ok(
+        username && expected > 0,
+        "Set DFS_TEST_USERNAME and DFS_EXPECTED_ENTRIES for private-file checks",
+      );
+      for (const actualFile of JSON.parse(source)) {
+        ledger.clear();
+        await page.reload();
+        await page
+          .getByRole("button", { name: "Results", exact: true })
+          .click();
+        await page.locator("input[type=file]").nth(1).setInputFiles(actualFile);
+        await page
+          .getByRole("heading", { name: "Review your import" })
+          .waitFor();
+        assert.equal(
+          await page
+            .getByLabel("Contest ID (if absent from the file)")
+            .inputValue(),
+          "195390867",
+        );
+        await page
+          .getByRole("button", { name: "Preview entries", exact: true })
+          .click();
+        await page
+          .getByRole("alert")
+          .filter({ hasText: "Enter your DraftKings username" })
+          .waitFor();
+        assert.equal(
+          await page
+            .getByRole("button", { name: "Save imported entries", exact: true })
+            .count(),
+          0,
+        );
+        await page.getByLabel("Your DraftKings username").fill(username);
+        await page
+          .getByRole("button", { name: "Preview entries", exact: true })
+          .click();
+        await page
+          .getByRole("button", { name: "Save imported entries", exact: true })
+          .waitFor();
+        await page
+          .getByText(`${expected} of 83,234 contest entries selected.`, {
+            exact: true,
+          })
+          .waitFor();
+        const previewAudit = await page.evaluate(measureScript(), {
+          minTarget: width === 390 ? 44 : 32,
+          numericRe: NUMERIC_RE.source,
+          barControlSelector: BAR_CONTROL_SELECTOR,
+          tableDeadZonePx: TABLE_DEAD_ZONE_PX,
+          columnPackRatio: COLUMN_PACK_RATIO,
+          gutterSelectors: GUTTER_EDGE_SELECTORS,
+        });
+        fs.writeFileSync(
+          path.join(out, `standings-preview-${width}.json`),
+          JSON.stringify(previewAudit, null, 2),
+        );
+        await page.screenshot({
+          path: path.join(out, `standings-preview-${width}.png`),
+          fullPage: true,
+        });
+        await page
+          .getByRole("button", { name: "Save imported entries", exact: true })
+          .click();
+        await page
+          .getByRole("status")
+          .filter({ hasText: `${expected} entries saved.` })
+          .waitFor();
+        assert.equal(ledger.size, expected);
+        assert.ok(
+          [...ledger.values()].every(
+            (row) =>
+              row.entry_name.toLowerCase().startsWith(username.toLowerCase()) &&
+              row.fee_cents === undefined &&
+              row.payout_cents === undefined,
+          ),
+        );
+        console.log(
+          JSON.stringify({
+            width,
+            format: path.extname(actualFile),
+            selected: ledger.size,
+            actualFile: true,
+            layoutFailures: previewAudit.filter((r) => !r.ok),
+          }),
+        );
+      }
+    }
+
     await context.close();
   }
 } finally {
