@@ -83,7 +83,11 @@ from src.integrations.injury_poll import (
     maybe_tick_injury_poll,
     run_injury_poll,
 )
-from src.jobs.weekly_refresh import get_refresh_status, mark_refresh_started, run_weekly_refresh
+from src.jobs.weekly_refresh import (
+    REFRESH_STATUS, get_refresh_status, mark_refresh_started,
+    public_refresh_status, record_refresh_failure, run_weekly_refresh,
+)
+from src.jobs.refresh_lock import refresh_lock, RefreshBusy
 from src.projections.predict import get_model_metrics, predict_upcoming_week
 from src.projections.projection_meta import get_projection_meta
 from src.projections.draft_meta import get_draft_meta
@@ -428,7 +432,7 @@ def players_context_refresh(
     try:
         return jsonable_encoder(refresh_player_context(season=season, week=week))
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        raise HTTPException(status_code=503, detail="Weekly projections are not ready. Refresh season projections first, then update the notes.") from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -1218,7 +1222,7 @@ async def rebuild_upside(_user=Depends(require_admin)) -> dict:
 
 @app.get("/api/refresh/status")
 def refresh_status(_user=Depends(require_patron)) -> dict:
-    return get_refresh_status()
+    return public_refresh_status()
 
 
 @app.post("/api/refresh")
@@ -1229,21 +1233,20 @@ async def refresh(
     _user=Depends(require_data_refresh),
 ) -> dict:
     try:
-        started = mark_refresh_started(retrain=retrain, draft_only=draft_only)
-        if background_tasks is not None:
-            background_tasks.add_task(run_weekly_refresh, retrain, None, draft_only)
-        else:
-            try:
-                submit_cpu_job(run_weekly_refresh, retrain, None, draft_only)
-            except RuntimeError:
-                loop = asyncio.get_event_loop()
-                loop.run_in_executor(None, run_weekly_refresh, retrain, None, draft_only)
-        return {
-            "status": "started",
-            "started_at": started["started_at"],
-            "message": "Weekly refresh running in background. Projections update when it finishes.",
-        }
+        with refresh_lock(REFRESH_STATUS.with_suffix(".lock")):
+            current = get_refresh_status()
+            if current.get("status") == "running" and current.get("stage") == "queued":
+                from datetime import datetime, timezone
+                age = (datetime.now(timezone.utc) - datetime.fromisoformat(current["started_at"])).total_seconds()
+                if age < 120:
+                    return current
+            started = mark_refresh_started(retrain=retrain, draft_only=draft_only)
+        submit_cpu_job(run_weekly_refresh, retrain, None, draft_only, started["started_at"])
+        return started
+    except RefreshBusy:
+        return get_refresh_status()
     except Exception as exc:
+        record_refresh_failure("Could not start refresh. Try again.")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 

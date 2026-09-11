@@ -1,3 +1,5 @@
+import { hubCacheGeneration } from "./hubDataCache";
+import useDataRevision from "../useDataRevision";
 import "../styles/fantasy.css";
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -88,6 +90,13 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const [leagueSyncMessage, setLeagueSyncMessage] = useState("");
   const [leagueSyncError, setLeagueSyncError] = useState("");
   const [weekReloadToken, setWeekReloadToken] = useState(0);
+  const dataRevision = useDataRevision();
+  useEffect(() => {
+    if (!dataRevision) return;
+    clearHubDataCache();
+    setValueSheet(null);
+    setWeekReloadToken((n) => n + 1);
+  }, [dataRevision]);
   const [valueSheetLoading, setValueSheetLoading] = useState(false);
   const subViewRef = React.useRef(subView);
   subViewRef.current = subView;
@@ -211,6 +220,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   }, [loadCapSheet]);
 
   const loadValueOverlay = useCallback(async (season, signal) => {
+    const generation = hubCacheGeneration();
     const q = season ? `?season=${season}` : "";
     let res = await apiFetch(`/api/hub/value-overlay${q}`, { signal });
     if (res.status === 503) {
@@ -221,12 +231,13 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     }
     if (!res.ok) throw new Error(await parseApiError(res));
     const data = await res.json();
-    setCachedOverlay(season, data);
+    if (generation === hubCacheGeneration()) setCachedOverlay(season, data);
     return data;
   }, []);
 
   const refreshValueSheet = useCallback(async (season, rules, { forcePool = false, signal } = {}) => {
     setValueSheetLoading(true);
+    const generation = hubCacheGeneration();
     const key = valueSheetRequestKey(season, rules, { forcePool });
     try {
       const sheet = await runValueSheetRequest(key, async () => {
@@ -242,12 +253,13 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         const res = await apiFetch(`/api/hub/value-sheet${q}`);
         if (!res.ok) throw new Error(await parseApiError(res));
         const next = await res.json();
+        if (generation !== hubCacheGeneration()) return null;
         setCachedPool(season, rules, poolPayloadFromSheet(next));
         setCachedOverlay(season, next);
         if (next.hub_context) applyHubContext(next.hub_context);
         return next;
       });
-      if (signal?.aborted) return sheet;
+      if (signal?.aborted || generation !== hubCacheGeneration()) return sheet;
       setValueSheet(sheet);
       return sheet;
     } catch (e) {

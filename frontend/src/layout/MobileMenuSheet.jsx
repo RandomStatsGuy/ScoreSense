@@ -1,3 +1,4 @@
+import { successfulRefreshRevision } from "../refreshStatus";
 import React from "react";
 import MobileBottomSheet from "./MobileBottomSheet";
 import LegalLinks from "../LegalLinks";
@@ -97,9 +98,9 @@ export default function MobileMenuSheet({
             {dataRefreshLoading ? "Refreshing…" : "Refresh data"}
           </button>
         ) : null}
-        {refreshStatus?.completed_at ? (
+        {successfulRefreshRevision(refreshStatus) ? (
           <p className="app-mobile-sheet-meta">
-            {formatRelativeTime(refreshStatus.completed_at) || "Updated"}
+            {formatRelativeTime(successfulRefreshRevision(refreshStatus)) || "Updated"}
           </p>
         ) : null}
         <p className="app-mobile-sheet-group">Info</p>

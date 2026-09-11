@@ -43,3 +43,8 @@ export async function waitForRefreshComplete({
     await sleep(intervalMs);
   }
 }
+
+/** Failed attempts must never advertise a new dataset. */
+export function successfulRefreshRevision(status) {
+  return status?.last_completed_at || (status?.status === "completed" ? status.completed_at : null) || null;
+}

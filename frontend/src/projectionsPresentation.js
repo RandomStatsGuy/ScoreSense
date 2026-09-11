@@ -798,3 +798,27 @@ export function filterInspectorCandidates(candidates, query, { limit = 8 } = {})
     })
     .slice(0, limit);
 }
+
+export const REFRESH_COPY = {
+  starting: "Starting refresh...",
+  queued: "Refresh queued...",
+  datasets: "Updating source data...",
+  training: "Retraining projection models...",
+  inputs: "Updating projection inputs...",
+  weekly: "Rebuilding weekly projections...",
+  season: "Rebuilding rest-of-season projections...",
+  draft: "Updating season rankings for Fantasy and Best ball...",
+  slates: "Updating DFS slates...",
+  notes: "Updating player notes and injury context...",
+  background: "You can keep browsing. Pages update when the refresh finishes.",
+  completed: "New projections are ready. Existing DFS builds keep their original inputs.",
+  warnings: "Projections updated; some supporting data could not refresh.",
+  notesTimeout: "The notes update is taking longer than expected. Check again shortly.",
+  failed: "Refresh stopped before finishing. Try again.",
+};
+export function refreshProgressLabel(status) {
+  if (status?.status === "running") return REFRESH_COPY[status.stage] || REFRESH_COPY.starting;
+  if (status?.status === "error") return status.error || REFRESH_COPY.failed;
+  if (status?.status === "completed") return status.warnings?.length ? REFRESH_COPY.warnings : REFRESH_COPY.completed;
+  return "";
+}

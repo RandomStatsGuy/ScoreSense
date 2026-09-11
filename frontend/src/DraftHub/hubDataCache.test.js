@@ -25,3 +25,11 @@ test("value-sheet inflight coalesces concurrent callers", async () => {
   assert.equal(a, b);
   assert.equal(valueSheetInflightCount(), 0);
 });
+
+
+test("refresh invalidation does not join an old in-flight value-sheet request", async () => {
+  const { clearHubDataCache } = await import("./hubDataCache.js");
+  const before = valueSheetRequestKey(2026, {});
+  clearHubDataCache();
+  assert.notEqual(valueSheetRequestKey(2026, {}), before);
+});
