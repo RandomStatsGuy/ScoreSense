@@ -8,19 +8,9 @@ import { HubPage } from "./HubUILayout";
 import { ValueSheetTableSkeleton } from "../TableSkeleton";
 import AccountAuth from "../AccountAuth";
 import VerifyEmailBanner from "../VerifyEmailBanner";
-import HubSetup from "./HubSetup";
-import RulesWizard from "./RulesWizard";
-import ValueSheetTable from "./ValueSheetTable";
-import RosterBuilder from "./RosterBuilder";
-import CapPlanner from "./CapPlanner";
 import InsightsFallback from "./insights/InsightsChrome";
-import LeagueOffice from "./LeagueOffice";
-import LeagueTrades from "./LeagueTrades";
-import LeagueRostersBrowser from "./LeagueRostersBrowser";
 import LeagueContextBanner from "./LeagueContextBanner";
 import HubDemoBanner from "./HubDemoBanner";
-import WeeklyCommandCenter from "./WeeklyCommandCenter";
-import LeagueHome from "./LeagueHome";
 import LeagueCreateJoinDialog from "./LeagueCreateJoinDialog";
 import FantasyChatDock from "./FantasyChatDock";
 import { hideFantasyChatDock } from "./fantasyChatPresentation";
@@ -51,6 +41,16 @@ const StrategyBoard = lazy(() => import("./StrategyBoard"));
 const DraftRoom = lazy(() => import("./DraftRoom"));
 const GameCenter = lazy(() => import("./GameCenter"));
 const VibeRankings = lazy(() => import("./VibeRankings"));
+const HubSetup = lazy(() => import("./HubSetup"));
+const RulesWizard = lazy(() => import("./RulesWizard"));
+const ValueSheetTable = lazy(() => import("./ValueSheetTable"));
+const RosterBuilder = lazy(() => import("./RosterBuilder"));
+const CapPlanner = lazy(() => import("./CapPlanner"));
+const LeagueOffice = lazy(() => import("./LeagueOffice"));
+const LeagueTrades = lazy(() => import("./LeagueTrades"));
+const LeagueRostersBrowser = lazy(() => import("./LeagueRostersBrowser"));
+const WeeklyCommandCenter = lazy(() => import("./WeeklyCommandCenter"));
+const LeagueHome = lazy(() => import("./LeagueHome"));
 
 const EMPTY_VALUE_ROWS = [];
 
@@ -729,6 +729,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
 
       {error && <div className="error">{error}</div>}
 
+      <Suspense fallback={<ValueSheetTableSkeleton rows={8} colSpan={8} />}>
       {subView === "home" && !demoMode && (
         <LeagueHome
           hubContext={effectiveCtx}
@@ -983,6 +984,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           />
         </Suspense>
       )}
+
+      </Suspense>
 
       {!demoMode && focusedLeagueId(effectiveCtx) && (
         <FantasyChatDock

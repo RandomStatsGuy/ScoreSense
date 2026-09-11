@@ -1,0 +1,292 @@
+[
+  {
+    "name": "AccuracyChart-BVJLU20x.js",
+    "bytes": 22991,
+    "gzip": 6116
+  },
+  {
+    "name": "acquisitionWindow-CkJDaeE8.js",
+    "bytes": 1794,
+    "gzip": 816
+  },
+  {
+    "name": "BarChart-BlY__FA0.js",
+    "bytes": 375165,
+    "gzip": 103913
+  },
+  {
+    "name": "Button-uRjoqt_s.js",
+    "bytes": 370,
+    "gzip": 263
+  },
+  {
+    "name": "CapPlanner-ByXP_92J.js",
+    "bytes": 23606,
+    "gzip": 7162
+  },
+  {
+    "name": "capPlannerPresentation-CvTlj41a.js",
+    "bytes": 9281,
+    "gzip": 3816
+  },
+  {
+    "name": "ContractHistoryLink-Dl4gNUWm.js",
+    "bytes": 298,
+    "gzip": 228
+  },
+  {
+    "name": "draftEntryStatus-D6nINPel.js",
+    "bytes": 2761,
+    "gzip": 1269
+  },
+  {
+    "name": "DraftHub-aKZYKHUz.js",
+    "bytes": 62417,
+    "gzip": 18689
+  },
+  {
+    "name": "draftLiveConsole-mXlqeGP5.js",
+    "bytes": 21837,
+    "gzip": 8270
+  },
+  {
+    "name": "draftLivePresentation-mLU4EiPn.js",
+    "bytes": 2924,
+    "gzip": 1368
+  },
+  {
+    "name": "draftLobby-CHUMz8BZ.js",
+    "bytes": 1621,
+    "gzip": 811
+  },
+  {
+    "name": "DraftNightSchedule-CqJ4GQxP.js",
+    "bytes": 7906,
+    "gzip": 3260
+  },
+  {
+    "name": "DraftRecapPanel-DLblNuY_.js",
+    "bytes": 9557,
+    "gzip": 3213
+  },
+  {
+    "name": "DraftRoom-CN2RsYkr.js",
+    "bytes": 139406,
+    "gzip": 41941
+  },
+  {
+    "name": "GameCenter-CnaEvWPm.js",
+    "bytes": 16928,
+    "gzip": 5273
+  },
+  {
+    "name": "hubPositions-srbNWGDv.js",
+    "bytes": 7551,
+    "gzip": 2994
+  },
+  {
+    "name": "HubSetup-DpotzpbS.js",
+    "bytes": 22835,
+    "gzip": 6799
+  },
+  {
+    "name": "index-B3iS56CE.css",
+    "bytes": 549498,
+    "gzip": 92039
+  },
+  {
+    "name": "index-ZMguSqJc.js",
+    "bytes": 577147,
+    "gzip": 174462
+  },
+  {
+    "name": "InsightsCharts-BlEDCe1G.js",
+    "bytes": 2771,
+    "gzip": 1231
+  },
+  {
+    "name": "insightsPresentation-Ua5QCTWN.js",
+    "bytes": 9865,
+    "gzip": 3577
+  },
+  {
+    "name": "LeagueHome-1y69XyC0.js",
+    "bytes": 10897,
+    "gzip": 3543
+  },
+  {
+    "name": "LeagueInsights-DNiKDlvl.js",
+    "bytes": 51712,
+    "gzip": 14859
+  },
+  {
+    "name": "LeagueInvites-DeY6oBiJ.js",
+    "bytes": 13275,
+    "gzip": 4004
+  },
+  {
+    "name": "LeagueOffice-BjXjFRHn.js",
+    "bytes": 170807,
+    "gzip": 43900
+  },
+  {
+    "name": "LeagueRostersBrowser-D2vVOteH.js",
+    "bytes": 15987,
+    "gzip": 5461
+  },
+  {
+    "name": "LeagueRostersBrowser-DDHbm5ia.css",
+    "bytes": 12652,
+    "gzip": 2442
+  },
+  {
+    "name": "LeagueTrades-DcFtNZh1.js",
+    "bytes": 46499,
+    "gzip": 13563
+  },
+  {
+    "name": "leagueWorkbook-B7ubvi3X.js",
+    "bytes": 493,
+    "gzip": 374
+  },
+  {
+    "name": "LineChart-wl6rosos.js",
+    "bytes": 11113,
+    "gzip": 4283
+  },
+  {
+    "name": "LineupOptimizer-7dC6SSov.js",
+    "bytes": 53830,
+    "gzip": 16687
+  },
+  {
+    "name": "LobbyJoinPage-CkPLePsm.js",
+    "bytes": 5716,
+    "gzip": 2408
+  },
+  {
+    "name": "mockDraftConfig-BtvfWNTY.js",
+    "bytes": 6719,
+    "gzip": 2864
+  },
+  {
+    "name": "MockDraftTool-BBupbZFH.js",
+    "bytes": 13002,
+    "gzip": 4325
+  },
+  {
+    "name": "nflTeamColors-lzT6ldeG.js",
+    "bytes": 1873,
+    "gzip": 724
+  },
+  {
+    "name": "PieChart-B9Oh6m5q.js",
+    "bytes": 25947,
+    "gzip": 7030
+  },
+  {
+    "name": "riskAdjustedValue-Clidtpjo.js",
+    "bytes": 2567,
+    "gzip": 1069
+  },
+  {
+    "name": "rookieExtend-CDyrtcqx.js",
+    "bytes": 3171,
+    "gzip": 1276
+  },
+  {
+    "name": "RosterBuilder-CMXITW05.js",
+    "bytes": 38555,
+    "gzip": 11489
+  },
+  {
+    "name": "rosterPresentation-CYuSh4Ch.js",
+    "bytes": 4074,
+    "gzip": 1781
+  },
+  {
+    "name": "rosterWrite-DO74xAfd.js",
+    "bytes": 885,
+    "gzip": 467
+  },
+  {
+    "name": "RulesWizard-C9T_8Fgo.js",
+    "bytes": 17670,
+    "gzip": 4710
+  },
+  {
+    "name": "SentimentCharts-CJKVpNhG.js",
+    "bytes": 21764,
+    "gzip": 6719
+  },
+  {
+    "name": "SharedTeamRoom-CHPfuZDL.js",
+    "bytes": 626,
+    "gzip": 365
+  },
+  {
+    "name": "StrategyBoard-CZctLYNW.js",
+    "bytes": 13126,
+    "gzip": 4555
+  },
+  {
+    "name": "suggestedBidLabel-BOrkQoRI.js",
+    "bytes": 4633,
+    "gzip": 1897
+  },
+  {
+    "name": "TeamRoom-E8-cvoGz.js",
+    "bytes": 14401,
+    "gzip": 5248
+  },
+  {
+    "name": "TeamRoom-sW7aG_S6.css",
+    "bytes": 12254,
+    "gzip": 3116
+  },
+  {
+    "name": "tradeSeed-DskOgyCz.js",
+    "bytes": 898,
+    "gzip": 424
+  },
+  {
+    "name": "useSlowThink-CMilaUvZ.js",
+    "bytes": 1709,
+    "gzip": 843
+  },
+  {
+    "name": "ValueSheetTable-7HWKrEVX.js",
+    "bytes": 37073,
+    "gzip": 12307
+  },
+  {
+    "name": "valueSheetUtils-BJr_99VF.js",
+    "bytes": 3701,
+    "gzip": 1493
+  },
+  {
+    "name": "vibeAura-B3vKndfx.js",
+    "bytes": 4125,
+    "gzip": 1655
+  },
+  {
+    "name": "VibeRankings-DjkignJq.js",
+    "bytes": 17240,
+    "gzip": 6329
+  },
+  {
+    "name": "VibeSwipeDeck-kIpJQQjZ.js",
+    "bytes": 16421,
+    "gzip": 5816
+  },
+  {
+    "name": "weekBoard-Bj5x4no0.js",
+    "bytes": 16223,
+    "gzip": 5741
+  },
+  {
+    "name": "WeeklyCommandCenter-D57DFzi2.js",
+    "bytes": 23230,
+    "gzip": 7643
+  }
+]

@@ -1,0 +1,157 @@
+[
+  {
+    "name": "AccuracyChart-BXmsiEml.js",
+    "bytes": 22991,
+    "gzip": 6118
+  },
+  {
+    "name": "BarChart-C6Xo1MdD.js",
+    "bytes": 375165,
+    "gzip": 103911
+  },
+  {
+    "name": "Button-0p6RoAvP.js",
+    "bytes": 370,
+    "gzip": 261
+  },
+  {
+    "name": "draftEntryStatus-CfhXZBPG.js",
+    "bytes": 2761,
+    "gzip": 1269
+  },
+  {
+    "name": "DraftHub-BR6ZO-Fd.js",
+    "bytes": 529356,
+    "gzip": 144710
+  },
+  {
+    "name": "DraftHub-DDHbm5ia.css",
+    "bytes": 12652,
+    "gzip": 2442
+  },
+  {
+    "name": "draftLivePresentation-CUQA7481.js",
+    "bytes": 2924,
+    "gzip": 1366
+  },
+  {
+    "name": "draftLobby-CHUMz8BZ.js",
+    "bytes": 1621,
+    "gzip": 811
+  },
+  {
+    "name": "DraftRecapPanel-C1R0LNQ6.js",
+    "bytes": 9547,
+    "gzip": 3212
+  },
+  {
+    "name": "DraftRoom-CPi5XYPN.js",
+    "bytes": 139330,
+    "gzip": 41921
+  },
+  {
+    "name": "GameCenter-BNYdM4rn.js",
+    "bytes": 17029,
+    "gzip": 5333
+  },
+  {
+    "name": "gameCenterPresentation-CGLxsSJU.js",
+    "bytes": 7555,
+    "gzip": 2997
+  },
+  {
+    "name": "index-B3iS56CE.css",
+    "bytes": 549498,
+    "gzip": 92039
+  },
+  {
+    "name": "index-enebDLxS.js",
+    "bytes": 576921,
+    "gzip": 174363
+  },
+  {
+    "name": "InsightsCharts-CCp0QfvD.js",
+    "bytes": 2936,
+    "gzip": 1322
+  },
+  {
+    "name": "LeagueChat-e0yrV4gb.js",
+    "bytes": 36081,
+    "gzip": 13104
+  },
+  {
+    "name": "LeagueInsights-BS_mgG6a.js",
+    "bytes": 51971,
+    "gzip": 14951
+  },
+  {
+    "name": "LineChart-DpTB2SyK.js",
+    "bytes": 11113,
+    "gzip": 4281
+  },
+  {
+    "name": "LineupOptimizer-BrbsJbIQ.js",
+    "bytes": 53827,
+    "gzip": 16689
+  },
+  {
+    "name": "LobbyJoinPage-BUH7aDLZ.js",
+    "bytes": 5595,
+    "gzip": 2343
+  },
+  {
+    "name": "mockDraftConfig-75s4Fvxm.js",
+    "bytes": 6719,
+    "gzip": 2863
+  },
+  {
+    "name": "MockDraftTool-e-kzuoVE.js",
+    "bytes": 12879,
+    "gzip": 4256
+  },
+  {
+    "name": "PieChart-Dry3HAPR.js",
+    "bytes": 25947,
+    "gzip": 7029
+  },
+  {
+    "name": "SentimentCharts-DIZ_jb5l.js",
+    "bytes": 21761,
+    "gzip": 6719
+  },
+  {
+    "name": "SharedTeamRoom-qm7ozP9v.js",
+    "bytes": 559,
+    "gzip": 334
+  },
+  {
+    "name": "StrategyBoard-DxXDuSVo.js",
+    "bytes": 13216,
+    "gzip": 4613
+  },
+  {
+    "name": "TeamRoom-0lOHQDWM.js",
+    "bytes": 20172,
+    "gzip": 7469
+  },
+  {
+    "name": "TeamRoom-sW7aG_S6.css",
+    "bytes": 12254,
+    "gzip": 3116
+  },
+  {
+    "name": "useSlowThink-CaJxLN1M.js",
+    "bytes": 1710,
+    "gzip": 841
+  },
+  {
+    "name": "VibeRankings-FtX_xS3N.js",
+    "bytes": 17433,
+    "gzip": 6456
+  },
+  {
+    "name": "VibeSwipeDeck-I7jTmEs3.js",
+    "bytes": 16569,
+    "gzip": 5893
+  }
+]

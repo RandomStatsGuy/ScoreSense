@@ -9,6 +9,7 @@ import {
 } from "./auth";
 import { AuthContext } from "./AuthContext";
 import { safeAuthNext } from "./authPresentation";
+import { bootstrapAuth } from "./authBootstrap";
 
 const PUBLIC_PATH_PREFIXES = [
   "/terms",
@@ -61,15 +62,19 @@ export default function AuthGate({ children }) {
     handleAuthCallback();
     (async () => {
       try {
-        const config = await fetchAuthConfig();
-        setAuthRequired(config.auth_required);
-        setHubAuthRequired(config.hub_auth_required !== false);
-        setPatreonConfigured(config.patreon_configured);
-        setGoogleConfigured(Boolean(config.google_configured));
-        setTermsUrl(config.terms_url || "");
-        setPrivacyUrl(config.privacy_url || "");
-        setHubDemo(config.hub_demo || { available: false });
-        await refreshMe();
+        await bootstrapAuth({
+          fetchConfig: fetchAuthConfig,
+          refreshUser: refreshMe,
+          applyConfig: (config) => {
+            setAuthRequired(config.auth_required);
+            setHubAuthRequired(config.hub_auth_required !== false);
+            setPatreonConfigured(config.patreon_configured);
+            setGoogleConfigured(Boolean(config.google_configured));
+            setTermsUrl(config.terms_url || "");
+            setPrivacyUrl(config.privacy_url || "");
+            setHubDemo(config.hub_demo || { available: false });
+          },
+        });
       } catch (err) {
         setError(err.message || "Auth check failed");
       } finally {
