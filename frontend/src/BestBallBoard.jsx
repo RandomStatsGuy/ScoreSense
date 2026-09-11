@@ -1,3 +1,4 @@
+import "./styles/bestball.css";
 import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch, PRODUCT_DISCLAIMER } from "./auth";
 import { connectionErrorMessage, parseApiError } from "./format";

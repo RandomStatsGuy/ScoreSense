@@ -1,3 +1,4 @@
+import "./styles/player-details.css";
 import React, { useEffect, useState } from "react";
 import Chip, { sentimentChipTone } from "./Chip";
 import { apiFetch } from "./auth";

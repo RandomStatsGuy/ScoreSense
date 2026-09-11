@@ -1,3 +1,4 @@
+import "../styles/fantasy.css";
 import React, { lazy, Suspense, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {

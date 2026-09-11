@@ -92,3 +92,4 @@ export default function SmsOptInCard({ termsUrl = "/terms", privacyUrl = "/priva
     </form>
   );
 }
+import "../styles/auth-session.css";

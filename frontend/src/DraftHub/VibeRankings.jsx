@@ -1,3 +1,4 @@
+import "../styles/vibe-rankings.css";
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";

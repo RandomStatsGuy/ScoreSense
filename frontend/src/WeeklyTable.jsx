@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import Chip, { injuryChipTone } from "./Chip";
 import { fmtNum, formatRelativeTime, isPlayerUnavailable, unavailableLabel } from "./format";
 import {
@@ -13,8 +13,9 @@ import {
 } from "./table";
 import QuantileBar from "./QuantileBarShared";
 import SentimentBadge from "./SentimentBadge";
-import ProjectionExplanationPanel from "./ProjectionExplanationPanel";
-import PlayerContextPanel from "./PlayerContextPanel";
+const ProjectionExplanationPanel = lazy(() => import("./ProjectionExplanationPanel"));
+const PlayerContextPanel = lazy(() => import("./PlayerContextPanel"));
+import { HubLoadingSkeleton } from "./DraftHub/HubUILayout";
 import { isDetailAvailable } from "./playerContextDisplay";
 import { TableSkeleton } from "./TableSkeleton";
 import useMobileLayout from "./useMobileLayout";
@@ -1027,6 +1028,7 @@ export default function WeeklyTable({
                       </div>
                     ) : null}
                     {pid && whyPlayerId === pid ? (
+                      <Suspense fallback={<HubLoadingSkeleton rows={2} />}>
                       <ProjectionExplanationPanel
                         playerId={pid}
                         season={season}
@@ -1036,8 +1038,10 @@ export default function WeeklyTable({
                         active
                         className="projection-explanation--mobile"
                       />
+                      </Suspense>
                     ) : null}
                     {canContext && contextPlayerId === pid ? (
+                      <Suspense fallback={<HubLoadingSkeleton rows={2} />}>
                       <PlayerContextPanel
                         playerId={pid}
                         season={season}
@@ -1047,6 +1051,7 @@ export default function WeeklyTable({
                         onMediaModeChange={onMediaModeChange}
                         className="player-context-panel--mobile"
                       />
+                      </Suspense>
                     ) : null}
                   </>
                 )}

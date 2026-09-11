@@ -486,57 +486,6 @@
   line-height: 1.35;
 }
 
-.player-context-panel--hero {
-  margin-top: 0.35rem;
-  padding: 0.7rem 0.75rem;
-  border: 0;
-  background: rgba(7, 13, 23, 0.35);
-}
-
-.player-context-panel--hero .player-context-panel-title {
-  font-size: var(--text-xs);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.player-context-panel--hero .player-context-panel-title-row {
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.player-context-stale-inline {
-  margin: 0.15rem 0 0;
-  color: var(--tone-caution-text);
-  font-size: var(--text-xs);
-}
-
-.player-context-hero-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-}
-
-.player-context-stats--hero {
-  gap: 1rem;
-}
-
-.player-context-hero-status {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-}
-
-.player-context-hero-trust {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.player-context-panel--hero .player-context-block--media {
-  padding-top: 0.15rem;
-}
-
 .player-inspector-footer {
   display: flex;
   align-items: center;

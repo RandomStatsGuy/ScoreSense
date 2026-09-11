@@ -1,5 +1,15 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
-import PlayerCardModal from "./PlayerCardModal";
+import React, {
+  createContext,
+  lazy,
+  Suspense,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
+const PlayerCardModal = lazy(() => import("./PlayerCardModal"));
+import PlayerCardFrame from "./PlayerCardFrame";
+import { HubLoadingSkeleton } from "./DraftHub/HubUILayout";
 
 const PlayerCardContext = createContext(null);
 
@@ -15,31 +25,35 @@ export function PlayerCardProvider({
 }) {
   const [request, setRequest] = useState(null);
 
-  const openPlayerCard = useCallback((params) => {
-    if (!params?.playerId) return;
-    const candidate = (candidates || []).find(
-      (c) => String(c.playerId) === String(params.playerId),
-    );
-    setRequest({
-      playerId: params.playerId,
-      playerName: params.name || params.playerName,
-      team: params.team,
-      position: params.position,
-      season: params.season,
-      week: params.week,
-      scope: params.scope || "weekly",
-      applyInjuryAdjustments: params.applyInjuryAdjustments,
-      rank: params.rank ?? candidate?.rank ?? null,
-      peers: params.peers || peers,
-      seasonMode: params.seasonMode || seasonMode,
-      preview: params.preview || candidate?.preview || null,
-      boardKey: resetKey,
-    });
-  }, [candidates, peers, seasonMode, resetKey]);
+  const openPlayerCard = useCallback(
+    (params) => {
+      if (!params?.playerId) return;
+      const candidate = (candidates || []).find(
+        (c) => String(c.playerId) === String(params.playerId),
+      );
+      setRequest({
+        playerId: params.playerId,
+        playerName: params.name || params.playerName,
+        team: params.team,
+        position: params.position,
+        season: params.season,
+        week: params.week,
+        scope: params.scope || "weekly",
+        applyInjuryAdjustments: params.applyInjuryAdjustments,
+        rank: params.rank ?? candidate?.rank ?? null,
+        peers: params.peers || peers,
+        seasonMode: params.seasonMode || seasonMode,
+        preview: params.preview || candidate?.preview || null,
+        boardKey: resetKey,
+      });
+    },
+    [candidates, peers, seasonMode, resetKey],
+  );
 
   const closePlayerCard = useCallback(() => setRequest(null), []);
 
-  const activeRequest = request && request.boardKey === resetKey ? request : null;
+  const activeRequest =
+    request && request.boardKey === resetKey ? request : null;
 
   const value = useMemo(
     () => ({
@@ -50,21 +64,52 @@ export function PlayerCardProvider({
       onToggleCompare,
       maxCompare,
     }),
-    [openPlayerCard, closePlayerCard, candidates, compareIds, onToggleCompare, maxCompare],
+    [
+      openPlayerCard,
+      closePlayerCard,
+      candidates,
+      compareIds,
+      onToggleCompare,
+      maxCompare,
+    ],
   );
 
   return (
     <PlayerCardContext.Provider value={value}>
       {children}
-      <PlayerCardModal
-        request={activeRequest}
-        onClose={closePlayerCard}
-        candidates={candidates}
-        compareIds={compareIds}
-        onToggleCompare={onToggleCompare}
-        maxCompare={maxCompare}
-        onSelectPlayer={openPlayerCard}
-      />
+      {activeRequest && (
+        <Suspense
+          fallback={
+            <PlayerCardFrame
+              title={activeRequest.playerName || "Player"}
+              onClose={closePlayerCard}
+            >
+              <div className="player-inspector">
+                <div className="player-inspector-toolbar">
+                  <button
+                    type="button"
+                    className="btn-ghost player-inspector-close"
+                    onClick={closePlayerCard}
+                  >
+                    Close
+                  </button>
+                </div>
+                <HubLoadingSkeleton rows={4} />
+              </div>
+            </PlayerCardFrame>
+          }
+        >
+          <PlayerCardModal
+            request={activeRequest}
+            onClose={closePlayerCard}
+            candidates={candidates}
+            compareIds={compareIds}
+            onToggleCompare={onToggleCompare}
+            maxCompare={maxCompare}
+            onSelectPlayer={openPlayerCard}
+          />
+        </Suspense>
+      )}
     </PlayerCardContext.Provider>
   );
 }

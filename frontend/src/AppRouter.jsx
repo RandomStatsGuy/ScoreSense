@@ -2,18 +2,17 @@ import React, { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import App from "./App";
 const SharedTeamRoom = lazy(() => import("./DraftHub/SharedTeamRoom"));
-import AccountSettingsPage from "./AccountSettingsPage";
-import BugReportPage from "./BugReportPage";
-import {
-  AuthCallbackPage,
-  AuthForgotPasswordPage,
-  AuthResetPasswordPage,
-  AuthVerifyPage,
-} from "./AuthPages";
-import AuthSessionPage from "./AuthSessionPage";
-import PrivacyPage from "./legal/PrivacyPage";
-import SmsAlertsPage from "./legal/SmsAlertsPage";
-import TermsPage from "./legal/TermsPage";
+import { HubLoadingSkeleton } from "./DraftHub/HubUILayout";
+const AccountSettingsPage = lazy(() => import("./AccountSettingsPage"));
+const BugReportPage = lazy(() => import("./BugReportPage"));
+const AuthCallbackPage = lazy(() => import("./AuthPages").then(m => ({ default: m.AuthCallbackPage })));
+const AuthForgotPasswordPage = lazy(() => import("./AuthPages").then(m => ({ default: m.AuthForgotPasswordPage })));
+const AuthResetPasswordPage = lazy(() => import("./AuthPages").then(m => ({ default: m.AuthResetPasswordPage })));
+const AuthVerifyPage = lazy(() => import("./AuthPages").then(m => ({ default: m.AuthVerifyPage })));
+const AuthSessionPage = lazy(() => import("./AuthSessionPage"));
+const PrivacyPage = lazy(() => import("./legal/PrivacyPage"));
+const SmsAlertsPage = lazy(() => import("./legal/SmsAlertsPage"));
+const TermsPage = lazy(() => import("./legal/TermsPage"));
 import { joinLandingPath, joinLandingSearch, withLocationSearch } from "./redirectSearch";
 import { HUB_SLUG_TO_ID } from "./routes";
 
@@ -47,6 +46,7 @@ function RootRedirect() {
 
 export default function AppRouter() {
   return (
+    <Suspense fallback={<div className="app"><HubLoadingSkeleton rows={4} /></div>}>
     <Routes>
       <Route path="/" element={<RootRedirect />} />
       <Route path="/team-room/:token" element={<Suspense fallback={<p className="chart-note">Opening the team room…</p>}><SharedTeamRoom /></Suspense>} />
@@ -100,5 +100,6 @@ export default function AppRouter() {
       <Route path="/admin/:adminTab?" element={<App />} />
       <Route path="*" element={<RootRedirect />} />
     </Routes>
+    </Suspense>
   );
 }
