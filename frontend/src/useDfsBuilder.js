@@ -1,3 +1,4 @@
+import useDataRevision from "./useDataRevision";
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "./auth";
 import {
@@ -21,6 +22,16 @@ async function jsonRequest(url, options) {
 export { jsonRequest };
 
 export default function useDfsBuilder(projMeta) {
+  const dataRevision = useDataRevision();
+  const seenRevision = useRef(dataRevision);
+  const [dataUpdateAvailable, setDataUpdateAvailable] = useState(false);
+  const [poolReload, setPoolReload] = useState(0);
+  useEffect(() => {
+    if (dataRevision !== seenRevision.current) {
+      seenRevision.current = dataRevision;
+      setDataUpdateAvailable(true);
+    }
+  }, [dataRevision]);
   const [meta, setMeta] = useState(projMeta);
   const [formats, setFormats] = useState(DEFAULT_FORMATS);
   const [context, setContext] = useState({
@@ -104,6 +115,7 @@ export default function useDfsBuilder(projMeta) {
       slateId: patch.site ? "" : (patch.slateId ?? c.slateId),
       source: "live",
     }));
+    setDataUpdateAvailable(false);
     setPool([]);
     setSalaries([]);
     setStats(null);
@@ -202,6 +214,7 @@ export default function useDfsBuilder(projMeta) {
     context.slateId,
     context.source,
     isDfs,
+    poolReload,
   ]);
 
   const importSalary = async (file) => {
@@ -426,6 +439,13 @@ export default function useDfsBuilder(projMeta) {
       : p,
   );
   return {
+    dataUpdateAvailable,
+    reloadPlayerPool: () => {
+      generation.current++;
+      revision.current++;
+      setDataUpdateAvailable(false);
+      setPoolReload((n) => n + 1);
+    },
     meta,
     formats,
     context,

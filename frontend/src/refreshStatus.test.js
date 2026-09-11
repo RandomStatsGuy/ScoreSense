@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { refreshHasFinished, waitForRefreshComplete } from "./refreshStatus.js";
+import { refreshHasFinished, waitForRefreshComplete, successfulRefreshRevision } from "./refreshStatus.js";
 
 test("refreshHasFinished is false for running or missing timestamps", () => {
   const cutoff = Date.parse("2026-08-17T12:00:00.000Z");
@@ -69,4 +69,11 @@ test("waitForRefreshComplete returns after a later completed status", async () =
   });
   assert.equal(status.status, "completed");
   assert.equal(calls, 3);
+});
+
+test("failed attempts and running jobs retain only the last successful revision", () => {
+  assert.equal(successfulRefreshRevision({ status: "error", completed_at: "2026-09-11" }), null);
+  assert.equal(successfulRefreshRevision({ status: "error", completed_at: "2026-09-11", last_completed_at: "2026-09-10" }), "2026-09-10");
+  assert.equal(successfulRefreshRevision({ status: "running", last_completed_at: "2026-09-10" }), "2026-09-10");
+  assert.equal(successfulRefreshRevision({ status: "completed", completed_at: "2026-09-11" }), "2026-09-11");
 });

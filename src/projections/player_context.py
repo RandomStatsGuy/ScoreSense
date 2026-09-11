@@ -925,7 +925,7 @@ def refresh_player_context(
         resolved_season,
         resolved_week,
         force_injury_refresh=force_injury_refresh,
-        allow_compute=True,
+        allow_compute=False,
     )
     return {
         "season": resolved_season,

@@ -363,3 +363,10 @@ The selected B player spotlight concept takes priority for Game center: compact 
 Each scoreboard half uses its own team's saved banner through the authenticated media loader and saved crop, faded into the navy center. Missing artwork falls back to navy. Account background themes remain controlled by Account. My team's matchup banner is a keyboard-accessible link carrying the selected team and week to Game center; opening it never writes league focus. Public shared rooms omit the private Game center link.
 
 Game center labels current forecasts separately from the pregame baselines frozen in My team. Missing pregame captures remain missing after kickoff; do not backfill them from a later forecast. Resolve Sleeper IDs against cached NFL forecasts using the weekly board's guarded name/team lookup, including team aliases.
+
+
+### Refresh behavior
+
+Weekly's notes chip rebuilds notes from existing weekly artifacts and reports missing projections promptly. Season's Refresh starts a background rebuild without retraining models or backfilling transcripts. Show the current step and keep browsing available. A failed attempt retains the last successful data timestamp.
+
+Open pages check refresh status periodically and on returning to the app. Completed rebuilds update projection boards and Best ball, and invalidate Fantasy projection caches without remounting its workspace. DFS offers Update player pool explicitly: it clears the current unsaved build, preserves user settings/imported estimates, and leaves saved build snapshots unchanged. Do not silently replace an active DFS build after a background refresh.

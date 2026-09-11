@@ -11,10 +11,12 @@ from typing import Any
 
 import pandas as pd
 
+from src.core.artifact_revision import artifact_revision
+
 from src.config import MODEL_DIR, PROCESSED_DATA_DIR, ROS_PREDICTIONS_DIR
 from src.projections.ros_projections import predict_rest_of_season
 
-_ROS_CACHE: dict[str, tuple[str, pd.DataFrame]] = {}
+_ROS_CACHE: dict[str, tuple[tuple, pd.DataFrame]] = {}
 _ROS_COMPUTE_LOCK = threading.Lock()
 
 
@@ -87,15 +89,16 @@ def load_ros_prediction(
     fp = ros_fingerprint()
     key = _cache_key(pos, int(season), int(week), apply_injury_adjustments)
     parquet_path, meta_path = _artifact_paths(pos, int(season), int(week), apply_injury_adjustments)
+    memory_fp = (fp, artifact_revision(parquet_path, meta_path))
     if not force:
         cached = _ROS_CACHE.get(key)
-        if cached is not None and cached[0] == fp:
+        if cached is not None and cached[0] == memory_fp:
             return _with_roster_identity(
                 cached[1].copy(),
                 pos,
                 int(season),
                 int(week),
-                cache_key=f"ros:{key}:{fp}",
+                cache_key=f"ros:{key}:{memory_fp}",
             )
 
         if parquet_path.exists() and meta_path.exists():
@@ -105,13 +108,13 @@ def load_ros_prediction(
                 meta = {}
             if meta.get("fingerprint") == fp:
                 df = pd.read_parquet(parquet_path)
-                _ROS_CACHE[key] = (fp, df.copy())
+                _ROS_CACHE[key] = (memory_fp, df.copy())
                 return _with_roster_identity(
                     df,
                     pos,
                     int(season),
                     int(week),
-                    cache_key=f"ros:{key}:{fp}",
+                    cache_key=f"ros:{key}:{memory_fp}",
                 )
 
     if not allow_compute:
@@ -120,13 +123,13 @@ def load_ros_prediction(
     with _ROS_COMPUTE_LOCK:
         if not force:
             cached = _ROS_CACHE.get(key)
-            if cached is not None and cached[0] == fp:
+            if cached is not None and cached[0] == memory_fp:
                 return _with_roster_identity(
                 cached[1].copy(),
                 pos,
                 int(season),
                 int(week),
-                cache_key=f"ros:{key}:{fp}",
+                cache_key=f"ros:{key}:{memory_fp}",
             )
             if parquet_path.exists() and meta_path.exists():
                 try:
@@ -135,13 +138,13 @@ def load_ros_prediction(
                     meta = {}
                 if meta.get("fingerprint") == fp:
                     df = pd.read_parquet(parquet_path)
-                    _ROS_CACHE[key] = (fp, df.copy())
+                    _ROS_CACHE[key] = (memory_fp, df.copy())
                     return _with_roster_identity(
                     df,
                     pos,
                     int(season),
                     int(week),
-                    cache_key=f"ros:{key}:{fp}",
+                    cache_key=f"ros:{key}:{memory_fp}",
                 )
 
         df = predict_rest_of_season(
@@ -156,7 +159,7 @@ def load_ros_prediction(
             pos,
             int(season),
             int(week),
-            cache_key=f"ros:{key}:{fp}",
+            cache_key=f"ros:{key}:{memory_fp}",
         )
 
 
@@ -180,7 +183,7 @@ def save_ros_artifact(
     }
     meta_path.write_text(json.dumps(meta, indent=2, default=str), encoding="utf-8")
     key = _cache_key(position, season, week, apply_injury_adjustments)
-    _ROS_CACHE[key] = (meta["fingerprint"], df.copy())
+    _ROS_CACHE[key] = ((meta["fingerprint"], artifact_revision(parquet_path, meta_path)), df.copy())
     return parquet_path
 
 

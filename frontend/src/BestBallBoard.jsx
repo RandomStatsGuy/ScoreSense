@@ -1,3 +1,4 @@
+import useDataRevision from "./useDataRevision";
 import "./styles/bestball.css";
 import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch, PRODUCT_DISCLAIMER } from "./auth";
@@ -45,6 +46,7 @@ import {
 import { displayNflTeam } from "./nflTeamAbbrev";
 
 export default function BestBallBoard() {
+  const dataRevision = useDataRevision();
   const [players, setPlayers] = useState([]);
   const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -76,7 +78,7 @@ export default function BestBallBoard() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [dataRevision]);
 
   const rows = useMemo(
     () => sortBoardRows(

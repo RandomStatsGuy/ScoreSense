@@ -3,6 +3,9 @@
 import { displayNflTeam } from "./nflTeamAbbrev.js";
 
 export const DFS_WORKSPACE_COPY = {
+  dataUpdate: "New projections are available. Updating the live player pool clears the current unsaved build; saved builds and imported estimates keep their original values.",
+  updatePool: "Update player pool",
+  uploadedUpdate: "New projections are available. Your uploaded player pool keeps its original estimates; choose a live slate to use the update.",
   eyebrow: "Tournament workspace", title: "Your lineups, built together.", support: "Choose your pool. Control your exposure. Review the whole set.",
   build: "Build lineups", results: "Results", settings: "Build settings", contest: "Contest", contestNote: "Projection-based construction. Contest-return estimates are not available.",
   format: "Format", slate: "Slate", season: "Season", week: "Week", count: "Lineups", goal: "Score to optimize", captain: "Locked Captain", anyCaptain: "Choose from the pool", captainLimit: "Captain max", noCaptain: "No Captain", exposure: "Max player exposure", differences: "Minimum differences", salary: "Salary range", min: "Minimum salary", max: "Maximum salary", stacks: "Stacking & other rules", qbStack: "Pass catchers per QB", bringBack: "Include an opposing receiver", maxTeam: "Max players per team", jitter: "Projection variation", jitterNote: "Variation changes the input scores between builds. It is not a game simulation.", lockNote: "Locked players appear in every lineup. Other limits count toward the requested set; the Exposure tab shows actual usage.",

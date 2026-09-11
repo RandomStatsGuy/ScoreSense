@@ -10,11 +10,13 @@ from typing import Any
 
 import pandas as pd
 
+from src.core.artifact_revision import artifact_revision
+
 from src.config import MODEL_DIR, PROCESSED_DATA_DIR, WEEKLY_PREDICTIONS_DIR
 from src.core.opportunity import ensure_opportunity_adjustment_columns
 from src.projections.predict import predict_upcoming_week
 
-_WEEKLY_CACHE: dict[str, tuple[str, pd.DataFrame]] = {}
+_WEEKLY_CACHE: dict[str, tuple[tuple, pd.DataFrame]] = {}
 
 
 def _cache_key(position: str, season: int, week: int, apply_injury: bool) -> str:
@@ -91,9 +93,11 @@ def load_weekly_prediction(
     pos = position.lower()
     fp = weekly_fingerprint()
     key = _cache_key(pos, int(season), int(week), apply_injury_adjustments)
+    parquet_path, meta_path = _artifact_paths(pos, int(season), int(week), apply_injury_adjustments)
+    memory_fp = (fp, artifact_revision(parquet_path, meta_path))
     if not force:
         cached = _WEEKLY_CACHE.get(key)
-        if cached is not None and cached[0] == fp:
+        if cached is not None and cached[0] == memory_fp:
             out = cached[1].copy()
             for k, v in cached[1].attrs.items():
                 out.attrs[k] = v
@@ -103,7 +107,7 @@ def load_weekly_prediction(
                     pos,
                     int(season),
                     int(week),
-                    cache_key=f"weekly:{key}:{fp}",
+                    cache_key=f"weekly:{key}:{artifact_revision(*_artifact_paths(pos, int(season), int(week), apply_injury_adjustments))}:{fp}",
                 )
             )
 
@@ -118,13 +122,13 @@ def load_weekly_prediction(
                 _apply_saved_attrs(df, meta)
                 if meta.get("built_at"):
                     df.attrs["built_at"] = meta["built_at"]
-                _WEEKLY_CACHE[key] = (fp, df.copy())
+                _WEEKLY_CACHE[key] = (memory_fp, df.copy())
                 return _with_roster_identity(
                     df,
                     pos,
                     int(season),
                     int(week),
-                    cache_key=f"weekly:{key}:{fp}",
+                    cache_key=f"weekly:{key}:{artifact_revision(*_artifact_paths(pos, int(season), int(week), apply_injury_adjustments))}:{fp}",
                 )
 
     if not allow_compute:
@@ -147,7 +151,7 @@ def load_weekly_prediction(
         pos,
         int(season),
         int(week),
-        cache_key=f"weekly:{key}:{fp}",
+        cache_key=f"weekly:{key}:{artifact_revision(*_artifact_paths(pos, int(season), int(week), apply_injury_adjustments))}:{fp}",
     )
 
 
@@ -213,7 +217,7 @@ def save_weekly_artifact(
     }
     meta_path.write_text(json.dumps(meta, indent=2, default=str), encoding="utf-8")
     key = _cache_key(position, season, week, apply_injury_adjustments)
-    _WEEKLY_CACHE[key] = (meta["fingerprint"], df.copy())
+    _WEEKLY_CACHE[key] = ((meta["fingerprint"], artifact_revision(parquet_path, meta_path)), df.copy())
 
     # Movement is best-effort — never block weekly artifact writes.
     try:

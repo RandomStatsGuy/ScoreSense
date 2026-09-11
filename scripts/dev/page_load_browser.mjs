@@ -82,7 +82,9 @@ const ctx = {
   },
   test_mode: false,
 };
+let refreshFixture = null;
 function api(url) {
+  if (refreshFixture && url.includes("/api/refresh")) return refreshFixture;
   const p = new URL(url, "http://local").pathname;
   if (p === "/api/auth/config")
     return {
@@ -194,7 +196,46 @@ function serve(root, port) {
   });
 }
 
-if (process.argv[2]) {
+if (process.argv[2] === "--refresh") {
+  const assert = (await import("node:assert/strict")).default;
+  refreshFixture = { status: "completed", completed_at: "2026-09-10T12:00:00Z" };
+  const server = await serve(path.join(root, "frontend/dist"), 5197);
+  const requests = [];
+  server.on("request", (req) => requests.push(req.url));
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
+    await context.route("**/*", r => new URL(r.request().url()).hostname === "127.0.0.1" ? r.continue() : r.abort());
+    const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", e => errors.push(e.message));
+    await page.goto("http://127.0.0.1:5197/tools/best-ball");
+    await page.locator(".bestball-board").waitFor();
+    await page.waitForTimeout(300);
+    const before = requests.filter(u => u.includes("/api/bestball/board")).length;
+    refreshFixture = { status: "running", stage: "draft", started_at: new Date().toISOString(), last_completed_at: "2026-09-10T12:00:00Z" };
+    await page.evaluate(() => dispatchEvent(new Event("focus")));
+    await page.getByText("Updating season rankings for Fantasy and Best ball...", { exact: false }).waitFor();
+    await page.screenshot({ path: path.join(here, "refresh-progress-phone.png"), fullPage: true });
+    await page.reload();
+    await page.getByText("Updating season rankings for Fantasy and Best ball...", { exact: false }).waitFor();
+    const afterReload = requests.filter(u => u.includes("/api/bestball/board")).length;
+    refreshFixture = { status: "completed", completed_at: new Date().toISOString() };
+    await page.evaluate(() => dispatchEvent(new Event("focus")));
+    await page.getByText("New projections are ready.", { exact: false }).waitFor();
+    await page.waitForTimeout(500);
+    assert(requests.filter(u => u.includes("/api/bestball/board")).length > afterReload);
+    assert(afterReload > before);
+    refreshFixture = { status: "error", error: "Refresh stopped before finishing. Start it again.", last_completed_at: refreshFixture.completed_at };
+    await page.evaluate(() => dispatchEvent(new Event("focus")));
+    await page.getByText(refreshFixture.error).waitFor();
+    assert.equal(errors.length, 0, errors.join("\n"));
+    console.log("Refresh browser checks passed: progress, reload recovery, external completion, Best ball refetch, error display.");
+  } finally {
+    await browser.close();
+    server.close();
+  }
+} else if (process.argv[2]) {
   const servers = [
     await serve(path.resolve(process.argv[2]), 5195),
     await serve(path.join(root, "frontend/dist"), 5196),
