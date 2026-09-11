@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import pandas as pd
 
-from src.config import MODEL_DIR, PROCESSED_DATA_DIR
-from src.projections.draft_projections import predict_draft_season
+from src.core.schedule_utils import SCHEDULE_CACHE
+from src.core.team_codes import normalize_team_to_mlready
+from src.draft_hub.draft_pool_cache import load_draft_pool
 from src.integrations.external_projections import _normalize_name
 from src.integrations.fantasypros import (
     build_fp_enrichment_frame,
-    fantasypros_api_key_configured,
-    prefetch_draft_season_ecr,
 )
 
 
@@ -18,15 +17,29 @@ POSITION_LABELS = {"qb": "QB", "rb": "RB", "wr": "WR/TE"}
 
 
 def _team_bye_map(season: int) -> dict[str, int]:
-    """Bye week per mlready team code; empty when the schedule is unavailable."""
+    """Read the local schedule once; missing schedule data must not trigger ETL."""
     try:
-        from src.core.schedule_utils import team_bye_weeks
-        from src.core.team_codes import normalize_team_to_mlready
-
-        return {
-            normalize_team_to_mlready(team): week
-            for team, week in team_bye_weeks(int(season)).items()
-        }
+        if not SCHEDULE_CACHE.exists():
+            return {}
+        schedules = pd.read_parquet(SCHEDULE_CACHE)
+        regular = schedules.loc[
+            schedules["season"].eq(int(season)) & schedules["week"].between(1, 18)
+        ]
+        if "game_type" in regular.columns:
+            regular = regular.loc[regular["game_type"].eq("REG")]
+        if regular.empty:
+            return {}
+        all_teams = set(regular["home_team"].dropna().str.upper()) | set(
+            regular["away_team"].dropna().str.upper()
+        )
+        byes = {}
+        for week, games in regular.groupby("week", sort=True):
+            playing = set(games["home_team"].dropna().str.upper()) | set(
+                games["away_team"].dropna().str.upper()
+            )
+            for team in all_teams - playing:
+                byes.setdefault(normalize_team_to_mlready(team), int(week))
+        return byes
     except Exception:
         return {}
 
@@ -45,25 +58,23 @@ def _load_adp_proxy(season: int, position: str) -> pd.DataFrame:
     return out
 
 
-def build_bestball_board(
-    season: int,
-    data_dir=None,
-    model_dir=None,
-    prefetch_adp: bool = True,
-) -> tuple[pd.DataFrame, dict]:
-    data_dir = data_dir or PROCESSED_DATA_DIR
-    model_dir = model_dir or MODEL_DIR
+def build_bestball_board(season: int) -> tuple[pd.DataFrame, dict]:
+    """Build from current projection/ECR artifacts, never live inference or ECR fetches.
 
-    fp_prefetch = None
-    if prefetch_adp and fantasypros_api_key_configured():
-        fp_prefetch = prefetch_draft_season_ecr(season)
+    Preseason/weekly refresh jobs own materialization. A cold or stale pool is
+    reported as unavailable so a page visit cannot start three model runs.
+    """
+    pool = load_draft_pool(int(season), allow_compute=False, apply_identity=False)
+    if pool.empty:
+        raise FileNotFoundError("Season projections are not ready yet. Please try again later.")
+    positions = pool["Position"].astype(str).str.upper()
 
     frames: list[pd.DataFrame] = []
     for position in ("qb", "rb", "wr"):
-        draft = predict_draft_season(position, season=season, data_dir=data_dir, model_dir=model_dir)
+        labels = ("WR", "TE") if position == "wr" else (POSITION_LABELS[position],)
+        draft = pool.loc[positions.isin(labels)].copy()
         if draft.empty:
             continue
-        draft = draft.copy()
         draft["Position"] = POSITION_LABELS[position]
         draft["name_key"] = draft["Player"].map(_normalize_name)
         draft["team_upper"] = draft["Team"].astype(str).str.upper()
@@ -102,6 +113,7 @@ def build_bestball_board(
         "count": len(board),
         "with_adp": int(board["adp_rank"].notna().sum()),
         "adp_source": "FantasyPros week-1 ECR (cached) when available",
-        "fp_prefetch": fp_prefetch,
+        "fp_prefetch": None,
+        "projection_source": "draft_pool_cache",
     }
     return board, meta
