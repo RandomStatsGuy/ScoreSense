@@ -1,3 +1,4 @@
+import "./styles/admin.css";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "./auth";
 import { parseApiError } from "./format";

@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const css = readFileSync(join(here, "../styles.css"), "utf8");
+const css = readFileSync(join(here, "../styles/fantasy.css"), "utf8");
 const rosterBuilder = readFileSync(join(here, "RosterBuilder.jsx"), "utf8");
 const rosterBrowser = readFileSync(join(here, "LeagueRostersBrowser.jsx"), "utf8");
 

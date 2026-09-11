@@ -1,25 +1,22 @@
+/* From styles.css; keep source order when adding overrides. */
+/* From styles/product-hierarchy.css; keep source order when adding overrides. */
+/* From styles/projections-experience.css; keep source order when adding overrides. */
 /* Vibe rankings — swipe deck. Tokens only; new CSS is the interaction. */
-
 .hub-vibes.hub-experience-page {
   overflow: hidden;
 }
-
 .hub-vibes .hub-experience-hero {
   padding: 1.15rem 2.15rem 1rem;
 }
-
 .hub-vibes .hub-experience-hero h2 {
   font-size: clamp(1.35rem, 2.1vw, 1.85rem);
 }
-
 .hub-vibes .hub-experience-hero p {
   margin-top: 0.45rem;
 }
-
 .hub-vibes.hub-experience-page .hub-experience-layout {
   grid-template-columns: minmax(21rem, 28rem) minmax(0, 1fr);
 }
-
 .hub-vibes .hub-experience-summary {
   display: flex;
   flex-direction: column;
@@ -27,11 +24,9 @@
   max-height: calc(100vh - 6rem);
   overflow: auto;
 }
-
 .hub-vibes .hub-experience-summary dl {
   margin: 0.35rem 0 0;
 }
-
 .hub-vibes-stage {
   display: flex;
   flex-direction: column;
@@ -39,7 +34,6 @@
   gap: 0.55rem;
   min-width: 0;
 }
-
 .hub-vibes-deck-wrap {
   position: relative;
   width: 100%;
@@ -48,7 +42,6 @@
   touch-action: pan-y;
   user-select: none;
 }
-
 .hub-vibes-card {
   position: absolute;
   inset: 0;
@@ -65,36 +58,29 @@
   touch-action: pan-y;
   will-change: transform;
 }
-
 .hub-vibes-card.is-open {
   overflow-y: auto;
 }
-
 .hub-vibes-card.is-front {
   cursor: grab;
   z-index: 3;
 }
-
 @media (hover: hover) and (pointer: fine) {
   .hub-vibes-card.is-front {
     cursor: default;
   }
 }
-
 .hub-vibes-card.is-front img {
   pointer-events: none;
 }
-
 .hub-vibes-card.is-front.is-dragging {
   cursor: grabbing;
   overflow-y: hidden;
 }
-
 .hub-vibes-card.is-stack-1,
 .hub-vibes-card.is-stack-2 {
   pointer-events: none;
 }
-
 .hub-vibes-photo {
   position: relative;
   grid-row: 1 / span 2;
@@ -104,12 +90,10 @@
     radial-gradient(circle at 50% 20%, rgba(91, 143, 232, 0.14), transparent 42%),
     var(--experience-surface);
 }
-
 .hub-vibes-card.is-open .hub-vibes-photo {
   grid-row: 1;
   height: 8.5rem;
 }
-
 .hub-vibes-photo img,
 .hub-vibes-photo-fallback {
   width: 100%;
@@ -117,7 +101,6 @@
   object-fit: cover;
   object-position: top center;
 }
-
 .hub-vibes-photo-fallback {
   display: flex;
   align-items: center;
@@ -127,7 +110,6 @@
   font-weight: var(--font-weight-bold);
   letter-spacing: -0.04em;
 }
-
 .hub-vibes-photo-fade {
   position: absolute;
   inset: auto 0 0;
@@ -135,7 +117,6 @@
   background: linear-gradient(180deg, transparent, rgba(9, 17, 29, 0.92) 70%);
   pointer-events: none;
 }
-
 .hub-vibes-stamp {
   position: absolute;
   top: 1.15rem;
@@ -150,19 +131,16 @@
   opacity: 0;
   pointer-events: none;
 }
-
 .hub-vibes-stamp--start {
   left: 1rem;
   color: var(--experience-blue);
   transform: rotate(-12deg);
 }
-
 .hub-vibes-stamp--sit {
   right: 1rem;
   color: var(--text-secondary);
   transform: rotate(12deg);
 }
-
 .hub-vibes-more {
   position: absolute;
   right: 0.55rem;
@@ -182,12 +160,10 @@
   font-weight: var(--font-weight-bold);
   cursor: pointer;
 }
-
 .hub-vibes-more svg {
   width: 0.95rem;
   height: 0.95rem;
 }
-
 .hub-vibes-identity {
   display: flex;
   flex-direction: column;
@@ -195,7 +171,6 @@
   min-width: 0;
   padding: 0.85rem 0.95rem 0.7rem;
 }
-
 .hub-vibes-name {
   margin: 0;
   color: var(--text-primary);
@@ -204,40 +179,34 @@
   letter-spacing: -0.03em;
   line-height: 1.1;
 }
-
 .hub-vibes-meta {
   margin: 0;
   color: var(--text-secondary);
   font-size: var(--text-xs);
 }
-
 .hub-vibes-stats {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   gap: 0.45rem;
   align-items: end;
 }
-
 .hub-vibes-stat {
   display: flex;
   flex-direction: column;
   gap: 0.12rem;
   min-width: 0;
 }
-
 .hub-vibes-stat span,
 .hub-vibes-stat dt {
   color: var(--text-muted);
   font-size: var(--text-xs);
 }
-
 .hub-vibes-stat strong {
   color: var(--text-primary);
   font-size: 1.05rem;
   font-weight: var(--font-weight-bold);
   font-variant-numeric: tabular-nums;
 }
-
 .hub-vibes-week-delta {
   margin: 0;
   padding-bottom: 0.12rem;
@@ -247,13 +216,11 @@
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
-
 .hub-vibes-aura {
   display: flex;
   flex-direction: column;
   gap: 0.28rem;
 }
-
 .hub-vibes-aura-scale {
   display: flex;
   align-items: baseline;
@@ -262,38 +229,32 @@
   color: var(--text-muted);
   font-size: var(--text-xs);
 }
-
 .hub-vibes-aura-bar {
   height: 0.28rem;
   overflow: hidden;
   border-radius: var(--radius-pill);
   background: rgba(149, 164, 184, 0.16);
 }
-
 .hub-vibes-aura-bar > i {
   display: block;
   height: 100%;
   border-radius: inherit;
   background: var(--experience-blue);
 }
-
 .hub-vibes-matchup {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.4rem;
   margin: 0.2rem 0 0;
 }
-
 .hub-vibes-matchup dt {
   margin: 0;
   color: var(--text-muted);
   font-size: var(--text-xs);
 }
-
 .hub-vibes-matchup dd {
   margin: 0;
 }
-
 .hub-vibes-matchup strong {
   display: block;
   color: var(--text-primary);
@@ -301,7 +262,6 @@
   font-weight: var(--font-weight-medium);
   line-height: 1.25;
 }
-
 .hub-vibes-actions {
   display: flex;
   flex-direction: column;
@@ -309,21 +269,18 @@
   gap: 0.5rem;
   width: 100%;
 }
-
 .hub-vibes-summary-actions {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: var(--space-2);
 }
-
 .hub-vibes-votes {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.65rem;
   width: 100%;
 }
-
 .hub-vibes-vote {
   width: 100%;
   min-width: 0;
@@ -332,19 +289,16 @@
   border-radius: var(--radius-pill);
   font-weight: var(--font-weight-bold);
 }
-
 .hub-vibes-vote--sit {
   border: 1px solid var(--experience-rule);
   background: var(--experience-surface);
   color: var(--text-primary);
 }
-
 .hub-vibes-vote--start {
   border: 1px solid color-mix(in srgb, var(--experience-blue) 42%, transparent);
   background: color-mix(in srgb, var(--experience-blue) 14%, transparent);
   color: var(--experience-blue);
 }
-
 .hub-vibes-undo {
   align-self: flex-end;
   min-height: var(--touch-target);
@@ -356,12 +310,10 @@
   font-weight: var(--font-weight-bold);
   cursor: pointer;
 }
-
 .hub-vibes-undo:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
-
 .hub-vibes-profile {
   display: flex;
   flex-direction: column;
@@ -369,7 +321,6 @@
   grid-column: 1 / -1;
   padding: 0 1.05rem 1.35rem;
 }
-
 .hub-vibes-about,
 .hub-vibes-scroll-hint {
   margin: 0;
@@ -379,21 +330,18 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-
 .hub-vibes-facts {
   display: flex;
   flex-direction: column;
   gap: 0.48rem;
   margin: 0;
 }
-
 .hub-vibes-fact {
   display: grid;
   grid-template-columns: 5.1rem minmax(0, 1fr);
   gap: 0.45rem;
   align-items: baseline;
 }
-
 .hub-vibes-fact dt {
   margin: 0;
   color: var(--text-muted);
@@ -402,40 +350,34 @@
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
-
 .hub-vibes-fact dd {
   margin: 0;
   color: var(--text-primary);
   font-size: 0.9rem;
 }
-
 .hub-vibes-bio {
   margin: 0;
   color: var(--text-secondary);
   font-size: 0.94rem;
   line-height: 1.45;
 }
-
 .hub-vibes-news {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   padding-top: 0.15rem;
 }
-
 .hub-vibes-news-head {
   margin: 0;
   color: var(--text-primary);
   font-size: 0.95rem;
   font-weight: var(--font-weight-medium);
 }
-
 .hub-vibes-news-source {
   margin: 0;
   color: var(--text-muted);
   font-size: var(--text-xs);
 }
-
 .hub-vibes-progress,
 .hub-vibes-hint,
 .hub-vibes-keys {
@@ -444,7 +386,6 @@
   font-size: var(--text-xs);
   text-align: center;
 }
-
 .hub-vibes-slate,
 .hub-vibes-leaders,
 .hub-vibes-splits {
@@ -457,7 +398,6 @@
   border-radius: 0;
   background: transparent;
 }
-
 .hub-vibes-slate h3,
 .hub-vibes-leaders h3,
 .hub-vibes-splits h3 {
@@ -465,14 +405,12 @@
   font-size: 0.92rem;
   letter-spacing: -0.02em;
 }
-
 .hub-vibes-slate p,
 .hub-vibes-splits p {
   margin: 0;
   color: var(--text-muted);
   font-size: var(--text-xs);
 }
-
 .hub-vibes-slot,
 .hub-vibes-leader,
 .hub-vibes-split {
@@ -481,14 +419,12 @@
   gap: 0.55rem;
   align-items: center;
 }
-
 .hub-vibes-slot-pos,
 .hub-vibes-leader-aura {
   color: var(--text-muted);
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
 }
-
 .hub-vibes-slot-name,
 .hub-vibes-leader-name,
 .hub-vibes-split-name {
@@ -500,23 +436,19 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .hub-vibes-slot-cta {
   font-size: var(--text-xs);
 }
-
 .hub-vibes-slot-pts,
 .hub-vibes-leader-pts {
   color: var(--text-secondary);
   font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
 }
-
 .hub-vibes-vs-table {
   width: 100%;
   border-collapse: collapse;
 }
-
 .hub-vibes-vs-table th,
 .hub-vibes-vs-table td {
   padding: 0.45rem 0.2rem;
@@ -524,49 +456,41 @@
   text-align: left;
   vertical-align: top;
 }
-
 .hub-vibes-vs-table th {
   color: var(--text-muted);
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
 }
-
 .hub-vibes-vs-table td {
   color: var(--text-primary);
   font-size: var(--text-xs);
 }
-
 .hub-vibes-vs-table td strong {
   display: block;
   font-size: 0.82rem;
   font-weight: var(--font-weight-medium);
 }
-
 .hub-vibes-vs-table td span {
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
-
 .hub-vibes-vs-table th:last-child,
 .hub-vibes-vs-table td:last-child {
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-bold);
 }
-
 .hub-vibes-results {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
-
 .hub-vibes-reads-title {
   margin: 0;
   color: var(--text-primary);
   font-size: var(--text-md);
   font-weight: var(--font-weight-bold);
 }
-
 .hub-vibes-reads {
   display: flex;
   flex-direction: column;
@@ -575,20 +499,17 @@
   padding: 0;
   list-style: none;
 }
-
 .hub-vibes-reads li {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
 }
-
 .hub-vibes-empty {
   padding: 1.2rem;
   color: var(--text-secondary);
   font-size: 0.9rem;
 }
-
 @media (max-width: 860px) {
   .hub-vibes.hub-experience-page .hub-experience-layout {
     grid-template-columns: 1fr;
@@ -598,7 +519,6 @@
     max-height: none;
   }
 }
-
 @media (max-width: 768px) {
   .hub-vibes-deck-wrap {
     width: 100%;
@@ -629,7 +549,6 @@
     display: none;
   }
 }
-
 @media (prefers-reduced-motion: reduce) {
   .hub-vibes-card,
   .hub-vibes-stamp,
@@ -637,3 +556,56 @@
     transition: none !important;
   }
 }
+/* From styles/product-rhythm.css; keep source order when adding overrides. */
+/* From styles/fantasy-phone.css; keep source order when adding overrides. */
+@media (max-width: 768px) {
+
+  .hub-vibes-more {
+    top: 0.75rem;
+    bottom: auto;
+    right: 0.75rem;
+  }
+
+  .hub-vibes-stage {
+    padding-bottom: 7.25rem;
+  }
+
+  .hub-vibes-keys {
+    display: none;
+  }
+
+  .hub-vibes-actions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    z-index: var(--z-sticky);
+    padding: 0.45rem 0.85rem 0.55rem;
+    background: var(--bg-base);
+    border-top: 1px solid var(--border);
+  }
+
+  .hub-vibes-votes {
+    width: 100%;
+  }
+
+  .hub-vibes-compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+  }
+
+  .hub-vibes-compare span {
+    display: block;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+  }
+
+  .hub-vibes-compare strong {
+    display: block;
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    overflow-wrap: anywhere;
+  }
+}
+/* From styles/fantasy-header.css; keep source order when adding overrides. */

@@ -1,3 +1,4 @@
+import "../styles/strategy-board.css";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";

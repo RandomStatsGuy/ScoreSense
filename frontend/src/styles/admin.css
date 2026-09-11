@@ -1,0 +1,236 @@
+/* From styles.css; keep source order when adding overrides. */
+.admin-portal {
+  padding: 0 0 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.admin-portal-loading {
+  padding: 2rem 1rem;
+  color: var(--text-muted, #8b949e);
+}
+.admin-portal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.admin-panel {
+  margin-bottom: 1.25rem;
+}
+.admin-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.85rem;
+}
+.admin-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+}
+.admin-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.admin-stat-label {
+  font-size: 0.82rem;
+  color: var(--text-muted, #8b949e);
+}
+.admin-section-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+.admin-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem 1rem;
+  align-items: end;
+}
+.admin-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  color: var(--text-muted, #8b949e);
+}
+.admin-form input[type="text"],
+.admin-form input[type="email"],
+.admin-form input[type="number"] {
+  padding: 0.45rem 0.55rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-base);
+  color: inherit;
+}
+.admin-checkbox {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem !important;
+  color: inherit !important;
+}
+.admin-table-wrap {
+  overflow-x: auto;
+}
+.admin-table td,
+.admin-table th {
+  vertical-align: top;
+}
+.admin-code {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: var(--text-xs);
+  opacity: 0.75;
+  word-break: break-all;
+}
+.admin-muted {
+  color: var(--text-muted, #8b949e);
+  font-size: 0.85rem;
+}
+.admin-membership-list {
+  margin: 0;
+  padding-left: 1rem;
+  font-size: 0.85rem;
+}
+.admin-badge {
+  margin-left: 0.45rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  background: var(--tone-caution-soft);
+  color: var(--tone-caution-text);
+}
+.admin-delete-row {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  min-width: 180px;
+}
+.admin-delete-row input {
+  width: 5.5rem;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-base);
+  color: inherit;
+}
+.admin-danger {
+  color: var(--danger) !important;
+}
+.admin-detail-cell {
+  background: rgba(0, 0, 0, 0.15);
+  padding: 0.75rem 1rem !important;
+}
+.admin-nested-table {
+  margin: 0;
+}
+.admin-notice {
+  margin-bottom: 0.75rem;
+}
+.admin-notice-success {
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--tone-positive-soft);
+  color: var(--tone-positive);
+  font-size: 0.9rem;
+}
+.admin-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.25rem;
+  margin-bottom: 0.85rem;
+}
+.admin-panel-note {
+  margin: 0.85rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+.admin-membership-hidden {
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+  font-style: italic;
+}
+.admin-league-actions {
+  display: grid;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+.admin-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.88rem;
+}
+.admin-link-hint {
+  margin: -0.35rem 0 0;
+}
+.admin-inline-form input,
+.admin-inline-form select {
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
+  min-width: 140px;
+}
+.admin-invites-block {
+  margin-bottom: 0.85rem;
+  font-size: 0.88rem;
+}
+.admin-row-expanded td {
+  border-bottom: none;
+}
+@media (max-width: 768px) {
+
+  .admin-table-wrap--desktop-only {
+    display: none;
+  }
+
+  .admin-mobile-list {
+    display: block;
+  }
+}
+@media (min-width: 769px) {
+  .admin-mobile-list {
+    display: none;
+  }
+}
+.admin-stat-card {
+  background: var(--bg-subtle);
+  border-color: var(--border);
+  box-shadow: none;
+}
+.admin-form input[type="text"],
+.admin-form input[type="email"],
+.admin-form input[type="number"],
+.admin-delete-row input {
+  border-color: var(--border-strong);
+  background-color: #101a28;
+  color: var(--text-primary);
+  box-shadow: none;
+}
+.admin-table-wrap {
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.admin-nested-table th,
+.admin-nested-table td {
+  padding: 0.5rem 0.55rem;
+  font-size: 0.8rem;
+}
+.admin-table {
+  min-width: 56rem;
+}
+/* From styles/product-hierarchy.css; keep source order when adding overrides. */
+/* From styles/projections-experience.css; keep source order when adding overrides. */
+/* From styles/product-rhythm.css; keep source order when adding overrides. */
+/* From styles/fantasy-phone.css; keep source order when adding overrides. */
+/* From styles/fantasy-header.css; keep source order when adding overrides. */

@@ -1,3 +1,4 @@
+import "./styles/auth-session.css";
 import React, { useEffect } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import AccountAuth from "./AccountAuth";
