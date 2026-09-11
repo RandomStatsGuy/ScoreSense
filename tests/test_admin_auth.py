@@ -312,7 +312,7 @@ def test_refresh_allowed_when_site_auth_is_off(hub_db, auth_db, monkeypatch):
     monkeypatch.setattr("app.auth.ADMIN_EMAILS", frozenset({"admin@example.com"}))
     monkeypatch.setattr(
         "app.api.mark_refresh_started",
-        lambda **kwargs: {"started_at": "2026-01-01T00:00:00+00:00"},
+        lambda **kwargs: {"status": "running", "started_at": "2026-01-01T00:00:00+00:00"},
     )
     monkeypatch.setattr(
         "app.api.run_weekly_refresh",
@@ -323,7 +323,7 @@ def test_refresh_allowed_when_site_auth_is_off(hub_db, auth_db, monkeypatch):
 
     res = TestClient(app).post("/api/refresh?retrain=false")
     assert res.status_code == 200
-    assert res.json()["status"] in {"started", "completed"}
+    assert res.json()["status"] == "running"
 
 
 def test_refresh_requires_login_when_site_auth_is_on(hub_db, auth_db, monkeypatch):
