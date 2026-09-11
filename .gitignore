@@ -32,3 +32,6 @@ ssh
 !.cursor/skills/**
 !.cursor/environment.json
 !.cursor/BUGBOT.md
+
+# Personal DFS ledger and SQLite journals
+data/dfs/*.db*

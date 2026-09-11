@@ -53,6 +53,12 @@ def test_parse_dk_draftables():
     assert df.iloc[0]["name_key"]
 
 
+def test_global_player_id_cannot_replace_draftable_id():
+    entry = {**DK_DRAFTABLES_SAMPLE["draftables"][0], "playerDkId": 123, "playerId": 456}
+    entry.pop("draftableId")
+    assert parse_dk_draftables({"draftables": [entry]}).iloc[0]["dfs_id"] == ""
+
+
 def test_parse_fd_players():
     df = parse_fd_players(FD_PLAYERS_SAMPLE)
     assert len(df) == 1

@@ -49,10 +49,10 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Blue (`--experience-blue` / `--accent`) = current context and the next action. Nothing else.
 - Teal = healthy/saved. Amber = attention. Red = destructive/blocking, plus the live auction clock under 5s. Gold = awards only — never the live high-bid figure.
 - Hierarchy from surface, type, and spacing — not a border on every box. Token insets and gutters; text is never flush to a line and never smaller than `--text-xs` (12px computed).
-- Editorial pages use one hero stack: `HubExperienceHero` + `HubExperienceLayout` + `HubExperienceSummary` from `HubUILayout.jsx`. Strategy and Rosters are board-first exceptions — no hero band.
+- Editorial pages use one hero stack: `HubExperienceHero` + `HubExperienceLayout` + `HubExperienceSummary` from `HubUILayout.jsx`. Strategy and Rosters are board-first exceptions — no hero band. Strategy is the board-first exception; do not add `HubExperienceHero` to Strategy to match other Fantasy destinations.
 - **Fix the primitive, not the page.** Shared CSS/components first. Measurable layout rules: `.cursor/rules/frontend-craft.mdc`.
 - League-strip option menus paint above the Fantasy page below the strip. Raise `.hub-league-context-bar` (or portal the menu) — a later `.hub-page` at the same z-index covers overflowing menus.
-- Copy lives in `*Presentation.js`. Explain the action and its actual effect in plain language; do not invent consequences or scold the user. No slogan that could sit on another app. No “Submit”, no “You do not have permission” (use “Commissioner managed”).
+- Copy lives in `*Presentation.js`. Explain the action and its actual effect in plain language; the cost of getting it wrong is confusion, not drama; do not invent consequences or scold the user. No slogan that could sit on another app. No “Submit”, no “You do not have permission” (use “Commissioner managed”).
 
 ## Product rules you may not bypass
 
