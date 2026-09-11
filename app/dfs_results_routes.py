@@ -55,9 +55,10 @@ def get_results(account=Depends(owner)):
 
 
 @router.post("/results/import")
-def import_results(request: EntryImport, account=Depends(owner)):
+def import_results(request: EntryImport, account=Depends(owner), compact: bool = False):
     records = [row.model_dump(mode="json", exclude_none=True) for row in request.entries]
-    owned_builds = {b["id"]: b for b in dfs_results.read_results(account)["builds"]}
+    owned_builds = ({b["id"]: b for b in dfs_results.read_results(account)["builds"]}
+                    if any(row.get("build_id") for row in records) else {})
     seen = set()
     for row in records:
         key = (row["site"], row["contest_id"], row["entry_id"])
@@ -68,7 +69,7 @@ def import_results(request: EntryImport, account=Depends(owner)):
             build = owned_builds.get(row["build_id"])
             if not build or row.get("lineup_index", 0) >= len(build["lineups"]):
                 raise HTTPException(400, "The saved build does not belong to this account or the lineup is missing.")
-    return dfs_results.import_entries(account, records)
+    return dfs_results.import_entries(account, records, compact=compact)
 
 
 @router.post("/builds")
