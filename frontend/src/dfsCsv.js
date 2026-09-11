@@ -1,11 +1,14 @@
 import { csvQuote } from "./table/csv.js";
 
 /** RFC 4180 cells, including quoted commas, escaped quotes and newlines. IDs stay strings. */
-export function parseDfsCsv(text) {
+export function parseDfsCsv(
+  text,
+  { maxChars = 5_000_000, maxRows = Infinity } = {},
+) {
   const source = String(text).replace(/^\uFEFF/, "");
-  if (source.length > 5_000_000)
+  if (source.length > maxChars)
     throw new Error(
-      "This file is too large. Import fewer than 5 MB at a time.",
+      `This file is too large. Import up to ${maxChars / 1_000_000} MB at a time.`,
     );
   const rows = [];
   let row = [],
@@ -36,6 +39,8 @@ export function parseDfsCsv(text) {
       if (c === "\r" && source[i + 1] === "\n") i++;
       row.push(cell);
       rows.push(row);
+      if (rows.length > maxRows)
+        throw new Error(`Import up to ${maxRows - 1} entries at a time.`);
       row = [];
       cell = "";
       closed = false;
@@ -49,6 +54,8 @@ export function parseDfsCsv(text) {
   if (cell || row.length || closed) {
     row.push(cell);
     rows.push(row);
+    if (rows.length > maxRows)
+      throw new Error(`Import up to ${maxRows - 1} entries at a time.`);
   }
   return rows.filter((r) => r.some((c) => c.trim()));
 }

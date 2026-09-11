@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -13,8 +13,6 @@ import { HubFilterMenu } from "./DraftHub/HubUILayout";
 import { DFS_RESULTS_COPY as C } from "./dfsToolPresentation";
 import { DfsField, DfsFile } from "./DfsWorkspace";
 import {
-  inspectResultsCsv,
-  parseResultsRows,
   RESULT_FIELDS,
   resultTotals,
   resultGroups,
@@ -22,8 +20,14 @@ import {
   dollars,
 } from "./dfsResults.js";
 import { jsonRequest } from "./useDfsBuilder";
+import { importResultsBatches } from "./dfsResultsImport.js";
 
 export default function DfsResults() {
+  const worker = useRef(null);
+  const previewVersion = useRef(0);
+  const [progress, setProgress] = useState("");
+  const [entryPage, setEntryPage] = useState(0);
+  useEffect(() => () => worker.current?.terminate(), []);
   const [data, setData] = useState({ entries: [], builds: [] }),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(true);
@@ -55,6 +59,30 @@ export default function DfsResults() {
   const entries = data.entries.filter(
     (e) => filter === "all" || e.site === filter,
   );
+  useEffect(() => setEntryPage(0), [filter, data.entries]);
+  const entryPages = Math.max(1, Math.ceil(entries.length / 50));
+  const clearPreview = () => {
+    previewVersion.current++;
+    setPreview(null);
+  };
+  const workerRequest = (action, payload) =>
+    new Promise((resolve, reject) => {
+      if (!worker.current)
+        worker.current = new Worker(
+          new URL("./dfsResults.worker.js", import.meta.url),
+          { type: "module" },
+        );
+      worker.current.onmessage = ({ data: message }) =>
+        message.error
+          ? reject(new Error(message.error))
+          : resolve(message.result);
+      worker.current.onerror = () => {
+        worker.current?.terminate();
+        worker.current = null;
+        reject(new Error(C.chooseFile));
+      };
+      worker.current.postMessage({ action, ...payload });
+    });
   const totals = useMemo(() => resultTotals(entries), [data.entries, filter]);
   const groups = useMemo(
     () => resultGroups(entries, data.builds, group),
@@ -75,30 +103,43 @@ export default function DfsResults() {
     setNote(e.note || "");
   };
   const importFile = async (f) => {
+    if (!f) return;
+    setBusy(true);
+    setProgress(C.reading);
+    setFile(null);
+    clearPreview();
+    setError("");
     try {
-      if (f) {
-        const parsed = inspectResultsCsv(await f.text());
-        setFile({ ...parsed, name: f.name });
-        setMapping(parsed.mapping);
-        setPreview(null);
-        setError("");
-      }
+      const parsed = await workerRequest("inspect", { file: f });
+      setFile({ ...parsed, name: f.name });
+      setMapping(parsed.mapping);
     } catch (e) {
       setError(e.message);
+    } finally {
+      setBusy(false);
+      setProgress("");
     }
   };
   const updateEntries = async (rows) => {
     setBusy(true);
     setError("");
     try {
-      const next = await jsonRequest("/api/lineup/results/import", {
-        method: "POST",
-        body: JSON.stringify({ entries: rows }),
-      });
+      await importResultsBatches(rows, jsonRequest, (saved, total) =>
+        setProgress(C.importing(saved, total)),
+      );
+      setProgress(C.savedImport(rows.length));
+      const next = await jsonRequest("/api/lineup/results");
       setData(next);
       return true;
     } catch (e) {
       setError(e.message);
+      setProgress("");
+      // A previous batch may have committed. Reconcile the displayed ledger.
+      try {
+        setData(await jsonRequest("/api/lineup/results"));
+      } catch {
+        /* Keep the import available for an idempotent retry. */
+      }
       return false;
     } finally {
       setBusy(false);
@@ -162,21 +203,30 @@ export default function DfsResults() {
           {error}
         </div>
       )}
+      {progress && (
+        <p className="dfw-note" role="status" aria-live="polite">
+          {progress}
+        </p>
+      )}
       {file && (
         <section className="dfw-panel">
           <div className="dfw-panel-head">
             <h2>{C.importTitle}</h2>
             <button
+              disabled={busy}
               onClick={() => {
                 setFile(null);
-                setPreview(null);
+                clearPreview();
+                worker.current?.terminate();
+                worker.current = null;
               }}
             >
               {C.cancel}
             </button>
           </div>
           <p className="dfw-note">
-            {file.name} · {file.rows.length} {C.count.toLowerCase()}
+            {file.name} · {file.rowCount.toLocaleString()}{" "}
+            {C.count.toLowerCase()}
           </p>
           <p className="dfw-note">{C.payoutHelp}</p>
           <div className="dfw-import-grid">
@@ -189,7 +239,7 @@ export default function DfsResults() {
               ]}
               onChange={(v) => {
                 setSite(v);
-                setPreview(null);
+                clearPreview();
               }}
             />
             <HubFilterMenu
@@ -201,7 +251,7 @@ export default function DfsResults() {
               ]}
               onChange={(v) => {
                 setKind(v);
-                setPreview(null);
+                clearPreview();
               }}
             />
             <DfsField label={C.contestOverride}>
@@ -209,7 +259,7 @@ export default function DfsResults() {
                 value={contestId}
                 onChange={(e) => {
                   setContestId(e.target.value);
-                  setPreview(null);
+                  clearPreview();
                 }}
               />
             </DfsField>
@@ -231,7 +281,7 @@ export default function DfsResults() {
                   ]}
                   onChange={(v) => {
                     setMapping((m) => ({ ...m, [id]: Number(v) }));
-                    setPreview(null);
+                    clearPreview();
                   }}
                 />
               ))}
@@ -244,26 +294,31 @@ export default function DfsResults() {
                 checked={settled}
                 onChange={(e) => {
                   setSettled(e.target.checked);
-                  setPreview(null);
+                  clearPreview();
                 }}
               />
               {C.settled}
             </label>
           )}
           <button
-            onClick={() => {
+            disabled={busy}
+            onClick={async () => {
+              const version = previewVersion.current;
+              setBusy(true);
+              setProgress(C.validating);
+              setPreview(null);
               try {
-                setPreview(
-                  parseResultsRows(file, mapping, {
-                    site,
-                    kind,
-                    contestId,
-                    settled,
-                  }),
-                );
+                const rows = await workerRequest("preview", {
+                  mapping,
+                  options: { site, kind, contestId, settled },
+                });
+                if (version === previewVersion.current) setPreview(rows);
                 setError("");
               } catch (e) {
                 setError(e.message);
+              } finally {
+                setBusy(false);
+                setProgress("");
               }
             }}
           >
@@ -306,7 +361,9 @@ export default function DfsResults() {
                 onClick={async () => {
                   if (await updateEntries(preview)) {
                     setFile(null);
-                    setPreview(null);
+                    clearPreview();
+                    worker.current?.terminate();
+                    worker.current = null;
                   }
                 }}
               >
@@ -480,7 +537,7 @@ export default function DfsResults() {
         <section className="dfw-panel">
           <h2>{C.review}</h2>
           <div className="dfw-entry-list">
-            {entries.map((e) => (
+            {entries.slice(entryPage * 50, (entryPage + 1) * 50).map((e) => (
               <button
                 key={`${e.site}|${e.contest_id}|${e.entry_id}`}
                 aria-pressed={entry === e}
@@ -496,6 +553,23 @@ export default function DfsResults() {
               </button>
             ))}
           </div>
+          {entryPages > 1 && (
+            <div className="dfw-panel-head">
+              <button
+                disabled={entryPage === 0}
+                onClick={() => setEntryPage((p) => p - 1)}
+              >
+                {C.previous}
+              </button>
+              <span>{C.entryPage(entryPage + 1, entryPages)}</span>
+              <button
+                disabled={entryPage + 1 >= entryPages}
+                onClick={() => setEntryPage((p) => p + 1)}
+              >
+                {C.next}
+              </button>
+            </div>
+          )}
           {entry && (
             <>
               <div className="dfw-review-row">

@@ -13,7 +13,7 @@ export const RESULT_FIELDS = [
 ];
 
 export function inspectResultsCsv(text) {
-  const rows = parseDfsCsv(text);
+  const rows = parseDfsCsv(text, { maxChars: 100_000_000, maxRows: 250_001 });
   if (rows.length < 2) throw new Error("The CSV has no entry rows.");
   const keys = rows[0].map(headerKey);
   const mapping = Object.fromEntries(

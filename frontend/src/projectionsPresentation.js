@@ -800,6 +800,7 @@ export function filterInspectorCandidates(candidates, query, { limit = 8 } = {})
 }
 
 export const REFRESH_COPY = {
+  label: "Projection refresh:",
   starting: "Starting refresh...",
   queued: "Refresh queued...",
   datasets: "Updating source data...",
