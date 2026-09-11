@@ -8,6 +8,10 @@
   --bp-mobile-shell: 768px;
   --bp-mobile-dense: 768px;
 
+  /* Shared material palette for approved team and matchup rooms. */
+  --team-room-light: #d7b47c;
+  --team-room-tint: #1e3047;
+
   /* Surfaces */
   --bg-base: #070d17;
   --bg-elevated: #0d1624;

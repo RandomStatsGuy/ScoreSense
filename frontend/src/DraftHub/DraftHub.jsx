@@ -858,6 +858,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         effectiveCtx?.mode === "league" && effectiveCtx?.league_id ? (
           <Suspense fallback={<p className="chart-note">Loading matchups…</p>}>
             <GameCenter
+              requestedWeek={searchParams.get("matchupWeek")}
+              requestedTeam={searchParams.get("matchupTeam")}
               leagueId={effectiveCtx.league_id}
               hubContext={effectiveCtx}
               onNavigate={goHubView}

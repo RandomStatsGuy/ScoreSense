@@ -16,6 +16,9 @@ export const MY_TEAM_COPY = {
   nicknameSaved: "Nickname saved.",
   resetNickname: "Use Sleeper nickname",
   projectionMissing: "Projection unavailable",
+  projectionNotSaved: "Pregame projection not saved",
+  projectionNotSavedShort: "Not saved",
+  openGameCenter: "Open matchup in Game center",
   roomStates: { pregame: "Pregame", live: "Week in progress", final: "Final", unknown: "Scores" },
   purpose: "View your players, manage contracts, and check your cap room.",
   learnMoreReadonlyLeague:

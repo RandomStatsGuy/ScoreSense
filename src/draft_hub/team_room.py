@@ -153,8 +153,10 @@ def build_room(team: dict, week: int | None = None) -> dict[str, Any]:
     for p in (mine.get("starters") or []) + (mine.get("bench_players") or []):
         if not p.get("player_id"):
             continue
-        p["proj"] = projection_snapshot(league_id, season, current_week, p.get("player_id"), p.get("proj"),
-            started=state in ("final", "unknown") or nfl_game_started(p.get("team"), int(season), current_week))
+        started = state in ("final", "unknown") or nfl_game_started(p.get("team"), int(season), current_week)
+        p["proj"] = projection_snapshot(league_id, season, current_week, p.get("player_id"), p.get("proj"), started=started)
+        p["projection_status"] = "available" if p["proj"] is not None else "not_saved" if started else "unavailable"
+
 
     def player(p, slot=None):
         r = by_id.get(str(p.get("player_id"))) or by_sleeper.get(str(p.get("sleeper_player_id"))) or p
@@ -163,13 +165,13 @@ def build_room(team: dict, week: int | None = None) -> dict[str, Any]:
         return {"player_id": pid, "name": p.get("name") or r.get("player_name") or "Empty slot",
                 "team": p.get("team") or r.get("team"), "position": p.get("position") or r.get("position"),
                 "slot": slot, "points": None if placeholder or state == "pregame" else p.get("points"),
-                "projection": p.get("proj"), "nickname": overrides.get(pid, imported.get(sid, "")),
+                "projection": p.get("proj"), "projection_status": p.get("projection_status", "unavailable"), "nickname": overrides.get(pid, imported.get(sid, "")),
                 "can_manage": pid in by_id,
                 "nickname_override": pid in overrides, "sleeper_nickname": imported.get(sid, "")}
     slots = scoring.get("starting_slots") or []
     starters = [player(p, slots[i] if i < len(slots) else p.get("position")) for i,p in enumerate(mine.get("starters") or [])]
     starter_ids = {p["player_id"] for p in starters if p["player_id"]}
-    bench_scores = {str(p.get("player_id")): p for p in mine.get("bench_players", [])}
+    bench_scores = {player(p)["player_id"]: p for p in mine.get("bench_players", [])}
     historical = current_week < int(scoring.get("current_week") or current_week)
     if historical:
         # A past week's bench belongs to that lineup, not today's roster.

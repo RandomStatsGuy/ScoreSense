@@ -354,3 +354,12 @@ Manage roster is a separate local tab preserving contracts, cap, cuts, extension
 ## Approved DFS portfolio workspace — September 11, 2026
 
 The user selected option A in `docs/mockups/dfs-gpp-a.html`, with the shared Results dashboard. This supersedes the DFS experience hero/summary, five-format-card grid and full-page Vegas board. Keep the compact title, slate bar, three-column settings/pool/selected-lineup workspace, paginated player table, separate Captain and total exposure, and two export paths. Account backgrounds remain in Account settings. The Results tab tracks imported cash fees and actual payouts, preserves entry IDs, shows import completeness and links entries to immutable build-time inputs. Unknown financial values stay unknown; ROI uses total net divided by total fees, excludes unsettled/void entries and is unavailable when required settled financial data is missing. Results are descriptive, not proof of a strategy. Do not invent ownership, simulation win rates, or payout estimates. CSV imports preview before saving; reserved-entry exports preserve site metadata and require an explicit assignment review.
+
+
+## Approved Game center room — September 11, 2026
+
+The selected B player spotlight concept takes priority for Game center: compact heading/week controls, a matchup scoreboard, selectable position duels with detailed jerseys, every starter below, and a secondary details/league rail. Bench scoring is separate from starter scoring; standings and weekly awards are disclosed on demand. Shared navy/brass material tokens (`--team-room-light`, `--team-room-tint`) extend the My team artwork exception to this matchup surface. Brass frames are material, not win probabilities or awards. Do not restore an experience hero or an uncalibrated win-probability bar above the duel.
+
+Each scoreboard half uses its own team's saved banner through the authenticated media loader and saved crop, faded into the navy center. Missing artwork falls back to navy. Account background themes remain controlled by Account. My team's matchup banner is a keyboard-accessible link carrying the selected team and week to Game center; opening it never writes league focus. Public shared rooms omit the private Game center link.
+
+Game center labels current forecasts separately from the pregame baselines frozen in My team. Missing pregame captures remain missing after kickoff; do not backfill them from a later forecast. Resolve Sleeper IDs against cached NFL forecasts using the weekly board's guarded name/team lookup, including team aliases.

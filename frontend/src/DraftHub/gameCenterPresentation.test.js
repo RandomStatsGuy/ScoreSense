@@ -57,7 +57,10 @@ const MATCHUP = {
 };
 
 test("viewer matchup + team roles resolve", () => {
-  const payload = { viewer_matchup_id: "5", matchups: [{ matchup_id: "4" }, MATCHUP] };
+  const payload = {
+    viewer_matchup_id: "5",
+    matchups: [{ matchup_id: "4" }, MATCHUP],
+  };
   assert.equal(findViewerMatchup(payload), MATCHUP);
   const { viewer, opponent } = matchupTeams(MATCHUP);
   assert.equal(viewer.team_name, "Panda Command");
@@ -76,10 +79,18 @@ test("duel rows pair starters by lineup slot", () => {
   assert.equal(rows[0].away.points, 0);
   assert.equal(rows[1].slot, "RB");
   // Uneven lineups still render every slot.
-  const uneven = duelRows({ starters: [{ name: "Mahomes", position: "QB" }] }, { starters: [] }, []);
+  const uneven = duelRows(
+    { starters: [{ name: "Mahomes", position: "QB" }] },
+    { starters: [] },
+    [],
+  );
   assert.equal(uneven.length, 1);
   assert.equal(uneven[0].away, null);
-  const emptySlots = duelRows({ starters: [] }, { starters: [] }, ["QB", "RB", "WR"]);
+  const emptySlots = duelRows({ starters: [] }, { starters: [] }, [
+    "QB",
+    "RB",
+    "WR",
+  ]);
   assert.equal(emptySlots.length, 0);
 });
 
@@ -92,19 +103,32 @@ test("storyline names the lead and who is still to play", () => {
 
   const final = matchupStoryline({
     viewer: { ...viewer, starters: [{ points: 10 }] },
-    opponent: { ...opponent, team_name: "Daddio", starters: [{ points: 12 }], points: 90.0 },
+    opponent: {
+      ...opponent,
+      team_name: "Daddio",
+      starters: [{ points: 12 }],
+      points: 90.0,
+    },
   });
   assert.match(final, /^Final: Daddio takes it by 2.7/);
 });
 
 test("game center labels lead with owner and keep the team nickname", () => {
   assert.equal(
-    gameCenterTeamLabel({ team_name: "White Supremacists", owner_name: "Caleb K" }),
+    gameCenterTeamLabel({
+      team_name: "White Supremacists",
+      owner_name: "Caleb K",
+    }),
     "Caleb K · White Supremacists",
   );
   const line = matchupStoryline({
     viewer: { points: 10, starters: [{ points: 10 }] },
-    opponent: { team_name: "Daddio of the Pandio", owner_name: "Colby L", points: 12, starters: [{ points: 12 }] },
+    opponent: {
+      team_name: "Daddio of the Pandio",
+      owner_name: "Colby L",
+      points: 12,
+      starters: [{ points: 12 }],
+    },
     weekComplete: true,
   });
   assert.match(line, /Colby L/);
@@ -113,17 +137,26 @@ test("game center labels lead with owner and keep the team nickname", () => {
 
 test("game state label distinguishes past weeks and preseason", () => {
   assert.equal(gameStateLabel({ preseason: true }), "Preseason");
-  assert.equal(gameStateLabel({ placeholder: true, preseason: true }), "No scores yet");
+  assert.equal(
+    gameStateLabel({ placeholder: true, preseason: true }),
+    "No scores yet",
+  );
   assert.equal(gameStateLabel({ week: 10, current_week: 12 }), "Final");
-  assert.equal(gameStateLabel({ week: 12, current_week: 12 }), "Next games Thu");
-  assert.equal(gameStateLabel({ week: 12, current_week: 12, live: true }), "Live");
+  assert.equal(
+    gameStateLabel({ week: 12, current_week: 12 }),
+    "Not started",
+  );
+  assert.equal(
+    gameStateLabel({ week: 12, current_week: 12, live: true }),
+    "Live",
+  );
   assert.equal(
     gameStateLabel({
       week: 1,
       current_week: 1,
       matchups: [{ teams: [{ points: 87 }] }],
     }),
-    "Next games Thu",
+    "Week in progress",
   );
 });
 
@@ -177,10 +210,15 @@ test("standings list keeps the reader when compacting a large league", () => {
     wins: 8,
     losses: 6,
   }));
-  const compact = gameCenterStandingRows(rows, "t12", { compact: true, limit: 6 });
+  const compact = gameCenterStandingRows(rows, "t12", {
+    compact: true,
+    limit: 6,
+  });
   assert.ok(compact.some((row) => row.hub_team_id === "t12"));
   assert.ok(compact.length <= 6);
-  const full = gameCenterStandingRows(rows.slice(0, 10), "t10", { compact: true });
+  const full = gameCenterStandingRows(rows.slice(0, 10), "t10", {
+    compact: true,
+  });
   assert.equal(full.length, 10);
 });
 
@@ -200,7 +238,10 @@ test("pre-draft banner names draft night and opens the room", () => {
 });
 
 test("hero identifies a confirmed empty viewer lineup", () => {
-  const hero = gameCenterHeroCopy({ emptyLineup: true, viewer: { starters: [] } });
+  const hero = gameCenterHeroCopy({
+    emptyLineup: true,
+    viewer: { starters: [] },
+  });
   assert.equal(hero.heading, GAME_CENTER_COPY.emptyLineupHeading);
   assert.equal(hero.support, GAME_CENTER_COPY.emptyLineupSupport);
   const live = gameCenterHeroCopy({
@@ -215,17 +256,41 @@ test("populated and unavailable lineups never claim the viewer lineup is empty",
   const viewer = { starters: [{ name: "Quarterback", points: 0 }], points: 0 };
   const opponent = { starters: [], points: 0 };
   assert.equal(lineupIsEmpty(viewer, opponent), false);
-  assert.notEqual(gameCenterHeroCopy({ viewer, opponent }).heading, GAME_CENTER_COPY.emptyLineupHeading);
+  assert.notEqual(
+    gameCenterHeroCopy({ viewer, opponent }).heading,
+    GAME_CENTER_COPY.emptyLineupHeading,
+  );
   assert.equal(lineupIsEmpty(null, opponent), false);
-  assert.notEqual(gameCenterHeroCopy({ placeholder: true, emptyLineup: true }).heading, GAME_CENTER_COPY.emptyLineupHeading);
-  assert.notEqual(gameCenterHeroCopy({}).heading, GAME_CENTER_COPY.emptyLineupHeading);
+  assert.notEqual(
+    gameCenterHeroCopy({ placeholder: true, emptyLineup: true }).heading,
+    GAME_CENTER_COPY.emptyLineupHeading,
+  );
+  assert.notEqual(
+    gameCenterHeroCopy({}).heading,
+    GAME_CENTER_COPY.emptyLineupHeading,
+  );
   assert.equal(lineupIsEmpty({ starters: [] }, viewer), true);
 });
 
 test("pre-draft treats last year's Sleeper week as placeholder scores", () => {
-  assert.equal(scoresArePlaceholder({ placeholder: false, week: 1 }, { draft_completed: false }), true);
-  assert.equal(gameStateLabel({ week: 1, current_week: 1, status: "complete" }, { draft_completed: false }), GAME_CENTER_COPY.unscoredChip);
-  assert.equal(scoresArePlaceholder({ placeholder: false }, { draft_completed: true }), false);
+  assert.equal(
+    scoresArePlaceholder(
+      { placeholder: false, week: 1 },
+      { draft_completed: false },
+    ),
+    true,
+  );
+  assert.equal(
+    gameStateLabel(
+      { week: 1, current_week: 1, status: "complete" },
+      { draft_completed: false },
+    ),
+    GAME_CENTER_COPY.unscoredChip,
+  );
+  assert.equal(
+    scoresArePlaceholder({ placeholder: false }, { draft_completed: true }),
+    false,
+  );
 });
 
 test("unstarted scores say not started instead of a bare dash", () => {
@@ -271,10 +336,53 @@ test("placeholder storyline keeps the slate and names the missing opponent", () 
   assert.equal(paired, "Week 1 vs Zebra Squad");
   const named = matchupStoryline({
     viewer: { team_name: "Alpha", owner_name: "Avery A" },
-    opponent: { team_name: "White Supremacists", owner_name: "Caleb K", roster_id: "z" },
+    opponent: {
+      team_name: "White Supremacists",
+      owner_name: "Caleb K",
+      roster_id: "z",
+    },
     placeholder: true,
     week: 1,
     hint: GAME_CENTER_COPY.emptyPreseason,
   });
   assert.equal(named, "Week 1 vs Caleb K · White Supremacists");
+});
+
+import {
+  gameCenterWeek,
+  gameCenterProjection,
+  gameCenterLead,
+} from "./gameCenterPresentation.js";
+test("room deep links select the requested week and team without changing league focus", () => {
+  for (const value of [null, "", "bad", 0, 19, 1.5])
+    assert.equal(gameCenterWeek(value), null);
+  assert.equal(gameCenterWeek("6"), 6);
+  const away = { roster_id: "2", hub_team_id: "visiting" };
+  const home = { roster_id: "1", hub_team_id: "mine", is_viewer: true };
+  const selected = { matchup_id: "3", teams: [home, away] };
+  const payload = { viewer_matchup_id: "3", matchups: [selected] };
+  assert.equal(findViewerMatchup(payload, "visiting"), selected);
+  assert.deepEqual(matchupTeams(selected, "visiting"), {
+    viewer: away,
+    opponent: home,
+  });
+  assert.equal(findViewerMatchup(payload, "unknown"), selected);
+});
+test("current forecasts preserve zero and do not imply a saved pregame baseline", () => {
+  assert.equal(
+    gameCenterProjection({ name: "Player", proj: 0 }),
+    "Current forecast: 0.0",
+  );
+  assert.equal(
+    gameCenterProjection({ name: "Player", proj: null }),
+    "Projection unavailable",
+  );
+  assert.equal(
+    gameCenterProjection({ name: "Empty" }),
+    "No player is assigned to this slot.",
+  );
+  assert.equal(
+    gameCenterLead({ points: 5.4 }, { points: 0 }),
+    "5.4 point lead",
+  );
 });
