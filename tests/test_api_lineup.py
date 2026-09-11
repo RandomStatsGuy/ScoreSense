@@ -81,3 +81,24 @@ def test_assetlinks_with_fingerprint(monkeypatch):
         "AA:BB:CC:DD",
         "EE:FF:00:11",
     ]
+
+
+def test_captain_and_imported_projections_reach_optimizer(monkeypatch):
+    import pandas as pd
+    import app.api as api
+    seen = {}
+    def pool(**kwargs):
+        seen["keep"] = kwargs["keep_player_ids"]
+        return pd.DataFrame([{"player_id":"k1", "Projected Points":None, "Low (P10)":None, "High (P90)":None}]), {}
+    def optimize(frame, **kwargs):
+        seen.update(kwargs)
+        seen["proj"] = frame.iloc[0]["Projected Points"]
+        return {"ok":True, "lineups":[]}
+    monkeypatch.setattr(api, "build_lineup_pool", pool)
+    monkeypatch.setattr(api, "optimize_from_pool_dataframe", optimize)
+    request = api.LineupOptimizeRequest(site="draftkings_showdown", locked_captain_id="k1", captain_exposure_limits={"k1":1}, projection_overrides={"k1":{"proj":8,"floor":3,"ceiling":15}})
+    assert api.lineup_optimize(request, {})["ok"]
+    assert "k1" in seen["keep"]
+    assert seen["locked_captain_id"] == "k1"
+    assert seen["captain_exposure_limits"] == {"k1":1}
+    assert seen["proj"] == 8

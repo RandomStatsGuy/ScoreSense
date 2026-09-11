@@ -14,9 +14,9 @@ function classicLineup({ withIds = true } = {}) {
   return {
     lineup: [
       { slot: "QB", player: "QB One", team: "KC", position: "QB", dfs_id: id(1), salary: 8000, value: 3.1, proj: 24.5, floor: 18, ceiling: 31 },
-      { slot: "RB1", player: "RB One", team: "SF", position: "RB", dfs_id: id(2), salary: 9000, value: 2.4, proj: 21.9, floor: 15, ceiling: 28 },
+      { slot: "RB1", player: "RB One", team: "SF", position: "RB", dfs_id: id(2), salary: 6000, value: 2.4, proj: 21.9, floor: 15, ceiling: 28 },
       { slot: "RB2", player: "RB Two", team: "DET", position: "RB", dfs_id: id(3), salary: 6000, value: 2.6, proj: 15.8, floor: 10, ceiling: 22 },
-      { slot: "WR1", player: "WR One", team: "MIN", position: "WR", dfs_id: id(4), salary: 8600, value: 2.3, proj: 19.7, floor: 12, ceiling: 27 },
+      { slot: "WR1", player: "WR One", team: "MIN", position: "WR", dfs_id: id(4), salary: 5000, value: 2.3, proj: 19.7, floor: 12, ceiling: 27 },
       { slot: "WR2", player: "WR Two", team: "CIN", position: "WR", dfs_id: id(5), salary: 7200, value: 2.3, proj: 16.4, floor: 11, ceiling: 24 },
       { slot: "WR3", player: "WR Three", team: "KC", position: "WR", dfs_id: id(6), salary: 5100, value: 2.5, proj: 12.9, floor: 8, ceiling: 19 },
       { slot: "TE", player: "TE One", team: "LV", position: "TE", dfs_id: id(7), salary: 4400, value: 2.4, proj: 10.5, floor: 6, ceiling: 16 },
@@ -29,12 +29,12 @@ function classicLineup({ withIds = true } = {}) {
 function showdownLineup() {
   return {
     lineup: [
-      { slot: "CPT", player: "QB Home", team: "SEA", position: "QB", dfs_id: "c1", salary: 15000, proj: 33.0, floor: 22, ceiling: 42 },
-      { slot: "FLEX1", player: "WR Home", team: "SEA", position: "WR", dfs_id: "f5", salary: 10600, proj: 15.0, floor: 9, ceiling: 21 },
-      { slot: "FLEX2", player: "RB Home", team: "SEA", position: "RB", dfs_id: "f3", salary: 8400, proj: 16.0, floor: 10, ceiling: 22 },
-      { slot: "FLEX3", player: "RB Away", team: "NE", position: "RB", dfs_id: "f4", salary: 8200, proj: 14.0, floor: 9, ceiling: 20 },
-      { slot: "FLEX4", player: "WR Away", team: "NE", position: "WR", dfs_id: "f6", salary: 7000, proj: 13.0, floor: 8, ceiling: 19 },
-      { slot: "FLEX5", player: "TE Home", team: "SEA", position: "TE", dfs_id: "f7", salary: 5200, proj: 10.0, floor: 6, ceiling: 15 },
+      { slot: "CPT", player: "QB Home", team: "SEA", position: "QB", dfs_id: "101", salary: 15000, proj: 33.0, floor: 22, ceiling: 42 },
+      { slot: "FLEX1", player: "WR Home", team: "SEA", position: "WR", dfs_id: "105", salary: 6000, proj: 15.0, floor: 9, ceiling: 21 },
+      { slot: "FLEX2", player: "RB Home", team: "SEA", position: "RB", dfs_id: "103", salary: 8400, proj: 16.0, floor: 10, ceiling: 22 },
+      { slot: "FLEX3", player: "RB Away", team: "NE", position: "RB", dfs_id: "104", salary: 8200, proj: 14.0, floor: 9, ceiling: 20 },
+      { slot: "FLEX4", player: "WR Away", team: "NE", position: "WR", dfs_id: "106", salary: 7000, proj: 13.0, floor: 8, ceiling: 19 },
+      { slot: "FLEX5", player: "TE Home", team: "SEA", position: "TE", dfs_id: "107", salary: 5200, proj: 10.0, floor: 6, ceiling: 15 },
     ],
   };
 }
@@ -65,7 +65,7 @@ test("showdown export leads with the CPT column", () => {
   const result = buildSiteLineupCsv("draftkings_showdown", [showdownLineup()]);
   assert.equal(result.ok, true);
   assert.equal(result.lines[0], '"CPT","FLEX","FLEX","FLEX","FLEX","FLEX"');
-  assert.match(result.lines[1], /^"QB Home \(c1\)"/);
+  assert.match(result.lines[1], /^"QB Home \(101\)"/);
 
   const single = buildSiteLineupCsv("fanduel_single", [showdownLineup()]);
   assert.equal(single.ok, false); // MVP slot label differs from CPT
@@ -92,4 +92,53 @@ test("detail csv covers every slot and lineup", () => {
   const seasonal = buildLineupDetailCsv([classicLineup()], { isDfs: false });
   assert.equal(seasonal.ok, true);
   assert.doesNotMatch(seasonal.lines[0], /"Salary"/);
+});
+
+test("export rejects malformed sets instead of silently dropping entries or slots", () => {
+  for (const malformed of [null, {lineup: []}, {lineup: classicLineup().lineup.slice(1)},
+    {lineup: [...classicLineup().lineup, classicLineup().lineup[0]]}]) {
+    const entries = [classicLineup(), malformed];
+    const result = buildSiteLineupCsv("draftkings", entries);
+    assert.equal(result.ok, false);
+    assert.equal(siteExportDisabledReason("draftkings", entries), result.reason);
+  }
+});
+
+test("export rejects over-budget and invalid salary lineups", () => {
+  for (const salary of [50001, null, "", -1, 12.5, Infinity]) {
+    const entry = classicLineup();
+    entry.lineup[0].salary = salary;
+    assert.equal(buildSiteLineupCsv("draftkings", [entry]).ok, false);
+  }
+});
+
+test("DraftKings IDs must be numeric text, not float or missing-value strings", () => {
+  for (const dfs_id of ["123.0", "NaN", "123e4", " ", "0", "1:Player"]) {
+    const entry = classicLineup();
+    entry.lineup[0].dfs_id = dfs_id;
+    assert.equal(buildSiteLineupCsv("draftkings", [entry]).ok, false);
+  }
+});
+
+test("Captain and FLEX cannot contain the same athlete with different draftable IDs", () => {
+  const entry = showdownLineup();
+  entry.lineup[1] = {...entry.lineup[0], slot: "FLEX1", dfs_id: "999", salary: 1000};
+  assert.match(buildSiteLineupCsv("draftkings_showdown", [entry]).reason, /same player/);
+});
+
+test("Showdown requires two teams and IDs cannot repeat", () => {
+  const entry = showdownLineup();
+  entry.lineup.forEach(row => { row.team = "SEA"; });
+  assert.match(buildSiteLineupCsv("draftkings_showdown", [entry]).reason, /both teams/);
+  const duplicate = classicLineup();
+  duplicate.lineup[1].dfs_id = duplicate.lineup[0].dfs_id;
+  assert.match(buildSiteLineupCsv("draftkings", [duplicate]).reason, /same player/);
+});
+
+test("DraftKings upload limit is 500 and CSV quotes names correctly", () => {
+  assert.equal(buildSiteLineupCsv("draftkings", Array(500).fill(classicLineup())).ok, true);
+  assert.equal(buildSiteLineupCsv("draftkings", Array(501).fill(classicLineup())).ok, false);
+  const entry = classicLineup();
+  entry.lineup[0].player = 'One, "QB"';
+  assert.match(buildSiteLineupCsv("draftkings", [entry]).lines[1], /^"One, ""QB"" \(1\)"/);
 });

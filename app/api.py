@@ -14,7 +14,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Quer
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from starlette.datastructures import Headers
 from starlette.staticfiles import NotModifiedResponse
 
@@ -62,6 +62,7 @@ from app.auth import (
     verify_email_token,
     verify_oauth_state,
 )
+from app.dfs_results_routes import router as dfs_results_router
 from src.auth.rate_limit import check_rate_limit
 from src.products.accuracy_report import load_accuracy_report
 from src.analytics.season_long_eval import load_season_long_report
@@ -170,6 +171,7 @@ app.add_middleware(
 app.include_router(hub_router)
 app.include_router(admin_router)
 app.include_router(support_router)
+app.include_router(dfs_results_router)
 
 
 class ProjectionRequest(BaseModel):
@@ -209,6 +211,9 @@ class LineupOptimizeRequest(BaseModel):
     # Projection jitter between builds (0–1 of a standard deviation).
     randomness: Optional[float] = None
     seed: Optional[int] = None
+    captain_exposure_limits: dict[str, float] = Field(default_factory=dict, max_length=500)
+    locked_captain_id: Optional[str] = None
+    projection_overrides: dict[str, dict[str, float]] = Field(default_factory=dict, max_length=500)
 
 
 def _collect_route_paths(routes) -> set[str]:
@@ -2039,10 +2044,15 @@ def lineup_optimize(
             detail="objective must be median, floor, ceiling, or value",
         )
     site = (request.site or "seasonal").lower()
+    if any(not math.isfinite(v) or not 0 <= v <= 1 for v in request.captain_exposure_limits.values()):
+        raise HTTPException(status_code=400, detail="Captain exposure limits must be between 0 and 1.")
     try:
         keep_player_ids = list(request.locked_player_ids or []) + list(
             request.stack_qb_ids or []
         )
+        keep_player_ids += list(request.captain_exposure_limits) + list(request.projection_overrides)
+        if request.locked_captain_id:
+            keep_player_ids.append(request.locked_captain_id)
         pool, meta = build_lineup_pool(
             season=request.season,
             week=request.week,
@@ -2055,6 +2065,8 @@ def lineup_optimize(
             sal_df = pd.DataFrame(request.slate_salaries)
             pool, sal_stats = attach_salaries_to_pool(pool, sal_df)
             meta["salary_import"] = sal_stats
+        from src.products.dfs_inputs import apply_projection_overrides
+        pool = apply_projection_overrides(pool, request.projection_overrides)
         result = optimize_from_pool_dataframe(
             pool,
             objective=objective,
@@ -2092,6 +2104,8 @@ def lineup_optimize(
                 else 0.0
             ),
             seed=request.seed,
+            captain_exposure_limits=request.captain_exposure_limits,
+            locked_captain_id=request.locked_captain_id,
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc

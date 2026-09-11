@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from src.integrations.external_projections import _normalize_name
+from src.core.team_codes import normalize_team_for_match
 
 _SALARY_COLS = ("salary", "Salary")
 _NAME_COLS = ("Name", "Nickname", "name", "player_name")
@@ -69,7 +70,9 @@ def parse_salary_csv(
     else:
         buf = file
 
-    raw = pd.read_csv(buf)
+    # IDs are identifiers, not numbers. A blank cell must not turn the other
+    # IDs into floats ("12345.0") or round a long identifier.
+    raw = pd.read_csv(buf, dtype=str, keep_default_na=False)
     if raw.empty:
         return pd.DataFrame(columns=_SALARY_FRAME_COLUMNS)
 
@@ -190,6 +193,8 @@ def collapse_captain_rows(salaries: pd.DataFrame) -> pd.DataFrame:
         if not orphans.empty:
             orphans["cpt_salary"] = orphans["salary"]
             orphans["cpt_dfs_id"] = orphans["dfs_id"]
+            # A Captain ID cannot be used to upload this player in FLEX.
+            orphans["dfs_id"] = ""
             orphans["salary"] = (
                 orphans["salary"].astype(float) / CAPTAIN_SALARY_RATIO
             ).round().astype(int)
@@ -238,11 +243,12 @@ def attach_salaries_to_pool(
         return out, {"matched": 0, "unmatched_slate": 0, "dst_added": 0, "pool_without_salary": len(out)}
 
     pool = pool.copy()
+    pool["projection_source"] = "ScoreSense"
     pool["name_key"] = pool["Player"].map(_normalize_name)
-    pool["team_upper"] = pool["Team"].astype(str).str.upper()
+    pool["team_upper"] = pool["Team"].map(normalize_team_for_match)
 
     sal = collapse_captain_rows(salaries)
-    sal["team_upper"] = sal["team"].astype(str).str.upper()
+    sal["team_upper"] = sal["team"].map(normalize_team_for_match)
     skill_positions = sal[sal["position"] != "DST"].copy()
 
     merged = pool.merge(
@@ -262,11 +268,11 @@ def attach_salaries_to_pool(
             fill_row = fill.loc[fill.index[fill["name_key"] == merged.at[idx, "name_key"]]]
             if not fill_row.empty and pd.notna(fill_row.iloc[0]["salary"]):
                 merged.at[idx, "salary"] = fill_row.iloc[0]["salary"]
-                if not merged.at[idx, "dfs_id"]:
+                if pd.isna(merged.at[idx, "dfs_id"]) or not merged.at[idx, "dfs_id"]:
                     merged.at[idx, "dfs_id"] = fill_row.iloc[0].get("dfs_id", "")
                 if pd.isna(merged.at[idx, "cpt_salary"]):
                     merged.at[idx, "cpt_salary"] = fill_row.iloc[0].get("cpt_salary")
-                if not merged.at[idx, "cpt_dfs_id"]:
+                if pd.isna(merged.at[idx, "cpt_dfs_id"]) or not merged.at[idx, "cpt_dfs_id"]:
                     merged.at[idx, "cpt_dfs_id"] = fill_row.iloc[0].get("cpt_dfs_id", "")
 
     skill = merged
@@ -286,6 +292,7 @@ def attach_salaries_to_pool(
                     "Projected Points": 7.0,
                     "Low (P10)": 4.0,
                     "High (P90)": 11.0,
+                    "projection_source": "Fixed estimate",
                     "Injury Status": "",
                     "salary": row["salary"],
                     "dfs_id": row.get("dfs_id", ""),
@@ -300,13 +307,32 @@ def attach_salaries_to_pool(
         dst_added = len(dst_frames)
         skill = pd.concat([skill, pd.DataFrame(dst_frames)], ignore_index=True)
 
+    # Show unmodeled slate players (including kickers) so coverage is visible.
+    # They become eligible only after importing all three projection inputs.
+    existing = set(zip(skill["name_key"], skill["team_upper"]))
+    matched_ids = {str(v) for v in skill["dfs_id"].dropna() if str(v)}
+    missing_rows = []
+    for _, row in sal.iterrows():
+        if (row["name_key"], row["team_upper"]) not in existing and str(row.get("dfs_id", "")) not in matched_ids:
+            missing_rows.append({
+                "player_id": f"slate:{row['team_upper']}:{row['name_key']}",
+                "Player": row["player_name"], "Team": row["team_upper"], "Position": row["position"],
+                "Projected Points": np.nan, "Low (P10)": np.nan, "High (P90)": np.nan,
+                "projection_source": "Missing projection", "Injury Status": "", "on_bye": False,
+                "salary": row["salary"], "dfs_id": row.get("dfs_id", ""),
+                "cpt_salary": row.get("cpt_salary"), "cpt_dfs_id": row.get("cpt_dfs_id", ""),
+                "name_key": row["name_key"], "team_upper": row["team_upper"],
+            })
+    if missing_rows:
+        skill = pd.concat([skill, pd.DataFrame(missing_rows)], ignore_index=True)
+
     skill["salary"] = pd.to_numeric(skill["salary"], errors="coerce")
     skill["cpt_salary"] = pd.to_numeric(skill["cpt_salary"], errors="coerce")
     proj = pd.to_numeric(skill["Projected Points"], errors="coerce").fillna(0)
     skill["value"] = np_where_salary_value(proj, skill["salary"])
 
     skill_matched = skill[skill["Position"] != "DST"]
-    matched = int(skill_matched["salary"].notna().sum())
+    matched = int((skill_matched["salary"].notna() & skill_matched["Projected Points"].notna()).sum())
     slate_skill = sal[sal["position"] != "DST"]
     unmatched_slate = int(max(0, len(slate_skill) - matched))
     without = int((skill_matched["salary"].isna()).sum())
