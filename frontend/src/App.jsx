@@ -83,6 +83,7 @@ import { pageTitleForPath } from "./analytics";
 import { buildAppPath } from "./routes";
 import { destinationForSection } from "./lastDestinations";
 import { apiFetch } from "./auth";
+import { loadAccuracyReports } from "./accuracyReports";
 import { isAbortError } from "./fetchAbort";
 import {
   connectionErrorMessage,
@@ -428,27 +429,10 @@ export default function App() {
     setUpsideReport(null);
     setSeasonLongReport(null);
     try {
-      const accRes = await apiFetch(`/api/accuracy?position=${position}`);
-      if (!accRes.ok) {
-        throw new Error(await parseApiError(accRes, "Accuracy report unavailable"));
-      }
-      setAccuracyReport(await accRes.json());
-      try {
-        const upRes = await apiFetch(`/api/upside?position=${position}`);
-        if (upRes.ok) {
-          setUpsideReport(await upRes.json());
-        }
-      } catch {
-        setUpsideReport(null);
-      }
-      try {
-        const slRes = await apiFetch(`/api/accuracy/season-long?position=${position}`);
-        if (slRes.ok) {
-          setSeasonLongReport(await slRes.json());
-        }
-      } catch {
-        setSeasonLongReport(null);
-      }
+      const reports = await loadAccuracyReports(position, apiFetch);
+      setAccuracyReport(reports.accuracy);
+      setUpsideReport(reports.upside);
+      setSeasonLongReport(reports.seasonLong);
     } catch (err) {
       setAccuracyReport(null);
       setUpsideReport(null);

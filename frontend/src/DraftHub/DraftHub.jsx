@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../auth";
+import { loadHubBootstrap } from "./hubBootstrap";
 import { useAuth } from "../AuthContext";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
@@ -342,13 +343,17 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       if (!demoMode && !authenticated && hubAuthRequired !== false) {
         return;
       }
-      const requests = [loadWorkspace(signal)];
-      if (!demoMode) {
-        requests.push(apiFetch("/api/hub/presets", { signal }));
-      }
-      const results = await Promise.all(requests);
-      const ws = results[0];
-      const presetsRes = results[1];
+      const ws = await loadHubBootstrap({
+        loadWorkspace: () => loadWorkspace(signal),
+        loadPresets: demoMode ? null : async () => {
+          const res = await apiFetch("/api/hub/presets", { signal });
+          if (!res.ok) throw new Error("Presets unavailable");
+          const data = await res.json();
+          return data.presets || [];
+        },
+        onPresets: setPresets,
+        signal,
+      });
       if (signal?.aborted) return;
       const ctx = ws.hub_context || null;
       setWorkspace({ ...ws, hub_context: ctx });
@@ -362,10 +367,6 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       });
       const merged = effectiveMemberships(ws.memberships || [], ctx);
       if (!signal?.aborted) setMemberships(merged);
-      if (presetsRes?.ok) {
-        const p = await presetsRes.json();
-        if (!signal?.aborted) setPresets(p.presets || []);
-      }
     } catch (e) {
       if (isAbortError(e)) return;
       const msg = connectionErrorMessage(e);
