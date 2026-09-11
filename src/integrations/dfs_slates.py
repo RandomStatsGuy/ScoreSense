@@ -280,7 +280,8 @@ def parse_dk_draftables(payload: dict, site: str = "draftkings") -> pd.DataFrame
             or ""
         )
         pos = _normalize_dfs_position(str(entry.get("position") or ""))
-        dfs_id = str(entry.get("draftableId") or entry.get("playerDkId") or entry.get("playerId") or "")
+        # Uploads require the slate/slot draftable ID, not a global athlete ID.
+        dfs_id = str(entry.get("draftableId") or "")
 
         rows.append(
             {
@@ -291,6 +292,7 @@ def parse_dk_draftables(payload: dict, site: str = "draftkings") -> pd.DataFrame
                 "team": str(team).upper(),
                 "salary": salary,
                 "site": site.lower(),
+                "roster_position": "CPT" if str(entry.get("rosterSlotId")) == "511" else "",
             }
         )
     return pd.DataFrame(rows)

@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const BASE = process.env.LAYOUT_AUDIT_BASE || "http://127.0.0.1:5173";
 
-export const NUMERIC_RE = /^[$\-−+]?\s*[\d,.]+(?:st|nd|rd|th|pts?|yds?|%)?$/i;
+export const NUMERIC_RE = /^[\-\u2212+]?\s*\$?\s*[\d,.]+(?:st|nd|rd|th|pts?|yds?|%)?$/i;
 const SINGLE_GLYPH_RE = /^[A-Z]{1,3}$|^[QDP]$|^[·•—–-]$/;
 export const BAR_CONTROL_SELECTOR =
   "button, a[href], input, select, textarea, [role='button'], [role='tab'], [role='radio'], [role='combobox']";
@@ -397,7 +397,7 @@ export function measureScript() {
         const action = /action/i.test(header) || (!table.el.matches(".rosters-table") && /actions|contract/i.test(cells[0]?.className || ""));
         const numeric = bodyTexts.filter((t) => t && isNumeric(t)).length;
         let expect = "left";
-        if (cells[0]?.classList.contains("rosters-num")) expect = "right";
+        if ((cells[0]?.classList.contains("rosters-num") || cells[0]?.classList.contains("num"))) expect = "right";
         else if (cells[0]?.classList.contains("rosters-chevron")) expect = "center";
         else if (glyph) expect = "center";
         else if (action || (bodyTexts.length && numeric / bodyTexts.length >= 0.8)) expect = "right";

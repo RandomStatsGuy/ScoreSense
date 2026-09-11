@@ -216,7 +216,9 @@ def _players_from_pool(
         if pid in excluded_player_ids:
             continue
         pos = _normalize_pos(row.get("Position", ""))
-        if pos not in ("QB", "RB", "WR", "TE", "DST"):
+        if pos not in ("QB", "RB", "WR", "TE", "DST", "K"):
+            continue
+        if any(pd.isna(row.get(col)) for col in ("Projected Points", "Low (P10)", "High (P90)")):
             continue
 
         salary_raw = row.get("salary")
@@ -254,7 +256,7 @@ def _players_from_pool(
             LineupPlayer(
                 player_id=pid,
                 name=str(row.get("Player") or ""),
-                team=str(row.get("Team") or ""),
+                team=normalize_team_for_match(row.get("Team") or ""),
                 position=pos,
                 proj=float(row.get("Projected Points") or 0),
                 floor=float(row.get("Low (P10)") or 0),
@@ -442,6 +444,8 @@ def optimize_lineup(
     captain_salary_multiplier: float = 1.5,
     captain_label: str = "CPT",
     extra_constraints: list[PlayerConstraint] | None = None,
+    excluded_captain_ids: set[str] | None = None,
+    locked_captain_id: str | None = None,
 ) -> dict:
     """Maximize projected points (or value) under roster and optional salary-cap constraints."""
     locked_player_ids = locked_player_ids or set()
@@ -462,6 +466,8 @@ def optimize_lineup(
             captain_salary_multiplier=captain_salary_multiplier,
             captain_label=captain_label,
             extra_constraints=extra_constraints,
+            excluded_captain_ids=excluded_captain_ids,
+            locked_captain_id=locked_captain_id,
         )
 
     n = len(players)
@@ -630,6 +636,8 @@ def _optimize_captain_lineup(
     captain_salary_multiplier: float = 1.5,
     captain_label: str = "CPT",
     extra_constraints: list[PlayerConstraint] | None = None,
+    excluded_captain_ids: set[str] | None = None,
+    locked_captain_id: str | None = None,
 ) -> dict:
     """Single-game captain-mode MILP: one CPT/MVP slot at boosted points/salary + FLEX."""
     locked_player_ids = locked_player_ids or set()
@@ -643,6 +651,8 @@ def _optimize_captain_lineup(
         return {"ok": False, "error": "No eligible players in the pool.", "lineup": []}
 
     idx = {p.player_id: i for i, p in enumerate(players)}
+    if locked_captain_id and locked_captain_id not in idx:
+        return {"ok": False, "error": "The locked Captain is not eligible for this slate.", "lineup": []}
     for pid in locked_player_ids:
         if pid not in idx:
             return {"ok": False, "error": f"Locked player {pid} not found in pool.", "lineup": []}
@@ -673,6 +683,13 @@ def _optimize_captain_lineup(
 
     integrality = np.ones(n_vars, dtype=int)
     bounds = Bounds(lb=np.zeros(n_vars), ub=np.ones(n_vars))
+    for pid in excluded_captain_ids or set():
+        if pid in idx:
+            bounds.ub[n + idx[pid]] = 0
+    if locked_captain_id:
+        bounds.lb[n + idx[locked_captain_id]] = 1
+        if bounds.ub[n + idx[locked_captain_id]] == 0:
+            return {"ok": False, "error": "The locked Captain conflicts with the Captain exposure limit.", "lineup": []}
     constraints: list[LinearConstraint] = []
 
     flex_row = np.concatenate([np.ones(n), np.zeros(n)])
@@ -694,6 +711,8 @@ def _optimize_captain_lineup(
         )
 
     teams = sorted({p.team.upper() for p in players if p.team})
+    if len(teams) != 2:
+        return {"ok": False, "error": "Load a single-game slate with exactly two teams.", "lineup": []}
     if len(teams) == 2:
         # Site rule on single-game slates: at least one player from each team.
         for team in teams:
@@ -753,7 +772,7 @@ def _optimize_captain_lineup(
                     if cpt_salary > 0
                     else None
                 ),
-                "dfs_id": p.cpt_dfs_id or p.dfs_id or None,
+                "dfs_id": p.cpt_dfs_id or (p.dfs_id if captain_label == "MVP" else None),
                 "multiplier": captain_multiplier,
             }
         )
@@ -868,6 +887,7 @@ def optimize_multiple_lineups(
     max_exposure: float | None = None,
     randomness: float = 0.0,
     seed: int | None = None,
+    captain_exposure_limits: dict[str, float] | None = None,
     **kwargs,
 ) -> dict:
     """Generate diverse lineups with overlap caps, exposure caps, and optional jitter."""
@@ -879,9 +899,11 @@ def optimize_multiple_lineups(
     randomness = max(0.0, min(float(randomness or 0.0), 1.0))
     exposure_cap = None
     if max_exposure is not None and 0 < float(max_exposure) < 1:
-        exposure_cap = max(1, math.ceil(float(max_exposure) * count))
+        exposure_cap = math.floor(float(max_exposure) * count + 1e-9)
 
     locked = set(kwargs.get("locked_player_ids") or [])
+    if kwargs.get("locked_captain_id"):
+        locked.add(kwargs["locked_captain_id"])
     rng = np.random.default_rng(seed)
     by_id = {p.player_id: p for p in players}
 
@@ -889,6 +911,10 @@ def optimize_multiple_lineups(
     extra: list[PlayerConstraint] = []
     usage: dict[str, int] = {}
     excluded_by_exposure: set[str] = set()
+    captain_usage: dict[str, int] = {}
+    captain_caps = {pid: math.floor(float(limit) * count + 1e-9) for pid, limit in (captain_exposure_limits or {}).items()}
+    if exposure_cap == 0:
+        return {"ok": False, "error": "The exposure limit allows zero appearances at this lineup count. Increase the count or limit.", "lineup": []}
 
     for _ in range(count):
         noise = None
@@ -897,9 +923,11 @@ def optimize_multiple_lineups(
                 p.player_id: float(np.clip(rng.normal(1.0, randomness), 0.05, None))
                 for p in players
             }
-        result = optimize_lineup(
-            players, extra_constraints=extra, objective_noise=noise, **kwargs
-        )
+        iteration_kwargs = dict(kwargs)
+        iteration_kwargs["excluded_captain_ids"] = set(kwargs.get("excluded_captain_ids") or []) | {
+            pid for pid, cap in captain_caps.items() if captain_usage.get(pid, 0) >= cap
+        }
+        result = optimize_lineup(players, extra_constraints=extra, objective_noise=noise, **iteration_kwargs)
         if not result.get("ok"):
             if lineups:
                 return _multi_result(
@@ -915,6 +943,10 @@ def optimize_multiple_lineups(
             return result
 
         lineups.append(result)
+        for row in result["lineup"]:
+            if row["slot"] in ("CPT", "MVP"):
+                pid = row["player_id"]
+                captain_usage[pid] = captain_usage.get(pid, 0) + 1
         chosen_ids = [row["player_id"] for row in result["lineup"]]
         extra.append(({pid: 1.0 for pid in chosen_ids}, 0, float(max_overlap)))
         for pid in chosen_ids:
@@ -1003,6 +1035,8 @@ def optimize_from_pool_dataframe(
     max_exposure: float | None = None,
     randomness: float = 0.0,
     seed: int | None = None,
+    captain_exposure_limits: dict[str, float] | None = None,
+    locked_captain_id: str | None = None,
 ) -> dict:
     site_cfg = get_site_config(site)
     cap = salary_cap if salary_cap is not None else site_cfg["salary_cap"]
@@ -1035,7 +1069,11 @@ def optimize_from_pool_dataframe(
         "captain_multiplier": site_cfg.get("captain_multiplier", 1.5),
         "captain_salary_multiplier": site_cfg.get("captain_salary_multiplier", 1.5),
         "captain_label": site_cfg.get("captain_label", "CPT"),
+        "excluded_captain_ids": {pid for pid, limit in (captain_exposure_limits or {}).items() if math.floor(limit * max(1, lineup_count) + 1e-9) == 0},
+        "locked_captain_id": locked_captain_id,
     }
+    if lineup_count <= 1 and max_exposure is not None and 0 < max_exposure < 1:
+        return {"ok": False, "error": "The exposure limit allows zero appearances at this lineup count. Increase the count or limit.", "lineup": []}
     if lineup_count > 1:
         return optimize_multiple_lineups(
             players,
@@ -1044,6 +1082,7 @@ def optimize_from_pool_dataframe(
             max_exposure=max_exposure,
             randomness=randomness,
             seed=seed,
+            captain_exposure_limits=captain_exposure_limits,
             **opt_kwargs,
         )
     if randomness > 0:

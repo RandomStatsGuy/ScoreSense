@@ -32,6 +32,20 @@ def test_parse_draftkings_csv():
     assert int(df.loc[df["position"] == "QB", "salary"].iloc[0]) == 8200
 
 
+def test_salary_ids_remain_text_with_missing_ids():
+    df = parse_salary_csv("Name,ID,Position,Salary,TeamAbbrev\nOne,1234567890123456789,QB,5000,KC\nTwo,,RB,4000,SF\n")
+    assert df["dfs_id"].tolist() == ["1234567890123456789", ""]
+
+
+def test_captain_only_row_never_invents_a_flex_id():
+    df = parse_salary_csv("Name,ID,Position,Roster Position,Salary,TeamAbbrev\nOne,123,QB,CPT,7500,KC\n")
+    row = collapse_captain_rows(df).iloc[0]
+    assert row["cpt_dfs_id"] == "123"
+    assert row["dfs_id"] == ""
+    assert row["cpt_salary"] == 7500
+    assert row["salary"] == 5000
+
+
 def test_attach_salaries_matches_name_and_team():
     pool = pd.DataFrame(
         [
@@ -159,3 +173,11 @@ def test_attach_salaries_carries_captain_columns():
     assert dst["salary"] == 4200
     assert dst["cpt_salary"] == 6300
     assert stats["dst_added"] == 1
+
+
+def test_team_alias_does_not_append_a_duplicate_missing_player():
+    pool = pd.DataFrame([{"player_id":"p1", "Player":"Puka Nacua", "Team":"LA", "Position":"WR", "Projected Points":20, "Low (P10)":10, "High (P90)":30}])
+    salaries = parse_salary_csv("Name,ID,Position,Salary,TeamAbbrev\nPuka Nacua,123,WR,10000,LAR\n")
+    merged, _ = attach_salaries_to_pool(pool, salaries)
+    assert len(merged) == 1
+    assert merged.iloc[0]["dfs_id"] == "123"
