@@ -27,6 +27,7 @@ export default function DfsResults() {
   const previewVersion = useRef(0);
   const [progress, setProgress] = useState("");
   const [entryPage, setEntryPage] = useState(0);
+  const [username, setUsername] = useState("");
   useEffect(() => () => worker.current?.terminate(), []);
   const [data, setData] = useState({ entries: [], builds: [] }),
     [error, setError] = useState(""),
@@ -113,6 +114,11 @@ export default function DfsResults() {
       const parsed = await workerRequest("inspect", { file: f });
       setFile({ ...parsed, name: f.name });
       setMapping(parsed.mapping);
+      setContestId(parsed.contestId || "");
+      if (parsed.isStandings) {
+        setKind("results");
+        setSite("draftkings");
+      }
     } catch (e) {
       setError(e.message);
     } finally {
@@ -180,6 +186,7 @@ export default function DfsResults() {
         />
         <DfsFile
           label={C.history}
+          accept=".csv,.zip,text/csv,application/zip,application/x-zip-compressed"
           onFile={(f) => {
             setKind("history");
             importFile(f);
@@ -188,6 +195,7 @@ export default function DfsResults() {
         />
         <DfsFile
           label={C.scores}
+          accept=".csv,.zip,text/csv,application/zip,application/x-zip-compressed"
           onFile={(f) => {
             setKind("results");
             importFile(f);
@@ -228,7 +236,12 @@ export default function DfsResults() {
             {file.name} · {file.rowCount.toLocaleString()}{" "}
             {C.count.toLowerCase()}
           </p>
-          <p className="dfw-note">{C.payoutHelp}</p>
+          <p className="dfw-note">
+            {file.isStandings ? C.standingsHelp : C.payoutHelp}
+          </p>
+          {file.contestId && (
+            <p className="dfw-note">{C.detectedContest(file.contestId)}</p>
+          )}
           <div className="dfw-import-grid">
             <HubFilterMenu
               label={C.site}
@@ -256,6 +269,7 @@ export default function DfsResults() {
             />
             <DfsField label={C.contestOverride}>
               <input
+                aria-label={C.contestOverride}
                 value={contestId}
                 onChange={(e) => {
                   setContestId(e.target.value);
@@ -263,8 +277,21 @@ export default function DfsResults() {
                 }}
               />
             </DfsField>
+            {file.isStandings && (
+              <DfsField label={C.username}>
+                <input
+                  aria-label={C.username}
+                  value={username}
+                  autoComplete="off"
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    clearPreview();
+                  }}
+                />
+              </DfsField>
+            )}
           </div>
-          <details open>
+          <details open={!file.isStandings}>
             <summary>{C.mapping}</summary>
             <div className="dfw-import-grid">
               {RESULT_FIELDS.map(([id, label]) => (
@@ -310,7 +337,20 @@ export default function DfsResults() {
               try {
                 const rows = await workerRequest("preview", {
                   mapping,
-                  options: { site, kind, contestId, settled },
+                  options: {
+                    site,
+                    kind,
+                    contestId,
+                    settled,
+                    username,
+                    knownEntries: data.entries.map(
+                      ({ site, contest_id, entry_id }) => ({
+                        site,
+                        contest_id,
+                        entry_id,
+                      }),
+                    ),
+                  },
                 });
                 if (version === previewVersion.current) setPreview(rows);
                 setError("");
@@ -326,10 +366,21 @@ export default function DfsResults() {
           </button>
           {preview && (
             <>
+              {file.isStandings && (
+                <p className="dfw-note">
+                  {C.selectedEntries(preview.length, file.rowCount)}
+                </p>
+              )}
               <p className="dfw-note">
-                {preview.length} {C.count.toLowerCase()} · {C.fees}:{" "}
-                {dollars(previewTotals.fees)} · {C.payouts}:{" "}
-                {dollars(previewTotals.payouts)}
+                {preview.length} {C.count.toLowerCase()} ·{" "}
+                {kind === "history" ? (
+                  <>
+                    {C.fees}: {dollars(previewTotals.fees)} · {C.payouts}:{" "}
+                    {dollars(previewTotals.payouts)}
+                  </>
+                ) : (
+                  C.scoresOnly
+                )}
               </p>
               <div className="dfw-table-scroll">
                 <table className="dfw-table">
@@ -345,8 +396,14 @@ export default function DfsResults() {
                   <tbody>
                     {preview.slice(0, 8).map((e) => (
                       <tr key={`${e.contest_id}|${e.entry_id}`}>
-                        <td>{e.entry_id}</td>
-                        <td>{e.contest_name || e.contest_id}</td>
+                        <td>
+                          {e.entry_name
+                            ? `${e.entry_name} · ${e.entry_id}`
+                            : `${C.entry} ${e.entry_id}`}
+                        </td>
+                        <td>
+                          {e.contest_name || `${C.contest} ${e.contest_id}`}
+                        </td>
                         <td className="num">{dollars(e.fee_cents)}</td>
                         <td className="num">{dollars(e.payout_cents)}</td>
                         <td className="num">{e.points ?? "—"}</td>

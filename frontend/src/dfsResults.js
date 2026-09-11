@@ -1,7 +1,9 @@
 import { parseDfsCsv, headerKey, moneyCents } from "./dfsCsv.js";
+import { DFS_RESULTS_COPY as C } from "./dfsToolPresentation.js";
 
 export const RESULT_FIELDS = [
   ["entry_id", "Entry ID", ["entryid"]],
+  ["entry_name", "Entry name", ["entryname"]],
   ["contest_id", "Contest ID", ["contestid"]],
   ["contest_name", "Contest name", ["contestname", "contest"]],
   ["date", "Date", ["date", "contestdate", "startdate"]],
@@ -12,17 +14,56 @@ export const RESULT_FIELDS = [
   ["lineup_text", "Lineup", ["lineup"]],
 ];
 
-export function inspectResultsCsv(text) {
+export function contestIdFromFilename(name = "") {
+  return (
+    String(name).match(
+      /(?:^|[/\\])contest-standings-(\d+)(?:\s*\(\d+\))?\.(?:csv|zip)$/i,
+    )?.[1] || ""
+  );
+}
+
+export function draftKingsUsername(name = "") {
+  return String(name)
+    .trim()
+    .replace(/\s+\(\d+\/\d+\)$/, "")
+    .toLowerCase();
+}
+
+export function inspectResultsCsv(text, { filename = "" } = {}) {
   const rows = parseDfsCsv(text, { maxChars: 100_000_000, maxRows: 250_001 });
   if (rows.length < 2) throw new Error("The CSV has no entry rows.");
-  const keys = rows[0].map(headerKey);
+  let headers = rows[0];
+  let keys = headers.map(headerKey);
+  const isStandings = [
+    "entryid",
+    "entryname",
+    "rank",
+    "points",
+    "lineup",
+  ].every((key) => keys.includes(key));
+  // DraftKings places a separate player ownership table after the blank column.
+  const separator = isStandings ? keys.indexOf("") : -1;
+  if (separator >= 0) {
+    headers = headers.slice(0, separator);
+    keys = keys.slice(0, separator);
+  }
   const mapping = Object.fromEntries(
     RESULT_FIELDS.map(([field, , aliases]) => [
       field,
       keys.findIndex((k) => aliases.includes(k)),
     ]),
   );
-  return { headers: rows[0], rows: rows.slice(1), mapping };
+  const entryRows = rows
+    .slice(1)
+    .map((row) => (separator >= 0 ? row.slice(0, separator) : row))
+    .filter((row) => row.some((cell) => cell.trim()));
+  return {
+    headers,
+    rows: entryRows,
+    mapping,
+    isStandings,
+    contestId: contestIdFromFilename(filename),
+  };
 }
 
 export function parseResultsRows(
@@ -33,16 +74,45 @@ export function parseResultsRows(
     kind = "history",
     contestId = "",
     settled = true,
+    username = "",
+    knownEntries = [],
   } = {},
 ) {
   const seen = new Set();
   const get = (r, k) =>
     Number(mapping[k]) >= 0 ? String(r[Number(mapping[k])] ?? "").trim() : "";
-  return file.rows.map((row, i) => {
+  const selectedUser = draftKingsUsername(username);
+  const known = new Set(
+    knownEntries
+      .filter((entry) => entry.site === site)
+      .map((entry) => JSON.stringify([entry.contest_id, entry.entry_id])),
+  );
+  if (file.isStandings && site !== "draftkings")
+    throw new Error(C.standingsSite);
+  if (file.isStandings && kind !== "results")
+    throw new Error(C.standingsFinance);
+  if (file.isStandings && !selectedUser && !known.size)
+    throw new Error(C.usernameRequired);
+  const chosen = file.rows
+    .map((row, i) => ({ row, i }))
+    .filter(({ row }) => {
+      if (!file.isStandings) return true;
+      if (selectedUser)
+        return draftKingsUsername(get(row, "entry_name")) === selectedUser;
+      return known.has(
+        JSON.stringify([
+          get(row, "contest_id") || contestId.trim() || file.contestId,
+          get(row, "entry_id"),
+        ]),
+      );
+    });
+  if (file.isStandings && !chosen.length) throw new Error(C.noMatchingEntries);
+  return chosen.map(({ row, i }) => {
     const entry = {
       site,
       entry_id: get(row, "entry_id"),
-      contest_id: get(row, "contest_id") || contestId.trim(),
+      contest_id:
+        get(row, "contest_id") || contestId.trim() || file.contestId || "",
     };
     if (!entry.entry_id || !entry.contest_id)
       throw new Error(
@@ -52,7 +122,7 @@ export function parseResultsRows(
     if (seen.has(key))
       throw new Error(`Entry ${entry.entry_id} appears twice in this contest.`);
     seen.add(key);
-    for (const k of ["contest_name", "lineup_text"])
+    for (const k of ["entry_name", "contest_name", "lineup_text"])
       if (get(row, k)) entry[k] = get(row, k);
     const date = get(row, "date");
     if (date) {
