@@ -22,6 +22,7 @@ export function TeamRoomView({
   onShare,
   onAppearance,
   onLineup,
+  matchupHref,
   busy = false,
   message = "",
 }) {
@@ -69,6 +70,7 @@ export function TeamRoomView({
   const shareUrl = data.share_token
     ? `${location.origin}/team-room/${data.share_token}`
     : "";
+  const Scoreboard = matchupHref ? "a" : "div";
   return (
     <section
       className={`team-room team-room--${data.theme || "none"}`}
@@ -161,7 +163,7 @@ export function TeamRoomView({
           )}
         </div>
       )}
-      <div className="team-room-scoreboard">
+      <Scoreboard className="team-room-scoreboard" href={matchupHref} aria-label={matchupHref ? COPY.openGameCenter : undefined}>
         <div>
           <span>{data.team.name}</span>
           <strong key={data.score}>{roomNumber(data.score)}</strong>
@@ -184,7 +186,8 @@ export function TeamRoomView({
           <span>{data.opponent?.name || "Opponent"}</span>
           <strong>{roomNumber(data.opponent?.score)}</strong>
         </div>
-      </div>
+        {matchupHref && <span className="team-room-matchup-link">{COPY.openGameCenter} <span aria-hidden="true">→</span></span>}
+      </Scoreboard>
       <div className="team-room-toolbar">
         <HubFilterMenu
           label="Week"
@@ -271,7 +274,7 @@ export function TeamRoomView({
                     >
                       {delta == null
                         ? p.projection == null
-                          ? "Proj —"
+                          ? p.projection_status === "not_saved" ? COPY.projectionNotSavedShort : "Proj —"
                           : `Proj ${roomNumber(p.projection)}`
                         : `${delta > 0 ? "+" : ""}${delta.toFixed(1)} vs proj`}
                     </small>
@@ -333,7 +336,7 @@ export function TeamRoomView({
                       </strong>
                       <span>
                         {p.projection == null
-                          ? COPY.projectionMissing
+                          ? p.projection_status === "not_saved" ? COPY.projectionNotSaved : COPY.projectionMissing
                           : `Projection ${roomNumber(p.projection)}`}
                       </span>
                     </div>
@@ -535,6 +538,7 @@ export default function TeamRoom({
   return (
     <TeamRoomView
       data={data}
+      matchupHref={!token && leagueId && data.opponent ? `/hub/game?matchupWeek=${data.week}&matchupTeam=${encodeURIComponent(data.team.id)}` : undefined}
       busy={busy}
       message={error ? `${error} Showing the last update.` : message}
       onWeek={setWeek}

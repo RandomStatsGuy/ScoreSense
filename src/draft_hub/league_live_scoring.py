@@ -120,6 +120,7 @@ def _enrich_starter(
         "position": str(info.get("position") or ""),
         "team": str(info.get("team") or ""),
         "points": round(pts, 2),
+        "jersey_number": info.get("number"),
     }
 
 
@@ -288,13 +289,26 @@ def attach_matchup_analytics(
 ) -> None:
     """Per-starter projections, estimated finals, and win probability per matchup."""
     index = proj_index or {}
+    # Sleeper no longer provides gsis_id for many current players. Reuse the
+    # weekly board's guarded name/team resolver rather than guessing identities.
+    from src.draft_hub.weekly_command_center import _lookup_projection, name_key
+    by_name_team, by_name, seen = {}, {}, set()
+    for entry in index.values():
+        identity = (entry.get("player_id"), entry.get("player_name"), entry.get("team"))
+        if identity in seen:
+            continue
+        seen.add(identity)
+        nk = name_key(str(entry.get("player_name") or ""))
+        if nk:
+            by_name.setdefault(nk, []).append(entry)
+            by_name_team[f"{nk}|{str(entry.get('team') or '').upper()}"] = entry
     for matchup in matchup_payloads:
         teams = matchup.get("teams") or []
         for team in teams:
-            for starter in team.get("starters") or []:
-                entry = (
-                    index.get(str(starter.get("player_id") or ""))
-                    or index.get(str(starter.get("sleeper_player_id") or ""))
+            for starter in (team.get("starters") or []) + (team.get("bench_players") or []):
+                entry = _lookup_projection(
+                    {**starter, "player_name": starter.get("name")},
+                    index, by_name_team, by_name,
                 )
                 starter["proj"] = entry.get("p50") if entry else None
             estimate_team_final(team)

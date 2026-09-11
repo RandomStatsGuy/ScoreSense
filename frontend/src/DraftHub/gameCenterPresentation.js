@@ -4,12 +4,35 @@ import { hubTeamLabel, hubTeamParts } from "./hubTeamLabel.js";
 
 export const GAME_CENTER_COPY = {
   eyebrow: "Game center",
-  emptySolo: "Game center follows your head-to-head matchup. Open a shared league to use it.",
+  backToTeam: "Back to My team",
+  retry: "Try again",
+  starters: "Starters",
+  bench: "Bench",
+  league: "League",
+  everyStarter: "Every starter",
+  selectPosition: "Choose a position to compare",
+  headToHead: "Head to head",
+  selectedPlayer: "Selected player",
+  points: "fantasy points",
+  currentForecast: "Current forecast",
+  noProjection: "Projection unavailable",
+  noPlayer: "No player is assigned to this slot.",
+  emptySlot: "Empty slot",
+  scoreSource: "Scoring from your league",
+  forecastNote:
+    "Current forecasts can change. They are separate from the pregame projections saved in My team.",
+  benchNote: "Bench points do not count toward the matchup score.",
+  noBench: "No bench players reported.",
+  reviewLineup: "Review lineup",
+  standingsAwards: "Standings & weekly awards",
+  emptySolo:
+    "Game center follows your head-to-head matchup. Open a shared league to use it.",
   emptyNoSleeper: "Link Sleeper to fill scores.",
   emptyPreseason: "No scored matchups yet. Scores fill in after kickoff.",
   loadingChip: "Loading",
   unscoredChip: "No scores yet",
-  emptyDuel: "No starting lineup is available. Review your lineup on This Week.",
+  emptyDuel:
+    "No starting lineup is available. Review your lineup on This Week.",
   setLineup: "Set lineup",
   setupCta: "Link Sleeper",
   openDraft: "Open draft room",
@@ -53,8 +76,19 @@ export function gameCenterTeamParts(team) {
   });
 }
 
-export function findViewerMatchup(payload) {
+export function gameCenterWeek(value) {
+  const week = Number(value);
+  return Number.isInteger(week) && week >= 1 && week <= 18 ? week : null;
+}
+
+export function findViewerMatchup(payload, teamId) {
   const matchups = payload?.matchups || [];
+  if (teamId) {
+    const selected = matchups.find((m) =>
+      m.teams?.some((t) => String(t.hub_team_id) === String(teamId)),
+    );
+    if (selected) return selected;
+  }
   const viewerId = payload?.viewer_matchup_id;
   if (viewerId != null) {
     const hit = matchups.find((m) => String(m.matchup_id) === String(viewerId));
@@ -63,10 +97,13 @@ export function findViewerMatchup(payload) {
   return null;
 }
 
-export function matchupTeams(matchup) {
+export function matchupTeams(matchup, teamId) {
   const teams = matchup?.teams || [];
   if (teams.length < 2) return { viewer: teams[0] || null, opponent: null };
-  const viewer = teams.find((t) => t.is_viewer) || teams[0];
+  const viewer =
+    (teamId && teams.find((t) => String(t.hub_team_id) === String(teamId))) ||
+    teams.find((t) => t.is_viewer) ||
+    teams[0];
   const opponent = teams.find((t) => t !== viewer) || null;
   return { viewer, opponent };
 }
@@ -84,7 +121,8 @@ export function formatWinProb(prob) {
 
 /** Count starters who have not put up points yet (0.0 = hasn't played). */
 export function startersPending(team) {
-  return (team?.starters || []).filter((s) => Number(s?.points || 0) === 0).length;
+  return (team?.starters || []).filter((s) => Number(s?.points || 0) === 0)
+    .length;
 }
 
 /** Slot-by-slot pairing for the starter duel. Sleeper keeps both starter
@@ -97,7 +135,14 @@ export function duelRows(viewer, opponent, startingSlots = []) {
   for (let i = 0; i < count; i += 1) {
     const home = mine[i] || null;
     const away = theirs[i] || null;
-    if (!duelSlotFilled(home) && !duelSlotFilled(away) && !home?.sleeper_player_id && !away?.sleeper_player_id && !home?.points && !away?.points) {
+    if (
+      !duelSlotFilled(home) &&
+      !duelSlotFilled(away) &&
+      !home?.sleeper_player_id &&
+      !away?.sleeper_player_id &&
+      !home?.points &&
+      !away?.points
+    ) {
       continue;
     }
     rows.push({
@@ -120,12 +165,17 @@ export function matchupStoryline({
   hint = "",
 } = {}) {
   if (placeholder) {
-    const tbd = !opponent?.team_name || opponent.team_name === "Opponent TBD" || opponent.roster_id === "tbd";
+    const tbd =
+      !opponent?.team_name ||
+      opponent.team_name === "Opponent TBD" ||
+      opponent.roster_id === "tbd";
     if (tbd) {
       return week != null ? `Week ${week} opponent TBD` : "Opponent TBD";
     }
     const opponentLabel = gameCenterTeamLabel(opponent) || opponent.team_name;
-    return week != null ? `Week ${week} vs ${opponentLabel}` : `vs ${opponentLabel}`;
+    return week != null
+      ? `Week ${week} vs ${opponentLabel}`
+      : `vs ${opponentLabel}`;
   }
   if (!viewer || !opponent) return "";
   const margin = Number(viewer.points || 0) - Number(opponent.points || 0);
@@ -134,21 +184,23 @@ export function matchupStoryline({
   const theirPending = startersPending(opponent);
   if (weekComplete || (myPending === 0 && theirPending === 0)) {
     if (margin > 0) return `Final: you win by ${lead}.`;
-    if (margin < 0) return `Final: ${gameCenterTeamLabel(opponent)} takes it by ${lead}.`;
+    if (margin < 0)
+      return `Final: ${gameCenterTeamLabel(opponent)} takes it by ${lead}.`;
     return "Final: a dead tie.";
   }
-  const pendingNote = theirPending > 0
-    ? `${gameCenterTeamLabel(opponent)} has ${theirPending} starter${theirPending === 1 ? "" : "s"} left`
-    : `you have ${myPending} starter${myPending === 1 ? "" : "s"} left`;
+  const pendingNote =
+    theirPending > 0
+      ? `${gameCenterTeamLabel(opponent)} has ${theirPending} starter${theirPending === 1 ? "" : "s"} left`
+      : `you have ${myPending} starter${myPending === 1 ? "" : "s"} left`;
   if (margin > 0) return `You lead by ${lead} — ${pendingNote}.`;
   if (margin < 0) return `You trail by ${lead} — ${pendingNote}.`;
   return `All square — ${pendingNote}.`;
 }
 
 export function matchupsHavePoints(payload) {
-  return (payload?.matchups || []).some((matchup) => (
-    (matchup?.teams || []).some((team) => Number(team?.points) > 0)
-  ));
+  return (payload?.matchups || []).some((matchup) =>
+    (matchup?.teams || []).some((team) => Number(team?.points) > 0),
+  );
 }
 
 export function scoresArePlaceholder(payload, hubContext) {
@@ -156,14 +208,16 @@ export function scoresArePlaceholder(payload, hubContext) {
 }
 
 export function gameStateLabel(payload, hubContext) {
-  if (scoresArePlaceholder(payload, hubContext)) return GAME_CENTER_COPY.unscoredChip;
+  if (scoresArePlaceholder(payload, hubContext))
+    return GAME_CENTER_COPY.unscoredChip;
   if (payload?.preseason) return "Preseason";
   const week = payload?.week;
   const current = payload?.current_week;
-  if (week != null && current != null && Number(week) < Number(current)) return "Final";
+  if (week != null && current != null && Number(week) < Number(current))
+    return "Final";
   const liveFlag = payload?.live === true || payload?.has_live_games === true;
   if (liveFlag) return "Live";
-  return "Next games Thu";
+  return matchupsHavePoints(payload) ? "Week in progress" : GAME_CENTER_COPY.notStarted;
 }
 
 export function formatSyncedAgo(syncedAt) {
@@ -178,7 +232,10 @@ export function formatSyncedAgo(syncedAt) {
 
 export function standingsHaveResults(standings) {
   return (standings || []).some((row) => {
-    const games = Number(row?.wins || 0) + Number(row?.losses || 0) + Number(row?.ties || 0);
+    const games =
+      Number(row?.wins || 0) +
+      Number(row?.losses || 0) +
+      Number(row?.ties || 0);
     return games > 0 || Number(row?.points_for || 0) > 0;
   });
 }
@@ -206,7 +263,11 @@ export function interpretStandings(scoring, { phaseId, draftCompleted } = {}) {
   };
 }
 
-export function gameCenterStandingRows(standings, viewerId, { compact = false, limit = 12 } = {}) {
+export function gameCenterStandingRows(
+  standings,
+  viewerId,
+  { compact = false, limit = 12 } = {},
+) {
   if (!standings?.length) return [];
   if (!compact || standings.length <= limit) return standings;
   const top = standings.slice(0, 3);
@@ -225,7 +286,8 @@ export function gameCenterStandingRows(standings, viewerId, { compact = false, l
       out.push(row);
     }
   }
-  if (!seen.has(String(standings[mineIdx].roster_id))) out.push(standings[mineIdx]);
+  if (!seen.has(String(standings[mineIdx].roster_id)))
+    out.push(standings[mineIdx]);
   return out;
 }
 
@@ -257,7 +319,11 @@ export function formatDraftNightDate(iso) {
   if (!iso) return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  return d.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export function gameCenterBanner({
@@ -319,13 +385,18 @@ export function gameCenterHeroCopy({
   };
 }
 
-export function formatMatchupScore(value, { placeholder = false, proj = null } = {}) {
+export function formatMatchupScore(
+  value,
+  { placeholder = false, proj = null } = {},
+) {
   const projNum = proj == null ? null : Number(proj);
   const hasProj = projNum != null && !Number.isNaN(projNum) && projNum > 0;
   if (placeholder || value == null || Number.isNaN(Number(value))) {
     return {
       score: "—",
-      label: hasProj ? `proj ${projNum.toFixed(1)}` : GAME_CENTER_COPY.notStarted,
+      label: hasProj
+        ? `proj ${projNum.toFixed(1)}`
+        : GAME_CENTER_COPY.notStarted,
     };
   }
   return {
@@ -343,10 +414,14 @@ export function shouldShowNextWeek(weekNumber, maxWeek) {
 }
 
 export function trophyLeaderLabel(option) {
-  return hubTeamLabel({
-    name: option?.team_name,
-    owner_name: option?.owner_name,
-  }) || option?.team_name || "";
+  return (
+    hubTeamLabel({
+      name: option?.team_name,
+      owner_name: option?.owner_name,
+    }) ||
+    option?.team_name ||
+    ""
+  );
 }
 
 export function trophySummaryState({ leader, votes, youVoted = false } = {}) {
@@ -362,4 +437,19 @@ export function lineupIsEmpty(viewer, opponent, rows = []) {
   // whether the message "Your lineup is empty" applies.
   if (!Array.isArray(viewer?.starters)) return false;
   return viewer.starters.every((player) => !duelSlotFilled(player));
+}
+
+export function gameCenterLead(viewer, opponent, placeholder = false) {
+  if (placeholder) return GAME_CENTER_COPY.unscoredChip;
+  const margin = Number(viewer?.points || 0) - Number(opponent?.points || 0);
+  return margin === 0
+    ? "Tied"
+    : `${Math.abs(margin).toFixed(1)} point ${margin > 0 ? "lead" : "deficit"}`;
+}
+export function gameCenterProjection(player) {
+  if (!duelSlotFilled(player)) return GAME_CENTER_COPY.noPlayer;
+  const value = player?.proj;
+  return value != null && Number.isFinite(Number(value))
+    ? `${GAME_CENTER_COPY.currentForecast}: ${Number(value).toFixed(1)}`
+    : GAME_CENTER_COPY.noProjection;
 }

@@ -144,8 +144,9 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "matchup",
     route: "/hub/game",
     page: "frontend/src/DraftHub/GameCenter.jsx",
+    also: ["frontend/src/DraftHub/GameCenterMatchup.jsx", "frontend/src/styles/game-center-room.css"],
     copy: "frontend/src/DraftHub/gameCenterPresentation.js",
-    doNot: "Game center is a matchup board, not an editorial settings page. Live renders only inside a game window. Hero names the job (empty lineup cost, then the live score). Pre-draft empty copy is one draft-night sentence to Open draft room — not Link Sleeper or a kickoff wait. Standings share Home's last-season records and stay unranked until a game is played. Do not play last year's Sleeper week as this week's scores. Include the viewer on mobile. Gold only on a claimed trophy. Trophy summary is one flex row, title and value on one baseline. Unscored placeholder chip is No scores yet — never Waiting. Loading uses a skeleton or Loading chip.",
+    doNot: "Game center is a matchup board, not an editorial settings page. Live renders only inside a game window. Approved B: compact heading, personalized split-banner scoreboard, selected jersey duel, all starters below, details/league rail. Reuse each team’s uploaded banner through authenticated media and saved crop; navy fallback. Separate Bench and League views. Do not restore an experience hero or win-probability bar. Pre-draft empty copy is one draft-night sentence to Open draft room — not Link Sleeper or a kickoff wait. Standings share Home's last-season records and stay unranked until a game is played. Do not play last year's Sleeper week as this week's scores. Include the viewer on mobile. Brass room material extends My team’s approved artwork exception; award gold remains for trophies. Trophy summary is one flex row, title and value on one baseline. Unscored placeholder chip is No scores yet — never Waiting. Loading uses a skeleton or Loading chip.",
   }),
   "hub.roster": S({
     label: "My team",

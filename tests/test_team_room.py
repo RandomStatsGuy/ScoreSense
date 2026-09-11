@@ -68,6 +68,7 @@ def test_room_payload_is_allowlisted_and_does_not_leak_contracts(hub_db, monkeyp
     assert "salary" not in json.dumps(room)
     assert "rules" not in room
     assert room["starters"][0]["can_manage"] is False
+    assert room["starters"][0]["projection_status"] == "available"
     # Opening a historical room must not borrow today's bench or reforecast.
     scoring["current_week"] = 2
     scoring["matchups"][0]["teams"][0]["starters"][0]["proj"] = 99
@@ -76,6 +77,11 @@ def test_room_payload_is_allowlisted_and_does_not_leak_contracts(hub_db, monkeyp
     assert historical["state"] == "final"
     assert historical["starters"][0]["projection"] == 23
     assert historical["bench"] == []
+    scoring["matchups"][0]["teams"][0]["starters"].append({"player_id": "late", "name": "Late player", "team": "KC", "proj": 20})
+    missing = team_room.build_room(team, 1)["starters"][1]
+    assert missing["projection"] is None
+    assert missing["projection_status"] == "not_saved"
+
     assert scoring["matchups"][0]["teams"][0]["starters"][0]["proj"] == 99
 
 
