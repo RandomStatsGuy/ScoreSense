@@ -1,3 +1,5 @@
+import "../styles/tools-draft.css";
+import "../styles/fantasy.css";
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
 import { useAuth } from "../AuthContext";

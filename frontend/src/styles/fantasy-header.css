@@ -35,7 +35,6 @@
  .hub-subnav-row--flat .app-section-subnav-label { display: inline; }
  .hub-subnav-row--flat .app-section-subnav-label-short { display: none; }
  .hub-subnav-row--flat .fantasy-league-nav { margin-left: auto; }
- .draft-hub > .hub-league-context-bar { z-index: var(--z-sticky); padding: var(--space-3); margin: 0; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; box-shadow: none; }
  .hub-league-context-bar .hub-league-context-top { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-4); min-height: var(--control-h-lg,44px); }
  .hub-league-context-bar .hub-league-context-identity { display: flex; align-items: center; gap: var(--space-4); flex: 0 1 auto; min-width: 0; }
  .hub-league-context-bar .hub-league-switcher--compact { min-width: 0; max-width: 440px; }

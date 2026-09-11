@@ -1,3 +1,4 @@
+import "./styles/player-details.css";
 import React, { useEffect, useMemo, useState } from "react";
 import Chip from "./Chip";
 import PlayerCell, { usePlayerMedia } from "./PlayerCell";
@@ -6,8 +7,7 @@ import { apiFetch } from "./auth";
 import { connectionErrorMessage, fmtNum, parseApiError } from "./format";
 import { isAbortError } from "./fetchAbort";
 
-const MAX_COMPARE = 4;
-const MIN_COMPARE = 2;
+import { MAX_COMPARE, MIN_COMPARE } from "./playerCompareLimits";
 
 function leaderId(leader) {
   return leader?.player_id || null;

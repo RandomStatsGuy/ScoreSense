@@ -308,3 +308,4 @@ export default function AccountAuth({
     </section>
   );
 }
+import "./styles/auth-session.css";
